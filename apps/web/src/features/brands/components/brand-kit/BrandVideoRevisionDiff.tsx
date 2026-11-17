@@ -40,9 +40,10 @@ const OPTION_VALUES = new Set([
 export default function BrandVideoRevisionDiff({
   approved,
   draft,
+  finishingBaseline,
 }: BrandVideoRevisionDiffProps) {
   const t = useTranslations('pages.brandVideoKit');
-  const changes = diffVideoKit(approved, draft);
+  const changes = diffVideoKit(approved, draft, finishingBaseline);
   if (changes.length === 0) return null;
 
   function format(value: BrandVideoKitValue): string {

@@ -40,6 +40,11 @@ function isLocalOrigin(url: URL): boolean {
   return LOCAL_HOSTNAMES.has(url.hostname);
 }
 
+function hasUsablePublicOrigin(value: string | undefined): boolean {
+  const origin = parseOrigin(value);
+  return origin?.protocol === 'http:' || origin?.protocol === 'https:';
+}
+
 function hasUsableOpenRouterKey(value: string | undefined): boolean {
   const key = value?.trim() ?? '';
   return OPENROUTER_KEY_SHAPE.test(key) && !PLACEHOLDER_PATTERN.test(key);
@@ -99,6 +104,14 @@ export function findSelfHostedConfigIssues(
       message:
         'Missing or placeholder OpenRouter key; text generation and the agent will fail. Create one at https://openrouter.ai/keys.',
       variable: 'OPENROUTER_API_KEY',
+    });
+  }
+
+  if (!hasUsablePublicOrigin(input.appPublicUrl)) {
+    issues.push({
+      message:
+        'Preview invite links fall back to the production website; set the address this install is served from before sending invites.',
+      variable: 'GENFEEDAI_PUBLIC_URL',
     });
   }
 

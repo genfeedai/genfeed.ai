@@ -10,6 +10,7 @@ import { CONTEXT_EMBEDDING_QUEUE } from '@genfeedai/contracts/queue';
 import { SERVER_TOKENS } from '@api/index';
 import { QueueService } from '@api/queues/core/queue.service';
 import { HeygenPollQueueService } from '@api/queues/heygen-poll/heygen-poll-queue.service';
+import { HiggsFieldPollQueueService } from '@api/queues/higgsfield-poll/higgsfield-poll-queue.service';
 import { ReplicatePollQueueService } from '@api/queues/replicate-poll/replicate-poll-queue.service';
 import {
   ACCOUNT_GENERATION_QUEUE,
@@ -19,6 +20,7 @@ import {
   CREDIT_DEDUCTION_QUEUE,
   DEFAULT_QUEUE,
   HEYGEN_POLL_QUEUE,
+  HIGGSFIELD_POLL_QUEUE,
   MEDIA_MODERATION_QUEUE,
   MEDIA_PERCEPTION_QUEUE,
   NOTIFICATION_DELIVERY_QUEUE,
@@ -44,7 +46,12 @@ import { ConfigModule } from '@workers/config/config.module';
 import { ConfigService } from '@workers/config/config.service';
 
 @Module({
-  exports: [QueueService, HeygenPollQueueService, ReplicatePollQueueService],
+  exports: [
+    QueueService,
+    HeygenPollQueueService,
+    HiggsFieldPollQueueService,
+    ReplicatePollQueueService,
+  ],
   imports: [
     LoggerModule,
     BullModule.forRootAsync({
@@ -190,6 +197,15 @@ import { ConfigService } from '@workers/config/config.service';
       },
       {
         defaultJobOptions: {
+          attempts: 2,
+          backoff: { delay: 5000, type: 'exponential' },
+          removeOnComplete: 100,
+          removeOnFail: 50,
+        },
+        name: HIGGSFIELD_POLL_QUEUE,
+      },
+      {
+        defaultJobOptions: {
           attempts: 3,
           backoff: { delay: 60_000, type: 'exponential' },
           removeOnComplete: true,
@@ -229,6 +245,7 @@ import { ConfigService } from '@workers/config/config.service';
   providers: [
     QueueService,
     HeygenPollQueueService,
+    HiggsFieldPollQueueService,
     ReplicatePollQueueService,
     // Schedule 24h reply post-watch series after successful X publish.
     {

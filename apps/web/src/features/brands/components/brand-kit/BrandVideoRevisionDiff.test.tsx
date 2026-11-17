@@ -53,4 +53,25 @@ describe('BrandVideoRevisionDiff', () => {
       screen.queryByRole('heading', { name: 'Video identity' }),
     ).toBeNull();
   });
+
+  it('shows a changed finishing value against a revision that predates finishing', () => {
+    render(
+      <BrandVideoRevisionDiff
+        approved={draft({})}
+        draft={draft({
+          finishing: {
+            ...finishing,
+            endCard: { durationSeconds: 6, isEnabled: false },
+          },
+        })}
+        finishingBaseline={finishing}
+      />,
+    );
+
+    expect(
+      screen.getByRole('heading', { name: 'Finishing' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('End card length (s)')).toBeInTheDocument();
+    expect(screen.queryByText('End card')).toBeNull();
+  });
 });
