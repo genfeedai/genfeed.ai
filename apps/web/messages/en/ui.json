@@ -523,6 +523,7 @@
     "activityViewAction": "View"
   },
   "platformPreview": {
+    "published": "Published",
     "blocked": "Blocked",
     "warnings": "Warnings",
     "valid": "Valid",

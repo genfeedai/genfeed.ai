@@ -11,7 +11,7 @@ export default function TargetPreview({
   presentation,
   ...props
 }: TargetPreviewProps) {
-  const translate = useTranslations('pages.publishing.release.details');
+  const translate = useTranslations('ui.platformPreview');
   const isPublished =
     props.target.executionState === TargetExecutionState.PUBLISHED;
   return (
