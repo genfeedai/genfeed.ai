@@ -222,7 +222,7 @@
     "symbol": "apps/server/mcp/src/mcp/setup-page.ts"
   },
   {
-    "actual": 1747,
+    "actual": 1746,
     "file": "apps/server/mcp/src/ui/preview-client.tsx",
     "metric": "file-lines",
     "symbol": "apps/server/mcp/src/ui/preview-client.tsx"

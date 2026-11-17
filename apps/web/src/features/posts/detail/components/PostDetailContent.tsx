@@ -4,7 +4,6 @@ import {
   CredentialPlatform,
   PageScope,
   type Platform,
-  TargetExecutionState,
 } from '@genfeedai/contracts';
 import type {
   IIngredient,
@@ -22,6 +21,7 @@ import type { TweetTone } from '@/features/posts/components/composer-actions/Pos
 import ThreadPreviewPanel from '@/features/posts/components/posts/preview/thread-preview-panel/ThreadPreviewPanel';
 import PostDetailPostList from '@/features/posts/detail/components/PostDetailPostList';
 import PostDetailThreadFooter from '@/features/posts/detail/components/PostDetailThreadFooter';
+import { isPostPublished } from '@/features/posts/detail/post-published.helper';
 
 export interface PostDetailContentProps {
   post: IPost;
@@ -181,9 +181,7 @@ export default function PostDetailContent({
   getPostsService,
   notificationsService,
 }: PostDetailContentProps) {
-  const isPublished =
-    Boolean(post.publicationDate) ||
-    post.targetExecutionState === TargetExecutionState.PUBLISHED;
+  const isPublished = isPostPublished(post);
   const isEditable = scope === PageScope.PUBLISHING;
   const isTwitter = post.platform === CredentialPlatform.TWITTER;
 

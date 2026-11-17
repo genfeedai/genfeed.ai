@@ -1,33 +1,15 @@
 'use client';
 
-import { CredentialPlatform } from '@genfeedai/contracts';
-import type { IconType } from '@genfeedai/contracts/interfaces/ui/icon.interface';
-import {
-  FacebookIcon,
-  InstagramIcon,
-  LinkedinIcon,
-  RedditIcon,
-  TiktokIcon,
-  XTwitterIcon,
-  YoutubeIcon,
-} from '@genfeedai/helpers/ui/icons/brands';
 import ClientDateTime from '@ui/components/time/ClientDateTime';
+import AccountIdentity from '@ui/posts/account-identity/AccountIdentity';
+import { formatHandle } from '@ui/posts/platform-preview/platform-preview.helpers';
+import { getPlatformPreviewIcon } from '@ui/posts/platform-preview/platform-preview-icons';
 import { Badge } from '@ui/primitives/badge';
 import { ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { Fragment, type ReactNode } from 'react';
 import type { PostSidebarDestinationProps } from '@/props/components/post-detail-sidebar.props';
-
-const platformIconMap: Partial<Record<CredentialPlatform, IconType>> = {
-  [CredentialPlatform.TIKTOK]: TiktokIcon,
-  [CredentialPlatform.YOUTUBE]: YoutubeIcon,
-  [CredentialPlatform.TWITTER]: XTwitterIcon,
-  [CredentialPlatform.INSTAGRAM]: InstagramIcon,
-  [CredentialPlatform.FACEBOOK]: FacebookIcon,
-  [CredentialPlatform.LINKEDIN]: LinkedinIcon,
-  [CredentialPlatform.REDDIT]: RedditIcon,
-};
 
 export function getPlatformLabel(
   platform: string | undefined,
@@ -55,14 +37,17 @@ export default function PostSidebarDestination({
   isPublished,
 }: PostSidebarDestinationProps) {
   const translate = useTranslations('ui.postDetailInspector');
-  const PlatformIcon = post.platform
-    ? platformIconMap[post.platform as CredentialPlatform]
-    : undefined;
+  const platformLabel = getPlatformLabel(
+    post.platform,
+    translate('unknownPlatform'),
+  );
+  const accountName =
+    credential?.externalName?.trim() ||
+    credential?.label?.trim() ||
+    credential?.externalHandle?.trim() ||
+    platformLabel;
+  const accountHandle = formatHandle(credential?.externalHandle ?? undefined);
   const whenValue = isPublished ? post.publicationDate : post.scheduledDate;
-  const accountLabel =
-    credential?.label && credential.label !== credential.externalHandle
-      ? credential.label
-      : undefined;
 
   const facts: DestinationFact[] = [];
 
@@ -104,27 +89,17 @@ export default function PostSidebarDestination({
       className="flex flex-col gap-2 border-b border-border pb-4"
       data-testid="post-destination"
     >
-      <div className="flex items-center gap-3">
-        {PlatformIcon ? (
-          <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-muted">
-            <PlatformIcon className="size-5" />
-          </span>
-        ) : null}
-
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold">
-            {getPlatformLabel(post.platform, translate('unknownPlatform'))}
-          </p>
-          {credential?.externalHandle || accountLabel ? (
-            <p className="truncate text-xs text-muted-foreground">
-              {credential?.externalHandle
-                ? `@${credential.externalHandle}`
-                : null}
-              {credential?.externalHandle && accountLabel ? ' · ' : null}
-              {accountLabel}
-            </p>
-          ) : null}
-        </div>
+      <div className="flex items-center justify-between gap-3">
+        <AccountIdentity
+          avatarAlt={translate('avatarAlt', { name: accountName })}
+          avatarUrl={credential?.externalAvatar}
+          handle={accountHandle}
+          name={accountName}
+          PlatformIcon={
+            post.platform ? getPlatformPreviewIcon(post.platform) : undefined
+          }
+          platformLabel={platformLabel}
+        />
 
         <Badge status={post.status} className="shrink-0">
           {post.status}

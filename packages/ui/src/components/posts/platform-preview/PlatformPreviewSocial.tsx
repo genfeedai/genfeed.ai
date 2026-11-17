@@ -1,7 +1,6 @@
 'use client';
 
 import type { PlatformPreviewRendererProps } from '@genfeedai/props/components/platform-preview.props';
-import { PreviewPresentation } from '@ui/posts/platform-preview/PlatformPreview.context';
 import CaptionText, {
   CharacterCounter,
   LinkPreviewCard,
@@ -9,14 +8,7 @@ import CaptionText, {
   ValidationIssues,
 } from '@ui/posts/platform-preview/PlatformPreviewCaption';
 import MediaGrid from '@ui/posts/platform-preview/PlatformPreviewMedia';
-import PreviewShell, {
-  AuthorAvatar,
-  AuthorRow,
-} from '@ui/posts/platform-preview/PlatformPreviewShell';
-import {
-  formatHandle,
-  getAuthorName,
-} from '@ui/posts/platform-preview/platform-preview.helpers';
+import PreviewShell from '@ui/posts/platform-preview/PlatformPreviewShell';
 import {
   Bookmark,
   Heart,
@@ -26,54 +18,27 @@ import {
   ThumbsUp,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useContext } from 'react';
 
 export default function XPreviewRenderer({
   target,
 }: PlatformPreviewRendererProps) {
-  const translate = useTranslations('ui.platformPreview');
-  const { headerPresentation } = useContext(PreviewPresentation);
-  const isAccountHeader = headerPresentation === 'account';
   return (
-    <PreviewShell eyebrow={translate('eyebrow.x')} target={target}>
-      <div className="flex gap-3">
-        {isAccountHeader ? null : <AuthorAvatar target={target} />}
-        <div className="min-w-0 flex-1">
-          <div
-            className={
-              isAccountHeader
-                ? 'mb-2 flex justify-end'
-                : 'mb-2 flex items-center justify-between gap-3'
-            }
-          >
-            {isAccountHeader ? null : (
-              <div className="min-w-0">
-                <p className="truncate text-sm font-semibold text-foreground">
-                  {getAuthorName(target)}
-                </p>
-                {formatHandle(target.author?.handle) ? (
-                  <p className="truncate text-xs text-muted-foreground">
-                    {formatHandle(target.author?.handle)}
-                  </p>
-                ) : null}
-              </div>
-            )}
-            <CharacterCounter state={target.captionState} />
-          </div>
-          <ThreadSegments target={target} />
-          <div className={target.media.length ? 'mt-3' : undefined}>
-            <MediaGrid target={target} />
-          </div>
-          <LinkPreviewCard target={target} />
-          <div className="mt-4 flex justify-between text-muted-foreground">
-            <MessageCircle className="size-4" />
-            <RefreshCw className="size-4" />
-            <Heart className="size-4" />
-            <Bookmark className="size-4" />
-          </div>
-          <ValidationIssues target={target} />
-        </div>
+    <PreviewShell target={target}>
+      <div className="mb-2 flex justify-end">
+        <CharacterCounter state={target.captionState} />
       </div>
+      <ThreadSegments target={target} />
+      <div className={target.media.length ? 'mt-3' : undefined}>
+        <MediaGrid target={target} />
+      </div>
+      <LinkPreviewCard target={target} />
+      <div className="mt-4 flex justify-between text-muted-foreground">
+        <MessageCircle className="size-4" />
+        <RefreshCw className="size-4" />
+        <Heart className="size-4" />
+        <Bookmark className="size-4" />
+      </div>
+      <ValidationIssues target={target} />
     </PreviewShell>
   );
 }
@@ -81,10 +46,8 @@ export default function XPreviewRenderer({
 export function ThreadsPreviewRenderer({
   target,
 }: PlatformPreviewRendererProps) {
-  const translate = useTranslations('ui.platformPreview');
   return (
-    <PreviewShell eyebrow={translate('eyebrow.threads')} target={target}>
-      <AuthorRow target={target} />
+    <PreviewShell target={target}>
       <div className="mt-3">
         <ThreadSegments target={target} />
       </div>
@@ -112,8 +75,7 @@ export function LinkedInPreviewRenderer({
 }: PlatformPreviewRendererProps) {
   const translate = useTranslations('ui.platformPreview');
   return (
-    <PreviewShell eyebrow={translate('eyebrow.linkedin')} target={target}>
-      <AuthorRow target={target} meta={translate('public')} />
+    <PreviewShell accountMeta={translate('public')} target={target}>
       <div className="mt-3 flex items-center justify-between gap-3">
         <span className="text-xs font-medium uppercase text-muted-foreground">
           {translate('feedPost')}
@@ -149,8 +111,7 @@ export function FacebookPreviewRenderer({
 }: PlatformPreviewRendererProps) {
   const translate = useTranslations('ui.platformPreview');
   return (
-    <PreviewShell eyebrow={translate('eyebrow.facebook')} target={target}>
-      <AuthorRow target={target} meta={translate('public')} />
+    <PreviewShell accountMeta={translate('public')} target={target}>
       <CaptionText target={target} />
       <MediaGrid target={target} />
       <LinkPreviewCard target={target} />
@@ -181,8 +142,7 @@ export function RedditPreviewRenderer({
 }: PlatformPreviewRendererProps) {
   const translate = useTranslations('ui.platformPreview');
   return (
-    <PreviewShell eyebrow={translate('eyebrow.reddit')} target={target}>
-      <AuthorRow target={target} />
+    <PreviewShell target={target}>
       {target.title ? (
         <h3 className="text-base font-semibold">{target.title}</h3>
       ) : null}

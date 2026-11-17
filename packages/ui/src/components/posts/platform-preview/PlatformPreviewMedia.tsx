@@ -267,8 +267,6 @@ export default function MediaGrid({
   variant = 'grid',
 }: PlatformPreviewMediaGridProps) {
   const translate = useTranslations('ui.platformPreview');
-  const { headerPresentation } = useContext(PreviewPresentation);
-  const mediaMargin = headerPresentation === 'account' ? undefined : 'mt-3';
   const platform = resolvePreviewPlatform(target.platform);
   const aspect = platform
     ? getPlatformPreviewLimit(platform)?.mediaAspect
@@ -338,7 +336,6 @@ export default function MediaGrid({
   if (variant === 'square' && visibleMedia.length > 1) {
     return (
       <div
-        className={mediaMargin}
         data-testid="preview-media"
         data-media-aspect={aspect}
         data-media-layout="carousel"
@@ -361,7 +358,7 @@ export default function MediaGrid({
 
   return (
     <div
-      className={cn(mediaMargin, 'grid gap-1.5', gridClassName)}
+      className={cn('grid gap-1.5', gridClassName)}
       data-testid="preview-media"
       data-media-aspect={aspect}
     >
