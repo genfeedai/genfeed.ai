@@ -134,7 +134,7 @@ export default function YoutubeClipperContent(): React.ReactElement {
     );
   }, []);
 
-  // use-effect-audit: ignore abortable poll of the public clipper session
+  // use-effect-audit: ignore poll timer; cleanup drops stale responses
   useEffect(() => {
     if (!session?.previewToken) {
       return;
