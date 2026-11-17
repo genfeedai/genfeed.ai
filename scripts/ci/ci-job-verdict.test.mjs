@@ -96,7 +96,7 @@ function reader({
       body: pageTransform(
         {
           total_count: jobs.length,
-          jobs: jobs.slice((page - 1) * 100, page * 100),
+          jobs: jobs.slice((page - 1) * 20, page * 20),
         },
         page,
       ),
@@ -114,7 +114,7 @@ test('qualifies own genuine success and rereads attempt identity', async () => {
       `/repos/${repository}/actions/runs/123`,
       '/repos/' +
         repository +
-        '/actions/runs/123/attempts/2/jobs?per_page=100&page=1',
+        '/actions/runs/123/attempts/2/jobs?per_page=20&page=1',
       `/repos/${repository}/actions/runs/123`,
     ],
   );
@@ -297,7 +297,7 @@ test('a pull request that merges mid-run still qualifies from its exact pull req
       `/repos/${repository}/pulls/42`,
       '/repos/' +
         repository +
-        '/actions/runs/123/attempts/2/jobs?per_page=100&page=1',
+        '/actions/runs/123/attempts/2/jobs?per_page=20&page=1',
       `/repos/${repository}/actions/runs/123`,
       `/repos/${repository}/pulls/42`,
     ],
@@ -478,10 +478,10 @@ test('non-PR events never read a pull request route', async () => {
 });
 
 test('reads all numbered pages including a real match after page one', async () => {
-  const jobs = Array.from({ length: 201 }, (_, i) =>
+  const jobs = Array.from({ length: 41 }, (_, i) =>
     job({ id: i + 100, name: `Worker ${i}` }),
   );
-  jobs[200] = job({ id: 999 });
+  jobs[40] = job({ id: 999 });
   const api = reader({ jobs });
   assert.equal((await qualifyVerdict(expected, api)).id, 999);
   assert.equal(
@@ -503,7 +503,7 @@ for (const [label, transform] of [
   ['noninteger total', (body) => ({ ...body, total_count: 1.5 })],
 ]) {
   test(`rejects pagination ${label}`, async () => {
-    const jobs = Array.from({ length: 101 }, (_, i) =>
+    const jobs = Array.from({ length: 21 }, (_, i) =>
       job({ id: i + 1, name: i ? `Worker ${i}` : expected.jobName }),
     );
     await assert.rejects(
@@ -512,9 +512,9 @@ for (const [label, transform] of [
   });
 }
 test('rejects duplicate IDs across pages', async () => {
-  const jobs = Array.from({ length: 101 }, (_, i) =>
+  const jobs = Array.from({ length: 21 }, (_, i) =>
     job({
-      id: i === 100 ? 1 : i + 1,
+      id: i === 20 ? 1 : i + 1,
       name: i ? `Worker ${i}` : expected.jobName,
     }),
   );
@@ -814,8 +814,57 @@ test('CLI rejects hostile context and permanent transport errors without token d
   }
 });
 
+for (const jobsPath of [
+  `/repos/${repository}/actions/runs/123/attempts/2/jobs`,
+  '/repositories/987654321/actions/runs/123/attempts/2/jobs',
+]) {
+  test(`follows a next link written as ${jobsPath}`, async () => {
+    const jobs = Array.from({ length: 41 }, (_, i) =>
+      job({ id: i + 1, name: i === 40 ? expected.jobName : `Worker ${i}` }),
+    );
+    const api = reader({ jobs });
+    const get = async (...args) => {
+      const response = await api.get(...args);
+      const page = Number(
+        new URL(`https://api.github.com${args[0]}`).searchParams.get('page'),
+      );
+      if (args[0].includes('/jobs?') && page < 3)
+        response.headers = new Headers({
+          link: `<https://api.github.com${jobsPath}?per_page=20&page=${page + 1}>; rel="next"`,
+        });
+      return response;
+    };
+    assert.equal((await qualifyVerdict(expected, { get })).id, 41);
+  });
+}
+
 for (const link of [
-  '<https://api.github.com/repos/genfeedai/genfeed.ai/actions/runs/123/attempts/2/jobs?per_page=100&page=2>; rel=next',
+  '<https://api.github.com/repositories/987654321/actions/runs/999/attempts/2/jobs?per_page=20&page=2>; rel="next"',
+  '<https://api.github.com/repositories/987654321/actions/runs/123/attempts/2/jobs?per_page=20&page=3>; rel="next"',
+  '<https://api.github.com/repositories/987654321/actions/runs/123/attempts/2/jobs?per_page=100&page=2>; rel="next"',
+  '<https://evil.example/repositories/987654321/actions/runs/123/attempts/2/jobs?per_page=20&page=2>; rel="next"',
+]) {
+  test(`rejects a next link that is not the next jobs page ${link}`, async () => {
+    const jobs = Array.from({ length: 41 }, (_, i) =>
+      job({ id: i + 1, name: i === 40 ? expected.jobName : `Worker ${i}` }),
+    );
+    const api = reader({ jobs });
+    await assert.rejects(
+      qualifyVerdict(expected, {
+        get: async (...args) => {
+          const response = await api.get(...args);
+          if (args[0].endsWith('page=1'))
+            response.headers = new Headers({ link });
+          return response;
+        },
+      }),
+      /next-page/,
+    );
+  });
+}
+
+for (const link of [
+  '<https://api.github.com/repos/genfeedai/genfeed.ai/actions/runs/123/attempts/2/jobs?per_page=20&page=2>; rel=next',
   '<https://evil.example/token>; rel="NEXT"',
   '<https://evil.example/token>; rel="next"; ignored="extra"',
   '<https://evil.example/token>; rel="next", <https://evil.example/token>; rel="next"',
@@ -837,8 +886,8 @@ for (const link of [
 }
 
 test('pagination transient restarts from run identity and rereads all pages', async () => {
-  const jobs = Array.from({ length: 101 }, (_, i) =>
-    job({ id: i + 1, name: i === 100 ? expected.jobName : `Worker ${i}` }),
+  const jobs = Array.from({ length: 21 }, (_, i) =>
+    job({ id: i + 1, name: i === 20 ? expected.jobName : `Worker ${i}` }),
   );
   const api = reader({ jobs });
   let failed = false;
@@ -857,7 +906,7 @@ test('pagination transient restarts from run identity and rereads all pages', as
         sleep: async (ms) => delays.push(ms),
       })
     ).id,
-    101,
+    21,
   );
   assert.deepEqual(delays, [2_000]);
   assert.equal(
