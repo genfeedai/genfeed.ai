@@ -161,6 +161,7 @@ function clearCookies(): void {
   for (const cookie of document.cookie.split(';')) {
     const name = cookie.split('=')[0]?.trim();
     if (name) {
+      // biome-ignore lint/suspicious/noDocumentCookie: jsdom has no Cookie Store API; a cookie is expired by writing it.
       document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
     }
   }
