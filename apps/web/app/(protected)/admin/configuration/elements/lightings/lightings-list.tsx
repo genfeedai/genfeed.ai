@@ -178,9 +178,7 @@ function LightingsListContent({
   // Register refresh callback
   useEffect(() => {
     if (onRefresh) {
-      return onRefresh(async () => {
-        await refreshLightings();
-      });
+      return onRefresh(() => refreshLightings());
     }
   }, [onRefresh, refreshLightings]);
 

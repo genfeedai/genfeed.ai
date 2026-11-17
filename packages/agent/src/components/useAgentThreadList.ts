@@ -304,7 +304,7 @@ export function useAgentThreadList({
       return;
     }
 
-    let isDisposed = false;
+    const abortController = new AbortController();
     let retryTimeoutId: ReturnType<typeof setTimeout> | undefined;
     let retryCount = 0;
 
@@ -317,7 +317,7 @@ export function useAgentThreadList({
 
     const scheduleRetry = (): void => {
       clearRetryTimeout();
-      if (isDisposed || retryCount >= 3) {
+      if (abortController.signal.aborted || retryCount >= 3) {
         return;
       }
       retryCount += 1;
@@ -329,12 +329,12 @@ export function useAgentThreadList({
     };
 
     const run = async (): Promise<void> => {
-      if (isDisposed) {
+      if (abortController.signal.aborted) {
         return;
       }
 
       const loaded = await loadThreads();
-      if (loaded || isDisposed) {
+      if (loaded || abortController.signal.aborted) {
         return;
       }
 
@@ -344,7 +344,7 @@ export function useAgentThreadList({
     void run();
 
     return () => {
-      isDisposed = true;
+      abortController.abort();
       clearRetryTimeout();
       abortRef.current?.abort();
     };

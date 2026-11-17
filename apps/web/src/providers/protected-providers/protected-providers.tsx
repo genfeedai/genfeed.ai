@@ -76,14 +76,14 @@ export function ProtectedAuthGate({
       return;
     }
 
-    let isCancelled = false;
+    const abortController = new AbortController();
     let retryTimeout: ReturnType<typeof setTimeout> | null = null;
 
     const ensureToken = async (): Promise<void> => {
       try {
         const token = await resolveAuthToken(getToken);
 
-        if (isCancelled) {
+        if (abortController.signal.aborted) {
           return;
         }
 
@@ -92,7 +92,7 @@ export function ProtectedAuthGate({
           return;
         }
       } catch {
-        if (isCancelled) {
+        if (abortController.signal.aborted) {
           return;
         }
       }
@@ -106,7 +106,7 @@ export function ProtectedAuthGate({
     void ensureToken();
 
     return () => {
-      isCancelled = true;
+      abortController.abort();
       if (retryTimeout) {
         clearTimeout(retryTimeout);
       }

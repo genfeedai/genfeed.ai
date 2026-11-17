@@ -48,12 +48,12 @@ export function MobileAuthProvider({ children }: { children: ReactNode }) {
   }, [cookieHeader]);
 
   useEffect(() => {
-    let mounted = true;
+    const abortController = new AbortController();
 
     const loadStoredSession = async () => {
       try {
         const stored = await mobileAuthService.getStoredSession();
-        if (!mounted) {
+        if (abortController.signal.aborted) {
           return;
         }
 
@@ -64,18 +64,18 @@ export function MobileAuthProvider({ children }: { children: ReactNode }) {
           const refreshedUser = await mobileAuthService.refreshSession(
             stored.cookieHeader,
           );
-          if (mounted) {
+          if (!abortController.signal.aborted) {
             setUser(refreshedUser);
           }
         }
       } catch {
         await mobileAuthService.clearStoredSession();
-        if (mounted) {
+        if (!abortController.signal.aborted) {
           setCookieHeader(null);
           setUser(null);
         }
       } finally {
-        if (mounted) {
+        if (!abortController.signal.aborted) {
           setIsLoaded(true);
         }
       }
@@ -84,7 +84,7 @@ export function MobileAuthProvider({ children }: { children: ReactNode }) {
     loadStoredSession();
 
     return () => {
-      mounted = false;
+      abortController.abort();
     };
   }, []);
 

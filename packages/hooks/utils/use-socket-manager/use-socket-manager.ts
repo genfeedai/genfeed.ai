@@ -48,14 +48,14 @@ export function useSocketManager(
   }, [options]);
 
   useEffect(() => {
-    let isMounted = true;
+    const abortController = new AbortController();
     let unsubscribeConnectionState: (() => void) | undefined;
 
     if (disableSocketsForPlaywright) {
       setConnectionState('offline');
       setIsReady(false);
       return () => {
-        isMounted = false;
+        abortController.abort();
       };
     }
 
@@ -65,7 +65,7 @@ export function useSocketManager(
       setConnectionState('offline');
       setIsReady(false);
       return () => {
-        isMounted = false;
+        abortController.abort();
       };
     }
 
@@ -74,14 +74,14 @@ export function useSocketManager(
         const token = await resolveAuthToken(getToken);
 
         if (!token) {
-          if (isMounted) {
+          if (!abortController.signal.aborted) {
             setConnectionState('offline');
             setIsReady(false);
           }
           return;
         }
 
-        if (isMounted) {
+        if (!abortController.signal.aborted) {
           socketManagerRef.current = SocketManager.getInstance({
             ...latestOptionsRef.current,
             resolveToken: () =>
@@ -96,7 +96,7 @@ export function useSocketManager(
           setIsReady(true);
         }
       } catch (error) {
-        if (isMounted) {
+        if (!abortController.signal.aborted) {
           setConnectionState('offline');
           setIsReady(false);
         }
@@ -110,7 +110,7 @@ export function useSocketManager(
     // We don't cleanup the singleton on unmount, as it's shared
     // The singleton will handle its own cleanup when needed
     return () => {
-      isMounted = false;
+      abortController.abort();
       unsubscribeConnectionState?.();
       setIsReady(false);
     };

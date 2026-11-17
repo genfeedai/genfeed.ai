@@ -108,16 +108,16 @@ export default function SocialWarmupProgram({
       return;
     }
 
-    let isCancelled = false;
+    const abortController = new AbortController();
     enrollAttemptedFor.current = connection.credentialId;
     void enroll(connection.credentialId)
       .then(() => {
-        if (!isCancelled) {
+        if (!abortController.signal.aborted) {
           setEnrollError(null);
         }
       })
       .catch((enrollFailure: unknown) => {
-        if (isCancelled) {
+        if (abortController.signal.aborted) {
           return;
         }
         logger.error('Failed to enroll social warm-up', enrollFailure);
@@ -125,7 +125,7 @@ export default function SocialWarmupProgram({
       });
 
     return () => {
-      isCancelled = true;
+      abortController.abort();
     };
   }, [
     connection.credentialId,
