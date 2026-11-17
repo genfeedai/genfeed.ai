@@ -43,6 +43,7 @@ export function useDominantColor(
 
   const [color, setColor] = useState<DominantColor | null>(null);
 
+  // use-effect-audit: ignore subscribes to the load and error events of an Image element
   useEffect(() => {
     if (!imageUrl || typeof window === 'undefined') {
       setColor(null);

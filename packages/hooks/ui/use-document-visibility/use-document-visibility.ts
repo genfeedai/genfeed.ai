@@ -1,4 +1,20 @@
-import { useEffect, useState } from 'react';
+import { useSyncExternalStore } from 'react';
+
+function subscribeToVisibility(onChange: () => void): () => void {
+  document.addEventListener('visibilitychange', onChange);
+
+  return () => {
+    document.removeEventListener('visibilitychange', onChange);
+  };
+}
+
+function getVisibilitySnapshot(): boolean {
+  return !document.hidden;
+}
+
+function getServerVisibilitySnapshot(): boolean {
+  return true;
+}
 
 /**
  * Hook that tracks the document visibility state.
@@ -6,25 +22,9 @@ import { useEffect, useState } from 'react';
  * Useful for pausing polling or animations when the tab is not active.
  */
 export function useDocumentVisibility(): boolean {
-  const [isVisible, setIsVisible] = useState(() =>
-    typeof document === 'undefined' ? true : !document.hidden,
+  return useSyncExternalStore(
+    subscribeToVisibility,
+    getVisibilitySnapshot,
+    getServerVisibilitySnapshot,
   );
-
-  useEffect(() => {
-    if (typeof document === 'undefined') {
-      return undefined;
-    }
-
-    const handleVisibilityChange = () => {
-      setIsVisible(!document.hidden);
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, []);
-
-  return isVisible;
 }

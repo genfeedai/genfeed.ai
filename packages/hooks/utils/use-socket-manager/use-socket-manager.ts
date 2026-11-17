@@ -47,6 +47,7 @@ export function useSocketManager(
     latestOptionsRef.current = options;
   }, [options]);
 
+  // use-effect-audit: ignore connects to and subscribes to the shared socket manager
   useEffect(() => {
     const abortController = new AbortController();
     let unsubscribeConnectionState: (() => void) | undefined;
@@ -188,6 +189,7 @@ export const useSocketSubscriptions = <T = unknown>(
 ) => {
   const { subscribe, getSocketManager, isReady } = useSocketManager(options);
 
+  // use-effect-audit: ignore subscribes to socket events and disposes on cleanup
   useEffect(() => {
     if (subscriptions.length === 0 || !isReady) {
       return;

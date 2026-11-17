@@ -27,6 +27,7 @@ export function useVisiblePolling(
     pollRef.current = poll;
   }, [poll]);
 
+  // use-effect-audit: ignore runs a setInterval timer, a browser clock outside React
   useEffect(() => {
     if (!isVisible) {
       wasHiddenRef.current = true;

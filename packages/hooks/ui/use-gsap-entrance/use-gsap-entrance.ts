@@ -139,6 +139,7 @@ export function useGsapEntrance<T extends HTMLElement = HTMLDivElement>(
   const { animations, enabled = true } = options;
   const containerRef = useRef<T | null>(null);
 
+  // use-effect-audit: ignore creates and reverts a GSAP animation context on the DOM
   useEffect(() => {
     if (
       !enabled ||
@@ -318,6 +319,7 @@ export function useGsapTimeline<T extends HTMLElement = HTMLDivElement>(
   const { steps, enabled = true } = options;
   const containerRef = useRef<T | null>(null);
 
+  // use-effect-audit: ignore creates and reverts a GSAP timeline on the DOM
   useEffect(() => {
     if (
       !enabled ||
