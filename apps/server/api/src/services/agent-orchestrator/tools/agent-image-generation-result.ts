@@ -53,13 +53,14 @@ export function approvedImageMessage(
       card.assetKind === 'image' &&
       card.assetId === id,
   );
+  if (preview?.type !== 'content_preview_card') return undefined;
   if (
-    preview?.status === 'processing' &&
+    preview.status === 'processing' &&
     result.data?.status === Status.PROCESSING
   )
     return 'Image queued. Follow its progress in the Library.';
   if (
-    preview?.status === 'completed' &&
+    preview.status === 'completed' &&
     result.data?.status === Status.GENERATED &&
     typeof result.data.url === 'string' &&
     preview.images?.includes(result.data.url)

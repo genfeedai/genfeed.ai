@@ -641,7 +641,7 @@ export class AgentOrchestratorUiActionMutationService {
               ? result.success
                 ? result.data?.kind === 'image' &&
                   result.data.status === 'processing'
-                  ? 'queued'
+                  ? 'running'
                   : 'completed'
                 : 'failed'
               : (data.executionStatus ?? 'running'),
