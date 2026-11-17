@@ -27,7 +27,15 @@ export default function ProfileSubscribe({
   sourceRef,
 }: ProfileSubscribeProps) {
   const [state, setState] = useState<SubscribeState>('idle');
-  const isDone = state === 'subscribed' || state === 'confirmation-sent';
+  const isSubscribed = state === 'subscribed';
+  const isPending = state === 'confirmation-sent';
+  const isDone = isSubscribed || isPending;
+  const buttonLabel = isSubscribed
+    ? 'Subscribed'
+    : isPending
+      ? 'Confirmation pending'
+      : 'Subscribe';
+  const Icon = isSubscribed ? Check : isPending ? Mail : Bell;
 
   async function handleSubscribe() {
     if (state === 'sending' || isDone) {
@@ -81,12 +89,8 @@ export default function ProfileSubscribe({
           variant={ButtonVariant.DEFAULT}
           withWrapper={false}
         >
-          {isDone ? (
-            <Check aria-hidden="true" className="size-4" />
-          ) : (
-            <Bell aria-hidden="true" className="size-4" />
-          )}
-          {isDone ? 'Subscribed' : 'Subscribe'}
+          <Icon aria-hidden="true" className="size-4" />
+          {buttonLabel}
         </ButtonTracked>
       </ButtonGroup>
       {state === 'confirmation-sent' ? (

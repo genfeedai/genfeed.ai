@@ -66,6 +66,12 @@ describe('ProfileSubscribe', () => {
         'Check your inbox and confirm to finish subscribing.',
       ),
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Confirmation pending' }),
+    ).toBeDisabled();
+    expect(
+      screen.queryByRole('button', { name: 'Subscribed' }),
+    ).not.toBeInTheDocument();
   });
 
   it('sends a signed-out reader through sign-up carrying the creator', async () => {
