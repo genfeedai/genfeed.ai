@@ -204,6 +204,7 @@
     "type-check:cli": "bunx turbo run type-check --filter=@genfeedai/cli --concurrency=1",
     "secretlint": "secretlint '**/*'",
     "check:type-assertions": "bun run scripts/architecture/check-type-assertions.ts",
+    "check:use-effect": "bun run scripts/architecture/check-use-effect.ts",
     "check:untranslated-strings": "bun run scripts/architecture/check-untranslated-strings.ts",
     "check:inline-types": "bun run scripts/architecture/check-inline-types.ts",
     "bench:typed-decisions": "bun --tsconfig-override=scripts/typed-decisions/tsconfig.json scripts/typed-decisions/benchmark.ts",

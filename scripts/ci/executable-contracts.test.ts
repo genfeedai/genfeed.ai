@@ -47,6 +47,10 @@ const REPOSITORY_CONTRACTS = [
     name: 'type assertions',
   },
   {
+    command: ['bun', 'run', 'check:use-effect'],
+    name: 'useEffect ratchet',
+  },
+  {
     command: ['bun', 'run', 'check:relation-alias-reads'],
     name: 'relation alias reads',
   },

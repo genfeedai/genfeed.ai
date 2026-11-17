@@ -15,6 +15,7 @@ import {
 const CROSS_ORG = RATCHET_SOURCES[0];
 const AUTHORITY_FIELDS = RATCHET_SOURCES[1];
 const TENANT_SCOPE = RATCHET_SOURCES[2];
+const USE_EFFECT = RATCHET_SOURCES[5];
 
 function crossOrgBaseline(entries: Array<[string, number]>): string {
   const body = entries
@@ -102,6 +103,39 @@ describe('authority-field baseline', () => {
     );
 
     expect(growth.map(({ key }) => key)).toEqual(['b.dto.ts|role']);
+  });
+});
+
+describe('useEffect baseline', () => {
+  const baseline = (useEffect: Record<string, number>): string =>
+    JSON.stringify({ async_effect_without_abort: {}, use_effect: useEffect });
+
+  it('keys one entry per counted effect', () => {
+    expect(USE_EFFECT?.entryKeys(baseline({ 'a.tsx': 2, 'b.tsx': 1 }))).toEqual(
+      ['use_effect|a.tsx', 'use_effect|a.tsx', 'use_effect|b.tsx'],
+    );
+  });
+
+  it('rejects a file whose count rose', () => {
+    const growth = findRatchetGrowth(
+      USE_EFFECT as NonNullable<typeof USE_EFFECT>,
+      baseline({ 'a.tsx': 1 }),
+      baseline({ 'a.tsx': 2 }),
+    );
+
+    expect(growth.map(({ added, key }) => [key, added])).toEqual([
+      ['use_effect|a.tsx', 1],
+    ]);
+  });
+
+  it('accepts a file whose count fell', () => {
+    expect(
+      findRatchetGrowth(
+        USE_EFFECT as NonNullable<typeof USE_EFFECT>,
+        baseline({ 'a.tsx': 2 }),
+        baseline({ 'a.tsx': 1 }),
+      ),
+    ).toEqual([]);
   });
 });
 
