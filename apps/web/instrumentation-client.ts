@@ -1,4 +1,5 @@
 import * as Sentry from '@sentry/nextjs';
+import '@/lib/zod/disable-jit';
 import { initAnalytics } from '@/lib/analytics';
 import {
   dispatchNavigationStart,

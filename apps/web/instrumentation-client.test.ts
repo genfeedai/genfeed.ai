@@ -96,4 +96,12 @@ describe('app Sentry instrumentation', () => {
     ]);
     expect(recorded.integrations).toEqual([{ name: 'Replay' }]);
   });
+
+  it('turns off Zod JIT before anything builds a schema', async () => {
+    await import('./instrumentation-client');
+
+    const { z } = await import('zod');
+
+    expect(z.core.globalConfig.jitless).toBe(true);
+  });
 });
