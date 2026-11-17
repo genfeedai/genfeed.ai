@@ -22,7 +22,7 @@ describe('buildPersonasFindAllQuery', () => {
     ]);
 
     expect(where).not.toHaveProperty('brandId');
-    expect(where.AND).toEqual([
+    expect(where?.AND).toEqual([
       {
         OR: [
           { brandId: { in: ['brand_a', 'brand_b'] } },
@@ -40,7 +40,7 @@ describe('buildPersonasFindAllQuery', () => {
   it('shows a caller assigned to no brands only the unbranded characters', () => {
     const { where } = buildPersonasFindAllQuery(user, allBrands, []);
 
-    expect(where.AND).toEqual([
+    expect(where?.AND).toEqual([
       { OR: [{ brandId: { in: [] } }, { brandId: null }] },
     ]);
   });
@@ -52,7 +52,7 @@ describe('buildPersonasFindAllQuery', () => {
       ['brand_a'],
     );
 
-    expect(where.OR).toHaveLength(2);
-    expect(where.AND).toHaveLength(1);
+    expect(where?.OR).toHaveLength(2);
+    expect(where?.AND).toHaveLength(1);
   });
 });
