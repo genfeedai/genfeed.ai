@@ -29,10 +29,10 @@ export function assertInputRequestAnswerable(
  * question, otherwise the visible answer.
  */
 export function resolveInputContinuationContent(
-  fieldId: unknown,
+  request: Readonly<Record<string, unknown>>,
   body: Pick<AgentInputRequestResponsePayload, 'answer' | 'optionIds'>,
-  prompt?: unknown,
 ): string {
+  const { fieldId, prompt } = request;
   // The option label alone (for example “Approve and generate”) loses the brief.
   // Keep it in user content. Only a server-owned tool approval authorizes dispatch.
   if (

@@ -85,18 +85,7 @@ const IMAGE_POPULATE = [
   PopulatePatterns.brandMinimal,
 ];
 
-/**
- * Owns the full image-generation workflow extracted out of
- * `ImagesOperationsController`.
- *
- * The controller keeps the HTTP surface (decorators, guards, interceptors) and
- * delegates the request body to {@link generateImage}. This service resolves the
- * model, runs the deferred credit check, builds prompts, persists placeholder
- * documents, dispatches through the typed provider registry,
- * and finishes the request via one shared completion tail — collapsing the
- * previously copy-pasted failure-handler, poll-and-serialize, and timeout
- * recovery blocks to a single call site each.
- */
+/** Resolves, admits, persists and dispatches image generation for the HTTP and agent entry points. */
 @Traced()
 @Injectable()
 export class ImageGenerationService {
@@ -118,6 +107,22 @@ export class ImageGenerationService {
     private readonly cancellationService: IngredientGenerationCancellationService,
     private readonly enhancementService: MediaPromptEnhancementService,
   ) {}
+
+  findDispatchedImage(
+    scope: Record<
+      'id' | 'brandId' | 'organizationId' | 'sourceActionId',
+      string
+    >,
+  ) {
+    return this.imagesService.findOne(
+      {
+        ...scope,
+        category: IngredientCategory.IMAGE,
+        isDeleted: false,
+      },
+      IMAGE_POPULATE,
+    );
+  }
 
   async editImage(
     user: User,

@@ -13,9 +13,8 @@ describe('approved image output', () => {
   it('carries the question with a generic choice into the next turn', () => {
     expect(
       resolveInputContinuationContent(
-        undefined,
+        { prompt: 'One square sunset image?' },
         { answer: 'Approve and generate', optionIds: ['approve'] },
-        'One square sunset image?',
       ),
     ).toBe(
       'Question: One square sunset image?\nSelected answer: Approve and generate',

@@ -221,7 +221,7 @@ describe('AgentGenerationGatewayService decorator parity', () => {
       {} as never,
       {} as never,
       {} as never,
-      { generateImage } as never,
+      { generateImage, findDispatchedImage: findImage } as never,
       {} as never,
       {} as never,
       { invoke } as unknown as AgentEndpointInvoker,
@@ -232,11 +232,9 @@ describe('AgentGenerationGatewayService decorator parity', () => {
       {} as never,
       {} as never,
       {} as never,
-      { findOne: findImage } as never,
     );
   });
 
-  /** Calls all 9 gateway methods in the exact order `ROUTES` declares them. */
   it('requires the confirmed image to exist in the Library under this dispatch and brand', async () => {
     const principal = {
       userId: USER_ID,
@@ -258,19 +256,29 @@ describe('AgentGenerationGatewayService decorator parity', () => {
     await expect(
       capturedInOrder[0].handle({ user: principal, dto, request: {} } as never),
     ).rejects.toThrow('no matching Library asset');
-    expect(findImage).toHaveBeenCalledWith(
-      {
-        id: 'claimed-id',
-        brandId: principal.brandId,
-        organizationId: ORGANIZATION_ID,
-        category: 'IMAGE',
-        sourceActionId: dto.sourceActionId,
-        isDeleted: false,
-      },
-      expect.any(Array),
-    );
+    expect(findImage).toHaveBeenCalledWith({
+      id: 'claimed-id',
+      brandId: principal.brandId,
+      organizationId: ORGANIZATION_ID,
+      sourceActionId: dto.sourceActionId,
+    });
+    findImage.mockResolvedValue({
+      id: 'claimed-id',
+      status: 'GENERATED',
+      s3Key: 'images/persisted.png',
+    });
+    const persisted = await capturedInOrder[0].handle({
+      user: principal,
+      dto,
+      request: {},
+    } as never);
+    expect(persisted).toMatchObject({
+      data: { id: 'claimed-id', attributes: { s3Key: 'images/persisted.png' } },
+    });
+    expect(JSON.stringify(persisted)).not.toContain('illustrative.invalid');
   });
 
+  /** Calls all 9 gateway methods in the exact order `ROUTES` declares them. */
   async function runAllRoutes(): Promise<
     Map<string, AgentEndpoint<object, unknown>>
   > {
@@ -415,7 +423,6 @@ describe('AgentGenerationGatewayService decorator parity', () => {
       {} as never,
       {} as never,
       { findOne: vi.fn().mockResolvedValue({ id: 'ingredient-1' }) } as never,
-      {} as never,
       {} as never,
       {} as never,
     );
