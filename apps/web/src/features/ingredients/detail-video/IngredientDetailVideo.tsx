@@ -14,6 +14,7 @@ import { logger } from '@genfeedai/services/core/logger.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import { VideosService } from '@genfeedai/services/ingredients/videos.service';
 import { WebSocketPaths } from '@genfeedai/utils/network/websocket.util';
+import { useSyncedState } from '@hooks/utils/use-synced-state/use-synced-state';
 import { useCallback, useEffect, useState } from 'react';
 import { useIngredientMetadata } from '@/features/ingredients/hooks/use-ingredient-metadata/use-ingredient-metadata';
 import { useIngredientSharing } from '@/features/ingredients/hooks/use-ingredient-sharing/use-ingredient-sharing';
@@ -85,7 +86,7 @@ export default function IngredientDetailVideo({
   const notificationsService = NotificationsService.getInstance();
   const { subscribe, isReady } = useSocketManager();
 
-  const [currentVideo, setCurrentVideo] = useState<IVideo>(video);
+  const [currentVideo, setCurrentVideo] = useSyncedState(video);
 
   const getVideosService = useAuthedService((token: string) =>
     VideosService.getInstance(token),
@@ -103,7 +104,7 @@ export default function IngredientDetailVideo({
       logger.error('Failed to reload video after metadata refresh', error);
       throw error;
     }
-  }, [currentVideo.id, getVideosService]);
+  }, [currentVideo.id, getVideosService, setCurrentVideo]);
 
   const { updateMetadata: updateMetadataHook } = useIngredientMetadata(
     currentVideo,
@@ -137,10 +138,6 @@ export default function IngredientDetailVideo({
   // Cast to client model type for compatibility with EvaluationCard
   const evaluation: IEvaluation | undefined =
     newEvaluation ?? ((video as IVideo).evaluation as IEvaluation | undefined);
-
-  useEffect(() => {
-    setCurrentVideo(video);
-  }, [video]);
 
   // Subscribe to video events (captions, merge, resize, etc.)
   // use-effect-audit: ignore subscribes to an external event source

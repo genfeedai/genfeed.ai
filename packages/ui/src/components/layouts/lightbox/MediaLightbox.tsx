@@ -3,6 +3,7 @@
 import { IngredientCategory, MetadataExtension } from '@genfeedai/contracts';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import { useDominantColor } from '@genfeedai/hooks/ui/use-dominant-color/use-dominant-color';
+import { useSyncedState } from '@genfeedai/hooks/utils/use-synced-state/use-synced-state';
 import type { MediaLightboxProps } from '@genfeedai/props/layout/media-lightbox.props';
 import {
   LightboxSlide,
@@ -34,11 +35,7 @@ export default function MediaLightbox({
   onClose,
 }: MediaLightboxProps) {
   const [plugins, setPlugins] = useState<Plugin[]>([]);
-  const [activeIndex, setActiveIndex] = useState(startIndex);
-
-  useEffect(() => {
-    setActiveIndex(startIndex);
-  }, [startIndex]);
+  const [activeIndex, setActiveIndex] = useSyncedState(startIndex);
 
   // Tint the viewer backdrop with a heavily-darkened version of the focused
   // slide's dominant colour so the viewer takes on the content's colour while

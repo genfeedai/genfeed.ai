@@ -4,6 +4,7 @@ import { ButtonSize, ButtonVariant, PlatformRole } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers';
 import { DATE_FORMATS, formatDate } from '@helpers/formatting/date/date.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useSyncedState } from '@hooks/utils/use-synced-state/use-synced-state';
 import { ClipboardService } from '@services/core/clipboard.service';
 import { UsersService } from '@services/organization/users.service';
 import Card from '@ui/card/Card';
@@ -19,7 +20,7 @@ import { Input } from '@ui/primitives/input';
 import { getApiErrorMessage } from '@utils/error/error-handler.util';
 import { Pencil } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import type {
   AdminUserDetailRowProps,
   AdminUserDetailSectionProps,
@@ -66,7 +67,7 @@ export default function UserDetails({
   onUpdated,
 }: AdminUserDetailsProps) {
   const translate = useTranslations('pages.adminUsers.detail');
-  const [user, setUser] = useState(initialUser);
+  const [user, setUser] = useSyncedState(initialUser);
   const [isEditing, setIsEditing] = useState(false);
   const [isConfirmingReset, setIsConfirmingReset] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -81,9 +82,6 @@ export default function UserDetails({
   const getService = useAuthedService((token: string) =>
     UsersService.getInstance(token),
   );
-  useEffect(() => {
-    setUser(initialUser);
-  }, [initialUser]);
 
   async function save(action: 'profile' | 'reset') {
     if (saving.current) return;

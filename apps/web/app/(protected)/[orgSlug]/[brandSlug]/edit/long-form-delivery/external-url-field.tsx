@@ -1,9 +1,10 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { useSyncedState } from '@hooks/utils/use-synced-state/use-synced-state';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Label } from '@ui/primitives/label';
 import { useTranslations } from 'next-intl';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import type { ExternalUrlFieldProps } from '@/props/edit/long-form-delivery.props';
 
 function isWebUrl(value: string): boolean {
@@ -23,12 +24,8 @@ export default function ExternalUrlField({
   value,
 }: ExternalUrlFieldProps) {
   const translate = useTranslations('common.longFormDelivery');
-  const [draft, setDraft] = useState(value ?? '');
+  const [draft, setDraft] = useSyncedState(value ?? '');
   const [isInvalid, setIsInvalid] = useState(false);
-
-  useEffect(() => {
-    setDraft(value ?? '');
-  }, [value]);
 
   const trimmed = draft.trim();
   const isUnchanged = trimmed === (value ?? '');
