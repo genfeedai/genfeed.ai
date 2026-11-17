@@ -23,6 +23,8 @@ export const publicPostAttributes = [
   'crossPosts',
   'createdAt',
   'updatedAt',
+  'ingredients',
+  'brand',
 ];
 
 /**
