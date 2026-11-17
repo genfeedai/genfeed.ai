@@ -8,8 +8,7 @@ import { assertNoErrorBoundaryFallback } from '../../utils/route-assertions';
 
 // The Profile page owns the brand's social accounts (a Connect account button
 // in the page header) and its website links. Both sit in the right sidebar,
-// accounts under the website links; the brand's public posts are shown on its
-// public profile, not on this page. Like every other section, the website
+// accounts under the website links. Like every other section, the website
 // links title and action sit above the card.
 test.describe('Brand accounts and website links', () => {
   test.beforeEach(async ({ authenticatedPage }) => {
@@ -52,9 +51,6 @@ test.describe('Brand accounts and website links', () => {
 
     await expect(
       authenticatedPage.getByRole('heading', { name: 'Social & links' }),
-    ).toHaveCount(0);
-    await expect(
-      authenticatedPage.getByRole('heading', { name: 'Public posts' }),
     ).toHaveCount(0);
   });
 
