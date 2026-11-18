@@ -423,6 +423,7 @@ export function NodeDetailModal() {
   }, [nodeDetailNodeId, getNodeById]);
 
   // Redirect prompt-type nodes to the prompt editor
+  // use-effect-audit: ignore redirects between modals through the modal store
   useEffect(() => {
     if (activeModal !== 'nodeDetail' || !node) return;
 

@@ -89,6 +89,7 @@ export function useAttachments(
     setAttachments(initialAttachments);
   });
 
+  // use-effect-audit: ignore reports the attachment list to the host
   useEffect(() => {
     const pendingInitialAttachments = pendingInitialAttachmentsRef.current;
     if (
