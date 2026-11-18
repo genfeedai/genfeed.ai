@@ -20,7 +20,6 @@ import {
   IdCard,
   Palette,
   Settings,
-  SlidersHorizontal,
   Smile,
   User,
   Users,
@@ -61,7 +60,7 @@ export interface BuildSettingsMenuItemsParams {
  * Naming / paths (deliberate):
  * - Settings is a shell. Personal home is `/settings/personal`. Org home is
  *   `/:orgSlug/~/settings/general`. Brand home is `/:org/:brand/profile`.
- * - Org sidebar label is **General** (workspace defaults).
+ * - Org sidebar label is **General** (identity, language, generation and publishing defaults).
  * - Brand sidebar label is **Profile** (public brand identity).
  * - Org **Agents** is agent/automation governance (not legal ToS). Route is
  *   `/settings/agents` so the slug matches the sidebar label.
@@ -134,14 +133,6 @@ function buildOrganizationMenuItems(
       label: 'Modules',
       outline: Grip,
       solid: Grip,
-    },
-    {
-      group: 'Organization',
-      href: APP_ROUTES.SETTINGS.PREFERENCES,
-      hrefScope: 'organization',
-      label: 'Preferences',
-      outline: SlidersHorizontal,
-      solid: SlidersHorizontal,
     },
     {
       group: 'Organization',

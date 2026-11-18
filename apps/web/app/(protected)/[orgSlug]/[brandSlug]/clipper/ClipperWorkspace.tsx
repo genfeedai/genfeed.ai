@@ -156,7 +156,7 @@ function ClipperProjectDetail(props: ReturnType<typeof useStudioClipperPage>) {
           <p className="text-sm text-muted-foreground">
             {t('avatarDefaultsHint')}{' '}
             <Link
-              href={orgHref(APP_ROUTES.SETTINGS.PREFERENCES)}
+              href={orgHref(APP_ROUTES.SETTINGS.GENERAL)}
               className="underline"
             >
               {t('configureAvatarDefaults')}

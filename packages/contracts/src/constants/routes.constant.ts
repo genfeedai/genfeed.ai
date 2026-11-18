@@ -338,8 +338,6 @@ export const APP_ROUTES = {
     MEMBERS: '/settings/members',
     /** Which tools the organization can use; the Store links turned-off apps here. */
     MODULES: '/settings/modules',
-    /** Organization-wide preferences (avatar, voice, models, publishing caps). */
-    PREFERENCES: '/settings/preferences',
     /** Personal email and future in-app notification preferences. */
     NOTIFICATIONS: '/settings/notifications',
     /** Creation heatmap, streaks, and setup checklist. */
