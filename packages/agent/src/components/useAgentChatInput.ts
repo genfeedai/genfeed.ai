@@ -30,7 +30,6 @@ import type {
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import {
-  CONVERSATION_COMPOSER_DRAFT_UPDATED_EVENT,
   clearConversationComposerDraft,
   flushConversationComposerDocument,
   readConversationComposerDraft,
@@ -86,6 +85,7 @@ import {
   useState,
 } from 'react';
 import type { ExtractedMention } from './AgentChatInput';
+import { useAgentChatEditorInputs } from './useAgentChatEditorInputs';
 
 function contentReferenceToTrayItem(
   item: PersistedConversationComposerContentReference,
@@ -304,21 +304,18 @@ export function useAgentChatInput({
     () => readConversationComposerDraft(draftScopeKey),
     [draftScopeKey],
   );
-  const activeThreadId = useAgentChatStore((s) => s.activeThreadId);
   const activeThread = useAgentChatStore((s) =>
     s.threads.find((thread) => thread.id === s.activeThreadId),
   );
   const conversationBrandId = activeThread
     ? (activeThread.brandId ?? undefined)
     : composerShell?.brandId;
-  const composerSeed = useAgentChatStore((s) => s.composerSeed);
   const isDragActive = dragState?.isActive ?? false;
   const placeholder = isDragActive
     ? translate('dropPlaceholder')
     : (placeholderOverride ??
       'Ask for help with content, review, or planning…');
   const placeholderRef = useRef(placeholder);
-  const clearComposerSeed = useAgentChatStore((s) => s.clearComposerSeed);
 
   const { mentions: credentialMentions } = useCredentialMentions(
     apiService ?? null,
@@ -581,6 +578,7 @@ export function useAgentChatInput({
   });
 
   // Track editor state and keep the tab-scoped reload draft current.
+  // use-effect-audit: ignore subscribes to editor and browser events
   useEffect(() => {
     if (!editor) {
       return;
@@ -627,6 +625,7 @@ export function useAgentChatInput({
     };
   }, [draftScopeKey, editor]);
 
+  // use-effect-audit: ignore loads the saved draft into the editor and focuses it
   useEffect(() => {
     if (!editor) {
       return;
@@ -661,95 +660,26 @@ export function useAgentChatInput({
   }, [draftScopeKey, editor]);
 
   // Keep editorRef in sync for the microphone callback
+  // use-effect-audit: ignore keeps refs to the latest callbacks and values
   useEffect(() => {
     editorRef.current = editor ?? null;
   }, [editor]);
 
+  // use-effect-audit: ignore reads browser storage when the draft scope changes
   useEffect(() => {
     setDismissedSurfaceArtifactKeys(
       readDismissedSurfaceReferenceKeys(draftScopeKey),
     );
   }, [draftScopeKey]);
 
-  // A record attached to this scope's draft from elsewhere in the app (e.g.
-  // Library "Add to conversation") while this composer is mounted — merge it
-  // in live instead of waiting for a remount to re-read the draft.
-  useEffect(() => {
-    if (typeof window === 'undefined' || draftScopeKey === null) {
-      return;
-    }
-
-    const handleDraftUpdated = (event: Event) => {
-      const detail = (event as CustomEvent<{ scopeKey: string | null }>).detail;
-      if (detail?.scopeKey !== draftScopeKey) {
-        return;
-      }
-
-      const draft = readConversationComposerDraft(draftScopeKey);
-      setContentReferences((current) => {
-        const byId = new Map(current.map((item) => [item.id, item] as const));
-        for (const item of draft.contentReferences) {
-          if (!byId.has(item.id)) {
-            byId.set(item.id, item);
-          }
-        }
-        return [...byId.values()];
-      });
-      editorRef.current?.commands.focus('end');
-    };
-
-    window.addEventListener(
-      CONVERSATION_COMPOSER_DRAFT_UPDATED_EVENT,
-      handleDraftUpdated,
-    );
-    return () => {
-      window.removeEventListener(
-        CONVERSATION_COMPOSER_DRAFT_UPDATED_EVENT,
-        handleDraftUpdated,
-      );
-    };
-  }, [draftScopeKey]);
-
-  useEffect(() => {
-    if (!editor || !composerSeed) {
-      return;
-    }
-
-    const matchesThread =
-      composerSeed.threadId === null ||
-      composerSeed.threadId === activeThreadId;
-
-    if (!matchesThread) {
-      return;
-    }
-
-    editor.commands.setContent(composerSeed.content);
-    editor.commands.focus('end');
-    clearComposerSeed();
-  }, [activeThreadId, clearComposerSeed, composerSeed, editor]);
-
-  const appliedPrefillNonceRef = useRef<number | null>(null);
-  useEffect(() => {
-    if (
-      !editor ||
-      !prefill ||
-      appliedPrefillNonceRef.current === prefill.nonce
-    ) {
-      return;
-    }
-
-    appliedPrefillNonceRef.current = prefill.nonce;
-    editor.commands.setContent(prefill.content);
-    editor.commands.focus('end');
-  }, [editor, prefill]);
-
-  // Sync disabled state
-  useEffect(() => {
-    if (editor) {
-      editor.setEditable(!disabled);
-      editor.view.dom.setAttribute('aria-disabled', String(Boolean(disabled)));
-    }
-  }, [editor, disabled]);
+  useAgentChatEditorInputs({
+    disabled,
+    draftScopeKey,
+    editor,
+    editorRef,
+    prefill,
+    setContentReferences,
+  });
 
   // Refresh the empty-state placeholder after editor or copy changes.
   useLayoutEffect(() => {
@@ -946,6 +876,7 @@ export function useAgentChatInput({
 
   // Keep the SendOnEnter keymap pointed at the latest handleSend so the Enter
   // and Send-button paths share the same trusted-command checks and recovery.
+  // use-effect-audit: ignore keeps refs to the latest callbacks and values
   useEffect(() => {
     handleSendRef.current = () => {
       void handleSend();

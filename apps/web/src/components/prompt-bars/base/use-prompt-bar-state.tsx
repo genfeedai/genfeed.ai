@@ -14,14 +14,9 @@ import {
   type QualityTier,
   type SubscriptionTier,
 } from '@genfeedai/contracts';
-import { getModelDefaultDuration } from '@genfeedai/contracts/constants';
 import { resolveQualityAccessTier } from '@genfeedai/helpers';
 import { createCrunVideoDraft } from '@genfeedai/helpers/crun-video-input.helper';
 import { resolveModelDurationOptions } from '@genfeedai/helpers/generation-controls.helper';
-import {
-  getDefaultVideoResolution,
-  hasResolutionOptions,
-} from '@genfeedai/helpers/media/video-resolution/video-resolution.helper';
 import type {
   PromptBarAttachedAsset,
   PromptBarProps,
@@ -62,6 +57,7 @@ import {
   toAttachedPromptAsset,
 } from './prompt-bar.helpers';
 import { usePromptBarDragDrop } from './use-prompt-bar-drag-drop';
+import { usePromptBarFormDefaults } from './use-prompt-bar-form-defaults';
 import { usePromptBarInternalContextValue } from './use-prompt-bar-internal-context-value';
 
 type UsePromptBarStateParams = Pick<
@@ -201,6 +197,7 @@ export function usePromptBarState({
     [],
   );
 
+  // use-effect-audit: ignore observes the prompt bar size
   useEffect(() => {
     if (!promptBarRef.current) {
       return;
@@ -533,6 +530,7 @@ export function usePromptBarState({
     },
   });
 
+  // use-effect-audit: ignore writes the controls into the form store
   useEffect(() => {
     if (!crunInputControls || !crunModel) {
       if (form.getValues('crunControls')) {
@@ -647,68 +645,28 @@ export function usePromptBarState({
     setReferences,
   ]);
 
+  // use-effect-audit: ignore reports a failed voice input to the notifications service
   useEffect(() => {
     if (speechError) {
       notificationsService.error(`Voice input error: ${speechError}`);
     }
   }, [speechError, notificationsService]);
 
-  useEffect(() => {
-    if (
-      !isCrunVideo &&
-      normalizedWatchedModels.length > 0 &&
-      !watchedDuration
-    ) {
-      const defaultDuration = getModelDefaultDuration(watchedModel);
-      if (defaultDuration) {
-        form.setValue('duration', defaultDuration, { shouldValidate: true });
-        triggerConfigChange();
-      }
-    }
-  }, [
-    isCrunVideo,
-    normalizedWatchedModels.length,
-    watchedModel,
-    watchedDuration,
-    form,
-    triggerConfigChange,
-  ]);
-
-  useEffect(() => {
-    if (!isCrunVideo && watchedModel && hasResolutionOptions(watchedModel)) {
-      const currentResolution = form.getValues('resolution');
-      if (!currentResolution) {
-        const defaultResolution = getDefaultVideoResolution(watchedModel);
-        if (defaultResolution) {
-          form.setValue('resolution', defaultResolution, {
-            shouldValidate: true,
-          });
-          triggerConfigChange();
-        }
-      }
-    }
-  }, [isCrunVideo, watchedModel, form, triggerConfigChange]);
-
-  useEffect(() => {
-    if (brandId) {
-      form.setValue('brand', brandId, { shouldValidate: true });
-    }
-  }, [brandId, form]);
-
-  // Simple mode has no model selector: the backend auto-selects the model
-  // from prompt + quality, so the form must opt into auto-select or generate
-  // would stay blocked on the (hidden) model requirement.
   const hasSelectedModels = normalizedWatchedModels.length > 0;
-  useEffect(() => {
-    if (isAdvancedMode || hasSelectedModels) {
-      return;
-    }
-    if (form.getValues('autoSelectModel') !== true) {
-      form.setValue('autoSelectModel', true, { shouldValidate: true });
-      triggerConfigChange();
-    }
-  }, [isAdvancedMode, hasSelectedModels, form, triggerConfigChange]);
+  usePromptBarFormDefaults({
+    brandId,
+    filteredBlacklists,
+    filteredSounds,
+    form,
+    hasSelectedModels,
+    isAdvancedMode,
+    isCrunVideo,
+    triggerConfigChange,
+    watchedDuration,
+    watchedModel,
+  });
 
+  // use-effect-audit: ignore expands the collapsed prompt bar once its data is ready
   useEffect(() => {
     if (!isCollapsible || hasExpandedRef.current) {
       return;
@@ -722,35 +680,6 @@ export function usePromptBarState({
       return () => clearTimeout(timeoutId);
     }
   }, [currentConfig.defaultModel, isCollapsed, isCollapsible, models.length]);
-
-  useEffect(() => {
-    if (filteredBlacklists?.length > 0) {
-      const currentBlacklists = form.getValues('blacklist') || [];
-      const defaultKeys = filteredBlacklists.reduce<string[]>((acc, b) => {
-        if (b.isDefault) acc.push(b.key);
-        return acc;
-      }, []);
-      if (defaultKeys.length > 0 && currentBlacklists.length === 0) {
-        form.setValue('blacklist', defaultKeys, { shouldValidate: true });
-        triggerConfigChange();
-      }
-    }
-  }, [filteredBlacklists, form, triggerConfigChange]);
-
-  useEffect(() => {
-    if (filteredSounds?.length > 0) {
-      const currentSounds = form.getValues('sounds') || [];
-      const defaultKeys = filteredSounds.reduce<string[]>((acc, s) => {
-        if (s.isDefault && s.key !== undefined) acc.push(s.key);
-        return acc;
-      }, []);
-
-      if (defaultKeys.length > 0 && currentSounds.length === 0) {
-        form.setValue('sounds', defaultKeys, { shouldValidate: true });
-        triggerConfigChange();
-      }
-    }
-  }, [filteredSounds, form, triggerConfigChange]);
 
   const isModelNotSet =
     requiresModelSelection &&
@@ -767,6 +696,7 @@ export function usePromptBarState({
         !crunQuote.getCurrentQuote() ||
         crunConsumedRef.current === crunQuote.getCurrentQuote()?.quoteId));
 
+  // use-effect-audit: ignore moves focus to the model picker after a short delay
   useEffect(() => {
     if (isModelNotSet && !isCollapsed) {
       const timeoutId = setTimeout(() => {
@@ -965,6 +895,7 @@ export function usePromptBarState({
     [getVideoDurations, watchedResolution],
   );
 
+  // use-effect-audit: ignore writes the closest supported duration into the form store
   useEffect(() => {
     if (
       isCrunVideo ||

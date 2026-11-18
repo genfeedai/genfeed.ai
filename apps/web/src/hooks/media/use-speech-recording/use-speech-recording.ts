@@ -82,6 +82,7 @@ export function useSpeechRecording({
   const [isSupported, setIsSupported] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // use-effect-audit: ignore reads browser capabilities after mount so server and client markup match
   useEffect(() => {
     const checkSupport = () => {
       if (typeof window === 'undefined') {

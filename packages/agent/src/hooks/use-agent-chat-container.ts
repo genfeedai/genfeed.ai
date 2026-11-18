@@ -6,7 +6,6 @@ import {
   handleAgentUiAction,
   hasPendingPlanReview,
 } from '@genfeedai/agent/hooks/agent-chat-container.ui-actions';
-import { captureAgentRunRestore } from '@genfeedai/agent/hooks/agent-chat-stream.restore-guard';
 import type { AgentRunHandoff } from '@genfeedai/agent/hooks/agent-chat-stream.types';
 import { useAgentChat } from '@genfeedai/agent/hooks/use-agent-chat';
 import { useAgentChatStream } from '@genfeedai/agent/hooks/use-agent-chat-stream';
@@ -51,7 +50,7 @@ import {
 } from '@genfeedai/agent/utils/derive-timeline';
 import { hasRenderableThreadState } from '@genfeedai/agent/utils/has-renderable-thread-state';
 import { resolveRetryPrompt } from '@genfeedai/agent/utils/resolve-retry-prompt';
-import { UploadStatus, WorkflowExecutionStatus } from '@genfeedai/contracts';
+import { UploadStatus } from '@genfeedai/contracts';
 import type {
   AttachmentItem,
   ChatAttachment,
@@ -65,6 +64,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import { useRestoreActiveRun } from './use-restore-active-run';
 
 interface UseAgentChatContainerParams {
   apiService: AgentApiService;
@@ -179,7 +179,6 @@ export function useAgentChatContainer({
     (s) => s.clearPendingInputRequest,
   );
   const clearStaleActiveRun = useAgentChatStore((s) => s.clearStaleActiveRun);
-  const markStreamLive = useAgentChatStore((s) => s.markStreamLive);
   const draftAgentMode = useAgentChatStore((s) => s.draftAgentMode);
   const savedAgentMode = useAgentChatStore((s) => s.savedAgentMode);
   const hasExplicitDraftAgentMode = useAgentChatStore(
@@ -194,7 +193,6 @@ export function useAgentChatContainer({
     activeThreadId ? s.uiActionStatesByThread[activeThreadId] : undefined,
   );
   const pendingInputRequest = useAgentChatStore((s) => s.pendingInputRequest);
-  const setActiveRun = useAgentChatStore((s) => s.setActiveRun);
   const setActiveRunStatus = useAgentChatStore((s) => s.setActiveRunStatus);
   const workEvents = useAgentChatStore((s) => s.workEvents);
   const socketConnectionState = useAgentChatStore(
@@ -445,6 +443,7 @@ export function useAgentChatContainer({
   const cancelSettleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
+  // use-effect-audit: ignore releases timers, requests or subscriptions on unmount
   useEffect(
     () => () => {
       if (cancelSettleTimerRef.current) {
@@ -1043,6 +1042,7 @@ export function useAgentChatContainer({
       anchor.scrollTop + (anchor.container.scrollHeight - anchor.scrollHeight);
   }, [messages.length]);
 
+  // use-effect-audit: ignore aborts the older-messages request when the thread changes
   useEffect(() => {
     activeThreadIdRef.current = activeThreadId;
     inputSubmissionSequenceRef.current += 1;
@@ -1055,6 +1055,7 @@ export function useAgentChatContainer({
     setIsAtBottom(true);
   }, [activeThreadId]);
 
+  // use-effect-audit: ignore releases timers, requests or subscriptions on unmount
   useEffect(() => {
     return () => {
       olderMessagesRequestEpochRef.current += 1;
@@ -1079,6 +1080,7 @@ export function useAgentChatContainer({
   });
 
   // Scroll tracking
+  // use-effect-audit: ignore subscribes to browser events
   useEffect(() => {
     if (isEmpty || !activeThreadId) return;
     const container = scrollContainerRef.current;
@@ -1167,6 +1169,7 @@ export function useAgentChatContainer({
 
   // Deferred markdown/media and composer measurement can change height after
   // the opening layout pass. Follow those changes only while pinned.
+  // use-effect-audit: ignore pins the scroll to the bottom while the layout resizes
   useEffect(() => {
     const container = scrollContainerRef.current;
     if (
@@ -1196,6 +1199,7 @@ export function useAgentChatContainer({
   }, [activeThreadId, isAtBottom, isEmpty, isLoadingThread, messages]);
 
   // Elapsed timer for run duration
+  // use-effect-audit: ignore runs the elapsed-time timer and clears it on cleanup
   useEffect(() => {
     if (!isRunActive || !runStartedAt) {
       return;
@@ -1208,84 +1212,7 @@ export function useAgentChatContainer({
     return () => window.clearInterval(interval);
   }, [isRunActive, runStartedAt]);
 
-  // Restore the active workflow execution when the user returns to a thread.
-  useEffect(() => {
-    if (!activeThreadId) return;
-    const controller = new AbortController();
-    const restoredRunId = activeRunId;
-    const canRestore = captureAgentRunRestore(activeThreadId);
-
-    apiService
-      .getActiveWorkflowExecutions(controller.signal, {
-        threadId: activeThreadId,
-        executionId: restoredRunId ?? undefined,
-      })
-      .then((executions) => {
-        if (controller.signal.aborted) {
-          return;
-        }
-
-        const matchingExecution = executions.find(
-          (execution) => execution.metadata?.threadId === activeThreadId,
-        );
-
-        if (!canRestore(matchingExecution?.id ?? null)) {
-          return;
-        }
-
-        if (!matchingExecution) {
-          const state = useAgentChatStore.getState();
-          if (
-            restoredRunId &&
-            state.activeThreadId === activeThreadId &&
-            selectActiveRun(state).runId === restoredRunId
-          ) {
-            clearStaleActiveRun();
-          }
-          return;
-        }
-
-        const isExecutionLive =
-          matchingExecution.status === WorkflowExecutionStatus.RUNNING ||
-          matchingExecution.status === WorkflowExecutionStatus.PENDING;
-        setActiveRun(matchingExecution.id, {
-          startedAt: matchingExecution.startedAt ?? null,
-          status: isExecutionLive ? 'running' : 'idle',
-        });
-        // Without a live stream the transcript renders nothing while Stop and
-        // WORKING are on, and no listener is attached to hear the run finish.
-        if (isExecutionLive) {
-          markStreamLive();
-        } else if (matchingExecution.id === restoredRunId) {
-          // The run this thread was restoring has ended. The sidebar trusts the
-          // thread summary, which the local `idle` above does not touch.
-          const thread = useAgentChatStore
-            .getState()
-            .threads.find((item) => item.id === activeThreadId);
-          if (
-            thread?.runStatus === 'queued' ||
-            thread?.runStatus === 'running'
-          ) {
-            useAgentChatStore.getState().updateThread(activeThreadId, {
-              attentionState: null,
-              runStatus: 'idle',
-            });
-          }
-        }
-      })
-      .catch(() => {
-        /* ignore restore failures */
-      });
-
-    return () => controller.abort();
-  }, [
-    activeRunId,
-    activeThreadId,
-    apiService,
-    clearStaleActiveRun,
-    markStreamLive,
-    setActiveRun,
-  ]);
+  useRestoreActiveRun(apiService, activeThreadId, activeRunId);
 
   return {
     // store slices

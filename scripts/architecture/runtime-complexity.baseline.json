@@ -270,13 +270,13 @@
     "symbol": "apps/web/proxy.ts"
   },
   {
-    "actual": 1212,
+    "actual": 1143,
     "file": "apps/web/src/components/prompt-bars/base/use-prompt-bar-state.tsx",
     "metric": "file-lines",
     "symbol": "apps/web/src/components/prompt-bars/base/use-prompt-bar-state.tsx"
   },
   {
-    "actual": 1621,
+    "actual": 1566,
     "file": "apps/web/src/components/workspace-shell/UniversalWorkspaceShell.tsx",
     "metric": "file-lines",
     "symbol": "apps/web/src/components/workspace-shell/UniversalWorkspaceShell.tsx"
@@ -312,7 +312,7 @@
     "symbol": "packages/actions/src/registry/contracts/workflow-node-action-contracts.ts"
   },
   {
-    "actual": 1188,
+    "actual": 1119,
     "file": "packages/agent/src/components/useAgentChatInput.ts",
     "metric": "file-lines",
     "symbol": "packages/agent/src/components/useAgentChatInput.ts"
@@ -336,7 +336,7 @@
     "symbol": "packages/agent/src/hooks/agent-chat-stream.entry.ts"
   },
   {
-    "actual": 1356,
+    "actual": 1283,
     "file": "packages/agent/src/hooks/use-agent-chat-container.ts",
     "metric": "file-lines",
     "symbol": "packages/agent/src/hooks/use-agent-chat-container.ts"
