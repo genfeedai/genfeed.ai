@@ -103,6 +103,7 @@ export function ContextSidebarProvider({
   // Every new selection opens the sidebar; the same selection re-registering
   // (a title refresh, a new close handler) never fights a collapse. A tap on
   // the item the page had picked automatically is a new user selection.
+  // use-effect-audit: ignore syncs the sidebar open state with the selection that opened it
   useEffect(() => {
     const previous = openedRef.current;
     openedRef.current = { key: activeKey, origin };

@@ -359,6 +359,7 @@ export function useModalUpload({
     setVoiceCloneProvider(VoiceProvider.ELEVENLABS);
   }
 
+  // use-effect-audit: ignore queues the files handed to the modal once on open
   useEffect(() => {
     if (
       !isOpen ||

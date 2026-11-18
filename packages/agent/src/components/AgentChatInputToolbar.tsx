@@ -68,6 +68,7 @@ function AgentChatInputToolbarInner({
 }: AgentChatInputToolbarProps): ReactElement {
   // The Agent infers output type from the prompt itself (#4672) — there is no
   // user control for it any more, only the mode dropdown (Auto/Manual/Plan).
+  // use-effect-audit: ignore reports the generation mode inferred from the prompt to the parent
   useEffect(() => {
     if (isAgentControlsHidden) {
       return;
