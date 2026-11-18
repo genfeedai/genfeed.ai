@@ -89,19 +89,32 @@ export function AnalyticsProvider({
     : null;
   const restoredFiltersKey = JSON.stringify(restoredFilters ?? {});
 
-  useEffect(() => {
-    if (restoredStartTime === null || restoredEndTime === null) {
-      return;
-    }
-    setDateRangeState({
-      endDate: new Date(restoredEndTime),
-      startDate: new Date(restoredStartTime),
+  const [seenRestoredRange, setSeenRestoredRange] = useState({
+    endTime: restoredEndTime,
+    startTime: restoredStartTime,
+  });
+  if (
+    seenRestoredRange.startTime !== restoredStartTime ||
+    seenRestoredRange.endTime !== restoredEndTime
+  ) {
+    setSeenRestoredRange({
+      endTime: restoredEndTime,
+      startTime: restoredStartTime,
     });
-  }, [restoredEndTime, restoredStartTime]);
+    if (restoredStartTime !== null && restoredEndTime !== null) {
+      setDateRangeState({
+        endDate: new Date(restoredEndTime),
+        startDate: new Date(restoredStartTime),
+      });
+    }
+  }
 
-  useEffect(() => {
+  const [seenRestoredFiltersKey, setSeenRestoredFiltersKey] =
+    useState(restoredFiltersKey);
+  if (seenRestoredFiltersKey !== restoredFiltersKey) {
+    setSeenRestoredFiltersKey(restoredFiltersKey);
     setFilters(JSON.parse(restoredFiltersKey) as AnalyticsQueryFilters);
-  }, [restoredFiltersKey]);
+  }
 
   const setDateRange = useCallback(
     (range: DateRange) => {
