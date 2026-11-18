@@ -179,6 +179,7 @@ export function useAnalytics(options?: AnalyticsQueryOptions) {
     }
   }, [getToken]);
 
+  // use-effect-audit: ignore loads the analytics overview on mount
   useEffect(() => {
     fetchAnalytics();
   }, [fetchAnalytics]);

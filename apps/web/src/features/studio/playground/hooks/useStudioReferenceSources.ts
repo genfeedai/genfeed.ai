@@ -201,6 +201,7 @@ export function useStudioReferenceSources({
     };
   }, [attachedReferenceSources, settings.editPrimaryId]);
 
+  // use-effect-audit: ignore keeps the primary edit source within the attached references
   useEffect(() => {
     if (type !== 'image-edit' || !resolvedReferences.editSourceIds.length)
       return;
