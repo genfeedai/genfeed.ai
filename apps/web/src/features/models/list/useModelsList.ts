@@ -333,6 +333,7 @@ export function useModelsList({
   }, [onRefresh, refetchCatalogModels, refetchModels]);
 
   // Register refresh function with context
+  // use-effect-audit: ignore registers the refresh handler with the page
   useEffect(() => {
     if (!onRefreshRegister) {
       return;

@@ -157,6 +157,7 @@ export function useTrainingsList({
   }, [refreshTrainings]);
 
   // Register refresh function with context
+  // use-effect-audit: ignore registers the refresh handler with the page
   useEffect(() => {
     if (!onRefreshRegister) {
       return;

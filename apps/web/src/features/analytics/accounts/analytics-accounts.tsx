@@ -250,6 +250,7 @@ export default function AnalyticsAccounts() {
 
   // A smaller result set can leave the URL page past the last page.
   const totalPages = list?.totalPages;
+  // use-effect-audit: ignore redirects the route in the router
   useEffect(() => {
     if (
       !accountsQuery.isPlaceholderData &&

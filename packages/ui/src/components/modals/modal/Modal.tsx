@@ -63,6 +63,7 @@ export default function Modal({
     [id],
   );
 
+  // use-effect-audit: ignore notifies the parent once the modal has closed
   useEffect(() => {
     const wasOpen = previousOpenRef.current;
     if (wasOpen && !isOpen) {

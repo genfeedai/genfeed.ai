@@ -84,6 +84,7 @@ export default function HookRemixModal({
   });
 
   // Open modal when isOpen/openKey changes
+  // use-effect-audit: ignore opens the modal in the modal store
   useEffect(() => {
     if (isOpen) {
       openModal(HOOK_REMIX_MODAL_ID);
