@@ -264,7 +264,7 @@ function harness(initial: BrandOsRevision[] = []) {
     ),
   };
   const scraper = {
-    scrapeWebsiteWithEvidence: vi.fn().mockResolvedValue(envelope()),
+    scrapeSetupSourceWithEvidence: vi.fn().mockResolvedValue(envelope()),
   };
   const revisions = new BrandOsRevisionsService(
     prisma as unknown as PrismaService,
@@ -315,7 +315,7 @@ describe('BrandOsScanService durable bounded scan', () => {
     expect(collected.scan).toEqual(await h.service.get(ORG, BRAND));
     const replay = await h.service.startAndCollect(h.input);
     expect(replay).toEqual({ scan: collected.scan, scrapedData: null });
-    expect(h.scraper.scrapeWebsiteWithEvidence).toHaveBeenCalledOnce();
+    expect(h.scraper.scrapeSetupSourceWithEvidence).toHaveBeenCalledOnce();
   });
 
   it('does not initialize revisions on an absent GET and projects terminal state without internals', async () => {
@@ -331,7 +331,7 @@ describe('BrandOsScanService durable bounded scan', () => {
     expect(h.marker().schemaVersion).toBe(1);
     expect(h.marker().baseline).toBeNull();
     expect(h.state.brand.agentConfig).toMatchObject({ unrelated: 'retained' });
-    expect(h.scraper.scrapeWebsiteWithEvidence).toHaveBeenCalledWith(
+    expect(h.scraper.scrapeSetupSourceWithEvidence).toHaveBeenCalledWith(
       'https://acme.example/',
       expect.objectContaining({ deadlineAt: expect.any(Number) }),
     );
@@ -384,7 +384,7 @@ describe('BrandOsScanService durable bounded scan', () => {
         'hidden-secret',
       );
       expect(h.prisma.$transaction).not.toHaveBeenCalled();
-      expect(h.scraper.scrapeWebsiteWithEvidence).not.toHaveBeenCalled();
+      expect(h.scraper.scrapeSetupSourceWithEvidence).not.toHaveBeenCalled();
       expect(h.tx.brand.update).not.toHaveBeenCalled();
     },
   );
@@ -400,7 +400,7 @@ describe('BrandOsScanService durable bounded scan', () => {
       const h = harness();
       const result = await h.service.start({ ...h.input, url });
       expect(result.url).toBe(canonical);
-      expect(h.scraper.scrapeWebsiteWithEvidence).toHaveBeenCalledWith(
+      expect(h.scraper.scrapeSetupSourceWithEvidence).toHaveBeenCalledWith(
         canonical,
         expect.any(Object),
       );
@@ -420,7 +420,7 @@ describe('BrandOsScanService durable bounded scan', () => {
       logoUrl: 'https://acme.example/logo.png',
       referenceImageUrls: ['https://acme.example/product.png'],
     });
-    h.scraper.scrapeWebsiteWithEvidence.mockResolvedValue(complete);
+    h.scraper.scrapeSetupSourceWithEvidence.mockResolvedValue(complete);
     expect((await h.service.start(h.input)).status).toBe('ready');
     expect(h.state.rows[0].status).toBe('DRAFT');
   });
@@ -436,7 +436,7 @@ describe('BrandOsScanService durable bounded scan', () => {
       version: 1,
     };
     const h = harness([seed]);
-    h.scraper.scrapeWebsiteWithEvidence.mockResolvedValue(envelope());
+    h.scraper.scrapeSetupSourceWithEvidence.mockResolvedValue(envelope());
     await h.service.start(h.input);
     expect(h.state.rows.find((row) => row.id === 'seed-1')).toMatchObject({
       approvedAt: null,
@@ -493,13 +493,13 @@ describe('BrandOsScanService durable bounded scan', () => {
     await expect(h.service.get(ORG, BRAND)).rejects.toBeInstanceOf(
       NotFoundException,
     );
-    expect(h.scraper.scrapeWebsiteWithEvidence).not.toHaveBeenCalled();
+    expect(h.scraper.scrapeSetupSourceWithEvidence).not.toHaveBeenCalled();
   });
   it('deduplicates the current key and rejects changed URL/distinct active ID after preparation commits', async () => {
     const h = harness();
     const fetched = deferred<WebsiteBrandScrapeEvidence>();
     const entered = deferred<void>();
-    h.scraper.scrapeWebsiteWithEvidence.mockImplementation(() => {
+    h.scraper.scrapeSetupSourceWithEvidence.mockImplementation(() => {
       entered.resolve();
       return fetched.promise;
     });
@@ -513,18 +513,18 @@ describe('BrandOsScanService durable bounded scan', () => {
       h.service.start({ ...h.input, requestId: randomUUID() }),
     ).rejects.toThrow('Another scan is in progress');
     expect(h.marker().status).toBe('running');
-    expect(h.scraper.scrapeWebsiteWithEvidence).toHaveBeenCalledOnce();
+    expect(h.scraper.scrapeSetupSourceWithEvidence).toHaveBeenCalledOnce();
     fetched.resolve(envelope());
     await first;
     expect(h.state.rows).toHaveLength(1);
     await h.service.start(h.input);
-    expect(h.scraper.scrapeWebsiteWithEvidence).toHaveBeenCalledOnce();
+    expect(h.scraper.scrapeSetupSourceWithEvidence).toHaveBeenCalledOnce();
   });
   it('commits overdue expiry before same-ID changed-URL conflict and returns it on identical repeat', async () => {
     const h = harness();
     const fetched = deferred<WebsiteBrandScrapeEvidence>();
     const entered = deferred<void>();
-    h.scraper.scrapeWebsiteWithEvidence.mockImplementation(() => {
+    h.scraper.scrapeSetupSourceWithEvidence.mockImplementation(() => {
       entered.resolve();
       return fetched.promise;
     });
@@ -552,7 +552,7 @@ describe('BrandOsScanService durable bounded scan', () => {
     const h = harness();
     const fetched = deferred<WebsiteBrandScrapeEvidence>();
     const entered = deferred<void>();
-    h.scraper.scrapeWebsiteWithEvidence.mockImplementationOnce(() => {
+    h.scraper.scrapeSetupSourceWithEvidence.mockImplementationOnce(() => {
       entered.resolve();
       return fetched.promise;
     });
@@ -588,12 +588,12 @@ describe('BrandOsScanService durable bounded scan', () => {
     expect((await h.service.start(h.input)).errorCode).toBe(
       'brand_scan.invalid_baseline',
     );
-    expect(h.scraper.scrapeWebsiteWithEvidence).not.toHaveBeenCalled();
+    expect(h.scraper.scrapeSetupSourceWithEvidence).not.toHaveBeenCalled();
     expect(h.state.rows).toHaveLength(1);
   });
   it('rejects an approval change during fetch with no scan revision', async () => {
     const h = harness([approved()]);
-    h.scraper.scrapeWebsiteWithEvidence.mockImplementation(async () => {
+    h.scraper.scrapeSetupSourceWithEvidence.mockImplementation(async () => {
       h.state.rows[0].id = 'approved-B';
       return envelope();
     });
@@ -613,7 +613,7 @@ describe('BrandOsScanService durable bounded scan', () => {
       valuePropositions: [],
       socialLinks: {},
     };
-    h.scraper.scrapeWebsiteWithEvidence.mockResolvedValue(empty);
+    h.scraper.scrapeSetupSourceWithEvidence.mockResolvedValue(empty);
     expect((await h.service.start(h.input)).errorCode).toBe(
       'brand_scan.no_evidence',
     );
@@ -642,7 +642,7 @@ describe('BrandOsScanService durable bounded scan', () => {
       { length: 9 },
       (_, index) => `https://acme.example/reference-${index}.png`,
     );
-    h.scraper.scrapeWebsiteWithEvidence.mockResolvedValue(realistic);
+    h.scraper.scrapeSetupSourceWithEvidence.mockResolvedValue(realistic);
     const scan = await h.service.start(h.input);
     expect(['ready', 'partial']).toContain(scan.status);
     expect(h.state.rows).toHaveLength(1);
@@ -678,7 +678,7 @@ describe('BrandOsScanService durable bounded scan', () => {
     large.evidence = [
       { sourceType: 'website', label: 'Oversize', excerpt: '界'.repeat(90000) },
     ];
-    h.scraper.scrapeWebsiteWithEvidence.mockResolvedValue(large);
+    h.scraper.scrapeSetupSourceWithEvidence.mockResolvedValue(large);
     expect((await h.service.start(h.input)).errorCode).toBe(
       'brand_scan.content_too_large',
     );
@@ -775,7 +775,7 @@ describe('BrandOsScanService durable bounded scan', () => {
         Buffer.byteLength(JSON.stringify({ ...draft, id: brandId }), 'utf8'),
       ).toBe(persistedBytes);
       expect(JSON.stringify(draft).length).toBeLessThan(helperBytes);
-      h.scraper.scrapeWebsiteWithEvidence.mockResolvedValue(extracted);
+      h.scraper.scrapeSetupSourceWithEvidence.mockResolvedValue(extracted);
       const create = vi.spyOn(h.revisions, 'create');
       const result = await h.service.start(h.input);
       expect(h.state.rows[0]).toEqual(before);
@@ -818,7 +818,7 @@ describe('BrandOsScanService durable bounded scan', () => {
       const h = harness();
       const fetched = deferred<WebsiteBrandScrapeEvidence>();
       const fetchEntered = deferred<void>();
-      h.scraper.scrapeWebsiteWithEvidence.mockImplementationOnce(() => {
+      h.scraper.scrapeSetupSourceWithEvidence.mockImplementationOnce(() => {
         fetchEntered.resolve();
         return fetched.promise;
       });
@@ -868,7 +868,7 @@ describe('BrandOsScanService durable bounded scan', () => {
   );
   it('records safe failures without leaking underlying error text', async () => {
     const h = harness();
-    h.scraper.scrapeWebsiteWithEvidence.mockRejectedValue(
+    h.scraper.scrapeSetupSourceWithEvidence.mockRejectedValue(
       new Error('credential hidden-secret'),
     );
     const scan = await h.service.start(h.input);
@@ -877,7 +877,7 @@ describe('BrandOsScanService durable bounded scan', () => {
   });
   it('logs failure diagnostics without website query strings or scraped data', async () => {
     const h = harness();
-    h.scraper.scrapeWebsiteWithEvidence.mockRejectedValue(
+    h.scraper.scrapeSetupSourceWithEvidence.mockRejectedValue(
       new Error('Fetch failed for https://acme.example/?token=hidden-secret'),
     );
     const scan = await h.service.start(h.input);
@@ -903,7 +903,7 @@ describe('BrandOsScanService durable bounded scan', () => {
       'Scan state is invalid',
     );
     expect(h.tx.brand.update).not.toHaveBeenCalled();
-    expect(h.scraper.scrapeWebsiteWithEvidence).not.toHaveBeenCalled();
+    expect(h.scraper.scrapeSetupSourceWithEvidence).not.toHaveBeenCalled();
   });
   it.each(['create', 'marker'])(
     'rolls back revision/version/terminal marker when the deadline crosses during awaited %s',

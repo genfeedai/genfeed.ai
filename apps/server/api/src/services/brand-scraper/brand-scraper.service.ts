@@ -25,6 +25,9 @@ import type {
   WebsiteStylesheetEvidence,
   XProfileScrapedData,
 } from '@api/services/brand-scraper/interfaces/brand-scraper.interfaces';
+import { PublicXBrandSourceService } from '@api/services/brand-scraper/public-x-brand-source.service';
+import { publicXHandle } from '@api/services/brand-scraper/public-x-handle.util';
+import { toXBrandData } from '@api/services/brand-scraper/x-brand-data.util';
 import type {
   IBrandKitDiagnostic,
   IExtractedBrandData,
@@ -91,6 +94,7 @@ export class BrandScraperService {
     private readonly loggerService: LoggerService,
     private readonly brandWebsiteParser: BrandWebsiteParserService,
     private readonly configService: ConfigService,
+    private readonly publicX: PublicXBrandSourceService,
   ) {
     this.http = new BrandScraperHttp({
       logger: this.loggerService,
@@ -105,6 +109,33 @@ export class BrandScraperService {
    */
   async scrapeWebsite(url: string): Promise<IScrapedBrandData> {
     return (await this.scrapeWebsiteWithEvidence(url)).data;
+  }
+
+  async readPublicXVoiceSamples(handle: string) {
+    return this.publicX.voiceSamples(handle);
+  }
+
+  async scrapeSetupSourceWithEvidence(
+    url: string,
+    budget?: WebsiteFetchBudget,
+  ): Promise<WebsiteBrandScrapeEvidence> {
+    if (!publicXHandle(url)) return this.scrapeWebsiteWithEvidence(url, budget);
+    if (budget && !(budget.deadlineAt > performance.now()))
+      throw new Error('deadline_exceeded');
+    const profile = await this.scrapeXProfile(url, budget);
+    return {
+      data: toXBrandData(profile, url),
+      diagnostics: [],
+      fontCandidates: [],
+      evidence: [
+        {
+          sourceType: 'website',
+          label: 'Public X profile',
+          url: profile.sourceUrl,
+          excerpt: profile.latestPostText,
+        },
+      ],
+    };
   }
 
   async scrapeWebsiteWithEvidence(
@@ -331,14 +362,51 @@ export class BrandScraperService {
   /**
    * Scrape a public X/Twitter profile for brand information
    */
-  async scrapeXProfile(url: string): Promise<XProfileScrapedData> {
+  async scrapeXProfile(
+    url: string,
+    budget?: WebsiteFetchBudget,
+  ): Promise<XProfileScrapedData> {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(`${caller} starting`, { url });
 
     try {
       const normalizedUrl = this.normalizeUrl(url);
 
-      const html = await this.fetchSocialHtml(normalizedUrl, 'X profile');
+      const publicHandle = publicXHandle(normalizedUrl);
+      if (publicHandle) {
+        try {
+          const snapshot = await this.publicX.profile(
+            publicHandle,
+            budget ? budget.deadlineAt - performance.now() : undefined,
+          );
+          if (snapshot)
+            return {
+              handle: snapshot.handle,
+              displayName: snapshot.name,
+              bio: snapshot.bio,
+              bannerImageUrl: snapshot.banner,
+              profileImageUrl: snapshot.avatar,
+              latestPostText: snapshot.latestText,
+              recentTweets: snapshot.latestSample
+                ? [snapshot.latestSample.text]
+                : [],
+              contentStyle: {
+                contentTypes: [],
+                usesEmojis: false,
+                usesHashtags: false,
+              },
+              sourceUrl: `https://x.com/${snapshot.handle}`,
+              scrapedAt: new Date(snapshot.readAt),
+            };
+        } catch (error) {
+          reportSocialScrapeFailure(this.loggerService, caller, error);
+        }
+      }
+      const html = await this.fetchSocialHtml(
+        normalizedUrl,
+        'X profile',
+        budget,
+      );
       const $ = cheerio.load(html);
 
       // Extract handle from URL
@@ -500,11 +568,16 @@ export class BrandScraperService {
       fontFamily: websiteData?.fontFamily,
       heroText: websiteData?.heroText,
       industry: linkedinData?.industry,
-      logoUrl: websiteData?.logoUrl || linkedinData?.logoUrl,
+      logoUrl:
+        websiteData?.logoUrl || linkedinData?.logoUrl || xData?.profileImageUrl,
+      bannerUrl: websiteData?.bannerUrl || xData?.bannerImageUrl,
       primaryColor: websiteData?.primaryColor,
       scrapedAt: new Date(),
       secondaryColor: websiteData?.secondaryColor,
-      socialLinks: websiteData?.socialLinks ?? {},
+      socialLinks: {
+        ...websiteData?.socialLinks,
+        ...(xData && { twitter: xData.sourceUrl }),
+      },
       sourceUrls,
       tagline: websiteData?.tagline,
       valuePropositions: websiteData?.valuePropositions ?? [],
@@ -521,10 +594,10 @@ export class BrandScraperService {
   private async fetchSocialHtml(
     url: string,
     label: 'LinkedIn page' | 'X profile',
-  ): Promise<string> {
-    const budget: WebsiteFetchBudget = {
+    budget: WebsiteFetchBudget = {
       deadlineAt: performance.now() + WEBSITE_TIMEOUT_MS,
-    };
+    },
+  ): Promise<string> {
     const response = await this.fetchWithRetry(
       url,
       {

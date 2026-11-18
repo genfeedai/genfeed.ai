@@ -965,6 +965,7 @@ export function buildBrandKitDraftFromWebsiteScrape(
   };
 
   setProposedValue('banner', bannerValue);
+  setProposedValue('voiceSampleOutput', scraped.socialPostSamples?.[0]);
   setProposedValue('description', scraped.description ?? scraped.aboutText);
   setProposedValue(
     'fontFamily',

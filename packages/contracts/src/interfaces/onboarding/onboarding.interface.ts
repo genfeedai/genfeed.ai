@@ -59,6 +59,8 @@ export interface IScrapedBrandData {
   aboutText?: string;
   /** Short excerpts of the about, product or pricing pages beyond the homepage. */
   pageExcerpts?: string[];
+  /** Public post text observed on a brand setup source. */
+  socialPostSamples?: string[];
 
   // Links
   socialLinks?: IExtractedSocialLinks;

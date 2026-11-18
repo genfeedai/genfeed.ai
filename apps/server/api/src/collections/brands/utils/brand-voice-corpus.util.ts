@@ -27,7 +27,9 @@ const VOICE_PROMPT_SAMPLE_CHARS = 600;
 const ORIGIN_PRIORITY: Record<BrandVoiceSampleOrigin, number> = {
   pasted: 0,
   'own-account': 1,
-  'published-post': 2,
+  'public-profile': 2,
+  'published-post': 3,
+  'brand-kit': 4,
 };
 
 /**
@@ -223,13 +225,13 @@ function isoDate(value: number): string {
 export function summarizeVoiceCorpus(
   samples: readonly IBrandVoiceSample[],
 ): IBrandVoiceCorpusSummary {
-  const originCounts: Record<BrandVoiceSampleOrigin, number> = {
+  const originCounts: IBrandVoiceCorpusSummary['originCounts'] = {
     'own-account': 0,
     pasted: 0,
     'published-post': 0,
   };
   for (const sample of samples) {
-    originCounts[sample.origin] += 1;
+    originCounts[sample.origin] = (originCounts[sample.origin] ?? 0) + 1;
   }
   const platforms = [
     ...new Set(

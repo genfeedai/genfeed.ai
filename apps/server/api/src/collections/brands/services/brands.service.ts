@@ -915,7 +915,14 @@ export class BrandsService extends BaseService<
     return this.brandGenerationService.generateBrandVoice(
       dto,
       organizationId,
-      (criteria) => this.findOne(criteria),
+      (criteria) =>
+        this.findOne(criteria, [
+          {
+            path: 'links',
+            where: { isDeleted: false },
+            select: ['url', 'category'],
+          },
+        ]),
     );
   }
 
