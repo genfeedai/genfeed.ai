@@ -116,6 +116,7 @@ export function useNewsletterEditor(
   }
 
   // A failed background refresh keeps the issue on screen without an alert.
+  // use-effect-audit: ignore reports a failed load to the logger or a notification
   useEffect(() => {
     if (!loadError || hasNewsletter) {
       return;

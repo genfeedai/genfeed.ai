@@ -172,6 +172,7 @@ export function useModalGallery({
   // keeps the list on screen.
   const pageError = pageQuery.error;
   const hasPageData = pageQuery.data !== undefined;
+  // use-effect-audit: ignore reports a failed load to the logger or a notification
   useEffect(() => {
     if (!pageError || hasPageData) {
       return;

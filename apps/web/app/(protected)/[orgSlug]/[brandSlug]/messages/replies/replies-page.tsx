@@ -28,13 +28,14 @@ import { EmptyState } from '@ui/primitives/empty-state';
 import { MessageCircleReply } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { useAdminSearchParam } from '@/components/content/admin-filters/useAdminSearchParam';
 import FilterMenu from '@/components/content/filter-menu/FilterMenu';
 import SearchField from '@/components/content/search-field/SearchField';
 import { usePlatformOAuthConnect } from '@/hooks/auth/use-platform-oauth-connect/use-platform-oauth-connect';
 import { useBrandDetail } from '@/hooks/pages/use-brand-detail/use-brand-detail';
+import { useNotifyOnLoadError } from '@/hooks/utils/use-notify-on-load-error/use-notify-on-load-error';
 import type {
   DraftState,
   InboxItem,
@@ -150,12 +151,11 @@ export default function RepliesPage() {
   );
 
   // One toast per failed read, after its retry, not one per attempt.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: errorUpdatedAt marks each new failed read.
-  useEffect(() => {
-    if (inboxError) {
-      toast.error(inboxError);
-    }
-  }, [errorUpdatedAt, inboxError]);
+  useNotifyOnLoadError({
+    errorUpdatedAt,
+    hasError: Boolean(inboxError),
+    notify: () => toast.error(inboxError),
+  });
 
   const loadInbox = useCallback(async () => {
     await refetch();

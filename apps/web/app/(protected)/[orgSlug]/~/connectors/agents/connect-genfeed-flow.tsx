@@ -222,6 +222,7 @@ export default function ConnectGenfeedFlow() {
   );
 
   // A failed background refresh keeps the cached keys on screen silently.
+  // use-effect-audit: ignore reports a failed load to the logger or a notification
   useEffect(() => {
     if (!keysError || hasKeysData) {
       return;

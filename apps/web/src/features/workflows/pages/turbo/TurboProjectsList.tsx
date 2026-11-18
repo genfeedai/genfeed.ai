@@ -5,6 +5,7 @@ import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { ITurboProject } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import { useResetOnChange } from '@hooks/utils/use-reset-on-change/use-reset-on-change';
 import {
   getJsonApiErrorMember,
   getJsonApiErrorMessage,
@@ -48,14 +49,13 @@ export default function TurboProjectsList() {
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [isSubscriptionRequired, setIsSubscriptionRequired] = useState(false);
-  // biome-ignore lint/correctness/useExhaustiveDependencies: changing brand resets pagination and loaded rows.
-  useEffect(() => {
+  useResetOnChange([brandId, search], () => {
     setProjects([]);
     setPage(1);
     setLoadedPage(0);
     setError(null);
     setIsSubscriptionRequired(false);
-  }, [brandId, search]);
+  });
   // biome-ignore lint/correctness/useExhaustiveDependencies: refresh explicitly retries the current page after a failed load.
   useEffect(() => {
     if (!brandId) return;
