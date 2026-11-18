@@ -62,17 +62,9 @@
     "packages/contexts/ui/context-sidebar-context.tsx": 1,
     "packages/contexts/user/brand-context/useBrandProviderState.ts": 2,
     "packages/contexts/user/organization-context/organization-context.tsx": 1,
-    "packages/hooks/ui/use-attachments/use-attachments.ts": 1,
-    "packages/ui/src/components/layout/agent-output-layout/AgentOutputShell.tsx": 1,
-    "packages/ui/src/components/masonry/shared/useMasonryHover.ts": 1,
-    "packages/ui/src/components/modals/ingredients/VideoExtendConfirmControls.tsx": 1,
-    "packages/ui/src/components/modals/ingredients/VideoUpscaleConfirmControls.tsx": 1,
-    "packages/ui/src/primitives/date-time-picker.tsx": 1,
     "packages/ui/src/primitives/editable-text.tsx": 1,
     "packages/ui/src/primitives/searchbar.tsx": 1,
-    "packages/ui/src/primitives/tabs.tsx": 1,
     "packages/workflows/src/ui/canvas/WorkflowCanvas.tsx": 1,
-    "packages/workflows/src/ui/nodes/NodeDetailModal.tsx": 1,
     "packages/workflows/src/ui/nodes/SchemaInputs.tsx": 1
   }
 }

@@ -99,6 +99,7 @@ export default function VideoUpscaleConfirmControls({
       : selectedModel.cost
     : null;
 
+  // use-effect-audit: ignore reports the current selection to the confirm modal host
   useEffect(() => {
     if (!selectedModel) {
       return;

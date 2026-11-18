@@ -109,6 +109,7 @@ export function useMasonryHover({
     onHoverStateChangeRef.current = onHoverStateChange;
   }, [onHoverStateChange]);
 
+  // use-effect-audit: ignore tells the host the hover ended when the container loses hover
   useEffect(() => {
     if (prevContainerHoveredRef.current !== isContainerHovered) {
       prevContainerHoveredRef.current = isContainerHovered;
