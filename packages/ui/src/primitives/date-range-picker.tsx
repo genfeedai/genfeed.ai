@@ -7,7 +7,6 @@ import {
   formatUtcChipDate,
   getTrailingUtcDays,
 } from '@genfeedai/helpers/utils/date-range.util';
-import { useResetOnChange } from '@hooks/utils/use-reset-on-change/use-reset-on-change';
 import { Calendar as CalendarIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
@@ -122,17 +121,24 @@ export default function DateRangePicker({
     },
   );
 
-  useResetOnChange([valueStartTime, valueEndTime], () => {
-    if (valueStartTime === null || valueEndTime === null) {
-      return;
-    }
-    const nextValue = {
-      endDate: new Date(valueEndTime),
-      startDate: new Date(valueStartTime),
-    };
-    setDateRange({ from: nextValue.startDate, to: nextValue.endDate });
-    setSelectedPreset(getPresetForRange(nextValue));
+  const [seenValueTimes, setSeenValueTimes] = useState({
+    endTime: valueEndTime,
+    startTime: valueStartTime,
   });
+  if (
+    seenValueTimes.startTime !== valueStartTime ||
+    seenValueTimes.endTime !== valueEndTime
+  ) {
+    setSeenValueTimes({ endTime: valueEndTime, startTime: valueStartTime });
+    if (valueStartTime !== null && valueEndTime !== null) {
+      const nextValue = {
+        endDate: new Date(valueEndTime),
+        startDate: new Date(valueStartTime),
+      };
+      setDateRange({ from: nextValue.startDate, to: nextValue.endDate });
+      setSelectedPreset(getPresetForRange(nextValue));
+    }
+  }
 
   const handlePresetChange = (preset: DateRangePreset) => {
     setSelectedPreset(preset);
