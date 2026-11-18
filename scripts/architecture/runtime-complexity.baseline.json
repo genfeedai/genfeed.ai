@@ -318,7 +318,7 @@
     "symbol": "packages/agent/src/components/useAgentChatInput.ts"
   },
   {
-    "actual": 1252,
+    "actual": 1244,
     "file": "packages/agent/src/components/useGenerationActionCard.ts",
     "metric": "file-lines",
     "symbol": "packages/agent/src/components/useGenerationActionCard.ts"
