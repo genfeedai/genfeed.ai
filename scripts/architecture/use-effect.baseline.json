@@ -5,9 +5,9 @@
   "use_effect": {
     "apps/extension/src/components/chat/ChatInput.tsx": 2,
     "apps/extension/src/components/pages/ReplyPage.tsx": 1,
-    "apps/server/mcp/src/ui/preview-client.tsx": 2,
+    "apps/server/mcp/src/ui/preview-client.tsx": 1,
     "apps/web/app/(public)/oauth/cli/content.tsx": 1,
-    "apps/web/src/components/workspace-shell/UniversalWorkspaceShell.tsx": 3,
+    "apps/web/src/components/workspace-shell/UniversalWorkspaceShell.tsx": 2,
     "apps/web/src/features/brands/components/brand-kit/BrandOsSettingsCard.tsx": 2,
     "apps/web/src/features/studio/playground/hooks/useStudioComposerSetup.ts": 1,
     "apps/web/src/features/studio/storyboard/components/StoryboardAnimatic.tsx": 1,

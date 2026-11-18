@@ -470,7 +470,7 @@ function UniversalWorkspaceShellContent({
   const composerContextLabel = productSurfaceAdapter
     ? effectiveShellContextLabel
     : `${conversationScope.contextLabel} · ${effectiveShellContextLabel}`;
-
+  // use-effect-audit: ignore syncs the thread's brand context to the API, aborting on cleanup
   useEffect(() => {
     if (
       !activeThreadIdForScope ||
