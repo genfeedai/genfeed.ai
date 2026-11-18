@@ -929,7 +929,6 @@ export const ROUTE_MANIFEST_GROUPS: readonly RouteManifestGroup[] = [
       '/settings/progress',
       '/settings/members',
       { path: '/settings/modules', help: 'settingsModules' },
-      '/settings/preferences',
       '/settings/credits',
       '/settings/subscription',
       { path: '/settings/referrals', title: 'Affiliates' },

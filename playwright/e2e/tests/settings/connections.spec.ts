@@ -556,18 +556,7 @@ test.describe('Organization Settings', () => {
     await expect(
       settingsPage.canvas.getByText('@test-org', { exact: true }),
     ).toBeVisible();
-    // General is profile and language only; identity defaults moved to
-    // Preferences (#6693).
-    await expect(settingsPage.orgIdentityCard).toHaveCount(0);
-  });
-
-  test('shows organization preferences with the identity defaults', async ({
-    authenticatedPage,
-  }) => {
-    const settingsPage = new SettingsPage(authenticatedPage);
-
-    await settingsPage.goToOrganizationPreferences();
-
+    // Identity defaults share the page with profile and language.
     await expect(settingsPage.orgIdentityCard).toBeVisible();
   });
 
