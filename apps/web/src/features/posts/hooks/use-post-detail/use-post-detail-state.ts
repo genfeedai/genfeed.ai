@@ -430,21 +430,9 @@ export function usePostDetailState({
   }, [refetchPost]);
 
   // Sync view mode based on publication status
-  useEffect(() => {
-    if (!post) {
-      return;
-    }
-
-    if (isPostPublished(post) && viewMode !== 'preview') {
-      setViewMode('preview');
-    }
-  }, [
-    post?.id,
-    post?.publicationDate,
-    post?.targetExecutionState,
-    viewMode,
-    post,
-  ]);
+  if (post && isPostPublished(post) && viewMode !== 'preview') {
+    setViewMode('preview');
+  }
 
   // Update active post handler
   const updateActivePost = useCallback(
