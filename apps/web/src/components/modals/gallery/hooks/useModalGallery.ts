@@ -25,6 +25,7 @@ import { logger } from '@genfeedai/services/core/logger.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import { MusicsService } from '@genfeedai/services/ingredients/musics.service';
 import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
+import { useResetOnChange } from '@hooks/utils/use-reset-on-change/use-reset-on-change';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 const EMPTY_ITEMS: never[] = [];
@@ -193,11 +194,11 @@ export function useModalGallery({
   );
 
   // Sync format prop to local state whenever format changes (not just on open)
-  useEffect(() => {
+  useResetOnChange([format], () => {
     if (format) {
       setLocalFormat(format);
     }
-  }, [format]);
+  });
 
   useEffect(() => {
     if (!isOpen) {

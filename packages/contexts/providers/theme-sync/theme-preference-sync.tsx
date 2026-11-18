@@ -29,6 +29,7 @@ export default function ThemePreferenceSync() {
     ? storedPreference
     : undefined;
 
+  // use-effect-audit: ignore applies the saved theme through the theme provider
   useEffect(() => {
     if (accountPreference === undefined) {
       return;

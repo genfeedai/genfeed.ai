@@ -3,6 +3,7 @@
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { usePageScope } from '@hooks/navigation/use-page-scope/use-page-scope';
+import { useResetOnChange } from '@hooks/utils/use-reset-on-change/use-reset-on-change';
 import { IngredientsService } from '@services/content/ingredients.service';
 import { logger } from '@services/core/logger.service';
 import { Alert, AlertDescription } from '@ui/primitives/alert';
@@ -73,9 +74,9 @@ export default function AssetDeepLink() {
   const [openedKey, setOpenedKey] = useState<string | null>(null);
 
   // Once the link is gone, the same asset can be linked again.
-  useEffect(() => {
+  useResetOnChange([assetId], () => {
     if (!assetId) setOpenedKey(null);
-  }, [assetId]);
+  });
 
   useEffect(() => {
     if (!ingredient || !isInScope || openedKey === openKey) return;

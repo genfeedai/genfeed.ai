@@ -26,6 +26,7 @@ function UploadFileThumb({ file }: { file: File }): ReactElement {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const isImage = file.type.startsWith('image/');
 
+  // use-effect-audit: ignore creates and releases an object URL for the file
   useEffect(() => {
     if (!isImage) {
       return;
