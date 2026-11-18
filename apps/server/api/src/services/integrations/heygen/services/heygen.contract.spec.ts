@@ -744,6 +744,60 @@ describe('HeyGen v3 contracts', () => {
     },
   );
 
+  it.each(['heygen-avatar-6', 'heygen-avatar-6-turbo'] as const)(
+    'sends motion controls for %s in the places HeyGen reads them',
+    async (engine) => {
+      await service.generateNativeAvatarVideo(
+        'meta',
+        nativeLook('photo_avatar', [engine]),
+        { inputText: 'Hello', voiceId: 'voice' },
+        'tenant-key',
+        '16:9',
+        engine,
+        '1080p',
+        { expressiveness: 'less', prompt: 'Open-handed gestures.' },
+      );
+      expect(http.post.mock.calls[0][1]).toMatchObject({
+        engine: { motion_expressiveness: 'less', type: engine },
+        motion_prompt: 'Open-handed gestures.',
+        resolution: '1080p',
+      });
+    },
+  );
+
+  it('sends no motion fields when none are chosen', async () => {
+    await service.generateNativeAvatarVideo(
+      'meta',
+      nativeLook('photo_avatar', ['heygen-avatar-6']),
+      { inputText: 'Hello', voiceId: 'voice' },
+      'tenant-key',
+      '16:9',
+      'heygen-avatar-6',
+    );
+    const body = http.post.mock.calls[0][1];
+    expect(body).not.toHaveProperty('motion_prompt');
+    expect(body.engine).toEqual({ type: 'heygen-avatar-6' });
+  });
+
+  it.each(['avatar_iv', 'avatar_v'] as const)(
+    'refuses motion controls for %s before the paid submission',
+    async (engine) => {
+      await expect(
+        service.generateNativeAvatarVideo(
+          'meta',
+          nativeLook('digital_twin', ['avatar_iv', 'avatar_v']),
+          { inputText: 'Hello', voiceId: 'voice' },
+          'tenant-key',
+          '16:9',
+          engine,
+          '1080p',
+          { prompt: 'Wave.' },
+        ),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(http.post).not.toHaveBeenCalled();
+    },
+  );
+
   it.each(['avatar_iv', 'avatar_v'] as const)(
     'refuses 2K for %s before the paid submission',
     async (engine) => {

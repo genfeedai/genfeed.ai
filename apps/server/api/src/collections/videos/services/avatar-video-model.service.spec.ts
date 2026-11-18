@@ -265,6 +265,51 @@ describe('AvatarVideoModelService', () => {
       expect(routed).toEqual([]);
     });
 
+    it('offers Auto only the Avatar 6 engines when motion controls are set', async () => {
+      await service.resolve(
+        { motion: { prompt: 'Nod once.' }, text: 'Hi' },
+        allEngines,
+        'org',
+      );
+      expect(routed[0]?.eligibleModelKeys).toEqual([
+        MODEL_KEYS.HEYGEN_AVATAR_6,
+        MODEL_KEYS.HEYGEN_AVATAR_6_TURBO,
+      ]);
+    });
+
+    it.each([MODEL_KEYS.HEYGEN_AVATAR_IV, MODEL_KEYS.HEYGEN_AVATAR_V])(
+      'refuses an explicit %s with motion controls',
+      async (model) => {
+        await expect(
+          service.resolve(
+            { model, motion: { expressiveness: 'less' }, text: 'Hi' },
+            allEngines,
+            'org',
+          ),
+        ).rejects.toBeInstanceOf(BadRequestException);
+      },
+    );
+
+    it('refuses motion controls on a photo animation', async () => {
+      await expect(
+        service.resolve(
+          { motion: { prompt: 'Nod.' }, text: 'Hi' },
+          undefined,
+          'org',
+        ),
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
+
+    it('treats an empty motion object as no motion controls', async () => {
+      await service.resolve({ motion: {}, text: 'Hi' }, allEngines, 'org');
+      expect(routed[0]?.eligibleModelKeys).toEqual([
+        MODEL_KEYS.HEYGEN_AVATAR_IV,
+        MODEL_KEYS.HEYGEN_AVATAR_V,
+        MODEL_KEYS.HEYGEN_AVATAR_6,
+        MODEL_KEYS.HEYGEN_AVATAR_6_TURBO,
+      ]);
+    });
+
     it('refuses a photo animation', async () => {
       await expect(
         service.resolve({ resolution: '2k', text: 'Hi' }, undefined, 'org'),

@@ -2050,6 +2050,7 @@ describe('AvatarVideoGenerationService', () => {
       '9:16',
       'avatar_iv',
       undefined,
+      undefined,
     );
     expect(h.heygenService.generatePhotoAvatarVideo).not.toHaveBeenCalled();
     expect(h.videosService.prisma.ingredient.update).toHaveBeenCalledWith(
@@ -2155,10 +2156,11 @@ describe('AvatarVideoGenerationService', () => {
         '9:16',
         'avatar_v',
         undefined,
+        undefined,
       );
     });
 
-    it('holds an Avatar 6 render at its 2K rate and sends 2K to HeyGen', async () => {
+    it('holds an Avatar 6 render at its 2K rate and sends 2K and motion to HeyGen', async () => {
       const h = createService();
       const ref = platformTwin(['avatar_iv', 'heygen-avatar-6']);
       admit(h, ref);
@@ -2177,6 +2179,7 @@ describe('AvatarVideoGenerationService', () => {
         {
           avatarRef: ref,
           heygenVoiceId: 'voice-1',
+          motion: { expressiveness: 'less', prompt: 'Smile and nod.' },
           resolution: '2k',
           text: script,
         },
@@ -2203,6 +2206,7 @@ describe('AvatarVideoGenerationService', () => {
         '9:16',
         'heygen-avatar-6',
         '2k',
+        { expressiveness: 'less', prompt: 'Smile and nod.' },
       );
     });
 

@@ -42,6 +42,18 @@ export interface HeyGenAvatarSelection {
   ownership: 'private' | 'public';
 }
 
+/** How much HeyGen moves an Avatar 6 look; `less` is fewer, calmer gestures. */
+export type HeyGenAvatarMotionExpressiveness = 'default' | 'less';
+
+/**
+ * Motion direction for Avatar 6 and Avatar 6 Turbo renders. A prompt overrides
+ * the expressiveness wherever the two overlap (HeyGen, Avatar 6 docs).
+ */
+export interface HeyGenAvatarMotion {
+  expressiveness?: HeyGenAvatarMotionExpressiveness;
+  prompt?: string;
+}
+
 /** HeyGen's catalogue gender, normalized; null when HeyGen does not say. */
 export type HeyGenGender = 'female' | 'male';
 

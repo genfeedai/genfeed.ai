@@ -45,6 +45,7 @@ function toAvatarVideoGenerationParams(
     elevenlabsVoiceId: dto.elevenlabsVoiceId,
     heygenVoiceId: dto.heygenVoiceId,
     model: dto.model,
+    motion: dto.motion,
     photoUrl: dto.photoUrl,
     photoIngredientId: dto.photoIngredientId,
     prioritize: dto.prioritize,

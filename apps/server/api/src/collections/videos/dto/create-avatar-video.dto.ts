@@ -1,3 +1,4 @@
+import { AvatarMotionDto } from '@api/collections/videos/dto/avatar-motion.dto';
 import { DefaultAvatarRefDto } from '@api/shared/default-avatar-ref/default-avatar-ref.dto';
 import { DefaultVoiceRefDto } from '@api/shared/default-voice-ref/default-voice-ref.dto';
 import { RouterPriority } from '@genfeedai/contracts';
@@ -137,6 +138,17 @@ export class CreateAvatarVideoDto {
     required: false,
   })
   readonly resolution?: HeyGenAvatar6Resolution;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => AvatarMotionDto)
+  @ApiProperty({
+    description:
+      'Motion direction for Avatar 6 and Avatar 6 Turbo. Routing is limited to those engines when set.',
+    required: false,
+    type: () => AvatarMotionDto,
+  })
+  readonly motion?: AvatarMotionDto;
 
   @IsString()
   @IsOptional()

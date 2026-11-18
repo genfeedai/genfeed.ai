@@ -34,7 +34,12 @@ export class AvatarVideoModelService {
   async resolve(
     params: Pick<
       AvatarVideoGenerationParams,
-      'autoSelectModel' | 'model' | 'prioritize' | 'resolution' | 'text'
+      | 'autoSelectModel'
+      | 'model'
+      | 'motion'
+      | 'prioritize'
+      | 'resolution'
+      | 'text'
     >,
     avatarRef: HeyGenAvatarRef | undefined,
     organizationId: string,
@@ -48,12 +53,18 @@ export class AvatarVideoModelService {
         : params.model;
 
     const resolution = params.resolution ?? HEYGEN_AVATAR_6_DEFAULT_RESOLUTION;
-    const needs2k = resolution !== HEYGEN_AVATAR_6_DEFAULT_RESOLUTION;
+    // 2K output and motion controls exist only on the Avatar 6 engines.
+    const avatar6Feature =
+      resolution !== HEYGEN_AVATAR_6_DEFAULT_RESOLUTION
+        ? '2K output'
+        : params.motion?.prompt || params.motion?.expressiveness
+          ? 'motion controls'
+          : undefined;
 
     if (!avatarRef) {
-      if (needs2k)
+      if (avatar6Feature)
         throw new BadRequestException(
-          '2K output needs a trained avatar look on Avatar 6, not a photo.',
+          `Avatar 6 is required for ${avatar6Feature}, and it needs a trained avatar look, not a photo.`,
         );
       if (explicit === MODEL_KEYS.HEYGEN_AVATAR_V)
         throw new BadRequestException(
@@ -69,15 +80,15 @@ export class AvatarVideoModelService {
       return { modelKey: MODEL_KEYS.HEYGEN_AVATAR };
     }
 
-    // 2K is an Avatar 6 and Turbo output; the other engines render at 1080p.
     const eligibleModelKeys = getEligibleHeyGenAvatarModelKeys(
       avatarRef,
     ).filter(
-      (key) => !needs2k || isHeyGenAvatar6Engine(getHeyGenAvatarEngine(key)),
+      (key) =>
+        !avatar6Feature || isHeyGenAvatar6Engine(getHeyGenAvatarEngine(key)),
     );
-    if (needs2k && eligibleModelKeys.length === 0)
+    if (avatar6Feature && eligibleModelKeys.length === 0)
       throw new BadRequestException(
-        'This look does not support Avatar 6, which 2K output needs.',
+        `This look does not support Avatar 6, which is required for ${avatar6Feature}.`,
       );
     if (eligibleModelKeys.length === 0)
       throw new BadRequestException(
@@ -88,8 +99,8 @@ export class AvatarVideoModelService {
     if (explicit) {
       if (!eligibleModelKeys.includes(explicit))
         throw new BadRequestException(
-          needs2k
-            ? '2K output needs Avatar 6 or Avatar 6 Turbo on a look that supports it.'
+          avatar6Feature
+            ? `Avatar 6 or Avatar 6 Turbo, on a look that supports it, is required for ${avatar6Feature}.`
             : explicit === MODEL_KEYS.HEYGEN_AVATAR_V
               ? 'Avatar V needs a digital-twin look that supports the Avatar V engine.'
               : `${explicit} is not available for this avatar look.`,

@@ -62,6 +62,7 @@ import {
 } from '@genfeedai/contracts/constants';
 import type {
   HeyGenAvatarCatalogPage,
+  HeyGenAvatarMotion,
   HeyGenAvatarRef,
   HeyGenCatalogAvatar,
   HeyGenCatalogVoice,
@@ -185,6 +186,7 @@ export class HeyGenService {
     aspectRatio: AvatarVideoAspectRatio = '9:16',
     engine: HeyGenAvatarEngine = 'avatar_iv',
     resolution?: HeyGenAvatar6Resolution,
+    motion?: HeyGenAvatarMotion,
   ): Promise<string> {
     const speech =
       typeof voiceInput === 'string' ? { audioUrl: voiceInput } : voiceInput;
@@ -192,6 +194,7 @@ export class HeyGenService {
       avatar,
       engine,
       resolution,
+      motion,
     );
     const avatarId = avatar.lookId;
     if (

@@ -15,6 +15,7 @@ import type {
   HeyGenAvatarEngine,
 } from '@genfeedai/contracts/constants';
 import type {
+  HeyGenAvatarMotion,
   HeyGenAvatarRef,
   ModelBillableQuoteSnapshot,
 } from '@genfeedai/contracts/interfaces';
@@ -54,6 +55,8 @@ export interface AvatarVideoGenerationParams {
   aspectRatio?: AvatarVideoAspectRatio;
   /** Avatar 6 output resolution; omitted renders at HeyGen's 1080p default. */
   resolution?: HeyGenAvatar6Resolution;
+  /** Avatar 6 motion direction; routes to an Avatar 6 engine when set. */
+  motion?: HeyGenAvatarMotion;
   /** Explicit engine model; omitted or auto routes among the look's engines. */
   model?: string;
   autoSelectModel?: boolean;
