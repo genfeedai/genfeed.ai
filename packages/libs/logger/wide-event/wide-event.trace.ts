@@ -1,4 +1,5 @@
 import { randomBytes, randomUUID } from 'node:crypto';
+import { hostname } from 'node:os';
 import { getActiveSpan, spanToJSON } from '@sentry/nestjs';
 import type {
   WideEventServiceIdentity,
@@ -11,6 +12,7 @@ const TRACEPARENT_PATTERN =
 const ALL_ZERO_TRACE_ID = '0'.repeat(32);
 const ALL_ZERO_SPAN_ID = '0'.repeat(16);
 const REQUEST_ID_PATTERN = /^[\w.:-]{1,128}$/;
+const CONTAINER_SUFFIX_PATTERN = /-\d+$/;
 
 export function readHeader(
   headers: Record<string, string | string[] | undefined> | undefined,
@@ -101,6 +103,20 @@ export function resolveRequestId(
     : randomUUID();
 }
 
+/**
+ * Names the ECS task from its metadata URI (`.../v4/<task id>-<number>`), or
+ * the host name outside ECS, so a stall can be traced to one task.
+ */
+export function resolveInstanceId(
+  env: NodeJS.ProcessEnv = process.env,
+): string | undefined {
+  const containerId = env.ECS_CONTAINER_METADATA_URI_V4?.split('/')
+    .filter(Boolean)
+    .pop();
+  const taskId = containerId?.replace(CONTAINER_SUFFIX_PATTERN, '');
+  return taskId || hostname() || undefined;
+}
+
 export function resolveServiceIdentity(
   service: string,
   env: NodeJS.ProcessEnv = process.env,
@@ -108,6 +124,7 @@ export function resolveServiceIdentity(
   return {
     deployment_id: env.DEPLOYMENT_ID || undefined,
     environment: env.SENTRY_ENVIRONMENT || env.NODE_ENV || undefined,
+    instance_id: resolveInstanceId(env),
     region: env.AWS_REGION || undefined,
     service,
     version: env.npm_package_version || env.VERSION || undefined,
