@@ -84,6 +84,7 @@ export function useBrandEnabledSkills({
     setSelection(next);
   }, []);
 
+  // use-effect-audit: ignore cancels in-flight skill mutations and resets the selection when the brand changes
   useEffect(() => {
     mutationIdRef.current += 1;
     scopeVersionRef.current += 1;
@@ -105,6 +106,7 @@ export function useBrandEnabledSkills({
     });
   }, [applySelection, isReady, selectedBrandId]);
 
+  // use-effect-audit: ignore adopts the persisted skill selection once it loads and no mutation is running
   useEffect(() => {
     if (!isReady || !selectedBrandId || isLoadingRef.current) {
       return;

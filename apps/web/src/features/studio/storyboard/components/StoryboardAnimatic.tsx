@@ -165,6 +165,7 @@ export default function StoryboardAnimatic({
     }, 100);
     return () => clearInterval(timer);
   }, [playing, end]);
+  // use-effect-audit: ignore pauses playback when the shots stop being playable
   useEffect(() => {
     if (playing && !(singleShot ? singleReady : playable)) pause();
   }, [playing, singleShot, singleReady, playable, pause]);
