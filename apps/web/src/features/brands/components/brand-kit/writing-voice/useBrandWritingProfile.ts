@@ -22,7 +22,7 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { BrandsService } from '@services/social/brands.service';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { useOrganization } from '@/hooks/data/organization/use-organization/use-organization';
 import { useSaveQueue } from '@/hooks/utils/use-save-queue/use-save-queue';
 import { getBrandVoiceFailureView } from './brand-voice-failure.util';
@@ -391,11 +391,15 @@ export function useBrandWritingProfile({
     BrandsService.getInstance(token),
   );
 
-  useEffect(() => {
+  // A refreshed brand replaces local edits, during render so no frame shows the
+  // stale form.
+  const [seenBrand, setSeenBrand] = useState(brand);
+  if (seenBrand !== brand) {
     const nextForm = toFormState(brand);
     formRef.current = nextForm;
+    setSeenBrand(brand);
     setForm(nextForm);
-  }, [brand]);
+  }
 
   const enabledModelIds = settings?.enabledModelIds ?? [];
 
