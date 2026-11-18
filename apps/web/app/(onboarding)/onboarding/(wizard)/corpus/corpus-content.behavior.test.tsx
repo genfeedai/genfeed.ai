@@ -271,7 +271,9 @@ describe('CorpusContent behavior', () => {
       wrapper: queryClientWrapper(createTestQueryClient()),
     });
 
-    expect(await screen.findByRole('alert')).toBeInTheDocument();
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      "We couldn't load your sources.",
+    );
     expect(screen.queryByTestId('state-badge')).toBeNull();
   });
 });

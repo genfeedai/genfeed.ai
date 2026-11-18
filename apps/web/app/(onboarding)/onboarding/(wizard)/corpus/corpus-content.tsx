@@ -121,24 +121,36 @@ export default function CorpusContent() {
       }
     },
     queryKey: [SOURCES_QUERY_KEY, brandId],
+    // A failed refresh keeps the previous rows, so polling stops on error
+    // instead of repeating the failing read every interval.
     refetchInterval: (query) =>
+      query.state.status !== 'error' &&
       query.state.data?.some((view) =>
         PENDING_STATES.includes(view.version?.processingState ?? ''),
       )
         ? POLL_INTERVAL_MS
         : false,
+    refetchOnMount: 'always',
     refetchOnWindowFocus: false,
     retry: false,
     service: (token: string) => KnowledgeSourcesService.getInstance(token),
   });
   const sources = sourcesQuery.data ?? EMPTY_SOURCES;
   // A read already in flight predates the change, so it is replaced.
-  const refreshSources = useCallback(async () => {
-    await queryClient.cancelQueries({ queryKey: [SOURCES_QUERY_KEY] });
-    await queryClient.invalidateQueries({ queryKey: [SOURCES_QUERY_KEY] });
-  }, [queryClient]);
-  const errorKey: CorpusErrorKey | null =
-    actionErrorKey ?? (sourcesQuery.isError ? 'load' : null);
+  // Scoped to the brand the mutation targeted, so a brand switch mid-flight
+  // does not restart another brand's read.
+  const refreshSources = useCallback(
+    async (scopedBrandId: string) => {
+      const queryKey = [SOURCES_QUERY_KEY, scopedBrandId];
+      await queryClient.cancelQueries({ queryKey });
+      await queryClient.invalidateQueries({ queryKey });
+    },
+    [queryClient],
+  );
+  const errorKeys: CorpusErrorKey[] = [
+    ...(sourcesQuery.isError ? (['load'] as const) : []),
+    ...(actionErrorKey ? [actionErrorKey] : []),
+  ];
 
   const canAdd =
     (mode === 'url' && url.trim().length > 0) ||
@@ -199,7 +211,7 @@ export default function CorpusContent() {
         setText('');
       }
       setTitle('');
-      void refreshSources();
+      void refreshSources(brandId);
     } catch (error) {
       logger.error('Failed to add corpus source', error);
       setActionErrorKey('add');
@@ -227,7 +239,7 @@ export default function CorpusContent() {
       setActionErrorKey(null);
       try {
         await (await getKnowledgeService()).retry(sourceId, brandId);
-        void refreshSources();
+        void refreshSources(brandId);
       } catch (error) {
         logger.error('Failed to retry corpus source', error);
         setActionErrorKey('retry');
@@ -347,16 +359,18 @@ export default function CorpusContent() {
         />
       </div>
 
-      {errorKey ? (
+      {errorKeys.length > 0 ? (
         <div className="max-w-2xl">
           <Alert variant="destructive">
             <div className="space-y-1">
               <div className="font-medium">
                 {translate('common.errorTitle')}
               </div>
-              <div className="text-xs text-foreground/70">
-                {translate(`corpus.errors.${errorKey}`)}
-              </div>
+              {errorKeys.map((errorKey) => (
+                <div key={errorKey} className="text-xs text-foreground/70">
+                  {translate(`corpus.errors.${errorKey}`)}
+                </div>
+              ))}
             </div>
           </Alert>
         </div>
