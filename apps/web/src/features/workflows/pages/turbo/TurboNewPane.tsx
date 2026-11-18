@@ -292,6 +292,8 @@ export default function TurboNewPane() {
           /* The draft exists with default idea settings; the creator can adjust them on the project page. */
         }
       }
+      // The projects list caches for 30 seconds; the new project must show when the creator goes back to it.
+      void queryClient.invalidateQueries({ queryKey: ['turbo-projects'] });
       if (
         mounted.current &&
         admission.current.brandId === intent.brandId &&
