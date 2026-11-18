@@ -20,8 +20,10 @@ export function useModalAutoOpen(
   const shouldAutoOpen = isOpen === true;
   const shouldAutoClose = isOpen === false;
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: openKey intentionally retriggers mounted modal opens.
+  // openKey intentionally retriggers mounted modal opens.
+  // use-effect-audit: ignore opens the modal store on animation frames outside React
   useEffect(() => {
+    void openKey;
     if (!shouldAutoOpen) {
       if (shouldAutoClose) {
         closeModal(modalId);

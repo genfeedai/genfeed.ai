@@ -67,8 +67,11 @@ export function ChatContainer({
     setChosenPrompt({ key: promptKey, text });
   }
   usePlatformDetection();
-  // biome-ignore lint/correctness/useExhaustiveDependencies: Message and generation changes must scroll the conversation.
+  // Message and generation changes must scroll the conversation.
+  // use-effect-audit: ignore scrolls the DOM, which lives outside React
   useEffect(() => {
+    void messages.length;
+    void isGenerating;
     endRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages.length, isGenerating]);
   function handleSend(content: string, references?: AgentArtifactReference[]) {
