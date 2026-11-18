@@ -773,8 +773,12 @@ function CardPreview({
 }: CardPreviewProps) {
   const { current, exhausted } = usePendingCard(item, bridge);
   const [failed, setFailed] = useState(false);
-  // biome-ignore lint/correctness/useExhaustiveDependencies: A new tool result resets the media error state.
-  useEffect(() => setFailed(false), [item]);
+  // A new tool result resets the media error state.
+  const [failedItem, setFailedItem] = useState(item);
+  if (failedItem !== item) {
+    setFailedItem(item);
+    setFailed(false);
+  }
   const isJobFailed = ['failed', 'error', 'cancelled', 'canceled'].includes(
     current.status.toLowerCase(),
   );
