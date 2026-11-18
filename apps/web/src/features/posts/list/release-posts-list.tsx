@@ -504,6 +504,7 @@ export default function ReleasePostsList({
     source,
   ]);
 
+  // use-effect-audit: ignore registers the toolbar nodes with the page shell
   useEffect(() => {
     setViewToggleNode(
       <PublishingViewToggle
@@ -529,6 +530,7 @@ export default function ReleasePostsList({
     viewMode,
   ]);
 
+  // use-effect-audit: ignore redirects the route in the router
   useEffect(() => {
     if (
       isCapturedView ||

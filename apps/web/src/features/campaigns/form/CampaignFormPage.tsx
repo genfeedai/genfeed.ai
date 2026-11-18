@@ -12,6 +12,7 @@ import {
   useCollectionScope,
 } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import { useResetOnChange } from '@hooks/utils/use-reset-on-change/use-reset-on-change';
 import { CampaignsService } from '@services/content/campaigns.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
@@ -34,7 +35,7 @@ import { Flag } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { toDateInputValue } from '@/features/campaigns/campaigns-status';
 import CampaignUnavailableState from '@/features/campaigns/detail/CampaignUnavailableState';
 import CampaignCreativeContextFields from '@/features/campaigns/form/CampaignCreativeContextFields';
@@ -69,6 +70,23 @@ function emptyForm(brandId: string): CampaignFormState {
   };
 }
 
+function toCampaignForm(
+  campaign: NonNullable<ReturnType<typeof useCampaign>['campaign']>,
+): CampaignFormState {
+  return {
+    assetIds: campaign.assetIds ?? [],
+    audience: campaign.audience ?? '',
+    tone: campaign.tone ?? '',
+    creativeDirection: campaign.creativeDirection ?? '',
+    brandId: campaign.brandId,
+    brief: campaign.brief ?? '',
+    endDate: toDateInputValue(campaign.endDate),
+    name: campaign.name,
+    objective: campaign.objective ?? '',
+    startDate: toDateInputValue(campaign.startDate),
+  };
+}
+
 export default function CampaignFormPage({
   campaignId,
 }: CampaignFormPageProps) {
@@ -89,7 +107,7 @@ export default function CampaignFormPage({
   const { campaign, isLoading, isUnavailable } = useCampaign(campaignId);
   const defaultBrandId = collectionScope.brandId ?? '';
   const [form, setForm] = useState<CampaignFormState>(() =>
-    emptyForm(defaultBrandId),
+    campaign ? toCampaignForm(campaign) : emptyForm(defaultBrandId),
   );
   const [isSaving, setIsSaving] = useState(false);
   const [createRequestKey, setCreateRequestKey] = useState(() =>
@@ -97,23 +115,11 @@ export default function CampaignFormPage({
   );
   const canPickBrand = collectionScope.pageScope === 'org' && !isEdit;
 
-  useEffect(() => {
-    if (!campaign) {
-      return;
+  useResetOnChange([campaign], () => {
+    if (campaign) {
+      setForm(toCampaignForm(campaign));
     }
-    setForm({
-      assetIds: campaign.assetIds ?? [],
-      audience: campaign.audience ?? '',
-      tone: campaign.tone ?? '',
-      creativeDirection: campaign.creativeDirection ?? '',
-      brandId: campaign.brandId,
-      brief: campaign.brief ?? '',
-      endDate: toDateInputValue(campaign.endDate),
-      name: campaign.name,
-      objective: campaign.objective ?? '',
-      startDate: toDateInputValue(campaign.startDate),
-    });
-  }, [campaign]);
+  });
 
   if (isEdit && isUnavailable) {
     return <CampaignUnavailableState />;

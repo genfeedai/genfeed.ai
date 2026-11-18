@@ -643,6 +643,7 @@ export default function PublishingContentLibrary() {
     await refetch();
   }, [refetch]);
 
+  // use-effect-audit: ignore registers the toolbar nodes with the page shell
   useEffect(() => {
     setViewToggleNode(
       <PublishingViewToggle
