@@ -18,7 +18,7 @@ export default function SettingsMcpApprovalCard({
 }: SettingsMcpApprovalCardProps) {
   const translate = useTranslations('common.settings.profile.mcpApproval');
   const { settings } = useOrganization();
-  const isOrganizationRequired = settings?.isMcpApprovalRequired !== false;
+  const isOrganizationRequired = settings?.isMcpApprovalRequired === true;
 
   return (
     <Card label={translate('cardTitle')}>

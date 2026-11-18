@@ -275,8 +275,8 @@ and `gf status <id>`; see [CLI](/api-reference/cli).
 saved identity (its default avatar and voice). `prompt` is the topic Genfeed
 writes a spoken script for; with `isVerbatim: true` it is spoken exactly as
 written. `aspectRatio` defaults to `9:16`, and `voiceId` swaps the brand default
-voice for a saved one. The call waits in the approvals queue like other paid
-generation, is billed per second of the rendered clip, and returns the Library
+voice for a saved one. The call follows the [approval rules](#approvals) of other
+paid generation, is billed per second of the rendered clip, and returns the Library
 video id: poll it with `get_job_status`.
 
 Personal voices belong to the organization's own connected ElevenLabs account;
@@ -304,8 +304,8 @@ Library.
 1. Upload a 15 s to 10 min video of yourself facing the camera with
    `upload_media`. Only your own uploads can be used.
 2. `transform_media` with `operation: "digital_twin"` and `videoId` sends the
-   video to HeyGen and starts training. It waits in the approvals queue like
-   other media transforms. The result has the twin and a `consentLink`: the
+   video to HeyGen and starts training. It follows the
+   [approval rules](#approvals) of other media transforms. The result has the twin and a `consentLink`: the
    person on camera opens it and records a short consent statement on HeyGen's
    page. Starting again from the same video returns the same twin.
 3. `get_assets` with `type: "digital_twin"` (optionally `twinId`) re-reads
@@ -441,6 +441,16 @@ routes on your instance; sign-in continues into the caller's organization. Fix
 `resolve_approval` with `structuredContent.approvalId`. For
 `brand_required`, retry with one of the listed `brands[].id` values; no brand is
 ever picked for you.
+
+## Approvals
+
+"Require approval for MCP requests" is off by default for every organization and
+member, so credit-spending calls such as `generate` run straight away. An owner
+or admin can turn it on in Settings, Organization, and a member can turn it on
+for themselves in Settings, Personal. A call waits in the approvals queue as soon
+as either switch is on. Credit balance checks and quotes always apply, and
+publishing, scheduling and other outbound actions always wait for approval,
+whatever these switches say.
 
 ## Tools
 
