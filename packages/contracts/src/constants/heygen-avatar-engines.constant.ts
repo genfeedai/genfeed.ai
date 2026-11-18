@@ -31,6 +31,12 @@ export const HEYGEN_AVATAR_6_RESOLUTIONS = ['1080p', '2k'] as const;
 export type HeyGenAvatar6Resolution =
   (typeof HEYGEN_AVATAR_6_RESOLUTIONS)[number];
 
+/** The `engine.motion_expressiveness` values HeyGen accepts for Avatar 6. */
+export const HEYGEN_AVATAR_MOTION_EXPRESSIVENESS = ['default', 'less'] as const;
+
+/** `motion_prompt` is capped at 1,200 characters on HeyGen's Model API. */
+export const HEYGEN_AVATAR_MOTION_PROMPT_MAX_LENGTH = 1200;
+
 /** HeyGen's default for Avatar 6, and what a render without a choice uses. */
 export const HEYGEN_AVATAR_6_DEFAULT_RESOLUTION: HeyGenAvatar6Resolution =
   '1080p';
