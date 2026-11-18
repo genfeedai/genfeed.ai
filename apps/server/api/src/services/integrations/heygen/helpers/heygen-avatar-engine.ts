@@ -1,7 +1,8 @@
 import type { HeyGenNativeAvatar } from '@api/services/integrations/heygen/heygen-identity.types';
 import {
   getEligibleHeyGenAvatarEngines,
-  HEYGEN_AVATAR_6_RENDER_RESOLUTION,
+  HEYGEN_AVATAR_6_DEFAULT_RESOLUTION,
+  type HeyGenAvatar6Resolution,
   type HeyGenAvatarEngine,
   isHeyGenAvatar6Engine,
 } from '@genfeedai/contracts/constants';
@@ -11,7 +12,7 @@ import { BadRequestException } from '@nestjs/common';
 export interface HeyGenAvatarEngineFields {
   engine?: { type: Exclude<HeyGenAvatarEngine, 'avatar_iv'> };
   /** Set when the engine fixes the render resolution (Avatar 6 and Turbo). */
-  resolution?: typeof HEYGEN_AVATAR_6_RENDER_RESOLUTION;
+  resolution?: HeyGenAvatar6Resolution;
 }
 
 const UNSUPPORTED_ENGINE_MESSAGES: Readonly<
@@ -30,20 +31,27 @@ const UNSUPPORTED_ENGINE_MESSAGES: Readonly<
  * submission: HeyGen answers 400 (or renders an engine we did not price)
  * otherwise. Avatar IV is HeyGen's default for `type: avatar`, so it is never
  * sent; every other engine goes on the request as `engine: { type }`. Avatar 6
- * and Turbo also pin `resolution: '1080p'` because HeyGen rejects 720p for them
+ * and Turbo also send their own `resolution` (1080p unless 2K is chosen)
+ * because HeyGen rejects 720p for them
  * (https://developers.heygen.com/docs/models/avatar-6).
  */
 export function buildHeyGenAvatarEngineFields(
   avatar: HeyGenNativeAvatar,
   engine: HeyGenAvatarEngine,
+  resolution: HeyGenAvatar6Resolution = HEYGEN_AVATAR_6_DEFAULT_RESOLUTION,
 ): HeyGenAvatarEngineFields {
   if (!getEligibleHeyGenAvatarEngines(avatar).includes(engine))
     throw new BadRequestException(UNSUPPORTED_ENGINE_MESSAGES[engine]);
+  if (
+    !isHeyGenAvatar6Engine(engine) &&
+    resolution !== HEYGEN_AVATAR_6_DEFAULT_RESOLUTION
+  )
+    throw new BadRequestException(
+      `2K output needs Avatar 6 or Avatar 6 Turbo; ${engine} renders at 1080p.`,
+    );
   if (engine === 'avatar_iv') return {};
   return {
     engine: { type: engine },
-    ...(isHeyGenAvatar6Engine(engine)
-      ? { resolution: HEYGEN_AVATAR_6_RENDER_RESOLUTION }
-      : {}),
+    ...(isHeyGenAvatar6Engine(engine) ? { resolution } : {}),
   };
 }

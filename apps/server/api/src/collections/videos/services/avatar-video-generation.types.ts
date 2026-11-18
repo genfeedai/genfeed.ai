@@ -11,6 +11,7 @@ import type { DefaultVoiceRef } from '@api/shared/default-voice-ref/default-voic
 import type { RouterPriority, VoiceProvider } from '@genfeedai/contracts';
 import type {
   AvatarVideoAspectRatio,
+  HeyGenAvatar6Resolution,
   HeyGenAvatarEngine,
 } from '@genfeedai/contracts/constants';
 import type {
@@ -51,6 +52,8 @@ export interface AvatarVideoGenerationParams {
   audioIngredientId?: string;
   voiceProvider?: string;
   aspectRatio?: AvatarVideoAspectRatio;
+  /** Avatar 6 output resolution; omitted renders at HeyGen's 1080p default. */
+  resolution?: HeyGenAvatar6Resolution;
   /** Explicit engine model; omitted or auto routes among the look's engines. */
   model?: string;
   autoSelectModel?: boolean;
@@ -81,6 +84,8 @@ export interface AvatarModelSelection {
   /** Set for an engine row; photo animation is priced on `heygen/avatar`. */
   engine?: HeyGenAvatarEngine;
   avatarType?: string;
+  /** The Avatar 6 output resolution the render is priced and sent at. */
+  resolution?: HeyGenAvatar6Resolution;
 }
 
 /**
@@ -100,6 +105,7 @@ export interface AvatarRenderQuote {
 
 export interface AvatarGenerationFunding extends AvatarGenerationPrice {
   engine?: HeyGenAvatarEngine;
+  resolution?: HeyGenAvatar6Resolution;
   heygenApiKey?: string;
   elevenLabsApiKey?: string;
   /**

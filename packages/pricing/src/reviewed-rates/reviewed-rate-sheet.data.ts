@@ -1256,9 +1256,7 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
     verifiedAt: '2026-10-10T07:18:30.000Z',
   },
   {
-    // Priced by output resolution alone, not by look type. Genfeed renders
-    // Avatar 6 at 1080p, so the 2K rates ($0.145 and $0.0875 per second) are
-    // left out until a 2K option exists.
+    // Priced by output resolution alone, not by look type.
     endpoint: 'heygen/heygen-avatar-6',
     provider: 'heygen',
     rates: [
@@ -1268,6 +1266,15 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
         unitPriceUsd: 0.1,
         when: {
           resolution: '1080p',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.145,
+        when: {
+          resolution: '2k',
         },
         isPerOutput: true,
       },
@@ -1285,6 +1292,15 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
         unitPriceUsd: 0.05,
         when: {
           resolution: '1080p',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.0875,
+        when: {
+          resolution: '2k',
         },
         isPerOutput: true,
       },

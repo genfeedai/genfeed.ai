@@ -135,8 +135,7 @@ export class AvatarVideoGenerationService {
 
   /**
    * The price a run-level caller accepted, without the pinned keys. The frozen
-   * per-second quote rides along so the caller's own hold settles to the clip
-   * length HeyGen returns.
+   * per-second quote rides along so its hold settles to HeyGen's clip length.
    */
   private acceptedPrice({
     billingMode,
@@ -340,6 +339,7 @@ export class AvatarVideoGenerationService {
           apiKey,
           params.aspectRatio ?? '9:16',
           funding.engine,
+          funding.resolution,
         )
       : this.heygenService.generatePhotoAvatarVideo(
           ingredientId,

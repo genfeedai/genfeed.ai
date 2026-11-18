@@ -57,6 +57,7 @@ import { ApiKeyCategory, ByokProvider } from '@genfeedai/contracts';
 import {
   type AvatarVideoAspectRatio,
   getEligibleHeyGenAvatarEngines,
+  type HeyGenAvatar6Resolution,
   type HeyGenAvatarEngine,
 } from '@genfeedai/contracts/constants';
 import type {
@@ -183,10 +184,15 @@ export class HeyGenService {
     apiKey: string,
     aspectRatio: AvatarVideoAspectRatio = '9:16',
     engine: HeyGenAvatarEngine = 'avatar_iv',
+    resolution?: HeyGenAvatar6Resolution,
   ): Promise<string> {
     const speech =
       typeof voiceInput === 'string' ? { audioUrl: voiceInput } : voiceInput;
-    const engineFields = buildHeyGenAvatarEngineFields(avatar, engine);
+    const engineFields = buildHeyGenAvatarEngineFields(
+      avatar,
+      engine,
+      resolution,
+    );
     const avatarId = avatar.lookId;
     if (
       !avatarId.trim() ||

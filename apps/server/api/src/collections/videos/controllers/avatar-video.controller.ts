@@ -48,6 +48,7 @@ function toAvatarVideoGenerationParams(
     photoUrl: dto.photoUrl,
     photoIngredientId: dto.photoIngredientId,
     prioritize: dto.prioritize,
+    resolution: dto.resolution,
     text: dto.text ?? '',
     useIdentity: dto.useIdentity,
     voiceProvider: dto.voiceProvider,

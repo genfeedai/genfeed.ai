@@ -7,6 +7,7 @@ import { AvatarVideoModelService } from '@api/collections/videos/services/avatar
 import { AvatarVideoReferenceService } from '@api/collections/videos/services/avatar-video-reference.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import {
+  avatar6Snapshot,
   avatarEngineSnapshot,
   photoAnimationSnapshot,
 } from '@api/helpers/utils/credits/avatar-duration-quote.fixture';
@@ -2048,6 +2049,7 @@ describe('AvatarVideoGenerationService', () => {
       'current-key',
       '9:16',
       'avatar_iv',
+      undefined,
     );
     expect(h.heygenService.generatePhotoAvatarVideo).not.toHaveBeenCalled();
     expect(h.videosService.prisma.ingredient.update).toHaveBeenCalledWith(
@@ -2152,6 +2154,55 @@ describe('AvatarVideoGenerationService', () => {
         'platform-key',
         '9:16',
         'avatar_v',
+        undefined,
+      );
+    });
+
+    it('holds an Avatar 6 render at its 2K rate and sends 2K to HeyGen', async () => {
+      const h = createService();
+      const ref = platformTwin(['avatar_iv', 'heygen-avatar-6']);
+      admit(h, ref);
+      h.routerService.selectModel.mockResolvedValue({
+        selectedModel: MODEL_KEYS.HEYGEN_AVATAR_6,
+      });
+      const snapshot = avatar6Snapshot(
+        'heygen/heygen-avatar-6',
+        10,
+        3.33,
+        '2k',
+      );
+      h.modelCreditQuote.quoteSnapshotByKey.mockResolvedValue(snapshot);
+
+      await h.service.generateAvatarVideo(
+        {
+          avatarRef: ref,
+          heygenVoiceId: 'voice-1',
+          resolution: '2k',
+          text: script,
+        },
+        context,
+      );
+
+      expect(h.routerService.selectModel).toHaveBeenCalledWith(
+        expect.objectContaining({
+          eligibleModelKeys: [MODEL_KEYS.HEYGEN_AVATAR_6],
+        }),
+      );
+      expect(h.modelCreditQuote.quoteSnapshotByKey).toHaveBeenCalledWith(
+        MODEL_KEYS.HEYGEN_AVATAR_6,
+        { duration: 10, selectors: { resolution: '2k' } },
+      );
+      expect(h.creditsUtilsService.reserveCredits).toHaveBeenCalledWith(
+        expect.objectContaining({ amount: snapshot.credits }),
+      );
+      expect(h.heygenService.generateNativeAvatarVideo).toHaveBeenCalledWith(
+        'avatar-ingredient-1',
+        expect.objectContaining({ lookId: 'twin-look' }),
+        { inputText: script, voiceId: 'voice-1' },
+        'platform-key',
+        '9:16',
+        'heygen-avatar-6',
+        '2k',
       );
     });
 
