@@ -129,7 +129,20 @@ export default function ModalModelFormContent({
             }
           >
             <SelectTrigger aria-label={translate('provider.label')}>
-              <SelectValue placeholder={translate('provider.placeholder')} />
+              <SelectValue placeholder={translate('provider.placeholder')}>
+                {(state) =>
+                  state.placeholder || !selectedProvider ? (
+                    translate('provider.placeholder')
+                  ) : (
+                    <Badge
+                      colors={getModelProviderBadgeColors(selectedProvider)}
+                      variant="custom"
+                    >
+                      {getModelProviderLabel(selectedProvider)}
+                    </Badge>
+                  )
+                }
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               {modelProviders.map((provider) => (
@@ -159,7 +172,20 @@ export default function ModalModelFormContent({
             }
           >
             <SelectTrigger aria-label={translate('category.label')}>
-              <SelectValue placeholder={translate('category.placeholder')} />
+              <SelectValue placeholder={translate('category.placeholder')}>
+                {(state) =>
+                  state.placeholder || !selectedCategory ? (
+                    translate('category.placeholder')
+                  ) : (
+                    <Badge
+                      colors={getModelCategoryBadgeColors(selectedCategory)}
+                      variant="custom"
+                    >
+                      {selectedCategory}
+                    </Badge>
+                  )
+                }
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               {modelCategories.map((category) => (

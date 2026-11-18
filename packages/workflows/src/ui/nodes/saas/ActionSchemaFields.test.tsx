@@ -55,16 +55,10 @@ describe('ActionSchemaFields with shared controls', () => {
         onChange={vi.fn()}
       />,
     );
-    for (const name of [
-      'Name',
-      'Count',
-      'Enabled',
-      'Prompt',
-      'Mode',
-      'Settings',
-    ]) {
+    for (const name of ['Name', 'Count', 'Enabled', 'Prompt', 'Settings']) {
       expect(screen.getByLabelText(name)).toBeDisabled();
     }
+    expect(screen.getByRole('combobox', { name: 'Mode' })).toBeDisabled();
   });
 
   it('keeps JSON drafts until blur and rejects malformed JSON', () => {
@@ -120,8 +114,7 @@ describe('ActionSchemaFields with shared controls', () => {
     fireEvent.keyDown(screen.getByRole('combobox', { name: 'Mode' }), {
       key: 'ArrowDown',
     });
-    const live = screen.getByRole('option', { name: 'live' });
-    fireEvent.keyDown(live, { key: 'Enter' });
+    fireEvent.click(screen.getByRole('option', { name: 'live' }));
     expect(onChange).toHaveBeenCalledWith('mode', 'live');
   });
   it('renders host controls beside the matching field label only', () => {

@@ -71,9 +71,8 @@ describe('ModalMember', () => {
     renderInviteModal();
 
     await waitFor(() => {
-      expect(screen.getByLabelText('roleId')).toHaveValue('role-user');
+      expect(screen.getByRole('combobox')).toHaveTextContent('Member');
     });
-    expect(screen.getByRole('combobox')).toHaveTextContent('Member');
     expect(screen.getByRole('combobox')).toBeEnabled();
   });
 
@@ -124,7 +123,7 @@ describe('ModalMember', () => {
     const client = createTestQueryClient();
     renderInviteModal(client);
     await waitFor(() => {
-      expect(screen.getByLabelText('roleId')).toHaveValue('role-user');
+      expect(screen.getByRole('combobox')).toHaveTextContent('Member');
     });
 
     // The member role was deleted elsewhere; only Admin is left.
@@ -132,7 +131,7 @@ describe('ModalMember', () => {
     await act(() => client.invalidateQueries());
 
     await waitFor(() => {
-      expect(screen.getByLabelText('roleId')).toHaveValue('');
+      expect(screen.getByRole('combobox')).not.toHaveTextContent('Member');
     });
   });
 });

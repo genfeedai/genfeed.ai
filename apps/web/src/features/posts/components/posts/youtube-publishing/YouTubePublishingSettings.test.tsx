@@ -68,7 +68,7 @@ describe('YouTube publishing settings', () => {
     ).toBeDisabled();
   });
 
-  it('adopts refreshed settings for the same post', () => {
+  it('adopts refreshed settings for the same post', async () => {
     const { rerender } = render(<YouTubePublishingSettings post={post} />);
     expect(screen.getByRole('combobox')).toHaveTextContent('Choose privacy');
 
@@ -81,7 +81,9 @@ describe('YouTube publishing settings', () => {
       />,
     );
 
-    expect(screen.getByRole('combobox')).toHaveTextContent('Unlisted');
+    await waitFor(() =>
+      expect(screen.getByRole('combobox')).toHaveTextContent('Unlisted'),
+    );
     expect(
       screen.getByRole('checkbox', { name: 'Made for kids' }),
     ).toBeChecked();
@@ -105,7 +107,7 @@ describe('YouTube publishing settings', () => {
     ).toBeChecked();
   });
 
-  it('preserves an edited audience checkbox while adopting refreshed privacy', () => {
+  it('preserves an edited audience checkbox while adopting refreshed privacy', async () => {
     const { rerender } = render(<YouTubePublishingSettings post={post} />);
     fireEvent.click(screen.getByRole('checkbox', { name: 'Made for kids' }));
     rerender(
@@ -116,7 +118,9 @@ describe('YouTube publishing settings', () => {
         }}
       />,
     );
-    expect(screen.getByRole('combobox')).toHaveTextContent('Unlisted');
+    await waitFor(() =>
+      expect(screen.getByRole('combobox')).toHaveTextContent('Unlisted'),
+    );
     expect(
       screen.getByRole('checkbox', { name: 'Made for kids' }),
     ).toBeChecked();
