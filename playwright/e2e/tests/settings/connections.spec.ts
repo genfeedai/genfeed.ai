@@ -219,7 +219,7 @@ test.describe('Settings Connections & Sub-Pages', () => {
 
       const canvas = settingsPage.canvas;
       await canvas
-        .getByRole('group', { name: 'Scope preset' })
+        .getByRole('radiogroup', { name: 'Scope preset' })
         .getByRole('radio', { name: 'Read' })
         .click();
       await canvas
