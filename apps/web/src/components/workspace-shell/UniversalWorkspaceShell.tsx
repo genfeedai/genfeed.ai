@@ -19,10 +19,7 @@ import {
   useAgentChatStore,
 } from '@genfeedai/agent';
 import { useResetAgentOnOrganizationChange } from '@genfeedai/agent/hooks/use-reset-agent-on-organization-change';
-import {
-  attachContentToConversationDraft,
-  buildConversationComposerDraftScopeKey,
-} from '@genfeedai/agent/stores/conversation-composer-draft.store';
+import { buildConversationComposerDraftScopeKey } from '@genfeedai/agent/stores/conversation-composer-draft.store';
 import { ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type {
@@ -31,6 +28,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import { useResetOnChange } from '@hooks/utils/use-reset-on-change/use-reset-on-change';
 import type { AgentOutputHostValue } from '@props/ui/agent-output-shell.props';
 import type {
   WorkspacePanelControls,
@@ -115,6 +113,7 @@ import { resolveWorkspaceSurfaceLaunch } from '@/lib/workspace-shell/workspace-s
 import AgentDock from './AgentDock';
 import AgentDockHistory from './AgentDockHistory';
 import AgentThreadsPanel from './AgentThreadsPanel';
+import { useAgentDockBridge } from './use-agent-dock-bridge';
 import { useAgentDockThreads } from './use-agent-dock-threads';
 import { useAgentFullPage } from './use-agent-full-page';
 import { useIsCompactViewport } from './use-compact-viewport';
@@ -142,8 +141,6 @@ const loadConversationDockPanel = () =>
 const ConversationDockPanel = dynamic(loadConversationDockPanel, {
   loading: () => null,
 });
-
-const DOCK_PANEL_PREFETCH_TIMEOUT_MS = 8000;
 
 const INSPECTOR_DEFAULT_WIDTH = 400;
 const INSPECTOR_MIN_WIDTH = 320;
@@ -238,6 +235,7 @@ function UniversalWorkspaceShellContent({
   }, []);
   const isContextVisible =
     isInspectorOpen || Boolean(activeContextSidebar?.isMobileOpen);
+  // use-effect-audit: ignore restores keyboard focus after the context panel closes
   useEffect(() => {
     const wasOpen = wasContextOpenRef.current;
     wasContextOpenRef.current = isContextVisible;
@@ -531,6 +529,7 @@ function UniversalWorkspaceShellContent({
     resetActiveConversationState();
   }, [isUnthreadedConversation]);
 
+  // use-effect-audit: ignore redirects the route in the router
   useEffect(() => {
     if (isCanonical) {
       return;
@@ -582,6 +581,7 @@ function UniversalWorkspaceShellContent({
   // path; every other surface follows the agent store, so the conversation
   // survives navigation without leaking `?thread=` onto SaaS routes.
 
+  // use-effect-audit: ignore reports shell transitions to analytics and restores focus
   useEffect(() => {
     const previousState = previousStateRef.current;
     const previousPathname = previousPathnameRef.current;
@@ -660,12 +660,9 @@ function UniversalWorkspaceShellContent({
     !isAgentRoute,
     productSurfaceAdapter?.threadKey ?? null,
   );
-  const setIsAgentDockAvailable = agentDock?.setIsAvailable;
   const closeAgentDock = agentDock?.close;
   const openAgentDock = agentDock?.open;
   const isAgentDockOpen = agentDock?.isOpen ?? false;
-  const registerAgentDockAttachHandler = agentDock?.registerAttachHandler;
-  const [hasOpenedAgentDock, setHasOpenedAgentDock] = useState(false);
   // Below `xl` the agent is a bottom sheet, so only the rail counts here.
   const isAgentPanelOpen =
     isAgentDockHost && isAgentDockOpen && !isCompactViewport;
@@ -702,11 +699,11 @@ function UniversalWorkspaceShellContent({
 
   // Opening the conversation by any route (⌘J, a sent message, an attached
   // record) brings it in front of the notifications.
-  useEffect(() => {
+  useResetOnChange([isAgentDockOpen], () => {
     if (isAgentDockOpen) {
       setIsNotificationsOpen(false);
     }
-  }, [isAgentDockOpen]);
+  });
 
   useEffect(() => {
     if (isAgentDockOpen) {
@@ -718,6 +715,7 @@ function UniversalWorkspaceShellContent({
     }
   }, [isAgentDockOpen, isCompactViewport, isMobileContextOpen]);
 
+  // use-effect-audit: ignore opens the agent dock on compact viewports
   useEffect(() => {
     if (isCompactViewport && isAgentDockHost && isMobileContextOpen) {
       openAgentDock?.();
@@ -812,7 +810,6 @@ function UniversalWorkspaceShellContent({
   ]);
 
   // The topbar's Notifications, Chat and Context toggles drive this panel through the dock.
-  const registerAgentDockPanel = agentDock?.registerPanel;
   // Below `xl` the rail does not render, so a context left open at a wider
   // size is not visible: only the sheet (dock or mobile context) is.
   const isPanelVisible =
@@ -847,70 +844,17 @@ function UniversalWorkspaceShellContent({
     ],
   );
 
-  useEffect(() => {
-    registerAgentDockPanel?.(panelControls);
-  }, [panelControls, registerAgentDockPanel]);
-
-  useEffect(
-    () => () => {
-      registerAgentDockPanel?.(null);
-    },
-    [registerAgentDockPanel],
-  );
-
-  useEffect(() => {
-    if (!setIsAgentDockAvailable) {
-      return;
-    }
-
-    setIsAgentDockAvailable(isAgentDockHost);
-    return () => setIsAgentDockAvailable(false);
-  }, [isAgentDockHost, setIsAgentDockAvailable]);
-
-  useEffect(() => {
-    if ((isAgentRoute || isAgentOutputSurface) && isAgentDockOpen) {
-      closeAgentDock?.();
-    }
-  }, [closeAgentDock, isAgentDockOpen, isAgentOutputSurface, isAgentRoute]);
-
-  // Warm the conversation chunk once the page is idle so the first open does
-  // not wait on the network.
-  useEffect(() => {
-    if (!isAgentDockHost || hasOpenedAgentDock) {
-      return;
-    }
-    const prefetch = () => {
-      void loadConversationDockPanel();
-    };
-    if (typeof window.requestIdleCallback === 'function') {
-      const handle = window.requestIdleCallback(prefetch, {
-        timeout: DOCK_PANEL_PREFETCH_TIMEOUT_MS,
-      });
-      return () => window.cancelIdleCallback(handle);
-    }
-    const timeout = window.setTimeout(prefetch, 2000);
-    return () => window.clearTimeout(timeout);
-  }, [hasOpenedAgentDock, isAgentDockHost]);
-
-  // Mount the conversation on first open, or when a registered overlay needs
-  // its composer before the dock was ever opened.
-  useEffect(() => {
-    if (isAgentDockHost && (isAgentDockOpen || state === 'overlay')) {
-      setHasOpenedAgentDock(true);
-    }
-  }, [isAgentDockHost, isAgentDockOpen, state]);
-
-  useEffect(() => {
-    if (!isConversationHost || !registerAgentDockAttachHandler) {
-      return;
-    }
-
-    // Pages stamp the record's own brand; the composer leaves out one that
-    // does not match the conversation instead of relabelling it.
-    return registerAgentDockAttachHandler((reference) => {
-      attachContentToConversationDraft(draftScopeKey, reference);
-    });
-  }, [draftScopeKey, isConversationHost, registerAgentDockAttachHandler]);
+  const { hasOpenedAgentDock } = useAgentDockBridge({
+    agentDock,
+    draftScopeKey,
+    isAgentDockHost,
+    isAgentOutputSurface,
+    isAgentRoute,
+    isConversationHost,
+    loadConversationDockPanel,
+    panelControls,
+    state,
+  });
 
   const launchWorkspaceOverlay = useCallback(
     (overlayRequest: WorkspaceShellOverlayRequest): boolean => {
@@ -1128,6 +1072,7 @@ function UniversalWorkspaceShellContent({
     ? expandedInspectorWidth
     : INSPECTOR_COLLAPSED_WIDTH;
 
+  // use-effect-audit: ignore releases the inspector drag listeners on unmount
   useEffect(() => () => inspectorDragCleanupRef.current?.(), []);
 
   // The rail is fixed-positioned, so it no longer occupies a grid track. Publishing
