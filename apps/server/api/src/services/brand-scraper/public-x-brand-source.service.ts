@@ -5,6 +5,7 @@ import {
   toTwitterFullSizeAvatarUrl,
 } from '@api/services/integrations/twitter/utils/twitter-profile-media.util';
 import { ConfigService } from '@libs/config/config.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 import { z } from 'zod';
 
@@ -46,6 +47,7 @@ function sample(post: PublicPost, userId: string) {
   return { id: post.id, text, publishedAt: post.created_at ?? null };
 }
 
+@Traced()
 @Injectable()
 export class PublicXBrandSourceService {
   private readonly pending = new Map<string, Promise<unknown>>();

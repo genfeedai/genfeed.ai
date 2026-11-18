@@ -951,12 +951,6 @@ export function buildBrandKitDraftFromWebsiteScrape(
     )
     .filter((value): value is IBrandKitAssetValue => Boolean(value));
 
-  const bannerValue = createWebsiteAssetValue(
-    'banner',
-    scraped.bannerUrl,
-    'Website banner',
-  );
-
   const proposedValues: Partial<Record<BrandKitFieldKey, unknown>> = {};
   const setProposedValue = (key: BrandKitFieldKey, value: unknown): void => {
     if (value !== undefined) {
@@ -964,7 +958,12 @@ export function buildBrandKitDraftFromWebsiteScrape(
     }
   };
 
-  setProposedValue('banner', bannerValue);
+  setProposedValue(
+    'banner',
+    createWebsiteAssetValue('banner', scraped.bannerUrl, 'Website banner'),
+  );
+  // The kit has one editable voice example. Preserve the remaining samples
+  // in the source data for voice analysis.
   setProposedValue('voiceSampleOutput', scraped.socialPostSamples?.[0]);
   setProposedValue('description', scraped.description ?? scraped.aboutText);
   setProposedValue(

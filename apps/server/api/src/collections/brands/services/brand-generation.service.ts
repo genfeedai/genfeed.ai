@@ -26,6 +26,7 @@ import { scopedWhere } from '@api/index';
 import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
 import { publicXHandle } from '@api/services/brand-scraper/public-x-handle.util';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
+import type { PopulateInput } from '@api/shared/services/base/base.service';
 import { LinkCategory } from '@genfeedai/contracts';
 import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 import {
@@ -54,6 +55,7 @@ function storedXHandle(brand: BrandDocument | null) {
 
 export type BrandFinder = (
   criteria: Record<string, unknown>,
+  populate?: PopulateInput,
 ) => Promise<BrandDocument | null>;
 
 /** One LLM reply stays well inside its token budget at this many ideas. */
@@ -101,7 +103,13 @@ export class BrandGenerationService {
     });
 
     const brand = dto.brandId
-      ? await findBrand(scopedWhere(organizationId, { id: dto.brandId }))
+      ? await findBrand(scopedWhere(organizationId, { id: dto.brandId }), [
+          {
+            path: 'links',
+            where: { isDeleted: false },
+            select: ['url', 'category'],
+          },
+        ])
       : null;
     let corpus = await this.brandVoiceCorpusService.buildCorpus({
       brandId: dto.brandId,

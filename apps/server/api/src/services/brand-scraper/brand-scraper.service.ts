@@ -27,7 +27,11 @@ import type {
 } from '@api/services/brand-scraper/interfaces/brand-scraper.interfaces';
 import { PublicXBrandSourceService } from '@api/services/brand-scraper/public-x-brand-source.service';
 import { publicXHandle } from '@api/services/brand-scraper/public-x-handle.util';
-import { toXBrandData } from '@api/services/brand-scraper/x-brand-data.util';
+import {
+  parsePublicXProfileHtml,
+  toXProfileScrapedData,
+  toXSetupEvidence,
+} from '@api/services/brand-scraper/x-brand-data.util';
 import type {
   IBrandKitDiagnostic,
   IExtractedBrandData,
@@ -44,9 +48,6 @@ import { buildLogoDevLogoUrl } from './logo-dev-logo.util';
 
 const EMPLOYEE_COUNT_PATTERN = /\d+.*employee/;
 const WHITESPACE_RUNS_PATTERN = /\s+/g;
-const X_PROFILE_HANDLE_PATTERN = /(?:twitter\.com|x\.com)\/([^/?#]+)/;
-const EMOJI_PATTERN =
-  /[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}]/u;
 const CSS_CONTENT_TYPE_PATTERN = /^text\/css(?:\s*;|\s*$)/i;
 const STYLESHEET_LIMIT_ERROR_PATTERN =
   /^stylesheet_(content_type|size_limit|total_limit)$/;
@@ -123,19 +124,7 @@ export class BrandScraperService {
     if (budget && !(budget.deadlineAt > performance.now()))
       throw new Error('deadline_exceeded');
     const profile = await this.scrapeXProfile(url, budget);
-    return {
-      data: toXBrandData(profile, url),
-      diagnostics: [],
-      fontCandidates: [],
-      evidence: [
-        {
-          sourceType: 'website',
-          label: 'Public X profile',
-          url: profile.sourceUrl,
-          excerpt: profile.latestPostText,
-        },
-      ],
-    };
+    return toXSetupEvidence(profile, url);
   }
 
   async scrapeWebsiteWithEvidence(
@@ -379,25 +368,7 @@ export class BrandScraperService {
             publicHandle,
             budget ? budget.deadlineAt - performance.now() : undefined,
           );
-          if (snapshot)
-            return {
-              handle: snapshot.handle,
-              displayName: snapshot.name,
-              bio: snapshot.bio,
-              bannerImageUrl: snapshot.banner,
-              profileImageUrl: snapshot.avatar,
-              latestPostText: snapshot.latestText,
-              recentTweets: snapshot.latestSample
-                ? [snapshot.latestSample.text]
-                : [],
-              contentStyle: {
-                contentTypes: [],
-                usesEmojis: false,
-                usesHashtags: false,
-              },
-              sourceUrl: `https://x.com/${snapshot.handle}`,
-              scrapedAt: new Date(snapshot.readAt),
-            };
+          if (snapshot) return toXProfileScrapedData(snapshot);
         } catch (error) {
           reportSocialScrapeFailure(this.loggerService, caller, error);
         }
@@ -407,55 +378,7 @@ export class BrandScraperService {
         'X profile',
         budget,
       );
-      const $ = cheerio.load(html);
-
-      // Extract handle from URL
-      const handleMatch = normalizedUrl.match(X_PROFILE_HANDLE_PATTERN);
-      const handle = handleMatch?.[1];
-
-      const result: XProfileScrapedData = {
-        bannerImageUrl: undefined,
-        bio:
-          $('meta[name="description"]').attr('content')?.trim() ||
-          $('meta[property="og:description"]').attr('content')?.trim(),
-        contentStyle: {
-          contentTypes: [],
-          usesEmojis: false,
-          usesHashtags: false,
-        },
-        displayName:
-          $('meta[property="og:title"]').attr('content')?.trim() ||
-          $('title').first().text().trim(),
-        handle,
-        pinnedTweet: undefined,
-        profileImageUrl: $('meta[property="og:image"]').attr('content')?.trim(),
-        recentTweets: [],
-        scrapedAt: new Date(),
-        sourceUrl: normalizedUrl,
-      };
-
-      // The public page can contain multiple posts, including a pinned post.
-      // Use at most its first visible example when the API snapshot is unavailable.
-      const visiblePost = $(
-        'article [data-testid="tweetText"], [class*="tweet-text"]',
-      )
-        .first()
-        .text()
-        .trim();
-      if (visiblePost.length > 5) {
-        result.recentTweets = [visiblePost];
-        result.contentStyle.usesHashtags = visiblePost.includes('#');
-        result.contentStyle.usesEmojis = EMOJI_PATTERN.test(visiblePost);
-        result.contentStyle.avgTweetLength = visiblePost.length;
-      }
-
-      // Parse bio for content style hints
-      if (result.bio) {
-        if (result.bio.includes('#')) {
-          result.contentStyle.usesHashtags = true;
-        }
-      }
-
+      const result = parsePublicXProfileHtml(html, normalizedUrl);
       this.loggerService.log(`${caller} completed`, {
         handle: result.handle,
       });

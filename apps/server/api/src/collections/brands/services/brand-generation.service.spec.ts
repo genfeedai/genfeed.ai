@@ -114,11 +114,20 @@ describe('BrandGenerationService', () => {
     expect((error as BrandVoiceGenerationException).code).toBe(
       BrandVoiceFailureCode.BRAND_NOT_FOUND,
     );
-    expect(findBrand).toHaveBeenCalledWith({
-      id: 'brand-1',
-      isDeleted: false,
-      organizationId,
-    });
+    expect(findBrand).toHaveBeenCalledWith(
+      {
+        id: 'brand-1',
+        isDeleted: false,
+        organizationId,
+      },
+      [
+        {
+          path: 'links',
+          where: { isDeleted: false },
+          select: ['url', 'category'],
+        },
+      ],
+    );
   });
 
   it('requires either a URL or a stored brand', async () => {
@@ -293,7 +302,7 @@ describe('BrandGenerationService', () => {
 
       // The only brand access on this path is the org-scoped read.
       expect(findBrand).toHaveBeenCalledTimes(1);
-      expect(findBrand).toHaveBeenCalledWith({
+      expect(findBrand.mock.calls[0]?.[0]).toEqual({
         id: 'brand-1',
         isDeleted: false,
         organizationId,
