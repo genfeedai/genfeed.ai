@@ -13,6 +13,8 @@ import {
 import { Skeleton } from '@ui/primitives/skeleton';
 import { useCallback, useState } from 'react';
 import { useOrganization } from '@/hooks/data/organization/use-organization/use-organization';
+import OrganizationAutomationCard from '../organization-automation-card';
+import OrganizationMcpApprovalCard from '../organization-mcp-approval-card';
 import SettingsAgentsPage from './settings-agents-page';
 
 const REPLY_STYLE_OPTIONS: Array<{ label: string; value: AgentReplyStyle }> = [
@@ -92,6 +94,8 @@ export default function SettingsOrganizationPolicyPage() {
       </Card>
 
       <SettingsAgentsPage />
+      <OrganizationAutomationCard />
+      <OrganizationMcpApprovalCard />
     </div>
   );
 }

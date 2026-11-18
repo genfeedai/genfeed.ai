@@ -18,7 +18,10 @@ import {
 import Spinner from '@ui/primitives/spinner';
 import { useCallback, useState } from 'react';
 import { useOrganization } from '@/hooks/data/organization/use-organization/use-organization';
+import OrganizationGenerationDefaultsCard from './organization-generation-defaults-card';
 import OrganizationIdentityCard from './organization-identity-card';
+import OrganizationIdentityDefaultsCard from './organization-identity-defaults-card';
+import OrganizationPublishingCapsCard from './organization-publishing-caps-card';
 
 // The pseudo-locale is a QA instrument, not a language — offering it to an
 // entire organization would put every member on accented, padded English.
@@ -85,6 +88,10 @@ export default function SettingsOrganizationPage() {
           </SelectContent>
         </Select>
       </Card>
+
+      <OrganizationIdentityDefaultsCard />
+      <OrganizationGenerationDefaultsCard />
+      <OrganizationPublishingCapsCard />
     </div>
   );
 }

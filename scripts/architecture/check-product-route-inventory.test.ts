@@ -238,12 +238,12 @@ describe('runCheckProductRouteInventory', () => {
     // under a brand (`/:org/:brand/connectors/*`, six pages; Channels lives only there).
     // The bare `/connectors` paths are configuration redirects, not pages, and
     // organization Library and Publishing got static entries in front of the
-    // catch-all.
+    // catch-all. Organization settings Preferences folded into General.
     expect(runCheckProductRouteInventory()).toMatchObject({
       appPublicRouteCount: 25,
       issues: [],
-      protectedPageCount: 259,
-      protectedRouteCount: 283,
+      protectedPageCount: 258,
+      protectedRouteCount: 282,
       publicRouteCount: 123,
       websitePublicRouteCount: 98,
     });
