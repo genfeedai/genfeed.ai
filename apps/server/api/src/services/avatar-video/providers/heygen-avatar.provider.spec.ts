@@ -280,8 +280,7 @@ describe('HeygenAvatarProvider', () => {
         });
 
         expect(result).toMatchObject({
-          error:
-            'This look cannot render at high quality. Choose a quality it supports, or draft.',
+          error: 'This look cannot render at high quality. Choose draft.',
           status: 'failed',
         });
         expect(fundSubmission).not.toHaveBeenCalled();
@@ -298,7 +297,12 @@ describe('HeygenAvatarProvider', () => {
           referenceImageUrl: 'https://cdn.example.com/reference.jpg',
         });
 
-        expect(result.status).toBe('failed');
+        expect(result).toMatchObject({
+          error: expect.stringContaining(
+            'A reference image renders as a draft',
+          ),
+          status: 'failed',
+        });
         expect(fundSubmission).not.toHaveBeenCalled();
         expect(heygenService.generatePhotoAvatarVideo).not.toHaveBeenCalled();
       });

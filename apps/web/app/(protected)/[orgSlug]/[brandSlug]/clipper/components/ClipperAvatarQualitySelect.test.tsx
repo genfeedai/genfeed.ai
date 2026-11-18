@@ -1,7 +1,7 @@
 import '@testing-library/jest-dom/vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import ClipperAvatarQualitySelect from './ClipperAvatarQualitySelect';
 
 vi.mock('next-intl', async () => {
@@ -10,12 +10,35 @@ vi.mock('next-intl', async () => {
 });
 
 describe('ClipperAvatarQualitySelect', () => {
+  const shimmed = [
+    'hasPointerCapture',
+    'setPointerCapture',
+    'releasePointerCapture',
+    'scrollIntoView',
+  ] as const;
+  const originals = new Map<string, PropertyDescriptor | undefined>();
+
   beforeAll(() => {
     // Radix Select reads pointer capture and scroll APIs jsdom lacks.
-    Element.prototype.hasPointerCapture = () => false;
-    Element.prototype.setPointerCapture = () => undefined;
-    Element.prototype.releasePointerCapture = () => undefined;
-    Element.prototype.scrollIntoView = () => undefined;
+    for (const name of shimmed) {
+      originals.set(
+        name,
+        Object.getOwnPropertyDescriptor(Element.prototype, name),
+      );
+      Object.defineProperty(Element.prototype, name, {
+        configurable: true,
+        value: name === 'hasPointerCapture' ? () => false : () => undefined,
+        writable: true,
+      });
+    }
+  });
+
+  afterAll(() => {
+    for (const name of shimmed) {
+      const original = originals.get(name);
+      if (original) Object.defineProperty(Element.prototype, name, original);
+      else Reflect.deleteProperty(Element.prototype, name);
+    }
   });
 
   it('shows the chosen quality and what it costs more of', () => {

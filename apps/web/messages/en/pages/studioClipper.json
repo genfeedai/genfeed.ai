@@ -99,7 +99,7 @@
   "avatarQualityAuto": "Auto (Avatar 6 Turbo where the look supports it)",
   "avatarQualityDraft": "Draft (Avatar IV)",
   "avatarQualityHigh": "High (Avatar 6, 2K)",
-  "avatarQualityHint": "Higher quality costs more credits per second. Low, Medium and High need an avatar look that supports Avatar 6; Draft works on every look.",
+  "avatarQualityHint": "Higher quality costs more credits per second. Low needs a look that supports Avatar 6 Turbo. Medium and High need a look that supports Avatar 6. Draft needs a look that supports Avatar IV.",
   "avatarQualityLabel": "Avatar quality",
   "avatarQualityLow": "Low (Avatar 6 Turbo, 1080p)",
   "avatarQualityMedium": "Medium (Avatar 6, 1080p)",

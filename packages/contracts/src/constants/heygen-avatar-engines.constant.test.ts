@@ -156,17 +156,45 @@ describe('Avatar render quality plans', () => {
       expect(
         resolveAvatarRenderPlan(look('studio_avatar', ['avatar_iv']), quality),
       ).toEqual({
-        reason: `This look cannot render at ${quality} quality. Choose a quality it supports, or draft.`,
+        reason: `This look cannot render at ${quality} quality. Choose draft.`,
       });
     },
   );
 
-  it('refuses medium quality on a look that lists Turbo only', () => {
+  it('refuses medium quality on a look that lists Turbo only and names what it supports', () => {
     expect(
       resolveAvatarRenderPlan(
         look('studio_avatar', ['avatar_iv', 'heygen-avatar-6-turbo']),
         'medium',
       ),
-    ).toHaveProperty('reason');
+    ).toEqual({
+      reason: 'This look cannot render at medium quality. Choose draft, low.',
+    });
+  });
+
+  it('takes standard Avatar 6 without a choice when the look has neither Turbo nor Avatar IV', () => {
+    expect(
+      resolveAvatarRenderPlan(look('digital_twin', ['heygen-avatar-6'])),
+    ).toEqual({ plan: { engine: 'heygen-avatar-6', resolution: '1080p' } });
+  });
+
+  it('refuses draft on a look without Avatar IV and points at a supported tier', () => {
+    expect(
+      resolveAvatarRenderPlan(
+        look('digital_twin', ['heygen-avatar-6-turbo']),
+        'draft',
+      ),
+    ).toEqual({
+      reason: 'This look cannot render at draft quality. Choose low.',
+    });
+  });
+
+  it('refuses any tier on a look that lists no tier engine', () => {
+    expect(resolveAvatarRenderPlan(look('digital_twin', ['avatar_v']))).toEqual(
+      {
+        reason:
+          'This look supports none of the avatar quality tiers. Choose a different look.',
+      },
+    );
   });
 });
