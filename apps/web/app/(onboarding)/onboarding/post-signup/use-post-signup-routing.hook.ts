@@ -195,6 +195,7 @@ export function usePostSignupRouting(): PostSignupRoutingState {
 
   // A signup CTA's account type (e.g. Expert) survives cross-device magic
   // links through the callback URL; keep it for the brand step.
+  // use-effect-audit: ignore writes to browser storage
   useEffect(() => {
     if (requestedAccountType) {
       localStorage.setItem(

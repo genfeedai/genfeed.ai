@@ -1,3 +1,4 @@
+import { useResetOnChange } from '@hooks/utils/use-reset-on-change/use-reset-on-change';
 import { useEffect, useRef, useState } from 'react';
 
 export interface UseRailKeysOptions {
@@ -39,13 +40,13 @@ export function useRailKeys({
   const [activeIndex, setActiveIndex] = useState(0);
   const itemRefs = useRef(new Map<number, HTMLElement>());
 
-  useEffect(() => {
+  useResetOnChange([itemCount], () => {
     if (itemCount === 0) {
       setActiveIndex(0);
       return;
     }
     setActiveIndex((current) => Math.min(current, itemCount - 1));
-  }, [itemCount]);
+  });
 
   // use-effect-audit: ignore subscribes to browser events
   useEffect(() => {

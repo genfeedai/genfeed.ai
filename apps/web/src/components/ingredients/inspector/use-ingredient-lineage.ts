@@ -9,6 +9,7 @@ import { IngredientsService } from '@genfeedai/services/content/ingredients.serv
 import { logger } from '@genfeedai/services/core/logger.service';
 import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useResetOnChange } from '@hooks/utils/use-reset-on-change/use-reset-on-change';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { UseIngredientLineageResult } from '@/props/content/ingredient.props';
 
@@ -74,14 +75,14 @@ export function useIngredientLineage(
   const { nonce, page } =
     request.identity === identity ? request : { nonce: 0, page: 1 };
 
-  useEffect(() => {
+  useResetOnChange([identity], () => {
     setRequest((current) =>
       current.identity === identity ? current : { identity, nonce: 0, page: 1 },
     );
     setMorePages((current) =>
       current.identity === identity ? current : emptyMorePages(identity),
     );
-  }, [identity]);
+  });
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: `nonce` only re-runs the load so a failed page is retried
   useEffect(() => {

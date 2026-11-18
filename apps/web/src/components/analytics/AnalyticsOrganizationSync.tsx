@@ -68,6 +68,7 @@ function EnabledAnalyticsOrganizationSync() {
   }, [isAuthLoaded, isBrandScopeResolved, pageviewKey, pathname, user?.id]);
 
   // Tag Sentry issues with the same person and organization PostHog sees.
+  // use-effect-audit: ignore reports the account scope to Sentry
   useEffect(() => {
     if (!(isAuthLoaded && isBrandScopeResolved)) {
       return;
