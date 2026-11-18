@@ -154,6 +154,7 @@ export function usePromptBarSync(
     }
   }, [promptConfig]);
 
+  // use-effect-audit: ignore writes the prompt text into the form store
   useEffect(() => {
     if (!useSplitState || promptText === undefined) {
       return;
@@ -173,6 +174,7 @@ export function usePromptBarSync(
     });
   }, [form, promptText, useSplitState]);
 
+  // use-effect-audit: ignore writes the prompt config into the form store
   useEffect(() => {
     if (!useSplitState || !promptConfig) {
       return;
@@ -404,6 +406,7 @@ export function usePromptBarSync(
     lastPromptDataRef.current = promptData;
   }, [promptData, form]);
 
+  // use-effect-audit: ignore resets the form store when the category type changes
   useEffect(() => {
     if (!categoryType) {
       return;

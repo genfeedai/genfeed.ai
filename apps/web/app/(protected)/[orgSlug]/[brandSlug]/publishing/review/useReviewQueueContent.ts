@@ -293,6 +293,7 @@ export function useReviewQueueContent(search = '') {
   }, [requestedItemId, visibleItems]);
 
   // Single URL write path for settled local state — only when query would change.
+  // use-effect-audit: ignore writes the review state to the route in the router
   useEffect(() => {
     if (!activeTurboRunId) {
       return;
