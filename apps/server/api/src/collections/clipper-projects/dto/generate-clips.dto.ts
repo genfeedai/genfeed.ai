@@ -1,4 +1,8 @@
 import {
+  AVATAR_RENDER_QUALITIES,
+  type AvatarRenderQuality,
+} from '@genfeedai/contracts/constants';
+import {
   CLIPPER_REFERENCE_POLICIES,
   CLIPPER_RESULT_MODES,
   type ClipperReferencePolicy,
@@ -137,6 +141,17 @@ export class GenerateClipsDto {
     required: false,
   })
   readonly avatarProvider?: SupportedAvatarVideoProviderName;
+
+  @IsOptional()
+  @IsIn([...AVATAR_RENDER_QUALITIES])
+  @ApiProperty({
+    description:
+      'Avatar render quality: draft (Avatar IV), low (Avatar 6 Turbo 1080p), medium (Avatar 6 1080p) or high (Avatar 6 2K). Omitted takes the cheapest Avatar 6 engine the look supports, else draft.',
+    enum: AVATAR_RENDER_QUALITIES,
+    enumName: 'AvatarRenderQuality',
+    required: false,
+  })
+  readonly avatarQuality?: AvatarRenderQuality;
 }
 
 const HOOK_CLIPPER_DECISIONS = HOOK_CLIPPER_APPROVAL_ACTIONS;
