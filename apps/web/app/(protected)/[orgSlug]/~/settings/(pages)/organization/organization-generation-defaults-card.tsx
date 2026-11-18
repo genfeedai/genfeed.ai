@@ -1,12 +1,13 @@
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useElements } from '@hooks/data/elements/use-elements/use-elements';
+import { useResetOnChange } from '@hooks/utils/use-reset-on-change/use-reset-on-change';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { OrganizationsService } from '@services/organization/organizations.service';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import RetiredModelAlert from '@/components/models/RetiredModelAlert';
 import { useRetiredModels } from '@/features/models/hooks/useRetiredModels';
 import type {
@@ -31,37 +32,35 @@ export default function OrganizationGenerationDefaultsCard() {
     OrganizationsService.getInstance(token),
   );
 
-  const [defaults, setDefaults] = useState<GenerationDefaultsState>({
-    defaultImageModel: '',
-    defaultImageToVideoModel: '',
-    defaultModel: '',
-    defaultModelReview: '',
-    defaultModelUpdate: '',
-    defaultMusicModel: '',
-    defaultVideoModel: '',
+  const getDefaultsFromSettings = (): GenerationDefaultsState => ({
+    defaultImageModel: settingsWithContentDefaults?.defaultImageModel ?? '',
+    defaultImageToVideoModel:
+      settingsWithContentDefaults?.defaultImageToVideoModel ?? '',
+    defaultModel: settingsWithContentDefaults?.defaultModel ?? '',
+    defaultModelReview: settingsWithContentDefaults?.defaultModelReview ?? '',
+    defaultModelUpdate: settingsWithContentDefaults?.defaultModelUpdate ?? '',
+    defaultMusicModel: settingsWithContentDefaults?.defaultMusicModel ?? '',
+    defaultVideoModel: settingsWithContentDefaults?.defaultVideoModel ?? '',
   });
+  const [defaults, setDefaults] = useState<GenerationDefaultsState>(
+    getDefaultsFromSettings,
+  );
   const [isSaving, setIsSaving] = useState(false);
 
-  useEffect(() => {
-    setDefaults({
-      defaultImageModel: settingsWithContentDefaults?.defaultImageModel ?? '',
-      defaultImageToVideoModel:
-        settingsWithContentDefaults?.defaultImageToVideoModel ?? '',
-      defaultModel: settingsWithContentDefaults?.defaultModel ?? '',
-      defaultModelReview: settingsWithContentDefaults?.defaultModelReview ?? '',
-      defaultModelUpdate: settingsWithContentDefaults?.defaultModelUpdate ?? '',
-      defaultMusicModel: settingsWithContentDefaults?.defaultMusicModel ?? '',
-      defaultVideoModel: settingsWithContentDefaults?.defaultVideoModel ?? '',
-    });
-  }, [
-    settingsWithContentDefaults?.defaultModel,
-    settingsWithContentDefaults?.defaultModelReview,
-    settingsWithContentDefaults?.defaultModelUpdate,
-    settingsWithContentDefaults?.defaultImageModel,
-    settingsWithContentDefaults?.defaultImageToVideoModel,
-    settingsWithContentDefaults?.defaultMusicModel,
-    settingsWithContentDefaults?.defaultVideoModel,
-  ]);
+  useResetOnChange(
+    [
+      settingsWithContentDefaults?.defaultModel,
+      settingsWithContentDefaults?.defaultModelReview,
+      settingsWithContentDefaults?.defaultModelUpdate,
+      settingsWithContentDefaults?.defaultImageModel,
+      settingsWithContentDefaults?.defaultImageToVideoModel,
+      settingsWithContentDefaults?.defaultMusicModel,
+      settingsWithContentDefaults?.defaultVideoModel,
+    ],
+    () => {
+      setDefaults(getDefaultsFromSettings());
+    },
+  );
 
   const handleSave = useCallback(async () => {
     if (!organizationId) {

@@ -93,6 +93,7 @@ export function useEnhanceUpscale({
   // Re-render when the upscale source ref changes: the ref alone does not.
   const [, setPendingSourceVersion] = useState(0);
 
+  // use-effect-audit: ignore tracks mount state and clears the pending confirmation on unmount
   useEffect(() => {
     isMounted.current = true;
     return () => {

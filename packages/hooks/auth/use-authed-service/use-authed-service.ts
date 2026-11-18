@@ -33,6 +33,7 @@ export function useAuthedService<T>(
   );
 
   // Update refs when they change
+  // use-effect-audit: ignore keeps refs to the latest service factory and token getter
   useEffect(() => {
     factoryRef.current = factory;
     getTokenRef.current = getToken as (

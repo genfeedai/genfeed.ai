@@ -14,12 +14,13 @@ import {
   isImageIngredient,
 } from '@genfeedai/utils/media/ingredient-type.util';
 import { IngredientEndpoints } from '@genfeedai/utils/media/ingredients.util';
+import { useResetOnChange } from '@hooks/utils/use-reset-on-change/use-reset-on-change';
 import { Button } from '@ui/primitives/button';
 import FormControl from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
 import { Textarea } from '@ui/primitives/textarea';
 import type { KeyboardEvent } from 'react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useOrganization } from '@/hooks/data/organization/use-organization/use-organization';
 import type { TabsIngredientInfoProps } from '@/props/content/ingredient.props';
 
@@ -57,10 +58,10 @@ export default function IngredientTabsInfo({
   const [descriptionValue, setDescriptionValue] = useState(metadataDescription);
   const [activeAction, setActiveAction] = useState<string | null>(null);
 
-  useEffect(() => {
+  useResetOnChange([metadataDescription, metadataLabel], () => {
     setLabelValue(metadataLabel);
     setDescriptionValue(metadataDescription);
-  }, [metadataDescription, metadataLabel]);
+  });
 
   const commitField = async (
     field: 'description' | 'label',

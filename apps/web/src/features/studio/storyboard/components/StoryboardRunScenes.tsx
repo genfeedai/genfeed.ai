@@ -10,6 +10,7 @@ import {
 import type { BrandRemixStoryboardScene } from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
 import type { Video } from '@genfeedai/models/ingredients/video.model';
 import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
+import { useResetOnChange } from '@hooks/utils/use-reset-on-change/use-reset-on-change';
 import { VideosService } from '@services/ingredients/videos.service';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import { Button } from '@ui/primitives/button';
@@ -17,7 +18,7 @@ import Field from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
 import { Textarea } from '@ui/primitives/textarea';
 import { useTranslations } from 'next-intl';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useVoiceCatalog } from '@/features/library/voices/hooks/use-voice-catalog';
 import type { StoryboardRunScenesProps } from '@/features/studio/props/storyboard.props';
 import StoryboardAnimatic from '@/features/studio/storyboard/components/StoryboardAnimatic';
@@ -147,9 +148,9 @@ export default function StoryboardRunScenes({
       ].includes(run.phase),
   );
   const disabled = isWorking || Boolean(active) || immutable;
-  useEffect(() => {
+  useResetOnChange([run.concept], () => {
     setStoryboard(run.concept?.storyboard ?? []);
-  }, [run.concept]);
+  });
   const libraryError =
     isPickerOpen && libraryQuery.error
       ? libraryQuery.error.message || t('libraryError')

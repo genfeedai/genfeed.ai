@@ -1,6 +1,7 @@
 import { ButtonSize, ButtonVariant, CardGap } from '@genfeedai/contracts';
 import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useResetOnChange } from '@hooks/utils/use-reset-on-change/use-reset-on-change';
 import type { AgentStrategy } from '@services/automation/agent-strategies.service';
 import { AgentStrategiesService } from '@services/automation/agent-strategies.service';
 import { WorkflowsService } from '@services/automation/workflows.service';
@@ -92,10 +93,10 @@ export default function AgentWorkflowBindCard({
   );
   const [isSaving, setIsSaving] = useState(false);
 
-  useEffect(() => {
+  useResetOnChange([strategy], () => {
     setSelectedId(strategy.preferredWorkflowId ?? '');
     setOverrides(overridesFromStrategy(strategy));
-  }, [strategy]);
+  });
 
   // Each failed read is reported once, however often the card re-renders.
   useEffect(() => {
