@@ -204,25 +204,85 @@ describe('useLibrarySummary', () => {
     );
   });
 
-  it('ignores abort errors on unmount', async () => {
-    const abortError = new Error('aborted');
-    abortError.name = 'AbortError';
-    let rejectFetch: ((reason: Error) => void) | undefined;
+  it('aborts the request on unmount without reporting an error', async () => {
+    let requestSignal: AbortSignal | null | undefined;
     fetchMock.mockImplementation(
-      () =>
+      (_url: string, init?: RequestInit) =>
         new Promise((_resolve, reject) => {
-          rejectFetch = reject;
+          requestSignal = init?.signal;
+          init?.signal?.addEventListener('abort', () => {
+            const abortError = new Error('aborted');
+            abortError.name = 'AbortError';
+            reject(abortError);
+          });
         }),
     );
 
-    const { result, unmount } = renderHook(() => useLibrarySummary(), {
-      wrapper,
+    const { unmount } = renderHook(() => useLibrarySummary(), { wrapper });
+
+    await waitFor(() => {
+      expect(requestSignal).toBeTruthy();
     });
+    expect(requestSignal?.aborted).toBe(false);
 
     unmount();
-    rejectFetch?.(abortError);
-    await Promise.resolve();
 
+    await waitFor(() => {
+      expect(requestSignal?.aborted).toBe(true);
+    });
+  });
+
+  it('shows the counts that changed while the first read was pending', async () => {
+    const staleSummary = { ...SUMMARY_PAYLOAD, total: 6 };
+    const freshSummary = { ...SUMMARY_PAYLOAD, total: 7 };
+    fetchMock
+      .mockImplementationOnce(
+        (_url: string, init?: RequestInit) =>
+          new Promise((resolve, reject) => {
+            init?.signal?.addEventListener('abort', () =>
+              reject(new DOMException('aborted', 'AbortError')),
+            );
+            setTimeout(
+              () => resolve(createFetchResponse(true, staleSummary)),
+              50,
+            );
+          }),
+      )
+      .mockResolvedValue(createFetchResponse(true, freshSummary));
+
+    const { result } = renderHook(() => useLibrarySummary(), { wrapper });
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
+
+    await act(async () => {
+      dispatchLibraryAssetsRefresh({ isListRefresh: false });
+    });
+
+    await waitFor(() => {
+      expect(result.current.summary?.total).toBe(7);
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('starts a new read without the previous failure on screen', async () => {
+    fetchMock.mockResolvedValueOnce(createFetchResponse(false, null, 500));
+
+    const { result } = renderHook(() => useLibrarySummary(), { wrapper });
+
+    await waitFor(() => {
+      expect(result.current.error?.message).toContain('500');
+    });
+
+    fetchMock.mockImplementationOnce(() => new Promise(() => {}));
+    await act(async () => {
+      result.current.refresh();
+    });
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(true);
+    });
     expect(result.current.error).toBeNull();
   });
 

@@ -7,12 +7,13 @@ import { getRequestOrganizationHeaders } from '@genfeedai/services/core/intercep
 import { logger } from '@genfeedai/services/core/logger.service';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
+import { viewerKeyPart } from '@hooks/auth/use-authed-query/use-authed-query';
 import {
   isCollectionFetchReady,
   useCollectionScope,
 } from '@hooks/navigation/use-collection-scope/use-collection-scope';
-import { useQuery } from '@tanstack/react-query';
-import { useCallback, useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useCallback, useEffect, useMemo } from 'react';
 
 export interface UseLibrarySummaryReturn {
   summary: ILibrarySummary | null;
@@ -41,7 +42,18 @@ export function useLibrarySummary({
   const collectionScope = useCollectionScope();
   const { brandId, organizationId, pageScope } = collectionScope;
   const isFetchReady = isCollectionFetchReady(collectionScope);
-  const { getToken } = useAuthIdentity();
+  const { getToken, orgId, userId } = useAuthIdentity();
+
+  const queryKey = useMemo(
+    () => [
+      'library-summary',
+      organizationId,
+      brandId ?? null,
+      pageScope,
+      viewerKeyPart(userId, orgId),
+    ],
+    [brandId, orgId, organizationId, pageScope, userId],
+  );
 
   const query = useQuery<ILibrarySummary, Error>({
     enabled: isFetchReady && isEnabled,
@@ -88,16 +100,20 @@ export function useLibrarySummary({
         throw normalizedError;
       }
     },
-    queryKey: ['library-summary', organizationId, brandId ?? null, pageScope],
+    queryKey,
     refetchOnWindowFocus: false,
     retry: false,
   });
-  const { refetch } = query;
+  const queryClient = useQueryClient();
 
   const isQueryEnabled = isFetchReady && isEnabled;
   const refresh = useCallback(() => {
-    if (isQueryEnabled) void refetch();
-  }, [isQueryEnabled, refetch]);
+    if (!isQueryEnabled) return;
+    // A read still in flight predates the change, so it must not answer.
+    void queryClient
+      .cancelQueries({ queryKey })
+      .then(() => queryClient.refetchQueries({ queryKey }));
+  }, [isQueryEnabled, queryClient, queryKey]);
 
   // use-effect-audit: ignore subscribes to browser events
   useEffect(() => {
@@ -107,7 +123,8 @@ export function useLibrarySummary({
   }, [refresh]);
 
   return {
-    error: query.error,
+    // A new attempt starts without the last failure on screen.
+    error: query.isFetching ? null : query.error,
     isLoading: query.isPending || query.isFetching,
     refresh,
     summary: query.data ?? null,

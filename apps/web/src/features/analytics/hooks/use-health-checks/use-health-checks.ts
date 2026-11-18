@@ -65,6 +65,8 @@ export function useHealthChecks(): UseHealthChecksReturn {
   // current one, so nothing is kept after the last subscriber leaves.
   const { data, refetch } = useQuery<HealthSnapshot>({
     gcTime: 0,
+    // A browser that reports itself offline still records the failed check.
+    networkMode: 'always',
     queryFn: async ({ signal }) => {
       const [apiStatus, notificationsStatus] = await Promise.all([
         fetchHealthStatus(`${EnvironmentService.apiEndpoint}/health`, signal),
@@ -78,6 +80,7 @@ export function useHealthChecks(): UseHealthChecksReturn {
       };
     },
     queryKey: ['service-health'],
+    refetchOnMount: 'always',
     refetchOnWindowFocus: false,
     retry: false,
   });

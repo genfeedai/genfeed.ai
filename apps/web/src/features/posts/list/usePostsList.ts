@@ -39,6 +39,8 @@ import {
 } from '@helpers/content/posts.helper';
 import { getBrowserTimezone } from '@helpers/formatting/timezone/timezone.helper';
 import { stripHtmlToPlainText } from '@helpers/security/strip-html.helper';
+import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
+import { viewerKeyPart } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import {
   isCollectionFetchReady,
@@ -330,6 +332,7 @@ export function usePostsList({
     postsRef.current = posts;
   }, [posts]);
 
+  const { orgId, userId } = useAuthIdentity();
   const presetsQuery = useQuery<IPreset[]>({
     enabled: scope === PageScope.PUBLISHING && initialPostPresets === undefined,
     queryFn: async () => {
@@ -351,12 +354,15 @@ export function usePostsList({
         throw error;
       }
     },
-    queryKey: ['post-presets', organizationId],
+    queryKey: ['post-presets', organizationId, viewerKeyPart(userId, orgId)],
     refetchOnWindowFocus: false,
     retry: false,
   });
+  // A publishing page's cached presets are never handed to another scope.
   const postPresets =
-    initialPostPresets ?? presetsQuery.data ?? EMPTY_POST_PRESETS;
+    initialPostPresets ??
+    (scope === PageScope.PUBLISHING ? presetsQuery.data : undefined) ??
+    EMPTY_POST_PRESETS;
 
   const handlePostEvaluated = useCallback(
     (postId: string, score: number) => {

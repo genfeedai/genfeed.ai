@@ -1,4 +1,6 @@
 import type { IChannelTarget } from '@genfeedai/contracts/interfaces';
+import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
+import { viewerKeyPart } from '@hooks/auth/use-authed-query/use-authed-query';
 import { logger } from '@services/core/logger.service';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useMemo } from 'react';
@@ -17,8 +19,14 @@ export function useSourceDeliveries(
   load: LoadDeliveries | null,
 ) {
   const queryClient = useQueryClient();
-  const queryKey = useMemo(() => ['source-deliveries', sourceKey], [sourceKey]);
-  const { data, refetch } = useQuery<IChannelTarget[]>({
+  const { orgId, userId } = useAuthIdentity();
+  // The viewer is part of the key, so one session's targets never paint for
+  // the next one on the same source.
+  const queryKey = useMemo(
+    () => ['source-deliveries', sourceKey, viewerKeyPart(userId, orgId)],
+    [orgId, sourceKey, userId],
+  );
+  const { data } = useQuery<IChannelTarget[]>({
     enabled: load !== null,
     queryFn: async ({ signal }) => {
       if (!load) {
@@ -44,8 +52,8 @@ export function useSourceDeliveries(
     }
     // A load still in flight predates the delivery, so it must not answer.
     await queryClient.cancelQueries({ queryKey });
-    await refetch();
-  }, [load, queryClient, queryKey, refetch]);
+    await queryClient.refetchQueries({ queryKey });
+  }, [load, queryClient, queryKey]);
 
   return { reload, targets: data ?? NO_TARGETS };
 }

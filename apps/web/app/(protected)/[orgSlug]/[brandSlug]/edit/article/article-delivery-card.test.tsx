@@ -152,6 +152,53 @@ describe('ArticleDeliveryCard', () => {
     await waitFor(() => expect(findDeliveriesMock).toHaveBeenCalledTimes(2));
   });
 
+  it('lists the delivery queued while the first history read was pending', async () => {
+    credentialsMock.current = [
+      {
+        id: 'ghost-1',
+        isConnected: true,
+        label: 'Team blog',
+        platform: 'ghost',
+      },
+    ];
+    let resolveFirstRead: (targets: unknown[]) => void = () => {};
+    findDeliveriesMock
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveFirstRead = resolve;
+          }),
+      )
+      .mockResolvedValue([
+        {
+          credentialId: 'ghost-1',
+          executionState: 'published',
+          id: 'target-new',
+          platform: 'ghost',
+          url: 'https://blog.example.com/new-post',
+        },
+      ]);
+    renderCard();
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Publish to Team blog' }),
+    );
+    const { onConfirm } = openConfirmMock.mock.calls[0][0];
+    await onConfirm();
+
+    expect(await screen.findByRole('link', { name: 'Open' })).toHaveAttribute(
+      'href',
+      'https://blog.example.com/new-post',
+    );
+
+    resolveFirstRead([]);
+    await Promise.resolve();
+    expect(screen.getByRole('link', { name: 'Open' })).toHaveAttribute(
+      'href',
+      'https://blog.example.com/new-post',
+    );
+  });
+
   it('blocks publishing unsaved changes', () => {
     credentialsMock.current = [
       {
