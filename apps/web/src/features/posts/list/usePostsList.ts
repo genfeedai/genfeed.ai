@@ -45,7 +45,7 @@ import {
   useCollectionScope,
 } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import { useResetOnChange, useResetOnChange } from '@hooks/utils/use-reset-on-change/use-reset-on-change';
+import { useResetOnChange } from '@hooks/utils/use-reset-on-change/use-reset-on-change';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
 import type { ContentProps } from '@props/layout/content.props';
 import { PostsService } from '@services/content/posts.service';
