@@ -7,6 +7,7 @@ import {
   PostStatus,
 } from '@genfeedai/contracts';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
+import { useResetOnChange } from '@hooks/utils/use-reset-on-change/use-reset-on-change';
 import { logger } from '@services/core/logger.service';
 import { useEffect, useState } from 'react';
 import type { PostDetailCardProps } from '@/features/posts/props/post-detail-card.props';
@@ -51,7 +52,7 @@ export function usePostDetailCard({
   const isParent = index === 0;
 
   const [localDescription, setLocalDescription] = useState(
-    post.description || '',
+    descriptionValue ?? (post.description || ''),
   );
 
   const [localIngredients, setLocalIngredients] = useState(
@@ -60,10 +61,21 @@ export function usePostDetailCard({
 
   const [isSavingLocal, setIsSavingLocal] = useState(false);
 
-  // Sync local state with prop changes
-  useEffect(() => {
+  // Local drafts follow the post prop; typed input from the parent follows
+  // its own value and wins when both change together.
+  useResetOnChange([post.description, post.ingredients, post.id], () => {
     setLocalDescription(post.description || '');
     setLocalIngredients((post.ingredients || []) as IIngredient[]);
+  });
+  useResetOnChange([descriptionValue], () => {
+    if (descriptionValue !== undefined) {
+      setLocalDescription(descriptionValue);
+    }
+  });
+
+  // The parent's edit-tracking maps are refs outside React state.
+  // use-effect-audit: ignore records the latest post text in the parent's refs
+  useEffect(() => {
     if (post.description !== undefined) {
       currentDescriptionsRef.current.set(post.id, post.description || '');
     }
@@ -73,18 +85,10 @@ export function usePostDetailCard({
   }, [
     post.description,
     post.label,
-    post.ingredients,
     post.id,
     currentDescriptionsRef,
     currentLabelsRef,
   ]);
-
-  // Sync localDescription from descriptionValue prop (user input)
-  useEffect(() => {
-    if (descriptionValue !== undefined) {
-      setLocalDescription(descriptionValue);
-    }
-  }, [descriptionValue]);
 
   // Auto-save effect (only in Publishing scope)
   // use-effect-audit: ignore timer outside React

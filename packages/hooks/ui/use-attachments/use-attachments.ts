@@ -8,6 +8,7 @@ import type {
   UseAttachmentsOptions,
   UseAttachmentsReturn,
 } from '@genfeedai/props/ui/attachments.props';
+import { useResetOnChange } from '@hooks/utils/use-reset-on-change/use-reset-on-change';
 import type { DragEvent } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
@@ -83,10 +84,10 @@ export function useAttachments(
     };
   }, []);
 
-  useEffect(() => {
+  useResetOnChange([initialAttachments], () => {
     pendingInitialAttachmentsRef.current = initialAttachments;
     setAttachments(initialAttachments);
-  }, [initialAttachments]);
+  });
 
   useEffect(() => {
     const pendingInitialAttachments = pendingInitialAttachmentsRef.current;

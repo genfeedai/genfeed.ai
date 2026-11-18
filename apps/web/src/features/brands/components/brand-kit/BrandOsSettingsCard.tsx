@@ -21,6 +21,7 @@ import type {
 import { BRAND_KIT_FIELD_OWNERSHIP } from '@genfeedai/contracts/interfaces';
 import type { BrandVideoRulesV1 } from '@genfeedai/contracts/interfaces/content/branded-generation.interface';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useResetOnChange } from '@hooks/utils/use-reset-on-change/use-reset-on-change';
 import { BrandsService } from '@services/social/brands.service';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
@@ -214,8 +215,8 @@ export default function BrandOsSettingsCard({
     };
   }, []);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: authenticated scope changes reset the stored epoch
-  useEffect(() => {
+  // An authenticated scope change drops everything loaded for the old scope.
+  useResetOnChange([brandId, getService, role], () => {
     clearAcknowledgement();
     dirtyRef.current = false;
     setRevisions([]);
@@ -226,7 +227,7 @@ export default function BrandOsSettingsCard({
     setError(null);
     setExportError(null);
     setExportState(null);
-  }, [brandId, getService, role]);
+  });
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: revision events and explicit refresh reload server history
   useEffect(() => {
