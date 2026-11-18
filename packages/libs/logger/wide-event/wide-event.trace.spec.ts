@@ -152,11 +152,12 @@ describe('resolveInstanceId', () => {
       resolveInstanceId({
         ECS_CONTAINER_METADATA_URI_V4:
           'http://169.254.170.2/v4/aa11bb22cc33dd44ee55ff6600778899-1234567890',
+        NODE_ENV: 'production',
       }),
     ).toBe('aa11bb22cc33dd44ee55ff6600778899');
   });
 
   it('falls back to the host name outside ECS', () => {
-    expect(resolveInstanceId({})).toBe(hostname());
+    expect(resolveInstanceId({ NODE_ENV: 'production' })).toBe(hostname());
   });
 });
