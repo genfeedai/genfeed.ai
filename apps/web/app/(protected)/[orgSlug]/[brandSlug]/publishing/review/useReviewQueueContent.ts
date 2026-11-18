@@ -240,6 +240,7 @@ export function useReviewQueueContent(search = '') {
   }
 
   // External URL changes only (back/forward / pasted link). Skip our own writes.
+  // use-effect-audit: ignore adopts review state from route changes made outside this hook
   useEffect(() => {
     if (currentHref === lastWrittenHrefRef.current) {
       return;
