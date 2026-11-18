@@ -52,11 +52,13 @@ import {
   releaseOutcomeSummary,
   visibleTargets,
 } from '@/features/posts/rail/release-rail-row.helpers';
-import ReleaseDetailDrawer, {
+import {
   RELEASE_RESCHEDULE_ACTION,
+  targetManualPostAction,
   targetRescheduleAction,
   targetRetryAction,
-} from '@/features/posts/release/release-detail-drawer';
+} from '@/features/posts/release/release-actions';
+import ReleaseDetailDrawer from '@/features/posts/release/release-detail-drawer';
 import { createReleaseMutationRunner } from '@/features/posts/release/release-mutation-runner';
 import CapturedPostsList from './captured-posts-list';
 import {
@@ -120,7 +122,7 @@ export default function ReleasePostsList({
   const translate = useTranslations('pages.posts.list');
   const translateRail = useTranslations('pages.posts.list.rail');
   const { brandId, isReady, organizationId } = useCollectionScope();
-  const { href } = useOrgUrl();
+  const { href, activeHref } = useOrgUrl();
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -257,6 +259,9 @@ export default function ReleasePostsList({
               ),
             };
           });
+          // The release may no longer match the active filters (a refused quote
+          // closed as posted leaves the failed list), and the counts moved.
+          void queryClient.invalidateQueries({ queryKey });
         },
         setDrawerError,
         setPendingAction,
@@ -339,6 +344,30 @@ export default function ReleasePostsList({
         service.updateTarget(selectedReleaseId, targetId, {
           executionState: TargetState.SCHEDULED,
         }),
+      );
+    },
+    [runMutation, selectedReleaseId],
+  );
+
+  const handleCompleteManualPost = useCallback(
+    (targetId: string, postUrl: string) => {
+      if (!selectedReleaseId) {
+        return;
+      }
+      void runMutation(targetManualPostAction(targetId), (service) =>
+        service.completeManualPost(selectedReleaseId, targetId, postUrl),
+      );
+    },
+    [runMutation, selectedReleaseId],
+  );
+
+  const handleSkipManualPost = useCallback(
+    (targetId: string) => {
+      if (!selectedReleaseId) {
+        return;
+      }
+      void runMutation(targetManualPostAction(targetId), (service) =>
+        service.skipManualPost(selectedReleaseId, targetId),
       );
     },
     [runMutation, selectedReleaseId],
@@ -435,6 +464,7 @@ export default function ReleasePostsList({
     [replaceSearchParams],
   );
 
+  // use-effect-audit: ignore registers the toolbar nodes with the page shell
   useEffect(() => {
     setLeadingNode(
       <PostsListSearch searchValue={search} onSearchChange={handleSearchChange}>
@@ -475,6 +505,7 @@ export default function ReleasePostsList({
     source,
   ]);
 
+  // use-effect-audit: ignore registers the toolbar nodes with the page shell
   useEffect(() => {
     setViewToggleNode(
       <PublishingViewToggle
@@ -500,6 +531,7 @@ export default function ReleasePostsList({
     viewMode,
   ]);
 
+  // use-effect-audit: ignore redirects the route in the router
   useEffect(() => {
     if (
       isCapturedView ||
@@ -524,6 +556,7 @@ export default function ReleasePostsList({
     replaceSearchParams,
   ]);
 
+  // use-effect-audit: ignore reports a failed load to the logger or a notification
   useEffect(() => {
     if (error instanceof Error) {
       logger.error('GET /post-groups publish list failed', error);
@@ -594,7 +627,7 @@ export default function ReleasePostsList({
           browserTimezone={browserTimezone}
           isLoading={isLoading}
           onSelectRelease={selectRelease}
-          reconnectHref={href(APP_ROUTES.SETTINGS.CONNECTED_ACCOUNTS)}
+          reconnectHref={activeHref(APP_ROUTES.SETTINGS.PROFILE)}
           releases={data.releases}
           selectedCredentialIds={credentialIds ?? []}
         />
@@ -702,11 +735,13 @@ export default function ReleasePostsList({
         brandId={brandId}
         error={drawerError}
         onClose={closeDrawer}
+        onCompleteManualPost={handleCompleteManualPost}
         onRescheduleRelease={handleRescheduleRelease}
         onRescheduleTarget={handleRescheduleTarget}
         onRetryTarget={handleRetryTarget}
+        onSkipManualPost={handleSkipManualPost}
         pendingAction={pendingAction}
-        reconnectHref={href(APP_ROUTES.SETTINGS.CONNECTED_ACCOUNTS)}
+        reconnectHref={activeHref(APP_ROUTES.SETTINGS.PROFILE)}
         release={selectedRelease}
       />
     </div>

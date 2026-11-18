@@ -37,6 +37,7 @@ export function ReviewGateCard({
   const [partialCount, setPartialCount] = useState(0);
   const abortRef = useRef<AbortController | null>(null);
 
+  // use-effect-audit: ignore aborts the pending request when the card unmounts
   useEffect(() => () => abortRef.current?.abort(), []);
 
   const pendingItems = items.filter((item) => !resolvedIds.has(item.id));

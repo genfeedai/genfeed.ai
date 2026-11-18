@@ -81,6 +81,13 @@ describe('WorkflowPickerOverlay', () => {
     );
 
     expect(screen.getByText('Launch brief')).toBeInTheDocument();
+    expect(
+      screen.getByRole('textbox', { name: 'Search authorized workflows' }),
+    ).toHaveValue('');
+    expect(
+      screen.getByRole('button', { name: 'Use in request' }),
+    ).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Open editor' })).toBeEnabled();
     fireEvent.change(
       screen.getByRole('textbox', { name: 'Search authorized workflows' }),
       { target: { value: 'launch' } },

@@ -20,7 +20,7 @@ export const NOTIFICATION_INBOX_QUERY_KEY = 'notification-inbox';
 /** The server's "your inbox changed" socket event (payload names the org). */
 export const NOTIFICATION_INBOX_EVENT = 'notification-inbox';
 /** Reconcile interval, used only while the socket cannot deliver updates. */
-export const NOTIFICATION_INBOX_RECONCILE_MS = 15_000;
+const NOTIFICATION_INBOX_RECONCILE_MS = 15_000;
 
 export function useNotificationInbox(open: boolean) {
   const { organizationId, isReady } = useCollectionScope();
@@ -36,6 +36,7 @@ export function useNotificationInbox(open: boolean) {
   } = useSocketManager();
   const key = [NOTIFICATION_INBOX_QUERY_KEY, userId, organizationId];
   const enabled = isReady && isSignedIn && Boolean(organizationId);
+  // use-effect-audit: ignore interval timer outside React
   useEffect(() => {
     if (!enabled) return;
     const refresh = () => {

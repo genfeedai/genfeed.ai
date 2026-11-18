@@ -72,6 +72,19 @@ describe('AgentOutputShell', () => {
     expect(host.onOpenFullPage).toHaveBeenCalledTimes(1);
   });
 
+  it('offers no full page while the host has none to open', () => {
+    render(
+      <AgentOutputHostContext value={buildHost({ onOpenFullPage: undefined })}>
+        <AgentOutputShell outputLabel="Shots">
+          <p>Board</p>
+        </AgentOutputShell>
+      </AgentOutputHostContext>,
+    );
+
+    expect(screen.getByTestId('agent-output-new-thread')).toBeVisible();
+    expect(screen.queryByTestId('agent-output-full-page')).toBeNull();
+  });
+
   it('shows Context in the output pane when the topbar opens it', () => {
     render(
       <AgentOutputHostContext value={buildHost({ isContextOpen: true })}>

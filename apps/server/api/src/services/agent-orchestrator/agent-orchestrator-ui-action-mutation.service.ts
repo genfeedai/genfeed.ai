@@ -1,11 +1,12 @@
 import { createHash } from 'node:crypto';
 import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
-import type { McpApprovalDocument } from '@api/collections/mcp-approvals/schemas/mcp-approval.schema';
 import { McpApprovalsService } from '@api/collections/mcp-approvals/services/mcp-approvals.service';
 import { assertApiKeyAgentPublishingScope } from '@api/helpers/utils/auth/api-key-publishing-scope.util';
 import type { ThreadUiActionExecutionParams } from '@api/services/agent-orchestrator/agent-orchestrator-ui-action.types';
 import { AgentOrchestratorUiActionFinalizerService } from '@api/services/agent-orchestrator/agent-orchestrator-ui-action-finalizer.service';
+import { approvedImageMessage } from '@api/services/agent-orchestrator/tools/agent-image-generation-result';
 import { AgentToolExecutorService } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
+import { describeToolFailure } from '@api/services/agent-orchestrator/tools/agent-tool-failure.util';
 import {
   buildMutationApprovalCard,
   humanize,
@@ -13,7 +14,11 @@ import {
 import { buildApprovedMutationOutcome } from '@api/services/agent-orchestrator/tools/mutation-approval-outcome';
 import { APPROVAL_PENDING_RESULT_SUMMARY } from '@api/services/agent-orchestrator/utils/agent-terminal-tool-result.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { type CuratedActionName, getToolByName } from '@genfeedai/actions';
+import {
+  type CuratedActionName,
+  getToolByName,
+  getVisualMediaGenerationType,
+} from '@genfeedai/actions';
 import { buildLogicalWriteKey } from '@genfeedai/actions/server';
 import {
   type AgentToolResult,
@@ -21,7 +26,7 @@ import {
   type AgentUiActionOf,
   readAgentMutationApprovalData,
 } from '@genfeedai/contracts/interfaces';
-import { type Prisma, toPrismaJson } from '@genfeedai/prisma';
+import { type McpApproval, type Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
@@ -184,7 +189,7 @@ export class AgentOrchestratorUiActionMutationService {
   }
 
   private async reprepareMutation(
-    approval: McpApprovalDocument,
+    approval: McpApproval,
     args: Record<string, unknown>,
     params: ThreadUiActionExecutionParams,
   ) {
@@ -303,20 +308,25 @@ export class AgentOrchestratorUiActionMutationService {
   }
 
   private async executeApprovedMutation(
-    approval: McpApprovalDocument,
+    approval: McpApproval,
     args: Record<string, unknown>,
     params: ThreadUiActionExecutionParams,
     scope: NonNullable<ThreadUiActionExecutionParams['context']['scope']>,
   ): Promise<AgentToolResult> {
     const { context, threadId } = params;
     try {
-      return await this.executor.executeTool(
+      const isImage =
+        getVisualMediaGenerationType(approval.toolName, args) === 'image';
+      const result = await this.executor.executeTool(
         approval.toolName as CuratedActionName,
         args,
         {
           apiKeyContext: context.apiKeyContext,
           initiatingPrincipal: context.initiatingPrincipal,
           approvedApprovalId: approval.id,
+          ...(isImage
+            ? { sourceActionId: `mutation-approval:${approval.id}` }
+            : {}),
           brandId: scope.brandId,
           hostSupportsApproval: true,
           organizationId: context.organizationId,
@@ -327,6 +337,13 @@ export class AgentOrchestratorUiActionMutationService {
           generationPriority: context.generationPriority,
         },
       );
+      if (isImage && result.success && !approvedImageMessage(result))
+        return {
+          success: false,
+          creditsUsed: result.creditsUsed,
+          error: 'The approved image has no verified Library result.',
+        };
+      return result;
     } catch (error: unknown) {
       await this.updateProposalCards(
         `mutation-approval:${approval.id}`,
@@ -336,7 +353,7 @@ export class AgentOrchestratorUiActionMutationService {
           creditsUsed: 0,
           error:
             error instanceof Error
-              ? error.message
+              ? describeToolFailure(error)
               : 'Approved action execution failed.',
         },
         params,
@@ -382,11 +399,16 @@ export class AgentOrchestratorUiActionMutationService {
         status === 'declined'
           ? 'Action declined. Nothing was executed.'
           : result.success
-            ? (outcome?.content ?? 'Approved action completed.')
+            ? ((getVisualMediaGenerationType(toolName, args) === 'image'
+                ? approvedImageMessage(result)
+                : undefined) ??
+              outcome?.content ??
+              'Approved action completed.')
             : `Approved action failed: ${result.error ?? 'Please retry later.'}`,
       context,
       messageId,
       model: params.model,
+      resolvedSourceActionId: resolvedCard.id,
       result: {
         ...result,
         nextActions: [
@@ -459,7 +481,7 @@ export class AgentOrchestratorUiActionMutationService {
     status: 'approved' | 'declined',
     result: AgentToolResult | undefined,
     params: ThreadUiActionExecutionParams,
-    approval?: McpApprovalDocument,
+    approval?: McpApproval,
   ): Promise<AgentUiAction> {
     const { context, threadId } = params;
     return this.prisma.$transaction(async (transaction) => {
@@ -564,7 +586,7 @@ export class AgentOrchestratorUiActionMutationService {
     result: AgentToolResult | undefined,
     params: ThreadUiActionExecutionParams,
     scope: Awaited<ReturnType<typeof this.lockProposalThread>>,
-    approval?: McpApprovalDocument,
+    approval?: McpApproval,
   ): AgentUiActionOf<'mutation_approval_card'> {
     const data = readAgentMutationApprovalData(card.data);
     if (
@@ -617,7 +639,10 @@ export class AgentOrchestratorUiActionMutationService {
             ? 'cancelled'
             : result
               ? result.success
-                ? 'completed'
+                ? result.data?.kind === 'image' &&
+                  result.data.status === 'processing'
+                  ? 'running'
+                  : 'completed'
                 : 'failed'
               : (data.executionStatus ?? 'running'),
         ...(result?.success
@@ -704,7 +729,7 @@ function settleApprovalToolCall(
       : !result
         ? 'Approved, running'
         : result.success
-          ? 'Approved and completed'
+          ? (approvedImageMessage(result) ?? 'Approved and completed')
           : (result.error ?? 'Approved, but it failed');
   return toolCalls.map((candidate, position) =>
     position === index

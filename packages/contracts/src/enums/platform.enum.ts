@@ -5,6 +5,8 @@ export enum Platform {
   FACEBOOK = 'facebook',
   GOOGLE_ADS = 'google_ads',
   GOOGLE_SEARCH_CONSOLE = 'google_search_console',
+  /** A Google Business Profile location: local posts on Search and Maps. */
+  GOOGLE_BUSINESS = 'google_business',
   TWITTER = 'twitter',
   X_ADS = 'x_ads',
   LINKEDIN = 'linkedin',
@@ -24,6 +26,7 @@ export enum Platform {
   GHOST = 'ghost',
   SHOPIFY = 'shopify',
   BEEHIIV = 'beehiiv',
+  BLUESKY = 'bluesky',
   UNIPILE = 'unipile',
   DEV_TO = 'devto',
   PRODUCT_HUNT = 'product_hunt',

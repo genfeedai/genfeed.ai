@@ -1,5 +1,6 @@
 import { ARTICLE_HEADER_PROMPT_WORKFLOW_ID } from '@api/collections/articles/services/article-header-prompt-workflow-definition';
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-definition';
+import { SystemWorkflowRetention } from '@api/collections/workflows/workflow-execution-retention.contract';
 import { createGenfeedActionNode } from '@genfeedai/actions';
 
 export const ARTICLE_GENERATION_TOOL_ID = 'generate_content';
@@ -127,6 +128,7 @@ export function buildArticleGenerationWorkflowDefinition(): SystemWorkflowGraphD
       'Loads generation context, generates drafts, and processes each article through review, revision, and persistence.',
     label: 'Article Generation',
     resultNodeId: 'invalidate-cache',
+    retention: SystemWorkflowRetention.KEPT,
     version: 1,
   };
 }
@@ -172,6 +174,7 @@ export function articleGenerationChildWorkflow(): SystemWorkflowGraphDefinition 
     description: 'Reviews, revises, and persists one generated article draft.',
     label: 'Generate One Article',
     resultNodeId: 'persist-draft',
+    retention: SystemWorkflowRetention.KEPT,
     version: 1,
   };
 }
@@ -213,6 +216,7 @@ export function articleReviewWorkflow(): SystemWorkflowGraphDefinition {
     description: 'Loads article context and generates a structured review.',
     label: 'Article Review',
     resultNodeId: 'review-article',
+    retention: SystemWorkflowRetention.KEPT,
     version: 1,
   };
 }

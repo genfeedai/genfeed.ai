@@ -28,7 +28,8 @@ export interface WorkspacePanelHeaderProps {
   readonly activeView: WorkspacePanelTab;
   readonly hasAgent: boolean;
   readonly onNewThread?: () => void;
-  readonly onOpenFullPage: () => void;
+  /** Absent while the Agent app is not released: there is no full page to open. */
+  readonly onOpenFullPage?: () => void;
   readonly onSelectView: (view: WorkspacePanelTab) => void;
 }
 

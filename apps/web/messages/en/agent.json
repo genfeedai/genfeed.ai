@@ -52,7 +52,7 @@
   "fullPage": {
     "context": "Context",
     "outputs": "Outputs",
-    "placeholder": "Ask for help with content, review, or planning...",
+    "placeholder": "Ask for help with content, review, or planning…",
     "threadNotFound": {
       "description": "This chat doesn't exist or was deleted.",
       "startNewChat": "Start a new chat",
@@ -90,7 +90,7 @@
     "createBrand": "Create brand",
     "createError": "Could not create the brand. Your edits are still here; try again.",
     "created": "Brand \"{label}\" created.",
-    "creating": "Creating...",
+    "creating": "Creating…",
     "currentBrand": "Current brand:",
     "descriptionField": "Description",
     "descriptionPlaceholder": "Describe the brand",
@@ -99,7 +99,7 @@
     "renameBrand": "Rename brand",
     "renameError": "Could not rename the brand. Your edits are still here; try again.",
     "renamed": "Brand renamed to \"{label}\".",
-    "renaming": "Renaming...",
+    "renaming": "Renaming…",
     "slugField": "Brand slug",
     "slugPlaceholder": "brand-slug"
   },
@@ -198,8 +198,8 @@
     "noModelsEnabledTitle": "No models enabled for this workspace",
     "editResult": "Edit result",
     "reuseSettings": "Reuse generation settings",
-    "viewInLibrary": "View in Library",
-    "openInStudio": "Open in Studio",
+    "viewInLibrary": "View Library",
+    "openInStudio": "Open Studio",
     "openInStudioAria": "Open this generation in Studio",
     "resolvedModel": "Model: {model}",
     "pilotCeilingReached": "Stopped after {count} rejected paid candidates. No further video generation will run for this clip.",
@@ -317,13 +317,13 @@
     "slotFieldAria": "{field} for this shot",
     "setupModeSwitch": "Setup mode: {mode}",
     "moreSetup": "More setup",
-    "searchFieldPlaceholder": "Search {field}…",
-    "searchFields": "Search fields…",
+    "searchFieldPlaceholder": "Search {field}",
+    "searchFields": "Search fields",
     "autoHint": "Genfeed picks the best model and settings",
     "searchModels": "Search models",
-    "searchModelsPlaceholder": "Search models…",
+    "searchModelsPlaceholder": "Search models",
     "searchPresets": "Search presets",
-    "searchPresetsPlaceholder": "Search presets…",
+    "searchPresetsPlaceholder": "Search presets",
     "searchSetupFields": "Search setup fields",
     "style": "Style",
     "stylePlaceholder": "e.g. synthwave, upbeat, 80s retro",
@@ -343,7 +343,7 @@
     "none": "No posting set",
     "placeholder": "Apply a saved set",
     "save": "Save set",
-    "saveLabel": "Save current channels as a set",
+    "saveLabel": "Save Set",
     "savePlaceholder": "Set name",
     "saveSelection": "Save current selection as set",
     "saving": "Saving…",
@@ -372,6 +372,7 @@
     "saving": "Saving…",
     "schedule": "Schedule",
     "scheduledTime": "Scheduled time",
+    "view": "View",
     "viewOn": "View on {platform}",
     "when": "When"
   },
@@ -389,7 +390,7 @@
     "confirmed": "Publish confirmed from chat.",
     "defaultTitle": "Publish selected content",
     "platforms": "Platforms",
-    "publishing": "Publishing...",
+    "publishing": "Publishing…",
     "reviewWarnings": "Review before publishing",
     "scheduleForLater": "Schedule for later",
     "scheduled": "Publish scheduled from chat.",
@@ -414,12 +415,22 @@
     "validationRequired": "Choose a time and at least one healthy channel."
   },
   "transferProvenance": {
+    "accept": "Accept",
+    "accepted": "Accepted. Your agent is on it.",
+    "answerFailed": "Could not send your answer. Try again.",
     "copy": "Copy",
+    "decline": "Decline",
+    "declinedByYou": "Declined. {name} was told.",
+    "handoffFrom": "{name} handed this to your agent",
+    "handoffTo": "Handed to {name}",
     "openConversation": "Open conversation",
     "openInThreads": "Open in Threads",
     "reopen": "Reopen",
     "resolve": "Resolve",
-    "resolved": "Resolved"
+    "resolved": "Resolved",
+    "runsWithYourPermissions": "It runs with your permissions once you accept.",
+    "teammateFallback": "a teammate",
+    "waitingFor": "Waiting for {name} to accept."
   },
   "settings": {
     "autoDescription": "Use the platform default model",
@@ -435,7 +446,7 @@
     "persona": "Persona",
     "personaAria": "Agent persona",
     "personaHelp": "Customize your agent's personality and instructions. Leave empty to use the default.",
-    "personaPlaceholder": "Customize your agent's personality and instructions...",
+    "personaPlaceholder": "Customize your agent's personality and instructions…",
     "priority": {
       "balanced": {
         "description": "Smart balance of quality, speed, and cost",
@@ -457,7 +468,7 @@
     "save": "Save Settings",
     "saveFailed": "Failed to save settings",
     "saved": "Settings saved",
-    "saving": "Saving..."
+    "saving": "Saving…"
   },
   "dynamicChart": {
     "noData": "No chart data available"
@@ -552,7 +563,7 @@
   "dock": {
     "emptyTitle": "What do you want to do?",
     "emptyDescription": "Create, edit, or plan with your agent.",
-    "placeholder": "Describe a task...",
+    "placeholder": "Describe a task…",
     "suggestionsAria": "Prompt suggestions"
   },
   "localCliRuntime": {
@@ -581,10 +592,10 @@
     "cancel": "Cancel",
     "revisePlaceholder": "Describe what to change in the plan",
     "createFollowUpTasks": "Create follow-up tasks",
-    "creatingFollowUpTasks": "Creating tasks..."
+    "creatingFollowUpTasks": "Creating tasks…"
   },
   "stalledTurn": {
-    "title": "This is taking longer than expected.",
+    "title": "This is taking longer than expected",
     "description": "The agent has not responded for a while. You can keep waiting, or stop this turn and send it again.",
     "keepWaiting": "Keep waiting",
     "stopAndRetry": "Stop and retry"
@@ -598,6 +609,6 @@
   },
   "strategyStatus": {
     "emptyDescription": "Create one in the configuration above.",
-    "emptyTitle": "No strategy configured yet."
+    "emptyTitle": "No strategy configured yet"
   }
 }

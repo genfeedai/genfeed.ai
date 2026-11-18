@@ -37,4 +37,13 @@ describe('PlatformIconHelper', () => {
       PlatformIconHelper.getPlatformIconComponent('unknown-platform');
     expect(IconComponent).toBeUndefined();
   });
+
+  it('gives Google Business its own icon and a label', () => {
+    expect(
+      PlatformIconHelper.getPlatformIconComponent('google_business'),
+    ).toBeDefined();
+    expect(
+      PlatformIconHelper.getPlatformIconComponent('google_business'),
+    ).not.toBe(PlatformIconHelper.getPlatformIconComponent('google_ads'));
+  });
 });

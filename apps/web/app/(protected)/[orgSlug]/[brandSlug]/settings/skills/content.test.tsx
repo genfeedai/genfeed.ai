@@ -204,6 +204,10 @@ vi.mock('@services/content/skills.service', async () => {
   };
 });
 
+vi.mock('@/components/shell/use-available-rail-apps', () => ({
+  useIsAppAvailable: () => true,
+}));
+
 describe('BrandSettingsSkillsPage', () => {
   beforeAll(() => {
     Element.prototype.hasPointerCapture = vi.fn();

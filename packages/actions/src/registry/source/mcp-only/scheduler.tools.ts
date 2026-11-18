@@ -27,6 +27,7 @@ const credentialPlatforms = [
   'ghost',
   'shopify',
   'beehiiv',
+  'bluesky',
   'unipile',
   'devto',
   'product_hunt',
@@ -85,6 +86,11 @@ const audienceVisibilitySchema = {
 const targetSchema = {
   properties: {
     attachments: { items: attachmentSchema, type: 'array' },
+    caption: {
+      description:
+        'Text for this channel only. Omit to use the release baseContent.',
+      type: 'string',
+    },
     credentialId: { type: 'string' },
     order: { minimum: 0, type: 'number' },
     platform: {
@@ -123,6 +129,15 @@ const releaseCreateProperties = {
   timezone: { description: 'IANA', type: 'string' },
   title: { type: 'string' },
 };
+
+const releaseCreateSchema = {
+  properties: releaseCreateProperties,
+  required: ['title', 'baseContent', 'timezone', 'targets'],
+  type: 'object',
+};
+
+/** One approval covers at most this many releases (a week at 4 hours is 42). */
+export const MAX_BATCH_RELEASES = 50;
 
 const releaseUpdateProperties = {
   campaignId: {
@@ -221,6 +236,15 @@ const SCHEDULER_VALIDATE_PARAMETERS: ToolParameterSchema = {
   type: 'object',
 };
 
+const releasesBatchSchema = {
+  description:
+    'A batch of releases for one organization, approved once. Use instead of release. Each release is one post on one channel (one target; no recurrence, attachments or target settings): send one release per channel.',
+  items: releaseCreateSchema,
+  maxItems: MAX_BATCH_RELEASES,
+  minItems: 1,
+  type: 'array',
+} as const;
+
 export const MCP_SCHEDULER_TOOLS: SourceTool[] = [
   {
     name: 'check_channel',
@@ -264,18 +288,30 @@ export const MCP_SCHEDULER_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      'Create a multi-channel release from prepared content and existing media. Use after check_channel(action=validate) for each channel. status draft (the default) saves for review; status scheduled or a scheduledDate requests future publishing, including recurring releases. Scheduling waits for server-enforced approval. If this connection cannot resolve approvals, review and release it in Genfeed.',
+      'Create a multi-channel release from prepared content and existing media. Use after check_channel(action=validate) for each channel. status draft (the default) saves for review; status scheduled or a scheduledDate requests future publishing, including recurring releases. Pass one release in `release`, or a whole week in `releases` (1 to 50, one organization, one approval for the batch): every release is validated on its own, invalid ones are named in the result and left out. Scheduling waits for server-enforced approval. A batch of up to 3 releases can be approved in the chat; a larger batch is reviewed and approved once in Genfeed, which then schedules every release without another call. If this connection cannot resolve approvals, review and release it in Genfeed.',
+    mcpDescription:
+      'Create a multi-channel release from prepared text/media after check_channel(action=validate) for each channel. Default draft saves for review; scheduled status or scheduledDate requests future/recurring publishing. Pass `release` (one) or `releases` (1-50, one organization, one approval): each is validated alone, invalid ones are named and left out. Server approval required to schedule: up to 3 releases can be approved in chat; a larger batch is approved once in Genfeed, which schedules all of them with no second call.',
     name: 'create_scheduled_release',
     parameters: {
       properties: {
         idempotencyKey: { type: 'string' },
-        release: {
-          properties: releaseCreateProperties,
-          required: ['title', 'baseContent', 'timezone', 'targets'],
+        release: releaseCreateSchema,
+        releases: releasesBatchSchema,
+      },
+      // Exactly one of the two, so a client that validates against the schema
+      // refuses a call with both or neither before it reaches the server.
+      oneOf: [
+        {
+          properties: { release: releaseCreateSchema },
+          required: ['release'],
           type: 'object',
         },
-      },
-      required: ['release'],
+        {
+          properties: { releases: releasesBatchSchema },
+          required: ['releases'],
+          type: 'object',
+        },
+      ],
       type: 'object',
     },
     requiredRole: 'user',
@@ -298,6 +334,8 @@ export const MCP_SCHEDULER_TOOLS: SourceTool[] = [
     creditCost: 0,
     description:
       'Change content, media, recurrence or timing on an existing release, or scheduling/settings on one target. Use get_scheduled_release to inspect its current content and state, then check_channel(action=validate) before changing publishing settings. Changes to already-live content may update public posts. Every update waits for server-enforced approval; review and apply in Genfeed.',
+    mcpDescription:
+      "Update release content/media/recurrence/timing or one target's scheduling/settings. Inspect get_scheduled_release first; check_channel(action=validate) before publishing-setting changes. Live-content changes may update public posts. All updates require server approval; review/apply in Genfeed.",
     name: 'update_scheduled_release',
     parameters: {
       properties: {
@@ -324,6 +362,8 @@ export const MCP_SCHEDULER_TOOLS: SourceTool[] = [
     creditCost: 0,
     description:
       'Request cancel, pause, resume or publish-now for an existing release. Use get_scheduled_release to review exact content, channels and timing; check check_channel(action=validate) before publish-now, and confirm the selected publishing credential is still connected before resume. publish-now requests immediate public posting and resume may restart scheduled or recurring posting. Every action waits for server-enforced approval; review and release in Genfeed.',
+    mcpDescription:
+      'Request cancel, pause, resume or publish-now. First review content/channels/timing with get_scheduled_release; check_channel(action=validate) before publish-now; verify the publishing credential remains connected before resume. publish-now requests immediate public posting; resume may restart scheduled/recurring posting. All actions require server-enforced approval; review/release in Genfeed.',
     name: 'control_scheduled_release',
     parameters: {
       properties: {

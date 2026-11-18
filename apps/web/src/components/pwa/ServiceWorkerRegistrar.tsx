@@ -12,7 +12,7 @@ const FORBIDDEN_STATUS_PATTERN = /403/;
 
 // Served by app/serwist/[path]/route.ts, which sets Service-Worker-Allowed: /
 // so the worker can claim the root scope from this nested URL.
-export const SERVICE_WORKER_URL = '/serwist/sw.js';
+const SERVICE_WORKER_URL = '/serwist/sw.js';
 
 // Registering in dev buys nothing — the dev worker is NetworkOnly for every
 // request — and costs an extra esbuild pass over app/sw.ts on each dev boot.
@@ -42,6 +42,7 @@ export function isIgnorableServiceWorkerError(error: unknown): boolean {
  * Update prompts stay with `DeploymentVersionWatcher`.
  */
 export default function ServiceWorkerRegistrar() {
+  // use-effect-audit: ignore registers the service worker with the browser
   useEffect(() => {
     if (
       isDesktopClient() ||

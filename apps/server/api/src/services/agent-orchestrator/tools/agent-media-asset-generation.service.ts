@@ -1,6 +1,5 @@
 import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { normalizeRequestedSkillSlugs } from '@api/collections/skills/utils/requested-skill-slugs.util';
-import { IMAGE_GENERATION_RESULT_ERROR } from '@api/services/agent-orchestrator/agent-image-generation-result.constant';
 import {
   AGENT_GENERATION_GATEWAY,
   type AgentGenerationPrincipal,
@@ -11,6 +10,7 @@ import { buildIdentityAvatarVideoBody } from '@api/services/agent-orchestrator/t
 import {
   buildImageGenerationResult,
   buildMediaAssetData,
+  readImageDispatchResult,
 } from '@api/services/agent-orchestrator/tools/agent-image-generation-result';
 import { pickMediaGenerationOverrides } from '@api/services/agent-orchestrator/tools/agent-media-generation-overrides';
 import {
@@ -212,39 +212,23 @@ export class AgentMediaAssetGenerationService {
       });
     }
 
-    const id = readMediaResponseString(response, 'id');
-    const cdnUrl = readUsableCdnAssetUrl(
+    const output = readImageDispatchResult(
       response,
       this.configService.ingredientsEndpoint,
     );
-    const responseStatus = readMediaResponseString(response, 'status')
-      ?.trim()
-      .toLowerCase();
-    if (!id) {
+    if ('error' in output) {
       this.loggerService.warn(
-        `generateImage returned no renderable asset for org=${ctx.organizationId} id=${id ?? 'none'}`,
+        `Image generation for org=${ctx.organizationId}: ${output.error}`,
       );
       return this.buildMediaGenerationIncompleteResult({
         assetKind: 'image',
-        error: IMAGE_GENERATION_RESULT_ERROR.MISSING_ASSET_ID,
-        promptPreview,
-        status: Status.PROCESSING,
-      });
-    }
-
-    if (!cdnUrl && responseStatus !== Status.PROCESSING) {
-      this.loggerService.warn(
-        `generateImage returned no usable CDN asset for org=${ctx.organizationId} id=${id}`,
-      );
-      return this.buildMediaGenerationIncompleteResult({
-        assetKind: 'image',
-        assetId: id,
-        error: IMAGE_GENERATION_RESULT_ERROR.UNUSABLE_CDN_URL,
+        assetId: output.id,
+        error: output.error,
         promptPreview,
         status: Status.FAILED,
       });
     }
-
+    const { id, cdnUrl } = output;
     if (cdnUrl) {
       this.scoreAsset(id, 'image', ctx.organizationId);
       await this.onboardingHandler.completeJourneyMission(
@@ -460,7 +444,7 @@ export class AgentMediaAssetGenerationService {
               ctas: [
                 {
                   href: createLibraryAssetRoute(IngredientCategory.IMAGE, id),
-                  label: 'View in Library',
+                  label: 'View Library',
                 },
               ],
               description: `Reframed to ${aspectRatio}`,
@@ -630,7 +614,7 @@ export class AgentMediaAssetGenerationService {
             ctas: [
               {
                 href: createLibraryAssetRoute(IngredientCategory.VIDEO, id),
-                label: 'View in Library',
+                label: 'View Library',
               },
             ],
             assetId: id,
@@ -725,7 +709,7 @@ export class AgentMediaAssetGenerationService {
               ctas: [
                 {
                   href: createLibraryAssetRoute(IngredientCategory.VOICE, id),
-                  label: 'View in Library',
+                  label: 'View Library',
                 },
               ],
               description: `Speech ${cdnUrl ? 'generated' : 'is generating'}: "${(params.text as string).substring(0, 80)}"`,
@@ -780,7 +764,7 @@ export class AgentMediaAssetGenerationService {
               ctas: [
                 {
                   href: createLibraryAssetRoute(IngredientCategory.VIDEO, id),
-                  label: 'View in Library',
+                  label: 'View Library',
                 },
               ],
               description: `Avatar video generating: "${text.substring(0, 80)}"`,
@@ -892,7 +876,7 @@ export class AgentMediaAssetGenerationService {
                     mediaAssetLibraryCategory(params.endpoint),
                     id,
                   ),
-                  label: 'View in Library',
+                  label: 'View Library',
                 },
               ],
               description: params.description,
@@ -938,7 +922,7 @@ export class AgentMediaAssetGenerationService {
           primaryCta: params.assetId
             ? {
                 href: createLibraryAssetRoute(category, params.assetId),
-                label: 'View in Library',
+                label: 'View Library',
               }
             : { href: '/library/assets', label: 'Open Library' },
           status: 'failed',

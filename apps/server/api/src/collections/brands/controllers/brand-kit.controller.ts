@@ -1,11 +1,13 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { verifyBrandAccess } from '@api/collections/brands/controllers/brand-access.helpers';
 import { BrandReadScopes } from '@api/collections/brands/decorators/brand-read-scopes.decorator';
+import { BrandLogoDownloadQueryDto } from '@api/collections/brands/dto/brand-logo-download-query.dto';
 import { FillPlatformSlotsDto } from '@api/collections/brands/dto/fill-platform-slots.dto';
 import type { BrandFontActor } from '@api/collections/brands/services/brand-font-assets.service';
 import { BrandKitAssetsService } from '@api/collections/brands/services/brand-kit-assets.service';
 import { BrandKitBundleService } from '@api/collections/brands/services/brand-kit-bundle.service';
 import { BrandLogoColorsService } from '@api/collections/brands/services/brand-logo-colors.service';
+import { BrandLogoDownloadService } from '@api/collections/brands/services/brand-logo-download.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
@@ -15,8 +17,14 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { UploadValidationPipe } from '@api/helpers/pipes/upload-validation';
 import { InputValidationUtil } from '@api/helpers/utils/input-validation/input-validation.util';
-import { ApiKeyScope, MemberRole } from '@genfeedai/contracts';
+import {
+  ApiKeyScope,
+  AssetCategory,
+  BrandKitSlot,
+  MemberRole,
+} from '@genfeedai/contracts';
 import { BRAND_KIT_BUNDLE_MAX_BYTES } from '@genfeedai/contracts/api-types/contracts/brand-kit-bundle.contract';
+import { isBrandKitSlotForCategory } from '@genfeedai/contracts/constants';
 import type {
   IBrandKitImportResult,
   IBrandKitLogoColor,
@@ -24,12 +32,14 @@ import type {
   IBrandKitView,
 } from '@genfeedai/contracts/interfaces';
 import {
+  BadRequestException,
   Body,
   Controller,
   ForbiddenException,
   Get,
   Param,
   Post,
+  Query,
   Res,
   StreamableFile,
   UploadedFile,
@@ -54,6 +64,7 @@ export class BrandKitController {
     private readonly brandKitAssets: BrandKitAssetsService,
     private readonly logoColors: BrandLogoColorsService,
     private readonly bundles: BrandKitBundleService,
+    private readonly logoDownloads: BrandLogoDownloadService,
   ) {}
 
   /** Checks brand access and returns who is acting on which brand. */
@@ -108,6 +119,45 @@ export class BrandKitController {
       disposition: `attachment; filename="${download.fileName}"`,
       length: download.bytes.length,
       type: 'application/zip',
+    });
+  }
+
+  /**
+   * One logo variant as PNG, WEBP or SVG (#9706). SVG is only there for a logo
+   * uploaded as one. The response is always a download with a policy that
+   * blocks scripts and loads, so even the SVG can never run in a page.
+   */
+  @TenantReadPolicy('owner')
+  @Get('logos/:slot/download')
+  async downloadLogo(
+    @Res({ passthrough: true }) res: Response,
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('brandId') brandId: string,
+    @Param('slot') slot: string,
+    @Query() query: BrandLogoDownloadQueryDto,
+  ): Promise<StreamableFile> {
+    const logoSlot = Object.values(BrandKitSlot).find(
+      (value) => value === slot,
+    );
+    if (!logoSlot || !isBrandKitSlotForCategory(logoSlot, AssetCategory.LOGO)) {
+      throw new BadRequestException('brand_logo_slot_invalid');
+    }
+    const download = await this.logoDownloads.download(
+      await this.actor(user, brandId),
+      logoSlot,
+      query.format,
+      query.size,
+    );
+    res.setHeader('Cache-Control', 'private, no-store');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader(
+      'Content-Security-Policy',
+      "default-src 'none'; style-src 'unsafe-inline'; sandbox",
+    );
+    return new StreamableFile(download.bytes, {
+      disposition: `attachment; filename="${download.fileName}"`,
+      length: download.bytes.length,
+      type: download.contentType,
     });
   }
 

@@ -163,12 +163,19 @@ function readNonNegativeIntEnv(name: string, fallback: number): number {
 
 const expectTimeout = readPositiveIntEnv('E2E_EXPECT_TIMEOUT_MS', 60000);
 const testTimeout = readPositiveIntEnv('E2E_TEST_TIMEOUT_MS', 120000);
-const retryCount =
+// A pass-on-retry test is a flake. CI allows one retry so a transient runner
+// failure does not sink a run, and the run summary lists every test that
+// needed it (#6231). E2E_RETRIES can lower this in CI but never raise it.
+const MAX_CI_RETRIES = 1;
+const requestedRetryCount =
   process.env.E2E_RETRIES === undefined
     ? isCI
-      ? 2
+      ? MAX_CI_RETRIES
       : 0
     : readNonNegativeIntEnv('E2E_RETRIES', 0);
+const retryCount = isCI
+  ? Math.min(requestedRetryCount, MAX_CI_RETRIES)
+  : requestedRetryCount;
 const shouldRunAuthedProject =
   process.env.E2E_AUTHED_ENABLED === '1' ||
   process.env.E2E_AUTHED_LOCAL === '1';

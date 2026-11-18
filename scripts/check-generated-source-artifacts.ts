@@ -13,6 +13,8 @@ const PACKAGE_SRC_ARTIFACT_PATTERN =
 const EE_PACKAGE_SRC_ARTIFACT_PATTERN =
   /^ee\/packages\/[^/]+\/src\/.+\.(?:js|js\.map|d\.ts|d\.ts\.map)$/u;
 
+const GIT_MAX_BUFFER_BYTES = 256 * 1024 * 1024;
+
 const SHOULD_FIX = process.argv.includes('--fix');
 
 const SOURCE_ARTIFACT_EXTENSIONS = [
@@ -36,9 +38,16 @@ const DECLARATION_ALLOWLIST = [
 function git(args: string[]): string {
   const result = spawnSync('git', args, {
     encoding: 'utf8',
+    // `git ls-files` passes 1.5 MB; the 1 MB default made spawnSync fail with
+    // ENOBUFS and the script exit 1 without printing anything.
+    maxBuffer: GIT_MAX_BUFFER_BYTES,
     stdio: ['ignore', 'pipe', 'inherit'],
   });
 
+  if (result.error) {
+    console.error(`git ${args.join(' ')} failed: ${result.error.message}`);
+    process.exit(1);
+  }
   if (result.status !== 0) {
     process.exit(result.status ?? 1);
   }

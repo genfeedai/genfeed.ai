@@ -40,7 +40,7 @@ export interface ActiveWorkspaceSurfaceAdapter {
   readonly registration: WorkspaceSurfaceAdapterRegistration;
 }
 
-export interface WorkspaceSurfaceComposerReference {
+interface WorkspaceSurfaceComposerReference {
   readonly label: string;
   readonly reference: AgentArtifactReference;
 }
@@ -326,6 +326,7 @@ export function useRegisterWorkspaceSurfacePresentationAdapter(
     WorkspaceSurfaceAdapterContext,
   )?.registerSurfaceAdapter;
 
+  // use-effect-audit: ignore registers the surface adapter with the shell
   useEffect(
     () => registerSurfaceAdapter?.(adapter),
     [adapter, registerSurfaceAdapter],

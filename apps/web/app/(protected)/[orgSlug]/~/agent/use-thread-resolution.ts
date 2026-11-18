@@ -52,6 +52,7 @@ export function useThreadResolution(
     });
   }, []);
 
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     if (!isEnabled || !apiService) {
       return;
@@ -94,6 +95,7 @@ export function useThreadResolution(
     return () => controller.abort();
   }, [apiService, isEnabled, mergeResolved]);
 
+  // use-effect-audit: ignore aborts the pending request when the page unmounts
   useEffect(() => () => loadMoreControllerRef.current?.abort(), []);
 
   const loadMoreResolved = useCallback(async () => {

@@ -123,6 +123,7 @@ describe('agent runtime workflow registration contract', () => {
         id: 'thread-1',
         brandId: null,
         contextVersion: 4,
+        userId: 'user-1',
       }),
       findOneSelect: delegateFindOneSelect(),
     };

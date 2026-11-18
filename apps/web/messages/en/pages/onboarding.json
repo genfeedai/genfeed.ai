@@ -39,7 +39,7 @@
     },
     "actions": {
       "continue": "Continue",
-      "skip": "Skip for now"
+      "skip": "Skip"
     },
     "errors": {
       "continue": "We couldn't set up your workspace. Check your connection and try again.",
@@ -60,13 +60,13 @@
     "common": {
       "badge": "Expert Path · Step {current} of {total}",
       "continue": "Continue",
-      "skip": "Skip for now",
+      "skip": "Skip",
       "skipHint": "You can finish this later — it will be the first task in your workspace.",
       "errorTitle": "Something went wrong",
       "retry": "Try again"
     },
     "positioning": {
-      "title": "Your positioning, in your words.",
+      "title": "Your positioning, in your words",
       "description": "Answer a few questions about what you believe and what you have proven. Every piece of content Genfeed drafts will be held to these answers.",
       "free": "This interview is free during onboarding.",
       "questionCounter": "Question {current} of {total}",
@@ -91,7 +91,7 @@
       }
     },
     "corpus": {
-      "title": "Bring your corpus.",
+      "title": "Bring your corpus",
       "description": "Add the material that sounds most like you — talks, newsletters, posts, call notes. Genfeed cites it as your authoritative knowledge.",
       "modes": {
         "url": "Link",
@@ -123,7 +123,7 @@
       }
     },
     "firstSystem": {
-      "title": "Your first content system.",
+      "title": "Your first content system",
       "description": "Genfeed drafts a week of content from your positioning and your corpus. Nothing publishes without your approval — approved items go to your review queue.",
       "cost": "Generating uses {credits} credits.",
       "generate": "Generate my first system",
@@ -209,7 +209,17 @@
       "masterTitle": "Campaign image",
       "masterDescription": "Made first from your brand kit. Every image below reuses it, so each platform shares one look.",
       "derivedTitle": "Made from your campaign image",
-      "retryMedia": "Retry media"
+      "retryMedia": "Retry media",
+      "writeAnother": "Write another",
+      "writingAnother": "Writing another…",
+      "lastRewrite": "That was the last rewrite for this post.",
+      "leftOut": "We could not write this one this time. Your other posts are saved.",
+      "tryAgain": "Try again",
+      "understood": {
+        "both": "You sell {offer} to {audience}.",
+        "offer": "You sell {offer}.",
+        "audience": "Your posts are for {audience}."
+      }
     },
     "platforms": {
       "twitter": "X",
@@ -244,7 +254,8 @@
       },
       "suggested": "Suggested from your site",
       "scanFailed": "We couldn't read that link, so tell us a bit about the brand instead.",
-      "submit": "Redo my posts"
+      "submit": "Redo Posts",
+      "cancel": "Keep Posts"
     },
     "errors": {
       "generate": "We couldn't draft your posts. Check your connection and try again.",
@@ -255,6 +266,7 @@
       "recovery": "We couldn’t recover the complete run. Your saved content won’t be generated again.",
       "feedback": "We couldn’t save your choice. Try again.",
       "mediaRetry": "We couldn’t create the media. Your drafts are saved. Try again.",
+      "rewrite": "We couldn’t write another post. Your other posts are saved. Try again.",
       "invalidUrl": "That doesn’t look like a web address. Try something like yourbrand.com, or skip the link.",
       "replay": "You already finished onboarding, so this replay shows your saved posts and doesn’t generate anything new."
     },
@@ -272,7 +284,7 @@
       "connect": "Connect {platform}",
       "when": "Goes out {date}",
       "submit": "Schedule {count, plural, one {# post} other {# posts}}",
-      "skip": "Skip for now",
+      "skip": "Skip",
       "finish": "Go to my workspace",
       "state": {
         "ready": "Account connected",
@@ -282,17 +294,18 @@
       }
     },
     "steps": {
-      "brand": "Your brand",
-      "create": "Create content",
-      "review": "Review drafts",
-      "connect": "Connect accounts"
+      "output": "See your output",
+      "agent": "Connect Agent",
+      "channels": "Connect your channels",
+      "prompt": "Go to your agent"
     },
     "actions": {
       "label": "Onboarding actions",
       "back": "Back",
       "skip": "Skip onboarding",
       "continue": "Continue",
-      "finish": "Finish"
+      "finish": "Finish",
+      "skipStep": "Skip"
     },
     "skip": {
       "title": "Skip onboarding?",
@@ -308,6 +321,53 @@
     "gettingStarted": "Getting started",
     "brandFallback": "Your brand",
     "masterAlt": "Campaign image for {brand}",
-    "appName": "Genfeed"
+    "appName": "Genfeed",
+    "agent": {
+      "title": "Connect Agent",
+      "description": "From here on your agent does the making. Pick the one you already use.",
+      "clientLabel": "Agent client",
+      "clients": {
+        "claude-code": {
+          "label": "Claude Code",
+          "description": "Run one command, then sign in from /mcp."
+        },
+        "codex": {
+          "label": "Codex",
+          "description": "Run one command, then sign in from your browser."
+        },
+        "generic": {
+          "label": "Another MCP client",
+          "description": "Paste the server address into any client that supports remote MCP."
+        }
+      },
+      "copyCommand": "Copy command",
+      "copyAddress": "Copy address",
+      "copied": "Copied",
+      "copyFailed": "We couldn’t copy that. Select the text and copy it by hand.",
+      "waiting": "Waiting for {client} to connect",
+      "connectedTitle": "{client} is connected",
+      "connectedDescription": "It can see your brand, its voice and your library.",
+      "statusError": "We couldn’t check the connection. We’ll keep trying."
+    },
+    "channels": {
+      "title": "Connect your channels",
+      "description": "So your agent can publish to them. You can add more later."
+    },
+    "prompt": {
+      "title": "Now go to your agent",
+      "description": "Paste this into {client}. What it makes shows up in your workspace.",
+      "agentFallback": "your agent",
+      "copy": "Copy first prompt",
+      "textDrafts": "Look at my Genfeed brand and this week’s trends. Draft three posts for {brand} and save them for my review. Do not publish them.",
+      "textWithImages": "Look at my Genfeed brand and this week’s trends. Draft three posts for {brand}, generate an image for each, and save them for my review. Do not publish them.",
+      "credits": {
+        "label": "Your credits",
+        "balance": "{count, plural, one {# credit} other {# credits}}",
+        "unavailable": "Your balance isn’t available right now.",
+        "empty": "You are out of credits. Add credits so your agent can keep making.",
+        "topUp": "Add credits",
+        "note": "Your agent spends from the same balance. Free credits expire after 3 days on an account that never paid."
+      }
+    }
   }
 }

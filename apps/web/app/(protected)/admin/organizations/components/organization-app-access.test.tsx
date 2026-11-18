@@ -11,6 +11,7 @@ const messages: Record<string, string> = {
   earlyAccess: 'Early access',
   releasedForEveryone: 'Released for everyone',
   analyticsPagesGroup: 'Analytics pages',
+  'items.agent': 'Agent',
   'items.analytics_brands': 'Brands',
   'items.analytics_streaks': 'Streaks',
   'items.campaigns': 'Campaigns',
@@ -57,7 +58,8 @@ describe('OrganizationAppAccess', () => {
   it('lists every app once with readable names and a single switch', () => {
     renderAccess();
 
-    expect(screen.getAllByRole('switch')).toHaveLength(19);
+    expect(screen.getAllByRole('switch')).toHaveLength(20);
+    expect(screen.getByRole('switch', { name: 'Agent' })).toBeInTheDocument();
     expect(screen.getByRole('switch', { name: 'Motion' })).toBeInTheDocument();
     expect(
       screen.getByRole('switch', { name: 'Campaigns' }),
@@ -97,7 +99,8 @@ describe('OrganizationAppAccess', () => {
     );
   });
 
-  it('keeps Playground on by default and hides it with an override', async () => {
+  it('turns Playground on by releasing it, and hides it with an override once released', async () => {
+    platformFlags.flags = { release_playground: true };
     const { onChange } = renderAccess({
       moduleOverrides: { storyboard: false },
     });
@@ -112,6 +115,27 @@ describe('OrganizationAppAccess', () => {
     await waitFor(() =>
       expect(onChange).toHaveBeenCalledWith({
         moduleOverrides: { playground: false, storyboard: false },
+      }),
+    );
+  });
+
+  it('starts Playground, Storyboard and Agent off and releases each one for this organization', async () => {
+    const { onChange } = renderAccess();
+
+    for (const name of ['Playground', 'Storyboard', 'Agent']) {
+      expect(screen.getByRole('switch', { name })).not.toBeChecked();
+    }
+
+    await userEvent.click(screen.getByRole('switch', { name: 'Agent' }));
+    await waitFor(() =>
+      expect(onChange).toHaveBeenLastCalledWith({ releasedItemIds: ['agent'] }),
+    );
+
+    await userEvent.click(screen.getByRole('switch', { name: 'Storyboard' }));
+    await waitFor(() =>
+      expect(onChange).toHaveBeenLastCalledWith({
+        moduleOverrides: { storyboard: true },
+        releasedItemIds: ['storyboard'],
       }),
     );
   });

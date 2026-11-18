@@ -164,7 +164,9 @@ describe('MetaAdsController', () => {
     it('passes undefined limit when not provided', async () => {
       metaAdsService.listCampaigns.mockResolvedValue([]);
 
-      await controller.listCampaigns(mockUser, 'act_123');
+      const result = await controller.listCampaigns(mockUser, 'act_123');
+
+      expect(result).toEqual([]);
 
       expect(metaAdsService.listCampaigns).toHaveBeenCalledWith(
         decryptedToken,
@@ -221,11 +223,13 @@ describe('MetaAdsController', () => {
     it('sends the paused status even when the caller omits one', async () => {
       metaAdsService.createCampaign.mockResolvedValue('camp_new_2');
 
-      await controller.createCampaign(mockUser, {
+      const result = await controller.createCampaign(mockUser, {
         adAccountId: 'act_123',
         name: 'New Campaign',
         objective: 'OUTCOME_TRAFFIC',
       } as never);
+
+      expect(result).toEqual({ id: 'camp_new_2' });
 
       expect(metaAdsService.createCampaign).toHaveBeenCalledWith(
         decryptedToken,
@@ -250,6 +254,20 @@ describe('MetaAdsController', () => {
         expect(metaAdsService.createCampaign).not.toHaveBeenCalled();
       },
     );
+  });
+
+  describe('createCampaign without a Facebook credential', () => {
+    it('refuses to create a campaign', async () => {
+      credentialsService.findOne.mockResolvedValue(null);
+
+      await expect(
+        controller.createCampaign(mockUser, {
+          adAccountId: 'act_123',
+          name: 'New Campaign',
+          objective: 'OUTCOME_TRAFFIC',
+        } as never),
+      ).rejects.toThrow(NotFoundException);
+    });
   });
 
   describe('updateCampaign', () => {
@@ -349,9 +367,15 @@ describe('MetaAdsController', () => {
     });
 
     it('uses datePreset when provided instead of timeRange', async () => {
-      metaAdsService.getCampaignInsights.mockResolvedValue({});
+      metaAdsService.getCampaignInsights.mockResolvedValue({ spend: '12.50' });
 
-      await controller.getCampaignInsights(mockUser, 'camp_1', 'last_7d');
+      const result = await controller.getCampaignInsights(
+        mockUser,
+        'camp_1',
+        'last_7d',
+      );
+
+      expect(result).toEqual({ spend: '12.50' });
 
       expect(metaAdsService.getCampaignInsights).toHaveBeenCalledWith(
         decryptedToken,

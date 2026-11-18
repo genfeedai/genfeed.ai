@@ -63,6 +63,7 @@ enum IngredientCategory {
   INGREDIENT
   TEXT
   SOURCE
+  MODEL_3D
 }
 
 enum IngredientStatus {
@@ -143,6 +144,7 @@ enum MetadataExtension {
   AVI
   MP3
   WAV
+  GLB
 }
 
 enum PromptCategory {
@@ -221,6 +223,7 @@ enum CredentialPlatform {
   FACEBOOK
   GOOGLE_ADS
   GOOGLE_SEARCH_CONSOLE
+  GOOGLE_BUSINESS
   TWITTER
   X_ADS
   LINKEDIN
@@ -244,6 +247,7 @@ enum CredentialPlatform {
   DEVTO
   RESTREAM
   GENFEED
+  BLUESKY
 }
 
 enum TagCategory {
@@ -453,6 +457,8 @@ enum AgentTransferDeliveryMode {
 }
 
 enum AgentTransferStatus {
+  AWAITING_ACCEPTANCE
+  DECLINED
   PENDING
   DELIVERED
   QUEUED
@@ -659,6 +665,8 @@ contentLearningOperations ContentLearningOperation[]
   visualProjects VisualProject[]
   visualRevisions VisualRevision[]
   approvedBrandOsRevisions BrandOsRevision[] @relation("BrandOsApprover")
+  createdHarnessProfiles HarnessProfile[] @relation("HarnessProfileCreator")
+  harnessProfileRevisions HarnessProfileRevision[] @relation("HarnessProfileRevisionActor")
   publishedBrandOsPublications BrandOsPublication[] @relation("BrandOsPublisher")
   revokedBrandOsPublications BrandOsPublication[] @relation("BrandOsRevoker")
   knowledgeSources KnowledgeSource[]
@@ -755,6 +763,8 @@ contentLearningOperations ContentLearningOperation[]
   agentThreads              AgentThread[]
   agentMessages             AgentMessage[]
   agentTransfers            AgentTransfer[]
+  agentThreadSharesTargeted AgentThreadShare[] @relation("agent_thread_share_target_user")
+  agentThreadSharesGranted  AgentThreadShare[] @relation("agent_thread_share_granted_by")
   avatarTwins               AvatarTwin[]
   socialConversations       SocialConversation[]
   socialMessages            SocialMessage[]
@@ -858,6 +868,8 @@ contentLearningBrandPreferences ContentLearningBrandPreference[]
   visualRevisions VisualRevision[]
   brandOsRevisions BrandOsRevision[]
   brandOsPublications BrandOsPublication[]
+  harnessProfiles HarnessProfile[]
+  harnessProfileRevisions HarnessProfileRevision[]
   knowledgeSources KnowledgeSource[]
   knowledgeSpaces KnowledgeSpace[]
   knowledgeSourceRefreshRuns KnowledgeSourceRefreshRun[]
@@ -915,6 +927,7 @@ contentLearningBrandPreferences ContentLearningBrandPreference[]
   articleAnalytics              ArticleAnalytics[]
   newsletters                   Newsletter[]
   creatorSubscriptionPlans      CreatorSubscriptionPlan[]
+  lifetimeDealSeat              LifetimeDealSeat?
   creatorSubscriptions          CreatorSubscription[]
   creatorSubscriptionsPaid      CreatorSubscription[]          @relation("creator_subscription_payer_organization")
   articleUnlocks                ArticleUnlock[]
@@ -930,6 +943,7 @@ contentLearningBrandPreferences ContentLearningBrandPreference[]
   agentThreads                  AgentThread[]
   agentMessages                 AgentMessage[]
   agentTransfers                AgentTransfer[]
+  agentThreadShares             AgentThreadShare[]
   avatarTwins                   AvatarTwin[]
   socialConversations           SocialConversation[]
   socialMessages                SocialMessage[]
@@ -966,7 +980,6 @@ contentLearningBrandPreferences ContentLearningBrandPreference[]
   socialWarmupSignals           SocialWarmupSignal[]
   processedTweets               ProcessedTweet[]
   trackedLinks                  TrackedLink[]
-  schedules                     Schedule[]
   postingSets                   PostingSet[]
   postingSignatures             PostingSignature[]
   rssSources                    RssSource[]
@@ -1095,6 +1108,11 @@ model McpApproval {
   status             McpApprovalStatus @default(PENDING)
   result             Json?
   resolvedAt         DateTime?
+  /// Surface the decision came from: an `ActionOrigin` value (`ui` for the
+  /// review inbox, `mcp` for an in-conversation answer).
+  resolvedOrigin     String?
+  /// Member who made the decision.
+  resolvedByUserId   String?
   executedAt         DateTime?
   executionClaimedAt DateTime?
   idempotencyKey     String?
@@ -1132,6 +1150,8 @@ contentLearningBrandPreferences ContentLearningBrandPreference[]
   brandOsRevisionVersion Int @default(0)
   brandOsRevisions BrandOsRevision[]
   brandOsPublications BrandOsPublication[]
+  harnessProfiles HarnessProfile[]
+  harnessProfileRevisions HarnessProfileRevision[]
   watermarkText            String?
   watermarkLogoId          String?
   watermarkOpacity         Float        @default(0.35)
@@ -1219,6 +1239,7 @@ contentLearningBrandPreferences ContentLearningBrandPreference[]
   agentMessages              AgentMessage[]
   agentThreads               AgentThread[]
   outboundAgentTransfers     AgentTransfer[]            @relation("agent_transfer_source_brand")
+  agentThreadShares          AgentThreadShare[]         @relation("agent_thread_share_target_brand")
   inboundAgentTransfers      AgentTransfer[]            @relation("agent_transfer_destination_brand")
   socialConversations        SocialConversation[]
   socialMessages             SocialMessage[]
@@ -1263,7 +1284,6 @@ contentLearningBrandPreferences ContentLearningBrandPreference[]
   turboRunItems                 TurboRunItem[]
   activities                 Activity[]
   contextBases               ContextBase[]              @relation("context_base_source_brand")
-  schedules                  Schedule[]
   postingSets                PostingSet[]
   postingSignatures          PostingSignature[]
   rssSources                 RssSource[]
@@ -1798,6 +1818,21 @@ model Jwks {
   @@map("auth_jwks")
 }
 
+/// Signing key of an OAuth client this platform runs for a provider that only
+/// issues long sessions to a confidential client (Bluesky). Minted once on first
+/// use, so no environment variable carries it. The private JWK is stored
+/// encrypted; the public half is served in the client's published JWKS.
+model PlatformSigningKey {
+  id         String   @id @default(cuid())
+  provider   String   @unique
+  keyId      String
+  publicJwk  Json
+  privateJwk String
+  createdAt  DateTime @default(now())
+
+  @@map("platform_signing_keys")
+}
+
 /// First-touch acquisition source, recorded once right after signup. Only the
 /// referring domain and landing path are kept (never full URLs or query
 /// strings), and `utm_term` is excluded as free text.
@@ -1818,6 +1853,32 @@ model UserSignupAttribution {
   @@index([utmSource, createdAt(sort: Desc)])
   @@index([referrerDomain, createdAt(sort: Desc)])
   @@map("user_signup_attributions")
+}
+
+/// Public waitlist for a closed signup. One row per lowercase email; the
+/// operator qualifies entries (status `approved`) and an approved email may
+/// create an account while signup is invite-only. Platform-level, not tenant
+/// scoped: an entry belongs to no organization until the lead is onboarded.
+model WaitlistEntry {
+  id               String    @id @default(cuid())
+  email            String    @unique
+  name             String?
+  /// Site or social handle the lead gave, used to qualify them.
+  website          String?
+  /// What the lead makes, free text.
+  useCase          String?
+  /// `pending` | `approved` | `rejected` (WaitlistStatus in contracts).
+  status           String    @default("pending")
+  reviewNote       String?
+  reviewedAt       DateTime?
+  reviewedByUserId String?
+  referrerDomain   String?
+  isDeleted        Boolean   @default(false)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([status, isDeleted, createdAt(sort: Desc)], map: "waitlist_entries_status_created_idx")
+  @@map("waitlist_entries")
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -2042,7 +2103,7 @@ model PlatformSetting {
   untrustedContentDecisionMode     String    @default("off")
   untrustedContentMinConfidence    Float     @default(0.95)
   isAgentContextCompressionEnabled Boolean   @default(true)
-  isAgentTokenStreamingEnabled     Boolean   @default(false)
+  isAgentTokenStreamingEnabled     Boolean   @default(true)
   isBrandVisualAnalysisEnabled     Boolean   @default(false)
   // Catalog models (`models.key`) that read text from and detect logo or product
   // regions in branded visuals (#6727). Null leaves the analysis unavailable.
@@ -2051,6 +2112,10 @@ model PlatformSetting {
   // Signup and billing system-event recording starts here; null = disabled.
   systemEventsEnabledAt            DateTime?
   isEmailVerificationRequired      Boolean   @default(false)
+  // Closed signup: new accounts need an invitation, an approved waitlist entry
+  // or a pre-provisioned (warm-up) user. Off by default so a self-hosted
+  // install can create its first account.
+  isSignupInviteOnly               Boolean   @default(false)
   // Module and feature flags (#5468), e.g. {"studio":false}. Only an explicit
   // false turns one off; missing keys are on. Release flags
   // ({"release_motion":true}) are the exception: missing means preview-only.
@@ -2884,6 +2949,12 @@ model Asset {
   residency          String?
   uploadPolicy       String?
   originalFileName   String?
+  /// The uploaded file's format (svg, png, jpeg, webp, gif) and nominal size.
+  originalFormat     String?
+  originalWidth      Int?
+  originalHeight     Int?
+  /// Storage key of the sanitized SVG original. Never served from the media CDN.
+  vectorObjectKey    String?
   displayName        String?
   isDeleted          Boolean                 @default(false)
   createdAt          DateTime                @default(now())
@@ -3102,6 +3173,7 @@ learningCheckpoints ContentLearningCheckpoint[]
   lastAttemptAt                  DateTime?
   targetSettings                 Json               @default("{}")
   targetAttachments              Json               @default("[]")
+  // TargetValidationState; the posts_targetValidationState_check CHECK pins it.
   targetValidationState          String             @default("pending")
   targetValidationIssues         String[]           @default([])
   targetReadiness                Json?
@@ -3172,6 +3244,7 @@ learningCheckpoints ContentLearningCheckpoint[]
   @@index([externalId])
   @@index([originalPostId])
   @@index([groupId])
+  @@index([workflowExecutionId])
   @@index([organizationId, entityArticleId], map: "posts_org_entity_article_idx")
   @@index([organizationId, entityNewsletterId], map: "posts_org_entity_newsletter_idx")
   @@index([contentRunId])
@@ -3340,6 +3413,7 @@ model Campaign {
   endDate        DateTime?
   // Drifted enum collapsed to String: ContentCampaignStatus (@genfeedai/contracts)
   // is lowercase product language, matching PostStatus and WorkflowStatus.
+  // The campaigns_status_check CHECK pins it.
   status         String       @default("draft")
   idempotencyKey String?
   isDeleted      Boolean      @default(false)
@@ -3571,31 +3645,6 @@ model AccountAnalyticsSnapshot {
   @@index([brandId, isDeleted, date(sort: Desc)])
   @@index([credentialId, isDeleted, date(sort: Desc)])
   @@map("account_analytics_snapshots")
-}
-
-model Schedule {
-  id               String       @id @default(cuid())
-  organizationId   String
-  organization     Organization @relation(fields: [organizationId], references: [id])
-  userId           String
-  brandId          String?
-  brand            Brand?       @relation(fields: [brandId], references: [id])
-  label            String?
-  // Drifted enum collapsed to String (lowercase canonical value). See Post.platform note.
-  platform         String?
-  timezone         String       @default("UTC")
-  slots            Json         @default("[]")
-  contentId        String?
-  contentType      String?
-  scheduledAt      DateTime?
-  schedulingMethod String?
-  isActive         Boolean      @default(true)
-  isDeleted        Boolean      @default(false)
-  createdAt        DateTime     @default(now())
-  updatedAt        DateTime     @updatedAt
-
-  @@index([organizationId, isDeleted, createdAt])
-  @@map("schedules")
 }
 
 model Distribution {
@@ -4464,6 +4513,28 @@ model CreatorSubscriptionPlan {
   @@map("creator_subscription_plans")
 }
 
+/// One of the capped lifetime-deal seats: a one-time purchase that gives an
+/// organization the Pro plan and its monthly credits for good. The unique
+/// seat number is the cap (the API holds an advisory lock while it claims the
+/// next one), and the organization can hold only one. Platform-level: the
+/// seats are counted across organizations, so the row carries no `isDeleted`.
+model LifetimeDealSeat {
+  id                      String       @id @default(cuid())
+  organizationId          String       @unique
+  organization            Organization @relation(fields: [organizationId], references: [id])
+  seatNumber              Int          @unique
+  /// The seller's reference for the sale, such as a license key; one sale backs at most one seat.
+  sourceReference         String       @unique
+  monthlyCredits          Int
+  /// When the next monthly credit grant is due. Advanced one month after each grant.
+  nextCreditGrantAt       DateTime
+  createdAt               DateTime     @default(now())
+  updatedAt               DateTime     @updatedAt
+
+  @@index([nextCreditGrantAt])
+  @@map("lifetime_deal_seats")
+}
+
 /// A reader paying a creator monthly in credits (#9717). The row belongs to
 /// the creator's organization (it is their subscriber list); the payer is a
 /// signed-in user paying from their own organization. Each period is charged
@@ -4549,6 +4620,7 @@ model Newsletter {
 
   @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@index([approvedVersionPinId], map: "newsletters_approvedVersionPinId_idx")
+  @@index([workflowExecutionId])
   @@map("newsletters")
 }
 
@@ -4860,7 +4932,6 @@ model Model {
   reviewStatus    String?
   rejectionReason String?
   predecessorOf   String?
-  succeededBy     String?
   trigger         String?
   triggerWord     String?
 
@@ -5133,6 +5204,7 @@ model AgentThread {
   childThreads      AgentThread[]         @relation("agent_thread_parent")
   messages          AgentMessage[]
   outboundTransfers AgentTransfer[]       @relation("agent_transfer_source_thread")
+  shares            AgentThreadShare[]    @relation("agent_thread_share_thread")
   inboundTransfers  AgentTransfer[]       @relation("agent_transfer_destination_thread")
   posts             Post[]                @relation("post_agent_thread_scope")
   events            AgentThreadEvent[]
@@ -5165,6 +5237,8 @@ model AgentMessage {
   metadata                           Json?
   artifactReferences                 Json         @default("[]")
   artifactVersionPinIds              String[]     @default([])
+  /// Canonical `users.id` of each teammate @-mentioned in the message (#9946).
+  mentionedUserIds                   String[]     @default([])
   isLegacyArtifactReferenceEligible  Boolean      @default(false)
   artifactReferenceEligibleReadCount Int          @default(0)
   legacyArtifactReferenceReadCount   Int          @default(0)
@@ -5177,6 +5251,38 @@ model AgentMessage {
   @@index([organizationId, threadId, isDeleted, createdAt(sort: Desc), id(sort: Desc)], map: "agent_messages_org_thread_created_id_desc_idx")
   @@index([threadId, isDeleted, id])
   @@map("agent_messages")
+}
+
+/// Who else may see or prompt an agent thread (#9936). `scope` is `member`
+/// (one named member), `brand` (members with access to that brand) or
+/// `organization` (every active member); `level` is `view` or `collaborate`.
+/// A share never widens the viewer's own brand access: the access check in
+/// `AgentThreadAccessService` applies it on top. Master threads cannot be
+/// shared (the migration trigger refuses the insert). The migration also owns
+/// the scope/target CHECK and the one-live-share partial unique index, which
+/// Prisma cannot declare. Removing a share is a soft delete.
+model AgentThreadShare {
+  id              String       @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  threadId        String
+  thread          AgentThread  @relation("agent_thread_share_thread", fields: [threadId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade)
+  scope           String
+  level           String
+  targetUserId    String?
+  targetUser      User?        @relation("agent_thread_share_target_user", fields: [targetUserId], references: [id])
+  targetBrandId   String?
+  targetBrand     Brand?       @relation("agent_thread_share_target_brand", fields: [targetBrandId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade)
+  grantedByUserId String
+  grantedBy       User         @relation("agent_thread_share_granted_by", fields: [grantedByUserId], references: [id])
+  isDeleted       Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@index([organizationId, threadId, isDeleted])
+  @@index([organizationId, targetUserId, isDeleted])
+  @@index([organizationId, targetBrandId, isDeleted])
+  @@map("agent_thread_shares")
 }
 
 /// Immutable, user-authorized handoff between two agent conversations. Only
@@ -5196,6 +5302,10 @@ model AgentTransfer {
   sourceThread                AgentThread               @relation("agent_transfer_source_thread", fields: [sourceThreadId], references: [id])
   destinationThreadId         String
   destinationThread           AgentThread               @relation("agent_transfer_destination_thread", fields: [destinationThreadId], references: [id])
+  /// The member the destination thread belongs to when a hand-off crosses to a
+  /// teammate (#9940). Null for a hand-off between the sender's own threads.
+  /// A plain id: access is re-read from membership on every request.
+  destinationUserId           String?
   sourceMessageId             String?
   destinationMessageId        String?
   destinationExecutionId      String?                   @unique
@@ -5230,6 +5340,7 @@ model AgentTransfer {
   @@index([organizationId, userId, sourceThreadId, isDeleted, createdAt(sort: Desc)], map: "agent_transfers_source_thread_idx")
   @@index([organizationId, userId, destinationThreadId, isDeleted, createdAt(sort: Desc)], map: "agent_transfers_destination_thread_idx")
   @@index([organizationId, destinationExecutionId, isDeleted], map: "agent_transfers_destination_execution_idx")
+  @@index([organizationId, destinationUserId, destinationThreadId, isDeleted, createdAt(sort: Desc)], map: "agent_transfers_destination_user_idx")
   @@map("agent_transfers")
 }
 
@@ -5942,6 +6053,10 @@ model WorkflowExecution {
   payloadScrubbedAt    DateTime?
   purgeAfterHours      Int?
   purgeAt              DateTime?
+  /// The run's system workflow retention (#10382): `background` runs get a
+  /// `purgeAt` at their terminal transition and the platform purge task deletes
+  /// them in bulk; `kept` and null runs keep their history.
+  retentionPolicy      String?
 
   /// Durable intent to silently cancel this `PENDING` execution, written by the
   /// deploy drain before it removes the execution's queued job (#5450). The
@@ -5952,6 +6067,7 @@ model WorkflowExecution {
 
   posts                    Post[]
   nodeResults              WorkflowExecutionNodeResult[]
+  nodeClaims               WorkflowNodeClaim[]
   artifacts                WorkflowArtifact[]
   nodeContinuations        WorkflowNodeContinuation[]
   workspaceTasks           Task[]                        @relation("task_linked_executions")
@@ -6067,6 +6183,7 @@ model WorkflowNodeClaim {
   id             String   @id @default(cuid())
   organizationId String
   executionId    String
+  execution      WorkflowExecution @relation(fields: [executionId], references: [id], onDelete: Cascade)
   nodeId         String
   /// running | completed | failed
   status         String
@@ -6131,6 +6248,7 @@ model ContentRun {
   brandId        String?
   brand          Brand?       @relation(fields: [brandId], references: [id])
   config         Json         @default("{}")
+  // ContentRunStatus; the content_runs_status_check CHECK pins it.
   status         String?
 
   /// Keys copied out of `config` so run lookups never read or detoast it. The
@@ -6251,6 +6369,8 @@ model TaskComment {
   body           String
   authorUserId   String?
   authorAgentId  String?
+  /// Canonical `users.id` of each teammate @-mentioned in the comment (#9946).
+  mentionedUserIds String[]   @default([])
   isDeleted      Boolean      @default(false)
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
@@ -7612,6 +7732,7 @@ model Caption {
 
   @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@index([organizationId, userId, isDeleted, createdAt(sort: Desc)])
+  @@index([workflowExecutionId])
   @@map("captions")
 }
 
@@ -7966,6 +8087,8 @@ model SkillResolutionItem {
   origin           String
   inclusion        String
   exclusionReason  String?
+  /// Sections of the skill the prompt carried: headings loaded and left out, never their text.
+  sections         Json?
   createdAt        DateTime        @default(now())
 
   @@index([resolutionId])
@@ -9084,6 +9207,64 @@ model BrandOsRevision {
   @@unique([organizationId, brandId, version])
   @@index([organizationId, brandId, isDeleted, status])
   @@map("brand_os_revisions")
+}
+
+enum HarnessProfileRevisionSource {
+  USER_EDIT
+  RULE_PROPOSAL
+  WINNER_PROMOTION
+  REVIEW_FEEDBACK
+  EXPERT_PATH
+  SEED
+  MIGRATION
+  ROLLBACK
+}
+
+model HarnessProfile {
+  id String @id @default(cuid())
+  organizationId String
+  organization Organization @relation(fields: [organizationId], references: [id])
+  brandId String
+  brand Brand @relation(fields: [brandId], references: [id])
+  label String
+  description String?
+  scope String @default("brand")
+  status String @default("active")
+  isDefault Boolean @default(false)
+  content Json @default("{}")
+  currentVersion Int @default(1)
+  createdById String?
+  createdBy User? @relation("HarnessProfileCreator", fields: [createdById], references: [id])
+  isDeleted Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  revisions HarnessProfileRevision[]
+
+  @@index([organizationId, brandId, isDeleted])
+  @@map("harness_profiles")
+}
+
+model HarnessProfileRevision {
+  id String @id @default(cuid())
+  organizationId String
+  organization Organization @relation(fields: [organizationId], references: [id])
+  brandId String
+  brand Brand @relation(fields: [brandId], references: [id])
+  harnessProfileId String
+  harnessProfile HarnessProfile @relation(fields: [harnessProfileId], references: [id])
+  version Int
+  snapshot Json
+  source HarnessProfileRevisionSource
+  actorUserId String?
+  actor User? @relation("HarnessProfileRevisionActor", fields: [actorUserId], references: [id])
+  actorLabel String?
+  rolledBackToVersion Int?
+  isDeleted Boolean @default(false)
+  createdAt DateTime @default(now())
+
+  @@unique([harnessProfileId, version])
+  @@index([organizationId, harnessProfileId, isDeleted, version])
+  @@map("harness_profile_revisions")
 }
 
 model BrandOsPublication {

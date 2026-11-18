@@ -9,14 +9,28 @@ import { curatedActionNames } from './curated-action-catalog';
 export const MCP_BRAND_REQUIRED_TOOL_NAMES: ReadonlySet<string> =
   curatedActionNames((entry) => entry.mcpBrandRequired === true);
 
+/**
+ * MCP tools that name their brand only when the organization has several
+ * (#10071). A single-brand organization omits `brandId` and the API fills it.
+ */
+export const MCP_BRAND_REQUIRED_WHEN_MULTIPLE_TOOL_NAMES: ReadonlySet<string> =
+  curatedActionNames((entry) => entry.mcpBrandRequiredWhenMultiple === true);
+
 export const MCP_BRAND_ID_DESCRIPTION =
   'Brand that owns this generation. Required on MCP: call get_brands and pass one of its ids. A call without it is rejected with the list of your brands.';
 
 export const MCP_BRAND_REQUIRED_NOTE =
   'brandId is required: call get_brands first and pass the brand id.';
 
+export const MCP_BRAND_REQUIRED_WHEN_MULTIPLE_NOTE =
+  'brandId is required when the organization has more than one brand: call get_brands and pass the brand id.';
+
 export function isMcpBrandRequiredTool(name: string): boolean {
   return MCP_BRAND_REQUIRED_TOOL_NAMES.has(name);
+}
+
+export function isMcpBrandRequiredWhenMultipleTool(name: string): boolean {
+  return MCP_BRAND_REQUIRED_WHEN_MULTIPLE_TOOL_NAMES.has(name);
 }
 
 /** The trimmed `brandId` argument, or undefined when absent or blank. */
@@ -63,5 +77,5 @@ export function describeMissingMcpBrand(
     brands.length > 0
       ? `Your brands: ${brands.map((brand) => `${brand.label} (${brand.id})`).join('; ')}.`
       : 'You have no brands yet. Create one in the Genfeed app (Settings > Brands) or ask an organization admin to; admins can also use onboard_brand.';
-  return `${toolName} requires brandId. Pass the id of the brand this generation is for. ${listing}`;
+  return `${toolName} requires brandId. Pass the id of the brand to use. ${listing}`;
 }

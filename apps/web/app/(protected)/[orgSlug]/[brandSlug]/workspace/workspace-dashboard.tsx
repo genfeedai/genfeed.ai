@@ -28,6 +28,7 @@ import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
 import { OverviewTrendsPanel } from '@/components/overview/OverviewTrendsPanel';
 import { WorkspaceSurface } from '@/components/overview/WorkspaceSurface';
+import { useIsAppAvailable } from '@/components/shell/use-available-rail-apps';
 import type {
   DashboardProps,
   ReviewInboxSummary,
@@ -76,6 +77,7 @@ function WorkflowExecutionCard({
   execution: IWorkflowExecution;
 }) {
   const { href } = useOrgUrl();
+  const isAutomationAvailable = useIsAppAvailable('automation');
   const translate = useTranslations('pages.workspaceOverview.runCards');
   const translateTime = useTranslations('pages.workspaceOverview.relativeTime');
   const isRunning = execution.status === WorkflowExecutionStatus.RUNNING;
@@ -115,18 +117,20 @@ function WorkflowExecutionCard({
         </div>
         <CollectionItemActions
           primary={
-            <Button
-              asChild
-              variant={ButtonVariant.SECONDARY}
-              size={ButtonSize.XS}
-            >
-              <Link
-                href={href(`${APP_ROUTES.AUTOMATION.RUNS}/${execution.id}`)}
-                aria-label={translate('openLabel', { label })}
+            isAutomationAvailable ? (
+              <Button
+                asChild
+                variant={ButtonVariant.SECONDARY}
+                size={ButtonSize.XS}
               >
-                {translate('open')}
-              </Link>
-            </Button>
+                <Link
+                  href={href(`${APP_ROUTES.AUTOMATION.RUNS}/${execution.id}`)}
+                  aria-label={translate('openLabel', { label })}
+                >
+                  {translate('open')}
+                </Link>
+              </Button>
+            ) : undefined
           }
         />
       </div>
@@ -152,6 +156,7 @@ export function DashboardAgentCards({
   isLoading?: boolean;
 }) {
   const { href } = useOrgUrl();
+  const isAutomationAvailable = useIsAppAvailable('automation');
   const translate = useTranslations('pages.workspaceOverview.runCards');
   const displayExecutions = useMemo(() => {
     const active = activeExecutions.slice(0, 3);
@@ -173,7 +178,8 @@ export function DashboardAgentCards({
   return (
     <CollectionSection
       actions={
-        activeExecutions.length > 3 || executions.length > 3 ? (
+        isAutomationAvailable &&
+        (activeExecutions.length > 3 || executions.length > 3) ? (
           <Button
             asChild
             variant={ButtonVariant.SECONDARY}

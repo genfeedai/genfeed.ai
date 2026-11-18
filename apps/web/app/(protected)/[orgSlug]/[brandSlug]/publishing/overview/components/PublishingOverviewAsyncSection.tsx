@@ -1,12 +1,16 @@
+import { ListRowsSkeleton } from '@ui/lists/list-row/ListRowsSkeleton';
 import { Button } from '@ui/primitives/button';
-import { Skeleton } from '@ui/primitives/skeleton';
 import { useTranslations } from 'next-intl';
 import type { PublishingOverviewAsyncSectionProps } from '@/features/posts/props/publishing-overview-async-section.props';
+
+// Three rows hold about the height a short queue or account list will have.
+const LOADING_ROWS = 3;
 
 export default function PublishingOverviewAsyncSection<TData>({
   children,
   errorMessage,
   loadingLabel,
+  loadingRowSize,
   onRetry,
   state,
 }: PublishingOverviewAsyncSectionProps<TData>) {
@@ -31,14 +35,9 @@ export default function PublishingOverviewAsyncSection<TData>({
   }
 
   return (
-    <div
-      aria-live="polite"
-      className="space-y-2 px-4 py-3 sm:px-5"
-      role="status"
-    >
+    <div aria-busy="true" role="status">
       <span className="sr-only">{loadingLabel}</span>
-      <Skeleton aria-hidden="true" className="h-4 w-2/3" />
-      <Skeleton aria-hidden="true" className="h-4 w-1/2" />
+      <ListRowsSkeleton rows={LOADING_ROWS} size={loadingRowSize} />
     </div>
   );
 }

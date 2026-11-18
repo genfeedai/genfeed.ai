@@ -8,15 +8,6 @@ import type {
   IReleaseAnalyticsComparison,
   IReleaseGroup,
 } from '@genfeedai/contracts/interfaces';
-import type { CalendarItem } from '@/props/components/calendar.props';
-
-/**
- * A release placed on the scheduling calendar. The calendar reads the scheduler
- * read model only, so the payload is an `IReleaseGroup` — never a raw post row.
- */
-export interface ReleaseCalendarItem extends CalendarItem {
-  release: IReleaseGroup;
-}
 
 /**
  * Active calendar filters. `status` narrows the release itself; every other
@@ -121,10 +112,17 @@ export interface ReleaseDetailDrawerProps {
   /** Opens the repurpose flow to add a draft target for another channel. */
   onAddChannel?: () => void;
   onClose: () => void;
+  /**
+   * Closes a quote the person posted by hand. `postUrl` is the link they
+   * pasted, or an empty string. Passed with `onSkipManualPost` or not at all.
+   */
+  onCompleteManualPost?: (targetId: string, postUrl: string) => void;
   onRescheduleRelease: (scheduledDate: string) => void;
   onRescheduleTarget: (targetId: string, scheduledDate: string) => void;
   onResumeRelease?: () => void;
   onRetryTarget: (targetId: string) => void;
+  /** Closes a quote the person chose not to post by hand. */
+  onSkipManualPost?: (targetId: string) => void;
   /**
    * Identifier of the in-flight mutation, or `null` when idle. Drives both the
    * per-control spinner and the blanket disable that stops a second mutation

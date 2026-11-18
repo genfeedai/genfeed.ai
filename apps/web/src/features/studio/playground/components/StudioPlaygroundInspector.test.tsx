@@ -290,7 +290,7 @@ describe('StudioPlaygroundInspector', () => {
     );
     await user.click(screen.getByRole('button', { name: 'Extend video' }));
     await user.click(screen.getByRole('button', { name: 'Upscale' }));
-    await user.click(screen.getByRole('button', { name: 'Open in editor' }));
+    await user.click(screen.getByRole('button', { name: 'Open Editor' }));
     expect(onExtend).toHaveBeenCalledWith(ingredient);
     expect(onUpscale).toHaveBeenCalledWith(ingredient);
     expect(onOpenInEditor).toHaveBeenCalledWith(ingredient);

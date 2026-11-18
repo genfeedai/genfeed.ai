@@ -69,6 +69,7 @@ function DynamicTable({ block }: DynamicTableProps): ReactElement {
     sortBy ? { column: sortBy, direction: sortDirection ?? 'asc' } : null,
   );
 
+  // use-effect-audit: ignore marks the block as viewed once it has mounted
   useEffect(() => {
     setHasBeenViewed(true);
   }, []);

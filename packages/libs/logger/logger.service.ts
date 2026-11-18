@@ -2,8 +2,13 @@ import {
   redactSensitiveString,
   redactSensitiveValue,
 } from '@genfeedai/helpers/security/redact-sensitive-value.helper';
+import {
+  buildLoggedErrorReport,
+  SentryReportThrottle,
+} from '@libs/logger/sentry-error-reporter';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { ConsoleLogger, Inject, Injectable } from '@nestjs/common';
+import * as Sentry from '@sentry/nestjs';
 import type { Logger as winstonLogger } from 'winston';
 import type { WideEventRecord } from './wide-event/wide-event.interface';
 import {
@@ -23,6 +28,7 @@ import {
 @Injectable()
 export class LoggerService extends ConsoleLogger {
   public readonly constructorName: string;
+  private readonly sentryThrottle = new SentryReportThrottle();
 
   constructor(
     @Inject('winston')
@@ -102,6 +108,43 @@ export class LoggerService extends ConsoleLogger {
     // duplicated every backend error in the console — removed. winston is the
     // single sink for this runtime (see class-level boundary note).
     this.winston.error(formattedMessage, errorContext);
+    this.reportToSentry(
+      this.normalizeMessage(message),
+      effectiveTrace,
+      contextObj,
+      errorData,
+    );
+  }
+
+  // Caught-and-logged errors never reach Sentry's exception filter, so every
+  // server fault logged here is sent too. Never throws: logging must not fail.
+  private reportToSentry(
+    message: string,
+    trace: unknown,
+    context: Record<string, unknown> | undefined,
+    errorData: unknown,
+  ): void {
+    try {
+      const report = buildLoggedErrorReport({
+        context,
+        errorData,
+        message,
+        trace,
+      });
+      if (
+        !report ||
+        !this.sentryThrottle.shouldReport(report.fingerprint, Date.now())
+      )
+        return;
+      Sentry.captureException(report.error, {
+        extra: report.extra,
+        fingerprint: report.fingerprint,
+        level: 'error',
+        tags: report.tags,
+      });
+    } catch {
+      // Sentry being unavailable must never break the caller's error path.
+    }
   }
 
   private normalizeMessage(message: unknown): string {
@@ -118,6 +161,25 @@ export class LoggerService extends ConsoleLogger {
         name: trace.name,
         stack: trace.stack,
       };
+
+      // twitter-api-v2 errors carry the HTTP status as `code` and X's response
+      // body as `data`; without them a 401 cannot be told from a billing error.
+      const providerError = trace as unknown as Record<string, unknown>;
+      if (
+        typeof providerError.code === 'number' ||
+        typeof providerError.code === 'string'
+      ) {
+        serialized.code = providerError.code;
+      }
+      if (typeof providerError.status === 'number') {
+        serialized.status = providerError.status;
+      }
+      if (
+        providerError.data !== null &&
+        typeof providerError.data === 'object'
+      ) {
+        serialized.data = providerError.data;
+      }
 
       // AxiosError properties are non-enumerable — extract explicitly
       const axiosError = trace as unknown as Record<string, unknown>;

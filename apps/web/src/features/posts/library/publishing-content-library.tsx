@@ -73,6 +73,7 @@ import PublishingViewToggle from '@/features/posts/library/publishing-view-toggl
 import CapturedPostsList from '@/features/posts/list/captured-posts-list';
 import { needsPostAttention } from '@/features/posts/list/post-attention.helpers';
 import { parsePostsSource } from '@/features/posts/list/posts-list-query';
+import { targetManualPostAction } from '@/features/posts/release/release-actions';
 import ReleaseDetailDrawer from '@/features/posts/release/release-detail-drawer';
 import { isTargetBlockedByReadiness } from '@/features/posts/shared/release-status.helpers';
 
@@ -102,7 +103,7 @@ export default function PublishingContentLibrary() {
   });
   const { setLeadingNode, setIsRefreshing, setRefresh, setViewToggleNode } =
     usePostsLayout();
-  const { href } = useOrgUrl();
+  const { href, activeHref } = useOrgUrl();
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -192,6 +193,7 @@ export default function PublishingContentLibrary() {
     queryKey: ['publishing-posts-library', organizationId, brandId],
   });
 
+  // use-effect-audit: ignore reports a load failure to the logger and notifications
   useEffect(() => {
     if (!error) {
       return;
@@ -594,6 +596,7 @@ export default function PublishingContentLibrary() {
     },
   ];
 
+  // use-effect-audit: ignore registers the toolbar nodes with the page shell
   useEffect(() => {
     setLeadingNode(
       <PublishingContentLibrarySearch
@@ -637,6 +640,11 @@ export default function PublishingContentLibrary() {
     type,
   ]);
 
+  const refreshCapturedList = useCallback(async (): Promise<void> => {
+    await refetch();
+  }, [refetch]);
+
+  // use-effect-audit: ignore registers the toolbar nodes with the page shell
   useEffect(() => {
     setViewToggleNode(
       <PublishingViewToggle
@@ -651,10 +659,7 @@ export default function PublishingContentLibrary() {
       />,
     );
     // The captured list owns the refresh action.
-    if (!isCapturedView)
-      setRefresh(() => async () => {
-        await refetch();
-      });
+    if (!isCapturedView) setRefresh(() => refreshCapturedList);
     return () => {
       setViewToggleNode(null);
       if (!isCapturedView) setRefresh(() => () => {});
@@ -663,11 +668,12 @@ export default function PublishingContentLibrary() {
     isCapturedView,
     view,
     replaceQueryParam,
-    refetch,
+    refreshCapturedList,
     setRefresh,
     setViewToggleNode,
   ]);
 
+  // use-effect-audit: ignore registers the page refresh handler with the shell
   useEffect(() => {
     setIsRefreshing(isFetching);
     return () => setIsRefreshing(false);
@@ -768,7 +774,7 @@ export default function PublishingContentLibrary() {
         release={selectedRelease}
         error={drawerError}
         pendingAction={pendingAction}
-        reconnectHref={href(APP_ROUTES.SETTINGS.CONNECTED_ACCOUNTS)}
+        reconnectHref={activeHref(APP_ROUTES.SETTINGS.PROFILE)}
         onClose={() => replaceQueryParam('release', '')}
         onRescheduleRelease={(scheduledDate) => {
           if (selectedRelease)
@@ -796,6 +802,18 @@ export default function PublishingContentLibrary() {
               service.updateTarget(selectedRelease.id, targetId, {
                 executionState: TargetExecutionState.SCHEDULED,
               }),
+            );
+        }}
+        onCompleteManualPost={(targetId, postUrl) => {
+          if (selectedRelease)
+            void mutateRelease(targetManualPostAction(targetId), (service) =>
+              service.completeManualPost(selectedRelease.id, targetId, postUrl),
+            );
+        }}
+        onSkipManualPost={(targetId) => {
+          if (selectedRelease)
+            void mutateRelease(targetManualPostAction(targetId), (service) =>
+              service.skipManualPost(selectedRelease.id, targetId),
             );
         }}
       />

@@ -4,7 +4,7 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ComponentProps } from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import SkillAgentAction, { SkillSearch } from './skill-filters';
 
 vi.mock('next-intl', async () => {
@@ -31,6 +31,12 @@ function renderSearch(
     />,
   );
 }
+
+const agent = vi.hoisted(() => ({ isAvailable: true }));
+
+vi.mock('@/components/shell/use-available-rail-apps', () => ({
+  useIsAppAvailable: () => agent.isAvailable,
+}));
 
 describe('SkillSearch', () => {
   it('carries the Source / Modality / Stage Filters menu inside the search field', async () => {
@@ -80,6 +86,18 @@ describe('SkillSearch', () => {
 });
 
 describe('SkillAgentAction', () => {
+  beforeEach(() => {
+    agent.isAvailable = true;
+  });
+
+  it('is absent while the organization has no Agent app', () => {
+    agent.isAvailable = false;
+
+    render(<SkillAgentAction agentHref="/acme-org/acme-creator/agent" />);
+
+    expect(screen.queryByRole('link')).not.toBeInTheDocument();
+  });
+
   it('links to the agent', () => {
     render(<SkillAgentAction agentHref="/acme-org/acme-creator/agent" />);
 

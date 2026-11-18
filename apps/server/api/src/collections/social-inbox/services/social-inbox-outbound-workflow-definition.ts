@@ -1,6 +1,7 @@
 import type { WorkflowEdge } from '@api/collections/workflows/schemas/workflow.schema';
 import { requestActionNode } from '@api/collections/workflows/services/workflow-definition-nodes';
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-runner.service';
+import { SystemWorkflowRetention } from '@api/collections/workflows/workflow-execution-retention.contract';
 
 export const SOCIAL_INBOX_OUTBOUND_ACTION_IDS = {
   FINALIZE: 'social.inbox.outbound.finalize',
@@ -55,5 +56,6 @@ export function buildSocialInboxOutboundWorkflowDefinition(
     label:
       messageType === 'dm' ? 'Send Social Inbox DM' : 'Post Social Inbox Reply',
     resultNodeId: 'finalize-message',
+    retention: SystemWorkflowRetention.KEPT,
   };
 }

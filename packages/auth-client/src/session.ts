@@ -118,6 +118,7 @@ export function useBetterAuthIdentity(): AuthIdentity {
   });
   const previousTokenContextKeyRef = useRef(tokenContextKey);
 
+  // use-effect-audit: ignore clears the token cache when the token context changes
   useEffect(() => {
     const previousTokenContextKey = previousTokenContextKeyRef.current;
     previousTokenContextKeyRef.current = tokenContextKey;

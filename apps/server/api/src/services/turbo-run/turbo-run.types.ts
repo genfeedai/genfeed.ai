@@ -15,7 +15,7 @@ import type {
 import type { TurboRun } from '@genfeedai/prisma';
 import { isRecord } from '@genfeedai/utils/data/extract.util';
 
-export interface TurboRunItem {
+interface TurboRunItem {
   format: ContentFormat;
   status: TurboRunItemStatus;
   platform?: string;
@@ -142,7 +142,7 @@ export type TurboRunWithConfig = TurboRun & {
   items: TurboRunItemFull[];
 };
 
-export interface TurboRunProcessItemContext {
+interface TurboRunProcessItemContext {
   turboRunId: string;
   completedCount: number;
   error?: string;

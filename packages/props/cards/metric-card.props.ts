@@ -6,7 +6,7 @@ import type { ReactNode } from 'react';
 export type MetricCardSize = 'xs' | 'sm' | 'md' | 'lg';
 
 /** Horizontal alignment of the value and label inside the tile. */
-export type MetricCardAlign = 'start' | 'center';
+type MetricCardAlign = 'start' | 'center';
 
 /**
  * How the metric paints:

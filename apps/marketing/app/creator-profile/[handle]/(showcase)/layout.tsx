@@ -1,15 +1,15 @@
 import type { LayoutProps } from '@props/layout/layout.props';
 import PublicShell from '@ui/shell/PublicShell';
-import HomeFooter from '@web-components/home/_footer';
-import WebsiteTopbar from '@web-components/shell/topbars/WebsiteTopbar';
+import CreatorFooter from '@web-components/creator/CreatorFooter';
+import CreatorTopbar from '@web-components/creator/CreatorTopbar';
 
-const TOPBAR = <WebsiteTopbar />;
+const TOPBAR = <CreatorTopbar />;
 
 /**
- * Creator profiles and their articles carry the site's topbar and footer:
- * readers arrive from social, and the footer keeps every page from being a
- * crawl dead end. Invite links sit outside this group and keep their bare
- * frame.
+ * Creator profiles and their articles carry a slim bar and a one-line footer:
+ * readers arrive from social to see the creator, and the footer keeps every
+ * page from being a crawl dead end. Invite links sit outside this group and
+ * keep their bare frame.
  */
 export default function CreatorShowcaseLayout({ children }: LayoutProps) {
   return (
@@ -17,10 +17,11 @@ export default function CreatorShowcaseLayout({ children }: LayoutProps) {
       overlay={
         <div className="pointer-events-none fixed inset-0 z-0 bg-dots opacity-40" />
       }
+      mainClassName="pt-0"
       topbar={TOPBAR}
     >
       {children}
-      <HomeFooter />
+      <CreatorFooter />
     </PublicShell>
   );
 }

@@ -7,6 +7,13 @@ export interface AgentTransferPresentation {
   destinationThreadId: string;
   sourceThreadTitle?: string | null;
   destinationThreadTitle?: string | null;
+  /**
+   * The member who sent the transfer (`userId`), and the teammate whose thread
+   * receives it when a hand-off crosses members (#9940). `destinationUserId` is
+   * null for a transfer between one member's own threads.
+   */
+  userId?: string | null;
+  destinationUserId?: string | null;
   sourceBrandId?: string | null;
   destinationBrandId?: string | null;
   deliveryMode: AgentTransferDeliveryMode;

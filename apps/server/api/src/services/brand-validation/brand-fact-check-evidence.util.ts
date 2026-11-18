@@ -20,7 +20,7 @@ const CURLY_DOUBLE_QUOTES_PATTERN = /[“”]/g;
 const WHITESPACE_RUNS_PATTERN = /\s+/g;
 
 /** Evidence passages are shown to the judge, and quoted back, at most this long. */
-export const MAX_FACT_EVIDENCE_LENGTH = 1_500;
+const MAX_FACT_EVIDENCE_LENGTH = 1_500;
 /** A Brand OS fact is a short statement; a longer one is cut before the judge sees it. */
 const MAX_BRAND_FACT_LENGTH = 600;
 /** Knowledge passages retrieved per claim. */
@@ -34,7 +34,7 @@ const MIN_QUOTE_LENGTH = 4;
  * Quotes are compared after the normalization a reader would shrug at: Unicode
  * form, quote glyphs, whitespace runs and letter case. Nothing else may differ.
  */
-export function normalizeFactQuote(text: string): string {
+function normalizeFactQuote(text: string): string {
   return text
     .normalize('NFC')
     .replace(CURLY_SINGLE_QUOTES_PATTERN, "'")

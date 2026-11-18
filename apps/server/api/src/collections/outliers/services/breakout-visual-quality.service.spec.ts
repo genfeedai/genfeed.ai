@@ -233,6 +233,10 @@ describe('visual quality evaluation', () => {
       'org-a',
       expect.any(Function),
     );
+    expect(h.scores).toHaveLength(1);
+    expect(h.scores[0].data).toMatchObject({
+      [BREAKOUT_VISUAL_QUALITY_KEY]: { ...binding, partIndex: 0 },
+    });
   });
 
   it('skips a visual that already has retained evidence and never repeats its paid call', async () => {
@@ -245,6 +249,8 @@ describe('visual quality evaluation', () => {
       },
     });
     await h.service.evaluate(h.request);
+    expect(h.scores).toHaveLength(2);
+    expect(h.scores[0].id).toBe('score-existing');
     expect(h.evaluations.evaluateImage).toHaveBeenCalledTimes(1);
     expect(h.evaluations.evaluateImage).toHaveBeenCalledWith(
       'https://cdn.test/b',

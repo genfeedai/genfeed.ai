@@ -9,8 +9,9 @@ import { resetAnalytics } from '@/lib/analytics';
 export default function LogoutPage() {
   const { push } = useRouter();
 
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
-    let isCancelled = false;
+    const abortController = new AbortController();
 
     async function performSignOut() {
       resetAnalytics();
@@ -22,7 +23,7 @@ export default function LogoutPage() {
         // to /login rather than stranding the user on the "Signing out…" screen
         // with an unhandled promise rejection.
       }
-      if (!isCancelled) {
+      if (!abortController.signal.aborted) {
         push(APP_ROUTES.LOGIN);
       }
     }
@@ -30,7 +31,7 @@ export default function LogoutPage() {
     void performSignOut();
 
     return () => {
-      isCancelled = true;
+      abortController.abort();
     };
   }, [push]);
 

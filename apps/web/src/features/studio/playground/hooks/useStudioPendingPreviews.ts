@@ -50,6 +50,7 @@ export function useStudioPendingPreviews({
   const pendingJobsRef = useRef(pendingJobs);
   pendingJobsRef.current = pendingJobs;
 
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     if (!pendingKey) return;
     const controller = new AbortController();

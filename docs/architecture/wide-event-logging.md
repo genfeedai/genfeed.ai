@@ -30,6 +30,9 @@ Always present: `timestamp`, `kind`, `request_id`, `trace_id`, `span_id`, `servi
   Jobs take `user.id`, `organization.id` and `brand.id` from the payload when it carries them.
 - Performance: `database.query_count`, `database.query_duration_ms`, `database.slow_queries`
   (when `API_QUERY_METRICS` is on), `memory` on slow requests, `performance_severity`.
+- Process: `runtime.event_loop_lag_max_ms`, the largest delay of a 50 ms event-loop probe while the
+  request ran (API only). A slow request with a high value waited on a blocked process, not on a
+  slow dependency.
 - Failures: `error.type`, `error.message`, `error.code`, `error.status`, `error.stack` (bounded).
 
 Output goes through `redactSensitiveValue`, so keys such as `token`, `apiKey` and `authorization`
@@ -52,7 +55,7 @@ rather than free text. Do not log a line to say what you just did: enrich instea
 The decision is made after the work finished (`wide-event.sampling.ts`):
 
 - Always kept: `outcome: "error"`, caller errors other than 404 and 429 (401, 403 and 400 stay
-  visible), requests over 2 s, jobs over 120 s, enterprise organizations and super admins.
+  visible), requests over 1 s, jobs over 120 s, enterprise organizations and super admins.
 - Everything else is kept at 5%.
 
 Kept events carry `sample_rate` (`1`, or `0.05`). Weight counts by `1 / sample_rate` when you

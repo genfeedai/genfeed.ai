@@ -1,5 +1,9 @@
 import type { BrandKitSlot, ReferenceImageCategory } from '../..';
-import type { BrandGenerationRulesV1 } from '../content/branded-generation.interface';
+import type { BrandVideoFinishingV1 } from '../../api-types/contracts/brand-video-finishing.contract';
+import type {
+  BrandGenerationRulesV1,
+  BrandVideoRulesV1,
+} from '../content/branded-generation.interface';
 import type { IBrandAgentStrategy, IBrandAgentVoice } from './brand.interface';
 import type { IBrandPublishPolicy } from './brand-publish-policy.interface';
 
@@ -221,6 +225,18 @@ export interface IBrandKitDraft extends IBrandKitResource {
    * revision is approved; absent means the brand has no Policy yet.
    */
   policy?: IBrandPublishPolicy;
+  /**
+   * End card, colour grade and watermark (#10187). Versioned and approved with
+   * the revision; approve copies it to the brand row. Absent on revisions
+   * written before it existed: readers fall back to the brand row.
+   */
+  finishing?: BrandVideoFinishingV1;
+  /**
+   * The owner's video identity (#10187). It joins the generation rules when the
+   * snapshot is projected, so readers find it at `generationRules.video`. It is
+   * approved with the revision; absent means the brand has none.
+   */
+  video?: BrandVideoRulesV1;
   organizationId?: string;
   status: BrandKitDraftStatus;
   sourceType: BrandKitSourceType;
@@ -353,6 +369,8 @@ export interface IBrandKitResolvedAsset {
   url: string;
   label?: string;
   mimeType?: string;
+  /** The uploaded file's format; `svg` when a vector original is kept. */
+  originalFormat?: string;
 }
 
 export interface IBrandKitResolvedAssets {
@@ -472,6 +490,7 @@ export interface IBrandKitAssetRelation {
   cdnUrl: string;
   displayName?: string;
   mimeType?: string;
+  originalFormat?: string;
   referenceCategory?: ReferenceImageCategory;
   kitSlot?: BrandKitSlot;
 }

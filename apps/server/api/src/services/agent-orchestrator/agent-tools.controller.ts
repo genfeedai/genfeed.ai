@@ -28,6 +28,7 @@ import {
   getToolByName,
   getToolsForSurface,
   isMcpBrandRequiredTool,
+  isMcpBrandRequiredWhenMultipleTool,
   type McpBrandOption,
   readMcpBrandId,
 } from '@genfeedai/actions';
@@ -163,11 +164,25 @@ export class AgentToolsController {
         return await this.brandRequiredResult(name, context);
       }
 
-      const result = await this.executor.executeTool(
-        name,
-        body.parameters ?? {},
-        context,
-      );
+      let parameters = body.parameters ?? {};
+      // A draft names its brand when the organization has several (#10071). A
+      // single brand is filled in so the draft is never left unattached.
+      if (
+        getActionOriginContext().origin === ActionOrigin.MCP &&
+        isMcpBrandRequiredWhenMultipleTool(name) &&
+        !readMcpBrandId(parameters)
+      ) {
+        const brands = await this.listCallerBrands(context);
+        if (brands.length > 1) {
+          return this.brandRequiredFailure(name, brands);
+        }
+        if (brands.length === 1) {
+          // The executor authorizes this brand like any caller-supplied one.
+          parameters = { ...parameters, brandId: brands[0].id };
+        }
+      }
+
+      const result = await this.executor.executeTool(name, parameters, context);
       const gated = await this.evaluateMcpResult(
         name,
         JSON.stringify(result),
@@ -196,6 +211,15 @@ export class AgentToolsController {
     name: string,
     context: ToolExecutionContext,
   ): Promise<AgentToolResult> {
+    return this.brandRequiredFailure(
+      name,
+      await this.listCallerBrands(context),
+    );
+  }
+
+  private async listCallerBrands(
+    context: ToolExecutionContext,
+  ): Promise<McpBrandOption[]> {
     const listing = await this.executor.executeTool('get_brands', {}, context);
     const entries =
       listing.success &&
@@ -204,7 +228,7 @@ export class AgentToolsController {
       Array.isArray((listing.data as { brands?: unknown }).brands)
         ? ((listing.data as { brands: unknown[] }).brands as unknown[])
         : [];
-    const brands = entries.flatMap((entry): McpBrandOption[] => {
+    return entries.flatMap((entry): McpBrandOption[] => {
       if (entry === null || typeof entry !== 'object') return [];
       const brand = entry as Record<string, unknown>;
       if (typeof brand.id !== 'string') return [];
@@ -214,6 +238,12 @@ export class AgentToolsController {
       );
       return [{ id: brand.id, label: label ?? brand.id }];
     });
+  }
+
+  private brandRequiredFailure(
+    name: string,
+    brands: McpBrandOption[],
+  ): AgentToolResult {
     return {
       creditsUsed: 0,
       data: { brands, recoveryAction: 'select_brand' },

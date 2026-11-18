@@ -49,14 +49,17 @@ export function usePromptBarSync(
   const onDatasetChangeRef = useRef(onDatasetChange);
   const [_textValue, setTextValue] = useState('');
 
+  // use-effect-audit: ignore keeps refs to the latest callbacks and values
   useEffect(() => {
     onConfigChangeRef.current = onConfigChange;
   }, [onConfigChange]);
 
+  // use-effect-audit: ignore keeps refs to the latest callbacks and values
   useEffect(() => {
     onDatasetChangeRef.current = onDatasetChange;
   }, [onDatasetChange]);
 
+  // use-effect-audit: ignore releases timers, requests or subscriptions on unmount
   useEffect(() => {
     return () => {
       if (debounceTimerRef.current) {
@@ -136,6 +139,7 @@ export function usePromptBarSync(
     }, 150);
   }, [handleTextChange, form]);
 
+  // use-effect-audit: ignore writes the loaded values into the form store
   useEffect(() => {
     if (externalFormat && externalWidth && externalHeight) {
       form.setValue('format', externalFormat, { shouldValidate: true });
@@ -150,6 +154,7 @@ export function usePromptBarSync(
     }
   }, [promptConfig]);
 
+  // use-effect-audit: ignore writes the prompt text into the form store
   useEffect(() => {
     if (!useSplitState || promptText === undefined) {
       return;
@@ -169,6 +174,7 @@ export function usePromptBarSync(
     });
   }, [form, promptText, useSplitState]);
 
+  // use-effect-audit: ignore writes the prompt config into the form store
   useEffect(() => {
     if (!useSplitState || !promptConfig) {
       return;
@@ -400,6 +406,7 @@ export function usePromptBarSync(
     lastPromptDataRef.current = promptData;
   }, [promptData, form]);
 
+  // use-effect-audit: ignore resets the form store when the category type changes
   useEffect(() => {
     if (!categoryType) {
       return;

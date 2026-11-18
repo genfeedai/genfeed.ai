@@ -1,7 +1,4 @@
-import type {
-  CanonicalToolDefinition,
-  ToolCategory,
-} from '../interfaces/tool-definition.interface';
+import type { CanonicalToolDefinition } from '../interfaces/tool-definition.interface';
 import { materializeJsonDocumentSchema } from './contracts/schema-builders';
 import {
   CURATED_ACTION_CATALOG,
@@ -29,98 +26,6 @@ import {
  * temporal-dead-zone error at module load whenever the load graph enters
  * through the "wrong" side of a real cycle).
  */
-
-export function inferCategory(name: string): ToolCategory {
-  if (name === 'check_channel' || name === 'upload_media') return 'content';
-  if (name.includes('visual_code')) return 'generation';
-  if (
-    [
-      'generate',
-      'get_generation_options',
-      'set_generation_settings',
-      'enhance_prompt',
-      'get_assets',
-    ].includes(name)
-  )
-    return 'generation';
-  if (name.includes('outreach_sequence') || name.includes('campaign')) {
-    return 'campaign';
-  }
-  if (
-    name.includes('onboarding') ||
-    name === 'create_brand' ||
-    name === 'scan_brand_url' ||
-    name === 'rename_brand'
-  )
-    return 'onboarding';
-  if (
-    name.startsWith('prepare_') ||
-    name === 'render_dashboard' ||
-    name === 'save_dashboard_layout' ||
-    name === 'get_dashboard_layout' ||
-    name.includes('ingredient')
-  )
-    return 'ui';
-  if (
-    name.includes('analytics') ||
-    name.includes('trends') ||
-    name.includes('performance')
-  )
-    return 'analytics';
-  if (name.includes('workflow')) return 'workflow';
-  if (
-    name.includes('post') ||
-    name.includes('article') ||
-    name.includes('content') ||
-    name.includes('media_upload') ||
-    name.includes('release') ||
-    name.includes('schedul')
-  )
-    return 'content';
-  if (
-    name.includes('image') ||
-    name.includes('video') ||
-    name.includes('music') ||
-    name.includes('voice') ||
-    name.includes('avatar')
-  )
-    return 'generation';
-  if (
-    name.includes('oauth') ||
-    name.includes('account') ||
-    name.includes('brand') ||
-    name.includes('social')
-  )
-    return 'social';
-  if (
-    name.includes('ads') ||
-    name.startsWith('meta_') ||
-    name.startsWith('google_') ||
-    name.startsWith('get_meta_') ||
-    name.startsWith('get_google_')
-  )
-    return 'ads';
-  if (
-    name.includes('fleet') ||
-    name.includes('training') ||
-    name.includes('dataset') ||
-    name.includes('comfyui') ||
-    name.includes('gpu') ||
-    name.includes('loras')
-  )
-    return 'admin';
-  if (
-    name.includes('engagement') ||
-    name.includes('approval') ||
-    name.includes('strategy') ||
-    name.includes('calendar')
-  )
-    return 'proactive';
-  if (name.includes('identity')) return 'identity';
-  if (name.includes('spawn') || name.includes('asset') || name.includes('chat'))
-    return 'agent-control';
-  return 'other';
-}
 
 const definitionsByName = new Map(
   SOURCE_TOOLS.map((tool) => [tool.name, tool]),
@@ -175,6 +80,7 @@ const CANONICAL_SOURCE_TOOLS: CanonicalToolDefinition[] =
       throw new Error(`Missing curated action definition: ${entry.name}`);
     }
 
+    const curated = getCuratedAction(entry.name);
     const agent = isActionOnSurface(entry, 'agent');
     const mcp = isActionOnSurface(entry, 'mcp');
     const mutationPolicy = MUTATION_POLICY_BY_NAME[tool.name];
@@ -184,7 +90,7 @@ const CANONICAL_SOURCE_TOOLS: CanonicalToolDefinition[] =
       : undefined;
     return {
       ...(presentation ? { annotations: presentation.annotations } : {}),
-      category: inferCategory(tool.name),
+      category: entry.category,
       creditCost: tool.creditCost,
       creditPricing,
       dataSource: toolDataSource(tool.name),
@@ -192,6 +98,17 @@ const CANONICAL_SOURCE_TOOLS: CanonicalToolDefinition[] =
         tool.description,
         creditPricing,
       ),
+      ...(tool.mcpDescription
+        ? {
+            mcpDescription: appendCreditPricingDescription(
+              tool.mcpDescription,
+              creditPricing,
+            ),
+          }
+        : {}),
+      ...(tool.mcpHiddenParameters
+        ? { mcpHiddenParameters: tool.mcpHiddenParameters }
+        : {}),
       name: entry.name,
       parameters: {
         ...tool.parameters,
@@ -205,7 +122,7 @@ const CANONICAL_SOURCE_TOOLS: CanonicalToolDefinition[] =
       },
       ...(presentation ? { title: presentation.title } : {}),
       toolset: entry.toolset,
-      uiActionType: getCuratedAction(entry.name)?.uiActionType,
+      uiActionType: curated?.uiActionType,
       ...(mutationPolicy ? { mutationPolicy } : {}),
     };
   });

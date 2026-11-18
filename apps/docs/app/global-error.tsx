@@ -5,6 +5,7 @@ import { useEffect } from 'react';
 import { applyDocumentTheme } from './global-error.theme';
 
 export default function GlobalError() {
+  // use-effect-audit: ignore subscribes to browser events
   useEffect(() => {
     let mediaQuery: MediaQueryList | null = null;
 

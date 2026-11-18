@@ -151,7 +151,12 @@ describe('ProfilesController', () => {
     it('should filter by search', async () => {
       mockProfilesService.findAll.mockResolvedValue([mockProfile]);
 
-      await controller.findAll(mockReq, mockUser, 'professional');
+      const res154 = await controller.findAll(
+        mockReq,
+        mockUser,
+        'professional',
+      );
+      expect(res154).toEqual([mockProfile]);
 
       expect(service.findAll).toHaveBeenCalledWith(mockUser.organizationId, {
         isDefault: undefined,
@@ -162,7 +167,13 @@ describe('ProfilesController', () => {
     it('should filter by isDefault', async () => {
       mockProfilesService.findAll.mockResolvedValue([mockProfile]);
 
-      await controller.findAll(mockReq, mockUser, undefined, 'true');
+      const res165 = await controller.findAll(
+        mockReq,
+        mockUser,
+        undefined,
+        'true',
+      );
+      expect(res165).toEqual([mockProfile]);
 
       expect(service.findAll).toHaveBeenCalledWith(mockUser.organizationId, {
         isDefault: true,
@@ -180,6 +191,7 @@ describe('ProfilesController', () => {
 
       expect(service.findOne).toHaveBeenCalledWith(id, mockUser.organizationId);
       expect(result).toEqual(mockProfile);
+      expect(result).toMatchObject({ _id: profileId });
     });
   });
 
@@ -201,6 +213,7 @@ describe('ProfilesController', () => {
         mockUser.organizationId,
       );
       expect(result).toEqual(updatedProfile);
+      expect(result).toMatchObject({ label: 'Updated Profile' });
     });
   });
 
@@ -264,7 +277,12 @@ describe('ProfilesController', () => {
         profileApplied: profileId,
       });
 
-      await controller.applyProfile(byokReq, dto, mockUser);
+      const res267 = await controller.applyProfile(byokReq, dto, mockUser);
+      expect(res267).toEqual({
+        enhanced: 'Enhanced',
+        original: 'Original prompt',
+        profileApplied: mockProfile._id,
+      });
 
       // getDefaultTextMinimumCredits(modelsService) backs the preflight; the
       // whole preflight block is skipped when the guard already bypassed.
@@ -289,7 +307,12 @@ describe('ProfilesController', () => {
         profileApplied: profileId,
       });
 
-      await controller.applyProfile(mockReq, dto, mockUser);
+      const res292 = await controller.applyProfile(mockReq, dto, mockUser);
+      expect(res292).toEqual({
+        enhanced: 'Enhanced',
+        original: 'Original prompt',
+        profileApplied: mockProfile._id,
+      });
 
       expect(modelsService.findOne).toHaveBeenCalled();
     });
@@ -340,7 +363,12 @@ describe('ProfilesController', () => {
         suggestions: [],
       });
 
-      await controller.analyzeTone(byokReq, dto, mockUser);
+      const res343 = await controller.analyzeTone(byokReq, dto, mockUser);
+      expect(res343).toEqual({
+        compliance: 'high',
+        score: 85,
+        suggestions: [],
+      });
 
       expect(modelsService.findOne).not.toHaveBeenCalled();
       expect(service.analyzeTone).toHaveBeenCalledWith(
@@ -363,7 +391,12 @@ describe('ProfilesController', () => {
         suggestions: [],
       });
 
-      await controller.analyzeTone(mockReq, dto, mockUser);
+      const res366 = await controller.analyzeTone(mockReq, dto, mockUser);
+      expect(res366).toEqual({
+        compliance: 'high',
+        score: 85,
+        suggestions: [],
+      });
 
       expect(modelsService.findOne).toHaveBeenCalled();
     });
@@ -416,7 +449,12 @@ describe('ProfilesController', () => {
       } as unknown as Request;
       mockProfilesService.generateFromExamples.mockResolvedValue(mockProfile);
 
-      await controller.generateFromExamples(byokReq, dto, mockUser);
+      const res419 = await controller.generateFromExamples(
+        byokReq,
+        dto,
+        mockUser,
+      );
+      expect(res419).toEqual(mockProfile);
 
       expect(modelsService.findOne).not.toHaveBeenCalled();
       expect(service.generateFromExamples).toHaveBeenCalledWith(
@@ -439,7 +477,12 @@ describe('ProfilesController', () => {
       };
       mockProfilesService.generateFromExamples.mockResolvedValue(mockProfile);
 
-      await controller.generateFromExamples(mockReq, dto, mockUser);
+      const res442 = await controller.generateFromExamples(
+        mockReq,
+        dto,
+        mockUser,
+      );
+      expect(res442).toEqual(mockProfile);
 
       expect(modelsService.findOne).toHaveBeenCalled();
     });

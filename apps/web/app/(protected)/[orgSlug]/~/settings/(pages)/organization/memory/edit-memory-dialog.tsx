@@ -110,6 +110,7 @@ export default function EditMemoryDialog({
   }
   const hasOlderPages = olderPages.items.length > 0;
   const latestFirstPageRef = useRef(firstPage);
+  // use-effect-audit: ignore keeps refs to the latest callbacks and values
   useEffect(() => {
     latestFirstPageRef.current = firstPage;
   }, [firstPage]);
@@ -126,20 +127,24 @@ export default function EditMemoryDialog({
     isLoadMoreError || (Boolean(historyQuery.error) && !firstPage);
 
   const { error: historyError } = historyQuery;
+  // use-effect-audit: ignore reports a failed load to the logger or a notification
   useEffect(() => {
     if (historyError) {
       logger.error('GET /agent/memories/:id/revisions failed', historyError);
     }
   }, [historyError]);
 
-  useEffect(() => {
-    if (!entryId) {
-      return;
+  // Each opening, and each new body of the same memory, starts a fresh draft.
+  const seedKey = entryId ? JSON.stringify([entryId, entryContent]) : null;
+  const [seededKey, setSeededKey] = useState<string | null>(null);
+  if (seedKey !== seededKey) {
+    setSeededKey(seedKey);
+    if (seedKey !== null) {
+      setContent(entryContent);
+      setReason('');
+      setRequestId(crypto.randomUUID());
     }
-    setContent(entryContent);
-    setReason('');
-    setRequestId(crypto.randomUUID());
-  }, [entryId, entryContent]);
+  }
 
   const loadMore = useCallback(async () => {
     if (!entryId || !nextCursor) {

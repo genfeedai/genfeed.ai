@@ -11,12 +11,10 @@ import { SocialSourcePlatform } from '@genfeedai/contracts';
 describe('ApifySocialProvider', () => {
   const apifyService = {
     getInstagramPostByUrl: vi.fn(),
-    getTweetByUrl: vi.fn(),
     getTikTokVideoByUrl: vi.fn(),
     getInstagramUserPosts: vi.fn(),
     getLinkedInProfilePosts: vi.fn(),
     getTikTokUserVideos: vi.fn(),
-    getTwitterUserTimeline: vi.fn(),
     getYouTubeChannelUploads: vi.fn(),
   };
 
@@ -28,9 +26,14 @@ describe('ApifySocialProvider', () => {
     provider = new ApifySocialProvider(apifyService as never);
   });
 
-  it('serves X, Instagram, TikTok, YouTube and LinkedIn', async () => {
+  it('leaves X to the official X API providers', async () => {
+    await expect(
+      provider.canCollect(SocialSourcePlatform.TWITTER),
+    ).resolves.toBe(false);
+  });
+
+  it('serves Instagram, TikTok, YouTube and LinkedIn', async () => {
     for (const platform of [
-      SocialSourcePlatform.TWITTER,
       SocialSourcePlatform.INSTAGRAM,
       SocialSourcePlatform.TIKTOK,
       SocialSourcePlatform.YOUTUBE,
@@ -200,7 +203,6 @@ describe('ApifySocialProvider', () => {
     });
   });
   it.each([
-    [SocialSourcePlatform.TWITTER, 'getTwitterUserTimeline'],
     [SocialSourcePlatform.INSTAGRAM, 'getInstagramUserPosts'],
     [SocialSourcePlatform.TIKTOK, 'getTikTokUserVideos'],
     [SocialSourcePlatform.YOUTUBE, 'getYouTubeChannelUploads'],
@@ -235,7 +237,6 @@ describe('ApifySocialProvider', () => {
     );
   });
   it.each([
-    [SocialSourcePlatform.TWITTER, 'getTweetByUrl'],
     [SocialSourcePlatform.INSTAGRAM, 'getInstagramPostByUrl'],
     [SocialSourcePlatform.TIKTOK, 'getTikTokVideoByUrl'],
   ] as const)(

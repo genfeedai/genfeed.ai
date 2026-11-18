@@ -8,6 +8,8 @@ import { ChevronsUpDown } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useId, useState } from 'react';
 import { ModelBrowserModal } from '@/components/models/ModelBrowserModal';
+import RetiredModelAlert from '@/components/models/RetiredModelAlert';
+import { useRetiredModels } from '@/features/models/hooks/useRetiredModels';
 import { useWorkflowModelCatalog } from '@/features/workflows/hooks/useWorkflowModelCatalog';
 import type { WorkflowModelFieldProps } from '@/props/workflows/workflow-model-picker.props';
 
@@ -18,10 +20,12 @@ export function WorkflowModelField({
 }: WorkflowModelFieldProps) {
   const translate = useTranslations('pages.workflows.actionInspector');
   const catalog = useWorkflowModelCatalog(categories);
+  const { getRetiredModel } = useRetiredModels();
   const [isOpen, setIsOpen] = useState(false);
   const labelId = useId();
   const valueId = useId();
   const selected = catalog.models.find((model) => model.key === value);
+  const retired = selected ? null : getRetiredModel(value);
 
   const handleSelect = useCallback(
     (model: IModel) => onChange(model.key),
@@ -44,10 +48,19 @@ export function WorkflowModelField({
         withWrapper={false}
       >
         <span className="truncate" id={valueId}>
-          {selected?.label || value || translate('selectModel')}
+          {selected?.label ||
+            retired?.label ||
+            value ||
+            translate('selectModel')}
         </span>
         <ChevronsUpDown className="size-3.5 shrink-0 text-muted-foreground" />
       </Button>
+      {retired ? (
+        <RetiredModelAlert
+          modelLabel={retired.label}
+          onPick={() => setIsOpen(true)}
+        />
+      ) : null}
       <ModelBrowserModal
         hasError={catalog.hasError}
         isLoading={catalog.isLoading}

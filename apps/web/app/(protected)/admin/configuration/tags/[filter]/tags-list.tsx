@@ -40,6 +40,7 @@ function TagsListContent(props: TagsListProps) {
     sortKey,
   } = useTagsList(props);
 
+  // use-effect-audit: ignore reports the refreshing state to the layout slot
   useEffect(() => {
     props.onRefreshingChange?.(isRefreshing);
   }, [isRefreshing, props.onRefreshingChange]);

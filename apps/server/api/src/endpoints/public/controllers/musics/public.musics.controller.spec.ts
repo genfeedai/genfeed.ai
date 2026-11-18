@@ -1,10 +1,12 @@
-import { Readable } from 'node:stream';
+import { Readable, type Writable } from 'node:stream';
+import { finished } from 'node:stream/promises';
 import { MusicsService } from '@api/collections/musics/services/musics.service';
 import { PublicMusicsController } from '@api/endpoints/public/controllers/musics/public.musics.controller';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
+import { createRecordedResponse } from '@api/shared/testing/recorded-response.fixture';
 import {
   createIngredientDocumentFixture,
   createPaginatedFixture,
@@ -16,10 +18,7 @@ import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
-import type {
-  Request as ExpressRequest,
-  Response as ExpressResponse,
-} from 'express';
+import type { Request as ExpressRequest } from 'express';
 
 vi.mock('@api/helpers/utils/response/response.util', () => ({
   returnNotFound: vi.fn((type, id) => ({
@@ -55,17 +54,6 @@ describe('PublicMusicsController', () => {
     originalUrl: '/api/public/musics',
     query: {},
   } as unknown as ExpressRequest;
-
-  const mockResponse = {
-    json: vi.fn().mockReturnThis(),
-    pipe: vi.fn(),
-    set: vi.fn().mockReturnThis(),
-    status: vi.fn().mockReturnThis(),
-  } as unknown as ExpressResponse;
-
-  const mockStream = {
-    pipe: vi.fn(),
-  } as unknown as Readable;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -149,7 +137,14 @@ describe('PublicMusicsController', () => {
 
       musicsService.findAll.mockResolvedValue(mockMusics);
 
-      await controller.findPublicMusics(mockRequest, query, undefined, brandId);
+      const result = await controller.findPublicMusics(
+        mockRequest,
+        query,
+        undefined,
+        brandId,
+      );
+
+      expect(result).toEqual({ data: mockMusics.docs });
 
       const callArgs = musicsService.findAll.mock.calls[0][0] as {
         where: Record<string, unknown>;
@@ -169,7 +164,9 @@ describe('PublicMusicsController', () => {
 
       musicsService.findAll.mockResolvedValue(mockMusics);
 
-      await controller.findPublicMusics(mockRequest, query, tag);
+      const result = await controller.findPublicMusics(mockRequest, query, tag);
+
+      expect(result).toEqual({ data: mockMusics.docs });
 
       const callArgs = musicsService.findAll.mock.calls[0][0] as {
         where: Record<string, unknown>;
@@ -258,10 +255,14 @@ describe('PublicMusicsController', () => {
       });
 
       musicsService.findOne.mockResolvedValue(mockMusic);
-      filesClientService.getFileFromS3.mockResolvedValue(mockStream);
+      filesClientService.getFileFromS3.mockResolvedValue(
+        Readable.from(['mp3-bytes']),
+      );
+      const { recorded, res } = createRecordedResponse();
 
       // Controller signature: getMusic(@Param('musicId') musicId, @Res() res)
-      await controller.getMusic(musicId, mockResponse);
+      await controller.getMusic(musicId, res);
+      await finished(res as unknown as Writable);
 
       expect(musicsService.findOne).toHaveBeenCalledWith({
         id: musicId,
@@ -273,12 +274,12 @@ describe('PublicMusicsController', () => {
         musicId,
         'musics',
       );
-      expect(mockResponse.set).toHaveBeenCalledWith({
+      expect(recorded.headers).toEqual({
         'Cache-Control': 'public, max-age=3600',
         'Content-Disposition': `inline; filename="${musicId}.mp3"`,
         'Content-Type': 'audio/mpeg',
       });
-      expect(mockStream.pipe).toHaveBeenCalledWith(mockResponse);
+      expect(recorded.body).toBe('mp3-bytes');
     });
 
     it('should return 404 when music not found', async () => {
@@ -286,12 +287,12 @@ describe('PublicMusicsController', () => {
 
       musicsService.findOne.mockResolvedValue(null);
 
-      await controller.getMusic(musicId, mockResponse);
+      const { recorded, res } = createRecordedResponse();
 
-      expect(mockResponse.status).toHaveBeenCalledWith(404);
-      expect(mockResponse.json).toHaveBeenCalledWith({
-        error: 'Music not found',
-      });
+      await controller.getMusic(musicId, res);
+
+      expect(recorded.status).toBe(404);
+      expect(recorded.json).toEqual({ error: 'Music not found' });
     });
 
     it('should handle S3 file retrieval error', async () => {
@@ -304,12 +305,12 @@ describe('PublicMusicsController', () => {
       musicsService.findOne.mockResolvedValue(mockMusic);
       filesClientService.getFileFromS3.mockRejectedValue(new Error('S3 error'));
 
-      await controller.getMusic(musicId, mockResponse);
+      const { recorded, res } = createRecordedResponse();
 
-      expect(mockResponse.status).toHaveBeenCalledWith(404);
-      expect(mockResponse.json).toHaveBeenCalledWith({
-        error: 'Music file not found',
-      });
+      await controller.getMusic(musicId, res);
+
+      expect(recorded.status).toBe(404);
+      expect(recorded.json).toEqual({ error: 'Music file not found' });
     });
   });
 });

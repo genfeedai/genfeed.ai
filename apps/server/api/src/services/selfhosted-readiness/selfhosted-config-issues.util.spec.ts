@@ -175,3 +175,33 @@ describe('findSelfHostedConfigIssues', () => {
     ]);
   });
 });
+
+describe('findSelfHostedConfigIssues public origin', () => {
+  it.each([
+    ['unset', undefined],
+    ['empty', ''],
+    ['whitespace', '   '],
+    ['not a URL', 'genfeed.example.org'],
+  ])('names GENFEEDAI_PUBLIC_URL when it is %s', (_label, appPublicUrl) => {
+    const issues = findSelfHostedConfigIssues({
+      ...LOCAL_INSTALL,
+      appPublicUrl,
+    });
+
+    expect(issues.map((issue) => issue.variable)).toEqual([
+      'GENFEEDAI_PUBLIC_URL',
+    ]);
+  });
+
+  it('reports the missing origin even when sign-in is disabled', () => {
+    const issues = findSelfHostedConfigIssues({
+      ...LOCAL_INSTALL,
+      appPublicUrl: undefined,
+      isAuthEnabled: false,
+    });
+
+    expect(issues.map((issue) => issue.variable)).toEqual([
+      'GENFEEDAI_PUBLIC_URL',
+    ]);
+  });
+});

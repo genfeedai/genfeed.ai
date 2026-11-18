@@ -82,6 +82,7 @@ function HistorySidebar({
 }) {
   const sidebarRef = useRef<HTMLDivElement>(null);
 
+  // use-effect-audit: ignore subscribes to document mousedown to close the sidebar
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -95,6 +96,7 @@ function HistorySidebar({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [onClose]);
 
+  // use-effect-audit: ignore subscribes to document keydown to close the sidebar
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -212,6 +214,7 @@ export function GlobalImageHistory() {
   const fanItems = history.slice(0, 10);
   const hasOverflow = history.length > 10;
 
+  // use-effect-audit: ignore subscribes to document mousedown to close the drawer
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -228,6 +231,7 @@ export function GlobalImageHistory() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isOpen, showSidebar]);
 
+  // use-effect-audit: ignore subscribes to document keydown to close the drawer
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {

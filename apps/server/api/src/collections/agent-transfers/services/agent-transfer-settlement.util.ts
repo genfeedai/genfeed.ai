@@ -18,7 +18,7 @@ import { traced } from '@libs/tracing/traced';
  * `WorkflowExecution.result` is an untyped Json column, so the completion
  * fields are read defensively rather than cast.
  */
-export function readAgentTurnResult(value: unknown): {
+function readAgentTurnResult(value: unknown): {
   artifactReferences: unknown[];
   artifactVersionPinIds: string[];
   summary: string | null;
@@ -90,6 +90,9 @@ export function buildTransferResultContent(input: {
   }
   if (input.status === AgentTransferStatus.CANCELLED) {
     return `${title} was cancelled.`;
+  }
+  if (input.status === AgentTransferStatus.DECLINED) {
+    return `${title} was declined.`;
   }
   return input.failureReason
     ? `${title} failed: ${input.failureReason}`

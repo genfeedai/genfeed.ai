@@ -12,17 +12,17 @@ export interface AgentSourceBinding extends AgentSourceScope {
   readonly sourceId: string;
 }
 /** Exactly one canonical output family. References are supplied by trusted adapters. */
-export type AgentSourceWork =
+type AgentSourceWork =
   | Readonly<{ remixRunId: string; clipResultIds?: never }>
   | Readonly<{ clipResultIds: readonly string[]; remixRunId?: never }>;
-export interface AgentSourceQuoteReceipt {
+interface AgentSourceQuoteReceipt {
   readonly quoteId: string;
   readonly revision: number;
   readonly inputHash: string;
   readonly totalCredits: number;
   readonly expiresAt: string;
 }
-export interface AgentSourceAuthorizationReceipt
+interface AgentSourceAuthorizationReceipt
   extends AgentSourceBinding,
     AgentSourceQuoteReceipt {
   readonly authorizationId: string;

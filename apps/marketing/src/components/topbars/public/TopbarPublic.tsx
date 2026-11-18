@@ -83,6 +83,7 @@ function useSurfaceProgress(
   headerRef: React.RefObject<HTMLElement | null>,
   isForcedOpaque: boolean,
 ): void {
+  // use-effect-audit: ignore scroll listener that writes header styles in the DOM
   useEffect(() => {
     const header = headerRef.current;
     if (!header) return;
@@ -142,6 +143,7 @@ export default function TopbarPublic({
   // The open mobile menu sits under the bar, so the bar needs its ground too.
   useSurfaceProgress(headerRef, Boolean(openDropdown) || isMobileMenuOpen);
 
+  // use-effect-audit: ignore locks body scroll while the mobile menu is open
   useEffect(() => {
     if (isMobileMenuOpen) {
       document.body.style.overflow = 'hidden';
@@ -157,6 +159,7 @@ export default function TopbarPublic({
     setIsMobileMenuOpen(false);
   }, []);
 
+  // use-effect-audit: ignore registers an Escape key listener while the menu is open
   useEffect(() => {
     if (!isMobileMenuOpen) return;
 
@@ -207,6 +210,7 @@ export default function TopbarPublic({
     setOpenDropdown(null);
   }, []);
 
+  // use-effect-audit: ignore clears the close timer on unmount
   useEffect(
     () => () => {
       if (closeTimeoutRef.current) {
@@ -236,12 +240,12 @@ export default function TopbarPublic({
       >
         <div className="container mx-auto flex items-center justify-between h-20 px-6">
           {/* Left: Logo + Nav */}
-          <div className="flex items-center gap-12">
+          <div className="flex items-center gap-8 xl:gap-12">
             <TopbarLogo logoHref="/" />
 
             {/* Desktop Navigation */}
             <nav className="hidden lg:block">
-              <ul className="flex items-center gap-8">
+              <ul className="flex items-center gap-5 xl:gap-8">
                 {/* Dropdowns */}
                 {dropdowns.map((dropdown) => {
                   const isOpen = openDropdown === dropdown.label;
@@ -266,7 +270,7 @@ export default function TopbarPublic({
                         aria-haspopup="menu"
                         variant={ButtonVariant.UNSTYLED}
                         className={cn(
-                          'text-xs font-bold tracking-[0.1em] uppercase transition-colors inline-flex items-center gap-2 py-2',
+                          'text-xs font-semibold tracking-label uppercase whitespace-nowrap transition-colors inline-flex items-center gap-2 py-2',
                           isAnyActive
                             ? 'text-foreground'
                             : 'text-foreground/60 hover:text-foreground',
@@ -294,7 +298,7 @@ export default function TopbarPublic({
                       <Link
                         href={link.href}
                         className={cn(
-                          'text-xs font-bold tracking-[0.1em] uppercase transition-colors py-2',
+                          'text-xs font-semibold tracking-label uppercase whitespace-nowrap transition-colors py-2',
                           isActive
                             ? 'text-foreground'
                             : 'text-foreground/60 hover:text-foreground',

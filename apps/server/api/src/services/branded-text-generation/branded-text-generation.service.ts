@@ -300,7 +300,12 @@ export class BrandedTextGenerationService {
     if (!text)
       return this.fail(actor, dispatched, 'provider_output_empty', null);
     if (!request.acceptText(text))
-      return this.fail(actor, dispatched, 'channel_limit_exceeded', null);
+      return this.fail(
+        actor,
+        dispatched,
+        request.classifyRejectedText?.(text) ?? 'channel_limit_exceeded',
+        null,
+      );
     let postId: string;
     // A revoked continuation never gets converted into an artifact-persistence failure.
     await request.reauthorize?.();

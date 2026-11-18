@@ -41,8 +41,10 @@ describe('workflow operations', () => {
     mockGetWorkflow.mockResolvedValue(workflow);
     const { runWorkflow } = await import('@/operations/workflows');
 
-    await runWorkflow('workflow-1', undefined, undefined, controller.signal);
+    const result = await runWorkflow('workflow-1', undefined, undefined, controller.signal);
 
+    expect(result.execution.id).toBe('execution-1');
+    expect(result.workflow).toEqual(workflow);
     expect(mockGetWorkflow).toHaveBeenCalledWith('workflow-1', controller.signal);
     expect(mockCreateWorkflowExecution).toHaveBeenCalledWith(
       {
@@ -107,7 +109,8 @@ describe('workflow operations', () => {
   it('rejects a missing workflow and omits absent inputs', async () => {
     const { resolveWorkflow, runWorkflow } = await import('@/operations/workflows');
     await expect(resolveWorkflow('missing')).rejects.toThrow('No workflow matches');
-    await runWorkflow('launch');
+    const result = await runWorkflow('launch');
+    expect(result.workflow.id).toBe('workflow-2');
     expect(mockCreateWorkflowExecution).toHaveBeenCalledWith({
       trigger: 'manual',
       workflowId: 'workflow-2',

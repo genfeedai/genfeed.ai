@@ -212,12 +212,12 @@ describe('SidebarNavigationProvider', () => {
   });
 
   it('treats a permanent shell topbar as canonical page identity without route metadata', () => {
-    pathnameState.value = '/acme/~/settings/api-keys';
+    pathnameState.value = '/acme/~/connectors/api-keys';
 
     render(
       <SidebarNavigationProvider
         hasCanonicalPageIdentity
-        items={[{ href: '/settings/api-keys', label: 'API Keys' }]}
+        items={[{ href: '/connectors/api-keys', label: 'API Keys' }]}
       >
         <NavigationState />
       </SidebarNavigationProvider>,

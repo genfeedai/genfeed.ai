@@ -5,7 +5,7 @@ import type { PostsListSearchParams } from '@/props/publishing/publishing-list-p
  * (`categories`, `folder`, `tags`, …) in the query too, so the page accepts
  * any key.
  */
-export type OrgRootAppSearchParams = Promise<
+type OrgRootAppSearchParams = Promise<
   Awaited<PostsListSearchParams> & Record<string, string | string[] | undefined>
 >;
 
@@ -15,5 +15,11 @@ export type OrgRootAppPageProps = {
     orgSlug: string;
     segments?: string[];
   }>;
+  searchParams?: OrgRootAppSearchParams;
+};
+
+/** Props of a static `~/<app>/[[...segments]]` page (`~/library`, `~/publishing`). */
+export type OrgRootAppEntryPageProps = {
+  params: Promise<{ orgSlug: string; segments?: string[] }>;
   searchParams?: OrgRootAppSearchParams;
 };

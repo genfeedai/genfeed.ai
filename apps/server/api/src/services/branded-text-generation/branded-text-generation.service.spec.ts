@@ -741,6 +741,18 @@ describe('BrandedTextGenerationService', () => {
       });
     });
 
+    it('records the reason the caller gives for a refused output', async () => {
+      vi.mocked(h.request.acceptText).mockReturnValue(false);
+      h.request.classifyRejectedText = vi.fn(() => 'provider_output_unusable');
+      const outcome = await h.service.generate(h.request);
+
+      expect(h.request.persistText).not.toHaveBeenCalled();
+      expect(outcome).toMatchObject({
+        kind: 'stopped',
+        reasonCode: 'provider_output_unusable',
+      });
+    });
+
     it('fails when the text cannot be persisted', async () => {
       vi.mocked(h.request.persistText).mockRejectedValue(new Error('db'));
       const outcome = await h.service.generate(h.request);

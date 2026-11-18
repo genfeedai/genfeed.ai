@@ -117,6 +117,7 @@ export default function Container({
   const previousModuleChromeRef = useRef<boolean | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const pinnedBarRef = useRef<HTMLDivElement>(null);
+  // use-effect-audit: ignore logs a development-only warning
   useEffect(() => {
     if (process.env.NODE_ENV !== 'development') {
       return;

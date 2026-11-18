@@ -5,6 +5,10 @@ license: MIT
 metadata:
   author: genfeedai
   version: 1.0.0
+  short-description: "Rewrite naive image and video prompts with precise cinematography vocabulary across camera, framing, lighting, editing, and style."
+  tags: cinematography, prompt-engineering, image-generation, video-generation, camera, lighting, framing
+  outputs: text
+  triggers: "cinematic prompt; film language; camera movement; make it cinematic; shot from above; enhance this image prompt; enhance this video prompt; cinematography vocabulary; rewrite with camera terms; high angle shot"
 ---
 
 # Cinematic Prompting

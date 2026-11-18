@@ -11,6 +11,7 @@ import {
   isArticleDeliveryPlatform,
 } from '@genfeedai/contracts/constants';
 import type { ICredential } from '@genfeedai/contracts/interfaces';
+import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { ArticlesService } from '@services/content/articles.service';
@@ -54,7 +55,7 @@ export default function ArticleDeliveryCard({
 }: ArticleDeliveryCardProps) {
   const translate = useTranslations('common.longFormDelivery');
   const { credentials } = useBrand();
-  const { href } = useOrgUrl();
+  const { activeHref } = useOrgUrl();
   const { openConfirm } = useConfirmModal();
   const [deliveringCredentialId, setDeliveringCredentialId] = useState<
     string | null
@@ -85,7 +86,10 @@ export default function ArticleDeliveryCard({
     },
     [article.id, getArticlesService],
   );
-  const { reload, targets } = useSourceDeliveries(loadDeliveries);
+  const { reload, targets } = useSourceDeliveries(
+    `article:${article.id}`,
+    loadDeliveries,
+  );
 
   const hasContent = content.replace(HTML_TAGS_PATTERN, '').trim().length > 0;
   const blockedReason = isDirty
@@ -124,7 +128,7 @@ export default function ArticleDeliveryCard({
   return (
     <Card gap={CardGap.LG}>
       <div className="space-y-1">
-        <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground/60">
+        <h3 className="text-sm font-semibold uppercase tracking-label text-foreground/60">
           {translate('title')}
         </h3>
         <p className="text-sm text-foreground/70">
@@ -141,11 +145,16 @@ export default function ArticleDeliveryCard({
             return (
               <Button
                 key={credential.id}
-                label={translate('publishTo', { account })}
+                ariaLabel={translate('publishTo', { account })}
+                label={translate('publish')}
                 variant={ButtonVariant.SECONDARY}
                 size={ButtonSize.SM}
                 className="w-full justify-start"
-                icon={<Send className="size-4" />}
+                icon={
+                  getPlatformIcon(credential.platform, 'size-4') ?? (
+                    <Send className="size-4" />
+                  )
+                }
                 isLoading={deliveringCredentialId === credential.id}
                 isDisabled={
                   Boolean(blockedReason) || deliveringCredentialId !== null
@@ -153,7 +162,7 @@ export default function ArticleDeliveryCard({
                 onClick={() =>
                   openConfirm({
                     cancelLabel: 'Cancel',
-                    confirmLabel: translate('publishTo', { account }),
+                    confirmLabel: translate('publish'),
                     label: translate('publishConfirmTitle', { account }),
                     message: translate('publishConfirmMessage', { account }),
                     onConfirm: () => deliver(credential),
@@ -174,7 +183,7 @@ export default function ArticleDeliveryCard({
             variant={ButtonVariant.SECONDARY}
             withWrapper={false}
           >
-            <NextLink href={href(APP_ROUTES.SETTINGS.CONNECTED_ACCOUNTS)}>
+            <NextLink href={activeHref(APP_ROUTES.SETTINGS.PROFILE)}>
               <PlugZap className="size-4" />
               {translate('connectAccounts')}
             </NextLink>

@@ -99,9 +99,7 @@ test('Motion reviews exact output cost and retains source on a revision conflict
   await page
     .getByRole('button', { name: 'Review generation quote', exact: true })
     .click();
-  await expect(
-    page.getByRole('button', { name: 'Confirm and start' }),
-  ).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Start' })).toBeDisabled();
   await expect(
     page.getByText(/Vision support for this model is unverified/).first(),
   ).toBeVisible();
@@ -110,7 +108,7 @@ test('Motion reviews exact output cost and retains source on a revision conflict
       name: 'I approve up to 3 credits for this request.',
     })
     .check();
-  await page.getByRole('button', { name: 'Confirm and start' }).click();
+  await page.getByRole('button', { name: 'Start' }).click();
   const failure = page.getByRole('alert').filter({
     hasText: 'This project changed elsewhere.',
   });
@@ -126,9 +124,7 @@ test('Motion reviews exact output cost and retains source on a revision conflict
   await page
     .getByRole('textbox', { name: 'Prompt', exact: true })
     .fill('A changed title');
-  await expect(
-    page.getByRole('button', { name: 'Confirm and start' }),
-  ).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Start' })).toHaveCount(0);
 });
 
 test('Motion lists saved projects beside the prompt and fills the form from a starter card', async ({
@@ -191,9 +187,7 @@ test('Motion lists saved projects beside the prompt and fills the form from a st
     page.getByRole('textbox', { name: 'Prompt', exact: true }),
   ).toContainText('A vertical kinetic typography animation');
   // Picking a starter never asks for a quote.
-  await expect(
-    page.getByRole('button', { name: 'Confirm and start' }),
-  ).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Start' })).toHaveCount(0);
 });
 
 test('Motion opens a project with the agent on the left and the project on the right', async ({

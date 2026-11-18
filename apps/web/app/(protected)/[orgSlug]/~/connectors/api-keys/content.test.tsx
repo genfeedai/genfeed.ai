@@ -1,0 +1,1108 @@
+import { paginatedResponse } from '@app-tests/paginated-response';
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
+import type { IPaginatedResponse } from '@genfeedai/contracts/interfaces';
+import type { AutoPaginationProps } from '@props/ui/navigation/pagination.props';
+import '@testing-library/jest-dom/vitest';
+import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
+import type { QueryClient } from '@tanstack/react-query';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
+import type { ReactNode } from 'react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import SettingsApiKeysPage from './content';
+
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
+const mocks = vi.hoisted(() => ({
+  authedServices: new WeakMap<
+    (token: string) => unknown,
+    () => Promise<unknown>
+  >(),
+  createApiKey: vi.fn(),
+  desktop: false,
+  authEnabled: true,
+  sessionId: 'session-1',
+  routeSlug: 'test-org',
+  confirmedSlug: 'test-org',
+  confirmedId: 'org-1',
+  confirmed: true,
+  status: 'matched',
+  tokenWait: null as Promise<void> | null,
+  cancelPendingRequests: vi.fn(),
+  boundFactory: vi.fn(),
+  findAllApiKeys: vi.fn(),
+  searchParams: new URLSearchParams(),
+  getApiKeysService: vi.fn(),
+  getByokAllProviders: vi.fn(),
+  getOrganizationsService: vi.fn(),
+  isReady: true,
+  isSelfHosted: false,
+  loggerError: vi.fn(),
+  notificationsError: vi.fn(),
+  notificationsSuccess: vi.fn(),
+  organizationId: 'org-1',
+  removeByokProviderKey: vi.fn(),
+  revokeApiKey: vi.fn(),
+  rotateApiKey: vi.fn(),
+  saveByokProviderKey: vi.fn(),
+  validateByokProviderKey: vi.fn(),
+}));
+
+vi.mock('@contexts/user/brand-context/brand-context', () => ({
+  useBrand: () => ({
+    brands: [
+      { id: 'brand-acme', label: 'Acme' },
+      { id: 'brand-zen', label: 'Zen' },
+    ],
+    isReady: mocks.isReady,
+    organizationId: mocks.organizationId,
+  }),
+}));
+
+vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
+  useAuthedService: (factory: (token: string) => unknown) => {
+    const existingService = mocks.authedServices.get(factory);
+
+    if (existingService) {
+      return existingService;
+    }
+
+    const service = async () => {
+      await mocks.tokenWait;
+      return factory('test-token');
+    };
+    mocks.authedServices.set(factory, service);
+    return service;
+  },
+}));
+
+vi.mock('@genfeedai/auth-client', () => ({
+  isBetterAuthEnabled: () => mocks.authEnabled,
+}));
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => ({
+  useAuthIdentity: () => ({
+    sessionId: mocks.sessionId,
+    userId: 'user-1',
+    orgId: mocks.confirmedId,
+  }),
+}));
+vi.mock('next/navigation', () => ({
+  useParams: () => ({ orgSlug: mocks.routeSlug }),
+  usePathname: () => '/acme/~/connectors/api-keys',
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+  useSearchParams: () => mocks.searchParams,
+}));
+
+vi.mock('@ui/navigation/pagination/auto-pagination/AutoPagination', () => ({
+  default: ({ totals }: AutoPaginationProps) => (
+    <nav aria-label="pagination">
+      {totals?.totalDocs} keys / {totals?.totalPages} pages
+    </nav>
+  ),
+}));
+vi.mock(
+  '@genfeedai/contexts/user/organization-context/organization-context',
+  () => ({
+    useRoutedOrganization: () => ({
+      status: mocks.status,
+      isRouteConfirmed: mocks.confirmed,
+      confirmedOrganizationId: mocks.confirmedId,
+      confirmedOrganizationSlug: mocks.confirmedSlug,
+    }),
+  }),
+);
+
+vi.mock('@services/core/logger.service', () => ({
+  logger: {
+    error: mocks.loggerError,
+  },
+}));
+
+vi.mock('@services/core/notifications.service', () => ({
+  NotificationsService: {
+    getInstance: () => ({
+      error: mocks.notificationsError,
+      success: mocks.notificationsSuccess,
+    }),
+  },
+}));
+
+vi.mock('@services/organization/organizations.service', () => ({
+  OrganizationsService: {
+    getInstance: () => ({
+      getByokAllProviders: mocks.getByokAllProviders,
+      removeByokProviderKey: mocks.removeByokProviderKey,
+      saveByokProviderKey: mocks.saveByokProviderKey,
+      validateByokProviderKey: mocks.validateByokProviderKey,
+    }),
+  },
+}));
+
+vi.mock('@services/management/api-keys.service', () => ({
+  ApiKeysService: {
+    forOrganization: (token: string, organizationId: string) => {
+      mocks.boundFactory(token, organizationId);
+      return {
+        cancelPendingRequests: mocks.cancelPendingRequests,
+        createApiKey: mocks.createApiKey,
+        findAllPage: mocks.findAllApiKeys,
+        revokeApiKey: mocks.revokeApiKey,
+        rotateApiKey: mocks.rotateApiKey,
+      };
+    },
+    getInstance: () => ({
+      cancelPendingRequests: mocks.cancelPendingRequests,
+      createApiKey: mocks.createApiKey,
+      findAllPage: mocks.findAllApiKeys,
+      revokeApiKey: mocks.revokeApiKey,
+      rotateApiKey: mocks.rotateApiKey,
+    }),
+  },
+}));
+
+vi.mock('lucide-react', () => ({
+  ChevronDown: () => <span data-testid="hi-chevron-down" />,
+  ChevronRight: () => <span data-testid="hi-chevron-right" />,
+  Clipboard: () => <span data-testid="hi-clipboard-document" />,
+  Plus: () => <span data-testid="hi-plus" />,
+  RefreshCw: () => <span data-testid="hi-arrow-path" />,
+  Trash2: () => <span data-testid="hi-trash" />,
+  TriangleAlert: () => <span data-testid="hi-triangle-alert" />,
+}));
+
+vi.mock('@ui/primitives/select', () => ({
+  SelectField: ({
+    children,
+    label,
+    onChange,
+    value,
+  }: {
+    children: ReactNode;
+    label?: string;
+    onChange?: (event: { target: { value: string } }) => void;
+    value?: string;
+  }) => (
+    <label>
+      {label}
+      <select
+        value={value ?? ''}
+        onChange={(event) => onChange?.({ target: event.target })}
+      >
+        {children}
+      </select>
+    </label>
+  ),
+}));
+
+vi.mock('@ui/card/Card', () => ({
+  default: ({
+    bodyClassName,
+    children,
+    className,
+    description,
+    headerAction,
+    label,
+    ...props
+  }: {
+    bodyClassName?: string;
+    children: ReactNode;
+    className?: string;
+    description?: string;
+    headerAction?: ReactNode;
+    label?: string;
+  } & React.HTMLAttributes<HTMLElement>) => (
+    <section className={className} {...props}>
+      {(label || description || headerAction) && (
+        <div>
+          {label ? <h3>{label}</h3> : null}
+          {description ? <p>{description}</p> : null}
+          {headerAction}
+        </div>
+      )}
+      <div className={bodyClassName}>{children}</div>
+    </section>
+  ),
+}));
+
+function resolveButtonLabel(children: ReactNode): string {
+  if (typeof children === 'string') return children;
+  if (Array.isArray(children)) {
+    return children
+      .map(resolveButtonLabel)
+      .filter((label) => label !== 'Icon Button')
+      .join(' ');
+  }
+  if (children != null) return 'Icon Button';
+  return '';
+}
+
+vi.mock('@ui/primitives/button', () => ({
+  Button: ({
+    asChild,
+    children,
+    className: _className,
+    isDisabled,
+    onClick,
+    variant: _variant,
+    ...buttonProps
+  }: {
+    asChild?: boolean;
+    children?: ReactNode;
+    className?: string;
+    isDisabled?: boolean;
+    onClick?: () => void;
+    variant?: unknown;
+  } & React.ButtonHTMLAttributes<HTMLButtonElement>) => {
+    if (asChild) {
+      return <>{children}</>;
+    }
+
+    return (
+      <button
+        type="button"
+        disabled={isDisabled}
+        onClick={onClick}
+        {...buttonProps}
+      >
+        {resolveButtonLabel(children)}
+      </button>
+    );
+  },
+}));
+
+vi.mock('@ui/primitives/checkbox', () => ({
+  Checkbox: ({
+    isChecked,
+    label,
+    onCheckedChange,
+  }: {
+    isChecked?: boolean;
+    label?: ReactNode;
+    onCheckedChange?: (checked: boolean) => void;
+  }) => (
+    <label>
+      <input
+        type="checkbox"
+        checked={isChecked}
+        onChange={(event) => onCheckedChange?.(event.target.checked)}
+      />
+      {label}
+    </label>
+  ),
+}));
+
+vi.mock('@ui/primitives/input', () => ({
+  Input: (props: React.InputHTMLAttributes<HTMLInputElement>) => (
+    <input {...props} />
+  ),
+}));
+
+vi.mock('@/components/desktop/DesktopLocalProviderSettings', () => ({
+  default: ({ variant }: { variant?: string }) => (
+    <div>Desktop providers: {variant}</div>
+  ),
+}));
+
+vi.mock('@genfeedai/config/deployment', () => ({
+  isDesktopClient: () => mocks.desktop,
+  isSelfHostedDeployment: () => mocks.isSelfHosted,
+}));
+
+function renderPage(client: QueryClient = createTestQueryClient()) {
+  return render(<SettingsApiKeysPage />, {
+    wrapper: queryClientWrapper(client),
+  });
+}
+
+function providerStatuses() {
+  return [
+    {
+      description: 'Hosted OpenAI fallback remains available.',
+      docsUrl: 'https://platform.openai.com',
+      hasKey: false,
+      isEnabled: false,
+      label: 'OpenAI',
+      provider: 'openai',
+      requiresSecret: false,
+    },
+    {
+      description: 'Replicate model access.',
+      docsUrl: 'https://replicate.com',
+      hasKey: true,
+      isEnabled: true,
+      label: 'Replicate',
+      maskedKey: 'r8_****1234',
+      provider: 'replicate',
+      requiresSecret: true,
+    },
+  ];
+}
+
+function productApiKeys() {
+  return [
+    {
+      id: 'key-1',
+      label: 'MCP Key',
+      lastUsedAt: null,
+      scopes: ['videos:read', 'analytics:read'],
+    },
+  ];
+}
+
+describe('SettingsApiKeysPage', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.desktop = false;
+    mocks.authEnabled = true;
+    mocks.sessionId = 'session-1';
+    mocks.routeSlug = mocks.confirmedSlug = 'test-org';
+    mocks.confirmedId = 'org-1';
+    mocks.confirmed = true;
+    mocks.status = 'matched';
+    mocks.tokenWait = null;
+    mocks.isReady = true;
+    mocks.isSelfHosted = false;
+    mocks.organizationId = 'org-1';
+    mocks.getByokAllProviders.mockResolvedValue(providerStatuses());
+    mocks.searchParams = new URLSearchParams();
+    mocks.findAllApiKeys.mockResolvedValue(paginatedResponse(productApiKeys()));
+    mocks.createApiKey.mockResolvedValue({
+      id: 'key-2',
+      key: 'gf_test_created',
+      label: 'MCP Server',
+      scopes: ['videos:read'],
+    });
+    mocks.revokeApiKey.mockResolvedValue({
+      id: 'key-1',
+      isRevoked: true,
+      label: 'MCP Key',
+    });
+    mocks.rotateApiKey.mockResolvedValue({
+      id: 'key-3',
+      key: 'gf_test_rotated',
+      label: 'MCP Key',
+      scopes: ['videos:read'],
+    });
+    mocks.getApiKeysService.mockResolvedValue({
+      createApiKey: mocks.createApiKey,
+      findAllPage: mocks.findAllApiKeys,
+      revokeApiKey: mocks.revokeApiKey,
+      rotateApiKey: mocks.rotateApiKey,
+    });
+    mocks.getOrganizationsService.mockResolvedValue({
+      getByokAllProviders: mocks.getByokAllProviders,
+      removeByokProviderKey: mocks.removeByokProviderKey,
+      saveByokProviderKey: mocks.saveByokProviderKey,
+      validateByokProviderKey: mocks.validateByokProviderKey,
+    });
+    mocks.removeByokProviderKey.mockResolvedValue({});
+    mocks.saveByokProviderKey.mockResolvedValue({});
+    mocks.validateByokProviderKey.mockResolvedValue({ isValid: true });
+  });
+
+  it.each(['selected', 'slug', 'confirmation', 'status'])(
+    'blocks a %s mismatch and loads after reconciliation',
+    async (mismatch) => {
+      if (mismatch === 'selected') mocks.organizationId = 'org-other';
+      if (mismatch === 'slug') mocks.routeSlug = 'other';
+      if (mismatch === 'confirmation') mocks.confirmed = false;
+      if (mismatch === 'status') mocks.status = 'reconciling';
+      const view = renderPage();
+      await act(async () => {});
+      expect(mocks.findAllApiKeys).not.toHaveBeenCalled();
+      expect(
+        screen.queryByRole('button', { name: 'Create Key' }),
+      ).not.toBeInTheDocument();
+      mocks.organizationId = 'org-1';
+      mocks.routeSlug = 'test-org';
+      mocks.confirmed = true;
+      mocks.status = 'matched';
+      view.rerender(<SettingsApiKeysPage />);
+      await screen.findByText('MCP Key');
+      expect(mocks.boundFactory).toHaveBeenCalledWith('test-token', 'org-1');
+    },
+  );
+
+  it('only bypasses confirmation for keyless self-hosting', async () => {
+    mocks.isSelfHosted = true;
+    mocks.confirmed = false;
+    const view = renderPage();
+    await act(async () => {});
+    expect(mocks.findAllApiKeys).not.toHaveBeenCalled();
+    mocks.authEnabled = false;
+    view.rerender(<SettingsApiKeysPage />);
+    await screen.findByText('MCP Key');
+    expect(mocks.boundFactory).not.toHaveBeenCalled();
+  });
+
+  it.each(['loaded', 'deferred'])(
+    'does not cancel shared keyless services after %s acquisition and unmount',
+    async (phase) => {
+      mocks.isSelfHosted = true;
+      mocks.authEnabled = false;
+      mocks.confirmed = false;
+      const token = deferred<void>();
+      if (phase === 'deferred') mocks.tokenWait = token.promise;
+      const view = renderPage();
+      if (phase === 'loaded') await screen.findByText('MCP Key');
+      view.unmount();
+      if (phase === 'deferred') await act(async () => token.resolve());
+      expect(mocks.cancelPendingRequests).not.toHaveBeenCalled();
+      expect(mocks.notificationsError).not.toHaveBeenCalled();
+      expect(mocks.findAllApiKeys).toHaveBeenCalledTimes(
+        phase === 'loaded' ? 1 : 0,
+      );
+    },
+  );
+
+  it('does not dispatch after deferred token acquisition outlives the scope', async () => {
+    const token = deferred<void>();
+    mocks.tokenWait = token.promise;
+    const view = renderPage();
+    fireEvent.click(screen.getByRole('button', { name: 'Create Key' }));
+    mocks.confirmed = false;
+    view.rerender(<SettingsApiKeysPage />);
+    await act(async () => token.resolve());
+    expect(mocks.findAllApiKeys).not.toHaveBeenCalled();
+    expect(mocks.createApiKey).not.toHaveBeenCalled();
+    expect(mocks.notificationsError).not.toHaveBeenCalled();
+  });
+
+  it.each(['initial', 'refresh'])(
+    'ignores stale %s results through A to B to A',
+    async (kind) => {
+      const pending = deferred<IPaginatedResponse<unknown>>();
+      if (kind === 'initial')
+        mocks.findAllApiKeys.mockReturnValueOnce(pending.promise);
+      const view = renderPage();
+      if (kind === 'refresh') {
+        await screen.findByText('MCP Key');
+        mocks.findAllApiKeys.mockReturnValueOnce(pending.promise);
+        fireEvent.click(
+          screen.getByRole('button', { name: 'Refresh Genfeed API keys' }),
+        );
+      }
+      await waitFor(() => expect(mocks.findAllApiKeys).toHaveBeenCalled());
+      mocks.organizationId = mocks.confirmedId = 'org-2';
+      mocks.routeSlug = mocks.confirmedSlug = 'second';
+      view.rerender(<SettingsApiKeysPage />);
+      await screen.findByText('MCP Key');
+      mocks.organizationId = mocks.confirmedId = 'org-1';
+      mocks.routeSlug = mocks.confirmedSlug = 'test-org';
+      view.rerender(<SettingsApiKeysPage />);
+      await screen.findByText('MCP Key');
+      await act(async () =>
+        pending.resolve(
+          paginatedResponse([{ id: 'stale', label: 'STALE SECRET' }]),
+        ),
+      );
+      expect(screen.queryByText('STALE SECRET')).not.toBeInTheDocument();
+      expect(mocks.notificationsError).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(['Create Key', 'Rotate', 'Revoke'])(
+    'makes %s continuations inert after switching, including rejection',
+    async (action) => {
+      const pending = deferred<unknown>();
+      const method =
+        action === 'Create Key'
+          ? mocks.createApiKey
+          : action === 'Rotate'
+            ? mocks.rotateApiKey
+            : mocks.revokeApiKey;
+      method.mockReturnValueOnce(pending.promise);
+      const view = renderPage();
+      await screen.findByText('MCP Key');
+      fireEvent.click(screen.getByRole('button', { name: action }));
+      await waitFor(() => expect(method).toHaveBeenCalled());
+      mocks.organizationId = mocks.confirmedId = 'org-2';
+      mocks.routeSlug = mocks.confirmedSlug = 'second';
+      view.rerender(<SettingsApiKeysPage />);
+      await screen.findByText('MCP Key');
+      const fetchCount = mocks.findAllApiKeys.mock.calls.length;
+      await act(async () =>
+        pending.resolve({ id: 'old', key: 'STALE SECRET' }),
+      );
+      expect(mocks.findAllApiKeys).toHaveBeenCalledTimes(fetchCount);
+      expect(screen.queryByText('STALE SECRET')).not.toBeInTheDocument();
+      expect(mocks.notificationsSuccess).not.toHaveBeenCalled();
+      expect(screen.getByRole('button', { name: action })).toBeEnabled();
+      const failure = deferred<unknown>();
+      method.mockReturnValueOnce(failure.promise);
+      fireEvent.click(screen.getByRole('button', { name: action }));
+      await waitFor(() => expect(method).toHaveBeenCalledTimes(2));
+      view.unmount();
+      await act(async () => failure.reject(new Error('old scope failed')));
+      expect(mocks.notificationsError).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(['Create Key', 'Rotate', 'Revoke'])(
+    'does not dispatch %s after token resolution following identity replacement',
+    async (action) => {
+      const view = renderPage();
+      await screen.findByText('MCP Key');
+      const pending = deferred<void>();
+      mocks.tokenWait = pending.promise;
+      fireEvent.click(screen.getByRole('button', { name: action }));
+      mocks.sessionId = 'session-2';
+      mocks.tokenWait = null;
+      view.rerender(<SettingsApiKeysPage />);
+      await screen.findByText('MCP Key');
+      await act(async () => pending.resolve());
+      expect(mocks.createApiKey).not.toHaveBeenCalled();
+      expect(mocks.rotateApiKey).not.toHaveBeenCalled();
+      expect(mocks.revokeApiKey).not.toHaveBeenCalled();
+      expect(screen.getByRole('button', { name: action })).toBeEnabled();
+    },
+  );
+
+  it.each(['Create Key', 'Rotate', 'Revoke'])(
+    'ignores %s completion after A to B to A without clearing new busy state',
+    async (action) => {
+      const method =
+        action === 'Create Key'
+          ? mocks.createApiKey
+          : action === 'Rotate'
+            ? mocks.rotateApiKey
+            : mocks.revokeApiKey;
+      const old = deferred<unknown>();
+      method.mockReturnValueOnce(old.promise);
+      const view = renderPage();
+      await screen.findByText('MCP Key');
+      fireEvent.click(screen.getByRole('button', { name: action }));
+      await waitFor(() => expect(method).toHaveBeenCalledTimes(1));
+      mocks.organizationId = mocks.confirmedId = 'org-2';
+      mocks.routeSlug = mocks.confirmedSlug = 'second';
+      view.rerender(<SettingsApiKeysPage />);
+      await screen.findByText('MCP Key');
+      mocks.organizationId = mocks.confirmedId = 'org-1';
+      mocks.routeSlug = mocks.confirmedSlug = 'test-org';
+      view.rerender(<SettingsApiKeysPage />);
+      await screen.findByText('MCP Key');
+      const current = deferred<unknown>();
+      method.mockReturnValueOnce(current.promise);
+      fireEvent.click(screen.getByRole('button', { name: action }));
+      await waitFor(() => expect(method).toHaveBeenCalledTimes(2));
+      await act(async () => old.resolve({ id: 'old', key: 'STALE SECRET' }));
+      expect(screen.queryByText('STALE SECRET')).not.toBeInTheDocument();
+      expect(mocks.notificationsSuccess).not.toHaveBeenCalled();
+      expect(
+        screen.getByRole('button', {
+          name: action === 'Create Key' ? 'Creating…' : action,
+        }),
+      ).toBeDisabled();
+      view.unmount();
+      await act(async () =>
+        current.resolve({ id: 'current', key: 'UNMOUNTED SECRET' }),
+      );
+      expect(mocks.notificationsSuccess).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(['initial', 'refresh'])(
+    'suppresses stale %s errors after identity replacement',
+    async (kind) => {
+      const pending = deferred<IPaginatedResponse<unknown>>();
+      if (kind === 'initial')
+        mocks.findAllApiKeys.mockReturnValueOnce(pending.promise);
+      const view = renderPage();
+      if (kind === 'refresh') {
+        await screen.findByText('MCP Key');
+        mocks.findAllApiKeys.mockReturnValueOnce(pending.promise);
+        fireEvent.click(
+          screen.getByRole('button', { name: 'Refresh Genfeed API keys' }),
+        );
+      }
+      await waitFor(() =>
+        expect(mocks.findAllApiKeys).toHaveBeenCalledTimes(
+          kind === 'initial' ? 1 : 2,
+        ),
+      );
+      mocks.sessionId = 'session-2';
+      view.rerender(<SettingsApiKeysPage />);
+      await screen.findByText('MCP Key');
+      await act(async () => pending.reject(new Error('stale request failed')));
+      expect(
+        screen.queryByText("Couldn't load API keys"),
+      ).not.toBeInTheDocument();
+      expect(mocks.notificationsError).not.toHaveBeenCalled();
+      expect(mocks.loggerError).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(['initial', 'Create Key', 'Rotate', 'Revoke'])(
+    'silently handles dispatch cancellation during %s before React reconciliation',
+    async (operation) => {
+      const cancellation = { isCancelled: true, silent: true };
+      if (operation === 'initial')
+        mocks.findAllApiKeys.mockRejectedValueOnce(cancellation);
+      const view = renderPage();
+      if (operation !== 'initial') {
+        await screen.findByText('MCP Key');
+        const method =
+          operation === 'Create Key'
+            ? mocks.createApiKey
+            : operation === 'Rotate'
+              ? mocks.rotateApiKey
+              : mocks.revokeApiKey;
+        method.mockRejectedValueOnce(cancellation);
+        fireEvent.click(screen.getByRole('button', { name: operation }));
+        await waitFor(() => expect(method).toHaveBeenCalled());
+      }
+      await act(async () => {});
+      expect(mocks.notificationsError).not.toHaveBeenCalled();
+      expect(mocks.loggerError).not.toHaveBeenCalled();
+      expect(
+        screen.queryByText("Couldn't load API keys"),
+      ).not.toBeInTheDocument();
+      view.unmount();
+    },
+  );
+
+  it('loads Genfeed API keys without provider tabs', async () => {
+    renderPage();
+
+    expect(await screen.findByText('API keys')).toBeInTheDocument();
+    expect(await screen.findByText('MCP Key')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('tab', { name: 'Genfeed keys' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('tab', { name: 'Provider keys' }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('OpenAI')).not.toBeInTheDocument();
+    expect(mocks.findAllApiKeys).toHaveBeenCalledWith(
+      { limit: ITEMS_PER_PAGE, page: 1 },
+      expect.any(AbortSignal),
+    );
+    expect(
+      screen.getByRole('navigation', { name: 'pagination' }),
+    ).toBeVisible();
+  });
+
+  it('requests the server page named in the URL', async () => {
+    mocks.searchParams = new URLSearchParams('page=3');
+    renderPage();
+
+    await screen.findByText('MCP Key');
+    expect(mocks.findAllApiKeys).toHaveBeenCalledWith(
+      { limit: ITEMS_PER_PAGE, page: 3 },
+      expect.any(AbortSignal),
+    );
+  });
+
+  it('switches scope presets and reflects the active preset', async () => {
+    renderPage();
+
+    await screen.findByText('MCP Key');
+
+    const presets = within(screen.getByRole('group', { name: 'Scope preset' }));
+    const mcp = presets.getByRole('radio', { name: 'MCP' });
+    const read = presets.getByRole('radio', { name: 'Read' });
+    const content = presets.getByRole('radio', { name: 'Content' });
+
+    expect(mcp).toHaveAttribute('aria-checked', 'true');
+    expect(read).toHaveAttribute('aria-checked', 'false');
+
+    fireEvent.click(read);
+    expect(read).toHaveAttribute('aria-checked', 'true');
+    expect(mcp).toHaveAttribute('aria-checked', 'false');
+
+    fireEvent.click(content);
+    expect(content).toHaveAttribute('aria-checked', 'true');
+    expect(read).toHaveAttribute('aria-checked', 'false');
+  });
+
+  it('fills the permission editor from the chosen preset', async () => {
+    renderPage();
+
+    await screen.findByText('MCP Key');
+    const presets = within(screen.getByRole('group', { name: 'Scope preset' }));
+    fireEvent.click(presets.getByRole('radio', { name: 'Read' }));
+
+    expect(
+      within(screen.getByRole('group', { name: 'Videos' })).getByRole('radio', {
+        name: 'Read',
+      }),
+    ).toHaveAttribute('aria-checked', 'true');
+    expect(
+      within(screen.getByRole('group', { name: 'Post drafts' })).getByRole(
+        'radio',
+        { name: 'None' },
+      ),
+    ).toHaveAttribute('aria-checked', 'true');
+  });
+
+  it('offers Brands at None or Read only, never Write', async () => {
+    renderPage();
+
+    await screen.findByText('MCP Key');
+    const brands = within(
+      screen.getByRole('group', { name: 'Brands and brand context' }),
+    );
+
+    expect(
+      brands.getAllByRole('radio').map((radio) => radio.textContent),
+    ).toEqual(['None', 'Read']);
+  });
+
+  it('creates a key with the scopes of the chosen levels', async () => {
+    renderPage();
+
+    await screen.findByText('MCP Key');
+    const presets = within(screen.getByRole('group', { name: 'Scope preset' }));
+    fireEvent.click(presets.getByRole('radio', { name: 'Read' }));
+    fireEvent.click(
+      within(screen.getByRole('group', { name: 'Videos' })).getByRole('radio', {
+        name: 'None',
+      }),
+    );
+    fireEvent.click(
+      within(screen.getByRole('group', { name: 'Images' })).getByRole('radio', {
+        name: 'Write',
+      }),
+    );
+    expect(presets.getByRole('radio', { name: 'Read' })).toHaveAttribute(
+      'aria-checked',
+      'false',
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Create Key' }));
+
+    await waitFor(() => {
+      expect(mocks.createApiKey).toHaveBeenCalledTimes(1);
+    });
+    expect(mocks.createApiKey.mock.calls[0][0].scopes).toEqual([
+      'images:read',
+      'images:create',
+      'images:update',
+      'images:delete',
+      'prompts:read',
+      'articles:read',
+      'posts:read',
+      'credentials:read',
+      'brands:read',
+      'analytics:read',
+      'credits:read',
+    ]);
+  });
+
+  it('limits a new key to the one brand chosen', async () => {
+    renderPage();
+
+    await screen.findByText('MCP Key');
+    fireEvent.change(screen.getByLabelText('Brand access'), {
+      target: { value: 'brand-acme' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Create Key' }));
+
+    await waitFor(() => {
+      expect(mocks.createApiKey).toHaveBeenCalledTimes(1);
+    });
+    expect(mocks.createApiKey.mock.calls[0][0]).toMatchObject({
+      allowedBrandIds: ['brand-acme'],
+      defaultBrandId: 'brand-acme',
+    });
+  });
+
+  it('creates a key for every brand unless one is chosen', async () => {
+    renderPage();
+
+    await screen.findByText('MCP Key');
+    expect(screen.getByLabelText('Brand access')).toHaveValue('');
+    fireEvent.click(screen.getByRole('button', { name: 'Create Key' }));
+
+    await waitFor(() => {
+      expect(mocks.createApiKey).toHaveBeenCalledTimes(1);
+    });
+    expect(mocks.createApiKey.mock.calls[0][0]).not.toHaveProperty(
+      'allowedBrandIds',
+    );
+  });
+
+  it('shows which brand a limited key reaches', async () => {
+    mocks.findAllApiKeys.mockResolvedValue(
+      paginatedResponse([
+        {
+          id: 'key-3',
+          label: 'Zen partner',
+          lastUsedAt: null,
+          metadata: { allowedBrandIds: ['brand-zen'] },
+          scopes: ['images:read'],
+        },
+      ]),
+    );
+    renderPage();
+
+    expect(await screen.findByText('Limited to: Zen')).toBeInTheDocument();
+  });
+
+  it('does not let a stale list overwrite a key created during the initial load', async () => {
+    let resolveInitialLoad: (value: unknown) => void = () => undefined;
+    mocks.findAllApiKeys
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveInitialLoad = resolve;
+          }),
+      )
+      .mockResolvedValueOnce(
+        paginatedResponse([
+          {
+            id: 'key-2',
+            label: 'Created During Load',
+            lastUsedAt: null,
+            scopes: ['videos:read'],
+          },
+        ]),
+      );
+
+    renderPage();
+
+    expect(await screen.findByText('Loading keys…')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Create Key' }));
+
+    await waitFor(() => {
+      expect(mocks.createApiKey).toHaveBeenCalled();
+    });
+    expect(await screen.findByText('gf_test_created')).toBeInTheDocument();
+    expect(await screen.findByText('Created During Load')).toBeInTheDocument();
+
+    await act(async () => resolveInitialLoad(paginatedResponse([])));
+
+    await waitFor(() => {
+      expect(screen.getByText('Created During Load')).toBeInTheDocument();
+    });
+    expect(
+      screen.queryByText('No active Genfeed API keys.'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('creates a key from an empty list using the default name', async () => {
+    mocks.findAllApiKeys.mockResolvedValue(paginatedResponse([]));
+    renderPage();
+
+    expect(
+      await screen.findByText('No active Genfeed API keys.'),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Create Key' }));
+
+    await waitFor(() => {
+      expect(mocks.createApiKey).toHaveBeenCalledWith(
+        expect.objectContaining({
+          label: 'MCP Server',
+          scopes: expect.arrayContaining(['videos:read', 'analytics:read']),
+        }),
+      );
+    });
+    expect(screen.getByText('gf_test_created')).toBeInTheDocument();
+  });
+
+  it('creates a Genfeed API key and shows the plain key once', async () => {
+    renderPage();
+
+    await screen.findByText('MCP Key');
+    fireEvent.change(screen.getByPlaceholderText('MCP Server'), {
+      target: { value: 'Automation MCP' },
+    });
+    fireEvent.change(screen.getByPlaceholderText('Used by local MCP server'), {
+      target: { value: 'Used by CI' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Create Key' }));
+
+    await waitFor(() => {
+      expect(mocks.createApiKey).toHaveBeenCalledWith(
+        expect.objectContaining({
+          description: 'Used by CI',
+          label: 'Automation MCP',
+          scopes: expect.arrayContaining(['videos:read', 'analytics:read']),
+        }),
+      );
+      expect(mocks.notificationsSuccess).toHaveBeenCalledWith(
+        'API key created',
+      );
+    });
+
+    expect(screen.getByText('gf_test_created')).toBeInTheDocument();
+  });
+
+  it.each([
+    ['key', { key: 'gf_test_issued_secret' }],
+    ['token', { key: undefined, token: 'gf_test_issued_secret' }],
+  ])(
+    'never keeps a secret issued as %s in the key list cache',
+    async (_field, issued) => {
+      mocks.createApiKey.mockResolvedValue({
+        id: 'key-issued',
+        label: 'Issued key',
+        ...issued,
+      });
+      const client = createTestQueryClient();
+      renderPage(client);
+      await screen.findByText('MCP Key');
+      mocks.findAllApiKeys.mockReturnValue(new Promise(() => undefined));
+
+      fireEvent.click(screen.getByRole('button', { name: 'Create Key' }));
+
+      expect(
+        await screen.findByText('gf_test_issued_secret'),
+      ).toBeInTheDocument();
+      expect(
+        JSON.stringify(client.getQueriesData({ queryKey: [] })),
+      ).not.toContain('gf_test_issued_secret');
+    },
+  );
+
+  it('keeps Create Key enabled while the key list is loading', async () => {
+    mocks.findAllApiKeys.mockImplementation(() => new Promise(() => undefined));
+    renderPage();
+
+    expect(await screen.findByText('Loading keys…')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Create Key' })).toBeEnabled();
+  });
+
+  it('enables Create Key when the Scale org has no keys', async () => {
+    mocks.findAllApiKeys.mockResolvedValue(paginatedResponse([]));
+    renderPage();
+
+    expect(
+      await screen.findByText('No active Genfeed API keys.'),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Create Key' })).toBeEnabled();
+    expect(
+      screen.getByRole('button', { name: 'Refresh Genfeed API keys' }),
+    ).toBeEnabled();
+  });
+
+  it('shows list-load error UI without disabling Create Key', async () => {
+    mocks.findAllApiKeys.mockRejectedValue(new Error('keys unavailable'));
+    renderPage();
+
+    expect(
+      await screen.findByText("Couldn't load API keys"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Failed to load API keys. You can still create a new key, or refresh the list.',
+      ),
+    ).toBeInTheDocument();
+    expect(mocks.notificationsError).toHaveBeenCalledWith(
+      'Failed to load API keys',
+    );
+    expect(screen.getByRole('button', { name: 'Create Key' })).toBeEnabled();
+    expect(
+      screen.getByRole('button', { name: 'Refresh Genfeed API keys' }),
+    ).toBeEnabled();
+  });
+
+  it('rotates and revokes Genfeed API keys', async () => {
+    renderPage();
+
+    await screen.findByText('MCP Key');
+    fireEvent.click(screen.getByRole('button', { name: 'Rotate' }));
+
+    await waitFor(() => {
+      expect(mocks.rotateApiKey).toHaveBeenCalledWith('key-1');
+      expect(mocks.notificationsSuccess).toHaveBeenCalledWith(
+        'API key rotated',
+      );
+    });
+    expect(screen.getByText('gf_test_rotated')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Revoke' }));
+
+    await waitFor(() => {
+      expect(mocks.revokeApiKey).toHaveBeenCalledWith('key-1');
+      expect(mocks.notificationsSuccess).toHaveBeenCalledWith(
+        'API key revoked',
+      );
+    });
+  });
+  it('takes a revoked key off the list even when the refresh fails', async () => {
+    renderPage();
+    await screen.findByText('MCP Key');
+
+    mocks.findAllApiKeys.mockRejectedValue(new Error('offline'));
+    fireEvent.click(screen.getByRole('button', { name: 'Revoke' }));
+
+    await waitFor(() => {
+      expect(screen.queryByText('MCP Key')).not.toBeInTheDocument();
+    });
+  });
+
+  it('keeps server page totals with the API keys', async () => {
+    mocks.findAllApiKeys.mockResolvedValue(
+      paginatedResponse(productApiKeys(), { totalDocs: 61, totalPages: 5 }),
+    );
+    renderPage();
+    await screen.findByText('MCP Key');
+    expect(
+      screen.getByRole('navigation', { name: 'pagination' }),
+    ).toHaveTextContent('61 keys / 5 pages');
+  });
+
+  it('paints the cached key list at once when coming back', async () => {
+    const client = createTestQueryClient();
+    const firstVisit = renderPage(client);
+    expect(await screen.findByText('MCP Key')).toBeInTheDocument();
+    firstVisit.unmount();
+
+    mocks.findAllApiKeys.mockReturnValue(new Promise(() => undefined));
+    renderPage(client);
+
+    expect(screen.getByText('MCP Key')).toBeInTheDocument();
+    expect(screen.queryByText('Loading keys…')).not.toBeInTheDocument();
+  });
+
+  it('never shows one organization’s keys under another', async () => {
+    const client = createTestQueryClient();
+    const firstVisit = renderPage(client);
+    expect(await screen.findByText('MCP Key')).toBeInTheDocument();
+    firstVisit.unmount();
+
+    mocks.organizationId = mocks.confirmedId = 'org-2';
+    mocks.routeSlug = mocks.confirmedSlug = 'second';
+    mocks.findAllApiKeys.mockReturnValue(new Promise(() => undefined));
+    renderPage(client);
+
+    expect(await screen.findByText('Loading keys…')).toBeInTheDocument();
+    expect(screen.queryByText('MCP Key')).not.toBeInTheDocument();
+  });
+
+  it('never caches a newly issued key: it is gone when coming back', async () => {
+    const client = createTestQueryClient();
+    const firstVisit = renderPage(client);
+    await screen.findByText('MCP Key');
+    fireEvent.click(screen.getByRole('button', { name: 'Create Key' }));
+    expect(await screen.findByText('gf_test_created')).toBeInTheDocument();
+    firstVisit.unmount();
+
+    renderPage(client);
+
+    expect(screen.getByText('MCP Key')).toBeInTheDocument();
+    expect(screen.queryByText('gf_test_created')).not.toBeInTheDocument();
+  });
+});
+
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (error: Error) => void;
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+  return { promise, resolve, reject };
+}

@@ -59,6 +59,7 @@ export function DiscoveryOrgBrandGate({ children }: { children: ReactNode }) {
     [brands, orgSlug, discoveryPath],
   );
 
+  // use-effect-audit: ignore redirects the route in the router
   useEffect(() => {
     if (!isOrgDiscoveryRoute || !isReady || brandChoices.length !== 1) {
       return;
@@ -94,7 +95,7 @@ export function DiscoveryOrgBrandGate({ children }: { children: ReactNode }) {
             size={ButtonSize.SM}
             variant={ButtonVariant.SECONDARY}
           >
-            <Link href={`/${orgSlug}/~/settings/brands`}>Go to brands</Link>
+            <Link href={`/${orgSlug}/~/settings/brands`}>Open Brands</Link>
           </Button>
         }
         className="mx-auto max-w-xl"

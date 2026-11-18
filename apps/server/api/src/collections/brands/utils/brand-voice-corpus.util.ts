@@ -20,14 +20,16 @@ export const VOICE_CORPUS_MAX_PASTED = 50;
 /** Longest pasted sample kept, in characters. */
 export const VOICE_CORPUS_MAX_PASTED_LENGTH = 3000;
 /** Real posts quoted into the drafting prompt. */
-export const VOICE_PROMPT_SAMPLE_LIMIT = 40;
+const VOICE_PROMPT_SAMPLE_LIMIT = 40;
 /** Longest single sample quoted into the prompt. */
 const VOICE_PROMPT_SAMPLE_CHARS = 600;
 
 const ORIGIN_PRIORITY: Record<BrandVoiceSampleOrigin, number> = {
   pasted: 0,
   'own-account': 1,
-  'published-post': 2,
+  'public-profile': 2,
+  'published-post': 3,
+  'brand-kit': 4,
 };
 
 /**
@@ -223,13 +225,13 @@ function isoDate(value: number): string {
 export function summarizeVoiceCorpus(
   samples: readonly IBrandVoiceSample[],
 ): IBrandVoiceCorpusSummary {
-  const originCounts: Record<BrandVoiceSampleOrigin, number> = {
+  const originCounts: IBrandVoiceCorpusSummary['originCounts'] = {
     'own-account': 0,
     pasted: 0,
     'published-post': 0,
   };
   for (const sample of samples) {
-    originCounts[sample.origin] += 1;
+    originCounts[sample.origin] = (originCounts[sample.origin] ?? 0) + 1;
   }
   const platforms = [
     ...new Set(
@@ -333,9 +335,7 @@ export function pickPromptSamples(
 }
 
 /** Numbered, verbatim sample block for the drafting prompt. */
-export function formatPromptSamples(
-  samples: readonly IBrandVoiceSample[],
-): string {
+function formatPromptSamples(samples: readonly IBrandVoiceSample[]): string {
   return samples
     .map((sample, index) => {
       const meta = [

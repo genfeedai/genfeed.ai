@@ -13,7 +13,7 @@
   "heroTitle": "What are we editing?",
   "inspector": "Inspector",
   "loadFailed": "Failed to load projects",
-  "loadFailedTitle": "Projects could not be loaded.",
+  "loadFailedTitle": "Projects could not be loaded",
   "namePlaceholder": "Name your project, or leave it empty to start untitled",
   "nameTooLong": "Keep the name under {max} characters.",
   "new": "New",

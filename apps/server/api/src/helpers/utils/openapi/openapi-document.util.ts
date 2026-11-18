@@ -135,7 +135,7 @@ function createErrorResponse(description: string): ResponseObject {
  * responses; the global exception filters provide one JSON:API error envelope
  * for every route, so documenting 4XX/5XX ranges here matches real behavior.
  */
-export function enrichOpenApiDocument(document: OpenAPIObject): OpenAPIObject {
+function enrichOpenApiDocument(document: OpenAPIObject): OpenAPIObject {
   document.components ??= {};
   document.components.schemas = {
     ...(document.components.schemas ?? {}),

@@ -54,7 +54,7 @@ export default function ConnectSocialFlow() {
         authorizationUrl: credential.url,
         brandId,
         credentialId: credential.id || connectionId,
-        returnTo: orgHref(`${APP_ROUTES.CONNECT}/social`),
+        returnTo: orgHref(APP_ROUTES.CONNECT_SOCIAL),
       });
     } catch (error) {
       logger.error('Social connection failed', error);

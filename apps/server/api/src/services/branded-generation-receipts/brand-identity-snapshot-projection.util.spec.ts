@@ -137,6 +137,10 @@ function font(overrides: Partial<Asset> = {}): Asset {
     residency: null,
     uploadPolicy: null,
     originalFileName: 'Café.woff2',
+    originalFormat: null,
+    originalWidth: null,
+    originalHeight: null,
+    vectorObjectKey: null,
     displayName: 'Café',
     isDeleted: false,
     createdAt: new Date(time),
@@ -195,6 +199,133 @@ describe('strict saved approved identity projection', () => {
     expect(row).toEqual(before);
     expect(JSON.stringify(result)).not.toContain('WRONG');
     expect(result.identity).not.toHaveProperty('positioning');
+  });
+  it('carries the approved video rules into the snapshot generators read', () => {
+    const video: NonNullable<BrandGenerationRulesV1['video']> = {
+      captions: {
+        evidenceIds: ['manual'],
+        position: 'top',
+        style: 'karaoke',
+      },
+      shotRules: [
+        {
+          evidenceIds: ['manual'],
+          id: 'shot-open',
+          match: 'semantic',
+          required: true,
+          text: 'Open on the product',
+        },
+      ],
+      thumbnailRules: [],
+    };
+    const withVideo = { ...rules(), video };
+    const base = revision();
+    const snapshot = projectApprovedBrandIdentitySnapshot(
+      {
+        ...base,
+        content: storedJson({
+          ...storedContentOf(base),
+          generationRules: withVideo,
+        }),
+        generationRulesReviewHash: hashBrandGenerationRulesReviewV1(withVideo),
+      },
+      time,
+    );
+    expect(snapshot.generationRules.video).toEqual(video);
+    expect(snapshot.contentHash).not.toBe(
+      projectApprovedBrandIdentitySnapshot(base, time).contentHash,
+    );
+  });
+  describe('owner-authored video identity (content.video)', () => {
+    const ownerVideo: NonNullable<BrandGenerationRulesV1['video']> = {
+      captions: {
+        evidenceIds: ['owner-video'],
+        position: 'bottom',
+        style: 'bold_word',
+      },
+      shotRules: [
+        {
+          evidenceIds: ['owner-video'],
+          id: 'owner-video-shot-1',
+          match: 'semantic',
+          required: true,
+          text: 'Open on the product',
+        },
+      ],
+      thumbnailRules: [],
+    };
+
+    it('joins the approved rules at generationRules.video with its own evidence entry', () => {
+      const base = revision();
+      const snapshot = projectApprovedBrandIdentitySnapshot(
+        {
+          ...base,
+          content: storedJson({
+            ...storedContentOf(base),
+            video: ownerVideo,
+          }),
+        },
+        time,
+      );
+      expect(snapshot.generationRules.video).toEqual(ownerVideo);
+      expect(
+        snapshot.generationRules.evidence.map((entry) => entry.id),
+      ).toEqual(['manual', 'owner-video']);
+      expect(snapshot.contentHash).not.toBe(
+        projectApprovedBrandIdentitySnapshot(base, time).contentHash,
+      );
+    });
+
+    it('keeps the review hash of the scanned rules unchanged by the owner video', () => {
+      const base = revision();
+      expect(() =>
+        projectApprovedBrandIdentitySnapshot(
+          {
+            ...base,
+            content: storedJson({
+              ...storedContentOf(base),
+              video: ownerVideo,
+            }),
+          },
+          time,
+        ),
+      ).not.toThrow();
+    });
+
+    it('rides on the provisional rules of an approval saved without generation rules', () => {
+      const base = revision();
+      const { generationRules: _omitted, ...withoutRules } =
+        storedContentOf(base);
+      const snapshot = projectApprovedBrandIdentitySnapshot(
+        {
+          ...base,
+          content: storedJson({ ...withoutRules, video: ownerVideo }),
+          generationRulesReviewHash: null,
+        },
+        time,
+      );
+      expect(snapshot.generationRules.video).toEqual(ownerVideo);
+    });
+
+    it('fails integrity when the saved video collides with an existing rule id', () => {
+      const base = revision();
+      const clashing = {
+        ...ownerVideo,
+        shotRules: [{ ...ownerVideo.shotRules[0], id: 'exact' }],
+      };
+      expect(() =>
+        projectApprovedBrandIdentitySnapshot(
+          {
+            ...base,
+            content: storedJson({
+              ...storedContentOf(base),
+              video: clashing,
+            }),
+          },
+          time,
+        ),
+      ).toThrow('brand_identity_integrity_failed');
+    });
   });
   it('hashes deterministically across resolution timestamps without normalizing authored bytes', () => {
     const first = projectApprovedBrandIdentitySnapshot(revision(), time);

@@ -518,9 +518,6 @@ export class UpdatePlatformSettingDto {
   @SwitchProperty('Summarise older agent-thread turns to fit the context.')
   readonly isAgentContextCompressionEnabled?: boolean;
 
-  @SwitchProperty('Real token-by-token agent streaming.')
-  readonly isAgentTokenStreamingEnabled?: boolean;
-
   @SwitchProperty(
     'Provider-backed OCR and placement checks on brand artifacts (#6727). Off keeps them unknown and spends nothing.',
   )
@@ -562,6 +559,11 @@ export class UpdatePlatformSettingDto {
     'Email/password accounts must verify their email before signing in.',
   )
   readonly isEmailVerificationRequired?: boolean;
+
+  @SwitchProperty(
+    'New accounts need an invitation or an approved waitlist entry. Existing users sign in as usual.',
+  )
+  readonly isSignupInviteOnly?: boolean;
 
   @ApiProperty({
     description:

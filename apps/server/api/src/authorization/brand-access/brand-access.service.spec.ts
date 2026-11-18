@@ -231,6 +231,126 @@ describe('live Cloud member brand policy', () => {
     });
   });
 
+  describe('an OAuth session on the /mcp or Claude connector endpoint', () => {
+    const resource = 'https://mcp.genfeed.ai/mcp';
+    const session = (overrides: Record<string, unknown> = {}) => ({
+      kind: 'mcp-oauth-session',
+      mcpAccessMode: 'standard',
+      resource,
+      ...overrides,
+    });
+    const keyActor = {
+      ...actor,
+      isApiKey: true,
+      apiKeyId: 'key-a',
+      scopes: ['read', 'write'],
+    };
+
+    const claudeSession = session({
+      mcpAccessMode: 'claude',
+      resource: `${resource}/claude`,
+    });
+
+    it.each([
+      [MemberRole.OWNER, 'standard', session()],
+      [MemberRole.ADMIN, 'standard', session()],
+      [MemberRole.OWNER, 'Claude connector', claudeSession],
+      [MemberRole.ADMIN, 'Claude connector', claudeSession],
+    ])(
+      'lists every brand to an %s on a %s session without the admin scope, with the role still capped',
+      async (role, _endpoint, metadata) => {
+        const f = fixture();
+        f.member.role.key = role;
+        f.member.brands = [];
+        f.findKey.mockResolvedValue({
+          scopes: ['read', 'write'],
+          metadata,
+        });
+        const resolved = await f.service.resolve(keyActor);
+        expect(resolved.brandIds).toBeUndefined();
+        expect(resolved.role).toBe(MemberRole.USER);
+        await f.service.assert(keyActor, 'brand-b');
+        await expect(
+          f.service.assert(keyActor, 'foreign-brand'),
+        ).rejects.toThrow('Brand access denied');
+      },
+    );
+
+    it.each([
+      MemberRole.CREATOR,
+      MemberRole.ANALYTICS,
+      MemberRole.USER,
+      MemberRole.SUPPORT,
+    ])('keeps a %s to the brands assigned to them', async (role) => {
+      const f = fixture();
+      f.member.role.key = role;
+      f.findKey.mockResolvedValue({
+        scopes: ['read', 'write'],
+        metadata: claudeSession,
+      });
+      expect((await f.service.resolve(keyActor)).brandIds).toEqual(['brand-a']);
+      await expect(f.service.assert(keyActor, 'brand-b')).rejects.toThrow(
+        'Brand access denied',
+      );
+    });
+
+    it('drops the wider view the moment the member is demoted', async () => {
+      const f = fixture();
+      f.member.role.key = MemberRole.OWNER;
+      f.member.brands = [];
+      f.findKey.mockResolvedValue({
+        scopes: ['read', 'write'],
+        metadata: session(),
+      });
+      await f.service.assert(keyActor, 'brand-b');
+      f.member.role.key = MemberRole.USER;
+      await expect(f.service.assert(keyActor, 'brand-b')).rejects.toThrow(
+        'Brand access denied',
+      );
+    });
+
+    it('still honours a brand limit chosen at consent', async () => {
+      const f = fixture();
+      f.member.role.key = MemberRole.OWNER;
+      f.member.brands = [];
+      f.findKey.mockResolvedValue({
+        scopes: ['read', 'write'],
+        metadata: { ...claudeSession, allowedBrandIds: ['brand-a'] },
+      });
+      expect((await f.service.resolve(keyActor)).brandIds).toEqual(['brand-a']);
+      await expect(f.service.assert(keyActor, 'brand-b')).rejects.toThrow(
+        'Brand access denied',
+      );
+    });
+
+    it.each([
+      ['a session recording no resource', { kind: 'mcp-oauth-session' }],
+      ['a session whose resource is not a URL', session({ resource: 'mcp' })],
+      [
+        'a session recording an unknown access mode',
+        session({ mcpAccessMode: 'owner' }),
+      ],
+      [
+        'an admin endpoint session',
+        session({ mcpAccessMode: 'admin', resource: `${resource}/admin` }),
+      ],
+      ['a manual API key', null],
+      ['another kind of key', { kind: 'manual', resource }],
+    ])('does not widen %s', async (_label, metadata) => {
+      const f = fixture();
+      f.member.role.key = MemberRole.OWNER;
+      f.member.brands = [];
+      f.findKey.mockResolvedValue({
+        scopes: ['read', 'write'],
+        metadata,
+      });
+      expect((await f.service.resolve(keyActor)).brandIds).toEqual([]);
+      await expect(f.service.assert(keyActor, 'brand-b')).rejects.toThrow(
+        'Brand access denied',
+      );
+    });
+  });
+
   it('requires key identity and uses the transaction for key admission', async () => {
     const f = fixture();
     await expect(

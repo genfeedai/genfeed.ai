@@ -19,7 +19,7 @@ export interface RunIdempotentOptions {
  * The lock automatically expires after IDEMPOTENCY_TTL_SECONDS so stale
  * locks from crashed processes do not block retries indefinitely.
  */
-export async function assertIdempotent(
+async function assertIdempotent(
   cacheService: CacheService,
   key: string,
   ttlSeconds: number = IDEMPOTENCY_TTL_SECONDS,
@@ -40,7 +40,7 @@ export async function assertIdempotent(
  * Do NOT call on success — the lock should remain held for the full TTL
  * to prevent re-submission of completed operations.
  */
-export async function releaseIdempotencyKey(
+async function releaseIdempotencyKey(
   cacheService: CacheService,
   key: string,
 ): Promise<void> {

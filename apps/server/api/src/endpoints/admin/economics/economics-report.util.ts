@@ -80,7 +80,7 @@ export function minorToUsd(minor: number): number {
   return Number((minor / MINOR_UNITS_PER_USD).toFixed(2));
 }
 
-export function creditsToUsd(credits: number): number {
+function creditsToUsd(credits: number): number {
   return Number((credits * AGENT_CREDIT_USD).toFixed(6));
 }
 
@@ -208,7 +208,7 @@ const OPERATION_BY_MEDIA_CATEGORY: Record<string, EconomicsOperation> = {
   VOICE: 'voice',
 };
 
-export const ECONOMICS_OPERATIONS: readonly EconomicsOperation[] = [
+const ECONOMICS_OPERATIONS: readonly EconomicsOperation[] = [
   'agent_chat',
   'image',
   'video',

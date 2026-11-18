@@ -106,6 +106,7 @@ export default function TerminalWorkspace({ onDone }: WorkspaceProps) {
     setBrandLabel(brands.find((brand) => brand.id === activeBrand)?.label ?? activeBrand);
   }
 
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     const controller = new AbortController();
     const initialize = async () => {

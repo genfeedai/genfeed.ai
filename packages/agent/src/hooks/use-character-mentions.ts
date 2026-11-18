@@ -11,6 +11,7 @@ export function useCharacterMentions(apiService: AgentApiService | null): {
   const [isLoading, setIsLoading] = useState(true);
 
   const [revision, setRevision] = useState(0);
+  // use-effect-audit: ignore subscribes to the characters changed event
   useEffect(() => {
     const refresh = () => setRevision((value) => value + 1);
     window.addEventListener(CHARACTERS_CHANGED_EVENT, refresh);

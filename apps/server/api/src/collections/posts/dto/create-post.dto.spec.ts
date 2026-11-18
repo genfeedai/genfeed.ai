@@ -27,6 +27,23 @@ describe('CreatePostDto', () => {
     expect(await validate(dto)).toHaveLength(0);
   });
 
+  it('accepts per-channel target settings and refuses a non-object', async () => {
+    const dto = Object.assign(new CreatePostDto(), {
+      platform: Platform.SLACK,
+      description: 'Draft',
+      ingredients: [],
+      label: '',
+      targetSettings: { channelId: 'C0123456789' },
+    });
+    expect(await validate(dto)).toHaveLength(0);
+
+    const invalid = Object.assign(new CreatePostDto(), {
+      ...dto,
+      targetSettings: 'C0123456789',
+    });
+    expect(await validate(invalid)).toHaveLength(1);
+  });
+
   describe('validation', () => {
     it('should create an instance', () => {
       const dto = new CreatePostDto();

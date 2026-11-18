@@ -155,11 +155,12 @@ describe('OutreachCampaignsList', () => {
     render(<OutreachCampaignsList />, { wrapper: queryClientWrapper() });
 
     expect(
-      screen.getByRole('status', { name: 'Loading Success Rate' }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('status', { name: 'Loading Active' }),
-    ).toBeInTheDocument();
+      screen.getByText('Success Rate').closest('[aria-busy]'),
+    ).toHaveAttribute('aria-busy', 'true');
+    expect(screen.getByText('Active').closest('[aria-busy]')).toHaveAttribute(
+      'aria-busy',
+      'true',
+    );
   });
 
   it('paints the cached sequences and KPIs at once when coming back', async () => {
@@ -190,7 +191,7 @@ describe('OutreachCampaignsList', () => {
     expect(screen.getByText('Cached sequence')).toBeInTheDocument();
     expect(screen.getByText('75%')).toBeInTheDocument();
     expect(
-      screen.queryByRole('status', { name: 'Loading Success Rate' }),
-    ).not.toBeInTheDocument();
+      screen.getByText('Success Rate').closest('[aria-busy="true"]'),
+    ).toBeNull();
   });
 });

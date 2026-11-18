@@ -93,8 +93,6 @@ export interface IPlatformFeatureSettings {
   untrustedContentMinConfidence: number;
   /** Summarise older agent-thread turns to fit the context window. */
   isAgentContextCompressionEnabled: boolean;
-  /** Real token-by-token agent streaming instead of simulated word splits. */
-  isAgentTokenStreamingEnabled: boolean;
   /**
    * Provider-backed reading of brand artifacts (OCR, logo and product placement, #6727).
    * Off by default: the checks stay `unknown` and no provider is called or paid.
@@ -125,6 +123,12 @@ export interface IPlatformFeatureSettings {
    * value is kept but sign-in is never blocked.
    */
   isEmailVerificationRequired: boolean;
+  /**
+   * Closed signup: a new account needs an invitation, an approved waitlist
+   * entry or a pre-provisioned warm-up user. Existing users sign in as usual.
+   * The first account of an empty install is always allowed.
+   */
+  isSignupInviteOnly: boolean;
   /** Module and feature flags (#5468), edited from Admin → Flags. */
   flags: IPlatformFlags;
   /**

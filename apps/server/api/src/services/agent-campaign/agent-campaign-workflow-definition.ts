@@ -4,6 +4,7 @@ import type {
 } from '@api/collections/workflows/schemas/workflow.schema';
 import { requestActionNode } from '@api/collections/workflows/services/workflow-definition-nodes';
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-definition';
+import { SystemWorkflowRetention } from '@api/collections/workflows/workflow-execution-retention.contract';
 import { createGenfeedActionNode } from '@genfeedai/actions';
 
 export const AGENT_CAMPAIGN_WORKFLOW_IDS = {
@@ -58,6 +59,7 @@ function definition(
 ): SystemWorkflowGraphDefinition {
   return {
     canonicalId,
+    retention: SystemWorkflowRetention.BACKGROUND,
     ...(requiresRequest ? { organizationModule: 'automation' as const } : {}),
     definition: {
       edges,
@@ -294,7 +296,7 @@ export function buildAgentCampaignTriggerSweepWorkflowDefinition(): SystemWorkfl
   );
 }
 
-export function buildAgentCampaignMemoryWorkflowDefinition(): SystemWorkflowGraphDefinition {
+function buildAgentCampaignMemoryWorkflowDefinition(): SystemWorkflowGraphDefinition {
   const load = requestActionNode(
     AGENT_CAMPAIGN_ACTION_IDS.MEMORY_LOAD_WINNERS,
     'load-winners',
@@ -428,7 +430,7 @@ export function buildAgentCampaignTriggerWorkflowDefinition(): SystemWorkflowGra
   );
 }
 
-export function buildAgentCampaignTriggerGroupWorkflowDefinition(): SystemWorkflowGraphDefinition {
+function buildAgentCampaignTriggerGroupWorkflowDefinition(): SystemWorkflowGraphDefinition {
   const plan = requestActionNode(
     AGENT_CAMPAIGN_ACTION_IDS.TRIGGERS_PLAN_DISPATCHES,
     'plan-trigger-dispatches',
@@ -480,7 +482,7 @@ export function buildAgentCampaignTriggerGroupWorkflowDefinition(): SystemWorkfl
   );
 }
 
-export function buildAgentCampaignTriggerRunWorkflowDefinition(): SystemWorkflowGraphDefinition {
+function buildAgentCampaignTriggerRunWorkflowDefinition(): SystemWorkflowGraphDefinition {
   const dispatch = requestActionNode(
     AGENT_CAMPAIGN_ACTION_IDS.TRIGGERS_DISPATCH_RUN,
     'dispatch-trigger-run',
@@ -532,15 +534,3 @@ export const AGENT_CAMPAIGN_WORKFLOW_DEFINITIONS = [
   buildAgentCampaignDueOrchestrationWorkflowDefinition(),
   buildAgentCampaignTriggerSweepWorkflowDefinition(),
 ] satisfies SystemWorkflowGraphDefinition[];
-
-export function findAgentCampaignWorkflowDefinition(
-  canonicalId: string,
-): SystemWorkflowGraphDefinition {
-  const workflow = AGENT_CAMPAIGN_WORKFLOW_DEFINITIONS.find(
-    (definition) => definition.canonicalId === canonicalId,
-  );
-  if (!workflow) {
-    throw new Error(`Unknown agent campaign workflow: ${canonicalId}`);
-  }
-  return workflow;
-}

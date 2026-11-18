@@ -11,7 +11,7 @@ export default function AgentClientExamples({
   return (
     <section className="container mx-auto px-6 py-12 sm:py-20">
       <div className="mb-10 max-w-2xl">
-        <p className="mb-4 text-xs font-semibold uppercase tracking-widest text-foreground/70">
+        <p className="mb-4 text-xs font-semibold uppercase tracking-label text-foreground/70">
           02 / From a brief to something real
         </p>
         <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">
@@ -30,14 +30,14 @@ export default function AgentClientExamples({
               'campaign',
               'A campaign with your visual identity',
               isClaude
-                ? 'Write a product-image brief from my brand guidelines and give me the link to create it in Genfeed Studio.'
+                ? 'Write a product-image brief from my brand guidelines that I can run on the full Genfeed connector.'
                 : 'Generate product imagery from my brand guidelines and prepare three creative directions for review.',
             ],
             [
               'creator',
               'A story built for the screen',
               isClaude
-                ? 'Turn my launch brief into a video script and a shot list for creation in Genfeed Studio.'
+                ? 'Turn my launch brief into a video script and a shot list to run on the full Genfeed connector.'
                 : 'Turn my launch brief into a vertical video concept, with a script and matching visuals.',
             ],
           ] as const
@@ -58,7 +58,7 @@ export default function AgentClientExamples({
             <figcaption className="p-6">
               <p className="text-xs text-foreground/70">
                 {isClaude
-                  ? 'Illustrative output created in Genfeed Studio'
+                  ? 'Illustrative output from the full Genfeed connector'
                   : 'Illustrative generated output'}
               </p>
               <h3 className="mt-2 text-xl font-semibold">{title}</h3>

@@ -356,16 +356,6 @@ export default function PlatformFeatureSettingsFields({
               update('isAgentContextCompressionEnabled', isChecked)
             }
           />
-          <Switch
-            aria-label={translate('agent.tokenStreamingLabel')}
-            label={translate('agent.tokenStreamingLabel')}
-            description={translate('agent.tokenStreamingHelp')}
-            isChecked={settings.isAgentTokenStreamingEnabled}
-            isDisabled={isDisabled}
-            onCheckedChange={(isChecked) =>
-              update('isAgentTokenStreamingEnabled', isChecked)
-            }
-          />
         </PlatformSettingsGroup>
         <PlatformSettingsGroup title={translate('agent.contextHeading')}>
           {nullableTextField(

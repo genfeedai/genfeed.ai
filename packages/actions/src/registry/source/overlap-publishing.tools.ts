@@ -6,6 +6,8 @@ export const OVERLAP_PUBLISHING_TOOLS: SourceTool[] = [
     creditCost: TURBO_RUN_CAPTION_BASE_CREDITS,
     description:
       'Repurpose an existing post into a draft for another channel. Deterministic mode adapts the caption instantly through the channel capability catalog (length, hashtags, links, media compatibility); agent mode rewrites it with the content engine and lands the draft in the review queue. Never publishes or schedules anything.',
+    mcpDescription:
+      'Create another-channel draft from a post. deterministic instantly adapts caption length/hashtags/links/media via channel rules; agent rewrites via content engine into review queue. Never publishes/schedules.',
     name: 'repurpose_post',
     parameters: {
       properties: {

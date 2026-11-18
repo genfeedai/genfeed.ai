@@ -361,7 +361,10 @@ export function buildLlmsFull(
   s.push('');
   s.push('Key capabilities:');
   s.push(
-    '- **AI Studio**: Generate content with models from Google, OpenAI, Black Forest Labs, Kling, and more',
+    '- **Your agent**: Connect Claude, ChatGPT, Codex, Cursor or any MCP client; the dashboard is where you review, publish and track',
+  );
+  s.push(
+    '- **Generation**: Generate content with models from Google, OpenAI, Black Forest Labs, Kling, and more',
   );
   s.push(
     '- **Multi-platform publishing**: Review and publish to supported channels connected in Genfeed',
@@ -553,7 +556,7 @@ export function buildLlmsFull(
   s.push('## Integrations');
   s.push('');
   s.push(
-    'Genfeed connects to 19+ platforms for publishing, analytics, and audience growth.',
+    `Genfeed connects to ${integrations.length} platforms: social networks, blogs, newsletters and chat apps.`,
   );
   s.push('');
 

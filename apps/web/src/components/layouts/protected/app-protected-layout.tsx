@@ -14,7 +14,6 @@ import {
 } from '@contexts/ui/breadcrumb-leaf-context';
 import { ContextSidebarProvider } from '@contexts/ui/context-sidebar-context';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { hasOrganizationBillingHint } from '@genfeedai/config/license';
 import type { AppContext } from '@genfeedai/contracts/interfaces';
 import type { LayoutProps } from '@props/layout/layout.props';
 import type { ProtectedBootstrapData } from '@props/layout/protected-bootstrap.props';
@@ -26,7 +25,6 @@ import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Suspense, useEffect, useMemo, useRef } from 'react';
 import AnalyticsOrganizationSync from '@/components/analytics/AnalyticsOrganizationSync';
-import LowCreditsBanner from '@/components/banners/low-credits/LowCreditsBanner';
 import ProductionDataBanner from '@/components/banners/production-data/ProductionDataBanner';
 import { CommandPaletteInitializer } from '@/components/command-palette/command-palette-initializer/CommandPaletteInitializer';
 import OnboardingGuard from '@/components/guards/onboarding/OnboardingGuard';
@@ -142,13 +140,12 @@ function AppLayoutWithDynamicMenu({
   const {
     isAdminRoute,
     isAnalyticsRoute,
+    isConnectorsRoute,
     isConversationRoute,
     isEditorCanvasRoute,
-    isLibraryLandingRoute,
     isLibraryRoute,
     isMessagesRoute,
     isOrgRoute,
-    suppressShellLowCreditsBanner,
     isDiscoveryRoute,
     isSettingsRoute,
     isStudioRoute,
@@ -159,8 +156,10 @@ function AppLayoutWithDynamicMenu({
     settingsScope,
     agentApiService,
     threads,
+    activeThreadId,
     adminMenuItems,
     analyticsMenuItems,
+    connectorsMenuItems,
     libraryMenuItems,
     menuItems,
     orgMenuItems,
@@ -173,7 +172,6 @@ function AppLayoutWithDynamicMenu({
     messagesMenuItems,
     isPublishingRoute,
     handleNavigate,
-    isLowCreditsBannerEnabled,
     isDesktopShell,
     isUniversalWorkspaceShell,
     workspaceShellRoute,
@@ -185,6 +183,7 @@ function AppLayoutWithDynamicMenu({
     isUniversalWorkspaceShell && agentApiService !== null;
   const hasCapturedPerformanceRef = useRef(false);
 
+  // use-effect-audit: ignore reports to analytics, an external system
   useEffect(() => {
     if (
       hasCapturedPerformanceRef.current ||
@@ -266,6 +265,7 @@ function AppLayoutWithDynamicMenu({
         currentApp={currentApp}
         isAdminRoute={isAdminRoute}
         isAnalyticsRoute={isAnalyticsRoute}
+        isConnectorsRoute={isConnectorsRoute}
         isLibraryRoute={isLibraryRoute}
         isMessagesRoute={isMessagesRoute}
         isOrgRoute={isOrgRoute}
@@ -277,6 +277,7 @@ function AppLayoutWithDynamicMenu({
         settingsScope={settingsScope}
         adminMenuItems={adminMenuItems}
         analyticsMenuItems={analyticsMenuItems}
+        connectorsMenuItems={connectorsMenuItems}
         libraryMenuItems={libraryMenuItems}
         menuItems={menuItems}
         orgMenuItems={orgMenuItems}
@@ -293,10 +294,12 @@ function AppLayoutWithDynamicMenu({
   }, [
     adminMenuItems,
     analyticsMenuItems,
+    connectorsMenuItems,
     currentApp,
     activeNavPanel,
     isAdminRoute,
     isAnalyticsRoute,
+    isConnectorsRoute,
     isConversationRoute,
     isEditorCanvasRoute,
     isLibraryRoute,
@@ -350,26 +353,19 @@ function AppLayoutWithDynamicMenu({
               ? messagesMenuItems
               : isAnalyticsRoute
                 ? analyticsMenuItems
-                : isDiscoveryRoute
-                  ? discoveryMenuItems
-                  : isOrgRoute
-                    ? orgMenuItems
-                    : menuItems;
-  const lowCreditsBanner =
-    hasOrganizationBillingHint() &&
-    !suppressShellLowCreditsBanner &&
-    !isLibraryLandingRoute ? (
-      <LowCreditsBanner
-        isLowBalanceWarningEnabled={isLowCreditsBannerEnabled}
-      />
-    ) : null;
+                : isConnectorsRoute
+                  ? connectorsMenuItems
+                  : isDiscoveryRoute
+                    ? discoveryMenuItems
+                    : isOrgRoute
+                      ? orgMenuItems
+                      : menuItems;
   const shellBanner = (
     <>
       {/* Unconditional: the "Viewing as {user}" state must survive every
           route the impersonated session can reach, not a subset. */}
       <ImpersonationBanner />
       {isDesktopShell ? null : <ProductionDataBanner />}
-      {lowCreditsBanner}
     </>
   );
   // Brand settings: Settings / <brand label> / <page>.
@@ -445,6 +441,20 @@ function AppLayoutWithDynamicMenu({
             leafLabel: truncateBreadcrumbLabel(title, 25),
           };
         }
+      } else if (
+        normalizeProtectedPathname(rawPathname ?? '') === '/agent' &&
+        activeThreadId
+      ) {
+        // The master thread lives at /agent with no id in the path.
+        const title = threads
+          .find((item) => item.id === activeThreadId)
+          ?.title?.trim();
+        if (title) {
+          return {
+            ...breadcrumb,
+            leafLabel: truncateBreadcrumbLabel(title, 25),
+          };
+        }
       }
     }
     const storyboardRunId = extractStoryboardRunId(rawPathname);
@@ -463,6 +473,7 @@ function AppLayoutWithDynamicMenu({
     rawPathname,
     selectedBrand?.label,
     threads,
+    activeThreadId,
     workspaceShellRoute,
   ]);
 

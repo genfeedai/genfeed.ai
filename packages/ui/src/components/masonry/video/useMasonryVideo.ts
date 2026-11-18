@@ -68,40 +68,22 @@ export function useMasonryVideo({
     Boolean(isFleetNsfwSensitive) && !settings?.isFleetNsfwVisible;
   const isInteractionBlocked = isUnavailable || isFleetNsfwLocked;
 
-  const placeholderImageUrl = useMemo(() => {
-    if (isProcessing && referenceImageUrl && referenceImageUrl !== '') {
-      return referenceImageUrl;
-    }
-    if (ingredientUrl && ingredientUrl !== '') {
-      return ingredientUrl;
-    }
-    return referenceImageUrl && referenceImageUrl !== ''
-      ? referenceImageUrl
-      : `${EnvironmentService.assetsEndpoint}/placeholders/portrait.jpg`;
-  }, [ingredientUrl, referenceImageUrl, isProcessing]);
-
-  // A real poster (not the generic placeholder) lets the tile skip loading
-  // the video until it is played. The Video model's thumbnailUrl getter always
-  // returns a placeholder, so that URL does not count: without a real poster
-  // the video itself must load, or the player stays at opacity 0.
+  // A real poster is the video's own thumbnail or its first reference image.
+  // The generic placeholder is another asset's picture to anyone looking at
+  // the tile, so it is never painted as a poster: a tile with no poster shows
+  // a neutral block until the video itself has a frame to show. The Video
+  // model's thumbnailUrl getter always returns that placeholder, so it does
+  // not count.
   const isPlaceholderThumbnail = Boolean(
     explicitThumbnail?.startsWith(
       `${EnvironmentService.assetsEndpoint}/placeholders/`,
     ),
   );
-  const hasPosterThumbnail =
-    (Boolean(explicitThumbnail) && !isPlaceholderThumbnail) ||
-    Boolean(referenceImageUrl);
-
-  const thumbnailImageUrl = useMemo(() => {
-    if (explicitThumbnail && explicitThumbnail !== '') {
-      return explicitThumbnail;
-    }
-
-    return referenceImageUrl && referenceImageUrl !== ''
-      ? referenceImageUrl
-      : `${EnvironmentService.assetsEndpoint}/placeholders/portrait.jpg`;
-  }, [explicitThumbnail, referenceImageUrl]);
+  const posterImageUrl =
+    (explicitThumbnail && !isPlaceholderThumbnail ? explicitThumbnail : null) ||
+    referenceImageUrl ||
+    null;
+  const hasPosterThumbnail = posterImageUrl !== null;
 
   const metadata =
     typeof video.metadata === 'object' && video.metadata
@@ -112,6 +94,7 @@ export function useMasonryVideo({
   const handleDownload = useIngredientDownloadHandler();
 
   // Video playback control
+  // use-effect-audit: ignore controls a video element and its play timer
   useEffect(() => {
     if (!isHoveringRef.current) {
       stopAndResetVideo(videoRef);
@@ -125,6 +108,7 @@ export function useMasonryVideo({
   }, []);
 
   // Stop video when leaving container
+  // use-effect-audit: ignore frame loop outside React
   useEffect(() => {
     if (isContainerHovered) {
       return;
@@ -279,9 +263,8 @@ export function useMasonryVideo({
     isUnavailable,
     isFleetNsfwLocked,
     isInteractionBlocked,
-    placeholderImageUrl,
     hasPosterThumbnail,
-    thumbnailImageUrl,
+    posterImageUrl,
     ingredientUrl,
     metadata,
     metadataLabel,

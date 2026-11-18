@@ -3,9 +3,6 @@ import { dirname, join, relative } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const appRouterDirs = ['apps/web/app', 'apps/marketing/app'] as const;
-const routeLoadingShells = [
-  'apps/marketing/app/(content)/loading.tsx',
-] as const;
 
 function findRepoRoot(startDirectory: string): string {
   let currentDirectory = startDirectory;
@@ -69,16 +66,7 @@ describe('route loading shell coverage', () => {
       ).map((route) => join(appRouterDir, route));
     });
 
-    expect(routeLoadingFiles.sort()).toEqual([...routeLoadingShells].sort());
-  });
-
-  it.each(routeLoadingShells)('reuses LazyLoadingFallback in %s', (route) => {
-    const source = readFileSync(join(repoRoot, route), 'utf8');
-
-    expect(source).toContain(
-      "import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback'",
-    );
-    expect(source).toContain('return <LazyLoadingFallback variant="grid" />;');
+    expect(routeLoadingFiles).toEqual([]);
   });
 
   it('keeps full-page skeletons out of protected Suspense boundaries', () => {

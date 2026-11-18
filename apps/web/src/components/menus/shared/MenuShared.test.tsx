@@ -15,12 +15,14 @@ vi.mock('next-intl', async () => {
 });
 
 const {
+  mockPrefetch,
   mockPush,
   mockEnterNestedGroup,
   mockExitNestedGroup,
   mockBrandState,
   mockLogoUrl,
   mockPathname,
+  mockUnreadActivityCount,
   mockSearchParams,
 } = vi.hoisted(() => ({
   mockBrandState: {
@@ -30,7 +32,9 @@ const {
   mockExitNestedGroup: vi.fn(),
   mockLogoUrl: { value: '' },
   mockPathname: { value: '/settings/personal' },
+  mockUnreadActivityCount: { value: 0 },
   mockSearchParams: { value: '' },
+  mockPrefetch: vi.fn(),
   mockPush: vi.fn(),
 }));
 const originalLocation = window.location;
@@ -123,7 +127,7 @@ vi.mock('next/navigation', async () => {
       orgSlug: 'acme',
     }),
     usePathname: () => mockPathname.value,
-    useRouter: () => ({ push: mockPush }),
+    useRouter: () => ({ prefetch: mockPrefetch, push: mockPush }),
     useSearchParams: () => new URLSearchParams(mockSearchParams.value),
   };
 });
@@ -134,6 +138,10 @@ vi.mock('@genfeedai/hooks/ui/use-theme-logo/use-theme-logo', () => ({
 
 vi.mock('@/hooks/data/tasks/use-workspace-inbox-count', () => ({
   useWorkspaceInboxCount: () => 2,
+}));
+
+vi.mock('@/hooks/data/activities/use-unread-activity-count', () => ({
+  useUnreadActivityCount: () => mockUnreadActivityCount.value,
 }));
 
 vi.mock('@/components/menus/item/MenuItem', () => ({
@@ -175,9 +183,11 @@ describe('MenuShared', () => {
     mockEnterNestedGroup.mockClear();
     mockExitNestedGroup.mockClear();
     mockPush.mockClear();
+    mockPrefetch.mockClear();
     mockBrandState.selectedBrand = null;
     mockLogoUrl.value = '';
     mockPathname.value = '/settings/personal';
+    mockUnreadActivityCount.value = 0;
     mockSearchParams.value = '';
     process.env.NEXT_PUBLIC_GENFEED_CLOUD = 'true';
     const storage = new Map<string, string>();
@@ -320,6 +330,31 @@ describe('MenuShared', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('keeps every sidebar destination prepared, including the back link and secondary items', async () => {
+    mockPathname.value = '/acme/moonrise-studio/workspace/overview';
+    render(
+      <MenuShared
+        backHref="/settings/personal"
+        config={{
+          logoHref: '/',
+          items: [
+            { href: '/workspace/overview', label: 'Dashboard' },
+            { href: '/workspace/inbox', isComingSoon: true, label: 'Inbox' },
+          ],
+          secondaryItems: [{ href: '/workspace/tasks', label: 'Tasks' }],
+        }}
+      />,
+    );
+
+    await vi.waitFor(() =>
+      expect(mockPrefetch.mock.calls.map(([href]) => href)).toEqual([
+        '/acme/~/settings/personal',
+        '/acme/moonrise-studio/workspace/overview',
+        '/acme/moonrise-studio/workspace/tasks',
+      ]),
+    );
+  });
+
   it('prefers the specific destination over an overview root alias', () => {
     mockPathname.value = '/acme/moonrise-studio/workspace/inbox';
     mockSearchParams.value = 'status=recent';
@@ -369,6 +404,21 @@ describe('MenuShared', () => {
       'data-active',
       'true',
     );
+  });
+
+  it('attaches the unread activity count to the activity row', () => {
+    const activityConfig: MenuShellConfig = {
+      items: [
+        { href: '/workspace/inbox', label: 'Inbox' },
+        { href: '/workspace/activity', label: 'Activity' },
+      ],
+      logoHref: '/',
+    };
+
+    mockUnreadActivityCount.value = 3;
+    render(<MenuShared config={activityConfig} />);
+
+    expect(screen.getByText('Activity (3)')).toBeInTheDocument();
   });
 
   it('attaches the unread workspace task count to the inbox row', () => {

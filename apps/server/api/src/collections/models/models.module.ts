@@ -3,7 +3,9 @@
  * AI model configurations: model selections, parameters, version management,
  * and model performance tracking.
  */
+
 import { ModelsController } from '@api/collections/models/controllers/models.controller';
+import { RetiredModelsController } from '@api/collections/models/controllers/retired-models.controller';
 import { ModelCreditQuoteService } from '@api/collections/models/services/model-credit-quote.service';
 import { ModelProviderOffersService } from '@api/collections/models/services/model-provider-offers.service';
 import { ModelRegistrationService } from '@api/collections/models/services/model-registration.service';
@@ -13,7 +15,7 @@ import { CrunCoreModule } from '@api/services/integrations/crun/crun-core.module
 import { Module } from '@nestjs/common';
 
 @Module({
-  controllers: [ModelsController],
+  controllers: [RetiredModelsController, ModelsController],
   exports: [
     ModelProviderOffersService,
     ModelsService,

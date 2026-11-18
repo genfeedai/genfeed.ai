@@ -44,12 +44,19 @@ import {
   type UpdateChannelTargetInput,
   type UpdateReleaseGroupInput,
 } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
+import {
+  isManualPostErrorCode,
+  normalizeChannelTargetSettings,
+  parseXQuotedPostId,
+  resolveQuoteTweetId,
+} from '@genfeedai/contracts/api-types/contracts/x-quote-post.contract';
 import type {
   IPublishingProviderReadiness,
   IReleaseGroup,
   PostGroupCreateProvenance,
 } from '@genfeedai/contracts/interfaces';
 import { Prisma } from '@genfeedai/prisma';
+import { traced } from '@libs/tracing/traced';
 import { BadRequestException, ConflictException } from '@nestjs/common';
 
 export type PostGroupTargetOperationDependencies = {
@@ -79,6 +86,34 @@ export const GROUP_ACTION_STATES = new Set<string>([
   TargetExecutionState.PAUSED,
   TargetExecutionState.FAILED,
 ]);
+
+export const approveScheduledReleaseTargets = traced(
+  'approveScheduledReleaseTargets',
+  async (
+    release: IReleaseGroup,
+    userId: string,
+    mode: 'immediate' | 'scheduled',
+    approvals: Pick<PublishApprovalsService, 'createForCurrentPost'>,
+  ): Promise<void> => {
+    const results = await Promise.allSettled(
+      (release.targets ?? [])
+        .filter(
+          (target) => target.executionState === TargetExecutionState.SCHEDULED,
+        )
+        .map((target) =>
+          approvals.createForCurrentPost({
+            actorUserId: userId,
+            mode,
+            organizationId: release.organizationId,
+            postId: target.id,
+            provenance: { releaseId: release.id, surface: 'post-groups' },
+          }),
+        ),
+    );
+    const failure = results.find((result) => result.status === 'rejected');
+    if (failure?.status === 'rejected') throw failure.reason;
+  },
+);
 
 export type ReleaseTargetUpdateContext = {
   currentTargets: readonly SchedulerPostTarget[];
@@ -359,7 +394,7 @@ function alignYouTubeVisibilityUpdate(
   };
 }
 
-export async function resolveCanonicalReleaseId(
+async function resolveCanonicalReleaseId(
   params: CanonicalReleaseLookup,
   dependencies: PostGroupTargetOperationDependencies,
 ): Promise<string> {
@@ -488,10 +523,9 @@ async function updateTargetInTransaction(
     group.id,
     params.targetId,
   );
-  const alignedInput = alignYouTubeVisibilityUpdate(
+  const alignedInput = completeManualPostUpdate(
     existing,
-    input,
-    dependencies.contractService,
+    alignYouTubeVisibilityUpdate(existing, input, dependencies.contractService),
   );
   const validation = dependencies.contractService.validateTargetUpdate(
     group,
@@ -512,6 +546,7 @@ async function updateTargetInTransaction(
   );
   const targetMutation = buildTargetMutation(
     alignedInput,
+    existing.platform,
     isManualRetry,
     validation,
     dependencies.contractService,
@@ -555,8 +590,48 @@ async function updateTargetInTransaction(
   };
 }
 
+/**
+ * Marking a quote the person posted by hand as published: when they give the
+ * link, its post id becomes the external id so analytics can find the post, and
+ * the publish time defaults to now.
+ */
+function completeManualPostUpdate(
+  existing: SchedulerPostTarget,
+  input: UpdateChannelTargetInput,
+): UpdateChannelTargetInput {
+  const error = existing.targetError;
+  const isManualPost =
+    existing.targetExecutionState === TargetExecutionState.FAILED &&
+    error !== null &&
+    typeof error === 'object' &&
+    !Array.isArray(error) &&
+    isManualPostErrorCode(
+      typeof error.code === 'string' ? error.code : undefined,
+    );
+  if (
+    !isManualPost ||
+    input.executionState !== TargetExecutionState.PUBLISHED
+  ) {
+    return input;
+  }
+  const postId = input.url ? parseXQuotedPostId(input.url) : undefined;
+  const externalProviderId = input.externalProviderId ?? postId;
+  // A bare id is not a link anyone can open, so keep the post by its X address.
+  const url =
+    postId && input.url?.trim() === postId
+      ? `https://x.com/i/web/status/${postId}`
+      : input.url;
+  return {
+    ...input,
+    ...(url ? { url } : {}),
+    ...(externalProviderId ? { externalProviderId } : {}),
+    publishedAt: input.publishedAt ?? new Date().toISOString(),
+  };
+}
+
 function buildTargetMutation(
   input: UpdateChannelTargetInput,
+  platform: string,
   isManualRetry: boolean,
   validation: ReturnType<PostGroupContractService['validateTargetUpdate']>,
   contractService: PostGroupContractService,
@@ -588,8 +663,18 @@ function buildTargetMutation(
     ...(input.scheduledDate !== undefined && {
       scheduledDate: contractService.toDate(input.scheduledDate),
     }),
+    // Settings are replaced as a whole, so the quoted post follows them: a
+    // write without one clears the quote.
     ...(input.settings !== undefined && {
-      targetSettings: contractService.toJson(input.settings),
+      ...(platform === CredentialPlatform.TWITTER && {
+        quoteTweetId: resolveQuoteTweetId(
+          platform,
+          normalizeChannelTargetSettings(platform, input.settings),
+        ),
+      }),
+      targetSettings: contractService.toJson(
+        normalizeChannelTargetSettings(platform, input.settings),
+      ),
     }),
     ...(input.visibility !== undefined && { visibility: input.visibility }),
     ...(input.timezone !== undefined && { timezone: input.timezone }),

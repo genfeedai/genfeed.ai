@@ -2,6 +2,7 @@ import type {
   ApiKeyConnectPayload,
   ICredential,
   ICredentialOAuth,
+  IGoogleBusinessLocation,
 } from '@genfeedai/contracts/interfaces';
 import type { IHttpRequestOptions } from '@genfeedai/contracts/interfaces/utils/http-request-options.interface';
 import {
@@ -22,6 +23,12 @@ const API_KEY_CONNECT_REQUEST: AxiosRequestConfig & IHttpRequestOptions = {
 
 export interface OAuthConnectReadinessResponse {
   status: 'available' | 'unavailable';
+}
+
+export interface SlackChannelOption {
+  id: string;
+  isPrivate: boolean;
+  name: string;
 }
 
 export class ServicesService extends BaseService<CredentialOAuth | Credential> {
@@ -78,6 +85,20 @@ export class ServicesService extends BaseService<CredentialOAuth | Credential> {
       );
   }
 
+  /** Slack: the channels of a connected workspace, for the post channel picker. */
+  public async getSlackChannels(
+    brandId: string,
+    credentialId: string,
+    signal?: AbortSignal,
+  ): Promise<SlackChannelOption[]> {
+    return await this.instance
+      .get<{ data: SlackChannelOption[] }>('channels', {
+        params: { brandId, credentialId },
+        signal,
+      })
+      .then((res) => res.data.data);
+  }
+
   public async refreshAuthorizedSignals(
     credentialId: string,
     signal?: AbortSignal,
@@ -108,6 +129,38 @@ export class ServicesService extends BaseService<CredentialOAuth | Credential> {
     return await this.instance
       .post<JsonApiResponseDocument>(`${credentialId}/select-account`, {
         externalIds,
+      })
+      .then((res) =>
+        this.extractCollection<Partial<ICredential>>(res.data).map(
+          (item) => new Credential(item),
+        ),
+      );
+  }
+
+  /** The Google Business locations a pending connection can still choose. */
+  public async getGoogleBusinessLocations(
+    credentialId: string,
+    signal?: AbortSignal,
+  ): Promise<IGoogleBusinessLocation[]> {
+    return await this.instance
+      .get<{ locations: IGoogleBusinessLocation[] }>(
+        `${credentialId}/locations`,
+        { signal },
+      )
+      .then((res) => res.data.locations);
+  }
+
+  /**
+   * Settle a pending Google Business connection onto the chosen locations.
+   * The server re-reads every id against the credential's own token.
+   */
+  public async postSelectLocations(
+    credentialId: string,
+    locationIds: string[],
+  ): Promise<Credential[]> {
+    return await this.instance
+      .post<JsonApiResponseDocument>(`${credentialId}/select-location`, {
+        locationIds,
       })
       .then((res) =>
         this.extractCollection<Partial<ICredential>>(res.data).map(

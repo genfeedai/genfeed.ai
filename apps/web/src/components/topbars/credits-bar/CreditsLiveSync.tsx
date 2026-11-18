@@ -36,6 +36,7 @@ function CreditsLiveSyncContent({
 
   const { isReady: isSocketReady, subscribe, unsubscribe } = useSocketManager();
 
+  // use-effect-audit: ignore subscribes to an external event source
   useEffect(() => {
     // `subscribe` is a silent no-op until the socket manager exists; without
     // this gate a component mounted before the token resolves never gets live

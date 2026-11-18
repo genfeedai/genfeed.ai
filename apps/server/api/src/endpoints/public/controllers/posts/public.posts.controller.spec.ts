@@ -4,6 +4,7 @@ import { PostsService } from '@api/collections/posts/services/posts.service';
 import { PublicPostsController } from '@api/endpoints/public/controllers/posts/public.posts.controller';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { MediaDerivativePreparationService } from '@api/services/media-urls/media-derivative-preparation.service';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import {
   AssetScope,
@@ -59,6 +60,7 @@ describe('PublicPostsController', () => {
   let ingredientsService: vi.Mocked<IngredientsService>;
   let postsService: vi.Mocked<PostsService>;
   let loggerService: vi.Mocked<LoggerService>;
+  const enqueuePublicMissing = vi.fn();
 
   const mockRequest = {
     originalUrl: '/api/public/posts',
@@ -69,6 +71,8 @@ describe('PublicPostsController', () => {
 
   beforeEach(async () => {
     postFindMany.mockReset();
+    enqueuePublicMissing.mockReset();
+    enqueuePublicMissing.mockResolvedValue(undefined);
     postFindMany.mockResolvedValue([]);
     const module: TestingModule = await Test.createTestingModule({
       controllers: [PublicPostsController],
@@ -88,10 +92,15 @@ describe('PublicPostsController', () => {
           },
         },
         {
+          provide: MediaDerivativePreparationService,
+          useValue: { enqueuePublicMissing },
+        },
+        {
           provide: LoggerService,
           useValue: {
             error: vi.fn(),
             log: vi.fn(),
+            warn: vi.fn(),
           },
         },
       ],
@@ -132,6 +141,99 @@ describe('PublicPostsController', () => {
 
       expect(postsService.findAll).toHaveBeenCalled();
       expect(result).toEqual({ data: mockPosts.docs });
+    });
+
+    it('reads frame size from the media metadata, not the Ingredient row', async () => {
+      postsService.findAll.mockResolvedValue({
+        docs: [],
+      } as unknown as AggregatePaginateResult<PostDocument>);
+
+      await controller.findPublicPosts(mockRequest, createBaseQuery());
+
+      const include = (
+        postsService.findAll.mock.calls[0][0] as {
+          include: {
+            ingredientLinks: {
+              include: { ingredient: { select: Record<string, unknown> } };
+            };
+          };
+        }
+      ).include;
+      const select = include.ingredientLinks.include.ingredient.select;
+      expect(select.metadata).toEqual({
+        select: { height: true, width: true },
+      });
+      expect(select).not.toHaveProperty('height');
+      expect(select).not.toHaveProperty('width');
+    });
+
+    it('returns media dimensions from metadata and none when it is missing', async () => {
+      postsService.findAll.mockResolvedValue({
+        docs: [
+          {
+            id: 'with-media',
+            ingredients: [
+              { id: 'a', metadata: { height: 720, width: 1280 } },
+              { id: 'b', metadata: null },
+            ],
+          },
+          { id: 'text-only' },
+        ],
+        page: 1,
+        totalDocs: 2,
+      } as unknown as AggregatePaginateResult<PostDocument>);
+
+      const result = await controller.findPublicPosts(
+        mockRequest,
+        createBaseQuery(),
+      );
+
+      expect(result).toEqual({
+        data: [
+          {
+            id: 'with-media',
+            ingredients: [{ height: 720, id: 'a', width: 1280 }, { id: 'b' }],
+          },
+          { id: 'text-only' },
+        ],
+      });
+    });
+
+    it('queues the public copy of the media a listed post shows', async () => {
+      postsService.findAll.mockResolvedValue({
+        docs: [
+          { id: 'one', ingredients: [{ id: 'a' }, { id: 'b' }] },
+          { id: 'two', ingredients: [{ id: 'b' }] },
+          { id: 'text-only' },
+        ],
+        page: 1,
+        totalDocs: 3,
+      } as unknown as AggregatePaginateResult<PostDocument>);
+
+      await controller.findPublicPosts(mockRequest, createBaseQuery());
+
+      expect(enqueuePublicMissing).toHaveBeenCalledWith(
+        ['a', 'b'],
+        'public-share',
+      );
+    });
+
+    it('still answers when the media cannot be queued', async () => {
+      enqueuePublicMissing.mockRejectedValue(new Error('queue down'));
+      postsService.findAll.mockResolvedValue({
+        docs: [{ id: 'one', ingredients: [{ id: 'a' }] }],
+        page: 1,
+        totalDocs: 1,
+      } as unknown as AggregatePaginateResult<PostDocument>);
+
+      const result = await controller.findPublicPosts(
+        mockRequest,
+        createBaseQuery(),
+      );
+
+      expect(result).toEqual({
+        data: [{ id: 'one', ingredients: [{ id: 'a' }] }],
+      });
     });
 
     it('lists a network copy of a Genfeed profile post only once', async () => {

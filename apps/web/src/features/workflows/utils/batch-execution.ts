@@ -11,7 +11,7 @@ import type {
   ExecutionResult,
 } from '@/features/workflows/services/workflow-api';
 
-export const BATCH_WORKFLOW_EXECUTION_CANONICAL_ID = 'workflow.batch.execute';
+const BATCH_WORKFLOW_EXECUTION_CANONICAL_ID = 'workflow.batch.execute';
 
 type ChildResultEntry = {
   error?: string;

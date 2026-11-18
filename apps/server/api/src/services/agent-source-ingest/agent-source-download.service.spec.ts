@@ -316,13 +316,18 @@ describe('AgentSourceDownloadService', () => {
         },
       }),
     );
-    await service.download(
+    const downloaded = await service.download(
       'https://www.youtube.com/watch?v=abcdefghijk',
       'source-1',
       'video',
       context,
       'existing-job',
     );
+    expect(downloaded).toMatchObject({
+      kind: 'video',
+      publicUrl: 'https://cdn.example/video',
+      storageKey: 'videos/source',
+    });
     expect(http.post).not.toHaveBeenCalled();
     expect(http.get).toHaveBeenCalledWith(
       'http://files-service/v1/files/job/existing-job',
@@ -476,13 +481,18 @@ describe('AgentSourceDownloadService', () => {
         }),
       );
     http.post.mockReturnValue(of({ data: { jobId: 'agent-source-source-1' } }));
-    await service.download(
+    const downloaded = await service.download(
       'https://www.youtube.com/watch?v=abcdefghijk',
       'source-1',
       'video',
       context,
       'agent-source-source-1',
     );
+    expect(downloaded).toMatchObject({
+      kind: 'video',
+      publicUrl: 'https://cdn.example/video',
+      storageKey: 'videos/source',
+    });
     expect(http.post).toHaveBeenCalledTimes(1);
     expect(http.post).toHaveBeenCalledWith(
       expect.any(String),

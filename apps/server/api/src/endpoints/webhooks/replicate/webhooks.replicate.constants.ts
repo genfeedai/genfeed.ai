@@ -11,7 +11,7 @@
  * Predictions are delivered from `*.replicate.delivery`; `replicate.com` covers
  * the API and CDN hosts the same payloads occasionally reference.
  */
-export const REPLICATE_OUTPUT_HOST_SUFFIXES: readonly string[] = [
+const REPLICATE_OUTPUT_HOST_SUFFIXES: readonly string[] = [
   'replicate.com',
   'replicate.delivery',
 ];
@@ -46,4 +46,18 @@ export function isAllowedReplicateOutputUrl(
   return REPLICATE_OUTPUT_HOST_SUFFIXES.some(
     (suffix) => hostname === suffix || hostname.endsWith(`.${suffix}`),
   );
+}
+
+/**
+ * The host of an output URL that failed the allowlist, for the log line that
+ * reports the rejection. Hostname only: the path of a signed delivery URL is a
+ * credential, and an unparseable value is named as such.
+ */
+export function describeRejectedReplicateOutputHost(candidate: string): string {
+  try {
+    const { hostname, protocol } = new URL(candidate);
+    return `${protocol}//${hostname}`;
+  } catch {
+    return 'unparseable';
+  }
 }

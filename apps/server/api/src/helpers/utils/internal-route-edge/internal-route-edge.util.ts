@@ -10,7 +10,7 @@ const INTERNAL_ROUTE_PATTERN = /^\/v1\/internal(?:\/|$)/i;
  * case-insensitive because the router is, and the load balancer's path rule is
  * not.
  */
-export function isInternalRouteViaEdge(
+function isInternalRouteViaEdge(
   req: Pick<Request, 'headers' | 'path'>,
 ): boolean {
   return (

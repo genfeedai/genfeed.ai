@@ -329,11 +329,22 @@ export function compileRemainingVideoGenerationBrief(
     );
   }
 
+  const presetId = spec.presetField ? brief.output.presetId : undefined;
+  if (spec.presetField && !presetId) {
+    throw new GenerationBriefCompileError(
+      `${spec.modelLabel} requires a style preset (output.presetId).`,
+      'invalid_brief',
+    );
+  }
+
   const dispatchPayload: Record<string, boolean | number | string | string[]> =
     {
       prompt,
       ...(spec.extraDefaults ?? {}),
     };
+  if (spec.presetField && presetId) {
+    dispatchPayload[spec.presetField] = presetId;
+  }
 
   if (spec.aspectRatioField && aspectRatio) {
     dispatchPayload[spec.aspectRatioField] =
@@ -393,6 +404,7 @@ export function compileRemainingVideoGenerationBrief(
         .filter((role) => role !== 'first_frame' && role !== 'last_frame')
         .map((role) => `references.${role}`),
       ...(resolution ? ['output.resolution'] : []),
+      ...(presetId ? ['output.presetId'] : []),
       ...(videoReferenceAssetIds.length > 0
         ? ['references.reference_video']
         : []),

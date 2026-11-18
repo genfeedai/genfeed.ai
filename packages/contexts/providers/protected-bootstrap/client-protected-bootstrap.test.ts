@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
+  buildProtectedBootstrapCacheKey,
   clearClientProtectedBootstrapCache,
   loadClientProtectedBootstrap,
   mapProtectedBootstrapPayload,
@@ -91,6 +92,59 @@ describe('client protected bootstrap cache', () => {
       brandId: 'brand_123',
       organizationId: 'org_123',
     });
+    expect(getBootstrap).toHaveBeenCalledTimes(2);
+  });
+  it("never returns one member's workspace data to another member", async () => {
+    const otherPayload = {
+      ...payload,
+      access: { ...payload.access, userId: 'user_456' },
+      brands: [{ id: 'brand_456', label: 'Beta' }],
+      currentUser: { id: 'user_456' },
+    };
+    const getAuthServiceFor = (data: typeof payload) =>
+      vi
+        .fn()
+        .mockResolvedValue({ getBootstrap: vi.fn().mockResolvedValue(data) });
+
+    const first = await loadClientProtectedBootstrap(
+      buildProtectedBootstrapCacheKey({
+        organizationId: 'org_123',
+        userId: 'user_123',
+      }),
+      getAuthServiceFor(payload),
+    );
+    const second = await loadClientProtectedBootstrap(
+      buildProtectedBootstrapCacheKey({
+        organizationId: 'org_123',
+        userId: 'user_456',
+      }),
+      getAuthServiceFor(otherPayload),
+    );
+
+    expect(first?.currentUser).toEqual({ id: 'user_123' });
+    expect(second?.currentUser).toEqual({ id: 'user_456' });
+    expect(second?.brands).toEqual([{ id: 'brand_456', label: 'Beta' }]);
+  });
+
+  it('keeps one member in separate entries per organization', async () => {
+    const getBootstrap = vi.fn().mockResolvedValue(payload);
+    const getAuthService = vi.fn().mockResolvedValue({ getBootstrap });
+
+    await loadClientProtectedBootstrap(
+      buildProtectedBootstrapCacheKey({
+        organizationId: 'org_123',
+        userId: 'user_123',
+      }),
+      getAuthService,
+    );
+    await loadClientProtectedBootstrap(
+      buildProtectedBootstrapCacheKey({
+        organizationId: 'org_999',
+        userId: 'user_123',
+      }),
+      getAuthService,
+    );
+
     expect(getBootstrap).toHaveBeenCalledTimes(2);
   });
 });

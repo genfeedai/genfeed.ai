@@ -36,11 +36,13 @@ provider values directly.
 | `SNAPCHAT`              | Snapchat                                               | Snapchat OAuth             | Account access and publishing adapters                  |
 | `WHATSAPP`              | WhatsApp via Twilio                                    | Deployment credentials     | Text, media, template messages, and delivery status     |
 | `MASTODON`              | Mastodon                                               | Dynamic OAuth per instance | Federated account access and publishing                 |
+| `GOOGLE_BUSINESS`       | Google Business Profile                                | Google OAuth               | Location updates; hidden until a live post is verified  |
 | `GHOST`                 | Ghost                                                  | Admin API credential       | Article publishing                                      |
 | `SHOPIFY`               | Shopify                                                | Shopify OAuth              | Store access and product publishing workflows           |
 | `BEEHIIV`               | Beehiiv                                                | API key                    | Publication selection, newsletters, and subscribers     |
 | `UNIPILE`               | Unipile                                                | API key and DSN            | Accounts, messages, email, and calendar data            |
 | `DEVTO`                 | dev.to                                                 | API key                    | Article publishing                                      |
+| `BLUESKY`               | Bluesky                                                | OAuth sign-in              | Text, image, video, and reply-thread publishing         |
 | `GENFEED`               | Genfeed profile (`genfeed.ai/@handle`)                 | Built in, one per brand    | Publishing to the brand's public creator profile        |
 
 The registry can contain a value before a user-facing connector is available.
@@ -52,7 +54,7 @@ an implemented OAuth path.
 Self-hosted deployments must register their own provider applications and set
 the callback URI to the corresponding Genfeed verification route.
 
-Google sign-in, YouTube, Google Ads, and Search Console share
+Google sign-in, YouTube, Google Ads, Google Business Profile, and Search Console share
 `GOOGLE_OAUTH_CLIENT_ID` and `GOOGLE_OAUTH_CLIENT_SECRET`. Their redirect URIs
 and API-specific credentials remain separate.
 
@@ -85,6 +87,9 @@ for the deployment; do not register localhost callbacks for production.
 
 - Beehiiv and dev.to validate the submitted brand credential before saving it.
 - Ghost requires values that can produce a valid Ghost Admin API request.
+- Bluesky connects through its own sign-in page (OAuth). Genfeed never asks for
+  a handle and password. The granted session is stored encrypted, and Genfeed
+  marks the channel disconnected when Bluesky revokes it.
 - Telegram validates the configured bot token.
 - WhatsApp uses the deployment's Twilio account, token, and sending number.
 - Unipile accepts organization configuration and can fall back to deployment

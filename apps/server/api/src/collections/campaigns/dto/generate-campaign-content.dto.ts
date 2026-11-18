@@ -8,7 +8,7 @@ import {
   MaxLength,
 } from 'class-validator';
 
-export const MAX_CAMPAIGN_GENERATE_CREDENTIALS = 50;
+const MAX_CAMPAIGN_GENERATE_CREDENTIALS = 50;
 
 /**
  * Compiles a Campaign brief into existing generation/release interfaces.

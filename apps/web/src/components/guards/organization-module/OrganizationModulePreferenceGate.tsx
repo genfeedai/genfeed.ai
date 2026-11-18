@@ -3,13 +3,16 @@
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
   APP_ROUTES,
+  isReleaseItemVisible,
+  type OrganizationModuleAccess,
   resolveOrganizationModulePresentationAccess,
 } from '@genfeedai/contracts/constants';
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
+import { useMountedRef } from '@hooks/utils/use-mounted-ref/use-mounted-ref';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { useFeatureFlagContext } from '@/hooks/feature-flags/provider';
 import type { OrganizationModulePreferenceGateProps } from '@/props/guards/organization-module-preference-gate.props';
 
@@ -21,6 +24,22 @@ export default function OrganizationModulePreferenceGate(
   return <OrganizationModulePreferenceBody key={organizationId} {...props} />;
 }
 
+/**
+ * The Agent app has no organization switch: only its release hides it, and
+ * unknown settings read as unavailable.
+ */
+function resolveReleaseOnlyAccess(
+  settings: ReturnType<typeof useBrand>['settings'],
+  flags: Readonly<Record<string, unknown>>,
+): OrganizationModuleAccess {
+  if (typeof settings?.hasOrganizationBilling !== 'boolean') {
+    return { isAllowed: false, reason: 'unavailable' };
+  }
+  return isReleaseItemVisible('agent', settings, flags)
+    ? { isAllowed: true, reason: null }
+    : { isAllowed: false, reason: 'unreleased' };
+}
+
 function OrganizationModulePreferenceBody({
   moduleId,
   children,
@@ -30,21 +49,21 @@ function OrganizationModulePreferenceBody({
   const { orgHref } = useOrgUrl();
   const t = useTranslations('common.settings.organizationModules');
   const { flags: platformFlags } = useFeatureFlagContext();
-  const access = resolveOrganizationModulePresentationAccess(
-    settingsLoading ? null : settings,
-    moduleId,
-    platformFlags,
-  );
-  const mounted = useRef(true);
+  const access: OrganizationModuleAccess =
+    moduleId === 'agent'
+      ? resolveReleaseOnlyAccess(
+          settingsLoading ? null : settings,
+          platformFlags,
+        )
+      : resolveOrganizationModulePresentationAccess(
+          settingsLoading ? null : settings,
+          moduleId,
+          platformFlags,
+        );
+  const mounted = useMountedRef();
   const retrying = useRef(false);
   const [isRetrying, setIsRetrying] = useState(false);
   const [hasRetryFailed, setHasRetryFailed] = useState(false);
-  useEffect(() => {
-    mounted.current = true;
-    return () => {
-      mounted.current = false;
-    };
-  }, []);
   async function retry() {
     if (!organizationId || retrying.current || settingsLoading) return;
     retrying.current = true;

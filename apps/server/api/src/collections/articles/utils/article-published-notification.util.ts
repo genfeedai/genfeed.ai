@@ -65,7 +65,10 @@ export async function sendArticlePublishedNotification(
     logger: LoggerService;
     organizationSettingsService?: OrganizationSettingsService;
     /** Only an article with a public handle gets a genfeed.ai link. */
-    resolvePublicHandle: (articleId: string) => Promise<string | null>;
+    resolvePublicHandle: (
+      articleId: string,
+      organizationId: string,
+    ) => Promise<string | null>;
     source: string;
   },
   result: ArticleDocument,
@@ -103,7 +106,7 @@ export async function sendArticlePublishedNotification(
         result,
         organizationId,
         configService.get('GENFEEDAI_PUBLIC_URL'),
-        await resolvePublicHandle(String(result.id)),
+        await resolvePublicHandle(String(result.id), organizationId),
       ),
     );
 

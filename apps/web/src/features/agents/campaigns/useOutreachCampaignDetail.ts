@@ -21,6 +21,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useNotifyOnLoadError } from '@/hooks/utils/use-notify-on-load-error/use-notify-on-load-error';
 
 const EMPTY_TARGETS: CampaignTarget[] = [];
 const EMPTY_STATUS_COUNTS: Partial<Record<CampaignTargetStatus, number>> = {};
@@ -95,6 +96,7 @@ export function useOutreachCampaignDetail() {
   const lastTargetPageRef = useRef<CampaignTargetsPage | null>(null);
   const lastTargetScopeRef = useRef<string | null>(null);
   const loadedTargetPage = targetsQuery.data;
+  // use-effect-audit: ignore keeps refs to the latest callbacks and values
   useEffect(() => {
     if (loadedTargetPage) {
       lastTargetPageRef.current = loadedTargetPage;
@@ -120,14 +122,14 @@ export function useOutreachCampaignDetail() {
 
   // One toast per failed read; a failed background refresh keeps what is on
   // screen.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: loadErrorUpdatedAt marks each new failed read.
-  useEffect(() => {
-    if (!loadError) {
-      return;
-    }
-    logger.error('Failed to load campaign', loadError);
-    notificationsService.error(translate('notifications.loadFailed'));
-  }, [loadError, loadErrorUpdatedAt, notificationsService, translate]);
+  useNotifyOnLoadError({
+    errorUpdatedAt: loadErrorUpdatedAt,
+    hasError: Boolean(loadError),
+    notify: () => {
+      logger.error('Failed to load campaign', loadError);
+      notificationsService.error(translate('notifications.loadFailed'));
+    },
+  });
 
   const { refetch: refetchCampaign } = campaignQuery;
   // Every load after the first is a background refresh that keeps the

@@ -1,9 +1,6 @@
 import { CreateCustomerDto } from '@api/collections/customers/dto/create-customer.dto';
 import { UpdateCustomerDto } from '@api/collections/customers/dto/update-customer.dto';
-import type {
-  Customer,
-  CustomerDocument,
-} from '@api/collections/customers/schemas/customer.schema';
+import type { Customer } from '@api/collections/customers/schemas/customer.schema';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { scopedWhere } from '@api/index';
 import { CacheService } from '@api/services/cache/cache.service';
@@ -22,7 +19,7 @@ const ORGANIZATION_BILLING_LOCK_RETRY_DELAYS_MS = [
 @Traced()
 @Injectable()
 export class CustomersService extends BaseService<
-  CustomerDocument,
+  Customer,
   CreateCustomerDto,
   UpdateCustomerDto,
   Prisma.CustomerWhereInput

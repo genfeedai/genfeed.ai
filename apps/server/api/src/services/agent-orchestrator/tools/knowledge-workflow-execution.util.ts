@@ -20,32 +20,11 @@ export function isKnowledgeWorkflowAction(toolName: string): boolean {
   return KNOWLEDGE_WORKFLOW_ACTION_IDS.has(toolName);
 }
 
-export function isKnowledgeWorkflowMutationAction(toolName: string): boolean {
-  return (KNOWLEDGE_WORKFLOW_MUTATION_ACTION_IDS as readonly string[]).includes(
-    toolName,
-  );
-}
-
 export function shouldUseKnowledgeWorkflowEntry(input: {
   isCustomerWorkflow?: boolean;
   hasAgentRuntimeContext: boolean;
 }): boolean {
   return input.isCustomerWorkflow === true || !input.hasAgentRuntimeContext;
-}
-
-export function assertKnowledgeWorkflowIdentity(
-  context: ExecutionContext,
-): void {
-  if (
-    !context.organizationId ||
-    !context.userId ||
-    !context.brandId ||
-    !context.workflowVersionId
-  ) {
-    throw new Error(
-      'Knowledge workflow nodes require organization, user, brand, and workflow version identity',
-    );
-  }
 }
 
 export function assertKnowledgeWorkflowScopeParameters(

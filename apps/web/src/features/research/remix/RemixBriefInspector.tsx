@@ -26,6 +26,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { formatSnakeCaseLabel } from '@helpers/formatting/format/format.helper';
 import { getVoiceName } from '@helpers/voice/voice-name.helper';
+import { useResetOnChange } from '@hooks/utils/use-reset-on-change/use-reset-on-change';
 import type { Voice } from '@models/ingredients/voice.model';
 import { Alert } from '@ui/primitives/alert';
 import { Badge } from '@ui/primitives/badge';
@@ -48,7 +49,7 @@ import {
 import { getIngredientDisplayLabel } from '@utils/media/ingredient-type.util';
 import { Library, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { type ReactElement, useEffect, useMemo, useState } from 'react';
+import { type ReactElement, useMemo, useState } from 'react';
 import { useCampaignAccounts } from '@/features/campaigns/hooks/use-campaign-accounts';
 import { useVoiceCatalog } from '@/features/library/voices/hooks/use-voice-catalog';
 import LibraryPickerOverlay from '@/features/library-remix/LibraryPickerOverlay';
@@ -440,21 +441,17 @@ export default function RemixBriefInspector(): ReactElement {
     isPending: isLoadingAccounts,
     isError: isAccountsError,
   } = useCampaignAccounts(brandId);
-  const [editor, setEditor] = useState<RemixEditorState>(EMPTY_EDITOR);
+  const [editor, setEditor] = useState<RemixEditorState>(() =>
+    run ? toEditorState(run) : EMPTY_EDITOR,
+  );
   const [isPickingReference, setIsPickingReference] = useState(false);
   const [referenceRole, setReferenceRole] =
     useState<BrandRemixReference['role']>('style');
 
-  useEffect(() => {
-    if (!run) {
-      setEditor(EMPTY_EDITOR);
-      setIsPickingReference(false);
-      return;
-    }
-
-    setEditor(toEditorState(run));
+  useResetOnChange([run], () => {
+    setEditor(run ? toEditorState(run) : EMPTY_EDITOR);
     setIsPickingReference(false);
-  }, [run]);
+  });
 
   const patternEntries = useMemo(
     () =>

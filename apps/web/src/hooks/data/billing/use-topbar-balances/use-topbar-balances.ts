@@ -25,7 +25,7 @@ import { useDesktopRuntimeContext } from '@/hooks/ui/use-desktop-runtime-context
 /**
  * Shared wallet balance for the app shell.
  *
- * The topbar credits chip and the low-credits banner both mount on every
+ * The topbar credits chip and the topbar credits pill both mount on every
  * protected page and both need the same `/topbar-balances` response. Behind one
  * React Query key they collapse into a single request per navigation instead of
  * two, and a live socket balance published by one of them is visible to both.
@@ -197,6 +197,7 @@ export function useTopbarBalances(): UseTopbarBalancesReturn {
     [clearReconcileTimeout, queryKey, isEnabled],
   );
 
+  // use-effect-audit: ignore releases timers, requests or subscriptions on unmount
   useEffect(
     () => () => {
       void queryClient.cancelQueries({ queryKey, exact: true });
@@ -231,6 +232,7 @@ export function useTopbarBalances(): UseTopbarBalancesReturn {
     ],
   );
 
+  // use-effect-audit: ignore subscribes to browser events
   useEffect(() => {
     const handleRefresh = () => {
       if (isEnabled && isCurrentScope()) void refetch();

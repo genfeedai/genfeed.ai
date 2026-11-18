@@ -23,6 +23,7 @@ import { BrandKitDraftService } from '@api/collections/brands/services/brand-kit
 import { patchBrandWithLearningFenced } from '@api/collections/brands/services/brand-learning-mutation.util';
 import { BrandLifecycleService } from '@api/collections/brands/services/brand-lifecycle.service';
 import { BrandOsPreviewService } from '@api/collections/brands/services/brand-os-preview.service';
+import { dropPublicBrandResponses } from '@api/collections/brands/services/brand-public-cache.util';
 import {
   type BrandRelocationActingUser,
   type BrandRelocationPreview,
@@ -101,10 +102,8 @@ import {
 
 export type {
   BrandRelocationActingUser,
-  BrandRelocationMovingResource,
   BrandRelocationPreview,
   BrandRelocationResult,
-  BrandRelocationSummary,
 } from '@api/collections/brands/services/brand-relocation.service';
 
 type BrandCreateInput = CreateBrandDto & {
@@ -449,6 +448,7 @@ export class BrandsService extends BaseService<
       throw new NotFoundException('Brand', id);
     }
 
+    await dropPublicBrandResponses(this.cacheService, updateBrandDto);
     // Invalidate single-brand cache key; list is busted by BaseService.patch()
     await this.cacheInvalidationService.invalidate(
       CACHE_PATTERNS.BRANDS_SINGLE(id),
@@ -915,7 +915,7 @@ export class BrandsService extends BaseService<
     return this.brandGenerationService.generateBrandVoice(
       dto,
       organizationId,
-      (criteria) => this.findOne(criteria),
+      this.findOne.bind(this),
     );
   }
 

@@ -15,11 +15,20 @@ describe('release items', () => {
   it('stores each release as a release_<id> platform flag', () => {
     expect(getReleaseFlagKey('motion')).toBe('release_motion');
     expect(PLATFORM_RELEASE_FLAG_KEYS).toContain('release_campaigns');
-    expect(PLATFORM_RELEASE_FLAG_KEYS).not.toContain('release_playground');
+    expect(PLATFORM_RELEASE_FLAG_KEYS).toEqual(
+      expect.arrayContaining([
+        'release_playground',
+        'release_storyboard',
+        'release_agent',
+      ]),
+    );
   });
 
   it('defaults every release to preview-only, unlike module flags', () => {
     expect(DEFAULT_PLATFORM_FLAGS.release_motion).toBe(false);
+    expect(DEFAULT_PLATFORM_FLAGS.release_playground).toBe(false);
+    expect(DEFAULT_PLATFORM_FLAGS.release_storyboard).toBe(false);
+    expect(DEFAULT_PLATFORM_FLAGS.release_agent).toBe(false);
     expect(DEFAULT_PLATFORM_FLAGS.motion).toBe(true);
     const parsed = parsePlatformFlags({
       release_turbo: true,
@@ -69,8 +78,28 @@ describe('release items', () => {
     ).toBe(true);
   });
 
+  it.each([['playground'], ['storyboard'], ['agent']])(
+    'hides %s from a cloud organization until it is released',
+    (itemId) => {
+      expect(isReleaseItemVisible(itemId, CLOUD, {})).toBe(false);
+      expect(
+        isReleaseItemVisible(itemId, CLOUD, { [`release_${itemId}`]: true }),
+      ).toBe(true);
+      expect(
+        isReleaseItemVisible(
+          itemId,
+          { ...CLOUD, isReleasePreviewEnabled: true },
+          {},
+        ),
+      ).toBe(true);
+      expect(
+        isReleaseItemVisible(itemId, { hasOrganizationBilling: false }, {}),
+      ).toBe(true);
+    },
+  );
+
   it('never gates ids outside the release catalog', () => {
-    expect(isReleaseItemVisible('playground', CLOUD, {})).toBe(true);
+    expect(isReleaseItemVisible('library', CLOUD, {})).toBe(true);
   });
 
   it('hides everything while organization settings are unknown', () => {

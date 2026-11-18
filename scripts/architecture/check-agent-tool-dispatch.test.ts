@@ -7,7 +7,7 @@ import {
   runCheckAgentToolDispatch,
 } from './check-agent-tool-dispatch';
 
-const CATALOG_PATH = 'packages/actions/src/registry/curated-action-catalog.ts';
+const CATALOG_PATH = 'packages/actions/src/registry/curated-actions.catalog.ts';
 const AGENT_TYPE_CONFIG_PATH =
   'apps/server/api/src/services/agent-orchestrator/constants/agent-type-config.constant.ts';
 const DISPATCH_PATH =

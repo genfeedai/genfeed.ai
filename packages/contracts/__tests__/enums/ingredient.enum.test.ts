@@ -15,7 +15,7 @@ import {
 describe('ingredient.enum', () => {
   describe('IngredientCategory', () => {
     it('should have 12 members', () => {
-      expect(Object.values(IngredientCategory)).toHaveLength(12);
+      expect(Object.values(IngredientCategory)).toHaveLength(13);
     });
 
     it('should have correct values', () => {
@@ -31,6 +31,7 @@ describe('ingredient.enum', () => {
       expect(IngredientCategory.INGREDIENT).toBe('INGREDIENT');
       expect(IngredientCategory.TEXT).toBe('TEXT');
       expect(IngredientCategory.SOURCE).toBe('SOURCE');
+      expect(IngredientCategory.MODEL_3D).toBe('MODEL_3D');
     });
   });
 

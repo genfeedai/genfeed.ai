@@ -9,10 +9,17 @@ import { BrandAccessService } from '@api/authorization/brand-access/brand-access
 import { AgentMessagesModule } from '@api/collections/agent-messages/agent-messages.module';
 import { AgentMasterThreadController } from '@api/collections/agent-threads/controllers/agent-master-thread.controller';
 import { AgentRunsController } from '@api/collections/agent-threads/controllers/agent-runs.controller';
+import { AgentThreadSharesController } from '@api/collections/agent-threads/controllers/agent-thread-shares.controller';
+import { AgentThreadTurnsController } from '@api/collections/agent-threads/controllers/agent-thread-turns.controller';
 import { AgentThreadsController } from '@api/collections/agent-threads/controllers/agent-threads.controller';
 import { AgentMasterThreadService } from '@api/collections/agent-threads/services/agent-master-thread.service';
+import { AgentThreadAccessService } from '@api/collections/agent-threads/services/agent-thread-access.service';
+import { AgentThreadAudienceService } from '@api/collections/agent-threads/services/agent-thread-audience.service';
+import { AgentThreadMentionsService } from '@api/collections/agent-threads/services/agent-thread-mentions.service';
+import { AgentThreadSharesService } from '@api/collections/agent-threads/services/agent-thread-shares.service';
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
+import { MentionsModule } from '@api/collections/mentions/mentions.module';
 import { OrganizationsCoreModule } from '@api/collections/organizations/organizations-core.module';
 import { UsersCoreModule } from '@api/collections/users/users-core.module';
 import { CommonModule } from '@api/common/common.module';
@@ -27,14 +34,21 @@ import { Module } from '@nestjs/common';
     AgentRunsController,
     AgentMasterThreadController,
     AgentThreadsController,
+    AgentThreadSharesController,
+    AgentThreadTurnsController,
   ],
   exports: [
     AgentMasterThreadService,
     AgentScopeContextService,
+    AgentThreadAccessService,
+    AgentThreadAudienceService,
+    AgentThreadMentionsService,
+    AgentThreadSharesService,
     AgentThreadsService,
   ],
   imports: [
     BrandAccessModule,
+    MentionsModule,
     AgentMessagesModule,
     UsersCoreModule,
     BrandsCoreModule,
@@ -43,18 +57,28 @@ import { Module } from '@nestjs/common';
   ],
   providers: [
     AgentThreadsService,
+    AgentThreadAccessService,
+    AgentThreadAudienceService,
+    AgentThreadMentionsService,
+    AgentThreadSharesService,
     AgentMasterThreadService,
     AgentThreadProjectorService,
     { provide: SERVER_TOKENS.logger, useExisting: LoggerService },
     { provide: SERVER_TOKENS.prisma, useExisting: PrismaService },
     {
-      inject: [PrismaService, LoggerService, BrandAccessService],
+      inject: [
+        PrismaService,
+        LoggerService,
+        BrandAccessService,
+        AgentThreadAccessService,
+      ],
       provide: AgentScopeContextService,
       useFactory: (
         prisma: PrismaService,
         logger: LoggerService,
         access: BrandAccessService,
-      ) => new AgentScopeContextService(prisma, logger, access),
+        threadAccess: AgentThreadAccessService,
+      ) => new AgentScopeContextService(prisma, logger, access, threadAccess),
     },
   ],
 })

@@ -52,6 +52,17 @@ export interface ActivityAlertPolicy {
   recipients: readonly ActivityAlertRoute[];
 }
 
+/**
+ * A teammate's action that needs this member's attention (#9947). The member
+ * the event is for is the activity's user; the person who caused it is the
+ * alert's actor. Email follows the member's own "Reviews and mentions" choice.
+ */
+const COLLABORATION_ALERT: ActivityAlertPolicy = {
+  recipients: [{ channels: ['in_app', 'email'], recipient: 'actor' }],
+  severity: 'info',
+  topic: 'collaboration.activity',
+};
+
 const GENERATION_FAILED: ActivityAlertPolicy = {
   recipients: [{ channels: ['in_app'], recipient: 'actor' }],
   severity: 'warning',
@@ -81,13 +92,31 @@ export const ACTIVITY_ALERT_POLICIES = {
     severity: 'warning',
     topic: 'generation.status',
   },
+  // A scheduled post that ended FAILED reaches the owner off screen. Producers
+  // that record POST_FAILED for a failed generation narrow this to the bell.
   [ActivityKey.POST_FAILED]: {
-    recipients: [{ channels: ['in_app'], recipient: 'actor' }],
+    recipients: [{ channels: ['in_app', 'email'], recipient: 'actor' }],
     severity: 'critical',
     topic: 'publishing.status',
   },
+  // X would not take a quote post through the API: the person posts it by hand
+  // and is reminded until they do. Email as well, so it reaches them off screen.
+  [ActivityKey.POST_MANUAL_POST_NEEDED]: {
+    recipients: [{ channels: ['in_app', 'email'], recipient: 'actor' }],
+    severity: 'warning',
+    topic: 'publishing.status',
+  },
+  // The platform never confirmed a publish: the post may be live or not, and
+  // only the owner can check the account. Email as well, so it reaches them.
+  [ActivityKey.POST_PUBLISH_UNVERIFIED]: {
+    recipients: [{ channels: ['in_app', 'email'], recipient: 'actor' }],
+    severity: 'warning',
+    topic: 'publishing.status',
+  },
+  // A channel that lost its connection stops every post scheduled on it, so
+  // the owner is told off screen as well.
   [ActivityKey.SOCIAL_INTEGRATION_DISCONNECTED]: {
-    recipients: [{ channels: ['in_app'], recipient: 'actor' }],
+    recipients: [{ channels: ['in_app', 'email'], recipient: 'actor' }],
     severity: 'warning',
     topic: 'integration.status',
   },
@@ -172,6 +201,23 @@ export const ACTIVITY_ALERT_POLICIES = {
     ],
     severity: 'warning',
     topic: 'approval.requests',
+  },
+  [ActivityKey.ASSET_REVIEW_REQUESTED]: {
+    ...COLLABORATION_ALERT,
+    severity: 'warning',
+  },
+  [ActivityKey.ASSET_REVIEW_APPROVED]: {
+    ...COLLABORATION_ALERT,
+    severity: 'success',
+  },
+  [ActivityKey.ASSET_REVIEW_CHANGES_REQUESTED]: {
+    ...COLLABORATION_ALERT,
+    severity: 'warning',
+  },
+  [ActivityKey.MENTIONED]: COLLABORATION_ALERT,
+  [ActivityKey.AGENT_HANDOFF_RECEIVED]: {
+    ...COLLABORATION_ALERT,
+    severity: 'warning',
   },
   [ActivityKey.MCP_APPROVAL_REQUESTED]: {
     recipients: [{ channels: ['in_app'], recipient: 'actor' }],

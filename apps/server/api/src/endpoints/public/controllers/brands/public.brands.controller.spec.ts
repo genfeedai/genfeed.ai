@@ -155,7 +155,8 @@ describe('PublicBrandsController', () => {
     it('applies the requested limit as the page size', async () => {
       brandsService.findAll.mockResolvedValue({ docs: [mockBrand] } as never);
 
-      await controller.findPublicBrands(mockReq, undefined, '3');
+      const brands = await controller.findPublicBrands(mockReq, undefined, '3');
+      expect(brands).toEqual([mockBrand]);
 
       expect(brandsService.findAll).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -168,8 +169,14 @@ describe('PublicBrandsController', () => {
     it('caps the limit at 100 and falls back to 10 for junk input', async () => {
       brandsService.findAll.mockResolvedValue({ docs: [] } as never);
 
-      await controller.findPublicBrands(mockReq, undefined, '5000');
-      await controller.findPublicBrands(mockReq, undefined, 'abc');
+      const capped = await controller.findPublicBrands(
+        mockReq,
+        undefined,
+        '5000',
+      );
+      expect(capped).toEqual([]);
+      const junk = await controller.findPublicBrands(mockReq, undefined, 'abc');
+      expect(junk).toEqual([]);
 
       expect(brandsService.findAll).toHaveBeenNthCalledWith(
         1,
@@ -184,6 +191,41 @@ describe('PublicBrandsController', () => {
     });
   });
 
+  describe('findPublicBrands pages', () => {
+    it.each([
+      ['2', 2],
+      [undefined, 1],
+      ['0', 1],
+      ['abc', 1],
+    ])('reads page %j as page %i', async (page, expected) => {
+      brandsService.findAll.mockResolvedValue({ docs: [] } as never);
+
+      await controller.findPublicBrands(mockReq, undefined, '24', page);
+
+      const options = brandsService.findAll.mock.calls[0][1] as {
+        page?: number;
+      };
+      expect(options.page).toBe(expected);
+    });
+  });
+
+  describe('findPublicBrands order', () => {
+    it.each([
+      ['highlighted', [{ isHighlighted: 'desc' }, { createdAt: 'desc' }]],
+      [undefined, { createdAt: -1 }],
+      ['views', { createdAt: -1 }],
+    ])('orders sortBy %j by %j', async (sortBy, expected) => {
+      brandsService.findAll.mockResolvedValue({ docs: [] } as never);
+
+      await controller.findPublicBrands(mockReq, undefined, '24', '1', sortBy);
+
+      const aggregate = brandsService.findAll.mock.calls[0][0] as {
+        orderBy?: unknown;
+      };
+      expect(aggregate.orderBy).toEqual(expected);
+    });
+  });
+
   describe('findPublicBrands assets', () => {
     it('attaches assets once per organization', async () => {
       brandsService.findAll.mockResolvedValue({
@@ -194,7 +236,12 @@ describe('PublicBrandsController', () => {
         ],
       } as never);
 
-      await controller.findPublicBrands(mockReq);
+      const brands = await controller.findPublicBrands(mockReq);
+      expect(brands).toEqual([
+        expect.objectContaining({ id: 'b1' }),
+        expect.objectContaining({ id: 'b2' }),
+        expect.objectContaining({ id: 'b3' }),
+      ]);
 
       expect(brandsService.attachBrandKitAssetRelations).toHaveBeenCalledTimes(
         2,
@@ -301,7 +348,8 @@ describe('PublicBrandsController', () => {
         ...mockBrand,
       } as unknown as BrandEntity);
 
-      await controller.findOne(mockReq, brandId);
+      const brand = await controller.findOne(mockReq, brandId);
+      expect(brand).toMatchObject({ id: brandId, scope: PRISMA_SCOPE_PUBLIC });
 
       expect(brandsService.attachBrandKitAssetRelations).toHaveBeenCalledWith(
         [expect.objectContaining({ id: brandId })],
@@ -392,7 +440,8 @@ describe('PublicBrandsController', () => {
         totalDocs: 0,
       } as never);
 
-      await controller.findBrandArticles(brandId, mockReq);
+      const articles = await controller.findBrandArticles(brandId, mockReq);
+      expect(articles).toEqual([]);
 
       expect(articlesService.findAll).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -452,7 +501,8 @@ describe('PublicBrandsController', () => {
       imagesService.findAll.mockResolvedValue({ docs: [] } as never);
       articlesService.findAll.mockResolvedValue({ docs: [] } as never);
 
-      await controller.findBrandLinks(mockReq, brandId);
+      const links = await controller.findBrandLinks(mockReq, brandId);
+      expect(links).toEqual([]);
       // Link has neither `scope` nor `type`; Prisma rejects unknown arguments.
       expect(linksService.findAll).toHaveBeenCalledWith(
         {

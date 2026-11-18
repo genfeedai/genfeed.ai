@@ -6,6 +6,8 @@ export const BRAND_FROM_URL_TOOLS: SourceTool[] = [
     creditCost: BRAND_FROM_URL_CREDIT_COST,
     description:
       'Create a brand from a website URL with a draft guide and analyzed voice. Organization owners and admins only. Costs one credit on success. Set approve explicitly to approve the guide. Poll get_brand_scan_status if scanStatus is running.',
+    mcpDescription:
+      'Create a brand with draft guide and analyzed voice from a website. Owners/admins only; one credit on success. approve explicitly approves the guide. Poll get_brand_scan_status while scanStatus is running.',
     name: 'create_brand_from_url',
     parameters: {
       properties: {

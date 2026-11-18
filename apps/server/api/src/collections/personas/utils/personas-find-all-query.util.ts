@@ -7,7 +7,7 @@ import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import type { PrismaFindAllInput } from '@api/shared/services/base/base.service';
-import { PersonaStatus } from '@genfeedai/contracts';
+import { PersonaAvailabilityMode, PersonaStatus } from '@genfeedai/contracts';
 import { traced } from '@libs/tracing/traced';
 import type { Request } from 'express';
 
@@ -42,6 +42,30 @@ export const resolveAllowedPersonaBrandIds = traced(
   },
 );
 
+/**
+ * What a restricted member's organization-wide read keeps: characters owned
+ * by an assigned brand, characters shared to at least one assigned brand, and
+ * unbranded ones, which are organization-shared like unbranded assets.
+ * Organization scope itself is applied by the caller's tenant match.
+ */
+function restrictedAllBrandsWhere(allowedBrandIds: string[]) {
+  return {
+    OR: [
+      { brandId: { in: allowedBrandIds } },
+      { brandId: null },
+      ...(allowedBrandIds.length > 0
+        ? [
+            { availabilityMode: PersonaAvailabilityMode.ALL_BRANDS },
+            {
+              availabilityMode: PersonaAvailabilityMode.SELECTED_BRANDS,
+              availableBrandIds: { hasSome: allowedBrandIds },
+            },
+          ]
+        : []),
+    ],
+  };
+}
+
 export function buildPersonasFindAllQuery(
   user: User,
   query: PersonasQueryDto,
@@ -59,10 +83,8 @@ export function buildPersonasFindAllQuery(
   if (typeof brandId === 'string') {
     match.AND = [brandAvailabilityWhere(brandId)];
   }
-  if (isAllBrands) {
-    if (allowedBrandIds !== undefined) {
-      match.brandId = { in: allowedBrandIds };
-    }
+  if (isAllBrands && allowedBrandIds !== undefined) {
+    match.AND = [restrictedAllBrandsWhere(allowedBrandIds)];
   }
 
   if (query.status) {

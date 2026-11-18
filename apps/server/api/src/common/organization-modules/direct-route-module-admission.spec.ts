@@ -49,7 +49,7 @@ import { GUARDS_METADATA, METHOD_METADATA } from '@nestjs/common/constants';
 import { Reflector } from '@nestjs/core';
 import { describe, expect, it, vi } from 'vitest';
 
-/** Admin → Flags with nothing released: only Playground and Storyboard admit work. */
+/** Admin → Flags with nothing released: the web app hides every item, the API admits them. */
 const UNRELEASED_PLATFORM = {
   getFeatureSettingsState: async () => ({
     isResolved: true,
@@ -141,7 +141,7 @@ describe('direct product route module admission inventory', () => {
   );
 
   it.each(surfaces)(
-    '$controller.name denies new work before route effects for unreleased modules or unresolved settings',
+    '$controller.name denies new work before route effects for unresolved settings and admits it for unreleased modules, except Discovery without a subscription',
     async ({ controller }) => {
       const prisma = {
         organization: { findFirst: vi.fn().mockResolvedValue({ id: 'org-1' }) },
@@ -192,11 +192,11 @@ describe('direct product route module admission inventory', () => {
             prisma.organizationSetting.findUnique.mockResolvedValueOnce({
               isReleasePreviewEnabled: false,
             });
-            if (
-              policy &&
-              ['publishing', 'analytics', 'discovery'].includes(policy.moduleId)
-            ) {
+            if (policy?.moduleId === 'discovery') {
               await expect(guard.canActivate(request)).rejects.toMatchObject({
+                response: expect.objectContaining({
+                  code: 'ORGANIZATION_MODULE_SUBSCRIPTION_REQUIRED',
+                }),
                 status: 403,
               });
             } else {

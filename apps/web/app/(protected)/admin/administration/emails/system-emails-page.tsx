@@ -14,7 +14,6 @@ import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import Card from '@ui/card/Card';
-
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import {
@@ -33,10 +32,11 @@ import {
 import { EmptyState } from '@ui/primitives/empty-state';
 import { Mail } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect } from 'react';
+import { useCallback } from 'react';
 import { useAdminSearchParam } from '@/components/content/admin-filters/useAdminSearchParam';
 import SearchField from '@/components/content/search-field/SearchField';
 import { WorkspaceSurface } from '@/components/overview/WorkspaceSurface';
+import { useNotifyOnLoadError } from '@/hooks/utils/use-notify-on-load-error/use-notify-on-load-error';
 
 const SYSTEM_EMAIL_SKELETON_KEYS = [
   'system-email-skeleton-1',
@@ -106,13 +106,11 @@ export default function SystemEmailsPage() {
     await refetch();
   }, [refetch]);
 
-  // One toast per failed read, after its retry, not one per attempt.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: errorUpdatedAt marks each new failed read.
-  useEffect(() => {
-    if (isError) {
-      notificationsService.error('Failed to load system emails');
-    }
-  }, [errorUpdatedAt, isError, notificationsService]);
+  useNotifyOnLoadError({
+    errorUpdatedAt,
+    hasError: isError,
+    notify: () => notificationsService.error('Failed to load system emails'),
+  });
 
   return (
     <AdminPageShell

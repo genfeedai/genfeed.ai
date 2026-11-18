@@ -257,6 +257,7 @@ export class ArticlesController extends BaseCRUDController<
 
     const handle = await this.articlesService.publicArticleScope.resolveHandle(
       String(article.id),
+      String(article.organizationId),
     );
     if (!handle) {
       throw new BadRequestException(

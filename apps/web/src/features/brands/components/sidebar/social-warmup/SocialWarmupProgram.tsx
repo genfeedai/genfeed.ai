@@ -97,6 +97,7 @@ export default function SocialWarmupProgram({
     : null;
   const blueprint = enrolledBlueprint ?? currentBlueprint;
 
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     if (
       !connection.credentialId ||
@@ -108,16 +109,16 @@ export default function SocialWarmupProgram({
       return;
     }
 
-    let isCancelled = false;
+    const abortController = new AbortController();
     enrollAttemptedFor.current = connection.credentialId;
     void enroll(connection.credentialId)
       .then(() => {
-        if (!isCancelled) {
+        if (!abortController.signal.aborted) {
           setEnrollError(null);
         }
       })
       .catch((enrollFailure: unknown) => {
-        if (isCancelled) {
+        if (abortController.signal.aborted) {
           return;
         }
         logger.error('Failed to enroll social warm-up', enrollFailure);
@@ -125,7 +126,7 @@ export default function SocialWarmupProgram({
       });
 
     return () => {
-      isCancelled = true;
+      abortController.abort();
     };
   }, [
     connection.credentialId,
@@ -159,6 +160,7 @@ export default function SocialWarmupProgram({
     );
   }, [blueprint, data, isRefreshingSignals, platform]);
 
+  // use-effect-audit: ignore drives a DOM element or browser API
   useEffect(() => {
     if (!focusedCheckId || view !== 'full') {
       return;
@@ -323,7 +325,7 @@ export default function SocialWarmupProgram({
 
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1">
-          <p className="text-2xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+          <p className="text-2xs font-semibold uppercase tracking-label text-muted-foreground">
             {translate('readiness')}
           </p>
           <p className="text-sm">
@@ -333,7 +335,7 @@ export default function SocialWarmupProgram({
           </p>
         </div>
         <div className="space-y-1">
-          <p className="text-2xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+          <p className="text-2xs font-semibold uppercase tracking-label text-muted-foreground">
             {translate('progress', {
               completed: model.progress.completed,
               total: model.progress.total,
@@ -351,7 +353,7 @@ export default function SocialWarmupProgram({
 
       {model.nextAction ? (
         <Card padding={CardPadding.SM}>
-          <p className="text-2xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+          <p className="text-2xs font-semibold uppercase tracking-label text-muted-foreground">
             {translate('nextAction')}
           </p>
           <Button

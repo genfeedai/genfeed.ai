@@ -295,6 +295,12 @@ export default defineConfig({
     exclude: ['src/crons/**/*.spec.ts'],
     globals: true,
     include: ['src/**/*.spec.ts'],
+    // Workers are reused across spec files instead of re-spawned per file, so
+    // the NestJS and @api import graph is transformed and evaluated once per
+    // worker, not once per file. The API suite runs the same way. Spec files
+    // stay independent because `test/setup-unit.ts` resets the module
+    // registry, timers, stubs and spies before each file's own imports run.
+    isolate: false,
     passWithNoTests: true,
     setupFiles: ['./test/setup-unit.ts'],
     testTimeout: 30000,

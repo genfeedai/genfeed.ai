@@ -21,6 +21,7 @@ export function useCommandPaletteDialog({
   const onAfterOpenRef = useRef(onAfterOpen);
   onAfterOpenRef.current = onAfterOpen;
 
+  // use-effect-audit: ignore keeps the modal store in step with the open state and closes it on unmount
   useEffect(() => {
     if (isOpen && !isModalOpen(modalId)) {
       openModal(modalId);

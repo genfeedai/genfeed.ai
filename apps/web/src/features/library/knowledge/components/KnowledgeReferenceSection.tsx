@@ -89,7 +89,7 @@ export default function KnowledgeReferenceSection({
       className="flex flex-col gap-2"
       data-testid="knowledge-reference-section"
     >
-      <p className="text-2xs font-bold uppercase tracking-wide text-muted-foreground">
+      <p className="text-2xs font-semibold uppercase tracking-label text-muted-foreground">
         {translate('title')}
       </p>
       <Label className="flex items-start gap-2 text-sm font-normal leading-normal">
@@ -116,7 +116,7 @@ export default function KnowledgeReferenceSection({
         <div className="flex flex-col gap-2 pl-6">
           {spaces.length > 0 ? (
             <fieldset className="flex flex-col gap-1">
-              <legend className="text-2xs font-bold uppercase tracking-wide text-muted-foreground">
+              <legend className="text-2xs font-semibold uppercase tracking-label text-muted-foreground">
                 {translate('spaces')}
               </legend>
               {spaces.map((space) => {
@@ -143,7 +143,7 @@ export default function KnowledgeReferenceSection({
             </fieldset>
           ) : null}
           <fieldset className="flex max-h-48 flex-col gap-1 overflow-y-auto">
-            <legend className="text-2xs font-bold uppercase tracking-wide text-muted-foreground">
+            <legend className="text-2xs font-semibold uppercase tracking-label text-muted-foreground">
               {translate('sources')}
             </legend>
             {isLoading ? (

@@ -3,7 +3,7 @@
   "build": {
     "afterSign": "scripts/notarize.cjs",
     "appId": "ai.genfeed.desktop",
-    "artifactName": "GenFeed-${version}-${arch}.${ext}",
+    "artifactName": "Genfeed-${version}-${arch}.${ext}",
     "asar": true,
     "asarUnpack": [
       "dist/app-shell/**/*",
@@ -55,9 +55,9 @@
     "@electric-sql/pglite": "0.5.10",
     "node-pty": "1.1.0"
   },
-  "description": "GenFeed \u2014 Electron native app for content creation",
+  "description": "Genfeed \u2014 Electron native app for content creation",
   "devDependencies": {
-    "@biomejs/biome": "2.6.4",
+    "@biomejs/biome": "2.6.8",
     "@electron/notarize": "3.1.2",
     "@genfeedai/desktop-core": "workspace:*",
     "@genfeedai/desktop-prisma": "workspace:*",
@@ -65,7 +65,7 @@
     "@genfeedai/next-config": "workspace:*",
     "@types/node": "26.6.6",
     "@typescript/native": "npm:typescript@7.0.2",
-    "electron": "45.2.2",
+    "electron": "45.3.2",
     "electron-builder": "26.18.0",
     "electron-updater": "6.8.11",
     "esbuild": "0.28.2",
@@ -78,7 +78,7 @@
     "typescript": "6.0.3"
   },
   "private": true,
-  "productName": "GenFeed",
+  "productName": "Genfeed",
   "scripts": {
     "build": "bun run build:native && bun run build:app-shell && bun run copy:app-shell",
     "build:app-shell": "node ./scripts/build-app-shell.cjs",
@@ -106,7 +106,7 @@
     "start": "bun run electron:install-binary && bun run native:rebuild && ELECTRON_RUN_AS_NODE= electron dist/main.js",
     "test": "bun test --tsconfig-override ./tsconfig.json ./src/**/*.test.ts",
     "test:cov": "bun test --tsconfig-override ./tsconfig.json --coverage ./src/**/*.test.ts",
-    "type-check": "bun run ../../scripts/architecture/check-typecheck-prerequisites.ts && bunx tsc --noEmit",
+    "type-check": "bun run ../../scripts/architecture/check-typecheck-prerequisites.ts && bun check --no-script",
     "verify:bundle-size": "node ./scripts/check-bundle-size.cjs",
     "visual:qa:release": "node ./scripts/capture-visual-qa.cjs"
   },

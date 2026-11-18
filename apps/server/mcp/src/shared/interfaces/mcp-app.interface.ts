@@ -17,7 +17,7 @@ export type McpCardLayout =
   | 'organizations'
   | 'posts';
 
-export interface McpCardAuthor {
+interface McpCardAuthor {
   name?: string;
   handle?: string;
   avatarUrl?: string;
@@ -31,7 +31,7 @@ export interface McpCardMedia {
 }
 
 /** One entry of a list fact: a brand with its logo, a channel with its state. */
-export interface McpCardFactItem {
+interface McpCardFactItem {
   avatarUrl?: string;
   /** Shows the avatar frame (initials when there is no picture), for brands and people. */
   hasAvatar?: boolean;
@@ -63,7 +63,7 @@ export interface McpCardMetric {
 }
 
 /** Tells the host which brand the conversation works with. */
-export interface McpSelectBrandAction {
+interface McpSelectBrandAction {
   kind: 'select_brand';
   /** The brand the action selects. */
   brandId: string;
@@ -71,7 +71,7 @@ export interface McpSelectBrandAction {
 }
 
 /** Approves or declines a queued write; the view calls `resolve_approval`. */
-export interface McpResolveApprovalAction {
+interface McpResolveApprovalAction {
   kind: 'resolve_approval';
   approvalId: string;
   decision: 'approve' | 'decline';
@@ -126,13 +126,13 @@ export interface McpCalendarDay {
   posts: McpCard[];
 }
 
-export interface McpCalendarView {
+interface McpCalendarView {
   days: McpCalendarDay[];
   draftsCount: number;
 }
 
 /** One organization the signed-in user can work in. */
-export interface McpOrganizationChoice {
+interface McpOrganizationChoice {
   id: string;
   isActive: boolean;
   label: string;

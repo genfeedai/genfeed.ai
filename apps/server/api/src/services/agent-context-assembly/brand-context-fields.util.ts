@@ -27,7 +27,7 @@ export function readTextField(value: unknown): string | undefined {
     : undefined;
 }
 
-export function readUrlField(value: unknown): string | undefined {
+function readUrlField(value: unknown): string | undefined {
   return readTextField(value);
 }
 
@@ -86,7 +86,7 @@ export function toSlotImages(
   });
 }
 
-export function readReferenceImages(value: unknown): Array<{
+function readReferenceImages(value: unknown): Array<{
   category: string;
   label?: string;
   url: string;

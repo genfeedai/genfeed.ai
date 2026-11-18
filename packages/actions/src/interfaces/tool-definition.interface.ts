@@ -40,6 +40,10 @@ export interface CanonicalToolDefinition {
   description: string;
   parameters: ToolParameterSchema;
   creditCost: number;
+  /** Wording MCP `tools/list` shows in place of `description`, pricing note included. */
+  mcpDescription?: string;
+  /** Parameters MCP omits from the schema; execution still rejects them. */
+  mcpHiddenParameters?: readonly string[];
   /**
    * Honest cost. Omitted only on hand-built fixtures; assembly always sets it.
    * A fixed amount may be higher than `creditCost` when the handler bills

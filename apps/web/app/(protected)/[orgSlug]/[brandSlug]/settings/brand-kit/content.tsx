@@ -30,7 +30,7 @@ import {
 } from '@ui/primitives/dialog';
 import { usePathname, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { useOptimistic, useState, useTransition } from 'react';
 import BrandFontsCard from '@/features/brands/components/brand-kit/BrandFontsCard';
 import {
   BrandKitReviewActionsProvider,
@@ -41,12 +41,10 @@ import BrandKitSlotsCard from '@/features/brands/components/brand-kit/BrandKitSl
 import BrandKitTransferCard from '@/features/brands/components/brand-kit/BrandKitTransferCard';
 import BrandKitWorkspace from '@/features/brands/components/brand-kit/BrandKitWorkspace';
 import BrandOsSettingsCard from '@/features/brands/components/brand-kit/BrandOsSettingsCard';
+import { finishingFromBrand } from '@/features/brands/components/brand-kit/brand-video-kit.helpers';
 import BrandWritingVoiceEditor from '@/features/brands/components/brand-kit/writing-voice/BrandWritingVoiceEditor';
 import BrandDetailManualKitCard from '@/features/brands/components/sidebar/BrandDetailManualKitCard';
 import BrandDetailReferencesCard from '@/features/brands/components/sidebar/BrandDetailReferencesCard';
-import BrandEndCardSettings from '@/features/brands/components/sidebar/BrandEndCardSettings';
-import BrandLutSettings from '@/features/brands/components/sidebar/BrandLutSettings';
-import BrandWatermarkSettings from '@/features/brands/components/sidebar/BrandWatermarkSettings';
 import { useUserRole } from '@/hooks/auth/use-user-role/use-user-role';
 import { useBrandDetail } from '@/hooks/pages/use-brand-detail/use-brand-detail';
 import { captureBrandOsFunnelStage } from '@/lib/analytics';
@@ -57,6 +55,7 @@ const FIELD_GROUPS: Record<string, readonly BrandKitFieldGroup[]> = {
   visual: ['visual'],
   voice: ['voice'],
   strategy: ['strategy'],
+  video: [],
 };
 
 export default function BrandKitPage() {
@@ -68,7 +67,11 @@ export default function BrandKitPage() {
   const router = useRouter();
   const pathname = usePathname();
   const requestedTab = pathname?.split('/').filter(Boolean).at(-1) ?? '';
-  const tab = isBrandKitPathTab(requestedTab) ? requestedTab : 'overview';
+  const routedTab = isBrandKitPathTab(requestedTab) ? requestedTab : 'overview';
+  // A tab's route is not prefetched, so the first click waits on the server.
+  // Show the chosen tab right away and let the route catch up.
+  const [tab, setOptimisticTab] = useOptimistic(routedTab);
+  const [, startTabTransition] = useTransition();
   const { href } = useOrgUrl();
   const getBrandsService = useAuthedService((token: string) =>
     BrandsService.getInstance(token),
@@ -128,6 +131,7 @@ export default function BrandKitPage() {
         brandId={brandId}
         refreshKey={refreshKey}
         fieldGroups={FIELD_GROUPS[tab]}
+        finishingBaseline={finishingFromBrand(brand)}
         onRefreshBrand={() => handleRefreshBrand()}
         renderWorkspace={(workspace) => (
           <BrandKitWorkspace
@@ -135,17 +139,21 @@ export default function BrandKitPage() {
             brand={brand}
             tab={tab}
             onTabChange={(next) => {
-              router.push(
-                href(
-                  isBrandKitPathTab(next)
-                    ? BRAND_KIT_TAB_PATHS[next]
-                    : APP_ROUTES.SETTINGS.BRAND_KIT,
-                ),
-                { scroll: false },
-              );
+              startTabTransition(() => {
+                setOptimisticTab(isBrandKitPathTab(next) ? next : 'overview');
+                router.push(
+                  href(
+                    isBrandKitPathTab(next)
+                      ? BRAND_KIT_TAB_PATHS[next]
+                      : APP_ROUTES.SETTINGS.BRAND_KIT,
+                  ),
+                  { scroll: false },
+                );
+              });
             }}
             onScan={() => setWorkflow('scan')}
             onManualImport={() => setWorkflow('manual')}
+            onRefreshBrand={() => handleRefreshBrand()}
             guidedSetupHref={href('/settings/brand-kit/setup')}
             contentRulesHref={href('/settings/brand-kit/rules')}
             overview={
@@ -209,21 +217,6 @@ export default function BrandKitPage() {
                     }}
                   />
                 ) : null}
-                <BrandWatermarkSettings
-                  brand={brand}
-                  brandId={brandId}
-                  onRefreshBrand={() => handleRefreshBrand()}
-                />
-                <BrandEndCardSettings
-                  brand={brand}
-                  brandId={brandId}
-                  onRefreshBrand={() => handleRefreshBrand()}
-                />
-                <BrandLutSettings
-                  brand={brand}
-                  brandId={brandId}
-                  onRefreshBrand={() => handleRefreshBrand()}
-                />
                 <BrandDetailReferencesCard
                   brand={brand}
                   deletingRefId={deletingRefId}

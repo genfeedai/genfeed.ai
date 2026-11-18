@@ -10,7 +10,7 @@ import {
 import {
   AGENT_CHAT_MODEL_KEYS,
   DEFAULT_AGENT_CHAT_MODEL_KEY,
-  RETIRED_AGENT_CHAT_MODELS,
+  RETIRED_AGENT_CHAT_MODEL_KEYS,
   SELECTABLE_AGENT_CHAT_MODELS,
 } from './agent-chat-models.constant';
 import {
@@ -123,30 +123,21 @@ describe('UNIFIED_MODEL_CATALOG', () => {
   // reads as an active, billable model. Assert at the registration so the
   // failure names the stale entry rather than the missing row.
   it('never registers a retired chat key as a live media capability', () => {
-    for (const key of Object.keys(RETIRED_AGENT_CHAT_MODELS)) {
+    for (const key of RETIRED_AGENT_CHAT_MODEL_KEYS) {
       expect(MODEL_OUTPUT_CAPABILITIES).not.toHaveProperty(key);
     }
   });
 
-  it('seeds retired chat keys as Retired aliases pointing at their successor', () => {
-    for (const [key, succeededBy] of Object.entries(
-      RETIRED_AGENT_CHAT_MODELS,
-    )) {
+  it('seeds retired chat keys as inactive Retired rows with no successor', () => {
+    for (const key of RETIRED_AGENT_CHAT_MODEL_KEYS) {
       const row = UNIFIED_MODEL_CATALOG.find((entry) => entry.key === key);
 
       expect(row).toBeDefined();
-
       expect(row?.isActive).toBe(false);
       expect(row?.lifecycle).toBe(ModelLifecycle.RETIRED);
-      expect(row?.succeededBy).toBe(succeededBy);
-      // A stale binding must never bill at zero by accident. Zero is only
-      // legitimate when the successor is declared free — then the row must
-      // carry the deliberate `isFree` marker.
-      if (row?.isFree) {
-        expect(row.cost).toBe(0);
-      } else {
-        expect(row?.cost).toBeGreaterThan(0);
-      }
+      expect(row).not.toHaveProperty('succeededBy');
+      // A stale binding must never bill at zero by accident.
+      expect(row?.cost).toBeGreaterThan(0);
     }
   });
 
@@ -162,14 +153,14 @@ describe('UNIFIED_MODEL_CATALOG', () => {
     expect(unpricedActiveRows).toEqual([]);
   });
 
-  it('seeds the retired Nemotron route inactive with a paid successor', () => {
+  it('seeds the retired Nemotron route inactive with a paid cost', () => {
     const retiredRow = UNIFIED_MODEL_CATALOG.find(
       (entry) => entry.key === AGENT_CHAT_MODEL_KEYS.NEMOTRON_3_ULTRA_FREE,
     );
 
     expect(retiredRow).toMatchObject({
       isActive: false,
-      succeededBy: AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_FLASH,
+      lifecycle: ModelLifecycle.RETIRED,
     });
     expect(retiredRow?.cost).toBeGreaterThan(0);
   });
@@ -230,7 +221,6 @@ describe('UNIFIED_MODEL_CATALOG', () => {
       isPublic: true,
       label: 'GPT Image 1.5',
       lifecycle: ModelLifecycle.LEGACY,
-      succeededBy: MODEL_KEYS.REPLICATE_OPENAI_GPT_IMAGE_2_5_FLARE,
     });
     expect(image2).toMatchObject({
       isActive: true,
@@ -309,6 +299,7 @@ describe('UNIFIED_MODEL_CATALOG', () => {
         MODEL_KEYS.ELEVENLABS_V4,
         MODEL_KEYS.FAL_GPT_IMAGE_2_6_SUNBURST,
         MODEL_KEYS.FAL_LYRIA3_PRO,
+        MODEL_KEYS.HEYGEN_AVATAR_6,
         MODEL_KEYS.HEYGEN_AVATAR_V,
         MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5,
         MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_4_5,
@@ -332,14 +323,13 @@ describe('UNIFIED_MODEL_CATALOG', () => {
     ]);
   });
 
-  it('seeds MusicGen as a legacy row that points at Lyria 3 Pro', () => {
+  it('seeds MusicGen as an inactive legacy row', () => {
     const musicgen = UNIFIED_MODEL_CATALOG.find(
       (entry) => entry.key === MODEL_KEYS.REPLICATE_META_MUSICGEN,
     );
 
     expect(musicgen?.isActive).toBe(false);
     expect(musicgen?.lifecycle).toBe(ModelLifecycle.LEGACY);
-    expect(musicgen?.succeededBy).toBe(MODEL_KEYS.FAL_LYRIA3_PRO);
   });
 
   it('honours a curated row that opts out of being seeded active', () => {
@@ -442,7 +432,6 @@ describe('UNIFIED_MODEL_CATALOG', () => {
       lifecycle: ModelLifecycle.LEGACY,
       pricingType: PricingType.FLAT,
       providerCostUsd: 0.19,
-      succeededBy: MODEL_KEYS.REPLICATE_MINIMAX_H3,
     });
     expect(wanI2v).toMatchObject({
       category: ModelCategory.VIDEO,
@@ -726,33 +715,22 @@ describe('model version lifecycle', () => {
     UNIFIED_MODEL_CATALOG.map((entry) => [entry.key, entry]),
   );
 
-  it('flags older media versions Legacy and points each at its newer model', () => {
-    for (const [key, successor] of [
-      [
-        MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDREAM_4_5,
-        MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDREAM_5_PRO,
-      ],
-      [
-        MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_3,
-        MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4,
-      ],
-      [MODEL_KEYS.REPLICATE_GOOGLE_VEO_3, MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1],
-      [
-        MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V2_1,
-        MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V3_VIDEO,
-      ],
-      [
-        MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3_FAST,
-        MODEL_KEYS.REPLICATE_MINIMAX_H3,
-      ],
-    ])
+  it('flags older media versions Legacy without a successor', () => {
+    for (const key of [
+      MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDREAM_4_5,
+      MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_3,
+      MODEL_KEYS.REPLICATE_GOOGLE_VEO_3,
+      MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V2_1,
+      MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3_FAST,
+    ]) {
       expect(byKey.get(key), key).toMatchObject({
         lifecycle: ModelLifecycle.LEGACY,
-        succeededBy: successor,
       });
+      expect(byKey.get(key), key).not.toHaveProperty('succeededBy');
+    }
   });
 
-  it('retires models the provider no longer serves onto a live successor', () => {
+  it('retires models the provider no longer serves', () => {
     for (const key of [
       MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V1_6_PRO,
       MODEL_KEYS.REPLICATE_META_LLAMA_3_1_405B_INSTRUCT,
@@ -816,10 +794,10 @@ describe('model version lifecycle', () => {
     });
   });
 
-  it('moves X drafts and the retired Grok 4.1 Fast row onto priced Grok 4.3', () => {
-    expect(
-      byKey.get(MODEL_KEYS.OPENROUTER_XAI_GROK_4_1_FAST)?.succeededBy,
-    ).toBe(MODEL_KEYS.OPENROUTER_XAI_GROK_4_3);
+  it('retires Grok 4.1 Fast and keeps priced Grok 4.3 live', () => {
+    expect(byKey.get(MODEL_KEYS.OPENROUTER_XAI_GROK_4_1_FAST)?.lifecycle).toBe(
+      ModelLifecycle.RETIRED,
+    );
     expect(byKey.get(MODEL_KEYS.OPENROUTER_XAI_GROK_4_3)).toMatchObject({
       inputCostPerMillionTokens: 1.25,
       isPublic: false,
@@ -829,18 +807,9 @@ describe('model version lifecycle', () => {
     });
   });
 
-  it('points every Legacy or Retired row at a non-retired model of its category', () => {
-    for (const catalog of [UNIFIED_MODEL_CATALOG]) {
-      const keys = new Map(catalog.map((entry) => [entry.key, entry]));
-      for (const entry of catalog) {
-        if (!entry.succeededBy) continue;
-        const successor = keys.get(entry.succeededBy);
-        expect(successor, `${entry.key} -> ${entry.succeededBy}`).toBeDefined();
-        expect(successor?.category, entry.key).toBe(entry.category);
-        expect(successor?.lifecycle, entry.key).not.toBe(
-          ModelLifecycle.RETIRED,
-        );
-      }
+  it('carries no successor field on any catalog row', () => {
+    for (const entry of UNIFIED_MODEL_CATALOG) {
+      expect(entry, entry.key).not.toHaveProperty('succeededBy');
     }
   });
 

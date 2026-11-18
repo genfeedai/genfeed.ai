@@ -1,4 +1,5 @@
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-runner.service';
+import { SystemWorkflowRetention } from '@api/collections/workflows/workflow-execution-retention.contract';
 import { createGenfeedActionNode } from '@genfeedai/actions';
 
 export const ANNOUNCEMENT_BROADCAST_ACTION_IDS = {
@@ -58,6 +59,7 @@ export function buildAnnouncementBroadcastWorkflowDefinition(): SystemWorkflowGr
       'Publishes an admin announcement to its selected channels and persists the delivery record.',
     label: 'Broadcast Admin Announcement',
     resultNodeId: 'persist-announcement',
+    retention: SystemWorkflowRetention.KEPT,
     version: 1,
   };
 }

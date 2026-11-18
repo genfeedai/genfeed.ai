@@ -231,17 +231,16 @@ export function useReviewQueueContent(search = '') {
     return new Set([...selectedIds].filter((id) => visibleIds.has(id)));
   }, [selectedIds, visibleItems]);
 
-  useEffect(() => {
-    if (selectedTurboRunId || !requestedTurboRunId) {
-      return;
-    }
-
-    if (turboRunList.some((turboRun) => turboRun.id === requestedTurboRunId)) {
-      setSelectedTurboRunId(requestedTurboRunId);
-    }
-  }, [turboRunList, requestedTurboRunId, selectedTurboRunId]);
+  if (
+    !selectedTurboRunId &&
+    requestedTurboRunId &&
+    turboRunList.some((turboRun) => turboRun.id === requestedTurboRunId)
+  ) {
+    setSelectedTurboRunId(requestedTurboRunId);
+  }
 
   // External URL changes only (back/forward / pasted link). Skip our own writes.
+  // use-effect-audit: ignore adopts review state from route changes made outside this hook
   useEffect(() => {
     if (currentHref === lastWrittenHrefRef.current) {
       return;
@@ -293,6 +292,7 @@ export function useReviewQueueContent(search = '') {
   }, [requestedItemId, visibleItems]);
 
   // Single URL write path for settled local state — only when query would change.
+  // use-effect-audit: ignore writes the review state to the route in the router
   useEffect(() => {
     if (!activeTurboRunId) {
       return;
@@ -340,17 +340,14 @@ export function useReviewQueueContent(search = '') {
     setActiveFilters([]);
   }, [activeTurboRun, activeFilters, filterCounts, notifications]);
 
-  useEffect(() => {
-    setSelectedIds((prev) => {
-      const next = new Set(
-        Array.from(prev).filter((itemId) =>
-          actionableItems.some((item) => item.id === itemId),
-        ),
-      );
-
-      return next.size === prev.size ? prev : next;
-    });
-  }, [actionableItems]);
+  const prunedSelectedIds = new Set(
+    Array.from(selectedIds).filter((itemId) =>
+      actionableItems.some((item) => item.id === itemId),
+    ),
+  );
+  if (prunedSelectedIds.size !== selectedIds.size) {
+    setSelectedIds(prunedSelectedIds);
+  }
 
   const handleToggleSelect = useCallback((itemId: string) => {
     setSelectedIds((prev) => {

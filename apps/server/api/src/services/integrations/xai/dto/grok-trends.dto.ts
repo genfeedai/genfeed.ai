@@ -6,7 +6,3 @@ export interface GrokTrendData {
   hashtags: string[];
   contentAngle: string;
 }
-
-export interface GrokTrendsResponse {
-  trends: GrokTrendData[];
-}

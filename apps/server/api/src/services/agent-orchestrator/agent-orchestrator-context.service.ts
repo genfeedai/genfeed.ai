@@ -52,7 +52,11 @@ import {
   AgentThreadKind,
   AgentType,
 } from '@genfeedai/contracts';
-import type { ResolvedRuntimeSkill } from '@genfeedai/contracts/interfaces/ai';
+import type { ValidatedAgentScope } from '@genfeedai/contracts/interfaces';
+import type {
+  ResolvedRuntimeSkill,
+  SkillSectionReceipt,
+} from '@genfeedai/contracts/interfaces/ai';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
@@ -141,6 +145,17 @@ export class AgentOrchestratorContextService {
     };
   }
 
+  /** The owner of a thread shared with the turn's sender, re-proved now (#9937). */
+  resolveSharedThreadOwner(
+    context: Pick<AgentChatContext, 'organizationId' | 'userId'>,
+    threadId: string,
+  ): Promise<string> {
+    return this.agentScopeContextService.resolveCollaboratedThreadOwner(
+      { organizationId: context.organizationId, userId: context.userId },
+      threadId,
+    );
+  }
+
   /**
    * The single assembly path for a chat turn's context: scope, feedback
    * memories, brand context layers, skills, model, and system prompt. The
@@ -171,6 +186,7 @@ export class AgentOrchestratorContextService {
     const preparedScope = await this.agentScopeContextService.prepareForTurn({
       expectedContextVersion: request.expectedContextVersion,
       organizationId: context.organizationId,
+      isSharedCollaborationAllowed: true,
       policyBrandId: basePolicy.brandId,
       requestedBrandId: request.brandId,
       threadId: request.threadId,
@@ -244,12 +260,13 @@ export class AgentOrchestratorContextService {
     //   3. Admin → Automation → Models text default (empty key → getDefaultModelKey)
     // Agent-type defaultModel is a seed fallback inside the registry, not a
     // pin that can hide the operator-owned catalog default.
-    // A retired key still maps forward to its registry successor so the model
-    // we call is always one the biller has a real price for. The org-level
-    // override specifically goes through resolveOverrideModelKey rather than
-    // resolveModelKey: a stale override (its model retired and removed from
-    // the catalog after it was saved) falls back to the platform default
-    // with a warning instead of dispatching a chat turn on an unknown key.
+    // A retired key has no successor: resolveModelKey and
+    // resolveOverrideModelKey throw RetiredModelException so the run stops with
+    // a clear message until the user picks a new model. The org-level override
+    // goes through resolveOverrideModelKey rather than resolveModelKey: a stale
+    // override (its model removed from the catalog after it was saved) falls
+    // back to the platform default with a warning instead of dispatching a chat
+    // turn on an unknown key.
     const model = strategyModel
       ? await this.agentChatModelRegistry.resolveModelKey(strategyModel)
       : await this.agentChatModelRegistry.resolveOverrideModelKey(
@@ -482,14 +499,39 @@ export class AgentOrchestratorContextService {
    * Resolve messages and optional compressed context for a thread.
    * If compaction is available, returns windowed messages + compressed context.
    * Otherwise falls back to the standard getRecentMessages(20).
+   *
+   * A member collaborating in a thread another member owns gets only the
+   * messages their own brand access reads, and no compressed summary: a summary
+   * folds every brand's messages together, so it cannot be limited per brand
+   * (#10256). The owner's own turns are unchanged.
    */
   async resolveThreadMessages(
     threadId: string,
     organizationId: string,
+    scope?: ValidatedAgentScope,
   ): Promise<{
     messages: AgentMessageDocument[];
     compressedContext?: string;
   }> {
+    const brandIds =
+      scope?.threadOwnerUserId !== undefined &&
+      scope.threadOwnerUserId !== scope.userId
+        ? await this.agentScopeContextService.resolveCollaboratorHistoryBrandIds(
+            scope,
+            threadId,
+          )
+        : undefined;
+    if (brandIds !== undefined) {
+      return {
+        messages: await this.agentMessagesService.getRecentMessages(
+          threadId,
+          20,
+          organizationId,
+          brandIds,
+        ),
+      };
+    }
+
     if (!this.threadContextCompressorService) {
       return {
         messages: await this.agentMessagesService.getRecentMessages(
@@ -747,6 +789,8 @@ export class AgentOrchestratorContextService {
     resolvedSkills: ResolvedRuntimeSkill[];
     skillPromptSuffix: string;
   }> {
+    const modality = this.inferSkillModality(request);
+    const resolutionRecord: { id?: string } = {};
     const resolvedSkills =
       this.skillRuntimeService && policy.brandId
         ? await this.skillRuntimeService.resolveActiveSkills(
@@ -757,18 +801,29 @@ export class AgentOrchestratorContextService {
               actorUserId: context.userId,
               agentType: request.agentType,
               channel: policy.platform,
-              modality: this.inferSkillModality(request),
+              modality,
               requestedSkillSlugs: request.requestedSkillSlugs,
+              resolutionRecord,
             },
           )
         : [];
 
-    return {
-      resolvedSkills,
-      skillPromptSuffix: this.skillRuntimeService
-        ? this.skillRuntimeService.buildSkillPromptSections(resolvedSkills)
-        : '',
-    };
+    const receipts: SkillSectionReceipt[] = [];
+    const skillPromptSuffix = this.skillRuntimeService
+      ? this.skillRuntimeService.buildSkillPromptSections(resolvedSkills, [], {
+          modality,
+          receipts,
+        })
+      : '';
+    await this.skillRuntimeService?.recordSectionReceipts({
+      actorUserId: context.userId,
+      brandId: policy.brandId,
+      organizationId: context.organizationId,
+      receipts,
+      resolutionId: resolutionRecord.id,
+    });
+
+    return { resolvedSkills, skillPromptSuffix };
   }
 
   private inferSkillModality(request: AgentChatRequest): string | undefined {

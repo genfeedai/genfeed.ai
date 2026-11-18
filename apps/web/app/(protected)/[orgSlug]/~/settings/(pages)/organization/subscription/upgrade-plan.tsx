@@ -94,6 +94,7 @@ export default function UpgradePlan({ tiers }: UpgradePlanProps) {
   };
 
   // A timer that outlives the card would retry against an unmounted component.
+  // use-effect-audit: ignore releases timers, requests or subscriptions on unmount
   useEffect(
     () => () => {
       for (const timerId of retryTimers.current) {
@@ -297,7 +298,7 @@ export default function UpgradePlan({ tiers }: UpgradePlanProps) {
                   })}
                 </Text>
               </div>
-              <Text as="p" size="xl" weight="bold">
+              <Text as="p" size="xl" weight="semibold">
                 {formatPlanPriceLabel(tier)}
               </Text>
             </div>

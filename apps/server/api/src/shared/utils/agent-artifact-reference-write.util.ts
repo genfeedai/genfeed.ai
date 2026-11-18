@@ -21,7 +21,7 @@ type ArtifactReferenceAuthorizer = Pick<
   'resolveReference' | 'resolveVersionPin'
 >;
 
-export interface AgentArtifactWriteInput {
+interface AgentArtifactWriteInput {
   artifactReferences?: unknown;
   artifactVersionPinIds?: unknown;
   metadata?: unknown;
@@ -152,21 +152,6 @@ function dedupeReferences(
     unique.set(`${reference.kind}:${reference.recordId}`, reference);
   }
   return [...unique.values()];
-}
-
-export function hasAgentArtifactWriteInput(
-  ...inputs: AgentArtifactWriteInput[]
-): boolean {
-  return inputs.some((input) => {
-    const topLevel = readRecordOrEmpty(input);
-    const metadata = readRecordOrEmpty(input.metadata);
-    return (
-      hasOwn(topLevel, 'artifactReferences') ||
-      hasOwn(topLevel, 'artifactVersionPinIds') ||
-      hasOwn(metadata, 'artifactReferences') ||
-      hasOwn(metadata, 'artifactVersionPinIds')
-    );
-  });
 }
 
 /**

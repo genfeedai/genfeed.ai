@@ -67,6 +67,15 @@ describe('ForgotPasswordContent', () => {
     );
   });
 
+  it('offers the saved email address for autofill', () => {
+    render(<ForgotPasswordContent />);
+
+    expect(screen.getByLabelText(/^Email/)).toHaveAttribute(
+      'autocomplete',
+      'email',
+    );
+  });
+
   it('requests a password reset with an absolute reset redirect', async () => {
     window.history.replaceState(
       {},

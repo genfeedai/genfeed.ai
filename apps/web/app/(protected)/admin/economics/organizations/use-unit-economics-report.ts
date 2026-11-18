@@ -87,6 +87,7 @@ export function useUnitEconomicsReport({
     ],
   });
 
+  // use-effect-audit: ignore reports a failed load to the logger or a notification
   useEffect(() => {
     if (query.error) {
       logger.error('GET /admin/unit-economics failed', query.error);

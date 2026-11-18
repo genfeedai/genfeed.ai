@@ -87,6 +87,7 @@ export function usePostDetailCard({
   }, [descriptionValue]);
 
   // Auto-save effect (only in Publishing scope)
+  // use-effect-audit: ignore timer outside React
   useEffect(() => {
     if (!isEditable || !performAutoSaveForPost) {
       return;

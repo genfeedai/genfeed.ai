@@ -52,6 +52,13 @@ export default defineConfig({
         find: /^@genfeedai\/types\/(.*)$/,
         replacement: path.resolve(__dirname, '../contracts/src/types/$1'),
       },
+      {
+        // The video and media players are not part of the published `ui`
+        // package, so the workflow nodes reach them through the same `@ui/*`
+        // alias `packages/agent` and `apps/web` use.
+        find: /^@ui\/(.*)$/,
+        replacement: path.resolve(__dirname, '../ui/src/components/$1'),
+      },
       // NOTE: do NOT alias @genfeedai/ui to its src — its source uses an internal
       // `@ui/*` alias the /ui specs can't resolve. Let it resolve via node_modules
       // to the built dist (turbo `test` dependsOn ^build), matching the former

@@ -1,6 +1,6 @@
 import { LoggerService } from '@libs/logger/logger.service';
 import { ClientService } from '@mcp/services/client.service';
-import { ToolRegistryService } from '@mcp/services/tool-registry.service';
+import { createEndpointRegistries } from '@mcp/services/tool-registry.endpoints.testing';
 
 /**
  * Integration test for role enforcement through the FULL handleToolCall path
@@ -49,7 +49,7 @@ function build(role: 'user' | 'admin') {
     log: vi.fn(),
     warn: vi.fn(),
   };
-  const registry = new ToolRegistryService(
+  const registry = createEndpointRegistries(
     client as unknown as ClientService,
     logger as unknown as LoggerService,
     role,

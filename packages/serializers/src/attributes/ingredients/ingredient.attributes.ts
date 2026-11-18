@@ -68,6 +68,8 @@ export const ingredientAttributes = createEntityAttributes([
   'totalChildren',
   'hasVoted',
   'evaluation',
+  'reviewState',
+  'stack',
   'workflowExecutionId',
   'agentStrategyId',
   'cdnUrl',

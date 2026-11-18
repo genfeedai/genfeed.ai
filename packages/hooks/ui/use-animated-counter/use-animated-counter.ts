@@ -36,6 +36,7 @@ export function useAnimatedCounter({
     triggerOnce: true,
   });
 
+  // use-effect-audit: ignore drives a requestAnimationFrame loop, a browser animation clock outside React
   useEffect(() => {
     if (!isIntersecting) {
       return;

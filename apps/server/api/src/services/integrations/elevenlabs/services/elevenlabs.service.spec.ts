@@ -78,10 +78,15 @@ describe('ElevenLabsService', () => {
 
   it('forwards explicit language and voice speed without changing existing defaults', async () => {
     const { service } = createHarness();
-    await service.textToSpeech('voice', 'Hola', 'org', 'user', 'byok', {
-      languageCode: 'es',
-      speed: 1.1,
-    });
+    const result = await service.textToSpeech(
+      'voice',
+      'Hola',
+      'org',
+      'user',
+      'byok',
+      { languageCode: 'es', speed: 1.1 },
+    );
+    expect(result).toMatchObject({ audioBase64: 'AAAA' });
     expect(textToSpeechConvert).toHaveBeenCalledWith(
       'voice',
       expect.objectContaining({
@@ -105,9 +110,10 @@ describe('ElevenLabsService', () => {
     it('builds a single cached client from the configured API key', async () => {
       const { getApiKey, service } = createHarness();
 
-      await service.getVoices();
-      await service.getVoices();
+      const first = await service.getVoices();
+      const second = await service.getVoices();
 
+      expect(second).toEqual(first);
       expect(getApiKey).toHaveBeenCalledWith(ApiKeyCategory.ELEVENLABS);
       expect(clientConstructor).toHaveBeenCalledTimes(1);
       expect(clientConstructor).toHaveBeenCalledWith({ apiKey: 'env-key' });
@@ -116,9 +122,15 @@ describe('ElevenLabsService', () => {
     it('builds a fresh uncached client for a BYOK override', async () => {
       const { getApiKey, service } = createHarness();
 
-      await service.searchAccountVoices('byok-key', {});
-      await service.searchAccountVoices('byok-key', {});
+      const first = await service.searchAccountVoices('byok-key', {});
+      const second = await service.searchAccountVoices('byok-key', {});
 
+      expect(first).toEqual({
+        hasMore: false,
+        nextPageToken: null,
+        voices: [],
+      });
+      expect(second).toEqual(first);
       expect(getApiKey).not.toHaveBeenCalled();
       expect(clientConstructor).toHaveBeenCalledTimes(2);
       expect(clientConstructor).toHaveBeenCalledWith({ apiKey: 'byok-key' });
@@ -173,8 +185,9 @@ describe('ElevenLabsService', () => {
           : { hasMore: false, voices: [] },
       );
 
-      await service.getVoices();
+      const voices = await service.getVoices();
 
+      expect(voices).toEqual([]);
       expect(loggerService.warn).toHaveBeenCalledTimes(1);
       expect(loggerService.warn).toHaveBeenCalledWith(
         expect.stringContaining('catalog page cap reached'),
@@ -469,11 +482,16 @@ describe('ElevenLabsService', () => {
     it('forwards optional description and noise-removal flags', async () => {
       const { service } = createHarness();
 
-      await service.cloneVoice('My Voice', [Buffer.from('one')], {
-        description: 'warm narrator',
-        removeBackgroundNoise: false,
-      });
+      const cloned = await service.cloneVoice(
+        'My Voice',
+        [Buffer.from('one')],
+        {
+          description: 'warm narrator',
+          removeBackgroundNoise: false,
+        },
+      );
 
+      expect(cloned).toEqual({ name: 'My Voice', voiceId: 'voice-new' });
       expect(ivcCreate).toHaveBeenCalledWith(
         expect.objectContaining({
           description: 'warm narrator',

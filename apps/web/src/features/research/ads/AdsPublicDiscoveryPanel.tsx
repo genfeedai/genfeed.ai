@@ -81,6 +81,7 @@ export default function AdsPublicDiscoveryPanel({
   const [loading, setLoading] = useState(false);
   const [watched, setWatched] = useState<string[]>([]);
 
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     const controller = new AbortController();
     setResponse(undefined);

@@ -223,6 +223,7 @@ export default function BrandContentRulesPage() {
   const [isPromoting, setIsPromoting] = useState(false);
 
   // A failed background refresh keeps the rules on screen without an alert.
+  // use-effect-audit: ignore reports a failed load to the logger or a notification
   useEffect(() => {
     if (!loadError || hasProfiles) {
       return;

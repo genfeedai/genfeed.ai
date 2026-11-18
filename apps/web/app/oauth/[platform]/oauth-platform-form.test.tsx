@@ -82,6 +82,17 @@ vi.mock(
   }),
 );
 
+vi.mock(
+  '@/features/auth/components/modals/brands/google-business/GoogleBusinessLocationSelector',
+  () => ({
+    default: (props: { credentialId: string }) => (
+      <div data-testid="google-business-location-selector">
+        {props.credentialId}
+      </div>
+    ),
+  }),
+);
+
 vi.mock('./oauth-return-navigation', () => ({
   navigateToReturnPath: mocks.navigate,
 }));
@@ -176,6 +187,24 @@ describe('OAuthPlatformForm', () => {
     expect(mocks.navigate).toHaveBeenCalledWith('/settings/publishing');
   });
 
+  it('forwards the issuer a Bluesky callback names so the API can check it', async () => {
+    mocks.searchParams = new URLSearchParams({
+      code: 'code-1',
+      iss: 'https://bsky.social',
+      state: 'state-1',
+    });
+
+    render(<OAuthPlatformForm platform="bluesky" />);
+
+    await waitFor(() => {
+      expect(mocks.postVerify).toHaveBeenCalledWith({
+        code: 'code-1',
+        iss: 'https://bsky.social',
+        state: 'state-1',
+      });
+    });
+  });
+
   it('returns to the stored page when the provider drops query params', async () => {
     // Brand integrations store the origin page in sessionStorage because the
     // provider redirect drops query params (no return_to survives Twitter).
@@ -187,7 +216,7 @@ describe('OAuthPlatformForm', () => {
     });
     window.sessionStorage.setItem(
       'oauth_return_to',
-      '/demo/acme/settings/accounts',
+      '/demo/brand/settings/profile',
     );
 
     render(<OAuthPlatformForm platform="twitter" />);
@@ -199,7 +228,7 @@ describe('OAuthPlatformForm', () => {
       });
     });
 
-    expect(mocks.navigate).toHaveBeenCalledWith('/demo/acme/settings/accounts');
+    expect(mocks.navigate).toHaveBeenCalledWith('/demo/brand/settings/profile');
     expect(window.sessionStorage.getItem('oauth_return_to')).toBeNull();
   });
 
@@ -219,7 +248,7 @@ describe('OAuthPlatformForm', () => {
       });
     });
 
-    expect(mocks.navigate).toHaveBeenCalledWith('/settings/api-keys');
+    expect(mocks.navigate).toHaveBeenCalledWith('/connectors/api-keys');
     expect(mocks.navigate).not.toHaveBeenCalledWith(
       expect.stringContaining('evil.com'),
     );
@@ -241,7 +270,7 @@ describe('OAuthPlatformForm', () => {
       });
     });
 
-    expect(mocks.navigate).toHaveBeenCalledWith('/settings/api-keys');
+    expect(mocks.navigate).toHaveBeenCalledWith('/connectors/api-keys');
     expect(mocks.navigate).not.toHaveBeenCalledWith(
       expect.stringContaining('evil.com'),
     );
@@ -298,9 +327,7 @@ describe('OAuthPlatformForm', () => {
     render(<OAuthPlatformForm platform="twitter" />);
 
     expect(mocks.getServicesService).not.toHaveBeenCalled();
-    expect(
-      screen.getByRole('link', { name: 'Sign in to continue' }),
-    ).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Sign In' })).toHaveAttribute(
       'href',
       `/login?callbackUrl=${encodeURIComponent(
         '/oauth/twitter?code=code-1&return_to=%2Fsettings%2Fpublishing&state=state-1',
@@ -379,7 +406,7 @@ describe('OAuthPlatformForm', () => {
     ).toBeVisible();
     expect(screen.getByText('Go back')).toHaveAttribute(
       'href',
-      '/settings/api-keys',
+      '/connectors/api-keys',
     );
     expect(
       screen.queryByRole('button', { name: 'Try again' }),
@@ -392,7 +419,7 @@ describe('OAuthPlatformForm', () => {
     fireEvent.click(
       screen.getByRole('button', { name: 'Restart authorization' }),
     );
-    expect(mocks.navigate).toHaveBeenCalledWith('/settings/api-keys');
+    expect(mocks.navigate).toHaveBeenCalledWith('/connectors/api-keys');
     expect(mocks.postVerify).toHaveBeenCalledTimes(1);
   });
 
@@ -539,6 +566,37 @@ describe('OAuthPlatformForm', () => {
     );
     expect(screen.queryByText('Instagram Connected')).not.toBeInTheDocument();
     expect(mocks.navigate).not.toHaveBeenCalled();
+  });
+
+  it('shows the Google Business location picker, not the Instagram one, when the account has several locations', async () => {
+    mocks.postVerify.mockResolvedValue({
+      id: 'credential-locations',
+      isConnected: false,
+      needsAccountSelection: true,
+    });
+
+    render(<OAuthPlatformForm platform="google-business" />);
+
+    expect(
+      await screen.findByTestId('google-business-location-selector'),
+    ).toHaveTextContent('credential-locations');
+    expect(
+      screen.queryByTestId('instagram-account-selector'),
+    ).not.toBeInTheDocument();
+    expect(mocks.navigate).not.toHaveBeenCalled();
+  });
+
+  it('names the location once a single-location Google account connects at once', async () => {
+    mocks.postVerify.mockResolvedValue({
+      externalName: 'Corner Cafe',
+      id: 'credential-1',
+      isConnected: true,
+    });
+
+    render(<OAuthPlatformForm platform="google-business" />);
+
+    expect(await screen.findByText('Google Business Connected')).toBeVisible();
+    expect(screen.getByText('Corner Cafe')).toBeVisible();
   });
 
   it('aborts without saving and returns to the connect origin when the operator cancels account selection', async () => {

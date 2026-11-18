@@ -45,11 +45,12 @@ const BETTER_AUTH_CREATOR_ROLE = 'admin';
 const BETTER_AUTH_DEFAULT_ORGANIZATION_CATEGORY = 'BUSINESS';
 const BETTER_AUTH_MAGIC_LINK_EXPIRES_IN_SECONDS = 300;
 const SIGN_UP_MAGIC_LINK_INTENT = 'signup';
+const ADMIN_CREATE_USER_PATH = '/admin/create-user';
 
 type BetterAuthDatabaseHooks = NonNullable<BetterAuthOptions['databaseHooks']>;
 type BetterAuthMagicLinkDependencies = Pick<
   ICreateBetterAuthOptions,
-  'prisma' | 'sendMagicLink'
+  'prisma' | 'sendMagicLink' | 'signupGate'
 > & {
   storeToken?: MagicLinkOptions['storeToken'];
 };
@@ -80,7 +81,7 @@ export const CAPTCHA_PROTECTED_ENDPOINTS = [
   '/sign-in/magic-link',
 ];
 
-export const DISPOSABLE_EMAIL_MESSAGE =
+const DISPOSABLE_EMAIL_MESSAGE =
   'Temporary email addresses are not supported. Sign up with a permanent address.';
 
 export const SIGN_UP_MAGIC_LINK_EXISTING_USER_MESSAGE =
@@ -321,6 +322,7 @@ export async function assertSignupMagicLinkCanCreateUser({
 export function buildBetterAuthMagicLinkOptions({
   prisma,
   sendMagicLink,
+  signupGate,
   storeToken = 'hashed',
 }: BetterAuthMagicLinkDependencies): MagicLinkOptions {
   return {
@@ -330,6 +332,7 @@ export function buildBetterAuthMagicLinkOptions({
     // can complete sign-in without a working mailer.
     storeToken,
     sendMagicLink: async ({ email, metadata, url, token }) => {
+      await signupGate?.assertCanRequestMagicLink(email);
       await assertSignupMagicLinkCanCreateUser({
         email,
         metadata,
@@ -573,6 +576,7 @@ export function buildBetterAuthUserDatabaseHooks(
   onUserCreated?: ICreateBetterAuthOptions['onUserCreated'],
   shouldBlockDisposableEmail?: ICreateBetterAuthOptions['shouldBlockDisposableEmail'],
   onSessionCreated?: ICreateBetterAuthOptions['onSessionCreated'],
+  signupGate?: ICreateBetterAuthOptions['signupGate'],
 ): BetterAuthDatabaseHooks {
   return {
     session: {
@@ -584,8 +588,13 @@ export function buildBetterAuthUserDatabaseHooks(
     },
     user: {
       create: {
-        before: async (user) => {
+        before: async (user, context) => {
           const typed = user as BetterAuthUserBeforePayload;
+          // A superadmin creating an account from the admin plugin is an
+          // explicit operator action, not open signup.
+          if (context?.path !== ADMIN_CREATE_USER_PATH) {
+            await signupGate?.assertCanCreateAccount(typed.email);
+          }
           // Throwaway inboxes mint free signups to farm trial credits; refuse
           // them before the row exists, whichever way the account is created.
           if (
@@ -803,6 +812,7 @@ export function createBetterAuthInstance(options: ICreateBetterAuthOptions) {
     onEmailVerified,
     onSessionCreated,
     shouldBlockDisposableEmail,
+    signupGate,
     turnstileSecretKey,
   } = options;
   const socialProviders = {
@@ -933,6 +943,7 @@ export function createBetterAuthInstance(options: ICreateBetterAuthOptions) {
       onUserCreated,
       shouldBlockDisposableEmail,
       onSessionCreated,
+      signupGate,
     ),
     plugins: [
       ...(apiKey ? [buildBetterAuthDashPlugin(apiKey)] : []),
@@ -940,6 +951,7 @@ export function createBetterAuthInstance(options: ICreateBetterAuthOptions) {
         buildBetterAuthMagicLinkOptions({
           prisma,
           sendMagicLink,
+          signupGate,
           storeToken:
             process.env.NODE_ENV === 'development' ? 'plain' : 'hashed',
         }),

@@ -449,6 +449,13 @@ function getSourceSelect() {
   return screen.getByRole('group', { name: 'Source' });
 }
 
+// Every app is on offer, so no entry point is hidden.
+vi.mock('@/components/shell/use-available-rail-apps', () => ({
+  useHasAppsBeyondDashboard: () => true,
+  useIsAppAvailable: () => true,
+  useIsHrefAvailable: () => () => true,
+}));
+
 describe('AdsResearchPageClient', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -830,9 +837,7 @@ describe('AdsResearchPageClient', () => {
       }),
     );
 
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Unsave from swipe file' }),
-    );
+    fireEvent.click(screen.getByRole('button', { name: 'Unsave' }));
 
     expect(unsaveSavedAdsMock).toHaveBeenCalledWith([
       expect.objectContaining({ id: 'saved-1' }),
@@ -851,7 +856,7 @@ describe('AdsResearchPageClient', () => {
       }),
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Save to swipe file' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
 
     expect(await screen.findByText('save failed')).toBeInTheDocument();
   });
@@ -1233,10 +1238,7 @@ describe('AdsResearchPageClient', () => {
 
     expect(
       screen.getByRole('link', { name: 'Manage ad connections' }),
-    ).toHaveAttribute(
-      'href',
-      '/moonrise-org/moonrise-studio/settings/accounts',
-    );
+    ).toHaveAttribute('href', '/moonrise-org/moonrise-studio/settings/profile');
     expect(
       screen.getByRole('button', { name: 'Competitors' }),
     ).toBeInTheDocument();

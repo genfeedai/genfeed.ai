@@ -64,6 +64,8 @@ export const WEBHOOK_CLIENT_QUEUE = 'webhook-client';
 
 export const HEYGEN_POLL_QUEUE = 'heygen-poll';
 export const REPLICATE_POLL_QUEUE = 'replicate-poll';
+/** Resumes accepted Higgsfield video requests after the submitting process is gone. */
+export const HIGGSFIELD_POLL_QUEUE = 'higgsfield-poll';
 export const CREDIT_DEDUCTION_QUEUE = 'credit-deduction';
 export const ACCOUNT_GENERATION_QUEUE = 'account-generation';
 
@@ -93,6 +95,7 @@ export const ALL_QUEUE_NAMES = [
   WEBHOOK_CLIENT_QUEUE,
   HEYGEN_POLL_QUEUE,
   REPLICATE_POLL_QUEUE,
+  HIGGSFIELD_POLL_QUEUE,
   CREDIT_DEDUCTION_QUEUE,
   MEDIA_PERCEPTION_QUEUE,
   MEDIA_MODERATION_QUEUE,
@@ -160,6 +163,7 @@ export const PLATFORM_SCHEDULE_QUEUE = 'system-sweeps';
 /** Platform tasks that re-import provider model prices into the pricing snapshot. */
 export const PROVIDER_PRICE_SYNC_TASKS = {
   fal: 'fal-model-discovery',
+  higgsfield: 'higgsfield-model-discovery',
   replicate: 'replicate-model-discovery',
 } as const;
 

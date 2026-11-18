@@ -68,16 +68,38 @@ export class BrandedPublishHoldException extends ConflictException {
 
   constructor(hold: BrandedPublishHold) {
     const isPolicy = hold.reason === 'policy_violation';
+    const isCheckUnavailable =
+      isPolicy &&
+      hold.violations.length > 0 &&
+      hold.violations.every(
+        (violation) => violation.rule === 'policy_judge_unavailable',
+      );
     super({
       ...(isPolicy
-        ? { code: 'brand_policy_held', violations: hold.violations }
+        ? {
+            code: isCheckUnavailable
+              ? 'brand_policy_check_unavailable'
+              : 'brand_policy_held',
+            violations: isCheckUnavailable
+              ? [
+                  {
+                    rule: 'policy_judge_unavailable',
+                    detail: 'The Policy check is unavailable.',
+                  },
+                ]
+              : hold.violations,
+          }
         : {
             brandedGenerationReceiptId: hold.receiptId,
             code: 'branded_receipt_held',
           }),
-      detail: HOLD_MESSAGES[hold.reason],
+      detail: isCheckUnavailable
+        ? 'This post is held because the brand Policy check is unavailable. Resume the existing release to check again; do not create another release. A member can also review it in the app.'
+        : HOLD_MESSAGES[hold.reason],
       holdReason: hold.reason,
-      title: 'Post held for review',
+      title: isCheckUnavailable
+        ? 'Policy check unavailable'
+        : 'Post held for review',
     });
     this.receiptId = isPolicy ? undefined : hold.receiptId;
     this.reason = hold.reason;
@@ -90,7 +112,7 @@ export class BrandedPublishHoldException extends ConflictException {
  * workflow or MCP asked for. Those requests chose to publish, so autonomy,
  * brand and channel are theirs; the Policy is what binds them.
  */
-export async function evaluatePolicyHold(
+async function evaluatePolicyHold(
   policy: HoldPolicy,
   facts: BrandPolicyDraftFacts,
   transaction?: Prisma.TransactionClient,

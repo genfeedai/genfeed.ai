@@ -132,7 +132,7 @@ function TaskDetailComments({ task }: { task: Task }) {
 
   return (
     <section className="flex flex-col gap-3 px-6 py-4">
-      <h4 className="text-2xs uppercase tracking-[0.12em] text-muted-foreground">
+      <h4 className="text-2xs uppercase tracking-label text-muted-foreground">
         {translate('comments', { count: comments.length })}
       </h4>
       {comments.length > 0 ? (

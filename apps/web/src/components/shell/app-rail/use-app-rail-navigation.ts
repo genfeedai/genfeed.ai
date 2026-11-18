@@ -42,6 +42,7 @@ export function useAppRailNavigation({
     },
   );
 
+  // use-effect-audit: ignore subscribes to browser events
   useEffect(() => {
     // Re-register when command membership, order, or localized metadata changes.
     void registrationKey;

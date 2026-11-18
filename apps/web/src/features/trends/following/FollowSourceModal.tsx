@@ -16,6 +16,7 @@ import type {
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useResetOnChange } from '@hooks/utils/use-reset-on-change/use-reset-on-change';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { SocialSourcesService } from '@services/social/social-sources.service';
@@ -43,7 +44,6 @@ import {
   type ChangeEvent,
   type FormEvent,
   useCallback,
-  useEffect,
   useMemo,
   useState,
 } from 'react';
@@ -165,11 +165,11 @@ export default function FollowSourceModal({
     setSelectedKeys([]);
   }, []);
 
-  useEffect(() => {
+  useResetOnChange([open], () => {
     if (!open) {
       resetState();
     }
-  }, [open, resetState]);
+  });
 
   const selectableCandidates = useMemo(
     () => candidates.filter(isCandidateSelectable),

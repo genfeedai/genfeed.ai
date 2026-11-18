@@ -139,6 +139,7 @@ export function useGsapEntrance<T extends HTMLElement = HTMLDivElement>(
   const { animations, enabled = true } = options;
   const containerRef = useRef<T | null>(null);
 
+  // use-effect-audit: ignore creates and reverts a GSAP animation context on the DOM
   useEffect(() => {
     if (
       !enabled ||
@@ -150,7 +151,7 @@ export function useGsapEntrance<T extends HTMLElement = HTMLDivElement>(
     }
 
     let ctx: GsapContextHandle | null = null;
-    let isCancelled = false;
+    const abortController = new AbortController();
 
     const initGsap = async () => {
       let gsap: typeof import('gsap').default;
@@ -168,7 +169,7 @@ export function useGsapEntrance<T extends HTMLElement = HTMLDivElement>(
       }
 
       const container = containerRef.current;
-      if (isCancelled || !isMountedHost(container)) {
+      if (abortController.signal.aborted || !isMountedHost(container)) {
         return;
       }
 
@@ -282,7 +283,7 @@ export function useGsapEntrance<T extends HTMLElement = HTMLDivElement>(
     void initGsap();
 
     return () => {
-      isCancelled = true;
+      abortController.abort();
       revertGsapContext(ctx);
     };
   }, [animations, enabled]);
@@ -290,7 +291,7 @@ export function useGsapEntrance<T extends HTMLElement = HTMLDivElement>(
   return containerRef;
 }
 
-export interface GsapTimelineStep {
+interface GsapTimelineStep {
   selector: string;
   from: {
     opacity?: number;
@@ -318,6 +319,7 @@ export function useGsapTimeline<T extends HTMLElement = HTMLDivElement>(
   const { steps, enabled = true } = options;
   const containerRef = useRef<T | null>(null);
 
+  // use-effect-audit: ignore creates and reverts a GSAP timeline on the DOM
   useEffect(() => {
     if (
       !enabled ||
@@ -329,7 +331,7 @@ export function useGsapTimeline<T extends HTMLElement = HTMLDivElement>(
     }
 
     let ctx: GsapContextHandle | null = null;
-    let isCancelled = false;
+    const abortController = new AbortController();
 
     const initGsap = async () => {
       let gsap: typeof import('gsap').default;
@@ -342,7 +344,7 @@ export function useGsapTimeline<T extends HTMLElement = HTMLDivElement>(
       }
 
       const container = containerRef.current;
-      if (isCancelled || !isMountedHost(container)) {
+      if (abortController.signal.aborted || !isMountedHost(container)) {
         return;
       }
 
@@ -388,7 +390,7 @@ export function useGsapTimeline<T extends HTMLElement = HTMLDivElement>(
     void initGsap();
 
     return () => {
-      isCancelled = true;
+      abortController.abort();
       revertGsapContext(ctx);
     };
   }, [steps, enabled]);

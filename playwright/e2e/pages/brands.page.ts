@@ -5,7 +5,7 @@ import { expect } from '@playwright/test';
  * Page Object Model for the Brands Page
  *
  * Provides an abstraction layer for interacting with
- * brand management: list, detail, creation, connected accounts.
+ * brand management: list, detail, creation, accounts.
  *
  * @module brands.page
  */

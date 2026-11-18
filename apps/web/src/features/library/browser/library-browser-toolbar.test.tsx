@@ -4,6 +4,7 @@ import {
   IngredientCategory,
   IngredientOrigin,
   LibraryPlace,
+  LibraryReviewState,
   LibraryShelf,
   TagMatchMode,
 } from '@genfeedai/contracts';
@@ -82,6 +83,7 @@ function renderToolbar(overrides: Partial<SearchProps & ViewProps> = {}): void {
         onClearAllFilters={vi.fn()}
         onOriginsChange={vi.fn()}
         onPlaceChange={vi.fn()}
+        onReviewChange={vi.fn()}
         onSearch={vi.fn()}
         onSortChange={vi.fn()}
         onStatusChange={vi.fn()}
@@ -210,6 +212,34 @@ describe('LibraryBrowserToolbar', () => {
       await screen.findByRole('menuitemradio', { name: /^Trash\s*4$/ }),
     );
     expect(onStatusChange).toHaveBeenCalledWith('trash');
+  });
+
+  it('filters by teammate review state from one Review value in the Filters menu (#9948)', async () => {
+    const onReviewChange = vi.fn();
+
+    renderToolbar({
+      onReviewChange,
+      review: LibraryReviewState.CHANGES_REQUESTED,
+    });
+    const user = await openFilters(/^Review/);
+
+    expect(
+      await screen.findByRole('menuitemradio', { name: 'Changes requested' }),
+    ).toBeChecked();
+    await user.click(screen.getByRole('menuitemradio', { name: 'In review' }));
+    expect(onReviewChange).toHaveBeenCalledWith(LibraryReviewState.IN_REVIEW);
+  });
+
+  it('clears the review filter from its Any choice (#9948)', async () => {
+    const onReviewChange = vi.fn();
+
+    renderToolbar({ onReviewChange, review: LibraryReviewState.APPROVED });
+    const user = await openFilters(/^Review/);
+    await user.click(
+      await screen.findByRole('menuitemradio', { name: 'Any review state' }),
+    );
+
+    expect(onReviewChange).toHaveBeenCalledWith(null);
   });
 
   it('filters Recent and Starred from the show choices, not the nav (#5502)', async () => {

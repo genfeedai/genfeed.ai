@@ -11,7 +11,7 @@ import {
 
 const TOPBAR_BALANCES_TIMEOUT_MS = 5_000;
 
-export interface CreditUsageSeriesPoint {
+interface CreditUsageSeriesPoint {
   date: string;
   amount: number;
 }

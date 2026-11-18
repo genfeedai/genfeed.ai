@@ -36,6 +36,7 @@ export default function GlobalTaskComposer() {
   const [isOpen, setIsOpen] = useState(false);
   const isInbox = isWorkspaceInboxPath(pathname);
 
+  // use-effect-audit: ignore subscribes to browser events
   useEffect(() => {
     if (isInbox || typeof window === 'undefined') {
       return;

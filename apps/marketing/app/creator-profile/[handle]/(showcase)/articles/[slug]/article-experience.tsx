@@ -172,7 +172,7 @@ function EffectPreview({
         style={{ filter: preview.sceneFilter }}
       >
         <div
-          className="absolute inset-0 transition-all duration-700 ease-out motion-reduce:transition-none"
+          className="absolute inset-0 transition-[filter,transform] duration-700 ease-out motion-reduce:transition-none"
           style={{
             filter: `blur(${preview.backgroundBlur}px)`,
             transform: `translateX(${preview.backgroundTranslate}%) scale(${preview.backgroundScale})`,
@@ -191,7 +191,7 @@ function EffectPreview({
         </div>
 
         <div
-          className="absolute bottom-[15%] left-1/2 h-[48%] w-[18%] -translate-x-1/2 transition-all duration-700 ease-out motion-reduce:transition-none"
+          className="absolute bottom-[15%] left-1/2 h-[48%] w-[18%] -translate-x-1/2 transition-[filter,transform] duration-700 ease-out motion-reduce:transition-none"
           style={{
             filter: `blur(${preview.foregroundBlur}px)`,
             transform: `translateX(calc(-50% + ${preview.foregroundTranslate}%)) scale(${preview.foregroundScale})`,
@@ -220,7 +220,7 @@ function EffectPreview({
           }}
         />
 
-        <div className="absolute left-3 top-3 bg-background/80 px-2 py-1 text-2xs font-medium uppercase tracking-[0.14em] text-foreground/70 backdrop-blur-sm">
+        <div className="absolute left-3 top-3 bg-background/80 px-2 py-1 text-2xs font-medium uppercase tracking-label text-foreground/70 backdrop-blur-sm">
           {isApplied ? effect.label : 'Before'}
         </div>
       </div>
@@ -256,7 +256,7 @@ function FilmmakingEffectLab(): React.ReactElement {
           <Sparkles className="size-4" aria-hidden="true" />
         </div>
         <div>
-          <p className="mb-1 text-xs font-medium uppercase tracking-[0.16em] text-foreground/50">
+          <p className="mb-1 text-xs font-medium uppercase tracking-label text-foreground/50">
             Interactive filmmaking lexicon
           </p>
           <h2

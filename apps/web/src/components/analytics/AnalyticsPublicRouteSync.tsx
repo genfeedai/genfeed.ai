@@ -25,6 +25,7 @@ function EnabledAnalyticsPublicRouteSync() {
       .toLowerCase()
       .endsWith('@genfeed.ai') === true;
 
+  // use-effect-audit: ignore reports to analytics, an external system
   useEffect(() => {
     if (!isAuthLoaded || isLogoutRoute) {
       return;
@@ -39,6 +40,7 @@ function EnabledAnalyticsPublicRouteSync() {
     ensureAnalyticsAnonymous();
   }, [isAuthLoaded, isInternal, isLogoutRoute, user?.id]);
 
+  // use-effect-audit: ignore reports to analytics, an external system
   useEffect(() => {
     if (!isAuthLoaded || isLogoutRoute) {
       return;
@@ -47,6 +49,7 @@ function EnabledAnalyticsPublicRouteSync() {
     captureAnalyticsPageview(pageviewKey, { app: ANALYTICS_APP_PUBLIC });
   }, [isAuthLoaded, isLogoutRoute, pageviewKey]);
 
+  // use-effect-audit: ignore reports the account scope to Sentry
   useEffect(() => {
     if (isAuthLoaded && !isLogoutRoute) {
       setSentryAccountContext({ userId: user?.id });

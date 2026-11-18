@@ -81,7 +81,10 @@ describe('isRetryableSystemRunError', () => {
   it('does not retry a Nest HttpException that rejects the request', () => {
     expect(
       isRetryableSystemRunError(
-        new HttpException({ code: 'ORGANIZATION_MODULE_UNRELEASED' }, 403),
+        new HttpException(
+          { code: 'ORGANIZATION_MODULE_SUBSCRIPTION_REQUIRED' },
+          403,
+        ),
       ),
     ).toBe(false);
   });

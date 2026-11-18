@@ -1,4 +1,5 @@
 import {
+  ContextSidebarHeaderOutlet,
   ContextSidebarOutlet,
   ContextSidebarProvider,
   useContextSidebar,
@@ -19,12 +20,13 @@ import userEvent from '@testing-library/user-event';
 import type { ReactElement } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
-import ReleaseDetailDrawer, {
+import {
   RELEASE_RESCHEDULE_ACTION,
   RELEASE_RESUME_ACTION,
   targetRescheduleAction,
   targetRetryAction,
-} from './release-detail-drawer';
+} from './release-actions';
+import ReleaseDetailDrawer from './release-detail-drawer';
 
 const getToken = vi.fn(async () => 'token-123');
 const listBrandAccountHealth = vi.fn();
@@ -47,6 +49,12 @@ vi.mock('@services/organization/credentials.service', () => ({
   CredentialsService: {
     getInstance: () => ({ listBrandAccountHealth }),
   },
+}));
+
+const findOnePost = vi.fn();
+
+vi.mock('@services/content/posts.service', () => ({
+  PostsService: { getInstance: () => ({ findOne: findOnePost }) },
 }));
 
 vi.mock('next-intl', async () => {
@@ -118,25 +126,50 @@ function CloseControl() {
   );
 }
 
-function renderInSidebar(ui: ReactElement) {
-  return render(
+function SidebarFrame({ children }: { children: ReactElement }) {
+  return (
     <ContextSidebarProvider>
       <CloseControl />
+      <ContextSidebarHeaderOutlet testId="context-sidebar-header-actions" />
       <ContextSidebarOutlet testId="context-sidebar-outlet" />
-      {ui}
-    </ContextSidebarProvider>,
+      {children}
+    </ContextSidebarProvider>
   );
+}
+
+/** Opens one of the drawer's views from its header icon, like a person would. */
+function openView(name: 'Analytics' | 'Details' | 'Preview') {
+  fireEvent.click(screen.getByRole('button', { name }));
+}
+
+/**
+ * The drawer opens on the post preview. Most of what these tests cover lives
+ * in Details, so they start there; pass `view: 'preview'` to stay on the
+ * preview.
+ */
+function renderInSidebar(
+  ui: ReactElement,
+  { view = 'details' }: { view?: 'details' | 'preview' } = {},
+) {
+  const utils = render(<SidebarFrame>{ui}</SidebarFrame>);
+  if (view === 'details' && screen.queryByRole('button', { name: 'Details' })) {
+    openView('Details');
+  }
+  return utils;
 }
 
 function renderDrawer(
   overrides: Partial<IReleaseGroup> = {},
   pending: string | null = null,
+  initialView: 'details' | 'preview' = 'details',
 ) {
   const handlers = {
     onClose: vi.fn(),
+    onCompleteManualPost: vi.fn(),
     onRescheduleRelease: vi.fn(),
     onRescheduleTarget: vi.fn(),
     onRetryTarget: vi.fn(),
+    onSkipManualPost: vi.fn(),
   };
 
   const view = renderInSidebar(
@@ -144,10 +177,11 @@ function renderDrawer(
       brandId="brand-1"
       error={null}
       pendingAction={pending}
-      reconnectHref="/acme-org/acme-creator/settings/accounts"
+      reconnectHref="/acme-org/~/settings/profile"
       release={release(overrides)}
       {...handlers}
     />,
+    { view: initialView },
   );
 
   return { ...handlers, view };
@@ -160,6 +194,15 @@ describe('ReleaseDetailDrawer', () => {
     getToken.mockClear();
     listBrandAccountHealth.mockReset();
     listBrandAccountHealth.mockResolvedValue([]);
+    findOnePost.mockReset();
+    findOnePost.mockResolvedValue({
+      credential: { externalName: 'Shayla', platform: 'instagram' },
+      id: 'target-1',
+      ingredients: [
+        { category: 'image', cdnUrl: 'https://cdn.test/1.jpg', id: 'a' },
+        { category: 'image', cdnUrl: 'https://cdn.test/2.jpg', id: 'b' },
+      ],
+    });
   });
 
   afterEach(() => {
@@ -228,7 +271,7 @@ describe('ReleaseDetailDrawer', () => {
         brandId="brand-1"
         error={null}
         pendingAction={null}
-        reconnectHref="/settings/accounts"
+        reconnectHref="/settings/profile"
         release={release({
           status: ReleaseStatus.PAUSED,
           targets: [target({ executionState: TargetExecutionState.PAUSED })],
@@ -268,15 +311,38 @@ describe('ReleaseDetailDrawer', () => {
       ],
     });
 
-    // Once as the current failure banner, once as the history entry — the
-    // banner answers "why is it red now", the entry answers "when did it fail".
-    expect(screen.getAllByText('Provider timed out.')).toHaveLength(2);
-    expect(screen.getByText('Retry 1')).toBeInTheDocument();
+    expect(screen.getByText('Provider timed out.')).toBeInTheDocument();
 
     fireEvent.click(
       screen.getByRole('button', { name: 'Retry Instagram target' }),
     );
     expect(onRetryTarget).toHaveBeenCalledWith('target-1');
+  });
+
+  it('asks for a refused X quote by hand instead of showing a plain failure', () => {
+    renderDrawer({
+      baseContent: 'Shipped it.',
+      status: ReleaseStatus.FAILED,
+      targets: [
+        target({
+          error: {
+            code: 'x_quote_refused',
+            failedAt: '2026-08-02T10:00:05.000Z',
+            isRetryable: false,
+            message: 'X refused this quote post.',
+          },
+          executionState: TargetExecutionState.FAILED,
+          platform: CredentialPlatform.TWITTER,
+          settings: { quotedPost: '1856322244019101979' },
+        }),
+      ],
+    });
+
+    expect(screen.getByText('Needs your post')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Open in X' })).toHaveAttribute(
+      'href',
+      'https://x.com/intent/post?text=Shipped+it.&url=https%3A%2F%2Fx.com%2Fi%2Fstatus%2F1856322244019101979',
+    );
   });
 
   it('locks the release once a target published, but not its unsent siblings', () => {
@@ -289,12 +355,11 @@ describe('ReleaseDetailDrawer', () => {
 
     // Moving the release would rewrite the instant a published target already
     // went out at; moving the target that has not gone out yet is still valid.
+    // A target that already published has no schedule to move at all.
     expect(
       screen.getByRole('button', { name: 'Reschedule post' }),
     ).toBeDisabled();
-    expect(
-      screen.getByRole('button', { name: 'Reschedule Instagram target' }),
-    ).toBeDisabled();
+    expect(screen.queryByLabelText('Instagram time')).not.toBeInTheDocument();
     fireEvent.change(screen.getByLabelText('LinkedIn time'), {
       target: { value: '2026-08-03T16:00' },
     });
@@ -343,7 +408,7 @@ describe('ReleaseDetailDrawer', () => {
     ).toBeDisabled();
     expect(
       screen.getByRole('link', { name: 'Reconnect Instagram' }),
-    ).toHaveAttribute('href', '/acme-org/acme-creator/settings/accounts');
+    ).toHaveAttribute('href', '/acme-org/~/settings/profile');
   });
 
   it('lists the validation issues that produced an invalid target', () => {
@@ -381,7 +446,7 @@ describe('ReleaseDetailDrawer', () => {
         onRescheduleTarget={vi.fn()}
         onRetryTarget={vi.fn()}
         pendingAction={null}
-        reconnectHref="/acme-org/acme-creator/settings/accounts"
+        reconnectHref="/acme-org/~/settings/profile"
         release={release()}
       />,
     );
@@ -392,10 +457,9 @@ describe('ReleaseDetailDrawer', () => {
   });
 
   it('shows the analytics empty state rather than an empty table', async () => {
-    const user = userEvent.setup();
     renderDrawer();
 
-    await user.click(screen.getByRole('tab', { name: 'Analytics' }));
+    openView('Analytics');
 
     expect(screen.getByText('No target analytics yet')).toBeInTheDocument();
   });
@@ -409,7 +473,7 @@ describe('ReleaseDetailDrawer', () => {
         onRescheduleTarget={vi.fn()}
         onRetryTarget={vi.fn()}
         pendingAction={null}
-        reconnectHref="/acme-org/acme-creator/settings/accounts"
+        reconnectHref="/acme-org/~/settings/profile"
         release={null}
       />,
     );
@@ -419,34 +483,170 @@ describe('ReleaseDetailDrawer', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('renders a live preview for every channel target', () => {
+  it('opens on the post as authored, with a chip for every channel', async () => {
+    renderDrawer(
+      {
+        baseContent: 'Shipped it.',
+        targets: [
+          target(),
+          target({ id: 'target-2', platform: CredentialPlatform.LINKEDIN }),
+        ],
+      },
+      null,
+      'preview',
+    );
+
+    const global = await screen.findByTestId('release-global-preview');
+    expect(global).toHaveTextContent('Shipped it.');
+    expect(screen.getByRole('radio', { name: 'Global' })).toBeChecked();
+    expect(
+      screen.getByRole('radio', { name: 'Instagram' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: 'LinkedIn' })).toBeInTheDocument();
+    expect(screen.queryByTestId('target-preview')).not.toBeInTheDocument();
+  });
+
+  it('draws the account and slides from the post in the Global preview', async () => {
+    renderDrawer({}, null, 'preview');
+
+    const global = await screen.findByTestId('release-global-preview');
+    await waitFor(() => expect(global).toHaveTextContent('Shayla'));
+    expect(
+      await screen.findByRole('group', { name: 'Carousel' }),
+    ).toBeInTheDocument();
+  });
+
+  it('shows a channel in its own layout when its chip is picked', async () => {
+    const user = userEvent.setup();
+    renderDrawer(
+      {
+        targets: [
+          target(),
+          target({ id: 'target-2', platform: CredentialPlatform.LINKEDIN }),
+        ],
+      },
+      null,
+      'preview',
+    );
+
+    await user.click(screen.getByRole('radio', { name: 'LinkedIn' }));
+
+    expect(screen.getByTestId('target-preview')).toHaveTextContent('target-2');
+    expect(
+      screen.queryByTestId('release-global-preview'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('swaps the drawer content from the header icons', () => {
+    renderDrawer({}, null, 'preview');
+
+    expect(screen.getByTestId('release-preview-panel')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Preview' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+
+    openView('Analytics');
+    expect(
+      screen.queryByTestId('release-preview-panel'),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText('No target analytics yet')).toBeInTheDocument();
+
+    openView('Details');
+    expect(screen.getByTestId('release-details-view')).toBeInTheDocument();
+
+    openView('Preview');
+    expect(screen.getByTestId('release-preview-panel')).toBeInTheDocument();
+  });
+
+  it('keeps History behind the more-actions menu', async () => {
+    const user = userEvent.setup();
+    renderDrawer(
+      {
+        status: ReleaseStatus.FAILED,
+        targets: [
+          target({
+            error: {
+              code: 'provider_timeout',
+              failedAt: '2026-08-02T10:00:05.000Z',
+              isRetryable: true,
+              message: 'Provider timed out.',
+            },
+            executionState: TargetExecutionState.FAILED,
+            lastAttemptAt: '2026-08-02T10:00:00.000Z',
+            retryCount: 1,
+          }),
+        ],
+      },
+      null,
+      'preview',
+    );
+
+    await user.click(screen.getByRole('button', { name: 'More actions' }));
+    await user.click(await screen.findByRole('menuitem', { name: 'History' }));
+
+    const history = screen.getByTestId('release-history-view');
+    expect(history).toHaveTextContent('Instagram');
+    expect(history).toHaveTextContent('Provider timed out.');
+    expect(history).toHaveTextContent('Retry 1');
+  });
+
+  it('offers Open editor from the more-actions menu', async () => {
+    const user = userEvent.setup();
+    renderDrawer({}, null, 'preview');
+
+    await user.click(screen.getByRole('button', { name: 'More actions' }));
+
+    expect(
+      await screen.findByRole('menuitem', { name: 'Open editor' }),
+    ).toHaveAttribute('href', '/acme/main/publishing/posts/target-1');
+  });
+
+  it('says a published post published and never shows a schedule', () => {
+    renderDrawer(
+      {
+        publishedAt: '2026-07-01T08:00:00.000Z',
+        status: ReleaseStatus.PUBLISHED,
+        targets: [target({ executionState: TargetExecutionState.PUBLISHED })],
+      },
+      null,
+      'preview',
+    );
+
+    expect(screen.getByTestId('release-summary')).toHaveTextContent(
+      '1 channel · Published',
+    );
+    expect(screen.getByTestId('release-summary')).not.toHaveTextContent(
+      'Scheduled',
+    );
+
+    openView('Details');
+
+    expect(screen.queryByText('Schedule')).not.toBeInTheDocument();
+    expect(screen.queryByText('Scheduled')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Publish time')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Reschedule post' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('does not flag a published post as blocked for missing media', () => {
     renderDrawer({
+      status: ReleaseStatus.PUBLISHED,
       targets: [
-        target(),
-        target({ id: 'target-2', platform: CredentialPlatform.LINKEDIN }),
+        target({
+          executionState: TargetExecutionState.PUBLISHED,
+          readiness: {
+            canSchedule: false,
+            diagnostics: [],
+          } as unknown as IChannelTarget['readiness'],
+        }),
       ],
     });
 
-    expect(screen.getAllByTestId('target-preview')).toHaveLength(2);
-  });
-
-  it('moves analytics into a tab alongside the preview', async () => {
-    const user = userEvent.setup();
-    renderDrawer();
-
-    expect(screen.getAllByTestId('target-preview').length).toBeGreaterThan(0);
     expect(
-      screen.queryByText('No target analytics yet'),
+      screen.queryByText('Publishing setup is blocking this channel'),
     ).not.toBeInTheDocument();
-
-    await user.click(screen.getByRole('tab', { name: 'Analytics' }));
-
-    expect(screen.queryByTestId('target-preview')).not.toBeInTheDocument();
-    expect(screen.getByText('No target analytics yet')).toBeInTheDocument();
-
-    await user.click(screen.getByRole('tab', { name: 'Preview' }));
-
-    expect(screen.getAllByTestId('target-preview').length).toBeGreaterThan(0);
   });
 
   it('exposes stable action identifiers for the page to key pending state on', () => {
@@ -456,18 +656,20 @@ describe('ReleaseDetailDrawer', () => {
     expect(targetRetryAction('t-1')).toBe('target:retry:t-1');
   });
 
-  it('shows a Preview action when the target carries a permalink', async () => {
+  it('shows a View action when the target carries a permalink', async () => {
     renderDrawer({ targets: [target({ url: 'https://instagram.com/p/abc' })] });
 
-    const preview = await screen.findByRole('link', { name: 'Preview' });
-    expect(preview).toHaveAttribute('href', 'https://instagram.com/p/abc');
+    const link = await screen.findByRole('link', {
+      name: 'View on Instagram',
+    });
+    expect(link).toHaveAttribute('href', 'https://instagram.com/p/abc');
   });
 
-  it('omits the Preview action when the target has no permalink', () => {
+  it('omits the View action when the target has no permalink', () => {
     renderDrawer();
 
     expect(
-      screen.queryByRole('link', { name: 'Preview' }),
+      screen.queryByRole('link', { name: 'View on Instagram' }),
     ).not.toBeInTheDocument();
   });
 
@@ -489,10 +691,7 @@ describe('ReleaseDetailDrawer', () => {
     const reconnect = await screen.findByRole('link', {
       name: 'Reconnect Instagram',
     });
-    expect(reconnect).toHaveAttribute(
-      'href',
-      '/acme-org/acme-creator/settings/accounts',
-    );
+    expect(reconnect).toHaveAttribute('href', '/acme-org/~/settings/profile');
   });
 
   it('does not offer account-health Reconnect when the credential is healthy', async () => {
@@ -517,7 +716,7 @@ describe('ReleaseDetailDrawer', () => {
         onRescheduleTarget={vi.fn()}
         onRetryTarget={vi.fn()}
         pendingAction={null}
-        reconnectHref="/acme-org/acme-creator/settings/accounts"
+        reconnectHref="/acme-org/~/settings/profile"
         release={release()}
       />,
     );
@@ -550,7 +749,7 @@ describe('ReleaseDetailDrawer', () => {
           error={error}
           onAddChannel={props.onAddChannel}
           pendingAction={pending}
-          reconnectHref="/acme-org/acme-creator/settings/accounts"
+          reconnectHref="/acme-org/~/settings/profile"
           release={release}
           {...handlers}
         />
@@ -571,11 +770,7 @@ describe('ReleaseDetailDrawer', () => {
           pending: string | null = null,
         ) =>
           utils.rerender(
-            <ContextSidebarProvider>
-              <CloseControl />
-              <ContextSidebarOutlet testId="context-sidebar-outlet" />
-              {view(next, error, pending)}
-            </ContextSidebarProvider>,
+            <SidebarFrame>{view(next, error, pending)}</SidebarFrame>,
           ),
       };
     }
@@ -763,7 +958,7 @@ describe('ReleaseDetailDrawer', () => {
     });
 
     it('locks the field for a post that can no longer move', () => {
-      renderWith({ release: release({ status: ReleaseStatus.PUBLISHED }) });
+      renderWith({ release: release({ status: ReleaseStatus.CANCELLED }) });
 
       expect(screen.getByLabelText('Publish time')).toBeDisabled();
       expect(
@@ -795,7 +990,7 @@ describe('ReleaseDetailDrawer', () => {
           onResumeRelease={onResumeRelease}
           onRetryTarget={vi.fn()}
           pendingAction={null}
-          reconnectHref="/acme-org/acme-creator/settings/accounts"
+          reconnectHref="/acme-org/~/settings/profile"
           release={release({
             status: ReleaseStatus.PAUSED,
             targets: [
@@ -818,7 +1013,7 @@ describe('ReleaseDetailDrawer', () => {
       ).toBeEnabled();
       expect(
         await screen.findByRole('link', { name: 'Reconnect Instagram' }),
-      ).toHaveAttribute('href', '/acme-org/acme-creator/settings/accounts');
+      ).toHaveAttribute('href', '/acme-org/~/settings/profile');
     });
   });
 });

@@ -16,10 +16,10 @@ import { type Query, useQueryClient } from '@tanstack/react-query';
 import { useCallback } from 'react';
 
 /** Shared by the Providers and Summary onboarding steps. */
-export const INSTALL_READINESS_QUERY_KEY = ['onboarding-install-readiness'];
+const INSTALL_READINESS_QUERY_KEY = ['onboarding-install-readiness'];
 
 /** What the steps render until the install readiness first arrives. */
-export const EMPTY_INSTALL_READINESS: InstallReadinessResponse = {
+const EMPTY_INSTALL_READINESS: InstallReadinessResponse = {
   access: {
     byokConfiguredProviders: [],
     byokEnabled: false,

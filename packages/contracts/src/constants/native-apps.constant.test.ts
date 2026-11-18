@@ -3,7 +3,9 @@ import type { NativeAppAvailabilityInput } from '../interfaces/ui/native-app.int
 import {
   applyRailAppOrder,
   CORE_APP_IDS,
+  DASHBOARD_APP_IDS,
   DEFAULT_HOME_APP_ID,
+  isCoreAppId,
   isNativeSecondaryAppId,
   isWorkflowLibraryVisible,
   NATIVE_SECONDARY_APP_IDS,
@@ -30,17 +32,29 @@ function availability(overrides: Partial<NativeAppAvailabilityInput> = {}) {
 }
 
 describe('native apps catalog (#5502)', () => {
-  it('keeps five core apps that are never installable', () => {
-    expect(CORE_APP_IDS).toEqual([
+  it('keeps the dashboard apps first and Agent after them, none installable', () => {
+    expect(DASHBOARD_APP_IDS).toEqual([
       'workspace',
-      'agent',
+      'discovery',
       'library',
       'publishing',
       'analytics',
     ]);
+    expect(CORE_APP_IDS).toEqual([...DASHBOARD_APP_IDS, 'agent']);
     for (const coreAppId of CORE_APP_IDS) {
       expect(isNativeSecondaryAppId(coreAppId)).toBe(false);
     }
+  });
+
+  it.each([
+    ['workspace', true],
+    ['discovery', true],
+    ['analytics', true],
+    ['agent', true],
+    ['playground', false],
+    ['studio', false],
+  ])('answers whether %s is a core app: %s', (appId, expected) => {
+    expect(isCoreAppId(appId)).toBe(expected);
   });
 
   it('names every secondary app with one word', () => {

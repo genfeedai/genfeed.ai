@@ -6,7 +6,7 @@
     "url": "https://github.com/genfeedai/genfeed.ai/issues"
   },
   "dependencies": {
-    "commander": "15.0.0",
+    "commander": "15.1.0",
     "consola": "3.4.2"
   },
   "description": "Genfeed.ai \u2014 AI OS for content creation. Self-host for free.",

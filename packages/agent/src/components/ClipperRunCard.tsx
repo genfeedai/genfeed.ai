@@ -13,7 +13,21 @@ import {
 } from '@ui/primitives/alert';
 import { Badge, type BadgeProps } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
-import { CircleCheck, ExternalLink, Film } from 'lucide-react';
+import {
+  Check,
+  CircleCheck,
+  CircleX,
+  Clock3,
+  ExternalLink,
+  Film,
+  LoaderCircle,
+  type LucideIcon,
+  Ratio,
+  SkipForward,
+  Timer,
+  Tv,
+  X,
+} from 'lucide-react';
 import type { ReactElement } from 'react';
 
 import { AgentErrorMessage } from './AgentErrorMessage';
@@ -24,12 +38,12 @@ interface ClipperRunCardProps {
   onCancel?: () => void;
 }
 
-const STATUS_ICON: Record<ClipperRunStep['status'], string> = {
-  done: '✅',
-  failed: '❌',
-  pending: '⏳',
-  running: '🔄',
-  skipped: '⏭️',
+const STATUS_ICON: Record<ClipperRunStep['status'], LucideIcon> = {
+  done: CircleCheck,
+  failed: CircleX,
+  pending: Clock3,
+  running: LoaderCircle,
+  skipped: SkipForward,
 };
 
 function stepStatusClass(status: ClipperRunStep['status']): string {
@@ -129,18 +143,22 @@ export function ClipperRunCard({
         <div className="border border-border p-2.5">
           <p className="mb-2 text-xs font-medium text-foreground">Steps</p>
           <div className="space-y-1.5">
-            {state.steps.map((step) => (
-              <div
-                key={step.id}
-                className={`flex items-center justify-between text-xs ${stepStatusClass(step.status)}`}
-              >
-                <span className="flex items-center gap-1.5">
-                  <span>{STATUS_ICON[step.status]}</span>
-                  <span>{step.label}</span>
-                </span>
-                <span className="capitalize">{step.status}</span>
-              </div>
-            ))}
+            {state.steps.map((step) => {
+              const StepIcon = STATUS_ICON[step.status];
+
+              return (
+                <div
+                  key={step.id}
+                  className={`flex items-center justify-between text-xs ${stepStatusClass(step.status)}`}
+                >
+                  <span className="flex items-center gap-1.5">
+                    <StepIcon aria-hidden="true" className="size-3.5" />
+                    <span>{step.label}</span>
+                  </span>
+                  <span className="capitalize">{step.status}</span>
+                </div>
+              );
+            })}
           </div>
         </div>
 
@@ -152,22 +170,29 @@ export function ClipperRunCard({
               Object.entries(MODE_LABELS) as [ClipperRunToggleKey, string][]
             ).map(([key, label]) => (
               <span key={key} className="flex items-center gap-1">
-                <span>{state.modes[key] ? '✓' : '✗'}</span>
+                {state.modes[key] ? (
+                  <Check aria-hidden="true" className="size-3.5" />
+                ) : (
+                  <X aria-hidden="true" className="size-3.5" />
+                )}
+                <span className="sr-only">
+                  {state.modes[key] ? 'On' : 'Off'}
+                </span>
                 <span>{label}</span>
               </span>
             ))}
             <span className="flex items-center gap-1">
-              <span>📺</span>
+              <Tv aria-hidden="true" className="size-3.5" />
               <span>
                 {PLATFORM_LABELS[state.modes.platform] ?? state.modes.platform}
               </span>
             </span>
             <span className="flex items-center gap-1">
-              <span>⏱️</span>
+              <Timer aria-hidden="true" className="size-3.5" />
               <span>{state.modes.duration}s</span>
             </span>
             <span className="flex items-center gap-1">
-              <span>📐</span>
+              <Ratio aria-hidden="true" className="size-3.5" />
               <span>{state.modes.aspectRatio}</span>
             </span>
           </div>

@@ -1,9 +1,6 @@
-import { getAppSignUpUrl } from '@data/app-links';
-import { ButtonSize } from '@genfeedai/contracts';
-import { metadata } from '@helpers/media/metadata/metadata.helper';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
-import ButtonTracked from '@web-components/buttons/tracked/ButtonTracked';
+import AgentFirstActions from '@web-components/buttons/agent-first-actions/AgentFirstActions';
 import {
   HOME_HERO_VIDEO,
   HOME_OUTPUT_CAROUSEL_ASSETS,
@@ -30,17 +27,26 @@ export default function HomeHero(): React.ReactElement {
       />
 
       <div className="container relative mx-auto px-6 text-center">
+        <Text
+          as="p"
+          className="animate-gen-stagger-in mb-6 text-xs font-semibold uppercase tracking-label text-foreground/80"
+          data-testid="home-hero-eyebrow"
+        >
+          The content studio for everything you publish
+        </Text>
         <Heading
           as="h1"
           className="animate-gen-stagger-rise mx-auto max-w-5xl text-[clamp(2.25rem,10.5vw,3rem)] font-semibold leading-[0.95] tracking-[-0.02em] text-foreground [--gen-stagger-delay:90ms] sm:text-6xl md:text-7xl lg:text-[5.5rem]"
         >
-          From brief to feed.
+          From brief to feed
         </Heading>
         <Text
           as="p"
           className="animate-gen-stagger-in mx-auto mt-7 max-w-2xl text-base leading-7 text-foreground/80 [--gen-stagger-delay:180ms] md:text-lg"
         >
-          {metadata.description}
+          Video, images, posts, articles, newsletters and voice. Briefed from
+          your own agent, made on your brand, then published and tracked in one
+          dashboard.
         </Text>
 
         <div
@@ -49,17 +55,10 @@ export default function HomeHero(): React.ReactElement {
           data-testid="home-hero-actions"
         >
           <div className="flex flex-wrap items-center justify-center gap-3">
-            <ButtonTracked
-              asChild
-              size={ButtonSize.PUBLIC}
-              trackingData={{ action: 'start_signup' }}
-              trackingName="home_hero_click"
-            >
-              <a href={getAppSignUpUrl()}>Start for $0</a>
-            </ButtonTracked>
+            <AgentFirstActions trackingName="home_hero_click" />
           </div>
           <Text as="p" className="mt-5 text-center text-sm text-foreground/80">
-            Create your free account with Google or email. No card required.
+            Connecting takes one sign-in.
           </Text>
         </div>
       </div>

@@ -20,6 +20,12 @@ export interface DispatchVideoGenerationParams {
   abortSignal?: AbortSignal;
   preparedFalDispatch?: PreparedFalVideoDispatch;
   onProviderSubmissionStarted?: () => void;
+  /**
+   * Stable identity of this logical generation. A provider that supports
+   * idempotent submission reuses it, so retrying the same generation cannot
+   * start a second paid job.
+   */
+  idempotencyKey?: string;
   duration?: number;
   height: number;
   imageUrl?: string;
@@ -41,7 +47,7 @@ export interface DispatchVideoGenerationParams {
   width: number;
 }
 
-export type VideoGenerationProvider =
+type VideoGenerationProvider =
   | 'kie'
   | 'fal'
   | 'heygen'
@@ -76,10 +82,10 @@ export interface CreateVideoPlaceholderActivityParams {
   userId: string;
 }
 
-export type VideoGenerationResolvedBrand = NonNullable<
+type VideoGenerationResolvedBrand = NonNullable<
   Awaited<ReturnType<BrandsService['findOne']>>
 >;
-export type VideoGenerationResolvedPrompt = Awaited<
+type VideoGenerationResolvedPrompt = Awaited<
   ReturnType<PromptsService['create']>
 >;
 export type VideoGenerationSaveDocumentsResult = Awaited<

@@ -97,11 +97,18 @@ export type ActivityMessageId =
   | 'activity.credits.reset'
   | 'activity.credits.remove_all'
   | 'activity.post.ready'
+  | 'activity.post.manual'
+  | 'activity.post.unverified'
   | 'activity.agent.review_changed'
   | 'activity.agent.review_expired'
   | 'activity.social.replies'
   | 'activity.credits.low'
   | 'activity.review.requested'
+  | 'activity.collaboration.review_requested'
+  | 'activity.collaboration.review_approved'
+  | 'activity.collaboration.review_changes_requested'
+  | 'activity.collaboration.mentioned'
+  | 'activity.collaboration.handoff_received'
   | 'activity.report.delivered'
   | 'activity.trends.ready'
   | 'activity.breakout.remix_offered'
@@ -172,7 +179,9 @@ export const ACTIVITY_MESSAGE_ID_BY_KEY = {
   [ActivityKey.POST_CREATED]: 'activity.lifecycle.created',
   [ActivityKey.POST_FAILED]: 'activity.lifecycle.failed',
   [ActivityKey.POST_GENERATED]: 'activity.post.ready',
+  [ActivityKey.POST_MANUAL_POST_NEEDED]: 'activity.post.manual',
   [ActivityKey.POST_PROCESSING]: 'activity.lifecycle.processing',
+  [ActivityKey.POST_PUBLISH_UNVERIFIED]: 'activity.post.unverified',
   [ActivityKey.POST_PUBLISHED]: 'activity.lifecycle.published',
   [ActivityKey.POST_SCHEDULED]: 'activity.lifecycle.scheduled',
   [ActivityKey.PROMPT_ENHANCE_COMPLETED]: 'activity.lifecycle.completed',
@@ -212,6 +221,14 @@ export const ACTIVITY_MESSAGE_ID_BY_KEY = {
   [ActivityKey.SOCIAL_REPLIES_RECEIVED]: 'activity.social.replies',
   [ActivityKey.CREDITS_LOW]: 'activity.credits.low',
   [ActivityKey.WORKFLOW_REVIEW_REQUESTED]: 'activity.review.requested',
+  [ActivityKey.ASSET_REVIEW_REQUESTED]:
+    'activity.collaboration.review_requested',
+  [ActivityKey.ASSET_REVIEW_APPROVED]: 'activity.collaboration.review_approved',
+  [ActivityKey.ASSET_REVIEW_CHANGES_REQUESTED]:
+    'activity.collaboration.review_changes_requested',
+  [ActivityKey.MENTIONED]: 'activity.collaboration.mentioned',
+  [ActivityKey.AGENT_HANDOFF_RECEIVED]:
+    'activity.collaboration.handoff_received',
   [ActivityKey.WORKFLOW_REPORT_DELIVERED]: 'activity.report.delivered',
   [ActivityKey.TREND_SUMMARY_READY]: 'activity.trends.ready',
   [ActivityKey.BREAKOUT_REMIX_OFFERED]: 'activity.breakout.remix_offered',
@@ -351,6 +368,14 @@ const SPECIAL_PARSERS: Array<(key: string) => ActivityKeyParts | null> = [
     return null;
   },
   (key) => {
+    if (key === 'content-publish-manual') {
+      return {
+        key,
+        lifecycle: 'failed',
+        operation: 'publish',
+        subject: 'post',
+      };
+    }
     if (key.startsWith('content-publish-')) {
       const tail = key.slice('content-publish-'.length);
       return {
@@ -906,6 +931,12 @@ export function formatActivityMessage(
     case 'activity.credits.remove_all':
       return 'Removed all credits';
 
+    case 'activity.post.manual':
+      return 'Post this by hand';
+
+    case 'activity.post.unverified':
+      return 'Could not confirm this post';
+
     case 'activity.post.ready':
       return 'Content is ready for review';
 
@@ -923,6 +954,21 @@ export function formatActivityMessage(
 
     case 'activity.review.requested':
       return 'Review needed';
+
+    case 'activity.collaboration.review_requested':
+      return 'Asked to review';
+
+    case 'activity.collaboration.review_approved':
+      return 'Review approved';
+
+    case 'activity.collaboration.review_changes_requested':
+      return 'Changes requested';
+
+    case 'activity.collaboration.mentioned':
+      return 'You were mentioned';
+
+    case 'activity.collaboration.handoff_received':
+      return 'Handed you a task';
 
     case 'activity.report.delivered':
       return 'Workflow report ready';

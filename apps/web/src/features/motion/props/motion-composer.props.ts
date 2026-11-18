@@ -2,7 +2,7 @@ import type { IVisualCodeSettings } from '@genfeedai/contracts/interfaces';
 import type { VisualCodeQuoteReview } from '@/props/studio/visual-code.props';
 
 /** One Library asset the author may reference from Motion source. */
-export interface MotionLibraryAssetOption {
+interface MotionLibraryAssetOption {
   id: string;
   label: string;
 }

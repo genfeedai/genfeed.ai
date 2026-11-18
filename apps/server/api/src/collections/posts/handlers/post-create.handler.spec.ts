@@ -206,4 +206,23 @@ describe('createPost draft boundary', () => {
     expect(posts).toHaveLength(1);
     expect(youtubeUploads).toEqual([]);
   });
+
+  it('keeps the settings the channel declares and drops the rest', async () => {
+    await createPost({
+      createPostDto: {
+        ...draft,
+        platform: CredentialPlatform.SLACK,
+        targetSettings: { channelId: 'C0123456789', isAdmin: true },
+      },
+      dependencies,
+      identity,
+    });
+
+    expect(posts).toEqual([
+      expect.objectContaining({
+        platform: 'slack',
+        targetSettings: { channelId: 'C0123456789' },
+      }),
+    ]);
+  });
 });

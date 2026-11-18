@@ -17,7 +17,7 @@ const TRAILING_SLASHES_PATTERN = /\/+$/;
  * origin. `/oauth/authorize/decision` is deliberately absent: it carries the
  * user's session and stays on the credentialed allowlist.
  */
-export const PUBLIC_OAUTH_CORS_PATHS: ReadonlySet<string> = new Set([
+const PUBLIC_OAUTH_CORS_PATHS: ReadonlySet<string> = new Set([
   '/v1/oauth/register',
   '/v1/oauth/revoke',
   '/v1/oauth/token',
@@ -28,7 +28,7 @@ export const PUBLIC_OAUTH_CORS_PATHS: ReadonlySet<string> = new Set([
  * (#4553 defect 4) and must then register and exchange its code the same way,
  * so these endpoints answer any origin — without credentials.
  */
-export const PUBLIC_OAUTH_CORS_OPTIONS: CorsOptions = {
+const PUBLIC_OAUTH_CORS_OPTIONS: CorsOptions = {
   credentials: false,
   maxAge: GENFEED_CORS_PREFLIGHT_MAX_AGE_SECONDS,
   methods: 'POST',

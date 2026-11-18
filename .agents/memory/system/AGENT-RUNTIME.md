@@ -96,7 +96,7 @@ Minimum checks by change type:
 Before saying "done":
 
 1. All scoped verifications executed.
-2. No policy violations in `CLAUDE.md` and critical docs.
+2. No policy violations in `AGENTS.md` and critical docs.
 3. Summary includes:
    - changed files
    - checks executed

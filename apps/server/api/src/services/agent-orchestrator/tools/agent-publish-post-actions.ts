@@ -207,7 +207,7 @@ export async function createProactiveAgentTextPost(
     {
       brandId,
       baseContent: caption,
-      title: caption.slice(0, 100),
+      title: readOptionalString(params.title) ?? caption.slice(0, 100),
       media: [],
       idempotencyKey,
       status: scheduledAt ? ReleaseStatus.SCHEDULED : ReleaseStatus.DRAFT,
@@ -441,6 +441,19 @@ export async function scheduleAgentPost(
   }
 }
 
+/**
+ * The post text a tool call carries. `create_post` advertises it as `content`,
+ * `textContent` and `caption`, and models use all three.
+ */
+export function readAgentPostText(
+  params: Record<string, unknown>,
+): string | undefined {
+  const text = [params.caption, params.content, params.textContent].find(
+    (value) => typeof value === 'string',
+  );
+  return typeof text === 'string' ? text.trim() : undefined;
+}
+
 export async function createAgentTextDraft(
   postsService: PostsService,
   params: Record<string, unknown>,
@@ -448,8 +461,11 @@ export async function createAgentTextDraft(
   visibility: PostVisibility,
   ingredientsService?: DraftMediaLookup,
 ): Promise<AgentToolResult> {
+  // A thread carries its validated brand; an MCP caller names it (#10071).
+  const brandId =
+    ctx.validatedScope?.brandId ?? readOptionalString(params.brandId);
   const media = await resolveDraftMediaUrls({
-    brandId: ctx.validatedScope?.brandId,
+    brandId,
     ingredients: ingredientsService,
     organizationId: ctx.organizationId,
     params,
@@ -457,18 +473,27 @@ export async function createAgentTextDraft(
   if (media.error !== undefined) {
     return { creditsUsed: 0, error: media.error, success: false };
   }
+  const text = readAgentPostText(params) ?? '';
+  if (!text && media.ingredientIds.length === 0) {
+    return {
+      creditsUsed: 0,
+      error: 'A post draft needs text in content, or media to attach.',
+      success: false,
+    };
+  }
 
+  const title = readOptionalString(params.title) ?? text.substring(0, 100);
   const post = await postsService.create({
     ...(ctx.runId ? { workflowExecutionId: ctx.runId } : {}),
     ...(ctx.strategyId ? { agentStrategyId: ctx.strategyId } : {}),
     agentContextSource: ctx.validatedScope?.source,
     agentContextVersion: ctx.validatedScope?.contextVersion,
     agentThreadId: ctx.validatedScope?.threadId,
-    brandId: ctx.validatedScope?.brandId,
-    description: params.content as string,
+    brandId,
+    description: text,
     ingredients: media.ingredientIds,
     ...(media.category ? { category: media.category } : {}),
-    label: ((params.content as string) || '').substring(0, 100),
+    label: title,
     organizationId: ctx.organizationId,
     source: 'agent',
     targetExecutionState: TargetExecutionState.DRAFT,
@@ -476,10 +501,22 @@ export async function createAgentTextDraft(
     visibility,
   } as unknown as CreatePostDto);
 
+  const postId = String(post.id);
+  const href = `${APP_ROUTES.PUBLISHING.POSTS}/${encodeURIComponent(postId)}`;
+  const savedTitle = typeof post.label === 'string' ? post.label : title;
   return {
     creditsUsed: 0,
     data: {
-      id: String(post.id),
+      id: postId,
+      href,
+      title: savedTitle,
+      ...(brandId ? { brandId } : {}),
+      ...(ctx.validatedScope
+        ? {
+            agentContextSource: ctx.validatedScope.source,
+            agentContextVersion: ctx.validatedScope.contextVersion,
+          }
+        : {}),
       executionState: TargetExecutionState.DRAFT,
       ...(media.ingredientIds.length > 0
         ? {
@@ -491,6 +528,17 @@ export async function createAgentTextDraft(
         : {}),
       visibility,
     },
+    nextActions: [
+      {
+        id: `saved-post-${postId}`,
+        type: 'content_preview_card',
+        contentFormat: 'social_post',
+        textContent: text,
+        title: savedTitle || 'Draft saved',
+        description: 'Saved as an unpublished draft.',
+        ctas: [{ href, label: 'Open draft' }],
+      },
+    ],
     success: true,
   };
 }
@@ -686,7 +734,7 @@ export async function resolveConfirmedFallbackPolicy(
   );
 }
 
-export function fallbackConfirmedPublishPolicy(
+function fallbackConfirmedPublishPolicy(
   ctx: ToolExecutionContext,
   mediaAssessment?: AgentPublishMediaAssessment,
 ): {

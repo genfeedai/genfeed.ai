@@ -88,6 +88,7 @@ export default function VoiceStudioRecorder({
     URL.revokeObjectURL(playback.url);
   };
 
+  // use-effect-audit: ignore interval timer outside React
   useEffect(() => {
     if (!isRecording) return;
     const startedAt = Date.now();
@@ -98,11 +99,13 @@ export default function VoiceStudioRecorder({
     return () => window.clearInterval(timer);
   }, [isRecording]);
 
+  // use-effect-audit: ignore stops the media recorder at the time limit
   useEffect(() => {
     if (isRecording && elapsedSeconds >= VOICE_SAMPLE_MAX_SECONDS)
       stopRecording();
   }, [elapsedSeconds, isRecording, stopRecording]);
 
+  // use-effect-audit: ignore releases timers, requests or subscriptions on unmount
   useEffect(
     () => () => {
       const playback = playbackRef.current;

@@ -34,6 +34,7 @@ export function useStoryboardAgentBriefs(
   );
   const [record, setRecord] = useState<AgentBriefsRecord | null>(null);
 
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     if (!brandId) return;
     const controller = new AbortController();

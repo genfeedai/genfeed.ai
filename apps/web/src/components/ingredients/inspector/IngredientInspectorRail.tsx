@@ -34,9 +34,13 @@ import {
   getIngredientPreviewUrl,
   isRasterPreviewUrl,
 } from '@genfeedai/utils/media/ingredient-preview.util';
-import { isVideoIngredient } from '@genfeedai/utils/media/ingredient-type.util';
+import {
+  isModel3dIngredient,
+  isVideoIngredient,
+} from '@genfeedai/utils/media/ingredient-type.util';
 import { buildContextualRemixHref } from '@genfeedai/utils/url/contextual-remix-url.util';
 import { buildAgentPromptHref } from '@genfeedai/utils/url/desktop-loop-url.util';
+import ModelViewer from '@ui/display/model-viewer/ModelViewer';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import MediaPlayer from '@ui/media-player/MediaPlayer';
 import { Badge } from '@ui/primitives/badge';
@@ -50,11 +54,15 @@ import { useTranslations } from 'next-intl';
 import { useCallback } from 'react';
 import IngredientOriginBadge from '@/components/ingredients/ingredient-origin-badge';
 import LibraryAssetTypeBadge from '@/components/ingredients/library-asset-type-badge';
+import { useIsAppAvailable } from '@/components/shell/use-available-rail-apps';
+import IngredientReviewPanel from '@/features/library/review/ingredient-review-panel';
 import type { IngredientInspectorRailProps } from '@/props/content/ingredient.props';
 import IngredientLineageStrip from './IngredientLineageStrip';
 import IngredientMetadataFields from './IngredientMetadataFields';
 import IngredientPromptBlock from './IngredientPromptBlock';
+import IngredientStackStrip from './IngredientStackStrip';
 import IngredientTagsControl from './IngredientTagsControl';
+import IngredientUsedInPosts from './IngredientUsedInPosts';
 import { getIngredientShelf } from './ingredient-shelf.util';
 import { requestLibraryAssetRename } from './library-asset-metadata-event';
 import { useIngredientGenerationCost } from './use-ingredient-generation-cost';
@@ -90,7 +98,7 @@ function InspectorField({
 
   return (
     <div className="flex items-baseline justify-between gap-3 py-1.5">
-      <dt className="shrink-0 text-2xs uppercase tracking-[0.12em] text-muted-foreground">
+      <dt className="shrink-0 text-2xs uppercase tracking-label text-muted-foreground">
         {label}
       </dt>
       <dd className="min-w-0 truncate text-right text-xs text-foreground/80">
@@ -120,7 +128,7 @@ function InspectorNote({
 
   return (
     <div className="flex flex-col gap-1.5">
-      <div className="text-2xs uppercase tracking-[0.12em] text-muted-foreground">
+      <div className="text-2xs uppercase tracking-label text-muted-foreground">
         {label}
       </div>
       <p
@@ -152,6 +160,8 @@ export default function IngredientInspectorRail({
   const grant = useAuthorizedMediaPreview(ingredient);
   const { push } = useRouter();
   const { href } = useOrgUrl();
+  const isPlaygroundAvailable = useIsAppAvailable('playground');
+  const isAgentAvailable = useIsAppAvailable('agent');
   // The rail is a full detail surface, so Publish, Download and Share run the
   // same handlers the asset cards do. Without them the quick actions render as
   // locked placeholders.
@@ -215,6 +225,11 @@ export default function IngredientInspectorRail({
       ? (grant.url ?? undefined)
       : ingredient.ingredientUrl
     : undefined;
+  const modelUrl = isModel3dIngredient(ingredient)
+    ? grant
+      ? (grant.url ?? undefined)
+      : ingredient.ingredientUrl
+    : undefined;
   const fileSize = formatIngredientFileSize(
     ingredient.fileSize || ingredient.metadataSize,
   );
@@ -248,6 +263,7 @@ export default function IngredientInspectorRail({
             return undefined;
           }}
           onCreateVariation={
+            isPlaygroundAvailable &&
             ingredient.category === IngredientCategory.IMAGE
               ? handleCreateVariation
               : undefined
@@ -256,10 +272,17 @@ export default function IngredientInspectorRail({
           onRename={handleRename}
           onSeeDetails={detailHref ? handleSeeDetails : undefined}
           onShare={handlers.handleShare}
-          onUsePrompt={ingredient.promptText ? handleUsePrompt : undefined}
+          onUsePrompt={
+            isAgentAvailable && ingredient.promptText
+              ? handleUsePrompt
+              : undefined
+          }
           selectedIngredient={ingredient}
         />
-        {onOpenPreview && !isAudio && shelf !== LibraryShelf.FAILED ? (
+        {onOpenPreview &&
+        !isAudio &&
+        !modelUrl &&
+        shelf !== LibraryShelf.FAILED ? (
           <Button
             ariaLabel={translate('openPreview')}
             data-testid="library-open-preview"
@@ -281,9 +304,17 @@ export default function IngredientInspectorRail({
           stopOnUnmount
         />
       ) : null}
-      {!isAudio && (previewUrl || videoUrl) ? (
+      {!isAudio && (previewUrl || videoUrl || modelUrl) ? (
         <div className="relative h-[clamp(12rem,35dvh,24rem)] w-full shrink-0 overflow-hidden rounded-lg bg-foreground/5">
-          {videoUrl ? (
+          {modelUrl ? (
+            <ModelViewer
+              key={ingredient.id}
+              alt={ingredient.metadataLabel || translate('untitled')}
+              errorLabel={translate('modelUnavailable')}
+              poster={previewUrl || undefined}
+              src={modelUrl}
+            />
+          ) : videoUrl ? (
             <VideoPlayer
               key={ingredient.id}
               src={videoUrl}
@@ -314,9 +345,13 @@ export default function IngredientInspectorRail({
         ) : null}
       </div>
 
+      {isAgentAvailable && shelf !== LibraryShelf.FAILED ? (
+        <IngredientReviewPanel ingredient={ingredient} key={ingredient.id} />
+      ) : null}
+
       <dl className="flex flex-col divide-y divide-foreground/5">
         <div className="flex items-baseline justify-between gap-3 py-1.5">
-          <dt className="shrink-0 text-2xs uppercase tracking-[0.12em] text-muted-foreground">
+          <dt className="shrink-0 text-2xs uppercase tracking-label text-muted-foreground">
             {translate('type')}
           </dt>
           <dd className="min-w-0">
@@ -326,7 +361,7 @@ export default function IngredientInspectorRail({
         {ingredient.origin &&
         ingredient.origin !== IngredientOrigin.GENERATED ? (
           <div className="flex items-baseline justify-between gap-3 py-1.5">
-            <dt className="shrink-0 text-2xs uppercase tracking-[0.12em] text-muted-foreground">
+            <dt className="shrink-0 text-2xs uppercase tracking-label text-muted-foreground">
               {translate('origin')}
             </dt>
             <dd className="min-w-0">
@@ -389,6 +424,9 @@ export default function IngredientInspectorRail({
 
       <IngredientTagsControl ingredient={ingredient} />
 
+      <IngredientUsedInPosts ingredientId={ingredient.id} />
+
+      <IngredientStackStrip ingredientId={ingredient.id} />
       <IngredientLineageStrip
         direction={IngredientLineageDirection.MADE_FROM}
         ingredientId={ingredient.id}

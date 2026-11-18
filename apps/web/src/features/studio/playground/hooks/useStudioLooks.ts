@@ -15,7 +15,7 @@ import { StudioLooksService } from '@services/content/studio-looks.service';
 import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
 import { type QueryKey, useQueryClient } from '@tanstack/react-query';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 
 const EMPTY_LOOKS: readonly IStudioLook[] = [];
 const LOAD_ERROR = 'Saved Looks could not be loaded.';
@@ -38,7 +38,7 @@ export interface UseStudioLooksReturn {
   saveLook: (label: string, values: GenerationSetupValues) => Promise<boolean>;
 }
 
-export function isStudioLookAssetType(
+function isStudioLookAssetType(
   type: StudioPlaygroundType,
 ): type is StudioLookAssetType {
   return type === 'image' || type === 'video';
@@ -48,6 +48,8 @@ export {
   buildStudioLookPayload,
   presetToGenerationSetupValues,
 } from '@genfeedai/helpers/studio-look.helper';
+
+import { useMountedRef } from '@hooks/utils/use-mounted-ref/use-mounted-ref';
 
 /**
  * The saved Looks for one asset type. The list is cached per organization,
@@ -76,7 +78,7 @@ export function useStudioLooks(
   if (ownerRef.current.scopeKey !== scopeKey)
     ownerRef.current = { scopeKey, epoch: ownerRef.current.epoch + 1 };
   const owner = ownerRef.current;
-  const isMounted = useRef(true);
+  const isMounted = useMountedRef();
   const isCurrentOwner = useCallback(
     () => isMounted.current && ownerRef.current === owner,
     [owner],
@@ -93,13 +95,6 @@ export function useStudioLooks(
   const getStudioLooksService = useAuthedService((token: string) =>
     StudioLooksService.getInstance(token),
   );
-
-  useEffect(() => {
-    isMounted.current = true;
-    return () => {
-      isMounted.current = false;
-    };
-  }, []);
 
   const queryClient = useQueryClient();
   const apiEndpoint = EnvironmentService.apiEndpoint;

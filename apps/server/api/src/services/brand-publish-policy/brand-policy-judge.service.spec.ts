@@ -40,7 +40,7 @@ describe('BrandPolicyJudgeService', () => {
     );
   });
 
-  it('asks the background model once, deterministically, on the brand budget', async () => {
+  it('asks the ZDR-compatible volume model once, deterministically, on the brand budget', async () => {
     answer([]);
 
     await expect(service.judge(REQUEST)).resolves.toEqual([]);
@@ -48,7 +48,7 @@ describe('BrandPolicyJudgeService', () => {
     expect(llm.completeStructured).toHaveBeenCalledWith(
       expect.objectContaining({
         messages: buildPolicyJudgeMessages(REQUEST.text, REQUEST),
-        model: LLM_DEFAULTS.background,
+        model: LLM_DEFAULTS.volumeAgent,
         schemaName: POLICY_JUDGE_SCHEMA_NAME,
         temperature: 0,
       }),

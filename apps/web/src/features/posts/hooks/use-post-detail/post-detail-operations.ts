@@ -3,7 +3,7 @@
  * of one boolean per control. Operations still run in parallel as before;
  * this file names them and decides, in one place, which ones block publishing.
  */
-export const POST_DETAIL_OPERATIONS = [
+const POST_DETAIL_OPERATIONS = [
   'update',
   'save-ingredients',
   'save-description',
@@ -21,7 +21,7 @@ export type PostDetailPendingOperations = ReadonlySet<PostDetailOperation>;
  * Operations that disable Schedule and Publish now. Today only a schedule or
  * publish save does; other saves keep the buttons available.
  */
-export const POST_DETAIL_PUBLISH_BLOCKING_OPERATIONS: readonly PostDetailOperation[] =
+const POST_DETAIL_PUBLISH_BLOCKING_OPERATIONS: readonly PostDetailOperation[] =
   ['save-schedule'];
 
 export function setPostDetailOperation(

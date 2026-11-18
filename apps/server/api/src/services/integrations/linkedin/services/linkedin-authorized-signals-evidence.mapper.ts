@@ -16,7 +16,6 @@ import { readString } from '@genfeedai/utils/data/extract.util';
 
 export const LINKEDIN_OPENID_SCOPE = 'openid';
 export const LINKEDIN_PROFILE_SCOPE = 'profile';
-export const LINKEDIN_EMAIL_SCOPE = 'email';
 export const LINKEDIN_MEMBER_PUBLISH_SCOPE = 'w_member_social';
 export const LINKEDIN_MEMBER_POSTS_SCOPE = 'r_member_social';
 export const LINKEDIN_ORG_READ_SCOPE = 'r_organization_social';
@@ -88,7 +87,7 @@ export type PlatformEvidenceKey = Exclude<
   'genfeed-publish-outcomes-observed'
 >;
 
-export function readHttpUrl(value: unknown): string | undefined {
+function readHttpUrl(value: unknown): string | undefined {
   const candidate = readString(value);
   if (!candidate) {
     return undefined;

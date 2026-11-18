@@ -18,9 +18,7 @@ import { assertNoErrorBoundaryFallback } from '../../utils/route-assertions';
  * CRITICAL: All tests use mocked API responses.
  * No real backend calls occur during tests.
  */
-const CONNECTED_ACCOUNTS_ROUTE = brandPath(
-  APP_ROUTES.SETTINGS.CONNECTED_ACCOUNTS,
-);
+const CONNECTED_ACCOUNTS_ROUTE = brandPath(APP_ROUTES.SETTINGS.PROFILE);
 const MESSAGES_ROUTE = brandPath(APP_ROUTES.MESSAGES.ROOT);
 
 const OLD_GRANT_X_ACCOUNT = {
@@ -108,7 +106,7 @@ test.describe('Reconnect X to enable DMs', () => {
     await mockBrandWithXAccounts(authenticatedPage);
   });
 
-  test('flags only the X account without DM access on Connected accounts', async ({
+  test('flags only the X account without DM access on Accounts', async ({
     authenticatedPage,
   }) => {
     await authenticatedPage.goto(CONNECTED_ACCOUNTS_ROUTE, {

@@ -255,6 +255,10 @@
                     "name": "useAbortEffect",
                     "closureIndex": 0,
                     "dependenciesIndex": 1
+                  },
+                  {
+                    "name": "useMountedRef",
+                    "stableResult": true
                   }
                 ]
               }

@@ -3,7 +3,6 @@ import PricingStrip from '@ui/marketing/PricingStrip';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import AgentFirstActions from '@web-components/buttons/agent-first-actions/AgentFirstActions';
-import MarketingArtwork from '@web-components/content/MarketingArtwork';
 import MarketingEntrance from '@web-components/MarketingEntrance';
 import EditorialPoster from '@web-components/marketing/EditorialPoster';
 import PageLayout from '@web-components/PageLayout';
@@ -16,7 +15,7 @@ const FEATURES = [
     description:
       'Hire specialized agents for research, creative, and publishing so every stage of content has an owner.',
     icon: Users,
-    title: 'Specialized Agents',
+    title: 'Specialized agents',
   },
   {
     description:
@@ -28,15 +27,15 @@ const FEATURES = [
     description:
       'Agents research, draft, and publish each campaign on a schedule. Every post waits for your review by default, until you switch an agent to auto-publish.',
     icon: Zap,
-    title: 'Campaign Autopilot',
+    title: 'Campaign autopilot',
   },
 ];
 
 const STEPS = [
   {
     icon: Users,
-    label: 'Hire',
-    sublabel: 'Choose research, creative, and publishing agents',
+    label: 'Connect',
+    sublabel: 'Connect your agent, or choose Genfeed’s own agents',
   },
   {
     icon: Sparkles,
@@ -58,7 +57,7 @@ const STEPS = [
 const HERO_VISUAL = (
   <EditorialPoster
     detail="Research, creative, and publishing agents work from one brief and one schedule."
-    eyebrow="Agent Roster"
+    eyebrow="Agent roster"
     footer={<span>Agents run inside the guardrails you set</span>}
     items={[
       {
@@ -71,7 +70,7 @@ const HERO_VISUAL = (
       },
       {
         label: 'Workflow',
-        value: 'Hire -> brief -> review -> autopilot.',
+        value: 'Connect -> brief -> review -> autopilot.',
       },
       {
         label: 'Outcome',
@@ -80,7 +79,7 @@ const HERO_VISUAL = (
       },
     ]}
     subtitle="Review by default, autopilot when you choose"
-    title="Your content team of agents."
+    title="Your content team of agents"
   />
 );
 
@@ -90,9 +89,6 @@ export default function HireAgentsContent() {
   return (
     <MarketingEntrance>
       <PageLayout
-        heroMedia={
-          <MarketingArtwork page="/hire-agents" isCompact kind="workflow" />
-        }
         heroActions={
           <AgentFirstActions
             signUpHref={signUpHref}
@@ -102,8 +98,8 @@ export default function HireAgentsContent() {
         }
         heroVisual={HERO_VISUAL}
         compact
-        title="Hire Agents"
-        description="A content team of agents that works on schedule. Review every post, or switch on auto-publish."
+        title="Hire agents"
+        description="Put agents to work on a content schedule, yours over MCP or Genfeed’s own. Review every post, or switch on auto-publish."
       >
         {/* Highlight Card */}
         <section className="gsap-section max-w-4xl mx-auto pb-16 px-6">
@@ -115,13 +111,14 @@ export default function HireAgentsContent() {
                 </div>
               </div>
               <div className="flex w-full min-w-0 flex-col gap-3">
-                <Heading as="h3" className="text-2xl font-bold">
+                <Heading as="h3" className="text-2xl font-semibold">
                   A Content Team on Your Terms
                 </Heading>
                 <Text as="p" className="text-foreground/70">
-                  Hire agents for research, creative, and publishing. Set goals
-                  and guardrails, then let them execute campaigns on schedule
-                  while you stay in control of approvals.
+                  Connect the agent you already use, or hire Genfeed’s agents
+                  for research, creative, and publishing. Set goals and
+                  guardrails, then let them execute campaigns on schedule while
+                  you review the work in the dashboard.
                 </Text>
               </div>
             </div>
@@ -146,7 +143,7 @@ export default function HireAgentsContent() {
 
         {/* Features Grid */}
         <section className="gsap-section max-w-6xl mx-auto pb-16 px-6">
-          <Heading as="h3" className="text-2xl font-bold text-center mb-8">
+          <Heading as="h3" className="text-2xl font-semibold text-center mb-8">
             Built for Autopilot
           </Heading>
           <div className="gsap-grid grid grid-cols-1 gap-1.5 md:grid-cols-2">
@@ -181,8 +178,8 @@ export default function HireAgentsContent() {
 
         {/* How It Works */}
         <section className="gsap-section max-w-4xl mx-auto pb-16 px-6">
-          <Heading as="h3" className="text-2xl font-bold text-center mb-12">
-            How It Works
+          <Heading as="h3" className="text-2xl font-semibold text-center mb-12">
+            How it works
           </Heading>
           <div className="grid grid-cols-2 gap-1.5 md:grid-cols-4">
             {STEPS.map((step) => {
@@ -195,7 +192,10 @@ export default function HireAgentsContent() {
                   <div className="flex size-14 items-center justify-center border border-[var(--gen-accent-border)] bg-[var(--gen-accent-bg)]">
                     <Icon className="size-6 text-[color:hsl(var(--gen-accent))]" />
                   </div>
-                  <Text as="p" className="text-lg font-bold text-foreground">
+                  <Text
+                    as="p"
+                    className="text-lg font-semibold text-foreground"
+                  >
                     {step.label}
                   </Text>
                   <Text as="p" color="muted" className="text-sm">
@@ -215,9 +215,9 @@ export default function HireAgentsContent() {
             </div>
             <Heading
               as="h3"
-              className="text-2xl font-bold mb-6 text-foreground"
+              className="text-2xl font-semibold mb-6 text-foreground"
             >
-              Hire Your Content Team Today
+              Hire your content team today
             </Heading>
             <PricingStrip className="mb-6" />
             <div className="flex flex-row items-center flex-wrap gap-4 justify-center">

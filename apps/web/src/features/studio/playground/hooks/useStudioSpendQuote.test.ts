@@ -101,6 +101,7 @@ describe('useStudioSpendQuote', () => {
 
     await vi.waitFor(() => expect(onSubmit).toHaveBeenCalledOnce());
     expect(onSubmit).toHaveBeenCalledWith({ pinnedModelKey: FLUX.key });
+    await vi.waitFor(() => expect(result.current.isQuoting).toBe(false));
     expect(mocks.info).toHaveBeenCalledWith(
       'Auto chose FLUX.3. This generation costs 8 credits.',
     );
@@ -130,6 +131,7 @@ describe('useStudioSpendQuote', () => {
 
     await vi.waitFor(() => expect(mocks.error).toHaveBeenCalledOnce());
     expect(onSubmit).not.toHaveBeenCalled();
+    await vi.waitFor(() => expect(result.current.isQuoting).toBe(false));
   });
 
   it('names the model Auto chose when its price cannot be confirmed', async () => {

@@ -1,6 +1,7 @@
 import { getActionOriginContext } from '@api/action-origin/action-origin.context';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
+import { AgentThreadAccessService } from '@api/collections/agent-threads/services/agent-thread-access.service';
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
@@ -14,6 +15,13 @@ import type { AgentTurnAcknowledgement } from '@api/services/agent-orchestrator/
 import { AgentWorkObjectService } from '@api/services/agent-orchestrator/tools/agent-work-object.service';
 import { buildAgentInitiatingPrincipal } from '@api/services/agent-orchestrator/utils/agent-initiating-principal.util';
 import { AgentThreadEngineService } from '@api/services/agent-threading/services/agent-thread-engine.service';
+import {
+  assertInputRequestAnswerable,
+  isRecurringWorkflowRequest,
+  resolveContinuationIdempotency,
+  resolveInputContinuationContent,
+  toInputRequestResponse,
+} from '@api/services/agent-threading/utils/agent-input-request-response.util';
 import type { AgentWorkObjectActionPayload } from '@genfeedai/contracts/interfaces';
 import type { AgentInputRequestResponsePayload } from '@genfeedai/contracts/interfaces/ai/agent-input-request.interface';
 import { AgentThreadSerializer } from '@genfeedai/serializers';
@@ -39,6 +47,7 @@ export class AgentThreadRuntimeController {
     private readonly agentThreadEngineService: AgentThreadEngineService,
     private readonly agentScopeContextService: AgentScopeContextService,
     private readonly agentThreadsService: AgentThreadsService,
+    private readonly agentThreadAccessService: AgentThreadAccessService,
     private readonly agentMessagesService: AgentMessagesService,
     private readonly usersService: UsersService,
     private readonly agentOrchestratorService: AgentOrchestratorService,
@@ -55,11 +64,15 @@ export class AgentThreadRuntimeController {
   ) {
     try {
       const organizationId = this.resolveOrganizationId(user);
-      const userId = await this.resolveDatabaseUserId(user);
+      const ownerUserId = await this.resolveThreadOwnerForRead(
+        user,
+        organizationId,
+        threadId,
+      );
       const snapshot = await this.agentThreadEngineService.getSnapshot(
         threadId,
         organizationId,
-        userId,
+        ownerUserId,
       );
       return {
         activeRun: snapshot.activeRun ?? null,
@@ -180,12 +193,16 @@ export class AgentThreadRuntimeController {
   ) {
     try {
       const organizationId = this.resolveOrganizationId(user);
-      const userId = await this.resolveDatabaseUserId(user);
+      const ownerUserId = await this.resolveThreadOwnerForRead(
+        user,
+        organizationId,
+        threadId,
+      );
       const events = await this.agentThreadEngineService.listEvents(
         threadId,
         organizationId,
         afterSequence ? Number.parseInt(afterSequence, 10) : undefined,
-        userId,
+        ownerUserId,
       );
 
       return events.map((event) => ({
@@ -227,6 +244,8 @@ export class AgentThreadRuntimeController {
         requestedBrandId: body.brandId,
         threadId,
         userId,
+        // A member with a live collaborate share answers as themselves (#9964).
+        isSharedCollaborationAllowed: true,
         isApiKey: user.isApiKey,
         apiKeyId: user.apiKeyId,
         scopes: user.scopes,
@@ -235,6 +254,8 @@ export class AgentThreadRuntimeController {
       if (!scope) {
         throw new UnauthorizedException('Agent thread scope is unavailable.');
       }
+      const isRecurringRequest = isRecurringWorkflowRequest(requestId);
+      assertInputRequestAnswerable(scope, isRecurringRequest);
       await this.agentScopeContextService.assertConsequentialBoundary(
         scope,
         'workflow',
@@ -251,15 +272,13 @@ export class AgentThreadRuntimeController {
           userId,
         });
 
-      // The answer continues on a new execution. Returning it lets the client
-      // pin its stream to that run instead of the one that asked.
       let continuation: AgentTurnAcknowledgement | null = null;
       const initiatingPrincipal = buildAgentInitiatingPrincipal({
         auth: user,
         organizationId,
         userId,
       });
-      if (requestId.startsWith('recurring-workflow:')) {
+      if (isRecurringRequest) {
         await this.agentOrchestratorService.resumeRecurringTaskDraftFromInput({
           answer: body.answer,
           fieldId:
@@ -276,12 +295,7 @@ export class AgentThreadRuntimeController {
         continuation = await this.agentOrchestratorService.acceptChatStream(
           {
             threadId,
-            content:
-              inputRequest.fieldId === 'brandUrl' &&
-              body.optionIds?.length === 1 &&
-              body.optionIds[0].startsWith('https://')
-                ? body.optionIds[0]
-                : body.answer,
+            content: resolveInputContinuationContent(inputRequest, body),
             clientRequestId: `input-response:${requestId}`,
             brandId: scope.brandId,
             expectedContextVersion: scope.contextVersion,
@@ -292,20 +306,12 @@ export class AgentThreadRuntimeController {
             userId,
             initiatingPrincipal,
             generationEntry: getActionOriginContext().generationEntry,
+            ...resolveContinuationIdempotency(inputRequest, userId),
           },
         );
       }
 
-      return {
-        answer: inputRequest.answer ?? null,
-        executionId: continuation?.executionId ?? null,
-        fieldId: inputRequest.fieldId ?? null,
-        queuedAt: continuation?.queuedAt ?? null,
-        requestId: inputRequest.requestId,
-        resolvedAt: inputRequest.resolvedAt ?? null,
-        status: inputRequest.status,
-        threadId,
-      };
+      return toInputRequestResponse(inputRequest, continuation, threadId);
     } catch (error: unknown) {
       return ErrorResponse.handle(
         error,
@@ -370,12 +376,13 @@ export class AgentThreadRuntimeController {
     try {
       const organizationId = this.resolveOrganizationId(user);
       const userId = await this.resolveDatabaseUserId(user);
-      await this.flushThreadMemory(threadId, organizationId, userId, 'branch');
+      // Branching proves ownership first, so only the owner's thread is read.
       const branched = await this.agentThreadsService.branchThread(
         threadId,
         organizationId,
         userId,
       );
+      await this.flushThreadMemory(threadId, organizationId, userId, 'branch');
       return serializeSingle(request, AgentThreadSerializer, branched);
     } catch (error: unknown) {
       return ErrorResponse.handle(error, this.loggerService, 'branchThread');
@@ -431,6 +438,30 @@ export class AgentThreadRuntimeController {
       content,
       tags,
     );
+  }
+
+  /**
+   * Opens a thread for reading to its owner or to a live share (#9936), and
+   * returns the owner's id: the engine's own check is an ownership lookup, so
+   * it passes once the access check has already allowed this viewer.
+   */
+  private async resolveThreadOwnerForRead(
+    user: User,
+    organizationId: string,
+    threadId: string,
+  ): Promise<string> {
+    const { thread } = await this.agentThreadAccessService.assertAccess(
+      {
+        apiKeyId: user.apiKeyId,
+        isApiKey: user.isApiKey,
+        organizationId,
+        scopes: user.scopes,
+        userId: await this.resolveDatabaseUserId(user),
+      },
+      threadId,
+      'view',
+    );
+    return thread.userId;
   }
 
   private resolveOrganizationId(user: User): string {

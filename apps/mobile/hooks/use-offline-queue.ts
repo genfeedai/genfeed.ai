@@ -5,7 +5,7 @@ import {
   type QueuedAction,
 } from '@/services/offline-queue.service';
 
-export type { QueueActionType, QueuedAction };
+export type { QueuedAction };
 
 interface AddToQueueParams {
   type: QueueActionType;
@@ -28,6 +28,7 @@ export function useOfflineQueue() {
   );
   const [isProcessing, setIsProcessing] = useState(false);
 
+  // use-effect-audit: ignore subscribes to offline queue events
   useEffect(() => {
     offlineQueueService.init();
 

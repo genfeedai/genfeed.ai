@@ -20,13 +20,32 @@ describe('activity alert policy map (#5197)', () => {
         topic: 'generation.status',
       }),
     );
-    expect(getActivityAlertPolicy(ActivityKey.POST_FAILED)?.topic).toBe(
-      'publishing.status',
+    expect(getActivityAlertPolicy(ActivityKey.POST_FAILED)).toEqual(
+      expect.objectContaining({
+        recipients: [{ channels: ['in_app', 'email'], recipient: 'actor' }],
+        topic: 'publishing.status',
+      }),
+    );
+    expect(getActivityAlertPolicy(ActivityKey.POST_MANUAL_POST_NEEDED)).toEqual(
+      expect.objectContaining({
+        recipients: [{ channels: ['in_app', 'email'], recipient: 'actor' }],
+        topic: 'publishing.status',
+      }),
+    );
+    expect(getActivityAlertPolicy(ActivityKey.POST_PUBLISH_UNVERIFIED)).toEqual(
+      expect.objectContaining({
+        recipients: [{ channels: ['in_app', 'email'], recipient: 'actor' }],
+        topic: 'publishing.status',
+      }),
     );
     expect(
-      getActivityAlertPolicy(ActivityKey.SOCIAL_INTEGRATION_DISCONNECTED)
-        ?.topic,
-    ).toBe('integration.status');
+      getActivityAlertPolicy(ActivityKey.SOCIAL_INTEGRATION_DISCONNECTED),
+    ).toEqual(
+      expect.objectContaining({
+        recipients: [{ channels: ['in_app', 'email'], recipient: 'actor' }],
+        topic: 'integration.status',
+      }),
+    );
     expect(getActivityAlertPolicy(ActivityKey.IMAGE_GENERATED)).toBeNull();
     expect(getActivityAlertPolicy(ActivityKey.CREDITS_REMOVE)).toBeNull();
     expect(getActivityAlertPolicy('not-a-key')).toBeNull();
@@ -92,7 +111,43 @@ describe('activity alert policy map (#5197)', () => {
     }
   });
 
+  it('tells the member a review or mention is for, on the bell and by email', () => {
+    for (const key of [
+      ActivityKey.ASSET_REVIEW_REQUESTED,
+      ActivityKey.ASSET_REVIEW_APPROVED,
+      ActivityKey.ASSET_REVIEW_CHANGES_REQUESTED,
+      ActivityKey.MENTIONED,
+      ActivityKey.AGENT_HANDOFF_RECEIVED,
+    ]) {
+      expect(getActivityAlertPolicy(key)).toMatchObject({
+        recipients: [{ channels: ['in_app', 'email'], recipient: 'actor' }],
+        topic: 'collaboration.activity',
+      });
+    }
+    expect(
+      getActivityAlertPolicy(ActivityKey.ASSET_REVIEW_REQUESTED)?.severity,
+    ).toBe('warning');
+    expect(getActivityAlertPolicy(ActivityKey.MENTIONED)?.severity).toBe(
+      'info',
+    );
+  });
+
   it('gives every new alert key customer-facing copy', () => {
+    expect(
+      [
+        ActivityKey.ASSET_REVIEW_REQUESTED,
+        ActivityKey.ASSET_REVIEW_APPROVED,
+        ActivityKey.ASSET_REVIEW_CHANGES_REQUESTED,
+        ActivityKey.MENTIONED,
+        ActivityKey.AGENT_HANDOFF_RECEIVED,
+      ].map((key) => formatActivityMessage(getActivityMessageDescriptor(key))),
+    ).toEqual([
+      'Asked to review',
+      'Review approved',
+      'Changes requested',
+      'You were mentioned',
+      'Handed you a task',
+    ]);
     expect(
       formatActivityMessage(
         getActivityMessageDescriptor(ActivityKey.WORKFLOW_EXECUTION_COMPLETED),

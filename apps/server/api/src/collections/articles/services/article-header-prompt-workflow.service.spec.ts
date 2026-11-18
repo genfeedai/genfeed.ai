@@ -68,9 +68,12 @@ describe('article header prompt workflow registration', () => {
   };
 
   it('registers the three atomic actions and immutable graph', () => {
-    const { registerAction, registerWorkflow } = createService();
+    const { actions, registerAction, registerWorkflow } = createService();
 
     const registeredIds = registerAction.mock.calls.map(([id]) => id);
+    expect([...actions.keys()]).toEqual(
+      expect.arrayContaining(Object.values(ARTICLE_HEADER_PROMPT_ACTION_IDS)),
+    );
     expect(registeredIds).toEqual(
       expect.arrayContaining(Object.values(ARTICLE_HEADER_PROMPT_ACTION_IDS)),
     );
@@ -91,6 +94,11 @@ describe('article header prompt workflow registration', () => {
       input: { request: { articleId: article.id } },
       provenance: {} as never,
     });
+    expect(loaded).toEqual({
+      article,
+      articleId: 'article-1',
+      organizationId: 'org-1',
+    });
     expect(findOne).toHaveBeenCalledWith({
       id: article.id,
       isDeleted: false,
@@ -105,6 +113,12 @@ describe('article header prompt workflow registration', () => {
       provenance: {} as never,
     });
 
+    expect(generated).toEqual({
+      article,
+      articleId: 'article-1',
+      organizationId: 'org-1',
+      prompt: 'Header prompt',
+    });
     expect(articleInsights.generateHeaderPrompt).toHaveBeenCalledWith(
       article,
       'org-1',
@@ -112,12 +126,15 @@ describe('article header prompt workflow registration', () => {
     );
     expect(patch).not.toHaveBeenCalled();
 
-    await actions.get(ARTICLE_HEADER_PROMPT_ACTION_IDS.PERSIST)?.({
+    const persisted = await actions.get(
+      ARTICLE_HEADER_PROMPT_ACTION_IDS.PERSIST,
+    )?.({
       context: { organizationId: 'org-1' } as never,
       input: { state: { ...(generated as object), prompt: 'Header prompt' } },
       provenance: {} as never,
     });
 
+    expect(persisted).toBe('Header prompt');
     expect(patch).toHaveBeenCalledWith(article.id, {
       generationPrompt: 'Header prompt',
     });

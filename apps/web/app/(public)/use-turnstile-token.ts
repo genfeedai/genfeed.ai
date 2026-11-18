@@ -61,6 +61,7 @@ export function useTurnstileToken(): {
   const widgetIdRef = useRef<string | null>(null);
   const resolveTokenRef = useRef<((token: string | null) => void) | null>(null);
 
+  // use-effect-audit: ignore releases timers, requests or subscriptions on unmount
   useEffect(() => {
     return () => {
       if (widgetIdRef.current) {

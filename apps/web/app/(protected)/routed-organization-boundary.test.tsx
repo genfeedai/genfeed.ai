@@ -3,10 +3,13 @@
 
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import RoutedOrganizationBoundary from './routed-organization-boundary';
+import RoutedOrganizationBoundary, {
+  RoutedOrganizationPageGate,
+} from './routed-organization-boundary';
 
 const contextState = vi.hoisted(() => ({
   isRouteConfirmed: false,
+  pendingOrganizationId: null as string | null,
   organizations: [] as Array<{
     id: string;
     isActive: boolean;
@@ -36,6 +39,7 @@ vi.mock(
 describe('RoutedOrganizationBoundary', () => {
   beforeEach(() => {
     contextState.isRouteConfirmed = false;
+    contextState.pendingOrganizationId = null;
     contextState.organizations = [];
     contextState.retry.mockReset();
     contextState.status = 'loading';
@@ -58,7 +62,7 @@ describe('RoutedOrganizationBoundary', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('announces a switch without mounting tenant content', () => {
+  it('announces a route-driven switch without mounting tenant content', () => {
     contextState.status = 'switching';
 
     render(
@@ -74,6 +78,39 @@ describe('RoutedOrganizationBoundary', () => {
     expect(
       screen.queryByRole('status', { name: 'Loading your workspace' }),
     ).not.toBeInTheDocument();
+  });
+
+  it('keeps the shell on screen while a member switches organization, with the page held back', () => {
+    contextState.status = 'switching';
+    contextState.pendingOrganizationId = 'org_bravo';
+
+    render(
+      <RoutedOrganizationBoundary>
+        <span>Shell</span>
+        <RoutedOrganizationPageGate>
+          <span>Tenant content</span>
+        </RoutedOrganizationPageGate>
+      </RoutedOrganizationBoundary>,
+    );
+
+    expect(screen.getByText('Shell')).toBeInTheDocument();
+    expect(screen.queryByText('Tenant content')).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('workspace-frame-skeleton'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows the page once the route is confirmed', () => {
+    contextState.isRouteConfirmed = true;
+    contextState.status = 'matched';
+
+    render(
+      <RoutedOrganizationPageGate>
+        <span>Tenant content</span>
+      </RoutedOrganizationPageGate>,
+    );
+
+    expect(screen.getByText('Tenant content')).toBeInTheDocument();
   });
 
   it('renders tenant content only for a confirmed route', () => {

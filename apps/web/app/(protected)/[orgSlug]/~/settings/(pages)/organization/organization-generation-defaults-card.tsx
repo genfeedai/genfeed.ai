@@ -1,12 +1,15 @@
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useElements } from '@hooks/data/elements/use-elements/use-elements';
+import { useResetOnChange } from '@hooks/utils/use-reset-on-change/use-reset-on-change';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { OrganizationsService } from '@services/organization/organizations.service';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
+import RetiredModelAlert from '@/components/models/RetiredModelAlert';
+import { useRetiredModels } from '@/features/models/hooks/useRetiredModels';
 import type {
   ExtendedOrganizationSettings,
   GenerationDefaultsState,
@@ -24,41 +27,40 @@ export default function OrganizationGenerationDefaultsCard() {
     | undefined;
   const { imageModels, musicModels, videoModels } = useElements();
   const enabledModelIds = settingsWithContentDefaults?.enabledModelIds ?? [];
+  const { getRetiredModel } = useRetiredModels();
   const getOrganizationsService = useAuthedService((token: string) =>
     OrganizationsService.getInstance(token),
   );
 
-  const [defaults, setDefaults] = useState<GenerationDefaultsState>({
-    defaultImageModel: '',
-    defaultImageToVideoModel: '',
-    defaultModel: '',
-    defaultModelReview: '',
-    defaultModelUpdate: '',
-    defaultMusicModel: '',
-    defaultVideoModel: '',
+  const getDefaultsFromSettings = (): GenerationDefaultsState => ({
+    defaultImageModel: settingsWithContentDefaults?.defaultImageModel ?? '',
+    defaultImageToVideoModel:
+      settingsWithContentDefaults?.defaultImageToVideoModel ?? '',
+    defaultModel: settingsWithContentDefaults?.defaultModel ?? '',
+    defaultModelReview: settingsWithContentDefaults?.defaultModelReview ?? '',
+    defaultModelUpdate: settingsWithContentDefaults?.defaultModelUpdate ?? '',
+    defaultMusicModel: settingsWithContentDefaults?.defaultMusicModel ?? '',
+    defaultVideoModel: settingsWithContentDefaults?.defaultVideoModel ?? '',
   });
+  const [defaults, setDefaults] = useState<GenerationDefaultsState>(
+    getDefaultsFromSettings,
+  );
   const [isSaving, setIsSaving] = useState(false);
 
-  useEffect(() => {
-    setDefaults({
-      defaultImageModel: settingsWithContentDefaults?.defaultImageModel ?? '',
-      defaultImageToVideoModel:
-        settingsWithContentDefaults?.defaultImageToVideoModel ?? '',
-      defaultModel: settingsWithContentDefaults?.defaultModel ?? '',
-      defaultModelReview: settingsWithContentDefaults?.defaultModelReview ?? '',
-      defaultModelUpdate: settingsWithContentDefaults?.defaultModelUpdate ?? '',
-      defaultMusicModel: settingsWithContentDefaults?.defaultMusicModel ?? '',
-      defaultVideoModel: settingsWithContentDefaults?.defaultVideoModel ?? '',
-    });
-  }, [
-    settingsWithContentDefaults?.defaultModel,
-    settingsWithContentDefaults?.defaultModelReview,
-    settingsWithContentDefaults?.defaultModelUpdate,
-    settingsWithContentDefaults?.defaultImageModel,
-    settingsWithContentDefaults?.defaultImageToVideoModel,
-    settingsWithContentDefaults?.defaultMusicModel,
-    settingsWithContentDefaults?.defaultVideoModel,
-  ]);
+  useResetOnChange(
+    [
+      settingsWithContentDefaults?.defaultModel,
+      settingsWithContentDefaults?.defaultModelReview,
+      settingsWithContentDefaults?.defaultModelUpdate,
+      settingsWithContentDefaults?.defaultImageModel,
+      settingsWithContentDefaults?.defaultImageToVideoModel,
+      settingsWithContentDefaults?.defaultMusicModel,
+      settingsWithContentDefaults?.defaultVideoModel,
+    ],
+    () => {
+      setDefaults(getDefaultsFromSettings());
+    },
+  );
 
   const handleSave = useCallback(async () => {
     if (!organizationId) {
@@ -95,9 +97,32 @@ export default function OrganizationGenerationDefaultsCard() {
     refresh,
   ]);
 
+  // Saved defaults that point at a retired model. The pickers below are where
+  // the new model is chosen; the flag goes once the new choice is saved.
+  const retiredDefaults = [
+    ...new Set(
+      [
+        settingsWithContentDefaults?.defaultModel,
+        settingsWithContentDefaults?.defaultModelReview,
+        settingsWithContentDefaults?.defaultModelUpdate,
+        settingsWithContentDefaults?.defaultImageModel,
+        settingsWithContentDefaults?.defaultImageToVideoModel,
+        settingsWithContentDefaults?.defaultMusicModel,
+        settingsWithContentDefaults?.defaultVideoModel,
+      ].flatMap((key) => {
+        const retired = getRetiredModel(key);
+        return retired ? [retired] : [];
+      }),
+    ),
+  ];
+
   return (
     <Card label="Generation Defaults">
       <div className="space-y-4">
+        {retiredDefaults.map((model) => (
+          <RetiredModelAlert key={model.key} modelLabel={model.label} />
+        ))}
+
         <OrganizationGenerationDefaultsTextSection
           enabledModelIds={enabledModelIds}
           defaultModel={defaults.defaultModel}

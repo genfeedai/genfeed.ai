@@ -34,7 +34,7 @@ import {
 type Evidence = Omit<ContentLearningExperimentEvent, 'payload'> & {
   payload: LearningExperimentPayloadV1;
 };
-export function learningOpportunityObservation(
+function learningOpportunityObservation(
   opportunity: ContentLearningOpportunity,
   events: readonly Evidence[],
   reward: number | null,

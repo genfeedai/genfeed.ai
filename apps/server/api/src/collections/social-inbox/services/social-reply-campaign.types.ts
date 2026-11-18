@@ -1,14 +1,6 @@
-import type {
-  SocialReplyCampaign as PrismaSocialReplyCampaign,
-  SocialReplyCampaignRecipient as PrismaSocialReplyCampaignRecipient,
-} from '@genfeedai/prisma';
+import type { SocialReplyCampaign as PrismaSocialReplyCampaign } from '@genfeedai/prisma';
 
 export type SocialReplyCampaign = PrismaSocialReplyCampaign;
-export type SocialReplyCampaignRecipient = PrismaSocialReplyCampaignRecipient;
-
-export type SocialReplyCampaignDocument = PrismaSocialReplyCampaign;
-export type SocialReplyCampaignRecipientDocument =
-  PrismaSocialReplyCampaignRecipient;
 
 export interface SocialReplyCampaignDispatchRequest {
   campaignId: string;
@@ -21,7 +13,7 @@ export interface SocialReplyCampaignDispatchRequest {
   dispatchCursor: number;
 }
 
-export type SocialReplyCampaignTickOutcome =
+type SocialReplyCampaignTickOutcome =
   | 'campaign-completed'
   | 'campaign-inactive'
   | 'recipient-failed'

@@ -12,7 +12,6 @@ import {
 import {
   APP_ROUTE_PREFIXES,
   APP_ROUTES,
-  isReleaseItemId,
   isReleaseItemVisible,
   resolveOrganizationModulePreferences,
 } from '@genfeedai/contracts/constants';
@@ -30,12 +29,14 @@ import {
   getActiveAppId,
   isAppRailPathEnabled,
 } from '@/components/shell/app-rail/app-rail.registry';
+import { useHasAppsBeyondDashboard } from '@/components/shell/use-available-rail-apps';
 import {
   ADMIN_MENU_ITEMS,
   withCollapsibleAdminGroups,
 } from '@/config/admin-menu-items.config';
 import { getAnalyticsMenuItemsForScope } from '@/config/analytics-menu-items.config';
 import { AUTOMATION_MENU_ITEMS } from '@/config/automation-menu-items.config';
+import { CONNECTORS_MENU_ITEMS } from '@/config/connectors-menu-items.config';
 import { DISCOVERY_MENU_ITEMS } from '@/config/discovery-menu-items.config';
 import { LIBRARY_MENU_ITEMS } from '@/config/library-menu-items.config';
 import {
@@ -56,7 +57,6 @@ import {
 } from '@/config/studio-menu-items.config';
 import { useUserRole } from '@/hooks/auth/use-user-role';
 import { useFeatureFlagContext } from '@/hooks/feature-flags/provider';
-import { useFeatureFlag } from '@/hooks/feature-flags/use-feature-flag';
 import { useDesktopRuntimeContext } from '@/hooks/ui/use-desktop-runtime-context/use-desktop-runtime-context';
 import { useMenuItems } from '@/hooks/ui/use-menu-items';
 import { useOptionalAuth } from '@/hooks/useOptionalAuth';
@@ -78,8 +78,6 @@ import {
 } from './protected-route-kind';
 import { usePageHelp } from './use-page-help';
 import { useOpenTaskComposer } from './useOpenTaskComposer';
-
-const CLIPPER_OR_STORYBOARD_PATH_PATTERN = /^\/(clipper|storyboard)(?:\/|$)/;
 
 export function useAppProtectedLayout(
   initialBootstrap?: ProtectedBootstrapData | null,
@@ -112,7 +110,6 @@ export function useAppProtectedLayout(
   const isDiscoveryRoute =
     pathname === APP_ROUTES.DISCOVERY.ROOT ||
     pathname.startsWith(`${APP_ROUTES.DISCOVERY.ROOT}/`);
-  const isLibraryLandingRoute = pathname === APP_ROUTES.LIBRARY.ASSETS;
   const isLibraryRoute = pathname.startsWith(APP_ROUTE_PREFIXES.LIBRARY);
   const isMessagesRoute = pathname.startsWith(APP_ROUTE_PREFIXES.MESSAGES);
   const isMessagesInboxRoute = pathname === APP_ROUTES.MESSAGES.ROOT;
@@ -120,15 +117,13 @@ export function useAppProtectedLayout(
   const studioApp = getStudioAppForPath(pathname);
   const isStudioRoute = studioApp !== undefined;
   const isPublishingRoute = pathname.startsWith(APP_ROUTE_PREFIXES.PUBLISHING);
-  // Dense studio canvases + mission-control runs: hide shell low-credits strip
-  // so it does not steal vertical space under fixed chrome.
-  const suppressShellLowCreditsBanner =
-    CLIPPER_OR_STORYBOARD_PATH_PATTERN.test(pathname) ||
-    pathname === APP_ROUTES.AUTOMATION.RUNS;
   const isSettingsRoute = pathname.startsWith(APP_ROUTE_PREFIXES.SETTINGS);
   const isEditorCanvasRoute = isProtectedEditorCanvasRoute(pathname);
   const isAutomationRoute = pathname.startsWith(APP_ROUTE_PREFIXES.AUTOMATION);
   const isAnalyticsRoute = pathname.startsWith(APP_ROUTE_PREFIXES.ANALYTICS);
+  const isConnectorsRoute =
+    pathname === APP_ROUTES.CONNECTORS.ROOT ||
+    pathname.startsWith(`${APP_ROUTES.CONNECTORS.ROOT}/`);
   // Org shell only for leftover org destinations (Connect, etc.). Module
   // routes under `/:org/~/workspace|publishing|turbo|…` keep their own app
   // sidebars — otherwise Workspace/Publishing steal the Organization menu.
@@ -140,6 +135,7 @@ export function useAppProtectedLayout(
       !pathname.startsWith(APP_ROUTE_PREFIXES.WORKSPACE) &&
       !pathname.startsWith(APP_ROUTE_PREFIXES.OVERVIEW) &&
       !isConversationRoute &&
+      !isConnectorsRoute &&
       !isPublishingRoute &&
       !isAnalyticsRoute &&
       !isStudioRoute &&
@@ -204,6 +200,7 @@ export function useAppProtectedLayout(
   );
 
   const getTokenRef = useRef(getToken);
+  // use-effect-audit: ignore keeps refs to the latest callbacks and values
   useEffect(() => {
     getTokenRef.current = getToken;
   }, [getToken]);
@@ -249,6 +246,7 @@ export function useAppProtectedLayout(
   );
 
   const threads = useAgentChatStore((s) => s.threads);
+  const activeThreadId = useAgentChatStore((s) => s.activeThreadId);
 
   const contextRole = useUserRole();
   const bootstrapRole = initialBootstrap?.accessState?.memberRole;
@@ -265,6 +263,7 @@ export function useAppProtectedLayout(
     [push],
   );
 
+  // use-effect-audit: ignore subscribes to browser events
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent): void => {
       if (
@@ -310,11 +309,10 @@ export function useAppProtectedLayout(
         .filter(
           (item) =>
             isAppRailPathEnabled(item.href, platformFlags) &&
+            // Every module is a release item, so its nav waits for the
+            // organization's preferences.
             (!item.organizationModule ||
-              // While preferences load, keep the always-released apps
-              // (Playground, Storyboard) so their nav does not flicker.
-              (modulePreferences?.[item.organizationModule] ??
-                !isReleaseItemId(item.organizationModule))),
+              modulePreferences?.[item.organizationModule] === true),
         )
         .map(
           (item): MenuItemConfig => ({
@@ -382,6 +380,17 @@ export function useAppProtectedLayout(
     [taskContextSearchParams],
   );
 
+  const connectorsMenuItems = useMemo(
+    () =>
+      CONNECTORS_MENU_ITEMS.map(
+        (item): MenuItemConfig => ({
+          ...item,
+          href: withTaskContextHref(item.href, taskContextSearchParams),
+        }),
+      ),
+    [taskContextSearchParams],
+  );
+
   const orgMenuItems = useMemo(
     () =>
       ORG_MENU_ITEMS.map(
@@ -403,6 +412,7 @@ export function useAppProtectedLayout(
   // drives the sidebar menu, not switcher visibility). See the helper's doc.
   const isPersonalSettingsPage = computeIsPersonalSettingsPage(rawPathname);
 
+  const hasAppsBeyondDashboard = useHasAppsBeyondDashboard();
   const settingsMenuItems = useMemo(
     () =>
       buildSettingsMenuItems({
@@ -415,6 +425,10 @@ export function useAppProtectedLayout(
             isSubscriptionAvailable ||
             item.href !== APP_ROUTES.SETTINGS.SUBSCRIPTION,
         )
+        .filter(
+          (item) =>
+            hasAppsBeyondDashboard || item.href !== APP_ROUTES.SETTINGS.MODULES,
+        )
         .map(
           (item): MenuItemConfig => ({
             ...item,
@@ -422,6 +436,7 @@ export function useAppProtectedLayout(
           }),
         ),
     [
+      hasAppsBeyondDashboard,
       isSubscriptionAvailable,
       settingsScope,
       showCredits,
@@ -449,22 +464,20 @@ export function useAppProtectedLayout(
 
   const isWorkspaceRoute = isProtectedWorkspaceRoute(pathname);
 
-  const isLowCreditsBannerEnabled = useFeatureFlag('low_credits_banner');
   const isDesktopShell = isDesktopClient();
 
   return {
     // route flags
     isAdminRoute,
     isAnalyticsRoute,
+    isConnectorsRoute,
     isConversationRoute,
     isEditorCanvasRoute,
-    isLibraryLandingRoute,
     isLibraryRoute,
     isMessagesRoute,
     isMessagesInboxRoute,
     isOrgRoute,
     isPublishingRoute,
-    suppressShellLowCreditsBanner,
     isDiscoveryRoute,
     isSettingsRoute,
     isStudioRoute,
@@ -481,9 +494,11 @@ export function useAppProtectedLayout(
     // agent
     agentApiService,
     threads,
+    activeThreadId,
     // menu items
     adminMenuItems,
     analyticsMenuItems,
+    connectorsMenuItems,
     libraryMenuItems,
     menuItems,
     orgMenuItems,
@@ -496,8 +511,6 @@ export function useAppProtectedLayout(
     messagesMenuItems: MESSAGES_MENU_ITEMS,
     // handlers
     handleNavigate,
-    // banners
-    isLowCreditsBannerEnabled,
     isDesktopShell,
     // bootstrap passthrough
     initialBootstrap,

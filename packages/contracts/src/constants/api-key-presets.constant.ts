@@ -136,6 +136,11 @@ export const MCP_CAN_SWITCH_ORGANIZATIONS_METADATA_KEY =
 export const MCP_ORGANIZATION_HEADER = 'x-genfeed-organization';
 /** Session-key metadata: the organization the connection is currently in. */
 export const MCP_ACTIVE_ORGANIZATION_METADATA_KEY = 'activeOrganizationId';
+/**
+ * Email domain of the accounts that may connect to the admin MCP endpoint
+ * (`/mcp/admin`). Matched against the verified account email, exactly.
+ */
+export const MCP_ADMIN_EMAIL_DOMAIN = 'genfeed.ai';
 export const MCP_CLAUDE_SCOPE_CEILING: readonly string[] =
   API_KEY_SCOPE_PRESETS.mcp.filter(
     (scope) =>

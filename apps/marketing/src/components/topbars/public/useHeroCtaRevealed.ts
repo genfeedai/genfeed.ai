@@ -22,8 +22,11 @@ export function useHeroCtaRevealed(): boolean {
   const pathname = usePathname();
   const [isRevealed, setIsRevealed] = useState(false);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: the bar lives in a layout, so a client navigation has to look for the next page's hero CTA.
+  // The bar lives in a layout, so a client navigation has to look for the next
+  // page's hero CTA: `pathname` is the trigger.
+  // use-effect-audit: ignore IntersectionObserver over the hero calls to action
   useEffect(() => {
+    void pathname;
     setIsRevealed(false);
 
     const targets = Array.from(

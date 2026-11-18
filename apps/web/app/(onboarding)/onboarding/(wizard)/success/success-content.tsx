@@ -124,7 +124,7 @@ export default function SuccessContent() {
       <div className="success-credit-reveal opacity-0 mb-8 inline-flex items-center gap-3 rounded-full bg-muted shadow-border px-5 py-3 text-left">
         <Sparkles className="size-5 text-foreground" />
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+          <p className="text-xs font-semibold uppercase tracking-label text-muted-foreground">
             Starter Credits Ready
           </p>
           <p className="text-sm text-foreground">

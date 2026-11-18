@@ -23,7 +23,7 @@ Tier background lives in `docs/e2e-tiers.md`; the host contract lives in the
 bun run dev:setup                                       # once per machine (Portless HTTPS on :443)
 bunx turbo run build --filter=@genfeedai/serializers   # once per fresh checkout or worktree
 bun run env:check                                       # must print "Env check passed."
-bun run dev:backend:min                                 # api + files + notifications (background)
+bun run dev:backend:min                                 # api + files + notifications + workers (background)
 bun run dev:web                                         # app (background)
 ```
 

@@ -265,6 +265,7 @@ export default function IssuesList() {
   const isLoading = tasksQuery.isPending;
 
   const { error: loadError } = tasksQuery;
+  // use-effect-audit: ignore reports a failed load to the logger or a notification
   useEffect(() => {
     if (loadError) {
       logger.error('Failed to load tasks', loadError);
@@ -330,12 +331,13 @@ export default function IssuesList() {
 
   // `?taskId=` is the source of truth for the inspector: resolve it from the
   // loaded list first, and only fetch when the task is outside the current page.
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     if (!taskId) {
       selectTask?.(null);
       return;
     }
-    let cancelled = false;
+    const abortController = new AbortController();
     const issue = issues.find((item) => item.id === taskId);
     if (issue) {
       selectTask?.(issue);
@@ -343,15 +345,15 @@ export default function IssuesList() {
       void getTasksService()
         .then((service) => service.findOne(taskId))
         .then((task) => {
-          if (!cancelled) selectTask?.(task);
+          if (!abortController.signal.aborted) selectTask?.(task);
         })
         .catch(() => {
-          if (!cancelled)
+          if (!abortController.signal.aborted)
             notificationsService.error(translate('openTaskError'));
         });
     }
     return () => {
-      cancelled = true;
+      abortController.abort();
     };
   }, [
     taskId,

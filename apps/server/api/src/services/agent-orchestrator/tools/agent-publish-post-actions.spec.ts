@@ -1,11 +1,18 @@
 import type { PostsService } from '@api/collections/posts/services/posts.service';
-import { scheduleAgentPost } from '@api/services/agent-orchestrator/tools/agent-publish-post-actions';
+import {
+  createAgentTextDraft,
+  scheduleAgentPost,
+} from '@api/services/agent-orchestrator/tools/agent-publish-post-actions';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import type {
   AutonomousPublishPolicyService,
   ResolvedAutonomousPostPolicy,
 } from '@api/services/autonomous-publishing/autonomous-publish-policy.service';
-import { AgentAutonomyMode, AgentPublishDecision } from '@genfeedai/contracts';
+import {
+  AgentAutonomyMode,
+  AgentPublishDecision,
+  PostVisibility,
+} from '@genfeedai/contracts';
 import type { ScheduleCanonicalPostInput } from '@genfeedai/contracts/interfaces';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -196,5 +203,102 @@ describe('scheduleAgentPost post caps (#7458)', () => {
     expect(world.scheduled).toEqual([
       expect.objectContaining({ isUnderLock: false, postId: 'post-1' }),
     ]);
+  });
+});
+
+describe('createAgentTextDraft', () => {
+  function draftWorld() {
+    const saved: Array<{ description: string; label: string }> = [];
+    const postsService = {
+      create: async (dto: { description: string; label: string }) => {
+        saved.push({ description: dto.description, label: dto.label });
+        return { id: 'post-1' };
+      },
+    } as unknown as PostsService;
+    return { postsService, saved };
+  }
+
+  it.each([['content'], ['textContent'], ['caption']])(
+    'saves the post text sent as %s',
+    async (field) => {
+      const world = draftWorld();
+
+      const result = await createAgentTextDraft(
+        world.postsService,
+        { [field]: '  Launch day is here.  ' },
+        context({}),
+        PostVisibility.PRIVATE,
+      );
+
+      expect(result).toMatchObject({
+        creditsUsed: 0,
+        data: { executionState: 'draft', id: 'post-1', visibility: 'private' },
+        success: true,
+      });
+      expect(world.saved).toEqual([
+        { description: 'Launch day is here.', label: 'Launch day is here.' },
+      ]);
+    },
+  );
+
+  it('preserves the separate title and returns the saved draft identity and brand context', async () => {
+    const world = draftWorld();
+    const result = await createAgentTextDraft(
+      world.postsService,
+      {
+        content: 'Review a draft before publishing.',
+        title: 'QA 0.3.2 — draft review',
+      },
+      context({
+        validatedScope: {
+          brandId: 'brand-1',
+          contextVersion: 2,
+          isLegacyFallback: false,
+          isVersionExplicit: true,
+          organizationId: 'org-1',
+          source: 'explicit',
+          threadId: 'thread-1',
+          userId: 'user-1',
+        },
+      }),
+      PostVisibility.PRIVATE,
+    );
+    expect(world.saved).toEqual([
+      {
+        description: 'Review a draft before publishing.',
+        label: 'QA 0.3.2 — draft review',
+      },
+    ]);
+    expect(result.data).toMatchObject({
+      id: 'post-1',
+      title: 'QA 0.3.2 — draft review',
+      href: '/publishing/posts/post-1',
+      brandId: 'brand-1',
+      agentContextSource: 'explicit',
+      agentContextVersion: 2,
+      executionState: 'draft',
+    });
+    expect(result.nextActions?.[0]).toMatchObject({
+      type: 'content_preview_card',
+      ctas: [{ href: '/publishing/posts/post-1', label: 'Open draft' }],
+    });
+  });
+
+  it('refuses a draft with no text and no media instead of failing in the database', async () => {
+    const world = draftWorld();
+
+    const result = await createAgentTextDraft(
+      world.postsService,
+      { platform: 'twitter' },
+      context({}),
+      PostVisibility.PRIVATE,
+    );
+
+    expect(result).toEqual({
+      creditsUsed: 0,
+      error: 'A post draft needs text in content, or media to attach.',
+      success: false,
+    });
+    expect(world.saved).toEqual([]);
   });
 });

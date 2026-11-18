@@ -95,6 +95,7 @@ export default function Searchbar({
     undefined,
   );
   const onSearchRef = useRef(onSearch);
+  // use-effect-audit: ignore keeps refs to the latest callbacks and values
   useEffect(() => {
     onSearchRef.current = onSearch;
   }, [onSearch]);
@@ -128,6 +129,7 @@ export default function Searchbar({
     }
   }, [committedValue, cancelPending]);
 
+  // use-effect-audit: ignore cancels the pending search timer on unmount
   useEffect(() => cancelPending, [cancelPending]);
 
   const handleChange = (event: ChangeEvent<HTMLInputElement>) => {

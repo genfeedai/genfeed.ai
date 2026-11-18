@@ -132,7 +132,6 @@ describe('UpdatePlatformSettingDto', () => {
       { mediaPerceptionFrameCount: 25 },
       { mediaPerceptionFrameCount: 2.5 },
       { mediaPerceptionLookbackHours: 0 },
-      { isAgentTokenStreamingEnabled: 'true' },
       { systemEventsEnabledAt: 'yesterday' },
       { moderationThresholds: { nudity: 0.5 } },
       { moderationThresholds: { sexual: 1.5 } },

@@ -1,29 +1,25 @@
-import '@testing-library/jest-dom/vitest';
-import { render, screen } from '@testing-library/react';
-import type { ResolvingMetadata } from 'next';
-import { describe, expect, it, vi } from 'vitest';
-import BrandDetailPage, { generateMetadata } from './page';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import BrandSettingsIndexPage from './page';
 
-vi.mock('./brand-detail', () => ({
-  default: function BrandDetailMock() {
-    return 'Brand detail surface';
-  },
-}));
+const redirect = vi.hoisted(() => vi.fn());
 
-describe('BrandDetailPage', () => {
-  it('renders the brand detail surface inside a suspense boundary', () => {
-    render(<BrandDetailPage />);
+vi.mock('next/navigation', () => ({ redirect }));
 
-    expect(screen.getByText('Brand detail surface')).toBeInTheDocument();
+describe('BrandSettingsIndexPage', () => {
+  beforeEach(() => {
+    redirect.mockReset();
   });
 
-  it('titles the page Brand Profile', async () => {
-    const parent = Promise.resolve({
-      openGraph: { images: [] },
-    }) as unknown as ResolvingMetadata;
+  it('sends the bare brand settings address to the brand Profile page', async () => {
+    await BrandSettingsIndexPage({
+      params: Promise.resolve({
+        brandSlug: 'vincentshipsit',
+        orgSlug: 'genfeedai',
+      }),
+    });
 
-    const metadata = await generateMetadata({}, parent);
-
-    expect(metadata.title).toContain('Brand Profile');
+    expect(redirect).toHaveBeenCalledWith(
+      '/genfeedai/vincentshipsit/settings/profile',
+    );
   });
 });

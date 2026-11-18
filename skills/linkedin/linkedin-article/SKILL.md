@@ -5,6 +5,10 @@ license: MIT
 metadata:
   author: genfeedai
   version: 1.0.0
+  short-description: "Write a LinkedIn article or newsletter edition with a hook, sections, action steps and a promo post."
+  tags: linkedin, article, newsletter, long-form, content-creation, b2b
+  outputs: text
+  triggers: "write a linkedin article; linkedin newsletter edition; turn this into a linkedin article; draft a linkedin newsletter"
 ---
 
 # LinkedIn Article

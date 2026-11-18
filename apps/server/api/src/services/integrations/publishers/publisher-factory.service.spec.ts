@@ -4,11 +4,14 @@
  */
 
 import { BeehiivPublisherService } from '@api/services/integrations/publishers/beehiiv-publisher.service';
+import { BlueskyPublisherService } from '@api/services/integrations/publishers/bluesky-publisher.service';
 import { DevtoPublisherService } from '@api/services/integrations/publishers/devto-publisher.service';
+import { DiscordPublisherService } from '@api/services/integrations/publishers/discord-publisher.service';
 import { FacebookPublisherService } from '@api/services/integrations/publishers/facebook-publisher.service';
 import { FanvuePublisherService } from '@api/services/integrations/publishers/fanvue-publisher.service';
 import { GenfeedPublisherService } from '@api/services/integrations/publishers/genfeed-publisher.service';
 import { GhostPublisherService } from '@api/services/integrations/publishers/ghost-publisher.service';
+import { GoogleBusinessPublisherService } from '@api/services/integrations/publishers/google-business-publisher.service';
 import { InstagramPublisherService } from '@api/services/integrations/publishers/instagram-publisher.service';
 import type { PublishContext } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import { LinkedInPublisherService } from '@api/services/integrations/publishers/linkedin-publisher.service';
@@ -18,7 +21,9 @@ import { PinterestPublisherService } from '@api/services/integrations/publishers
 import { PublisherFactoryService } from '@api/services/integrations/publishers/publisher-factory.service';
 import { RedditPublisherService } from '@api/services/integrations/publishers/reddit-publisher.service';
 import { ShopifyPublisherService } from '@api/services/integrations/publishers/shopify-publisher.service';
+import { SlackPublisherService } from '@api/services/integrations/publishers/slack-publisher.service';
 import { SnapchatPublisherService } from '@api/services/integrations/publishers/snapchat-publisher.service';
+import { TelegramPublisherService } from '@api/services/integrations/publishers/telegram-publisher.service';
 import { ThreadsPublisherService } from '@api/services/integrations/publishers/threads-publisher.service';
 import { TikTokPublisherService } from '@api/services/integrations/publishers/tiktok-publisher.service';
 import { TwitterPublisherService } from '@api/services/integrations/publishers/twitter-publisher.service';
@@ -128,6 +133,10 @@ describe('PublisherFactoryService', () => {
           useValue: mockPublisher(CredentialPlatform.DEV_TO),
         },
         {
+          provide: BlueskyPublisherService,
+          useValue: mockPublisher(CredentialPlatform.BLUESKY),
+        },
+        {
           provide: GenfeedPublisherService,
           useValue: mockPublisher(CredentialPlatform.GENFEED),
         },
@@ -136,12 +145,28 @@ describe('PublisherFactoryService', () => {
           useValue: mockPublisher(CredentialPlatform.GHOST),
         },
         {
+          provide: GoogleBusinessPublisherService,
+          useValue: mockPublisher(CredentialPlatform.GOOGLE_BUSINESS),
+        },
+        {
           provide: ShopifyPublisherService,
           useValue: mockPublisher(CredentialPlatform.SHOPIFY),
         },
         {
           provide: BeehiivPublisherService,
           useValue: mockPublisher(CredentialPlatform.BEEHIIV),
+        },
+        {
+          provide: DiscordPublisherService,
+          useValue: mockPublisher(CredentialPlatform.DISCORD),
+        },
+        {
+          provide: SlackPublisherService,
+          useValue: mockPublisher(CredentialPlatform.SLACK),
+        },
+        {
+          provide: TelegramPublisherService,
+          useValue: mockPublisher(CredentialPlatform.TELEGRAM),
         },
       ],
     }).compile();
@@ -195,6 +220,15 @@ describe('PublisherFactoryService', () => {
       const publisher = service.getPublisher(CredentialPlatform.THREADS);
       expect(publisher).toBeDefined();
       expect(publisher?.platform).toBe(CredentialPlatform.THREADS);
+    });
+
+    it.each([
+      CredentialPlatform.DISCORD,
+      CredentialPlatform.SLACK,
+      CredentialPlatform.TELEGRAM,
+    ])('should return a publisher for the %s platform', (platform) => {
+      expect(service.getPublisher(platform)?.platform).toBe(platform);
+      expect(service.isSupported(platform)).toBe(true);
     });
 
     it('should return the mastodon publisher for MASTODON platform', () => {
@@ -415,10 +449,12 @@ describe('PublisherFactoryService', () => {
       CredentialPlatform.MASTODON,
       CredentialPlatform.GENFEED,
       CredentialPlatform.GHOST,
+      CredentialPlatform.GOOGLE_BUSINESS,
       CredentialPlatform.SHOPIFY,
       CredentialPlatform.BEEHIIV,
       CredentialPlatform.MEDIUM,
       CredentialPlatform.DEV_TO,
+      CredentialPlatform.BLUESKY,
     ] as const;
 
     it.each(SUPPORTED)(
@@ -440,8 +476,8 @@ describe('PublisherFactoryService', () => {
       expect(Array.isArray(service.getSupportedPlatforms())).toBe(true);
     });
 
-    it('should include all 20 registered platforms', () => {
-      expect(service.getSupportedPlatforms()).toHaveLength(20);
+    it('should include all 25 registered platforms', () => {
+      expect(service.getSupportedPlatforms()).toHaveLength(25);
     });
 
     it('should include TWITTER', () => {
@@ -453,6 +489,12 @@ describe('PublisherFactoryService', () => {
     it('should include MASTODON', () => {
       expect(service.getSupportedPlatforms()).toContain(
         CredentialPlatform.MASTODON,
+      );
+    });
+
+    it('should include BLUESKY', () => {
+      expect(service.getSupportedPlatforms()).toContain(
+        CredentialPlatform.BLUESKY,
       );
     });
 

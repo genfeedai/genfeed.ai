@@ -21,5 +21,8 @@ export const assetAttributes = createEntityAttributes([
   'residency',
   'uploadPolicy',
   'originalFileName',
+  'originalFormat',
+  'originalWidth',
+  'originalHeight',
   'displayName',
 ]);

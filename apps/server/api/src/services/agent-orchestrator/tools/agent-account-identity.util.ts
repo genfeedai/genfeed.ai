@@ -1,5 +1,10 @@
 import type { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import type { UsersService } from '@api/collections/users/services/users.service';
+import {
+  type AgentBrandCounter,
+  BRAND_ACCESS_MISSING_MESSAGE,
+  countOrganizationBrands,
+} from '@api/services/agent-orchestrator/tools/agent-brand-access.util';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import type { AgentBrandSerializedData } from '@genfeedai/serializers';
 
@@ -7,6 +12,8 @@ import type { AgentBrandSerializedData } from '@genfeedai/serializers';
 const ACCOUNT_BRAND_LIMIT = 25;
 
 export interface AgentAccountIdentityDeps {
+  /** Counts the organization's brands, whatever the caller may use. */
+  brandCounter?: AgentBrandCounter;
   listBrands: (
     ctx: ToolExecutionContext,
   ) => Promise<AgentBrandSerializedData[]>;
@@ -29,6 +36,12 @@ export async function readAccountIdentity(
     readOrganizationIdentity(deps.organizationsService, ctx),
     deps.listBrands(ctx).catch(() => undefined),
   ]);
+  const organizationBrandCount =
+    brands?.length === 0 && deps.brandCounter
+      ? await countOrganizationBrands(deps.brandCounter, ctx)
+      : undefined;
+  const hasMissingBrandAccess =
+    organizationBrandCount !== undefined && organizationBrandCount > 0;
   const brandName = brandId
     ? brands?.find((brand) => brand.id === brandId)?.name
     : undefined;
@@ -40,6 +53,12 @@ export async function readAccountIdentity(
           brands: brands
             .slice(0, ACCOUNT_BRAND_LIMIT)
             .map(({ id, name }) => ({ id, name })),
+        }
+      : {}),
+    ...(hasMissingBrandAccess
+      ? {
+          brandAccessMessage: BRAND_ACCESS_MISSING_MESSAGE,
+          organizationBrandCount,
         }
       : {}),
     ...(isOnboardingCompleted === undefined ? {} : { isOnboardingCompleted }),

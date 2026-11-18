@@ -315,28 +315,27 @@ export class AgentCampaignExecutionService {
       });
     }
 
-    let agentsRunning = 0;
-    for (const agentId of campaign.agents) {
-      const strategy = await this.agentStrategiesService.findOneById(
-        agentId.toString(),
-        organizationId,
-      );
-      if (strategy?.isActive) {
-        agentsRunning++;
-      }
-    }
+    const agentIds = campaign.agents.map((agentId) => agentId.toString());
+    const agentsRunning =
+      agentIds.length > 0
+        ? await this.prisma.agentStrategy.count({
+            where: scopedWhere(organizationId, {
+              id: { in: agentIds },
+              isActive: true,
+            }),
+          })
+        : 0;
 
-    const executions = await this.prisma.workflowExecution.findMany({
-      select: { nodeResults: { select: { status: true } } },
-      where: scopedWhere(organizationId, { campaignId }),
-    });
-
-    const contentProduced = executions.reduce(
-      (total, execution) =>
-        total +
-        execution.nodeResults.filter((node) => node.status === 'COMPLETED')
-          .length,
-      0,
+    // A campaign accumulates executions, each with many node results. Count
+    // the completed ones in SQL instead of loading every execution with them.
+    const contentProduced = await this.prisma.workflowExecutionNodeResult.count(
+      {
+        where: {
+          execution: { is: scopedWhere(organizationId, { campaignId }) },
+          organizationId,
+          status: 'COMPLETED',
+        },
+      },
     );
     const status =
       campaign.status === 'active' ||

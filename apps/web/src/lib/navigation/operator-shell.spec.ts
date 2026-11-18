@@ -35,6 +35,12 @@ describe('operator-shell helpers', () => {
     expect(normalizeProtectedPathname('/acme/brand-x/agent/thread-1')).toBe(
       '/agent/thread-1',
     );
+    expect(normalizeProtectedPathname('/acme/brand-x/settings/profile')).toBe(
+      '/settings/profile',
+    );
+    expect(normalizeProtectedPathname('/acme/~/settings/profile')).toBe(
+      '/settings/profile',
+    );
     expect(normalizeProtectedPathname(null)).toBe('');
     expect(normalizeProtectedPathname(undefined)).toBe('');
   });
@@ -160,9 +166,6 @@ describe('operator-shell helpers', () => {
       '/settings/brands',
     );
     expect(resolveOrganizationScopePath('/settings/skills')).toBe(
-      '/settings/brands',
-    );
-    expect(resolveOrganizationScopePath('/settings/accounts')).toBe(
       '/settings/brands',
     );
     expect(resolveOrganizationScopePath('/settings/brand-kit')).toBe(

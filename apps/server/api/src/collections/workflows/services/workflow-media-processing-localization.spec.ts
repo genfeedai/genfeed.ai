@@ -305,7 +305,7 @@ describe('workflow media composition integration', () => {
     const source = h.assets.get('clip-1');
     if (!source) throw new Error('Missing video fixture');
     source.s3Key = 'ingredients/videos/nested/raw %2F?part=#video.mp4';
-    await h.run(
+    const result = await h.run(
       'soundOverlay',
       new Map<string, unknown>([
         [
@@ -315,6 +315,7 @@ describe('workflow media composition integration', () => {
         ['soundUrl', { id: 'speech' }],
       ]),
     );
+    expect(result).toMatchObject({ id: 'result' });
     expect(h.files.getPresignedDownloadUrlForObjectKey).toHaveBeenCalledWith(
       source.s3Key,
     );
@@ -329,7 +330,7 @@ describe('workflow media composition integration', () => {
   });
   it('uses fresh organization-bound issuer grants when private delivery is enabled', async () => {
     const h = setup(true);
-    await h.run(
+    const result = await h.run(
       'soundOverlay',
       new Map<string, unknown>([
         [
@@ -342,6 +343,7 @@ describe('workflow media composition integration', () => {
         ],
       ]),
     );
+    expect(result).toMatchObject({ id: 'result' });
     expect(h.issuer.issueServerPublish).toHaveBeenCalledWith('org', ['clip-1']);
     expect(h.issuer.issueServerPublish).toHaveBeenCalledWith('org', ['speech']);
     expect(h.files.audioOverlay).toHaveBeenCalledWith(
@@ -360,13 +362,14 @@ describe('workflow media composition integration', () => {
       if (!source) throw new Error('Missing media fixture');
       source.s3Key = '';
     }
-    await h.run(
+    const result = await h.run(
       'soundOverlay',
       new Map<string, unknown>([
         ['videoUrl', { id: 'clip-1' }],
         ['soundUrl', { id: 'speech' }],
       ]),
     );
+    expect(result).toMatchObject({ id: 'result' });
     expect(h.files.getPresignedDownloadUrl).toHaveBeenCalledWith(
       'clip-1',
       'videos',

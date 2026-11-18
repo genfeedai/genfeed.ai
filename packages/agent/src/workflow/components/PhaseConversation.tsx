@@ -87,7 +87,7 @@ function PhaseSection({ phase }: { phase: WorkflowPhase }) {
     <div className="space-y-3">
       <div className="flex items-center gap-2">
         <div className="h-px flex-1 bg-foreground/10" />
-        <span className="text-2xs font-medium text-muted-foreground uppercase tracking-wider px-2">
+        <span className="text-2xs font-medium text-muted-foreground uppercase tracking-label px-2">
           {PHASE_LABELS[phase]}
         </span>
         <div className="h-px flex-1 bg-foreground/10" />
@@ -110,6 +110,7 @@ function PhaseConversationInner() {
   const messages = useAgentWorkflowStore((s) => s.messages);
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  // use-effect-audit: ignore drives a DOM element or browser API
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;

@@ -3,7 +3,6 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { EnvironmentService } from '@services/core/environment.service';
 import { Button } from '@ui/primitives/button';
 import FaqGrid from '@web-components/content/FaqGrid';
-import MarketingArtwork from '@web-components/content/MarketingArtwork';
 import {
   CtaSection,
   NeuralGrid,
@@ -46,21 +45,21 @@ const PROVIDER_KEYS = [
 const WHY_SELF_HOST = [
   {
     description:
-      'Run Genfeed on your own servers with Docker Compose: one container plus PostgreSQL. Your storage, your network, no vendor lock-in.',
+      'Run Genfeed on your own servers with Docker Compose: one container plus PostgreSQL. Your storage, your network, and an MCP endpoint your agent connects to.',
     icon: Server,
-    title: 'Own Your Infrastructure',
+    title: 'Own your infrastructure',
   },
   {
     description:
       'Your content, brands, and database live on your infrastructure. Generation requests go to the model providers whose keys you add.',
     icon: ShieldCheck,
-    title: 'Own Your Data',
+    title: 'Own your data',
   },
   {
     description:
       'Self-hosting has no Genfeed credits. Add your own provider keys and pay those providers directly, with no Genfeed credit meter.',
     icon: Cpu,
-    title: 'Bring Your Own Keys',
+    title: 'Bring your own keys',
   },
 ] as const;
 
@@ -99,9 +98,8 @@ export default function SelfHostedContent() {
   return (
     <MarketingEntrance hero={false} sections={false}>
       <PageLayout
-        heroMedia={<MarketingArtwork page="/self-hosted" kind="integration" />}
         title={<>Open source. Self-host on your own infra.</>}
-        description="Genfeed is open source under AGPL-3.0. Install it with one command or a checksummed release bundle, run it with Docker Compose, and add your own model provider keys. Or skip the ops and start free on managed cloud."
+        description="Genfeed is open source under AGPL-3.0. Install it with one command or a checksummed release bundle, run it with Docker Compose, then point your agent at your own MCP endpoint. Add your own model provider keys. Or skip the ops and start free on managed cloud."
       >
         <WebSection maxWidth="lg" py="md">
           <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
@@ -299,7 +297,7 @@ export default function SelfHostedContent() {
 
         <WebSection bg="bordered" maxWidth="md" className="gsap-section">
           <SectionHeader
-            title="Common Questions"
+            title="Common questions"
             description="Open source for control, managed cloud for convenience."
             className="[&_h2]:text-4xl sm:[&_h2]:text-5xl"
           />
@@ -309,7 +307,7 @@ export default function SelfHostedContent() {
 
         <CtaSection
           bg="subtle"
-          title="Ship it your way."
+          title="Ship it your way"
           description="Start free on managed cloud, or deploy the open-source core on your own infrastructure."
         >
           <Button size={ButtonSize.PUBLIC} asChild>

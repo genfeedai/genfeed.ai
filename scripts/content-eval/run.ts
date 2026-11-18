@@ -8,11 +8,13 @@
  *     --judge=anthropic/claude-sonnet-5 --max-credits=5 --out=reports/ladder.json
  *
  * Flags:
- *   --suite=judge|ladder|harness-ab|product-ab|media-ladder   required
+ *   --suite=judge|ladder|harness-ab|product-ab|skill-ab|media-ladder   required
  *   --fixture=<path[,path]>           required, JSONL; judge combines in flag order
  *   --max-credits=<n>                 required spend cap (1 credit = $0.01)
  *   --judge=<key[,key]>               required judge registry key(s)
  *   --models=<key,...>                ladder: baseline first; harness-ab: one key
+ *   --skill-arms=<label>=<dir>,...    skill-ab: skill directories, baseline first,
+ *                                     `none` = control with no skill (docs/content-evals.md)
  *   --dispatcher=stub|live            default stub; live boots LlmDispatcherModule
  *                                     and needs the API environment
  *   --seed=<n>                        default 1, recorded on every call

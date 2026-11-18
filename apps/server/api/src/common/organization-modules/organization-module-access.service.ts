@@ -7,8 +7,8 @@ import {
   isOrganizationModuleSwitchedOff,
   isReleaseItemVisible,
   ORGANIZATION_MODULES,
-  type OrganizationModuleAccess,
   type OrganizationModuleAccessInput,
+  type OrganizationModuleAdmission,
   type ReleaseItemId,
   resolveOrganizationModuleAccess,
 } from '@genfeedai/contracts/constants';
@@ -29,7 +29,11 @@ export class OrganizationModuleAccessService {
     private readonly platformSettings: PlatformSettingsService,
   ) {}
 
-  /** Optional background fills must not turn a saved-data read into new work. */
+  /**
+   * Optional background fills must not turn a saved-data read into new work.
+   * Release is not admission, so work in a module the web app hides still
+   * starts for API and MCP users.
+   */
   async canStartWork(
     organizationId: string,
     moduleId: OrganizationModuleAccessInput['moduleId'],
@@ -73,9 +77,10 @@ export class OrganizationModuleAccessService {
   /**
    * Admission for one module operation. A module whose platform kill switch
    * is off answers 404 for every operation, as its app route does; only a
-   * superadmin passes, so an operator can inspect it. Writes then also need
-   * the module's release and, on cloud, its subscription; superadmins get no
-   * bypass there.
+   * superadmin passes, so an operator can inspect it. Writes then also need,
+   * on cloud, the module's subscription; superadmins get no bypass there. A
+   * module's release never refuses work: it only hides the app in the web
+   * app, so API and MCP callers can use an unreleased module.
    */
   async assertAccess(
     organizationId: string,
@@ -96,7 +101,7 @@ export class OrganizationModuleAccessService {
     // Read/export callers still perform their normal authentication and tenant checks.
     if (operation !== 'write') return;
     if (!organizationId || !platformState) this.reject(moduleId, 'unavailable');
-    let access: OrganizationModuleAccess;
+    let access: OrganizationModuleAdmission;
     try {
       const organization = await this.prisma.organization.findFirst({
         where: { id: organizationId, isDeleted: false },
@@ -105,27 +110,17 @@ export class OrganizationModuleAccessService {
       if (!organization) this.reject(moduleId, 'unavailable');
       const settings = await this.prisma.organizationSetting.findUnique({
         where: { organizationId },
-        select: { isReleasePreviewEnabled: true, releasedItemIds: true },
+        select: { id: true },
       });
       const isBilling = hasOrganizationBilling();
-      // Unread releases must not pass for unreleased: retry instead.
+      // Unread platform flags must not pass for a live kill switch: retry.
       if (isBilling && !platformState.isResolved)
         this.reject(moduleId, 'unavailable');
-      const { flags } = platformState.settings;
       const input: OrganizationModuleAccessInput = {
         moduleId,
         operation,
         hasOrganizationBilling: isBilling,
         hasPaidSubscription: null,
-        isReleased: isReleaseItemVisible(
-          moduleId,
-          {
-            hasOrganizationBilling: isBilling,
-            isReleasePreviewEnabled: settings?.isReleasePreviewEnabled === true,
-            releasedItemIds: settings?.releasedItemIds,
-          },
-          flags,
-        ),
         isSettingsLoaded: Boolean(settings),
       };
       access = resolveOrganizationModuleAccess(input);
@@ -162,7 +157,7 @@ export class OrganizationModuleAccessService {
 
   private reject(
     moduleId: OrganizationModuleAccessInput['moduleId'],
-    reason: Exclude<OrganizationModuleAccess['reason'], null>,
+    reason: Exclude<OrganizationModuleAdmission['reason'], null>,
   ): never {
     const label = Object.hasOwn(ORGANIZATION_MODULES, moduleId)
       ? ORGANIZATION_MODULES[moduleId].label
@@ -172,22 +167,16 @@ export class OrganizationModuleAccessService {
         code:
           reason === 'subscription-required'
             ? 'ORGANIZATION_MODULE_SUBSCRIPTION_REQUIRED'
-            : reason === 'unreleased'
-              ? 'ORGANIZATION_MODULE_UNRELEASED'
-              : 'ORGANIZATION_MODULE_UNAVAILABLE',
+            : 'ORGANIZATION_MODULE_UNAVAILABLE',
         moduleId,
         title:
           reason === 'subscription-required'
             ? 'Active subscription required'
-            : reason === 'unreleased'
-              ? 'Module not released'
-              : 'Module access unavailable',
+            : 'Module access unavailable',
         detail:
           reason === 'subscription-required'
             ? `${label} requires an active paid subscription. Existing data remains readable and exportable.`
-            : reason === 'unreleased'
-              ? `${label} is not released yet. Existing data remains readable and exportable.`
-              : 'Module access could not be verified. Try again before starting new work.',
+            : 'Module access could not be verified. Try again before starting new work.',
       },
       reason === 'unavailable'
         ? HttpStatus.SERVICE_UNAVAILABLE

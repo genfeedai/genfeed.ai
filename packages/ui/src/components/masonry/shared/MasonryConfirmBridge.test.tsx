@@ -75,6 +75,10 @@ describe('MasonryConfirmBridge', () => {
 
     expect(screen.getByRole('dialog', { name: 'dialogLabel' })).toBeVisible();
     expect(screen.getByTestId('upscale-controls')).toBeInTheDocument();
+    expect(screen.queryByTestId('extend-controls')).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'confirmAction:100' }),
+    ).toBeEnabled();
 
     fireEvent.click(screen.getByRole('button', { name: 'confirmAction:100' }));
 
@@ -127,6 +131,7 @@ describe('MasonryConfirmBridge', () => {
     );
 
     expect(screen.getByTestId('extend-controls')).toBeInTheDocument();
+    expect(screen.queryByTestId('upscale-controls')).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'confirmAction:40' }));
 

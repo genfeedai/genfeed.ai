@@ -17,6 +17,7 @@ interface CredentialRow {
 const now = new Date('2026-11-06T12:00:00.000Z');
 const inMinutes = (minutes: number) =>
   new Date(now.getTime() + minutes * 60 * 1000);
+const inDays = (days: number) => inMinutes(days * 24 * 60);
 
 describe('CronCredentialsService.refreshExpiringTokens', () => {
   let credentials: CredentialRow[];
@@ -73,6 +74,7 @@ describe('CronCredentialsService.refreshExpiringTokens', () => {
               accessTokenExpiry: { lt: Date };
               isConnected: boolean;
               isDeleted: boolean;
+              platform?: string;
             };
           }) => ({
             docs: credentials.filter(
@@ -80,16 +82,20 @@ describe('CronCredentialsService.refreshExpiringTokens', () => {
                 row.accessTokenExpiry !== null &&
                 row.accessTokenExpiry < where.accessTokenExpiry.lt &&
                 row.isConnected === where.isConnected &&
-                row.isDeleted === where.isDeleted,
+                row.isDeleted === where.isDeleted &&
+                (where.platform === undefined ||
+                  row.platform.toLowerCase() === where.platform),
             ),
           }),
         } as unknown as ServerCredentialStore,
         refresher('facebook'),
         refresher('google-ads'),
+        refresher('google-business'),
         refresher('instagram'),
         refresher('linkedin'),
         refresher('pinterest'),
         refresher('reddit'),
+        refresher('threads'),
         refresher('tiktok'),
         refresher('twitter'),
         refresher('youtube'),
@@ -110,6 +116,16 @@ describe('CronCredentialsService.refreshExpiringTokens', () => {
       { args: ['org-1', 'brand-1', 'cred-1'], refresher: 'twitter' },
     ]);
     expect(summaries).toEqual([{ failures: 0, successes: 1, total: 1 }]);
+  });
+
+  it('refreshes a Google Business location through its own refresher', async () => {
+    credentials = [credential('cred-gb', { platform: 'GOOGLE_BUSINESS' })];
+
+    await service.refreshExpiringTokens();
+
+    expect(refreshed).toEqual([
+      { args: ['org-1', 'brand-1', 'cred-gb'], refresher: 'google-business' },
+    ]);
   });
 
   it('refreshes each X account of a multi-account brand by its credential id', async () => {
@@ -162,5 +178,46 @@ describe('CronCredentialsService.refreshExpiringTokens', () => {
       { args: ['org-1', 'brand-1', 'cred-yt'], refresher: 'youtube' },
     ]);
     expect(summaries).toEqual([{ failures: 1, successes: 1, total: 2 }]);
+  });
+
+  it('refreshes a Threads token days before it expires, so a failed run can be retried', async () => {
+    credentials = [
+      credential('cred-threads', {
+        accessTokenExpiry: inDays(5),
+        platform: 'THREADS',
+      }),
+    ];
+
+    await service.refreshExpiringTokens();
+
+    expect(refreshed).toEqual([
+      { args: ['org-1', 'brand-1', 'cred-threads'], refresher: 'threads' },
+    ]);
+  });
+
+  it.each([
+    ['a Threads token with weeks left', { platform: 'THREADS' }, 30],
+    ['an X token with days left', { platform: 'TWITTER' }, 5],
+  ])('leaves %s alone', async (_label, overrides, days) => {
+    credentials = [
+      credential('cred-1', { ...overrides, accessTokenExpiry: inDays(days) }),
+    ];
+
+    await service.refreshExpiringTokens();
+
+    expect(refreshed).toEqual([]);
+  });
+
+  it('refreshes every expiring credential, soonest to expire first, however many there are', async () => {
+    credentials = Array.from({ length: 130 }, (_, index) =>
+      credential(`cred-${index}`, {
+        accessTokenExpiry: inMinutes(59 - (index % 50)),
+      }),
+    );
+
+    await service.refreshExpiringTokens();
+
+    expect(refreshed).toHaveLength(130);
+    expect(summaries).toEqual([{ failures: 0, successes: 130, total: 130 }]);
   });
 });

@@ -4,12 +4,15 @@ import { IntegrationsModule } from '@api/endpoints/integrations/integrations.mod
 import { OnboardingModule } from '@api/endpoints/onboarding/onboarding.module';
 import { PublicModule } from '@api/endpoints/public/public.module';
 import { ManagedInferenceModule } from '@api/endpoints/v1/managed-inference/managed-inference.module';
+import { Models3dModule } from '@api/endpoints/v1/models3d/models3d.module';
 import { WebhooksModule } from '@api/endpoints/webhooks/webhooks.module';
 import { ArgilModule } from '@api/services/integrations/argil/argil.module';
 import { BeehiivModule } from '@api/services/integrations/beehiiv/beehiiv.module';
+import { BlueskyModule } from '@api/services/integrations/bluesky/bluesky.module';
 import { DevtoModule } from '@api/services/integrations/devto/devto.module';
 import { DiscordModule } from '@api/services/integrations/discord/discord.module';
 import { GhostModule } from '@api/services/integrations/ghost/ghost.module';
+import { GoogleBusinessModule } from '@api/services/integrations/google-business/google-business.module';
 import { GoogleSearchConsoleModule } from '@api/services/integrations/google-search-console/google-search-console.module';
 import { HedraModule } from '@api/services/integrations/hedra/hedra.module';
 import { HeyGenModule } from '@api/services/integrations/heygen/heygen.module';
@@ -22,6 +25,7 @@ import { PinterestModule } from '@api/services/integrations/pinterest/pinterest.
 import { RedditModule } from '@api/services/integrations/reddit/reddit.module';
 import { RestreamModule } from '@api/services/integrations/restream/restream.module';
 import { ShopifyModule } from '@api/services/integrations/shopify/shopify.module';
+import { SlackModule } from '@api/services/integrations/slack/slack.module';
 import { SnapchatModule } from '@api/services/integrations/snapchat/snapchat.module';
 import { SolanaModule } from '@api/services/integrations/solana/solana.module';
 import { TelegramModule } from '@api/services/integrations/telegram/telegram.module';
@@ -48,9 +52,11 @@ import { Module } from '@nestjs/common';
   exports: [MicroservicesModule],
   imports: [
     BeehiivModule,
+    BlueskyModule,
     DevtoModule,
     DiscordModule,
     GhostModule,
+    GoogleBusinessModule,
     GoogleSearchConsoleModule,
     HedraModule,
     ArgilModule,
@@ -64,6 +70,7 @@ import { Module } from '@nestjs/common';
     MediumModule,
     LifecycleEmailsModule,
     ManagedInferenceModule,
+    Models3dModule,
     MicroservicesModule,
     ModelRouterModule,
     VideoRecipesModule,
@@ -74,6 +81,7 @@ import { Module } from '@nestjs/common';
     RedditModule,
     RestreamModule,
     ShopifyModule,
+    SlackModule,
     SnapchatModule,
     SolanaModule,
     TelegramModule,

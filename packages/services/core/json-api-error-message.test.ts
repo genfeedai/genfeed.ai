@@ -3,9 +3,37 @@ import {
   getJsonApiErrorMember,
   getJsonApiErrorMessage,
   getJsonApiErrorMetaBoolean,
+  getJsonApiErrorMetaCode,
   getJsonApiErrorMetaNumber,
   getPersistedVideoIngredientIds,
 } from './json-api-error-message';
+
+describe('getJsonApiErrorMetaCode', () => {
+  const refusal = (reason: unknown) => ({
+    errors: [{ meta: { email: 'user@example.com', reason } }],
+  });
+
+  it('reads a machine-readable reason code', () => {
+    expect(
+      getJsonApiErrorMetaCode(refusal('MENTION_NEEDS_SHARE'), 'reason'),
+    ).toBe('MENTION_NEEDS_SHARE');
+  });
+
+  it.each([
+    ['free text', refusal('Marco cannot open this thread')],
+    ['a number', refusal(409)],
+    ['a missing key', { errors: [{ meta: {} }] }],
+    ['a non-document', new Error('boom')],
+  ])('returns undefined for %s', (_label, error) => {
+    expect(getJsonApiErrorMetaCode(error, 'reason')).toBeUndefined();
+  });
+
+  it('never reads a personal value stored under another key', () => {
+    expect(
+      getJsonApiErrorMetaCode(refusal('MENTION_NEEDS_SHARE'), 'email'),
+    ).toBeUndefined();
+  });
+});
 
 describe('getJsonApiErrorMessage', () => {
   it('uses actionable JSON:API detail from plain-object service failures', () => {

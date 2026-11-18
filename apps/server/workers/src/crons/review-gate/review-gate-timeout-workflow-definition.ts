@@ -1,5 +1,6 @@
 import { actionNode } from '@api/collections/workflows/services/workflow-definition-nodes';
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-runner.service';
+import { SystemWorkflowRetention } from '@api/collections/workflows/workflow-execution-retention.contract';
 
 export const REVIEW_GATE_TIMEOUT_ACTION_IDS = {
   DISCOVER: 'review-gate.timeout.discover',
@@ -48,6 +49,7 @@ export function buildReviewGateTimeoutSweepDefinition(): SystemWorkflowGraphDefi
       'Discovers expired review gates and resolves each in a child workflow.',
     label: 'Review Gate Timeout Sweep',
     resultNodeId: 'resolve',
+    retention: SystemWorkflowRetention.BACKGROUND,
     version: 1,
   };
 }
@@ -70,6 +72,7 @@ export function buildReviewGateTimeoutResolveDefinition(): SystemWorkflowGraphDe
       'Resolves one expired review gate using its configured timeout policy.',
     label: 'Resolve Review Gate Timeout',
     resultNodeId: 'resolve',
+    retention: SystemWorkflowRetention.BACKGROUND,
     version: 1,
   };
 }

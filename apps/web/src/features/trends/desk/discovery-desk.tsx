@@ -21,7 +21,7 @@ import { Button } from '@ui/primitives/button';
 import { LayoutGrid, TableProperties, TrendingUp } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useMemo, useReducer } from 'react';
+import { useCallback, useMemo, useReducer } from 'react';
 import SearchField from '@/components/content/search-field/SearchField';
 import { useOptionalDiscoveryRemix } from '@/features/research/remix/DiscoveryRemixProvider';
 import {
@@ -111,7 +111,7 @@ export default function DiscoveryDesk() {
   const router = useRouter();
   const translateDesk = useTranslations('common.trends.desk');
   const brandId = useBrandId();
-  const { brandSlug, href, orgHref } = useOrgUrl();
+  const { brandSlug, href, orgHref, activeHref } = useOrgUrl();
   const surface = useOptionalResearchWorkSurface();
   const [search, setSearch] = useResearchQueryState();
   const [view, setView] = useResearchSearchParamState<
@@ -150,31 +150,27 @@ export default function DiscoveryDesk() {
 
   // URL params are the source of truth for filters/sort/view; reconcile the
   // reducer state on every param change (back/forward nav, shared links,
-  // sidebar `?source=following`).
-  useEffect(() => {
-    if (state.filters.source !== sourceParam) {
-      dispatch({ source: sourceParam, type: 'SET_SOURCE' });
-    }
-  }, [sourceParam, state.filters.source]);
+  // the source filter).
+  if (state.filters.source !== sourceParam) {
+    dispatch({ source: sourceParam, type: 'SET_SOURCE' });
+  }
 
-  useEffect(() => {
-    if (state.sort !== sortParam) {
-      dispatch({ sort: sortParam, type: 'SET_SORT' });
-    }
-  }, [sortParam, state.sort]);
+  if (state.sort !== sortParam) {
+    dispatch({ sort: sortParam, type: 'SET_SORT' });
+  }
 
-  useEffect(() => {
-    const nextPlatforms = new Set(
-      platformParam ? platformParam.split(',').filter(Boolean) : [],
+  const nextPlatforms = new Set(
+    platformParam ? platformParam.split(',').filter(Boolean) : [],
+  );
+  const currentPlatforms = state.filters.platforms;
+  const isSamePlatforms =
+    currentPlatforms.size === nextPlatforms.size &&
+    Array.from(currentPlatforms).every((platform) =>
+      nextPlatforms.has(platform),
     );
-    const current = state.filters.platforms;
-    const isSame =
-      current.size === nextPlatforms.size &&
-      Array.from(current).every((platform) => nextPlatforms.has(platform));
-    if (!isSame) {
-      dispatch({ platforms: nextPlatforms, type: 'SET_PLATFORMS' });
-    }
-  }, [platformParam, state.filters.platforms]);
+  if (!isSamePlatforms) {
+    dispatch({ platforms: nextPlatforms, type: 'SET_PLATFORMS' });
+  }
 
   const { error, isLoading, isRefreshing, items, refresh, sources, summary } =
     useDiscoveryDeskItems();
@@ -326,7 +322,7 @@ export default function DiscoveryDesk() {
 
   const followingHref = href(APP_ROUTES.DISCOVERY.FOLLOWING);
   const publishingHref = brandSlug
-    ? href(APP_ROUTES.SETTINGS.CONNECTED_ACCOUNTS)
+    ? activeHref(APP_ROUTES.SETTINGS.PROFILE)
     : orgHref(APP_ROUTES.SETTINGS.BRANDS);
   const sourceHealthHref = href(APP_ROUTES.DISCOVERY.TRENDS);
 

@@ -3,6 +3,7 @@ import {
   ARTICLE_UNLOCK_MAX_PRICE,
   ARTICLE_UNLOCK_MIN_PRICE,
 } from '@genfeedai/contracts/constants';
+import { useResetOnChange } from '@hooks/utils/use-reset-on-change/use-reset-on-change';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import Field from '@ui/primitives/field';
@@ -11,7 +12,7 @@ import { Input } from '@ui/primitives/input';
 import { Switch } from '@ui/primitives/switch';
 import { Text } from '@ui/typography/text';
 import { useTranslations } from 'next-intl';
-import { type FormEvent, useEffect, useState } from 'react';
+import { type FormEvent, useState } from 'react';
 import type { ArticleAccessCardProps } from '@/props/edit/article-public-page.props';
 
 const UNLOCK_PRICE_INPUT_ID = 'article-unlock-price';
@@ -49,10 +50,10 @@ export default function ArticleAccessCard({
   const [isPaid, setIsPaid] = useState(savedIsPaid);
   const [priceText, setPriceText] = useState(savedPrice);
 
-  useEffect(() => {
+  useResetOnChange([savedIsPaid, savedPrice], () => {
     setIsPaid(savedIsPaid);
     setPriceText(savedPrice);
-  }, [savedIsPaid, savedPrice]);
+  });
 
   const price = parseUnlockPrice(priceText);
   const isUnchanged = isPaid === savedIsPaid && priceText.trim() === savedPrice;
@@ -72,7 +73,7 @@ export default function ArticleAccessCard({
   return (
     <Card gap={CardGap.LG}>
       <div className="space-y-1">
-        <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground/60">
+        <h3 className="text-sm font-semibold uppercase tracking-label text-foreground/60">
           {translate('title')}
         </h3>
         <Text as="p" size="sm" color="muted">

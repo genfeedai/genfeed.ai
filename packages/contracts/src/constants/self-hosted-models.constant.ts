@@ -312,7 +312,7 @@ export const SELF_HOSTED_MODELS = [
    * Legacy MiniMax I2V. Replicate bills per clip: $0.19 at 768p/6s (the
    * seeded default), $0.32 at 768p/10s, $0.33 at 1080p/6s. The reviewed
    * sheet prices the selected duration/resolution; this USD is the 6s 768p
-   * band. H3 is the successor.
+   * band.
    */
   {
     category: ModelCategory.VIDEO,
@@ -321,7 +321,7 @@ export const SELF_HOSTED_MODELS = [
     qualityTier: QualityTier.STANDARD,
     speedTier: SpeedTier.FAST,
     description:
-      'MiniMax Hailuo 2.3 Fast — image-to-video from a required first frame. Legacy; MiniMax H3 is the successor.',
+      'MiniMax Hailuo 2.3 Fast — image-to-video from a required first frame. Legacy.',
     isDefault: false,
     isHighlighted: false,
     key: MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3_FAST,
@@ -521,7 +521,6 @@ export const SELF_HOSTED_MODELS = [
     provider: ModelProvider.REPLICATE,
     providerConfig: { name: 'gpt-image-1.5', owner: 'openai' },
     providerCostUsd: 0.053,
-    succeededBy: MODEL_KEYS.REPLICATE_OPENAI_GPT_IMAGE_2_5_FLARE,
   },
   /**
    * GPT Image 2 — still in the main picker. Seed at `high`, its top quality band.
@@ -656,6 +655,57 @@ export const SELF_HOSTED_MODELS = [
     providerCostUsd: 0.05,
   },
   /**
+   * TRELLIS image-to-3D on Replicate. Builds a textured GLB from a photo plus
+   * the eight cropped views of its angle sheet. Flat $0.081 per prediction
+   * (replicate.com/firtoz/trellis, read 2026-11-09), 27 credits at the
+   * platform margin. The angle sheet itself is billed as a Nano Banana Pro
+   * render, so a full photo-to-GLB run is 50 + 27 = 77 credits. Reached only
+   * through the 3D models API and MCP, never the generation prompt bar.
+   */
+  {
+    category: ModelCategory.MODEL_3D,
+    cost: 27,
+    costTier: CostTier.MEDIUM,
+    qualityTier: QualityTier.HIGH,
+    speedTier: SpeedTier.SLOW,
+    description:
+      'TRELLIS — turns a photo and its multi-angle sheet into a textured GLB. 27 credits per build.',
+    isDefault: false,
+    isHighlighted: false,
+    key: MODEL_KEYS.REPLICATE_FIRTOZ_TRELLIS,
+    label: 'TRELLIS 3D',
+    lifecycle: ModelLifecycle.AVAILABLE,
+    pricingType: PricingType.FLAT,
+    provider: ModelProvider.REPLICATE,
+    providerConfig: { name: 'trellis', owner: 'firtoz' },
+    providerCostUsd: 0.081,
+  },
+  /**
+   * Rodin Gen-2 image-to-3D on Replicate, the high quality tier of the 3D
+   * models API. $0.40 per output (replicate.com/hyper3d/rodin, read
+   * 2026-11-10), 134 credits at the platform margin, so a full high-quality
+   * photo-to-GLB run is 50 + 134 = 184 credits. Reached only through the 3D
+   * models API and MCP (`quality: high`), never the generation prompt bar.
+   */
+  {
+    category: ModelCategory.MODEL_3D,
+    cost: 134,
+    costTier: CostTier.HIGH,
+    qualityTier: QualityTier.ULTRA,
+    speedTier: SpeedTier.SLOW,
+    description:
+      'Rodin Gen-2 — the high quality tier for photo-to-3D builds, textured GLB with PBR materials. 134 credits per build.',
+    isDefault: false,
+    isHighlighted: false,
+    key: MODEL_KEYS.REPLICATE_HYPER3D_RODIN,
+    label: 'Rodin Gen-2 3D',
+    lifecycle: ModelLifecycle.AVAILABLE,
+    pricingType: PricingType.FLAT,
+    provider: ModelProvider.REPLICATE,
+    providerConfig: { name: 'rodin', owner: 'hyper3d' },
+    providerCostUsd: 0.4,
+  },
+  /**
    * HeyGen photo animation: `POST /v3/videos` with `type: image`, which
    * Avatar IV renders from an arbitrary image. HeyGen's API price table has no
    * separate image row, so it bills at the Avatar IV photo-avatar rate of
@@ -734,6 +784,53 @@ export const SELF_HOSTED_MODELS = [
     provider: ModelProvider.HEYGEN,
     providerConfig: { name: 'avatar-v', owner: 'heygen' },
     providerCostUsd: 0.12,
+  },
+  /**
+   * HeyGen Avatar 6 (`engine: { type: 'heygen-avatar-6' }`) at $0.10 per output
+   * second at 1080p (HeyGen API pricing, 2026-11-17). Any look whose
+   * `supported_api_engines` list it; the price does not vary by look type.
+   */
+  {
+    category: ModelCategory.AVATAR,
+    cost: 170,
+    costPerUnit: 34,
+    costTier: CostTier.MEDIUM,
+    qualityTier: QualityTier.ULTRA,
+    speedTier: SpeedTier.MEDIUM,
+    description:
+      'HeyGen Avatar 6 — HeyGen’s newest avatar engine for trained looks, rendered at 1080p. 170 credits for a 5 s clip.',
+    isDefault: false,
+    isHighlighted: true,
+    key: MODEL_KEYS.HEYGEN_AVATAR_6,
+    label: 'HeyGen Avatar 6',
+    lifecycle: ModelLifecycle.RECOMMENDED,
+    pricingType: PricingType.PER_SECOND,
+    provider: ModelProvider.HEYGEN,
+    providerConfig: { name: 'heygen-avatar-6', owner: 'heygen' },
+    providerCostUsd: 0.1,
+  },
+  /**
+   * HeyGen Avatar 6 Turbo (`engine: { type: 'heygen-avatar-6-turbo' }`) at
+   * $0.05 per output second at 1080p (HeyGen API pricing, 2026-11-17).
+   */
+  {
+    category: ModelCategory.AVATAR,
+    cost: 85,
+    costPerUnit: 17,
+    costTier: CostTier.LOW,
+    qualityTier: QualityTier.HIGH,
+    speedTier: SpeedTier.MEDIUM,
+    description:
+      'HeyGen Avatar 6 Turbo — the lower-cost Avatar 6 engine for trained looks, rendered at 1080p. 85 credits for a 5 s clip.',
+    isDefault: false,
+    isHighlighted: false,
+    key: MODEL_KEYS.HEYGEN_AVATAR_6_TURBO,
+    label: 'HeyGen Avatar 6 Turbo',
+    lifecycle: ModelLifecycle.RECOMMENDED,
+    pricingType: PricingType.PER_SECOND,
+    provider: ModelProvider.HEYGEN,
+    providerConfig: { name: 'heygen-avatar-6-turbo', owner: 'heygen' },
+    providerCostUsd: 0.05,
   },
   /**
    * HeyGen Voice (`heygen-voice-1`) on the synchronous
@@ -844,7 +941,7 @@ export const SELF_HOSTED_MODELS = [
     qualityTier: QualityTier.BASIC,
     speedTier: SpeedTier.FAST,
     description:
-      'Meta MusicGen — legacy, non-commercial weights (CC-BY-NC 4.0). Replaced by Lyria 3 Pro.',
+      'Meta MusicGen — legacy, non-commercial weights (CC-BY-NC 4.0).',
     endpoint:
       'meta/musicgen:671ac645ce5e552cc63a54a2bbff63fcf798043055d2dac5fc9e36a837eedcfb',
     isActive: false,
@@ -856,7 +953,6 @@ export const SELF_HOSTED_MODELS = [
     provider: ModelProvider.REPLICATE,
     providerConfig: { name: 'musicgen', owner: 'meta' },
     providerCostUsd: 0.05,
-    succeededBy: MODEL_KEYS.FAL_LYRIA3_PRO,
   },
   /**
    * fal.ai — https://fal.ai/models/fal-ai/elevenlabs/music ($0.60 per output

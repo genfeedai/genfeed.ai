@@ -1,3 +1,5 @@
+import { ONBOARDING_DRAFT_PLATFORMS } from '@genfeedai/contracts/constants';
+import type { OnboardingDraftPlatform } from '@genfeedai/contracts/interfaces';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
@@ -69,4 +71,13 @@ export class OnboardingDraftsDto {
       'Request key of the X draft being replaced, so the new draft is linked to it',
   })
   previousRequestKey?: string;
+}
+
+export class OnboardingDraftRewriteDto {
+  @IsIn([...ONBOARDING_DRAFT_PLATFORMS])
+  @ApiProperty({
+    description: 'The channel whose post is written again',
+    enum: [...ONBOARDING_DRAFT_PLATFORMS],
+  })
+  platform!: OnboardingDraftPlatform;
 }

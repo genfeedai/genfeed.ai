@@ -3,7 +3,6 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import ButtonTracked from '@web-components/buttons/tracked/ButtonTracked';
-import MarketingArtwork from '@web-components/content/MarketingArtwork';
 import MarketingEntrance from '@web-components/MarketingEntrance';
 import EditorialPoster from '@web-components/marketing/EditorialPoster';
 import PageLayout from '@web-components/PageLayout';
@@ -131,9 +130,6 @@ export default function ExpertsContent() {
   return (
     <MarketingEntrance>
       <PageLayout
-        heroMedia={
-          <MarketingArtwork page="/experts" isCompact kind="creator" />
-        }
         compact
         description="Built for consultants, coaches, founders, and practitioners who know their business cold but never wanted to become an AI-tool operator. You bring the truth and the taste; Genfeed brings the system and the loop."
         heroActions={
@@ -160,11 +156,14 @@ export default function ExpertsContent() {
           </>
         }
         heroVisual={HERO_VISUAL}
-        title="You supply the truth. Genfeed supplies the system."
+        title="You supply the truth, Genfeed supplies the system"
       >
         {/* Six-step path */}
         <section className="gsap-section max-w-4xl mx-auto pb-16 px-6">
-          <Heading as="h2" className="text-2xl font-bold mb-2 text-foreground">
+          <Heading
+            as="h2"
+            className="text-2xl font-semibold mb-2 text-foreground"
+          >
             The six-step path
           </Heading>
           <Text as="p" className="text-foreground/70 mb-8">
@@ -177,7 +176,7 @@ export default function ExpertsContent() {
                 key={item.step}
                 className={`flex items-start gap-5 p-6 ${index > 0 ? 'border-t border-foreground/5' : ''}`}
               >
-                <div className="shrink-0 size-8 flex items-center justify-center bg-foreground/10 text-sm font-bold text-foreground/50">
+                <div className="shrink-0 size-8 flex items-center justify-center bg-foreground/10 text-sm font-semibold text-foreground/50">
                   {item.step}
                 </div>
                 <div>
@@ -198,7 +197,10 @@ export default function ExpertsContent() {
 
         {/* Positioning scorecard breakdown */}
         <section className="gsap-section max-w-6xl mx-auto pb-16 px-6">
-          <Heading as="h2" className="text-2xl font-bold mb-2 text-foreground">
+          <Heading
+            as="h2"
+            className="text-2xl font-semibold mb-2 text-foreground"
+          >
             The positioning scorecard
           </Heading>
           <Text as="p" className="text-foreground/70 mb-8">
@@ -224,7 +226,10 @@ export default function ExpertsContent() {
 
         {/* Before / after — illustrative example, not a customer testimonial */}
         <section className="gsap-section max-w-6xl mx-auto pb-16 px-6">
-          <Heading as="h2" className="text-2xl font-bold mb-2 text-foreground">
+          <Heading
+            as="h2"
+            className="text-2xl font-semibold mb-2 text-foreground"
+          >
             Grounded in your corpus, not a prompt
           </Heading>
           <Text as="p" className="text-foreground/70 mb-2">
@@ -236,7 +241,7 @@ export default function ExpertsContent() {
             <div className="bg-background p-8">
               <div className="mb-4 flex items-center gap-2">
                 <X className="size-4 text-destructive" />
-                <Text className="text-sm font-bold text-foreground">
+                <Text className="text-sm font-semibold text-foreground">
                   Generic AI post
                 </Text>
               </div>
@@ -248,7 +253,7 @@ export default function ExpertsContent() {
             <div className="bg-background p-8">
               <div className="mb-4 flex items-center gap-2">
                 <Check className="size-4 text-success" />
-                <Text className="text-sm font-bold text-foreground">
+                <Text className="text-sm font-semibold text-foreground">
                   Grounded in your corpus
                 </Text>
               </div>
@@ -279,7 +284,10 @@ export default function ExpertsContent() {
                 </div>
               </div>
               <div className="flex flex-col gap-2">
-                <Heading as="h2" className="text-xl font-bold text-foreground">
+                <Heading
+                  as="h2"
+                  className="text-xl font-semibold text-foreground"
+                >
                   Nothing publishes without your approval
                 </Heading>
                 <Text as="p" className="text-sm text-foreground/70">
@@ -300,7 +308,7 @@ export default function ExpertsContent() {
           <div className="gen-card-spotlight p-6 sm:p-12 text-center">
             <Heading
               as="h2"
-              className="text-2xl font-bold mb-2 text-foreground"
+              className="text-2xl font-semibold mb-2 text-foreground"
             >
               Build your Brand OS
             </Heading>

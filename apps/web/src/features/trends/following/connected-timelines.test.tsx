@@ -51,7 +51,11 @@ vi.mock('@hooks/navigation/use-collection-scope/use-collection-scope', () => ({
     scope.isReady && Boolean(scope.organizationId && scope.brandId),
 }));
 vi.mock('@hooks/navigation/use-org-url', () => ({
-  useOrgUrl: () => ({ href: (path: string) => `/org/brand${path}` }),
+  useOrgUrl: () => ({
+    href: (path: string) => `/org/brand${path}`,
+    orgHref: (path: string) => `/org/~${path}`,
+    activeHref: (path: string) => `/org/brand${path}`,
+  }),
 }));
 vi.mock('@genfeedai/contexts/ui/sidebar-navigation-context', () => ({
   useSidebarNavigation: () => ({ hasCanonicalBreadcrumb: true }),
@@ -140,9 +144,7 @@ describe('connected Following feeds and native action confirmation', () => {
     expect(
       subbar.getByRole('button', { name: 'Refresh feeds' }),
     ).toBeInTheDocument();
-    expect(
-      subbar.getByRole('link', { name: 'Connected accounts' }),
-    ).toBeInTheDocument();
+    expect(subbar.getByRole('link', { name: 'Accounts' })).toBeInTheDocument();
   });
 
   it('requires a brand instead of querying with an empty brand on organization routes', () => {

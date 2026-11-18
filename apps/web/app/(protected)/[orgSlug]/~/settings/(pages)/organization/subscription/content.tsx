@@ -106,10 +106,23 @@ export default function SettingsSubscriptionPage() {
 
 function SettingsSubscriptionContent() {
   const translate = useTranslations('common');
-  const { isReady, settings } = useBrand();
-  const { subscription, isLoading, isSubscriptionActive, openBillingPortal } =
-    useSubscription();
+  const { isReady, organizationId, settings } = useBrand();
+  const {
+    creditsBreakdown,
+    error: creditsError,
+    subscription,
+    isLoading,
+    isSubscriptionActive,
+    openBillingPortal,
+  } = useSubscription();
   const { account: billingAccount } = useBillingAccount();
+  // The Credits page and the account menu read plan usage from the credits
+  // breakdown, so this organization's figure here does too. The billing
+  // account only knows all-time spend, which disagrees once a cycle resets, so
+  // a failed credits request shows no figure instead of that one.
+  const cycleUsed = creditsBreakdown?.cycleUsed;
+  const formatOwnUsage = (allTimeUsage: number) =>
+    creditsError ? '—' : formatCredits(cycleUsed ?? allTimeUsage);
 
   const isPlanLoading = !isReady || isLoading;
   // Provisioning creates an INCOMPLETE row before Stripe checkout. Free is
@@ -174,7 +187,7 @@ function SettingsSubscriptionContent() {
         ) : displayedStatus ? (
           <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
             <div className="flex items-center gap-3">
-              <Text as="p" size="xl" weight="bold">
+              <Text as="p" size="xl" weight="semibold">
                 {tierLabel}
               </Text>
               <Badge
@@ -270,7 +283,10 @@ function SettingsSubscriptionContent() {
                     {link.label}
                   </Text>
                   <Text as="p" size="sm" color="muted" className="tabular-nums">
-                    {formatCredits(link.usage)} used
+                    {link.organizationId === organizationId
+                      ? formatOwnUsage(link.usage)
+                      : formatCredits(link.usage)}{' '}
+                    used
                   </Text>
                 </div>
               ))}
@@ -299,7 +315,7 @@ function SettingsSubscriptionContent() {
             <div className="grid grid-cols-2 gap-4">
               <StatCell
                 label={translate('subscription.billingAccount.usageLabel')}
-                value={formatCredits(billingAccount.usage)}
+                value={formatOwnUsage(billingAccount.usage)}
               />
               {billingAccount.monthlyBudgetCredits !== null ? (
                 <StatCell

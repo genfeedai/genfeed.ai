@@ -17,7 +17,7 @@ export default function ActiveRunsPanel({
       {isHeadingVisible ? (
         <div className="flex items-center gap-2">
           <Badge status="running">{translate('running')}</Badge>
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+          <h2 className="text-sm font-semibold uppercase tracking-label text-muted-foreground">
             {translate('activeRuns')}
           </h2>
           <span className="text-xs text-muted-foreground">

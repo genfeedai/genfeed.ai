@@ -1,3 +1,6 @@
+// Must stay the first import: it sets zod's jitless flag before any module
+// that builds a schema runs. See the file for why.
+import '@/lib/security/zod-jitless';
 import * as Sentry from '@sentry/nextjs';
 import { initAnalytics } from '@/lib/analytics';
 import {
@@ -5,10 +8,14 @@ import {
   toNavigationType,
 } from '@/lib/navigation/navigation-events';
 import { dropUnhandledJsonApiObjectRejection } from '@/lib/sentry/drop-json-api-object-rejection';
+import { recordHydrationEntryContext } from '@/lib/sentry/hydration-entry-context';
+import { tagHydrationErrorDetail } from '@/lib/sentry/tag-hydration-error-detail';
 
 Sentry.init({
   beforeSend(event, hint) {
-    return dropUnhandledJsonApiObjectRejection(event, hint);
+    const kept = dropUnhandledJsonApiObjectRejection(event, hint);
+
+    return kept ? tagHydrationErrorDetail(kept) : kept;
   },
   dataCollection: {
     cookies: false,
@@ -37,6 +44,9 @@ Sentry.init({
     /Could not establish connection\. Receiving end does not exist/i,
     /Failed to register a ServiceWorker/i,
     /serwist\/sw\.js/i,
+    // Unhandled rejection thrown by an extension's inpage.js
+    // (postMessageToContentScript → FunctionCallError); no app frames.
+    /func sseError not found/i,
   ],
 
   replaysOnErrorSampleRate: 1.0,
@@ -48,6 +58,8 @@ Sentry.init({
   // Sentry is used for error reporting only; performance spans are disabled.
   tracesSampleRate: 0,
 });
+
+recordHydrationEntryContext();
 
 const REPLAY_IDLE_TIMEOUT_MS = 5000;
 const REPLAY_IDLE_FALLBACK_MS = 2000;

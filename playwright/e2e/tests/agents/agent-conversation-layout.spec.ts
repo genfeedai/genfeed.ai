@@ -212,6 +212,132 @@ async function openMaster(page: Page): Promise<void> {
 test.describe('Agent master conversation layout', () => {
   test.setTimeout(120_000);
 
+  test('restores a pending quote in full History and keeps its answer final after reload', async ({
+    authenticatedPage: page,
+  }) => {
+    await page.setViewportSize({ height: 900, width: 1440 });
+    await mockAgentSocketHandshake(page);
+    await mockMaster(page);
+    let isResolved = false;
+    const answers: unknown[] = [];
+    const request = {
+      allowFreeText: false,
+      createdAt: now,
+      metadata: { kind: 'consequential', quoteId: 'quote-history' },
+      options: [
+        {
+          id: 'approve',
+          label: 'Approve image',
+          description: 'One square image for 12 credits',
+        },
+        { id: 'cancel', label: 'Cancel image' },
+      ],
+      prompt: 'Generate one square image with the quoted model for 12 credits?',
+      requestId: 'quote-history',
+      runId: 'run-history',
+      title: 'Confirm image quote',
+    };
+    await page.route(`**/agent/threads/${CHILD_ID}/**`, async (route) => {
+      const path = new URL(route.request().url()).pathname;
+      if (path.endsWith('/snapshot')) {
+        await fulfillJson(route, {
+          activeRun: {
+            runId: 'run-history',
+            status: isResolved ? 'completed' : 'awaiting_input',
+          },
+          lastAssistantMessage: null,
+          lastSequence: isResolved ? 3 : 1,
+          latestProposedPlan: null,
+          latestUiBlocks: null,
+          memorySummaryRefs: [],
+          pendingApprovals: [],
+          pendingInputRequests: isResolved ? [] : [request],
+          profileSnapshot: null,
+          sessionBinding: null,
+          source: 'agent',
+          threadId: CHILD_ID,
+          threadStatus: 'active',
+          // Historical input rows remain after the decision is resolved.
+          timeline: [
+            {
+              createdAt: now,
+              id: 'ask-history',
+              sequence: 1,
+              kind: 'input',
+              label: request.title,
+              requestId: request.requestId,
+              runId: request.runId,
+              status: 'pending',
+            },
+          ],
+          title: 'Price a week of posts',
+        });
+      } else if (path.endsWith('/messages')) {
+        await fulfillJson(route, {
+          data: [
+            {
+              attributes: {
+                content: 'Choose an option to continue.',
+                createdAt: now,
+                metadata: {},
+                role: 'assistant',
+              },
+              id: 'history-assistant',
+              type: 'thread-message',
+            },
+          ],
+          meta: { page: 1, pageSize: 1, totalCount: 1 },
+        });
+      } else if (path.endsWith('/input-requests/quote-history/responses')) {
+        answers.push(route.request().postDataJSON());
+        isResolved = true;
+        await fulfillJson(route, {
+          requestId: request.requestId,
+          resolvedAt: now,
+          status: 'resolved',
+          threadId: CHILD_ID,
+        });
+      } else {
+        await route.fallback();
+      }
+    });
+
+    await page.goto(`${ORG}/agent/${CHILD_ID}?view=full`);
+    await assertNoErrorBoundaryFallback(page);
+    await expect(
+      page.getByRole('heading', { name: request.title }),
+    ).toBeVisible();
+    await page.reload();
+    await expect(
+      page.getByRole('heading', { name: request.title }),
+    ).toBeVisible();
+    await expect(page.getByText(request.prompt, { exact: true })).toBeVisible();
+    await expect(
+      page.getByRole('button', { name: /Approve image/ }),
+    ).toHaveCount(1);
+    await expect(
+      page.getByRole('button', { name: /Cancel image/ }),
+    ).toBeVisible();
+    await page.getByRole('button', { name: /Approve image/ }).click();
+    await expect.poll(() => answers.length).toBe(1);
+    expect(answers[0]).toMatchObject({
+      answer: 'Approve image',
+      optionIds: ['approve'],
+      expectedContextVersion: 3,
+    });
+    await page.reload();
+    await expect(
+      page.getByText('Choose an option to continue.', { exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole('heading', { name: request.title }),
+    ).toHaveCount(0);
+    await expect(
+      page.getByRole('button', { name: /Approve image|Cancel image/ }),
+    ).toHaveCount(0);
+    expect(answers).toHaveLength(1);
+  });
+
   test('keeps the prompt bar anchored while the transcript scrolls', async ({
     authenticatedPage: page,
   }) => {

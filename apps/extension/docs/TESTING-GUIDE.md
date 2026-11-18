@@ -84,7 +84,7 @@ The change must not add TypeScript diagnostics compared with `master`; CI is the
 
 **Tests:**
 
-- [ ] GenFeed dropdown button appears near the reply button
+- [ ] Genfeed dropdown button appears near the reply button
 - [ ] Clicking the dropdown shows "Rewrite Post" and "Generate Image" options
 - [ ] AI reply button (sparkles icon) appears
 - [ ] Clicking AI reply generates a response
@@ -113,7 +113,7 @@ The change must not add TypeScript diagnostics compared with `master`; CI is the
 
 **Tests:**
 
-- [ ] GenFeed buttons appear in comment reply section
+- [ ] Genfeed buttons appear in comment reply section
 - [ ] AI reply generates contextual comment responses
 - [ ] Generated reply is inserted into comment textarea
 - [ ] Save button saves the video URL
@@ -138,7 +138,7 @@ The change must not add TypeScript diagnostics compared with `master`; CI is the
 
 **Tests:**
 
-- [ ] GenFeed buttons appear in comment section
+- [ ] Genfeed buttons appear in comment section
 - [ ] AI reply generates Instagram-style responses
 - [ ] Generated reply is inserted into comment box
 - [ ] Save button saves the Instagram post
@@ -163,7 +163,7 @@ The change must not add TypeScript diagnostics compared with `master`; CI is the
 
 **Tests:**
 
-- [ ] GenFeed buttons appear in reply section
+- [ ] Genfeed buttons appear in reply section
 - [ ] Works on both old and new Reddit
 - [ ] AI reply generates Reddit-appropriate responses
 - [ ] Generated reply is inserted into markdown editor
@@ -189,7 +189,7 @@ The change must not add TypeScript diagnostics compared with `master`; CI is the
 
 **Tests:**
 
-- [ ] GenFeed buttons appear in comment section
+- [ ] Genfeed buttons appear in comment section
 - [ ] AI reply generates Facebook-style responses
 - [ ] Generated reply is inserted into comment box
 - [ ] Save button saves Facebook posts
@@ -214,7 +214,7 @@ The change must not add TypeScript diagnostics compared with `master`; CI is the
 
 **Tests:**
 
-- [ ] GenFeed buttons appear in comment section
+- [ ] Genfeed buttons appear in comment section
 - [ ] AI reply generates TikTok-appropriate responses
 - [ ] Generated reply is inserted into comment box
 - [ ] Save button saves TikTok videos
@@ -239,7 +239,7 @@ The change must not add TypeScript diagnostics compared with `master`; CI is the
 
 **Tests:**
 
-- [ ] GenFeed buttons appear in comment section
+- [ ] Genfeed buttons appear in comment section
 - [ ] AI reply generates professional, LinkedIn-appropriate responses
 - [ ] Generated reply is inserted into comment box
 - [ ] Save button saves LinkedIn posts

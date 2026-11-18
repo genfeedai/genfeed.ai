@@ -13,6 +13,7 @@ import { OnboardingDraftRunsService } from '@api/endpoints/onboarding/services/o
 import { OnboardingFirstDraftsService } from '@api/endpoints/onboarding/services/onboarding-first-drafts.service';
 import { OnboardingReadinessService } from '@api/endpoints/onboarding/services/onboarding-readiness.service';
 import { AgentGenerationGatewayModule } from '@api/services/agent-generation-gateway/agent-generation-gateway.module';
+import { ServerFunnelCaptureModule } from '@api/services/analytics/server-funnel-capture.module';
 import { SignupPrefillModule } from '@api/services/signup-prefill/signup-prefill.module';
 import { ConfigModule } from '@libs/config/config.module';
 import { Module } from '@nestjs/common';
@@ -30,6 +31,7 @@ import { Module } from '@nestjs/common';
     OrganizationsModule,
     PostGenerationModule,
     RolesModule,
+    ServerFunnelCaptureModule,
     SignupPrefillModule,
     UserSetupModule,
     UsersModule,

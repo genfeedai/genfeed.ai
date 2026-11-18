@@ -1,6 +1,5 @@
 import { CardGap, CardPadding } from '@genfeedai/contracts';
 import Card from '@ui/card/Card';
-import MarketingArtwork from '@web-components/content/MarketingArtwork';
 import PageLayout from '@web-components/PageLayout';
 import { Cpu, FileText, Scissors } from 'lucide-react';
 import Link from 'next/link';
@@ -8,9 +7,8 @@ import Link from 'next/link';
 export default function ToolsContent(): React.ReactElement {
   return (
     <PageLayout
-      heroMedia={<MarketingArtwork page="/tools" kind="creator" />}
       compact
-      description="Choose an AI model or turn a public YouTube video into useful content. Get a result before signup, then continue in the full Genfeed workspace."
+      description="Choose an AI model or turn a public YouTube video into useful content. Get a result before signup, then connect your agent to keep going in Genfeed."
       title="Free AI tools for models and content"
     >
       <section className="container mx-auto px-6 py-20">

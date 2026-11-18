@@ -2,6 +2,7 @@
 
 import { clearClientProtectedBootstrapCache } from '@contexts/providers/protected-bootstrap/client-protected-bootstrap';
 import { ButtonVariant } from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { ConnectionAccount } from '@genfeedai/props/ui/feedback/connection-success.props';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -17,7 +18,9 @@ import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import AnalyticsPublicRouteSync from '@/components/analytics/AnalyticsPublicRouteSync';
+import GoogleBusinessLocationSelector from '@/features/auth/components/modals/brands/google-business/GoogleBusinessLocationSelector';
 import InstagramAccountSelector from '@/features/auth/components/modals/brands/instagram/InstagramAccountSelector';
+import type { InstagramAccountSelectorProps } from '@/features/auth/props/instagram-account-selector.props';
 import type {
   OAuthPlatformFormProps,
   VerifyResult,
@@ -39,7 +42,19 @@ import {
 const OAUTH1_PLATFORMS = ['x-ads'];
 
 const REDIRECT_DELAY_MS = 3000;
-const DEFAULT_RETURN_PATH = '/settings/api-keys';
+const DEFAULT_RETURN_PATH = APP_ROUTES.CONNECTORS.API_KEYS;
+
+/** Each platform with an ambiguous connection lists its own candidates. */
+function AccountSelector({
+  platform,
+  ...props
+}: InstagramAccountSelectorProps & { platform: string }) {
+  return platform === 'google-business' ? (
+    <GoogleBusinessLocationSelector {...props} />
+  ) : (
+    <InstagramAccountSelector {...props} />
+  );
+}
 
 const INITIAL_STATE: VerifyResult = { status: 'loading' };
 
@@ -52,6 +67,9 @@ function OAuthPlatformFormContent({ platform }: OAuthPlatformFormProps) {
   const oauthVerifier = searchParams.get('oauth_verifier');
   const returnToParam = searchParams.get('return_to');
   const state = searchParams.get('state');
+  // Authorization servers that follow RFC 9207 (Bluesky) name themselves here,
+  // and the client checks the name before it exchanges the code.
+  const issuer = searchParams.get('iss');
   const { isLoaded, isSignedIn } = useAuthIdentity();
   const [result, setResult] = useState<VerifyResult>(INITIAL_STATE);
   const hasVerified = useRef(false);
@@ -147,6 +165,7 @@ function OAuthPlatformFormContent({ platform }: OAuthPlatformFormProps) {
               }
             : {
                 code,
+                ...(issuer ? { iss: issuer } : {}),
                 state,
               };
 
@@ -183,7 +202,7 @@ function OAuthPlatformFormContent({ platform }: OAuthPlatformFormProps) {
         setResult({
           canRestart: failure.canRestart,
           canRetry: failure.canRetry,
-          errorMessage: translate(failure.messageKey),
+          errorMessage: failure.detail ?? translate(failure.messageKey),
           errorTitle: translate(failure.titleKey),
           status: 'error',
         });
@@ -193,6 +212,7 @@ function OAuthPlatformFormContent({ platform }: OAuthPlatformFormProps) {
       code,
       completeSuccess,
       getServicesService,
+      issuer,
       oauthToken,
       oauthVerifier,
       platform,
@@ -277,7 +297,7 @@ function OAuthPlatformFormContent({ platform }: OAuthPlatformFormProps) {
     <div className="flex min-h-screen items-center justify-center">
       <div className="w-full max-w-md text-center">
         {isSignedIn && result.status === 'selecting' && (
-          <InstagramAccountSelector
+          <AccountSelector
             credentialId={result.credentialId}
             onBack={cancelAccountSelection}
             onConnected={completeSuccess}
@@ -287,6 +307,7 @@ function OAuthPlatformFormContent({ platform }: OAuthPlatformFormProps) {
                 errorMessage,
               )
             }
+            platform={platform}
           />
         )}
 

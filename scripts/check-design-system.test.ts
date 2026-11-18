@@ -135,7 +135,7 @@ describe('packages/ui design-system guards', () => {
 
   it('flags negative tracking tighter than -0.02em and nothing else', () => {
     const findings = findPackageUiGuardFindings(
-      '<><h1 className="tracking-[-0.05em]" /><h2 className="md:tracking-tighter" /><h3 className="tracking-[-0.02em] tracking-tight tracking-[-0.011em] tracking-[0.12em]" /></>',
+      '<><h1 className="tracking-[-0.05em]" /><h2 className="md:tracking-tighter" /><h3 className="tracking-[-0.02em] tracking-tight tracking-[-0.011em] tracking-label" /></>',
       'apps/marketing/example.tsx',
     );
 
@@ -146,6 +146,37 @@ describe('packages/ui design-system guards', () => {
     expect(findings.every((entry) => entry.kind === 'tight-tracking')).toBe(
       true,
     );
+  });
+
+  it('flags positive tracking other than tracking-label', () => {
+    const findings = findPackageUiGuardFindings(
+      '<><p className="tracking-wide md:tracking-widest tracking-[0.12em] tracking-wider" /><p className="tracking-label tracking-tight tracking-normal" /></>',
+      'apps/marketing/example.tsx',
+    );
+
+    expect(findings.map((entry) => entry.token)).toEqual([
+      'md:tracking-widest',
+      'tracking-[0.12em]',
+      'tracking-wide',
+      'tracking-wider',
+    ]);
+    expect(findings.every((entry) => entry.kind === 'off-token-tracking')).toBe(
+      true,
+    );
+  });
+
+  it('flags font weights heavier than semibold', () => {
+    const findings = findPackageUiGuardFindings(
+      '<><p className="font-bold md:font-extrabold font-black" /><p className="font-semibold font-medium font-normal" /></>',
+      'apps/marketing/example.tsx',
+    );
+
+    expect(findings.map((entry) => entry.token)).toEqual([
+      'font-black',
+      'font-bold',
+      'md:font-extrabold',
+    ]);
+    expect(findings.every((entry) => entry.kind === 'heavy-weight')).toBe(true);
   });
 
   it('flags colour opacity modifiers that are not on the ladder', () => {

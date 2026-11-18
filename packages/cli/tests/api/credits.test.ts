@@ -48,6 +48,7 @@ describe('api/credits', () => {
 
     expect(mockGet).toHaveBeenCalledWith('/credits/last-purchase-baseline');
     expect(result.usedPercent).toBe(20);
+    expect(result.usedSinceLastPurchase).toBe(100);
     expect(result.lastPurchaseAt).toBeNull();
   });
 
@@ -71,7 +72,9 @@ describe('api/credits', () => {
     const controller = new AbortController();
 
     const { createCreditsCheckout } = await import('@/api/credits');
-    await createCreditsCheckout(5_000, controller.signal);
+    const result = await createCreditsCheckout(5_000, controller.signal);
+
+    expect(result.url).toBe('https://checkout.stripe.test/cs_1');
 
     expect(mockPost).toHaveBeenCalledWith(
       '/services/stripe/credits/checkout',
@@ -83,22 +86,26 @@ describe('api/credits', () => {
   it('fetches credit transaction history with a bounded limit', async () => {
     const response = { data: [] };
     mockGet.mockResolvedValue(response);
-    mockFlattenCollection.mockReturnValue([]);
+    mockFlattenCollection.mockReturnValue([{ id: 'tx-25', type: 'usage' }]);
 
     const { listCreditTransactions } = await import('@/api/credits');
     const result = await listCreditTransactions(25);
 
     expect(mockGet).toHaveBeenCalledWith('/credits/transactions?limit=25');
     expect(mockFlattenCollection).toHaveBeenCalledWith(response);
-    expect(result).toEqual([]);
+    expect(result).toEqual([{ id: 'tx-25', type: 'usage' }]);
   });
 
   it('falls back to the default transaction limit for non-finite callers', async () => {
     mockGet.mockResolvedValue({ data: [] });
     mockFlattenCollection.mockReturnValue([]);
 
+    mockFlattenCollection.mockReturnValue([{ id: 'tx-1' }]);
+
     const { listCreditTransactions } = await import('@/api/credits');
-    await listCreditTransactions(Number.NaN);
+    const result = await listCreditTransactions(Number.NaN);
+
+    expect(result).toEqual([{ id: 'tx-1' }]);
 
     expect(mockGet).toHaveBeenCalledWith('/credits/transactions?limit=50');
   });

@@ -83,7 +83,7 @@ import { PrismaClient, toPrismaJson } from '@genfeedai/prisma';
 import type { LoggerService } from '@libs/logger/logger.service';
 
 /** An OpenRouter text model id the production eligibility check accepts. */
-export const ACCEPTANCE_TEXT_MODEL = 'anthropic/claude-sonnet-4.5';
+const ACCEPTANCE_TEXT_MODEL = 'anthropic/claude-sonnet-4.5';
 
 export type ApprovedBrandRules = Pick<
   BrandIdentitySnapshotV1['generationRules'],
@@ -153,7 +153,7 @@ export async function seedApprovedBrandIdentity(
 }
 
 /** Fake OpenRouter: the text provider. Records every call; each call answers a fresh text. */
-export class FakeOpenRouter {
+class FakeOpenRouter {
   assertApiKeyAvailable = () => undefined;
   readonly calls: Array<{ model: string; prompt: string }> = [];
   /** What the provider answered with, for reconciling an answer the caller never recorded. */
@@ -186,7 +186,7 @@ export class FakeOpenRouter {
  * Fake Replicate: the provider behind the real quality scorer. It answers with the structured
  * analysis the real OptimizersService prompt asks for, at a controllable overall score.
  */
-export class FakeReplicate {
+class FakeReplicate {
   readonly calls: string[] = [];
   score = 88;
 

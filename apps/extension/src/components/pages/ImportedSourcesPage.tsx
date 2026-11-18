@@ -128,6 +128,7 @@ export function ImportedSourcesPage({
     }
   }, [brandId]);
 
+  // use-effect-audit: ignore abortable capture run through the extension background
   useEffect(() => {
     if (!initialCapture) {
       return;
@@ -137,8 +138,9 @@ export function ImportedSourcesPage({
     return () => controller.abort();
   }, [initialCapture, runCapture]);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: refreshKey reloads the list after a save elsewhere.
+  // use-effect-audit: ignore abortable Imported sources fetch through the extension background
   useEffect(() => {
+    void refreshKey; // Reloads the list after a save elsewhere.
     if (!brandId) {
       return;
     }
@@ -160,6 +162,7 @@ export function ImportedSourcesPage({
     return () => controller.abort();
   }, [brandId, refreshKey]);
 
+  // use-effect-audit: ignore subscribes to chrome.runtime messages
   useEffect(() => {
     const controller = new AbortController();
     function handleMessage(message: { type?: string }) {
@@ -178,6 +181,7 @@ export function ImportedSourcesPage({
   }, []);
 
   // Learn the media state of each listed source once, without starting a copy.
+  // use-effect-audit: ignore abortable media status reads through the extension background
   useEffect(() => {
     if (!brandId) {
       return;
@@ -216,6 +220,7 @@ export function ImportedSourcesPage({
     .filter((view) => view.state === 'processing')
     .map((view) => view.sourceId)
     .join(',');
+  // use-effect-audit: ignore polls media status on an interval
   useEffect(() => {
     if (!brandId || !processingKey) {
       return;

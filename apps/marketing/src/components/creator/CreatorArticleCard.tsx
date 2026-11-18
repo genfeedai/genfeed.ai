@@ -5,8 +5,8 @@ import {
 } from '@genfeedai/contracts/constants';
 import type { CreatorArticleCardProps } from '@props/content/creator.props';
 import Card from '@ui/card/Card';
-import ArticleCover from '@website/(content)/articles/article-cover';
 import Link from 'next/link';
+import ArticleCover from './article-cover';
 
 const articleDateFormatter = new Intl.DateTimeFormat('en-US', {
   day: 'numeric',

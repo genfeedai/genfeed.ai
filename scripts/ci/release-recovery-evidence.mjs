@@ -66,6 +66,15 @@ const REFUSE_EXISTING_ASSETS_STEP =
 const VERIFY_ASSET_IDENTITIES_STEP =
   'Verify immutable install asset identities';
 
+/**
+ * A release run has about 80 jobs with many steps each. GitHub builds the jobs
+ * page within its 10 second gateway limit only for small pages: 100 jobs per
+ * page returns HTTP 502 every time, 50 takes about 8 seconds.
+ */
+export const RECOVERY_JOBS_PAGE_SIZE = 20;
+/** GitHub answers 5xx now and then; a lookup is read-only, so retry it. */
+const GH_SERVER_ERROR_ATTEMPTS = 3;
+const GH_SERVER_ERROR_PATTERN = /\(HTTP 5\d\d\)/;
 export const RECOVERY_KIND_ATTACHMENT_FAILURE = 'attachment-failure';
 export const RECOVERY_KIND_NPM_SOURCE_NOOP = 'npm-source-noop';
 export const NPM_MASTER_ADVANCED_ERROR =
@@ -284,40 +293,61 @@ const NPM_ARTIFACT_STEP_OUTCOMES = [
   ['Complete job', 'success'],
 ];
 
+// The Full Suite jobs an attachment-failure recovery requires, by their names
+// since the CI Gate moved into Core Validation and Frontend Validation. Jobs
+// that run only on some changes (bundle size, link checks, benchmarks, the
+// nightly reporters) are left out; every Full Suite job present must still be
+// completed and green or skipped.
 const REQUIRED_FULL_SUITE_JOBS = [
-  'Full Suite / CI Gate / Trust Check',
-  'Full Suite / CI Gate / Executable Contracts',
-  'Full Suite / CI Gate / Secretlint (changed files)',
-  'Full Suite / CI Gate / Format',
-  'Full Suite / CI Gate / Lint',
-  'Full Suite / CI Gate / Gitleaks',
-  'Full Suite / CI Gate / Test Plan',
-  'Full Suite / CI Gate / Typecheck',
-  'Full Suite / CI Gate / Spec Typecheck',
-  'Full Suite / CI Gate / Test Web and Mobile',
-  'Full Suite / CI Gate / Test Packages',
-  'Full Suite / CI Gate / Test Server Services',
-  'Full Suite / CI Gate / OpenAPI Spec Drift',
-  'Full Suite / CI Gate / Test API (Shard 1/4)',
-  'Full Suite / CI Gate / Test API (Shard 2/4)',
-  'Full Suite / CI Gate / Test API (Shard 3/4)',
-  'Full Suite / CI Gate / Test API (Shard 4/4)',
-  'Full Suite / CI Gate / Test App (Shard 1/4)',
-  'Full Suite / CI Gate / Test App (Shard 2/4)',
-  'Full Suite / CI Gate / Test App (Shard 3/4)',
-  'Full Suite / CI Gate / Test App (Shard 4/4)',
-  'Full Suite / CI Gate / Build',
+  'Full Suite / CI Gate / Core Validation / Plan',
+  'Full Suite / CI Gate / Core Validation / Static Checks',
+  'Full Suite / CI Gate / Core Validation / Source Contracts',
+  'Full Suite / CI Gate / Core Validation / Spec Typecheck',
+  'Full Suite / CI Gate / Core Validation / Build',
+  'Full Suite / CI Gate / Core Validation / Cloud Tenant Guard Sweep',
+  'Full Suite / CI Gate / Core Validation / MCP Auth Runtime',
+  ...Array.from(
+    { length: 8 },
+    (_, index) =>
+      `Full Suite / CI Gate / Core Validation / Test API (shard ${index + 1}/8)`,
+  ),
+  ...Array.from(
+    { length: 4 },
+    (_, index) =>
+      `Full Suite / CI Gate / Core Validation / Test App (shard ${index + 1}/4)`,
+  ),
+  ...Array.from(
+    { length: 4 },
+    (_, index) =>
+      `Full Suite / CI Gate / Core Validation / Test Workspaces (workspaces-${index + 1}/4)`,
+  ),
+  'Full Suite / CI Gate / Core Validation / Test Workspaces (server)',
+  'Full Suite / CI Gate / Tests Gate',
   'Full Suite / E2E Suite / Frontend Authed E2E (real Better Auth)',
   'Full Suite / E2E Suite / E2E Route Reference Inventory',
   'Full Suite / E2E Suite / API E2E Tests',
-  'Full Suite / E2E Suite / Frontend E2E (Shard 1/4)',
-  'Full Suite / E2E Suite / Frontend E2E (Shard 2/4)',
-  'Full Suite / E2E Suite / Frontend E2E (Shard 3/4)',
-  'Full Suite / E2E Suite / Frontend E2E (Shard 4/4)',
+  'Full Suite / E2E Suite / API E2E Full',
+  'Full Suite / E2E Suite / API E2E Full Gate',
+  ...Array.from(
+    { length: 4 },
+    (_, index) =>
+      `Full Suite / E2E Suite / Frontend E2E (Shard ${index + 1}/4)`,
+  ),
   'Full Suite / E2E Suite / E2E Gate (all shards)',
   'Full Suite / E2E Suite / Merge E2E Reports',
+  'Full Suite / E2E Suite / Isolated Publish E2E',
+  'Full Suite / E2E Suite / Serial Runtime Acceptance',
+  'Full Suite / E2E Suite / Proactive Production Turn Acceptance',
+  'Full Suite / E2E Suite / BRAND Receipt and Relocation Acceptance',
+  'Full Suite / E2E Suite / Context Embedding Acceptance',
   'Full Suite / Build & Boot Check / Build & Boot Check',
   'Full Suite / Build & Boot Check / Server Bundle Boot Check',
+  'Full Suite / Build & Boot Check / Server Image / Resolve server image inputs',
+  'Full Suite / Build & Boot Check / Server Image / Build & Push Server Image',
+  'Full Suite / Connected Visual Acceptance / Actual runsc rendering and isolation',
+  'Full Suite / Connected Visual Acceptance / Connected runsc rendering and Library acceptance',
+  'Full Suite / Final Connected Acceptance',
+  'Full Suite / Master SHA Verdict',
 ];
 
 const PUBLIC_SAAS_JOBS = [
@@ -411,9 +441,20 @@ function validateArtifactFailureBoundary(artifactJob) {
   }
   requireUniqueStep(steps, ATTACH_STEP_NAME, 'failure');
 
+  // The pre-existing-asset guard runs only when an image is reused, and the
+  // identity check after the attach step is skipped once that step fails.
+  const skippableSteps = new Set([
+    REFUSE_EXISTING_ASSETS_STEP,
+    VERIFY_ASSET_IDENTITIES_STEP,
+  ]);
   const unexpectedFailures = steps.filter(
     (step) =>
       step.name !== ATTACH_STEP_NAME &&
+      !(
+        skippableSteps.has(step.name) &&
+        step.status === 'completed' &&
+        step.conclusion === 'skipped'
+      ) &&
       (step.status !== 'completed' || step.conclusion !== 'success'),
   );
   if (unexpectedFailures.length > 0) {
@@ -880,7 +921,7 @@ function validateAttachmentFailureEvidence({
   );
   requireUniqueJob(
     jobs,
-    'Publish Community / Build & Push Self-Hosted Image',
+    'Publish Community / Tag Verified Self-Hosted Image',
     'success',
     releaseSha,
   );
@@ -1208,11 +1249,20 @@ export function validateReleaseRecoveryEvidence({
 }
 
 function runGh(args, { env, spawnSync, encoding }) {
-  const result = spawnSync('gh', args, {
-    encoding,
-    env,
-    maxBuffer: 10 * 1024 * 1024,
-  });
+  let result;
+  for (let attempt = 1; attempt <= GH_SERVER_ERROR_ATTEMPTS; attempt += 1) {
+    result = spawnSync('gh', args, {
+      encoding,
+      env,
+      maxBuffer: 10 * 1024 * 1024,
+    });
+    if (
+      result.status === 0 ||
+      !GH_SERVER_ERROR_PATTERN.test(String(result.stderr ?? ''))
+    ) {
+      break;
+    }
+  }
   if (result.status !== 0) {
     throw new Error(
       `GitHub recovery evidence lookup failed: ${String(result.stderr ?? '').trim() || 'unknown gh error'}`,
@@ -1303,7 +1353,7 @@ export function runReleaseRecoveryCli({
         'api',
         '--paginate',
         '--slurp',
-        `repos/${repository}/actions/runs/${runId}/jobs?filter=latest&per_page=100`,
+        `repos/${repository}/actions/runs/${runId}/jobs?filter=latest&per_page=${RECOVERY_JOBS_PAGE_SIZE}`,
       ],
       { env, spawnSync },
     );

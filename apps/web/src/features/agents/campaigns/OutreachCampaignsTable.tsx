@@ -66,7 +66,7 @@ export default function OutreachCampaignsTable({
         render: (campaign: OutreachCampaign) => (
           <div className="flex flex-col">
             <span className="font-medium">{campaign.label}</span>
-            <span className="text-xs uppercase tracking-wide text-foreground/50">
+            <span className="text-xs uppercase tracking-label text-foreground/50">
               {typeLabels[campaign.campaignType]}
             </span>
             {campaign.description && (

@@ -1,3 +1,4 @@
+import type { BrandVideoFinishingV1 } from '@genfeedai/contracts/api-types/contracts';
 import type {
   BrandKitAssetRole,
   BrandKitFieldGroup,
@@ -8,7 +9,10 @@ import type {
   IBrandOsRevision,
   IBrandPublishPolicy,
 } from '@genfeedai/contracts/interfaces';
-import type { BrandGenerationRulesV1 } from '@genfeedai/contracts/interfaces/content/branded-generation.interface';
+import type {
+  BrandGenerationRulesV1,
+  BrandVideoRulesV1,
+} from '@genfeedai/contracts/interfaces/content/branded-generation.interface';
 import type { ReactNode } from 'react';
 
 export interface BrandOsIdentityPreviewProps {
@@ -34,6 +38,8 @@ export interface BrandOsSettingsCardProps {
   isAutoSaveEnabled?: boolean;
   onRevisionSaved?: (revision: IBrandOsRevision) => void;
   onReadinessChange?: (readiness: BrandOsGuideReadiness) => void;
+  /** The brand's current finishing: what a revision that predates finishing is reviewed against. */
+  finishingBaseline?: BrandVideoFinishingV1;
   onRefreshBrand: () => Promise<void>;
 }
 
@@ -92,6 +98,10 @@ export interface BrandKitRevisionWorkspace {
   isDirty: boolean;
   isLoading: boolean;
   isSaveDisabled: boolean;
+  /** Whether the viewer can edit the revision: managers only, and never a superseded one. */
+  isReadOnly: boolean;
   error: string | null;
   onSave: () => void;
+  onVideoChange: (video: BrandVideoRulesV1) => void;
+  onFinishingChange: (finishing: BrandVideoFinishingV1) => void;
 }

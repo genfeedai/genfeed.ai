@@ -32,7 +32,7 @@ export class BotGatewayService {
     private readonly userResolverService: BotUserResolverService,
     private readonly generationService: BotGenerationService,
   ) {
-    this.settingsUrl = `${this.configService.get('APP_URL')}/settings/api-keys#telegram-integration`;
+    this.settingsUrl = `${this.configService.get('APP_URL')}/connectors/api-keys#telegram-integration`;
   }
 
   /**

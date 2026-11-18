@@ -33,7 +33,10 @@ describe('AgentContent', () => {
     render(<AgentContent />);
 
     expect(
-      screen.getByRole('heading', { level: 1, name: 'Genfeed Agent' }),
+      screen.getByRole('heading', {
+        level: 1,
+        name: 'Use Genfeed from your agent',
+      }),
     ).toBeInTheDocument();
     expect(screen.getByText('Genfeed CLI')).toBeInTheDocument();
     expect(screen.getByText('MCP server')).toBeInTheDocument();
@@ -55,7 +58,7 @@ describe('AgentContent', () => {
     render(<AgentContent />);
 
     expect(
-      screen.getAllByRole('button', { name: /connect your agent/i })[0],
+      screen.getAllByRole('button', { name: /connect agent/i })[0],
     ).toHaveAttribute('aria-haspopup', 'dialog');
     const [heroKeyLink] = screen.getAllByRole('link', {
       name: /start for \$0/i,
@@ -84,10 +87,10 @@ describe('AgentContent', () => {
       name: 'What people ask it for',
     });
     const capabilities = screen.getByRole('heading', {
-      name: 'What the agent can do',
+      name: 'What your agent can do with Genfeed',
     });
     const integrations = screen.getByRole('heading', {
-      name: 'Use Genfeed where you already work',
+      name: 'Three ways to connect',
     });
 
     expect(
@@ -103,7 +106,7 @@ describe('AgentContent', () => {
       screen.queryByRole('link', { name: /setup guide/i }),
     ).not.toBeInTheDocument();
     expect(
-      screen.getByText(/Ask the Genfeed agent for images, videos and posts/),
+      screen.getByText(/Add Genfeed to the agent you already use/),
     ).toBeInTheDocument();
   });
 
@@ -117,9 +120,7 @@ describe('AgentContent', () => {
     });
     fireEvent.click(heroKeyLink);
     fireEvent.click(
-      screen
-        .getAllByRole('button', { name: /connect your agent/i })
-        .slice(-1)[0],
+      screen.getAllByRole('button', { name: /connect agent/i }).slice(-1)[0],
     );
 
     expect(listener).toHaveBeenNthCalledWith(

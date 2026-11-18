@@ -28,10 +28,10 @@ import {
   onForeground,
 } from '@/hooks/utils/on-foreground/on-foreground';
 
-export const LIVE_ACTIVITY_LIMIT = 50;
+const LIVE_ACTIVITY_LIMIT = 50;
 export const ACTIVITY_RECONCILE_MS = 15_000;
 /** A connect-time reconcile skips activity reads newer than this. */
-export const ACTIVITY_CONNECT_FRESH_MS = 5_000;
+const ACTIVITY_CONNECT_FRESH_MS = 5_000;
 const REFRESH_EVENTS = [
   'background-task-update',
   'ingredient-status',
@@ -102,6 +102,7 @@ export function useGenerationToasts(): void {
     [organizationId, userId],
   );
 
+  // use-effect-audit: ignore interval timer outside React
   useEffect(() => {
     if (!isActivityScopeReady) return;
     let timer: ReturnType<typeof setTimeout> | undefined;
@@ -156,6 +157,7 @@ export function useGenerationToasts(): void {
   // Not part of the effect above: that one re-runs whenever the active count
   // changes, which would re-read both lists on every status change. Reads
   // fetched moments ago (the mount reads) are already current.
+  // use-effect-audit: ignore invalidates cached queries when the socket reconnects
   useEffect(() => {
     if (!isActivityScopeReady || connectionState !== 'connected') return;
     void client.invalidateQueries(
@@ -168,6 +170,7 @@ export function useGenerationToasts(): void {
     );
   }, [client, connectionState, isActivityScopeReady, isScopedActivityQuery]);
 
+  // use-effect-audit: ignore raises a notification when a background task changes status
   useEffect(() => {
     if (seen.current.scope !== scopeKey)
       seen.current = {

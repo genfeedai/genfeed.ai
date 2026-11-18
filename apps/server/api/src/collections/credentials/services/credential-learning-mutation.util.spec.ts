@@ -153,4 +153,67 @@ describe('credential learning mutation fence scope (#6158)', () => {
       ),
     ).rejects.toBeInstanceOf(LearningFenceEscalationError);
   });
+
+  it('a single-credential patch reads the credential once outside the row lock', async () => {
+    const { tx } = fixture('org');
+    await patchCredentialWithLearning(
+      tx as never,
+      context,
+      'cred',
+      { accessToken: 'refreshed' },
+      'organization',
+    );
+    // Only the pre-fence owner read remains; the before and after snapshots come from the locked rows and the update result.
+    expect(tx.credential.findFirst).toHaveBeenCalledTimes(1);
+  });
+
+  it('a patch that changes the connection state invalidates the credential learning sources', async () => {
+    const { tx } = fixture('org');
+    tx.credential.update.mockResolvedValue({
+      ...(await tx.credential.findFirst()),
+      isConnected: false,
+    });
+    tx.credential.findFirst.mockClear();
+    await patchCredentialWithLearning(
+      tx as never,
+      context,
+      'cred',
+      { isConnected: false },
+      'organization',
+    );
+    const lookups = tx.contentLearningDependency.findMany.mock.calls.map(
+      ([args]) => (args as { where: { sourceId?: string } }).where.sourceId,
+    );
+    expect(lookups).toContain('cred');
+  });
+
+  it('a patch that leaves the learning-relevant fields alone does not invalidate', async () => {
+    const { tx } = fixture('org');
+    await patchCredentialWithLearning(
+      tx as never,
+      context,
+      'cred',
+      { accessToken: 'refreshed' },
+      'organization',
+    );
+    expect(tx.contentLearningDependency.findMany).not.toHaveBeenCalled();
+  });
+
+  it('a delete invalidates the credential learning sources from the update result', async () => {
+    const { tx } = fixture('org');
+    tx.credential.update.mockResolvedValue({
+      ...(await tx.credential.findFirst()),
+      isDeleted: true,
+    });
+    await removeCredentialWithLearning(
+      tx as never,
+      context,
+      'cred',
+      'organization',
+    );
+    const lookups = tx.contentLearningDependency.findMany.mock.calls.map(
+      ([args]) => (args as { where: { sourceId?: string } }).where.sourceId,
+    );
+    expect(lookups).toContain('cred');
+  });
 });

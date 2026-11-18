@@ -1,4 +1,5 @@
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-definition';
+import { SystemWorkflowRetention } from '@api/collections/workflows/workflow-execution-retention.contract';
 import { createGenfeedActionNode } from '@genfeedai/actions';
 
 export const BATCH_WORKFLOW_EXECUTION_ID = 'workflow.batch.execute';
@@ -51,6 +52,7 @@ export function buildBatchWorkflowExecutionDefinition(): SystemWorkflowGraphDefi
       'Runs one immutable tenant workflow version for each selected ingredient.',
     label: 'Execute Workflow Batch',
     resultNodeId: 'execute-items',
+    retention: SystemWorkflowRetention.KEPT,
     version: 1,
   };
 }

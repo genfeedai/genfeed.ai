@@ -3,6 +3,7 @@
 import { ButtonVariant, CardPadding } from '@genfeedai/contracts';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import { usePrefetchOnIntent } from '@hooks/navigation/use-prefetch-on-intent/use-prefetch-on-intent';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import { StatusDot } from '@ui/primitives/status-dot';
@@ -68,6 +69,7 @@ export default function BotToggle({
   configItems,
 }: BotToggleProps): React.JSX.Element {
   const { push } = useRouter();
+  const getIntentProps = usePrefetchOnIntent();
   const { href } = useOrgUrl();
   const [isEnabled, setIsEnabled] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -167,6 +169,7 @@ export default function BotToggle({
         <Button
           variant={ButtonVariant.SECONDARY}
           onClick={() => push(href(editorPath))}
+          {...getIntentProps(href(editorPath))}
         >
           View Workflow
         </Button>

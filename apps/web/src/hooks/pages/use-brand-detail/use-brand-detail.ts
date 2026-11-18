@@ -8,39 +8,30 @@ import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
   AssetCategory,
   type BrandKitSlot,
-  IngredientCategory,
-  IngredientStatus,
   ModalEnum,
 } from '@genfeedai/contracts';
 import {
+  APP_ROUTES,
   BRAND_HANDLE_FORMAT_MESSAGE,
   createBrandAppRoute,
   isValidBrandHandle,
   normalizeBrandHandle,
 } from '@genfeedai/contracts/constants';
-import type {
-  IArticle,
-  IBrand,
-  IImage,
-  ILink,
-  IVideo,
-} from '@genfeedai/contracts/interfaces';
+import type { IBrand, ILink } from '@genfeedai/contracts/interfaces';
 import type { UseBrandDetailReturn } from '@genfeedai/props/pages/brand-detail.props';
 import { AssetsService } from '@genfeedai/services/content/assets.service';
 import { ClipboardService } from '@genfeedai/services/core/clipboard.service';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
-import { PublicService } from '@genfeedai/services/external/public.service';
 import { BrandsService } from '@genfeedai/services/social/brands.service';
 import { ErrorHandler } from '@genfeedai/utils/error/error-handler.util';
-import { buildLatestBrandArticlesQuery } from '@helpers/content/latest-brand-articles-query.helper';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useRouteParams } from '@hooks/navigation/use-route-params';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   buildSocialConnections,
   getAccountConnectionStatus,
@@ -60,18 +51,7 @@ interface BrandDetailData {
   links: ILink[];
 }
 
-interface BrandLatestMedia {
-  articles: IArticle[];
-  images: IImage[];
-  videos: IVideo[];
-}
-
 const EMPTY_LINKS: ILink[] = [];
-const EMPTY_LATEST_MEDIA: BrandLatestMedia = {
-  articles: [],
-  images: [],
-  videos: [],
-};
 
 function brandDetailQueryKey(brandSlug: string) {
   return ['brand-detail', brandSlug] as const;
@@ -84,7 +64,6 @@ export function useBrandDetail(): UseBrandDetailReturn {
   const { brands, refreshBrands } = useBrand();
 
   const notificationsService = NotificationsService.getInstance();
-  const publicService = PublicService.getInstance();
   const clipboardService = ClipboardService.getInstance();
 
   const { openConfirm } = useConfirmModal();
@@ -110,7 +89,7 @@ export function useBrandDetail(): UseBrandDetailReturn {
       ),
     [brands, routeBrandParam],
   );
-  const brandSlug = matchedRouteBrand?.slug ?? routeBrandParam;
+  const brandSlug = matchedRouteBrand?.slug ?? (routeBrandParam || '');
   const hasBrandId = Boolean(brandSlug);
 
   const queryClient = useQueryClient();
@@ -173,6 +152,7 @@ export function useBrandDetail(): UseBrandDetailReturn {
     'banner' | 'logo' | null
   >(null);
 
+  // use-effect-audit: ignore redirects the route in the router
   useEffect(() => {
     const orgSlug = typeof params?.orgSlug === 'string' ? params.orgSlug : '';
 
@@ -183,73 +163,28 @@ export function useBrandDetail(): UseBrandDetailReturn {
     const oldRouteMatch = pathname.match(BRAND_SETTINGS_PATH_PATTERN);
     const canonicalRouteMatch = pathname.match(SETTINGS_PATH_PATTERN);
     const suffix = oldRouteMatch?.[1] ?? canonicalRouteMatch?.[1] ?? '';
+    // A bare settings root (legacy URL) lands on the profile page.
+    const canonicalSegment = suffix
+      ? `/settings${suffix}`
+      : APP_ROUTES.SETTINGS.PROFILE;
     const canonicalPath = createBrandAppRoute(
       orgSlug,
       matchedRouteBrand.slug,
-      `/settings${suffix}`,
+      canonicalSegment,
     );
     const usesIdAsSlug = matchedRouteBrand.id === routeBrandParam;
+
+    // Only settings routes have a canonical settings path; any other route
+    // that reads the brand stays where it is, even when the URL carries the
+    // brand id.
+    if (!oldRouteMatch && !canonicalRouteMatch) {
+      return;
+    }
 
     if ((oldRouteMatch || usesIdAsSlug) && pathname !== canonicalPath) {
       router.replace(canonicalPath);
     }
   }, [matchedRouteBrand, params?.orgSlug, pathname, routeBrandParam, router]);
-
-  const latestMediaQuery = useQuery<BrandLatestMedia>({
-    enabled: Boolean(brandId),
-    queryFn: async () => {
-      const mediaQuery = {
-        brand: brandId,
-        limit: 3,
-        sort: 'createdAt: -1',
-      };
-      const articleQuery = buildLatestBrandArticlesQuery(brandId);
-
-      const [videosResult, imagesResult, articlesResult] =
-        await Promise.allSettled([
-          publicService.findPublicVideos({
-            ...mediaQuery,
-            category: IngredientCategory.VIDEO,
-            status: [IngredientStatus.GENERATED, IngredientStatus.VALIDATED],
-          }),
-          publicService.findPublicImages({
-            ...mediaQuery,
-            category: IngredientCategory.IMAGE,
-            status: [IngredientStatus.GENERATED, IngredientStatus.VALIDATED],
-          }),
-          publicService.findPublicArticles(articleQuery),
-        ]);
-
-      let videos: IVideo[] = [];
-      let images: IImage[] = [];
-      let articles: IArticle[] = [];
-
-      if (videosResult.status === 'fulfilled') {
-        logger.info(`GET /public/videos success`, videosResult.value);
-        videos = videosResult.value;
-      } else {
-        logger.error(`GET /public/videos failed`, videosResult.reason);
-      }
-
-      if (imagesResult.status === 'fulfilled') {
-        logger.info(`GET /public/images success`, imagesResult.value);
-        images = imagesResult.value;
-      } else {
-        logger.error(`GET /public/images failed`, imagesResult.reason);
-      }
-
-      if (articlesResult.status === 'fulfilled') {
-        logger.info(`GET /public/articles success`, articlesResult.value);
-        articles = articlesResult.value;
-      } else {
-        logger.error(`GET /public/articles failed`, articlesResult.reason);
-      }
-
-      return { articles, images, videos };
-    },
-    queryKey: ['brand-detail-media', brandId],
-  });
-  const latestMedia = latestMediaQuery.data ?? EMPTY_LATEST_MEDIA;
 
   // A refresh keeps the loaded brand on screen; overlapping refreshes are
   // ordered by React Query, so only the latest answer is kept.
@@ -404,7 +339,7 @@ export function useBrandDetail(): UseBrandDetailReturn {
         const currentPrefix = createBrandAppRoute(orgSlug, routeBrandParam);
         const suffix = pathname.startsWith(currentPrefix)
           ? pathname.slice(currentPrefix.length)
-          : '/settings';
+          : APP_ROUTES.SETTINGS.PROFILE;
         router.replace(createBrandAppRoute(orgSlug, handle, suffix));
       }
 
@@ -442,6 +377,7 @@ export function useBrandDetail(): UseBrandDetailReturn {
     setSelectedLink(link);
   }, []);
 
+  // use-effect-audit: ignore drives a DOM element or browser API
   useEffect(() => {
     const origin = typeof window !== 'undefined' ? window.location.origin : '';
     const isCurrentlyDashboard = origin.startsWith(EnvironmentService.apps.app);
@@ -463,6 +399,7 @@ export function useBrandDetail(): UseBrandDetailReturn {
     }
   }, [brandId, pathname, router]);
 
+  // use-effect-audit: ignore subscribes to asset status events
   useEffect(() => {
     const unsubscribe = subscribe(
       'asset-status',
@@ -528,7 +465,6 @@ export function useBrandDetail(): UseBrandDetailReturn {
   );
 
   return {
-    articles: latestMedia.articles,
     brand,
     brandId,
     connectedPlatformsCount,
@@ -544,7 +480,6 @@ export function useBrandDetail(): UseBrandDetailReturn {
     handleUpdateAccount,
     handleUpdateHandle,
     hasBrandId,
-    images: latestMedia.images,
     isGeneratingBanner,
     isGeneratingLogo,
     isLoading,
@@ -554,6 +489,5 @@ export function useBrandDetail(): UseBrandDetailReturn {
     selectLink,
     setGenerateModalType,
     socialConnections,
-    videos: latestMedia.videos,
   };
 }

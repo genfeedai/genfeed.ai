@@ -9,7 +9,7 @@ import {
   IsString,
 } from 'class-validator';
 
-export const KNOWLEDGE_SELECTION_MAX_IDS = 50;
+const KNOWLEDGE_SELECTION_MAX_IDS = 50;
 
 export class KnowledgeSelectionDto implements KnowledgeSelection {
   @ApiPropertyOptional({ type: [String] })

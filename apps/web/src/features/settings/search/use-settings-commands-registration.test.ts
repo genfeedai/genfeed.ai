@@ -77,6 +77,13 @@ function getRegisteredIds(): string[] {
   return (commands ?? []).map((command) => command.id);
 }
 
+// Every app is on offer, so no entry point is hidden.
+vi.mock('@/components/shell/use-available-rail-apps', () => ({
+  useHasAppsBeyondDashboard: () => true,
+  useIsAppAvailable: () => true,
+  useIsHrefAvailable: () => () => true,
+}));
+
 describe('useSettingsCommandsRegistration', () => {
   beforeEach(() => {
     mockCreditsRuntime.mockReturnValue({ status: 'web', context: null });

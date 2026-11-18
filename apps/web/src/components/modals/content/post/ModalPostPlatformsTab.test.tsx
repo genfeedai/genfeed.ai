@@ -95,7 +95,13 @@ describe('ModalPostPlatformsTab', () => {
         panel="channels"
         form={createFormStub()}
         ingredients={[]}
-        platformConfigs={[platformConfig({ enabled: false })]}
+        platformConfigs={[
+          platformConfig({
+            credentialId: 'cred-twitter',
+            enabled: false,
+            platform: CredentialPlatform.TWITTER,
+          }),
+        ]}
         isLoading={false}
         togglePlatform={togglePlatform}
         updatePlatformConfig={vi.fn()}
@@ -104,10 +110,10 @@ describe('ModalPostPlatformsTab', () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole('switch'));
+    fireEvent.click(screen.getByRole('button', { name: /^Publish to/ }));
 
     expect(togglePlatform).toHaveBeenCalledOnce();
-    expect(togglePlatform).toHaveBeenCalledWith('cred-instagram');
+    expect(togglePlatform).toHaveBeenCalledWith('cred-twitter');
     expect(screen.getByLabelText('Saved posting set')).toBeInTheDocument();
   });
 

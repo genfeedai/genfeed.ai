@@ -17,6 +17,7 @@ import {
   type CampaignLaunchPrep,
 } from '@genfeedai/contracts/interfaces';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import { useResetOnChange } from '@hooks/utils/use-reset-on-change/use-reset-on-change';
 import Card from '@ui/card/Card';
 import MetricCard from '@ui/cards/metric-card/MetricCard';
 import { Alert } from '@ui/primitives/alert';
@@ -27,7 +28,8 @@ import { Textarea } from '@ui/primitives/textarea';
 import { Bookmark, ExternalLink, Rocket, Sparkles, Wrench } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { useIsAppAvailable } from '@/components/shell/use-available-rail-apps';
 
 import { formatMetric } from './ads-metric.helpers';
 
@@ -67,7 +69,7 @@ function AdPackPanel({ adPack }: AdPackPanelProps) {
       </div>
 
       <div>
-        <div className="mb-2 text-2xs uppercase tracking-[0.18em] text-muted-foreground">
+        <div className="mb-2 text-2xs uppercase tracking-label text-muted-foreground">
           Headlines
         </div>
         <div className="space-y-2">
@@ -84,7 +86,7 @@ function AdPackPanel({ adPack }: AdPackPanelProps) {
       </div>
 
       <div>
-        <div className="mb-2 text-2xs uppercase tracking-[0.18em] text-muted-foreground">
+        <div className="mb-2 text-2xs uppercase tracking-label text-muted-foreground">
           Primary Text
         </div>
         <p className="whitespace-pre-wrap text-sm text-foreground/90">
@@ -94,13 +96,13 @@ function AdPackPanel({ adPack }: AdPackPanelProps) {
 
       <div className="grid gap-4 md:grid-cols-2">
         <div>
-          <div className="mb-2 text-2xs uppercase tracking-[0.18em] text-muted-foreground">
+          <div className="mb-2 text-2xs uppercase tracking-label text-muted-foreground">
             CTA
           </div>
           <p className="text-sm text-foreground/90">{adPack.cta}</p>
         </div>
         <div>
-          <div className="mb-2 text-2xs uppercase tracking-[0.18em] text-muted-foreground">
+          <div className="mb-2 text-2xs uppercase tracking-label text-muted-foreground">
             Channel
           </div>
           <p className="text-sm text-foreground/90">
@@ -117,7 +119,7 @@ function AdPackPanel({ adPack }: AdPackPanelProps) {
       </div>
 
       <div>
-        <div className="mb-2 text-2xs uppercase tracking-[0.18em] text-muted-foreground">
+        <div className="mb-2 text-2xs uppercase tracking-label text-muted-foreground">
           Creative Brief
         </div>
         <p className="text-sm text-foreground/90">
@@ -126,14 +128,14 @@ function AdPackPanel({ adPack }: AdPackPanelProps) {
       </div>
 
       <div>
-        <div className="mb-2 text-2xs uppercase tracking-[0.18em] text-muted-foreground">
+        <div className="mb-2 text-2xs uppercase tracking-label text-muted-foreground">
           Targeting Notes
         </div>
         <p className="text-sm text-foreground/90">{adPack.targetingNotes}</p>
       </div>
 
       <div>
-        <div className="mb-2 text-2xs uppercase tracking-[0.18em] text-muted-foreground">
+        <div className="mb-2 text-2xs uppercase tracking-label text-muted-foreground">
           Campaign Recipe
         </div>
         <p className="text-sm text-foreground/90">
@@ -157,6 +159,7 @@ type LaunchPrepPanelProps = {
 
 function LaunchPrepPanel({ prep }: LaunchPrepPanelProps) {
   const { href } = useOrgUrl();
+  const isAutomationAvailable = useIsAppAvailable('automation');
 
   return (
     // ui-guard-allow:notice-tone-box -- tinted result panel that holds a whole launch plan, not a notice
@@ -179,7 +182,7 @@ function LaunchPrepPanel({ prep }: LaunchPrepPanelProps) {
 
       <div className="grid gap-4 md:grid-cols-2">
         <div>
-          <div className="mb-2 text-2xs uppercase tracking-[0.18em] text-muted-foreground">
+          <div className="mb-2 text-2xs uppercase tracking-label text-muted-foreground">
             Objective
           </div>
           <p className="text-sm text-foreground/90">
@@ -187,7 +190,7 @@ function LaunchPrepPanel({ prep }: LaunchPrepPanelProps) {
           </p>
         </div>
         <div>
-          <div className="mb-2 text-2xs uppercase tracking-[0.18em] text-muted-foreground">
+          <div className="mb-2 text-2xs uppercase tracking-label text-muted-foreground">
             Optimization Goal
           </div>
           <p className="text-sm text-foreground/90">
@@ -197,7 +200,7 @@ function LaunchPrepPanel({ prep }: LaunchPrepPanelProps) {
       </div>
 
       <div>
-        <div className="mb-2 text-2xs uppercase tracking-[0.18em] text-muted-foreground">
+        <div className="mb-2 text-2xs uppercase tracking-label text-muted-foreground">
           Plan Notes
         </div>
         <ul className="space-y-2 text-sm text-foreground/90">
@@ -214,7 +217,7 @@ function LaunchPrepPanel({ prep }: LaunchPrepPanelProps) {
         </ul>
       </div>
 
-      {prep.workflowId && (
+      {prep.workflowId && isAutomationAvailable && (
         <Link
           href={href(`${APP_ROUTES.AUTOMATION.WORKFLOWS}/${prep.workflowId}`)}
           className="inline-flex items-center gap-2 text-sm font-medium text-primary transition-colors hover:text-primary/80"
@@ -265,15 +268,13 @@ export function DetailSidebar({
   savedMutating,
 }: DetailSidebarProps) {
   const translate = useTranslations('pages.adsResearch.swipeFile');
-  const [note, setNote] = useState('');
+  const isAutomationAvailable = useIsAppAvailable('automation');
+  const savedNote = detail?.savedAdId ? (detail.savedNote ?? '') : '';
+  const [note, setNote] = useState(savedNote);
 
-  useEffect(() => {
-    if (!detail?.savedAdId) {
-      setNote('');
-      return;
-    }
-    setNote(detail?.savedNote ?? '');
-  }, [detail?.savedAdId, detail?.savedNote]);
+  useResetOnChange([detail?.savedAdId, detail?.savedNote], () =>
+    setNote(savedNote),
+  );
 
   return (
     <div className="space-y-5 p-5" data-testid="ads-research-detail">
@@ -320,7 +321,7 @@ export function DetailSidebar({
 
             {detail.creative.headline && (
               <div>
-                <div className="mb-1 text-2xs uppercase tracking-[0.18em] text-muted-foreground">
+                <div className="mb-1 text-2xs uppercase tracking-label text-muted-foreground">
                   Headline
                 </div>
                 <p className="text-sm text-foreground/90">
@@ -331,7 +332,7 @@ export function DetailSidebar({
 
             {detail.creative.body && (
               <div>
-                <div className="mb-1 text-2xs uppercase tracking-[0.18em] text-muted-foreground">
+                <div className="mb-1 text-2xs uppercase tracking-label text-muted-foreground">
                   Primary Text
                 </div>
                 <p className="whitespace-pre-wrap text-sm text-foreground/90">
@@ -352,7 +353,7 @@ export function DetailSidebar({
             </div>
 
             <div>
-              <div className="mb-2 text-2xs uppercase tracking-[0.18em] text-muted-foreground">
+              <div className="mb-2 text-2xs uppercase tracking-label text-muted-foreground">
                 Detected Patterns
               </div>
               {detail.patternSummary && detail.patternSummary.length > 0 ? (
@@ -465,7 +466,7 @@ export function DetailSidebar({
             >
               Remix for my brand
             </Button>
-            {!detail.isSavedSnapshot ? (
+            {!detail.isSavedSnapshot && isAutomationAvailable ? (
               <Button
                 variant={ButtonVariant.DEFAULT}
                 size={ButtonSize.SM}
@@ -489,7 +490,7 @@ export function DetailSidebar({
             ) : null}
           </div>
 
-          {workflowResult && (
+          {workflowResult && isAutomationAvailable && (
             <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
               <div className="mb-2 flex items-center gap-2">
                 <Badge variant="default">Workflow Created</Badge>

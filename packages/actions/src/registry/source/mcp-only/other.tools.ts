@@ -5,6 +5,8 @@ export const MCP_OTHER_TOOLS: SourceTool[] = [
     creditCost: 0,
     description:
       'Check the status and result of any generation (image, video, voice, music) by the job id returned when the generation started. Auto-detects content type.',
+    mcpDescription:
+      'Read generation status/result by returned job or ingredient ID; auto-detects image/video/voice/music.',
     name: 'get_job_status',
     parameters: {
       properties: {
@@ -22,6 +24,8 @@ export const MCP_OTHER_TOOLS: SourceTool[] = [
     creditCost: 0,
     description:
       'List every organization you belong to, which one this connection works inside, and the brands in it. Every other tool acts in the active organization unless the connection allows all organizations: then each listing includes its brand ids, and any tool accepts an optional organization (name, slug or id) to act in that one for a single call. switch_org changes the default; a connection limited to one organization must be reconnected to choose another.',
+    mcpDescription:
+      'List member organizations, active one and brands. With all-organizations consent each org lists its brand ids and any tool takes optional organization; else reconnect to choose.',
     name: 'get_orgs',
     parameters: {
       properties: {},
@@ -33,6 +37,8 @@ export const MCP_OTHER_TOOLS: SourceTool[] = [
     creditCost: 0,
     description:
       'Switch which organization this connection works inside, by its name, slug or id from get_orgs. Only available when the connection was approved for all organizations. Your role in the organization is checked on every request.',
+    mcpDescription:
+      'Switch active organization by name/slug/id from get_orgs. Requires all-organizations consent; role checked each request.',
     name: 'switch_org',
     parameters: {
       properties: {

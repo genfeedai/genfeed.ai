@@ -2,12 +2,12 @@ import {
   createTestQueryClient,
   queryClientWrapper,
 } from '@app-tests/query-client.harness';
-import { ArticleStatus, AssetCategory, AssetScope } from '@genfeedai/contracts';
+import { AssetCategory, AssetScope } from '@genfeedai/contracts';
 import { BRAND_HANDLE_FORMAT_MESSAGE } from '@genfeedai/contracts/constants';
 import type { IBrand } from '@genfeedai/contracts/interfaces';
 import { createBrand } from '@genfeedai/helpers/testing/entity-fixtures';
 import { act, renderHook, waitFor } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useBrandDetail } from '@/hooks/pages/use-brand-detail/use-brand-detail';
 
 const mockFindOne = vi.fn();
@@ -19,21 +19,12 @@ const mockOpenConfirm = vi.fn();
 const mockOpenModal = vi.fn();
 const mockNotifyError = vi.fn();
 const mockLoggerError = vi.fn();
-const mockFindPublicArticles = vi.fn();
-const mockFindPublicImages = vi.fn();
-const mockFindPublicVideos = vi.fn();
 type AssetStatusHandler = (data: { assetId: string; status: string }) => void;
 const mockSubscribe = vi.fn(
   (_event: string, _handler: AssetStatusHandler): (() => void) => vi.fn(),
 );
 const mockReplace = vi.fn();
 const mockRefreshBrands = vi.fn();
-
-const mockPublicService = {
-  findPublicArticles: mockFindPublicArticles,
-  findPublicImages: mockFindPublicImages,
-  findPublicVideos: mockFindPublicVideos,
-};
 
 const mockClipboardService = {
   copyToClipboard: mockCopyToClipboard,
@@ -104,12 +95,6 @@ vi.mock('@helpers/ui/modal/modal.helper', () => ({
   openModal: (...args: unknown[]) => mockOpenModal(...args),
 }));
 
-vi.mock('@genfeedai/services/external/public.service', () => ({
-  PublicService: {
-    getInstance: vi.fn(() => mockPublicService),
-  },
-}));
-
 vi.mock('@genfeedai/services/core/clipboard.service', () => ({
   ClipboardService: {
     getInstance: vi.fn(() => mockClipboardService),
@@ -136,16 +121,14 @@ vi.mock('@genfeedai/services/core/logger.service', () => ({
   },
 }));
 
+import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { usePathname } from 'next/navigation';
+import { useParams, usePathname } from 'next/navigation';
 
 describe('useBrandDetail', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockCopyToClipboard.mockResolvedValue(undefined);
-    mockFindPublicArticles.mockResolvedValue([]);
-    mockFindPublicImages.mockResolvedValue([]);
-    mockFindPublicVideos.mockResolvedValue([]);
     mockFindOne.mockResolvedValue(
       createBrand({ id: 'brand-1', scope: AssetScope.BRAND }),
     );
@@ -278,20 +261,6 @@ describe('useBrandDetail', () => {
     });
   });
 
-  it('uses article-native public query params for latest articles', async () => {
-    renderHook(() => useBrandDetail(), { wrapper: queryClientWrapper() });
-
-    await waitFor(() => {
-      expect(mockFindPublicArticles).toHaveBeenCalledWith({
-        brand: 'brand-1',
-        limit: 3,
-        sortBy: 'createdAt',
-        sortOrder: 'desc',
-        status: [ArticleStatus.PUBLISHED],
-      });
-    });
-  });
-
   it('copies text via clipboard service', async () => {
     const { result } = renderHook(() => useBrandDetail(), {
       wrapper: queryClientWrapper(),
@@ -342,7 +311,7 @@ describe('useBrandDetail', () => {
     }
 
     it('saves the normalized handle and moves the page to the new route', async () => {
-      vi.mocked(usePathname).mockReturnValue('/acme/brand-1/settings');
+      vi.mocked(usePathname).mockReturnValue('/acme/brand-1/settings/profile');
       mockPatch.mockResolvedValue({
         id: 'brand-1',
         links: [],
@@ -355,7 +324,9 @@ describe('useBrandDetail', () => {
       });
 
       expect(mockPatch).toHaveBeenCalledWith('brand-1', { slug: 'acme-labs' });
-      expect(mockReplace).toHaveBeenCalledWith('/acme/acme-labs/settings');
+      expect(mockReplace).toHaveBeenCalledWith(
+        '/acme/acme-labs/settings/profile',
+      );
       expect(mockRefreshBrands).toHaveBeenCalledOnce();
     });
 
@@ -866,21 +837,71 @@ describe('useBrandDetail', () => {
     expect(result.current.socialConnections).toHaveLength(2);
   });
 
-  it('keeps other media when one public feed fails', async () => {
-    mockFindPublicVideos.mockRejectedValue(new Error('videos down'));
-    mockFindPublicImages.mockResolvedValue([{ id: 'image-1' }]);
-    mockFindPublicArticles.mockRejectedValue(new Error('articles down'));
+  describe('brand id in the route', () => {
+    const brandContext = {
+      brands: [createBrand({ id: 'brand-1', slug: 'brand-1' })],
+      refreshBrands: vi.fn(),
+    };
 
-    const { result } = renderHook(() => useBrandDetail(), {
-      wrapper: queryClientWrapper(),
+    beforeEach(() => {
+      vi.mocked(useBrand).mockReturnValue(
+        brandContext as unknown as ReturnType<typeof useBrand>,
+      );
+      vi.mocked(useParams).mockReturnValue({
+        brandSlug: 'brand-1',
+        orgSlug: 'acme',
+      });
     });
 
-    await waitFor(() => {
-      expect(result.current.images).toEqual([{ id: 'image-1' }]);
+    afterEach(() => {
+      vi.mocked(useBrand).mockReturnValue({
+        brands: [],
+        refreshBrands: mockRefreshBrands,
+      } as unknown as ReturnType<typeof useBrand>);
+      vi.mocked(useParams).mockReturnValue({
+        orgSlug: 'acme',
+        slug: 'brand-1',
+      });
+      vi.mocked(usePathname).mockReturnValue('/settings/brands/brand-1');
     });
 
-    expect(result.current.videos).toEqual([]);
-    expect(result.current.articles).toEqual([]);
+    it('keeps a non-settings route that reads the brand where it is', async () => {
+      vi.mocked(usePathname).mockReturnValue(
+        '/acme/brand-1/publishing/overview',
+      );
+
+      const { result } = renderHook(() => useBrandDetail(), {
+        wrapper: queryClientWrapper(),
+      });
+
+      await waitFor(() => {
+        expect(result.current.brand).not.toBeNull();
+      });
+
+      expect(mockReplace).not.toHaveBeenCalled();
+    });
+
+    it('still moves a settings route that names the brand by id to its slug', async () => {
+      vi.mocked(useBrand).mockReturnValue({
+        brands: [createBrand({ id: 'brand-1', slug: 'acme-labs' })],
+        refreshBrands: vi.fn(),
+      } as unknown as ReturnType<typeof useBrand>);
+      vi.mocked(useParams).mockReturnValue({
+        brandSlug: 'brand-1',
+        orgSlug: 'acme',
+      });
+      vi.mocked(usePathname).mockReturnValue(
+        '/acme/brand-1/settings/brand-kit',
+      );
+
+      renderHook(() => useBrandDetail(), { wrapper: queryClientWrapper() });
+
+      await waitFor(() => {
+        expect(mockReplace).toHaveBeenCalledWith(
+          '/acme/acme-labs/settings/brand-kit',
+        );
+      });
+    });
   });
 
   it('registers an asset-status websocket subscription', async () => {

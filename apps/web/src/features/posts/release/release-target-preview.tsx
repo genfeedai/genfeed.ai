@@ -9,18 +9,18 @@ import type {
   IPost,
   IReleaseGroup,
 } from '@genfeedai/contracts/interfaces';
-import { resolveAuthToken } from '@helpers/auth/auth.helper';
-import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
-import { PostsService } from '@services/content/posts.service';
-import { logger } from '@services/core/logger.service';
 import { Badge } from '@ui/primitives/badge';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import TargetPreview from '@/components/previews/TargetPreview';
 import ThreadPreviewPanel from '@/features/posts/components/posts/preview/thread-preview-panel/ThreadPreviewPanel';
 import {
   badgeVariantForTone,
   targetStateBadge,
 } from '@/features/posts/shared/release-status.helpers';
+import {
+  useReleaseTargetPost,
+  useReleaseWithPostMedia,
+} from './use-release-target-post';
 
 interface ReleaseTargetPreviewProps {
   release: IReleaseGroup;
@@ -53,53 +53,37 @@ function replyStatus(post: {
  * What a release target will post, or posted. An X target with replies is a
  * thread, shown post by post with where each one stands in publishing; every
  * other target keeps the single platform preview.
+ *
+ * The release row carries no media URLs and, for a post that never went
+ * through a release group (a backfilled or imported post), no media at all.
+ * The target's own post does, so the preview loads it and draws the slides and
+ * the connected account from there instead of showing "Media required" and a
+ * placeholder account.
  */
 export default function ReleaseTargetPreview({
   release,
   target,
 }: ReleaseTargetPreviewProps): React.JSX.Element {
-  const { getToken } = useAuthIdentity();
-  const [thread, setThread] = useState<IPost | null>(null);
-  const isThreadPlatform = target.platform === CredentialPlatform.TWITTER;
-
-  useEffect(() => {
-    if (!isThreadPlatform) {
-      return;
-    }
-    const controller = new AbortController();
-
-    async function loadThread() {
-      try {
-        const token = (await resolveAuthToken(getToken)) ?? '';
-        const post = await PostsService.getInstance(token).findOne(target.id);
-        if (!controller.signal.aborted) {
-          setThread(post);
-        }
-      } catch (fetchError) {
-        if (!controller.signal.aborted) {
-          logger.error('Failed to load release target thread', fetchError);
-        }
-      }
-    }
-
-    void loadThread();
-    return () => controller.abort();
-  }, [getToken, isThreadPlatform, target.id]);
+  const post = useReleaseTargetPost(target.id);
+  const previewRelease = useReleaseWithPostMedia(release, post);
 
   const replies = useMemo(
     () =>
-      [...(thread?.children ?? [])].sort(
-        (a, b) => (a.order ?? 0) - (b.order ?? 0),
-      ),
-    [thread],
+      target.platform === CredentialPlatform.TWITTER
+        ? [...(post?.children ?? [])].sort(
+            (a, b) => (a.order ?? 0) - (b.order ?? 0),
+          )
+        : [],
+    [post, target.platform],
   );
 
-  if (!thread || replies.length === 0) {
+  if (!post || replies.length === 0) {
     return (
       <TargetPreview
-        className="max-w-sm"
-        credential={target.credential ?? { platform: target.platform }}
-        release={release}
+        credential={
+          target.credential ?? post?.credential ?? { platform: target.platform }
+        }
+        release={previewRelease}
         target={target}
       />
     );
@@ -108,8 +92,8 @@ export default function ReleaseTargetPreview({
   return (
     <ThreadPreviewPanel
       parent={{
-        content: thread.description ?? '',
-        id: thread.id,
+        content: post.description ?? '',
+        id: post.id,
         status: replyStatus({
           targetError: target.error,
           targetExecutionState: target.executionState,

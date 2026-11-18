@@ -117,6 +117,15 @@ export default function LibraryFiltersMenu({
           selection: 'single',
           value: model.placeValue,
         },
+        {
+          defaultValue: 'all',
+          key: 'review',
+          label: translate('review'),
+          onChange: model.onReviewValueChange,
+          options: model.reviewChoices,
+          selection: 'single',
+          value: model.reviewValue,
+        },
       ];
 
   facets.push(

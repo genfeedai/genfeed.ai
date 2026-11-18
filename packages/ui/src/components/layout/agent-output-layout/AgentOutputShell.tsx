@@ -142,16 +142,18 @@ export default function AgentOutputShell({
                 variant={ButtonVariant.GHOST}
                 withWrapper={false}
               />
-              <Button
-                ariaLabel={translate('openFullPage')}
-                data-testid="agent-output-full-page"
-                icon={<Expand className="size-4" />}
-                onClick={host.onOpenFullPage}
-                size={ButtonSize.SM}
-                tooltip={translate('openFullPage')}
-                variant={ButtonVariant.GHOST}
-                withWrapper={false}
-              />
+              {host.onOpenFullPage ? (
+                <Button
+                  ariaLabel={translate('openFullPage')}
+                  data-testid="agent-output-full-page"
+                  icon={<Expand className="size-4" />}
+                  onClick={host.onOpenFullPage}
+                  size={ButtonSize.SM}
+                  tooltip={translate('openFullPage')}
+                  variant={ButtonVariant.GHOST}
+                  withWrapper={false}
+                />
+              ) : null}
             </>
           )}
         </>

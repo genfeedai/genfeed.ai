@@ -9,7 +9,7 @@ export interface Analytics {
   videoId?: string;
 }
 
-export interface TopPerformingVideo {
+interface TopPerformingVideo {
   id: string;
   title: string;
   views: number;

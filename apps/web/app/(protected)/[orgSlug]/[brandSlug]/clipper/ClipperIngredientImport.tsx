@@ -66,12 +66,13 @@ export default function ClipperIngredientImport({
   // A plain string, so the create effect does not re-run when `t` changes.
   const createFailedMessage = t('projectCreateFailed');
 
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     if (!isBrandReady) {
       return;
     }
 
-    let isActive = true;
+    const abortController = new AbortController();
     const brandId = selectedBrand?.id;
 
     createClipperProjectOnce(
@@ -85,12 +86,12 @@ export default function ClipperIngredientImport({
         ).projectId,
     )
       .then((projectId) => {
-        if (isActive) {
+        if (!abortController.signal.aborted) {
           replace(href(`${APP_ROUTES.STUDIO.CLIPPER}/${projectId}`));
         }
       })
       .catch((error: unknown) => {
-        if (!isActive) {
+        if (abortController.signal.aborted) {
           return;
         }
         logger.error('Failed to create clip project', error);
@@ -102,7 +103,7 @@ export default function ClipperIngredientImport({
       });
 
     return () => {
-      isActive = false;
+      abortController.abort();
     };
   }, [
     clipsService,

@@ -7,7 +7,7 @@ import { withExternalMediaFallback } from '@libs/media/media-url.util';
 import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
-export interface IngredientLineageViewer {
+interface IngredientLineageViewer {
   brandId?: string;
   organizationId: string;
 }

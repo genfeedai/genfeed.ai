@@ -2,4 +2,5 @@ export * from '@serializers/server/threads/agent-brand.serializer';
 export * from '@serializers/server/threads/agent-post.serializer';
 export * from '@serializers/server/threads/agent-run.serializer';
 export * from '@serializers/server/threads/agent-thread.serializer';
+export * from '@serializers/server/threads/agent-thread-share.serializer';
 export * from '@serializers/server/threads/thread-message.serializer';

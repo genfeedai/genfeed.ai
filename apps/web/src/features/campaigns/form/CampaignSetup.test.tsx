@@ -31,7 +31,11 @@ vi.mock('@hooks/navigation/use-collection-scope/use-collection-scope', () => ({
   isBrandResourceReady: () => true,
 }));
 vi.mock('@hooks/navigation/use-org-url', () => ({
-  useOrgUrl: () => ({ href: (path: string) => `/org/brand${path}` }),
+  useOrgUrl: () => ({
+    href: (path: string) => `/org/brand${path}`,
+    orgHref: (path: string) => `/org/~${path}`,
+    activeHref: (path: string) => `/org/brand${path}`,
+  }),
 }));
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => async () => ({
@@ -214,7 +218,7 @@ describe('Campaign setup', () => {
     expect(screen.getByRole('button', { name: 'generate' })).toBeDisabled();
     expect(
       screen.getByRole('link', { name: 'accounts.manage' }),
-    ).toHaveAttribute('href', '/org/brand/settings/accounts');
+    ).toHaveAttribute('href', '/org/brand/settings/profile');
   });
   it('keeps failed generation retryable instead of displaying success', async () => {
     mocks.generate.mockResolvedValue({

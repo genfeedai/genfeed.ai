@@ -1,8 +1,10 @@
+import type { PostsService } from '@api/collections/posts/services/posts.service';
 import { AgentGenerationDecisionService } from '@api/services/agent-orchestrator/agent-generation-decision.service';
 import type { ThreadUiActionExecutionParams } from '@api/services/agent-orchestrator/agent-orchestrator-ui-action.types';
 import { AgentOrchestratorUiActionMutationService } from '@api/services/agent-orchestrator/agent-orchestrator-ui-action-mutation.service';
+import { createAgentTextDraft } from '@api/services/agent-orchestrator/tools/agent-publish-post-actions';
 import { buildLogicalWriteKey } from '@genfeedai/actions/server';
-import { ApiKeyScope } from '@genfeedai/contracts';
+import { ApiKeyScope, PostVisibility } from '@genfeedai/contracts';
 import { ForbiddenException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -227,12 +229,86 @@ describe('persisted mutation approvals', () => {
       }),
     ]);
   });
+  it('preserves the stored title through approval and returns the saved draft receipt', async () => {
+    const draftArgs = {
+      content: 'Review before publishing.',
+      title: 'QA draft',
+    };
+    const saved: Array<{ description: string; label: string }> = [];
+    const storedApproval = {
+      ...approval(),
+      toolName: 'create_post',
+      arguments: draftArgs,
+      idempotencyKey: buildLogicalWriteKey({
+        arguments: draftArgs,
+        organizationId: 'org-1',
+        userId: 'user-1',
+        threadId: 'thread-1',
+        scope: { brandId: 'brand-1', contextVersion: 2 },
+        toolName: 'create_post',
+      }),
+    };
+    approvals.findOwned.mockResolvedValue(storedApproval);
+    executor.executeTool.mockImplementationOnce(
+      async (_tool, storedArgs, ctx) =>
+        createAgentTextDraft(
+          {
+            create: async (dto: { description: string; label: string }) => {
+              saved.push({ description: dto.description, label: dto.label });
+              return { id: 'saved-post-1', label: dto.label };
+            },
+          } as unknown as PostsService,
+          storedArgs,
+          ctx,
+          PostVisibility.PUBLIC,
+        ),
+    );
+
+    await service.execute('confirm_mutation', params());
+
+    expect(saved).toEqual([
+      { description: 'Review before publishing.', label: 'QA draft' },
+    ]);
+    const [turn] = finalizer.finalizeStructuredAssistantTurn.mock.calls[0];
+    expect(turn.content).toContain(
+      '[QA draft](/publishing/posts/saved-post-1)',
+    );
+    expect(turn.result.data).toMatchObject({
+      id: 'saved-post-1',
+      brandId: 'brand-1',
+      agentContextVersion: 2,
+    });
+    expect(turn.result.nextActions).toContainEqual(
+      expect.objectContaining({
+        ctas: [{ href: '/publishing/posts/saved-post-1', label: 'Open draft' }],
+      }),
+    );
+  });
+
   it('keeps the generic completion for tools that finish inside the approval', async () => {
     await service.execute('confirm_mutation', params());
 
     const [turn] = finalizer.finalizeStructuredAssistantTurn.mock.calls[0];
     expect(turn.content).toBe('Approved action completed.');
     expect(turn.result.nextActions).toHaveLength(1);
+  });
+  it('marks the resolved card so the stored reply does not repeat it', async () => {
+    await service.execute('confirm_mutation', params());
+
+    const [turn] = finalizer.finalizeStructuredAssistantTurn.mock.calls[0];
+    expect(turn.resolvedSourceActionId).toBe(sourceActionId);
+  });
+  it('shows a plain message when the approved tool throws unexpectedly', async () => {
+    executor.executeTool.mockRejectedValueOnce(
+      new Error('Invalid `prisma.post.create()` invocation: Argument missing'),
+    );
+
+    await expect(
+      service.execute('confirm_mutation', params()),
+    ).rejects.toThrow();
+    expect(
+      JSON.stringify(transaction.agentMessage.updateMany.mock.calls),
+    ).not.toContain('prisma.post.create');
   });
   it('rejects a different thread', async () => {
     await expect(

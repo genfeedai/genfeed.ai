@@ -1,10 +1,12 @@
 import { createHash, randomBytes } from 'node:crypto';
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
+import { CreatorDirectoryService } from '@api/collections/creator-payments/services/creator-directory.service';
 import { NewsletterEmailService } from '@api/collections/newsletter-sends/services/newsletter-email.service';
 import { NewsletterUsageService } from '@api/collections/newsletter-sends/services/newsletter-usage.service';
 import { subscriberEmailHash } from '@api/collections/newsletter-sends/utils/newsletter-token.util';
 import type {
+  AccountSubscribeDto,
   AddBrandSubscribersDto,
   BrandSubscribersQueryDto,
   ImportBrandSubscribersDto,
@@ -26,11 +28,13 @@ import {
   type BrandSubscriberSource,
 } from '@genfeedai/contracts/constants';
 import type {
+  IAccountNewsletterSubscribeResponse,
   IBrandSubscriberImportSummary,
   IBrandSubscriberStats,
 } from '@genfeedai/contracts/interfaces';
 import type { BrandSubscriber } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { runWithTenantContext } from '@libs/prisma/tenant-context';
 import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
@@ -40,6 +44,8 @@ const CONFIRM_TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 const CONFIRM_RESEND_COOLDOWN_MS = 10 * 60 * 1000;
 const CONFIRM_TOKEN_PATTERN = /^[A-Za-z0-9_-]{43}$/;
 const BLOCKED = new Set<string>(BRAND_SUBSCRIBER_BLOCKED_STATUSES);
+/** A reader who unsubscribed may come back; these two never receive mail again. */
+const BLOCKED_FOR_ACCOUNT = new Set<string>(['bounced', 'complained']);
 const EXPORT_PAGE_SIZE = 1_000;
 const WRITE_CHUNK_SIZE = 1_000;
 
@@ -56,6 +62,15 @@ function confirmTokenHash(token: string): string {
   return createHash('sha256').update(token).digest('hex');
 }
 
+function hasRecentConfirmation(subscriber: BrandSubscriber): boolean {
+  return Boolean(
+    subscriber.confirmTokenHash &&
+      subscriber.confirmSentAt &&
+      Date.now() - subscriber.confirmSentAt.getTime() <
+        CONFIRM_RESEND_COOLDOWN_MS,
+  );
+}
+
 /**
  * A brand's audience (#9665, #9724): public double opt-in, add by email,
  * CSV import and export. Unsubscribed, bounced and complained addresses, and
@@ -69,6 +84,7 @@ export class BrandSubscribersService {
     private readonly brandAccess: BrandAccessService,
     private readonly emails: NewsletterEmailService,
     private readonly usage: NewsletterUsageService,
+    private readonly creators: CreatorDirectoryService,
     private readonly logger: LoggerService,
   ) {}
 
@@ -287,7 +303,7 @@ export class BrandSubscribersService {
         'Only pending subscribers need confirming.',
       );
     }
-    await this.sendConfirmation(subscriber);
+    await this.sendConfirmation(subscriber, { forceResend: true });
   }
 
   /**
@@ -322,12 +338,7 @@ export class BrandSubscribersService {
       if (existing.status === 'active') return;
       if (existing.status === 'bounced' || existing.status === 'complained')
         return;
-      if (
-        existing.status === 'pending' &&
-        existing.confirmSentAt &&
-        Date.now() - existing.confirmSentAt.getTime() <
-          CONFIRM_RESEND_COOLDOWN_MS
-      ) {
+      if (existing.status === 'pending' && hasRecentConfirmation(existing)) {
         return;
       }
     }
@@ -374,6 +385,136 @@ export class BrandSubscribersService {
       });
     }
     if (subscriber) await this.sendConfirmation(subscriber);
+  }
+
+  /**
+   * One-click subscribe for a signed-in reader. The account's own email is
+   * the address. A verified email is subscribed at once, because the reader
+   * already proved the mailbox and just asked for this list; an unverified
+   * one gets the usual confirmation email instead. A reader who unsubscribed
+   * earlier can subscribe again here; a bounced or complaining address and the
+   * global suppression list stay blocked.
+   */
+  async subscribeAccount(
+    user: AuthenticatedUser,
+    dto: AccountSubscribeDto,
+    ipAddress: string | null,
+  ): Promise<IAccountNewsletterSubscribeResponse> {
+    const creator = await this.creators.findPublicCreator(dto.handle);
+    const account = await this.prisma.user.findFirst({
+      select: { email: true, emailVerified: true },
+      where: { id: user.userId, isDeleted: false },
+    });
+    const email = account?.email?.trim().toLowerCase();
+    if (!email) {
+      throw new BadRequestException('Your account has no email address.');
+    }
+    const isVerified = Boolean(account?.emailVerified);
+    const orgId = creator.organizationId;
+    const emailHash = subscriberEmailHash(email);
+
+    return runWithTenantContext({ organizationId: orgId }, async () => {
+      const [existing, suppressed] = await Promise.all([
+        // tenant-scope-ignore: a removed row is read too so a returning reader revives it; the organization filter stays.
+        this.prisma.brandSubscriber.findFirst({
+          where: { brandId: creator.id, emailHash, organizationId: orgId },
+        }),
+        // tenant-scope-ignore: bounce and complaint suppression follows an address across organizations.
+        this.prisma.emailSuppression.findUnique({
+          where: { recipientHash: emailHash },
+        }),
+      ]);
+      const isLive = Boolean(existing && !existing.isDeleted);
+      if (
+        suppressed ||
+        (existing && BLOCKED_FOR_ACCOUNT.has(existing.status))
+      ) {
+        throw new BadRequestException(
+          `${creator.label} cannot send to this email address.`,
+        );
+      }
+      if (isLive && existing?.status === 'active') {
+        return { status: 'subscribed' as const };
+      }
+      if (
+        !isVerified &&
+        isLive &&
+        existing?.status === 'pending' &&
+        hasRecentConfirmation(existing)
+      ) {
+        return { status: 'confirmation_sent' as const };
+      }
+      if (!(await this.usage.hasSubscriberCapacity(orgId, 1))) {
+        throw new BadRequestException(
+          `${creator.label} is not taking new subscribers right now.`,
+        );
+      }
+
+      const now = new Date();
+      const fields = {
+        consentIp: ipAddress?.slice(0, 64) ?? null,
+        isDeleted: false,
+        source: dto.source ?? 'profile',
+        sourceRef: dto.sourceRef?.slice(0, 200) ?? null,
+        unsubscribedAt: null,
+        userId: user.userId,
+        ...(isVerified
+          ? {
+              confirmedAt: now,
+              confirmSentAt: null,
+              confirmTokenHash: null,
+              consentAt: now,
+              consentMethod: 'account',
+              status: 'active',
+            }
+          : { consentMethod: 'double_opt_in', status: 'pending' }),
+      };
+      if (existing) {
+        // sql-risk-audit: ignore bulk-write-tenant-review -- updates only the observed state of this brand subscriber.
+        // tenant-scope-ignore: a removed row may be revived, with its exact deletion state and organization pinned.
+        await this.prisma.brandSubscriber.updateMany({
+          data: fields,
+          where: {
+            id: existing.id,
+            isDeleted: existing.isDeleted,
+            organizationId: orgId,
+            status: existing.status,
+          },
+        });
+      } else {
+        await this.prisma.brandSubscriber.createMany({
+          data: [
+            {
+              ...fields,
+              brandId: creator.id,
+              email,
+              emailHash,
+              organizationId: orgId,
+            },
+          ],
+          skipDuplicates: true,
+        });
+      }
+      const subscriber = await this.prisma.brandSubscriber.findFirst({
+        where: scopedWhere(orgId, { brandId: creator.id, emailHash }),
+      });
+      if (subscriber?.status !== (isVerified ? 'active' : 'pending')) {
+        if (subscriber?.status === 'active')
+          return { status: 'subscribed' as const };
+        throw new BadRequestException('The subscription was not saved.');
+      }
+      if (!isVerified) {
+        await this.sendConfirmation(subscriber);
+        return { status: 'confirmation_sent' as const };
+      }
+      await this.sendWelcome(subscriber).catch((error: unknown) =>
+        this.logger.warn('Newsletter welcome email was not sent', {
+          error: error instanceof Error ? error.message : 'unknown',
+          subscriberId: subscriber.id,
+        }),
+      );
+      return { status: 'subscribed' as const };
+    });
   }
 
   /** Confirm a double opt-in. Returns the brand for the confirmation page. */
@@ -607,15 +748,14 @@ export class BrandSubscribersService {
     return { duplicate, fresh, removedIds, suppressed };
   }
 
-  private async sendConfirmation(subscriber: BrandSubscriber): Promise<void> {
+  private async sendConfirmation(
+    subscriber: BrandSubscriber,
+    { forceResend = false } = {},
+  ): Promise<void> {
+    if (!forceResend && hasRecentConfirmation(subscriber)) return;
+
     const token = randomBytes(32).toString('base64url');
     const tokenHash = confirmTokenHash(token);
-    const sentAt = new Date();
-    // sql-risk-audit: ignore bulk-write-tenant-review -- scopedWhere pins one subscriber inside its organization.
-    await this.prisma.brandSubscriber.updateMany({
-      data: { confirmSentAt: sentAt, confirmTokenHash: tokenHash },
-      where: scopedWhere(subscriber.organizationId, { id: subscriber.id }),
-    });
     const look = await this.emails.getBrandLook(
       subscriber.organizationId,
       subscriber.brandId,
@@ -633,14 +773,43 @@ export class BrandSubscribersService {
       template,
       subscriber.id,
     );
-    await this.emails.deliver({
-      html: filled.html,
-      idempotencyKey: `newsletter-confirm/${subscriber.id}/${tokenHash.slice(0, 16)}`,
-      look,
-      subject: `Confirm your subscription to ${name}`,
-      text: filled.text,
-      to: subscriber.email,
+    const sentAt = new Date();
+    // sql-risk-audit: ignore bulk-write-tenant-review -- claims the pending recipient's current token.
+    const claimed = await this.prisma.brandSubscriber.updateMany({
+      data: { confirmSentAt: sentAt, confirmTokenHash: tokenHash },
+      where: scopedWhere(subscriber.organizationId, {
+        id: subscriber.id,
+        status: 'pending',
+        confirmTokenHash: subscriber.confirmTokenHash,
+      }),
     });
+    if (!claimed.count) return;
+
+    try {
+      await this.emails.deliver({
+        html: filled.html,
+        idempotencyKey: `newsletter-confirm/${subscriber.id}/${tokenHash.slice(0, 16)}`,
+        look,
+        subject: `Confirm your subscription to ${name}`,
+        text: filled.text,
+        to: subscriber.email,
+      });
+    } catch (error) {
+      // Restore the previous link only while this failed delivery owns the token.
+      // sql-risk-audit: ignore bulk-write-tenant-review -- guarded by subscriber id and this delivery's token.
+      await this.prisma.brandSubscriber.updateMany({
+        data: {
+          confirmSentAt: subscriber.confirmSentAt,
+          confirmTokenHash: subscriber.confirmTokenHash,
+        },
+        where: scopedWhere(subscriber.organizationId, {
+          id: subscriber.id,
+          status: 'pending',
+          confirmTokenHash: tokenHash,
+        }),
+      });
+      throw error;
+    }
   }
 
   private async sendWelcome(subscriber: BrandSubscriber): Promise<void> {

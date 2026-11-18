@@ -46,7 +46,7 @@ environment files contain the clean HTTPS service origins and
 | Command | Role |
 | --- | --- |
 | `bun run dev:setup` / `dev:doctor` | Machine Portless HTTPS contract |
-| `bun run dev:backend:min` | api + files + notifications |
+| `bun run dev:backend:min` | api + files + notifications + workers |
 | `bun run dev:backend` | Full backend |
 | `bun run dev:web` | App → `https://app.genfeed.localhost/` |
 | `bun run dev` | Full stack |

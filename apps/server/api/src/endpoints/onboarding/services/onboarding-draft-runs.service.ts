@@ -8,17 +8,25 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ContentRunStatus } from '@genfeedai/contracts';
 import {
   ONBOARDING_CAMPAIGN_IMAGE_SLOTS,
+  ONBOARDING_DRAFT_PLATFORMS,
+  ONBOARDING_MAX_DRAFT_REWRITES,
+  ONBOARDING_MAX_DRAFT_ROUNDS,
   ONBOARDING_MAX_MEDIA_RETRIES,
 } from '@genfeedai/contracts/constants';
 import type {
   IOnboardingDraftRun,
   IOnboardingFirstDraft,
   IOnboardingFirstDraftsResult,
+  OnboardingDraftPlatform,
 } from '@genfeedai/contracts/interfaces';
 import type { ContentRun, IngredientStatus } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
 import { Traced } from '@libs/tracing/traced';
-import { ConflictException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+} from '@nestjs/common';
 import { z } from 'zod';
 
 const resultSchema = z.object({
@@ -61,8 +69,20 @@ const legacyArtifactSchema = z.object({
 const configSchema = z.object({
   surface: z.literal('onboarding'),
   mediaRetries: z.number().int().min(0).default(0),
+  draftRewrites: z.record(z.string(), z.number().int().min(0)).default({}),
   result: resultSchema.nullable(),
 });
+
+/** What a run has already spent: media retries and per-channel rewrites. */
+interface OnboardingRunAllowance {
+  draftRewrites: Partial<Record<OnboardingDraftPlatform, number>>;
+  mediaRetries: number;
+}
+
+const NO_ALLOWANCE_SPENT: OnboardingRunAllowance = {
+  draftRewrites: {},
+  mediaRetries: 0,
+};
 
 @Traced()
 @Injectable()
@@ -74,11 +94,12 @@ export class OnboardingDraftRunsService {
 
   private configFor(
     result: IOnboardingFirstDraftsResult | null,
-    mediaRetries = 0,
+    spent: OnboardingRunAllowance = NO_ALLOWANCE_SPENT,
   ) {
     return toContentRunJsonValue({
       surface: 'onboarding',
-      mediaRetries,
+      mediaRetries: spent.mediaRetries,
+      draftRewrites: spent.draftRewrites,
       brief: { angle: 'First posts' },
       variants: (result?.drafts ?? []).map((draft) => ({
         id: draft.postId,
@@ -192,6 +213,16 @@ export class OnboardingDraftRunsService {
     const verdicts = await this.readVerdicts(user, brandId, config.result);
     return {
       id: row.id,
+      draftRewritesRemaining: Object.fromEntries(
+        ONBOARDING_DRAFT_PLATFORMS.map((platform) => [
+          platform,
+          Math.max(
+            0,
+            ONBOARDING_MAX_DRAFT_REWRITES -
+              (config.draftRewrites[platform] ?? 0),
+          ),
+        ]),
+      ) as IOnboardingDraftRun['draftRewritesRemaining'],
       mediaRetriesRemaining: Math.max(
         0,
         ONBOARDING_MAX_MEDIA_RETRIES - config.mediaRetries,
@@ -199,13 +230,11 @@ export class OnboardingDraftRunsService {
       result: config.result,
       verdicts,
       status:
-        (row.status === ContentRunStatus.COMPLETED ||
-          row.status === 'complete') &&
+        row.status === ContentRunStatus.COMPLETED &&
         !isImageProcessing &&
         !hasPendingCampaignImage
           ? 'complete'
           : row.status === ContentRunStatus.FAILED ||
-              row.status === 'interrupted' ||
               Date.now() - row.updatedAt.getTime() > 10 * 60_000
             ? 'interrupted'
             : 'running',
@@ -343,6 +372,12 @@ export class OnboardingDraftRunsService {
     });
     return {
       id,
+      draftRewritesRemaining: Object.fromEntries(
+        ONBOARDING_DRAFT_PLATFORMS.map((platform) => [
+          platform,
+          ONBOARDING_MAX_DRAFT_REWRITES,
+        ]),
+      ) as IOnboardingDraftRun['draftRewritesRemaining'],
       mediaRetriesRemaining: ONBOARDING_MAX_MEDIA_RETRIES,
       status: 'complete',
       result,
@@ -468,8 +503,11 @@ export class OnboardingDraftRunsService {
         'This run has used all of its media retries.',
       );
 
-    const mediaRetries =
-      ONBOARDING_MAX_MEDIA_RETRIES - run.mediaRetriesRemaining + 1;
+    const spent: OnboardingRunAllowance = {
+      draftRewrites: configSchema.parse(row.config).draftRewrites,
+      mediaRetries:
+        ONBOARDING_MAX_MEDIA_RETRIES - run.mediaRetriesRemaining + 1,
+    };
     const next = structuredClone(result);
     if (missing.image) {
       next.imageIngredientId = null;
@@ -486,7 +524,7 @@ export class OnboardingDraftRunsService {
       },
       data: {
         status: ContentRunStatus.RUNNING,
-        config: this.configFor(next, mediaRetries),
+        config: this.configFor(next, spent),
       },
     });
     if (!claimed.count)
@@ -497,7 +535,7 @@ export class OnboardingDraftRunsService {
       saved = current;
       await this.prisma.contentRun.updateMany({
         where: { id: row.id, organizationId, brandId, isDeleted: false },
-        data: { config: this.configFor(current, mediaRetries) },
+        data: { config: this.configFor(current, spent) },
       });
       await this.attachReadyAssets(user, brandId, row.id, current);
     };
@@ -522,6 +560,92 @@ export class OnboardingDraftRunsService {
     }
   }
 
+  /**
+   * Writes one channel's post again, at most ONBOARDING_MAX_DRAFT_REWRITES times
+   * per channel per run. The other posts and all media are never touched, and a
+   * failed attempt keeps the post it was meant to replace. The attempt is spent
+   * when the run row is claimed, by comparing the `updatedAt` just read, so two
+   * tabs cannot both start the same rewrite.
+   */
+  async rewriteDraft(
+    user: AuthenticatedUser,
+    brandId: string,
+    platform: OnboardingDraftPlatform,
+    write: (
+      previous: IOnboardingFirstDraft | undefined,
+    ) => Promise<IOnboardingFirstDraft>,
+  ): Promise<IOnboardingFirstDraftsResult> {
+    const organizationId = String(user.organizationId);
+    const row = await this.findLatestRow(user, brandId);
+    if (!row) throw new NotFoundException('Onboarding run');
+    const run = await this.project(user, brandId, row);
+    const result = run.result;
+    if (!result)
+      throw new ConflictException('There are no saved posts to write again.');
+    if (run.status === 'running')
+      throw new ConflictException('Your posts are still being written.');
+    if (!run.draftRewritesRemaining[platform])
+      throw new ConflictException('This channel has used all of its rewrites.');
+
+    const config = configSchema.parse(row.config);
+    const spent: OnboardingRunAllowance = {
+      draftRewrites: {
+        ...config.draftRewrites,
+        [platform]: (config.draftRewrites[platform] ?? 0) + 1,
+      },
+      mediaRetries: config.mediaRetries,
+    };
+    const claimed = await this.prisma.contentRun.updateMany({
+      where: {
+        id: row.id,
+        organizationId,
+        brandId,
+        isDeleted: false,
+        updatedAt: row.updatedAt,
+      },
+      data: {
+        status: ContentRunStatus.RUNNING,
+        config: this.configFor(result, spent),
+      },
+    });
+    if (!claimed.count)
+      throw new ConflictException('Your posts are still being written.');
+
+    const finish = (current: IOnboardingFirstDraftsResult) =>
+      this.prisma.contentRun.updateMany({
+        where: { id: row.id, organizationId, brandId, isDeleted: false },
+        data: {
+          status: ContentRunStatus.COMPLETED,
+          config: this.configFor(current, spent),
+        },
+      });
+    try {
+      const previous = result.drafts.find(
+        (draft) => draft.platform === platform,
+      );
+      const draft = await write(previous);
+      const next = structuredClone(result);
+      next.drafts = [
+        ...next.drafts.filter((item) => item.platform !== platform),
+        draft,
+      ].sort(
+        (left, right) =>
+          ONBOARDING_DRAFT_PLATFORMS.indexOf(left.platform) -
+          ONBOARDING_DRAFT_PLATFORMS.indexOf(right.platform),
+      );
+      // The X post is what a full redo links its replacement to.
+      if (platform === 'twitter') next.requestKey = draft.requestKey;
+      next.requestKey ??= next.drafts[0]?.requestKey ?? null;
+      if (next.status === 'unavailable') next.status = 'partial';
+      await finish(next);
+      await this.attachReadyAssets(user, brandId, row.id, next);
+      return next;
+    } catch (error) {
+      await finish(result);
+      throw error;
+    }
+  }
+
   async execute(
     user: AuthenticatedUser,
     brandId: string,
@@ -541,6 +665,27 @@ export class OnboardingDraftRunsService {
       )
       .digest('hex')}`;
     const where = { id, organizationId, brandId, isDeleted: false };
+    // Each round is its own run, so the number of rounds a brand has had is the
+    // number of its runs that did not fail. A request that repeats a round
+    // already saved is replayed below and never counts as another round.
+    if (previousRequestKey) {
+      const rounds = await this.prisma.contentRun.count({
+        where: {
+          organizationId,
+          brandId,
+          isDeleted: false,
+          config: { path: ['surface'], equals: 'onboarding' },
+          status: { not: ContentRunStatus.FAILED },
+        },
+      });
+      if (
+        rounds >= ONBOARDING_MAX_DRAFT_ROUNDS &&
+        !(await this.prisma.contentRun.count({ where }))
+      )
+        throw new BadRequestException(
+          'This brand has used every round of first drafts.',
+        );
+    }
     // A unique durable reservation prevents refreshes and concurrent tabs from
     // spending again. An interrupted request is recovered, never auto-retried.
     const created = await this.prisma.contentRun.createMany({
@@ -562,8 +707,7 @@ export class OnboardingDraftRunsService {
       });
       const config = configSchema.safeParse(existing?.config);
       if (
-        (existing?.status === ContentRunStatus.COMPLETED ||
-          existing?.status === 'complete') &&
+        existing?.status === ContentRunStatus.COMPLETED &&
         config.success &&
         config.data.result
       )

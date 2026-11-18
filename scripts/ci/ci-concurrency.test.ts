@@ -65,13 +65,20 @@ describe('CI concurrency', () => {
     expect(workflow).toContain('cancel-in-progress: false');
   });
 
-  it('runs the executable-contract suite from the static-checks job', () => {
+  it('runs the executable-contract suites from the static-checks job and the repository contracts from their own job', () => {
     const workflow = readWorkflow('_ci-validation.yml');
     const staticChecksJob =
       workflow
         .split(/\n {2}static-checks:\n/)[1]
+        ?.split(/\n {2}source-contracts:\n/)[0] ?? '';
+    const sourceContractsJob =
+      workflow
+        .split(/\n {2}source-contracts:\n/)[1]
         ?.split(/\n {2}spec-typecheck:\n/)[0] ?? '';
 
-    expect(staticChecksJob).toContain('bun run test:executable-contracts');
+    expect(staticChecksJob).toContain(
+      'bun run test:executable-contracts:static',
+    );
+    expect(sourceContractsJob).toContain('bun run test:repository-contracts');
   });
 });

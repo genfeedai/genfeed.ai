@@ -60,6 +60,7 @@ export function useWebSocket(): UseWebSocketReturn {
     websocketService.send(type, data);
   }, []);
 
+  // use-effect-audit: ignore subscribes to app state changes
   useEffect(() => {
     const handleAppStateChange = (nextAppState: AppStateStatus) => {
       if (
@@ -74,6 +75,7 @@ export function useWebSocket(): UseWebSocketReturn {
     return subscribeToAppStateChange(handleAppStateChange);
   }, [connect]);
 
+  // use-effect-audit: ignore subscribes to websocket events
   useEffect(() => {
     const handleConnectionStateChanged = (state: ConnectionState) => {
       setConnectionState(state);
@@ -95,6 +97,7 @@ export function useWebSocket(): UseWebSocketReturn {
     };
   }, []);
 
+  // use-effect-audit: ignore connects and disconnects the websocket service with the signed-in state
   useEffect(() => {
     if (isSignedIn) {
       connect();
@@ -115,21 +118,4 @@ export function useWebSocket(): UseWebSocketReturn {
     lastMessage,
     send,
   };
-}
-
-export function useWebSocketEvent<T = unknown>(
-  eventType: string,
-  callback: (data: T) => void,
-): void {
-  useEffect(() => {
-    const handler = (data: T) => {
-      callback(data);
-    };
-
-    websocketService.on(eventType, handler);
-
-    return () => {
-      websocketService.off(eventType, handler);
-    };
-  }, [eventType, callback]);
 }

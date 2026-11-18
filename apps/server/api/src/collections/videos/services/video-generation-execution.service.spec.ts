@@ -1,6 +1,7 @@
 import type { VideoGenerationContext } from '@api/collections/videos/services/video-generation.types';
 import { VideoGenerationExecutionService } from '@api/collections/videos/services/video-generation-execution.service';
 import { billableProfile } from '@api/helpers/utils/credits/model-billable-quote.fixture';
+import { HiggsFieldProviderError } from '@api/services/integrations/higgsfield/errors/higgsfield-provider.error';
 import { ReplicateProviderError } from '@api/services/integrations/replicate/errors/replicate-provider.error';
 import { AgentFailureReason, IngredientCategory } from '@genfeedai/contracts';
 import { quoteModelBillablePricing } from '@genfeedai/pricing';
@@ -80,6 +81,7 @@ describe('VideoGenerationExecutionService', () => {
       open: vi.fn().mockResolvedValue(undefined),
       recordAccepted: vi.fn().mockResolvedValue(undefined),
     };
+    const higgsFieldPollQueueService = { schedule: vi.fn() };
     const service = new VideoGenerationExecutionService(
       activitiesService as never,
       failedGenerationService as never,
@@ -93,9 +95,11 @@ describe('VideoGenerationExecutionService', () => {
       websocketService as never,
       webhooksService as never,
       mediaReceipts as never,
+      higgsFieldPollQueueService as never,
     );
 
     return {
+      higgsFieldPollQueueService,
       mediaReceipts,
       generationBilling,
       metadataService,
@@ -841,5 +845,193 @@ describe('VideoGenerationExecutionService', () => {
     expect(replicatePollQueueService.schedule).toHaveBeenCalledWith(
       expect.not.objectContaining({ isByok: true }),
     );
+  });
+
+  describe('Higgsfield accepted request', () => {
+    const accepted = {
+      completion: 'polling',
+      externalId: 'hf-request-1',
+      provider: 'higgsfield',
+    };
+
+    it('saves the request id before the durable poll job exists', async () => {
+      const {
+        higgsFieldPollQueueService,
+        metadataService,
+        providerDispatchService,
+        service,
+      } = createHarness();
+      providerDispatchService.dispatch.mockResolvedValue(accepted);
+
+      await service.execute(buildContext());
+
+      expect(metadataService.patch).toHaveBeenCalledWith(
+        'metadata-1',
+        expect.objectContaining({
+          externalId: 'hf-request-1',
+          externalProvider: 'higgsfield',
+        }),
+      );
+      expect(higgsFieldPollQueueService.schedule).toHaveBeenCalledWith({
+        externalId: 'hf-request-1',
+        ingredientId: 'ingredient-1',
+        organizationId: 'org-1',
+      });
+      expect(metadataService.patch.mock.invocationCallOrder[0]).toBeLessThan(
+        higgsFieldPollQueueService.schedule.mock.invocationCallOrder[0] ?? 0,
+      );
+    });
+
+    it('sends the same idempotency key every time the same generation is dispatched', async () => {
+      const { providerDispatchService, service } = createHarness();
+      providerDispatchService.dispatch.mockResolvedValue(accepted);
+
+      await service.execute(buildContext());
+      await service.execute(buildContext());
+
+      const keys = providerDispatchService.dispatch.mock.calls.map(
+        ([params]) => params.idempotencyKey,
+      );
+      expect(keys).toEqual([
+        'video-generation-ingredient-1',
+        'video-generation-ingredient-1',
+      ]);
+    });
+
+    it('keeps a lost Higgsfield submission response recoverable without releasing its output', async () => {
+      const state = createHarness();
+      const output = { status: 'processing', released: false };
+      state.providerDispatchService.providerFor.mockReturnValue('higgsfield');
+      state.providerDispatchService.dispatch.mockImplementation(
+        async (params) => {
+          params.onProviderSubmissionStarted();
+          throw new Error('response connection lost');
+        },
+      );
+      state.failedGenerationService.handleFailedVideoGeneration.mockImplementation(
+        async () => {
+          output.status = 'failed';
+        },
+      );
+      state.generationBilling.releaseOutput.mockImplementation(async () => {
+        output.released = true;
+        return 'released';
+      });
+
+      await expect(
+        state.service.execute(
+          buildContext({
+            model: 'higgsfield/cinema-studio/4.0',
+            pendingIngredientIds: ['ingredient-1'],
+          }),
+        ),
+      ).rejects.toThrow('response connection lost');
+
+      expect(output).toEqual({ status: 'processing', released: false });
+    });
+
+    it.each([400, 401, 403, 404, 422, 429])(
+      'retains normal failure handling for a confirmed HTTP %s rejection',
+      async (statusCode) => {
+        const state = createHarness();
+        const released: string[] = [];
+        state.providerDispatchService.dispatch.mockImplementation(
+          async (params) => {
+            params.onProviderSubmissionStarted();
+            throw new HiggsFieldProviderError(
+              AgentFailureReason.ACTION_NOT_ALLOWED,
+              'request rejected',
+              { isRetryable: false, statusCode },
+            );
+          },
+        );
+        state.generationBilling.releaseOutput.mockImplementation(
+          async (id: string) => {
+            released.push(id);
+            return 'released';
+          },
+        );
+        await expect(
+          state.service.execute(
+            buildContext({
+              model: 'higgsfield/cinema-studio/4.0',
+              pendingIngredientIds: ['ingredient-1'],
+            }),
+          ),
+        ).rejects.toThrow('request rejected');
+        expect(released).toEqual(['ingredient-1']);
+      },
+    );
+
+    it('does not dispatch a fallback after an uncertain routed Cinema Studio submission', async () => {
+      const state = createHarness();
+      const submissions: string[] = [];
+      const model = 'higgsfield/cinema-studio/4.0';
+      state.metadataService.prisma.modelProviderOffer.findFirst.mockResolvedValue(
+        {
+          model: { pinnedProvider: null },
+          executionModel: {
+            provider: 'higgsfield',
+            reviewedProviderContractVersion: 'fixture-v1',
+            endpoint: model,
+            providerInputSchema: {
+              type: 'object',
+              properties: { prompt: { type: 'string' } },
+              required: ['prompt'],
+            },
+          },
+        },
+      );
+      state.providerDispatchService.dispatch.mockImplementation(
+        async (params) => {
+          params.onProviderSubmissionStarted();
+          submissions.push(params.modelProvider);
+          throw new Error('response connection lost');
+        },
+      );
+      await expect(
+        state.service.execute(
+          buildContext({
+            model,
+            pendingIngredientIds: ['ingredient-1'],
+            request: {
+              creditsConfig: {
+                modelQuote: {
+                  credits: 1,
+                  rateVersion: 'fixture-v1',
+                  routedDispatch: {
+                    offerId: 'fixture-offer',
+                    provider: 'higgsfield',
+                    executionModelKey: model,
+                    endpoint: model,
+                    fallback: {
+                      offerId: 'fallback',
+                      provider: 'fal',
+                      executionModelKey: 'fal/model',
+                      endpoint: 'fal/model',
+                    },
+                  },
+                },
+              },
+            } as unknown as VideoGenerationContext['request'],
+          }),
+        ),
+      ).rejects.toThrow('response connection lost');
+      expect(submissions).toEqual(['higgsfield']);
+    });
+
+    it('does not start a poll job for a provider that returns its output', async () => {
+      const { higgsFieldPollQueueService, providerDispatchService, service } =
+        createHarness();
+      providerDispatchService.dispatch.mockResolvedValue({
+        completion: 'remote-output',
+        externalId: 'https://cdn.test/video.mp4',
+        provider: 'higgsfield',
+      });
+
+      await service.execute(buildContext());
+
+      expect(higgsFieldPollQueueService.schedule).not.toHaveBeenCalled();
+    });
   });
 });

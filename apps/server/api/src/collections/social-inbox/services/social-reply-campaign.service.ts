@@ -10,9 +10,7 @@ import type {
 } from '@api/collections/social-inbox/services/social-inbox.types';
 import type {
   SocialReplyCampaignCreateInput,
-  SocialReplyCampaignDocument,
   SocialReplyCampaignListQuery,
-  SocialReplyCampaignRecipientDocument,
   SocialReplyCampaignRecipientListQuery,
   SocialReplyCampaignUpdateInput,
 } from '@api/collections/social-inbox/services/social-reply-campaign.types';
@@ -28,7 +26,11 @@ import {
   WorkflowExecutionTrigger,
 } from '@genfeedai/contracts';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
-import type { Prisma } from '@genfeedai/prisma';
+import type {
+  Prisma,
+  SocialReplyCampaign,
+  SocialReplyCampaignRecipient,
+} from '@genfeedai/prisma';
 import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
@@ -71,7 +73,7 @@ export class SocialReplyCampaignService {
   async list(
     scope: SocialInboxScope,
     query: SocialReplyCampaignListQuery,
-  ): Promise<SocialInboxPage<SocialReplyCampaignDocument>> {
+  ): Promise<SocialInboxPage<SocialReplyCampaign>> {
     const page = boundPage(query.page);
     const limit = boundLimit(query.limit);
     const where = scopedWhere(
@@ -95,7 +97,7 @@ export class SocialReplyCampaignService {
   async get(
     scope: SocialInboxScope,
     campaignId: string,
-  ): Promise<SocialReplyCampaignDocument> {
+  ): Promise<SocialReplyCampaign> {
     const campaign = await findOrThrow(
       this.prisma.socialReplyCampaign,
       { where: scopedWhere(scope.organizationId, { id: campaignId }) },
@@ -109,7 +111,7 @@ export class SocialReplyCampaignService {
   async create(
     scope: SocialInboxScope,
     input: SocialReplyCampaignCreateInput,
-  ): Promise<SocialReplyCampaignDocument> {
+  ): Promise<SocialReplyCampaign> {
     const bodyTemplate = sanitizeBody(input.bodyTemplate);
     const conversationIds = this.dedupeConversationIds(input.conversationIds);
     const conversations = await this.loadEnrollableConversations(
@@ -168,7 +170,7 @@ export class SocialReplyCampaignService {
     scope: SocialInboxScope,
     campaignId: string,
     input: SocialReplyCampaignUpdateInput,
-  ): Promise<SocialReplyCampaignDocument> {
+  ): Promise<SocialReplyCampaign> {
     const campaign = await this.get(scope, campaignId);
     if (this.isTerminal(campaign.status)) {
       throw new BadRequestException(
@@ -207,7 +209,7 @@ export class SocialReplyCampaignService {
   async remove(
     scope: SocialInboxScope,
     campaignId: string,
-  ): Promise<SocialReplyCampaignDocument> {
+  ): Promise<SocialReplyCampaign> {
     const campaign = await this.get(scope, campaignId);
     if (!this.isTerminal(campaign.status)) {
       await this.transition(scope, campaignId, 'cancel');
@@ -229,7 +231,7 @@ export class SocialReplyCampaignService {
     scope: SocialInboxScope,
     campaignId: string,
     query: SocialReplyCampaignRecipientListQuery,
-  ): Promise<SocialInboxPage<SocialReplyCampaignRecipientDocument>> {
+  ): Promise<SocialInboxPage<SocialReplyCampaignRecipient>> {
     await this.get(scope, campaignId);
 
     const page = boundPage(query.page);
@@ -261,7 +263,7 @@ export class SocialReplyCampaignService {
     scope: SocialInboxScope,
     campaignId: string,
     transition: SocialReplyCampaignTransition,
-  ): Promise<SocialReplyCampaignDocument> {
+  ): Promise<SocialReplyCampaign> {
     const campaign = await this.get(scope, campaignId);
 
     switch (transition) {
@@ -292,10 +294,10 @@ export class SocialReplyCampaignService {
   }
 
   private async activate(
-    campaign: SocialReplyCampaignDocument,
+    campaign: SocialReplyCampaign,
     allowedFrom: SocialReplyCampaignStatus[],
     transition: 'resume' | 'start',
-  ): Promise<SocialReplyCampaignDocument> {
+  ): Promise<SocialReplyCampaign> {
     const claimedStatus = campaign.status;
     if (!allowedFrom.includes(claimedStatus as SocialReplyCampaignStatus)) {
       throw new BadRequestException(
@@ -374,8 +376,8 @@ export class SocialReplyCampaignService {
   }
 
   private async pause(
-    campaign: SocialReplyCampaignDocument,
-  ): Promise<SocialReplyCampaignDocument> {
+    campaign: SocialReplyCampaign,
+  ): Promise<SocialReplyCampaign> {
     if (campaign.status !== SocialReplyCampaignStatus.RUNNING) {
       throw new BadRequestException(
         `Cannot pause a ${campaign.status} campaign`,
@@ -411,8 +413,8 @@ export class SocialReplyCampaignService {
   }
 
   private async cancel(
-    campaign: SocialReplyCampaignDocument,
-  ): Promise<SocialReplyCampaignDocument> {
+    campaign: SocialReplyCampaign,
+  ): Promise<SocialReplyCampaign> {
     if (this.isTerminal(campaign.status)) {
       throw new BadRequestException(
         `Campaign is already ${campaign.status.toLowerCase()}`,

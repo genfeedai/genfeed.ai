@@ -1,4 +1,5 @@
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-runner.service';
+import { SystemWorkflowRetention } from '@api/collections/workflows/workflow-execution-retention.contract';
 import { createGenfeedActionNode } from '@genfeedai/actions';
 
 export const INSIGHT_GENERATION_ACTION_IDS = {
@@ -7,7 +8,7 @@ export const INSIGHT_GENERATION_ACTION_IDS = {
   PERSIST: 'insight.persist-generated',
 } as const;
 
-export const INSIGHT_GENERATION_WORKFLOW_ID = 'insight.generation';
+const INSIGHT_GENERATION_WORKFLOW_ID = 'insight.generation';
 
 export function buildInsightGenerationWorkflowDefinition(): SystemWorkflowGraphDefinition {
   return {
@@ -61,6 +62,7 @@ export function buildInsightGenerationWorkflowDefinition(): SystemWorkflowGraphD
     description: 'Loads, generates, and persists actionable insights.',
     label: 'Insight Generation',
     resultNodeId: 'persist-insights',
+    retention: SystemWorkflowRetention.KEPT,
     version: 1,
   };
 }

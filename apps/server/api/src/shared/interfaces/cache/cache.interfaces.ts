@@ -16,6 +16,15 @@ export interface CacheOptions {
   tags?: string[];
 
   /**
+   * Refuse to store a response when one of its `tags` was invalidated while
+   * the handler was running. A read that raced the invalidation holds the
+   * pre-invalidation state, so storing it would bring back content the
+   * invalidation just removed. Use it where a stale hit exposes content that
+   * must not be readable any more (public brand and post responses).
+   */
+  isInvalidationGuarded?: boolean;
+
+  /**
    * Custom key generator function
    * Receives the underlying Express request
    */
@@ -42,5 +51,3 @@ export interface CacheConfig extends CacheOptions {
    */
   namespace?: string;
 }
-
-export type { ServiceCacheOptions } from '@api/services/cache/cache.service';

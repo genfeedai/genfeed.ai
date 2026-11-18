@@ -28,6 +28,10 @@ export enum ApiKeyScope {
   BRANDS_READ = 'brands:read',
   /** Create and edit brands and their context. Admin-minted keys only. */
   BRANDS_WRITE = 'brands:write',
+  /** Read 3D model renders and their GLB files. Admin-minted keys only. */
+  MODELS3D_READ = 'models3d:read',
+  /** Start 3D model renders (photo to angle sheet to GLB). Admin-minted keys only. */
+  MODELS3D_WRITE = 'models3d:write',
   CREDITS_READ = 'credits:read',
   CREDITS_PROVISION = 'credits:provision',
   MANAGED_INFERENCE_EXECUTE = 'managed-inference:execute',

@@ -9,7 +9,11 @@ import { assertUrlNotPrivate } from '@api/helpers/utils/ssrf/ssrf.util';
 import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
 import { BRAND_SOCIAL_HOSTS } from '@api/services/brand-scraper/brand-social-hosts.constant';
 import { BrandWebsiteParserService } from '@api/services/brand-scraper/brand-website-parser.service';
-import { MasterPromptGeneratorService } from '@api/services/knowledge-base/master-prompt-generator.service';
+import { publicXHandle } from '@api/services/brand-scraper/public-x-handle.util';
+import {
+  isFallbackBrandVoice,
+  MasterPromptGeneratorService,
+} from '@api/services/knowledge-base/master-prompt-generator.service';
 import { buildPrefilledAgentConfig } from '@api/services/signup-prefill/utils/agent-config-defaults.util';
 import {
   buildBrandSystemPrompt,
@@ -30,6 +34,7 @@ import type {
   SignupPrefillWorkflowInput,
 } from '@genfeedai/contracts/interfaces';
 import { resolveSignupBrandDomain } from '@genfeedai/helpers';
+import { HarnessProfileRevisionSource } from '@genfeedai/prisma';
 import { readString } from '@genfeedai/utils/data/extract.util';
 import { LoggerService } from '@libs/logger/logger.service';
 import { runWithTenantContext } from '@libs/prisma/tenant-context';
@@ -46,11 +51,7 @@ import { toPlainJson } from '@serializers/helpers/plain-json.helper';
 const LEADING_AT_SIGN_PATTERN = /^@/;
 const WWW_PREFIX_PATTERN = /^www\./;
 
-export type SignupPrefillStatus =
-  | 'completed'
-  | 'failed'
-  | 'running'
-  | 'skipped';
+type SignupPrefillStatus = 'completed' | 'failed' | 'running' | 'skipped';
 
 export interface SignupPrefillMarker {
   brandDomain?: string;
@@ -400,18 +401,21 @@ export class SignupPrefillService {
     let scrapedData: IScrapedBrandData;
     let scrapeStatus: 'scraped' | 'failed' = 'scraped';
     try {
-      scrapedData = state.deadlineAt
-        ? (
-            await this.brandScraperService.scrapeWebsiteWithEvidence(
-              state.websiteUrl,
-              {
-                deadlineAt:
-                  performance.now() +
-                  Math.max(0, state.deadlineAt - Date.now()),
-              },
-            )
-          ).data
-        : await this.brandScraperService.scrapeWebsite(state.websiteUrl);
+      const budget = state.deadlineAt
+        ? {
+            deadlineAt:
+              performance.now() + Math.max(0, state.deadlineAt - Date.now()),
+          }
+        : undefined;
+      scrapedData =
+        budget || publicXHandle(state.websiteUrl)
+          ? (
+              await this.brandScraperService.scrapeSetupSourceWithEvidence(
+                state.websiteUrl,
+                budget,
+              )
+            ).data
+          : await this.brandScraperService.scrapeWebsite(state.websiteUrl);
     } catch (error: unknown) {
       if (error instanceof RequestTimeoutException) throw error;
       scrapeStatus = 'failed';
@@ -666,7 +670,9 @@ export class SignupPrefillService {
         scrapedData.aboutText ||
         scrapedData.heroText ||
         scrapedData.tagline ||
-        (scrapedData.valuePropositions?.length ?? 0) > 0,
+        (scrapedData.valuePropositions?.length ?? 0) > 0 ||
+        (scrapedData.pageExcerpts?.length ?? 0) > 0 ||
+        (scrapedData.socialPostSamples?.length ?? 0) > 0,
     );
 
     if (!hasAnalyzableContent) {
@@ -674,11 +680,20 @@ export class SignupPrefillService {
     }
 
     try {
-      return await this.masterPromptGeneratorService.analyzeBrandVoice(
-        scrapedData,
-        { organizationId, userId },
-        { deadlineAt, onCreditsSettled },
-      );
+      const brandVoice =
+        await this.masterPromptGeneratorService.analyzeBrandVoice(
+          scrapedData,
+          { organizationId, userId },
+          { deadlineAt, onCreditsSettled },
+        );
+      if (isFallbackBrandVoice(brandVoice)) {
+        this.loggerService.warn(
+          'Signup prefill brand-voice analysis fell back to the placeholder voice — leaving the voice unset',
+          { ...this.context, organizationId },
+        );
+        return undefined;
+      }
+      return brandVoice;
     } catch (error: unknown) {
       if (error instanceof RequestTimeoutException) throw error;
       this.loggerService.warn(
@@ -856,6 +871,12 @@ export class SignupPrefillService {
         }),
         input.organizationId,
         input.userId,
+        {},
+        {
+          actorLabel: 'signup-prefill',
+          actorUserId: input.userId,
+          source: HarnessProfileRevisionSource.SEED,
+        },
       );
 
       return true;

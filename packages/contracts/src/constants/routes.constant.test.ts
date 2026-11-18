@@ -169,6 +169,9 @@ describe('routes.constant', () => {
     expect(APP_ROUTE_TEMPLATES.ORGANIZATION_SETTINGS).toBe(
       '/:orgSlug/~/settings',
     );
+    expect(APP_ROUTE_TEMPLATES.BRAND_PROFILE).toBe(
+      '/:orgSlug/:brandSlug/settings/profile',
+    );
     expect(APP_ROUTE_TEMPLATES.BRAND_SETTINGS).toBe(
       '/:orgSlug/:brandSlug/settings',
     );
@@ -191,6 +194,18 @@ describe('routes.constant', () => {
     ).toBe('/bravo/~/settings/brands');
     expect(APP_ROUTES.SETTINGS.KNOWLEDGE).toBe('/settings/knowledge');
     expect(APP_ROUTES.LIBRARY).not.toHaveProperty('KNOWLEDGE');
+  });
+
+  it('sends the brand Profile to the org brands hub, since it exists only under a brand', () => {
+    expect(getOrgSwitchHref('bravo', '/alpha/moonrise/settings/profile')).toBe(
+      '/bravo/~/settings/brands',
+    );
+    expect(
+      createOrganizationAppRoute('alpha', APP_ROUTES.SETTINGS.PROFILE),
+    ).toBe('/alpha/~/settings/brands');
+    expect(
+      createOrganizationAppRoute('alpha', APP_ROUTES.CONNECTORS.API_KEYS),
+    ).toBe('/alpha/~/connectors/api-keys');
   });
 
   it('keeps personal settings children on the unscoped /settings shell', () => {
@@ -296,20 +311,17 @@ describe('routes.constant', () => {
 
   it('maps brand-only organization paths to the brands directory', () => {
     expect(
-      createOrganizationAppRoute(
-        'acme',
-        APP_ROUTES.SETTINGS.CONNECTED_ACCOUNTS,
-      ),
+      createOrganizationAppRoute('acme', APP_ROUTES.SETTINGS.PUBLISHING),
     ).toBe('/acme/~/settings/brands');
     expect(
       createOrganizationAppRoute('acme', APP_ROUTES.SETTINGS.BRAND_KIT_VOICE),
     ).toBe('/acme/~/settings/brands');
   });
 
-  it('keeps organization integrations, assets, and posts on their own paths', () => {
+  it('keeps organization connectors, assets, and posts on their own paths', () => {
     expect(
-      createOrganizationAppRoute('acme', APP_ROUTES.SETTINGS.INTEGRATIONS),
-    ).toBe('/acme/~/settings/integrations');
+      createOrganizationAppRoute('acme', APP_ROUTES.CONNECTORS.PROVIDERS),
+    ).toBe('/acme/~/connectors/providers');
     expect(createOrganizationAppRoute('acme', APP_ROUTES.LIBRARY.ASSETS)).toBe(
       '/acme/~/library/assets',
     );
@@ -324,14 +336,10 @@ describe('routes.constant', () => {
     ).toBe('/acme/~/publishing/posts');
   });
 
-  it('keeps brand connected accounts and brand kit on the brand path', () => {
+  it('keeps brand publishing and brand kit on the brand path', () => {
     expect(
-      createBrandAppRoute(
-        'acme',
-        'coffee',
-        APP_ROUTES.SETTINGS.CONNECTED_ACCOUNTS,
-      ),
-    ).toBe('/acme/coffee/settings/accounts');
+      createBrandAppRoute('acme', 'coffee', APP_ROUTES.SETTINGS.PUBLISHING),
+    ).toBe('/acme/coffee/settings/publishing');
     expect(
       createBrandAppRoute(
         'acme',
@@ -357,6 +365,10 @@ describe('routes.constant', () => {
       ]) {
         expect(RESERVED_APP_ROOT_SEGMENTS.has(app), app).toBe(true);
       }
+    });
+
+    it('reserves the Connectors root', () => {
+      expect(isReservedAppRootSegment('connectors')).toBe(true);
     });
 
     it('reserves the creator support page root', () => {

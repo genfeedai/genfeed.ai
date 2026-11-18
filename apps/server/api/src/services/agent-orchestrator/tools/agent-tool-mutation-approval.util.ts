@@ -1,9 +1,8 @@
-import type { McpApprovalDocument } from '@api/collections/mcp-approvals/schemas/mcp-approval.schema';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { readOptionalString } from '@api/services/agent-orchestrator/tools/agent-tool-parameter-readers';
 import { type CuratedActionName } from '@genfeedai/actions';
 import { buildLogicalWriteKey } from '@genfeedai/actions/server';
-import { McpApprovalStatus } from '@genfeedai/prisma';
+import { type McpApproval, McpApprovalStatus } from '@genfeedai/prisma';
 
 export function specializedConfirmationTool(
   toolName: CuratedActionName,
@@ -32,7 +31,7 @@ export function hasTrustedMutationApproval(
   toolName: CuratedActionName,
   parameters: Record<string, unknown>,
   context: ToolExecutionContext,
-  claimed: McpApprovalDocument | null,
+  claimed: McpApproval | null,
 ): boolean {
   if (context.approvedApprovalId) {
     const isAuthorizedReviewer =

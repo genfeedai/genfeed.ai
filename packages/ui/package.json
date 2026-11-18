@@ -1,31 +1,31 @@
 {
   "dependencies": {
-    "@genfeedai/client": "workspace:*",
     "@genfeedai/contracts": "workspace:*",
     "@genfeedai/helpers": "workspace:*",
-    "@genfeedai/pricing": "workspace:*",
-    "@hookform/resolvers": "7.0.2",
-    "@tanstack/react-query": "5.105.3",
-    "@tiptap/core": "3.32.2",
-    "@tiptap/extension-placeholder": "3.32.2",
-    "@tiptap/pm": "3.32.2",
-    "@tiptap/react": "3.32.2",
-    "@tiptap/starter-kit": "3.32.2",
-    "@tiptap/suggestion": "3.32.2",
+    "@google/model-viewer": "4.4.0",
+    "@tanstack/react-query": "5.107.1",
+    "@tiptap/core": "3.34.0",
+    "@tiptap/extension-placeholder": "3.34.0",
+    "@tiptap/pm": "3.34.0",
+    "@tiptap/react": "3.34.0",
+    "@tiptap/starter-kit": "3.34.0",
+    "@tiptap/suggestion": "3.34.0",
     "cmdk": "1.1.1",
     "date-fns": "4.4.0",
+    "embla-carousel-react": "8.6.0",
     "html-react-parser": "6.1.9",
-    "lucide-react": "1.67.0",
-    "motion": "14.9.0",
-    "next-intl": "4.14.9",
+    "lucide-react": "1.73.0",
+    "motion": "14.14.0",
+    "next-intl": "4.15.1",
     "react-day-picker": "10.0.2",
-    "react-dropzone": "20.1.4",
-    "react-hook-form": "7.91.0",
+    "react-dropzone": "20.2.0",
+    "react-hook-form": "7.92.0",
     "recharts": "3.10.1",
-    "temporal-polyfill": "1.0.7",
+    "three": "0.187.0",
     "tippy.js": "6.3.7",
     "vaul": "1.1.2",
-    "zustand": "5.0.16"
+    "yet-another-react-lightbox": "3.33.1",
+    "zustand": "5.1.0"
   },
   "description": "Shared design tokens and UI primitives for Genfeed web, mobile, and extension surfaces",
   "devDependencies": {
@@ -38,12 +38,12 @@
     "@genfeedai/utils": "workspace:*",
     "@testing-library/jest-dom": "7.0.1",
     "@testing-library/react": "16.3.3",
-    "@testing-library/user-event": "14.6.8",
+    "@testing-library/user-event": "14.6.10",
     "@types/jsdom": "^30.0.0",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
-    "@vitejs/plugin-react": "6.2.1",
     "jsdom": "29.1.1",
+    "next-themes": "0.4.6",
     "react": "19.3.1",
     "react-dom": "19.3.1",
     "tsc-alias": "1.9.10",
@@ -60,30 +60,13 @@
       "import": "./dist/*.js",
       "default": "./dist/*.js"
     },
-    "./web-tokens.css": "./web-tokens.css",
-    "./components/display/video-player/VideoPlayer": {
-      "types": "./src/components/display/video-player/VideoPlayer.tsx",
-      "import": "./src/components/display/video-player/VideoPlayer.tsx",
-      "default": "./src/components/display/video-player/VideoPlayer.tsx"
-    },
-    "./components/display/video-player/VideoPlayerControls": {
-      "types": "./src/components/display/video-player/VideoPlayerControls.tsx",
-      "import": "./src/components/display/video-player/VideoPlayerControls.tsx",
-      "default": "./src/components/display/video-player/VideoPlayerControls.tsx"
-    },
-    "./components/media-player/MediaPlayer": {
-      "types": "./src/components/media-player/MediaPlayer.tsx",
-      "import": "./src/components/media-player/MediaPlayer.tsx",
-      "default": "./src/components/media-player/MediaPlayer.tsx"
-    }
+    "./web-tokens.css": "./web-tokens.css"
   },
   "files": [
     "dist",
-    "web-tokens.css",
-    "src/components/display/video-player",
-    "src/components/media-player"
+    "web-tokens.css"
   ],
-  "license": "MIT",
+  "license": "AGPL-3.0",
   "main": "./dist/index.js",
   "name": "@genfeedai/ui",
   "peerDependencies": {
@@ -123,7 +106,10 @@
     "sonner": "2.0.8",
     "tailwind-merge": "3.5.0"
   },
-  "private": true,
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
   "repository": {
     "directory": "packages/ui",
     "type": "git",

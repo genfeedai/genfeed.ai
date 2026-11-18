@@ -36,11 +36,13 @@ const VALUE_SIZE: Record<MetricCardSize, string> = {
   xs: 'text-lg',
 };
 
+// Each skeleton sits on the value's own text line and stays inside its line
+// box, so the tile keeps the height it has once the number arrives.
 const VALUE_SKELETON: Record<MetricCardSize, string> = {
-  lg: 'h-12 w-24',
-  md: 'h-9 w-16',
-  sm: 'h-7 w-12',
-  xs: 'h-5 w-10',
+  lg: 'h-8 w-24',
+  md: 'h-6 w-16',
+  sm: 'h-5 w-12',
+  xs: 'h-4 w-10',
 };
 
 const LABEL_CLASS = 'text-xs font-medium text-muted-foreground';
@@ -98,6 +100,7 @@ function resolveValueContent(
   if (isLoading) {
     return (
       <Skeleton
+        aria-busy={false}
         aria-hidden="true"
         className={cn('inline-block rounded-sm', VALUE_SKELETON[size])}
       />
@@ -165,7 +168,7 @@ const MetricCard = memo(function MetricCard({
   const valueNode = (
     <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-1">
       <p className={cn(VALUE_CLASS, VALUE_SIZE[size], VALUE_TONE[tone])}>
-        {isLoading ? value : resolveValueContent(value, false, size)}
+        {resolveValueContent(value, isLoading, size)}
       </p>
 
       {hasTrend && !isLoading ? (
@@ -214,8 +217,9 @@ const MetricCard = memo(function MetricCard({
       className={cn('h-full', className)}
       data-testid="metric-card"
       data-appearance={appearance}
-      isLoading={isLoading}
-      loadingLabel={`Loading ${label}`}
+      // The label and icon stay on screen while the value loads; only the
+      // value is a skeleton. The tile announces itself as busy once.
+      aria-busy={isLoading || undefined}
     >
       <div
         className={cn(

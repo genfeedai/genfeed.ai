@@ -162,7 +162,7 @@ function ExecutionContextSection({
   return (
     <section className="border border-border bg-card p-3">
       <div className="mb-2 flex items-center justify-between">
-        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        <p className="text-xs font-semibold uppercase tracking-label text-muted-foreground">
           Execution Context
         </p>
         <span className="text-2xs text-muted-foreground">
@@ -210,7 +210,7 @@ function WorkflowTemplatesSection({
 }): ReactElement {
   return (
     <section className="border border-border bg-card p-3">
-      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+      <p className="mb-2 text-xs font-semibold uppercase tracking-label text-muted-foreground">
         Workflow Templates
       </p>
       <div className="grid grid-cols-2 gap-2">
@@ -251,7 +251,7 @@ function GenerateSection({
 }): ReactElement {
   return (
     <section className="border border-border bg-card p-3">
-      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+      <p className="mb-2 text-xs font-semibold uppercase tracking-label text-muted-foreground">
         1. Generate
       </p>
       <PromptBarComposer density="compact">
@@ -295,7 +295,7 @@ function PreviewSection({
 }): ReactElement {
   return (
     <section className="border border-border bg-card p-3">
-      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+      <p className="mb-2 text-xs font-semibold uppercase tracking-label text-muted-foreground">
         2. Preview
       </p>
       <Textarea
@@ -334,7 +334,7 @@ function PostSection({
 }): ReactElement {
   return (
     <section className="border border-border bg-card p-3">
-      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+      <p className="mb-2 text-xs font-semibold uppercase tracking-label text-muted-foreground">
         3. Post Draft
       </p>
 
@@ -392,7 +392,7 @@ function ChatTemplatesSection({
 }): ReactElement {
   return (
     <section>
-      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+      <p className="mb-2 text-xs font-semibold uppercase tracking-label text-muted-foreground">
         Chat Templates
       </p>
       <div className="grid grid-cols-2 gap-2">

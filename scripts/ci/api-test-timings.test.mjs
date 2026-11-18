@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 import ApiTestTimingsReporter, {
   collectModuleTimings,
   formatTimingSummary,
+  resolveShard,
 } from './api-test-timings-reporter.mjs';
 
 const ROOT = fileURLToPath(new URL('../..', import.meta.url));
@@ -126,6 +127,22 @@ test('writes an incomplete start receipt and preserves failed collection modules
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
+});
+
+test('names the record after the job shard when Vitest does not shard', () => {
+  assert.deepEqual(
+    resolveShard({ index: 2, count: 8 }, { SHARD: '1', SHARD_TOTAL: '4' }),
+    { index: 2, count: 8 },
+  );
+  assert.deepEqual(resolveShard(undefined, { SHARD: '3', SHARD_TOTAL: '4' }), {
+    index: 3,
+    count: 4,
+  });
+  assert.deepEqual(resolveShard(undefined, { SHARD: '3' }), {
+    index: 1,
+    count: 1,
+  });
+  assert.deepEqual(resolveShard(undefined, {}), { index: 1, count: 1 });
 });
 
 test('real Vitest sharding preserves the selected union, skips, retries and failure exit', () => {
@@ -265,15 +282,18 @@ test('CI retains affected selection and connected fixtures and uploads after fai
     'utf8',
   );
   const api = source.split('\n  test-api:\n')[1].split('\n  build:\n')[0];
+  // The shard's selection (the plan's file list, or the changed graph when the
+  // plan carried none) comes from scripts/ci/test-shard-selection.mjs.
   assert.match(
     api,
-    /SELECTION=\(--passWithNoTests --changed "\$\{CI_BASE_SHA\}"\)/,
+    /node scripts\/ci\/test-shard-selection\.mjs > "\$\{RUNNER_TEMP\}\/shard-selection\.txt"\n\s+mapfile -t SELECTION < "\$\{RUNNER_TEMP\}\/shard-selection\.txt"/,
   );
   assert.match(api, /--maxWorkers=2 "\$\{SELECTION\[@\]\}"/);
-  assert.match(
-    api,
-    /--shard=\$\{\{ matrix\.shard \}\}\/\$\{\{ matrix\.total \}\}/,
-  );
+  assert.match(api, /SHARD: \$\{\{ matrix\.shard \}\}/);
+  assert.match(api, /SHARD_TOTAL: \$\{\{ matrix\.total \}\}/);
+  assert.match(api, /SHARD_ROOT: apps\/server\/api\n/);
+  assert.match(api, /SHARD_FILE_COUNT: \$\{\{ matrix\.count \}\}/);
+  assert.match(api, /SHARD_FILES: \$\{\{ matrix\.files \}\}/);
   for (const fixture of [
     'postgres:',
     'redis:',
@@ -298,7 +318,7 @@ test('CI retains affected selection and connected fixtures and uploads after fai
     readFileSync(path.join(ROOT, 'package.json'), 'utf8'),
   );
   assert.ok(
-    manifest.scripts['test:executable-contracts'].includes(
+    manifest.scripts['test:executable-contracts:static'].includes(
       'scripts/ci/api-test-timings.test.mjs',
     ),
   );

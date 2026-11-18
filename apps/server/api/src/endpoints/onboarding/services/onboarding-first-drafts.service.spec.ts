@@ -49,7 +49,11 @@ describe('OnboardingFirstDraftsService', () => {
   const postGeneration = { generateDraftText: vi.fn() };
   const signupPrefill = { scanBrandUrl: vi.fn() };
   const gateway = { generateImage: vi.fn() };
-  const runs = { execute: vi.fn(), retryMedia: vi.fn() };
+  const runs = {
+    execute: vi.fn(),
+    retryMedia: vi.fn(),
+    rewriteDraft: vi.fn(),
+  };
   const voiceCorpus = { buildCorpus: vi.fn() };
 
   let service: OnboardingFirstDraftsService;
@@ -153,6 +157,69 @@ describe('OnboardingFirstDraftsService', () => {
     });
   });
 
+  describe('rewriteDraft', () => {
+    const previous = {
+      isProvisional: false,
+      platform: 'linkedin' as const,
+      postId: 'post_old',
+      receiptId: 'receipt_old',
+      requestKey: 'key_old',
+      text: 'The post we wrote the first time',
+    };
+
+    it('writes a different post for that channel, linked to the one it replaces', async () => {
+      runs.rewriteDraft.mockImplementation(
+        async (_user, _brand, _platform, write) => write(previous),
+      );
+
+      const draft = await service.rewriteDraft(user, 'brand_1', 'linkedin');
+
+      expect(draft).toMatchObject({
+        platform: 'linkedin',
+        postId: 'post_1',
+        receiptId: 'receipt_1',
+        text: 'linkedin draft',
+      });
+      const [input, , , options] =
+        postGeneration.generateDraftText.mock.calls[0];
+      expect(input.platform).toBe('linkedin');
+      expect(input.prompt).toContain('Write a LinkedIn post');
+      expect(input.prompt).toContain(
+        'Earlier draft:\nThe post we wrote the first time',
+      );
+      expect(options).toMatchObject({
+        parentRequestId: 'key_old',
+        surface: 'onboarding',
+      });
+      expect(postGeneration.generateDraftText).toHaveBeenCalledTimes(1);
+    });
+
+    it('writes a channel that had no post without an earlier draft to avoid', async () => {
+      runs.rewriteDraft.mockImplementation(
+        async (_user, _brand, _platform, write) => write(undefined),
+      );
+
+      await service.rewriteDraft(user, 'brand_1', 'twitter');
+
+      const [input, , , options] =
+        postGeneration.generateDraftText.mock.calls[0];
+      expect(input.prompt).not.toContain('Earlier draft');
+      expect(options.parentRequestId).toBeUndefined();
+    });
+
+    it('stops with not found when the brand is gone', async () => {
+      brandsService.findOne.mockResolvedValue(null);
+      runs.rewriteDraft.mockImplementation(
+        async (_user, _brand, _platform, write) => write(previous),
+      );
+
+      await expect(
+        service.rewriteDraft(user, 'brand_1', 'linkedin'),
+      ).rejects.toThrow('Brand');
+      expect(postGeneration.generateDraftText).not.toHaveBeenCalled();
+    });
+  });
+
   describe('generate', () => {
     it('drafts all four channels with a master image and one image per platform slot', async () => {
       const result = await service.generate(user, 'brand_1', {});
@@ -203,16 +270,58 @@ describe('OnboardingFirstDraftsService', () => {
       ]);
     });
 
-    it('writes the other channels from the X post, which is drafted first', async () => {
+    it('gives each channel its own angle, written from the brand and not from the X post', async () => {
       await service.generate(user, 'brand_1', {});
 
       const prompts = postGeneration.generateDraftText.mock.calls.map(
         ([input]) => input.prompt as string,
       );
       expect(prompts).toHaveLength(4);
-      for (const prompt of prompts.slice(1)) {
-        expect(prompt).toContain('twitter draft');
+      expect(
+        new Set(prompts.map((prompt) => prompt.match(/Angle: [^.]*\./)?.[0]))
+          .size,
+      ).toBe(4);
+      for (const prompt of prompts) {
+        expect(prompt).not.toContain('twitter draft');
+        expect(prompt).toContain(
+          'invent no numbers, customers, results or claims',
+        );
       }
+    });
+
+    it("quotes the brand's saved offers, audience and topics to every channel", async () => {
+      brandDataMapper.readBrandAgentConfig.mockReturnValueOnce({
+        strategy: { offers: ['Cast iron pans'], topics: ['Seasoning'] },
+        voice: { audience: ['Home cooks'] },
+      });
+
+      await service.generate(user, 'brand_1', {});
+
+      const facts = postGeneration.generateDraftText.mock.calls.map(
+        ([, , , options]) => options.brandFacts as string,
+      );
+      expect(facts).toHaveLength(4);
+      for (const block of facts) {
+        expect(block).toContain('- Offers: "Cast iron pans"');
+        expect(block).toContain('- Audience: "Home cooks"');
+        expect(block).toContain('- Topics: "Seasoning"');
+      }
+    });
+
+    it('sets a shortest finished post for each channel', async () => {
+      await service.generate(user, 'brand_1', {});
+
+      const minimums = Object.fromEntries(
+        postGeneration.generateDraftText.mock.calls.map(
+          ([input, , , options]) => [input.platform, options.minCharacters],
+        ),
+      );
+      expect(minimums).toEqual({
+        instagram: 80,
+        linkedin: 200,
+        tiktok: 60,
+        twitter: 60,
+      });
     });
 
     describe('imported posts', () => {
@@ -309,10 +418,11 @@ describe('OnboardingFirstDraftsService', () => {
         }),
       );
       const [, , , options] = postGeneration.generateDraftText.mock.calls[0];
-      expect(options).toEqual({
+      expect(options).toMatchObject({
         parentRequestId: '3f6b1e0a-2b8c-4f06-9d34-5a0f8c1d2e7b',
         surface: 'onboarding',
       });
+      expect(options.brandFacts).toContain('- Offers: "A tool"');
     });
 
     it('sends the image a structured brief, not the form answers', async () => {
@@ -347,6 +457,37 @@ describe('OnboardingFirstDraftsService', () => {
       expect(JSON.stringify(input)).not.toMatch(
         /Content brand for|Write for this audience|Aryan/,
       );
+    });
+
+    it('draws the image in the colours the brand chose, as words', async () => {
+      brandsService.findOne.mockResolvedValue({
+        agentConfig: {},
+        description: 'Scheduling for creators',
+        label: 'Acme',
+        primaryColor: '#1F6FEB',
+        secondaryColor: '#0D1117',
+      });
+
+      await service.generate(user, 'brand_1', {});
+
+      const [input] = vi.mocked(buildFirstRunOnboardingImageBody).mock.calls[0];
+      expect(input.slots?.style).toContain('blue and black color palette');
+      expect(JSON.stringify(input)).not.toContain('#1F6FEB');
+    });
+
+    it('ignores the default black and white a brand keeps until it picks colours', async () => {
+      brandsService.findOne.mockResolvedValue({
+        agentConfig: {},
+        description: 'Scheduling for creators',
+        label: 'Acme',
+        primaryColor: '#000000',
+        secondaryColor: '#FFFFFF',
+      });
+
+      await service.generate(user, 'brand_1', {});
+
+      const [input] = vi.mocked(buildFirstRunOnboardingImageBody).mock.calls[0];
+      expect(input.slots?.style).not.toContain('palette');
     });
 
     it('is partial when the image fails', async () => {
@@ -389,6 +530,43 @@ describe('OnboardingFirstDraftsService', () => {
 
       expect(result.status).toBe('partial');
       expect(result.drafts).toHaveLength(3);
+    });
+
+    it('keeps the other channels when only the X draft is refused', async () => {
+      postGeneration.generateDraftText.mockImplementation(
+        async (input: { platform: string }) => {
+          if (input.platform === 'twitter') throw new Error('not a post');
+          counter += 1;
+          return {
+            brandedReceipt: { id: `receipt_${counter}`, state: 'ready' },
+            description: `${input.platform} draft`,
+            postId: `post_${counter}`,
+          };
+        },
+      );
+
+      const result = await service.generate(user, 'brand_1', {});
+
+      expect(result.drafts.map((draft) => draft.platform)).toEqual([
+        'instagram',
+        'tiktok',
+        'linkedin',
+      ]);
+      expect(result.status).toBe('partial');
+      expect(result.requestKey).toBe(result.drafts[0].requestKey);
+      expect(result.imageUrl).toBe('https://cdn.example.com/a.png');
+    });
+
+    it('quotes a legacy text audience instead of failing', async () => {
+      brandDataMapper.readBrandAgentConfig.mockReturnValueOnce({
+        voice: { audience: 'Home cooks' },
+      });
+
+      const result = await service.generate(user, 'brand_1', {});
+
+      expect(result.drafts).toHaveLength(4);
+      const [, , , options] = postGeneration.generateDraftText.mock.calls[0];
+      expect(options.brandFacts).toContain('- Audience: "Home cooks"');
     });
 
     it('is unavailable when the X draft cannot be written', async () => {
@@ -490,6 +668,114 @@ describe('OnboardingFirstDraftsService', () => {
       });
     },
   );
+
+  describe('funnel events', () => {
+    let events: Array<{ event: string; properties?: Record<string, unknown> }>;
+    let reporting: OnboardingFirstDraftsService;
+
+    beforeEach(() => {
+      events = [];
+      reporting = new OnboardingFirstDraftsService(
+        logger as never,
+        config as never,
+        brandsService as never,
+        brandDataMapper as never,
+        postGeneration as never,
+        signupPrefill as never,
+        gateway as never,
+        runs as never,
+        voiceCorpus as never,
+        {
+          capture: async (input: {
+            event: string;
+            properties?: Record<string, unknown>;
+          }) => {
+            events.push({ event: input.event, properties: input.properties });
+          },
+        } as never,
+      );
+    });
+
+    it('reports a failed scan with its reason and no brand text', async () => {
+      signupPrefill.scanBrandUrl.mockResolvedValue({
+        scrapeReason: 'blocked',
+        scrapeStatus: 'failed',
+      });
+
+      await reporting.scan(user, 'brand_1', 'acme.co');
+
+      expect(events).toEqual([
+        {
+          event: 'onboarding_brand_scanned',
+          properties: expect.objectContaining({
+            outcome: 'failed',
+            reason: 'blocked',
+          }),
+        },
+      ]);
+    });
+
+    it('reports a finished run with its draft count and status', async () => {
+      await reporting.generate(user, 'brand_1', {
+        previousRequestKey: 'key_1',
+      });
+
+      expect(events).toEqual([
+        {
+          event: 'onboarding_drafts_generated',
+          properties: expect.objectContaining({
+            draftCount: 4,
+            isRedo: true,
+            status: 'ready',
+          }),
+        },
+      ]);
+    });
+
+    it('reports nothing for a replayed run that never generated', async () => {
+      runs.execute.mockResolvedValue({
+        drafts: [],
+        imageIngredientId: null,
+        imageUrl: null,
+        requestKey: null,
+        status: 'ready',
+      });
+
+      await reporting.generate(user, 'brand_1', {});
+
+      expect(events).toEqual([]);
+    });
+
+    it('reports a run whose final save fails as failed', async () => {
+      runs.execute.mockImplementation(
+        async (_user, _brand, _previous, generate) => {
+          await generate(vi.fn());
+          throw new Error('final save failed');
+        },
+      );
+
+      await expect(reporting.generate(user, 'brand_1', {})).rejects.toThrow(
+        'final save failed',
+      );
+
+      expect(events.map((event) => event.properties?.status)).toEqual([
+        'failed',
+      ]);
+    });
+
+    it('reports a run that throws as failed and still throws', async () => {
+      runs.execute.mockImplementation(
+        async (_user, _brand, _previous, generate) => generate(vi.fn()),
+      );
+      brandsService.findOne.mockResolvedValue(null);
+
+      await expect(reporting.generate(user, 'brand_1', {})).rejects.toThrow();
+
+      expect(events.map((event) => event.properties?.status)).toEqual([
+        'failed',
+      ]);
+    });
+  });
 
   describe('retryMedia', () => {
     const readyImage = (

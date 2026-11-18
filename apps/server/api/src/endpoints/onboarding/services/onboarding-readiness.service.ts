@@ -3,7 +3,6 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
-import type { UserDocument } from '@api/collections/users/schemas/user.schema';
 import { UsersService } from '@api/collections/users/services/users.service';
 import type {
   InstallReadinessResponse,
@@ -17,6 +16,7 @@ import type {
   OnboardingAccessMode,
   OnboardingRuntimeAccessMode,
 } from '@genfeedai/contracts/interfaces';
+import type { User as PrismaUser } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
 import { runWithTenantContext } from '@libs/prisma/tenant-context';
 import { Traced } from '@libs/tracing/traced';
@@ -209,7 +209,7 @@ export class OnboardingReadinessService {
         },
         [PopulateBuilder.withFields('settings', ['dashboardPreferences'])],
       )) as
-        | (UserDocument & {
+        | (PrismaUser & {
             settings?: { dashboardPreferences?: unknown } | null;
           })
         | null;

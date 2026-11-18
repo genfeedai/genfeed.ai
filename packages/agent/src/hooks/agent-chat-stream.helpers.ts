@@ -6,6 +6,18 @@ import type {
 import { isMutationApprovalReplacement } from '@genfeedai/agent/utils/is-mutation-approval-replacement.util';
 
 /**
+ * True when a send failed in a way that leaves it unknown whether the server
+ * accepted the turn (network drop or gateway timeout).
+ */
+export function isAmbiguousAcknowledgementError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') {
+    return false;
+  }
+  const status = (error as { status?: unknown }).status;
+  return status === 0 || status === 408 || status === 504;
+}
+
+/**
  * True when an event belongs to a run other than the one the stream tracks.
  * Events without a run id, or a stream that has not pinned a run yet, pass.
  */

@@ -19,6 +19,7 @@ void SplashScreen.preventAutoHideAsync();
 function AppInitializer() {
   const { getToken, isSignedIn, user } = useMobileAuth();
 
+  // use-effect-audit: ignore syncs the signed-in user to Sentry
   useEffect(() => {
     if (isSignedIn && user) {
       sentryService.setUser({
@@ -31,19 +32,22 @@ function AppInitializer() {
     }
   }, [isSignedIn, user]);
 
+  // use-effect-audit: ignore abortable push token registration
   useEffect(() => {
     if (!isSignedIn) {
       return;
     }
 
+    const abortController = new AbortController();
+
     const initNotifications = async () => {
       try {
         const pushToken =
           await notificationsService.registerForPushNotifications();
-        if (pushToken) {
+        if (pushToken && !abortController.signal.aborted) {
           const authToken = await getToken();
 
-          if (authToken) {
+          if (authToken && !abortController.signal.aborted) {
             await notificationsService.registerTokenWithServer(
               authToken,
               pushToken,
@@ -58,6 +62,10 @@ function AppInitializer() {
     };
 
     initNotifications();
+
+    return () => {
+      abortController.abort();
+    };
   }, [isSignedIn, getToken]);
 
   return null;
@@ -82,16 +90,26 @@ function ThemedApplication() {
     };
   }, [colors, resolvedTheme]);
 
+  // use-effect-audit: ignore sets the system UI color and hides the splash screen
   useEffect(() => {
+    const abortController = new AbortController();
+
     const presentApplication = async () => {
       try {
         await SystemUI.setBackgroundColorAsync(colors.bgPrimary);
       } finally {
-        await SplashScreen.hideAsync().catch(() => undefined);
+        // A newer run (the color changed) hides the splash after its own paint.
+        if (!abortController.signal.aborted) {
+          await SplashScreen.hideAsync().catch(() => undefined);
+        }
       }
     };
 
     void presentApplication();
+
+    return () => {
+      abortController.abort();
+    };
   }, [colors.bgPrimary]);
 
   return (

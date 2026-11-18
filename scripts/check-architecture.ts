@@ -110,6 +110,10 @@ const checks = [
     name: 'Mock-interaction specs',
   },
   {
+    command: ['bun', 'run', 'scripts/architecture/check-e2e-recordings.ts'],
+    name: 'E2E recordings hold fixture data only (#7426)',
+  },
+  {
     command: ['bun', 'run', 'scripts/check-decorator-boundaries.ts'],
     name: 'Nest decorator boundaries',
   },

@@ -862,10 +862,3 @@ export class KnowledgeRefreshService {
     );
   }
 }
-
-export function knowledgeRefreshTickKey(
-  sourceId: string,
-  fireId: string,
-): string {
-  return `${sourceId}:${fireId}`;
-}

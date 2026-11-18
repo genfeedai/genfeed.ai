@@ -34,7 +34,7 @@ describe('ExpertsContent', () => {
     expect(
       screen.getByRole('heading', {
         level: 1,
-        name: /you supply the truth\. genfeed supplies the system\./i,
+        name: /you supply the truth, genfeed supplies the system/i,
       }),
     ).toBeInTheDocument();
   });

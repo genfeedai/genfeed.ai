@@ -65,6 +65,7 @@ export default function PlatformNumberSettingField(
   // The committed value never holds invalid text, so the page must know a
   // field is invalid to refuse the save instead of silently saving the last
   // valid value.
+  // use-effect-audit: ignore registers the field validity with the settings form
   useEffect(() => {
     onValidityChange(id, isValid);
     return () => onValidityChange(id, true);

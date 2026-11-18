@@ -107,7 +107,7 @@ function resolveProviderToolDefinitions(
   }));
 }
 
-export const ONBOARDING_ONLY_TOOLS: CuratedActionName[] = ['scan_brand_url'];
+const ONBOARDING_ONLY_TOOLS: CuratedActionName[] = ['scan_brand_url'];
 
 export function resolveBlockedTools(): CuratedActionName[] | undefined {
   return [...ONBOARDING_ONLY_TOOLS];

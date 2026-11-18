@@ -23,12 +23,13 @@ import { Badge } from '@ui/primitives/badge';
 import { Bot as BotIcon } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useEffect, useMemo } from 'react';
+import { useMemo } from 'react';
 import { useAdminOrgBrandParams } from '@/components/content/admin-filters/AdminOrgBrandUrlFilter';
 import AdminScopeFilter from '@/components/content/admin-filters/AdminScopeFilter';
 import { useAdminSearchParam } from '@/components/content/admin-filters/useAdminSearchParam';
 import SearchField from '@/components/content/search-field/SearchField';
 import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
+import { useNotifyOnLoadError } from '@/hooks/utils/use-notify-on-load-error/use-notify-on-load-error';
 
 // `bots.status` is the Prisma `BotStatus` enum — SCREAMING_SNAKE on the wire.
 // Every member is mapped explicitly: STOPPED is a deliberate terminal state, so
@@ -110,12 +111,11 @@ export default function BotsPage() {
 
   // One toast per failed read, after its retry, not one per attempt.
   const { errorUpdatedAt, isError } = botsQuery;
-  // biome-ignore lint/correctness/useExhaustiveDependencies: errorUpdatedAt marks each new failed read.
-  useEffect(() => {
-    if (isError) {
-      notificationsService.error(translate('loadError'));
-    }
-  }, [errorUpdatedAt, isError, notificationsService, translate]);
+  useNotifyOnLoadError({
+    errorUpdatedAt,
+    hasError: isError,
+    notify: () => notificationsService.error(translate('loadError')),
+  });
 
   const columns = useMemo<TableColumn<Bot>[]>(
     () => [

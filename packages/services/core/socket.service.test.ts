@@ -154,6 +154,8 @@ describe('SocketService', () => {
       expect(mockSocketEmit).not.toHaveBeenCalled();
       expect(mockSocketDisconnect).not.toHaveBeenCalled();
       expect(mockSocketConnect).not.toHaveBeenCalled();
+      expect(SocketService.getInstance().socket.auth).toEqual({ token: next });
+      expect(socketState.connected).toBe(true);
     });
 
     it('disconnects before reconnecting so prior rooms cannot deliver during identity swap', () => {

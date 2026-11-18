@@ -26,6 +26,7 @@ export default function LearningPage() {
   const { organizationId: currentOrganizationId } = useBrand();
   const hasDefaulted = useRef(false);
 
+  // use-effect-audit: ignore redirects the route in the router
   useEffect(() => {
     if (hasDefaulted.current) return;
     if (organization) {

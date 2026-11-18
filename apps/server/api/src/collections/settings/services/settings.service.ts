@@ -5,11 +5,10 @@ import {
 import { CreateSettingDto } from '@api/collections/settings/dto/create-setting.dto';
 import { UpdateSettingDto } from '@api/collections/settings/dto/update-setting.dto';
 import { SettingEntity } from '@api/collections/settings/entities/setting.entity';
-import type { SettingDocument } from '@api/collections/settings/schemas/setting.schema';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
-import { Prisma } from '@genfeedai/prisma';
+import { Prisma, type Setting } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
@@ -29,7 +28,7 @@ function readFavoriteWorkflowIds(value: unknown): string[] | null {
 @Traced()
 @Injectable()
 export class SettingsService extends BaseService<
-  SettingDocument,
+  Setting,
   CreateSettingDto,
   UpdateSettingDto
 > {
@@ -132,7 +131,7 @@ export class SettingsService extends BaseService<
     settingsId: string,
     settingsPatch: Partial<UpdateSettingDto>,
     organizationId: string,
-  ): Promise<SettingDocument | null> {
+  ): Promise<Setting | null> {
     const { favoriteWorkflowIds, ...otherFields } = settingsPatch;
     const submittedIds = await this.assertFavoriteWorkflowIds(
       favoriteWorkflowIds ?? null,

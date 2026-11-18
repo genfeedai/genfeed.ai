@@ -25,7 +25,7 @@ function manifestFile(contents: string): string {
 
 const DESKTOP_MANIFEST = `{
   "name": "@genfeedai/desktop",
-  "productName": "GenFeed",
+  "productName": "Genfeed",
   "version": "0.1.0"
 }
 `;

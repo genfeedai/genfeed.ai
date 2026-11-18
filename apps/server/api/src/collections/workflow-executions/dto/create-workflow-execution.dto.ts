@@ -130,7 +130,7 @@ export class WorkflowExecutionQueryDto extends BaseQueryDto {
   readonly strategyId?: string;
 }
 
-export const AGENT_FAILURE_RESOLUTIONS: readonly AgentFailureResolution[] = [
+const AGENT_FAILURE_RESOLUTIONS: readonly AgentFailureResolution[] = [
   'open',
   'resolved',
   'all',
@@ -178,4 +178,13 @@ export class AgentFailureQueryDto {
     required: false,
   })
   search?: string;
+}
+
+export class CancelAgentRunDto {
+  @IsIn([WorkflowExecutionStatus.CANCELLED])
+  @ApiProperty({
+    description: 'Cancellation is the only transition an agent run accepts',
+    enum: [WorkflowExecutionStatus.CANCELLED],
+  })
+  readonly status!: WorkflowExecutionStatus.CANCELLED;
 }

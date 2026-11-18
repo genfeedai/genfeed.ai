@@ -11,7 +11,6 @@ import {
   promptRenderRecord,
   promptSlotColumns,
 } from '@api/collections/prompts/utils/prompt-slots.util';
-import { TemplatesService } from '@api/collections/templates/services/templates.service';
 import { CreateVideoDto } from '@api/collections/videos/dto/create-video.dto';
 import { compileSubmittedAdPreset } from '@api/collections/videos/services/ad-preset-submit.util';
 import { assertAudioReferencesSupported } from '@api/collections/videos/services/minimax-h3-reference.util';
@@ -87,10 +86,7 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 
-export {
-  assertSeedanceReferenceVideoDuration,
-  MAX_SEEDANCE_REFERENCE_VIDEO_SECONDS,
-} from '@api/collections/videos/services/seedance-reference-evidence.util';
+export { assertSeedanceReferenceVideoDuration } from '@api/collections/videos/services/seedance-reference-evidence.util';
 
 @Traced()
 @Injectable()
@@ -109,7 +105,6 @@ export class VideoGenerationPreparationService {
     private readonly promptsService: PromptsService,
     private readonly routerService: RouterService,
     private readonly sharedService: SharedService,
-    private readonly templatesService: TemplatesService,
     private readonly enhancementService: MediaPromptEnhancementService,
   ) {}
 
@@ -296,9 +291,7 @@ export class VideoGenerationPreparationService {
         configService: this.configService,
         filesClientService: this.filesClientService,
         ingredientsService: this.ingredientsService,
-        loggerService: this.loggerService,
         referenceUrls: this.referenceUrls,
-        templatesService: this.templatesService,
       },
       {
         generationHarness,

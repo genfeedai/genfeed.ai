@@ -462,13 +462,8 @@ describe('AgentToolExecutorService', () => {
       }),
     };
     const marketplaceApiClient = {
-      checkListingOwnership: vi.fn(),
-      claimFreeItem: vi.fn(),
       getListing: vi.fn(),
-      searchListings: vi.fn().mockResolvedValue({ docs: [] }),
-    };
-    const marketplaceInstallService = {
-      installToWorkspace: vi.fn(),
+      searchListings: vi.fn().mockResolvedValue({ listings: [] }),
     };
     const workflowExecutorService = {
       executeManualWorkflow: vi.fn().mockResolvedValue({
@@ -1115,7 +1110,6 @@ describe('AgentToolExecutorService', () => {
         ),
         workflowSchedulerService as never,
         marketplaceApiClient as never,
-        marketplaceInstallService as never,
         workflowInstallCacheService as never,
       ),
       workflowCreateService,
@@ -1340,7 +1334,6 @@ describe('AgentToolExecutorService', () => {
       instagramInspirationHandler,
       instagramInspirationService,
       marketplaceApiClient,
-      marketplaceInstallService,
       livestreamBotId: livestreamBotId.toString(),
       loggerService,
       organizationSettingsService,
@@ -2113,7 +2106,7 @@ describe('AgentToolExecutorService', () => {
       expect.objectContaining({
         ctas: [
           expect.objectContaining({
-            href: '/settings/api-keys?returnTo=%2Fagent',
+            href: '/connectors/api-keys?returnTo=%2Fagent',
             label: 'Open integrations',
           }),
         ],
@@ -2146,7 +2139,7 @@ describe('AgentToolExecutorService', () => {
       expect.objectContaining({
         ctas: [
           expect.objectContaining({
-            href: '/settings/api-keys?returnTo=%2Fagent',
+            href: '/connectors/api-keys?returnTo=%2Fagent',
             label: 'Open integrations',
           }),
         ],
@@ -2176,7 +2169,7 @@ describe('AgentToolExecutorService', () => {
     expect(result.success).toBe(true);
     expect(result.nextActions?.[0].ctas).toEqual([
       expect.objectContaining({
-        href: '/genfeed-ai/~/settings/api-keys?returnTo=%2Fagent',
+        href: '/genfeed-ai/~/connectors/api-keys?returnTo=%2Fagent',
         label: 'Open integrations',
       }),
     ]);
@@ -2311,6 +2304,7 @@ describe('AgentToolExecutorService', () => {
     );
     expect(result.data).toEqual({
       post: {
+        brandId: null,
         createdAt: createdAt.toISOString(),
         description: 'Launch note',
         id: 'post-1',
@@ -2326,6 +2320,7 @@ describe('AgentToolExecutorService', () => {
         ],
         platform: 'instagram',
         publishedAt: null,
+        releaseId: null,
         scheduledDate: scheduledDate.toISOString(),
         state: TargetExecutionState.SCHEDULED,
         status: 'draft',
@@ -2338,6 +2333,7 @@ describe('AgentToolExecutorService', () => {
             validationState: 'valid',
           },
         ],
+        timezone: null,
         updatedAt: createdAt.toISOString(),
       },
     });
@@ -2383,27 +2379,47 @@ describe('AgentToolExecutorService', () => {
     expect(postsService.findAll).not.toHaveBeenCalled();
   });
 
-  it('reads the content calendar when get_posts receives days', async () => {
+  it('routes get_posts days to the content calendar, which pages with limit and page', async () => {
     const { postsService, service } = createService();
-    postsService.findAll.mockResolvedValue({ docs: [] });
+    postsService.findAll.mockResolvedValue({
+      docs: [],
+      hasNextPage: false,
+      totalDocs: 0,
+    });
+    const ctx = { organizationId: testId('org'), userId: testId('user') };
+
+    const calendar = await service.executeTool(
+      'get_posts',
+      { days: 3, limit: 5, page: 2, timezone: 'Europe/Malta' },
+      ctx,
+    );
+
+    // The calendar's own query and counts are covered in
+    // agent-proactive-tool-handler.calendar.spec.ts; here the call has to
+    // reach it and come back as a calendar, not an error or a plain list.
+    expect(calendar.error).toBeUndefined();
+    expect(calendar.success).toBe(true);
+    expect(calendar.data).toMatchObject({
+      days: 3,
+      limit: 5,
+      page: 2,
+      timezone: 'Europe/Malta',
+      totalCount: 0,
+    });
+  });
+
+  it('rejects calendar-only fields in list mode instead of ignoring them', async () => {
+    const { postsService, service } = createService();
 
     const result = await service.executeTool(
       'get_posts',
-      { days: 3 },
+      { page: 2 },
       { organizationId: testId('org'), userId: testId('user') },
     );
 
-    expect(result.success).toBe(true);
-    expect(result.data).toMatchObject({ days: 3, gapsCount: 3 });
-    expect(postsService.findAll).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: expect.objectContaining({
-          isDeleted: false,
-          organizationId: testId('org'),
-        }),
-      }),
-      {},
-    );
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('only apply with days');
+    expect(postsService.findAll).not.toHaveBeenCalled();
   });
 
   it.each(['thread', 'headless MCP'])(
@@ -3464,6 +3480,14 @@ describe('AgentToolExecutorService', () => {
 
   it('keeps organization analytics summary responses normalized for chat cards', async () => {
     const { analyticsService, service } = createService();
+    analyticsService.getOverview.mockResolvedValueOnce({
+      avgEngagementRate: 4.3,
+      brandCount: 4,
+      growth: { engagement: 12.5, posts: 8.1, views: 14.2 },
+      totalEngagement: 345,
+      totalPosts: 12,
+      totalViews: 4200,
+    });
 
     const result = await service.executeTool(
       'get_analytics',
@@ -3477,6 +3501,11 @@ describe('AgentToolExecutorService', () => {
     expect(result.success).toBe(true);
     expect(result.creditsUsed).toBe(0);
     expect(analyticsService.getOverview).toHaveBeenCalled();
+    expect(result.data).toMatchObject({
+      overview: { organizationBrandCount: 4, totalPosts: 12 },
+      period: '30d',
+    });
+    expect(result.data).not.toHaveProperty('overview.brandCount');
     expect(result.nextActions).toEqual([
       expect.objectContaining({
         metrics: expect.objectContaining({
@@ -5950,7 +5979,7 @@ describe('AgentToolExecutorService', () => {
       ctas: [
         {
           href: '/library/images?asset=img-root-123',
-          label: 'View in Library',
+          label: 'View Library',
         },
       ],
       id: 'image-gen-img-root-123',
@@ -5991,7 +6020,7 @@ describe('AgentToolExecutorService', () => {
     expect(result.nextActions?.[0]).toMatchObject({
       audio: ['https://cdn.example.test/voice-123.mp3'],
       ctas: [
-        { href: '/library/voices?asset=voice-123', label: 'View in Library' },
+        { href: '/library/voices?asset=voice-123', label: 'View Library' },
       ],
     });
   });
@@ -6913,65 +6942,67 @@ describe('AgentToolExecutorService', () => {
     });
   });
 
-  it('returns purchase CTA only for paid official marketplace workflows', async () => {
-    const { marketplaceApiClient, service, workflowInstallCacheService } =
-      createService();
-    const organizationId = testId('org2');
-    const userId = testId('user');
-    const sourceActionId = 'workflow-install-marketplace-action-1';
+  it.each([
+    ['a paid', 49, 'premium'],
+    ['a free', 0, 'free'],
+  ])(
+    'sends %s official marketplace workflow to the marketplace, never installing it',
+    async (_label, price, pricingTier) => {
+      const { marketplaceApiClient, service, workflowInstallCacheService } =
+        createService();
+      const organizationId = testId('org2');
+      const userId = testId('user');
+      const sourceActionId = 'workflow-install-marketplace-action-1';
 
-    marketplaceApiClient.getListing.mockResolvedValue({
-      id: 'listing-1',
-      isDeleted: false,
-      price: 49,
-      pricingTier: 'premium',
-      slug: 'official-linkedin-workflow',
-    });
-    marketplaceApiClient.checkListingOwnership.mockResolvedValue({
-      owned: false,
-      purchase: null,
-    });
-    workflowInstallCacheService.get.mockResolvedValueOnce({
-      organizationId,
-      sourceActionId,
-      threadId: '',
-      toolName: 'install_official_workflow',
-    });
-
-    const result = await service.executeTool(
-      'install_official_workflow',
-      {
-        prompt: 'Install the official LinkedIn workflow',
-        sourceActionId,
-        sourceDescription: 'Official LinkedIn workflow',
-        sourceId: 'listing-1',
-        sourceName: 'Official LinkedIn Workflow',
-        sourceSlug: 'official-linkedin-workflow',
-        sourceType: 'marketplace-listing',
-      },
-      {
-        confirmationOrigin: 'thread-ui-action',
+      marketplaceApiClient.getListing.mockResolvedValue({
+        id: 'listing-1',
+        price,
+        pricingTier,
+        slug: 'official-linkedin-workflow',
+        title: 'Official LinkedIn Workflow',
+      });
+      workflowInstallCacheService.get.mockResolvedValueOnce({
         organizationId,
-        userId,
-      },
-    );
+        sourceActionId,
+        threadId: '',
+        toolName: 'install_official_workflow',
+      });
 
-    expect(result.success).toBe(true);
-    expect(result.data).toMatchObject({
-      listingId: 'listing-1',
-      requiresPurchase: true,
-    });
-    expect(result.nextActions?.[0]).toMatchObject({
-      ctas: [
+      const result = await service.executeTool(
+        'install_official_workflow',
         {
-          href: expect.stringContaining('/official-linkedin-workflow'),
-          label: 'Open marketplace listing',
+          prompt: 'Install the official LinkedIn workflow',
+          sourceActionId,
+          sourceDescription: 'Official LinkedIn workflow',
+          sourceId: 'listing-1',
+          sourceName: 'Official LinkedIn Workflow',
+          sourceSlug: 'official-linkedin-workflow',
+          sourceType: 'marketplace-listing',
         },
-      ],
-      title: 'Purchase required',
-      type: 'workflow_created_card',
-    });
-  });
+        {
+          confirmationOrigin: 'thread-ui-action',
+          organizationId,
+          userId,
+        },
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.data).toMatchObject({
+        listingId: 'listing-1',
+        requiresMarketplaceLibrary: true,
+      });
+      expect(result.nextActions?.[0]).toMatchObject({
+        ctas: [
+          {
+            href: expect.stringContaining('/official-linkedin-workflow'),
+            label: 'Open marketplace listing',
+          },
+        ],
+        title: 'Get it from the marketplace',
+        type: 'workflow_created_card',
+      });
+    },
+  );
 
   // Workflow agent-tool path tests
 

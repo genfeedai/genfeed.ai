@@ -46,6 +46,7 @@ export default function ConnectPlatforms({
   const [isLoading, setIsLoading] = useState(true);
   const [connecting, setConnecting] = useState<string | null>(null);
   const [hasError, setHasError] = useState(false);
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     const controller = new AbortController();
     setIsLoading(true);

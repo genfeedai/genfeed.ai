@@ -50,12 +50,7 @@ function isStoryboardRunInFlight(run: BrandRemixRunView): boolean {
   );
 }
 
-export type StoryboardRunStatus =
-  | 'idle'
-  | 'loading'
-  | 'ready'
-  | 'working'
-  | 'error';
+type StoryboardRunStatus = 'idle' | 'loading' | 'ready' | 'working' | 'error';
 
 export interface UseStoryboardRunResult {
   readonly saveScenes: (edits: BrandRemixDraftEdits) => Promise<void>;
@@ -216,6 +211,7 @@ export function useStoryboardRun(runId: string): UseStoryboardRunResult {
   );
   const socketResource = run ? getSocketResource(run) : null;
 
+  // use-effect-audit: ignore subscribes to an external event source
   useEffect(() => {
     if (!socketResource || !isSocketReady || !socketAssetIds.length) {
       return;

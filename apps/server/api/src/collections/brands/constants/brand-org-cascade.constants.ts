@@ -35,7 +35,7 @@ export interface FirstOrderCascadeTarget {
   readonly orgField: string;
 }
 
-export interface SecondOrderParentLink {
+interface SecondOrderParentLink {
   /** camelCase delegate of the parent whose brand we filter by. */
   readonly parentDelegate: string;
   /** Brand field on the parent (matches a FIRST_ORDER_TARGETS entry). */
@@ -108,6 +108,18 @@ export const FIRST_ORDER_TARGETS: readonly FirstOrderCascadeTarget[] = [
   {
     delegate: 'brandOsPublication',
     table: 'brand_os_publications',
+    brandField: 'brandId',
+    orgField: 'organizationId',
+  },
+  {
+    delegate: 'harnessProfile',
+    table: 'harness_profiles',
+    brandField: 'brandId',
+    orgField: 'organizationId',
+  },
+  {
+    delegate: 'harnessProfileRevision',
+    table: 'harness_profile_revisions',
     brandField: 'brandId',
     orgField: 'organizationId',
   },
@@ -294,12 +306,6 @@ export const FIRST_ORDER_TARGETS: readonly FirstOrderCascadeTarget[] = [
   {
     delegate: 'accountAnalyticsSnapshot',
     table: 'account_analytics_snapshots',
-    brandField: 'brandId',
-    orgField: 'organizationId',
-  },
-  {
-    delegate: 'schedule',
-    table: 'schedules',
     brandField: 'brandId',
     orgField: 'organizationId',
   },
@@ -1089,6 +1095,10 @@ export const KNOWN_EXCLUDED_MODELS: readonly string[] = [
   'AgentPublishAudit',
   'AgentUntrustedContentAudit',
   'AgentTransfer',
+  // Brand relocation deletes a moving brand's thread shares before the cascade
+  // (deleteAgentThreadSharesForRelocation): a share is a grant inside one
+  // organization, so the move ends it instead of carrying it along.
+  'AgentThreadShare',
   // Immutable by trigger, so a composite-FK cascade would raise; relocation
   // refuses a brand with pins or publish approvals as learning/publication
   // history (assertNoLearningHistory) before the cascade runs.
@@ -1157,6 +1167,7 @@ export const AUDITOR_IGNORED_TABLES: readonly string[] = [
   'credit_transactions',
   'agent_publish_audits',
   'agent_untrusted_content_audits',
+  'agent_thread_shares',
   'agent_transfers',
   // Immutable pins and publish approvals cannot move: relocation rejects any
   // brand that has them (assertNoLearningHistory).

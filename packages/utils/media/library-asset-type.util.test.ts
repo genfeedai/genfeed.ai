@@ -24,6 +24,7 @@ describe('LIBRARY_ASSET_TYPES', () => {
       'Audio',
       'Voice',
       'Text',
+      '3D model',
     ]);
   });
 });

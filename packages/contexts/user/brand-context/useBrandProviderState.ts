@@ -35,6 +35,7 @@ import {
   clearClientProtectedBootstrapCache,
   loadClientProtectedBootstrap,
 } from '../../providers/protected-bootstrap/client-protected-bootstrap';
+import { saveLastBrand } from '../../providers/protected-bootstrap/last-brand-save';
 import { useContextAuthedService } from '../internal/context-authed-service';
 import {
   BRAND_CONTEXT_CACHE_TTL_MS,
@@ -461,6 +462,7 @@ export function useBrandProviderState({
     staleTime: BRAND_CONTEXT_CACHE_TTL_MS,
   });
 
+  // use-effect-audit: ignore clears cached service instances when the user signs out
   useEffect(() => {
     if (effectiveIsAuthLoaded && !effectiveIsSignedIn) {
       clearAllServiceInstances();
@@ -499,6 +501,7 @@ export function useBrandProviderState({
 
   const lastSyncedUrlBrandIdRef = useRef('');
 
+  // use-effect-audit: ignore persists the route brand as the last-used brand on the server
   useEffect(() => {
     if (
       !effectiveIsSignedIn ||
@@ -526,8 +529,7 @@ export function useBrandProviderState({
           return;
         }
 
-        await service.patchMeBrand(urlBrandId);
-        clearClientProtectedBootstrapCache();
+        await saveLastBrand(urlBrandId, (id) => service.patchMeBrand(id));
       } catch (error) {
         lastSyncedUrlBrandIdRef.current = '';
         logger.warn('Failed to persist URL brand as last-used', {

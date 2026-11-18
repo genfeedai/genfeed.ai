@@ -19,7 +19,7 @@ import {
  * counted every created or scheduled post as a running generation and the bell
  * badge never cleared.
  */
-export function isInFlightGenerationKey(key: string): boolean {
+function isInFlightGenerationKey(key: string): boolean {
   return (
     key.endsWith('-processing') || key === ActivityKey.MODELS_TRAINING_CREATED
   );
@@ -58,7 +58,8 @@ export function getGenerationActivityHref(
     );
   const path =
     getActivityDestinationPath(activity) ?? APP_ROUTES.WORKSPACE.ACTIVITY;
-  return brand
+  // Connectors is organization scope; every other destination is a brand page.
+  return brand && !path.startsWith(APP_ROUTES.CONNECTORS.ROOT)
     ? createBrandAppRoute(scope.orgSlug, brand.slug, path)
     : createOrganizationAppRoute(scope.orgSlug, path);
 }

@@ -150,7 +150,7 @@ export default function MenuItem({
       // Vertical card layout: uppercase small label
       <span
         className={cn(
-          'text-2xs font-semibold uppercase tracking-[0.18em] text-foreground/60 transition-colors duration-200',
+          'text-2xs font-semibold uppercase tracking-label text-foreground/60 transition-colors duration-200',
           isActive && 'text-foreground',
         )}
       >

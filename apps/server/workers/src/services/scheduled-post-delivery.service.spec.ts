@@ -26,12 +26,17 @@ import {
   PostCategory,
   PostStatus,
   PostVisibility,
+  PublishErrorKind,
   TargetExecutionState,
 } from '@genfeedai/contracts';
-import type { IPublishingProviderReadiness } from '@genfeedai/contracts/interfaces';
+import {
+  type IPublishingProviderReadiness,
+  PublishError,
+} from '@genfeedai/contracts/interfaces';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { ForbiddenException } from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';
+import { ScheduledPostChannelRecoveryService } from '@workers/services/scheduled-post-channel-recovery.service';
 import { ScheduledPostDeliveryService } from '@workers/services/scheduled-post-delivery.service';
 import { ScheduledPostFailureService } from '@workers/services/scheduled-post-failure.service';
 import { PROVIDER_PUBLISH_LEASE_RENEWAL_MS } from '@workers/services/scheduled-post-provider-receipt.util';
@@ -113,8 +118,12 @@ function createDeliveryMocks() {
   const registeredActions = new Map<string, RegisteredAction>();
   return {
     activitiesService: { record: vi.fn().mockResolvedValue(undefined) },
+    credentialRefresher: {
+      refreshCredential: vi.fn().mockResolvedValue({ success: true }),
+    },
     credentialsService: {
       findOne: vi.fn(),
+      patch: vi.fn().mockResolvedValue(undefined),
       findOneSelect: vi.fn(function (
         this: { findOne: (params: unknown) => unknown },
         params: unknown,
@@ -212,6 +221,12 @@ function createDeliveryService(mocks: DeliveryMocks) {
     mocks.prisma as never,
     mocks.mediaReadinessService as never,
     mocks.workflowQueue as never,
+    new ScheduledPostChannelRecoveryService(
+      mocks.logger as never,
+      mocks.credentialsService as never,
+      mocks.credentialRefresher as never,
+      mocks.activitiesService as never,
+    ),
   );
   service.onModuleInit();
   return service;
@@ -823,7 +838,11 @@ describe('ScheduledPostDeliveryService', () => {
 
   it('keeps a timed-out attempt for verification and soft-retries it', async () => {
     mocks.publisherFactory.getPublisher.mockReturnValue({
-      publish: vi.fn().mockRejectedValue(new Error('ETIMEDOUT')),
+      publish: vi
+        .fn()
+        .mockRejectedValue(
+          new PublishError(PublishErrorKind.OUTCOME_UNKNOWN, 'ETIMEDOUT'),
+        ),
       supportsThreads: false,
     });
 
@@ -872,10 +891,30 @@ describe('ScheduledPostDeliveryService', () => {
     );
   });
 
+  it('tells the owner nothing while a retryable provider failure still has retries left', async () => {
+    mocks.activitiesService.record.mockClear();
+    mocks.publisherFactory.getPublisher.mockReturnValue({
+      publish: vi
+        .fn()
+        .mockRejectedValue(
+          new PublishError(PublishErrorKind.OUTCOME_UNKNOWN, 'ETIMEDOUT'),
+        ),
+      supportsThreads: false,
+    });
+
+    await executeDelivery(mocks, createScheduledPost(), 'scheduled_sweep');
+
+    expect(mocks.activitiesService.record).not.toHaveBeenCalled();
+  });
+
   it('does not report a retryable provider failure to Sentry', async () => {
     vi.mocked(Sentry.captureException).mockClear();
     mocks.publisherFactory.getPublisher.mockReturnValue({
-      publish: vi.fn().mockRejectedValue(new Error('ETIMEDOUT')),
+      publish: vi
+        .fn()
+        .mockRejectedValue(
+          new PublishError(PublishErrorKind.OUTCOME_UNKNOWN, 'ETIMEDOUT'),
+        ),
       supportsThreads: false,
     });
 
@@ -1193,7 +1232,11 @@ describe('ScheduledPostDeliveryService', () => {
   });
 
   it('never calls an unverifiable publisher again once its retry budget is spent, however often it is delivered', async () => {
-    const publish = vi.fn().mockRejectedValue(new Error('ETIMEDOUT'));
+    const publish = vi
+      .fn()
+      .mockRejectedValue(
+        new PublishError(PublishErrorKind.OUTCOME_UNKNOWN, 'ETIMEDOUT'),
+      );
     mocks.publisherFactory.getPublisher.mockReturnValue({
       publish,
       supportsThreads: false,
@@ -1221,7 +1264,11 @@ describe('ScheduledPostDeliveryService', () => {
   });
 
   it('never calls a verifying publisher again while its verification is unavailable, at any retry count', async () => {
-    const publish = vi.fn().mockRejectedValue(new Error('ETIMEDOUT'));
+    const publish = vi
+      .fn()
+      .mockRejectedValue(
+        new PublishError(PublishErrorKind.OUTCOME_UNKNOWN, 'ETIMEDOUT'),
+      );
     mocks.publisherFactory.getPublisher.mockReturnValue({
       publish,
       supportsThreads: false,
@@ -1338,9 +1385,76 @@ describe('ScheduledPostDeliveryService', () => {
     );
   });
 
+  it('tells the owner once, naming the post and the channel, when the verification window passes', async () => {
+    mocks.activitiesService.record.mockClear();
+    mocks.publisherFactory.getPublisher.mockReturnValue({
+      publish: vi.fn(),
+      supportsThreads: false,
+      verifyPublished: vi.fn().mockRejectedValue(new Error('provider 503')),
+    });
+    const attemptStartedAt = new Date(Date.now() - 25 * 60 * 60_000);
+    mocks.prisma.postProviderPublishReceipt.findFirst.mockResolvedValue(
+      receiptRow({ attemptStartedAt, status: 'uncertain' }),
+    );
+
+    for (let delivery = 0; delivery < 3; delivery++) {
+      await executeDelivery(mocks, createScheduledPost(), 'scheduled_sweep');
+    }
+
+    const recorded = mocks.activitiesService.record.mock.calls.map(
+      (call) => call[0],
+    );
+    expect(recorded).toHaveLength(3);
+    expect(
+      new Set(recorded.map((activity) => activity.alert?.deduplicationKey)),
+    ).toEqual(
+      new Set([
+        `${ActivityKey.POST_PUBLISH_UNVERIFIED}/post-1/${attemptStartedAt.getTime()}`,
+      ]),
+    );
+    expect(recorded[0]).toEqual(
+      expect.objectContaining({
+        entityId: 'post-1',
+        key: ActivityKey.POST_PUBLISH_UNVERIFIED,
+        organizationId: 'org-1',
+        userId: 'user-1',
+      }),
+    );
+    expect(recorded[0].alert?.payload).toEqual(
+      expect.objectContaining({
+        event: 'publish_unverified',
+        kind: 'alert_email',
+        summary: expect.stringContaining('Check your'),
+      }),
+    );
+  });
+
+  it('tells the owner nothing while the outcome is still inside the verification window', async () => {
+    mocks.activitiesService.record.mockClear();
+    mocks.publisherFactory.getPublisher.mockReturnValue({
+      publish: vi.fn(),
+      supportsThreads: false,
+      verifyPublished: vi.fn().mockRejectedValue(new Error('provider 503')),
+    });
+    mocks.prisma.postProviderPublishReceipt.findFirst.mockResolvedValue(
+      receiptRow({
+        attemptStartedAt: new Date(Date.now() - 60 * 60_000),
+        status: 'uncertain',
+      }),
+    );
+
+    await executeDelivery(mocks, createScheduledPost(), 'scheduled_sweep');
+
+    expect(mocks.activitiesService.record).not.toHaveBeenCalled();
+  });
+
   it('keeps a budget-exhausted ambiguous provider call publishing instead of failing it', async () => {
     mocks.publisherFactory.getPublisher.mockReturnValue({
-      publish: vi.fn().mockRejectedValue(new Error('ETIMEDOUT')),
+      publish: vi
+        .fn()
+        .mockRejectedValue(
+          new PublishError(PublishErrorKind.OUTCOME_UNKNOWN, 'ETIMEDOUT'),
+        ),
       supportsThreads: false,
     });
 
@@ -1366,6 +1480,7 @@ describe('ScheduledPostDeliveryService', () => {
   it('keeps a returned timeout uncertain instead of releasing it', async () => {
     mockSuccessfulPublisher(mocks, {
       error: 'ETIMEDOUT while publishing',
+      errorKind: PublishErrorKind.OUTCOME_UNKNOWN,
       executionState: TargetExecutionState.FAILED,
       success: false,
     });
@@ -1857,6 +1972,7 @@ describe('ScheduledPostDeliveryService', () => {
     mocks.publisherFactory.getPublisher.mockReturnValue({
       publish: vi.fn().mockResolvedValue({
         error: '429 rate limit',
+        errorKind: PublishErrorKind.RATE_LIMITED,
         executionState: TargetExecutionState.FAILED,
         externalId: null,
         platform: CredentialPlatform.TWITTER,
@@ -1886,10 +2002,10 @@ describe('ScheduledPostDeliveryService', () => {
           isRetryable: true,
         }),
         executionState: TargetExecutionState.SCHEDULED,
-        retryCount: 1,
+        retryCount: 0,
         workflowExecutionId: 'execution-1',
       }),
-      '429 rate limit',
+      expect.stringMatching(/^429 rate limit Next attempt at \d{4}-/),
       {
         expectedWorkflowExecutionId: 'execution-1',
         priorExecutionStates: [TargetExecutionState.PUBLISHING],
@@ -1898,6 +2014,300 @@ describe('ScheduledPostDeliveryService', () => {
     expect(
       mocks.publishEventWebhookService.emitPostFailed,
     ).not.toHaveBeenCalled();
+  });
+
+  describe('provider token and grant failures', () => {
+    function mockPublisherThrowing(kind: PublishErrorKind) {
+      const publish = vi
+        .fn()
+        .mockRejectedValue(new PublishError(kind, 'Provider said no'));
+      mocks.publisherFactory.getPublisher.mockReturnValue({
+        publish,
+        supportsThreads: false,
+      });
+      return publish;
+    }
+
+    function lastWrite() {
+      const writes =
+        mocks.schedulerPublishStateService.transitionPost.mock.calls
+          .map((call) => call[1])
+          .filter(
+            (update) =>
+              update.executionState === TargetExecutionState.SCHEDULED ||
+              update.executionState === TargetExecutionState.FAILED,
+          );
+      return writes[writes.length - 1];
+    }
+
+    it('refreshes an expired token once and publishes again without using up an attempt', async () => {
+      mockPublisherThrowing(PublishErrorKind.TOKEN_MUST_REFRESH);
+
+      await executeDelivery(
+        mocks,
+        createScheduledPost({ retryCount: 2 }),
+        'scheduled_sweep',
+      );
+
+      const write = lastWrite();
+      expect(mocks.credentialRefresher.refreshCredential).toHaveBeenCalledTimes(
+        1,
+      );
+      expect(write).toMatchObject({
+        error: { code: 'token_refreshed', isRetryable: true },
+        executionState: TargetExecutionState.SCHEDULED,
+        retryCount: 2,
+      });
+      // Due on the next sweep, not after the usual backoff.
+      expect(Date.now() - write.lastAttemptAt.getTime()).toBeGreaterThanOrEqual(
+        60 * 1000,
+      );
+      expect(
+        mocks.publishEventWebhookService.emitPostFailed,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('disconnects the channel and tells the owner when the token is refused again after a refresh', async () => {
+      mockPublisherThrowing(PublishErrorKind.TOKEN_MUST_REFRESH);
+      mocks.credentialsService.findOne.mockResolvedValue({
+        externalHandle: '@brand',
+        id: 'cred-1',
+        isConnected: true,
+        organizationId: 'org-1',
+        platform: CredentialPlatform.TWITTER,
+        userId: 'user-1',
+      });
+
+      await executeDelivery(
+        mocks,
+        createScheduledPost({
+          targetError: { code: 'token_refreshed', isRetryable: true },
+        }),
+        'scheduled_sweep',
+      );
+
+      expect(
+        mocks.credentialRefresher.refreshCredential,
+      ).not.toHaveBeenCalled();
+      expect(mocks.credentialsService.patch).toHaveBeenCalledWith('cred-1', {
+        isConnected: false,
+      });
+      expect(mocks.activitiesService.record).toHaveBeenCalledWith(
+        expect.objectContaining({
+          alert: {
+            payload: expect.objectContaining({
+              event: 'channel_disconnected',
+              label: '@brand',
+            }),
+          },
+          key: ActivityKey.SOCIAL_INTEGRATION_DISCONNECTED,
+        }),
+      );
+      expect(lastWrite()).toMatchObject({
+        error: { code: 'channel_disconnected', isRetryable: false },
+        executionState: TargetExecutionState.FAILED,
+      });
+    });
+
+    it('disconnects the channel when the provider says the grant is revoked, without refreshing', async () => {
+      mockPublisherThrowing(PublishErrorKind.CHANNEL_DISCONNECTED);
+      mocks.credentialsService.findOne.mockResolvedValue({
+        id: 'cred-1',
+        isConnected: true,
+        organizationId: 'org-1',
+        platform: CredentialPlatform.TWITTER,
+      });
+
+      await executeDelivery(mocks, createScheduledPost(), 'scheduled_sweep');
+
+      expect(
+        mocks.credentialRefresher.refreshCredential,
+      ).not.toHaveBeenCalled();
+      expect(mocks.credentialsService.patch).toHaveBeenCalledWith('cred-1', {
+        isConnected: false,
+      });
+      expect(lastWrite().executionState).toBe(TargetExecutionState.FAILED);
+    });
+
+    it('disconnects the channel when the refresh itself fails', async () => {
+      mockPublisherThrowing(PublishErrorKind.TOKEN_MUST_REFRESH);
+      mocks.credentialRefresher.refreshCredential.mockResolvedValue({
+        success: false,
+      });
+      mocks.credentialsService.findOne.mockResolvedValue({
+        id: 'cred-1',
+        isConnected: true,
+        organizationId: 'org-1',
+        platform: CredentialPlatform.TWITTER,
+      });
+
+      await executeDelivery(mocks, createScheduledPost(), 'scheduled_sweep');
+
+      expect(lastWrite().executionState).toBe(TargetExecutionState.FAILED);
+    });
+
+    it('fails a rejected post at once with the provider reason and no retry', async () => {
+      mockPublisherThrowing(PublishErrorKind.CONTENT_REJECTED);
+
+      await executeDelivery(
+        mocks,
+        createScheduledPost({ retryCount: 0 }),
+        'scheduled_sweep',
+      );
+
+      expect(lastWrite()).toMatchObject({
+        error: {
+          code: 'content_rejected',
+          isRetryable: false,
+          message: 'Provider said no',
+        },
+        executionState: TargetExecutionState.FAILED,
+      });
+    });
+  });
+
+  describe('provider rate limits', () => {
+    function mockRateLimitedPublisher(retryAfterMs?: number) {
+      const publish = vi.fn().mockResolvedValue({
+        error: '429 rate limit',
+        errorKind: PublishErrorKind.RATE_LIMITED,
+        executionState: TargetExecutionState.FAILED,
+        externalId: null,
+        platform: CredentialPlatform.TWITTER,
+        retryAfterMs,
+        success: false,
+        url: '',
+      });
+      mocks.publisherFactory.getPublisher.mockReturnValue({
+        publish,
+        supportsThreads: false,
+      });
+      return publish;
+    }
+
+    function lastScheduledWrite() {
+      const writes =
+        mocks.schedulerPublishStateService.transitionPost.mock.calls
+          .map((call) => call[1])
+          .filter(
+            (update) =>
+              update.executionState === TargetExecutionState.SCHEDULED,
+          );
+      return writes[writes.length - 1];
+    }
+
+    it('waits for the reset the provider named without spending a retry', async () => {
+      mockRateLimitedPublisher(30 * 60 * 1000);
+      const before = Date.now();
+
+      await executeDelivery(
+        mocks,
+        createScheduledPost({ retryCount: 1 }),
+        'scheduled_sweep',
+      );
+
+      const write = lastScheduledWrite();
+      expect(write.retryCount).toBe(1);
+      // The sweep retries 60s after lastAttemptAt, so the post is next due at
+      // the reset: 30 minutes out.
+      const dueAt = write.lastAttemptAt.getTime() + 60 * 1000;
+      expect(dueAt).toBeGreaterThanOrEqual(before + 30 * 60 * 1000);
+      expect(dueAt).toBeLessThanOrEqual(Date.now() + 30 * 60 * 1000);
+      expect(write.error.message).toContain('Next attempt at');
+      expect(
+        mocks.publishEventWebhookService.emitPostFailed,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('waits the default when the provider gave no reset, and never longer than the cap', async () => {
+      mockRateLimitedPublisher();
+      await executeDelivery(mocks, createScheduledPost(), 'scheduled_sweep');
+      const defaultDueAt = lastScheduledWrite().lastAttemptAt.getTime() + 60000;
+      expect(defaultDueAt - Date.now()).toBeGreaterThan(14 * 60 * 1000);
+      expect(defaultDueAt - Date.now()).toBeLessThanOrEqual(15 * 60 * 1000);
+
+      mocks.schedulerPublishStateService.transitionPost.mockClear();
+      mockRateLimitedPublisher(48 * 60 * 60 * 1000);
+      await executeDelivery(mocks, createScheduledPost(), 'scheduled_sweep');
+      const cappedDueAt = lastScheduledWrite().lastAttemptAt.getTime() + 60000;
+      expect(cappedDueAt - Date.now()).toBeLessThanOrEqual(6 * 60 * 60 * 1000);
+      expect(cappedDueAt - Date.now()).toBeGreaterThan(5 * 60 * 60 * 1000);
+    });
+
+    it('does not fail a post that is rate limited on every attempt within the give-up window', async () => {
+      mockRateLimitedPublisher(60 * 1000);
+      let post = createScheduledPost({ retryCount: 0 });
+
+      for (let attempt = 0; attempt < 5; attempt++) {
+        await executeDelivery(mocks, post, 'scheduled_sweep');
+        const write = lastScheduledWrite();
+        post = {
+          ...post,
+          retryCount: write.retryCount,
+          targetError: write.error,
+        };
+      }
+
+      expect(post.retryCount).toBe(0);
+      expect(
+        mocks.schedulerPublishStateService.transitionPost.mock.calls.map(
+          (call) => call[1].executionState,
+        ),
+      ).not.toContain(TargetExecutionState.FAILED);
+      expect(
+        mocks.publishEventWebhookService.emitPostFailed,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('fails the post with rate_limited once it has been limited past the give-up window', async () => {
+      mockRateLimitedPublisher(60 * 1000);
+      const post = createScheduledPost({
+        retryCount: 0,
+        targetError: {
+          code: 'rate_limited',
+          failedAt: new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString(),
+          isRetryable: true,
+          message: '429 rate limit',
+        },
+      });
+
+      const result = await executeDelivery(mocks, post, 'scheduled_sweep');
+
+      expect(result.executionState).toBe(TargetExecutionState.FAILED);
+      const failed =
+        mocks.schedulerPublishStateService.transitionPost.mock.calls
+          .map((call) => call[1])
+          .find(
+            (update) => update.executionState === TargetExecutionState.FAILED,
+          );
+      expect(failed.error.code).toBe('rate_limited');
+      expect(failed.error.message).toContain(
+        'Still rate limited by the provider after 24 hours.',
+      );
+    });
+
+    it('keeps spending the retry budget on a failure that is not a rate limit', async () => {
+      mocks.publisherFactory.getPublisher.mockReturnValue({
+        publish: vi.fn().mockResolvedValue({
+          error: '503 service unavailable',
+          errorKind: PublishErrorKind.RETRY_LATER,
+          executionState: TargetExecutionState.FAILED,
+          externalId: null,
+          platform: CredentialPlatform.TWITTER,
+          success: false,
+          url: '',
+        }),
+        supportsThreads: false,
+      });
+
+      await executeDelivery(
+        mocks,
+        createScheduledPost({ retryCount: 1 }),
+        'scheduled_sweep',
+      );
+
+      expect(lastScheduledWrite().retryCount).toBe(2);
+    });
   });
 
   it('records a publisher validation failure as terminally failed without retry', async () => {
@@ -1943,6 +2353,57 @@ describe('ScheduledPostDeliveryService', () => {
         expectedWorkflowExecutionId: 'execution-1',
         priorExecutionStates: [TargetExecutionState.PUBLISHING],
       },
+    );
+  });
+
+  it('keeps a refused X quote failed and asks for it by hand instead of raising a publish failure', async () => {
+    mocks.publisherFactory.getPublisher.mockReturnValue({
+      publish: vi.fn().mockResolvedValue({
+        error: 'X refused this quote post.',
+        errorCode: 'x_quote_refused',
+        executionState: TargetExecutionState.FAILED,
+        externalId: null,
+        platform: CredentialPlatform.TWITTER,
+        success: false,
+        url: '',
+      }),
+      supportsThreads: false,
+    });
+    const post = createScheduledPost({
+      description: 'Shipped X quote scheduling.',
+      groupId: 'group-1',
+      quoteTweetId: '1856322244019101979',
+      retryCount: 0,
+    });
+
+    await executeDelivery(mocks, post, 'scheduled_sweep');
+
+    expect(
+      mocks.schedulerPublishStateService.transitionPost,
+    ).toHaveBeenNthCalledWith(
+      2,
+      post,
+      expect.objectContaining({
+        error: expect.objectContaining({
+          code: 'x_quote_refused',
+          isRetryable: false,
+        }),
+        executionState: TargetExecutionState.FAILED,
+      }),
+      'X refused this quote post.',
+      expect.anything(),
+    );
+    expect(mocks.activitiesService.record).toHaveBeenCalledTimes(1);
+    expect(mocks.activitiesService.record).toHaveBeenCalledWith(
+      expect.objectContaining({
+        entityId: 'post-1',
+        key: ActivityKey.POST_MANUAL_POST_NEEDED,
+        organizationId: 'org-1',
+        userId: 'user-1',
+        value: expect.stringContaining(
+          'https://x.com/intent/post?text=Shipped+X+quote+scheduling.&url=https%3A%2F%2Fx.com%2Fi%2Fstatus%2F1856322244019101979',
+        ),
+      }),
     );
   });
 
@@ -2592,7 +3053,7 @@ describe('ScheduledPostDeliveryService', () => {
       const result = await service.failTerminalValidation(post as never, error);
 
       expect(result.error).toBe(expectedMessage);
-      expect(mocks.logger.error).toHaveBeenCalledWith(
+      expect(mocks.logger.warn).toHaveBeenCalledWith(
         'Durable validation rejected queued publishing',
         expect.objectContaining({ error: expectedMessage }),
       );

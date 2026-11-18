@@ -7,7 +7,6 @@ import { RolesController } from '@api/collections/roles/controllers/roles.contro
 import { CreateRoleDto } from '@api/collections/roles/dto/create-role.dto';
 import { UpdateRoleDto } from '@api/collections/roles/dto/update-role.dto';
 import { RoleEntity } from '@api/collections/roles/entities/role.entity';
-import type { RoleDocument } from '@api/collections/roles/schemas/role.schema';
 import { RolesService } from '@api/collections/roles/services/roles.service';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -16,6 +15,7 @@ import {
   adminUser,
   tenantReadQuery,
 } from '@api-test/helpers/tenant-read.fixture';
+import type { Role } from '@genfeedai/prisma';
 import { HttpException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 
@@ -23,7 +23,7 @@ describe('RolesController', () => {
   let controller: RolesController;
   let rolesService: vi.Mocked<RolesService>;
 
-  const mockRole: RoleDocument = {
+  const mockRole: Role = {
     createdAt: new Date('2026-01-01T00:00:00.000Z'),
     id: 'role-id',
     isDeleted: false,

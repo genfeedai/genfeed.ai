@@ -173,3 +173,14 @@ test('keeps the measured cold default while allowing cache comparison', () => {
     /CI_CHECK_RUNTIME=\$\{RUNNER_OS\}\/\$\{RUNNER_ARCH\}\/\$\{SETUP_BUN_VERSION\}\/\$\(node --version\)/,
   );
 });
+
+test('hashes the resolved Bun version into workspace type-check results', () => {
+  const turbo = readFileSync(
+    fileURLToPath(new URL('../../turbo.json', import.meta.url)),
+    'utf8',
+  );
+
+  // `bun check` is the checker and `.bun-version` is `latest`, so the version
+  // is only visible to Turbo through the runtime identity the action exports.
+  assert.match(turbo, /"type-check": \{[^}]*"env": \["CI_CHECK_RUNTIME"\]/);
+});

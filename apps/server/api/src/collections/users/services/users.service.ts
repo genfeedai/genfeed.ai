@@ -1,7 +1,6 @@
 import type { AdminUpdateUserProfileDto } from '@api/collections/users/dto/admin-update-user-profile.dto';
 import { CreateUserDto } from '@api/collections/users/dto/create-user.dto';
 import { UpdateUserDto } from '@api/collections/users/dto/update-user.dto';
-import type { UserDocument } from '@api/collections/users/schemas/user.schema';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   BaseService,
@@ -12,6 +11,7 @@ import type {
   ISignupAttribution,
   PopulateOption,
 } from '@genfeedai/contracts/interfaces';
+import type { User } from '@genfeedai/prisma';
 import type { AggregationOptions } from '@libs/interfaces/query.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
@@ -45,7 +45,7 @@ const USER_FIND_ALL_SELECT = {
 @Traced()
 @Injectable()
 export class UsersService extends BaseService<
-  UserDocument,
+  User,
   CreateUserDto,
   UpdateUserDto
 > {
@@ -75,7 +75,7 @@ export class UsersService extends BaseService<
     input: unknown,
     options: AggregationOptions,
     enableCache: boolean = true,
-  ): Promise<AggregatePaginateResult<UserDocument>> {
+  ): Promise<AggregatePaginateResult<User>> {
     if (typeof input === 'object' && input !== null && !Array.isArray(input)) {
       return await super.findAll(
         this.withSafeFindAllSelect(input as PrismaFindAllInput),
@@ -90,14 +90,14 @@ export class UsersService extends BaseService<
   async findOne(
     params: Record<string, unknown>,
     populate: PopulateOption[] = [{ path: 'settings' }],
-  ): Promise<UserDocument | null> {
+  ): Promise<User | null> {
     return await super.findOne(params, populate);
   }
 
   async patch(
     id: string,
     updateUserDto: Partial<UpdateUserDto>,
-  ): Promise<UserDocument> {
+  ): Promise<User> {
     return await super.patch(id, updateUserDto, [{ path: 'settings' }]);
   }
 

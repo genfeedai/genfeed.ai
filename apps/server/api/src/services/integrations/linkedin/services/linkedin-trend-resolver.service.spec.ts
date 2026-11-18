@@ -127,6 +127,55 @@ describe('LinkedInTrendResolverService', () => {
     ]);
   });
 
+  it.each([
+    [403, 'access_required'],
+    [429, 'rate_limited'],
+    [401, 'authentication_required'],
+  ] as const)(
+    'records a failed refresh with reason %s when every source fails',
+    async (status, reason) => {
+      brandScraperService.scrapeLinkedIn.mockRejectedValue(
+        Object.assign(new Error(`Failed to fetch LinkedIn page: ${status}`), {
+          status,
+        }),
+      );
+
+      const captured = await captureTrendRefreshEvidence(() =>
+        withTrendRefreshAttempt('linkedin', 'trends', 'scoped', () =>
+          service.resolve('org-123', 'brand-456'),
+        ),
+      );
+
+      expect(captured.result).toEqual([]);
+      expect(captured.evidence).toEqual([
+        expect.objectContaining({
+          lastSuccessfulRefreshAt: null,
+          outcome: 'native_failed',
+          reason,
+        }),
+      ]);
+    },
+  );
+
+  it('uses a generic failure reason when the failures carry no provider status', async () => {
+    brandScraperService.scrapeLinkedIn.mockRejectedValue(
+      new Error('socket hang up'),
+    );
+
+    const captured = await captureTrendRefreshEvidence(() =>
+      withTrendRefreshAttempt('linkedin', 'trends', 'scoped', () =>
+        service.resolve('org-123', 'brand-456'),
+      ),
+    );
+
+    expect(captured.evidence).toEqual([
+      expect.objectContaining({
+        outcome: 'native_failed',
+        reason: 'native_failed',
+      }),
+    ]);
+  });
+
   it('returns no trends when every scrape fails', async () => {
     brandScraperService.scrapeLinkedIn.mockRejectedValue(
       new Error('unavailable'),

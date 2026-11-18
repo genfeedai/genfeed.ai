@@ -210,6 +210,7 @@ export default function IssueDetail({
 
   const loadError =
     detailQuery.error ?? childrenQuery.error ?? commentsQuery.error;
+  // use-effect-audit: ignore reports a load failure to the logger and notifications
   useEffect(() => {
     if (!loadError) {
       return;
@@ -371,7 +372,7 @@ export default function IssueDetail({
             {issue.description ? (
               <Card>
                 <div className="p-4">
-                  <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-800">
+                  <h3 className="mb-2 text-xs font-semibold uppercase tracking-label text-gray-800">
                     Description
                   </h3>
                   <div className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">

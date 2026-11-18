@@ -85,6 +85,14 @@ describe('sanitize-html', () => {
       );
     });
 
+    it('should keep the compare marker on a figure only', () => {
+      const result = sanitizeHtml(
+        '<figure data-genfeed-compare><img src="https://x.test/a.jpg" alt="Before"><img src="https://x.test/b.jpg" alt="After"></figure><p data-genfeed-compare>Text</p>',
+      );
+      expect(result).toContain('<figure data-genfeed-compare');
+      expect(result).toContain('<p>Text</p>');
+    });
+
     it('should handle empty string', () => {
       const result = sanitizeHtml('');
       expect(result).toBe('');

@@ -8,7 +8,7 @@ import {
 } from '@genfeedai/workflows/engine';
 
 /** Brand ids named on action nodes, and the source ingredients whose brand stands in for one. */
-export function collectWorkflowGenerationNodeBrandSources(
+function collectWorkflowGenerationNodeBrandSources(
   nodes: readonly ExecutableNode[],
 ): { brandIds: string[]; parentIngredientIds: string[] } {
   const brandIds: string[] = [];
@@ -31,7 +31,7 @@ export function collectWorkflowGenerationNodeBrandSources(
  * Whether a run of this workflow can resolve a brand at admission. A workflow
  * without one fails every run with "Workflow generation brand is unavailable".
  */
-export function hasWorkflowGenerationBrandSource(
+function hasWorkflowGenerationBrandSource(
   workflowBrandId: string | null | undefined,
   nodes: readonly ExecutableNode[],
 ): boolean {

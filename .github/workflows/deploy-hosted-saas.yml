@@ -1,5 +1,5 @@
 name: Deploy hosted SaaS
-run-name: Deploy hosted SaaS | ${{ inputs.source_sha }} | ${{ inputs.correlation_id || 'manual' }}
+run-name: ${{ inputs.dry_run && 'Deploy dry run' || 'Deploy hosted SaaS' }} | ${{ inputs.source_sha }} | ${{ inputs.correlation_id || 'manual' }}
 
 # Public-repo hosted SaaS lane. Jobs, OpenTofu, and deploy scripts all live
 # here so GitHub bills free public minutes. Do not clone console.genfeed.ai.
@@ -30,6 +30,11 @@ on:
         required: false
         default: ""
         type: string
+      dry_run:
+        description: "rehearse only: resolve the image and run the migration compatibility gate, deploy nothing"
+        required: false
+        default: false
+        type: boolean
   workflow_call:
     inputs:
       release_tag:
@@ -56,6 +61,11 @@ on:
         required: false
         default: ""
         type: string
+      dry_run:
+        description: "rehearse only: resolve the image and run the migration compatibility gate, deploy nothing"
+        required: false
+        default: false
+        type: boolean
     secrets:
       VERCEL_TOKEN:
         required: true
@@ -70,8 +80,9 @@ on:
       CONTENT_HARNESS_BUNDLE_SHA256:
         required: false
 
+# A rehearsal never queues behind, or replaces a pending, real deploy.
 concurrency:
-  group: deploy-hosted-saas
+  group: ${{ inputs.dry_run && 'deploy-hosted-saas-dry-run' || 'deploy-hosted-saas' }}
   cancel-in-progress: false
 
 permissions:
@@ -135,6 +146,7 @@ jobs:
       source_sha: ${{ needs.validate-and-resolve.outputs.source_sha }}
       image_tag: ${{ inputs.image_tag }}
       allow_rollback: ${{ inputs.allow_rollback }}
+      dry_run: ${{ inputs.dry_run }}
     secrets:
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
       NEXT_PUBLIC_POSTHOG_KEY: ${{ secrets.NEXT_PUBLIC_POSTHOG_KEY }}

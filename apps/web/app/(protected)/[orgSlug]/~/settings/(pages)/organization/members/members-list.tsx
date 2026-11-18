@@ -199,6 +199,7 @@ function MembersListContent() {
     : EMPTY_INVITATIONS;
 
   const membersError = membersQuery.error ?? invitationsQuery.error;
+  // use-effect-audit: ignore reports a load failure to the logger and notifications
   useEffect(() => {
     if (!membersError) {
       return;
@@ -448,7 +449,7 @@ function MembersListContent() {
           actions={
             <Button asChild variant={ButtonVariant.DEFAULT} withWrapper={false}>
               <Link href={orgHref(APP_ROUTES.SETTINGS.SUBSCRIPTION)}>
-                Upgrade to {upgradeTierLabel}
+                Get {upgradeTierLabel}
               </Link>
             </Button>
           }

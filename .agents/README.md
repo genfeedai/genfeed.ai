@@ -36,7 +36,7 @@ Project-level `.agents/` for all AI agent knowledge, skills, and operational doc
 
 | Tool | Memory | Skills | Rules |
 |------|--------|--------|-------|
-| Claude Code | `CLAUDE.md` @imports from `memory/` | `.claude/skills/` → `.agents/skills/` | `.claude/rules/` → `.agents/memory/rules/` |
+| Claude Code | `CLAUDE.md` @imports `AGENTS.md` and `memory/MEMORY.md` | `.claude/skills/` → `.agents/skills/` | `.claude/rules/` → `.agents/memory/rules/` |
 | Codex | `.codex/memory/` → `.agents/memory/` | `.codex/skills/` → `.agents/skills/` | — |
 | Other | `AGENTS.md` at repo root | — | — |
 

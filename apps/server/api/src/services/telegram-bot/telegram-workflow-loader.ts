@@ -12,6 +12,7 @@ import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 import type { WorkflowVisualNode } from '@api/collections/workflows/schemas/workflow.schema';
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-runner.service';
+import { SystemWorkflowRetention } from '@api/collections/workflows/workflow-execution-retention.contract';
 import type {
   TelegramWorkflowName,
   WorkflowInput,
@@ -167,7 +168,7 @@ export async function loadTelegramWorkflows(
   return workflows;
 }
 
-export function resolveWorkflowFallbackPath(name: string): string | null {
+function resolveWorkflowFallbackPath(name: string): string | null {
   const starts = [process.cwd(), dirname(fileURLToPath(import.meta.url))];
 
   for (const start of starts) {
@@ -278,6 +279,7 @@ export function toTelegramSystemWorkflowDefinition(
     description: workflow.description,
     label: workflow.name,
     resultNodeId: resultNode.id,
+    retention: SystemWorkflowRetention.KEPT,
     version: workflow.version,
   };
 }

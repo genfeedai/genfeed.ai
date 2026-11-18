@@ -11,6 +11,7 @@ checks agent task contracts and assesses no model quality.
 | Generation-type registry (`context-coverage/generation-types.ts`) | Every `GenerationType`, `ContentType` and `IngredientCategory` member has a row saying how brand context reaches its prompt, and the source file still does it. A fixed gap or a new type fails until the row is updated. | none | `bun run test:executable-contracts` (PR gate) |
 | Context injection (`context-coverage/context-injection.test.ts`) | For every harness content kind and surface, the org directive, brand voice, guardrails, criteria and examples are in the formatted prompt, and a second tenant's context never is. Uses the real `buildHarnessInput`, built-in packs and `formatHarnessBrief`. | none | same |
 | Smoke (`smoke/`) | Text kinds as raw prompt vs org + brand guidance on one cheap model with a cross-family judge, plus the public benchmark's image and video tasks through the product API. | stub or live | `.github/workflows/content-eval-smoke.yml` |
+| Skill A/B (`--suite=skill-ab`) | Two or more skills, or a skill against no skill, on one model and one fixture: the same brief and brand rules, only the skill in the system prompt differs. | stub or live | by hand |
 | Judge calibration, ladder, harness A/B, media ladder | The older suites under `--suite=`. See the header of `run.ts`. | stub or live | by hand |
 
 ## Smoke run
@@ -61,6 +62,90 @@ bun run eval:content:smoke -- --max-credits=300 --dispatcher=live
 - The text fixture is `apps/server/api/test/fixtures/content-evals/smoke/text.synthetic.jsonl`:
   two rows for each smoke text kind, all fictional KELDER data. Real-brand rows
   stay in the private `genfeedai/harness` repo (`CONTENT_EVAL_PRIVATE_FIXTURES`).
+
+## QA task cards
+
+QA runners (the Grok bot, Codex) generate through the product's own surfaces,
+where the smoke run cannot reach (Agent chat, Studio, ad copy, scripts). A card
+is the task prompt only, in
+`apps/server/api/test/fixtures/content-evals/qa/cards.synthetic.jsonl`. It
+points at a smoke text row (`smoke:<rowId>`) or a pinned benchmark image task
+(`bench:<taskId>@<version>`) and must equal that prompt verbatim. Brand facts
+never go in the prompt: the brand comes from the product, and the proof is the
+generation receipt.
+
+For each card the runner records a capture (card id, receipt, asset id, model,
+credits, and the text for text kinds), then:
+
+```bash
+bun run eval:content:qa                                  # cards still match their fixtures
+bun run eval:content:qa -- --captures=<file> --out=<md>  # score a run, no model call
+```
+
+Every text capture first runs an `is-a-post` check (a minimum length, no refusal
+or commentary), because the onboarding output audit found most first drafts
+saved and shown at about nine tokens. Onboarding has its own cards
+(`onboarding-cards.synthetic.jsonl`, one per onboarding output) that the runner
+executes as each signup scenario: work email with a real site, personal email
+with a pasted link, no link, a brand with no saved offers, and scan failed with
+the context form. Their
+checks read what the runner captured off the screens: saved facts found on the
+scanned page, a voice that is not the generic fallback, a draft that names the
+brand context, a platform draft that is not the X draft reworded, and a
+shortened draft that keeps the idea. Word-overlap thresholds are first guesses,
+not calibrated.
+
+A capture is `pass`, `fail`, `context-missing` (no receipt, or no approved
+Brand OS revision on it) or `blocked`. Text also runs the fixture row's
+deterministic checks; images have none yet. The summary carries counts, context
+proof rate and credits only. It holds no judge or human score here: quality
+scores come from the product's own scorer (`ContentQualityScorerService`,
+reached through the `/evaluations` endpoints), recorded next to the capture
+rather than rebuilt in this runner. Keep the full captures off repo and post
+only the summary.
+
+A card with no `fixtureRef` is standalone: its prompt is its own source of truth
+and only the `is-a-post` check and context proof apply. A private card set, such
+as the Genfeed-branded cards kept in the private `genfeedai/evals` repo, loads
+with `--cards=<file>`:
+
+```bash
+bun run eval:content:qa -- --cards=<cards.jsonl> --captures=<file> --out=<md>
+```
+
+## Skill A/B
+
+`--suite=skill-ab` answers "which skill makes the model write the better
+artifact". Each arm is a local skill directory, so a skill pack that is not ours
+is read from a checkout and never copied into this repository.
+
+```bash
+bun run eval:content -- --suite=skill-ab \
+  --fixture=apps/server/api/test/fixtures/content-evals/skill-ab/video-composition.synthetic.jsonl \
+  --models=<one model key> --judge=<cross-family judge> --max-credits=<n> \
+  --skill-arms=ours=<dir of a skill>,other=<dir of another skill>,none --repeats=3
+```
+
+- `--skill-arms` takes two or more `label=<skill dir>` arms, baseline first;
+  every other arm is judged against the baseline. The bare label `none` is the
+  control: the same brand rules with no skill.
+- A skill is read as the product injects one: the `SKILL.md` body without its
+  frontmatter, cut at 24,000 characters. Files it links to are not loaded, so
+  the arm measures the instructions in context when the skill triggers.
+- One `--models` key serves every arm. Every arm gets the same output limit
+  (4096 tokens, more than the other text suites, because the answer is a whole
+  composition or storyboard). A cut-off answer is voided, not scored.
+- The judge scores the written artifact against the brief and brand guidance
+  (`content-quality-v1`) and the deterministic brief checks run as usual. It does
+  not render the artifact, so it cannot see a composition that parses but plays
+  badly. A render-and-judge lane would reuse the media suite's frame judge and is
+  a separate suite.
+- `--repeats` (1 to 10) adds the noise section: a winner is named only when the
+  paired interval clears zero.
+- The fixture `skill-ab/video-composition.synthetic.jsonl` is six fictional
+  KELDER rows (teaser, explainer, title card, captions, storyboard) in the lane
+  where video skills overlap. The prompts do not name a framework: the skill
+  decides how the composition is built.
 
 ## Noise-aware reports
 

@@ -33,7 +33,7 @@ function savedStrings(value: unknown): string[] {
     ? value.filter((item): item is string => typeof item === 'string')
     : [];
 }
-export function savedDiscoveryUrl(value: unknown): string | undefined {
+function savedDiscoveryUrl(value: unknown): string | undefined {
   if (typeof value !== 'string') return undefined;
   try {
     const url = new URL(value);

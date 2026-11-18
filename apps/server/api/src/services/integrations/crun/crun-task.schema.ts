@@ -40,11 +40,6 @@ export interface CrunProviderRequest {
   input: Record<string, CrunInputValue>;
 }
 
-export type CrunRequestSlot = {
-  isAdmitted: boolean;
-  retryAfterMs: number;
-} | null;
-
 export interface CrunQuotePreparation {
   profile: ModelBillablePricingProfile;
   contract: CrunModelInputContract;

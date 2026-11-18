@@ -106,6 +106,7 @@ export function ResearchWorkSurfaceProvider({
   );
   const canonicalSearchParamsString = urlState.canonicalSearchParams.toString();
 
+  // use-effect-audit: ignore redirects the route in the router
   useEffect(() => {
     if (urlState.isCanonical) {
       return;
@@ -278,6 +279,7 @@ export function useResearchSearchParamState<Value extends string>({
       : defaultValue
     : localValue;
 
+  // use-effect-audit: ignore redirects the route in the router
   useEffect(() => {
     if (!updateSearchParams || rawValue === null || isValid) {
       return;
@@ -321,6 +323,7 @@ export function useResearchPagination<Item>(
     : 1;
   const currentPage = surface ? Math.min(surface.urlState.page, totalPages) : 1;
 
+  // use-effect-audit: ignore redirects the route in the router
   useEffect(() => {
     if (!surface || surface.urlState.page <= totalPages) {
       return;
@@ -380,6 +383,7 @@ export function useRestoreResearchFinding(
     [findings],
   );
 
+  // use-effect-audit: ignore keeps the work surface and the requested URL finding in step
   useEffect(() => {
     if (!clearFinding || !setAuthorizedFinding) {
       return;

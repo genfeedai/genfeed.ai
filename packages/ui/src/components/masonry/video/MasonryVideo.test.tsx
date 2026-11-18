@@ -309,6 +309,75 @@ describe('MasonryVideo', () => {
     );
   });
 
+  describe('a tile with no poster of its own (#9669)', () => {
+    const placeholder = 'https://assets.test.com/placeholders/portrait.jpg';
+    const withoutPoster = {
+      ...mockVideo,
+      ingredientUrl: '',
+      thumbnailUrl: placeholder,
+    } as unknown as IVideo;
+
+    it('shows a neutral block, never the generic placeholder picture, while the grant has no URL', () => {
+      render(<MasonryVideo video={withoutPoster} />);
+
+      expect(
+        screen.getByTestId(`masonry-video-no-poster-${mockVideo.id}`),
+      ).toBeInTheDocument();
+      expect(screen.queryByRole('img')).toBeNull();
+    });
+
+    it('shows a neutral block for a video still processing', () => {
+      render(
+        <MasonryVideo
+          video={
+            {
+              ...withoutPoster,
+              status: IngredientStatus.PROCESSING,
+            } as unknown as IVideo
+          }
+        />,
+      );
+
+      expect(
+        screen.getByTestId(`masonry-video-no-poster-${mockVideo.id}`),
+      ).toBeInTheDocument();
+      expect(screen.queryByRole('img')).toBeNull();
+    });
+
+    it('does not hand the generic placeholder to the player as its poster', () => {
+      mockVideoPlayer.mockClear();
+
+      render(
+        <MasonryVideo
+          video={
+            { ...mockVideo, thumbnailUrl: placeholder } as unknown as IVideo
+          }
+        />,
+      );
+
+      expect(mockVideoPlayer.mock.calls[0]?.[0]?.thumbnail).toBeUndefined();
+    });
+
+    it("uses the video's own reference image as the poster while processing", () => {
+      render(
+        <MasonryVideo
+          video={
+            {
+              ...withoutPoster,
+              primaryReferenceUrl: 'https://cdn.test.com/own-reference.jpg',
+              status: IngredientStatus.PROCESSING,
+            } as unknown as IVideo
+          }
+        />,
+      );
+
+      expect(screen.getByRole('img')).toHaveAttribute(
+        'src',
+        'https://cdn.test.com/own-reference.jpg',
+      );
+    });
+  });
+
   it('sizes the tile from the video metadata, not a 16:9 or 9:16 bucket', () => {
     render(
       <MasonryVideo

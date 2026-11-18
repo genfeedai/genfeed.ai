@@ -5,8 +5,13 @@
     "@genfeedai/contracts": "workspace:*",
     "@genfeedai/helpers": "workspace:*",
     "@genfeedai/serializers": "workspace:*",
+    "axios": "1.21.1",
+    "lucide-react": "1.73.0",
+    "pino": "10.4.0",
+    "socket.io-client": "4.8.4",
+    "sonner": "2.0.8",
     "zod": "4.6.7",
-    "@sentry/browser": "11.10.0"
+    "@sentry/browser": "11.12.0"
   },
   "description": "Shared client-facing services and orchestration helpers for Genfeed applications",
   "devDependencies": {
@@ -22,7 +27,7 @@
   "scripts": {
     "test": "vitest run --config vitest.config.ts",
     "test:watch": "vitest watch --config vitest.config.ts",
-    "type-check": "bun run ../../scripts/architecture/check-typecheck-prerequisites.ts && tsc --noEmit"
+    "type-check": "bun run ../../scripts/architecture/check-typecheck-prerequisites.ts && bun check --no-script"
   },
   "sideEffects": false,
   "version": "0.1.0"

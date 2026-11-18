@@ -1,11 +1,11 @@
 import { CreatePromptDto } from '@api/collections/prompts/dto/create-prompt.dto';
 import { UpdatePromptDto } from '@api/collections/prompts/dto/update-prompt.dto';
-import type { PromptDocument } from '@api/collections/prompts/schemas/prompt.schema';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { pickDefinedFields } from '@api/shared/utils/object/pick-defined-fields.util';
 import type { PopulateOption } from '@genfeedai/contracts/interfaces';
 import type { PromptRenderTarget } from '@genfeedai/harness';
+import type { Prompt } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -54,7 +54,7 @@ type PromptCreateInput = CreatePromptDto & {
 
 @Injectable()
 export class PromptsService extends BaseService<
-  PromptDocument,
+  Prompt,
   CreatePromptDto,
   UpdatePromptDto
 > {
@@ -68,7 +68,7 @@ export class PromptsService extends BaseService<
   create(
     createPromptDto: PromptCreateInput,
     populate: (string | PopulateOption)[] = [],
-  ): Promise<PromptDocument> {
+  ): Promise<Prompt> {
     const tagIds = Array.from(
       new Set(
         (createPromptDto.tags ?? []).filter(
@@ -92,7 +92,7 @@ export class PromptsService extends BaseService<
   findOne(
     params: Record<string, unknown>,
     populate: (string | PopulateOption)[] = [],
-  ): Promise<PromptDocument | null> {
+  ): Promise<Prompt | null> {
     return super.findOne(params, populate);
   }
 }

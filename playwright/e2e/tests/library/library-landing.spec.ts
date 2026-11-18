@@ -9,6 +9,7 @@ import {
   mockLibraryData,
 } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
+import { openFilterFacet } from '../../utils/filter-menu';
 import { waitForIngredientsRead } from '../../utils/ingredients-requests';
 import { assertRouteRenders } from '../../utils/route-assertions';
 
@@ -85,6 +86,49 @@ test.describe('Library', () => {
     await expect(
       authenticatedPage.getByRole('menuitem', { name: /^Show/ }),
     ).toBeVisible();
+    // Teammate review is one more facet of the same menu (#9948), never a tab.
+    await expect(
+      authenticatedPage.getByRole('menuitem', { name: /^Review/ }),
+    ).toBeVisible();
+  });
+
+  test('filters by review state from the Filters menu and keeps it in the URL (#9948)', async ({
+    authenticatedPage,
+  }) => {
+    await assertRouteRenders(
+      authenticatedPage,
+      `${brandRoute(APP_ROUTES.LIBRARY.ASSETS)}?categories=IMAGE`,
+    );
+
+    const review = await openFilterFacet(authenticatedPage, 'Review');
+    for (const name of [
+      'Any review state',
+      'In review',
+      'Changes requested',
+      'Approved',
+    ]) {
+      await expect(
+        review.getByRole('menuitemradio', { name, exact: true }),
+      ).toBeVisible();
+    }
+    const read = authenticatedPage.waitForRequest(
+      (request) =>
+        request.method() === 'GET' &&
+        new URL(request.url()).pathname.endsWith('/ingredients') &&
+        new URL(request.url()).searchParams.get('review') === 'in_review',
+    );
+    await review
+      .getByRole('menuitemradio', { name: 'In review', exact: true })
+      .click();
+    await read;
+
+    // The review state composes with the other axes instead of replacing them.
+    await authenticatedPage.waitForURL(
+      (url) => url.searchParams.get('review') === 'in_review',
+    );
+    expect(
+      new URL(authenticatedPage.url()).searchParams.get('categories'),
+    ).toBe('IMAGE');
   });
 
   test('keeps a shelf selected across a reload', async ({

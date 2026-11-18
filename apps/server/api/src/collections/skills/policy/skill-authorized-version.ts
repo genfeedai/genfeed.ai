@@ -1,4 +1,4 @@
-export interface AuthorizedVersionPointer {
+interface AuthorizedVersionPointer {
   audience: string | null;
   currentVersionId: string | null;
   ownerKind: string | null;

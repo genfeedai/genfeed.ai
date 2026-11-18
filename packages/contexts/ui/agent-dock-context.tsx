@@ -79,6 +79,7 @@ export function AgentDockProvider({ children }: AgentDockProviderProps) {
   const attachHandlerRef = useRef<AgentDockAttachHandler | null>(null);
 
   // Restore after mount so the server render and first paint agree.
+  // use-effect-audit: ignore reads browser storage after mount so server and client markup match
   useEffect(() => {
     const persisted = readAgentDockPersistedState();
     if (persisted) {
@@ -87,6 +88,7 @@ export function AgentDockProvider({ children }: AgentDockProviderProps) {
     setHasRestored(true);
   }, []);
 
+  // use-effect-audit: ignore persists dock state to browser storage
   useEffect(() => {
     if (hasRestored) {
       persistAgentDockState({ isOpen });
@@ -129,6 +131,7 @@ export function AgentDockProvider({ children }: AgentDockProviderProps) {
     [],
   );
 
+  // use-effect-audit: ignore subscribes to window keydown for the dock shortcut
   useEffect(() => {
     if (!isAvailable) {
       return;

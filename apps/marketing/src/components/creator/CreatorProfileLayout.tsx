@@ -6,9 +6,9 @@ import CreatorRail from './CreatorRail';
 import CreatorTabs from './CreatorTabs';
 
 /**
- * The creator showcase: their banner across the top, then a sticky rail about
- * the creator beside a grid of their public work. On small screens the rail
- * stacks above the grid.
+ * The creator showcase: a sticky rail about the creator beside their public
+ * work, which opens with their banner. On small screens the rail stacks above
+ * the banner.
  */
 export default function CreatorProfileLayout({
   active,
@@ -19,16 +19,7 @@ export default function CreatorProfileLayout({
   referralCode,
 }: CreatorProfileLayoutProps): React.ReactElement {
   return (
-    <div className="mx-auto w-full max-w-7xl space-y-8 px-4 pb-16 pt-10 lg:px-6">
-      {brand.bannerUrl ? (
-        <BrandBanner
-          alt={`${brand.label?.trim() || `@${handle}`} banner`}
-          isPriority
-          shape="rounded"
-          sizes="(min-width: 1280px) 1232px, 100vw"
-          src={brand.bannerUrl}
-        />
-      ) : null}
+    <div className="mx-auto w-full max-w-7xl px-4 pb-16 pt-10 lg:px-6">
       <div className="grid grid-cols-1 gap-10 lg:grid-cols-[18rem_minmax(0,1fr)]">
         <aside className="lg:sticky lg:top-24 lg:self-start">
           <CreatorRail
@@ -40,6 +31,15 @@ export default function CreatorProfileLayout({
           />
         </aside>
         <div className="min-w-0 space-y-8">
+          {brand.bannerUrl ? (
+            <BrandBanner
+              alt={`${brand.label?.trim() || `@${handle}`} banner`}
+              isPriority
+              shape="rounded"
+              sizes="(min-width: 1280px) 904px, (min-width: 1024px) calc(100vw - 25rem), 100vw"
+              src={brand.bannerUrl}
+            />
+          ) : null}
           <CreatorTabs active={active} counts={counts} handle={handle} />
           {children}
         </div>

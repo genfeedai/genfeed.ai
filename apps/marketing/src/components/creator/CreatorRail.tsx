@@ -9,7 +9,7 @@ import ProfileSocialLinks from '@web-components/profile/ProfileSocialLinks';
 import ProfileSubscribe from '@web-components/profile/ProfileSubscribe';
 import CopyLinkButton from './CopyLinkButton';
 import SupportCreatorButton from './SupportCreatorButton';
-import ViewCount from './ViewCount';
+import ViewTracker from './ViewTracker';
 
 const STAT_LABELS = [
   ['articles', 'articles'],
@@ -65,23 +65,12 @@ export default function CreatorRail({
             ))}
           </p>
         ) : null}
-        <ViewCount id={brand.id} target="profile" />
+        <ViewTracker id={brand.id} target="profile" />
       </div>
 
       <div className="flex items-center gap-4">
         <ProfileSocialLinks handle={handle} socials={brand.socials} />
         <CopyLinkButton className="ml-auto" url={profileUrl} />
-      </div>
-
-      <div className="space-y-3">
-        <ProfileSubscribe
-          brandId={brand.id}
-          brandLabel={label}
-          source="profile"
-        />
-        {handle === GENFEED_BRAND_HANDLE ? null : (
-          <SupportCreatorButton className="w-full" handle={handle} />
-        )}
       </div>
 
       {links.length > 0 ? (
@@ -108,6 +97,12 @@ export default function CreatorRail({
       ) : null}
 
       <ProfileSignupCta handle={handle} referralCode={referralCode} />
+
+      {handle === GENFEED_BRAND_HANDLE ? null : (
+        <SupportCreatorButton className="w-full" handle={handle} />
+      )}
+
+      <ProfileSubscribe handle={handle} source="profile" />
     </div>
   );
 }

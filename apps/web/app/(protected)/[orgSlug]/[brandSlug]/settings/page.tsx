@@ -1,13 +1,20 @@
-import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
-import { Suspense } from 'react';
-import BrandDetail from './brand-detail';
+import {
+  APP_ROUTES,
+  createBrandAppRoute,
+} from '@genfeedai/contracts/constants';
+import { redirect } from 'next/navigation';
 
-export const generateMetadata = createPageMetadata('Brand Profile');
-
-export default function BrandDetailPage() {
-  return (
-    <Suspense fallback={null}>
-      <BrandDetail />
-    </Suspense>
+/**
+ * Bare `/:org/:brand/settings` is the settings shell, not a page. Profile is
+ * the brand's settings home.
+ */
+export default async function BrandSettingsIndexPage({
+  params,
+}: {
+  params: Promise<{ brandSlug: string; orgSlug: string }>;
+}) {
+  const { brandSlug, orgSlug } = await params;
+  redirect(
+    createBrandAppRoute(orgSlug, brandSlug, APP_ROUTES.SETTINGS.PROFILE),
   );
 }

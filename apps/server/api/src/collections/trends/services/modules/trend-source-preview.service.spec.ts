@@ -4,6 +4,7 @@ import { TrendSourcePreviewService } from '@api/collections/trends/services/modu
 import { TrendReferenceCorpusService } from '@api/collections/trends/services/trend-reference-corpus.service';
 import { CacheService } from '@api/services/cache/cache.service';
 import { ApifyService } from '@api/services/integrations/apify/services/apify.service';
+import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -53,7 +54,6 @@ describe('TrendSourcePreviewService', () => {
       searchInstagramByHashtag: vi.fn().mockResolvedValue([]),
       searchRedditPosts: vi.fn().mockResolvedValue([]),
       searchTikTokByHashtag: vi.fn().mockResolvedValue([]),
-      searchTwitterTweets: vi.fn().mockResolvedValue([]),
       searchYouTubeVideos: vi.fn().mockResolvedValue([]),
     };
     cache = {
@@ -81,6 +81,10 @@ describe('TrendSourcePreviewService', () => {
         TrendSourcePreviewService,
         TrendSourceItemsService,
         { provide: ApifyService, useValue: apify },
+        {
+          provide: TwitterService,
+          useValue: { searchRecentTweets: vi.fn().mockResolvedValue([]) },
+        },
         { provide: PrismaService, useValue: prisma },
         { provide: LoggerService, useValue: logger },
         { provide: CacheService, useValue: cache },
@@ -616,7 +620,7 @@ describe('TrendSourcePreviewService', () => {
     it('claims the cooldown before refreshing saved content', async () => {
       vi.spyOn(sourceItems, 'fetchTrendSourceItems').mockResolvedValue([]);
 
-      await service.getTrendContent(
+      const content = await service.getTrendContent(
         { organizationId: 'org-1' },
         { refresh: true },
         vi.fn().mockResolvedValue({
@@ -626,6 +630,7 @@ describe('TrendSourcePreviewService', () => {
         }),
       );
 
+      expect(content.totalTrends).toBe(1);
       expect(cache.claimOnce).toHaveBeenCalledTimes(1);
       const [key, ttl] = cache.claimOnce.mock.calls[0];
       expect(key).toContain('org-1');
@@ -633,7 +638,7 @@ describe('TrendSourcePreviewService', () => {
     });
 
     it('does not claim a cooldown for a plain read', async () => {
-      await service.getTrendContent(
+      const content = await service.getTrendContent(
         { organizationId: 'org-1' },
         {},
         vi.fn().mockResolvedValue({
@@ -642,6 +647,8 @@ describe('TrendSourcePreviewService', () => {
           trends: [],
         }),
       );
+
+      expect(content.totalTrends).toBe(0);
 
       expect(cache.claimOnce).not.toHaveBeenCalled();
     });

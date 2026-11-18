@@ -348,6 +348,25 @@ describe('AgentChatMessage', () => {
     expect(screen.queryByText('You')).not.toBeInTheDocument();
   });
 
+  it('names who wrote a user turn only when told to', () => {
+    const { rerender } = render(
+      <AgentChatMessage message={buildMessage('user', 'Make #4 shorter')} />,
+    );
+    expect(
+      screen.queryByTestId('agent-message-author'),
+    ).not.toBeInTheDocument();
+
+    rerender(
+      <AgentChatMessage
+        author={{ name: 'Marco Rossi' }}
+        message={buildMessage('user', 'Make #4 shorter')}
+      />,
+    );
+    expect(screen.getByTestId('agent-message-author')).toHaveTextContent(
+      'Marco Rossi',
+    );
+  });
+
   it('renders the user message as a compact bubble on the right that scrolls with the transcript', () => {
     const { container } = render(
       <AgentChatMessage message={buildMessage('user', 'User prompt')} />,
@@ -761,7 +780,7 @@ describe('AgentChatMessage', () => {
               {
                 ctas: [
                   {
-                    href: '/settings/api-keys?returnTo=/agent',
+                    href: '/connectors/api-keys?returnTo=/agent',
                     label: 'Open integrations',
                   },
                 ],
@@ -772,7 +791,7 @@ describe('AgentChatMessage', () => {
               {
                 ctas: [
                   {
-                    href: '/settings/api-keys?returnTo=/agent',
+                    href: '/connectors/api-keys?returnTo=/agent',
                     label: 'Open integrations',
                   },
                 ],
@@ -783,7 +802,7 @@ describe('AgentChatMessage', () => {
               {
                 ctas: [
                   {
-                    href: '/settings/api-keys?returnTo=/agent',
+                    href: '/connectors/api-keys?returnTo=/agent',
                     label: 'Open integrations',
                   },
                 ],
@@ -800,7 +819,10 @@ describe('AgentChatMessage', () => {
     expect(screen.getAllByText('Choose an integration')).toHaveLength(1);
     expect(
       screen.getByRole('link', { name: 'Open integrations' }),
-    ).toHaveAttribute('href', '/test-org/~/settings/api-keys?returnTo=/agent');
+    ).toHaveAttribute(
+      'href',
+      '/test-org/~/connectors/api-keys?returnTo=/agent',
+    );
     expect(screen.queryByText('Unknown')).toBeNull();
   });
 

@@ -49,15 +49,16 @@ export function registerWellKnownRoutes(expressApp: Express): void {
     });
   }
 
-  const claudePath = new URL(getPublicMcpResourceMetadataUrl('claude'))
-    .pathname;
-  expressApp.get(claudePath, (_req: Request, res: Response) => {
-    res
-      .set('Access-Control-Allow-Origin', '*')
-      .set('Cache-Control', 'public, max-age=300')
-      .status(200)
-      .json(getMcpProtectedResourceMetadata('claude'));
-  });
+  for (const mode of ['claude', 'admin'] as const) {
+    const modePath = new URL(getPublicMcpResourceMetadataUrl(mode)).pathname;
+    expressApp.get(modePath, (_req: Request, res: Response) => {
+      res
+        .set('Access-Control-Allow-Origin', '*')
+        .set('Cache-Control', 'public, max-age=300')
+        .status(200)
+        .json(getMcpProtectedResourceMetadata(mode));
+    });
+  }
 
   // `serverInfo.icons` must be same-origin with the MCP server, so the
   // brand icons are served here rather than from the CDN.

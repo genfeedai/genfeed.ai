@@ -27,7 +27,7 @@ export type ModelWithPricingContracts = PrismaModel &
     >
   >;
 
-export function hasReviewedModelPricing(
+function hasReviewedModelPricing(
   document: ModelWithPricingContracts,
   now = new Date(),
 ): boolean {

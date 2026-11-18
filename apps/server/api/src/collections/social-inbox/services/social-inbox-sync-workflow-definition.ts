@@ -2,6 +2,7 @@ import type { YoutubeInboxPostFailure } from '@api/collections/social-inbox/serv
 import type { WorkflowEdge } from '@api/collections/workflows/schemas/workflow.schema';
 import { requestActionNode } from '@api/collections/workflows/services/workflow-definition-nodes';
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-runner.service';
+import { SystemWorkflowRetention } from '@api/collections/workflows/workflow-execution-retention.contract';
 import { Platform, SocialConversationType } from '@genfeedai/contracts';
 
 export type SocialInboxSyncPlatform =
@@ -96,6 +97,7 @@ export function buildSocialInboxSyncWorkflowDefinition(
       'Validates one tenant-scoped inbox sync request and executes its platform ingestion action.',
     label: surface.label,
     resultNodeId: ingest.id,
+    retention: SystemWorkflowRetention.BACKGROUND,
   };
 }
 

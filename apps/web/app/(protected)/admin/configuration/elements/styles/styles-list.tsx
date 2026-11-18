@@ -26,11 +26,13 @@ import { Badge } from '@ui/primitives/badge';
 import { Trash2 } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Suspense, useCallback, useEffect, useRef } from 'react';
+import { Suspense, useCallback } from 'react';
 import { useAdminOrgBrandParams } from '@/components/content/admin-filters/AdminOrgBrandUrlFilter';
 import { LazyModalStyle } from '@/components/lazy/modal/LazyModal';
 import { useInlineRecordSave } from '@/hooks/ui/use-inline-record-save/use-inline-record-save';
+import { useListParentBridge } from '@/hooks/ui/use-list-parent-bridge/use-list-parent-bridge';
 import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
+import { useNotifyOnLoadError } from '@/hooks/utils/use-notify-on-load-error/use-notify-on-load-error';
 
 const EMPTY_STYLES: ElementStyle[] = [];
 
@@ -58,15 +60,6 @@ function StylesListContent({
 
   const { brand: adminBrand, organization: adminOrg } =
     useAdminOrgBrandParams();
-
-  // Use refs for callback props to prevent unnecessary re-renders
-  const onLoadingChangeRef = useRef(onLoadingChange);
-  const onRefreshingChangeRef = useRef(onRefreshingChange);
-
-  useEffect(() => {
-    onLoadingChangeRef.current = onLoadingChange;
-    onRefreshingChangeRef.current = onRefreshingChange;
-  });
 
   const scopeTranslate = useTranslations('ui.elementPlatformFields');
   const columns: TableColumn<ElementStyle>[] = [
@@ -180,28 +173,20 @@ function StylesListContent({
   const refreshStyles = useRefreshScope(scopeKey);
   const isRefreshing = isFetching && !isLoading;
 
-  // One toast per failed read, not one per render.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: errorUpdatedAt marks each new failed read.
-  useEffect(() => {
-    if (isError) {
-      notificationsService.error('Failed to load styles');
-    }
-  }, [errorUpdatedAt, isError, notificationsService]);
+  useNotifyOnLoadError({
+    errorUpdatedAt,
+    hasError: isError,
+    notify: () => notificationsService.error('Failed to load styles'),
+  });
 
-  useEffect(() => {
-    onLoadingChangeRef.current?.(isLoading);
-  }, [isLoading]);
-
-  useEffect(() => {
-    onRefreshingChangeRef.current?.(isRefreshing);
-  }, [isRefreshing]);
-
-  // Register refresh callback
-  useEffect(() => {
-    if (onRefresh) {
-      return onRefresh(() => refreshStyles());
-    }
-  }, [onRefresh, refreshStyles]);
+  useListParentBridge({
+    isLoading,
+    isRefreshing,
+    onLoadingChange,
+    onRefresh,
+    onRefreshingChange,
+    refresh: refreshStyles,
+  });
 
   const handleDelete = async (style: IElementStyle) => {
     try {

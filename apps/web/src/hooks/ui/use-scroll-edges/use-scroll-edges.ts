@@ -26,6 +26,7 @@ export function useScrollEdges(
     canScrollStart: false,
   });
 
+  // use-effect-audit: ignore observes DOM elements with a browser observer
   useEffect(() => {
     const element = ref.current;
     if (!element) {

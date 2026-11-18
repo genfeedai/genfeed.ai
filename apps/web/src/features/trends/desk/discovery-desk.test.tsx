@@ -67,13 +67,27 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrandId: () => 'brand-1',
 }));
 
-vi.mock('@hooks/navigation/use-org-url', () => ({
-  useOrgUrl: () => ({
-    brandSlug: mocks.brandSlug,
-    href: (path: string) => `/org-1/${mocks.brandSlug || '~'}${path}`,
-    orgHref: (path: string) => `/org-1/~${path}`,
-  }),
-}));
+vi.mock('@hooks/navigation/use-org-url', async () => {
+  const { createBrandAppRoute, createOrganizationAppRoute } = await import(
+    '@genfeedai/contracts/constants'
+  );
+  const orgHref = (path: string) => createOrganizationAppRoute('org-1', path);
+
+  return {
+    useOrgUrl: () => ({
+      activeHref: (path: string) =>
+        mocks.brandSlug
+          ? createBrandAppRoute('org-1', mocks.brandSlug, path)
+          : orgHref(path),
+      brandSlug: mocks.brandSlug,
+      href: (path: string) =>
+        mocks.brandSlug
+          ? createBrandAppRoute('org-1', mocks.brandSlug, path)
+          : orgHref(path),
+      orgHref,
+    }),
+  };
+});
 
 vi.mock('@genfeedai/contexts/ui/sidebar-navigation-context', () => ({
   useSidebarNavigation: () => ({ hasCanonicalBreadcrumb: true }),
@@ -252,15 +266,30 @@ describe('DiscoveryDesk', () => {
       '/org-1/brand-1/discovery/following',
     );
     expect(screen.getByTestId('desk-empty-state')).toHaveAttribute(
-      'data-publishing-href',
-      '/org-1/brand-1/settings/accounts',
-    );
-    expect(screen.getByTestId('desk-empty-state')).toHaveAttribute(
       'data-source-health-href',
       '/org-1/brand-1/discovery/trends',
     );
     expect(screen.getByTestId('discovery-readiness-cards')).toBeInTheDocument();
   });
+
+  it.each([
+    ['acme-studio', '/org-1/acme-studio/settings/profile'],
+    ['north-star', '/org-1/north-star/settings/profile'],
+  ])(
+    'points the connection setup action at the active brand %s',
+    (brandSlug, expectedHref) => {
+      mocks.brandSlug = brandSlug;
+      mocks.useDiscoveryDeskItems.mockReturnValue({
+        ...mocks.useDiscoveryDeskItems(),
+        items: [],
+      });
+      render(<DiscoveryDesk />);
+      expect(screen.getByTestId('desk-empty-state')).toHaveAttribute(
+        'data-publishing-href',
+        expectedHref,
+      );
+    },
+  );
 
   it('offers brand selection for organization connection setup', () => {
     mocks.brandSlug = '';

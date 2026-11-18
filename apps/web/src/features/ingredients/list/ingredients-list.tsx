@@ -40,6 +40,7 @@ import { useCallback, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { applyLibraryAssetMetadataChange } from '@/components/ingredients/inspector/library-asset-metadata-event';
 import { LazyModalImageToVideo } from '@/components/lazy/modal/LazyModal';
+import { useIsAppAvailable } from '@/components/shell/use-available-rail-apps';
 import {
   applyLibraryAssetTagsChange,
   applyLibraryTagUpdate,
@@ -53,6 +54,7 @@ import IngredientsListSidebar from '@/features/ingredients/components/list/sideb
 import { useIngredientDeepLink } from '@/features/ingredients/hooks/use-ingredient-deep-link/use-ingredient-deep-link';
 import { useIngredientsList } from '@/features/ingredients/hooks/use-ingredients-list/use-ingredients-list';
 import type { IngredientsListProps } from '@/features/ingredients/props/ingredients-list.props';
+import SelectionReviewAction from '@/features/library/review/selection-review-action';
 import { useIngredientSidebar } from '@/hooks/ui/ingredient/use-ingredient-sidebar/use-ingredient-sidebar';
 
 /**
@@ -151,6 +153,9 @@ export default function IngredientsList({
     fontFamilies,
     blacklists,
   } = useIngredientsList({ folderNavigation, scope, type });
+  // Reviewing a failed asset opens it in Playground.
+  const isPlaygroundAvailable = useIsAppAvailable('playground');
+  const isAgentAvailable = useIsAppAvailable('agent');
   // The folders column only exists for brand/org scopes; the admin scope
   // renders no sidebar, so reserving its column squeezes the list into 14rem.
   const hasFoldersSidebar =
@@ -235,6 +240,7 @@ export default function IngredientsList({
   // The inspector, the bulk bar and tag management publish tag changes on
   // `window`; applying them here updates cards, rows and the inspector without
   // a refetch.
+  // use-effect-audit: ignore subscribes to browser events
   useEffect(() => {
     const handleTagsChange = (event: Event) => {
       const change = (event as CustomEvent<ILibraryAssetTagsChange>).detail;
@@ -264,6 +270,7 @@ export default function IngredientsList({
   // the renamed asset may belong elsewhere in the list, so the list reloads
   // in the server's order.
   const isSortedByName = String(query?.sort ?? '').startsWith('label');
+  // use-effect-audit: ignore subscribes to browser events
   useEffect(() => {
     const handleMetadataChange = (event: Event) => {
       const change = (event as CustomEvent<ILibraryAssetMetadataChange>).detail;
@@ -309,6 +316,11 @@ export default function IngredientsList({
         }
       }}
       placement={hostsSelectionActions ? 'subtopbar' : 'overlay'}
+      reviewAction={
+        isAgentAvailable && scope !== PageScope.SUPERADMIN ? (
+          <SelectionReviewAction selectedIngredients={selectedIngredients} />
+        ) : undefined
+      }
       tagAction={
         <SelectionTagAction selectedIngredients={selectedIngredients} />
       }
@@ -379,7 +391,9 @@ export default function IngredientsList({
                       retriedIds: failedRecovery.retriedIds,
                       onDelete: failedRecovery.handleDeleteFailedIngredients,
                       onRetry: failedRecovery.handleRetryFailedIngredients,
-                      onReview: failedRecovery.handleReviewFailedIngredient,
+                      onReview: isPlaygroundAvailable
+                        ? failedRecovery.handleReviewFailedIngredient
+                        : undefined,
                     }
                   : undefined
               }

@@ -1,7 +1,7 @@
 import { CredentialPlatform, Platform } from '@genfeedai/contracts';
 import type { ICredential } from '@genfeedai/contracts/interfaces';
 
-export const PLATFORM_TO_CREDENTIAL_MAP: Partial<
+const PLATFORM_TO_CREDENTIAL_MAP: Partial<
   Record<Platform, CredentialPlatform>
 > = {
   [Platform.TWITTER]: CredentialPlatform.TWITTER,
@@ -20,7 +20,7 @@ export const PLATFORM_TO_CREDENTIAL_MAP: Partial<
   [Platform.THREADS]: CredentialPlatform.INSTAGRAM,
 };
 
-export const CREDENTIAL_TO_PLATFORM_MAP: Partial<
+const CREDENTIAL_TO_PLATFORM_MAP: Partial<
   Record<CredentialPlatform, Platform | null>
 > = {
   [CredentialPlatform.TWITTER]: Platform.TWITTER,

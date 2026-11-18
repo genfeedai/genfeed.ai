@@ -5,6 +5,7 @@ import {
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import {
   hasMediaRecordAccess,
+  isMediaScopeMember,
   MEDIA_DELIVERY_POLICY_VERSION,
   MEDIA_DELIVERY_SOURCE_SELECT,
   mediaSourceIdentity,
@@ -447,7 +448,7 @@ export class AuthorizedMediaUrlService implements OnModuleInit {
         (!isBrandIdentity &&
           scope.brandId &&
           asset.parentBrandId !== scope.brandId &&
-          asset.userId !== scope.userId)
+          !isMediaScopeMember(scope, asset.userId))
       ) {
         continue;
       }

@@ -7,6 +7,7 @@ import {
   PostStatus,
 } from '@genfeedai/contracts';
 import { closeModal } from '@genfeedai/helpers/ui/modal/modal.helper';
+import { useResetOnChange } from '@hooks/utils/use-reset-on-change/use-reset-on-change';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
 import { Alert } from '@ui/primitives/alert';
@@ -14,7 +15,7 @@ import { Button } from '@ui/primitives/button';
 import FormControl from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
 import { Copy } from 'lucide-react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import LazyRichTextEditor from '@/components/editors/LazyRichTextEditor';
 import { useModalAutoOpen } from '@/hooks/ui/use-modal-auto-open/use-modal-auto-open';
 import type { ModalPostRemixProps } from '@/props/modals/modal-post-remix.props';
@@ -41,12 +42,12 @@ export default function ModalPostRemix({
   const [isLoading, setIsLoading] = useState(false);
 
   // Reset form when post changes
-  useEffect(() => {
+  useResetOnChange([post], () => {
     setForm({
       description: post.description || '',
       label: `Remix: ${post.label || 'Untitled'}`,
     });
-  }, [post]);
+  });
 
   // Called when Cancel button is clicked - initiates the close
   const handleCancel = useCallback(() => {

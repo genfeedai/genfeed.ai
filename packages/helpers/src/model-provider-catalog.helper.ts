@@ -24,6 +24,7 @@ const CATEGORY_LABELS: Partial<Record<ModelCategory, string>> = {
   [ModelCategory.VIDEO_UPSCALE]: 'Video',
   [ModelCategory.VOICE]: 'Voice',
   [ModelCategory.AVATAR]: 'Avatar',
+  [ModelCategory.MODEL_3D]: '3D model',
 };
 
 const CATEGORY_ORDER: readonly string[] = [
@@ -31,6 +32,7 @@ const CATEGORY_ORDER: readonly string[] = [
   'Video',
   'Voice',
   'Avatar',
+  '3D model',
   'Music',
   'Text',
   'Embeddings',

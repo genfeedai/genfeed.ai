@@ -5,10 +5,11 @@ import type {
   PublicMediaSort,
 } from '@genfeedai/contracts/constants';
 import type { IImage, IVideo } from '@genfeedai/contracts/interfaces';
+import type { ICreatorTipTarget } from '@genfeedai/contracts/interfaces/billing';
+import type { CreatorPostMediaItem } from '@genfeedai/helpers/content/public-post.helper';
 import type { Article } from '@models/content/article.model';
 import type { Post } from '@models/content/post.model';
 import type { Brand } from '@models/organization/brand.model';
-import type { CreatorPostMediaItem } from '@web-components/creator/post-media';
 import type { ReactNode } from 'react';
 
 export interface CopyLinkButtonProps {
@@ -51,7 +52,7 @@ export interface CreatorRailProps {
   referralCode: string | null;
 }
 
-export interface ViewCountProps {
+export interface ViewTrackerProps {
   /** The brand id for a profile, the article id for an article. */
   id: string;
   target: PublicViewTarget;
@@ -99,6 +100,21 @@ export interface CreatorPostCardProps {
   post: Post;
 }
 
+export interface CreatorPostMetricsProps {
+  post: Post;
+}
+
+export interface CreatorPostMetricProps {
+  icon: ReactNode;
+  /** The label for one, read by screen readers: "like", "comment". */
+  singular: string;
+  value: number;
+}
+
+export interface CreatorPostCoverProps {
+  images: CreatorPostMediaItem[];
+}
+
 export interface CreatorPostMediaProps {
   /** Alternative text for every item: the post's title. */
   alt: string;
@@ -111,8 +127,8 @@ export interface CreatorPostGridProps {
 }
 
 export interface ProfileSubscribeProps {
-  brandId: string;
-  brandLabel?: string;
+  /** The creator's handle, without the `@`. */
+  handle: string;
   source: Extract<BrandSubscriberPublicSource, 'profile' | 'article' | 'post'>;
   sourceRef?: string;
 }
@@ -126,6 +142,20 @@ export interface MakeYourOwnBannerProps {
   handle: string;
   /** The creator's referral code, carried into sign-up. */
   referralCode?: string | null;
+}
+
+/** Who the Support modal can send credits to, while it checks the visitor. */
+export type SupportModalState =
+  | { status: 'loading' }
+  | { status: 'signed-out' }
+  | { status: 'missing' }
+  | { status: 'ready'; target: ICreatorTipTarget };
+
+export interface SupportCreatorModalProps {
+  /** The article the reader is on, when sent from an article page. */
+  articleId?: string;
+  handle: string;
+  onOpenChange: (isOpen: boolean) => void;
 }
 
 export interface SupportCreatorButtonProps {
@@ -167,6 +197,10 @@ export interface CommunitySortMenuProps {
 /** The query of a community gallery page. */
 export interface CommunityGalleryRouteProps {
   searchParams: Promise<{ sort?: string | string[] }>;
+}
+
+export interface CommunityCreatorsRouteProps {
+  searchParams: Promise<{ page?: string | string[] }>;
 }
 
 /** The image or video an operator featured at the top of /community. */

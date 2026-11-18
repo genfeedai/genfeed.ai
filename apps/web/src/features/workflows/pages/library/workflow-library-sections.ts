@@ -1,7 +1,7 @@
 import type { WorkflowSummary } from '@/features/workflows/services/workflow-api';
 
 /** Recent shows at most this many compact rows. */
-export const WORKFLOW_RECENT_LIMIT = 5;
+const WORKFLOW_RECENT_LIMIT = 5;
 
 function toTimestamp(value: string): number {
   const timestamp = Date.parse(value);

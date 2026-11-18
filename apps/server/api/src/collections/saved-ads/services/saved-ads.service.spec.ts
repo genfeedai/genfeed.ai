@@ -202,6 +202,7 @@ describe('SavedAdsService', () => {
     });
 
     expect(result.docs).toEqual(rows);
+    expect(result.hasPrevPage).toBe(true);
     expect(result).toMatchObject({
       hasNextPage: true,
       limit: 20,

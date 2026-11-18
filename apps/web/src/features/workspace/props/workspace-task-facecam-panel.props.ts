@@ -2,7 +2,8 @@ import type {
   HeyGenAvatarRef,
   IBrandAgentConfig,
 } from '@genfeedai/contracts/interfaces';
-export interface FacecamOption {
+
+interface FacecamOption {
   id: string;
   label: string;
   preview?: string;

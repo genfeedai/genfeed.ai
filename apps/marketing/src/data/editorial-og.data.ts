@@ -74,7 +74,10 @@ export const EDITORIAL_OG_ARTWORKS = {
   mobile: { headline: ['Approve', 'on the go'], route: '/mobile' },
   docs: { headline: ['Build with', 'confidence'], route: '/docs' },
   extension: { headline: ['Genfeed', 'in your browser'], route: '/extension' },
-  articles: { headline: ['Ideas worth', 'shipping'], route: '/articles' },
+  articles: {
+    headline: ['Ideas worth', 'shipping'],
+    route: '/community/articles',
+  },
   changelog: { headline: ['Always', 'shipping'], route: '/changelog' },
   integrations: {
     headline: ['Your tools', 'Connected'],

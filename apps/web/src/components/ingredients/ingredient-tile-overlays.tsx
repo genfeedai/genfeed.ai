@@ -8,7 +8,9 @@ import { isFailedIngredient } from '@genfeedai/utils/media/ingredient-ledger.uti
 import { hoverRevealClassName } from '@ui/styles/hover-reveal';
 import IngredientReviewActions from '@/components/ingredients/IngredientReviewActions';
 import IngredientOriginBadge from '@/components/ingredients/ingredient-origin-badge';
+import IngredientStackBadge from '@/components/ingredients/ingredient-stack-badge';
 import IngredientTagChips from '@/components/ingredients/ingredient-tag-chips';
+import LibraryReviewBadge from '@/features/library/review/library-review-badge';
 import type { IngredientTileOverlaysProps } from '@/props/content/ingredient.props';
 
 /**
@@ -34,8 +36,12 @@ function getCaption(ingredient: IIngredient): {
     ingredient.promptText?.trim();
   const duration = metadata?.duration ?? ingredient.metadataDuration;
 
+  // A still image has no length, whatever the import recorded for it.
   return {
-    duration: duration ? formatDuration(duration) : null,
+    duration:
+      duration && isTimedCategory(ingredient.category)
+        ? formatDuration(duration)
+        : null,
     label: label || null,
   };
 }
@@ -48,6 +54,16 @@ const CAPTIONED_CATEGORIES = new Set<string>([
   IngredientCategory.VIDEO,
   IngredientCategory.VIDEO_EDIT,
 ]);
+
+const TIMED_CATEGORIES = new Set<string>([
+  IngredientCategory.GIF,
+  IngredientCategory.VIDEO,
+  IngredientCategory.VIDEO_EDIT,
+]);
+
+function isTimedCategory(category?: string): boolean {
+  return category ? TIMED_CATEGORIES.has(category) : false;
+}
 
 function isCaptionedCategory(category?: string): boolean {
   return category ? CAPTIONED_CATEGORIES.has(category) : true;
@@ -62,6 +78,12 @@ const ORIGIN_BADGE_CLASS = cn(
 /** Tags sit just above the caption and never intercept a click either. */
 const TAG_CHIPS_CLASS =
   'pointer-events-none absolute bottom-8 left-1.5 right-1.5 z-10';
+
+/** A carousel cover's image count, always visible in the top-left corner. */
+const STACK_BADGE_CLASS = 'pointer-events-none absolute left-2 top-2 z-10';
+
+/** The teammate-review state, always visible; the open-details button covers it on hover. */
+const REVIEW_BADGE_CLASS = 'pointer-events-none absolute right-2 top-2 z-10';
 
 const REVIEW_ACTIONS_CLASS = cn(
   'absolute bottom-1.5 right-1.5 z-20 transition-opacity',
@@ -115,6 +137,14 @@ export default function IngredientTileOverlays({
           ) : null}
         </div>
       ) : null}
+      <IngredientStackBadge
+        className={STACK_BADGE_CLASS}
+        stack={ingredient.stack}
+      />
+      <LibraryReviewBadge
+        className={REVIEW_BADGE_CLASS}
+        state={ingredient.reviewState}
+      />
       <IngredientTagChips className={TAG_CHIPS_CLASS} tags={ingredient.tags} />
       {isReviewEnabled && !isFailed ? (
         <div className={REVIEW_ACTIONS_CLASS}>

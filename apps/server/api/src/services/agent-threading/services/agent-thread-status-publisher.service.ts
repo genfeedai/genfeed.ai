@@ -1,3 +1,4 @@
+import { AgentThreadAudienceService } from '@api/collections/agent-threads/services/agent-thread-audience.service';
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import type { AgentThreadSnapshotDocument } from '@api/services/agent-threading/schemas/agent-thread-snapshot.schema';
 import { AgentThreadStatus } from '@genfeedai/contracts';
@@ -6,6 +7,7 @@ import {
   AGENT_THREAD_STATUS_EVENT_TYPE,
 } from '@genfeedai/contracts/constants';
 import type {
+  AgentChatAudience,
   AgentThreadRunState,
   AgentThreadStatusEvent,
 } from '@genfeedai/contracts/interfaces';
@@ -13,7 +15,7 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
 import { Traced } from '@libs/tracing/traced';
 import { countAgentThreadStatus } from '@libs/websockets/agent-thread-status.metrics';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 
 export interface PublishAgentThreadStatusParams {
   /** The projected snapshot the recorded event produced. */
@@ -68,6 +70,8 @@ export class AgentThreadStatusPublisherService {
     private readonly redisService: RedisService,
     private readonly agentThreadsService: AgentThreadsService,
     private readonly loggerService: LoggerService,
+    @Optional()
+    private readonly audienceService?: AgentThreadAudienceService,
   ) {}
 
   /**
@@ -119,8 +123,12 @@ export class AgentThreadStatusPublisherService {
         return false;
       }
 
-      const event: AgentThreadStatusEvent = {
+      // Everyone with live access sees the run's status, not only the owner
+      // (#9938). Without an audience the owner alone is named.
+      const audience = await this.audienceService?.resolve(params.threadId);
+      const event: AgentThreadStatusEvent & AgentChatAudience = {
         ...after,
+        recipientUserIds: audience?.recipientUserIds ?? [String(thread.userId)],
         organizationId: params.organizationId,
         sequence: params.after.lastSequence,
         threadId: params.threadId,

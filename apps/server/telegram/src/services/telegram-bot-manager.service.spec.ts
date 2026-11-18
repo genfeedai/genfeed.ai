@@ -180,6 +180,7 @@ describe('TelegramBotManager', () => {
   it('should initialize and subscribe to redis events', async () => {
     await manager.initialize();
     expect(mockRedisService.subscribe).toHaveBeenCalled();
+    expect(manager.getActiveCount()).toBe(0);
   });
 
   it('should return 0 active bots initially', () => {

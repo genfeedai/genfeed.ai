@@ -1,9 +1,6 @@
 import type { PostEntity } from '@api/collections/posts/entities/post.entity';
 import type { PostDocument } from '@api/collections/posts/post.schema';
-import {
-  type ChannelValidationMedia,
-  toValidationMedia,
-} from '@api/collections/posts/services/channel-target-schedule-validation.util';
+import { toValidationMedia } from '@api/collections/posts/services/channel-target-schedule-validation.util';
 import {
   formatMediaReadinessBlockers,
   readBlockingDiagnostics,
@@ -21,8 +18,6 @@ import { planThreadChildDelivery } from '@workers/services/thread-comment-schedu
  * only the decision — fail the channel or dispatch — and this module owns
  * which assets the gate covers and how a report is read.
  */
-
-export type { ChannelValidationMedia };
 
 /** A thread child paired with the scheduling fields the planner reads. */
 export type PlannedThreadChild = {
@@ -64,7 +59,7 @@ export function toPlannedThreadChildren(
  * current time gives the same split `deliverThreadChildren` will make once the
  * parent's publish time is known.
  */
-export function readImmediateThreadChildren(post: PostEntity): PostDocument[] {
+function readImmediateThreadChildren(post: PostEntity): PostDocument[] {
   const children = (post.children || []) as unknown as PostDocument[];
   if (children.length === 0) {
     return [];

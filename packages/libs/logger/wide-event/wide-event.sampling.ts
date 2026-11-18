@@ -1,7 +1,11 @@
 import type { WideEventRecord } from './wide-event.interface';
 
-/** Requests slower than this are always kept. */
-export const WIDE_EVENT_SLOW_MS = 2_000;
+/**
+ * Requests slower than this are always kept. One second, because a request in
+ * the 1 to 2 s band is the stall worth explaining and at the baseline rate only
+ * one in twenty of them would be logged.
+ */
+export const WIDE_EVENT_SLOW_MS = 1_000;
 
 /** Queue jobs legitimately run for minutes, so only extreme runs count as slow. */
 export const WIDE_EVENT_SLOW_JOB_MS = 120_000;

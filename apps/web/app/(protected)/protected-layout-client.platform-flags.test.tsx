@@ -37,6 +37,9 @@ vi.mock('@/lib/workspace-shell/workspace-shell-telemetry', () => ({
 // Boot pieces render a marker so the tests can see what is mounted.
 vi.mock('@genfeedai/auth-client', () => ({
   SessionKeepAlive: () => <span>Session keep-alive</span>,
+  SignedOutRedirect: ({ href }: { href: string }) => (
+    <span>Sign out to {href}</span>
+  ),
 }));
 vi.mock('./api-auth-bridge', () => ({
   default: () => <span>API auth bridge</span>,
@@ -65,6 +68,8 @@ vi.mock(
 );
 vi.mock('./routed-organization-boundary', () => ({
   default: ({ children }: { children: ReactNode }) => children,
+  RoutedOrganizationPageGate: ({ children }: { children: ReactNode }) =>
+    children,
 }));
 vi.mock('./platform-module-route-gate', () => ({
   default: ({ children }: { children: ReactNode }) => (
@@ -129,6 +134,7 @@ describe('protected shell platform flags recovery', () => {
 
     expect(screen.getByRole('status')).toBeInTheDocument();
     expect(screen.getByText('Session keep-alive')).toBeInTheDocument();
+    expect(screen.getByText('Sign out to /login')).toBeInTheDocument();
     expect(screen.getByText('API auth bridge')).toBeInTheDocument();
     expect(
       screen.getByRole('region', { name: 'Organization scope' }),

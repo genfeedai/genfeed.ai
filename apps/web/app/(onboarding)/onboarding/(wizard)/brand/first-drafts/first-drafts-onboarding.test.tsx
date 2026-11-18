@@ -30,6 +30,7 @@ const mocks = vi.hoisted(() => ({
   withdrawFeedback: vi.fn(),
   generateDrafts: vi.fn(),
   retryDraftMedia: vi.fn(),
+  redoDraft: vi.fn(),
   scanBrand: vi.fn(),
   rateFeedback: vi.fn(),
   listReadiness: vi.fn(),
@@ -40,6 +41,11 @@ const mocks = vi.hoisted(() => ({
   connectOptions: vi.fn(),
   search: new URLSearchParams(),
   steps: ['brand'] as string[],
+  agentStatus: {
+    connections: [] as Array<{ clientName: string | null }>,
+    status: 'unconfigured' as 'configured' | 'error' | 'unconfigured',
+  },
+  creditBalance: 100 as number | null,
 }));
 
 vi.mock('@contexts/onboarding/onboarding-context', () => ({
@@ -52,6 +58,21 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({
     brandId: mocks.brandId,
     isBrandScopeResolved: mocks.isBrandScopeResolved,
+    organizationId: 'org-1',
+  }),
+}));
+vi.mock('@app/(protected)/home/use-connect-genfeed-status', () => ({
+  useConnectGenfeedStatus: () => mocks.agentStatus,
+}));
+vi.mock('./use-onboarding-credit-balance', () => ({
+  useOnboardingCreditBalance: () => ({
+    balance: mocks.creditBalance,
+    isLoading: false,
+  }),
+}));
+vi.mock('@hooks/navigation/use-org-url/use-org-url', () => ({
+  useOrgUrl: () => ({
+    orgHref: (path: string) => `/acme/~${path}`,
   }),
 }));
 vi.mock('@contexts/user/user-context/user-context', () => ({
@@ -79,6 +100,7 @@ vi.mock('@services/onboarding/onboarding.service', () => ({
       readDrafts: mocks.readDrafts,
       generateDrafts: mocks.generateDrafts,
       retryDraftMedia: mocks.retryDraftMedia,
+      redoDraft: mocks.redoDraft,
       scanBrand: mocks.scanBrand,
     }),
   },
@@ -202,9 +224,29 @@ async function startFromLink(link = 'acme.co') {
   fireEvent.click(screen.getByRole('button', { name: 'Submit brand link' }));
 }
 
+async function goToChannels() {
+  await screen.findByText('twitter draft text');
+  fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+  await screen.findByRole('radio', { name: /Claude Code/ });
+  fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+  await screen.findByTestId('connect-card-instagram');
+}
+
+async function goToPrompt() {
+  await goToChannels();
+  fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+  await screen.findByRole('heading', { name: 'Now go to your agent' });
+}
+
 function savedRun() {
   return {
     id: 'run-1',
+    draftRewritesRemaining: {
+      instagram: 2,
+      linkedin: 2,
+      tiktok: 2,
+      twitter: 2,
+    },
     mediaRetriesRemaining: 2,
     status: 'complete' as const,
     result: drafts(),
@@ -221,6 +263,8 @@ describe('FirstDraftsOnboarding', () => {
     mocks.email = 'owner@gmail.com';
     mocks.steps = ['brand'];
     mocks.search = new URLSearchParams();
+    mocks.agentStatus = { connections: [], status: 'unconfigured' };
+    mocks.creditBalance = 100;
     mocks.completeOnboarding.mockResolvedValue(undefined);
     mocks.handleStepComplete.mockResolvedValue(undefined);
     mocks.scanBrand.mockResolvedValue(SCANNED);
@@ -305,18 +349,17 @@ describe('FirstDraftsOnboarding', () => {
     await screen.findByText('twitter draft text');
     const back = screen.getByRole('button', { name: 'Back' });
     expect(back.textContent).toBe('');
-    expect(
-      screen.getByRole('button', { name: /Create content/i }),
-    ).toBeDisabled();
-    fireEvent.click(screen.getByRole('button', { name: /Your brand/i }));
-    expect(screen.getByRole('textbox')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: /Review drafts/i }));
-    expect(screen.getByText('twitter draft text')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: /Connect accounts/i }));
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Connect your channels' }),
+    );
     expect(
       await screen.findByRole('button', { name: 'Connect Instagram' }),
     ).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: /Review drafts/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'Connect Agent' }));
+    expect(
+      await screen.findByRole('radio', { name: /Claude Code/ }),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'See your output' }));
     expect(screen.getByText('twitter draft text')).toBeInTheDocument();
     expect(mocks.generateDrafts).not.toHaveBeenCalled();
     expect(mocks.scanBrand).not.toHaveBeenCalled();
@@ -348,15 +391,12 @@ describe('FirstDraftsOnboarding', () => {
   it('disables future steps before any run exists', async () => {
     render(<FirstDraftsOnboarding />);
     await screen.findByRole('textbox');
-    expect(
-      screen.getByRole('button', { name: /Create content/i }),
-    ).toBeDisabled();
-    expect(
-      screen.getByRole('button', { name: /Review drafts/i }),
-    ).toBeDisabled();
-    expect(
-      screen.getByRole('button', { name: /Connect accounts/i }),
-    ).toBeDisabled();
+    for (const name of [
+      'Connect Agent',
+      'Connect your channels',
+      'Go to your agent',
+    ])
+      expect(screen.getByRole('button', { name })).toBeDisabled();
     expect(mocks.generateDrafts).not.toHaveBeenCalled();
   });
 
@@ -444,14 +484,10 @@ describe('FirstDraftsOnboarding', () => {
     expect(mocks.generateDrafts).not.toHaveBeenCalled();
   });
 
-  it('connects through logo cards and Back returns to review without scheduling', async () => {
+  it('connects through logo cards and Back returns to the agent step without scheduling', async () => {
     mocks.readDrafts.mockResolvedValue(savedRun());
     render(<FirstDraftsOnboarding />);
-    await screen.findByText('twitter draft text');
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-    expect(
-      await screen.findByTestId('connect-card-instagram'),
-    ).toBeInTheDocument();
+    await goToChannels();
     for (const platform of ['instagram', 'tiktok', 'twitter', 'linkedin'])
       expect(
         screen.getByTestId(`connect-card-${platform}`).querySelector('svg'),
@@ -461,17 +497,19 @@ describe('FirstDraftsOnboarding', () => {
       expect(mocks.connectPlatform).toHaveBeenCalledWith('tiktok'),
     );
     fireEvent.click(screen.getByRole('button', { name: 'Back' }));
-    await screen.findByText('twitter draft text');
+    expect(
+      await screen.findByRole('radio', { name: /Claude Code/ }),
+    ).toBeInTheDocument();
     expect(mocks.scheduleTarget).not.toHaveBeenCalled();
     expect(mocks.patchPost).not.toHaveBeenCalled();
   });
 
-  it('finishes from the connect step onto the drafts they just reviewed', async () => {
+  it('finishes from the last step onto the drafts they just reviewed', async () => {
     mocks.readDrafts.mockResolvedValue(savedRun());
     render(<FirstDraftsOnboarding />);
-    await screen.findByText('twitter draft text');
+    await goToChannels();
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-    await screen.findByTestId('connect-card-instagram');
+    await screen.findByRole('heading', { name: 'Now go to your agent' });
     fireEvent.click(screen.getByRole('button', { name: 'Finish' }));
     await waitFor(() =>
       expect(mocks.completeOnboarding).toHaveBeenCalledWith({
@@ -486,11 +524,129 @@ describe('FirstDraftsOnboarding', () => {
       { providerKey: 'instagram', credentialId: 'cred-1', canSchedule: true },
     ]);
     render(<FirstDraftsOnboarding />);
-    await screen.findByText('twitter draft text');
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    await goToChannels();
     expect(
       await screen.findByRole('button', { name: 'Instagram connected' }),
     ).toBeDisabled();
+  });
+
+  it('shows the setup command for the chosen agent and waits for it to connect', async () => {
+    mocks.readDrafts.mockResolvedValue(savedRun());
+    render(<FirstDraftsOnboarding />);
+    await screen.findByText('twitter draft text');
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    expect(
+      await screen.findByText(/claude mcp add --transport http genfeed/),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('Waiting for Claude Code to connect'),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('radio', { name: /Codex/ }));
+    expect(
+      screen.getByText(/codex mcp add genfeed --url .*profile=studio/),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Waiting for Codex to connect')).toBeVisible();
+  });
+
+  it('confirms the agent once it has made its first request', async () => {
+    mocks.readDrafts.mockResolvedValue(savedRun());
+    mocks.agentStatus = {
+      connections: [{ clientName: 'Claude Code' }],
+      status: 'configured',
+    };
+    render(<FirstDraftsOnboarding />);
+    await screen.findByText('twitter draft text');
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    expect(await screen.findByText('Claude Code is connected')).toBeVisible();
+    expect(screen.queryByText(/Waiting for/)).not.toBeInTheDocument();
+  });
+
+  it('lets the member skip the agent and the channels and still finish', async () => {
+    mocks.readDrafts.mockResolvedValue(savedRun());
+    render(<FirstDraftsOnboarding />);
+    await screen.findByText('twitter draft text');
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    await screen.findByRole('radio', { name: /Claude Code/ });
+    fireEvent.click(screen.getByRole('button', { name: 'Skip' }));
+    await screen.findByRole('button', { name: 'Connect Instagram' });
+    fireEvent.click(screen.getByRole('button', { name: 'Skip' }));
+    await screen.findByRole('heading', { name: 'Now go to your agent' });
+    expect(
+      screen.queryByRole('button', { name: 'Skip' }),
+    ).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Finish' }));
+    await waitFor(() => expect(mocks.completeOnboarding).toHaveBeenCalled());
+  });
+
+  it('gives a first prompt that names the brand and asks for no media from the Claude connector', async () => {
+    mocks.readDrafts.mockResolvedValue(savedRun());
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText },
+    });
+    render(<FirstDraftsOnboarding />);
+    await goToPrompt();
+    const prompt =
+      'Look at my Genfeed brand and this week’s trends. Draft three posts for Your brand and save them for my review. Do not publish them.';
+    expect(screen.getByText(prompt)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Copy first prompt' }));
+    await waitFor(() => expect(writeText).toHaveBeenCalledWith(prompt));
+    expect(await screen.findByRole('button', { name: 'Copied' })).toBeVisible();
+  });
+
+  it('asks Codex for an image with each post and shows the credit balance', async () => {
+    mocks.readDrafts.mockResolvedValue(savedRun());
+    mocks.creditBalance = 100;
+    render(<FirstDraftsOnboarding />);
+    await screen.findByText('twitter draft text');
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    fireEvent.click(await screen.findByRole('radio', { name: /Codex/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Skip' }));
+    await screen.findByRole('button', { name: 'Connect Instagram' });
+    fireEvent.click(screen.getByRole('button', { name: 'Skip' }));
+    expect(
+      await screen.findByText(/generate an image for each/),
+    ).toBeInTheDocument();
+    expect(screen.getByText('100 credits')).toBeInTheDocument();
+    expect(screen.queryByText('Add credits')).not.toBeInTheDocument();
+  });
+
+  it('shows an empty balance with a way to add credits', async () => {
+    mocks.readDrafts.mockResolvedValue(savedRun());
+    mocks.creditBalance = 0;
+    render(<FirstDraftsOnboarding />);
+    await goToPrompt();
+    expect(screen.getByText('0 credits')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Add credits' })).toHaveAttribute(
+      'href',
+      '/acme/~/settings/credits',
+    );
+  });
+
+  it('says so when the balance cannot be read', async () => {
+    mocks.readDrafts.mockResolvedValue(savedRun());
+    mocks.creditBalance = null;
+    render(<FirstDraftsOnboarding />);
+    await goToPrompt();
+    expect(
+      screen.getByText('Your balance isn’t available right now.'),
+    ).toBeInTheDocument();
+  });
+
+  it('resumes the step a member left from', async () => {
+    mocks.readDrafts.mockResolvedValue(savedRun());
+    sessionStorage.setItem(
+      'genfeed.onboarding.view.["user-1","org-1","brand-1"]',
+      JSON.stringify({ phase: 'agent', url: 'acme.co' }),
+    );
+    render(<FirstDraftsOnboarding />);
+    expect(
+      await screen.findByRole('radio', { name: /Claude Code/ }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Connect Agent' }),
+    ).toHaveAttribute('aria-current', 'step');
   });
 
   it('requires a skip confirmation and lets the user keep reviewing', async () => {
@@ -584,12 +740,12 @@ describe('FirstDraftsOnboarding', () => {
     expect(mocks.generateDrafts).not.toHaveBeenCalled();
   });
   it('clears the OAuth return step when going back to drafts', async () => {
-    mocks.search = new URLSearchParams('step=schedule');
+    mocks.search = new URLSearchParams('step=channels');
     mocks.readDrafts.mockResolvedValue(savedRun());
     render(<FirstDraftsOnboarding />);
     await screen.findByTestId('connect-card-instagram');
     fireEvent.click(screen.getByRole('button', { name: 'Back' }));
-    await screen.findByText('twitter draft text');
+    await screen.findByRole('radio', { name: /Claude Code/ });
     expect(mocks.replace).toHaveBeenCalledWith('/onboarding/brand');
   });
 
@@ -682,5 +838,264 @@ describe('FirstDraftsOnboarding', () => {
       'We couldn’t create the media',
     );
     expect(screen.getByText('twitter draft text')).toBeInTheDocument();
+  });
+  it('says what the scan understood and offers a redo from the review', async () => {
+    render(<FirstDraftsOnboarding />);
+    await startFromLink();
+    expect(
+      await screen.findByText('You sell A scheduling tool to Founders.'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Round 1 of 2')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: "This doesn't look right" }),
+    ).toBeEnabled();
+  });
+
+  it('opens the form with what we understood and redoes the posts from it', async () => {
+    render(<FirstDraftsOnboarding />);
+    await startFromLink();
+    await screen.findByText('twitter draft text');
+    fireEvent.click(
+      screen.getByRole('button', { name: "This doesn't look right" }),
+    );
+    const offer = await screen.findByRole('textbox', {
+      name: 'What do you sell or offer?',
+    });
+    expect(offer).toHaveValue('A scheduling tool');
+    expect(
+      screen.getByRole('textbox', { name: 'Who are the posts for?' }),
+    ).toHaveValue('Founders');
+    fireEvent.change(offer, { target: { value: 'Calendar software' } });
+    mocks.generateDrafts.mockResolvedValueOnce({
+      ...drafts(),
+      requestKey: 'key-redo',
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Redo Posts' }));
+    expect(
+      await screen.findByText('You sell Calendar software to Founders.'),
+    ).toBeInTheDocument();
+    expect(mocks.generateDrafts).toHaveBeenLastCalledWith(
+      'brand-1',
+      {
+        context: {
+          audience: 'Founders',
+          offer: 'Calendar software',
+          tone: 'keep',
+        },
+        previousRequestKey: 'key-twitter',
+      },
+      expect.any(AbortSignal),
+    );
+    expect(screen.getByText('Round 2 of 2')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: "This doesn't look right" }),
+    ).toBeDisabled();
+  });
+
+  it('keeps the understood line that matches the posts when the redo fails', async () => {
+    render(<FirstDraftsOnboarding />);
+    await startFromLink();
+    await screen.findByText('twitter draft text');
+    fireEvent.click(
+      screen.getByRole('button', { name: "This doesn't look right" }),
+    );
+    fireEvent.change(
+      await screen.findByRole('textbox', {
+        name: 'What do you sell or offer?',
+      }),
+      { target: { value: 'Calendar software' } },
+    );
+    mocks.generateDrafts.mockRejectedValueOnce(new Error('provider failed'));
+    mocks.readDrafts.mockResolvedValue({
+      ...savedRun(),
+      result: drafts(),
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Redo Posts' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('We couldn');
+    expect(
+      screen.getByText('You sell A scheduling tool to Founders.'),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/Calendar software/)).not.toBeInTheDocument();
+  });
+
+  it('keeps counting rounds when a media retry reconciles the saved run', async () => {
+    const missing = { ...drafts('partial'), imageUrl: null };
+    render(<FirstDraftsOnboarding />);
+    await startFromLink();
+    await screen.findByText('twitter draft text');
+    fireEvent.click(
+      screen.getByRole('button', { name: "This doesn't look right" }),
+    );
+    mocks.generateDrafts.mockResolvedValueOnce({
+      ...missing,
+      requestKey: 'key-redo',
+    });
+    fireEvent.click(await screen.findByRole('button', { name: 'Redo Posts' }));
+    expect(await screen.findByText('Round 2 of 2')).toBeInTheDocument();
+    mocks.retryDraftMedia.mockResolvedValue(drafts());
+    mocks.readDrafts.mockResolvedValue({
+      ...savedRun(),
+      mediaRetriesRemaining: 1,
+    });
+    fireEvent.click(screen.getAllByRole('button', { name: 'Retry media' })[0]);
+    await waitFor(() => expect(mocks.retryDraftMedia).toHaveBeenCalledTimes(1));
+    await waitFor(() =>
+      expect(
+        screen.queryByText('Image unavailable. Your text drafts are saved.'),
+      ).not.toBeInTheDocument(),
+    );
+    expect(screen.getByText('Round 2 of 2')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: "This doesn't look right" }),
+    ).toBeDisabled();
+  });
+
+  it('returns to the same posts when the redo is cancelled', async () => {
+    render(<FirstDraftsOnboarding />);
+    await startFromLink();
+    await screen.findByText('twitter draft text');
+    fireEvent.click(
+      screen.getByRole('button', { name: "This doesn't look right" }),
+    );
+    fireEvent.click(await screen.findByRole('button', { name: 'Keep Posts' }));
+    expect(await screen.findByText('twitter draft text')).toBeInTheDocument();
+    expect(mocks.generateDrafts).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the redo closed for a finished user replaying the saved run', async () => {
+    mocks.isCompleted = true;
+    mocks.readDrafts.mockResolvedValue(savedRun());
+    render(<FirstDraftsOnboarding />);
+    await screen.findByText('twitter draft text');
+    expect(
+      screen.getByRole('button', { name: "This doesn't look right" }),
+    ).toBeDisabled();
+  });
+  it('writes another post for one rejected channel and keeps the rest', async () => {
+    mocks.readDrafts.mockResolvedValue(savedRun());
+    const rewritten = drafts();
+    rewritten.drafts = rewritten.drafts.map((draft) =>
+      draft.platform === 'twitter'
+        ? { ...draft, postId: 'post-twitter-2', text: 'a different x post' }
+        : draft,
+    );
+    mocks.redoDraft.mockResolvedValue(rewritten);
+    render(<FirstDraftsOnboarding />);
+    await screen.findByText('twitter draft text');
+    expect(
+      screen.queryByRole('button', { name: 'Write another' }),
+    ).not.toBeInTheDocument();
+    fireEvent.click(
+      within(screen.getByTestId('onboarding-draft-twitter')).getByRole(
+        'button',
+        { name: 'Not for me' },
+      ),
+    );
+    mocks.readDrafts.mockResolvedValue({
+      ...savedRun(),
+      draftRewritesRemaining: {
+        instagram: 2,
+        linkedin: 2,
+        tiktok: 2,
+        twitter: 1,
+      },
+      result: rewritten,
+    });
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Write another' }),
+    );
+    expect(await screen.findByText('a different x post')).toBeInTheDocument();
+    expect(mocks.redoDraft).toHaveBeenCalledWith(
+      'brand-1',
+      'twitter',
+      expect.any(AbortSignal),
+    );
+    expect(screen.getByText('instagram draft text')).toBeInTheDocument();
+    expect(mocks.generateDrafts).not.toHaveBeenCalled();
+  });
+
+  it('says it was the last rewrite and offers no more for that channel', async () => {
+    mocks.readDrafts.mockResolvedValue({
+      ...savedRun(),
+      draftRewritesRemaining: {
+        instagram: 2,
+        linkedin: 2,
+        tiktok: 2,
+        twitter: 0,
+      },
+    });
+    render(<FirstDraftsOnboarding />);
+    await screen.findByText('twitter draft text');
+    fireEvent.click(
+      within(screen.getByTestId('onboarding-draft-twitter')).getByRole(
+        'button',
+        { name: 'Not for me' },
+      ),
+    );
+    expect(
+      await screen.findByText('That was the last rewrite for this post.'),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Write another' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows a card with Try again for a channel that could not be written', async () => {
+    const partial = drafts('partial');
+    partial.drafts = partial.drafts.filter(
+      (draft) => draft.platform !== 'linkedin',
+    );
+    mocks.readDrafts.mockResolvedValue({ ...savedRun(), result: partial });
+    mocks.redoDraft.mockResolvedValue(drafts());
+    render(<FirstDraftsOnboarding />);
+    const card = await screen.findByTestId('onboarding-draft-missing-linkedin');
+    expect(card).toHaveTextContent('We could not write this one this time.');
+    mocks.readDrafts.mockResolvedValue(savedRun());
+    fireEvent.click(within(card).getByRole('button', { name: 'Try again' }));
+    await waitFor(() =>
+      expect(mocks.redoDraft).toHaveBeenCalledWith(
+        'brand-1',
+        'linkedin',
+        expect.any(AbortSignal),
+      ),
+    );
+    expect(await screen.findByText('linkedin draft text')).toBeInTheDocument();
+  });
+
+  it('keeps the posts and says so when writing another fails', async () => {
+    mocks.readDrafts.mockResolvedValue(savedRun());
+    mocks.redoDraft.mockRejectedValue(new Error('provider failed'));
+    render(<FirstDraftsOnboarding />);
+    await screen.findByText('twitter draft text');
+    fireEvent.click(
+      within(screen.getByTestId('onboarding-draft-twitter')).getByRole(
+        'button',
+        { name: 'Not for me' },
+      ),
+    );
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Write another' }),
+    );
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'We couldn’t write another post',
+    );
+    expect(screen.getByText('twitter draft text')).toBeInTheDocument();
+  });
+
+  it('offers no rewrite to a finished user replaying the saved run', async () => {
+    mocks.isCompleted = true;
+    mocks.readDrafts.mockResolvedValue(savedRun());
+    render(<FirstDraftsOnboarding />);
+    await screen.findByText('twitter draft text');
+    fireEvent.click(
+      within(screen.getByTestId('onboarding-draft-twitter')).getByRole(
+        'button',
+        { name: 'Not for me' },
+      ),
+    );
+    await screen.findByRole('button', { name: 'Undo' });
+    expect(
+      screen.queryByRole('button', { name: 'Write another' }),
+    ).not.toBeInTheDocument();
   });
 });

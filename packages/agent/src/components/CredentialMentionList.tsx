@@ -7,7 +7,6 @@ import { Button } from '@ui/primitives/button';
 import {
   type ReactElement,
   type Ref,
-  useEffect,
   useImperativeHandle,
   useState,
 } from 'react';
@@ -29,12 +28,13 @@ export function CredentialMentionList({
 }: CredentialMentionListProps): ReactElement {
   const [selectedIndex, setSelectedIndex] = useState(0);
 
-  useEffect(() => {
-    setSelectedIndex(0);
-  }, []);
-
   useImperativeHandle(ref, () => ({
     onKeyDown: ({ event }: { event: KeyboardEvent }) => {
+      // With nothing to pick, the popup must not swallow Enter: a message
+      // containing `!word` still sends.
+      if (items.length === 0) {
+        return false;
+      }
       if (event.key === 'ArrowUp') {
         setSelectedIndex((prev) => (prev + items.length - 1) % items.length);
         return true;

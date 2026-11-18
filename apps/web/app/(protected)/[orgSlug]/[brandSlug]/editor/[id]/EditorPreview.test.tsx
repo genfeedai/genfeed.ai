@@ -353,7 +353,10 @@ describe('EditorPreview', () => {
     expect(playerControls.toggle).toHaveBeenCalledTimes(1);
     expect(playerControls.seekTo).toHaveBeenCalledWith(120);
 
+    expect(listeners.size).toBe(3);
+
     unmount();
+    expect(listeners.size).toBe(0);
     expect(playerControls.removeEventListener).toHaveBeenCalledWith(
       'frameupdate',
       expect.any(Function),

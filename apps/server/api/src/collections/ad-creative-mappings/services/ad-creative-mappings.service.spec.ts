@@ -59,7 +59,7 @@ describe('AdCreativeMappingsService', () => {
     it('preserves explicit brand, platform, status and metadata', async () => {
       create.mockResolvedValue({ id: 'map-2' });
 
-      await service.create({
+      const created = await service.create({
         adAccountId: 'act_2',
         brandId: 'brand-1',
         externalAdId: 'ad-9',
@@ -71,6 +71,7 @@ describe('AdCreativeMappingsService', () => {
         status: 'active',
       });
 
+      expect(created).toEqual({ id: 'map-2' });
       expect(create).toHaveBeenCalledWith({
         data: expect.objectContaining({
           brandId: 'brand-1',
@@ -225,8 +226,11 @@ describe('AdCreativeMappingsService', () => {
       );
       update.mockResolvedValue({ id: 'map-1' });
 
-      await service.update('map-1', 'org-1', { status: 'active' });
+      const updated = await service.update('map-1', 'org-1', {
+        status: 'active',
+      });
 
+      expect(updated).toEqual({ id: 'map-1' });
       expect(update).toHaveBeenCalledWith({
         data: {
           data: {
@@ -243,12 +247,14 @@ describe('AdCreativeMappingsService', () => {
       findFirst.mockResolvedValue(makeRow('map-1', { status: 'draft' }));
       update.mockResolvedValue({ id: 'map-1' });
 
-      await service.update('map-1', 'org-1', {
+      const updated = await service.update('map-1', 'org-1', {
         externalAdId: '',
         externalCreativeId: 'creative-7',
         metadata: {},
         status: 'paused',
       });
+
+      expect(updated).toEqual({ id: 'map-1' });
 
       expect(update).toHaveBeenCalledWith({
         data: {
@@ -272,8 +278,11 @@ describe('AdCreativeMappingsService', () => {
       });
       update.mockResolvedValue({ id: 'map-3' });
 
-      await service.update('map-3', 'org-1', { status: 'active' });
+      const updated = await service.update('map-3', 'org-1', {
+        status: 'active',
+      });
 
+      expect(updated).toEqual({ id: 'map-3' });
       expect(update).toHaveBeenCalledWith({
         data: { data: { status: 'active' } },
         where: { id: 'map-3', isDeleted: false, organizationId: 'org-1' },

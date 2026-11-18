@@ -11,10 +11,11 @@ import {
  */
 export const ANALYTICS_APP_PATH_ROOTS: readonly AppRailPathRoots[] = [
   { activePathRoots: ['/workspace', '/overview'], id: 'workspace' },
-  { activePathRoots: ['/agent'], id: 'agent' },
+  { activePathRoots: ['/discovery'], id: 'discovery' },
   { activePathRoots: ['/library'], id: 'library' },
   { activePathRoots: ['/publishing'], id: 'publishing' },
   { activePathRoots: ['/analytics'], id: 'analytics' },
+  { activePathRoots: ['/agent'], id: 'agent' },
   { activePathRoots: [APP_ROUTES.STUDIO.PLAYGROUND], id: 'playground' },
   { activePathRoots: [APP_ROUTES.STUDIO.STORYBOARD], id: 'storyboard' },
   { activePathRoots: [APP_ROUTES.STUDIO.TURBO], id: 'turbo' },
@@ -23,7 +24,6 @@ export const ANALYTICS_APP_PATH_ROOTS: readonly AppRailPathRoots[] = [
   { activePathRoots: [APP_ROUTES.STUDIO.EDITOR], id: 'editor' },
   { activePathRoots: ['/automation'], id: 'automation' },
   { activePathRoots: ['/messages'], id: 'messages' },
-  { activePathRoots: ['/discovery'], id: 'discovery' },
   {
     activePathRoots: [APP_ROUTES.ADMIN.ROOT, '/admin/overview'],
     id: 'admin-overview',
@@ -66,8 +66,8 @@ export const ANALYTICS_APP_PATH_ROOTS: readonly AppRailPathRoots[] = [
   },
 ];
 
-export const ANALYTICS_APP_SETTINGS = 'settings';
-export const ANALYTICS_APP_OTHER = 'other';
+const ANALYTICS_APP_SETTINGS = 'settings';
+const ANALYTICS_APP_OTHER = 'other';
 export const ANALYTICS_APP_PUBLIC = 'public';
 
 /** `/settings/*` (personal) or `/:org/~/settings/*` and `/:org/:brand/settings/*`. */

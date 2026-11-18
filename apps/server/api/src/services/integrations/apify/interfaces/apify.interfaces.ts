@@ -31,10 +31,6 @@ export interface ApifyActorRunResponse {
   data: ApifyActorRun;
 }
 
-export interface ApifyDatasetItem {
-  [key: string]: unknown;
-}
-
 /**
  * An Apify account (hosted token or a single organization's BYOK token) that
  * exhausted its plan usage. Every further call fails identically until the
@@ -43,10 +39,6 @@ export interface ApifyDatasetItem {
 export interface ApifyAccountLimitSuspension {
   reason: string;
   suspendedUntilMs: number;
-}
-
-export interface ApifyDatasetResponse<T = ApifyDatasetItem> {
-  data: T[];
 }
 
 export interface TrendOptions {
@@ -95,16 +87,6 @@ export interface ApifyTikTokTrend {
   coverUrl?: string;
   createTime?: number;
   isCommerce?: boolean;
-}
-
-export interface ApifyTikTokSound {
-  id: string;
-  title: string;
-  authorName?: string;
-  coverUrl?: string;
-  playUrl?: string;
-  duration?: number;
-  videoCount?: number;
 }
 
 export interface ApifyTikTokVideo {
@@ -164,93 +146,6 @@ export interface ApifyTwitterTrend {
   isPromoted?: boolean;
   twitterSearchUrl?: string;
   countryCode?: string;
-}
-
-/**
- * Twitter/X tweet data from Apify scraper
- */
-export interface ApifyTwitterTweet {
-  isPinned?: boolean;
-  is_pinned?: boolean;
-  pinned?: boolean;
-  isPromoted?: boolean;
-  is_promoted?: boolean;
-  promoted?: boolean;
-  isSponsored?: boolean;
-  is_sponsored?: boolean;
-  id: string;
-  id_str?: string;
-  text: string;
-  full_text?: string;
-  created_at?: string;
-  user?: {
-    id_str?: string;
-    screen_name?: string;
-    name?: string;
-    profile_image_url_https?: string;
-    followers_count?: number;
-    verified?: boolean;
-  };
-  in_reply_to_status_id_str?: string;
-  in_reply_to_user_id_str?: string;
-  in_reply_to_screen_name?: string;
-  conversation_id_str?: string;
-  retweet_count?: number;
-  favorite_count?: number;
-  reply_count?: number;
-  quote_count?: number;
-  entities?: {
-    hashtags?: Array<{ text: string }>;
-    urls?: Array<{ expanded_url: string }>;
-    user_mentions?: Array<{ screen_name: string; id_str: string }>;
-  };
-  is_quote_status?: boolean;
-  quoted_status_id_str?: string;
-  retweeted_status?: ApifyTwitterTweet;
-}
-
-/**
- * Twitter/X user data from Apify scraper
- */
-export interface ApifyTwitterUser {
-  id_str: string;
-  screen_name: string;
-  name: string;
-  description?: string;
-  profile_image_url_https?: string;
-  followers_count: number;
-  friends_count: number;
-  statuses_count: number;
-  verified?: boolean;
-  created_at?: string;
-}
-
-/**
- * Normalized tweet data for reply bot system
- */
-export interface ApifyNormalizedTweet {
-  isPinned?: boolean | null;
-  isPromoted?: boolean | null;
-  id: string;
-  text: string;
-  authorId: string;
-  authorUsername: string;
-  authorDisplayName?: string;
-  authorAvatarUrl?: string;
-  authorFollowersCount?: number;
-  createdAt?: Date;
-  conversationId?: string;
-  inReplyToUserId?: string;
-  inReplyToTweetId?: string;
-  metrics?: {
-    retweets: number;
-    likes: number;
-    replies: number;
-    quotes: number;
-  };
-  hashtags?: string[];
-  isRetweet: boolean;
-  isQuote: boolean;
 }
 
 /**
@@ -362,7 +257,7 @@ export interface ApifyPinterestPin {
   };
 }
 
-export interface ApifyPinterestImage {
+interface ApifyPinterestImage {
   url?: string;
 }
 
@@ -467,22 +362,6 @@ export interface ApifyNormalizedInstagramComment {
 }
 
 /**
- * Instagram user profile from Apify
- */
-export interface ApifyInstagramUser {
-  id: string;
-  username: string;
-  fullName?: string;
-  biography?: string;
-  profilePicUrl?: string;
-  followersCount?: number;
-  followingCount?: number;
-  postsCount?: number;
-  isVerified?: boolean;
-  isPrivate?: boolean;
-}
-
-/**
  * Raw TikTok comment data from Apify scraper
  */
 export interface ApifyTikTokComment {
@@ -522,22 +401,6 @@ export interface ApifyNormalizedTikTokComment {
 }
 
 /**
- * TikTok user profile from Apify
- */
-export interface ApifyTikTokUser {
-  id: string;
-  uniqueId: string;
-  nickname?: string;
-  avatarThumb?: string;
-  signature?: string;
-  verified?: boolean;
-  followersCount?: number;
-  followingCount?: number;
-  heartCount?: number;
-  videoCount?: number;
-}
-
-/**
  * Raw YouTube comment data from Apify scraper
  */
 export interface ApifyYouTubeComment {
@@ -570,42 +433,4 @@ export interface ApifyNormalizedYouTubeComment {
     likes: number;
     replies: number;
   };
-}
-
-/**
- * YouTube channel data from Apify
- */
-export interface ApifyYouTubeChannel {
-  id: string;
-  title: string;
-  description?: string;
-  thumbnailUrl?: string;
-  subscriberCount?: number;
-  videoCount?: number;
-  viewCount?: number;
-  customUrl?: string;
-}
-
-/**
- * Platform-agnostic normalized comment for reply bot system
- * Used for unified processing across all platforms
- */
-export interface ApifyNormalizedSocialComment {
-  id: string;
-  platform: 'twitter' | 'instagram' | 'tiktok' | 'youtube';
-  text: string;
-  authorId: string;
-  authorUsername: string;
-  authorDisplayName?: string;
-  authorAvatarUrl?: string;
-  createdAt: Date;
-  contentId: string;
-  contentType: 'tweet' | 'post' | 'video' | 'reel';
-  contentUrl?: string;
-  metrics?: {
-    likes: number;
-    replies: number;
-  };
-  inReplyToId?: string;
-  hashtags?: string[];
 }

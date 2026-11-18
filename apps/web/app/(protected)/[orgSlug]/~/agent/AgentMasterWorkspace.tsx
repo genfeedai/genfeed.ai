@@ -68,6 +68,7 @@ export default function AgentMasterWorkspace({
 
   // The thread open in the panel is the one full view would show: warm its
   // conversation now, so expanding it paints from the cache with no request.
+  // use-effect-audit: ignore warms the conversation cache with a network prefetch
   useEffect(() => {
     if (isLoaded && openThreadId) {
       prefetchThread(openThreadId);

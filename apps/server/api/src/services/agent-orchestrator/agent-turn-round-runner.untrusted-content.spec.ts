@@ -1,7 +1,5 @@
-import {
-  type AgentToolRoundState,
-  AgentTurnRoundRunnerService,
-} from '@api/services/agent-orchestrator/agent-turn-round-runner.service';
+import { AgentTurnRoundRunnerService } from '@api/services/agent-orchestrator/agent-turn-round-runner.service';
+import type { AgentToolRoundState } from '@api/services/agent-orchestrator/interfaces/agent-turn-round-runner.interface';
 import type { OpenRouterMessage } from '@api/services/integrations/openrouter/dto/openrouter.dto';
 import { RouterPriority } from '@genfeedai/contracts';
 import type { AgentUntrustedContentGateResult } from '@genfeedai/contracts/interfaces';

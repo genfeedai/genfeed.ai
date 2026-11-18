@@ -4,12 +4,11 @@
  * mentions call per account per tick, and only for accounts that published
  * inside the window.
  */
-export const X_REPLY_WATCH_INTERVAL_MINUTES = 15;
-export const X_REPLY_WATCH_WINDOW_HOURS = 24;
+const X_REPLY_WATCH_INTERVAL_MINUTES = 15;
+const X_REPLY_WATCH_WINDOW_HOURS = 24;
 
 export const X_REPLY_WATCH_SCHEDULE = `*/${X_REPLY_WATCH_INTERVAL_MINUTES} * * * *`;
-export const X_REPLY_WATCH_INTERVAL_MS =
-  X_REPLY_WATCH_INTERVAL_MINUTES * 60_000;
+const X_REPLY_WATCH_INTERVAL_MS = X_REPLY_WATCH_INTERVAL_MINUTES * 60_000;
 export const X_REPLY_WATCH_WINDOW_MS = X_REPLY_WATCH_WINDOW_HOURS * 3_600_000;
 
 /** Mentions per page; X caps the mentions page at 100. */

@@ -31,7 +31,7 @@ const MAX_TRANSCRIPT_CHARS = 4_000;
 /** Captions judged per asset per job. */
 const MAX_CAPTIONS_PER_ASSET = 10;
 /** Posts edited this recently are swept for caption consistency. */
-export const CAPTION_SWEEP_WINDOW_MS = 30 * 60 * 1000;
+const CAPTION_SWEEP_WINDOW_MS = 30 * 60 * 1000;
 
 export type MediaTextDecisionOutcome = 'decided' | 'skipped';
 

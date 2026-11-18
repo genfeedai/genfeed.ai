@@ -78,6 +78,7 @@ export default function YoutubeLongFormContent(): React.ReactElement {
   const [error, setError] = useState<string | null>(null);
   const viewedRef = useRef(false);
 
+  // use-effect-audit: ignore sends one analytics event when the tool is first viewed
   useEffect(() => {
     if (viewedRef.current) {
       return;
@@ -229,7 +230,7 @@ export default function YoutubeLongFormContent(): React.ReactElement {
         {result ? (
           <article className="grid gap-5 bg-background p-6 shadow-border">
             <div className="grid gap-2">
-              <Text className="text-xs font-semibold uppercase tracking-wider text-foreground/60">
+              <Text className="text-xs font-semibold uppercase tracking-label text-foreground/60">
                 {OUTPUT_OPTIONS.find(
                   (option) => option.value === result.outputType,
                 )?.label ?? result.outputType}

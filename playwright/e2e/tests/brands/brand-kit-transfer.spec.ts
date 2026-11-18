@@ -7,6 +7,9 @@ import { brandPath } from '../../utils/app-chrome';
 import { assertNoErrorBoundaryFallback } from '../../utils/route-assertions';
 
 test.describe('Brand kit file', () => {
+  // Slot, font and kit-file controls are manager-only.
+  test.use({ memberRole: 'admin' });
+
   test('imports a kit ZIP and reports what it added', async ({
     authenticatedPage,
   }) => {
@@ -45,7 +48,7 @@ test.describe('Brand kit file', () => {
     await assertNoErrorBoundaryFallback(authenticatedPage, route);
 
     await authenticatedPage
-      .getByRole('button', { name: /Assets, references & watermark/ })
+      .getByRole('button', { name: /Assets & references/ })
       .click();
 
     await expect(

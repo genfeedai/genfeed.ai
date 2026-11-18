@@ -4,6 +4,7 @@ import {
   CadenceGenerateLanding,
   PostCategory,
 } from '@genfeedai/contracts';
+import { useResetOnChange } from '@hooks/utils/use-reset-on-change/use-reset-on-change';
 import { Button } from '@ui/primitives/button';
 import {
   Dialog,
@@ -17,7 +18,7 @@ import { FormRow } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
 import { SelectField } from '@ui/primitives/select';
 import { useTranslations } from 'next-intl';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import type { CadenceFormSheetProps } from '@/features/posts/props/cadence-form-sheet.props';
 
 const CADENCE_FORMATS = [
@@ -58,6 +59,31 @@ function isoDate(value: string): string {
   return value.slice(0, 10);
 }
 
+function cadenceFormValues(cadence: CadenceFormSheetProps['cadence']) {
+  if (!cadence) {
+    return {
+      brief: '',
+      endDate: plusDaysIsoDate(14),
+      format: PostCategory.REEL as PostCategory,
+      generateLanding: CadenceGenerateLanding.DRAFT,
+      intervalHours: '2',
+      startDate: todayIsoDate(),
+      windowEnd: '22:00',
+      windowStart: '08:00',
+    };
+  }
+  return {
+    brief: cadence.brief ?? '',
+    endDate: cadence.endsAt ? isoDate(cadence.endsAt) : plusDaysIsoDate(14),
+    format: cadence.format,
+    generateLanding: cadence.generateLanding,
+    intervalHours: String(Math.max(1, cadence.intervalMinutes / 60)),
+    startDate: isoDate(cadence.startsAt),
+    windowEnd: timeFromMinutes(cadence.windowEndMinute),
+    windowStart: timeFromMinutes(cadence.windowStartMinute),
+  };
+}
+
 export default function CadenceFormSheet({
   brandId,
   cadence,
@@ -69,44 +95,33 @@ export default function CadenceFormSheet({
   onSubmit,
 }: CadenceFormSheetProps): React.JSX.Element {
   const translate = useTranslations('pages.publishing.calendar');
-  const [brief, setBrief] = useState('');
-  const [endDate, setEndDate] = useState(plusDaysIsoDate(14));
-  const [format, setFormat] = useState<PostCategory>(PostCategory.REEL);
+  const initial = cadenceFormValues(cadence);
+  const [brief, setBrief] = useState(initial.brief);
+  const [endDate, setEndDate] = useState(initial.endDate);
+  const [format, setFormat] = useState<PostCategory>(initial.format);
   const [generateLanding, setGenerateLanding] = useState(
-    CadenceGenerateLanding.DRAFT,
+    initial.generateLanding,
   );
-  const [intervalHours, setIntervalHours] = useState('2');
-  const [startDate, setStartDate] = useState(todayIsoDate());
-  const [windowEnd, setWindowEnd] = useState('22:00');
-  const [windowStart, setWindowStart] = useState('08:00');
+  const [intervalHours, setIntervalHours] = useState(initial.intervalHours);
+  const [startDate, setStartDate] = useState(initial.startDate);
+  const [windowEnd, setWindowEnd] = useState(initial.windowEnd);
+  const [windowStart, setWindowStart] = useState(initial.windowStart);
   const isEditing = Boolean(cadence);
 
-  useEffect(() => {
+  // Opening the sheet, or switching cadence, restarts the form from it.
+  useResetOnChange([cadence, isOpen], () => {
     if (!isOpen) {
       return;
     }
-
-    if (!cadence) {
-      setBrief('');
-      setEndDate(plusDaysIsoDate(14));
-      setFormat(PostCategory.REEL);
-      setGenerateLanding(CadenceGenerateLanding.DRAFT);
-      setIntervalHours('2');
-      setStartDate(todayIsoDate());
-      setWindowEnd('22:00');
-      setWindowStart('08:00');
-      return;
-    }
-
-    setBrief(cadence.brief ?? '');
-    setEndDate(cadence.endsAt ? isoDate(cadence.endsAt) : plusDaysIsoDate(14));
-    setFormat(cadence.format);
-    setGenerateLanding(cadence.generateLanding);
-    setIntervalHours(String(Math.max(1, cadence.intervalMinutes / 60)));
-    setStartDate(isoDate(cadence.startsAt));
-    setWindowEnd(timeFromMinutes(cadence.windowEndMinute));
-    setWindowStart(timeFromMinutes(cadence.windowStartMinute));
-  }, [cadence, isOpen]);
+    setBrief(initial.brief);
+    setEndDate(initial.endDate);
+    setFormat(initial.format);
+    setGenerateLanding(initial.generateLanding);
+    setIntervalHours(initial.intervalHours);
+    setStartDate(initial.startDate);
+    setWindowEnd(initial.windowEnd);
+    setWindowStart(initial.windowStart);
+  });
 
   return (
     <Dialog

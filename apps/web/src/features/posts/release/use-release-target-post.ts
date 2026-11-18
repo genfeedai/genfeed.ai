@@ -1,0 +1,66 @@
+import type { IPost, IReleaseGroup } from '@genfeedai/contracts/interfaces';
+import { resolveAuthToken } from '@helpers/auth/auth.helper';
+import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
+import { PostsService } from '@services/content/posts.service';
+import { logger } from '@services/core/logger.service';
+import { useEffect, useMemo, useState } from 'react';
+import { buildPostMedia } from '@/features/posts/detail/post-detail-preview.helpers';
+
+/**
+ * Loads the post behind a release target. The release row carries no media
+ * URLs and no connected-account details, so every preview that wants to draw
+ * the real slides and the real account reads them from the post itself.
+ */
+export function useReleaseTargetPost(
+  targetId: string | undefined,
+): IPost | null {
+  const { getToken } = useAuthIdentity();
+  const [post, setPost] = useState<IPost | null>(null);
+
+  // use-effect-audit: ignore abortable request
+  useEffect(() => {
+    if (!targetId) {
+      setPost(null);
+      return;
+    }
+
+    const controller = new AbortController();
+
+    async function loadPost(id: string) {
+      try {
+        const token = (await resolveAuthToken(getToken)) ?? '';
+        const loaded = await PostsService.getInstance(token).findOne(id);
+        if (!controller.signal.aborted) {
+          setPost(loaded);
+        }
+      } catch (fetchError) {
+        if (!controller.signal.aborted) {
+          logger.error('Failed to load release target post', fetchError);
+        }
+      }
+    }
+
+    void loadPost(targetId);
+    return () => controller.abort();
+  }, [getToken, targetId]);
+
+  return post;
+}
+
+/**
+ * The release with its media filled in from the post when the release has
+ * none: a backfilled or imported post never went through a release group, so
+ * its slides live only on the post.
+ */
+export function useReleaseWithPostMedia(
+  release: IReleaseGroup,
+  post: IPost | null,
+): IReleaseGroup {
+  return useMemo(
+    () =>
+      post && (release.media ?? []).length === 0
+        ? { ...release, media: buildPostMedia(post) }
+        : release,
+    [post, release],
+  );
+}

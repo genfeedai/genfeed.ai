@@ -176,8 +176,14 @@ describe('AdsResearchController', () => {
 
   describe('listAds', () => {
     it('should list ads with organization scope', async () => {
-      await controller.listAds(mockUser, brandId, 'Nike', 'fashion');
+      const result = await controller.listAds(
+        mockUser,
+        brandId,
+        'Nike',
+        'fashion',
+      );
 
+      expect(result).toEqual({ ads: [] });
       expect(service.listAds).toHaveBeenCalledWith(
         organizationId,
         expect.objectContaining({
@@ -209,8 +215,9 @@ describe('AdsResearchController', () => {
     });
 
     it('should pass undefined limit when not provided', async () => {
-      await controller.listAds(mockUser);
+      const result = await controller.listAds(mockUser);
 
+      expect(result).toEqual({ ads: [] });
       expect(service.listAds).toHaveBeenCalledWith(
         organizationId,
         expect.objectContaining({ limit: undefined }),
@@ -336,8 +343,9 @@ describe('AdsResearchController', () => {
   describe('createRemixWorkflow', () => {
     it('should create remix workflow with org and user metadata', async () => {
       const body = { adId: 'ad-1', source: 'meta_ads' as never };
-      await controller.createRemixWorkflow(mockUser, body);
+      const result = await controller.createRemixWorkflow(mockUser, body);
 
+      expect(result).toEqual({ workflowId: 'wf-1' });
       expect(service.createRemixWorkflow).toHaveBeenCalledWith(
         expect.objectContaining({
           adId: 'ad-1',
@@ -371,8 +379,9 @@ describe('AdsResearchController', () => {
         source: 'meta_ads' as never,
       };
 
-      await controller.prepareCampaignForReview(mockUser, body);
+      const result = await controller.prepareCampaignForReview(mockUser, body);
 
+      expect(result).toEqual({ campaignId: 'camp-1' });
       expect(service.prepareCampaignForReview).toHaveBeenCalledWith(
         expect.objectContaining({
           adId: 'ad-1',

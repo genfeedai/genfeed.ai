@@ -6,13 +6,12 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 import { MonitoredAccountsController } from '@api/collections/monitored-accounts/controllers/monitored-accounts.controller';
 import { MonitoredAccountsService } from '@api/collections/monitored-accounts/services/monitored-accounts.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { ApifyService } from '@api/services/integrations/apify/services/apify.service';
+import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 
 describe('MonitoredAccountsController', () => {
   let controller: MonitoredAccountsController;
-  let apifyService: ApifyService;
 
   const mockMonitoredAccountsService = {
     create: vi.fn(),
@@ -29,9 +28,8 @@ describe('MonitoredAccountsController', () => {
     warn: vi.fn(),
   };
 
-  const mockApifyService = {
-    getTwitterUserTimeline: vi.fn(),
-    validateTwitterUsername: vi.fn(),
+  const mockTwitterService = {
+    getUserByUsername: vi.fn(),
   };
 
   beforeEach(async () => {
@@ -47,8 +45,8 @@ describe('MonitoredAccountsController', () => {
           useValue: mockLoggerService,
         },
         {
-          provide: ApifyService,
-          useValue: mockApifyService,
+          provide: TwitterService,
+          useValue: mockTwitterService,
         },
       ],
     })
@@ -59,7 +57,6 @@ describe('MonitoredAccountsController', () => {
     controller = module.get<MonitoredAccountsController>(
       MonitoredAccountsController,
     );
-    apifyService = module.get<ApifyService>(ApifyService);
   });
 
   afterEach(() => {
@@ -72,27 +69,22 @@ describe('MonitoredAccountsController', () => {
 
   describe('validateTwitterUsername', () => {
     it('should return valid user details when account exists', async () => {
-      const mockTweets = [
-        {
-          authorAvatarUrl: 'https://example.com/avatar.jpg',
-          authorDisplayName: 'Test User',
-          authorFollowersCount: 1000,
-          authorId: 'tw-123',
-          authorUsername: 'testuser',
-        },
-      ];
-      mockApifyService.getTwitterUserTimeline.mockResolvedValue(mockTweets);
+      mockTwitterService.getUserByUsername.mockResolvedValue({
+        description: 'Building in public',
+        followersCount: 1000,
+        id: 'tw-123',
+        name: 'Test User',
+        profileImageUrl: 'https://example.com/avatar.jpg',
+        username: 'testuser',
+      });
 
       const result = await controller.validateTwitterUsername({
         username: 'testuser',
       } as never);
 
-      expect(apifyService.getTwitterUserTimeline).toHaveBeenCalledWith(
-        'testuser',
-        { limit: 1 },
-      );
       expect(result).toEqual({
         avatarUrl: 'https://example.com/avatar.jpg',
+        bio: 'Building in public',
         displayName: 'Test User',
         followersCount: 1000,
         id: 'tw-123',
@@ -101,21 +93,21 @@ describe('MonitoredAccountsController', () => {
       });
     });
 
-    it('should return invalid when account has no tweets', async () => {
-      mockApifyService.getTwitterUserTimeline.mockResolvedValue([]);
+    it('should return invalid when the account does not exist', async () => {
+      mockTwitterService.getUserByUsername.mockResolvedValue(null);
 
       const result = await controller.validateTwitterUsername({
         username: 'emptyuser',
       } as never);
 
       expect(result).toEqual({
-        error: 'Account not found or has no tweets',
+        error: 'Account not found',
         valid: false,
       });
     });
 
     it('should return invalid when API call fails', async () => {
-      mockApifyService.getTwitterUserTimeline.mockRejectedValue(
+      mockTwitterService.getUserByUsername.mockRejectedValue(
         new Error('API error'),
       );
 

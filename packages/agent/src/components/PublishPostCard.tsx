@@ -8,6 +8,7 @@ import type {
 import { ButtonVariant, PostVisibility } from '@genfeedai/contracts';
 import { usePostingSets } from '@hooks/data/content/use-posting-sets/use-posting-sets';
 import { usePostingSignatures } from '@hooks/data/content/use-posting-signatures/use-posting-signatures';
+import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
@@ -39,7 +40,7 @@ import {
   readPublishTargetProposals,
   resolveEffectiveCaption,
   resolveLiveTargetBlockers,
-  targetToggleName,
+  targetAccountSuffix,
   VISIBILITY_VALUES,
 } from './publish-post-card.helpers';
 import {
@@ -533,7 +534,7 @@ export function PublishPostCard({
       <div className="flex flex-col gap-1.5 mb-3">
         <Label
           htmlFor="publish-caption"
-          className="text-2xs uppercase tracking-wider text-muted-foreground"
+          className="text-2xs uppercase tracking-label text-muted-foreground"
         >
           {translate('caption')}
         </Label>
@@ -548,7 +549,7 @@ export function PublishPostCard({
 
       {targetProposals.length > 0 ? (
         <div className="mb-3">
-          <span className="mb-1 block text-2xs font-medium uppercase tracking-wider text-muted-foreground">
+          <span className="mb-1 block text-2xs font-medium uppercase tracking-label text-muted-foreground">
             {translate('channels')}
           </span>
           <div className="space-y-3">
@@ -562,22 +563,36 @@ export function PublishPostCard({
                 ? (targetBlockers[target.id] ?? [])
                 : [];
               const warnings = target.warnings ?? [];
+              const accountSuffix = targetAccountSuffix(
+                target,
+                targetProposals,
+              );
               const settingFields = target.settingFields ?? [];
 
               return (
                 <div key={target.id} className="border border-border p-3">
                   <div className="mb-2 flex items-center justify-between gap-2">
                     <Toggle
+                      aria-label={
+                        accountSuffix
+                          ? `${target.label} ${accountSuffix}`
+                          : undefined
+                      }
                       onPressedChange={() => toggleTarget(target.id)}
                       pressed={isSelected}
                       size="sm"
                       variant="chip"
                     >
-                      {targetToggleName(target, targetProposals)}
+                      <PlatformBadge
+                        className="bg-transparent p-0"
+                        platform={target.platform}
+                      />
                     </Toggle>
-                    <span className="text-xs text-muted-foreground">
-                      {target.label}
-                    </span>
+                    {accountSuffix ? (
+                      <span className="text-xs text-muted-foreground">
+                        {accountSuffix}
+                      </span>
+                    ) : null}
                   </div>
 
                   {isSelected ? (
@@ -585,7 +600,7 @@ export function PublishPostCard({
                       <div className="flex flex-col gap-1.5 mb-2">
                         <Label
                           htmlFor={`publish-caption-${target.id}`}
-                          className="text-2xs uppercase tracking-wider text-muted-foreground"
+                          className="text-2xs uppercase tracking-label text-muted-foreground"
                         >
                           {translate('channelCaption', {
                             platform: target.label,
@@ -610,7 +625,7 @@ export function PublishPostCard({
                       </div>
 
                       <div className="mb-2">
-                        <span className="mb-1 block text-2xs font-medium uppercase tracking-wider text-muted-foreground">
+                        <span className="mb-1 block text-2xs font-medium uppercase tracking-label text-muted-foreground">
                           {translate('visibility')}
                         </span>
                         <Select
@@ -655,7 +670,7 @@ export function PublishPostCard({
 
                       {settingFields.length > 0 ? (
                         <div className="mb-2 space-y-2">
-                          <span className="block text-2xs font-medium uppercase tracking-wider text-muted-foreground">
+                          <span className="block text-2xs font-medium uppercase tracking-label text-muted-foreground">
                             {translate('channelSettings')}
                           </span>
                           {settingFields.map((field) => {
@@ -668,7 +683,7 @@ export function PublishPostCard({
                                 {field.type === 'boolean' ? null : (
                                   <Label
                                     htmlFor={fieldId}
-                                    className="text-2xs uppercase tracking-wider text-muted-foreground"
+                                    className="text-2xs uppercase tracking-label text-muted-foreground"
                                   >
                                     {field.label}
                                     {field.required ? ' *' : ''}
@@ -730,7 +745,7 @@ export function PublishPostCard({
         </div>
       ) : (
         <div className="mb-3">
-          <span className="mb-1 block text-2xs font-medium uppercase tracking-wider text-muted-foreground">
+          <span className="mb-1 block text-2xs font-medium uppercase tracking-label text-muted-foreground">
             {translate('platforms')}
           </span>
           <SegmentedControl
@@ -765,7 +780,7 @@ export function PublishPostCard({
       )}
 
       <div className="mb-4">
-        <span className="mb-1 block text-2xs font-medium uppercase tracking-wider text-muted-foreground">
+        <span className="mb-1 block text-2xs font-medium uppercase tracking-label text-muted-foreground">
           {translate('visibility')}
         </span>
         <Select
@@ -790,7 +805,7 @@ export function PublishPostCard({
       <div className="flex flex-col gap-1.5 mb-4">
         <Label
           htmlFor="publish-schedule"
-          className="text-2xs uppercase tracking-wider text-muted-foreground"
+          className="text-2xs uppercase tracking-label text-muted-foreground"
         >
           <Calendar className="mr-1 inline size-3.5" />
           {translate('scheduleForLater')}

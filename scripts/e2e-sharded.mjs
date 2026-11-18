@@ -24,7 +24,7 @@ Defaults:
   --config=${DEFAULT_CONFIG}
   --project=${DEFAULT_PROJECT}
   --scope=core
-  --retries  (unset: playwright.config.ts decides via E2E_RETRIES / isCI ? 2 : 0)`);
+  --retries  (unset: playwright.config.ts decides via E2E_RETRIES / isCI ? 1 : 0)`);
 }
 
 function parseShard(value) {
@@ -76,7 +76,7 @@ let project = DEFAULT_PROJECT;
 let scope = 'core';
 let shard = null;
 // Retries are owned by playwright.config.ts (it reads E2E_RETRIES directly, else
-// isCI ? 2 : 0). This runner only forwards an EXPLICIT `--retries=` override and
+// isCI ? 1 : 0). This runner only forwards an EXPLICIT `--retries=` override and
 // must never inject a default — the old `?? '0'` clobbered the config's CI
 // default of 2 on the deploy gate, silently disabling flake retries there.
 let explicitRetries = null;

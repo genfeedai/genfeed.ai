@@ -10,7 +10,7 @@
  * the app, add it here.
  */
 
-export type AppProductGroup = 'Create' | 'Publish & grow' | 'Operate';
+export type AppProductGroup = 'Create' | 'Publish & measure' | 'Operate';
 
 export type AppProductAccess =
   /** On for every workspace. */
@@ -70,7 +70,7 @@ export const APP_PRODUCT_ACCESS_LABELS: Record<AppProductAccess, string> = {
 
 export const APP_PRODUCT_GROUPS: readonly AppProductGroup[] = [
   'Create',
-  'Publish & grow',
+  'Publish & measure',
   'Operate',
 ] as const;
 
@@ -662,7 +662,7 @@ export const appProducts: AppProduct[] = [
         question: 'Can I schedule weeks ahead?',
       },
     ],
-    group: 'Publish & grow',
+    group: 'Publish & measure',
     highlights: [
       'Draft, schedule and publish in one place',
       'Ten major platforms from one composer',
@@ -747,7 +747,7 @@ export const appProducts: AppProduct[] = [
         question: 'Can I compare brands?',
       },
     ],
-    group: 'Publish & grow',
+    group: 'Publish & measure',
     highlights: [
       'Compare performance across posts',
       'Review hooks and trends',
@@ -834,7 +834,7 @@ export const appProducts: AppProduct[] = [
         question: 'Is Discovery on my plan?',
       },
     ],
-    group: 'Publish & grow',
+    group: 'Publish & measure',
     highlights: [
       'Trending topics ranked by niche match',
       'Spot what is working on each platform',
@@ -921,7 +921,7 @@ export const appProducts: AppProduct[] = [
         question: 'How do I turn Messages on?',
       },
     ],
-    group: 'Publish & grow',
+    group: 'Publish & measure',
     highlights: [
       'One inbox across your channels',
       'Reply in place',

@@ -17,7 +17,7 @@ export const STILL_JOURNAL_CAPACITY = 64;
 /** A dispatch that left no placeholder for this long never reached a provider. */
 export const STILL_ABANDONED_MS = 5 * 60_000;
 
-export const stillOperationSchema = z
+const stillOperationSchema = z
   .object({
     version: z.literal(1),
     operationId: z.string().uuid(),
@@ -113,7 +113,7 @@ export function storyboardStillInput(plan: StoryboardPlan, shotId: string) {
 }
 
 /** How each kind of cutaway is drawn: B-roll, so finished, not a sketch. */
-export const STORYBOARD_CUTAWAY_STILL_STYLE: Record<
+const STORYBOARD_CUTAWAY_STILL_STYLE: Record<
   StoryboardCutaway['kind'],
   string
 > = {
@@ -129,10 +129,7 @@ export const STORYBOARD_CUTAWAY_STILL_STYLE: Record<
  * The provider input for a long-form cutaway still: the brief in the plan's
  * format, drawn in the brand's style references.
  */
-export function storyboardCutawayStillInput(
-  plan: StoryboardPlan,
-  cutawayId: string,
-) {
+function storyboardCutawayStillInput(plan: StoryboardPlan, cutawayId: string) {
   const cutaway = plan.longForm?.segments
     .flatMap((segment) => segment.cutaways)
     .find((value) => value.id === cutawayId);

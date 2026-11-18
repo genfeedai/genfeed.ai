@@ -31,7 +31,7 @@ const rows: ActivityRow[] = [
 
 // Behaves like the activities table for the filters this route can set.
 const activitiesService = {
-  attachOrganizationLabels: async (docs: ActivityRow[]) => docs,
+  attachDisplayContext: async (docs: ActivityRow[]) => docs,
   findAll: async ({ where }: { where: ActivityWhere }) => ({
     docs: rows.filter(
       (row) =>

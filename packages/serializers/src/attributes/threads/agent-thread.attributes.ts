@@ -1,6 +1,8 @@
 import { createEntityAttributes } from '@genfeedai/helpers';
 
 export const agentThreadAttributes = createEntityAttributes([
+  'accessLevel',
+  'canManageShares',
   'attentionState',
   'brandId',
   'brandLabel',
@@ -17,12 +19,15 @@ export const agentThreadAttributes = createEntityAttributes([
   'externalRuntime',
   'organization',
   'user',
+  'userId',
   'isPinned',
   'kind',
   'parentThreadId',
   'mode',
   'requestedModel',
   'runtimeKey',
+  'shareCount',
+  'shareScope',
   'title',
   'source',
   'status',

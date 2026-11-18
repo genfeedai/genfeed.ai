@@ -66,7 +66,7 @@ export default function NewsletterDeliveryCard({
 }: NewsletterDeliveryCardProps) {
   const translate = useTranslations('common.longFormDelivery');
   const { credentials } = useBrand();
-  const { href } = useOrgUrl();
+  const { activeHref } = useOrgUrl();
   const clipboardService = useMemo(() => ClipboardService.getInstance(), []);
   const notificationsService = useMemo(
     () => NotificationsService.getInstance(),
@@ -99,7 +99,10 @@ export default function NewsletterDeliveryCard({
     },
     [getNewslettersService, newsletter.id],
   );
-  const { reload, targets } = useSourceDeliveries(loadDeliveries);
+  const { reload, targets } = useSourceDeliveries(
+    `newsletter:${newsletter.id}`,
+    loadDeliveries,
+  );
 
   const hasContent = Boolean(newsletter.content?.trim());
   const blockedReason = isDirty
@@ -155,7 +158,7 @@ export default function NewsletterDeliveryCard({
   return (
     <Card variant={CardVariant.INSET} gap={CardGap.LG}>
       <div className="space-y-1">
-        <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground/60">
+        <h3 className="text-sm font-semibold uppercase tracking-label text-foreground/60">
           {translate('title')}
         </h3>
         <p className="text-sm text-foreground/70">
@@ -248,7 +251,7 @@ export default function NewsletterDeliveryCard({
             variant={ButtonVariant.SECONDARY}
             withWrapper={false}
           >
-            <NextLink href={href(APP_ROUTES.SETTINGS.CONNECTED_ACCOUNTS)}>
+            <NextLink href={activeHref(APP_ROUTES.SETTINGS.PROFILE)}>
               <PlugZap className="size-4" />
               {translate('connectAccounts')}
             </NextLink>

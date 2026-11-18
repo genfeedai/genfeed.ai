@@ -3,6 +3,7 @@ import {
   CredentialPlatform,
   PostCategory,
   type PostVisibility,
+  type PublishErrorKind,
   TargetExecutionState,
 } from '@genfeedai/contracts';
 import type { ChannelTargetSettings } from '@genfeedai/contracts/api-types/contracts';
@@ -64,6 +65,18 @@ export interface PublishResult {
    * `IChannelTargetError.code` instead of a message-pattern classification.
    */
   errorCode?: string;
+  /**
+   * What the provider's refusal means, set by a publisher that returns a
+   * failure instead of throwing a `PublishError`. The publish worker acts on
+   * the kind and does not read `error`.
+   */
+  errorKind?: PublishErrorKind;
+  /**
+   * How long the provider said to wait before trying again, when it refused with
+   * a rate limit and gave a reset time. The publish worker schedules the next
+   * attempt no earlier than this.
+   */
+  retryAfterMs?: number;
   /**
    * Set when the provider accepted the content but parked it as a draft on
    * its side (e.g. a Beehiiv draft execution mode) instead of making it live.

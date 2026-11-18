@@ -494,9 +494,8 @@ class NamespaceCoverage {
       return combined;
     }
     const file = typeof entries[0] === 'string' ? entries[0] : entries[0]?.file;
-    const selectedVariant = file?.includes('/[orgRootApp]/')
-      ? variant
-      : undefined;
+    const selectedVariant =
+      file !== undefined && carriesOrgRootApp(file) ? variant : undefined;
     const cacheKey = JSON.stringify([entries, selectedVariant]);
     const cached = this.consumptionCache.get(cacheKey);
     if (cached) return cached;
@@ -583,7 +582,7 @@ class NamespaceCoverage {
       file: string,
       expression: ts.Expression,
     ): boolean | undefined => {
-      if (!variant || !file.includes('/[orgRootApp]/')) return undefined;
+      if (!variant || !carriesOrgRootApp(file)) return undefined;
       const node = unwrap(expression);
       if (
         ts.isBinaryExpression(node) &&
@@ -1136,6 +1135,21 @@ describe('namespace coverage negative controls', () => {
 
 // Every route is checked against the providers it really inherits. Lazy modal
 // rendering is a separate host boundary rather than an unbounded barrel walk.
+// Organization Library and Publishing have static entries in front of the
+// `[orgRootApp]` catch-all; they render the shared surface for one fixed app.
+const ORG_APP_ENTRY_PATTERN =
+  /\/~\/(library|publishing)\/\[\[\.\.\.segments\]\]\//;
+
+function orgAppEntryVariant(page: string): string | undefined {
+  return ORG_APP_ENTRY_PATTERN.exec(page)?.[1];
+}
+
+function carriesOrgRootApp(file: string): boolean {
+  return (
+    file.includes('/[orgRootApp]/') || orgAppEntryVariant(file) !== undefined
+  );
+}
+
 describe('all current route namespace delivery', () => {
   it('delivers each reachable client translation namespace from its ancestor providers', () => {
     const coverage = new NamespaceCoverage();
@@ -1157,7 +1171,6 @@ describe('all current route namespace delivery', () => {
       const variants = page.includes('/[orgRootApp]/')
         ? [
             'automation',
-            'library',
             'playground',
             'storyboard',
             'turbo',
@@ -1165,9 +1178,8 @@ describe('all current route namespace delivery', () => {
             'clipper',
             'editor',
             'messages',
-            'publishing',
           ]
-        : [undefined];
+        : [orgAppEntryVariant(page)];
       for (const variant of variants) {
         routes += 1;
         const catalogKey = JSON.stringify([layouts, variant]);

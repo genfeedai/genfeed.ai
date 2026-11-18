@@ -1,6 +1,7 @@
 'use client';
 
 import { ButtonVariant } from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import Card from '@ui/card/Card';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
@@ -15,7 +16,7 @@ export default function IngredientDetailNotFound({ type }: Props) {
   return (
     <Container>
       <Card isCentered>
-        <h3 className="text-lg font-bold mb-4">Ingredient Not Found</h3>
+        <h3 className="text-lg font-semibold mb-4">Ingredient Not Found</h3>
         <p className="text-foreground/70 mb-6">
           The ingredient you&apos;re looking for doesn&apos;t exist or has been
           deleted.
@@ -27,7 +28,7 @@ export default function IngredientDetailNotFound({ type }: Props) {
           variant={ButtonVariant.UNSTYLED}
           withWrapper={false}
         >
-          <Link href={`/ingredients/${type}`}>
+          <Link href={`${APP_ROUTES.ADMIN.CONTENT.INGREDIENTS}/${type}`}>
             <ArrowLeft /> Back to {type}
           </Link>
         </Button>

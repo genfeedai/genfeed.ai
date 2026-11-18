@@ -11,7 +11,7 @@ import { ServiceInstanceManager } from '@services/core/service-instance-manager'
 const subscriptionAttributionInstances =
   new ServiceInstanceManager<SubscriptionAttributionServiceClass>();
 
-export interface ISubscriptionAttribution {
+interface ISubscriptionAttribution {
   id: string;
   organizationId: string;
 
@@ -46,7 +46,7 @@ export interface ISubscriptionAttribution {
   status: 'active' | 'canceled' | 'expired';
 }
 
-export interface IContentSubscriptionStats {
+interface IContentSubscriptionStats {
   contentId: string;
   contentType: string;
 

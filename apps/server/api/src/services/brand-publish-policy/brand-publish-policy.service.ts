@@ -42,9 +42,9 @@ type PolicyDb = Pick<
   | '$queryRaw'
   | 'brand'
   | 'brandOsRevision'
+  | 'harnessProfile'
   | 'ingredient'
   | 'post'
-  | 'profile'
 >;
 
 const MAX_GUARDRAILS = 50;
@@ -411,21 +411,18 @@ export class BrandPublishPolicyService {
       select: { agentConfig: true },
       where: scopedWhere(organizationId, { id: brandId }),
     });
-    const profiles = await db.profile.findMany({
+    const profiles = await db.harnessProfile.findMany({
       orderBy: { updatedAt: 'desc' },
-      select: { data: true },
+      select: { content: true, isDefault: true, status: true },
       where: scopedWhere(organizationId, harnessProfileBrandFilter(brandId)),
     });
     const profile = pickActiveHarnessProfile(
-      profiles.map((row) => {
-        const data = readRecord(row.data);
-        return {
-          data,
-          isDefault: Boolean(data.isDefault),
-          status:
-            data.status === 'draft' ? ('draft' as const) : ('active' as const),
-        };
-      }),
+      profiles.map((row) => ({
+        data: readRecord(row.content),
+        isDefault: row.isDefault,
+        status:
+          row.status === 'draft' ? ('draft' as const) : ('active' as const),
+      })),
     )?.data;
     const doNotSoundLike = readStrings(
       readRecord(readRecord(content.fields).voiceDoNotSoundLike).currentValue,

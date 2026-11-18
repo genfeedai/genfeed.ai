@@ -2,7 +2,7 @@
 
 **last_verified: 2026-09-02** · Read when relevant to the task. Patterns only — the flat rules
 (no `any`, no `console.log`, `isDeleted` soft deletes, `ConfigService` over `process.env`,
-`@ui/primitives` over raw HTML) live in CLAUDE.md and are not repeated here.
+`@ui/primitives` over raw HTML) live in AGENTS.md and are not repeated here.
 
 ## Backend
 

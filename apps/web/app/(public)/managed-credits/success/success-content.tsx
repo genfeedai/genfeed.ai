@@ -81,6 +81,7 @@ function ManagedCreditsSuccessContentInner() {
   });
   const [copiedTarget, setCopiedTarget] = useState<CopyTarget | null>(null);
 
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     if (!sessionId) {
       setState({
@@ -282,7 +283,7 @@ function KeyBlock({
   return (
     <div className="border-t border-border pt-5">
       <div className="mb-2 flex items-center justify-between gap-3">
-        <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
+        <p className="text-xs font-medium uppercase tracking-label text-muted-foreground">
           {label}
         </p>
         <Button

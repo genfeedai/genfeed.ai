@@ -608,10 +608,13 @@ describe('EditorPageContent', () => {
   it('tells the agent which project is open once it has loaded', async () => {
     await renderLoadedEditor();
 
-    expect(useAgentChatStore.getState().pageContext?.creativeApp).toEqual({
-      app: 'editor',
-      openProjectId: 'editor-123',
-      projects: [{ id: 'editor-123', title: 'Launch Reel' }],
+    // The context is applied by an effect after the project renders.
+    await waitFor(() => {
+      expect(useAgentChatStore.getState().pageContext?.creativeApp).toEqual({
+        app: 'editor',
+        openProjectId: 'editor-123',
+        projects: [{ id: 'editor-123', title: 'Launch Reel' }],
+      });
     });
   });
 

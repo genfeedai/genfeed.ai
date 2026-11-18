@@ -2,7 +2,6 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import type { ParsePromptDto } from '@api/collections/prompts/dto/parse-prompt.dto';
-import type { PromptDocument } from '@api/collections/prompts/schemas/prompt.schema';
 import { PromptTransformationService } from '@api/collections/prompts/services/prompt-transformation.service';
 import { PromptsService } from '@api/collections/prompts/services/prompts.service';
 import { TemplatesService } from '@api/collections/templates/services/templates.service';
@@ -21,6 +20,7 @@ import {
   PromptTemplateKey,
   Status,
 } from '@genfeedai/contracts';
+import type { Prompt } from '@genfeedai/prisma';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -50,12 +50,12 @@ describe('PromptTransformationService', () => {
     scope: 'USER',
     status: PromptStatus.GENERATED,
     userId,
-  } as unknown as PromptDocument;
+  } as unknown as Prompt;
   const processingPrompt = {
     ...sourcePrompt,
     id: remixId,
     status: PromptStatus.PROCESSING,
-  } as PromptDocument;
+  } as Prompt;
   const brand = {
     backgroundColor: '#000000',
     description: 'Outdoor brand',

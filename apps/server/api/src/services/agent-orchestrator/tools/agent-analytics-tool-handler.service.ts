@@ -26,6 +26,19 @@ import {
   Optional,
 } from '@nestjs/common';
 
+type AgentOrganizationOverview = {
+  avgEngagementRate?: number;
+  growth?: {
+    engagement?: number;
+    posts?: number;
+    views?: number;
+  };
+  organizationBrandCount?: number;
+  totalEngagement?: number;
+  totalPosts?: number;
+  totalViews?: number;
+};
+
 /**
  * Analytics tools extracted from AgentToolExecutorService per #519.
  */
@@ -342,6 +355,31 @@ export class AgentAnalyticsToolHandler {
     return { startDate, endDate };
   }
 
+  /**
+   * The organization overview for a period. Its `brandCount` counts every
+   * brand in the organization, while get_brands lists only the brands the
+   * caller can use, so it is returned as `organizationBrandCount`.
+   */
+  private async readOrganizationOverview(
+    startDate: Date,
+    endDate: Date,
+    organizationId: string,
+  ): Promise<AgentOrganizationOverview> {
+    const { brandCount, ...overview } =
+      (await this.analyticsService.getOverview(
+        startDate.toISOString(),
+        endDate.toISOString(),
+        undefined,
+        organizationId,
+      )) as AgentOrganizationOverview & { brandCount?: number };
+    return {
+      ...overview,
+      ...(brandCount === undefined
+        ? {}
+        : { organizationBrandCount: brandCount }),
+    };
+  }
+
   async getAnalytics(
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
@@ -483,22 +521,11 @@ export class AgentAnalyticsToolHandler {
     const period = (params.period as string) || '30d';
     const { startDate, endDate } = this.analyticsPeriodRange(period);
 
-    const overview = (await this.analyticsService.getOverview(
-      startDate.toISOString(),
-      endDate.toISOString(),
-      undefined,
+    const overview = await this.readOrganizationOverview(
+      startDate,
+      endDate,
       ctx.organizationId,
-    )) as {
-      avgEngagementRate?: number;
-      growth?: {
-        engagement?: number;
-        posts?: number;
-        views?: number;
-      };
-      totalEngagement?: number;
-      totalPosts?: number;
-      totalViews?: number;
-    };
+    );
 
     return {
       creditsUsed: 0,

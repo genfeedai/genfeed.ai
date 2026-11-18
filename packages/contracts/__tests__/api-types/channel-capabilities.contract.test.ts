@@ -15,6 +15,13 @@ import {
   resolveChannelTargetSettings,
   validateChannelTargetSettings,
 } from '../../src/api-types/contracts/channel-capabilities.contract';
+import {
+  buildXQuoteIntentUrl,
+  isManualPostErrorCode,
+  normalizeChannelTargetSettings,
+  parseXQuotedPostId,
+  resolveQuoteTweetId,
+} from '../../src/api-types/contracts/x-quote-post.contract';
 
 describe('channel capability catalog', () => {
   test('reconciles the productized scheduler channels', () => {
@@ -38,9 +45,13 @@ describe('channel capability catalog', () => {
       CredentialPlatform.BEEHIIV,
       CredentialPlatform.GHOST,
       CredentialPlatform.WORDPRESS,
+      CredentialPlatform.BLUESKY,
       CredentialPlatform.MEDIUM,
       CredentialPlatform.DEV_TO,
       CredentialPlatform.GENFEED,
+      CredentialPlatform.DISCORD,
+      CredentialPlatform.SLACK,
+      CredentialPlatform.TELEGRAM,
     ]);
   });
 
@@ -169,6 +180,79 @@ describe('validateChannelTargetSettings', () => {
     expect(result.valid).toBe(true);
     expect(result.validationState).toBe(TargetValidationState.VALID);
     expect(result.errors).toEqual([]);
+  });
+
+  test('accepts a Discord message and rejects one over the 2000 character limit', () => {
+    const accepted = validateChannelTargetSettings({
+      caption: 'x'.repeat(2000),
+      platform: CredentialPlatform.DISCORD,
+      publishMode: 'scheduled',
+    });
+    const rejected = validateChannelTargetSettings({
+      caption: 'x'.repeat(2001),
+      platform: CredentialPlatform.DISCORD,
+      publishMode: 'scheduled',
+    });
+
+    expect(accepted.valid).toBe(true);
+    expect(rejected.valid).toBe(false);
+    expect(rejected.errors[0]?.message).toContain('2000');
+  });
+
+  test('requires the Slack channel and refuses a video', () => {
+    const missingChannel = validateChannelTargetSettings({
+      caption: 'Release notes',
+      platform: CredentialPlatform.SLACK,
+      publishMode: 'scheduled',
+    });
+    const video = validateChannelTargetSettings({
+      caption: 'Release notes',
+      media: [{ id: 'asset_1', kind: 'video' }],
+      platform: CredentialPlatform.SLACK,
+      publishMode: 'scheduled',
+      settings: { channelId: 'C0123456789' },
+    });
+    const valid = validateChannelTargetSettings({
+      caption: 'Release notes',
+      media: [{ id: 'asset_1', kind: 'image' }],
+      platform: CredentialPlatform.SLACK,
+      publishMode: 'scheduled',
+      settings: { channelId: 'C0123456789' },
+    });
+
+    expect(missingChannel.errors.map((issue) => issue.code)).toEqual([
+      'channel_target.required_setting',
+    ]);
+    expect(video.errors.map((issue) => issue.code)).toEqual([
+      'channel_target.unsupported_media_kind',
+    ]);
+    expect(valid.valid).toBe(true);
+  });
+
+  test('takes one photo or video for the connected Telegram group', () => {
+    const twoPhotos = validateChannelTargetSettings({
+      caption: 'Update',
+      media: [
+        { id: 'asset_1', kind: 'image' },
+        { id: 'asset_2', kind: 'image' },
+      ],
+      platform: CredentialPlatform.TELEGRAM,
+      publishMode: 'scheduled',
+    });
+    const valid = validateChannelTargetSettings({
+      caption: 'Update',
+      media: [{ id: 'asset_1', kind: 'video' }],
+      platform: CredentialPlatform.TELEGRAM,
+      publishMode: 'scheduled',
+    });
+
+    expect(twoPhotos.errors.map((issue) => issue.code)).toEqual([
+      'channel_target.too_many_media_items',
+    ]);
+    expect(valid.valid).toBe(true);
+    expect(getChannelCapability(CredentialPlatform.TELEGRAM)?.settings).toEqual(
+      [],
+    );
   });
 
   test('exposes Beehiiv draft, immediate, and scheduled execution', () => {
@@ -483,8 +567,8 @@ describe('validateChannelTargetSettings', () => {
 
   test('flags a valid enum platform with no registered capability', () => {
     const result = validateChannelTargetSettings({
-      caption: 'Discord announcement',
-      platform: CredentialPlatform.DISCORD,
+      caption: 'Twitch announcement',
+      platform: CredentialPlatform.TWITCH,
     });
 
     expect(result.valid).toBe(false);
@@ -645,6 +729,47 @@ describe('resolveChannelTargetSettings', () => {
   });
 });
 
+describe('Google Business Profile channel', () => {
+  test('stays hidden from scheduling until a live post is verified', () => {
+    const result = validateChannelTargetSettings({
+      caption: 'Fresh bread at 7am',
+      platform: CredentialPlatform.GOOGLE_BUSINESS,
+    });
+
+    expect(result.errors).toEqual([
+      expect.objectContaining({ code: 'channel_target.hidden_channel' }),
+    ]);
+  });
+
+  test('rejects a video before scheduling', () => {
+    const result = validateChannelTargetSettings({
+      caption: 'Fresh bread at 7am',
+      media: [{ kind: 'video' }],
+      platform: CredentialPlatform.GOOGLE_BUSINESS,
+    });
+
+    expect(result.errors).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: 'channel_target.unsupported_media_kind',
+          severity: 'error',
+        }),
+      ]),
+    );
+  });
+
+  test('rejects a caption over 1500 characters', () => {
+    const result = validateChannelTargetSettings({
+      caption: 'x'.repeat(1_501),
+      platform: CredentialPlatform.GOOGLE_BUSINESS,
+    });
+
+    expect(result.errors).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: 'caption' })]),
+    );
+  });
+});
+
 describe('channel follow-up capability', () => {
   test('describes reply chains and comment surfaces per channel', () => {
     expect(getChannelThreadChildCapability(CredentialPlatform.TWITTER)).toEqual(
@@ -697,4 +822,158 @@ describe('channel follow-up capability', () => {
       getChannelThreadChildCapability(CredentialPlatform.LINKEDIN).mediaKinds,
     ).toEqual(['image']);
   });
+});
+
+describe('X quoted post setting', () => {
+  test.each([
+    ['1856322244019101979', '1856322244019101979'],
+    [' 1856322244019101979 ', '1856322244019101979'],
+    [
+      'https://x.com/VincentShipsIt/status/1856322244019101979',
+      '1856322244019101979',
+    ],
+    [
+      'https://twitter.com/i/web/status/1856322244019101979?s=20',
+      '1856322244019101979',
+    ],
+    ['https://x.com/VincentShipsIt', undefined],
+    ['https://example.com/status/1856322244019101979', undefined],
+    ['https://www.instagram.com/p/C8abcDEF123/', undefined],
+    ['not a post', undefined],
+    ['12345678901234567890', undefined],
+    [42, undefined],
+  ])('reads the post id from %j', (value, expected) => {
+    expect(parseXQuotedPostId(value)).toBe(expected);
+  });
+
+  test('is a declared X setting, so the settings renderer lists it', () => {
+    const quoted = getChannelCapability(
+      CredentialPlatform.TWITTER,
+    )?.settings.find((setting) => setting.key === 'quotedPost');
+
+    expect(quoted).toMatchObject({ label: 'Quoted post', type: 'string' });
+    expect(quoted?.required).toBeUndefined();
+  });
+
+  test('accepts an X post link and a post id', () => {
+    const settings = [
+      { quotedPost: 'https://x.com/a/status/1856322244019101979' },
+      { quotedPost: '1856322244019101979' },
+      { quotedPost: '   ' },
+      {},
+    ];
+
+    expect(
+      settings.map(
+        (value) =>
+          validateChannelTargetSettings({
+            caption: 'Shipped it.',
+            platform: CredentialPlatform.TWITTER,
+            publishMode: 'scheduled',
+            settings: value,
+          }).valid,
+      ),
+    ).toEqual([true, true, true, true]);
+  });
+
+  test.each([
+    'https://x.com/VincentShipsIt',
+    'https://example.com/a/status/1856322244019101979',
+    'tomorrow',
+  ])('rejects %j and names the field', (quotedPost) => {
+    const result = validateChannelTargetSettings({
+      caption: 'Shipped it.',
+      platform: CredentialPlatform.TWITTER,
+      publishMode: 'scheduled',
+      settings: { quotedPost },
+    });
+
+    expect(result.valid).toBe(false);
+    expect(result.errors).toEqual([
+      expect.objectContaining({
+        code: 'channel_target.invalid_quoted_post',
+        field: 'settings.quotedPost',
+      }),
+    ]);
+  });
+
+  test('rejects a quoted post on a channel that does not declare one', () => {
+    const result = validateChannelTargetSettings({
+      caption: 'Shipped it.',
+      platform: CredentialPlatform.LINKEDIN,
+      settings: { quotedPost: '1856322244019101979' },
+    });
+
+    expect(result.errors).toEqual([
+      expect.objectContaining({ code: 'channel_target.unknown_setting' }),
+    ]);
+  });
+
+  test('stores the id whichever form was typed, and drops a blank value', () => {
+    expect(
+      normalizeChannelTargetSettings(CredentialPlatform.TWITTER, {
+        quotedPost: 'https://x.com/a/status/1856322244019101979',
+        replyPolicy: 'following',
+      }),
+    ).toEqual({ quotedPost: '1856322244019101979', replyPolicy: 'following' });
+    expect(
+      normalizeChannelTargetSettings(CredentialPlatform.TWITTER, {
+        quotedPost: '  ',
+      }),
+    ).toEqual({});
+    expect(
+      normalizeChannelTargetSettings(CredentialPlatform.TWITTER, {
+        quotedPost: 'tomorrow',
+      }),
+    ).toEqual({ quotedPost: 'tomorrow' });
+    expect(
+      normalizeChannelTargetSettings(CredentialPlatform.LINKEDIN, {
+        quotedPost: 'x',
+      }),
+    ).toEqual({ quotedPost: 'x' });
+  });
+
+  test('writes quoteTweetId only for an X target with a valid quote', () => {
+    expect(
+      resolveQuoteTweetId(CredentialPlatform.TWITTER, {
+        quotedPost: '1856322244019101979',
+      }),
+    ).toBe('1856322244019101979');
+    expect(resolveQuoteTweetId(CredentialPlatform.TWITTER, {})).toBeNull();
+    expect(
+      resolveQuoteTweetId(CredentialPlatform.TWITTER, {
+        quotedPost: 'tomorrow',
+      }),
+    ).toBeNull();
+    expect(
+      resolveQuoteTweetId(CredentialPlatform.LINKEDIN, {
+        quotedPost: '1856322244019101979',
+      }),
+    ).toBeNull();
+  });
+
+  test.each([
+    ['x_quote_refused', true],
+    ['x_quoted_post_unavailable', false],
+    ['rate_limited', false],
+    [undefined, false],
+    [null, false],
+  ])('treats %s as manual-post error: %s', (code, expected) => {
+    expect(isManualPostErrorCode(code)).toBe(expected);
+  });
+
+  test.each([
+    [
+      'Shipped it.',
+      '1856322244019101979',
+      'https://x.com/intent/post?text=Shipped+it.&url=https%3A%2F%2Fx.com%2Fi%2Fstatus%2F1856322244019101979',
+    ],
+    ['A post & more', null, 'https://x.com/intent/post?text=A+post+%26+more'],
+    ['Bad id', 'not-an-id', 'https://x.com/intent/post?text=Bad+id'],
+  ])(
+    'builds the X compose link for %j quoting %j',
+    (text, quotedId, expected) => {
+      expect(buildXQuoteIntentUrl(text, quotedId)).toBe(expected);
+    },
+  );
 });

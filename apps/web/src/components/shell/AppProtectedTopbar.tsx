@@ -19,6 +19,7 @@ import TopbarAppsLink from '@/components/shell/TopbarAppsLink';
 import TopbarPanelToggles from '@/components/shell/TopbarPanelToggles';
 import TopbarBreadcrumbs from '@/components/topbars/breadcrumbs/TopbarBreadcrumbs';
 import CreditsLiveSync from '@/components/topbars/credits-bar/CreditsLiveSync';
+import TopbarCreditsStatus from '@/components/topbars/credits-bar/TopbarCreditsStatus';
 
 const TOPBAR_BREADCRUMB_ROOT_LABELS: Record<
   NonNullable<TopbarProps['currentApp']>,
@@ -137,6 +138,9 @@ function AppProtectedTopbarContent({
         <div className="flex min-w-0 shrink-0 items-center justify-end gap-1 md:gap-1.5">
           <div className="flex min-w-0 items-center gap-1 md:gap-1.5">
             {!isAdminChrome ? <CreditsLiveSync /> : null}
+
+            {/* Out of credits, trial ended or running low: one pill, one action. */}
+            {!isAdminChrome ? <TopbarCreditsStatus /> : null}
 
             {!isAdminChrome ? <TopbarAppsLink orgSlug={orgSlug} /> : null}
           </div>

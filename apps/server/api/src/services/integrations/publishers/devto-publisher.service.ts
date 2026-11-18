@@ -1,5 +1,6 @@
 import { type CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
 import { DevtoService } from '@api/services/integrations/devto/services/devto.service';
+import { toArticlePublishError } from '@api/services/integrations/publishers/article-publish-error.util';
 import { BasePublisherService } from '@api/services/integrations/publishers/base-publisher.service';
 import {
   htmlToDevtoMarkdown,
@@ -9,7 +10,8 @@ import type {
   PublishContext,
   PublishResult,
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
-import { CredentialPlatform } from '@genfeedai/contracts';
+import { verifyTitlePublish } from '@api/services/integrations/publishers/publisher-title-verification.util';
+import { CredentialPlatform, PublishErrorKind } from '@genfeedai/contracts';
 import { readChannelSettingString } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -38,6 +40,44 @@ export class DevtoPublisherService extends BasePublisherService {
     private readonly devtoService: DevtoService,
   ) {
     super(configService, logger);
+  }
+
+  /**
+   * Whether an earlier, unconfirmed publish landed on the account.
+   *
+   * Dev.to lists an account's articles without their body, so the proof is the
+   * exact title among articles created since the attempt began, in the
+   * published list (or the drafts list for a scheduler draft). A post without
+   * a label is titled `Untitled` and stays unknown: that title proves nothing.
+   */
+  async verifyPublished(
+    context: PublishContext,
+    attemptStartedAt: Date,
+  ): Promise<PublishResult | null> {
+    const { credential, post } = context;
+    if (!credential?.accessToken || !post.label?.trim()) {
+      throw new Error('Provider verification lacks an exact title to match');
+    }
+    const apiKey = EncryptionUtil.decrypt(credential.accessToken);
+    const isDraft = context.isDraft === true;
+    const found = await verifyTitlePublish(
+      attemptStartedAt,
+      (cursor) =>
+        this.devtoService.listPublishVerificationPage(
+          apiKey,
+          isDraft,
+          attemptStartedAt,
+          cursor,
+        ),
+      post.label,
+    );
+    if (!found) return null;
+    const result = this.createSuccessResult(
+      found.id,
+      this.platform,
+      found.url || this.buildPostUrl(found.id, credential),
+    );
+    return isDraft ? { ...result, isProviderDraft: true } : result;
   }
 
   /**
@@ -71,6 +111,8 @@ export class DevtoPublisherService extends BasePublisherService {
         return this.createFailedResult(
           this.platform,
           'Dev.to credential not found',
+          undefined,
+          PublishErrorKind.CHANNEL_DISCONNECTED,
         );
       }
 
@@ -79,6 +121,8 @@ export class DevtoPublisherService extends BasePublisherService {
         return this.createFailedResult(
           this.platform,
           'Article must have content before it can be delivered to Dev.to',
+          undefined,
+          PublishErrorKind.CONTENT_REJECTED,
         );
       }
 
@@ -99,6 +143,8 @@ export class DevtoPublisherService extends BasePublisherService {
         return this.createFailedResult(
           this.platform,
           'Failed to get external ID from Dev.to',
+          undefined,
+          PublishErrorKind.OUTCOME_UNKNOWN,
         );
       }
 
@@ -114,7 +160,7 @@ export class DevtoPublisherService extends BasePublisherService {
         error: (error as Error)?.message,
         postId: context.postId,
       });
-      throw error;
+      throw toArticlePublishError(error);
     }
   }
 

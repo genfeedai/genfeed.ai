@@ -57,6 +57,12 @@ export type FinalizeStructuredAssistantTurnParams = {
   messageId?: string;
   metadata?: Record<string, unknown>;
   model: string;
+  /**
+   * The card this turn resolved. The live reply carries its resolved copy so a
+   * client can update the card in place; the stored reply leaves it out
+   * because the server already wrote it onto the source message.
+   */
+  resolvedSourceActionId?: string;
   result: {
     success?: boolean;
     error?: string;

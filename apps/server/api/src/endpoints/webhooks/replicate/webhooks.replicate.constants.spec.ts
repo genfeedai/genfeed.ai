@@ -1,4 +1,7 @@
-import { isAllowedReplicateOutputUrl } from '@api/endpoints/webhooks/replicate/webhooks.replicate.constants';
+import {
+  describeRejectedReplicateOutputHost,
+  isAllowedReplicateOutputUrl,
+} from '@api/endpoints/webhooks/replicate/webhooks.replicate.constants';
 
 describe('isAllowedReplicateOutputUrl', () => {
   it.each([
@@ -56,5 +59,18 @@ describe('isAllowedReplicateOutputUrl', () => {
     expect(
       isAllowedReplicateOutputUrl('https://PBXT.Replicate.Delivery/out.png'),
     ).toBe(true);
+  });
+});
+
+describe('describeRejectedReplicateOutputHost', () => {
+  it.each([
+    [
+      'https://cdn.example.test/signed/out.png?token=secret',
+      'https://cdn.example.test',
+    ],
+    ['http://169.254.169.254/latest/meta-data', 'http://169.254.169.254'],
+    ['not a url', 'unparseable'],
+  ])('names only the scheme and host of %s', (url, expected) => {
+    expect(describeRejectedReplicateOutputHost(url)).toBe(expected);
   });
 });

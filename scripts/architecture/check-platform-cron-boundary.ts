@@ -157,6 +157,13 @@ export const PLATFORM_SCHEDULE_HANDLER_ALLOWLIST: CronBoundaryEntry[] = [
       'Platform model catalog maintenance (fal provider discovery, #2422). Writes operator-reviewed draft rows only; never tenant-scoped.',
   },
   {
+    file: 'apps/server/workers/src/crons/higgsfield-model-watcher/cron.higgsfield-model-watcher.service.ts',
+    id: 'higgsfield-model-watcher',
+    methodName: 'discoverModels',
+    reason:
+      'Platform model catalog maintenance (Higgsfield docs catalog scan). Writes operator-reviewed draft rows only; never tenant-scoped.',
+  },
+  {
     file: 'apps/server/workers/src/crons/model-watcher/cron.model-watcher.service.ts',
     id: 'model-watcher',
     methodName: 'discoverNewModels',
@@ -266,6 +273,13 @@ export const PLATFORM_SCHEDULE_HANDLER_ALLOWLIST: CronBoundaryEntry[] = [
       'Platform schedule handler for #9726; claims due newsletter sends and delivers bounded, idempotent batches.',
   },
   {
+    file: 'apps/server/workers/src/crons/notification-retention/cron.notification-retention.service.ts',
+    id: 'notification-retention',
+    methodName: 'purgeExpiredNotifications',
+    reason:
+      'Platform schedule handler for the #10384 daily delete of notification inbox items, deliveries and events past their retention window.',
+  },
+  {
     file: 'apps/server/workers/src/crons/oauth-client-cleanup/cron.oauth-client-cleanup.service.ts',
     id: 'oauth-client-cleanup',
     methodName: 'deleteAbandonedClients',
@@ -291,6 +305,13 @@ export const PLATFORM_SCHEDULE_HANDLER_ALLOWLIST: CronBoundaryEntry[] = [
     methodName: 'queueExpiredArtifactCleanup',
     reason:
       'Platform schedule handler that enqueues expired workflow-artifact cleanup for every tenant scope past its retention backstop.',
+  },
+  {
+    file: 'apps/server/workers/src/crons/posts/cron.manual-post-reminders.service.ts',
+    id: 'posts-manual-post-reminders',
+    methodName: 'sendDueReminders',
+    reason:
+      'Platform schedule handler; reminds the owner about posts they must publish by hand because X refused the quote, until they post or skip them.',
   },
   {
     file: 'apps/server/workers/src/crons/x-replies/cron.x-reply-watch.service.ts',

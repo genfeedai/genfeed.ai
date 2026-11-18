@@ -798,6 +798,3 @@ export const CINEMATIC_LEXICON: readonly CinematicTechnique[] = [
     'Use when true night capture is impractical; keep skies dark and highlights restrained.',
   ),
 ];
-
-export const CINEMATIC_TECHNIQUE_NAMES: readonly string[] =
-  CINEMATIC_LEXICON.map((entry) => entry.name);

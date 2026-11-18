@@ -35,6 +35,7 @@ export function useWorkspaceTaskLinkedExecutionSummary(
     [task?.linkedExecutionIds],
   );
 
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     if (!task || (task.linkedExecutionIds?.length ?? 0) === 0) {
       setSummary(getEmptyLinkedExecutionSummary());
@@ -45,13 +46,13 @@ export function useWorkspaceTaskLinkedExecutionSummary(
     const capturedTask = task;
     const linkedExecutionIds = capturedTask.linkedExecutionIds ?? [];
 
-    let isCancelled = false;
+    const abortController = new AbortController();
 
     async function loadLinkedExecutionSummary() {
       try {
         setIsLoading(true);
         const token = await resolveAuthToken(getToken);
-        if (isCancelled) {
+        if (abortController.signal.aborted) {
           return;
         }
 
@@ -66,7 +67,7 @@ export function useWorkspaceTaskLinkedExecutionSummary(
           linkedExecutionIds.map((executionId) => service.getById(executionId)),
         );
 
-        if (isCancelled) {
+        if (abortController.signal.aborted) {
           return;
         }
 
@@ -89,7 +90,7 @@ export function useWorkspaceTaskLinkedExecutionSummary(
           reportThreadId: reportThreadIds[0] ?? null,
         });
       } catch (error: unknown) {
-        if (isCancelled) {
+        if (abortController.signal.aborted) {
           return;
         }
 
@@ -100,7 +101,7 @@ export function useWorkspaceTaskLinkedExecutionSummary(
         });
         setSummary(getEmptyLinkedExecutionSummary());
       } finally {
-        if (!isCancelled) {
+        if (!abortController.signal.aborted) {
           setIsLoading(false);
         }
       }
@@ -109,7 +110,7 @@ export function useWorkspaceTaskLinkedExecutionSummary(
     void loadLinkedExecutionSummary();
 
     return () => {
-      isCancelled = true;
+      abortController.abort();
     };
   }, [getToken, task]);
 
@@ -131,6 +132,7 @@ export function useWorkspaceTaskLinkedOutputs(
     [task?.linkedOutputIds],
   );
 
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     if (!task || (task.linkedOutputIds?.length ?? 0) === 0) {
       setSummary(getEmptyLinkedOutputSummary());
@@ -138,7 +140,7 @@ export function useWorkspaceTaskLinkedOutputs(
     }
 
     const capturedTask = task;
-    let isCancelled = false;
+    const abortController = new AbortController();
 
     async function loadLinkedOutputs() {
       try {
@@ -149,7 +151,7 @@ export function useWorkspaceTaskLinkedOutputs(
         }));
 
         const token = await resolveAuthToken(getToken);
-        if (isCancelled) {
+        if (abortController.signal.aborted) {
           return;
         }
 
@@ -164,7 +166,7 @@ export function useWorkspaceTaskLinkedOutputs(
         );
         const outputs = await service.findByIds(linkedOutputIds);
 
-        if (isCancelled) {
+        if (abortController.signal.aborted) {
           return;
         }
 
@@ -174,7 +176,7 @@ export function useWorkspaceTaskLinkedOutputs(
           outputs: outputs as Ingredient[],
         });
       } catch (error: unknown) {
-        if (isCancelled) {
+        if (abortController.signal.aborted) {
           return;
         }
 
@@ -194,7 +196,7 @@ export function useWorkspaceTaskLinkedOutputs(
     void loadLinkedOutputs();
 
     return () => {
-      isCancelled = true;
+      abortController.abort();
     };
   }, [getToken, task]);
 
@@ -210,6 +212,7 @@ export function useWorkspaceTaskLinkedIssue(
     getEmptyLinkedIssueSummary(),
   );
 
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     if (!task?.linkedIssueId) {
       setSummary(getEmptyLinkedIssueSummary());
@@ -217,7 +220,7 @@ export function useWorkspaceTaskLinkedIssue(
     }
 
     const capturedTask = task;
-    let isCancelled = false;
+    const abortController = new AbortController();
 
     async function loadLinkedIssue() {
       try {
@@ -234,14 +237,14 @@ export function useWorkspaceTaskLinkedIssue(
         }
 
         const token = await resolveAuthToken(getToken);
-        if (!token || isCancelled) {
+        if (!token || abortController.signal.aborted) {
           setSummary(getEmptyLinkedIssueSummary());
           return;
         }
 
         const issue = await TasksService.getInstance(token).findOne(linkedId);
 
-        if (isCancelled) {
+        if (abortController.signal.aborted) {
           return;
         }
 
@@ -251,7 +254,7 @@ export function useWorkspaceTaskLinkedIssue(
           isLoading: false,
         });
       } catch (error: unknown) {
-        if (isCancelled) {
+        if (abortController.signal.aborted) {
           return;
         }
 
@@ -267,7 +270,7 @@ export function useWorkspaceTaskLinkedIssue(
     void loadLinkedIssue();
 
     return () => {
-      isCancelled = true;
+      abortController.abort();
     };
   }, [getToken, href, task]);
 

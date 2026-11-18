@@ -18,6 +18,8 @@ export const MCP_CLIP_TOOLS: SourceTool[] = [
     creditCost: 0,
     description:
       'Analyze a YouTube video for viral highlights: downloads audio, transcribes, and LLM-detects segments. Analysis does not charge credits. Poll with get_clipper_project or get_clipper_highlights.',
+    mcpDescription:
+      'Find viral highlights in a YouTube video via audio download, transcription and LLM analysis. Free; poll get_clipper_project or get_clipper_highlights.',
     name: 'analyze_clipper_project',
     parameters: {
       properties: {
@@ -58,6 +60,8 @@ export const MCP_CLIP_TOOLS: SourceTool[] = [
     creditCost: 0,
     description:
       'Create a clip project from a YouTube URL and run the AI clip factory async. HeyGen avatar clips are held per clip at the per-second avatar rate and settle to the rendered length. HeyGen/Argil need avatarId+voiceId; GenfeedAI needs a brand character reference. Poll get_clipper_project.',
+    mcpDescription:
+      'Start an async YouTube clip project. HeyGen avatar holds use estimated per-clip seconds and settle to rendered length. HeyGen/Argil require avatarId+voiceId; GenfeedAI requires a brand character reference. Poll get_clipper_project.',
     name: 'create_clipper_project_from_youtube',
     parameters: {
       properties: {
@@ -117,6 +121,8 @@ export const MCP_CLIP_TOOLS: SourceTool[] = [
     creditCost: 0,
     description:
       "Get the detected highlights for a clip project after analysis. Returns the highlights array plus the project's current status.",
+    mcpDescription:
+      'Read detected clipper-project highlights and current status after analysis.',
     name: 'get_clipper_highlights',
     parameters: {
       properties: {
@@ -151,6 +157,8 @@ export const MCP_CLIP_TOOLS: SourceTool[] = [
     creditCost: 0,
     description:
       'Generate clips from selected highlights. HeyGen avatar clips are held per clip at the per-second avatar rate and settle to the rendered length. Avatar: avatarId+voiceId (HeyGen/Argil) or character ref (GenfeedAI); raw-cut: neither.',
+    mcpDescription:
+      'Generate selected highlights. HeyGen avatar holds use estimated per-clip seconds and settle to rendered length. Avatar requires avatarId+voiceId (HeyGen/Argil) or character reference (GenfeedAI); raw-cut requires neither.',
     name: 'run_clipper',
     parameters: {
       properties: {

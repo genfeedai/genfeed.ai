@@ -47,7 +47,7 @@ export interface StoredCheckpoint {
   sourceId: string;
 }
 
-export interface PerformanceScanRow {
+interface PerformanceScanRow {
   createdAt: Date;
   data: unknown;
   id: string;

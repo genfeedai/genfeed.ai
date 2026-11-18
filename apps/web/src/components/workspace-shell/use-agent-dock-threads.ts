@@ -68,6 +68,7 @@ export function useAgentDockThreads(
   // The record whose conversation the dock currently holds.
   const openedThreadKey = useRef<string | null>(null);
 
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     if (!isEnabled || typeof apiService.getThreads !== 'function') {
       return;
@@ -188,6 +189,7 @@ export function useAgentDockThreads(
 
   // A record page holds the record's own conversation: the thread the dock
   // last held for it, else a fresh one that the first message creates.
+  // use-effect-audit: ignore opens the record's thread in the chat store; a latest-key guard drops stale results
   useEffect(() => {
     if (!isEnabled || !threadKey) {
       if (openedThreadKey.current) {
@@ -223,6 +225,7 @@ export function useAgentDockThreads(
 
   // The first message on a record's fresh conversation creates its thread;
   // remember it so the record reopens it next time.
+  // use-effect-audit: ignore persists the opened thread id to browser storage
   useEffect(() => {
     // Read the store, not this render: opening the record above may have
     // switched the thread in the same commit.
@@ -249,6 +252,7 @@ export function useAgentDockThreads(
 
   // The dock opens on the master conversation unless a thread is already open,
   // the operator asked for a blank one, or the page holds a record's thread.
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     if (!isEnabled) {
       hasStartedFreshThread.current = false;

@@ -1,4 +1,5 @@
 import { BrandAccessModule } from '@api/authorization/brand-access/brand-access.module';
+import { ServerFunnelCaptureModule } from '@api/services/analytics/server-funnel-capture.module';
 import { BrandIdentitySnapshotService } from '@api/services/branded-generation-receipts/brand-identity-snapshot.service';
 import { BrandedGenerationArtifactMaterialService } from '@api/services/branded-generation-receipts/branded-generation-artifact-material.service';
 import { BrandedGenerationFeedbackService } from '@api/services/branded-generation-receipts/branded-generation-feedback.service';
@@ -8,7 +9,7 @@ import { BrandedGenerationReceiptsService } from '@api/services/branded-generati
 import { PrismaModule } from '@api/shared/modules/prisma/prisma.module';
 import { Module } from '@nestjs/common';
 @Module({
-  imports: [BrandAccessModule, PrismaModule],
+  imports: [BrandAccessModule, PrismaModule, ServerFunnelCaptureModule],
   providers: [
     BrandedGenerationArtifactMaterialService,
     BrandIdentitySnapshotService,

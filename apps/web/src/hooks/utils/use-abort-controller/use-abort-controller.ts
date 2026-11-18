@@ -7,6 +7,7 @@ export function useAbortController(dependencies: DependencyList = []) {
     () => new AbortController(),
   );
 
+  // use-effect-audit: ignore abortable work
   useEffect(() => {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();

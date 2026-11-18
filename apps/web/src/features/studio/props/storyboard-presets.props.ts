@@ -1,7 +1,7 @@
 import type { StudioStoryboardProposal } from '@genfeedai/contracts/api-types/contracts';
 import type { LucideIcon } from 'lucide-react';
 
-export type StoryboardPresetFormat = '9:16' | '16:9' | '1:1';
+type StoryboardPresetFormat = '9:16' | '16:9' | '1:1';
 
 export type StoryboardPresetId =
   | 'productLaunch'
@@ -38,7 +38,7 @@ export interface StoryboardStarterCardsProps {
 
 export type StoryboardPitchKind = 'slideshow' | 'longForm';
 
-export type StoryboardPitchId =
+type StoryboardPitchId =
   | 'tips'
   | 'howTo'
   | 'story'

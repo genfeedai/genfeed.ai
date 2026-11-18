@@ -12,6 +12,7 @@ vi.mock('@genfeedai/prisma', async () => {
 });
 
 import { BrandLifecycleService } from '@api/collections/brands/services/brand-lifecycle.service';
+import { CACHE_TAGS } from '@api/common/constants/cache-patterns.constants';
 import type { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import type { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
 import type { UserAccessCacheService } from '@api/common/services/user-access-cache.service';
@@ -51,8 +52,15 @@ describe('BrandLifecycleService', () => {
     invalidateAll: ReturnType<typeof vi.fn>;
   };
   let loggerService: LoggerService;
+  // Public responses held in the cache, by the tags they were stored under.
+  let cachedPublicResponses: Map<string, string[]>;
 
   beforeEach(() => {
+    cachedPublicResponses = new Map([
+      ['public:brand:brand-1', [CACHE_TAGS.PUBLIC_BRAND_CONTENT, 'brands']],
+      ['public:posts:{}', [CACHE_TAGS.PUBLIC_BRAND_CONTENT, 'posts']],
+      ['public:models', ['models', 'public']],
+    ]);
     delegate = {
       findFirst: vi.fn(),
       findMany: vi.fn(),
@@ -115,7 +123,17 @@ describe('BrandLifecycleService', () => {
     service = new BrandLifecycleService(
       prisma,
       loggerService,
-      { invalidateByTags: vi.fn() } as unknown as CacheService,
+      {
+        invalidateByTags: vi.fn(),
+        invalidateGuardedTags: async (tags: string[]) => {
+          for (const [key, entryTags] of cachedPublicResponses) {
+            if (entryTags.some((tag) => tags.includes(tag))) {
+              cachedPublicResponses.delete(key);
+            }
+          }
+          return 0;
+        },
+      } as unknown as CacheService,
       cacheInvalidationService as unknown as CacheInvalidationService,
       accessBootstrapCacheService as unknown as AccessBootstrapCacheService,
       userAccessCacheService as unknown as UserAccessCacheService,
@@ -575,6 +593,26 @@ describe('BrandLifecycleService', () => {
       ).rejects.toBeInstanceOf(NotFoundException);
       expect(memberDelegate.updateMany).not.toHaveBeenCalled();
       expect(delegate.update).not.toHaveBeenCalled();
+    });
+
+    it('drops the cached public brand and post responses of a deleted brand', async () => {
+      const brandId = testId('brand', 1);
+      const organizationId = testId('org');
+
+      delegate.findFirst.mockResolvedValue({
+        id: brandId,
+        isDeleted: false,
+        organizationId,
+      });
+      delegate.findMany.mockResolvedValue([
+        { id: brandId, slug: 'brand-handle' },
+        { id: testId('brand', 2) },
+      ]);
+      delegate.update.mockResolvedValue({ id: brandId, organizationId });
+
+      await service.remove(organizationId, brandId);
+
+      expect([...cachedPublicResponses.keys()]).toEqual(['public:models']);
     });
 
     it('skips per-member cache invalidation when no member was pointed at the deleted brand', async () => {

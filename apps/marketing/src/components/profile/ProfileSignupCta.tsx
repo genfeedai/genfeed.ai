@@ -38,7 +38,7 @@ export default function ProfileSignupCta({
       asChild
       variant={ButtonVariant.DEFAULT}
       size={ButtonSize.PUBLIC}
-      className="w-full"
+      className="w-full min-w-0 overflow-hidden"
       // The default wrapper is an inline-flex box that shrink-wraps the
       // button, so `w-full` resolved against it and the CTA sat left of the
       // profile column instead of spanning it.
@@ -56,7 +56,7 @@ export default function ProfileSignupCta({
         target="_blank"
         rel="noopener noreferrer"
       >
-        {label}
+        <span className="min-w-0 truncate">{label}</span>
         <ArrowRight aria-hidden="true" className="size-4" />
       </a>
     </ButtonTracked>

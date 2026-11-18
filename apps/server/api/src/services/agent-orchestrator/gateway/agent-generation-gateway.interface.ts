@@ -32,7 +32,7 @@ export interface AgentGenerationPrincipal {
  * credit transaction is labelled changes, so bot spend stays distinguishable
  * from agent spend in cost reporting.
  */
-export interface AgentGenerationCreditsAttribution {
+interface AgentGenerationCreditsAttribution {
   description?: string;
   source?: ActivitySource;
 }

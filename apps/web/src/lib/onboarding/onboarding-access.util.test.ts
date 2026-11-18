@@ -320,6 +320,21 @@ describe('persistOnboardingHandoffParams', () => {
     expect(storedValues.get(ONBOARDING_STORAGE_KEYS.claimHandle)).toBe(stored);
   });
 
+  it.each([
+    ['?follow=Shayla', 'shayla'],
+    ['?follow=settings', undefined],
+    ['?follow=not%20a%20handle', undefined],
+  ])('stores the creator to subscribe to from %s', (search, stored) => {
+    const storedValues = new Map<string, string>();
+
+    persistOnboardingHandoffParams(search, {
+      getItem: (key) => storedValues.get(key) ?? null,
+      setItem: (key, value) => storedValues.set(key, value),
+    });
+
+    expect(storedValues.get(ONBOARDING_STORAGE_KEYS.followHandle)).toBe(stored);
+  });
+
   it('preserves the first valid referral code across later handoffs', () => {
     const storedValues = new Map<string, string>([
       [ONBOARDING_STORAGE_KEYS.referralCode, 'frend2345xyz'],

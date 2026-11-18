@@ -15,7 +15,7 @@ const repoRoot = path.resolve(here, '../../../../..');
 const source = {
   cliApi: read('packages/cli/src/api/schedules.ts'),
   cliCommand: read('packages/cli/src/commands/schedule.ts'),
-  mcpCatalog: read('packages/actions/src/registry/curated-action-catalog.ts'),
+  mcpCatalog: read('packages/actions/src/registry/curated-actions.catalog.ts'),
   mcpDefinitions: read(
     'packages/actions/src/registry/source/mcp-only/scheduler.tools.ts',
   ),
@@ -34,7 +34,9 @@ const SHARED_CAPABILITIES = {
     rest: ["@Patch(':id')", "case 'cancel':"],
   },
   create: {
-    cli: [".command('bulk')", "post<BulkScheduleResult>('/schedules/bulk'"],
+    // The CLI has no release-creating command: `gf schedule bulk` wrote to a
+    // table nothing published from and was removed.
+    cli: [],
     mcp: ["name: 'create_scheduled_release'"],
     rest: ['@Post()', 'async create('],
   },

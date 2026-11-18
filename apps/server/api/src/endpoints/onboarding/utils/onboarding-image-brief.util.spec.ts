@@ -1,5 +1,6 @@
 import {
   buildOnboardingImageBrief,
+  describeColor,
   readPostIdea,
 } from '@api/endpoints/onboarding/utils/onboarding-image-brief.util';
 import { renderStructuredPrompt } from '@genfeedai/harness';
@@ -148,5 +149,59 @@ describe('buildOnboardingImageBrief', () => {
       expect.arrayContaining(['logos', 'text overlays', 'watermarks']),
     );
     expect(render(brief).negativePrompt).toContain('text overlays');
+  });
+});
+
+describe('describeColor', () => {
+  it.each([
+    ['#1F6FEB', 'blue'],
+    ['#0D1117', 'black'],
+    ['#FFFFFF', 'white'],
+    ['#fff', 'white'],
+    ['#808080', 'grey'],
+    ['#333333', 'charcoal'],
+    ['#0A2A66', 'deep blue'],
+    ['#FFF3B0', 'pale yellow'],
+    ['#E63946', 'red'],
+    ['#7C5CFF', 'purple'],
+    ['#2A9D8F', 'teal'],
+    ['#F4A261', 'orange'],
+    ['#2E7D32', 'green'],
+  ])('reads %s as %s', (hex, name) => {
+    expect(describeColor(hex)).toBe(name);
+  });
+
+  it.each(['', 'blue', '#12', '#GGGGGG', 'transparent'])(
+    'reads %j as nothing',
+    (value) => {
+      expect(describeColor(value)).toBeUndefined();
+    },
+  );
+});
+
+describe('buildOnboardingImageBrief palette', () => {
+  const base = {
+    brandName: 'Acme',
+    description: 'Scheduling software for creators.',
+    post: 'Plan a month of posts in an hour.',
+  };
+
+  it('puts the saved colours in the style as words, never as hex codes', () => {
+    const { style } = buildOnboardingImageBrief({
+      ...base,
+      palette: ['#1F6FEB', '#0D1117'],
+    }).slots;
+    expect(style).toContain('blue and black color palette');
+    expect(style).not.toContain('#');
+  });
+
+  it('adds nothing when no palette is given or no colour reads', () => {
+    expect(buildOnboardingImageBrief(base).slots.style).not.toContain(
+      'palette',
+    );
+    expect(
+      buildOnboardingImageBrief({ ...base, palette: ['transparent'] }).slots
+        .style,
+    ).not.toContain('palette');
   });
 });

@@ -26,7 +26,6 @@ import { buildModelsTableColumns } from './ModelsTableColumns';
 const TABLE_COPY: Record<string, string> = {
   'table.approvedStatus': 'Approved',
   'table.categoryHeader': 'Category',
-  'table.chooseSuccessor': 'Choose successor',
   'table.costBasisPerMegapixel': 'Basis: {units} megapixel',
   'table.costBasisPerSecond': 'Basis: {duration} {unit}',
   'table.costBreakdown':
@@ -50,7 +49,6 @@ const TABLE_COPY: Record<string, string> = {
   'table.secondUnit': 'second',
   'table.secondsUnit': 'seconds',
   'table.seededStatus': 'Seeded',
-  'table.successorWithLabel': 'Successor: {label}',
   'table.variablePricing': 'Variable',
   'table.variablePricingDescription':
     'Uses reviewed rates. Final cost depends on the generation settings.',
@@ -94,13 +92,8 @@ function renderColumn(
   isAdminScope = false,
   onOpenDetails: (model: IModel) => void = vi.fn(),
   options: {
-    handleLifecycleChange?: (
-      model: IModel,
-      lifecycle: ModelLifecycle,
-      succeededBy?: string,
-    ) => void;
+    handleLifecycleChange?: (model: IModel, lifecycle: ModelLifecycle) => void;
     isModelEnabled?: (modelId: string) => boolean;
-    models?: IModel[];
   } = {},
 ): void {
   const columns = buildModelsTableColumns({
@@ -112,7 +105,6 @@ function renderColumn(
     isOnlyDefaultInCategory: () => false,
     onOpenDetails,
     togglingModelId: null,
-    models: options.models ?? [model],
     translate,
   });
   const column = columns.find((entry) => entry.header === header);
@@ -133,7 +125,6 @@ describe('buildModelsTableColumns', () => {
       isOnlyDefaultInCategory: () => false,
       onOpenDetails: vi.fn(),
       togglingModelId: null,
-      models: [],
       translate,
     });
 
@@ -150,59 +141,20 @@ describe('buildModelsTableColumns', () => {
     ).toBe(true);
   });
 
-  it('renders lifecycle and requires a successor for a terminal transition', () => {
-    const model = buildModel({ lifecycle: ModelLifecycle.AVAILABLE });
+  it('renders lifecycle as a single control with no successor picker', () => {
+    const model = buildModel({ lifecycle: ModelLifecycle.RETIRED });
     renderColumn('Lifecycle', model, true);
 
     expect(
       screen.getByRole('combobox', { name: 'Lifecycle for Flux Dev' }),
     ).toBeInTheDocument();
-    expect(
-      screen.queryByRole('combobox', { name: 'Successor for Flux Dev' }),
-    ).not.toBeInTheDocument();
-  });
-
-  it('keeps a retired row to a single lifecycle control', () => {
-    const successor = buildModel({
-      id: 'model-2',
-      key: 'flux-pro',
-      label: 'Flux Pro',
-    });
-    const model = buildModel({
-      lifecycle: ModelLifecycle.RETIRED,
-      succeededBy: 'flux-pro',
-    });
-    const columns = buildModelsTableColumns({
-      handleAdminToggle: vi.fn(),
-      handleLifecycleChange: vi.fn(),
-      handleToggleModel: vi.fn(),
-      isAdminScope: true,
-      isModelEnabled: () => true,
-      isOnlyDefaultInCategory: () => false,
-      onOpenDetails: vi.fn(),
-      togglingModelId: null,
-      models: [model, successor],
-      translate,
-    });
-    const column = columns.find((entry) => entry.header === 'Lifecycle');
-    if (!column?.render) {
-      throw new Error('Missing Lifecycle column');
-    }
-    render(column.render(model));
-
-    expect(
-      screen.getByRole('combobox', { name: 'Lifecycle for Flux Dev' }),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByRole('combobox', { name: 'Successor for Flux Dev' }),
-    ).not.toBeInTheDocument();
-    expect(screen.getByText('Successor: Flux Pro')).toBeInTheDocument();
+    expect(screen.getAllByRole('combobox')).toHaveLength(1);
   });
 
   it.each(Object.values(ModelProvider))(
     'renders a named provider logo for %s',
     (provider) => {
-      renderColumn('Label', buildModel({ provider }), true);
+      renderColumn('Label', buildModel({ provider }), false);
 
       const logo = screen.getByRole('img', {
         name: getModelProviderLabel(provider),
@@ -220,7 +172,7 @@ describe('buildModelsTableColumns', () => {
     renderColumn(
       'Label',
       buildModel({ provider: 'future-provider' as ModelProvider }),
-      true,
+      false,
     );
 
     const provider = screen.getByRole('img', { name: 'Future-provider' });
@@ -247,7 +199,7 @@ describe('buildModelsTableColumns', () => {
         label: 'Avatar',
         provider: ModelProvider.HEYGEN,
       }),
-      true,
+      false,
     );
 
     expect(screen.getByRole('img', { name: 'HeyGen' })).toBeInTheDocument();
@@ -416,7 +368,6 @@ describe('buildModelsTableColumns', () => {
   });
 
   it('keeps the key and description out of the admin table', () => {
-    const model = buildModel({ description: 'Detailed model description' });
     const columns = buildModelsTableColumns({
       handleAdminToggle: vi.fn(),
       handleLifecycleChange: vi.fn(),
@@ -426,16 +377,59 @@ describe('buildModelsTableColumns', () => {
       isOnlyDefaultInCategory: () => false,
       onOpenDetails: vi.fn(),
       togglingModelId: null,
-      models: [model],
       translate,
     });
 
     expect(columns.map((column) => column.key)).not.toContain('key');
-    expect(columns.map((column) => column.header)).not.toContain('Provider');
+    expect(columns.map((column) => column.header)).toContain('Provider');
     expect(columns.map((column) => column.header)).not.toContain('Category');
     const labelColumn = columns.find((column) => column.header === 'Label');
 
     expect(labelColumn?.subtext).toBeUndefined();
+  });
+
+  const brandModel = buildModel({
+    category: ModelCategory.IMAGE,
+    key: 'black-forest-labs/flux-3',
+    provider: ModelProvider.REPLICATE,
+  });
+
+  it('shows the brand behind the model, not the provider, as the admin avatar', () => {
+    renderColumn('Label', brandModel, true);
+
+    expect(
+      screen.queryByRole('img', {
+        name: getModelProviderLabel(ModelProvider.REPLICATE),
+      }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'BFL' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('img', {
+        name: getModelCategoryLabel(ModelCategory.IMAGE),
+      }),
+    ).toBeInTheDocument();
+  });
+
+  it('shows the provider in its own admin column', () => {
+    renderColumn('Provider', brandModel, true);
+
+    expect(
+      screen.getByText(getModelProviderLabel(ModelProvider.REPLICATE)),
+    ).toBeInTheDocument();
+  });
+
+  it('keeps the provider as the avatar outside admin', () => {
+    renderColumn(
+      'Label',
+      buildModel({ provider: ModelProvider.REPLICATE }),
+      false,
+    );
+
+    expect(
+      screen.getByRole('img', {
+        name: getModelProviderLabel(ModelProvider.REPLICATE),
+      }),
+    ).toBeInTheDocument();
   });
 
   it('places the model description under its label outside admin', () => {
@@ -449,7 +443,6 @@ describe('buildModelsTableColumns', () => {
       isOnlyDefaultInCategory: () => false,
       onOpenDetails: vi.fn(),
       togglingModelId: null,
-      models: [model],
       translate,
     });
 
@@ -533,17 +526,9 @@ describe('paid model pricing lock', () => {
       const model = buildModel({
         cost,
         isFree: false,
-        succeededBy: 'flux-pro',
-      });
-      const successor = buildModel({
-        cost: 2,
-        id: 'model-2',
-        key: 'flux-pro',
-        label: 'Flux Pro',
       });
       renderColumn('Lifecycle', model, true, vi.fn(), {
         handleLifecycleChange,
-        models: [model, successor],
       });
 
       const lifecycle = screen.getByRole('combobox', {
@@ -572,7 +557,6 @@ describe('paid model pricing lock', () => {
       expect(handleLifecycleChange).toHaveBeenCalledWith(
         model,
         ModelLifecycle.LEGACY,
-        'flux-pro',
       );
     },
   );

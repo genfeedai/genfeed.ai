@@ -37,7 +37,6 @@ const paginationSchema = z
     (value) => value.pageSize <= value.maxPageSize,
     'Page exceeds explicit bound',
   );
-export type SavedAdSourceCursor = Readonly<z.infer<typeof cursorSchema>>;
 const readInputSchema = z
   .object({
     scope: agentSourceScopeSchema,
@@ -49,10 +48,6 @@ export type ReadSavedAdSourcesInput = Readonly<
   z.infer<typeof readInputSchema>
 > &
   Pick<RankAgentSourcesInput, 'policy' | 'blockedSourceKeys'>;
-export type SavedAdSourcePage = Awaited<
-  ReturnType<typeof readSavedAdSourcePage>
->;
-
 /** Internal read-only page adapter. Continuations require the same scope, policy and now.
  * A page is not a global eligible snapshot or a reservation authorization. New or
  * recaptured rows between calls require a new scan; this is not database snapshot isolation.

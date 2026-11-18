@@ -36,7 +36,7 @@ import { normalizeGoogleAdsCustomerId } from './google-ads-customer-id.util';
  * `invalid_client` (this deployment's own OAuth app config) leave the grant
  * intact, so they must never disconnect the account.
  */
-export function isGoogleRefreshTokenRejectedError(error: unknown): boolean {
+function isGoogleRefreshTokenRejectedError(error: unknown): boolean {
   if (!isAxiosError(error)) {
     return false;
   }

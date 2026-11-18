@@ -81,7 +81,7 @@ describe('SITE_DIRECTORY', () => {
       // children, so listing the hub keeps them reachable. /articles lists
       // every creator's articles, which live at /@handle/articles/<slug>.
       const hub = /^\/@[^/]+\/articles\//.test(path)
-        ? '/articles'
+        ? '/community/articles'
         : path.slice(0, path.lastIndexOf('/'));
 
       return !hrefs.has(hub);

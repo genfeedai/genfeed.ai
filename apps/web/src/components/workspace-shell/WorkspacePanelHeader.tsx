@@ -98,7 +98,7 @@ export default function WorkspacePanelHeader({
               testId: 'workspace-panel-new-thread',
             })
           : null}
-        {hasAgent && activeView === 'agent'
+        {hasAgent && activeView === 'agent' && onOpenFullPage
           ? renderAction({
               icon: Maximize2,
               label: translate('openFullPage'),

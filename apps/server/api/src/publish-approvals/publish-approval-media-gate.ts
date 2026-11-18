@@ -35,7 +35,7 @@ import { BadRequestException, HttpException, HttpStatus } from '@nestjs/common';
  * spec. Restates `detail` as the exception message, like the service's
  * not-found exception, so the reason survives logging and client surfaces.
  */
-export class PublishApprovalMediaNotReadyException extends HttpException {
+class PublishApprovalMediaNotReadyException extends HttpException {
   constructor(
     detail: string,
     diagnostics: readonly MediaReadinessDiagnostic[],

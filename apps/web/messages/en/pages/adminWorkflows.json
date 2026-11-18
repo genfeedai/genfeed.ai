@@ -4,7 +4,7 @@
     "more": "Actions for {label}",
     "moveDown": "Move {label} down",
     "moveUp": "Move {label} up",
-    "pin": "Pin to Featured",
+    "pin": "Pin",
     "retry": "Retry",
     "unpin": "Unpin",
     "unpinNamed": "Unpin {label} from Featured"

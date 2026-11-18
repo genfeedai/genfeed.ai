@@ -49,6 +49,7 @@ export function useStudioAvatarEstimate(
     ownerRef.current = { fingerprint, epoch: ownerRef.current.epoch + 1 };
   const owner = ownerRef.current;
 
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     if (!fingerprint) return;
     const [, , , , body]: [

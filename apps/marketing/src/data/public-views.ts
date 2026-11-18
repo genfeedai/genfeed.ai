@@ -1,3 +1,4 @@
+import { MAX_MEDIA_VIEW_BATCH } from '@genfeedai/contracts/constants';
 import { EnvironmentService } from '@services/core/environment.service';
 
 export type PublicViewTarget = 'article' | 'profile';
@@ -31,17 +32,10 @@ export async function trackPublicView(
   return typeof views === 'number' ? views : null;
 }
 
-/**
- * Counts the public images and videos a gallery visitor saw, in one request,
- * and answers their counts by id. A failed call answers nothing.
- */
-export async function trackPublicMediaViews(
+async function postMediaViews(
   ids: readonly string[],
   signal?: AbortSignal,
 ): Promise<Record<string, number>> {
-  if (ids.length === 0) {
-    return {};
-  }
   const response = await fetch(
     `${EnvironmentService.apiEndpoint}/public/media/views`,
     {
@@ -62,6 +56,28 @@ export async function trackPublicMediaViews(
       (entry): entry is [string, number] => typeof entry[1] === 'number',
     ),
   );
+}
+
+/**
+ * Counts the public images and videos a gallery visitor saw and answers their
+ * counts by id. The API counts at most `MAX_MEDIA_VIEW_BATCH` ids a request,
+ * so more are sent in several requests. A batch that fails answers nothing
+ * and leaves the others counted.
+ */
+export async function trackPublicMediaViews(
+  ids: readonly string[],
+  signal?: AbortSignal,
+): Promise<Record<string, number>> {
+  const batches: (readonly string[])[] = [];
+  for (let start = 0; start < ids.length; start += MAX_MEDIA_VIEW_BATCH) {
+    batches.push(ids.slice(start, start + MAX_MEDIA_VIEW_BATCH));
+  }
+  const counts = await Promise.all(
+    batches.map((batch) =>
+      postMediaViews(batch, signal).catch((): Record<string, number> => ({})),
+    ),
+  );
+  return Object.assign({}, ...counts);
 }
 
 /**

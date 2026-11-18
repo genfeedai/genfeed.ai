@@ -6,6 +6,7 @@ import {
   type IReviewInboxDecisionResult,
   type IReviewInboxItem,
   type IReviewInboxListQuery,
+  type IScheduledReleaseBatchReview,
   REVIEW_INBOX_BATCH_DECISION_MAX_ITEMS,
 } from '@genfeedai/contracts/interfaces';
 import { EnvironmentService } from '@services/core/environment.service';
@@ -16,6 +17,24 @@ import {
   type JsonApiResponseDocument,
 } from '@services/core/json-api';
 import { logger } from '@services/core/logger.service';
+
+/**
+ * The batch page reads `posts` straight off the response, so a body that is
+ * not a batch (an error document, an empty collection) has to fail the request
+ * and show the page's load-failed state rather than crash the page.
+ */
+function isScheduledReleaseBatchReview(
+  value: unknown,
+): value is IScheduledReleaseBatchReview {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'approvalId' in value &&
+    typeof value.approvalId === 'string' &&
+    'posts' in value &&
+    Array.isArray(value.posts)
+  );
+}
 
 /**
  * Workflow review gates and MCP approvals waiting on a human (#7340). Turbo
@@ -49,6 +68,26 @@ export class ReviewInboxService extends HTTPBaseService {
       return deserializeCollection<IReviewInboxItem>(response.data);
     } catch (error) {
       logger.error('GET /review-inbox failed', error);
+      throw error;
+    }
+  }
+
+  /** Every post of a scheduled release batch, for the review page (#10134). */
+  async getBatch(
+    approvalId: string,
+    signal?: AbortSignal,
+  ): Promise<IScheduledReleaseBatchReview> {
+    try {
+      const response = await this.instance.get<IScheduledReleaseBatchReview>(
+        `/batches/${encodeURIComponent(approvalId)}`,
+        { signal },
+      );
+      if (!isScheduledReleaseBatchReview(response.data)) {
+        throw new Error('GET /review-inbox/batches returned no batch');
+      }
+      return response.data;
+    } catch (error) {
+      logger.error('GET /review-inbox/batches failed', error);
       throw error;
     }
   }

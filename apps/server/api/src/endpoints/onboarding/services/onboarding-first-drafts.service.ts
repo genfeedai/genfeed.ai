@@ -19,6 +19,16 @@ import type {
 } from '@api/endpoints/onboarding/onboarding.interfaces';
 import { OnboardingDraftRunsService } from '@api/endpoints/onboarding/services/onboarding-draft-runs.service';
 import { buildCampaignImagePromptPrefix } from '@api/endpoints/onboarding/utils/onboarding-campaign-image.util';
+import {
+  buildOnboardingBrandFacts,
+  GROUNDING_RULE,
+  MIN_DRAFT_CHARACTERS,
+  PLATFORM_ANGLE,
+} from '@api/endpoints/onboarding/utils/onboarding-draft-brief.util';
+import {
+  buildDraftsFunnelProperties,
+  buildScanFunnelProperties,
+} from '@api/endpoints/onboarding/utils/onboarding-funnel-events.util';
 import { buildOnboardingImageBrief } from '@api/endpoints/onboarding/utils/onboarding-image-brief.util';
 import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
@@ -32,14 +42,17 @@ import {
   readUsableCdnAssetUrl,
   toMediaResponseRecord,
 } from '@api/services/agent-orchestrator/tools/agent-media-generation-response-readers';
+import { ServerFunnelCaptureService } from '@api/services/analytics/server-funnel-capture.service';
 import { BrandWebsiteParserService } from '@api/services/brand-scraper/brand-website-parser.service';
 import { SignupPrefillService } from '@api/services/signup-prefill/signup-prefill.service';
 import { normalizeOnboardingUrl } from '@api/services/signup-prefill/utils/normalize-onboarding-url.util';
 import { Platform } from '@genfeedai/contracts';
 import {
   DEFAULT_AGENT_IMAGE_ASPECT_RATIO,
+  ONBOARDING_BRAND_SCANNED_EVENT,
   ONBOARDING_CAMPAIGN_IMAGE_SLOTS,
   ONBOARDING_DRAFT_PLATFORMS,
+  ONBOARDING_DRAFTS_GENERATED_EVENT,
   resolveAgentGenerationDimensions,
 } from '@genfeedai/contracts/constants';
 import type {
@@ -49,6 +62,7 @@ import type {
   IOnboardingScanResult,
   OnboardingDraftPlatform,
 } from '@genfeedai/contracts/interfaces';
+import { normalizeBrandAudience } from '@genfeedai/helpers/brand-audience.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
@@ -79,7 +93,7 @@ const PLATFORM_BY_DRAFT: Record<OnboardingDraftPlatform, Platform> = {
   twitter: Platform.TWITTER,
 };
 
-/** How each channel's draft differs from the X post it is derived from. */
+/** The format each channel's draft is written in. */
 const PLATFORM_FORMAT_BRIEF: Record<
   Exclude<OnboardingDraftPlatform, 'twitter'>,
   string
@@ -93,6 +107,9 @@ const PLATFORM_FORMAT_BRIEF: Record<
 };
 
 /** Own posts quoted to the draft prompt: enough to show the voice, few enough to stay cheap. */
+/** What a brand's colours are before anyone sets them (the Brand column defaults). */
+const DEFAULT_BRAND_PRIMARY_COLOR = '#000000';
+const DEFAULT_BRAND_SECONDARY_COLOR = '#ffffff';
 const VOICE_EVIDENCE_SAMPLE_LIMIT = 6;
 
 const TONE_DIRECTION: Record<
@@ -125,10 +142,43 @@ export class OnboardingFirstDraftsService {
     private readonly generationGateway: IAgentGenerationGateway,
     private readonly runs: OnboardingDraftRunsService,
     private readonly brandVoiceCorpusService: BrandVoiceCorpusService,
+    private readonly serverFunnelCapture?: ServerFunnelCaptureService,
   ) {}
+
+  /** Best-effort analytics: a dropped event never fails the onboarding step. */
+  private captureFunnel(
+    user: User,
+    event:
+      | typeof ONBOARDING_BRAND_SCANNED_EVENT
+      | typeof ONBOARDING_DRAFTS_GENERATED_EVENT,
+    properties: Record<string, unknown>,
+  ): void {
+    void this.serverFunnelCapture
+      ?.capture({
+        distinctId: String(user.id),
+        event,
+        organizationId: String(user.organizationId),
+        properties,
+      })
+      .catch(() => undefined);
+  }
 
   /** Reads a public link and prefills the brand. Failures are reported, never thrown. */
   async scan(
+    user: User,
+    brandId: string,
+    url: string,
+  ): Promise<IOnboardingScanResult> {
+    const result = await this.readLink(user, brandId, url);
+    this.captureFunnel(
+      user,
+      ONBOARDING_BRAND_SCANNED_EVENT,
+      buildScanFunnelProperties(result),
+    );
+    return result;
+  }
+
+  private async readLink(
     user: User,
     brandId: string,
     url: string,
@@ -192,9 +242,40 @@ export class OnboardingFirstDraftsService {
     brandId: string,
     dto: OnboardingDraftsDto,
   ): Promise<IOnboardingFirstDraftsResult> {
-    return this.runs.execute(user, brandId, dto.previousRequestKey, (save) =>
-      this.generateOnce(user, brandId, dto, save),
-    );
+    const options = {
+      hasContext: Boolean(dto.context),
+      isRedo: Boolean(dto.previousRequestKey),
+    };
+    // A replayed run or a reservation conflict never calls the generator, so
+    // it reports nothing; a run that did generate is reported once, after its
+    // final save, as ready, partial, unavailable or failed.
+    let didGenerate = false;
+    try {
+      const result = await this.runs.execute(
+        user,
+        brandId,
+        dto.previousRequestKey,
+        (save) => {
+          didGenerate = true;
+          return this.generateOnce(user, brandId, dto, save);
+        },
+      );
+      if (didGenerate)
+        this.captureFunnel(
+          user,
+          ONBOARDING_DRAFTS_GENERATED_EVENT,
+          buildDraftsFunnelProperties(result, options),
+        );
+      return result;
+    } catch (error: unknown) {
+      if (didGenerate)
+        this.captureFunnel(
+          user,
+          ONBOARDING_DRAFTS_GENERATED_EVENT,
+          buildDraftsFunnelProperties(null, options),
+        );
+      throw error;
+    }
   }
 
   private async generateOnce(
@@ -214,42 +295,28 @@ export class OnboardingFirstDraftsService {
     if (dto.context)
       await this.saveContext(brand, brandId, organizationId, dto.context);
     const direction = this.describeContext(dto.context);
-    const { brandName, description, imageContext } = this.readBrandContext(
-      brand,
-      dto.context,
-    );
+    const { brandFacts, brandName, description, imageContext } =
+      this.readBrandContext(brand, dto.context);
     const identity = { brandId, organizationId, userId };
     const voiceEvidence = await this.readVoiceEvidence(brandId, organizationId);
 
     const xDraft = await this.generateDraft({
+      brandFacts,
       direction,
       identity,
       platform: 'twitter',
       previousRequestKey: dto.previousRequestKey,
       voiceEvidence,
-      prompt: [
-        'Introduce the brand with a useful, specific post grounded in its saved offering.',
-        ...(direction ? [`Apply these requested changes: ${direction}`] : []),
-      ].join(' '),
+      prompt: this.buildDraftPrompt('twitter', direction),
     }).catch((error: unknown) => {
       this.loggerService.error('Onboarding X draft failed', error);
       return null;
     });
-    if (!xDraft) {
-      return {
-        drafts: [],
-        imageIngredientId: null,
-        imageUrl: null,
-        requestKey: null,
-        status: 'unavailable',
-      };
-    }
-
     const result: IOnboardingFirstDraftsResult = {
-      drafts: [xDraft],
+      drafts: xDraft ? [xDraft] : [],
       imageIngredientId: null,
       imageUrl: null,
-      requestKey: xDraft.requestKey,
+      requestKey: xDraft?.requestKey ?? null,
       status: 'partial',
     };
     let isMasterShort = false;
@@ -259,18 +326,18 @@ export class OnboardingFirstDraftsService {
       writes = writes.then(() => save(snapshot));
       return writes;
     };
-    await checkpoint();
+    if (xDraft) await checkpoint();
     const otherPlatforms = ONBOARDING_DRAFT_PLATFORMS.filter(
       (platform): platform is Exclude<OnboardingDraftPlatform, 'twitter'> =>
         platform !== 'twitter',
     );
-    await Promise.all([
+    const generateMaster = (post: string) =>
       this.generateImage({
         brandName,
         description,
         identity,
         imageContext,
-        tweet: xDraft.text,
+        tweet: post,
         onPlaceholderCreated: async (ingredientId) => {
           result.imageIngredientId = ingredientId;
           await checkpoint();
@@ -281,33 +348,38 @@ export class OnboardingFirstDraftsService {
         result.imageUrl = image.url;
         isMasterShort = image.isShort;
         await checkpoint();
-      }),
-      ...otherPlatforms.map(async (platform) => {
-        const draft = await this.generateDraft({
-          direction,
-          identity,
+      });
+    const platformDrafts = otherPlatforms.map(async (platform) => {
+      const draft = await this.generateDraft({
+        brandFacts,
+        direction,
+        identity,
+        platform,
+        voiceEvidence,
+        prompt: this.buildDraftPrompt(platform, direction),
+      }).catch((error: unknown) => {
+        this.loggerService.warn('Onboarding platform draft failed', {
+          error: error instanceof Error ? error.message : String(error),
           platform,
-          voiceEvidence,
-          prompt: [
-            PLATFORM_FORMAT_BRIEF[platform],
-            `Base it on the same idea as this X post: ${xDraft.text}`,
-            ...(direction
-              ? [`Apply these requested changes: ${direction}`]
-              : []),
-          ].join(' '),
-        }).catch((error: unknown) => {
-          this.loggerService.warn('Onboarding platform draft failed', {
-            error: error instanceof Error ? error.message : String(error),
-            platform,
-          });
-          return null;
         });
-        if (draft) {
-          result.drafts.push(draft);
-          await checkpoint();
-        }
-      }),
-    ]);
+        return null;
+      });
+      if (draft) {
+        result.drafts.push(draft);
+        await checkpoint();
+      }
+    });
+    if (xDraft) {
+      await Promise.all([generateMaster(xDraft.text), ...platformDrafts]);
+    } else {
+      // The channel drafts do not depend on the X post, so a refused X draft
+      // costs only the X card. The master image waits for a draft to base it on.
+      await Promise.all(platformDrafts);
+      const [lead] = result.drafts;
+      if (!lead) return this.unavailable();
+      result.requestKey = lead.requestKey;
+      await generateMaster(lead.text);
+    }
     result.drafts.sort(
       (left, right) =>
         ONBOARDING_DRAFT_PLATFORMS.indexOf(left.platform) -
@@ -326,6 +398,66 @@ export class OnboardingFirstDraftsService {
     });
     result.status = this.resolveStatus(result);
     return result;
+  }
+
+  /** The brief one channel's post is written from, shared by a full run and a rewrite. */
+  private buildDraftPrompt(
+    platform: OnboardingDraftPlatform,
+    direction: string,
+    previousText?: string,
+  ): string {
+    return [
+      platform === 'twitter'
+        ? "Write a useful, specific post for the brand's audience about what the brand offers."
+        : PLATFORM_FORMAT_BRIEF[platform],
+      PLATFORM_ANGLE[platform],
+      GROUNDING_RULE,
+      ...(direction ? [`Apply these requested changes: ${direction}`] : []),
+      ...(previousText
+        ? [
+            `Write a different post from this earlier draft: take a new angle and a new opening, and do not reuse its wording.\nEarlier draft:\n${previousText}`,
+          ]
+        : []),
+    ].join(' ');
+  }
+
+  private unavailable(): IOnboardingFirstDraftsResult {
+    return {
+      drafts: [],
+      imageIngredientId: null,
+      imageUrl: null,
+      requestKey: null,
+      status: 'unavailable',
+    };
+  }
+
+  /**
+   * Writes one channel's post again from the brand as it is saved now, as a
+   * different post from the one it replaces. Nothing else in the run changes.
+   */
+  async rewriteDraft(
+    user: User,
+    brandId: string,
+    platform: OnboardingDraftPlatform,
+  ): Promise<IOnboardingFirstDraftsResult> {
+    return this.runs.rewriteDraft(user, brandId, platform, async (previous) => {
+      const organizationId = String(user.organizationId);
+      const brand = await this.brandsService.findOne(
+        { id: brandId, isDeleted: false, organizationId },
+        'none',
+      );
+      if (!brand) throw new NotFoundException('Brand');
+      const { brandFacts } = this.readBrandContext(brand);
+      return this.generateDraft({
+        brandFacts,
+        direction: '',
+        identity: { brandId, organizationId, userId: String(user.id) },
+        platform,
+        previousRequestKey: previous?.requestKey,
+        prompt: this.buildDraftPrompt(platform, '', previous?.text),
+        voiceEvidence: await this.readVoiceEvidence(brandId, organizationId),
+      });
+    });
   }
 
   /** Regenerates only the image or video a finished run is missing. */
@@ -396,13 +528,34 @@ export class OnboardingFirstDraftsService {
   }
 
   private readBrandContext(
-    brand: { agentConfig?: unknown; description?: unknown; label?: unknown },
+    brand: {
+      agentConfig?: unknown;
+      description?: unknown;
+      label?: unknown;
+      primaryColor?: unknown;
+      secondaryColor?: unknown;
+    },
     context?: OnboardingDraftContextDto,
   ) {
     const savedConfig = this.brandDataMapper.readBrandAgentConfig(
       brand.agentConfig,
     );
+    const strategy = savedConfig.strategy;
+    const voice = savedConfig.voice;
     return {
+      brandFacts:
+        buildOnboardingBrandFacts({
+          audience: context?.audience
+            ? [context.audience]
+            : normalizeBrandAudience(voice?.audience),
+          goals: context?.goals ?? strategy?.goals,
+          offers: context?.offer ? [context.offer] : strategy?.offers,
+          taglines: voice?.taglines,
+          topics: strategy?.topics?.length
+            ? strategy.topics
+            : voice?.messagingPillars,
+          values: voice?.values,
+        }) ?? undefined,
       brandName:
         typeof brand.label === 'string' && brand.label
           ? brand.label
@@ -410,15 +563,36 @@ export class OnboardingFirstDraftsService {
       description:
         typeof brand.description === 'string' ? brand.description : '',
       imageContext: {
-        audience: context?.audience ?? savedConfig.voice?.audience?.[0],
+        audience:
+          context?.audience ??
+          normalizeBrandAudience(savedConfig.voice?.audience)[0],
         goals: context?.goals ?? savedConfig.strategy?.goals,
         offer: context?.offer ?? savedConfig.strategy?.offers?.[0],
+        palette: this.readBrandPalette(brand),
         tone:
           context?.tone && context.tone !== 'keep'
             ? context.tone
             : savedConfig.voice?.tone,
       },
     };
+  }
+
+  /**
+   * The colours the brand actually chose. A brand that never set any keeps the
+   * database defaults, black and white, and those say nothing about its look.
+   */
+  private readBrandPalette(brand: {
+    primaryColor?: unknown;
+    secondaryColor?: unknown;
+  }): string[] | undefined {
+    const colors = [brand.primaryColor, brand.secondaryColor].filter(
+      (color): color is string => typeof color === 'string' && color !== '',
+    );
+    const isDefault =
+      colors.length === 2 &&
+      colors[0]?.toLowerCase() === DEFAULT_BRAND_PRIMARY_COLOR &&
+      colors[1]?.toLowerCase() === DEFAULT_BRAND_SECONDARY_COLOR;
+    return colors.length && !isDefault ? colors : undefined;
   }
 
   private resolveStatus(
@@ -446,7 +620,7 @@ export class OnboardingFirstDraftsService {
     identity: { brandId: string; organizationId: string; userId: string };
     imageContext: Pick<
       OnboardingImageBriefInput,
-      'audience' | 'goals' | 'offer' | 'tone'
+      'audience' | 'goals' | 'offer' | 'palette' | 'tone'
     >;
     isMasterShort: boolean;
     result: IOnboardingFirstDraftsResult;
@@ -607,6 +781,7 @@ export class OnboardingFirstDraftsService {
    * regeneration to the version it replaces.
    */
   private async generateDraft(input: {
+    brandFacts?: string;
     direction: string;
     identity: { brandId: string; organizationId: string; userId: string };
     platform: OnboardingDraftPlatform;
@@ -625,8 +800,10 @@ export class OnboardingFirstDraftsService {
       input.identity,
       undefined,
       {
+        minCharacters: MIN_DRAFT_CHARACTERS[input.platform],
         parentRequestId: input.previousRequestKey,
         surface: 'onboarding',
+        ...(input.brandFacts ? { brandFacts: input.brandFacts } : {}),
         ...(input.voiceEvidence ? { voiceEvidence: input.voiceEvidence } : {}),
       },
     );
@@ -653,7 +830,7 @@ export class OnboardingFirstDraftsService {
     identity: { brandId: string; organizationId: string; userId: string };
     imageContext: Pick<
       OnboardingImageBriefInput,
-      'audience' | 'goals' | 'offer' | 'tone'
+      'audience' | 'goals' | 'offer' | 'palette' | 'tone'
     >;
     leadingReferenceIds?: string[];
     promptPrefix?: string;

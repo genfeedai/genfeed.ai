@@ -6,12 +6,22 @@ run-name: Release ${{ inputs.tag }}
 # verifies it once — reusing exact-SHA connected acceptance when qualified,
 # otherwise requesting that connected suite — publishes community and SaaS from the same commit,
 # and only then makes the GitHub release public.
+#
+# Master is never frozen, so the head at dispatch time is often newer than the
+# commit whose gates went green. The optional `sha` input releases that earlier
+# master commit instead. Nothing here can test it after the fact (the nested
+# Full Suite and npm provenance both belong to the dispatched head), so a
+# pinned release needs its Full Suite evidence and an empty npm plan up front.
 on:
   workflow_dispatch:
     inputs:
       tag:
         description: "stable release tag (vX.Y.Z)"
         required: true
+        type: string
+      sha:
+        description: "Optional exact 40-character master commit to release instead of the dispatched head. Its Full Suite, Playwright Full and Learning Runtime verdicts must already be green, and it must not need an npm publish"
+        required: false
         type: string
       recovery_run_id:
         description: "Optional failed Release run ID whose unpublished draft and proved-green gates must be recovered at the original SHA"
@@ -97,6 +107,7 @@ jobs:
         id: source
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PINNED_SHA: ${{ inputs.sha }}
           RECOVERY_RUN_ID: ${{ inputs.recovery_run_id }}
           REPAIR_PUBLISHED_RELEASE: ${{ inputs.repair_published_release }}
           REQUESTED_TAG: ${{ inputs.tag }}
@@ -106,6 +117,17 @@ jobs:
           if [ -n "${RECOVERY_RUN_ID}" ] && [ "${REPAIR_PUBLISHED_RELEASE}" = 'true' ]; then
             echo "::error::Historical run recovery and published-release repair are mutually exclusive."
             exit 1
+          fi
+
+          # Recovery reads its SHA from the failed run and repair rebuilds from
+          # current master, so neither accepts a pinned commit.
+          release_sha="${GITHUB_SHA}"
+          if [ -n "${PINNED_SHA}" ]; then
+            if [ -n "${RECOVERY_RUN_ID}" ] || [ "${REPAIR_PUBLISHED_RELEASE}" = 'true' ]; then
+              echo "::error::The sha input cannot be combined with recovery_run_id or repair_published_release."
+              exit 1
+            fi
+            release_sha="$(node scripts/ci/release-pinned-sha.mjs)"
           fi
 
           if [ -z "${RECOVERY_RUN_ID}" ]; then
@@ -130,7 +152,7 @@ jobs:
               echo "recovery_run_id="
               echo "recovery_saas_verified=false"
               echo "recovery_suite_verified=false"
-              echo "release_sha=${GITHUB_SHA}"
+              echo "release_sha=${release_sha}"
             } >>"${GITHUB_OUTPUT}"
             exit 0
           fi
@@ -170,6 +192,23 @@ jobs:
           package_version="$(jq -r '.version' package.json)"
           if [ "v${package_version}" != "${REQUESTED_TAG}" ]; then
             echo "::error::Root package.json is ${package_version} but the release tag is ${REQUESTED_TAG}. Bump the root version in a PR, merge it, then dispatch Release with the matching tag."
+            exit 1
+          fi
+
+      # npm provenance attests the dispatched commit, so the npm lane refuses to
+      # publish a package built from any other one. Find that out here, before
+      # the draft, the gates and the production deploy, not after them. The
+      # check reads the registry and the pinned checkout only.
+      - name: Require an empty npm plan for a pinned SHA
+        if: ${{ inputs.recovery_run_id == '' && steps.source.outputs.release_sha != github.sha }}
+        env:
+          RELEASE_SHA: ${{ steps.source.outputs.release_sha }}
+        run: |
+          set -euo pipefail
+          plan_output="$(mktemp)"
+          GITHUB_OUTPUT="${plan_output}" node scripts/npm-release-plan.mjs --lane release
+          if ! grep -qx 'has_packages=false' "${plan_output}"; then
+            echo "::error::Release pinned to ${RELEASE_SHA} would publish npm packages, and npm provenance must attest the dispatched head ${GITHUB_SHA}. Dispatch Release without sha, or pin a commit whose enrolled package versions are already on npm."
             exit 1
           fi
 
@@ -592,6 +631,21 @@ jobs:
           RELEASE_SHA: ${{ steps.source.outputs.release_sha }}
         run: node scripts/ci/full-suite-evidence.mjs
 
+      # verify-suite calls full-suite.yml in this run, which tests the
+      # dispatched head. It cannot stand in for a pinned commit, so a pinned
+      # release proceeds only on evidence that already exists for that commit.
+      - name: Require existing Full Suite evidence for a pinned SHA
+        if: ${{ inputs.recovery_run_id == '' && steps.source.outputs.release_sha != github.sha }}
+        env:
+          RELEASE_SHA: ${{ steps.source.outputs.release_sha }}
+          SUITE_VERIFIED: ${{ steps.suite.outputs.suite_verified }}
+        run: |
+          set -euo pipefail
+          if [ "${SUITE_VERIFIED}" != 'true' ]; then
+            echo "::error::Release pinned to ${RELEASE_SHA} has no green Full Suite run with Final Connected Acceptance on that exact commit. The Full Suite inside Release can only test the dispatched head ${GITHUB_SHA}. Pin a commit whose dispatched or nightly Full Suite passed, or dispatch Release without sha."
+            exit 1
+          fi
+
       # Full Suite does not run Playwright Full or Learning Runtime, and both
       # have caught regressions that shipped while Full Suite was green
       # (2026-10-19). They stay out of the `needs` graph (30-60 minutes, and
@@ -607,7 +661,9 @@ jobs:
 
   verify-suite:
     name: Full Suite
-    if: ${{ inputs.recovery_run_id == '' && needs.validate-release.outputs.suite_verified != 'true' }}
+    # The called suite tests github.sha, so it must never run for another
+    # release SHA: a pinned release fails validation above without evidence.
+    if: ${{ inputs.recovery_run_id == '' && needs.validate-release.outputs.suite_verified != 'true' && needs.validate-release.outputs.release_sha == github.sha }}
     needs: validate-release
     permissions:
       actions: write
@@ -891,6 +947,7 @@ jobs:
     with:
       checkout_ref: ${{ needs.validate-release.outputs.release_sha }}
       dry_run: false
+      pinned_release: ${{ needs.validate-release.outputs.recovery_mode != 'true' && needs.validate-release.outputs.release_sha != github.sha }}
       recovery_run_id: ${{ needs.validate-release.outputs.recovery_run_id }}
       trusted_release_call: true
       validated_historical_recovery: ${{ needs.validate-release.outputs.recovery_mode == 'true' }}
@@ -948,7 +1005,24 @@ jobs:
       RELEASE_SHA: ${{ needs.validate-release.outputs.release_sha }}
       RELEASE_TAG: ${{ needs.validate-release.outputs.release_tag }}
     steps:
+      # Publishing creates the release tag at RELEASE_SHA. GitHub refuses that
+      # ref to GITHUB_TOKEN once master holds newer workflow-file changes than
+      # RELEASE_SHA, because it needs the workflows permission. The Genfeed bot
+      # App token carries it; without the App the step fails closed.
+      - name: Mint release tag token (Genfeed bot App)
+        id: release-token
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ secrets.GENFEED_BOT_CLIENT_ID }}
+          private-key: ${{ secrets.GENFEED_BOT_PRIVATE_KEY }}
+          owner: genfeedai
+          repositories: genfeed.ai
+          permission-contents: write
+          permission-workflows: write
+
       - name: Publish verified release
+        env:
+          GH_TOKEN: ${{ steps.release-token.outputs.token }}
         run: |
           set -euo pipefail
 
@@ -1101,3 +1175,77 @@ jobs:
             echo "- SaaS: ECS, Vercel frontends, and production smoke completed"
             echo "- npm: enrolled public packages published from this SHA"
           } >>"${GITHUB_STEP_SUMMARY}"
+
+  # The release is already public here. Rehearse the rollback to the release
+  # published just before it: a dry run that resolves that tag, finds its server
+  # image and runs the migration compatibility gate, and deploys nothing. It runs
+  # as its own workflow run so a red rehearsal cannot fail or undo the release;
+  # continue-on-error keeps this job from failing the Release run too.
+  rehearse-rollback:
+    name: Rehearse hosted rollback
+    needs: [validate-release, publish-release]
+    if: |
+      always() &&
+      needs.publish-release.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    continue-on-error: true
+    permissions:
+      actions: write
+      contents: read
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_REPO: ${{ github.repository }}
+      RELEASE_TAG: ${{ needs.validate-release.outputs.release_tag }}
+    steps:
+      - name: Dry-run rollback to the previous stable release
+        run: |
+          set -uo pipefail
+
+          marker="release-rehearsal-${RELEASE_TAG}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          report() {
+            {
+              echo ""
+              echo "## Rollback rehearsal"
+              echo ""
+              echo "- Result: $1"
+              if [ -n "${2:-}" ]; then
+                echo "- Dry run: $2"
+              fi
+              echo "- Nothing was deployed or changed. A failed rehearsal does not affect this release."
+            } >>"${GITHUB_STEP_SUMMARY}"
+          }
+
+          # No tag given: the rollback resolves the stable release before the
+          # latest one, which is the release this run just published.
+          if ! gh workflow run rollback-hosted-saas.yml --ref master \
+            -f dry_run=true \
+            -f reason="Post-release rehearsal ${marker}"; then
+            echo "::warning::Could not start the rollback dry run."
+            report "could not start"
+            exit 1
+          fi
+
+          run_id=""
+          for _attempt in $(seq 1 30); do
+            run_id="$(gh run list --workflow rollback-hosted-saas.yml \
+              --event workflow_dispatch --limit 20 \
+              --json databaseId,displayTitle \
+              --jq "[.[] | select(.displayTitle | contains(\"${marker}\"))][0].databaseId // empty")"
+            [ -n "${run_id}" ] && break
+            sleep 5
+          done
+          if [ -z "${run_id}" ]; then
+            echo "::warning::Could not find the rollback dry run that was started."
+            report "started, but its run was not found"
+            exit 1
+          fi
+
+          gh run watch "${run_id}" --interval 15 >/dev/null || true
+          conclusion="$(gh run view "${run_id}" --json conclusion --jq .conclusion)"
+          run_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${run_id}"
+          report "${conclusion}" "${run_url}"
+          if [ "${conclusion}" != "success" ]; then
+            echo "::warning::Rollback rehearsal for ${RELEASE_TAG} finished ${conclusion}: ${run_url}"
+            exit 1
+          fi

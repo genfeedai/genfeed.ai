@@ -30,6 +30,16 @@ export function mediaBrandId(item: PublicMediaFacts): string | undefined {
   return item.brand?.id ?? item.brandId ?? undefined;
 }
 
+/**
+ * The handle of the creator that owns the item, when the listing named it.
+ * Only listings across public creators do.
+ */
+export function mediaCreatorHandle(item: PublicMediaFacts): string | undefined {
+  return item.brand && typeof item.brand === 'object'
+    ? item.brand.slug || undefined
+    : undefined;
+}
+
 /** The key of the model that made the item: its own, else its metadata's. */
 export function mediaModelKey(item: PublicMediaFacts): string | undefined {
   return item.model || metadataOf(item)?.model || undefined;

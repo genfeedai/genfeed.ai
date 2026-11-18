@@ -6,7 +6,7 @@ import { isSourcePostVariationPlatform } from '@utils/url/desktop-loop-url.util'
  * Platforms that open the Discovery remix brief (brand remix run).
  * Posts still persist `twitter`; remix's own vocabulary is `x`.
  */
-export const PREFILLED_REMIX_PLATFORMS = new Set<string>([
+const PREFILLED_REMIX_PLATFORMS = new Set<string>([
   ...brandRemixOrganicPlatformValues,
   Platform.TWITTER,
 ]);

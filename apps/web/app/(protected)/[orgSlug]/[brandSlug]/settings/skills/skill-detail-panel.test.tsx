@@ -9,7 +9,7 @@ import {
 import type { Skill } from '@services/content/skills.service';
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import type { ReactNode } from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import SkillDetailPanel from './skill-detail-panel';
 
 const selectedSkillFixture: Skill = {
@@ -82,7 +82,17 @@ const baseProps = {
   },
 };
 
+const agent = vi.hoisted(() => ({ isAvailable: true }));
+
+vi.mock('@/components/shell/use-available-rail-apps', () => ({
+  useIsAppAvailable: () => agent.isAvailable,
+}));
+
 describe('SkillDetailPanel', () => {
+  beforeEach(() => {
+    agent.isAvailable = true;
+  });
+
   it('renders the selected skill detail in the context sidebar', async () => {
     renderInSidebar(
       <SkillDetailPanel {...baseProps} selectedSkill={selectedSkillFixture} />,
@@ -95,6 +105,19 @@ describe('SkillDetailPanel', () => {
     expect(
       within(outlet).getByRole('button', { name: /open sample prompt/i }),
     ).toBeInTheDocument();
+  });
+
+  it('leaves out the sample prompt while the organization has no Agent app', async () => {
+    agent.isAvailable = false;
+
+    renderInSidebar(
+      <SkillDetailPanel {...baseProps} selectedSkill={selectedSkillFixture} />,
+    );
+
+    const outlet = await screen.findByTestId('sidebar-outlet');
+    expect(
+      within(outlet).queryByRole('button', { name: /open sample prompt/i }),
+    ).not.toBeInTheDocument();
   });
 
   it('renders nothing while no skill is selected', () => {

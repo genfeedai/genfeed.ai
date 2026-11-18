@@ -117,6 +117,13 @@ export interface AgentTurnAcknowledgement {
 }
 
 export interface AgentChatContext {
+  /**
+   * The user whose identity keys this turn's idempotency. Only set when a
+   * continuation belongs to someone other than the actor: an owner recovering
+   * a collaborator's answer reuses the answer's own continuation instead of
+   * starting a second one (#10029).
+   */
+  idempotencyUserId?: string;
   generationEntry?: GenerationEntry;
   agentBrief?: AgentRunBriefTargets;
   creditBudget?: number;
@@ -195,11 +202,5 @@ export interface AgentThreadUiActionRequest {
   brandId?: string | null;
   expectedContextVersion?: number;
   payload?: Record<string, unknown>;
-  threadId: string;
-}
-
-export interface ThreadResolutionResult {
-  isCreated: boolean;
-  seedTitle: string;
   threadId: string;
 }

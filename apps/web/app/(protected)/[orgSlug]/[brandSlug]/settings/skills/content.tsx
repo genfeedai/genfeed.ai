@@ -476,7 +476,6 @@ export default function BrandSettingsSkillsPage() {
     };
   }, [refreshCatalog]);
 
-  // A different search, source, modality or stage starts over at page 1.
   const filterSignature = JSON.stringify([
     debouncedSearchQuery,
     modalityFilter,
@@ -484,6 +483,7 @@ export default function BrandSettingsSkillsPage() {
     stageFilter,
   ]);
   const previousFilterSignatureRef = useRef(filterSignature);
+  // use-effect-audit: ignore a new search, source, modality or stage drops the page param from the route
   useEffect(() => {
     if (previousFilterSignatureRef.current === filterSignature) return;
     previousFilterSignatureRef.current = filterSignature;

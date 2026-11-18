@@ -21,6 +21,7 @@ import {
   prepareWarmupAccount,
   readHarnessActivation,
   readNotificationStatus,
+  readOnboardingDrafts,
   readOnboardingFunnel,
   readOrganizationAppsReport,
   readOrganizationBrand,
@@ -223,6 +224,15 @@ describe('operations/admin', () => {
 
     expect(result).toEqual({ windowDays: 7 });
     expect(mockAdminGet).toHaveBeenCalledWith('/admin/onboarding-funnel?days=7');
+  });
+
+  it('reads the onboarding drafts for the requested window and limit', async () => {
+    mockAdminGet.mockResolvedValueOnce({ data: { runs: [], windowDays: 3 } });
+
+    const result = await readOnboardingDrafts(3, 10);
+
+    expect(result).toEqual({ runs: [], windowDays: 3 });
+    expect(mockAdminGet).toHaveBeenCalledWith('/admin/onboarding-funnel/drafts?days=3&limit=10');
   });
 
   const rows = [

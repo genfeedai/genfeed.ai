@@ -36,6 +36,7 @@ export default function IngredientSidebarPanel() {
   // A selection belongs to the page it was made on; it must not follow the
   // user to another route.
   const previousPathnameRef = useRef(pathname);
+  // use-effect-audit: ignore clears the shared selection store when the router path changes
   useEffect(() => {
     if (previousPathnameRef.current === pathname) {
       return;

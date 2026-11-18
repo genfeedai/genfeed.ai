@@ -36,7 +36,6 @@ const SAME_MEANING: Record<string, string> = {
   bots: 'agents',
   // Generations are what the Playground makes.
   generations: 'playground',
-  'connected accounts': 'accounts',
   members: 'users',
   'affiliate rewards': 'affiliates',
   subscriptions: 'subscription',

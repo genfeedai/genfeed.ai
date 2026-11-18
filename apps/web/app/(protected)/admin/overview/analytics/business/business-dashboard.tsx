@@ -184,7 +184,7 @@ function ProjectionCard({ projections }: ProjectionCardProps) {
       <h3 className="mb-1 text-sm font-semibold text-foreground">
         30-Day Projections
       </h3>
-      <p className="mb-3 text-2xs text-muted-foreground uppercase tracking-wider">
+      <p className="mb-3 text-2xs text-muted-foreground uppercase tracking-label">
         Estimates based on recent weekly growth
       </p>
       <div className="grid grid-cols-3 gap-4">

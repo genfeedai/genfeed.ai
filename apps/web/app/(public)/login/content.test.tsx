@@ -327,7 +327,7 @@ describe('LoginPage', () => {
         screen.getByRole('button', { name: 'Sign in with Genfeed' }),
       ).toBeEnabled();
       expect(
-        screen.getByRole('button', { name: 'Use a local workspace' }),
+        screen.getByRole('button', { name: 'Use Local Workspace' }),
       ).toBeEnabled();
       expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
       expect(screen.queryByLabelText(/Password/)).not.toBeInTheDocument();
@@ -389,7 +389,7 @@ describe('LoginPage', () => {
 
     expect(desktopRuntimeMocks.enableOfflineMode).not.toHaveBeenCalled();
     fireEvent.click(
-      screen.getByRole('button', { name: 'Use a local workspace' }),
+      screen.getByRole('button', { name: 'Use Local Workspace' }),
     );
 
     await waitFor(() => {
@@ -429,13 +429,13 @@ describe('LoginPage', () => {
       expect(desktopRuntimeMocks.login).toHaveBeenCalledOnce();
     });
     expect(desktopRuntimeMocks.eventOrder).toEqual(['subscribe', 'login']);
-    expect(screen.getByText('Waiting for the browser...')).toBeVisible();
+    expect(screen.getByText('Waiting for the browser…')).toBeVisible();
     expect(
       screen.getByText(/Source checkouts cannot open automatically/i),
     ).toBeVisible();
     expect(screen.getByLabelText('Sign-in code')).toBeVisible();
     expect(
-      screen.queryByRole('button', { name: 'Use a local workspace' }),
+      screen.queryByRole('button', { name: 'Use Local Workspace' }),
     ).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Back' }));
@@ -966,14 +966,14 @@ describe('LoginPage', () => {
       render(<LoginPage />);
 
       fireEvent.click(
-        screen.getByRole('button', { name: 'Use a local workspace' }),
+        screen.getByRole('button', { name: 'Use Local Workspace' }),
       );
 
       expect(
         await screen.findByText('Local database could not start.'),
       ).toBeVisible();
       expect(
-        screen.getByRole('button', { name: 'Use a local workspace' }),
+        screen.getByRole('button', { name: 'Use Local Workspace' }),
       ).toBeEnabled();
     });
 
@@ -1019,7 +1019,7 @@ describe('LoginPage', () => {
       );
 
       expect(await screen.findByText('Code expired.')).toBeVisible();
-      expect(screen.getByText('Waiting for the browser...')).toBeVisible();
+      expect(screen.getByText('Waiting for the browser…')).toBeVisible();
 
       fireEvent.change(screen.getByLabelText('Sign-in code'), {
         target: { value: 'fresh-code' },

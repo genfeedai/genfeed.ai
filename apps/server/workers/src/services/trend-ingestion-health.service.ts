@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import {
+  TREND_PLATFORMS_WITHOUT_NATIVE_FEED,
   TREND_REFRESH_DATASETS,
   TREND_REFRESH_WINDOW_MS,
   TrendRefreshHealthService,
@@ -17,6 +18,28 @@ const SCHEDULE_OFFSET_MS = 15 * 60 * 1000;
 // Upper bound on simultaneous per-scope health queries in one cron run.
 export const HEALTH_LOOKUP_CONCURRENCY = 10;
 const ENROLLMENT_KEY = 'trend-ingestion-health/enrollment-v1';
+const SOURCE_TYPE = 'trend_ingestion_health';
+const DIGEST_SOURCE_ID = 'digest';
+// One upsert per new incident runs inside the digest transaction, and a
+// provider-wide scoped outage can add hundreds. Prisma's default is 5 seconds.
+const DIGEST_TRANSACTION_TIMEOUT_MS = 30_000;
+// Discord rejects an embed description over 4096 characters; stay well under.
+const DIGEST_DESCRIPTION_BUDGET = 3600;
+const DIGEST_ADVICE =
+  'Inspect the trend maintenance queue, provider credentials and rate limits, then retry the affected datasets.';
+const COLOR_MISSED = 0xef4444;
+const COLOR_RECOVERED = 0x22c55e;
+
+/** One incident change found during a run, held until the run posts one digest. */
+export interface PendingIngestionAlert {
+  /** One line for the digest; the advice that follows is shown once. */
+  brief: string;
+  description: string;
+  isRecovery: boolean;
+  key: string;
+  sourceId: string;
+  title: string;
+}
 
 interface ScopedTarget {
   dataset: 'trends';
@@ -80,6 +103,7 @@ export class TrendIngestionHealthService {
         if (
           !platform ||
           !scope.organizationId ||
+          TREND_PLATFORMS_WITHOUT_NATIVE_FEED.includes(platform) ||
           !TREND_REFRESH_DATASETS.some(
             (dataset) => dataset.platform === platform,
           )
@@ -111,6 +135,7 @@ export class TrendIngestionHealthService {
       SCHEDULE_OFFSET_MS;
     const twoWindowsAgo = closedBefore - 2 * TREND_REFRESH_WINDOW_MS;
     const globalMissedDatasets = new Set<string>();
+    const alerts: PendingIngestionAlert[] = [];
     for (const dataset of targets) {
       const receipt = dataset.health.find(
         (row) =>
@@ -138,14 +163,15 @@ export class TrendIngestionHealthService {
         },
       });
       if (previousAlert && successAt && successAt > previousAlert.occurredAt) {
-        await this.send(
-          `${previousAlert.deduplicationKey}/recovered`,
+        const recovered = `${dataset.platform} ${dataset.dataset} completed a refresh at ${successAt.toISOString()}.`;
+        alerts.push({
+          brief: recovered,
+          description: recovered,
+          isRecovery: true,
+          key: `${previousAlert.deduplicationKey}/recovered`,
           sourceId,
-          now,
-          'Trend ingestion recovered',
-          `${dataset.platform} ${dataset.dataset} completed a refresh at ${successAt.toISOString()}.`,
-          true,
-        );
+          title: 'Trend ingestion recovered',
+        });
       }
       // Empty and fallback responses are successful completed refreshes. Failed
       // or absent work cannot advance the timestamp or reset the incident.
@@ -159,21 +185,23 @@ export class TrendIngestionHealthService {
       if (baseline.getTime() > twoWindowsAgo) continue;
       globalMissedDatasets.add(`${dataset.platform}/${dataset.dataset}`);
       const episode = baseline.toISOString();
-      await this.send(
-        `${alertPrefix}${episode}`,
+      const attempt = `Last attempt: ${receipt?.lastAttemptAt ?? 'not recorded'}. Outcome: ${receipt?.outcome ?? 'not recorded'}.`;
+      alerts.push({
+        brief: `${dataset.platform} ${dataset.dataset}: no successful refresh. ${attempt}`,
+        description: `${dataset.platform} ${dataset.dataset} has no successful refresh in two completed 24-hour windows. ${attempt} Inspect the trend maintenance queue, provider credentials and rate limits, then retry this dataset.`,
+        isRecovery: false,
+        key: `${alertPrefix}${episode}`,
         sourceId,
-        now,
-        'Trend ingestion missed two scheduled windows',
-        `${dataset.platform} ${dataset.dataset} has no successful refresh in two completed 24-hour windows. Last attempt: ${receipt?.lastAttemptAt ?? 'not recorded'}. Outcome: ${receipt?.outcome ?? 'not recorded'}. Inspect the trend maintenance queue, provider credentials and rate limits, then retry this dataset.`,
-        false,
-      );
+        title: 'Trend ingestion missed two scheduled windows',
+      });
     }
     await this.alertScopedPlatforms(
       scopedTargets,
       globalMissedDatasets,
       twoWindowsAgo,
-      now,
+      alerts,
     );
+    await this.postDigest(alerts, now);
   }
 
   // Scoped failures aggregate into one platform incident only while that
@@ -185,7 +213,7 @@ export class TrendIngestionHealthService {
     targets: ScopedTarget[],
     globalMissedDatasets: Set<string>,
     twoWindowsAgo: number,
-    now: Date,
+    alerts: PendingIngestionAlert[],
   ): Promise<void> {
     const byPlatform = new Map<string, ScopedTarget[]>();
     for (const target of targets) {
@@ -213,13 +241,16 @@ export class TrendIngestionHealthService {
       const aggregateMissed = evaluated.filter((entry) => entry.isMissed);
       // Aggregate incident: closes as soon as the global outage ends.
       await this.reconcileIncident({
+        alerts,
+        brief: `${platform} trends: no successful refresh for ${aggregateMissed.length} of ${platformTargets.length} connected tenant scopes.`,
         description: `${platform} trends has no successful refresh in two completed 24-hour windows for ${aggregateMissed.length} of ${platformTargets.length} connected tenant scopes. Inspect the trend maintenance queue, provider credentials and rate limits, then retry this dataset.`,
         evaluated: isGlobalOutage ? evaluated : [],
-        now,
         recoveredDescription: (latestSuccess) =>
           latestSuccess
             ? `${platform} trends completed a refresh for all connected tenant scopes at ${latestSuccess.toISOString()}.`
-            : `${platform} trends has no connected tenant scopes still affected.`,
+            : isGlobalOutage
+              ? `${platform} trends has no connected tenant scopes still affected.`
+              : `The platform-wide ${platform} trends outage has ended. Tenant scopes that still fail are reported on their own.`,
         sourceId: `${platform}/trends/scoped`,
       });
       // Per-scope incidents: every scope with a current or still-open incident
@@ -234,9 +265,10 @@ export class TrendIngestionHealthService {
         const scoped = evaluatedBySource.get(sourceId) ?? [];
         const missedScope = scoped.find((entry) => entry.isMissed);
         await this.reconcileIncident({
+          alerts,
+          brief: `${platform} trends: no successful refresh for one connected tenant scope. ${this.describeScopeReceipt(missedScope?.receipt)}`,
           description: `${platform} trends has no successful refresh in two completed 24-hour windows for one connected tenant scope while the global refresh is healthy. ${this.describeScopeReceipt(missedScope?.receipt)} Inspect that tenant's provider credentials and rate limits, then retry this dataset.`,
           evaluated: isGlobalOutage ? [] : scoped,
-          now,
           recoveredDescription: (latestSuccess) =>
             latestSuccess
               ? `${platform} trends completed a refresh for a previously failing tenant scope at ${latestSuccess.toISOString()}.`
@@ -312,13 +344,14 @@ export class TrendIngestionHealthService {
   // One incident per source id: stable key from first miss until recovery, a
   // fresh key for an outage that starts after a recovery.
   private async reconcileIncident(input: {
+    alerts: PendingIngestionAlert[];
+    brief: string;
     description: string;
     evaluated: { baseline: Date; isMissed: boolean; successAt: Date | null }[];
-    now: Date;
     recoveredDescription: (latestSuccess: Date | null) => string;
     sourceId: string;
   }): Promise<void> {
-    const { evaluated, now, sourceId } = input;
+    const { evaluated, sourceId } = input;
     const alertPrefix = `trend-ingestion-health/${sourceId}/missed/`;
     const missed = evaluated.filter((entry) => entry.isMissed);
     const previousAlert = await this.prisma.notificationEvent.findFirst({
@@ -357,14 +390,15 @@ export class TrendIngestionHealthService {
     const openIncident = previousAlert && !recoveryEvent;
     if (missed.length === 0) {
       if (openIncident && previousAlert) {
-        await this.send(
-          `${previousAlert.deduplicationKey}/recovered`,
+        const recovered = input.recoveredDescription(latestSuccess);
+        input.alerts.push({
+          brief: recovered,
+          description: recovered,
+          isRecovery: true,
+          key: `${previousAlert.deduplicationKey}/recovered`,
           sourceId,
-          now,
-          'Trend ingestion recovered',
-          input.recoveredDescription(latestSuccess),
-          true,
-        );
+          title: 'Trend ingestion recovered',
+        });
       }
       return;
     }
@@ -377,48 +411,147 @@ export class TrendIngestionHealthService {
         recoveryEvent?.occurredAt.getTime() ?? 0,
       ),
     ).toISOString();
-    await this.send(
-      openIncident && previousAlert
-        ? previousAlert.deduplicationKey
-        : `${alertPrefix}${episode}`,
+    input.alerts.push({
+      brief: input.brief,
+      description: input.description,
+      isRecovery: false,
+      key:
+        openIncident && previousAlert
+          ? previousAlert.deduplicationKey
+          : `${alertPrefix}${episode}`,
       sourceId,
-      now,
-      'Trend ingestion missed two scheduled windows',
-      input.description,
-      false,
-    );
+      title: 'Trend ingestion missed two scheduled windows',
+    });
   }
 
-  private async send(
-    key: string,
-    sourceId: string,
+  /**
+   * Posts everything this run found as one Discord message. Each incident still
+   * gets its own event row, because the next run reads those rows to know which
+   * incidents are open. Only incidents with no row yet are announced, so a
+   * continuing outage stays silent. The rows and the digest commit together.
+   */
+  private async postDigest(
+    alerts: PendingIngestionAlert[],
     now: Date,
-    title: string,
-    description: string,
-    isRecovery: boolean,
   ): Promise<void> {
-    await this.activityRecorder.dispatch({
-      deduplicationKey: key,
-      messages: [
-        {
-          destination: null,
-          message: {
-            action: 'ingestion_health',
-            payload: {
-              card: {
-                color: isRecovery ? 0x22c55e : 0xef4444,
-                description,
-                title,
+    if (alerts.length === 0) return;
+    // One lookup for every key, so the transaction only writes. Keys are
+    // deterministic and the writes are upserts, so a concurrent run cannot
+    // duplicate an incident row.
+    const known = new Set(
+      (
+        await this.prisma.notificationEvent.findMany({
+          select: { deduplicationKey: true },
+          where: {
+            deduplicationKey: { in: alerts.map((alert) => alert.key) },
+            isDeleted: false,
+            organizationId: null,
+          },
+        })
+      ).map((row) => row.deduplicationKey),
+    );
+    const fresh = alerts.filter((alert) => !known.has(alert.key));
+    if (fresh.length === 0) return;
+    const commit = await this.prisma.$transaction(
+      async (transaction) => {
+        for (const alert of fresh) {
+          await writeNotificationOutbox(
+            transaction,
+            {
+              deduplicationKey: alert.key,
+              eventKey: alert.isRecovery
+                ? 'trend.ingestion-health.recovered'
+                : 'trend.ingestion-health.missed',
+              occurredAt: now,
+              organizationId: null,
+              payload: { description: alert.description, title: alert.title },
+              sourceId: alert.sourceId,
+              sourceType: SOURCE_TYPE,
+            },
+            [],
+          );
+        }
+        return this.activityRecorder.dispatchInTransaction(transaction, {
+          deduplicationKey: `trend-ingestion-health/digest/${createHash(
+            'sha256',
+          )
+            .update(
+              fresh
+                .map((alert) => alert.key)
+                .sort()
+                .join('\n'),
+            )
+            .digest('hex')
+            .slice(0, 24)}`,
+          messages: [
+            {
+              destination: null,
+              message: {
+                action: 'ingestion_health',
+                payload: { card: this.buildDigestCard(fresh) },
+                type: 'discord',
               },
             },
-            type: 'discord',
-          },
-        },
-      ],
-      occurredAt: now,
-      organizationId: null,
-      source: { id: sourceId, type: 'trend_ingestion_health' },
-      topic: 'operator.alerts',
-    });
+          ],
+          occurredAt: now,
+          organizationId: null,
+          source: { id: DIGEST_SOURCE_ID, type: SOURCE_TYPE },
+          topic: 'operator.alerts',
+        });
+      },
+      { timeout: DIGEST_TRANSACTION_TIMEOUT_MS },
+    );
+    await this.activityRecorder.afterCommit(commit);
+  }
+
+  private buildDigestCard(alerts: PendingIngestionAlert[]): {
+    color: number;
+    description: string;
+    title: string;
+  } {
+    const [only] = alerts;
+    if (alerts.length === 1 && only) {
+      return {
+        color: only.isRecovery ? COLOR_RECOVERED : COLOR_MISSED,
+        description: only.description,
+        title: only.title,
+      };
+    }
+    const missed = alerts.filter((alert) => !alert.isRecovery);
+    const recovered = alerts.filter((alert) => alert.isRecovery);
+    let budget = DIGEST_DESCRIPTION_BUDGET;
+    const section = (heading: string, rows: PendingIngestionAlert[]) => {
+      if (rows.length === 0) return null;
+      const lines: string[] = [];
+      for (const row of rows) {
+        const line = `• ${row.brief}`;
+        if (budget - line.length < 0) break;
+        budget -= line.length + 1;
+        lines.push(line);
+      }
+      const hidden = rows.length - lines.length;
+      if (hidden > 0) lines.push(`…and ${hidden} more`);
+      return `**${heading} (${rows.length})**\n${lines.join('\n')}`;
+    };
+    const parts =
+      missed.length > 0 && recovered.length > 0
+        ? [`${missed.length} need attention`, `${recovered.length} recovered`]
+        : [];
+    return {
+      color: missed.length > 0 ? COLOR_MISSED : COLOR_RECOVERED,
+      description: [
+        section('Missed two scheduled windows', missed),
+        missed.length > 0 ? DIGEST_ADVICE : null,
+        section('Recovered', recovered),
+      ]
+        .filter((part): part is string => part !== null)
+        .join('\n\n'),
+      title:
+        parts.length > 0
+          ? `Trend ingestion: ${parts.join(', ')}`
+          : missed.length > 0
+            ? `Trend ingestion: ${missed.length} missed two scheduled windows`
+            : `Trend ingestion: ${recovered.length} recovered`,
+    };
   }
 }

@@ -4,11 +4,12 @@ import type {
 } from '@api/collections/workflows/schemas/workflow.schema';
 import { requestActionNode } from '@api/collections/workflows/services/workflow-definition-nodes';
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-runner.service';
+import { SystemWorkflowRetention } from '@api/collections/workflows/workflow-execution-retention.contract';
 import { AUTHOR_REPLY_WORKFLOW_IDS } from '@api/services/reply-bot/author-reply-workflow-definition';
 import { createGenfeedActionNode } from '@genfeedai/actions';
 import type { Platform } from '@genfeedai/contracts';
 
-export type ReplyInboundSource = 'manual' | 'poll' | 'post-watch' | 'xaa';
+type ReplyInboundSource = 'manual' | 'poll' | 'post-watch' | 'xaa';
 
 export interface ReplyInboundWorkflowInput {
   brandId?: string;
@@ -73,6 +74,7 @@ function definition(
 ): SystemWorkflowGraphDefinition {
   return {
     canonicalId,
+    retention: SystemWorkflowRetention.BACKGROUND,
     organizationModule: 'messages',
     moduleCompletionNodeIds: [resultNodeId],
     definition: {

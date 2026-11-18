@@ -10,6 +10,7 @@ import {
   PostVisibility,
 } from '@genfeedai/contracts';
 import type { CreatePostRequest } from '@genfeedai/contracts/api-types';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type {
   ICredential,
   IIngredient,
@@ -60,49 +61,6 @@ import {
   resolveChannelLabel,
 } from './batch-post.utils';
 
-export interface UseModalPostBatchReturn {
-  // form
-  form: ReturnType<typeof useForm<MultiPostSchema>>;
-  formRef: React.RefObject<HTMLFormElement>;
-  onSubmit: (e: { preventDefault: () => void }) => void;
-  isSubmitting: boolean;
-  /** The form, or the per-channel results once Schedule was pressed. */
-  view: ModalPostBatchView;
-  platformConfigs: IPostPlatformConfig[];
-  applyEnabledCredentialIds: (credentialIds: string[]) => void;
-  togglePlatform: (credentialId: string) => void;
-  updatePlatformConfig: (
-    credentialId: string,
-    updates: Partial<IPostPlatformConfig>,
-  ) => void;
-  // schedule
-  globalScheduledDate: Date | null;
-  setGlobalScheduledDate: (date: Date | null) => void;
-  getMinDateTime: () => Date;
-  scheduleTimezone: string;
-  // org settings
-  settings: IOrganizationSetting | undefined;
-  // derived / flags
-  activeIngredients: IIngredient[];
-  isCarousel: boolean;
-  hasAvailableCredentials: boolean;
-  hasInvalidCredentials: boolean;
-  invalidCredentialConfigs: IPostPlatformConfig[];
-  isFormValid: boolean;
-  // watched fields
-  globalDescription: string;
-  globalLabel: string;
-  // error
-  error: string | null;
-  setError: (error: string | null) => void;
-  // actions
-  closeModalPost: () => void;
-  openCredentials: () => void;
-  // status
-  platformStatuses: PlatformSubmissionStatus[];
-  isRefreshingTokens: boolean;
-}
-
 export function useModalPostBatch(props: ModalPostBatchProps) {
   const {
     ingredient,
@@ -116,7 +74,7 @@ export function useModalPostBatch(props: ModalPostBatchProps) {
 
   const { organizationId, refreshBrands, selectedBrand } = useBrand();
   const { push } = useRouter();
-  const { activeHref, brandSlug, orgHref } = useOrgUrl();
+  const { brandSlug, orgHref, activeHref } = useOrgUrl();
   const hasActiveBrand = Boolean(brandSlug || selectedBrand?.slug);
   const [error, setError] = useState<string | null>(null);
 
@@ -268,13 +226,14 @@ export function useModalPostBatch(props: ModalPostBatchProps) {
     }, 300);
   }, [form]);
 
-  // Account connections live on the brand's accounts settings page.
-  // Without an active brand, fall back to the org-level brands list.
+  // Account connections live on the brand's Profile, which follows the
+  // brand selected in the top bar. Without an active brand, fall back to the
+  // org-level brands list.
   const openCredentials = useCallback(() => {
     push(
       hasActiveBrand
-        ? activeHref('/settings/accounts')
-        : orgHref('/settings/brands'),
+        ? activeHref(APP_ROUTES.SETTINGS.PROFILE)
+        : orgHref(APP_ROUTES.SETTINGS.BRANDS),
     );
   }, [activeHref, hasActiveBrand, orgHref, push]);
 
@@ -583,6 +542,7 @@ export function useModalPostBatch(props: ModalPostBatchProps) {
   ]);
 
   // Auto-refresh expired tokens when modal opens
+  // use-effect-audit: ignore refreshes expired platform credentials once when the modal opens
   useEffect(() => {
     if (
       !credentials ||

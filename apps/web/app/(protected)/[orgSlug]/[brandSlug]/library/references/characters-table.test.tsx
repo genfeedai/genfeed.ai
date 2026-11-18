@@ -245,4 +245,46 @@ describe('CharactersTable', () => {
       }),
     ).toHaveAttribute('href', '/acme/main/library/assets?characters=p1');
   });
+
+  it('hides management actions in the row and the sidebar for a character the brand cannot manage', () => {
+    const anna = {
+      handle: 'anna',
+      id: 'p1',
+      label: 'Anna',
+      referenceIngredientIds: [],
+    };
+    render(
+      <ContextSidebarProvider>
+        <CharactersTable
+          canManageCharacter={() => false}
+          canManageSharing
+          characters={[anna]}
+          isLoading={false}
+          onManageAvailability={vi.fn()}
+          onManageReferences={vi.fn()}
+        />
+        <ContextSidebarOutlet testId="rail" />
+      </ContextSidebarProvider>,
+    );
+
+    expect(
+      screen.queryByRole('button', { name: 'Manage references for Anna' }),
+    ).toBeNull();
+    expect(
+      screen.queryByRole('button', { name: 'Manage availability for Anna' }),
+    ).toBeNull();
+
+    fireEvent.click(screen.getByText('@anna'));
+
+    const rail = within(screen.getByTestId('rail'));
+    expect(
+      rail.queryByRole('button', { name: 'Manage references for Anna' }),
+    ).toBeNull();
+    expect(
+      rail.queryByRole('button', { name: 'Manage availability for Anna' }),
+    ).toBeNull();
+    expect(
+      rail.getByRole('link', { name: 'View assets made with Anna in Library' }),
+    ).toBeInTheDocument();
+  });
 });

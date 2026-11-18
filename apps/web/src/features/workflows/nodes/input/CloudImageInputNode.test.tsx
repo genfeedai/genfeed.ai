@@ -152,6 +152,9 @@ describe('CloudImageInputNode', () => {
     fireEvent.change(screen.getByLabelText('Image URL'), {
       target: { value: ' https://example.test/next.png ' },
     });
+    expect(screen.getByLabelText('Image URL')).toHaveValue(
+      ' https://example.test/next.png ',
+    );
     fireEvent.click(screen.getByText('Load URL'));
     expect(mocks.updateNodeData).toHaveBeenCalledWith(
       'image-node',
@@ -215,6 +218,8 @@ describe('CloudImageInputNode', () => {
       />,
     );
 
+    expect(screen.getByText('Select Reference')).toBeVisible();
+    expect(screen.queryByText('Select Media')).not.toBeInTheDocument();
     fireEvent.click(screen.getByText('Select Reference'));
     expect(mocks.openPicker).toHaveBeenCalledWith(
       expect.objectContaining({

@@ -29,6 +29,7 @@ import { VideoReferenceUrlService } from '@api/collections/videos/services/video
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
 import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
+import { HiggsFieldPollQueueService } from '@api/queues/higgsfield-poll/higgsfield-poll-queue.service';
 import { ReplicatePollQueueService } from '@api/queues/replicate-poll/replicate-poll-queue.service';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
@@ -283,6 +284,10 @@ async function fixture(preparedText: string) {
         useValue: {
           publishBackgroundTaskUpdate: vi.fn().mockResolvedValue(undefined),
         },
+      },
+      {
+        provide: HiggsFieldPollQueueService,
+        useValue: { schedule: vi.fn() },
       },
       {
         provide: ReplicatePollQueueService,

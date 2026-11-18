@@ -187,6 +187,7 @@ describe('RemixClient', () => {
       {
         debug: () => undefined,
         error: () => undefined,
+        warn: () => undefined,
       } as unknown as LoggerService,
       { axiosRef: { create: () => http } } as unknown as HttpService,
       { get: () => undefined } as unknown as ConfigService,

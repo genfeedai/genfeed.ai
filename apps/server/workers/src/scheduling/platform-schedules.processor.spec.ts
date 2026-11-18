@@ -1,4 +1,7 @@
+import { PlatformAccountTaskHandlers } from '@workers/scheduling/platform-account-task-handlers.service';
 import { PlatformMediaSchedulesService } from '@workers/scheduling/platform-media-schedules.service';
+import { PlatformMediaTaskHandlers } from '@workers/scheduling/platform-media-task-handlers.service';
+import { PlatformPublishingTaskHandlers } from '@workers/scheduling/platform-publishing-task-handlers.service';
 import { PlatformRecoverySchedulesService } from '@workers/scheduling/platform-recovery-schedules.service';
 import {
   PLATFORM_SCHEDULE_CATALOG,
@@ -25,6 +28,7 @@ describe('PlatformSchedulesProcessor', () => {
   const credentials = { refreshExpiringTokens: handler() };
   const engagement = { processArmedRules: handler() };
   const falModels = { refreshRegistryModels: handler() };
+  const higgsfieldModels = { discoverModels: handler() };
   const ingredients = {
     checkStuckProcessingIngredients: handler(),
     refreshMissingMetadataDimensions: handler(),
@@ -37,12 +41,15 @@ describe('PlatformSchedulesProcessor', () => {
   const brandRelocations = { recover: handler() };
   const mediaDeliveryRecovery = { recoverMedia: handler() };
   const brandedDispatchRecovery = { recoverExpiredDispatches: handler() };
+  const notificationRetention = { purgeExpiredNotifications: handler() };
   const oauthClientCleanup = { deleteAbandonedClients: handler() };
   const patterns = { computeDailyPatterns: handler() };
   const posts = { publishScheduledPosts: handler() };
+  const manualPostReminders = { sendDueReminders: handler() };
   const queueMetrics = { publishQueueMetrics: handler() };
   const credits = {
     expireFreeTrials: handler(),
+    grantLifetimeDealCredits: handler(),
     renewCreatorSubscriptions: handler(),
     settleReferralRewards: handler(),
   };
@@ -59,7 +66,10 @@ describe('PlatformSchedulesProcessor', () => {
     reconcileEditorRenders: handler(),
     reconcileRawCutClips: handler(),
   };
-  const workflowArtifacts = { queueExpiredArtifactCleanup: handler() };
+  const workflowArtifacts = {
+    purgeExpiredExecutions: handler(),
+    queueExpiredArtifactCleanup: handler(),
+  };
   const xReplyWatch = { watchRecentPostReplies: handler() };
   const externalVoiceCatalog = { syncFromProviders: handler() };
   const avatarTwins = { trackWaitingTwins: handler() };
@@ -140,7 +150,15 @@ describe('PlatformSchedulesProcessor', () => {
         PLATFORM_SCHEDULED_TASKS.FAL_MODEL_DISCOVERY,
         falModels.refreshRegistryModels,
       ],
+      [
+        PLATFORM_SCHEDULED_TASKS.HIGGSFIELD_MODEL_DISCOVERY,
+        higgsfieldModels.discoverModels,
+      ],
       [PLATFORM_SCHEDULED_TASKS.FREE_TRIAL_EXPIRY, credits.expireFreeTrials],
+      [
+        PLATFORM_SCHEDULED_TASKS.LIFETIME_DEAL_CREDIT_GRANT,
+        credits.grantLifetimeDealCredits,
+      ],
       [
         PLATFORM_SCHEDULED_TASKS.GLOBAL_TRENDS_REFRESH,
         trends.refreshGlobalTrends,
@@ -178,6 +196,10 @@ describe('PlatformSchedulesProcessor', () => {
         brandedDispatchRecovery.recoverExpiredDispatches,
       ],
       [
+        PLATFORM_SCHEDULED_TASKS.NOTIFICATION_RETENTION,
+        notificationRetention.purgeExpiredNotifications,
+      ],
+      [
         PLATFORM_SCHEDULED_TASKS.OAUTH_CLIENT_CLEANUP,
         oauthClientCleanup.deleteAbandonedClients,
       ],
@@ -188,6 +210,10 @@ describe('PlatformSchedulesProcessor', () => {
       [
         PLATFORM_SCHEDULED_TASKS.PENDING_WORKFLOW_EXECUTION_RECONCILE,
         workflowSchedules.reconcilePendingExecutions,
+      ],
+      [
+        PLATFORM_SCHEDULED_TASKS.POSTS_MANUAL_POST_REMINDERS,
+        manualPostReminders.sendDueReminders,
       ],
       [PLATFORM_SCHEDULED_TASKS.POSTS_PUBLISH, posts.publishScheduledPosts],
       [
@@ -234,6 +260,10 @@ describe('PlatformSchedulesProcessor', () => {
         workflowArtifacts.queueExpiredArtifactCleanup,
       ],
       [
+        PLATFORM_SCHEDULED_TASKS.WORKFLOW_EXECUTION_PURGE,
+        workflowArtifacts.purgeExpiredExecutions,
+      ],
+      [
         PLATFORM_SCHEDULED_TASKS.WORKFLOW_CONTINUATION_RECONCILE,
         workflowSchedules.reconcileContinuations,
       ],
@@ -274,14 +304,7 @@ describe('PlatformSchedulesProcessor', () => {
     config.isDevSchedulersEnabled = true;
     processor = new PlatformSchedulesProcessor(
       config as never,
-      turboRun as never,
-      credentials as never,
-      engagement as never,
-      falModels as never,
-      ingredients as never,
-      mediaPerception as never,
-      modelDeprecation as never,
-      replicateModels as never,
+      logger as never,
       new PlatformRecoverySchedulesService(
         notificationRecovery as never,
         brandRelocations as never,
@@ -290,33 +313,49 @@ describe('PlatformSchedulesProcessor', () => {
         knowledgeConflicts as never,
         newsletterSends as never,
       ),
-      patterns as never,
-      posts as never,
-      queueMetrics as never,
-      credits as never,
-      reviewGate as never,
-      rss as never,
-      socialSourceResync as never,
-      streaks as never,
-      tiktok as never,
-      transcripts as never,
-      trends as never,
-      new PlatformMediaSchedulesService(
-        video as never,
-        crun as never,
-        avatarTwins as never,
-      ),
-      workflowArtifacts as never,
-      youtubeMessages as never,
-      youtubeStatus as never,
-      logger as never,
-      lifecycleEmails as never,
-      threadComments as never,
-      oauthClientCleanup as never,
-      brandedDispatchRecovery as never,
       workflowSchedules as never,
-      xReplyWatch as never,
-      externalVoiceCatalog as never,
+      new PlatformMediaTaskHandlers(
+        turboRun as never,
+        falModels as never,
+        higgsfieldModels as never,
+        ingredients as never,
+        mediaPerception as never,
+        modelDeprecation as never,
+        replicateModels as never,
+        transcripts as never,
+        workflowArtifacts as never,
+        externalVoiceCatalog as never,
+        new PlatformMediaSchedulesService(
+          video as never,
+          crun as never,
+          avatarTwins as never,
+        ),
+      ),
+      new PlatformPublishingTaskHandlers(
+        posts as never,
+        manualPostReminders as never,
+        threadComments as never,
+        tiktok as never,
+        youtubeMessages as never,
+        youtubeStatus as never,
+        xReplyWatch as never,
+        rss as never,
+        socialSourceResync as never,
+        engagement as never,
+        patterns as never,
+        trends as never,
+        streaks as never,
+        reviewGate as never,
+        brandedDispatchRecovery as never,
+      ),
+      new PlatformAccountTaskHandlers(
+        credits as never,
+        credentials as never,
+        lifecycleEmails as never,
+        notificationRetention as never,
+        oauthClientCleanup as never,
+        queueMetrics as never,
+      ),
     );
   });
 

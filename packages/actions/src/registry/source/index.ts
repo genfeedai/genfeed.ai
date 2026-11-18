@@ -10,7 +10,7 @@ import { VISUAL_CODE_TOOLS } from './visual-code.tools';
 /**
  * Hand-authored schemas and metadata for curated product actions. The shard
  * names preserve the historical file organization only; surface intent lives
- * exclusively in `curated-action-catalog.ts`.
+ * exclusively in `curated-actions.catalog.ts`.
  */
 export const SOURCE_TOOLS: SourceTool[] = [
   ...VISUAL_CODE_TOOLS,

@@ -1,4 +1,4 @@
-import { unlinkStraddlingAgentThreadParents } from '@api/collections/agent-threads/utils/agent-thread-relocation.util';
+import { prepareAgentThreadsForRelocation } from '@api/collections/agent-threads/utils/agent-thread-relocation.util';
 import {
   FIRST_ORDER_TARGETS,
   SECOND_ORDER_TARGETS,
@@ -12,6 +12,7 @@ import {
 import {
   assertNoBrandOrgOrphans,
   type CascadeDelegate,
+  moveRevisionContentScope,
   resolveSecondOrderFilters,
   type SecondOrderParentIds,
 } from '@api/collections/brands/utils/brand-relocation-cascade.util';
@@ -114,8 +115,6 @@ interface RelocationTransactionResult extends RelocationReconcileResult {
   personasSharingReset: number;
   touchedWorkflowIds: string[];
 }
-
-export type { BrandRelocationMovingResource };
 
 /** Who is moving the brand, as the controller read them from the request. */
 export interface BrandRelocationActingUser {
@@ -778,7 +777,8 @@ export class BrandRelocationService {
     });
 
     await detachReferralCodesFromBrand(tx, brandId);
-    await unlinkStraddlingAgentThreadParents(tx, brandId);
+    await prepareAgentThreadsForRelocation(tx, brandId);
+    await moveRevisionContentScope(tx, brandId, sourceOrgId, destOrgId);
     // 1. The brand row itself (+ any co-patched scalar fields). The workflow
     // composite FK cascades workflow.organizationId with the brand.
     await client.brand.updateMany({

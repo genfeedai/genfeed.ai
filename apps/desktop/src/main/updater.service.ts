@@ -37,13 +37,13 @@ export class DesktopUpdaterService {
 
     autoUpdater.on('update-available', (info) => {
       this.deps.notify({
-        body: `GenFeed ${info.version} is downloading in the background.`,
+        body: `Genfeed ${info.version} is downloading in the background.`,
         title: 'Update available',
       });
     });
     autoUpdater.on('update-downloaded', (info) => {
       this.deps.notify({
-        body: `GenFeed ${info.version} will install the next time you quit.`,
+        body: `Genfeed ${info.version} will install the next time you quit.`,
         title: 'Update ready',
       });
     });

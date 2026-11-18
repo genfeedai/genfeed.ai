@@ -11,10 +11,14 @@ const context: ToolExecutionContext = {
 function makeHandler() {
   const create = vi.fn().mockResolvedValue({ id: 'tx-1' });
   const discoverConversations = vi.fn().mockResolvedValue([{ id: 'thread-2' }]);
-  const transfersService = { create, discoverConversations };
+  const discoverTeammates = vi
+    .fn()
+    .mockResolvedValue([{ name: 'Marco Rossi', userId: 'user-2' }]);
+  const transfersService = { create, discoverConversations, discoverTeammates };
   return {
     create,
     discoverConversations,
+    discoverTeammates,
     handler: new AgentTransferToolHandler(transfersService),
   };
 }
@@ -28,7 +32,10 @@ describe('AgentTransferToolHandler', () => {
     );
 
     expect(result.success).toBe(true);
-    expect(result.data).toEqual({ conversations: [{ id: 'thread-2' }] });
+    expect(result.data).toEqual({
+      conversations: [{ id: 'thread-2' }],
+      teammates: [{ name: 'Marco Rossi', userId: 'user-2' }],
+    });
     expect(discoverConversations).toHaveBeenCalledWith(
       { organizationId: 'org-1', userId: 'user-1' },
       'source-thread',

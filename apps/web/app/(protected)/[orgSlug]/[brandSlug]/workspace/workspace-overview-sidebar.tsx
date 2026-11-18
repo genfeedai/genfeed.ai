@@ -19,6 +19,7 @@ import {
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { isAppRailPathEnabled } from '@/components/shell/app-rail/app-rail.registry';
+import { useIsHrefAvailable } from '@/components/shell/use-available-rail-apps';
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import { getStudioAppForPath } from '@/config/studio-menu-items.config';
 import type { WorkspaceOverviewSidebarProps } from '@/features/workspace/props/workspace-overview-sidebar.props';
@@ -51,10 +52,12 @@ export function WorkspaceOverviewSidebar({
   const advancedTools = useAdvancedTools();
   const librarySnapshotLinks = useLibrarySnapshotLinks();
   const { flags } = useFeatureFlagContext();
+  const isHrefAvailable = useIsHrefAvailable();
   const availableAdvancedTools = advancedTools.filter(
     (tool) =>
-      !getStudioAppForPath(tool.href) ||
-      (isStudioEnabled && isAppRailPathEnabled(tool.href, flags)),
+      isHrefAvailable(tool.href) &&
+      (!getStudioAppForPath(tool.href) ||
+        (isStudioEnabled && isAppRailPathEnabled(tool.href, flags))),
   );
   const taskStreamContent =
     isTasksLoading && inProgressTasks.length === 0 ? (

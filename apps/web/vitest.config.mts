@@ -117,6 +117,11 @@ export default mergeConfig(
       // clearMocks resets call history only (return values/impls survive), so
       // it's safe for beforeAll-configured mocks; unstub* only undo vi.stub*.
       clearMocks: true,
+      // Files share a worker instead of each getting a fresh module graph, so
+      // the app's import graph is transformed and evaluated once per worker.
+      // `vitest.setup.ts` resets the module registry, timers, stubs, spies and
+      // `process.env` before each file's own imports run.
+      isolate: false,
       setupFiles: [path.resolve(__dirname, './vitest.setup.ts')],
       unstubEnvs: true,
       unstubGlobals: true,

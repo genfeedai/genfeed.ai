@@ -11,6 +11,7 @@ import {
 import { lockPersonaHandleScope } from '@api/collections/personas/utils/persona-handle-lock.util';
 import {
   CACHE_PATTERNS,
+  CACHE_TAGS,
   SCOPED_CACHE_TAGS,
 } from '@api/common/constants/cache-patterns.constants';
 import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
@@ -168,6 +169,13 @@ export class BrandLifecycleService {
         paginatedQueryCacheTag('brand'),
       ]);
     }
+
+    // Public brand and post responses are cached for up to an hour and a cache
+    // hit skips the visibility query, so a deleted brand would stay readable.
+    // Guarded: a fill that began before the delete must not store afterwards.
+    await this.cacheService?.invalidateGuardedTags([
+      CACHE_TAGS.PUBLIC_BRAND_CONTENT,
+    ]);
 
     // Invalidate single-brand cache key.
     await this.cacheInvalidationService.invalidate(

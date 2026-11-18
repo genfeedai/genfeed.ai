@@ -7,7 +7,7 @@ export interface BasePaginationQuery {
 }
 
 // Fields shared by every Prisma-backed entity.
-export interface BaseEntity {
+interface BaseEntity {
   id: string;
   createdAt: Date;
   updatedAt: Date;
@@ -19,85 +19,3 @@ export type EntityDocument<T> = T &
   BaseEntity & {
     [key: string]: unknown;
   };
-
-// API Response wrapper
-export interface ApiResponse<T = unknown> {
-  success: boolean;
-  data?: T;
-  message?: string;
-  error?: string;
-  meta?: PaginationMeta;
-}
-
-export interface PaginationMeta {
-  page: number;
-  limit: number;
-  total: number;
-  totalPages: number;
-  hasNextPage: boolean;
-  hasPrevPage: boolean;
-}
-
-// Generic query filters
-export interface QueryFilters {
-  search?: string;
-  status?: string; // Use domain-specific status enums in actual usage
-  type?: string;
-  userId?: string;
-  organizationId?: string;
-  isDeleted?: boolean;
-  createdAfter?: Date;
-  createdBefore?: Date;
-  updatedAfter?: Date;
-  updatedBefore?: Date;
-}
-
-export interface BulkOperationResult {
-  success: boolean;
-  totalProcessed: number;
-  successful: number;
-  failed: number;
-  errors?: string[];
-}
-
-export interface FileUploadResult {
-  filename: string;
-  originalName: string;
-  size: number;
-  mimeType: string;
-  url: string;
-  key?: string;
-}
-
-// Service operation context
-export interface OperationContext {
-  userId: string;
-  organizationId?: string;
-  requestId?: string;
-  userAgent?: string;
-  ipAddress?: string;
-}
-
-// Generic update result
-export interface UpdateResult {
-  modifiedCount: number;
-  matchedCount: number;
-  acknowledged: boolean;
-}
-
-export interface ErrorDetails {
-  code: string;
-  message: string;
-  field?: string;
-  value?: unknown;
-  timestamp: string;
-}
-
-export interface WebhookPayload<T = unknown> {
-  id: string;
-  type: string;
-  timestamp: string;
-  data: T;
-  source: string;
-  version: string;
-}

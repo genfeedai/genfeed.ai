@@ -1,10 +1,10 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
-import type { MemberDocument } from '@api/collections/members/schemas/member.schema';
 import { MembersService } from '@api/collections/members/services/members.service';
 import type { IRequestContext } from '@api/common/interfaces/request-context.interface';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { PopulateBuilder } from '@api/shared/utils/populate/populate.util';
 import { hasExplicitApiKeyAdminScope, MemberRole } from '@genfeedai/contracts';
+import type { Member } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Controller, Get, Req } from '@nestjs/common';
 
@@ -121,7 +121,7 @@ export class AuthWhoamiController {
           userId: String(userId),
         },
         [PopulateBuilder.withFields('role', ['id', 'key', 'label'])],
-      )) as (MemberDocument & { role?: { key?: string } | null }) | null;
+      )) as (Member & { role?: { key?: string } | null }) | null;
 
       return member?.role?.key ?? '';
     } catch (error: unknown) {

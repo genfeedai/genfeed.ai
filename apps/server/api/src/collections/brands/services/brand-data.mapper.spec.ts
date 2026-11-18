@@ -5,7 +5,10 @@ import type {
   MergedBrandAnalysis,
   XProfileScrapedData,
 } from '@api/services/brand-scraper/interfaces/brand-scraper.interfaces';
-import type { IExtractedBrandData } from '@genfeedai/contracts/interfaces';
+import type {
+  IBrandVoiceAnalysis,
+  IExtractedBrandData,
+} from '@genfeedai/contracts/interfaces';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { BrandDataMapper } from './brand-data.mapper';
 
@@ -365,6 +368,41 @@ describe('BrandDataMapper', () => {
         platforms: ['linkedin'],
         topics: ['AI workflows'],
       });
+    });
+  });
+
+  describe('mergeExtractedVoice offers', () => {
+    const analysis: IBrandVoiceAnalysis = {
+      audience: 'founders',
+      hashtags: [],
+      taglines: [],
+      tone: 'direct',
+      values: [],
+      voice: 'concise',
+    };
+    const extract = (brandVoice: IBrandVoiceAnalysis) =>
+      ({
+        brandVoice,
+        scrapedAt: new Date(),
+        sourceUrl: 'https://acme.com',
+      }) as IExtractedBrandData;
+
+    it('saves the offers the page names', () => {
+      const result = mapper.mergeExtractedVoice(
+        { strategy: { platforms: ['linkedin'] } },
+        extract({ ...analysis, offers: ['Anvils', 'Anvil repair'] }),
+      );
+
+      expect(result.strategy?.offers).toEqual(['Anvils', 'Anvil repair']);
+    });
+
+    it('keeps the saved offers when the page names none', () => {
+      const result = mapper.mergeExtractedVoice(
+        { strategy: { offers: ['Anvils'] } },
+        extract({ ...analysis, offers: [] }),
+      );
+
+      expect(result.strategy?.offers).toEqual(['Anvils']);
     });
   });
 

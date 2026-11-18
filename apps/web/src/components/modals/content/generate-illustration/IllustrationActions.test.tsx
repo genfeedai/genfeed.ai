@@ -8,6 +8,12 @@ vi.mock('@genfeedai/hooks/navigation/use-org-url', () => ({
   }),
 }));
 
+vi.mock('@/components/shell/use-available-rail-apps', () => ({
+  useHasAppsBeyondDashboard: () => true,
+  useIsAppAvailable: () => true,
+  useIsHrefAvailable: () => () => true,
+}));
+
 describe('IllustrationActions', () => {
   it('scopes the Agent link to the current brand instead of bare /agent/new', () => {
     render(

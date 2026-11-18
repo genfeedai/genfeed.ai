@@ -12,17 +12,20 @@ import {
   validateTikTokPublishingSettings,
 } from '@genfeedai/contracts/api-types/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
+import { viewerKeyPart } from '@genfeedai/hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import { ReleaseGroupsService } from '@genfeedai/services/content/release-groups.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import { ServicesService } from '@genfeedai/services/external/services.service';
+import { useQuery } from '@tanstack/react-query';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import FormControl from '@ui/primitives/field';
 import { SelectField } from '@ui/primitives/select';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { TikTokPublishingSettingsProps } from '@/features/posts/props/tiktok-publishing.props';
 
 export default function TikTokPublishingSettings({
@@ -32,17 +35,14 @@ export default function TikTokPublishingSettings({
   isEmbedded = false,
 }: TikTokPublishingSettingsProps) {
   const translate = useTranslations('ui.tiktokPublishing');
-  const [capabilities, setCapabilities] =
-    useState<TikTokPublishingCapabilities | null>(null);
   const [settings, setSettings] = useState<Record<string, unknown>>(() =>
     post.targetSettings?.musicUsageAccepted === true
       ? { ...post.targetSettings }
       : {},
   );
-  const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const requestRef = useRef<AbortController | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const { orgId, userId } = useAuthIdentity();
   const getTikTokService = useAuthedService(
     (token) => new ServicesService('tiktok', token),
   );
@@ -51,38 +51,45 @@ export default function TikTokPublishingSettings({
   );
   const credentialId = post.credentialId ?? post.credential?.id;
 
-  const refreshCapabilities = useCallback(async () => {
-    requestRef.current?.abort();
-    const controller = new AbortController();
-    requestRef.current = controller;
-    setIsLoading(true);
-    setCapabilities(null);
-    setError(null);
-    try {
+  // The creator's limits come from TikTok at this moment, so every mount asks
+  // again and nothing is kept once the form closes.
+  const capabilitiesQuery = useQuery({
+    enabled: Boolean(userId),
+    gcTime: 0,
+    queryFn: async ({ signal }): Promise<TikTokPublishingCapabilities> => {
       if (!credentialId) throw new Error(translate('connectAccount'));
       const service = await getTikTokService();
-      if (controller.signal.aborted) return;
       const credential = await service.refreshAuthorizedSignals(
         credentialId,
-        controller.signal,
+        signal,
       );
       const latest = readTikTokPublishingCapabilities(credential.warmupSignals);
       if (!latest) throw new Error(translate('capabilitiesUnavailable'));
-      if (!controller.signal.aborted) setCapabilities(latest);
-    } catch (failure) {
-      if (!controller.signal.aborted)
-        setError(
-          failure instanceof Error ? failure.message : translate('loadFailed'),
-        );
-    } finally {
-      if (!controller.signal.aborted) setIsLoading(false);
-    }
-  }, [credentialId, getTikTokService, translate]);
-
-  useEffect(() => {
-    void refreshCapabilities();
-    return () => requestRef.current?.abort();
-  }, [refreshCapabilities]);
+      return latest;
+    },
+    queryKey: [
+      'tiktok-publishing-capabilities',
+      credentialId ?? null,
+      viewerKeyPart(userId, orgId),
+    ],
+    refetchOnWindowFocus: false,
+    retry: false,
+    staleTime: 0,
+  });
+  const isLoading = capabilitiesQuery.isPending || capabilitiesQuery.isFetching;
+  // A refresh drops the creator shown until the new answer lands.
+  const capabilities = isLoading ? null : (capabilitiesQuery.data ?? null);
+  const error =
+    saveError ??
+    (capabilitiesQuery.isError
+      ? capabilitiesQuery.error instanceof Error
+        ? capabilitiesQuery.error.message
+        : translate('loadFailed')
+      : null);
+  function refreshCapabilities() {
+    setSaveError(null);
+    void capabilitiesQuery.refetch();
+  }
 
   const selectedPrivacy =
     typeof settings.privacyLevel === 'string' ? settings.privacyLevel : '';
@@ -132,6 +139,7 @@ export default function TikTokPublishingSettings({
     isDurationValid &&
     issues.length === 0 &&
     isSaved;
+  // use-effect-audit: ignore reports readiness to the parent and clears it on unmount
   useEffect(() => {
     onReadinessChange?.(isReady);
     return () => onReadinessChange?.(false);
@@ -153,7 +161,7 @@ export default function TikTokPublishingSettings({
   async function save() {
     if (!capabilities || issues.length || !hasVideo || !isDurationValid) return;
     setIsSaving(true);
-    setError(null);
+    setSaveError(null);
     try {
       const service = await getReleasesService();
       const release = await service.ensureFromPost(post.id);
@@ -170,7 +178,7 @@ export default function TikTokPublishingSettings({
       await onSaved?.();
       NotificationsService.getInstance().success(translate('saved'));
     } catch (failure) {
-      setError(
+      setSaveError(
         failure instanceof Error ? failure.message : translate('saveFailed'),
       );
     } finally {
@@ -203,7 +211,7 @@ export default function TikTokPublishingSettings({
         <Button
           label={translate('refresh')}
           variant={ButtonVariant.SECONDARY}
-          onClick={() => void refreshCapabilities()}
+          onClick={refreshCapabilities}
         />
       ) : null}
       {capabilities ? (

@@ -438,6 +438,21 @@ describe('RedisCacheInterceptor', () => {
       });
     });
 
+    it('should return a missed result without waiting for the cache write', async () => {
+      const cacheOptions: CacheOptions = { ttl: 300 };
+      reflector.get.mockReturnValue(cacheOptions);
+      cacheService.get.mockResolvedValue(null);
+      cacheService.set.mockReturnValue(new Promise<boolean>(() => undefined));
+
+      const result$ = await interceptor.intercept(
+        mockExecutionContext,
+        mockCallHandler,
+      );
+      const value = await new Promise((resolve) => result$.subscribe(resolve));
+
+      expect(value).toEqual({ data: 'test' });
+    });
+
     it('should handle cache set errors gracefully', async () => {
       const cacheOptions: CacheOptions = { ttl: 300 };
       reflector.get.mockReturnValue(cacheOptions);

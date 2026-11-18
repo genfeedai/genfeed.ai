@@ -10,7 +10,7 @@ function positiveNumber(value: unknown): number | null {
     : null;
 }
 
-export function metadataRecord(
+function metadataRecord(
   metadata: LibraryItem['metadata'],
 ): Partial<IMetadata> | null {
   if (!metadata || typeof metadata === 'string') {

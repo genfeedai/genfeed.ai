@@ -43,6 +43,8 @@ export class ClipperAvatarBillingService {
         MODEL_KEYS.HEYGEN_AVATAR,
         MODEL_KEYS.HEYGEN_AVATAR_IV,
         MODEL_KEYS.HEYGEN_AVATAR_V,
+        MODEL_KEYS.HEYGEN_AVATAR_6,
+        MODEL_KEYS.HEYGEN_AVATAR_6_TURBO,
       ].some((modelKey) => modelKey === input.plan.selection.modelKey)
     )
       throw new ServiceUnavailableException({

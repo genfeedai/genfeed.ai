@@ -25,3 +25,22 @@ describe('Claude endpoint routing', () => {
     },
   );
 });
+
+describe('Admin endpoint routing', () => {
+  it.each(['/mcp/admin', '/mcp/admin/', '/MCP/ADMIN'])(
+    'assigns the admin route %s before authentication',
+    (path) => {
+      const req = { path, query: {} } as unknown as McpRequest;
+      const next = vi.fn();
+      mcpAccessModeMiddleware(req, {} as Response, next);
+      expect(req.routeAccessMode).toBe('admin');
+      expect(next).toHaveBeenCalledOnce();
+    },
+  );
+
+  it('keeps /mcp standard', () => {
+    const req = { path: '/mcp', query: {} } as unknown as McpRequest;
+    mcpAccessModeMiddleware(req, {} as Response, vi.fn());
+    expect(req.routeAccessMode).toBe('standard');
+  });
+});

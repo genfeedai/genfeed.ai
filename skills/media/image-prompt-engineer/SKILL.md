@@ -5,6 +5,10 @@ license: MIT
 metadata:
   author: genfeedai
   version: 1.0.0
+  short-description: "Craft optimized prompts for AI image and short video generation"
+  tags: image-generation, prompt-engineering, ai-art, creative, flux, dall-e, midjourney
+  outputs: text
+  triggers: "write an image prompt; create a prompt for; optimize this image prompt; write a video prompt; create a video prompt; prompt for flux; prompt for dall-e; prompt for midjourney; generate image prompt; improve this prompt; visual prompt; Genfeed prompt"
 ---
 
 # Image Prompt Engineer

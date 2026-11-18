@@ -12,7 +12,7 @@ export default function ProductBenefits({ benefits }: Props) {
   return (
     <section className="max-w-6xl mx-auto pb-20">
       <Heading size="2xl" className="text-center mb-12">
-        Problems We Solve
+        Problems we solve
       </Heading>
       <div className="flex flex-col gap-6">
         {benefits.map((benefit) => (
@@ -21,7 +21,7 @@ export default function ProductBenefits({ benefits }: Props) {
               <div>
                 <div className="flex items-start gap-2 mb-2">
                   <X className="size-5 text-destructive mt-1 flex-shrink-0" />
-                  <Text weight="bold" className="text-destructive">
+                  <Text weight="semibold" className="text-destructive">
                     Problem
                   </Text>
                 </div>
@@ -32,7 +32,7 @@ export default function ProductBenefits({ benefits }: Props) {
               <div>
                 <div className="flex items-start gap-2 mb-2">
                   <Check className="size-5 text-success mt-1 flex-shrink-0" />
-                  <Text weight="bold" className="text-success">
+                  <Text weight="semibold" className="text-success">
                     Solution
                   </Text>
                 </div>

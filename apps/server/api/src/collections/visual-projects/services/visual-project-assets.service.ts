@@ -6,11 +6,13 @@ import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { stampIngredientGenerationEntry } from '@api/collections/ingredients/utils/ingredient-generation-entry.util';
 import { VisualProjectAuthorizationService } from '@api/collections/visual-projects/services/visual-project-authorization.service';
+import { VisualProjectBrandContextService } from '@api/collections/visual-projects/services/visual-project-brand-context.service';
 import {
   BrandRenderEvidenceService,
   RENDER_EVIDENCE_KEY,
 } from '@api/services/brand-render-evidence/brand-render-evidence.service';
 import { BrandRenderFontStagingService } from '@api/services/brand-render-evidence/brand-render-font-staging.service';
+import { BrandRenderLogoStagingService } from '@api/services/brand-render-evidence/brand-render-logo-staging.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   IngredientCategory,
@@ -52,7 +54,7 @@ const allowedCategories = new Set<string>([
   IngredientCategory.MUSIC,
   IngredientCategory.VOICE,
 ]);
-export function visualOutputId(
+function visualOutputId(
   label: string,
   revision: VisualRevision,
   index: number,
@@ -79,6 +81,8 @@ export class VisualProjectAssetsService {
     private readonly ingredients: IngredientsService,
     private readonly renderEvidence: BrandRenderEvidenceService,
     private readonly brandFonts: BrandRenderFontStagingService,
+    private readonly brandLogos: BrandRenderLogoStagingService,
+    private readonly brandContext: VisualProjectBrandContextService,
   ) {}
   async authorize(user: AuthenticatedUser, brandId: string, ids: string[]) {
     await this.authorization.authorizeBrand(user, brandId);
@@ -154,11 +158,28 @@ export class VisualProjectAssetsService {
       });
       if (fonts.assets.some((font) => ids.includes(font.id)))
         throw new ConflictException('visual_brand_font_id_collision');
-      if (total + fonts.totalBytes > VISUAL_CODE_STAGED_BYTES)
+      // The approved logos travel too: a brand logo is a Brand OS asset, not an
+      // ingredient, so the revision's source assets never name it.
+      const logos = await this.brandLogos.stage(
+        { organizationId: revision.organizationId, brandId: revision.brandId },
+        await this.brandContext.stagedLogos(revision, ids),
+      );
+      if (
+        logos.assets.some(
+          (logo) =>
+            ids.includes(logo.id) ||
+            fonts.assets.some((font) => font.id === logo.id),
+        )
+      )
+        throw new ConflictException('visual_brand_logo_id_collision');
+      if (
+        total + fonts.totalBytes + logos.totalBytes >
+        VISUAL_CODE_STAGED_BYTES
+      )
         throw new UnprocessableEntityException(
           'visual_source_assets_too_large',
         );
-      return [...results, ...fonts.assets];
+      return [...results, ...logos.assets, ...fonts.assets];
     } finally {
       await rm(directory, { recursive: true, force: true });
     }
@@ -272,6 +293,18 @@ export class VisualProjectAssetsService {
     });
     return fonts.map((font) => font.assetId);
   }
+  /** Logos credit like fonts: only those this render's brand could stage. */
+  private async brandLogoAssetIds(
+    revision: VisualRevision,
+    media: IVisualSandboxMedia[],
+  ): Promise<string[]> {
+    if (media.every((item) => item.evidence === undefined)) return [];
+    const logos = await this.brandContext.stagedLogos(
+      revision,
+      z.array(z.string()).parse(revision.sourceAssetIds),
+    );
+    return logos.map((logo) => logo.assetId);
+  }
   async commit(
     user: AuthenticatedUser,
     revision: VisualRevision,
@@ -290,6 +323,7 @@ export class VisualProjectAssetsService {
     const evidence = this.renderEvidence.forRender({
       ...revision,
       brandFontAssetIds: await this.brandFontAssetIds(user, revision, media),
+      brandLogoAssetIds: await this.brandLogoAssetIds(revision, media),
     });
     for (const [index, item] of media.entries()) {
       const bytes = Buffer.from(item.bytes, 'base64');

@@ -16,7 +16,7 @@ import { orgPath } from '../../utils/app-chrome';
  */
 
 const API_KEYS = createPlaywrightMockApiRoutePattern('api-keys(?:[/?]|$)');
-const CONNECT_HREF = orgPath(APP_ROUTES.CONNECT);
+const CONNECT_HREF = orgPath(APP_ROUTES.CONNECTORS.AGENTS);
 
 test.describe('Dashboard connect card', () => {
   test.beforeEach(async ({ authenticatedPage }) => {

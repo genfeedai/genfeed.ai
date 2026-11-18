@@ -3,6 +3,7 @@ import {
   conditionNode,
 } from '@api/collections/workflows/services/workflow-definition-nodes';
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-runner.service';
+import { SystemWorkflowRetention } from '@api/collections/workflows/workflow-execution-retention.contract';
 
 export const STREAK_MAINTENANCE_ACTION_IDS = {
   APPLY_FREEZE: 'streak.record.apply-freeze',
@@ -15,7 +16,7 @@ export const STREAK_MAINTENANCE_ACTION_IDS = {
   NOTIFY_FREEZE: 'streak.record.notify-freeze',
 } as const;
 
-export const STREAK_MAINTENANCE_WORKFLOW_IDS = {
+const STREAK_MAINTENANCE_WORKFLOW_IDS = {
   ORGANIZATION: 'streak.organization.process',
   RECORD: 'streak.record.process',
   SWEEP: 'streak.sweep',
@@ -67,6 +68,7 @@ export function buildStreakSweepWorkflowDefinition(): SystemWorkflowGraphDefinit
       'Discovers organizations with streaks and runs maintenance for each.',
     label: 'Streak Maintenance Sweep',
     resultNodeId: 'process-organizations',
+    retention: SystemWorkflowRetention.BACKGROUND,
     version: 1,
   };
 }
@@ -111,6 +113,7 @@ export function buildStreakOrganizationWorkflowDefinition(): SystemWorkflowGraph
       'Discovers live streak records and fans each into atomic maintenance.',
     label: 'Process Organization Streaks',
     resultNodeId: 'process-records',
+    retention: SystemWorkflowRetention.BACKGROUND,
     version: 1,
   };
 }
@@ -219,6 +222,7 @@ export function buildStreakRecordWorkflowDefinition(): SystemWorkflowGraphDefini
       'Evaluates one streak record, applies its state transition, and sends its notification.',
     label: 'Process Streak Record',
     resultNodeId: 'evaluate',
+    retention: SystemWorkflowRetention.BACKGROUND,
     version: 1,
   };
 }

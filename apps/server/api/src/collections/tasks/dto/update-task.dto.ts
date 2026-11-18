@@ -8,7 +8,7 @@ import { CreateTaskDto } from './create-task.dto';
  * dismiss), preserving its side effects (event stream, realtime broadcast,
  * feedback-memory capture) — rather than a plain field write.
  */
-export const TASK_REVIEW_STATE_TRANSITIONS = [
+const TASK_REVIEW_STATE_TRANSITIONS = [
   'approved',
   'changes_requested',
   'dismissed',

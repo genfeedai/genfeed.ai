@@ -1,3 +1,4 @@
+import { agentClients } from '@data/agent-clients.data';
 import {
   FREE_API_RATE_LIMIT,
   IMAGE_CREDIT_COSTS,
@@ -28,14 +29,33 @@ const FAQ_ITEMS_GENERAL: FAQItem[] = [
   },
   {
     answer:
-      'Genfeed is built for content creators, agencies, marketers, and founders who need to create and distribute content at scale while tracking actual business results (not just vanity metrics).',
+      'No. Genfeed makes and manages everything you publish: short-form video, images, ads, posts and threads, articles, newsletters, presenter video and voice. It also covers what comes before and after the file: trends, scheduling, publishing and analytics.',
+    question: 'Is Genfeed only for video?',
+  },
+  {
+    answer: `Genfeed has MCP setup guides for ${agentClients.map((client) => client.name).join(', ')}. Each agent has its own setup page on this site, and the dashboard shows what your agent made.`,
+    question: 'Which agents work with Genfeed?',
+  },
+  {
+    answer:
+      'Agents other than Claude, Claude Code and Claude Cowork can generate images and video through MCP. The Claude connector drafts, schedules and reads analytics; to generate images, video and audio in Claude, add the full Genfeed server as a second connector.',
+    question: 'Can my agent create images and video?',
+  },
+  {
+    answer:
+      'Genfeed is built for creators, agencies, marketers and founders who make and publish content across several channels and want the results in one place.',
     question: 'Who is Genfeed for?',
   },
   {
-    answer: `Sign up free and buy credits for the output you generate. Subscribe to ${PLAN_COPY.pro.name} (${PLAN_COPY.pro.priceLabel}, ${PLAN_COPY.pro.includedCredits} included) for every app in one workspace, or ${PLAN_COPY.scale.name} (${PLAN_COPY.scale.priceLabel}, ${PLAN_COPY.scale.includedCredits} included) when you run content for multiple clients and need seats, shared approvals, and multi-organization workflows.`,
+    answer: `Connect the agent you already use, or sign up free in the dashboard. You buy credits for the output you generate. Subscribe to ${PLAN_COPY.pro.name} (${PLAN_COPY.pro.priceLabel}, ${PLAN_COPY.pro.includedCredits} included) for every app in one workspace, or ${PLAN_COPY.scale.name} (${PLAN_COPY.scale.priceLabel}, ${PLAN_COPY.scale.includedCredits} included) when you run content for multiple clients and need seats, shared approvals, and multi-organization workflows.`,
     question: 'How do I get started?',
   },
 ];
+
+/** The homepage preview: scope first, then the agent questions, then the way in. */
+export const FAQ_ITEMS_HOME: FAQItem[] = FAQ_ITEMS_GENERAL.filter(
+  (item) => item.question !== 'Who is Genfeed for?',
+);
 
 /**
  * Core FAQ items for home page and quick previews
@@ -44,12 +64,12 @@ export const FAQ_ITEMS_CORE: FAQItem[] = [
   ...FAQ_ITEMS_GENERAL,
   {
     answer:
-      'Genfeed brings brand context, content generation, review, publishing and analytics into one workspace. You can use the web app or connect your own agent to the same content and channels.',
+      'Most tools start when the content already exists. Genfeed covers the full loop: trends, remix, publish and analytics, with your brand context throughout. You run it from the agent you already use, and the dashboard is where you review, publish and see what worked.',
     question: 'How is this different from other content tools?',
   },
   {
     answer:
-      'AI generation has reached the point where a small team can produce professional, on-brand content at a fraction of the old cost and effort. Genfeed puts that capability in one agent, so creators, marketers, and agencies can scale output without scaling headcount.',
+      'AI generation is now good enough for a small team to make on-brand video, images and posts without a studio. Genfeed puts that in one agent, so creators, marketers and agencies publish more without hiring more.',
     question: 'Why now? What changed?',
   },
 ];
@@ -74,7 +94,7 @@ export const FAQ_CATEGORIES: Omit<FAQCategory, 'icon'>[] = [
         question: 'What are the pricing tiers?',
       },
       {
-        answer: `Yes. API access is included on every plan at the same credit price. Generate in the studio or via code, drawing from the same credit balance. ${PLAN_COPY.payg.name} allows ${FREE_API_RATE_LIMIT} requests per minute, ${PLAN_COPY.pro.name} and ${PLAN_COPY.scale.name} get higher rate limits, and ${PLAN_COPY.enterprise.name} custom limits with an SLA.`,
+        answer: `Yes. API access is included on every plan at the same credit price. Generate from your agent, in the app or via code, drawing from the same credit balance. ${PLAN_COPY.payg.name} allows ${FREE_API_RATE_LIMIT} requests per minute, ${PLAN_COPY.pro.name} and ${PLAN_COPY.scale.name} get higher rate limits, and ${PLAN_COPY.enterprise.name} custom limits with an SLA.`,
         question: 'Is there an API?',
       },
       {
@@ -100,7 +120,7 @@ export const FAQ_CATEGORIES: Omit<FAQCategory, 'icon'>[] = [
     questions: [
       {
         answer:
-          'Genfeed supports image, video, text, voice and music models from multiple providers. Available models depend on the format, deployment and configured providers. You can choose a model in Studio or use automatic routing where supported.',
+          'Genfeed supports image, video, text, voice and music models from multiple providers. Available models depend on the format, deployment and configured providers. You can choose a model in the app, let your agent pick one, or use automatic routing where supported.',
         question: 'Which AI models do you use?',
       },
       {

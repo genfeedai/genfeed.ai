@@ -49,6 +49,7 @@ export default function AgentConnectDialog({
   );
   const trigger = useRef<HTMLElement | null>(null);
 
+  // use-effect-audit: ignore subscribes to the connect event and hashchange
   useEffect(() => {
     const show = (restoreTo?: HTMLElement | null) => {
       trigger.current =
@@ -110,7 +111,7 @@ export default function AgentConnectDialog({
         size={client ? 'xl' : 'lg'}
       >
         <DialogHeader className="pr-6 text-left">
-          <DialogTitle>Connect your agent</DialogTitle>
+          <DialogTitle>Connect Agent</DialogTitle>
           <DialogDescription>
             {client
               ? `Set up Genfeed in ${client.name}.`

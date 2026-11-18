@@ -77,6 +77,32 @@ describe('useKeepRoutesPrefetched', () => {
     expect(prefetched.hrefs).toEqual(['/acme/brand/turbo']);
   });
 
+  it('holds the first pass back for a delayed caller', async () => {
+    renderHook(() =>
+      useKeepRoutesPrefetched(['/acme/brand/rail'], { startDelayMs: 1_500 }),
+    );
+
+    await act(() => vi.advanceTimersByTimeAsync(1_000));
+    expect(prefetched.hrefs).toEqual([]);
+
+    await act(() => vi.advanceTimersByTimeAsync(600));
+    expect(prefetched.hrefs).toEqual(['/acme/brand/rail']);
+  });
+
+  it('asks for prioritized destinations after the others, so the router fetches them first', async () => {
+    renderHook(() => {
+      useKeepRoutesPrefetched(['/acme/brand/sidebar'], { isPrioritized: true });
+      useKeepRoutesPrefetched(['/acme/brand/rail']);
+    });
+
+    await act(() => vi.advanceTimersByTimeAsync(10));
+
+    expect(prefetched.hrefs).toEqual([
+      '/acme/brand/rail',
+      '/acme/brand/sidebar',
+    ]);
+  });
+
   it('stops once unmounted', async () => {
     const { unmount } = renderHook(() =>
       useKeepRoutesPrefetched(['/acme/brand/turbo']),

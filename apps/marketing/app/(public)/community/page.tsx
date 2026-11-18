@@ -27,7 +27,11 @@ import {
 } from './community-json-ld';
 import { getCommunityPageData } from './community-loader';
 
-export const revalidate = 300;
+/**
+ * Rendered on every visit from the API's cache, which an operator's feature or
+ * unpublish clears, so the change shows on the next load.
+ */
+export const dynamic = 'force-dynamic';
 
 const CLAIM_HANDLE_ID = 'claim-handle';
 
@@ -55,7 +59,7 @@ export default async function CommunityPage(): Promise<React.ReactElement> {
       </script>
       <div className="mx-auto w-full max-w-7xl px-4 pb-24 pt-12 sm:px-6">
         <header className="mx-auto mb-16 max-w-3xl text-center">
-          <p className="mb-3 text-sm font-medium uppercase tracking-widest text-foreground/50">
+          <p className="mb-3 text-sm font-medium uppercase tracking-label text-foreground/50">
             Community
           </p>
           <h1 className="mb-4 text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
@@ -127,7 +131,7 @@ export default async function CommunityPage(): Promise<React.ReactElement> {
           </section>
 
           <CreatorSection
-            href="/articles"
+            href="/community/articles"
             title="Latest articles"
             total={articles.length}
           >

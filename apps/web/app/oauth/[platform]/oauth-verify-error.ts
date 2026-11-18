@@ -7,6 +7,13 @@ const GENERIC_VERIFY_FAILURE = {
   titleKey: 'error.title',
 } as const;
 
+// The server words Google Business refusals for the customer (no locations,
+// scope not granted, Business Profile access not approved), so they are shown
+// as written instead of mapped to a catalog of codes.
+const GOOGLE_BUSINESS_PLATFORM = 'google-business';
+const GOOGLE_BUSINESS_NOT_READY_STATUS = 503;
+const GOOGLE_BUSINESS_EXPLAINED_STATUSES = [400, 502, 503];
+
 const YOUTUBE_VERIFY_COPY: Record<
   string,
   { messageKey: string; titleKey: string }
@@ -50,11 +57,41 @@ export function resolveOAuthPlatformVerifyFailure(input: {
 }): {
   canRestart: boolean;
   canRetry: boolean;
+  /** Server wording shown instead of the {@link messageKey} copy. */
+  detail?: string;
   messageKey: string;
   titleKey: string;
 } {
   const canRetry = !input.callbackSubmitted;
-  const canRestart = input.platform === 'youtube' && input.callbackSubmitted;
+  const googleBusinessMember =
+    input.platform === GOOGLE_BUSINESS_PLATFORM && !input.providerError
+      ? getJsonApiErrorMember(input.error)
+      : null;
+  const googleBusinessDetail =
+    googleBusinessMember?.detail &&
+    googleBusinessMember.status !== undefined &&
+    GOOGLE_BUSINESS_EXPLAINED_STATUSES.includes(googleBusinessMember.status)
+      ? googleBusinessMember.detail
+      : undefined;
+  const isGoogleBusinessNotReady =
+    googleBusinessMember?.status === GOOGLE_BUSINESS_NOT_READY_STATUS;
+  const canRestart =
+    input.callbackSubmitted &&
+    (input.platform === 'youtube' ||
+      (input.platform === GOOGLE_BUSINESS_PLATFORM &&
+        !isGoogleBusinessNotReady));
+
+  if (googleBusinessDetail) {
+    return {
+      canRestart,
+      canRetry,
+      detail: googleBusinessDetail,
+      messageKey: GENERIC_VERIFY_FAILURE.messageKey,
+      titleKey: isGoogleBusinessNotReady
+        ? 'error.googleBusinessNotReadyTitle'
+        : GENERIC_VERIFY_FAILURE.titleKey,
+    };
+  }
 
   if (input.providerError) {
     const denied =

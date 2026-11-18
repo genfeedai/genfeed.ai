@@ -4,7 +4,7 @@ import {
   SELECTABLE_AGENT_CHAT_MODELS,
 } from '@genfeedai/contracts/constants';
 
-export interface OpenRouterToolFunction {
+interface OpenRouterToolFunction {
   name: string;
   description: string;
   parameters: Record<string, unknown>;
@@ -51,7 +51,7 @@ export interface OpenRouterMessage {
  * https://openrouter.ai/docs/guides/features/zdr
  * https://openrouter.ai/docs/guides/routing/provider-selection
  */
-export type OpenRouterDataCollectionPolicy = 'allow' | 'deny';
+type OpenRouterDataCollectionPolicy = 'allow' | 'deny';
 
 export interface OpenRouterProviderPreferences {
   order?: string[];
@@ -143,7 +143,7 @@ export interface OpenRouterChatCompletionResponse {
   };
 }
 
-export interface OpenRouterStreamToolCallDelta {
+interface OpenRouterStreamToolCallDelta {
   index: number;
   id?: string;
   type?: 'function';
@@ -219,7 +219,7 @@ function modelKeysForCostTier(costTier: CostTier): string[] {
     .map((model) => model.key);
 }
 
-export const OPENROUTER_MODELS: Record<OpenRouterModelTier, string[]> = {
+const OPENROUTER_MODELS: Record<OpenRouterModelTier, string[]> = {
   [OpenRouterModelTier.FAST]: modelKeysForCostTier(CostTier.LOW),
   [OpenRouterModelTier.STANDARD]: modelKeysForCostTier(CostTier.MEDIUM),
   [OpenRouterModelTier.PREMIUM]: modelKeysForCostTier(CostTier.HIGH),

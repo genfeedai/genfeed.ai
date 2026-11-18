@@ -6,7 +6,6 @@ import type {
 } from '@genfeedai/client/schemas';
 import type {
   BrandKitSlot,
-  ComponentSize,
   IngredientCategory,
   ModalEnum,
   Platform,
@@ -14,8 +13,6 @@ import type {
 } from '@genfeedai/contracts';
 import type {
   IAsset,
-  IBot,
-  ICaption,
   ICredential,
   IElementBlacklist,
   IElementCamera,
@@ -26,12 +23,10 @@ import type {
   ILink,
   IMember,
   IModel,
-  IMonitoredAccount,
   IOrganizationSetting,
   IPost,
   IPostPlatformConfig,
   IPreset,
-  IReplyBotConfig,
   ISound,
   ITag,
   IVideo,
@@ -46,22 +41,13 @@ import type { Control, UseFormReturn } from 'react-hook-form';
 /**
  * Base props for modal components
  */
-export interface ModalBaseProps<T = unknown> {
+interface ModalBaseProps<T = unknown> {
   entity?: T | null;
   onConfirm: (isRefreshing?: boolean) => void;
   onClose?: () => void;
 }
 
 export type ModalModelProps = ModalBaseProps<IModel>;
-
-/**
- * Base props for CRUD modal components with standardized naming
- */
-export interface ModalCrudProps<T = unknown> {
-  item?: T | null;
-  onConfirm: (isRefreshing?: boolean) => void;
-  onClose?: () => void;
-}
 
 /** A create-only modal: records are edited in place in the context sidebar. */
 export interface ModalCreateProps {
@@ -86,25 +72,10 @@ export interface ModalPresetFieldsProps {
   onUndo: () => void;
 }
 
-/**
- * Generic modal props for selection actions
- */
-export interface ModalSelectProps<T = unknown> {
-  isOpen: boolean;
-  onClose: () => void;
-  onSelect: (item: T) => void;
-  isLoading?: boolean;
-}
-
 type ModalVisibilityProps = {
   isOpen?: boolean;
   openKey?: number | string;
 };
-
-export interface ModalBotProps {
-  bot?: IBot | null;
-  onConfirm: () => void;
-}
 
 export interface ModalGalleryProps {
   isOpen: boolean;
@@ -123,13 +94,6 @@ export interface ModalGalleryProps {
 
   // For pre-selecting references when reopening modal
   selectedReferences?: string[];
-}
-
-export interface ModalTypeBadgeProps {
-  type: ModalEnum;
-  className?: string;
-  showLabel?: boolean;
-  size?: ComponentSize.SM | ComponentSize.MD | ComponentSize.LG;
 }
 
 export interface ModalMemberProps {
@@ -161,20 +125,6 @@ export interface ModalProps {
    * around one scrolling body). Leaving it on there nests two scrollbars.
    */
   isBodyScrollable?: boolean;
-}
-
-export interface ModalStoryboardUploadProps {
-  modalId: ModalEnum;
-  frameIndex?: number;
-  type?: string;
-  parentId?: string;
-  parentModel?: string;
-  voiceId?: string;
-  text?: string;
-  width?: number;
-  height?: number;
-  isResizeEnabled?: boolean;
-  isMultiple?: boolean;
 }
 
 export type ModalTagProps = ModalCreateProps;
@@ -252,8 +202,8 @@ export interface ModalPostPlatformsTabProps {
 export interface ModalPostChannelListProps {
   platformConfigs: IPostPlatformConfig[];
   credentials: ICredential[];
-  /** Shared caption shown for a channel that has no caption of its own. */
-  globalDescription: string;
+  /** Media attached to the post; a channel that cannot take it is disabled. */
+  media: IIngredient[];
   /** Platform whose editor is open, if any. */
   expandedPlatform: string | null;
   isLoading: boolean;
@@ -320,8 +270,18 @@ export interface ModalPostSelectedChannelsProps {
   onEdit: () => void;
 }
 
-export interface ModalPostComposerFieldsState
-  extends ModalPostDestinationsProps {
+export interface ModalPostSlackTargetsProps {
+  credentials: ICredential[];
+  selectedCredentialIds: string[];
+  /** The channel chosen for each Slack workspace, by credential id. */
+  channelIds: Record<string, string>;
+  isDisabled: boolean;
+  onChannelChange: (credentialId: string, channelId: string) => void;
+}
+
+interface ModalPostComposerFieldsState
+  extends ModalPostDestinationsProps,
+    Pick<ModalPostSlackTargetsProps, 'channelIds' | 'onChannelChange'> {
   step: ModalPostComposerStep;
   /** Back to the channels step from the content step. */
   onEditChannels: () => void;
@@ -405,14 +365,6 @@ export interface ModalConfirmProps extends ModalVisibilityProps {
   cancelLabel?: string;
   isError?: boolean;
   onClose?: () => void;
-  onConfirm: () => void;
-}
-
-/**
- * Generic modal props for organization-scoped actions
- */
-export interface ModalOrganizationScopedProps {
-  organizationId: string | null;
   onConfirm: () => void;
 }
 
@@ -523,51 +475,6 @@ export interface ModalTextOverlayProps {
   error?: string | null;
 }
 
-export interface ModalCaptionProps {
-  video?: IVideo | null;
-  existingCaption?: ICaption | null;
-  onConfirm?: (caption: ICaption) => void;
-}
-
-export interface ModalCaptionDetailProps {
-  caption: ICaption | null;
-  onUpdate?: (caption: ICaption) => void;
-  onClose?: () => void;
-}
-
-export interface ModalMCPProps {
-  type: 'create' | 'show';
-  keyName: string;
-  keyDescription: string;
-  keyExpiry: string;
-  createdKey?: string;
-  creating: boolean;
-  onKeyNameChange: (value: string) => void;
-  onKeyDescriptionChange: (value: string) => void;
-  onKeyExpiryChange: (value: string) => void;
-  onClose: () => void;
-  onConfirm: () => void;
-  onCopyKey?: () => void;
-}
-
-export interface ModalApiKeysProps {
-  type?: 'api-key' | 'mcp';
-  mode: 'create' | 'show';
-  keyName: string;
-  keyDescription: string;
-  keyExpiry: string;
-  keyRateLimit?: number;
-  createdKey?: string;
-  creating: boolean;
-  onKeyNameChange: (value: string) => void;
-  onKeyDescriptionChange: (value: string) => void;
-  onKeyExpiryChange: (value: string) => void;
-  onKeyRateLimitChange?: (value: number) => void;
-  onClose: () => void;
-  onConfirm: () => void;
-  onCopyKey?: () => void;
-}
-
 export interface ModalTrimProps {
   videoUrl: string;
   videoId: string;
@@ -585,20 +492,7 @@ export interface ModalArticleProps {
   onCreated?: (articleId: string | string[]) => void;
 }
 
-export interface ModalReplyBotProps {
-  replyBot?: IReplyBotConfig | null;
-  onConfirm: (isRefreshing?: boolean) => void;
-  onClose?: () => void;
-}
-
-export interface ModalMonitoredAccountProps {
-  account?: IMonitoredAccount | null;
-  replyBotConfigId?: string;
-  onConfirm: (isRefreshing?: boolean) => void;
-  onClose?: () => void;
-}
-
-export interface PostDraftGeneratedDraft {
+interface PostDraftGeneratedDraft {
   /** Draft post the receipt is bound to. */
   postId: string;
   receiptId: string;

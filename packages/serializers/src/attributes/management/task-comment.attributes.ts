@@ -6,4 +6,6 @@ export const taskCommentAttributes = createEntityAttributes([
   'authorUserId',
   'authorAgentId',
   'body',
+  'mentionedUserIds',
+  'mentions',
 ]);

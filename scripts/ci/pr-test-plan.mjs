@@ -8,7 +8,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
 import {
   allPackageTestTasks,
-  buildPackageTestMatrix,
+  buildWorkspaceTestMatrix,
 } from './workspace-test-matrix.mjs';
 
 const WEB_APP_PATH_PATTERN = /^apps\/web(?:\/|$)/;
@@ -16,6 +16,9 @@ const PACKAGES_PATH_PATTERN = /^packages\//;
 const API_APP_PATH_PATTERN = /^apps\/server\/api(?:\/|$)/;
 const MCP_AUTH_RUNTIME_PATH_PATTERN =
   /^(?:apps\/server\/|packages\/|apps\/web\/.*(?:oauth|consent)|scripts\/ci\/|\.github\/(?:workflows\/ci\.yml|actions\/setup-bun-env\/)|(?:package\.json|bun\.lock|turbo\.json|tsconfig[^/]*\.json|Dockerfile[^/]*|patches\/|apps\/server\/Dockerfile))/;
+
+export const APP_SUITE_ROOT = 'apps/web';
+export const API_SUITE_ROOT = 'apps/server/api';
 
 const REPOSITORY_ROOT = fileURLToPath(new URL('../..', import.meta.url));
 const ZERO_SHA = '0000000000000000000000000000000000000000';
@@ -27,7 +30,7 @@ const FORCE_FULL_PATTERNS = [
   /^turbo\.json$/,
   /(^|\/)vitest\.(?:config|setup)\.[cm]?[jt]sx?$/,
   /^\.github\/actions\/setup-bun-env\//,
-  /^scripts\/ci\/(?:pr-test-plan|tests-gate)\.mjs$/,
+  /^scripts\/ci\/(?:pr-test-plan|test-shard-selection|tests-gate)\.mjs$/,
   /^scripts\/ci\/workspace-test-matrix\.mjs$/,
 ];
 
@@ -91,6 +94,9 @@ export function appliesMcpAuthRuntime(
 }
 
 export const FULL_SUITE_SHARDS = 4;
+// The full tier's API suite is its longest job (median ~16 min per shard on
+// four shards, #9840), so it gets twice as many shards as the app suite.
+export const FULL_SUITE_API_SHARDS = 8;
 
 export function selectShardCount(testFileCount) {
   if (!Number.isSafeInteger(testFileCount) || testFileCount < 0) {
@@ -103,8 +109,8 @@ export function selectShardCount(testFileCount) {
 }
 
 export function createShardMatrix(shardCount) {
-  if (![0, 1, 2, 4].includes(shardCount)) {
-    throw new RangeError('shardCount must be one of 0, 1, 2, or 4');
+  if (![0, 1, 2, 4, 8].includes(shardCount)) {
+    throw new RangeError('shardCount must be one of 0, 1, 2, 4, or 8');
   }
 
   return {
@@ -113,6 +119,66 @@ export function createShardMatrix(shardCount) {
       total: shardCount,
     })),
   };
+}
+
+// A shard's file list travels through the job matrix. GitHub caps what one job
+// can output and a job hands its list to the shell as one environment value,
+// so a selection too large for either keeps its shards on Vitest's own
+// selection instead.
+const MAX_SHARD_LIST_BYTES = 100_000;
+export const MAX_PLAN_SHARD_LIST_BYTES = 400_000;
+
+/**
+ * Splits the planned test files over the shards: every file lands in exactly
+ * one shard, and shard sizes differ by at most one file.
+ *
+ * @param {readonly string[]} files
+ * @param {number} shardCount
+ * @returns {string[][]}
+ */
+export function assignShardFiles(files, shardCount) {
+  const shards = Array.from({ length: shardCount }, () => []);
+  [...new Set(files)].sort().forEach((file, index) => {
+    shards[index % shardCount].push(file);
+  });
+  return shards;
+}
+
+/**
+ * The shard matrix with each shard's own test files, written relative to the
+ * suite root. Returns the plain matrix when a list would be too large to
+ * travel, so those shards select their files themselves.
+ *
+ * @param {readonly string[]} files repository-relative test files
+ * @param {number} shardCount
+ * @param {string} suiteRoot repository-relative directory the suite runs in
+ */
+export function createShardFileMatrix(files, shardCount, suiteRoot) {
+  const matrix = createShardMatrix(shardCount);
+  const lists = assignShardFiles(files, shardCount).map((shardFiles) =>
+    shardFiles.map((file) => path.posix.relative(suiteRoot, file)),
+  );
+  if (
+    lists.some(
+      (list) => Buffer.byteLength(list.join('\n')) > MAX_SHARD_LIST_BYTES,
+    )
+  ) {
+    return matrix;
+  }
+  return {
+    include: matrix.include.map((entry, index) => ({
+      ...entry,
+      count: lists[index].length,
+      files: lists[index].join('\n'),
+    })),
+  };
+}
+
+function shardListBytes(matrix) {
+  return matrix.include.reduce(
+    (total, entry) => total + Buffer.byteLength(entry.files ?? ''),
+    0,
+  );
 }
 
 export function parseVitestList(rawOutput, repositoryRoot = REPOSITORY_ROOT) {
@@ -211,14 +277,34 @@ export function createPrTestPlan({
   const forceFull = runHeavy || classification.forceFull;
   const app = forceAllSurfaces || forceFull || classification.app;
   const api = forceAllSurfaces || forceFull || classification.api;
-  // The full tier runs each whole suite over four shards; the affected tier
-  // sizes the shards to the exact changed graph.
+  // The full tier runs the whole app suite over four shards and the whole API
+  // suite over eight; the affected tier sizes the shards to the exact changed
+  // graph and never exceeds four.
   const appShardCount = forceFull
     ? FULL_SUITE_SHARDS * Number(app)
     : selectShardCount(appTests.length);
   const apiShardCount = forceFull
-    ? FULL_SUITE_SHARDS * Number(api)
+    ? FULL_SUITE_API_SHARDS * Number(api)
     : selectShardCount(apiTests.length);
+
+  // On a change run that is not escalated, the shards run the files this plan
+  // lists: resolving the changed graph again in every shard costs each one 20
+  // to 45 seconds and, once the packages are built, misses tests that reach a
+  // changed source file through another package's build output (#10273).
+  const assignsFiles = !forceFull && !forceAllSurfaces;
+  let appMatrix = assignsFiles
+    ? createShardFileMatrix(appTests, appShardCount, APP_SUITE_ROOT)
+    : createShardMatrix(appShardCount);
+  let apiMatrix = assignsFiles
+    ? createShardFileMatrix(apiTests, apiShardCount, API_SUITE_ROOT)
+    : createShardMatrix(apiShardCount);
+  if (
+    shardListBytes(appMatrix) + shardListBytes(apiMatrix) >
+    MAX_PLAN_SHARD_LIST_BYTES
+  ) {
+    appMatrix = createShardMatrix(appShardCount);
+    apiMatrix = createShardMatrix(apiShardCount);
+  }
 
   const normalizedTurboTasks = Object.fromEntries(
     Object.keys(TURBO_TEST_GROUPS).map((group) => [
@@ -260,35 +346,32 @@ export function createPrTestPlan({
       applicable: app && (forceFull || appTests.length > 0),
       count: appTests.length,
       files: [...appTests],
-      matrix: createShardMatrix(appShardCount),
+      matrix: appMatrix,
       shards: appShardCount,
     },
     apiTests: {
       applicable: api && (forceFull || apiTests.length > 0),
       count: apiTests.length,
       files: [...apiTests],
-      matrix: createShardMatrix(apiShardCount),
+      matrix: apiMatrix,
       shards: apiShardCount,
     },
     turboTasks: normalizedTurboTasks,
     workspaceGroups,
-    // Package pools preserve the selected union; UI uses four distinct shards.
-    // Other surfaces keep their existing applicability and coverage.
+    // Packages, web and the extension share balanced legs, the server group
+    // keeps its own, and UI uses four distinct shards. The selected union is
+    // preserved; only the number of runners changes.
     workspaceMatrix: {
-      include: Object.entries(workspaceGroups)
-        .filter(([, applies]) => applies)
-        .flatMap(([group]) =>
-          group === 'packages'
-            ? buildPackageTestMatrix(normalizedTurboTasks.packages)
-            : [
-                {
-                  group,
-                  name: group,
-                  filters: TURBO_TEST_GROUPS[group].join(' '),
-                  ui_shard: '',
-                },
-              ],
-        ),
+      include: buildWorkspaceTestMatrix({
+        packageTasks: workspaceGroups.packages
+          ? normalizedTurboTasks.packages
+          : [],
+        serverFilters: workspaceGroups.server
+          ? TURBO_TEST_GROUPS.server.join(' ')
+          : '',
+        webFilters: workspaceGroups.web ? TURBO_TEST_GROUPS.web.join(' ') : '',
+        browserExtension: workspaceGroups['browser-extension'],
+      }),
     },
   };
 }
@@ -489,7 +572,7 @@ async function runCli() {
       ? listVitestFiles({
           base,
           config: './vitest.config.mts',
-          cwd: path.join(REPOSITORY_ROOT, 'apps', 'web'),
+          cwd: path.join(REPOSITORY_ROOT, APP_SUITE_ROOT),
         })
       : Promise.resolve([]);
   const apiTestsPromise =
@@ -497,7 +580,7 @@ async function runCli() {
       ? listVitestFiles({
           base,
           config: 'vitest.config.ts',
-          cwd: path.join(REPOSITORY_ROOT, 'apps', 'server', 'api'),
+          cwd: path.join(REPOSITORY_ROOT, API_SUITE_ROOT),
         })
       : Promise.resolve([]);
   // Workspace groups are computed for every event, not just pull requests.

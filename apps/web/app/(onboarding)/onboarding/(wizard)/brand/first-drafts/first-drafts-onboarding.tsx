@@ -6,6 +6,10 @@ import {
   APP_ROUTES,
   ONBOARDING_DRAFT_PLATFORMS,
 } from '@genfeedai/contracts/constants';
+import type {
+  ConnectGenfeedClient,
+  OnboardingDraftPlatform,
+} from '@genfeedai/contracts/interfaces';
 import { useThemeLogo } from '@hooks/ui/use-theme-logo/use-theme-logo';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
@@ -25,13 +29,22 @@ import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import { useRef, useState } from 'react';
 import DesktopSidebar from '@/components/layouts/app/DesktopSidebar';
+import AgentStep from './agent-step';
+import ChannelsStep from './channels-step';
 import ConnectPlatforms from './connect-platforms';
 import ContextForm from './context-form';
 import DraftCard from './draft-card';
-import ScheduleStep from './schedule-step';
+import MissingDraftCard from './missing-draft-card';
+import PromptStep from './prompt-step';
+import UnderstoodLine from './understood-line';
 import { useFirstDrafts } from './use-first-drafts';
 
-const GALLERY_ORDER = ['instagram', 'tiktok', 'twitter', 'linkedin'];
+const GALLERY_ORDER: readonly OnboardingDraftPlatform[] = [
+  'instagram',
+  'tiktok',
+  'twitter',
+  'linkedin',
+];
 
 export default function FirstDraftsOnboarding() {
   const t = useTranslations('pages.onboarding.firstDrafts');
@@ -39,28 +52,35 @@ export default function FirstDraftsOnboarding() {
   const { brandId, selectedBrand } = useBrand();
   const logoUrl = useThemeLogo();
   const [skipOpen, setSkipOpen] = useState(false);
+  const [agentClient, setAgentClient] =
+    useState<ConnectGenfeedClient>('claude-code');
   const mainRef = useRef<HTMLElement>(null);
   const step =
-    state.phase === 'schedule'
+    state.phase === 'prompt'
       ? 3
-      : state.phase === 'review'
+      : state.phase === 'channels'
         ? 2
-        : state.phase === 'working'
+        : state.phase === 'agent'
           ? 1
           : 0;
   const labels = [
-    t('steps.brand'),
-    t('steps.create'),
-    t('steps.review'),
-    t('steps.connect'),
+    t('steps.output'),
+    t('steps.agent'),
+    t('steps.channels'),
+    t('steps.prompt'),
   ];
   const loading = !state.isReady || state.isRestoring;
+  const result = state.result;
   const canContinue =
-    Boolean(state.result) &&
+    Boolean(result) &&
     (state.phase === 'url' ||
       state.phase === 'review' ||
-      state.phase === 'schedule');
-  const result = state.result;
+      state.phase === 'agent' ||
+      state.phase === 'channels' ||
+      state.phase === 'prompt');
+  const canSkipStep = state.phase === 'agent' || state.phase === 'channels';
+  const brandName =
+    state.scan?.summary?.name || selectedBrand?.label || t('brandFallback');
 
   return (
     <div className="h-dvh overflow-hidden bg-gray-100 [--desktop-sidebar-width:220px]">
@@ -97,10 +117,7 @@ export default function FirstDraftsOnboarding() {
               stepLabels={labels}
               disabledSteps={[0, 1, 2, 3].filter(
                 (index) =>
-                  loading ||
-                  state.isContinuing ||
-                  (index === 1 && (!state.isGenerating || Boolean(result))) ||
-                  (index > 1 && !result),
+                  loading || state.isContinuing || (index > 0 && !result),
               )}
               onStepChange={(index) => {
                 state.onNavigate(index);
@@ -138,21 +155,29 @@ export default function FirstDraftsOnboarding() {
               isDisabled={state.isContinuing}
               onClick={() => setSkipOpen(true)}
             />
+            {canSkipStep && !loading && (
+              <Button
+                size={ButtonSize.SM}
+                variant={ButtonVariant.GHOST}
+                label={t('actions.skipStep')}
+                isDisabled={state.isContinuing}
+                onClick={() => {
+                  state.onAdvance();
+                  if (mainRef.current) mainRef.current.scrollTop = 0;
+                }}
+              />
+            )}
             {canContinue && !loading && (
               <Button
                 size={ButtonSize.SM}
                 isLoading={state.isContinuing}
                 onClick={() => {
-                  state.phase === 'schedule'
-                    ? state.onContinue()
-                    : state.phase === 'url'
-                      ? state.onStart()
-                      : state.onSchedule();
+                  state.onAdvance();
                   if (mainRef.current) mainRef.current.scrollTop = 0;
                 }}
               >
                 {t(
-                  state.phase === 'schedule'
+                  state.phase === 'prompt'
                     ? 'actions.finish'
                     : 'actions.continue',
                 )}
@@ -183,29 +208,42 @@ export default function FirstDraftsOnboarding() {
                     state.scan?.summary?.suggestions?.audiences ?? []
                   }
                   hasError={state.error === 'generate'}
+                  initial={result ? (state.understood ?? undefined) : undefined}
                   isScanFailed={state.isScanFailed}
                   isWebsiteMissing={state.scan === null}
                   offerSuggestions={
                     state.scan?.summary?.suggestions?.offers ?? []
                   }
+                  onCancel={result ? state.onCancelRedo : undefined}
                   onSubmit={state.onSubmitContext}
                 />
               </div>
-            ) : state.phase === 'schedule' && result ? (
-              <ScheduleStep brandId={brandId} />
+            ) : state.phase === 'agent' && result ? (
+              <AgentStep client={agentClient} onClientChange={setAgentClient} />
+            ) : state.phase === 'channels' && result ? (
+              <ChannelsStep brandId={brandId} />
+            ) : state.phase === 'prompt' && result ? (
+              <PromptStep brandName={brandName} client={agentClient} />
             ) : state.phase === 'review' && result ? (
               <div className="mx-auto flex max-w-5xl flex-col gap-6">
+                <UnderstoodLine
+                  canRedo={state.canRetry}
+                  isBusy={
+                    state.isGenerating ||
+                    state.isContinuing ||
+                    Boolean(state.rewritingPlatform)
+                  }
+                  maxRounds={state.maxRounds}
+                  onNotRight={state.onNotRight}
+                  round={state.round}
+                  understood={state.understood}
+                />
                 <Card padding={CardPadding.MD}>
                   <div className="grid items-center gap-6 md:grid-cols-[minmax(0,280px)_1fr]">
                     {result.imageUrl ? (
                       <Image
                         src={result.imageUrl}
-                        alt={t('masterAlt', {
-                          brand:
-                            state.scan?.summary?.name ||
-                            selectedBrand?.label ||
-                            t('brandFallback'),
-                        })}
+                        alt={t('masterAlt', { brand: brandName })}
                         width={560}
                         height={560}
                         unoptimized
@@ -259,11 +297,47 @@ export default function FirstDraftsOnboarding() {
                           onRetryMedia={
                             state.canRetryMedia ? state.onRetryMedia : undefined
                           }
+                          isRewriteBusy={
+                            state.isGenerating ||
+                            Boolean(state.rewritingPlatform)
+                          }
+                          isRewriting={
+                            state.rewritingPlatform === draft.platform
+                          }
+                          onRewrite={
+                            state.canRewrite ? state.onRewrite : undefined
+                          }
+                          rewritesRemaining={
+                            state.draftRewritesRemaining[draft.platform]
+                          }
                           onVerdict={state.onVerdict}
                           verdict={state.verdicts[draft.postId]}
                         />
                       </div>
                     ))}
+                  {state.canRewrite && result.drafts.length > 0
+                    ? GALLERY_ORDER.filter(
+                        (platform) =>
+                          !result.drafts.some(
+                            (draft) => draft.platform === platform,
+                          ),
+                      ).map((platform) => (
+                        <div
+                          key={platform}
+                          className="w-[320px] shrink-0 snap-start"
+                        >
+                          <MissingDraftCard
+                            isBusy={Boolean(state.rewritingPlatform)}
+                            isRewriting={state.rewritingPlatform === platform}
+                            onRewrite={state.onRewrite}
+                            platform={platform}
+                            rewritesRemaining={
+                              state.draftRewritesRemaining[platform]
+                            }
+                          />
+                        </div>
+                      ))
+                    : null}
                 </div>
                 <p className="text-sm text-muted-foreground">
                   {t('review.videoWithCredits')}

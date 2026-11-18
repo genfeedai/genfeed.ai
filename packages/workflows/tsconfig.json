@@ -1,7 +1,5 @@
 {
   "compilerOptions": {
-    "declaration": true,
-    "declarationMap": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "inlineSources": true,
@@ -11,9 +9,10 @@
     "module": "ESNext",
     "moduleResolution": "bundler",
     "outDir": "./dist",
-    // `@genfeedai/ui` exports a few client components as source `.tsx` rather
-    // than from `dist`, so type-check follows them into `packages/ui/src` and
-    // has to resolve that package's own imports. Node resolution cannot: the
+    // The video and media players live in `packages/ui/src/components` and are
+    // not part of the published `@genfeedai/ui` package, so the workflow nodes
+    // import them through the `@ui/*` alias. Type-check follows them into that
+    // source and has to resolve its own imports. Node resolution cannot: the
     // `props`/`services` export maps are `"./*": "./*"`, and TypeScript reads
     // the `.props` / `.service` suffix as a file extension, strips it, and then
     // looks for `<name>.d.props.ts`. These aliases are the same ones
@@ -22,10 +21,15 @@
       "@genfeedai/props": ["../props/index.ts"],
       "@genfeedai/props/*": ["../props/*"],
       "@genfeedai/services": ["../services/index.ts"],
-      "@genfeedai/services/*": ["../services/*"]
+      "@genfeedai/services/*": ["../services/*"],
+      "@genfeedai/workflows": ["./src/index.ts"],
+      "@genfeedai/workflows/*": ["./src/*"],
+      "@ui/*": ["../ui/src/*", "../ui/src/components/*"]
     },
     "resolveJsonModule": true,
-    "rootDir": "./src",
+    // Type-check follows the `@ui/*` and `@genfeedai/services` aliases into
+    // sibling package sources, so the root has to cover `packages/`.
+    "rootDir": "..",
     "skipLibCheck": true,
     "strict": true,
     "target": "es2022",

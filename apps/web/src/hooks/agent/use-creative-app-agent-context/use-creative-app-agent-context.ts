@@ -18,6 +18,7 @@ export function useCreativeAppAgentContext(
   const pathname = usePathname();
   const setPageContext = useAgentChatStore((state) => state.setPageContext);
 
+  // use-effect-audit: ignore subscribes to an external event source
   useEffect(() => {
     if (!creativeApp) {
       return;

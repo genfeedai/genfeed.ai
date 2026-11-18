@@ -4,6 +4,7 @@ import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import { useResetOnChange } from '@hooks/utils/use-reset-on-change/use-reset-on-change';
 import type { Task } from '@services/management/tasks.service';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import AppTable from '@ui/display/table/Table';
@@ -127,11 +128,11 @@ function WorkspacePageContentContent({
   // A tap only vouches for the selection it made: once that task is closed, a
   // later `?taskId=` restore of the same task is automatic again.
   const selectedTaskKey = selectedTask?.id ?? null;
-  useEffect(() => {
+  useResetOnChange([selectedTaskKey], () => {
     if (!selectedTaskKey) {
       setTappedTaskId(null);
     }
-  }, [selectedTaskKey]);
+  });
   const selectedArtifactReferences = useMemo(
     () =>
       getWorkspaceOverviewArtifactReferences(selectedTask, {
@@ -170,6 +171,7 @@ function WorkspacePageContentContent({
     ],
   );
 
+  // use-effect-audit: ignore publishes the selection to the work surface and clears it on unmount
   useEffect(() => {
     if (!surfaceSelection || !isOverviewSection) {
       return;

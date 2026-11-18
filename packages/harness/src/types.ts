@@ -76,6 +76,8 @@ export interface ContentHarnessInput {
   brandOsRevisionId?: string;
   /** Harness profile whose contribution shaped this brief, for receipts. */
   harnessProfileId?: string;
+  /** Revision of that profile at the time, so a receipt names the exact content applied. */
+  harnessProfileRevision?: number;
   identityContribution?: ContentHarnessContribution;
   learningContribution?: ContentHarnessContribution;
   learningDecisionId?: string;
@@ -102,6 +104,8 @@ export type ContentHarnessReceipts = (
 ) & {
   /** Present when a brand harness profile contributed to the brief. */
   harnessProfileId?: string;
+  /** The revision of that profile that was applied. */
+  harnessProfileRevision?: number;
 };
 
 /**

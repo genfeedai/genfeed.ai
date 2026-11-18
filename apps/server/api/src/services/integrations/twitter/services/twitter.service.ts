@@ -13,20 +13,12 @@ import { mapTwitterTimeline } from '@api/services/integrations/twitter/services/
 import {
   isTwitterAuthorizationError,
   isTwitterRateLimitError,
-  isTwitterRefreshTokenRejectedError,
   isTwitterScopeOrTierError,
 } from '@api/services/integrations/twitter/utils/twitter-api-error.util';
-import {
-  ActivityKey,
-  ActivitySource,
-  CredentialPlatform,
-} from '@genfeedai/contracts';
+import { CredentialPlatform } from '@genfeedai/contracts';
 import type { ChannelTargetSettings } from '@genfeedai/contracts/api-types/contracts';
 import type { ITwitterSearchResult } from '@genfeedai/contracts/interfaces';
-import {
-  buildGrantedScopesCredentialPatch,
-  SocialUrlHelper,
-} from '@genfeedai/helpers';
+import { SocialUrlHelper } from '@genfeedai/helpers';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
@@ -52,11 +44,13 @@ import {
   type TwitterTrendResult,
   type TwitterUserResponse,
 } from './twitter-response.mapper';
+import {
+  shouldRefreshTwitterAccessToken,
+  TwitterTokenRefreshService,
+} from './twitter-token-refresh.service';
 
 export type {
   TwitterDirectMessageListing,
-  TwitterInboxDmMessage,
-  TwitterInboxDmThread,
   TwitterInboxTweet,
   TwitterMentionsPage,
 } from './twitter-inbox.service';
@@ -69,8 +63,6 @@ const LEADING_AT_SIGN_PATTERN = /^@/;
  * vocabulary. `everyone` is absent on purpose: the API expresses it by omitting
  * the field, and sending an unknown value rejects the whole tweet.
  */
-const TWITTER_TOKEN_REFRESH_BUFFER_MS = 15 * 60 * 1000;
-
 function requireString(
   value: string | null | undefined,
   field: string,
@@ -90,6 +82,7 @@ export class TwitterService {
   private readonly inboxService: TwitterInboxService;
   private readonly publishingService: TwitterPublishingService;
   private readonly readService: TwitterReadService;
+  private readonly tokenRefreshService: TwitterTokenRefreshService;
 
   public twitterClient: TwitterApi;
 
@@ -105,6 +98,14 @@ export class TwitterService {
     this.twitterClient = new TwitterApi(
       // @ts-expect-error TS2769
       this.configService.get('TWITTER_BEARER_TOKEN'),
+    );
+    this.tokenRefreshService = new TwitterTokenRefreshService(
+      this.configService,
+      this.loggerService,
+      this.activityRecorder,
+      this.credentialsService,
+      (organizationId, brandId, credentialId) =>
+        this.findTwitterCredential(organizationId, brandId, credentialId),
     );
     this.analyticsService = new TwitterAnalyticsService(
       this.loggerService,
@@ -149,19 +150,6 @@ export class TwitterService {
     return SocialUrlHelper.buildTwitterUrl(tweetId, username);
   }
 
-  private shouldRefreshAccessToken(expiresAt?: Date | string | null): boolean {
-    if (!expiresAt) {
-      return true;
-    }
-
-    const expiresAtMs = new Date(expiresAt).getTime();
-    if (!Number.isFinite(expiresAtMs)) {
-      return true;
-    }
-
-    return expiresAtMs <= Date.now() + TWITTER_TOKEN_REFRESH_BUFFER_MS;
-  }
-
   public async getValidCredential(
     organizationId: string,
     brandId: string,
@@ -179,7 +167,7 @@ export class TwitterService {
 
     if (
       !credential.accessToken ||
-      this.shouldRefreshAccessToken(credential.accessTokenExpiry)
+      shouldRefreshTwitterAccessToken(credential.accessTokenExpiry)
     ) {
       return this.refreshToken(
         organizationId,
@@ -290,100 +278,16 @@ export class TwitterService {
     return accounts[0] ?? null;
   }
 
-  public async refreshToken(
+  public refreshToken(
     organizationId: string,
     brandId: string,
     credentialId?: string,
   ): Promise<CredentialDocument> {
-    const credentials = await this.findTwitterCredential(
+    return this.tokenRefreshService.refreshToken(
       organizationId,
       brandId,
       credentialId,
     );
-
-    if (!credentials) {
-      throw new Error('Twitter credential not found');
-    }
-
-    if (!credentials.refreshToken) {
-      // OAuth 1.0a credential — requires reconnection via OAuth 2.0
-      const error = new Error(
-        'Twitter credential requires reconnection. Please reconnect your X account.',
-      );
-      await this.markRefreshDisconnected(
-        credentials,
-        organizationId,
-        brandId,
-        error,
-      );
-      throw error;
-    }
-
-    try {
-      // OAuth 2.0 refresh flow via SDK
-      const decryptedRefreshToken = EncryptionUtil.decrypt(
-        credentials.refreshToken,
-      );
-
-      const client = new TwitterApi({
-        clientId: this.configService.get('TWITTER_CLIENT_ID'),
-        clientSecret: this.configService.get('TWITTER_CLIENT_SECRET'),
-      } as unknown as ConstructorParameters<typeof TwitterApi>[0]);
-
-      const {
-        accessToken,
-        refreshToken: newRefreshToken,
-        expiresIn,
-        scope,
-      } = await client.refreshOAuth2Token(decryptedRefreshToken);
-
-      return await this.credentialsService.patch(credentials.id, {
-        accessToken,
-        accessTokenExpiry: expiresIn
-          ? new Date(Date.now() + expiresIn * 1000)
-          : undefined,
-        isConnected: true,
-        isDeleted: false,
-        refreshToken: newRefreshToken,
-        ...buildGrantedScopesCredentialPatch(scope),
-      });
-    } catch (error: unknown) {
-      this.loggerService.error('Refresh token failed', error);
-
-      // Only a definitive rejection of the grant disconnects the credential.
-      // Network errors and 5xx keep it connected so the next run can retry.
-      if (isTwitterRefreshTokenRejectedError(error)) {
-        await this.markRefreshDisconnected(
-          credentials,
-          organizationId,
-          brandId,
-          error,
-        );
-      }
-
-      throw error;
-    }
-  }
-
-  private async markRefreshDisconnected(
-    credentials: CredentialDocument,
-    organizationId: string,
-    brandId: string,
-    error: unknown,
-  ): Promise<void> {
-    await this.credentialsService.patch(credentials.id, {
-      isConnected: false,
-    });
-
-    // Create activity for social integration disconnection
-    await this.activityRecorder.record({
-      brandId: brandId,
-      key: ActivityKey.SOCIAL_INTEGRATION_DISCONNECTED,
-      organizationId: organizationId,
-      source: ActivitySource.SOCIAL_INTEGRATION,
-      userId: credentials.userId ?? undefined,
-      value: `Twitter integration disconnected: ${(error as Error)?.message ?? 'Token refresh failed'}`,
-    });
   }
 
   /**
@@ -395,6 +299,7 @@ export class TwitterService {
     options: {
       accessToken?: string;
       maxResults?: number;
+      sinceId?: string;
       sortOrder?: 'relevancy' | 'recency';
     } = {},
   ): Promise<ITwitterSearchResult[]> {

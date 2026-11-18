@@ -24,13 +24,22 @@ export type { NativeAppContextualEntry, NativeSecondaryAppId };
  * Ids reuse the existing rail and organization module ids so routes and
  * stored data keep their meaning; labels are the one-word visible names.
  */
-export const CORE_APP_IDS = [
+/**
+ * The web app's dashboard (#9901): Workspace, Trends (Discovery), Library,
+ * Publishing and Analytics. The rail always offers them first and in this
+ * order; every other app is an app beyond the dashboard.
+ */
+export const DASHBOARD_APP_IDS = [
   'workspace',
-  'agent',
+  'discovery',
   'library',
   'publishing',
   'analytics',
 ] as const;
+
+export type DashboardAppId = (typeof DASHBOARD_APP_IDS)[number];
+
+export const CORE_APP_IDS = [...DASHBOARD_APP_IDS, 'agent'] as const;
 
 export type CoreAppId = (typeof CORE_APP_IDS)[number];
 
@@ -92,12 +101,6 @@ export const NATIVE_SECONDARY_APPS = {
     label: 'Messages',
     organizationModuleId: 'messages',
     purpose: 'Answer DMs, replies and comments in one inbox.',
-    contextualEntries: [],
-  },
-  discovery: {
-    label: 'Discover',
-    organizationModuleId: 'discovery',
-    purpose: 'Research organic timelines, tracked sources, trends and ads.',
     contextualEntries: [],
   },
 } as const satisfies Record<NativeSecondaryAppId, NativeAppCatalogEntry>;

@@ -33,6 +33,7 @@ const KNOWN_PROTECTED_PREFIXES = [
   'clipper',
   'editor',
   'settings',
+  'connectors',
   'agents',
   'publishing',
   'analytics',
@@ -61,7 +62,7 @@ const RESERVED_GLOBAL_ROOT_SEGMENTS = new Set(
     ...Object.values(APP_ROUTE_PREFIXES).map(
       (prefix) => prefix.replace(LEADING_SLASH_PATTERN, '').split('/')[0] ?? '',
     ),
-    APP_ROUTES.CONNECT.replace(/^\//, ''),
+    APP_ROUTES.CONNECTORS.ROOT.replace(/^\//, ''),
     APP_ROUTES.LOGIN.replace(/^\//, ''),
     APP_ROUTES.LOGOUT.replace(/^\//, ''),
     APP_ROUTES.SIGN_UP.replace(/^\//, ''),
@@ -77,10 +78,10 @@ const RESERVED_GLOBAL_ROOT_SEGMENTS = new Set(
  * conversation already loaded.
  */
 export const AGENT_VIEW_PARAM = 'view';
-export const AGENT_FULL_VIEW = 'full';
+const AGENT_FULL_VIEW = 'full';
 
 /** Whether the search params ask for the one full-width conversation. */
-export function isAgentFullView(
+function isAgentFullView(
   searchParams: Pick<URLSearchParams, 'get'> | null | undefined,
 ): boolean {
   return searchParams?.get(AGENT_VIEW_PARAM) === AGENT_FULL_VIEW;

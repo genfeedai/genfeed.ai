@@ -164,6 +164,7 @@ export function useGalleryLibrary({
   // keeps the grid on screen.
   const firstPageError = firstPageQuery.error;
   const hasFirstPage = firstPage !== undefined;
+  // use-effect-audit: ignore reports a failed load to the logger or a notification
   useEffect(() => {
     if (!firstPageError || hasFirstPage) {
       return;
@@ -242,12 +243,14 @@ export function useGalleryLibrary({
   }, [queryClient]);
 
   // A reopened picker starts from the whole Library again.
-  useEffect(() => {
+  const [wasOpen, setWasOpen] = useState(isOpen);
+  if (isOpen !== wasOpen) {
+    setWasOpen(isOpen);
     if (!isOpen) {
       setSearch('');
       onClearFilters();
     }
-  }, [isOpen, onClearFilters]);
+  }
 
   return {
     // The previous filter's tiles stay only until the new ones land; they are

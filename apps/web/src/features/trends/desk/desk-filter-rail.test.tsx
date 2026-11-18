@@ -48,6 +48,12 @@ describe('Discovery filter menu', () => {
       await screen.findByRole('menuitemcheckbox', { name: /instagram/ }),
     );
     expect(props.onTogglePlatform).toHaveBeenCalledWith('instagram');
+    expect(
+      screen.getByRole('menuitemcheckbox', { name: /youtube/ }),
+    ).toBeChecked();
+    expect(
+      screen.getByRole('menuitemcheckbox', { name: /instagram/ }),
+    ).not.toBeChecked();
     await user.click(screen.getByRole('menuitemcheckbox', { name: /youtube/ }));
     expect(props.onTogglePlatform).toHaveBeenCalledWith('youtube');
   });
@@ -59,6 +65,9 @@ describe('Discovery filter menu', () => {
       await screen.findByRole('menuitemradio', { name: /My accounts/ }),
     );
     expect(props.onSourceChange).toHaveBeenCalledWith('owned');
+    expect(
+      screen.queryByRole('menuitemradio', { name: /My accounts/ }),
+    ).not.toBeInTheDocument();
   });
 
   it('clears the platform and content type filters together', async () => {
@@ -69,6 +78,9 @@ describe('Discovery filter menu', () => {
     expect(props.onClearPlatforms).toHaveBeenCalledOnce();
     expect(props.onContentTypeChange).toHaveBeenCalledWith('all');
     expect(props.onSourceChange).toHaveBeenCalledWith('all');
+    expect(
+      screen.queryByRole('menuitem', { name: 'Clear filters' }),
+    ).not.toBeInTheDocument();
   });
 
   it('exposes content type and sorting as nested single choices', async () => {

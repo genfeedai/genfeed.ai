@@ -89,10 +89,31 @@ export interface ArticleGenerationBlockData {
   width?: number;
 }
 
-/** An article body cut at its generation blocks, in reading order. */
+/** One side of a before/after comparison. */
+export interface ArticleCompareImage {
+  alt: string;
+  src: string;
+}
+
+/** A before/after figure of an article, ready to render as a slider. */
+export interface ArticleCompareData {
+  after: ArticleCompareImage;
+  before: ArticleCompareImage;
+  /** The figure's caption, already sanitized with the rest of the body. */
+  captionHtml: string | null;
+  height?: number;
+  width?: number;
+}
+
+export interface ArticleCompareSliderProps {
+  compare: ArticleCompareData;
+}
+
+/** An article body cut at its generation and compare blocks, in reading order. */
 export type ArticleBodySegment =
   | { html: string; key: string; kind: 'html' }
-  | { ingredientId: string; key: string; kind: 'generation' };
+  | { ingredientId: string; key: string; kind: 'generation' }
+  | { compare: ArticleCompareData; key: string; kind: 'compare' };
 
 export interface ArticleGenerationBlockProps {
   generation: ArticleGenerationBlockData;

@@ -32,10 +32,11 @@ describe('app rail registry', () => {
   it('keeps the core loop and the launcher apps in the contracted order (#5502)', () => {
     expect(APP_RAIL_REGISTRY.map((app) => app.id)).toEqual([
       'workspace',
-      'agent',
+      'discovery',
       'library',
       'publishing',
       'analytics',
+      'agent',
       'playground',
       'storyboard',
       'turbo',
@@ -44,11 +45,10 @@ describe('app rail registry', () => {
       'editor',
       'automation',
       'messages',
-      'discovery',
     ]);
     expect(APP_RAIL_REGISTRY.map((app) => app.group)).toEqual([
-      ...Array(5).fill('daily'),
-      ...Array(9).fill('app'),
+      ...Array(6).fill('daily'),
+      ...Array(8).fill('app'),
     ]);
     expect(APP_RAIL_REGISTRY.map((app) => app.id)).not.toContain('studio');
     expect(ADMIN_RAIL_APP.group).toBe('admin');

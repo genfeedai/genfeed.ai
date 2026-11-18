@@ -198,7 +198,10 @@ export default function OperationalHomeContent() {
     );
   }
 
-  const connectHref = createOrganizationAppRoute(orgSlug, APP_ROUTES.CONNECT);
+  const connectHref = createOrganizationAppRoute(
+    orgSlug,
+    APP_ROUTES.CONNECTORS.AGENTS,
+  );
 
   // Shell Container owns equal page insets — do not re-apply px/py here.
   return (

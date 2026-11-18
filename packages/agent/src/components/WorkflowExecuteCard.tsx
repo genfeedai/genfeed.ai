@@ -92,6 +92,7 @@ export function WorkflowExecuteCard({
     : Boolean(workflowId);
   const formValues = isCurrentInterface ? interfaceState.formValues : {};
 
+  // use-effect-audit: ignore abortable workflow load
   useEffect(() => {
     if (!workflowId) {
       return;

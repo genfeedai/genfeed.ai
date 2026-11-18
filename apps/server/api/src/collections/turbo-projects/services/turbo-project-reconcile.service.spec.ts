@@ -241,6 +241,14 @@ describe('TurboProjectReconcileService', () => {
       'org-1',
     );
     expect(turboRunService.createManualReviewTurboRun).not.toHaveBeenCalled();
+    expect(updatedItem('item-1')).toContainEqual(
+      expect.objectContaining({
+        outputIngredientId: 'output-1',
+        reviewItemId: 'review-item-1',
+        reviewTurboRunId: 'review-run-1',
+        status: TurboProjectItemStatus.READY,
+      }),
+    );
   });
 
   it('adopts the review run a crash left unrecorded instead of creating another', async () => {
@@ -305,6 +313,7 @@ describe('TurboProjectReconcileService', () => {
         data: { reviewTurboRunId: 'review-run-orphan' },
       }),
     );
+    expect(updatedItem('item-1')).toHaveLength(1);
     expect(updatedItem('item-1')).toContainEqual(
       expect.objectContaining({
         reviewTurboRunId: 'review-run-orphan',
@@ -341,6 +350,13 @@ describe('TurboProjectReconcileService', () => {
     await service.reconcileProject('project-1', 'org-1');
 
     expect(turboRunService.createManualReviewTurboRun).toHaveBeenCalled();
+    expect(updatedItem('item-1')).toContainEqual(
+      expect.objectContaining({
+        reviewItemId: 'review-item-1',
+        reviewTurboRunId: 'review-run-1',
+        status: TurboProjectItemStatus.READY,
+      }),
+    );
   });
 
   it('reads the output from node results when no ingredient is linked', async () => {
@@ -377,6 +393,12 @@ describe('TurboProjectReconcileService', () => {
       }),
       'user-1',
       'org-1',
+    );
+    expect(updatedItem('item-1')).toContainEqual(
+      expect.objectContaining({
+        outputIngredientId: 'output-from-node',
+        status: TurboProjectItemStatus.READY,
+      }),
     );
   });
 

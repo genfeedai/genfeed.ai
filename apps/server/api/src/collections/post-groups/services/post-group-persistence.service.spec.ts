@@ -280,6 +280,21 @@ describe('PostGroupPersistenceService', () => {
     ).rejects.toThrow(BadRequestException);
   });
 
+  it('rejects a legacy target without a credential before querying credentials', async () => {
+    prisma.credential.findMany.mockClear();
+
+    await expect(
+      service.resolveCredentials(prisma as never, 'org-1', [
+        {
+          credentialId: null,
+          platform: CredentialPlatform.TWITTER,
+          visibility: PostVisibility.PUBLIC,
+        } as never,
+      ]),
+    ).rejects.toThrow(BadRequestException);
+    expect(prisma.credential.findMany).not.toHaveBeenCalled();
+  });
+
   function releaseListStatements(): { sql: string; values: unknown[] }[] {
     return prisma.$queryRaw.mock.calls
       .map(([statement]) => statement as { sql: string; values: unknown[] })

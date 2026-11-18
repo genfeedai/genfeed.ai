@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useEffect } from 'react';
 
 export default function GlobalError({ error }: GlobalErrorProps) {
+  // use-effect-audit: ignore reports the boundary error to the logger
   useEffect(() => {
     // Next preloads this boundary on every page; the deferred logger keeps
     // pino and the Sentry SDK out of every visitor's first-load bundle.

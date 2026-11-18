@@ -177,18 +177,16 @@ export function useAgentFullPage({
   // right pane / mobile drawer when the active thread has produced nothing yet.
   const showSetupPanel = agentSetup.showSetupPanel && !hasThreadOutputs;
 
+  // use-effect-audit: ignore keeps refs to the latest callbacks and values
   useEffect(() => {
     activeThreadRef.current = activeStoreThreadId;
   }, [activeStoreThreadId]);
 
-  useEffect(() => {
-    if (showSetupPanel) {
-      return;
-    }
-
+  if (!showSetupPanel && mobileSetupOpen) {
     setMobileSetupOpen(false);
-  }, [showSetupPanel]);
+  }
 
+  // use-effect-audit: ignore keeps refs to the latest callbacks and values
   useEffect(() => {
     messageCountRef.current = existingMessages.length;
   }, [existingMessages.length]);
@@ -217,15 +215,12 @@ export function useAgentFullPage({
     );
   }, [existingMessages]);
 
-  useEffect(() => {
-    if (hasThreadOutputs) {
-      return;
-    }
-
+  if (!hasThreadOutputs && mobileOutputsOpen) {
     setMobileOutputsOpen(false);
-  }, [hasThreadOutputs]);
+  }
 
   // Fetch credits info on mount
+  // use-effect-audit: ignore abortable thread list load
   useEffect(() => {
     if (!authReady) {
       return;
@@ -301,6 +296,7 @@ export function useAgentFullPage({
     setLatestProposedPlan,
   ]);
 
+  // use-effect-audit: ignore abortable thread load
   useEffect(() => {
     if (!authReady || !threadId) {
       return;

@@ -16,7 +16,7 @@ import {
 export const SCHNELL_ABLATION_BRAND_KIT =
   'Aurora Bottle Co visual identity: matte obsidian glass, brushed gold foil cap, warm cream linen backdrop, soft editorial product lighting, generous negative space';
 
-export const SCHNELL_ABLATION_BRAND_TOKENS = [
+const SCHNELL_ABLATION_BRAND_TOKENS = [
   'obsidian',
   'gold foil',
   'cream linen',
@@ -27,8 +27,8 @@ export const SCHNELL_ABLATION_MODEL_KEY = FLUX_SCHNELL_MODEL_KEY;
 export const SCHNELL_GUIDED_LIFT_THRESHOLD = 15;
 export const SCHNELL_UNBRANDED_REGRESSION_LIMIT = 5;
 
-export type SchnellAblationCohort = 'guided' | 'unbranded';
-export type SchnellAblationArm = 'legacy' | 'compiled';
+type SchnellAblationCohort = 'guided' | 'unbranded';
+type SchnellAblationArm = 'legacy' | 'compiled';
 
 export interface SchnellAblationScenario {
   cohort: SchnellAblationCohort;
@@ -38,7 +38,7 @@ export interface SchnellAblationScenario {
   seed: number;
 }
 
-export interface SchnellAblationArmResult {
+interface SchnellAblationArmResult {
   arm: SchnellAblationArm;
   compilerId: string | null;
   compilerVersion: number | null;
@@ -51,7 +51,7 @@ export interface SchnellAblationArmResult {
   visualPassed?: boolean;
 }
 
-export interface SchnellAblationScenarioResult {
+interface SchnellAblationScenarioResult {
   arms: Record<SchnellAblationArm, SchnellAblationArmResult>;
   cohort: SchnellAblationCohort;
   id: string;
@@ -171,7 +171,7 @@ export function countBrandTokens(prompt: string): number {
   ).length;
 }
 
-export function scoreSchnellContract(input: {
+function scoreSchnellContract(input: {
   cohort: SchnellAblationCohort;
   objective: string;
   prompt: string;
@@ -188,7 +188,7 @@ export function scoreSchnellContract(input: {
   return hasObjective && tokenCount === 0;
 }
 
-export function compileSchnellAblationArm(
+function compileSchnellAblationArm(
   scenario: SchnellAblationScenario,
   arm: SchnellAblationArm,
 ): SchnellAblationArmResult {
@@ -241,7 +241,7 @@ export function compileSchnellAblationArm(
   };
 }
 
-export function compileSchnellAblationScenario(
+function compileSchnellAblationScenario(
   scenario: SchnellAblationScenario,
 ): SchnellAblationScenarioResult {
   return {
@@ -278,7 +278,7 @@ function passRate(
   return (passed / rows.length) * 100;
 }
 
-export function summarizeSchnellAblation(
+function summarizeSchnellAblation(
   scenarios: readonly SchnellAblationScenarioResult[],
 ): SchnellAblationSummary {
   const guidedPassRate = passRate(

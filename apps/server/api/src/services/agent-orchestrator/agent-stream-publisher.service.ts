@@ -1,3 +1,5 @@
+import { AgentThreadAccessService } from '@api/collections/agent-threads/services/agent-thread-access.service';
+import { AgentThreadAudienceService } from '@api/collections/agent-threads/services/agent-thread-audience.service';
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
@@ -7,6 +9,7 @@ import type {
   AgentDashboardOperation,
   AgentUIBlock,
   AgentUiAction,
+  MediaDeliveryScope,
 } from '@genfeedai/contracts/interfaces';
 import type { AgentInputRequestPublishParams } from '@genfeedai/contracts/interfaces/ai/agent-input-request.interface';
 import {
@@ -19,9 +22,25 @@ import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
 import { Traced } from '@libs/tracing/traced';
-import { BadRequestException, Injectable, Optional } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  Optional,
+} from '@nestjs/common';
 
 const CHANNEL = 'agent-chat';
+
+/** One message on the `agent-chat` channel. */
+interface AgentChatMessage {
+  data: Record<string, unknown>;
+  type: string;
+}
+
+interface AgentChatEntry {
+  channel: string;
+  message: AgentChatMessage;
+}
 
 /** What a recorded run's settlement adds to the turn event shape. */
 interface RecordedRunSettlement {
@@ -81,7 +100,48 @@ export class AgentStreamPublisherService {
     @Optional()
     private readonly configService?: ConfigService,
     @Optional() private readonly mediaIssuer?: AuthorizedMediaUrlService,
+    @Optional() private readonly threadAccess?: AgentThreadAccessService,
+    @Optional()
+    private readonly audienceService?: AgentThreadAudienceService,
   ) {}
+
+  /**
+   * Names the members with live access to the thread on a thread-scoped event,
+   * so everyone a thread is shared with sees it live (#9938). The API resolves
+   * the audience with the thread access check; the gateway only routes by it.
+   * An event the audience cannot be resolved for names the sender alone.
+   */
+  private async withAudience(
+    message: AgentChatMessage,
+  ): Promise<AgentChatMessage> {
+    const { data } = message;
+    const threadId = typeof data.threadId === 'string' ? data.threadId : null;
+    if (!this.audienceService || !threadId || !EntityIdUtil.isValid(threadId)) {
+      return message;
+    }
+    const audience = await this.audienceService.resolve(threadId);
+    if (!audience) {
+      return message;
+    }
+    return {
+      ...message,
+      data: {
+        ...data,
+        organizationId: audience.organizationId,
+        recipientUserIds: audience.recipientUserIds,
+      },
+    };
+  }
+
+  private async publishAgentChat(message: AgentChatMessage): Promise<void> {
+    await this.redisService.publish(CHANNEL, await this.withAudience(message));
+  }
+
+  private async withAudienceEntry(
+    entry: AgentChatEntry,
+  ): Promise<AgentChatEntry> {
+    return { ...entry, message: await this.withAudience(entry.message) };
+  }
 
   /** Authorize typed media before both durable events and live transport. */
   private async projectMediaPayload<
@@ -91,22 +151,43 @@ export class AgentStreamPublisherService {
     const ids = ingredientResponseIds(data);
     const assetIds = assetResponseIds(data);
     if (ids.length === 0 && assetIds.length === 0) return data;
-    const thread = await this.agentThreadsService?.findOneSelect(
-      { id: data.threadId, userId: data.userId, isDeleted: false },
-      { brandId: true, organizationId: true },
-    );
-    if (!thread?.organizationId || !this.mediaIssuer)
+    const scope = await this.resolveMediaScope(data);
+    if (!scope || !this.mediaIssuer)
       return projectMediaResponse(data, [], false) as T;
-    const scope = {
-      organizationId: thread.organizationId,
-      userId: data.userId,
-      brandId: thread.brandId ?? undefined,
-    };
     const [ingredients, assets] = await Promise.all([
       this.mediaIssuer.projectIngredients(scope, ids),
       this.mediaIssuer.projectAssets(scope, assetIds),
     ]);
     return projectMediaResponse(data, ingredients, true, assets) as T;
+  }
+
+  /**
+   * The thread's media scope for the member the event is recorded as (#9962),
+   * from a live access check. A denied member gets none, so no media is signed.
+   */
+  private async resolveMediaScope(data: {
+    threadId: string;
+    userId: string;
+  }): Promise<MediaDeliveryScope | null> {
+    const thread = await this.agentThreadsService?.findOneSelect(
+      { id: data.threadId, isDeleted: false },
+      { organizationId: true },
+    );
+    if (!thread?.organizationId || !this.threadAccess) return null;
+    try {
+      return await this.threadAccess.resolveMediaScope(
+        { organizationId: thread.organizationId, userId: data.userId },
+        data.threadId,
+      );
+    } catch (error: unknown) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof ForbiddenException
+      ) {
+        return null;
+      }
+      throw error;
+    }
   }
 
   private getCoalesceWindowMs(): number {
@@ -133,9 +214,7 @@ export class AgentStreamPublisherService {
    * armed flush timer so a stale timer can never fire against an
    * already-flushed / already-deleted buffer entry.
    */
-  private buildFlushEntry(
-    key: string,
-  ): { channel: string; message: unknown } | null {
+  private buildFlushEntry(key: string): AgentChatEntry | null {
     const pending = this.pendingTokenBuffers.get(key);
     if (!pending) {
       return null;
@@ -177,12 +256,16 @@ export class AgentStreamPublisherService {
     if (!entry) {
       return;
     }
-    this.redisService.publish(entry.channel, entry.message).catch((error) => {
-      this.loggerService.warn(
-        `${this.constructorName} coalesced token flush failed for ${key}`,
-        { error: error instanceof Error ? error.message : String(error) },
-      );
-    });
+    this.withAudienceEntry(entry)
+      .then((withAudience) =>
+        this.redisService.publish(withAudience.channel, withAudience.message),
+      )
+      .catch((error) => {
+        this.loggerService.warn(
+          `${this.constructorName} coalesced token flush failed for ${key}`,
+          { error: error instanceof Error ? error.message : String(error) },
+        );
+      });
   }
 
   private async persistThreadEvent(
@@ -274,7 +357,16 @@ export class AgentStreamPublisherService {
       },
       { id: true },
     );
-    if (!thread) {
+    if (
+      !thread &&
+      // A member sending a turn in a thread shared with them signals as
+      // themselves (#9937); their share is read live.
+      !(await this.threadAccess?.hasAccess(
+        { organizationId: data.organizationId, userId: data.userId },
+        data.threadId,
+        'collaborate',
+      ))
+    ) {
       throw new NotFoundException(`Thread "${data.threadId}" not found`);
     }
   }
@@ -288,7 +380,7 @@ export class AgentStreamPublisherService {
     userId: string;
   }): Promise<void> {
     await this.authorizeTurnSignal(data);
-    await this.redisService.publish(CHANNEL, {
+    await this.publishAgentChat({
       data,
       type: 'agent:turn_accepted',
     });
@@ -314,7 +406,7 @@ export class AgentStreamPublisherService {
       status: 'running' as const,
       timestamp: data.timestamp,
     };
-    await this.redisService.publish(CHANNEL, {
+    await this.publishAgentChat({
       data: {
         ...payload,
         event: 'started',
@@ -345,7 +437,7 @@ export class AgentStreamPublisherService {
       userId: data.userId,
     });
 
-    await this.redisService.publish(CHANNEL, {
+    await this.publishAgentChat({
       data: { ...data, timestamp: new Date().toISOString() },
       type: 'agent:stream_start',
     });
@@ -390,7 +482,11 @@ export class AgentStreamPublisherService {
     if (pending.bytes >= this.getCoalesceMaxBytes()) {
       const entry = this.buildFlushEntry(key);
       if (entry) {
-        await this.redisService.publish(entry.channel, entry.message);
+        const withAudience = await this.withAudienceEntry(entry);
+        await this.redisService.publish(
+          withAudience.channel,
+          withAudience.message,
+        );
       }
       return;
     }
@@ -421,7 +517,7 @@ export class AgentStreamPublisherService {
       userId: data.userId,
     });
 
-    await this.redisService.publish(CHANNEL, {
+    await this.publishAgentChat({
       data: { ...data, timestamp: new Date().toISOString() },
       type: 'agent:reasoning',
     });
@@ -458,7 +554,7 @@ export class AgentStreamPublisherService {
       userId: data.userId,
     });
 
-    await this.redisService.publish(CHANNEL, {
+    await this.publishAgentChat({
       data: { ...data, timestamp: new Date().toISOString() },
       type: 'agent:tool_start',
     });
@@ -510,7 +606,7 @@ export class AgentStreamPublisherService {
       userId: data.userId,
     });
 
-    await this.redisService.publish(CHANNEL, {
+    await this.publishAgentChat({
       data: { ...data, timestamp: new Date().toISOString() },
       type: 'agent:tool_complete',
     });
@@ -589,7 +685,11 @@ export class AgentStreamPublisherService {
     };
 
     await this.redisService.publishBatch(
-      flushEntry ? [flushEntry, doneEntry] : [doneEntry],
+      await Promise.all(
+        (flushEntry ? [flushEntry, doneEntry] : [doneEntry]).map((entry) =>
+          this.withAudienceEntry(entry),
+        ),
+      ),
     );
   }
 
@@ -613,7 +713,7 @@ export class AgentStreamPublisherService {
             RecordedRunSettlement;
         },
   ): Promise<void> {
-    await this.redisService.publish(CHANNEL, {
+    await this.publishAgentChat({
       data: { ...event.data, timestamp: new Date().toISOString() },
       type: event.type,
     });
@@ -655,7 +755,11 @@ export class AgentStreamPublisherService {
     };
 
     await this.redisService.publishBatch(
-      flushEntry ? [flushEntry, errorEntry] : [errorEntry],
+      await Promise.all(
+        (flushEntry ? [flushEntry, errorEntry] : [errorEntry]).map((entry) =>
+          this.withAudienceEntry(entry),
+        ),
+      ),
     );
   }
 
@@ -680,7 +784,7 @@ export class AgentStreamPublisherService {
       userId: data.userId,
     });
 
-    await this.redisService.publish(CHANNEL, {
+    await this.publishAgentChat({
       data: { ...data, timestamp: new Date().toISOString() },
       type: 'agent:ui_blocks',
     });
@@ -753,7 +857,7 @@ export class AgentStreamPublisherService {
       userId: data.userId,
     });
 
-    await this.redisService.publish(CHANNEL, {
+    await this.publishAgentChat({
       data: { ...data, timestamp: new Date().toISOString() },
       type: 'agent:work_event',
     });
@@ -780,7 +884,7 @@ export class AgentStreamPublisherService {
       userId: data.userId,
     });
 
-    await this.redisService.publish(CHANNEL, {
+    await this.publishAgentChat({
       data: { ...data, timestamp: new Date().toISOString() },
       type: 'agent:input_request',
     });
@@ -804,7 +908,7 @@ export class AgentStreamPublisherService {
       userId: data.userId,
     });
 
-    await this.redisService.publish(CHANNEL, {
+    await this.publishAgentChat({
       data: { ...data, timestamp: new Date().toISOString() },
       type: 'agent:input_resolved',
     });
@@ -819,7 +923,7 @@ export class AgentStreamPublisherService {
     label: string;
     timestamp: string;
   }) {
-    await this.redisService.publish(CHANNEL, {
+    await this.publishAgentChat({
       data,
       type: 'agent:run_start',
     });
@@ -833,7 +937,7 @@ export class AgentStreamPublisherService {
     toolName?: string;
     timestamp: string;
   }) {
-    await this.redisService.publish(CHANNEL, {
+    await this.publishAgentChat({
       data,
       type: 'agent:run_progress',
     });
@@ -848,7 +952,7 @@ export class AgentStreamPublisherService {
     error?: string;
     timestamp: string;
   }) {
-    await this.redisService.publish(CHANNEL, {
+    await this.publishAgentChat({
       data,
       type: 'agent:run_complete',
     });
@@ -877,7 +981,7 @@ export class AgentStreamPublisherService {
       userId: data.userId,
     });
 
-    await this.redisService.publish(CHANNEL, {
+    await this.publishAgentChat({
       data: { ...data, timestamp: new Date().toISOString() },
       type: 'agent:tool_progress',
     });

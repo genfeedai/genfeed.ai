@@ -68,7 +68,11 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
 }));
 
 vi.mock('@hooks/navigation/use-org-url', () => ({
-  useOrgUrl: () => ({ href: (path: string) => `/acme/studio${path}` }),
+  useOrgUrl: () => ({
+    href: (path: string) => `/acme/studio${path}`,
+    orgHref: (path: string) => `/acme/~${path}`,
+    activeHref: (path: string) => `/acme/brand${path}`,
+  }),
 }));
 
 vi.mock('@services/core/clipboard.service', () => ({
@@ -179,8 +183,8 @@ describe('NewsletterEditorContent', () => {
     );
     expect(mocks.copyToClipboard).toHaveBeenCalledWith('Draft body');
     expect(
-      screen.getByRole('link', { name: 'Connect an account' }),
-    ).toHaveAttribute('href', '/acme/studio/settings/accounts');
+      screen.getByRole('link', { name: 'Connect Account' }),
+    ).toHaveAttribute('href', '/acme/brand/settings/profile');
   });
 
   it('sends the issue through the connected Beehiiv publication', async () => {

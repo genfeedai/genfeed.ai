@@ -48,7 +48,6 @@ const {
   identifyAnalyticsUserSpy,
   shellState,
   onboardingGuardSpy,
-  lowCreditsBannerSpy,
   protectedProvidersSpy,
   resetAnalyticsSpy,
   universalShellSpy,
@@ -67,7 +66,6 @@ const {
     isShellThrowing: false,
     isSignedIn: undefined as boolean | undefined,
   },
-  lowCreditsBannerSpy: vi.fn(),
   onboardingGuardSpy: vi.fn(),
   protectedProvidersSpy: vi.fn(),
   resetAnalyticsSpy: vi.fn(),
@@ -75,8 +73,11 @@ const {
 }));
 
 const mockCreditsBilling = vi.hoisted(() => ({ value: true }));
+const mockAgentStore = vi.hoisted(() => ({
+  activeThreadId: null as string | null,
+  threads: [] as { id: string; title?: string }[],
+}));
 
-const mockFeatureFlags = vi.hoisted(() => ({ isEnabled: true }));
 // Every real Studio app is a single page, and a one-item nav is dropped, so a
 // test opts an app into a second page here to exercise the Studio nav column.
 const mockStudioNav = vi.hoisted(() => ({
@@ -471,7 +472,8 @@ vi.mock('@genfeedai/agent', () => ({
   AgentApiService: class AgentApiService {},
   useAgentChatStore: (selector: (state: Record<string, unknown>) => unknown) =>
     selector({
-      threads: [],
+      activeThreadId: mockAgentStore.activeThreadId,
+      threads: mockAgentStore.threads,
     }),
   useAgentPageContext: vi.fn(),
 }));
@@ -504,10 +506,6 @@ vi.mock(
 
 vi.mock('@/hooks/ui/use-menu-items', () => ({
   useMenuItems: () => [{ href: '/workspace', label: 'Workspace' }],
-}));
-
-vi.mock('@/hooks/feature-flags/use-feature-flag', () => ({
-  useFeatureFlag: () => mockFeatureFlags.isEnabled,
 }));
 
 vi.mock('@/providers/protected-providers/protected-providers', () => ({
@@ -560,13 +558,6 @@ vi.mock('@services/core/environment.service', () => ({
   },
 }));
 
-vi.mock('@/components/banners/low-credits/LowCreditsBanner', () => ({
-  default: (props: { isLowBalanceWarningEnabled?: boolean }) => {
-    lowCreditsBannerSpy(props);
-    return <div data-testid="low-credits-banner" />;
-  },
-}));
-
 // Mocked so this suite stays hermetic (the real banner reads the Better Auth
 // session store); its own behavior is covered in impersonation-banner.test.tsx.
 vi.mock('./impersonation-banner', () => ({
@@ -607,11 +598,12 @@ describe('AppProtectedLayout', () => {
   beforeEach(() => {
     mockCreditsRuntime.mockReturnValue({ status: 'web', context: null });
     mockCreditsBilling.value = true;
-    mockFeatureFlags.isEnabled = true;
     mockStudioNav.appsWithSecondPage.clear();
     vi.mocked(useUserRole).mockReturnValue(MemberRole.USER);
     vi.mocked(useAgentPageContext).mockClear();
     mockPathname.value = '/workspace';
+    mockAgentStore.activeThreadId = null;
+    mockAgentStore.threads = [];
     shellState.isAuthLoaded = true;
     shellState.isShellThrowing = false;
     shellState.isSignedIn = undefined;
@@ -637,7 +629,6 @@ describe('AppProtectedLayout', () => {
     identifyAnalyticsOrganizationSpy.mockClear();
     identifyAnalyticsUserSpy.mockClear();
     onboardingGuardSpy.mockClear();
-    lowCreditsBannerSpy.mockClear();
     protectedProvidersSpy.mockClear();
     resetAnalyticsSpy.mockClear();
     universalShellSpy.mockClear();
@@ -740,37 +731,12 @@ describe('AppProtectedLayout', () => {
     },
   );
 
-  it('hides the shell low credits banner on promptbar routes', () => {
+  it('keeps the impersonation banner on every route', () => {
     mockPathname.value = '/storyboard';
     render(<AppProtectedLayout />);
-    expect(lowCreditsBannerSpy).not.toHaveBeenCalled();
     // The impersonation banner has no route carve-outs: it must survive
     // every route the impersonated session can reach.
     expect(screen.getByTestId('impersonation-banner')).toBeInTheDocument();
-  });
-
-  it('keeps the shell low credits banner on the Studio Editor surface', () => {
-    mockPathname.value = '/editor/project-1';
-    render(<AppProtectedLayout />);
-    expect(lowCreditsBannerSpy).toHaveBeenCalledTimes(1);
-  });
-
-  it('shows the shell low credits banner on non-promptbar routes', () => {
-    mockPathname.value = '/workspace';
-    render(<AppProtectedLayout />);
-    expect(lowCreditsBannerSpy).toHaveBeenCalled();
-    expect(screen.getByTestId('low-credits-banner')).toBeInTheDocument();
-    expect(screen.getByTestId('impersonation-banner')).toBeInTheDocument();
-  });
-
-  it('mounts the banner with only the low-balance warning gated when the flag is off', () => {
-    mockFeatureFlags.isEnabled = false;
-    mockPathname.value = '/workspace';
-    render(<AppProtectedLayout />);
-    expect(screen.getByTestId('low-credits-banner')).toBeInTheDocument();
-    expect(lowCreditsBannerSpy).toHaveBeenLastCalledWith({
-      isLowBalanceWarningEnabled: false,
-    });
   });
 
   it('wires the permanent workspace shell through the protected app shell', () => {
@@ -1117,7 +1083,7 @@ describe('AppProtectedLayout', () => {
   );
 
   it.each([
-    ['/org-123/~/settings/api-keys', 'Settings', 'API Keys'],
+    ['/org-123/~/connectors/api-keys', 'Connectors', 'API keys'],
     ['/org-123/brand-123/discovery/ads', 'Discovery', 'Ads'],
     ['/org-123/brand-123/library', 'Library', 'Overview'],
     ['/org-123/brand-123/library/videos', 'Library', 'Assets'],
@@ -1165,13 +1131,34 @@ describe('AppProtectedLayout', () => {
       };
       expect(layoutProps.breadcrumb).toEqual({
         leafLabel,
-        ...(pathname === '/org-123/~/settings/api-keys'
-          ? { parentLabel: 'Org 123' }
-          : {}),
         rootLabel,
       });
     },
   );
+
+  describe('master thread breadcrumb', () => {
+    it.each([
+      ['/org-123/~/agent', 'Weekly launch plan'],
+      ['/org-123/~/agent/new', 'New Conversation'],
+    ])('shows the leaf for %s', (pathname, leafLabel) => {
+      mockPathname.value = pathname;
+      mockAgentStore.activeThreadId = 'master-1';
+      mockAgentStore.threads = [
+        { id: 'master-1', title: 'Weekly launch plan' },
+      ];
+
+      render(
+        <AppProtectedLayout>
+          <div>Protected content</div>
+        </AppProtectedLayout>,
+      );
+
+      const layoutProps = appLayoutSpy.mock.lastCall?.[0] as {
+        breadcrumb?: { leafLabel: string };
+      };
+      expect(layoutProps.breadcrumb?.leafLabel).toBe(leafLabel);
+    });
+  });
 
   describe('storyboard run breadcrumb', () => {
     it('shows the run title the page publishes as the leaf', () => {
@@ -1741,6 +1728,8 @@ describe('AppProtectedLayout', () => {
     mockStudioNav.appsWithSecondPage.add('storyboard');
     mockPathname.value = '/storyboard';
     mockBrandState.settings.hasOrganizationBilling = true;
+    // Release preview isolates the nav from the Storyboard release.
+    mockBrandState.settings.isReleasePreviewEnabled = true;
     render(
       <AppProtectedLayout>
         <div>Existing storyboard</div>
@@ -1793,7 +1782,7 @@ describe('AppProtectedLayout', () => {
   });
 
   it.each([true, false])(
-    'keeps a credit-only Studio app nav while preferences are unknown (loading=%s)',
+    'lists no Studio app nav until preferences are known (loading=%s)',
     (settingsLoading) => {
       mockStudioNav.appsWithSecondPage.add('storyboard');
       mockPathname.value = '/storyboard';
@@ -1804,11 +1793,12 @@ describe('AppProtectedLayout', () => {
           <div>Existing storyboard</div>
         </AppProtectedLayout>,
       );
+      expect(screen.getByText('Existing storyboard')).toBeInTheDocument();
       expect(
-        appSidebarSpy.mock.lastCall?.[0].items.map(
+        (appSidebarSpy.mock.lastCall?.[0].items ?? []).map(
           (item: MenuItemConfig) => item.href,
         ),
-      ).toEqual(['/storyboard', '/storyboard/archive']);
+      ).toEqual([]);
     },
   );
 

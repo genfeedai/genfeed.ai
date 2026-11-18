@@ -136,30 +136,27 @@ export class DefaultRecurringContentService {
       latestByType.set(contentType, workflow as Record<string, unknown>);
     }
 
+    // Only the newest execution of each default workflow matters. These
+    // workflows run daily, so their combined history grows without bound:
+    // ask for one row per workflow instead of loading all of it.
     const workflowIds = Array.from(latestByType.values()).map(
       (w) => w.id as string,
     );
-    const latestExecutions =
-      workflowIds.length > 0
-        ? await this.prisma.workflowExecution.findMany({
-            orderBy: [{ createdAt: 'desc' }, { startedAt: 'desc' }],
-            where: scopedWhere(organizationId, {
-              workflowId: { in: workflowIds },
-            }),
-          })
-        : [];
+    const latestExecutions = await Promise.all(
+      workflowIds.map((workflowId) =>
+        this.prisma.workflowExecution.findFirst({
+          orderBy: [{ createdAt: 'desc' }, { startedAt: 'desc' }],
+          select: { status: true, workflowId: true },
+          where: scopedWhere(organizationId, { workflowId }),
+        }),
+      ),
+    );
 
     const executionByWorkflowId = new Map<string, Record<string, unknown>>();
     for (const execution of latestExecutions) {
-      const workflowId = (execution as Record<string, unknown>)
-        .workflowId as string;
-      if (!workflowId || executionByWorkflowId.has(workflowId)) {
-        continue;
+      if (execution?.workflowId) {
+        executionByWorkflowId.set(execution.workflowId, execution);
       }
-      executionByWorkflowId.set(
-        workflowId,
-        execution as Record<string, unknown>,
-      );
     }
 
     const items = DEFAULT_RECURRING_TYPES.flatMap((contentType) => {

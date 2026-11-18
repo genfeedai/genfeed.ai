@@ -3,6 +3,7 @@
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { usePageScope } from '@hooks/navigation/use-page-scope/use-page-scope';
+import { useResetOnChange } from '@hooks/utils/use-reset-on-change/use-reset-on-change';
 import { IngredientsService } from '@services/content/ingredients.service';
 import { logger } from '@services/core/logger.service';
 import { Alert, AlertDescription } from '@ui/primitives/alert';
@@ -73,10 +74,11 @@ export default function AssetDeepLink() {
   const [openedKey, setOpenedKey] = useState<string | null>(null);
 
   // Once the link is gone, the same asset can be linked again.
-  useEffect(() => {
+  useResetOnChange([assetId], () => {
     if (!assetId) setOpenedKey(null);
-  }, [assetId]);
+  });
 
+  // use-effect-audit: ignore opens the shared inspector store once the linked asset resolves
   useEffect(() => {
     if (!ingredient || !isInScope || openedKey === openKey) return;
     openIngredientSidebar(ingredient);
@@ -85,6 +87,7 @@ export default function AssetDeepLink() {
 
   // A background refresh can find the opened asset deleted or moved out of
   // scope: close it and report it unavailable instead of keeping it open.
+  // use-effect-audit: ignore closes the shared inspector store when the opened asset leaves scope
   useEffect(() => {
     if (!ingredient || isInScope || openedKey !== openKey) return;
     closeIngredientSidebar();
@@ -92,6 +95,7 @@ export default function AssetDeepLink() {
   }, [closeIngredientSidebar, ingredient, isInScope, openKey, openedKey]);
 
   const lookupError = isLookupEnabled ? assetQuery.error : null;
+  // use-effect-audit: ignore reports a failed load to the logger or a notification
   useEffect(() => {
     if (!lookupError) return;
     logger.warn('Could not open linked library asset', {

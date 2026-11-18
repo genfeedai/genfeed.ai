@@ -47,6 +47,31 @@ describe('normalizeNextPageRoute', () => {
 });
 
 describe('compareProductRouteInventories', () => {
+  it('treats an app catch-all page as served by its expansions, not as a registration', () => {
+    const issues = compareProductRouteInventories({
+      ...VALID_INVENTORY_INPUTS,
+      appCatchAllPages: ['/org/app/*segments?'],
+      discoveredProtectedRoutes: [
+        '/kept',
+        '/org/*segments?',
+        '/org/app/*segments?',
+      ],
+    });
+
+    expect(issues).toEqual([]);
+  });
+
+  it('reports an app catch-all page that no longer exists', () => {
+    const issues = compareProductRouteInventories({
+      ...VALID_INVENTORY_INPUTS,
+      appCatchAllPages: ['/org/app/*segments?'],
+    });
+
+    expect(issues).toEqual([
+      'Missing organization app catch-all page: /org/app/*segments?',
+    ]);
+  });
+
   it('reports drift in both protected and public directions', () => {
     const issues = compareProductRouteInventories({
       catchAllExpansions: ['/org/expanded'],
@@ -209,12 +234,16 @@ describe('runCheckProductRouteInventory', () => {
     // settings and analytics pages, and the website its /newsletter archive.
     // Creator payments added the earnings settings page and the support page
     // (org and top level). Community gained its Creators, Images and Videos
-    // pages, and admin organizations a Community tab.
+    // pages, and admin organizations a Community tab. Connectors also opens
+    // under a brand (`/:org/:brand/connectors/*`, six pages; Channels lives only there).
+    // The bare `/connectors` paths are configuration redirects, not pages, and
+    // organization Library and Publishing got static entries in front of the
+    // catch-all. Organization settings Preferences folded into General.
     expect(runCheckProductRouteInventory()).toMatchObject({
       appPublicRouteCount: 25,
       issues: [],
-      protectedPageCount: 253,
-      protectedRouteCount: 278,
+      protectedPageCount: 258,
+      protectedRouteCount: 282,
       publicRouteCount: 123,
       websitePublicRouteCount: 98,
     });

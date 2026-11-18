@@ -89,7 +89,7 @@ describe('ChatJourneyPage', () => {
     expect(screen.getByText('Recommended next')).toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: /back to onboarding/i }),
-    ).toHaveAttribute('href', '/onboarding/providers');
+    ).toHaveAttribute('href', '/onboarding');
   });
 
   it('renders chrome and placeholder stats while organization settings load', () => {
@@ -106,12 +106,12 @@ describe('ChatJourneyPage', () => {
     ).toHaveClass('sr-only');
     expect(
       screen.getByRole('link', { name: /back to onboarding/i }),
-    ).toHaveAttribute('href', '/onboarding/providers');
+    ).toHaveAttribute('href', '/onboarding');
     expect(screen.getByText('Available to unlock')).toBeInTheDocument();
     expect(screen.getByText('Journey unlocked')).toBeInTheDocument();
     expect(
-      screen.getByRole('status', { name: 'Loading Available to unlock' }),
-    ).toBeInTheDocument();
+      screen.getByText('Available to unlock').closest('[aria-busy]'),
+    ).toHaveAttribute('aria-busy', 'true');
     expect(screen.getByTestId('journey-missions-loading')).toBeInTheDocument();
     expect(
       screen.queryByText(ONBOARDING_JOURNEY_MISSIONS[0].label),

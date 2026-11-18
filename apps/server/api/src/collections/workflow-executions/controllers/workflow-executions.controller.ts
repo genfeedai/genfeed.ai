@@ -6,7 +6,10 @@ import {
   UpdateWorkflowExecutionDto,
   WorkflowExecutionQueryDto,
 } from '@api/collections/workflow-executions/dto/create-workflow-execution.dto';
-import { buildCustomerExecutionWhere } from '@api/collections/workflow-executions/services/workflow-execution-query.util';
+import {
+  buildCancellableExecutionWhere,
+  buildReadableExecutionWhere,
+} from '@api/collections/workflow-executions/services/workflow-execution-query.util';
 import { WorkflowExecutionsService } from '@api/collections/workflow-executions/services/workflow-executions.service';
 import { AGENT_CONVERSATION_WORKFLOW_IDS } from '@api/collections/workflows/services/agent-runtime-workflow-definitions';
 import { WorkflowExecutionAuthorizationService } from '@api/collections/workflows/services/workflow-execution-authorization.service';
@@ -66,7 +69,7 @@ import type { Request } from 'express';
  * Columns the run history can be ordered by. A run's name and credits are
  * derived from its workflow and its accounting, which the list cannot order by.
  */
-export const WORKFLOW_EXECUTION_SORT_FIELDS: readonly string[] = [
+const WORKFLOW_EXECUTION_SORT_FIELDS: readonly string[] = [
   'completedAt',
   'createdAt',
   'durationMs',
@@ -352,18 +355,17 @@ export class WorkflowExecutionsController {
     @CurrentUser() user: User,
     @Param('id') id: string,
   ) {
+    const organizationId = resolveTenantReadScope(user).organizationId;
     const execution =
-      await this.workflowExecutionsService.findOneWithAccounting({
-        ...(getIsSuperAdmin(user, req)
-          ? {
-              organizationId: resolveTenantReadScope(user).organizationId,
-              isDeleted: false,
-            }
-          : buildCustomerExecutionWhere(
-              resolveTenantReadScope(user).organizationId,
-            )),
-        id,
-      });
+      await this.workflowExecutionsService.findOneWithAccounting(
+        getIsSuperAdmin(user, req)
+          ? { organizationId, isDeleted: false, id }
+          : buildReadableExecutionWhere(
+              organizationId,
+              user.userId ?? user.id,
+              id,
+            ),
+      );
     if (!execution) {
       throw new NotFoundException('Execution');
     }
@@ -416,9 +418,13 @@ export class WorkflowExecutionsController {
     @Param('id') id: string,
     @Body() dto: UpdateWorkflowExecutionDto,
   ) {
-    // Verify ownership first
+    // Verify ownership first. Stop in the agent chat lands here too.
     const execution = await this.workflowExecutionsService.findOneSelect(
-      { ...buildCustomerExecutionWhere(user.organizationId), id },
+      buildCancellableExecutionWhere(
+        user.organizationId,
+        user.userId ?? user.id,
+        id,
+      ),
       { id: true },
     );
 

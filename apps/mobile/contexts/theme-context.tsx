@@ -53,8 +53,9 @@ export function MobileThemeProvider({ children }: { children: ReactNode }) {
   const [isLocalPreferenceLoaded, setIsLocalPreferenceLoaded] = useState(false);
   const preferenceRevision = useRef(0);
 
+  // use-effect-audit: ignore abortable load of the stored theme
   useEffect(() => {
-    let isActive = true;
+    const abortController = new AbortController();
     const startedAtRevision = preferenceRevision.current;
 
     const hydrateLocalPreference = async () => {
@@ -64,7 +65,10 @@ export function MobileThemeProvider({ children }: { children: ReactNode }) {
           ? storedPreference
           : DEFAULT_THEME;
 
-        if (isActive && preferenceRevision.current === startedAtRevision) {
+        if (
+          !abortController.signal.aborted &&
+          preferenceRevision.current === startedAtRevision
+        ) {
           setPreferenceState(nextPreference);
         }
 
@@ -72,11 +76,14 @@ export function MobileThemeProvider({ children }: { children: ReactNode }) {
           await AsyncStorage.setItem(THEME_STORAGE_KEY, DEFAULT_THEME);
         }
       } catch {
-        if (isActive && preferenceRevision.current === startedAtRevision) {
+        if (
+          !abortController.signal.aborted &&
+          preferenceRevision.current === startedAtRevision
+        ) {
           setPreferenceState(DEFAULT_THEME);
         }
       } finally {
-        if (isActive) {
+        if (!abortController.signal.aborted) {
           setIsLocalPreferenceLoaded(true);
         }
       }
@@ -85,16 +92,17 @@ export function MobileThemeProvider({ children }: { children: ReactNode }) {
     void hydrateLocalPreference();
 
     return () => {
-      isActive = false;
+      abortController.abort();
     };
   }, []);
 
+  // use-effect-audit: ignore abortable account theme sync
   useEffect(() => {
     if (!isLocalPreferenceLoaded || !isLoaded || !isSignedIn || !user) {
       return;
     }
 
-    let isActive = true;
+    const abortController = new AbortController();
     const startedAtRevision = preferenceRevision.current;
 
     const hydrateAccountPreference = async () => {
@@ -105,7 +113,10 @@ export function MobileThemeProvider({ children }: { children: ReactNode }) {
         }
 
         const accountPreference = await mobileSettingsService.getTheme(token);
-        if (!isActive || preferenceRevision.current !== startedAtRevision) {
+        if (
+          abortController.signal.aborted ||
+          preferenceRevision.current !== startedAtRevision
+        ) {
           return;
         }
 
@@ -119,7 +130,7 @@ export function MobileThemeProvider({ children }: { children: ReactNode }) {
     void hydrateAccountPreference();
 
     return () => {
-      isActive = false;
+      abortController.abort();
     };
   }, [getToken, isLoaded, isLocalPreferenceLoaded, isSignedIn, user]);
 

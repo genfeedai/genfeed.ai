@@ -78,7 +78,7 @@ test.describe('Public Routes (Unauthenticated)', () => {
     const claimPath = `/agent-auth/claim?claim_attempt_token=${claimAttemptToken}`;
     await assertRouteRenders(unauthenticatedPage, claimPath);
     const signIn = unauthenticatedPage.getByRole('link', {
-      name: 'Sign in to continue',
+      name: 'Sign In',
     });
     await expect(signIn).toBeVisible();
     await signIn.click();
@@ -92,8 +92,8 @@ test.describe('Public Routes (Unauthenticated)', () => {
 test.describe('Connect (Authenticated)', () => {
   test.setTimeout(60_000);
 
-  test('renders /connect', async ({ authenticatedPage }) => {
-    await assertRouteRenders(authenticatedPage, APP_ROUTES.CONNECT);
+  test('renders Connectors', async ({ authenticatedPage }) => {
+    await assertRouteRenders(authenticatedPage, APP_ROUTES.CONNECTORS.AGENTS);
   });
 });
 

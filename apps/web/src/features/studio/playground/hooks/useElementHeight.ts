@@ -12,6 +12,7 @@ export function useElementHeight(
 ): number | null {
   const [height, setHeight] = useState<number | null>(null);
 
+  // use-effect-audit: ignore observes DOM elements with a browser observer
   useEffect(() => {
     const element = ref.current;
     if (!element || typeof ResizeObserver === 'undefined') return;

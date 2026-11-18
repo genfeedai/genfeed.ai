@@ -36,7 +36,7 @@ const PUBLISHED_ACTIVITY_PATTERN = /Published to (\w+):\s*(https?:\/\/\S+)/i;
  * Background / media-ish tasks that show progress UI.
  * Prefer lifecycle parsing over enumerating every key when possible.
  */
-export const BACKGROUND_TASK_KEYS = [
+const BACKGROUND_TASK_KEYS = [
   ActivityKeys.video.generate.processing,
   ActivityKeys.video.generate.completed,
   ActivityKeys.video.generate.finished,
@@ -67,7 +67,7 @@ const CREDIT_ACTIVITY_KEYS = [
   ActivityKeys.credits.reset,
 ] as const;
 
-export function isCreditActivity(key: string): boolean {
+function isCreditActivity(key: string): boolean {
   return (CREDIT_ACTIVITY_KEYS as readonly string[]).includes(key);
 }
 
@@ -75,6 +75,25 @@ export function getActivitySourceLabel(
   source: string | undefined,
 ): string | undefined {
   return getCreditActivitySourceLabel(source);
+}
+
+const TOKEN_WORD_BOUNDARY_PATTERN = /[-_\s]+|(?<=[a-z0-9])(?=[A-Z])/u;
+
+/**
+ * Reads a wire token as words: `breakout-remix-offered` becomes
+ * "Breakout remix offered" and `BreakoutResponse` becomes "Breakout response".
+ * For the facts an operator reads, never an id.
+ */
+export function humanizeActivityToken(
+  token: string | null | undefined,
+): string | undefined {
+  const words = (token ?? '')
+    .split(TOKEN_WORD_BOUNDARY_PATTERN)
+    .filter(Boolean)
+    .map((word) => word.toLowerCase());
+  if (!words.length) return undefined;
+  const sentence = words.join(' ');
+  return sentence.charAt(0).toUpperCase() + sentence.slice(1);
 }
 
 export function parseActivityValue(
@@ -420,9 +439,9 @@ export function getActivityDestinationPath(
 
   const { subject } = parseActivityKey(activity.key);
   // Social account events use the integration subject (`integration-social-*`),
-  // including legacy rows that have no brand scope. Both land on connected accounts.
+  // including legacy rows that have no brand scope. Both land on the brand's Profile.
   if (subject === 'social' || subject === 'integration') {
-    return APP_ROUTES.SETTINGS.CONNECTED_ACCOUNTS;
+    return APP_ROUTES.SETTINGS.PROFILE;
   }
 
   const entityModel = activity.entityModel?.toLowerCase();
@@ -573,7 +592,7 @@ export function formatActivityDayHeading(
 }
 
 /** The credit movement an activity records, or null when it has none. */
-export function getActivityCreditsChange(
+function getActivityCreditsChange(
   activity: IActivity,
 ): ReturnType<typeof getCreditActivityChangeDescriptor> | null {
   if (isCreditActivity(activity.key)) {

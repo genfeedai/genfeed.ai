@@ -57,6 +57,8 @@ export type ProductRouteInventoryReport = {
 type ProductRouteInventoryInputs = {
   readonly catchAllExpansions: readonly string[];
   readonly catchAllPage: string;
+  /** Static `~/<app>/[[...segments]]` entries that serve their own expansions. */
+  readonly appCatchAllPages?: readonly string[];
   readonly discoveredProtectedRoutes: readonly string[];
   readonly discoveredPublicRoutes: readonly DiscoveredPublicRoute[];
   readonly hardCutPages: readonly string[];
@@ -78,6 +80,16 @@ const WEBSITE_DIRECTORY = 'apps/marketing/app';
 
 export const ORGANIZATION_CATCH_ALL_PAGE = '/:orgSlug/~/:orgRootApp/*segments?';
 
+/**
+ * Organization apps with a static route of their own in front of the catch-all
+ * (a dynamic `[orgRootApp]` segment gets no prepared page frame, #10040). Their
+ * expansions stay in the list below.
+ */
+export const ORGANIZATION_APP_CATCH_ALL_PAGES = Object.freeze([
+  '/:orgSlug/~/library/*segments?',
+  '/:orgSlug/~/publishing/*segments?',
+] as const);
+
 export const ORGANIZATION_CATCH_ALL_EXPANSIONS = Object.freeze([
   '/:orgSlug/~/library',
   '/:orgSlug/~/library/voices/record',
@@ -94,6 +106,7 @@ export const ORGANIZATION_CATCH_ALL_EXPANSIONS = Object.freeze([
   '/:orgSlug/~/publishing/approvals',
   '/:orgSlug/~/publishing/approvals/:run',
   '/:orgSlug/~/publishing/approvals/:run/:item',
+  '/:orgSlug/~/publishing/batches/:approvalId',
   '/:orgSlug/~/publishing/campaigns',
   '/:orgSlug/~/publishing/campaigns/new',
   '/:orgSlug/~/publishing/campaigns/compare',
@@ -239,9 +252,9 @@ export const PUBLIC_ROUTE_CLASSIFICATION_REGISTRY = Object.freeze([
     '/youtube',
   ] as const),
   ...classifyPublicRoutes('website', 'public-content', [
-    '/articles',
     '/changelog',
     '/community',
+    '/community/articles',
     '/community/creators',
     '/community/images',
     '/community/videos',
@@ -395,6 +408,7 @@ export function compareProductRouteInventories(
   const discoveredProtected = new Set(inputs.discoveredProtectedRoutes);
   const hardCutPages = new Set(inputs.hardCutPages);
   const catchAllExpansions = new Set(inputs.catchAllExpansions);
+  const appCatchAllPages = new Set(inputs.appCatchAllPages ?? []);
   const protectedRoutePatterns = inputs.protectedRoutes.map(
     (route) => route.canonicalUrl,
   );
@@ -403,6 +417,7 @@ export function compareProductRouteInventories(
     inputs.discoveredProtectedRoutes.filter(
       (route) =>
         route !== inputs.catchAllPage &&
+        !appCatchAllPages.has(route) &&
         !inputs.hardCutPrefixes.some((prefix) =>
           startsWithRoutePrefix(route, prefix),
         ),
@@ -421,6 +436,13 @@ export function compareProductRouteInventories(
   }
   if (!discoveredProtected.has(inputs.catchAllPage)) {
     issues.push(`Missing organization catch-all page: ${inputs.catchAllPage}`);
+  }
+  for (const appCatchAllPage of appCatchAllPages) {
+    if (!discoveredProtected.has(appCatchAllPage)) {
+      issues.push(
+        `Missing organization app catch-all page: ${appCatchAllPage}`,
+      );
+    }
   }
   for (const hardCutPage of hardCutPages) {
     if (!discoveredProtected.has(hardCutPage)) {
@@ -497,6 +519,7 @@ export function runCheckProductRouteInventory(
   const issues = compareProductRouteInventories({
     catchAllExpansions: ORGANIZATION_CATCH_ALL_EXPANSIONS,
     catchAllPage: ORGANIZATION_CATCH_ALL_PAGE,
+    appCatchAllPages: ORGANIZATION_APP_CATCH_ALL_PAGES,
     discoveredProtectedRoutes,
     discoveredPublicRoutes,
     hardCutPages: PROTECTED_HARD_CUT_PAGES,

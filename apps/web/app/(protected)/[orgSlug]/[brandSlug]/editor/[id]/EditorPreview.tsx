@@ -253,6 +253,7 @@ function EditorPreview({
     onPlayingChangeRef.current?.(false);
   });
 
+  // use-effect-audit: ignore subscribes to browser events
   useEffect(() => {
     const player = playerRef.current;
     if (!player) {

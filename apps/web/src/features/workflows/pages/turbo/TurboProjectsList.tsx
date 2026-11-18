@@ -3,12 +3,20 @@ import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { formatEnumLabel } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { ITurboProject } from '@genfeedai/contracts/interfaces';
+import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
+import { viewerKeyPart } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import { useResetOnChange } from '@hooks/utils/use-reset-on-change/use-reset-on-change';
 import {
   getJsonApiErrorMember,
   getJsonApiErrorMessage,
 } from '@services/core/json-api-error-message';
+import {
+  type InfiniteData,
+  useInfiniteQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import Container from '@ui/layout/container/Container';
 import { useCreativeProjectsPresence } from '@ui/layout/creative-app-workspace/CreativeAppWorkspace';
@@ -22,11 +30,14 @@ import {
 import { Button } from '@ui/primitives/button';
 import { Rocket } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import SearchField from '@/components/content/search-field/SearchField';
 import SubscriptionRequiredState from '@/features/workflows/components/guards/subscription/SubscriptionRequiredState';
+import type { TurboProjectsPage } from './turbo-project.types';
 import { turboProjectListStatus } from './turbo-project-list-status';
 import { createTurboProjectsApi } from './turbo-projects-api';
+
+const PAGE_SIZE = 50;
 
 /**
  * The right side of the Turbo workspace while no project is open: one list of
@@ -39,67 +50,67 @@ export default function TurboProjectsList() {
   const { brandId } = useBrand();
   const { href, orgHref } = useOrgUrl();
   const service = useAuthedService(createTurboProjectsApi);
-  const [projects, setProjects] = useState<ITurboProject[]>([]);
-  const [page, setPage] = useState(1);
-  const [loadedPage, setLoadedPage] = useState(0);
-  const [refresh, setRefresh] = useState(0);
-  const [hasMore, setHasMore] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { orgId, userId } = useAuthIdentity();
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
-  const [isSubscriptionRequired, setIsSubscriptionRequired] = useState(false);
-  // biome-ignore lint/correctness/useExhaustiveDependencies: changing brand resets pagination and loaded rows.
-  useEffect(() => {
-    setProjects([]);
-    setPage(1);
-    setLoadedPage(0);
-    setError(null);
-    setIsSubscriptionRequired(false);
-  }, [brandId, search]);
-  // biome-ignore lint/correctness/useExhaustiveDependencies: refresh explicitly retries the current page after a failed load.
-  useEffect(() => {
-    if (!brandId) return;
-    const controller = new AbortController();
-    setLoading(true);
-    void service()
-      .then((api) => api.list(brandId, page, controller.signal, search))
-      .then((items) => {
-        if (controller.signal.aborted) return;
-        setProjects((current) =>
-          page === 1
-            ? items
-            : [
-                ...current,
-                ...items.filter(
-                  (item) => !current.some((prior) => prior.id === item.id),
-                ),
-              ],
-        );
-        setLoadedPage(page);
-        setHasMore(items.length === 50);
-        setError(null);
-        setIsSubscriptionRequired(false);
-      })
-      .catch((reason: unknown) => {
-        if (controller.signal.aborted) return;
-        const member = getJsonApiErrorMember(reason);
-        setIsSubscriptionRequired(
-          member?.status === 403 &&
-            member.title === 'Active subscription required',
-        );
-        setError(getJsonApiErrorMessage(reason, t('loadFailed')));
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) setLoading(false);
-      });
-    return () => controller.abort();
-  }, [brandId, page, search, service, t, refresh]);
+  const [removeError, setRemoveError] = useState<string | null>(null);
+  useResetOnChange([brandId, search], () => setRemoveError(null));
+  const queryKey = [
+    'turbo-projects',
+    brandId,
+    search,
+    viewerKeyPart(userId, orgId),
+  ];
+  const query = useInfiniteQuery({
+    enabled: Boolean(brandId && userId),
+    getNextPageParam: (last: TurboProjectsPage, _all, lastPage: number) =>
+      last.hasMore ? lastPage + 1 : undefined,
+    initialPageParam: 1,
+    queryFn: async ({ pageParam, signal }): Promise<TurboProjectsPage> => {
+      const items = await (await service()).list(
+        brandId,
+        pageParam,
+        signal,
+        search,
+      );
+      return { hasMore: items.length === PAGE_SIZE, items };
+    },
+    queryKey,
+  });
+  const projects = [
+    ...new Map(
+      (query.data?.pages ?? []).flatMap((page) =>
+        page.items.map((item) => [item.id, item] as const),
+      ),
+    ).values(),
+  ];
+  const hasMore = query.hasNextPage;
+  const loading = query.isFetching || query.isPending;
+  const member = getJsonApiErrorMember(query.error);
+  const isSubscriptionRequired =
+    member?.status === 403 && member.title === 'Active subscription required';
+  const error =
+    removeError ??
+    (query.isError
+      ? getJsonApiErrorMessage(query.error, t('loadFailed'))
+      : null);
   async function remove(id: string) {
+    setRemoveError(null);
     try {
       await (await service()).remove(id);
-      setProjects((items) => items.filter((item) => item.id !== id));
+      queryClient.setQueryData<InfiniteData<TurboProjectsPage, number>>(
+        queryKey,
+        (data) =>
+          data && {
+            ...data,
+            pages: data.pages.map((page) => ({
+              ...page,
+              items: page.items.filter((item) => item.id !== id),
+            })),
+          },
+      );
     } catch (reason) {
-      setError(getJsonApiErrorMessage(reason, t('saveFailed')));
+      setRemoveError(getJsonApiErrorMessage(reason, t('saveFailed')));
     }
   }
   function row(project: ITurboProject, now: Date) {
@@ -166,8 +177,8 @@ export default function TurboProjectsList() {
         <ButtonRefresh
           isRefreshing={loading}
           onClick={() => {
-            if (page === 1) setRefresh((value) => value + 1);
-            else setPage(1);
+            setRemoveError(null);
+            void query.refetch();
           }}
         />
       }
@@ -197,9 +208,12 @@ export default function TurboProjectsList() {
           <Button
             isDisabled={loading}
             onClick={() => {
-              const next = loadedPage + 1;
-              if (page === next) setRefresh((value) => value + 1);
-              else setPage(next);
+              setRemoveError(null);
+              if (query.isFetchNextPageError || (!query.isError && hasMore)) {
+                void query.fetchNextPage();
+              } else {
+                void query.refetch();
+              }
             }}
           >
             {t(error ? 'retryLoad' : 'more')}

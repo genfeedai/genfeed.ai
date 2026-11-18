@@ -5,6 +5,7 @@ import {
 } from '@genfeedai/contracts/interfaces';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { ClientService } from '@mcp/services/client.service';
+import { createEndpointRegistries } from '@mcp/services/tool-registry.endpoints.testing';
 import { ToolRegistryService } from '@mcp/services/tool-registry.service';
 import { withCardResult } from '@mcp/ui/card-data';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -54,7 +55,7 @@ describe('native MCP untrusted-result integration', () => {
     log: vi.fn(),
   };
   const registry = () =>
-    new ToolRegistryService(
+    createEndpointRegistries(
       client as unknown as ClientService,
       logger as unknown as LoggerService,
       'superadmin',
@@ -184,23 +185,35 @@ describe('native MCP untrusted-result integration', () => {
   });
   it('does not classify pending or declined approvals and executes an approved native write only once', async () => {
     const service = registry();
-    await service.handleToolCall({
+    const pending = await service.handleToolCall({
       name: routes[3].name,
       arguments: routes[3].args,
     });
+    expect(Reflect.get(pending, 'isError')).toBe(true);
+    expect(Reflect.get(pending, 'structuredContent')).toMatchObject({
+      approvalId: 'approval',
+      approvalStatus: 'PENDING',
+      code: 'approval_pending',
+    });
     expect(client.createClipperProjectFromYoutube).not.toHaveBeenCalled();
     expect(client.evaluateMcpToolResult).not.toHaveBeenCalled();
-    await service.handleToolCall({
+    const declined = await service.handleToolCall({
       name: 'resolve_approval',
       arguments: { approvalId: 'declined', decision: 'decline' },
     });
+    expect(declined.content).toEqual([
+      {
+        text: 'Approval declined. The action was not executed.',
+        type: 'text',
+      },
+    ]);
     expect(client.createClipperProjectFromYoutube).not.toHaveBeenCalled();
     expect(client.evaluateMcpToolResult).not.toHaveBeenCalled();
     // Two redemptions race; only one wins the execution claim.
     client.claimApprovalExecution
       .mockResolvedValueOnce(true)
       .mockResolvedValueOnce(false);
-    await Promise.all([
+    const redemptions = await Promise.all([
       service.handleToolCall({
         name: 'resolve_approval',
         arguments: { approvalId: 'approval', decision: 'approve' },
@@ -210,6 +223,19 @@ describe('native MCP untrusted-result integration', () => {
         arguments: { approvalId: 'approval', decision: 'approve' },
       }),
     ]);
+    const [winner, loser] = redemptions;
+    expect(Reflect.get(winner, 'isError')).toBeUndefined();
+    expect(winner).toMatchObject({
+      content: [
+        { text: expect.stringContaining('Started clip factory from YouTube') },
+      ],
+    });
+    expect(Reflect.get(loser, 'isError')).toBe(true);
+    expect(loser).toMatchObject({
+      content: [
+        { text: expect.stringContaining('has already run or is running') },
+      ],
+    });
     expect(client.createClipperProjectFromYoutube).toHaveBeenCalledTimes(1);
     expect(client.evaluateMcpToolResult).toHaveBeenCalledTimes(1);
   });

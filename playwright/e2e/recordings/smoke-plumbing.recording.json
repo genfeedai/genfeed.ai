@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "surface": "smoke-plumbing",
+  "entries": [
+    {
+      "method": "GET",
+      "path": "/system/ping",
+      "query": "",
+      "status": 200,
+      "contentType": "application/json",
+      "body": {
+        "data": {
+          "type": "ping",
+          "id": "id-1",
+          "attributes": { "ok": true, "checkedAt": "2026-01-01T00:00:00.000Z" }
+        }
+      }
+    }
+  ]
+}

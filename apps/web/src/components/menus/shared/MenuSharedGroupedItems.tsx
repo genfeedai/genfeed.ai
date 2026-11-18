@@ -4,6 +4,7 @@ import type { MenuItemConfig } from '@genfeedai/contracts/interfaces/ui/menu-con
 import MenuItem from '@/components/menus/item/MenuItem';
 import CollapsibleGroup from './CollapsibleGroup';
 import DrillDownGroupRow from './DrillDownGroupRow';
+import WorkspaceActivityMenuItem from './WorkspaceActivityMenuItem';
 import WorkspaceInboxMenuItem from './WorkspaceInboxMenuItem';
 
 interface MenuSharedGroupedItemsProps {
@@ -50,6 +51,21 @@ export default function MenuSharedGroupedItems({
                 {group.items.map((item, index) => {
                   const itemHref = prefixHref(item);
                   const itemKey = itemHref ?? `${item.label}-${index}`;
+
+                  if (item.href?.startsWith('/workspace/activity')) {
+                    return (
+                      <WorkspaceActivityMenuItem
+                        key={itemKey}
+                        href={itemHref}
+                        isActive={isActiveItem(item)}
+                        isComingSoon={item.isComingSoon}
+                        label={item.label}
+                        onClick={handleLinkClick}
+                        outline={item.outline}
+                        solid={item.solid}
+                      />
+                    );
+                  }
 
                   return item.href?.startsWith('/workspace/inbox') ? (
                     <WorkspaceInboxMenuItem

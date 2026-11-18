@@ -7,7 +7,7 @@ import { useCallback } from 'react';
 import { NOTIFICATION_INBOX_QUERY_KEY } from '@/components/shell/use-notification-inbox';
 
 /** Root query key of the Messages nav badge. */
-export const MESSAGES_UNREAD_COUNT_QUERY_KEY = 'messages-unread-count';
+const MESSAGES_UNREAD_COUNT_QUERY_KEY = 'messages-unread-count';
 
 const MESSAGES_UNREAD_REFRESH_MS = 60_000;
 

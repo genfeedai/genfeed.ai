@@ -6,9 +6,7 @@ import { generateMockBrand } from '../../utils/api-interceptor';
 import { brandPath } from '../../utils/app-chrome';
 import { exactUrlPattern } from '../../utils/exact-url';
 
-const CONNECTED_ACCOUNTS_ROUTE = brandPath(
-  APP_ROUTES.SETTINGS.CONNECTED_ACCOUNTS,
-);
+const CONNECTED_ACCOUNTS_ROUTE = brandPath(APP_ROUTES.SETTINGS.PROFILE);
 
 async function mockBrandWithXAccount(page: Page): Promise<void> {
   const brand = generateMockBrand({
@@ -61,7 +59,7 @@ async function mockXVerify(page: Page): Promise<void> {
   });
 }
 
-test.describe('Connected accounts after the OAuth redirect', () => {
+test.describe('Accounts after the OAuth redirect', () => {
   test.beforeEach(async ({ authenticatedPage }) => {
     await mockActiveSubscription(authenticatedPage, {
       credits: 1000,
@@ -83,14 +81,13 @@ test.describe('Connected accounts after the OAuth redirect', () => {
       { timeout: 60000, waitUntil: 'domcontentloaded' },
     );
 
-    // The callback returns to the stored route exactly (renamed to
-    // /settings/accounts in #9387).
+    // The callback returns to the stored brand Profile route.
     await expect(authenticatedPage).toHaveURL(
       exactUrlPattern(CONNECTED_ACCOUNTS_ROUTE, authenticatedPage.url()),
       { timeout: 30000 },
     );
     const table = authenticatedPage.getByRole('table', {
-      name: 'Connected accounts',
+      name: 'Accounts',
     });
     await expect(table).toBeVisible({ timeout: 20000 });
     await expect(table.getByText('@GenfeedAI')).toBeVisible();

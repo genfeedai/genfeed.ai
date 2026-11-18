@@ -48,6 +48,10 @@ const API_CONTROLLERS: Record<string, { file: string; prefix: string }> = {
     file: 'collections/content-runs/controllers/storyboard-runs.controller.ts',
     prefix: 'brands/:brandId/storyboard-runs',
   },
+  models3d: {
+    file: 'endpoints/v1/models3d/models3d.controller.ts',
+    prefix: 'models3d',
+  },
   remixRuns: {
     file: 'collections/content-runs/controllers/content-runs.controller.ts',
     prefix: '',
@@ -67,6 +71,10 @@ const API_CONTROLLERS: Record<string, { file: string; prefix: string }> = {
   agentThreads: {
     file: 'collections/agent-threads/controllers/agent-threads.controller.ts',
     prefix: 'agent/threads',
+  },
+  agentThreadTurns: {
+    file: 'collections/agent-threads/controllers/agent-thread-turns.controller.ts',
+    prefix: 'agent/threads/:threadId',
   },
   approvals: {
     file: 'collections/mcp-approvals/controllers/mcp-approvals.controller.ts',
@@ -233,6 +241,8 @@ const ROUTE_CONTRACT: ContractRoute[] = [
     controller: 'storyboardRuns',
     tools: ['storyboard_run_capabilities'],
   },
+  { method: 'Post', sub: '', controller: 'models3d', tools: ['render_3d'] },
+  { method: 'Get', sub: ':id', controller: 'models3d', tools: ['get_model3d'] },
   {
     method: 'Post',
     sub: 'import-post',
@@ -388,8 +398,8 @@ const ROUTE_CONTRACT: ContractRoute[] = [
   },
   {
     method: 'Post',
-    sub: ':threadId/messages',
-    controller: 'agentThreads',
+    sub: 'messages',
+    controller: 'agentThreadTurns',
     tools: ['send_chat_message'],
   },
   // ── Approvals (createApproval + resolve_approval) ──

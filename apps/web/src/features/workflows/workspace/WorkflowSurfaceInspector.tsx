@@ -151,6 +151,7 @@ export function WorkflowSurfaceInspector({
   const getService = useAuthedService(createWorkflowApiService);
   const { push } = useRouter();
 
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     void reloadKey;
     const controller = new AbortController();
@@ -455,7 +456,7 @@ export function WorkflowSurfaceInspector({
         padding={CardPadding.SM}
         gap={CardGap.NONE}
       >
-        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        <p className="text-xs font-medium uppercase tracking-label text-muted-foreground">
           Required input
         </p>
         {requiredInputs.length === 0 ? (
@@ -485,7 +486,7 @@ export function WorkflowSurfaceInspector({
         padding={CardPadding.SM}
         gap={CardGap.NONE}
       >
-        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        <p className="text-xs font-medium uppercase tracking-label text-muted-foreground">
           Provenance
         </p>
         <dl className="mt-2 space-y-2 text-xs">
@@ -520,7 +521,7 @@ export function WorkflowSurfaceInspector({
       >
         <div className="flex items-center gap-2">
           <ShieldCheck className="size-4 text-muted-foreground" />
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          <p className="text-xs font-medium uppercase tracking-label text-muted-foreground">
             Approvals
           </p>
         </div>
@@ -581,7 +582,7 @@ export function WorkflowSurfaceInspector({
         >
           <div className="flex items-center gap-2">
             <Clock className="size-4 text-muted-foreground" />
-            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            <p className="text-xs font-medium uppercase tracking-label text-muted-foreground">
               Schedule
             </p>
           </div>

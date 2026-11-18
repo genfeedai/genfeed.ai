@@ -14,6 +14,7 @@ import {
   type SystemWorkflowGraphDefinition,
   SystemWorkflowRunnerService,
 } from '@api/collections/workflows/system-workflow-runner.service';
+import { SystemWorkflowRetention } from '@api/collections/workflows/workflow-execution-retention.contract';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { createGenfeedActionNode } from '@genfeedai/actions';
 import { EditorTrackType, IngredientFormat } from '@genfeedai/contracts';
@@ -74,6 +75,7 @@ function clipperHandoffDefinition(
     description: label,
     label,
     resultNodeId: 'handoff',
+    retention: SystemWorkflowRetention.KEPT,
     version: 1,
   };
 }
@@ -86,7 +88,7 @@ export interface ClipEditorHandoffResult {
   videoUrl: string;
 }
 
-export interface PublishAsset {
+interface PublishAsset {
   assetId: string;
   mediaUrl: string;
   mimeType: string;

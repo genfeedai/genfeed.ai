@@ -18,9 +18,9 @@ const HTML_ENTITIES: Record<string, string> = {
 };
 
 /** Characters of opening text two posts must share to be the same post. */
-export const CROSS_POST_TEXT_PREFIX_LENGTH = 80;
+const CROSS_POST_TEXT_PREFIX_LENGTH = 80;
 /** How far apart two channels may have gone live and still be one post. */
-export const CROSS_POST_WINDOW_MS = 2 * 24 * 60 * 60 * 1000;
+const CROSS_POST_WINDOW_MS = 2 * 24 * 60 * 60 * 1000;
 
 export interface CrossPostCandidate {
   createdAt?: Date | string | null;

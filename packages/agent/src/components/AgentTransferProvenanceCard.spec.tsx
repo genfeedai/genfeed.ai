@@ -1,3 +1,7 @@
+import {
+  type AgentHandoffActions,
+  AgentHandoffProvider,
+} from '@genfeedai/agent/components/AgentHandoffContext';
 import { AgentThreadOpenProvider } from '@genfeedai/agent/components/AgentThreadOpenContext';
 import {
   type AgentThreadResolution,
@@ -9,7 +13,7 @@ import {
   AgentTransferDeliveryMode,
   AgentTransferStatus,
 } from '@genfeedai/contracts';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 function makeAction(
@@ -208,6 +212,152 @@ describe('AgentTransferProvenanceCard', () => {
       render(<AgentTransferProvenanceCard action={makeAction()} />);
 
       expect(screen.queryByRole('button', { name: 'Resolve' })).toBeNull();
+    });
+  });
+  describe('a hand-off to a teammate (#9940)', () => {
+    const handoff = (overrides: Record<string, unknown> = {}) =>
+      makeAction({
+        destinationUserId: 'marco',
+        status: AgentTransferStatus.AWAITING_ACCEPTANCE,
+        userId: 'ana',
+        ...overrides,
+      });
+    const directory = (
+      overrides: Partial<AgentHandoffActions> = {},
+    ): AgentHandoffActions => ({
+      accept: vi
+        .fn()
+        .mockResolvedValue({ status: AgentTransferStatus.PENDING }),
+      decline: vi
+        .fn()
+        .mockResolvedValue({ status: AgentTransferStatus.DECLINED }),
+      nameOf: (userId) => ({ ana: 'Ana Costa', marco: 'Marco Rossi' })[userId],
+      ...overrides,
+    });
+
+    it('asks the teammate to accept or decline, and runs only after accept', async () => {
+      const actions = directory();
+      render(
+        <AgentHandoffProvider value={actions}>
+          <AgentTransferProvenanceCard
+            action={handoff({ direction: 'inbound' })}
+          />
+        </AgentHandoffProvider>,
+      );
+
+      expect(
+        screen.getByText('Ana Costa handed this to your agent'),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText('It runs with your permissions once you accept.'),
+      ).toBeInTheDocument();
+      // The sender's conversation is not the teammate's to open.
+      expect(
+        screen.queryByRole('link', { name: 'Open conversation' }),
+      ).toBeNull();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Accept' }));
+
+      await waitFor(() =>
+        expect(
+          screen.getByText('Accepted. Your agent is on it.'),
+        ).toBeInTheDocument(),
+      );
+      expect(actions.accept).toHaveBeenCalledWith('transfer-1');
+      expect(actions.decline).not.toHaveBeenCalled();
+      expect(screen.queryByRole('button', { name: 'Accept' })).toBeNull();
+    });
+
+    it('lets the teammate decline and says the sender was told', async () => {
+      const actions = directory();
+      render(
+        <AgentHandoffProvider value={actions}>
+          <AgentTransferProvenanceCard
+            action={handoff({ direction: 'inbound' })}
+          />
+        </AgentHandoffProvider>,
+      );
+
+      fireEvent.click(screen.getByRole('button', { name: 'Decline' }));
+
+      await waitFor(() =>
+        expect(
+          screen.getByText('Declined. Ana Costa was told.'),
+        ).toBeInTheDocument(),
+      );
+      expect(actions.accept).not.toHaveBeenCalled();
+    });
+
+    it('shows a failed answer and keeps the request open', async () => {
+      render(
+        <AgentHandoffProvider
+          value={directory({
+            accept: vi.fn().mockRejectedValue(new Error('Already answered.')),
+          })}
+        >
+          <AgentTransferProvenanceCard
+            action={handoff({ direction: 'inbound' })}
+          />
+        </AgentHandoffProvider>,
+      );
+
+      fireEvent.click(screen.getByRole('button', { name: 'Accept' }));
+
+      expect(await screen.findByRole('alert')).toHaveTextContent(
+        'Already answered.',
+      );
+      expect(screen.getByRole('button', { name: 'Accept' })).toBeEnabled();
+    });
+
+    it('tells the sender it waits on the teammate and links nothing it cannot open', () => {
+      render(
+        <AgentHandoffProvider value={directory()}>
+          <AgentTransferProvenanceCard
+            action={handoff({ direction: 'outbound' })}
+          />
+        </AgentHandoffProvider>,
+      );
+
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Expand transfer details' }),
+      );
+      expect(screen.getByText('Handed to Marco Rossi')).toBeInTheDocument();
+      expect(
+        screen.getByText('Waiting for Marco Rossi to accept.'),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('link', { name: 'Open conversation' }),
+      ).toBeNull();
+      expect(screen.queryByRole('button', { name: 'Accept' })).toBeNull();
+      expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull();
+    });
+
+    it('does not offer a failed hand-off retry to its sender', () => {
+      render(
+        <AgentHandoffProvider value={directory()}>
+          <AgentTransferProvenanceCard
+            action={handoff({
+              direction: 'outbound',
+              status: AgentTransferStatus.FAILED,
+            })}
+          />
+        </AgentHandoffProvider>,
+      );
+
+      expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull();
+    });
+
+    it('offers no answer where the surface cannot send one', () => {
+      render(
+        <AgentTransferProvenanceCard
+          action={handoff({ direction: 'inbound' })}
+        />,
+      );
+
+      expect(screen.getByRole('button', { name: 'Accept' })).toBeDisabled();
+      expect(
+        screen.getByText('a teammate handed this to your agent'),
+      ).toBeInTheDocument();
     });
   });
 });

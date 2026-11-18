@@ -44,17 +44,21 @@ export function useLibraryCanvasNodes({
     [ingredients],
   );
 
-  const hydratedLayoutRef = useRef<typeof savedLayout | undefined>(undefined);
-
-  useEffect(() => {
+  // The saved layout usually arrives after the first assets do, so those
+  // tiles were seeded into grid slots. Applying the layout is the whole point
+  // of it loading: preserving live positions then would pin the placeholder
+  // grid and persist it on the next drag.
+  const [hydratedFrom, setHydratedFrom] = useState<{
+    ingredients: typeof ingredients;
+    savedLayout: typeof savedLayout;
+  } | null>(null);
+  if (
+    hydratedFrom?.ingredients !== ingredients ||
+    hydratedFrom?.savedLayout !== savedLayout
+  ) {
+    const hasNewLayout = hydratedFrom?.savedLayout !== savedLayout;
     const { seeds } = mergeMoodBoardLayout(ingredients, savedLayout);
-    // The saved layout usually arrives after the first assets do, so those
-    // tiles were seeded into grid slots. Applying the layout is the whole
-    // point of it loading — preserving live positions here would pin the
-    // placeholder grid and then persist it on the next drag.
-    const hasNewLayout = hydratedLayoutRef.current !== savedLayout;
-    hydratedLayoutRef.current = savedLayout;
-
+    setHydratedFrom({ ingredients, savedLayout });
     setNodes((current) => {
       // Assets stream in page by page, and filters re-derive the list mid
       // session. On an asset-only update a tile the user has dragged but not
@@ -71,7 +75,7 @@ export function useLibraryCanvasNodes({
         type: 'libraryAsset' as const,
       }));
     });
-  }, [ingredients, savedLayout]);
+  }
 
   const onNodesChange = useCallback(
     (changes: NodeChange<LibraryCanvasFlowNode>[]) => {
@@ -89,6 +93,7 @@ export function useLibraryCanvasNodes({
     }, LIBRARY_CANVAS_AUTOSAVE_DEBOUNCE_MS);
   }, [knownIds]);
 
+  // use-effect-audit: ignore releases timers, requests or subscriptions on unmount
   useEffect(
     () => () => {
       if (debounceRef.current) {

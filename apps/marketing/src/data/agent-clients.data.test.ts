@@ -97,17 +97,19 @@ describe('agent clients', () => {
 
 describe('Claude content connector copy', () => {
   it.each(['claude', 'claude-code', 'claude-cowork'] as const)(
-    'uses the restricted endpoint and Studio handoff for %s',
+    'uses the restricted endpoint and the second-connector handoff for %s',
     (slug) => {
       const client = getAgentClient(slug);
       expect(client.connectUrl).toBe(GENFEED_CLAUDE_MCP_URL);
       expect(client.oauth.configuration).toContain(GENFEED_CLAUDE_MCP_URL);
-      expect(client.description).toContain('Genfeed Studio');
-      expect(client.capabilities.join(' ')).toContain('Genfeed Studio');
+      expect(client.description).toContain('second connector');
+      expect(client.capabilities.join(' ')).toContain('second connector');
       expect(client.examplePrompts.join(' ')).not.toMatch(
         /generate a|execute.*workflow/i,
       );
-      expect(client.examplePrompts.join(' ')).toContain('Genfeed Studio');
+      expect(client.examplePrompts.join(' ')).toContain(
+        'full Genfeed connector',
+      );
     },
   );
 });

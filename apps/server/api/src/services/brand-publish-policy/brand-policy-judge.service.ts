@@ -91,7 +91,7 @@ function toViolation(
  * The LLM judge of the brand Policy (#7339): banned topics, banned claims,
  * guardrails and, when the Policy requires moderation, the caption's safety.
  * It runs only after every deterministic rule passed, with one small call on
- * the background model, and a verdict is cached per brand, rules and text.
+ * the ZDR-compatible volume model, and a verdict is cached per brand, rules and text.
  *
  * It fails closed: an unavailable model, budget or answer is reported as a
  * `policy_judge_unavailable` violation, which holds the draft for review.
@@ -126,7 +126,8 @@ export class BrandPolicyJudgeService {
         {
           max_tokens: POLICY_JUDGE_MAX_TOKENS,
           messages: buildPolicyJudgeMessages(request.text, request),
-          model: LLM_DEFAULTS.background,
+          // Google background routes require Safety Retention (#10471).
+          model: LLM_DEFAULTS.volumeAgent,
           schema: policyJudgmentSchema,
           schemaName: POLICY_JUDGE_SCHEMA_NAME,
           temperature: 0,

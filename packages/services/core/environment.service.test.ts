@@ -119,7 +119,7 @@ describe('EnvironmentService', () => {
       );
       expect(EnvironmentService.apps.website).toBe('https://genfeed.ai');
       expect(EnvironmentService.mcpConnectHref).toBe(
-        'https://app.genfeed.ai/connect',
+        'https://app.genfeed.ai/connectors',
       );
     });
 

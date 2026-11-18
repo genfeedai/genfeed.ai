@@ -8,6 +8,7 @@ import {
 } from '@mcp/mcp/resource-catalog';
 import { ClientService } from '@mcp/services/client.service';
 import { ToolRegistryService } from '@mcp/services/tool-registry.service';
+import { McpUpstreamError } from '@mcp/tools/mcp-tool-error';
 import { Test, TestingModule } from '@nestjs/testing';
 
 const MOCK_TOOLS = [
@@ -225,6 +226,7 @@ describe('ToolRegistryService', () => {
   let logger: {
     debug: ReturnType<typeof vi.fn>;
     error: ReturnType<typeof vi.fn>;
+    warn: ReturnType<typeof vi.fn>;
   };
 
   beforeEach(async () => {
@@ -485,6 +487,40 @@ describe('ToolRegistryService', () => {
       expect(calls).toEqual([]);
     });
 
+    it('tells an all-organizations connection which organization it started in and which others it can name', async () => {
+      clientService.executeAgentTool.mockResolvedValue({
+        creditsUsed: 0,
+        data: { profile: { organizationName: 'Acme', role: 'owner' } },
+        success: true,
+      });
+
+      const result = await service.handleToolCall({
+        arguments: {},
+        name: 'get_account',
+      });
+
+      expect(JSON.stringify(result)).toContain('Organization: Acme');
+      expect(JSON.stringify(result)).toContain(
+        'Organizations: Acme (default), Beta.',
+      );
+    });
+
+    it('does not list other organizations on a connection limited to one', async () => {
+      clientService.canSwitchOrganizations.mockResolvedValue(false);
+      clientService.executeAgentTool.mockResolvedValue({
+        creditsUsed: 0,
+        data: { profile: { organizationName: 'Acme', role: 'owner' } },
+        success: true,
+      });
+
+      const result = await service.handleToolCall({
+        arguments: {},
+        name: 'get_account',
+      });
+
+      expect(JSON.stringify(result)).not.toContain('Organizations:');
+    });
+
     it('acts in the active organization when none is named', async () => {
       const calls = recordToolCalls();
 
@@ -664,6 +700,88 @@ describe('ToolRegistryService', () => {
       expect(JSON.stringify(result)).toContain('Create a brand in Genfeed');
       expect(JSON.stringify(result)).toContain('organization admin');
       expect(JSON.stringify(result)).toContain('Continue in Genfeed');
+    });
+
+    it('asks create_post for a brand only when the organization has several (#10071)', async () => {
+      clientService.executeAgentTool.mockResolvedValueOnce(brandListing);
+
+      const result = await service.handleToolCall({
+        arguments: { content: 'Draft copy' },
+        name: 'create_post',
+      });
+
+      expect(clientService.createApproval).not.toHaveBeenCalled();
+      expect(result).toMatchObject({
+        isError: true,
+        structuredContent: {
+          brands: [
+            { id: 'brand-1', label: 'Acme' },
+            { id: 'brand-2', label: 'Beta' },
+          ],
+          code: 'brand_required',
+        },
+      });
+      expect(JSON.stringify(result)).toContain('Choose a brand for this draft');
+      expect(JSON.stringify(result)).toContain(
+        'Acme (brand-1), Beta (brand-2)',
+      );
+    });
+
+    it('lets a create_post that names its brand through without listing brands', async () => {
+      clientService.createApproval.mockResolvedValueOnce({
+        id: 'apr-1',
+        status: 'PENDING',
+        toolName: 'create_post',
+      });
+
+      await service.handleToolCall({
+        arguments: { brandId: 'brand-2', content: 'Draft copy' },
+        name: 'create_post',
+      });
+
+      expect(clientService.executeAgentTool).not.toHaveBeenCalledWith(
+        'get_brands',
+        {},
+      );
+    });
+
+    it('does not block create_post for a single-brand organization', async () => {
+      clientService.executeAgentTool.mockResolvedValueOnce({
+        creditsUsed: 0,
+        data: { brands: [{ id: 'brand-1', label: 'Acme' }] },
+        success: true,
+      });
+      clientService.createApproval.mockResolvedValueOnce({
+        id: 'apr-1',
+        status: 'PENDING',
+        toolName: 'create_post',
+      });
+
+      const result = await service.handleToolCall({
+        arguments: { content: 'Draft copy' },
+        name: 'create_post',
+      });
+
+      expect(JSON.stringify(result)).not.toContain('brand_required');
+    });
+
+    it('binds the single brand into the create_post arguments before dispatch or approval (#10071)', async () => {
+      clientService.executeAgentTool.mockResolvedValueOnce({
+        creditsUsed: 0,
+        data: { brands: [{ id: 'brand-1', label: 'Acme' }] },
+        success: true,
+      });
+
+      await service.handleToolCall({
+        arguments: { content: 'Draft copy' },
+        name: 'create_post',
+      });
+
+      expect(clientService.executeAgentTool).toHaveBeenLastCalledWith(
+        'create_post',
+        { brandId: 'brand-1', content: 'Draft copy' },
+        undefined,
+      );
     });
 
     it('does not ask for a brand on tools outside the generation set', async () => {
@@ -1172,6 +1290,7 @@ describe('ToolRegistryService', () => {
         userId: 'user-private',
       },
     };
+    clientService.canSwitchOrganizations.mockResolvedValue(false);
     clientService.executeAgentTool.mockResolvedValueOnce({
       creditsUsed: 0,
       data,
@@ -1325,5 +1444,26 @@ describe('ToolRegistryService', () => {
       expect.stringContaining('get_account'),
       expect.any(Error),
     );
+  });
+
+  it('logs a held-post refusal as a warning, not an error', async () => {
+    clientService.executeAgentTool.mockRejectedValueOnce(
+      new McpUpstreamError(
+        'This post is held: it breaks the brand Policy. A member must approve it in the app before it can publish.',
+        { body: { errors: [{ code: 'brand_policy_held' }] }, status: 409 },
+      ),
+    );
+
+    const result = await service.handleToolCall({
+      arguments: {},
+      name: 'get_account',
+    });
+
+    expect(result).toMatchObject({ isError: true });
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.stringContaining('get_account'),
+      expect.any(McpUpstreamError),
+    );
+    expect(logger.error).not.toHaveBeenCalled();
   });
 });

@@ -66,12 +66,24 @@ export function requireStoredMediaKey(
   return key;
 }
 
+/** The scope's own member, or a participant of the thread it views. */
+export function isMediaScopeMember(
+  scope: MediaDeliveryScope,
+  userId: string | null,
+): boolean {
+  if (!userId) return false;
+  return (
+    userId === scope.userId ||
+    scope.participantUserIds?.includes(userId) === true
+  );
+}
+
 export function hasMediaRecordAccess(
   source: MediaDeliverySource,
   scope: MediaDeliveryScope,
 ): boolean {
   if (source.organizationId !== scope.organizationId) return false;
-  if (source.userId === scope.userId) return true;
+  if (isMediaScopeMember(scope, source.userId)) return true;
   switch (source.scope) {
     case 'ORGANIZATION':
     case 'PUBLIC':

@@ -12,6 +12,7 @@ import { TaskQueryDto } from '@api/collections/tasks/dto/task-query.dto';
 import { UpdateTaskDto } from '@api/collections/tasks/dto/update-task.dto';
 import { UpdateTaskOutputDto } from '@api/collections/tasks/dto/update-task-output.dto';
 import { type TaskDocument } from '@api/collections/tasks/schemas/task.schema';
+import { TaskReviewAccessService } from '@api/collections/tasks/services/task-review-access.service';
 import { TasksService } from '@api/collections/tasks/services/tasks.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -66,6 +67,7 @@ export class TasksController extends BaseCRUDController<
     private readonly tasksService: TasksService,
     private readonly taskCountersService: TaskCountersService,
     private readonly organizationsService: OrganizationsService,
+    private readonly taskReviewAccess: TaskReviewAccessService,
     @Optional()
     private readonly workspaceTaskWorkflowQueue?: WorkspaceTaskWorkflowQueueService,
   ) {
@@ -314,6 +316,10 @@ export class TasksController extends BaseCRUDController<
       return this.applyReviewTransition(request, user, id, updateDto);
     }
 
+    if (updateDto.assigneeUserId !== undefined || updateDto.isDeleted) {
+      await this.taskReviewAccess.assertCanChangeTaskReviewer(user, id);
+    }
+
     const result = await super.patch(request, user, id, updateDto);
 
     // When a task is marked done/cancelled, check if parent's children are all complete
@@ -361,6 +367,7 @@ export class TasksController extends BaseCRUDController<
 
     const organization = user.organizationId;
     const userId = user.userId ?? user.id;
+    await this.taskReviewAccess.assertCanDecideTask(user, id, reviewState);
 
     let doc: TaskDocument;
     switch (reviewState) {

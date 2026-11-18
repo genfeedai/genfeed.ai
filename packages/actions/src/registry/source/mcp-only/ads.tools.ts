@@ -5,6 +5,8 @@ export const MCP_ADS_TOOLS: SourceTool[] = [
     creditCost: 0,
     description:
       'Get performance insights for a single ad on any connected ads platform (Meta ad, Google Ads ad, TikTok ad, or X ad) through the platform-generic ads gateway',
+    mcpDescription:
+      "Read one ad's performance via the connected platform gateway: Meta, Google Ads, TikTok or X.",
     name: 'get_ads_ad_insights',
     parameters: {
       properties: {
@@ -61,6 +63,8 @@ export const MCP_ADS_TOOLS: SourceTool[] = [
     creditCost: 0,
     description:
       'Get performance insights for one ad set on any connected ads platform (Meta ad set, Google Ads ad group, TikTok ad group, or X ad group) through the platform-generic ads gateway',
+    mcpDescription:
+      'Read ad-set/ad-group performance via the connected platform gateway: Meta, Google Ads, TikTok or X.',
     name: 'get_ads_adset_insights',
     parameters: {
       properties: {

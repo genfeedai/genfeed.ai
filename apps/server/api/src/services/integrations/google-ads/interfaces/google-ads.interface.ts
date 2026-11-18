@@ -106,18 +106,3 @@ export interface GoogleAdsOAuthTokens {
   expiresIn: number;
   tokenType: string;
 }
-
-export interface GoogleAdsErrorResponse {
-  error: {
-    code: number;
-    message: string;
-    status: string;
-    details?: Array<{
-      '@type': string;
-      errors: Array<{
-        errorCode: Record<string, string>;
-        message: string;
-      }>;
-    }>;
-  };
-}

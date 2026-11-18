@@ -20,6 +20,7 @@ import {
   LazyMasonryVideo,
 } from '@ui/lazy/masonry/LazyMasonry';
 import { Button } from '@ui/primitives/button';
+import { useGalleryViews } from '@web-hooks/ui/use-gallery-views';
 import { Play, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 
@@ -36,13 +37,15 @@ export default function CommunityFeaturedHero({
   const modelKey = mediaModelKey(media);
   const modelLabel = modelKey ? modelCredits[modelKey] : undefined;
   const isVideo = kind === 'video';
+  // The featured item counts a view like any gallery card.
+  const { observe } = useGalleryViews();
 
   return (
     <section
       aria-labelledby="community-featured"
       className="grid gap-6 border border-foreground/10 bg-foreground/5 p-4 md:grid-cols-2 md:items-center md:p-6"
     >
-      <div className="min-w-0">
+      <div className="min-w-0" data-gallery-id={media.id} ref={observe}>
         {isVideo ? (
           <LazyMasonryVideo
             video={media as IVideo}
@@ -60,7 +63,7 @@ export default function CommunityFeaturedHero({
         )}
       </div>
       <div className="space-y-4">
-        <p className="text-sm font-medium uppercase tracking-widest text-foreground/50">
+        <p className="text-sm font-medium uppercase tracking-label text-foreground/50">
           Featured {kind}
         </p>
         <h2

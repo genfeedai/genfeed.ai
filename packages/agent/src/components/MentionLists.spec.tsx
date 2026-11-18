@@ -113,6 +113,14 @@ describe('CredentialMentionList', () => {
 
     expect(command).toHaveBeenCalledWith(credentials[1]);
   });
+
+  it('lets Enter through when there are no accounts to pick', () => {
+    const ref = createRef<MentionListHandle>();
+    render(<CredentialMentionList command={vi.fn()} items={[]} ref={ref} />);
+
+    expect(pressKey(ref, 'Enter')).toBe(false);
+    expect(pressKey(ref, 'ArrowDown')).toBe(false);
+  });
 });
 
 const team: TeamMentionItem[] = [

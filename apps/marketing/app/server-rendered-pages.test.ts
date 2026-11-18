@@ -14,7 +14,7 @@ const SERVER_RENDERED_PAGES = [
   '../../packages/agent/src/components/SafeMarkdown.tsx',
   'src/components/footers/SiteFooter.tsx',
   'app/creator-profile/[handle]/(showcase)/articles/[slug]/article-detail.tsx',
-  'app/(content)/articles/articles-list.tsx',
+  'app/(public)/community/articles/articles-list.tsx',
   'app/(public)/about/about-content.tsx',
   'app/(public)/affiliates/affiliates-content.tsx',
   'app/(public)/agent-clients/agent-client-channel-content.tsx',
@@ -134,7 +134,7 @@ describe('server-rendered marketing pages', () => {
   // the website it could never link past page one.
   it('renders public lists without the app container or client pagination', () => {
     for (const path of [
-      'app/(content)/articles/articles-list.tsx',
+      'app/(public)/community/articles/articles-list.tsx',
       'src/page-modules/posts/[id]/ingredient-posts.tsx',
       'src/page-modules/posts/ingredients/posts-ingredients-list.tsx',
     ]) {

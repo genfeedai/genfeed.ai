@@ -46,6 +46,7 @@ export function AgentWorkObjectEditor({
   const dirty =
     body !== (object.body ?? '') ||
     JSON.stringify(rows) !== JSON.stringify(object.rows ?? []);
+  // use-effect-audit: ignore mirrors dirty state into the gate store and clears it on cleanup
   useEffect(() => {
     if (!threadId) return;
     useAgentWorkObjectGateStore.getState().setDirty(threadId, object.id, dirty);
@@ -72,6 +73,7 @@ export function AgentWorkObjectEditor({
     viewingRef.current = false;
   }, [object.id, object.revision, object.body, object.rows]);
 
+  // use-effect-audit: ignore IntersectionObserver that marks the object viewed
   useEffect(() => {
     const element = rootRef.current;
     if (

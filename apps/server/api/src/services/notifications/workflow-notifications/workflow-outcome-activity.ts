@@ -9,12 +9,13 @@ import { scopedWhere } from '@api/tenancy/scoped-where';
 import {
   type FormattedAgentError,
   formatAgentError,
+  isRetiredModelError,
 } from '@genfeedai/agent/server';
 import { ActivityKey, ActivitySource } from '@genfeedai/contracts';
 import type { Prisma } from '@genfeedai/prisma';
 
-export const WORKFLOW_EXECUTION_ENTITY_MODEL = 'WorkflowExecution';
-export const AGENT_STRATEGY_ENTITY_MODEL = 'AgentStrategy';
+const WORKFLOW_EXECUTION_ENTITY_MODEL = 'WorkflowExecution';
+const AGENT_STRATEGY_ENTITY_MODEL = 'AgentStrategy';
 
 export interface RecordWorkflowOutcomeInput {
   summary?: string;
@@ -58,8 +59,11 @@ export function buildWorkflowOutcomeActivity(
 ): RecordActivityInput {
   const isAgentRun = input.isAgentRun === true;
   const isFailed = input.status === 'failed';
+  // A run stopped by a retired model is classified for every kind of run, not
+  // only agent runs, so the bell names the model and says what to do next.
+  const isRetiredModelStop = isFailed && isRetiredModelError(input.error);
   const classifiedFailure =
-    isAgentRun && isFailed
+    (isAgentRun || isRetiredModelStop) && isFailed
       ? (input.failure ?? formatAgentError(input.error))
       : null;
   const failure = classifiedFailure

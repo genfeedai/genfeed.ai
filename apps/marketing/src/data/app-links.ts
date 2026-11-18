@@ -1,3 +1,4 @@
+import { creatorSupportAppPath } from '@genfeedai/contracts/constants';
 import { APP_ROUTES } from '@genfeedai/contracts/constants/routes.constant';
 import { EnvironmentService } from '@services/core/environment.service';
 
@@ -16,4 +17,23 @@ export function getAppSignUpUrl(search = ''): string {
 
 export function getAppLoginUrl(search = ''): string {
   return getAppUrl(APP_ROUTES.LOGIN, search);
+}
+
+/**
+ * The app page where a signed-in reader supports a creator beyond a tip:
+ * subscribe, or unlock an article. The app asks them to sign in first.
+ */
+export function getSupportCreatorHref(
+  handle: string,
+  articleId?: string,
+): string {
+  return getAppUrl(creatorSupportAppPath(handle, articleId));
+}
+
+/**
+ * Where a signed-out reader's Subscribe goes: Genfeed sign-up, carrying the
+ * creator's handle so the app subscribes the new account once it exists.
+ */
+export function getFollowSignUpHref(handle: string): string {
+  return getAppSignUpUrl(`?${new URLSearchParams({ follow: handle })}`);
 }

@@ -135,16 +135,33 @@ function run(
   return result.stdout;
 }
 
+export type QueryTypecheckScopeOptions = {
+  /**
+   * Compare the base against the working tree instead of `HEAD`, so a local
+   * preflight sees staged and unstaged edits. CI has a clean tree, where both
+   * forms select the same files.
+   */
+  includeWorkingTree?: boolean;
+};
+
 export function queryTypecheckScope(
   rootDir: string,
   baseSha: string,
   runner: RunProcess = runProcess,
+  queryOptions: QueryTypecheckScopeOptions = {},
 ): TypecheckScope {
   const options = { cwd: rootDir, env: process.env };
   // Both sides of a rename: a deleted alias target changes its consumer too.
   const changedFiles = run(
     'git',
-    ['diff', '--name-only', '--no-renames', '-z', baseSha, 'HEAD'],
+    [
+      'diff',
+      '--name-only',
+      '--no-renames',
+      '-z',
+      baseSha,
+      ...(queryOptions.includeWorkingTree ? [] : ['HEAD']),
+    ],
     options,
     runner,
   )

@@ -1,4 +1,3 @@
-import { parseGrantedOAuthScopes } from '@genfeedai/helpers';
 import { isObjectLike, readString } from '@genfeedai/utils/data/extract.util';
 import type { AxiosError } from 'axios';
 
@@ -32,13 +31,7 @@ const SCOPE_CODES = new Set([
 const ORGANIZATION_SELECTION_PATTERN =
   /organization.*(select|acl|admin)|no organization|company page/i;
 
-export function parseLinkedinGrantedScopes(value: unknown): string[] {
-  return parseGrantedOAuthScopes(value);
-}
-
-export function getLinkedinApiError(
-  error: unknown,
-): LinkedInApiErrorBody | undefined {
+function getLinkedinApiError(error: unknown): LinkedInApiErrorBody | undefined {
   const axiosError = error as
     | AxiosError<LinkedInErrorPayload>
     | null

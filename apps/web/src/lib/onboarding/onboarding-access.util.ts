@@ -69,6 +69,7 @@ export const ONBOARDING_STORAGE_KEYS = {
   brandName: 'gf_brand_name',
   claimHandle: 'gf_claim_handle',
   contentType: 'gf_onboarding_content_type',
+  followHandle: 'gf_follow_handle',
   previewUrl: 'gf_onboarding_preview_url',
   referralCode: 'gf_referral_code',
   selectedCredits: 'gf_selected_credits',
@@ -161,7 +162,7 @@ const STRIPE_PRICE_ID_PATTERN = /^price_[a-zA-Z0-9]+$/;
  * price id at handoff time; anything else (already-price ids, the free `payg`
  * slug, unknown values) passes through unchanged.
  */
-export function buildPlanSlugPriceIdMap(): Record<string, string | undefined> {
+function buildPlanSlugPriceIdMap(): Record<string, string | undefined> {
   const { pro, scale } = EnvironmentService.plans;
 
   return {
@@ -308,6 +309,7 @@ export function persistOnboardingHandoffParams(
   const source = readTrimmedParam(params, 'source');
   const referralCode = parseReferralCode(params.get('ref'));
   const claimHandle = parseClaimHandle(params.get('handle'));
+  const followHandle = parseClaimHandle(params.get('follow'));
   const accountType = parseOnboardingAccountType(params.get('accountType'));
 
   if (selectedPlan) {
@@ -332,6 +334,10 @@ export function persistOnboardingHandoffParams(
 
   if (claimHandle) {
     storage.setItem(ONBOARDING_STORAGE_KEYS.claimHandle, claimHandle);
+  }
+
+  if (followHandle) {
+    storage.setItem(ONBOARDING_STORAGE_KEYS.followHandle, followHandle);
   }
 
   if (accessMode) {

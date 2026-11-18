@@ -187,7 +187,7 @@ export default function TrainingsList({
         actions={
           <Button asChild variant={ButtonVariant.DEFAULT} withWrapper={false}>
             <Link href={orgHref(APP_ROUTES.SETTINGS.SUBSCRIPTION)}>
-              Upgrade to {TRAINING_UPGRADE_TIER_LABEL}
+              Get {TRAINING_UPGRADE_TIER_LABEL}
             </Link>
           </Button>
         }

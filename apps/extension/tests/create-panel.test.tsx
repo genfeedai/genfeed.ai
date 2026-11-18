@@ -61,6 +61,9 @@ describe('Content Engine exact publication integration', () => {
   });
   it('preserves generate, draft and explicit manual Insert with inert mocks', async () => {
     render(<CreatePanel onStartChat={() => undefined} />);
+    expect(
+      screen.getByPlaceholderText('Generated preview appears here…'),
+    ).toHaveValue('');
     await typeInPrompt('Generation prompt', 'Original topic');
     fireEvent.click(screen.getByRole('button', { name: 'Run Generate' }));
     await waitFor(() =>
@@ -74,6 +77,9 @@ describe('Content Engine exact publication integration', () => {
       topic: 'Original topic',
       type: 'post',
     });
+    expect(
+      screen.getByRole('button', { name: 'Create Post Draft' }),
+    ).toBeEnabled();
     fireEvent.click(screen.getByRole('button', { name: 'Create Post Draft' }));
     await waitFor(() =>
       expect(mocks.draft).toHaveBeenCalledWith(
@@ -83,6 +89,7 @@ describe('Content Engine exact publication integration', () => {
         'brand-1',
       ),
     );
+    expect(screen.getByRole('button', { name: /Insert/ })).toBeEnabled();
     fireEvent.click(screen.getByRole('button', { name: /Insert/ }));
     expect(chrome.runtime.sendMessage).toHaveBeenCalledWith(
       {

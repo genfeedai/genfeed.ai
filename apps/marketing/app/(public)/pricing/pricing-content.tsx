@@ -9,12 +9,12 @@ import {
   creditPackTotalCredits,
   formatPrice,
   getLaunchPrice,
+  getLaunchPriceTerm,
   getPlanByTier,
   getPlanLabel,
   IMAGE_CREDIT_COSTS,
   INTERNAL_CREDIT_COSTS,
   PLAN_COPY,
-  PRO_LAUNCH_DISCOUNT_MONTHS,
   VIDEO_CREDIT_COSTS,
   WEBSITE_CREDIT_PACKS,
   type websitePlans,
@@ -30,6 +30,7 @@ import {
   TableHeader,
   TableRow,
 } from '@ui/primitives/table';
+import { SimpleTooltip } from '@ui/primitives/tooltip';
 import AgentFirstActions from '@web-components/buttons/agent-first-actions/AgentFirstActions';
 import FaqGrid from '@web-components/content/FaqGrid';
 import {
@@ -59,21 +60,22 @@ import {
 const PLAN_ORDER: PlanTier[] = ['pro', 'scale'];
 const FEATURED_TIER: PlanTier = 'scale';
 
-const PRO_LAUNCH_PRICE = getLaunchPrice('pro');
-
 // Only offered while the launch price is on the card, so the term never
 // outlives the discount it explains.
-const LAUNCH_PRICE_FAQ_ITEMS =
-  PRO_LAUNCH_PRICE === null
+function getLaunchPriceFaqItems(): Array<{ answer: string; question: string }> {
+  const term = getLaunchPriceTerm('pro');
+
+  return term === null
     ? []
     : [
         {
-          answer: `${PLAN_COPY.pro.name} is ${formatPrice(PRO_LAUNCH_PRICE)} a month for your first ${PRO_LAUNCH_DISCOUNT_MONTHS} months, then ${formatPrice(getPlanByTier('pro').price)} a month.`,
+          answer: `${term}.`,
           question: `How long does the ${PLAN_COPY.pro.name} launch price last?`,
         },
       ];
+}
 
-const FAQ_ITEMS = [
+const FAQ_ITEMS_BEFORE_LAUNCH = [
   {
     answer: `You get ${ONBOARDING_STARTER_CREDITS} free credits when you finish onboarding.`,
     question: 'Is there a free trial?',
@@ -83,16 +85,32 @@ const FAQ_ITEMS = [
       'You see the price of every job in credits before it runs. Credits come with your plan or from a pay-as-you-go top-up.',
     question: 'How do credits work?',
   },
-  ...LAUNCH_PRICE_FAQ_ITEMS,
+];
+
+const FAQ_ITEMS_AFTER_LAUNCH = [
   {
-    answer: 'No. Genfeed picks the best model for every job.',
+    answer:
+      'You can choose a model in the app, let your agent pick one, or leave it to automatic routing where supported.',
     question: 'Do I choose the AI model?',
+  },
+  {
+    answer:
+      'Yes. Connect Claude, ChatGPT, Codex, Cursor or any MCP client. Your agent drafts and schedules with your brand context, and you review and publish in the dashboard. What an agent can do depends on its client; the Claude connector cannot create images or video, so add the full Genfeed server as a second connector to generate images, video and audio.',
+    question: 'Can I use my own agent?',
   },
   {
     answer: `Yes, on every plan. ${PLAN_COPY.pro.name} and ${PLAN_COPY.scale.name} have higher limits.`,
     question: 'Is there an API?',
   },
 ];
+
+function getFaqItems() {
+  return [
+    ...FAQ_ITEMS_BEFORE_LAUNCH,
+    ...getLaunchPriceFaqItems(),
+    ...FAQ_ITEMS_AFTER_LAUNCH,
+  ];
+}
 
 interface OutputCostRow {
   credits: number;
@@ -176,6 +194,7 @@ export default function PricingContent() {
               const isFeatured = plan.tier === FEATURED_TIER;
               const ctaHref = plan.ctaHref || BOOKING_HREF;
               const launchPrice = getLaunchPrice(plan.tier);
+              const launchTerm = getLaunchPriceTerm(plan.tier);
 
               return (
                 <NeuralGridItem
@@ -190,7 +209,7 @@ export default function PricingContent() {
                 >
                   {isFeatured ? (
                     <div className="absolute right-6 top-6">
-                      <span className="border border-foreground/40 px-2.5 py-1 text-2xs font-bold uppercase tracking-widest text-foreground/70">
+                      <span className="border border-foreground/40 px-2.5 py-1 text-2xs font-semibold uppercase tracking-label text-foreground/70">
                         Popular
                       </span>
                     </div>
@@ -202,9 +221,17 @@ export default function PricingContent() {
                         {formatPrice(plan.price)}
                       </del>
                     ) : null}
-                    <span className="text-4xl font-semibold tracking-[-0.02em] xl:text-5xl">
-                      {formatPrice(launchPrice ?? plan.price)}
-                    </span>
+                    <SimpleTooltip
+                      isDisabled={launchTerm === null}
+                      label={launchTerm ?? undefined}
+                    >
+                      <span
+                        className="text-4xl font-semibold tracking-[-0.02em] xl:text-5xl"
+                        tabIndex={launchTerm === null ? undefined : 0}
+                      >
+                        {formatPrice(launchPrice ?? plan.price)}
+                      </span>
+                    </SimpleTooltip>
                     <span className="text-sm font-medium text-foreground/60">
                       /mo
                     </span>
@@ -246,12 +273,12 @@ export default function PricingContent() {
               aria-label={getPlanLabel('enterprise')}
             >
               <div className="absolute right-6 top-6">
-                <span className="border border-foreground/20 px-2.5 py-1 text-2xs font-bold uppercase tracking-widest text-foreground/70">
+                <span className="border border-foreground/20 px-2.5 py-1 text-2xs font-semibold uppercase tracking-label text-foreground/70">
                   We run it
                 </span>
               </div>
 
-              <div className="mb-2 flex items-baseline gap-1.5 whitespace-nowrap">
+              <div className="mb-6 flex items-baseline gap-1.5 whitespace-nowrap">
                 <span className="text-sm font-medium text-foreground/60">
                   From
                 </span>
@@ -261,10 +288,6 @@ export default function PricingContent() {
                 <span className="text-sm font-medium text-foreground/60">
                   /mo
                 </span>
-              </div>
-
-              <div className="mb-6 text-sm text-foreground/60">
-                {serviceOffering.priceNote}
               </div>
 
               <ul className="mb-auto space-y-3">
@@ -328,7 +351,7 @@ export default function PricingContent() {
 
         <WebSection maxWidth="lg" py="md">
           <SectionHeader
-            title="Compare plans."
+            title="Compare plans"
             className="[&_h2]:text-4xl sm:[&_h2]:text-5xl mb-4"
           />
           <div className="overflow-hidden rounded-card border border-border bg-card">
@@ -378,7 +401,7 @@ export default function PricingContent() {
 
         <WebSection maxWidth="lg" py="md">
           <SectionHeader
-            title="What output costs."
+            title="What output costs"
             className="[&_h2]:text-4xl sm:[&_h2]:text-5xl mb-4"
           />
 
@@ -431,10 +454,10 @@ export default function PricingContent() {
             className="[&_h2]:text-4xl sm:[&_h2]:text-5xl"
           />
 
-          <FaqGrid items={FAQ_ITEMS} />
+          <FaqGrid items={getFaqItems()} />
         </WebSection>
 
-        <CtaSection bg="subtle" title="Start free.">
+        <CtaSection bg="subtle" title="Start free">
           <AgentFirstActions
             signUpHref={paygSignUpHref}
             trackingName="pricing_cta_click"

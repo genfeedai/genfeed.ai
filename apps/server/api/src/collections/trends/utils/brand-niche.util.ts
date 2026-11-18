@@ -6,7 +6,7 @@ const NON_WORD_CHARS_PATTERN = /[^\p{L}\p{N}\s]/gu;
 const WHITESPACE_RUNS_PATTERN = /\s+/g;
 const WHITESPACE_CHARS_PATTERN = /\s/g;
 
-export const BRAND_NICHE_MAX_QUERIES = 3;
+const BRAND_NICHE_MAX_QUERIES = 3;
 
 const STOP_WORDS = new Set([
   'a',

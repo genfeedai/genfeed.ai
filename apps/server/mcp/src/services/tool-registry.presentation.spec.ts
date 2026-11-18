@@ -2,7 +2,7 @@ import { getToolsForSurface } from '@genfeedai/actions';
 import { isRecord } from '@genfeedai/utils/data/extract.util';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { ClientService } from '@mcp/services/client.service';
-import { ToolRegistryService } from '@mcp/services/tool-registry.service';
+import { createEndpointRegistries } from '@mcp/services/tool-registry.endpoints.testing';
 import type { McpAppResult } from '@mcp/shared/interfaces/mcp-app.interface';
 
 const fixture = {
@@ -92,7 +92,7 @@ function build() {
     warn: vi.fn(),
     log: vi.fn(),
   };
-  return new ToolRegistryService(
+  return createEndpointRegistries(
     client as unknown as ClientService,
     logger as unknown as LoggerService,
     'superadmin',
@@ -113,6 +113,16 @@ describe('MCP catalog presentation through the public registry', () => {
       if (tool.name === 'create_clipper_project_from_youtube')
         args.brandId = 'input-private';
       if (tool.name === 'run_clipper') args.mode = 'raw-cut';
+      // One release or a batch is required, neither field alone.
+      if (
+        tool.name === 'create_scheduled_release' &&
+        isRecord(tool.parameters)
+      ) {
+        const properties = isRecord(tool.parameters.properties)
+          ? tool.parameters.properties
+          : {};
+        args.release = inputFor(properties.release, 'release');
+      }
       if (tool.name === 'update_scheduled_release')
         args.changes = { title: 'Example' };
       if (

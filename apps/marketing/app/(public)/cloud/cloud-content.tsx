@@ -1,6 +1,6 @@
 import { getAppSignUpUrl } from '@data/app-links';
+import { PLAN_COPY } from '@genfeedai/pricing';
 import AgentFirstActions from '@web-components/buttons/agent-first-actions/AgentFirstActions';
-import MarketingArtwork from '@web-components/content/MarketingArtwork';
 import {
   CtaSection,
   NeuralGrid,
@@ -46,18 +46,18 @@ const BENEFITS = [
 const TEAMS = [
   {
     description:
-      'Create, review, and publish content across shared workspaces.',
-    title: 'Marketing Teams',
+      'Brief from your agents, then review and publish across shared workspaces.',
+    title: 'Marketing teams',
   },
   {
     description:
       'Manage clients, organizations, brands, and approvals in one managed environment.',
-    title: 'Content Agencies',
+    title: 'Content agencies',
   },
   {
     description:
       'Keep multiple brand systems separate while centralizing billing and operations.',
-    title: 'Multi-Brand Operators',
+    title: 'Multi-brand operators',
   },
 ];
 
@@ -67,9 +67,9 @@ export default function CloudContent() {
   return (
     <MarketingEntrance>
       <PageLayout
-        heroMedia={<MarketingArtwork page="/cloud" kind="workflow" />}
-        title="One studio for your team"
-        description="Shared workspaces, a brand library, roles, and approvals. The studio your whole team creates in."
+        compact
+        title="One workspace for your team’s agents"
+        description={`Every teammate connects their own agent to the same brand library, roles, approvals and credit pool. Shared seats start on ${PLAN_COPY.scale.name}; ${PLAN_COPY.payg.name} and ${PLAN_COPY.pro.name} are one seat. The dashboard is where the team reviews, publishes and measures.`}
       >
         {/* Benefits */}
         <WebSection maxWidth="xl">
@@ -161,8 +161,8 @@ export default function CloudContent() {
 
         {/* Pricing CTA */}
         <CtaSection
-          title="Bring your team into the studio."
-          description="Every teammate connects their own agent to the same workspace, brand library, and approvals."
+          title="Connect your team’s agents"
+          description={`On ${PLAN_COPY.scale.name} and ${PLAN_COPY.enterprise.name}, every teammate connects their own agent to the same workspace, brand library, and approvals.`}
         >
           <AgentFirstActions
             signUpHref={signUpHref}

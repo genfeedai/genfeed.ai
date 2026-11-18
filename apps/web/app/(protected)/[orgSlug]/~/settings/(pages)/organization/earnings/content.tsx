@@ -50,6 +50,7 @@ export default function SettingsEarningsPage() {
     staleTime: 30_000,
   });
 
+  // use-effect-audit: ignore reports a failed load to the logger or a notification
   useEffect(() => {
     if (error) {
       logger.error('GET /creator-payments/earnings failed', error);

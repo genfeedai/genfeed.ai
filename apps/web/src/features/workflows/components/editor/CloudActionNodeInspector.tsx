@@ -125,6 +125,7 @@ export function CloudActionNodeInspector() {
     [handleChange, hasPromptField],
   );
 
+  // use-effect-audit: ignore writes the action defaults into the workflow store
   useEffect(() => {
     if (!node || !action) {
       return;

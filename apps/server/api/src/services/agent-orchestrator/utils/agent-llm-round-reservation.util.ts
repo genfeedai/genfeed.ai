@@ -12,11 +12,11 @@ type ReservationCreditsClient = Pick<
   | 'settleReservation'
 >;
 
-export const AGENT_LLM_ROUND_WORKLOAD_TYPE = 'agent-llm-round';
+const AGENT_LLM_ROUND_WORKLOAD_TYPE = 'agent-llm-round';
 const AGENT_LLM_ROUND_OVERFLOW_REFERENCE_TYPE = 'agent_llm_round_overflow';
 
 /** Where a settled round's provider USD came from. */
-export type AgentRoundCostSource = 'byok' | 'provider_reported' | 'token_price';
+type AgentRoundCostSource = 'byok' | 'provider_reported' | 'token_price';
 
 export interface AgentLlmRoundResult {
   /** Exact fractional credits billed for the round. */

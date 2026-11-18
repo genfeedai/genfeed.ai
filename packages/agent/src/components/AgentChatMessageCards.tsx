@@ -13,7 +13,7 @@ import {
   CardPadding,
   CardVariant,
 } from '@genfeedai/contracts';
-import { parseScopedAppPath } from '@genfeedai/contracts/constants';
+import { APP_ROUTES, parseScopedAppPath } from '@genfeedai/contracts/constants';
 import { collectConnectPlatforms } from '@genfeedai/contracts/interfaces';
 import { keyListItems } from '@genfeedai/helpers/ui/list/key-list-items';
 import { cn } from '@helpers/formatting/cn/cn.util';
@@ -66,8 +66,11 @@ function GenericOAuthConnectCard({
     action.description ??
     'Connect Instagram, X, LinkedIn, TikTok, YouTube, or another supported platform to continue.';
   const rawIntegrationHref =
-    action.ctas?.find((cta) => cta.href)?.href ?? '/settings/api-keys';
-  const integrationHref = rawIntegrationHref.startsWith('/settings/api-keys')
+    action.ctas?.find((cta) => cta.href)?.href ??
+    APP_ROUTES.CONNECTORS.API_KEYS;
+  const integrationHref = rawIntegrationHref.startsWith(
+    APP_ROUTES.CONNECTORS.API_KEYS,
+  )
     ? orgHref(rawIntegrationHref)
     : rawIntegrationHref;
 
@@ -145,7 +148,7 @@ export function OAuthConnectCard({
     ? action.title
     : isSinglePlatform
       ? `Connect ${formatPlatformLabel(platforms[0])}`
-      : 'Connect an account';
+      : 'Connect Account';
 
   return (
     <Card
@@ -206,6 +209,7 @@ export function ContentPreviewCard({
   const [reconciledStatus, setReconciledStatus] = useState(action.status);
   const [reconciliationError, setReconciliationError] = useState<string>();
 
+  // use-effect-audit: ignore abortable asset reconciliation polling
   useEffect(() => {
     if (!apiService || !action.assetId || reconciledUrl) {
       return;
@@ -467,7 +471,7 @@ export function ContentPreviewCard({
             const label =
               href.includes('/library/') &&
               cta.label.toLowerCase().includes('gallery')
-                ? 'View in Library'
+                ? 'View Library'
                 : cta.label;
 
             return (

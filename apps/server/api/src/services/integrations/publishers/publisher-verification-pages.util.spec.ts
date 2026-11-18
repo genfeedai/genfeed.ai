@@ -1,4 +1,5 @@
 import {
+  parseBlueskyVerificationPage,
   parseLinkedInVerificationPage,
   parseThreadsVerificationPage,
   parseTwitterVerificationPage,
@@ -173,5 +174,123 @@ describe('provider verification page contracts', () => {
       parseThreadsVerificationPage({ data: [{ ...item, is_quote_post: true }] })
         .items[0]?.isQuote,
     ).toBe(true);
+  });
+
+  describe('Bluesky', () => {
+    const did = 'did:plc:abc123';
+    const record = (rkey: string, value: Record<string, unknown>) => ({
+      cid: 'bafycid',
+      uri: `at://${did}/app.bsky.feed.post/${rkey}`,
+      value: { $type: 'app.bsky.feed.post', ...value },
+    });
+
+    it('reads post text, time, reply and embed evidence with the cursor', () => {
+      const page = parseBlueskyVerificationPage(
+        {
+          cursor: '3kabc',
+          records: [
+            record('3k1', {
+              createdAt: '2026-11-16T08:00:00.000Z',
+              text: 'hi',
+            }),
+            record('3k2', {
+              createdAt: '2026-11-16T08:01:00.000Z',
+              reply: { parent: {}, root: {} },
+              text: 'reply',
+            }),
+            record('3k3', {
+              createdAt: '2026-11-16T08:02:00.000Z',
+              embed: { $type: 'app.bsky.embed.images', images: [] },
+              text: 'pic',
+            }),
+            record('3k4', {
+              createdAt: '2026-11-16T08:03:00.000Z',
+              embed: { $type: 'app.bsky.embed.record', record: {} },
+              text: 'quote',
+            }),
+          ],
+        },
+        did,
+      );
+
+      expect(page.nextCursor).toBe('3kabc');
+      expect(
+        page.items.map(({ hasMedia, id, isQuote, isReply, text, url }) => ({
+          hasMedia,
+          id,
+          isQuote,
+          isReply,
+          text,
+          url,
+        })),
+      ).toEqual([
+        {
+          hasMedia: false,
+          id: `at://${did}/app.bsky.feed.post/3k1`,
+          isQuote: false,
+          isReply: false,
+          text: 'hi',
+          url: `https://bsky.app/profile/${did}/post/3k1`,
+        },
+        {
+          hasMedia: false,
+          id: `at://${did}/app.bsky.feed.post/3k2`,
+          isQuote: false,
+          isReply: true,
+          text: 'reply',
+          url: `https://bsky.app/profile/${did}/post/3k2`,
+        },
+        {
+          hasMedia: true,
+          id: `at://${did}/app.bsky.feed.post/3k3`,
+          isQuote: false,
+          isReply: false,
+          text: 'pic',
+          url: `https://bsky.app/profile/${did}/post/3k3`,
+        },
+        {
+          hasMedia: false,
+          id: `at://${did}/app.bsky.feed.post/3k4`,
+          isQuote: true,
+          isReply: false,
+          text: 'quote',
+          url: `https://bsky.app/profile/${did}/post/3k4`,
+        },
+      ]);
+    });
+
+    it('ends the scan when there is no cursor', () => {
+      expect(
+        parseBlueskyVerificationPage({ records: [] }, did).nextCursor,
+      ).toBeNull();
+    });
+
+    it("refuses a page that holds another account's record", () => {
+      expect(() =>
+        parseBlueskyVerificationPage(
+          {
+            records: [
+              {
+                cid: 'bafycid',
+                uri: 'at://did:plc:other/app.bsky.feed.post/3k1',
+                value: { createdAt: '2026-11-16T08:00:00.000Z', text: 'hi' },
+              },
+            ],
+          },
+          did,
+        ),
+      ).toThrow('Bluesky verification author mismatch');
+    });
+
+    it('refuses a record with no text instead of guessing', () => {
+      expect(() =>
+        parseBlueskyVerificationPage(
+          {
+            records: [record('3k1', { createdAt: '2026-11-16T08:00:00.000Z' })],
+          },
+          did,
+        ),
+      ).toThrow();
+    });
   });
 });

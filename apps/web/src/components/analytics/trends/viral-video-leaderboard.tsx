@@ -102,7 +102,7 @@ export function ViralVideoLeaderboard({
             header: '#',
             key: 'rank',
             render: (video) => (
-              <span className="font-bold text-foreground/70">
+              <span className="font-semibold text-foreground/70">
                 {sortedVideos.findIndex((v) => v.id === video.id) + 1}
               </span>
             ),
@@ -226,5 +226,3 @@ export function ViralVideoLeaderboard({
     </div>
   );
 }
-
-export default ViralVideoLeaderboard;

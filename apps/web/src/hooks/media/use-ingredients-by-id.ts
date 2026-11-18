@@ -54,6 +54,7 @@ export function useIngredientsById(
   });
 
   const { error } = query;
+  // use-effect-audit: ignore reports a failed load to the logger or a notification
   useEffect(() => {
     if (error) {
       logger.error('Failed to load character images', error);

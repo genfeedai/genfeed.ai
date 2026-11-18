@@ -1,6 +1,6 @@
 import type { LoggerService } from '@libs/logger/logger.service';
 import { ClientService } from '@mcp/services/client.service';
-import { ToolRegistryService } from '@mcp/services/tool-registry.service';
+import { createEndpointRegistries } from '@mcp/services/tool-registry.endpoints.testing';
 
 /**
  * #5132 end-to-end fixture journey: the real curated catalog, mutation
@@ -358,7 +358,7 @@ function build() {
     { axiosRef: { create: () => api.http } } as never,
     { get: () => undefined } as never,
   );
-  const registry = new ToolRegistryService(client, logger, 'admin');
+  const registry = createEndpointRegistries(client, logger, 'admin');
   type Result = {
     isError?: boolean;
     content: { text: string }[];

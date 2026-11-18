@@ -1611,16 +1611,18 @@ test('v19 partitions 609 ordinary completions and four exact machine denials wit
     '/v1/internal/platform-runtime-settings',
     '/v1/internal/orgs/{orgId}/workflow-executions/{id}',
   ];
+  const apiKeyOnly = ['/v1/models3d/{id}', '/v1/models3d/{id}/file'];
   const routes = [
     ...Array.from({ length: 609 }, (_, i) => `/v1/example-${i}`),
     ...templates,
+    ...apiKeyOnly,
   ];
   const records = ['M:A', 'M2:B', 'S', 'S:A'].flatMap((actor) =>
     routes.map((route) => ({
       actor,
       route,
       phase: 'get',
-      status: templates.includes(route) ? 401 : 200,
+      status: [...templates, ...apiKeyOnly].includes(route) ? 401 : 200,
     })),
   );
   records.push(
@@ -1643,11 +1645,31 @@ test('v19 partitions 609 ordinary completions and four exact machine denials wit
       machineDataAsserted: true,
     })),
   );
-  assert.deepEqual(coverageErrors(records, 613, 20, 20, routes), []);
+  assert.deepEqual(coverageErrors(records, 615, 20, 20, routes), []);
   const broken = records.map((record) =>
     record.route === '/v1/example-0' ? { ...record, status: 401 } : record,
   );
-  assert.ok(coverageErrors(broken, 613, 20, 20, routes).length);
+  assert.ok(coverageErrors(broken, 615, 20, 20, routes).length);
+  const served = records.map((record) =>
+    record.actor === 'S' && record.route === apiKeyOnly[0]
+      ? { ...record, status: 200 }
+      : record,
+  );
+  assert.deepEqual(
+    coverageErrors(served, 615, 20, 20, routes).filter((error) =>
+      error.includes('exactly one 401'),
+    ),
+    [`S: ${apiKeyOnly[0]} must be denied with exactly one 401`],
+  );
+  assert.ok(
+    coverageErrors(
+      records,
+      614,
+      20,
+      20,
+      routes.filter((route) => route !== apiKeyOnly[1]),
+    ).includes('API-key-only route inventory incomplete'),
+  );
 });
 
 test('provenance failure labels remain fixed and independent of stdout copies', async () => {

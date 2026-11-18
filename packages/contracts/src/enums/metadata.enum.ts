@@ -58,4 +58,5 @@ export enum MetadataExtension {
   AVI = 'AVI',
   MP3 = 'MP3',
   WAV = 'WAV',
+  GLB = 'GLB',
 }

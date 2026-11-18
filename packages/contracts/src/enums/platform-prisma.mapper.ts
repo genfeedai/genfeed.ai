@@ -27,6 +27,7 @@ export const PRISMA_CREDENTIAL_PLATFORM_VALUES = [
   'FACEBOOK',
   'GOOGLE_ADS',
   'GOOGLE_SEARCH_CONSOLE',
+  'GOOGLE_BUSINESS',
   'TWITTER',
   'X_ADS',
   'LINKEDIN',
@@ -50,6 +51,7 @@ export const PRISMA_CREDENTIAL_PLATFORM_VALUES = [
   'DEVTO',
   'RESTREAM',
   'GENFEED',
+  'BLUESKY',
 ] as const;
 
 export type PrismaCredentialPlatformValue =

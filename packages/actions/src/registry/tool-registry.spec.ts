@@ -151,9 +151,24 @@ describe('tool registry catalog validation', () => {
       };
     }
     const catalog: CuratedActionCatalogEntry[] = [
-      { name: 'duplicated_action', surfaces: ['agent'], toolset: 'core' },
-      { name: 'duplicated_action', surfaces: ['mcp'], toolset: 'core' },
-      { name: 'missing_action', surfaces: ['mcp'], toolset: 'core' },
+      {
+        category: 'other',
+        name: 'duplicated_action',
+        surfaces: ['agent'],
+        toolset: 'core',
+      },
+      {
+        category: 'other',
+        name: 'duplicated_action',
+        surfaces: ['mcp'],
+        toolset: 'core',
+      },
+      {
+        category: 'other',
+        name: 'missing_action',
+        surfaces: ['mcp'],
+        toolset: 'core',
+      },
     ];
 
     vi.doMock('./curated-action-catalog', () => ({
@@ -229,7 +244,7 @@ describe('tool registry catalog validation', () => {
     vi.doMock('./toolsets', () => ({
       CORE_TOOLSET_NAME: 'core',
       getToolsForToolsets: () =>
-        Array.from({ length: 26 }, () => ({ requiredRole: 'user' })),
+        Array.from({ length: 31 }, () => ({ requiredRole: 'user' })),
       isToolsetName: () => true,
       TOOLSETS: [{ description: 'core', isAlwaysOn: true, name: 'core' }],
     }));
@@ -250,7 +265,7 @@ describe('tool registry catalog validation', () => {
     vi.resetModules();
 
     await expect(import('./tool-registry')).rejects.toThrow(
-      /default MCP profile exceeds the 25-tool bare-URL cap: has 26/,
+      /default MCP profile exceeds the 30-tool bare-URL cap: has 31/,
     );
   });
 });

@@ -211,6 +211,8 @@ export const MCP_REMIX_TOOLS: SourceTool[] = [
     requiredRole: 'user',
   },
   {
+    mcpDescription:
+      'Select an eligible same-brand USER Library video for scene analysis; null clears it. Analyze selected media; retain the imported URL as provenance. Grants no permission and starts no paid analysis.',
     name: 'attach_remix_analysis_source',
     description:
       'Select an eligible same-brand USER Library video for scene analysis, or clear with null. The selected Library media is analyzed; the original imported URL remains provenance. This does not infer permission or start paid analysis.',
@@ -223,6 +225,8 @@ export const MCP_REMIX_TOOLS: SourceTool[] = [
     requiredRole: 'user',
   },
   {
+    mcpDescription:
+      'Save revision quote without dispatch. Image requires explicit model; copy uses canonical model. Video/avatar uses scene analysis/generate/repair quotes and rejects model. Inspect before approval. BYOK may incur external provider costs.',
     name: 'quote_remix_generation',
     description:
       'Save a concrete generation quote for this revision without dispatch. Image requires an explicit model; copy uses its canonical model. Video/avatar uses scene analysis, generate or repair quotes and rejects model. Inspect the quote before approval. BYOK can still incur external provider costs.',
@@ -240,6 +244,8 @@ export const MCP_REMIX_TOOLS: SourceTool[] = [
     requiredRole: 'user',
   },
   {
+    mcpDescription:
+      'Execute exact persisted quote/revision after explicit approval, routing by canonical output/quote. Repeated accepted execution returns same run without another purchase.',
     name: 'start_remix_generation',
     description:
       'Execute the exact persisted quote and revision after explicit approval. Routes by canonical output/quote; repeated accepted execution retrieves the same run rather than buying another attempt.',

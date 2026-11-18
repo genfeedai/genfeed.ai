@@ -126,7 +126,7 @@ export function GenerationActionCanvas({
       <div className="flex items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-1.5">
           <LayoutGrid className="size-3.5 shrink-0 text-muted-foreground" />
-          <span className="text-2xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+          <span className="text-2xs font-semibold uppercase tracking-label text-muted-foreground">
             {translate('title')}
           </span>
           <span className="text-2xs text-muted-foreground/70">

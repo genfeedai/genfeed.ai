@@ -5,9 +5,12 @@ export const threadMessageAttributes = createEntityAttributes([
   'artifactVersionPinIds',
   'organization',
   'user',
+  'userId',
   'role',
   'content',
   'toolCallId',
   'toolCalls',
   'metadata',
+  'mentionedUserIds',
+  'mentions',
 ]);

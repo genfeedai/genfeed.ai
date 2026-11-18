@@ -54,6 +54,8 @@ import { PostRepeatSchedulerService } from '@workers/services/post-repeat-schedu
 import { ScheduledPostDeliveryService } from '@workers/services/scheduled-post-delivery.service';
 import { ScheduledPostDiscoveryService } from '@workers/services/scheduled-post-discovery.service';
 import { ScheduledPostExecutionGuardService } from '@workers/services/scheduled-post-execution-guard.service';
+import { ScheduledPostFailureService } from '@workers/services/scheduled-post-failure.service';
+import { ScheduledPostSweepLockService } from '@workers/services/scheduled-post-sweep-lock.service';
 import { ScheduledPostWorkflowService } from '@workers/services/scheduled-post-workflow.service';
 import { assertIsolatedDatabaseUrl } from '../../../scripts/assert-isolated-db-url';
 
@@ -61,9 +63,14 @@ export const ISOLATED_PUBLISH_FAKE_EXTERNAL_PREFIX = 'fake-publish-';
 
 export class CapturingScheduledPostWorkflowQueue {
   readonly jobs: ScheduledPostWorkflowInput[] = [];
+  readonly providers: Array<string | undefined> = [];
 
-  async enqueue(data: ScheduledPostWorkflowInput): Promise<string> {
+  async enqueue(
+    data: ScheduledPostWorkflowInput,
+    options: { publishProvider?: string } = {},
+  ): Promise<string> {
     this.jobs.push(data);
+    this.providers.push(options.publishProvider);
     return data.operationId ?? data.postId;
   }
 }
@@ -111,6 +118,14 @@ export class IsolatedFakePublisher {
       SCHEDULED_POST_ACTION_IDS.DELIVER,
       async (action) => {
         const request = action.input.request as ScheduledPostWorkflowInput;
+        // As the real delivery: a claim that found the approval already
+        // PUBLISHED hands its result through and never reaches the provider.
+        const claim = action.input.claim as
+          | { isAlreadyPublished?: boolean; publishedResult?: PublishResult }
+          | undefined;
+        if (claim?.isAlreadyPublished === true && claim.publishedResult) {
+          return claim.publishedResult;
+        }
         const row = await this.prisma.post.findFirst({
           where: {
             id: request.postId,
@@ -312,6 +327,16 @@ export async function createIsolatedPublishHarness(): Promise<IsolatedPublishHar
       PostLifecycleService,
       AgentArtifactReferenceService,
       CronPostsService,
+      {
+        // One process owns the lane, so the lock is always free.
+        provide: ScheduledPostSweepLockService,
+        useValue: {
+          acquire: async () => ({
+            extend: async () => true,
+            release: async () => undefined,
+          }),
+        },
+      },
       ScheduledPostDiscoveryService,
       ScheduledPostExecutionGuardService,
       ScheduledPostWorkflowService,
@@ -379,6 +404,10 @@ export async function createIsolatedPublishHarness(): Promise<IsolatedPublishHar
         useValue: { record: vi.fn().mockResolvedValue(undefined) },
       },
       {
+        provide: ScheduledPostFailureService,
+        useValue: { notifyPublishUnverified: vi.fn() },
+      },
+      {
         provide: AgentScopeContextService,
         useValue: {
           assertConsequentialBoundary: vi.fn().mockResolvedValue(undefined),
@@ -395,8 +424,16 @@ export async function createIsolatedPublishHarness(): Promise<IsolatedPublishHar
       {
         provide: PostsService,
         useFactory: (prisma: PrismaService) => ({
-          findAll: async (query: { where?: Prisma.PostWhereInput }) => {
-            const row = await prisma.post.findFirst({
+          // The sweep pages with `where`, `orderBy` and `limit`, so this reads
+          // through Prisma exactly as the real service does, minus the count.
+          findAll: async (
+            query: {
+              orderBy?: Prisma.PostOrderByWithRelationInput[];
+              where?: Prisma.PostWhereInput;
+            },
+            options: { limit?: number } = {},
+          ) => {
+            const rows = await prisma.post.findMany({
               include: {
                 publishApproval: {
                   select: {
@@ -407,11 +444,13 @@ export async function createIsolatedPublishHarness(): Promise<IsolatedPublishHar
                   },
                 },
               },
+              ...(query.orderBy ? { orderBy: query.orderBy } : {}),
+              take: options.limit ?? 1,
               where: query.where,
             });
             return {
-              docs: row ? [new PostEntity(row)] : [],
-              total: row ? 1 : 0,
+              docs: rows.map((row) => new PostEntity(row)),
+              total: rows.length,
             };
           },
         }),

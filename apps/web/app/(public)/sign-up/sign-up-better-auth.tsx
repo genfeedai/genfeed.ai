@@ -103,6 +103,7 @@ export default function SignUpBetterAuth({
   const passwordHref = getSignUpModeHref('/sign-up/password', searchParams);
   const loginHref = getLoginHref(callbackURL);
 
+  // use-effect-audit: ignore writes to browser storage
   useEffect(() => {
     persistOnboardingHandoffParams(window.location.search);
     setSignupAttribution(
@@ -386,6 +387,7 @@ export default function SignUpBetterAuth({
               <Input
                 type="email"
                 name="email"
+                autoComplete="email"
                 placeholder="you@example.com"
                 value={email}
                 onChange={(e: ChangeEvent<HTMLInputElement>) =>

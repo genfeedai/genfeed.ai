@@ -19,6 +19,7 @@ import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { AssetScope, TemplateCategory } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
+import { HttpException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 
 const organizationId = testId('org');
@@ -243,7 +244,9 @@ describe('TemplatesController', () => {
         templateId: dto.templateId,
       });
 
-      await controller.useTemplate(byokReq, dto, mockUser);
+      const result = await controller.useTemplate(byokReq, dto, mockUser);
+
+      expect(result).toEqual({ content: 'ok', templateId: dto.templateId });
       // getDefaultTextMinimumCredits(modelsService) backs the preflight; the
       // whole preflight block is skipped when the guard already bypassed.
       expect(modelsService.findOne).not.toHaveBeenCalled();
@@ -267,12 +270,30 @@ describe('TemplatesController', () => {
         templateId: dto.templateId,
       });
 
-      await controller.useTemplate(mockReq, dto, mockUser);
+      const result = await controller.useTemplate(mockReq, dto, mockUser);
+
+      expect(result).toEqual({ content: 'ok', templateId: dto.templateId });
       expect(modelsService.findOne).toHaveBeenCalled();
     });
   });
 
   describe('suggestTemplates', () => {
+    it('refuses to suggest templates when the organization is out of credits', async () => {
+      modelsService.findOne.mockResolvedValue({ cost: 5 });
+      creditsUtilsService.checkOrganizationCreditsAvailable.mockResolvedValue(
+        false,
+      );
+      const dto: SuggestTemplatesDto = {
+        goal: 'increase engagement',
+        industry: 'tech',
+        platform: 'instagram',
+      };
+
+      await expect(
+        controller.suggestTemplates(mockReq, dto, mockUser),
+      ).rejects.toBeInstanceOf(HttpException);
+    });
+
     it('should suggest relevant templates', async () => {
       const dto: SuggestTemplatesDto = {
         goal: 'increase engagement',
@@ -308,7 +329,9 @@ describe('TemplatesController', () => {
       } as unknown as import('express').Request;
       mockTemplatesService.suggestTemplates.mockResolvedValue([mockTemplate]);
 
-      await controller.suggestTemplates(byokReq, dto, mockUser);
+      const result = await controller.suggestTemplates(byokReq, dto, mockUser);
+
+      expect(result).toEqual([mockTemplate]);
       expect(modelsService.findOne).not.toHaveBeenCalled();
       expect(service.suggestTemplates).toHaveBeenCalledWith(
         dto,
@@ -326,7 +349,9 @@ describe('TemplatesController', () => {
       };
       mockTemplatesService.suggestTemplates.mockResolvedValue([mockTemplate]);
 
-      await controller.suggestTemplates(mockReq, dto, mockUser);
+      const result = await controller.suggestTemplates(mockReq, dto, mockUser);
+
+      expect(result).toEqual([mockTemplate]);
       expect(modelsService.findOne).toHaveBeenCalled();
     });
   });

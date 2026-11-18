@@ -51,6 +51,7 @@ export function useStudioGenerationEstimate(
     ownerRef.current = { fingerprint, epoch: ownerRef.current.epoch + 1 };
   const owner = ownerRef.current;
 
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     if (!fingerprint) return;
     // The fingerprint is the request, so equal settings never re-request.

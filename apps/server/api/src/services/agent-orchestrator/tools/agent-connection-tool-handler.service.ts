@@ -1,6 +1,7 @@
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { AgentConnectionRequestService } from '@api/services/agent-orchestrator/tools/agent-connection-request.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type {
   AgentToolResult,
   AgentUiAction,
@@ -191,7 +192,7 @@ export class AgentConnectionToolHandler {
       return {
         ctas: [
           {
-            href: `/settings/api-keys?returnTo=${encodeURIComponent(returnTo)}`,
+            href: `${APP_ROUTES.CONNECTORS.API_KEYS}?returnTo=${encodeURIComponent(returnTo)}`,
             label: 'Open integrations',
           },
         ],
@@ -202,7 +203,7 @@ export class AgentConnectionToolHandler {
       };
     }
 
-    const connectHref = `/settings/api-keys?connect=${normalizedPlatform}&returnTo=${encodeURIComponent(returnTo)}`;
+    const connectHref = `${APP_ROUTES.CONNECTORS.API_KEYS}?connect=${normalizedPlatform}&returnTo=${encodeURIComponent(returnTo)}`;
     const label = normalizedPlatform;
 
     return {

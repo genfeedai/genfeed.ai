@@ -157,6 +157,7 @@ export default function CapturedPostsList({
     }),
   });
 
+  // use-effect-audit: ignore registers the page refresh handler with the shell
   useEffect(() => {
     setRefresh(() => () => {
       void refetch();

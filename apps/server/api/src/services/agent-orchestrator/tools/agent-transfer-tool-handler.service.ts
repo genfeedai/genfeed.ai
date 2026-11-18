@@ -21,6 +21,7 @@ interface CreateAgentTransferInput {
   destinationBrandId?: string;
   destinationThreadId?: string;
   destinationTitle?: string;
+  destinationUserId?: string;
   explicitUserIntent?: boolean;
   idempotencyKey: string;
   parentCorrelationId?: string;
@@ -39,6 +40,10 @@ interface AgentTransfersServiceLike {
     sourceThreadId: string,
     query?: string,
     limit?: number,
+  ): Promise<unknown[]>;
+  discoverTeammates(
+    actor: AgentTransferActor,
+    sourceThreadId: string,
   ): Promise<unknown[]>;
 }
 
@@ -66,7 +71,16 @@ export class AgentTransferToolHandler {
       ctx.threadId,
       query,
     );
-    return { creditsUsed: 0, data: { conversations }, success: true };
+    // The teammates a hand-off from here can reach (#9940).
+    const teammates = await this.transfersService.discoverTeammates(
+      this.actor(ctx),
+      ctx.threadId,
+    );
+    return {
+      creditsUsed: 0,
+      data: { conversations, teammates },
+      success: true,
+    };
   }
 
   async transfer(
@@ -99,6 +113,7 @@ export class AgentTransferToolHandler {
       destinationBrandId: readOptionalString(params.destinationBrandId),
       destinationThreadId: readOptionalString(params.destinationThreadId),
       destinationTitle: readOptionalString(params.destinationTitle),
+      destinationUserId: readOptionalString(params.destinationUserId),
       idempotencyKey,
       parentCorrelationId: readOptionalString(params.parentCorrelationId),
       selectedContext: this.readSelectedContext(params.selectedContext),

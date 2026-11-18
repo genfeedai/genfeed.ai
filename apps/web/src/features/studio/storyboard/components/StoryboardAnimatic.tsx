@@ -150,6 +150,7 @@ export default function StoryboardAnimatic({
   useEffect(() => {
     reset();
   }, [scope, reset]);
+  // use-effect-audit: ignore interval timer outside React
   useEffect(() => {
     if (!playing) return;
     const startElapsed = clock.current.elapsed;

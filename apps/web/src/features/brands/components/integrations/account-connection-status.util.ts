@@ -7,12 +7,10 @@ import { getCurrentSocialWarmupBlueprint } from '@genfeedai/contracts/api-types/
 import type { AccountHealthSummary } from '@genfeedai/contracts/interfaces';
 import type { BrandDetailSocialConnection } from '@genfeedai/props/pages/brand-detail.props';
 import {
-  type AccountConnectionStatusInput,
   getAccountConnectionStatus,
   isAccessTokenExpired,
 } from '@ui/modals/brands/brand/ModalBrand.types';
 
-export type { AccountConnectionStatusInput };
 // Re-exported from ModalBrand.types.ts, where the derivation actually
 // lives: `packages/hooks` needs the same status logic as this pages-layer
 // package (for use-brand-detail.ts's connectedPlatformsCount), and reaches
@@ -50,7 +48,7 @@ export function hasWarmupBlueprint(
 
 // Credentials that connect an ad or analytics account rather than a public
 // social profile: they have no profile page, avatar or follower presence, so
-// they stay on the Connected accounts page but never count as brand socials.
+// they stay on the Accounts page but never count as brand socials.
 const NON_SOCIAL_PROFILE_PLATFORMS = new Set<string>([
   CredentialPlatform.GOOGLE_ADS,
 ]);

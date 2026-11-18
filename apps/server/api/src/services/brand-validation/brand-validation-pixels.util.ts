@@ -11,11 +11,11 @@ const FFMPEG_DURATION_PATTERN = /Duration: (\d+):(\d{2}):(\d{2}(?:\.\d+)?)/;
 const execFileAsync = promisify(execFile);
 
 /** Longest edge of the pixels compared with a palette; more adds cost, not signal. */
-export const BRAND_PIXEL_MAX_EDGE = 256;
+const BRAND_PIXEL_MAX_EDGE = 256;
 /** Longest edge of a frame handed to a vision model; text must stay legible. */
-export const BRAND_ANALYSIS_MAX_EDGE = 1280;
+const BRAND_ANALYSIS_MAX_EDGE = 1280;
 /** Frames sampled evenly across a video. */
-export const BRAND_VIDEO_SAMPLE_FRAMES = 4;
+const BRAND_VIDEO_SAMPLE_FRAMES = 4;
 const MAX_INPUT_PIXELS = 50_000_000;
 const FFMPEG_TIMEOUT_MS = 20_000;
 const MAX_FRAME_BYTES = 32 * 1024 * 1024;

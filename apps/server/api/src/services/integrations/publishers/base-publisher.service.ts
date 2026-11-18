@@ -13,6 +13,7 @@ import { htmlToText } from '@api/shared/utils/html-to-text/html-to-text.util';
 import {
   CredentialPlatform,
   PostCategory,
+  type PublishErrorKind,
   TargetExecutionState,
 } from '@genfeedai/contracts';
 import {
@@ -316,10 +317,12 @@ export abstract class BasePublisherService implements IPublisher {
     platform: CredentialPlatform | string,
     error?: string,
     errorCode?: string,
+    errorKind?: PublishErrorKind,
   ): PublishResult {
     return {
       error,
       errorCode,
+      errorKind,
       externalId: null,
       platform,
       executionState: TargetExecutionState.FAILED,

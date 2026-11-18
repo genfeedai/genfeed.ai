@@ -3,6 +3,7 @@ import type {
   WorkflowVisualNode,
 } from '@api/collections/workflows/schemas/workflow.schema';
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-runner.service';
+import { SystemWorkflowRetention } from '@api/collections/workflows/workflow-execution-retention.contract';
 import { CAMPAIGN_DM_BATCH_WORKFLOW_ID } from '@api/services/campaign/campaign-dm-workflow-definition';
 import { CAMPAIGN_REPLY_BATCH_WORKFLOW_ID } from '@api/services/campaign/campaign-reply-workflow-definition';
 import { createGenfeedActionNode } from '@genfeedai/actions';
@@ -12,7 +13,7 @@ export const CAMPAIGN_DISPATCH_ACTION_IDS = {
   FINALIZE: 'campaign.dispatch.finalize',
 } as const;
 
-export const CAMPAIGN_DISPATCH_WORKFLOW_ID = 'campaign.dispatch.active';
+const CAMPAIGN_DISPATCH_WORKFLOW_ID = 'campaign.dispatch.active';
 
 function actionNode(
   actionId: (typeof CAMPAIGN_DISPATCH_ACTION_IDS)[keyof typeof CAMPAIGN_DISPATCH_ACTION_IDS],
@@ -122,5 +123,6 @@ export function buildCampaignDispatchWorkflowDefinition(): SystemWorkflowGraphDe
       'Discovers eligible outreach campaigns and durably schedules their reply or DM batch workflows.',
     label: 'Dispatch Active Campaigns',
     resultNodeId: finalize.id,
+    retention: SystemWorkflowRetention.BACKGROUND,
   };
 }

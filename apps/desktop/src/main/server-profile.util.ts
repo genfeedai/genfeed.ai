@@ -7,7 +7,7 @@ import type {
 
 const EDGE_BRACKETS_PATTERN = /^\[|\]$/g;
 
-export const GENFEED_CLOUD_SERVER_ID = 'cloud';
+const GENFEED_CLOUD_SERVER_ID = 'cloud';
 
 export const GENFEED_CLOUD_ENDPOINTS = {
   api: 'https://api.genfeed.ai/v1',
@@ -59,7 +59,7 @@ function isPrivateIpv4(hostname: string): boolean {
  * Plain HTTP would send the desktop `gf_` key in clear text, so it is only
  * accepted for this machine and private-network hosts.
  */
-export function isLocalNetworkHostname(hostname: string): boolean {
+function isLocalNetworkHostname(hostname: string): boolean {
   const normalized = hostname.replace(EDGE_BRACKETS_PATTERN, '').toLowerCase();
   return (
     normalized === 'localhost' ||
@@ -150,10 +150,7 @@ export function deriveSelfHostedEndpoint(
   return service === 'mcp' ? `${origin}/mcp` : origin;
 }
 
-export function buildServerId(
-  kind: DesktopServerKind,
-  apiEndpoint: string,
-): string {
+function buildServerId(kind: DesktopServerKind, apiEndpoint: string): string {
   if (kind === 'cloud') {
     return GENFEED_CLOUD_SERVER_ID;
   }

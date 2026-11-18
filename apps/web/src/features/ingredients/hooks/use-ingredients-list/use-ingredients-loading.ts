@@ -34,6 +34,7 @@ import {
 } from '@helpers/data/cache/cache.helper';
 import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useResetOnChange } from '@hooks/utils/use-reset-on-change/use-reset-on-change';
 import { type QueryKey, useQueryClient } from '@tanstack/react-query';
 import {
   type SetStateAction,
@@ -495,18 +496,35 @@ export function useIngredientsLoading({
 
   // A failed background refresh keeps the rows on screen and is only
   // reported; a failed first read with nothing to show also tells the user.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: listErrorUpdatedAt marks each new failed read.
+  // Each failed read is reported once, by the time it failed.
+  const reportedErrorAtRef = useRef(0);
+  // use-effect-audit: ignore reports a failed load to the logger or a notification
   useEffect(() => {
-    if (!isListError || isIgnoredLibraryFailure(listError)) {
+    if (
+      !isListError ||
+      isIgnoredLibraryFailure(listError) ||
+      reportedErrorAtRef.current === listErrorUpdatedAt
+    ) {
       return;
     }
     if (hasListData) {
+      reportedErrorAtRef.current = listErrorUpdatedAt;
       reportLibraryOperationFailure(url, listError);
     } else if (hasLoadFailed) {
+      reportedErrorAtRef.current = listErrorUpdatedAt;
       reportLibraryOperationFailure(url, listError);
       notificationsService.error(`Failed to load ${type}`);
     }
-  }, [isListError, listErrorUpdatedAt]);
+  }, [
+    hasListData,
+    hasLoadFailed,
+    isListError,
+    listError,
+    listErrorUpdatedAt,
+    notificationsService,
+    type,
+    url,
+  ]);
 
   const isUsingCache = activeFallback !== null;
   const cachedAt = activeFallback?.cachedAt ?? null;
@@ -700,12 +718,14 @@ export function useIngredientsLoading({
     }
   }, [refetchFolders, shouldLoadFolders]);
 
+  // use-effect-audit: ignore registers the refresh handler with the page
   useEffect(() => {
     if (onRefresh) {
       onRefresh(() => findAllIngredientsByCategory(true));
     }
   }, [findAllIngredientsByCategory, onRefresh]);
 
+  // use-effect-audit: ignore subscribes to browser events
   useEffect(() => {
     const handleLibraryAssetsRefresh = (event: Event) => {
       if (libraryAssetsRefreshIncludesList(event)) {
@@ -727,12 +747,11 @@ export function useIngredientsLoading({
   }, [findAllIngredientsByCategory]);
 
   // Sync folder param from URL
-  useEffect(() => {
-    const folderParam = parsedSearchParams.get('folder') || undefined;
-    setSelectedFolderId((prev) => (folderParam !== prev ? folderParam : prev));
-  }, [parsedSearchParams]);
+  const folderParam = parsedSearchParams.get('folder') || undefined;
+  useResetOnChange([folderParam], () => setSelectedFolderId(folderParam));
 
   // Cleanup socket subscriptions on unmount
+  // use-effect-audit: ignore subscribes to an external event source
   useEffect(() => {
     return () => {
       socketSubscriptionsRef.current.forEach((unsubscribe) => {
@@ -742,6 +761,7 @@ export function useIngredientsLoading({
     };
   }, []);
 
+  // use-effect-audit: ignore releases timers, requests or subscriptions on unmount
   useEffect(
     () => () => {
       loadMoreControllerRef.current?.abort();

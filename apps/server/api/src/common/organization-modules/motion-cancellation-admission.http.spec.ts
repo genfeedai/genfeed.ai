@@ -14,7 +14,6 @@ import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-/** Admin → Flags with nothing released: only Playground and Storyboard admit work. */
 interface ProjectWork {
   body?: unknown;
   id: string;
@@ -23,6 +22,7 @@ interface ProjectWork {
   userId: string;
 }
 
+/** Admin → Flags with nothing released: Motion is hidden in the web app only. */
 const UNRELEASED_PLATFORM = {
   getFeatureSettingsState: async () => ({
     isResolved: true,
@@ -137,7 +137,7 @@ describe('Motion existing-work cancellation admission', () => {
     await app?.close();
   });
 
-  it('reaches existing cancellation while Motion is off without a settings or subscription read', async () => {
+  it('reaches existing cancellation while Motion is hidden without a settings or subscription read', async () => {
     await request(app.getHttpServer())
       .post('/visual-projects/project-1/cancel')
       .send({ revision: 1 })
@@ -168,12 +168,26 @@ describe('Motion existing-work cancellation admission', () => {
   });
 
   it.each(['retry', 'exports'])(
-    'still blocks new %s work and ignores caller-supplied cancel policy',
+    'admits new %s work while Motion is unreleased',
     async (operation) => {
       await request(app.getHttpServer())
         .post(`/visual-projects/project-1/${operation}`)
+        .send({})
+        .expect(201);
+
+      expect(work.map((entry) => entry.organizationId)).toEqual(['org-1']);
+    },
+  );
+
+  it.each(['retry', 'exports'])(
+    'still blocks new %s work when module settings cannot be read, ignoring caller-supplied cancel policy',
+    async (operation) => {
+      isSettingsDown = true;
+
+      await request(app.getHttpServer())
+        .post(`/visual-projects/project-1/${operation}`)
         .send({ moduleId: 'playground', operation: 'cancel' })
-        .expect(403);
+        .expect(503);
 
       expect(work).toEqual([]);
     },

@@ -13,6 +13,7 @@ export const SUITE_NAMES = [
   'ladder',
   'harness-ab',
   'product-ab',
+  'skill-ab',
   'media-ladder',
 ] as const;
 export type SuiteName = (typeof SUITE_NAMES)[number];
@@ -94,7 +95,7 @@ export type FixtureRow = z.infer<typeof fixtureRowSchema>;
 
 export const contestantProvenanceSchema = z.object({
   family: z.string().min(1),
-  guidanceArm: z.enum(['raw', 'brief', 'product']),
+  guidanceArm: z.enum(['raw', 'brief', 'product', 'skill']),
   id: z.string().min(1),
   isCompiled: z.boolean(),
   model: z.string().min(1),

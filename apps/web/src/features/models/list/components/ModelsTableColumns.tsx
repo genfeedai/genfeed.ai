@@ -11,6 +11,7 @@ import {
   getQualityTierForModel,
   getQualityTierLabel,
 } from '@genfeedai/helpers/quality-routing.helper';
+import { getModelProviderLabel } from '@genfeedai/helpers/ui/model-badge.helper';
 import {
   CREDIT_VALUE_DOLLARS,
   resolveProviderCostUnits,
@@ -31,9 +32,8 @@ import {
 import { Switch } from '@ui/primitives/switch';
 import { SimpleTooltip } from '@ui/primitives/tooltip';
 import { LockKeyhole } from 'lucide-react';
-import { useState } from 'react';
 
-export type ModelsTableTranslate = (
+type ModelsTableTranslate = (
   key: string,
   values?: Record<string, string | number>,
 ) => string;
@@ -43,15 +43,10 @@ export type BuildModelsTableColumnsParams = {
   isModelEnabled: (modelId: string) => boolean;
   isOnlyDefaultInCategory: (model: IModel) => boolean;
   handleAdminToggle: (model: IModel, field: 'isDefault') => void;
-  handleLifecycleChange: (
-    model: IModel,
-    lifecycle: ModelLifecycle,
-    succeededBy?: string,
-  ) => void;
+  handleLifecycleChange: (model: IModel, lifecycle: ModelLifecycle) => void;
   handleToggleModel: (model: IModel, enabled: boolean) => void;
   onOpenDetails: (model: IModel) => void;
   togglingModelId: string | null;
-  models: IModel[];
   translate: ModelsTableTranslate;
 };
 
@@ -192,34 +187,16 @@ function formatAdminCostTooltip(
 
 function ModelLifecycleControl({
   model,
-  models,
   isDisabled,
   onChange,
   translate,
 }: {
   isDisabled: boolean;
   model: IModel;
-  models: IModel[];
-  onChange: (lifecycle: ModelLifecycle, succeededBy?: string) => void;
+  onChange: (lifecycle: ModelLifecycle) => void;
   translate: ModelsTableTranslate;
 }) {
-  const [pendingLifecycle, setPendingLifecycle] =
-    useState<ModelLifecycle | null>(null);
-  const lifecycle =
-    pendingLifecycle ?? model.lifecycle ?? ModelLifecycle.AVAILABLE;
-  const isChoosingSuccessor =
-    pendingLifecycle === ModelLifecycle.LEGACY ||
-    pendingLifecycle === ModelLifecycle.RETIRED;
-  const successors = models.filter(
-    (candidate) =>
-      candidate.id !== model.id &&
-      candidate.category === model.category &&
-      candidate.isActive &&
-      candidate.lifecycle !== ModelLifecycle.RETIRED,
-  );
-  const successorLabel = models.find(
-    (candidate) => candidate.key === model.succeededBy,
-  )?.label;
+  const lifecycle = model.lifecycle ?? ModelLifecycle.AVAILABLE;
   const isPricingLocked = isPaidModelPricingLocked(model);
   const pricingLockedReason = isPricingLocked
     ? translate('table.pricingLockedReason')
@@ -235,19 +212,6 @@ function ModelLifecycleControl({
           if (isPricingLocked && isPromotedLifecycle(next)) {
             return;
           }
-          if (
-            next === ModelLifecycle.LEGACY ||
-            next === ModelLifecycle.RETIRED
-          ) {
-            if (model.succeededBy) {
-              setPendingLifecycle(null);
-              onChange(next, model.succeededBy);
-              return;
-            }
-            setPendingLifecycle(next);
-            return;
-          }
-          setPendingLifecycle(null);
           onChange(next);
         }}
       >
@@ -277,40 +241,6 @@ function ModelLifecycleControl({
           ))}
         </SelectContent>
       </Select>
-      {isChoosingSuccessor ? (
-        <Select
-          disabled={isDisabled}
-          value={model.succeededBy}
-          onValueChange={(successorKey) => {
-            onChange(lifecycle, successorKey);
-            setPendingLifecycle(null);
-          }}
-        >
-          <SelectTrigger
-            aria-label={`Successor for ${model.label}`}
-            className="h-8"
-          >
-            <SelectValue placeholder={translate('table.chooseSuccessor')} />
-          </SelectTrigger>
-          <SelectContent>
-            {successors.map((successor) => (
-              <SelectItem key={successor.key} value={successor.key}>
-                {successor.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      ) : successorLabel ? (
-        <span className="truncate text-2xs text-muted-foreground">
-          {translate('table.successorWithLabel', { label: successorLabel })}
-        </span>
-      ) : model.succeededBy ? (
-        <span className="truncate font-mono text-2xs text-muted-foreground">
-          {translate('table.successorWithLabel', {
-            label: model.succeededBy,
-          })}
-        </span>
-      ) : null}
     </div>
   );
 }
@@ -359,7 +289,6 @@ export function buildModelsTableColumns({
   handleToggleModel,
   onOpenDetails,
   togglingModelId,
-  models,
   translate,
 }: BuildModelsTableColumnsParams): TableColumn<IModel>[] {
   const getRegistryStatus = (model: IModel) => {
@@ -404,7 +333,7 @@ export function buildModelsTableColumns({
       sortable: true,
       render: (model: IModel) => (
         <div className="flex min-w-0 items-center gap-3">
-          <ModelAvatar model={model} />
+          <ModelAvatar model={model} isProviderVisible={!isAdminScope} />
           <div className="min-w-0">
             {/* Outside the admin the row opens the model in the sidebar. */}
             {isAdminScope ? (
@@ -433,6 +362,14 @@ export function buildModelsTableColumns({
     },
     ...(isAdminScope
       ? [
+          {
+            header: translate('table.providerHeader'),
+            key: 'provider',
+            sortable: true,
+            render: (model: IModel) => (
+              <Badge>{getModelProviderLabel(model.provider)}</Badge>
+            ),
+          },
           {
             header: translate('table.registryHeader'),
             key: 'reviewStatus',
@@ -508,10 +445,9 @@ export function buildModelsTableColumns({
             render: (model: IModel) => (
               <ModelLifecycleControl
                 model={model}
-                models={models}
                 isDisabled={togglingModelId === model.id}
-                onChange={(lifecycle, succeededBy) =>
-                  handleLifecycleChange(model, lifecycle, succeededBy)
+                onChange={(lifecycle) =>
+                  handleLifecycleChange(model, lifecycle)
                 }
                 translate={translate}
               />

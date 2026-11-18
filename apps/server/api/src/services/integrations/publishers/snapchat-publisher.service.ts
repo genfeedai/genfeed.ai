@@ -6,8 +6,9 @@ import type {
   PublishContext,
   PublishResult,
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
+import { throwAsPublishError } from '@api/services/integrations/publishers/publish-error.util';
 import { SnapchatService } from '@api/services/integrations/snapchat/services/snapchat.service';
-import { CredentialPlatform } from '@genfeedai/contracts';
+import { CredentialPlatform, PublishErrorKind } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
@@ -85,10 +86,13 @@ export class SnapchatPublisherService extends BasePublisherService {
             postId: context.postId,
           },
         );
-        return this.createFailedResult(
-          this.platform,
-          'Snapchat credential or ad account ID not found',
-        );
+        return {
+          ...this.createFailedResult(
+            this.platform,
+            'Snapchat credential or ad account ID not found',
+          ),
+          errorKind: PublishErrorKind.CHANNEL_DISCONNECTED,
+        };
       }
 
       const decryptedAccessToken = EncryptionUtil.decrypt(
@@ -106,10 +110,14 @@ export class SnapchatPublisherService extends BasePublisherService {
       );
 
       if (!mediaId) {
-        return this.createFailedResult(
-          this.platform,
-          'Failed to upload media to Snapchat',
-        );
+        // Only the media upload ran; nothing was published yet.
+        return {
+          ...this.createFailedResult(
+            this.platform,
+            'Failed to upload media to Snapchat',
+          ),
+          errorKind: PublishErrorKind.RETRY_LATER,
+        };
       }
 
       const description = this.sanitizeDescription(post.description);
@@ -122,10 +130,13 @@ export class SnapchatPublisherService extends BasePublisherService {
       );
 
       if (!externalId) {
-        return this.createFailedResult(
-          this.platform,
-          'Failed to get external ID from Snapchat',
-        );
+        return {
+          ...this.createFailedResult(
+            this.platform,
+            'Failed to get external ID from Snapchat',
+          ),
+          errorKind: PublishErrorKind.OUTCOME_UNKNOWN,
+        };
       }
 
       const postUrl = this.buildPostUrl(externalId, credential);
@@ -135,7 +146,7 @@ export class SnapchatPublisherService extends BasePublisherService {
         error: (error as Error)?.message,
         postId: context.postId,
       });
-      throw error;
+      throwAsPublishError(error);
     }
   }
 

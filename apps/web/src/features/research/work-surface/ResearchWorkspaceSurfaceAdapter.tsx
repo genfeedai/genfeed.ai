@@ -28,6 +28,7 @@ export default function ResearchWorkspaceSurfaceAdapter() {
   const setPageContext = useAgentChatStore((state) => state.setPageContext);
   const isRegistrationAvailable =
     useResearchWorkspaceSurfaceAdapterRegistrationAvailable();
+  // use-effect-audit: ignore registers the embedded state with the workspace shell
   useEffect(() => {
     surface?.setEmbedded(isRegistrationAvailable);
   }, [isRegistrationAvailable, surface?.setEmbedded]);
@@ -59,6 +60,7 @@ export default function ResearchWorkspaceSurfaceAdapter() {
     [brandId, organizationId, surface?.authorizedFinding],
   );
 
+  // use-effect-audit: ignore writes the page context into the agent chat store
   useEffect(() => {
     const currentContext = useAgentChatStore.getState().pageContext;
     setPageContext({

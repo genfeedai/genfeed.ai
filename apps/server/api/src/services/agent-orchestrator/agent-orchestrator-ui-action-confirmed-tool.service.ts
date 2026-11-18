@@ -11,6 +11,7 @@ import type {
   AgentChatResult,
   ToolCallSummary,
 } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
+import { approvedImageMessage } from '@api/services/agent-orchestrator/tools/agent-image-generation-result';
 import { AgentToolExecutorService } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { CacheService } from '@api/services/cache/cache.service';
 import {
@@ -169,8 +170,15 @@ export class AgentOrchestratorUiActionConfirmedToolService {
           'Failed to start the destination conversation.',
         );
       }
+      // A hand-off to a teammate waits for them; nothing is queued yet.
+      const transfer = (
+        execution.result.data as { transfer?: { status?: string } } | undefined
+      )?.transfer;
       return this.finalizer.finalizeStructuredAssistantTurn({
-        content: 'The handoff was sent and the destination run was queued.',
+        content:
+          transfer?.status === 'AWAITING_ACCEPTANCE'
+            ? 'The hand-off was sent. It starts when your teammate accepts it.'
+            : 'The handoff was sent and the destination run was queued.',
         context: params.context,
         eventIdempotencyKey: `agent-transfer-result:${sourceActionId}`,
         model: params.model,
@@ -358,6 +366,19 @@ export class AgentOrchestratorUiActionConfirmedToolService {
             `Failed to generate ${request.generationType}.`,
           );
         }
+        const imageMessage =
+          request.generationType === 'image'
+            ? approvedImageMessage(execution.result)
+            : undefined;
+        if (
+          request.generationType === 'image' &&
+          !imageMessage &&
+          execution.result.approvalStatus !== 'pending'
+        )
+          throwFailedUiActionResult(
+            undefined,
+            'The approved image has no verified Library result.',
+          );
         const linkedResult = {
           ...execution.result,
           nextActions: [
@@ -369,7 +390,10 @@ export class AgentOrchestratorUiActionConfirmedToolService {
           ],
         };
         return this.finalizer.finalizeStructuredAssistantTurn({
-          content: `${request.generationType === 'image' ? 'Image' : 'Video'} generation accepted.`,
+          content:
+            execution.result.approvalStatus === 'pending'
+              ? 'Review the quote and approve to continue.'
+              : (imageMessage ?? 'Video generation accepted.'),
           context: params.context,
           eventIdempotencyKey: `agent-media-result:${executionSourceActionId}`,
           model: params.model,

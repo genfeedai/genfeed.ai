@@ -10,7 +10,7 @@ import {
   GenerationEntryChannel,
 } from '@genfeedai/contracts/interfaces/content/generation-entry.interface';
 import type { LoggerService } from '@libs/logger/logger.service';
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException } from '@nestjs/common';
 
 vi.mock('@api/helpers/utils/error-response/error-response.util', () => ({
   ErrorResponse: {
@@ -37,6 +37,7 @@ describe('Threading AgentThreadRuntimeController', () => {
     list: vi.fn(),
   };
   const resolveInputRequest = vi.fn();
+  const prepareForTurn = vi.fn();
   let controller: AgentThreadRuntimeController;
   let usersService: { findOne: ReturnType<typeof vi.fn> };
   let agentOrchestratorService: {
@@ -49,6 +50,17 @@ describe('Threading AgentThreadRuntimeController', () => {
     resolveInputRequest.mockResolvedValue({
       requestId: 'req-1',
       status: 'resolved',
+    });
+    prepareForTurn.mockResolvedValue({
+      existingScope: {
+        contextVersion: 1,
+        isLegacyFallback: false,
+        isVersionExplicit: true,
+        organizationId,
+        source: 'explicit',
+        threadId,
+        userId,
+      },
     });
     usersService = {
       findOne: vi.fn().mockResolvedValue({ id: userId }),
@@ -73,19 +85,12 @@ describe('Threading AgentThreadRuntimeController', () => {
       } as never as AgentThreadEngineService,
       {
         assertConsequentialBoundary: vi.fn().mockResolvedValue(undefined),
-        prepareForTurn: vi.fn().mockResolvedValue({
-          existingScope: {
-            contextVersion: 1,
-            isLegacyFallback: false,
-            isVersionExplicit: true,
-            organizationId,
-            source: 'explicit',
-            threadId,
-            userId,
-          },
-        }),
+        prepareForTurn,
       } as never,
       {} as never,
+      {
+        assertAccess: vi.fn().mockResolvedValue({ thread: { userId } }),
+      } as never,
       {} as never,
       usersService as never as UsersService,
       agentOrchestratorService as never as AgentOrchestratorService,
@@ -106,7 +111,7 @@ describe('Threading AgentThreadRuntimeController', () => {
       threadId,
     });
 
-    await controller.respondToUiAction(
+    const res109 = await controller.respondToUiAction(
       threadId,
       { action: 'confirm_install_official_workflow', payload: {} },
       {
@@ -116,6 +121,11 @@ describe('Threading AgentThreadRuntimeController', () => {
         scopes: ['posts:schedule'],
       } as User,
     );
+    expect(res109).toEqual({
+      executionId: 'run-1',
+      status: 'queued',
+      threadId: 'thread_current',
+    });
 
     expect(agentOrchestratorService.handleThreadUiAction).toHaveBeenCalledWith(
       expect.anything(),
@@ -139,12 +149,17 @@ describe('Threading AgentThreadRuntimeController', () => {
       }
     ).resumeRecurringTaskDraftFromInput = resume;
 
-    await controller.respondToInputRequest(
+    const res142 = await controller.respondToInputRequest(
       threadId,
       'recurring-workflow:schedule',
       { answer: 'Every weekday at 9' },
       mockUser,
     );
+    expect(res142).toMatchObject({
+      requestId: 'req-1',
+      status: 'resolved',
+      threadId: 'thread_current',
+    });
 
     expect(resume).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -166,12 +181,17 @@ describe('Threading AgentThreadRuntimeController', () => {
       fieldId: 'brandUrl',
       status: 'resolved',
     });
-    await controller.respondToInputRequest(
+    const res169 = await controller.respondToInputRequest(
       threadId,
       'onboarding-url:thread_current',
       { answer: 'Use acme.com', optionIds: ['https://acme.com'] },
       mockUser,
     );
+    expect(res169).toMatchObject({
+      fieldId: 'brandUrl',
+      requestId: 'onboarding-url:thread_current',
+      status: 'resolved',
+    });
     expect(agentOrchestratorService.acceptChatStream).toHaveBeenCalledWith(
       expect.objectContaining({ content: 'https://acme.com' }),
       {
@@ -208,12 +228,17 @@ describe('Threading AgentThreadRuntimeController', () => {
   });
 
   it('threads selected option ids to the engine while continuing with visible labels', async () => {
-    await controller.respondToInputRequest(
+    const res211 = await controller.respondToInputRequest(
       threadId,
       'req-1',
       { answer: 'Awareness, Sales', optionIds: ['a', 'b'] },
       mockUser,
     );
+    expect(res211).toMatchObject({
+      requestId: 'req-1',
+      status: 'resolved',
+      threadId: 'thread_current',
+    });
     expect(resolveInputRequest).toHaveBeenCalledWith(
       expect.objectContaining({
         answer: 'Awareness, Sales',
@@ -239,7 +264,7 @@ describe('Threading AgentThreadRuntimeController', () => {
       channel: GenerationEntryChannel.DESKTOP,
       attribution: GenerationEntryAttribution.CLIENT_REPORTED,
     };
-    await runWithActionOrigin(
+    const response = await runWithActionOrigin(
       { origin: ActionOrigin.UI, generationEntry },
       () =>
         controller.respondToInputRequest(
@@ -261,6 +286,7 @@ describe('Threading AgentThreadRuntimeController', () => {
         }),
       },
     );
+    expect(response).toMatchObject({ threadId, requestId: 'req-1' });
   });
 
   it('returns the execution that continues an answered input request', async () => {
@@ -303,6 +329,145 @@ describe('Threading AgentThreadRuntimeController', () => {
     );
   });
 
+  describe('answering in a thread shared with the member (#9964)', () => {
+    const ownerUserId = 'user_owner';
+    const sharedScope = {
+      contextVersion: 1,
+      isLegacyFallback: false,
+      isVersionExplicit: true,
+      organizationId,
+      source: 'explicit',
+      threadId,
+      threadOwnerUserId: ownerUserId,
+      userId,
+    };
+
+    it('resolves the question and continues the turn as the answering member', async () => {
+      prepareForTurn.mockResolvedValue({ existingScope: sharedScope });
+      agentOrchestratorService.acceptChatStream.mockResolvedValue({
+        executionId: 'run-member',
+        queuedAt: '2026-11-11T14:00:00.000Z',
+        status: 'queued',
+        threadId,
+      });
+
+      const response = await controller.respondToInputRequest(
+        threadId,
+        'req-1',
+        { answer: 'Use hybrid' },
+        mockUser,
+      );
+
+      expect(response).toMatchObject({
+        executionId: 'run-member',
+        requestId: 'req-1',
+        status: 'resolved',
+      });
+    });
+
+    it("reuses the answering member's continuation when the owner recovers the answer (#10029)", async () => {
+      resolveInputRequest.mockResolvedValue({
+        requestId: 'req-1',
+        resolvedByUserId: 'user_member',
+        status: 'resolved',
+      });
+      prepareForTurn.mockResolvedValue({
+        existingScope: { ...sharedScope, threadOwnerUserId: undefined },
+      });
+      agentOrchestratorService.acceptChatStream.mockResolvedValue({
+        executionId: 'run-member',
+        queuedAt: '2026-11-11T14:00:00.000Z',
+        status: 'queued',
+        threadId,
+      });
+
+      const response = await controller.respondToInputRequest(
+        threadId,
+        'req-1',
+        { answer: 'Use hybrid' },
+        mockUser,
+      );
+
+      expect(agentOrchestratorService.acceptChatStream).toHaveBeenCalledWith(
+        expect.objectContaining({ clientRequestId: 'input-response:req-1' }),
+        expect.objectContaining({
+          idempotencyUserId: 'user_member',
+          userId,
+        }),
+      );
+      expect(response).toMatchObject({ executionId: 'run-member' });
+    });
+
+    it('keys the continuation to the caller when the caller answered', async () => {
+      resolveInputRequest.mockResolvedValue({
+        requestId: 'req-1',
+        resolvedByUserId: userId,
+        status: 'resolved',
+      });
+      agentOrchestratorService.acceptChatStream.mockResolvedValue({
+        executionId: 'run-self',
+        queuedAt: '2026-11-11T14:00:00.000Z',
+        status: 'queued',
+        threadId,
+      });
+
+      await controller.respondToInputRequest(
+        threadId,
+        'req-1',
+        { answer: 'Use hybrid' },
+        mockUser,
+      );
+
+      expect(
+        agentOrchestratorService.acceptChatStream.mock.calls[0][1],
+      ).not.toHaveProperty('idempotencyUserId');
+    });
+
+    it('passes on the refusal for a caller who may not answer', async () => {
+      resolveInputRequest.mockRejectedValue(
+        new BadRequestException('This request was already answered.'),
+      );
+
+      await expect(
+        controller.respondToInputRequest(
+          threadId,
+          'req-1',
+          { answer: 'Use hybrid' },
+          mockUser,
+        ),
+      ).rejects.toThrow('This request was already answered.');
+      expect(agentOrchestratorService.acceptChatStream).not.toHaveBeenCalled();
+    });
+
+    it('leaves a recurring-task question to the thread owner', async () => {
+      prepareForTurn.mockResolvedValue({ existingScope: sharedScope });
+
+      await expect(
+        controller.respondToInputRequest(
+          threadId,
+          'recurring-workflow:draft-1',
+          { answer: 'Weekly' },
+          mockUser,
+        ),
+      ).rejects.toThrow(ForbiddenException);
+    });
+
+    it('resolves nothing for a member whose share only lets them view', async () => {
+      prepareForTurn.mockRejectedValue(
+        new ForbiddenException('This thread is shared with you to view only.'),
+      );
+
+      await expect(
+        controller.respondToInputRequest(
+          threadId,
+          'req-1',
+          { answer: 'Use hybrid' },
+          mockUser,
+        ),
+      ).rejects.toThrow(ForbiddenException);
+    });
+  });
+
   it('routes thread UI actions with resolved tenant context', async () => {
     agentOrchestratorService.handleThreadUiAction.mockResolvedValue({
       creditsRemaining: 50,
@@ -316,7 +481,7 @@ describe('Threading AgentThreadRuntimeController', () => {
       toolCalls: [],
     });
 
-    await controller.respondToUiAction(
+    const res319 = await controller.respondToUiAction(
       threadId,
       {
         action: 'confirm_install_official_workflow',
@@ -324,6 +489,10 @@ describe('Threading AgentThreadRuntimeController', () => {
       },
       mockUser,
     );
+    expect(res319).toMatchObject({
+      message: { content: 'Official workflow installed.', role: 'assistant' },
+      toolCalls: [],
+    });
 
     expect(agentOrchestratorService.handleThreadUiAction).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -360,7 +529,7 @@ describe('Threading AgentThreadRuntimeController', () => {
       toolCalls: [],
     });
 
-    await controller.respondToUiAction(
+    const res363 = await controller.respondToUiAction(
       threadId,
       {
         action: 'confirm_generate_media',
@@ -368,6 +537,10 @@ describe('Threading AgentThreadRuntimeController', () => {
       },
       mockUser,
     );
+    expect(res363).toMatchObject({
+      message: { content: 'Confirmed image generation.', role: 'assistant' },
+      toolCalls: [],
+    });
 
     expect(agentOrchestratorService.handleThreadUiAction).toHaveBeenCalledWith(
       expect.objectContaining({ action: 'confirm_generate_media' }),

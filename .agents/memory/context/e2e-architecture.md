@@ -137,7 +137,7 @@ Primary config highlights:
 |---|---|---|
 | `test:e2e` | all `e2e/tests/**/*.spec.ts` | all |
 | `test:e2e:core` | `e2e/tests/smoke` + `e2e/tests/core` | `app-core` |
-| `test:e2e:smoke` | `smoke/all-app-pages.spec.ts` | `app-core` |
+| `test:e2e:smoke` | `smoke/all-app-pages/` | `app-core` |
 | `test:e2e:full` | discovery-based full tier minus quarantines (`scripts/playwright-e2e-tiers.mjs`) | `app-core` |
 | `test:e2e:coverage` | `E2E_COVERAGE=1` + coverage config | — |
 | `test:e2e:routes` | `node scripts/e2e-route-coverage.mjs` | — |
@@ -174,8 +174,10 @@ Fixtures: `auth.fixture.ts` (`authenticatedPage`, `adminPage`, `automationPage`,
 `assertNoBlockedRequests()` fails the test if any real external call escaped — asserted in fixture teardown.
 
 ### Test layout (`playwright/e2e/tests/`)
-- **smoke/** — `safe.spec.ts` (health), `all-app-pages.spec.ts` (discovers every `page.tsx`, sweeps all
-  routes via in-process mock server on :3010, asserts >100 routes, 900s), `all-app-pages.authed.spec.ts`
+- **smoke/** — `safe.spec.ts` (health), `all-app-pages/*.spec.ts` (five files sharing `utils/app-page-sweep.ts`: discovers every `page.tsx`,
+  sweeps all routes via in-process mock server on :3010, asserts >100 routes, 900s; split so the nightly
+  full tier can spread it over shards, and every route bucket must be named by exactly one file),
+  `all-app-pages.authed.spec.ts`
   (authenticated storage state, curated protected routes, 600s).
 - **core + ~25 domain dirs** — admin, agents, analytics, auth, automation, brands, calendar, chat, compose,
   core, dashboard, editor, library, onboarding, overview, posts, research, responsive, settings, studio,

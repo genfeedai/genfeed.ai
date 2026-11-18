@@ -87,6 +87,7 @@ export default function CreatorTipFlow() {
   // One key per intended tip: a double click or a retry sends it once.
   const [idempotencyKey, setIdempotencyKey] = useState(newIdempotencyKey);
 
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     if (!handle) {
       setTargetState({ status: 'missing' });

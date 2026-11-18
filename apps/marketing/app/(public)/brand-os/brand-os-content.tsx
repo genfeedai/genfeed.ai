@@ -3,7 +3,6 @@ import { EnvironmentService } from '@services/core/environment.service';
 import { Button } from '@ui/primitives/button';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
-import MarketingArtwork from '@web-components/content/MarketingArtwork';
 import HomeFooter from '@web-components/home/_footer';
 import MarketingEntrance from '@web-components/MarketingEntrance';
 import Link from 'next/link';
@@ -204,13 +203,13 @@ export default function BrandOSContent(): React.ReactElement {
         {/* Hero */}
         <section className="border-b border-foreground/5 bg-background py-16 sm:py-20 lg:py-24">
           <div className="container mx-auto px-6">
-            <div className="grid items-center gap-10 lg:grid-cols-2">
+            <div className="grid items-center gap-10">
               <div className="flex flex-col max-w-4xl gap-6">
                 <Heading
                   as="h1"
                   className="max-w-3xl font-semibold tracking-[-0.02em] text-5xl leading-none text-foreground sm:text-6xl lg:text-7xl"
                 >
-                  Turn your website into an AI-readable Brand OS.
+                  Turn your website into an AI-readable Brand OS
                 </Heading>
 
                 <Text className="max-w-2xl text-base leading-7 text-foreground/60 sm:text-lg">
@@ -222,7 +221,6 @@ export default function BrandOSContent(): React.ReactElement {
 
                 <BrandOSPreviewAction />
               </div>
-              <MarketingArtwork page="/brand-os" kind="campaign" />
             </div>
           </div>
         </section>
@@ -241,7 +239,7 @@ export default function BrandOSContent(): React.ReactElement {
                     as="h2"
                     className="max-w-xl text-4xl font-semibold tracking-[-0.02em] text-foreground sm:text-5xl"
                   >
-                    Strategy with receipts.
+                    Strategy with receipts
                   </Heading>
                 </div>
                 <Text className="max-w-2xl text-sm leading-6 text-foreground/60 lg:justify-self-end">
@@ -265,7 +263,7 @@ export default function BrandOSContent(): React.ReactElement {
                 as="h2"
                 className="font-semibold tracking-[-0.02em] text-4xl text-foreground"
               >
-                Depth without borders.
+                Depth without borders
               </Heading>
               <Text className="text-sm leading-6 text-foreground/60">
                 Five background tones create elevation from the deepest canvas
@@ -315,7 +313,7 @@ export default function BrandOSContent(): React.ReactElement {
                 as="h2"
                 className="font-semibold tracking-[-0.02em] text-4xl text-foreground"
               >
-                Color that means something.
+                Color that means something
               </Heading>
               <Text className="text-sm leading-6 text-foreground/60">
                 Status and domain colors map directly to state and workflow,
@@ -353,7 +351,7 @@ export default function BrandOSContent(): React.ReactElement {
                 as="h2"
                 className="font-semibold tracking-[-0.02em] text-4xl text-foreground"
               >
-                Platform tokens.
+                Platform tokens
               </Heading>
               <Text className="text-sm leading-6 text-foreground/60">
                 Twenty-four brand colors used as identifiers only, on platform
@@ -397,7 +395,7 @@ export default function BrandOSContent(): React.ReactElement {
                   as="h2"
                   className="font-semibold tracking-[-0.02em] text-4xl text-foreground"
                 >
-                  A dense, deliberate scale.
+                  A dense, deliberate scale
                 </Heading>
                 <Text className="text-sm leading-6 text-foreground/60">
                   System sans for the interface, mono for code and tokens. Body
@@ -429,7 +427,7 @@ export default function BrandOSContent(): React.ReactElement {
                   as="h2"
                   className="font-semibold tracking-[-0.02em] text-4xl text-foreground"
                 >
-                  Four-step radius.
+                  Four-step radius
                 </Heading>
                 <Text className="text-sm leading-6 text-foreground/60">
                   Corners map to purpose, matching the ShipCode and Linear
@@ -474,7 +472,7 @@ export default function BrandOSContent(): React.ReactElement {
                 as="h2"
                 className="font-semibold tracking-[-0.02em] text-4xl leading-tight text-foreground sm:text-5xl"
               >
-                Content is the accent.
+                Content is the accent
               </Heading>
               <Text className="text-base leading-7 text-foreground/60">
                 Genfeed chrome is a neutral studio, the gallery wall, not the

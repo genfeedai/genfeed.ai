@@ -77,8 +77,6 @@
       "heading": "Behaviour",
       "contextCompressionLabel": "Context compression",
       "contextCompressionHelp": "Summarise older thread turns so long conversations fit the model context.",
-      "tokenStreamingLabel": "Token streaming",
-      "tokenStreamingHelp": "Stream model output token by token instead of simulated word chunks.",
       "contextHeading": "Context and output"
     },
     "platform": {

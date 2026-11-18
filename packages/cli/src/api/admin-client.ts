@@ -12,8 +12,11 @@ interface CachedAdminToken {
 }
 
 interface AdminErrorBody {
+  /** The marketplace API answers guard refusals as a bare `{ detail, title }`. */
+  detail?: string;
   errors?: Array<{ detail?: string; title?: string }>;
   message?: string | string[];
+  title?: string;
 }
 
 let cachedToken: CachedAdminToken | null = null;
@@ -43,7 +46,7 @@ function readErrorMessage(body: AdminErrorBody | undefined, fallback: string): s
   if (Array.isArray(body?.message)) return body.message.join(', ');
   if (body?.message) return body.message;
   const [first] = body?.errors ?? [];
-  return first?.detail ?? first?.title ?? fallback;
+  return first?.detail ?? first?.title ?? body?.detail ?? body?.title ?? fallback;
 }
 
 async function readJson<T>(response: Response): Promise<T | undefined> {
@@ -106,15 +109,21 @@ export async function verifyAdminSession(): Promise<void> {
   await mintAdminToken(await getApiUrl());
 }
 
+/**
+ * `baseUrl` sends the request to another Genfeed service that trusts the same
+ * super admin token (the marketplace API). The token is always minted by the
+ * Genfeed API of the active profile.
+ */
 export async function adminRequest<T>(
   method: 'GET' | 'PATCH' | 'POST' | 'PUT',
   path: string,
-  body?: unknown
+  body?: unknown,
+  baseUrl?: string
 ): Promise<T> {
   const apiUrl = await getApiUrl();
   const token = await mintAdminToken(apiUrl);
 
-  const response = await fetch(`${apiUrl}${path}`, {
+  const response = await fetch(`${baseUrl ?? apiUrl}${path}`, {
     ...(body === undefined ? {} : { body: JSON.stringify(body) }),
     headers: {
       Authorization: `Bearer ${token}`,
@@ -135,7 +144,9 @@ export async function adminRequest<T>(
       throw new ApiError(
         message,
         response.status,
-        'Admin routes need a super admin account on an allowlisted IP (ADMIN_ALLOWED_IPS)'
+        baseUrl
+          ? 'This route needs a super admin account'
+          : 'Admin routes need a super admin account on an allowlisted IP (ADMIN_ALLOWED_IPS)'
       );
     }
     throw new ApiError(message, response.status);
@@ -144,12 +155,12 @@ export async function adminRequest<T>(
   return (await response.json()) as T;
 }
 
-export function adminGet<T>(path: string): Promise<T> {
-  return adminRequest<T>('GET', path);
+export function adminGet<T>(path: string, baseUrl?: string): Promise<T> {
+  return adminRequest<T>('GET', path, undefined, baseUrl);
 }
 
-export function adminPost<T>(path: string, body?: unknown): Promise<T> {
-  return adminRequest<T>('POST', path, body ?? {});
+export function adminPost<T>(path: string, body?: unknown, baseUrl?: string): Promise<T> {
+  return adminRequest<T>('POST', path, body ?? {}, baseUrl);
 }
 
 export function adminPatch<T>(path: string, body: unknown): Promise<T> {

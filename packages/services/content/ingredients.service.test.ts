@@ -492,6 +492,22 @@ describe('IngredientsService', () => {
       });
     });
 
+    it('patchMetadata rejects server-owned metadata fields at compile time', () => {
+      // The request contract carries a label and a description only.
+      const request = (
+        patch: Parameters<IngredientsService['patchMetadata']>[1],
+      ) => patch;
+
+      expect(request({ description: 'Notes', label: 'Meta' })).toEqual({
+        description: 'Notes',
+        label: 'Meta',
+      });
+      // @ts-expect-error width is a server-owned metadata field
+      request({ width: 1280 });
+      // @ts-expect-error the metadata id is server-owned
+      request({ id: 'metadata-1', label: 'Meta' });
+    });
+
     it('refreshMetadata POSTs to the metadata endpoint', async () => {
       http.post.mockResolvedValue(
         axiosResponse(resourceDocument({ label: 'Fresh' }, { id: 'ing_f' })),

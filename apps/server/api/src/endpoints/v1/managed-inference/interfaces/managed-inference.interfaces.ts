@@ -1,6 +1,6 @@
 import type { Request } from 'express';
 
-export interface ManagedInferenceRequestUser {
+interface ManagedInferenceRequestUser {
   id?: string;
   brandId?: string;
   isApiKey?: boolean;

@@ -1,7 +1,6 @@
 vi.unmock('@genfeedai/prisma');
 
 import { runWithActionOrigin } from '@api/index';
-import { scopedWhere } from '@api/tenancy/scoped-where';
 import {
   ActionOrigin,
   ActivityKey,
@@ -14,7 +13,6 @@ import {
 } from '@genfeedai/contracts/interfaces';
 import { WorkflowExecutionStatus as PrismaWorkflowExecutionStatus } from '@genfeedai/prisma';
 import { WORKFLOW_EXECUTION_TERMINAL_EVENT } from '../constants/workflow-execution-events.constants';
-import { buildCustomerExecutionWhere } from './workflow-execution-query.util';
 import { WorkflowExecutionsService } from './workflow-executions.service';
 
 describe('WorkflowExecutionsService', () => {
@@ -29,6 +27,7 @@ describe('WorkflowExecutionsService', () => {
     closeTerminal: ReturnType<typeof vi.fn>;
   }) => {
     const workflowExecution = {
+      aggregate: vi.fn().mockResolvedValue({ _avg: { durationMs: null } }),
       create: vi.fn().mockResolvedValue({ id: 'execution-1' }),
       findFirst: vi.fn().mockResolvedValue({
         organizationId: 'org-1',
@@ -44,6 +43,7 @@ describe('WorkflowExecutionsService', () => {
         workflowId: 'workflow-1',
       }),
       findMany: vi.fn().mockResolvedValue([]),
+      groupBy: vi.fn().mockResolvedValue([]),
       update: vi.fn().mockResolvedValue({ id: 'execution-1' }),
       updateMany: vi.fn().mockResolvedValue({ count: 1 }),
       upsert: vi.fn().mockResolvedValue({ id: 'execution-idempotent' }),
@@ -489,22 +489,19 @@ describe('WorkflowExecutionsService', () => {
     );
   });
 
-  it('counts execution stats from scalar duration columns', async () => {
+  it('counts execution stats in SQL, averaging only positive durations', async () => {
     const { prisma, service } = makeService();
-    prisma.workflowExecution.findMany.mockResolvedValue([
+    prisma.workflowExecution.groupBy.mockResolvedValue([
       {
-        durationMs: 1000,
+        _count: { _all: 2 },
         status: PrismaWorkflowExecutionStatus.COMPLETED,
       },
-      {
-        durationMs: 3000,
-        status: PrismaWorkflowExecutionStatus.COMPLETED,
-      },
-      {
-        durationMs: null,
-        status: PrismaWorkflowExecutionStatus.FAILED,
-      },
+      { _count: { _all: 1 }, status: PrismaWorkflowExecutionStatus.FAILED },
+      { _count: { _all: 4 }, status: PrismaWorkflowExecutionStatus.CANCELLED },
     ]);
+    prisma.workflowExecution.aggregate.mockResolvedValue({
+      _avg: { durationMs: 2000 },
+    });
 
     await expect(
       service.getExecutionStats('workflow-1', 'org-1'),
@@ -512,15 +509,34 @@ describe('WorkflowExecutionsService', () => {
       avgDurationMs: 2000,
       completed: 2,
       failed: 1,
-      total: 3,
+      total: 7,
     });
-    expect(prisma.workflowExecution.findMany).toHaveBeenCalledWith({
-      select: { durationMs: true, status: true },
-      where: scopedWhere(
-        'org-1',
-        buildCustomerExecutionWhere('org-1', { workflowId: 'workflow-1' }),
-      ),
+    expect(prisma.workflowExecution.findMany).not.toHaveBeenCalled();
+    const scope = expect.objectContaining({
+      isDeleted: false,
+      organizationId: 'org-1',
+      workflowId: 'workflow-1',
     });
+    expect(prisma.workflowExecution.groupBy).toHaveBeenCalledWith(
+      expect.objectContaining({ by: ['status'], where: scope }),
+    );
+    expect(prisma.workflowExecution.aggregate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { AND: [scope, { durationMs: { gt: 0 } }] },
+      }),
+    );
+  });
+
+  it('reports a zero average when no execution has a recorded duration', async () => {
+    const { prisma, service } = makeService();
+    prisma.workflowExecution.groupBy.mockResolvedValue([]);
+    prisma.workflowExecution.aggregate.mockResolvedValue({
+      _avg: { durationMs: null },
+    });
+
+    await expect(
+      service.getExecutionStats('workflow-1', 'org-1'),
+    ).resolves.toEqual({ avgDurationMs: 0, completed: 0, failed: 0, total: 0 });
   });
 
   it('completes executions with scalar progress and ETA columns, not result JSON', async () => {
@@ -546,6 +562,7 @@ describe('WorkflowExecutionsService', () => {
       select: {
         estimatedDurationMs: true,
         organizationId: true,
+        retentionPolicy: true,
         startedAt: true,
         trigger: true,
         userId: true,
@@ -578,6 +595,108 @@ describe('WorkflowExecutionsService', () => {
     expect(
       prisma.workflowExecution.updateMany.mock.calls[0]?.[0]?.data,
     ).not.toHaveProperty('result');
+  });
+
+  it('stores the background run retention policy as scalar state', async () => {
+    const { prisma, service } = makeService();
+
+    await service.createExecution('user-1', 'org-1', {
+      metadata: { runRetention: 'background' },
+      workflowId: 'workflow-1',
+      workflowVersionId: 'version-1',
+    });
+
+    expect(prisma.workflowExecution.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ retentionPolicy: 'background' }),
+      }),
+    );
+  });
+
+  it('stores the kept retention policy so the run is never purged', async () => {
+    const { prisma, service } = makeService();
+
+    await service.createExecution('user-1', 'org-1', {
+      metadata: { runRetention: 'kept' },
+      workflowId: 'workflow-1',
+      workflowVersionId: 'version-1',
+    });
+
+    expect(prisma.workflowExecution.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ retentionPolicy: 'kept' }),
+      }),
+    );
+  });
+
+  it('sets purgeAt one day after a background run succeeds', async () => {
+    {
+      const retentionPolicy = 'background';
+      const { prisma, service } = makeService();
+      prisma.workflowExecution.findFirst.mockResolvedValue({
+        estimatedDurationMs: 1000,
+        organizationId: 'org-1',
+        result: {},
+        retentionPolicy,
+        startedAt: new Date('2026-06-29T00:00:00.000Z'),
+        trigger: 'manual',
+        userId: 'actor-user-1',
+        workflow: { label: 'Daily Posts', metadata: null, userId: 'owner-1' },
+        workflowId: 'workflow-1',
+      });
+
+      await service.completeExecution('execution-1', 'org-1');
+
+      const data = prisma.workflowExecution.updateMany.mock.calls[0]?.[0]
+        ?.data as { completedAt: Date; purgeAt: Date };
+      expect(data.purgeAt.getTime() - data.completedAt.getTime()).toBe(
+        24 * 60 * 60 * 1000,
+      );
+    }
+  });
+
+  it('sets no purgeAt when a run without a background policy succeeds', async () => {
+    const { prisma, service } = makeService();
+    prisma.workflowExecution.findFirst.mockResolvedValue({
+      estimatedDurationMs: 1000,
+      organizationId: 'org-1',
+      result: {},
+      retentionPolicy: null,
+      startedAt: new Date('2026-06-29T00:00:00.000Z'),
+      trigger: 'manual',
+      userId: 'actor-user-1',
+      workflow: { label: 'Daily Posts', metadata: null, userId: 'owner-1' },
+      workflowId: 'workflow-1',
+    });
+
+    await service.completeExecution('execution-1', 'org-1');
+
+    expect(
+      prisma.workflowExecution.updateMany.mock.calls[0]?.[0]?.data,
+    ).not.toHaveProperty('purgeAt');
+  });
+
+  it('sets purgeAt fourteen days after a background run fails', async () => {
+    const { prisma, service } = makeService();
+    prisma.workflowExecution.findFirst.mockResolvedValue({
+      estimatedDurationMs: 1000,
+      organizationId: 'org-1',
+      result: {},
+      retentionPolicy: 'background',
+      startedAt: new Date('2026-06-29T00:00:00.000Z'),
+      trigger: 'manual',
+      userId: 'actor-user-1',
+      workflow: { label: 'Daily Posts', metadata: null, userId: 'owner-1' },
+      workflowId: 'workflow-1',
+    });
+
+    await service.completeExecution('execution-1', 'org-1', 'node blew up');
+
+    const data = prisma.workflowExecution.updateMany.mock.calls[0]?.[0]
+      ?.data as { completedAt: Date; purgeAt: Date };
+    expect(data.purgeAt.getTime() - data.completedAt.getTime()).toBe(
+      14 * 24 * 60 * 60 * 1000,
+    );
   });
 
   it('creates one terminal outcome when concurrent completion attempts race', async () => {

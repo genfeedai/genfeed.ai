@@ -455,58 +455,34 @@ export const DEFAULT_GROK_MODEL_KEY = LLM_DEFAULTS.grok;
 
 /**
  * Model keys that are no longer offered. Persisted rows (org settings, brand
- * agent config, thread bindings, scheduled runs) still carry them, so every
- * read path maps them forward instead of failing or falling back to a price
- * that no longer reflects what the provider charges.
+ * agent config, thread bindings, scheduled runs) may still carry them. A
+ * retired key has no successor and is never mapped forward: an explicit choice
+ * of one stops with a clear message until the user picks a new model.
  *
  * Dynamic OpenRouter routes are live catalog rows. Only their historical beta
- * alias remains here; runtime billing now settles their exact provider cost.
+ * alias remains here.
  *
- * **A successor preserves price tier, not brand.** These are not aliases — a
- * retired key is a dead model, and the successor is whatever currently does its
- * job at its cost. Brand-matching is how `x-ai/grok-4-fast` ($0.20/$0.50) came
- * to point at Grok 4.6 ($2/$6): the only xAI row in the catalogue, so it looked
- * right and silently moved every stale binding onto a 10x model. Cross-brand is
- * normal here — `openai/gpt-4o-mini` and `openai/o4-mini` both resolve to
- * Gemini 2.5 Flash Lite for the same reason: match price tier, not brand.
- *
- * Map *values* must always be {@link AGENT_CHAT_MODEL_KEYS} members.
- * Map *keys* are historical aliases (only place retired strings may appear).
+ * Keys are historical aliases (only place retired strings may appear).
  */
-export const RETIRED_AGENT_CHAT_MODELS: Record<string, AgentChatModelKey> = {
-  'anthropic/claude-opus-4-6': AGENT_CHAT_MODEL_KEYS.CLAUDE_OPUS_5,
-  'anthropic/claude-sonnet-4-5': AGENT_CHAT_MODEL_KEYS.CLAUDE_SONNET_5,
-  'anthropic/claude-sonnet-4-5-20250514': AGENT_CHAT_MODEL_KEYS.CLAUDE_SONNET_5,
-  'anthropic/claude-sonnet-4-5-20250929': AGENT_CHAT_MODEL_KEYS.CLAUDE_SONNET_5,
-  'anthropic/claude-sonnet-4.5': AGENT_CHAT_MODEL_KEYS.CLAUDE_SONNET_5,
-  'deepseek/deepseek-chat': AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_FLASH,
-  'google/gemini-3-flash-preview': AGENT_CHAT_MODEL_KEYS.GEMINI_3_6_FLASH,
-  'moonshotai/kimi-k2.5': AGENT_CHAT_MODEL_KEYS.KIMI_K3,
-  [AGENT_CHAT_MODEL_KEYS.NEMOTRON_3_ULTRA_FREE]:
-    AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_FLASH,
-  'openai/gpt-4o': AGENT_CHAT_MODEL_KEYS.GPT_5_6_TERRA,
-  'openai/gpt-4o-mini': AGENT_CHAT_MODEL_KEYS.GEMINI_2_5_FLASH_LITE,
-  'openai/o3': AGENT_CHAT_MODEL_KEYS.GPT_5_6_SOL,
-  'openai/o4-mini': AGENT_CHAT_MODEL_KEYS.GEMINI_2_5_FLASH_LITE,
-  'openrouter/auto-beta': AGENT_CHAT_MODEL_KEYS.OPENROUTER_AUTO,
-  'x-ai/grok-4': AGENT_CHAT_MODEL_KEYS.GROK_4_6,
-  'x-ai/grok-4.5': AGENT_CHAT_MODEL_KEYS.GROK_4_6,
-  'x-ai/grok-4-fast': AGENT_CHAT_MODEL_KEYS.GEMINI_2_5_FLASH_LITE,
-};
-
-/**
- * Maps any stored/requested model key onto a key in the current catalogue.
- * Unknown keys are returned untouched so a newly added provider model still
- * runs (it bills at the fallback round cost until it is catalogued).
- */
-export function resolveAgentChatModelKey(key?: string | null): string {
-  const trimmed = key?.trim();
-  if (!trimmed) {
-    return DEFAULT_AGENT_CHAT_MODEL_KEY;
-  }
-
-  return RETIRED_AGENT_CHAT_MODELS[trimmed] ?? trimmed;
-}
+export const RETIRED_AGENT_CHAT_MODEL_KEYS: ReadonlySet<string> = new Set([
+  'anthropic/claude-opus-4-6',
+  'anthropic/claude-sonnet-4-5',
+  'anthropic/claude-sonnet-4-5-20250514',
+  'anthropic/claude-sonnet-4-5-20250929',
+  'anthropic/claude-sonnet-4.5',
+  'deepseek/deepseek-chat',
+  'google/gemini-3-flash-preview',
+  'moonshotai/kimi-k2.5',
+  AGENT_CHAT_MODEL_KEYS.NEMOTRON_3_ULTRA_FREE,
+  'openai/gpt-4o',
+  'openai/gpt-4o-mini',
+  'openai/o3',
+  'openai/o4-mini',
+  'openrouter/auto-beta',
+  'x-ai/grok-4',
+  'x-ai/grok-4.5',
+  'x-ai/grok-4-fast',
+]);
 
 export function getAgentChatModel(
   key?: string | null,
@@ -516,10 +492,7 @@ export function getAgentChatModel(
     return undefined;
   }
 
-  return (
-    AGENT_CHAT_MODELS_BY_KEY.get(trimmed) ??
-    AGENT_CHAT_MODELS_BY_KEY.get(resolveAgentChatModelKey(trimmed))
-  );
+  return AGENT_CHAT_MODELS_BY_KEY.get(trimmed);
 }
 
 /**
@@ -546,7 +519,7 @@ export function getAgentChatModelRoundCredits(key?: string | null): number {
 export function isRetiredAgentChatModel(key?: string | null): boolean {
   const trimmed = key?.trim();
 
-  return Boolean(trimmed && trimmed in RETIRED_AGENT_CHAT_MODELS);
+  return Boolean(trimmed && RETIRED_AGENT_CHAT_MODEL_KEYS.has(trimmed));
 }
 
 /** Models offered in the picker — self-hosted entries are surfaced separately. */

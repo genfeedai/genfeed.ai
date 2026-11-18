@@ -212,7 +212,7 @@ export function AgentThreadList({
 
       {showTitle ? (
         <div className="flex w-full items-center gap-2 px-3 py-1.5">
-          <span className="text-2xs font-bold uppercase tracking-[0.15em] text-muted-foreground">
+          <span className="text-2xs font-semibold uppercase tracking-label text-muted-foreground">
             Conversations
           </span>
         </div>

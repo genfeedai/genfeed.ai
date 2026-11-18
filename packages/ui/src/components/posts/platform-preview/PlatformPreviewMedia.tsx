@@ -1,9 +1,10 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { getPlatformPreviewLimit } from '@genfeedai/contracts/constants/platform-limits.constant';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type {
+  PlatformPreviewMedia,
   PlatformPreviewMediaGridProps,
   PlatformPreviewMediaTileProps,
 } from '@genfeedai/props/components/platform-preview.props';
@@ -11,10 +12,10 @@ import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import { PreviewPresentation } from '@ui/posts/platform-preview/PlatformPreview.context';
 import { resolvePreviewPlatform } from '@ui/posts/platform-preview/PlatformPreview.data';
 import { Button } from '@ui/primitives/button';
-import { Play } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Play } from 'lucide-react';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
-import { useContext, useState } from 'react';
+import { useCallback, useContext, useRef, useState } from 'react';
 
 export function MediaTile({
   item,
@@ -140,13 +141,132 @@ export function MediaTile({
   );
 }
 
+/**
+ * A swipeable slide strip: one slide per view, scroll-snapped, with previous
+ * and next arrows, a "1/5" counter and a dot per slide. Mirrors how a carousel
+ * post reads in the feed instead of laying every slide out in a column.
+ */
+export function MediaCarousel({
+  animatedConsequence,
+  className,
+  items,
+  overflowCount = 0,
+}: {
+  animatedConsequence?: string;
+  className?: string;
+  items: PlatformPreviewMedia[];
+  overflowCount?: number;
+}) {
+  const translate = useTranslations('ui.platformPreview');
+  const trackRef = useRef<HTMLDivElement>(null);
+  const [index, setIndex] = useState(0);
+  const slideKeys = [
+    ...items.map((item) => item.id),
+    ...(overflowCount > 0 ? ['overflow'] : []),
+  ];
+  const total = slideKeys.length;
+
+  const goTo = useCallback((next: number) => {
+    const track = trackRef.current;
+    if (!track) {
+      return;
+    }
+    track.scrollTo({ behavior: 'smooth', left: next * track.clientWidth });
+  }, []);
+
+  const syncIndex = useCallback(() => {
+    const track = trackRef.current;
+    if (!track || track.clientWidth === 0) {
+      return;
+    }
+    setIndex(Math.round(track.scrollLeft / track.clientWidth));
+  }, []);
+
+  return (
+    <div
+      aria-label={translate('carouselLabel')}
+      aria-roledescription="carousel"
+      className={cn('relative overflow-hidden rounded-lg', className)}
+      role="group"
+    >
+      <div
+        className="flex snap-x snap-mandatory overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        data-testid="preview-carousel-track"
+        onScroll={syncIndex}
+        ref={trackRef}
+      >
+        {items.map((item, itemIndex) => (
+          <MediaTile
+            key={item.id}
+            item={item}
+            index={itemIndex}
+            animatedConsequence={animatedConsequence}
+            className="aspect-[4/5] w-full shrink-0 snap-center rounded-none"
+          />
+        ))}
+        {overflowCount > 0 ? (
+          <div className="flex aspect-[4/5] w-full shrink-0 snap-center items-center justify-center bg-muted text-xs font-medium text-foreground/70">
+            {translate('moreMedia', { count: overflowCount })}
+          </div>
+        ) : null}
+      </div>
+      {total > 1 ? (
+        <>
+          <span
+            className={
+              'absolute right-3 top-3 rounded-full bg-black/60 px-2 py-0.5 text-2xs font-medium tabular-nums text-white' /* design-system-allow-content-color -- media overlay */
+            }
+            data-testid="preview-carousel-counter"
+          >
+            {translate('carouselPosition', { current: index + 1, total })}
+          </span>
+          {index > 0 ? (
+            <Button
+              ariaLabel={translate('carouselPrevious')}
+              className="absolute left-2 top-1/2 -translate-y-1/2"
+              icon={<ChevronLeft className="size-4" />}
+              onClick={() => goTo(index - 1)}
+              size={ButtonSize.MICRO}
+              variant={ButtonVariant.OVERLAY}
+              withWrapper={false}
+            />
+          ) : null}
+          {index < total - 1 ? (
+            <Button
+              ariaLabel={translate('carouselNext')}
+              className="absolute right-2 top-1/2 -translate-y-1/2"
+              icon={<ChevronRight className="size-4" />}
+              onClick={() => goTo(index + 1)}
+              size={ButtonSize.MICRO}
+              variant={ButtonVariant.OVERLAY}
+              withWrapper={false}
+            />
+          ) : null}
+          <div
+            aria-hidden="true"
+            className="absolute inset-x-0 bottom-2 flex justify-center gap-1"
+          >
+            {slideKeys.map((slideKey, dotIndex) => (
+              <span
+                className={cn(
+                  'size-1.5 rounded-full',
+                  dotIndex === index ? 'bg-primary' : 'bg-foreground/40',
+                )}
+                key={slideKey}
+              />
+            ))}
+          </div>
+        </>
+      ) : null}
+    </div>
+  );
+}
+
 export default function MediaGrid({
   target,
   variant = 'grid',
 }: PlatformPreviewMediaGridProps) {
   const translate = useTranslations('ui.platformPreview');
-  const { headerPresentation } = useContext(PreviewPresentation);
-  const mediaMargin = headerPresentation === 'account' ? undefined : 'mt-3';
   const platform = resolvePreviewPlatform(target.platform);
   const aspect = platform
     ? getPlatformPreviewLimit(platform)?.mediaAspect
@@ -211,6 +331,24 @@ export default function MediaGrid({
     );
   }
 
+  // A carousel keeps its slides in publishing order, one per view, swipeable,
+  // so a five-slide post reads like the feed shows it.
+  if (variant === 'square' && visibleMedia.length > 1) {
+    return (
+      <div
+        data-testid="preview-media"
+        data-media-aspect={aspect}
+        data-media-layout="carousel"
+      >
+        <MediaCarousel
+          animatedConsequence={animatedConsequence}
+          items={visibleMedia}
+          overflowCount={overflowCount}
+        />
+      </div>
+    );
+  }
+
   const gridClassName =
     variant === 'square'
       ? 'grid-cols-1'
@@ -220,7 +358,7 @@ export default function MediaGrid({
 
   return (
     <div
-      className={cn(mediaMargin, 'grid gap-1.5', gridClassName)}
+      className={cn('grid gap-1.5', gridClassName)}
       data-testid="preview-media"
       data-media-aspect={aspect}
     >

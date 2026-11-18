@@ -181,6 +181,22 @@ export interface IPublicNewsletterSubscribeRequest {
   sourceRef?: string;
 }
 
+/** A signed-in reader subscribing with their own account: no email is sent. */
+export interface IAccountNewsletterSubscribeRequest {
+  /** The creator's public handle, without the `@`. */
+  handle: string;
+  source?: BrandSubscriberPublicSource;
+  sourceRef?: string;
+}
+
+export interface IAccountNewsletterSubscribeResponse {
+  /**
+   * `subscribed` when the account's verified email is on the list now;
+   * `confirmation_sent` when the address still has to be confirmed.
+   */
+  status: 'subscribed' | 'confirmation_sent';
+}
+
 export interface IPublicNewsletterSubscribeResponse {
   /** Always `confirmation_sent` so the form never reveals who is subscribed. */
   status: 'confirmation_sent';

@@ -4,8 +4,27 @@ import type {
   IItemPosition,
   IMasonryGridOptions,
 } from '@genfeedai/contracts/interfaces/components/masonry-grid.interface';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react';
 import { resolveSettledContainerWidth } from './settled-container-width.util';
+
+function subscribeNever(): () => void {
+  return () => {};
+}
+
+function getClientSnapshot(): boolean {
+  return true;
+}
+
+function getServerSnapshot(): boolean {
+  return false;
+}
 
 interface MasonryItem {
   id?: string;
@@ -47,7 +66,11 @@ export function useMasonryGrid<T extends MasonryItem>(
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerHeight, setContainerHeight] = useState(0);
   const [isLayoutReady, setIsLayoutReady] = useState(false);
-  const [isClient, setIsClient] = useState(false);
+  const isClient = useSyncExternalStore(
+    subscribeNever,
+    getClientSnapshot,
+    getServerSnapshot,
+  );
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
   const layoutTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const layoutAnimationFrameRef = useRef<number | null>(null);
@@ -84,10 +107,6 @@ export function useMasonryGrid<T extends MasonryItem>(
       cancelAnimationFrame(layoutAnimationFrameRef.current);
       layoutAnimationFrameRef.current = null;
     }
-  }, []);
-
-  useEffect(() => {
-    setIsClient(true);
   }, []);
 
   const columnSettings = useMemo(
@@ -450,11 +469,13 @@ export function useMasonryGrid<T extends MasonryItem>(
     [calculateLayout, cancelScheduledLayout],
   );
 
+  // use-effect-audit: ignore keeps refs to the latest callbacks and values
   useEffect(() => {
     scheduleLayoutRef.current = scheduleLayout;
   }, [scheduleLayout]);
 
   // Layout on items change - only when client is ready
+  // use-effect-audit: ignore schedules and cancels the masonry layout pass
   useEffect(() => {
     if (itemsCount === 0) {
       cancelScheduledLayout();
@@ -473,6 +494,7 @@ export function useMasonryGrid<T extends MasonryItem>(
   }, [itemsCount, isClient, scheduleLayout, cancelScheduledLayout]);
 
   // Layout on window resize with debouncing
+  // use-effect-audit: ignore subscribes to the window resize event
   useEffect(() => {
     if (!isClient) {
       return;
@@ -490,6 +512,7 @@ export function useMasonryGrid<T extends MasonryItem>(
   }, [scheduleLayout, isClient, cancelScheduledLayout]);
 
   // Intrinsic media dimensions can change after loading without a window resize.
+  // use-effect-audit: ignore subscribes to a browser ResizeObserver
   useEffect(() => {
     if (
       !containerRef.current ||
@@ -560,6 +583,7 @@ export function useMasonryGrid<T extends MasonryItem>(
     scheduleLayout(120);
   }, [scheduleLayout, isClient]);
 
+  // use-effect-audit: ignore cancels layout timers and frames on unmount
   useEffect(() => {
     return () => {
       cancelScheduledLayout();

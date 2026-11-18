@@ -4,8 +4,13 @@ import {
   createBrandAppRoute,
   createOrganizationAppRoute,
   createPublishingApprovalsRoute,
+  createPublishingBatchRoute,
 } from '@genfeedai/contracts/constants';
-import { buildReviewInboxItemId } from '@genfeedai/contracts/interfaces';
+import {
+  buildReviewInboxItemId,
+  type IScheduledReleaseBatchItemError,
+  type IScheduledReleaseBatchPending,
+} from '@genfeedai/contracts/interfaces';
 import { isRecord } from '@genfeedai/utils/data/extract.util';
 import { getPublicAppUrl } from '@mcp/mcp/setup-page';
 import type { McpApprovalResource } from '@mcp/shared/interfaces/approval.interface';
@@ -20,7 +25,7 @@ const VALIDATION_FAILED_ERROR_PATTERN = /validation failed/i;
  * RateLimitService window) put the same object on JSON-RPC `error.data`.
  * Tool results put it on `structuredContent`.
  */
-export const MCP_TOOL_ERROR_CODES = [
+const MCP_TOOL_ERROR_CODES = [
   'unavailable_in_connector',
   'unauthorized',
   'plan_required',
@@ -29,16 +34,18 @@ export const MCP_TOOL_ERROR_CODES = [
   'validation_failed',
   'approval_pending',
   'brand_required',
+  'policy_check_unavailable',
+  'publishing_held',
 ] as const;
 
-export type McpToolErrorCode = (typeof MCP_TOOL_ERROR_CODES)[number];
+type McpToolErrorCode = (typeof MCP_TOOL_ERROR_CODES)[number];
 
-export interface McpToolFieldError {
+interface McpToolFieldError {
   field: string;
   message: string;
 }
 
-export interface McpToolBrandOption {
+interface McpToolBrandOption {
   id: string;
   label: string;
 }
@@ -52,10 +59,16 @@ export interface McpToolError {
   nextStepUrl?: string;
   errors?: McpToolFieldError[];
   estimatedCredits?: number;
+  /** The price range, when a pending approval's cost has no estimate. */
+  pricingSummary?: string;
   approvalId?: string;
   toolName?: string;
   approvalStatus?: string;
   canResolveApproval?: boolean;
+  /** A scheduled release batch waiting for approval (#10134). */
+  batch?: IScheduledReleaseBatchPending;
+  /** Releases of a batch left out as invalid, by position in the request. */
+  invalidReleases?: IScheduledReleaseBatchItemError[];
 }
 
 export interface McpApprovalCostEstimate {
@@ -118,7 +131,7 @@ function nextStepUrl(code: McpToolErrorCode): string | undefined {
     case 'plan_required':
       return appUrl(APP_ROUTES.SETTINGS.SUBSCRIPTION);
     case 'unauthorized':
-      return appUrl(APP_ROUTES.CONNECT);
+      return appUrl(APP_ROUTES.CONNECTORS.ROOT);
     default:
       return undefined;
   }
@@ -137,6 +150,10 @@ function compactToolError(error: McpToolError): McpToolError {
         }
       : {}),
     ...(error.brands ? { brands: error.brands } : {}),
+    ...(error.batch ? { batch: error.batch } : {}),
+    ...(error.invalidReleases?.length
+      ? { invalidReleases: error.invalidReleases }
+      : {}),
     ...(error.errors && error.errors.length > 0
       ? { errors: error.errors }
       : {}),
@@ -147,6 +164,7 @@ function compactToolError(error: McpToolError): McpToolError {
     ...(error.estimatedCredits !== undefined
       ? { estimatedCredits: error.estimatedCredits }
       : {}),
+    ...(error.pricingSummary ? { pricingSummary: error.pricingSummary } : {}),
   };
 }
 
@@ -244,41 +262,62 @@ export function approvalPendingToolResult(
   approval: McpApprovalResource,
   estimate?: McpApprovalCostEstimate,
   canResolveApproval = false,
+  batch?: IScheduledReleaseBatchPending,
 ): McpToolErrorResult {
+  // A batch opens on its own review page, where every post is read in full.
+  const reviewPath = batch
+    ? createPublishingBatchRoute(approval.id)
+    : createPublishingApprovalsRoute({
+        approval: buildReviewInboxItemId({
+          approvalId: approval.id,
+          kind: 'mcp_approval',
+        }),
+      });
   const result = mcpToolErrorResult({
     code: 'approval_pending',
     approvalId: approval.id,
     toolName: approval.toolName,
     approvalStatus: approval.status,
     canResolveApproval,
+    ...(batch ? { batch } : {}),
+    ...(batch?.invalid.length ? { invalidReleases: batch.invalid } : {}),
     ...(estimate?.estimatedCredits !== null &&
     estimate?.estimatedCredits !== undefined
       ? { estimatedCredits: estimate.estimatedCredits }
-      : {}),
-    message:
-      `This action requires approval before it runs. ` +
-      'Review the pending action in Genfeed before continuing.' +
-      (canResolveApproval ? ' You can also approve or decline it here.' : '') +
-      approvalCostNote(estimate),
-    nextStepUrl: approvalsUrl(approval, createPublishingApprovalsRoute()),
+      : { pricingSummary: estimate?.pricingSummary }),
+    message: batch
+      ? batchPendingMessage(batch)
+      : `This action requires approval before it runs. ` +
+        'Review the pending action in Genfeed before continuing.' +
+        (canResolveApproval
+          ? ' You can also approve or decline it here.'
+          : '') +
+        approvalCostNote(estimate),
+    // A batch is read and approved on its own page, so its text links that page
+    // directly: the general queue would leave the person to find the week.
+    nextStepUrl: approvalsUrl(
+      approval,
+      batch ? reviewPath : createPublishingApprovalsRoute(),
+    ),
   });
-  // Display text stays free of ids; the structured link opens this exact
-  // approval in the Genfeed review inbox (#7340).
+  // Display text of any other approval stays free of ids; the structured link
+  // opens this exact approval in the Genfeed review inbox (#7340).
   return {
     ...result,
     structuredContent: {
       ...result.structuredContent,
-      nextStepUrl: approvalsUrl(
-        approval,
-        createPublishingApprovalsRoute({
-          approval: buildReviewInboxItemId({
-            approvalId: approval.id,
-            kind: 'mcp_approval',
-          }),
-        }),
-      ),
+      nextStepUrl: approvalsUrl(approval, reviewPath),
     },
   };
+}
+
+function batchPendingMessage(batch: IScheduledReleaseBatchPending): string {
+  const left = batch.invalid.length
+    ? ` ${batch.invalid.length} invalid ${batch.invalid.length === 1 ? 'release was' : 'releases were'} left out; see invalidReleases.`
+    : '';
+  return batch.isApprovableHere
+    ? `${batch.total} ${batch.total === 1 ? 'post is' : 'posts are'} waiting for approval and nothing is scheduled yet. Approve them in the chat or in Genfeed.${left}`
+    : `${batch.total} posts are waiting for approval and nothing is scheduled yet. Open the review link, read every post and approve once: Genfeed then schedules all of them, and you do not need to call again.${left}`;
 }
 
 /**
@@ -367,9 +406,15 @@ function readBodySignals(body: unknown): Partial<McpToolFailureSignals> {
   const members = Array.isArray(body.errors) ? body.errors : [];
   const first = members.find(isRecord);
   const memberCode =
-    first && isRecord(first.meta) && typeof first.meta.domainCode === 'string'
-      ? first.meta.domainCode
-      : undefined;
+    first &&
+    typeof first.code === 'string' &&
+    !DIGITS_ONLY_PATTERN.test(first.code)
+      ? first.code
+      : first &&
+          isRecord(first.meta) &&
+          typeof first.meta.domainCode === 'string'
+        ? first.meta.domainCode
+        : undefined;
   const memberTitle =
     first && typeof first.title === 'string' ? first.title : undefined;
   const memberDetail =
@@ -401,9 +446,7 @@ function readHttpExceptionSignals(
   };
 }
 
-export function readMcpToolFailureSignals(
-  error: unknown,
-): McpToolFailureSignals {
+function readMcpToolFailureSignals(error: unknown): McpToolFailureSignals {
   if (error instanceof ZodError) {
     return {
       domainCode: 'VALIDATION_FAILED',
@@ -467,6 +510,25 @@ export function classifyMcpToolFailure(
   const domainCode = signals.domainCode;
   const validationErrors = signals.validationErrors ?? [];
   const status = signals.status;
+
+  if (domainCode === 'brand_policy_check_unavailable') {
+    return compactToolError({
+      code: 'policy_check_unavailable',
+      message:
+        'The brand Policy check is unavailable and publishing is held. Resume the existing release to check again; do not create another release. A member can also review it in Genfeed.',
+    });
+  }
+
+  if (
+    domainCode === 'brand_policy_held' ||
+    domainCode === 'branded_receipt_held'
+  ) {
+    return compactToolError({
+      code: 'publishing_held',
+      message:
+        'Publishing is held by the brand Policy or generation review. A member must review the existing release in Genfeed before it can publish.',
+    });
+  }
 
   if (
     validationErrors.length > 0 ||

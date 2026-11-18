@@ -4,6 +4,7 @@ import {
   FAL_NANO_BANANA_2_IMAGE_COMPILER_ID,
   GPT_IMAGE_IMAGE_COMPILER_ID,
   GROK_IMAGINE_IMAGE_COMPILER_ID,
+  HIGGSFIELD_ADS_STUDIO_IMAGE_COMPILER_ID,
   HIGGSFIELD_SOUL_IMAGE_COMPILER_ID,
   LEONARDO_IMAGE_COMPILER_ID,
   RECRAFT_IMAGE_COMPILER_ID,
@@ -216,11 +217,39 @@ export const REMAINING_IMAGE_GENERATION_BRIEF_FAMILIES: readonly RemainingImageG
           defaultAspectRatio: '9:16',
           nativeFields: ['image'],
         }),
+        profile(
+          'higgsfield-soul-standard-capability',
+          MODEL_KEYS.HIGGSFIELD_SOUL_STANDARD,
+          1,
+          { defaultAspectRatio: '9:16', nativeFields: ['image'] },
+        ),
+        profile(
+          'higgsfield-soul-cinema-capability',
+          MODEL_KEYS.HIGGSFIELD_SOUL_CINEMA,
+          1,
+          { defaultAspectRatio: '9:16', nativeFields: ['image'] },
+        ),
       ],
       spec: {
         aspectRatioField: 'aspect_ratio',
         modelLabel: 'Higgsfield Soul',
         referenceField: 'image',
+      },
+    },
+    {
+      compilerId: HIGGSFIELD_ADS_STUDIO_IMAGE_COMPILER_ID,
+      compilerVersion: REMAINING_IMAGE_COMPILER_VERSION,
+      profiles: [
+        profile(
+          'higgsfield-ads-studio-capability',
+          MODEL_KEYS.HIGGSFIELD_ADS_STUDIO,
+          0,
+          { defaultAspectRatio: '1:1' },
+        ),
+      ],
+      spec: {
+        aspectRatioField: 'aspect_ratio',
+        modelLabel: 'Higgsfield Ads Studio',
       },
     },
     {

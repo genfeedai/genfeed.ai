@@ -37,7 +37,7 @@ import type { Request } from 'express';
  * Columns the presets list can be ordered by. A preset's label and key live in
  * its JSON `config`, which Prisma cannot order by.
  */
-export const PRESET_SORT_FIELDS: readonly string[] = [
+const PRESET_SORT_FIELDS: readonly string[] = [
   'category',
   'createdAt',
   'isActive',

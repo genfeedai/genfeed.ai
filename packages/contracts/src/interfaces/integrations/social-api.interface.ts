@@ -156,11 +156,34 @@ export interface IShopifyUserError {
   message: string;
 }
 
+/**
+ * A top-level GraphQL error. Shopify returns these with HTTP 200 for failures
+ * that REST would report as 4xx or 5xx, such as `THROTTLED`, `ACCESS_DENIED`,
+ * `SHOP_INACTIVE` and `INTERNAL_SERVER_ERROR`.
+ */
+export interface IShopifyGraphQLError {
+  message: string;
+  extensions?: { code?: string };
+}
+
+export interface IShopifyThrottleStatus {
+  maximumAvailable: number;
+  currentlyAvailable: number;
+  restoreRate: number;
+}
+
 export interface IShopifyProductCreateResponse {
-  data: {
+  data?: {
     productCreate: {
       product: IShopifyProduct | null;
       userErrors: IShopifyUserError[];
+    };
+  } | null;
+  errors?: IShopifyGraphQLError[];
+  extensions?: {
+    cost?: {
+      requestedQueryCost?: number;
+      throttleStatus?: IShopifyThrottleStatus;
     };
   };
 }

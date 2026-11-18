@@ -29,6 +29,7 @@ import { ManagedCreditsService } from '@services/billing/managed-credits.service
 import { ReferralsService } from '@services/billing/referrals.service';
 import { StripeService } from '@services/billing/stripe.service';
 import { ClipperProjectsService } from '@services/content/clipper-projects.service';
+import { NewsletterAccountService } from '@services/content/newsletter-account.service';
 import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
 import { OrganizationsService } from '@services/organization/organizations.service';
@@ -36,13 +37,17 @@ import { UsersService } from '@services/organization/users.service';
 import { BrandsService } from '@services/social/brands.service';
 import { useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { PostSignupRoutingState } from '@/features/onboarding/props/post-signup-routing.props';
+import type {
+  PostSignupRoutingState,
+  SkippedHandleNotice,
+} from '@/features/onboarding/props/post-signup-routing.props';
 import {
   ANALYTICS_EVENTS,
   captureAnalyticsEvent,
   captureBrandOsFunnelStage,
 } from '@/lib/analytics';
 import { claimHandleAfterSignup } from '@/lib/onboarding/claim-handle.util';
+import { followCreatorAfterSignup } from '@/lib/onboarding/follow-creator.util';
 import {
   extractBrandDomain,
   ONBOARDING_STORAGE_KEYS,
@@ -55,6 +60,7 @@ export type { PostSignupRoutingState } from '@/features/onboarding/props/post-si
 
 const REFERRAL_CLAIM_TIMEOUT_MS = 2_000;
 const SIGNUP_ATTRIBUTION_TIMEOUT_MS = 2_000;
+const FOLLOW_CREATOR_TIMEOUT_MS = 2_000;
 
 export function usePostSignupRouting(): PostSignupRoutingState {
   const { getToken } = useAuthIdentity();
@@ -69,6 +75,7 @@ export function usePostSignupRouting(): PostSignupRoutingState {
   const requestedClipToolTokenParam = searchParams.get('clipToolToken');
   const requestedReferralCodeParam = searchParams.get('ref');
   const requestedHandleParam = searchParams.get('handle');
+  const requestedFollowParam = searchParams.get('follow');
   const searchQuery = searchParams.toString();
   const requestedAccountType = parseOnboardingAccountType(
     searchParams.get('accountType'),
@@ -76,6 +83,9 @@ export function usePostSignupRouting(): PostSignupRoutingState {
   const calledRef = useRef(false);
   const [routingAttempt, setRoutingAttempt] = useState(0);
   const [showFallback, setShowFallback] = useState(false);
+  const [skippedHandle, setSkippedHandle] =
+    useState<SkippedHandleNotice | null>(null);
+  const resumeAfterSkippedHandleRef = useRef<(() => void) | null>(null);
   const hasAuthUser = Boolean(authUser);
   const authPrimaryEmail = authUser?.primaryEmailAddress?.emailAddress ?? '';
   const checkoutEmail = currentUser?.email || authPrimaryEmail || '';
@@ -83,6 +93,9 @@ export function usePostSignupRouting(): PostSignupRoutingState {
     parseBrandOsPreviewToken(requestedBrandOsTokenParam) ||
       parsePublicYoutubeClipperToken(requestedClipToolTokenParam),
   );
+  const continueAfterSkippedHandle = useCallback(() => {
+    resumeAfterSkippedHandleRef.current?.();
+  }, []);
   const retryBrandOsHandoff = useCallback(() => {
     calledRef.current = false;
     setShowFallback(false);
@@ -182,6 +195,7 @@ export function usePostSignupRouting(): PostSignupRoutingState {
 
   // A signup CTA's account type (e.g. Expert) survives cross-device magic
   // links through the callback URL; keep it for the brand step.
+  // use-effect-audit: ignore writes to browser storage
   useEffect(() => {
     if (requestedAccountType) {
       localStorage.setItem(
@@ -191,6 +205,7 @@ export function usePostSignupRouting(): PostSignupRoutingState {
     }
   }, [requestedAccountType]);
 
+  // use-effect-audit: ignore subscribes to browser events
   useEffect(() => {
     if (isLoading || !currentUser || !hasAuthUser || calledRef.current) {
       return;
@@ -341,6 +356,39 @@ export function usePostSignupRouting(): PostSignupRoutingState {
           });
           localStorage.removeItem(ONBOARDING_STORAGE_KEYS.claimHandle);
           captureAnalyticsEvent(ANALYTICS_EVENTS.HANDLE_CLAIMED, { outcome });
+
+          // No brand is picked for an organization with several: tell the
+          // owner the handle was not applied and hold the redirect until they
+          // have read it, since the page is replaced as soon as routing ends.
+          if (outcome === 'several-brands') {
+            window.clearTimeout(fallbackTimeout);
+            setSkippedHandle({ handle: claimHandle });
+            await new Promise<void>((resolve) => {
+              resumeAfterSkippedHandleRef.current = resolve;
+              signal.addEventListener('abort', () => resolve(), { once: true });
+            });
+            resumeAfterSkippedHandleRef.current = null;
+            setSkippedHandle(null);
+          }
+        }
+      }
+
+      // A Subscribe pressed on a creator's profile while signed out is applied
+      // to the new account; it never holds up onboarding.
+      const followHandle =
+        parseClaimHandle(requestedFollowParam) ??
+        parseClaimHandle(
+          localStorage.getItem(ONBOARDING_STORAGE_KEYS.followHandle),
+        );
+      if (followHandle) {
+        const token = await resolveAuthToken(getToken);
+        if (token) {
+          await followCreatorAfterSignup(
+            NewsletterAccountService.getInstance(token),
+            followHandle,
+            FOLLOW_CREATOR_TIMEOUT_MS,
+          );
+          localStorage.removeItem(ONBOARDING_STORAGE_KEYS.followHandle);
         }
       }
 
@@ -696,6 +744,7 @@ export function usePostSignupRouting(): PostSignupRoutingState {
     requestedCreditsParam,
     requestedPlanParam,
     requestedHandleParam,
+    requestedFollowParam,
     requestedReferralCodeParam,
     routingAttempt,
     searchQuery,
@@ -704,8 +753,10 @@ export function usePostSignupRouting(): PostSignupRoutingState {
   ]);
 
   return {
+    continueAfterSkippedHandle,
     resolveOnboardingHref,
     retryBrandOsHandoff: hasBrandOsHandoff ? retryBrandOsHandoff : undefined,
     showFallback,
+    skippedHandle,
   };
 }

@@ -1,11 +1,15 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
+import { AgentThreadTurnsController } from '@api/collections/agent-threads/controllers/agent-thread-turns.controller';
 import { AgentThreadsController } from '@api/collections/agent-threads/controllers/agent-threads.controller';
+import type { AgentThreadAccessService } from '@api/collections/agent-threads/services/agent-thread-access.service';
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
+import type { TeammateMentionsService } from '@api/collections/mentions/services/teammate-mentions.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { runWithTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import type { AgentScopeContextService } from '@api/index';
+import { getRequestMediaScope } from '@api/services/media-urls/request-media-scope';
 import { RATE_LIMIT_KEY } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
 import { AgentThreadKind, AgentThreadStatus } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
@@ -31,6 +35,12 @@ const emptyPage = {
   prevPage: null,
   totalDocs: 0,
   totalPages: 0,
+};
+
+const threadMediaScope = {
+  organizationId: 'org_current',
+  participantUserIds: ['user_owner', 'user_member'],
+  userId: 'user_member',
 };
 
 describe('AgentThreadsController', () => {
@@ -59,6 +69,12 @@ describe('AgentThreadsController', () => {
   };
   let usersService: {
     findOne: ReturnType<typeof vi.fn>;
+  };
+  let accessService: {
+    assertAccess: ReturnType<typeof vi.fn>;
+    attachAccessLevels: ReturnType<typeof vi.fn>;
+    mediaScopeFor: ReturnType<typeof vi.fn>;
+    resolveListAccess: ReturnType<typeof vi.fn>;
   };
 
   const mockUserId = testId('user');
@@ -113,10 +129,32 @@ describe('AgentThreadsController', () => {
       warn: vi.fn(),
     };
 
+    // Authorization has its own real-database spec; here the viewer owns the
+    // thread, so the controller's own behavior is what is asserted.
+    accessService = {
+      assertAccess: vi.fn().mockResolvedValue({
+        accessLevel: 'owner',
+        canManageShares: true,
+        thread: { userId: mockUser.userId },
+      }),
+      attachAccessLevels: vi.fn(async (_access, page) => page),
+      mediaScopeFor: vi.fn().mockResolvedValue(threadMediaScope),
+      resolveListAccess: vi.fn().mockResolvedValue({
+        ownerWhere: { userId: mockUser.userId },
+        scope: null,
+        userId: mockUser.userId,
+      }),
+    };
+
     controller = new AgentThreadsController(
       service as unknown as AgentThreadsService,
+      accessService as unknown as AgentThreadAccessService,
       scopeService as unknown as AgentScopeContextService,
       messagesService as unknown as AgentMessagesService,
+      {
+        attachMentions: async (_org: string, docs: unknown[]) =>
+          docs.map((doc) => ({ ...(doc as object), mentions: [] })),
+      } as unknown as TeammateMentionsService,
       usersService as unknown as UsersService,
       loggerService as unknown as LoggerService,
     );
@@ -141,7 +179,7 @@ describe('AgentThreadsController', () => {
   it('should have a user-scoped rate limit on addMessage', () => {
     const metadata = Reflect.getMetadata(
       RATE_LIMIT_KEY,
-      AgentThreadsController.prototype.addMessage,
+      AgentThreadTurnsController.prototype.addMessage,
     );
     expect(metadata).toEqual({
       limit: 30,
@@ -180,7 +218,7 @@ describe('AgentThreadsController', () => {
     it('forwards the requested page window and defaults to 50 per page', async () => {
       service.getUserThreads.mockResolvedValue(emptyPage);
 
-      await controller.listThreads(
+      const res183 = await controller.listThreads(
         {} as never,
         mockUser,
         undefined,
@@ -188,7 +226,8 @@ describe('AgentThreadsController', () => {
         undefined,
         { limit: 20, page: 3 },
       );
-      await controller.listThreads(
+      expect(res183.data).toEqual([]);
+      const res191 = await controller.listThreads(
         {} as never,
         mockUser,
         undefined,
@@ -196,6 +235,7 @@ describe('AgentThreadsController', () => {
         undefined,
         { limit: 500 },
       );
+      expect(res191.data).toEqual([]);
 
       expect(service.getUserThreads.mock.calls[0]?.[5]).toEqual({
         limit: 20,
@@ -269,7 +309,7 @@ describe('AgentThreadsController', () => {
         undefined,
         undefined,
         defaultWindow,
-        {},
+        { ownerWhere: { userId: mockUser.userId } },
       );
     });
 
@@ -296,7 +336,7 @@ describe('AgentThreadsController', () => {
         undefined,
         undefined,
         defaultWindow,
-        {},
+        { ownerWhere: { userId: mockUser.userId } },
       );
     });
 
@@ -321,7 +361,7 @@ describe('AgentThreadsController', () => {
         undefined,
         undefined,
         defaultWindow,
-        {},
+        { ownerWhere: { userId: mockUser.userId } },
       );
     });
 
@@ -337,7 +377,7 @@ describe('AgentThreadsController', () => {
         'brand-1',
         undefined,
         defaultWindow,
-        {},
+        { ownerWhere: { userId: mockUser.userId } },
       );
     });
 
@@ -359,7 +399,7 @@ describe('AgentThreadsController', () => {
         undefined,
         'onboarding',
         defaultWindow,
-        {},
+        { ownerWhere: { userId: mockUser.userId } },
       );
     });
 
@@ -381,7 +421,7 @@ describe('AgentThreadsController', () => {
         undefined,
         undefined,
         defaultWindow,
-        {},
+        { ownerWhere: { userId: mockUser.userId } },
       );
     });
   });
@@ -389,7 +429,12 @@ describe('AgentThreadsController', () => {
   describe('getThread', () => {
     it('should get a thread by id', async () => {
       service.findOne.mockResolvedValue({ id: 'test' });
-      await controller.getThread({} as never, 'test-id', mockUser);
+      const res392 = await controller.getThread(
+        {} as never,
+        'test-id',
+        mockUser,
+      );
+      expect(res392.data).toMatchObject({ id: 'test', type: 'thread' });
       expect(service.findOne).toHaveBeenCalled();
     });
 
@@ -406,7 +451,13 @@ describe('AgentThreadsController', () => {
   });
 
   describe('getMessages', () => {
-    it('forwards the cursor and computed limit to getMessagesPage, org-scoped', async () => {
+    it('limits a shared viewer to the brands they may read history from (#10148)', async () => {
+      accessService.assertAccess.mockResolvedValueOnce({
+        accessLevel: 'view',
+        canManageShares: false,
+        historyBrandIds: ['brand-b'],
+        thread: { userId: 'someone-else' },
+      });
       messagesService.getMessagesPage.mockResolvedValue({
         docs: [],
         hasMore: false,
@@ -417,15 +468,73 @@ describe('AgentThreadsController', () => {
         { originalUrl: '/v1/agent/threads/thread-1/messages' } as never,
         'thread-1',
         mockUser,
+      );
+
+      expect(messagesService.getMessagesPage).toHaveBeenCalledWith(
+        'thread-1',
+        'org_current',
+        { brandIds: ['brand-b'], cursor: undefined, limit: 50 },
+      );
+    });
+
+    it('forwards the cursor and computed limit to getMessagesPage, org-scoped', async () => {
+      messagesService.getMessagesPage.mockResolvedValue({
+        docs: [],
+        hasMore: false,
+        nextCursor: null,
+      });
+
+      const res416 = await controller.getMessages(
+        { originalUrl: '/v1/agent/threads/thread-1/messages' } as never,
+        'thread-1',
+        mockUser,
         '25',
         'opaque-cursor',
       );
+      expect(res416.data).toEqual([]);
 
       expect(messagesService.getMessagesPage).toHaveBeenCalledWith(
         'thread-1',
         'org_current',
         { cursor: 'opaque-cursor', limit: 25 },
       );
+    });
+
+    it('reads the organization a superadmin names, so the tenant guard sees one tenant', async () => {
+      messagesService.getMessagesPage.mockResolvedValue({
+        docs: [],
+        hasMore: false,
+        nextCursor: null,
+      });
+
+      await controller.getMessages(
+        {
+          originalUrl: '/v1/agent/threads/thread-1/messages',
+          query: { organizationId: 'org_other' },
+        } as never,
+        'thread-1',
+        { ...mockUser, isSuperAdmin: true },
+      );
+
+      expect(messagesService.getMessagesPage).toHaveBeenCalledWith(
+        'thread-1',
+        'org_other',
+        { cursor: undefined, limit: 50 },
+      );
+    });
+
+    it('refuses an organization override from a caller who is not a superadmin', async () => {
+      await expect(
+        controller.getMessages(
+          {
+            originalUrl: '/v1/agent/threads/thread-1/messages',
+            query: { organizationId: 'org_other' },
+          } as never,
+          'thread-1',
+          mockUser,
+        ),
+      ).rejects.toThrow();
+      expect(messagesService.getMessagesPage).not.toHaveBeenCalled();
     });
 
     it('defaults the limit to 50 and passes no cursor when the query omits them', async () => {
@@ -435,13 +544,14 @@ describe('AgentThreadsController', () => {
         nextCursor: null,
       });
 
-      await controller.getMessages(
+      const res438 = await controller.getMessages(
         {} as never,
         'thread-1',
         mockUser,
         undefined,
         undefined,
       );
+      expect(res438.data).toEqual([]);
 
       expect(messagesService.getMessagesPage).toHaveBeenCalledWith(
         'thread-1',
@@ -499,11 +609,41 @@ describe('AgentThreadsController', () => {
     });
   });
 
+  describe('thread media scope (#9962)', () => {
+    it('registers the thread media scope on the request for a message page', async () => {
+      messagesService.getMessagesPage.mockResolvedValue({
+        docs: [],
+        hasMore: false,
+        nextCursor: undefined,
+      });
+      const req = {
+        originalUrl: '/v1/agent/threads/thread-1/messages',
+      } as never;
+
+      await controller.getMessages(req, 'thread-1', mockUser);
+
+      expect(getRequestMediaScope(req)).toEqual(threadMediaScope);
+    });
+
+    it('registers no media scope when access to the thread is denied', async () => {
+      accessService.assertAccess.mockRejectedValue(new Error('denied'));
+      const req = {
+        originalUrl: '/v1/agent/threads/thread-1/messages',
+      } as never;
+
+      await expect(
+        controller.getMessages(req, 'thread-1', mockUser),
+      ).rejects.toThrow();
+
+      expect(getRequestMediaScope(req)).toBeUndefined();
+    });
+  });
+
   describe('getMessage', () => {
     it('gets a thread message by id within the current organization', async () => {
       messagesService.findOne.mockResolvedValue({ id: 'message-id' });
 
-      await controller.getMessage(
+      const res506 = await controller.getMessage(
         {
           originalUrl: '/v1/agent/threads/thread-id/messages/message-id',
         } as never,
@@ -511,6 +651,10 @@ describe('AgentThreadsController', () => {
         'message-id',
         mockUser,
       );
+      expect(res506.data).toMatchObject({
+        id: 'message-id',
+        type: 'thread-message',
+      });
 
       expect(messagesService.findOne).toHaveBeenCalledWith({
         id: 'message-id',
@@ -549,10 +693,13 @@ describe('AgentThreadsController', () => {
 
       expect(
         messagesService.resolveMessageArtifactReferences,
-      ).toHaveBeenCalledWith('thread-id', 'message-id', 'org_current', {
-        client: 'api',
-        deployment: 'server',
-      });
+      ).toHaveBeenCalledWith(
+        'thread-id',
+        'message-id',
+        'org_current',
+        { client: 'api', deployment: 'server' },
+        undefined,
+      );
     });
   });
 
@@ -560,7 +707,12 @@ describe('AgentThreadsController', () => {
     it('should create a new thread', async () => {
       service.create.mockResolvedValue({ id: 'new' });
       service.resolveSavedMode.mockResolvedValue('plan');
-      await controller.createThread({} as never, { title: 'Test' }, mockUser);
+      const res563 = await controller.createThread(
+        {} as never,
+        { title: 'Test' },
+        mockUser,
+      );
+      expect(res563.data).toMatchObject({ id: 'new', type: 'thread' });
       expect(service.create).toHaveBeenCalledWith(
         expect.objectContaining({
           organizationId: 'org_current',
@@ -574,11 +726,12 @@ describe('AgentThreadsController', () => {
     it('starts an extension thread in auto when the saved default is plan', async () => {
       service.create.mockResolvedValue({ id: 'new' });
       service.resolveSavedMode.mockResolvedValue('plan');
-      await controller.createThread(
+      const res577 = await controller.createThread(
         {} as never,
         { source: 'extension', title: 'Test' },
         mockUser,
       );
+      expect(res577.data).toMatchObject({ id: 'new', type: 'thread' });
       expect(service.create).toHaveBeenCalledWith(
         expect.objectContaining({ mode: 'auto', source: 'extension' }),
       );
@@ -587,10 +740,11 @@ describe('AgentThreadsController', () => {
 
   describe('updateThreadContext', () => {
     it('routes the mode command with authenticated canonical identity', async () => {
-      await controller.updateAgentMode(
+      const res590 = await controller.updateAgentMode(
         { mode: 'auto' as never, threadId: 'thread' },
         mockUser,
       );
+      expect(res590).toEqual({ mode: 'auto' });
       expect(service.updateAgentMode).toHaveBeenCalledWith(
         mockUserId,
         'org_current',
@@ -634,12 +788,16 @@ describe('AgentThreadsController', () => {
         id: 'thread-1',
       });
 
-      await controller.updateThreadContext(
+      const res637 = await controller.updateThreadContext(
         {} as never,
         'thread-1',
         { brandId: 'brand-1', expectedContextVersion: 3 },
         mockUser,
       );
+      expect(res637.data).toMatchObject({
+        attributes: { brandId: 'brand-1', contextVersion: 4 },
+        id: 'thread-1',
+      });
 
       expect(scopeService.mutateBrandScope).toHaveBeenCalledWith({
         brandId: 'brand-1',
@@ -666,7 +824,7 @@ describe('AgentThreadsController', () => {
         undefined,
         undefined,
         defaultWindow,
-        {},
+        { ownerWhere: { userId: mockUser.userId } },
       );
       expect(mockUser).toEqual(originalIdentity);
       expect(usersService.findOne).not.toHaveBeenCalled();
@@ -731,6 +889,7 @@ describe('AgentThreadsController', () => {
 
       expect(service.getUserThreads.mock.calls[0]?.[6]).toEqual({
         kind: AgentThreadKind.MASTER,
+        ownerWhere: { userId: mockUser.userId },
         parentThreadId: 'parent_1',
       });
     });
@@ -776,12 +935,13 @@ describe('AgentThreadsController', () => {
       });
       service.archiveThread.mockResolvedValue({ id: 'thread_1' });
 
-      await controller.updateThread(
+      const res779 = await controller.updateThread(
         {} as never,
         'thread_1',
         { status: AgentThreadStatus.ARCHIVED },
         mockUser,
       );
+      expect(res779.data).toMatchObject({ id: 'thread_1', type: 'thread' });
 
       expect(service.archiveThread).toHaveBeenCalledWith(
         'thread_1',

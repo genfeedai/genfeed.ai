@@ -295,6 +295,57 @@ test.describe('Shell — navigation interactions', () => {
     await assertHealthy(authenticatedPage);
   });
 
+  test('app rail opens with the core apps in order and pins Settings at the bottom', async ({
+    authenticatedPage,
+  }) => {
+    await authenticatedPage.goto(`${BRAND_BASE}/workspace`, {
+      waitUntil: 'domcontentloaded',
+    });
+    await settle(authenticatedPage);
+
+    const desktopRail = authenticatedPage.getByTestId('desktop-app-rail');
+    const rail = desktopRail.getByRole('navigation', { name: 'Apps' });
+    await expect(rail).toBeVisible({ timeout: 10_000 });
+
+    // The app items are icon-only links named by aria-label. Admin, Connectors,
+    // Settings and Help share the nav but are not apps.
+    await expect
+      .poll(() =>
+        rail
+          .locator(
+            '[data-testid^="app-rail-item-"]:not([data-testid="app-rail-item-admin"])',
+          )
+          .evaluateAll((links) =>
+            links.map((link) => link.getAttribute('aria-label') ?? ''),
+          ),
+      )
+      .toEqual([
+        expect.stringMatching(/^Workspace/),
+        'Trends',
+        'Library',
+        'Publishing',
+        'Analytics',
+        'Agent',
+      ]);
+    await expect(rail.getByRole('link', { name: 'Discovery' })).toHaveCount(0);
+
+    const settings = desktopRail
+      .getByTestId('app-rail-account')
+      .getByRole('link', { name: 'Settings' });
+    await expect(settings).toBeVisible();
+    await settings.click();
+    await authenticatedPage.waitForURL(/\/settings(?:[/?#]|$)/, {
+      timeout: 30_000,
+    });
+    await expect(
+      desktopRail
+        .getByTestId('app-rail-account')
+        .getByRole('link', { name: 'Settings' }),
+    ).toHaveAttribute('aria-current', 'page');
+
+    await assertHealthy(authenticatedPage);
+  });
+
   test('app rail keeps one active highlight that follows the clicked app', async ({
     authenticatedPage,
   }) => {
@@ -326,6 +377,45 @@ test.describe('Shell — navigation interactions', () => {
     ).toHaveCount(1);
     await authenticatedPage.waitForTimeout(400);
     expectSingleGlide(await stopTrackingHighlight(authenticatedPage));
+
+    await assertHealthy(authenticatedPage);
+  });
+
+  test('app rail previews an inactive app on hover and never the active one', async ({
+    authenticatedPage,
+  }) => {
+    await authenticatedPage.goto(`${BRAND_BASE}/workspace`, {
+      waitUntil: 'domcontentloaded',
+    });
+    await settle(authenticatedPage);
+
+    const rail = authenticatedPage
+      .getByTestId('desktop-app-rail')
+      .getByRole('navigation', { name: 'Apps' });
+    const preview = authenticatedPage.getByTestId('app-rail-preview');
+    await expect(rail).toBeVisible({ timeout: 10_000 });
+
+    // The active app (Workspace) has no preview.
+    await rail.getByRole('link', { name: /^Workspace/ }).hover();
+    await authenticatedPage.waitForTimeout(500);
+    await expect(preview).toHaveCount(0);
+
+    // An inactive app opens its preview, and its header links to the app.
+    await rail.getByRole('link', { name: 'Library' }).hover();
+    await expect(preview).toBeVisible();
+    const open = authenticatedPage.getByTestId('app-rail-preview-open-library');
+    await expect(open).toHaveAttribute('href', /\/library\//);
+
+    // Moving to another icon swaps the preview in place.
+    await rail.getByRole('link', { name: 'Publishing' }).hover();
+    await expect(
+      authenticatedPage.getByTestId('app-rail-preview-open-publishing'),
+    ).toBeVisible();
+    await expect(preview).toHaveCount(1);
+
+    // Escape closes it.
+    await authenticatedPage.keyboard.press('Escape');
+    await expect(preview).toHaveCount(0);
 
     await assertHealthy(authenticatedPage);
   });

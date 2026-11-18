@@ -8,11 +8,12 @@ import {
   useCollectionScope,
 } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import { useResetOnChange } from '@hooks/utils/use-reset-on-change/use-reset-on-change';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { type QueryKey, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   type CloudWorkflowData,
   createWorkflowApiService,
@@ -22,7 +23,7 @@ import {
 import { useCloudSession } from '@/hooks/useCloudSession';
 import { TURBO_WORKFLOW_OPTIONS_QUERY_KEY } from '@/lib/constants/workflow-query-keys';
 
-export const WORKFLOW_LIBRARY_PAGE_SIZE = ITEMS_PER_PAGE;
+const WORKFLOW_LIBRARY_PAGE_SIZE = ITEMS_PER_PAGE;
 
 interface WorkflowLibraryPageData {
   items: WorkflowSummary[];
@@ -128,15 +129,13 @@ export function useWorkflowLibraryPage({
     [queryClient, scopeQueryKey],
   );
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: org, brand, search, and scope changes must reset bulk selection before the next request.
-  useEffect(() => {
+  useResetOnChange([brandId, organizationId, pageScope, searchInput], () => {
     setSelectedIds((current) => (current.size === 0 ? current : new Set()));
-  }, [brandId, organizationId, pageScope, searchInput]);
+  });
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: page changes must drop selected IDs that are no longer in the current query.
-  useEffect(() => {
+  useResetOnChange([page], () => {
     setSelectedIds((current) => (current.size === 0 ? current : new Set()));
-  }, [page]);
+  });
 
   // Actions
   const handleDuplicate = useCallback(

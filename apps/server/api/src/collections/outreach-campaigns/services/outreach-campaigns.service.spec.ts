@@ -115,13 +115,16 @@ describe('OutreachCampaignsService', () => {
       prisma.outreachCampaign.findMany.mockResolvedValue([]);
       prisma.outreachCampaign.count.mockResolvedValue(0);
 
-      await service.findAll(
+      const page = await service.findAll(
         {
           orderBy: { createdAt: -1 },
           where: { organizationId },
         },
         { limit: 100, page: 1 },
       );
+
+      expect(page.docs).toEqual([]);
+      expect(page.totalDocs).toBe(0);
 
       expect(prisma.outreachCampaign.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -429,8 +432,13 @@ describe('OutreachCampaignsService', () => {
       );
     prisma.outreachCampaign.updateMany.mockResolvedValue({ count: 1 });
 
-    await service.patch(campaignId, { label: 'Renamed' }, organizationId);
+    const patched = await service.patch(
+      campaignId,
+      { label: 'Renamed' },
+      organizationId,
+    );
 
+    expect(patched).toMatchObject({ id: campaignId, label: 'Renamed' });
     expect(prisma.outreachCampaign.updateMany).toHaveBeenCalled();
   });
 
@@ -505,8 +513,9 @@ describe('OutreachCampaignsService', () => {
       });
     prisma.outreachCampaign.updateMany.mockResolvedValue({ count: 1 });
 
-    await service.remove('campaign-1', 'org-1');
+    const removed = await service.remove('campaign-1', 'org-1');
 
+    expect(removed).toMatchObject({ id: 'campaign-1', isDeleted: true });
     expect(prisma.outreachCampaign.updateMany).toHaveBeenCalledWith({
       data: { isDeleted: true },
       where: {

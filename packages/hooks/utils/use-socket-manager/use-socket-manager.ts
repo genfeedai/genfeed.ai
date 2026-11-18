@@ -43,19 +43,21 @@ export function useSocketManager(
 
   const latestOptionsRef = useRef(options);
 
+  // use-effect-audit: ignore keeps refs to the latest callbacks and values
   useEffect(() => {
     latestOptionsRef.current = options;
   }, [options]);
 
+  // use-effect-audit: ignore connects to and subscribes to the shared socket manager
   useEffect(() => {
-    let isMounted = true;
+    const abortController = new AbortController();
     let unsubscribeConnectionState: (() => void) | undefined;
 
     if (disableSocketsForPlaywright) {
       setConnectionState('offline');
       setIsReady(false);
       return () => {
-        isMounted = false;
+        abortController.abort();
       };
     }
 
@@ -65,7 +67,7 @@ export function useSocketManager(
       setConnectionState('offline');
       setIsReady(false);
       return () => {
-        isMounted = false;
+        abortController.abort();
       };
     }
 
@@ -74,14 +76,14 @@ export function useSocketManager(
         const token = await resolveAuthToken(getToken);
 
         if (!token) {
-          if (isMounted) {
+          if (!abortController.signal.aborted) {
             setConnectionState('offline');
             setIsReady(false);
           }
           return;
         }
 
-        if (isMounted) {
+        if (!abortController.signal.aborted) {
           socketManagerRef.current = SocketManager.getInstance({
             ...latestOptionsRef.current,
             resolveToken: () =>
@@ -96,7 +98,7 @@ export function useSocketManager(
           setIsReady(true);
         }
       } catch (error) {
-        if (isMounted) {
+        if (!abortController.signal.aborted) {
           setConnectionState('offline');
           setIsReady(false);
         }
@@ -110,7 +112,7 @@ export function useSocketManager(
     // We don't cleanup the singleton on unmount, as it's shared
     // The singleton will handle its own cleanup when needed
     return () => {
-      isMounted = false;
+      abortController.abort();
       unsubscribeConnectionState?.();
       setIsReady(false);
     };
@@ -188,6 +190,7 @@ export const useSocketSubscriptions = <T = unknown>(
 ) => {
   const { subscribe, getSocketManager, isReady } = useSocketManager(options);
 
+  // use-effect-audit: ignore subscribes to socket events and disposes on cleanup
   useEffect(() => {
     if (subscriptions.length === 0 || !isReady) {
       return;

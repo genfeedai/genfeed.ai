@@ -60,6 +60,7 @@ export function useCollectionViewPreference({
 }: UseCollectionViewPreferenceOptions): UseCollectionViewPreferenceReturn {
   const [view, setViewState] = useState<CollectionViewType>(defaultView);
 
+  // use-effect-audit: ignore reads browser storage after mount so server and client markup match
   useEffect(() => {
     setViewState(readStoredView(surface) ?? defaultView);
   }, [defaultView, surface]);

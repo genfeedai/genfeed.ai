@@ -44,7 +44,7 @@ const readPackageJson = (): DesktopPackageJson =>
 const readReleaseScript = (name: string): string =>
   fs.readFileSync(path.join(desktopRoot, 'scripts', name), 'utf8');
 const electronBuilderArtifactName =
-  'GenFeed-$' + '{version}-$' + '{arch}.$' + '{ext}';
+  'Genfeed-$' + '{version}-$' + '{arch}.$' + '{ext}';
 
 describe('desktop release config', () => {
   it('keeps macOS release artifacts signed, notarized, and self-contained', () => {
@@ -52,7 +52,7 @@ describe('desktop release config', () => {
     const build = packageJson.build;
     const mac = build?.mac;
 
-    expect(packageJson.productName).toBe('GenFeed');
+    expect(packageJson.productName).toBe('Genfeed');
     expect(packageJson.main).toBe('dist/main.js');
     expect(build?.appId).toBe('ai.genfeed.desktop');
     expect(build?.afterSign).toBe('scripts/notarize.cjs');

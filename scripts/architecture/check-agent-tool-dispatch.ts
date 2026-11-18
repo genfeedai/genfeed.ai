@@ -38,7 +38,7 @@ import { parseSourceFile } from './parse-source-file';
  */
 
 const DEFAULT_CATALOG_PATH =
-  'packages/actions/src/registry/curated-action-catalog.ts';
+  'packages/actions/src/registry/curated-actions.catalog.ts';
 const DEFAULT_AGENT_TYPE_CONFIG_PATH =
   'apps/server/api/src/services/agent-orchestrator/constants/agent-type-config.constant.ts';
 const DEFAULT_BRANDLESS_TOOLS_PATH =
@@ -429,7 +429,7 @@ if (isMainModule()) {
     }
 
     console.error(
-      '\nThe curated action catalog is the only source of truth for agent tool surfaces: packages/actions/src/registry/curated-action-catalog.ts',
+      '\nThe curated action catalog is the only source of truth for agent tool surfaces: packages/actions/src/registry/curated-actions.catalog.ts',
     );
     process.exit(1);
   }

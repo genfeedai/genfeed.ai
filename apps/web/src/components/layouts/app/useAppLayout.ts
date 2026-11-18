@@ -83,6 +83,7 @@ export function useAppLayout({
   // Next.js resets window scroll on navigation, but only scrolls a nested
   // container when the new segment's top is out of view. The rounded block owns
   // scroll on desktop, so start every route at the top (hash links excepted).
+  // use-effect-audit: ignore drives a DOM element or browser API
   useEffect(() => {
     const main = mainScrollRef.current;
     if (!main || !pathname || window.location.hash) {
@@ -93,11 +94,13 @@ export function useAppLayout({
   const sidebarDragWidthRef = useRef(sidebarExpandedWidth);
   const sidebarDragCleanupRef = useRef<(() => void) | null>(null);
 
+  // use-effect-audit: ignore keeps refs to the latest callbacks and values
   useEffect(() => {
     sidebarDragWidthRef.current = sidebarExpandedWidth;
   }, [sidebarExpandedWidth]);
 
   // Drop mid-drag listeners if the shell unmounts.
+  // use-effect-audit: ignore releases timers, requests or subscriptions on unmount
   useEffect(() => {
     return () => {
       sidebarDragCleanupRef.current?.();
@@ -117,6 +120,7 @@ export function useAppLayout({
     setIsDesktopCollapsed((previous) => !previous);
   }, []);
 
+  // use-effect-audit: ignore reads browser storage after mount so server and client markup match
   useEffect(() => {
     const persistedValue = readPersistedSidebarCollapsed();
     if (persistedValue !== null) {
@@ -137,6 +141,7 @@ export function useAppLayout({
     // and the host width seed is captured by the ref on the first render.
   }, []);
 
+  // use-effect-audit: ignore writes to browser storage
   useEffect(() => {
     if (!isSidebarPreferenceLoaded) {
       return;
@@ -145,6 +150,7 @@ export function useAppLayout({
     persistSidebarCollapsed(isDesktopCollapsed);
   }, [isDesktopCollapsed, isSidebarPreferenceLoaded]);
 
+  // use-effect-audit: ignore writes to browser storage
   useEffect(() => {
     if (!isSidebarPreferenceLoaded) {
       return;
@@ -154,6 +160,7 @@ export function useAppLayout({
   }, [isSidebarPreferenceLoaded, sidebarExpandedWidth]);
 
   // Cmd+B toggles sidebar
+  // use-effect-audit: ignore subscribes to browser events
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement;
@@ -178,6 +185,7 @@ export function useAppLayout({
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [handleToggleDesktopSidebar]);
 
+  // use-effect-audit: ignore timer outside React
   useEffect(() => {
     const timeout = setTimeout(() => {
       handleCloseSidebar();
@@ -190,6 +198,7 @@ export function useAppLayout({
 
   // The drawer is phone-only: close it when the viewport grows to the desktop
   // layout, where the rail and sidebar render inline.
+  // use-effect-audit: ignore subscribes to browser events
   useEffect(() => {
     if (
       !hasMobileNavigation ||

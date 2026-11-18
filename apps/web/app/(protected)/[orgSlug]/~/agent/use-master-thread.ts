@@ -57,6 +57,7 @@ export function useMasterThread(
     stateFor(readCachedId(apiService, scopeKey)),
   );
 
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     if (!isEnabled || !apiService) {
       return;

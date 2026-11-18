@@ -215,6 +215,30 @@ describe('BaseService tenant scope', () => {
       },
     );
 
+    it.each([
+      ['an own row with a foreign organization', 'row_1', 'org_foreign'],
+      ['a foreign row with the tenant organization', 'foreign_row', ORG],
+      ['a platform row with the tenant organization', 'platform_row', ORG],
+      ['a deleted own row', 'deleted_row', ORG],
+    ])(
+      'updateEntityFlag returns null and leaves the row unchanged for %s',
+      async (_case, id, organizationId) => {
+        const before = world.rows.map((row) => ({ ...row }));
+
+        const result = await asTenant(() =>
+          world.service.updateEntityFlag(
+            id,
+            organizationId,
+            'isRead' as keyof Row,
+            true,
+          ),
+        );
+
+        expect(result).toBeNull();
+        expect(world.rows).toEqual(before);
+      },
+    );
+
     it('patchAll writes only the tenant rows', async () => {
       await asTenant(() =>
         world.service.patchAll({ slug: 'a' }, { label: 'new' }),

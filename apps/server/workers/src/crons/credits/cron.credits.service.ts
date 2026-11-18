@@ -5,6 +5,10 @@ import {
 import { FreeTrialService } from '@api/collections/credits/services/free-trial.service';
 import { ReferralsService } from '@api/collections/referrals/services/referrals.service';
 import { CacheService } from '@api/services/cache/cache.service';
+import {
+  LifetimeDealService,
+  type LifetimeGrantTotals,
+} from '@api/services/lifetime-deal/lifetime-deal.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { Injectable } from '@nestjs/common';
@@ -18,6 +22,11 @@ import {
   FREE_TRIAL_EXPIRY_LOCK_TTL_SECONDS,
   FREE_TRIAL_EXPIRY_PAGE_SIZE,
 } from '@workers/crons/credits/free-trial-expiry.constants';
+import {
+  LIFETIME_DEAL_CREDIT_GRANT_LOCK_KEY,
+  LIFETIME_DEAL_CREDIT_GRANT_LOCK_TTL_SECONDS,
+  LIFETIME_DEAL_CREDIT_GRANT_PAGE_SIZE,
+} from '@workers/crons/credits/lifetime-deal-credit-grant.constants';
 
 export type FreeTrialExpiryTotals = {
   expiredCredits: number;
@@ -27,7 +36,7 @@ export type FreeTrialExpiryTotals = {
 
 /**
  * Platform-scheduled credit maintenance: referral rewards, trial expiry and
- * paid creator subscription renewals.
+ * paid creator subscription renewals and lifetime-deal credit grants.
  */
 @Injectable()
 export class CronCreditsService {
@@ -39,6 +48,7 @@ export class CronCreditsService {
     private readonly cacheService: CacheService,
     private readonly logger: LoggerService,
     private readonly creatorSubscriptionsService: CreatorSubscriptionsService,
+    private readonly lifetimeDealService: LifetimeDealService,
   ) {}
 
   settleReferralRewards(): Promise<void> {
@@ -98,6 +108,39 @@ export class CronCreditsService {
       return totals;
     } finally {
       await this.cacheService.releaseLock(FREE_TRIAL_EXPIRY_LOCK_KEY);
+    }
+  }
+
+  /**
+   * Grants the monthly credits every lifetime-deal seat has fallen due for.
+   * Each grant is keyed by seat and due date and each seat moves its own due
+   * date, so a re-run changes nothing and a failing seat is retried next tick.
+   * Returns null when another worker holds the sweep.
+   */
+  async grantLifetimeDealCredits(
+    now: Date = new Date(),
+  ): Promise<LifetimeGrantTotals | null> {
+    const isAcquired = await this.cacheService.acquireLock(
+      LIFETIME_DEAL_CREDIT_GRANT_LOCK_KEY,
+      LIFETIME_DEAL_CREDIT_GRANT_LOCK_TTL_SECONDS,
+    );
+    if (!isAcquired) {
+      return null;
+    }
+    try {
+      const totals = await this.lifetimeDealService.grantAllDueCredits(
+        now,
+        LIFETIME_DEAL_CREDIT_GRANT_PAGE_SIZE,
+      );
+      if (totals.seats > 0) {
+        this.logger.log('Lifetime deal credit sweep finished', {
+          ...this.context,
+          ...totals,
+        });
+      }
+      return totals;
+    } finally {
+      await this.cacheService.releaseLock(LIFETIME_DEAL_CREDIT_GRANT_LOCK_KEY);
     }
   }
 

@@ -49,6 +49,14 @@ const navigation = vi.hoisted(() => ({
   pathname: '/acme/~/agent/thread-1',
   searchParams: new URLSearchParams(),
 }));
+// Organization settings the shell reads to decide whether the Agent app is
+// released; a cloud organization without release preview has not got it.
+const organization = vi.hoisted(() => ({
+  settings: {
+    hasOrganizationBilling: true,
+    isReleasePreviewEnabled: true,
+  } as { hasOrganizationBilling: boolean; isReleasePreviewEnabled?: boolean },
+}));
 const router = vi.hoisted(() => ({
   back: vi.fn(),
   push: vi.fn(),
@@ -281,6 +289,8 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
       },
     ],
     organizationId: 'org-1',
+    settings: organization.settings,
+    settingsLoading: false,
   }),
 }));
 
@@ -485,6 +495,15 @@ vi.mock('@/features/workflows/workspace/WorkflowPickerOverlay', () => ({
       </button>
     </div>
   ),
+}));
+
+// The roster needs a query client and a session; its own spec covers it.
+vi.mock('./use-agent-thread-members', () => ({
+  useAgentThreadMembers: () => ({
+    isLoading: false,
+    members: [],
+    membersById: new Map(),
+  }),
 }));
 
 vi.mock('./use-conversation-scope-controls', () => ({
@@ -698,6 +717,10 @@ describe('UniversalWorkspaceShell', () => {
   beforeEach(() => {
     navigation.pathname = '/acme/~/agent/thread-1';
     navigation.searchParams = new URLSearchParams();
+    organization.settings = {
+      hasOrganizationBilling: true,
+      isReleasePreviewEnabled: true,
+    };
     agentState.activeThreadId = 'thread-1';
     agentState.threads[0].brandId = 'brand-1';
     agentState.threads[0].contextVersion = 3;
@@ -869,15 +892,15 @@ describe('UniversalWorkspaceShell', () => {
 
     const layoutRoot = screen.getByTestId('layout-root');
     const aside = container.querySelector('#workspace-context-inspector');
-    // Open: a detached card beside the page block, with its own border and
-    // rounding; the panel starts under the full-width topbar.
+    // Open: flush against the page block, its left border the divider and its
+    // left corners square; the panel starts under the full-width topbar.
     expect(layoutRoot).toHaveAttribute('data-inspector-open', 'true');
     expect(
       layoutRoot.style.getPropertyValue('--workspace-inspector-width'),
     ).toBe('400px');
     expect(aside).toHaveClass(
       'bg-background',
-      'rounded-lg',
+      'rounded-l-none',
       'border',
       'border-border',
     );
@@ -2081,6 +2104,22 @@ describe('UniversalWorkspaceShell', () => {
       expect(router.push).toHaveBeenCalledWith(
         expect.stringMatching(/^\/acme\/moonrise\/agent\//),
       );
+    });
+
+    it('keeps the dock and hides Open full page while the Agent app is not released', async () => {
+      organization.settings = {
+        hasOrganizationBilling: true,
+        isReleasePreviewEnabled: false,
+      };
+      navigation.pathname = '/acme/moonrise/workspace';
+      renderWithDock();
+      await waitFor(() => expect(dock?.isAvailable).toBe(true));
+      act(() => dock?.open());
+
+      expect(screen.getByRole('button', { name: 'New thread' })).toBeVisible();
+      expect(
+        screen.queryByRole('button', { name: 'Open full page' }),
+      ).toBeNull();
     });
 
     it('attaches a record to the dock draft with its brand and opens the dock', async () => {

@@ -5,7 +5,7 @@ import {
   ReviewDecision,
 } from '@genfeedai/contracts';
 import type { IPost } from '@genfeedai/contracts/interfaces';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
 import { useEffect } from 'react';
@@ -42,8 +42,18 @@ vi.mock('@genfeedai/helpers/formatting/timezone/timezone.helper', () => ({
 }));
 
 vi.mock('next/link', () => ({
-  default: ({ children, href }: { children: ReactNode; href: string }) => (
-    <a href={href}>{children}</a>
+  default: ({
+    children,
+    href,
+    ...props
+  }: {
+    children: ReactNode;
+    href: string;
+    'aria-label'?: string;
+  }) => (
+    <a href={href} {...props}>
+      {children}
+    </a>
   ),
 }));
 
@@ -127,7 +137,11 @@ describe('PostDetailSidebar', () => {
       <PostDetailSidebar
         {...baseProps}
         credential={
-          { externalHandle: 'genfeed', label: 'Main account' } as never
+          {
+            externalAvatar: 'https://example.com/avatar.png',
+            externalHandle: 'genfeed',
+            externalName: 'Main account',
+          } as never
         }
         post={
           {
@@ -144,7 +158,10 @@ describe('PostDetailSidebar', () => {
     );
 
     const destination = screen.getByTestId('post-destination');
-    expect(screen.getAllByText('Instagram')).toHaveLength(1);
+    expect(
+      within(destination).getByRole('img', { name: 'Instagram' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Instagram')).not.toBeInTheDocument();
     expect(screen.getAllByText(/@genfeed/)).toHaveLength(1);
     expect(destination).toHaveTextContent('Main account');
     expect(destination).toHaveTextContent(PostStatus.SCHEDULED);

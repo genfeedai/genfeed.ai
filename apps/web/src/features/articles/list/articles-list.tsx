@@ -33,10 +33,11 @@ import { EmptyState } from '@ui/primitives/empty-state';
 import { Newspaper, Plus } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect } from 'react';
+import { useCallback } from 'react';
 import { LazyModalArticle } from '@/components/lazy/modal/LazyModal';
 import ArticleTrafficPanel from '@/features/articles/analytics/article-traffic-panel';
 import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
+import { useNotifyOnLoadError } from '@/hooks/utils/use-notify-on-load-error/use-notify-on-load-error';
 
 interface ArticlesListProps {
   status?: string;
@@ -132,12 +133,12 @@ export default function ArticlesList({ status = 'draft' }: ArticlesListProps) {
   }, [refetch]);
 
   // One toast per failed read, after its retry, not one per attempt.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: errorUpdatedAt marks each new failed read.
-  useEffect(() => {
-    if (isError) {
-      NotificationsService.getInstance().error(translate('loadError'));
-    }
-  }, [errorUpdatedAt, isError, translate]);
+  useNotifyOnLoadError({
+    errorUpdatedAt,
+    hasError: isError,
+    notify: () =>
+      NotificationsService.getInstance().error(translate('loadError')),
+  });
 
   /** Refinement belongs to the artifact — open the article's own editor page. */
   function getRowLink(article: Article): TableRowLink {

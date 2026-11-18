@@ -457,3 +457,64 @@ describe('ActivitiesService generation hydration', () => {
     );
   });
 });
+
+describe('ActivitiesService unread count', () => {
+  type Row = {
+    data: Record<string, unknown> | null;
+    isDeleted: boolean;
+    organizationId: string;
+  };
+  type Where = {
+    data?: { equals: boolean; path: string[] };
+    isDeleted?: boolean;
+    organizationId?: string;
+  };
+
+  function makeService(rows: Row[]) {
+    const activity = {
+      count: async ({ where }: { where: Where }) =>
+        rows.filter(
+          (row) =>
+            row.isDeleted === (where.isDeleted ?? false) &&
+            row.organizationId === where.organizationId &&
+            (where.data === undefined ||
+              row.data?.[where.data.path[0]] === where.data.equals),
+        ).length,
+      findFirst: async () => {
+        throw new Error('unread count must not read activity rows');
+      },
+      findMany: async () => {
+        throw new Error('unread count must not read activity rows');
+      },
+    };
+    return new ActivitiesService(
+      { activity } as never,
+      { debug: vi.fn(), error: vi.fn() } as never,
+    );
+  }
+
+  it('counts active rows whose read state is missing or false', async () => {
+    const service = makeService([
+      { data: { isRead: true }, isDeleted: false, organizationId: 'org-1' },
+      { data: { isRead: false }, isDeleted: false, organizationId: 'org-1' },
+      { data: {}, isDeleted: false, organizationId: 'org-1' },
+      { data: null, isDeleted: false, organizationId: 'org-1' },
+      { data: {}, isDeleted: true, organizationId: 'org-1' },
+      { data: {}, isDeleted: false, organizationId: 'org-2' },
+    ]);
+
+    await expect(
+      service.countUnread({ isDeleted: false, organizationId: 'org-1' }),
+    ).resolves.toBe(3);
+  });
+
+  it('returns zero when nothing matches the scope', async () => {
+    const service = makeService([
+      { data: {}, isDeleted: false, organizationId: 'org-2' },
+    ]);
+
+    await expect(
+      service.countUnread({ isDeleted: false, organizationId: 'org-1' }),
+    ).resolves.toBe(0);
+  });
+});

@@ -238,6 +238,7 @@ describe('PublicService', () => {
     );
 
     const pageCases = [
+      ['findPublicBrandsPage', 'brands', Brand],
       ['findPublicPostsPage', 'posts', Post],
       ['findPublicArticlesPage', 'articles', Article],
       ['findPublicIngredientsPage', 'posts/ingredients', Ingredient],

@@ -7,7 +7,7 @@ import { useCommandPalette } from '@/hooks/ui/use-command-palette/use-command-pa
 
 const WHITESPACE_RUN_PATTERN = /\s+/;
 
-export interface AgentThreadCommandItem {
+interface AgentThreadCommandItem {
   id: string;
   title?: string;
   lastMessage?: string;
@@ -54,6 +54,7 @@ export function useAgentThreadCommands({
     [threads, onNavigate],
   );
 
+  // use-effect-audit: ignore registers the commands with the command palette
   useEffect(() => {
     const previousCommands = previousCommandsRef.current;
 
@@ -107,6 +108,7 @@ export function useAgentThreadCommands({
     previousCommandsRef.current = nextCommands;
   }, [commands, registerCommands, unregisterCommands]);
 
+  // use-effect-audit: ignore releases timers, requests or subscriptions on unmount
   useEffect(() => {
     return () => {
       const registeredIds = [...previousCommandsRef.current.keys()];

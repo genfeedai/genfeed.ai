@@ -3,6 +3,10 @@
 import { AgentChatInput } from '@genfeedai/agent/components/AgentChatInput';
 import { AgentChatMessage } from '@genfeedai/agent/components/AgentChatMessage';
 import {
+  type AgentHandoffActions,
+  AgentHandoffProvider,
+} from '@genfeedai/agent/components/AgentHandoffContext';
+import {
   AgentPlanCard,
   type AgentPlanDecision,
 } from '@genfeedai/agent/components/AgentPlanCard';
@@ -14,27 +18,63 @@ import {
 import type { AgentChatMessage as AgentChatMessageModel } from '@genfeedai/agent/models/agent-chat.model';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import { deriveLatestProposedPlan } from '@genfeedai/agent/utils/resolve-latest-proposed-plan.util';
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import {
+  AgentThreadAccessLevel,
+  AgentThreadShareScope,
+  ButtonSize,
+  ButtonVariant,
+  ComponentSize,
+} from '@genfeedai/contracts';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import PromptBarContainer from '@ui/layout/prompt-bar-container/PromptBarContainer';
+import { Avatar } from '@ui/primitives/avatar';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@ui/primitives/dropdown-menu';
+import Spinner from '@ui/primitives/spinner';
 import {
   ArchiveRestore,
   CheckCheck,
   ChevronRight,
+  Ellipsis,
   Expand,
+  Forward,
+  Lock,
+  TriangleAlert,
+  Users,
   Video,
 } from 'lucide-react';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { AgentThreadLightViewProps } from '@/components/workspace-shell/props/agent-threads-panel.props';
+import AgentThreadHandoffDialog from '@/components/workspace-shell/AgentThreadHandoffDialog';
+import AgentThreadShareDialog from '@/components/workspace-shell/AgentThreadShareDialog';
+import type {
+  AgentThreadLightViewProps,
+  AgentThreadMember,
+} from '@/components/workspace-shell/props/agent-threads-panel.props';
+import { useAgentThreadShares } from '@/components/workspace-shell/use-agent-thread-shares';
 import { collectThreadAssets } from './agent-thread-assets.util';
 
 const MESSAGE_LIMIT = 20;
 // While the thread runs, its transcript is re-read this often so the work
 // shows up here as it lands instead of only after a reload.
 const RUNNING_REFRESH_MS = 4000;
+const NO_MEMBERS: AgentThreadMember[] = [];
+const NO_MEMBERS_BY_ID: ReadonlyMap<string, AgentThreadMember> = new Map();
+
+function resolveAuthor(
+  member: AgentThreadMember | undefined,
+): { avatarUrl: string | null; name: string } | undefined {
+  return member
+    ? { avatarUrl: member.avatarUrl, name: member.name }
+    : undefined;
+}
 
 /**
  * A thread seen from the master's Threads panel, laid out like the master
@@ -43,12 +83,17 @@ const RUNNING_REFRESH_MS = 4000;
  */
 export default function AgentThreadLightView({
   apiService,
+  isMembersFailed = false,
+  isMembersLoading = false,
   isPending = false,
   isResolved = false,
+  members = NO_MEMBERS,
+  membersById = NO_MEMBERS_BY_ID,
   onBack,
   onOpenFullThread,
   onReopen,
   onResolve,
+  onRetryMembers,
   thread,
 }: AgentThreadLightViewProps) {
   const translate = useTranslations('common.agentThreads');
@@ -67,6 +112,20 @@ export default function AgentThreadLightView({
   } | null>(null);
   const decidedPlanId = decidedPlan?.id ?? null;
   const updateThread = useAgentChatStore((state) => state.updateThread);
+  const [isShareOpen, setIsShareOpen] = useState(false);
+  const [isHandoffOpen, setIsHandoffOpen] = useState(false);
+  const [handoffTo, setHandoffTo] = useState<string | null>(null);
+  const canManageShares = thread.canManageShares === true;
+  const access = useAgentThreadShares(apiService, thread.id, canManageShares);
+  const shares = access.shares;
+  // The viewer's own level: anything but a share reads as owner, which is how
+  // an older API answered before sharing existed.
+  const accessLevel = thread.accessLevel ?? AgentThreadAccessLevel.OWNER;
+  const isOwnThread = accessLevel === AgentThreadAccessLevel.OWNER;
+  const canPrompt = accessLevel !== AgentThreadAccessLevel.VIEW;
+  const ownerName = thread.userId
+    ? membersById.get(thread.userId)?.name
+    : undefined;
 
   const status = getThreadStatusMeta(thread);
   const assets = useMemo(
@@ -106,16 +165,33 @@ export default function AgentThreadLightView({
     [apiService, thread.id],
   );
 
+  // use-effect-audit: ignore abortable work
   useEffect(() => {
     const controller = new AbortController();
     void loadMessages(controller.signal);
     return () => controller.abort();
   }, [loadMessages]);
 
+  // What a hand-off card needs: answer the request, and name the teammate.
+  // Answering reloads the thread so the run it starts shows up here.
+  const handoffActions = useMemo<AgentHandoffActions>(
+    () => ({
+      accept: async (transferId) => {
+        const transfer = await apiService.acceptAgentTransfer(transferId);
+        void loadMessages(new AbortController().signal);
+        return transfer;
+      },
+      decline: (transferId) => apiService.declineAgentTransfer(transferId),
+      nameOf: (userId) => membersById.get(userId)?.name,
+    }),
+    [apiService, loadMessages, membersById],
+  );
+
   // A running thread (for example right after its plan was approved) shows
   // its new messages as they land, and once more when the run settles.
   const isWorking = status?.tone === 'running';
   const wasWorkingRef = useRef(isWorking);
+  // use-effect-audit: ignore interval timer outside React
   useEffect(() => {
     const controller = new AbortController();
     if (wasWorkingRef.current && !isWorking) {
@@ -211,7 +287,7 @@ export default function AgentThreadLightView({
   );
 
   const planDecision: AgentPlanDecision | undefined =
-    latestPlan && !isResolved && latestPlan.id !== decidedPlanId
+    canPrompt && latestPlan && !isResolved && latestPlan.id !== decidedPlanId
       ? {
           isBusy: isDeciding,
           onApprove: async () => {
@@ -231,6 +307,66 @@ export default function AgentThreadLightView({
     latestPlan.status === 'awaiting_approval'
       ? { ...latestPlan, status: 'approved' as const }
       : latestPlan;
+
+  // A thread with one author names no one; once a second member has written
+  // in it (or it is shared), each member's turn names its
+  // author.
+  const authorIds = useMemo(
+    () =>
+      new Set(
+        messages
+          .filter((message) => message.role === 'user' && message.userId)
+          .map((message) => message.userId),
+      ),
+    [messages],
+  );
+  const isConfirmed = access.status === 'ready';
+  const isShared = isConfirmed && shares.length > 0;
+  const isMultiAuthor = authorIds.size > 1 || !isOwnThread || isShared;
+  const participants = useMemo(() => {
+    const ids = new Set<string>(
+      [
+        thread.userId,
+        ...shares
+          .filter((share) => share.scope === AgentThreadShareScope.MEMBER)
+          .map((share) => share.targetUserId),
+        ...authorIds,
+      ].filter((id): id is string => Boolean(id)),
+    );
+    return [...ids]
+      .map((id) => membersById.get(id))
+      .filter((member): member is AgentThreadMember => Boolean(member));
+  }, [authorIds, membersById, shares, thread.userId]);
+  const shareScopeLabel = (() => {
+    if (shares.some((s) => s.scope === AgentThreadShareScope.ORGANIZATION)) {
+      return translate('share.scopeOrganization');
+    }
+    if (shares.some((s) => s.scope === AgentThreadShareScope.BRAND)) {
+      return thread.brandLabel?.trim() || translate('share.scopeBrand');
+    }
+    return shares.length > 0
+      ? translate('share.scopePeople', { count: shares.length })
+      : translate('share.scopePrivate');
+  })();
+
+  // Private is only claimed once the server has confirmed it.
+  const shareButtonLabel = isConfirmed
+    ? shareScopeLabel
+    : translate(
+        access.status === 'loading'
+          ? 'share.checkingAccess'
+          : 'share.accessUnverified',
+      );
+  const shareButtonIcon =
+    access.status === 'loading' ? (
+      <Spinner ariaLabel={shareButtonLabel} size={ComponentSize.XS} />
+    ) : !isConfirmed ? (
+      <TriangleAlert className="size-4" />
+    ) : isShared ? (
+      <Users className="size-4" />
+    ) : (
+      <Lock className="size-4" />
+    );
 
   const title = thread.title?.trim() || translate('untitled');
   const toggleLabel = translate(isResolved ? 'reopen' : 'resolve');
@@ -270,6 +406,66 @@ export default function AgentThreadLightView({
               : (status?.label ?? translate('statusIdle'))}
           </span>
         </nav>
+        {canManageShares ? (
+          <>
+            {isShared && participants.length > 1 ? (
+              <div
+                className="flex items-center gap-1"
+                data-testid="agent-thread-participants"
+              >
+                {participants.map((member) => (
+                  <Avatar
+                    key={member.userId}
+                    name={member.name}
+                    size="sm"
+                    src={member.avatarUrl}
+                  />
+                ))}
+              </div>
+            ) : null}
+            <Button
+              data-testid="agent-thread-share-button"
+              onClick={() => setIsShareOpen(true)}
+              size={ButtonSize.SM}
+              textTransform="none"
+              variant={ButtonVariant.SECONDARY}
+            >
+              {shareButtonIcon}
+              {shareButtonLabel}
+            </Button>
+          </>
+        ) : !isOwnThread ? (
+          <Badge data-testid="agent-thread-access-badge" variant="secondary">
+            {ownerName
+              ? translate('share.accessBadge', {
+                  level: translate(
+                    canPrompt ? 'share.canPrompt' : 'share.canView',
+                  ),
+                  owner: ownerName,
+                })
+              : translate(canPrompt ? 'share.canPrompt' : 'share.canView')}
+          </Badge>
+        ) : null}
+        {isOwnThread ? (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                ariaLabel={translate('moreActions')}
+                data-testid="agent-thread-more"
+                icon={<Ellipsis className="size-4" />}
+                size={ButtonSize.ICON}
+                variant={ButtonVariant.GHOST}
+                withWrapper={false}
+              />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="min-w-48">
+              <DropdownMenuItem onSelect={() => setIsHandoffOpen(true)}>
+                <Forward className="size-4" />
+                {translate('handoff.action')}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ) : null}
         {onToggleResolved ? (
           <Button
             ariaLabel={toggleLabel}
@@ -303,40 +499,64 @@ export default function AgentThreadLightView({
       </header>
 
       <div className={AGENT_CONVERSATION_SCROLL_CLASS}>
-        <div
-          className={cn(AGENT_CONVERSATION_TRACK_CLASS, 'grow space-y-1 pt-4')}
-        >
-          {isLoading && messages.length === 0 ? (
-            <p className="text-sm text-muted-foreground" role="status">
-              {translate('loadingMessages')}
-            </p>
-          ) : hasLoadFailed ? (
-            <p className="text-sm text-destructive" role="alert">
-              {translate('loadFailed')}
-            </p>
-          ) : messages.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              {translate('noMessages')}
-            </p>
-          ) : (
-            messages.map((message, index) => (
-              <AgentChatMessage
-                isReadOnly={isResolved}
-                key={message.id}
-                message={message}
-                messageIndex={index}
-              />
-            ))
-          )}
-          {displayedPlan ? (
-            <AgentPlanCard decision={planDecision} plan={displayedPlan} />
-          ) : null}
-          {hasDecisionFailed ? (
-            <p className="text-sm text-destructive" role="alert">
-              {translate('planDecisionFailed')}
-            </p>
-          ) : null}
-        </div>
+        <AgentHandoffProvider value={handoffActions}>
+          <div
+            className={cn(
+              AGENT_CONVERSATION_TRACK_CLASS,
+              'grow space-y-1 pt-4',
+            )}
+          >
+            {isLoading && messages.length === 0 ? (
+              <p className="text-sm text-muted-foreground" role="status">
+                {translate('loadingMessages')}
+              </p>
+            ) : hasLoadFailed ? (
+              <p className="text-sm text-destructive" role="alert">
+                {translate('loadFailed')}
+              </p>
+            ) : messages.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                {translate('noMessages')}
+              </p>
+            ) : (
+              messages.map((message, index) => (
+                <AgentChatMessage
+                  author={
+                    isMultiAuthor &&
+                    message.role === 'user' &&
+                    message.userId &&
+                    (index === 0 ||
+                      messages[index - 1]?.userId !== message.userId ||
+                      messages[index - 1]?.role !== 'user')
+                      ? resolveAuthor(membersById.get(message.userId))
+                      : undefined
+                  }
+                  isReadOnly={isResolved}
+                  key={message.id}
+                  message={message}
+                  messageIndex={index}
+                />
+              ))
+            )}
+            {displayedPlan ? (
+              <AgentPlanCard decision={planDecision} plan={displayedPlan} />
+            ) : null}
+            {hasDecisionFailed ? (
+              <p className="text-sm text-destructive" role="alert">
+                {translate('planDecisionFailed')}
+              </p>
+            ) : null}
+            {handoffTo ? (
+              <p
+                className="text-center text-xs text-muted-foreground"
+                data-testid="agent-thread-handoff-sent"
+                role="status"
+              >
+                {translate('handoff.sent', { name: handoffTo })}
+              </p>
+            ) : null}
+          </div>
+        </AgentHandoffProvider>
       </div>
 
       {assets.length > 0 ? (
@@ -372,36 +592,82 @@ export default function AgentThreadLightView({
         </ul>
       ) : null}
 
-      <div className="shrink-0 px-4 pb-4">
-        <PromptBarContainer
-          className="mx-auto w-full max-w-3xl"
-          layoutMode="inflow"
-          maxWidth="full"
-          topContent={
-            isResolved || hasSteerFailed ? (
-              <p
-                className={cn(
-                  'mb-2 text-xs',
-                  hasSteerFailed ? 'text-destructive' : 'text-muted-foreground',
-                )}
-                role={hasSteerFailed ? 'alert' : 'status'}
-              >
-                {hasSteerFailed
-                  ? translate('steerFailed')
-                  : translate('reopenToSteer')}
-              </p>
-            ) : undefined
-          }
+      {!canPrompt ? (
+        <p
+          className="shrink-0 px-6 pb-4 text-xs text-muted-foreground"
+          data-testid="agent-thread-view-only"
         >
-          <AgentChatInput
-            disabled={isSending || isResolved}
-            isAgentControlsHidden
-            key={thread.id}
-            onSend={handleSteer}
-            placeholder={translate('steerPlaceholder')}
-          />
-        </PromptBarContainer>
-      </div>
+          {ownerName
+            ? translate('share.viewOnlyNamed', { owner: ownerName })
+            : translate('share.viewOnly')}
+        </p>
+      ) : (
+        <div className="shrink-0 px-4 pb-4">
+          <PromptBarContainer
+            className="mx-auto w-full max-w-3xl"
+            layoutMode="inflow"
+            maxWidth="full"
+            topContent={
+              isResolved || hasSteerFailed ? (
+                <p
+                  className={cn(
+                    'mb-2 text-xs',
+                    hasSteerFailed
+                      ? 'text-destructive'
+                      : 'text-muted-foreground',
+                  )}
+                  role={hasSteerFailed ? 'alert' : 'status'}
+                >
+                  {hasSteerFailed
+                    ? translate('steerFailed')
+                    : translate('reopenToSteer')}
+                </p>
+              ) : undefined
+            }
+          >
+            <AgentChatInput
+              disabled={isSending || isResolved}
+              isAgentControlsHidden
+              key={thread.id}
+              onSend={handleSteer}
+              placeholder={translate(
+                isMultiAuthor
+                  ? 'share.steerPlaceholderShared'
+                  : 'steerPlaceholder',
+              )}
+            />
+          </PromptBarContainer>
+        </div>
+      )}
+      {isOwnThread ? (
+        <AgentThreadHandoffDialog
+          apiService={apiService}
+          isOpen={isHandoffOpen}
+          members={members}
+          onOpenChange={setIsHandoffOpen}
+          onSent={(name) => {
+            setHandoffTo(name);
+            void loadMessages(new AbortController().signal);
+          }}
+          thread={thread}
+        />
+      ) : null}
+      {canManageShares ? (
+        <AgentThreadShareDialog
+          access={access}
+          apiService={apiService}
+          isMembersFailed={isMembersFailed}
+          isMembersLoading={isMembersLoading}
+          isOpen={isShareOpen}
+          members={members}
+          onAccessConfirmed={access.confirm}
+          onAccessUnverified={access.markUnverified}
+          onOpenChange={setIsShareOpen}
+          onRetryAccess={access.retry}
+          onRetryMembers={onRetryMembers}
+          thread={thread}
+        />
+      ) : null}
     </div>
   );
 }

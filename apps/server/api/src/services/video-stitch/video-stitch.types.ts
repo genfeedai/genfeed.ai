@@ -8,16 +8,16 @@ import type {
  * `after_merge` fits the joined video to the dimensions; `per_clip` scales
  * every clip first, for clips of mixed sizes (storyboard runs).
  */
-export type VideoStitchResizeMode = 'after_merge' | 'per_clip';
+type VideoStitchResizeMode = 'after_merge' | 'per_clip';
 
 /**
  * `join` stitches two or more clips. `finalize` turns a finished sequence
  * (an interpolation batch, a storyboard run) into its deliverable, which may
  * be a single clip.
  */
-export type VideoStitchMode = 'join' | 'finalize';
+type VideoStitchMode = 'join' | 'finalize';
 
-export interface VideoStitchOutput {
+interface VideoStitchOutput {
   height: number;
   resize: VideoStitchResizeMode;
   width: number;

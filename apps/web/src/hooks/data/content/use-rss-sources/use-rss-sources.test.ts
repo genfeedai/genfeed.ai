@@ -60,16 +60,22 @@ describe('useRssSources', () => {
   it('does not fetch when signed out', () => {
     mockUseAuthIdentity.mockReturnValue({ isSignedIn: false });
 
-    renderHook(() => useRssSources(), { wrapper: createQueryWrapper() });
+    const { result } = renderHook(() => useRssSources(), {
+      wrapper: createQueryWrapper(),
+    });
 
+    expect(result.current.sources).toEqual([]);
     expect(mockGetService).not.toHaveBeenCalled();
   });
 
   it('does not fetch without a brand id', () => {
     mockUseCollectionScope.mockReturnValue({ brandId: undefined });
 
-    renderHook(() => useRssSources(), { wrapper: createQueryWrapper() });
+    const { result } = renderHook(() => useRssSources(), {
+      wrapper: createQueryWrapper(),
+    });
 
+    expect(result.current.sources).toEqual([]);
     expect(mockGetService).not.toHaveBeenCalled();
   });
 

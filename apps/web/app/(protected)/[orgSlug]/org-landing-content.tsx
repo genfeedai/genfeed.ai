@@ -179,6 +179,7 @@ export default function OrgLandingContent() {
       ? ViewType.LIST
       : ViewType.GRID;
 
+  // use-effect-audit: ignore redirects the route in the router
   useEffect(() => {
     if (!isReady || isCurrentUserLoading || !currentUser || hasNoBrandAccess) {
       return;

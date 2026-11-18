@@ -26,6 +26,7 @@ function RemixDeepLink() {
   const postId = searchParams.get(REMIX_POST_PARAM);
   const sourcePostId = searchParams.get(REMIX_SOURCE_POST_PARAM);
 
+  // use-effect-audit: ignore opens the remix from the link and clears the link from the route
   useEffect(() => {
     const selector: BrandRemixSourceSelector | null = postId
       ? { kind: 'owned_post', postId }

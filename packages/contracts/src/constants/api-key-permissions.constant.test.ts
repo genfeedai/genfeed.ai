@@ -30,6 +30,8 @@ describe('API key permission registry', () => {
     [{ images: 'none', videos: 'none' }, []],
     [{ 'post-drafts': 'write' }, ['posts:draft']],
     [{ brands: 'write' }, ['brands:read', 'brands:write']],
+    [{ models3d: 'read' }, ['models3d:read']],
+    [{ models3d: 'write' }, ['models3d:read', 'models3d:write']],
     [{ analytics: 'write' }, []],
     [{ 'post-drafts': 'read' }, []],
     [{ nonexistent: 'write' }, []],
@@ -64,6 +66,8 @@ describe('API key permission registry', () => {
 
   it('keeps Brands Write out of the self-service scopes', () => {
     expect(SELF_SERVICE_API_KEY_SCOPES).not.toContain('brands:write');
+    expect(SELF_SERVICE_API_KEY_SCOPES).not.toContain('models3d:read');
+    expect(SELF_SERVICE_API_KEY_SCOPES).not.toContain('models3d:write');
   });
 
   it('shows the read preset as Read on every readable resource', () => {
@@ -75,6 +79,7 @@ describe('API key permission registry', () => {
       credits: 'read',
       'direct-publishing': 'none',
       images: 'read',
+      models3d: 'none',
       'post-drafts': 'none',
       'post-scheduling': 'none',
       posts: 'read',
@@ -95,6 +100,7 @@ describe('API key permission registry', () => {
       credits: 'none',
       'direct-publishing': 'none',
       images: 'write',
+      models3d: 'none',
       'post-drafts': 'write',
       'post-scheduling': 'none',
       posts: 'read',

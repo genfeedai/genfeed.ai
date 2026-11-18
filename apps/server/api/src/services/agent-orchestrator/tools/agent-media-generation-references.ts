@@ -31,7 +31,7 @@ export function readMediaReferenceStrings(
 }
 
 /** Most reference images the agent sends to the model. */
-export function maxMediaReferences(modelKey?: string): number {
+function maxMediaReferences(modelKey?: string): number {
   const catalogLimit =
     modelKey && modelKey in MODEL_OUTPUT_CAPABILITIES
       ? MODEL_OUTPUT_CAPABILITIES[
@@ -43,10 +43,7 @@ export function maxMediaReferences(modelKey?: string): number {
     : 8;
 }
 
-export function capMediaReferences(
-  references: string[],
-  modelKey?: string,
-): string[] {
+function capMediaReferences(references: string[], modelKey?: string): string[] {
   return references.slice(0, maxMediaReferences(modelKey));
 }
 

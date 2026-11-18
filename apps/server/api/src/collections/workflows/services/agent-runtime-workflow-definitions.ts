@@ -3,6 +3,7 @@ import type {
   WorkflowVisualNode,
 } from '@api/collections/workflows/schemas/workflow.schema';
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-definition';
+import { SystemWorkflowRetention } from '@api/collections/workflows/workflow-execution-retention.contract';
 import { createGenfeedActionNode } from '@genfeedai/actions';
 
 export const AGENT_RUNTIME_WORKFLOW_IDS = {
@@ -128,6 +129,7 @@ export function buildAgentTurnWorkflowDefinition(): SystemWorkflowGraphDefinitio
       'Executes one durable agent turn through registered preparation, inference, finalization, and failure actions.',
     label: 'Execute Agent Turn',
     resultNodeId: finalize.id,
+    retention: SystemWorkflowRetention.KEPT,
     version: 2,
   };
 }
@@ -162,11 +164,12 @@ function singleActionWorkflow(options: {
     description: options.description,
     label: options.label,
     resultNodeId: execute.id,
+    retention: SystemWorkflowRetention.KEPT,
     version: 1,
   };
 }
 
-export function buildAgentUiActionWorkflowDefinition(): SystemWorkflowGraphDefinition {
+function buildAgentUiActionWorkflowDefinition(): SystemWorkflowGraphDefinition {
   return singleActionWorkflow({
     actionId: AGENT_RUNTIME_ACTION_IDS.UI_ACTION,
     canonicalId: AGENT_RUNTIME_WORKFLOW_IDS.UI_ACTION,
@@ -185,7 +188,7 @@ export function buildAgentUiActionWorkflowDefinition(): SystemWorkflowGraphDefin
   });
 }
 
-export function buildAgentInputResponseWorkflowDefinition(): SystemWorkflowGraphDefinition {
+function buildAgentInputResponseWorkflowDefinition(): SystemWorkflowGraphDefinition {
   return singleActionWorkflow({
     actionId: AGENT_RUNTIME_ACTION_IDS.INPUT_RESPONSE,
     canonicalId: AGENT_RUNTIME_WORKFLOW_IDS.INPUT_RESPONSE,
@@ -204,7 +207,7 @@ export function buildAgentInputResponseWorkflowDefinition(): SystemWorkflowGraph
   });
 }
 
-export function buildVoiceGenerationWorkflowDefinition(): SystemWorkflowGraphDefinition {
+function buildVoiceGenerationWorkflowDefinition(): SystemWorkflowGraphDefinition {
   return singleActionWorkflow({
     actionId: AGENT_RUNTIME_ACTION_IDS.VOICE_GENERATION,
     canonicalId: AGENT_RUNTIME_WORKFLOW_IDS.VOICE_GENERATION,

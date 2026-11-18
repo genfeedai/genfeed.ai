@@ -71,7 +71,7 @@ describe('PostComposerActions', () => {
       expect(screen.getByRole('button', { name })).toBeInTheDocument();
     }
     expect(
-      screen.queryByRole('button', { name: 'Turn into a thread' }),
+      screen.queryByRole('button', { name: 'Make Thread' }),
     ).not.toBeInTheDocument();
   });
 
@@ -92,7 +92,7 @@ describe('PostComposerActions', () => {
     });
 
     expect(
-      screen.getByRole('button', { name: 'Turn into a thread' }),
+      screen.getByRole('button', { name: 'Make Thread' }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: 'End with @grok' }),
@@ -146,7 +146,7 @@ describe('PostComposerActions', () => {
     const onAddThreadPosts = vi.fn().mockResolvedValue(undefined);
     renderActions({ canDraftThread: true, onAddThreadPosts, onDraftThread });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Turn into a thread' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Make Thread' }));
 
     const proposal = await screen.findByRole('region', {
       name: 'Proposed thread',
@@ -155,9 +155,7 @@ describe('PostComposerActions', () => {
     expect(within(proposal).getByText('Post 3')).toBeInTheDocument();
     expect(onAddThreadPosts).not.toHaveBeenCalled();
 
-    fireEvent.click(
-      within(proposal).getByRole('button', { name: 'Add to thread' }),
-    );
+    fireEvent.click(within(proposal).getByRole('button', { name: 'Add Post' }));
 
     await waitFor(() => {
       expect(onAddThreadPosts).toHaveBeenCalledWith(['Reply one', 'Reply two']);
@@ -174,10 +172,8 @@ describe('PostComposerActions', () => {
       onDraftThread: vi.fn().mockResolvedValue(['Reply one', 'Reply two']),
     });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Turn into a thread' }));
-    fireEvent.click(
-      await screen.findByRole('button', { name: 'Add to thread' }),
-    );
+    fireEvent.click(screen.getByRole('button', { name: 'Make Thread' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Add Post' }));
 
     await waitFor(() => {
       expect(onAddThreadPosts).toHaveBeenCalledOnce();
@@ -196,7 +192,7 @@ describe('PostComposerActions', () => {
       onDraftThread: vi.fn().mockResolvedValue(['Reply one']),
     });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Turn into a thread' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Make Thread' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Discard' }));
 
     expect(onAddThreadPosts).not.toHaveBeenCalled();

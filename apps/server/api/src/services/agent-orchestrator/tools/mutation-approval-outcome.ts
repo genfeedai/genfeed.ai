@@ -28,6 +28,30 @@ export function buildApprovedMutationOutcome(
   args: Record<string, unknown>,
   result: AgentToolResult,
 ): ApprovedMutationOutcome | null {
+  if (toolName === 'create_post' && result.success) {
+    const { id, title, href, executionState, brandId, agentContextVersion } =
+      result.data ?? {};
+    if (
+      executionState !== 'draft' ||
+      typeof id !== 'string' ||
+      !id ||
+      typeof title !== 'string' ||
+      typeof href !== 'string' ||
+      !href.startsWith('/') ||
+      href.startsWith('//') ||
+      !href.endsWith(`/publishing/posts/${encodeURIComponent(id)}`)
+    )
+      return null;
+    const linkTitle = (title || 'Untitled draft').replace(/([\\[\]])/g, '\\$1');
+    const brandContext =
+      typeof brandId === 'string'
+        ? `\n\nBrand: ${brandId}.${typeof agentContextVersion === 'number' ? ` Context version: ${agentContextVersion}.` : ''}`
+        : '';
+    return {
+      content: `Saved unpublished draft [${linkTitle}](${href}).${brandContext}`,
+      nextActions: [],
+    };
+  }
   if (toolName !== 'generate_turbo_content' || !result.success) {
     return null;
   }

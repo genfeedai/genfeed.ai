@@ -159,8 +159,9 @@ describe('BotActivitiesService', () => {
       };
       mockInstance.get.mockResolvedValue({ data: mockStats });
 
-      await service.getStats();
+      const stats = await service.getStats();
 
+      expect(stats).toEqual(mockStats);
       expect(mockInstance.get).toHaveBeenCalledWith('/stats/summary', {
         params: {
           fromDate: undefined,
@@ -198,29 +199,33 @@ describe('BotActivitiesService', () => {
     it('should call findWithFilters with organizationId', async () => {
       mockInstance.get.mockResolvedValue({ data: mockActivitiesData });
 
-      const findWithFiltersSpy = vi.spyOn(service, 'findWithFilters');
-      await service.findByOrganization('org-123');
+      const result = await service.findByOrganization('org-123');
 
-      expect(findWithFiltersSpy).toHaveBeenCalledWith({
-        organizationId: 'org-123',
+      expect(result.total).toBe(50);
+      expect(mockInstance.get).toHaveBeenCalledWith('', {
+        params: {
+          organizationId: 'org-123',
+        },
       });
     });
 
     it('should pass options to findWithFilters', async () => {
       mockInstance.get.mockResolvedValue({ data: mockActivitiesData });
 
-      const findWithFiltersSpy = vi.spyOn(service, 'findWithFilters');
-      await service.findByOrganization('org-123', {
+      const result = await service.findByOrganization('org-123', {
         limit: 50,
         page: 2,
         status: 'failed',
       });
 
-      expect(findWithFiltersSpy).toHaveBeenCalledWith({
-        limit: 50,
-        organizationId: 'org-123',
-        page: 2,
-        status: 'failed',
+      expect(result.total).toBe(50);
+      expect(mockInstance.get).toHaveBeenCalledWith('', {
+        params: {
+          limit: 50,
+          organizationId: 'org-123',
+          page: 2,
+          status: 'failed',
+        },
       });
     });
   });
@@ -229,29 +234,33 @@ describe('BotActivitiesService', () => {
     it('should call findWithFilters with replyBotConfigId', async () => {
       mockInstance.get.mockResolvedValue({ data: mockActivitiesData });
 
-      const findWithFiltersSpy = vi.spyOn(service, 'findWithFilters');
-      await service.findByBotConfig('config-123');
+      const result = await service.findByBotConfig('config-123');
 
-      expect(findWithFiltersSpy).toHaveBeenCalledWith({
-        replyBotConfigId: 'config-123',
+      expect(result.total).toBe(50);
+      expect(mockInstance.get).toHaveBeenCalledWith('', {
+        params: {
+          replyBotConfigId: 'config-123',
+        },
       });
     });
 
     it('should pass options to findWithFilters', async () => {
       mockInstance.get.mockResolvedValue({ data: mockActivitiesData });
 
-      const findWithFiltersSpy = vi.spyOn(service, 'findWithFilters');
-      await service.findByBotConfig('config-123', {
+      const result = await service.findByBotConfig('config-123', {
         limit: 10,
         page: 1,
         status: 'completed',
       });
 
-      expect(findWithFiltersSpy).toHaveBeenCalledWith({
-        limit: 10,
-        page: 1,
-        replyBotConfigId: 'config-123',
-        status: 'completed',
+      expect(result.total).toBe(50);
+      expect(mockInstance.get).toHaveBeenCalledWith('', {
+        params: {
+          limit: 10,
+          page: 1,
+          replyBotConfigId: 'config-123',
+          status: 'completed',
+        },
       });
     });
   });

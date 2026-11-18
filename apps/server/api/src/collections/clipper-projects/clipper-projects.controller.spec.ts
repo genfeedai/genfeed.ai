@@ -363,8 +363,15 @@ describe('ClipperProjectsController', () => {
     vi.mocked(clipperProjectsService.patch).mockResolvedValue(
       createProject(projectId, organizationId),
     );
-    await crudController.update({} as never, currentUser as never, projectId, {
-      sourceVideoS3Key: 'ingredients/videos/owned',
+    const updated = await crudController.update(
+      {} as never,
+      currentUser as never,
+      projectId,
+      { sourceVideoS3Key: 'ingredients/videos/owned' },
+    );
+    expect(updated.data).toMatchObject({
+      id: projectId,
+      type: 'clipper-project',
     });
     expect(clipperProjectsService.patch).toHaveBeenCalledWith(
       projectId,
@@ -747,7 +754,16 @@ describe('ClipperProjectsController', () => {
       queuedClipCount: 1,
     });
 
-    await controller.generateClips(currentUser as never, projectId, dto);
+    const started = await controller.generateClips(
+      currentUser as never,
+      projectId,
+      dto,
+    );
+    expect(started).toEqual({
+      clipCount: 2,
+      clipperResultIds: ['hook-result-1'],
+      status: 'generating',
+    });
 
     expect(clipperGenerationService.generateClips).toHaveBeenCalledWith(
       expect.objectContaining({ hookApprovalRequired: true }),
@@ -813,7 +829,16 @@ describe('ClipperProjectsController', () => {
       queuedClipCount: 1,
     });
 
-    await controller.generateClips(currentUser as never, projectId, dto);
+    const started = await controller.generateClips(
+      currentUser as never,
+      projectId,
+      dto,
+    );
+    expect(started).toEqual({
+      clipCount: 1,
+      clipperResultIds: ['clipper-result-2'],
+      status: 'generating',
+    });
 
     expect(clipperIdentityResolutionService.resolve).toHaveBeenCalledWith({
       avatarId: undefined,
@@ -904,7 +929,16 @@ describe('ClipperProjectsController', () => {
       queuedClipCount: 1,
     });
 
-    await controller.generateClips(currentUser as never, projectId, dto);
+    const started = await controller.generateClips(
+      currentUser as never,
+      projectId,
+      dto,
+    );
+    expect(started).toEqual({
+      clipCount: 1,
+      clipperResultIds: ['clipper-result-1'],
+      status: 'generating',
+    });
 
     expect(clipperGenerationService.generateClips).toHaveBeenCalledWith(
       expect.objectContaining({

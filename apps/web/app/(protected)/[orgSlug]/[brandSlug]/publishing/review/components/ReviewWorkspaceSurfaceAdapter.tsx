@@ -48,11 +48,13 @@ export default function ReviewWorkspaceSurfaceAdapter({
   }, []);
 
   // Every row tap asks for the details, including a tap on the active row.
-  useEffect(() => {
+  const [handledRevealRequest, setHandledRevealRequest] = useState(0);
+  if (revealRequest !== handledRevealRequest) {
+    setHandledRevealRequest(revealRequest);
     if (revealRequest > 0) {
       requestDetails();
     }
-  }, [requestDetails, revealRequest]);
+  }
 
   // Reveal only once the selection is registered again.
   useEffect(() => {
@@ -64,6 +66,7 @@ export default function ReviewWorkspaceSurfaceAdapter({
   }, [isDismissed, isRevealPending, reveal]);
 
   // Explicit "Open in Context" row action.
+  // use-effect-audit: ignore subscribes to browser events
   useEffect(() => {
     const handleForceOpen = (): void => {
       requestDetails();
@@ -81,6 +84,7 @@ export default function ReviewWorkspaceSurfaceAdapter({
     };
   }, [requestDetails]);
 
+  // use-effect-audit: ignore writes the page context into the agent chat store
   useEffect(() => {
     const currentContext = useAgentChatStore.getState().pageContext;
     const baseActions = currentContext?.suggestedActions ?? [];

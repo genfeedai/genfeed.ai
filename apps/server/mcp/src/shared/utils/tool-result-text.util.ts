@@ -211,6 +211,11 @@ function brandLines(
   brandsUrl: string | undefined,
 ): string[] {
   if (typeof profile.brandCount !== 'number') return [];
+  if (
+    profile.brandCount === 0 &&
+    typeof profile.brandAccessMessage === 'string'
+  )
+    return [`Brands: none available to you. ${profile.brandAccessMessage}`];
   if (profile.brandCount === 0)
     return [
       `Brands: none yet. Generation needs a brand: create one in Genfeed${
@@ -230,6 +235,25 @@ function brandLines(
     `Brands (${profile.brandCount}): ${names.join(', ')}${
       remaining > 0 ? `, and ${remaining} more` : ''
     }`,
+  ];
+}
+
+/** The organizations an all-organizations connection can act in; the default is marked. */
+function organizationLines(value: unknown): string[] {
+  const names = (Array.isArray(value) ? value : []).flatMap((organization) =>
+    isRecord(organization) &&
+    typeof organization.name === 'string' &&
+    organization.name
+      ? [
+          organization.isDefault === true
+            ? `${organization.name} (default)`
+            : organization.name,
+        ]
+      : [],
+  );
+  if (names.length < 2) return [];
+  return [
+    `Organizations: ${names.join(', ')}. Name one in the "organization" argument of any tool to act in it.`,
   ];
 }
 
@@ -254,6 +278,7 @@ export function accountToolText(
     if (typeof profile.brandName === 'string' && profile.brandName)
       lines.push(`Active brand: ${profile.brandName}`);
     lines.push(...brandLines(profile, options.brandsUrl));
+    lines.push(...organizationLines(data.organizations));
     if (typeof profile.isOnboardingCompleted === 'boolean')
       lines.push(
         `Account setup: ${profile.isOnboardingCompleted ? 'Complete' : 'Incomplete'}`,

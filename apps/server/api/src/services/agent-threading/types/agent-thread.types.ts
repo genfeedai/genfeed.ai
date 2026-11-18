@@ -1,6 +1,6 @@
 import type { AgentDashboardOperation } from '@genfeedai/contracts/interfaces';
 
-export const AGENT_THREAD_EVENT_TYPES = [
+const AGENT_THREAD_EVENT_TYPES = [
   // A ui-action run acked but not started: it names the run and its source,
   // never the thread's active run (runs queue behind the thread lane).
   'thread.turn_queued',
@@ -29,7 +29,7 @@ export const AGENT_THREAD_EVENT_TYPES = [
 
 export type AgentThreadEventType = (typeof AGENT_THREAD_EVENT_TYPES)[number];
 
-export const AGENT_THREAD_TIMELINE_ENTRY_KINDS = [
+const AGENT_THREAD_TIMELINE_ENTRY_KINDS = [
   'assistant',
   'input',
   'message',
@@ -40,10 +40,10 @@ export const AGENT_THREAD_TIMELINE_ENTRY_KINDS = [
   'error',
 ] as const;
 
-export type AgentThreadTimelineEntryKind =
+type AgentThreadTimelineEntryKind =
   (typeof AGENT_THREAD_TIMELINE_ENTRY_KINDS)[number];
 
-export const AGENT_SESSION_BINDING_STATUSES = [
+const AGENT_SESSION_BINDING_STATUSES = [
   'idle',
   'running',
   'waiting_input',
@@ -55,11 +55,6 @@ export const AGENT_SESSION_BINDING_STATUSES = [
 export type AgentSessionBindingStatus =
   (typeof AGENT_SESSION_BINDING_STATUSES)[number];
 
-export const AGENT_INPUT_REQUEST_STATUSES = ['pending', 'resolved'] as const;
-
-export type AgentInputRequestStatus =
-  (typeof AGENT_INPUT_REQUEST_STATUSES)[number];
-
 export interface AgentPendingApproval {
   requestId: string;
   requestKind: string;
@@ -67,7 +62,7 @@ export interface AgentPendingApproval {
   createdAt: string;
 }
 
-export interface AgentInputOption {
+interface AgentInputOption {
   id: string;
   label: string;
   description?: string;
@@ -75,6 +70,7 @@ export interface AgentInputOption {
 
 export interface AgentPendingInputRequest {
   requestId: string;
+  runId?: string;
   title: string;
   prompt: string;
   allowFreeText?: boolean;

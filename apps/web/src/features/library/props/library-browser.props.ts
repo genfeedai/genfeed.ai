@@ -2,6 +2,7 @@ import type {
   IngredientCategory,
   IngredientOrigin,
   LibraryPlace,
+  LibraryReviewState,
   LibraryShelf,
   PageScope,
   TagMatchMode,
@@ -37,6 +38,11 @@ export interface LibraryBrowserProps {
    * it the unfiltered browser lists generated output only.
    */
   seededOrigins?: readonly IngredientOrigin[];
+  /**
+   * Folds each carousel into one cover tile with its image count. Search lists
+   * every matching image, so a search shows the slides loose again.
+   */
+  isStacked?: boolean;
   /** Header copy for a seeded route. Ignored when `shelf` is set. */
   preset?: LibraryBrowserPreset;
   scope?: PageScope.BRAND | PageScope.ORGANIZATION | PageScope.SUPERADMIN;
@@ -48,7 +54,7 @@ export interface LibraryBrowserProps {
  * still the one browser — the copy just names the preset instead of claiming
  * the operator is looking at everything.
  */
-export interface LibraryBrowserPreset {
+interface LibraryBrowserPreset {
   label: string;
 }
 
@@ -84,6 +90,8 @@ export interface LibraryFilterProps {
   /** Characters available to the active brand. Empty hides the filter. */
   characterOptions: LibraryCharacterOption[];
   origins: IngredientOrigin[];
+  /** Selected teammate-review state (`?review=`). Omitted means any. */
+  review?: LibraryReviewState;
   /** Selected tag ids (`?tags=`). */
   tags: string[];
   /** How the selected tags combine (`?tagMatch=`). */
@@ -93,6 +101,7 @@ export interface LibraryFilterProps {
   onCategoriesChange: (categories: IngredientCategory[]) => void;
   onCharactersChange: (characters: string[]) => void;
   onOriginsChange: (origins: IngredientOrigin[]) => void;
+  onReviewChange: (review: LibraryReviewState | null) => void;
   onTagMatchChange: (tagMatch: TagMatchMode) => void;
   onTagsChange: (tags: string[]) => void;
   /** Resets every filter in one URL update; sort and view are kept. */
@@ -137,6 +146,8 @@ export interface LibraryFilterChoice {
 export interface LibraryFilterModel {
   originChoices: LibraryFilterChoice[];
   placeValue: string;
+  reviewChoices: LibraryFilterChoice[];
+  reviewValue: string;
   statusChoices: LibraryFilterChoice[];
   statusValue: string;
   tagChoices: LibraryFilterChoice[];
@@ -144,6 +155,7 @@ export interface LibraryFilterModel {
   typeValues: string[];
   onOriginValuesChange: (values: string[]) => void;
   onPlaceValueChange: (value: string) => void;
+  onReviewValueChange: (value: string) => void;
   onStatusValueChange: (value: string) => void;
   onTypeValuesChange: (values: string[]) => void;
 }

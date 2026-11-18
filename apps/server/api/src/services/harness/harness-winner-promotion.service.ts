@@ -26,12 +26,6 @@ export type PromoteWinnersParams = {
   platform?: string;
 };
 
-export type PromoteWinnersResult = {
-  contextBaseId: string;
-  promoted: number;
-  skipped: number;
-};
-
 export type WinnerPromotionCandidate = {
   content: string;
   item: PerformanceContentItem;

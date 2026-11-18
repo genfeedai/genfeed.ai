@@ -8,7 +8,7 @@ import { conditionalRequired } from '../helpers';
 export const awsSchema = {
   AWS_ACCESS_KEY_ID: conditionalRequired(),
   AWS_REGION: Joi.string().default('us-west-1'),
-  AWS_S3_BUCKET: Joi.string().default('cdn.genfeed.ai'),
+  AWS_S3_BUCKET: Joi.string().empty('').default('cdn.genfeed.ai'),
   AWS_SECRET_ACCESS_KEY: conditionalRequired(),
 };
 
@@ -18,6 +18,6 @@ export const awsSchema = {
 export const awsOptionalSchema = {
   AWS_ACCESS_KEY_ID: Joi.string().optional().allow(''),
   AWS_REGION: Joi.string().default('us-west-1'),
-  AWS_S3_BUCKET: Joi.string().default('cdn.genfeed.ai'),
+  AWS_S3_BUCKET: Joi.string().empty('').default('cdn.genfeed.ai'),
   AWS_SECRET_ACCESS_KEY: Joi.string().optional().allow(''),
 };

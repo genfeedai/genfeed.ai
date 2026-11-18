@@ -9,7 +9,7 @@ export const AGENT_CONVERSATION_TRANSFER_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      'List safe summaries of active conversations owned by the initiating user and organization. Use this before proposing a cross-conversation handoff.',
+      'List safe summaries of active conversations owned by the initiating user and organization, and the teammates (userId and name) a hand-off from this conversation can reach. Use this before proposing a cross-conversation handoff.',
     name: 'get_agent_conversations',
     parameters: {
       properties: {
@@ -22,7 +22,7 @@ export const AGENT_CONVERSATION_TRANSFER_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      'Transfer bounded context to an authorized conversation. SEND only records and delivers the handoff. SEND_AND_RUN always returns a confirmation card and cannot execute until the user confirms it.',
+      "Transfer bounded context to an authorized conversation. SEND only records and delivers the handoff. SEND_AND_RUN always returns a confirmation card and cannot execute until the user confirms it. Pass destinationUserId (a teammate from get_agent_conversations) with SEND_AND_RUN to hand the task to that teammate's agent: it opens a new conversation for them, and runs with their permissions only once they accept; they can decline.",
     name: 'transfer_agent_conversation',
     parameters: {
       properties: {
@@ -53,6 +53,11 @@ export const AGENT_CONVERSATION_TRANSFER_TOOLS: SourceTool[] = [
         deliveryMode: { enum: ['SEND', 'SEND_AND_RUN'], type: 'string' },
         destinationBrandId: { type: 'string' },
         destinationThreadId: { type: 'string' },
+        destinationUserId: {
+          description:
+            "A teammate's userId from get_agent_conversations. Requires SEND_AND_RUN and no destinationThreadId.",
+          type: 'string',
+        },
         destinationTitle: {
           description: 'Title when creating a new destination conversation.',
           maxLength: 120,

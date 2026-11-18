@@ -93,19 +93,57 @@ export class RedisCacheInterceptor implements NestInterceptor {
 
       this.logger.debug(`Cache miss for key: ${cacheKey}`);
 
+      // Read before the handler runs: an invalidation that lands while the
+      // handler is reading must stop its result from being stored.
+      const epochs = cacheOptions.isInvalidationGuarded
+        ? await this.cacheService.readTagEpochs(cacheOptions.tags ?? [])
+        : null;
+
       const result = await firstValueFrom(next.handle());
 
       if (this.shouldCacheResult(result, cacheOptions)) {
-        await this.cacheService.set(cacheKey, result, {
-          tags: cacheOptions.tags,
-          ttl: cacheOptions.ttl,
-        });
+        // The response is already built, so it does not wait for the Redis
+        // write (SETEX plus one SADD per tag). A failed write only costs the
+        // next request a miss.
+        void this.storeResult(cacheKey, result, cacheOptions, epochs);
       }
 
       return of(result);
     } catch (error: unknown) {
       this.logger.error(`${this.constructorName} failed`, error);
       return next.handle();
+    }
+  }
+
+  private async storeResult(
+    cacheKey: string,
+    result: unknown,
+    cacheOptions: CacheOptions,
+    epochs: string[] | null,
+  ): Promise<void> {
+    try {
+      if (cacheOptions.isInvalidationGuarded) {
+        // Without epochs the cache cannot prove the value is current, so a
+        // guarded response is not stored at all.
+        if (epochs) {
+          await this.cacheService.setUnlessTagsInvalidated(
+            cacheKey,
+            result,
+            { tags: cacheOptions.tags ?? [], ttl: cacheOptions.ttl },
+            epochs,
+          );
+        }
+        return;
+      }
+      await this.cacheService.set(cacheKey, result, {
+        tags: cacheOptions.tags,
+        ttl: cacheOptions.ttl,
+      });
+    } catch (error: unknown) {
+      this.logger.error(
+        `${this.constructorName} failed to store ${cacheKey}`,
+        error,
+      );
     }
   }
 

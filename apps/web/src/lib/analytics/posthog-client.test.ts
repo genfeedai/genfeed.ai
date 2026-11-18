@@ -913,6 +913,7 @@ describe('event taxonomy', () => {
         'generation_completed',
         'generation_started',
         'handle_claimed',
+        'navigation_blocked',
         'onboarding_completed',
         'post_published',
         'public_youtube_clipper_project_claimed',

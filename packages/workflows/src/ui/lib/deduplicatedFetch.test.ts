@@ -61,16 +61,20 @@ describe('deduplicatedFetch', () => {
   });
 
   it('treats different headers as different cache keys', async () => {
-    fetchMock.mockResolvedValue(jsonResponse({ ok: true }));
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse({ key: 'a' }))
+      .mockResolvedValueOnce(jsonResponse({ key: 'b' }));
 
-    await deduplicatedFetch('https://api.test/data', {
+    const first = await deduplicatedFetch('https://api.test/data', {
       headers: { 'X-Key': 'a' },
     });
-    await deduplicatedFetch('https://api.test/data', {
+    const second = await deduplicatedFetch('https://api.test/data', {
       headers: { 'X-Key': 'b' },
     });
 
     expect(fetchMock).toHaveBeenCalledTimes(2);
+    await expect(first.json()).resolves.toEqual({ key: 'a' });
+    await expect(second.json()).resolves.toEqual({ key: 'b' });
   });
 
   it('normalizes Headers instances and tuple arrays to the same key', async () => {
@@ -87,25 +91,31 @@ describe('deduplicatedFetch', () => {
   });
 
   it('clearFetchCache forces a refetch', async () => {
-    fetchMock.mockResolvedValue(jsonResponse({ ok: true }));
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse({ version: 1 }))
+      .mockResolvedValueOnce(jsonResponse({ version: 2 }));
 
     await deduplicatedFetch('https://api.test/data');
     clearFetchCache();
-    await deduplicatedFetch('https://api.test/data');
+    const refetched = await deduplicatedFetch('https://api.test/data');
 
     expect(fetchMock).toHaveBeenCalledTimes(2);
+    await expect(refetched.json()).resolves.toEqual({ version: 2 });
   });
 
   it('expires cache entries after the TTL', async () => {
     vi.useFakeTimers();
     try {
-      fetchMock.mockResolvedValue(jsonResponse({ ok: true }));
+      fetchMock
+        .mockResolvedValueOnce(jsonResponse({ version: 1 }))
+        .mockResolvedValueOnce(jsonResponse({ version: 2 }));
 
       await deduplicatedFetch('https://api.test/data');
       vi.advanceTimersByTime(6000);
-      await deduplicatedFetch('https://api.test/data');
+      const refreshed = await deduplicatedFetch('https://api.test/data');
 
       expect(fetchMock).toHaveBeenCalledTimes(2);
+      await expect(refreshed.json()).resolves.toEqual({ version: 2 });
     } finally {
       vi.useRealTimers();
     }

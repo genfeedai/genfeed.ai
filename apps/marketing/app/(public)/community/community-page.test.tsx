@@ -10,13 +10,11 @@ const findPublicArticlesPage =
   vi.fn<() => Promise<IPaginatedResponse<Article>>>();
 const findPublicVideosPage = vi.fn();
 const findPublicImagesPage = vi.fn();
-const findPublicBrand = vi.fn<() => Promise<Brand | null>>();
 
 vi.mock('@services/external/public.service', () => ({
   PublicService: {
     getInstance: () => ({
       findPublicArticlesPage,
-      findPublicBrand,
       findPublicBrands,
       findPublicImagesPage,
       findPublicVideosPage,
@@ -105,11 +103,16 @@ describe('community page', () => {
       async (query?: { isHighlighted?: string }) =>
         page(
           query?.isHighlighted === 'true'
-            ? [{ brand: 'brand-1', id: 'v1', model: 'flux-video' }]
+            ? [
+                {
+                  brand: { id: 'brand-1', slug: 'shayla' },
+                  id: 'v1',
+                  model: 'flux-video',
+                },
+              ]
             : [],
         ),
     );
-    findPublicBrand.mockResolvedValue(CREATOR);
 
     await renderPage();
 
@@ -131,19 +134,35 @@ describe('community page', () => {
     );
   });
 
+  it('features the newest featured work whose creator is still public', async () => {
+    // Like the API: the newest featured video is from a creator who went
+    // private, so a listing of public creators' work skips it.
+    findPublicVideosPage.mockImplementation(
+      async (query?: { hasPublicCreator?: string; isHighlighted?: string }) =>
+        page(
+          query?.isHighlighted !== 'true'
+            ? []
+            : query.hasPublicCreator === 'true'
+              ? [{ brand: { id: 'brand-1', slug: 'shayla' }, id: 'v-older' }]
+              : [{ brand: 'brand-9', id: 'v-newest' }],
+        ),
+    );
+
+    await renderPage();
+
+    expect(
+      screen.getByRole('region', { name: 'Made by @shayla' }),
+    ).toBeInTheDocument();
+  });
+
   it.each([
-    ['nothing is featured', [], CREATOR],
-    [
-      "the creator's profile is not public",
-      [{ brand: 'brand-9', id: 'v1' }],
-      null,
-    ],
-  ])('shows no featured hero when %s', async (_label, featured, creator) => {
+    ['nothing is featured', []],
+    ['the listing names no public creator', [{ brand: 'brand-9', id: 'v1' }]],
+  ])('shows no featured hero when %s', async (_label, featured) => {
     findPublicVideosPage.mockImplementation(
       async (query?: { isHighlighted?: string }) =>
         page(query?.isHighlighted === 'true' ? featured : []),
     );
-    findPublicBrand.mockResolvedValue(creator);
 
     await renderPage();
 

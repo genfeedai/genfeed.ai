@@ -34,7 +34,9 @@ const SECTION_LABEL_KEYS: Record<
   [IngredientLineageDirection.USED_IN]: 'usedIn',
 };
 
-function IngredientLineageItem({ ingredient }: IngredientLineageItemProps) {
+export function IngredientLineageItem({
+  ingredient,
+}: IngredientLineageItemProps) {
   const translate = useTranslations('pages.library.inspector');
   const isTrashed = ingredient.isDeleted === true;
   const grant = useAuthorizedMediaPreview(isTrashed ? null : ingredient);
@@ -139,7 +141,7 @@ export default function IngredientLineageStrip({
       aria-label={translate(SECTION_LABEL_KEYS[direction])}
       className={cn('flex min-w-0 flex-col gap-2', className)}
     >
-      <h4 className="text-2xs uppercase tracking-[0.12em] text-muted-foreground">
+      <h4 className="text-2xs uppercase tracking-label text-muted-foreground">
         {translate(SECTION_LABEL_KEYS[direction])}
       </h4>
 

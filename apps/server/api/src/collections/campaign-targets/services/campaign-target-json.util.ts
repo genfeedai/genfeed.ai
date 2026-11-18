@@ -1,6 +1,6 @@
 import type { Prisma } from '@genfeedai/prisma';
 
-export const CAMPAIGN_TARGET_JSON_KEYS = [
+const CAMPAIGN_TARGET_JSON_KEYS = [
   'authorId',
   'authorUsername',
   'contentCreatedAt',
@@ -20,7 +20,7 @@ export const CAMPAIGN_TARGET_JSON_KEYS = [
   'targetType',
 ] as const;
 
-export type CampaignTargetJsonKey = (typeof CAMPAIGN_TARGET_JSON_KEYS)[number];
+type CampaignTargetJsonKey = (typeof CAMPAIGN_TARGET_JSON_KEYS)[number];
 
 export type CampaignTargetJsonFields = {
   authorId?: string | null;

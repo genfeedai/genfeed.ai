@@ -415,6 +415,31 @@ describe('agent failure delivery', () => {
       }),
     );
   });
+  it('names the retired model in a workflow email that has no raw error', async () => {
+    const { prisma, notifications, service } = setup(
+      true,
+      'workflow.status',
+      'workflow_execution',
+    );
+    const delivery = await prisma.notificationDelivery.findUnique();
+    delivery.event.payload.error = null;
+    delivery.event.payload.failure = formatAgentError(
+      'The model Old Flux was retired. Pick a new model, then run it again.',
+    );
+    prisma.notificationDelivery.findUnique.mockResolvedValue(delivery);
+    await service.deliver('delivery');
+    expect(notifications.deliverEmail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        subject: 'Workflow failed: <Daily>',
+        text: expect.stringContaining(
+          'The model Old Flux was retired, so this run stopped before it started.',
+        ),
+      }),
+    );
+    expect(notifications.deliverEmail.mock.calls[0][0].text).toContain(
+      'Pick a new model for this agent, workflow or default',
+    );
+  });
   it('skips opted-out agent notifications', async () => {
     const { prisma, notifications, service } = setup(false);
     await service.deliver('delivery');
@@ -1102,5 +1127,271 @@ describe('channel message delivery (#5197)', () => {
         }),
       }),
     );
+  });
+
+  describe('review and mention emails (#9947)', () => {
+    const collaborationDelivery = {
+      attemptCount: 1,
+      channel: 'email',
+      event: {
+        eventKey: 'asset-review-requested',
+        payload: {
+          event: 'review_requested',
+          ingredientId: 'ingredient-1',
+          kind: 'collaboration',
+          label: 'Spring teaser',
+          sourcePath: '/acme/main/library/images?asset=ingredient-1',
+          summary: 'Riley asked you to review “Spring teaser”.',
+          version: 1,
+        },
+        sourceType: 'collaboration',
+      },
+      idempotencyKey: 'asset-review-requested/task-1/reviewer-1/email',
+      message: null,
+      organizationId: 'org-1',
+      topic: 'collaboration.activity',
+      user: { email: 'reviewer@example.com', isDeleted: false },
+      userId: 'reviewer-1',
+    };
+
+    function setupCollaboration(options: {
+      isMember?: boolean;
+      preference: { isEnabled: boolean } | null;
+    }) {
+      const prisma = {
+        member: {
+          findFirst: vi
+            .fn()
+            .mockResolvedValue(options.isMember === false ? null : { id: 'm' }),
+        },
+        notificationDelivery: {
+          findUnique: vi.fn().mockResolvedValue(collaborationDelivery),
+          updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+        },
+        notificationPreference: {
+          findFirst: vi.fn().mockResolvedValue(options.preference),
+        },
+      };
+      const notifications = {
+        deliverEmail: vi.fn().mockResolvedValue('resend-message-2'),
+      };
+      const service = new WorkflowNotificationDeliveryService(
+        prisma as never,
+        notifications as never,
+        { enqueue: vi.fn() } as never,
+        { warn: vi.fn() } as never,
+        undefined,
+        { get: () => 'https://app.genfeed.test' } as never,
+      );
+      return { notifications, prisma, service };
+    }
+
+    it('emails a reviewer who never chose, because the topic is on by default', async () => {
+      const { notifications, prisma, service } = setupCollaboration({
+        preference: null,
+      });
+
+      await service.deliver('delivery-1');
+
+      expect(notifications.deliverEmail).toHaveBeenCalledWith(
+        expect.objectContaining({
+          subject: 'Review requested: Spring teaser',
+          text: [
+            'Review requested: Spring teaser',
+            'Riley asked you to review “Spring teaser”.',
+            'https://app.genfeed.test/acme/main/library/images?asset=ingredient-1',
+          ].join('\n'),
+          to: 'reviewer@example.com',
+        }),
+      );
+      expect(prisma.notificationDelivery.updateMany).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            providerMessageId: 'resend-message-2',
+            status: 'delivered',
+          }),
+        }),
+      );
+    });
+
+    it('sends nothing to a member who turned the email off', async () => {
+      const { notifications, prisma, service } = setupCollaboration({
+        preference: { isEnabled: false },
+      });
+
+      await service.deliver('delivery-1');
+
+      expect(notifications.deliverEmail).not.toHaveBeenCalled();
+      expect(prisma.notificationDelivery.updateMany).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ status: 'skipped' }),
+        }),
+      );
+    });
+
+    it('sends nothing once the recipient has left the organization', async () => {
+      const { notifications, prisma, service } = setupCollaboration({
+        isMember: false,
+        preference: null,
+      });
+
+      await service.deliver('delivery-1');
+
+      expect(notifications.deliverEmail).not.toHaveBeenCalled();
+      expect(prisma.notificationDelivery.updateMany).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ status: 'skipped' }),
+        }),
+      );
+    });
+  });
+
+  describe('publishing and channel alert emails', () => {
+    function setupAlert(options: {
+      payload: unknown;
+      preference?: { isEnabled: boolean } | null;
+      topic: string;
+    }) {
+      const delivery = {
+        attemptCount: 1,
+        channel: 'email',
+        event: {
+          eventKey: 'post-failed',
+          payload: options.payload,
+          sourceType: 'post',
+        },
+        idempotencyKey: 'post-failed/activity-1/owner-1/email',
+        message: null,
+        organizationId: 'org-1',
+        topic: options.topic,
+        user: { email: 'owner@example.com', isDeleted: false },
+        userId: 'owner-1',
+      };
+      const prisma = {
+        member: { findFirst: vi.fn().mockResolvedValue({ id: 'm' }) },
+        notificationDelivery: {
+          findUnique: vi.fn().mockResolvedValue(delivery),
+          updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+        },
+        notificationPreference: {
+          findFirst: vi.fn().mockResolvedValue(options.preference ?? null),
+        },
+      };
+      const notifications = {
+        deliverEmail: vi.fn().mockResolvedValue('resend-message-3'),
+      };
+      const service = new WorkflowNotificationDeliveryService(
+        prisma as never,
+        notifications as never,
+        { enqueue: vi.fn() } as never,
+        { warn: vi.fn() } as never,
+      );
+      return { notifications, prisma, service };
+    }
+
+    it.each([
+      {
+        payload: {
+          event: 'post_failed',
+          kind: 'alert_email',
+          label: 'Shipped the weekly batch',
+          summary: 'It was not published to twitter: the account is gone.',
+          version: 1,
+        },
+        subject: 'Post failed: Shipped the weekly batch',
+        text: 'Post failed: Shipped the weekly batch\nIt was not published to twitter: the account is gone.',
+        topic: 'publishing.status',
+      },
+      {
+        payload: {
+          event: 'publish_unverified',
+          kind: 'alert_email',
+          label: 'Shipped the weekly batch',
+          summary:
+            'We could not confirm whether this post went out to twitter. It may already be live. Check your twitter account before posting it again.',
+          version: 1,
+        },
+        subject: 'Check this post before reposting: Shipped the weekly batch',
+        text: 'Check this post before reposting: Shipped the weekly batch\nWe could not confirm whether this post went out to twitter. It may already be live. Check your twitter account before posting it again.',
+        topic: 'publishing.status',
+      },
+      {
+        payload: {
+          event: 'channel_disconnected',
+          kind: 'alert_email',
+          label: '@vincentshipsit',
+          summary: 'X refused to renew the connection (invalid_grant).',
+          version: 1,
+        },
+        subject: 'Channel disconnected: @vincentshipsit',
+        text: 'Channel disconnected: @vincentshipsit\nX refused to renew the connection (invalid_grant).',
+        topic: 'integration.status',
+      },
+    ])(
+      'emails the owner who never chose, because the alert is on by default ($subject)',
+      async ({ payload, subject, text, topic }) => {
+        const { notifications, prisma, service } = setupAlert({
+          payload,
+          topic,
+        });
+
+        await service.deliver('delivery-1');
+
+        expect(notifications.deliverEmail).toHaveBeenCalledWith(
+          expect.objectContaining({
+            subject,
+            text,
+            to: 'owner@example.com',
+          }),
+        );
+        expect(prisma.notificationDelivery.updateMany).toHaveBeenLastCalledWith(
+          expect.objectContaining({
+            data: expect.objectContaining({
+              providerMessageId: 'resend-message-3',
+              status: 'delivered',
+            }),
+          }),
+        );
+      },
+    );
+
+    it('sends nothing to an owner who turned the email off', async () => {
+      const { notifications, prisma, service } = setupAlert({
+        payload: {
+          event: 'post_failed',
+          kind: 'alert_email',
+          label: 'A post',
+          summary: 'It failed.',
+          version: 1,
+        },
+        preference: { isEnabled: false },
+        topic: 'publishing.status',
+      });
+
+      await service.deliver('delivery-1');
+
+      expect(notifications.deliverEmail).not.toHaveBeenCalled();
+      expect(prisma.notificationDelivery.updateMany).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ status: 'skipped' }),
+        }),
+      );
+    });
+
+    it('fails an alert whose event carries no email payload', async () => {
+      const { notifications, prisma, service } = setupAlert({
+        payload: { kind: 'activity', version: 1 },
+        topic: 'publishing.status',
+      });
+
+      await service.deliver('delivery-1');
+
+      expect(notifications.deliverEmail).not.toHaveBeenCalled();
+      expect(prisma.notificationDelivery.updateMany).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ status: 'failed' }),
+        }),
+      );
+    });
   });
 });

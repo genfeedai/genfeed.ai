@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import type { McpToolOutput } from '@genfeedai/actions';
+import { getMcpCardKind, type McpToolOutput } from '@genfeedai/actions';
 import {
   SATOSHI_FONT_RESOURCE_PATH,
   staticSurfaceFontCss,
@@ -73,42 +73,6 @@ const PENDING_STATUSES = new Set([
 
 const CALENDAR_MAX_DAYS = 31;
 
-const TOOL_KINDS: Readonly<Record<string, McpCardKind>> = {
-  complete_media_upload: 'media',
-  control_scheduled_release: 'summary',
-  create_post: 'post',
-  create_scheduled_release: 'summary',
-  enhance_prompt: 'summary',
-  find_tools: 'summary',
-  generate: 'media',
-  // Social copy renders as a post; an article result switches to the article
-  // card in buildCardView via its articleId.
-  generate_content: 'post',
-  generate_turbo_content: 'summary',
-  get_account: 'summary',
-  get_articles: 'article',
-  check_channel: 'summary',
-  get_brand_publishing_readiness: 'summary',
-  get_brands: 'summary',
-  get_generation_options: 'summary',
-  get_job_status: 'media',
-  get_posts: 'post',
-  get_scheduled_release: 'summary',
-  get_assets: 'media',
-  get_orgs: 'summary',
-  get_scheduler_capabilities: 'summary',
-  manage_campaign: 'summary',
-  onboard_brand: 'summary',
-  repurpose_post: 'summary',
-  request_media_upload: 'summary',
-  set_generation_settings: 'summary',
-  switch_org: 'summary',
-  transform_media: 'media',
-  update_scheduled_release: 'summary',
-  upload_media: 'summary',
-  validate_scheduler_target: 'summary',
-};
-
 /** Short host status lines shown while a tool runs and once it returns. */
 const INVOCATION_STATUS: Readonly<
   Record<McpCardKind, { invoked: string; invoking: string }>
@@ -129,8 +93,9 @@ const INVOCATION_STATUS: Readonly<
  * fallback for hosts that render no UI.
  */
 export function withCardMetadata(tool: McpToolOutput): McpToolOutput {
-  if (!TOOL_KINDS[tool.name] && tool.name !== 'resolve_approval') return tool;
-  const status = INVOCATION_STATUS[TOOL_KINDS[tool.name] ?? 'post'];
+  const kind = getMcpCardKind(tool.name);
+  if (!kind && tool.name !== 'resolve_approval') return tool;
+  const status = INVOCATION_STATUS[kind ?? 'post'];
   return {
     ...tool,
     _meta: {
@@ -276,27 +241,34 @@ function isoDay(value: unknown): string | undefined {
 }
 
 /**
- * `get_posts {days}` returns `scheduled` posts and `gapDays` for the coming
- * days. Every day in the window becomes a column: its posts, or a gap.
+ * `get_posts {days}` returns a page of `scheduled` posts and `gapDays` for the
+ * coming days. Every day in the window becomes a column: its posts, or a gap.
  */
 function buildCalendarView(data: Record<string, unknown>): McpCardView {
   const scheduled = Array.isArray(data.scheduled) ? data.scheduled : [];
-  const gapDays = new Set(
-    (Array.isArray(data.gapDays) ? data.gapDays : []).flatMap((value) => {
-      const day = isoDay(value);
+  const toDays = (value: unknown): string[] =>
+    (Array.isArray(value) ? value : []).flatMap((item) => {
+      const day = isoDay(item);
       return day ? [day] : [];
-    }),
-  );
+    });
+  const gapDays = new Set(toDays(data.gapDays));
+  const windowDays = toDays(data.dayKeys);
   const postsByDay = new Map<string, McpCard[]>();
   for (const value of scheduled.slice(0, 200)) {
     const row = record(value);
-    const day = isoDay(row.scheduledDate);
+    // localDate is the day in the calendar's timezone; the UTC day of
+    // scheduledDate would put a late-evening post on the next day's column.
+    const day = isoDay(row.localDate) ?? isoDay(row.scheduledDate);
     if (!day) continue;
     const post = card(row, 'post');
     postsByDay.set(day, [...(postsByDay.get(day) ?? []), post]);
   }
+  // Every day of the requested window is a column, even when its posts are on
+  // a later page. A day is a gap only when the producer says so: a day can
+  // hold a failed post and still be empty, and an unloaded day is not a gap.
+  const hasGapInfo = Array.isArray(data.gapDays);
   const days: McpCalendarDay[] = [
-    ...new Set([...gapDays, ...postsByDay.keys()]),
+    ...new Set([...windowDays, ...gapDays, ...postsByDay.keys()]),
   ]
     .sort()
     .slice(0, CALENDAR_MAX_DAYS)
@@ -304,7 +276,11 @@ function buildCalendarView(data: Record<string, unknown>): McpCardView {
       const posts = (postsByDay.get(date) ?? []).sort((a, b) =>
         a.date.localeCompare(b.date),
       );
-      return { date, isGap: posts.length === 0, posts };
+      return {
+        date,
+        isGap: hasGapInfo ? gapDays.has(date) : posts.length === 0,
+        posts,
+      };
     });
   const draftsCount =
     typeof data.draftsCount === 'number' && Number.isFinite(data.draftsCount)
@@ -315,7 +291,10 @@ function buildCalendarView(data: Record<string, unknown>): McpCardView {
     cards: days.flatMap((day) => day.posts),
     layout: 'calendar',
     title: 'Content calendar',
-    total: scheduled.length,
+    total:
+      typeof data.totalCount === 'number' && Number.isFinite(data.totalCount)
+        ? data.totalCount
+        : scheduled.length,
   };
 }
 
@@ -352,24 +331,26 @@ function buildAccountView(data: Record<string, unknown>): McpCardView {
       .map((brand) => text(record(brand), 'name'))
       .filter(Boolean);
     const brandsFact: McpCardFact[] =
-      brandCount === 0
-        ? fact('Brands', 'None yet. Create one in Genfeed to generate.')
-        : brandCount !== undefined
-          ? [
-              {
-                ...(brandNames.length
-                  ? {
-                      items: brandNames.map((label) => ({
-                        hasAvatar: true,
-                        label,
-                      })),
-                    }
-                  : {}),
-                label: 'Brands',
-                value: brandNames.join(', ') || String(brandCount),
-              },
-            ]
-          : [];
+      brandCount === 0 && text(profile, 'brandAccessMessage')
+        ? fact('Brands', text(profile, 'brandAccessMessage'))
+        : brandCount === 0
+          ? fact('Brands', 'None yet. Create one in Genfeed to generate.')
+          : brandCount !== undefined
+            ? [
+                {
+                  ...(brandNames.length
+                    ? {
+                        items: brandNames.map((label) => ({
+                          hasAvatar: true,
+                          label,
+                        })),
+                      }
+                    : {}),
+                  label: 'Brands',
+                  value: brandNames.join(', ') || String(brandCount),
+                },
+              ]
+            : [];
     cards.push(
       summaryCard(
         text(profile, 'organizationName') || 'Genfeed account',
@@ -464,6 +445,12 @@ function buildBrandsView(data: Record<string, unknown>): McpCardView {
       ? [data.brand]
       : [];
   const cards = rows.slice(0, 24).map((value) => brandCard(record(value)));
+  const accessMessage = text(data, 'brandAccessMessage');
+  if (rows.length === 0 && accessMessage) {
+    cards.push(
+      summaryCard('No brand access', [], { description: accessMessage }),
+    );
+  }
   return {
     cards,
     layout: 'cards',
@@ -760,6 +747,71 @@ function buildReleaseView(resource: Record<string, unknown>): McpCardView {
 }
 
 /**
+ * A queued batch of scheduled posts (#10134): the first three in full (their
+ * whole text, never capped), then the rest as a count with the one link to the
+ * web review. Past three posts the card offers no approval, only that link.
+ */
+function buildBatchApprovalView(
+  data: Record<string, unknown>,
+  batch: Record<string, unknown>,
+): McpCardView {
+  const approvalId = text(data, 'approvalId');
+  const posts = rows(batch.posts);
+  const total = typeof batch.total === 'number' ? batch.total : posts.length;
+  const omitted = Math.max(0, total - posts.length);
+  const invalid = rows(batch.invalid).length;
+  const postCards = posts.map((post) => {
+    return {
+      ...card(
+        {
+          author: {
+            handle: text(post, 'accountHandle'),
+            name: text(post, 'accountLabel'),
+          },
+          id: `${approvalId}:${typeof post.index === 'number' ? post.index : ''}`,
+          kind: 'post',
+          media: rows(post.media).map((item) => ({
+            ...item,
+            assetId: text(item, 'order'),
+          })),
+          platform: text(post, 'platform'),
+          scheduledAt: text(post, 'scheduledAt'),
+          status: 'pending_approval',
+          title: text(post, 'title'),
+        },
+        'post',
+      ),
+      description: text(post, 'text'),
+    };
+  });
+  const closing = summaryCard(
+    omitted > 0
+      ? `+${omitted} more ${omitted === 1 ? 'post' : 'posts'}`
+      : `${total} ${total === 1 ? 'post' : 'posts'} waiting for approval`,
+    [...(invalid > 0 ? fact('Left out as invalid', `${invalid}`) : [])],
+    {
+      description:
+        batch.isApprovableHere === true
+          ? 'Nothing is scheduled until you approve.'
+          : `Nothing is scheduled yet. Read every post in Genfeed and approve once; Genfeed then schedules all ${total}.`,
+      id: approvalId,
+      linkLabel:
+        omitted > 0 ? `Review all ${total} in Genfeed` : 'Review in Genfeed',
+      status: 'pending_approval',
+      url: safeCardUrl(text(data, 'nextStepUrl')),
+    },
+  );
+  return {
+    cards: [...postCards, closing],
+    isApproval: true,
+    isCountHidden: true,
+    layout: 'cards',
+    title: 'Approval needed',
+    total: postCards.length + 1,
+  };
+}
+
+/**
  * A write that waits for a person: what it is, what it costs, and Approve /
  * Decline buttons when this connection may resolve it. The result is an error
  * so the model knows nothing ran; the card is how the person acts on it.
@@ -770,6 +822,9 @@ function buildApprovalView(
   const approvalId = text(data, 'approvalId');
   if (text(data, 'code') !== 'approval_pending' || !approvalId) {
     return undefined;
+  }
+  if (data.batch && typeof data.batch === 'object') {
+    return buildBatchApprovalView(data, record(data.batch));
   }
   const credits =
     typeof data.estimatedCredits === 'number'
@@ -828,7 +883,7 @@ export function buildCardView(
   name: string,
   payload: unknown,
 ): McpCardView | undefined {
-  const baseKind = TOOL_KINDS[name];
+  const baseKind = getMcpCardKind(name);
   if (!baseKind) return undefined;
   const data = record(payload);
   if (name === 'get_account') return buildAccountView(data);

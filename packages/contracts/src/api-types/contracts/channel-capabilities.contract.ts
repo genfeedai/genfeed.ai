@@ -6,18 +6,52 @@
  * workers, CLI, and MCP can present and enforce the same scheduler failures.
  * Foundation for epic #1123, issue #1125.
  */
-
 import { z } from 'zod';
 import {
   CredentialPlatform,
   PostVisibility,
   TargetValidationState,
 } from '../..';
+import { blueskyChannelCapability } from './channel-capabilities.bluesky';
+import {
+  type ChannelSettingDefinition,
+  type ChannelSettingFieldType,
+  type ChannelValidationIssue,
+  channelSettingDefinitionSchema,
+  channelSettingFieldTypeSchema,
+  channelSettingFieldTypeValues,
+  channelSettingOptionSchema,
+  channelValidationIssueSchema,
+  channelValidationSeveritySchema,
+  channelValidationSeverityValues,
+  isMissingValue,
+  validateSettingOptions,
+  validateSettingType,
+} from './channel-setting-validation.contract';
+import { communityChannelCapabilities } from './community-channel-capabilities.contract';
+import { hiddenChannelCapabilities } from './hidden-channel-capabilities.contract';
 import { publishingProviderReadinessSchema } from './publishing-readiness.contract';
 import {
   TIKTOK_PRIVACY_OPTIONS,
   validateTikTokPublishingSettings,
 } from './tiktok-publishing.contract';
+import {
+  validateXQuotedPost,
+  X_QUOTED_POST_SETTING,
+} from './x-quote-post.contract';
+
+export {
+  type ChannelSettingDefinition,
+  type ChannelSettingFieldType,
+  type ChannelValidationIssue,
+  channelSettingDefinitionSchema,
+  channelSettingFieldTypeSchema,
+  channelSettingFieldTypeValues,
+  channelSettingOptionSchema,
+  channelValidationIssueSchema,
+  channelValidationSeveritySchema,
+  channelValidationSeverityValues,
+};
 
 /**
  * Publish readiness of a scheduler channel.
@@ -48,16 +82,6 @@ export const channelPublishModeValues = [
   'scheduled',
 ] as const;
 
-export const channelSettingFieldTypeValues = [
-  'string',
-  'text',
-  'number',
-  'boolean',
-  'select',
-  'multi_select',
-  'url',
-] as const;
-
 export const channelHelperKindValues = [
   'credential',
   'account',
@@ -66,8 +90,6 @@ export const channelHelperKindValues = [
   'subreddit',
   'audio_style',
 ] as const;
-
-export const channelValidationSeverityValues = ['error', 'warning'] as const;
 
 /**
  * How a channel carries the follow-up items scheduled behind a post.
@@ -89,13 +111,7 @@ export const channelCapabilityStatusSchema = z.enum(
 );
 export const channelMediaKindSchema = z.enum(channelMediaKindValues);
 export const channelPublishModeSchema = z.enum(channelPublishModeValues);
-export const channelSettingFieldTypeSchema = z.enum(
-  channelSettingFieldTypeValues,
-);
 export const channelHelperKindSchema = z.enum(channelHelperKindValues);
-export const channelValidationSeveritySchema = z.enum(
-  channelValidationSeverityValues,
-);
 export const channelThreadChildKindSchema = z.enum(
   channelThreadChildKindValues,
 );
@@ -103,29 +119,6 @@ export const channelThreadChildKindSchema = z.enum(
 const channelTargetSettingsSchema = z
   .record(z.string(), z.unknown())
   .default({});
-
-const settingDefaultValueSchema = z.union([
-  z.string(),
-  z.number(),
-  z.boolean(),
-  z.array(z.string()),
-]);
-
-export const channelSettingOptionSchema = z.object({
-  label: z.string().min(1),
-  value: z.string().min(1),
-});
-
-export const channelSettingDefinitionSchema = z.object({
-  defaultValue: settingDefaultValueSchema.optional(),
-  description: z.string().min(1).optional(),
-  helper: z.string().min(1).optional(),
-  key: z.string().min(1),
-  label: z.string().min(1),
-  options: z.array(channelSettingOptionSchema).optional(),
-  required: z.boolean().optional(),
-  type: channelSettingFieldTypeSchema,
-});
 
 export const channelHelperDefinitionSchema = z.object({
   description: z.string().min(1).optional(),
@@ -218,13 +211,6 @@ export const validateChannelTargetSettingsInputSchema = z.object({
   visibility: z.nativeEnum(PostVisibility).optional(),
 });
 
-export const channelValidationIssueSchema = z.object({
-  code: z.string().min(1),
-  field: z.string().min(1).optional(),
-  message: z.string().min(1),
-  severity: channelValidationSeveritySchema,
-});
-
 export const channelTargetValidationResultSchema = z.object({
   capability: channelCapabilitySchema.optional(),
   errors: z.array(channelValidationIssueSchema),
@@ -245,12 +231,6 @@ export type ChannelCapabilityStatus = z.infer<
 >;
 export type ChannelMediaKind = z.infer<typeof channelMediaKindSchema>;
 export type ChannelPublishMode = z.infer<typeof channelPublishModeSchema>;
-export type ChannelSettingFieldType = z.infer<
-  typeof channelSettingFieldTypeSchema
->;
-export type ChannelSettingDefinition = z.infer<
-  typeof channelSettingDefinitionSchema
->;
 export type ChannelHelperDefinition = z.infer<
   typeof channelHelperDefinitionSchema
 >;
@@ -263,9 +243,6 @@ export type ChannelThreadChildCapability = z.infer<
 >;
 export type ValidateChannelTargetSettingsInput = z.infer<
   typeof validateChannelTargetSettingsInputSchema
->;
-export type ChannelValidationIssue = z.infer<
-  typeof channelValidationIssueSchema
 >;
 export type ChannelTargetValidationResult = z.infer<
   typeof channelTargetValidationResultSchema
@@ -543,6 +520,7 @@ const channelCapabilities = [
         ],
         type: 'select',
       },
+      X_QUOTED_POST_SETTING,
     ],
     status: 'supported',
   },
@@ -780,49 +758,7 @@ const channelCapabilities = [
     ],
     status: 'hidden',
   },
-  {
-    caption: { maxLength: 500, required: true },
-    description:
-      'Backend integration for Mastodon instances; hidden until scheduler publishing is productized.',
-    helpers: [
-      {
-        key: 'mastodon.credential',
-        kind: 'credential',
-        label: 'Mastodon credential',
-        required: true,
-      },
-    ],
-    label: 'Mastodon',
-    media: {
-      animated: { supported: true },
-      kinds: ['image', 'video', 'link'],
-      maxItems: 4,
-      minItems: 0,
-    },
-    platform: CredentialPlatform.MASTODON,
-    publishModes: ['draft', 'publish_now', 'scheduled'],
-    settings: [
-      {
-        description:
-          'Defaults to the instance stored on the credential when left blank.',
-        key: 'instanceUrl',
-        label: 'Instance URL',
-        type: 'url',
-      },
-      {
-        defaultValue: 'public',
-        key: 'visibility',
-        label: 'Visibility',
-        options: [
-          { label: 'Public', value: 'public' },
-          { label: 'Unlisted', value: 'unlisted' },
-          { label: 'Followers only', value: 'private' },
-        ],
-        type: 'select',
-      },
-    ],
-    status: 'hidden',
-  },
+  ...(hiddenChannelCapabilities as ChannelCapability[]),
   {
     caption: { maxLength: 500, required: true },
     description:
@@ -848,6 +784,7 @@ const channelCapabilities = [
     settings: [],
     status: 'planned',
   },
+  blueskyChannelCapability,
   {
     caption: { maxLength: 100_000, required: true },
     description:
@@ -925,10 +862,10 @@ const channelCapabilities = [
   },
 ] satisfies ChannelCapability[];
 
-export const CHANNEL_CAPABILITIES: readonly ChannelCapability[] =
-  channelCapabilities.map((capability) =>
-    channelCapabilitySchema.parse(capability),
-  );
+export const CHANNEL_CAPABILITIES: readonly ChannelCapability[] = [
+  ...channelCapabilities,
+  ...communityChannelCapabilities,
+].map((capability) => channelCapabilitySchema.parse(capability));
 
 const channelCapabilitiesByPlatform = new Map<
   CredentialPlatform,
@@ -962,6 +899,10 @@ export function getChannelCapability(
   return capability ? cloneChannelCapability(capability) : undefined;
 }
 
+const replyChain = (
+  mediaKinds: ChannelMediaKind[],
+): ChannelThreadChildCapability => ({ kind: 'reply_chain', mediaKinds });
+
 const THREAD_CHILD_UNSUPPORTED: ChannelThreadChildCapability = {
   kind: 'unsupported',
   mediaKinds: [],
@@ -976,18 +917,10 @@ const THREAD_CHILD_UNSUPPORTED: ChannelThreadChildCapability = {
 const channelThreadChildCapabilities: Partial<
   Record<CredentialPlatform, ChannelThreadChildCapability>
 > = {
-  [CredentialPlatform.TWITTER]: {
-    kind: 'reply_chain',
-    mediaKinds: ['image', 'video'],
-  },
-  [CredentialPlatform.THREADS]: {
-    kind: 'reply_chain',
-    mediaKinds: ['image', 'video', 'carousel'],
-  },
-  [CredentialPlatform.MASTODON]: {
-    kind: 'reply_chain',
-    mediaKinds: ['image', 'video'],
-  },
+  [CredentialPlatform.TWITTER]: replyChain(['image', 'video']),
+  [CredentialPlatform.THREADS]: replyChain(['image', 'video', 'carousel']),
+  [CredentialPlatform.MASTODON]: replyChain(['image', 'video']),
+  [CredentialPlatform.BLUESKY]: replyChain(['image', 'video']),
   // LinkedIn and Facebook comments take a single image; neither accepts a
   // video on a comment.
   [CredentialPlatform.LINKEDIN]: { kind: 'comment', mediaKinds: ['image'] },
@@ -1498,6 +1431,11 @@ function validateProviderConstraints(
   input: ValidateChannelTargetSettingsInput,
   capability: ChannelCapability,
 ): ChannelValidationIssue[] {
+  const quotedIssue = validateXQuotedPost(capability.platform, input.settings);
+  if (quotedIssue) {
+    return [quotedIssue];
+  }
+
   if (
     capability.platform === CredentialPlatform.BEEHIIV &&
     input.publishMode === 'scheduled' &&
@@ -1515,104 +1453,4 @@ function validateProviderConstraints(
   }
 
   return [];
-}
-
-function validateSettingType(
-  setting: ChannelSettingDefinition,
-  value: unknown,
-  label: string,
-  field: string,
-): ChannelValidationIssue[] {
-  const typeMatches =
-    (setting.type === 'boolean' && typeof value === 'boolean') ||
-    (setting.type === 'number' && typeof value === 'number') ||
-    (setting.type === 'multi_select' &&
-      Array.isArray(value) &&
-      value.every((item) => typeof item === 'string')) ||
-    (setting.type !== 'boolean' &&
-      setting.type !== 'number' &&
-      setting.type !== 'multi_select' &&
-      typeof value === 'string');
-
-  if (typeMatches) {
-    // `url` is otherwise indistinguishable from `string`, so without this the
-    // declared type is decoration and an unparseable host reaches the publisher.
-    if (setting.type === 'url' && !isParsableHttpUrl(value)) {
-      return [
-        {
-          code: 'channel_target.invalid_setting_url',
-          field,
-          message: `${label} setting ${setting.label} must be an http(s) URL.`,
-          severity: 'error',
-        },
-      ];
-    }
-
-    return [];
-  }
-
-  return [
-    {
-      code: 'channel_target.invalid_setting_type',
-      field,
-      message: `${label} setting ${setting.label} must be a valid ${setting.type} value.`,
-      severity: 'error',
-    },
-  ];
-}
-
-// Matched rather than parsed with `URL`: this contract compiles without DOM or
-// Node lib types so it can run in the browser bundle, workers, and the CLI.
-//
-// The authority run and the remainder must not overlap. `[^\s/?#]+[^\s]*` lets
-// both halves consume the same non-delimiter characters, so a long failing
-// input is re-split at every position — quadratic backtracking on a value that
-// reaches this from request data. Requiring the remainder to start with one of
-// `/?#` makes the split deterministic without changing what is accepted.
-const HTTP_URL_PATTERN = /^https?:\/\/[^\s/?#]+(?:[/?#]\S*)?$/i;
-
-function isParsableHttpUrl(value: unknown): boolean {
-  return typeof value === 'string' && HTTP_URL_PATTERN.test(value.trim());
-}
-
-function validateSettingOptions(
-  setting: ChannelSettingDefinition,
-  value: unknown,
-  label: string,
-  field: string,
-): ChannelValidationIssue[] {
-  if (!setting.options || setting.options.length === 0) {
-    return [];
-  }
-
-  const allowedValues = new Set(setting.options.map((option) => option.value));
-  const submittedValues = Array.isArray(value) ? value : [value];
-
-  for (const submittedValue of submittedValues) {
-    if (
-      typeof submittedValue !== 'string' ||
-      !allowedValues.has(submittedValue)
-    ) {
-      return [
-        {
-          code: 'channel_target.invalid_setting_option',
-          field,
-          message: `${label} setting ${setting.label} must use one of: ${[
-            ...allowedValues,
-          ].join(', ')}.`,
-          severity: 'error',
-        },
-      ];
-    }
-  }
-
-  return [];
-}
-
-function isMissingValue(value: unknown): boolean {
-  return (
-    value === undefined ||
-    value === null ||
-    (typeof value === 'string' && value.trim().length === 0)
-  );
 }

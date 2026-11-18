@@ -24,10 +24,9 @@ import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 export const DEFAULT_PREVIEW_LIFETIME_DAYS = 14;
-export const MAX_PREVIEW_LIFETIME_DAYS = 90;
 export const MAX_PREVIEW_ITEMS = 6;
 /** A claim email is not sent again inside this window, so a link cannot be used to mail-bomb the prepared address. */
-export const CLAIM_EMAIL_COOLDOWN_MS = 5 * 60 * 1000;
+const CLAIM_EMAIL_COOLDOWN_MS = 5 * 60 * 1000;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const TOKEN_PATTERN = /^[A-Za-z0-9_-]{43}$/;

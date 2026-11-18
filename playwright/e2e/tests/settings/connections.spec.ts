@@ -4,7 +4,7 @@ import type { Page, Route } from '@playwright/test';
 import { mockActiveSubscription } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { SettingsPage } from '../../pages/settings.page';
-import { brandPath, orgSettingsRoute } from '../../utils/app-chrome';
+import { brandPath, orgPath, orgSettingsRoute } from '../../utils/app-chrome';
 import { chooseFilterOption, openFilterFacet } from '../../utils/filter-menu';
 import { assertRouteRenders } from '../../utils/route-assertions';
 
@@ -18,7 +18,8 @@ import { assertRouteRenders } from '../../utils/route-assertions';
  * org+brand) slug. Bare `/settings/brands/:id/*` paths render the 404 page —
  * so each test asserts the surface's real content, never just the URL.
  */
-const API_KEYS_ROUTE = orgSettingsRoute(APP_ROUTES.SETTINGS.API_KEYS);
+const API_KEYS_ROUTE = orgPath(APP_ROUTES.CONNECTORS.API_KEYS);
+const CONNECTORS_ROUTE = orgPath(APP_ROUTES.CONNECTORS.AGENTS);
 const GENERAL_ROUTE = orgSettingsRoute(APP_ROUTES.SETTINGS.GENERAL);
 const AGENTS_ROUTE = orgSettingsRoute(APP_ROUTES.SETTINGS.AGENTS);
 const MODELS_ROUTE = orgSettingsRoute(APP_ROUTES.SETTINGS.MODELS);
@@ -254,15 +255,21 @@ test.describe('Settings Connections & Sub-Pages', () => {
       ]);
     });
 
-    test('is reachable from the organization settings sidebar', async ({
+    test('is reachable from the Connectors sidebar', async ({
       authenticatedPage,
     }) => {
       const settingsPage = new SettingsPage(authenticatedPage);
       await mockApiKeyList(authenticatedPage, { keys: [], status: 200 });
 
-      await settingsPage.goToOrganization();
-      await settingsPage.navigateFromSidebar('API Keys', API_KEYS_ROUTE);
+      await settingsPage.open(CONNECTORS_ROUTE);
+      await authenticatedPage
+        .getByRole('link', { exact: true, name: 'API keys' })
+        .first()
+        .click();
 
+      await expect(authenticatedPage).toHaveURL(
+        new RegExp(`${API_KEYS_ROUTE}$`),
+      );
       await expect(settingsPage.generateApiKeyButton).toBeVisible();
     });
   });
@@ -436,7 +443,7 @@ test.describe('Settings Connections & Sub-Pages', () => {
         .click();
 
       await expect(authenticatedPage).toHaveURL(
-        new RegExp(`${brandPath(APP_ROUTES.SETTINGS.ROOT)}$`),
+        new RegExp(`${brandPath(APP_ROUTES.SETTINGS.PROFILE)}$`),
       );
       await expect(
         settingsPage.canvas.getByRole('button', {
@@ -549,18 +556,7 @@ test.describe('Organization Settings', () => {
     await expect(
       settingsPage.canvas.getByText('@test-org', { exact: true }),
     ).toBeVisible();
-    // General is profile and language only; identity defaults moved to
-    // Preferences (#6693).
-    await expect(settingsPage.orgIdentityCard).toHaveCount(0);
-  });
-
-  test('shows organization preferences with the identity defaults', async ({
-    authenticatedPage,
-  }) => {
-    const settingsPage = new SettingsPage(authenticatedPage);
-
-    await settingsPage.goToOrganizationPreferences();
-
+    // Identity defaults share the page with profile and language.
     await expect(settingsPage.orgIdentityCard).toBeVisible();
   });
 

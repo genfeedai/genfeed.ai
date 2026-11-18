@@ -7,6 +7,7 @@ import {
   IsArray,
   IsBoolean,
   IsEnum,
+  IsNotEmpty,
   IsObject,
   IsOptional,
   IsString,
@@ -33,6 +34,15 @@ export class CreateAgentTransferDto {
   @IsOptional()
   @IsEntityId()
   destinationBrandId?: string;
+
+  @ApiPropertyOptional({
+    description:
+      "Hand the task to this teammate's agent (#9940). A new conversation is created for them; they accept or decline it.",
+  })
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  destinationUserId?: string;
 
   @ApiProperty()
   @IsEnum(AgentTransferDeliveryMode)

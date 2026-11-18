@@ -4,7 +4,6 @@ import {
   CredentialPlatform,
   PageScope,
   type Platform,
-  TargetExecutionState,
 } from '@genfeedai/contracts';
 import type {
   IIngredient,
@@ -16,12 +15,13 @@ import { plainTextToHtml } from '@helpers/security/sanitize-html.helper';
 import type { PostsService } from '@services/content/posts.service';
 import type { NotificationsService } from '@services/core/notifications.service';
 import type React from 'react';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import PostComposerActions from '@/features/posts/components/composer-actions/PostComposerActions';
 import type { TweetTone } from '@/features/posts/components/composer-actions/PostComposerActions.props';
 import ThreadPreviewPanel from '@/features/posts/components/posts/preview/thread-preview-panel/ThreadPreviewPanel';
 import PostDetailPostList from '@/features/posts/detail/components/PostDetailPostList';
 import PostDetailThreadFooter from '@/features/posts/detail/components/PostDetailThreadFooter';
+import { isPostPublished } from '@/features/posts/detail/post-published.helper';
 
 export interface PostDetailContentProps {
   post: IPost;
@@ -181,9 +181,7 @@ export default function PostDetailContent({
   getPostsService,
   notificationsService,
 }: PostDetailContentProps) {
-  const isPublished =
-    Boolean(post.publicationDate) ||
-    post.targetExecutionState === TargetExecutionState.PUBLISHED;
+  const isPublished = isPostPublished(post);
   const isEditable = scope === PageScope.PUBLISHING;
   const isTwitter = post.platform === CredentialPlatform.TWITTER;
 
@@ -203,14 +201,13 @@ export default function PostDetailContent({
   // The prompt bar acts on the post you last worked in; focusing the bar
   // itself clears `focusedPostId`, so remember the last post separately.
   const [targetPostId, setTargetPostId] = useState(post.id);
-  useEffect(() => {
-    if (
-      focusedPostId &&
-      threadPosts.some((item) => item.id === focusedPostId)
-    ) {
-      setTargetPostId(focusedPostId);
-    }
-  }, [focusedPostId, threadPosts]);
+  if (
+    focusedPostId &&
+    focusedPostId !== targetPostId &&
+    threadPosts.some((item) => item.id === focusedPostId)
+  ) {
+    setTargetPostId(focusedPostId);
+  }
 
   const targetIndex = Math.max(
     0,

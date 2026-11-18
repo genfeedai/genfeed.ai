@@ -30,7 +30,7 @@ export const SITE_DIRECTORY: readonly DirectorySection[] = [
       { href: '/models', label: 'Models' },
       { href: '/calendar', label: 'Calendar' },
       { href: '/research', label: 'Research' },
-      { href: '/hire-agents', label: 'Hire Agents' },
+      { href: '/hire-agents', label: 'Hire agents' },
       { href: '/brand-os', label: 'Brand OS' },
       { href: '/features', label: 'All features' },
     ],
@@ -82,7 +82,7 @@ export const SITE_DIRECTORY: readonly DirectorySection[] = [
     links: [
       { href: '/pricing', label: 'Pricing' },
       { href: '/affiliates', label: 'Affiliates' },
-      { href: '/articles', label: 'Articles' },
+      { href: '/community/articles', label: 'Articles' },
       { href: '/community', label: 'Community' },
       { href: '/@genfeedai', label: 'Genfeed on Genfeed' },
       { href: '/changelog', label: 'Changelog' },
@@ -108,7 +108,7 @@ export default function SitemapContent(): React.ReactElement {
         <div className="grid grid-cols-1 gap-12 sm:grid-cols-2 lg:grid-cols-4">
           {SITE_DIRECTORY.map((section) => (
             <div key={section.title}>
-              <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-foreground/50">
+              <h2 className="text-xs font-semibold uppercase tracking-label text-foreground/50">
                 {section.title}
               </h2>
               <ul className="mt-5 space-y-3">

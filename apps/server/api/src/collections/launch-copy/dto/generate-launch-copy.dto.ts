@@ -16,7 +16,7 @@ import {
  * A subset of `Platform` — the dev-native launch surfaces that have channel
  * conventions distinct enough to warrant bespoke copy generation.
  */
-export const LAUNCH_COPY_CHANNELS = [
+const LAUNCH_COPY_CHANNELS = [
   Platform.HACKER_NEWS,
   Platform.PRODUCT_HUNT,
 ] as const;

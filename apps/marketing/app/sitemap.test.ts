@@ -182,6 +182,8 @@ describe('website sitemap', () => {
 
     expect(urls.has('https://genfeed.ai/@genfeedai')).toBe(true);
     expect(urls.has('https://genfeed.ai/community')).toBe(true);
+    expect(urls.has('https://genfeed.ai/community/articles')).toBe(true);
+    expect(urls.has('https://genfeed.ai/articles')).toBe(false);
     expect(urls.has('https://genfeed.ai/community/creators')).toBe(true);
     expect(urls.has('https://genfeed.ai/community/videos')).toBe(true);
     expect(urls.has('https://genfeed.ai/community/images')).toBe(true);

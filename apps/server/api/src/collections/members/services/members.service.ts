@@ -1,6 +1,5 @@
 import { CreateMemberDto } from '@api/collections/members/dto/create-member.dto';
 import { UpdateMemberDto } from '@api/collections/members/dto/update-member.dto';
-import type { MemberDocument } from '@api/collections/members/schemas/member.schema';
 import { UserAccessCacheService } from '@api/common/services/user-access-cache.service';
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -14,7 +13,7 @@ import {
   normalizeInstalledAppIds,
 } from '@genfeedai/contracts/constants';
 import type { AgentTeamMentionItem } from '@genfeedai/contracts/interfaces';
-import { Prisma } from '@genfeedai/prisma';
+import { type Member, Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
 import { Traced } from '@libs/tracing/traced';
@@ -46,7 +45,7 @@ type TeamMentionRecord = {
 @Traced()
 @Injectable()
 export class MembersService extends BaseService<
-  MemberDocument,
+  Member,
   CreateMemberDto,
   UpdateMemberDto
 > {
@@ -100,7 +99,7 @@ export class MembersService extends BaseService<
     id: string,
     updateDto: Partial<UpdateMemberDto> | PrismaUpdate,
     populate: PopulateInput = [],
-  ): Promise<MemberDocument> {
+  ): Promise<Member> {
     const roleId = (updateDto as { roleId?: unknown }).roleId;
     const data =
       typeof roleId === 'string'
@@ -125,7 +124,7 @@ export class MembersService extends BaseService<
     return member;
   }
 
-  override async remove(id: string): Promise<MemberDocument | null> {
+  override async remove(id: string): Promise<Member | null> {
     const member = await super.remove(id);
     if (member?.userId) {
       await this.userAccessCacheService.invalidateAll(member.userId);
@@ -156,7 +155,7 @@ export class MembersService extends BaseService<
     };
   }
 
-  async find(filter: Record<string, unknown>): Promise<MemberDocument[]> {
+  async find(filter: Record<string, unknown>): Promise<Member[]> {
     const organizationId =
       typeof filter.organizationId === 'string' ? filter.organizationId : '';
     if (!organizationId) {
@@ -167,10 +166,10 @@ export class MembersService extends BaseService<
       where: scopedWhere(organizationId, filter),
     });
 
-    return members as unknown as MemberDocument[];
+    return members as unknown as Member[];
   }
 
-  async findActiveForUserAccess(userId: string): Promise<MemberDocument[]> {
+  async findActiveForUserAccess(userId: string): Promise<Member[]> {
     if (!userId) {
       throw new TypeError('findActiveForUserAccess requires userId');
     }
@@ -189,7 +188,7 @@ export class MembersService extends BaseService<
       }),
     );
 
-    return members as unknown as MemberDocument[];
+    return members as unknown as Member[];
   }
 
   /**

@@ -102,7 +102,7 @@ export function TrendingSounds({
                         ) : null}
                       </div>
                       {index < 3 && (
-                        <div className="absolute -top-2 -right-2 size-6 rounded-full bg-primary text-primary-foreground text-xs font-bold flex items-center justify-center">
+                        <div className="absolute -top-2 -right-2 size-6 rounded-full bg-primary text-primary-foreground text-xs font-semibold flex items-center justify-center">
                           {index + 1}
                         </div>
                       )}
@@ -217,5 +217,3 @@ export function TrendingSounds({
     </div>
   );
 }
-
-export default TrendingSounds;

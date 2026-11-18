@@ -1,4 +1,5 @@
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-definition';
+import { SystemWorkflowRetention } from '@api/collections/workflows/workflow-execution-retention.contract';
 import { AB_TEST_ACTION_IDS } from '@api/services/content-optimization/ab-test-workflow-definition';
 import { createGenfeedActionNode } from '@genfeedai/actions';
 
@@ -88,6 +89,7 @@ export function buildContentAnalysisWorkflowDefinition(): SystemWorkflowGraphDef
       'Loads performance evidence, runs the optimization cycle, and derives one analysis.',
     label: 'Analyze Content Performance',
     resultNodeId: 'derive-analysis',
+    retention: SystemWorkflowRetention.KEPT,
     version: 1,
   };
 }
@@ -125,11 +127,12 @@ export function buildPromptOptimizationWorkflowDefinition(): SystemWorkflowGraph
       'Loads historical performance context and optimizes one content prompt.',
     label: 'Optimize Content Prompt',
     resultNodeId: 'optimize-prompt',
+    retention: SystemWorkflowRetention.KEPT,
     version: 1,
   };
 }
 
-export function buildContentRecommendationsWorkflowDefinition(): SystemWorkflowGraphDefinition {
+function buildContentRecommendationsWorkflowDefinition(): SystemWorkflowGraphDefinition {
   const graph = analysisNodes(
     CONTENT_OPTIMIZATION_ACTION_IDS.DERIVE_RECOMMENDATIONS,
     'derive-recommendations',
@@ -162,11 +165,12 @@ export function buildContentRecommendationsWorkflowDefinition(): SystemWorkflowG
       'Loads performance evidence and derives actionable content recommendations.',
     label: 'Recommend Content Optimizations',
     resultNodeId: 'derive-recommendations',
+    retention: SystemWorkflowRetention.KEPT,
     version: 1,
   };
 }
 
-export function buildContentSuggestionsWorkflowDefinition(): SystemWorkflowGraphDefinition {
+function buildContentSuggestionsWorkflowDefinition(): SystemWorkflowGraphDefinition {
   return singleActionDefinition(
     CONTENT_OPTIMIZATION_WORKFLOW_IDS.SUGGEST,
     CONTENT_OPTIMIZATION_ACTION_IDS.GENERATE_SUGGESTIONS,
@@ -208,11 +212,12 @@ export function buildApplySuggestionWorkflowDefinition(): SystemWorkflowGraphDef
       'Generates current evidence-backed suggestions and applies one eligible suggestion.',
     label: 'Apply Content Suggestion',
     resultNodeId: 'apply-suggestion',
+    retention: SystemWorkflowRetention.KEPT,
     version: 1,
   };
 }
 
-export function buildRequeueWinnerWorkflowDefinition(): SystemWorkflowGraphDefinition {
+function buildRequeueWinnerWorkflowDefinition(): SystemWorkflowGraphDefinition {
   return singleActionDefinition(
     CONTENT_OPTIMIZATION_WORKFLOW_IDS.REQUEUE_WINNER,
     CONTENT_OPTIMIZATION_ACTION_IDS.REQUEUE_WINNER,
@@ -248,6 +253,7 @@ function singleActionDefinition(
     description: label,
     label,
     resultNodeId: nodeId,
+    retention: SystemWorkflowRetention.KEPT,
     version: 1,
   };
 }

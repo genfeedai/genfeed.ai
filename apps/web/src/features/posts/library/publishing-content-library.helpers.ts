@@ -29,7 +29,7 @@ export const PUBLISHING_CONTENT_TYPES = [
   'newsletter',
 ] as const;
 
-export type PublishingContentType = (typeof PUBLISHING_CONTENT_TYPES)[number];
+type PublishingContentType = (typeof PUBLISHING_CONTENT_TYPES)[number];
 export type PublishingContentTypeFilter = PublishingContentType | 'all';
 
 export interface PublishingContentLibraryItem {
@@ -73,9 +73,7 @@ function newestFirst(
   return Date.parse(right.createdAt) - Date.parse(left.createdAt);
 }
 
-export function formatPublishingContentType(
-  type: PublishingContentType,
-): string {
+function formatPublishingContentType(type: PublishingContentType): string {
   switch (type) {
     case 'article':
       return 'Article';
@@ -133,8 +131,15 @@ function toPostMedia(
     : null;
 }
 
+/**
+ * A release stores its media as asset ids only (no URL), so the first item is
+ * resolved from the loaded posts, which carry the hydrated ingredients. A
+ * release whose first asset is in none of them still shows a URL when the
+ * response carried one.
+ */
 function toReleaseMedia(
   media: IReleaseGroup['media'] | undefined,
+  ingredientsByAssetId: ReadonlyMap<string, IIngredient>,
 ): PublishingContentMedia | null {
   const first = [...(Array.isArray(media) ? media : [])].sort(
     (left, right) => (left.order ?? 0) - (right.order ?? 0),
@@ -142,7 +147,10 @@ function toReleaseMedia(
   if (!first) {
     return null;
   }
-  // A release without a hydrated URL still has media: say so with the mark.
+  const ingredient = ingredientsByAssetId.get(first.assetId);
+  if (ingredient) {
+    return toPostMedia(ingredient);
+  }
   return first.url ? { isVideo: first.kind === 'video', url: first.url } : null;
 }
 
@@ -219,6 +227,14 @@ export function createPublishingContentLibraryItems({
     ),
   );
   const releaseIds = new Set(releases.map((release) => release.id));
+  const ingredientsByAssetId = new Map<string, IIngredient>(
+    posts.flatMap((post) =>
+      (post.ingredients ?? []).map((ingredient): [string, IIngredient] => [
+        ingredient.id,
+        ingredient,
+      ]),
+    ),
+  );
   const releaseItems: PublishingContentLibraryItem[] = releases.map(
     (release) => ({
       accounts: toAccounts(
@@ -232,7 +248,7 @@ export function createPublishingContentLibraryItems({
       ),
       createdAt: release.createdAt,
       id: release.id,
-      media: toReleaseMedia(release.media),
+      media: toReleaseMedia(release.media, ingredientsByAssetId),
       publishedAt: release.publishedAt ?? null,
       release,
       scheduledAt: release.scheduledAt,

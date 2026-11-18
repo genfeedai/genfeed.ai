@@ -292,6 +292,13 @@ function buildReviewItem(id: string): ReviewInboxItem {
   };
 }
 
+// Every app is on offer, so no entry point is hidden.
+vi.mock('@/components/shell/use-available-rail-apps', () => ({
+  useHasAppsBeyondDashboard: () => true,
+  useIsAppAvailable: () => true,
+  useIsHrefAvailable: () => () => true,
+}));
+
 describe('OperationalHomeContent', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -355,7 +362,7 @@ describe('OperationalHomeContent', () => {
     ).toBeInTheDocument();
     expect(
       within(connectionState).getByRole('link', { name: /Connect Genfeed/ }),
-    ).toHaveAttribute('href', '/acme/~/connect');
+    ).toHaveAttribute('href', '/acme/~/connectors/agents');
     expect(
       screen.queryByRole('link', { name: /Manage API keys/ }),
     ).not.toBeInTheDocument();
@@ -471,7 +478,7 @@ describe('OperationalHomeContent', () => {
 
     render(<OperationalHomeContent />);
 
-    expect(screen.getByText('Generating an image...')).toBeInTheDocument();
+    expect(screen.getByText('Generating an image…')).toBeInTheDocument();
     expect(mocks.translate).toHaveBeenCalledWith(
       'activity.lifecycle.processing',
       expect.objectContaining({
@@ -504,7 +511,7 @@ describe('OperationalHomeContent', () => {
     expect(mocks.connectionOrganizationId).toBe('org_1');
     expect(
       screen.getByRole('link', { name: /Connect Genfeed/ }),
-    ).toHaveAttribute('href', '/acme/~/connect');
+    ).toHaveAttribute('href', '/acme/~/connectors/agents');
   });
 
   it('keeps operational summaries available when status resolution fails', () => {
@@ -524,7 +531,7 @@ describe('OperationalHomeContent', () => {
     expect(screen.getByTestId('operational-home-sections')).toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: 'Open Connect Genfeed' }),
-    ).toHaveAttribute('href', '/acme/~/connect');
+    ).toHaveAttribute('href', '/acme/~/connectors/agents');
   });
 
   it('uses organization-level brand setup actions when no brand is available', () => {
@@ -650,7 +657,7 @@ describe('OperationalHomeContent', () => {
     const accounts = screen.getByTestId('operational-home-credentials');
     expect(
       within(accounts).getByRole('link', { name: 'Connect account' }),
-    ).toHaveAttribute('href', '/acme/moonrise/settings/accounts');
+    ).toHaveAttribute('href', '/acme/moonrise/settings/profile');
   });
 
   it('opens the post editor from a publishing row and leads it with the account avatar', () => {
@@ -811,7 +818,7 @@ describe('OperationalHomeContent', () => {
 
     const credentials = screen.getByTestId('operational-home-credentials');
     expect(within(credentials).getByRole('status')).toHaveAccessibleName(
-      'Loading credential health...',
+      'Loading credential health…',
     );
     expect(
       within(credentials).getByTestId('skeleton-card'),
@@ -1004,7 +1011,7 @@ describe('OperationalHomeContent', () => {
     );
     expect(queue.getByRole('link', { name: 'Reconnect' })).toHaveAttribute(
       'href',
-      '/acme/moonrise/settings/accounts',
+      '/acme/moonrise/settings/profile',
     );
 
     // The status badge sits in the same cluster as the action it explains.

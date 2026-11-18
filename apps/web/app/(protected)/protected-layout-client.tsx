@@ -1,7 +1,8 @@
 'use client';
 
-import { SessionKeepAlive } from '@genfeedai/auth-client';
+import { SessionKeepAlive, SignedOutRedirect } from '@genfeedai/auth-client';
 import { RoutedOrganizationProvider } from '@genfeedai/contexts/user/organization-context/organization-context';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { ProtectedBootstrapProps } from '@props/layout/protected-bootstrap.props';
 import { ErrorBoundary } from '@ui/display/error-boundary/ErrorBoundary';
 import { ErrorFallback } from '@ui/error/ErrorFallback';
@@ -18,7 +19,9 @@ import { usePlatformFlags } from '@/lib/platform-flags/use-platform-flags';
 import { captureWorkspaceShellSession } from '@/lib/workspace-shell/workspace-shell-telemetry';
 import ApiAuthBridge from './api-auth-bridge';
 import PlatformModuleRouteGate from './platform-module-route-gate';
-import RoutedOrganizationBoundary from './routed-organization-boundary';
+import RoutedOrganizationBoundary, {
+  RoutedOrganizationPageGate,
+} from './routed-organization-boundary';
 
 export default function ProtectedLayoutClient({
   children,
@@ -34,10 +37,12 @@ export default function ProtectedLayoutClient({
     isUnavailable,
   } = usePlatformFlags(initialBootstrap?.platformFlags);
 
+  // use-effect-audit: ignore reports to analytics, an external system
   useEffect(() => {
     captureWorkspaceShellSession();
   }, []);
 
+  // use-effect-audit: ignore reports to analytics, an external system
   useEffect(() => {
     if (!user?.id) {
       return;
@@ -60,7 +65,9 @@ export default function ProtectedLayoutClient({
         {/* Outside the shell's error boundaries, which would swallow notFound(). */}
         <PlatformModuleRouteGate>
           <AppProtectedLayout initialBootstrap={initialBootstrap}>
-            <ErrorBoundary presentation="inline">{children}</ErrorBoundary>
+            <RoutedOrganizationPageGate>
+              <ErrorBoundary presentation="inline">{children}</ErrorBoundary>
+            </RoutedOrganizationPageGate>
           </AppProtectedLayout>
         </PlatformModuleRouteGate>
       </RoutedOrganizationBoundary>
@@ -90,6 +97,8 @@ export default function ProtectedLayoutClient({
         SessionKeepAlive for the nanostores STORE_UNMOUNT_DELAY details.
       */}
       <SessionKeepAlive />
+      {/* A sign-out in this or any other tab sends the whole shell to sign-in. */}
+      <SignedOutRedirect href={APP_ROUTES.LOGIN} />
       {/* Same contract for the desktop runtime store: read the bridge once. */}
       <DesktopRuntimeKeepAlive />
       <ApiAuthBridge />

@@ -24,14 +24,43 @@ describe('analyticsService', () => {
       startDate: '2026-08-01',
     };
 
-    await analyticsService.getOverview('token', scope, options);
-    await analyticsService.getTopContent('token', scope, {
+    apiRequest
+      .mockResolvedValueOnce({ data: { kind: 'overview' } })
+      .mockResolvedValueOnce({ data: { kind: 'top' } })
+      .mockResolvedValueOnce({ data: { kind: 'platforms' } })
+      .mockResolvedValueOnce({ data: { kind: 'growth' } })
+      .mockResolvedValueOnce({ data: { kind: 'engagement' } });
+
+    const overview = await analyticsService.getOverview(
+      'token',
+      scope,
+      options,
+    );
+    const top = await analyticsService.getTopContent('token', scope, {
       ...options,
       limit: 5,
     });
-    await analyticsService.getPlatformStats('token', scope, options);
-    await analyticsService.getGrowthTrends('token', scope, options);
-    await analyticsService.getEngagement('token', scope, options);
+    const platforms = await analyticsService.getPlatformStats(
+      'token',
+      scope,
+      options,
+    );
+    const growth = await analyticsService.getGrowthTrends(
+      'token',
+      scope,
+      options,
+    );
+    const engagement = await analyticsService.getEngagement(
+      'token',
+      scope,
+      options,
+    );
+
+    expect(overview).toEqual({ data: { kind: 'overview' } });
+    expect(top).toEqual({ data: { kind: 'top' } });
+    expect(platforms).toEqual({ data: { kind: 'platforms' } });
+    expect(growth).toEqual({ data: { kind: 'growth' } });
+    expect(engagement).toEqual({ data: { kind: 'engagement' } });
 
     expect(apiRequest).toHaveBeenNthCalledWith(
       1,

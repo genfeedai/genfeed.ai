@@ -189,6 +189,7 @@ describe('recordDispatch racing the dispatch window', () => {
         kind: 'stopped',
         reasonCode: 'dispatch_window_expired',
       });
+      expect(outcome).toHaveProperty('postId', null);
     },
   );
 
@@ -203,10 +204,14 @@ describe('recordDispatch racing the dispatch window', () => {
       new ConflictException('receipt_version_conflict'),
     );
 
-    await expect(h.service.generate(h.request)).resolves.toMatchObject({
+    const outcome = await h.service.generate(h.request);
+
+    expect(outcome).toMatchObject({
       kind: 'stopped',
       reasonCode: 'dispatch_window_expired',
     });
+    expect(outcome).toHaveProperty('postId', null);
+    expect(outcome).toHaveProperty('hasNewDispatch', true);
   });
 
   it('rethrows the original conflict when the receipt did not expire', async () => {

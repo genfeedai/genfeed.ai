@@ -1,6 +1,7 @@
 import {
   DEFAULT_MCP_PROFILE_TOOLSETS,
   DIRECTORY_MCP_PROFILE_TOOLSETS,
+  getToolsForToolsets,
   STUDIO_MCP_PROFILE_TOOLSETS,
 } from '@genfeedai/actions';
 import type { McpRequest } from '@mcp/shared/interfaces/mcp-request.interface';
@@ -96,6 +97,23 @@ describe('resolveMcpToolQuery', () => {
     expect(resolveMcpToolQuery({ profile: 'studio' }).toolsets).toEqual([
       ...STUDIO_MCP_PROFILE_TOOLSETS,
     ]);
+  });
+
+  it('lists get_trends and get_analytics for the bare URL, ?toolsets=analytics, ?app=analytics and studio', () => {
+    for (const query of [
+      {},
+      { toolsets: 'analytics' },
+      { app: 'analytics', toolsets: 'content' },
+      { profile: 'studio' },
+    ]) {
+      const names = getToolsForToolsets(
+        'mcp',
+        resolveMcpToolQuery(query).toolsets,
+      ).map((tool) => tool.name);
+      expect(names).toEqual(
+        expect.arrayContaining(['get_trends', 'get_analytics']),
+      );
+    }
   });
 
   it('adds the toolsets of ?app= to the default profile', () => {

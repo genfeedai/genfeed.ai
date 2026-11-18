@@ -1,5 +1,6 @@
 import { organizationIssuerLookup } from '@api/authorization/brand-access/actor-api-key.fixture';
 import { IngredientCharacterFilterService } from '@api/collections/ingredients/services/ingredient-character-filter.service';
+import { BRAND_ACCESS_MISSING_MESSAGE } from '@api/services/agent-orchestrator/tools/agent-brand-access.util';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { AgentWorkspaceToolHandler } from '@api/services/agent-orchestrator/tools/agent-workspace-tool-handler.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -966,6 +967,7 @@ describe('AgentWorkspaceToolHandler live Cloud brand discovery', () => {
       brands: [{ id: 'brand-a' }],
     };
     const findMember = vi.fn().mockImplementation(async () => membership);
+    const count = vi.fn().mockResolvedValue(2);
     const findAll = vi.fn().mockImplementation(async ({ where }) => {
       expect(findMember).toHaveBeenCalled();
       const ids = where.id?.in ?? ['brand-a', 'brand-b'];
@@ -975,7 +977,7 @@ describe('AgentWorkspaceToolHandler live Cloud brand discovery', () => {
     });
     const handler = new AgentWorkspaceToolHandler(
       {} as ConstructorParameters<typeof AgentWorkspaceToolHandler>[0],
-      { findAll } as unknown as ConstructorParameters<
+      { count, findAll } as unknown as ConstructorParameters<
         typeof AgentWorkspaceToolHandler
       >[1],
       {} as ConstructorParameters<typeof AgentWorkspaceToolHandler>[2],
@@ -996,7 +998,7 @@ describe('AgentWorkspaceToolHandler live Cloud brand discovery', () => {
         member: { findFirst: findMember },
       } as unknown as PrismaService),
     });
-    return { handler, membership, findMember, findAll };
+    return { count, handler, membership, findMember, findAll };
   }
   const actor: ToolExecutionContext = {
     userId: 'actor',
@@ -1027,13 +1029,64 @@ describe('AgentWorkspaceToolHandler live Cloud brand discovery', () => {
     expect(revoked).toEqual({
       success: true,
       creditsUsed: 0,
-      data: { brands: [] },
+      data: {
+        brandAccessMessage: BRAND_ACCESS_MISSING_MESSAGE,
+        brands: [],
+        organizationBrandCount: 2,
+      },
+    });
+    expect(f.count).toHaveBeenCalledWith({
+      isDeleted: false,
+      organizationId: 'org-a',
     });
     expect(f.findAll).toHaveBeenLastCalledWith(
       { where: { organizationId: 'org-a', isDeleted: false, id: { in: [] } } },
       {},
     );
     expect(f.findMember).toHaveBeenCalledTimes(2);
+  });
+
+  it('reports missing access, not an empty organization, to a member with no assigned brand', async () => {
+    const f = fixture();
+    f.membership.brands = [];
+
+    const brandsResult = await f.handler.getBrands({}, actor);
+    expect(brandsResult.data).toMatchObject({
+      brands: [],
+      organizationBrandCount: 2,
+    });
+    expect(JSON.stringify(brandsResult)).not.toMatch(/create/i);
+
+    const account = await f.handler.getAccount({ include: ['profile'] }, actor);
+    expect(
+      (account.data as { profile: Record<string, unknown> }).profile,
+    ).toMatchObject({
+      brandAccessMessage: BRAND_ACCESS_MISSING_MESSAGE,
+      brandCount: 0,
+      organizationBrandCount: 2,
+    });
+  });
+
+  it('keeps the plain empty list when the organization has no brands', async () => {
+    const f = fixture();
+    f.membership.brands = [];
+    f.count.mockResolvedValue(0);
+
+    expect(await f.handler.getBrands({}, actor)).toEqual({
+      creditsUsed: 0,
+      data: { brands: [] },
+      success: true,
+    });
+  });
+
+  it('lists the brands assigned to a member without any access note', async () => {
+    const f = fixture();
+
+    const result = await f.handler.getBrands({}, actor);
+    expect(result.data).toEqual({
+      brands: [expect.objectContaining({ id: 'brand-a' })],
+    });
+    expect(f.count).not.toHaveBeenCalled();
   });
 
   it('gives denied selectors the same public result as nonexistent selectors', async () => {

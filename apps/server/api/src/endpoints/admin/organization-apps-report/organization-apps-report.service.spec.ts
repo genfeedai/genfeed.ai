@@ -89,7 +89,11 @@ describe('OrganizationAppsReportService', () => {
       },
     ]);
     getFeatureSettings.mockResolvedValue({
-      flags: { release_publishing: true },
+      flags: {
+        release_playground: true,
+        release_publishing: true,
+        release_storyboard: true,
+      },
     });
 
     const report = await service.getReport(firstPage);
@@ -122,11 +126,31 @@ describe('OrganizationAppsReportService', () => {
     findMany.mockResolvedValue([
       { id: 'org_bare', label: 'Bare', settings: null, slug: 'bare' },
     ]);
-    getFeatureSettings.mockResolvedValue({ flags: {} });
+    getFeatureSettings.mockResolvedValue({
+      flags: { release_playground: true },
+    });
 
     const [bare] = (await service.getReport(firstPage)).organizations;
 
     expect(bare?.subscriptionTier).toBeNull();
     expect(bare?.apps.playground.isVisible).toBe(true);
+  });
+
+  it('hides Playground and Storyboard until they are released', async () => {
+    findMany.mockResolvedValue([
+      { id: 'org_bare', label: 'Bare', settings: null, slug: 'bare' },
+    ]);
+    getFeatureSettings.mockResolvedValue({ flags: {} });
+
+    const [bare] = (await service.getReport(firstPage)).organizations;
+
+    expect(bare?.apps.playground).toEqual({
+      isReleased: false,
+      isVisible: false,
+    });
+    expect(bare?.apps.storyboard).toEqual({
+      isReleased: false,
+      isVisible: false,
+    });
   });
 });

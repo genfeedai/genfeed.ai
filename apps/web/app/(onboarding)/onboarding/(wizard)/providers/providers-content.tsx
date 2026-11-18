@@ -116,6 +116,7 @@ export default function ProvidersContent() {
 
   // An offline desktop shell detects its local CLIs through the bridge; every
   // other client reads the install readiness from the API.
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     if (desktopProbe !== 'pending') {
       return;
@@ -271,7 +272,7 @@ export default function ProvidersContent() {
     setPendingMode('byok');
     await persistAccessMode('byok');
     await handleStepComplete('providers');
-    push(APP_ROUTES.SETTINGS.API_KEYS);
+    push(APP_ROUTES.CONNECTORS.API_KEYS);
   };
 
   const handleDesktopContinue = () => {

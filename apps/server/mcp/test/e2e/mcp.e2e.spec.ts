@@ -11,7 +11,7 @@ import {
 /**
  * End-to-end journey for the hosted MCP server, in the order a connecting
  * client experiences it: authenticate, read the account, list brands, try an
- * admin-gated onboarding action, then start a generation.
+ * admin-gated onboarding action on the admin endpoint, then start a generation.
  *
  * Requests travel over real HTTP through the production MCP request path
  * (middleware, `AuthService`, `StreamableHttpService`, tool registry, role
@@ -129,30 +129,15 @@ describe('MCP server e2e', () => {
     });
   });
 
-  describe('4. onboard_brand admin-role check', () => {
+  describe('4. onboard_brand on the admin endpoint', () => {
     const createFromUrl = {
       action: 'create_from_url',
       url: 'https://example.com',
     };
 
-    it.each([
-      ['an owner key without the admin scope', E2E_TOKENS.ownerCapped],
-      ['a plain member', E2E_TOKENS.member],
-    ])('denies %s before anything reaches the API', async (_label, token) => {
-      const { body } = await mcp.callTool(
-        token,
-        'onboard_brand',
-        createFromUrl,
-      );
-
-      expect(body.result?.isError).toBe(true);
-      expect(body.result?.content?.[0]?.text).toContain("requires 'admin'");
-      expect(upstreamPaths()).not.toContain('POST /v1/mcp-approvals');
-    });
-
     it('creates the brand at once for an owner key with the admin scope', async () => {
-      const { body } = await mcp.callTool(
-        E2E_TOKENS.ownerWithAdminScope,
+      const { body } = await mcp.callAdminTool(
+        E2E_TOKENS.adminEndpointOwner,
         'onboard_brand',
         createFromUrl,
       );
@@ -164,6 +149,38 @@ describe('MCP server e2e', () => {
       );
       expect(upstreamPaths()).not.toContain('POST /v1/mcp-approvals');
     });
+
+    it('lists only the admin-only tools on the admin endpoint', async () => {
+      const { body } = await mcp.listAdminTools(E2E_TOKENS.adminEndpointOwner);
+
+      expect(body.result?.tools.map((tool) => tool.name).sort()).toEqual([
+        'create_brand_from_url',
+        'resolve_approval',
+      ]);
+    });
+
+    it.each([
+      ['an owner key with the admin scope', E2E_TOKENS.ownerWithAdminScope],
+      ['an owner key without the admin scope', E2E_TOKENS.ownerCapped],
+      ['a plain member', E2E_TOKENS.member],
+    ])(
+      'points %s at the admin connection on the standard endpoint',
+      async (_label, token) => {
+        const { body } = await mcp.callTool(
+          token,
+          'onboard_brand',
+          createFromUrl,
+        );
+
+        expect(body.result?.isError).toBe(true);
+        expect(body.result?.content?.[0]?.text).toContain(
+          'only available on the Genfeed admin connection',
+        );
+        expect(upstreamPaths()).not.toContain(
+          'POST /v1/agent-tools/create_brand_from_url/execute',
+        );
+      },
+    );
   });
 
   describe('5. generate dry path', () => {

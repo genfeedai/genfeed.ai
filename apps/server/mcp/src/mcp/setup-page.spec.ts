@@ -143,7 +143,7 @@ describe('MCP setup page', () => {
     expect(html).toContain('aria-label="Copy agent setup prompt"');
     expect(html).toContain('claude mcp add --transport http genfeed');
     expect(html).toContain('codex mcp add genfeed --url');
-    expect(html).toContain('https://app.genfeed.ai/connect');
+    expect(html).toContain('https://app.genfeed.ai/connectors');
     expect(html).toContain('Start guided setup');
     expect(html).toContain('Read MCP docs');
     expect(html).toContain('OAuth setup guide');
@@ -221,6 +221,22 @@ describe('MCP setup page', () => {
     );
     expect(getMcpWwwAuthenticateHeader()).toContain(
       'resource_metadata="https://mcp.genfeed.ai/.well-known/oauth-protected-resource"',
+    );
+  });
+
+  it('publishes the admin endpoint as its own protected resource', () => {
+    vi.stubEnv('GENFEEDAI_API_PUBLIC_URL', 'https://api.genfeed.ai');
+    vi.stubEnv('GENFEEDAI_MCP_PUBLIC_URL', 'https://mcp.genfeed.ai/mcp');
+
+    expect(getMcpProtectedResourceMetadata('admin')).toMatchObject({
+      authorization_servers: ['https://api.genfeed.ai'],
+      resource: 'https://mcp.genfeed.ai/mcp/admin',
+    });
+    expect(getPublicMcpResourceMetadataUrl('admin')).toBe(
+      'https://mcp.genfeed.ai/.well-known/oauth-protected-resource/mcp/admin',
+    );
+    expect(getMcpWwwAuthenticateHeader('admin')).toContain(
+      'resource_metadata="https://mcp.genfeed.ai/.well-known/oauth-protected-resource/mcp/admin"',
     );
   });
 
@@ -320,7 +336,7 @@ describe('MCP setup page', () => {
     expect(promptHtml).toContain('list my Genfeed brands');
     expect(html).toContain('/api-reference/mcp#connect-via-oauth');
     expect(promptHtml).toContain(
-      'Guided connection flow: https://app.genfeed.ai/connect',
+      'Guided connection flow: https://app.genfeed.ai/connectors',
     );
     expect(promptHtml).toContain(
       'Never request tokens or passwords in this chat',
@@ -769,6 +785,25 @@ describe('MCP setup page', () => {
       expect(html).toContain(
         '<meta property="og:url" content="https://mcp.genfeed.ai/codex" />',
       );
+    });
+
+    it('offers Claude clients the full server for image, video and audio generation', () => {
+      const dom = new JSDOM(renderSetupPage());
+      const text = (id: string): string =>
+        dom.window.document.getElementById(id)?.textContent ?? '';
+
+      expect(text('claude-code-command')).toBe(
+        'claude mcp add --transport http genfeed --scope user https://mcp.genfeed.ai/mcp/claude',
+      );
+      expect(text('claude-code-media-command')).toBe(
+        'claude mcp add --transport http genfeed-media --scope user https://mcp.genfeed.ai/mcp',
+      );
+      expect(text('claude-chat-url')).toBe('https://mcp.genfeed.ai/mcp/claude');
+      expect(text('claude-chat-media-url')).toBe('https://mcp.genfeed.ai/mcp');
+      expect(dom.window.document.body.textContent).not.toContain(
+        'Genfeed Studio',
+      );
+      dom.window.close();
     });
 
     it('keeps Claude Code and Claude & Cowork as separate tabs', () => {

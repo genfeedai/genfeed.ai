@@ -18,6 +18,7 @@ import { IngredientFilterUtil } from '@api/helpers/utils/ingredient-filter/ingre
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { readAccountIdentity } from '@api/services/agent-orchestrator/tools/agent-account-identity.util';
 import { starLibraryAsset } from '@api/services/agent-orchestrator/tools/agent-asset-star.util';
+import { brandListData } from '@api/services/agent-orchestrator/tools/agent-brand-access.util';
 import { readAgentLibraryFilters } from '@api/services/agent-orchestrator/tools/agent-library-filters.util';
 import {
   agentPostPreviewInclude,
@@ -25,6 +26,8 @@ import {
 } from '@api/services/agent-orchestrator/tools/agent-post-preview.util';
 import { resolvePublishValidationMedia } from '@api/services/agent-orchestrator/tools/agent-publish-target.util';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
+import { brandReadScope } from '@api/services/agent-orchestrator/utils/agent-brand-read-scope.util';
+
 import { PresignedUploadService } from '@api/services/uploads/presigned-upload.service';
 import { PopulateBuilder } from '@api/shared/utils/populate/populate.util';
 import { isCloudDeployment } from '@genfeedai/config';
@@ -52,6 +55,7 @@ type AgentBrandsServiceLike = {
     brands: Record<string, unknown>[],
     organizationId: string,
   ) => Promise<Record<string, unknown>[]>;
+  count?: (filter: Record<string, unknown>) => Promise<number>;
   findAll: (
     query: Record<string, unknown>,
     options: Record<string, unknown>,
@@ -189,6 +193,7 @@ export class AgentWorkspaceToolHandler {
     const brandId = ctx.brandId ?? ctx.validatedScope?.brandId;
     const identity = await readAccountIdentity(
       {
+        brandCounter: this.brandsService,
         listBrands: (context) => this.listAccessibleBrands(context),
         organizationsService: this.organizationsService,
         usersService: this.usersService,
@@ -278,7 +283,8 @@ export class AgentWorkspaceToolHandler {
 
     const requested = readRequiredString(params.brand);
     if (!requested) {
-      return { creditsUsed: 0, data: { brands: serialized }, success: true };
+      const data = await brandListData(this.brandsService, ctx, serialized);
+      return { creditsUsed: 0, data, success: true };
     }
 
     const needle = requested.toLowerCase();
@@ -504,14 +510,12 @@ export class AgentWorkspaceToolHandler {
       organizationId: ctx.organizationId,
     };
 
-    if (isCloudDeployment())
-      matchStage.brand = {
-        is: await this.brandAccessService.predicate({
-          userId: ctx.userId,
-          organizationId: ctx.organizationId,
-          ...ctx.apiKeyContext,
-        }),
-      };
+    Object.assign(
+      matchStage,
+      await brandReadScope(this.brandAccessService, ctx),
+    );
+    const brandId = readRequiredString(params.brandId);
+    if (brandId) matchStage.brandId = brandId;
     const executionState = params.executionState;
     if (
       typeof executionState === 'string' &&
@@ -561,6 +565,7 @@ export class AgentWorkspaceToolHandler {
         id: postId,
         isDeleted: false,
         organizationId: ctx.organizationId,
+        ...(await brandReadScope(this.brandAccessService, ctx)),
       },
       agentPostPreviewPopulate(ctx.organizationId),
     );
@@ -741,7 +746,7 @@ export class AgentWorkspaceToolHandler {
       data: { href, ingredientId, type },
       nextActions: [
         {
-          ctas: [{ href, label: 'View in Library' }],
+          ctas: [{ href, label: 'View Library' }],
           data: { href, ingredientId, type },
           editorType: type,
           id: `studio-handoff-${ingredientId}`,

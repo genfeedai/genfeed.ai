@@ -14,7 +14,6 @@ const cloud: OrganizationModuleAccessInput = {
   isSettingsLoaded: true,
   hasOrganizationBilling: true,
   hasPaidSubscription: false,
-  isReleased: true,
   operation: 'write',
 };
 
@@ -27,6 +26,8 @@ const RELEASED = {
 };
 
 const UNRELEASED_MODULE_IDS = [
+  'playground',
+  'storyboard',
   'motion',
   'clipper',
   'editor',
@@ -34,28 +35,46 @@ const UNRELEASED_MODULE_IDS = [
   'messages',
 ] as const;
 
-describe('release gate', () => {
+describe('release is presentation only', () => {
   it.each(UNRELEASED_MODULE_IDS)(
-    'refuses new %s work while unreleased, even when paid',
+    'admits new %s work for a paid organization',
     (moduleId) => {
       expect(
         resolveOrganizationModuleAccess({
           ...cloud,
           moduleId,
           hasPaidSubscription: true,
-          isReleased: false,
         }),
-      ).toEqual({ isAllowed: false, reason: 'unreleased' });
+      ).toEqual({ isAllowed: true, reason: null });
     },
   );
 
-  it('keeps reads, exports and cancellation of unreleased modules available', () => {
+  it.each(['playground', 'storyboard', 'motion', 'clipper', 'editor'] as const)(
+    'admits new %s work without a subscription',
+    (moduleId) => {
+      expect(resolveOrganizationModuleAccess({ ...cloud, moduleId })).toEqual({
+        isAllowed: true,
+        reason: null,
+      });
+    },
+  );
+
+  it.each(['automation', 'messages'] as const)(
+    'still requires a paid subscription for %s',
+    (moduleId) => {
+      expect(resolveOrganizationModuleAccess({ ...cloud, moduleId })).toEqual({
+        isAllowed: false,
+        reason: 'subscription-required',
+      });
+    },
+  );
+
+  it('keeps reads, exports and cancellation available', () => {
     for (const operation of ['read', 'export', 'cancel'] as const) {
       expect(
         resolveOrganizationModuleAccess({
           ...cloud,
           moduleId: 'automation',
-          isReleased: false,
           operation,
         }),
       ).toEqual({ isAllowed: true, reason: null });
@@ -95,14 +114,37 @@ describe('release gate', () => {
     ).toEqual({ isAllowed: false, reason: 'unreleased' });
   });
 
-  it('never gates Playground and Storyboard behind a release', () => {
-    const preferences = resolveOrganizationModulePreferences(
-      { hasOrganizationBilling: true, moduleOverrides: {} },
-      {},
-    );
-    expect(preferences?.playground).toBe(true);
-    expect(preferences?.storyboard).toBe(true);
-    expect(preferences?.publishing).toBe(false);
+  it('hides Playground and Storyboard from cloud navigation until released', () => {
+    const settings = { hasOrganizationBilling: true, moduleOverrides: {} };
+    const unreleased = resolveOrganizationModulePreferences(settings, {});
+    expect(unreleased?.playground).toBe(false);
+    expect(unreleased?.storyboard).toBe(false);
+    for (const moduleId of ['playground', 'storyboard'] as const) {
+      expect(
+        resolveOrganizationModulePresentationAccess(settings, moduleId, {}),
+      ).toEqual({ isAllowed: false, reason: 'unreleased' });
+      expect(resolveOrganizationModuleAccess({ ...cloud, moduleId })).toEqual({
+        isAllowed: true,
+        reason: null,
+      });
+    }
+    const released = resolveOrganizationModulePreferences(settings, {
+      release_playground: true,
+    });
+    expect(released?.playground).toBe(true);
+    expect(released?.storyboard).toBe(false);
+    expect(
+      resolveOrganizationModulePreferences(
+        { ...settings, isReleasePreviewEnabled: true },
+        {},
+      )?.playground,
+    ).toBe(true);
+    expect(
+      resolveOrganizationModulePreferences(
+        { hasOrganizationBilling: false, moduleOverrides: {} },
+        {},
+      )?.storyboard,
+    ).toBe(true);
   });
 });
 
@@ -114,14 +156,7 @@ describe('offered modules', () => {
       ORGANIZATION_MODULE_IDS.filter((moduleId) =>
         isOrganizationModuleOffered(moduleId, settings, RELEASED),
       ),
-    ).toEqual([
-      'playground',
-      'storyboard',
-      'publishing',
-      'analytics',
-      'turbo',
-      'discovery',
-    ]);
+    ).toEqual(['publishing', 'analytics', 'turbo', 'discovery']);
   });
 
   it('drops a module switched off for the platform', () => {
@@ -134,6 +169,7 @@ describe('offered modules', () => {
     expect(
       isOrganizationModuleOffered('playground', settings, {
         ...RELEASED,
+        release_playground: true,
         studio: false,
       }),
     ).toBe(false);
@@ -167,8 +203,8 @@ describe('organization module preference display', () => {
         RELEASED,
       ),
     ).toEqual({
-      playground: true,
-      storyboard: true,
+      playground: false,
+      storyboard: false,
       publishing: true,
       analytics: true,
       motion: false,
@@ -261,7 +297,6 @@ describe('organization module admission', () => {
             moduleId,
             isSettingsLoaded: false,
             hasPaidSubscription: null,
-            isReleased: false,
             operation,
           }).isAllowed,
         ).toBe(true);
@@ -381,7 +416,7 @@ describe('module presentation', () => {
           moduleOverrides: { playground: false },
         },
         'playground',
-        {},
+        { release_playground: true },
       ),
     ).toEqual({ isAllowed: false, reason: 'disabled' });
   });
@@ -397,19 +432,18 @@ describe('module presentation', () => {
       resolveOrganizationModulePresentationAccess(
         { hasOrganizationBilling: true, moduleOverrides: {} },
         'playground',
-        {},
+        { release_playground: true },
       ),
     ).toEqual({ isAllowed: true, reason: null });
   });
 });
 
 describe('existing work cancellation', () => {
-  it('allows stopping existing work while new Motion work is unreleased', () => {
+  it('allows stopping existing Motion work', () => {
     expect(
       resolveOrganizationModuleAccess({
         ...cloud,
         moduleId: 'motion',
-        isReleased: false,
         operation: 'cancel',
       }),
     ).toEqual({ isAllowed: true, reason: null });

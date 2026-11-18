@@ -37,8 +37,9 @@ describe('AnalyticsAnonymousSessionSync', () => {
   it('does not subscribe to auth when analytics is disabled', () => {
     mocks.isAnalyticsEnabled.mockReturnValue(false);
 
-    render(<AnalyticsAnonymousSessionSync />);
+    const { container } = render(<AnalyticsAnonymousSessionSync />);
 
+    expect(container).toBeEmptyDOMElement();
     expect(mocks.useAuthUser).not.toHaveBeenCalled();
     expect(mocks.ensureAnonymous).not.toHaveBeenCalled();
   });
@@ -52,8 +53,9 @@ describe('AnalyticsAnonymousSessionSync', () => {
   it('clears stale persisted account scope for a resolved anonymous session', () => {
     mocks.isLoaded = true;
 
-    render(<AnalyticsAnonymousSessionSync />);
+    const { container } = render(<AnalyticsAnonymousSessionSync />);
 
+    expect(container).toBeEmptyDOMElement();
     expect(mocks.ensureAnonymous).toHaveBeenCalledOnce();
   });
 

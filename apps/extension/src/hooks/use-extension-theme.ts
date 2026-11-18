@@ -12,6 +12,7 @@ export function useExtensionTheme(): boolean {
   const loadSettings = useSettingsStore((s) => s.loadSettings);
   const theme = useSettingsStore((s) => s.theme);
 
+  // use-effect-audit: ignore loads stored settings once from chrome.storage
   useEffect(() => {
     if (!isLoaded) {
       void loadSettings();
@@ -26,6 +27,7 @@ export function useExtensionTheme(): boolean {
     return watchExtensionTheme(theme);
   }, [isLoaded, theme]);
 
+  // use-effect-audit: ignore subscribes to chrome.storage changes
   useEffect(() => {
     const handleStorageChange = (
       changes: Record<string, chrome.storage.StorageChange>,

@@ -1,12 +1,16 @@
 import { CredentialPlatform } from '@genfeedai/contracts';
 import type { IconComponent } from '@genfeedai/contracts/types/icon';
 import {
+  BlueskyIcon,
   DevIcon,
+  DiscordIcon,
   FacebookIcon,
   GhostIcon,
   GoogleColorIcon,
   InstagramIcon,
   LinkedinIcon,
+  SlackIcon,
+  TelegramIcon,
   ThreadsIcon,
   TiktokIcon,
   XTwitterIcon,
@@ -18,6 +22,7 @@ export type OAuthConnectPlatformCategoryId =
   | 'social'
   | 'video'
   | 'communities'
+  | 'messaging'
   | 'creator'
   | 'publishing'
   | 'ads';
@@ -26,7 +31,7 @@ export type OAuthConnectPlatformCategoryId =
  * How a tile connects: `oauth` redirects to the provider, `api_key` asks for a
  * site URL and key in a form and stores the credential directly.
  */
-export type OAuthConnectMethod = 'oauth' | 'api_key';
+export type OAuthConnectMethod = 'oauth' | 'api_key' | 'add_bot_link';
 
 export interface OAuthConnectPlatformCategory {
   id: OAuthConnectPlatformCategoryId;
@@ -61,11 +66,17 @@ export interface OAuthConnectPlatform {
   servicePath?: string;
   /** Server capability whose unknown/unavailable state must fail closed. */
   readinessKey?: OAuthConnectReadinessKey;
+  /**
+   * Leave the tile out of the catalog until {@link readinessKey} reports
+   * `available`, instead of showing it disabled. For channels that are not
+   * released yet and should not be visible at all.
+   */
+  isHiddenUntilAvailable?: boolean;
 }
 
 export type OAuthConnectReadiness = 'available' | 'unavailable' | 'unknown';
 
-export type OAuthConnectReadinessKey = 'threads';
+export type OAuthConnectReadinessKey = 'threads' | 'google_business';
 
 export type OAuthConnectReadinessState = Partial<
   Record<OAuthConnectReadinessKey, OAuthConnectReadiness>
@@ -113,6 +124,11 @@ export const OAUTH_CONNECT_PLATFORM_CATEGORIES: OAuthConnectPlatformCategory[] =
       id: 'communities',
       label: 'Communities',
       description: 'Reach members of forums and community spaces.',
+    },
+    {
+      id: 'messaging',
+      label: 'Messaging',
+      description: 'Post to the channels of your team and community chats.',
     },
     {
       id: 'creator',
@@ -192,6 +208,24 @@ export const OAUTH_CONNECT_PLATFORMS: OAuthConnectPlatform[] = [
     readinessKey: 'threads',
   },
   {
+    category: 'social',
+    Icon: BlueskyIcon,
+    iconClassName: 'text-platform-bluesky',
+    label: 'Bluesky',
+    platform: CredentialPlatform.BLUESKY,
+  },
+  {
+    category: 'social',
+    Icon: GoogleColorIcon,
+    // GoogleColorIcon carries its own brand fills; the class only sizes it.
+    iconClassName: 'text-foreground',
+    isHiddenUntilAvailable: true,
+    label: 'Google Business',
+    platform: CredentialPlatform.GOOGLE_BUSINESS,
+    readinessKey: 'google_business',
+    servicePath: 'google-business',
+  },
+  {
     category: 'video',
     Icon: YoutubeIcon,
     iconClassName: 'text-platform-youtube',
@@ -212,6 +246,33 @@ export const OAUTH_CONNECT_PLATFORMS: OAuthConnectPlatform[] = [
     label: 'Restream',
     platform: CredentialPlatform.RESTREAM,
     servicePath: 'restream',
+  },
+  {
+    category: 'messaging',
+    Icon: DiscordIcon,
+    iconClassName: 'text-platform-discord',
+    label: 'Discord',
+    platform: CredentialPlatform.DISCORD,
+    servicePath: 'discord',
+  },
+  {
+    category: 'messaging',
+    Icon: SlackIcon,
+    iconClassName: 'text-platform-slack',
+    label: 'Slack',
+    platform: CredentialPlatform.SLACK,
+    servicePath: 'slack',
+  },
+  {
+    category: 'messaging',
+    // Telegram has no OAuth for bots: the user adds the Genfeed bot to a group
+    // from a one-time link, and the group connects when the bot is added.
+    connectMethod: 'add_bot_link',
+    Icon: TelegramIcon,
+    iconClassName: 'text-platform-telegram',
+    label: 'Telegram',
+    platform: CredentialPlatform.TELEGRAM,
+    servicePath: 'telegram',
   },
   {
     category: 'creator',
@@ -286,16 +347,22 @@ export function isApiKeyConnectPlatform(
 export function resolveOAuthConnectPlatformCatalog(
   readinessState: OAuthConnectReadinessState = {},
 ): ResolvedOAuthConnectPlatform[] {
-  return OAUTH_CONNECT_PLATFORMS.map((platform) => {
+  return OAUTH_CONNECT_PLATFORMS.flatMap((platform) => {
     const readiness = platform.readinessKey
       ? (readinessState[platform.readinessKey] ?? 'unknown')
       : 'available';
 
-    return {
-      ...platform,
-      isConnectAvailable: readiness === 'available',
-      readiness,
-    };
+    if (platform.isHiddenUntilAvailable && readiness !== 'available') {
+      return [];
+    }
+
+    return [
+      {
+        ...platform,
+        isConnectAvailable: readiness === 'available',
+        readiness,
+      },
+    ];
   });
 }
 

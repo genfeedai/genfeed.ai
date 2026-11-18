@@ -1,6 +1,6 @@
 import { getAppSignUpUrl } from '@data/app-links';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import { IMAGE_CREDIT_COSTS, PLAN_COPY } from '@genfeedai/pricing';
+import { formatPrice, IMAGE_CREDIT_COSTS, PLAN_COPY } from '@genfeedai/pricing';
 import { metadata } from '@helpers/media/metadata/metadata.helper';
 import { EnvironmentService } from '@services/core/environment.service';
 import { Button } from '@ui/primitives/button';
@@ -10,13 +10,13 @@ import {
   DefinitionTerm,
 } from '@ui/primitives/definition-list';
 import FaqGrid from '@web-components/content/FaqGrid';
-import MarketingArtwork from '@web-components/content/MarketingArtwork';
 import {
   CtaSection,
   NeuralGrid,
   NeuralGridItem,
   WebSection,
 } from '@web-components/content/NeuralGrid';
+import { serviceOffering } from '@web-components/landing/service-offering.data';
 import MarketingEntrance from '@web-components/MarketingEntrance';
 import SectionHeader from '@web-components/marketing/SectionHeader';
 import PageLayout from '@web-components/PageLayout';
@@ -54,7 +54,12 @@ function InternalLink(props: ComponentProps<typeof Link>) {
 const SERVICES = [
   {
     description:
-      'Generate video, images, voiceovers, and articles from one brief. The Genfeed router sends each job to the best model for the format, so you never pick from a model menu, and every job shows its credit price before it runs.',
+      'Connect Claude, ChatGPT, Codex, Cursor or any MCP client and brief Genfeed from where you already work. Every plan includes API access at the same credit price.',
+    title: 'Use it from your agent',
+  },
+  {
+    description:
+      'Generate video, images, voiceovers, and articles from one brief. Pick a model or let the Genfeed router choose one for the format, and every job shows its credit price before it runs.',
     title: 'Create',
   },
   {
@@ -71,11 +76,6 @@ const SERVICES = [
     description:
       'Analytics show how each post performs across your channels. The next brief starts from what worked instead of guesswork.',
     title: 'Measure',
-  },
-  {
-    description:
-      'Every plan includes API access at the same credit price. The MCP server lets AI agents such as Claude and ChatGPT run Genfeed directly.',
-    title: 'Build on it',
   },
 ] as const;
 
@@ -156,11 +156,6 @@ const HOW_IT_WORKS = [
   },
   {
     description:
-      'Images take 10–30 seconds, voiceovers about 30 seconds, articles 1–2 minutes, and videos 2–5 minutes.',
-    title: 'Turnaround',
-  },
-  {
-    description:
       'The founder. Support email, GitHub issues, and DMs reach Vincent directly, not a ticket queue.',
     title: 'Who you work with',
   },
@@ -194,7 +189,7 @@ const KEY_FACTS = [
   },
   {
     label: 'Pricing',
-    value: `${PLAN_COPY.payg.nameWithPrice}, ${PLAN_COPY.scale.nameWithPrice}, ${PLAN_COPY.enterprise.nameWithPrice}. Credits cost $0.01 each on ${PLAN_COPY.payg.name} and less on subscriptions.`,
+    value: `${PLAN_COPY.payg.nameWithPrice}, ${PLAN_COPY.pro.nameWithPrice}, ${PLAN_COPY.scale.nameWithPrice}, ${PLAN_COPY.enterprise.name} (from ${formatPrice(serviceOffering.startingMonthlyPrice)}/month). Credits cost $0.01 each on ${PLAN_COPY.payg.name} and less on subscriptions.`,
   },
   {
     label: 'Contract terms',
@@ -259,6 +254,8 @@ const KEY_FACTS = [
   },
 ] as const;
 
+const ENTERPRISE_PRICE = `${PLAN_COPY.enterprise.name} is from ${formatPrice(serviceOffering.startingMonthlyPrice)}/month`;
+
 const FAQ_ITEMS = [
   {
     answer: `Genfeed is founded and run by ${FOUNDER.name} as a solo founder. The company started in ${FOUNDED_YEAR} and works fully remote.`,
@@ -270,7 +267,7 @@ const FAQ_ITEMS = [
     question: 'Is Genfeed really open source?',
   },
   {
-    answer: `${PLAN_COPY.payg.name} is free to join and you pay per output, at one cent per credit. ${PLAN_COPY.scale.name} is ${PLAN_COPY.scale.monthlyPrice}, and ${PLAN_COPY.enterprise.name} is custom.`,
+    answer: `${PLAN_COPY.payg.name} is free to join and you pay per output, at one cent per credit. ${PLAN_COPY.pro.name} is ${PLAN_COPY.pro.monthlyPrice}, ${PLAN_COPY.scale.name} is ${PLAN_COPY.scale.monthlyPrice}, and ${ENTERPRISE_PRICE}.`,
     question: 'How much does Genfeed cost?',
   },
   {
@@ -290,14 +287,14 @@ export default function AboutContent() {
   return (
     <MarketingEntrance hero={false} sections={false}>
       <PageLayout
-        heroMedia={<MarketingArtwork page="/about" kind="creator" />}
+        compact
         title="About Genfeed"
         description={metadata.description}
       >
         <WebSection maxWidth="xl" className="gsap-section">
           <SectionHeader
             title="What Genfeed does"
-            description="One agent that makes the content, gets it out, and shows you what worked."
+            description="Use it from your agent. It makes the content, gets it out, and shows you what worked."
             className="[&_h2]:text-4xl sm:[&_h2]:text-5xl"
           />
 
@@ -432,7 +429,7 @@ export default function AboutContent() {
 
         <CtaSection
           bg="subtle"
-          title="Start free on Genfeed."
+          title="Start free on Genfeed"
           description={`Sign up on ${PLAN_COPY.payg.name} and pay only for what you generate.`}
         >
           <Button size={ButtonSize.PUBLIC} asChild>

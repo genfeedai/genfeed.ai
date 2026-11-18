@@ -238,10 +238,9 @@ async function runLocal<TRequest extends { requestKey: string }, TResult>(
  * the same request key and is never handed to another provider; sign-in,
  * access and workspace errors surface for recovery.
  */
-export async function routeAction<
-  TRequest extends { requestKey: string },
-  TResult,
->(spec: RoutedActionSpec<TRequest, TResult>): Promise<RoutedResult<TResult>> {
+async function routeAction<TRequest extends { requestKey: string }, TResult>(
+  spec: RoutedActionSpec<TRequest, TResult>,
+): Promise<RoutedResult<TResult>> {
   const workspace = await requireWorkspace();
   const scope: WorkspaceScope = {
     brandId: workspace.brandId,

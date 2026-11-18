@@ -19,6 +19,7 @@ export default function SelectionActionsBar({
   onMerge,
   onPublishCampaign,
   placement = 'overlay',
+  reviewAction,
   tagAction,
 }: SelectionActionsBarProps) {
   const translate = useTranslations('common.selectionActions');
@@ -27,6 +28,7 @@ export default function SelectionActionsBar({
     (canPublishCampaign && onPublishCampaign) ||
       canMerge ||
       onDownload ||
+      reviewAction ||
       tagAction,
   );
 
@@ -69,6 +71,8 @@ export default function SelectionActionsBar({
       )}
 
       {tagAction}
+
+      {reviewAction}
 
       {onDownload && (
         <Button

@@ -255,4 +255,15 @@ describe('typecheck alias inputs guard', () => {
     ]);
     expect(typecheckTsconfigs('bunx turbo run type-check')).toEqual([]);
   });
+
+  it('reads the tsconfig each type-check script hands to bun check', () => {
+    expect(
+      typecheckTsconfigs('bun run check.ts && bun check --no-script'),
+    ).toEqual(['tsconfig.json']);
+    expect(
+      typecheckTsconfigs(
+        'bun check --no-script -p tsconfig.typecheck.json && bun check --no-script -p tsconfig.preview.json',
+      ),
+    ).toEqual(['tsconfig.typecheck.json', 'tsconfig.preview.json']);
+  });
 });

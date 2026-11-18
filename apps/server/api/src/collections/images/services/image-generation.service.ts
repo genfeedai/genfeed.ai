@@ -33,7 +33,6 @@ import { IngredientGenerationCancellationService } from '@api/collections/ingred
 import { ModelRegistrationService } from '@api/collections/models/services/model-registration.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { PromptsService } from '@api/collections/prompts/services/prompts.service';
-import { TemplatesService } from '@api/collections/templates/services/templates.service';
 import type {
   GenerationPlaceholderCreatedCallback,
   GenerationPlaceholderScope,
@@ -86,18 +85,7 @@ const IMAGE_POPULATE = [
   PopulatePatterns.brandMinimal,
 ];
 
-/**
- * Owns the full image-generation workflow extracted out of
- * `ImagesOperationsController`.
- *
- * The controller keeps the HTTP surface (decorators, guards, interceptors) and
- * delegates the request body to {@link generateImage}. This service resolves the
- * model, runs the deferred credit check, builds prompts, persists placeholder
- * documents, dispatches through the typed provider registry,
- * and finishes the request via one shared completion tail — collapsing the
- * previously copy-pasted failure-handler, poll-and-serialize, and timeout
- * recovery blocks to a single call site each.
- */
+/** Resolves, admits, persists and dispatches image generation for the HTTP and agent entry points. */
 @Traced()
 @Injectable()
 export class ImageGenerationService {
@@ -117,9 +105,24 @@ export class ImageGenerationService {
     private readonly routerService: RouterService,
     private readonly sharedService: SharedService,
     private readonly cancellationService: IngredientGenerationCancellationService,
-    private readonly templatesService: TemplatesService,
     private readonly enhancementService: MediaPromptEnhancementService,
   ) {}
+
+  findDispatchedImage(
+    scope: Record<
+      'id' | 'brandId' | 'organizationId' | 'sourceActionId',
+      string
+    >,
+  ) {
+    return this.imagesService.findOne(
+      {
+        ...scope,
+        category: IngredientCategory.IMAGE,
+        isDeleted: false,
+      },
+      IMAGE_POPULATE,
+    );
+  }
 
   async editImage(
     user: User,
@@ -306,7 +309,7 @@ export class ImageGenerationService {
     } = await this.prepareImageGenerationSettings({
       brand,
       createImageDto,
-      organizationId: user.organizationId,
+      generationHarness,
       model,
     });
     const compiledBrief = editing
@@ -841,7 +844,6 @@ export class ImageGenerationService {
     params: ImageGenerationSettingsParams,
   ): Promise<ImageGenerationSettingsResult> {
     return prepareImageGenerationSettings(params, {
-      templatesService: this.templatesService,
       loggerService: this.loggerService,
     });
   }

@@ -37,13 +37,13 @@ export type ImageGenerationProvider =
   | 'replicate'
   | 'sdxl';
 
-export type ImageGenerationCompletionKind =
+type ImageGenerationCompletionKind =
   | 'poll-single'
   | 'poll-multiple'
   | 'background-only'
   | 'none';
 
-export type ImageGenerationOutputStrategy = 'single' | 'sequential' | 'batch';
+type ImageGenerationOutputStrategy = 'single' | 'sequential' | 'batch';
 
 export type ImageGenerationResolvedBrand = NonNullable<
   Awaited<ReturnType<BrandsService['findOne']>>

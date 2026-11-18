@@ -5,9 +5,9 @@ type: feedback
 ---
 
 The raw-HTML-controls ban (`<button>`, `<input>`, `<dialog>`, etc. → `@ui/primitives/*`) is stated
-in the root `CLAUDE.md` (always loaded) and enforced by `scripts/ui/control-guard.ts` pre-commit
+in `AGENTS.md` (imported by the root `CLAUDE.md`, always loaded) and enforced by `scripts/ui/control-guard.ts` pre-commit
 (`lint-staged.config.mjs`) and in CI (`bun run check:ui-guards`); its `ALLOWLIST` is the single
-exclusion list. Do not re-duplicate that content here — see `CLAUDE.md` → Frontend.
+exclusion list. Do not re-duplicate that content here — see `AGENTS.md` → Frontend.
 
 ## Every surface uses shared components (Vincent, 2026-10-06)
 

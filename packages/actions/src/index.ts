@@ -89,12 +89,14 @@ export type {
 } from './registry/curated-action-catalog';
 export {
   CURATED_ACTION_CATALOG,
+  getMcpCardKind,
   isActionOnSurface,
   isCuratedActionName,
   isPublishingApprovalRequired,
 } from './registry/curated-action-catalog';
 export type { McpAccessMode } from './registry/mcp-access-modes';
 export {
+  ADMIN_MCP_TOOL_NAMES,
   CLAUDE_MCP_AGENT_TOOL_NAMES,
   CLAUDE_MCP_TOOL_NAMES,
   isToolAllowedInMcpAccessMode,
@@ -105,8 +107,10 @@ export type { McpBrandOption } from './registry/mcp-brand-required';
 export {
   describeMissingMcpBrand,
   isMcpBrandRequiredTool,
+  isMcpBrandRequiredWhenMultipleTool,
   MCP_BRAND_REQUIRED_NOTE,
   MCP_BRAND_REQUIRED_TOOL_NAMES,
+  MCP_BRAND_REQUIRED_WHEN_MULTIPLE_NOTE,
   readMcpBrandId,
 } from './registry/mcp-brand-required';
 export {

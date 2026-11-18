@@ -12,8 +12,6 @@ import type {
 } from '@/features/ingredients/props/ingredients-list.props';
 import { useFailedIngredientRecovery } from '@/hooks/data/ingredients/use-ingredients-list/use-failed-ingredient-recovery';
 
-export type { ImageToVideoGenerationPayload } from '@genfeedai/contracts/interfaces';
-
 export function useIngredientsList({
   folderNavigation = 'content',
   type,
@@ -219,5 +217,3 @@ export function useIngredientsList({
     videoModels: generationState.videoModels,
   };
 }
-
-export default useIngredientsList;

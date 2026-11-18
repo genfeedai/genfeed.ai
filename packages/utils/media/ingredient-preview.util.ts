@@ -1,14 +1,14 @@
 import { IngredientCategory } from '@genfeedai/contracts';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
 
-import { isVideoIngredient } from './ingredient-type.util';
+import { isModel3dIngredient, isVideoIngredient } from './ingredient-type.util';
 
 /**
  * Next/Image (and <img>) cannot decode these. Feeding an mp4 into the table
  * thumbnail is what rendered the broken "Ing URI" alt text on Library list rows.
  */
 const NON_RASTER_EXTENSION =
-  /\.(3gp|aac|avi|flac|m4a|m4v|mkv|mov|mp3|mp4|mpeg|ogg|wav|webm)(?:$|\?)/i;
+  /\.(3gp|aac|avi|flac|glb|m4a|m4v|mkv|mov|mp3|mp4|mpeg|ogg|wav|webm)(?:$|\?)/i;
 
 export function isRasterPreviewUrl(
   url: string | null | undefined,
@@ -23,13 +23,14 @@ export function isRasterPreviewUrl(
 function prefersThumbnail(ingredient: IIngredient): boolean {
   return (
     isVideoIngredient(ingredient) ||
-    ingredient.category === IngredientCategory.VIDEO_EDIT
+    ingredient.category === IngredientCategory.VIDEO_EDIT ||
+    isModel3dIngredient(ingredient)
   );
 }
 
 /**
- * Poster/image URL safe to pass to next/image. Videos prefer `thumbnailUrl`
- * and never fall back to the mp4 itself.
+ * Poster/image URL safe to pass to next/image. Videos and 3D models prefer
+ * `thumbnailUrl` and never fall back to the media file itself.
  */
 export function getIngredientPreviewUrl(
   ingredient: IIngredient | null | undefined,

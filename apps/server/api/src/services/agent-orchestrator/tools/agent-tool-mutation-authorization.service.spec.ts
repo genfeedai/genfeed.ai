@@ -203,6 +203,70 @@ describe('AgentToolMutationAuthorizationService trusted mode', () => {
       service.resolveAgentModeForContext({ ...context, threadId: 'thread' }),
     ).rejects.toThrow('offline');
   });
+  describe('a turn in a thread shared with the member (#9963)', () => {
+    const sharedContext = {
+      ...context,
+      threadId: 'thread',
+      validatedScope: { threadOwnerUserId: 'owner', userId: 'user' } as never,
+    };
+    function build(saved: { agentMode: string } | null) {
+      // The owner's thread is on Auto; it must never be what decides.
+      const findOne = vi.fn().mockResolvedValue({ mode: 'auto' });
+      const findFirst = vi.fn().mockResolvedValue(saved);
+      const service = new AgentToolMutationAuthorizationService(
+        {} as never,
+        undefined,
+        { findOne } as never,
+        { setting: { findFirst } } as never,
+      );
+      return { findFirst, findOne, service };
+    }
+    it.each([
+      ['auto', 'auto'],
+      ['plan', 'plan'],
+      ['manual', 'manual'],
+      ['broken', 'manual'],
+    ])('runs in the saved default mode %s as %s', async (saved, expected) => {
+      const { findFirst, service } = build({ agentMode: saved });
+      expect(await service.resolveAgentModeForContext(sharedContext)).toBe(
+        expected,
+      );
+      expect(findFirst).toHaveBeenCalledWith({
+        select: { agentMode: true },
+        where: { isDeleted: false, userId: 'user' },
+      });
+    });
+    it("never takes the owner's thread mode, and falls back to Manual without a saved default", async () => {
+      const { findOne, service } = build(null);
+      expect(await service.resolveAgentModeForContext(sharedContext)).toBe(
+        'manual',
+      );
+      expect(findOne).not.toHaveBeenCalled();
+    });
+    it('falls back to Manual when settings are unavailable', async () => {
+      const service = new AgentToolMutationAuthorizationService(
+        {} as never,
+        undefined,
+        { findOne: vi.fn() } as never,
+      );
+      expect(await service.resolveAgentModeForContext(sharedContext)).toBe(
+        'manual',
+      );
+    });
+    it('does not trust a scope that belongs to another member', async () => {
+      const { findFirst, service } = build({ agentMode: 'auto' });
+      expect(
+        await service.resolveAgentModeForContext({
+          ...sharedContext,
+          validatedScope: {
+            threadOwnerUserId: 'owner',
+            userId: 'someone-else',
+          } as never,
+        }),
+      ).toBe('auto');
+      expect(findFirst).not.toHaveBeenCalled();
+    });
+  });
 });
 
 function proactiveAuthorizationFixture() {

@@ -10,7 +10,7 @@ export const STORYBOARD_RUN_MIN_DURATION_SECONDS = 1;
 export const STORYBOARD_RUN_MAX_DURATION_SECONDS = 300;
 export const STORYBOARD_RUN_MAX_OUTPUTS = 8;
 /** Aspect ratios the run generator dispatches (`SUPPORTED_ASPECT_RATIOS`). */
-export const STORYBOARD_RUN_ASPECT_RATIOS = ['9:16', '1:1', '4:5', '16:9'];
+const STORYBOARD_RUN_ASPECT_RATIOS = ['9:16', '1:1', '4:5', '16:9'];
 
 /**
  * The durable identity union also carries the empty prefill shape, which does

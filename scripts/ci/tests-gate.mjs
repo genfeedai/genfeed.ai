@@ -36,9 +36,16 @@ export function createTestsGateJobs(env) {
     },
     {
       // Gitleaks, format, secretlint, lint, typecheck, and the executable
-      // contracts run in one consolidated job (#1969).
+      // contract suites run in one consolidated job (#1969).
       name: 'Static checks',
       result: readResult(env, 'STATIC_CHECKS_RESULT'),
+      applicable: true,
+    },
+    {
+      // The repository contracts (architecture guards, ratchets) run beside
+      // Static checks on their own runner; a red contract fails the gate here.
+      name: 'Source contracts',
+      result: readResult(env, 'SOURCE_CONTRACTS_RESULT'),
       applicable: true,
     },
     {

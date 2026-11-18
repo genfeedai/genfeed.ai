@@ -86,6 +86,8 @@ describe('AgentTransfersService accepted turns (#6689)', () => {
       prisma as never,
       {} as never,
       { accept } as never,
+      {} as never,
+      {} as never,
     );
   });
 

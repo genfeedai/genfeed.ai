@@ -1,6 +1,6 @@
+import { runWithActionOrigin } from '@api/action-origin/action-origin.context';
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import type { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
-import type { McpApprovalDocument } from '@api/collections/mcp-approvals/schemas/mcp-approval.schema';
 import { testMcpApprovalPricing } from '@api/collections/mcp-approvals/schemas/mcp-approval-pricing.fixture';
 import type { McpApprovalPricingService } from '@api/collections/mcp-approvals/services/mcp-approval-pricing.service';
 import { McpApprovalsService } from '@api/collections/mcp-approvals/services/mcp-approvals.service';
@@ -8,8 +8,8 @@ import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { runWithTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import type { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { ActivityKey, ApiKeyScope } from '@genfeedai/contracts';
-import { Prisma } from '@genfeedai/prisma';
+import { ActionOrigin, ActivityKey, ApiKeyScope } from '@genfeedai/contracts';
+import { type McpApproval, Prisma } from '@genfeedai/prisma';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -34,6 +34,13 @@ describe('McpApprovalsService', () => {
   const mockNotificationsPublisher: Partial<ActivityRecorderService> = {
     record: vi.fn(),
   };
+
+  /** Updates that decide an approval: closing stale ones as expired does not count. */
+  function updatesOtherThanExpiry() {
+    return mcpApproval.updateMany.mock.calls.filter(
+      ([args]) => args?.data?.result?.reason !== 'expired',
+    );
+  }
 
   let service: McpApprovalsService;
   const brandAccess = { resolve: vi.fn(), assert: vi.fn() };
@@ -62,6 +69,28 @@ describe('McpApprovalsService', () => {
       mockNotificationsPublisher as ActivityRecorderService,
       brandAccess as unknown as BrandAccessService,
     );
+  });
+
+  describe('createPending expiry', () => {
+    it('closes approvals pending for over seven days as expired before it counts them', async () => {
+      mcpApproval.findFirst.mockResolvedValue(null);
+      mcpApproval.create.mockResolvedValue({ id: 'fresh', status: 'PENDING' });
+
+      await service.createPending('org-1', 'canonical-user', 'create_post', {
+        brandId: 'brand-1',
+      });
+
+      const expiry = mcpApproval.updateMany.mock.calls
+        .map(([args]) => args)
+        .find((args) => args?.data?.result?.reason === 'expired');
+      expect(expiry).toMatchObject({
+        data: { status: 'DECLINED' },
+        where: { organizationId: 'org-1', status: 'PENDING' },
+      });
+      expect(mcpApproval.updateMany.mock.invocationCallOrder[0]).toBeLessThan(
+        mcpApproval.count.mock.invocationCallOrder[0] ?? Infinity,
+      );
+    });
   });
 
   describe('findStatusForActor', () => {
@@ -101,7 +130,7 @@ describe('McpApprovalsService', () => {
         expect.objectContaining({ userId: 'canonical-user' }),
         'brand-1',
       );
-      expect(mcpApproval.updateMany).not.toHaveBeenCalled();
+      expect(updatesOtherThanExpiry()).toEqual([]);
     });
 
     it('uses the validated selected tenant without changing the canonical actor', async () => {
@@ -271,7 +300,7 @@ describe('McpApprovalsService', () => {
       ).resolves.toBe(existing);
       expect(prepare).not.toHaveBeenCalled();
       expect(mcpApproval.create).not.toHaveBeenCalled();
-      expect(mcpApproval.updateMany).not.toHaveBeenCalled();
+      expect(updatesOtherThanExpiry()).toEqual([]);
     });
 
     it('requires fresh consent for a legacy visual approval with no quote evidence', async () => {
@@ -288,7 +317,7 @@ describe('McpApprovalsService', () => {
         }),
       ).rejects.toThrow('no verified quote');
       expect(prepare).not.toHaveBeenCalled();
-      expect(mcpApproval.updateMany).not.toHaveBeenCalled();
+      expect(updatesOtherThanExpiry()).toEqual([]);
     });
 
     it('keeps priced generation unavailable when the canonical quote service is missing', async () => {
@@ -376,7 +405,7 @@ describe('McpApprovalsService', () => {
       );
       expect(second.idempotencyKey).not.toBe(first.idempotencyKey);
       expect(mcpApproval.create).toHaveBeenCalledTimes(2);
-      expect(mcpApproval.updateMany).not.toHaveBeenCalled();
+      expect(updatesOtherThanExpiry()).toEqual([]);
     });
 
     it('returns an existing PENDING or APPROVED row for the same logical write', async () => {
@@ -489,7 +518,7 @@ describe('McpApprovalsService', () => {
           tx,
         );
         expect(mcpApproval.findFirst).not.toHaveBeenCalled();
-        expect(mcpApproval.updateMany).not.toHaveBeenCalled();
+        expect(updatesOtherThanExpiry()).toEqual([]);
         expect(txApproval.findFirst).toHaveBeenCalledWith({
           where: {
             id: 'approval-tx',
@@ -507,6 +536,7 @@ describe('McpApprovalsService', () => {
           data: {
             status: decision === 'approve' ? 'APPROVED' : 'DECLINED',
             resolvedAt: expect.any(Date),
+            resolvedOrigin: ActionOrigin.UNKNOWN,
             result: { ok: true },
           },
         });
@@ -587,6 +617,27 @@ describe('McpApprovalsService', () => {
       });
       expect(result).toEqual(updated);
     });
+
+    it.each([
+      [ActionOrigin.UI, 'approve'],
+      [ActionOrigin.MCP, 'approve'],
+      [ActionOrigin.MCP, 'decline'],
+    ] as const)(
+      'records a %s %s as the deciding surface and member',
+      async (origin, decision) => {
+        mcpApproval.updateMany.mockResolvedValue({ count: 1 });
+        mcpApproval.findFirst.mockResolvedValue({ id: 'approval-4' });
+
+        await runWithActionOrigin({ actorUserId: 'user-7', origin }, () =>
+          service.resolve('approval-4', 'org-1', decision),
+        );
+
+        expect(mcpApproval.updateMany.mock.calls[0]?.[0]?.data).toMatchObject({
+          resolvedByUserId: 'user-7',
+          resolvedOrigin: origin,
+        });
+      },
+    );
 
     it('requires approve scope before claiming a deferred publishing tool', async () => {
       mcpApproval.findFirst.mockResolvedValue({
@@ -839,7 +890,7 @@ describe('McpApprovalsService', () => {
       vi.spyOn(service, 'findOwned').mockResolvedValue({
         id: 'approval-claim',
         userId: 'requester',
-      } as McpApprovalDocument);
+      } as McpApproval);
       mcpApproval.updateMany.mockResolvedValue({ count: 1 });
 
       await expect(
@@ -856,7 +907,7 @@ describe('McpApprovalsService', () => {
       vi.spyOn(service, 'findOwned').mockResolvedValue({
         id: 'approval-claim',
         userId: 'requester',
-      } as McpApprovalDocument);
+      } as McpApproval);
       mcpApproval.updateMany.mockResolvedValue({ count: 0 });
 
       await expect(
@@ -873,7 +924,7 @@ describe('McpApprovalsService', () => {
       vi.spyOn(service, 'findOwned').mockResolvedValue({
         id: 'approval-claim',
         userId: 'requester',
-      } as McpApprovalDocument);
+      } as McpApproval);
 
       await expect(
         service.claimExecutionForActor(
@@ -891,7 +942,7 @@ describe('McpApprovalsService', () => {
       vi.spyOn(service, 'findOwned').mockResolvedValue({
         id: 'approval-result',
         userId: 'requester',
-      } as McpApprovalDocument);
+      } as McpApproval);
     });
 
     it('lets the requester record the outcome of a claimed run only', async () => {
@@ -949,7 +1000,7 @@ describe('McpApprovalsService', () => {
   });
 
   describe('replacePending', () => {
-    const original: McpApprovalDocument = {
+    const original: McpApproval = {
       id: 'old-approval',
       organizationId: 'org-1',
       userId: 'user-1',
@@ -960,6 +1011,8 @@ describe('McpApprovalsService', () => {
       status: 'PENDING',
       result: null,
       resolvedAt: null,
+      resolvedOrigin: null,
+      resolvedByUserId: null,
       executedAt: null,
       executionClaimedAt: null,
       isDeleted: false,
@@ -1004,7 +1057,7 @@ describe('McpApprovalsService', () => {
     it('retains frozen pricing and logical identity when replacing a preview', async () => {
       const pricingQuote = testMcpApprovalPricing();
       await service.replacePending(
-        { ...original, pricingQuote } as McpApprovalDocument,
+        { ...original, pricingQuote } as McpApproval,
         { mcpApproval } as unknown as Prisma.TransactionClient,
       );
       expect(mcpApproval.create).toHaveBeenCalledWith({

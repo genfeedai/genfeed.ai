@@ -17,6 +17,7 @@ export function OfflineIndicator(): React.ReactElement | null {
   const { queueLength } = useOfflineQueue();
   const opacity = useSharedValue(0);
 
+  // use-effect-audit: ignore drives a reanimated shared value
   React.useEffect(() => {
     opacity.value = withTiming(isOnline ? 0 : 1, { duration: 300 });
   }, [isOnline, opacity]);
@@ -112,5 +113,3 @@ const createBannerStyles = (colors: NativeThemeColors) =>
       textAlign: 'center',
     },
   });
-
-export default OfflineIndicator;

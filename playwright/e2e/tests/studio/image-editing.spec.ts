@@ -230,6 +230,14 @@ for (const { model, editing } of [
     const composer = page
       .getByTestId('studio-playground-prompt')
       .getByRole('textbox');
+    // The edit entry switches the composer to image-edit after the saved draft
+    // loads; picking a model earlier lists the wrong catalog or asks to
+    // replace the draft.
+    if (editing) {
+      await expect(
+        page.getByRole('group', { name: `Editing target: ${sourceId}` }),
+      ).toBeVisible();
+    }
     // Explicit model selection lives in Advanced; Auto delegates routing.
     await selectAdvancedModel(page, flux ? 'FLUX.3' : 'Ideogram');
     await page.keyboard.press('Escape');

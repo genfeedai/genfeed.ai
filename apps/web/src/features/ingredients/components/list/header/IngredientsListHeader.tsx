@@ -14,6 +14,7 @@ export default function IngredientsListHeader({
   onMerge,
   onPublishCampaign,
   placement = 'overlay',
+  reviewAction,
   tagAction,
 }: IngredientsListHeaderProps) {
   return (
@@ -28,6 +29,7 @@ export default function IngredientsListHeader({
       onMerge={onMerge}
       onPublishCampaign={onPublishCampaign}
       placement={placement}
+      reviewAction={reviewAction}
       tagAction={tagAction}
     />
   );

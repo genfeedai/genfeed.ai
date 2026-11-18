@@ -69,6 +69,7 @@ export function useStudioEditEntry({
   const prepareContinuationRef = useRef(prepareContinuation);
   prepareContinuationRef.current = prepareContinuation;
   const editEntryRef = useRef<string | null>(null);
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     if (!isHydrated || !brandId || !isDraftLoaded) return;
     const sourceId = editSourceQueryId;
@@ -76,9 +77,10 @@ export function useStudioEditEntry({
     editEntryRef.current = `${brandId}:${sourceId}`;
     const epoch = crunRestoreEpochRef.current;
     const scope = crunRestoreScopeRef.current;
-    let cancelled = false;
+    const abortController = new AbortController();
+    let isOffered = false;
     const isCurrent = () =>
-      !cancelled &&
+      !abortController.signal.aborted &&
       isMountedRef.current &&
       epoch === crunRestoreEpochRef.current &&
       scope === crunRestoreScopeRef.current;
@@ -102,6 +104,7 @@ export function useStudioEditEntry({
         const url = new URL(window.location.href);
         url.searchParams.delete('editImage');
         window.history.replaceState(null, '', url);
+        isOffered = true;
         prepareContinuationRef.current(() => {
           clearCrunRestore();
           clearAttachments();
@@ -135,8 +138,10 @@ export function useStudioEditEntry({
           );
       });
     return () => {
-      cancelled = true;
-      editEntryRef.current = null;
+      abortController.abort();
+      // Re-offering after the source is applied would find a non-empty
+      // composer and ask "Replace your draft?" about the entry itself.
+      if (!isOffered) editEntryRef.current = null;
     };
   }, [
     isHydrated,

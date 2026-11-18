@@ -249,6 +249,7 @@ const PRISMA_REQUIRED: Record<string, readonly string[]> = {
     'INGREDIENT',
     'TEXT',
     'SOURCE',
+    'MODEL_3D',
   ],
   IngredientOrigin: ['UPLOADED', 'GENERATED', 'IMPORTED', 'UNKNOWN'],
   IngredientStatus: [

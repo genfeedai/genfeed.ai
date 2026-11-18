@@ -15,6 +15,7 @@ export function brandedReceiptReasonCode(
 const UNPROCESSABLE = new Set([
   'channel_limit_exceeded',
   'provider_output_empty',
+  'provider_output_unusable',
 ]);
 const SERVER_FAULT = new Set([
   'artifact_persist_failed',

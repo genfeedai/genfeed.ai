@@ -109,6 +109,7 @@ describe('SettingsNotificationsPage', () => {
     expect(screen.getByText('Email Notifications')).toBeInTheDocument();
     expect(screen.getByText('Workflow Emails')).toBeInTheDocument();
     expect(screen.getByText('Generation updates')).toBeInTheDocument();
+    expect(screen.getByText('Reviews and mentions')).toBeInTheDocument();
     expect(
       screen.getByText(
         'Email when a generation taking at least two minutes completes or fails. You can leave the studio while it runs.',

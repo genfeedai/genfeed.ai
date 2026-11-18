@@ -74,12 +74,13 @@ export class AgentTransfersController {
     @Query('threadId') threadId: string,
   ) {
     try {
+      const actor = this.actor(user);
       const docs = await this.agentTransfersService.listForThread(
-        this.actor(user),
+        actor,
         threadId,
       );
       return serializeCollection(req, AgentTransferSerializer, {
-        docs: docs.map(this.presentTransfer),
+        docs: docs.map((doc) => this.presentTransfer(doc, actor.userId)),
       });
     } catch (error: unknown) {
       return ErrorResponse.handle(
@@ -99,14 +100,12 @@ export class AgentTransfersController {
     @Param('id') id: string,
   ) {
     try {
-      const transfer = await this.agentTransfersService.findOne(
-        this.actor(user),
-        id,
-      );
+      const actor = this.actor(user);
+      const transfer = await this.agentTransfersService.findOne(actor, id);
       return serializeSingle(
         req,
         AgentTransferSerializer,
-        this.presentTransfer(transfer),
+        this.presentTransfer(transfer, actor.userId),
       );
     } catch (error: unknown) {
       return ErrorResponse.handle(
@@ -126,14 +125,12 @@ export class AgentTransfersController {
     @CurrentUser() user: User,
   ) {
     try {
-      const transfer = await this.agentTransfersService.create(
-        body,
-        this.accepter(user),
-      );
+      const actor = this.accepter(user);
+      const transfer = await this.agentTransfersService.create(body, actor);
       return serializeSingle(
         req,
         AgentTransferSerializer,
-        this.presentTransfer(transfer),
+        this.presentTransfer(transfer, actor.userId),
       );
     } catch (error: unknown) {
       return ErrorResponse.handle(
@@ -153,20 +150,70 @@ export class AgentTransfersController {
     @Param('id') id: string,
   ) {
     try {
-      const transfer = await this.agentTransfersService.retry(
-        id,
-        this.accepter(user),
-      );
+      const actor = this.accepter(user);
+      const transfer = await this.agentTransfersService.retry(id, actor);
       return serializeSingle(
         req,
         AgentTransferSerializer,
-        this.presentTransfer(transfer),
+        this.presentTransfer(transfer, actor.userId),
       );
     } catch (error: unknown) {
       return ErrorResponse.handle(
         error,
         this.loggerService,
         'retryAgentTransfer',
+      );
+    }
+  }
+
+  @Post(':id/accept')
+  @RateLimit({ limit: 10, scope: 'user', windowMs: 60_000 })
+  @ApiOperation({
+    summary: 'Accept a hand-off to your agent; it runs with your authority',
+  })
+  async accept(
+    @Req() req: Request,
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+  ) {
+    try {
+      const actor = this.accepter(user);
+      const transfer = await this.agentTransfersService.accept(id, actor);
+      return serializeSingle(
+        req,
+        AgentTransferSerializer,
+        this.presentTransfer(transfer, actor.userId),
+      );
+    } catch (error: unknown) {
+      return ErrorResponse.handle(
+        error,
+        this.loggerService,
+        'acceptAgentTransfer',
+      );
+    }
+  }
+
+  @Post(':id/decline')
+  @RateLimit({ limit: 10, scope: 'user', windowMs: 60_000 })
+  @ApiOperation({ summary: 'Decline a hand-off to your agent' })
+  async decline(
+    @Req() req: Request,
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+  ) {
+    try {
+      const actor = this.actor(user);
+      const transfer = await this.agentTransfersService.decline(id, actor);
+      return serializeSingle(
+        req,
+        AgentTransferSerializer,
+        this.presentTransfer(transfer, actor.userId),
+      );
+    } catch (error: unknown) {
+      return ErrorResponse.handle(
+        error,
+        this.loggerService,
+        'declineAgentTransfer',
       );
     }
   }
@@ -201,8 +248,16 @@ export class AgentTransfersController {
     };
   }
 
-  private readonly presentTransfer = (value: unknown) => {
+  /**
+   * The transfer as `viewerUserId` may see it. A teammate who received a
+   * hand-off cannot open the sender's conversation, so its title stays out of
+   * what they are sent.
+   */
+  private readonly presentTransfer = (value: unknown, viewerUserId: string) => {
     const transfer = value as Record<string, unknown>;
+    const isReceivedHandoff =
+      transfer.destinationUserId === viewerUserId &&
+      transfer.userId !== viewerUserId;
     const sourceThread = transfer.sourceThread as
       | { title?: string | null }
       | undefined;
@@ -212,7 +267,9 @@ export class AgentTransfersController {
     return {
       ...transfer,
       destinationThreadTitle: destinationThread?.title ?? null,
-      sourceThreadTitle: sourceThread?.title ?? null,
+      sourceThreadTitle: isReceivedHandoff
+        ? null
+        : (sourceThread?.title ?? null),
     };
   };
 }

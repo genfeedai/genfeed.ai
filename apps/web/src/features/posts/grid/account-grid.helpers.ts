@@ -17,9 +17,9 @@ import type {
 } from '@/features/posts/props/account-grid.props';
 import type { TargetPreviewCredential } from '@/props/ui/previews.props';
 
-export const GAP_LOOKAHEAD_DAYS = 4;
-export const GAP_SLOT_MATCH_MS = 60 * 60 * 1000;
-export const MAX_GAP_TILES = 3;
+const GAP_LOOKAHEAD_DAYS = 4;
+const GAP_SLOT_MATCH_MS = 60 * 60 * 1000;
+const MAX_GAP_TILES = 3;
 
 const RISK_RANK: Record<AccountHealthSummary['riskLevel'], number> = {
   high: 0,
@@ -63,7 +63,7 @@ export function isTargetPublished(target: IChannelTarget): boolean {
   return target.executionState === TargetExecutionState.PUBLISHED;
 }
 
-export function targetInstantMs(
+function targetInstantMs(
   release: IReleaseGroup,
   target: IChannelTarget,
 ): number | null {

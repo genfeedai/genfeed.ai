@@ -103,33 +103,42 @@ describe('X pipeline HTTP module admission', () => {
   });
 
   it.each([{}, { isApiKey: true }, { isSuperAdmin: true }])(
-    'blocks unreleased Discovery before search/draft services: %j',
+    'runs search and draft for a subscribed organization while Discovery is unreleased: %j',
     async (actor) => {
       flags = actor;
       await request(app.getHttpServer())
         .post(`${ROOT}/search`)
         .send(SEARCH)
-        .expect(403);
+        .expect(200);
       await request(app.getHttpServer())
         .post(`${ROOT}/draft`)
         .send(DRAFT)
-        .expect(403);
-      expect(service.search).not.toHaveBeenCalled();
-      expect(service.draft).not.toHaveBeenCalled();
+        .expect(200);
+      expect(service.search).toHaveBeenCalledOnce();
+      expect(service.draft).toHaveBeenCalledOnce();
     },
   );
 
   it.each([{}, { isApiKey: true }, { isSuperAdmin: true }])(
-    'blocks unreleased Publishing before outbound work: %j',
+    'publishes while Publishing is unreleased: %j',
     async (actor) => {
       flags = actor;
       await request(app.getHttpServer())
         .post(`${ROOT}/publish`)
         .send(PUBLISH)
-        .expect(403);
-      expect(service.publish).not.toHaveBeenCalled();
+        .expect(200);
+      expect(service.publish).toHaveBeenCalledOnce();
     },
   );
+
+  it('still requires the paid grant for unreleased Discovery', async () => {
+    paid.isSubscriptionGatedFresh.mockResolvedValue(true);
+    await request(app.getHttpServer())
+      .post(`${ROOT}/search`)
+      .send(SEARCH)
+      .expect(403);
+    expect(service.search).not.toHaveBeenCalled();
+  });
 
   it('requires the fresh paid grant for Discovery while released Publishing remains credit-based', async () => {
     releases = { discovery: true, publishing: true };
@@ -151,21 +160,6 @@ describe('X pipeline HTTP module admission', () => {
     expect(service.publish).toHaveBeenCalledOnce();
     expect(paid.isSubscriptionGatedFresh).toHaveBeenCalledTimes(2);
     expect(paid.isSubscriptionGatedFresh).toHaveBeenCalledWith(ORG);
-  });
-
-  it('admits released Discovery then blocks a later request after it is unreleased', async () => {
-    releases = { discovery: true, publishing: true };
-    await request(app.getHttpServer())
-      .post(`${ROOT}/search`)
-      .send(SEARCH)
-      .expect(200);
-    releases.discovery = false;
-    await request(app.getHttpServer())
-      .post(`${ROOT}/draft`)
-      .send(DRAFT)
-      .expect(403);
-    expect(service.search).toHaveBeenCalledOnce();
-    expect(service.draft).not.toHaveBeenCalled();
   });
 
   it('fails closed before any service when module settings are unavailable', async () => {

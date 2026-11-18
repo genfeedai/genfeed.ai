@@ -82,6 +82,7 @@ export default function TopbarPublicDesktopDropdown({
   const isExpanded = Boolean(openDropdown && currentDropdown);
   const [lastPanel, setLastPanel] = useState<RenderedPanel | undefined>();
 
+  // use-effect-audit: ignore delays unmounting the panel until the close animation ends
   useEffect(() => {
     if (currentDropdown) {
       setLastPanel({ dropdown: currentDropdown, footer: megaMenuFooter });
@@ -156,7 +157,7 @@ export default function TopbarPublicDesktopDropdown({
         // shortest column as a tall empty box.
         <div className="min-w-0 self-start" key={groupLabel}>
           {groupLabel && (
-            <div className="px-3 pb-2 text-2xs font-bold uppercase tracking-[0.16em] text-muted-foreground">
+            <div className="px-3 pb-2 text-2xs font-semibold uppercase tracking-label text-muted-foreground">
               {groupLabel}
             </div>
           )}

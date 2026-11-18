@@ -308,7 +308,7 @@ describe('OrganizationIdentityDefaultsCard', () => {
     });
 
     const link = await screen.findByRole('link', { name: 'Reconnect HeyGen' });
-    expect(link).toHaveAttribute('href', '/org/settings/integrations');
+    expect(link).toHaveAttribute('href', '/org/connectors/providers');
   });
 
   it('falls back to the CDN placeholder when the avatar has no image', () => {

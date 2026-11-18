@@ -7,10 +7,11 @@ import { CreateTrackedLinkDto } from '@api/collections/tracked-links/dto/create-
 import { TrackClickDto } from '@api/collections/tracked-links/dto/track-click.dto';
 import { TrackedLinksService } from '@api/collections/tracked-links/services/tracked-links.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { createRecordedResponse } from '@api/shared/testing/recorded-response.fixture';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
-import type { Request, Response } from 'express';
+import type { Request } from 'express';
 
 const organizationId = testId('org');
 const userId = testId('user');
@@ -337,11 +338,7 @@ describe('RedirectController', () => {
         headers: {},
         ip: '127.0.0.1',
       };
-      const res = {
-        redirect: vi.fn(),
-        send: vi.fn(),
-        status: vi.fn().mockReturnThis(),
-      } as unknown as Response;
+      const { recorded, res } = createRecordedResponse();
 
       mockTrackedLinksService.getByShortCode.mockResolvedValue(mockTrackedLink);
       mockTrackedLinksService.trackClick.mockResolvedValue(undefined);
@@ -349,35 +346,27 @@ describe('RedirectController', () => {
       await controller.redirect(shortCode, req as Request, res);
 
       expect(service.getByShortCode).toHaveBeenCalledWith(shortCode);
-      expect(res.redirect).toHaveBeenCalledWith(
-        302,
-        mockTrackedLink.originalUrl,
-      );
+      expect(recorded.status).toBe(302);
+      expect(recorded.location).toBe(mockTrackedLink.originalUrl);
     });
 
     it('should return 404 when link not found', async () => {
       const shortCode = 'invalid';
       const req = {} as Request;
-      const res = {
-        send: vi.fn(),
-        status: vi.fn().mockReturnThis(),
-      } as unknown as Response;
+      const { recorded, res } = createRecordedResponse();
 
       mockTrackedLinksService.getByShortCode.mockResolvedValue(null);
 
       await controller.redirect(shortCode, req, res);
 
-      expect(res.status).toHaveBeenCalledWith(404);
-      expect(res.send).toHaveBeenCalledWith('Link not found');
+      expect(recorded.status).toBe(404);
+      expect(recorded.body).toBe('Link not found');
     });
 
     it('should return 410 when link expired', async () => {
       const shortCode = 'expired';
       const req = {} as Request;
-      const res = {
-        send: vi.fn(),
-        status: vi.fn().mockReturnThis(),
-      } as unknown as Response;
+      const { recorded, res } = createRecordedResponse();
 
       const expiredLink = {
         ...mockTrackedLink,
@@ -388,8 +377,8 @@ describe('RedirectController', () => {
 
       await controller.redirect(shortCode, req, res);
 
-      expect(res.status).toHaveBeenCalledWith(410);
-      expect(res.send).toHaveBeenCalledWith('Link expired');
+      expect(recorded.status).toBe(410);
+      expect(recorded.body).toBe('Link expired');
     });
   });
 });

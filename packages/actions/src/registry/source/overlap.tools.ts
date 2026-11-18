@@ -15,10 +15,31 @@ export const OVERLAP_TOOLS: SourceTool[] = [
   {
     creditCost: 1,
     description:
-      'Create a post draft from supplied text for review. On MCP this never publishes: confirmed and existing-content publishing are rejected. Use create_scheduled_release for release drafts or approval-gated scheduling. Existing-content publishing is available only in the Genfeed app.',
+      'Create a post draft from supplied text for review. On MCP this never publishes or schedules: confirmed and existing-content publishing are rejected, and scheduledAt is ignored. Use create_scheduled_release for release drafts or approval-gated scheduling. Existing-content publishing is available only in the Genfeed app.',
+    mcpDescription:
+      'Create a reviewable post draft from supplied text; never publishes or schedules. Publishing/scheduling requires a scheduled release and approval.',
+    mcpHiddenParameters: [
+      'caption',
+      'confirmed',
+      'contentId',
+      'ingredientId',
+      'platform',
+      'platforms',
+      'postingSetId',
+      'scheduledAt',
+      'sourceActionId',
+      'targets',
+      'textContent',
+      'timezone',
+    ],
     name: 'create_post',
     parameters: {
       properties: {
+        brandId: {
+          description:
+            'Brand that owns this draft. Required over MCP when the organization has more than one brand: call get_brands and pass one of its ids. A call without it is rejected with the list of your brands.',
+          type: 'string',
+        },
         caption: {
           description: 'Caption override for the content item.',
           type: 'string',
@@ -34,7 +55,8 @@ export const OVERLAP_TOOLS: SourceTool[] = [
           type: 'boolean',
         },
         content: {
-          description: 'Draft text for a standalone post.',
+          description:
+            'Draft text for a standalone post. On MCP this is the post text field.',
           type: 'string',
         },
         contentId: {
@@ -78,7 +100,12 @@ export const OVERLAP_TOOLS: SourceTool[] = [
         },
         scheduledAt: {
           description:
-            'ISO datetime to schedule instead of publishing immediately.',
+            'Genfeed app only: ISO datetime to schedule the post. Not accepted on MCP, which never schedules from create_post; use create_scheduled_release.',
+          type: 'string',
+        },
+        title: {
+          description:
+            'Optional draft title, saved separately from the post text. When omitted, the first 100 text characters are used.',
           type: 'string',
         },
         textContent: {
@@ -103,6 +130,8 @@ export const OVERLAP_TOOLS: SourceTool[] = [
     creditCost: Math.min(...Object.values(MEDIA_GENERATION_CREDIT_FLOORS)),
     description:
       "Generate an image, video, voice (text-to-speech) or music track. Set type; a parameter marked for another type is rejected. For model, pass a key from get_generation_options models, or omit it so the router picks. Image and video results include generationHarness with the exact submitted prompt and enhancement status: show that prompt with the result instead of reconstructing it. Image and video require a resolved model-specific quote and confirmation. The endpoint bills the prepared request; an unresolved quote never means free generation. Type avatar renders a talking-head video of the brand's saved identity (default avatar plus voice): prompt is the topic Genfeed writes a spoken script for, or the exact words when isVerbatim is true. It needs a saved default avatar and voice and is billed per second of the rendered clip, not from a frozen quote; get_job_status polls it with the returned id.",
+    mcpDescription:
+      "Generate image, video, voice (TTS) or music. Rejects fields for other types. Use model keys from get_generation_options or omit for routing. For image/video, show generationHarness exact submitted prompt and enhancement status; do not reconstruct. Requires resolved model-specific quote and confirmation for image/video; bills the prepared request. Unresolved quotes never mean free generation. Type avatar renders a talking-head video of the brand's saved identity (default avatar plus voice): prompt is the topic Genfeed writes a spoken script for, or the exact words when isVerbatim is true. It needs a saved default avatar and voice and is billed per second of the rendered clip, not from a frozen quote; get_job_status polls it with the returned id.",
     name: 'generate',
     parameters: {
       properties: {

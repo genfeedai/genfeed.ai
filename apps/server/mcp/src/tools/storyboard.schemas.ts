@@ -42,7 +42,7 @@ export const storyboardToolSchemas = {
   storyboard_run_cancel: controlStoryboardOperationSchema.extend(run).strict(),
   storyboard_run_resume: controlStoryboardOperationSchema.extend(run).strict(),
 };
-export type StoryboardToolName = keyof typeof storyboardToolSchemas;
+type StoryboardToolName = keyof typeof storyboardToolSchemas;
 export type StoryboardToolInput<Name extends StoryboardToolName> = z.infer<
   (typeof storyboardToolSchemas)[Name]
 >;

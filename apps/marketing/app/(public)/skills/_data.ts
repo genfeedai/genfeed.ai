@@ -48,7 +48,7 @@ export interface SkillCategory {
 export const SKILL_CATEGORIES: SkillCategory[] = [
   {
     id: 'content-creation',
-    label: 'Content Creation',
+    label: 'Content creation',
     skills: [
       {
         description:
@@ -154,7 +154,7 @@ export const SKILL_CATEGORIES: SkillCategory[] = [
   },
   {
     id: 'optimization',
-    label: 'Content Optimization',
+    label: 'Content optimization',
     skills: [
       {
         description:
@@ -208,11 +208,11 @@ export const SKILL_CATEGORIES: SkillCategory[] = [
     ],
     subtitle:
       'SEO scoring, quality review, production operations, repurposing, and humanization.',
-    title: 'Optimize Before You Publish',
+    title: 'Optimize before you publish',
   },
   {
     id: 'content-analysis',
-    label: 'Content Analysis',
+    label: 'Content analysis',
     skills: [
       {
         description:
@@ -261,11 +261,11 @@ export const SKILL_CATEGORIES: SkillCategory[] = [
     ],
     subtitle:
       'Structured updates for teams, leaders, customers, and operational incidents.',
-    title: 'Communicate Clearly',
+    title: 'Communicate clearly',
   },
   {
     id: 'image-visual',
-    label: 'Image & Visual',
+    label: 'Image & visual',
     skills: [
       {
         description:
@@ -298,7 +298,7 @@ export const SKILL_CATEGORIES: SkillCategory[] = [
     ],
     subtitle:
       'Optimized prompts, model selection, visual systems, and media generation workers.',
-    title: 'Prompt Any Model',
+    title: 'Prompt any model',
   },
   {
     id: 'advertising',
@@ -321,11 +321,11 @@ export const SKILL_CATEGORIES: SkillCategory[] = [
     ],
     subtitle:
       'Direct response frameworks and performance analysis for Meta, Google, LinkedIn, and TikTok.',
-    title: 'Ads That Convert',
+    title: 'Ads that convert',
   },
   {
     id: 'gtm-strategy',
-    label: 'GTM Strategy',
+    label: 'GTM strategy',
     skills: [
       {
         description:
@@ -495,7 +495,7 @@ export const SKILL_CATEGORIES: SkillCategory[] = [
   },
   {
     id: 'platform',
-    label: 'Platform & Dev',
+    label: 'Platform & dev',
     skills: [
       {
         description:
@@ -582,8 +582,6 @@ export interface SkillRegistry {
 export const STATS = [
   { label: 'Free Skills', value: String(FREE_SKILL_COUNT) },
   { label: 'Categories', value: String(SKILL_CATEGORIES.length) },
-  { label: 'Open Source', value: '100%' },
-  { label: 'Install Time', value: '<10s' },
 ];
 
 /* Terminal demo commands */
@@ -624,14 +622,14 @@ export const HOW_IT_WORKS: HowItWorksStep[] = [
       'Your agent reads each skill, its rules, patterns, and domain knowledge, and follows them.',
     icon: BrainCircuit,
     number: '02',
-    title: 'Agent Reads',
+    title: 'Agent reads',
   },
   {
     description:
       'Skills activate at exactly the right moment. Say "write a tweet" and the X skill takes over.',
     icon: Zap,
     number: '03',
-    title: 'Create Content',
+    title: 'Create content',
   },
   {
     description:

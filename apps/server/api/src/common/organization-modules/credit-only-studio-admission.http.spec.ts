@@ -29,7 +29,7 @@ import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-/** Admin → Flags with nothing released: only Playground and Storyboard admit work. */
+/** Admin → Flags with nothing released, Playground and Storyboard included: they still admit work. */
 const UNRELEASED_PLATFORM = {
   getFeatureSettingsState: async () => ({
     isResolved: true,

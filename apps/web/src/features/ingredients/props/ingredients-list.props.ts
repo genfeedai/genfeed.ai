@@ -27,11 +27,11 @@ import type {
   UseFailedIngredientRecoveryReturn,
 } from '@/props/content/ingredient-recovery.props';
 
-export type ImageToVideoPromptDraft = Partial<PromptTextareaSchema> & {
+type ImageToVideoPromptDraft = Partial<PromptTextareaSchema> & {
   isValid: boolean;
 };
 
-export type ImageToVideoPromptSubmit = PromptTextareaSchema & {
+type ImageToVideoPromptSubmit = PromptTextareaSchema & {
   isValid: boolean;
 };
 
@@ -54,6 +54,8 @@ export interface IngredientsListHeaderProps {
   placement?: 'overlay' | 'subtopbar';
   /** The bulk tag control, rendered beside the other constructive actions. */
   tagAction?: ReactNode;
+  /** Asks teammates to review the selection, beside the other actions. */
+  reviewAction?: ReactNode;
 }
 
 export interface IngredientsListSidebarProps {

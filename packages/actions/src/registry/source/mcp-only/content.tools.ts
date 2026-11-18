@@ -65,6 +65,8 @@ export const MCP_CONTENT_TOOLS: SourceTool[] = [
     creditCost: 0,
     description:
       'Import a complete reviewed HTML article into the connected organization as an unpublished draft. Preserves supplied content without generation. Review the draft before publishing it separately.',
+    mcpDescription:
+      'Import reviewed HTML unchanged as an unpublished organization article draft. Review before separate publication; no generation.',
     name: 'create_article_draft',
     requiredRole: 'user',
     parameters: {
@@ -125,6 +127,8 @@ export const MCP_CONTENT_TOOLS: SourceTool[] = [
     creditCost: 0,
     description:
       'Publish an owned reviewed article on the public website. Requires approval. Review the article before requesting publication. Changes publication status without regenerating the body or replacing an existing publication date.',
+    mcpDescription:
+      'Publish an owned reviewed article publicly after approval. Review before requesting publication. Changes status only; preserves body and existing publication date.',
     name: 'publish_article',
     requiredRole: 'user',
     parameters: {
@@ -143,6 +147,8 @@ export const MCP_CONTENT_TOOLS: SourceTool[] = [
     creditCost: 0,
     description:
       'Get one article by articleId, or search published articles by query (optionally filtered by category). Pass exactly one of articleId or query.',
+    mcpDescription:
+      'Read by articleId or search published articles by query, optionally category-filtered. Pass exactly one of articleId or query.',
     name: 'get_articles',
     parameters: {
       oneOf: [

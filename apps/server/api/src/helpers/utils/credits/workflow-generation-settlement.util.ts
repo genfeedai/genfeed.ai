@@ -4,7 +4,7 @@ import type { WorkflowExecutionGenerationBilling } from '@genfeedai/contracts/in
 import { quoteModelBillableCompletion } from '@genfeedai/pricing';
 import { Prisma } from '@genfeedai/prisma';
 
-export interface WorkflowGenerationSettlementOperation {
+interface WorkflowGenerationSettlementOperation {
   operationId: string;
   nodeId: string;
   actionId: string;

@@ -8,7 +8,7 @@ import type { AdsPlatform } from '@genfeedai/contracts/interfaces';
  * client classes; these types are the small shared vocabulary between them.
  */
 
-export interface ApiErrorResponseData {
+interface ApiErrorResponseData {
   errors?: Array<{ detail?: string; title?: string; status?: string }>;
   message?: string;
   error?: string;

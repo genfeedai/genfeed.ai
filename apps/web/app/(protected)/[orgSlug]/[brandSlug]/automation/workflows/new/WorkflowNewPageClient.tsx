@@ -139,6 +139,7 @@ export default function WorkflowNewPageClient() {
   const hasRunInputs = inputVariables.length > 0;
   const actionParameterDefaults = useWorkflowActionDefaults();
 
+  // use-effect-audit: ignore redirects the route in the router
   useEffect(() => {
     if (!currentWorkflowId || isRunning) {
       return;

@@ -1,7 +1,7 @@
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { Locator, Page } from '@playwright/test';
 import { expect } from '@playwright/test';
-import { orgSettingsRoute } from '../utils/app-chrome';
+import { orgPath, orgSettingsRoute } from '../utils/app-chrome';
 import {
   assertRouteRenders,
   expectNoErrorOverlay,
@@ -107,19 +107,14 @@ export class SettingsPage {
     await this.open(orgSettingsRoute(APP_ROUTES.SETTINGS.CREDITS));
   }
 
-  // The organization settings home is /settings/general.
+  // The organization settings home is /settings/general: profile, language,
+  // identity, generation and publishing defaults.
   async goToOrganization(): Promise<void> {
     await this.open(orgSettingsRoute(APP_ROUTES.SETTINGS.GENERAL));
   }
 
-  // Organization-wide defaults (identity, generation, publishing caps) live on
-  // /settings/preferences; General is only profile and language.
-  async goToOrganizationPreferences(): Promise<void> {
-    await this.open(orgSettingsRoute(APP_ROUTES.SETTINGS.PREFERENCES));
-  }
-
   async goToApiKeys(): Promise<void> {
-    await this.open(orgSettingsRoute(APP_ROUTES.SETTINGS.API_KEYS));
+    await this.open(orgPath(APP_ROUTES.CONNECTORS.API_KEYS));
   }
 
   /**

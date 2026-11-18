@@ -3,6 +3,7 @@ import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import {
   IngredientCategory,
   IngredientStatus,
+  LibraryReviewState,
   LibraryShelf,
   MetadataExtension,
 } from '@genfeedai/contracts';
@@ -139,6 +140,33 @@ export class IngredientsQueryDto extends LibraryFilterQueryDto {
   @IsOptional()
   @IsEnum(LibraryShelf)
   shelf?: LibraryShelf;
+
+  @ApiProperty({
+    description:
+      'Filter by teammate-review state (#9948): assets with a review request ' +
+      'in this summed state. Composes with every other Library filter.',
+    enum: LibraryReviewState,
+    enumName: 'LibraryReviewState',
+    required: false,
+  })
+  @Transform(({ value }) =>
+    typeof value === 'string' ? value.trim().toLowerCase() : value,
+  )
+  @IsOptional()
+  @IsEnum(LibraryReviewState)
+  review?: LibraryReviewState;
+
+  @ApiProperty({
+    description:
+      'Show each carousel once: assets that are later slides of a post are ' +
+      "hidden behind that post's first slide, and the cover carries `stack` " +
+      'with the post and slide count. Composes with every other Library filter.',
+    required: false,
+  })
+  @IsOptional()
+  @Transform(({ value }) => value === true || value === 'true')
+  @IsBoolean()
+  stacks?: boolean;
 
   @ApiProperty({
     description: 'Search ingredients by name or description',

@@ -23,10 +23,12 @@ export function useVisiblePolling(
   const pollRef = useRef(poll);
   const wasHiddenRef = useRef(false);
 
+  // use-effect-audit: ignore keeps refs to the latest callbacks and values
   useEffect(() => {
     pollRef.current = poll;
   }, [poll]);
 
+  // use-effect-audit: ignore runs a setInterval timer, a browser clock outside React
   useEffect(() => {
     if (!isVisible) {
       wasHiddenRef.current = true;

@@ -1,3 +1,4 @@
+import { useResetOnChange } from '@hooks/utils/use-reset-on-change/use-reset-on-change';
 import { useEffect, useRef, useState } from 'react';
 
 export interface UseRailKeysOptions {
@@ -39,14 +40,15 @@ export function useRailKeys({
   const [activeIndex, setActiveIndex] = useState(0);
   const itemRefs = useRef(new Map<number, HTMLElement>());
 
-  useEffect(() => {
+  useResetOnChange([itemCount], () => {
     if (itemCount === 0) {
       setActiveIndex(0);
       return;
     }
     setActiveIndex((current) => Math.min(current, itemCount - 1));
-  }, [itemCount]);
+  });
 
+  // use-effect-audit: ignore subscribes to browser events
   useEffect(() => {
     if (!enabled) return;
     function handleKeyDown(event: KeyboardEvent) {
@@ -86,6 +88,7 @@ export function useRailKeys({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [activeIndex, enabled, itemCount, onOpen, onRefresh]);
 
+  // use-effect-audit: ignore drives a DOM element or browser API
   useEffect(() => {
     itemRefs.current.get(activeIndex)?.scrollIntoView({ block: 'nearest' });
   }, [activeIndex]);

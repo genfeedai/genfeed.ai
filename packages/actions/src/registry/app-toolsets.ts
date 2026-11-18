@@ -15,7 +15,7 @@ import type { ToolsetName } from './toolset-names';
  */
 export const MCP_APP_TOOLSETS = {
   agent: ['agent-chat'],
-  analytics: ['analytics'],
+  analytics: ['analytics', 'insights'],
   automation: ['workflows'],
   clipper: ['clipper'],
   discovery: ['ads', 'inspiration'],

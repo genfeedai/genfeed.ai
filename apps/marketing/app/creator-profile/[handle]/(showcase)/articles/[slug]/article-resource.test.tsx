@@ -39,6 +39,17 @@ it('copies a verified focused install command and records the successful resourc
   expect(
     screen.getByRole('button', { name: 'Copied install command' }),
   ).toBeInTheDocument();
+  expect(
+    screen.getByText(
+      'bunx skills add genfeedai/skills --skill cinematic-prompting',
+    ),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByRole('link', { name: 'Get the free skill' }),
+  ).toHaveAttribute(
+    'href',
+    'https://github.com/genfeedai/skills/tree/master/media/cinematic-prompting',
+  );
 });
 
 it('does not report an install-command action when clipboard copying fails', async () => {
@@ -50,6 +61,12 @@ it('does not report an install-command action when clipboard copying fails', asy
     );
   });
   expect(captureWebsiteAnalyticsEvent).not.toHaveBeenCalled();
+  expect(
+    screen.getByRole('button', { name: 'Copy install command' }),
+  ).toBeInTheDocument();
+  expect(
+    screen.queryByRole('button', { name: 'Copied install command' }),
+  ).not.toBeInTheDocument();
 });
 
 it('links to the public MCP setup page and records the resource action', () => {

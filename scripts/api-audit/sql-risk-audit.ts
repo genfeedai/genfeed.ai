@@ -5,6 +5,18 @@ import { pathToFileURL } from 'node:url';
 import { globSync } from 'glob';
 import ts from 'typescript';
 import { parseSourceFile } from '../architecture/parse-source-file';
+import {
+  buildSqlRiskBaseline,
+  compareSqlRiskBaseline,
+  formatSqlRiskBaselineViolations,
+  readSqlRiskBaseline,
+  writeSqlRiskBaseline,
+} from './sql-risk-baseline';
+import {
+  readModelName,
+  readTableGrowth,
+  type TableGrowth,
+} from './table-growth';
 
 const START_OF_STRING_PATTERN = /^/;
 const END_OF_STRING_PATTERN = /$/;
@@ -37,6 +49,7 @@ const DEFAULT_IGNORE_GLOBS = [
   '**/node_modules/**',
   '**/dist/**',
   '**/generated/**',
+  '**/*.fixture.ts',
 ];
 
 const PRISMA_METHODS = new Set([
@@ -63,8 +76,12 @@ export type SqlRiskSeverity = 'high' | 'medium' | 'low';
 export interface SqlRiskFinding {
   category: string;
   file: string;
+  /** Growth class of the table an `unbounded-read` reads; see table-growth.ts. */
+  growth?: TableGrowth | 'unclassified';
   line: number;
   method: string;
+  /** Prisma model the call reads, when the receiver names it. */
+  model?: string;
   recommendation: string;
   receiver: string;
   severity: SqlRiskSeverity;
@@ -93,13 +110,16 @@ export interface SqlRiskAuditOptions {
 }
 
 interface CliOptions extends SqlRiskAuditOptions {
+  checkBaseline: boolean;
   failOnHigh: boolean;
   isJsonOutput: boolean;
   out?: string;
+  updateBaseline: boolean;
 }
 
 interface PrismaCall {
   callText: string;
+  isKeySetRead: boolean;
   file: string;
   leadingText: string;
   line: number;
@@ -158,14 +178,18 @@ export function formatSqlRiskAudit(result: SqlRiskAuditResult): string {
     '',
     ...formatCountLines(result.summary.byCategory),
     '',
+    '## Unbounded Reads By Table Growth',
+    '',
+    ...formatCountLines(countUnboundedByGrowth(result.findings)),
+    '',
     '## Prisma Operation Counts',
     '',
     ...formatCountLines(result.operationCounts),
     '',
     '## Findings',
     '',
-    '| Severity | Category | File | Line | Method | Receiver | Recommendation |',
-    '| --- | --- | --- | --- | --- | --- | --- |',
+    '| Severity | Category | Growth | File | Line | Method | Receiver | Recommendation |',
+    '| --- | --- | --- | --- | --- | --- | --- | --- |',
   ];
 
   for (const finding of result.findings) {
@@ -173,6 +197,7 @@ export function formatSqlRiskAudit(result: SqlRiskAuditResult): string {
       [
         finding.severity,
         finding.category,
+        finding.growth ?? '',
         finding.file,
         String(finding.line),
         finding.method,
@@ -249,6 +274,7 @@ function readPrismaCall(
   return {
     callText: call.getText(source),
     file: relativeFile,
+    isKeySetRead: isKeySetRead(call),
     leadingText: readLeadingText(source, call),
     line: source.getLineAndCharacterOfPosition(call.getStart(source)).line + 1,
     method,
@@ -278,6 +304,7 @@ function readPrismaTaggedTemplate(
   return {
     callText: taggedTemplate.getText(source),
     file: relativeFile,
+    isKeySetRead: false,
     leadingText: readLeadingText(source, taggedTemplate),
     line:
       source.getLineAndCharacterOfPosition(taggedTemplate.getStart(source))
@@ -314,7 +341,28 @@ function createFindingsForCall(call: PrismaCall): SqlRiskFinding[] {
     );
   }
 
-  if (isRowCollectionRead(call.method) && !hasPagination(callText)) {
+  // A `findMany` whose where clause pins `id: { in: [...] }` returns at most
+  // one row per requested id, so the caller's input bounds it. Paginating it
+  // would add nothing, and counting it as `unbounded-read` buried the reads
+  // that grow with a table. It stays visible as a low `key-set-read`.
+  if (
+    isRowCollectionRead(call.method) &&
+    call.isKeySetRead &&
+    !hasPagination(callText)
+  ) {
+    findings.push(
+      createFinding(
+        call,
+        'key-set-read',
+        'low',
+        'Bounded by the requested id set. Confirm callers cap the id list (a few hundred at most).',
+      ),
+    );
+  } else if (
+    isRowCollectionRead(call.method) &&
+    !hasPagination(callText) &&
+    !hasSuppression(call, 'unbounded-read')
+  ) {
     findings.push(
       createFinding(
         call,
@@ -385,6 +433,52 @@ function createFindingsForCall(call: PrismaCall): SqlRiskFinding[] {
   return findings;
 }
 
+/**
+ * True when the call's top-level `where` carries `id: { in: ... }`, directly,
+ * through a spread, or as the last object of a `scopedWhere(orgId, { ... })`
+ * style wrapper. A `where` held in a variable is not inspected, so it stays an
+ * `unbounded-read` for a human to look at.
+ */
+function isKeySetRead(call: ts.CallExpression): boolean {
+  const [options] = call.arguments;
+  if (!options || !ts.isObjectLiteralExpression(options)) {
+    return false;
+  }
+
+  const where = options.properties.find(
+    (property): property is ts.PropertyAssignment =>
+      ts.isPropertyAssignment(property) && property.name.getText() === 'where',
+  );
+
+  return where ? whereHasIdSet(where.initializer) : false;
+}
+
+function whereHasIdSet(expression: ts.Expression): boolean {
+  if (ts.isCallExpression(expression)) {
+    const last = expression.arguments.at(-1);
+    return last ? whereHasIdSet(last) : false;
+  }
+
+  if (!ts.isObjectLiteralExpression(expression)) {
+    return false;
+  }
+
+  return expression.properties.some((property) => {
+    if (ts.isSpreadAssignment(property)) {
+      return whereHasIdSet(property.expression);
+    }
+
+    return (
+      ts.isPropertyAssignment(property) &&
+      property.name.getText() === 'id' &&
+      ts.isObjectLiteralExpression(property.initializer) &&
+      property.initializer.properties.some(
+        (inner) => inner.name?.getText() === 'in',
+      )
+    );
+  });
+}
+
 function readLeadingText(source: ts.SourceFile, node: ts.Node): string {
   const start = node.getStart(source);
   const { line } = source.getLineAndCharacterOfPosition(start);
@@ -400,11 +494,20 @@ function createFinding(
   severity: SqlRiskSeverity,
   recommendation: string,
 ): SqlRiskFinding {
+  const growth =
+    category === 'unbounded-read'
+      ? (readTableGrowth(call.receiver, call.file) ?? 'unclassified')
+      : undefined;
+
   return {
     category,
     file: call.file,
+    ...(growth ? { growth } : {}),
     line: call.line,
     method: call.method,
+    ...(readModelName(call.receiver)
+      ? { model: readModelName(call.receiver) }
+      : {}),
     receiver: call.receiver,
     recommendation,
     severity,
@@ -508,6 +611,15 @@ function severityRank(severity: SqlRiskSeverity): number {
   return 1;
 }
 
+function countUnboundedByGrowth(
+  findings: readonly SqlRiskFinding[],
+): Record<string, number> {
+  return countBy(
+    findings.filter((finding) => finding.category === 'unbounded-read'),
+    (finding) => finding.growth ?? 'unclassified',
+  );
+}
+
 function formatCountLines(counts: Record<string, number>): string[] {
   return Object.entries(counts)
     .sort(([left], [right]) => left.localeCompare(right))
@@ -519,7 +631,12 @@ function escapeMarkdownCell(value: string): string {
 }
 
 function parseArgs(argv: string[]): CliOptions {
-  const options: CliOptions = { failOnHigh: false, isJsonOutput: false };
+  const options: CliOptions = {
+    checkBaseline: false,
+    failOnHigh: false,
+    isJsonOutput: false,
+    updateBaseline: false,
+  };
 
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
@@ -527,6 +644,10 @@ function parseArgs(argv: string[]): CliOptions {
       options.isJsonOutput = true;
     } else if (arg === '--fail-on-high') {
       options.failOnHigh = true;
+    } else if (arg === '--baseline') {
+      options.checkBaseline = true;
+    } else if (arg === '--update-baseline') {
+      options.updateBaseline = true;
     } else if (arg === '--out') {
       options.out = readRequiredArg(argv, index, arg);
       index += 1;
@@ -564,14 +685,36 @@ function isMainModule(): boolean {
     : false;
 }
 
-if (isMainModule()) {
+function main(): void {
   const options = parseArgs(process.argv.slice(2));
   const result = runSqlRiskAudit(options);
   const body = options.isJsonOutput
     ? `${JSON.stringify(result, null, 2)}\n`
     : formatSqlRiskAudit(result);
 
+  const rootDir = options.rootDir ?? process.cwd();
+
+  if (options.updateBaseline) {
+    const baseline = buildSqlRiskBaseline(result.findings);
+    writeSqlRiskBaseline(rootDir, baseline);
+    process.stderr.write(
+      `SQL risk baseline written: ${baseline.entries.length} entries.\n`,
+    );
+    return;
+  }
+
   writeOutput(body, options.out);
+
+  if (options.checkBaseline) {
+    const violations = compareSqlRiskBaseline(
+      result.findings,
+      readSqlRiskBaseline(rootDir),
+    );
+    if (violations.length > 0) {
+      process.stderr.write(`\n${formatSqlRiskBaselineViolations(violations)}`);
+      process.exitCode = 1;
+    }
+  }
 
   // `--fail-on-high` turns the audit into a CI gate: any high-severity finding
   // (unsafe raw SQL or an unguarded bulk write) fails the build so prior
@@ -592,4 +735,8 @@ if (isMainModule()) {
     );
     process.exitCode = 1;
   }
+}
+
+if (isMainModule()) {
+  main();
 }

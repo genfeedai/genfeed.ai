@@ -17,6 +17,7 @@ import { getDesktopCreditsVisibility } from '@genfeedai/services/core/desktop-ru
 import { Settings } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { useEffect } from 'react';
+import { useHasAppsBeyondDashboard } from '@/components/shell/use-available-rail-apps';
 import {
   buildSettingsSearchCatalog,
   resolveSettingsSearchHref,
@@ -137,9 +138,11 @@ export function useSettingsCommandsRegistration(currentApp?: AppContext): void {
     : '';
   const brandSlug =
     orgSlug && brandOrgSlug === orgSlug ? (selectedBrand?.slug ?? '') : '';
+  const hasAppsBeyondDashboard = useHasAppsBeyondDashboard();
   const isEnterprise = hasOrganizationBillingHint();
   const priority = resolvePriority(currentApp);
 
+  // use-effect-audit: ignore registers the commands with the command palette
   useEffect(() => {
     if (!isAccessible) return;
 
@@ -162,9 +165,12 @@ export function useSettingsCommandsRegistration(currentApp?: AppContext): void {
         : []),
     ].filter(
       (command) =>
-        isSubscriptionAvailable ||
-        command.id !==
-          `settings-catalog:organization:${APP_ROUTES.SETTINGS.SUBSCRIPTION}`,
+        (isSubscriptionAvailable ||
+          command.id !==
+            `settings-catalog:organization:${APP_ROUTES.SETTINGS.SUBSCRIPTION}`) &&
+        (hasAppsBeyondDashboard ||
+          command.id !==
+            `settings-catalog:organization:${APP_ROUTES.SETTINGS.MODULES}`),
     );
 
     const registeredIds =
@@ -179,6 +185,7 @@ export function useSettingsCommandsRegistration(currentApp?: AppContext): void {
     };
   }, [
     brandSlug,
+    hasAppsBeyondDashboard,
     isAccessible,
     isEnterprise,
     isSubscriptionAvailable,

@@ -281,7 +281,7 @@ describe('BrandDetailSocialMediaCard', () => {
     );
 
     expect(
-      screen.getByRole('heading', { name: 'Connected accounts' }),
+      screen.getByRole('heading', { name: 'Accounts' }),
     ).toBeInTheDocument();
     expect(
       screen.getByText(/connect accounts to display them here/i),
@@ -398,7 +398,9 @@ describe('BrandDetailSocialMediaCard', () => {
     );
 
     expect(screen.getByText('Connected')).toBeInTheDocument();
-    expect(screen.getByText('Needs reconnect')).toBeInTheDocument();
+    expect(
+      screen.getByText('Reconnect', { selector: 'span' }),
+    ).toBeInTheDocument();
   });
 
   it('passes fetched account health down to the accounts table on the page variant', async () => {

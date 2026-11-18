@@ -4,6 +4,7 @@ import type {
 } from '@api/collections/workflows/schemas/workflow.schema';
 import { conditionNode } from '@api/collections/workflows/services/workflow-definition-nodes';
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-runner.service';
+import { SystemWorkflowRetention } from '@api/collections/workflows/workflow-execution-retention.contract';
 import { createGenfeedActionNode } from '@genfeedai/actions';
 
 export const BRAND_REMIX_DOWNSTREAM_ACTION_IDS = {
@@ -127,6 +128,7 @@ export function buildBrandRemixGenerateResolveCreditsWorkflowDefinition(): Syste
       'Resolves credit amount and billing mode for one remix variant.',
     label: 'Brand Remix Resolve Variant Credits',
     resultNodeId: 'resolve-variant-credits',
+    retention: SystemWorkflowRetention.KEPT,
     version: 1,
   };
 }
@@ -158,6 +160,7 @@ export function buildBrandRemixGenerateDispatchWorkflowDefinition(): SystemWorkf
       'Dispatches one claimed remix variant to copy generation or a media provider.',
     label: 'Brand Remix Dispatch Variant',
     resultNodeId: 'dispatch-variant',
+    retention: SystemWorkflowRetention.KEPT,
     version: 1,
   };
 }
@@ -265,6 +268,7 @@ export function buildBrandRemixGenerateWorkflowDefinition(): SystemWorkflowGraph
       'Claims a Brand Remix run, reserves credits, and dispatches each variant through a child execution.',
     label: 'Brand Remix Generate',
     resultNodeId: 'clear-claim',
+    retention: SystemWorkflowRetention.KEPT,
     version: 1,
   };
 }
@@ -375,6 +379,7 @@ export function buildBrandRemixReviewWorkflowDefinition(): SystemWorkflowGraphDe
       'Validates remix outputs, claims the review transition, creates canonical drafts, and projects the updated run.',
     label: 'Brand Remix Review Handoff',
     resultNodeId: 'project-review',
+    retention: SystemWorkflowRetention.KEPT,
     version: 1,
   };
 }
@@ -493,6 +498,7 @@ export function buildBrandRemixMetaPausedDraftWorkflowDefinition(): SystemWorkfl
       'Validates an approved remix, creates or reuses paused Meta objects, and records canonical lineage.',
     label: 'Brand Remix Paused Meta Draft',
     resultNodeId: 'persist-lineage',
+    retention: SystemWorkflowRetention.KEPT,
     version: 1,
   };
 }
@@ -537,6 +543,7 @@ export function buildBrandRemixXPausedDraftWorkflowDefinition(): SystemWorkflowG
       'Validates an approved tweet, creates or reuses paused X Ads objects, and records canonical lineage.',
     label: 'Brand Remix Paused X Ads Draft',
     resultNodeId: 'persist-lineage',
+    retention: SystemWorkflowRetention.KEPT,
     version: 1,
   };
 }

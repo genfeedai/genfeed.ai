@@ -97,11 +97,13 @@ const switchNames = () =>
     .queryAllByRole('switch')
     .map((control) => control.getAttribute('aria-label'));
 
-/** Admin → Flags as the release migration leaves it. */
+/** Admin → Flags as the release migration leaves it, plus Playground and Storyboard an operator released. */
 const RELEASED_FLAGS = {
   release_analytics: true,
   release_discovery: true,
+  release_playground: true,
   release_publishing: true,
+  release_storyboard: true,
   release_turbo: true,
 };
 
@@ -149,14 +151,17 @@ describe('OrganizationModulesCard', () => {
   });
 
   it('does not list modules that are unreleased for the organization', () => {
+    mocks.flags = {
+      ...RELEASED_FLAGS,
+      release_playground: false,
+      release_storyboard: false,
+    };
     mocks.settings = {
       moduleOverrides: { automation: true, turbo: true },
       hasOrganizationBilling: true,
     };
     render(<OrganizationModulesCard />);
     expect(switchNames()).toEqual([
-      'Playground',
-      'Storyboard',
       'Turbo',
       'Publishing',
       'Analytics',

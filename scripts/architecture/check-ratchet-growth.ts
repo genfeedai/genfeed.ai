@@ -17,6 +17,7 @@ import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import ts from 'typescript';
+import { useEffectBaselineEntryKeys } from './check-use-effect';
 
 const MISSING_AT_REF_ERROR_PATTERN =
   /exists on disk, but not in|does not exist in/;
@@ -107,6 +108,29 @@ export function tenantScopeEntryKeys(content: string): string[] {
   );
 }
 
+/**
+ * The SQL risk baseline is JSON with one entry per category, file and target
+ * carrying a `count`. A key repeats once per counted finding, so a PR that
+ * raises a count is growth; a call moving between lines is not.
+ */
+export function sqlRiskEntryKeys(content: string): string[] {
+  const parsed = JSON.parse(content) as {
+    entries: Array<{
+      category: string;
+      count: number;
+      file: string;
+      target: string;
+    }>;
+  };
+
+  return parsed.entries.flatMap((entry) =>
+    Array.from(
+      { length: entry.count },
+      () => `${entry.category}|${entry.file}|${entry.target}`,
+    ),
+  );
+}
+
 /** One entry per baselined DTO property, in either property order. */
 export function authorityFieldEntryKeys(content: string): string[] {
   return objectLiteralStrings(content).flatMap((strings) => {
@@ -168,6 +192,20 @@ export const RATCHET_SOURCES: readonly RatchetSource[] = [
     instead:
       'delete the unused file, export or dependency instead of baselining it',
     name: 'dead code (knip)',
+  },
+  {
+    entryKeys: sqlRiskEntryKeys,
+    file: 'scripts/api-audit/sql-risk-baseline.json',
+    instead:
+      'bound the read (take/cursor or an id: { in } lookup) or justify it with a sql-risk-audit: ignore comment instead of baselining it',
+    name: 'SQL risk findings',
+  },
+  {
+    entryKeys: useEffectBaselineEntryKeys,
+    file: 'scripts/architecture/use-effect.baseline.json',
+    instead:
+      'derive the value during render, run it in the event handler, or use a data hook instead of a new useEffect; give async effects an AbortController',
+    name: 'useEffect calls',
   },
 ];
 

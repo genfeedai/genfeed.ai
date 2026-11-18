@@ -1,4 +1,5 @@
 import { ModelCreditQuoteService } from '@api/collections/models/services/model-credit-quote.service';
+import { projectModelBillablePricingProfile } from '@api/collections/models/utils/model-billable-pricing-profile.util';
 import { billableProfile } from '@api/helpers/utils/credits/model-billable-quote.fixture';
 import { ReplicateVideoBuilder } from '@api/services/prompt-builder/builders/replicate/replicate-video.builder';
 import { ModelCategory } from '@genfeedai/contracts';
@@ -190,5 +191,47 @@ describe('ModelCreditQuoteService', () => {
         provider: row.provider,
       }),
     ).resolves.toBe(3);
+  });
+  it('fails closed for the seeded Leonardo catalog row, which carries no billable tariff', async () => {
+    const row = UNIFIED_MODEL_CATALOG.find(
+      (entry) => entry.key === MODEL_KEYS.LEONARDOAI,
+    );
+    if (!row) throw new Error('The catalog must seed the Leonardo row');
+    // The profile Prisma would project from the seeded row: nothing is
+    // priced or reviewed for it, whatever provider a fixture defaults to.
+    modelsService.findBillablePricingProfile.mockResolvedValue(
+      projectModelBillablePricingProfile(
+        {
+          cost: row.cost,
+          costPerUnit: row.costPerUnit ?? null,
+          endpoint: row.key,
+          hasAudioToggle: null,
+          hasResolutionOptions: null,
+          isActive: row.isActive ?? true,
+          isDeleted: false,
+          isFree: row.isFree ?? false,
+          key: row.key,
+          minCost: row.minCost ?? null,
+          pendingProviderContractVersion: null,
+          pricingType: row.pricingType ?? null,
+          provider: row.provider,
+          providerCostUsd: row.providerCostUsd ?? null,
+          providerInputSchema: null,
+          reviewedProviderContractVersion: null,
+        },
+        [],
+      ),
+    );
+
+    await expect(
+      service.quoteByKey(MODEL_KEYS.LEONARDOAI),
+    ).rejects.toMatchObject({
+      response: {
+        code: 'PRICING_UNAVAILABLE',
+        detail:
+          'Exact model/provider is unavailable or does not match dispatch',
+        modelKey: MODEL_KEYS.LEONARDOAI,
+      },
+    });
   });
 });

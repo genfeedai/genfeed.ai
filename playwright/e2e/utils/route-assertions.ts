@@ -5,7 +5,7 @@ import { expect, type Page, type Response } from '@playwright/test';
  *
  * Provides a single, robust "does this route render?" check used by the
  * dedicated per-area route specs. Mirrors the proven logic in
- * `e2e/tests/smoke/all-app-pages.spec.ts` so every spec asserts the same
+ * `e2e/utils/app-page-sweep.ts` so every spec asserts the same
  * health signals: real HTTP response, no framework error overlay, no caught
  * application ErrorBoundary fallback, no redirect to login, and a non-blank
  * body.

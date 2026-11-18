@@ -214,6 +214,7 @@ export function OrganizationSettingsTable({
     setSelectedSetting(null);
   }, []);
 
+  // use-effect-audit: ignore timer outside React
   useEffect(() => {
     if (selectedSetting) {
       const timer = window.setTimeout(

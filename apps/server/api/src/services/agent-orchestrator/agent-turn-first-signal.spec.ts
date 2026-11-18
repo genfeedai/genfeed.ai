@@ -106,9 +106,11 @@ function setup() {
     {},
     settings,
     {
-      findOne: vi
-        .fn()
-        .mockResolvedValue({ id: state.threadId, title: 'Hello' }),
+      findOne: vi.fn().mockResolvedValue({
+        id: state.threadId,
+        title: 'Hello',
+        userId: state.userId,
+      }),
       findOneSelect: delegateFindOneSelect(),
     },
     {

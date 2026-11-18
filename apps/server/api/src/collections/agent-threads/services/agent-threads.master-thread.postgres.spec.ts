@@ -1,6 +1,8 @@
 import { randomUUID } from 'node:crypto';
+import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
 import type { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
 import { AgentMasterThreadService } from '@api/collections/agent-threads/services/agent-master-thread.service';
+import { AgentThreadAccessService } from '@api/collections/agent-threads/services/agent-thread-access.service';
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import { AgentTransferExecutionListener } from '@api/collections/agent-transfers/listeners/agent-transfer-execution.listener';
 import { AgentTransfersService } from '@api/collections/agent-transfers/services/agent-transfers.service';
@@ -67,6 +69,11 @@ describe.skipIf(!connectionString)(
         database() as unknown as PrismaService,
         {} as never,
         turnAcceptance as never,
+        new AgentThreadAccessService(
+          database() as unknown as PrismaService,
+          new BrandAccessService(database() as unknown as PrismaService),
+        ),
+        { notifyHandoffReceived: vi.fn() } as never,
       );
     const makeListener = () =>
       new AgentTransferExecutionListener(

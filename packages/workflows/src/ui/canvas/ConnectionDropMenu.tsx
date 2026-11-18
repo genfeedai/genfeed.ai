@@ -115,6 +115,7 @@ function ConnectionDropMenuComponent() {
   }, [filteredNodes]);
 
   // Auto-focus input when opened
+  // use-effect-audit: ignore timer outside React
   useEffect(() => {
     if (isOpen) {
       setSearch('');
@@ -127,6 +128,7 @@ function ConnectionDropMenuComponent() {
   }, [isOpen]);
 
   // Scroll selected item into view
+  // use-effect-audit: ignore drives a DOM element or browser API
   useEffect(() => {
     if (listRef.current) {
       const items = listRef.current.querySelectorAll('[data-node-item]');
@@ -268,7 +270,7 @@ function ConnectionDropMenuComponent() {
               if (!nodes || nodes.length === 0) return null;
               return (
                 <div key={category} className="mb-1">
-                  <div className="text-2xs font-semibold text-muted-foreground uppercase tracking-wider px-2 py-1">
+                  <div className="text-2xs font-semibold text-muted-foreground uppercase tracking-label px-2 py-1">
                     {CATEGORY_LABELS[category as ExtendedNodeCategory]}
                   </div>
                   {nodes.map((node) => {

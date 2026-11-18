@@ -862,6 +862,58 @@ describe('PublishApprovalsService', () => {
     });
   });
 
+  it('leaves an approval alone when an execution claim lands after invalidation read it', async () => {
+    const stored = makeApproval();
+    const post = { updateMany: vi.fn().mockResolvedValue({ count: 1 }) };
+    const publishApproval = {
+      // The read sees QUEUED; the claim then commits before the write.
+      findMany: vi.fn(async () => {
+        const seen = [{ ...stored }];
+        stored.status = PublishApprovalStatus.EXECUTING;
+        return seen;
+      }),
+      update: vi.fn(
+        async ({
+          data,
+          where,
+        }: {
+          data: Record<string, unknown>;
+          where: { id: string; status?: string };
+        }) => {
+          if (where.status && where.status !== stored.status) {
+            throw Object.assign(new Error('Record not found'), {
+              code: 'P2025',
+            });
+          }
+          Object.assign(stored, data);
+          return stored;
+        },
+      ),
+    };
+    const prisma = {
+      $transaction: vi.fn(async (callback) =>
+        callback({ post, publishApproval }),
+      ),
+      publishApproval,
+    };
+    const service = new PublishApprovalsService(
+      prisma as never,
+      {} as AgentArtifactReferenceService,
+    );
+
+    await expect(
+      service.invalidatePost(
+        'org-1',
+        'post-1',
+        'Canonical publish scope changed.',
+        'user-1',
+      ),
+    ).rejects.toThrow('changed while it was being invalidated');
+
+    expect(stored.status).toBe(PublishApprovalStatus.EXECUTING);
+    expect(post.updateMany).not.toHaveBeenCalled();
+  });
+
   it('blocks version drift before claiming execution', async () => {
     const approval = makeApproval({ scopeDigest: scopeDigest() });
     const publishApproval = {

@@ -5,10 +5,7 @@ import { UpdateModelDto } from '@api/collections/models/dto/update-model.dto';
 import { type ModelDocument } from '@api/collections/models/schemas/model.schema';
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { buildModelListOrderBy } from '@api/collections/models/utils/model-list-order.util';
-import {
-  findUnpriceableModelIds,
-  unpriceableModelsScope,
-} from '@api/collections/models/utils/model-pricing-attention.util';
+import { readUnpriceableModelIds } from '@api/collections/models/utils/unpriceable-model-ids.cache';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -301,12 +298,12 @@ export class ModelsController extends BaseCRUDController<
       }
     }
 
-    // Superadmin-only rows: retired ones dispatch to their successor, and
+    // Superadmin-only rows: retired ones stop a run that picks them, and
     // unpriceable ones (red in the admin pricing panel) cannot be quoted.
     if (!isSuperAdmin) {
-      const unpriceableIds = await findUnpriceableModelIds(
+      const unpriceableIds = await readUnpriceableModelIds(
         this.modelsService.prisma,
-        unpriceableModelsScope(tenant.organizationId ?? undefined),
+        tenant.organizationId ?? undefined,
       );
       where.AND = [
         ...(Array.isArray(where.AND) ? where.AND : []),
@@ -375,7 +372,6 @@ export class ModelsController extends BaseCRUDController<
       const data = await this.modelsService.transitionLifecycle(
         modelId,
         updateDto.lifecycle,
-        updateDto.succeededBy,
       );
       if (!data) {
         ErrorResponse.notFound(this.entityName, modelId);
@@ -456,12 +452,7 @@ export class ModelsController extends BaseCRUDController<
   ): Promise<JsonApiSingleResponse> {
     this.assertCanManageRegistry(user, request as unknown as Request);
 
-    const {
-      reviewStatus,
-      reason,
-      succeededBy: _succeededBy,
-      ...updates
-    } = updateDto;
+    const { reviewStatus, reason, ...updates } = updateDto;
     const reviewedBy = this.getReviewerId(user);
 
     let data: ModelDocument | null;

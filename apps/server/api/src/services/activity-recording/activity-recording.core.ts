@@ -19,6 +19,7 @@ import {
   runForEventOrganization,
   writeNotificationOutbox,
 } from '@api/services/activity-recording/notification-outbox.writer';
+import { WORKFLOW_STATUS_NOTIFICATION_TOPIC } from '@api/services/notifications/workflow-notifications/workflow-notification.constants';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import {
   type ActivityAlertPolicy,
@@ -54,9 +55,7 @@ const IN_APP_PROVIDER = 'inbox';
 const EMAIL_PROVIDER = 'resend';
 const CHANNEL_MESSAGE_PROVIDER = 'notifications';
 
-export function emptyCommit(
-  activities: ActivityDocument[] = [],
-): RecordingCommit {
+function emptyCommit(activities: ActivityDocument[] = []): RecordingCommit {
   return { activities, inbox: [], pendingDeliveryIds: [] };
 }
 
@@ -374,6 +373,15 @@ async function raiseAlert(
           userId,
         });
       } else if (channel === 'email') {
+        // A workflow status email needs an explicit opt-in. Without one the
+        // delivery worker would only mark the row skipped, one dead row per
+        // finished run (#10384), so the row is never written.
+        if (
+          policy.topic === WORKFLOW_STATUS_NOTIFICATION_TOPIC &&
+          !(await hasEmailOptIn(transaction, userId, policy.topic))
+        ) {
+          continue;
+        }
         add({
           channel,
           idempotencyKey,
@@ -446,6 +454,24 @@ async function isActiveMember(
     }),
   });
   return Boolean(member);
+}
+
+async function hasEmailOptIn(
+  transaction: RecordingClient,
+  userId: string,
+  topic: string,
+): Promise<boolean> {
+  const preference = await transaction.notificationPreference.findFirst({
+    select: { isEnabled: true },
+    where: {
+      channel: 'email',
+      isDeleted: false,
+      isEnabled: true,
+      topic,
+      userId,
+    },
+  });
+  return preference !== null;
 }
 
 async function isInAppDisabled(

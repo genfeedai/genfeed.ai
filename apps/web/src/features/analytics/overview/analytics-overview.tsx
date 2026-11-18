@@ -33,13 +33,15 @@ export interface AnalyticsOverviewProps {
   basePath?: string;
 }
 
+const TIMESERIES_CHART_HEIGHT = 400;
+
 const PlatformTimeSeriesChart = dynamic(
   () =>
     import(
       '@/features/analytics/components/analytics/charts/platform-time-series/platform-time-series-chart'
     ).then((mod) => mod.PlatformTimeSeriesChart),
   {
-    loading: () => <Skeleton className="h-chart w-full" />,
+    loading: () => <Skeleton height={TIMESERIES_CHART_HEIGHT} width="100%" />,
     ssr: false,
   },
 );
@@ -171,21 +173,30 @@ export default function AnalyticsOverview({
           <Card
             data-testid="analytics-overview-timeseries"
             variant={CardVariant.DEFAULT}
-            isLoading={!hasTimeseriesData && isTimeseriesLoading}
+            aria-busy={(!hasTimeseriesData && isTimeseriesLoading) || undefined}
             label={translate('timeseriesTitle')}
           >
-            <PlatformTimeSeriesChart
-              data={timeseriesData}
-              platforms={[
-                Platform.INSTAGRAM,
-                Platform.TIKTOK,
-                Platform.YOUTUBE,
-                Platform.TWITTER,
-                Platform.FACEBOOK,
-              ]}
-              isLoading={false}
-              height={400}
-            />
+            {!hasTimeseriesData && isTimeseriesLoading ? (
+              <Skeleton
+                aria-busy={false}
+                aria-hidden="true"
+                height={TIMESERIES_CHART_HEIGHT}
+                width="100%"
+              />
+            ) : (
+              <PlatformTimeSeriesChart
+                data={timeseriesData}
+                platforms={[
+                  Platform.INSTAGRAM,
+                  Platform.TIKTOK,
+                  Platform.YOUTUBE,
+                  Platform.TWITTER,
+                  Platform.FACEBOOK,
+                ]}
+                isLoading={false}
+                height={TIMESERIES_CHART_HEIGHT}
+              />
+            )}
           </Card>
         ) : (
           <Card

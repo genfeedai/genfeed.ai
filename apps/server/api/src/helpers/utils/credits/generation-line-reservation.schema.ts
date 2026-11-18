@@ -46,7 +46,7 @@ export const generationLineFundingSchema = z.strictObject({
   intentHash: hash,
   attachment: z.enum(['preparing', 'attached']),
 });
-export const storyboardNoSubmissionProofSchema = z.strictObject({
+const storyboardNoSubmissionProofSchema = z.strictObject({
   version: z.literal(1),
   kind: z.literal('storyboard-never-submitted'),
   proofId: hash,

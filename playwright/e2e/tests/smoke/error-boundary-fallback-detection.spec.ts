@@ -7,7 +7,7 @@ import {
 /**
  * Regression coverage for #5070.
  *
- * The route smoke helper (`assertRouteLoads` in all-app-pages.spec.ts /
+ * The route smoke helper (`assertRouteLoads` in utils/app-page-sweep.ts /
  * all-app-pages.authed.spec.ts) only checked for the framework's own error
  * overlay and a non-blank body. Both checks stay green when the app's own
  * ErrorBoundary catches a render exception and renders a normal-looking

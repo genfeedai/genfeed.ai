@@ -322,6 +322,8 @@ describe('proxy', () => {
   it.each([
     '/',
     APP_ROUTES.SETTINGS.ROOT,
+    APP_ROUTES.CONNECTORS.ROOT,
+    APP_ROUTES.CONNECTORS.API_KEYS,
     APP_ROUTE_PREFIXES.ANALYTICS,
     APP_ROUTE_PREFIXES.AGENT,
     APP_ROUTE_PREFIXES.LIBRARY,
@@ -2370,6 +2372,24 @@ describe('proxy', () => {
       'http://localhost:3000/acme/~/settings/brands/moonrise-studio/voice',
     );
   });
+
+  it.each([
+    ['/connectors', 'http://localhost:3000/acme/~/connectors'],
+    [
+      '/connectors/api-keys',
+      'http://localhost:3000/acme/~/connectors/api-keys',
+    ],
+  ])(
+    'scopes the flat Connectors path %s to the organization',
+    async (pathname, expected) => {
+      const { default: proxy } = await import('./proxy');
+
+      const response = await proxy(makeSignedInRequest(pathname));
+
+      expect(response.status).toBe(307);
+      expect(response.headers.get('location')).toBe(expected);
+    },
+  );
 
   it('routes flat brand-only settings to the active brand instead of the org scope', async () => {
     const { default: proxy } = await import('./proxy');

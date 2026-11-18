@@ -114,6 +114,7 @@ export default function ModalErrorDebug() {
   const [didCopyAgent, setDidCopyAgent] = useState(false);
   const { refresh } = useRouter();
 
+  // use-effect-audit: ignore subscribes to the error debug store
   useEffect(() => {
     const existing = getErrorDebugInfo();
     if (existing) {

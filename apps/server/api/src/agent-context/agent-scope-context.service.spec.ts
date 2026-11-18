@@ -833,6 +833,149 @@ describe('AgentScopeContextService', () => {
     });
   });
 
+  describe('a thread shared with the acting member (#9937)', () => {
+    const assertAccess = vi.fn();
+    let shared: AgentScopeContextService;
+
+    beforeEach(() => {
+      assertAccess.mockReset();
+      shared = new AgentScopeContextService(
+        prisma,
+        logger,
+        brandAccessFixture(prisma as never),
+        { assertAccess },
+      );
+      // The thread belongs to owner-1: a lookup as member-1 misses it.
+      threadFindFirst.mockImplementation(
+        ({ where }: { where: { userId?: string } }) =>
+          Promise.resolve(
+            where.userId === 'owner-1'
+              ? makeThread({ brandId: 'brand-1', userId: 'owner-1' })
+              : null,
+          ),
+      );
+      assertAccess.mockResolvedValue({
+        accessLevel: 'collaborate',
+        canManageShares: false,
+        thread: { id: 'thread-1', userId: 'owner-1' },
+      });
+    });
+
+    it('runs the turn as the member and keeps the owner on the scope', async () => {
+      const result = await shared.prepareForTurn({
+        isSharedCollaborationAllowed: true,
+        organizationId: 'org-1',
+        threadId: 'thread-1',
+        userId: 'member-1',
+      });
+
+      expect(result.existingScope).toMatchObject({
+        brandId: 'brand-1',
+        threadId: 'thread-1',
+        threadOwnerUserId: 'owner-1',
+        userId: 'member-1',
+      });
+      expect(assertAccess).toHaveBeenCalledWith(
+        expect.objectContaining({
+          organizationId: 'org-1',
+          userId: 'member-1',
+        }),
+        'thread-1',
+        'collaborate',
+      );
+    });
+
+    it('does not open another member thread to a caller that did not opt in', async () => {
+      await expect(
+        shared.prepareForTurn({
+          organizationId: 'org-1',
+          threadId: 'thread-1',
+          userId: 'member-1',
+        }),
+      ).rejects.toBeInstanceOf(HttpException);
+      expect(assertAccess).not.toHaveBeenCalled();
+    });
+
+    it('names the owner of a thread shared with the member, for a queued turn', async () => {
+      await expect(
+        shared.resolveCollaboratedThreadOwner(
+          { organizationId: 'org-1', userId: 'member-1' },
+          'thread-1',
+        ),
+      ).resolves.toBe('owner-1');
+      expect(assertAccess).toHaveBeenCalledWith(
+        { organizationId: 'org-1', userId: 'member-1' },
+        'thread-1',
+        'collaborate',
+      );
+    });
+
+    it('names no owner when sharing is unavailable', async () => {
+      await expect(
+        service.resolveCollaboratedThreadOwner(
+          { organizationId: 'org-1', userId: 'member-1' },
+          'thread-1',
+        ),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+    });
+
+    it('refuses a member whose share is view only', async () => {
+      assertAccess.mockRejectedValue(
+        new ForbiddenException('This thread is shared with you to view only.'),
+      );
+
+      await expect(
+        shared.prepareForTurn({
+          isSharedCollaborationAllowed: true,
+          organizationId: 'org-1',
+          threadId: 'thread-1',
+          userId: 'member-1',
+        }),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+    });
+
+    it('refuses a member whose brand access no longer reaches the thread brand', async () => {
+      brandFindFirst.mockResolvedValue(null);
+
+      await expect(
+        shared.prepareForTurn({
+          isSharedCollaborationAllowed: true,
+          organizationId: 'org-1',
+          threadId: 'thread-1',
+          userId: 'member-1',
+        }),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+    });
+
+    it('re-proves the share at every consequential step', async () => {
+      const scope = makeScope({
+        threadOwnerUserId: 'owner-1',
+        userId: 'member-1',
+      });
+
+      await expect(
+        shared.assertConsequentialBoundary(scope, 'tool'),
+      ).resolves.toBeUndefined();
+      expect(assertAccess).toHaveBeenCalledTimes(1);
+
+      assertAccess.mockRejectedValue(new ForbiddenException('Share revoked.'));
+      await expect(
+        shared.assertConsequentialBoundary(scope, 'tool'),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+    });
+
+    it('does not trust a scope that names an owner it does not have', async () => {
+      threadFindFirst.mockResolvedValue(null);
+
+      await expect(
+        shared.assertConsequentialBoundary(
+          makeScope({ threadOwnerUserId: 'owner-1', userId: 'member-1' }),
+          'tool',
+        ),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+    });
+  });
+
   describe('assertConsequentialBoundary', () => {
     it('requires an explicit context version', async () => {
       await expect(

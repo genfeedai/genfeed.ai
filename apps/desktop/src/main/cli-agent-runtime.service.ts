@@ -58,7 +58,7 @@ const STDERR_TAIL_BYTES = 4_096;
 const AUTH_FAILURE_PATTERN =
   /(not logged in|please run \/login|log ?in|authenticat|unauthori[sz]ed|invalid api key|api key|oauth token|\b401\b|credentials)/i;
 
-export class DesktopCliAgentRequestError extends Error {}
+class DesktopCliAgentRequestError extends Error {}
 
 /** The Genfeed API calls the runtime needs (implemented by DesktopCloudService). */
 export interface DesktopCliAgentCloudClient {
@@ -189,7 +189,7 @@ export function classifyDesktopCliAgentFailure(
   };
 }
 
-export function killDesktopCliProcessTree(child: ChildProcess): void {
+function killDesktopCliProcessTree(child: ChildProcess): void {
   if (child.exitCode !== null || child.signalCode !== null || !child.pid) {
     return;
   }

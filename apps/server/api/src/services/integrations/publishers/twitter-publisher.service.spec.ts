@@ -5,6 +5,7 @@
 
 // Mock twitter-api-v2 before imports
 const mockTweet = vi.fn();
+const mockSingleTweet = vi.fn();
 const mockUploadMedia = vi.fn();
 
 vi.mock('@libs/security/destination-guard', async (importOriginal) => {
@@ -16,6 +17,7 @@ vi.mock('@libs/security/destination-guard', async (importOriginal) => {
 vi.mock('twitter-api-v2', () => ({
   TwitterApi: vi.fn().mockImplementation(() => ({
     v2: {
+      singleTweet: mockSingleTweet,
       tweet: mockTweet,
       uploadMedia: mockUploadMedia,
     },
@@ -253,7 +255,11 @@ describe('TwitterPublisherService', () => {
       },
       'getTwitterClientFromCredential',
     ).mockResolvedValue({
-      v2: { tweet: mockTweet, uploadMedia: mockUploadMedia },
+      v2: {
+        singleTweet: mockSingleTweet,
+        tweet: mockTweet,
+        uploadMedia: mockUploadMedia,
+      },
     } as unknown as Awaited<
       ReturnType<TwitterPublisherService['getTwitterClientFromCredential']>
     >);
@@ -644,6 +650,7 @@ describe('TwitterPublisherService', () => {
 
         expect(result.success).toBe(false);
         expect(result.executionState).toBe(TargetExecutionState.FAILED);
+        expect(result.errorKind).toBe('outcome_unknown');
       });
 
       it('should throw error when publishing fails', async () => {
@@ -682,13 +689,14 @@ describe('TwitterPublisherService', () => {
         mockTweet.mockRejectedValue(error);
 
         await expect(service.publish(context)).rejects.toMatchObject({
-          code: 403,
+          httpStatus: 403,
+          kind: 'content_rejected',
           message:
             'Request failed with code 403 - You are not allowed to create a Tweet with duplicate content.',
         });
       });
 
-      it('reports an out-of-credits X account as x_credits_depleted', async () => {
+      it('reports an out-of-credits X account as a refusal to retry later', async () => {
         const context = createPublishContext(mockTextPost);
         const error = Object.assign(new Error('Request failed with code 402'), {
           code: 402,
@@ -702,8 +710,99 @@ describe('TwitterPublisherService', () => {
         mockTweet.mockRejectedValue(error);
 
         await expect(service.publish(context)).rejects.toMatchObject({
-          code: 'x_credits_depleted',
+          kind: 'retry_later',
           message: expect.stringContaining('X API credits depleted'),
+        });
+      });
+
+      describe('quote posts', () => {
+        const quotedId = '9876543210';
+        const quotePost = { ...mockTextPost, quoteTweetId: quotedId };
+
+        beforeEach(() => {
+          credentialsService.findOne.mockResolvedValue({
+            ...mockCredential,
+            accessToken: 'encrypted-token',
+          } as unknown as CredentialDocument);
+        });
+
+        it('fails with a readable reason when the quoted post is gone', async () => {
+          mockTweet.mockRejectedValue(
+            Object.assign(new Error('Request failed with code 400'), {
+              code: 400,
+            }),
+          );
+          mockSingleTweet.mockResolvedValue({
+            errors: [
+              {
+                resource_id: quotedId,
+                title: 'Not Found Error',
+                type: 'https://api.twitter.com/2/problems/resource-not-found',
+              },
+            ],
+          });
+
+          const result = await service.publish(createPublishContext(quotePost));
+
+          expect(result).toMatchObject({
+            errorCode: 'x_quoted_post_unavailable',
+            executionState: TargetExecutionState.FAILED,
+            success: false,
+          });
+          expect(result.error).toBe(
+            `The quoted X post ${quotedId} no longer exists (it may have been deleted), so this quote post was not published.`,
+          );
+        });
+
+        it('reports a 403 on a quote as X refusing the quote', async () => {
+          mockTweet.mockRejectedValue(
+            Object.assign(new Error('Request failed with code 403'), {
+              code: 403,
+              data: { detail: 'Forbidden', title: 'Forbidden' },
+            }),
+          );
+          mockSingleTweet.mockResolvedValue({ data: { id: quotedId } });
+
+          const result = await service.publish(createPublishContext(quotePost));
+
+          expect(result.errorCode).toBe('x_quote_refused');
+          expect(result.error).toContain('Enterprise API plans');
+          expect(result.error).toContain('Request failed with code 403');
+        });
+
+        it('still reports a 403 refusal that carries quota headers as X refusing the quote', async () => {
+          mockTweet.mockRejectedValue(
+            Object.assign(new Error('Request failed with code 403'), {
+              code: 403,
+              data: { detail: 'Forbidden', title: 'Forbidden' },
+              rateLimit: { limit: 100, remaining: 99, reset: 1800000000 },
+            }),
+          );
+          mockSingleTweet.mockResolvedValue({ data: { id: quotedId } });
+
+          const result = await service.publish(createPublishContext(quotePost));
+
+          expect(result.errorCode).toBe('x_quote_refused');
+        });
+
+        it('leaves a rate limit on a quote to the normal retry path', async () => {
+          mockTweet.mockRejectedValue(
+            Object.assign(new Error('Too Many Requests'), { code: 429 }),
+          );
+
+          await expect(
+            service.publish(createPublishContext(quotePost)),
+          ).rejects.toMatchObject({ httpStatus: 429, kind: 'rate_limited' });
+          expect(mockSingleTweet).not.toHaveBeenCalled();
+        });
+
+        it('does not look up a quoted post when a plain post fails', async () => {
+          mockTweet.mockRejectedValue(new Error('Twitter API error'));
+
+          await expect(
+            service.publish(createPublishContext(mockTextPost)),
+          ).rejects.toThrow('Twitter API error');
+          expect(mockSingleTweet).not.toHaveBeenCalled();
         });
       });
 
@@ -716,6 +815,7 @@ describe('TwitterPublisherService', () => {
 
         expect(result.success).toBe(false);
         expect(result.error).toBe('Failed to get external ID');
+        expect(result.errorKind).toBe('outcome_unknown');
       });
 
       it('should handle credential not found error', async () => {

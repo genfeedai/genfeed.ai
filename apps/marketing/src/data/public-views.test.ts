@@ -59,6 +59,58 @@ describe('trackPublicMediaViews', () => {
     await expect(trackPublicMediaViews(['video-1'])).resolves.toEqual({});
   });
 
+  it('counts more than one batch of ids in bounded requests', async () => {
+    const ids = Array.from({ length: 100 }, (_, index) => `media-${index}`);
+    // Like the API: more than 48 ids is refused, otherwise each id counts once.
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (_url: string, init: RequestInit) => {
+        const sent = (JSON.parse(String(init.body)) as { ids: string[] }).ids;
+        return sent.length > 48
+          ? new Response('{}', { status: 400 })
+          : new Response(
+              JSON.stringify({
+                data: {
+                  views: Object.fromEntries(sent.map((id) => [id, 1])),
+                },
+              }),
+              { status: 201 },
+            );
+      }),
+    );
+
+    const counts = await trackPublicMediaViews(ids);
+
+    expect(Object.keys(counts)).toHaveLength(100);
+    expect(counts['media-0']).toBe(1);
+    expect(counts['media-99']).toBe(1);
+  });
+
+  it('keeps the counts of the batches that went through', async () => {
+    const ids = Array.from({ length: 60 }, (_, index) => `media-${index}`);
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (_url: string, init: RequestInit) => {
+        const sent = (JSON.parse(String(init.body)) as { ids: string[] }).ids;
+        if (sent.includes('media-0')) {
+          throw new TypeError('network down');
+        }
+        return new Response(
+          JSON.stringify({
+            data: { views: Object.fromEntries(sent.map((id) => [id, 2])) },
+          }),
+          { status: 201 },
+        );
+      }),
+    );
+
+    const counts = await trackPublicMediaViews(ids);
+
+    expect(Object.keys(counts)).toHaveLength(12);
+    expect(counts['media-48']).toBe(2);
+    expect(counts['media-0']).toBeUndefined();
+  });
+
   it('makes no call for an empty gallery', async () => {
     answer(201, {});
 

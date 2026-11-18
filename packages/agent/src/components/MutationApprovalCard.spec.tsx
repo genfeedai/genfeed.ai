@@ -9,6 +9,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -77,7 +78,9 @@ describe('MutationApprovalCard', () => {
 
     const previews = screen.getByTestId('mutation-approval-previews');
     expect(previews).toHaveTextContent('Ship it before lunch.');
-    expect(previews).toHaveTextContent('X feed preview');
+    expect(
+      within(previews).getByTestId('preview-account-header'),
+    ).toBeInTheDocument();
     expect(screen.getByText('Scheduled at')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Approve' })).toBeEnabled();
   });

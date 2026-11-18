@@ -87,6 +87,7 @@ const BRAND_KIT_ASSET_SELECT = {
   id: true,
   kitSlot: true,
   mimeType: true,
+  originalFormat: true,
   parentBrandId: true,
   referenceCategory: true,
 } satisfies Prisma.AssetSelect;
@@ -227,6 +228,7 @@ export class BrandKitAssetsService {
         ranked."displayName",
         ranked."slotKey" AS "kitSlot",
         ranked."mimeType",
+        ranked."originalFormat",
         ranked."parentBrandId",
         ranked."referenceCategory"::text AS "referenceCategory"
       FROM (
@@ -237,6 +239,7 @@ export class BrandKitAssetsService {
           categorized."displayName",
           categorized."slotKey",
           categorized."mimeType",
+          categorized."originalFormat",
           categorized."parentBrandId",
           categorized."referenceCategory",
           categorized."updatedAt",
@@ -277,6 +280,7 @@ export class BrandKitAssetsService {
               ELSE NULL
             END AS "slotKey",
             asset."mimeType",
+            asset."originalFormat",
             asset."parentBrandId",
             asset."referenceCategory",
             COALESCE(asset."referenceCategory"::text, 'STYLE') AS "referenceCategoryKey",
@@ -942,6 +946,7 @@ export class BrandKitAssetsService {
       id: asset.id,
       label: asset.displayName ?? undefined,
       mimeType: asset.mimeType ?? undefined,
+      ...(asset.originalFormat ? { originalFormat: asset.originalFormat } : {}),
       referenceCategory: asset.referenceCategory ?? undefined,
       role,
       ...(role === 'reference' ? {} : { slot: toBrandKitSlot(asset.kitSlot) }),

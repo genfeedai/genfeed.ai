@@ -4,4 +4,5 @@ export const reviewInboxDecisionAttributes = [
   'decision',
   'status',
   'resolvedAt',
+  'scheduled',
 ];

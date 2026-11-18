@@ -52,11 +52,17 @@ test.describe('Expert Path Onboarding', () => {
     await expertOnboardingPage
       .getByRole('button', { name: 'Continue', exact: true })
       .click();
+    await expertOnboardingPage
+      .getByRole('button', { name: 'Continue', exact: true })
+      .click();
     for (const platform of ['instagram', 'tiktok', 'twitter', 'linkedin']) {
       await expect(
         expertOnboardingPage.getByTestId(`connect-card-${platform}`),
       ).toBeVisible();
     }
+    await expertOnboardingPage
+      .getByRole('button', { name: 'Continue', exact: true })
+      .click();
     await expertOnboardingPage
       .getByRole('button', { name: 'Finish', exact: true })
       .click();

@@ -8,6 +8,7 @@ import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { MessageSquare } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { useIsAppAvailable } from '@/components/shell/use-available-rail-apps';
 import type { SkillDetailPanelProps } from '@/features/settings/props/skills.props';
 import SkillDetailCard from './SkillDetailCard';
 import SkillVersionsPanel from './skill-versions-panel';
@@ -35,6 +36,7 @@ export default function SkillDetailPanel({
   versions,
 }: SkillDetailPanelProps) {
   const translate = useTranslations('common.settings.skills');
+  const isAgentAvailable = useIsAppAvailable('agent');
 
   return (
     <ContextSidebarPanel
@@ -97,13 +99,15 @@ export default function SkillDetailPanel({
                 variant={ButtonVariant.SECONDARY}
               />
             ) : null}
-            <Button
-              icon={<MessageSquare className="size-4" />}
-              label={translate('actions.openSamplePrompt')}
-              disabled={savingSkill || customizing}
-              onClick={onOpenSamplePrompt}
-              variant={ButtonVariant.SECONDARY}
-            />
+            {isAgentAvailable ? (
+              <Button
+                icon={<MessageSquare className="size-4" />}
+                label={translate('actions.openSamplePrompt')}
+                disabled={savingSkill || customizing}
+                onClick={onOpenSamplePrompt}
+                variant={ButtonVariant.SECONDARY}
+              />
+            ) : null}
           </div>
           {error ? <Alert variant="destructive">{error}</Alert> : null}
           <SkillDetailCard

@@ -745,11 +745,9 @@ export async function createProactiveProductionTurnFixture() {
       where: { key: 'platform' },
       create: {
         key: 'platform',
-        isAgentTokenStreamingEnabled: false,
         marginMultiplierAgentChat: 1.7,
       },
       update: {
-        isAgentTokenStreamingEnabled: false,
         marginMultiplierAgentChat: 1.7,
       },
     });
@@ -890,92 +888,96 @@ export async function createProactiveProductionTurnFixture() {
       release: vi.spyOn(credits, 'releaseReservation'),
     };
     const provider = module.get(OpenRouterService);
+    const scriptedCompletion = async (
+      params: OpenRouterChatCompletionParams,
+      apiKeyOverride: string | undefined,
+    ): Promise<OpenRouterChatCompletionResponse> => {
+      strictEqual(
+        apiKeyOverride,
+        undefined,
+        'Fixture must not route through BYOK',
+      );
+      strictEqual(params.model, modelKey, 'Unexpected inferred model');
+      if (!currentActor)
+        throw new Error('Provider called outside the prepared actor');
+      const held = await db.creditReservation.findMany({
+        where: {
+          organizationId: currentActor.organizationId,
+          isDeleted: false,
+          status: 'RESERVED',
+          workloadType: 'agent-llm-round',
+        },
+      });
+      strictEqual(
+        held.length,
+        1,
+        'Actual hold must precede external inference',
+      );
+      if (held[0].amount <= 0)
+        throw new Error('Real reservation must hold positive credits');
+      heldReservationIds.push(held[0].id);
+      observed.push(structuredClone(params));
+      scenarioCalls++;
+      if (providerBarrier) await providerBarrier.wait();
+      if (scenario === 'provider-failure') {
+        strictEqual(scenarioCalls, 1, 'Failed round was replayed');
+        throw new Error('4959 scripted provider failure');
+      }
+      if (scenarioCalls > (scenario === 'draft' ? 2 : 1))
+        throw new Error('Unexpected provider round');
+      return {
+        id: `${namespace}-${scenario}-${scenarioCalls}`,
+        model: modelKey,
+        choices: [
+          {
+            finish_reason:
+              scenario === 'draft' && scenarioCalls === 1
+                ? 'tool_calls'
+                : 'stop',
+            message: {
+              role: 'assistant',
+              content:
+                scenario === 'draft' && scenarioCalls === 1
+                  ? null
+                  : PRODUCTION_TURN_TEXT,
+              ...(scenario === 'draft' && scenarioCalls === 1
+                ? {
+                    tool_calls: [
+                      {
+                        id: `${namespace}-tool`,
+                        type: 'function',
+                        function: {
+                          name: 'create_post',
+                          arguments: JSON.stringify({
+                            content: PRODUCTION_TURN_TEXT,
+                            platforms: ['linkedin'],
+                          }),
+                        },
+                      },
+                    ],
+                  }
+                : {}),
+            },
+          },
+        ],
+        usage: {
+          prompt_tokens: 100,
+          completion_tokens: 20,
+          total_tokens: 120,
+          cost: PRODUCTION_TURN_COST_USD,
+          is_byok: false,
+        },
+      };
+    };
+    // Every non-seed turn streams, so the aggregated stream path is scripted
+    // with the same provider answer as the plain completion.
     providerSpies.push(
       vi
         .spyOn(provider, 'chatCompletion')
-        .mockImplementation(
-          async (
-            params,
-            apiKeyOverride,
-          ): Promise<OpenRouterChatCompletionResponse> => {
-            strictEqual(
-              apiKeyOverride,
-              undefined,
-              'Fixture must not route through BYOK',
-            );
-            strictEqual(params.model, modelKey, 'Unexpected inferred model');
-            if (!currentActor)
-              throw new Error('Provider called outside the prepared actor');
-            const held = await db.creditReservation.findMany({
-              where: {
-                organizationId: currentActor.organizationId,
-                isDeleted: false,
-                status: 'RESERVED',
-                workloadType: 'agent-llm-round',
-              },
-            });
-            strictEqual(
-              held.length,
-              1,
-              'Actual hold must precede external inference',
-            );
-            if (held[0].amount <= 0)
-              throw new Error('Real reservation must hold positive credits');
-            heldReservationIds.push(held[0].id);
-            observed.push(structuredClone(params));
-            scenarioCalls++;
-            if (providerBarrier) await providerBarrier.wait();
-            if (scenario === 'provider-failure') {
-              strictEqual(scenarioCalls, 1, 'Failed round was replayed');
-              throw new Error('4959 scripted provider failure');
-            }
-            if (scenarioCalls > (scenario === 'draft' ? 2 : 1))
-              throw new Error('Unexpected provider round');
-            return {
-              id: `${namespace}-${scenario}-${scenarioCalls}`,
-              model: modelKey,
-              choices: [
-                {
-                  finish_reason:
-                    scenario === 'draft' && scenarioCalls === 1
-                      ? 'tool_calls'
-                      : 'stop',
-                  message: {
-                    role: 'assistant',
-                    content:
-                      scenario === 'draft' && scenarioCalls === 1
-                        ? null
-                        : PRODUCTION_TURN_TEXT,
-                    ...(scenario === 'draft' && scenarioCalls === 1
-                      ? {
-                          tool_calls: [
-                            {
-                              id: `${namespace}-tool`,
-                              type: 'function',
-                              function: {
-                                name: 'create_post',
-                                arguments: JSON.stringify({
-                                  content: PRODUCTION_TURN_TEXT,
-                                  platforms: ['linkedin'],
-                                }),
-                              },
-                            },
-                          ],
-                        }
-                      : {}),
-                  },
-                },
-              ],
-              usage: {
-                prompt_tokens: 100,
-                completion_tokens: 20,
-                total_tokens: 120,
-                cost: PRODUCTION_TURN_COST_USD,
-                is_byok: false,
-              },
-            };
-          },
-        ),
+        .mockImplementation(scriptedCompletion),
+      vi
+        .spyOn(provider, 'streamChatCompletionAggregated')
+        .mockImplementation(scriptedCompletion),
     );
     const resolvedQueues = new Set<string>();
     for (const nestModule of module.get(ModulesContainer).values()) {
@@ -1590,8 +1592,6 @@ export async function createProactiveProductionTurnFixture() {
             await db.platformSetting.update({
               where: { id: originalPlatform.id },
               data: {
-                isAgentTokenStreamingEnabled:
-                  originalPlatform.isAgentTokenStreamingEnabled,
                 marginMultiplierAgentChat:
                   originalPlatform.marginMultiplierAgentChat,
               },

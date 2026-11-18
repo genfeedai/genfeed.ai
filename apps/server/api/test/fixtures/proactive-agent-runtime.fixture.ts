@@ -21,8 +21,8 @@ import {
   AGENT_RUNTIME_ACTION_IDS,
   buildAgentTurnWorkflowDefinition,
 } from '@api/collections/workflows/services/agent-runtime-workflow-definitions';
+import { AUTOMATION_ACTION_IDS } from '@api/collections/workflows/services/automation-action-ids';
 import {
-  AUTOMATION_ACTION_IDS,
   AUTOMATION_CHILD_WORKFLOWS,
   buildAgentProactiveWorkflowDefinition,
 } from '@api/collections/workflows/services/automation-workflow-definitions';
@@ -423,6 +423,7 @@ export class ProactiveAgentRuntimeFixture {
       new ScheduledPostDiscoveryService(posts),
       new ScheduledPostExecutionGuardService(artifacts, {} as never),
       this.logger as never,
+      {} as never,
       approvals,
       this.prisma as never,
       {

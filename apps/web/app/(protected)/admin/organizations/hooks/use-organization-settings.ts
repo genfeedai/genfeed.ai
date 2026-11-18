@@ -32,6 +32,7 @@ export function useOrganizationSettings(organizationId: string | null) {
 
   const isRefreshing = isFetching && !isLoading;
 
+  // use-effect-audit: ignore reports a failed load to the logger or a notification
   useEffect(() => {
     if (error) {
       logger.error('GET /organizations/:id/settings failed', error);

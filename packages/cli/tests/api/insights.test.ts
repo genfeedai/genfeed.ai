@@ -33,12 +33,13 @@ describe('api/insights', () => {
 
   it('lists insights with a custom limit', async () => {
     mockGet.mockResolvedValue({ data: [] });
-    mockFlattenCollection.mockReturnValue([]);
+    mockFlattenCollection.mockReturnValue([{ id: 'insight-20' }]);
 
     const { getInsights } = await import('../../src/api/insights');
-    await getInsights(20);
+    const result = await getInsights(20);
 
     expect(mockGet).toHaveBeenCalledWith('/insights?limit=20');
+    expect(result).toEqual([{ id: 'insight-20' }]);
   });
 
   it('requests a forecast with topic and platform', async () => {
@@ -90,10 +91,12 @@ describe('api/insights', () => {
 
   it('fetches posting times for a custom platform and timezone', async () => {
     mockGet.mockResolvedValue({ data: [] });
-    mockFlattenCollection.mockReturnValue([]);
+    mockFlattenCollection.mockReturnValue([{ day: 'friday', hour: 14, score: 81 }]);
 
     const { getPostingTimes } = await import('../../src/api/insights');
-    await getPostingTimes('linkedin', 'Europe/Amsterdam');
+    const result = await getPostingTimes('linkedin', 'Europe/Amsterdam');
+
+    expect(result).toEqual([{ day: 'friday', hour: 14, score: 81 }]);
 
     expect(mockGet).toHaveBeenCalledWith(
       '/insights/times?platform=linkedin&timezone=Europe/Amsterdam'

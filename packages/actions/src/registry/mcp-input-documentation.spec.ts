@@ -1,20 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import { toMcpTools } from '../adapters/to-mcp-tool';
 import type { ToolParameterSchema } from '../interfaces/tool-definition.interface';
-import {
-  compactMcpInputDocumentation,
-  compactMcpToolDescription,
-} from './mcp-input-documentation';
+import { compactMcpInputDocumentation } from './mcp-input-documentation';
 import { getToolByName, getToolsForSurface } from './tool-registry';
 
 describe('MCP input documentation', () => {
   const original = 'Social conversation id';
   const concise = 'Conversation ID.';
 
-  it('preserves unknown wording and canonical changes rather than replacing new guidance', () => {
+  it('preserves unknown parameter wording rather than replacing new guidance', () => {
     const changed = 'Read account profile only after onboarding is complete.';
-    expect(compactMcpToolDescription('get_account', changed)).toBe(changed);
-    expect(compactMcpToolDescription('future_tool', changed)).toBe(changed);
     const parameters: ToolParameterSchema = {
       type: 'object',
       properties: { topic: { type: 'string', description: changed } },
@@ -216,13 +211,23 @@ it.each([
   'create_scheduled_release',
   'update_scheduled_release',
   'control_scheduled_release',
-])('compacts only exact canonical scheduler guidance for %s', (name) => {
+])('shows the shorter scheduler guidance for %s on MCP', (name) => {
   const tool = getToolByName(name);
   if (!tool) throw new Error('Missing scheduler tool');
-  const compact = compactMcpToolDescription(name, tool.description);
-  expect(compact).toContain('check_channel(action=validate)');
-  expect(compact).not.toContain('validate_scheduler_target');
-  expect(compact.length).toBeLessThan(tool.description.length);
-  const changed = tool.description.replace('release', 'reviewed release');
-  expect(compactMcpToolDescription(name, changed)).toBe(changed);
+  const [mcp] = toMcpTools([tool]);
+  expect(mcp.description).toContain('check_channel(action=validate)');
+  expect(mcp.description).not.toContain('validate_scheduler_target');
+  expect(mcp.description.length).toBeLessThan(tool.description.length);
+});
+
+it('declares MCP wording only where it is shorter than the canonical description', () => {
+  const longer = getToolsForSurface('mcp')
+    .filter(
+      (tool) =>
+        tool.mcpDescription !== undefined &&
+        tool.mcpDescription.length >= tool.description.length,
+    )
+    .map((tool) => tool.name);
+
+  expect(longer).toEqual([]);
 });

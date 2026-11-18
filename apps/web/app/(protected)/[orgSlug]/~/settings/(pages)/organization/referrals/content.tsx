@@ -64,6 +64,7 @@ export default function SettingsReferralsPage() {
     staleTime: 30_000,
   });
 
+  // use-effect-audit: ignore reports a failed load to the logger or a notification
   useEffect(() => {
     if (error) {
       logger.error('GET /referrals/me failed', error);

@@ -63,12 +63,26 @@ export function validateProviderApprovalAndResolveCrunContract(
     | 'endpoint'
     | 'key'
     | 'category'
+    | 'isFree'
     | 'pendingProviderContractVersion'
+    | 'reviewedProviderContractVersion'
   >,
   pendingContract: ModelProviderContract | null,
   category?: string,
 ): CrunModelInputContract | undefined {
   const pendingVersion = existing.pendingProviderContractVersion;
+  // A price needs a source. With no pending contract to approve and none
+  // reviewed before, activating the row would bill whatever credits a draft
+  // stores (`legacy-credits`), which nobody read from a provider.
+  if (
+    !pendingContract &&
+    !existing.reviewedProviderContractVersion &&
+    !existing.isFree
+  ) {
+    throw new BadRequestException(
+      'This model has no approved provider rate and no rate to approve; it cannot be activated until a price scan reads one',
+    );
+  }
   if (
     pendingVersion &&
     (pendingContract?.mappingStatus !== 'supported' ||

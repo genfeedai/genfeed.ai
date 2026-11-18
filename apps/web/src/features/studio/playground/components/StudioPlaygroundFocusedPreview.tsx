@@ -72,9 +72,11 @@ export default function StudioPlaygroundFocusedPreview({
   );
   const groups = resolveFocusedStudioJobs(job, navigation);
   const index = navigation.findIndex((candidate) => candidate.id === job.id);
+  // use-effect-audit: ignore drives a DOM element or browser API
   useEffect(() => {
     closeRef.current?.focus();
   }, []);
+  // use-effect-audit: ignore subscribes to browser events
   useEffect(() => {
     const handleEscape = (event: KeyboardEvent) => {
       // Preserve Escape ownership for an active menu, dialog or text editor.

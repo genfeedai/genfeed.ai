@@ -18,7 +18,6 @@ const setLeadingNodeMock = vi.fn();
 const setRefreshMock = vi.fn();
 const setViewToggleNodeMock = vi.fn();
 const resourceRefreshMock = vi.fn();
-const lowCreditsBannerSpy = vi.fn();
 
 const postFixture = {
   description: 'Contextual review target',
@@ -168,13 +167,6 @@ vi.mock('@services/core/notifications.service', () => ({
       error: vi.fn(),
       success: vi.fn(),
     }),
-  },
-}));
-
-vi.mock('@/components/banners/low-credits/LowCreditsBanner', () => ({
-  default: () => {
-    lowCreditsBannerSpy();
-    return <div data-testid="low-credits-banner" />;
   },
 }));
 

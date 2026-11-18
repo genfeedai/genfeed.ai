@@ -2,6 +2,7 @@
 
 import { LinkCategory, ModalEnum } from '@genfeedai/contracts';
 import {
+  APP_ROUTES,
   BRAND_HANDLE_FORMAT_MESSAGE,
   BRAND_HANDLE_MAX_LENGTH,
   createBrandAppRoute,
@@ -53,7 +54,7 @@ const DEFAULT_BRAND_FORM_VALUES: BrandFormValues = {
   websiteUrl: '',
 };
 
-export function slugifyBrandLabel(value: string): string {
+function slugifyBrandLabel(value: string): string {
   return value
     .trim()
     .toLowerCase()
@@ -62,7 +63,7 @@ export function slugifyBrandLabel(value: string): string {
     .replace(EDGE_HYPHENS_PATTERN, '');
 }
 
-export function normalizeWebsiteUrl(value: string): string {
+function normalizeWebsiteUrl(value: string): string {
   const trimmed = value.trim();
   if (!trimmed) {
     return '';
@@ -251,7 +252,13 @@ export function useModalBrandCreate(
       closeModal(ModalEnum.BRAND);
 
       if (createdBrandSlug) {
-        push(createBrandAppRoute(orgSlug, createdBrandSlug, '/settings'));
+        push(
+          createBrandAppRoute(
+            orgSlug,
+            createdBrandSlug,
+            APP_ROUTES.SETTINGS.PROFILE,
+          ),
+        );
       }
     } catch (submitError) {
       logger.error('Failed to create brand', submitError);

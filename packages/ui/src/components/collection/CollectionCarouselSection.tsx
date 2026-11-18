@@ -49,6 +49,7 @@ export default function CollectionCarouselSection({
   const [canScrollBack, setCanScrollBack] = useState(false);
   const [canScrollForward, setCanScrollForward] = useState(false);
 
+  // use-effect-audit: ignore subscribes to a ResizeObserver and the rail scroll event
   useEffect(() => {
     if (!rail) return;
 

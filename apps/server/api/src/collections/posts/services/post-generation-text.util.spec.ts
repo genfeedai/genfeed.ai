@@ -1,5 +1,6 @@
 import {
   extractPostGenerationLabel,
+  isUnusableDraftText,
   parsePostGenerationSlots,
 } from '@api/collections/posts/services/post-generation-text.util';
 
@@ -60,5 +61,52 @@ describe('post generation text parsing', () => {
     expect(extractPostGenerationLabel('word '.repeat(20), 20)).toBe(
       'word word word word...',
     );
+  });
+});
+
+describe('isUnusableDraftText', () => {
+  it.each([
+    "I need more information about the brand's offering before I can write this.",
+    "I'm sorry, but I can't write a post without knowing what the brand sells.",
+    'Could you please share what the brand sells?',
+    "Here's your post: Cast iron lasts a lifetime.",
+    'Sure! Here is a draft for you.',
+    'Unfortunately, the brand profile is empty.',
+    "Unfortunately, I can't write this without knowing what the brand sells.",
+    'I\u2019m sorry, but I can\u2019t write this post.',
+    'Here\u2019s your post: Cast iron lasts a lifetime.',
+    'Absolutely! Here is a draft for you.',
+    'Can you provide me more detail about the offering?',
+    'Please provide more information about the brand.',
+  ])('rejects a reply addressed to the user: %s', (text) => {
+    expect(isUnusableDraftText(text)).toBe(true);
+  });
+
+  it.each([
+    "I can't help but love a pan that outlives its owner.",
+    "Here's the thing about cast iron: it gets better with every meal.",
+    'We need more hands in the kitchen, so we built a pan for two.',
+    'Cast iron pans, 25% off until Friday.',
+    'Unfortunately, our workshop is closed today. Online orders remain open.',
+    'Unfortunately, I will be closing the workshop today. Online orders remain open.',
+    'Unfortunately, I need to close the workshop today. Online orders remain open.',
+    "Unfortunately, I can't make it to the market today. Online orders remain open.",
+    'Absolutely! Our pans ship free this week.',
+    'Can you share your favorite pan with us?',
+    'Please share this with a friend who loves to cook.',
+    'Sorry, not sorry: we only make pans that last.',
+  ])('keeps a real post that only sounds similar: %s', (text) => {
+    expect(isUnusableDraftText(text)).toBe(false);
+  });
+
+  it('rejects a draft shorter than the minimum, ignoring markup and spacing', () => {
+    expect(isUnusableDraftText('<p>Cast   iron</p>', 20)).toBe(true);
+    expect(
+      isUnusableDraftText('Cast iron pans that last a lifetime.', 20),
+    ).toBe(false);
+  });
+
+  it('has no minimum unless the caller sets one', () => {
+    expect(isUnusableDraftText('gm')).toBe(false);
   });
 });

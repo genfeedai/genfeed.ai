@@ -121,12 +121,11 @@ describe('Read-only Storyboard model capabilities', () => {
     expect(result.reasonCode).toBe('MODEL_DURATIONS_UNAVAILABLE');
     expect(result.status).toBe('unavailable');
   });
-  it('retired explicit keys do not invoke successor routing', async () => {
+  it('retired explicit keys do not invoke routing', async () => {
     const { service, catalogModel, router } = setup(
       MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1,
     );
     catalogModel.lifecycle = ModelLifecycle.RETIRED;
-    catalogModel.succeededBy = 'successor';
     const result = await service.get('org-1', 'brand-1', 'run-1');
     expect(result.reasonCode).toBe('MODEL_RETIRED');
     expect(router.resolveModelKey).not.toHaveBeenCalled();

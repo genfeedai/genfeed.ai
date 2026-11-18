@@ -241,4 +241,40 @@ describe('campaign → runtime → thread snapshot smoke', () => {
       strategyId,
     );
   });
+
+  it('getStatus counts running agents and completed node results without loading executions', async () => {
+    const organizationId = 'org-1';
+    agentCampaignsService.findOneById.mockResolvedValue({
+      agents: ['strategy-a', 'strategy-b'],
+      contentQuota: 20,
+      creditsAllocated: 100,
+      creditsUsed: 40,
+      id: 'campaign-1',
+      label: 'Spring Push',
+      organizationId,
+      status: 'active',
+    });
+    const agentStrategy = { count: vi.fn().mockResolvedValue(1) };
+    const workflowExecutionNodeResult = {
+      count: vi.fn().mockResolvedValue(7),
+    };
+    const service = new AgentCampaignExecutionService(
+      logger as never,
+      agentCampaignsService as never,
+      agentStrategiesService as never,
+      { agentStrategy, workflowExecutionNodeResult } as never,
+      runtimeService,
+      producerInstall as never,
+    );
+
+    const status = await service.getStatus('campaign-1', organizationId);
+
+    expect(status).toMatchObject({
+      agentsRunning: 1,
+      campaignId: 'campaign-1',
+      contentProduced: 7,
+      status: 'active',
+    });
+    expect(agentStrategiesService.findOneById).not.toHaveBeenCalled();
+  });
 });

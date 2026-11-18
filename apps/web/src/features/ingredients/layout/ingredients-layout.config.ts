@@ -1,7 +1,7 @@
 import { IngredientFormat, IngredientStatus } from '@genfeedai/contracts';
 import type { IFieldOption } from '@genfeedai/contracts/interfaces';
 
-export type IngredientsVisibleFilters = {
+type IngredientsVisibleFilters = {
   search?: boolean;
   status?: boolean;
   format?: boolean;
@@ -11,7 +11,7 @@ export type IngredientsVisibleFilters = {
   account?: boolean;
 };
 
-export type IngredientsFilterOptions = {
+type IngredientsFilterOptions = {
   status?: readonly IFieldOption[];
   format?: readonly IFieldOption[];
   provider?: readonly IFieldOption[];

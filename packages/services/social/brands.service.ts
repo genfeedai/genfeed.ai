@@ -2,12 +2,14 @@ import type {
   BrandKitSlot,
   ReferenceImageCategory,
 } from '@genfeedai/contracts';
-import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
+import {
+  API_ENDPOINTS,
+  type BrandLogoDownloadFormat,
+} from '@genfeedai/contracts/constants';
 import type {
   IActivity,
   IAnalytics,
   IArticle,
-  IBrand,
   IBrandAgentPrompting,
   IBrandKitApplyRequest,
   IBrandKitApplyResult,
@@ -611,26 +613,6 @@ export class BrandsService extends BaseService<Brand> {
       .then((res) => res.data?.data ?? {});
   }
 
-  public async updateWatermark(
-    id: string,
-    settings: Pick<
-      IBrand,
-      | 'watermarkText'
-      | 'watermarkLogoId'
-      | 'watermarkOpacity'
-      | 'watermarkPosition'
-      | 'watermarkSizeRatio'
-      | 'watermarkLightLogoId'
-      | 'watermarkLiveLogoId'
-      | 'watermarkInsetXRatio'
-      | 'watermarkInsetYRatio'
-    >,
-  ): Promise<Brand> {
-    return this.instance
-      .patch<JsonApiResponseDocument>(`/${id}`, settings)
-      .then((res) => this.mapOne(res.data));
-  }
-
   /** Resize the master banner into the chosen platform image slots. */
   public async fillPlatformImagesFromMaster(
     id: string,
@@ -678,6 +660,27 @@ export class BrandsService extends BaseService<Brand> {
       .then((res) => res.data);
   }
 
+  /**
+   * One logo variant as PNG, WEBP or SVG. PNG and WEBP render at `size` px on
+   * the longest side; SVG is only there for a logo uploaded as an SVG.
+   */
+  public async downloadKitLogo(
+    id: string,
+    slot: BrandKitSlot,
+    format: BrandLogoDownloadFormat,
+    size: number,
+    signal?: AbortSignal,
+  ): Promise<Blob> {
+    return this.instance
+      .get<Blob>(`/${id}/kit/logos/${slot}/download`, {
+        params: format === 'svg' ? { format } : { format, size },
+        responseType: 'blob',
+        signal,
+        timeout: 60000,
+      })
+      .then((res) => res.data);
+  }
+
   /** Import a kit ZIP exported from any brand into this one. */
   public async importKit(
     id: string,
@@ -692,28 +695,6 @@ export class BrandsService extends BaseService<Brand> {
         timeout: 120000,
       })
       .then((res) => res.data.data);
-  }
-
-  public async updateEndCard(
-    id: string,
-    settings: Pick<
-      IBrand,
-      'endCardAssetId' | 'endCardDurationSeconds' | 'isEndCardEnabled'
-    >,
-  ): Promise<Brand> {
-    return this.instance
-      .patch<JsonApiResponseDocument>(`/${id}`, settings)
-      .then((res) => this.mapOne(res.data));
-  }
-
-  /** Turns the brand's colour grade on or off; the file itself is set by {@link uploadLut}. */
-  public async updateLut(
-    id: string,
-    settings: Pick<IBrand, 'isLutEnabled'>,
-  ): Promise<Brand> {
-    return this.instance
-      .patch<JsonApiResponseDocument>(`/${id}`, settings)
-      .then((res) => this.mapOne(res.data));
   }
 
   /** Stores a `.cube` colour LUT on the brand, replacing the current one. */

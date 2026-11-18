@@ -118,8 +118,10 @@ export function useModalUpload({
     cancelDimensionProbeRef.current = null;
   }, []);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: isOpen/openKey intentionally reset the probe whenever the modal opens or re-opens
+  // use-effect-audit: ignore cancels the pending image probe whenever the modal opens or re-opens
   useEffect(() => {
+    void isOpen;
+    void openKey;
     cancelDimensionProbe();
     setDimensionWarning(null);
     return cancelDimensionProbe;
@@ -178,6 +180,10 @@ export function useModalUpload({
     category === AssetCategory.REFERENCE;
 
   const isLibraryImage = category === IngredientCategory.IMAGE;
+  // A brand logo goes up as the SVG itself: the API sanitizes it and keeps the
+  // vector beside the PNG it renders (#9706). Other SVGs are rasterized here.
+  const isBrandLogo =
+    category === AssetCategory.LOGO && parentModel === 'Brand';
 
   const isVideoLike = category === IngredientCategory.VIDEO;
 
@@ -338,20 +344,20 @@ export function useModalUpload({
     return Array.from(uniqueFiles.values()).slice(0, maxFiles);
   }, [initialFiles, isLibraryImage, maxFiles]);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: A new modal open key resets the upload session.
-  useEffect(() => {
+  // A new modal open key resets the upload session.
+  const lastOpenKeyRef = useRef(openKey);
+  if (lastOpenKeyRef.current !== openKey) {
+    lastOpenKeyRef.current = openKey;
     hasAutoQueuedInitialFilesRef.current = false;
     hasAutoSubmittedRef.current = false;
-  }, [openKey]);
+  }
 
-  useEffect(() => {
-    if (
-      voiceCloneProvider === VoiceProvider.GENFEED_AI &&
-      !isSelfHostedVoiceAvailable
-    ) {
-      setVoiceCloneProvider(VoiceProvider.ELEVENLABS);
-    }
-  }, [isSelfHostedVoiceAvailable, voiceCloneProvider]);
+  if (
+    voiceCloneProvider === VoiceProvider.GENFEED_AI &&
+    !isSelfHostedVoiceAvailable
+  ) {
+    setVoiceCloneProvider(VoiceProvider.ELEVENLABS);
+  }
 
   useEffect(() => {
     if (
@@ -365,6 +371,7 @@ export function useModalUpload({
     enqueueFiles(normalizedInitialFiles);
   }, [enqueueFiles, isOpen, normalizedInitialFiles]);
 
+  // use-effect-audit: ignore frame loop outside React
   useEffect(() => {
     if (
       !autoSubmit ||
@@ -476,7 +483,7 @@ export function useModalUpload({
           : null;
 
         try {
-          if (isSvgUpload(selectedFile)) {
+          if (isSvgUpload(selectedFile) && !isBrandLogo) {
             selectedFile = await rasterizeSvgFile(selectedFile);
           }
 
@@ -669,6 +676,7 @@ export function useModalUpload({
           'image/heif': ['.heif'],
           'image/svg+xml': ['.svg'],
         }),
+        ...(isBrandLogo && { 'image/svg+xml': ['.svg'] }),
       }),
       ...(isVideoLike && {
         'video/*': ['.mp4', '.avi', '.mov', '.mkv', '.webm'],

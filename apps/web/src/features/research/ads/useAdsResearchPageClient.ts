@@ -201,7 +201,7 @@ export function buildSaveAdInput(
 }
 
 export function useAdsResearchPageClient() {
-  const { href } = useOrgUrl();
+  const { activeHref, href } = useOrgUrl();
   const translate = useTranslations('pages.adsResearch');
   const savedSourceLabel = translate('swipeFile.sourceLabel');
   const remixSurface = useOptionalDiscoveryRemix();
@@ -297,12 +297,14 @@ export function useAdsResearchPageClient() {
   const effectivePlatform = platform;
   const showChannelFilter = effectivePlatform === AdsPlatform.GOOGLE;
 
+  // use-effect-audit: ignore keeps the channel URL param consistent with the platform
   useEffect(() => {
     if (!showChannelFilter && channel !== AdsChannel.ALL) {
       setChannel(AdsChannel.ALL);
     }
   }, [channel, setChannel, showChannelFilter]);
 
+  // use-effect-audit: ignore clears the account URL param when the credential param changes
   useEffect(() => {
     if (!credentialId) {
       setAdAccountId('');
@@ -372,6 +374,7 @@ export function useAdsResearchPageClient() {
   const isConnectionStateReady =
     isReady && isBrandScopeResolved && !credentialsLoading && !credentialsError;
 
+  // use-effect-audit: ignore drops URL params that point at a credential this brand no longer has
   useEffect(() => {
     if (
       isConnectionStateReady &&
@@ -896,6 +899,7 @@ export function useAdsResearchPageClient() {
     handleCloseDetail,
     handleSelectAd,
     href,
+    activeHref,
     industry,
     isLoading: source === 'saved' ? saved.isLoading : isLoading,
     launchPrepResult,

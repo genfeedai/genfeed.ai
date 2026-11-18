@@ -28,6 +28,7 @@ export default function SocialMediaPlayer({
     (!embedUrl || embedFailed);
   const [isVisible, setVisible] = useState(true);
   const container = useRef<HTMLDivElement>(null);
+  // use-effect-audit: ignore observes DOM elements with a browser observer
   useEffect(() => {
     const visibility = () => {
       if (document.hidden) setPlaying(false);

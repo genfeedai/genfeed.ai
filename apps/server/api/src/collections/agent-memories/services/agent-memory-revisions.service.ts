@@ -29,8 +29,8 @@ import {
 
 const WHITESPACE_RUNS_PATTERN = /\s+/g;
 
-export const AGENT_MEMORY_REVISION_PAGE_DEFAULT = 20;
-export const AGENT_MEMORY_REVISION_PAGE_MAX = 50;
+const AGENT_MEMORY_REVISION_PAGE_DEFAULT = 20;
+const AGENT_MEMORY_REVISION_PAGE_MAX = 50;
 
 export interface AgentMemoryRevisionView {
   actorUserId: string | null;

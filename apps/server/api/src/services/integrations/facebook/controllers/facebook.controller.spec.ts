@@ -6,7 +6,6 @@ import { FacebookController } from '@api/services/integrations/facebook/controll
 import { FacebookService } from '@api/services/integrations/facebook/services/facebook.service';
 import { CredentialPlatform } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
-import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -57,15 +56,6 @@ describe('FacebookController', () => {
     }),
   };
 
-  const mockConfigService = {
-    get: vi.fn((key: string) => {
-      if (key === 'GENFEEDAI_APP_URL') {
-        return 'https://app.genfeed.ai';
-      }
-      return null;
-    }),
-  };
-
   const mockLoggerService = {
     debug: vi.fn(),
     error: vi.fn(),
@@ -84,10 +74,6 @@ describe('FacebookController', () => {
         {
           provide: CredentialsService,
           useValue: mockCredentialsService,
-        },
-        {
-          provide: ConfigService,
-          useValue: mockConfigService,
         },
         {
           provide: FacebookService,
@@ -159,7 +145,7 @@ describe('FacebookController', () => {
           name: 'Person',
         },
       );
-      expect(result).toBeDefined();
+      expect(result).toMatchObject({ data: { type: 'credential' } });
     });
 
     it('keeps the connection when permission capture is temporarily unavailable', async () => {
@@ -175,12 +161,12 @@ describe('FacebookController', () => {
         new Error('Graph permissions unavailable'),
       );
 
-      await expect(
-        controller.verify({} as never, {
-          code: 'auth-code',
-          state: 'opaque-oauth-state',
-        }),
-      ).resolves.toBeDefined();
+      const verified = await controller.verify({} as never, {
+        code: 'auth-code',
+        state: 'opaque-oauth-state',
+      });
+
+      expect(verified).toMatchObject({ data: { type: 'credential' } });
 
       expect(mockCredentialsService.patch).toHaveBeenCalledWith(
         'test-object-id',
@@ -210,11 +196,12 @@ describe('FacebookController', () => {
         'ads_read',
       ]);
 
-      await controller.verify({} as never, {
+      const verified = await controller.verify({} as never, {
         code: 'auth-code',
         state: 'opaque-oauth-state',
       });
 
+      expect(verified).toMatchObject({ data: { type: 'credential' } });
       expect(mockFacebookService.getGrantedPermissions).toHaveBeenCalledWith(
         'facebook-token',
       );
@@ -226,18 +213,23 @@ describe('FacebookController', () => {
       );
     });
 
+    it('rejects a callback whose state matches no pending credential', async () => {
+      mockCredentialsService.findPendingOAuthCredential.mockResolvedValueOnce(
+        null,
+      );
+
+      await expect(
+        controller.verify({} as never, {
+          code: 'auth-code',
+          state: 'unknown-state',
+        }),
+      ).rejects.toBeInstanceOf(HttpException);
+    });
+
     it('throws when code or state is missing', async () => {
       await expect(
         controller.verify({} as never, { code: 'auth-code' }),
       ).rejects.toBeInstanceOf(HttpException);
-    });
-  });
-
-  describe('handleCallback', () => {
-    it('should redirect to dashboard on success', () => {
-      const result = controller.handleCallback();
-
-      expect(result.url).toContain('facebook=connected');
     });
   });
 
@@ -343,19 +335,20 @@ describe('FacebookController', () => {
 
       const result = await controller.schedulePost(mockUser, body);
 
-      expect(facebookService.schedulePost).toHaveBeenCalled();
       expect(result.postId).toBe(postId);
     });
   });
 
   describe('getPostAnalytics', () => {
     it('collects the Video node when mediaType is video', async () => {
-      await controller.getPostAnalytics(
+      mockFacebookService.getPostAnalytics.mockResolvedValue({ views: 42 });
+      const result = await controller.getPostAnalytics(
         mockUser,
         'video',
         'page-token',
         'video',
       );
+      expect(result).toEqual({ views: 42 });
       expect(facebookService.getPostAnalytics).toHaveBeenCalledWith(
         'video',
         'page-token',

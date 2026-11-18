@@ -5,6 +5,7 @@ import {
   formatPlatformLabel,
 } from '@genfeedai/contracts';
 import type { AccountHealthSummary } from '@genfeedai/contracts/interfaces';
+import { cn } from '@genfeedai/helpers';
 import type { BrandDetailSocialConnection } from '@genfeedai/props/pages/brand-detail.props';
 import type { AccountsTableProps } from '@props/pages/brand-integrations.props';
 import type { TableAction, TableColumn } from '@props/ui/display/table.props';
@@ -103,7 +104,18 @@ export default function AccountsTable({
   const actions = useMemo<TableAction<BrandDetailSocialConnection>[]>(
     () => [
       {
-        icon: <RefreshCw aria-hidden="true" />,
+        // Spins while that row's reconnect is starting, so the click reads as
+        // working until the browser leaves for the provider.
+        icon: (connection) => (
+          // ui-guard-allow:loading-spinner -- reconnect icon rotates while the reconnect starts, not a loading placeholder
+          <RefreshCw
+            aria-hidden="true"
+            className={cn(
+              reconnectingCredentialId === connection.credentialId &&
+                'animate-spin',
+            )}
+          />
+        ),
         // Only the row being reconnected is disabled — keyed by
         // credentialId, not platform, so reconnecting one account doesn't
         // freeze Reconnect for a sibling account on the same platform. A

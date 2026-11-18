@@ -2,6 +2,7 @@ import { ModelCategory } from '@genfeedai/contracts';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import type { IconType, IModel } from '@genfeedai/contracts/interfaces';
 import {
+  Box,
   Braces,
   Cpu,
   FileText,
@@ -22,6 +23,7 @@ const MODEL_CATEGORY_ICONS: Record<ModelCategory, IconType> = {
   [ModelCategory.IMAGE]: Image,
   [ModelCategory.IMAGE_EDIT]: ImagePlus,
   [ModelCategory.IMAGE_UPSCALE]: ScanLine,
+  [ModelCategory.MODEL_3D]: Box,
   [ModelCategory.MUSIC]: Music,
   [ModelCategory.TEXT]: FileText,
   [ModelCategory.VIDEO]: Film,
@@ -36,6 +38,7 @@ const MODEL_CATEGORY_LABELS: Record<ModelCategory, string> = {
   [ModelCategory.IMAGE]: 'Image',
   [ModelCategory.IMAGE_EDIT]: 'Image editing',
   [ModelCategory.IMAGE_UPSCALE]: 'Image upscaling',
+  [ModelCategory.MODEL_3D]: '3D model',
   [ModelCategory.MUSIC]: 'Music',
   [ModelCategory.TEXT]: 'Text',
   [ModelCategory.VIDEO]: 'Video',

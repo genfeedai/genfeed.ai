@@ -20,9 +20,6 @@ export const McpResourceUri = {
   VIDEO_ANALYTICS: 'genfeed://analytics/videos',
 } as const;
 
-export type McpResourceUriValue =
-  (typeof McpResourceUri)[keyof typeof McpResourceUri];
-
 /**
  * The resource catalog itself. Frozen at the type level; callers that hand it
  * to the MCP SDK spread a copy so the shared constant can never be mutated by a

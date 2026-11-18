@@ -19,17 +19,17 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // #7552: superadmin all-organizations library listing; gated by the allOrganizations superadmin check in the controller.
     {
       file: 'apps/server/api/src/collections/ingredients/controllers/ingredients.controller.ts',
-      line: 252,
+      line: 253,
     },
     // Superadmin failure resolution; the write itself is scoped to the execution row's own tenant.
     {
       file: 'apps/server/api/src/collections/workflow-executions/controllers/workflow-executions.controller.ts',
-      line: 306,
+      line: 309,
     },
     // Platform-owned system workflow ids are read under the system principal.
     {
       file: 'apps/server/api/src/collections/workflow-executions/services/workflow-execution-query.util.ts',
-      line: 60,
+      line: 62,
     },
     // Historical trend analysis intentionally reads only the shared global corpus; the Prisma where remains pinned to organizationId:null.
     {
@@ -80,7 +80,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // issuance only and are never returned over HTTP.
     {
       file: 'apps/server/api/src/services/media-urls/authorized-media-url.service.ts',
-      line: 265,
+      line: 266,
     },
     // Platform-admin cross-organization media: the admin Library and Generations
     // list other tenants' assets, so preview grants for ids the organization
@@ -89,13 +89,13 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // and only a signed preview URL leaves the service.
     {
       file: 'apps/server/api/src/services/media-urls/authorized-media-url.service.ts',
-      line: 808,
+      line: 809,
     },
     // Platform-admin batch refresh of those previews: the batch route verifies
     // the platform-admin role and reads only the ids the client already holds.
     {
       file: 'apps/server/api/src/collections/ingredients/controllers/ingredients.controller.ts',
-      line: 350,
+      line: 362,
     },
     // Public brand pictures: the anonymous public profile (/u/<handle>) has no
     // organization to scope by. projectPublicBrandAssets reads only LOGO and
@@ -103,11 +103,11 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // only the signed picture URL leaves the service (never the storage key).
     {
       file: 'apps/server/api/src/services/media-urls/authorized-media-url.service.ts',
-      line: 474,
+      line: 475,
     },
     {
       file: 'apps/server/api/src/services/media-urls/authorized-media-url.service.ts',
-      line: 501,
+      line: 502,
     },
     // Access discovery: findActiveForUserAccess lists the caller's own active
     // memberships by canonical users.id (userId in the where) to resolve which
@@ -116,9 +116,10 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // inside the tenant context, which turned this into a production 500.
     // #5502 moved this unchanged discovery call four lines for native-app imports.
     // The member role-authority helpers moved it again, unchanged.
+    // Dropping the MemberDocument alias import moved it up one line, unchanged.
     {
       file: 'apps/server/api/src/collections/members/services/members.service.ts',
-      line: 181,
+      line: 180,
     },
     // #6120: hidden system-workflow mirror upsert. System-principal rows are
     // platform-global and owned by the system principal, not the request
@@ -131,17 +132,17 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // parent workflow.
     {
       file: 'apps/server/api/src/collections/workflows/system-workflow-runner.service.ts',
-      line: 916,
+      line: 915,
     },
     // #6120: one shared system-principal mirror lookup for normal and failure binding proofs; both callers retain exact principal/soft-delete fences.
     {
       file: 'apps/server/api/src/collections/visual-projects/services/visual-project-workflow.service.ts',
-      line: 106,
+      line: 112,
     },
     // #6120: superadmin-only cross-organization workflow failure feed.
     {
       file: 'apps/server/api/src/collections/workflow-executions/controllers/workflow-executions.controller.ts',
-      line: 217,
+      line: 220,
     },
     // #6120: marketplace lists public workflow templates published by every
     // organization.
@@ -178,17 +179,17 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // authorization and cross-tenant behavior are unchanged.
     {
       file: 'apps/server/api/src/collections/models/services/models.service.ts',
-      line: 598,
+      line: 581,
     },
     // #6120: superadmin registry approve.
     {
       file: 'apps/server/api/src/collections/models/services/models.service.ts',
-      line: 784,
+      line: 707,
     },
     // #6120: superadmin registry reject.
     {
       file: 'apps/server/api/src/collections/models/services/models.service.ts',
-      line: 882,
+      line: 805,
     },
     // #6120: skill rows addressed by an already-authorized id or owner;
     // personal and system skills have no organization and grants cross
@@ -260,17 +261,17 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // #7016: unchanged relocation preview, after extracting the async status controller; assertCanRelocate authorizes both tenants.
     {
       file: 'apps/server/api/src/collections/brands/controllers/brands.controller.ts',
-      line: 320,
+      line: 312,
     },
     // #7016: unchanged superadmin brand list filtered across organizations; retained after extracting async status reads.
     {
       file: 'apps/server/api/src/collections/brands/controllers/brands.controller.ts',
-      line: 395,
+      line: 387,
     },
     // #7016: unchanged relation hydration for already authorized brands, pinned to each row organization.
     {
       file: 'apps/server/api/src/collections/brands/controllers/brands.controller.ts',
-      line: 421,
+      line: 413,
     },
     // #7016: relocation admission retains the original source-tenant receipt; discovery is bound to initiator/request id and assertCanRelocate authorizes both organizations before creation or response.
     {
@@ -380,7 +381,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // #6120: superadmin activity list not pinned to the active organization.
     {
       file: 'apps/server/api/src/collections/activities/controllers/activities.controller.ts',
-      line: 154,
+      line: 163,
     },
     // #6120: superadmin operates on a bot in any organization.
     {
@@ -401,7 +402,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // is cross-organization.
     {
       file: 'apps/server/api/src/collections/credits/services/credits.utils.service.ts',
-      line: 697,
+      line: 698,
     },
     // The free-trial expiry sweep discovers never-paid organizations past the
     // window across tenants; each one is then expired in its own
@@ -500,7 +501,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // and wallets.
     {
       file: 'apps/server/api/src/collections/subscriptions/controllers/subscriptions.controller.ts',
-      line: 312,
+      line: 306,
     },
     // #6120: a granted reference lives in the owning organization; used only
     // when grantedOwners.has(id).

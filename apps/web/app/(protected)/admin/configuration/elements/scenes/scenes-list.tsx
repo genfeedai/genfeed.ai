@@ -24,16 +24,11 @@ import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagina
 import { Trash2 } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import {
-  type ReactNode,
-  Suspense,
-  useCallback,
-  useEffect,
-  useRef,
-} from 'react';
+import { type ReactNode, Suspense, useCallback, useEffect } from 'react';
 import { useAdminOrgBrandParams } from '@/components/content/admin-filters/AdminOrgBrandUrlFilter';
 import { LazyElementCreateModal } from '@/components/lazy/modal/LazyModal';
 import { useInlineRecordSave } from '@/hooks/ui/use-inline-record-save/use-inline-record-save';
+import { useListParentBridge } from '@/hooks/ui/use-list-parent-bridge/use-list-parent-bridge';
 import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
 
 const EMPTY_SCENES: ElementScene[] = [];
@@ -61,14 +56,6 @@ function ScenesListContent({
   const getScenesService = useAuthedService(
     useCallback((token: string) => ScenesService.getInstance(token), []),
   );
-
-  const onLoadingChangeRef = useRef(onLoadingChange);
-  const onRefreshingChangeRef = useRef(onRefreshingChange);
-
-  useEffect(() => {
-    onLoadingChangeRef.current = onLoadingChange;
-    onRefreshingChangeRef.current = onRefreshingChange;
-  });
 
   // Cached per scope and page: coming back paints the rows and footer it
   // already has while they refresh, and another page, search or sort keeps
@@ -114,6 +101,7 @@ function ScenesListContent({
   const refreshScenes = useRefreshScope(scopeKey);
   const isRefreshing = isFetching && !isLoading;
 
+  // use-effect-audit: ignore reports a load failure to the logger and notifications
   useEffect(() => {
     if (!loadError) {
       return;
@@ -121,14 +109,6 @@ function ScenesListContent({
     logger.error('GET /scenes failed', loadError);
     NotificationsService.getInstance().error('Failed to load scenes');
   }, [loadError]);
-
-  useEffect(() => {
-    onLoadingChangeRef.current?.(isLoading);
-  }, [isLoading]);
-
-  useEffect(() => {
-    onRefreshingChangeRef.current?.(isRefreshing);
-  }, [isRefreshing]);
 
   const scopeTranslate = useTranslations('ui.elementPlatformFields');
   const columns: TableColumn<ElementScene>[] = [
@@ -156,11 +136,14 @@ function ScenesListContent({
     },
   ];
 
-  useEffect(() => {
-    if (onRefresh) {
-      return onRefresh(() => refreshScenes());
-    }
-  }, [onRefresh, refreshScenes]);
+  useListParentBridge({
+    isLoading,
+    isRefreshing,
+    onLoadingChange,
+    onRefresh,
+    onRefreshingChange,
+    refresh: refreshScenes,
+  });
 
   async function handleDelete(scene: IElementScene | null): Promise<void> {
     if (!scene) {

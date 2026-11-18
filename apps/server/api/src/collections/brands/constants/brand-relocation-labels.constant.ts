@@ -98,7 +98,6 @@ export const RELOCATION_RESOURCE_LABELS: Record<
     singular: 'reply bot config',
     plural: 'reply bot configs',
   },
-  schedule: { singular: 'schedule', plural: 'schedules' },
   socialConversation: {
     singular: 'social conversation',
     plural: 'social conversations',

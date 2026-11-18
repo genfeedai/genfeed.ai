@@ -1,15 +1,16 @@
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-definition';
+import { SystemWorkflowRetention } from '@api/collections/workflows/workflow-execution-retention.contract';
 import type { CuratedActionName } from '@genfeedai/actions';
 import {
   createGenfeedActionNode,
   getToolsForSurface,
 } from '@genfeedai/actions';
 
-export function agentToolWorkflowId(toolName: CuratedActionName): string {
+function agentToolWorkflowId(toolName: CuratedActionName): string {
   return `agent.tool.${toolName}`;
 }
 
-export function buildAgentToolWorkflowDefinition(
+function buildAgentToolWorkflowDefinition(
   toolName: CuratedActionName,
 ): SystemWorkflowGraphDefinition {
   const canonicalId = agentToolWorkflowId(toolName);
@@ -37,6 +38,7 @@ export function buildAgentToolWorkflowDefinition(
     description: `Executes the registered ${toolName} action for an Agent workflow.`,
     label: `Agent Tool: ${toolName}`,
     resultNodeId: 'execute-tool',
+    retention: SystemWorkflowRetention.KEPT,
     version: 1,
   };
 }

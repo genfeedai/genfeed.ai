@@ -26,7 +26,8 @@ import {
 } from '@ui/primitives/select';
 import { Switch } from '@ui/primitives/switch';
 import { useTranslations } from 'next-intl';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { useNotifyOnLoadError } from '@/hooks/utils/use-notify-on-load-error/use-notify-on-load-error';
 
 const EVENTS = [
   'user.created',
@@ -83,10 +84,11 @@ export default function SystemNotificationsPanel() {
   const loadFailedMessage = t('loadFailed');
 
   // One toast per failed read; a failed refresh keeps the cached overview.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: errorUpdatedAt marks each new failed read.
-  useEffect(() => {
-    if (isError) alerts.error(loadFailedMessage);
-  }, [alerts, errorUpdatedAt, isError, loadFailedMessage]);
+  useNotifyOnLoadError({
+    errorUpdatedAt,
+    hasError: isError,
+    notify: () => alerts.error(loadFailedMessage),
+  });
 
   async function act(
     operation: (

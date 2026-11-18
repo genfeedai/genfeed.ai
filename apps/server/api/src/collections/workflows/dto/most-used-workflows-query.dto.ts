@@ -3,7 +3,7 @@ import { Transform, Type } from 'class-transformer';
 import { IsInt, IsOptional, Max, Min } from 'class-validator';
 
 export const MOST_USED_WORKFLOWS_DEFAULT_LIMIT = 5;
-export const MOST_USED_WORKFLOWS_MAX_LIMIT = 12;
+const MOST_USED_WORKFLOWS_MAX_LIMIT = 12;
 
 /** Query params for `GET /workflows/most-used` (#5510). */
 export class MostUsedWorkflowsQueryDto {

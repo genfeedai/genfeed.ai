@@ -39,6 +39,31 @@ describe('CreatorPostMedia', () => {
     );
   });
 
+  it('lets a reader step through a carousel of images', async () => {
+    render(
+      <CreatorPostMedia
+        alt="Winter carousel"
+        media={[
+          { id: 'a', kind: 'image', url: 'https://cdn.genfeed.ai/a.png' },
+          { id: 'b', kind: 'image', url: 'https://cdn.genfeed.ai/b.png' },
+          { id: 'c', kind: 'image', url: 'https://cdn.genfeed.ai/c.png' },
+        ]}
+      />,
+    );
+
+    expect(screen.getByRole('region', { name: 'Media' })).toHaveAttribute(
+      'aria-roledescription',
+      'carousel',
+    );
+    expect(screen.getAllByRole('img')).toHaveLength(3);
+    expect(
+      screen.getByRole('button', { name: 'Next slide' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Previous slide' }),
+    ).toBeDisabled();
+  });
+
   it('renders nothing for a text post', () => {
     const { container } = render(<CreatorPostMedia alt="Note" media={[]} />);
 

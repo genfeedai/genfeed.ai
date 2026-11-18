@@ -1,8 +1,10 @@
 import type { WideEventRecord } from './wide-event.interface';
-import { WIDE_EVENT_SLOW_MS } from './wide-event.sampling';
 
 /** Marks a log record as a wide event so formatters can render it as JSON. */
 export const WIDE_EVENT_TYPE = 'wide_event';
+
+/** Requests slower than this log at `warn`. Kept events over 1 s stay `info`. */
+const WIDE_EVENT_WARN_MS = 2_000;
 
 export type WideEventLogLevel = 'error' | 'warn' | 'info';
 
@@ -17,7 +19,7 @@ export function readWideEventLevel(event: WideEventRecord): WideEventLogLevel {
   if (
     event.status_code === 401 ||
     event.status_code === 403 ||
-    (event.kind === 'http' && (event.duration_ms ?? 0) > WIDE_EVENT_SLOW_MS)
+    (event.kind === 'http' && (event.duration_ms ?? 0) > WIDE_EVENT_WARN_MS)
   ) {
     return 'warn';
   }

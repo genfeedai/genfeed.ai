@@ -13,6 +13,27 @@ export interface ProviderVerificationItem {
   url?: string;
   handle?: string;
   scheduledAt?: Date;
+  /** What the provider reports the media to be; set by media-aware readers. */
+  mediaKind?: VerificationMediaKind;
+  /** Item count of a carousel as the provider lists it. */
+  mediaCount?: number;
+  shortcode?: string;
+}
+
+/**
+ * `other` is anything the publisher cannot have produced (a link share, a
+ * text post, an album). It is still evidence: the same caption on it is
+ * ambiguous, not absent.
+ */
+export type VerificationMediaKind = 'image' | 'video' | 'carousel' | 'other';
+
+/** The exact caption and media shape one publish attempt sent to the provider. */
+export interface ProviderMediaVerificationMatch {
+  text: string;
+  /** Set when the provider has a title beside the caption (a video's title). */
+  title?: string;
+  mediaKind: Exclude<VerificationMediaKind, 'other'>;
+  mediaCount: number;
 }
 
 export interface ProviderVerificationMatch {

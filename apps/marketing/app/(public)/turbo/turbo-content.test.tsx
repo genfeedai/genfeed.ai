@@ -1,12 +1,10 @@
 import { readFileSync } from 'node:fs';
-import { getPageMarketingAsset } from '@data/page-marketing-assets.data';
 import TurboContent, { TURBO_SIGNUP_HREF } from '@public/turbo/turbo-content';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 const COPY = [
   'Tell Genfeed about your business once. Turbo drafts images, video and captions that sound like you.',
-  'No credit card needed.',
   'Sign up',
   'Create your Genfeed account in a minute.',
   'Tell us about your business',
@@ -33,15 +31,15 @@ describe('TurboContent', () => {
     expect(
       screen.getByRole('heading', {
         level: 1,
-        name: 'Your brand in. On-brand content out.',
+        name: 'Your brand in, on-brand content out',
       }),
     ).toBeInTheDocument();
     for (const title of [
       'How it works',
-      'Nothing posts without you.',
-      'Gets sharper every batch.',
+      'Nothing posts without you',
+      'Gets sharper every batch',
       'Frequently asked questions',
-      'Ready when you are.',
+      'Ready when you are',
     ]) {
       expect(
         screen.getByRole('heading', { level: 2, name: title }),
@@ -87,10 +85,7 @@ describe('TurboContent', () => {
     window.removeEventListener('genfeed:marketing:button-click', listener);
   });
 
-  it('has its own artwork and contains no public service or agent connection imports', () => {
-    expect(getPageMarketingAsset('/turbo').src).toContain(
-      '/assets/site/pages/',
-    );
+  it('contains no public service or agent connection imports', () => {
     const source = readFileSync('app/(public)/turbo/turbo-content.tsx', 'utf8');
     expect(source).not.toMatch(
       /@services\/external\/public\.service|PublicService|AgentFirstActions|ConnectAgent/,

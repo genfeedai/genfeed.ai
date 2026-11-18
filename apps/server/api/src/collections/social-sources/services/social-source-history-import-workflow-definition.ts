@@ -1,4 +1,5 @@
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-runner.service';
+import { SystemWorkflowRetention } from '@api/collections/workflows/workflow-execution-retention.contract';
 import { createGenfeedActionNode } from '@genfeedai/actions';
 
 export const SOCIAL_SOURCE_HISTORY_IMPORT_ACTION_IDS = {
@@ -8,7 +9,7 @@ export const SOCIAL_SOURCE_HISTORY_IMPORT_ACTION_IDS = {
 export const SOCIAL_SOURCE_HISTORY_IMPORT_WORKFLOW_ID =
   'social-source.history-import';
 
-export const SOCIAL_SOURCE_HISTORY_IMPORT_WORKFLOW_LABEL =
+const SOCIAL_SOURCE_HISTORY_IMPORT_WORKFLOW_LABEL =
   'Social account history import';
 
 export function buildSocialSourceHistoryImportWorkflowDefinition(): SystemWorkflowGraphDefinition {
@@ -37,6 +38,7 @@ export function buildSocialSourceHistoryImportWorkflowDefinition(): SystemWorkfl
       "Imports a connected social account's existing posts into its own-account source.",
     label: SOCIAL_SOURCE_HISTORY_IMPORT_WORKFLOW_LABEL,
     resultNodeId: 'run-history-import',
+    retention: SystemWorkflowRetention.KEPT,
     version: 1,
   };
 }

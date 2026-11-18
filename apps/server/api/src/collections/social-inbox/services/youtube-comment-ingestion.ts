@@ -9,6 +9,12 @@ import type {
   YoutubeCommentIngestResult,
   YoutubeInboxPostFailure,
 } from '@api/collections/social-inbox/services/social-inbox.types';
+import {
+  isYoutubeVideoMissingError,
+  readYoutubeFailureReasons,
+  readYoutubeFailureStatus,
+  type YoutubeApiErrorShape,
+} from '@api/services/integrations/youtube/services/modules/youtube-api-failure.util';
 import { Platform, SocialConversationType } from '@genfeedai/contracts';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 
@@ -48,7 +54,7 @@ type YoutubeListedComment = {
   threadId: string;
 };
 
-export type ExistingSocialExternalIds = {
+type ExistingSocialExternalIds = {
   conversationIds: Set<string>;
   conversationsByExternalId: Map<string, SocialConversationDocument>;
   messageIds: Set<string>;
@@ -102,29 +108,6 @@ const CREDENTIAL_FAILURE_REASONS = new Set([
   'userRateLimitExceeded',
 ]);
 
-type YoutubeApiErrorShape = {
-  code?: unknown;
-  errors?: Array<{ reason?: unknown }>;
-  message?: unknown;
-  response?: {
-    data?: { error?: { errors?: Array<{ reason?: unknown }> } | string };
-    status?: unknown;
-  };
-  status?: unknown;
-};
-
-function readFailureReasons(failure: YoutubeApiErrorShape): unknown[] {
-  const nested = failure.response?.data?.error;
-  return [
-    ...(failure.errors ?? []),
-    ...(typeof nested === 'object' ? (nested.errors ?? []) : []),
-  ].map((entry) => entry.reason);
-}
-
-function readFailureStatus(failure: YoutubeApiErrorShape): number {
-  return Number(failure.response?.status ?? failure.status ?? 0);
-}
-
 /**
  * Quota and sign-in failures hit every remaining post of the credential the
  * same way, so retrying them only burns more quota. A per-video failure such as
@@ -135,32 +118,17 @@ function isCredentialLevelFailure(error: unknown): boolean {
     return false;
   }
   const failure = error as YoutubeApiErrorShape;
-  const status = readFailureStatus(failure);
+  const status = readYoutubeFailureStatus(failure);
   if (status === 401 || status === 429) {
     return true;
   }
   return (
-    readFailureReasons(failure).some(
+    readYoutubeFailureReasons(failure).some(
       (reason) =>
         typeof reason === 'string' && CREDENTIAL_FAILURE_REASONS.has(reason),
     ) ||
     (typeof failure.message === 'string' &&
       failure.message.includes('invalid_grant'))
-  );
-}
-
-/**
- * The owned post's video was deleted or made private on YouTube. There is no
- * inbox left to read, so it is not a sync failure.
- */
-function isMissingVideoFailure(error: unknown): boolean {
-  if (typeof error !== 'object' || error === null) {
-    return false;
-  }
-  const failure = error as YoutubeApiErrorShape;
-  return (
-    readFailureStatus(failure) === 404 ||
-    readFailureReasons(failure).includes('videoNotFound')
   );
 }
 
@@ -283,7 +251,7 @@ export async function ingestOwnedYoutubeComments(
           }
         }
       } catch (error: unknown) {
-        if (isMissingVideoFailure(error)) {
+        if (isYoutubeVideoMissingError(error)) {
           // A removed video is not "scanned": counting it would make a sweep
           // whose only owned post was deleted fail the whole job every hour.
           postsScanned--;

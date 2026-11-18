@@ -19,13 +19,13 @@ export const PERSONA_REFERENCES_SELECT = {
 } as const;
 
 /** Image categories a character reference may be. */
-export const CHARACTER_REFERENCE_IMAGE_CATEGORIES = [
+const CHARACTER_REFERENCE_IMAGE_CATEGORIES = [
   IngredientCategory.IMAGE,
   IngredientCategory.IMAGE_EDIT,
 ] as const;
 
 /** Statuses of a finished image that may become a character reference. */
-export const CHARACTER_REFERENCE_IMAGE_STATUSES = [
+const CHARACTER_REFERENCE_IMAGE_STATUSES = [
   IngredientStatus.GENERATED,
   IngredientStatus.UPLOADED,
   IngredientStatus.VALIDATED,
@@ -35,7 +35,7 @@ export const CHARACTER_REFERENCE_IMAGE_STATUSES = [
  * Ingredient filter for images that may become a reference of a character in
  * this brand: live, completed images of the brand in the organization.
  */
-export function characterReferenceImageWhere(params: {
+function characterReferenceImageWhere(params: {
   brandId: string;
   ingredientIds: readonly string[];
   organizationId: string;

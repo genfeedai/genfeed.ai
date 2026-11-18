@@ -58,7 +58,7 @@ alike — there is no separate maintainer setup.
 _Avoid_: dev setup (ambiguous), maintainer path (no such distinction).
 
 **Debug dev path**: The fixed-port fallback (`dev:debug*`) for when Portless cannot be used —
-plain HTTP on the ports in CLAUDE.md, no certificate trust or `:443` service. An optional
+plain HTTP on the ports in AGENTS.md, no certificate trust or `:443` service. An optional
 debugging path, not the documented default. Never mix its origins with Portless routes in one
 environment.
 _Avoid_: contributor dev path (that is Portless), fixed-port path (ambiguous).

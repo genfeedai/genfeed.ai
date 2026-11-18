@@ -1,6 +1,8 @@
 import { isRecord } from '@genfeedai/contracts/constants/type-guards.constant';
 import { parseHttpStatusCode } from '@genfeedai/utils/error/json-api-status.util';
 
+const REASON_CODE_PATTERN = /^[A-Z0-9_]{1,64}$/;
+
 interface JsonApiErrorDocument {
   readonly errors?: unknown;
 }
@@ -115,6 +117,23 @@ export function getJsonApiErrorMetaBoolean(
   const value = readErrorMetaValue(error, key);
 
   return typeof value === 'boolean' ? value : undefined;
+}
+
+/**
+ * Reads `key` from the first error member's `meta` as a short string made of
+ * letters, digits and underscores, which is what a machine-readable reason
+ * code looks like. Free text and anything longer never comes out, so a hostile
+ * or personal `meta` value cannot reach a caller through this reader.
+ */
+export function getJsonApiErrorMetaCode(
+  error: unknown,
+  key: string,
+): string | undefined {
+  const value = readErrorMetaValue(error, key);
+
+  return typeof value === 'string' && REASON_CODE_PATTERN.test(value)
+    ? value
+    : undefined;
 }
 
 /** Only server-owned persisted video identity survives this bounded reader. */

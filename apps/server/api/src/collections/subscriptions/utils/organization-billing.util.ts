@@ -7,13 +7,13 @@ import type { IOrganizationBilling } from '@genfeedai/contracts/interfaces';
 /** Free is not a Stripe price, so an organization with no subscription row reports it. */
 const FREE_TIER = 'free';
 
-export interface OrganizationBillingSource {
+interface OrganizationBillingSource {
   id: string;
   label: string;
   ownerEmail: string | null;
 }
 
-export interface SubscriptionBillingSource {
+interface SubscriptionBillingSource {
   currentPeriodEnd: Date | null;
   plan: string | null;
   status: string;
@@ -25,6 +25,12 @@ export interface SubscriptionBillingSource {
 export interface OrganizationBillingInput {
   /** Spendable credits: settled balance minus held. Zero when no wallet exists. */
   balance: number;
+  /**
+   * Credits spent this cycle, from the ledger (`getCycleRemainingMetrics`), the
+   * same figure the Credits page and the account menu show. Never inferred
+   * from the balance: a top-up or grant would read as unspent.
+   */
+  cycleUsed: number;
   /** Whether the organization has ever bought a pay-as-you-go credit pack. */
   hasPaygPurchase: boolean;
   organization: OrganizationBillingSource;
@@ -38,12 +44,19 @@ export interface OrganizationBillingInput {
 export function buildOrganizationBillingRow(
   input: OrganizationBillingInput,
 ): IOrganizationBilling {
-  const { balance, hasPaygPurchase, organization, planLimit, subscription } =
-    input;
+  const {
+    balance,
+    cycleUsed,
+    hasPaygPurchase,
+    organization,
+    planLimit,
+    subscription,
+  } = input;
 
   // A plan with no resolvable grant reports 0% used rather than dividing by
   // zero; the row still shows so the gap is visible, not hidden.
-  const usedCredits = planLimit > 0 ? Math.max(0, planLimit - balance) : 0;
+  const usedCredits =
+    planLimit > 0 ? Math.min(planLimit, Math.max(0, cycleUsed)) : 0;
   const usedPercent =
     planLimit > 0
       ? Math.min(100, Math.max(0, (usedCredits / planLimit) * 100))

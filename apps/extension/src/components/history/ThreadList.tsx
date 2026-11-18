@@ -16,6 +16,7 @@ export function ThreadList({ onOpenThread }: ThreadListProps): ReactElement {
   const setMessages = useChatStore((s) => s.setMessages);
   const [isLoading, setIsLoading] = useState(true);
 
+  // use-effect-audit: ignore loads threads from the extension background on mount
   useEffect(() => {
     chrome.runtime.sendMessage(
       { event: 'chatGetThreads', payload: { limit: 50, page: 1 } },
@@ -73,7 +74,7 @@ export function ThreadList({ onOpenThread }: ThreadListProps): ReactElement {
         {grouped.map(({ label, items }) => (
           <div key={label}>
             <div className="sticky top-0 bg-background px-4 py-1.5">
-              <span className="text-2xs font-medium uppercase tracking-wider text-muted-foreground">
+              <span className="text-2xs font-medium uppercase tracking-label text-muted-foreground">
                 {label}
               </span>
             </div>

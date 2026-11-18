@@ -142,6 +142,7 @@ export function useWorkflowTemplatesPage() {
     [getService, isScopeReady, scopeKey],
   );
 
+  // use-effect-audit: ignore abortable work
   useEffect(() => {
     mountedRef.current = true;
     const controller = new AbortController();
@@ -183,6 +184,7 @@ export function useWorkflowTemplatesPage() {
     (entry) => entry.canonicalId === templateId,
   );
 
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     if (!templateId) {
       if (bootstrapAttemptRef.current) {

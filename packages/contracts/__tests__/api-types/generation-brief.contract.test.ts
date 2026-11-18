@@ -87,6 +87,29 @@ describe('generation brief contract', () => {
     ).toThrow();
   });
 
+  test('accepts up to 40 video references and rejects more', () => {
+    const base = {
+      fidelityMode: 'guided',
+      intent: { objective: 'A cinematic reveal' },
+      mediaKind: 'video',
+      output: {},
+      version: 1,
+    };
+    const references = (count: number) =>
+      Array.from({ length: count }, (_, index) => ({
+        assetId: `asset_${index}`,
+        role: 'product',
+      }));
+
+    expect(
+      generationBriefSchema.parse({ ...base, references: references(40) })
+        .references,
+    ).toHaveLength(40);
+    expect(() =>
+      generationBriefSchema.parse({ ...base, references: references(41) }),
+    ).toThrow();
+  });
+
   test('keeps video resolution as first-class requested output', () => {
     const brief = generationBriefSchema.parse({
       fidelityMode: 'guided',

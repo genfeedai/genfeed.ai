@@ -246,3 +246,56 @@ describe('compileCinematicShort', () => {
     ).toBe('INVALID_PRESET');
   });
 });
+
+describe('named style reference policy', () => {
+  const styleError = (styleByFeel: string): CinematicShortCompileError => {
+    try {
+      compileCinematicShort({ preset, slots: { ...slots, styleByFeel } });
+    } catch (error) {
+      if (error instanceof CinematicShortCompileError) return error;
+    }
+    throw new Error('expected the style to be rejected');
+  };
+
+  it.each([
+    [
+      'a director beyond the fixed list',
+      'Symmetric framing, Wes Anderson pastels',
+    ],
+    ['a name at the start of the text', 'Hayao Miyazaki watercolour skies'],
+    ['a credit cue and one name', 'Slow dread, inspired by Kubrick'],
+    ['a credit cue in capitals', 'DIRECTED BY Villeneuve, grey and vast'],
+    ['a credit cue with an article', 'Painted by the Dutch masters'],
+    ['an unlisted studio', 'Soft backgrounds like Studio Ponoc'],
+  ])('rejects %s', (_label, styleByFeel) => {
+    expect(styleError(styleByFeel).code).toBe('NAMED_STYLE_REFERENCE');
+  });
+
+  it.each([
+    ['sentence case', 'Soft light falls on hand-drawn paper. Warm and quiet.'],
+    ['one capitalized word per sentence', 'Quiet. Slow. Warm. Held.'],
+    ['a lowercase colour run', 'cool blue dawn to golden hour light'],
+    [
+      'a cue followed by an ordinary word',
+      'Inspired by hand-drawn ink and slow light',
+    ],
+    ['a resemblance to a studio name', 'A madhouse of swirling ink and motion'],
+    ['abbreviations in capitals', 'Shot on 35MM film with a CRT glow'],
+  ])('accepts %s', (_label, styleByFeel) => {
+    const result = compileCinematicShort({
+      preset,
+      slots: { ...slots, styleByFeel },
+    });
+    expect(result.prompt).toContain(styleByFeel);
+  });
+
+  it('keeps the error short and actionable for a very long name', () => {
+    const longName = `${'Alexandria '.repeat(30)}Montgomery`;
+
+    const { message } = styleError(`Warm light, ${longName}`);
+
+    expect(message).toBe(
+      'Describe the style by feel; "Alexandria Alexandria Alexandria Alexand..." reads as a named reference. Write sentence case without studio, artist, director or film names.',
+    );
+  });
+});

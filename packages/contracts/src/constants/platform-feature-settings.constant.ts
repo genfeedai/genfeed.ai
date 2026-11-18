@@ -98,7 +98,6 @@ export const DEFAULT_PLATFORM_FEATURE_SETTINGS: Readonly<IPlatformFeatureSetting
     featuredWorkflowIds: [],
     flags: DEFAULT_PLATFORM_FLAGS,
     isAgentContextCompressionEnabled: true,
-    isAgentTokenStreamingEnabled: false,
     // The registered catalog rows. The seed runs during reference-data sync,
     // and a key whose row is missing or unpriced leaves the analysis unavailable.
     brandVisionDetectModelKey: BRAND_VISION_DETECT_MODEL_KEY,
@@ -106,6 +105,7 @@ export const DEFAULT_PLATFORM_FEATURE_SETTINGS: Readonly<IPlatformFeatureSetting
     isBrandVisualAnalysisEnabled: false,
     isEmailVerificationRequired: false,
     isMediaPerceptionEnabled: true,
+    isSignupInviteOnly: false,
     mediaGateVisionMode: 'off',
     mediaPerceptionFrameCount: 6,
     mediaPerceptionLookbackHours: 24,
@@ -138,6 +138,7 @@ export const UNRESOLVED_PLATFORM_FEATURE_SETTINGS: Readonly<IPlatformFeatureSett
     ...DEFAULT_PLATFORM_FEATURE_SETTINGS,
     isEmailVerificationRequired: true,
     isMediaPerceptionEnabled: false,
+    isSignupInviteOnly: true,
   };
 
 const MODERATION_CATEGORIES = new Set<string>(
@@ -446,10 +447,6 @@ export function parsePlatformFeatureSettings(
       row.isAgentContextCompressionEnabled,
       defaults.isAgentContextCompressionEnabled,
     ),
-    isAgentTokenStreamingEnabled: pickBoolean(
-      row.isAgentTokenStreamingEnabled,
-      defaults.isAgentTokenStreamingEnabled,
-    ),
     brandVisionDetectModelKey: pickModelKey(
       row.brandVisionDetectModelKey,
       defaults.brandVisionDetectModelKey,
@@ -469,6 +466,10 @@ export function parsePlatformFeatureSettings(
     isMediaPerceptionEnabled: pickBoolean(
       row.isMediaPerceptionEnabled,
       defaults.isMediaPerceptionEnabled,
+    ),
+    isSignupInviteOnly: pickBoolean(
+      row.isSignupInviteOnly,
+      defaults.isSignupInviteOnly,
     ),
     mediaGateVisionMode: pickOption(
       row.mediaGateVisionMode,

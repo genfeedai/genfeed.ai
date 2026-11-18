@@ -66,6 +66,7 @@ import {
   shouldAllowLocalCorsOrigins,
 } from '@libs/config/cors.config';
 import { LoggerService } from '@libs/logger/logger.service';
+import { eventLoopLagSampler } from '@libs/logger/wide-event/wide-event.event-loop';
 import { createWideEventMiddleware } from '@libs/logger/wide-event/wide-event.http';
 import { resolveServiceIdentity } from '@libs/logger/wide-event/wide-event.trace';
 import {
@@ -191,6 +192,9 @@ async function main() {
       }),
     );
     app.enableShutdownHooks();
+
+    // Lets a slow request's wide event say whether the process was blocked.
+    eventLoopLagSampler.start();
 
     // One wide event per request, started before CORS, rate limiting and auth
     // so rejected requests are recorded too. Handlers enrich it through

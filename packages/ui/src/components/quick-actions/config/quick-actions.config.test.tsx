@@ -17,7 +17,7 @@ describe('QuickActionsConfig', () => {
       category: IngredientCategory.VIDEO,
       status: IngredientStatus.UPLOADED,
     } as IIngredient;
-    const copy = { label: 'Remix this video', tooltip: 'Remix this video' };
+    const copy = { label: 'Remix Video', tooltip: 'Remix Video' };
     const action = QuickActionsConfig.createRemixVideoAction(
       ingredient,
       handler,
@@ -25,15 +25,15 @@ describe('QuickActionsConfig', () => {
     );
     expect(action).toMatchObject({
       id: 'remix-video',
-      label: 'Remix this video',
-      tooltip: 'Remix this video',
+      label: 'Remix Video',
+      tooltip: 'Remix Video',
     });
     await action?.onClick();
     expect(handler).toHaveBeenCalledWith(ingredient);
     expect(
       QuickActionsConfig.createOpenInEditorAction(ingredient, handler, {
-        label: 'Open in Editor',
-        tooltip: 'Open in Editor',
+        label: 'Open Editor',
+        tooltip: 'Open Editor',
       })?.id,
     ).toBe('open-in-editor');
     for (const patch of [

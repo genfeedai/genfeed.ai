@@ -1,6 +1,7 @@
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { orderedPostIngredientLinks } from '@api/collections/posts/services/post-ingredient-links.util';
 import { PostsService } from '@api/collections/posts/services/posts.service';
+import { CACHE_TAGS } from '@api/common/constants/cache-patterns.constants';
 import {
   type CrossPostCandidate,
   findCrossPostIds,
@@ -18,6 +19,8 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
+import { MediaDerivativePreparationService } from '@api/services/media-urls/media-derivative-preparation.service';
+import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import {
   AssetScope,
   CredentialPlatform,
@@ -52,15 +55,52 @@ const PUBLIC_POST_INCLUDE = {
   ingredientLinks: orderedPostIngredientLinks({
     select: {
       category: true,
-      height: true,
       id: true,
       isDeleted: true,
+      // Frame size lives on the metadata row; `Ingredient` has no width or
+      // height column, so selecting them on it fails Prisma validation.
+      metadata: { select: { height: true, width: true } },
       s3Key: true,
       status: true,
-      width: true,
     },
   }),
 };
+
+interface PublicPostMedia {
+  metadata?: { height?: number; width?: number } | null;
+}
+
+/**
+ * Lifts the frame size from the media's metadata row onto the media itself,
+ * the shape the public post serializer reads. Media without a metadata row
+ * carries no dimensions.
+ */
+function withMediaDimensions<T extends PublicPostMedia>(media: T): T {
+  const { metadata, ...rest } = media;
+  return {
+    ...rest,
+    ...(metadata ? { height: metadata.height, width: metadata.width } : {}),
+  } as unknown as T;
+}
+
+function withPublicMediaDimensions<D extends object>(
+  data: AggregatePaginateResult<D>,
+): AggregatePaginateResult<D> {
+  return {
+    ...data,
+    docs: data.docs.map((post) => {
+      const { ingredients } = post as { ingredients?: unknown };
+      return Array.isArray(ingredients)
+        ? {
+            ...post,
+            ingredients: (ingredients as PublicPostMedia[]).map(
+              withMediaDimensions,
+            ),
+          }
+        : post;
+    }),
+  };
+}
 
 /** Native posts compared when pairing a profile's cross-posts. */
 const CROSS_POST_NATIVE_LIMIT = 200;
@@ -97,13 +137,15 @@ export class PublicPostsController {
   constructor(
     private readonly postsService: PostsService,
     private readonly ingredientsService: IngredientsService,
+    private readonly mediaPreparation: MediaDerivativePreparationService,
     private readonly logger: LoggerService,
   ) {}
 
   @Get()
   @Cache({
     keyGenerator: (req) => `public:posts:${JSON.stringify(req.query)}`,
-    tags: ['posts', 'public'],
+    isInvalidationGuarded: true,
+    tags: ['posts', 'public', CACHE_TAGS.PUBLIC_BRAND_CONTENT],
     ttl: 600, // 10 minutes
   })
   async findPublicPosts(
@@ -168,14 +210,20 @@ export class PublicPostsController {
     };
 
     const data = await this.postsService.findAll(aggregate, options);
-    return serializeCollection(request, PublicPostSerializer, data);
+    await this.prepareMedia(data.docs);
+    return serializeCollection(
+      request,
+      PublicPostSerializer,
+      withPublicMediaDimensions(data),
+    );
   }
 
   @Get('ingredients')
   @Cache({
     keyGenerator: (req) =>
       `public:posts:ingredients:${JSON.stringify(req.query)}`,
-    tags: ['ingredients', 'posts', 'public'],
+    isInvalidationGuarded: true,
+    tags: ['ingredients', 'posts', 'public', CACHE_TAGS.PUBLIC_BRAND_CONTENT],
     ttl: 600, // 10 minutes
   })
   async findPublicIngredients(
@@ -241,7 +289,8 @@ export class PublicPostsController {
   @Cache({
     keyGenerator: (req) =>
       `public:post:${req.params?.postId ?? 'unknown'}:brand:${req.query?.brand ?? ''}`,
-    tags: ['posts'],
+    isInvalidationGuarded: true,
+    tags: ['posts', CACHE_TAGS.PUBLIC_BRAND_CONTENT],
     ttl: 1800, // 30 minutes
   })
   async getPostMetadata(
@@ -277,6 +326,8 @@ export class PublicPostsController {
       return returnNotFound(this.constructorName, postId);
     }
 
+    await this.prepareMedia([post]);
+
     const crossPosts =
       post.platform === CredentialPlatform.GENFEED
         ? await this.findCrossPosts(post)
@@ -286,6 +337,36 @@ export class PublicPostsController {
       ...post,
       crossPosts,
     });
+  }
+
+  /**
+   * A public post's media is delivered through a prepared public copy. Media
+   * that has none yet is queued here, so the next read of the post (after the
+   * cache expires) carries its URL instead of leaving the post without images.
+   */
+  private async prepareMedia(posts: readonly object[]): Promise<void> {
+    const ids = [
+      ...new Set(
+        posts.flatMap((post) => {
+          const { ingredients } = post as {
+            ingredients?: readonly { id?: string }[];
+          };
+          return (ingredients ?? []).flatMap((media) =>
+            media.id ? [media.id] : [],
+          );
+        }),
+      ),
+    ];
+    if (ids.length === 0) {
+      return;
+    }
+    try {
+      await this.mediaPreparation.enqueuePublicMissing(ids, 'public-share');
+    } catch (error: unknown) {
+      this.logger.warn(`${this.constructorName} could not queue public media`, {
+        error,
+      });
+    }
   }
 
   /** Public network posts of a brand that copy one of its native posts. */

@@ -50,6 +50,7 @@ export function useAudioRecording({
     chunksRef.current = [];
   }, []);
 
+  // use-effect-audit: ignore reads browser capabilities after mount so server and client markup match
   useEffect(() => {
     const supported =
       typeof window !== 'undefined' &&
@@ -59,6 +60,7 @@ export function useAudioRecording({
     setIsSupported(supported);
   }, []);
 
+  // use-effect-audit: ignore releases timers, requests or subscriptions on unmount
   useEffect(() => {
     isMountedRef.current = true;
     return () => {

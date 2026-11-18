@@ -116,7 +116,16 @@ export function isImageIngredient(
   );
 }
 
+export function isModel3dIngredient(
+  ingredient: IIngredient | null | undefined,
+): boolean {
+  return ingredient?.category === IngredientCategory.MODEL_3D;
+}
+
 export function getIngredientExtension(ingredient: IIngredient): string {
+  if (isModel3dIngredient(ingredient)) {
+    return 'glb';
+  }
   if (isImageIngredient(ingredient)) {
     const imageExtension =
       extensionForImageContentType(ingredient.mimeType) ??

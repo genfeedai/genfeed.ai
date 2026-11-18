@@ -118,8 +118,8 @@ export class AvatarVideoGenerationService {
   }
 
   /**
-   * The photo an avatar renders from may be a character's reference image.
-   * A character the brand can no longer use is refused before funding (#6040).
+   * The photo may be a character's reference image; a character the brand can
+   * no longer use is refused before funding (#6040).
    */
   private admitCharacter(
     identity: ResolvedIdentity,
@@ -135,8 +135,7 @@ export class AvatarVideoGenerationService {
 
   /**
    * The price a run-level caller accepted, without the pinned keys. The frozen
-   * per-second quote rides along so the caller's own hold settles to the clip
-   * length HeyGen returns.
+   * per-second quote rides along so its hold settles to HeyGen's clip length.
    */
   private acceptedPrice({
     billingMode,
@@ -167,8 +166,7 @@ export class AvatarVideoGenerationService {
 
   /**
    * The photo-animation price of a script from the per-second `heygen/avatar`
-   * row. A row that resolves to no price fails closed: with no fallback
-   * constant, zero would mean a free render.
+   * row. A row with no price fails closed: zero would mean a free render.
    */
   async quotePlatformCredits(script: string): Promise<number> {
     return this.avatarBilling.quotePlatformCredits(script);
@@ -340,6 +338,8 @@ export class AvatarVideoGenerationService {
           apiKey,
           params.aspectRatio ?? '9:16',
           funding.engine,
+          funding.resolution,
+          params.motion,
         )
       : this.heygenService.generatePhotoAvatarVideo(
           ingredientId,

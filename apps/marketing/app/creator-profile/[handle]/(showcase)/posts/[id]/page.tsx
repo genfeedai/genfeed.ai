@@ -5,6 +5,12 @@ import {
   creatorProfilePath,
   creatorTabPath,
 } from '@genfeedai/contracts/constants';
+import {
+  getPostMedia,
+  postPlatformLabel,
+  postTitle,
+  toPlainPostText,
+} from '@genfeedai/helpers/content/public-post.helper';
 import { metadata } from '@helpers/media/metadata/metadata.helper';
 import type { Post } from '@models/content/post.model';
 import type { CreatorPostRouteProps } from '@props/content/creator.props';
@@ -14,12 +20,7 @@ import { BrandAvatar } from '@ui/primitives/brand-avatar';
 import { Button } from '@ui/primitives/button';
 import CopyLinkButton from '@web-components/creator/CopyLinkButton';
 import CreatorPostMedia from '@web-components/creator/CreatorPostMedia';
-import { getPostMedia } from '@web-components/creator/post-media';
-import {
-  postPlatformLabel,
-  postTitle,
-  toPlainPostText,
-} from '@web-components/creator/post-text';
+import CreatorPostMetrics from '@web-components/creator/CreatorPostMetrics';
 import ProfileSubscribe from '@web-components/profile/ProfileSubscribe';
 import { ArrowUpRight } from 'lucide-react';
 import type { Metadata } from 'next';
@@ -215,7 +216,11 @@ export default async function CreatorPostPage({
         </div>
       ) : null}
 
-      <div className="mt-8 flex flex-wrap gap-3">
+      <div className="mt-6 text-sm text-foreground/60">
+        <CreatorPostMetrics post={post} />
+      </div>
+
+      <div className="mt-6 flex flex-wrap gap-3">
         <CopyLinkButton url={url} />
         {networkLinks.map((link) => (
           <Button
@@ -236,12 +241,7 @@ export default async function CreatorPostPage({
       </div>
 
       <div className="mt-10">
-        <ProfileSubscribe
-          brandId={brand.id}
-          brandLabel={name}
-          source="post"
-          sourceRef={post.id}
-        />
+        <ProfileSubscribe handle={handle} source="post" sourceRef={post.id} />
       </div>
     </article>
   );

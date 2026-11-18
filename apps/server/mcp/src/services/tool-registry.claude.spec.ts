@@ -1,5 +1,9 @@
-import { CLAUDE_MCP_TOOL_NAMES } from '@genfeedai/actions';
+import {
+  ADMIN_MCP_TOOL_NAMES,
+  CLAUDE_MCP_TOOL_NAMES,
+} from '@genfeedai/actions';
 import type { LoggerService } from '@libs/logger/logger.service';
+import { McpResourceUri } from '@mcp/mcp/resource-catalog';
 import type { ClientService } from '@mcp/services/client.service';
 import { ToolRegistryService } from '@mcp/services/tool-registry.service';
 
@@ -57,6 +61,7 @@ describe('Claude connector execution boundary', () => {
       name: 'control_scheduled_release',
       arguments: { releaseId: 'release-1', action: 'resume' },
     },
+    { name: 'publish_article', arguments: { articleId: 'article-1' } },
   ])('queues $name without executing a public-channel write', async (call) => {
     const { registry, client } = build();
     client.createApproval.mockResolvedValue({
@@ -106,14 +111,31 @@ describe('Claude connector execution boundary', () => {
         isError: true,
         structuredContent: {
           code: 'unavailable_in_connector',
-          nextStepUrl: 'https://app.genfeed.ai/playground',
+          message: expect.stringContaining('does not generate images'),
         },
       });
+      expect(JSON.stringify(result)).not.toMatch(
+        /studio|playground|https?:\/\//i,
+      );
       expect(client.createApproval).not.toHaveBeenCalled();
       expect(client.executeAgentTool).not.toHaveBeenCalled();
       expect(client.resolveApproval).not.toHaveBeenCalled();
     },
   );
+
+  it('serves a Claude guide that points nowhere and says generation is not offered', async () => {
+    const { registry } = build();
+    const result = (await registry.handleResourceRead({
+      uri: McpResourceUri.AGENT_GUIDE,
+    })) as { contents: { text: string }[] };
+
+    expect(result.contents[0].text).toContain(
+      'This connector does not generate images, video or audio',
+    );
+    expect(result.contents[0].text).not.toMatch(
+      /studio|playground|https?:\/\//i,
+    );
+  });
 
   it('keeps discovery restricted even with generation/workflow toolsets', async () => {
     const { registry } = build();
@@ -121,7 +143,12 @@ describe('Claude connector execution boundary', () => {
       .getTools()
       .map((tool) => tool.name)
       .sort();
-    expect(tools).toEqual([...CLAUDE_MCP_TOOL_NAMES].sort());
+    expect(tools).toEqual(
+      [...CLAUDE_MCP_TOOL_NAMES]
+        .filter((name) => !ADMIN_MCP_TOOL_NAMES.has(name))
+        .sort(),
+    );
+    expect(tools).not.toContain('create_brand_from_url');
     expect(
       registry
         .getDiscoverableTools()

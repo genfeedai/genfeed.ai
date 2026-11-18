@@ -106,7 +106,7 @@ async function main(): Promise<void> {
   // authenticated caller and an unauthenticated public discovery request
   // (`tools/list`). A bare URL resolves to the default profile.
   expressApp.post(
-    ['/mcp', '/mcp/claude'],
+    ['/mcp', '/mcp/claude', '/mcp/admin'],
     express.json({ limit: '1mb' }),
     mcpAccessModeMiddleware,
     toolsetsQueryMiddleware,
@@ -122,7 +122,7 @@ async function main(): Promise<void> {
   );
 
   expressApp.get(
-    ['/mcp', '/mcp/claude'],
+    ['/mcp', '/mcp/claude', '/mcp/admin'],
     mcpAccessModeMiddleware,
     toolsetsQueryMiddleware,
     mcpAuthMiddleware,
@@ -137,7 +137,7 @@ async function main(): Promise<void> {
   );
 
   expressApp.delete(
-    ['/mcp', '/mcp/claude'],
+    ['/mcp', '/mcp/claude', '/mcp/admin'],
     mcpAccessModeMiddleware,
     toolsetsQueryMiddleware,
     mcpAuthMiddleware,

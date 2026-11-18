@@ -62,6 +62,7 @@ function PromptConstructorNodeComponent(props: NodeProps) {
     null,
   );
 
+  // use-effect-audit: ignore clears the autocomplete and paste timers on unmount
   useEffect(() => {
     return () => {
       if (closeAutocompleteTimeoutRef.current) {
@@ -152,6 +153,7 @@ function PromptConstructorNodeComponent(props: NodeProps) {
   }, [localTemplate, availableVariables]);
 
   // Sync resolved text to outputText so downstream nodes can read it before execution
+  // use-effect-audit: ignore writes the resolved text into the workflow store
   useEffect(() => {
     let resolved = nodeData.template;
     availableVariables.forEach((v) => {

@@ -25,6 +25,13 @@ describe('API key scope presets', () => {
     expect(API_KEY_SCOPE_PRESETS.content).not.toContain('brands:write');
   });
 
+  it('keeps 3D render scopes out of every preset', () => {
+    for (const scopes of Object.values(API_KEY_SCOPE_PRESETS)) {
+      expect(scopes).not.toContain('models3d:read');
+      expect(scopes).not.toContain('models3d:write');
+    }
+  });
+
   it('defaults MCP publishing to approval-first capabilities', () => {
     expect(API_KEY_SCOPE_PRESETS.mcp).toContain('posts:draft');
     expect(API_KEY_SCOPE_PRESETS.mcp).toContain('posts:schedule');

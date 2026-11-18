@@ -64,15 +64,22 @@ export function KnowledgeCapturePage({
     }
   }, []);
 
+  // use-effect-audit: ignore abortable load from the extension background
   useEffect(() => {
+    const abortController = new AbortController();
     void refresh();
     void background<string | null>({ event: 'captureBrand' })
       .then((savedBrand) => {
+        if (abortController.signal.aborted) return;
         if (savedBrand && !useBrandStore.getState().activeBrandId)
           useBrandStore.getState().setActiveBrand(savedBrand);
       })
       .catch(() => undefined);
+    return () => {
+      abortController.abort();
+    };
   }, [refresh]);
+  // use-effect-audit: ignore polls capture receipts on an interval
   useEffect(() => {
     if (
       !receipts.some(
@@ -84,8 +91,9 @@ export function KnowledgeCapturePage({
     return () => clearInterval(timer);
   }, [receipts, refresh]);
 
+  // use-effect-audit: ignore abortable Spaces fetch through the extension background
   useEffect(() => {
-    let active = true;
+    const abortController = new AbortController();
     setSpaceId('inbox');
     draftRevision.current += 1;
     setSaved(false);
@@ -93,18 +101,19 @@ export function KnowledgeCapturePage({
     if (brandId)
       background<KnowledgeCaptureSpace[]>({ event: 'captureSpaces', brandId })
         .then((next) => {
-          if (active) setSpaces(next);
+          if (!abortController.signal.aborted) setSpaces(next);
         })
         .catch((failure) => {
-          if (active) setError(failure.message);
+          if (!abortController.signal.aborted) setError(failure.message);
         });
     return () => {
-      active = false;
+      abortController.abort();
     };
   }, [brandId]);
 
+  // use-effect-audit: ignore abortable page snapshot through the extension background
   useEffect(() => {
-    let active = true;
+    const abortController = new AbortController();
     draftRevision.current += 1;
     setSaved(false);
     if (initialContent) {
@@ -124,19 +133,19 @@ export function KnowledgeCapturePage({
       url: initialUrl,
     })
       .then((next) => {
-        if (active) setSnapshot(next);
+        if (!abortController.signal.aborted) setSnapshot(next);
       })
       .catch((failure) => {
-        if (active) {
+        if (!abortController.signal.aborted) {
           setSnapshot({ mode: 'link', title: '', url: initialUrl, text: '' });
           setError(`${failure.message} You can still save the link.`);
         }
       })
       .finally(() => {
-        if (active) setBusy(false);
+        if (!abortController.signal.aborted) setBusy(false);
       });
     return () => {
-      active = false;
+      abortController.abort();
     };
   }, [initialContent, initialUrl, initialMode]);
 

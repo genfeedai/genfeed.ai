@@ -5,8 +5,8 @@ import { cn } from '@genfeedai/helpers/formatting/cn';
 import type { VideoPlayerProps } from '@genfeedai/props/studio/video-player.props';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import { logger } from '@genfeedai/services/core/logger.service';
-import VideoPlayerControls from '@genfeedai/ui/components/display/video-player/VideoPlayerControls';
 import Spinner from '@genfeedai/ui/primitives/spinner';
+import VideoPlayerControls from '@ui/display/video-player/VideoPlayerControls';
 import Image from 'next/image';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
@@ -132,6 +132,7 @@ export default function VideoPlayer({
     Boolean(src) && !mediaProps.poster,
   );
 
+  // use-effect-audit: ignore resets playback state from the video element after commit
   useEffect(() => {
     setIsPlaying(false);
     setCurrentTime(0);
@@ -151,11 +152,13 @@ export default function VideoPlayer({
     }
   }, [src, mediaProps.poster, resolvedVideoRef]);
 
+  // use-effect-audit: ignore pauses the video element when the player becomes inactive
   useEffect(() => {
     if (!isActive) resolvedVideoRef.current?.pause();
   }, [isActive, resolvedVideoRef]);
 
   // Hide loader faster when thumbnail is available
+  // use-effect-audit: ignore timer outside React
   useEffect(() => {
     if (thumbnail) {
       const timer = setTimeout(() => {

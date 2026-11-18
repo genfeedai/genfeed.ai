@@ -10,7 +10,11 @@ import AccountHealthSection from './AccountHealthSection';
 import CadenceGapsSection from './CadenceGapsSection';
 
 vi.mock('@hooks/navigation/use-org-url', () => ({
-  useOrgUrl: () => ({ href: (path: string) => `/acme/studio${path}` }),
+  useOrgUrl: () => ({
+    href: (path: string) => `/acme/studio${path}`,
+    orgHref: (path: string) => `/acme/~${path}`,
+    activeHref: (path: string) => `/acme/brand${path}`,
+  }),
 }));
 vi.mock('next-intl', () => ({
   useTranslations: () => (key: string) => key,
@@ -73,7 +77,7 @@ describe('publishing account sections', () => {
       screen.getByRole('link', {
         name: /healthReconnectAction.*Studio account.*instagram/,
       }),
-    ).toHaveAttribute('href', '/acme/studio/settings/accounts');
+    ).toHaveAttribute('href', '/acme/brand/settings/profile');
   });
 
   it('falls back to account initials when credential identity is missing', () => {
@@ -112,7 +116,7 @@ describe('publishing account sections', () => {
     expect(screen.getByText('cadenceNeverPublished')).toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: /cadenceReconnectAction/ }),
-    ).toHaveAttribute('href', '/acme/studio/settings/accounts');
+    ).toHaveAttribute('href', '/acme/brand/settings/profile');
   });
 
   it('keeps a long account name available through a tooltip', async () => {

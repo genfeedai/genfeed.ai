@@ -1,4 +1,8 @@
 import '@testing-library/jest-dom/vitest';
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
@@ -29,6 +33,10 @@ vi.mock('next/navigation', () => ({
 }));
 vi.mock('@/hooks/feature-flags/use-feature-flag', () => ({
   useFeatureFlag: () => true,
+}));
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
 }));
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => mocks.getService,
@@ -71,7 +79,9 @@ describe('TurboProjectsList load recovery', () => {
       },
     ]);
 
-    render(<TurboProjectsList />);
+    render(<TurboProjectsList />, {
+      wrapper: queryClientWrapper(createTestQueryClient()),
+    });
 
     expect(
       await screen.findByRole('link', { name: /Spring launch/ }),
@@ -82,7 +92,9 @@ describe('TurboProjectsList load recovery', () => {
   });
 
   it('tells the creator to describe a project on the left when there are none', async () => {
-    render(<TurboProjectsList />);
+    render(<TurboProjectsList />, {
+      wrapper: queryClientWrapper(createTestQueryClient()),
+    });
 
     expect(await screen.findByText('No Turbo projects yet')).toBeVisible();
     expect(
@@ -107,7 +119,9 @@ describe('TurboProjectsList load recovery', () => {
       remove: mocks.remove,
     });
 
-    render(<TurboProjectsList />);
+    render(<TurboProjectsList />, {
+      wrapper: queryClientWrapper(createTestQueryClient()),
+    });
     await user.click(
       await screen.findByRole('button', { name: 'Actions for Spring launch' }),
     );
@@ -132,7 +146,9 @@ describe('TurboProjectsList load recovery', () => {
         },
       ],
     });
-    render(<TurboProjectsList />);
+    render(<TurboProjectsList />, {
+      wrapper: queryClientWrapper(createTestQueryClient()),
+    });
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'An active subscription is required',
     );
@@ -156,7 +172,9 @@ describe('TurboProjectsList load recovery', () => {
     'preserves the reason and explicit recovery for $status $title',
     async (error) => {
       mocks.list.mockRejectedValueOnce({ errors: [error] });
-      render(<TurboProjectsList />);
+      render(<TurboProjectsList />, {
+        wrapper: queryClientWrapper(createTestQueryClient()),
+      });
       expect(await screen.findByRole('alert')).toHaveTextContent(error.detail);
       expect(
         screen.queryByRole('link', { name: 'Manage subscription' }),
@@ -182,7 +200,9 @@ describe('TurboProjectsList load recovery', () => {
 
   it('retains an offline error without retrying automatically', async () => {
     mocks.list.mockRejectedValue(new Error('Network offline'));
-    render(<TurboProjectsList />);
+    render(<TurboProjectsList />, {
+      wrapper: queryClientWrapper(createTestQueryClient()),
+    });
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Network offline',
     );
@@ -207,7 +227,9 @@ describe('TurboProjectsList load recovery', () => {
       },
     ]);
 
-    render(<TurboProjectsList />);
+    render(<TurboProjectsList />, {
+      wrapper: queryClientWrapper(createTestQueryClient()),
+    });
     expect(await screen.findAllByText('Spring launch')).not.toHaveLength(0);
 
     mocks.list.mockResolvedValue([]);

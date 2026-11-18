@@ -52,6 +52,7 @@ export function useAuthorizedMediaPreview(
         ? { ...initial, state: 'PENDING' as const, url: null, expiresAt: null }
         : initial;
 
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     const controller = new AbortController();
     let timer: ReturnType<typeof setTimeout> | undefined;

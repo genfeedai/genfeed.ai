@@ -1,3 +1,7 @@
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
 import type { AgentThread } from '@genfeedai/agent';
 import type {
   AgentChatMessage,
@@ -12,6 +16,17 @@ import AgentThreadsPanel from './AgentThreadsPanel';
 // The real composer is a rich-text editor jsdom cannot type into (its own spec
 // covers it). This stand-in keeps its contract: send, clear on success, keep
 // the draft when the send rejects.
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
+}));
+
+vi.mock('next/navigation', () => ({
+  usePathname: () => '/acme/~/agent',
+  useRouter: () => ({ replace: vi.fn() }),
+  useSearchParams: () => new URLSearchParams(),
+}));
+
 vi.mock('@genfeedai/agent/components/AgentChatInput', async () => {
   const { useState } = await import('react');
   const { Button } = await import('@ui/primitives/button');
@@ -49,6 +64,16 @@ vi.mock('@genfeedai/agent/components/AgentChatInput', async () => {
     },
   };
 });
+
+// The roster needs a signed-in session and a query client; its own spec covers
+// it. These threads are all the viewer's own, so no one needs naming.
+vi.mock('@/components/workspace-shell/use-agent-thread-members', () => ({
+  useAgentThreadMembers: () => ({
+    isLoading: false,
+    members: [],
+    membersById: new Map(),
+  }),
+}));
 
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import(
@@ -121,7 +146,17 @@ const respondToUiAction = vi.fn(async () => ({
   status: 'queued' as const,
   threadId: 'needs',
 }));
-const apiService = { chatStream, getMessages, respondToUiAction };
+const apiService = {
+  acceptAgentTransfer: vi.fn(),
+  chatStream,
+  createAgentHandoff: vi.fn(),
+  createThreadShare: vi.fn(),
+  declineAgentTransfer: vi.fn(),
+  deleteThreadShare: vi.fn(),
+  getMessages,
+  getThreadShares: vi.fn(async () => []),
+  respondToUiAction,
+};
 const getThreadHref = (threadId: string) => `/acme/~/agent/${threadId}`;
 
 const plan: AgentProposedPlan = {
@@ -150,6 +185,7 @@ function renderPanel(
       threads={threads}
       {...props}
     />,
+    { wrapper: queryClientWrapper(createTestQueryClient()) },
   );
 }
 

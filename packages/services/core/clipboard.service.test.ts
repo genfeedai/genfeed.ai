@@ -80,7 +80,8 @@ describe('ClipboardService', () => {
 
       expect(mockWriteText).toHaveBeenCalledWith('in the gesture');
       expect(notificationsService.success).not.toHaveBeenCalled();
-      await copying;
+      expect(clipboardService.isCopyingToClipboard).toBe(true);
+      await expect(copying).resolves.toBe(true);
       expect(notificationsService.success).toHaveBeenCalledWith(
         'Copied to clipboard',
       );
@@ -104,6 +105,7 @@ describe('ClipboardService', () => {
         'Copied to clipboard',
       );
       expect(notificationsService.error).not.toHaveBeenCalled();
+      expect(clipboardService.isCopyingToClipboard).toBe(false);
     });
 
     it('surfaces failure when no clipboard path works', async () => {
@@ -125,6 +127,7 @@ describe('ClipboardService', () => {
       expect(notificationsService.error).toHaveBeenCalledWith(
         'Copy to clipboard failed',
       );
+      expect(clipboardService.isCopyingToClipboard).toBe(false);
     });
 
     it('resets isCopying after success', async () => {

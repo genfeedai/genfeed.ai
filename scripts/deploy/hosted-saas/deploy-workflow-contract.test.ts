@@ -35,7 +35,7 @@ describe('hosted SaaS Vercel deployment contract', () => {
     const core = await workflow('_deploy-hosted-saas-core.yml');
     expect(core).toContain('    needs: [deploy, deploy-vercel-frontends]');
     expect(core).toContain(
-      "if: ${{ needs.deploy.result == 'success' && needs.deploy-vercel-frontends.result == 'success' }}",
+      "if: ${{ !inputs.dry_run && needs.deploy.result == 'success' && needs.deploy-vercel-frontends.result == 'success' }}",
     );
     expect(core).not.toContain('deploy-marketplace-api');
     expect(core).not.toContain('marketplace_source_sha');
@@ -123,7 +123,10 @@ describe('hosted SaaS Vercel deployment contract', () => {
     const turbo = await turboConfig();
 
     expect(vercel).toContain(`DOMAIN: \${{ vars.DOMAIN }}`);
-    expect(vercel).toContain(`awk '!/^(API_URL|NEXT_PUBLIC_GENFEED_CLOUD|`);
+    const appEnvFilter = vercel.match(
+      /awk '!\/\^\(([^)]+)\)=\/' "\$\{env_file\}\.tmp" > "\$\{env_file\}\.app"/,
+    );
+    expect(appEnvFilter?.[1]?.split('|')).toContain('API_URL');
     expect(vercel).toContain(`printf 'API_URL=https://api.%s\\n' "$DOMAIN"`);
     expect(turbo).toContain(
       `"env": ["API_URL", "E2E_COVERAGE", "NEXT_PUBLIC_*", "NODE_ENV"]`,
@@ -224,9 +227,14 @@ describe('hosted SaaS rollback contract', () => {
 
     expect(rollback).toContain('REQUESTED_TAG: ${{ inputs.target_tag }}');
     expect(rollback).toContain('REASON: ${{ inputs.reason }}');
+    // dry_run is a boolean input and cannot carry script text.
     const interpolations = rollback
       .split('\n')
-      .filter((line) => line.includes('${{ inputs.'));
+      .filter(
+        (line) =>
+          line.includes('${{ inputs.') &&
+          /inputs\.(target_tag|reason)/.test(line),
+      );
     expect(interpolations.length).toBeGreaterThan(0);
     for (const line of interpolations) {
       expect(line).toMatch(/^(run-name: |\s+[A-Z_]+: )/);
@@ -309,8 +317,12 @@ describe('hosted SaaS on-demand seed contract', () => {
     expect(seed).toContain('          - backfill-report');
     expect(seed).toContain('          - webhook-id-report');
     expect(seed).toContain('          - instagram-reconnect-report');
+    expect(seed).toContain('          - storyboard-unbilled-report');
+    expect(seed).toContain('          - reserved-slug-report');
+    expect(seed).toContain('          - linkedin-credential-report');
+    expect(seed).toContain('          - release-health-report');
     expect(seed).toContain(
-      '            backfill-report | webhook-id-report | instagram-reconnect-report)',
+      '            backfill-report | webhook-id-report | instagram-reconnect-report | storyboard-unbilled-report | reserved-slug-report | linkedin-credential-report | release-health-report)',
     );
     expect(seed).toContain('migrate_task_definition_arn');
     expect(reader).toContain("await client.query('BEGIN READ ONLY');");
@@ -319,9 +331,76 @@ describe('hosted SaaS on-demand seed contract', () => {
     expect(reader).toContain(
       `c."platform" = 'INSTAGRAM' AND c."isConnected" = true AND c."isDeleted" = false`,
     );
+    expect(reader).toContain("op ->> 'state' = 'ready'");
+    expect(reader).toContain("op ->> 'billing' = 'released'");
+    expect(reader).toContain('lower(trim(slug)) = ANY($1)');
+    expect(reader).toContain(`c."platform" = 'LINKEDIN'`);
+    expect(reader).toContain(`"canonicalId" = 'scheduled-post.publish'`);
+    expect(reader).toContain(`"purgeAt" <= (now() AT TIME ZONE 'UTC')`);
     expect(reader).not.toMatch(
       /\b(INSERT|UPDATE|DELETE|DROP|ALTER|TRUNCATE|COMMIT)\b/,
     );
+  });
+
+  test('the report reader fits the 8192 character ECS container override', async () => {
+    const seed = await workflow('seed-hosted-saas.yml');
+    const start =
+      seed.indexOf('READ_ONLY_REPORT_SCRIPT: |\n') +
+      'READ_ONLY_REPORT_SCRIPT: |\n'.length;
+    const script = seed
+      .slice(start, seed.indexOf('        run: |', start))
+      .split('\n')
+      .map((line) => line.slice(12))
+      .join('\n');
+
+    // The script rides in the run-task override as JSON; leave room for the
+    // other arguments in the same override.
+    expect(JSON.stringify(script).length).toBeLessThan(7800);
+  });
+
+  test('every row-listing report query is bounded by a LIMIT', async () => {
+    const seed = await workflow('seed-hosted-saas.yml');
+    const start = seed.indexOf('const REPORTS = {');
+    const reports = seed
+      .slice(start, seed.indexOf('const name = process.argv[1];', start))
+      .split('\n')
+      .filter((line) =>
+        /^\s+'(storyboard-unbilled|reserved-slug|linkedin-credential|release-health|backfill)-report': /.test(
+          line,
+        ),
+      );
+
+    expect(reports).toHaveLength(5);
+    for (const line of reports) expect(line).toMatch(/LIMIT \d+[`'],?$/);
+  });
+
+  test('report seeds select the migrate task and override its command with the reader', async () => {
+    const seed = await workflow('seed-hosted-saas.yml');
+    const start = seed.indexOf(
+      '            backfill-report | webhook-id-report | instagram-reconnect-report | storyboard-unbilled-report | reserved-slug-report | linkedin-credential-report | release-health-report)\n',
+    );
+    const branch = seed.slice(start, seed.indexOf('              ;;', start));
+
+    expect(start).toBeGreaterThan(-1);
+    expect(branch).toContain(
+      'TASK_DEFINITION=$(tofu output -raw migrate_task_definition_arn)',
+    );
+    expect(branch).toContain('CONTAINER=migrate');
+    // Without this override the task would run the migration command itself.
+    expect(branch).toContain(
+      'override=(--container-name "${CONTAINER}" --command-arg node --command-arg=-e --command-arg "${READ_ONLY_REPORT_SCRIPT}" --command-arg "${SEED}")',
+    );
+    expect(branch).not.toContain('articles_seed_task_definition_arn');
+  });
+
+  test('the backfill report keeps deterministic ordering and a 100 row limit', async () => {
+    const seed = await workflow('seed-hosted-saas.yml');
+    const start = seed.indexOf("'backfill-report': '");
+    const query = seed.slice(start, seed.indexOf('\n', start));
+
+    expect(start).toBeGreaterThan(-1);
+    expect(query).toContain('FROM data_backfills');
+    expect(query).toContain('ORDER BY "completedAt" DESC LIMIT 100');
   });
 
   test('passes user input through env, never into the script text', async () => {
@@ -334,5 +413,165 @@ describe('hosted SaaS on-demand seed contract', () => {
     for (const line of interpolations) {
       expect(line).toMatch(/^(run-name: |\s+name: |\s+[A-Z_]+: )/);
     }
+  });
+});
+
+interface WorkflowStep {
+  name?: string;
+  uses?: string;
+  if?: string;
+  run?: string;
+}
+interface WorkflowJob {
+  if?: string;
+  steps?: WorkflowStep[];
+}
+interface Workflow {
+  jobs: Record<string, WorkflowJob>;
+}
+
+const parseWorkflow = async (name: string): Promise<Workflow> =>
+  Bun.YAML.parse(await workflow(name)) as Workflow;
+
+// `if: ${{ !inputs.dry_run }}` or `if: ${{ !inputs.dry_run && ... }}`. A
+// top-level `||` would let its right-hand side run in a dry run; one inside
+// parentheses, such as a list of step outcomes, cannot.
+const isDryRunGuarded = (condition: string | undefined): boolean => {
+  const text = condition ?? '';
+  let topLevel = text;
+  for (let previous = ''; previous !== topLevel; ) {
+    previous = topLevel;
+    topLevel = topLevel.replace(/\([^()]*\)/g, '');
+  }
+  return (
+    /^\$\{\{\s*!inputs\.dry_run\s*(&&|\}\})/.test(text) &&
+    !topLevel.includes('||')
+  );
+};
+
+// The only steps that may run in a dry run, with why each is read-only.
+const READ_ONLY_DEPLOY_STEPS = [
+  'Require hosted SaaS site variables', // env checks only
+  'Materialize list variables', // writes GITHUB_ENV on the runner
+  'Checkout public deploy engine', // git read
+  'Checkout exact public application source', // git read
+  'Setup Bun (ECS poll script)', // runner tooling
+  'Install ECS poll script deps (isolated)', // runner install
+  'Resolve image tag', // string checks
+  'Configure AWS credentials (OIDC)', // STS assume role, no resource change
+  'Login to GHCR', // local docker config
+  'Login to ECR', // token fetch + local docker config
+  'Resolve available server image', // registry inspect
+  'opentofu/setup-opentofu', // runner tooling
+  'Tofu init', // backend read, no state write, no lock
+] as const;
+
+// Steps that exist only to rehearse; they must not run in a real deploy.
+const DRY_RUN_ONLY_DEPLOY_STEPS = [
+  'Resolve server image digest (dry run)',
+  'Verify serving image schemas (dry run)',
+] as const;
+
+const WRITING_COMMAND =
+  /tofu (apply|destroy)|imagetools create|prepare-server-image|ecs-run-task-and-wait|aws (rds|ecs|ssm|s3)|docker push|vercel|put-parameter|gh (issue|release|api --method)/;
+
+describe('hosted SaaS rollback dry-run contract', () => {
+  test('no writing step or job can run when dry_run is true', async () => {
+    const core = await parseWorkflow('_deploy-hosted-saas-core.yml');
+    const readOnly = new Set<string>(READ_ONLY_DEPLOY_STEPS);
+    const dryRunOnly = new Set<string>(DRY_RUN_ONLY_DEPLOY_STEPS);
+    const unclassified: string[] = [];
+
+    for (const [jobName, job] of Object.entries(core.jobs)) {
+      if (jobName !== 'deploy') {
+        // Every other job writes (Vercel, issues, image promotion) or follows one.
+        expect({ jobName, guarded: isDryRunGuarded(job.if) }).toEqual({
+          jobName,
+          guarded: true,
+        });
+        continue;
+      }
+      for (const step of job.steps ?? []) {
+        const label = step.name ?? step.uses?.split('@')[0] ?? '';
+        if (dryRunOnly.has(label)) {
+          expect(step.if).toBe('${{ inputs.dry_run }}');
+        } else if (readOnly.has(label)) {
+          expect(step.if ?? '').not.toContain('inputs.dry_run');
+          expect(step.run ?? '').not.toMatch(WRITING_COMMAND);
+        } else if (!isDryRunGuarded(step.if)) {
+          unclassified.push(label);
+        }
+      }
+    }
+
+    // A new step must either skip in a dry run or be listed above as read-only.
+    expect(unclassified).toEqual([]);
+  });
+
+  test('keeps the read-only and dry-run-only lists in step with the workflow', async () => {
+    const core = await parseWorkflow('_deploy-hosted-saas-core.yml');
+    const labels = (core.jobs.deploy?.steps ?? []).map(
+      (step) => step.name ?? step.uses?.split('@')[0],
+    );
+
+    for (const label of [
+      ...READ_ONLY_DEPLOY_STEPS,
+      ...DRY_RUN_ONLY_DEPLOY_STEPS,
+    ]) {
+      expect(labels).toContain(label);
+    }
+  });
+
+  test('the real deploy and rollback default to dry_run false and pass it through', async () => {
+    const core = await workflow('_deploy-hosted-saas-core.yml');
+    const deploy = await workflow('deploy-hosted-saas.yml');
+    const rollback = await workflow('rollback-hosted-saas.yml');
+    const release = await parseWorkflow('release.yml');
+    const flag = /\n {6}dry_run:\n((?: {8}.*\n)+)/g;
+
+    for (const content of [core, deploy, rollback]) {
+      const inputs = [...content.matchAll(flag)];
+      expect(inputs.length).toBeGreaterThan(0);
+      for (const [, body] of inputs) {
+        expect(body).toContain('default: false');
+        expect(body).toContain('type: boolean');
+      }
+    }
+    expect(deploy).toContain('dry_run: ${{ inputs.dry_run }}');
+    expect(rollback).toContain('dry_run: ${{ inputs.dry_run }}');
+    // The release deploys for real: it must not opt in to a dry run.
+    expect(JSON.stringify(release.jobs['deploy-saas'])).not.toContain(
+      'dry_run',
+    );
+  });
+
+  test('a dry run uses its own concurrency groups so it never blocks a real deploy', async () => {
+    for (const name of [
+      '_deploy-hosted-saas-core.yml',
+      'deploy-hosted-saas.yml',
+      'rollback-hosted-saas.yml',
+    ]) {
+      const content = await workflow(name);
+      expect(content).toMatch(
+        /\n {2}group: \$\{\{ inputs\.dry_run && '[a-z-]+-dry-run' \|\| '[a-z-]+' \}\}\n/,
+      );
+    }
+  });
+
+  test('the release rehearses the rollback after publishing, as a dry run that cannot fail it', async () => {
+    const release = await workflow('release.yml');
+    const job = release.slice(release.indexOf('  rehearse-rollback:'));
+
+    expect(job).toContain('needs: [validate-release, publish-release]');
+    expect(job).toContain("needs.publish-release.result == 'success'");
+    expect(job).toContain('continue-on-error: true');
+    expect(job).toContain('-f dry_run=true');
+    expect(job).not.toContain('dry_run=false');
+    expect(job).not.toContain('target_tag');
+    expect(job).toContain('## Rollback rehearsal');
+    // Nothing may wait on the rehearsal, including the release publication.
+    expect(
+      release.slice(0, release.indexOf('  rehearse-rollback:')),
+    ).not.toContain('rehearse-rollback');
   });
 });

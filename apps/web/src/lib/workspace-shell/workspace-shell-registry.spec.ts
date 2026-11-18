@@ -82,7 +82,7 @@ describe('workspace shell trusted registry', () => {
   });
 
   it.each([
-    ['/acme/~/settings/api-keys', 'Settings', 'API Keys'],
+    ['/acme/~/connectors/api-keys', 'Connectors', 'API keys'],
     ['/acme/~/automation', 'Automation', 'Overview'],
     ['/acme/moonrise/discovery/overview', 'Discovery', 'Overview'],
     ['/acme/moonrise/discovery/ads', 'Discovery', 'Ads'],
@@ -144,6 +144,43 @@ describe('workspace shell trusted registry', () => {
       });
     },
   );
+
+  it('resolves the same pathname to the same route every time', () => {
+    const first = resolveWorkspaceShellRoute('/acme/moonrise/library/assets');
+
+    expect(first?.key).toBe('route:/:orgSlug/:brandSlug/library/assets');
+    expect(resolveWorkspaceShellRoute('/acme/moonrise/library/assets')).toBe(
+      first,
+    );
+    expect(
+      resolveWorkspaceShellRoute('/acme/moonrise/nope/nowhere'),
+    ).toBeNull();
+    expect(
+      resolveWorkspaceShellRoute('/acme/moonrise/nope/nowhere'),
+    ).toBeNull();
+  });
+
+  it('keeps resolving correctly after many distinct paths have been resolved', () => {
+    for (let index = 0; index < 600; index += 1) {
+      const route = resolveWorkspaceShellRoute(
+        `/org-${index}/brand-${index}/motion/project-${index}`,
+      );
+
+      expect(route?.params).toEqual({
+        brandSlug: `brand-${index}`,
+        projectId: `project-${index}`,
+        orgSlug: `org-${index}`,
+      });
+    }
+
+    expect(
+      resolveWorkspaceShellRoute('/acme/moonrise/motion/project-1')?.params,
+    ).toEqual({
+      brandSlug: 'moonrise',
+      orgSlug: 'acme',
+      projectId: 'project-1',
+    });
+  });
 
   it('no longer resolves the retired Playground job route', () => {
     expect(
@@ -336,8 +373,8 @@ describe('workspace shell trusted registry', () => {
       '/acme/moonrise/automation/runs/run-1',
       '/acme/moonrise/settings/publishing',
       '/acme/moonrise/settings/usage',
-      '/acme/moonrise/settings/accounts',
-      '/acme/~/settings/api-keys',
+      '/acme/moonrise/settings/profile',
+      '/acme/~/connectors/api-keys',
       '/acme/~/settings/usage',
       '/acme/~/settings/subscription',
       '/admin/overview',
@@ -453,20 +490,24 @@ describe('workspace shell trusted registry', () => {
     });
   });
 
-  it('registers the Connect Genfeed resolver and organization flow explicitly', () => {
-    expect(resolveWorkspaceShellRoute('/connect')).toMatchObject({
-      accessPolicy: 'authenticated',
-      canonicalUrl: '/connect',
-      safeFallback: '/connect',
-      scope: 'personal',
-      surfaceKey: 'connect-genfeed-resolver',
+  it('registers every Connectors section explicitly', () => {
+    expect(
+      resolveWorkspaceShellRoute('/acme/moonrise/connectors/channels'),
+    ).toBeNull();
+    expect(
+      resolveWorkspaceShellRoute('/acme/moonrise/connectors/webhooks'),
+    ).toMatchObject({
+      accessPolicy: 'brand-member',
+      breadcrumb: { leafLabel: 'Webhooks', rootLabel: 'Connectors' },
+      canonicalUrl: '/:orgSlug/:brandSlug/connectors/webhooks',
+      scope: 'brand',
+      surfaceKey: 'connectors',
     });
-    expect(resolveWorkspaceShellRoute('/acme/~/connect')).toMatchObject({
-      accessPolicy: 'organization-member',
-      canonicalUrl: '/:orgSlug/~/connect',
-      safeFallback: '/:orgSlug/~/connect',
-      scope: 'organization',
-      surfaceKey: 'connect-genfeed',
+    expect(
+      resolveWorkspaceShellRoute('/acme/~/connectors/providers'),
+    ).toMatchObject({
+      breadcrumb: { leafLabel: 'AI providers', rootLabel: 'Connectors' },
+      surfaceKey: 'connectors',
     });
     expect(resolveWorkspaceShellRoute('/acme/~/connect/social')).toMatchObject({
       accessPolicy: 'organization-member',
@@ -478,9 +519,9 @@ describe('workspace shell trusted registry', () => {
   });
 
   it('does not treat reserved application prefixes as scoped routes', () => {
-    expect(resolveWorkspaceShellRoute('/connect/~/overview')).toBeNull();
+    expect(resolveWorkspaceShellRoute('/connectors/~/overview')).toBeNull();
     expect(
-      resolveWorkspaceShellRoute('/connect/example/publishing'),
+      resolveWorkspaceShellRoute('/connectors/example/publishing'),
     ).toBeNull();
     expect(resolveWorkspaceShellRoute('/settings/~/overview')).toBeNull();
     expect(

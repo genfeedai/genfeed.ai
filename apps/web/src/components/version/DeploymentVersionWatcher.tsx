@@ -51,6 +51,7 @@ async function fetchServerBuildId(
 export default function DeploymentVersionWatcher() {
   const hasPromptedRef = useRef(false);
 
+  // use-effect-audit: ignore interval timer outside React
   useEffect(() => {
     if (isDesktopClient() || !CURRENT_BUILD_ID) {
       return;

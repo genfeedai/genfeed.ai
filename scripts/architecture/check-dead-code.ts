@@ -1,19 +1,23 @@
 /**
- * Dead-code ratchet (#5064).
+ * Dead-code floor (#5064).
  *
  * `knip` finds unused files, unused exports and types, and unused manifest
  * dependencies. This check runs it and compares the result with
- * `dead-code.baseline.json`:
+ * `dead-code.baseline.json`. Every category is at a floor of zero and the
+ * baseline holds empty lists, so any finding fails the check:
  *
- * - Unused files are a floor of zero. A file nothing imports is deleted, or
- *   the file is declared as an entry in `knip.config.ts` with the tool that
- *   loads it.
- * - Unused exports, unused types and unused dependencies are a shrinking
- *   ratchet. A file may not gain unused exports, a new file may not start with
- *   any, and a manifest may not gain an unused dependency.
- * - A baseline entry that no longer matches (the exports were removed, the
- *   dependency was dropped) must be pruned in the same PR, so the list only
- *   shrinks. `check:ratchet-growth` fails a PR that appends to the baseline.
+ * - A file nothing imports is deleted, or declared as an entry in
+ *   `knip.config.ts` with the tool that loads it.
+ * - An unused export or type is deleted, or loses its `export` keyword when the
+ *   file uses it.
+ * - An unused dependency is removed from its manifest. A dependency that is
+ *   used in a way knip cannot see (a tsconfig path, a CSS import, a
+ *   `createRequire` call, a generated client) goes in `ignoreDependencies` in
+ *   `knip.config.ts` with the reason.
+ *
+ * The baseline must stay empty: `check-dead-code.test.ts` asserts it, and
+ * `check:ratchet-growth` fails a PR that appends to it. A baseline entry that
+ * no longer matches (the code was removed) is reported as stale.
  *
  *   bun run check:dead-code
  *   bun run check:dead-code --update-baseline

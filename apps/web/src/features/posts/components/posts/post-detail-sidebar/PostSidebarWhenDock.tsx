@@ -2,6 +2,7 @@
 
 import { ButtonVariant, CredentialPlatform } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
 import { Button } from '@ui/primitives/button';
 import FormDateTimePicker from '@ui/primitives/date-time-picker';
 import {
@@ -14,7 +15,7 @@ import { Tabs } from '@ui/primitives/tabs';
 import { ChevronDown } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import type { PostSidebarWhenDockProps } from '@/props/components/post-detail-sidebar.props';
 
 import { getPlatformLabel } from './PostSidebarDestination';
@@ -51,11 +52,9 @@ export default function PostSidebarWhenDock({
 
   // An existing schedule can arrive after the first render; show it unless the
   // user already picked a mode themselves.
-  useEffect(() => {
-    if (scheduleDraft && !hasChosenMode) {
-      setMode('schedule');
-    }
-  }, [scheduleDraft, hasChosenMode]);
+  if (scheduleDraft && !hasChosenMode && mode !== 'schedule') {
+    setMode('schedule');
+  }
 
   if (isPublished) {
     return (
@@ -65,17 +64,19 @@ export default function PostSidebarWhenDock({
         {post.url ? (
           <Button
             asChild
+            ariaLabel={translate('viewOn', {
+              platform: getPlatformLabel(
+                post.platform,
+                inspectorTranslate('unknownPlatform'),
+              ),
+            })}
             variant={ButtonVariant.SECONDARY}
             withWrapper={false}
             className="w-full"
           >
             <Link href={post.url} target="_blank" rel="noopener noreferrer">
-              {translate('viewOn', {
-                platform: getPlatformLabel(
-                  post.platform,
-                  inspectorTranslate('unknownPlatform'),
-                ),
-              })}
+              {post.platform ? getPlatformIcon(post.platform, 'size-4') : null}
+              {translate('view')}
             </Link>
           </Button>
         ) : null}

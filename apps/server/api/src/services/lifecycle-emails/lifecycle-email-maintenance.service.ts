@@ -574,13 +574,19 @@ export class LifecycleEmailMaintenanceService implements OnModuleInit {
     const organizationPath = encodeURIComponent(organizationSlug);
     return {
       destinationUrl: destinationBrand
-        ? `${this.appUrl()}${createBrandAppRoute(
-            organizationPath,
-            encodeURIComponent(destinationBrand.slug),
+        ? `${this.appUrl()}${
             missingConnection
-              ? APP_ROUTES.SETTINGS.CONNECTED_ACCOUNTS
-              : APP_ROUTES.STUDIO.PLAYGROUND,
-          )}`
+              ? createBrandAppRoute(
+                  organizationPath,
+                  encodeURIComponent(destinationBrand.slug),
+                  APP_ROUTES.SETTINGS.PROFILE,
+                )
+              : createBrandAppRoute(
+                  organizationPath,
+                  encodeURIComponent(destinationBrand.slug),
+                  APP_ROUTES.STUDIO.PLAYGROUND,
+                )
+          }`
         : `${this.appUrl()}/${organizationPath}`,
       missingConnection,
     };
@@ -649,7 +655,7 @@ export class LifecycleEmailMaintenanceService implements OnModuleInit {
         select: { slug: true, label: true },
       });
       if (!brand) continue;
-      const destinationUrl = `${this.appUrl()}${createBrandAppRoute(encodeURIComponent(organizationSlug), encodeURIComponent(brand.slug), APP_ROUTES.SETTINGS.CONNECTED_ACCOUNTS)}`;
+      const destinationUrl = `${this.appUrl()}${createBrandAppRoute(encodeURIComponent(organizationSlug), encodeURIComponent(brand.slug), APP_ROUTES.SETTINGS.PROFILE)}`;
       const waitingWhere = {
         ...GENERATED_CONTENT_FILTER,
         brandId: item.brandId,
@@ -700,7 +706,7 @@ export class LifecycleEmailMaintenanceService implements OnModuleInit {
         preheader:
           'You have generated content waiting for a publishing destination.',
         destinationUrl,
-        actionLabel: 'Connect an account',
+        actionLabel: 'Connect Account',
         goal: 'connect_account',
         brandId: item.brandId,
       });

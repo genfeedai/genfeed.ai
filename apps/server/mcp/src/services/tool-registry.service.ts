@@ -1,15 +1,13 @@
 import {
-  describeCreditPricing,
-  estimateToolCreditCost,
   getMcpCatalogOperations,
   getToolByName,
   getToolsetNames,
   getToolsForSurface,
   getToolsForToolsets,
   isMcpBrandRequiredTool,
+  isMcpBrandRequiredWhenMultipleTool,
   isToolAllowedInMcpAccessMode,
   type McpAccessMode,
-  type McpBrandOption,
   type McpToolOutput,
   readMcpBrandId,
   type ToolsetName,
@@ -17,7 +15,10 @@ import {
 } from '@genfeedai/actions';
 import { formatAgentError } from '@genfeedai/agent/server';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
+import {
+  type AgentToolResult,
+  type IScheduledReleaseBatchItemError,
+} from '@genfeedai/contracts/interfaces';
 import { serializeMediaArtifact } from '@genfeedai/helpers';
 import { SATOSHI_FONT_RESOURCE_PATH } from '@genfeedai/ui/static/font';
 import { isRecord } from '@genfeedai/utils/data/extract.util';
@@ -39,6 +40,11 @@ import {
 } from '@mcp/services/ads-tool-names.util';
 import { AuthService, type McpRole } from '@mcp/services/auth.service';
 import { ClientService } from '@mcp/services/client.service';
+import { withAccountOrganizations } from '@mcp/services/mcp-account-organizations.util';
+import {
+  pendingApprovalResult,
+  settleApprovalAnswer,
+} from '@mcp/services/mcp-approval-answer.util';
 import {
   isMcpApprovalRedeemable,
   requiresMcpToolApproval,
@@ -47,22 +53,34 @@ import {
   isBrandContextUri,
   readBrandContextResource,
 } from '@mcp/services/mcp-brand-context-resource.util';
+import { nameBrands } from '@mcp/services/mcp-brand-named-result.util';
 import {
-  collectBrandIds,
-  withBrandNames,
-} from '@mcp/services/mcp-brand-names.util';
+  brandChoiceToolResult,
+  brandRequiredToolResult,
+} from '@mcp/services/mcp-brand-required-result.util';
+import { listCallerBrands } from '@mcp/services/mcp-caller-brands.util';
 import {
   resolveAuthorizedMcpCatalogCall,
   validateMcpCatalogDispatchCoverage,
 } from '@mcp/services/mcp-catalog-call.util';
+import { unavailableInConnectorMessage } from '@mcp/services/mcp-connector-message.util';
 import { toNativeMcpMediaResult } from '@mcp/services/mcp-media-result.util';
 import {
   agentGuideResource,
   jsonResource,
   markdownResource,
 } from '@mcp/services/mcp-resource-contents.util';
+import {
+  batchPendingFor,
+  prepareToolBatch,
+  settledBatchText,
+  withOmittedReleases,
+} from '@mcp/services/mcp-scheduled-batch.util';
 import { finalizeMcpToolResult } from '@mcp/services/mcp-tool-result.util';
-import type { McpApprovalResource } from '@mcp/shared/interfaces/approval.interface';
+import type {
+  McpApprovalAnswer,
+  McpApprovalResource,
+} from '@mcp/shared/interfaces/approval.interface';
 import type { McpResource } from '@mcp/shared/interfaces/mcp-resource.interface';
 import {
   accountToolText,
@@ -83,12 +101,14 @@ import { CONTENT_TOOL_NAMES, handleContentTool } from '@mcp/tools/content.tool';
 import { EDITOR_TOOL_NAMES, handleEditorTool } from '@mcp/tools/editor.tool';
 import { handleGoogleAdsTool } from '@mcp/tools/google-ads.tool';
 import {
-  approvalPendingToolResult,
-  generateApprovalCostEstimate,
   mcpToolErrorResult,
   toMcpToolErrorResult,
 } from '@mcp/tools/mcp-tool-error';
 import { handleMetaAdsTool } from '@mcp/tools/meta-ads.tool';
+import {
+  handleModels3dTool,
+  MODELS3D_TOOL_NAMES,
+} from '@mcp/tools/models3d.tool';
 import {
   ONBOARDING_TOOL_NAMES,
   resolveOnboardBrandCall,
@@ -143,6 +163,8 @@ import { Injectable, type OnModuleInit, Optional } from '@nestjs/common';
 interface ToolCallParams {
   name: string;
   arguments: Record<string, unknown>;
+  /** The requester's answer to this call's approval prompt (#9647). */
+  approvalAnswer?: McpApprovalAnswer;
 }
 
 interface ResourceReadParams {
@@ -183,12 +205,6 @@ const ACCOUNT_MANAGEMENT_TOOL_NAMES: ReadonlySet<string> = new Set<string>([
   'switch_org',
 ]);
 
-/** Results that already list brands by name, so they need no extra lookup. */
-const BRAND_NAMED_TOOL_NAMES: ReadonlySet<string> = new Set<string>([
-  'get_account',
-  'get_brands',
-]);
-
 /**
  * Which executor handles a tool name. `'unknown'` means no dispatch path exists
  * — the drift guard rejects any MCP-surfaced tool that classifies as unknown so
@@ -220,6 +236,7 @@ type ExecutorKind =
   | 'workspace-app'
   | 'storyboard-capabilities'
   | 'presets'
+  | 'models3d'
   | 'remix'
   | 'scheduler'
   | 'skills-pro'
@@ -320,7 +337,7 @@ export class ToolRegistryService implements OnModuleInit {
   ): McpToolOutput[] {
     return ToolRegistryService.filterToolsByRole(
       toMcpTools(
-        accessMode === 'claude'
+        accessMode === 'claude' || accessMode === 'admin'
           ? getToolsForSurface('mcp')
           : getToolsForToolsets('mcp', toolsets),
       )
@@ -404,9 +421,7 @@ export class ToolRegistryService implements OnModuleInit {
       if (!isToolAllowedInMcpAccessMode(this.requestAccessMode, name)) {
         return mcpToolErrorResult({
           code: 'unavailable_in_connector',
-          message:
-            'This tool is unavailable through the Claude connector. Create images, video and audio in Genfeed Studio, then return here to manage your content.',
-          nextStepUrl: `${getPublicAppUrl()}${APP_ROUTES.STUDIO.PLAYGROUND}`,
+          message: unavailableInConnectorMessage(this.requestAccessMode, name),
         });
       }
       const canonicalTool = getToolByName(name);
@@ -439,72 +454,75 @@ export class ToolRegistryService implements OnModuleInit {
 
       // Rejected before any approval or charge: a generation always names its brand.
       if (isMcpBrandRequiredTool(name) && !readMcpBrandId(args)) {
-        return await this.brandRequiredResult();
+        return brandRequiredToolResult(
+          await listCallerBrands(this.clientService),
+        );
+      }
+
+      // A draft names its brand when the organization has several. A single
+      // brand is bound into the arguments here, so a queued approval and its
+      // later redemption carry the same arguments (#10071).
+      if (isMcpBrandRequiredWhenMultipleTool(name) && !readMcpBrandId(args)) {
+        const brands = await listCallerBrands(this.clientService);
+        if (brands && brands.length > 1) {
+          return brandChoiceToolResult(brands);
+        }
+        if (brands?.length === 1) {
+          args = { ...args, brandId: brands[0].id };
+        }
+      }
+
+      // The requester answered this call's approval prompt (#9647). Settle it
+      // against that approval before the current policy, so a decline holds.
+      if (params.approvalAnswer) {
+        const settled = await settleApprovalAnswer(
+          this.clientService,
+          this.logger,
+          name,
+          params.approvalAnswer,
+        );
+        if (settled.kind === 'run') {
+          return await this.runApprovedApproval(settled.approval);
+        }
+        return settled.kind === 'pending'
+          ? await this.pendingResult(settled.approval, args ?? {})
+          : this.textResult(settled.message);
       }
 
       // Declared approvals and credit spenders wait for confirmation, unless the
       // organization and member both waived a credit spender (mcp-approval-gate.util).
+      // A release batch is validated whole first; refused releases are named (#10134).
+      const prepared = await prepareToolBatch(this.clientService, name, args);
+      if (prepared.kind === 'rejected') return prepared.result;
+      args = prepared.args;
+
       if (await requiresMcpToolApproval(this.clientService, name, args)) {
         const approval = await this.clientService.createApproval(
           name,
           args ?? {},
         );
+        const settled = settledBatchText(approval);
+        if (settled) return this.textResult(settled);
         // A reviewer approved this exact call in the Genfeed review inbox
         // (#7340); repeating it runs the approved action once.
         if (approval.status === 'APPROVED' && !approval.result) {
           return await this.runApprovedApproval(approval);
         }
-        return withApprovalCard(this.pendingResult(approval, args ?? {}));
+        return this.pendingResult(approval, args ?? {}, prepared.invalid);
       }
 
-      return await this.executeTool(name, args ?? {});
+      const done = await this.executeTool(name, args ?? {});
+      return withOmittedReleases(done, prepared.invalid);
     } catch (error: unknown) {
-      this.logger.error(`Error handling tool call ${name}:`, error);
+      // A failure the classifier names (publishing held, rate limited, bad
+      // input) is a handled refusal the caller is told about, not a fault.
+      if (toMcpToolErrorResult(error)) {
+        this.logger.warn(`Tool call ${name} was refused:`, error);
+      } else {
+        this.logger.error(`Error handling tool call ${name}:`, error);
+      }
       return mcpToolFailureResult(error);
     }
-  }
-
-  private async brandRequiredResult() {
-    const brands = await this.listCallerBrands();
-    if (!brands) {
-      return mcpToolErrorResult({
-        brands: [],
-        code: 'brand_required',
-        message:
-          'Choose a brand for this generation. Your brands could not be loaded right now: call get_brands, then retry with its brandId.',
-      });
-    }
-    if (brands.length === 0) {
-      return mcpToolErrorResult({
-        brands,
-        code: 'brand_required',
-        message:
-          'You have no brand to generate for yet. Create a brand in Genfeed (Settings > Brands), or ask an organization admin to create one and give you access, then retry.',
-        nextStepUrl: `${getPublicAppUrl()}${APP_ROUTES.SETTINGS.BRANDS}`,
-      });
-    }
-    return mcpToolErrorResult({
-      brands,
-      code: 'brand_required',
-      message: `Choose a brand for this generation. Available brands: ${brands.map((brand) => (brand.label === brand.id ? 'Unnamed brand' : brand.label)).join(', ')}.`,
-    });
-  }
-
-  /** The caller's brands, or `undefined` when they could not be loaded. */
-  private async listCallerBrands(): Promise<McpBrandOption[] | undefined> {
-    const result = await this.clientService.executeAgentTool('get_brands', {});
-    const brands = isRecord(result.data) ? result.data.brands : undefined;
-    if (!result.success || !Array.isArray(brands)) return undefined;
-    return brands.flatMap((brand): McpBrandOption[] => {
-      if (!isRecord(brand) || typeof brand.id !== 'string') return [];
-      const label =
-        typeof brand.label === 'string' && brand.label.trim()
-          ? brand.label
-          : typeof brand.name === 'string' && brand.name.trim()
-            ? brand.name
-            : brand.id;
-      return [{ id: brand.id, label }];
-    });
   }
 
   static classify(name: string): ExecutorKind {
@@ -535,6 +553,7 @@ export class ToolRegistryService implements OnModuleInit {
     if (WORKSPACE_APP_TOOL_NAMES.has(name)) return 'workspace-app';
     if (STORYBOARD_TOOL_NAMES.has(name)) return 'storyboard-capabilities';
     if (PRESET_TOOL_NAMES.has(name)) return 'presets';
+    if (MODELS3D_TOOL_NAMES.has(name)) return 'models3d';
     if (REMIX_TOOL_NAMES.has(name)) return 'remix';
     if (SCHEDULER_TOOL_NAMES.has(name)) return 'scheduler';
     if (SKILLS_PRO_TOOL_NAMES.has(name)) return 'skills-pro';
@@ -577,7 +596,15 @@ export class ToolRegistryService implements OnModuleInit {
           name === 'get_brands' ? { ...args, includeLogo: true } : args,
           approvedApprovalId ? { approvedApprovalId } : undefined,
         );
-        return this.toMcpResult(await this.nameBrands(result, name), name);
+        return this.toMcpResult(
+          await withAccountOrganizations(
+            await nameBrands(result, name, this.clientService, this.logger),
+            name,
+            this.clientService,
+            this.logger,
+          ),
+          name,
+        );
       }
       case 'onboarding': {
         const { agentToolName, parameters, timeoutMs } =
@@ -624,10 +651,17 @@ export class ToolRegistryService implements OnModuleInit {
         return handleStoryboardTool(this.clientService, name, args);
       case 'presets':
         return handlePresetTool(this.clientService, name, args);
+      case 'models3d':
+        return handleModels3dTool(this.clientService, name, args);
       case 'remix':
         return handleRemixTool(this.clientService, name, args);
       case 'scheduler':
-        return handleSchedulerTool(this.clientService, name, args);
+        return handleSchedulerTool(
+          this.clientService,
+          name,
+          args,
+          approvedApprovalId,
+        );
       case 'skills-pro':
         return handleSkillsProTool(this.clientService, name, args);
       default:
@@ -775,38 +809,22 @@ export class ToolRegistryService implements OnModuleInit {
     }
   }
 
-  private pendingResult(
+  private async pendingResult(
     approval: McpApprovalResource,
     args: Record<string, unknown>,
+    invalidReleases: IScheduledReleaseBatchItemError[] = [],
   ) {
-    const tool = getToolByName(approval.toolName);
     const canResolveApproval = this.getTools().some(
       (candidate) => candidate.name === 'resolve_approval',
     );
-    if (approval.toolName === 'generate') {
-      return approvalPendingToolResult(
-        approval,
-        generateApprovalCostEstimate(approval, args),
-        canResolveApproval,
-      );
-    }
-    if (!tool?.creditPricing)
-      return approvalPendingToolResult(approval, undefined, canResolveApproval);
-    const estimatedCredits = estimateToolCreditCost(
-      approval.toolName,
-      args,
-      tool.creditPricing,
-    );
-    return approvalPendingToolResult(
+    const batch = await batchPendingFor(
+      this.clientService,
       approval,
-      {
-        estimatedCredits,
-        pricingSummary:
-          estimatedCredits === null
-            ? describeCreditPricing(tool.creditPricing)
-            : undefined,
-      },
-      canResolveApproval,
+      invalidReleases,
+      this.logger,
+    );
+    return withApprovalCard(
+      pendingApprovalResult(approval, args, canResolveApproval, batch),
     );
   }
 
@@ -818,31 +836,6 @@ export class ToolRegistryService implements OnModuleInit {
     return [
       this.configService?.get('GENFEEDAI_CDN_URL') || 'https://cdn.genfeed.ai',
     ];
-  }
-
-  /**
-   * Adds the brand name next to every `brandId` in a result (#7138). A failed
-   * lookup leaves the result as the tool returned it.
-   */
-  private async nameBrands(
-    result: AgentToolResult,
-    name: string,
-  ): Promise<AgentToolResult> {
-    if (!result.success || BRAND_NAMED_TOOL_NAMES.has(name)) return result;
-    const ids = collectBrandIds(result.data);
-    if (ids.length === 0) return result;
-    try {
-      const brands = await this.listCallerBrands();
-      const names = new Map(
-        (brands ?? [])
-          .filter((brand) => ids.includes(brand.id) && brand.label !== brand.id)
-          .map((brand) => [brand.id, brand.label]),
-      );
-      return { ...result, data: withBrandNames(result.data, names) };
-    } catch (error: unknown) {
-      this.logger.warn('Could not name brands in a tool result', error);
-      return result;
-    }
   }
 
   private toMcpResult(result: AgentToolResult, name: string) {
@@ -946,16 +939,22 @@ export class ToolRegistryService implements OnModuleInit {
               toolName,
               'agent',
             ),
-          listBrands: () => this.listCallerBrands(),
+          listBrands: () => listCallerBrands(this.clientService),
         });
       }
 
       switch (uri) {
         case McpResourceUri.AGENT_GUIDE:
+          if (this.requestAccessMode === 'admin') {
+            return markdownResource(
+              uri,
+              `# Genfeed admin\nThis connection lists only the admin-only tools, for organization owners and admins. Content, brand and generation tools are on the standard connection.`,
+            );
+          }
           return this.requestAccessMode === 'claude'
             ? markdownResource(
                 uri,
-                `# Genfeed for Claude\nManage brands, drafts, scheduling and analytics with existing assets. Create images, video and audio in [Genfeed Studio](${getPublicAppUrl()}${APP_ROUTES.STUDIO.PLAYGROUND}). This connector cannot run generation, workflows, batches, remix or approval redemption.`,
+                `# Genfeed for Claude\nManage brands, drafts, scheduling and analytics with existing assets. This connector does not generate images, video or audio, and cannot run workflows, batches, remix or approval redemption.`,
               )
             : agentGuideResource(uri);
 

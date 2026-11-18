@@ -1,6 +1,12 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { buildAgentThreadActor } from '@api/collections/agent-threads/utils/agent-thread-actor.util';
+import {
+  resolveAgentThreadDatabaseUserId,
+  resolveAgentThreadOrganizationId,
+} from '@api/collections/agent-threads/utils/agent-thread-identity.util';
 import { CreateTaskCommentDto } from '@api/collections/task-comments/dto/create-task-comment.dto';
 import { TaskCommentsService } from '@api/collections/task-comments/services/task-comments.service';
+import { UsersService } from '@api/collections/users/services/users.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
@@ -26,7 +32,10 @@ import type { Request } from 'express';
 @AutoSwagger()
 @Controller('tasks/:taskId/comments')
 export class TaskCommentsController {
-  constructor(private readonly taskCommentsService: TaskCommentsService) {}
+  constructor(
+    private readonly taskCommentsService: TaskCommentsService,
+    private readonly usersService: UsersService,
+  ) {}
 
   @TenantReadPolicy('selected')
   @Get()
@@ -36,7 +45,7 @@ export class TaskCommentsController {
     @CurrentUser() user: User,
   ) {
     const organization = resolveTenantReadScope(user).organizationId;
-    const docs = await this.taskCommentsService.findByTask(
+    const docs = await this.taskCommentsService.findByTaskWithMentions(
       taskId,
       organization,
     );
@@ -52,16 +61,15 @@ export class TaskCommentsController {
     @CurrentUser() user: User,
     @Body() createDto: CreateTaskCommentDto,
   ) {
-    const doc = await this.taskCommentsService.create({
-      ...createDto,
-      authorUserId: user.userId ?? user.id,
-      organizationId: user.organizationId,
-      taskId: taskId,
-    } as CreateTaskCommentDto & {
-      authorUserId: string;
-      organizationId: string;
-      taskId: string;
-    });
+    const doc = await this.taskCommentsService.createForTask(
+      buildAgentThreadActor(
+        user,
+        resolveAgentThreadOrganizationId(user),
+        await resolveAgentThreadDatabaseUserId(user, this.usersService),
+      ),
+      taskId,
+      createDto,
+    );
 
     return serializeSingle(request, TaskCommentSerializer, doc);
   }

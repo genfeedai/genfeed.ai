@@ -6,7 +6,7 @@ const NOINDEX_DIRECTIVE_PATTERN = /\bnoindex\b/;
 
 type KnowledgeHtmlElement = Parameters<cheerio.CheerioAPI>[0];
 
-export const KNOWLEDGE_AUDIO_MIME_TYPES = new Set([
+const KNOWLEDGE_AUDIO_MIME_TYPES = new Set([
   'audio/flac',
   'audio/mpeg',
   'audio/mp4',
@@ -16,7 +16,7 @@ export const KNOWLEDGE_AUDIO_MIME_TYPES = new Set([
   'audio/x-wav',
 ]);
 
-export const KNOWLEDGE_VIDEO_MIME_TYPES = new Set(['video/mp4', 'video/webm']);
+const KNOWLEDGE_VIDEO_MIME_TYPES = new Set(['video/mp4', 'video/webm']);
 
 const AUDIO_EXTENSIONS = new Set([
   '.flac',

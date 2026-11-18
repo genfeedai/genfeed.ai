@@ -234,7 +234,15 @@ describe('ClientService (MCP)', () => {
         title: 'Launch',
       };
 
-      await service.createScheduledRelease(release, 'request-1');
+      const created = await service.createScheduledRelease(
+        release,
+        'request-1',
+      );
+
+      expect(created).toMatchObject({
+        attributes: { status: 'scheduled' },
+        id: 'release-1',
+      });
 
       expect(mockAxiosInstance.post).toHaveBeenCalledWith(
         '/post-groups',
@@ -246,7 +254,12 @@ describe('ClientService (MCP)', () => {
     it('gets a release using an encoded ID', async () => {
       (mockAxiosInstance.get as Mock).mockResolvedValue(releaseResponse);
 
-      await service.getScheduledRelease('release/1');
+      const found = await service.getScheduledRelease('release/1');
+
+      expect(found).toMatchObject({
+        attributes: { title: 'Launch' },
+        id: 'release-1',
+      });
 
       expect(mockAxiosInstance.get).toHaveBeenCalledWith(
         '/post-groups/release%2F1',
@@ -278,7 +291,12 @@ describe('ClientService (MCP)', () => {
     it('patches lifecycle control actions onto the release route', async () => {
       (mockAxiosInstance.patch as Mock).mockResolvedValue(releaseResponse);
 
-      await service.controlScheduledRelease('release-1', 'pause');
+      const controlled = await service.controlScheduledRelease(
+        'release-1',
+        'pause',
+      );
+
+      expect(controlled).toMatchObject({ id: 'release-1' });
 
       expect(mockAxiosInstance.patch).toHaveBeenCalledWith(
         '/post-groups/release-1',

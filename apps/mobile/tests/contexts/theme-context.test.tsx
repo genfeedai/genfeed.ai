@@ -68,6 +68,7 @@ describe('MobileThemeProvider', () => {
 
     expect(screen.queryByText('system:light')).toBeNull();
     expect(Appearance.setColorScheme).not.toHaveBeenCalled();
+    expect(screen.queryByText('light:light')).toBeNull();
 
     await act(async () => {
       resolveStoredPreference('dark');
@@ -156,6 +157,7 @@ describe('MobileThemeProvider', () => {
       screen.getByRole('button', { name: 'Choose light' }).click();
     });
 
+    expect(screen.getByText('light:light')).toBeTruthy();
     expect(AsyncStorage.setItem).toHaveBeenCalledWith('theme', 'light');
     expect(updateThemeMock).not.toHaveBeenCalled();
   });
@@ -192,6 +194,7 @@ describe('MobileThemeProvider', () => {
       screen.getByRole('button', { name: 'Choose light' }).click();
     });
 
+    expect(screen.getByText('light:light')).toBeTruthy();
     expect(updateThemeMock).toHaveBeenCalledWith('auth-token', 'light');
   });
 
@@ -236,5 +239,6 @@ describe('MobileThemeProvider', () => {
     });
 
     expect(screen.getByText('light:light')).toBeTruthy();
+    expect(screen.queryByText('dark:dark')).toBeNull();
   });
 });

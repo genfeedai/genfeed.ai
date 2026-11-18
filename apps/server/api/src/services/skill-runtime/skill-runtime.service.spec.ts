@@ -5,7 +5,10 @@ import {
   MAX_TOTAL_SKILL_INSTRUCTIONS,
   SkillRuntimeService,
 } from '@api/services/skill-runtime/skill-runtime.service';
-import type { ResolvedRuntimeSkill } from '@genfeedai/contracts/interfaces/ai';
+import type {
+  ResolvedRuntimeSkill,
+  SkillSectionReceipt,
+} from '@genfeedai/contracts/interfaces/ai';
 import { testId } from '@helpers/testing/test-id.helper';
 import { BadRequestException } from '@nestjs/common';
 import { describe, expect, it, vi } from 'vitest';
@@ -132,6 +135,83 @@ describe('SkillRuntimeService version pins', () => {
   });
 });
 
+describe('SkillRuntimeService.recordSectionReceipts', () => {
+  const receipt = {
+    characters: 40,
+    compilerVersion: 'generation-sections-v1',
+    loadedSections: ['Camera movement'],
+    mode: 'generation' as const,
+    omittedSections: [],
+    slug: 'cinematic-prompting',
+    versionId: 'sv-1',
+  };
+
+  it('hands the receipts to the library for the actor and resolution', async () => {
+    const recordSectionReceipts = vi.fn().mockResolvedValue(undefined);
+    const service = new SkillRuntimeService(
+      {} as never,
+      { error: vi.fn(), warn: vi.fn() } as never,
+      { recordSectionReceipts } as never,
+    );
+
+    await service.recordSectionReceipts({
+      actorUserId: 'user-1',
+      brandId: 'brand-1',
+      organizationId: 'org-1',
+      receipts: [receipt],
+      resolutionId: 'resolution-1',
+    });
+
+    expect(recordSectionReceipts).toHaveBeenCalledWith(
+      { brandId: 'brand-1', organizationId: 'org-1', userId: 'user-1' },
+      'resolution-1',
+      [receipt],
+    );
+  });
+
+  it('does nothing without an actor, a resolution record or receipts', async () => {
+    const recordSectionReceipts = vi.fn();
+    const service = new SkillRuntimeService(
+      {} as never,
+      { error: vi.fn(), warn: vi.fn() } as never,
+      { recordSectionReceipts } as never,
+    );
+    const base = { organizationId: 'org-1', receipts: [receipt] };
+
+    await service.recordSectionReceipts({ ...base, resolutionId: 'r-1' });
+    await service.recordSectionReceipts({ ...base, actorUserId: 'user-1' });
+    await service.recordSectionReceipts({
+      actorUserId: 'user-1',
+      organizationId: 'org-1',
+      receipts: [],
+      resolutionId: 'r-1',
+    });
+
+    expect(recordSectionReceipts).not.toHaveBeenCalled();
+  });
+
+  it('logs a failed write and lets the generation continue', async () => {
+    const logger = { error: vi.fn(), warn: vi.fn() };
+    const service = new SkillRuntimeService(
+      {} as never,
+      logger as never,
+      {
+        recordSectionReceipts: vi.fn().mockRejectedValue(new Error('db down')),
+      } as never,
+    );
+
+    await expect(
+      service.recordSectionReceipts({
+        actorUserId: 'user-1',
+        organizationId: 'org-1',
+        receipts: [receipt],
+        resolutionId: 'resolution-1',
+      }),
+    ).resolves.toBeUndefined();
+    expect(logger.error).toHaveBeenCalled();
+  });
+});
+
 describe('SkillRuntimeService.buildSkillPromptSections', () => {
   it('frames sanitized skill instructions as authorized organization task guidance', () => {
     const sections = createService().buildSkillPromptSections([
@@ -207,28 +287,66 @@ describe('SkillRuntimeService.buildSkillPromptSections', () => {
     expect(sections).toContain('Always mention the product benefit first.');
   });
 
-  it('truncates oversized skill instructions and logs the cap', () => {
+  it('leaves out an optional skill with no section that fits, and logs it', () => {
     const logger = { warn: vi.fn() };
     const service = new SkillRuntimeService({} as never, logger as never);
-    const oversized = 'A'.repeat(MAX_INSTRUCTIONS_PER_SKILL + 50);
+    const receipts: SkillSectionReceipt[] = [];
 
-    const sections = service.buildSkillPromptSections([
-      skill({
-        instructions: oversized,
-        isBuiltIn: true,
-        slug: 'image-prompt-engineer',
-        source: 'built_in',
-      }),
-    ]);
-
-    expect(sections.length).toBeLessThanOrEqual(MAX_TOTAL_SKILL_INSTRUCTIONS);
-    expect(sections).toBe(
-      `## Skill: Brand Voice\n${'A'.repeat(MAX_INSTRUCTIONS_PER_SKILL)}…`,
+    const sections = service.buildSkillPromptSections(
+      [
+        skill({
+          instructions: 'A'.repeat(MAX_INSTRUCTIONS_PER_SKILL + 50),
+          isBuiltIn: true,
+          slug: 'image-prompt-engineer',
+          source: 'built_in',
+        }),
+      ],
+      [],
+      { receipts },
     );
+
+    expect(sections).toBe('');
     expect(logger.warn).toHaveBeenCalledWith(
-      expect.stringContaining('truncated at'),
+      expect.stringContaining('left out'),
       'SkillRuntimeService',
     );
+    expect(receipts[0]).toMatchObject({
+      loadedSections: [],
+      mode: 'agent',
+      omittedSections: ['preamble'],
+    });
+  });
+
+  it('keeps whole sections of an optional skill that is over the skill budget', () => {
+    const big = `# Big\n## Keep\n${'k'.repeat(15_000)}\n## Also\n${'a'.repeat(15_000)}`;
+    const receipts: SkillSectionReceipt[] = [];
+
+    const sections = createService().buildSkillPromptSections(
+      [skill({ instructions: big, isBuiltIn: true, source: 'built_in' })],
+      [],
+      { receipts },
+    );
+
+    expect(sections).toBe(
+      `## Skill: Brand Voice\n# Big\n\n## Keep\n${'k'.repeat(15_000)}`,
+    );
+    expect(receipts[0].loadedSections).toEqual(['preamble', 'Keep']);
+    expect(receipts[0].omittedSections).toEqual(['Also']);
+  });
+
+  it('gives a picked skill whole, with every heading in the receipt', () => {
+    const receipts: SkillSectionReceipt[] = [];
+    const text = createService().buildSkillPromptSections(
+      [skill({ instructions: '# T\n## One\na\n## Two\nb' })],
+      ['brand-voice'],
+      { receipts },
+    );
+
+    expect(text).toContain('## One\na\n## Two\nb');
+    expect(receipts[0]).toMatchObject({
+      loadedSections: ['preamble', 'One', 'Two'],
+      omittedSections: [],
+    });
   });
 });
 
@@ -747,5 +865,104 @@ describe('strict generation skill sections', () => {
       ),
     ).rejects.toThrow(BadRequestException);
     expect(logger.error).not.toHaveBeenCalled();
+  });
+});
+
+describe('SkillRuntimeService generation sections', () => {
+  const catalog = loadFirstPartySkillDefinitions();
+  const trusted = (slug: string): ResolvedRuntimeSkill => {
+    const definition = catalog.find((entry) => entry.slug === slug);
+    return skill({
+      contentHash: `hash-${slug}`,
+      instructions: definition?.instructions ?? '',
+      isBuiltIn: true,
+      name: definition?.name ?? slug,
+      slug,
+      source: 'built_in',
+      versionId: `version-${slug}`,
+    });
+  };
+
+  it('adds video sections for a video prompt and lists them in the receipt', () => {
+    const receipts: SkillSectionReceipt[] = [];
+    const text = createService().buildGenerationSkillSections(
+      [trusted('model-selector'), trusted('cinematic-prompting')],
+      { modality: 'video', receipts },
+    );
+
+    expect(text).toContain('## Camera movement');
+    expect(text).toContain('## Video Model Decision Matrix');
+    expect(text).not.toContain('## Image Model Decision Matrix');
+    expect(text.length).toBeLessThan(24_000);
+    expect(receipts.map((receipt) => receipt.slug)).toEqual([
+      'model-selector',
+      'cinematic-prompting',
+    ]);
+    expect(receipts[1]).toMatchObject({
+      compilerVersion: 'generation-sections-v1',
+      contentHash: 'hash-cinematic-prompting',
+      modality: 'video',
+      versionId: 'version-cinematic-prompting',
+    });
+    expect(receipts[1].loadedSections).toContain('Camera movement');
+    expect(receipts[1].omittedSections).toEqual(['Stylistic effects']);
+  });
+
+  it('keeps the whole image skill out of an image prompt without cutting it', () => {
+    const text = createService().buildGenerationSkillSections(
+      [trusted('image-prompt-engineer')],
+      { modality: 'image' },
+    );
+
+    expect(text).toContain('## Negative Prompt Guidance');
+    expect(text).not.toContain('## Bad vs Good Prompt Examples');
+    expect(text).not.toContain('…');
+  });
+
+  it('keeps a custom skill whole under the framing and ignores any plan', () => {
+    const text = createService().buildGenerationSkillSections(
+      [
+        skill({
+          instructions: '# Voice\n## Tone\nWarm.\n## Words\nShort.',
+          slug: 'cinematic-prompting',
+        }),
+      ],
+      { modality: 'video' },
+    );
+
+    expect(text).toContain(UNTRUSTED_ORG_SKILL_FRAMING);
+    expect(text).toContain('## Tone\nWarm.');
+    expect(text).toContain('## Words\nShort.');
+  });
+
+  it('leaves an optional skill out when none of its sections fit the budget', () => {
+    const text = createService().buildGenerationSkillSections(
+      [
+        skill({
+          instructions: `# Big\n${'x'.repeat(13_000)}`,
+          isBuiltIn: true,
+          source: 'built_in',
+        }),
+      ],
+      { modality: 'audio' },
+    );
+
+    expect(text).toBe('');
+  });
+
+  it('refuses a selected skill that cannot fit its modality budget', () => {
+    expect(() =>
+      createService().buildGenerationSkillSections(
+        [
+          skill({
+            instructions: `# Big\n${'x'.repeat(13_000)}`,
+            isBuiltIn: true,
+            slug: 'big',
+            source: 'built_in',
+          }),
+        ],
+        { modality: 'audio', requiredSlugs: ['big'] },
+      ),
+    ).toThrow(BadRequestException);
   });
 });

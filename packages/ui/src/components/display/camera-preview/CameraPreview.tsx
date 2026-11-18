@@ -17,6 +17,7 @@ export default function CameraPreview({
 }: CameraPreviewProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
+  // use-effect-audit: ignore attaches a MediaStream to the video element and detaches it on cleanup
   useEffect(() => {
     const element = videoRef.current;
     if (!element) return;

@@ -8,7 +8,6 @@ import {
   isDesktopClient,
 } from '@genfeedai/config/deployment';
 import {
-  APP_ROUTE_PREFIXES,
   APP_ROUTES,
   createBrandAppRoute,
   hasCompletedBrandOnboardingStep,
@@ -22,6 +21,13 @@ import {
 } from '@genfeedai/contracts/constants';
 import { DESKTOP_HTTP_HEADERS } from '@genfeedai/contracts/desktop';
 import { type NextRequest, NextResponse } from 'next/server';
+import {
+  getApiNamespacePoisonedProtectedPath,
+  getTopLevelSegment,
+  isBareProtectedPath,
+  isSeededWorkspaceEntrypoint,
+  ORG_SCOPED_PREFIXES,
+} from '@/lib/navigation/protected-path-scope';
 
 const SEMVER_PATTERN =
   /^(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?(?:\+[0-9A-Za-z.-]+)?$/;
@@ -146,20 +152,6 @@ function enforceMinimumDesktopVersion(req: NextRequest): NextResponse | null {
   );
 }
 
-const BRAND_SCOPED_PREFIXES = [
-  APP_ROUTE_PREFIXES.ANALYTICS.slice(1),
-  APP_ROUTE_PREFIXES.AGENT.slice(1),
-  APP_ROUTE_PREFIXES.LIBRARY.slice(1),
-  APP_ROUTE_PREFIXES.AUTOMATION.slice(1),
-  APP_ROUTE_PREFIXES.OVERVIEW.slice(1),
-  APP_ROUTE_PREFIXES.PUBLISHING.slice(1),
-  APP_ROUTE_PREFIXES.DISCOVERY.slice(1),
-  ...STUDIO_APP_ROUTE_PREFIXES.map((prefix) => prefix.slice(1)),
-  APP_ROUTE_PREFIXES.WORKSPACE.slice(1),
-] as const;
-
-const ORG_SCOPED_PREFIXES = [APP_ROUTE_PREFIXES.SETTINGS.slice(1)] as const;
-
 const FLAT_PATH_REDIRECTS = new Map<string, string>([
   [APP_ROUTES.ANALYTICS.ROOT, APP_ROUTES.ANALYTICS.OVERVIEW],
   [APP_ROUTES.AUTOMATION.ROOT, APP_ROUTES.AUTOMATION.OVERVIEW],
@@ -257,11 +249,6 @@ function redirectToLoginPreservingDestination(req: NextRequest) {
   return NextResponse.redirect(url);
 }
 
-function getTopLevelSegment(pathname: string): string | null {
-  const [segment] = pathname.split('/').filter(Boolean);
-  return segment ?? null;
-}
-
 function isValidSlug(slug: string | undefined): slug is string {
   return typeof slug === 'string' && SLUG_RE.test(slug);
 }
@@ -272,47 +259,6 @@ function isValidWorkspaceOrgSlug(slug: string | undefined): slug is string {
   }
 
   return parseScopedAppPath(`/${slug}/~`).orgSlug === slug;
-}
-
-function isBareProtectedPath(pathname: string): boolean {
-  const topLevelSegment = getTopLevelSegment(pathname);
-
-  if (!topLevelSegment) {
-    return false;
-  }
-
-  if (topLevelSegment === 'settings') {
-    return !isPersonalSettingsPath(pathname);
-  }
-
-  return (
-    BRAND_SCOPED_PREFIXES.includes(
-      topLevelSegment as (typeof BRAND_SCOPED_PREFIXES)[number],
-    ) ||
-    ORG_SCOPED_PREFIXES.includes(
-      topLevelSegment as (typeof ORG_SCOPED_PREFIXES)[number],
-    )
-  );
-}
-
-function isSeededWorkspaceEntrypoint(pathname: string): boolean {
-  return (
-    pathname === '/' ||
-    pathname === '/settings' ||
-    isBareProtectedPath(pathname)
-  );
-}
-
-function getApiNamespacePoisonedProtectedPath(pathname: string): string | null {
-  const [namespace, staleBrandSlug, ...rest] = pathname
-    .split('/')
-    .filter(Boolean);
-  if (namespace !== 'api' || !staleBrandSlug || rest.length === 0) {
-    return null;
-  }
-
-  const protectedPath = `/${rest.join('/')}`;
-  return isBareProtectedPath(protectedPath) ? protectedPath : null;
 }
 
 type WorkspaceSlugs = {
@@ -862,7 +808,7 @@ const ORG_ROOT_APP_PREFIXES = [
   'discovery',
   'library',
   'publishing',
-  'settings',
+  ...ORG_SCOPED_PREFIXES,
   'workspace',
   ...STUDIO_APP_ROUTE_PREFIXES.map((prefix) => prefix.slice(1)),
 ] as const;
@@ -1443,8 +1389,7 @@ export async function proxy(req: NextRequest) {
   // These same-origin API routes must reach their route/rewrite without
   // entering app-page auth or workspace slug routing.
   if (
-    req.nextUrl.pathname === '/api/version' ||
-    req.nextUrl.pathname === '/v1' ||
+    ['/api/version', '/api/csp-report', '/v1'].includes(req.nextUrl.pathname) ||
     req.nextUrl.pathname.startsWith('/v1/')
   ) {
     return NextResponse.next();
@@ -1527,7 +1472,7 @@ export const config = {
     },
     {
       source:
-        '/(analytics|agent|library|automation|overview|publishing|discovery|playground|storyboard|turbo|motion|clipper|editor|workspace|settings)(.*)',
+        '/(analytics|agent|library|automation|overview|publishing|discovery|playground|storyboard|turbo|motion|clipper|editor|workspace|settings|connectors)(.*)',
       has: [{ type: 'header', key: 'next-router-prefetch' }],
     },
     '/(api|trpc)(.*)',

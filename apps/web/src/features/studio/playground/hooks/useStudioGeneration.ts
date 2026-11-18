@@ -114,7 +114,7 @@ export interface UseStudioGenerationReturn {
   ) => Promise<boolean>;
 }
 
-export interface StudioGenerationOptions {
+interface StudioGenerationOptions {
   originalText?: string;
   crunRequest?: CrunImageQuoteRequest;
   crunVideoRequest?: CrunVideoQuoteRequest;
@@ -139,7 +139,7 @@ export interface StudioGenerationOptions {
   isDraft?: boolean;
 }
 
-export interface StudioGenerationReferences {
+interface StudioGenerationReferences {
   audioReferenceIds?: string[];
   editSourceIds?: string[];
   editMaskId?: string;
@@ -185,7 +185,7 @@ export function useStudioGeneration({
   const subscribedIdsRef = useRef(new Set<string>());
   const restoredBrandRef = useRef<string | null>(null);
   const onGeneratedRef = useRef(onGenerated);
-
+  // use-effect-audit: ignore keeps a ref to the latest callback
   useEffect(() => {
     onGeneratedRef.current = onGenerated;
   }, [onGenerated]);

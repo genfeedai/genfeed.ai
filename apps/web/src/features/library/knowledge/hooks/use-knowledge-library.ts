@@ -15,7 +15,7 @@ import { useCallback, useEffect } from 'react';
 
 const UNSAFE_ID_CHAR_PATTERN = /[^A-Za-z0-9_-]/;
 
-export const KNOWLEDGE_LIBRARY_PAGE_SIZE = 25;
+const KNOWLEDGE_LIBRARY_PAGE_SIZE = 25;
 /** How often the list re-reads while a capture is still being processed. */
 export const KNOWLEDGE_LIBRARY_POLL_INTERVAL_MS = 4_000;
 
@@ -239,6 +239,7 @@ export function useKnowledgeLibrary({
   const listError = listQuery.error;
   const selectionReadError = selectionQuery.error;
   const hasListData = listData !== undefined;
+  // use-effect-audit: ignore reports a failed load to the logger or a notification
   useEffect(() => {
     if (listError && !hasListData) {
       logger.error('Failed to load Knowledge library', listError);

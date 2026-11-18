@@ -4,13 +4,47 @@ import type {
   PublishContext,
   PublishResult,
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
+import {
+  type ProviderErrorVerdict,
+  type ProviderFailure,
+  toPublishErrorOrUnknown,
+} from '@api/services/integrations/publishers/publish-error.util';
 import { WhatsappService } from '@api/services/integrations/whatsapp/services/whatsapp.service';
-import { CredentialPlatform } from '@genfeedai/contracts';
+import { CredentialPlatform, PublishErrorKind } from '@genfeedai/contracts';
+import { isRecord } from '@genfeedai/utils/data/extract.util';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
+
+const HTTP_UNAUTHORIZED = 401;
+
+/** Twilio's own error code from a failed send, e.g. `21211`. */
+function readTwilioErrorCode(error: unknown): string | undefined {
+  if (!isRecord(error) || !isRecord(error.response)) return undefined;
+  const body = error.response.data;
+  const code = isRecord(body) ? body.code : undefined;
+  return typeof code === 'number' || typeof code === 'string'
+    ? String(code)
+    : undefined;
+}
+
+/**
+ * Twilio answers 401 when the sender's account credentials are refused. No
+ * token of the user's is involved and nothing a refresh does can fix it, so it
+ * is reported as a channel that cannot send.
+ */
+function mapTwilioFailure({
+  cause,
+  httpStatus,
+}: ProviderFailure): ProviderErrorVerdict | null {
+  const providerCode = readTwilioErrorCode(cause);
+  if (httpStatus === HTTP_UNAUTHORIZED) {
+    return { kind: PublishErrorKind.CHANNEL_DISCONNECTED, providerCode };
+  }
+  return providerCode ? { providerCode } : null;
+}
 
 @Traced()
 @Injectable()
@@ -52,10 +86,13 @@ export class WhatsappPublisherService extends BasePublisherService {
         this.logger.error(`${url} WhatsApp recipient number not found`, {
           postId: context.postId,
         });
-        return this.createFailedResult(
-          this.platform,
-          'WhatsApp recipient number not configured in credential',
-        );
+        return {
+          ...this.createFailedResult(
+            this.platform,
+            'WhatsApp recipient number not configured in credential',
+          ),
+          errorKind: PublishErrorKind.CHANNEL_DISCONNECTED,
+        };
       }
 
       const caption = this.sanitizeDescription(post.description);
@@ -78,10 +115,15 @@ export class WhatsappPublisherService extends BasePublisherService {
       }
 
       if (!messageSid) {
-        return this.createFailedResult(
-          this.platform,
-          'Failed to get message SID from Twilio',
-        );
+        // Twilio answered the send without a message SID, so the message may
+        // be on its way. Report the outcome as unknown, not as a plain failure.
+        return {
+          ...this.createFailedResult(
+            this.platform,
+            'Failed to get message SID from Twilio',
+          ),
+          errorKind: PublishErrorKind.OUTCOME_UNKNOWN,
+        };
       }
 
       const postUrl = this.buildPostUrl(messageSid, credential);
@@ -91,7 +133,7 @@ export class WhatsappPublisherService extends BasePublisherService {
         error: (error as Error)?.message,
         postId: context.postId,
       });
-      throw error;
+      throw toPublishErrorOrUnknown(error, mapTwilioFailure);
     }
   }
 

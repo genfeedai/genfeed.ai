@@ -2,6 +2,7 @@ import { type CredentialDocument } from '@api/collections/credentials/schemas/cr
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
 import { BasePublisherService } from '@api/services/integrations/publishers/base-publisher.service';
+import type { ProviderMediaVerificationMatch } from '@api/services/integrations/publishers/interfaces/publish-verification.interface';
 import type {
   MediaInfo,
   PostValidationResult,
@@ -9,7 +10,13 @@ import type {
   PublishResult,
   ThreadChild,
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
-import { CredentialPlatform } from '@genfeedai/contracts';
+import {
+  throwAsPublishError,
+  withErrorKind,
+} from '@api/services/integrations/publishers/publish-error.util';
+import { verifyMediaPublish } from '@api/services/integrations/publishers/publisher-media-verification.util';
+import { mapMetaFailure } from '@api/services/integrations/publishers/social-publish-error.mappers';
+import { CredentialPlatform, PublishErrorKind } from '@genfeedai/contracts';
 import { readChannelSettingString } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -64,6 +71,54 @@ export class InstagramPublisherService extends BasePublisherService {
     }
 
     return { valid: true };
+  }
+
+  /**
+   * Whether an earlier, unconfirmed publish landed on the account.
+   *
+   * Matches the exact caption and media shape (image, reel, carousel size)
+   * among the account's media created since the attempt began. The result
+   * carries the same media id, shortcode and URL a confirmed publish returns.
+   */
+  async verifyPublished(
+    context: PublishContext,
+    attemptStartedAt: Date,
+  ): Promise<PublishResult | null> {
+    const mediaInfo = this.extractMediaInfo(context.post);
+    const found = await verifyMediaPublish(
+      attemptStartedAt,
+      (cursor) =>
+        this.instagramService.listPublishVerificationPage(
+          context.organizationId,
+          context.brandId,
+          context.credential.id,
+          context.credential.externalId,
+          attemptStartedAt,
+          cursor,
+        ),
+      {
+        mediaCount: mediaInfo.ingredientIds.length,
+        mediaKind: this.resolveVerificationMediaKind(mediaInfo),
+        text: this.sanitizeDescription(context.post.description),
+      },
+    );
+    if (!found) return null;
+    if (!found.shortcode) {
+      throw new Error('Provider verification lacks the Instagram shortcode');
+    }
+    return this.createSuccessResult(
+      found.id,
+      this.platform,
+      this.buildPostUrl(found.id, context.credential, found.shortcode),
+      found.shortcode,
+    );
+  }
+
+  private resolveVerificationMediaKind(
+    mediaInfo: MediaInfo,
+  ): ProviderMediaVerificationMatch['mediaKind'] {
+    if (!mediaInfo.isImagePost) return 'video';
+    return mediaInfo.isCarousel ? 'carousel' : 'image';
   }
 
   /**
@@ -144,9 +199,9 @@ export class InstagramPublisherService extends BasePublisherService {
       }
 
       if (!externalId) {
-        return this.createFailedResult(
-          this.platform,
-          'Failed to get external ID',
+        return withErrorKind(
+          this.createFailedResult(this.platform, 'Failed to get external ID'),
+          PublishErrorKind.OUTCOME_UNKNOWN,
         );
       }
 
@@ -166,7 +221,7 @@ export class InstagramPublisherService extends BasePublisherService {
         error: (error as Error)?.message,
         postId: context.postId,
       });
-      throw error;
+      throwAsPublishError(error, mapMetaFailure);
     }
   }
 

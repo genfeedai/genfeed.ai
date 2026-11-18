@@ -6,8 +6,6 @@ import type {
 import type {
   AccountHealthSummary,
   DirectMessageCapability,
-  IArticle,
-  IAsset,
   IBrand,
   IBrandConversationStarter,
   IBrandKitAssetCandidate,
@@ -15,9 +13,7 @@ import type {
   IBrandKitDraft,
   IBrandPromptSeed,
   IClockTime,
-  IImage,
   ILink,
-  IVideo,
 } from '@genfeedai/contracts/interfaces';
 import type { ReactNode } from 'react';
 
@@ -45,32 +41,6 @@ export interface BrandDetailOverviewProps {
 export interface BrandDetailSystemPromptProps {
   text: string;
   onCopy: (value?: string) => void;
-}
-
-export interface BrandDetailLatestContentCardProps {
-  label: string;
-  viewAllLink: ReactNode;
-  emptyTitle: string;
-  createLabel: string;
-  createHref: string;
-  children: ReactNode;
-}
-
-export interface BrandDetailLatestVideosProps {
-  videos: IVideo[];
-}
-
-export interface BrandDetailLatestImagesProps {
-  images: IImage[];
-}
-
-export interface BrandDetailLatestArticlesProps {
-  articles: IArticle[];
-  /**
-   * The genfeed.ai handle the brand's articles are hosted under. Without one
-   * the website does not serve them, so no "Read article" link is shown.
-   */
-  publicHandle?: string;
 }
 
 /**
@@ -101,21 +71,12 @@ export interface BrandDetailSocialConnection {
 
 export interface BrandDetailSidebarProps {
   brand: IBrand;
-  brandId: string;
   links: ILink[];
-  socialConnections: BrandDetailSocialConnection[];
-  connectedPlatformsCount: number;
-  deletingRefId: string | null;
   isUpdatingPublicProfile?: boolean;
-  /** When set, the sidebar lists connected accounts as rows with a Manage link to /settings/accounts. */
-  manageSocialHref?: string;
   onTogglePublicProfile: (isPublic: boolean) => void;
-  onRefreshBrand: () => Promise<void>;
   onOpenLinkModal: (link?: ILink) => void;
-  onUploadBanner: () => void;
-  onUploadLogo: () => void;
-  onUploadReference: () => void;
-  onDeleteReference: (assetId: string) => void;
+  /** The connected social accounts, rendered under the website links. */
+  children?: ReactNode;
 }
 
 export interface BrandDetailAccountSettingsCardProps {
@@ -148,15 +109,9 @@ export interface BrandDetailSocialMediaCardProps {
   onConnectAccountModalOpenChange?: (isOpen: boolean) => void;
   /**
    * `compact` — summary card + connect modal (sidebar / embed).
-   * `page` — full accounts table + Connect account modal (settings/accounts).
+   * `page` — full accounts table + Connect account modal (brand Profile).
    */
   variant?: 'compact' | 'page';
-}
-
-export interface BrandDetailConnectedAccountsSectionProps {
-  connections: BrandDetailSocialConnection[];
-  /** Link to /settings/accounts, where accounts are managed. */
-  manageHref: string;
 }
 
 export interface BrandDetailExternalLinksCardProps {
@@ -166,6 +121,7 @@ export interface BrandDetailExternalLinksCardProps {
 
 export interface BrandDetailDefaultModelsCardProps {
   brand: IBrand;
+  onRefreshBrand?: () => Promise<unknown> | unknown;
 }
 
 export interface BrandWritingVoiceEditorProps {
@@ -364,9 +320,6 @@ export interface UseBrandDetailReturn {
   brandId: string;
   hasBrandId: boolean;
   brand: IBrand | null;
-  videos: IVideo[];
-  images: IImage[];
-  articles: IArticle[];
   links: ILink[];
   selectedLink: ILink | null;
   isLoading: boolean;
@@ -394,34 +347,4 @@ export interface UseBrandDetailReturn {
   selectLink: (link: ILink | null) => void;
   generateModalType: 'banner' | 'logo' | null;
   setGenerateModalType: (type: 'banner' | 'logo' | null) => void;
-}
-
-export interface BrandEndCardSettingsProps {
-  brand: IBrand;
-  brandId: string;
-  onRefreshBrand: () => Promise<void>;
-}
-
-export interface BrandLutSettingsProps {
-  brand: IBrand;
-  brandId: string;
-  onRefreshBrand: () => Promise<void>;
-}
-
-export interface BrandWatermarkLogoSelectProps {
-  assets: IAsset[];
-  brand: IBrand;
-  id: string;
-  isDisabled: boolean;
-  label: string;
-  /** Text for the empty choice: no logo, or the default mark. */
-  noneLabel: string;
-  onChange: (logoId: string) => void;
-  value: string;
-}
-
-export interface BrandWatermarkSettingsProps {
-  brand: IBrand;
-  brandId: string;
-  onRefreshBrand: () => Promise<void>;
 }

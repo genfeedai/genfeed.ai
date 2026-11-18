@@ -15,11 +15,11 @@ import { z } from 'zod';
  * Terminal operations beyond this are pruned oldest first. Live operations
  * are never pruned.
  */
-export const ASSET_JOURNAL_CAPACITY = 64;
+const ASSET_JOURNAL_CAPACITY = 64;
 /** A dispatch that left no placeholder for this long never reached a provider. */
 export const ASSET_ABANDONED_MS = 10 * 60_000;
 
-export const assetOperationSchema = z
+const assetOperationSchema = z
   .object({
     version: z.literal(1),
     operationId: z.string().uuid(),
@@ -86,7 +86,7 @@ export function projectAssetGenerations(
 }
 
 /** One image to generate for an entry. */
-export interface AssetRequestItem {
+interface AssetRequestItem {
   prompt: string;
   referenceAssetIds: string[];
 }

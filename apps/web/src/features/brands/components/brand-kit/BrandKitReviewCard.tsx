@@ -154,6 +154,7 @@ export default function BrandKitReviewCard(props: BrandKitReviewCardProps) {
   const applySummary = formatSelectedFieldSummary(selectedApplyCount);
   const isApplyDisabled = selectedApplyCount === 0 || isApplying;
 
+  // use-effect-audit: ignore registers the apply action with the parent
   useEffect(() => {
     if (!setApplyState) {
       return;
@@ -182,6 +183,7 @@ export default function BrandKitReviewCard(props: BrandKitReviewCardProps) {
     setApplyState,
   ]);
 
+  // use-effect-audit: ignore clears the apply state when the card unmounts
   useEffect(() => {
     if (!setApplyState) {
       return;

@@ -149,6 +149,13 @@ function renderWizard() {
   return render(<AvatarTwinWizard />, { wrapper: queryClientWrapper() });
 }
 
+// Every app is on offer, so no entry point is hidden.
+vi.mock('@/components/shell/use-available-rail-apps', () => ({
+  useHasAppsBeyondDashboard: () => true,
+  useIsAppAvailable: () => true,
+  useIsHrefAvailable: () => () => true,
+}));
+
 describe('AvatarTwinWizard', () => {
   beforeEach(() => {
     api.connection.state = 'connected';
@@ -169,7 +176,7 @@ describe('AvatarTwinWizard', () => {
     ).toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: 'Open Integrations' }),
-    ).toHaveAttribute('href', '/acme/settings/integrations');
+    ).toHaveAttribute('href', '/acme/connectors/providers');
     expect(
       screen.queryByRole('button', { name: 'Turn on camera' }),
     ).not.toBeInTheDocument();

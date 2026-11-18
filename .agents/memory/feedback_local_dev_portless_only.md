@@ -17,7 +17,7 @@ last_verified: 2026-08-08
 |---|---|
 | `bun run dev:setup` | Machine once — Portless HTTPS on :443 |
 | `bun run dev:doctor` | Read-only Portless contract check |
-| `bun run dev:backend:min` | api + files + notifications |
+| `bun run dev:backend:min` | api + files + notifications + workers |
 | `bun run dev:backend` | full backend (+ mcp + workers) |
 | `bun run dev:web` | Next app |
 | `bun run dev` | full stack |

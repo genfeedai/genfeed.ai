@@ -65,7 +65,7 @@ function matchesField(actual: unknown, expected: unknown): boolean {
  * it does not know throws instead of quietly matching, so a spec can never
  * pass on a filter the fake ignored.
  */
-export function matchesWhere(row: GuardedRow, where: Where): boolean {
+function matchesWhere(row: GuardedRow, where: Where): boolean {
   return Object.entries(where).every(([field, expected]) => {
     if (expected === undefined) {
       return true;

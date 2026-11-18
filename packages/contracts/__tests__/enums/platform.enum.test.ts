@@ -11,6 +11,7 @@ describe('platform.enum', () => {
         'FACEBOOK',
         'GOOGLE_ADS',
         'GOOGLE_SEARCH_CONSOLE',
+        'GOOGLE_BUSINESS',
         'TWITTER',
         'X_ADS',
         'LINKEDIN',
@@ -30,6 +31,7 @@ describe('platform.enum', () => {
         'GHOST',
         'SHOPIFY',
         'BEEHIIV',
+        'BLUESKY',
         'UNIPILE',
         'DEV_TO',
         'PRODUCT_HUNT',
@@ -46,6 +48,7 @@ describe('platform.enum', () => {
       expect(Platform.FACEBOOK).toBe('facebook');
       expect(Platform.GOOGLE_ADS).toBe('google_ads');
       expect(Platform.GOOGLE_SEARCH_CONSOLE).toBe('google_search_console');
+      expect(Platform.GOOGLE_BUSINESS).toBe('google_business');
       expect(Platform.TWITTER).toBe('twitter');
       expect(Platform.X_ADS).toBe('x_ads');
       expect(Platform.LINKEDIN).toBe('linkedin');

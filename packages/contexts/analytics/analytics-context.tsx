@@ -89,19 +89,32 @@ export function AnalyticsProvider({
     : null;
   const restoredFiltersKey = JSON.stringify(restoredFilters ?? {});
 
-  useEffect(() => {
-    if (restoredStartTime === null || restoredEndTime === null) {
-      return;
-    }
-    setDateRangeState({
-      endDate: new Date(restoredEndTime),
-      startDate: new Date(restoredStartTime),
+  const [seenRestoredRange, setSeenRestoredRange] = useState({
+    endTime: restoredEndTime,
+    startTime: restoredStartTime,
+  });
+  if (
+    seenRestoredRange.startTime !== restoredStartTime ||
+    seenRestoredRange.endTime !== restoredEndTime
+  ) {
+    setSeenRestoredRange({
+      endTime: restoredEndTime,
+      startTime: restoredStartTime,
     });
-  }, [restoredEndTime, restoredStartTime]);
+    if (restoredStartTime !== null && restoredEndTime !== null) {
+      setDateRangeState({
+        endDate: new Date(restoredEndTime),
+        startDate: new Date(restoredStartTime),
+      });
+    }
+  }
 
-  useEffect(() => {
+  const [seenRestoredFiltersKey, setSeenRestoredFiltersKey] =
+    useState(restoredFiltersKey);
+  if (seenRestoredFiltersKey !== restoredFiltersKey) {
+    setSeenRestoredFiltersKey(restoredFiltersKey);
     setFilters(JSON.parse(restoredFiltersKey) as AnalyticsQueryFilters);
-  }, [restoredFiltersKey]);
+  }
 
   const setDateRange = useCallback(
     (range: DateRange) => {
@@ -195,6 +208,7 @@ export function useOptionalAnalyticsContext():
 export function useAnalyticsToolbar(node: ReactNode): void {
   const setToolbarNode = use(AnalyticsContext)?.setToolbarNode;
 
+  // use-effect-audit: ignore registers a toolbar node with the layout and clears it on unmount
   useEffect(() => {
     if (!setToolbarNode) {
       return;
@@ -211,6 +225,7 @@ export function useAnalyticsToolbar(node: ReactNode): void {
 export function useAnalyticsSearch(node: ReactNode): void {
   const setSearchNode = use(AnalyticsContext)?.setSearchNode;
 
+  // use-effect-audit: ignore registers a search node with the layout and clears it on unmount
   useEffect(() => {
     if (!setSearchNode) {
       return;

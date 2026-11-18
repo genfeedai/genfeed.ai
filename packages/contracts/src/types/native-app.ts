@@ -11,7 +11,6 @@ export type NativeSecondaryAppId =
   | 'clipper'
   | 'editor'
   | 'automation'
-  | 'messages'
-  | 'discovery';
+  | 'messages';
 
 export type NativeAppContextualEntry = 'edit' | 'clip';

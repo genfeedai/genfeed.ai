@@ -64,7 +64,7 @@ const {
  * What an operator has to act on for one registry row. The admin pricing page
  * and the public catalog filter share this, so a model the panel shows red is
  * exactly a model customers are not offered. A RETIRED row never bills itself:
- * dispatch resolves its successor, so it needs no price.
+ * dispatch stops on it, so it needs no price.
  */
 export function classifyModelRowPricingAttention(
   model: PricingAttentionModel,
@@ -96,7 +96,7 @@ export function classifyModelRowPricingAttention(
 }
 
 /** Red models cannot be priced, so customer-facing catalogs leave them out. */
-export function isModelRowPricingRed(
+function isModelRowPricingRed(
   model: PricingAttentionModel,
   contracts: PricingAttentionContract[],
   margin: number | null,

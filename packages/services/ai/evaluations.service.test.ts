@@ -233,7 +233,9 @@ describe('EvaluationsService', () => {
         data: mockEvaluationData,
       });
 
-      await service.evaluateArticle(articleId);
+      const result = await service.evaluateArticle(articleId);
+
+      expect(result).toBeInstanceOf(Evaluation);
 
       expect(http.post).toHaveBeenCalledWith(`/articles/${articleId}`, {});
     });
@@ -245,7 +247,9 @@ describe('EvaluationsService', () => {
         data: mockEvaluationData,
       });
 
-      await service.evaluateArticle(articleId, options);
+      const result = await service.evaluateArticle(articleId, options);
+
+      expect(result).toBeInstanceOf(Evaluation);
 
       expect(http.post).toHaveBeenCalledWith(`/articles/${articleId}`, options);
     });
@@ -270,7 +274,9 @@ describe('EvaluationsService', () => {
         data: mockEvaluationData,
       });
 
-      await service.evaluatePost(postId, options);
+      const result = await service.evaluatePost(postId, options);
+
+      expect(result).toBeInstanceOf(Evaluation);
 
       expect(http.post).toHaveBeenCalledWith(`/posts/${postId}`, options);
     });
@@ -353,8 +359,9 @@ describe('EvaluationsService', () => {
       const mockTrendsData = { trends: [] };
       http.get.mockResolvedValue({ data: mockTrendsData });
 
-      await service.getTrends();
+      const result = await service.getTrends();
 
+      expect(result).toEqual(mockTrendsData);
       expect(http.get).toHaveBeenCalledWith('analytics/trends', {
         params: undefined,
       });
@@ -373,7 +380,9 @@ describe('EvaluationsService', () => {
       };
       http.get.mockResolvedValue({ data: mockTrendsData });
 
-      await service.getTrends(filters);
+      const result = await service.getTrends(filters);
+
+      expect(result).toEqual(mockTrendsData);
 
       expect(http.get).toHaveBeenCalledWith('analytics/trends', {
         params: filters,

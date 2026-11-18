@@ -140,6 +140,7 @@ export function useModalGenerateIllustration({
   });
   const models = modelsQuery.data ?? EMPTY_MODELS;
   const modelsError = modelsQuery.error;
+  // use-effect-audit: ignore reports a failed load to the logger or a notification
   useEffect(() => {
     if (modelsError) {
       logger.error('Failed to load models', modelsError);
@@ -231,21 +232,18 @@ export function useModalGenerateIllustration({
   const format = useMemo(() => getFormatForPlatform(platform), [platform]);
   const dimensions = useMemo(() => VIDEO_FORMAT_DIMENSIONS[format], [format]);
 
-  // Track previous open state to detect modal open transitions
-  const prevIsOpenRef = useRef(isOpen);
-
-  useEffect(() => {
-    if (isOpen && !prevIsOpenRef.current) {
-      queueMicrotask(() => {
-        setPrompt(cleanInitialPrompt);
-        setError(null);
-        setIsGenerating(false);
-        setGeneratedImageId(null);
-        setGeneratedImageUrl(null);
-      });
+  // Each opening of the modal starts from a clean draft.
+  const [wasOpen, setWasOpen] = useState(isOpen);
+  if (isOpen !== wasOpen) {
+    setWasOpen(isOpen);
+    if (isOpen) {
+      setPrompt(cleanInitialPrompt);
+      setError(null);
+      setIsGenerating(false);
+      setGeneratedImageId(null);
+      setGeneratedImageUrl(null);
     }
-    prevIsOpenRef.current = isOpen;
-  }, [isOpen, cleanInitialPrompt]);
+  }
 
   useModalAutoOpen(ModalEnum.GENERATE_ILLUSTRATION, {
     isOpen: isOpen ?? false,

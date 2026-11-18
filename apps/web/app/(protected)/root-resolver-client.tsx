@@ -52,6 +52,7 @@ export default function ProtectedRootResolver() {
   const hasStartedRef = useRef(false);
   const [needsWorkspaceAction, setNeedsWorkspaceAction] = useState(false);
 
+  // use-effect-audit: ignore timer outside React
   useEffect(() => {
     if (
       !hasSingleStepOnboarding() ||

@@ -22,13 +22,11 @@ export interface UseCase {
     recommended: PlanTier;
     why: string;
   };
-  cta: string;
 }
 
 export const useCases: UseCase[] = [
   {
     audience: 'Brands, agencies, personal brands launching virtual influencers',
-    cta: 'Get Started',
     description:
       'Create a virtual persona, generate on-brand images and videos, then review and schedule posts for your connected channels.',
     headline: 'Create Content for Your Virtual Influencer',
@@ -57,7 +55,7 @@ export const useCases: UseCase[] = [
       'Generate images and videos, then schedule approved posts',
       'Publish approved content to your connected channels',
     ],
-    subtitle: 'AI-Powered Virtual Influencers',
+    subtitle: 'Virtual influencers that stay on brand',
     title: 'Genfeed for AI Influencers',
     workflow: [
       {
@@ -65,34 +63,33 @@ export const useCases: UseCase[] = [
           'Set personality traits, brand voice, visual style, and content guidelines.',
         example: 'Fashion-forward, Gen Z voice, minimalist aesthetic',
         step: 1,
-        title: 'Define Your Persona',
+        title: 'Define your persona',
       },
       {
         description:
           'Create photorealistic AI avatars with customizable appearance.',
         example: 'AI avatar with custom look, expressions, and outfits',
         step: 2,
-        title: 'Generate Your Avatar',
+        title: 'Generate your avatar',
       },
       {
         description:
           'Set up automated content creation with AI-generated scripts and visuals.',
         example: 'A recurring series of avatar videos for review',
         step: 3,
-        title: 'Create Content Pipeline',
+        title: 'Create content pipeline',
       },
       {
         description:
           'Review drafts and schedule posts to your connected channels.',
         example: 'Approve a campaign and schedule each channel’s posts',
         step: 4,
-        title: 'Review & Publish',
+        title: 'Review & publish',
       },
     ],
   },
   {
     audience: 'YouTube creators, TikTokers, Instagram influencers',
-    cta: 'Get Started',
     description:
       'Turn your ideas into video drafts, thumbnails and clips. Review them, publish to connected channels and compare available performance data.',
     headline: 'Create Content for Your Channels',
@@ -111,12 +108,12 @@ export const useCases: UseCase[] = [
       'Create variations from the same brief',
       'Compare available performance data across published posts',
       'Reuse references and brand context across drafts',
-      'Find winning content formats faster',
+      'Find the content formats that worked for you',
     ],
     slug: 'creators',
     solutions: [
-      'Generate AI videos in minutes, not hours',
-      'See trending topics before they blow up',
+      'Generate videos from a short brief',
+      'See what is trending in your niche',
       'Compare available performance data for published content',
       'Publish to supported channels from one dashboard',
       'All content types in one platform (no tool switching)',
@@ -125,32 +122,33 @@ export const useCases: UseCase[] = [
     title: 'Genfeed for Content Creators',
     workflow: [
       {
-        description: "AI detects what's trending in your niche",
+        description: 'Start from the trends Genfeed has observed in your niche',
         example: 'Trending: "AI voice cloning tutorial"',
         step: 1,
-        title: 'See Trending Topics',
+        title: 'See trending topics',
       },
       {
-        description: 'Create video, thumbnail, and caption in 3 clicks',
-        example: 'AI video (8s) + thumbnail + optimized caption',
+        description:
+          'Ask your agent for the video and thumbnail on the full Genfeed connector, then draft the caption with it',
+        example: 'A short video, a thumbnail and a caption, ready for review',
         step: 2,
-        title: 'Generate Content',
+        title: 'Generate content',
       },
       {
-        description: 'Post to TikTok, YouTube Shorts, Instagram Reels at once',
-        example: 'One click → 3 platforms',
+        description: 'Schedule to TikTok, YouTube Shorts and Instagram Reels',
+        example: 'One video, scheduled to three platforms',
         step: 3,
-        title: 'Publish Everywhere',
+        title: 'Publish everywhere',
       },
       {
         description:
           'Compare views and engagement across your published videos',
         example: 'Compare a tutorial video with a product walkthrough',
         step: 4,
-        title: 'Track Performance',
+        title: 'Track performance',
       },
       {
-        description: 'AI tells you what to post next',
+        description: 'Pick the next brief from what worked',
         example: 'Use the stronger-performing format as the next brief',
         step: 5,
         title: 'Optimize',
@@ -160,10 +158,9 @@ export const useCases: UseCase[] = [
   {
     audience:
       'Creative agencies, content teams, paid-social agencies and social media managers',
-    cta: 'Get Started',
     description:
       'Create content and ad variations for your clients, keep each client’s brand context and assets organized and review the work before publishing. Build a repeatable production workflow for your team.',
-    headline: 'Produce More Client-Ready Creative With Your Team',
+    headline: 'Produce more client-ready creative with your team',
     painPoints: [
       'Every client needs a steady supply of fresh content and ad variations',
       'Brand guidelines and source assets are scattered across tools',
@@ -198,43 +195,42 @@ export const useCases: UseCase[] = [
         example:
           'Keep each client’s writing, product details and visuals together',
         step: 1,
-        title: 'Set Up The Client Brand',
+        title: 'Set up the client brand',
       },
       {
         description: 'Turn a campaign brief into creative variations',
         example:
           'Explore different hooks, visuals and copy for the same product',
         step: 2,
-        title: 'Create The Next Batch',
+        title: 'Create the next batch',
       },
       {
         description: 'Review the drafts and refine the work that needs changes',
         example:
           'Check brand fit, edit the copy and select the assets to publish',
         step: 3,
-        title: 'Review And Refine',
+        title: 'Review and refine',
       },
       {
         description:
           'Schedule approved content to supported connected accounts',
         example: 'Choose the client account and publishing time for each post',
         step: 4,
-        title: 'Publish The Approved Work',
+        title: 'Publish the approved work',
       },
       {
         description: 'Use available post performance to inform the next brief',
         example: 'Compare views and engagement across the published batch',
         step: 5,
-        title: 'Plan The Next Round',
+        title: 'Plan the next round',
       },
     ],
   },
   {
     audience: 'E-commerce brands, DTC companies, Shopify stores',
-    cta: 'Get Started',
     description:
       'Generate product videos, lifestyle shots and social ad drafts. Compare available views and engagement after publishing.',
-    headline: 'Product Content at Scale',
+    headline: 'Product content for every SKU',
     painPoints: [
       'Product photoshoots are expensive and slow',
       'Need content for dozens/hundreds of SKUs',
@@ -260,46 +256,46 @@ export const useCases: UseCase[] = [
       'Compare available performance across product content',
       'Auto-generate seasonal and promotional content',
     ],
-    subtitle: 'E-Commerce & DTC Brands',
+    subtitle: 'E-commerce & DTC brands',
     title: 'Genfeed for E-Commerce',
     workflow: [
       {
-        description: 'Upload product images, AI generates lifestyle content',
-        example: 'Upload 10 product shots → 50 lifestyle videos',
+        description:
+          'Give your agent the product images and brief it on the campaign; it creates the lifestyle videos and images on the full Genfeed connector',
+        example: 'Product shots in, lifestyle videos and images out',
         step: 1,
-        title: 'Upload Products',
+        title: 'Upload products',
       },
       {
         description: 'AI creates videos, images, and ads for each product',
-        example: 'Product video + carousel + story ad in minutes',
+        example: 'A product video, a carousel and a story ad for review',
         step: 2,
-        title: 'Generate Content',
+        title: 'Generate content',
       },
       {
         description: 'Post product content across all social channels',
         example: 'Instagram Shop + TikTok Shop + Facebook Ads',
         step: 3,
-        title: 'Publish Everywhere',
+        title: 'Publish everywhere',
       },
       {
         description:
           'Compare available views and engagement across product posts',
         example: 'Compare product video views and engagement',
         step: 4,
-        title: 'Track Performance',
+        title: 'Track performance',
       },
       {
         description: 'Reuse the formats your audience engages with',
         example:
           'Use the stronger-performing format for your next product brief',
         step: 5,
-        title: 'Optimize & Scale',
+        title: 'Optimize & scale',
       },
     ],
   },
   {
     audience: 'Marketing managers, CMOs, brand marketers, growth teams',
-    cta: 'Get Started',
     description:
       'Create campaign drafts, publish approved content and compare available performance data to plan your next brief.',
     headline: 'Create Content for Your Campaign',
@@ -328,48 +324,48 @@ export const useCases: UseCase[] = [
       'Reuse formats from previous campaigns',
       'Review available publishing and campaign metrics',
     ],
-    subtitle: 'Brand Marketers & CMOs',
+    subtitle: 'Brand marketers & CMOs',
     title: 'Genfeed for Marketers',
     workflow: [
       {
         description: 'AI suggests content based on industry trends',
         example: 'Trending: "AI for B2B marketing". Create video?',
         step: 1,
-        title: 'Content Ideation',
+        title: 'Content ideation',
       },
       {
-        description: 'Generate 10 variations, test in market',
-        example: '10 video hooks → test on LinkedIn → find winner',
+        description:
+          'Ask your agent for ten variations and test them in market',
+        example: 'Ten video hooks to test on LinkedIn',
         step: 2,
-        title: 'Rapid Testing',
+        title: 'Rapid testing',
       },
       {
         description: 'Post to LinkedIn, YouTube, X, newsletter',
-        example: 'One video → 4 platforms in one click',
+        example: 'One video, scheduled to four platforms',
         step: 3,
-        title: 'Multi-Channel Distribution',
+        title: 'Multi-channel distribution',
       },
       {
         description:
           'Review available views and engagement across campaign posts',
         example: 'Compare performance across campaign angles',
         step: 4,
-        title: 'Campaign Performance',
+        title: 'Campaign performance',
       },
       {
         description: 'Reuse the formats that perform well for your audience',
         example: 'Use the stronger-performing format for the next batch',
         step: 5,
-        title: 'Scale Winners',
+        title: 'Scale winners',
       },
     ],
   },
   {
     audience: 'Developers, indie founders and small product teams',
-    cta: 'Get Started',
     description:
       'Turn product updates, demos and expertise into content that gives people a reason to follow your work. Review drafts, publish consistently and join relevant conversations while you keep building.',
-    headline: 'Build An Audience Around What You Ship',
+    headline: 'Build an audience around what you ship',
     painPoints: [
       'You ship useful work, but few people hear about it',
       'Writing posts and preparing visuals compete with product time',
@@ -396,41 +392,41 @@ export const useCases: UseCase[] = [
       'Schedule a batch of approved posts at times you choose',
       'Compare available views and engagement for your published content',
     ],
-    subtitle: 'Developers & Founders Building Distribution',
+    subtitle: 'Developers & founders building distribution',
     title: 'Genfeed for Founders',
     workflow: [
       {
         description: 'Start with a product update, demo or customer question',
         example: 'Explain what changed, who it helps and why it matters',
         step: 1,
-        title: 'Share What You Are Building',
+        title: 'Share what you are building',
       },
       {
         description:
           'Create posts, threads and visuals using your brand context',
         example: 'Turn a release update into a post and a supporting visual',
         step: 2,
-        title: 'Prepare Your Content',
+        title: 'Prepare your content',
       },
       {
         description: 'Edit the drafts and schedule the posts you approve',
         example: 'Choose the account, content and publishing time',
         step: 3,
-        title: 'Review And Publish',
+        title: 'Review and publish',
       },
       {
         description:
           'Choose a relevant conversation and prepare a useful reply',
         example: 'Answer a question with an example from your own experience',
         step: 4,
-        title: 'Join The Conversation',
+        title: 'Join the conversation',
       },
       {
         description:
           'Review available views and engagement before the next batch',
         example: 'Build on the topics that get a substantive response',
         step: 5,
-        title: 'Use What You Learn',
+        title: 'Use what you learn',
       },
     ],
   },

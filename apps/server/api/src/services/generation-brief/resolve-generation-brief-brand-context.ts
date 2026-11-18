@@ -1,58 +1,35 @@
 /**
  * Brand-voice text for the generation-brief path (brief-compiled image and
- * video models). Reuses the same `system.brand-context` prompt template that
- * `PromptBuilderService.buildBrandContext` renders for the non-brief
- * (template) path, so brand wording stays one system of record regardless of
- * which path a model takes (#4676).
+ * video models), rendered from the approved Brand OS revision the generation
+ * is pinned to, never from the live brand row (#10186). One mechanism: the
+ * enhancement receipt carries the text, so Studio, agent and MCP requests for
+ * the same brand resolve the same words.
  *
- * Deliberately independent of fidelity mode: `runImageGenerationBrief` /
- * `runVideoGenerationBrief` can force `fidelityMode` to `guided` purely
- * because operator `avoid` terms are present, even while Brand voice is off.
- * Callers gate this resolver with {@link resolveIsGenerationBriefBrandVoiceOn}
- * — never with the resolved fidelity mode — so branding never leaks when the
- * user turned it off.
+ * Tone, voice, audience and values only. Hashtags and taglines are left out:
+ * an image or video model renders them as on-screen text.
  */
-import type { TemplatesService } from '@api/collections/templates/services/templates.service';
-
-const GENERATION_BRIEF_BRAND_CONTEXT_TEMPLATE_KEY = 'system.brand-context';
+import type { BrandIdentitySnapshotV1 } from '@genfeedai/contracts/interfaces';
 
 /**
  * Every capability profile's `prompt.maxCharacters` is 10,000+, so this cap
- * is a defensive margin against an unusually long brand-context template —
- * never the limiting factor in ordinary use (PRD risk: injecting brand
- * context "must not break per-model brief limits").
+ * is a defensive margin, never the limiting factor in ordinary use.
  */
 const GENERATION_BRIEF_BRAND_CONTEXT_MAX_CHARACTERS = 500;
 
-export interface GenerationBriefBrandContextBrand {
-  description?: string;
-  label?: string;
-  text?: string;
-}
-
-export interface GenerationBriefBrandContextBranding {
-  audience?: string;
-  hashtags?: string[];
-  taglines?: string[];
-  tone?: string;
-  values?: string[];
-  voice?: string;
-}
-
 /**
- * Mirrors the brand-on condition `resolveImageGenerationFidelityMode` /
- * `resolveVideoGenerationFidelityMode` use for the `guided` fidelity floor,
- * without their `avoid`-driven override — brand context must depend solely
- * on the Brand voice setting (#4676 FR3).
+ * Branding is on unless the request turned it off (`brandingMode: 'off'` or
+ * `isBrandingEnabled: false`). Unset means on, so a request that never sets
+ * the field (MCP, agent) gets the same brand inputs as the Studio, which
+ * defaults it to `brand`.
+ *
+ * Deliberately independent of fidelity mode: avoid terms can force `guided`
+ * while Brand voice is off.
  */
 export function resolveIsGenerationBriefBrandVoiceOn(input: {
   brandingMode?: 'off' | 'brand';
   isBrandingEnabled?: boolean;
 }): boolean {
-  if (input.brandingMode === 'off') {
-    return false;
-  }
-  return input.brandingMode === 'brand' || input.isBrandingEnabled === true;
+  return input.brandingMode !== 'off' && input.isBrandingEnabled !== false;
 }
 
 function truncateBrandContext(text: string): string {
@@ -62,64 +39,19 @@ function truncateBrandContext(text: string): string {
   return `${text.slice(0, GENERATION_BRIEF_BRAND_CONTEXT_MAX_CHARACTERS - 1).trimEnd()}…`;
 }
 
-/**
- * Resolves rendered brand-voice text, or `undefined` when there is no brand
- * name or no active `system.brand-context` template — mirrors
- * `PromptBuilderService.buildBrandContext`'s tolerant fallback (an inactive
- * or missing template degrades to no brand context rather than failing
- * generation).
- */
-export async function resolveGenerationBriefBrandContext(params: {
-  brand?: GenerationBriefBrandContextBrand;
-  branding?: GenerationBriefBrandContextBranding;
-  organizationId?: string;
-  templatesService: TemplatesService;
-}): Promise<string | undefined> {
-  const { brand, branding, organizationId, templatesService } = params;
-  if (!brand?.label) {
-    return undefined;
-  }
-
-  const variables: Record<string, unknown> = { brandName: brand.label };
-  if (brand.description) {
-    variables.brandDescription = brand.description;
-  }
-  if (brand.text) {
-    variables.brandText = brand.text;
-  }
-  if (branding?.tone) {
-    variables.brandTone = branding.tone;
-  }
-  if (branding?.voice) {
-    variables.brandVoice = branding.voice;
-  }
-  if (branding?.audience) {
-    variables.brandAudience = branding.audience;
-  }
-  if (branding?.values?.length) {
-    variables.brandValues = branding.values.join(', ');
-  }
-  if (branding?.taglines?.length) {
-    variables.brandTaglines = branding.taglines.join(', ');
-  }
-  if (branding?.hashtags?.length) {
-    variables.brandHashtags = branding.hashtags.join(' ');
-  }
-
-  const template = await templatesService.getPromptByKey(
-    GENERATION_BRIEF_BRAND_CONTEXT_TEMPLATE_KEY,
-    organizationId,
+/** Brand-voice text from a resolved snapshot, or `undefined` when it holds none. */
+export function renderGenerationBriefBrandVoice(
+  snapshot: Pick<BrandIdentitySnapshotV1, 'identity' | 'voice'>,
+): string | undefined {
+  const { identity, voice } = snapshot;
+  const lines = [
+    voice.tone ? `Tone: ${voice.tone}` : '',
+    voice.style ? `Voice: ${voice.style}` : '',
+    voice.audience.length > 0 ? `Audience: ${voice.audience.join(', ')}` : '',
+    voice.values.length > 0 ? `Values: ${voice.values.join(', ')}` : '',
+  ].filter(Boolean);
+  if (lines.length === 0) return undefined;
+  return truncateBrandContext(
+    [`Brand voice for ${identity.name}:`, ...lines].join('\n'),
   );
-  if (!template?.isActive || typeof template.content !== 'string') {
-    return undefined;
-  }
-
-  const rendered = templatesService
-    .renderPrompt(template.content, variables)
-    .trim();
-  if (!rendered) {
-    return undefined;
-  }
-
-  return truncateBrandContext(rendered);
 }

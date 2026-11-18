@@ -40,7 +40,6 @@ export default function BrandSidebarPanel(props: BrandSidebarPanelProps) {
     handleOpenLinkModal,
     handleOpenUploadModal,
     handleRefresh,
-    handleRequestDeleteReference,
     handleUpdateBrandField,
     isLoadingBrand,
     selectedLink,
@@ -55,9 +54,13 @@ export default function BrandSidebarPanel(props: BrandSidebarPanelProps) {
     );
   }
 
-  const settingsHref =
+  const profileHref =
     orgSlug && activeBrand.slug
-      ? createBrandAppRoute(orgSlug, activeBrand.slug, APP_ROUTES.SETTINGS.ROOT)
+      ? createBrandAppRoute(
+          orgSlug,
+          activeBrand.slug,
+          APP_ROUTES.SETTINGS.PROFILE,
+        )
       : undefined;
 
   return (
@@ -75,7 +78,7 @@ export default function BrandSidebarPanel(props: BrandSidebarPanelProps) {
             </Badge>
           </>
         }
-        openHref={settingsHref}
+        openHref={profileHref}
         openLabel={translate('openSettings')}
       >
         <BrandOverviewPanel
@@ -84,7 +87,6 @@ export default function BrandSidebarPanel(props: BrandSidebarPanelProps) {
           error={error}
           socialConnections={socialConnections}
           onCopy={handleCopy}
-          onDeleteReference={handleRequestDeleteReference}
           onGenerateBanner={handleGenerateBanner}
           onGenerateLogo={handleGenerateLogo}
           onOpenLinkModal={handleOpenLinkModal}
@@ -98,9 +100,6 @@ export default function BrandSidebarPanel(props: BrandSidebarPanelProps) {
           onUpdateBrand={handleUpdateBrandField}
           onUploadBanner={() => handleOpenUploadModal(AssetCategory.BANNER)}
           onUploadLogo={() => handleOpenUploadModal(AssetCategory.LOGO)}
-          onUploadReference={() =>
-            handleOpenUploadModal(AssetCategory.REFERENCE)
-          }
         />
       </TableRowSummary>
 

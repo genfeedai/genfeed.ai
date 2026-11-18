@@ -10,7 +10,8 @@ import '@styles/masonry.css';
 import { getCommunityMedia } from '../community-loader';
 import CommunitySectionLayout from '../community-section-layout';
 
-export const revalidate = 300;
+// Reads `?sort`/`?page`, so it renders on every visit from the API's cache.
+export const dynamic = 'force-dynamic';
 
 const DESCRIPTION =
   'The newest videos creators made with Genfeed, from public profiles, with the model behind each one.';

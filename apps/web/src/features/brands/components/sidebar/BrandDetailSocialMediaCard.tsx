@@ -15,10 +15,7 @@ import {
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useOAuthConnectPlatforms } from '@hooks/auth/use-oauth-connect-platforms/use-oauth-connect-platforms';
-import type {
-  BrandDetailConnectedAccountProps,
-  BrandDetailSocialMediaCardProps,
-} from '@props/pages/brand-detail.props';
+import type { BrandDetailSocialMediaCardProps } from '@props/pages/brand-detail.props';
 import type { ApiKeyConnectTarget } from '@props/pages/brand-integrations.props';
 import type { SocialWarmupOverrideRequest } from '@props/social/social-warmup-program.props';
 import { logger } from '@services/core/logger.service';
@@ -37,11 +34,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@ui/primitives/dialog';
-import { SimpleTooltip } from '@ui/primitives/tooltip';
-import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import AccountAvatar from '@/features/brands/components/integrations/AccountAvatar';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import AccountSettingsDialog from '@/features/brands/components/integrations/AccountSettingsDialog';
 import AccountsTable from '@/features/brands/components/integrations/AccountsTable';
 import ApiKeyConnectDialog from '@/features/brands/components/integrations/ApiKeyConnectDialog';
@@ -54,13 +48,17 @@ import {
 } from '@/features/brands/components/integrations/account-connection-status.util';
 import { getHealthBadgeVariant } from '@/features/brands/components/integrations/account-health-badge-variant';
 import ConnectAccountModal from '@/features/brands/components/integrations/ConnectAccountModal';
+import ConnectedAccount from '@/features/brands/components/sidebar/BrandDetailConnectedAccount';
 import SocialWarmupProgram from '@/features/brands/components/sidebar/social-warmup/SocialWarmupProgram';
 import {
   rememberOAuthConnectContext,
   rememberOAuthReturnTo,
 } from '@/hooks/auth/use-platform-oauth-connect/oauth-connect-context';
 
-const LEADING_AT_SIGN_PATTERN = /^@/;
+const _LEADING_AT_SIGN_PATTERN = /^@/;
+// The add-bot link lives 15 minutes, so the page looks for the group that long.
+const ADD_BOT_POLL_INTERVAL_MS = 10_000;
+const ADD_BOT_POLL_MAX_CHECKS = 90;
 
 type SocialConnection = BrandDetailSocialMediaCardProps['connections'][number];
 
@@ -75,98 +73,6 @@ type ConnectablePlatform = Pick<
   ResolvedOAuthConnectPlatform,
   'connectMethod' | 'isConnectAvailable' | 'label' | 'platform' | 'servicePath'
 >;
-
-function ConnectedAccount({
-  connection,
-  isSelected = false,
-  onSelect,
-}: BrandDetailConnectedAccountProps) {
-  const translate = useTranslations('pages.brandSocialMedia');
-  const label = getConnectionLabel(connection);
-  const needsReconnect =
-    getAccountConnectionStatus(connection) === 'needsReconnect';
-  const content = (
-    <>
-      <AccountAvatar connection={connection} size="md" />
-
-      <span className="min-w-0 text-left">
-        <span className="flex min-w-0 items-center gap-1.5">
-          <span className="block truncate text-sm font-medium">{label}</span>
-          {needsReconnect ? (
-            <SimpleTooltip label={translate('needsReconnect')}>
-              <span
-                aria-label={translate('needsReconnect')}
-                className="gen-dot gen-dot-warning shrink-0"
-                role="img"
-              />
-            </SimpleTooltip>
-          ) : null}
-        </span>
-        {connection.handle ? (
-          <span className="block truncate text-xs text-muted-foreground">
-            @{connection.handle.replace(LEADING_AT_SIGN_PATTERN, '')}
-          </span>
-        ) : null}
-      </span>
-    </>
-  );
-  const className = `flex min-w-0 items-center gap-3 rounded-md px-3 py-2 shadow-border transition-colors ${
-    isSelected
-      ? 'bg-background ring-1 ring-primary/40'
-      : 'bg-card hover:bg-background'
-  }`;
-
-  const profileLink = connection.url ? (
-    <Link
-      href={connection.url}
-      target="_blank"
-      rel="noopener noreferrer"
-      aria-label={translate('openProfileAria', {
-        account: label,
-        platform: connection.platform,
-      })}
-      className="shrink-0 text-xs text-muted-foreground underline-offset-2 hover:underline"
-    >
-      {translate('openProfile', { account: label })}
-    </Link>
-  ) : null;
-
-  if (onSelect) {
-    return (
-      <div className={`${className} justify-between`}>
-        <Button
-          aria-pressed={isSelected}
-          className="min-w-0 flex-1 justify-start gap-3 p-0"
-          onClick={() => onSelect(connection.credentialId)}
-          variant={ButtonVariant.UNSTYLED}
-          withWrapper={false}
-        >
-          {content}
-        </Button>
-        {profileLink}
-      </div>
-    );
-  }
-
-  if (!connection.url) {
-    return <div className={className}>{content}</div>;
-  }
-
-  return (
-    <Link
-      href={connection.url}
-      target="_blank"
-      rel="noopener noreferrer"
-      aria-label={translate('openProfileAria', {
-        account: label,
-        platform: connection.platform,
-      })}
-      className={className}
-    >
-      {content}
-    </Link>
-  );
-}
 
 export default function BrandDetailSocialMediaCard({
   brandId,
@@ -399,6 +305,7 @@ export default function BrandDetailSocialMediaCard({
     [brandId, connections.length, getToken],
   );
 
+  // use-effect-audit: ignore abortable work
   useEffect(() => {
     const controller = new AbortController();
     void loadAccountHealth(controller.signal);
@@ -407,6 +314,30 @@ export default function BrandDetailSocialMediaCard({
       controller.abort();
     };
   }, [loadAccountHealth]);
+
+  // Telegram connects when the bot is added to a group in Telegram, so this
+  // page re-reads the connections for a couple of minutes after the link opens.
+  const addBotPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const stopAddBotPolling = useCallback(() => {
+    if (addBotPollRef.current) {
+      clearInterval(addBotPollRef.current);
+      addBotPollRef.current = null;
+    }
+  }, []);
+  // use-effect-audit: ignore releases timers, requests or subscriptions on unmount
+  useEffect(() => stopAddBotPolling, [stopAddBotPolling]);
+
+  const startAddBotPolling = () => {
+    stopAddBotPolling();
+    let remainingChecks = ADD_BOT_POLL_MAX_CHECKS;
+    addBotPollRef.current = setInterval(() => {
+      remainingChecks -= 1;
+      void Promise.all([onRefresh?.(), refreshBrands()]);
+      if (remainingChecks <= 0) {
+        stopAddBotPolling();
+      }
+    }, ADD_BOT_POLL_INTERVAL_MS);
+  };
 
   const handleConnectPlatform = async (
     item: ConnectablePlatform,
@@ -430,6 +361,39 @@ export default function BrandDetailSocialMediaCard({
         servicePath: resolveOAuthServicePath(item.platform, item.servicePath),
       });
       setIsApiKeyConnectOpen(true);
+      return;
+    }
+
+    if (item.connectMethod === 'add_bot_link') {
+      // Opened before the first await so a popup blocker still sees the click.
+      const tab = window.open('about:blank', '_blank');
+      try {
+        setConnectingPlatform(item.platform);
+        const token = (await resolveAuthToken(getToken)) ?? '';
+        const service = new ServicesService(
+          resolveOAuthServicePath(item.platform, item.servicePath),
+          token,
+        );
+        const { url } = await service.postConnect({ brandId });
+        setIsConnectAccountModalOpen(false);
+        setIsDialogOpen(false);
+        if (tab) {
+          tab.opener = null;
+          tab.location.href = url;
+        } else {
+          window.open(url, '_self');
+        }
+        NotificationsService.getInstance().info(translate('telegramAddBot'));
+        startAddBotPolling();
+      } catch (error) {
+        tab?.close();
+        logger.error(`Failed to start ${item.platform} connect:`, error);
+        NotificationsService.getInstance().error(
+          translate('connectPlatformError', { platform: item.label }),
+        );
+      } finally {
+        setConnectingPlatform(null);
+      }
       return;
     }
 
@@ -597,7 +561,7 @@ export default function BrandDetailSocialMediaCard({
     healthRows.length > 0 || selectedHasWarmup ? (
       <div className="space-y-4">
         <div className="flex items-center justify-between gap-3">
-          <h3 className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+          <h3 className="text-xs font-semibold uppercase tracking-label text-muted-foreground">
             {translate('accountHealth')}
           </h3>
           {isHealthLoading ? (
@@ -968,7 +932,7 @@ export default function BrandDetailSocialMediaCard({
                 </p>
                 {allPlatformGroups.map((group) => (
                   <div key={group.id} className="space-y-2">
-                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    <p className="text-xs font-medium uppercase tracking-label text-muted-foreground">
                       {group.label}
                     </p>
                     <div className="flex flex-wrap gap-2">
@@ -985,7 +949,7 @@ export default function BrandDetailSocialMediaCard({
               </p>
               {allPlatformGroups.map((group) => (
                 <div key={group.id} className="space-y-2">
-                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  <p className="text-xs font-medium uppercase tracking-label text-muted-foreground">
                     {group.label}
                   </p>
                   <div className="flex flex-wrap gap-2">

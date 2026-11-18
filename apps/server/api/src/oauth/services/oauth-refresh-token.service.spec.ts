@@ -939,3 +939,76 @@ describe('Claude refresh restriction', () => {
     },
   );
 });
+
+describe('Admin scope on refresh', () => {
+  const adminResource = 'https://mcp.genfeed.ai/mcp/admin';
+  const scopesWithAdmin = ['posts:draft', 'admin'];
+
+  async function refreshWith(boundResource: string, mcpAccessMode?: string) {
+    const { apiKeysService, seedApiKey, seedRefreshToken, service } =
+      buildHarness();
+    const key = seedApiKey({
+      metadata: {
+        kind: 'mcp-oauth-session',
+        ...(mcpAccessMode ? { mcpAccessMode } : {}),
+        resource: boundResource,
+      },
+      scopes: scopesWithAdmin,
+    });
+    seedRefreshToken('admin-refresh', {
+      apiKeyId: key.id,
+      resource: boundResource,
+      scopes: scopesWithAdmin,
+    });
+    const token = await service.refresh(
+      refreshGrant('admin-refresh', { resource: boundResource }),
+    );
+    return { apiKeysService, key, token };
+  }
+
+  it('drops admin from a session consented on /mcp before the scope moved', async () => {
+    const { apiKeysService, key, token } = await refreshWith(resource);
+    expect(token.scope).toBe('posts:draft');
+    expect(apiKeysService.rotateWithKey).toHaveBeenCalledWith(
+      key.id,
+      expect.objectContaining({ scopes: ['posts:draft'] }),
+      'mcp',
+    );
+  });
+
+  it('keeps admin on a session consented on the admin endpoint', async () => {
+    const { apiKeysService, key, token } = await refreshWith(
+      adminResource,
+      'admin',
+    );
+    expect(token.scope).toBe('posts:draft admin');
+    expect(apiKeysService.rotateWithKey).toHaveBeenCalledWith(
+      key.id,
+      expect.objectContaining({
+        metadata: expect.objectContaining({
+          mcpAccessMode: 'admin',
+          resource: adminResource,
+        }),
+        scopes: ['posts:draft', 'admin'],
+      }),
+      'mcp',
+    );
+  });
+
+  it('refuses a refresh that asks for admin on /mcp', async () => {
+    const { seedApiKey, seedRefreshToken, service } = buildHarness();
+    const key = seedApiKey({
+      metadata: { kind: 'mcp-oauth-session', resource },
+      scopes: scopesWithAdmin,
+    });
+    seedRefreshToken('admin-only-refresh', {
+      apiKeyId: key.id,
+      scopes: scopesWithAdmin,
+    });
+    await expect(
+      service.refresh(refreshGrant('admin-only-refresh', { scope: 'admin' })),
+    ).rejects.toMatchObject({
+      response: expect.objectContaining({ error: 'invalid_scope' }),
+    });
+  });
+});

@@ -1,8 +1,14 @@
 'use client';
 
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
-import { AGENT_THREAD_STATUS_EVENT_TYPE } from '@genfeedai/contracts/constants';
-import type { AgentThreadStatusEvent } from '@genfeedai/contracts/interfaces';
+import {
+  AGENT_THREAD_ACCESS_REVOKED_EVENT_TYPE,
+  AGENT_THREAD_STATUS_EVENT_TYPE,
+} from '@genfeedai/contracts/constants';
+import type {
+  AgentThreadAccessRevokedEvent,
+  AgentThreadStatusEvent,
+} from '@genfeedai/contracts/interfaces';
 import { countAgentThreadStatusClient } from '@genfeedai/services/core/agent-thread-status-metrics.service';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
 import { useEffect, useRef } from 'react';
@@ -47,6 +53,7 @@ export function useAgentThreadStatusPush({
     ReturnType<typeof setTimeout> | undefined
   >(undefined);
 
+  // use-effect-audit: ignore subscribes to thread status socket events
   useEffect(() => {
     if (!isActive || !isReady) {
       return;
@@ -104,12 +111,32 @@ export function useAgentThreadStatusPush({
       },
     );
 
+    // A thread shared with this member stops being theirs (#9938): the share
+    // was removed, or their role or brand access no longer reaches it. The row
+    // leaves the list and an open thread closes; the reload confirms it.
+    const unsubscribeRevoked = subscribe<AgentThreadAccessRevokedEvent>(
+      AGENT_THREAD_ACCESS_REVOKED_EVENT_TYPE,
+      (event) => {
+        const state = useAgentChatStore.getState();
+        state.setThreads(
+          state.threads.filter((thread) => thread.id !== event.threadId),
+        );
+        if (state.activeThreadId === event.threadId) {
+          state.setActiveThread(null);
+        }
+        unknownThreadIds.delete(event.threadId);
+        void reloadThreads().catch(() => false);
+      },
+    );
+
     return () => {
       unsubscribe();
+      unsubscribeRevoked();
       clearTimeout(unknownThreadTimerRef.current);
     };
   }, [isActive, isReady, reloadThreads, subscribe]);
 
+  // use-effect-audit: ignore re-syncs the thread status after the socket reconnects
   useEffect(() => {
     const previous = previousConnectionStateRef.current;
     previousConnectionStateRef.current = connectionState;
@@ -124,6 +151,7 @@ export function useAgentThreadStatusPush({
     void reloadThreadsRef.current().catch(() => false);
   }, [connectionState, isActive]);
 
+  // use-effect-audit: ignore refetches threads on window focus while the socket is down
   useEffect(() => {
     if (!isActive || connectionState === 'connected') {
       return;
@@ -138,6 +166,7 @@ export function useAgentThreadStatusPush({
     return () => window.removeEventListener('focus', handleFocus);
   }, [connectionState, isActive]);
 
+  // use-effect-audit: ignore polls threads while the socket is down
   useEffect(() => {
     if (
       !isActive ||

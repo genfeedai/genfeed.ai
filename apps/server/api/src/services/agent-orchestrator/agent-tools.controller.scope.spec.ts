@@ -291,6 +291,92 @@ describe('AgentToolsController publishing scopes', () => {
     });
   });
 
+  describe('MCP draft brand choice (#10071)', () => {
+    const listing = (brands: { id: string; label: string }[]) => ({
+      creditsUsed: 0,
+      data: { brands },
+      success: true,
+    });
+    // Brand listing for get_brands; any other tool echoes the parameters it ran with.
+    const withBrands = (brands: { id: string; label: string }[]) => {
+      executor.executeTool.mockReset();
+      executor.executeTool.mockImplementation(
+        async (name: string, parameters: Record<string, unknown>) =>
+          name === 'get_brands'
+            ? listing(brands)
+            : { creditsUsed: 0, data: { ranWith: parameters }, success: true },
+      );
+    };
+    const asMcp = <T>(callback: () => T): T =>
+      runWithActionOrigin({ origin: ActionOrigin.MCP }, callback);
+    const draft = (parameters: Record<string, unknown>) =>
+      asMcp(() =>
+        controller.execute(
+          'create_post',
+          { parameters },
+          apiKeyUser(MCP_SCOPES),
+          request,
+        ),
+      );
+
+    it('rejects create_post without brandId when the organization has several brands', async () => {
+      withBrands([
+        { id: 'brand-1', label: 'Acme' },
+        { id: 'brand-2', label: 'Beta' },
+      ]);
+
+      const result = await draft({ content: 'draft' });
+
+      expect(result).toMatchObject({
+        data: {
+          brands: [
+            { id: 'brand-1', label: 'Acme' },
+            { id: 'brand-2', label: 'Beta' },
+          ],
+          recoveryAction: 'select_brand',
+        },
+        success: false,
+      });
+      expect(JSON.stringify(result)).toContain('create_post requires brandId');
+    });
+
+    it('files the draft under the only brand when the organization has one', async () => {
+      withBrands([{ id: 'brand-1', label: 'Acme' }]);
+
+      const result = await draft({ content: 'draft' });
+
+      expect(result).toMatchObject({
+        data: { ranWith: { brandId: 'brand-1', content: 'draft' } },
+        success: true,
+      });
+    });
+
+    it('keeps the brand a draft names', async () => {
+      withBrands([
+        { id: 'brand-1', label: 'Acme' },
+        { id: 'brand-2', label: 'Beta' },
+      ]);
+
+      const result = await draft({ brandId: 'brand-2', content: 'draft' });
+
+      expect(result).toMatchObject({
+        data: { ranWith: { brandId: 'brand-2', content: 'draft' } },
+        success: true,
+      });
+    });
+
+    it('leaves a draft with no brands on the caller default', async () => {
+      withBrands([]);
+
+      const result = await draft({ content: 'draft' });
+
+      expect(result).toMatchObject({
+        data: { ranWith: { content: 'draft' } },
+        success: true,
+      });
+    });
+  });
+
   it('strips a spoofed confirmation origin from direct tool execution', async () => {
     executor.executeTool.mockResolvedValue({
       creditsUsed: 0,

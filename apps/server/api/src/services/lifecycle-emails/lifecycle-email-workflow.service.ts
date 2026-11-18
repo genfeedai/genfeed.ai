@@ -3,6 +3,7 @@ import {
   type SystemWorkflowGraphDefinition,
   SystemWorkflowRunnerService,
 } from '@api/collections/workflows/system-workflow-runner.service';
+import { SystemWorkflowRetention } from '@api/collections/workflows/workflow-execution-retention.contract';
 import {
   LifecycleEmailDeliveryService,
   type LifecycleEmailDeliveryState,
@@ -20,7 +21,7 @@ export const LIFECYCLE_EMAIL_ACTION_IDS = {
   LOAD: 'lifecycle-email.load-delivery',
   RENDER: 'lifecycle-email.render',
 } as const;
-export const LIFECYCLE_EMAIL_WORKFLOW_ID = 'lifecycle-email.delivery';
+const LIFECYCLE_EMAIL_WORKFLOW_ID = 'lifecycle-email.delivery';
 
 export function buildLifecycleEmailWorkflowDefinition(): SystemWorkflowGraphDefinition {
   return {
@@ -109,6 +110,7 @@ export function buildLifecycleEmailWorkflowDefinition(): SystemWorkflowGraphDefi
       'Loads, checks, renders, delivers, and finalizes one lifecycle email.',
     label: 'Lifecycle Email Delivery',
     resultNodeId: 'finalize-delivery',
+    retention: SystemWorkflowRetention.BACKGROUND,
     version: 1,
   };
 }

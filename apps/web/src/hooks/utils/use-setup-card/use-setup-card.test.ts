@@ -144,11 +144,11 @@ describe('useSetupCard', () => {
     expect(preferences?.isCompleted).toBe(true);
     expect(preferences?.href).toBe('/acme/~/settings/brands');
     expect(platforms?.isCompleted).toBe(false);
-    expect(platforms?.href).toBe('/acme/coffee/settings/accounts');
+    expect(platforms?.href).toBe('/acme/coffee/settings/profile');
     expect(result.current.completedCount).toBe(1);
   });
 
-  it('sends brand-less Social accounts to the organization brands directory', () => {
+  it('sends Social accounts to the Brands hub when no brand is selected', () => {
     mockScope.brandSlug = '';
 
     const { result } = renderHook(() => useSetupCard(), {
@@ -159,18 +159,16 @@ describe('useSetupCard', () => {
     );
 
     expect(platforms?.href).toBe('/acme/~/settings/brands');
-    expect(platforms?.href).not.toBe('/settings/accounts');
-    expect(platforms?.href).not.toBe('/settings/api-keys');
   });
 
-  it('updates account hrefs when the selected scope changes', () => {
+  it('keeps the preferences href following the selected scope', () => {
     const { result, rerender } = renderHook(() => useSetupCard(), {
       wrapper: queryClientWrapper(),
     });
     const hrefFor = (key: string) =>
       result.current.steps.find((step) => step.key === key)?.href;
 
-    expect(hrefFor('platforms')).toBe('/acme/coffee/settings/accounts');
+    expect(hrefFor('platforms')).toBe('/acme/coffee/settings/profile');
 
     mockScope.brandSlug = '';
     rerender();

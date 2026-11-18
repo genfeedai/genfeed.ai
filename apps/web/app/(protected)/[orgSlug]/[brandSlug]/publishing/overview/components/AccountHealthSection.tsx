@@ -47,6 +47,7 @@ export default function AccountHealthSection({
       <PublishingOverviewAsyncSection
         errorMessage="Account health could not be loaded."
         loadingLabel="Loading account health"
+        loadingRowSize="tall"
         onRetry={onRetry}
         state={state}
       >

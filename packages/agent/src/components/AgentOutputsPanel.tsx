@@ -21,7 +21,7 @@ import {
 } from 'lucide-react';
 import NextImage from 'next/image';
 import type { ReactElement } from 'react';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 
 const WHITESPACE_RUNS_PATTERN = /\s+/g;
 
@@ -145,36 +145,26 @@ export function AgentOutputsPanel({
   const messages = useAgentChatStore((s) => s.messages);
   const seedComposer = useAgentChatStore((s) => s.seedComposer);
   const outputs = useMemo(() => extractThreadOutputs(messages), [messages]);
-  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
-  const [selectedVariantId, setSelectedVariantId] = useState<string | null>(
-    null,
-  );
+  const [chosenGroupId, setSelectedGroupId] = useState<string | null>(null);
+  const [chosenVariantId, setSelectedVariantId] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (outputs.length === 0) {
-      setSelectedGroupId(null);
-      setSelectedVariantId(null);
-      return;
-    }
-
-    const nextGroup =
-      outputs.find((group) => group.id === selectedGroupId) ?? outputs[0];
-    setSelectedGroupId(nextGroup.id);
-
-    const nextVariant =
-      nextGroup.variants.find((variant) => variant.id === selectedVariantId) ??
-      nextGroup.variants[0];
-    setSelectedVariantId(nextVariant?.id ?? null);
-  }, [outputs, selectedGroupId, selectedVariantId]);
-
+  // A pick that no longer exists falls back to the first group and variant.
   const selectedGroup =
-    outputs.find((group) => group.id === selectedGroupId) ?? null;
+    outputs.find((group) => group.id === chosenGroupId) ?? outputs[0] ?? null;
   const selectedVariant =
-    selectedGroup?.variants.find(
-      (variant) => variant.id === selectedVariantId,
-    ) ??
+    selectedGroup?.variants.find((variant) => variant.id === chosenVariantId) ??
     selectedGroup?.variants[0] ??
     null;
+  const selectedGroupId = selectedGroup?.id ?? null;
+  const selectedVariantId = selectedVariant?.id ?? null;
+  // Keep the resolved pick, so older outputs loading in ahead of it do not
+  // move the selection to a different group.
+  if (chosenGroupId !== selectedGroupId) {
+    setSelectedGroupId(selectedGroupId);
+  }
+  if (chosenVariantId !== selectedVariantId) {
+    setSelectedVariantId(selectedVariantId);
+  }
   const isCompact = mode === 'compact';
 
   if (outputs.length === 0) {
@@ -189,7 +179,7 @@ export function AgentOutputsPanel({
           <div className="gen-shell-surface mx-auto flex size-14 items-center justify-center rounded-lg">
             <Image className="size-5 text-muted-foreground" />
           </div>
-          <p className="mt-4 text-2xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+          <p className="mt-4 text-2xs font-semibold uppercase tracking-label text-muted-foreground">
             Outputs
           </p>
           <h2 className="mt-3 text-lg font-semibold tracking-[-0.02em] text-foreground">
@@ -360,7 +350,7 @@ export function AgentOutputsPanel({
                     </p>
                     {group.status ? (
                       <span
-                        className="gen-shell-chip px-2 py-0.5 text-2xs uppercase tracking-wide"
+                        className="gen-shell-chip px-2 py-0.5 text-2xs uppercase tracking-label"
                         data-tone="neutral"
                       >
                         {group.status}

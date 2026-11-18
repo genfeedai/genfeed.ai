@@ -434,6 +434,37 @@ describe('AgentWorkObjectService review and scope boundary', () => {
     expect(prisma.ingredient.updateMany).not.toHaveBeenCalled();
   });
 
+  it('redirects an image quote to priced generation before publishing an ordinary input card', async () => {
+    await expect(
+      service.requestInput(
+        {
+          requestId: 'image-quote',
+          title: 'One square image',
+          prompt: 'Generate one image for 2 GEN?',
+          options: [
+            { id: 'approve_and_generate', label: 'Approve and generate' },
+            { id: 'cancel', label: 'Cancel' },
+          ],
+        },
+        context as never,
+      ),
+    ).rejects.toThrow('priced approval card');
+    expect(publisher.publishInputRequest).not.toHaveBeenCalled();
+    await service.requestInput(
+      {
+        requestId: 'format',
+        title: 'Image format',
+        prompt: 'Choose the image format',
+        options: [
+          { id: 'square', label: 'Square' },
+          { id: 'portrait', label: 'Portrait' },
+        ],
+      },
+      context as never,
+    );
+    expect(publisher.publishInputRequest).toHaveBeenCalledOnce();
+  });
+
   it.each([
     { allowFreeText: false, isMultiSelect: true, maxSelections: 2 },
     { allowFreeText: true, isMultiSelect: false },

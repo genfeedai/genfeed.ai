@@ -1,5 +1,6 @@
 # X Post
 
+<!-- generated:start (bun run skills:generate; edit SKILL.md, not this block) -->
 Write a single X (Twitter) post, quote post or reply: hooks, the 280-character edit, algorithm signals and a checklist.
 
 ## Installation
@@ -7,6 +8,7 @@ Write a single X (Twitter) post, quote post or reply: hooks, the 280-character e
 ```bash
 bunx skills add genfeedai/skills --skill x-post
 ```
+<!-- generated:end -->
 
 ## Usage
 

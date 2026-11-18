@@ -210,6 +210,76 @@ describe('AgentThreadEngineService', () => {
       );
     });
 
+    describe('in a thread shared with the sending member (#9937)', () => {
+      const memberId = 'd'.repeat(24);
+      const hasAccess = vi.fn();
+      let sharedService: AgentThreadEngineService;
+
+      beforeEach(() => {
+        hasAccess.mockReset();
+        mockPrisma.agentThreadSnapshot.findFirst.mockResolvedValue(null);
+        mockPrisma.agentThreadSnapshot.create.mockResolvedValue(
+          mockSnapshotRow,
+        );
+        // Only the owner's own lookup finds the thread.
+        agentThreadsService.findOne.mockImplementation(((query: {
+          userId?: string;
+        }) =>
+          Promise.resolve(
+            query.userId === memberId ? null : mockThread,
+          )) as never);
+        sharedService = new AgentThreadEngineService(
+          mockPrisma as never,
+          agentThreadsService as never,
+          agentMemoriesService as never,
+          runtimeSessionService as never,
+          projectorService as never,
+          loggerService as never,
+          undefined,
+          undefined,
+          { hasAccess } as never,
+        );
+      });
+
+      it('records the event as the member when their share lets them collaborate', async () => {
+        hasAccess.mockResolvedValue(true);
+
+        const result = await sharedService.appendEvent({
+          ...params,
+          userId: memberId,
+        });
+
+        expect(result.type).toBe('work.started');
+        expect(hasAccess).toHaveBeenCalledWith(
+          { organizationId: orgId, userId: memberId },
+          threadId,
+          'collaborate',
+        );
+        expect(mockPrisma.agentThreadEvent.create).toHaveBeenCalledWith(
+          expect.objectContaining({
+            data: expect.objectContaining({
+              data: expect.objectContaining({ userId: memberId }),
+            }),
+          }),
+        );
+      });
+
+      it('records nothing for a member without a live collaborate share', async () => {
+        hasAccess.mockResolvedValue(false);
+
+        await expect(
+          sharedService.appendEvent({ ...params, userId: memberId }),
+        ).rejects.toThrow(NotFoundException);
+        expect(mockPrisma.agentThreadEvent.create).not.toHaveBeenCalled();
+      });
+
+      it('never asks the share check for the owner', async () => {
+        await sharedService.appendEvent(params);
+
+        expect(hasAccess).not.toHaveBeenCalled();
+      });
+    });
+
     it('throws NotFoundException when snapshot allocation fails', async () => {
       mockPrisma.agentThreadSnapshot.findFirst.mockResolvedValue(null);
       mockPrisma.agentThreadSnapshot.create.mockResolvedValue(null);
@@ -354,6 +424,99 @@ describe('AgentThreadEngineService', () => {
       prompt: 'What is your answer?',
       options: [],
     };
+
+    describe('in a thread shared with the answering member (#9964)', () => {
+      const memberId = 'd'.repeat(24);
+      const hasAccess = vi.fn();
+      let sharedService: AgentThreadEngineService;
+
+      beforeEach(() => {
+        hasAccess.mockReset();
+        mockPrisma.agentThreadSnapshot.findFirst
+          .mockResolvedValueOnce({
+            ...mockSnapshotRow,
+            data: {
+              ...mockSnapshotRow.data,
+              inputRequests: [pendingRequest],
+            },
+          })
+          .mockResolvedValue(null);
+        mockPrisma.agentThreadSnapshot.create.mockResolvedValue(
+          mockSnapshotRow,
+        );
+        // Only the owner's own lookup finds the thread.
+        agentThreadsService.findOne.mockImplementation(((query: {
+          userId?: string;
+        }) =>
+          Promise.resolve(
+            query.userId === memberId ? null : mockThread,
+          )) as never);
+        sharedService = new AgentThreadEngineService(
+          mockPrisma as never,
+          agentThreadsService as never,
+          agentMemoriesService as never,
+          runtimeSessionService as never,
+          projectorService as never,
+          loggerService as never,
+          undefined,
+          undefined,
+          { hasAccess } as never,
+        );
+      });
+
+      it('resolves the question as the member and records who answered', async () => {
+        hasAccess.mockResolvedValue(true);
+
+        const result = await sharedService.resolveInputRequest({
+          answer: 'Use hybrid',
+          organizationId: orgId,
+          requestId: 'req-1',
+          threadId,
+          userId: memberId,
+        });
+
+        expect(result.status).toBe('resolved');
+        expect(mockPrisma.agentThreadSnapshot.updateMany).toHaveBeenCalledWith(
+          expect.objectContaining({
+            data: expect.objectContaining({
+              data: expect.objectContaining({
+                inputRequests: [
+                  expect.objectContaining({
+                    answer: 'Use hybrid',
+                    resolvedByUserId: memberId,
+                  }),
+                ],
+              }),
+            }),
+          }),
+        );
+        expect(mockPrisma.agentThreadEvent.create).toHaveBeenCalledWith(
+          expect.objectContaining({
+            data: expect.objectContaining({
+              data: expect.objectContaining({ userId: memberId }),
+            }),
+          }),
+        );
+      });
+
+      it('resolves nothing for a member without a live collaborate share', async () => {
+        hasAccess.mockResolvedValue(false);
+
+        await expect(
+          sharedService.resolveInputRequest({
+            answer: 'Use hybrid',
+            organizationId: orgId,
+            requestId: 'req-1',
+            threadId,
+            userId: memberId,
+          }),
+        ).rejects.toThrow(NotFoundException);
+        expect(
+          mockPrisma.agentThreadSnapshot.updateMany,
+        ).not.toHaveBeenCalled();
+        expect(mockPrisma.agentThreadEvent.create).not.toHaveBeenCalled();
+      });
+    });
 
     it('accepts valid multi-select ids when free text is disabled and persists the ids', async () => {
       const row = {

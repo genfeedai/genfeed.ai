@@ -1,5 +1,7 @@
+import { isDeepStrictEqual } from 'node:util';
 import { BRAND_PROFILE_GENERATION_CREDIT_COST } from '@api/collections/brands/constants/brand-profile.constant';
 import {
+  BrandVoiceValidationError,
   buildBrandProfileAnalysisPrompt,
   parseGeneratedBrandProfile,
 } from '@api/collections/brands/utils/brand-profile-generation.util';
@@ -38,6 +40,19 @@ export const DEFAULT_BRAND_VOICE_ANALYSIS = {
   values: [],
   voice: 'Friendly and informative',
 };
+
+/**
+ * True for the placeholder voice returned when the analysis model failed.
+ * Saving it would give every such brand the same "Professional, friendly" voice,
+ * so callers keep the scraped data and leave the voice unset.
+ */
+export function isFallbackBrandVoice(
+  voice: IExtractedBrandData['brandVoice'],
+): boolean {
+  return (
+    Boolean(voice) && isDeepStrictEqual(voice, DEFAULT_BRAND_VOICE_ANALYSIS)
+  );
+}
 
 /**
  * System prompts for generating brand master prompts
@@ -161,7 +176,17 @@ export class MasterPromptGeneratorService {
         voice: analysis.style,
       };
     } catch (error: unknown) {
-      this.loggerService.error(`${caller} failed`, error);
+      // The model's reply did not satisfy the profile contract. The scan
+      // continues on the placeholder voice below, so this is provider drift to
+      // watch in the logs and not a fault to report.
+      if (error instanceof BrandVoiceValidationError) {
+        this.loggerService.warn(`${caller} failed`, {
+          code: error.code,
+          error: error.message,
+        });
+      } else {
+        this.loggerService.error(`${caller} failed`, error);
+      }
 
       if (
         error instanceof InsufficientCreditsException ||
@@ -277,6 +302,16 @@ export class MasterPromptGeneratorService {
       parts.push(
         `Value Propositions:\n- ${brandData.valuePropositions.join('\n- ')}`,
       );
+    }
+
+    if (brandData.socialPostSamples?.length) {
+      parts.push(
+        `Public social posts (writing examples):\n- ${brandData.socialPostSamples.join('\n- ')}`,
+      );
+    }
+
+    if (brandData.pageExcerpts?.length) {
+      parts.push(`Other site pages:\n- ${brandData.pageExcerpts.join('\n- ')}`);
     }
 
     if (brandData.metaDescription) {

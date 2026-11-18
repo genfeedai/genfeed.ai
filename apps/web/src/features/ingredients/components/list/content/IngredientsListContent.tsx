@@ -1,7 +1,6 @@
 'use client';
 import { useAssetSelection } from '@genfeedai/contexts/ui/asset-selection.context';
 import { useContextSidebar } from '@genfeedai/contexts/ui/context-sidebar-context';
-import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
   ButtonVariant,
   categoryToString,
@@ -15,7 +14,6 @@ import {
   APP_ROUTES,
   createAdminIngredientRoute,
   EMPTY_STATES,
-  resolveOrganizationModulePresentationAccess,
 } from '@genfeedai/contracts/constants';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import { useAuthorizedMediaPreview } from '@genfeedai/hooks/media/use-authorized-media-preview';
@@ -43,14 +41,12 @@ import { SkeletonList } from '@ui/display/skeleton/skeleton';
 import AppTable from '@ui/display/table/Table';
 import TableDateCell from '@ui/display/table/TableDateCell';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
-import DropdownStatus from '@ui/dropdowns/status/DropdownStatus';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import MediaPlayer from '@ui/media-player/MediaPlayer';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { EmptyState } from '@ui/primitives/empty-state';
 import { SimpleTooltip } from '@ui/primitives/tooltip';
-import { hoverRevealClassName } from '@ui/styles/hover-reveal';
 import {
   Eye,
   Film,
@@ -64,7 +60,6 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import IngredientReviewActions from '@/components/ingredients/IngredientReviewActions';
 import IngredientOriginBadge from '@/components/ingredients/ingredient-origin-badge';
 import IngredientTagChips from '@/components/ingredients/ingredient-tag-chips';
 import { requestLibraryAssetRename } from '@/components/ingredients/inspector/library-asset-metadata-event';
@@ -76,10 +71,11 @@ import {
 } from '@/components/ingredients/list/media-grid/ingredient-tile-kind.util';
 import IngredientTimeGroupHeading from '@/components/ingredients/list/media-grid/ingredient-time-group-heading';
 import { groupIngredientsByTime } from '@/components/ingredients/list/media-grid/ingredient-time-groups.util';
+import { useIsAppAvailable } from '@/components/shell/use-available-rail-apps';
 import FailedIngredientsRecovery from '@/features/ingredients/components/ingredients/list/recovery/FailedIngredientsRecovery';
 import IngredientSound from '@/features/ingredients/components/ingredients/sound/IngredientSound';
+import IngredientStatusCell from '@/features/ingredients/components/list/content/IngredientStatusCell';
 import type { IngredientsListContentProps } from '@/features/ingredients/props/ingredients-list.props';
-import { useFeatureFlagContext } from '@/hooks/feature-flags/provider';
 import type { IngredientTimeGroupHeadingProps } from '@/props/content/ingredient.props';
 
 const IMAGE_URL_EXTENSION_PATTERN = /\.(avif|gif|jpe?g|png|webp)(?:$|[?#])/i;
@@ -373,15 +369,8 @@ export default function IngredientsListContent({
   const translateActions = useTranslations('ui.quickActions');
   const storyboardEntry = useStoryboardEntry();
   const { href } = useOrgUrl();
-  const { settings, settingsLoading } = useBrand();
-  const { flags: platformFlags } = useFeatureFlagContext();
-  // Cloud organizations start without Playground; only point at it when the
-  // organization can open it.
-  const isPlaygroundAvailable = resolveOrganizationModulePresentationAccess(
-    settingsLoading ? null : settings,
-    'playground',
-    platformFlags,
-  ).isAllowed;
+  // Only point at Playground when the organization has it.
+  const isPlaygroundAvailable = useIsAppAvailable('playground');
   const translateRetry = useTranslations('common.libraryRetry');
   // This full-card layout is reserved for a route whose *type* is dedicated
   // to audio (the legacy per-category admin pages) — every Library route's
@@ -589,25 +578,11 @@ export default function IngredientsListContent({
         header: translate('browser.columns.status'),
         key: 'status',
         render: (ingredient: IIngredient) => (
-          <div className="flex flex-wrap items-center gap-1.5">
-            <DropdownStatus
-              entity={ingredient}
-              onStatusChange={(_newStatus, updatedIngredient) => {
-                if (updatedIngredient) {
-                  handleReviewUpdated(updatedIngredient as IIngredient);
-                }
-              }}
-            />
-            {isActionsEnabled ? (
-              // Approve/reject are row actions: shown on row hover or focus.
-              <div className={hoverRevealClassName({ at: 'lg' })}>
-                <IngredientReviewActions
-                  ingredient={ingredient}
-                  onUpdated={handleReviewUpdated}
-                />
-              </div>
-            ) : null}
-          </div>
+          <IngredientStatusCell
+            ingredient={ingredient}
+            isActionsEnabled={isActionsEnabled}
+            onUpdated={handleReviewUpdated}
+          />
         ),
       },
     ],
@@ -857,7 +832,7 @@ export default function IngredientsListContent({
 
           {viewMode === 'grid' && nonVisualIngredients.length > 0 ? (
             <section className="flex flex-col gap-2">
-              <h3 className="text-2xs font-bold uppercase tracking-[0.15em] text-muted-foreground">
+              <h3 className="text-2xs font-semibold uppercase tracking-label text-muted-foreground">
                 {translate('otherAssets')}
               </h3>
               <AppTable
@@ -975,6 +950,7 @@ export default function IngredientsListContent({
 
   // Leaving the library drops the selection so the composer stops citing an
   // asset the operator can no longer see.
+  // use-effect-audit: ignore releases timers, requests or subscriptions on unmount
   useEffect(() => () => setSelectedAsset(null), [setSelectedAsset]);
 
   return (

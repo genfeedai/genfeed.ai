@@ -1,9 +1,4 @@
-export type WorkflowStatus =
-  | 'draft'
-  | 'active'
-  | 'paused'
-  | 'completed'
-  | 'failed';
+type WorkflowStatus = 'draft' | 'active' | 'paused' | 'completed' | 'failed';
 
 export interface WorkflowCreateParams {
   name: string;

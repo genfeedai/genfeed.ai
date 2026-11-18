@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { envFlag, getDeployment } from '@genfeedai/config/deployment';
+import { ROUTE_MANIFEST_APPS } from '@genfeedai/contracts/constants/route-manifest.constant';
 import {
   APP_ROUTE_PREFIXES,
   APP_ROUTES,
@@ -14,6 +15,7 @@ import {
 import { createAppNextConfig } from '@genfeedai/next-config';
 import { withSerwist } from '@serwist/turbopack';
 import createNextIntlPlugin from 'next-intl/plugin';
+import { buildSecurityHeaders } from './src/lib/security/content-security-policy';
 
 const COMMIT_SHA_PATTERN = /^[a-f0-9]{7,40}$/i;
 
@@ -127,16 +129,11 @@ const selfHostedOrgRewrites = IS_LOCAL_APP_SHELL
 
 /**
  * Complete-path app home: bare `/[app]` permanently redirects to a named child
- * so the home is a complete path that does not prefix-match its siblings.
- * Defaults to `/[app]/overview` (Workspace, Analytics, Automation, Publishing);
- * Library passes All assets, because its home is the asset browser itself
- * rather than a tile grid. Covers unscoped, brand-scoped, and org-scoped (`~/`)
- * routes.
+ * so the home is a complete path that does not prefix-match its siblings (the
+ * `bareRootRedirect` of the app's route manifest entry). Covers unscoped,
+ * brand-scoped, and org-scoped (`~/`) routes.
  */
-function appHomeRedirects(
-  appRoot: `/${string}`,
-  homePath: `/${string}` = `${appRoot}/overview`,
-) {
+function appHomeRedirects(appRoot: string, homePath: string) {
   return [
     {
       destination: homePath,
@@ -184,6 +181,15 @@ const config = createAppNextConfig({
           key: 'X-Robots-Tag',
           value: 'noindex, nofollow',
         },
+        ...buildSecurityHeaders({
+          connectOrigins: [
+            process.env.API_URL,
+            process.env.NEXT_PUBLIC_API_ENDPOINT,
+            process.env.NEXT_PUBLIC_MCP_ENDPOINT,
+            process.env.NEXT_PUBLIC_POSTHOG_HOST,
+          ],
+          isProduction: process.env.NODE_ENV === 'production',
+        }),
       ],
       source: '/(.*)',
     },
@@ -265,14 +271,43 @@ const config = createAppNextConfig({
         `${APP_ROUTES.SETTINGS.ROOT}/${segment}`,
       ),
     })),
-    // Complete-path homes: bare `/[app]` → a named child. Library's home is
-    // the asset browser, not an overview tile grid. The former Studio apps
-    // have no parent: each is its own app (#5502).
-    ...appHomeRedirects(APP_ROUTES.WORKSPACE.ROOT),
-    ...appHomeRedirects(APP_ROUTES.AUTOMATION.ROOT),
-    ...appHomeRedirects(APP_ROUTES.LIBRARY.ROOT),
-    ...appHomeRedirects(APP_ROUTES.ANALYTICS.ROOT),
-    ...appHomeRedirects(APP_ROUTES.PUBLISHING.ROOT),
+    // Bare Connectors opens its first section. A redirect in configuration is
+    // answered before any page renders, so the router can prefetch it; a page
+    // that redirects during the server render has no prefetchable shell and
+    // every click on it waits on the server.
+    {
+      destination: createBrandAppRoute(
+        ':orgSlug',
+        ':brandSlug',
+        APP_ROUTES.CONNECTORS.AGENTS,
+      ),
+      permanent: false,
+      // `v1` is the API prefix, never an organization (see appHomeRedirects).
+      source: createBrandAppRoute(
+        ':orgSlug((?!v1(?:/|$))[^/]+)',
+        ':brandSlug',
+        APP_ROUTES.CONNECTORS.ROOT,
+      ),
+    },
+    {
+      destination: createOrganizationAppRoute(
+        ':orgSlug',
+        APP_ROUTES.CONNECTORS.AGENTS,
+      ),
+      permanent: false,
+      source: createOrganizationAppRoute(
+        ':orgSlug',
+        APP_ROUTES.CONNECTORS.ROOT,
+      ),
+    },
+    // Complete-path homes: bare `/[app]` → the `bareRootRedirect` of its route
+    // manifest entry. The former Studio apps have no parent: each is its own
+    // app (#5502).
+    ...ROUTE_MANIFEST_APPS.flatMap((app) =>
+      app.bareRootRedirect
+        ? appHomeRedirects(app.rootPath, app.bareRootRedirect)
+        : [],
+    ),
   ],
   sentryProject: 'app-genfeed-ai',
 });

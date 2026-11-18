@@ -455,7 +455,7 @@ describe('ApifyBaseService', () => {
 
   it('ACTORS contains expected platform keys', () => {
     expect(service.ACTORS.YOUTUBE_SCRAPER).toBeDefined();
-    expect(service.ACTORS.TWITTER_SCRAPER).toBeDefined();
+    expect(service.ACTORS.TWITTER_TRENDS).toBeDefined();
     expect(service.ACTORS.INSTAGRAM_SCRAPER).toBeDefined();
   });
 

@@ -1,10 +1,10 @@
 import { BrandsService } from '@api/collections/brands/services/brands.service';
-import type { MemberDocument } from '@api/collections/members/schemas/member.schema';
 import { MembersService } from '@api/collections/members/services/members.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { UserSetupService } from '@api/collections/users/services/user-setup.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { BetterAuthIdentityCacheService } from '@api/common/services/better-auth-identity-cache.service';
+import type { Member } from '@genfeedai/prisma';
 import { Traced } from '@libs/tracing/traced';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import type { IBetterAuthResolvedIdentity } from '../better-auth.types';
@@ -24,7 +24,7 @@ function getEntityId(
   return getRecordId(record, 'id');
 }
 
-function getMemberOrganizationId(member: MemberDocument): string {
+function getMemberOrganizationId(member: Member): string {
   return member.organizationId;
 }
 
@@ -143,7 +143,7 @@ export class BetterAuthIdentityResolverService {
   }
 
   private async resolveOrganizationId(
-    members: MemberDocument[],
+    members: Member[],
     lastUsedOrganizationId?: string,
   ): Promise<string | undefined> {
     const memberOrganizationIds = [
@@ -218,7 +218,7 @@ export class BetterAuthIdentityResolverService {
    */
   private async resolveBrandId(
     organizationId: string,
-    members: MemberDocument[],
+    members: Member[],
   ): Promise<string | undefined> {
     const memberForOrg = members.find(
       (member) => getMemberOrganizationId(member) === organizationId,

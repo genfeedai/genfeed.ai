@@ -25,7 +25,11 @@ import { estimate, mean, pooledSd } from './stats';
 
 const TIMEOUT_ERROR_PATTERN = /time(d)? ?out/i;
 
-const NOISE_SUITES = new Set<ScoredRow['suite']>(['ladder', 'harness-ab']);
+const NOISE_SUITES = new Set<ScoredRow['suite']>([
+  'ladder',
+  'harness-ab',
+  'skill-ab',
+]);
 
 /** Rows grouped as contestant → case → repeat scores. */
 type ScoresByCase = Map<string, Map<string, number[]>>;

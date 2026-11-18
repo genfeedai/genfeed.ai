@@ -61,6 +61,7 @@ export default function CredentialPostingTimesEditor({
     [getToken, onTimesChange],
   );
 
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     const controller = new AbortController();
 

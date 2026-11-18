@@ -48,6 +48,7 @@ export default function MarqueeRail({
     paddingRight: `${gapPx}px`,
   };
 
+  // use-effect-audit: ignore ResizeObserver that measures the track
   useEffect(() => {
     const track = trackRef.current;
     if (!track) return;

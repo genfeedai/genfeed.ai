@@ -23,7 +23,7 @@ export type EditorSaveWrite = (
   options: { isKeepalive: boolean },
 ) => Promise<unknown>;
 
-export type EditorSaveStatusListener = (status: EditorSaveStatus) => void;
+type EditorSaveStatusListener = (status: EditorSaveStatus) => void;
 
 /** The slice of `Storage` the outbox keeps unsent edits in. */
 export type EditorSaveStorage = Pick<

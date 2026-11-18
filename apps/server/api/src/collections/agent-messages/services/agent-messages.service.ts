@@ -1,4 +1,5 @@
 import type { AgentMessageDocument } from '@api/collections/agent-messages/schemas/agent-message.schema';
+import { buildAgentMessageBrandWhere } from '@api/collections/agent-messages/utils/agent-message-brand.util';
 import {
   buildAgentMessageCursorWhere,
   decodeAgentMessageCursor,
@@ -48,6 +49,12 @@ export interface AddMessageDto {
 }
 
 type AgentMessagePageOptions = {
+  /**
+   * Narrows the read to messages that carry no brand or one of these brands.
+   * Omitted means every brand. Applied in the query, so every page of a
+   * paginated read follows the same rule.
+   */
+  brandIds?: string[];
   cursor?: string;
   limit?: number;
   page?: number;
@@ -145,10 +152,15 @@ export class AgentMessagesService extends BaseService<
     messageId: string,
     organizationId: string,
     telemetry?: AgentArtifactReferenceTelemetryContext,
+    brandIds?: string[],
   ): Promise<ResolvedAgentArtifactReference[]> {
     const message = await this.delegate.findFirst({
       select: { brandId: true, id: true },
-      where: scopedWhere(organizationId, { id: messageId, threadId }),
+      where: scopedWhere(organizationId, {
+        ...buildAgentMessageBrandWhere(brandIds),
+        id: messageId,
+        threadId,
+      }),
     });
     if (!message) {
       throw new NotFoundException({ message: 'Agent message not found' });
@@ -244,6 +256,7 @@ export class AgentMessagesService extends BaseService<
     const rows = (await this.delegate.findMany({
       where: scopedWhere(organizationId, {
         ...buildAgentMessageCursorWhere(cursorPosition),
+        ...buildAgentMessageBrandWhere(options.brandIds),
         threadId: roomId,
       }),
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
@@ -258,6 +271,7 @@ export class AgentMessagesService extends BaseService<
     roomId: string,
     limit = 20,
     organizationId?: string,
+    brandIds?: string[],
   ): Promise<AgentMessageDocument[]> {
     const safeLimit = this.normalizeLimit(limit, 20, MAX_AGENT_MESSAGE_LIMIT);
     // Prefer org-scoped reads so Postgres can use the composite
@@ -265,8 +279,12 @@ export class AgentMessagesService extends BaseService<
     // instead of a threadId-only filter that may sequential-scan.
     const messages = await this.delegate.findMany({
       where: organizationId
-        ? scopedWhere(organizationId, { threadId: roomId })
+        ? scopedWhere(organizationId, {
+            ...buildAgentMessageBrandWhere(brandIds),
+            threadId: roomId,
+          })
         : {
+            ...buildAgentMessageBrandWhere(brandIds),
             isDeleted: false,
             threadId: roomId,
           },

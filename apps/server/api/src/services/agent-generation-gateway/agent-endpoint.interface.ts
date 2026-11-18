@@ -55,7 +55,7 @@ export interface AgentEndpointInvocation {
 }
 
 /** What a descriptor's `handle` receives once enforcement has passed. */
-export interface AgentEndpointCallContext<TDto> {
+interface AgentEndpointCallContext<TDto> {
   dto: TDto;
   request: AgentEndpointRequest;
   user: AuthenticatedUser;

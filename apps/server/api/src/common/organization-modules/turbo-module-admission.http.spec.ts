@@ -22,6 +22,7 @@ vi.mock('@genfeedai/config', async (original) => ({
 describe('Turbo HTTP organization module admission', () => {
   let app: INestApplication;
   let isReleased: boolean;
+  let isKillSwitchOn: boolean;
   let actorFlags: { isApiKey?: boolean; isSuperAdmin?: boolean };
   let create: ReturnType<typeof vi.fn>;
   let findOne: ReturnType<typeof vi.fn>;
@@ -29,6 +30,7 @@ describe('Turbo HTTP organization module admission', () => {
 
   beforeEach(async () => {
     isReleased = false;
+    isKillSwitchOn = false;
     actorFlags = {};
     create = vi.fn().mockResolvedValue({ id: 'project-1' });
     findOne = vi.fn().mockResolvedValue({ id: 'project-1' });
@@ -50,7 +52,9 @@ describe('Turbo HTTP organization module admission', () => {
       {
         getFeatureSettingsState: vi.fn(async () => ({
           isResolved: true,
-          settings: { flags: { release_turbo: isReleased } },
+          settings: {
+            flags: { release_turbo: isReleased, turbo: !isKillSwitchOn },
+          },
         })),
       } as never,
     );
@@ -93,20 +97,17 @@ describe('Turbo HTTP organization module admission', () => {
   });
 
   it.each([{}, { isApiKey: true }, { isSuperAdmin: true }])(
-    'blocks unreleased Turbo before the actual controller creates a project: %j',
+    'creates a project for an unreleased Turbo in the caller organization: %j',
     async (flags) => {
       actorFlags = flags;
       const result = await request(app.getHttpServer())
         .post('/turbo-projects')
-        .send({
-          name: 'draft',
-          moduleId: 'playground',
-          moduleOverrides: { turboRun: true },
-          organizationId: 'other-org',
-        });
-      expect(result.status).toBe(403);
-      expect(result.body.code).toBe('ORGANIZATION_MODULE_UNRELEASED');
-      expect(create).not.toHaveBeenCalled();
+        .send({ name: 'draft', organizationId: 'other-org' });
+      expect(result.status).toBe(201);
+      expect(create).toHaveBeenCalledWith(
+        expect.objectContaining({ name: 'draft' }),
+        expect.objectContaining({ organizationId: 'org-1' }),
+      );
     },
   );
   it('allows released Turbo the organization hides, without a subscription', async () => {
@@ -120,6 +121,18 @@ describe('Turbo HTTP organization module admission', () => {
       expect.objectContaining({ organizationId: 'org-1' }),
     );
   });
+  it.each([{}, { isApiKey: true }])(
+    'answers 404 before creating a project while the Turbo kill switch is off: %j',
+    async (flags) => {
+      actorFlags = flags;
+      isKillSwitchOn = true;
+      const result = await request(app.getHttpServer())
+        .post('/turbo-projects')
+        .send({ name: 'draft', moduleId: 'playground' });
+      expect(result.status).toBe(404);
+      expect(create).not.toHaveBeenCalled();
+    },
+  );
   it('preserves existing project reads while Turbo is unreleased', async () => {
     const result = await request(app.getHttpServer()).get(
       '/turbo-projects/project-1',
@@ -132,7 +145,7 @@ describe('Turbo HTTP organization module admission', () => {
   });
 
   it.each([{}, { isApiKey: true }, { isSuperAdmin: true }])(
-    'blocks the direct Turbo content HTTP endpoint before queueing: %j',
+    'queues the direct Turbo content endpoint for an unreleased Turbo: %j',
     async (flags) => {
       actorFlags = flags;
       const result = await request(app.getHttpServer())
@@ -140,40 +153,25 @@ describe('Turbo HTTP organization module admission', () => {
         .send({
           skillSlug: 'content-writing',
           count: 2,
-          moduleId: 'playground',
           organizationId: 'other-org',
         });
-      expect(result.status).toBe(403);
-      expect(result.body.code).toBe('ORGANIZATION_MODULE_UNRELEASED');
-      expect(queueTurboRun).not.toHaveBeenCalled();
+      expect(result.status).toBe(201);
+      expect(queueTurboRun).toHaveBeenCalledWith(
+        expect.objectContaining({
+          brandId: 'brand-1',
+          organizationId: 'org-1',
+        }),
+        'user-1',
+      );
     },
   );
 
-  it('rechecks a previously released Turbo content route before the next request', async () => {
-    isReleased = true;
-    const url = '/brands/brand-1/content/turbo';
-    expect(
-      (
-        await request(app.getHttpServer())
-          .post(url)
-          .send({ skillSlug: 'content-writing', count: 2 })
-      ).status,
-    ).toBe(201);
-    expect(queueTurboRun).toHaveBeenCalledWith(
-      {
-        brandId: 'brand-1',
-        count: 2,
-        organizationId: 'org-1',
-        params: undefined,
-        skillSlug: 'content-writing',
-      },
-      'user-1',
-    );
-    isReleased = false;
+  it('answers 404 on the direct Turbo content endpoint while the kill switch is off', async () => {
+    isKillSwitchOn = true;
     const result = await request(app.getHttpServer())
-      .post(url)
-      .send({ skillSlug: 'content-writing', count: 2 });
-    expect(result.status).toBe(403);
-    expect(queueTurboRun).toHaveBeenCalledTimes(1);
+      .post('/brands/brand-1/content/turbo')
+      .send({ skillSlug: 'content-writing', count: 2, moduleId: 'playground' });
+    expect(result.status).toBe(404);
+    expect(queueTurboRun).not.toHaveBeenCalled();
   });
 });

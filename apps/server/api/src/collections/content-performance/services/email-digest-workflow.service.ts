@@ -12,6 +12,7 @@ import {
   type SystemWorkflowGraphDefinition,
   SystemWorkflowRunnerService,
 } from '@api/collections/workflows/system-workflow-runner.service';
+import { SystemWorkflowRetention } from '@api/collections/workflows/workflow-execution-retention.contract';
 import { createGenfeedActionNode } from '@genfeedai/actions';
 import type { EmailDigestWorkflowInput } from '@genfeedai/contracts/interfaces';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
@@ -25,7 +26,7 @@ export const EMAIL_DIGEST_ACTION_IDS = {
   PREPARE: 'email-digest.prepare',
   RENDER: 'email-digest.render',
 } as const;
-export const EMAIL_DIGEST_WORKFLOW_ID = 'email-digest.delivery';
+const EMAIL_DIGEST_WORKFLOW_ID = 'email-digest.delivery';
 export const EMAIL_DIGEST_CHILD_WORKFLOW_ID = 'email-digest.deliver-one';
 
 export function buildEmailDigestChildWorkflowDefinition(): SystemWorkflowGraphDefinition {
@@ -52,6 +53,7 @@ export function buildEmailDigestChildWorkflowDefinition(): SystemWorkflowGraphDe
     description: 'Delivers one rendered digest to one recipient.',
     label: 'Email Digest Recipient Delivery',
     resultNodeId: 'deliver-recipient',
+    retention: SystemWorkflowRetention.BACKGROUND,
     version: 2,
   };
 }
@@ -134,6 +136,7 @@ export function buildEmailDigestWorkflowDefinition(): SystemWorkflowGraphDefinit
     description: 'Prepares, renders, and fans out a performance digest.',
     label: 'Email Digest Delivery',
     resultNodeId: 'finalize-digest',
+    retention: SystemWorkflowRetention.BACKGROUND,
     version: 2,
   };
 }

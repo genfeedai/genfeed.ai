@@ -3,11 +3,11 @@ import { isValidPostLength } from '@api/collections/posts/services/post-generati
 import { readOptionalString } from '@api/services/agent-orchestrator/tools/agent-tool-parameter-readers';
 import { CredentialPlatform } from '@genfeedai/contracts';
 
-export const X_REPLY_MAX_WEIGHTED_CHARACTERS = 280;
+const X_REPLY_MAX_WEIGHTED_CHARACTERS = 280;
 export const THREAD_REPLY_LABEL = 'Thread reply';
 export const GROK_FEEDBACK_LABEL = 'Grok feedback request';
 export const FIRST_COMMENT_LABEL = 'First comment';
-export const MAX_THREAD_REPLIES_PER_CALL = 10;
+const MAX_THREAD_REPLIES_PER_CALL = 10;
 
 const GROK_MENTION = '@grok';
 const MAX_FIRST_COMMENT_LENGTH = 2000;
@@ -57,9 +57,7 @@ export type ThreadReplyPlan = {
   toCreate: Array<{ description: string; order: number }>;
 };
 
-export function isClosingGrokPost(
-  description: string | null | undefined,
-): boolean {
+function isClosingGrokPost(description: string | null | undefined): boolean {
   return description?.trim().startsWith(GROK_MENTION) ?? false;
 }
 

@@ -5,6 +5,7 @@ import { MetricSummary } from '@ui/cards/metric-card/MetricCard';
 import { Button } from '@ui/primitives/button';
 import { Sparkles } from 'lucide-react';
 import Link from 'next/link';
+import { useIsAppAvailable } from '@/components/shell/use-available-rail-apps';
 import type { Props } from '@/features/settings/props/settings-progress-overview-card.props';
 
 // Creating starts in the Agent now that the Compose module is gone.
@@ -22,6 +23,8 @@ export default function SettingsProgressOverviewCard({
   nextSetupStep,
   orgHref,
 }: Props) {
+  const isAgentAvailable = useIsAppAvailable('agent');
+
   return (
     <Card
       label="Progress"
@@ -38,7 +41,7 @@ export default function SettingsProgressOverviewCard({
               Finish {nextSetupStep.label}
             </Link>
           </Button>
-        ) : (
+        ) : isAgentAvailable ? (
           <Button
             asChild
             className="inline-flex items-center gap-2 rounded-full border border-categorical-orange/20 bg-categorical-orange/10 px-4 py-2 text-sm font-medium text-categorical-orange transition-colors hover:bg-categorical-orange/10"
@@ -50,7 +53,7 @@ export default function SettingsProgressOverviewCard({
               Create something new
             </Link>
           </Button>
-        )
+        ) : undefined
       }
     >
       <MetricSummary

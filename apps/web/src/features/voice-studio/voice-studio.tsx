@@ -66,7 +66,7 @@ export default function VoiceStudio() {
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <Button asChild withWrapper={false}>
-              <Link href={orgHref(APP_ROUTES.SETTINGS.INTEGRATIONS)}>
+              <Link href={orgHref(APP_ROUTES.CONNECTORS.PROVIDERS)}>
                 {translate('connect.action')}
               </Link>
             </Button>

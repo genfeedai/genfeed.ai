@@ -1,6 +1,6 @@
 import type { LucideIcon } from 'lucide-react';
 
-export interface OrganizationAutomationSurfaceLink {
+interface OrganizationAutomationSurfaceLink {
   href: string;
   id: string;
   label: string;

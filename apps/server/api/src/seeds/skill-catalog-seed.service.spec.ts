@@ -180,7 +180,8 @@ describe('SkillCatalogSeedService', () => {
   });
 
   it('is idempotent with a complete managed projection and preserves extensions', async () => {
-    await service.reconcileCatalog([imagePrompt]);
+    const seeded = await service.reconcileCatalog([imagePrompt]);
+    expect(seeded).toEqual({ inserted: 1, skipped: 0, updated: 0 });
     const data = prisma.skill.create.mock.calls[0][0].data;
     prisma.skill.findUnique.mockResolvedValue({
       ...data,
@@ -216,7 +217,8 @@ describe('SkillCatalogSeedService', () => {
         instructionsHash: 'instructions',
         catalogCompilerVersion: 'compiler',
       };
-      await service.reconcileCatalog([definition]);
+      const seeded = await service.reconcileCatalog([definition]);
+      expect(seeded).toEqual({ inserted: 1, skipped: 0, updated: 0 });
       const data = prisma.skill.create.mock.calls[0][0].data;
       prisma.skill.findUnique.mockResolvedValue({
         ...data,
@@ -280,8 +282,9 @@ describe('SkillCatalogSeedService', () => {
   });
 
   it('preserves original five identities when seeding content-geo-optimizer', async () => {
-    await service.reconcileCatalog([geo]);
+    const seeded = await service.reconcileCatalog([geo]);
 
+    expect(seeded).toEqual({ inserted: 1, skipped: 0, updated: 0 });
     expect(prisma.skill.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
         id: 'cskillbuiltincontentgeo',

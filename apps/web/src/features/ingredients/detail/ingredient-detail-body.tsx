@@ -4,6 +4,7 @@ import { IngredientCategory } from '@genfeedai/contracts';
 import type { ICredential, IIngredient } from '@genfeedai/contracts/interfaces';
 import { EnvironmentService } from '@services/core/environment.service';
 import { LazyModalTrim } from '@/components/lazy/modal/LazyModal';
+import { useIsAppAvailable } from '@/components/shell/use-available-rail-apps';
 import IngredientDetailImage from '@/features/ingredients/detail-image/IngredientDetailImage';
 import IngredientDetailVideo from '@/features/ingredients/detail-video/IngredientDetailVideo';
 import type {
@@ -66,6 +67,8 @@ export default function IngredientDetailBody({
   onTrimConfirm,
   onTrimClose,
 }: Props) {
+  const isAgentAvailable = useIsAppAvailable('agent');
+
   return (
     <>
       <div className="grid h-full grid-cols-1 items-start gap-6 p-6 xl:grid-cols-2">
@@ -121,7 +124,9 @@ export default function IngredientDetailBody({
               handlers.handleDownload as IngredientDetailImageProps['onDownloadImage']
             }
             onConvertToVideo={handlers.handleConvertToVideo}
-            onUseAsVideoReference={handlers.handleUseAsVideoReference}
+            onUseAsVideoReference={
+              isAgentAvailable ? handlers.handleUseAsVideoReference : undefined
+            }
             onCopyPrompt={handlers.handleCopyPrompt}
             onReprompt={handlers.handleReprompt}
             onUpdateSharing={onUpdateSharing}

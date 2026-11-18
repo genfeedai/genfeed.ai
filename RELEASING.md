@@ -60,6 +60,38 @@ After that shared gate it ships both distribution lanes from the same commit:
 - SaaS: public workflows deploy the exact pinned commit through migration,
   boot checks, ECS rollout, Vercel deployment and production smoke checks.
 
+### Releasing an earlier master commit
+
+`master` is never frozen, so a merge can land between the release gates going
+green and the dispatch. The gates then have no evidence for the new head.
+Instead of running them again, pin the commit they already passed on: dispatch
+`Release` on `master` as usual and put that commit in the optional `sha` input.
+
+The workflow accepts the pin only when all of these hold, and stops before it
+creates the draft or deploys anything when one does not:
+
+- `sha` is an exact lowercase 40-character commit that is on `master` before
+  the dispatched head. A branch, tag, short SHA or unmerged commit is refused.
+- The root `package.json` at that commit carries the release version.
+- A Full Suite run on that exact commit is green and includes `Final Connected
+  Acceptance`. The Full Suite inside `Release` can only test the dispatched
+  head, so a pinned release never runs it; it needs the evidence to exist.
+- Playwright Full and Learning Runtime have a green verdict for that commit,
+  the same rule as an unpinned release.
+- The npm plan at that commit is empty. npm provenance attests the dispatched
+  commit, so a pinned release cannot publish a package. When a package is
+  pending, release from the current head instead.
+
+Everything after validation ships the pinned commit: the changelog, the
+Community image and install bundle, the SaaS deploy and the tag. The workflow
+file itself is the dispatched head's, while every script it runs comes from
+the pinned commit, so pin a recent commit, not an old one.
+
+Retry a failed pinned release by dispatching again with the same tag and the
+same `sha`. `sha` cannot be combined with `recovery_run_id` or
+`repair_published_release`, and `recovery_run_id` does not accept a pinned
+run: recovery reads the release commit from the failed run's own head.
+
 The workflow creates a draft release before the gates so a failed attempt can
 reuse the same version safely. It publishes the GitHub release and advances
 `latest` only after both community and SaaS succeed. A tag or draft release
@@ -124,7 +156,9 @@ for both shapes. Both a normal release and a validated historical recovery
 require the pinned SHA to remain an ancestor of current `master`, so merges
 that land while a release runs no longer fail its npm lane. A normal release
 also requires the pinned SHA to equal the dispatched workflow SHA, which npm
-provenance attests. A validated historical recovery may
+provenance attests. A release pinned with the `sha` input is the one
+exception, and only because its npm plan must be empty, so it publishes
+nothing. A validated historical recovery may
 continue only when the registry-drift plan is empty; if any enrolled package
 would publish, the recovery fails closed and a new release must run from
 current `master`. This lets the `v0.1.66` recovery preserve truthful npm
@@ -139,7 +173,9 @@ The self-hosted release contract is version-bound:
   `genfeed-selfhosted.tar.gz.sha256`
 - bundle manifest `releaseTag=v1.2.3` and the exact GHCR image above
 
-The publish workflow advances `latest`, builds the checksummed bundle, exercises
+The publish workflow builds the image once, in the verify job, which pushes it by
+digest with no tag and boots that exact digest; the publisher retags the tested
+digest and refuses any tag that resolves elsewhere. It advances `latest`, builds the checksummed bundle, exercises
 the built `@genfeedai/create` CLI against it, anonymously pulls the exact image,
 validates OCI version/revision labels, and only then attaches the assets. The
 nightly self-hosted E2E downloads that exact public bundle and does not log in to

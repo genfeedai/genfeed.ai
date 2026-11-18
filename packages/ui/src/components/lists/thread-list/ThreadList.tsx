@@ -239,6 +239,7 @@ function msUntilNextLocalMidnight(now: Date): number {
 export function useLocalDayClock(): Date {
   const [now, setNow] = useState(() => new Date());
 
+  // use-effect-audit: ignore schedules a timer for the next local midnight
   useEffect(() => {
     const timer = setTimeout(
       () => setNow(new Date()),

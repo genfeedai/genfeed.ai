@@ -30,7 +30,7 @@ export default function IssueSidebar({
     <div className="space-y-4">
       <Card>
         <div className="p-4">
-          <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-800">
+          <h3 className="mb-3 text-xs font-semibold uppercase tracking-label text-gray-800">
             Details
           </h3>
           <DefinitionList className="text-sm">
@@ -115,7 +115,7 @@ export default function IssueSidebar({
       {issue.linkedEntities?.length > 0 ? (
         <Card>
           <div className="p-4">
-            <h3 className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-gray-800">
+            <h3 className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-label text-gray-800">
               <LinkIcon className="size-3.5" />
               Linked ({issue.linkedEntities.length})
             </h3>

@@ -21,6 +21,7 @@ import {
   GENERATION_MARGIN_TAPER_MULTIPLIER,
   getEnterprisePlan,
   getLaunchPrice,
+  getLaunchPriceTerm,
   getPlanByLabel,
   getPlanByTier,
   getPlanLabel,
@@ -28,11 +29,13 @@ import {
   getScalePlan,
   IMAGE_CREDIT_COSTS,
   INTERNAL_CREDIT_COSTS,
+  type LaunchPromotionProps,
   MAX_MARGIN_MULTIPLIER,
   PAYG_CREDIT_PACKS,
   PAYG_CREDITS_PER_USD,
   PLAN_COPY,
   PLAN_LABELS,
+  PRO_LAUNCH_PROMOTION,
   SUBSCRIPTION_PRICE_CONTRACTS,
   setRuntimeMarginMultiplier,
   TIER_INCLUDED_MONTHLY_CREDITS,
@@ -93,16 +96,16 @@ describe('plan price formatting', () => {
 
   it('formats included credits per tier', () => {
     expect(formatPlanIncludedCredits('pro')).toBe('4,900 credits');
-    expect(formatPlanIncludedCredits('scale')).toBe('60,000 credits');
+    expect(formatPlanIncludedCredits('scale')).toBe('70,000 credits');
     expect(formatPlanIncludedCredits('payg')).toBe('');
     expect(formatPlanIncludedCredits('enterprise')).toBe('');
   });
 
   it('builds PLAN_COPY tokens from the same sources', () => {
     expect(PLAN_COPY.scale).toEqual({
-      creditRateAdvantage: '~17%',
-      includedCredits: '60,000 credits',
-      includedCreditsValue: '$600',
+      creditRateAdvantage: '~29%',
+      includedCredits: '70,000 credits',
+      includedCreditsValue: '$700',
       monthlyPrice: '$499/month',
       name: 'Scale',
       nameWithPrice: 'Scale ($499/month)',
@@ -122,7 +125,7 @@ describe('plan price formatting', () => {
   // Pro is priced at the PAYG rate (no bonus); only Scale carries a bonus.
   it.each([
     { bonus: 0, margin: 0.7, tier: 'pro' },
-    { bonus: 0.2, margin: 0.64, tier: 'scale' },
+    { bonus: 0.4, margin: 0.58, tier: 'scale' },
   ] as const)(
     'prices $tier at a $bonus credit bonus over the PAYG rate',
     ({ bonus, margin, tier }) => {
@@ -147,6 +150,40 @@ describe('plan price formatting', () => {
     'prices $tier at $expected with the launch code',
     ({ expected, tier }) => {
       expect(getLaunchPrice(tier)).toBe(expected);
+    },
+  );
+
+  it('discloses the term of the live launch promotion on Pro only', () => {
+    expect(getLaunchPriceTerm('pro')).toBe('12 months at $39, then $49');
+    expect(getLaunchPriceTerm('scale')).toBeNull();
+    expect(getLaunchPriceTerm('payg')).toBeNull();
+    expect(getLaunchPriceTerm('enterprise')).toBeNull();
+  });
+
+  it('keeps the live launch promotion in step with the Pro price it discounts', () => {
+    expect(PRO_LAUNCH_PROMOTION).toEqual({
+      code: 'EARLYGENFEED',
+      discountDollars: 10,
+      discountMonths: 12,
+    });
+  });
+
+  it.each([
+    {
+      expectedPrice: 29,
+      expectedTerm: '6 months at $29, then $49',
+      promotion: { code: 'FIXTURE', discountDollars: 20, discountMonths: 6 },
+    },
+    { expectedPrice: null, expectedTerm: null, promotion: null },
+  ] as Array<{
+    expectedPrice: number | null;
+    expectedTerm: string | null;
+    promotion: LaunchPromotionProps | null;
+  }>)(
+    'derives the Pro launch price and term from the promotion ($promotion)',
+    ({ expectedPrice, expectedTerm, promotion }) => {
+      expect(getLaunchPrice('pro', promotion)).toBe(expectedPrice);
+      expect(getLaunchPriceTerm('pro', promotion)).toBe(expectedTerm);
     },
   );
 
@@ -314,7 +351,7 @@ describe('pricing constants', () => {
     });
     expect(SUBSCRIPTION_PRICE_CONTRACTS.scale).toEqual({
       currency: 'usd',
-      includedMonthlyCredits: 60_000,
+      includedMonthlyCredits: 70_000,
       interval: 'month',
       unitAmount: 49_900,
     });
@@ -339,6 +376,8 @@ describe('pricing constants', () => {
       MODEL_KEYS.HEYGEN_AVATAR,
       MODEL_KEYS.HEYGEN_AVATAR_IV,
       MODEL_KEYS.HEYGEN_AVATAR_V,
+      MODEL_KEYS.HEYGEN_AVATAR_6,
+      MODEL_KEYS.HEYGEN_AVATAR_6_TURBO,
     ];
     const avatarRates = REVIEWED_RATE_SHEET_ENTRIES.filter(
       (entry) =>
@@ -351,9 +390,10 @@ describe('pricing constants', () => {
       maxCredits: clip(Math.max(...avatarRates)),
       minCredits: clip(Math.min(...avatarRates)),
     });
-    // Photo animation $0.0385/s and Avatar V $0.12/s, 4 s at the 3.33 margin.
+    // Photo animation $0.0385/s and Avatar 6 at 2K $0.145/s, 4 s at the 3.33
+    // margin (the $0.58 clip crosses the $0.50 taper knee).
     expect(AVATAR_CREDIT_COSTS.avatar4s).toEqual({
-      maxCredits: 160,
+      maxCredits: 183,
       minCredits: 52,
     });
     // An Avatar IV digital twin ($0.0805/s) falls inside the range.
@@ -372,9 +412,9 @@ describe('pricing constants', () => {
   });
 
   it('scales an avatar clip with its length the way admission holds it', () => {
-    // Avatar V at $1.20 crosses the $0.50 taper knee: $1.665 + $0.70 x 2.0.
+    // Avatar 6 at 2K, $1.45, crosses the $0.50 taper knee: $1.665 + $0.95 x 2.0.
     expect(avatarClipCreditRange(10)).toEqual({
-      maxCredits: 307,
+      maxCredits: 357,
       minCredits: 129,
     });
   });
@@ -417,18 +457,18 @@ describe('website plan catalogue', () => {
 
     expect(pro.includedCredits).toBe(TIER_INCLUDED_MONTHLY_CREDITS.pro);
     expect(pro.features).toContain('Automation, Messages, Discovery');
-    expect(pro.features).not.toContain('Brand model training');
+    expect(pro.features).not.toContain('Ultra quality, model training');
   });
 
   it('sells Scale with client workspaces and the subscription features', () => {
     const scale = getScalePlan();
 
     expect(scale.interval).toBe('month');
-    expect(scale.includedCredits).toBe(60_000);
+    expect(scale.includedCredits).toBe(70_000);
     expect(scale.includedCredits).toBe(TIER_INCLUDED_MONTHLY_CREDITS.scale);
-    expect(scale.features).toContain('Unlimited seats and client workspaces');
-    expect(scale.features).toContain('Brand model training');
-    expect(scale.features).toContain('Higher API limits');
+    expect(scale.features).toContain('Unlimited seats and workspaces');
+    expect(scale.features).toContain('Ultra quality, model training');
+    expect(scale.features).toContain('600 API requests/min');
     expect(scale.features).toContain('Everything in Pro');
     expect(scale.outputs).toBeNull();
   });

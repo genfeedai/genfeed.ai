@@ -1,6 +1,7 @@
 import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
 import { MAX_HTML_BYTES } from '@api/services/brand-scraper/brand-scraper-http.util';
 import { BrandWebsiteParserService } from '@api/services/brand-scraper/brand-website-parser.service';
+import { PublicXBrandSourceService } from '@api/services/brand-scraper/public-x-brand-source.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -121,6 +122,7 @@ const mockConfigService = {
 // ---------------------------------------------------------------------------
 
 describe('BrandScraperService', () => {
+  const profile = vi.fn();
   let service: BrandScraperService;
   let fetchMock: ReturnType<typeof vi.fn>;
 
@@ -133,6 +135,12 @@ describe('BrandScraperService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         BrandScraperService,
+        {
+          provide: PublicXBrandSourceService,
+          useValue: {
+            profile: profile.mockReset().mockResolvedValue(undefined),
+          },
+        },
         BrandWebsiteParserService,
         { provide: ConfigService, useValue: mockConfigService },
         { provide: LoggerService, useValue: mockLogger },
@@ -146,6 +154,33 @@ describe('BrandScraperService', () => {
     vi.useRealTimers();
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
+  });
+
+  it('maps a single public X lookup to brand setup evidence and a writing sample', async () => {
+    profile.mockResolvedValueOnce({
+      name: 'Acme Studio',
+      handle: 'Acme',
+      bio: 'Objects for everyday use.',
+      avatar: 'https://pbs.twimg.com/avatar.jpg',
+      banner: 'https://pbs.twimg.com/banner.jpg',
+      latestText: 'A new collection, made by hand.',
+      latestSample: { id: '123', text: 'A new collection, made by hand.' },
+      readAt: '2026-11-01T00:00:00Z',
+    });
+    const result = await service.scrapeSetupSourceWithEvidence(
+      'https://twitter.com/Acme',
+    );
+    expect(profile).toHaveBeenCalledExactlyOnceWith('acme', undefined);
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(result.data).toMatchObject({
+      companyName: 'Acme Studio',
+      description: 'Objects for everyday use.',
+      logoUrl: 'https://pbs.twimg.com/avatar.jpg',
+      bannerUrl: 'https://pbs.twimg.com/banner.jpg',
+      socialLinks: { twitter: 'https://x.com/Acme' },
+      socialPostSamples: ['A new collection, made by hand.'],
+    });
+    expect(result.evidence[0]?.excerpt).toBe('A new collection, made by hand.');
   });
 
   describe.each([
@@ -260,7 +295,10 @@ describe('BrandScraperService', () => {
       const controlled = openResponse(403);
       fetchMock.mockResolvedValue(controlled.response);
       try {
-        await expect(service[method](url)).rejects.toThrow('403');
+        await expect(service[method](url)).rejects.toMatchObject({
+          message: expect.stringContaining('403'),
+          status: 403,
+        });
         expect(controlled.cancel).toHaveBeenCalledOnce();
         expect(fetchMock.mock.calls[0][1].signal.aborted).toBe(true);
         expect(vi.getTimerCount()).toBe(0);
@@ -328,8 +366,9 @@ describe('BrandScraperService', () => {
         () => {
           settled = true;
         },
-        () => {
+        (error: unknown) => {
           settled = true;
+          expect(error).toMatchObject({ status: 429 });
         },
       );
       try {
@@ -794,6 +833,79 @@ describe('BrandScraperService', () => {
       expect(JSON.stringify(mockLogger.warn.mock.calls)).not.toContain(
         'secret',
       );
+    });
+  });
+
+  describe('supporting pages', () => {
+    const homepage = () =>
+      makeResponse(
+        makeHtml({
+          themeColor: '',
+          body: '<h1>Acme</h1><a href="/about">About</a><a href="/pricing">Pricing</a>',
+        }),
+      );
+    const page = (copy: string) =>
+      makeResponse(`<html><body><p>${copy}</p></body></html>`);
+
+    it('reads the about and pricing pages and returns their excerpts', async () => {
+      fetchMock
+        .mockResolvedValueOnce(homepage())
+        .mockResolvedValueOnce(
+          page('We bake sourdough loaves and ship them across the country.'),
+        )
+        .mockResolvedValueOnce(
+          page('Plans start at twelve dollars a month for one loaf a week.'),
+        );
+
+      const result =
+        await service.scrapeWebsiteWithEvidence('https://acme.com');
+
+      expect(result.data.pageExcerpts).toEqual([
+        'We bake sourdough loaves and ship them across the country.',
+        'Plans start at twelve dollars a month for one loaf a week.',
+      ]);
+      expect(fetchMock.mock.calls.map((call) => String(call[0]))).toEqual([
+        'https://acme.com',
+        'https://acme.com/about',
+        'https://acme.com/pricing',
+      ]);
+      expect(result.evidence).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            label: 'Website page',
+            url: 'https://acme.com/about',
+          }),
+        ]),
+      );
+    });
+
+    it('keeps the homepage result and notes the miss when a page cannot be read', async () => {
+      fetchMock
+        .mockResolvedValueOnce(homepage())
+        .mockResolvedValueOnce(makeResponse('', 404))
+        .mockResolvedValueOnce(
+          page('Plans start at twelve dollars a month for one loaf a week.'),
+        );
+
+      const result =
+        await service.scrapeWebsiteWithEvidence('https://acme.com');
+
+      expect(result.data.heroText).toBe('Acme');
+      expect(result.data.pageExcerpts).toEqual([
+        'Plans start at twelve dollars a month for one loaf a week.',
+      ]);
+    });
+
+    it('does not fetch more pages when the scan is nearly out of time', async () => {
+      fetchMock.mockResolvedValueOnce(homepage());
+
+      const result = await service.scrapeWebsiteWithEvidence(
+        'https://acme.com',
+        { deadlineAt: performance.now() + 5_000 },
+      );
+
+      expect(result.data.pageExcerpts).toBeUndefined();
+      expect(fetchMock).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -1388,11 +1500,16 @@ describe('BrandScraperService', () => {
       expect(result.scrapedAt).toBeInstanceOf(Date);
     });
 
-    it('throws when fetch returns non-OK', async () => {
+    it('throws when fetch returns non-OK without reporting a site refusal as an error', async () => {
       fetchMock.mockResolvedValue(makeResponse('', 403));
       await expect(
         service.scrapeLinkedIn('https://linkedin.com/company/acme'),
       ).rejects.toThrow('403');
+      expect(mockLogger.error).not.toHaveBeenCalled();
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('refused by the site'),
+        expect.objectContaining({ status: 403 }),
+      );
     });
 
     it('throws on network error', async () => {
@@ -1421,6 +1538,15 @@ describe('BrandScraperService', () => {
   <article><span data-testid="tweetText">Excited about #AI tools we are building together.</span></article>
 </body>
 </html>`;
+
+    it('keeps only the first visible writing example from the HTML fallback', async () => {
+      fetchMock.mockResolvedValue(makeResponse(xHtml));
+      const result = await service.scrapeXProfile('https://x.com/acme');
+      expect(result.recentTweets).toEqual([
+        `We just launched ${rocketEmoji} our new product!`,
+      ]);
+      expect(result.latestPostText).toBeUndefined();
+    });
 
     it('extracts handle from URL', async () => {
       fetchMock.mockResolvedValue(makeResponse(xHtml));

@@ -15,6 +15,7 @@ describe('ingredients.util', () => {
         expect(IngredientEndpoints.endpoints.SOURCE).toBe('sources');
         expect(IngredientEndpoints.endpoints.TEXT).toBe('texts');
         expect(IngredientEndpoints.endpoints.AUDIO).toBe('audios');
+        expect(IngredientEndpoints.endpoints.MODEL_3D).toBe('ingredients');
       });
 
       it('should map IMAGE_EDIT to images endpoint', () => {

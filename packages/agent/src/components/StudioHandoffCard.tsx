@@ -34,7 +34,7 @@ export function StudioHandoffCard({
         <div className="mb-3 flex items-center gap-2">
           <Paintbrush className="size-5 text-muted-foreground" />
           <h3 className="text-sm font-semibold">
-            {action.title || 'Open in Studio'}
+            {action.title || 'Open Studio'}
           </h3>
         </div>
 
@@ -50,7 +50,7 @@ export function StudioHandoffCard({
 
         <a
           href={studioUrl}
-          className="flex w-full items-center justify-center gap-2 bg-primary px-4 py-2 text-sm font-black text-primary-foreground transition-colors hover:bg-primary/90"
+          className="flex w-full items-center justify-center gap-2 bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
         >
           <ExternalLink className="size-4" />
           Open in Studio

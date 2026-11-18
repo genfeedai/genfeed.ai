@@ -17,8 +17,13 @@ Source of truth:
 
 - Next App Router pages under `apps/web/app/**/page.tsx`
 - Route constants in `packages/contracts/src/constants/routes.constant.ts`
-- Executable protected-route classification in
-  `apps/web/src/lib/workspace-shell/workspace-shell-registry.ts`
+- The route manifest, `packages/contracts/src/constants/route-manifest.constant.ts`: the one
+  place a product route is declared (page, breadcrumb title, help key, agent-output flag,
+  shell contract, rail app, admin sidebar entry, bare-root redirect). Adding a route is one
+  entry there plus its page. `APP_ROUTES` needs the path only when other code links to it.
+- Executable protected-route classification derives from the manifest in
+  `apps/web/src/lib/workspace-shell/workspace-shell-registry.ts`; page help, agent-output
+  layout, app rail, admin menu and the `next.config.ts` bare-root redirects derive from it too
 - Protected/public page drift guard and public classification registry in
   `scripts/architecture/check-product-route-inventory.ts`
 - Shell surface resolver in `apps/web/src/components/layouts/protected/useAppProtectedLayout.ts`

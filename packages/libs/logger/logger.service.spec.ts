@@ -1,7 +1,10 @@
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
+import * as Sentry from '@sentry/nestjs';
 import type { Mock } from 'vitest';
 import type { Logger as winstonLogger } from 'winston';
+
+vi.mock('@sentry/nestjs', () => ({ captureException: vi.fn() }));
 
 /** Exposes the protected message formatter the log methods share. */
 class MessageFormatter extends LoggerService {
@@ -155,6 +158,33 @@ describe('LoggerService', () => {
   });
 
   describe('error', () => {
+    it('sends a logged server error to Sentry with X response details', () => {
+      const failure = Object.assign(new Error('Request failed with code 401'), {
+        code: 401,
+        data: { title: 'Unauthorized' },
+      });
+
+      service.error('TwitterService getTrends failed', failure, {
+        service: 'TwitterService',
+      });
+
+      expect(mockWinston.error).toHaveBeenCalledWith(
+        '[TwitterService] TwitterService getTrends failed',
+        expect.objectContaining({
+          error: expect.objectContaining({
+            code: 401,
+            data: { title: 'Unauthorized' },
+          }),
+        }),
+      );
+      expect(Sentry.captureException).toHaveBeenCalledWith(
+        failure,
+        expect.objectContaining({
+          fingerprint: ['logger.error', 'TwitterService getTrends failed'],
+        }),
+      );
+    });
+
     it('should call winston.error with formatted message', () => {
       const message = 'Test error message';
       const trace = new Error('Test error');

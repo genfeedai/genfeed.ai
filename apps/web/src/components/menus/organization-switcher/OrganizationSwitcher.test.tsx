@@ -15,6 +15,10 @@ import OrganizationSwitcher from '@/components/menus/organization-switcher/Organ
 import { failingImageUrls } from '../../../../tests/image-loading.stub';
 
 const mockPush = vi.fn();
+const mockPrefetch = vi.fn();
+const mockNotifyError = vi.fn();
+let mockPendingOrganizationId: string | null = null;
+let mockSwitchFailure: { kind: 'activation' } | null = null;
 const mockCreateOrganization = vi.fn();
 const mockGetMyOrganizations = vi.fn();
 const mockSwitchOrganization = vi.fn();
@@ -37,7 +41,7 @@ let mockSubscriptionTier: string | null = 'scale';
 
 vi.mock('next-intl', () => ({
   useTranslations: () => (key: string) =>
-    ({ switching: 'Switching…' })[key] ?? key,
+    ({ switchFailed: 'Could not switch organization.' })[key] ?? key,
 }));
 
 // next/image rejects hosts outside the app's image config; the switcher only
@@ -58,6 +62,7 @@ vi.mock('next/navigation', () => ({
   usePathname: () => mockPathname,
   useParams: () => mockParams,
   useRouter: () => ({
+    prefetch: mockPrefetch,
     push: mockPush,
   }),
 }));
@@ -76,7 +81,9 @@ vi.mock(
     useRoutedOrganization: () => ({
       confirmedOrganizationId: mockConfirmedOrganizationId,
       organizations: mockOrganizations,
+      pendingOrganizationId: mockPendingOrganizationId,
       status: mockOrganizationStatus,
+      switchFailure: mockSwitchFailure,
       switchOrganization: mockSwitchOrganization,
     }),
   }),
@@ -96,6 +103,12 @@ vi.mock('@/hooks/data/subscription/use-subscription/use-subscription', () => ({
   useSubscription: () => ({
     isSubscriptionActive: mockIsSubscriptionActive,
   }),
+}));
+
+vi.mock('@genfeedai/services/core/notifications.service', () => ({
+  NotificationsService: {
+    getInstance: () => ({ error: mockNotifyError }),
+  },
 }));
 
 vi.mock('@genfeedai/services/organization/organizations.service', () => ({
@@ -164,11 +177,29 @@ function renderSwitcher() {
 }
 
 describe('OrganizationSwitcher', () => {
-  it('renders the translated switching label while an org switch is pending', () => {
+  it('shows the chosen organization in the trigger at once, before the switch is confirmed', () => {
+    mockOrganizations = TWO_ORGS;
     mockOrganizationStatus = 'switching';
+    mockConfirmedOrganizationId = null;
+    mockPendingOrganizationId = 'org_alpha';
     renderSwitcher();
 
-    expect(screen.getByText('Switching…')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Switch organization, Alpha' }),
+    ).toBeInTheDocument();
+    expect(capturedItems.find((item) => item.isActive)?.id).toBe('org_alpha');
+  });
+
+  it('tells the member once when the API refused the switch', () => {
+    const failure = { kind: 'activation' } as const;
+    mockSwitchFailure = failure;
+    const { rerender } = renderSwitcher();
+    rerender(<OrganizationSwitcher subscriptionTier={mockSubscriptionTier} />);
+
+    expect(mockNotifyError).toHaveBeenCalledTimes(1);
+    expect(mockNotifyError).toHaveBeenCalledWith(
+      'Could not switch organization.',
+    );
   });
 
   beforeEach(() => {
@@ -187,6 +218,10 @@ describe('OrganizationSwitcher', () => {
     mockGetMyOrganizations.mockReset();
     mockSwitchOrganization.mockReset();
     mockPush.mockReset();
+    mockPrefetch.mockReset();
+    mockNotifyError.mockReset();
+    mockPendingOrganizationId = null;
+    mockSwitchFailure = null;
     mockOrganizations = [
       {
         brand: null,
@@ -530,6 +565,7 @@ describe('OrganizationSwitcher', () => {
     await waitFor(() => {
       expect(mockSwitchOrganization).toHaveBeenCalledWith('org_bravo');
     });
+    expect(mockPrefetch).toHaveBeenCalledWith('/bravo/~/library/assets');
     expect(mockPush).toHaveBeenCalledWith('/bravo/~/library/assets');
     expect(window.location.assign).not.toHaveBeenCalled();
     expect(window.location.reload).not.toHaveBeenCalled();

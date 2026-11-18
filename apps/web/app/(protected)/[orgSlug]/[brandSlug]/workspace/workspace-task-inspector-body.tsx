@@ -12,6 +12,7 @@ import { AlertTriangle, Clock } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
+import { useIsAppAvailable } from '@/components/shell/use-available-rail-apps';
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import type { WorkspaceTaskInspectorBodyProps } from '@/features/workspace/props/workspace-task-inspector-body.props';
 import type { WorkspaceTranslate } from '@/props/workspace/workspace-task.props';
@@ -37,6 +38,7 @@ export function WorkspaceTaskInspectorBody({
   task,
 }: WorkspaceTaskInspectorBodyProps) {
   const taskHref = useWorkspaceTaskHref();
+  const isAgentAvailable = useIsAppAvailable('agent');
   const translate = useTranslations('pages.workspaceOverview');
   const translateTabs = useTranslations('pages.tasks.inspector.tabs');
   const [activeTab, setActiveTab] =
@@ -48,7 +50,9 @@ export function WorkspaceTaskInspectorBody({
   const hasContinuityQa = Boolean(continuityQa);
   const hasThread = (task.eventStream?.length ?? 0) > 0;
   const hasOutputs = (task.linkedOutputIds?.length ?? 0) > 0;
-  const hasReportLocation = Boolean(linkedExecutionSummary.reportThreadId);
+  // The report thread opens in the Agent app.
+  const hasReportLocation =
+    Boolean(linkedExecutionSummary.reportThreadId) && isAgentAvailable;
   const hasFailure = Boolean(task.failureReason);
   const hasRequestedChanges = Boolean(task.requestedChangesReason);
   const hasActivity =

@@ -150,7 +150,7 @@ describe('AgentRouteRewriteService', () => {
       {
         nextActions: [
           {
-            ctas: [{ href: '/settings/api-keys', label: 'Settings' }],
+            ctas: [{ href: '/connectors/api-keys', label: 'Settings' }],
             id: 'connect',
             title: 'Connect',
             type: 'oauth_connect_card',
@@ -163,7 +163,7 @@ describe('AgentRouteRewriteService', () => {
     );
 
     expect(scoped.nextActions?.[0].ctas?.[0]).toMatchObject({
-      href: '/genfeed-ai/~/settings/api-keys',
+      href: '/genfeed-ai/~/connectors/api-keys',
     });
   });
 
@@ -259,7 +259,7 @@ describe('AgentRouteRewriteService', () => {
     ]);
   });
 
-  it.each(['accounts', 'agent', 'publishing', 'skills', 'knowledge'])(
+  it.each(['agent', 'publishing', 'skills', 'knowledge'])(
     'scopes brand-only Settings %s with the resolved brand',
     async (page) => {
       const scoped = await createService().scopeToolResultHrefs(
@@ -282,17 +282,45 @@ describe('AgentRouteRewriteService', () => {
         creditsUsed: 0,
         success: true,
         data: {
-          href: '/genfeed-ai/~/settings/accounts?platform=x#top',
-          ctaHref: '/genfeed-ai/other/settings/accounts',
+          href: '/genfeed-ai/~/settings/skills?platform=x#top',
+          ctaHref: '/genfeed-ai/other/settings/skills',
           editorUrl: '/genfeed-ai/launch-brand/settings',
         },
       },
       context,
     );
     expect(scoped.data).toEqual({
-      href: '/genfeed-ai/launch-brand/settings/accounts?platform=x#top',
-      ctaHref: '/genfeed-ai/other/settings/accounts',
+      href: '/genfeed-ai/launch-brand/settings/skills?platform=x#top',
+      ctaHref: '/genfeed-ai/other/settings/skills',
       editorUrl: '/genfeed-ai/launch-brand/settings',
+    });
+  });
+
+  it('opens the brand Profile on the brand', async () => {
+    const scoped = await createService().scopeToolResultHrefs(
+      {
+        creditsUsed: 0,
+        success: true,
+        data: { href: '/settings/profile?platform=x' },
+      },
+      context,
+    );
+    expect(scoped.data).toEqual({
+      href: '/genfeed-ai/launch-brand/settings/profile?platform=x',
+    });
+  });
+
+  it('keeps the other Connectors sections on the organization', async () => {
+    const scoped = await createService().scopeToolResultHrefs(
+      {
+        creditsUsed: 0,
+        success: true,
+        data: { href: '/connectors/api-keys' },
+      },
+      context,
+    );
+    expect(scoped.data).toEqual({
+      href: '/genfeed-ai/~/connectors/api-keys',
     });
   });
 
@@ -302,7 +330,7 @@ describe('AgentRouteRewriteService', () => {
       {
         creditsUsed: 0,
         success: true,
-        data: { href: '/settings/accounts' },
+        data: { href: '/settings/skills' },
       },
       context,
     );
@@ -374,6 +402,7 @@ describe('AgentRouteRewriteService', () => {
       },
       context,
     );
+    // Channels (connect_accounts) is one brand's page, so it is brand-scoped.
     const organizationKeys = new Set([
       'agent',
       'billing',
@@ -400,7 +429,7 @@ describe('AgentRouteRewriteService', () => {
     const result: AgentToolResult = {
       nextActions: [
         {
-          ctas: [{ href: '/settings/api-keys', label: 'Settings' }],
+          ctas: [{ href: '/connectors/api-keys', label: 'Settings' }],
           id: 'connect',
           title: 'Connect',
           type: 'oauth_connect_card',

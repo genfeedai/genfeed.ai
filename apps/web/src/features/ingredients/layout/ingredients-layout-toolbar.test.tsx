@@ -20,6 +20,12 @@ vi.mock('@/components/content/filters-button/FiltersButton', () => ({
   default: () => <button type="button">Filters</button>,
 }));
 
+vi.mock('@/components/shell/use-available-rail-apps', () => ({
+  useHasAppsBeyondDashboard: () => true,
+  useIsAppAvailable: () => true,
+  useIsHrefAvailable: () => () => true,
+}));
+
 describe('IngredientsLayoutToolbar', () => {
   it('scopes Generate to the current brand instead of bare /agent/new', () => {
     render(

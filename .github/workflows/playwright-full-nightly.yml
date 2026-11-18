@@ -80,6 +80,8 @@ jobs:
         # config reporters and drops results.json, which made summarize lie
         # with Executed: 0. Blob + JSON both come from playwright.config.ts
         # when E2E_SHARD_INDEX is set.
+        # Specs are split across shards by recorded duration (scripts/
+        # playwright-e2e-durations.json), not by Playwright's --shard.
         run: node scripts/playwright-e2e-tiers.mjs -- --trace retain-on-failure
         env:
           CI: true
@@ -295,6 +297,22 @@ jobs:
           name: playwright-full-tier-summary
           path: playwright/artifacts/report/full-tier-summary.json
           retention-days: 7
+
+      # Shards are balanced by the recorded per-spec durations committed in
+      # scripts/playwright-e2e-durations.json. A green run publishes a fresh set
+      # to copy over that file; it never changes what runs, only where.
+      - name: Record per-spec durations for shard balancing
+        if: needs.e2e-frontend-full.result == 'success'
+        run: node scripts/playwright-e2e-tiers.mjs --playwright-reports-dir=playwright/artifacts/report/shards --write-durations=playwright/artifacts/report/full-tier-durations.json
+
+      - name: Upload per-spec durations
+        if: needs.e2e-frontend-full.result == 'success'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: playwright-full-durations
+          path: playwright/artifacts/report/full-tier-durations.json
+          retention-days: 7
+          if-no-files-found: ignore
 
   nightly-failure-report:
     name: Report nightly Playwright full-tier failure

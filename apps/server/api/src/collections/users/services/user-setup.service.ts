@@ -15,7 +15,6 @@ import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CreditBalanceService } from '@api/collections/credits/services/credit-balance.service';
 import { OnboardingCreditGrantsService } from '@api/collections/credits/services/onboarding-credit-grants.service';
-import type { MemberDocument } from '@api/collections/members/schemas/member.schema';
 import { MembersService } from '@api/collections/members/services/members.service';
 import type { OrganizationSettingDocument } from '@api/collections/organization-settings/schemas/organization-setting.schema';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
@@ -23,7 +22,6 @@ import type { OrganizationDocument } from '@api/collections/organizations/schema
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { RolesService } from '@api/collections/roles/services/roles.service';
 import { resolveOrganizationCreatorRole } from '@api/collections/roles/utils/resolve-organization-creator-role.util';
-import type { SettingDocument } from '@api/collections/settings/schemas/setting.schema';
 import { SettingsService } from '@api/collections/settings/services/settings.service';
 import {
   PERSONAL_EMAIL_DOMAIN_LIST,
@@ -39,6 +37,7 @@ import {
   resolveSignupOrganizationLabel,
   resolveSignupWorkspaceLabel,
 } from '@genfeedai/helpers';
+import type { Member, Setting } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
 import { ForbiddenException, Injectable } from '@nestjs/common';
@@ -51,9 +50,9 @@ export interface UserSetupProfile {
 export interface UserSetupResult {
   organization: OrganizationDocument;
   organizationSettings: OrganizationSettingDocument;
-  userSettings: SettingDocument;
+  userSettings: Setting;
   brand: BrandDocument;
-  member: MemberDocument;
+  member: Member;
 }
 
 @Traced()
@@ -89,9 +88,9 @@ export class UserSetupService {
   ): Promise<UserSetupResult> {
     let organization: OrganizationDocument | null = null;
     let organizationSettings: OrganizationSettingDocument | null = null;
-    let userSettings: SettingDocument | null = null;
+    let userSettings: Setting | null = null;
     let brand: BrandDocument | null = null;
-    let member: MemberDocument | null = null;
+    let member: Member | null = null;
     try {
       // Step 1: Create organization (REQUIRED - cascading failure)
       const workspaceLabel = resolveSignupWorkspaceLabel({
@@ -308,9 +307,7 @@ export class UserSetupService {
     );
   }
 
-  private async getOrCreateUserSettings(
-    userId: string,
-  ): Promise<SettingDocument> {
+  private async getOrCreateUserSettings(userId: string): Promise<Setting> {
     const existing = await this.settingsService.findOne({
       userId: userId,
     });
@@ -382,7 +379,7 @@ export class UserSetupService {
     organizationId: string,
     userId: string,
     currentBrandId: string,
-  ): Promise<MemberDocument> {
+  ): Promise<Member> {
     const existing = await this.membersService.findOne({
       organizationId: organizationId,
       userId: userId,

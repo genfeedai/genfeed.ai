@@ -589,6 +589,40 @@ describe('actual upload service transport delegation and completion', () => {
     expect(boundary.onComplete.mock.calls[0][0][0]).toBe(jpegResult);
   });
 
+  it('sends a brand logo SVG as the SVG and refuses an SVG for an organization logo', async () => {
+    const brandLogo = renderUpload({
+      category: AssetCategory.LOGO,
+      parentId: 'brand-1',
+      parentModel: 'Brand',
+    });
+    await pick(brandLogo, [
+      new File(['<svg/>'], 'mark.svg', { type: 'image/svg+xml' }),
+    ]);
+    await act(async () => {
+      await brandLogo.result.current.handleSubmit();
+    });
+    expect(
+      (boundary.assetUpload.mock.calls[0][0] as FormData).get('file'),
+    ).toMatchObject({ name: 'mark.svg', type: 'image/svg+xml' });
+
+    boundary.assetUpload.mockClear();
+    const organizationLogo = renderUpload({
+      category: AssetCategory.LOGO,
+      parentId: 'org-1',
+      parentModel: 'Organization',
+    });
+    await pick(organizationLogo, [
+      new File(['<svg/>'], 'mark.svg', { type: 'image/svg+xml' }),
+    ]);
+    await act(async () => {
+      await organizationLogo.result.current.handleSubmit();
+    });
+    expect(boundary.assetUpload).not.toHaveBeenCalled();
+    expect(organizationLogo.result.current.error).toBe(
+      'One or more files were rejected. Please check file type and size.',
+    );
+  });
+
   it('normalizes URL intake immediately before transport without fabricating JPEG', async () => {
     vi.stubGlobal(
       'fetch',

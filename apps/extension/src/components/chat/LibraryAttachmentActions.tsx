@@ -26,6 +26,7 @@ export function LibraryAttachmentActions({
     );
     setBusy((current) => new Set([...current].filter((id) => ids.has(id))));
   }, [assets]);
+  // use-effect-audit: ignore aborts in-flight attachment requests on unmount
   useEffect(
     () => () => {
       for (const controller of controllers.current.values()) controller.abort();

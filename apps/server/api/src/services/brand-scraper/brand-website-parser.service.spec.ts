@@ -503,4 +503,16 @@ describe('BrandWebsiteParserService storefront images', () => {
       service.parseHtml('<head></head>', 'https://acme.example').isShopify,
     ).toBe(false);
   });
+
+  it('lists the supporting pages on the parsed homepage', () => {
+    const parsed = service.parseHtml(
+      '<body><a href="/about">About</a><a href="/pricing">Pricing</a></body>',
+      'https://acme.example',
+    );
+
+    expect(parsed.supportingPageUrls).toEqual([
+      'https://acme.example/about',
+      'https://acme.example/pricing',
+    ]);
+  });
 });

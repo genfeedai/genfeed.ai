@@ -2,6 +2,7 @@
 
 import { useBrandId } from '@contexts/user/brand-context/brand-context';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useResetOnChange } from '@hooks/utils/use-reset-on-change/use-reset-on-change';
 import { ContentRunsService } from '@services/content/content-runs.service';
 import { getJsonApiErrorMessage } from '@services/core/json-api-error-message';
 import { useCallback, useEffect, useState } from 'react';
@@ -35,8 +36,7 @@ export function useStoryboardRuns(search = ''): UseStoryboardRunsResult {
   const [error, setError] = useState<string | null>(null);
 
   // A brand switch or a new search starts the list over.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: brandId and search are the reset triggers.
-  useEffect(() => {
+  useResetOnChange([brandId, search], () => {
     setRuns([]);
     setLoadedPage(0);
     setRequest((current) =>
@@ -44,8 +44,9 @@ export function useStoryboardRuns(search = ''): UseStoryboardRunsResult {
         ? current
         : { attempt: 0, page: 1 },
     );
-  }, [brandId, search]);
+  });
 
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     if (!brandId) {
       return;

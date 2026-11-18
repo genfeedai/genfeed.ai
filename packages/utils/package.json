@@ -4,7 +4,8 @@
     "@genfeedai/helpers": "workspace:*",
     "@genfeedai/props": "workspace:*",
     "@genfeedai/services": "workspace:*",
-    "@genfeedai/contracts": "workspace:*"
+    "@genfeedai/contracts": "workspace:*",
+    "axios": "1.21.1"
   },
   "description": "Shared framework-agnostic utility functions for Genfeed applications",
   "devDependencies": {
@@ -26,7 +27,7 @@
     "clean": "rm -rf dist",
     "test": "vitest run --config vitest.config.ts",
     "test:watch": "vitest watch --config vitest.config.ts",
-    "type-check": "bun run ../../scripts/architecture/check-typecheck-prerequisites.ts && tsc --noEmit"
+    "type-check": "bun run ../../scripts/architecture/check-typecheck-prerequisites.ts && bun check --no-script"
   },
   "sideEffects": false,
   "version": "0.1.0"

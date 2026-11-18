@@ -64,7 +64,7 @@ export default function ProvidersActionBar({
             <div className="relative w-full md:w-auto">
               {selectedMode === 'byok' ? <CurrentBadge /> : null}
               <Link
-                href={APP_ROUTES.SETTINGS.API_KEYS}
+                href={APP_ROUTES.CONNECTORS.API_KEYS}
                 onClick={(event) => {
                   onByokClick(event);
                 }}

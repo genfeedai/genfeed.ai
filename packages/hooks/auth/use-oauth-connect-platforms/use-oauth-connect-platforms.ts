@@ -6,11 +6,14 @@ import {
 } from '@genfeedai/helpers/oauth/oauth-connect-platforms';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { ServicesService } from '@services/external/services.service';
+import {
+  type OAuthConnectReadinessResponse,
+  ServicesService,
+} from '@services/external/services.service';
 import { useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
 
-export const OAUTH_CONNECT_READINESS_QUERY_KEY = 'oauth-connect-readiness';
+const OAUTH_CONNECT_READINESS_QUERY_KEY = 'oauth-connect-readiness';
 
 /**
  * Resolve the shared OAuth catalog against live server readiness. A missing,
@@ -21,7 +24,10 @@ export function useOAuthConnectPlatforms(): ResolvedOAuthConnectPlatform[] {
   const getThreadsService = useAuthedService(
     (token: string) => new ServicesService('threads', token),
   );
-  const { data, error } = useQuery({
+  const getGoogleBusinessService = useAuthedService(
+    (token: string) => new ServicesService('google-business', token),
+  );
+  const { data: threadsData, error: threadsError } = useQuery({
     enabled: isLoaded && isSignedIn,
     queryFn: async () => {
       const service = await getThreadsService();
@@ -34,16 +40,41 @@ export function useOAuthConnectPlatforms(): ResolvedOAuthConnectPlatform[] {
     ],
     retry: false,
   });
-  const threadsReadiness =
-    !error && (data?.status === 'available' || data?.status === 'unavailable')
-      ? data.status
-      : 'unknown';
+  const { data: googleBusinessData, error: googleBusinessError } = useQuery({
+    enabled: isLoaded && isSignedIn,
+    queryFn: async () => {
+      const service = await getGoogleBusinessService();
+      return service.getConnectReadiness();
+    },
+    queryKey: [
+      OAUTH_CONNECT_READINESS_QUERY_KEY,
+      'google_business',
+      userId ?? 'anonymous',
+    ],
+    retry: false,
+  });
+  const threadsReadiness = toReadiness(threadsData, threadsError);
+  const googleBusinessReadiness = toReadiness(
+    googleBusinessData,
+    googleBusinessError,
+  );
 
   return useMemo(
     () =>
       resolveOAuthConnectPlatformCatalog({
+        google_business: googleBusinessReadiness,
         threads: threadsReadiness,
       }),
-    [threadsReadiness],
+    [googleBusinessReadiness, threadsReadiness],
   );
+}
+
+function toReadiness(
+  data: OAuthConnectReadinessResponse | undefined,
+  error: unknown,
+): 'available' | 'unavailable' | 'unknown' {
+  return !error &&
+    (data?.status === 'available' || data?.status === 'unavailable')
+    ? data.status
+    : 'unknown';
 }

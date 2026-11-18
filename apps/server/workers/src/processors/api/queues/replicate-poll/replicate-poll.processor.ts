@@ -1,5 +1,6 @@
 import { INGREDIENT_PROCESSING_TIMEOUT_ERROR } from '@api/collections/ingredients/constants/processing-timeout.constants';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import { Models3dBuildService } from '@api/endpoints/v1/models3d/services/models3d-build.service';
 import { isAllowedReplicateOutputUrl } from '@api/endpoints/webhooks/replicate/webhooks.replicate.constants';
 import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
 import { ReplicatePollQueueService } from '@api/queues/replicate-poll/replicate-poll-queue.service';
@@ -26,6 +27,7 @@ export class ReplicatePollProcessor extends WorkerHost {
     private readonly byok: ByokService,
     private readonly ingredients: IngredientsService,
     private readonly logger: LoggerService,
+    private readonly models3dBuild: Models3dBuildService,
     private readonly pollQueue: ReplicatePollQueueService,
     private readonly replicate: ReplicateService,
     private readonly webhooks: WebhooksService,
@@ -88,6 +90,7 @@ export class ReplicatePollProcessor extends WorkerHost {
           job.data.ingredientId,
           'The Replicate key that started this generation is no longer available',
         );
+        await this.abandonChain(job.data);
         return;
       }
     }
@@ -111,7 +114,11 @@ export class ReplicatePollProcessor extends WorkerHost {
       return;
     }
 
-    const output = this.resolveOutput(prediction.output, job.data.outputIndex);
+    const output = this.resolveOutput(
+      prediction.output,
+      job.data.outputIndex,
+      job.data.outputKey,
+    );
     if ((status === 'succeeded' || status === 'completed') && output) {
       const storedExternalId =
         job.data.outputIndex === undefined
@@ -123,6 +130,7 @@ export class ReplicatePollProcessor extends WorkerHost {
         output,
         storedExternalId,
       );
+      await this.continueChain(job.data);
       return;
     }
 
@@ -134,6 +142,7 @@ export class ReplicatePollProcessor extends WorkerHost {
       job.data.ingredientId,
       error,
     );
+    await this.abandonChain(job.data);
     this.logger.error(`${this.logContext}: generation failed`, {
       error,
       externalId: job.data.externalId,
@@ -165,9 +174,47 @@ export class ReplicatePollProcessor extends WorkerHost {
         data.ingredientId,
         'Replicate polling timed out',
       );
+      await this.abandonChain(data);
       return;
     }
     await this.pollQueue.schedule({ ...data, attempt: data.attempt + 1 });
+  }
+
+  /**
+   * A 3D render's angle sheet chains into the GLB build. The build starts only
+   * once the sheet is stored, and a failure there never fails the sheet.
+   */
+  private async continueChain(data: ReplicatePollJobData): Promise<void> {
+    if (data.chain?.kind !== 'models3d-build') return;
+    try {
+      const sheet = await this.ingredients.findOneSelect(
+        { id: data.ingredientId, isDeleted: false },
+        { status: true },
+      );
+      if (sheet?.status === IngredientStatus.GENERATED) {
+        await this.models3dBuild.startBuild(data.ingredientId);
+      } else {
+        await this.models3dBuild.abandonBuild(data.ingredientId);
+      }
+    } catch (error: unknown) {
+      this.logger.error(`${this.logContext}: chained build failed`, {
+        error,
+        ingredientId: data.ingredientId,
+      });
+    }
+  }
+
+  /** Refunds the funded GLB build of a render whose angle sheet failed. */
+  private async abandonChain(data: ReplicatePollJobData): Promise<void> {
+    if (data.chain?.kind !== 'models3d-build') return;
+    try {
+      await this.models3dBuild.abandonBuild(data.ingredientId);
+    } catch (error: unknown) {
+      this.logger.error(`${this.logContext}: abandoning build failed`, {
+        error,
+        ingredientId: data.ingredientId,
+      });
+    }
   }
 
   /** JSON type and URL hostnames of a provider output, without paths or query strings. */
@@ -199,7 +246,15 @@ export class ReplicatePollProcessor extends WorkerHost {
   private resolveOutput(
     output: unknown,
     outputIndex?: number,
+    outputKey?: string,
   ): string | undefined {
+    if (outputKey) {
+      const file =
+        output !== null && typeof output === 'object' && !Array.isArray(output)
+          ? (output as Record<string, unknown>)[outputKey]
+          : undefined;
+      return isAllowedReplicateOutputUrl(file) ? file : undefined;
+    }
     const candidate = Array.isArray(output)
       ? output[outputIndex ?? 0]
       : outputIndex === undefined

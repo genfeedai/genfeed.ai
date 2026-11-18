@@ -180,3 +180,24 @@ it('keeps section chrome visible and replaces only the card body while loading',
     screen.getByRole('button', { name: 'Nested action' }),
   ).toBeInTheDocument();
 });
+
+it('shapes the loading body like rows and keeps the title on screen', () => {
+  const { container } = render(
+    <WorkspaceSurface
+      isLoading
+      loadingLabel="Loading activity"
+      loadingRows={{ count: 4 }}
+      title="Activity"
+    >
+      <p>Loaded rows</p>
+    </WorkspaceSurface>,
+  );
+
+  expect(screen.getByRole('heading', { name: 'Activity' })).toBeInTheDocument();
+  expect(screen.getByRole('status')).toHaveTextContent('Loading activity');
+  expect(screen.queryByText('Loaded rows')).not.toBeInTheDocument();
+  expect(
+    container.querySelectorAll('[data-testid="list-rows-skeleton"] > div'),
+  ).toHaveLength(4);
+  expect(body(container)).toHaveAttribute('aria-busy', 'true');
+});

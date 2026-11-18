@@ -35,7 +35,7 @@ function isOfferableSkill(skill: Skill): boolean {
   return skill.isEnabled !== false && skill.status !== 'disabled';
 }
 
-export function toSkillCommand(skill: Skill): PromptCommand {
+function toSkillCommand(skill: Skill): PromptCommand {
   return {
     description: skill.description,
     iconKey: skill.category,
@@ -110,6 +110,7 @@ export function useSurfaceSkillCommands({
     [surface],
   );
 
+  // use-effect-audit: ignore abortable work
   useEffect(() => {
     if (!isEnabled) {
       // Aborting below skips the `finally`, so clear the request state here or

@@ -161,7 +161,7 @@ export const BRAND_SOURCE_CONTRACT = {
     {
       path: 'apps/server/api/src/services/harness/branded-generation-compiler.spec.ts',
       sha256:
-        '401c51ddee2c6cea40ccc712988619be54686acd6f0909893bd05800813242a2',
+        '84290368b90512bf6532ac09add5f810f14fc1848e4eda4e02e5fd5218361859',
       acceptance:
         'nonzero passed in this exact file; no failed/pending/skipped/todo',
     },
@@ -545,7 +545,7 @@ export const AGENT_PRODUCTION_FILES = [
   },
   {
     path: 'apps/server/api/test/integration/proactive-agent-production-turn.fixture.ts',
-    sha256: '6bc1211fbd53a10d94a9349022d39ac2995b23bf3e24b978a2de99b097abeb1f',
+    sha256: '5c4d4d49f0f96aa4a86fd5b757e79aa302beebde4c9bdcf4ba17140faf4d8303',
   },
   {
     path: 'apps/server/api/test/integration/proactive-agent-production-turn-cleanup.util.ts',

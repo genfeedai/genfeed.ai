@@ -30,7 +30,16 @@ export interface McpTestServer {
     name: string,
     args?: Record<string, unknown>,
   ) => Promise<McpRpcResponse<McpToolCallResult>>;
+  /** The same call over `/mcp/admin`, the endpoint that serves the admin-only tools. */
+  callAdminTool: (
+    token: string | undefined,
+    name: string,
+    args?: Record<string, unknown>,
+  ) => Promise<McpRpcResponse<McpToolCallResult>>;
   close: () => Promise<void>;
+  listAdminTools: (
+    token: string | undefined,
+  ) => Promise<McpRpcResponse<{ tools: Array<{ name: string }> }>>;
   initialize: (
     token: string | undefined,
   ) => Promise<McpRpcResponse<{ serverInfo: { name: string } }>>;
@@ -116,7 +125,7 @@ export async function startMcpTestServer(
 
   const app = express();
   app.post(
-    ['/mcp', '/mcp/claude'],
+    ['/mcp', '/mcp/claude', '/mcp/admin'],
     express.json({ limit: '1mb' }),
     mcpAccessModeMiddleware,
     toolsetsQueryMiddleware,
@@ -135,14 +144,16 @@ export async function startMcpTestServer(
   });
   const { port } = server.address() as AddressInfo;
   const endpoint = `http://127.0.0.1:${port}/mcp`;
+  const adminEndpoint = `http://127.0.0.1:${port}/mcp/admin`;
   let nextRequestId = 1;
 
   async function post<TResult>(
     token: string | undefined,
     body: Record<string, unknown>,
     extraHeaders: Record<string, string> = {},
+    url: string = endpoint,
   ): Promise<McpRpcResponse<TResult>> {
-    const response = await fetch(endpoint, {
+    const response = await fetch(url, {
       body: JSON.stringify({ id: nextRequestId++, jsonrpc: '2.0', ...body }),
       headers: {
         Accept: 'application/json, text/event-stream',
@@ -164,6 +175,7 @@ export async function startMcpTestServer(
     token: string | undefined,
     method: string,
     params: Record<string, unknown>,
+    url: string = endpoint,
   ): Promise<McpRpcResponse<TResult>> {
     const name = typeof params.name === 'string' ? params.name : undefined;
     return post<TResult>(
@@ -187,6 +199,7 @@ export async function startMcpTestServer(
         'Mcp-Method': method,
         ...(name ? { 'Mcp-Name': name } : {}),
       },
+      url,
     );
   }
 
@@ -196,6 +209,13 @@ export async function startMcpTestServer(
         arguments: args,
         name,
       }),
+    callAdminTool: (token, name, args = {}) =>
+      statelessRpc<McpToolCallResult>(
+        token,
+        'tools/call',
+        { arguments: args, name },
+        adminEndpoint,
+      ),
     close: () =>
       new Promise<void>((resolve) => {
         server.close(() => resolve());
@@ -209,6 +229,8 @@ export async function startMcpTestServer(
           protocolVersion: '2025-03-26',
         },
       }),
+    listAdminTools: (token) =>
+      statelessRpc(token, 'tools/list', {}, adminEndpoint),
     listTools: (token) => statelessRpc(token, 'tools/list', {}),
   };
 }

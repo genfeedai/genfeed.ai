@@ -12,7 +12,8 @@ export interface FailedIngredientsRecoveryProps {
   onDelete: (ids: string[]) => void;
   onRetry: (ingredients: IIngredient[]) => void;
   onInspect: (ingredient: IIngredient) => void;
-  onReview: (ingredient: IIngredient) => void;
+  /** Absent while the organization does not have Playground. */
+  onReview?: (ingredient: IIngredient) => void;
   /** Existing Library pinned toolbar action slot. */
   actionSlot?: HTMLElement | null;
 }
@@ -53,7 +54,7 @@ export interface UseFailedIngredientRecoveryReturn {
   retriedIds: string[];
 }
 
-export interface FailedIngredientRecoveryDeleteOptions {
+interface FailedIngredientRecoveryDeleteOptions {
   getService: () => Promise<Pick<IngredientsService, 'bulkDelete'>>;
   setIngredients: Dispatch<SetStateAction<IIngredient[]>>;
   setSelectedIds: Dispatch<SetStateAction<string[]>>;

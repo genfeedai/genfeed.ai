@@ -2,6 +2,7 @@ import type {
   OrganizationModuleAccess,
   OrganizationModuleId,
   OrganizationModulePreferences,
+  ReleaseItemId,
 } from '@genfeedai/contracts/constants';
 import type {
   AppRailItemConfig,
@@ -11,15 +12,21 @@ import type {
   AppRailReorderEvent,
   AppRailSurface,
 } from '@genfeedai/contracts/interfaces/ui/app-rail.interface';
-import type { MouseEvent, ReactNode } from 'react';
+import type {
+  FocusEvent,
+  MouseEvent,
+  PointerEvent,
+  ReactNode,
+  RefObject,
+} from 'react';
 
-export interface AppRailNavigationTarget {
+interface AppRailNavigationTarget {
   announcement?: string;
   href: string;
 }
 
 /** Count pill on one rail item, e.g. unread Messages conversations. */
-export interface AppRailBadge {
+interface AppRailBadge {
   count: number;
   kind?: 'count' | 'dot';
   /** Accessible description of the count, already localized. */
@@ -36,6 +43,12 @@ export interface AppRailProps {
   moduleAccess?: Readonly<
     Partial<Record<OrganizationModuleId, OrganizationModuleAccess>>
   > | null;
+  /**
+   * Whether the organization sees each release-only rail app (the Agent app).
+   * Null waits for settings, so those apps stay hidden; undefined is a neutral
+   * surface.
+   */
+  releaseVisibility?: Readonly<Partial<Record<ReleaseItemId, boolean>>> | null;
   /** The member's installed apps here. Undefined is a neutral surface. */
   installedAppIds?: readonly string[];
   surface?: AppRailSurface;
@@ -141,6 +154,8 @@ export interface AppRailItemProps {
   href: string;
   isActive: boolean;
   isLocked: boolean;
+  /** The hover preview carries the label, so the item needs no tooltip. */
+  hasPreview?: boolean;
   label: string;
   description: string;
   shortcut?: string[];
@@ -161,4 +176,40 @@ export interface AppProtectedRailProps {
   /** Injected by AppLayout into the drawer copy. */
   onNavigate?: () => void;
   orgSlug?: string;
+}
+
+/** One rail app that can open a hover preview. */
+export interface AppRailPreviewApp {
+  description: string;
+  href: string;
+  id: string;
+  label: string;
+  shortcut?: string;
+}
+
+/** What a preview body receives: where the app opens. */
+export interface AppRailPreviewContentProps {
+  href: string;
+}
+
+export interface UseAppRailPreviewOptions {
+  /** The active app has no preview; its own page is the preview. */
+  activeAppId?: string;
+  apps: readonly AppRailPreviewApp[];
+  /** Off while the rail is a drawer, in admin chrome or while dragging. */
+  isEnabled: boolean;
+  navRef: RefObject<HTMLElement | null>;
+}
+
+export interface UseAppRailPreviewResult {
+  /** Closes the preview now, e.g. when an item is clicked. */
+  close: () => void;
+  flyout: ReactNode;
+  /** Handlers for the rail's `nav`; one set serves every item. */
+  navProps: {
+    onBlurCapture: (event: FocusEvent<HTMLElement>) => void;
+    onFocusCapture: (event: FocusEvent<HTMLElement>) => void;
+    onPointerLeave: (event: PointerEvent<HTMLElement>) => void;
+    onPointerOver: (event: PointerEvent<HTMLElement>) => void;
+  };
 }

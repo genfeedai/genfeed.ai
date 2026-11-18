@@ -7,14 +7,12 @@ import { brandPath } from '../../utils/app-chrome';
 import { assertNoErrorBoundaryFallback } from '../../utils/route-assertions';
 
 /**
- * E2E tests for the Connect account modal on brand Connected accounts.
+ * E2E tests for the Connect account modal on the brand Profile.
  *
  * CRITICAL: All tests use mocked API responses.
  * No real backend calls occur during tests.
  */
-const CONNECTED_ACCOUNTS_ROUTE = brandPath(
-  APP_ROUTES.SETTINGS.CONNECTED_ACCOUNTS,
-);
+const CONNECTED_ACCOUNTS_ROUTE = brandPath(APP_ROUTES.SETTINGS.PROFILE);
 
 /** Brand with one live X account, so its tile shows the connected state. */
 async function mockBrandWithXAccount(page: Page): Promise<void> {
@@ -85,6 +83,7 @@ test.describe('Connect account modal', () => {
     await expect(dialog.getByText('Social networks')).toBeVisible();
     await expect(dialog.getByText('Video')).toBeVisible();
     await expect(dialog.getByText('Instagram')).toBeVisible();
+    await expect(dialog.getByText('Bluesky')).toBeVisible();
     await expect(dialog.getByText('Twitter')).toHaveCount(0);
   });
 
@@ -105,7 +104,7 @@ test.describe('Connect account modal', () => {
     const dialog = authenticatedPage.getByRole('dialog', {
       name: 'Connect account',
     });
-    const search = dialog.getByRole('textbox', { name: 'Search platforms…' });
+    const search = dialog.getByRole('textbox', { name: 'Search platforms' });
 
     await search.fill('youtube');
     await expect(dialog.getByText('YouTube')).toBeVisible();
@@ -113,6 +112,78 @@ test.describe('Connect account modal', () => {
 
     await search.fill('no-such-platform');
     await expect(dialog.getByText('No platforms found.')).toBeVisible();
+  });
+
+  test('lists Discord and Slack under Messaging and starts the provider consent screen', async ({
+    authenticatedPage,
+  }) => {
+    const connectRequests: string[] = [];
+    for (const service of ['discord', 'slack']) {
+      await authenticatedPage.route(
+        `**/api.genfeed.ai/**/services/${service}/connect`,
+        async (route) => {
+          connectRequests.push(service);
+          await route.fulfill({
+            body: JSON.stringify({
+              data: {
+                attributes: { url: 'about:blank' },
+                id: `credential-${service}-1`,
+                type: 'credential',
+              },
+            }),
+            contentType: 'application/json',
+            status: 200,
+          });
+        },
+      );
+    }
+    const dialog = authenticatedPage.getByRole('dialog', {
+      name: 'Connect account',
+    });
+
+    await expect(dialog.getByText('Messaging')).toBeVisible();
+    await expect(dialog.getByRole('button', { name: /Discord/ })).toBeVisible();
+    await expect(dialog.getByRole('button', { name: /Slack/ })).toBeVisible();
+
+    await dialog.getByRole('button', { name: /Discord/ }).click();
+
+    await expect.poll(() => connectRequests).toEqual(['discord']);
+  });
+
+  test('connects Telegram from an add-bot link, never a pasted token', async ({
+    authenticatedPage,
+  }) => {
+    const connectRequests: string[] = [];
+    await authenticatedPage.route(
+      '**/api.genfeed.ai/**/services/telegram/connect',
+      async (route) => {
+        connectRequests.push(route.request().url());
+        await route.fulfill({
+          body: JSON.stringify({
+            data: {
+              attributes: { url: 'about:blank' },
+              id: 'credential-telegram-1',
+              type: 'credential',
+            },
+          }),
+          contentType: 'application/json',
+          status: 200,
+        });
+      },
+    );
+    const dialog = authenticatedPage.getByRole('dialog', {
+      name: 'Connect account',
+    });
+
+    await expect(
+      dialog.getByRole('button', { name: /Telegram/ }),
+    ).toBeVisible();
+    await dialog.getByRole('button', { name: /Telegram/ }).click();
+
+    await expect.poll(() => connectRequests).toHaveLength(1);
+    await expect(
+      authenticatedPage.getByRole('textbox', { name: /token/i }),
+    ).toHaveCount(0);
   });
 
   test('lists Ghost under Publishing and connects it with a site URL and Admin API key', async ({
@@ -147,7 +218,7 @@ test.describe('Connect account modal', () => {
 
     await expect(dialog.getByText('Publishing')).toBeVisible();
     await dialog
-      .getByRole('textbox', { name: 'Search platforms…' })
+      .getByRole('textbox', { name: 'Search platforms' })
       .fill('ghost');
     await dialog.getByRole('button', { name: /Ghost/ }).click();
 

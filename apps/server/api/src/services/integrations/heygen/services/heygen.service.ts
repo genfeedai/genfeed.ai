@@ -57,10 +57,12 @@ import { ApiKeyCategory, ByokProvider } from '@genfeedai/contracts';
 import {
   type AvatarVideoAspectRatio,
   getEligibleHeyGenAvatarEngines,
+  type HeyGenAvatar6Resolution,
   type HeyGenAvatarEngine,
 } from '@genfeedai/contracts/constants';
 import type {
   HeyGenAvatarCatalogPage,
+  HeyGenAvatarMotion,
   HeyGenAvatarRef,
   HeyGenCatalogAvatar,
   HeyGenCatalogVoice,
@@ -183,10 +185,17 @@ export class HeyGenService {
     apiKey: string,
     aspectRatio: AvatarVideoAspectRatio = '9:16',
     engine: HeyGenAvatarEngine = 'avatar_iv',
+    resolution?: HeyGenAvatar6Resolution,
+    motion?: HeyGenAvatarMotion,
   ): Promise<string> {
     const speech =
       typeof voiceInput === 'string' ? { audioUrl: voiceInput } : voiceInput;
-    const engineFields = buildHeyGenAvatarEngineFields(avatar, engine);
+    const engineFields = buildHeyGenAvatarEngineFields(
+      avatar,
+      engine,
+      resolution,
+      motion,
+    );
     const avatarId = avatar.lookId;
     if (
       !avatarId.trim() ||
@@ -204,9 +213,10 @@ export class HeyGenService {
       ...(speech.audioUrl
         ? { audio_url: speech.audioUrl }
         : { script: speech.inputText, voice_id: speech.voiceId }),
-      ...engineFields,
       aspect_ratio: aspectRatio,
       resolution: aspectRatio === '1:1' ? '1080p' : '720p',
+      // An engine that fixes the resolution (Avatar 6) overrides the default.
+      ...engineFields,
       callback_id: metadataId,
     });
   }

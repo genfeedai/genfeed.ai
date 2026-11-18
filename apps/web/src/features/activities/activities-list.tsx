@@ -8,9 +8,9 @@ import {
   type IngredientCategory,
   PageScope,
 } from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { IActivity, IIngredient } from '@genfeedai/contracts/interfaces';
 import { getPostsPlatformLabel } from '@helpers/content/posts.helper';
-import { getRelativeTime } from '@helpers/formatting/date/date.helper';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { TableAction } from '@props/ui/display/table.props';
@@ -21,6 +21,11 @@ import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import Container from '@ui/layout/container/Container';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Button } from '@ui/primitives/button';
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from '@ui/primitives/hover-card';
 import { ArrowUpRight, ClipboardList, ExternalLink, X } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
@@ -28,6 +33,7 @@ import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useState } from 'react';
 import { useAdminSearchParam } from '@/components/content/admin-filters/useAdminSearchParam';
 import SearchField from '@/components/content/search-field/SearchField';
+import { useIsHrefAvailable } from '@/components/shell/use-available-rail-apps';
 import type { ActivitiesListProps } from '@/features/activities/props/activities.props';
 import { useActivities } from '@/hooks/data/activities/use-activities/use-activities';
 import { useIngredientSidebar } from '@/hooks/ui/ingredient/use-ingredient-sidebar/use-ingredient-sidebar';
@@ -51,6 +57,7 @@ import {
   parsePostActivityValue,
 } from './activities-list.utils';
 import ActivityDetailPanel from './components/ActivityDetailPanel';
+import ActivityPostPreviewCard from './components/ActivityPostPreviewCard';
 import ActivityStatusCell from './components/ActivityStatusCell';
 import ActivityThumbnailCell from './components/ActivityThumbnailCell';
 
@@ -88,7 +95,7 @@ export default function ActivitiesList({
     toggleActivityRead,
   } = useActivities({ limit: 20, page, scope, search });
 
-  const { href } = useOrgUrl();
+  const { href, orgHref } = useOrgUrl();
   const { openIngredientSidebar } = useIngredientSidebar();
   const [selectedActivityIds, setSelectedActivityIds] = useState<string[]>([]);
   const [isMarkingRead, setIsMarkingRead] = useState(false);
@@ -109,15 +116,43 @@ export default function ActivitiesList({
     [openIngredientSidebar],
   );
 
+  // Connectors is organization scope; every other destination is a brand page.
+  const resolveDestinationHref = useCallback(
+    (path: string): string =>
+      path.startsWith(APP_ROUTES.CONNECTORS.ROOT) ? orgHref(path) : href(path),
+    [href, orgHref],
+  );
+
+  const isHrefAvailable = useIsHrefAvailable();
   const getActivityHref = useCallback(
     (activity: IActivity): string | undefined => {
       if (isAdminScope) {
         return undefined;
       }
       const path = getActivityDestinationPath(activity);
-      return path ? href(path) : undefined;
+      if (!path || !isHrefAvailable(path)) {
+        return undefined;
+      }
+      return resolveDestinationHref(path);
     },
-    [href, isAdminScope],
+    [isAdminScope, isHrefAvailable, resolveDestinationHref],
+  );
+
+  // The remix a breakout offer asks for opens on the Posts analytics page,
+  // the same place the notification's "Remix it" goes.
+  const getActivityRemixHref = useCallback(
+    (activity: IActivity): string | undefined => {
+      const remixQuery = activity.preview?.remixQuery;
+      if (
+        isAdminScope ||
+        !remixQuery ||
+        !isHrefAvailable(APP_ROUTES.ANALYTICS.POSTS)
+      ) {
+        return undefined;
+      }
+      return `${resolveDestinationHref(APP_ROUTES.ANALYTICS.POSTS)}?${remixQuery}`;
+    },
+    [isAdminScope, isHrefAvailable, resolveDestinationHref],
   );
 
   const columns = useMemo(
@@ -152,12 +187,10 @@ export default function ActivitiesList({
         sortable: false,
         className: 'w-44',
         render: (a: IActivity) => formatActivityClock(a.createdAt),
+        // The day heading above already says when; only a run's length adds to it.
         subtext: (a: IActivity) => {
-          const relative = a.createdAt ? getRelativeTime(a.createdAt) : '';
           const duration = getActivityRunDuration(a);
-          return [duration ? `ran ${duration}` : null, relative]
-            .filter(Boolean)
-            .join(' · ');
+          return duration ? `ran ${duration}` : '';
         },
       },
       ...(isAdminScope
@@ -214,7 +247,25 @@ export default function ActivitiesList({
                 status={getBackgroundTaskStatus(a.key)}
                 isBackgroundTask={isBackgroundTask(a)}
               />
-              <span>{title}</span>
+              {a.preview ? (
+                <HoverCard closeDelay={80} openDelay={250}>
+                  <HoverCardTrigger asChild>
+                    <span>{title}</span>
+                  </HoverCardTrigger>
+                  <HoverCardContent
+                    align="start"
+                    className="w-[26rem] p-0"
+                    side="right"
+                  >
+                    <ActivityPostPreviewCard
+                      preview={a.preview}
+                      remixHref={getActivityRemixHref(a)}
+                    />
+                  </HoverCardContent>
+                </HoverCard>
+              ) : (
+                <span>{title}</span>
+              )}
             </span>
           );
         },
@@ -250,6 +301,7 @@ export default function ActivitiesList({
     [
       activityMessageFormatter,
       getActivityHref,
+      getActivityRemixHref,
       handleViewIngredient,
       isAdminScope,
       toggleActivityRead,
@@ -288,7 +340,7 @@ export default function ActivitiesList({
                   return undefined;
                 }
                 const path = getActivityDestinationPath(a);
-                return path ? href(path) : undefined;
+                return path ? resolveDestinationHref(path) : undefined;
               },
               icon: <ArrowUpRight className="size-4" />,
               tooltip: (a: IActivity) =>
@@ -296,7 +348,7 @@ export default function ActivitiesList({
             },
           ]),
     ],
-    [activityMessageFormatter, href, isAdminScope],
+    [activityMessageFormatter, isAdminScope, resolveDestinationHref],
   );
 
   const handleBulkMarkAsRead = useCallback(async () => {
@@ -337,10 +389,16 @@ export default function ActivitiesList({
           activity={activity}
           onToggleRead={toggleActivityRead}
           openHref={getActivityHref(activity)}
+          remixHref={getActivityRemixHref(activity)}
         />
       ),
     }),
-    [activityMessageFormatter, getActivityHref, toggleActivityRead],
+    [
+      activityMessageFormatter,
+      getActivityHref,
+      getActivityRemixHref,
+      toggleActivityRead,
+    ],
   );
 
   const getRowKey = useCallback((a: IActivity) => a.id, []);
@@ -428,6 +486,7 @@ export default function ActivitiesList({
         getRowKey={getRowKey}
         getRowClassName={getRowClassName}
         getGroupHeading={getGroupHeading}
+        hideHeader
         emptyLabel={translate('empty')}
         selectable={true}
         selectedIds={selectedActivityIds}

@@ -71,7 +71,7 @@ function RecommendationCard({
     <article className="grid gap-4 bg-background p-5 shadow-border">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <Text className="text-xs font-semibold uppercase tracking-wider text-foreground/60">
+          <Text className="text-xs font-semibold uppercase tracking-label text-foreground/60">
             Clip {index + 1} · {recommendation.clipType}
           </Text>
           <Heading as="h3" className="mt-2 text-lg">
@@ -120,6 +120,7 @@ export default function YoutubeClipperContent(): React.ReactElement {
   const previewOutcomeRef = useRef<'failed' | 'ready' | null>(null);
   const authCapturedRef = useRef(new Set<'sign_in' | 'sign_up'>());
 
+  // use-effect-audit: ignore sends one analytics event when the tool is first viewed
   useEffect(() => {
     if (viewedRef.current) {
       return;
@@ -133,6 +134,7 @@ export default function YoutubeClipperContent(): React.ReactElement {
     );
   }, []);
 
+  // use-effect-audit: ignore poll timer; cleanup drops stale responses
   useEffect(() => {
     if (!session?.previewToken) {
       return;
@@ -144,19 +146,19 @@ export default function YoutubeClipperContent(): React.ReactElement {
       return;
     }
 
-    let cancelled = false;
+    const abortController = new AbortController();
     const timeout = window.setTimeout(() => {
       loadPublicService()
         .then((publicService) =>
           publicService.getPublicYoutubeClipper(session.previewToken),
         )
         .then((nextSession) => {
-          if (!cancelled) {
+          if (!abortController.signal.aborted) {
             setSession(nextSession);
           }
         })
         .catch(() => {
-          if (!cancelled) {
+          if (!abortController.signal.aborted) {
             setError(
               'We could not refresh this result. Retrying automatically.',
             );
@@ -165,11 +167,12 @@ export default function YoutubeClipperContent(): React.ReactElement {
     }, POLL_INTERVAL_MS);
 
     return () => {
-      cancelled = true;
+      abortController.abort();
       window.clearTimeout(timeout);
     };
   }, [session]);
 
+  // use-effect-audit: ignore sends one analytics event per analysis outcome
   useEffect(() => {
     if (!session || !['failed', 'ready'].includes(session.status)) {
       return;
@@ -185,6 +188,7 @@ export default function YoutubeClipperContent(): React.ReactElement {
     );
   }, [session]);
 
+  // use-effect-audit: ignore sends one analytics event per preview outcome
   useEffect(() => {
     if (!session || !['failed', 'ready'].includes(session.preview.status)) {
       return;

@@ -262,6 +262,7 @@ function FullCalendarMount({
 }: FullCalendarHostProps & { onError: (error: Error) => void }) {
   const elementRef = useRef<HTMLDivElement | null>(null);
 
+  // use-effect-audit: ignore drives the FullCalendar instance
   useEffect(() => {
     let calendar: FullCalendarInstance | null = null;
     const element = elementRef.current;
@@ -759,6 +760,7 @@ export default function ContentCalendarView<T extends CalendarItem>({
     [activeView, translate, views],
   );
 
+  // use-effect-audit: ignore registers the toolbar with the page shell
   useEffect(() => {
     onToolbarChange({ navigation, viewMenu });
   }, [navigation, onToolbarChange, viewMenu]);

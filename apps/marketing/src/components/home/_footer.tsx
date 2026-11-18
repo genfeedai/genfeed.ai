@@ -24,18 +24,18 @@ export const WEBSITE_SECTIONS: FooterSection[] = [
     links: [
       // First: the most asked-for destination on the site.
       { href: '/pricing', label: 'Pricing' },
-      { href: '/use-cases', label: 'Use Cases' },
+      { href: '/use-cases', label: 'Use cases' },
       { href: '/cloud', label: 'Teams' },
-      { href: '/hire-agents', label: 'Hire Agents' },
-      { href: '/done-for-you', label: 'Done For You' },
+      { href: '/hire-agents', label: 'Hire agents' },
+      { href: '/done-for-you', label: 'Done for you' },
     ],
     title: 'Solutions',
   },
   {
     links: [
       { href: 'https://docs.genfeed.ai', label: 'Docs' },
-      { href: '/mcp', label: 'MCP Server' },
-      { href: '/agent', label: 'Genfeed Agent' },
+      { href: '/mcp', label: 'MCP server' },
+      { href: '/agent', label: 'Connect Agent' },
       { href: '/self-hosted', label: 'Self-host' },
       { href: '/claude', label: 'Claude' },
       { href: '/claude-code', label: 'Claude Code' },
@@ -47,7 +47,7 @@ export const WEBSITE_SECTIONS: FooterSection[] = [
     links: [
       { href: '/about', label: 'About' },
       { href: '/affiliates', label: 'Affiliates' },
-      { href: '/articles', label: 'Blog' },
+      { href: '/community/articles', label: 'Blog' },
       { href: '/contact', label: 'Contact' },
     ],
     title: 'Company',

@@ -4,6 +4,7 @@
  * CRITICAL: All external services are mocked to prevent real API calls.
  */
 
+import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { ArticlesService } from '@api/collections/articles/services/articles.service';
 import { AssetsService } from '@api/collections/assets/services/assets.service';
@@ -42,6 +43,7 @@ import { TaskCountersService } from '@api/collections/task-counters/services/tas
 import { TasksController } from '@api/collections/tasks/controllers/tasks.controller';
 import { TaskActionsService } from '@api/collections/tasks/services/task-actions.service';
 import { TaskPlanningService } from '@api/collections/tasks/services/task-planning.service';
+import { TaskReviewAccessService } from '@api/collections/tasks/services/task-review-access.service';
 import { TaskRoutingService } from '@api/collections/tasks/services/task-routing.service';
 import { TasksService } from '@api/collections/tasks/services/tasks.service';
 import { UsersService } from '@api/collections/users/services/users.service';
@@ -738,6 +740,8 @@ export class E2ETestModule {
       controllers: [TasksController],
       providers: [
         TasksService,
+        BrandAccessService,
+        TaskReviewAccessService,
         ...TASK_E2E_MOCK_PROVIDERS,
         ...(options.providers ?? []),
       ],

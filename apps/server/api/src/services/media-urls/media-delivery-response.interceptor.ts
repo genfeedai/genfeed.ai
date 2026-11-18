@@ -1,6 +1,7 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
+import { getRequestMediaScope } from '@api/services/media-urls/request-media-scope';
 import { isCloudDeployment } from '@genfeedai/config';
 import {
   assetResponseIds,
@@ -42,7 +43,7 @@ export class MediaDeliveryResponseInterceptor implements NestInterceptor {
       .pipe(
         mergeMap(async (response: unknown) =>
           projectSocialAvatarUrls(
-            await this.projectMedia(response, user, isPlatformAdmin),
+            await this.projectMedia(response, user, isPlatformAdmin, request),
             (url) => signCdnUrl(url, this.config.mediaUrlConfig),
           ),
         ),
@@ -53,6 +54,7 @@ export class MediaDeliveryResponseInterceptor implements NestInterceptor {
     response: unknown,
     user: AuthenticatedUser | undefined,
     isPlatformAdmin: boolean,
+    request: Request,
   ): Promise<unknown> {
     const ids = ingredientResponseIds(response);
     // Unauthenticated/public resources never receive an original grant.
@@ -70,12 +72,21 @@ export class MediaDeliveryResponseInterceptor implements NestInterceptor {
     // organization, so it applies only when the two are the same.
     const organizationId =
       getTenantContext()?.organizationId ?? user.organizationId;
-    const scope = {
+    const userId = user.userId || user.id;
+    const sessionScope = {
       brandId:
         organizationId === user.organizationId ? user.brandId : undefined,
       organizationId,
-      userId: user.userId || user.id,
+      userId,
     };
+    // A thread route that proved this member's access registered the thread's
+    // scope; it applies only to the same member in the same organization.
+    const threadScope = getRequestMediaScope(request);
+    const scope =
+      threadScope?.organizationId === organizationId &&
+      threadScope.userId === userId
+        ? threadScope
+        : sessionScope;
     // A platform admin's cross-organization views (admin Library and
     // Generations) list other tenants' assets; those need grants too.
     const [projections, assets] = await Promise.all([

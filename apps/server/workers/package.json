@@ -1,6 +1,6 @@
 {
   "dependencies": {
-    "@aws-sdk/client-cloudwatch": "3.1161.0",
+    "@aws-sdk/client-cloudwatch": "3.1169.0",
     "@genfeedai/actions": "workspace:*",
     "@genfeedai/api": "workspace:*",
     "@genfeedai/config": "workspace:*",
@@ -9,17 +9,24 @@
     "@genfeedai/pricing": "workspace:*",
     "@genfeedai/prisma": "workspace:*",
     "@genfeedai/workflows": "workspace:*",
-    "@nestjs/axios": "12.0.1",
-    "@nestjs/bullmq": "12.0.0",
-    "@nestjs/event-emitter": "12.0.1",
-    "bullmq": "6.6.0",
+    "@nestjs/axios": "12.0.2",
+    "@nestjs/bullmq": "12.0.2",
+    "@nestjs/common": "12.5.0",
+    "@nestjs/core": "12.5.0",
+    "@nestjs/event-emitter": "12.0.3",
+    "@sentry/nestjs": "11.12.0",
+    "bullmq": "6.7.6",
+    "express": "5.3.0",
+    "ioredis": "6.0.0",
+    "joi": "18.3.2",
     "rxjs": "7.8.2",
     "tsconfig-paths": "4.2.0",
-    "@genfeedai/contracts": "workspace:*"
+    "@genfeedai/contracts": "workspace:*",
+    "zod": "4.6.7"
   },
   "description": "Genfeed background jobs and recurring platform schedules",
   "devDependencies": {
-    "@nestjs/testing": "12.3.2",
+    "@nestjs/testing": "12.5.0",
     "@prisma/adapter-pg": "7.10.1",
     "@types/multer": "2.3.0",
     "@types/pg": "8.23.1",
@@ -55,7 +62,7 @@
     "test:cron:watch": "vitest --config vitest.cron.config.ts",
     "test:e2e": "echo 'No e2e tests yet'",
     "test:watch": "vitest --config vitest.config.ts",
-    "type-check": "bun run ../../../scripts/architecture/check-typecheck-prerequisites.ts && tsc --noEmit -p tsconfig.typecheck.json"
+    "type-check": "bun run ../../../scripts/architecture/check-typecheck-prerequisites.ts && bun check --no-script -p tsconfig.typecheck.json"
   },
   "version": "1.0.0",
   "type": "module"

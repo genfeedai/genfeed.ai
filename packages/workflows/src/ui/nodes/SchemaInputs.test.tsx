@@ -314,6 +314,7 @@ describe('SchemaInputs stale persisted enum values', () => {
       values: { quality: 'xhigh' },
     });
     expect(onChange).not.toHaveBeenCalled();
+    expect(screen.getByRole('combobox')).toHaveTextContent('xhigh');
 
     rerender(
       <SchemaInputs

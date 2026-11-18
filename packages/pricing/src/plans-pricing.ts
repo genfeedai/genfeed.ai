@@ -3,7 +3,11 @@ import {
   multiplyDecimalPricing,
   sumDecimalPricing,
 } from './decimal-pricing';
-import { FREE_API_RATE_LIMIT, PRO_API_RATE_LIMIT } from './tier-entitlements';
+import {
+  FREE_API_RATE_LIMIT,
+  PRO_API_RATE_LIMIT,
+  SCALE_API_RATE_LIMIT,
+} from './tier-entitlements';
 /**
  * Genfeed.ai Pricing Configuration
  *
@@ -15,7 +19,7 @@ import { FREE_API_RATE_LIMIT, PRO_API_RATE_LIMIT } from './tier-entitlements';
  * - Pay As You Go is free to join: buy credit packs, spend on any output
  * - Pro matches the pay-as-you-go rate (Pro $49 → 4,900 credits) and sells
  *   access to every app. Scale sells a better credit rate: its included
- *   monthly credits carry a ~20% bonus (Scale $499 → 60,000 credits ≈ $600
+ *   monthly credits carry a ~40% bonus (Scale $499 → 70,000 credits ≈ $700
  *   of PAYG output).
  * - Seats are never a usage meter: FREE is solo (1 seat); every paid tier
  *   (Scale, Enterprise) has unlimited seats. Multi-organization workflows
@@ -26,7 +30,7 @@ import { FREE_API_RATE_LIMIT, PRO_API_RATE_LIMIT } from './tier-entitlements';
  * - Models are never user-selected: the Genfeed router picks the best model
  *   for each format, brief, and budget
  *
- * @updated 2026-07-06
+ * @updated 2026-11-15
  */
 
 import { MODEL_KEYS } from '@genfeedai/contracts/constants/model-keys.constant';
@@ -118,36 +122,66 @@ const PLAN_PRICES = {
   scale: 499,
 } as const satisfies Record<PlanTier, number | null>;
 
+export interface LaunchPromotionProps {
+  /** Stripe promotion code Checkout applies for the customer. */
+  code: string;
+  /** Dollars the code takes off the Pro monthly price. */
+  discountDollars: number;
+  /** Months the code applies before the full price returns. */
+  discountMonths: number;
+}
+
 /**
- * Stripe promotion code that takes $10 off Pro for 12 months. Checkout applies
- * it for the customer on the Pro price, and the pricing page shows the price
- * with it taken off, so the page and the charge always agree.
+ * The Pro launch promotion: a Stripe promotion code that takes $10 off Pro for
+ * 12 months. Checkout applies it for the customer on the Pro price, and the
+ * pricing page shows the price with it taken off, so the page and the charge
+ * agree.
  *
- * Retire the code in Stripe in the same change that removes the `PRO_LAUNCH_*`
- * constants and `getLaunchPrice`: Checkout falls back to the promo box at the
- * full price when the code is gone, while a card still reading the launch price
- * would disagree with the charge.
+ * This one value feeds the pricing card, the term disclosure and Checkout.
+ * Retire the promotion by setting it to `null` in the same change that
+ * deactivates the code in Stripe: the discounted price and its term leave the
+ * page, and Checkout stops looking the code up, together.
  */
-export const PRO_LAUNCH_PROMOTION_CODE = 'EARLYGENFEED';
-
-/** Dollars the launch promotion code takes off the Pro monthly price. */
-export const PRO_LAUNCH_DISCOUNT_DOLLARS = 10;
-
-/** Months the launch promotion code applies before the full price returns. */
-export const PRO_LAUNCH_DISCOUNT_MONTHS = 12;
+export const PRO_LAUNCH_PROMOTION: LaunchPromotionProps | null = {
+  code: 'EARLYGENFEED',
+  discountDollars: 10,
+  discountMonths: 12,
+};
 
 /**
  * Monthly price a new customer pays with the launch promotion applied, or null
- * when the tier has no launch promotion.
+ * when the tier has no launch promotion or the promotion is retired.
  */
-export function getLaunchPrice(tier: PlanTier): number | null {
+export function getLaunchPrice(
+  tier: PlanTier,
+  promotion: LaunchPromotionProps | null = PRO_LAUNCH_PROMOTION,
+): number | null {
   const price = PLAN_PRICES[tier];
 
-  if (tier !== 'pro' || price == null) {
+  if (promotion === null || tier !== 'pro' || price == null) {
     return null;
   }
 
-  return price - PRO_LAUNCH_DISCOUNT_DOLLARS;
+  return price - promotion.discountDollars;
+}
+
+/**
+ * The launch price term in one sentence ("12 months at $39, then $49"), or null
+ * whenever `getLaunchPrice` has no launch price, so the disclosure never
+ * outlives the discount it explains.
+ */
+export function getLaunchPriceTerm(
+  tier: PlanTier,
+  promotion: LaunchPromotionProps | null = PRO_LAUNCH_PROMOTION,
+): string | null {
+  const launchPrice = getLaunchPrice(tier, promotion);
+  const price = PLAN_PRICES[tier];
+
+  if (promotion === null || launchPrice === null || price == null) {
+    return null;
+  }
+
+  return `${promotion.discountMonths} months at ${formatPrice(launchPrice)}, then ${formatPrice(price)}`;
 }
 
 /**
@@ -162,7 +196,7 @@ export function getLaunchPrice(tier: PlanTier): number | null {
  */
 export const TIER_INCLUDED_MONTHLY_CREDITS: Record<string, number> = {
   pro: 4_900,
-  scale: 60_000,
+  scale: 70_000,
 };
 
 export type SubscriptionPriceTier = 'pro' | 'scale';
@@ -321,6 +355,24 @@ function taperedSellPriceUsd(
 }
 
 /**
+ * What a generation sells for, in USD and before credit rounding, for a given
+ * provider cost: the same tapered multiplier `applyMargin` converts to credits,
+ * without the whole-credit rounding and the two credit floor. Use it to compare
+ * a provider rate with what the rate sheet charges; a per-token or per-second
+ * rate is far below one credit, so rounding would hide a loss.
+ */
+export function sellPriceUsdForProviderCost(
+  providerCostUsd: number,
+  marginMultiplier: number = runtimeGenerationMarginMultiplier,
+): number {
+  const safeMultiplier = normalizeMarginMultiplier(
+    marginMultiplier,
+    DEFAULT_GENERATION_MARGIN_MULTIPLIER,
+  );
+  return taperedSellPriceUsd(providerCostUsd, safeMultiplier);
+}
+
+/**
  * Apply the operator-configured **generation** margin multiplier to provider
  * cost and return the sell price in credits (1 credit = $0.01).
  *
@@ -398,6 +450,8 @@ const AVATAR_RATE_ENDPOINTS: readonly string[] = [
   MODEL_KEYS.HEYGEN_AVATAR,
   MODEL_KEYS.HEYGEN_AVATAR_IV,
   MODEL_KEYS.HEYGEN_AVATAR_V,
+  MODEL_KEYS.HEYGEN_AVATAR_6,
+  MODEL_KEYS.HEYGEN_AVATAR_6_TURBO,
 ];
 
 /** The cheapest and dearest credit price of one output. */
@@ -479,7 +533,7 @@ export const websitePlans: WebsitePlanProps[] = [
     features: [
       '1 seat, 1 workspace',
       'Unlimited brands and channels',
-      `API access (${FREE_API_RATE_LIMIT} requests/min)`,
+      `${FREE_API_RATE_LIMIT} API requests/min`,
     ],
     interval: 'payg',
     label: PLAN_LABELS.payg,
@@ -499,10 +553,9 @@ export const websitePlans: WebsitePlanProps[] = [
     description: 'Every app for one creator or brand',
     features: [
       'Automation, Messages, Discovery',
-      'Clean exports, any agent model',
       'Bring your own key',
       'Unlimited brands and channels',
-      `API access (${PRO_API_RATE_LIMIT} requests/min)`,
+      `${PRO_API_RATE_LIMIT} API requests/min`,
     ],
     includedCredits: TIER_INCLUDED_MONTHLY_CREDITS.pro,
     interval: 'month',
@@ -523,11 +576,10 @@ export const websitePlans: WebsitePlanProps[] = [
     ctaHref: `${process.env.NEXT_PUBLIC_APPS_APP_ENDPOINT || 'https://app.genfeed.ai'}/sign-up?plan=scale`,
     description: 'One studio for teams, organizations, and brands',
     features: [
-      'Unlimited seats and client workspaces',
       'Everything in Pro',
-      'Ultra quality',
-      'Brand model training',
-      'Higher API limits',
+      'Unlimited seats and workspaces',
+      'Ultra quality, model training',
+      `${SCALE_API_RATE_LIMIT} API requests/min`,
     ],
     includedCredits: TIER_INCLUDED_MONTHLY_CREDITS.scale,
     interval: 'month',
@@ -614,7 +666,7 @@ export function formatTierLabel(
     return fallback;
   }
 
-  if (Object.prototype.hasOwnProperty.call(PLAN_LABELS, tier)) {
+  if (Object.getOwnPropertyDescriptor(PLAN_LABELS, tier)) {
     return PLAN_LABELS[tier as PlanTier];
   }
 

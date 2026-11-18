@@ -42,6 +42,7 @@ export default function UserDetailPage() {
     queryKey: ['admin-user', userId],
   });
 
+  // use-effect-audit: ignore reports a failed load to the logger or a notification
   useEffect(() => {
     if (userError) {
       logger.error('GET /users/:id failed', userError);

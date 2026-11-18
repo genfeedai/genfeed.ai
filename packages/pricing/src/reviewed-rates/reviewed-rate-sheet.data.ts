@@ -44,6 +44,64 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
     ],
   },
   {
+    // Higgsfield publishes no price page. These rates are the account's own
+    // `POST /estimate/<endpoint>` answers (2026-11-15): per second of source
+    // video, rounded up to a whole second, by output resolution.
+    provider: 'higgsfield',
+    endpoint: 'higgsfield/genjutsu/motion-transfer/v1.0',
+    sourceUrl:
+      'https://docs.higgsfield.ai/docs/models/genjutsu/motion-transfer.md',
+    verifiedAt: '2026-11-15',
+    rates: [
+      {
+        component: 'video',
+        unit: 'input-second',
+        unitPriceUsd: 0.154,
+        when: { resolution: '480p' },
+        roundUnitsTo: 1,
+      },
+      {
+        component: 'video',
+        unit: 'input-second',
+        unitPriceUsd: 0.3446,
+        when: { resolution: '720p' },
+        roundUnitsTo: 1,
+      },
+      {
+        component: 'video',
+        unit: 'input-second',
+        unitPriceUsd: 0.8346,
+        when: { resolution: '1080p' },
+        roundUnitsTo: 1,
+      },
+    ],
+  },
+  {
+    // Account `POST /estimate/<endpoint>` answers (2026-11-15), single image
+    // per request: 720p $0.004, 1080p $0.006, and the same at 16:9. A batch of
+    // four was estimated at $0.013 (720p) and $0.023 (1080p), below four
+    // times the single price because Higgsfield rounds each estimate up to
+    // the next 0.001, so the per-output rate here never undercharges.
+    provider: 'higgsfield',
+    endpoint: 'higgsfield-ai/soul/v2/standard',
+    sourceUrl: 'https://docs.higgsfield.ai/docs/models/soul-2/generate.md',
+    verifiedAt: '2026-11-15',
+    rates: [
+      {
+        component: 'output',
+        unit: 'output',
+        unitPriceUsd: 0.004,
+        when: { resolution: '720p' },
+      },
+      {
+        component: 'output',
+        unit: 'output',
+        unitPriceUsd: 0.006,
+        when: { resolution: '1080p' },
+      },
+    ],
+  },
+  {
     endpoint: 'black-forest-labs/flux-1.1-pro',
     provider: 'replicate',
     rates: [
@@ -1196,6 +1254,59 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
     ],
     sourceUrl: 'https://app.heygen.com/developers/api?modal=pricing',
     verifiedAt: '2026-10-10T07:18:30.000Z',
+  },
+  {
+    // Priced by output resolution alone, not by look type.
+    endpoint: 'heygen/heygen-avatar-6',
+    provider: 'heygen',
+    rates: [
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.1,
+        when: {
+          resolution: '1080p',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.145,
+        when: {
+          resolution: '2k',
+        },
+        isPerOutput: true,
+      },
+    ],
+    sourceUrl: 'https://app.heygen.com/developers/api?modal=pricing',
+    verifiedAt: '2026-11-17T21:10:22.000Z',
+  },
+  {
+    endpoint: 'heygen/heygen-avatar-6-turbo',
+    provider: 'heygen',
+    rates: [
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.05,
+        when: {
+          resolution: '1080p',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.0875,
+        when: {
+          resolution: '2k',
+        },
+        isPerOutput: true,
+      },
+    ],
+    sourceUrl: 'https://app.heygen.com/developers/api?modal=pricing',
+    verifiedAt: '2026-11-17T21:10:22.000Z',
   },
   {
     endpoint: 'heygen/heygen-voice-1',
@@ -4145,5 +4256,33 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
     ],
     sourceUrl: 'https://api.fal.ai/v1/models/pricing',
     verifiedAt: '2026-10-25T19:29:00.000Z',
+  },
+  {
+    endpoint: 'firtoz/trellis',
+    provider: 'replicate',
+    rates: [
+      {
+        component: 'output',
+        unit: 'output',
+        unitPriceUsd: 0.081,
+        when: {},
+      },
+    ],
+    sourceUrl: 'https://replicate.com/firtoz/trellis',
+    verifiedAt: '2026-11-09T00:00:00.000Z',
+  },
+  {
+    endpoint: 'hyper3d/rodin',
+    provider: 'replicate',
+    rates: [
+      {
+        component: 'output',
+        unit: 'output',
+        unitPriceUsd: 0.4,
+        when: {},
+      },
+    ],
+    sourceUrl: 'https://replicate.com/hyper3d/rodin',
+    verifiedAt: '2026-11-10T00:00:00.000Z',
   },
 ];

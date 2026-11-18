@@ -36,7 +36,11 @@ type AttemptRef = ProviderPublishAttemptRef;
 export type ProviderPublishAttemptState =
   | { kind: 'none' }
   | ({ kind: 'released' } & AttemptRef)
-  | ({ kind: 'replay'; result: PublishResult } & AttemptRef)
+  | ({
+      kind: 'replay';
+      result: PublishResult;
+      attemptStartedAt: Date;
+    } & AttemptRef)
   | ({
       kind: 'unconfirmed';
       status: PostProviderPublishReceiptStatus;
@@ -123,7 +127,7 @@ function readIngredientIds(post: PostEntity): string[] {
  * its schedule and its publishable content. Retries keep the key; a reapproval,
  * reschedule or content edit starts a new occurrence.
  */
-export function providerPublishOccurrenceKey(post: PostEntity): string {
+function providerPublishOccurrenceKey(post: PostEntity): string {
   return createHash('sha256')
     .update(
       JSON.stringify([
@@ -210,7 +214,14 @@ export async function inspectProviderPublishAttempt(
     status === PostProviderPublishReceiptStatus.ACCEPTED
       ? readReceiptResult(row.result)
       : null;
-  if (result) return { kind: 'replay', result, ...ref };
+  if (result) {
+    return {
+      kind: 'replay',
+      result,
+      attemptStartedAt: row.attemptStartedAt,
+      ...ref,
+    };
+  }
   if (
     status === PostProviderPublishReceiptStatus.ATTEMPTING &&
     now.getTime() - row.leaseRenewedAt.getTime() <

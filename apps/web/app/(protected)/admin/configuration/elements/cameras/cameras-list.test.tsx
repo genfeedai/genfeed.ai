@@ -346,6 +346,11 @@ describe('CamerasList', () => {
         key: 'ultra-wide',
       });
     });
+    await waitFor(() => {
+      expect(
+        sidebar.queryByRole('textbox', { name: 'Key' }),
+      ).not.toBeInTheDocument();
+    });
   });
 
   it('reports a failed in-place save', async () => {

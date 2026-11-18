@@ -592,6 +592,77 @@ describe('AuthorizedMediaUrlService', () => {
   });
 });
 
+describe('AuthorizedMediaUrlService thread participants (#9962)', () => {
+  const owner = testId('user', 7);
+  const collaborator = testId('user', 8);
+  const stranger = testId('user', 9);
+  const threadScope = {
+    organizationId,
+    participantUserIds: [owner, collaborator],
+    userId: collaborator,
+  };
+
+  it("grants a participant's private image to a member viewing the thread", async () => {
+    const { service, prisma } = await setup();
+    prisma.ingredient.findMany.mockResolvedValue([
+      { ...source, userId: owner },
+    ]);
+    const [projection] = await service.projectIngredients(threadScope, [
+      ingredientId,
+    ]);
+    expect(projection.ingredientId).toBe(ingredientId);
+    expect(projection.grant.url).toContain('signed=1');
+  });
+
+  it("withholds a non-participant's private image from the same view", async () => {
+    const { service, prisma } = await setup();
+    prisma.ingredient.findMany.mockResolvedValue([
+      { ...source, userId: stranger },
+    ]);
+    expect(
+      await service.projectIngredients(threadScope, [ingredientId]),
+    ).toEqual([]);
+  });
+
+  it('does not grant a participant the media of another organization', async () => {
+    const { service, prisma } = await setup();
+    prisma.ingredient.findMany.mockResolvedValue([
+      { ...source, organizationId: testId('org', 2), userId: owner },
+    ]);
+    expect(
+      await service.projectIngredients(threadScope, [ingredientId]),
+    ).toEqual([]);
+  });
+
+  it("signs a participant's asset and withholds a stranger's in a brand thread", async () => {
+    const { service, prisma } = await setup();
+    prisma.asset.findMany.mockResolvedValue([
+      {
+        id: 'asset-1',
+        category: 'IMAGE',
+        cloudObjectKey: 'assets/images/one.png',
+        parentBrandId: null,
+        parentType: 'USER',
+        userId: owner,
+      },
+      {
+        id: 'asset-2',
+        category: 'IMAGE',
+        cloudObjectKey: 'assets/images/two.png',
+        parentBrandId: null,
+        parentType: 'USER',
+        userId: stranger,
+      },
+    ] as never);
+    const result = await service.projectAssets(
+      { ...threadScope, brandId: testId('brand', 1) },
+      ['asset-1', 'asset-2'],
+    );
+    expect(result[0].url).toContain('signed=1');
+    expect(result[1].url).toBeNull();
+  });
+});
+
 describe('AuthorizedMediaUrlService platform-admin projection', () => {
   const foreign: MediaDeliverySource = {
     ...source,

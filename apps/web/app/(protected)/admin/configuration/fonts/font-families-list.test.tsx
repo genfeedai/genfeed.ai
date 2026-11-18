@@ -360,6 +360,7 @@ describe('FontFamiliesList', () => {
       ),
     );
     expect(screen.getByText('Geist')).toBeInTheDocument();
+    expect(screen.getByText('Inter')).toBeInTheDocument();
   });
 
   it('reports load and delete failures', async () => {
@@ -404,6 +405,7 @@ describe('FontFamiliesList', () => {
     expect(mocks.notificationsError).toHaveBeenCalledWith(
       'Failed to delete font family',
     );
+    expect(screen.getByText('Inter')).toBeInTheDocument();
   });
 
   it('hides superadmin filters and actions outside superadmin scope', async () => {

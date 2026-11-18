@@ -6,7 +6,7 @@ import {
 } from '@api/collections/agent-strategies/sources/agent-source-saved-ad-reader';
 import { PrismaClient, type SavedAd } from '@genfeedai/prisma';
 import { PrismaPg } from '@prisma/adapter-pg';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, describe, expect, it, vi } from 'vitest';
 
 vi.unmock('@genfeedai/prisma');
 vi.unmock('@prisma/adapter-pg');
@@ -63,19 +63,23 @@ function ad(id: string, extra: Partial<SavedAd> = {}): SavedAd {
     ...extra,
   };
 }
-const clients: PrismaClient[] = [];
-afterEach(async () => {
+// One client for the file: each generated client holds the whole schema model,
+// and building one per test exhausted the worker heap.
+let sharedClient: PrismaClient | undefined;
+afterEach(() => {
   vi.restoreAllMocks();
-  await Promise.all(clients.splice(0).map((client) => client.$disconnect()));
+});
+afterAll(async () => {
+  await sharedClient?.$disconnect();
 });
 function delegate(rows: SavedAd[] = []) {
   // Construct the native generic delegate without connecting. All reads are stubbed.
-  const client = new PrismaClient({
+  sharedClient ??= new PrismaClient({
     adapter: new PrismaPg({
       connectionString: 'postgresql://127.0.0.1:1/fixture-only',
     }),
   });
-  clients.push(client);
+  const client = sharedClient;
   const savedAd = client.savedAd;
   const findMany = vi.spyOn(savedAd, 'findMany').mockResolvedValue(rows);
   return { savedAd, findMany };

@@ -8,13 +8,25 @@ import type {
   PublishResult,
   ThreadChild,
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
+import { mapYoutubeFailure } from '@api/services/integrations/publishers/provider-publish-error.mappers';
+import { throwAsPublishError } from '@api/services/integrations/publishers/publish-error.util';
+import { verifyMediaPublish } from '@api/services/integrations/publishers/publisher-media-verification.util';
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
-import { CredentialPlatform } from '@genfeedai/contracts';
+import { htmlToText } from '@api/shared/utils/html-to-text/html-to-text.util';
+import { CredentialPlatform, PublishErrorKind } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
+
+/** `uploadVideo` titles a video without a label this way. */
+const YOUTUBE_DEFAULT_VIDEO_TITLE = 'Genfeed.ai Video';
+/** An upload YouTube accepted: still processing, or done. */
+const VERIFIED_UPLOAD_STATUSES: ReadonlySet<string> = new Set([
+  'processed',
+  'uploaded',
+]);
 
 @Traced()
 @Injectable()
@@ -73,6 +85,56 @@ export class YouTubePublisherService extends BasePublisherService {
   }
 
   /**
+   * Whether an earlier, unconfirmed upload landed on the channel.
+   *
+   * Matches the exact title and description among the channel's uploads since
+   * the attempt began. A video still processing counts as landed (it exists and
+   * has its id). One YouTube reports as failed, rejected or deleted stays
+   * unknown. The thumbnail and playlist steps that follow an upload are not
+   * replayed, so a verified video can lack them.
+   */
+  async verifyPublished(
+    context: PublishContext,
+    attemptStartedAt: Date,
+  ): Promise<PublishResult | null> {
+    const mediaInfo = this.extractMediaInfo(context.post);
+    if (mediaInfo.isImagePost || mediaInfo.isCarousel) {
+      throw new Error('Provider verification lacks exact video proof');
+    }
+    const channelId = context.credential.externalId;
+    if (!channelId) {
+      throw new Error('YouTube verification channel unavailable or changed');
+    }
+    const found = await verifyMediaPublish(
+      attemptStartedAt,
+      (cursor) =>
+        this.youtubeService.listPublishVerificationPage(
+          context.organizationId,
+          context.brandId,
+          context.credential.id,
+          channelId,
+          attemptStartedAt,
+          cursor,
+        ),
+      {
+        mediaCount: 1,
+        mediaKind: 'video',
+        text: htmlToText(context.post.description),
+        title: context.post.label || YOUTUBE_DEFAULT_VIDEO_TITLE,
+      },
+    );
+    if (!found) return null;
+    if (!VERIFIED_UPLOAD_STATUSES.has(found.status ?? '')) {
+      throw new Error('YouTube verification found an upload that did not land');
+    }
+    return this.createSuccessResult(
+      found.id,
+      this.platform,
+      this.buildPostUrl(found.id, context.credential),
+    );
+  }
+
+  /**
    * Publish a video to YouTube
    */
   async publish(context: PublishContext): Promise<PublishResult> {
@@ -104,10 +166,13 @@ export class YouTubePublisherService extends BasePublisherService {
       );
 
       if (!externalId) {
-        return this.createFailedResult(
-          this.platform,
-          'Failed to get external ID',
-        );
+        return {
+          ...this.createFailedResult(
+            this.platform,
+            'Failed to get external ID',
+          ),
+          errorKind: PublishErrorKind.OUTCOME_UNKNOWN,
+        };
       }
 
       this.logger.log(`${url} YouTube video uploaded with ID: ${externalId}`);
@@ -119,7 +184,7 @@ export class YouTubePublisherService extends BasePublisherService {
         error: (error as Error)?.message,
         postId: context.postId,
       });
-      throw error;
+      throwAsPublishError(error, mapYoutubeFailure);
     }
   }
 

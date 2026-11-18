@@ -101,10 +101,6 @@ const APIFY_ACTOR_REGISTRY: Readonly<Record<string, ApifyActorRegistration>> = {
     capability: 'google.paid-creative-discovery',
     mode: 'temporarily_apify_primary',
   },
-  'quacker/twitter-scraper': {
-    capability: 'x.social-read',
-    mode: 'fallback_only',
-  },
   'streamers/youtube-channel-scraper': {
     capability: 'youtube.channel-lookup',
     mode: 'fallback_only',
@@ -189,7 +185,6 @@ export class ApifyBaseService {
     // TikTok scrapers
     TIKTOK_TRENDS: 'clockworks/tiktok-trends-scraper',
     TIKTOK_USER_SCRAPER: 'clockworks/tiktok-profile-scraper',
-    TWITTER_SCRAPER: 'quacker/twitter-scraper',
 
     // Twitter/X scrapers
     TWITTER_TRENDS: 'automation-lab/twitter-trends-scraper',

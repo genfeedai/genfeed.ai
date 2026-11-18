@@ -41,6 +41,7 @@ export default function HomeHeroVideo({
   const [hasPainted, setHasPainted] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
+  // use-effect-audit: ignore subscribes to media query changes
   useEffect(() => {
     const reducedMotion = window.matchMedia(REDUCED_MOTION_QUERY);
     const wideEnough = window.matchMedia(VIDEO_MIN_WIDTH_QUERY);

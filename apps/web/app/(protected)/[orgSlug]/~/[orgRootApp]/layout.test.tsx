@@ -4,11 +4,8 @@ import { describe, expect, it, vi } from 'vitest';
 import OrganizationAppIntlLayout from './layout';
 
 vi.mock('@app-i18n/AppPageIntlProvider', () => ({
-  default: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-}));
-vi.mock('@app/(protected)/[orgSlug]/[brandSlug]/library/layout-client', () => ({
   default: ({ children }: { children: React.ReactNode }) => (
-    <div data-testid="library-layout">{children}</div>
+    <div data-testid="intl-provider">{children}</div>
   ),
 }));
 
@@ -22,20 +19,23 @@ async function renderLayout(orgRootApp: string) {
 }
 
 describe('organization app layout', () => {
-  it('mounts the brand Library layout, asset detail panel included, on the organization Library', async () => {
-    await renderLayout('library');
-
-    expect(screen.getByTestId('library-layout')).toContainElement(
-      screen.getByTestId('page'),
-    );
-  });
-
-  it.each(['messages', 'publishing'])(
-    'leaves the %s app without the Library layout',
+  it.each(['messages', 'automation', 'editor'])(
+    'delivers the %s messages around the page',
     async (orgRootApp) => {
       await renderLayout(orgRootApp);
 
-      expect(screen.queryByTestId('library-layout')).not.toBeInTheDocument();
+      expect(screen.getByTestId('intl-provider')).toContainElement(
+        screen.getByTestId('page'),
+      );
+    },
+  );
+
+  it.each(['library', 'publishing', 'unknown'])(
+    'leaves %s to its own entry and renders the page bare',
+    async (orgRootApp) => {
+      await renderLayout(orgRootApp);
+
+      expect(screen.queryByTestId('intl-provider')).not.toBeInTheDocument();
       expect(screen.getByTestId('page')).toBeInTheDocument();
     },
   );

@@ -28,6 +28,11 @@ on:
         type: boolean
         required: false
         default: false
+      skip_frontend:
+        description: 'Skip every browser job (Frontend E2E, report merge, authed). Only master-merge-check.yml sets it; the result is reporting-only and never release or deploy evidence.'
+        type: boolean
+        required: false
+        default: false
     outputs:
       agent_production_result:
         description: 'Passed only after the dedicated production receipt and evidence upload.'
@@ -351,7 +356,7 @@ jobs:
   # sources from the deploy AND-gate. Each shard is independent (fail-fast:false),
   # so "Re-run failed jobs" carries the green shards forward unchanged.
   e2e-frontend:
-    if: ${{ !(github.event_name == 'workflow_dispatch' && github.workflow == 'E2E Tests' && (inputs.acceptance_diagnostic == 'final' || inputs.acceptance_diagnostic == 'brand-acceptance')) }}
+    if: ${{ !(github.event_name == 'workflow_dispatch' && github.workflow == 'E2E Tests' && (inputs.acceptance_diagnostic == 'final' || inputs.acceptance_diagnostic == 'brand-acceptance')) && inputs.skip_frontend != true }}
     name: Frontend E2E (Shard ${{ matrix.shard }}/4)
     runs-on: ubuntu-latest
     timeout-minutes: 45
@@ -383,17 +388,19 @@ jobs:
           # Retry policy is split by trigger, and E2E_RETRIES is now the SINGLE
           # source of truth (playwright.config.ts reads it directly;
           # scripts/e2e-sharded.mjs no longer injects a competing --retries=0).
-          #  - deploy/dispatch/full-suite path → 2: this suite gates the whole
+          #  - deploy/dispatch/full-suite path → 1: this suite gates the whole
           #    production release via cancel-doomed-run, so one browser/timing
           #    flake would otherwise cancel the deploy. Playwright only retries on
-          #    failure, so green shards pay zero cost.
+          #    failure, so green shards pay zero cost. 1 is the cap
+          #    (playwright.config.ts clamps CI to it, #6231), and every test that
+          #    passed on its retry is listed as flaky in the run summary.
           #  - nightly cron (schedule) → 0: retries there would mask flake and
           #    silence the alarm the nightly exists to raise. Keep it honest.
           # Written as `!= 'schedule' && '2' || '0'` on purpose: GitHub Actions
-          # coerces the string '0' to falsy, so a `== 'schedule' && '0' || '2'`
+          # coerces the string '0' to falsy, so a `== 'schedule' && '0' || '1'`
           # form would wrongly yield 2 for the nightly. Keeping '0' in the `||`
           # fallback position (never the `&&` result) sidesteps that coercion.
-          E2E_RETRIES: ${{ !(github.event_name == 'schedule' && github.workflow == 'E2E Tests') && '2' || '0' }}
+          E2E_RETRIES: ${{ !(github.event_name == 'schedule' && github.workflow == 'E2E Tests') && '1' || '0' }}
           E2E_SHARD_INDEX: ${{ matrix.shard }}
           E2E_TOTAL_SHARDS: "4"
           BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET || 'test-better-auth-secret' }}
@@ -415,7 +422,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     needs: [e2e-frontend]
-    if: ${{ always() && !(github.event_name == 'workflow_dispatch' && github.workflow == 'E2E Tests' && (inputs.acceptance_diagnostic == 'final' || inputs.acceptance_diagnostic == 'brand-acceptance')) }}
+    if: ${{ always() && !(github.event_name == 'workflow_dispatch' && github.workflow == 'E2E Tests' && (inputs.acceptance_diagnostic == 'final' || inputs.acceptance_diagnostic == 'brand-acceptance')) && inputs.skip_frontend != true }}
     permissions:
       actions: read
       contents: read
@@ -517,6 +524,16 @@ jobs:
 
       - name: Merge into HTML report
         run: bunx playwright merge-reports --reporter=html,github ./all-blob-reports
+
+      # Reporting only (#6231): a test that passed on its retry is a flake that
+      # a green run hides, so name each one in the run summary.
+      - name: List flaky tests in the run summary
+        continue-on-error: true
+        env:
+          PLAYWRIGHT_JSON_OUTPUT_NAME: merged-results.json
+        run: |
+          bunx playwright merge-reports --reporter=json ./all-blob-reports
+          node scripts/ci/playwright-flaky-summary.mjs merged-results.json
 
       - name: Upload merged HTML report
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -822,7 +839,11 @@ jobs:
           if [[ "${{ needs.e2e-route-coverage.result }}" != "success" ]]; then
             echo "Route reference inventory did not complete" && exit 1
           fi
-          if [[ "${{ needs.e2e-frontend.result }}" != "success" ]]; then
+          if [[ "${{ inputs.skip_frontend == true }}" == "true" ]]; then
+            # Only master-merge-check.yml skips the browser; Playwright Core on
+            # Master covers it there. A skipped matrix is never release evidence.
+            test "${{ needs.e2e-frontend.result }}" = skipped
+          elif [[ "${{ needs.e2e-frontend.result }}" != "success" ]]; then
             echo "One or more E2E shards did not pass" && exit 1
           fi
           if [[ "${{ needs.e2e-api.result }}" != "success" ]]; then
@@ -855,7 +876,7 @@ jobs:
   # nightly.
   e2e-frontend-authed:
     name: Frontend Authed E2E (real Better Auth)
-    if: ${{ !(github.event_name == 'workflow_dispatch' && github.workflow == 'E2E Tests' && (inputs.acceptance_diagnostic == 'final' || inputs.acceptance_diagnostic == 'brand-acceptance')) && (vars.E2E_AUTHED_ENABLED == 'true') }}
+    if: ${{ !(github.event_name == 'workflow_dispatch' && github.workflow == 'E2E Tests' && (inputs.acceptance_diagnostic == 'final' || inputs.acceptance_diagnostic == 'brand-acceptance')) && inputs.skip_frontend != true && (vars.E2E_AUTHED_ENABLED == 'true') }}
     runs-on: ubuntu-latest
     timeout-minutes: 40
     continue-on-error: ${{ !(github.event_name == 'schedule' && github.workflow == 'E2E Tests') }}

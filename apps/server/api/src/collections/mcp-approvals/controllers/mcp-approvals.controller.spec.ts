@@ -1,11 +1,16 @@
+import { createHash } from 'node:crypto';
 import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
 import { McpApprovalsController } from '@api/collections/mcp-approvals/controllers/mcp-approvals.controller';
 import { McpApprovalPolicyService } from '@api/collections/mcp-approvals/services/mcp-approval-policy.service';
 import { McpApprovalsService } from '@api/collections/mcp-approvals/services/mcp-approvals.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { ActionOrigin } from '@genfeedai/contracts';
+import {
+  ActionOrigin,
+  MCP_ACTION_ORIGIN_PROOF_HEADER,
+} from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
@@ -17,6 +22,9 @@ const mockUser = {
   organizationId: 'org-abc',
   userId: 'user-xyz',
 };
+
+const SERVICE_KEY = 'mcp-service-key-for-tests';
+const MCP_PROOF = createHash('sha256').update(SERVICE_KEY).digest('base64url');
 
 const fakeApproval = {
   id: 'approval-1',
@@ -62,6 +70,13 @@ describe('McpApprovalsController', () => {
         { provide: McpApprovalsService, useValue: mockServiceMethods },
         { provide: McpApprovalPolicyService, useValue: mockPolicy },
         { provide: RolesGuard, useValue: rolesGuard },
+        {
+          provide: ConfigService,
+          useValue: {
+            get: (key: string) =>
+              key === 'GENFEEDAI_API_KEY' ? SERVICE_KEY : undefined,
+          },
+        },
         {
           provide: LoggerService,
           useValue: {
@@ -474,6 +489,80 @@ describe('McpApprovalsController', () => {
         false,
       );
       expect(result.data.isClaimed).toBe(false);
+    });
+  });
+
+  describe('POST /:id/confirm', () => {
+    const mcpRequest = (proof?: string) =>
+      ({
+        headers: proof ? { [MCP_ACTION_ORIGIN_PROOF_HEADER]: proof } : {},
+      }) as never;
+
+    it("approves the requester's own action when the MCP server relays the answer", async () => {
+      mockServiceMethods.findOne.mockResolvedValue(fakeApproval);
+      mockServiceMethods.resolve.mockResolvedValue({
+        ...fakeApproval,
+        status: 'APPROVED',
+        resolvedAt: new Date(),
+      });
+
+      const result = await controller.confirm(
+        { ...mockUser, actionOrigin: ActionOrigin.MCP } as never,
+        mcpRequest(MCP_PROOF),
+        'approval-1',
+        { decision: 'approve' },
+      );
+
+      expect(result.data).toMatchObject({
+        id: 'approval-1',
+        status: 'APPROVED',
+      });
+    });
+
+    it.each([
+      ['no proof', undefined],
+      ['a forged proof', 'not-the-mcp-server'],
+    ])('refuses an answer with %s', async (_label, proof) => {
+      mockServiceMethods.findOne.mockResolvedValue(fakeApproval);
+
+      await expect(
+        controller.confirm(mockUser as never, mcpRequest(proof), 'approval-1', {
+          decision: 'approve',
+        }),
+      ).rejects.toThrow(ForbiddenException);
+    });
+
+    it("refuses an answer to another member's action", async () => {
+      mockServiceMethods.findOne.mockResolvedValue({
+        ...fakeApproval,
+        userId: 'someone-else',
+      });
+
+      await expect(
+        controller.confirm(
+          mockUser as never,
+          mcpRequest(MCP_PROOF),
+          'approval-1',
+          {
+            decision: 'approve',
+          },
+        ),
+      ).rejects.toThrow(ForbiddenException);
+    });
+
+    it('reports a missing approval', async () => {
+      mockServiceMethods.findOne.mockResolvedValue(null);
+
+      await expect(
+        controller.confirm(
+          mockUser as never,
+          mcpRequest(MCP_PROOF),
+          'approval-1',
+          {
+            decision: 'decline',
+          },
+        ),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 });

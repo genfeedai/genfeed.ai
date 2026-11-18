@@ -18,6 +18,38 @@ function appUrl(path: string): string {
 }
 
 describe('MCP tool error contract', () => {
+  it.each([
+    [
+      'brand_policy_check_unavailable',
+      'policy_check_unavailable',
+      'Resume the existing release',
+    ],
+    ['brand_policy_held', 'publishing_held', 'member must review'],
+    ['branded_receipt_held', 'publishing_held', 'member must review'],
+  ])('returns sanitized guidance for %s', (domainCode, code, guidance) => {
+    const result = toMcpToolErrorResult(
+      new McpUpstreamError('Internal provider payload', {
+        status: 409,
+        body: {
+          errors: [
+            {
+              detail: 'Internal provider payload',
+              code: domainCode,
+              status: '409',
+            },
+          ],
+        },
+      }),
+    );
+
+    expect(result).toMatchObject({
+      isError: true,
+      structuredContent: { code },
+    });
+    expect(result?.content[0].text).toContain(guidance);
+    expect(JSON.stringify(result)).not.toContain('Internal provider payload');
+  });
+
   it('turns schema validation errors into readable field guidance', () => {
     const parsed = z
       .object({ edits: z.object({ brief: z.string().min(1) }) })
@@ -47,7 +79,7 @@ describe('MCP tool error contract', () => {
       code: 'unauthorized',
       message:
         'Unauthorized. Authorize this client with Genfeed OAuth, or send a Genfeed API key as a bearer token.',
-      nextStepUrl: appUrl(APP_ROUTES.CONNECT),
+      nextStepUrl: appUrl(APP_ROUTES.CONNECTORS.ROOT),
     });
     expect(
       mcpJsonRpcError(null, -32001, error as McpToolError).error.data,
@@ -185,7 +217,7 @@ describe('MCP tool error contract', () => {
       title: 'Unauthorized',
       detail: 'Sign in again',
       code: 'unauthorized',
-      route: APP_ROUTES.CONNECT,
+      route: APP_ROUTES.CONNECTORS.ROOT,
     },
     {
       status: 403,
@@ -287,6 +319,7 @@ describe('MCP tool error contract', () => {
     );
 
     expect(result.structuredContent).not.toHaveProperty('estimatedCredits');
+    expect(result.structuredContent.pricingSummary).toBe(summary);
     expect(result.structuredContent.message).toContain(summary);
   });
 

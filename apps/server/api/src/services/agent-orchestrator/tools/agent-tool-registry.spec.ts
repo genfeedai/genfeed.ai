@@ -145,6 +145,7 @@ describe('agent-tool-registry', () => {
       parameters: {
         properties: {
           confirmed: { type: 'boolean' },
+          title: { type: 'string' },
           platforms: { items: { type: 'string' }, type: 'array' },
         },
         type: 'object',

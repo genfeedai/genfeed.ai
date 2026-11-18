@@ -37,6 +37,7 @@ export default function HomeOutputCard({
   const videoRef = useRef<HTMLVideoElement>(null);
   const hasClip = Boolean(asset.mp4 && asset.webm);
 
+  // use-effect-audit: ignore IntersectionObserver that plays the clip while visible
   useEffect(() => {
     const figure = figureRef.current;
     if (!figure || !hasClip) return;
@@ -124,7 +125,7 @@ export default function HomeOutputCard({
       <figcaption className="absolute inset-x-0 bottom-0 z-10 p-6 text-left sm:p-7">
         <Text
           className={
-            'text-2xs font-bold uppercase tracking-[0.14em] text-white/70' /* design-system-allow-content-color -- caption over video */
+            'text-2xs font-semibold uppercase tracking-label text-white/70' /* design-system-allow-content-color -- caption over video */
           }
         >
           {asset.format}

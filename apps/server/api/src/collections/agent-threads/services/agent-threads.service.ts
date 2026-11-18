@@ -223,7 +223,7 @@ export class AgentThreadsService extends BaseService<
     filters: AgentThreadListFilters = {},
   ): Record<string, unknown> {
     const where: Record<string, unknown> = scopedWhere(organizationId, {
-      userId,
+      ...(filters.ownerWhere ? { AND: [filters.ownerWhere] } : { userId }),
     });
 
     if (filters.kind) {

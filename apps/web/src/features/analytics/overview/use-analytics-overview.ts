@@ -44,7 +44,7 @@ export function useAnalyticsOverview({ scope }: UseAnalyticsOverviewParams) {
   const getUsersService = useAuthedService((token: string) =>
     UsersService.getInstance(token),
   );
-  const { brandSlug, href, orgHref } = useOrgUrl();
+  const { brandSlug, href, orgHref, activeHref } = useOrgUrl();
   const { brandId } = useCollectionScope();
   const { dateRange, refreshTrigger } = useAnalyticsContext();
   const { startDate, endDate } = getDateRangeWithDefaults(
@@ -197,7 +197,7 @@ export function useAnalyticsOverview({ scope }: UseAnalyticsOverviewParams) {
 
     return [
       {
-        label: 'Connected Accounts',
+        label: 'Accounts',
         value: analytics?.totalCredentialsConnected || 0,
       },
       {
@@ -287,9 +287,9 @@ export function useAnalyticsOverview({ scope }: UseAnalyticsOverviewParams) {
 
   const connectAccountsHref =
     scope === PageScope.SUPERADMIN
-      ? orgHref(APP_ROUTES.SETTINGS.INTEGRATIONS)
+      ? orgHref(APP_ROUTES.CONNECTORS.PROVIDERS)
       : brandSlug
-        ? href(APP_ROUTES.SETTINGS.CONNECTED_ACCOUNTS)
+        ? activeHref(APP_ROUTES.SETTINGS.PROFILE)
         : orgHref(APP_ROUTES.SETTINGS.BRANDS);
 
   const heroContent = useMemo<AnalyticsOverviewHeroContent | null>(() => {
@@ -307,7 +307,7 @@ export function useAnalyticsOverview({ scope }: UseAnalyticsOverviewParams) {
     };
 
     // Posts can exist before any account is connected. The banner must then
-    // match the zero on the Connected Accounts tile and point at connecting.
+    // match the zero on the Accounts tile and point at connecting.
     if (!hasConnectedAccounts) {
       return {
         badge: translate('hero.notConnectedBadge'),
@@ -345,23 +345,30 @@ export function useAnalyticsOverview({ scope }: UseAnalyticsOverviewParams) {
     translate,
   ]);
 
+  // While the first load runs there is no data to classify, so the tiles take
+  // the shape of the populated page. They then fill in place instead of the
+  // row growing from three tiles to four plus a second row.
+  const layoutState: AnalyticsDashboardState = isLoading
+    ? 'active'
+    : dashboardState;
+
   const primaryKpiItems = useMemo(() => {
     if (scope === PageScope.SUPERADMIN) {
       return kpiItems.slice(0, 4);
     }
 
-    return dashboardState === 'active'
+    return layoutState === 'active'
       ? kpiItems.slice(1, 5)
       : kpiItems.slice(0, 3);
-  }, [dashboardState, kpiItems, scope]);
+  }, [kpiItems, layoutState, scope]);
 
   const secondaryKpiItems = useMemo(() => {
     if (scope === PageScope.SUPERADMIN) {
       return kpiItems.slice(4);
     }
 
-    return dashboardState === 'active' ? [kpiItems[0], kpiItems[5]] : [];
-  }, [dashboardState, kpiItems, scope]);
+    return layoutState === 'active' ? [kpiItems[0], kpiItems[5]] : [];
+  }, [kpiItems, layoutState, scope]);
 
   const showAgentDashboard = isAgentModified && agentBlocks.length > 0;
 

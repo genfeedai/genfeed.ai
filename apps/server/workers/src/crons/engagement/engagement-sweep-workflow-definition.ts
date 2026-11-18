@@ -4,6 +4,7 @@ import type {
 } from '@api/collections/workflows/schemas/workflow.schema';
 import { actionNode } from '@api/collections/workflows/services/workflow-definition-nodes';
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-runner.service';
+import { SystemWorkflowRetention } from '@api/collections/workflows/workflow-execution-retention.contract';
 
 export const ENGAGEMENT_SWEEP_ACTION_IDS = {
   DISCOVER: 'engagement.sweep.discover',
@@ -81,6 +82,7 @@ export function buildEngagementSweepWorkflowDefinition(): SystemWorkflowGraphDef
       'Discovers armed engagement rules and processes each in an action-backed child workflow.',
     label: 'Engagement Rule Sweep',
     resultNodeId: 'process-rules',
+    retention: SystemWorkflowRetention.BACKGROUND,
     version: 1,
   };
 }
@@ -232,6 +234,7 @@ export function buildEngagementRuleWorkflowDefinition(): SystemWorkflowGraphDefi
       'Evaluates one engagement rule, routes its terminal outcome, executes one action, and finalizes state.',
     label: 'Process Engagement Rule',
     resultNodeId: 'evaluate-rule',
+    retention: SystemWorkflowRetention.BACKGROUND,
     version: 1,
   };
 }

@@ -53,6 +53,12 @@ export interface WorkflowExecutionJobData {
    * already terminal, or continues from their persisted nodeResults.
    */
   priorExecutionIds?: string[];
+  /**
+   * The publishing provider a `SCHEDULED_PUBLISH` run delivers to. The worker
+   * holds the run while that provider is at its own concurrency or rate
+   * ceiling, so it must be known before the graph starts.
+   */
+  publishProvider?: string;
   systemRun?: {
     /**
      * Epoch ms after which an unstarted run is dropped at pickup. Set for
@@ -73,7 +79,7 @@ export interface WorkflowExecutionJobData {
   };
 }
 
-export interface SystemWorkflowFailureReference {
+interface SystemWorkflowFailureReference {
   canonicalId: string;
   inputValues?: Record<string, unknown>;
 }
@@ -106,6 +112,8 @@ export interface QueueSystemWorkflowOptions {
   priorExecution?: NonNullable<
     NonNullable<WorkflowExecutionJobData['systemRun']>['priorExecution']
   >;
+  /** Provider a `SCHEDULED_PUBLISH` run delivers to; see `WorkflowExecutionJobData`. */
+  publishProvider?: string;
   /**
    * Route this job to `PLATFORM_SYSTEM_WORKFLOW_QUEUE` instead of
    * `dispatchClass`'s queue. Set for platform-cron sweep dispatches
@@ -178,7 +186,7 @@ export function workflowSchedulerId(workflowId: string): string {
  * later, for a `WorkflowExecution` that has been sitting `PENDING` — see
  * `PendingWorkflowExecutionReconcileService`.
  */
-export const CLAIMABLE_JOB_STATES = new Set<string>([
+const CLAIMABLE_JOB_STATES = new Set<string>([
   'waiting',
   'delayed',
   'active',
@@ -422,6 +430,9 @@ export class WorkflowExecutionQueueService {
             : {}),
         },
         type: 'system-run',
+        ...(options.publishProvider
+          ? { publishProvider: options.publishProvider }
+          : {}),
         ...moduleContext,
       },
       {

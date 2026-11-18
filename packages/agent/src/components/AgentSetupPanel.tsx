@@ -107,7 +107,7 @@ export function AgentSetupPanel({
       data-testid="agent-setup-panel"
     >
       <div className="gen-shell-toolbar shrink-0 p-4">
-        <p className="text-2xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+        <p className="text-2xs font-semibold uppercase tracking-label text-muted-foreground">
           Setup
         </p>
         <h2 className="mt-1 text-base font-semibold text-foreground">

@@ -7,6 +7,7 @@
     "ignoreDeprecations": "6.0",
     "inlineSources": false,
     "noEmit": false,
+    "rootDir": "./src",
     "sourceMap": false
   },
   "exclude": [

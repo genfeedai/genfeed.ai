@@ -18,32 +18,6 @@ export interface TikTokCampaign {
   modifyTime: string;
 }
 
-export interface TikTokAdGroup {
-  adgroupId: string;
-  adgroupName: string;
-  campaignId: string;
-  status: string;
-  budget: number;
-  budgetMode: string;
-  optimizationGoal: string;
-  billingEvent: string;
-  scheduledBudget?: number;
-  scheduleStartTime?: string;
-  scheduleEndTime?: string;
-}
-
-export interface TikTokAd {
-  adId: string;
-  adName: string;
-  adgroupId: string;
-  status: string;
-  adText?: string;
-  imageIds?: string[];
-  videoId?: string;
-  callToAction?: string;
-  landingPageUrl?: string;
-}
-
 export interface TikTokInsightsData {
   spend: number;
   impressions: number;
@@ -77,7 +51,7 @@ export interface TikTokApiResponse<T> {
   request_id: string;
 }
 
-export interface TikTokPageInfo {
+interface TikTokPageInfo {
   page: number;
   page_size: number;
   total_number: number;

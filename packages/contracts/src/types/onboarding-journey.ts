@@ -1,3 +1,4 @@
+import { APP_ROUTES } from '../constants/routes.constant';
 import type { OnboardingAnswerFieldId } from '../interfaces/onboarding/onboarding-answers.interface';
 import type {
   IOnboardingJourneyMissionDefinition,
@@ -43,56 +44,55 @@ export const ONBOARDING_JOURNEY_MISSIONS: IOnboardingJourneyMissionDefinition[] 
       rewardCredits: 25,
       selfHostedCtaHref: '/onboarding/brand',
       whyItMatters:
-        'Better company context gives GenFeed better prompts, voice, and visual direction.',
+        'Better company context gives Genfeed better prompts, voice, and visual direction.',
     },
     {
-      ctaHref: '/onboarding/providers',
-      ctaLabel: 'Configure providers',
+      ctaHref: APP_ROUTES.CONNECTORS.AGENTS,
+      ctaLabel: 'Connect Agent',
       description:
-        'Generate your first image right away from the context you just shared.',
+        'Ask your agent for your first image, made from the brand context you just shared.',
       id: 'generate_first_image',
       label: 'Generate your first image',
       rewardCredits: 15,
-      selfHostedCtaHref: '/settings/api-keys',
+      selfHostedCtaHref: APP_ROUTES.CONNECTORS.API_KEYS,
       whyItMatters:
         'Your first image proves the workflow works and gives the agent a concrete artifact to build on.',
     },
     {
-      ctaHref: '/onboarding/providers',
-      ctaLabel: 'Configure providers',
+      ctaHref: APP_ROUTES.SETTINGS.PROFILE,
+      ctaLabel: 'Connect channels',
       description:
-        'Connect your first social account so GenFeed can tailor content to real channels.',
+        'Connect your first social account so Genfeed can tailor content to real channels.',
       id: 'connect_social_account',
       label: 'Connect a social account',
       rewardCredits: 45,
-      // Social connections are brand-scoped, so the flat `/settings/accounts`
-      // path has no org-scoped page to canonicalize onto. Send self-hosted
-      // operators to the brand list, which is one hop from brand > social.
-      selfHostedCtaHref: '/settings/brands',
+      // Channels follow the brand selected in the top bar, so the flat path
+      // canonicalizes onto the organization's Connectors page.
+      selfHostedCtaHref: APP_ROUTES.SETTINGS.PROFILE,
       whyItMatters:
         'Connected channels unlock platform-aware workflows and publishing.',
     },
     {
-      ctaHref: '/onboarding/providers',
-      ctaLabel: 'Configure providers',
+      ctaHref: APP_ROUTES.CONNECTORS.AGENTS,
+      ctaLabel: 'Connect Agent',
       description:
-        'Generate your first video to unlock richer content creation.',
+        'Ask your agent for your first video to unlock richer content creation.',
       id: 'generate_first_video',
       label: 'Generate your first video',
       rewardCredits: 20,
-      selfHostedCtaHref: '/settings/api-keys',
+      selfHostedCtaHref: APP_ROUTES.CONNECTORS.API_KEYS,
       whyItMatters:
         'Video is a higher-value content path and a stronger activation milestone.',
     },
     {
-      ctaHref: '/onboarding/providers',
-      ctaLabel: 'Configure providers',
+      ctaHref: APP_ROUTES.CONNECTORS.AGENTS,
+      ctaLabel: 'Connect Agent',
       description:
         'Publish your first post to complete the journey and claim the final reward.',
       id: 'publish_first_post',
       label: 'Publish your first post',
       rewardCredits: 70,
-      selfHostedCtaHref: '/agent/new',
+      selfHostedCtaHref: APP_ROUTES.CONNECTORS.AGENTS,
       whyItMatters:
         'Publishing closes the loop from setup to real output and proves time-to-value.',
     },

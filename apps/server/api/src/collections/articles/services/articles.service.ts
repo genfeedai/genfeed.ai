@@ -22,11 +22,7 @@ import {
   requiredString,
 } from '@api/collections/articles/utils/article-workflow-input.util';
 
-export {
-  ARTICLE_GENERATION_TOOL_ID,
-  ARTICLE_REVIEW_ACTION_ID,
-  buildArticleGenerationWorkflowDefinition,
-} from '@api/collections/articles/services/article-workflow-definitions';
+export { buildArticleGenerationWorkflowDefinition } from '@api/collections/articles/services/article-workflow-definitions';
 
 import { ViralityAnalysisResponse } from '@api/collections/articles/dto/analyze-virality.dto';
 import { TwitterThreadResponse } from '@api/collections/articles/dto/article-to-thread.dto';
@@ -887,8 +883,9 @@ export class ArticlesService
       throw new NotFoundException('Article');
     }
 
-    return this.articlesContentService.convertToTwitterThread(article, (id) =>
-      this.publicArticleScope.resolveHandle(id),
+    return this.articlesContentService.convertToTwitterThread(
+      article,
+      this.publicArticleScope.resolveHandle,
     );
   }
 

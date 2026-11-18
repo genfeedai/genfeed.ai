@@ -3,6 +3,7 @@
 import { IngredientCategory, MetadataExtension } from '@genfeedai/contracts';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import { useDominantColor } from '@genfeedai/hooks/ui/use-dominant-color/use-dominant-color';
+import { useSyncedState } from '@genfeedai/hooks/utils/use-synced-state/use-synced-state';
 import type { MediaLightboxProps } from '@genfeedai/props/layout/media-lightbox.props';
 import {
   LightboxSlide,
@@ -34,11 +35,7 @@ export default function MediaLightbox({
   onClose,
 }: MediaLightboxProps) {
   const [plugins, setPlugins] = useState<Plugin[]>([]);
-  const [activeIndex, setActiveIndex] = useState(startIndex);
-
-  useEffect(() => {
-    setActiveIndex(startIndex);
-  }, [startIndex]);
+  const [activeIndex, setActiveIndex] = useSyncedState(startIndex);
 
   // Tint the viewer backdrop with a heavily-darkened version of the focused
   // slide's dominant colour so the viewer takes on the content's colour while
@@ -60,20 +57,21 @@ export default function MediaLightbox({
     };
   }, [dominant]);
 
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     // Dynamically import ESM plugins on the client side. Abort on unmount so a
     // late resolution cannot setState after teardown (React root races).
-    let isCancelled = false;
+    const abortController = new AbortController();
     import('yet-another-react-lightbox/plugins/thumbnails').then(
       (ThumbnailsModule) => {
-        if (isCancelled) {
+        if (abortController.signal.aborted) {
           return;
         }
         setPlugins([ThumbnailsModule.default]);
       },
     );
     return () => {
-      isCancelled = true;
+      abortController.abort();
     };
   }, []);
 

@@ -11,7 +11,7 @@ import { firstValueFrom } from 'rxjs';
 
 type ArgilRecord = Record<string, unknown>;
 
-export type ArgilAspectRatio = '16:9' | '9:16';
+type ArgilAspectRatio = '16:9' | '9:16';
 export type ArgilVideoState =
   | 'IDLE'
   | 'GENERATING_AUDIO'

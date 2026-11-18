@@ -14,6 +14,7 @@ export function useContentMentions(
   const [mentions, setMentions] = useState<ContentMentionItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  // use-effect-audit: ignore abortable content mentions fetch
   useEffect(() => {
     setMentions([]);
     if (!apiService || typeof apiService.getContentMentions !== 'function') {

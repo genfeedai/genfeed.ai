@@ -19,6 +19,3 @@ export const SHOWCASE_WORKFLOW_TEMPLATE_IDS = [
   'weekly-brand-ai-content-loop',
   'youtube-thumbnail-script',
 ] as const;
-
-export type ShowcaseWorkflowTemplateId =
-  (typeof SHOWCASE_WORKFLOW_TEMPLATE_IDS)[number];

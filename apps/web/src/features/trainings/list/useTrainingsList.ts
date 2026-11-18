@@ -20,7 +20,7 @@ import { NotificationsService } from '@services/core/notifications.service';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getApiErrorMessage } from '@utils/error/error-handler.util';
 import { useSearchParams } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { useAdminOrgBrandParams } from '@/components/content/admin-filters/AdminOrgBrandUrlFilter';
 import { useAdminSearchParam } from '@/components/content/admin-filters/useAdminSearchParam';
 import { useInlineRecordSave } from '@/hooks/ui/use-inline-record-save/use-inline-record-save';
@@ -66,9 +66,6 @@ export function useTrainingsList({
   const { sort, sortKey, sortDirection, onSortChange } = useTableSort({
     allowedKeys: TRAINING_SORT_KEYS,
   });
-
-  // Track if component is mounted to avoid calling callbacks during initial render
-  const isMountedRef = useRef(false);
 
   const queryClient = useQueryClient();
 
@@ -128,6 +125,7 @@ export function useTrainingsList({
   const trainings = trainingsPage?.items ?? EMPTY_TRAININGS;
   const isRefreshing = isFetching && !isLoading;
 
+  // use-effect-audit: ignore reports a failed load to the logger or a notification
   useEffect(() => {
     if (fetchError instanceof Error) {
       logger.error('GET /trainings failed', fetchError);
@@ -154,19 +152,12 @@ export function useTrainingsList({
     ? getApiErrorMessage(fetchError, 'Failed to load trainings')
     : null;
 
-  // Mark component as mounted after first render
-  useEffect(() => {
-    isMountedRef.current = true;
-    return () => {
-      isMountedRef.current = false;
-    };
-  }, []);
-
   const handleRefresh = useCallback(async () => {
     await refreshTrainings();
   }, [refreshTrainings]);
 
   // Register refresh function with context
+  // use-effect-audit: ignore registers the refresh handler with the page
   useEffect(() => {
     if (!onRefreshRegister) {
       return;
@@ -182,6 +173,7 @@ export function useTrainingsList({
   }, [refreshTrainings, onRefreshRegister]);
 
   // Listen for training status updates via websocket
+  // use-effect-audit: ignore subscribes to training status events
   useEffect(() => {
     const processingTrainings = trainings.filter(
       (t: ITraining) => t.status === TrainingStatus.PROCESSING,

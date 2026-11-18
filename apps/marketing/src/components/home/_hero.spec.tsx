@@ -55,7 +55,7 @@ vi.mock('@services/core/environment.service', () => ({
       app: 'https://app.genfeed.ai',
     },
     bookingUrl: 'https://example.com/book',
-    mcpConnectHref: 'https://app.genfeed.ai/connect',
+    mcpConnectHref: 'https://app.genfeed.ai/connectors',
   },
 }));
 
@@ -72,18 +72,18 @@ function announcedCards(): HTMLElement[] {
 }
 
 describe('HomeHero', () => {
-  it('leads with generated output and one signup CTA', () => {
+  it('leads with generated output and the agent action first', () => {
     render(<HomeHero />);
 
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
     const heading = screen.getByRole('heading', {
       level: 1,
-      name: /from brief to feed\./i,
+      name: /from brief to feed/i,
     });
     expect(heading).toBeInTheDocument();
     expect(
       screen.getByText(
-        /genfeed is an open-source content agent\. create on-brand videos, images and posts, then review and publish to your connected channels/i,
+        /video, images, posts, articles, newsletters and voice\. briefed from your own agent, made on your brand, then published and tracked in one dashboard\./i,
       ),
     ).toBeInTheDocument();
     expect(screen.queryByText(/— on brand —/)).not.toBeInTheDocument();
@@ -91,7 +91,7 @@ describe('HomeHero', () => {
       [...document.querySelectorAll('button, a')].map((link) =>
         link.textContent?.trim(),
       ),
-    ).toEqual(['Start for $0']);
+    ).toEqual(['Connect Agent', 'Start for $0']);
 
     const actions = screen.getByTestId('home-hero-actions');
     const carousel = screen.getByTestId('home-hero-output-carousel');
@@ -151,17 +151,39 @@ describe('HomeHero', () => {
     expect(screen.queryByText(/31% hook rate/i)).not.toBeInTheDocument();
   });
 
-  it('sends visitors to the sign-up page', () => {
+  it('opens the connect dialog first and keeps sign-up as the second action', () => {
     render(<HomeHero />);
+    expect(
+      screen.getByRole('button', { name: /connect agent/i }),
+    ).toHaveAttribute('aria-haspopup', 'dialog');
     expect(
       screen.getByRole('link', { name: /start for \$0/i }),
     ).toHaveAttribute('href', 'https://app.genfeed.ai/sign-up');
     expect(
-      screen.getByText(/create your free account with google or email/i),
+      screen.getByText('Connecting takes one sign-in.'),
     ).toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', { name: /connect your agent/i }),
-    ).not.toBeInTheDocument();
+  });
+
+  it('names the category and covers every content type, not just video', () => {
+    render(<HomeHero />);
+
+    expect(screen.getByTestId('home-hero-eyebrow')).toHaveTextContent(
+      'The content studio for everything you publish',
+    );
+    for (const type of ['articles', 'newsletters', 'voice']) {
+      expect(
+        screen.getByText(new RegExp(`\\b${type}\\b`, 'i'), {
+          selector: 'p',
+        }),
+      ).toBeInTheDocument();
+    }
+  });
+
+  it('sells: no open-source pitch and no card claims', () => {
+    render(<HomeHero />);
+
+    expect(screen.queryByText(/open.source/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/no card|credit card/i)).not.toBeInTheDocument();
   });
 
   it('never offers a sales demo', () => {

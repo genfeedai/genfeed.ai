@@ -11,7 +11,6 @@ import { Suspense } from 'react';
 import { IngredientsMediaGridSkeleton } from '@/components/ingredients/list/media-grid/IngredientsMediaGrid';
 import IngredientsList from '@/features/ingredients/list/ingredients-list';
 import LibraryBrowser from '@/features/library/browser/library-browser';
-import LibraryCreditNotice from '../library-credit-notice';
 
 const IMPORTED_ORIGINS = [
   IngredientOrigin.UPLOADED,
@@ -21,7 +20,8 @@ const IMPORTED_ORIGINS = [
 /**
  * Uploads and imports, kept out of Assets so that page is generated output
  * only. It is the same browser with the origin axis seeded, so type, folder,
- * tags and search keep working here.
+ * tags and search keep working here. A carousel is one cover tile with its
+ * image count, so an imported post is not six loose assets.
  */
 export default function ImportedLibrary({
   scope = PageScope.BRAND,
@@ -36,10 +36,10 @@ export default function ImportedLibrary({
       preset={{
         label: translate('label'),
       }}
+      isStacked
       scope={scope}
       seededOrigins={IMPORTED_ORIGINS}
     >
-      <LibraryCreditNotice />
       <Suspense fallback={<IngredientsMediaGridSkeleton />}>
         <AssetDeepLink />
         <IngredientsList

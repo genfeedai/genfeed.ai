@@ -49,6 +49,9 @@ const brandAttributes = {
 };
 
 test.describe('Brand kit logo variants and platform images', () => {
+  // Slot, font and kit-file controls are manager-only.
+  test.use({ memberRole: 'admin' });
+
   test('lists every slot and fills the empty platform slots from the master banner', async ({
     authenticatedPage,
   }) => {
@@ -98,7 +101,7 @@ test.describe('Brand kit logo variants and platform images', () => {
     await assertNoErrorBoundaryFallback(authenticatedPage, route);
 
     await authenticatedPage
-      .getByRole('button', { name: /Assets, references & watermark/ })
+      .getByRole('button', { name: /Assets & references/ })
       .click();
 
     await expect(

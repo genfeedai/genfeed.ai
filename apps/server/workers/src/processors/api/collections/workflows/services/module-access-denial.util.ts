@@ -5,7 +5,6 @@ import { HttpException, HttpStatus } from '@nestjs/common';
 // the 403 is a deliberate, deterministic denial; the 503 stays retryable.
 const MODULE_DENIAL_CODES: ReadonlySet<string> = new Set([
   'ORGANIZATION_MODULE_SUBSCRIPTION_REQUIRED',
-  'ORGANIZATION_MODULE_UNRELEASED',
 ]);
 
 export interface ModuleAccessDenial {

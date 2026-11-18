@@ -76,8 +76,12 @@
     "lint": {
       "dependsOn": ["^build"]
     },
+    // `bun check` is the checker, and CI rolls Bun (`.bun-version` is
+    // `latest`), so no file in the repository changes when the version does.
+    // setup-bun-env exports the resolved toolchain as CI_CHECK_RUNTIME.
     "type-check": {
       "dependsOn": ["^build"],
+      "env": ["CI_CHECK_RUNTIME"],
       "inputs": [
         "$TURBO_DEFAULT$",
         "$TURBO_ROOT$/apps/server/tsconfig.typecheck.base.json"

@@ -170,8 +170,10 @@ export const createMetadataFixture = (
 
 /** A complete ingredient tag owned by the default brand. */
 export const createTagFixture = (partial: Partial<ITag> = {}): ITag => {
-  const brand = createBrand();
-  const organization = createOrganization();
+  // The scalar owner ids follow a requested brand or organization, so a tag
+  // built for another brand never reads as owned by the default one.
+  const brand = partial.brand ?? createBrand();
+  const organization = partial.organization ?? createOrganization();
   return {
     ...createBaseEntity<ITag>(partial),
     backgroundColor: '#000000',

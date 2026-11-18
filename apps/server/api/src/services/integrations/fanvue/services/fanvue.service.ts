@@ -7,8 +7,20 @@ import { Readable } from 'node:stream';
 import { finished } from 'node:stream/promises';
 import { TLSSocket } from 'node:tls';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { mapUnpublishedRequestFailure } from '@api/services/integrations/publishers/provider-publish-error.mappers';
+import {
+  type ProviderErrorVerdict,
+  type ProviderFailure,
+  throwAsPublishError,
+  toPublishError,
+} from '@api/services/integrations/publishers/publish-error.util';
 import { isUnconfiguredSecret } from '@genfeedai/config';
-import { CredentialPlatform, OAuthGrantType } from '@genfeedai/contracts';
+import {
+  CredentialPlatform,
+  OAuthGrantType,
+  PublishErrorKind,
+} from '@genfeedai/contracts';
+import { PublishError } from '@genfeedai/contracts/interfaces';
 import { buildGrantedScopesCredentialPatch } from '@genfeedai/helpers';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -20,6 +32,48 @@ import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 import type { AxiosRequestConfig, AxiosRequestTransformer } from 'axios';
 import { firstValueFrom, fromEvent, type Observable, takeUntil } from 'rxjs';
 import { z } from 'zod';
+
+const HTTP_BAD_REQUEST = 400;
+const HTTP_UNAUTHORIZED = 401;
+const HTTP_TOO_MANY_REQUESTS = 429;
+/** Statuses that say the file itself is refused: bad request, too large, wrong type, unprocessable. */
+const UPLOAD_REJECTED_STATUSES: ReadonlySet<number> = new Set([
+  400, 413, 415, 422,
+]);
+/**
+ * The token endpoint refusing the refresh token means the grant is gone. Any
+ * other failure left nothing published, so it can be tried again.
+ */
+function mapRefreshFailure(
+  failure: ProviderFailure,
+): ProviderErrorVerdict | null {
+  return failure.httpStatus === HTTP_BAD_REQUEST ||
+    failure.httpStatus === HTTP_UNAUTHORIZED
+    ? { kind: PublishErrorKind.CHANNEL_DISCONNECTED }
+    : mapUnpublishedRequestFailure(failure);
+}
+
+/**
+ * An upload creates no post, so every failure left nothing published. A file
+ * Fanvue refuses is not retried; any other refusal, including a 403 or 404
+ * from the media source, is.
+ */
+function mapUploadFailure({
+  httpStatus,
+}: ProviderFailure): ProviderErrorVerdict | null {
+  if (
+    httpStatus === HTTP_UNAUTHORIZED ||
+    httpStatus === HTTP_TOO_MANY_REQUESTS
+  ) {
+    return null;
+  }
+  return {
+    kind:
+      httpStatus !== undefined && UPLOAD_REJECTED_STATUSES.has(httpStatus)
+        ? PublishErrorKind.CONTENT_REJECTED
+        : PublishErrorKind.RETRY_LATER,
+  };
+}
 
 const FANVUE_API_BASE = 'https://api.fanvue.com';
 const FANVUE_AUTH_URL = 'https://auth.fanvue.com/oauth2/auth';
@@ -240,14 +294,18 @@ export class FanvueService {
     });
 
     if (!credential) {
-      throw new Error('Fanvue credential not found');
+      throw new PublishError(
+        PublishErrorKind.CHANNEL_DISCONNECTED,
+        'Fanvue credential not found',
+      );
     }
 
     if (!credential.accessToken || !credential.refreshToken) {
       await this.credentialsService.patch(credential.id, {
         isConnected: false,
       });
-      throw new Error(
+      throw new PublishError(
+        PublishErrorKind.CHANNEL_DISCONNECTED,
         'Fanvue tokens not found. Please reconnect your account.',
       );
     }
@@ -324,7 +382,9 @@ export class FanvueService {
       await this.credentialsService.patch(credential.id, {
         isConnected: false,
       });
-      throw error;
+      // The token endpoint refusing the refresh token means the grant is gone.
+      // Any other failure left nothing published, so it can be tried again.
+      throwAsPublishError(error, mapRefreshFailure);
     }
   }
 
@@ -467,7 +527,20 @@ export class FanvueService {
         stage: context.stage,
         ...(status === undefined ? {} : { httpCode: status }),
       });
-      throw new Error('Fanvue media upload failed');
+      // An upload creates no post, so every failure here left nothing
+      // published. A file Fanvue rejects is not retried; any other refusal,
+      // including a 403 or 404 from the media source, is. The message stays
+      // generic so provider text never leaks.
+      const failure = toPublishError(error, mapUploadFailure);
+      throw new PublishError(
+        failure?.kind ?? PublishErrorKind.RETRY_LATER,
+        'Fanvue media upload failed',
+        {
+          httpStatus: failure?.httpStatus,
+          resetAt: failure?.resetAt,
+          retryAfterMs: failure?.retryAfterMs,
+        },
+      );
     } finally {
       await this.cleanupUpload(context, signal, cancel);
     }

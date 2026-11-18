@@ -1,6 +1,7 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { ITurboRunItemAssignee } from '@genfeedai/contracts/interfaces';
 import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
+import { useSyncedState } from '@hooks/utils/use-synced-state/use-synced-state';
 import type { Member } from '@models/organization/member.model';
 import { logger } from '@services/core/logger.service';
 import { MembersService } from '@services/organization/members.service';
@@ -14,7 +15,7 @@ import {
   SelectValue,
 } from '@ui/primitives/select';
 import { useTranslations } from 'next-intl';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import type {
   ReviewAssignmentMemberOption,
   ReviewAssignmentPanelProps,
@@ -87,13 +88,9 @@ export default function ReviewAssignmentPanel({
     service: (token: string) => MembersService.getInstance(token),
   });
   const members = membersQuery.data ?? NO_MEMBERS;
-  const [selectedAssigneeId, setSelectedAssigneeId] = useState(
+  const [selectedAssigneeId, setSelectedAssigneeId] = useSyncedState(
     item.assigneeId ?? '',
   );
-
-  useEffect(() => {
-    setSelectedAssigneeId(item.assigneeId ?? '');
-  }, [item.assigneeId]);
 
   const currentAssigneeLabel = useMemo(() => {
     if (item.assignee) {

@@ -1046,4 +1046,230 @@ describe('compileRemainingVideoGenerationBrief', () => {
       }),
     ).toThrow('source video');
   });
+
+  it('compiles Genjutsu object swap with the clip and reference stills', () => {
+    const result = compileRemainingVideoGenerationBrief({
+      brief: videoGenerationBriefSchema.parse({
+        constraints: [],
+        fidelityMode: 'guided',
+        intent: { objective: 'swap the mug for the teapot' },
+        mediaKind: 'video',
+        output: { resolution: '1080p' },
+        references: [
+          { assetId: 'teapot-1', role: 'first_frame' },
+          { assetId: 'clip-1', role: 'reference_video' },
+        ],
+        version: 1,
+      }),
+      family: familyFor(MODEL_KEYS.HIGGSFIELD_GENJUTSU_OBJECT_SWAP),
+      modelKey: MODEL_KEYS.HIGGSFIELD_GENJUTSU_OBJECT_SWAP,
+    });
+
+    expect(result.dispatch).toEqual({
+      image_url: 'teapot-1',
+      prompt: 'swap the mug for the teapot',
+      reference_video: 'clip-1',
+      resolution: '1080p',
+    });
+  });
+
+  it('compiles Genjutsu restyle with its preset and no character stills', () => {
+    const presetId = 'c2143317-f28d-4c3c-a0b8-39bd547e08a7';
+    const result = compileRemainingVideoGenerationBrief({
+      brief: videoGenerationBriefSchema.parse({
+        constraints: [],
+        fidelityMode: 'guided',
+        intent: { objective: 'keep the original movement' },
+        mediaKind: 'video',
+        output: { presetId },
+        references: [{ assetId: 'clip-1', role: 'reference_video' }],
+        version: 1,
+      }),
+      family: familyFor(MODEL_KEYS.HIGGSFIELD_GENJUTSU_RESTYLE),
+      modelKey: MODEL_KEYS.HIGGSFIELD_GENJUTSU_RESTYLE,
+    });
+
+    expect(result.dispatch).toEqual({
+      preset_id: presetId,
+      prompt: 'keep the original movement',
+      reference_video: 'clip-1',
+      resolution: '720p',
+    });
+    expect(result.evidence.appliedFields).toContain('output.presetId');
+  });
+
+  it('rejects Genjutsu restyle without a preset instead of choosing a style', () => {
+    expect(() =>
+      compileRemainingVideoGenerationBrief({
+        brief: videoGenerationBriefSchema.parse({
+          constraints: [],
+          fidelityMode: 'guided',
+          intent: { objective: 'keep the original movement' },
+          mediaKind: 'video',
+          output: {},
+          references: [{ assetId: 'clip-1', role: 'reference_video' }],
+          version: 1,
+        }),
+        family: familyFor(MODEL_KEYS.HIGGSFIELD_GENJUTSU_RESTYLE),
+        modelKey: MODEL_KEYS.HIGGSFIELD_GENJUTSU_RESTYLE,
+      }),
+    ).toThrow('requires a style preset');
+  });
+
+  it('compiles Cinema Studio text-to-video with provider defaults', () => {
+    const family = familyFor(MODEL_KEYS.HIGGSFIELD_CINEMA_STUDIO);
+    const brief = videoGenerationBriefSchema.parse({
+      constraints: [],
+      fidelityMode: 'guided',
+      intent: { objective: 'a slow dolly through a rainy neon street' },
+      mediaKind: 'video',
+      output: {},
+      references: [],
+      version: 1,
+    });
+
+    const result = compileRemainingVideoGenerationBrief({
+      brief,
+      family,
+      modelKey: MODEL_KEYS.HIGGSFIELD_CINEMA_STUDIO,
+    });
+
+    expect(result.dispatch).toEqual({
+      aspect_ratio: '16:9',
+      duration: 5,
+      prompt: 'a slow dolly through a rainy neon street',
+      resolution: '720p',
+    });
+  });
+
+  it('routes Cinema Studio references to image_urls and reference_video_urls', () => {
+    const family = familyFor(MODEL_KEYS.HIGGSFIELD_CINEMA_STUDIO);
+    const brief = videoGenerationBriefSchema.parse({
+      constraints: [],
+      fidelityMode: 'guided',
+      intent: { objective: 'match the reference' },
+      mediaKind: 'video',
+      output: { aspectRatio: '21:9', durationSeconds: 30, resolution: '480p' },
+      references: [
+        { assetId: 'img-1', role: 'subject' },
+        { assetId: 'img-2', role: 'character' },
+        { assetId: 'clip-1', role: 'reference_video' },
+        { assetId: 'clip-2', role: 'reference_video' },
+        { assetId: 'clip-3', role: 'reference_video' },
+        { assetId: 'clip-4', role: 'reference_video' },
+      ],
+      version: 1,
+    });
+
+    const result = compileRemainingVideoGenerationBrief({
+      brief,
+      family,
+      modelKey: MODEL_KEYS.HIGGSFIELD_CINEMA_STUDIO,
+    });
+
+    expect(result.dispatch).toEqual({
+      aspect_ratio: '21:9',
+      duration: 30,
+      image_urls: ['img-1', 'img-2'],
+      prompt: 'match the reference',
+      reference_video_urls: ['clip-1', 'clip-2', 'clip-3', 'clip-4'],
+      resolution: '480p',
+    });
+  });
+
+  it('rejects an unsupported Cinema Studio resolution instead of dropping it', () => {
+    const brief = videoGenerationBriefSchema.parse({
+      constraints: [],
+      fidelityMode: 'guided',
+      intent: { objective: 'a street' },
+      mediaKind: 'video',
+      output: { resolution: '1080p' },
+      references: [],
+      version: 1,
+    });
+
+    expect(() =>
+      compileRemainingVideoGenerationBrief({
+        brief,
+        family: familyFor(MODEL_KEYS.HIGGSFIELD_CINEMA_STUDIO),
+        modelKey: MODEL_KEYS.HIGGSFIELD_CINEMA_STUDIO,
+      }),
+    ).toThrow('does not support resolution');
+  });
+
+  it('rejects more than 10 Cinema Studio video references', () => {
+    const brief = videoGenerationBriefSchema.parse({
+      constraints: [],
+      fidelityMode: 'guided',
+      intent: { objective: 'a street' },
+      mediaKind: 'video',
+      output: {},
+      references: Array.from({ length: 11 }, (_, index) => ({
+        assetId: `clip-${index}`,
+        role: 'reference_video' as const,
+      })),
+      version: 1,
+    });
+
+    expect(() =>
+      compileRemainingVideoGenerationBrief({
+        brief,
+        family: familyFor(MODEL_KEYS.HIGGSFIELD_CINEMA_STUDIO),
+        modelKey: MODEL_KEYS.HIGGSFIELD_CINEMA_STUDIO,
+      }),
+    ).toThrow('at most 10 video references');
+  });
+
+  it('accepts the Cinema Studio maximum of 30 images plus 10 videos', () => {
+    const brief = videoGenerationBriefSchema.parse({
+      constraints: [],
+      fidelityMode: 'guided',
+      intent: { objective: 'a street' },
+      mediaKind: 'video',
+      output: {},
+      references: [
+        ...Array.from({ length: 30 }, (_, index) => ({
+          assetId: `img-${index}`,
+          role: 'subject' as const,
+        })),
+        ...Array.from({ length: 10 }, (_, index) => ({
+          assetId: `clip-${index}`,
+          role: 'reference_video' as const,
+        })),
+      ],
+      version: 1,
+    });
+
+    const result = compileRemainingVideoGenerationBrief({
+      brief,
+      family: familyFor(MODEL_KEYS.HIGGSFIELD_CINEMA_STUDIO),
+      modelKey: MODEL_KEYS.HIGGSFIELD_CINEMA_STUDIO,
+    });
+
+    expect(result.dispatch.image_urls).toHaveLength(30);
+    expect(result.dispatch.reference_video_urls).toHaveLength(10);
+  });
+
+  it('rejects more than 30 Cinema Studio image references', () => {
+    const brief = videoGenerationBriefSchema.parse({
+      constraints: [],
+      fidelityMode: 'guided',
+      intent: { objective: 'a street' },
+      mediaKind: 'video',
+      output: {},
+      references: Array.from({ length: 31 }, (_, index) => ({
+        assetId: `img-${index}`,
+        role: 'subject' as const,
+      })),
+      version: 1,
+    });
+
+    expect(() =>
+      compileRemainingVideoGenerationBrief({
+        brief,
+        family: familyFor(MODEL_KEYS.HIGGSFIELD_CINEMA_STUDIO),
+        modelKey: MODEL_KEYS.HIGGSFIELD_CINEMA_STUDIO,
+      }),
+    ).toThrow();
+  });
 });

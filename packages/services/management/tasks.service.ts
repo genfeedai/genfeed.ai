@@ -44,7 +44,7 @@ export interface TaskPlanThreadResponse {
   threadId: string;
 }
 
-export interface TaskQualityAssessmentDimension {
+interface TaskQualityAssessmentDimension {
   label: string;
   notes?: string;
   score: number;

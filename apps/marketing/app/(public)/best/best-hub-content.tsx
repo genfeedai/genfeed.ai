@@ -1,6 +1,5 @@
 import { BEST_LISTS } from '@data/best-lists.data';
 import Card from '@ui/card/Card';
-import MarketingArtwork from '@web-components/content/MarketingArtwork';
 import MarketingEntrance from '@web-components/MarketingEntrance';
 import PageLayout from '@web-components/PageLayout';
 import Link from 'next/link';
@@ -9,7 +8,6 @@ export default function BestHubContent() {
   return (
     <MarketingEntrance sections={false}>
       <PageLayout
-        heroMedia={<MarketingArtwork page="/vs" kind="research" />}
         title="Best AI content tools"
         description="Guides to AI tools for content creation, grouped by the job they do. Each links to a side-by-side comparison with Genfeed."
       >

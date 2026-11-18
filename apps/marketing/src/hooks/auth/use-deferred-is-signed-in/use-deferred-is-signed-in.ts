@@ -21,6 +21,7 @@ const SESSION_IDLE_FALLBACK_MS = 1500;
 export function useDeferredIsSignedIn(): boolean {
   const [isSignedIn, setIsSignedIn] = useState(false);
 
+  // use-effect-audit: ignore abortable session check on idle and visibility
   useEffect(() => {
     const controller = new AbortController();
 

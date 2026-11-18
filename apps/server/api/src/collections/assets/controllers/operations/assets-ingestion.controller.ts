@@ -53,13 +53,16 @@ export class AssetsIngestionController {
     @CurrentUser() user: User,
     @UploadedFile(
       new UploadValidationPipe({
-        allowedExtensions: ['jpg', 'jpeg', 'png', 'webp', 'gif'],
+        // SVG is accepted for brand logos only; the service sanitizes it
+        // and refuses it for anything else (#9706).
+        allowedExtensions: ['jpg', 'jpeg', 'png', 'webp', 'gif', 'svg'],
         allowedMimeTypes: [
           'image/jpeg',
           'image/jpg',
           'image/png',
           'image/webp',
           'image/gif',
+          'image/svg+xml',
         ],
         maxSizeBytes: MAX_ASSET_UPLOAD_BYTES,
       }),

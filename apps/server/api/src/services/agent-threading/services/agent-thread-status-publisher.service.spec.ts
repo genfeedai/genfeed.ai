@@ -435,6 +435,48 @@ describe('AgentThreadStatusPublisherService', () => {
     });
   });
 
+  it('names everyone with live access to the thread (#9938)', async () => {
+    const resolve = vi.fn().mockResolvedValue({
+      organizationId: orgId,
+      ownerUserId: userId,
+      recipientUserIds: [userId, 'teammate'],
+    });
+    publisher = new AgentThreadStatusPublisherService(
+      { publish } as unknown as RedisService,
+      threadsService,
+      logger,
+      { resolve } as never,
+    );
+    engine = new AgentThreadEngineService(
+      database as unknown as PrismaService,
+      threadsService,
+      {} as AgentMemoriesService,
+      {
+        markCancelled: vi.fn(),
+        upsertBinding: vi.fn(),
+      } as unknown as AgentRuntimeSessionService,
+      new AgentThreadProjectorService(),
+      logger,
+      undefined,
+      publisher,
+    );
+
+    await record('thread.turn_requested');
+
+    expect(resolve).toHaveBeenCalledWith(threadId);
+    expect(publishedEvents()).toMatchObject([
+      { recipientUserIds: [userId, 'teammate'], userId },
+    ]);
+  });
+
+  it('names the owner alone when no audience is available', async () => {
+    await record('thread.turn_requested');
+
+    expect(publishedEvents()).toMatchObject([
+      { recipientUserIds: [userId], userId },
+    ]);
+  });
+
   it('publishes nothing for an archived thread', async () => {
     thread = { ...thread, status: AgentThreadStatus.ARCHIVED };
 

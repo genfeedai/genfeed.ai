@@ -48,8 +48,7 @@ import { ArrowRight, Check, RefreshCw, TriangleAlert } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import type { ReactNode } from 'react';
-import { useCallback, useMemo, useState } from 'react';
+import { type ReactNode, useCallback, useMemo, useState } from 'react';
 import { WorkspaceSurface } from '@/components/overview/WorkspaceSurface';
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import {
@@ -77,6 +76,7 @@ import { useActivities } from '@/hooks/data/activities/use-activities/use-activi
 import { useOverviewBootstrap } from '@/hooks/data/overview/use-overview-bootstrap';
 import { useWorkflowExecutions } from '@/hooks/data/workflow-executions/use-workflow-executions';
 import { useActivityMessageFormatter } from '@/hooks/i18n/useActivityMessageFormatter';
+import OpenRunButton from './open-run-button';
 import {
   getActivityBadge,
   getCredentialBadge,
@@ -262,11 +262,7 @@ function NeedsYouSurface({
         )
       : brandSetupHref;
   const credentialsHref = brandSlug
-    ? createBrandAppRoute(
-        orgSlug,
-        brandSlug,
-        APP_ROUTES.SETTINGS.CONNECTED_ACCOUNTS,
-      )
+    ? createBrandAppRoute(orgSlug, brandSlug, APP_ROUTES.SETTINGS.PROFILE)
     : brandSetupHref;
   const needsYouItems = buildNeedsYouItems({
     credentials,
@@ -439,15 +435,10 @@ function NeedsYouSurface({
                     WORKFLOW_UNAVAILABLE_LABEL,
                   )}
                   trailing={
-                    <Button
-                      asChild
-                      size={ButtonSize.SM}
-                      variant={ButtonVariant.GHOST}
-                    >
-                      <Link href={runHref(execution.id)}>
-                        {translate('home.approvals.openItem')}
-                      </Link>
-                    </Button>
+                    <OpenRunButton
+                      href={runHref(execution.id)}
+                      label={translate('home.approvals.openItem')}
+                    />
                   }
                 />
               );
@@ -571,7 +562,7 @@ function UpcomingScheduleBlock({
       data-testid="operational-home-upcoming"
     >
       <div className="flex items-center justify-between gap-3">
-        <p className="text-2xs font-bold uppercase tracking-[0.2em] text-muted-foreground">
+        <p className="text-2xs font-semibold uppercase tracking-label text-muted-foreground">
           {translate('home.schedule.title')}
         </p>
         <Button asChild size={ButtonSize.SM} variant={ButtonVariant.GHOST}>
@@ -745,11 +736,7 @@ function CredentialHealthSurface({
     APP_ROUTES.SETTINGS.BRANDS,
   );
   const settingsHref = brandSlug
-    ? createBrandAppRoute(
-        orgSlug,
-        brandSlug,
-        APP_ROUTES.SETTINGS.CONNECTED_ACCOUNTS,
-      )
+    ? createBrandAppRoute(orgSlug, brandSlug, APP_ROUTES.SETTINGS.PROFILE)
     : brandSetupHref;
 
   return (
@@ -833,6 +820,7 @@ function ActivitySurface({
     <WorkspaceSurface
       data-testid="operational-home-activity"
       isLoading={isLoading}
+      loadingRows={{ count: ACTIVITY_ROW_LIMIT, size: 'media' }}
       density="compact"
       flush
       title={

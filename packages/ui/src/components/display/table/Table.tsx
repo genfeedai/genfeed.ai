@@ -6,6 +6,11 @@ import {
 import { ButtonVariant } from '@genfeedai/contracts';
 import { EMPTY_STATES } from '@genfeedai/contracts/constants';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import {
+  LONG_LINK_LIST_THRESHOLD,
+  type PrefetchOnIntentProps,
+  usePrefetchOnIntent,
+} from '@genfeedai/hooks/navigation/use-prefetch-on-intent/use-prefetch-on-intent';
 import type {
   TableColumn,
   TableProps,
@@ -65,11 +70,14 @@ function TableCellContent<T>({
   column,
   item,
   nameLink,
+  getIntentProps,
 }: {
   column: TableColumn<T>;
   item: T;
   /** Turns the primary content into the link to the row's detail page. */
   nameLink?: TableRowLink;
+  /** Set on long lists, where a link prepares its page on intent only. */
+  getIntentProps?: (href: string) => PrefetchOnIntentProps;
 }) {
   const content = column.render
     ? column.render(item)
@@ -79,6 +87,8 @@ function TableCellContent<T>({
       aria-label={nameLink.label}
       className="no-underline focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
       href={nameLink.href}
+      prefetch={getIntentProps ? false : undefined}
+      {...getIntentProps?.(nameLink.href)}
     >
       {content}
     </Link>
@@ -143,6 +153,7 @@ export default function AppTable<T>({
   onSortChange,
 }: TableProps<T>) {
   const isCompact = density === 'compact';
+  const getIntentProps = usePrefetchOnIntent();
   const hasRowActions = actions.length > 0 || renderRowActions !== undefined;
   const scrollRegionLabel =
     scrollAriaLabel?.trim() || ariaLabel?.trim() || label?.trim();
@@ -160,6 +171,13 @@ export default function AppTable<T>({
   }
   const items = settledItemsRef.current;
   const isRefreshing = isLoading && items.length > 0;
+  // Every row link prefetches on visibility, so a long list would queue a
+  // request per row ahead of the shell's own destinations. Past the threshold
+  // a row prepares its page when pointed at or focused instead.
+  const rowIntentProps =
+    getRowLink !== undefined && items.length > LONG_LINK_LIST_THRESHOLD
+      ? getIntentProps
+      : undefined;
   const [sidebarRowId, setSidebarRowId] = useState<string | null>(null);
   // The open record stays open when a reload moves it off the visible rows.
   const sidebarItemRef = useRef<T | null>(null);
@@ -514,7 +532,9 @@ export default function AppTable<T>({
           >
             <thead
               className={cn(
-                hideHeader
+                // With a select-all checkbox the header row stays so the
+                // control is visible and focusable; only the labels go.
+                hideHeader && !selectable
                   ? 'sr-only'
                   : cn(
                       'border-b border-border',
@@ -582,7 +602,8 @@ export default function AppTable<T>({
                           : undefined
                       }
                       className={cn(
-                        'h-10 select-none text-left align-middle text-xs font-medium uppercase tracking-wide text-muted-foreground',
+                        hideHeader && 'sr-only',
+                        'h-10 select-none text-left align-middle text-xs font-medium uppercase tracking-label text-muted-foreground',
                         // A sortable header hands its padding to the button so
                         // the click target and focus ring span the whole cell.
                         isColumnSortableNow
@@ -597,7 +618,7 @@ export default function AppTable<T>({
                         <Button
                           ariaLabel={column.sortLabel}
                           className={cn(
-                            'group flex h-10 w-full items-center gap-1 text-left text-xs font-medium tracking-wide text-muted-foreground hover:text-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
+                            'group flex h-10 w-full items-center gap-1 text-left text-xs font-medium tracking-label text-muted-foreground hover:text-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
                             isCompact ? 'px-2' : 'px-4',
                           )}
                           onClick={() => handleSort(columnKey)}
@@ -624,7 +645,10 @@ export default function AppTable<T>({
                 })}
 
                 {hasRowActions && (
-                  <th aria-label="Actions" className="w-0 p-0" />
+                  <th
+                    aria-label="Actions"
+                    className={cn('w-0 p-0', hideHeader && 'sr-only')}
+                  />
                 )}
               </tr>
             </thead>
@@ -735,6 +759,8 @@ export default function AppTable<T>({
                                 aria-label={coverLink.label}
                                 className="absolute inset-0 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
                                 href={coverLink.href}
+                                prefetch={rowIntentProps ? false : undefined}
+                                {...rowIntentProps?.(coverLink.href)}
                               />
                               <TableCellContent column={column} item={item} />
                             </>
@@ -742,6 +768,7 @@ export default function AppTable<T>({
                             <TableCellContent
                               column={column}
                               item={item}
+                              getIntentProps={rowIntentProps}
                               nameLink={
                                 columnIndex === 0 ? nameLink : undefined
                               }

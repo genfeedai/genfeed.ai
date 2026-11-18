@@ -5,6 +5,7 @@ import {
 import { YOUTUBE_LONG_FORM_WORKFLOW_ID } from '@api/collections/workflows/services/youtube-long-form-workflow.constants';
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-definition';
 import { AD_SYNC_CHILD_WORKFLOW_IDS } from '@api/collections/workflows/templates/ad-automation-workflows.template';
+import { SystemWorkflowRetention } from '@api/collections/workflows/workflow-execution-retention.contract';
 import {
   collectSystemWorkflowDefinitions,
   PARAMETERIZED_DEFINITIONS,
@@ -151,6 +152,7 @@ describe('system workflow definition wiring against action contracts', () => {
       description: 'bad wiring fixture',
       label: 'Bad wiring',
       resultNodeId: 'b',
+      retention: SystemWorkflowRetention.BACKGROUND,
     });
 
     expect(issues).toEqual([
@@ -185,6 +187,7 @@ describe('system workflow definition wiring against action contracts', () => {
       description: 'injected input fixture',
       label: 'Injected input',
       resultNodeId: 'b',
+      retention: SystemWorkflowRetention.BACKGROUND,
     });
 
     expect(issues).toEqual([

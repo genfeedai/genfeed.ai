@@ -1,5 +1,7 @@
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import type { ListRowsSkeletonProps } from '@genfeedai/props/ui/lists/list-row.props';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
+import { ListRowsSkeleton } from '@ui/lists/list-row/ListRowsSkeleton';
 import type { HTMLAttributes, ReactElement, ReactNode } from 'react';
 
 type WorkspaceSurfaceDensity = 'compact' | 'comfortable';
@@ -34,6 +36,12 @@ export interface WorkspaceSurfaceProps
   actions?: ReactNode;
   isLoading?: boolean;
   loadingLabel?: string;
+  /**
+   * Shapes the loading body like a list of `count` rows (1-8) of the given
+   * `size` (see `ListRowsSkeleton`) instead of a single card, so a list section
+   * holds about the height its rows will have.
+   */
+  loadingRows?: { count: number; size?: ListRowsSkeletonProps['size'] };
   children: ReactNode;
   className?: string;
   contentClassName?: string;
@@ -63,6 +71,7 @@ export function WorkspaceSurface({
   framed = true,
   isLoading = false,
   loadingLabel = 'Loading card',
+  loadingRows,
   title,
   tone = 'default',
   ...props
@@ -117,7 +126,17 @@ export function WorkspaceSurface({
         aria-busy={isLoading || undefined}
         data-slot="workspace-surface-body"
       >
-        {isLoading ? (
+        {isLoading && loadingRows ? (
+          <>
+            <span className="sr-only" role="status">
+              {loadingLabel}
+            </span>
+            <ListRowsSkeleton
+              rows={loadingRows.count}
+              size={loadingRows.size}
+            />
+          </>
+        ) : isLoading ? (
           <SkeletonCard
             className="h-48 flex-1"
             label={loadingLabel}

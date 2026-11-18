@@ -91,7 +91,7 @@ Place the brief in the appropriate wave file and export it through the catalog. 
 
 Source catalog entries do not publish themselves. Production articles come from the API database, not Git. The article seed refreshes existing bodies and metadata, so review its target owner, organization, brand and plan before a live run. Always use the seed's dry run first with the same production scope. Do not guess the account from an email or copy development records into production.
 
-The MCP `create_article` tool generates from a brief. To preserve reviewed full HTML, connect with `?toolsets=content,articles`, use `create_article_draft`, inspect `get_article_preview`, then request `publish_article`. Draft creation and publication follow existing approval policy. The authenticated Article API is also available. Preserve the published slug and original publication date on updates.
+The MCP `create_article` tool generates from a brief. To preserve reviewed full HTML, connect with the bare `/mcp` URL (or `/mcp/claude`), use `create_article_draft`, inspect `get_article_preview`, then request `publish_article`. Draft creation and publication follow existing approval policy. The authenticated Article API is also available. Preserve the published slug and original publication date on updates.
 
 For a two-per-week cadence, leave several days between posts and avoid publishing two articles that target the same intent in one week. Preserve the canonical slug after publication.
 

@@ -26,7 +26,7 @@ that is **never** the runtime config.
   Add `types: ["node","vitest/globals","multer"]` only where the graph reaches
   `Express.Multer` (api and workers). `@types/multer` is NOT hoisted to
   root — only apps declaring it resolve `multer` in `types`.
-- Script: `"type-check": "tsc --noEmit -p tsconfig.typecheck.json"`.
+- Script: `"type-check": "bun check --no-script -p tsconfig.typecheck.json"` (`bun check` reports the same errors as tsc; `--no-script` stops it running a package `check` script).
 
 ## Turbo / CI
 

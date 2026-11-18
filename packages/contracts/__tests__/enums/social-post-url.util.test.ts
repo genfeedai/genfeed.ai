@@ -106,6 +106,14 @@ describe('parseSocialPostUrl', () => {
     it('returns null for malformed URLs', () => {
       expect(parseSocialPostUrl('https://')).toBeNull();
       expect(parseSocialPostUrl('http://%')).toBeNull();
+      expect(
+        parseSocialPostUrl(
+          'https://www.linkedin.com/feed/update/urn%3Ali%3Aactivity%3A%ZZ',
+        ),
+      ).toBeNull();
+      expect(
+        parseSocialPostUrl('https://www.youtube.com/watch?v=%ZZ'),
+      ).toBeNull();
     });
   });
 

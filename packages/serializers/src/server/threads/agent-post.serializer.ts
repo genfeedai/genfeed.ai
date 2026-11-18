@@ -25,6 +25,18 @@ function httpUrl(value: unknown): string | null {
   }
 }
 
+/** The failure a failed target carries: a stable code and a readable message only. */
+function targetFailure(
+  post: Record<string, unknown>,
+): { code: string | null; message: string } | undefined {
+  if (post.targetExecutionState !== 'failed') return undefined;
+  const error = record(post.targetError);
+  const message = publicText(error.message);
+  return message
+    ? { code: publicText(error.code) ?? null, message }
+    : undefined;
+}
+
 /** Public post preview identity; credentials and storage keys never cross this boundary. */
 export function serializeAgentPost(
   post: Record<string, unknown>,
@@ -84,6 +96,7 @@ export function serializeAgentPost(
         ];
       })
     : [];
+  const failure = targetFailure(post);
   return {
     ...(isAccount
       ? {
@@ -96,13 +109,18 @@ export function serializeAgentPost(
           },
         }
       : {}),
+    brandId: typeof post.brandId === 'string' ? post.brandId : null,
     createdAt: post.createdAt ?? null,
     description: post.description ?? null,
+    ...(failure ? { error: failure } : {}),
     id: String(post.id),
     label: post.label ?? null,
     media,
     platform: post.platform ?? null,
     publishedAt: post.publishedAt ?? null,
+    // The release (post group) that get_scheduled_release,
+    // update_scheduled_release and control_scheduled_release accept.
+    releaseId: typeof post.groupId === 'string' ? post.groupId : null,
     scheduledDate: post.scheduledDate ?? null,
     state: post.targetExecutionState ?? null,
     status: post.status ?? null,
@@ -116,6 +134,7 @@ export function serializeAgentPost(
         validationState: post.targetValidationState ?? null,
       },
     ],
+    timezone: typeof post.timezone === 'string' ? post.timezone : null,
     updatedAt: post.updatedAt ?? null,
   };
 }

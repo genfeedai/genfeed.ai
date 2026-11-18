@@ -95,6 +95,7 @@ export default function SettingsOrganizationMemoryPage() {
   const [editingEntry, setEditingEntry] = useState<OrgMemoryEntry | null>(null);
 
   const { error: memoriesError } = memoriesQuery;
+  // use-effect-audit: ignore reports a load failure to the logger and notifications
   useEffect(() => {
     if (!memoriesError) {
       return;

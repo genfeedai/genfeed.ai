@@ -73,7 +73,9 @@ const SERIALIZER_ROOT = 'packages/serializers/src';
 // left to pair with.
 // Removing the public Lead serializer triplet drops one more pair; the Lead
 // model stays in Prisma until the leads table is exported and dropped.
-const SERIALIZER_MATCH_FLOOR = 97;
+// Removing the dead Schedule serializer triplet (the bulk-schedule table that
+// nothing published from) drops one more pair.
+const SERIALIZER_MATCH_FLOOR = 96;
 
 const SCHEMA_TO_SERIALIZER_BASENAME_OVERRIDES: Record<string, string> = {
   analytic: 'analytics',
@@ -104,10 +106,13 @@ const SCHEMA_DOCUMENT_NAME_OVERRIDES: Record<string, string> = {
  */
 export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
   'activity:Activity': [
+    'brandLabel',
     'organizationLabel',
+    'preview',
     'totalFailed',
     'totalRequested',
     'totalUpdated',
+    'userLabel',
   ],
   'analytic:Analytic': [
     'activeBots',
@@ -223,7 +228,8 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
     'isLocked',
     'name',
   ],
-  'harness-profile:Profile': [
+  'harness-profile:HarnessProfile': [
+    'currentVersion',
     'audience',
     'brandId',
     'description',
@@ -249,6 +255,10 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
     'isEnhancementFailed',
     // Computed for the superadmin generation ledger from the activity log.
     'generationCredits',
+    // Summed from the open review requests (Tasks) linked to the asset.
+    'reviewState',
+    // The carousel this asset covers, derived from its posts' media order.
+    'stack',
     'blacklist',
     'blacklists',
     'camera',
@@ -298,6 +308,10 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
     'isEnhancementFailed',
     // Computed for the superadmin generation ledger from the activity log.
     'generationCredits',
+    // Summed from the open review requests (Tasks) linked to the asset.
+    'reviewState',
+    // The carousel this asset covers, derived from its posts' media order.
+    'stack',
     'blacklists',
     'camera',
     // Computed on read from s3Key by the Prisma result extension.
@@ -393,14 +407,6 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
   ],
   'prompt:Prompt': ['modelSettings', 'systemPromptKey', 'tokens', 'version'],
   'reply-bot-config:ReplyBotConfig': ['platform', 'schedule', 'templateId'],
-  'schedule:Schedule': [
-    'content',
-    'errorMessage',
-    'expectedEngagement',
-    'performance',
-    'publishedAt',
-    'status',
-  ],
   'subscription-attribution:SubscriptionAttribution': [
     'amount',
     'currency',
@@ -416,7 +422,7 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
   'studio-generate-draft:StudioGenerateDraft': ['droppedReferenceIds'],
   'studio-look:StudioLook': [],
   'subscription:Subscription': [],
-  'task-comment:TaskComment': [],
+  'task-comment:TaskComment': ['mentions'],
   'task:Task': [],
   'template-metadata:TemplateMetadata': [
     'difficulty',
@@ -472,6 +478,10 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
     'isEnhancementFailed',
     // Computed for the superadmin generation ledger from the activity log.
     'generationCredits',
+    // Summed from the open review requests (Tasks) linked to the asset.
+    'reviewState',
+    // The carousel this asset covers, derived from its posts' media order.
+    'stack',
     'accent',
     'blacklists',
     'camera',
@@ -520,8 +530,11 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
   'creative-pattern:CreativePattern': [],
   'workflow:Workflow': ['cloudSync', 'key', 'nextRunAt', 'tasks'],
   'agent-thread:AgentThread': [
+    // Computed per viewer from ownership and live shares (#9936).
+    'accessLevel',
     'attentionState',
     'brandLabel',
+    'canManageShares',
     'decisionHref',
     'externalRuntime',
     'lastActivityAt',
@@ -530,6 +543,8 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
     'pendingInputCount',
     'runStatus',
     'runtimeState',
+    'shareCount',
+    'shareScope',
     'statusSequence',
   ],
   'announcement:Announcement': [
@@ -677,6 +692,10 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
     'isEnhancementFailed',
     // Computed for the superadmin generation ledger from the activity log.
     'generationCredits',
+    // Summed from the open review requests (Tasks) linked to the asset.
+    'reviewState',
+    // The carousel this asset covers, derived from its posts' media order.
+    'stack',
     'age',
     'blacklists',
     'camera',
@@ -737,6 +756,10 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
     'isEnhancementFailed',
     // Computed for the superadmin generation ledger from the activity log.
     'generationCredits',
+    // Summed from the open review requests (Tasks) linked to the asset.
+    'reviewState',
+    // The carousel this asset covers, derived from its posts' media order.
+    'stack',
     'bitrate',
     'blacklist',
     'blacklists',
@@ -1188,6 +1211,26 @@ function directPrismaExportName(
   return null;
 }
 
+/**
+ * A schema file may re-export its Prisma row type directly
+ * (`export type { Member } from '@genfeedai/prisma'`) without an `XDocument`
+ * alias. The model is then the re-export named after the file.
+ */
+function reexportedPrismaModelName(
+  content: string,
+  modelName: string,
+): string | null {
+  for (const match of content.matchAll(PRISMA_TYPE_REEXPORTS_PATTERN)) {
+    for (const rawSpecifier of match[1]?.split(',') ?? []) {
+      const specifier = IMPORT_SPECIFIER_PATTERN.exec(rawSpecifier.trim());
+      if (specifier?.[1] === modelName) {
+        return modelName;
+      }
+    }
+  }
+  return null;
+}
+
 function typeAliasExpression(
   content: string,
   symbolName: string,
@@ -1405,11 +1448,11 @@ function collectSchemas(
           documentName === primaryDocumentName
             ? fileBasename
             : toKebabCase(documentName.slice(0, -'Document'.length));
-        const modelName = resolvePrismaModelName(
-          content,
-          documentName,
-          imports,
-        );
+        const modelName =
+          resolvePrismaModelName(content, documentName, imports) ??
+          (documentName === primaryDocumentName
+            ? reexportedPrismaModelName(content, toPascalCase(fileBasename))
+            : null);
         if (!modelName) {
           unresolved.push({
             basename,

@@ -2,7 +2,6 @@ import { AGENT_PROMPTS } from '@data/agent-prompts.data';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import AgentFirstActions from '@web-components/buttons/agent-first-actions/AgentFirstActions';
-import MarketingArtwork from '@web-components/content/MarketingArtwork';
 import MarketingEntrance from '@web-components/MarketingEntrance';
 import EditorialPoster from '@web-components/marketing/EditorialPoster';
 import PageLayout from '@web-components/PageLayout';
@@ -15,15 +14,15 @@ const SKILLS_DOCS_URL = 'https://docs.genfeed.ai/skills';
 const SURFACES = [
   {
     description:
-      'Install @genfeedai/cli and run the agent shell in your terminal. Generate, schedule, publish, and read analytics without leaving the keyboard.',
-    icon: Terminal,
-    title: 'Genfeed CLI',
-  },
-  {
-    description:
       'Point Claude, ChatGPT, Codex, Cursor, Meta Muse, Grok Bot, or any Streamable HTTP client at the hosted MCP server. Approve OAuth once; your agent gets Genfeed tools and your workspace data.',
     icon: Plug,
     title: 'MCP server',
+  },
+  {
+    description:
+      'Install @genfeedai/cli and run the Genfeed agent shell in your terminal. Generate, schedule, publish, and read analytics without leaving the keyboard.',
+    icon: Terminal,
+    title: 'Genfeed CLI',
   },
   {
     description:
@@ -65,7 +64,7 @@ const CAPABILITIES = [
 const HERO_VISUAL = (
   <EditorialPoster
     detail="Supervised by default. Switch on auto-publish when you trust it, channel by channel."
-    eyebrow="Genfeed Agent"
+    eyebrow="Your agent, with Genfeed"
     footer={<span>Publishes to every channel you connect</span>}
     items={[
       {
@@ -87,7 +86,7 @@ const HERO_VISUAL = (
       },
     ]}
     subtitle="Say what you want in a sentence"
-    title="It makes the content. It gets it out."
+    title="It makes the content and gets it out"
   />
 );
 
@@ -95,22 +94,22 @@ export default function AgentContent() {
   return (
     <MarketingEntrance>
       <PageLayout
-        heroMedia={
-          <MarketingArtwork page="/agent" isCompact kind="integration" />
-        }
         compact
-        description="Ask the Genfeed agent for images, videos and posts. It makes them with your brand context and gets them out to your channels, with your sign-off until you hand it the keys."
+        description="Add Genfeed to the agent you already use. Brief it and draft with your brand context, generate images, video and audio on the full Genfeed connector, then review, publish and track in the dashboard."
         heroActions={<AgentFirstActions trackingName="agent_hero_click" />}
         heroVisual={HERO_VISUAL}
-        title="Genfeed Agent"
+        title="Use Genfeed from your agent"
       >
         {/* Lead with what Genfeed’s own agent does with a brief. */}
         <section className="gsap-section max-w-6xl mx-auto pb-20 px-6">
-          <Heading as="h2" className="text-2xl font-bold mb-2 text-foreground">
+          <Heading
+            as="h2"
+            className="text-2xl font-semibold mb-2 text-foreground"
+          >
             What people ask it for
           </Heading>
           <Text as="p" className="text-foreground/70 mb-8">
-            Six requests, and what lands in your workspace.
+            Six briefs for your agent, and what lands in your workspace.
           </Text>
           <div className="gsap-grid grid grid-cols-1 gap-1.5 md:grid-cols-2">
             {AGENT_PROMPTS.map((prompt) => (
@@ -134,8 +133,8 @@ export default function AgentContent() {
         </section>
 
         <section className="gsap-section max-w-4xl mx-auto pb-16 px-6">
-          <Heading as="h2" className="text-2xl font-bold text-center mb-8">
-            What the agent can do
+          <Heading as="h2" className="text-2xl font-semibold text-center mb-8">
+            What your agent can do with Genfeed
           </Heading>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-1.5">
             {CAPABILITIES.map((capability) => (
@@ -149,18 +148,26 @@ export default function AgentContent() {
               </div>
             ))}
           </div>
+          <Text as="p" className="mt-4 text-center text-sm text-foreground/60">
+            What an agent can do depends on its client. The Claude connector
+            drafts, schedules and reads analytics; to generate images, video and
+            audio, add the full Genfeed server as a second connector.
+          </Text>
         </section>
 
-        {/* Optional ways to use Genfeed’s agent and tools. */}
+        {/* Ways to connect an agent to Genfeed. */}
         <section className="gsap-section max-w-6xl mx-auto border-t border-foreground/10 pb-10 px-6 pt-16">
-          <Heading as="h2" className="text-2xl font-bold mb-2 text-foreground">
-            Use Genfeed where you already work
+          <Heading
+            as="h2"
+            className="text-2xl font-semibold mb-2 text-foreground"
+          >
+            Three ways to connect
           </Heading>
           <Text as="p" className="text-foreground/70">
-            Run Genfeed’s agent in your terminal, or give the agent you already
-            use access to Genfeed’s tools. Connect directly from this page, then
-            sign in or create your Genfeed account when your agent requests
-            approval. Developers can find the full reference in{' '}
+            Give the agent you already use access to Genfeed’s tools, or run
+            Genfeed’s own agent in your terminal. Connect directly from this
+            page, then sign in or create your Genfeed account when your agent
+            requests approval. Developers can find the full reference in{' '}
             <a
               className="link"
               href={DOCS_URL}
@@ -206,7 +213,10 @@ export default function AgentContent() {
         </section>
 
         <section className="gsap-section max-w-4xl mx-auto pb-16 px-6">
-          <Heading as="h2" className="text-2xl font-bold mb-2 text-foreground">
+          <Heading
+            as="h2"
+            className="text-2xl font-semibold mb-2 text-foreground"
+          >
             Install the CLI
           </Heading>
           <Text as="p" className="text-foreground/70 mb-8">
@@ -216,7 +226,7 @@ export default function AgentContent() {
             {CLI_STEPS.map((step, index) => (
               <div key={step.label}>
                 <div className="flex flex-col gap-3 py-6">
-                  <Text className="text-lg font-bold text-foreground">
+                  <Text className="text-lg font-semibold text-foreground">
                     {step.label}
                   </Text>
                   <pre className="overflow-x-auto rounded-sm border gen-border bg-card p-4 text-sm text-foreground">
@@ -243,7 +253,10 @@ export default function AgentContent() {
                 </div>
               </div>
               <div className="flex w-full min-w-0 flex-col gap-3">
-                <Heading as="h2" className="text-2xl font-bold text-foreground">
+                <Heading
+                  as="h2"
+                  className="text-2xl font-semibold text-foreground"
+                >
                   Teach your agent the craft
                 </Heading>
                 <Text as="p" className="text-foreground/70">
@@ -268,14 +281,14 @@ export default function AgentContent() {
             </div>
             <Heading
               as="h2"
-              className="text-2xl font-bold mb-2 text-foreground"
+              className="text-2xl font-semibold mb-2 text-foreground"
             >
-              Put the Genfeed agent to work
+              Connect Agent
             </Heading>
             <Text as="p" className="text-foreground/70 mb-6 max-w-lg mx-auto">
-              Start with a free account. Use Genfeed’s agent or connect the one
-              you already have. Generation uses your Genfeed credits; you review
-              the results before publishing.
+              Start with a free account and connect the agent you already have.
+              Generation uses your Genfeed credits; you review the results
+              before publishing.
             </Text>
             <div className="flex flex-row items-center flex-wrap gap-4 justify-center">
               <AgentFirstActions trackingName="agent_cta_click" />

@@ -142,6 +142,7 @@ export function useCloudWorkflow({
   const durableEditKey = useWorkflowStore(selectCloudWorkflowEditKey);
   const isSaving = useWorkflowStore(selectIsSaving);
 
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     mountedRef.current = true;
     abortRef.current = new AbortController();
@@ -192,29 +193,31 @@ export function useCloudWorkflow({
     };
   }, [workflowId, templateId, getService, bindSharedWorkflowApi]);
 
+  // use-effect-audit: ignore publishes the brand to the cloud workflow store
   useEffect(() => {
     useCloudWorkflowStore.getState().setPendingBrandId(brandId || null);
   }, [brandId]);
 
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     if (brands.length > 0 || isBrandsLoading || hasRequestedBrandsRef.current) {
       return;
     }
 
-    let cancelled = false;
+    const abortController = new AbortController();
     hasRequestedBrandsRef.current = true;
 
     const ensureBrandsLoaded = async () => {
       try {
         const service = serviceRef.current ?? (await getService());
-        if (cancelled || !mountedRef.current) {
+        if (abortController.signal.aborted || !mountedRef.current) {
           return;
         }
 
         serviceRef.current = service;
         await useCloudWorkflowStore.getState().loadBrands(service);
       } catch (error) {
-        if (!cancelled && mountedRef.current) {
+        if (!abortController.signal.aborted && mountedRef.current) {
           logger.error('Failed to load workflow brands', { error });
         }
       }
@@ -223,22 +226,23 @@ export function useCloudWorkflow({
     void ensureBrandsLoaded();
 
     return () => {
-      cancelled = true;
+      abortController.abort();
     };
   }, [brands.length, getService, isBrandsLoading]);
 
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     if (!autoSave || !isDirty || !mountedRef.current) {
       return;
     }
 
-    let cancelled = false;
+    const abortController = new AbortController();
 
     const scheduleAutoSave = async () => {
       try {
         const service = serviceRef.current ?? (await getService());
         if (
-          cancelled ||
+          abortController.signal.aborted ||
           selectCloudWorkflowEditKey(useWorkflowStore.getState()) !==
             durableEditKey
         ) {
@@ -258,7 +262,7 @@ export function useCloudWorkflow({
     void scheduleAutoSave();
 
     return () => {
-      cancelled = true;
+      abortController.abort();
       useCloudWorkflowStore.getState().cancelAutoSave();
     };
   }, [autoSave, brandId, durableEditKey, getService, isDirty]);

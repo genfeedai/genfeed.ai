@@ -237,10 +237,18 @@ describe('breakout normal media provider consumer', () => {
   );
   it('admits one provider cascade when two workers reach the same output concurrently', async () => {
     const h = fixture('carousel');
-    await Promise.all([
+    const results = await Promise.all([
       h.service.generate(h.request),
       h.service.generate(h.request),
     ]);
+    expect(results.map((result) => result.state).sort()).toEqual([
+      'ready',
+      'reconciliation_required',
+    ]);
+    expect(
+      results.find((result) => result.state === 'reconciliation_required')
+        ?.ingredientIds,
+    ).toEqual([]);
     expect(h.gateway.generateImage).toHaveBeenCalledTimes(2);
     expect(h.assets).toHaveLength(2);
   });
@@ -320,7 +328,8 @@ describe('breakout normal media provider consumer', () => {
       brandId: 'foreign',
       actorId: 'creator',
     });
-    await h.service.generate(h.request);
+    const result = await h.service.generate(h.request);
+    expect(result).toMatchObject({ state: 'ready' });
     const body = h.gateway.generateImage.mock.calls[0]?.[0].body;
     expect(body).not.toHaveProperty('generationProvider');
     expect(body).not.toHaveProperty('generationBilling');

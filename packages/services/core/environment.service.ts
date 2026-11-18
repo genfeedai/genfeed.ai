@@ -121,7 +121,7 @@ export const EnvironmentService = {
   bookingUrl: 'https://calendar.app.google/S2Crg8uCe1dVnWRN6',
 
   get mcpConnectHref(): string {
-    return `${this.apps.app}/connect`;
+    return `${this.apps.app}/connectors`;
   },
 
   get cdnUrl(): string {

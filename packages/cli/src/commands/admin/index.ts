@@ -1,12 +1,16 @@
 import { readFile } from 'node:fs/promises';
-import type {
-  IOnboardingFunnelBucket,
-  OnboardingFunnelStep,
-} from '@genfeedai/contracts/interfaces';
 import chalk from 'chalk';
 import { Command } from 'commander';
 import ora from 'ora';
 import { clearAdminTokenCache, revokeAdminSession, verifyAdminSession } from '@/api/admin-client';
+import { createBrandOsApproveCommand } from '@/commands/admin/brand-os';
+import { createBrandScanCommand } from '@/commands/admin/brand-scan';
+import { createMarketplaceCommand } from '@/commands/admin/marketplace';
+import {
+  createOnboardingDraftsCommand,
+  createOnboardingFunnelCommand,
+} from '@/commands/admin/onboarding';
+import { createWarmupCommand } from '@/commands/admin/warmup';
 import { waitForAdminSession } from '@/commands/login';
 import { getAdminSession, getApiUrl, getLoginEndpoints, setAdminSession } from '@/config/store';
 import {
@@ -14,7 +18,6 @@ import {
   approvePricingRates,
   approveSystemBrand,
   createOrganizationBrand,
-  createWarmupAccount,
   DISCORD_CHANNELS,
   type DiscordChannel,
   filterPricingRows,
@@ -30,10 +33,8 @@ import {
   type OrganizationBrandUpdate,
   type PriceSyncProvider,
   parsePartnerKeyLevels,
-  prepareWarmupAccount,
   readHarnessActivation,
   readNotificationStatus,
-  readOnboardingFunnel,
   readOrganizationAppsReport,
   readOrganizationBrand,
   readOrganizationCreditLedger,
@@ -42,16 +43,12 @@ import {
   readPublishPipeline,
   readSystemBrand,
   readTrainingsReport,
-  scanOrganizationBrand,
   seedArticles,
   seedTemplates,
   seedWorkflows,
   syncProviderPrices,
   updateOrganizationBrand,
   updateSystemBrand,
-  type WarmupAccountInput,
-  type WarmupContextDecisions,
-  type WarmupPrepareInput,
 } from '@/operations/admin';
 import {
   formatHeader,
@@ -96,13 +93,6 @@ interface OrganizationBrandUpdateOptions {
   yes?: boolean;
 }
 
-interface OrganizationBrandScanOptions {
-  brand: string;
-  org: string;
-  url: string;
-  yes?: boolean;
-}
-
 interface CreditsGrantOptions {
   amount: number;
   expiresInDays?: number;
@@ -135,55 +125,6 @@ interface MemberAddOptions {
   org: string;
   role: string;
   yes?: boolean;
-}
-
-interface WarmupCreateOptions {
-  brand: string;
-  email: string;
-  firstName?: string;
-  guidance?: string;
-  lastName?: string;
-  organization: string;
-  website?: string;
-  yes?: boolean;
-}
-
-interface WarmupPrepareOptions {
-  action: string;
-  amount?: number;
-  assetCandidateId?: string;
-  prompt?: string;
-  contextDecisions?: string;
-  publicProfileUrl?: string;
-  reason?: string;
-  sourceUrl?: string;
-  yes?: boolean;
-}
-
-async function readContextDecisions(path: string): Promise<WarmupContextDecisions> {
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(await readFile(path, 'utf8'));
-  } catch {
-    throw new GenfeedError(`Could not read context decisions from ${path}`, 'Pass a JSON file.');
-  }
-  const fields = (parsed as { fields?: unknown } | null)?.fields;
-  if (!fields || typeof fields !== 'object' || Array.isArray(fields)) {
-    throw new GenfeedError(
-      'Context decisions need a "fields" object',
-      'Shape: {"fields":{"description":{"action":"accept","value":"..."}}}'
-    );
-  }
-  for (const [field, decision] of Object.entries(fields)) {
-    const action = (decision as { action?: unknown } | null)?.action;
-    if (action !== 'accept' && action !== 'reject' && action !== 'preserve') {
-      throw new GenfeedError(
-        `Context decision for "${field}" needs an action`,
-        'Use "accept", "reject" or "preserve".'
-      );
-    }
-  }
-  return parsed as WarmupContextDecisions;
 }
 
 async function runAdminLogin(): Promise<void> {
@@ -527,41 +468,6 @@ async function runOrganizationsList(options: {
       } members · created ${organization.createdAt.slice(0, 10)}`
     );
   }
-}
-
-const FUNNEL_STEP_LABELS: Record<OnboardingFunnelStep, string> = {
-  accountConnected: 'social account connected',
-  brandScanned: 'brand scanned',
-  completed: 'onboarding completed',
-  draftsReady: 'drafts ready',
-  draftsStarted: 'drafts started',
-  published: 'post published',
-  websiteLink: 'website saved',
-};
-
-function formatFunnelBucket(label: string, bucket: IOnboardingFunnelBucket): void {
-  print(chalk.bold(`${label}: ${bucket.total} organizations`));
-  for (const [step, stepLabel] of Object.entries(FUNNEL_STEP_LABELS)) {
-    const count = bucket.steps[step as OnboardingFunnelStep];
-    const share = bucket.total > 0 ? Math.round((count / bucket.total) * 100) : 0;
-    print(`  ${stepLabel.padEnd(22)} ${String(count).padStart(4)}  ${chalk.dim(`${share}%`)}`);
-  }
-}
-
-async function runOnboardingFunnel(options: { days: number; isJson: boolean }): Promise<void> {
-  const report = await readOnboardingFunnel(options.days);
-  if (options.isJson) {
-    printJson(report);
-    return;
-  }
-
-  print(formatHeader(`Onboarding funnel, last ${report.windowDays} days\n`));
-  formatFunnelBucket('All', report.totals);
-  for (const emailClass of ['personal', 'company', 'unknown'] as const) {
-    print('');
-    formatFunnelBucket(emailClass, report.byEmailClass[emailClass]);
-  }
-  print(chalk.dim('\nInternal organizations are not excluded; use --json and filter by id.'));
 }
 
 function formatCounts(counts: Record<string, number>): string {
@@ -1031,34 +937,8 @@ function createOrganizationBrandSubcommands(): Command[] {
           handleError(error);
         }
       }),
-    new Command('scan')
-      .description('Scan a website or social profile into the brand kit (preview unless --yes)')
-      .requiredOption('--org <organizationId>', 'Organization id')
-      .requiredOption('--brand <brandId>', 'Brand id')
-      .requiredOption('--url <url>', 'Website or social profile URL to scan')
-      .option('--yes', 'Run the scan')
-      .option('--json', 'Output as JSON')
-      .action(async (options: OrganizationBrandScanOptions, command: Command) => {
-        try {
-          if (!options.yes) {
-            print(formatHeader('Brand scan (preview)\n'));
-            print(formatLabel('Organization', options.org));
-            print(formatLabel('Brand', options.brand));
-            print(formatLabel('URL', options.url));
-            print(formatWarning('Re-run with --yes to scan and overwrite scraped brand fields.'));
-            return;
-          }
-          const scan = await scanOrganizationBrand(options.org, options.brand, options.url);
-          if (wantsJson(command)) {
-            printJson(scan);
-            return;
-          }
-          print(formatLabel('Status', scan.scrapeStatus));
-          if (scan.scrapeReason) print(formatLabel('Reason', scan.scrapeReason));
-        } catch (error) {
-          handleError(error);
-        }
-      }),
+    createBrandScanCommand(),
+    createBrandOsApproveCommand(),
   ];
 }
 
@@ -1282,108 +1162,6 @@ function createPartnerKeyCommand(): Command {
     );
 }
 
-function createWarmupCommand(): Command {
-  return new Command('warmup')
-    .description('Create and prepare concierge accounts (never sends the invitation email)')
-    .addCommand(
-      new Command('create')
-        .description('Create the lead user, organization and first brand (preview unless --yes)')
-        .requiredOption('--email <email>', 'Lead email')
-        .requiredOption('--organization <name>', 'Organization name')
-        .requiredOption('--brand <name>', 'First brand name')
-        .option('--first-name <name>', 'Lead first name')
-        .option('--last-name <name>', 'Lead last name')
-        .option('--website <url>', 'Brand website URL')
-        .option('--guidance <text>', 'Notes for the account (max 2000 characters)')
-        .option('--yes', 'Create the account')
-        .option('--json', 'Output as JSON')
-        .action(async (options: WarmupCreateOptions, command: Command) => {
-          try {
-            const input: WarmupAccountInput = {
-              brandName: options.brand,
-              guidance: options.guidance,
-              leadEmail: options.email,
-              leadFirstName: options.firstName,
-              leadLastName: options.lastName,
-              organizationName: options.organization,
-              websiteUrl: options.website,
-            };
-            if (!options.yes) {
-              print(formatHeader('Warm-up account (preview)\n'));
-              print(formatLabel('Lead', options.email));
-              print(formatLabel('Organization', options.organization));
-              print(formatLabel('Brand', options.brand));
-              print(formatWarning('Re-run with --yes to create. No email is sent.'));
-              return;
-            }
-            const account = await createWarmupAccount(input);
-            if (wantsJson(command)) {
-              printJson(account);
-              return;
-            }
-            print(formatSuccess(`Warm-up account ${account.id} ready`));
-          } catch (error) {
-            handleError(error);
-          }
-        })
-    )
-    .addCommand(
-      new Command('prepare')
-        .description('Run a prepare action on a warm-up account (preview unless --yes)')
-        .argument('<accountId>', 'Warm-up account id')
-        .requiredOption(
-          '--action <action>',
-          'repair | fund | preview-context | apply-context | starter-content | attach-starters | archive'
-        )
-        .option('--amount <credits>', 'Credits for the fund action', Number)
-        .option('--reason <text>', 'Audit reason')
-        .option('--source-url <url>', 'Source URL for context actions')
-        .option('--public-profile-url <url>', 'Public profile URL for context actions')
-        .option(
-          '--context-decisions <file>',
-          'JSON file with per-field accept/reject/preserve decisions for apply-context'
-        )
-        .option(
-          '--asset-candidate-id <id>',
-          'Reviewed imported asset candidate (for example banner:2) used by starter-content'
-        )
-        .option('--prompt <text>', 'Optional prompt for starter-content')
-        .option('--yes', 'Run the action')
-        .option('--json', 'Output as JSON')
-        .action(async (accountId: string, options: WarmupPrepareOptions, command: Command) => {
-          try {
-            const input: WarmupPrepareInput = {
-              action: options.action,
-              amount: options.amount,
-              assetCandidateId: options.assetCandidateId,
-              contextDecisions: options.contextDecisions
-                ? await readContextDecisions(options.contextDecisions)
-                : undefined,
-              prompt: options.prompt,
-              publicProfileUrl: options.publicProfileUrl,
-              reason: options.reason,
-              sourceUrl: options.sourceUrl,
-            };
-            if (!options.yes) {
-              print(formatHeader('Warm-up prepare (preview)\n'));
-              print(formatLabel('Account', accountId));
-              print(formatLabel('Action', options.action));
-              print(formatWarning('Re-run with --yes to run the action.'));
-              return;
-            }
-            const account = await prepareWarmupAccount(accountId, input);
-            if (wantsJson(command)) {
-              printJson(account);
-              return;
-            }
-            print(formatSuccess(`Ran ${options.action} on ${account.id}`));
-          } catch (error) {
-            handleError(error);
-          }
-        })
-    );
-}
-
 export const adminCommand = new Command('admin')
   .description(
     'Super admin one-offs over the API: organization apps, harness packs, pricing, seeds and the system brand'
@@ -1456,23 +1234,8 @@ export const adminCommand = new Command('admin')
         })
     )
   )
-  .addCommand(
-    new Command('onboarding-funnel')
-      .description('Show how recent organizations moved through onboarding, by owner email class')
-      .option('--days <days>', 'How many days back to include (1-90)', '30')
-      .option('--json', 'Output as JSON')
-      .action(async (options: { days: string }, command: Command) => {
-        try {
-          const days = Number.parseInt(options.days, 10);
-          if (!Number.isInteger(days) || days < 1 || days > 90) {
-            throw new GenfeedError('--days must be a whole number from 1 to 90');
-          }
-          await runOnboardingFunnel({ days, isJson: wantsJson(command) });
-        } catch (error) {
-          handleError(error);
-        }
-      })
-  )
+  .addCommand(createOnboardingFunnelCommand())
+  .addCommand(createOnboardingDraftsCommand())
   .addCommand(
     new Command('publish-pipeline')
       .description(
@@ -1537,4 +1300,5 @@ export const adminCommand = new Command('admin')
   .addCommand(createCreditsCommand())
   .addCommand(createMemberCommand())
   .addCommand(createPartnerKeyCommand())
-  .addCommand(createWarmupCommand());
+  .addCommand(createWarmupCommand())
+  .addCommand(createMarketplaceCommand());

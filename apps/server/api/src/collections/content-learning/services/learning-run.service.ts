@@ -4,6 +4,7 @@ import type {
   LearningRunDispatchContext,
   LearningRunDispatchOutcome,
   LearningRunDispatchScope,
+  LearningRunFit,
   LearningRunReceiptRecovery,
 } from '@api/collections/content-learning/interfaces/learning-run-dispatch.interface';
 import {
@@ -19,6 +20,11 @@ import {
   scopedRunDispatch,
   storedJson,
 } from '@api/collections/content-learning/services/learning-run-dispatch.util';
+import {
+  assertLearningDatasetRows,
+  buildLearningEvaluationRows,
+  countLearningAccountGroups,
+} from '@api/collections/content-learning/services/learning-run-fit.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
@@ -39,14 +45,12 @@ import {
   initializeLearningPolicy,
   LEARNING_ARMS,
   type LearningArmId,
-  type LearningEvaluationRow,
   LearningEvidenceValidationError,
-  learningProbabilities,
   solveLearningRidge,
   updateLearningPolicy,
-  validLearningDistribution,
 } from '@genfeedai/harness';
 import {
+  type ContentLearningDataset,
   type ContentLearningDatasetEntry,
   Prisma,
   toPrismaJson,
@@ -735,259 +739,234 @@ export class LearningRunService {
       return run;
     });
   }
+  private findDispatchOperation(input: LearningRunDispatchInput) {
+    return this.prisma.contentLearningOperation.findFirst({
+      where: {
+        id: input.operationId,
+        organizationId: input.organizationId,
+        isDeleted: false,
+      },
+    });
+  }
   async execute(input: LearningRunDispatchInput) {
     const claim = await this.claim(input);
-    if (!claim)
-      return this.prisma.contentLearningOperation.findFirst({
-        where: {
-          id: input.operationId,
-          organizationId: input.organizationId,
-          isDeleted: false,
-        },
-      });
-    const run = claim.run,
-      runId = run.id;
+    if (!claim) return this.findDispatchOperation(input);
     const rows: ContentLearningDatasetEntry[] = [];
     try {
-      const dataset = await this.prisma.contentLearningDataset.findFirst({
-        where: { id: run.datasetId, isDeleted: false },
-      });
-      if (!dataset) {
-        await this.owned(claim, async (tx, now) =>
-          this.writePair(
-            tx,
-            claim,
-            RunStatus.INVALIDATED,
-            now,
-            { report: Prisma.DbNull },
-            'dataset_unavailable',
-          ),
-        );
-        return null;
-      }
-      if (
-        (await this.prisma.contentLearningDatasetEntry.count({
-          where: { datasetId: dataset.id, isDeleted: false },
-        })) > 100000
-      )
-        throw new BadRequestException('Oversized immutable dataset');
-      let cursor: string | undefined;
-      for (;;) {
-        if (!(await this.owned(claim, async () => true))) {
-          await this.reconcileDispatch(input);
-          return null;
-        }
-        const page = await this.prisma.contentLearningDatasetEntry.findMany({
-          where: { datasetId: dataset.id, isDeleted: false },
-          orderBy: [{ decisionAt: 'asc' }, { id: 'asc' }],
-          take: 1000,
-          ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
-        });
-        rows.push(...page);
-        if (rows.length > 100000)
-          throw new BadRequestException('Oversized immutable dataset');
-        if (page.length < 1000) break;
-        cursor = page[page.length - 1].id;
-      }
-      for (const [index, row] of rows.entries()) {
-        if (!LEARNING_ARMS.includes(row.armId as LearningArmId))
-          throw new LearningEvidenceValidationError(
-            `dataset.entries[${index}].armId`,
-          );
-        if (!validLearningDistribution(row.probabilities))
-          throw new LearningEvidenceValidationError(
-            `dataset.entries[${index}].probabilities`,
-          );
-        if (
-          row.features.length !== 9 ||
-          row.features.some((value) => !Number.isFinite(value))
-        )
-          throw new LearningEvidenceValidationError(
-            `dataset.entries[${index}].features`,
-          );
-        if (!Number.isFinite(row.reward) || Math.abs(row.reward) > 1)
-          throw new LearningEvidenceValidationError(
-            `dataset.entries[${index}].reward`,
-          );
-      }
-      const training = rows.filter((row) => row.split === 'training');
-      if (training.length < 30) {
-        await this.owned(claim, async (tx, now) =>
-          this.writePair(tx, claim, RunStatus.INSUFFICIENT_DATA, now, {
-            progress: 100,
-            report: toPrismaJson({
-              reason: 'minimum_training_30',
-              count: training.length,
-            }),
-          }),
-        );
-        return null;
-      }
-      const groupCounts = new Map<string, number>();
-      for (const row of training)
-        groupCounts.set(
-          row.accountGroup,
-          (groupCounts.get(row.accountGroup) ?? 0) + 1,
-        );
-      const groups = [...groupCounts.keys()];
-      const state = initializeLearningPolicy(undefined, 1);
-      for (let i = 0; i < training.length; i++) {
-        if (i % 1000 === 0) {
-          if (
-            !(await this.owned(claim, async (tx) => {
-              const updated = await tx.contentLearningRun.updateMany({
-                where: {
-                  id: runId,
-                  status: RunStatus.RUNNING,
-                  startedAt: claim.token,
-                  isDeleted: false,
-                },
-                data: { progress: Math.floor((80 * i) / training.length) },
-              });
-              return updated.count === 1;
-            }))
-          ) {
-            await this.reconcileDispatch(input);
-            return null;
-          }
-        }
-        const row = training[i];
-        if (!LEARNING_ARMS.includes(row.armId as LearningArmId))
-          throw new Error('Invalid stored arm');
-        updateLearningPolicy(
-          state,
-          row.armId as LearningArmId,
-          row.features,
-          row.reward,
-          1 / (groupCounts.get(row.accountGroup) ?? 1),
-        );
-      }
-      const coefficients = Object.fromEntries(
-        LEARNING_ARMS.map((arm) => [arm, solveLearningRidge(state[arm])]),
-      );
-      if (run.type === 'train')
-        return await this.owned(claim, async (tx, now) => {
-          const prior = await tx.contentLearningSharedPolicy.findFirst({
-            where: { cell: dataset.cell, isDeleted: false },
-            orderBy: { version: 'desc' },
-          });
-          const artifact = await tx.contentLearningSharedPolicy.create({
-            data: {
-              cell: dataset.cell,
-              version: (prior?.version ?? 0) + 1,
-              runId,
-              datasetId: dataset.id,
-              featureSchema: 'numeric-nine-v1',
-              coefficients: toPrismaJson(coefficients),
-              directives: toPrismaJson({ armIds: LEARNING_ARMS }),
-              validity: 'candidate',
-              synthetic: dataset.synthetic,
-            },
-          });
-          await this.dependencies.link(
-            tx,
-            await this.dependencies.resolve('run', runId, null, tx),
-            await this.dependencies.resolve(
-              'shared-policy',
-              artifact.id,
-              null,
-              tx,
-            ),
-          );
-          await this.writePair(tx, claim, RunStatus.COMPLETED, now, {
-            progress: 100,
-            resultArtifactId: artifact.id,
-            report: toPrismaJson({
-              manifestHash: dataset.manifestHash,
-              armState: state,
-              sourceAccountCount: groups.length,
-              synthetic: dataset.synthetic,
-            }),
-          });
-          return artifact;
-        });
-      const evaluationRows: LearningEvaluationRow[] = rows.map((row) => {
-        const loggingProbabilities = validLearningDistribution(
-          row.probabilities,
-        )
-          ? row.probabilities
-          : null;
-        const predictions = Object.fromEntries(
-          LEARNING_ARMS.map((arm) => [
-            arm,
-            Math.max(
-              -1,
-              Math.min(
-                1,
-                coefficients[arm].reduce(
-                  (sum: number, value: number, i: number) =>
-                    sum + value * row.features[i],
-                  0,
-                ),
-              ),
-            ),
-          ]),
-        ) as Record<LearningArmId, number>;
-        return {
-          accountGroup: row.accountGroup,
-          armId: row.armId as LearningArmId,
-          reward: row.reward,
-          loggingProbabilities,
-          loggedProbability:
-            loggingProbabilities?.[row.armId as LearningArmId] ?? null,
-          candidateProbabilities: learningProbabilities(
-            state,
-            row.features,
-            LEARNING_ARMS,
-          ),
-          predictions,
-          split: row.split,
-          decisionAt: row.decisionAt.toISOString(),
-        };
-      });
-      if (!(await this.owned(claim, async () => true))) {
-        await this.reconcileDispatch(input);
-        return null;
-      }
-      const report = evaluateLearningPolicy(
-        evaluationRows,
-        dataset.manifestHash,
-        {
-          shared: true,
-          synthetic: dataset.synthetic,
-          differentialCensoring: 0,
-          semanticChange: false,
-        },
-      );
-      // Publication-denominator evidence must be supplied by the online validation report, never inferred from an outcome-only dataset.
-      const fullReport = {
-        ...report,
-        status: 'inconclusive',
-        reasons: [...report.reasons, 'assignment_denominators_required'],
-        manifestHash: dataset.manifestHash,
-        featureSchema: 'numeric-nine-v1',
-        configVersion: 'rl-reward-v1-experimental',
-        synthetic: dataset.synthetic,
-      };
-      return await this.owned(claim, async (tx, now) => {
-        await this.writePair(tx, claim, RunStatus.COMPLETED, now, {
-          progress: 100,
-          report: toPrismaJson(fullReport),
-        });
-        return fullReport;
-      });
+      return await this.executeClaimed(input, claim, rows);
     } catch (error) {
       await this.failedAttempt(claim, error);
-      return this.prisma.contentLearningOperation.findFirst({
-        where: {
-          id: input.operationId,
-          organizationId: input.organizationId,
-          isDeleted: false,
-        },
-      });
+      return this.findDispatchOperation(input);
     } finally {
       rows.length = 0;
     }
+  }
+  private async executeClaimed(
+    input: LearningRunDispatchInput,
+    claim: LearningRunClaim,
+    rows: ContentLearningDatasetEntry[],
+  ) {
+    const run = claim.run;
+    const dataset = await this.prisma.contentLearningDataset.findFirst({
+      where: { id: run.datasetId, isDeleted: false },
+    });
+    if (!dataset) {
+      await this.owned(claim, async (tx, now) =>
+        this.writePair(
+          tx,
+          claim,
+          RunStatus.INVALIDATED,
+          now,
+          { report: Prisma.DbNull },
+          'dataset_unavailable',
+        ),
+      );
+      return null;
+    }
+    if (
+      (await this.prisma.contentLearningDatasetEntry.count({
+        where: { datasetId: dataset.id, isDeleted: false },
+      })) > 100000
+    )
+      throw new BadRequestException('Oversized immutable dataset');
+    if (!(await this.loadDatasetRows(input, claim, dataset.id, rows)))
+      return null;
+    assertLearningDatasetRows(rows);
+    const training = rows.filter((row) => row.split === 'training');
+    if (training.length < 30) {
+      await this.owned(claim, async (tx, now) =>
+        this.writePair(tx, claim, RunStatus.INSUFFICIENT_DATA, now, {
+          progress: 100,
+          report: toPrismaJson({
+            reason: 'minimum_training_30',
+            count: training.length,
+          }),
+        }),
+      );
+      return null;
+    }
+    const fit = await this.fitPolicy(input, claim, training);
+    if (!fit) return null;
+    if (run.type === 'train')
+      return this.publishTrainedPolicy(claim, dataset, fit);
+    return this.completeEvaluation(input, claim, dataset, rows, fit);
+  }
+  /** Pages the dataset into `rows`; false when the run lease was lost. */
+  private async loadDatasetRows(
+    input: LearningRunDispatchInput,
+    claim: LearningRunClaim,
+    datasetId: string,
+    rows: ContentLearningDatasetEntry[],
+  ): Promise<boolean> {
+    let cursor: string | undefined;
+    for (;;) {
+      if (!(await this.owned(claim, async () => true))) {
+        await this.reconcileDispatch(input);
+        return false;
+      }
+      const page = await this.prisma.contentLearningDatasetEntry.findMany({
+        where: { datasetId, isDeleted: false },
+        orderBy: [{ decisionAt: 'asc' }, { id: 'asc' }],
+        take: 1000,
+        ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+      });
+      rows.push(...page);
+      if (rows.length > 100000)
+        throw new BadRequestException('Oversized immutable dataset');
+      if (page.length < 1000) return true;
+      cursor = page[page.length - 1].id;
+    }
+  }
+  /** Fits the ridge policy; null when the run lease was lost mid-fit. */
+  private async fitPolicy(
+    input: LearningRunDispatchInput,
+    claim: LearningRunClaim,
+    training: ContentLearningDatasetEntry[],
+  ): Promise<LearningRunFit | null> {
+    const runId = claim.run.id;
+    const groupCounts = countLearningAccountGroups(training);
+    const state = initializeLearningPolicy(undefined, 1);
+    for (let i = 0; i < training.length; i++) {
+      if (i % 1000 === 0) {
+        if (
+          !(await this.owned(claim, async (tx) => {
+            const updated = await tx.contentLearningRun.updateMany({
+              where: {
+                id: runId,
+                status: RunStatus.RUNNING,
+                startedAt: claim.token,
+                isDeleted: false,
+              },
+              data: { progress: Math.floor((80 * i) / training.length) },
+            });
+            return updated.count === 1;
+          }))
+        ) {
+          await this.reconcileDispatch(input);
+          return null;
+        }
+      }
+      const row = training[i];
+      if (!LEARNING_ARMS.includes(row.armId as LearningArmId))
+        throw new Error('Invalid stored arm');
+      updateLearningPolicy(
+        state,
+        row.armId as LearningArmId,
+        row.features,
+        row.reward,
+        1 / (groupCounts.get(row.accountGroup) ?? 1),
+      );
+    }
+    const coefficients = Object.fromEntries(
+      LEARNING_ARMS.map((arm) => [arm, solveLearningRidge(state[arm])]),
+    );
+    return { coefficients, groupCount: groupCounts.size, state };
+  }
+  private async publishTrainedPolicy(
+    claim: LearningRunClaim,
+    dataset: ContentLearningDataset,
+    fit: LearningRunFit,
+  ) {
+    const runId = claim.run.id;
+    return this.owned(claim, async (tx, now) => {
+      const prior = await tx.contentLearningSharedPolicy.findFirst({
+        where: { cell: dataset.cell, isDeleted: false },
+        orderBy: { version: 'desc' },
+      });
+      const artifact = await tx.contentLearningSharedPolicy.create({
+        data: {
+          cell: dataset.cell,
+          version: (prior?.version ?? 0) + 1,
+          runId,
+          datasetId: dataset.id,
+          featureSchema: 'numeric-nine-v1',
+          coefficients: toPrismaJson(fit.coefficients),
+          directives: toPrismaJson({ armIds: LEARNING_ARMS }),
+          validity: 'candidate',
+          synthetic: dataset.synthetic,
+        },
+      });
+      await this.dependencies.link(
+        tx,
+        await this.dependencies.resolve('run', runId, null, tx),
+        await this.dependencies.resolve('shared-policy', artifact.id, null, tx),
+      );
+      await this.writePair(tx, claim, RunStatus.COMPLETED, now, {
+        progress: 100,
+        resultArtifactId: artifact.id,
+        report: toPrismaJson({
+          manifestHash: dataset.manifestHash,
+          armState: fit.state,
+          sourceAccountCount: fit.groupCount,
+          synthetic: dataset.synthetic,
+        }),
+      });
+      return artifact;
+    });
+  }
+  private async completeEvaluation(
+    input: LearningRunDispatchInput,
+    claim: LearningRunClaim,
+    dataset: ContentLearningDataset,
+    rows: ContentLearningDatasetEntry[],
+    fit: LearningRunFit,
+  ) {
+    const evaluationRows = buildLearningEvaluationRows(
+      rows,
+      fit.state,
+      fit.coefficients,
+    );
+    if (!(await this.owned(claim, async () => true))) {
+      await this.reconcileDispatch(input);
+      return null;
+    }
+    const report = evaluateLearningPolicy(
+      evaluationRows,
+      dataset.manifestHash,
+      {
+        shared: true,
+        synthetic: dataset.synthetic,
+        differentialCensoring: 0,
+        semanticChange: false,
+      },
+    );
+    // Publication-denominator evidence must be supplied by the online validation report, never inferred from an outcome-only dataset.
+    const fullReport = {
+      ...report,
+      status: 'inconclusive',
+      reasons: [...report.reasons, 'assignment_denominators_required'],
+      manifestHash: dataset.manifestHash,
+      featureSchema: 'numeric-nine-v1',
+      configVersion: 'rl-reward-v1-experimental',
+      synthetic: dataset.synthetic,
+    };
+    return this.owned(claim, async (tx, now) => {
+      await this.writePair(tx, claim, RunStatus.COMPLETED, now, {
+        progress: 100,
+        report: toPrismaJson(fullReport),
+      });
+      return fullReport;
+    });
   }
   async cancel(input: LearningRunControlInput) {
     return this.controls.cancel(input);

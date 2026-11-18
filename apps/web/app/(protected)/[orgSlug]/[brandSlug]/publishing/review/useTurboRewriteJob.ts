@@ -46,6 +46,7 @@ export function useTurboRewriteJob({
   const refreshTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const previousConnectionState = useRef(connectionState);
 
+  // use-effect-audit: ignore keeps refs to the latest callbacks and values
   useEffect(() => {
     latestItemsRewritten.current = onItemsRewritten;
   }, [onItemsRewritten]);
@@ -114,6 +115,7 @@ export function useTurboRewriteJob({
   );
 
   // A reloaded page, or a switch back to this batch, resumes its running job.
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     setJob(null);
     setIsCancelling(false);
@@ -142,6 +144,7 @@ export function useTurboRewriteJob({
   const jobId = job?.id ?? null;
   const jobTurboRunId = job?.turboRunId ?? null;
 
+  // use-effect-audit: ignore timer outside React
   useEffect(() => {
     if (!isReady || !jobId || !jobTurboRunId) return;
     const controller = new AbortController();
@@ -168,6 +171,7 @@ export function useTurboRewriteJob({
   }, [isReady, jobTurboRunId, jobId, refreshJob, subscribe]);
 
   // Events sent while the socket was down are gone; read the job again.
+  // use-effect-audit: ignore re-syncs the job after the socket reconnects
   useEffect(() => {
     const previous = previousConnectionState.current;
     previousConnectionState.current = connectionState;

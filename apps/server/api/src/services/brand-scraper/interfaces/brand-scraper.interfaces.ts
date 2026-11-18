@@ -9,7 +9,7 @@ export interface WebsiteStylesheetEvidence {
   url: string;
   cssText: string;
 }
-export interface WebsiteFontCandidate {
+interface WebsiteFontCandidate {
   family: string;
   sourceUrl: string;
   weight?: string;
@@ -47,6 +47,7 @@ export interface LinkedInScrapedData {
  * X/Twitter profile data extracted from scraping
  */
 export interface XProfileScrapedData {
+  latestPostText?: string;
   displayName?: string;
   handle?: string;
   bio?: string;
@@ -79,6 +80,7 @@ export interface BrandScrapeSources {
  * Merged analysis from all scraped sources
  */
 export interface MergedBrandAnalysis {
+  bannerUrl?: string;
   companyName?: string;
   description?: string;
   tagline?: string;
@@ -130,6 +132,8 @@ export interface MetaTagFallbackData {
  */
 export interface WebsiteScrapingResult {
   stylesheetUrls?: string[];
+  /** Same-site about, product or pricing pages worth reading after the homepage. */
+  supportingPageUrls?: string[];
   evidence?: IBrandKitSourceEvidence[];
   diagnostics?: IBrandKitDiagnostic[];
   fontDetails?: WebsiteFontCandidate[];

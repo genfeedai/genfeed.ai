@@ -5,10 +5,14 @@ import {
   EmailDeliveryError,
   NotificationsService,
 } from '@api/services/notifications/notifications.service';
+import { readTopicEmail } from '@api/services/notifications/workflow-notifications/topic-email.util';
 import {
   AGENT_STATUS_NOTIFICATION_TOPIC,
   type AgentReviewNotificationPayload,
+  COLLABORATION_NOTIFICATION_TOPIC,
   EMAIL_NOTIFICATION_CHANNEL,
+  INTEGRATION_STATUS_NOTIFICATION_TOPIC,
+  PUBLISHING_STATUS_NOTIFICATION_TOPIC,
   readNotificationSourcePath,
   WORKFLOW_STATUS_NOTIFICATION_TOPIC,
   type WorkflowStatusNotificationPayload,
@@ -206,6 +210,14 @@ export class WorkflowNotificationDeliveryService {
     recipient: RecipientDelivery,
   ): Promise<void> {
     if (await this.deliverAgentMessagingReport(deliveryId, recipient)) return;
+    if (
+      recipient.topic === COLLABORATION_NOTIFICATION_TOPIC ||
+      recipient.topic === PUBLISHING_STATUS_NOTIFICATION_TOPIC ||
+      recipient.topic === INTEGRATION_STATUS_NOTIFICATION_TOPIC
+    ) {
+      await this.deliverTopicEmail(deliveryId, recipient);
+      return;
+    }
 
     const isAgentRun = recipient.topic === AGENT_STATUS_NOTIFICATION_TOPIC;
     const isAgentReview =
@@ -318,7 +330,94 @@ export class WorkflowNotificationDeliveryService {
   }
 
   /**
-   * A rendered channel message (operator Discord, explicit email, Telegram or
+   * Email that follows the topic's own rules instead of the workflow or agent
+   * ones: a review request, a review decision or a mention (#9947), and the
+   * publishing and channel alerts that must reach the owner off screen. A
+   * stored preference wins; without one the topic's default applies.
+   */
+  private async deliverTopicEmail(
+    deliveryId: string,
+    recipient: RecipientDelivery,
+  ): Promise<void> {
+    const topicEmail = readTopicEmail(recipient);
+    if (!topicEmail) {
+      await this.failPermanently(
+        deliveryId,
+        recipient.organizationId,
+        'Invalid notification payload',
+      );
+      return;
+    }
+
+    // tenant-scope-ignore: preferences are globally user-owned; recipient.userId comes from the organization-scoped claimed delivery
+    const preference = await this.prisma.notificationPreference.findFirst({
+      select: { isEnabled: true },
+      where: {
+        channel: EMAIL_NOTIFICATION_CHANNEL,
+        isDeleted: false,
+        topic: recipient.topic,
+        userId: recipient.userId,
+      },
+    });
+    const isEnabled = preference?.isEnabled ?? topicEmail.isEnabledByDefault;
+    if (!isEnabled || recipient.user.isDeleted || !recipient.user.email) {
+      await this.skip(
+        deliveryId,
+        recipient.organizationId,
+        'recipient_disabled_or_unavailable',
+      );
+      return;
+    }
+    if (
+      !(await this.canReceiveAgentOutcome(
+        recipient.organizationId,
+        recipient.userId,
+      ))
+    ) {
+      await this.skip(
+        deliveryId,
+        recipient.organizationId,
+        'recipient_membership_revoked',
+      );
+      return;
+    }
+
+    try {
+      const email = topicEmail.build(
+        this.agentReportHref(
+          this.configService?.get('GENFEEDAI_APP_URL'),
+          topicEmail.sourcePath,
+        ),
+      );
+      const providerMessageId = await this.notificationsService.deliverEmail({
+        ...email,
+        idempotencyKey: recipient.idempotencyKey,
+        to: recipient.user.email,
+      });
+      await this.markDelivered(
+        deliveryId,
+        recipient.organizationId,
+        providerMessageId,
+      );
+    } catch (error: unknown) {
+      if (error instanceof EmailDeliveryError && !error.retryable) {
+        await this.failPermanently(
+          deliveryId,
+          recipient.organizationId,
+          error.message,
+        );
+        return;
+      }
+      await this.recordFailure(
+        deliveryId,
+        recipient.organizationId,
+        recipient.attemptCount,
+        error,
+      );
+    }
+  }
+
+  /** A rendered channel message (operator Discord, explicit email, Telegram or
    * Slack). The notifications service sends it and acknowledges acceptance;
    * the durable row records the outcome and retries transient failures.
    */
@@ -821,6 +920,34 @@ export class WorkflowNotificationDeliveryService {
             label: payload.workflowLabel,
           }),
         }),
+      };
+    }
+
+    if (isFailure && !payload.error && payload.failure) {
+      // A classified stop with no raw error, such as a retired model, names
+      // the cause and the next step instead of a bare "Failed."
+      const { title, summary, recovery } = payload.failure;
+      const href = this.agentReportHref(
+        this.configService?.get('GENFEEDAI_APP_URL'),
+        payload.sourcePath,
+      );
+      return {
+        html: buildSystemEmailHtml({
+          action: href ? { label: 'Open workflow', url: href } : undefined,
+          bodyHtml: buildWorkflowStatusEmailBody({
+            details: [title, summary, recovery].filter(
+              (value): value is string => typeof value === 'string',
+            ),
+            isFailed: true,
+            kind: 'workflow',
+            label: payload.workflowLabel,
+          }),
+          title: subject,
+        }),
+        subject,
+        text: [subject, title, summary, recovery, href]
+          .filter(Boolean)
+          .join('\n'),
       };
     }
 

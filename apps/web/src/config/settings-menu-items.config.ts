@@ -18,17 +18,12 @@ import {
   Grip,
   HandHeart,
   IdCard,
-  Key,
   Palette,
-  PlugZap,
   Settings,
-  SlidersHorizontal,
   Smile,
   User,
   Users,
-  UsersRound,
   Wallet,
-  Webhook,
 } from 'lucide-react';
 
 // Brand settings resolve against the current brandSlug via the sidebar's
@@ -55,16 +50,17 @@ export interface BuildSettingsMenuItemsParams {
 /**
  * Menu grouping rules (keep meaningful headers per scope):
  * - Never add a top-level "Settings" shell label — the route/scope already says that.
- * - Org: Organization (who/what + Agents defaults) · Billing (money) ·
- *   Developer (keys/webhooks)
+ * - Org: Organization (who/what + Agents defaults) · Billing (money).
+ *   Connections (agents, channels, providers, keys, webhooks) live on the
+ *   Connectors page, not in Settings.
  * - Brand: Brand (public + identity) · Automation (how content runs) ·
  *   Billing (cost attribution)
  * - Personal: Account (Personal, Notifications, Chat, Progress, Help).
  *
  * Naming / paths (deliberate):
  * - Settings is a shell. Personal home is `/settings/personal`. Org home is
- *   `/:orgSlug/~/settings/general`. Brand home stays `/:org/:brand/settings`.
- * - Org sidebar label is **General** (workspace defaults).
+ *   `/:orgSlug/~/settings/general`. Brand home is `/:org/:brand/profile`.
+ * - Org sidebar label is **General** (identity, language, generation and publishing defaults).
  * - Brand sidebar label is **Profile** (public brand identity).
  * - Org **Agents** is agent/automation governance (not legal ToS). Route is
  *   `/settings/agents` so the slug matches the sidebar label.
@@ -137,14 +133,6 @@ function buildOrganizationMenuItems(
       label: 'Modules',
       outline: Grip,
       solid: Grip,
-    },
-    {
-      group: 'Organization',
-      href: APP_ROUTES.SETTINGS.PREFERENCES,
-      hrefScope: 'organization',
-      label: 'Preferences',
-      outline: SlidersHorizontal,
-      solid: SlidersHorizontal,
     },
     {
       group: 'Organization',
@@ -242,30 +230,6 @@ function buildOrganizationMenuItems(
       outline: ChartColumnIncreasing,
       solid: ChartColumnIncreasing,
     },
-    {
-      group: 'Developer',
-      href: APP_ROUTES.SETTINGS.API_KEYS,
-      hrefScope: 'organization',
-      label: 'API Keys',
-      outline: Key,
-      solid: Key,
-    },
-    {
-      group: 'Developer',
-      href: APP_ROUTES.SETTINGS.INTEGRATIONS,
-      hrefScope: 'organization',
-      label: 'Integrations',
-      outline: PlugZap,
-      solid: PlugZap,
-    },
-    {
-      group: 'Developer',
-      href: APP_ROUTES.SETTINGS.WEBHOOKS,
-      hrefScope: 'organization',
-      label: 'Webhooks',
-      outline: Webhook,
-      solid: Webhook,
-    },
   ];
 }
 
@@ -273,9 +237,9 @@ function buildBrandMenuItems(): MenuItemConfig[] {
   return [
     {
       group: 'Brand',
-      href: APP_ROUTES.SETTINGS.ROOT,
+      href: APP_ROUTES.SETTINGS.PROFILE,
       hrefScope: 'brand',
-      label: 'Brand profile',
+      label: 'Profile',
       outline: IdCard,
       solid: IdCard,
       isExactMatch: true,
@@ -295,14 +259,6 @@ function buildBrandMenuItems(): MenuItemConfig[] {
       label: 'Knowledge',
       outline: BookText,
       solid: BookText,
-    },
-    {
-      group: 'Brand',
-      href: APP_ROUTES.SETTINGS.CONNECTED_ACCOUNTS,
-      hrefScope: 'brand',
-      label: 'Connected accounts',
-      outline: UsersRound,
-      solid: UsersRound,
     },
     {
       group: 'Automation',

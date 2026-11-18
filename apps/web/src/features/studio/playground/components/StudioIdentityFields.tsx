@@ -568,7 +568,7 @@ export default function StudioIdentityFields({
         {isAvatarType ? (
           <div className="flex min-h-0 flex-1">
             <aside className="hidden w-48 shrink-0 flex-col gap-2.5 border-r border-border p-3 sm:flex">
-              <p className="text-2xs font-semibold uppercase tracking-wider text-muted-foreground">
+              <p className="text-2xs font-semibold uppercase tracking-label text-muted-foreground">
                 {translate('identityPairing')}
               </p>
               {pairingSlot(

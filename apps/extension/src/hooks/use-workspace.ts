@@ -7,6 +7,7 @@ import { useWorkspaceStore } from '~store/use-workspace-store';
 export function useWorkspace() {
   const state = useWorkspaceStore();
   const appliedRevision = useRef<number | null>(null);
+  // use-effect-audit: ignore subscribes to window focus and chrome.storage changes
   useEffect(() => {
     const controller = new AbortController();
     const reload = () => {
@@ -34,6 +35,7 @@ export function useWorkspace() {
       chrome.storage.onChanged.removeListener(changed);
     };
   }, []);
+  // use-effect-audit: ignore syncs the workspace into the brand and chat stores and the extension runtime
   useEffect(() => {
     if (state.status === 'refreshing' || state.status === 'blocked') return;
     const nextRevision =
