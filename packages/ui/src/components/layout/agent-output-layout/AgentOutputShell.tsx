@@ -61,6 +61,7 @@ export default function AgentOutputShell({
   const onOpenContext = host?.onOpenContext;
   // A new selection brings its detail forward; the operator can still step
   // back to the output with the topbar's Context icon.
+  // use-effect-audit: ignore opens the host's Context panel
   useEffect(() => {
     if (!selectionKey) {
       carriedSelectionKeyRef.current = null;
