@@ -468,7 +468,7 @@ export default function BrandGuidedSetupPage() {
   // navigable?" check kept the view pinned on the just-answered question
   // instead of advancing — see #5391.
   const lastFrontierFieldKeyRef = useRef<string | null>(null);
-
+  // use-effect-audit: ignore moves the selected question forward when the interview frontier advances
   useEffect(() => {
     if (!frontierFieldKey) {
       return;

@@ -293,7 +293,7 @@ export function useStudioClipperPage(options?: { projectId?: string }) {
     },
     [avatarProvider, identityDefaults],
   );
-
+  // use-effect-audit: ignore fills the avatar and voice from the brand's saved identity defaults
   useEffect(() => {
     if (
       avatarProvider === identityDefaults.avatarProvider &&
@@ -319,7 +319,7 @@ export function useStudioClipperPage(options?: { projectId?: string }) {
     identityDefaults.voiceId,
     voiceId,
   ]);
-
+  // use-effect-audit: ignore loads the saved project named in the route, aborting on cleanup
   useEffect(() => {
     if (!projectIdFromRoute) {
       setIsHydrating(false);
@@ -499,7 +499,7 @@ export function useStudioClipperPage(options?: { projectId?: string }) {
       draftSaveInFlightRef.current = null;
     });
   }, [clipsService]);
-
+  // use-effect-audit: ignore debounces the input draft save on a timer outside React
   useEffect(() => {
     if (!draftProjectId || step !== 'input' || isSubmitting) {
       queuedDraftSaveRef.current = null;
