@@ -118,8 +118,10 @@ export function useModalUpload({
     cancelDimensionProbeRef.current = null;
   }, []);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: isOpen/openKey intentionally reset the probe whenever the modal opens or re-opens
+  // use-effect-audit: ignore cancels the pending image probe whenever the modal opens or re-opens
   useEffect(() => {
+    void isOpen;
+    void openKey;
     cancelDimensionProbe();
     setDimensionWarning(null);
     return cancelDimensionProbe;

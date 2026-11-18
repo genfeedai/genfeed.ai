@@ -185,7 +185,7 @@ export function useStudioGeneration({
   const subscribedIdsRef = useRef(new Set<string>());
   const restoredBrandRef = useRef<string | null>(null);
   const onGeneratedRef = useRef(onGenerated);
-
+  // use-effect-audit: ignore keeps a ref to the latest callback
   useEffect(() => {
     onGeneratedRef.current = onGenerated;
   }, [onGenerated]);
