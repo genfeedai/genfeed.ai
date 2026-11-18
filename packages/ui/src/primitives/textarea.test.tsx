@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import '@testing-library/jest-dom/vitest';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { Textarea } from '@ui/primitives/textarea';
 import { useForm } from 'react-hook-form';
 import { describe, expect, it } from 'vitest';
@@ -37,7 +38,40 @@ function ControlledTextareaHarness() {
   );
 }
 
+function EditableControlledTextarea({
+  onSave,
+}: {
+  onSave: (body: string) => void;
+}) {
+  const { control, handleSubmit } = useForm<{ body: string }>({
+    defaultValues: { body: 'Draft' },
+  });
+
+  return (
+    <form onSubmit={handleSubmit((values) => onSave(values.body))}>
+      <Textarea aria-label="Body" control={control} name="body" />
+      <button type="submit">Save</button>
+    </form>
+  );
+}
+
 describe('Textarea', () => {
+  it('submits the typed text from a controlled textarea', async () => {
+    const user = userEvent.setup();
+    const saved: string[] = [];
+    render(<EditableControlledTextarea onSave={(body) => saved.push(body)} />);
+
+    expect(screen.getByRole('textbox', { name: 'Body' })).toHaveValue('Draft');
+    await user.clear(screen.getByRole('textbox', { name: 'Body' }));
+    await user.type(
+      screen.getByRole('textbox', { name: 'Body' }),
+      'Two\nlines',
+    );
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    expect(saved).toEqual(['Two\nlines']);
+  });
+
   it('does not forward isDisabled to the DOM for registered textareas', () => {
     render(<RegisteredTextareaHarness />);
 
