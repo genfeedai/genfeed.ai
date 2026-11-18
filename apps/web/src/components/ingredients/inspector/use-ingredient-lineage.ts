@@ -84,8 +84,9 @@ export function useIngredientLineage(
     );
   });
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: `nonce` only re-runs the load so a failed page is retried
+  // use-effect-audit: ignore reloads server pages and aborts on cleanup; the nonce retries a failed page
   useEffect(() => {
+    void nonce;
     if (page <= 1) {
       return;
     }

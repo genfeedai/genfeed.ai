@@ -71,8 +71,11 @@ export function AgentWorkObjects({
     collection?.workObjects.some(
       (object) => object.reviewStatus === 'reviewing',
     ) ?? false;
-  // biome-ignore lint/correctness/useExhaustiveDependencies: New thread messages, work events and explicit retries invalidate the session collection.
+  // use-effect-audit: ignore reloads the session collection from the server on new work or retry
   useEffect(() => {
+    void messageCount;
+    void workEventVersion;
+    void retry;
     if (!threadId) return;
     const controller = new AbortController();
     let timer: ReturnType<typeof setTimeout> | undefined;
