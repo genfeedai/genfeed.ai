@@ -116,7 +116,7 @@ export function PageControlChangeCard({
         <Alert variant="success">{translate('done')}</Alert>
       ) : (
         <Button
-          className="flex w-full items-center justify-center gap-2 px-4 py-2 text-sm font-semibold"
+          className="w-full"
           isDisabled={isInert || isApplying}
           onClick={handleApply}
           variant={ButtonVariant.DEFAULT}
