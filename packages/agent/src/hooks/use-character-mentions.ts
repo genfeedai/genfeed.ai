@@ -17,8 +17,9 @@ export function useCharacterMentions(apiService: AgentApiService | null): {
     window.addEventListener(CHARACTERS_CHANGED_EVENT, refresh);
     return () => window.removeEventListener(CHARACTERS_CHANGED_EVENT, refresh);
   }, []);
-  // biome-ignore lint/correctness/useExhaustiveDependencies: revision refreshes the catalog after a character is saved
+  // use-effect-audit: ignore loads the character catalog with an abortable request; revision refreshes it after a save
   useEffect(() => {
+    void revision;
     if (!apiService || typeof apiService.getCharacterMentions !== 'function') {
       setIsLoading(false);
       return;
