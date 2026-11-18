@@ -5,6 +5,7 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import { closeModal, openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useResetOnChange } from '@hooks/utils/use-reset-on-change/use-reset-on-change';
 import { logger } from '@services/core/logger.service';
 import { HookRemixService } from '@services/hook-remix/hook-remix.service';
 import { VideosService } from '@services/ingredients/videos.service';
@@ -90,12 +91,12 @@ export default function HookRemixModal({
   }, [isOpen]);
 
   // Reset form when video changes
-  useEffect(() => {
+  useResetOnChange([contextBrandId], () => {
     setSelectedBrandId(contextBrandId);
     setSelectedClipId('');
     setHookDuration(DEFAULT_HOOK_DURATION);
     setSubmitError(null);
-  }, [contextBrandId]);
+  });
 
   const handleCancel = useCallback(() => {
     closeModal(HOOK_REMIX_MODAL_ID);

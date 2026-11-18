@@ -6,6 +6,7 @@ import {
   TurboRunStatus,
 } from '@genfeedai/contracts';
 import type { ITurboRunSummary } from '@genfeedai/contracts/interfaces';
+import { useResetOnChange } from '@hooks/utils/use-reset-on-change/use-reset-on-change';
 import { getJsonApiErrorMessage } from '@services/core/json-api-error-message';
 import CollectionSection from '@ui/collection/CollectionSection';
 import Loading from '@ui/loading/default/Loading';
@@ -104,13 +105,13 @@ export default function ReviewQueueView({
   // A tap only vouches for the row it selected: once the queue moves to
   // another row, a later automatic return to the tapped one stays automatic.
   const activeItemId = activeItem?.id ?? null;
-  useEffect(() => {
+  useResetOnChange([activeItemId], () => {
     setRowTap((current) =>
       current.itemId && current.itemId !== activeItemId
         ? { count: current.count, itemId: null }
         : current,
     );
-  }, [activeItemId]);
+  });
 
   const turboRunOptions = useMemo(
     () =>
