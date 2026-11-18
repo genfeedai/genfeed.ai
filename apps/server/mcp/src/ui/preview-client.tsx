@@ -772,13 +772,9 @@ function CardPreview({
   onAction,
 }: CardPreviewProps) {
   const { current, exhausted } = usePendingCard(item, bridge);
-  const [failed, setFailed] = useState(false);
-  // A new tool result resets the media error state.
-  const [failedItem, setFailedItem] = useState(item);
-  if (failedItem !== item) {
-    setFailedItem(item);
-    setFailed(false);
-  }
+  // The media error belongs to the tool result that raised it.
+  const [failedItem, setFailedItem] = useState<McpCard | null>(null);
+  const failed = failedItem === item;
   const isJobFailed = ['failed', 'error', 'cancelled', 'canceled'].includes(
     current.status.toLowerCase(),
   );
@@ -798,7 +794,7 @@ function CardPreview({
     timeStyle: 'short',
   });
   const onMediaError = () => {
-    setFailed(true);
+    setFailedItem(item);
     bridge.resize();
   };
   const failedNotice = failed && (
