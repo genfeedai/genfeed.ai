@@ -232,7 +232,7 @@ export function useIngredientActions({
   // AbortControllers for request cancellation
   const abortControllersRef = useRef<Map<string, AbortController>>(new Map());
 
-  // Cleanup on unmount
+  // use-effect-audit: ignore releases timers, requests or subscriptions on unmount
   useEffect(() => {
     extendOwner.current.isMounted = true;
     return () => {
@@ -410,7 +410,7 @@ export function useIngredientActions({
     [extendConfirmData, getVideosService, notificationsService, onRefresh],
   );
 
-  // Listen for asset status updates via websocket (for set as logo/banner)
+  // use-effect-audit: ignore subscribes to the asset-status websocket (set as logo/banner)
   useEffect(() => {
     if (!pendingAssetId || !pendingAssetCategory) {
       return;

@@ -36,8 +36,9 @@ export function useContextCoverage({
   const reload = useCallback(() => setReloadToken((token) => token + 1), []);
 
   // `reloadToken` re-runs this effect; it is not read inside it.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: reloadToken is the retrigger
+  // use-effect-audit: ignore loads context coverage with an abortable request
   useEffect(() => {
+    void reloadToken;
     setCoverage(null);
     if (!isActive) {
       setStatus('idle');
