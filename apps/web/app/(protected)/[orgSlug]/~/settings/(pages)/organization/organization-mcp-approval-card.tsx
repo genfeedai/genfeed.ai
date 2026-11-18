@@ -54,6 +54,7 @@ export default function OrganizationMcpApprovalCard() {
       ) : null}
       <Switch
         aria-label={translate('label')}
+        data-agent-confirm={translate('confirm')}
         description={translate('switchDescription')}
         isChecked={isRequired}
         isDisabled={!canManage || !isAvailable || isPending}

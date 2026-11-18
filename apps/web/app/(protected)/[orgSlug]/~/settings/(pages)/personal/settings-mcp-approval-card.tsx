@@ -24,6 +24,7 @@ export default function SettingsMcpApprovalCard({
     <Card label={translate('cardTitle')}>
       <Switch
         aria-label={translate('label')}
+        data-agent-confirm={translate('confirm')}
         description={translate('switchDescription')}
         isChecked={isOrganizationRequired || isRequired}
         isDisabled={isSaving || isOrganizationRequired}

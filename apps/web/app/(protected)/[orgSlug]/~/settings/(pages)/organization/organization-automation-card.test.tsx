@@ -1,9 +1,11 @@
 import '@testing-library/jest-dom/vitest';
+import { readPageControls } from '@genfeedai/agent/utils/page-controls.bridge';
 import { MemberRole } from '@genfeedai/contracts';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import '@/components/agent/page-controls-bridge';
 import OrganizationAutomationCard from './organization-automation-card';
 
 const mocks = vi.hoisted(() => ({
@@ -65,6 +67,24 @@ describe('OrganizationAutomationCard', () => {
       'Brand vision checks',
     ])
       expect(toggle(name)).not.toBeChecked();
+  });
+
+  it('tells the page agent that every opt-in waits for the person', () => {
+    mocks.settings = { isBreakoutResponsesEnabled: true };
+    render(<OrganizationAutomationCard />);
+    expect(
+      readPageControls()?.map((control) => [control.label, control.confirm]),
+    ).toEqual([
+      [
+        'Breakout responses',
+        'Spends credits to draft responses when a post takes off',
+      ],
+      [
+        'Breakout auto-publish',
+        'Lets a response schedule itself without your review',
+      ],
+      ['Brand vision checks', 'Spends credits on every image and video check'],
+    ]);
   });
 
   it('shows the vision cost note: about $0.005 per image, charged in credits', () => {

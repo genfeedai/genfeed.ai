@@ -1,9 +1,11 @@
 import '@testing-library/jest-dom/vitest';
+import { readPageControls } from '@genfeedai/agent/utils/page-controls.bridge';
 import { MemberRole } from '@genfeedai/contracts';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import '@/components/agent/page-controls-bridge';
 import OrganizationMcpApprovalCard from './organization-mcp-approval-card';
 
 const mocks = vi.hoisted(() => ({
@@ -60,6 +62,15 @@ describe('OrganizationMcpApprovalCard', () => {
   it('does not require approval for an organization that never chose', () => {
     render(<OrganizationMcpApprovalCard />);
     expect(toggle()).not.toBeChecked();
+  });
+
+  it('tells the page agent the switch waits for the person', () => {
+    render(<OrganizationMcpApprovalCard />);
+    expect(readPageControls()?.[0]).toMatchObject({
+      confirm:
+        "Changes whether members' credit-spending MCP requests wait for approval",
+      label: 'Require approval for MCP requests',
+    });
   });
 
   it('explains the credit risk while approvals are off', () => {

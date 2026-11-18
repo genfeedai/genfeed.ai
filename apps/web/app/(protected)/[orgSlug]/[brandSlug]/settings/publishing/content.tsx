@@ -81,12 +81,15 @@ function resolveSchedulePresetValue(cronExpression: string): string {
 }
 
 function SettingsToggleRow({
+  agentConfirm,
   description,
   isChecked,
   isDisabled,
   label,
   onCheckedChange,
 }: {
+  /** Marks the switch as one the agent never flips: a sentence on what it does. */
+  agentConfirm?: string;
   description: string;
   isChecked: boolean;
   isDisabled?: boolean;
@@ -106,6 +109,7 @@ function SettingsToggleRow({
       <Switch
         aria-label={label}
         className="mt-0.5 shrink-0"
+        data-agent-confirm={agentConfirm}
         isChecked={isChecked}
         isDisabled={isDisabled}
         onChange={(event: ChangeEvent<HTMLInputElement>) => {
@@ -561,6 +565,7 @@ export default function BrandSettingsPublishingPage() {
           </div>
 
           <SettingsToggleRow
+            agentConfirm="Lets approved posts publish without your review"
             description="Publish approved outputs automatically when confidence clears the threshold."
             isChecked={isAutoPublishEnabled}
             isDisabled={isSaving}

@@ -74,6 +74,7 @@ export default function OrganizationAutomationCard() {
             <div className="py-3 first:pt-0 last:pb-0" key={field.key}>
               <Switch
                 aria-label={label}
+                data-agent-confirm={translate(`${field.messageKey}.confirm`)}
                 description={translate(`${field.messageKey}.description`)}
                 isChecked={settings?.[field.key] === true}
                 isDisabled={

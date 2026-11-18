@@ -158,6 +158,30 @@ describe('control-guard detection', () => {
     expect(categoriesFor(radixFile)).toContain('tabs-bypass');
   });
 
+  it.each([
+    'import * as SwitchPrimitive from "@radix-ui/react-switch";',
+    'import { Checkbox } from "@radix-ui/react-checkbox";',
+    'import * as Slider from "@radix-ui/react-slider";',
+    'import { Select } from "@base-ui/react/select";',
+    'import { Switch } from "radix-ui";',
+  ])('requires value controls to use the ui-sdk primitives (%s)', (source) => {
+    const file = write(
+      'apps/web/src/features/CopiedSnippet.tsx',
+      `${source}\nexport default function CopiedSnippet(){return null;}`,
+    );
+
+    expect(categoriesFor(file)).toContain('value-control-bypass');
+  });
+
+  it('leaves the Radix parts the shared primitives still use alone', () => {
+    const file = write(
+      'packages/ui/src/primitives/toggle.tsx',
+      'import * as TogglePrimitive from "@radix-ui/react-toggle";\nexport default TogglePrimitive;',
+    );
+
+    expect(categoriesFor(file)).not.toContain('value-control-bypass');
+  });
+
   it('rejects hand-rolled tab semantics outside the shared component', () => {
     const file = write(
       'packages/ui/src/components/HandRolledTabs.tsx',
