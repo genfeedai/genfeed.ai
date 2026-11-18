@@ -18,7 +18,7 @@ import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
 import { Test } from '@nestjs/testing';
 import { of, throwError } from 'rxjs';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const startedAt = new Date('2026-10-03T10:00:00Z');
 const afterGrace = new Date('2026-10-03T12:00:00Z');
@@ -88,6 +88,10 @@ async function createModule() {
     ],
   }).compile();
 }
+
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 describe('Instagram publisher verification', () => {
   const media = {
