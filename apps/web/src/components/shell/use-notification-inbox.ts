@@ -91,6 +91,7 @@ export function useNotificationInbox(open: boolean) {
     staleTime: 30_000,
   });
   const refreshCount = count.refetch;
+  // use-effect-audit: ignore refetches the count each time the menu opens
   useEffect(() => {
     if (open && enabled) void refreshCount();
   }, [open, enabled, refreshCount]);

@@ -39,6 +39,7 @@ export function useStudioModelFallbacks({
   // unseen. An Agent handoff's pick is kept.
   const { isAdvancedMode, isLoaded: isAdvancedModeLoaded } =
     useAdvancedModePreference();
+  // use-effect-audit: ignore writes the Auto model pick through the host settings callback
   useEffect(() => {
     if (
       !isAdvancedModeLoaded ||
@@ -71,6 +72,7 @@ export function useStudioModelFallbacks({
   // A persisted model pick can outlive the org's catalog (model disabled or
   // retired). Fall back to Auto once this type's catalog has actually loaded
   // instead of showing "Model unavailable" and blocking Generate.
+  // use-effect-audit: ignore writes the fallback model pick through the host settings callback and notifies
   useEffect(() => {
     if (
       !isModelCatalogReady ||

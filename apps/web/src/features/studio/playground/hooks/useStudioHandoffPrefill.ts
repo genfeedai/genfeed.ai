@@ -79,6 +79,7 @@ export function useStudioHandoffPrefill({
       handoffScopeRef.current = handoffScope;
     }
   }, [handoffScope]);
+  // use-effect-audit: ignore applies the Agent handoff to the composer once the brand resolves
   useEffect(() => {
     // Wait for the active brand to resolve before deciding anything — an
     // empty `brandId` on the first render is a hydration race, never a real
@@ -138,6 +139,7 @@ export function useStudioHandoffPrefill({
   // Scope changes permanently invalidate the pending result, without retrying
   // a handoff that has already been consumed.
   const handoffReferencesRequestedRef = useRef(false);
+  // use-effect-audit: ignore requests the handoff's reference assets once it is accepted
   useEffect(() => {
     if (
       !isHandoffAccepted ||
@@ -195,6 +197,7 @@ export function useStudioHandoffPrefill({
   // with a notice, rather than repeating `resolveModelKey`'s silent
   // `models[0]` substitution one step earlier and just as silently.
   const handoffModelValidatedRef = useRef(false);
+  // use-effect-audit: ignore validates the handoff's model pick against the loaded catalog and notifies
   useEffect(() => {
     if (
       !handoffPayload ||

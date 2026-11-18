@@ -44,6 +44,7 @@ export function useStudioComposerNormalization({
     (settings.editSeed !== undefined ||
       attachedAssets.some((asset) => asset.role === 'editMask'));
   const [droppedEditingControls, setDroppedEditingControls] = useState(false);
+  // use-effect-audit: ignore writes the FLUX-compatible settings through the host settings callback
   useEffect(() => {
     if (!isFlux) {
       setDroppedEditingControls(false);
@@ -69,6 +70,7 @@ export function useStudioComposerNormalization({
     onRemoveAttachedAsset,
     onSettingsChange,
   ]);
+  // use-effect-audit: ignore writes normalized music settings through the host settings callback
   useEffect(() => {
     if (type !== 'music') return;
     const normalized = normalizeMusicSettings(settings.modelKey, {
@@ -93,6 +95,7 @@ export function useStudioComposerNormalization({
   // A provider can cap the clip length at some resolutions. When the
   // resolution cuts off the chosen length, keep the closest length it can run
   // instead of submitting a clip the provider rejects.
+  // use-effect-audit: ignore writes the closest runnable clip length through the host settings callback
   useEffect(() => {
     if (
       type !== 'video' ||
