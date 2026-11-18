@@ -169,6 +169,7 @@ export function useGenerationToasts(): void {
     );
   }, [client, connectionState, isActivityScopeReady, isScopedActivityQuery]);
 
+  // use-effect-audit: ignore raises a notification when a background task changes status
   useEffect(() => {
     if (seen.current.scope !== scopeKey)
       seen.current = {
