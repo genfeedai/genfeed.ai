@@ -69,6 +69,38 @@ describe('AgentOutputsPanel', () => {
     );
   });
 
+  it('keeps the selected output when older outputs load in ahead of it', () => {
+    const { rerender } = render(<AgentOutputsPanel />);
+
+    messages = [
+      {
+        content: 'assistant',
+        createdAt: '2026-03-19T10:00:00.000Z',
+        id: 'message-0',
+        metadata: {
+          uiActions: [
+            {
+              id: 'action-0',
+              images: ['https://cdn.test/older-1.png'],
+              title: 'Older variants',
+              type: 'content_preview_card',
+            },
+          ],
+        },
+        role: 'assistant',
+        threadId: 'thread-1',
+      },
+      ...defaultMessages,
+    ];
+    rerender(<AgentOutputsPanel />);
+    fireEvent.click(screen.getByRole('button', { name: 'Refine' }));
+
+    expect(seedComposer).toHaveBeenCalledWith(
+      'Refine Launch variants (https://cdn.test/output-1.png): ',
+      'thread-1',
+    );
+  });
+
   it('opens the selected image output in an expanded viewer', () => {
     render(<AgentOutputsPanel />);
 

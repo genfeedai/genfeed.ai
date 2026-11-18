@@ -157,6 +157,14 @@ export function AgentOutputsPanel({
     null;
   const selectedGroupId = selectedGroup?.id ?? null;
   const selectedVariantId = selectedVariant?.id ?? null;
+  // Keep the resolved pick, so older outputs loading in ahead of it do not
+  // move the selection to a different group.
+  if (chosenGroupId !== selectedGroupId) {
+    setSelectedGroupId(selectedGroupId);
+  }
+  if (chosenVariantId !== selectedVariantId) {
+    setSelectedVariantId(selectedVariantId);
+  }
   const isCompact = mode === 'compact';
 
   if (outputs.length === 0) {
