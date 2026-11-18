@@ -214,6 +214,7 @@ export function useVideoTrim({
   }, [generateThumbnails]);
 
   // Cleanup trim rAF on unmount
+  // use-effect-audit: ignore releases timers, requests or subscriptions on unmount
   useEffect(() => {
     return () => cancelAnimationFrame(trimRafRef.current);
   }, []);

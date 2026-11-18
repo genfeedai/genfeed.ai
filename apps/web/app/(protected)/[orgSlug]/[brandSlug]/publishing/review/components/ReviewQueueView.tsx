@@ -122,6 +122,7 @@ export default function ReviewQueueView({
     [turboRunList, translateReview],
   );
 
+  // use-effect-audit: ignore registers the page refresh handler with the shell
   useEffect(() => {
     setRefresh(() => onRefresh);
     return () => {

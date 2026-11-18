@@ -19,6 +19,7 @@ export function useDefaultCommandsRegistration(): void {
     confirmedOrganizationSlug || getBrandOrganizationSlug(selectedBrand);
   const brandSlug = selectedBrand?.slug ?? '';
 
+  // use-effect-audit: ignore registers the commands with the command palette
   useEffect(() => {
     let registeredCommandIds: string[] = [];
 

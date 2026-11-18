@@ -139,6 +139,7 @@ export function usePromptBarSync(
     }, 150);
   }, [handleTextChange, form]);
 
+  // use-effect-audit: ignore writes the loaded values into the form store
   useEffect(() => {
     if (externalFormat && externalWidth && externalHeight) {
       form.setValue('format', externalFormat, { shouldValidate: true });

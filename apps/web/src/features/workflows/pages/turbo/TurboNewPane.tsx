@@ -156,6 +156,7 @@ export default function TurboNewPane() {
     service: createWorkflowApiService,
   });
   // Leaving the workflow source cancels a read still in flight.
+  // use-effect-audit: ignore cancels the pending request when the list is disabled
   useEffect(() => {
     if (!isWorkflowListEnabled) {
       void queryClient.cancelQueries({

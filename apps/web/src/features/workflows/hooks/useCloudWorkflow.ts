@@ -193,6 +193,7 @@ export function useCloudWorkflow({
     };
   }, [workflowId, templateId, getService, bindSharedWorkflowApi]);
 
+  // use-effect-audit: ignore publishes the brand to the cloud workflow store
   useEffect(() => {
     useCloudWorkflowStore.getState().setPendingBrandId(brandId || null);
   }, [brandId]);

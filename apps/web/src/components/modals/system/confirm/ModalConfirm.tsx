@@ -32,6 +32,7 @@ export default function ModalConfirm({
   const [isConfirming, setIsConfirming] = useState(false);
   const isMountedRef = useRef(true);
 
+  // use-effect-audit: ignore marks the modal unmounted for late async callbacks
   useEffect(() => {
     const mountedRef = isMountedRef;
     return () => {

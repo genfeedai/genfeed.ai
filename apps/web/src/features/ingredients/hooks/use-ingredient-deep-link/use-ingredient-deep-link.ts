@@ -76,6 +76,7 @@ export function useIngredientDeepLink({
   );
 
   // Reset once the link is gone so the same asset can be deep-linked again.
+  // use-effect-audit: ignore keeps refs to the latest callbacks and values
   useEffect(() => {
     if (!assetId) {
       handledAssetIdRef.current = null;

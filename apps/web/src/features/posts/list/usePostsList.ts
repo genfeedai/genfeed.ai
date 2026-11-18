@@ -722,6 +722,7 @@ export function usePostsList({
     [baseSecondaryCardActions, scope, translateCollection, handleStatusChange],
   );
 
+  // use-effect-audit: ignore registers the page refresh handler with the shell
   useEffect(() => {
     setRefresh(() => () => {
       void refreshPosts();

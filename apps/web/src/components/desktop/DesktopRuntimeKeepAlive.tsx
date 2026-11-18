@@ -19,6 +19,7 @@ function holdRuntimeStore(): void {}
  * the organization boundary. Renders nothing and never re-renders.
  */
 export default function DesktopRuntimeKeepAlive(): null {
+  // use-effect-audit: ignore subscribes to the desktop runtime service
   useEffect(() => desktopRuntimeService.subscribe(holdRuntimeStore), []);
 
   return null;

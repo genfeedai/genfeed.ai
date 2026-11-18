@@ -56,6 +56,7 @@ export function useCreateStoryboard() {
     isCreating: boolean;
     error: string | null;
   }>({ scope, isCreating: false, error: null });
+  // use-effect-audit: ignore releases timers, requests or subscriptions on unmount
   useEffect(() => {
     active.current.mounted = true;
     return () => {

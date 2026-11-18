@@ -182,6 +182,7 @@ export default function BrandKitReviewCard(props: BrandKitReviewCardProps) {
     setApplyState,
   ]);
 
+  // use-effect-audit: ignore clears the apply state when the card unmounts
   useEffect(() => {
     if (!setApplyState) {
       return;

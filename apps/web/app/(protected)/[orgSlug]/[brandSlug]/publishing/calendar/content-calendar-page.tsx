@@ -220,6 +220,7 @@ export default function ContentCalendarPage({
     setScheduleActionsNode,
     setViewToggleNode,
   } = usePostsLayout();
+  // use-effect-audit: ignore registers the page refresh handler with the shell
   useEffect(() => {
     if (!embedded) return;
     setRefresh(() => reload);

@@ -203,6 +203,7 @@ export default function BrandOsSettingsCard({
       (!hasRules || (canReview && acknowledged)),
   );
 
+  // use-effect-audit: ignore marks the card unmounted and invalidates pending requests
   useEffect(() => {
     mounted.current = true;
     return () => {

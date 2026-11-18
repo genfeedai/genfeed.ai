@@ -324,6 +324,7 @@ export function useStudioPlaygroundDraft({
     write,
   ]);
 
+  // use-effect-audit: ignore subscribes to the draft outbox
   useEffect(() => {
     if (!isArmed) {
       return;

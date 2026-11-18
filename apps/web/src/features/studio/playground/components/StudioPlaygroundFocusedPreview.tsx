@@ -72,6 +72,7 @@ export default function StudioPlaygroundFocusedPreview({
   );
   const groups = resolveFocusedStudioJobs(job, navigation);
   const index = navigation.findIndex((candidate) => candidate.id === job.id);
+  // use-effect-audit: ignore drives a DOM element or browser API
   useEffect(() => {
     closeRef.current?.focus();
   }, []);

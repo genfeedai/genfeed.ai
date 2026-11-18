@@ -245,6 +245,7 @@ export function useAppRailPreview({
   useEffect(() => {
     if (position && !isPreviewable(position.id)) close();
   }, [close, isPreviewable, position]);
+  // use-effect-audit: ignore cancels pending timers
   useEffect(() => {
     if (!isEnabled) cancelTimers();
   }, [cancelTimers, isEnabled]);

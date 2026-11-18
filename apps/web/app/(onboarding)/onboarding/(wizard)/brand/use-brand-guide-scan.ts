@@ -249,6 +249,7 @@ export function useBrandGuideScan({
   );
   const [state, setState] = useState<BrandGuideScanState>(initialState);
   const session = useRef<BrandGuideScanSession | null>(null);
+  // use-effect-audit: ignore starts the scan session and disposes it on unmount
   useEffect(() => {
     const current = new BrandGuideScanSession(brandId, getService, setState);
     session.current = current;

@@ -671,6 +671,7 @@ export default function PublishingContentLibrary() {
     setViewToggleNode,
   ]);
 
+  // use-effect-audit: ignore registers the page refresh handler with the shell
   useEffect(() => {
     setIsRefreshing(isFetching);
     return () => setIsRefreshing(false);

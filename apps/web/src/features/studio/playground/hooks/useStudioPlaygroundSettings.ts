@@ -99,6 +99,7 @@ export function useStudioPlaygroundSettings(): UseStudioPlaygroundSettingsReturn
 
   // Runs once on mount only: rehydrates the residual local settings.
   // eslint-disable-next-line react-hooks/exhaustive-deps
+  // use-effect-audit: ignore reads browser storage after mount so server and client markup match
   useEffect(() => {
     const persisted = readStudioPlaygroundState();
     setTypeState(persisted.type);
@@ -106,6 +107,7 @@ export function useStudioPlaygroundSettings(): UseStudioPlaygroundSettingsReturn
     setIsHydrated(true);
   }, []);
 
+  // use-effect-audit: ignore writes to browser storage
   useEffect(() => {
     if (!isHydrated) {
       return;

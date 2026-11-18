@@ -268,6 +268,7 @@ export function useSpeechRecording({
   };
 
   // Cleanup on unmount
+  // use-effect-audit: ignore releases timers, requests or subscriptions on unmount
   useEffect(() => {
     isMountedRef.current = true;
     return () => {

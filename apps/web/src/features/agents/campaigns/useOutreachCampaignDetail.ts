@@ -96,6 +96,7 @@ export function useOutreachCampaignDetail() {
   const lastTargetPageRef = useRef<CampaignTargetsPage | null>(null);
   const lastTargetScopeRef = useRef<string | null>(null);
   const loadedTargetPage = targetsQuery.data;
+  // use-effect-audit: ignore keeps refs to the latest callbacks and values
   useEffect(() => {
     if (loadedTargetPage) {
       lastTargetPageRef.current = loadedTargetPage;

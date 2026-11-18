@@ -7,6 +7,7 @@ import { ensureAnalyticsAnonymous, isAnalyticsEnabled } from '@/lib/analytics';
 function EnabledAnalyticsAnonymousSessionSync() {
   const { isLoaded, user } = useAuthUser();
 
+  // use-effect-audit: ignore starts the anonymous analytics session
   useEffect(() => {
     if (isLoaded && !user?.id) {
       ensureAnalyticsAnonymous();
