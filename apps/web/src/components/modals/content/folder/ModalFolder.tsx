@@ -74,6 +74,7 @@ export default function ModalFolder({
   });
 
   // Default the brand when the page is brand-scoped
+  // use-effect-audit: ignore writes the loaded values into the form store
   useEffect(() => {
     if (scope === PageScope.BRAND && propBrandId) {
       form.setValue('brandId', propBrandId, { shouldValidate: true });

@@ -54,6 +54,7 @@ export function useAgentThreadCommands({
     [threads, onNavigate],
   );
 
+  // use-effect-audit: ignore registers the commands with the command palette
   useEffect(() => {
     const previousCommands = previousCommandsRef.current;
 

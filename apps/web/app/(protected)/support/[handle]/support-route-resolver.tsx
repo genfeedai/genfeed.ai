@@ -32,6 +32,7 @@ export default function SupportRouteResolver() {
   const { replace } = useRouter();
   const searchParams = useSearchParams();
 
+  // use-effect-audit: ignore redirects the route in the router
   useEffect(() => {
     if (!isReady) {
       return;

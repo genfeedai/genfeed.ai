@@ -233,6 +233,7 @@ function AuthorizedApiKeysContent({
   const lifecycleRef = useRef({ active: true, generation: 0 });
   const scopedServicesRef = useRef(new Set<ApiKeysService>());
 
+  // use-effect-audit: ignore cancels pending requests when the page unmounts
   useEffect(() => {
     lifecycleRef.current.active = true;
     return () => {
@@ -310,6 +311,7 @@ function AuthorizedApiKeysContent({
     !isCancelledRequest(productKeysError) &&
     !productKeysPage;
 
+  // use-effect-audit: ignore reports a failed load to the logger or a notification
   useEffect(() => {
     if (!productKeysError || isCancelledRequest(productKeysError)) return;
     logger.error('Failed to fetch Genfeed API keys', productKeysError);

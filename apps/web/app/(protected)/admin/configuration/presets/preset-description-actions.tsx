@@ -38,6 +38,7 @@ export default function PresetDescriptionActions({
     }
   }, []);
 
+  // use-effect-audit: ignore clears the undo timer when the component unmounts
   useEffect(() => clearUndoTimeout, [clearUndoTimeout]);
 
   const handleEnhance = async () => {

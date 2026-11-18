@@ -153,6 +153,7 @@ function AnalyticsWorkSurfaceBridge({
     [brands, organizationId, routeBrandId],
   );
 
+  // use-effect-audit: ignore publishes the page context to the agent chat store and clears it on unmount
   useEffect(() => {
     if (!queryReference) {
       return;

@@ -183,6 +183,7 @@ export function useStudioPlaygroundDraft({
 
   // A different user signed in on this tab: whatever the previous user
   // queued is dropped, never sent under the new session.
+  // use-effect-audit: ignore writes to browser storage
   useEffect(() => {
     if (userId) {
       studioPlaygroundDraftOutbox.discardForeign(userId);

@@ -15,7 +15,7 @@ import { Tabs } from '@ui/primitives/tabs';
 import { ChevronDown } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import type { PostSidebarWhenDockProps } from '@/props/components/post-detail-sidebar.props';
 
 import { getPlatformLabel } from './PostSidebarDestination';
@@ -52,11 +52,9 @@ export default function PostSidebarWhenDock({
 
   // An existing schedule can arrive after the first render; show it unless the
   // user already picked a mode themselves.
-  useEffect(() => {
-    if (scheduleDraft && !hasChosenMode) {
-      setMode('schedule');
-    }
-  }, [scheduleDraft, hasChosenMode]);
+  if (scheduleDraft && !hasChosenMode && mode !== 'schedule') {
+    setMode('schedule');
+  }
 
   if (isPublished) {
     return (

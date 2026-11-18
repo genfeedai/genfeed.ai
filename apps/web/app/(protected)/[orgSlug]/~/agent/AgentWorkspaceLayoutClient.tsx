@@ -155,6 +155,7 @@ function AgentWorkspaceLayoutClientContent({
 
   // Deep-linked /agent/:id under the wrong brand slug: once the thread is in
   // the store, replace to the brand that owns it so chrome + list match data.
+  // use-effect-audit: ignore redirects the route in the router
   useEffect(() => {
     if (!orgSlug || !organizationId) {
       return;

@@ -171,6 +171,7 @@ export function useTurboRewriteJob({
   }, [isReady, jobTurboRunId, jobId, refreshJob, subscribe]);
 
   // Events sent while the socket was down are gone; read the job again.
+  // use-effect-audit: ignore re-syncs the job after the socket reconnects
   useEffect(() => {
     const previous = previousConnectionState.current;
     previousConnectionState.current = connectionState;
