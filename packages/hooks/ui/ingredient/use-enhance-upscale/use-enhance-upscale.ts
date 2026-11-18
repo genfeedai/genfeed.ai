@@ -21,6 +21,7 @@ import {
   executeSilentWithActionState,
   executeWithActionState,
 } from '@hooks/utils/service-operation/service-operation.util';
+import { useResetOnChange } from '@hooks/utils/use-reset-on-change/use-reset-on-change';
 import type { Dispatch, SetStateAction } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
@@ -112,12 +113,7 @@ export function useEnhanceUpscale({
     setUpscaleConfirmData(null);
   }, []);
 
-  const lastCommittedScope = useRef(scopeKey);
-  useEffect(() => {
-    if (lastCommittedScope.current === scopeKey) return;
-    lastCommittedScope.current = scopeKey;
-    clearUpscaleConfirm();
-  }, [scopeKey, clearUpscaleConfirm]);
+  useResetOnChange([scopeKey], clearUpscaleConfirm);
 
   // A quote only holds while this hook is still mounted in the same scope and
   // the catalog still prices the model exactly as quoted.

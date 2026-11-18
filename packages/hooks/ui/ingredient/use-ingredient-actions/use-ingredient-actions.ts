@@ -44,6 +44,7 @@ import {
   executeWithActionState,
   withServiceOperation,
 } from '@hooks/utils/service-operation/service-operation.util';
+import { useResetOnChange } from '@hooks/utils/use-reset-on-change/use-reset-on-change';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
@@ -291,13 +292,10 @@ export function useIngredientActions({
     ],
   );
 
-  const lastCommittedScope = useRef(transformScopeKey);
-  useEffect(() => {
-    if (lastCommittedScope.current === transformScopeKey) return;
-    lastCommittedScope.current = transformScopeKey;
+  useResetOnChange([transformScopeKey], () => {
     activeExtendConfirmation.current = null;
     setExtendConfirmData(null);
-  }, [transformScopeKey]);
+  });
 
   const getExtendAvailability = useCallback(
     (ingredient: IIngredient) => {
