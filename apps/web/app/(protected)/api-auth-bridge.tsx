@@ -17,6 +17,7 @@ export default function ApiAuthBridge() {
 
   registerApiAuthTokenGetter(getToken as AuthTokenGetter);
 
+  // use-effect-audit: ignore registers the auth token getter with the API client
   useEffect(() => {
     return () => registerApiAuthTokenGetter(null);
   }, []);

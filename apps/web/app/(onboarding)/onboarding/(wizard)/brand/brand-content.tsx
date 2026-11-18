@@ -89,6 +89,7 @@ function useGuideExit(
       exiting: false,
     };
   }
+  // use-effect-audit: ignore releases timers, requests or subscriptions on unmount
   useEffect(() => {
     live.current.mounted = true;
     return () => {

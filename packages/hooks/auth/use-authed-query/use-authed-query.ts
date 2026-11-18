@@ -121,6 +121,7 @@ export function useAuthedQuery<TService, TData>({
 
   const { refetch } = query;
   const lastRefreshKeyRef = useRef(refreshKey);
+  // use-effect-audit: ignore re-reads server data when the refresh key changes
   useEffect(() => {
     if (Object.is(lastRefreshKeyRef.current, refreshKey)) {
       return;

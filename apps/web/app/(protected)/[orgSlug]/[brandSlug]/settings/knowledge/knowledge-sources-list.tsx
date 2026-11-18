@@ -164,6 +164,7 @@ export default function KnowledgeSourcesList({
   const actionScopeRef = useRef(actionScope);
   actionScopeRef.current = actionScope;
   const isMountedRef = useRef(true);
+  // use-effect-audit: ignore releases timers, requests or subscriptions on unmount
   useEffect(() => {
     isMountedRef.current = true;
     return () => {

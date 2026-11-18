@@ -376,6 +376,7 @@ export function RoutedOrganizationProvider({ children }: LayoutProps) {
     }
   }, []);
 
+  // use-effect-audit: ignore releases timers, requests or subscriptions on unmount
   useEffect(() => clearSwitchConfirmation, [clearSwitchConfirmation]);
 
   const invalidateTenantState = useCallback(async (): Promise<void> => {
