@@ -829,6 +829,8 @@ test.describe('Clip Factory', () => {
       mode: 'avatar',
       voiceId: 'heygen-voice-1',
     });
+    // Auto quality sends no tier, so the API picks the best one the look supports.
+    expect(generateRequestBody).not.toHaveProperty('avatarQuality');
     const submittedEditedHighlights = generateRequestBody?.editedHighlights;
     expect(submittedEditedHighlights).toEqual(expect.any(Array));
     expect(

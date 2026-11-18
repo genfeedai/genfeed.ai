@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
+  type AvatarRenderQuality,
   getEligibleHeyGenAvatarEngines,
   getEligibleHeyGenAvatarModelKeys,
   getHeyGenAvatarEngine,
   isHeyGenAvatar6Engine,
+  resolveAvatarRenderPlan,
 } from './heygen-avatar-engines.constant';
 import { MODEL_KEYS } from './model-keys.constant';
 
@@ -111,5 +113,60 @@ describe('HeyGen avatar engine eligibility', () => {
     expect(getHeyGenAvatarEngine(MODEL_KEYS.HEYGEN_AVATAR_V)).toBe('avatar_v');
     expect(getHeyGenAvatarEngine(MODEL_KEYS.HEYGEN_AVATAR)).toBeUndefined();
     expect(getHeyGenAvatarEngine(undefined)).toBeUndefined();
+  });
+});
+
+describe('Avatar render quality plans', () => {
+  const twinWithAvatar6 = look('digital_twin', [
+    'avatar_iv',
+    'avatar_v',
+    'heygen-avatar-6',
+    'heygen-avatar-6-turbo',
+  ]);
+
+  it.each([
+    ['draft', { engine: 'avatar_iv' }],
+    ['low', { engine: 'heygen-avatar-6-turbo', resolution: '1080p' }],
+    ['medium', { engine: 'heygen-avatar-6', resolution: '1080p' }],
+    ['high', { engine: 'heygen-avatar-6', resolution: '2k' }],
+  ] as [AvatarRenderQuality, object][])(
+    'renders a look that supports Avatar 6 at %s quality',
+    (quality, plan) => {
+      expect(resolveAvatarRenderPlan(twinWithAvatar6, quality)).toEqual({
+        plan,
+      });
+    },
+  );
+
+  it('takes Turbo at 1080p without a choice when the look supports it', () => {
+    expect(resolveAvatarRenderPlan(twinWithAvatar6)).toEqual({
+      plan: { engine: 'heygen-avatar-6-turbo', resolution: '1080p' },
+    });
+  });
+
+  it('takes Avatar IV without a choice when the look has no Avatar 6', () => {
+    expect(
+      resolveAvatarRenderPlan(look('photo_avatar', ['avatar_iv'])),
+    ).toEqual({ plan: { engine: 'avatar_iv' } });
+  });
+
+  it.each(['low', 'medium', 'high'] as const)(
+    'refuses %s quality on a look that lists no Avatar 6 engine',
+    (quality) => {
+      expect(
+        resolveAvatarRenderPlan(look('studio_avatar', ['avatar_iv']), quality),
+      ).toEqual({
+        reason: `This look cannot render at ${quality} quality. Choose a quality it supports, or draft.`,
+      });
+    },
+  );
+
+  it('refuses medium quality on a look that lists Turbo only', () => {
+    expect(
+      resolveAvatarRenderPlan(
+        look('studio_avatar', ['avatar_iv', 'heygen-avatar-6-turbo']),
+        'medium',
+      ),
+    ).toHaveProperty('reason');
   });
 });

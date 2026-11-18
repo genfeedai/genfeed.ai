@@ -30,6 +30,7 @@ import type {
   ProviderOption,
 } from '@/props/studio/clipper.props';
 import ClipperIngredientImport from './ClipperIngredientImport';
+import ClipperAvatarQualitySelect from './components/ClipperAvatarQualitySelect';
 import ClipperInputForm from './components/ClipperInputForm';
 import ClipperModeSelector from './components/ClipperModeSelector';
 import ClipperNewPane from './components/ClipperNewPane';
@@ -172,6 +173,7 @@ function ClipperProjectDetail(props: ReturnType<typeof useStudioClipperPage>) {
 function ClipperProjectControls({
   avatarId,
   avatarProvider,
+  avatarQuality,
   clipsService,
   draftFilename,
   draftSaveState,
@@ -198,6 +200,7 @@ function ClipperProjectControls({
   selectedIds,
   setAvatarId,
   setAvatarProvider,
+  setAvatarQuality,
   setGenerationMode,
   setMaxClips,
   setMinViralityScore,
@@ -431,6 +434,13 @@ function ClipperProjectControls({
                         ? 'Using configured HeyGen identity defaults and overrides.'
                         : `Missing ${identityDefaults.missing.join(' and ')} defaults. Enter IDs manually or save them in brand defaults.`}
                 </p>
+
+                {avatarProvider === 'heygen' ? (
+                  <ClipperAvatarQualitySelect
+                    onQualityChange={setAvatarQuality}
+                    quality={avatarQuality}
+                  />
+                ) : null}
 
                 <OptionTileGroup
                   ariaLabel={selectionLabels('avatarProvider')}

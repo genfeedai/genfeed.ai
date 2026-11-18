@@ -79,6 +79,7 @@ export class ClipperGenerationDispatchService {
           ...project.settings,
           ...clipperGenerationIdentity(identity),
           avatarProvider: dto.avatarProvider ?? 'heygen',
+          avatarQuality: dto.avatarQuality,
           flow: 'review',
           mode,
           voiceId: identity?.voiceId,
@@ -91,6 +92,7 @@ export class ClipperGenerationDispatchService {
 
     const result = await this.clipperGenerationService.generateClips({
       ...clipperGenerationIdentity(identity),
+      avatarQuality: dto.avatarQuality,
       highlights: selectedEditedHighlights,
       hookApprovalRequired,
       mode,
@@ -235,6 +237,7 @@ export class ClipperGenerationDispatchService {
     try {
       generated = await this.clipperGenerationService.generateClips({
         ...clipperGenerationIdentity(identity),
+        avatarQuality: project.settings?.avatarQuality,
         highlights,
         hookApprovalRequired: false,
         mode,

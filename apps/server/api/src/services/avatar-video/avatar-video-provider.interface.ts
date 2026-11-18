@@ -1,5 +1,7 @@
 import type {
+  AvatarRenderQuality,
   AvatarVideoAspectRatio,
+  HeyGenAvatar6Resolution,
   HeyGenAvatarEngine,
 } from '@genfeedai/contracts/constants';
 import type {
@@ -31,6 +33,8 @@ export interface AvatarVideoSubmissionPlan {
     modelKey: string;
     engine?: HeyGenAvatarEngine;
     avatarType?: string;
+    /** Output resolution priced for Avatar 6 and Turbo; omitted otherwise. */
+    resolution?: HeyGenAvatar6Resolution;
   };
 }
 
@@ -51,6 +55,11 @@ export interface AvatarVideoJobInput {
   userId: string;
   voiceId: string;
   language?: string;
+  /**
+   * Quality tier. Without one the provider takes the cheapest Avatar 6 engine
+   * the look supports, else Avatar IV.
+   */
+  quality?: AvatarRenderQuality;
   onJobCreated?: (job: AvatarVideoJobCreated) => Promise<void>;
   /** Funds the render after the provider resolves who pays and what it renders. */
   fundSubmission?: (

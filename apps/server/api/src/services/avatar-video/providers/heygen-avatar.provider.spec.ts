@@ -148,6 +148,7 @@ describe('HeygenAvatarProvider', () => {
         'byok-xyz',
         '9:16',
         'avatar_iv',
+        undefined,
       );
       expect(heygenService.generatePhotoAvatarVideo).not.toHaveBeenCalled();
     });
@@ -161,6 +162,7 @@ describe('HeygenAvatarProvider', () => {
         'byok-xyz',
         '16:9',
         'avatar_iv',
+        undefined,
       );
     });
 
@@ -188,6 +190,118 @@ describe('HeygenAvatarProvider', () => {
       expect(fundSubmission.mock.invocationCallOrder[0]).toBeLessThan(
         heygenService.generateNativeAvatarVideo.mock.invocationCallOrder[0],
       );
+    });
+
+    describe('quality tiers', () => {
+      const avatar6Ref = {
+        ...avatarRef,
+        supportedEngines: [
+          'avatar_iv',
+          'avatar_v',
+          'heygen-avatar-6',
+          'heygen-avatar-6-turbo',
+        ],
+      };
+      const platform = {
+        apiKey: 'platform-key',
+        binding: { ...connection.binding, kind: 'platform' as const },
+      };
+
+      beforeEach(() => {
+        heygenService.resolveAvatarSelection.mockResolvedValue({
+          avatarRef: avatar6Ref,
+          connection: platform,
+        });
+      });
+
+      it.each([
+        ['draft', 'avatar_iv', MODEL_KEYS.HEYGEN_AVATAR_IV, undefined],
+        [
+          'low',
+          'heygen-avatar-6-turbo',
+          MODEL_KEYS.HEYGEN_AVATAR_6_TURBO,
+          '1080p',
+        ],
+        ['medium', 'heygen-avatar-6', MODEL_KEYS.HEYGEN_AVATAR_6, '1080p'],
+        ['high', 'heygen-avatar-6', MODEL_KEYS.HEYGEN_AVATAR_6, '2k'],
+      ] as const)(
+        'funds and submits %s quality on the engine and resolution it prices',
+        async (quality, engine, modelKey, resolution) => {
+          const fundSubmission = vi.fn().mockResolvedValue(undefined);
+
+          await provider.generateVideo({ ...input, fundSubmission, quality });
+
+          expect(fundSubmission).toHaveBeenCalledWith({
+            isByok: false,
+            selection: {
+              avatarType: 'digital_twin',
+              engine,
+              modelKey,
+              ...(resolution ? { resolution } : {}),
+            },
+          });
+          expect(heygenService.generateNativeAvatarVideo).toHaveBeenCalledWith(
+            'clipper-result-1',
+            avatar6Ref,
+            { voiceId: 'voice-1', inputText: 'Create this clip' },
+            'platform-key',
+            '9:16',
+            engine,
+            resolution,
+          );
+        },
+      );
+
+      it('takes Turbo at 1080p when no quality is chosen and the look supports it', async () => {
+        await provider.generateVideo(input);
+
+        expect(heygenService.generateNativeAvatarVideo).toHaveBeenCalledWith(
+          'clipper-result-1',
+          avatar6Ref,
+          { voiceId: 'voice-1', inputText: 'Create this clip' },
+          'platform-key',
+          '9:16',
+          'heygen-avatar-6-turbo',
+          '1080p',
+        );
+      });
+
+      it('refuses a quality the look cannot render before funding or submitting', async () => {
+        heygenService.resolveAvatarSelection.mockResolvedValue({
+          avatarRef,
+          connection: platform,
+        });
+        const fundSubmission = vi.fn();
+
+        const result = await provider.generateVideo({
+          ...input,
+          fundSubmission,
+          quality: 'high',
+        });
+
+        expect(result).toMatchObject({
+          error:
+            'This look cannot render at high quality. Choose a quality it supports, or draft.',
+          status: 'failed',
+        });
+        expect(fundSubmission).not.toHaveBeenCalled();
+        expect(heygenService.generateNativeAvatarVideo).not.toHaveBeenCalled();
+      });
+
+      it('refuses Avatar 6 quality for a reference image', async () => {
+        const fundSubmission = vi.fn();
+
+        const result = await provider.generateVideo({
+          ...input,
+          fundSubmission,
+          quality: 'medium',
+          referenceImageUrl: 'https://cdn.example.com/reference.jpg',
+        });
+
+        expect(result.status).toBe('failed');
+        expect(fundSubmission).not.toHaveBeenCalled();
+        expect(heygenService.generatePhotoAvatarVideo).not.toHaveBeenCalled();
+      });
     });
 
     it('funds a photo clip on the per-second photo-animation row and flags a BYOK connection', async () => {

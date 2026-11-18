@@ -19,6 +19,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ANALYTICS_EVENTS, captureAnalyticsEvent } from '@/lib/analytics';
 import type {
   AvatarProvider,
+  ClipperAvatarQualityChoice,
   ClipperDraftSaveState,
   ClipperResultMode,
   ClipperStep,
@@ -235,6 +236,8 @@ export function useStudioClipperPage(options?: { projectId?: string }) {
   const [voiceId, setVoiceId] = useState('');
   const [avatarProvider, setAvatarProvider] =
     useState<AvatarProvider>('heygen');
+  const [avatarQuality, setAvatarQuality] =
+    useState<ClipperAvatarQualityChoice>('auto');
   const [generationMode, setGenerationMode] =
     useState<ClipperResultMode>('avatar');
   const [maxClips, setMaxClips] = useState(10);
@@ -1131,6 +1134,9 @@ export function useStudioClipperPage(options?: { projectId?: string }) {
         ...(generationMode === 'avatar'
           ? {
               avatarProvider,
+              ...(avatarProvider === 'heygen' && avatarQuality !== 'auto'
+                ? { avatarQuality }
+                : {}),
               ...(avatarProvider === 'genfeedai' ? {} : { avatarId, voiceId }),
             }
           : {}),
@@ -1170,6 +1176,7 @@ export function useStudioClipperPage(options?: { projectId?: string }) {
     avatarId,
     voiceId,
     avatarProvider,
+    avatarQuality,
     generationMode,
     selectedIds,
     editedHighlights,
@@ -1331,6 +1338,7 @@ export function useStudioClipperPage(options?: { projectId?: string }) {
   return {
     avatarId,
     avatarProvider,
+    avatarQuality,
     clipsService,
     draftFilename,
     draftSaveState,
@@ -1357,6 +1365,7 @@ export function useStudioClipperPage(options?: { projectId?: string }) {
     selectedIds,
     setAvatarId,
     setAvatarProvider: selectAvatarProvider,
+    setAvatarQuality,
     setGenerationMode,
     setMaxClips,
     setMinViralityScore,

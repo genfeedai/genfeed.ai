@@ -1,3 +1,4 @@
+import type { AvatarRenderQuality } from '@genfeedai/contracts/constants';
 import type {
   AgentClipperRunIdentity,
   ClipProcessingFlow,
@@ -65,6 +66,7 @@ export interface GenerateClipsPayload {
   }>;
   avatarId?: string;
   avatarProvider?: string;
+  avatarQuality?: AvatarRenderQuality;
   mode: ClipperResultMode;
   voiceId?: string;
 }
