@@ -45,7 +45,7 @@ import {
   useCollectionScope,
 } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import { useResetOnChange } from '@hooks/utils/use-reset-on-change/use-reset-on-change';
+import { useResetOnChange, useResetOnChange } from '@hooks/utils/use-reset-on-change/use-reset-on-change';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
 import type { ContentProps } from '@props/layout/content.props';
 import { PostsService } from '@services/content/posts.service';
@@ -230,14 +230,14 @@ export function usePostsList({
     type: '',
   }));
 
-  useEffect(() => {
+  useResetOnChange([searchQueryParam, sortQueryParam, status], () => {
     setFilters((prev) => ({
       ...prev,
       search: searchQueryParam,
       sort: sortQueryParam,
       status: status || '',
     }));
-  }, [searchQueryParam, sortQueryParam, status]);
+  });
 
   const currentPage = Number(parsedSearchParams.get('page')) || 1;
 

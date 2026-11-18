@@ -88,7 +88,7 @@
     "apps/web/src/features/posts/hooks/use-post-detail/use-post-detail-drafts.ts": 6,
     "apps/web/src/features/posts/hooks/use-post-detail/use-post-detail-thread.ts": 1,
     "apps/web/src/features/posts/list/release-posts-list.tsx": 1,
-    "apps/web/src/features/posts/list/usePostsList.ts": 2,
+    "apps/web/src/features/posts/list/usePostsList.ts": 1,
     "apps/web/src/features/research/ads/useAdsResearchPageClient.ts": 4,
     "apps/web/src/features/research/work-surface/ResearchWorkSurfaceProvider.tsx": 1,
     "apps/web/src/features/studio/hooks/use-authorized-media-urls.ts": 1,
