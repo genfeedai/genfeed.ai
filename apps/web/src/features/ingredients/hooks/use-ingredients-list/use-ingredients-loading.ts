@@ -700,6 +700,7 @@ export function useIngredientsLoading({
     }
   }, [refetchFolders, shouldLoadFolders]);
 
+  // use-effect-audit: ignore registers the refresh handler with the page
   useEffect(() => {
     if (onRefresh) {
       onRefresh(() => findAllIngredientsByCategory(true));

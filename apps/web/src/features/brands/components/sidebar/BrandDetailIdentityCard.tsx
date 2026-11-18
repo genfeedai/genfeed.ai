@@ -20,6 +20,7 @@ import {
 import { getVoiceName } from '@helpers/voice/voice-name.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import { useResetOnChange } from '@hooks/utils/use-reset-on-change/use-reset-on-change';
 import type { BrandDetailIdentityCardProps } from '@props/pages/brand-detail.props';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
@@ -77,19 +78,19 @@ export default function BrandDetailIdentityCard({
     | undefined;
 
   const [selectedVoiceId, setSelectedVoiceId] = useState('');
-  const [selectedAvatarId, setSelectedAvatarId] = useState('');
+  const defaultAvatarValue = brand.agentConfig?.defaultAvatarRef
+    ? heyGenAvatarValue(brand.agentConfig.defaultAvatarRef)
+    : (brand.agentConfig?.defaultAvatarIngredientId ?? '');
+  const [selectedAvatarId, setSelectedAvatarId] = useState(defaultAvatarValue);
   const [isSavingIdentity, setIsSavingIdentity] = useState(false);
 
-  useEffect(() => {
-    setSelectedAvatarId(
-      brand.agentConfig?.defaultAvatarRef
-        ? heyGenAvatarValue(brand.agentConfig.defaultAvatarRef)
-        : (brand.agentConfig?.defaultAvatarIngredientId ?? ''),
-    );
-  }, [
-    brand.agentConfig?.defaultAvatarIngredientId,
-    brand.agentConfig?.defaultAvatarRef,
-  ]);
+  useResetOnChange(
+    [
+      brand.agentConfig?.defaultAvatarIngredientId,
+      brand.agentConfig?.defaultAvatarRef,
+    ],
+    () => setSelectedAvatarId(defaultAvatarValue),
+  );
 
   useEffect(() => {
     const selectedVoice =

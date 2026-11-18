@@ -362,6 +362,7 @@ export default function ContentCalendarPage({
   // campaign shell): the period navigation on the left, then filters, the view
   // dropdown, the cadence actions and the primary action. Nothing sits above
   // the grid.
+  // use-effect-audit: ignore registers the toolbar nodes with the page shell
   useEffect(() => {
     setFiltersNode(filterMenu);
     setScheduleActionsNode(cadenceActions);

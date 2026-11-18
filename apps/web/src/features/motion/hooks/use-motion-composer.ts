@@ -50,6 +50,7 @@ export function useMotionComposer({ projectId }: UseMotionComposerOptions) {
   const t = useTranslations('pages.studioMotion');
   const quoteEpoch = useRef(0);
   const isMounted = useRef(true);
+  // use-effect-audit: ignore tracks whether the component is mounted
   useEffect(() => {
     isMounted.current = true;
     return () => {

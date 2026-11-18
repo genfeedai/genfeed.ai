@@ -521,6 +521,7 @@ export default function BrandOsSettingsCard({
   const isApproved = selected?.status === BrandOsRevisionStatus.APPROVED;
 
   // An unresolved role must not read as a member who cannot approve.
+  // use-effect-audit: ignore reports readiness to the parent
   useEffect(() => {
     onReadinessChange?.({
       isLoaded: !loading && role !== undefined,

@@ -28,6 +28,7 @@ export function useCreativeProjectsPresence(
   presence: CreativeProjectsPresence,
 ): void {
   const report = useContext(CreativeProjectsPresenceContext);
+  // use-effect-audit: ignore reports presence to the workspace shell
   useEffect(() => {
     if (presence !== 'unknown') report?.(presence);
   }, [presence, report]);

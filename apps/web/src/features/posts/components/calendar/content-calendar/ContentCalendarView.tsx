@@ -759,6 +759,7 @@ export default function ContentCalendarView<T extends CalendarItem>({
     [activeView, translate, views],
   );
 
+  // use-effect-audit: ignore registers the toolbar with the page shell
   useEffect(() => {
     onToolbarChange({ navigation, viewMenu });
   }, [navigation, onToolbarChange, viewMenu]);
