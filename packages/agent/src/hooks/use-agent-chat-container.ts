@@ -1118,7 +1118,15 @@ export function useAgentChatContainer({
       return;
     }
     pinConversationScrollToBottom(scrollContainerRef.current);
-  }, [activeThreadId, isAtBottom, messages]);
+  }, [
+    activeThreadId,
+    isAtBottom,
+    messages,
+    streamState.streamingContent,
+    streamState.streamingReasoning,
+    streamState.activeToolCalls.length,
+    workEvents.length,
+  ]);
 
   // Scroll-to-bottom when a thread first becomes readable (imperative DOM, not
   // derived UI). A thread restored from cache paints without ever flipping
