@@ -197,6 +197,7 @@ export function useStudioGeneration({
     onGeneratedRef.current?.();
   }, []);
 
+  // use-effect-audit: ignore releases job subscriptions on unmount
   useEffect(
     () => () => {
       for (const unsubscribe of subscriptionsRef.current) {
@@ -208,6 +209,7 @@ export function useStudioGeneration({
     [],
   );
 
+  // use-effect-audit: ignore persists the session jobs to browser storage
   useEffect(() => {
     if (
       !brandId ||
@@ -469,6 +471,7 @@ export function useStudioGeneration({
     [subscribeToPendingJob],
   );
 
+  // use-effect-audit: ignore restores session jobs and drops stale subscriptions when the brand changes
   useEffect(() => {
     if (!brandId || restoredBrandRef.current === brandId) {
       return;
@@ -556,6 +559,7 @@ export function useStudioGeneration({
     ],
   );
 
+  // use-effect-audit: ignore subscribes to pending jobs and reconciles them with the server
   useEffect(() => {
     const pending = jobs.filter(
       (job) => job.ingredientId && isStudioPlaygroundJobPending(job.status),
@@ -645,11 +649,7 @@ export function useStudioGeneration({
     notifyGenerated,
   ]);
 
-  // A socket failure event and a session-restored card carry only the
-  // persisted ingredient ID. Without the server row the card cannot classify
-  // the failure, so it offered only Remove/Reprompt while Library offered
-  // Retry/Replace (#6398). Read each such row once, brand-scoped, and attach
-  // it only when it is still this brand's live FAILED ingredient.
+  // use-effect-audit: ignore reads each failed job's ingredient once, brand-scoped, so the card can classify the failure (#6398)
   useEffect(() => {
     if (jobsBrandId !== brandId || connectionState === 'offline') return;
     const unresolved = jobs.filter(

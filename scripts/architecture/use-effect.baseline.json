@@ -17,7 +17,6 @@
     "apps/web/src/features/posts/hooks/use-post-detail/use-post-detail-drafts.ts": 4,
     "apps/web/src/features/studio/playground/components/StudioIdentityFields.tsx": 1,
     "apps/web/src/features/studio/playground/hooks/useStudioComposerSetup.ts": 1,
-    "apps/web/src/features/studio/playground/hooks/useStudioGeneration.ts": 5,
     "apps/web/src/features/studio/storyboard/components/StoryboardAnimatic.tsx": 1,
     "apps/web/src/features/studio/storyboard/components/StoryboardPlanEditor.tsx": 1,
     "apps/web/src/features/studio/storyboard/hooks/use-storyboard-character-replacements.ts": 2,
@@ -26,7 +25,7 @@
     "packages/agent/src/components/AgentWorkObjects.tsx": 1,
     "packages/agent/src/components/useAgentThreadList.ts": 1,
     "packages/agent/src/components/useGenerationActionCard.ts": 6,
-    "packages/agent/src/hooks/use-agent-chat-container.ts": 3,
+    "packages/agent/src/hooks/use-agent-chat-container.ts": 2,
     "packages/contexts/user/organization-context/organization-context.tsx": 1
   }
 }
