@@ -339,6 +339,7 @@ export default function AgentHubPage() {
   const addIntent = searchParams.get('add');
   const openContentAgentConversation = useOpenContentAgentConversation();
 
+  // use-effect-audit: ignore consumes the one-shot ?add= intent and removes it from the route
   useEffect(() => {
     if (!addIntent || !brandId) {
       return;

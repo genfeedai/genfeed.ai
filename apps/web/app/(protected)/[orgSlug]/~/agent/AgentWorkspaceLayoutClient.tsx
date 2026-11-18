@@ -115,6 +115,11 @@ function AgentWorkspaceLayoutClientContent({
         ? `agent:${prefillPrompt}`
         : null;
 
+    // Leaving the unthreaded route, or clearing the prefill prompt, forgets the last bootstrap.
+    if (!bootstrapKey) {
+      lastBootstrapKeyRef.current = null;
+    }
+
     if (
       !effectiveIsLoaded ||
       isJourneyRoute ||
@@ -145,13 +150,6 @@ function AgentWorkspaceLayoutClientContent({
     useManualBootstrap,
     sendMessage,
   ]);
-
-  // Reset bootstrap key when leaving the unthreaded route or clearing the prefill prompt.
-  useEffect(() => {
-    if (!isUnthreadedRoute || isJourneyRoute || !prefillPrompt) {
-      lastBootstrapKeyRef.current = null;
-    }
-  }, [isJourneyRoute, isUnthreadedRoute, prefillPrompt]);
 
   // Deep-linked /agent/:id under the wrong brand slug: once the thread is in
   // the store, replace to the brand that owns it so chrome + list match data.

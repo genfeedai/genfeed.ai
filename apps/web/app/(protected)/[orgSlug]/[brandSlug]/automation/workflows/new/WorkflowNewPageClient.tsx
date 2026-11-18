@@ -158,6 +158,7 @@ export default function WorkflowNewPageClient() {
     [searchParams],
   );
 
+  // use-effect-audit: ignore seeds the workflow store once from the messages automation link
   useEffect(() => {
     if (
       isLoading ||

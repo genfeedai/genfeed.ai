@@ -289,7 +289,6 @@ export function useGenerationActionCard({
   }, [setupScope, setupDefaults, initParams?.model]);
 
   // Fetch models on mount.
-  //
   // A failure here used to write into the card's generation `error` slot and
   // leave `models` empty while `modelsLoading` flipped false — the picker then
   // rendered fully enabled with nothing in it, so clicking a model did nothing
@@ -338,6 +337,7 @@ export function useGenerationActionCard({
     [],
   );
 
+  // use-effect-audit: ignore aborts the in-flight request and releases the thread busy flag on unmount
   useEffect(() => {
     return () => {
       abortRef.current?.abort();
@@ -528,7 +528,7 @@ export function useGenerationActionCard({
     videoReferenceIds.length,
   ]);
 
-  // Auto-resize textarea
+  // use-effect-audit: ignore auto-resizes the textarea element to its content
   useEffect(() => {
     const el = textareaRef.current;
     if (el) {
