@@ -1539,6 +1539,15 @@ describe('BrandScraperService', () => {
 </body>
 </html>`;
 
+    it('keeps only the first visible writing example from the HTML fallback', async () => {
+      fetchMock.mockResolvedValue(makeResponse(xHtml));
+      const result = await service.scrapeXProfile('https://x.com/acme');
+      expect(result.recentTweets).toEqual([
+        `We just launched ${rocketEmoji} our new product!`,
+      ]);
+      expect(result.latestPostText).toBeUndefined();
+    });
+
     it('extracts handle from URL', async () => {
       fetchMock.mockResolvedValue(makeResponse(xHtml));
       const result = await service.scrapeXProfile('https://x.com/acme');

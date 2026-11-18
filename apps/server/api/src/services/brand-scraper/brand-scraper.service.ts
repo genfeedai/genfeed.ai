@@ -434,26 +434,19 @@ export class BrandScraperService {
         sourceUrl: normalizedUrl,
       };
 
-      // Extract tweets from structured data or article elements
-      $('article [data-testid="tweetText"], [class*="tweet-text"]').each(
-        (_i, el) => {
-          const text = $(el).text().trim();
-          if (text.length > 5) {
-            result.recentTweets.push(text);
-          }
-        },
-      );
-      result.recentTweets = result.recentTweets.slice(0, 10);
-
-      // Analyze content style from scraped tweets
-      if (result.recentTweets.length > 0) {
-        const allText = result.recentTweets.join(' ');
-        result.contentStyle.usesHashtags = allText.includes('#');
-        result.contentStyle.usesEmojis = EMOJI_PATTERN.test(allText);
-        result.contentStyle.avgTweetLength = Math.round(
-          result.recentTweets.reduce((sum, t) => sum + t.length, 0) /
-            result.recentTweets.length,
-        );
+      // The public page can contain multiple posts, including a pinned post.
+      // Use at most its first visible example when the API snapshot is unavailable.
+      const visiblePost = $(
+        'article [data-testid="tweetText"], [class*="tweet-text"]',
+      )
+        .first()
+        .text()
+        .trim();
+      if (visiblePost.length > 5) {
+        result.recentTweets = [visiblePost];
+        result.contentStyle.usesHashtags = visiblePost.includes('#');
+        result.contentStyle.usesEmojis = EMOJI_PATTERN.test(visiblePost);
+        result.contentStyle.avgTweetLength = visiblePost.length;
       }
 
       // Parse bio for content style hints
