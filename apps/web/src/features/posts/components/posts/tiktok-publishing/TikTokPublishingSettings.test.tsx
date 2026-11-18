@@ -272,7 +272,6 @@ describe('TikTok publishing settings', () => {
         }}
         onReadinessChange={onReadinessChange}
       />,
-      { wrapper },
     );
 
     await waitFor(() =>
