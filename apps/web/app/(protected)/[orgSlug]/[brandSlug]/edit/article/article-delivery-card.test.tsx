@@ -1,4 +1,5 @@
 import type { Article } from '@genfeedai/models/content/article.model';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import ArticleDeliveryCard from './article-delivery-card';
@@ -70,15 +71,20 @@ const article = {
 function renderCard(overrides: { isDirty?: boolean; content?: string } = {}) {
   const onDelivered = vi.fn();
   const onSaveExternalUrl = vi.fn().mockResolvedValue(undefined);
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
   render(
-    <ArticleDeliveryCard
-      article={article}
-      content={overrides.content ?? '<p>Body</p>'}
-      isDirty={overrides.isDirty ?? false}
-      isSavingExternalUrl={false}
-      onDelivered={onDelivered}
-      onSaveExternalUrl={onSaveExternalUrl}
-    />,
+    <QueryClientProvider client={queryClient}>
+      <ArticleDeliveryCard
+        article={article}
+        content={overrides.content ?? '<p>Body</p>'}
+        isDirty={overrides.isDirty ?? false}
+        isSavingExternalUrl={false}
+        onDelivered={onDelivered}
+        onSaveExternalUrl={onSaveExternalUrl}
+      />
+    </QueryClientProvider>,
   );
   return { onDelivered, onSaveExternalUrl };
 }

@@ -3,8 +3,9 @@ import {
   clearRequestOrganizationId,
   setRequestOrganizationId,
 } from '@genfeedai/services/core/interceptor.service';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderHook, waitFor } from '@testing-library/react';
-import { act } from 'react';
+import { act, type ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { dispatchLibraryAssetsRefresh } from '@/features/ingredients/hooks/library-assets-refresh';
 
@@ -50,6 +51,13 @@ vi.mock('@genfeedai/services/core/logger.service', () => ({
 
 import { useLibrarySummary } from './use-library-summary';
 
+let queryClient: QueryClient;
+function wrapper({ children }: { children: ReactNode }) {
+  return (
+    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+  );
+}
+
 function createFetchResponse(
   ok: boolean,
   payload?: unknown,
@@ -82,6 +90,9 @@ const SUMMARY_PAYLOAD = {
 
 describe('useLibrarySummary', () => {
   beforeEach(() => {
+    queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
     vi.clearAllMocks();
     clearRequestOrganizationId();
     vi.stubGlobal('fetch', fetchMock);
@@ -95,7 +106,7 @@ describe('useLibrarySummary', () => {
   it('fetches the Library summary scoped to the active brand', async () => {
     fetchMock.mockResolvedValue(createFetchResponse(true, SUMMARY_PAYLOAD));
 
-    const { result } = renderHook(() => useLibrarySummary());
+    const { result } = renderHook(() => useLibrarySummary(), { wrapper });
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
@@ -119,7 +130,7 @@ describe('useLibrarySummary', () => {
     scopeMock.pageScope = 'org';
     fetchMock.mockResolvedValue(createFetchResponse(true, SUMMARY_PAYLOAD));
 
-    const { result } = renderHook(() => useLibrarySummary());
+    const { result } = renderHook(() => useLibrarySummary(), { wrapper });
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
@@ -134,7 +145,7 @@ describe('useLibrarySummary', () => {
     fetchMock.mockResolvedValue(createFetchResponse(true, SUMMARY_PAYLOAD));
     setRequestOrganizationId('org-a');
 
-    const { result } = renderHook(() => useLibrarySummary());
+    const { result } = renderHook(() => useLibrarySummary(), { wrapper });
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
@@ -153,7 +164,7 @@ describe('useLibrarySummary', () => {
   it('sets an error when the response is not ok', async () => {
     fetchMock.mockResolvedValue(createFetchResponse(false, null, 500));
 
-    const { result } = renderHook(() => useLibrarySummary());
+    const { result } = renderHook(() => useLibrarySummary(), { wrapper });
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
@@ -167,7 +178,7 @@ describe('useLibrarySummary', () => {
     scopeMock.organizationId = '';
     fetchMock.mockResolvedValue(createFetchResponse(true, SUMMARY_PAYLOAD));
 
-    const { rerender } = renderHook(() => useLibrarySummary());
+    const { rerender } = renderHook(() => useLibrarySummary(), { wrapper });
 
     expect(fetchMock).not.toHaveBeenCalled();
 
@@ -182,7 +193,7 @@ describe('useLibrarySummary', () => {
   it('captures a fallback error when the fetch throws a non-Error', async () => {
     fetchMock.mockRejectedValue('boom');
 
-    const { result } = renderHook(() => useLibrarySummary());
+    const { result } = renderHook(() => useLibrarySummary(), { wrapper });
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
@@ -204,7 +215,9 @@ describe('useLibrarySummary', () => {
         }),
     );
 
-    const { result, unmount } = renderHook(() => useLibrarySummary());
+    const { result, unmount } = renderHook(() => useLibrarySummary(), {
+      wrapper,
+    });
 
     unmount();
     rejectFetch?.(abortError);
@@ -216,7 +229,7 @@ describe('useLibrarySummary', () => {
   it('refetches when refresh is called', async () => {
     fetchMock.mockResolvedValue(createFetchResponse(true, SUMMARY_PAYLOAD));
 
-    const { result } = renderHook(() => useLibrarySummary());
+    const { result } = renderHook(() => useLibrarySummary(), { wrapper });
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
@@ -236,7 +249,7 @@ describe('useLibrarySummary', () => {
   it('reloads counts when the list sender already fetched the grid', async () => {
     fetchMock.mockResolvedValue(createFetchResponse(true, SUMMARY_PAYLOAD));
 
-    renderHook(() => useLibrarySummary());
+    renderHook(() => useLibrarySummary(), { wrapper });
 
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledTimes(1);

@@ -86,7 +86,10 @@ export default function ArticleDeliveryCard({
     },
     [article.id, getArticlesService],
   );
-  const { reload, targets } = useSourceDeliveries(loadDeliveries);
+  const { reload, targets } = useSourceDeliveries(
+    `article:${article.id}`,
+    loadDeliveries,
+  );
 
   const hasContent = content.replace(HTML_TAGS_PATTERN, '').trim().length > 0;
   const blockedReason = isDirty

@@ -1,9 +1,25 @@
 import { ArticleCategory } from '@genfeedai/contracts';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import {
+  render as baseRender,
+  fireEvent,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import { useParams } from 'next/navigation';
+import type { ReactElement } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import ArticleDetail, { applyDraftSuggestionToHtml } from './article-detail';
 import '@testing-library/jest-dom/vitest';
+
+function render(ui: ReactElement) {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  return baseRender(
+    <QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>,
+  );
+}
 
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
