@@ -464,6 +464,7 @@ export default function ReleasePostsList({
     [replaceSearchParams],
   );
 
+  // use-effect-audit: ignore registers the toolbar nodes with the page shell
   useEffect(() => {
     setLeadingNode(
       <PostsListSearch searchValue={search} onSearchChange={handleSearchChange}>

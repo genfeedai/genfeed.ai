@@ -174,6 +174,7 @@ function useValidationErrorToast(
 ): void {
   const isMountedRef = useRef(true);
 
+  // use-effect-audit: ignore tracks mount state and dismisses the toast on unmount
   useEffect(() => {
     isMountedRef.current = true;
     return () => {

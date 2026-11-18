@@ -173,6 +173,7 @@ export function useStudioComposerPresets({
     applyLook: handleApplyPreset,
     applySystemPreset: handleApplySystemPreset,
   };
+  // use-effect-audit: ignore reports the prompt commands to the parent
   useEffect(() => {
     if (!onPromptCommandContextChange) return;
     onPromptCommandContextChange({

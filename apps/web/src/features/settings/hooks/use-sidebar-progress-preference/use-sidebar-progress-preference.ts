@@ -101,6 +101,7 @@ export function useSidebarProgressPreference(): UseSidebarProgressPreferenceRetu
     [currentUser, getUsersService, mutateUser],
   );
 
+  // use-effect-audit: ignore syncs the preference with browser storage
   useEffect(() => {
     const storedVisibility = getStoredVisibility(currentUserId);
     if (storedVisibility !== undefined) {

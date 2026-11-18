@@ -596,6 +596,7 @@ export default function PublishingContentLibrary() {
     },
   ];
 
+  // use-effect-audit: ignore registers the toolbar nodes with the page shell
   useEffect(() => {
     setLeadingNode(
       <PublishingContentLibrarySearch

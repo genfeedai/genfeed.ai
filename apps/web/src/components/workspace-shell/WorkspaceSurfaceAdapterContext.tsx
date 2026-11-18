@@ -326,6 +326,7 @@ export function useRegisterWorkspaceSurfacePresentationAdapter(
     WorkspaceSurfaceAdapterContext,
   )?.registerSurfaceAdapter;
 
+  // use-effect-audit: ignore registers the surface adapter with the shell
   useEffect(
     () => registerSurfaceAdapter?.(adapter),
     [adapter, registerSurfaceAdapter],

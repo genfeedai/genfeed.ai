@@ -99,6 +99,7 @@ export default function VoiceStudioRecorder({
     return () => window.clearInterval(timer);
   }, [isRecording]);
 
+  // use-effect-audit: ignore stops the media recorder at the time limit
   useEffect(() => {
     if (isRecording && elapsedSeconds >= VOICE_SAMPLE_MAX_SECONDS)
       stopRecording();
