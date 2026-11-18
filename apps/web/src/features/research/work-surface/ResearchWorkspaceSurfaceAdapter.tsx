@@ -60,6 +60,7 @@ export default function ResearchWorkspaceSurfaceAdapter() {
     [brandId, organizationId, surface?.authorizedFinding],
   );
 
+  // use-effect-audit: ignore writes the page context into the agent chat store
   useEffect(() => {
     const currentContext = useAgentChatStore.getState().pageContext;
     setPageContext({

@@ -297,12 +297,14 @@ export function useAdsResearchPageClient() {
   const effectivePlatform = platform;
   const showChannelFilter = effectivePlatform === AdsPlatform.GOOGLE;
 
+  // use-effect-audit: ignore writes the search params to the route in the router
   useEffect(() => {
     if (!showChannelFilter && channel !== AdsChannel.ALL) {
       setChannel(AdsChannel.ALL);
     }
   }, [channel, setChannel, showChannelFilter]);
 
+  // use-effect-audit: ignore writes the search params to the route in the router
   useEffect(() => {
     if (!credentialId) {
       setAdAccountId('');

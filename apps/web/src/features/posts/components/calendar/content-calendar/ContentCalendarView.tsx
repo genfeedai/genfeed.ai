@@ -262,6 +262,7 @@ function FullCalendarMount({
 }: FullCalendarHostProps & { onError: (error: Error) => void }) {
   const elementRef = useRef<HTMLDivElement | null>(null);
 
+  // use-effect-audit: ignore drives the FullCalendar instance
   useEffect(() => {
     let calendar: FullCalendarInstance | null = null;
     const element = elementRef.current;
