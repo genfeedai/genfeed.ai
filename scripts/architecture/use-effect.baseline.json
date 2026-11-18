@@ -65,7 +65,6 @@
     "apps/web/src/components/desktop/DesktopRuntimeKeepAlive.tsx": 1,
     "apps/web/src/components/ingredients/inspector/IngredientSidebarPanel.tsx": 1,
     "apps/web/src/components/ingredients/inspector/use-ingredient-lineage.ts": 1,
-    "apps/web/src/components/layouts/app/useAppLayout.ts": 1,
     "apps/web/src/components/layouts/protected/useAppProtectedLayout.ts": 1,
     "apps/web/src/components/modals/content/article/ModalArticle.tsx": 1,
     "apps/web/src/components/modals/content/batch/useModalPostBatch.ts": 2,

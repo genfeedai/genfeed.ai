@@ -101,7 +101,6 @@ export function useAppLayout({
 
   // Drop mid-drag listeners if the shell unmounts.
   // use-effect-audit: ignore releases timers, requests or subscriptions on unmount
-  // use-effect-audit: ignore reads browser storage after mount so server and client markup match
   useEffect(() => {
     return () => {
       sidebarDragCleanupRef.current?.();
@@ -121,6 +120,7 @@ export function useAppLayout({
     setIsDesktopCollapsed((previous) => !previous);
   }, []);
 
+  // use-effect-audit: ignore reads browser storage after mount so server and client markup match
   useEffect(() => {
     const persistedValue = readPersistedSidebarCollapsed();
     if (persistedValue !== null) {
