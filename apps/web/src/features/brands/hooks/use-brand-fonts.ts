@@ -38,8 +38,10 @@ export function useBrandFonts(brandId: string): UseBrandFontsResult {
   const [hasError, setHasError] = useState(false);
   const [version, setVersion] = useState(0);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: `version` reloads the fonts after an upload or removal.
+  // `version` reloads the fonts after an upload or removal.
+  // use-effect-audit: ignore registers fonts with the document and unregisters them on cleanup
   useEffect(() => {
+    void version;
     const controller = new AbortController();
     const { signal } = controller;
     const registered: FontFace[] = [];

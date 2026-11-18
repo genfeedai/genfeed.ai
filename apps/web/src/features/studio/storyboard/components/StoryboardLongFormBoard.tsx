@@ -21,8 +21,11 @@ import {
 } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
 import type { StoryboardStillQuote } from '@genfeedai/contracts/api-types/contracts/storyboard-still.contract';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
+import { viewerKeyPart } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { NotificationsService } from '@services/core/notifications.service';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import Card from '@ui/card/Card';
 import GenerationStatus from '@ui/feedback/generation-status/GenerationStatus';
 import { Badge } from '@ui/primitives/badge';
@@ -33,7 +36,7 @@ import { SelectField } from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
 import { useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import type { StoryboardLongFormBoardProps } from '@/features/studio/props/storyboard.props';
 import { formatStoryboardTimecode } from '@/features/studio/storyboard/utils/storyboard-runtime';
 
@@ -93,26 +96,31 @@ export default function StoryboardLongFormBoard({
   const isBusy = isDisabled || !actions;
   const estimateLongForm = actions?.estimateLongForm;
   const revision = run.config.revision;
-  const [estimate, setEstimate] = useState<StoryboardLongFormEstimate>();
-  // biome-ignore lint/correctness/useExhaustiveDependencies: re-price whenever the script or a finished part changes what is left; part renders do not bump the revision.
-  useEffect(() => {
-    if (!estimateLongForm) return;
-    const controller = new AbortController();
-    estimateLongForm(revision, controller.signal)
-      .then((next) => {
-        if (!controller.signal.aborted) setEstimate(next);
-      })
-      .catch(() => {
-        if (!controller.signal.aborted) setEstimate(undefined);
-      });
-    return () => controller.abort();
-  }, [
-    estimateLongForm,
-    revision,
-    missingCutaways.length,
-    animatic.ready,
-    presenter.ready,
-  ]);
+  const { orgId, userId } = useAuthIdentity();
+  // Re-priced whenever the script or a finished part changes what is left;
+  // part renders do not bump the revision. The last price stays on screen
+  // while the next one loads, and a failed read clears it.
+  const estimateQuery = useQuery<StoryboardLongFormEstimate>({
+    enabled: Boolean(estimateLongForm),
+    gcTime: 0,
+    placeholderData: keepPreviousData,
+    queryFn: ({ signal }) =>
+      estimateLongForm
+        ? estimateLongForm(revision, signal)
+        : Promise.reject(new Error('Long-form estimate is unavailable')),
+    queryKey: [
+      'storyboard-long-form-estimate',
+      run.id,
+      revision,
+      missingCutaways.length,
+      animatic.ready,
+      presenter.ready,
+      viewerKeyPart(userId, orgId),
+    ],
+    refetchOnWindowFocus: false,
+    retry: false,
+  });
+  const estimate = estimateQuery.isError ? undefined : estimateQuery.data;
 
   function price(quote: StoryboardStillQuote | StoryboardARollQuote) {
     return quote.billingMode === 'byok'

@@ -283,8 +283,10 @@ export const TimelineWorkGroup = memo(TimelineWorkGroupInner);
 function useLiveElapsedLabel(startIso: string, isLive: boolean): string | null {
   const [nowMs, setNowMs] = useState(() => Date.now());
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: A new start timestamp restarts the elapsed timer.
+  // A new start timestamp restarts the elapsed timer.
+  // use-effect-audit: ignore ticks an interval timer outside React
   useEffect(() => {
+    void startIso;
     if (!isLive) {
       return;
     }

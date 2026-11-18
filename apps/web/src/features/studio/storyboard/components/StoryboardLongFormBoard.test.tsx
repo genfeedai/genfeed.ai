@@ -1,3 +1,7 @@
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
 import type { StoryboardARollChunk } from '@genfeedai/contracts/api-types/contracts/storyboard-a-roll.contract';
 import type { StoryboardSegment } from '@genfeedai/contracts/api-types/contracts/storyboard-plan.contract';
 import type { StoryboardRun } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
@@ -34,6 +38,10 @@ vi.mock(
   '@genfeedai/contexts/providers/global-modals/global-modals.hooks',
   () => ({ useConfirmModal: () => ({ openConfirm: mocks.openConfirm }) }),
 );
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
+}));
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: mocks.push }),
 }));
@@ -151,7 +159,9 @@ function renderBoard(overrides: Partial<StoryboardLongFormBoardProps> = {}) {
     actions: actions(),
     ...overrides,
   };
-  render(<StoryboardLongFormBoard {...props} />);
+  render(<StoryboardLongFormBoard {...props} />, {
+    wrapper: queryClientWrapper(createTestQueryClient()),
+  });
   return props;
 }
 
@@ -245,6 +255,21 @@ describe('StoryboardLongFormBoard', () => {
       3,
       expect.any(AbortSignal),
     );
+  });
+
+  it('shows no price when the estimate cannot be read', async () => {
+    const props = renderBoard({
+      actions: {
+        ...actions(),
+        estimateLongForm: vi.fn(async () => {
+          throw new Error('estimate failed');
+        }),
+      },
+    });
+    await waitFor(() =>
+      expect(props.actions?.estimateLongForm).toHaveBeenCalled(),
+    );
+    expect(screen.queryByText(/The whole video still costs/)).toBeNull();
   });
 
   it('makes a copy in the chosen language and opens it', async () => {
