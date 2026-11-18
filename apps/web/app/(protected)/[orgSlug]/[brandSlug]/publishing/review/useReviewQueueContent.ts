@@ -231,15 +231,13 @@ export function useReviewQueueContent(search = '') {
     return new Set([...selectedIds].filter((id) => visibleIds.has(id)));
   }, [selectedIds, visibleItems]);
 
-  useEffect(() => {
-    if (selectedTurboRunId || !requestedTurboRunId) {
-      return;
-    }
-
-    if (turboRunList.some((turboRun) => turboRun.id === requestedTurboRunId)) {
-      setSelectedTurboRunId(requestedTurboRunId);
-    }
-  }, [turboRunList, requestedTurboRunId, selectedTurboRunId]);
+  if (
+    !selectedTurboRunId &&
+    requestedTurboRunId &&
+    turboRunList.some((turboRun) => turboRun.id === requestedTurboRunId)
+  ) {
+    setSelectedTurboRunId(requestedTurboRunId);
+  }
 
   // External URL changes only (back/forward / pasted link). Skip our own writes.
   useEffect(() => {
@@ -341,17 +339,14 @@ export function useReviewQueueContent(search = '') {
     setActiveFilters([]);
   }, [activeTurboRun, activeFilters, filterCounts, notifications]);
 
-  useEffect(() => {
-    setSelectedIds((prev) => {
-      const next = new Set(
-        Array.from(prev).filter((itemId) =>
-          actionableItems.some((item) => item.id === itemId),
-        ),
-      );
-
-      return next.size === prev.size ? prev : next;
-    });
-  }, [actionableItems]);
+  const prunedSelectedIds = new Set(
+    Array.from(selectedIds).filter((itemId) =>
+      actionableItems.some((item) => item.id === itemId),
+    ),
+  );
+  if (prunedSelectedIds.size !== selectedIds.size) {
+    setSelectedIds(prunedSelectedIds);
+  }
 
   const handleToggleSelect = useCallback((itemId: string) => {
     setSelectedIds((prev) => {

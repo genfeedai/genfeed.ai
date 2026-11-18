@@ -34,6 +34,7 @@ import {
 } from '@helpers/data/cache/cache.helper';
 import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useResetOnChange } from '@hooks/utils/use-reset-on-change/use-reset-on-change';
 import { type QueryKey, useQueryClient } from '@tanstack/react-query';
 import {
   type SetStateAction,
@@ -729,10 +730,8 @@ export function useIngredientsLoading({
   }, [findAllIngredientsByCategory]);
 
   // Sync folder param from URL
-  useEffect(() => {
-    const folderParam = parsedSearchParams.get('folder') || undefined;
-    setSelectedFolderId((prev) => (folderParam !== prev ? folderParam : prev));
-  }, [parsedSearchParams]);
+  const folderParam = parsedSearchParams.get('folder') || undefined;
+  useResetOnChange([folderParam], () => setSelectedFolderId(folderParam));
 
   // Cleanup socket subscriptions on unmount
   // use-effect-audit: ignore subscribes to an external event source
