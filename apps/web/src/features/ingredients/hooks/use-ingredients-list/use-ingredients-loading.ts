@@ -705,12 +705,13 @@ export function useIngredientsLoading({
   const isLoadingFolders =
     loadFolders && (shouldLoadData ? isFoldersPending : !isScopeReady);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: foldersErrorUpdatedAt marks each new failed read.
+  // use-effect-audit: ignore reports a failed load to the logger or a notification
   useEffect(() => {
+    void foldersErrorUpdatedAt;
     if (isFoldersError && !isIgnoredLibraryFailure(foldersError)) {
       reportLibraryOperationFailure('GET /folders', foldersError);
     }
-  }, [foldersErrorUpdatedAt, isFoldersError]);
+  }, [foldersError, foldersErrorUpdatedAt, isFoldersError]);
 
   const findAllFolders = useCallback(async () => {
     if (shouldLoadFolders) {

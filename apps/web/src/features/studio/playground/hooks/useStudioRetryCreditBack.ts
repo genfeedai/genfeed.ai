@@ -54,8 +54,9 @@ export function useStudioRetryCreditBack(input: {
   const [record, setRecord] = useState<RetryCreditBackRecord | null>(null);
   const lastAnsweredRef = useRef<{ at: number; key: string } | null>(null);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: refreshToken only re-runs the request
+  // use-effect-audit: ignore previews the retry credit-back with an abortable request
   useEffect(() => {
+    void refreshToken;
     if (!key || !modelKey || credits === null) return;
     const lastAnswered = lastAnsweredRef.current;
     if (
