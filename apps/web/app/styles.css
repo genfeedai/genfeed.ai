@@ -1,3 +1,9 @@
+/* ui-sdk adds its behaviour CSS at runtime in this layer. Declared first so
+   every other layer, Tailwind's included, wins over it. Its default look
+   (`@ui-sdk/core/web.css`) is not imported: it restyles bare elements and
+   ignores `data-theme`. */
+@layer ui-sdk;
+
 @import "../../../packages/styles/globals.css";
 @import "../../../packages/styles/motion-policy.css";
 @import "./brand-fonts.css";
