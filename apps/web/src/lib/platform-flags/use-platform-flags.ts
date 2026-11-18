@@ -34,7 +34,9 @@ interface PlatformFlagsState {
  * Before a successful answer the state stays unresolved and flags are off.
  * A failed read never presents deployment defaults as confirmed Admin values;
  * a later failed refresh keeps the last confirmed flags. Visibility changes,
- * Admin updates and the refresh interval all retry without a reload.
+ * Admin updates and the refresh interval all retry without a reload. While
+ * the unavailable message is showing, only the explicit retry (or Admin
+ * update) swaps it for the loading frame; the background retries keep it.
  */
 export function usePlatformFlags(
   initialFlags?: IPlatformFlags | null,
@@ -49,13 +51,18 @@ export function usePlatformFlags(
   useEffect(() => {
     let controller: AbortController | undefined;
 
-    function refresh(): void {
+    // Only a person pressing "Try again" (or an Admin save) clears the
+    // unavailable message. A timer or tab-focus retry runs behind it, so a
+    // stalled request cannot bring the loading frame back every minute.
+    function refresh(isRetryRequested: boolean): void {
       controller?.abort();
-      setState((previous) =>
-        previous.isUnavailable
-          ? { ...previous, isUnavailable: false }
-          : previous,
-      );
+      if (isRetryRequested) {
+        setState((previous) =>
+          previous.isUnavailable
+            ? { ...previous, isUnavailable: false }
+            : previous,
+        );
+      }
       const current = new AbortController();
       controller = current;
 
@@ -85,23 +92,23 @@ export function usePlatformFlags(
 
     function refreshWhenVisible(): void {
       if (document.visibilityState === 'visible') {
-        refresh();
+        refresh(false);
       }
     }
 
     if (initialFlags) {
       setState({ flags: initialFlags, isReady: true, isUnavailable: false });
     } else {
-      refresh();
+      refresh(false);
     }
     const interval = window.setInterval(
       refreshWhenVisible,
       PLATFORM_FLAGS_REFRESH_INTERVAL_MS,
     );
-    const disposeForeground = onForeground(refresh, {
+    const disposeForeground = onForeground(() => refresh(false), {
       minAwayMs: FOREGROUND_MIN_AWAY_MS,
     });
-    const unsubscribe = subscribePlatformFlagsChanged(refresh);
+    const unsubscribe = subscribePlatformFlagsChanged(() => refresh(true));
 
     return () => {
       controller?.abort();
