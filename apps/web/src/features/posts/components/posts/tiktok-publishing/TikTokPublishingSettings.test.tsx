@@ -1,3 +1,7 @@
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
 import { CredentialPlatform } from '@genfeedai/contracts';
 import { tiktokAuthorizedSignalEvidenceKeys } from '@genfeedai/contracts/api-types/contracts';
 import type { IPost } from '@genfeedai/contracts/interfaces';
@@ -33,6 +37,13 @@ const {
     getReleases: () => Promise.resolve(releases),
   };
 });
+vi.mock(
+  '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity',
+  async () => ({
+    useAuthIdentity: (await import('@app-tests/query-client.harness'))
+      .useTestViewer,
+  }),
+);
 vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: (factory: (token: string) => { kind: string }) =>
     factory('token').kind === 'tiktok' ? getTikTok : getReleases,
@@ -102,7 +113,9 @@ const post = {
 } as unknown as IPost;
 
 describe('TikTok publishing settings', () => {
+  let wrapper: ReturnType<typeof queryClientWrapper>;
   beforeEach(() => {
+    wrapper = queryClientWrapper(createTestQueryClient());
     vi.clearAllMocks();
     Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
       configurable: true,
@@ -114,7 +127,7 @@ describe('TikTok publishing settings', () => {
   });
 
   it('shows the real creator and leaves privacy and interactions unselected', async () => {
-    render(<TikTokPublishingSettings post={post} />);
+    render(<TikTokPublishingSettings post={post} />, { wrapper });
     await screen.findByText('Test Creator');
     expect(screen.getByRole('combobox')).toHaveTextContent('Choose privacy');
     expect(
@@ -137,14 +150,16 @@ describe('TikTok publishing settings', () => {
   });
 
   it('shows its own title by default and drops it when embedded in a host section', async () => {
-    const { unmount } = render(<TikTokPublishingSettings post={post} />);
+    const { unmount } = render(<TikTokPublishingSettings post={post} />, {
+      wrapper,
+    });
     await screen.findByText('Test Creator');
     expect(
       screen.getByRole('heading', { name: 'Post to TikTok' }),
     ).toBeInTheDocument();
     unmount();
 
-    render(<TikTokPublishingSettings post={post} isEmbedded />);
+    render(<TikTokPublishingSettings post={post} isEmbedded />, { wrapper });
     await screen.findByText('Test Creator');
     expect(
       screen.queryByRole('heading', { name: 'Post to TikTok' }),
@@ -162,6 +177,7 @@ describe('TikTok publishing settings', () => {
         post={post}
         onReadinessChange={onReadinessChange}
       />,
+      { wrapper },
     );
     await screen.findByRole('alert');
     expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
@@ -179,6 +195,7 @@ describe('TikTok publishing settings', () => {
           ] as IPost['ingredients'],
         }}
       />,
+      { wrapper },
     );
     await screen.findByText('Test Creator');
     expect(screen.getByRole('alert')).toHaveTextContent('exceeds');
@@ -189,7 +206,9 @@ describe('TikTok publishing settings', () => {
 
   it('saves explicit choices to the canonical target, then refreshes the post', async () => {
     const onSaved = vi.fn().mockResolvedValue(undefined);
-    render(<TikTokPublishingSettings post={post} onSaved={onSaved} />);
+    render(<TikTokPublishingSettings post={post} onSaved={onSaved} />, {
+      wrapper,
+    });
     await screen.findByText('Test Creator');
     fireEvent.click(screen.getByRole('combobox'));
     fireEvent.click(await screen.findByRole('option', { name: 'Only me' }));
@@ -234,6 +253,7 @@ describe('TikTok publishing settings', () => {
         post={{ ...post, targetSettings: savedSettings }}
         onReadinessChange={onReadinessChange}
       />,
+      { wrapper },
     );
     await waitFor(() =>
       expect(onReadinessChange).toHaveBeenLastCalledWith(true),

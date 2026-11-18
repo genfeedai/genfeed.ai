@@ -4,6 +4,7 @@ import { PageScope } from '@genfeedai/contracts';
 import type { IIngredient, IPost } from '@genfeedai/contracts/interfaces';
 import type { PostsService } from '@genfeedai/services/content/posts.service';
 import { logger } from '@genfeedai/services/core/logger.service';
+import { useResetOnChange } from '@hooks/utils/use-reset-on-change/use-reset-on-change';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 export interface UsePostDetailDraftsOptions {
@@ -46,6 +47,13 @@ export interface UsePostDetailDraftsReturn {
   performAutoSaveForPost: (postId: string) => Promise<void>;
 }
 
+function toScheduleDraft(post: IPost): string {
+  if (!post.scheduledDate) return '';
+  return typeof post.scheduledDate === 'string'
+    ? post.scheduledDate
+    : new Date(post.scheduledDate).toISOString();
+}
+
 export function usePostDetailDrafts({
   postId,
   scope,
@@ -61,18 +69,29 @@ export function usePostDetailDrafts({
   const [childDescriptions, setChildDescriptions] = useState<
     Map<string, string>
   >(new Map());
-  const [scheduleDraft, setScheduleDraft] = useState('');
+  const scheduleSource = post ? toScheduleDraft(post) : null;
+  const [scheduleDraft, setScheduleDraft] = useState(scheduleSource ?? '');
   const [selectedIngredients, setSelectedIngredients] = useState<IIngredient[]>(
-    [],
+    post?.ingredients || [],
   );
+  const ingredientsSource = post
+    ? (post.ingredients || []).map((ingredient) => ingredient.id).join('\u0001')
+    : null;
+  // The saved schedule and slide order replace the drafts when they change
+  // (another post, or the server's copy), during render so no frame shows the
+  // stale draft. Slide order is part of the selection: a reorder resyncs too.
+  useResetOnChange([post?.id, scheduleSource], () => {
+    if (scheduleSource !== null) setScheduleDraft(scheduleSource);
+  });
+  useResetOnChange([post?.id, ingredientsSource], () => {
+    if (post) setSelectedIngredients(post.ingredients || []);
+  });
 
   // Refs for reading current draft values without effect dependencies
   const descriptionDraftRef = useRef(descriptionDraft);
   descriptionDraftRef.current = descriptionDraft;
   const labelDraftRef = useRef(labelDraft);
   labelDraftRef.current = labelDraft;
-  const selectedIngredientsRef = useRef(selectedIngredients);
-  selectedIngredientsRef.current = selectedIngredients;
 
   // Auto-save refs
   const autoSaveTimeoutsRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
@@ -228,43 +247,6 @@ export function usePostDetailDrafts({
       return hasChanges ? updated : prev;
     });
   }, [post?.id, post?.children, childDescriptions.size, post]);
-
-  // Sync schedule draft
-  useEffect(() => {
-    if (!post) {
-      return;
-    }
-
-    const scheduledDateStr = post.scheduledDate
-      ? typeof post.scheduledDate === 'string'
-        ? post.scheduledDate
-        : new Date(post.scheduledDate).toISOString()
-      : '';
-
-    setScheduleDraft((current) =>
-      current === scheduledDateStr ? current : scheduledDateStr,
-    );
-  }, [post?.id, post?.scheduledDate, post]);
-
-  // Sync selected ingredients
-  useEffect(() => {
-    if (!post) {
-      return;
-    }
-
-    const ingredients = post.ingredients || [];
-    const current = selectedIngredientsRef.current;
-
-    // Slide order is part of the selection: a pure reorder must resync too.
-    if (
-      ingredients.length !== current.length ||
-      ingredients.some(
-        (ingredient, index) => ingredient.id !== current[index]?.id,
-      )
-    ) {
-      setSelectedIngredients(ingredients);
-    }
-  }, [post?.id, post?.ingredients, post]);
 
   const performAutoSaveForPost = useCallback(
     async (postIdToSave: string) => {
