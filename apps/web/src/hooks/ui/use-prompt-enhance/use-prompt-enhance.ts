@@ -51,6 +51,7 @@ export function usePromptEnhance(): PromptEnhanceReturn {
     unsubscribeRef.current = null;
   }, []);
 
+  // use-effect-audit: ignore releases the socket subscription on unmount
   useEffect(() => cleanup, [cleanup]);
 
   const enhance = useCallback(
