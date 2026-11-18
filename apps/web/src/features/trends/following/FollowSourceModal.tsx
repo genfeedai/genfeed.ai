@@ -115,7 +115,7 @@ function isCandidateSelectable(candidate: {
 }
 
 const CHECKBOX_CLASS_NAME =
-  'mt-1 size-4 shrink-0 !border-foreground/50 data-[state=checked]:!border-foreground data-[state=checked]:!bg-foreground data-[state=checked]:!text-background';
+  'mt-1 size-4 shrink-0 !border-foreground/50 data-checked:!border-foreground data-checked:!bg-foreground data-checked:!text-background';
 
 export default function FollowSourceModal({
   brandId,

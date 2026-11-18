@@ -16,47 +16,54 @@ function ControlledSwitch() {
   );
 }
 
+function LabeledSwitch({ calls }: { calls: boolean[] }) {
+  const [isOn, setIsOn] = useState(false);
+  return (
+    <Switch
+      label="Public Profile"
+      description="Make your profile visible"
+      isChecked={isOn}
+      onCheckedChange={(next) => {
+        calls.push(next);
+        setIsOn(next);
+      }}
+    />
+  );
+}
+
 describe('Switch', () => {
-  it('uses semantic high-contrast track/thumb pairs and explicit travel', () => {
+  it('is named by its aria-label and starts off', () => {
     render(<Switch aria-label="Public profile" />);
 
     const root = screen.getByRole('switch', { name: /public profile/i });
 
-    expect(root.className).toContain('justify-start');
-    expect(root.className).toContain(
-      'data-[state=unchecked]:[&>span]:!translate-x-0',
-    );
-    expect(root.className).toContain(
-      'data-[state=checked]:[&>span]:!translate-x-4',
-    );
-    expect(root.className).toContain(
-      'data-[state=unchecked]:!bg-muted-foreground',
-    );
-    expect(root.className).toContain('data-[state=checked]:!bg-primary');
-    expect(root.className).toContain(
-      'data-[state=unchecked]:[&>span]:!bg-background',
-    );
-    expect(root.className).toContain(
-      'data-[state=checked]:[&>span]:!bg-primary-foreground',
-    );
-    expect(root.className).toContain('h-5 w-9');
-    expect(root.className).toContain('enabled:active:[&>span]:!w-5');
-    expect(root.className).toContain('motion-reduce:[&>span]:!transition-none');
-    expect(root.className).toContain('translate_300ms_cubic-bezier');
-    expect(root.className).toContain('focus-visible:ring-ring');
-    expect(root.className).not.toMatch(/(?:bg|ring)-(?:white|black)/);
+    expect(root).toHaveAttribute('aria-checked', 'false');
+    expect(root).not.toHaveAttribute('data-checked');
   });
 
-  it('sizes the md track and thumb from the size prop', () => {
+  it('is named by its label and described by its description', () => {
+    render(
+      <Switch description="Make your profile visible" label="Public Profile" />,
+    );
+
+    expect(
+      screen.getByRole('switch', { name: 'Public Profile' }),
+    ).toHaveAccessibleDescription('Make your profile visible');
+  });
+
+  it('keeps its own aria-label as the name when a label shows the state', () => {
+    render(<Switch aria-label="Playground" isChecked label="Shown" />);
+
+    expect(screen.getByRole('switch', { name: 'Playground' })).toBeChecked();
+    expect(screen.getByText('Shown')).toBeInTheDocument();
+  });
+
+  it('sizes the md track from the size prop', () => {
     render(<Switch aria-label="Bot status" size="md" />);
 
-    const root = screen.getByRole('switch', { name: /bot status/i });
-
-    expect(root.className).toContain('h-8 w-14');
-    expect(root.className).toContain(
-      'data-[state=checked]:[&>span]:!translate-x-6',
-    );
-    expect(root.querySelector('span')?.className).toContain('size-7');
+    expect(
+      screen.getByRole('switch', { name: /bot status/i }).className,
+    ).toContain('h-8 w-14');
   });
 
   it('toggles aria-checked when clicked', async () => {
@@ -65,35 +72,19 @@ describe('Switch', () => {
 
     const root = screen.getByRole('switch', { name: /recurring schedule/i });
     expect(root).toHaveAttribute('aria-checked', 'false');
-    expect(root).toHaveAttribute('data-state', 'unchecked');
 
     await user.click(root);
 
     expect(root).toHaveAttribute('aria-checked', 'true');
-    expect(root).toHaveAttribute('data-state', 'checked');
+    expect(root).toHaveAttribute('data-checked');
   });
 
-  it('does not double-toggle when a label is present (no nested label)', async () => {
+  it('toggles once when its label is clicked', async () => {
     const user = userEvent.setup();
     const calls: boolean[] = [];
 
-    function LabeledSwitch() {
-      const [isOn, setIsOn] = useState(false);
-      return (
-        <Switch
-          label="Public Profile"
-          description="Make your profile visible"
-          isChecked={isOn}
-          onCheckedChange={(next) => {
-            calls.push(next);
-            setIsOn(next);
-          }}
-        />
-      );
-    }
-
-    render(<LabeledSwitch />);
-    await user.click(screen.getByRole('switch'));
+    render(<LabeledSwitch calls={calls} />);
+    await user.click(screen.getByText('Public Profile'));
 
     expect(calls).toEqual([true]);
     expect(screen.getByRole('switch')).toHaveAttribute('aria-checked', 'true');

@@ -3,6 +3,7 @@ import './tests/restore-worker-globals';
 import { cleanup } from '@testing-library/react';
 import { preloadButtonTooltip } from '@ui/primitives/button-tooltip';
 import { afterEach, beforeAll, vi } from 'vitest';
+import './tests/get-animations.stub';
 import './tests/image-loading.stub';
 import './tests/server-only.stub';
 

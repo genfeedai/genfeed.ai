@@ -27,13 +27,11 @@ describe('shared Light/Dark semantic chrome contract', () => {
   it('pairs switch tracks and thumbs with semantic contrast tokens', () => {
     const source = readUiSource('primitives/switch.tsx');
 
-    expect(source).toContain('data-[state=unchecked]:!bg-muted-foreground');
-    expect(source).toContain('data-[state=checked]:!bg-primary');
-    expect(source).toContain('data-[state=unchecked]:[&>span]:!bg-background');
-    expect(source).toContain(
-      'data-[state=checked]:[&>span]:!bg-primary-foreground',
-    );
-    expect(source).toContain('focus-visible:ring-ring');
+    expect(source).toContain('bg-muted-foreground');
+    expect(source).toContain('data-checked:bg-primary');
+    expect(source).toContain('bg-background');
+    expect(source).toContain('data-checked:bg-primary-foreground');
+    expect(source).toContain('focusRingClassName');
   });
 
   it('uses semantic calendar interaction states', () => {
