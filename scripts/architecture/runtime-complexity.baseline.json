@@ -336,7 +336,7 @@
     "symbol": "packages/agent/src/hooks/agent-chat-stream.entry.ts"
   },
   {
-    "actual": 1275,
+    "actual": 1283,
     "file": "packages/agent/src/hooks/use-agent-chat-container.ts",
     "metric": "file-lines",
     "symbol": "packages/agent/src/hooks/use-agent-chat-container.ts"
