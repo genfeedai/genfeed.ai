@@ -230,14 +230,14 @@ export function usePostsList({
     type: '',
   }));
 
-  useEffect(() => {
+  useResetOnChange([searchQueryParam, sortQueryParam, status], () => {
     setFilters((prev) => ({
       ...prev,
       search: searchQueryParam,
       sort: sortQueryParam,
       status: status || '',
     }));
-  }, [searchQueryParam, sortQueryParam, status]);
+  });
 
   const currentPage = Number(parsedSearchParams.get('page')) || 1;
 

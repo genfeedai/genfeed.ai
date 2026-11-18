@@ -23,6 +23,7 @@ import type {
 } from '@genfeedai/props/studio/prompt-bar.props';
 import { ClipboardService } from '@genfeedai/services/core/clipboard.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
+import { useSyncedState } from '@hooks/utils/use-synced-state/use-synced-state';
 import type { JSONContent } from '@tiptap/core';
 import {
   getConfigForCategoryType,
@@ -172,8 +173,6 @@ export function usePromptBarState({
   const [selectedProfile, setSelectedProfile] = useState('');
   const [isCollapsed, setIsCollapsed] = useState(isCollapsible);
   const isAdvancedMode = currentUser?.settings?.isAdvancedMode ?? false;
-  const [isAutoMode, setIsAutoMode] = useState(!isAdvancedMode);
-  const isAdvancedControlsEnabled = !isAutoMode;
 
   const currentConfig = useMemo(() => {
     if (categoryType) {
@@ -223,9 +222,10 @@ export function usePromptBarState({
     control: form.control,
     name: 'autoSelectModel',
   });
-  useEffect(() => {
-    setIsAutoMode(watchedAutoSelectModel === true);
-  }, [watchedAutoSelectModel]);
+  const [isAutoMode, setIsAutoMode] = useSyncedState(
+    watchedAutoSelectModel === true,
+  );
+  const isAdvancedControlsEnabled = !isAutoMode;
   const watchedModels = useMemo(
     () => watchedModelsValue || [],
     [watchedModelsValue],

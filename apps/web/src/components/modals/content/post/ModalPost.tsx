@@ -693,6 +693,7 @@ export default function ModalPost({
 
   // Keep the form's format/platform/account in step with the picker so the
   // existing 25k long-post validation and scheduling rules keep applying.
+  // use-effect-audit: ignore writes the picker selection into the form store
   useEffect(() => {
     if (!isDestinationComposer) {
       return;
