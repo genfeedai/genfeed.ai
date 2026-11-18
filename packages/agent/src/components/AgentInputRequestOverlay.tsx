@@ -6,12 +6,13 @@ import {
   CardVariant,
 } from '@genfeedai/contracts';
 import { cn } from '@helpers/formatting/cn/cn.util';
+import { useResetOnChange } from '@hooks/utils/use-reset-on-change/use-reset-on-change';
 import Card from '@ui/card/Card';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Textarea } from '@ui/primitives/textarea';
 import { useTranslations } from 'next-intl';
-import { type ReactElement, useEffect, useMemo, useRef, useState } from 'react';
+import { type ReactElement, useMemo, useRef, useState } from 'react';
 
 const MAX_PICK_ONE_OPTIONS = 5;
 
@@ -46,14 +47,13 @@ export function AgentInputRequestOverlay({
   requestIdRef.current = request.inputRequestId;
   const isComposer = variant === 'composer';
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: A new request resets the answer even when the overlay stays mounted.
-  useEffect(() => {
+  useResetOnChange([request.inputRequestId], () => {
     setFreeTextAnswer('');
     setSelectedOptionId(null);
     setSelectedOptionIds([]);
     setSubmissionError(null);
     submittingRef.current = false;
-  }, [request.inputRequestId]);
+  });
 
   async function submitAnswer(
     answer: string,
