@@ -186,6 +186,7 @@ export default function PostsList({
     status,
   ]);
 
+  // use-effect-audit: ignore clears the layout slots it registered when the page unmounts
   useEffect(() => {
     return () => {
       setFiltersNode(null);

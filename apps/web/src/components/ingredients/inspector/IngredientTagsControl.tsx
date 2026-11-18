@@ -9,10 +9,11 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
+import { useSyncedState } from '@hooks/utils/use-synced-state/use-synced-state';
 import { Button } from '@ui/primitives/button';
 import { Plus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import LibraryTagChip from '@/components/tags/library-tag-picker/LibraryTagChip';
 import LibraryTagPicker, {
   type LibraryTagPickerState,
@@ -43,15 +44,12 @@ export default function IngredientTagsControl({
     brandId: brandId || undefined,
   });
   const { applyTag, isWriting } = useLibraryTagWrites();
-  const [assetTags, setAssetTags] = useState<ITag[]>(
+  const [assetTags, setAssetTags] = useSyncedState<ITag[]>(
     ingredient.tags ?? NO_TAGS,
   );
 
   // The list republishes the asset after every write, and a different asset
   // brings its own tags; follow both.
-  useEffect(() => {
-    setAssetTags(ingredient.tags ?? NO_TAGS);
-  }, [ingredient.tags]);
 
   const states = useMemo(
     () =>

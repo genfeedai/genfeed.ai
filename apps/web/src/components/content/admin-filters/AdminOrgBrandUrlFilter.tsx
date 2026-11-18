@@ -128,6 +128,7 @@ export function useAdminOrgBrandUrlFacets(): {
     }
   }, [searchParamsString, runScopeClear]);
 
+  // use-effect-audit: ignore releases timers, requests or subscriptions on unmount
   useEffect(
     () => () => {
       if (fallbackTimerRef.current) {

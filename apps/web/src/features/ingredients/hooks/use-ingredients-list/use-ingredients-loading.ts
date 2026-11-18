@@ -744,6 +744,7 @@ export function useIngredientsLoading({
     };
   }, []);
 
+  // use-effect-audit: ignore releases timers, requests or subscriptions on unmount
   useEffect(
     () => () => {
       loadMoreControllerRef.current?.abort();

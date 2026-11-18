@@ -193,6 +193,7 @@ export default function PublishingContentLibrary() {
     queryKey: ['publishing-posts-library', organizationId, brandId],
   });
 
+  // use-effect-audit: ignore reports a load failure to the logger and notifications
   useEffect(() => {
     if (!error) {
       return;

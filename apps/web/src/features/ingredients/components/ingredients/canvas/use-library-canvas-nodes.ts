@@ -89,6 +89,7 @@ export function useLibraryCanvasNodes({
     }, LIBRARY_CANVAS_AUTOSAVE_DEBOUNCE_MS);
   }, [knownIds]);
 
+  // use-effect-audit: ignore releases timers, requests or subscriptions on unmount
   useEffect(
     () => () => {
       if (debounceRef.current) {

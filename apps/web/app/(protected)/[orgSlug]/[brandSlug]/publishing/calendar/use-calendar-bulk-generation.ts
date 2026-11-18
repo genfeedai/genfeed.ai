@@ -12,6 +12,7 @@ export function useCalendarBulkGeneration({
 }: CalendarBulkGenerationOptions) {
   const [isBulkPending, setIsBulkPending] = useState(false);
   const bulkAbortRef = useRef<AbortController | null>(null);
+  // use-effect-audit: ignore releases timers, requests or subscriptions on unmount
   useEffect(() => {
     return () => {
       bulkAbortRef.current?.abort();

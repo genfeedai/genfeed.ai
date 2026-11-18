@@ -67,6 +67,7 @@ function ScenesListContent() {
   const isLoading = scenesQuery.isPending;
 
   const { error: loadError } = scenesQuery;
+  // use-effect-audit: ignore reports a load failure to the logger and notifications
   useEffect(() => {
     if (!loadError) {
       return;

@@ -4,12 +4,13 @@ import {
   fromDateTimeLocalInput,
   toDateTimeLocalInput,
 } from '@helpers/formatting/timezone/timezone.helper';
+import { useSyncedState } from '@hooks/utils/use-synced-state/use-synced-state';
 import { Button } from '@ui/primitives/button';
 import Field from '@ui/primitives/field';
 import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
 import { useTranslations } from 'next-intl';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { isPastScheduleInstant } from '@/features/posts/shared/release-status.helpers';
 import type { ReleaseRescheduleFieldProps } from '@/props/publisher/release-calendar.props';
 
@@ -33,13 +34,9 @@ export default function ReleaseRescheduleField({
 }: ReleaseRescheduleFieldProps): React.JSX.Element {
   const translate = useTranslations('pages.publishing.release.reschedule');
   const seed = toDateTimeLocalInput(scheduledAt, timezone);
-  const [value, setValue] = useState(seed);
+  const [value, setValue] = useSyncedState(seed);
   const [submittedValue, setSubmittedValue] = useState<string | null>(null);
   const [isPastAtSubmit, setIsPastAtSubmit] = useState(false);
-
-  useEffect(() => {
-    setValue(seed);
-  }, [seed]);
 
   const isDirty = value !== '' && value !== seed;
   const instant = value ? fromDateTimeLocalInput(value, timezone) : null;

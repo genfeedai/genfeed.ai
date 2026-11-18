@@ -197,6 +197,7 @@ export function useTopbarBalances(): UseTopbarBalancesReturn {
     [clearReconcileTimeout, queryKey, isEnabled],
   );
 
+  // use-effect-audit: ignore releases timers, requests or subscriptions on unmount
   useEffect(
     () => () => {
       void queryClient.cancelQueries({ queryKey, exact: true });

@@ -277,6 +277,7 @@ export default function SettingsAgentsPage() {
     hasInitializedRef.current = true;
   }, [isSettingsLoading, settings?.agentPolicy]);
 
+  // use-effect-audit: ignore releases timers, requests or subscriptions on unmount
   useEffect(() => {
     return () => {
       if (creditSaveTimeoutRef.current) {

@@ -73,6 +73,7 @@ export function useWebsocketPrompt<T = unknown>(
     cleanupSubscription();
   }, [cleanupTimeout, cleanupSubscription]);
 
+  // use-effect-audit: ignore releases timers, requests or subscriptions on unmount
   useEffect(() => {
     return () => {
       cleanupAll();
