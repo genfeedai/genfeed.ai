@@ -147,6 +147,7 @@ export default function StudioIdentityFields({
           (settings.voiceRef?.provider === VoiceProvider.HEYGEN &&
             isHeyGenSpeechLoaded &&
             !selectedVoiceOption)));
+  // use-effect-audit: ignore clears a stale saved voice through the host settings callback
   useEffect(() => {
     if (isSavedVoiceStale) {
       onChange({ voiceRef: undefined, voiceId: undefined });
@@ -156,6 +157,7 @@ export default function StudioIdentityFields({
   // The brand's saved avatar and voice start as the visible pick, so there is
   // no hidden server-side fallback behind an empty selection.
   const brandDefaults = selectedBrand?.agentConfig;
+  // use-effect-audit: ignore prefills the brand's saved avatar and voice through the host settings callback
   useEffect(() => {
     if (
       !isAvatarType ||

@@ -17,7 +17,7 @@ function createService(
 }
 
 describe('McpApprovalPolicyService', () => {
-  it('requires approval by default at both levels', async () => {
+  it('requires approval when both levels turn it on', async () => {
     const { service } = createService(
       { isMcpApprovalRequired: true },
       { isMcpApprovalRequired: true },
@@ -57,11 +57,22 @@ describe('McpApprovalPolicyService', () => {
     );
   });
 
-  it('requires approval when a settings row is missing', async () => {
-    const { service } = createService({ isMcpApprovalRequired: false }, null);
+  it('follows the off default when a settings row is missing', async () => {
+    const { service } = createService(null, null);
     await expect(service.isApprovalRequired('org_1', 'user_1')).resolves.toBe(
-      true,
+      false,
     );
+  });
+
+  it('keeps approvals when the only row present turns them on', async () => {
+    const orgOnly = createService({ isMcpApprovalRequired: true }, null);
+    await expect(
+      orgOnly.service.isApprovalRequired('org_1', 'user_1'),
+    ).resolves.toBe(true);
+    const memberOnly = createService(null, { isMcpApprovalRequired: true });
+    await expect(
+      memberOnly.service.isApprovalRequired('org_1', 'user_1'),
+    ).resolves.toBe(true);
   });
 
   it('requires approval when the read fails', async () => {

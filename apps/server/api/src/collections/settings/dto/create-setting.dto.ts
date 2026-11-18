@@ -336,7 +336,7 @@ export class CreateSettingDto {
   @IsBoolean()
   @IsOptional()
   @ApiProperty({
-    default: true,
+    default: false,
     description:
       "Whether this member's MCP requests that spend credits wait in the approvals queue. Only takes effect once the organization also turns its policy off.",
     required: false,

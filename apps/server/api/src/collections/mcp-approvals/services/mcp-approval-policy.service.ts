@@ -5,11 +5,11 @@ import { Injectable } from '@nestjs/common';
 /**
  * Resolves "Require approval for MCP requests" for one member of one organization.
  *
- * Two switches, both on by default: the organization's policy (it owns the credit pool) and
- * the member's own preference. A call skips the approvals queue only when both are
- * explicitly off. A missing row or a failed read counts as on, so a lookup can never waive
- * an approval. Read fresh on every decision, so turning a switch back on takes effect at
- * once.
+ * Two switches, both off by default: the organization's policy (it owns the credit pool) and
+ * the member's own preference. A call waits in the approvals queue as soon as either one is
+ * on, so a member can only relax the organization's choice. A missing row follows the
+ * default (off). A failed read counts as on, so an error can never waive an approval. Read
+ * fresh on every decision, so turning a switch on takes effect at once.
  */
 @Traced()
 @Injectable()
@@ -32,9 +32,9 @@ export class McpApprovalPolicyService {
           where: { isDeleted: false, userId },
         }),
       ]);
-      return !(
-        organization?.isMcpApprovalRequired === false &&
-        member?.isMcpApprovalRequired === false
+      return (
+        organization?.isMcpApprovalRequired === true ||
+        member?.isMcpApprovalRequired === true
       );
     } catch {
       return true;

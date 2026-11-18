@@ -57,37 +57,44 @@ describe('OrganizationMcpApprovalCard', () => {
     mocks.updateSettings.mockResolvedValue(undefined);
   });
 
-  it('requires approval for an organization that never chose', () => {
+  it('does not require approval for an organization that never chose', () => {
     render(<OrganizationMcpApprovalCard />);
-    expect(toggle()).toBeChecked();
+    expect(toggle()).not.toBeChecked();
   });
 
-  it('lets an owner turn approvals off and explains the credit risk', async () => {
+  it('explains the credit risk while approvals are off', () => {
+    render(<OrganizationMcpApprovalCard />);
+    expect(screen.getByText(/spend your organization's credits/)).toBeVisible();
+  });
+
+  it('lets an owner turn approvals on', async () => {
     const { rerender } = render(<OrganizationMcpApprovalCard />);
     await userEvent.click(toggle());
     await waitFor(() =>
       expect(mocks.updateSettings).toHaveBeenCalledWith(
         'isMcpApprovalRequired',
-        false,
+        true,
       ),
     );
     expect(await screen.findByText('Setting saved.')).toBeInTheDocument();
 
-    mocks.settings = { isMcpApprovalRequired: false };
+    mocks.settings = { isMcpApprovalRequired: true };
     rerender(<OrganizationMcpApprovalCard />);
-    expect(toggle()).not.toBeChecked();
-    expect(screen.getByText(/spend your organization's credits/)).toBeVisible();
+    expect(toggle()).toBeChecked();
+    expect(
+      screen.queryByText(/spend your organization's credits/),
+    ).not.toBeInTheDocument();
   });
 
-  it('lets an admin turn approvals back on', async () => {
+  it('lets an admin turn approvals back off', async () => {
     mocks.role = MemberRole.ADMIN;
-    mocks.settings = { isMcpApprovalRequired: false };
+    mocks.settings = { isMcpApprovalRequired: true };
     render(<OrganizationMcpApprovalCard />);
     await userEvent.click(toggle());
     await waitFor(() =>
       expect(mocks.updateSettings).toHaveBeenCalledWith(
         'isMcpApprovalRequired',
-        true,
+        false,
       ),
     );
   });

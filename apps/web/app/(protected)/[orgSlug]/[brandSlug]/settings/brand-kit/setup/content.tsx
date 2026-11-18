@@ -551,6 +551,7 @@ export default function BrandGuidedSetupPage() {
     void handleRefreshBrand();
   }, [brandId, clearBrandDrafts, handleRefreshBrand, queryClient]);
 
+  // use-effect-audit: ignore runs the interview completion handler once the status turns complete
   useEffect(() => {
     if (status === 'complete') {
       handleInterviewComplete();

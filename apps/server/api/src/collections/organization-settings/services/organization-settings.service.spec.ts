@@ -277,7 +277,7 @@ describe('OrganizationSettingsService.ensureForOrganization', () => {
       isGenerateImagesEnabled: true,
       isGenerateMusicEnabled: true,
       isGenerateVideosEnabled: true,
-      isMcpApprovalRequired: true,
+      isMcpApprovalRequired: false,
       isNotificationsDiscordEnabled: false,
       isNotificationsEmailEnabled: true,
       isNotificationsTelegramEnabled: false,
