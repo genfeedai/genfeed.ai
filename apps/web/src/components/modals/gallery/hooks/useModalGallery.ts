@@ -200,14 +200,14 @@ export function useModalGallery({
     }
   });
 
-  useEffect(() => {
+  useResetOnChange([isOpen], () => {
     if (!isOpen) {
       setActiveTab('media');
       setPageRequest({ page: 1, tab: 'media' });
       setSelectedItems([]);
       setSelectedItemsData([]);
     }
-  }, [isOpen]);
+  });
 
   // Create a stable string representation of selected references for comparison
   const selectedReferencesKey = useMemo(
