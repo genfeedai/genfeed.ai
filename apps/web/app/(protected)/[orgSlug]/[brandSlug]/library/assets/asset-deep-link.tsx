@@ -78,6 +78,7 @@ export default function AssetDeepLink() {
     if (!assetId) setOpenedKey(null);
   });
 
+  // use-effect-audit: ignore opens the shared inspector store once the linked asset resolves
   useEffect(() => {
     if (!ingredient || !isInScope || openedKey === openKey) return;
     openIngredientSidebar(ingredient);
@@ -86,6 +87,7 @@ export default function AssetDeepLink() {
 
   // A background refresh can find the opened asset deleted or moved out of
   // scope: close it and report it unavailable instead of keeping it open.
+  // use-effect-audit: ignore closes the shared inspector store when the opened asset leaves scope
   useEffect(() => {
     if (!ingredient || isInScope || openedKey !== openKey) return;
     closeIngredientSidebar();
