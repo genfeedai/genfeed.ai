@@ -1,4 +1,5 @@
 import type { CredentialDocument } from '@api/collections/credentials/credential.types';
+import { retryTransactionStart } from '@api/collections/workflows/utils/serializable-retry.util';
 import {
   SERVER_TOKENS,
   type ServerCredentialStore,
@@ -133,7 +134,9 @@ export class TwitterTokenRefreshService {
         scope,
       } = await client.refreshOAuth2Token(decryptedRefreshToken);
 
-      return await this.credentialsService.patch(credentials.id, {
+      // X has consumed the old grant. Keep the issued tokens and their original
+      // expiry across retries of a database transaction that never started.
+      const update = {
         accessToken,
         accessTokenExpiry: expiresIn
           ? new Date(Date.now() + expiresIn * 1000)
@@ -142,7 +145,10 @@ export class TwitterTokenRefreshService {
         isDeleted: false,
         refreshToken: newRefreshToken,
         ...buildGrantedScopesCredentialPatch(scope),
-      });
+      };
+      return await retryTransactionStart(() =>
+        this.credentialsService.patch(credentials.id, update),
+      );
     } catch (error: unknown) {
       this.loggerService.error('Refresh token failed', error);
 
