@@ -47,11 +47,7 @@ const FRONTEND_SECRETS = [
   'SENTRY_AUTH_TOKEN',
   'TURBO_TOKEN',
 ];
-const ENGINE_SECRETS = [
-  ...FRONTEND_SECRETS,
-  'CONTENT_HARNESS_BUNDLE_URI',
-  'CONTENT_HARNESS_BUNDLE_SHA256',
-];
+const ENGINE_SECRETS = FRONTEND_SECRETS;
 const ENTRY_SECRETS = ENGINE_SECRETS;
 
 // A skipped verify-suite must only be accepted when validate-release proved the
