@@ -251,6 +251,7 @@ function useSelectionHighlight({
   selectedNodeIds: string[];
   setHighlightedNodeIds: (ids: string[]) => void;
 }) {
+  // use-effect-audit: ignore mirrors the selection into the canvas highlight store
   useEffect(() => {
     if (selectedNodeIds.length === 0) {
       setHighlightedNodeIds([]);

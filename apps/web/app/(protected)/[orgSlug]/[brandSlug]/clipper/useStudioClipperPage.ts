@@ -828,7 +828,7 @@ export function useStudioClipperPage(options?: { projectId?: string }) {
     startUploadedSource,
   ]);
 
-  // Poll for analysis completion
+  // use-effect-audit: ignore polls analysis completion on a timer and aborts on cleanup
   useEffect(() => {
     if (step !== 'review' || !project?.projectId) return;
     if (project.status === 'failed') return;
@@ -1172,7 +1172,7 @@ export function useStudioClipperPage(options?: { projectId?: string }) {
     ],
   );
 
-  // Poll for clip results (Step 3)
+  // use-effect-audit: ignore polls clip results on a timer and aborts on cleanup
   useEffect(() => {
     if (step !== 'progress' || !project?.projectId) return;
     if (!isDocumentVisible) return;

@@ -121,6 +121,7 @@ export default function Searchbar({
 
   // Re-sync the draft only when the committed value changes from outside
   // (URL navigation, programmatic reset), never because our own commit landed.
+  // use-effect-audit: ignore re-syncs the draft when the committed value changes from outside
   useEffect(() => {
     if (committedValue !== lastCommittedRef.current) {
       lastCommittedRef.current = committedValue;

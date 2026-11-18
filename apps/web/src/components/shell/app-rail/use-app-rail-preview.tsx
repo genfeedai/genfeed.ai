@@ -242,6 +242,7 @@ export function useAppRailPreview({
 
   // A preview for an app that became active, or a rail that stopped allowing
   // previews (a drag started), must not stay on screen.
+  // use-effect-audit: ignore closes the flyout when its app stops being previewable
   useEffect(() => {
     if (position && !isPreviewable(position.id)) close();
   }, [close, isPreviewable, position]);

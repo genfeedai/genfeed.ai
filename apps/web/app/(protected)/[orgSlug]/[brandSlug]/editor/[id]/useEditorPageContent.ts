@@ -360,8 +360,9 @@ export function useEditorPageContent(projectId: string) {
 
   // Leaving the project in-app queues its latest content; the outbox finishes
   // the write after this page is gone.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: projectId is the departure trigger.
+  // use-effect-audit: ignore flushes the latest edits to the save outbox when leaving the project
   useEffect(() => {
+    void projectId;
     return () => {
       flushEdits();
     };

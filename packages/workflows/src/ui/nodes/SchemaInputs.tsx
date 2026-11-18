@@ -413,6 +413,7 @@ function SchemaInputsComponent({
   // submit it to the provider. Repair the persisted value through the same
   // change handler a manual pick uses — the model's default when it is still
   // offered, otherwise the first declared option.
+  // use-effect-audit: ignore repairs a persisted enum value the model no longer offers
   useEffect(() => {
     for (const [key, property] of sortedProperties) {
       const declared = resolveDeclaredEnumOptions(
