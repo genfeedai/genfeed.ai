@@ -485,49 +485,41 @@ export function useGenerationActionCard({
     setResolution(fallbackResolution);
   }
 
-  useEffect(() => {
-    const cleared: string[] = [];
-    if (!supportsEndFrame && endFrameId) {
-      setEndFrameId(null);
-      cleared.push('End Frame');
-    } else if (supportsInterpolation && !startFrameId && endFrameId) {
-      setEndFrameId(null);
-      cleared.push('End Frame');
-    } else if (
-      supportsEndFrame &&
-      !supportsInterpolation &&
-      startFrameId &&
-      endFrameId
-    ) {
-      setEndFrameId(null);
-      cleared.push('End Frame');
-    }
-    if (!supportsVideoReferences && videoReferenceIds.length > 0) {
-      setVideoReferenceIds([]);
-      cleared.push('Video Reference');
-    } else if (
-      supportsVideoReferences &&
-      videoReferenceIds.length > maxVideoReferences
-    ) {
-      setVideoReferenceIds((current) => current.slice(0, maxVideoReferences));
-      setReferenceNotice(
-        `Video References limited to ${maxVideoReferences} for the selected model.`,
-      );
-    }
-    if (cleared.length > 0) {
-      setReferenceNotice(
-        `${cleared.join(' and ')} cleared because the selected model does not support it.`,
-      );
-    }
-  }, [
-    endFrameId,
-    maxVideoReferences,
-    startFrameId,
-    supportsEndFrame,
-    supportsInterpolation,
-    supportsVideoReferences,
-    videoReferenceIds.length,
-  ]);
+  // Settings the chosen model cannot use are cleared while rendering, like the
+  // resolution above, so the stale pick never paints.
+  const cleared: string[] = [];
+  if (!supportsEndFrame && endFrameId) {
+    setEndFrameId(null);
+    cleared.push('End Frame');
+  } else if (supportsInterpolation && !startFrameId && endFrameId) {
+    setEndFrameId(null);
+    cleared.push('End Frame');
+  } else if (
+    supportsEndFrame &&
+    !supportsInterpolation &&
+    startFrameId &&
+    endFrameId
+  ) {
+    setEndFrameId(null);
+    cleared.push('End Frame');
+  }
+  if (!supportsVideoReferences && videoReferenceIds.length > 0) {
+    setVideoReferenceIds([]);
+    cleared.push('Video Reference');
+  } else if (
+    supportsVideoReferences &&
+    videoReferenceIds.length > maxVideoReferences
+  ) {
+    setVideoReferenceIds((current) => current.slice(0, maxVideoReferences));
+    setReferenceNotice(
+      `Video References limited to ${maxVideoReferences} for the selected model.`,
+    );
+  }
+  if (cleared.length > 0) {
+    setReferenceNotice(
+      `${cleared.join(' and ')} cleared because the selected model does not support it.`,
+    );
+  }
 
   // use-effect-audit: ignore auto-resizes the textarea element to its content
   useEffect(() => {
