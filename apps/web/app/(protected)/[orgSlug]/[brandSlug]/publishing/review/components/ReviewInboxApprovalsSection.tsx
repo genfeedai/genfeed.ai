@@ -6,7 +6,7 @@ import Pagination from '@ui/navigation/pagination/Pagination';
 import { EmptyState } from '@ui/primitives/empty-state';
 import { TriangleAlert } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import type { ReviewInboxApprovalsSectionProps } from '@/props/publishing/review-inbox-approvals.props';
 import ReviewInboxApprovalsTable from './ReviewInboxApprovalsTable';
 import ReviewInboxBulkBar from './ReviewInboxBulkBar';
@@ -32,7 +32,9 @@ export default function ReviewInboxApprovalsSection({
   const { highlightedItemId, items, sourceFilters } = approvals;
   const [requestedPage, setRequestedPage] = useState(1);
   const [pickedIds, setPickedIds] = useState<string[]>([]);
-  const handledHighlightRef = useRef<string | null>(null);
+  const [handledHighlightId, setHandledHighlightId] = useState<string | null>(
+    null,
+  );
   const pageCount = getReviewInboxPageCount(items.length);
   const page = Math.min(requestedPage, pageCount);
   const visibleItems = useMemo(
@@ -104,15 +106,13 @@ export default function ReviewInboxApprovalsSection({
 
   // A deep link lands once on the page holding its row, so a later refetch
   // does not pull the reviewer back from the page they moved to.
-  useEffect(() => {
-    if (!highlightedItemId || handledHighlightRef.current === highlightedItemId)
-      return;
+  if (highlightedItemId && handledHighlightId !== highlightedItemId) {
     const highlightedPage = getReviewInboxItemPage(items, highlightedItemId);
     if (highlightedPage) {
-      handledHighlightRef.current = highlightedItemId;
+      setHandledHighlightId(highlightedItemId);
       setRequestedPage(highlightedPage);
     }
-  }, [highlightedItemId, items]);
+  }
 
   if (approvals.error) {
     return (

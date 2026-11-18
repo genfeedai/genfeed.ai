@@ -23,7 +23,7 @@ import {
 import { Textarea } from '@ui/primitives/textarea';
 import { Workflow } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import type { AgentWorkflowRunDialogProps } from '@/features/automation/props/agent-workflow-run-dialog.props';
 import {
   buildAgentWorkflowRunInput,
@@ -159,30 +159,40 @@ export default function AgentWorkflowRunDialog({
   }
   const isLoadingLibrary = libraryQuery.isLoading;
 
-  useEffect(() => {
-    if (!isOpen || !strategy) {
-      return;
-    }
+  // Each time the dialog opens on a strategy, or the binding changes while it
+  // is open, the form is seeded again during render, strategy first.
+  const [seededStrategy, setSeededStrategy] = useState<
+    AgentWorkflowRunDialogProps['strategy'] | null
+  >(null);
+  const [seededBinding, setSeededBinding] = useState<
+    AgentWorkflowRunDialogProps['binding'] | null
+  >(null);
+  const strategySeedKey = isOpen && strategy ? strategy : null;
+  const bindingSeedKey = isOpen && binding ? binding : null;
 
-    const defaultTopic =
-      (Array.isArray(strategy.topics) && strategy.topics[0]) ||
-      strategy.label ||
-      '';
-    setTopic(defaultTopic);
-    setPrompt(strategy.voice || '');
-    setReferenceImage('');
-    setCta('');
-    setSelectedIngredientId(NONE_INGREDIENT);
-    setSelectedImage(null);
-    setExtraInputs({});
-  }, [isOpen, strategy]);
-
-  useEffect(() => {
-    if (!isOpen || !binding) {
-      return;
+  if (strategySeedKey !== seededStrategy) {
+    setSeededStrategy(strategySeedKey);
+    if (strategySeedKey) {
+      setTopic(
+        (Array.isArray(strategySeedKey.topics) && strategySeedKey.topics[0]) ||
+          strategySeedKey.label ||
+          '',
+      );
+      setPrompt(strategySeedKey.voice || '');
+      setReferenceImage('');
+      setCta('');
+      setSelectedIngredientId(NONE_INGREDIENT);
+      setSelectedImage(null);
+      setExtraInputs({});
     }
-    setExtraInputs(seedExtraInputsFromBinding(binding.inputs));
-  }, [binding, isOpen]);
+  }
+
+  if (bindingSeedKey !== seededBinding) {
+    setSeededBinding(bindingSeedKey);
+    if (bindingSeedKey) {
+      setExtraInputs(seedExtraInputsFromBinding(bindingSeedKey.inputs));
+    }
+  }
 
   const extraSlots = useMemo(
     () => listEditableExtraSlots(binding?.inputs),

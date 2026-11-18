@@ -17,6 +17,7 @@ import { getVoiceName } from '@helpers/voice/voice-name.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useResetOnChange } from '@hooks/utils/use-reset-on-change/use-reset-on-change';
+import { useSyncedState } from '@hooks/utils/use-synced-state/use-synced-state';
 import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
@@ -36,7 +37,7 @@ import { getIngredientDisplayLabel } from '@utils/media/ingredient-type.util';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useVoiceCatalog } from '@/features/library/voices/hooks/use-voice-catalog';
 import { useAvatarImages } from '@/hooks/data/ingredients/use-avatar-images/use-avatar-images';
 import { useHeyGenCatalog } from '@/hooks/data/integrations/use-heygen-catalog';
@@ -63,7 +64,27 @@ export default function OrganizationIdentityDefaultsCard() {
     OrganizationsService.getInstance(token),
   );
 
-  const [selectedVoiceId, setSelectedVoiceId] = useState('');
+  const selectedDefaultVoice =
+    catalog.find((voice) =>
+      matchesDefaultVoice(
+        {
+          defaultVoiceId: settings?.defaultVoiceId,
+          defaultVoiceRef: orgDefaultVoiceRef,
+        },
+        voice,
+      ),
+    ) ?? null;
+  const defaultVoiceValue =
+    orgDefaultVoiceRef?.provider === VoiceProvider.HEYGEN &&
+    orgDefaultVoiceRef.externalVoiceId &&
+    orgDefaultVoiceRef.ownership
+      ? heyGenVoiceValue({
+          ownership: orgDefaultVoiceRef.ownership,
+          voiceId: orgDefaultVoiceRef.externalVoiceId,
+        })
+      : (selectedDefaultVoice?.id ?? settings?.defaultVoiceId ?? '');
+  const [selectedVoiceId, setSelectedVoiceId] =
+    useSyncedState(defaultVoiceValue);
   const defaultAvatarValue = settings?.defaultAvatarRef
     ? heyGenAvatarValue(settings.defaultAvatarRef)
     : (settings?.defaultAvatarIngredientId ?? '');
@@ -80,30 +101,6 @@ export default function OrganizationIdentityDefaultsCard() {
     [settings?.defaultAvatarIngredientId, settings?.defaultAvatarRef],
     () => setSelectedAvatarId(defaultAvatarValue),
   );
-
-  useEffect(() => {
-    const selectedVoice =
-      catalog.find((voice) =>
-        matchesDefaultVoice(
-          {
-            defaultVoiceId: settings?.defaultVoiceId,
-            defaultVoiceRef: orgDefaultVoiceRef,
-          },
-          voice,
-        ),
-      ) ?? null;
-
-    setSelectedVoiceId(
-      orgDefaultVoiceRef?.provider === VoiceProvider.HEYGEN &&
-        orgDefaultVoiceRef.externalVoiceId &&
-        orgDefaultVoiceRef.ownership
-        ? heyGenVoiceValue({
-            ownership: orgDefaultVoiceRef.ownership,
-            voiceId: orgDefaultVoiceRef.externalVoiceId,
-          })
-        : (selectedVoice?.id ?? settings?.defaultVoiceId ?? ''),
-    );
-  }, [catalog, settings?.defaultVoiceId, orgDefaultVoiceRef]);
 
   const catalogOptions = useMemo(
     () => [
