@@ -285,6 +285,7 @@ export function useEditorPageContent(projectId: string) {
     return () => controller.abort();
   }, [projectId, isIdentityLoaded]);
 
+  // use-effect-audit: ignore subscribes to the editor save outbox
   useEffect(() => {
     return editorSaveOutbox.subscribe(projectId, (status) => {
       if (status === 'conflict') {

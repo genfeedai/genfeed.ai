@@ -54,6 +54,7 @@ export default function BrandRuleProposals({
 
   const onSavingChangeRef = useRef(onSavingChange);
   onSavingChangeRef.current = onSavingChange;
+  // use-effect-audit: ignore reports the saving state to the parent
   useEffect(() => {
     onSavingChangeRef.current?.(isSaving);
   }, [isSaving]);
