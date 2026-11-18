@@ -12,6 +12,7 @@ import type {
   AgentArtifactReference,
   AgentDashboardOperation,
   AgentKnowledgeCitations,
+  AgentPageControl,
   AgentScopeMetadata,
   AgentThreadUiActionRun,
   AgentTransferPresentation,
@@ -367,6 +368,8 @@ export interface AgentPageContext {
   draftSummary?: string;
   draftTitle?: string;
   draftType?: string;
+  /** Controls on the page the agent can propose changes to (names are untrusted). */
+  pageControls?: AgentPageControl[];
   postContent?: string;
   postAuthor?: string;
   route?: string;

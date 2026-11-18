@@ -610,5 +610,23 @@
   "strategyStatus": {
     "emptyDescription": "Create one in the configuration above.",
     "emptyTitle": "No strategy configured yet"
+  },
+  "pageControlChangeCard": {
+    "apply": "Apply changes",
+    "applied": "Changed",
+    "done": "Done",
+    "retry": "Try again",
+    "setValue": "Set {label} to {value}",
+    "turnOff": "Turn off {label}",
+    "turnOn": "Turn on {label}",
+    "unchanged": "Already set, nothing to change",
+    "refused": {
+      "ambiguous": "More than one control on this page has this name. Change it yourself.",
+      "failed": "The page did not take the change. {detail}",
+      "missing": "This control is not on the page you are on. Open its page first.",
+      "needs-person": "Needs you: {detail}. Change it yourself.",
+      "no-bridge": "This page has no controls the agent can change.",
+      "unavailable": "This control cannot be changed right now."
+    }
   }
 }

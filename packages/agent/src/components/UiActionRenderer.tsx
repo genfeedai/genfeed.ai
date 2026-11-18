@@ -33,6 +33,7 @@ import { LivestreamBotCard } from '@genfeedai/agent/components/LivestreamBotCard
 import { MutationApprovalCard } from '@genfeedai/agent/components/MutationApprovalCard';
 import { NextStepsCard } from '@genfeedai/agent/components/NextStepsCard';
 import { OnboardingChecklistCard } from '@genfeedai/agent/components/OnboardingChecklistCard';
+import { PageControlChangeCard } from '@genfeedai/agent/components/PageControlChangeCard';
 import { PublishPostCard } from '@genfeedai/agent/components/PublishPostCard';
 import { ReviewGateCard } from '@genfeedai/agent/components/ReviewGateCard';
 import { SchedulePostCard } from '@genfeedai/agent/components/SchedulePostCard';
@@ -318,6 +319,9 @@ export function UiActionRenderer({
           }
         />
       );
+      break;
+    case 'page_control_change_card':
+      card = <PageControlChangeCard action={action} isInert={isInert} />;
       break;
     default:
       card = (
