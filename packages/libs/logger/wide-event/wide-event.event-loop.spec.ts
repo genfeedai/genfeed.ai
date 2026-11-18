@@ -34,6 +34,40 @@ describe('EventLoopLagSampler', () => {
   });
 });
 
+describe('EventLoopLagSampler garbage-collection pauses', () => {
+  afterEach(() => eventLoopLagSampler.stop());
+
+  it('reports the longest pause that began in the window, rounded', () => {
+    const sampler = new EventLoopLagSampler();
+    sampler.start();
+    sampler.recordGcPause(1_000, 12.4);
+    sampler.recordGcPause(1_200, 310.6);
+    sampler.recordGcPause(1_500, 4);
+
+    expect(sampler.maxGcPauseSince(1_000)).toBe(311);
+    expect(sampler.maxGcPauseSince(1_300)).toBe(4);
+    expect(sampler.maxGcPauseSince(2_000)).toBe(0);
+    sampler.stop();
+  });
+
+  it('has no reading while the sampler is not running', () => {
+    const sampler = new EventLoopLagSampler();
+    sampler.recordGcPause(1_000, 300);
+
+    expect(sampler.maxGcPauseSince(0)).toBeUndefined();
+  });
+
+  it('forgets pauses older than thirty seconds', () => {
+    const sampler = new EventLoopLagSampler();
+    sampler.start();
+    sampler.recordGcPause(0, 800);
+    sampler.recordGcPause(31_000, 2);
+
+    expect(sampler.maxGcPauseSince(0)).toBe(2);
+    sampler.stop();
+  });
+});
+
 describe('finishWideEvent event-loop reading', () => {
   afterEach(() => eventLoopLagSampler.stop());
 
@@ -53,6 +87,27 @@ describe('finishWideEvent event-loop reading', () => {
   }
 
   it('stamps the largest delay seen while the request ran', () => {
-    expect(run().runtime).toEqual({ event_loop_lag_max_ms: 640 });
+    expect(run().runtime).toMatchObject({ event_loop_lag_max_ms: 640 });
+  });
+
+  it('stamps the longest collection pause while the request ran', () => {
+    eventLoopLagSampler.start();
+    const emitted: WideEventRecord[] = [];
+    const started = startWideEvent({
+      identity: { service: 'api' },
+      kind: 'http',
+      requestId: 'req-2',
+      trace: { spanId: 'span-2', traceId: 'trace-2' },
+    });
+    eventLoopLagSampler.recordGcPause(started.startedAt + 1, 420);
+    eventLoopLagSampler.record(started.startedAt + 1, 430);
+    finishWideEvent({ wideEvent: (event) => emitted.push(event) }, started, {
+      status_code: 500,
+    });
+
+    expect(emitted[0].runtime).toEqual({
+      event_loop_lag_max_ms: 430,
+      gc_pause_max_ms: 420,
+    });
   });
 });
