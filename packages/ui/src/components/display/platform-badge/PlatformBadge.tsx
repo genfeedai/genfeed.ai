@@ -41,6 +41,7 @@ export default function PlatformBadge({
   const Icon = brand?.icon ?? Globe;
   const iconColor = brand?.iconColor ?? 'text-muted-foreground';
   const isSolid = variant === 'solid';
+  const solidTextColor = brand?.solidTextColor ?? 'text-white'; // design-system-allow-content-color -- glyph on platform brand fill
 
   return (
     <span
@@ -49,7 +50,7 @@ export default function PlatformBadge({
         isSolid
           ? (brand?.solidBgColor ?? 'bg-foreground')
           : (brand?.bgColor ?? 'bg-foreground/10'),
-        isSolid ? 'text-white' : (brand?.textColor ?? 'text-foreground'), // design-system-allow-content-color -- glyph on platform brand fill
+        isSolid ? solidTextColor : (brand?.textColor ?? 'text-foreground'),
         SIZE_CLASSES[size].container,
         className,
       )}
@@ -58,7 +59,7 @@ export default function PlatformBadge({
         aria-hidden="true"
         className={cn(
           SIZE_CLASSES[size].icon,
-          isSolid ? 'text-white' : iconColor, // design-system-allow-content-color -- glyph on platform brand fill
+          isSolid ? solidTextColor : iconColor,
         )}
       />
       {showLabel ? (

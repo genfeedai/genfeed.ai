@@ -89,6 +89,19 @@ it('initializes the standard bridge and accepts host theme', async () => {
   );
 });
 
+it('pairs the Genfeed readiness logo with its theme-aware badge background', async () => {
+  result('get_brand_publishing_readiness', [
+    { canSchedule: true, providerKey: 'genfeed', state: 'publish_capable' },
+  ]);
+
+  await vi.runAllTimersAsync();
+
+  const icon = document.querySelector(
+    '[data-testid="preview-card"] .bg-primary svg[fill="currentColor"]',
+  );
+  expect(icon?.classList.contains('text-primary-foreground')).toBe(true);
+});
+
 it('renders post content as text and ignores messages from other windows', () => {
   const payload = {
     structuredContent: {
