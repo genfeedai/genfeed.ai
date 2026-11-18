@@ -171,6 +171,7 @@ function WorkspacePageContentContent({
     ],
   );
 
+  // use-effect-audit: ignore publishes the selection to the work surface and clears it on unmount
   useEffect(() => {
     if (!surfaceSelection || !isOverviewSection) {
       return;

@@ -136,6 +136,7 @@ export function useAgentThreadStatusPush({
     };
   }, [isActive, isReady, reloadThreads, subscribe]);
 
+  // use-effect-audit: ignore re-syncs the thread status after the socket reconnects
   useEffect(() => {
     const previous = previousConnectionStateRef.current;
     previousConnectionStateRef.current = connectionState;
