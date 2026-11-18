@@ -229,8 +229,16 @@ describe('HeygenAvatarProvider', () => {
         async (quality, engine, modelKey, resolution) => {
           const fundSubmission = vi.fn().mockResolvedValue(undefined);
 
-          await provider.generateVideo({ ...input, fundSubmission, quality });
+          const result = await provider.generateVideo({
+            ...input,
+            fundSubmission,
+            quality,
+          });
 
+          expect(result).toMatchObject({
+            jobId: 'avatar-job-1',
+            status: 'processing',
+          });
           expect(fundSubmission).toHaveBeenCalledWith({
             isByok: false,
             selection: {
@@ -253,8 +261,12 @@ describe('HeygenAvatarProvider', () => {
       );
 
       it('takes Turbo at 1080p when no quality is chosen and the look supports it', async () => {
-        await provider.generateVideo(input);
+        const result = await provider.generateVideo(input);
 
+        expect(result).toMatchObject({
+          jobId: 'avatar-job-1',
+          status: 'processing',
+        });
         expect(heygenService.generateNativeAvatarVideo).toHaveBeenCalledWith(
           'clipper-result-1',
           avatar6Ref,

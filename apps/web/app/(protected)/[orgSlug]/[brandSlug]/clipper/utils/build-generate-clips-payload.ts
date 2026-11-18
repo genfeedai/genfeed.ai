@@ -1,20 +1,7 @@
 import type {
-  AvatarProvider,
-  ClipperAvatarQualityChoice,
-  ClipperResultMode,
-  IHighlight,
-} from '@/props/studio/clipper.props';
-import type { GenerateClipsPayload } from '@/props/studio/clipper-api.props';
-
-interface BuildGenerateClipsPayloadInput {
-  avatarId: string;
-  avatarProvider: AvatarProvider;
-  avatarQuality?: ClipperAvatarQualityChoice;
-  editedHighlights: IHighlight[];
-  mode: ClipperResultMode;
-  selectedHighlightIds: string[];
-  voiceId: string;
-}
+  BuildGenerateClipsPayloadInput,
+  GenerateClipsPayload,
+} from '@/props/studio/clipper-api.props';
 
 /**
  * Builds the generate request. Avatar fields apply to avatar mode only, a
