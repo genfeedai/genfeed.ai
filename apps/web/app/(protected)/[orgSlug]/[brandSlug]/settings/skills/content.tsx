@@ -464,6 +464,7 @@ export default function BrandSettingsSkillsPage() {
     }
   }, [acquireService, isScopeMatch, scopeKey, translate]);
 
+  // use-effect-audit: ignore loads the catalog on mount and releases request lifecycle refs on unmount
   useEffect(() => {
     lifecycleRef.current.isActive = true;
     void refreshCatalog();
@@ -496,9 +497,8 @@ export default function BrandSettingsSkillsPage() {
     });
   }, [filterSignature, pathname, replace, searchParamsString]);
 
-  // Page and filter changes reload just the table page; the first load and
-  // the import reset go through refreshCatalog.
   const [isPageLoading, setIsPageLoading] = useState(false);
+  // use-effect-audit: ignore abortable table page reload on page or filter change
   useEffect(() => {
     if (!isScopeMatch || catalogScopeKeyRef.current !== scopeKey) return;
     const queryKey = JSON.stringify([scopeKey, pageQuery]);
