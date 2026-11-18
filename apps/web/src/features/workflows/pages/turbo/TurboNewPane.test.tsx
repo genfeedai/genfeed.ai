@@ -322,6 +322,21 @@ describe('TurboNewPane', () => {
     ]);
   });
 
+  it('marks the cached projects list stale once a project is created', async () => {
+    const client = createTestQueryClient();
+    const listKey = ['turbo-projects', 'brand-1', ''];
+    client.setQueryData(listKey, { pageParams: [1], pages: [] });
+    renderPane(client);
+
+    typePrompt('Spring sale teasers');
+    fireEvent.click(sendButton());
+
+    await waitFor(() =>
+      expect(db.visited).toEqual(['/acme/moonrise/turbo/run-1']),
+    );
+    expect(client.getQueryState(listKey)?.isInvalidated).toBe(true);
+  });
+
   it('sends the chosen formats and idea count', async () => {
     renderPane();
 

@@ -689,8 +689,8 @@ function UniversalWorkspaceShellContent({
     ? `${activeContextSidebar.selection.kind}:${activeContextSidebar.selection.id}`
     : null;
 
-  // A new selection brings the Details tab forward; opening the agent brings
-  // the conversation forward.
+  // A new selection brings the Details tab forward.
+  // use-effect-audit: ignore a new selection brings the Details tab forward while a panel is open
   useEffect(() => {
     if (selectionKey && (isInspectorOpen || isMobileContextOpen)) {
       setPanelTabPreference('details');
