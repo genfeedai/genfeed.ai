@@ -295,8 +295,10 @@ function CliAuthPageContent() {
     user?.id,
   ]);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: account/request scope and sign-in state own the handoff lifetime, independent of refreshed callback identities.
+  // use-effect-audit: ignore cancels the sign-in handoff when the account, request or sign-in state changes
   useEffect(() => {
+    void flowScope;
+    void isSignedIn;
     // Session/profile refreshes must not cancel a handoff already in progress.
     // A different account/request, sign-out, or unmount must cancel it.
     flowControllerRef.current?.abort();

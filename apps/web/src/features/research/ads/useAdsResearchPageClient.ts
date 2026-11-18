@@ -607,6 +607,7 @@ export function useAdsResearchPageClient() {
 
   useRestoreResearchFinding(findings, isLoading);
 
+  // use-effect-audit: ignore opens the ad that the URL reference points at once ads load
   useEffect(() => {
     if (!requestedReference) {
       setSelectedAd(null);

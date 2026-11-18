@@ -221,6 +221,7 @@ export function useEvaluation({
     invalidateRead,
     notificationsService,
   ]);
+  // use-effect-audit: ignore fetches the evaluation when the content is shown
   useEffect(() => {
     if (autoFetch && contentId) void fetchEvaluation();
   }, [autoFetch, contentId, fetchEvaluation]);
