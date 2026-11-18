@@ -97,6 +97,7 @@ export function useWebSocket(): UseWebSocketReturn {
     };
   }, []);
 
+  // use-effect-audit: ignore connects and disconnects the websocket service with the signed-in state
   useEffect(() => {
     if (isSignedIn) {
       connect();

@@ -500,6 +500,7 @@ export function useBrandProviderState({
 
   const lastSyncedUrlBrandIdRef = useRef('');
 
+  // use-effect-audit: ignore persists the route brand as the last-used brand on the server
   useEffect(() => {
     if (
       !effectiveIsSignedIn ||

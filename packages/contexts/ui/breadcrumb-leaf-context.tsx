@@ -58,6 +58,7 @@ export function useRegisterBreadcrumbLeaf(
   const setLeaf = context?.setLeaf;
   const clearLeaf = context?.clearLeaf;
 
+  // use-effect-audit: ignore registers a breadcrumb leaf and clears it on unmount
   useEffect(() => {
     if (!setLeaf || !clearLeaf || !label) {
       return;

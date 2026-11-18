@@ -44,6 +44,7 @@ export function useModelsToolbar(): ModelsToolbar | null {
 export function usePublishModelsToolbar(toolbar: ModelsToolbar | null): void {
   const setToolbar = use(ModelsToolbarSetterContext);
 
+  // use-effect-audit: ignore registers a toolbar with the layout and clears it on unmount
   useEffect(() => {
     if (!setToolbar) {
       return;

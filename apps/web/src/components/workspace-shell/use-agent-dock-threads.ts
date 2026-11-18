@@ -189,6 +189,7 @@ export function useAgentDockThreads(
 
   // A record page holds the record's own conversation: the thread the dock
   // last held for it, else a fresh one that the first message creates.
+  // use-effect-audit: ignore opens the record's thread in the chat store; a latest-key guard drops stale results
   useEffect(() => {
     if (!isEnabled || !threadKey) {
       if (openedThreadKey.current) {

@@ -195,6 +195,7 @@ export function useOptionalAnalyticsContext():
 export function useAnalyticsToolbar(node: ReactNode): void {
   const setToolbarNode = use(AnalyticsContext)?.setToolbarNode;
 
+  // use-effect-audit: ignore registers a toolbar node with the layout and clears it on unmount
   useEffect(() => {
     if (!setToolbarNode) {
       return;
@@ -211,6 +212,7 @@ export function useAnalyticsToolbar(node: ReactNode): void {
 export function useAnalyticsSearch(node: ReactNode): void {
   const setSearchNode = use(AnalyticsContext)?.setSearchNode;
 
+  // use-effect-audit: ignore registers a search node with the layout and clears it on unmount
   useEffect(() => {
     if (!setSearchNode) {
       return;

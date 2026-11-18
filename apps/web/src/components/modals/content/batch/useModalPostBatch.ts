@@ -542,6 +542,7 @@ export function useModalPostBatch(props: ModalPostBatchProps) {
   ]);
 
   // Auto-refresh expired tokens when modal opens
+  // use-effect-audit: ignore refreshes expired platform credentials once when the modal opens
   useEffect(() => {
     if (
       !credentials ||

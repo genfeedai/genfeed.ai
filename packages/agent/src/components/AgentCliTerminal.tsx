@@ -277,6 +277,7 @@ export function useAgentCliTerminal(
   }, []);
 
   // T1: React to activeThreadId changes
+  // use-effect-audit: ignore drives the terminal transport
   useEffect(() => {
     const transport = transportRef.current;
     if (!transport?.isConnected()) {
