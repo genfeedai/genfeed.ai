@@ -263,6 +263,14 @@ runs were 35% of PR runner time (242 of 691 runner-hours, 2026-11-04 to 11-06; i
 - `.codex/skills/` is a symlink alias to `.agents/skills/` for Codex runtime discovery.
 - Add or update reusable repo skills in `.agents/skills/`, not in `.codex/skills/`.
 
+## ui-sdk
+
+`@ui-sdk/react` and `@ui-sdk/core` are installed in `apps/web`. They are headless: behaviour, focus and ARIA, with no styles of their own.
+
+- Before using ui-sdk, follow the `ui-sdk` skill (`.agents/skills/ui-sdk/`) if it is installed, and read `apps/web/node_modules/@ui-sdk/react/docs/llms.txt`. To build a new component, also search `apps/web/node_modules/@ui-sdk/react/docs/core.md` by heading, and read `rendering.md` next to it.
+- Do not import `@ui-sdk/core/web.css`. It restyles bare `a`, `hr`, `code` and `kbd`, sets its own focus outline, and takes its colours from the OS colour scheme instead of `data-theme`. Style ui-sdk parts with the tokens in `DESIGN.md`.
+- The skill is vendored from the ui-sdk repository and pinned in `skills-lock.json`; do not edit it by hand. Where it and this file disagree (verification commands, test rules, UI guards), this file wins.
+
 <!-- BEGIN:turborepo-agent-rules -->
 
 # This is NOT the Turborepo you know
