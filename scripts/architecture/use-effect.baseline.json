@@ -13,7 +13,7 @@
     "apps/web/src/features/studio/storyboard/hooks/use-storyboard-character-replacements.ts": 2,
     "apps/web/src/features/studio/storyboard/StoryboardDraftPage.tsx": 1,
     "packages/agent/src/components/useAgentThreadList.ts": 1,
-    "packages/agent/src/components/useGenerationActionCard.ts": 6,
+    "packages/agent/src/components/useGenerationActionCard.ts": 5,
     "packages/agent/src/hooks/use-agent-chat-container.ts": 1,
     "packages/contexts/user/organization-context/organization-context.tsx": 1
   }
