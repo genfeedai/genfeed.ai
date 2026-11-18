@@ -8,8 +8,7 @@
     "apps/mobile/hooks/use-analytics.ts": 1,
     "apps/server/mcp/src/ui/preview-client.tsx": 2,
     "apps/web/app/(onboarding)/onboarding/(wizard)/brand/brand-guide-panel.tsx": 2,
-    "apps/web/app/(protected)/[orgSlug]/[brandSlug]/clipper/useStudioClipperPage.ts": 5,
-    "apps/web/app/(protected)/[orgSlug]/[brandSlug]/editor/[id]/useEditorPageContent.ts": 1,
+    "apps/web/app/(protected)/[orgSlug]/[brandSlug]/clipper/useStudioClipperPage.ts": 3,
     "apps/web/app/(protected)/[orgSlug]/[brandSlug]/publishing/review/useReviewQueueContent.ts": 2,
     "apps/web/app/(protected)/[orgSlug]/[brandSlug]/settings/brand-kit/setup/content.tsx": 3,
     "apps/web/app/(protected)/[orgSlug]/[brandSlug]/settings/skills/content.tsx": 2,
@@ -64,7 +63,6 @@
     "packages/contexts/user/organization-context/organization-context.tsx": 1,
     "packages/ui/src/primitives/editable-text.tsx": 1,
     "packages/ui/src/primitives/searchbar.tsx": 1,
-    "packages/workflows/src/ui/canvas/WorkflowCanvas.tsx": 1,
     "packages/workflows/src/ui/nodes/SchemaInputs.tsx": 1
   }
 }
