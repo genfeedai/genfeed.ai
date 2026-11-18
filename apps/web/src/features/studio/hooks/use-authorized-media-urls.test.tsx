@@ -1,3 +1,7 @@
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import { renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -11,6 +15,10 @@ const { previewGrant, getService } = vi.hoisted(() => {
   };
 });
 
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
+}));
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => getService,
 }));
@@ -35,7 +43,9 @@ describe('useAuthorizedMediaUrls', () => {
         url: 'https://signed.test/a',
       }),
     };
-    const { result } = renderHook(() => useAuthorizedMediaUrls(ingredients));
+    const { result } = renderHook(() => useAuthorizedMediaUrls(ingredients), {
+      wrapper: queryClientWrapper(createTestQueryClient()),
+    });
     expect(result.current['image:a']).toBe('https://signed.test/a');
     expect(previewGrant).not.toHaveBeenCalled();
   });
@@ -57,7 +67,9 @@ describe('useAuthorizedMediaUrls', () => {
         url: null,
       }),
     };
-    const { result } = renderHook(() => useAuthorizedMediaUrls(ingredients));
+    const { result } = renderHook(() => useAuthorizedMediaUrls(ingredients), {
+      wrapper: queryClientWrapper(createTestQueryClient()),
+    });
     expect(result.current['image:b']).toBeUndefined();
     await waitFor(() =>
       expect(result.current['image:b']).toBe('https://signed.test/b'),
@@ -75,7 +87,9 @@ describe('useAuthorizedMediaUrls', () => {
         url: null,
       }),
     };
-    const { result } = renderHook(() => useAuthorizedMediaUrls(ingredients));
+    const { result } = renderHook(() => useAuthorizedMediaUrls(ingredients), {
+      wrapper: queryClientWrapper(createTestQueryClient()),
+    });
     expect(result.current['image:c']).toBeUndefined();
     expect(previewGrant).not.toHaveBeenCalled();
   });

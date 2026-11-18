@@ -121,8 +121,9 @@ export function useAdminOrgBrandUrlFacets(): {
   }, []);
 
   // The page's clear landed: `searchParamsString` is the fresh query now.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: the URL change is the trigger.
+  // use-effect-audit: ignore follows the URL the page's clear landed in
   useEffect(() => {
+    void searchParamsString;
     if (isScopeClearPendingRef.current) {
       runScopeClear();
     }

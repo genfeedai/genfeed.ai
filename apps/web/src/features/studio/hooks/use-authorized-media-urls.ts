@@ -5,8 +5,10 @@ import type {
   MediaDeliveryGrant,
 } from '@genfeedai/contracts/interfaces';
 import { IngredientsService } from '@genfeedai/services/content/ingredients.service';
+import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
+import { viewerKeyPart } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useQueries } from '@tanstack/react-query';
 
 const MAX_ATTEMPTS = 40;
 const PENDING_POLL_MS = 3000;
@@ -25,99 +27,94 @@ function hasReadyUrl(grant: MediaDeliveryGrant | undefined): boolean {
 export function useAuthorizedMediaUrls(
   ingredients: Readonly<Record<string, IIngredient>>,
 ): Record<string, string | undefined> {
+  const { orgId, userId } = useAuthIdentity();
   const getService = useAuthedService((token) =>
     IngredientsService.getInstance(token),
   );
-  const [fresh, setFresh] = useState<Record<string, MediaDeliveryGrant>>({});
-  const ingredientsRef = useRef(ingredients);
-  ingredientsRef.current = ingredients;
-  const sourceKey = useMemo(
-    () =>
-      Object.entries(ingredients)
-        .map(([key, ingredient]) =>
-          [
-            key,
-            ingredient.id,
-            ingredient.mediaDelivery?.state,
-            ingredient.mediaDelivery?.url,
-            ingredient.mediaDelivery?.expiresAt,
-          ].join('\u0001'),
-        )
-        .sort()
-        .join('\u0002'),
-    [ingredients],
-  );
-
-  // sourceKey stands in for the ingredient set, so a new object each render
-  // does not restart the grant reads.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: keyed by sourceKey
-  useEffect(() => {
-    const controller = new AbortController();
-    const timers = new Set<ReturnType<typeof setTimeout>>();
-    setFresh({});
-
-    const track = (key: string, id: string, initial: MediaDeliveryGrant) => {
-      let attempts = 0;
-      const schedule = (grant: MediaDeliveryGrant) => {
-        if (controller.signal.aborted || grant.state === 'UNSUPPORTED') return;
-        if (grant.state === 'FAILED') return;
-        if (grant.state === 'READY' && !grant.expiresAt) return;
-        const delay =
-          grant.state === 'READY' && grant.expiresAt
-            ? Math.max(
-                1000,
-                Date.parse(grant.expiresAt) - Date.now() - REFRESH_MARGIN_MS,
-              )
-            : PENDING_POLL_MS;
-        const timer = setTimeout(() => {
-          timers.delete(timer);
-          void refresh();
-        }, delay);
-        timers.add(timer);
-      };
-      const refresh = async () => {
-        if (controller.signal.aborted || ++attempts > MAX_ATTEMPTS) return;
-        try {
-          const grant = await (await getService()).previewGrant(
-            id,
-            controller.signal,
-          );
-          if (controller.signal.aborted) return;
-          if (grant && grant.id === id && grant.purpose === initial.purpose) {
-            setFresh((current) => ({ ...current, [key]: grant }));
-            schedule(grant);
-            return;
-          }
-        } catch {
-          if (controller.signal.aborted) return;
-        }
-        schedule({ ...initial, state: 'PENDING', url: null, expiresAt: null });
-      };
-      if (hasReadyUrl(initial)) schedule(initial);
-      else if (initial.state !== 'UNSUPPORTED') void refresh();
-    };
-
-    for (const [key, ingredient] of Object.entries(ingredientsRef.current)) {
+  const entries = Object.entries(ingredients);
+  // One read per tracked ingredient. The grant the page already holds seeds
+  // the read, which then repeats until the URL is issued or shortly before it
+  // expires. A changed grant is a different read, so a stale answer is never
+  // shown for it.
+  const reads = useQueries({
+    queries: entries.map(([, ingredient]) => {
       const initial = ingredient.mediaDelivery;
-      if (!initial || ingredient.isDeleted) continue;
-      track(key, ingredient.id, initial);
-    }
-    return () => {
-      controller.abort();
-      for (const timer of timers) clearTimeout(timer);
-    };
-  }, [getService, sourceKey]);
+      const isTracked =
+        Boolean(initial) &&
+        !ingredient.isDeleted &&
+        initial?.state !== 'UNSUPPORTED';
+      return {
+        enabled: isTracked && Boolean(userId),
+        initialData: hasReadyUrl(initial) ? initial : undefined,
+        initialDataUpdatedAt: () => Date.now(),
+        queryFn: async ({
+          signal,
+        }: {
+          signal: AbortSignal;
+        }): Promise<MediaDeliveryGrant> => {
+          const grant = await (await getService()).previewGrant(
+            ingredient.id,
+            signal,
+          );
+          if (
+            !grant ||
+            grant.id !== ingredient.id ||
+            grant.purpose !== initial?.purpose
+          ) {
+            throw new Error('Media grant does not match the ingredient');
+          }
+          return grant;
+        },
+        queryKey: [
+          'media-delivery-grant',
+          ingredient.id,
+          initial?.purpose,
+          initial?.state,
+          initial?.url,
+          initial?.expiresAt,
+          viewerKeyPart(userId, orgId),
+        ],
+        refetchInterval: (query: {
+          state: {
+            data: MediaDeliveryGrant | undefined;
+            dataUpdateCount: number;
+            errorUpdateCount: number;
+          };
+        }): number | false => {
+          const {
+            data: grant,
+            dataUpdateCount,
+            errorUpdateCount,
+          } = query.state;
+          if (dataUpdateCount + errorUpdateCount > MAX_ATTEMPTS) return false;
+          if (grant?.state === 'UNSUPPORTED' || grant?.state === 'FAILED') {
+            return false;
+          }
+          if (grant?.state === 'READY' && grant.url) {
+            return grant.expiresAt
+              ? Math.max(
+                  1000,
+                  Date.parse(grant.expiresAt) - Date.now() - REFRESH_MARGIN_MS,
+                )
+              : false;
+          }
+          return PENDING_POLL_MS;
+        },
+        refetchIntervalInBackground: true,
+        retry: false,
+        staleTime: Number.POSITIVE_INFINITY,
+      };
+    }),
+  });
 
-  return useMemo(() => {
-    const urls: Record<string, string | undefined> = {};
-    for (const [key, ingredient] of Object.entries(ingredients)) {
-      const grant = fresh[key] ?? ingredient.mediaDelivery;
-      urls[key] = ingredient.isDeleted
-        ? undefined
-        : grant
-          ? (grant.url ?? undefined)
-          : ingredient.cdnUrl || ingredient.ingredientUrl || undefined;
-    }
-    return urls;
-  }, [fresh, ingredients]);
+  const urls: Record<string, string | undefined> = {};
+  entries.forEach(([key, ingredient], index) => {
+    const grant = reads[index]?.data ?? ingredient.mediaDelivery;
+    urls[key] = ingredient.isDeleted
+      ? undefined
+      : grant
+        ? (grant.url ?? undefined)
+        : ingredient.cdnUrl || ingredient.ingredientUrl || undefined;
+  });
+  return urls;
 }
