@@ -16,6 +16,7 @@ import {
 import { getVoiceName } from '@helpers/voice/voice-name.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import { useResetOnChange } from '@hooks/utils/use-reset-on-change/use-reset-on-change';
 import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
@@ -63,7 +64,10 @@ export default function OrganizationIdentityDefaultsCard() {
   );
 
   const [selectedVoiceId, setSelectedVoiceId] = useState('');
-  const [selectedAvatarId, setSelectedAvatarId] = useState('');
+  const defaultAvatarValue = settings?.defaultAvatarRef
+    ? heyGenAvatarValue(settings.defaultAvatarRef)
+    : (settings?.defaultAvatarIngredientId ?? '');
+  const [selectedAvatarId, setSelectedAvatarId] = useState(defaultAvatarValue);
   const [isSaving, setIsSaving] = useState(false);
   const avatarLibraryHref = brandSlug
     ? href('/library/avatars')
@@ -72,13 +76,10 @@ export default function OrganizationIdentityDefaultsCard() {
     ? href('/library/voices')
     : orgHref('/settings/brands');
 
-  useEffect(() => {
-    setSelectedAvatarId(
-      settings?.defaultAvatarRef
-        ? heyGenAvatarValue(settings.defaultAvatarRef)
-        : (settings?.defaultAvatarIngredientId ?? ''),
-    );
-  }, [settings?.defaultAvatarIngredientId, settings?.defaultAvatarRef]);
+  useResetOnChange(
+    [settings?.defaultAvatarIngredientId, settings?.defaultAvatarRef],
+    () => setSelectedAvatarId(defaultAvatarValue),
+  );
 
   useEffect(() => {
     const selectedVoice =

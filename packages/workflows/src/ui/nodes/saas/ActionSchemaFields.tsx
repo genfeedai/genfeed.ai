@@ -12,13 +12,7 @@ import {
 } from '@genfeedai/ui/primitives/select';
 import { Textarea } from '@genfeedai/ui/primitives/textarea';
 import { useTranslations } from 'next-intl';
-import {
-  type ReactNode,
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
+import { type ReactNode, useCallback, useMemo, useState } from 'react';
 import {
   type ActionSchemaProperty,
   formatActionFieldLabel,
@@ -67,10 +61,13 @@ function JsonField({
   const [draft, setDraft] = useState(serializedValue);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const [syncedValue, setSyncedValue] = useState(serializedValue);
+
+  if (syncedValue !== serializedValue) {
+    setSyncedValue(serializedValue);
     setDraft(serializedValue);
     setError(null);
-  }, [serializedValue]);
+  }
 
   const commit = useCallback(() => {
     if (!draft.trim()) {

@@ -132,6 +132,7 @@ export default function TikTokPublishingSettings({
     isDurationValid &&
     issues.length === 0 &&
     isSaved;
+  // use-effect-audit: ignore reports readiness to the parent and clears it on unmount
   useEffect(() => {
     onReadinessChange?.(isReady);
     return () => onReadinessChange?.(false);
