@@ -222,6 +222,7 @@ function OAuthPlatformFormContent({ platform }: OAuthPlatformFormProps) {
     ],
   );
 
+  // use-effect-audit: ignore completes the single-use OAuth handshake once the session is signed in
   useEffect(() => {
     if (!isLoaded || !isSignedIn) {
       return;
