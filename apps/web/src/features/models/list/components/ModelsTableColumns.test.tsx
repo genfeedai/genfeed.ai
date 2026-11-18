@@ -11,6 +11,7 @@ import type { IModel } from '@genfeedai/contracts/interfaces';
 import { getModelCategoryLabel } from '@genfeedai/helpers/ui/icons/model-category-icon';
 import { getModelProviderLabel } from '@genfeedai/helpers/ui/model-badge.helper';
 import { act, fireEvent, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import {
   afterAll,
   afterEach,
@@ -521,7 +522,7 @@ describe('paid model pricing lock', () => {
     { cost: Number.NaN, label: 'unresolved' },
   ])(
     'locks Available and Recommended for a paid model with a $label price',
-    ({ cost }) => {
+    async ({ cost }) => {
       const handleLifecycleChange = vi.fn();
       const model = buildModel({
         cost,
@@ -543,17 +544,13 @@ describe('paid model pricing lock', () => {
       expectPromotionLocked('Legacy', false);
       expectPromotionLocked('Retired', false);
 
-      fireEvent.keyDown(screen.getByRole('option', { name: 'Available' }), {
-        key: 'Enter',
-      });
-      fireEvent.keyDown(screen.getByRole('option', { name: 'Recommended' }), {
-        key: 'Enter',
-      });
+      await userEvent.click(screen.getByRole('option', { name: 'Available' }));
+      await userEvent.click(
+        screen.getByRole('option', { name: 'Recommended' }),
+      );
       expect(handleLifecycleChange).not.toHaveBeenCalled();
 
-      fireEvent.keyDown(screen.getByRole('option', { name: 'Legacy' }), {
-        key: 'Enter',
-      });
+      await userEvent.click(screen.getByRole('option', { name: 'Legacy' }));
       expect(handleLifecycleChange).toHaveBeenCalledWith(
         model,
         ModelLifecycle.LEGACY,

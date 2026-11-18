@@ -4,6 +4,7 @@ import { cleanup } from '@testing-library/react';
 import { preloadButtonTooltip } from '@ui/primitives/button-tooltip';
 import { afterEach, beforeAll, vi } from 'vitest';
 import './tests/get-animations.stub';
+import './tests/popover.stub';
 import './tests/image-loading.stub';
 import './tests/server-only.stub';
 

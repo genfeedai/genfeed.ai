@@ -92,7 +92,7 @@ export function TaskStatusSelect({
         className={PILL_TRIGGER_CLASS}
         onClick={(event) => event.stopPropagation()}
       >
-        <SelectValue />
+        <SelectValue>{() => <TaskStatusBadge status={value} />}</SelectValue>
       </SelectTrigger>
       <SelectContent>
         {STATUS_ORDER.map((status) => (
@@ -123,7 +123,9 @@ export function TaskPrioritySelect({
         className={PILL_TRIGGER_CLASS}
         onClick={(event) => event.stopPropagation()}
       >
-        <SelectValue />
+        <SelectValue>
+          {() => <TaskPriorityBadge priority={value} />}
+        </SelectValue>
       </SelectTrigger>
       <SelectContent>
         {PRIORITY_ORDER.map((priority) => (

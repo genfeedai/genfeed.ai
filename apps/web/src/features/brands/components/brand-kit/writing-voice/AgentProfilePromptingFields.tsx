@@ -241,10 +241,16 @@ export default function AgentProfilePromptingFields({
             <Field label={translate('intent')}>
               <Select
                 disabled={isDisabled}
-                onValueChange={(value: BrandPromptIntent) => {
-                  void updateStarter(index, { intent: value }).catch(
-                    () => undefined,
+                onValueChange={(value) => {
+                  const intent = PROMPT_INTENTS.find(
+                    (entry) => entry === value,
                   );
+
+                  if (intent) {
+                    void updateStarter(index, { intent }).catch(
+                      () => undefined,
+                    );
+                  }
                 }}
                 value={starter.intent}
               >
