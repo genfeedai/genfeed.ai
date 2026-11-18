@@ -166,14 +166,12 @@ export function GenerationActionCard({
     }
   }, [status]);
 
-  useEffect(() => {
-    if (
-      (videoReferenceMode === 'endFrame' && !supportsEndFrame) ||
-      (videoReferenceMode === 'videoReference' && !supportsVideoReferences)
-    ) {
-      setVideoReferenceMode('startFrame');
-    }
-  }, [supportsEndFrame, supportsVideoReferences, videoReferenceMode]);
+  if (
+    (videoReferenceMode === 'endFrame' && !supportsEndFrame) ||
+    (videoReferenceMode === 'videoReference' && !supportsVideoReferences)
+  ) {
+    setVideoReferenceMode('startFrame');
+  }
 
   const handleToggleAssetReference = useCallback(
     (asset: ThreadAsset) => {
