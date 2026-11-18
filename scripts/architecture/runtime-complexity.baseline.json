@@ -312,7 +312,7 @@
     "symbol": "packages/actions/src/registry/contracts/workflow-node-action-contracts.ts"
   },
   {
-    "actual": 1188,
+    "actual": 1119,
     "file": "packages/agent/src/components/useAgentChatInput.ts",
     "metric": "file-lines",
     "symbol": "packages/agent/src/components/useAgentChatInput.ts"
