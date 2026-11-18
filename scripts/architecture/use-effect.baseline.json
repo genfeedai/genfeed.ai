@@ -10,7 +10,6 @@
     "apps/extension/src/components/pages/ReplyPage.tsx": 2,
     "apps/extension/src/components/settings/PublicationRecordingSettings.tsx": 1,
     "apps/extension/src/hooks/use-publication-insights.ts": 1,
-    "apps/extension/src/hooks/use-workspace.ts": 1,
     "apps/extension/src/sidepanel.tsx": 2,
     "apps/mobile/hooks/use-analytics.ts": 1,
     "apps/server/mcp/src/ui/preview-client.tsx": 3,

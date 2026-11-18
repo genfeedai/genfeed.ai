@@ -35,6 +35,7 @@ export function useWorkspace() {
       chrome.storage.onChanged.removeListener(changed);
     };
   }, []);
+  // use-effect-audit: ignore syncs the workspace into the brand and chat stores and the extension runtime
   useEffect(() => {
     if (state.status === 'refreshing' || state.status === 'blocked') return;
     const nextRevision =
