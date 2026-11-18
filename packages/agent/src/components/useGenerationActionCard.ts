@@ -374,26 +374,19 @@ export function useGenerationActionCard({
     !modelsError &&
     !shouldOfferAutoModel(filteredModels);
 
-  useEffect(() => {
-    if (!isAllowlistEmpty) {
-      return;
-    }
+  if (isAllowlistEmpty && (isAutoMode || modelKey)) {
+    setIsAutoMode(false);
+    setModelKey('');
+  }
 
-    if (isAutoMode || modelKey) {
-      setIsAutoMode(false);
-      setModelKey('');
-    }
-  }, [isAllowlistEmpty, isAutoMode, modelKey]);
-
-  useEffect(() => {
-    if (pickerLoading || isAutoMode || !modelKey) {
-      return;
-    }
-
-    if (!filteredModels.some((model) => model.key === modelKey)) {
-      setModelKey('');
-    }
-  }, [filteredModels, isAutoMode, modelKey, pickerLoading]);
+  if (
+    !pickerLoading &&
+    !isAutoMode &&
+    modelKey &&
+    !filteredModels.some((model) => model.key === modelKey)
+  ) {
+    setModelKey('');
+  }
 
   const selectedModel = useMemo(
     () => filteredModels.find((model) => model.key === modelKey) ?? null,
@@ -452,44 +445,44 @@ export function useGenerationActionCard({
       : 4;
 
   // Reset invalid values when model changes
-  useEffect(() => {
-    if (pickerLoading) return;
-    if (
-      availableAspectRatios.length > 0 &&
-      !availableAspectRatios.includes(aspectRatio)
-    ) {
-      setAspectRatio(defaultAspectRatio);
-    }
-  }, [availableAspectRatios, aspectRatio, defaultAspectRatio, pickerLoading]);
+  if (
+    !pickerLoading &&
+    availableAspectRatios.length > 0 &&
+    !availableAspectRatios.includes(aspectRatio) &&
+    aspectRatio !== defaultAspectRatio
+  ) {
+    setAspectRatio(defaultAspectRatio);
+  }
 
-  useEffect(() => {
-    if (showDuration && !durationOptions.includes(duration)) {
-      setDuration(defaultDuration ?? durationOptions[0] ?? duration);
-    }
-  }, [defaultDuration, duration, durationOptions, showDuration]);
+  const fallbackDuration = defaultDuration ?? durationOptions[0] ?? duration;
+  if (
+    showDuration &&
+    !durationOptions.includes(duration) &&
+    fallbackDuration !== duration
+  ) {
+    setDuration(fallbackDuration);
+  }
 
-  useEffect(() => {
-    if (outputs > maxOutputs) {
-      setOutputs(maxOutputs);
-    }
-  }, [maxOutputs, outputs]);
+  if (outputs > maxOutputs) {
+    setOutputs(maxOutputs);
+  }
 
-  useEffect(() => {
-    if (resolutionOptions.length === 0) {
+  const fallbackResolution =
+    (isFlux3ImageModel(modelKey)
+      ? '1k'
+      : getDefaultVideoResolution(modelKey)) ??
+    resolutionOptions[0]?.value ??
+    '';
+  if (resolutionOptions.length === 0) {
+    if (resolution !== '') {
       setResolution('');
-      return;
     }
-
-    if (!resolutionOptions.some((option) => option.value === resolution)) {
-      setResolution(
-        (isFlux3ImageModel(modelKey)
-          ? '1k'
-          : getDefaultVideoResolution(modelKey)) ??
-          resolutionOptions[0]?.value ??
-          '',
-      );
-    }
-  }, [modelKey, resolution, resolutionOptions]);
+  } else if (
+    !resolutionOptions.some((option) => option.value === resolution) &&
+    fallbackResolution !== resolution
+  ) {
+    setResolution(fallbackResolution);
+  }
 
   useEffect(() => {
     const cleared: string[] = [];

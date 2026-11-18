@@ -202,7 +202,7 @@
     "packages/agent/src/components/useAgentChatInput.ts": 9,
     "packages/agent/src/components/useAgentThreadList.ts": 3,
     "packages/agent/src/components/useContextCoverage.ts": 1,
-    "packages/agent/src/components/useGenerationActionCard.ts": 14,
+    "packages/agent/src/components/useGenerationActionCard.ts": 8,
     "packages/agent/src/hooks/use-agent-chat-container.ts": 10,
     "packages/agent/src/hooks/use-agent-dashboard-persistence.ts": 2,
     "packages/agent/src/hooks/use-character-mentions.ts": 1,
