@@ -59,6 +59,7 @@ export function useStudioGalleryView({
   storedJobs,
   type,
 }: UseStudioGalleryViewParams) {
+  // use-effect-audit: ignore loads the stored jobs into the pending-jobs store
   useEffect(() => {
     rehydratePending(storedJobs);
   }, [rehydratePending, storedJobs]);

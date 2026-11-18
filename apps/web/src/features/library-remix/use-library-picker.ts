@@ -9,6 +9,7 @@ import type {
 import { IngredientsService } from '@genfeedai/services/content/ingredients.service';
 import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useResetOnChange } from '@hooks/utils/use-reset-on-change/use-reset-on-change';
 import { getErrorStatus } from '@utils/error/json-api-status.util';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -177,12 +178,17 @@ export function useLibraryPicker(params: {
 
   // A new brand or media type never receives a "Load more" still in flight.
   const scopeIdentity = `${organizationId}\u0001${brandId}\u0001${category}`;
-  // biome-ignore lint/correctness/useExhaustiveDependencies: scopeIdentity marks a new list to load more of
-  useEffect(() => {
-    loadMoreControllerRef.current?.abort();
-    loadMoreControllerRef.current = null;
+  useResetOnChange([scopeIdentity], () => {
     setIsLoadingMore(false);
     setSelectionFailure(null);
+  });
+  // use-effect-audit: ignore aborts the in-flight "load more" request when the list changes or unmounts
+  useEffect(() => {
+    void scopeIdentity;
+    return () => {
+      loadMoreControllerRef.current?.abort();
+      loadMoreControllerRef.current = null;
+    };
   }, [scopeIdentity]);
 
   // Appended pages belong to the first page they followed: a refreshed or
