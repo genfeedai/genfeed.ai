@@ -538,6 +538,7 @@ export default function ModalPost({
   });
 
   // Manually populate form when post changes (transform objects to IDs)
+  // use-effect-audit: ignore writes the loaded values into the form store
   useEffect(() => {
     if (post) {
       const resolvedPlatform =
