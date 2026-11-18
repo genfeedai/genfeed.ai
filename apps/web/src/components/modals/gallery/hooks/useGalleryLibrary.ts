@@ -243,12 +243,14 @@ export function useGalleryLibrary({
   }, [queryClient]);
 
   // A reopened picker starts from the whole Library again.
-  useEffect(() => {
+  const [wasOpen, setWasOpen] = useState(isOpen);
+  if (isOpen !== wasOpen) {
+    setWasOpen(isOpen);
     if (!isOpen) {
       setSearch('');
       onClearFilters();
     }
-  }, [isOpen, onClearFilters]);
+  }
 
   return {
     // The previous filter's tiles stay only until the new ones land; they are

@@ -135,8 +135,8 @@ function avatarOpenapi(
 /**
  * Avatar 6 and Avatar 6 Turbo. HeyGen bills both per output second by output
  * `resolution` and not by look type, so `resolution` is the one pricing
- * selector and `avatar_type` is not declared. Genfeed renders them at 1080p
- * only; HeyGen rejects 720p for these engines.
+ * selector and `avatar_type` is not declared. HeyGen accepts 1080p and 2k for
+ * these engines and rejects 720p.
  */
 function avatar6Openapi(): SchemaFixture['openapi'] {
   return {
@@ -152,7 +152,7 @@ function avatar6Openapi(): SchemaFixture['openapi'] {
               minimum: 0,
               type: 'number',
             },
-            resolution: { enum: ['1080p'], type: 'string' },
+            resolution: { enum: ['1080p', '2k'], type: 'string' },
             script: { type: 'string' },
             voice_id: { type: 'string' },
           },

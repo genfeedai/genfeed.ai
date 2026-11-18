@@ -154,7 +154,12 @@ describe('AvatarVideoModelService', () => {
           ]),
           'org',
         ),
-      ).resolves.toEqual({ avatarType: 'digital_twin', engine, modelKey });
+      ).resolves.toEqual({
+        avatarType: 'digital_twin',
+        engine,
+        modelKey,
+        resolution: '1080p',
+      });
       expect(validated).toEqual([[modelKey, 'org']]);
     },
   );
@@ -194,6 +199,87 @@ describe('AvatarVideoModelService', () => {
       expect(routed).toEqual([]);
     },
   );
+
+  describe('2K output', () => {
+    const allEngines = look('digital_twin', [
+      'avatar_iv',
+      'avatar_v',
+      'heygen-avatar-6',
+      'heygen-avatar-6-turbo',
+    ]);
+
+    it('offers Auto only the Avatar 6 engines and returns the resolution', async () => {
+      const selection = await service.resolve(
+        { resolution: '2k', text: 'Hi' },
+        allEngines,
+        'org',
+      );
+      expect(routed[0]?.eligibleModelKeys).toEqual([
+        MODEL_KEYS.HEYGEN_AVATAR_6,
+        MODEL_KEYS.HEYGEN_AVATAR_6_TURBO,
+      ]);
+      expect(selection.resolution).toBe('2k');
+    });
+
+    it('accepts an explicit Avatar 6 Turbo at 2K', async () => {
+      await expect(
+        service.resolve(
+          {
+            model: MODEL_KEYS.HEYGEN_AVATAR_6_TURBO,
+            resolution: '2k',
+            text: 'Hi',
+          },
+          allEngines,
+          'org',
+        ),
+      ).resolves.toEqual({
+        avatarType: 'digital_twin',
+        engine: 'heygen-avatar-6-turbo',
+        modelKey: MODEL_KEYS.HEYGEN_AVATAR_6_TURBO,
+        resolution: '2k',
+      });
+    });
+
+    it.each([MODEL_KEYS.HEYGEN_AVATAR_IV, MODEL_KEYS.HEYGEN_AVATAR_V])(
+      'refuses an explicit %s at 2K',
+      async (model) => {
+        await expect(
+          service.resolve(
+            { model, resolution: '2k', text: 'Hi' },
+            allEngines,
+            'org',
+          ),
+        ).rejects.toBeInstanceOf(BadRequestException);
+        expect(validated).toEqual([]);
+      },
+    );
+
+    it('refuses a look that lists no Avatar 6 engine', async () => {
+      await expect(
+        service.resolve(
+          { resolution: '2k', text: 'Hi' },
+          look('digital_twin', ['avatar_iv', 'avatar_v']),
+          'org',
+        ),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(routed).toEqual([]);
+    });
+
+    it('refuses a photo animation', async () => {
+      await expect(
+        service.resolve({ resolution: '2k', text: 'Hi' }, undefined, 'org'),
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
+
+    it('leaves the resolution off an engine that has none', async () => {
+      const selection = await service.resolve(
+        { model: MODEL_KEYS.HEYGEN_AVATAR_IV, text: 'Hi' },
+        allEngines,
+        'org',
+      );
+      expect(selection).not.toHaveProperty('resolution');
+    });
+  });
 
   it('surfaces an engine the workspace has switched off', async () => {
     disabledModels.add(MODEL_KEYS.HEYGEN_AVATAR_V);

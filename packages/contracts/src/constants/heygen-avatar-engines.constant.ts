@@ -23,10 +23,17 @@ export const HEYGEN_AVATAR_IV_PRICED_TYPES: readonly string[] = [
 export const HEYGEN_AVATAR_V_PRICED_TYPES: readonly string[] = ['digital_twin'];
 
 /**
- * Avatar 6 renders at 1080p, HeyGen's default. `720p` is rejected for it, and
- * `2k` is a separate reviewed rate Genfeed does not offer yet.
+ * The output resolutions HeyGen accepts for Avatar 6 and Turbo; `720p` and `4k`
+ * are rejected (https://developers.heygen.com/docs/models/avatar-6). Each has
+ * its own reviewed per-second rate.
  */
-export const HEYGEN_AVATAR_6_RENDER_RESOLUTION = '1080p';
+export const HEYGEN_AVATAR_6_RESOLUTIONS = ['1080p', '2k'] as const;
+export type HeyGenAvatar6Resolution =
+  (typeof HEYGEN_AVATAR_6_RESOLUTIONS)[number];
+
+/** HeyGen's default for Avatar 6, and what a render without a choice uses. */
+export const HEYGEN_AVATAR_6_DEFAULT_RESOLUTION: HeyGenAvatar6Resolution =
+  '1080p';
 
 export const HEYGEN_AVATAR_ENGINE_MODEL_KEYS: Readonly<
   Record<HeyGenAvatarEngine, string>

@@ -390,9 +390,10 @@ describe('pricing constants', () => {
       maxCredits: clip(Math.max(...avatarRates)),
       minCredits: clip(Math.min(...avatarRates)),
     });
-    // Photo animation $0.0385/s and Avatar V $0.12/s, 4 s at the 3.33 margin.
+    // Photo animation $0.0385/s and Avatar 6 at 2K $0.145/s, 4 s at the 3.33
+    // margin (the $0.58 clip crosses the $0.50 taper knee).
     expect(AVATAR_CREDIT_COSTS.avatar4s).toEqual({
-      maxCredits: 160,
+      maxCredits: 183,
       minCredits: 52,
     });
     // An Avatar IV digital twin ($0.0805/s) falls inside the range.
@@ -411,9 +412,9 @@ describe('pricing constants', () => {
   });
 
   it('scales an avatar clip with its length the way admission holds it', () => {
-    // Avatar V at $1.20 crosses the $0.50 taper knee: $1.665 + $0.70 x 2.0.
+    // Avatar 6 at 2K, $1.45, crosses the $0.50 taper knee: $1.665 + $0.95 x 2.0.
     expect(avatarClipCreditRange(10)).toEqual({
-      maxCredits: 307,
+      maxCredits: 357,
       minCredits: 129,
     });
   });

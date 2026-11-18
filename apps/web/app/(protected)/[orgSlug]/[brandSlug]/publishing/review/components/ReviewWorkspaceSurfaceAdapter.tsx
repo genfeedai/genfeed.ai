@@ -48,11 +48,13 @@ export default function ReviewWorkspaceSurfaceAdapter({
   }, []);
 
   // Every row tap asks for the details, including a tap on the active row.
-  useEffect(() => {
+  const [handledRevealRequest, setHandledRevealRequest] = useState(0);
+  if (revealRequest !== handledRevealRequest) {
+    setHandledRevealRequest(revealRequest);
     if (revealRequest > 0) {
       requestDetails();
     }
-  }, [requestDetails, revealRequest]);
+  }
 
   // Reveal only once the selection is registered again.
   useEffect(() => {

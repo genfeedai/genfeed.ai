@@ -100,6 +100,7 @@ const PLATFORM_BRANDS: Record<string, IPlatformBadgeConfig> = {
     iconColor: 'text-primary',
     label: label(Platform.GENFEED),
     solidBgColor: 'bg-primary',
+    solidTextColor: 'text-primary-foreground',
     textColor: 'text-foreground',
   },
   [Platform.GHOST]: {

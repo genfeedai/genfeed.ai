@@ -5,6 +5,7 @@ export interface IPlatformBadgeConfig {
   label: string;
   bgColor: string;
   solidBgColor: string;
+  solidTextColor?: string;
   textColor: string;
   iconColor: string;
 }
