@@ -48,6 +48,7 @@ export function useIngredientDeepLink({
   const handledAssetIdRef = useRef<string | null>(null);
 
   const onOpenRef = useRef(onOpen);
+  // use-effect-audit: ignore keeps refs to the latest callbacks and values
   useEffect(() => {
     onOpenRef.current = onOpen;
   }, [onOpen]);
@@ -75,12 +76,14 @@ export function useIngredientDeepLink({
   );
 
   // Reset once the link is gone so the same asset can be deep-linked again.
+  // use-effect-audit: ignore keeps refs to the latest callbacks and values
   useEffect(() => {
     if (!assetId) {
       handledAssetIdRef.current = null;
     }
   }, [assetId]);
 
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     if (!assetId || handledAssetIdRef.current === assetId) {
       return;

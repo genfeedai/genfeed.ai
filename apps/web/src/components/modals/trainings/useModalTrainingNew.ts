@@ -93,6 +93,7 @@ export function useModalTrainingNew({ onSuccess }: ModalTrainingNewProps) {
     setError(null);
   }, [form]);
 
+  // use-effect-audit: ignore subscribes to training status events
   useEffect(() => {
     if (!isReady || !currentTrainingIdRef.current) {
       return;

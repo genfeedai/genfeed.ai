@@ -223,6 +223,7 @@ export function useEditorPageContent(projectId: string) {
     [write],
   );
 
+  // use-effect-audit: ignore reports to analytics, an external system
   useEffect(() => {
     captureAnalyticsEvent(ANALYTICS_EVENTS.STUDIO_EDITOR_OPENED, {
       surface: 'canvas',
@@ -231,6 +232,7 @@ export function useEditorPageContent(projectId: string) {
 
   // Load the project once the signed-in user is known: an edit this browser
   // queued for them but never saw saved is restored over the server copy.
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     if (!isIdentityLoaded) {
       return;
@@ -283,6 +285,7 @@ export function useEditorPageContent(projectId: string) {
     return () => controller.abort();
   }, [projectId, isIdentityLoaded]);
 
+  // use-effect-audit: ignore subscribes to the editor save outbox
   useEffect(() => {
     return editorSaveOutbox.subscribe(projectId, (status) => {
       if (status === 'conflict') {
@@ -302,6 +305,7 @@ export function useEditorPageContent(projectId: string) {
 
   // Every edit is saved within EDITOR_SAVE_MAX_WAIT_MS: a quiet period after
   // the last change, capped for continuous gestures.
+  // use-effect-audit: ignore schedules the debounced editor save
   useEffect(() => {
     if (state.editVersion === 0 || isReadOnly) {
       return;
@@ -327,6 +331,7 @@ export function useEditorPageContent(projectId: string) {
   // A reload or tab close inside the quiet period would otherwise lose the
   // last edit: keepalive lets that final write outlive the page, and the
   // browser asks before leaving while anything is still unsaved.
+  // use-effect-audit: ignore subscribes to browser events
   useEffect(() => {
     const flushOnHide = () => {
       if (document.visibilityState === 'hidden') {
@@ -854,6 +859,7 @@ export function useEditorPageContent(projectId: string) {
   }, []);
 
   // Keyboard shortcuts
+  // use-effect-audit: ignore subscribes to browser events
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Ignore when typing in inputs

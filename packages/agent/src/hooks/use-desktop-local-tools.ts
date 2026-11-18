@@ -44,6 +44,7 @@ export function useDesktopLocalTools(): DesktopLocalToolsState {
     tools: null,
   }));
 
+  // use-effect-audit: ignore abortable desktop bridge tool load
   useEffect(() => {
     if (!getGenfeedDesktopBridge()) {
       return;

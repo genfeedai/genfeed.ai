@@ -50,6 +50,7 @@ export function ConnectedAccounts(): ReactElement {
   const [credentials, setCredentials] = useState<Credential[]>([]);
   const [connecting, setConnecting] = useState<string | null>(null);
 
+  // use-effect-audit: ignore loads credentials from the extension background
   useEffect(() => {
     if (!activeBrandId) {
       setCredentials([]);

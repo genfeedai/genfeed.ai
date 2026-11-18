@@ -27,8 +27,9 @@ import { Button } from '@ui/primitives/button';
 import { Plus, Rocket } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import type { OutreachCampaignsData } from '@/features/agents/props/outreach-campaigns-list.props';
+import { useNotifyOnLoadError } from '@/hooks/utils/use-notify-on-load-error/use-notify-on-load-error';
 
 import OutreachCampaignsKPI from './OutreachCampaignsKPI';
 import OutreachCampaignsTable from './OutreachCampaignsTable';
@@ -105,13 +106,12 @@ export default function OutreachCampaignsList() {
   const pageCampaigns = campaignsQuery.data?.page ?? EMPTY_CAMPAIGNS;
   const isRefreshing = isFetching && !isPending;
 
-  // One toast per failed read, after its retry, not one per attempt.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: errorUpdatedAt marks each new failed read.
-  useEffect(() => {
-    if (isError) {
-      notificationsService.error(translate('notifications.loadFailed'));
-    }
-  }, [errorUpdatedAt, isError, notificationsService, translate]);
+  useNotifyOnLoadError({
+    errorUpdatedAt,
+    hasError: isError,
+    notify: () =>
+      notificationsService.error(translate('notifications.loadFailed')),
+  });
 
   const updateCachedCampaigns = useCallback(
     (update: (items: OutreachCampaign[]) => OutreachCampaign[]) => {

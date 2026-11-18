@@ -125,6 +125,7 @@ export default function AdminAgentsPage() {
     );
   }, [search, strategies]);
 
+  // use-effect-audit: ignore reports a failed load to the logger or a notification
   useEffect(() => {
     if (error) {
       logger.error('GET /agent-strategies failed', error);

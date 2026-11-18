@@ -34,7 +34,6 @@ import {
   Fragment,
   type ReactElement,
   type Ref,
-  useEffect,
   useImperativeHandle,
   useState,
 } from 'react';
@@ -95,12 +94,8 @@ export function PromptCommandList({
 }: Props): ReactElement {
   const [selectedIndex, setSelectedIndex] = useState(0);
 
-  // The popup is reused across queries; keep the highlight on a real row
-  // rather than a stale index past the end of a narrower result set.
-  useEffect(() => {
-    setSelectedIndex(0);
-  }, []);
-
+  // The popup is reused across queries; `selectedIndex % items.length` keeps
+  // the highlight on a real row rather than a stale index past the end.
   useImperativeHandle(ref, () => ({
     onKeyDown: ({ event }: { event: KeyboardEvent }) => {
       if (items.length === 0) {

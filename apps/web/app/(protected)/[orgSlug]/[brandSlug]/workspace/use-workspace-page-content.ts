@@ -2,6 +2,7 @@ import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
+import { useSyncedState } from '@hooks/utils/use-synced-state/use-synced-state';
 import * as Sentry from '@sentry/nextjs';
 import { type Task, TasksService } from '@services/management/tasks.service';
 import { WebSocketPaths } from '@utils/network/websocket.util';
@@ -11,7 +12,6 @@ import {
   useCallback,
   useEffect,
   useMemo,
-  useRef,
   useState,
 } from 'react';
 import type { UseWorkspacePageContentParams } from '@/features/workspace/props/workspace-page.props';
@@ -88,10 +88,9 @@ export function useWorkspacePageContent({
   >(null);
   const [isWorkspaceRefreshing, setWorkspaceRefreshing] = useState(false);
   const [busyTaskId, setBusyTaskId] = useState<string | null>(null);
-  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(
+  const [selectedTaskId, setSelectedTaskId] = useSyncedState<string | null>(
     requestedTaskId,
   );
-  const previousRequestedTaskIdRef = useRef(requestedTaskId);
   const {
     executions,
     isLoading: isWorkspaceExecutionsLoading,
@@ -290,15 +289,7 @@ export function useWorkspacePageContent({
     [executionStats, inProgressTasks.length, unreadInboxTasks.length],
   );
 
-  useEffect(() => {
-    if (requestedTaskId === previousRequestedTaskIdRef.current) {
-      return;
-    }
-
-    previousRequestedTaskIdRef.current = requestedTaskId;
-    setSelectedTaskId(requestedTaskId);
-  }, [requestedTaskId]);
-
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     const controller = new AbortController();
     let timeoutId: ReturnType<typeof setTimeout> | undefined;
@@ -359,6 +350,7 @@ export function useWorkspacePageContent({
     section,
   ]);
 
+  // use-effect-audit: ignore subscribes to an external event source
   useEffect(() => {
     if (!organizationId) {
       return;
@@ -380,6 +372,7 @@ export function useWorkspacePageContent({
     };
   }, [organizationId, subscribe]);
 
+  // use-effect-audit: ignore subscribes to browser events
   useEffect(() => {
     if (typeof window === 'undefined') {
       return;

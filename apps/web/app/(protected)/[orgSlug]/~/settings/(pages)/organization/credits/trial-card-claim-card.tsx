@@ -50,6 +50,7 @@ export default function TrialCardClaimCard({
   // parent re-renders with a new callback identity.
   const onClaimedRef = useRef(onClaimed);
   const translateRef = useRef(translate);
+  // use-effect-audit: ignore keeps refs to the latest callbacks and values
   useEffect(() => {
     onClaimedRef.current = onClaimed;
     translateRef.current = translate;
@@ -95,6 +96,7 @@ export default function TrialCardClaimCard({
     [queryClient],
   );
 
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     if (!returnedSessionId) {
       return;

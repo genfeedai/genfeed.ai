@@ -53,6 +53,7 @@ export function useAgentThreadStatusPush({
     ReturnType<typeof setTimeout> | undefined
   >(undefined);
 
+  // use-effect-audit: ignore subscribes to thread status socket events
   useEffect(() => {
     if (!isActive || !isReady) {
       return;
@@ -135,6 +136,7 @@ export function useAgentThreadStatusPush({
     };
   }, [isActive, isReady, reloadThreads, subscribe]);
 
+  // use-effect-audit: ignore re-syncs the thread status after the socket reconnects
   useEffect(() => {
     const previous = previousConnectionStateRef.current;
     previousConnectionStateRef.current = connectionState;
@@ -149,6 +151,7 @@ export function useAgentThreadStatusPush({
     void reloadThreadsRef.current().catch(() => false);
   }, [connectionState, isActive]);
 
+  // use-effect-audit: ignore refetches threads on window focus while the socket is down
   useEffect(() => {
     if (!isActive || connectionState === 'connected') {
       return;
@@ -163,6 +166,7 @@ export function useAgentThreadStatusPush({
     return () => window.removeEventListener('focus', handleFocus);
   }, [connectionState, isActive]);
 
+  // use-effect-audit: ignore polls threads while the socket is down
   useEffect(() => {
     if (
       !isActive ||

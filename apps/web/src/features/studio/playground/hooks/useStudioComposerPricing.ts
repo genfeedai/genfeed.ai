@@ -21,7 +21,7 @@ import type {
   PromptBarAttachedAsset,
   UseCrunGenerationQuoteReturn,
 } from '@genfeedai/props/studio/prompt-bar.props';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useStudioAvatarEstimate } from '@/features/studio/playground/hooks/useStudioAvatarEstimate';
 import { useStudioGenerationEstimate } from '@/features/studio/playground/hooks/useStudioGenerationEstimate';
 import { useStudioRetryCreditBack } from '@/features/studio/playground/hooks/useStudioRetryCreditBack';
@@ -186,9 +186,7 @@ export function useStudioComposerPricing({
   // Draft is a mode of Video: while it is on, Generate submits the preview.
   const hasDraftSettings = draftSettings !== null;
   const isDraftActive = isDraftMode && hasDraftSettings;
-  useEffect(() => {
-    if (!hasDraftSettings) setIsDraftMode(false);
-  }, [hasDraftSettings]);
+  if (!hasDraftSettings && isDraftMode) setIsDraftMode(false);
   // An avatar is quoted for the body Generate submits (script, identity and
   // the resolved engine); until all three exist there is nothing to price.
   const avatarScript = resolveStudioAvatarScript(settings.speech, prompt);

@@ -109,6 +109,7 @@ export function useCrunGenerationQuote(
     controllerRef.current?.abort();
   }
 
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     if (!desktop) return;
     const bridge = (

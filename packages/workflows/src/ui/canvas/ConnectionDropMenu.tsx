@@ -115,6 +115,7 @@ function ConnectionDropMenuComponent() {
   }, [filteredNodes]);
 
   // Auto-focus input when opened
+  // use-effect-audit: ignore timer outside React
   useEffect(() => {
     if (isOpen) {
       setSearch('');
@@ -127,6 +128,7 @@ function ConnectionDropMenuComponent() {
   }, [isOpen]);
 
   // Scroll selected item into view
+  // use-effect-audit: ignore drives a DOM element or browser API
   useEffect(() => {
     if (listRef.current) {
       const items = listRef.current.querySelectorAll('[data-node-item]');

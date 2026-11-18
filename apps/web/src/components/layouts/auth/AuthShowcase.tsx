@@ -48,6 +48,7 @@ export default function AuthShowcase({
   const isVideoEnabled = isDesktop && !isReducedMotion;
   const activeSlide = slides[activeIndex];
 
+  // use-effect-audit: ignore subscribes to browser events
   useEffect(() => {
     const desktop = window.matchMedia(DESKTOP_QUERY);
     const reducedMotion = window.matchMedia(REDUCED_MOTION_QUERY);

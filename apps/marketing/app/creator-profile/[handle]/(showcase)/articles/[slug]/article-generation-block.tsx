@@ -27,6 +27,7 @@ export default function ArticleGenerationBlock({
   const resetTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const recreatePrompt = buildRecreatePrompt(generation);
 
+  // use-effect-audit: ignore clears the copy-reset timer on unmount
   useEffect(() => {
     return () => clearTimeout(resetTimer.current);
   }, []);

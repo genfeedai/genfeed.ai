@@ -107,6 +107,7 @@ function AgentWorkspaceLayoutClientContent({
   const handleOAuthConnect = useAgentOAuthConnect();
 
   // Bootstrap the prefilled prompt only on unthreaded entry routes.
+  // use-effect-audit: ignore abortable work
   useEffect(() => {
     const controller = new AbortController();
     const bootstrapKey =
@@ -154,6 +155,7 @@ function AgentWorkspaceLayoutClientContent({
 
   // Deep-linked /agent/:id under the wrong brand slug: once the thread is in
   // the store, replace to the brand that owns it so chrome + list match data.
+  // use-effect-audit: ignore redirects the route in the router
   useEffect(() => {
     if (!orgSlug || !organizationId) {
       return;
@@ -208,6 +210,7 @@ function AgentWorkspaceLayoutClientContent({
   // Auto-navigate from an unthreaded route to the created thread route. Bare
   // /agent is the master conversation: it stays put, apart from a prefilled
   // prompt, which starts a thread of its own.
+  // use-effect-audit: ignore reports to analytics, an external system
   useEffect(() => {
     if (
       !isUnthreadedRoute ||

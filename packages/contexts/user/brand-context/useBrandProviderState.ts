@@ -462,6 +462,7 @@ export function useBrandProviderState({
     staleTime: BRAND_CONTEXT_CACHE_TTL_MS,
   });
 
+  // use-effect-audit: ignore clears cached service instances when the user signs out
   useEffect(() => {
     if (effectiveIsAuthLoaded && !effectiveIsSignedIn) {
       clearAllServiceInstances();
@@ -500,6 +501,7 @@ export function useBrandProviderState({
 
   const lastSyncedUrlBrandIdRef = useRef('');
 
+  // use-effect-audit: ignore persists the route brand as the last-used brand on the server
   useEffect(() => {
     if (
       !effectiveIsSignedIn ||

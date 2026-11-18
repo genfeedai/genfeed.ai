@@ -134,6 +134,7 @@ export function useAccountThemeSync(isAuthenticated: boolean): void {
     controllerRef.current = new AccountThemeSyncController();
   }
 
+  // use-effect-audit: ignore starts and stops the account theme sync controller
   useEffect(() => {
     const controller = controllerRef.current;
     if (!controller) {
@@ -148,6 +149,7 @@ export function useAccountThemeSync(isAuthenticated: boolean): void {
     return controller.start();
   }, [isAuthenticated, isLoaded]);
 
+  // use-effect-audit: ignore subscribes to the settings store
   useEffect(
     () =>
       useSettingsStore.subscribe((state, previousState) => {

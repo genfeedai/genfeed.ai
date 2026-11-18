@@ -16,6 +16,7 @@ export function useGenerationQuote(
   if (identity.current.fingerprint !== fingerprint)
     identity.current = { fingerprint, version: identity.current.version + 1 };
   const version = identity.current.version;
+  // use-effect-audit: ignore debounced abortable credit estimate
   useEffect(() => {
     const controller = new AbortController();
     if (!isEnabled) return () => controller.abort();

@@ -257,6 +257,8 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
     'generationCredits',
     // Summed from the open review requests (Tasks) linked to the asset.
     'reviewState',
+    // The carousel this asset covers, derived from its posts' media order.
+    'stack',
     'blacklist',
     'blacklists',
     'camera',
@@ -308,6 +310,8 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
     'generationCredits',
     // Summed from the open review requests (Tasks) linked to the asset.
     'reviewState',
+    // The carousel this asset covers, derived from its posts' media order.
+    'stack',
     'blacklists',
     'camera',
     // Computed on read from s3Key by the Prisma result extension.
@@ -476,6 +480,8 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
     'generationCredits',
     // Summed from the open review requests (Tasks) linked to the asset.
     'reviewState',
+    // The carousel this asset covers, derived from its posts' media order.
+    'stack',
     'accent',
     'blacklists',
     'camera',
@@ -688,6 +694,8 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
     'generationCredits',
     // Summed from the open review requests (Tasks) linked to the asset.
     'reviewState',
+    // The carousel this asset covers, derived from its posts' media order.
+    'stack',
     'age',
     'blacklists',
     'camera',
@@ -750,6 +758,8 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
     'generationCredits',
     // Summed from the open review requests (Tasks) linked to the asset.
     'reviewState',
+    // The carousel this asset covers, derived from its posts' media order.
+    'stack',
     'bitrate',
     'blacklist',
     'blacklists',

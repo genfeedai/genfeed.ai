@@ -950,6 +950,7 @@ export default function IngredientsListContent({
 
   // Leaving the library drops the selection so the composer stops citing an
   // asset the operator can no longer see.
+  // use-effect-audit: ignore releases timers, requests or subscriptions on unmount
   useEffect(() => () => setSelectedAsset(null), [setSelectedAsset]);
 
   return (

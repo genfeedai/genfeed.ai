@@ -74,6 +74,7 @@ export default function ModalArticle({
   });
 
   // Trigger validation when mode changes
+  // use-effect-audit: ignore validates the form store on mount
   useEffect(() => {
     form.trigger();
   }, [form]);

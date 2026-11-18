@@ -21,9 +21,10 @@ import { EmptyState } from '@ui/primitives/empty-state';
 import { FileText } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Suspense, useCallback, useEffect, useMemo } from 'react';
+import { Suspense, useCallback, useMemo } from 'react';
 import SearchField from '@/components/content/search-field/SearchField';
 import type { TemplateView } from '@/features/admin/props/templates.props';
+import { useNotifyOnLoadError } from '@/hooks/utils/use-notify-on-load-error/use-notify-on-load-error';
 import { toTemplateView } from './template-view';
 
 const HYPHENS_PATTERN = /-/g;
@@ -92,13 +93,11 @@ function TemplatesPageContent() {
     void refetch();
   }, [refetch]);
 
-  // One toast per failed read, after its retry, not one per attempt.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: errorUpdatedAt marks each new failed read.
-  useEffect(() => {
-    if (hasError) {
-      notificationsService.error(t('loadError'));
-    }
-  }, [errorUpdatedAt, hasError, notificationsService, t]);
+  useNotifyOnLoadError({
+    errorUpdatedAt,
+    hasError: hasError,
+    notify: () => notificationsService.error(t('loadError')),
+  });
 
   const items = useMemo(
     () => (templates ?? []).map(toTemplateView),

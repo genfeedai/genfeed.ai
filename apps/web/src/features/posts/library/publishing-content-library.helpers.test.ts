@@ -364,6 +364,42 @@ describe('publishing content library federation', () => {
 
     expect(items[0]?.media).toEqual(expected);
   });
+  it('shows the first image of a release from the post that carries its assets', () => {
+    const items = createPublishingContentLibraryItems({
+      articles: [],
+      newsletters: [],
+      posts: [
+        {
+          createdAt: '2026-08-08T10:00:00.000Z',
+          description: 'Winter carousel',
+          id: 'post-1',
+          ingredients: [
+            { category: IngredientCategory.IMAGE, id: 'asset-1' },
+            { category: IngredientCategory.IMAGE, id: 'asset-2' },
+          ],
+          platform: Platform.INSTAGRAM,
+        },
+      ] as unknown as IPost[],
+      releases: [
+        {
+          createdAt: '2026-08-08T10:00:00.000Z',
+          id: 'release-1',
+          media: [
+            { assetId: 'asset-2', kind: 'image', order: 1 },
+            { assetId: 'asset-1', kind: 'image', order: 0 },
+          ],
+          status: 'published',
+          targets: [{ id: 'post-1', platform: Platform.INSTAGRAM }],
+          title: 'Winter carousel',
+        },
+      ] as unknown as IReleaseGroup[],
+    });
+
+    expect(items[0]?.media).toEqual({
+      ingredient: { category: IngredientCategory.IMAGE, id: 'asset-1' },
+      isVideo: false,
+    });
+  });
 });
 
 describe('createPublishingBoardColumns', () => {

@@ -31,6 +31,7 @@ export function useAnimatedText(
     setVisibleChars(text.length);
   }
 
+  // use-effect-audit: ignore text reveal interval outside React
   useEffect(() => {
     if (!animate || visibleChars >= text.length) {
       return;

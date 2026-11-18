@@ -13,10 +13,11 @@ import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-a
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { ImagesService } from '@genfeedai/services/ingredients/images.service';
+import { useSyncedState } from '@hooks/utils/use-synced-state/use-synced-state';
 import LoadingOverlay from '@ui/primitives/loading-overlay';
 import IngredientQuickActions from '@ui/quick-actions/actions/IngredientQuickActions';
 import Image from 'next/image';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import EvaluationCard from '@/components/evaluation/card/EvaluationCard';
 import IngredientWorkspacePanel from '@/features/ingredients/components/detail/shared/IngredientWorkspacePanel';
 import IngredientTabsPrompts from '@/features/ingredients/components/ingredients/tabs/prompts/IngredientTabsPrompts';
@@ -92,7 +93,7 @@ export default function IngredientDetailImage({
 }: IngredientDetailImageProps) {
   const [tab, setTab] = useState<ImageDetailTab>('info');
 
-  const [currentImage, setCurrentImage] = useState<IImage>(image);
+  const [currentImage, setCurrentImage] = useSyncedState(image);
 
   // Hook for AI quality evaluation (autoFetch disabled - evaluation comes with image)
   const {
@@ -125,7 +126,7 @@ export default function IngredientDetailImage({
       logger.error('Failed to reload image after metadata refresh', error);
       throw error;
     }
-  }, [currentImage.id, getImagesService]);
+  }, [currentImage.id, getImagesService, setCurrentImage]);
 
   const { updateMetadata: updateMetadataHook, isUpdating: isUpdatingMetadata } =
     useIngredientMetadata(
@@ -142,10 +143,6 @@ export default function IngredientDetailImage({
     });
 
   const isUpdating = propIsUpdating || isUpdatingMetadata || isUpdatingSharing;
-
-  useEffect(() => {
-    setCurrentImage(image);
-  }, [image]);
 
   const metadata = currentImage?.metadata as IMetadata;
   const metadataLabel = metadata?.label;

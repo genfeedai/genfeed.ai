@@ -7,6 +7,7 @@ import { useEffect } from 'react';
 import type { ErrorProps } from '@/props/ui/feedback/error.props';
 
 export default function WorkspaceError({ error, reset }: ErrorProps) {
+  // use-effect-audit: ignore reports the error to Sentry
   useEffect(() => {
     logger.error('Workspace route segment error', {
       error,

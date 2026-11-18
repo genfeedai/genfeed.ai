@@ -27,47 +27,41 @@ export function WorkflowUIProvider({
   config: WorkflowUIConfig;
   children: ReactNode;
 }) {
-  // Register the execution-store logger (SSE failures, failed runs). Resets to
-  // a no-op when unset so the package stays observable-agnostic standalone.
+  // Register each service adapter with the package's module-level services.
+  // Every one resets to the package's standalone default when unset: a no-op
+  // logger, the bare-fetch HTTP client with no auth headers, a throwing
+  // "not configured" persistence stub so saves are never silently dropped, a
+  // no-op edit applier, and device-local settings.
+  const {
+    applyEditOperations,
+    executionApiBaseUrl,
+    executionHeaders,
+    executionHttpClient,
+    logger,
+    settingsSync,
+    workflowPersistence,
+    workflowReferences,
+  } = config;
+  // use-effect-audit: ignore configures module-level services outside React
   useEffect(() => {
-    configureWorkflowLogger(config.logger);
-  }, [config.logger]);
-
-  // Register the execution HTTP client + provider auth headers. Both reset to
-  // the package's bare-fetch / no-header defaults when unset.
-  useEffect(() => {
-    configureExecutionHttpClient(config.executionHttpClient);
-  }, [config.executionHttpClient]);
-
-  useEffect(() => {
-    configureExecutionApiBaseUrl(config.executionApiBaseUrl);
-  }, [config.executionApiBaseUrl]);
-
-  useEffect(() => {
-    configureExecutionHeaders(config.executionHeaders);
-  }, [config.executionHeaders]);
-
-  // Register the workflow persistence backend. Resets to a throwing
-  // "not configured" stub when unset so saves are never silently dropped.
-  useEffect(() => {
-    configureWorkflowPersistence(config.workflowPersistence);
-  }, [config.workflowPersistence]);
-
-  useEffect(() => {
-    configureWorkflowRefApi(config.workflowReferences);
-  }, [config.workflowReferences]);
-
-  // Register the chat/agent edit-operations applier. Resets to a no-op when
-  // unset (matching the package's standalone behavior).
-  useEffect(() => {
-    configureApplyEditOperations(config.applyEditOperations);
-  }, [config.applyEditOperations]);
-
-  // Register the settings server-sync adapter. Resets to a no-op when unset so
-  // settings stay device-local (the package's standalone default).
-  useEffect(() => {
-    configureSettingsSync(config.settingsSync);
-  }, [config.settingsSync]);
+    configureWorkflowLogger(logger);
+    configureExecutionHttpClient(executionHttpClient);
+    configureExecutionApiBaseUrl(executionApiBaseUrl);
+    configureExecutionHeaders(executionHeaders);
+    configureWorkflowPersistence(workflowPersistence);
+    configureWorkflowRefApi(workflowReferences);
+    configureApplyEditOperations(applyEditOperations);
+    configureSettingsSync(settingsSync);
+  }, [
+    applyEditOperations,
+    executionApiBaseUrl,
+    executionHeaders,
+    executionHttpClient,
+    logger,
+    settingsSync,
+    workflowPersistence,
+    workflowReferences,
+  ]);
 
   return (
     <WorkflowUIContext.Provider value={config}>

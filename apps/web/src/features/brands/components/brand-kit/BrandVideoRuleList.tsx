@@ -1,12 +1,13 @@
 'use client';
 
 import { ButtonVariant } from '@genfeedai/contracts';
+import { useResetOnChange } from '@hooks/utils/use-reset-on-change/use-reset-on-change';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Label } from '@ui/primitives/label';
 import { Plus, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import type { BrandVideoRuleListProps } from '@/features/brands/props/brand-video-kit.props';
 
 interface RuleRow {
@@ -36,13 +37,13 @@ export default function BrandVideoRuleList({
   const t = useTranslations('pages.brandVideoKit');
   const [rows, setRows] = useState<RuleRow[]>(() => toRows(rules));
 
-  useEffect(() => {
+  useResetOnChange([rules], () => {
     setRows((current) =>
       JSON.stringify(filled(current)) === JSON.stringify(rules)
         ? current
         : toRows(rules),
     );
-  }, [rules]);
+  });
 
   function update(next: RuleRow[]) {
     setRows(next);

@@ -151,6 +151,7 @@ export function useContentCalendarData({
   const { error } = calendarQuery;
   // A failed first read says so; a failed background refresh keeps the
   // calendar that is on screen without a toast.
+  // use-effect-audit: ignore reports a failed load to the logger or a notification
   useEffect(() => {
     if (error && !hasData) {
       notificationsService.error(LOAD_ERROR);

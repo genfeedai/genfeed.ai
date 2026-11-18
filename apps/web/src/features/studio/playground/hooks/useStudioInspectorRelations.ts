@@ -54,11 +54,13 @@ export function useStudioInspectorRelations(
   const isLoadingHistory = isRelationsReadEnabled && childrenQuery.isLoading;
   const postsError = postsQuery.error;
   const childrenError = childrenQuery.error;
+  // use-effect-audit: ignore reports a failed load to the logger or a notification
   useEffect(() => {
     if (postsError) {
       logger.error('Failed to load Studio inspector posts', postsError);
     }
   }, [postsError]);
+  // use-effect-audit: ignore reports a failed load to the logger or a notification
   useEffect(() => {
     if (childrenError) {
       logger.error('Failed to load Studio inspector history', childrenError);

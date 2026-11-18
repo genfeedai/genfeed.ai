@@ -97,6 +97,7 @@ export default function SocialWarmupProgram({
     : null;
   const blueprint = enrolledBlueprint ?? currentBlueprint;
 
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     if (
       !connection.credentialId ||
@@ -159,6 +160,7 @@ export default function SocialWarmupProgram({
     );
   }, [blueprint, data, isRefreshingSignals, platform]);
 
+  // use-effect-audit: ignore drives a DOM element or browser API
   useEffect(() => {
     if (!focusedCheckId || view !== 'full') {
       return;

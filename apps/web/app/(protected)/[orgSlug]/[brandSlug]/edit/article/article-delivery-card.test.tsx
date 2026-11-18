@@ -1,4 +1,5 @@
 import type { Article } from '@genfeedai/models/content/article.model';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import ArticleDeliveryCard from './article-delivery-card';
@@ -70,15 +71,20 @@ const article = {
 function renderCard(overrides: { isDirty?: boolean; content?: string } = {}) {
   const onDelivered = vi.fn();
   const onSaveExternalUrl = vi.fn().mockResolvedValue(undefined);
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
   render(
-    <ArticleDeliveryCard
-      article={article}
-      content={overrides.content ?? '<p>Body</p>'}
-      isDirty={overrides.isDirty ?? false}
-      isSavingExternalUrl={false}
-      onDelivered={onDelivered}
-      onSaveExternalUrl={onSaveExternalUrl}
-    />,
+    <QueryClientProvider client={queryClient}>
+      <ArticleDeliveryCard
+        article={article}
+        content={overrides.content ?? '<p>Body</p>'}
+        isDirty={overrides.isDirty ?? false}
+        isSavingExternalUrl={false}
+        onDelivered={onDelivered}
+        onSaveExternalUrl={onSaveExternalUrl}
+      />
+    </QueryClientProvider>,
   );
   return { onDelivered, onSaveExternalUrl };
 }
@@ -144,6 +150,53 @@ describe('ArticleDeliveryCard', () => {
     });
     expect(onDelivered).toHaveBeenCalled();
     await waitFor(() => expect(findDeliveriesMock).toHaveBeenCalledTimes(2));
+  });
+
+  it('lists the delivery queued while the first history read was pending', async () => {
+    credentialsMock.current = [
+      {
+        id: 'ghost-1',
+        isConnected: true,
+        label: 'Team blog',
+        platform: 'ghost',
+      },
+    ];
+    let resolveFirstRead: (targets: unknown[]) => void = () => {};
+    findDeliveriesMock
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveFirstRead = resolve;
+          }),
+      )
+      .mockResolvedValue([
+        {
+          credentialId: 'ghost-1',
+          executionState: 'published',
+          id: 'target-new',
+          platform: 'ghost',
+          url: 'https://blog.example.com/new-post',
+        },
+      ]);
+    renderCard();
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Publish to Team blog' }),
+    );
+    const { onConfirm } = openConfirmMock.mock.calls[0][0];
+    await onConfirm();
+
+    expect(await screen.findByRole('link', { name: 'Open' })).toHaveAttribute(
+      'href',
+      'https://blog.example.com/new-post',
+    );
+
+    resolveFirstRead([]);
+    await Promise.resolve();
+    expect(screen.getByRole('link', { name: 'Open' })).toHaveAttribute(
+      'href',
+      'https://blog.example.com/new-post',
+    );
   });
 
   it('blocks publishing unsaved changes', () => {

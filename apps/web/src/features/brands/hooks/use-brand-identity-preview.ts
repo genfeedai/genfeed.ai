@@ -126,6 +126,7 @@ export function useBrandIdentityPreview(
   }, [identity, close]);
 
   // Run after useAuthedService has refreshed its token/factory refs for this render.
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     const number = ++epoch.current;
     const controller = new AbortController();

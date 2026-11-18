@@ -82,6 +82,7 @@ export default function StreakNotificationsBridge({
     initialStreak,
   });
 
+  // use-effect-audit: ignore drives a DOM element or browser API
   useEffect(() => {
     if (!organizationId || !streak) {
       return;

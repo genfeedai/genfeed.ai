@@ -25,6 +25,7 @@ export function GlobalModalsProvider({
 
   useRouteModalGlobalSideEffectCleanup(routeKey);
 
+  // use-effect-audit: ignore cleans up the document after the last global modal closes
   useEffect(() => {
     if (state.hasOpenGlobalModal) {
       return;

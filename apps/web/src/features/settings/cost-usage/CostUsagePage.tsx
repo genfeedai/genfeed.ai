@@ -30,7 +30,7 @@ import { Text } from '@ui/typography/text';
 import { Download } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import FilterMenu from '@/components/content/filter-menu/FilterMenu';
 import {
   buildUsageRowsCsv,
@@ -113,7 +113,6 @@ export default function CostUsagePage({ lockedBrandId }: CostUsagePageProps) {
   }, [rangeDays, effectiveBrandId]);
   const scope = `${organizationId}:${effectiveBrandId}:${rangeDays}`;
   const page = pageState.scope === scope ? pageState.page : 1;
-  useEffect(() => setPageState({ scope, page: 1 }), [scope]);
   const getCostsService = useAuthedService(
     useCallback((token: string) => CostsService.getInstance(token), []),
   );

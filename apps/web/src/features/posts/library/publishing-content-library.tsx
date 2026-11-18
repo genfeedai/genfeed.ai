@@ -193,6 +193,7 @@ export default function PublishingContentLibrary() {
     queryKey: ['publishing-posts-library', organizationId, brandId],
   });
 
+  // use-effect-audit: ignore reports a load failure to the logger and notifications
   useEffect(() => {
     if (!error) {
       return;
@@ -595,6 +596,7 @@ export default function PublishingContentLibrary() {
     },
   ];
 
+  // use-effect-audit: ignore registers the toolbar nodes with the page shell
   useEffect(() => {
     setLeadingNode(
       <PublishingContentLibrarySearch
@@ -642,6 +644,7 @@ export default function PublishingContentLibrary() {
     await refetch();
   }, [refetch]);
 
+  // use-effect-audit: ignore registers the toolbar nodes with the page shell
   useEffect(() => {
     setViewToggleNode(
       <PublishingViewToggle
@@ -670,6 +673,7 @@ export default function PublishingContentLibrary() {
     setViewToggleNode,
   ]);
 
+  // use-effect-audit: ignore registers the page refresh handler with the shell
   useEffect(() => {
     setIsRefreshing(isFetching);
     return () => setIsRefreshing(false);

@@ -139,6 +139,7 @@ export function useCharactersPage(
     unsubscribeRef.current = null;
   }, []);
 
+  // use-effect-audit: ignore subscribes to an external event source
   useEffect(() => {
     return () => cleanupSocket();
   }, [cleanupSocket]);
@@ -186,6 +187,7 @@ export function useCharactersPage(
   const hasCharactersPage = charactersPage !== undefined;
 
   // A failed first read says so; a failed background refresh keeps the list.
+  // use-effect-audit: ignore reports a failed load to the logger or a notification
   useEffect(() => {
     if (charactersLoadError && !hasCharactersPage) {
       notificationsService.error(translate('errors.loadFailed'));

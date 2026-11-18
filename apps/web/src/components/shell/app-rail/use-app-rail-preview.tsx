@@ -245,9 +245,11 @@ export function useAppRailPreview({
   useEffect(() => {
     if (position && !isPreviewable(position.id)) close();
   }, [close, isPreviewable, position]);
+  // use-effect-audit: ignore cancels pending timers
   useEffect(() => {
     if (!isEnabled) cancelTimers();
   }, [cancelTimers, isEnabled]);
+  // use-effect-audit: ignore subscribes to browser events
   useEffect(() => {
     if (!position) return;
     const onKeyDown = (event: KeyboardEvent) => {
@@ -262,6 +264,7 @@ export function useAppRailPreview({
       window.removeEventListener('resize', close);
     };
   }, [close, position]);
+  // use-effect-audit: ignore drives a DOM element or browser API
   useEffect(() => cancelTimers, [cancelTimers]);
 
   const app = position ? appsById.get(position.id) : undefined;

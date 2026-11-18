@@ -197,6 +197,7 @@ export function useTopbarBalances(): UseTopbarBalancesReturn {
     [clearReconcileTimeout, queryKey, isEnabled],
   );
 
+  // use-effect-audit: ignore releases timers, requests or subscriptions on unmount
   useEffect(
     () => () => {
       void queryClient.cancelQueries({ queryKey, exact: true });
@@ -231,6 +232,7 @@ export function useTopbarBalances(): UseTopbarBalancesReturn {
     ],
   );
 
+  // use-effect-audit: ignore subscribes to browser events
   useEffect(() => {
     const handleRefresh = () => {
       if (isEnabled && isCurrentScope()) void refetch();

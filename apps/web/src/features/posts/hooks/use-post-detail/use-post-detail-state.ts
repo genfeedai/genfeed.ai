@@ -25,7 +25,7 @@ import { isServiceOperationError } from '@services/core/operation-error';
 import { useQueryClient } from '@tanstack/react-query';
 import { Eye, Heart, MessageSquare, TrendingUp, Zap } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { isPostPublished } from '@/features/posts/detail/post-published.helper';
 import {
   isPostDetailPublishBlocked,
@@ -294,12 +294,10 @@ export function usePostDetailState({
   }, [post?.credential, cachedCredential]);
 
   // Update cached credential when post has a valid credential
-  useEffect(() => {
-    const postCredential = post?.credential as ICredential | undefined;
-    if (postCredential) {
-      setCachedCredential(postCredential);
-    }
-  }, [post?.credential]);
+  const latestPostCredential = post?.credential as ICredential | undefined;
+  if (latestPostCredential && latestPostCredential !== cachedCredential) {
+    setCachedCredential(latestPostCredential);
+  }
 
   const canAddThread =
     post?.platform === CredentialPlatform.TWITTER && Boolean(post);
@@ -430,21 +428,9 @@ export function usePostDetailState({
   }, [refetchPost]);
 
   // Sync view mode based on publication status
-  useEffect(() => {
-    if (!post) {
-      return;
-    }
-
-    if (isPostPublished(post) && viewMode !== 'preview') {
-      setViewMode('preview');
-    }
-  }, [
-    post?.id,
-    post?.publicationDate,
-    post?.targetExecutionState,
-    viewMode,
-    post,
-  ]);
+  if (post && isPostPublished(post) && viewMode !== 'preview') {
+    setViewMode('preview');
+  }
 
   // Update active post handler
   const updateActivePost = useCallback(

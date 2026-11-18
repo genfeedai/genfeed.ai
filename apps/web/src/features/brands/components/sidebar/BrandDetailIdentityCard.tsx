@@ -20,6 +20,8 @@ import {
 import { getVoiceName } from '@helpers/voice/voice-name.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import { useResetOnChange } from '@hooks/utils/use-reset-on-change/use-reset-on-change';
+import { useSyncedState } from '@hooks/utils/use-synced-state/use-synced-state';
 import type { BrandDetailIdentityCardProps } from '@props/pages/brand-detail.props';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
@@ -30,7 +32,7 @@ import { getIngredientDisplayLabel } from '@utils/media/ingredient-type.util';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useVoiceCatalog } from '@/features/library/voices/hooks/use-voice-catalog';
 import { useAvatarImages } from '@/hooks/data/ingredients/use-avatar-images/use-avatar-images';
 import { useHeyGenCatalog } from '@/hooks/data/integrations/use-heygen-catalog';
@@ -76,44 +78,40 @@ export default function BrandDetailIdentityCard({
     | null
     | undefined;
 
-  const [selectedVoiceId, setSelectedVoiceId] = useState('');
-  const [selectedAvatarId, setSelectedAvatarId] = useState('');
+  const selectedDefaultVoice =
+    catalog.find((voice) =>
+      matchesDefaultVoice(
+        {
+          defaultVoiceId: brand.agentConfig?.defaultVoiceId,
+          defaultVoiceRef: brandDefaultVoiceRef,
+        },
+        voice,
+      ),
+    ) ?? null;
+  const defaultVoiceValue =
+    brandDefaultVoiceRef?.provider === VoiceProvider.HEYGEN &&
+    brandDefaultVoiceRef.externalVoiceId &&
+    brandDefaultVoiceRef.ownership
+      ? heyGenVoiceValue({
+          ownership: brandDefaultVoiceRef.ownership,
+          voiceId: brandDefaultVoiceRef.externalVoiceId,
+        })
+      : (selectedDefaultVoice?.id ?? brand.agentConfig?.defaultVoiceId ?? '');
+  const [selectedVoiceId, setSelectedVoiceId] =
+    useSyncedState(defaultVoiceValue);
+  const defaultAvatarValue = brand.agentConfig?.defaultAvatarRef
+    ? heyGenAvatarValue(brand.agentConfig.defaultAvatarRef)
+    : (brand.agentConfig?.defaultAvatarIngredientId ?? '');
+  const [selectedAvatarId, setSelectedAvatarId] = useState(defaultAvatarValue);
   const [isSavingIdentity, setIsSavingIdentity] = useState(false);
 
-  useEffect(() => {
-    setSelectedAvatarId(
-      brand.agentConfig?.defaultAvatarRef
-        ? heyGenAvatarValue(brand.agentConfig.defaultAvatarRef)
-        : (brand.agentConfig?.defaultAvatarIngredientId ?? ''),
-    );
-  }, [
-    brand.agentConfig?.defaultAvatarIngredientId,
-    brand.agentConfig?.defaultAvatarRef,
-  ]);
-
-  useEffect(() => {
-    const selectedVoice =
-      catalog.find((voice) =>
-        matchesDefaultVoice(
-          {
-            defaultVoiceId: brand.agentConfig?.defaultVoiceId,
-            defaultVoiceRef: brandDefaultVoiceRef,
-          },
-          voice,
-        ),
-      ) ?? null;
-
-    setSelectedVoiceId(
-      brandDefaultVoiceRef?.provider === VoiceProvider.HEYGEN &&
-        brandDefaultVoiceRef.externalVoiceId &&
-        brandDefaultVoiceRef.ownership
-        ? heyGenVoiceValue({
-            ownership: brandDefaultVoiceRef.ownership,
-            voiceId: brandDefaultVoiceRef.externalVoiceId,
-          })
-        : (selectedVoice?.id ?? brand.agentConfig?.defaultVoiceId ?? ''),
-    );
-  }, [brand.agentConfig?.defaultVoiceId, brandDefaultVoiceRef, catalog]);
+  useResetOnChange(
+    [
+      brand.agentConfig?.defaultAvatarIngredientId,
+      brand.agentConfig?.defaultAvatarRef,
+    ],
+    () => setSelectedAvatarId(defaultAvatarValue),
+  );
 
   const catalogOptions = useMemo(
     () => [

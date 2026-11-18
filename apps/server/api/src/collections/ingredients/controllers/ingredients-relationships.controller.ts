@@ -2,6 +2,7 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { IngredientLineageQueryDto } from '@api/collections/ingredients/dto/ingredient-lineage-query.dto';
 import { type IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { IngredientLineageService } from '@api/collections/ingredients/services/ingredient-lineage.service';
+import { IngredientStackService } from '@api/collections/ingredients/services/ingredient-stack.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { AssetAccessGuard } from '@api/guards/asset-access.guard';
@@ -48,6 +49,7 @@ export class IngredientsRelationshipsController {
   constructor(
     private readonly ingredientsService: IngredientsService,
     private readonly lineageService: IngredientLineageService,
+    private readonly stackService: IngredientStackService,
     private readonly moduleRef: ModuleRef,
   ) {}
 
@@ -65,6 +67,52 @@ export class IngredientsRelationshipsController {
 
     this.postsService = postsService;
     return postsService;
+  }
+
+  /**
+   * The carousel this asset belongs to, in slide order with the cover first
+   * (see `IngredientStackService`). An asset in no carousel returns an empty
+   * collection.
+   */
+  @Get(':ingredientId/stack')
+  @UseGuards(AssetAccessGuard)
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  async findStack(
+    @Req() request: Request,
+    @Param('ingredientId') ingredientId: string,
+  ): Promise<JsonApiCollectionResponse> {
+    const ingredient = await this.ingredientsService.findOneSelect(
+      { id: ingredientId },
+      { organizationId: true },
+    );
+
+    if (!ingredient?.organizationId) {
+      return returnNotFound(this.constructorName, ingredientId);
+    }
+
+    const slideIds = await this.stackService.findSlideIds(
+      ingredient.organizationId,
+      ingredientId,
+    );
+    const data: AggregatePaginateResult<IngredientDocument> =
+      await this.ingredientsService.findAll(
+        {
+          where: {
+            id: { in: slideIds },
+            isDeleted: false,
+            organizationId: ingredient.organizationId,
+          },
+        },
+        { customLabels, limit: Math.max(slideIds.length, 1), page: 1 },
+      );
+    const slideOrder = new Map(slideIds.map((id, index) => [id, index]));
+    return serializeCollection(request, IngredientSerializer, {
+      ...data,
+      docs: [...data.docs].sort(
+        (left, right) =>
+          (slideOrder.get(left.id) ?? 0) - (slideOrder.get(right.id) ?? 0),
+      ),
+    });
   }
 
   @Get(':ingredientId/children')

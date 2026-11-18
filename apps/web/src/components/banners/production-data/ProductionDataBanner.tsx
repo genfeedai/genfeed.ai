@@ -74,6 +74,7 @@ function isPlaywrightRun(): boolean {
 export default function ProductionDataBanner() {
   const [isProductionData, setIsProductionData] = useState(false);
 
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     if (!isLocalhost() || isPlaywrightRun()) {
       return;

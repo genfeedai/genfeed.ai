@@ -14,6 +14,7 @@ export default function GlobalError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  // use-effect-audit: ignore reports the error to Sentry
   useEffect(() => {
     Sentry.captureException(error);
   }, [error]);

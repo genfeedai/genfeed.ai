@@ -2,6 +2,7 @@ import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard'
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { IngredientsRelationshipsController } from '@api/collections/ingredients/controllers/ingredients-relationships.controller';
 import { IngredientLineageService } from '@api/collections/ingredients/services/ingredient-lineage.service';
+import { IngredientStackService } from '@api/collections/ingredients/services/ingredient-stack.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
@@ -65,6 +66,7 @@ describe('IngredientsRelationshipsController', () => {
       }),
     },
     loggerService: { error: vi.fn(), log: vi.fn(), warn: vi.fn() },
+    stackService: { findSlideIds: vi.fn().mockResolvedValue([]) },
     postsService: {
       findAll: vi.fn().mockResolvedValue({
         docs: [
@@ -92,6 +94,10 @@ describe('IngredientsRelationshipsController', () => {
         {
           provide: IngredientLineageService,
           useValue: mockServices.lineageService,
+        },
+        {
+          provide: IngredientStackService,
+          useValue: mockServices.stackService,
         },
         { provide: LoggerService, useValue: mockServices.loggerService },
         { provide: PostsService, useValue: mockServices.postsService },
@@ -151,6 +157,47 @@ describe('IngredientsRelationshipsController', () => {
 
       expect(ingredientsService.findOne).toHaveBeenCalled();
       expect(result).toBeDefined();
+    });
+  });
+
+  describe('findStack', () => {
+    it('returns the slides of a carousel in slide order, cover first', async () => {
+      const slides = ['slide-a', 'slide-b', 'slide-c'];
+      mockServices.stackService.findSlideIds.mockResolvedValueOnce(slides);
+      mockServices.ingredientsService.findAll.mockResolvedValueOnce({
+        docs: [
+          { category: 'image', id: 'slide-c', organizationId },
+          { category: 'image', id: 'slide-a', organizationId },
+          { category: 'image', id: 'slide-b', organizationId },
+        ],
+        limit: 3,
+        page: 1,
+        pages: 1,
+        total: 3,
+      });
+
+      const result = (await controller.findStack(mockRequest, 'slide-b')) as {
+        data: { id: string }[];
+      };
+
+      expect(result.data.map((slide) => slide.id)).toEqual(slides);
+    });
+
+    it('returns an empty collection for an asset that is in no carousel', async () => {
+      mockServices.ingredientsService.findAll.mockResolvedValueOnce({
+        docs: [],
+        limit: 1,
+        page: 1,
+        pages: 0,
+        total: 0,
+      });
+
+      const result = (await controller.findStack(
+        mockRequest,
+        ingredientId,
+      )) as { data: unknown[] };
+
+      expect(result.data).toEqual([]);
     });
   });
 

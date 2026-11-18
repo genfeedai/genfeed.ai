@@ -91,6 +91,7 @@ function PublishingLayoutContentContent({ children }: { children: ReactNode }) {
 
   // Posts, releases or articles changed outside this page (the agent drafted
   // or scheduled one): the desk reloads through the refresh it registered.
+  // use-effect-audit: ignore subscribes to browser events
   useEffect(() => {
     if (hasOwnPageLayout) {
       return;

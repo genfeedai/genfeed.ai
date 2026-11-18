@@ -99,7 +99,10 @@ export default function NewsletterDeliveryCard({
     },
     [getNewslettersService, newsletter.id],
   );
-  const { reload, targets } = useSourceDeliveries(loadDeliveries);
+  const { reload, targets } = useSourceDeliveries(
+    `newsletter:${newsletter.id}`,
+    loadDeliveries,
+  );
 
   const hasContent = Boolean(newsletter.content?.trim());
   const blockedReason = isDirty

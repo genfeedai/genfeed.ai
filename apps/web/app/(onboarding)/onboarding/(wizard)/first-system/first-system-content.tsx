@@ -46,6 +46,7 @@ export default function FirstSystemContent() {
   const [isEntering, setIsEntering] = useState(false);
   const [errorKey, setErrorKey] = useState<FirstSystemErrorKey | null>(null);
 
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     if (!brandId) {
       return;

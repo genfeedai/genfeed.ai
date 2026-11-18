@@ -285,6 +285,7 @@ function useMinimapVisibility(showMinimap: boolean) {
     }, MINIMAP_HIDE_DELAY);
   }, [showMinimap]);
 
+  // use-effect-audit: ignore clears the hide timer on unmount
   useEffect(() => {
     return () => {
       if (hideTimeoutRef.current) {

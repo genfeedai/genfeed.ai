@@ -74,6 +74,7 @@ export function useGalleryViews(): GalleryViews {
     [getObserver],
   );
 
+  // use-effect-audit: ignore disconnects the observer and clears timers on unmount
   useEffect(
     () => () => {
       observer.current?.disconnect();

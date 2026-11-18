@@ -42,6 +42,7 @@ export default function InviteProfile({ handle, token }: InviteProfileProps) {
     status: 'loading',
   });
 
+  // use-effect-audit: ignore abortable invite fetch
   useEffect(() => {
     const controller = new AbortController();
 
@@ -77,6 +78,7 @@ export default function InviteProfile({ handle, token }: InviteProfileProps) {
 
   // One visit is one count: the read itself never counts, so a refresh of the
   // data or a strict-mode remount cannot add a second view.
+  // use-effect-audit: ignore counts the invite view once with a keepalive request
   useEffect(() => {
     if (state.status !== 'ready' || hasCountedView.current) return;
     hasCountedView.current = true;

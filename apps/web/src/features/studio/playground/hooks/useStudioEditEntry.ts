@@ -69,6 +69,7 @@ export function useStudioEditEntry({
   const prepareContinuationRef = useRef(prepareContinuation);
   prepareContinuationRef.current = prepareContinuation;
   const editEntryRef = useRef<string | null>(null);
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     if (!isHydrated || !brandId || !isDraftLoaded) return;
     const sourceId = editSourceQueryId;

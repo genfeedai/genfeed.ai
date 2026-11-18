@@ -1,6 +1,7 @@
 import { ServiceHealthStatus } from '@genfeedai/contracts';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderHook, waitFor } from '@testing-library/react';
-import { act } from 'react';
+import { act, type ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useHealthChecks } from './use-health-checks';
 
@@ -19,10 +20,18 @@ function createFetchResponse(response: MockHealthResponse): Response {
   } as unknown as Response;
 }
 
+let queryClient: QueryClient;
+function wrapper({ children }: { children: ReactNode }) {
+  return (
+    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+  );
+}
+
 describe('useHealthChecks', () => {
   const fetchMock = vi.fn();
 
   beforeEach(() => {
+    queryClient = new QueryClient();
     vi.clearAllMocks();
     vi.stubGlobal('fetch', fetchMock);
   });
@@ -39,7 +48,7 @@ describe('useHealthChecks', () => {
       }),
     );
 
-    const { result } = renderHook(() => useHealthChecks());
+    const { result } = renderHook(() => useHealthChecks(), { wrapper });
 
     await waitFor(() => {
       expect(result.current.healthCheckedAt).not.toBeNull();
@@ -64,7 +73,7 @@ describe('useHealthChecks', () => {
         }),
       );
 
-    const { result } = renderHook(() => useHealthChecks());
+    const { result } = renderHook(() => useHealthChecks(), { wrapper });
 
     await waitFor(() => {
       expect(result.current.healthCheckedAt).not.toBeNull();
@@ -85,7 +94,7 @@ describe('useHealthChecks', () => {
       }),
     );
 
-    const { result } = renderHook(() => useHealthChecks());
+    const { result } = renderHook(() => useHealthChecks(), { wrapper });
 
     await waitFor(() => {
       expect(result.current.healthCheckedAt).not.toBeNull();
@@ -105,7 +114,7 @@ describe('useHealthChecks', () => {
       createFetchResponse({ isJsonBroken: true, ok: true }),
     );
 
-    const { result } = renderHook(() => useHealthChecks());
+    const { result } = renderHook(() => useHealthChecks(), { wrapper });
 
     await waitFor(() => {
       expect(result.current.healthCheckedAt).not.toBeNull();
@@ -118,7 +127,7 @@ describe('useHealthChecks', () => {
   it('marks services unhealthy when the request throws', async () => {
     fetchMock.mockRejectedValue(new Error('network down'));
 
-    const { result } = renderHook(() => useHealthChecks());
+    const { result } = renderHook(() => useHealthChecks(), { wrapper });
 
     await waitFor(() => {
       expect(result.current.healthCheckedAt).not.toBeNull();
@@ -138,7 +147,7 @@ describe('useHealthChecks', () => {
       }),
     );
 
-    const { result } = renderHook(() => useHealthChecks());
+    const { result } = renderHook(() => useHealthChecks(), { wrapper });
 
     await waitFor(() => {
       expect(result.current.healthCheckedAt).not.toBeNull();
@@ -150,7 +159,9 @@ describe('useHealthChecks', () => {
       await result.current.runHealthChecks();
     });
 
-    expect(result.current.apiStatus).toBe(ServiceHealthStatus.UNHEALTHY);
+    await waitFor(() => {
+      expect(result.current.apiStatus).toBe(ServiceHealthStatus.UNHEALTHY);
+    });
     expect(result.current.notificationsStatus).toBe(
       ServiceHealthStatus.UNHEALTHY,
     );

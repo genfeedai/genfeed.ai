@@ -36,6 +36,7 @@ export function useNotificationInbox(open: boolean) {
   } = useSocketManager();
   const key = [NOTIFICATION_INBOX_QUERY_KEY, userId, organizationId];
   const enabled = isReady && isSignedIn && Boolean(organizationId);
+  // use-effect-audit: ignore interval timer outside React
   useEffect(() => {
     if (!enabled) return;
     const refresh = () => {

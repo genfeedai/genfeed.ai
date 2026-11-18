@@ -87,7 +87,13 @@
     "surface": "Library",
     "type": "Type",
     "untitled": "Untitled asset",
-    "usedIn": "Used in"
+    "untitledPost": "Untitled post",
+    "usedIn": "Used in",
+    "usedInPosts": "Used in posts"
+  },
+  "stack": {
+    "count": "Carousel of {count} images",
+    "label": "Carousel"
   },
   "review": {
     "approve": "Approve asset",

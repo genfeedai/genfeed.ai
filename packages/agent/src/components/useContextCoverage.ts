@@ -59,6 +59,7 @@ export function useContextCoverage({
     return () => controller.abort();
   }, [apiService, brandId, isActive, reloadToken]);
 
+  // use-effect-audit: ignore reloads coverage on window focus
   useEffect(() => {
     if (!isActive) return;
     window.addEventListener('focus', reload);

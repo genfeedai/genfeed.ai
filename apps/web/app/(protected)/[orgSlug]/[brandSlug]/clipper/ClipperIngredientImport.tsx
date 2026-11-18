@@ -66,6 +66,7 @@ export default function ClipperIngredientImport({
   // A plain string, so the create effect does not re-run when `t` changes.
   const createFailedMessage = t('projectCreateFailed');
 
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     if (!isBrandReady) {
       return;

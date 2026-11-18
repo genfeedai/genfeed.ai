@@ -33,6 +33,7 @@ export default function StreaksPage() {
   const isAgentAvailable = useIsAppAvailable('agent');
   const createHref = href(APP_ROUTES.AGENT.NEW);
 
+  // use-effect-audit: ignore registers the toolbar with the page shell
   useEffect(() => {
     if (!isAgentAvailable) {
       return;
@@ -49,6 +50,7 @@ export default function StreaksPage() {
     return () => setToolbarNode(null);
   }, [createHref, isAgentAvailable, setToolbarNode]);
 
+  // use-effect-audit: ignore subscribes to browser events
   useEffect(() => {
     const handleCelebration = (_event: Event) => {
       setIsCelebrating(true);

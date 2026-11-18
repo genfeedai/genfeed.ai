@@ -77,6 +77,7 @@ export function useDropdownTags({
   const hasTags = tagsQuery.data !== undefined;
 
   // A failed background refresh keeps the tags on screen without an alert.
+  // use-effect-audit: ignore reports a failed load to the logger or a notification
   useEffect(() => {
     if (!loadError || hasTags) {
       return;
@@ -89,6 +90,7 @@ export function useDropdownTags({
   }, [hasTags, loadError, notificationsService, scope]);
 
   // Calculate dropdown position when it opens
+  // use-effect-audit: ignore measures the trigger element in the DOM
   useEffect(() => {
     if (isOpen && buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect();
@@ -114,6 +116,7 @@ export function useDropdownTags({
   }, [isOpen]);
 
   // Focus search input when opening
+  // use-effect-audit: ignore drives a DOM element or browser API
   useEffect(() => {
     if (isOpen && searchInputRef.current) {
       searchInputRef.current.focus();
@@ -121,6 +124,7 @@ export function useDropdownTags({
   }, [isOpen]);
 
   // Close dropdown when clicking outside
+  // use-effect-audit: ignore subscribes to browser events
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (

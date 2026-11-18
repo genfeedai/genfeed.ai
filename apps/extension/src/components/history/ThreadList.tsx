@@ -16,6 +16,7 @@ export function ThreadList({ onOpenThread }: ThreadListProps): ReactElement {
   const setMessages = useChatStore((s) => s.setMessages);
   const [isLoading, setIsLoading] = useState(true);
 
+  // use-effect-audit: ignore loads threads from the extension background on mount
   useEffect(() => {
     chrome.runtime.sendMessage(
       { event: 'chatGetThreads', payload: { limit: 50, page: 1 } },

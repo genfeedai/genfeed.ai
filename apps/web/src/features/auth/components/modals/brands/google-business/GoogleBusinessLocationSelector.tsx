@@ -95,6 +95,7 @@ export default function GoogleBusinessLocationSelector({
   onErrorRef.current = onError;
   const loadError = hasLoadError ? locationsQuery.error : null;
 
+  // use-effect-audit: ignore reports a failed load to the logger or a notification
   useEffect(() => {
     if (loadError) {
       onErrorRef.current?.(loadErrorMessage);

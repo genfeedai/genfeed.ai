@@ -45,6 +45,7 @@ export function useVideoUpscaleQuote({
   const [snapshot, setSnapshot] = useState<QuoteSnapshot | null>(null);
   const key = [videoId, model, targetFps, targetResolution].join('\u0001');
 
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     if (!isEnabled) {
       return;

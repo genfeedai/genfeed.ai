@@ -67,6 +67,7 @@ export default function ModalBrandLink({
     },
   });
 
+  // use-effect-audit: ignore writes the loaded values into the form store
   useEffect(() => {
     if (link) {
       const category =

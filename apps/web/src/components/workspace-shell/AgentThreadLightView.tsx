@@ -165,6 +165,7 @@ export default function AgentThreadLightView({
     [apiService, thread.id],
   );
 
+  // use-effect-audit: ignore abortable work
   useEffect(() => {
     const controller = new AbortController();
     void loadMessages(controller.signal);
@@ -190,6 +191,7 @@ export default function AgentThreadLightView({
   // its new messages as they land, and once more when the run settles.
   const isWorking = status?.tone === 'running';
   const wasWorkingRef = useRef(isWorking);
+  // use-effect-audit: ignore interval timer outside React
   useEffect(() => {
     const controller = new AbortController();
     if (wasWorkingRef.current && !isWorking) {

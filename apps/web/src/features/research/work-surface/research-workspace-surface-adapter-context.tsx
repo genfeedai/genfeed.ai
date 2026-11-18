@@ -22,6 +22,7 @@ export function useRegisterResearchWorkspaceSurfaceAdapter(
     ResearchWorkspaceSurfaceAdapterRegistrationContext,
   );
 
+  // use-effect-audit: ignore registers the adapter with the work surface
   useEffect(() => {
     if (!register) {
       return;

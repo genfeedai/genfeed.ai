@@ -261,6 +261,7 @@ export default function AccountGrid({
   const [isAccountsLoading, setIsAccountsLoading] = useState(false);
   const now = useMemo(() => new Date(), []);
 
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     const controller = new AbortController();
 
@@ -300,6 +301,7 @@ export default function AccountGrid({
     return () => controller.abort();
   }, [brandId, getToken]);
 
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     const controller = new AbortController();
 

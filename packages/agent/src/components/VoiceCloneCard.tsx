@@ -57,6 +57,7 @@ export function VoiceCloneCard({
   const effectiveSelectedVoiceId =
     selectedVoiceId || action.recommendedVoiceId || '';
 
+  // use-effect-audit: ignore subscribes to voice clone socket events
   useEffect(() => {
     if (!isReady || !activeVoiceId) {
       return;
@@ -101,6 +102,7 @@ export function VoiceCloneCard({
 
   // Each cloned voice gets its own attempt budget, and switching voices aborts
   // the request still in flight for the previous one.
+  // use-effect-audit: ignore abortable reconciliation polling
   useEffect(() => {
     const controller = new AbortController();
 

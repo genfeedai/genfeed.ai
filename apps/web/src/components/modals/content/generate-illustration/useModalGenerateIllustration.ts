@@ -140,6 +140,7 @@ export function useModalGenerateIllustration({
   });
   const models = modelsQuery.data ?? EMPTY_MODELS;
   const modelsError = modelsQuery.error;
+  // use-effect-audit: ignore reports a failed load to the logger or a notification
   useEffect(() => {
     if (modelsError) {
       logger.error('Failed to load models', modelsError);

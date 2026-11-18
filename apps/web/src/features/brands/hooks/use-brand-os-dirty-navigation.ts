@@ -6,6 +6,7 @@ export function useBrandOsDirtyNavigation(
   dirty: boolean,
   t: (key: 'confirmLeave') => string,
 ) {
+  // use-effect-audit: ignore subscribes to browser events
   useEffect(() => {
     if (!dirty) return;
     function preventUnload(event: BeforeUnloadEvent) {

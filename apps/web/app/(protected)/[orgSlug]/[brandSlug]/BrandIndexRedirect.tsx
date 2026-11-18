@@ -26,6 +26,7 @@ export default function BrandIndexRedirect() {
   const brandSlug = readRouteParam(params.brandSlug);
   const orgSlug = readRouteParam(params.orgSlug);
 
+  // use-effect-audit: ignore redirects the route in the router
   useEffect(() => {
     if (!orgSlug || !brandSlug) {
       return;

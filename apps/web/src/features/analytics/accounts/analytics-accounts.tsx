@@ -242,14 +242,19 @@ export default function AnalyticsAccounts() {
 
   // The saved evaluation window seeds the weeks field once it is known.
   const policyWindowWeeks = policy?.windowWeeks;
-  useEffect(() => {
+  const [seededWindowWeeks, setSeededWindowWeeks] = useState<
+    number | undefined
+  >(undefined);
+  if (seededWindowWeeks !== policyWindowWeeks) {
+    setSeededWindowWeeks(policyWindowWeeks);
     if (policyWindowWeeks) {
       setWindowWeeks(String(policyWindowWeeks));
     }
-  }, [policyWindowWeeks]);
+  }
 
   // A smaller result set can leave the URL page past the last page.
   const totalPages = list?.totalPages;
+  // use-effect-audit: ignore redirects the route in the router
   useEffect(() => {
     if (
       !accountsQuery.isPlaceholderData &&

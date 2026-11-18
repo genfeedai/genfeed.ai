@@ -16,6 +16,7 @@ export function useDragToPan(
   ref: RefObject<HTMLElement | null>,
   ignoreSelector: string,
 ): void {
+  // use-effect-audit: ignore subscribes to browser events
   useEffect(() => {
     const strip = ref.current;
     if (!strip) {

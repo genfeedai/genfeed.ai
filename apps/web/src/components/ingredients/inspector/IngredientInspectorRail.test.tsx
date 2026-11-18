@@ -116,6 +116,14 @@ vi.mock('./IngredientTagsControl', () => ({
   ),
 }));
 
+vi.mock('./IngredientUsedInPosts', () => ({
+  default: () => null,
+}));
+
+vi.mock('./IngredientStackStrip', () => ({
+  default: () => null,
+}));
+
 vi.mock('./IngredientLineageStrip', () => ({
   default: ({
     direction,

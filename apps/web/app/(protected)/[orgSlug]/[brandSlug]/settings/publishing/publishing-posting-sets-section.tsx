@@ -28,9 +28,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import type { PublishingPostingSetsSectionProps } from '@/features/scheduler/props/posting-set-picker.props';
 import { useBrandDetail } from '@/hooks/pages/use-brand-detail/use-brand-detail';
+import { useNotifyOnLoadError } from '@/hooks/utils/use-notify-on-load-error/use-notify-on-load-error';
 
 const EMPTY_POSTING_SETS: IPostingSet[] = [];
 const POSTING_SET_SKELETON_KEYS = [
@@ -100,13 +101,11 @@ export default function PublishingPostingSetsSection({
   const hasLoadFailed = loadError !== null && !isCancelledLoad(loadError);
   const postingSets = postingSetsQuery.data ?? EMPTY_POSTING_SETS;
 
-  // One toast per failed read, after its retry, not one per attempt.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: errorUpdatedAt marks each new failed read.
-  useEffect(() => {
-    if (hasLoadFailed) {
-      notifications.error('Failed to load posting sets');
-    }
-  }, [errorUpdatedAt, hasLoadFailed, notifications]);
+  useNotifyOnLoadError({
+    errorUpdatedAt,
+    hasError: hasLoadFailed,
+    notify: () => notifications.error('Failed to load posting sets'),
+  });
 
   const updateCachedSets = useCallback(
     (update: (current: IPostingSet[]) => IPostingSet[]) => {

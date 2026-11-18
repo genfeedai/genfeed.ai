@@ -98,6 +98,7 @@ export default function ModalMember({
   };
 
   const { error: rolesLoadError } = rolesQuery;
+  // use-effect-audit: ignore reports a failed load to the logger or a notification
   useEffect(() => {
     if (rolesLoadError) {
       logger.error('GET /roles failed', rolesLoadError);
@@ -110,6 +111,7 @@ export default function ModalMember({
   // silently.
   const hasDefaultedRoleRef = useRef(false);
   const loadedRoles = rolesQuery.data;
+  // use-effect-audit: ignore writes the loaded values into the form store
   useEffect(() => {
     if (member) {
       return;
@@ -127,6 +129,7 @@ export default function ModalMember({
     }
   }, [defaultRoleId, form, loadedRoles, member]);
 
+  // use-effect-audit: ignore writes the loaded values into the form store
   useEffect(() => {
     if (member && organizationId) {
       const brandIds =

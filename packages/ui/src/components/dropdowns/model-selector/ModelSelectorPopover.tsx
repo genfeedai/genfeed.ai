@@ -59,7 +59,7 @@ import {
 } from '@ui/primitives/popover';
 import { TooltipProvider } from '@ui/primitives/tooltip';
 import { Check, Sparkles } from 'lucide-react';
-import { memo, useCallback, useEffect, useMemo, useState } from 'react';
+import { memo, useCallback, useMemo, useState } from 'react';
 
 type ModelSelectorSection = {
   key: string;
@@ -113,16 +113,18 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
   >(null);
   const { recentModelKeys, onModelUsed } = useModelRecents();
 
-  useEffect(() => {
-    if (!isDisabled) {
-      return;
-    }
-
+  if (
+    isDisabled &&
+    (isOpen ||
+      searchTerm !== '' ||
+      activeCategoryId !== MODEL_FILTER_ALL ||
+      activeCapabilityFilterId !== null)
+  ) {
     setIsOpen(false);
     setSearchTerm('');
     setActiveCategoryId(MODEL_FILTER_ALL);
     setActiveCapabilityFilterId(null);
-  }, [isDisabled]);
+  }
 
   const isAutoSelected = values.includes(AUTO_MODEL_OPTION_VALUE);
   const normalizedSearchTerm = searchTerm.trim().toLowerCase();

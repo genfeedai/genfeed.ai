@@ -265,6 +265,7 @@ export default function IssuesList() {
   const isLoading = tasksQuery.isPending;
 
   const { error: loadError } = tasksQuery;
+  // use-effect-audit: ignore reports a failed load to the logger or a notification
   useEffect(() => {
     if (loadError) {
       logger.error('Failed to load tasks', loadError);
@@ -330,6 +331,7 @@ export default function IssuesList() {
 
   // `?taskId=` is the source of truth for the inspector: resolve it from the
   // loaded list first, and only fetch when the task is outside the current page.
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     if (!taskId) {
       selectTask?.(null);

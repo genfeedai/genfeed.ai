@@ -132,6 +132,7 @@ export default function ModalPostPlatformsTab({
     }
   }, []);
 
+  // use-effect-audit: ignore releases timers, requests or subscriptions on unmount
   useEffect(() => {
     return () => {
       cleanupSubscription();

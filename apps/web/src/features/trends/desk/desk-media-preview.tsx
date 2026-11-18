@@ -37,6 +37,7 @@ export default function DeskMediaPreview({
       setFailedPlayback((previous) => new Set([...previous, playbackUrl]));
   };
 
+  // use-effect-audit: ignore timer outside React
   useEffect(() => {
     if (!isActive) {
       setIsReady(false);
@@ -46,6 +47,7 @@ export default function DeskMediaPreview({
     return () => clearTimeout(timer);
   }, [isActive]);
 
+  // use-effect-audit: ignore subscribes to browser events
   useEffect(() => {
     const updateVisibility = () => setIsVisible(!document.hidden);
     updateVisibility();
@@ -54,6 +56,7 @@ export default function DeskMediaPreview({
       document.removeEventListener('visibilitychange', updateVisibility);
   }, []);
 
+  // use-effect-audit: ignore observes DOM elements with a browser observer
   useEffect(() => {
     if (!containerRef.current || typeof IntersectionObserver === 'undefined')
       return;

@@ -5,6 +5,7 @@ import type {
   SocialInboxSyncRealtimeEvent,
 } from '@genfeedai/contracts/interfaces';
 import type { SocialMessageModel } from '@genfeedai/models/social/social-message.model';
+import { useResetOnChange } from '@hooks/utils/use-reset-on-change/use-reset-on-change';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { UseMessagesActionsParams } from '@/features/messages/props/messages-actions.props';
@@ -56,18 +57,19 @@ export function useMessagesActions({
   const draftRevisionRef = useRef(1);
   const pendingIdempotencyKeysRef = useRef(new Map<string, string>());
 
-  useEffect(() => {
+  useResetOnChange([selectedId], () => {
     setReferences((current) =>
       current.filter((reference) => reference.conversationId === selectedId),
     );
-  }, [selectedId]);
+  });
 
-  useEffect(() => {
+  useResetOnChange([canAttachReferences], () => {
     if (!canAttachReferences) {
       setReferences([]);
     }
-  }, [canAttachReferences]);
+  });
 
+  // use-effect-audit: ignore abortable work
   useEffect(() => {
     if (!canWrite || !selectedId) {
       suggestionAbortRef.current = null;

@@ -76,6 +76,7 @@ export function useVideoRecording({ maxSeconds }: UseVideoRecordingOptions) {
     if (isMountedRef.current) setStream(null);
   }, []);
 
+  // use-effect-audit: ignore detects browser support after mount and releases the recorder on unmount
   useEffect(() => {
     setIsSupported(
       typeof window !== 'undefined' &&

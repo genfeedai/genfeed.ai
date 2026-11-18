@@ -19,7 +19,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // #7552: superadmin all-organizations library listing; gated by the allOrganizations superadmin check in the controller.
     {
       file: 'apps/server/api/src/collections/ingredients/controllers/ingredients.controller.ts',
-      line: 256,
+      line: 253,
     },
     // Superadmin failure resolution; the write itself is scoped to the execution row's own tenant.
     {
@@ -95,7 +95,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // the platform-admin role and reads only the ids the client already holds.
     {
       file: 'apps/server/api/src/collections/ingredients/controllers/ingredients.controller.ts',
-      line: 359,
+      line: 362,
     },
     // Public brand pictures: the anonymous public profile (/u/<handle>) has no
     // organization to scope by. projectPublicBrandAssets reads only LOGO and

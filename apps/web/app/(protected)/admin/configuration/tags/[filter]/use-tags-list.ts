@@ -183,6 +183,7 @@ export function useTagsList({
   ].join('|');
   const previousFilterSignatureRef = useRef(filterSignature);
 
+  // use-effect-audit: ignore redirects the route in the router
   useEffect(() => {
     if (previousFilterSignatureRef.current === filterSignature) return;
     previousFilterSignatureRef.current = filterSignature;
@@ -199,6 +200,7 @@ export function useTagsList({
   const tags = tagsPage?.items;
   const isRefreshing = isFetching;
 
+  // use-effect-audit: ignore reports a failed load to the logger or a notification
   useEffect(() => {
     if (tagsError) {
       logger.error('Failed to load tags', tagsError);

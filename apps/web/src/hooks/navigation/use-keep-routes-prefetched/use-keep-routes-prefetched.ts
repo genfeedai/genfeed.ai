@@ -87,6 +87,7 @@ export function useKeepRoutesPrefetched(
     [hrefs],
   );
 
+  // use-effect-audit: ignore subscribes to browser events
   useEffect(() => {
     const targets = hrefKey ? hrefKey.split('\n') : [];
     if (targets.length === 0) {

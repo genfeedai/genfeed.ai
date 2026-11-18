@@ -68,6 +68,7 @@ export function useAgentSharedThreadSync(apiService: AgentApiService): void {
   const apiServiceRef = useRef(apiService);
   apiServiceRef.current = apiService;
 
+  // use-effect-audit: ignore subscribes to shared thread socket events
   useEffect(() => {
     if (!isReady) {
       return;

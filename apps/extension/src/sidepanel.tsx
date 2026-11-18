@@ -238,6 +238,7 @@ function SidePanelContent() {
   }, [requestedTab]);
 
   // Listen for OPEN_MODE messages from the background/content scripts
+  // use-effect-audit: ignore subscribes to chrome.runtime messages
   useEffect(() => {
     function handleMessage(message: {
       type?: string;

@@ -114,6 +114,7 @@ export function ChatInput({
       return additions.length ? [...current, ...additions] : current;
     });
   }, [initialAssets, brandId]);
+  // use-effect-audit: ignore debounce timer outside React
   useEffect(() => {
     if (!isDebouncing) return;
     const timer = setTimeout(() => {

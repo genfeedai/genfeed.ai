@@ -35,6 +35,7 @@ export default function DropdownPrompt({
   const clipboardService = ClipboardService.getInstance();
 
   // Calculate dropdown position when it opens
+  // use-effect-audit: ignore measures the button position in the DOM
   useEffect(() => {
     if (isOpen && buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect();
@@ -60,6 +61,7 @@ export default function DropdownPrompt({
   }, [isOpen]);
 
   // Close dropdown when clicking outside
+  // use-effect-audit: ignore subscribes to document mousedown to close the dropdown
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (

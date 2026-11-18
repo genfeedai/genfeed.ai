@@ -255,6 +255,42 @@ describe('TwitterService (coverage)', () => {
       expect(result).toEqual(updated);
     });
 
+    it('saves the same rotated tokens after a transaction start timeout', async () => {
+      const cred = makeCredential({ refreshToken: 'enc-rt' });
+      const updated = makeCredential({ accessToken: 'new-access' });
+      credentialsService.findOne.mockResolvedValue(cred);
+      mockRefreshOAuth2Token.mockResolvedValue({
+        accessToken: 'new-access',
+        expiresIn: 7200,
+        refreshToken: 'new-refresh',
+      });
+      credentialsService.patch
+        .mockRejectedValueOnce(
+          Object.assign(
+            new Error('Unable to start a transaction in the given time.'),
+            {
+              code: 'P2028',
+            },
+          ),
+        )
+        .mockResolvedValueOnce(updated);
+
+      await expect(service.refreshToken('org', 'brand')).resolves.toBe(updated);
+
+      expect(mockRefreshOAuth2Token).toHaveBeenCalledTimes(1);
+      expect(credentialsService.patch).toHaveBeenCalledTimes(2);
+      const [firstSave, secondSave] = credentialsService.patch.mock.calls;
+      expect(firstSave).toEqual([
+        cred.id,
+        expect.objectContaining({
+          accessToken: 'new-access',
+          refreshToken: 'new-refresh',
+        }),
+      ]);
+      expect(secondSave).toEqual(firstSave);
+      expect(activitiesService.record).not.toHaveBeenCalled();
+    });
+
     it('disconnects and throws when credential has no refreshToken (OAuth 1.0a)', async () => {
       const cred = makeCredential({ refreshToken: null });
       credentialsService.findOne.mockResolvedValue(cred);

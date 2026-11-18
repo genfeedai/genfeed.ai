@@ -33,13 +33,15 @@ import { Switch } from '@ui/primitives/switch';
 import { Plus, Trash2 } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useState } from 'react';
 import { useAdminOrgBrandParams } from '@/components/content/admin-filters/AdminOrgBrandUrlFilter';
 import AdminScopeFilter from '@/components/content/admin-filters/AdminScopeFilter';
 import { useAdminSearchParam } from '@/components/content/admin-filters/useAdminSearchParam';
 import SearchField from '@/components/content/search-field/SearchField';
 import { useInlineRecordSave } from '@/hooks/ui/use-inline-record-save/use-inline-record-save';
+import { useListParentBridge } from '@/hooks/ui/use-list-parent-bridge/use-list-parent-bridge';
 import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
+import { useNotifyOnLoadError } from '@/hooks/utils/use-notify-on-load-error/use-notify-on-load-error';
 import PresetDescriptionActions from './preset-description-actions';
 import {
   PresetCategoryCell,
@@ -169,22 +171,19 @@ function PresetsListContent({
 
   const isRefreshing = isFetching && !isLoading;
 
-  // One toast per failed read, after its retry, not one per attempt.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: errorUpdatedAt marks each new failed read.
-  useEffect(() => {
-    if (isError) {
-      notificationsService.error('Failed to load presets');
-    }
-  }, [errorUpdatedAt, isError, notificationsService]);
+  useNotifyOnLoadError({
+    errorUpdatedAt,
+    hasError: isError,
+    notify: () => notificationsService.error('Failed to load presets'),
+  });
 
-  // Notify parent of loading/refreshing state changes
-  useEffect(() => {
-    onLoadingChange?.(isLoading);
-  }, [isLoading, onLoadingChange]);
-
-  useEffect(() => {
-    onRefreshingChange?.(isRefreshing);
-  }, [isRefreshing, onRefreshingChange]);
+  useListParentBridge({
+    isLoading,
+    isRefreshing,
+    onLoadingChange,
+    onRefreshingChange,
+    refresh: refreshPresets,
+  });
 
   const handleToggleActive = async (preset: Preset) => {
     const url = `PATCH /presets/${preset.id}`;

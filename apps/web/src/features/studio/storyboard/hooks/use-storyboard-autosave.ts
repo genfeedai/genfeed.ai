@@ -143,6 +143,7 @@ export function useStoryboardAutosave<T>({
     return result;
   }, [edit, flush, publish]);
 
+  // use-effect-audit: ignore abortable work
   useEffect(() => {
     if (session.current.scope !== scope) {
       controller.current.abort();
@@ -169,6 +170,7 @@ export function useStoryboardAutosave<T>({
     }
   }, [scope, initial, publish]);
 
+  // use-effect-audit: ignore subscribes to browser events
   useEffect(() => {
     const beforeUnload = (event: BeforeUnloadEvent) => {
       const current = session.current;
@@ -183,6 +185,7 @@ export function useStoryboardAutosave<T>({
     };
   }, [flush]);
 
+  // use-effect-audit: ignore abortable work
   useEffect(() => {
     if (controller.current.signal.aborted)
       controller.current = new AbortController();
@@ -205,6 +208,7 @@ export function useStoryboardDraftOutbox(
     [transport, run],
   );
   const [snapshot, setSnapshot] = useState(() => queue?.getSnapshot());
+  // use-effect-audit: ignore subscribes to browser events
   useEffect(() => {
     if (!queue) {
       setSnapshot(undefined);
@@ -226,6 +230,7 @@ export function useStoryboardDraftOutbox(
       queue.detach();
     };
   }, [queue]);
+  // use-effect-audit: ignore hands the run to the autosave queue
   useEffect(() => {
     queue?.adopt(run);
   }, [queue, run]);

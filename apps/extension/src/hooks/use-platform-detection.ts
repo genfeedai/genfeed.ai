@@ -26,6 +26,7 @@ export function usePlatformDetection(): void {
     (s) => s.setComposeBoxAvailable,
   );
 
+  // use-effect-audit: ignore subscribes to chrome.runtime messages and tab activation
   useEffect(() => {
     const abortController = new AbortController();
 

@@ -9,7 +9,7 @@ import {
 } from '@genfeedai/helpers/utils/date-range.util';
 import { Calendar as CalendarIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import type { DateRange as CalendarDateRange } from 'react-day-picker';
 import { Button } from './button';
 import { Calendar } from './calendar';
@@ -93,9 +93,18 @@ export default function DateRangePicker({
   value,
 }: DateRangePickerProps) {
   const translate = useTranslations('ui.dateRangePicker');
+  const valueStartTime = value?.startDate?.getTime() ?? null;
+  const valueEndTime = value?.endDate?.getTime() ?? null;
   const [selectedPreset, setSelectedPreset] = useState<
     DateRangePreset | 'custom'
-  >(defaultPreset);
+  >(() =>
+    valueStartTime === null || valueEndTime === null
+      ? defaultPreset
+      : getPresetForRange({
+          endDate: new Date(valueEndTime),
+          startDate: new Date(valueStartTime),
+        }),
+  );
   const [open, setOpen] = useState(false);
   // The first day of a custom range, while the second is still to be picked.
   const [rangeAnchor, setRangeAnchor] = useState<Date | null>(null);
@@ -104,25 +113,32 @@ export default function DateRangePicker({
   const yesterday = calendarDayOf(getTrailingUtcDays(1).endDate);
   const [dateRange, setDateRange] = useState<CalendarDateRange | undefined>(
     () => {
+      if (valueStartTime !== null && valueEndTime !== null) {
+        return { from: new Date(valueStartTime), to: new Date(valueEndTime) };
+      }
       const range = getTrailingUtcDays(PRESET_DAYS[defaultPreset]);
       return { from: range.startDate, to: range.endDate };
     },
   );
 
-  const valueStartTime = value?.startDate?.getTime() ?? null;
-  const valueEndTime = value?.endDate?.getTime() ?? null;
-
-  useEffect(() => {
-    if (valueStartTime === null || valueEndTime === null) {
-      return;
+  const [seenValueTimes, setSeenValueTimes] = useState({
+    endTime: valueEndTime,
+    startTime: valueStartTime,
+  });
+  if (
+    seenValueTimes.startTime !== valueStartTime ||
+    seenValueTimes.endTime !== valueEndTime
+  ) {
+    setSeenValueTimes({ endTime: valueEndTime, startTime: valueStartTime });
+    if (valueStartTime !== null && valueEndTime !== null) {
+      const nextValue = {
+        endDate: new Date(valueEndTime),
+        startDate: new Date(valueStartTime),
+      };
+      setDateRange({ from: nextValue.startDate, to: nextValue.endDate });
+      setSelectedPreset(getPresetForRange(nextValue));
     }
-    const nextValue = {
-      endDate: new Date(valueEndTime),
-      startDate: new Date(valueStartTime),
-    };
-    setDateRange({ from: nextValue.startDate, to: nextValue.endDate });
-    setSelectedPreset(getPresetForRange(nextValue));
-  }, [valueEndTime, valueStartTime]);
+  }
 
   const handlePresetChange = (preset: DateRangePreset) => {
     setSelectedPreset(preset);

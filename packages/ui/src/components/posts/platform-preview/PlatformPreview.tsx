@@ -32,7 +32,7 @@ import { formatHandle } from '@ui/posts/platform-preview/platform-preview.helper
 import { getPlatformPreviewIcon } from '@ui/posts/platform-preview/platform-preview-icons';
 import { SegmentedControl } from '@ui/primitives/segmented-control';
 import { useTranslations } from 'next-intl';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 
 export type {
   PlatformPreviewAuthor,
@@ -124,25 +124,25 @@ export default function PlatformPreview({
 
   const [selectedTargetId, setSelectedTargetId] = useState<string>();
 
-  useEffect(() => {
-    const current = resolvedTargets.find(
-      (item) => item.id === selectedTargetId,
-    );
-    const requestedPlatform = activePlatform
-      ? getPlatformKey(activePlatform)
-      : undefined;
-    if (
-      current &&
-      (!requestedPlatform ||
-        getPlatformKey(current.platform) === requestedPlatform)
-    )
-      return;
+  const currentTarget = resolvedTargets.find(
+    (item) => item.id === selectedTargetId,
+  );
+  const requestedPlatform = activePlatform
+    ? getPlatformKey(activePlatform)
+    : undefined;
+  const isCurrentTargetValid =
+    currentTarget &&
+    (!requestedPlatform ||
+      getPlatformKey(currentTarget.platform) === requestedPlatform);
+  if (!isCurrentTargetValid) {
     const preferred =
       resolvedTargets.find(
         (item) => getPlatformKey(item.platform) === requestedPlatform,
       ) ?? resolvedTargets[0];
-    setSelectedTargetId(preferred?.id);
-  }, [activePlatform, resolvedTargets, selectedTargetId]);
+    if (preferred?.id !== selectedTargetId) {
+      setSelectedTargetId(preferred?.id);
+    }
+  }
 
   if (resolvedTargets.length === 0) {
     return (

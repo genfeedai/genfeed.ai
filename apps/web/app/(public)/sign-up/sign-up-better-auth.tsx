@@ -103,6 +103,7 @@ export default function SignUpBetterAuth({
   const passwordHref = getSignUpModeHref('/sign-up/password', searchParams);
   const loginHref = getLoginHref(callbackURL);
 
+  // use-effect-audit: ignore writes to browser storage
   useEffect(() => {
     persistOnboardingHandoffParams(window.location.search);
     setSignupAttribution(

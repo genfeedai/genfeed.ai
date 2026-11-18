@@ -183,6 +183,7 @@ function AppLayoutWithDynamicMenu({
     isUniversalWorkspaceShell && agentApiService !== null;
   const hasCapturedPerformanceRef = useRef(false);
 
+  // use-effect-audit: ignore reports to analytics, an external system
   useEffect(() => {
     if (
       hasCapturedPerformanceRef.current ||

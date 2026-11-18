@@ -126,6 +126,7 @@ export function useStudioPlaygroundDraft({
   // The last committed composer. Updated in an effect, not during render, so
   // a brand-switch cleanup still sees the composer of the brand being left.
   const payloadRef = useRef(payload);
+  // use-effect-audit: ignore keeps refs to the latest callbacks and values
   useEffect(() => {
     payloadRef.current = payload;
   }, [payload]);
@@ -182,6 +183,7 @@ export function useStudioPlaygroundDraft({
 
   // A different user signed in on this tab: whatever the previous user
   // queued is dropped, never sent under the new session.
+  // use-effect-audit: ignore writes to browser storage
   useEffect(() => {
     if (userId) {
       studioPlaygroundDraftOutbox.discardForeign(userId);
@@ -322,6 +324,7 @@ export function useStudioPlaygroundDraft({
     write,
   ]);
 
+  // use-effect-audit: ignore subscribes to the draft outbox
   useEffect(() => {
     if (!isArmed) {
       return;
@@ -344,6 +347,7 @@ export function useStudioPlaygroundDraft({
 
   // A reload or tab close inside the quiet period would otherwise lose the
   // last keystrokes; keepalive lets that final write outlive the page.
+  // use-effect-audit: ignore subscribes to browser events
   useEffect(() => {
     const flushOnHide = () => {
       if (document.visibilityState === 'hidden') {

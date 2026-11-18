@@ -57,6 +57,7 @@ export default function RepliesWarmupTargets({
 
   // Each failed read is reported once; a failed background refresh keeps the
   // accounts already on screen.
+  // use-effect-audit: ignore reports a failed load to the logger or a notification
   useEffect(() => {
     if (!loadError || reportedLoadErrorRef.current === loadError) {
       return;

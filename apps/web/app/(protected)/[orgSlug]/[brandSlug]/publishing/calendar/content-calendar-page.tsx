@@ -220,6 +220,7 @@ export default function ContentCalendarPage({
     setScheduleActionsNode,
     setViewToggleNode,
   } = usePostsLayout();
+  // use-effect-audit: ignore registers the page refresh handler with the shell
   useEffect(() => {
     if (!embedded) return;
     setRefresh(() => reload);
@@ -361,6 +362,7 @@ export default function ContentCalendarPage({
   // campaign shell): the period navigation on the left, then filters, the view
   // dropdown, the cadence actions and the primary action. Nothing sits above
   // the grid.
+  // use-effect-audit: ignore registers the toolbar nodes with the page shell
   useEffect(() => {
     setFiltersNode(filterMenu);
     setScheduleActionsNode(cadenceActions);
@@ -374,6 +376,7 @@ export default function ContentCalendarPage({
     setScheduleActionsNode,
   ]);
 
+  // use-effect-audit: ignore clears the layout slots it registered when the page unmounts
   useEffect(() => {
     return () => {
       setLeadingNode(null);

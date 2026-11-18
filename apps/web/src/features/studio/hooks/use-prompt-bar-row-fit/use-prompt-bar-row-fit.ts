@@ -19,6 +19,7 @@ export function usePromptBarRowFit({
   const fullWidthRef = useRef(0);
   const isCompact = compactKey === contentKey;
 
+  // use-effect-audit: ignore observes DOM elements with a browser observer
   useEffect(() => {
     const row = rowRef.current;
     if (!row) return;

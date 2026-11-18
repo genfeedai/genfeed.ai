@@ -205,6 +205,7 @@ function DesktopLocalProviderSettingsPanel({
     });
   }, []);
 
+  // use-effect-audit: ignore abortable work
   useEffect(() => {
     const abortController = new AbortController();
     void loadProvider(abortController.signal).catch((error: unknown) => {

@@ -22,6 +22,7 @@ export default function OnboardingRootPage() {
   const { selectedBrand, brands, isBrandScopeResolved } = useBrand();
   const { replace } = useRouter();
 
+  // use-effect-audit: ignore redirects the route in the router
   useEffect(() => {
     if (isLoading || !currentUser || !isBrandScopeResolved) {
       return;

@@ -45,22 +45,32 @@ export function ChatContainer({
   const { sendMessage } = useChat();
   const textAction = useTextAction();
   const endRef = useRef<HTMLDivElement>(null);
-  const [suggestedPrompt, setSuggestedPrompt] = useState('');
+  // A chip choice belongs to the source it was picked for: a newly captured
+  // source or mode discards it, even when it returns to an earlier value.
+  const promptKey = `${mode}\n${initialUrl}\n${initialContent}`;
+  const [chosenPrompt, setChosenPrompt] = useState<{
+    key: string;
+    text: string;
+  } | null>(null);
+  if (chosenPrompt !== null && chosenPrompt.key !== promptKey) {
+    setChosenPrompt(null);
+  }
+  const suggestedPrompt =
+    chosenPrompt?.key === promptKey
+      ? chosenPrompt.text
+      : mode === 'reply'
+        ? 'Write a reply in my brand voice.'
+        : mode === 'remix'
+          ? 'Remix this content for my brand.'
+          : '';
+  function setSuggestedPrompt(text: string): void {
+    setChosenPrompt({ key: promptKey, text });
+  }
   usePlatformDetection();
   // biome-ignore lint/correctness/useExhaustiveDependencies: Message and generation changes must scroll the conversation.
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages.length, isGenerating]);
-  // biome-ignore lint/correctness/useExhaustiveDependencies: A newly captured source resets the suggested prompt even in the same mode.
-  useEffect(() => {
-    setSuggestedPrompt(
-      mode === 'reply'
-        ? 'Write a reply in my brand voice.'
-        : mode === 'remix'
-          ? 'Remix this content for my brand.'
-          : '',
-    );
-  }, [mode, initialContent, initialUrl]);
   function handleSend(content: string, references?: AgentArtifactReference[]) {
     const source = initialContent || pageContext?.postContent;
     const url = initialUrl || pageContext?.url;

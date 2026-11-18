@@ -231,6 +231,7 @@ export default function PublishingOverviewPage() {
   const refetchAccountHealth = accountHealthQuery.refetch;
   // The toolbar's refresh, and the reload after the agent changes posts,
   // refetch every overview source.
+  // use-effect-audit: ignore registers the refresh handler with the page
   useEffect(() => {
     setRefresh(() => () => {
       void Promise.all([

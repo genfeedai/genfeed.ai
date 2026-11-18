@@ -37,6 +37,7 @@ export function useStudioClipperProjects(options?: { isEnabled?: boolean }) {
     [resolveToken],
   );
 
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     if (!isEnabled) {
       setIsLoading(false);

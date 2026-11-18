@@ -34,6 +34,7 @@ export default function ThemeCookieSync({
 }: ThemeCookieSyncProps = {}) {
   const { setTheme, theme } = useTheme();
 
+  // use-effect-audit: ignore subscribes to browser events
   useEffect(() => {
     const normalizeInvalidTheme = (candidate?: string | null) => {
       let storedTheme = candidate;
@@ -73,6 +74,7 @@ export default function ThemeCookieSync({
     return () => window.removeEventListener('storage', handleStorage);
   }, [setTheme, storageKey, theme]);
 
+  // use-effect-audit: ignore drives a DOM element or browser API
   useEffect(() => {
     if (!isThemePreference(theme)) {
       return;

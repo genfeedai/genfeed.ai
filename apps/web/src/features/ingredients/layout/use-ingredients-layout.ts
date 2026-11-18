@@ -11,8 +11,9 @@ import type {
   IFilters,
   IFiltersState,
 } from '@genfeedai/contracts/interfaces/utils/filters.interface';
+import { useResetOnChange } from '@hooks/utils/use-reset-on-change/use-reset-on-change';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import type { IngredientsLayoutProps } from '@/features/ingredients/props/ingredients-layout.props';
 import {
   INGREDIENT_CONFIGS,
@@ -129,11 +130,11 @@ export function useIngredientsLayout({
     () => getInitialState().filters,
   );
   const [query, setQuery] = useState<IFilters>(() => getInitialState().query);
-  useEffect(() => {
+  useResetOnChange([getInitialState], () => {
     const next = getInitialState();
     setFilters(next.filters);
     setQuery(next.query);
-  }, [getInitialState]);
+  });
   const [selectedIngredientType, setIngredientType] = useState(
     defaultType ?? 'videos',
   );

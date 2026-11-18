@@ -152,6 +152,7 @@ export function useBrandDetail(): UseBrandDetailReturn {
     'banner' | 'logo' | null
   >(null);
 
+  // use-effect-audit: ignore redirects the route in the router
   useEffect(() => {
     const orgSlug = typeof params?.orgSlug === 'string' ? params.orgSlug : '';
 
@@ -376,6 +377,7 @@ export function useBrandDetail(): UseBrandDetailReturn {
     setSelectedLink(link);
   }, []);
 
+  // use-effect-audit: ignore drives a DOM element or browser API
   useEffect(() => {
     const origin = typeof window !== 'undefined' ? window.location.origin : '';
     const isCurrentlyDashboard = origin.startsWith(EnvironmentService.apps.app);
@@ -397,6 +399,7 @@ export function useBrandDetail(): UseBrandDetailReturn {
     }
   }, [brandId, pathname, router]);
 
+  // use-effect-audit: ignore subscribes to asset status events
   useEffect(() => {
     const unsubscribe = subscribe(
       'asset-status',

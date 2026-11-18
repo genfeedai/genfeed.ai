@@ -25,6 +25,7 @@ export default function AgentThreadRouteGuard() {
   // Malformed ids (e.g. /agent/undefined from a stale link) never reach the
   // thread shell — recover to the agent root instead of fetching
   // /threads/undefined/*.
+  // use-effect-audit: ignore redirects the route in the router
   useEffect(() => {
     if (isMalformedThreadId && orgSlug) {
       replace(createOrganizationAppRoute(orgSlug, APP_ROUTES.AGENT.ROOT));

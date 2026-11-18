@@ -142,6 +142,7 @@ export function useSettingsCommandsRegistration(currentApp?: AppContext): void {
   const isEnterprise = hasOrganizationBillingHint();
   const priority = resolvePriority(currentApp);
 
+  // use-effect-audit: ignore registers the commands with the command palette
   useEffect(() => {
     if (!isAccessible) return;
 

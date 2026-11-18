@@ -15,7 +15,7 @@ import { plainTextToHtml } from '@helpers/security/sanitize-html.helper';
 import type { PostsService } from '@services/content/posts.service';
 import type { NotificationsService } from '@services/core/notifications.service';
 import type React from 'react';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import PostComposerActions from '@/features/posts/components/composer-actions/PostComposerActions';
 import type { TweetTone } from '@/features/posts/components/composer-actions/PostComposerActions.props';
 import ThreadPreviewPanel from '@/features/posts/components/posts/preview/thread-preview-panel/ThreadPreviewPanel';
@@ -201,14 +201,13 @@ export default function PostDetailContent({
   // The prompt bar acts on the post you last worked in; focusing the bar
   // itself clears `focusedPostId`, so remember the last post separately.
   const [targetPostId, setTargetPostId] = useState(post.id);
-  useEffect(() => {
-    if (
-      focusedPostId &&
-      threadPosts.some((item) => item.id === focusedPostId)
-    ) {
-      setTargetPostId(focusedPostId);
-    }
-  }, [focusedPostId, threadPosts]);
+  if (
+    focusedPostId &&
+    focusedPostId !== targetPostId &&
+    threadPosts.some((item) => item.id === focusedPostId)
+  ) {
+    setTargetPostId(focusedPostId);
+  }
 
   const targetIndex = Math.max(
     0,

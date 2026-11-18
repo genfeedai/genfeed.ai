@@ -17,6 +17,7 @@ import {
   type CampaignLaunchPrep,
 } from '@genfeedai/contracts/interfaces';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import { useResetOnChange } from '@hooks/utils/use-reset-on-change/use-reset-on-change';
 import Card from '@ui/card/Card';
 import MetricCard from '@ui/cards/metric-card/MetricCard';
 import { Alert } from '@ui/primitives/alert';
@@ -27,7 +28,7 @@ import { Textarea } from '@ui/primitives/textarea';
 import { Bookmark, ExternalLink, Rocket, Sparkles, Wrench } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useIsAppAvailable } from '@/components/shell/use-available-rail-apps';
 
 import { formatMetric } from './ads-metric.helpers';
@@ -268,15 +269,12 @@ export function DetailSidebar({
 }: DetailSidebarProps) {
   const translate = useTranslations('pages.adsResearch.swipeFile');
   const isAutomationAvailable = useIsAppAvailable('automation');
-  const [note, setNote] = useState('');
+  const savedNote = detail?.savedAdId ? (detail.savedNote ?? '') : '';
+  const [note, setNote] = useState(savedNote);
 
-  useEffect(() => {
-    if (!detail?.savedAdId) {
-      setNote('');
-      return;
-    }
-    setNote(detail?.savedNote ?? '');
-  }, [detail?.savedAdId, detail?.savedNote]);
+  useResetOnChange([detail?.savedAdId, detail?.savedNote], () =>
+    setNote(savedNote),
+  );
 
   return (
     <div className="space-y-5 p-5" data-testid="ads-research-detail">

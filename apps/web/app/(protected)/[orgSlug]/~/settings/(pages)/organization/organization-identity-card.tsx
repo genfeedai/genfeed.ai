@@ -54,6 +54,7 @@ export default function OrganizationIdentityCard({
   const logoUrlRef = useRef(logoUrl);
   logoUrlRef.current = logoUrl;
 
+  // use-effect-audit: ignore releases timers, requests or subscriptions on unmount
   useEffect(() => {
     mounted.current = true;
     return () => {
@@ -173,6 +174,7 @@ function OrganizationIdentityEditor({
   const mounted = useRef(true);
   const saving = useRef(false);
 
+  // use-effect-audit: ignore releases timers, requests or subscriptions on unmount
   useEffect(() => {
     mounted.current = true;
     return () => {

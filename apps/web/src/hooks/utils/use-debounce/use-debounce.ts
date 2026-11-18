@@ -9,6 +9,7 @@ import { isAbortError } from '@/hooks/utils/use-abort-controller/use-abort-contr
 export function useDebounce<T>(value: T, delay: number): T {
   const [debouncedValue, setDebouncedValue] = useState<T>(value);
 
+  // use-effect-audit: ignore timer outside React
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedValue(value);
@@ -34,6 +35,7 @@ export function useDebouncedCallback<T extends (...args: unknown[]) => unknown>(
   const callbackRef = useRef(callback);
 
   // Update callback if it changes
+  // use-effect-audit: ignore keeps refs to the latest callbacks and values
   useEffect(() => {
     callbackRef.current = callback;
   }, [callback]);
@@ -52,6 +54,7 @@ export function useDebouncedCallback<T extends (...args: unknown[]) => unknown>(
   );
 
   // Cleanup on unmount
+  // use-effect-audit: ignore releases timers, requests or subscriptions on unmount
   useEffect(() => {
     return () => {
       if (timeoutRef.current) {
@@ -117,6 +120,7 @@ export function useDebouncedAPI<
   );
 
   // Cleanup on unmount
+  // use-effect-audit: ignore releases timers, requests or subscriptions on unmount
   useEffect(() => {
     return () => {
       cancel();

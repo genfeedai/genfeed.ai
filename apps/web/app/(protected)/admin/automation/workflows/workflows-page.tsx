@@ -38,13 +38,14 @@ import {
 } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useAdminSearchParam } from '@/components/content/admin-filters/useAdminSearchParam';
 import FilterMenu from '@/components/content/filter-menu/FilterMenu';
 import SearchField from '@/components/content/search-field/SearchField';
 import { createWorkflowApiService } from '@/features/workflows/services/workflow-api';
 import type { SystemWorkflowCatalogEntry } from '@/features/workflows/services/workflow-api.types';
 import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
+import { useNotifyOnLoadError } from '@/hooks/utils/use-notify-on-load-error/use-notify-on-load-error';
 import {
   buildWorkflowRows,
   clampPage,
@@ -205,17 +206,11 @@ export default function WorkflowsPage() {
   const { refetch: refetchCatalog } = catalogQuery;
 
   // One toast per failed read, after its retry, not one per attempt.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: errorUpdatedAt marks each new failed read.
-  useEffect(() => {
-    if (hasWorkflowsLoadFailed) {
-      notificationsService.error(translate('errors.load'));
-    }
-  }, [
-    hasWorkflowsLoadFailed,
-    notificationsService,
-    translate,
-    workflowsErrorUpdatedAt,
-  ]);
+  useNotifyOnLoadError({
+    errorUpdatedAt: workflowsErrorUpdatedAt,
+    hasError: hasWorkflowsLoadFailed,
+    notify: () => notificationsService.error(translate('errors.load')),
+  });
 
   const reloadAll = useCallback(async () => {
     await Promise.all([refetchWorkflows(), refetchPins(), refetchCatalog()]);

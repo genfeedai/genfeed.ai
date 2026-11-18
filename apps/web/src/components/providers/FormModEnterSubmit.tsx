@@ -11,6 +11,7 @@ import { handleFormModEnterSubmit } from './form-mod-enter-submit';
  * `data-mod-enter-submit="false"` on a form.
  */
 export default function FormModEnterSubmit() {
+  // use-effect-audit: ignore subscribes to browser events
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
       handleFormModEnterSubmit(event);

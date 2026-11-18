@@ -153,6 +153,7 @@ function AnalyticsWorkSurfaceBridge({
     [brands, organizationId, routeBrandId],
   );
 
+  // use-effect-audit: ignore publishes the page context to the agent chat store and clears it on unmount
   useEffect(() => {
     if (!queryReference) {
       return;
@@ -281,6 +282,7 @@ export default function AnalyticsWorkSurfaceAdapter({
     new URLSearchParams(restoredState.canonicalSearchParams),
   );
 
+  // use-effect-audit: ignore redirects the route in the router
   useEffect(() => {
     pendingSearchParamsRef.current = new URLSearchParams(
       restoredState.canonicalSearchParams,

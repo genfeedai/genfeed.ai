@@ -1,5 +1,6 @@
 import type { SaveQueue } from '@genfeedai/contracts/interfaces/hooks/use-save-queue.interface';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useMountedRef } from '@hooks/utils/use-mounted-ref/use-mounted-ref';
+import { useCallback, useRef, useState } from 'react';
 
 /**
  * Serializes autosave writes onto a single promise chain.
@@ -12,16 +13,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 export function useSaveQueue(): SaveQueue {
   const queueRef = useRef<Promise<unknown>>(Promise.resolve());
   const pendingCountRef = useRef(0);
-  const isMountedRef = useRef(true);
+  const isMountedRef = useMountedRef();
   const [isSaving, setIsSaving] = useState(false);
-
-  useEffect(() => {
-    isMountedRef.current = true;
-
-    return () => {
-      isMountedRef.current = false;
-    };
-  }, []);
 
   const enqueueSave = useCallback(<T>(task: () => Promise<T>): Promise<T> => {
     pendingCountRef.current += 1;

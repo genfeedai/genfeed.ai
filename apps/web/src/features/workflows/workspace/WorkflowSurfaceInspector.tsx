@@ -151,6 +151,7 @@ export function WorkflowSurfaceInspector({
   const getService = useAuthedService(createWorkflowApiService);
   const { push } = useRouter();
 
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     void reloadKey;
     const controller = new AbortController();

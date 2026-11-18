@@ -36,6 +36,7 @@ function WorkflowTemplateExampleVideo({
   });
   const isPlaybackAllowed = isIntersecting && !isReducedMotion;
 
+  // use-effect-audit: ignore drives a DOM element or browser API
   useEffect(() => {
     const video = videoRef.current;
     if (!video) {

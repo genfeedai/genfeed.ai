@@ -517,6 +517,7 @@ function BaseNodeComponent({
 
   // Force React Flow to recalculate handle positions when handle configuration changes
   // Only re-run when actual handle-affecting properties change, not on every render
+  // use-effect-audit: ignore schedules an animation frame that updates React Flow node internals
   useEffect(() => {
     void handlesKey;
     const rafId = requestAnimationFrame(() => {
@@ -613,6 +614,7 @@ function BaseNodeComponent({
   }, []);
 
   // Cleanup timeout on unmount
+  // use-effect-audit: ignore clears the hover timer on unmount
   useEffect(() => {
     return () => {
       if (hoverTimeoutRef.current) {

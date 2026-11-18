@@ -157,6 +157,7 @@ export function useMenuShared({
   }, [groupedItems, nestedGroupId]);
 
   // Keyboard: Escape exits nested view
+  // use-effect-audit: ignore subscribes to browser events
   useEffect(() => {
     if (!nestedGroupId) {
       return;

@@ -1,5 +1,4 @@
-import { Tabs, useRouter } from 'expo-router';
-import { useEffect } from 'react';
+import { Redirect, Tabs } from 'expo-router';
 import { Button } from 'react-native';
 import { useMobileAuth } from '@/contexts/auth-context';
 import { useMobileTheme } from '@/contexts/theme-context';
@@ -12,16 +11,13 @@ function SignOutButton() {
 export default function ProtectedLayout() {
   const { isLoaded, isSignedIn } = useMobileAuth();
   const { colors } = useMobileTheme();
-  const router = useRouter();
 
-  useEffect(() => {
-    if (isLoaded && !isSignedIn) {
-      router.replace('/login');
-    }
-  }, [isLoaded, isSignedIn, router]);
-
-  if (!isLoaded || !isSignedIn) {
+  if (!isLoaded) {
     return null;
+  }
+
+  if (!isSignedIn) {
+    return <Redirect href="/login" />;
   }
 
   return (

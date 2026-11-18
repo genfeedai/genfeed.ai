@@ -27,6 +27,7 @@ export function useBrandVoice(): UseBrandVoiceReturn {
     });
   }, [setBrands]);
 
+  // use-effect-audit: ignore loads the brand voice from the extension background
   useEffect(() => {
     if (!activeBrandId) {
       setBrandVoice(null);

@@ -538,6 +538,7 @@ export default function ModalPost({
   });
 
   // Manually populate form when post changes (transform objects to IDs)
+  // use-effect-audit: ignore writes the loaded values into the form store
   useEffect(() => {
     if (post) {
       const resolvedPlatform =
@@ -692,6 +693,7 @@ export default function ModalPost({
 
   // Keep the form's format/platform/account in step with the picker so the
   // existing 25k long-post validation and scheduling rules keep applying.
+  // use-effect-audit: ignore writes the picker selection into the form store
   useEffect(() => {
     if (!isDestinationComposer) {
       return;
@@ -804,11 +806,9 @@ export default function ModalPost({
     [],
   );
 
-  useEffect(() => {
-    if (!hasXTarget) {
-      setIsThread(false);
-    }
-  }, [hasXTarget]);
+  if (!hasXTarget && isThread) {
+    setIsThread(false);
+  }
 
   // Article and Newsletter own their editors; hand off instead of submitting.
   const handleContinue = useCallback(() => {

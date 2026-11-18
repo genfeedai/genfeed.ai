@@ -35,6 +35,7 @@ export function useWorkspaceTaskLinkedExecutionSummary(
     [task?.linkedExecutionIds],
   );
 
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     if (!task || (task.linkedExecutionIds?.length ?? 0) === 0) {
       setSummary(getEmptyLinkedExecutionSummary());
@@ -131,6 +132,7 @@ export function useWorkspaceTaskLinkedOutputs(
     [task?.linkedOutputIds],
   );
 
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     if (!task || (task.linkedOutputIds?.length ?? 0) === 0) {
       setSummary(getEmptyLinkedOutputSummary());
@@ -210,6 +212,7 @@ export function useWorkspaceTaskLinkedIssue(
     getEmptyLinkedIssueSummary(),
   );
 
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     if (!task?.linkedIssueId) {
       setSummary(getEmptyLinkedIssueSummary());

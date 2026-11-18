@@ -704,6 +704,7 @@ export function useAgentPageContext(
     };
   }, [contextPathname, pageHelp, role, selectedBrand?.agentConfig]);
 
+  // use-effect-audit: ignore writes the page context into the agent store
   useEffect(() => {
     const currentContext = useAgentChatStore.getState().pageContext;
     if (currentContext?.route === pathname && currentContext.draftType) {

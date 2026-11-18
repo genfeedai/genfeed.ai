@@ -203,6 +203,7 @@ export default function BrandOsSettingsCard({
       (!hasRules || (canReview && acknowledged)),
   );
 
+  // use-effect-audit: ignore marks the card unmounted and invalidates pending requests
   useEffect(() => {
     mounted.current = true;
     return () => {
@@ -520,6 +521,7 @@ export default function BrandOsSettingsCard({
   const isApproved = selected?.status === BrandOsRevisionStatus.APPROVED;
 
   // An unresolved role must not read as a member who cannot approve.
+  // use-effect-audit: ignore reports readiness to the parent
   useEffect(() => {
     onReadinessChange?.({
       isLoaded: !loading && role !== undefined,

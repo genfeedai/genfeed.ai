@@ -24,6 +24,7 @@ export default function ModelViewer({
   const containerRef = useRef<HTMLDivElement>(null);
   const [hasError, setHasError] = useState(false);
 
+  // use-effect-audit: ignore mounts the model-viewer custom element into the container
   useEffect(() => {
     const container = containerRef.current;
     if (!container) {

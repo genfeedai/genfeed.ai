@@ -121,6 +121,7 @@ export function useMediaPlayback({
 }: UseMediaPlaybackParams) {
   const snapshot = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 
+  // use-effect-audit: ignore pauses the shared audio element on unmount
   useEffect(
     () => () => {
       if (
@@ -151,6 +152,7 @@ export function useMediaPlayback({
   }, [audioUrl, snapshot.currentUrl]);
 
   const isErrored = isCurrent && snapshot.status === 'error';
+  // use-effect-audit: ignore reports a failed load to the parent
   useEffect(() => {
     if (isErrored) onError?.();
   }, [isErrored, onError]);

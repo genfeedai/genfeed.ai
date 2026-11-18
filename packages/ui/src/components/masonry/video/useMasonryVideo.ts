@@ -94,6 +94,7 @@ export function useMasonryVideo({
   const handleDownload = useIngredientDownloadHandler();
 
   // Video playback control
+  // use-effect-audit: ignore controls a video element and its play timer
   useEffect(() => {
     if (!isHoveringRef.current) {
       stopAndResetVideo(videoRef);
@@ -107,6 +108,7 @@ export function useMasonryVideo({
   }, []);
 
   // Stop video when leaving container
+  // use-effect-audit: ignore frame loop outside React
   useEffect(() => {
     if (isContainerHovered) {
       return;

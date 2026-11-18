@@ -23,6 +23,7 @@ export default function Masonry({
     [children],
   );
 
+  // use-effect-audit: ignore subscribes to the window resize event and writes the column count to the DOM
   useEffect(() => {
     if (!containerRef.current) {
       return;

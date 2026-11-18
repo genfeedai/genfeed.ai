@@ -31,6 +31,7 @@ export function useMessagesRealtime({
   const latestRefresh = useRef(onRefresh);
   const latestSyncResult = useRef(onSyncResult);
 
+  // use-effect-audit: ignore keeps refs to the latest callbacks and values
   useEffect(() => {
     latestRefresh.current = onRefresh;
     latestSyncResult.current = onSyncResult;
@@ -46,6 +47,7 @@ export function useMessagesRealtime({
     });
   }, [connectionState]);
 
+  // use-effect-audit: ignore timer outside React
   useEffect(() => {
     if (!organizationId || !isReady) {
       return;
@@ -82,6 +84,7 @@ export function useMessagesRealtime({
     };
   }, [connectionState, isReady, organizationId, refresh, subscribe]);
 
+  // use-effect-audit: ignore reports to analytics, an external system
   useEffect(() => {
     const previous = previousConnectionState.current;
     previousConnectionState.current = connectionState;

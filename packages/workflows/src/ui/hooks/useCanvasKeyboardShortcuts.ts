@@ -52,6 +52,7 @@ export function useCanvasKeyboardShortcuts({
   openNodeSearch,
   deleteSelectedElements,
 }: UseCanvasKeyboardShortcutsParams) {
+  // use-effect-audit: ignore subscribes to window keydown for the canvas shortcuts
   useEffect(() => {
     const selectedNodeIdLookup = createIdLookup(selectedNodeIds);
 

@@ -210,6 +210,7 @@ export default function IssueDetail({
 
   const loadError =
     detailQuery.error ?? childrenQuery.error ?? commentsQuery.error;
+  // use-effect-audit: ignore reports a load failure to the logger and notifications
   useEffect(() => {
     if (!loadError) {
       return;

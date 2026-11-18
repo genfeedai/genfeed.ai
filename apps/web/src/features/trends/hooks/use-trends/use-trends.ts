@@ -8,8 +8,9 @@ import type {
 import { TrendsService } from '@genfeedai/services/social/trends.service';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
+import { useSyncedState } from '@hooks/utils/use-synced-state/use-synced-state';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo } from 'react';
 
 const EMPTY_SUMMARY: TrendsSummary = {
   connectedPlatforms: [],
@@ -31,7 +32,7 @@ export interface UseTrendsReturn {
 
 export function useTrends(initialPlatform: string = 'all'): UseTrendsReturn {
   const [selectedPlatform, setSelectedPlatform] =
-    useState<string>(initialPlatform);
+    useSyncedState<string>(initialPlatform);
   const { brandId } = useCollectionScope();
   const queryClient = useQueryClient();
 
@@ -41,10 +42,6 @@ export function useTrends(initialPlatform: string = 'all'): UseTrendsReturn {
 
   const platformParam =
     selectedPlatform === 'all' ? undefined : selectedPlatform;
-
-  useEffect(() => {
-    setSelectedPlatform(initialPlatform);
-  }, [initialPlatform]);
 
   const queryKey = useMemo(
     () => ['trends-discovery', platformParam, brandId],

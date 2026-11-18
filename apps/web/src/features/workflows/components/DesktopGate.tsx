@@ -27,6 +27,7 @@ export function DesktopGate({ children }: DesktopGateProps) {
     return window.innerWidth < 1024;
   });
 
+  // use-effect-audit: ignore subscribes to browser events
   useEffect(() => {
     const checkDevice = () => {
       setIsMobile(window.innerWidth < 1024);

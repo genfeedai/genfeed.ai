@@ -147,6 +147,7 @@ export default function ConnectionSuccess({
 
   // Brand icons ship as filled glyphs of arbitrary length; normalizing every
   // shape to pathLength=1 lets one dash animation trace any logo.
+  // use-effect-audit: ignore sets SVG attributes on DOM nodes the browser animates
   useEffect(() => {
     const trace = traceRef.current;
     if (!trace) {

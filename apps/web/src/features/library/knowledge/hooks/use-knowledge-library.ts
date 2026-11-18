@@ -239,6 +239,7 @@ export function useKnowledgeLibrary({
   const listError = listQuery.error;
   const selectionReadError = selectionQuery.error;
   const hasListData = listData !== undefined;
+  // use-effect-audit: ignore reports a failed load to the logger or a notification
   useEffect(() => {
     if (listError && !hasListData) {
       logger.error('Failed to load Knowledge library', listError);

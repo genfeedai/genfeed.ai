@@ -48,6 +48,7 @@ export default function AgentAuthClaimContent() {
     claimAttemptToken && claimAttemptToken.length >= 32,
   );
 
+  // use-effect-audit: ignore releases timers, requests or subscriptions on unmount
   useEffect(
     () => () => {
       controllerRef.current?.abort();
@@ -55,6 +56,7 @@ export default function AgentAuthClaimContent() {
     [],
   );
 
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     if (!isSignedIn || !hasValidRequest || !claimAttemptToken) {
       return;

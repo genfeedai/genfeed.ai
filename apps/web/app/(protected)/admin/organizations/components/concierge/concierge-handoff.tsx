@@ -86,6 +86,7 @@ export default function ConciergeHandoff({
 
   // Load the account, then check its invitation with the mail provider so the
   // status shown is the live one.
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     const controller = new AbortController();
     setAccount(null);

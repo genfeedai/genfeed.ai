@@ -32,6 +32,7 @@ function PromptEditorView({
   const placeholderRef = useRef(placeholder);
   const isApplyingExternalRef = useRef(false);
 
+  // use-effect-audit: ignore keeps refs to the latest callbacks and values
   useEffect(() => {
     onSubmitRef.current = onSubmit;
     onValueChangeRef.current = onValueChange;
@@ -74,6 +75,7 @@ function PromptEditorView({
 
   // The extension reads the placeholder through a ref; a no-op transaction
   // redraws the empty-state decoration when the prop changes.
+  // use-effect-audit: ignore redraws the external editor when the placeholder changes
   useEffect(() => {
     placeholderRef.current = placeholder;
     if (!editor || injectedEditor || editor.isDestroyed) {
@@ -82,6 +84,7 @@ function PromptEditorView({
     editor.view.dispatch(editor.state.tr);
   }, [editor, injectedEditor, placeholder]);
 
+  // use-effect-audit: ignore keeps the external editor's editable flag in step with the prop
   useEffect(() => {
     if (!editor || injectedEditor) {
       return;
@@ -89,6 +92,7 @@ function PromptEditorView({
     editor.setEditable(!isDisabled);
   }, [editor, injectedEditor, isDisabled]);
 
+  // use-effect-audit: ignore subscribes to the editor update event
   useEffect(() => {
     if (!editor || injectedEditor) {
       return;
@@ -124,6 +128,7 @@ function PromptEditorView({
     [editor, injectedEditor],
   );
 
+  // use-effect-audit: ignore pushes the value prop into the external editor
   useEffect(() => {
     if (value === undefined) {
       return;
@@ -131,6 +136,7 @@ function PromptEditorView({
     syncExternalValue(value);
   }, [syncExternalValue, value]);
 
+  // use-effect-audit: ignore applies a document seed to the external editor
   useEffect(() => {
     if (!editor || injectedEditor || !documentSeed) {
       return;
@@ -147,6 +153,7 @@ function PromptEditorView({
     onDocumentChangeRef.current?.(editor.getJSON());
   }, [documentSeed, editor, injectedEditor]);
 
+  // use-effect-audit: ignore subscribes to editor events and schedules animation frames
   useEffect(() => {
     if (!editor) return;
     let frame = 0;

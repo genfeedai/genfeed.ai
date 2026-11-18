@@ -120,6 +120,7 @@ export default function OrganizationSwitcher({
     ],
   );
 
+  // use-effect-audit: ignore raises one notification per failed organization switch
   useEffect(() => {
     if (!switchFailure || notifiedSwitchFailures.has(switchFailure)) {
       return;

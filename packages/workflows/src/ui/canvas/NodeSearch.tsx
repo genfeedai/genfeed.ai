@@ -60,6 +60,7 @@ export function NodeSearch() {
   }, [nodes, search]);
 
   // Scroll selected item into view
+  // use-effect-audit: ignore drives a DOM element or browser API
   useEffect(() => {
     if (listRef.current) {
       const selectedItem = listRef.current.children[selectedIndex] as

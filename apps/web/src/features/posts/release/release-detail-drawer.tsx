@@ -11,6 +11,7 @@ import { getPublishingPostHref } from '@helpers/content/posts.helper';
 import { stripHtmlToPlainText } from '@helpers/security/strip-html.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import { useResetOnChange } from '@hooks/utils/use-reset-on-change/use-reset-on-change';
 import { logger } from '@services/core/logger.service';
 import { CredentialsService } from '@services/organization/credentials.service';
 import {
@@ -65,13 +66,13 @@ export default function ReleaseDetailDrawer({
   // Only reset the open view when the drawer points at a *different* release;
   // a mutation-triggered refetch of the same release should not yank the
   // reader off Details or Analytics back to the preview.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: keyed on id, not the whole release object.
-  useEffect(() => {
+  useResetOnChange([release?.id], () => {
     setActiveView('preview');
-  }, [release?.id]);
+  });
 
   // The drawer owns its own account-health lookup so every caller (calendar,
   // rail) can hand it a brandId without also wiring a credentials fetch.
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     const controller = new AbortController();
 

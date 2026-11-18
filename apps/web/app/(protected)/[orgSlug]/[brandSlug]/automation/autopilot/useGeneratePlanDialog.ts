@@ -8,13 +8,7 @@ import { ContentPerformanceService } from '@services/analytics/content-performan
 import { ContentPlansService } from '@services/content/content-plans.service';
 import { logger } from '@services/core/logger.service';
 import { addDays, format } from 'date-fns';
-import {
-  type FormEvent,
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from 'react';
+import { type FormEvent, useCallback, useState } from 'react';
 import type {
   GeneratePlanFormState,
   UseGeneratePlanDialogOptions,
@@ -47,7 +41,10 @@ export function useGeneratePlanDialog({
   );
   // Set once the user ticks or unticks a seed; a later read of the seeds
   // (the first one, or a background refresh) then leaves the choice alone.
-  const isSeedSelectionEditedRef = useRef(false);
+  const [isSeedSelectionEdited, setIsSeedSelectionEdited] = useState(false);
+  const [wasOpen, setWasOpen] = useState(false);
+  const [seededPreview, setSeededPreview] =
+    useState<IContentPlanSeedPreview | null>(null);
 
   // Both reads are cached per viewer and brand, so reopening the dialog shows
   // the dataset confidence and the seed picker at once and refreshes them in
@@ -100,32 +97,36 @@ export function useGeneratePlanDialog({
   const seedPreview = seedsQuery.data ?? null;
   const isLoadingSeeds = seedsQuery.isLoading;
 
-  useEffect(() => {
-    if (!isOpen) {
-      return;
+  // Opening the dialog starts a fresh form. Until the person edits the seed
+  // selection, every loaded seed preview is checked by default, matching what a
+  // cold-start plan would seed from without the caller picking anything.
+  if (isOpen !== wasOpen) {
+    setWasOpen(isOpen);
+    if (isOpen) {
+      setIsSeedSelectionEdited(false);
+      setForm(buildDefaultFormState());
     }
-    isSeedSelectionEditedRef.current = false;
-    setForm(buildDefaultFormState());
-  }, [isOpen]);
-
-  useEffect(() => {
-    if (!isOpen || !seedPreview || isSeedSelectionEditedRef.current) {
-      return;
+  }
+  const seedKey = isOpen && seedPreview ? seedPreview : null;
+  if (seedKey !== seededPreview) {
+    setSeededPreview(seedKey);
+    const isEdited = isOpen !== wasOpen ? false : isSeedSelectionEdited;
+    if (seedKey && !isEdited) {
+      setForm((prev) => ({
+        ...prev,
+        advertiserIds: seedKey.advertisers.map((advertiser) => advertiser.id),
+        sourceIds: seedKey.sources
+          .filter(
+            (source) => source.sourceType !== SocialSourceType.OWN_ACCOUNT,
+          )
+          .map((source) => source.id),
+      }));
     }
-    // Default every advertiser/creator to checked, matching what a cold-start
-    // plan would seed from without the caller picking anything.
-    setForm((prev) => ({
-      ...prev,
-      advertiserIds: seedPreview.advertisers.map((advertiser) => advertiser.id),
-      sourceIds: seedPreview.sources
-        .filter((source) => source.sourceType !== SocialSourceType.OWN_ACCOUNT)
-        .map((source) => source.id),
-    }));
-  }, [isOpen, seedPreview]);
+  }
 
   const toggleAdvertiser = useCallback(
     (advertiserId: string, isChecked: boolean) => {
-      isSeedSelectionEditedRef.current = true;
+      setIsSeedSelectionEdited(true);
       setForm((prev) => ({
         ...prev,
         advertiserIds: isChecked
@@ -137,7 +138,7 @@ export function useGeneratePlanDialog({
   );
 
   const toggleSource = useCallback((sourceId: string, isChecked: boolean) => {
-    isSeedSelectionEditedRef.current = true;
+    setIsSeedSelectionEdited(true);
     setForm((prev) => ({
       ...prev,
       sourceIds: isChecked

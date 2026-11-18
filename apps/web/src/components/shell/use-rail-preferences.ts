@@ -144,6 +144,7 @@ export function useRailPreferences({
   const editRef = useRef<RailPreferenceEdit>(() => {});
   const syncRef = useRef<RailPreferenceSync>(() => {});
 
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     const controller = new AbortController();
     const { signal } = controller;

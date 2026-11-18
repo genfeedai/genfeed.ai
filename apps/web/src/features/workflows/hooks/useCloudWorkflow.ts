@@ -142,6 +142,7 @@ export function useCloudWorkflow({
   const durableEditKey = useWorkflowStore(selectCloudWorkflowEditKey);
   const isSaving = useWorkflowStore(selectIsSaving);
 
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     mountedRef.current = true;
     abortRef.current = new AbortController();
@@ -192,10 +193,12 @@ export function useCloudWorkflow({
     };
   }, [workflowId, templateId, getService, bindSharedWorkflowApi]);
 
+  // use-effect-audit: ignore publishes the brand to the cloud workflow store
   useEffect(() => {
     useCloudWorkflowStore.getState().setPendingBrandId(brandId || null);
   }, [brandId]);
 
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     if (brands.length > 0 || isBrandsLoading || hasRequestedBrandsRef.current) {
       return;
@@ -227,6 +230,7 @@ export function useCloudWorkflow({
     };
   }, [brands.length, getService, isBrandsLoading]);
 
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     if (!autoSave || !isDirty || !mountedRef.current) {
       return;

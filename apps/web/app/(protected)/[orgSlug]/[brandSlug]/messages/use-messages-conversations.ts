@@ -1,6 +1,7 @@
 import type { IPaginatedResponse } from '@genfeedai/contracts/interfaces';
 import type { SocialConversationModel } from '@genfeedai/models/social/social-conversation.model';
 import type { SocialMessageModel } from '@genfeedai/models/social/social-message.model';
+import { useResetOnChange } from '@hooks/utils/use-reset-on-change/use-reset-on-change';
 import {
   startTransition,
   useCallback,
@@ -133,6 +134,7 @@ export function useMessagesConversations({
     ],
   );
 
+  // use-effect-audit: ignore abortable work
   useEffect(() => {
     const controller = new AbortController();
     void loadConversations(controller.signal);
@@ -140,11 +142,11 @@ export function useMessagesConversations({
   }, [loadConversations]);
 
   // Reset thread pagination when the selected conversation changes.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: selectedId is the intentional trigger; body only resets page.
-  useEffect(() => {
+  useResetOnChange([selectedId], () => {
     setMessagePage(1);
-  }, [selectedId]);
+  });
 
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     if (!selectedId) {
       setMessages([]);
@@ -254,6 +256,7 @@ export function useMessagesConversations({
   // Opening a thread reads it through the transcript actually loaded: a
   // receipt response may report newer replies, but those stay unread until a
   // transcript that contains them has been fetched.
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     if (
       !selectedId ||

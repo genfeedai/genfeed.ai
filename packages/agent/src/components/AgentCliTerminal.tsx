@@ -121,12 +121,14 @@ export function useAgentCliTerminal(
   );
 
   // Keep thread ref in sync for use inside callbacks
+  // use-effect-audit: ignore keeps refs to the latest callbacks and values
   useEffect(() => {
     activeThreadIdRef.current = activeThreadId;
   }, [activeThreadId]);
 
   // The boot effect reads the selection through a ref: selecting a session
   // must not re-run it, because its cleanup kills the active session.
+  // use-effect-audit: ignore keeps refs to the latest callbacks and values
   useEffect(() => {
     activeTerminalSessionByThreadRef.current = activeTerminalSessionByThread;
   }, [activeTerminalSessionByThread]);
@@ -275,6 +277,7 @@ export function useAgentCliTerminal(
   }, []);
 
   // T1: React to activeThreadId changes
+  // use-effect-audit: ignore drives the terminal transport
   useEffect(() => {
     const transport = transportRef.current;
     if (!transport?.isConnected()) {
@@ -310,6 +313,7 @@ export function useAgentCliTerminal(
   // Cleanup owns ResizeObserver, socket, terminal, rAF, and socket handlers
   // via effect-scoped locals (async boot cannot return cleanup itself).
   // react-doctor-disable-next-line react-doctor/effect-needs-cleanup,react-doctor/no-set-state-after-await-in-effect
+  // use-effect-audit: ignore observes DOM elements with a browser observer
   useEffect(() => {
     if (hostedCloud) {
       return undefined;
@@ -577,6 +581,7 @@ export function useAgentCliTerminal(
   ]);
 
   // T7: Cmd/Ctrl+F → open search bar
+  // use-effect-audit: ignore keydown listener on the document
   useEffect(() => {
     function handleKeyDown(event: globalThis.KeyboardEvent): void {
       const modifier = event.metaKey || event.ctrlKey;

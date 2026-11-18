@@ -35,6 +35,7 @@ export default function IngredientMetadataFields({
 
   // A Rename from a tile or the header menu opens the name field, whether it
   // was asked for before this field mounted or while it is on screen.
+  // use-effect-audit: ignore subscribes to browser events
   useEffect(() => {
     if (claimPendingLibraryAssetRename(ingredient.id)) {
       setRenameRequest((current) => current + 1);

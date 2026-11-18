@@ -18,6 +18,7 @@ export default function AgentConnectLauncher() {
   const [isRequested, setIsRequested] = useState(false);
   const trigger = useRef<HTMLElement | null>(null);
 
+  // use-effect-audit: ignore subscribes to the connect event and hashchange
   useEffect(() => {
     if (isRequested) {
       return;

@@ -120,10 +120,12 @@ export default function YouTubePublishingSettings({
   const coverError =
     renderedError?.key === coverKey ? renderedError.message : null;
 
+  // use-effect-audit: ignore releases timers, requests or subscriptions on unmount
   useEffect(() => {
     return () => renderController.current?.abort();
   }, []);
 
+  // use-effect-audit: ignore releases the object URL when the cover changes or unmounts
   useEffect(() => {
     if (!renderedCover) return;
     return () => URL.revokeObjectURL(renderedCover.url);

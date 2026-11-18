@@ -117,6 +117,7 @@ export default function RichTextEditor({
   );
 
   // Sync editor content when value prop changes (but avoid circular updates)
+  // use-effect-audit: ignore keeps the external editor content in step with the value
   useEffect(() => {
     if (!editor) {
       return;

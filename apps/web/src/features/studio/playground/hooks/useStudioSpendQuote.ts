@@ -49,6 +49,7 @@ export function useStudioSpendQuote(): UseStudioSpendQuoteReturn {
   const isQuotingRef = useRef(false);
   const controllerRef = useRef<AbortController | null>(null);
 
+  // use-effect-audit: ignore releases timers, requests or subscriptions on unmount
   useEffect(
     () => () => {
       controllerRef.current?.abort();

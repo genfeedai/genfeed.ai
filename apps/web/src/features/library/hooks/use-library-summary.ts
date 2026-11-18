@@ -7,11 +7,13 @@ import { getRequestOrganizationHeaders } from '@genfeedai/services/core/intercep
 import { logger } from '@genfeedai/services/core/logger.service';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
+import { viewerKeyPart } from '@hooks/auth/use-authed-query/use-authed-query';
 import {
   isCollectionFetchReady,
   useCollectionScope,
 } from '@hooks/navigation/use-collection-scope/use-collection-scope';
-import { useCallback, useEffect, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useCallback, useEffect, useMemo } from 'react';
 
 export interface UseLibrarySummaryReturn {
   summary: ILibrarySummary | null;
@@ -38,36 +40,24 @@ export function useLibrarySummary({
   isEnabled?: boolean;
 } = {}): UseLibrarySummaryReturn {
   const collectionScope = useCollectionScope();
-  const { brandId, pageScope } = collectionScope;
+  const { brandId, organizationId, pageScope } = collectionScope;
   const isFetchReady = isCollectionFetchReady(collectionScope);
-  const { getToken } = useAuthIdentity();
-  const [summary, setSummary] = useState<ILibrarySummary | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-  const [reloadToken, setReloadToken] = useState(0);
+  const { getToken, orgId, userId } = useAuthIdentity();
 
-  const refresh = useCallback(() => {
-    setReloadToken((token) => token + 1);
-  }, []);
+  const queryKey = useMemo(
+    () => [
+      'library-summary',
+      organizationId,
+      brandId ?? null,
+      pageScope,
+      viewerKeyPart(userId, orgId),
+    ],
+    [brandId, orgId, organizationId, pageScope, userId],
+  );
 
-  useEffect(() => {
-    window.addEventListener(LIBRARY_ASSETS_REFRESH_EVENT, refresh);
-    return () =>
-      window.removeEventListener(LIBRARY_ASSETS_REFRESH_EVENT, refresh);
-  }, [refresh]);
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: reloadToken is the refresh trigger, not a value the effect reads.
-  useEffect(() => {
-    if (!isFetchReady || !isEnabled) {
-      return;
-    }
-
-    const controller = new AbortController();
-
-    async function fetchSummary() {
-      setIsLoading(true);
-      setError(null);
-
+  const query = useQuery<ILibrarySummary, Error>({
+    enabled: isFetchReady && isEnabled,
+    queryFn: async ({ signal }) => {
       try {
         const token = await resolveAuthToken(getToken);
         const url = new URL(
@@ -86,7 +76,7 @@ export function useLibrarySummary({
                 Authorization: `Bearer ${token}`,
               }
             : undefined,
-          signal: controller.signal,
+          signal,
         });
 
         if (!response.ok) {
@@ -95,38 +85,48 @@ export function useLibrarySummary({
           );
         }
 
-        const data = (await response.json()) as ILibrarySummary;
-
-        if (!controller.signal.aborted) {
-          setSummary(data);
-        }
+        return (await response.json()) as ILibrarySummary;
       } catch (caught) {
-        if (
-          controller.signal.aborted ||
-          (caught instanceof Error && caught.name === 'AbortError')
-        ) {
-          return;
-        }
-
         const normalizedError =
           caught instanceof Error
             ? caught
             : new Error('Failed to load library summary');
-        setError(normalizedError);
-        logger.error('useLibrarySummary: fetchSummary failed', normalizedError);
-      } finally {
-        if (!controller.signal.aborted) {
-          setIsLoading(false);
+        if (!signal.aborted) {
+          logger.error(
+            'useLibrarySummary: fetchSummary failed',
+            normalizedError,
+          );
         }
+        throw normalizedError;
       }
-    }
+    },
+    queryKey,
+    refetchOnWindowFocus: false,
+    retry: false,
+  });
+  const queryClient = useQueryClient();
 
-    void fetchSummary();
+  const isQueryEnabled = isFetchReady && isEnabled;
+  const refresh = useCallback(() => {
+    if (!isQueryEnabled) return;
+    // A read still in flight predates the change, so it must not answer.
+    void queryClient
+      .cancelQueries({ queryKey })
+      .then(() => queryClient.refetchQueries({ queryKey }));
+  }, [isQueryEnabled, queryClient, queryKey]);
 
-    return () => {
-      controller.abort();
-    };
-  }, [brandId, getToken, isEnabled, isFetchReady, pageScope, reloadToken]);
+  // use-effect-audit: ignore subscribes to browser events
+  useEffect(() => {
+    window.addEventListener(LIBRARY_ASSETS_REFRESH_EVENT, refresh);
+    return () =>
+      window.removeEventListener(LIBRARY_ASSETS_REFRESH_EVENT, refresh);
+  }, [refresh]);
 
-  return { summary, isLoading, error, refresh };
+  return {
+    // A new attempt starts without the last failure on screen.
+    error: query.isFetching ? null : query.error,
+    isLoading: query.isPending || query.isFetching,
+    refresh,
+    summary: query.data ?? null,
+  };
 }

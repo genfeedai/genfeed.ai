@@ -180,6 +180,7 @@ function LibraryVoicesContent() {
     });
   }, [pathname, replace, searchParamsString]);
 
+  // use-effect-audit: ignore registers the page refresh handler with the shell
   useEffect(() => {
     onRefresh?.(() => {
       refreshVoices().catch((error) => {

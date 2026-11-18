@@ -6,12 +6,13 @@ import type {
   StoryboardCharacterOperationReceipt,
   StoryboardCharacterReplacement,
 } from '@genfeedai/contracts/api-types/contracts/storyboard-character-replace.contract';
+import { useResetOnChange } from '@hooks/utils/use-reset-on-change/use-reset-on-change';
 import { Button } from '@ui/primitives/button';
 import Field from '@ui/primitives/field';
 import { Textarea } from '@ui/primitives/textarea';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import type { StoryboardCharacterReplaceProps } from '@/features/studio/props/storyboard.props';
 import { useStoryboardCharacterReplacements } from '@/features/studio/storyboard/hooks/use-storyboard-character-replacements';
 
@@ -47,12 +48,11 @@ export default function StoryboardCharacterReplace({
   const imageAssetIds = formEpoch === contextEpoch ? storedImageAssetIds : [];
   const prompt = formEpoch === contextEpoch ? storedPrompt : '';
   const { collection, fallback, isReading, isSubmitting } = lifecycle;
-  // biome-ignore lint/correctness/useExhaustiveDependencies: only a new context initializes form inputs; same-context saved changes preserve user edits.
-  useEffect(() => {
+  useResetOnChange([contextEpoch], () => {
     setFormEpoch(contextEpoch);
     setImageAssetIds(matchingSaved?.imageAssetIds ?? []);
     setPrompt(matchingSaved?.prompt ?? '');
-  }, [contextEpoch]);
+  });
 
   const isSubmitDisabled =
     isDisabled ||

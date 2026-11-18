@@ -1,3 +1,5 @@
+import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
+import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { type IngredientOrigin, TagMatchMode } from '@genfeedai/contracts';
 import { STORYBOARD_STILL_SOURCE_ACTION_PREFIX } from '@genfeedai/contracts/api-types/contracts/storyboard-still.contract';
@@ -35,6 +37,20 @@ const LIBRARY_TAGS_INCLUDE = {
  *
  */
 export const IngredientFilterUtil = {
+  /**
+   * The Library type axis: `categories` is the multi-select, `category` stays
+   * for single-type callers. Both normalize to Prisma labels.
+   */
+  buildLibraryCategoryFilter(categories: string[] = [], category?: string) {
+    return CollectionFilterUtil.buildCategoryFilter(
+      categories.length > 0
+        ? categories.map((value) =>
+            CategoryPrismaUtil.toIngredientCategory(value),
+          )
+        : CategoryPrismaUtil.toIngredientCategory(category),
+    );
+  },
+
   /** Live tags for each row of a Library list. */
   buildLibraryTagsInclude() {
     return LIBRARY_TAGS_INCLUDE;

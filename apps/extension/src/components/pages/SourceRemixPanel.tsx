@@ -45,6 +45,7 @@ export function SourceRemixPanel({
   const [model, setModel] = useState('');
   const [now, setNow] = useState(() => Date.now());
 
+  // use-effect-audit: ignore abortable remix open through the extension background
   useEffect(() => {
     if (!brandId) {
       setIsOpening(false);
@@ -78,6 +79,7 @@ export function SourceRemixPanel({
   }, [brandId, source.id]);
 
   const isImage = run?.draft.output.kind === 'image';
+  // use-effect-audit: ignore abortable image model fetch through the extension background
   useEffect(() => {
     if (!isImage || models.length > 0) {
       return;
@@ -99,6 +101,7 @@ export function SourceRemixPanel({
 
   const runId = run?.id;
   const isGenerating = run?.phase === 'generating';
+  // use-effect-audit: ignore polls the remix run on an interval
   useEffect(() => {
     if (!runId || !isGenerating) {
       return;
@@ -124,6 +127,7 @@ export function SourceRemixPanel({
   }, [runId, isGenerating]);
 
   const hasQuote = Boolean(run?.generationQuote);
+  // use-effect-audit: ignore ticks a clock on an interval
   useEffect(() => {
     if (!hasQuote) {
       return;

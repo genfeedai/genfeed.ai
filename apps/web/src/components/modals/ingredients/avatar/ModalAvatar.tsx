@@ -58,6 +58,7 @@ export default function ModalAvatar({
   });
   const formRef = useFocusFirstInput<HTMLFormElement>();
 
+  // use-effect-audit: ignore writes the loaded values into the form store
   useEffect(() => {
     if (avatarId && voiceId) {
       form.setValue('avatar', avatarId, { shouldValidate: true });

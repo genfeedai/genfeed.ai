@@ -38,6 +38,7 @@ export function useEconomicsReport<T>(
     queryKey: ['admin-economics', reportKey, range.from, range.to],
   });
 
+  // use-effect-audit: ignore reports a failed load to the logger or a notification
   useEffect(() => {
     if (query.error) {
       logger.error(`GET /admin/economics/${reportKey} failed`, query.error);

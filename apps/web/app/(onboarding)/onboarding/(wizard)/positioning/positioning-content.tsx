@@ -79,6 +79,7 @@ export default function PositioningContent() {
     [],
   );
 
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     if (!brandId) {
       return;
