@@ -270,7 +270,7 @@
     "symbol": "apps/web/proxy.ts"
   },
   {
-    "actual": 1212,
+    "actual": 1143,
     "file": "apps/web/src/components/prompt-bars/base/use-prompt-bar-state.tsx",
     "metric": "file-lines",
     "symbol": "apps/web/src/components/prompt-bars/base/use-prompt-bar-state.tsx"
