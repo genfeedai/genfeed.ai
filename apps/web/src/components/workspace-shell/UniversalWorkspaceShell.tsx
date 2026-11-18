@@ -470,7 +470,7 @@ function UniversalWorkspaceShellContent({
   const composerContextLabel = productSurfaceAdapter
     ? effectiveShellContextLabel
     : `${conversationScope.contextLabel} · ${effectiveShellContextLabel}`;
-
+  // use-effect-audit: ignore syncs the thread's brand context to the API, aborting on cleanup
   useEffect(() => {
     if (
       !activeThreadIdForScope ||
@@ -556,7 +556,7 @@ function UniversalWorkspaceShellContent({
     restorationFailure,
     safeFallbackHref,
   ]);
-
+  // use-effect-audit: ignore resets the conversation stores and retained thread when the route scope changes
   useEffect(() => {
     const hasScopeChanged = previousRouteScopeRef.current !== routeScope;
     if (hasScopeChanged) {

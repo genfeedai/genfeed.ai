@@ -271,7 +271,7 @@ export function useGenerationActionCard({
   const abortRef = useRef<AbortController | null>(null);
   const busyThreadIdRef = useRef<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-
+  // use-effect-audit: ignore loads the saved generation preference when the setup scope changes
   useEffect(() => {
     const next = readAgentGenerationPreference(setupScope, setupDefaults);
     const nextModel = next.hasModelPreference ? next.model : null;
@@ -483,7 +483,7 @@ export function useGenerationActionCard({
   ) {
     setResolution(fallbackResolution);
   }
-
+  // use-effect-audit: ignore clears end-frame picks the chosen model cannot use
   useEffect(() => {
     const cleared: string[] = [];
     if (!supportsEndFrame && endFrameId) {
@@ -891,7 +891,7 @@ export function useGenerationActionCard({
       type: 'decline_finished',
     });
   }, [declineRunId, declineRunStatus]);
-
+  // use-effect-audit: ignore restores the saved decision from the action data
   useEffect(() => {
     const decision = action.data?.decision;
     if (decision === 'declined' || decision === 'approved') {
