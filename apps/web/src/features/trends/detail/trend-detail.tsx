@@ -26,7 +26,7 @@ import {
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useEffect } from 'react';
+import { useNotifyOnLoadError } from '@/hooks/utils/use-notify-on-load-error/use-notify-on-load-error';
 
 import TrendDetailAnalysisCard from './trend-detail-analysis-card';
 import TrendDetailHeader from './trend-detail-header';
@@ -96,13 +96,11 @@ export default function TrendDetail({
   const data = trendQuery.data ?? null;
   const error = isError ? 'Failed to load trend details' : null;
 
-  // One toast per failed read, after its retry, not one per attempt.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: errorUpdatedAt marks each new failed read.
-  useEffect(() => {
-    if (isError) {
-      notificationsService.error('Failed to load trend details');
-    }
-  }, [errorUpdatedAt, isError, notificationsService]);
+  useNotifyOnLoadError({
+    errorUpdatedAt,
+    hasError: isError,
+    notify: () => notificationsService.error('Failed to load trend details'),
+  });
 
   if (error) {
     return (

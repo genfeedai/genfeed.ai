@@ -27,12 +27,13 @@ import { Checkbox } from '@ui/primitives/checkbox';
 import { Trash2 } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Suspense, useCallback, useEffect, useState } from 'react';
+import { Suspense, useCallback, useState } from 'react';
 import { useAdminOrgBrandParams } from '@/components/content/admin-filters/AdminOrgBrandUrlFilter';
 import { LazyModalBlacklist } from '@/components/lazy/modal/LazyModal';
 import { useInlineRecordSave } from '@/hooks/ui/use-inline-record-save/use-inline-record-save';
 import { useListParentBridge } from '@/hooks/ui/use-list-parent-bridge/use-list-parent-bridge';
 import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
+import { useNotifyOnLoadError } from '@/hooks/utils/use-notify-on-load-error/use-notify-on-load-error';
 
 const EMPTY_BLACKLISTS: ElementBlacklist[] = [];
 
@@ -217,13 +218,11 @@ function BlacklistsListContent({
   const refreshBlacklists = useRefreshScope(scopeKey);
   const isRefreshing = isFetching && !isLoading;
 
-  // One toast per failed read, not one per render.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: errorUpdatedAt marks each new failed read.
-  useEffect(() => {
-    if (isError) {
-      notificationsService.error('Failed to load blacklists');
-    }
-  }, [errorUpdatedAt, isError, notificationsService]);
+  useNotifyOnLoadError({
+    errorUpdatedAt,
+    hasError: isError,
+    notify: () => notificationsService.error('Failed to load blacklists'),
+  });
 
   useListParentBridge({
     isLoading,

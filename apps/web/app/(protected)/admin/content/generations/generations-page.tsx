@@ -20,7 +20,7 @@ import { EmptyState } from '@ui/primitives/empty-state';
 import { Download, Image as ImageIcon } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
+import { Suspense, useCallback, useMemo, useState } from 'react';
 import { useAdminOrgBrandParams } from '@/components/content/admin-filters/AdminOrgBrandUrlFilter';
 import FilterMenu from '@/components/content/filter-menu/FilterMenu';
 import SearchField from '@/components/content/search-field/SearchField';
@@ -28,6 +28,7 @@ import type {
   GenerationStatusOption,
   GenerationView,
 } from '@/features/admin/props/generations.props';
+import { useNotifyOnLoadError } from '@/hooks/utils/use-notify-on-load-error/use-notify-on-load-error';
 import GenerationDetailPanel from './generation-detail-panel';
 import GenerationRow from './generation-row';
 import {
@@ -166,13 +167,11 @@ function GenerationsPageContent() {
     ? EMPTY_GENERATIONS
     : (generationsQuery.data?.items ?? EMPTY_GENERATIONS);
 
-  // One toast per failed read, after its retry, not one per attempt.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: errorUpdatedAt marks each new failed read.
-  useEffect(() => {
-    if (hasError) {
-      notificationsService.error(t('loadError'));
-    }
-  }, [errorUpdatedAt, hasError, notificationsService, t]);
+  useNotifyOnLoadError({
+    errorUpdatedAt,
+    hasError: hasError,
+    notify: () => notificationsService.error(t('loadError')),
+  });
 
   const modelsQuery = useAuthedQuery({
     queryFn: async (service, signal) => {
