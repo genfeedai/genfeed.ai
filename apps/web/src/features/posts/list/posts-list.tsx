@@ -144,6 +144,7 @@ export default function PostsList({
     );
   }, [isAdminScope, viewType, setViewToggleNode, setViewType]);
 
+  // use-effect-audit: ignore releases timers, requests or subscriptions on unmount
   useEffect(() => {
     return () => setViewToggleNode(null);
   }, [setViewToggleNode]);
