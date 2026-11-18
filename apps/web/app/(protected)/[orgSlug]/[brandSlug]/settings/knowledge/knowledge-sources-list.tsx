@@ -15,6 +15,7 @@ import type {
   KnowledgeSourceUpdateRequest,
 } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useResetOnChange } from '@hooks/utils/use-reset-on-change/use-reset-on-change';
 import type {
   KnowledgeSourceRow,
   KnowledgeSourcesListProps,
@@ -94,14 +95,11 @@ export default function KnowledgeSourcesList({
       sourceIds[0].length > 128 ||
       UNSAFE_ID_CHAR_PATTERN.test(sourceIds[0]));
   const routeSourceId = isInvalidSelection ? null : (sourceIds[0] ?? null);
-  const [localSelectedSourceId, setSelectedSourceId] = useState<string | null>(
+  const [selectedSourceId, setSelectedSourceId] = useState<string | null>(
     routeSourceId,
   );
-  const appliedRouteRef = useRef(routeSourceId);
-  const selectedSourceId =
-    appliedRouteRef.current === routeSourceId
-      ? localSelectedSourceId
-      : routeSourceId;
+  // Only incoming navigation changes selection; polling/rerenders cannot reopen a closed panel.
+  useResetOnChange([routeSourceId], () => setSelectedSourceId(routeSourceId));
   const selectionRef = useRef(selectedSourceId);
   selectionRef.current = selectedSourceId;
   const navigationRef = useRef({
@@ -132,12 +130,6 @@ export default function KnowledgeSourcesList({
     },
     [],
   );
-  // Only incoming navigation changes selection; polling/rerenders cannot reopen a closed panel.
-  useEffect(() => {
-    appliedRouteRef.current = routeSourceId;
-    selectionRef.current = routeSourceId;
-    setSelectedSourceId(routeSourceId);
-  }, [routeSourceId]);
   const {
     error,
     isLoading,
@@ -179,9 +171,7 @@ export default function KnowledgeSourcesList({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const refreshRef = useRef(refresh);
   refreshRef.current = refresh;
-  useEffect(() => {
-    if (actionScopeRef.current === actionScope) setIsSubmitting(false);
-  }, [actionScope]);
+  useResetOnChange([actionScope], () => setIsSubmitting(false));
 
   // A space that is not in this brand's list reads as no space filter, the
   // same as the Space facet shows it.

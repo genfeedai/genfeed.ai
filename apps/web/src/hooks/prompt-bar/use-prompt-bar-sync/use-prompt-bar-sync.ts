@@ -148,12 +148,6 @@ export function usePromptBarSync(
     }
   }, [externalFormat, externalWidth, externalHeight, form]);
 
-  useEffect(() => {
-    if (!promptConfig) {
-      lastPromptConfigRef.current = undefined;
-    }
-  }, [promptConfig]);
-
   // use-effect-audit: ignore writes the prompt text into the form store
   useEffect(() => {
     if (!useSplitState || promptText === undefined) {
@@ -176,6 +170,9 @@ export function usePromptBarSync(
 
   // use-effect-audit: ignore writes the prompt config into the form store
   useEffect(() => {
+    if (!promptConfig) {
+      lastPromptConfigRef.current = undefined;
+    }
     if (!useSplitState || !promptConfig) {
       return;
     }
@@ -349,6 +346,7 @@ export function usePromptBarSync(
     hasInitializedReferencesRef,
   ]);
 
+  // use-effect-audit: ignore writes the prompt data into the form store
   useEffect(() => {
     if (!promptData || promptData === lastPromptDataRef.current) {
       return;

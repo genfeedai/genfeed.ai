@@ -9,6 +9,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useResetOnChange } from '@hooks/utils/use-reset-on-change/use-reset-on-change';
 import { getJsonApiErrorMember } from '@services/core/json-api-error-message';
 import { HeyGenService } from '@services/ingredients/heygen.service';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -122,13 +123,18 @@ export function useHeyGenCatalog({
   const loadMoreController = useRef<AbortController | null>(null);
 
   // Another organization never receives a continuation still in flight.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: organizationId and isEnabled mark a new catalogue
-  useEffect(() => {
-    loadMoreController.current?.abort();
-    loadMoreController.current = null;
+  useResetOnChange([isEnabled, organizationId], () => {
     setIsLoadingMoreAvatars(false);
     setLoadMoreError(null);
-    return () => loadMoreController.current?.abort();
+  });
+  // use-effect-audit: ignore aborts the in-flight continuation request when the catalogue changes or unmounts
+  useEffect(() => {
+    void isEnabled;
+    void organizationId;
+    return () => {
+      loadMoreController.current?.abort();
+      loadMoreController.current = null;
+    };
   }, [isEnabled, organizationId]);
 
   const partitions = useMemo(

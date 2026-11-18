@@ -32,8 +32,10 @@ export function useStudioReferenceMentions({
     [characterExtensions],
   );
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: attachment changes must update chip labels even when the editor document is unchanged.
+  // Attachment changes must update chip labels even when the editor document is unchanged.
+  // use-effect-audit: ignore tells the rich-text editor to redraw its reference chips
   useEffect(() => {
+    void references;
     const editor = editorRef.current;
     if (editor && !editor.isDestroyed)
       editor.view.dispatch(
