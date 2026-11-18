@@ -119,6 +119,7 @@ export function useAnalyticsOverview({ scope }: UseAnalyticsOverviewParams) {
   );
 
   const handledRefreshRef = useRef(refreshTrigger);
+  // use-effect-audit: ignore reacts to a refresh request from the shared analytics context
   useEffect(() => {
     if (refreshTrigger !== handledRefreshRef.current) {
       handledRefreshRef.current = refreshTrigger;

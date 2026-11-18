@@ -165,16 +165,6 @@ variable "ignored_ssm_secret_names" {
   default     = []
 }
 
-variable "content_harness_packages" {
-  description = "Verified content harness module bundled into the private server image."
-  type        = string
-  default     = ""
-  validation {
-    condition     = contains(["", "/usr/src/app/content-harness/index.cjs"], var.content_harness_packages)
-    error_message = "Use the deployment pipeline's verified bundle path or leave empty."
-  }
-}
-
 variable "permissions_boundary_arn" {
   description = "IAM policy ARN set as the permissions boundary on every role this stack creates. Empty leaves the roles without a boundary."
   type        = string

@@ -283,6 +283,7 @@ export function useRailPreferences({
     };
   }, [getUsers, queryClient]);
 
+  // use-effect-audit: ignore pushes the saved preferences into the sync engine
   useEffect(() => {
     syncRef.current(saved, hasReadFailed);
   }, [hasReadFailed, saved]);

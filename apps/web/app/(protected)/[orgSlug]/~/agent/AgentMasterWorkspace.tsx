@@ -92,6 +92,7 @@ export default function AgentMasterWorkspace({
     selection?.origin === 'user' &&
     (Boolean(contextSidebar?.isOpen) || Boolean(contextSidebar?.isMobileOpen));
   const onOpenContext = host?.onOpenContext;
+  // use-effect-audit: ignore opens the host's Context panel
   useEffect(() => {
     if (selectionKey && isUserSelectionOpen) {
       onOpenContext?.();

@@ -366,6 +366,7 @@ export default function IssuesList() {
   ]);
 
   // The inspector saves through the shared selection; refetch so rows match.
+  // use-effect-audit: ignore refetches after the shared inspector store reports a save
   useEffect(() => {
     if (selectionRevision > 0) void reloadIssues();
   }, [selectionRevision, reloadIssues]);

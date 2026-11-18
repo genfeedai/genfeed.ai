@@ -141,8 +141,20 @@ export function useLibraryPicker(params: {
   );
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [isValidatingId, setIsValidatingId] = useState<string | null>(null);
-  const [selectionFailure, setSelectionFailure] =
-    useState<LibraryPickerSelectionFailure | null>(null);
+  // A failure belongs to the scope whose selection raised it, so one that
+  // settles after a brand or category switch never shows on the new scope.
+  const scopeIdentity = `${organizationId}\u0001${brandId}\u0001${category}`;
+  const [selectionOutcome, setSelectionOutcome] = useState<{
+    failure: LibraryPickerSelectionFailure;
+    scope: string;
+  } | null>(null);
+  const selectionFailure =
+    selectionOutcome?.scope === scopeIdentity ? selectionOutcome.failure : null;
+  const setSelectionFailure = useCallback(
+    (failure: LibraryPickerSelectionFailure | null, scope = scopeIdentity) =>
+      setSelectionOutcome(failure ? { failure, scope } : null),
+    [scopeIdentity],
+  );
   const loadMoreControllerRef = useRef<AbortController | null>(null);
   const categoryConfig = useMemo(() => getCategoryConfig(category), [category]);
   const getIngredientsServices = useAuthedService(createIngredientsServices);
@@ -177,7 +189,6 @@ export function useLibraryPicker(params: {
   const { refetch } = firstPageQuery;
 
   // A new brand or media type never receives a "Load more" still in flight.
-  const scopeIdentity = `${organizationId}\u0001${brandId}\u0001${category}`;
   useResetOnChange([scopeIdentity], () => {
     setIsLoadingMore(false);
     setSelectionFailure(null);
@@ -348,7 +359,7 @@ export function useLibraryPicker(params: {
     setMorePages(null);
     setSelectionFailure(null);
     void refetch();
-  }, [refetch]);
+  }, [refetch, setSelectionFailure]);
 
   const select = useCallback(
     async (ingredient: IIngredient) => {
@@ -412,6 +423,7 @@ export function useLibraryPicker(params: {
       isValidatingId,
       organizationId,
       onSelect,
+      setSelectionFailure,
     ],
   );
 

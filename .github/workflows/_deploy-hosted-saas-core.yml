@@ -57,10 +57,6 @@ on:
         required: true
       TURBO_TOKEN:
         required: false
-      CONTENT_HARNESS_BUNDLE_URI:
-        required: false
-      CONTENT_HARNESS_BUNDLE_SHA256:
-        required: false
 
 # A rehearsal never queues behind, or replaces a pending, real deploy.
 concurrency:
@@ -339,8 +335,6 @@ jobs:
         id: copy-image
         env:
           IMAGE_SHA: ${{ steps.image.outputs.sha }}
-          CONTENT_HARNESS_BUNDLE_URI: ${{ secrets.CONTENT_HARNESS_BUNDLE_URI }}
-          CONTENT_HARNESS_BUNDLE_SHA256: ${{ secrets.CONTENT_HARNESS_BUNDLE_SHA256 }}
         run: bun ops/scripts/deploy/hosted-saas/prepare-server-image.ts
 
       # Dry run stands in for the ECR copy above: it only reads the GHCR digest.
