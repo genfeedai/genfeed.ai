@@ -128,6 +128,7 @@ export default function ModalMember({
     }
   }, [defaultRoleId, form, loadedRoles, member]);
 
+  // use-effect-audit: ignore writes the loaded values into the form store
   useEffect(() => {
     if (member && organizationId) {
       const brandIds =
