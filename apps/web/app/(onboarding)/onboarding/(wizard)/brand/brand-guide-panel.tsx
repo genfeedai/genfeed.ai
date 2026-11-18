@@ -25,12 +25,14 @@ export default function BrandGuidePanel({
   const touched = useRef(false);
   const autoStarted = useRef(false);
   const [notice, setNotice] = useState<string | null>(null);
+  // use-effect-audit: ignore reports the scanned website to the host form callback
   useEffect(() => {
     if (scan.scan?.url && !touched.current) onWebsiteUrlChange(scan.scan.url);
   }, [scan.scan?.url, onWebsiteUrlChange]);
   // A known website is scanned once on first arrival. A stored scan, an
   // in-flight request, a failure or a user-edited field never auto-starts.
   const { phase, scan: storedScan, request, error, start } = scan;
+  // use-effect-audit: ignore starts the scan request once on first arrival
   useEffect(() => {
     if (
       autoStarted.current ||
