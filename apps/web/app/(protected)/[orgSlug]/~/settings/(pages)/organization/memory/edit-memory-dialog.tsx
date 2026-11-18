@@ -134,14 +134,17 @@ export default function EditMemoryDialog({
     }
   }, [historyError]);
 
-  useEffect(() => {
-    if (!entryId) {
-      return;
+  // Each opening, and each new body of the same memory, starts a fresh draft.
+  const seedKey = entryId ? JSON.stringify([entryId, entryContent]) : null;
+  const [seededKey, setSeededKey] = useState<string | null>(null);
+  if (seedKey !== seededKey) {
+    setSeededKey(seedKey);
+    if (seedKey !== null) {
+      setContent(entryContent);
+      setReason('');
+      setRequestId(crypto.randomUUID());
     }
-    setContent(entryContent);
-    setReason('');
-    setRequestId(crypto.randomUUID());
-  }, [entryId, entryContent]);
+  }
 
   const loadMore = useCallback(async () => {
     if (!entryId || !nextCursor) {
