@@ -157,7 +157,11 @@ describe('MasterPromptGeneratorService', () => {
     const result = await service.analyzeBrandVoice(makeBrandData());
 
     expect(result?.tone).toBe('Professional');
-    expect(mockLogger.error).toHaveBeenCalled();
+    expect(mockLogger.warn).toHaveBeenCalledWith(
+      expect.stringContaining('failed'),
+      expect.objectContaining({ code: 'malformed_output' }),
+    );
+    expect(mockLogger.error).not.toHaveBeenCalled();
   });
 
   it('flags only the placeholder voice as a fallback', async () => {

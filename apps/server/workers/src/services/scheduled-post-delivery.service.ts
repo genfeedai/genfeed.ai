@@ -415,7 +415,7 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
     const hold = await this.attempts.holdForTerminalFailure(post, errorMessage);
     if (hold.kind === 'kept') return hold.result;
 
-    this.logger.error('Durable validation rejected queued publishing', {
+    this.logger.warn('Durable validation rejected queued publishing', {
       error: errorMessage,
       postId: post.id,
     });

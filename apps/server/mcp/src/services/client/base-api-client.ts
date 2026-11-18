@@ -160,7 +160,14 @@ export class BaseApiClient {
   }
 
   logError(operation: string, error: ApiError): void {
-    this.logger.error(`Error ${operation}`, error.message, {
+    const status = error.response?.status;
+    // A 4xx is the API refusing the call (a held post, a conflict). The caller
+    // gets the refusal, so only server faults and transport failures are errors.
+    const log =
+      typeof status === 'number' && status >= 400 && status < 500
+        ? this.logger.warn.bind(this.logger)
+        : this.logger.error.bind(this.logger);
+    log(`Error ${operation}`, error.message, {
       data: error.response?.data,
     });
   }

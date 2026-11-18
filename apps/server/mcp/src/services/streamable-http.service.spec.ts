@@ -194,6 +194,29 @@ describe('StreamableHttpService', () => {
       expect(mockHandleRequest).toHaveBeenCalledWith(req, res, undefined);
     });
 
+    it('logs a request the SDK rejected as a warning and a handler fault as an error', async () => {
+      const logger = (
+        service as unknown as {
+          logger: Record<string, ReturnType<typeof vi.fn>>;
+        }
+      ).logger;
+      await service.handlePost(makeReq({ headers: {} }), makeRes());
+      const { onerror } = handlerInstances[0].options as {
+        onerror: (error: Error) => void;
+      };
+
+      onerror(
+        new Error(
+          'Rejected inbound request (method-header-missing): the body names method tools/list but the required Mcp-Method header is absent',
+        ),
+      );
+      expect(logger.warn).toHaveBeenCalledTimes(1);
+      expect(logger.error).not.toHaveBeenCalled();
+
+      onerror(new Error('tool handler exploded'));
+      expect(logger.error).toHaveBeenCalledTimes(1);
+    });
+
     it('closes the request handler after every request', async () => {
       await service.handlePost(makeReq({ headers: {} }), makeRes());
 

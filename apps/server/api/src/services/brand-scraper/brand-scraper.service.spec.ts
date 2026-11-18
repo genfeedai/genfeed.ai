@@ -1465,11 +1465,16 @@ describe('BrandScraperService', () => {
       expect(result.scrapedAt).toBeInstanceOf(Date);
     });
 
-    it('throws when fetch returns non-OK', async () => {
+    it('throws when fetch returns non-OK without reporting a site refusal as an error', async () => {
       fetchMock.mockResolvedValue(makeResponse('', 403));
       await expect(
         service.scrapeLinkedIn('https://linkedin.com/company/acme'),
       ).rejects.toThrow('403');
+      expect(mockLogger.error).not.toHaveBeenCalled();
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('refused by the site'),
+        expect.objectContaining({ status: 403 }),
+      );
     });
 
     it('throws on network error', async () => {

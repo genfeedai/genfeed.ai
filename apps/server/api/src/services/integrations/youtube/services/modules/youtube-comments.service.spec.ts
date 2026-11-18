@@ -19,6 +19,10 @@ interface YoutubeApiMock {
 
 interface YoutubeCommentsServiceInternals {
   authService: YoutubeAuthServiceMock;
+  loggerService: {
+    error: ReturnType<typeof vi.fn>;
+    warn: ReturnType<typeof vi.fn>;
+  };
   youtubeAPI: YoutubeApiMock;
 }
 
@@ -37,7 +41,7 @@ describe('YoutubeCommentsService', () => {
         },
         {
           provide: LoggerService,
-          useValue: { error: vi.fn(), log: vi.fn() },
+          useValue: { error: vi.fn(), log: vi.fn(), warn: vi.fn() },
         },
       ],
     }).compile();
@@ -65,6 +69,45 @@ describe('YoutubeCommentsService', () => {
 
   it('should be defined', () => {
     expect(service).toBeDefined();
+  });
+
+  describe('listVideoComments', () => {
+    const orgId = testId('org');
+    const brandId = testId('brand');
+
+    it('rethrows a missing video without reporting it as an error', async () => {
+      const { loggerService } =
+        service as unknown as YoutubeCommentsServiceInternals;
+      mockAuthService.refreshToken = vi.fn().mockResolvedValue({});
+      const missing = Object.assign(new Error('video not found'), {
+        response: { status: 404 },
+      });
+      mockYoutubeAPI.commentThreads.list = vi.fn().mockRejectedValue(missing);
+
+      await expect(
+        service.listVideoComments(orgId, brandId, 'gone-video', 20, 'cred-1'),
+      ).rejects.toBe(missing);
+
+      expect(loggerService.error).not.toHaveBeenCalled();
+      expect(loggerService.warn).toHaveBeenCalledTimes(1);
+    });
+
+    it('reports any other listing failure as an error', async () => {
+      const { loggerService } =
+        service as unknown as YoutubeCommentsServiceInternals;
+      mockAuthService.refreshToken = vi.fn().mockResolvedValue({});
+      const quota = Object.assign(new Error('quota'), {
+        response: { status: 403 },
+        errors: [{ reason: 'quotaExceeded' }],
+      });
+      mockYoutubeAPI.commentThreads.list = vi.fn().mockRejectedValue(quota);
+
+      await expect(
+        service.listVideoComments(orgId, brandId, 'video', 20, 'cred-1'),
+      ).rejects.toBe(quota);
+
+      expect(loggerService.error).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('postComment', () => {
