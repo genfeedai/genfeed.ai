@@ -107,6 +107,7 @@ export function useModelFavorites(): {
     [currentUser, getUsersService, mutateUser],
   );
 
+  // use-effect-audit: ignore migrates stored favorites to the server once
   useEffect(() => {
     if (
       !currentUser ||
