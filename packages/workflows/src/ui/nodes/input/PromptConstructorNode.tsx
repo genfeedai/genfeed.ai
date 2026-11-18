@@ -74,12 +74,14 @@ function PromptConstructorNodeComponent(props: NodeProps) {
     };
   }, []);
 
-  // Sync from props when not actively editing
-  useEffect(() => {
+  // Follow the stored template unless the operator is typing in this node.
+  const [seenTemplate, setSeenTemplate] = useState(nodeData.template);
+  if (seenTemplate !== nodeData.template) {
+    setSeenTemplate(nodeData.template);
     if (!isEditingRef.current) {
       setLocalTemplate(nodeData.template);
     }
-  }, [nodeData.template]);
+  }
 
   const availableVariables = useMemo((): AvailableVariable[] => {
     const vars: AvailableVariable[] = [];

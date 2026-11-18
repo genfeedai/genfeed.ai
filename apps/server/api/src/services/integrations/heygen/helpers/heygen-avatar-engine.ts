@@ -53,7 +53,7 @@ export function buildHeyGenAvatarEngineFields(
   if (!isHeyGenAvatar6Engine(engine)) {
     if (resolution !== HEYGEN_AVATAR_6_DEFAULT_RESOLUTION)
       throw new BadRequestException(
-        `2K output needs Avatar 6 or Avatar 6 Turbo; ${engine} renders at 1080p.`,
+        `2K output needs Avatar 6 or Avatar 6 Turbo; ${engine} does not take a resolution.`,
       );
     if (motion?.prompt || motion?.expressiveness)
       throw new BadRequestException(

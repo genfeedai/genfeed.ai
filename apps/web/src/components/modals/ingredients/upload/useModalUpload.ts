@@ -344,11 +344,13 @@ export function useModalUpload({
     return Array.from(uniqueFiles.values()).slice(0, maxFiles);
   }, [initialFiles, isLibraryImage, maxFiles]);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: A new modal open key resets the upload session.
-  useEffect(() => {
+  // A new modal open key resets the upload session.
+  const lastOpenKeyRef = useRef(openKey);
+  if (lastOpenKeyRef.current !== openKey) {
+    lastOpenKeyRef.current = openKey;
     hasAutoQueuedInitialFilesRef.current = false;
     hasAutoSubmittedRef.current = false;
-  }, [openKey]);
+  }
 
   if (
     voiceCloneProvider === VoiceProvider.GENFEED_AI &&

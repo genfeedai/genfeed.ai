@@ -19,6 +19,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ANALYTICS_EVENTS, captureAnalyticsEvent } from '@/lib/analytics';
 import type {
   AvatarProvider,
+  ClipperAvatarQualityChoice,
   ClipperDraftSaveState,
   ClipperResultMode,
   ClipperStep,
@@ -33,6 +34,7 @@ import type {
   SaveClipperDraftPayload,
 } from '@/props/studio/clipper-api.props';
 import { ClipperApiService } from './services/clipper-api.service';
+import { buildGenerateClipsPayload } from './utils/build-generate-clips-payload';
 
 /** Debounce for new-project form autosave; a save lands well inside 2 s. */
 export const CLIPPER_DRAFT_AUTOSAVE_DELAY_MS = 800;
@@ -1082,99 +1084,93 @@ export function useStudioClipperPage(options?: { projectId?: string }) {
   }, [clipsService, project?.projectId]);
 
   // Step 2: Generate selected highlights
-  const handleGenerate = useCallback(async () => {
-    if (!project?.projectId) {
-      setError('Clip project is required to generate clips.');
-      return;
-    }
+  const handleGenerate = useCallback(
+    async (avatarQuality?: ClipperAvatarQualityChoice) => {
+      if (!project?.projectId) {
+        setError('Clip project is required to generate clips.');
+        return;
+      }
 
-    if (
-      generationMode === 'avatar' &&
-      avatarProvider !== 'genfeedai' &&
-      (!avatarId || !voiceId)
-    ) {
-      setError('Avatar ID and Voice ID are required to generate clips.');
-      return;
-    }
+      if (
+        generationMode === 'avatar' &&
+        avatarProvider !== 'genfeedai' &&
+        (!avatarId || !voiceId)
+      ) {
+        setError('Avatar ID and Voice ID are required to generate clips.');
+        return;
+      }
 
-    if (
-      generationMode === 'avatar' &&
-      avatarProvider === 'genfeedai' &&
-      !project.referenceFrames?.selectedCandidateId
-    ) {
-      setError('Select a reference frame for managed GenfeedAI generation.');
-      return;
-    }
+      if (
+        generationMode === 'avatar' &&
+        avatarProvider === 'genfeedai' &&
+        !project.referenceFrames?.selectedCandidateId
+      ) {
+        setError('Select a reference frame for managed GenfeedAI generation.');
+        return;
+      }
 
-    const ids = Array.from(selectedIds);
-    const selectedEditedHighlights = editedHighlights.filter((highlight) =>
-      selectedIds.has(highlight.id),
-    );
+      const ids = Array.from(selectedIds);
 
-    if (ids.length === 0) {
-      setError('Select at least one highlight to generate.');
-      return;
-    }
+      if (ids.length === 0) {
+        setError('Select at least one highlight to generate.');
+        return;
+      }
 
-    setIsSubmitting(true);
-    setError(null);
-    clipCompletionReportedRef.current = null;
-    captureAnalyticsEvent(ANALYTICS_EVENTS.GENERATION_STARTED, {
-      clipFlow: 'review',
-      clipperMode: generationMode,
-      clipperSourceKind: project.source?.kind ?? 'youtube',
-      generationType: GenerationType.CLIP,
-    });
-
-    try {
-      await clipsService.generateClips(project.projectId, {
-        ...(generationMode === 'avatar'
-          ? {
-              avatarProvider,
-              ...(avatarProvider === 'genfeedai' ? {} : { avatarId, voiceId }),
-            }
-          : {}),
-        editedHighlights: selectedEditedHighlights.map((highlight) => ({
-          id: highlight.id,
-          ...(highlight.script !== undefined
-            ? { script: highlight.script }
-            : {}),
-          summary: highlight.summary,
-          title: highlight.title,
-        })),
-        mode: generationMode,
-        selectedHighlightIds: ids,
-      });
-
-      setProject((prev) =>
-        prev ? { ...prev, mode: generationMode, status: 'generating' } : prev,
-      );
-      setStep('progress');
-    } catch (err: unknown) {
-      clipCompletionReportedRef.current = project.projectId;
-      captureAnalyticsEvent(ANALYTICS_EVENTS.GENERATION_COMPLETED, {
+      setIsSubmitting(true);
+      setError(null);
+      clipCompletionReportedRef.current = null;
+      captureAnalyticsEvent(ANALYTICS_EVENTS.GENERATION_STARTED, {
         clipFlow: 'review',
         clipperMode: generationMode,
         clipperSourceKind: project.source?.kind ?? 'youtube',
         generationType: GenerationType.CLIP,
-        outcome: 'failure',
       });
-      setError(err instanceof Error ? err.message : 'Something went wrong');
-    } finally {
-      setIsSubmitting(false);
-    }
-  }, [
-    project?.projectId,
-    project?.source?.kind,
-    project?.referenceFrames?.selectedCandidateId,
-    avatarId,
-    voiceId,
-    avatarProvider,
-    generationMode,
-    selectedIds,
-    editedHighlights,
-    clipsService,
-  ]);
+
+      try {
+        await clipsService.generateClips(
+          project.projectId,
+          buildGenerateClipsPayload({
+            avatarId,
+            avatarProvider,
+            avatarQuality,
+            editedHighlights,
+            mode: generationMode,
+            selectedHighlightIds: ids,
+            voiceId,
+          }),
+        );
+
+        setProject((prev) =>
+          prev ? { ...prev, mode: generationMode, status: 'generating' } : prev,
+        );
+        setStep('progress');
+      } catch (err: unknown) {
+        clipCompletionReportedRef.current = project.projectId;
+        captureAnalyticsEvent(ANALYTICS_EVENTS.GENERATION_COMPLETED, {
+          clipFlow: 'review',
+          clipperMode: generationMode,
+          clipperSourceKind: project.source?.kind ?? 'youtube',
+          generationType: GenerationType.CLIP,
+          outcome: 'failure',
+        });
+        setError(err instanceof Error ? err.message : 'Something went wrong');
+      } finally {
+        setIsSubmitting(false);
+      }
+    },
+    [
+      project?.projectId,
+      project?.source?.kind,
+      project?.referenceFrames?.selectedCandidateId,
+      avatarId,
+      voiceId,
+      avatarProvider,
+      generationMode,
+      selectedIds,
+      editedHighlights,
+      clipsService,
+    ],
+  );
 
   // Poll for clip results (Step 3)
   useEffect(() => {

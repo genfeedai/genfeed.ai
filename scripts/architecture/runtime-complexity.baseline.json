@@ -30,7 +30,7 @@
     "symbol": "BillingAccountMigrationService.run"
   },
   {
-    "actual": 166,
+    "actual": 156,
     "file": "apps/server/api/src/collections/clipper-projects/services/clipper-generation-dispatch.service.ts",
     "metric": "method-lines",
     "symbol": "ClipperGenerationDispatchService.retryFailedClips"
@@ -246,7 +246,7 @@
     "symbol": "apps/server/workers/src/services/scheduled-post-delivery.service.ts"
   },
   {
-    "actual": 1377,
+    "actual": 1373,
     "file": "apps/web/app/(protected)/[orgSlug]/[brandSlug]/clipper/useStudioClipperPage.ts",
     "metric": "file-lines",
     "symbol": "apps/web/app/(protected)/[orgSlug]/[brandSlug]/clipper/useStudioClipperPage.ts"

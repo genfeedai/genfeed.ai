@@ -1,3 +1,4 @@
+import type { AvatarRenderQuality } from '@genfeedai/contracts/constants';
 import type {
   ClipperDraftSourceKind,
   ClipperLibraryLinkStatus,
@@ -107,6 +108,14 @@ export interface ProjectState {
 
 export interface ViralityBadgeProps {
   score: number;
+}
+
+/** `auto` sends no quality, so the render takes the best tier the look supports. */
+export type ClipperAvatarQualityChoice = 'auto' | AvatarRenderQuality;
+
+export interface ClipperAvatarQualitySelectProps {
+  onQualityChange: (quality: ClipperAvatarQualityChoice) => void;
+  quality: ClipperAvatarQualityChoice;
 }
 
 export interface ClipperModeSelectorProps {

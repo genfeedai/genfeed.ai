@@ -26,7 +26,7 @@ import { NotificationsService } from '@genfeedai/services/core/notifications.ser
 import { MusicsService } from '@genfeedai/services/ingredients/musics.service';
 import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useResetOnChange } from '@hooks/utils/use-reset-on-change/use-reset-on-change';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 const EMPTY_ITEMS: never[] = [];
 
@@ -60,7 +60,15 @@ export function useModalGallery({
 }: UseModalGalleryProps): UseModalGalleryReturn {
   const { brandId } = useBrand();
   const [selectedItem, setSelectedItem] = useState<string>(selectedId || '');
-  const [selectedItems, setSelectedItems] = useState<string[]>([]);
+  const [selectedItems, setSelectedItems] = useState<string[]>(() => {
+    if (!isOpen || category === IngredientCategory.MUSIC) {
+      return [];
+    }
+    if (initialSelectedReferences.length > 0) {
+      return [...initialSelectedReferences];
+    }
+    return selectedId ? [selectedId] : [];
+  });
   const [selectedItemsData, setSelectedItemsData] = useState<
     (IVideo | IMusic | IImage)[]
   >([]);
@@ -218,39 +226,22 @@ export function useModalGallery({
     [initialSelectedReferences, selectedId],
   );
 
-  // Sync selected references when modal opens
-  // Use a ref to track the last synced values to avoid infinite loops
-  const lastSyncedRef = useRef<string>('');
-
-  useEffect(() => {
-    if (!isOpen || category === IngredientCategory.MUSIC) {
-      // Reset when modal closes
-      if (!isOpen) {
-        lastSyncedRef.current = '';
-      }
+  // The modal opens on the references the caller already picked, and follows
+  // them while it stays open.
+  useResetOnChange([isOpen, category, selectedReferencesKey], () => {
+    if (
+      !isOpen ||
+      category === IngredientCategory.MUSIC ||
+      !selectedReferencesKey
+    ) {
       return;
     }
-
-    // Only sync if the values have actually changed
-    if (
-      selectedReferencesKey !== lastSyncedRef.current &&
-      selectedReferencesKey
-    ) {
-      if (initialSelectedReferences.length > 0) {
-        setSelectedItems([...initialSelectedReferences]);
-        lastSyncedRef.current = selectedReferencesKey;
-      } else if (selectedId) {
-        setSelectedItems([selectedId]);
-        lastSyncedRef.current = selectedReferencesKey;
-      }
+    if (initialSelectedReferences.length > 0) {
+      setSelectedItems([...initialSelectedReferences]);
+    } else if (selectedId) {
+      setSelectedItems([selectedId]);
     }
-  }, [
-    isOpen,
-    category,
-    selectedId,
-    selectedReferencesKey,
-    initialSelectedReferences,
-  ]);
+  });
 
   const handleItemSelect = (item: IVideo | IMusic | IImage | IAsset) => {
     if (category === IngredientCategory.MUSIC) {

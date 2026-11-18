@@ -319,6 +319,20 @@ describe('ClipperGenerationService workflow boundary', () => {
     });
   });
 
+  it.each([
+    ['high', 'high'],
+    [undefined, undefined],
+  ] as const)(
+    'submits a clip with the chosen avatar quality (%s)',
+    async (avatarQuality, expected) => {
+      const { generateOne, submissions } = createHarness();
+
+      await generateOne(0, { ...request, avatarQuality });
+
+      expect(submissions[0]?.quality).toBe(expected);
+    },
+  );
+
   it('funds each HeyGen clip on its own clip result before the provider submits', async () => {
     const { fundings, generateOne, submissions } = createHarness();
 
