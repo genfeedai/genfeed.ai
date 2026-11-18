@@ -21,9 +21,9 @@ function redirect(location) {
 function server(overrides = {}) {
   const requests = [];
   const fetchImpl = async (url, init = {}) => {
-    const { pathname } = new URL(url);
+    const { origin, pathname } = new URL(url);
     const method = init.method ?? 'GET';
-    requests.push({ cookie: init.headers?.Cookie, method, pathname });
+    requests.push({ cookie: init.headers?.Cookie, method, origin, pathname });
     if (overrides[pathname]) return overrides[pathname](init);
     if (pathname === '/v1/auth/sign-in/email')
       return json(
@@ -73,19 +73,44 @@ test('sends GET requests only, plus the one sign-in call', async () => {
 
   const writes = requests.filter(({ method }) => method !== 'GET');
   assert.deepEqual(writes, [
-    { cookie: undefined, method: 'POST', pathname: '/v1/auth/sign-in/email' },
+    {
+      cookie: undefined,
+      method: 'POST',
+      origin: APP,
+      pathname: '/v1/auth/sign-in/email',
+    },
   ]);
   assert.ok(requests.length > 1);
 });
 
-test('carries the session cookie on every request after sign-in', async () => {
+test('sends the session cookie only to the app', async () => {
   const { fetchImpl, requests } = server();
   await run(fetchImpl);
 
-  const afterSignIn = requests.slice(1);
-  assert.ok(afterSignIn.length > 0);
+  const appRequests = requests.slice(1).filter(({ origin }) => origin === APP);
+  assert.equal(appRequests.length, 4);
   assert.ok(
-    afterSignIn.every(({ cookie }) => cookie === '__Secure-session=abc'),
+    appRequests.every(({ cookie }) => cookie === '__Secure-session=abc'),
+  );
+  assert.deepEqual(requests.at(-1), {
+    cookie: undefined,
+    method: 'GET',
+    origin: API,
+    pathname: '/v1/organizations',
+  });
+});
+
+test('stops the app journey at an off-origin redirect', async () => {
+  const { fetchImpl, requests } = server({
+    '/': () => redirect('https://elsewhere.example.test/'),
+  });
+  await assert.rejects(run(fetchImpl), {
+    message: 'app shell redirected outside the app origin',
+    step: 'app-shell',
+  });
+  assert.deepEqual(
+    requests.map(({ origin }) => origin),
+    [APP, APP, APP, APP],
   );
 });
 

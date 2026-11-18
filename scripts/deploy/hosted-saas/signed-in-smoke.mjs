@@ -66,11 +66,14 @@ export async function smokeSignedIn({
   fetchImpl = boundedFetch,
 }) {
   const passed = [];
+  const appOrigin = new URL(appUrl).origin;
   const jar = createCookieJar();
 
   async function send(url, { method = 'GET', body, headers = {} } = {}) {
-    const { pathname } = new URL(url);
-    const isSignIn = method === 'POST' && pathname === SIGN_IN_PATH;
+    const { origin, pathname } = new URL(url);
+    const isAppRequest = origin === appOrigin;
+    const isSignIn =
+      isAppRequest && method === 'POST' && pathname === SIGN_IN_PATH;
     expect(
       method === 'GET' || isSignIn,
       `signed-in smoke is read-only; refusing ${method} ${pathname}`,
@@ -79,7 +82,7 @@ export async function smokeSignedIn({
       body: body === undefined ? undefined : JSON.stringify(body),
       headers: {
         Accept: 'application/json',
-        ...(jar.isEmpty() ? {} : { Cookie: jar.header() }),
+        ...(isAppRequest && !jar.isEmpty() ? { Cookie: jar.header() } : {}),
         ...(isSignIn
           ? { 'Content-Type': 'application/json', Origin: appUrl }
           : {}),
@@ -88,7 +91,7 @@ export async function smokeSignedIn({
       method,
       redirect: 'manual',
     });
-    jar.store(response);
+    if (isAppRequest) jar.store(response);
     return response;
   }
 
@@ -146,8 +149,13 @@ export async function smokeSignedIn({
       await response.arrayBuffer();
       const location = response.headers.get('location');
       if (response.status >= 300 && response.status < 400 && location) {
-        url = new URL(location, url).toString();
-        const { pathname } = new URL(url);
+        const nextUrl = new URL(location, url);
+        expect(
+          nextUrl.origin === appOrigin,
+          'app shell redirected outside the app origin',
+        );
+        url = nextUrl.toString();
+        const { pathname } = nextUrl;
         expect(
           !UNSIGNED_PATH_PREFIXES.some((prefix) => pathname.startsWith(prefix)),
           `app shell redirected the signed-in canary to ${pathname}`,
