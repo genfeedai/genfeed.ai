@@ -420,6 +420,7 @@ export function usePromptBarSync(
     form.setValue('height', 1920, { shouldValidate: true });
   }, [categoryType, form, setReferences, setReferenceSource]);
 
+  // use-effect-audit: ignore drops selected models that no longer fit the category from the form store
   useEffect(() => {
     if (!categoryType || models.length === 0) {
       return;
@@ -456,6 +457,7 @@ export function usePromptBarSync(
     }
   }, [categoryType, models, form]);
 
+  // use-effect-audit: ignore reports config changes to the host through its callback
   useEffect(() => {
     if (!hasReferencesEffectInitializedRef.current) {
       hasReferencesEffectInitializedRef.current = true;
