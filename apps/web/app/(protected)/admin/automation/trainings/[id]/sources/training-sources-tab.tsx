@@ -54,6 +54,7 @@ export default function TrainingSourcesTab() {
 
   const sourceImages = sourcesPage?.items ?? EMPTY_IMAGES;
 
+  // use-effect-audit: ignore reports a failed load to the logger or a notification
   useEffect(() => {
     if (error) {
       logger.error('GET /trainings/:id/sources failed', error);

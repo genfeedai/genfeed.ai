@@ -182,13 +182,9 @@ export function useAgentFullPage({
     activeThreadRef.current = activeStoreThreadId;
   }, [activeStoreThreadId]);
 
-  useEffect(() => {
-    if (showSetupPanel) {
-      return;
-    }
-
+  if (!showSetupPanel && mobileSetupOpen) {
     setMobileSetupOpen(false);
-  }, [showSetupPanel]);
+  }
 
   // use-effect-audit: ignore keeps refs to the latest callbacks and values
   useEffect(() => {
@@ -219,13 +215,9 @@ export function useAgentFullPage({
     );
   }, [existingMessages]);
 
-  useEffect(() => {
-    if (hasThreadOutputs) {
-      return;
-    }
-
+  if (!hasThreadOutputs && mobileOutputsOpen) {
     setMobileOutputsOpen(false);
-  }, [hasThreadOutputs]);
+  }
 
   // Fetch credits info on mount
   // use-effect-audit: ignore abortable thread list load

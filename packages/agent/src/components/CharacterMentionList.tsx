@@ -6,6 +6,7 @@ import type {
 } from '@genfeedai/agent/types/mention.types';
 import { ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@helpers/formatting/cn/cn.util';
+import { useResetOnChange } from '@hooks/utils/use-reset-on-change/use-reset-on-change';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { useTranslations } from 'next-intl';
@@ -24,10 +25,9 @@ export function CharacterMentionList({
   const translate = useTranslations('agent.characterMentions');
   const [selectedIndex, setSelectedIndex] = useState(0);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: Changed suggestions reset keyboard selection.
-  useEffect(() => {
+  useResetOnChange([items], () => {
     setSelectedIndex(0);
-  }, [items]);
+  });
 
   useImperativeHandle(ref, () => ({
     onKeyDown: ({ event }: { event: KeyboardEvent }) => {

@@ -31,6 +31,7 @@ export function useMessagesRealtime({
   const latestRefresh = useRef(onRefresh);
   const latestSyncResult = useRef(onSyncResult);
 
+  // use-effect-audit: ignore keeps refs to the latest callbacks and values
   useEffect(() => {
     latestRefresh.current = onRefresh;
     latestSyncResult.current = onSyncResult;

@@ -106,6 +106,7 @@ export function ResearchWorkSurfaceProvider({
   );
   const canonicalSearchParamsString = urlState.canonicalSearchParams.toString();
 
+  // use-effect-audit: ignore redirects the route in the router
   useEffect(() => {
     if (urlState.isCanonical) {
       return;

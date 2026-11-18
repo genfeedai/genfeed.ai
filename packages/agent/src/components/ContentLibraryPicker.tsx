@@ -21,7 +21,7 @@ import FormSearchbar from '@ui/primitives/searchbar';
 import Spinner from '@ui/primitives/spinner';
 import { FileText, ImageIcon } from 'lucide-react';
 import Image from 'next/image';
-import { type ReactElement, useEffect, useMemo, useState } from 'react';
+import { type ReactElement, useMemo, useState } from 'react';
 
 export type { ContentLibraryPickerProps } from '@genfeedai/props/agent/content-library-picker.props';
 
@@ -56,11 +56,9 @@ export function ContentLibraryPicker({
   const query =
     search.searchMode === 'remote' ? search.searchQuery : localQuery;
 
-  useEffect(() => {
-    if (!isOpen) {
-      setQuery('');
-    }
-  }, [isOpen]);
+  if (!isOpen && localQuery !== '') {
+    setQuery('');
+  }
 
   const filteredItems = useMemo(() => {
     if (search.searchMode === 'remote') return items;

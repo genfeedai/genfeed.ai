@@ -46,6 +46,7 @@ export function useTurboRewriteJob({
   const refreshTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const previousConnectionState = useRef(connectionState);
 
+  // use-effect-audit: ignore keeps refs to the latest callbacks and values
   useEffect(() => {
     latestItemsRewritten.current = onItemsRewritten;
   }, [onItemsRewritten]);

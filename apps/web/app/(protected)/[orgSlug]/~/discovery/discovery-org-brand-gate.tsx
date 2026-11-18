@@ -59,6 +59,7 @@ export function DiscoveryOrgBrandGate({ children }: { children: ReactNode }) {
     [brands, orgSlug, discoveryPath],
   );
 
+  // use-effect-audit: ignore redirects the route in the router
   useEffect(() => {
     if (!isOrgDiscoveryRoute || !isReady || brandChoices.length !== 1) {
       return;

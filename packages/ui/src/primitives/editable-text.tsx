@@ -42,6 +42,7 @@ function EditableText({
   const isSavingRef = useRef(false);
   const originalValueRef = useRef('');
 
+  // use-effect-audit: ignore moves browser focus into the text editor
   useEffect(() => {
     if (!isEditing) {
       return;

@@ -451,6 +451,7 @@ export function AgentComposerStatusStack({
     previousTaskIds.current.length > 0
       ? tasks.filter((task) => !previousTaskIds.current.includes(task.id))
       : [];
+  // use-effect-audit: ignore keeps a ref to the latest task ids
   useEffect(() => {
     previousTaskIds.current = isRunActive ? tasks.map((task) => task.id) : [];
   }, [isRunActive, tasks]);

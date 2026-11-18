@@ -22,14 +22,7 @@ import { UserOnboardingService } from '@genfeedai/services/onboarding/user-onboa
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import Spinner from '@ui/primitives/spinner';
 import { usePathname, useRouter } from 'next/navigation';
-import {
-  createContext,
-  use,
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
+import { createContext, use, useCallback, useMemo, useState } from 'react';
 
 const OnboardingContext = createContext<IOnboardingContextValue | null>(null);
 
@@ -75,11 +68,9 @@ export default function OnboardingProvider({
 
   const currentStepIndex = Math.max(0, steps.indexOf(currentStepKey));
 
-  useEffect(() => {
-    if (!isLoading && currentUser) {
-      setInitialized(true);
-    }
-  }, [isLoading, currentUser]);
+  if (!initialized && !isLoading && currentUser) {
+    setInitialized(true);
+  }
 
   const getService = useCallback(async () => {
     const token = await resolveAuthToken(getToken);

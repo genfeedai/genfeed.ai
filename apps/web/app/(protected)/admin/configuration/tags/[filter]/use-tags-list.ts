@@ -183,6 +183,7 @@ export function useTagsList({
   ].join('|');
   const previousFilterSignatureRef = useRef(filterSignature);
 
+  // use-effect-audit: ignore redirects the route in the router
   useEffect(() => {
     if (previousFilterSignatureRef.current === filterSignature) return;
     previousFilterSignatureRef.current = filterSignature;

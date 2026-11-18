@@ -75,6 +75,7 @@ function PromptEditorView({
 
   // The extension reads the placeholder through a ref; a no-op transaction
   // redraws the empty-state decoration when the prop changes.
+  // use-effect-audit: ignore redraws the external editor when the placeholder changes
   useEffect(() => {
     placeholderRef.current = placeholder;
     if (!editor || injectedEditor || editor.isDestroyed) {
@@ -83,6 +84,7 @@ function PromptEditorView({
     editor.view.dispatch(editor.state.tr);
   }, [editor, injectedEditor, placeholder]);
 
+  // use-effect-audit: ignore keeps the external editor's editable flag in step with the prop
   useEffect(() => {
     if (!editor || injectedEditor) {
       return;
@@ -126,6 +128,7 @@ function PromptEditorView({
     [editor, injectedEditor],
   );
 
+  // use-effect-audit: ignore pushes the value prop into the external editor
   useEffect(() => {
     if (value === undefined) {
       return;
@@ -133,6 +136,7 @@ function PromptEditorView({
     syncExternalValue(value);
   }, [syncExternalValue, value]);
 
+  // use-effect-audit: ignore applies a document seed to the external editor
   useEffect(() => {
     if (!editor || injectedEditor || !documentSeed) {
       return;
