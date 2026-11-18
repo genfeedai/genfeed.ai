@@ -20,6 +20,7 @@ import {
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useMountedRef } from '@hooks/utils/use-mounted-ref/use-mounted-ref';
+import { useResetOnChange } from '@hooks/utils/use-reset-on-change/use-reset-on-change';
 import { logger } from '@services/core/logger.service';
 import { OrganizationsService } from '@services/organization/organizations.service';
 import Card from '@ui/card/Card';
@@ -31,7 +32,7 @@ import { Switch } from '@ui/primitives/switch';
 import { Text } from '@ui/typography/text';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import AppCatalogThumbnail from '@/components/app-catalog/AppCatalogThumbnail';
 import {
   APP_CATALOG,
@@ -77,12 +78,11 @@ export default function OrganizationModulesCard() {
   const mounted = useMountedRef();
   scope.current = organizationId;
 
-  useEffect(() => {
-    scope.current = organizationId;
+  useResetOnChange([organizationId], () => {
     operation.current = null;
     setPending(null);
     setError(null);
-  }, [organizationId]);
+  });
 
   const offeredModuleIds = useMemo(
     () =>

@@ -17,6 +17,7 @@ import type {
   VisualCodeQuoteRequest,
 } from '@genfeedai/contracts/interfaces';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import { useResetOnChange } from '@hooks/utils/use-reset-on-change/use-reset-on-change';
 import { getJsonApiErrorMember } from '@services/core/json-api-error-message';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -124,12 +125,12 @@ export function useMotionComposer({ projectId }: UseMotionComposerOptions) {
   >();
   const [selectedRevision, setSelectedRevision] = useState<number | null>(null);
   const [source, setSource] = useState<string | null>(null);
-  useEffect(() => {
+  useResetOnChange([isModuleWorkEnabled], () => {
     if (isModuleWorkEnabled) return;
     quoteEpoch.current++;
     setReview(null);
     setIsAcknowledged(false);
-  }, [isModuleWorkEnabled]);
+  });
   const project = api.project.data;
   const revisions = [...(project?.revisions ?? []), ...older];
   const revision =

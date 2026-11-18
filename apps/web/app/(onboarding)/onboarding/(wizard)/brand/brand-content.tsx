@@ -15,6 +15,7 @@ import { isDesktopLocalModeEnabled } from '@genfeedai/contracts/desktop';
 import type { IOnboardingContextValue } from '@genfeedai/contracts/interfaces';
 import { resolveSignupBrandDomain } from '@genfeedai/helpers';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
+import { useResetOnChange } from '@genfeedai/hooks/utils/use-reset-on-change/use-reset-on-change';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { logger } from '@services/core/logger.service';
 import { OrganizationsService } from '@services/organization/organizations.service';
@@ -96,12 +97,10 @@ function useGuideExit(
       live.current.mounted = false;
     };
   }, []);
-  useEffect(() => {
-    if (live.current.scopeKey === scopeKey && live.current.userId === userId) {
-      setIsExiting(false);
-      setErrorMessage(null);
-    }
-  }, [scopeKey, userId]);
+  useResetOnChange([scopeKey, userId], () => {
+    setIsExiting(false);
+    setErrorMessage(null);
+  });
   async function exit(skip: boolean) {
     if (live.current.exiting || (!skip && (!scope || !userId))) return;
     const version = live.current.version;

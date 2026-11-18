@@ -390,7 +390,7 @@
     "symbol": "packages/helpers/src/brand-kit-contract.helper.ts"
   },
   {
-    "actual": 1227,
+    "actual": 1225,
     "file": "packages/hooks/ui/ingredient/use-ingredient-actions/use-ingredient-actions.ts",
     "metric": "file-lines",
     "symbol": "packages/hooks/ui/ingredient/use-ingredient-actions/use-ingredient-actions.ts"
