@@ -268,8 +268,7 @@ export function useReviewQueueContent(search = '') {
     });
   }, [currentHref, filterParam, requestedTurboRunId, requestedItemId]);
 
-  // Ensure the active row is always inside the current filter window (local only).
-  // URL writes happen once below when local + URL actually disagree.
+  // use-effect-audit: ignore keeps the active row inside the current filter window (local only; URL writes happen below)
   useEffect(() => {
     if (visibleItems.length === 0) {
       setActiveItemId((current) => (current === null ? current : null));
@@ -317,7 +316,7 @@ export function useReviewQueueContent(search = '') {
     syncReviewLocation,
   ]);
 
-  // Default ready-only view is empty but the batch has other work — open all.
+  // use-effect-audit: ignore opens all filters when the default ready-only view is empty but the batch has other work
   useEffect(() => {
     const shouldAutoBroaden =
       activeTurboRun &&

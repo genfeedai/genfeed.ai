@@ -514,7 +514,7 @@ export default function BrandGuidedSetupPage() {
     (state) => state.clearBrand,
   );
 
-  // Seed drafts from server answers when opening a past step with an empty draft.
+  // use-effect-audit: ignore seeds the draft store from server answers when opening a past step with an empty draft
   useEffect(() => {
     if (!brandId || !fieldKey) {
       return;
