@@ -99,8 +99,10 @@ export default function NavigationProgress() {
 
   // The committed location changing is the only "transition finished" signal
   // the router exposes to the tree; it also covers back/forward and redirects.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: pathname and search are the trigger
+  // use-effect-audit: ignore follows the router's committed location
   useEffect(() => {
+    void pathname;
+    void search;
     reportSighting(sightingRef, 'committed');
     setPending(null);
   }, [pathname, search]);

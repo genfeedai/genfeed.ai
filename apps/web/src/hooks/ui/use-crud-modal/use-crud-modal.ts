@@ -148,6 +148,7 @@ export function useCrudModal<
   // Track entity ID to prevent unnecessary resets
   const lastEntityIdRef = useRef<string | null>(null);
 
+  // use-effect-audit: ignore writes the entity into the form library's own store
   useEffect(() => {
     const currentEntityId = entity?.id ?? null;
 
