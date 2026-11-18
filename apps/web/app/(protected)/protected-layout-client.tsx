@@ -37,10 +37,12 @@ export default function ProtectedLayoutClient({
     isUnavailable,
   } = usePlatformFlags(initialBootstrap?.platformFlags);
 
+  // use-effect-audit: ignore reports to analytics, an external system
   useEffect(() => {
     captureWorkspaceShellSession();
   }, []);
 
+  // use-effect-audit: ignore reports to analytics, an external system
   useEffect(() => {
     if (!user?.id) {
       return;

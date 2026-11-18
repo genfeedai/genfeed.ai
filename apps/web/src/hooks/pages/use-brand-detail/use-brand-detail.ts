@@ -376,6 +376,7 @@ export function useBrandDetail(): UseBrandDetailReturn {
     setSelectedLink(link);
   }, []);
 
+  // use-effect-audit: ignore drives a DOM element or browser API
   useEffect(() => {
     const origin = typeof window !== 'undefined' ? window.location.origin : '';
     const isCurrentlyDashboard = origin.startsWith(EnvironmentService.apps.app);

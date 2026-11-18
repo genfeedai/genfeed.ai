@@ -83,6 +83,7 @@ export function useAppLayout({
   // Next.js resets window scroll on navigation, but only scrolls a nested
   // container when the new segment's top is out of view. The rounded block owns
   // scroll on desktop, so start every route at the top (hash links excepted).
+  // use-effect-audit: ignore drives a DOM element or browser API
   useEffect(() => {
     const main = mainScrollRef.current;
     if (!main || !pathname || window.location.hash) {

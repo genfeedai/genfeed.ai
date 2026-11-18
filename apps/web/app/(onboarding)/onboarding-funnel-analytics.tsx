@@ -36,6 +36,7 @@ export default function OnboardingFunnelAnalytics() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
+  // use-effect-audit: ignore reports to analytics, an external system
   useEffect(() => {
     if (
       searchParams.get(CHECKOUT_COMPLETED_PARAM) !== CHECKOUT_COMPLETED_VALUE

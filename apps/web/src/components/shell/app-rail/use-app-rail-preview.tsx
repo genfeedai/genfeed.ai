@@ -263,6 +263,7 @@ export function useAppRailPreview({
       window.removeEventListener('resize', close);
     };
   }, [close, position]);
+  // use-effect-audit: ignore drives a DOM element or browser API
   useEffect(() => cancelTimers, [cancelTimers]);
 
   const app = position ? appsById.get(position.id) : undefined;

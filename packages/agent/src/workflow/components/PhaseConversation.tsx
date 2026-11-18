@@ -110,6 +110,7 @@ function PhaseConversationInner() {
   const messages = useAgentWorkflowStore((s) => s.messages);
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  // use-effect-audit: ignore drives a DOM element or browser API
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;

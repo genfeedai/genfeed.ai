@@ -83,6 +83,7 @@ export function useMessagesRealtime({
     };
   }, [connectionState, isReady, organizationId, refresh, subscribe]);
 
+  // use-effect-audit: ignore reports to analytics, an external system
   useEffect(() => {
     const previous = previousConnectionState.current;
     previousConnectionState.current = connectionState;

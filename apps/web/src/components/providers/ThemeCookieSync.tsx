@@ -74,6 +74,7 @@ export default function ThemeCookieSync({
     return () => window.removeEventListener('storage', handleStorage);
   }, [setTheme, storageKey, theme]);
 
+  // use-effect-audit: ignore drives a DOM element or browser API
   useEffect(() => {
     if (!isThemePreference(theme)) {
       return;

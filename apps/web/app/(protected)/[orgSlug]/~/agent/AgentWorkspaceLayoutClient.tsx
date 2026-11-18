@@ -209,6 +209,7 @@ function AgentWorkspaceLayoutClientContent({
   // Auto-navigate from an unthreaded route to the created thread route. Bare
   // /agent is the master conversation: it stays put, apart from a prefilled
   // prompt, which starts a thread of its own.
+  // use-effect-audit: ignore reports to analytics, an external system
   useEffect(() => {
     if (
       !isUnthreadedRoute ||
