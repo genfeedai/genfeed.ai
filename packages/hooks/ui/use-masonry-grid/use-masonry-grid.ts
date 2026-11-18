@@ -475,6 +475,7 @@ export function useMasonryGrid<T extends MasonryItem>(
   }, [scheduleLayout]);
 
   // Layout on items change - only when client is ready
+  // use-effect-audit: ignore schedules and cancels the masonry layout pass
   useEffect(() => {
     if (itemsCount === 0) {
       cancelScheduledLayout();
