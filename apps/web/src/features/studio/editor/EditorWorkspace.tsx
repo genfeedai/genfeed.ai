@@ -14,6 +14,7 @@ import EditorProjectsList from './EditorProjectsList';
  */
 export default function EditorWorkspace() {
   const t = useTranslations('pages.studioEditor');
+  // use-effect-audit: ignore reports to analytics, an external system
   useEffect(() => {
     captureAnalyticsEvent(ANALYTICS_EVENTS.STUDIO_EDITOR_OPENED, {
       surface: 'index',

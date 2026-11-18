@@ -270,6 +270,7 @@ export default function ConnectGenfeedFlow() {
     trackStep,
   ]);
 
+  // use-effect-audit: ignore reports to analytics, an external system
   useEffect(() => {
     if (hasTrackedStart.current) {
       return;

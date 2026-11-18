@@ -25,6 +25,7 @@ function EnabledAnalyticsOrganizationSync() {
       .toLowerCase()
       .endsWith('@genfeed.ai') === true;
 
+  // use-effect-audit: ignore reports to analytics, an external system
   useEffect(() => {
     if (!isAuthLoaded) {
       return;
@@ -37,6 +38,7 @@ function EnabledAnalyticsOrganizationSync() {
     identifyAnalyticsUser({ id: user.id, isInternal });
   }, [isAuthLoaded, isInternal, user?.id]);
 
+  // use-effect-audit: ignore reports to analytics, an external system
   useEffect(() => {
     if (!(isAuthLoaded && user?.id)) {
       return;
@@ -54,6 +56,7 @@ function EnabledAnalyticsOrganizationSync() {
     clearAnalyticsOrganization();
   }, [isAuthLoaded, isBrandScopeResolved, organizationId, user?.id]);
 
+  // use-effect-audit: ignore reports to analytics, an external system
   useEffect(() => {
     if (!(isAuthLoaded && user?.id && isBrandScopeResolved)) {
       return;

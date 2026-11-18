@@ -41,4 +41,39 @@ describe('useNotifyOnLoadError', () => {
 
     expect(messages).toEqual(['failed', 'failed']);
   });
+
+  it('calls the latest callback for the next failed read', () => {
+    const received: string[] = [];
+    const view = renderHook(
+      (props: { errorUpdatedAt: number; notify: () => void }) =>
+        useNotifyOnLoadError({
+          errorUpdatedAt: props.errorUpdatedAt,
+          hasError: true,
+          notify: props.notify,
+        }),
+      {
+        initialProps: {
+          errorUpdatedAt: 5,
+          notify: () => {
+            received.push('first');
+          },
+        },
+      },
+    );
+
+    view.rerender({
+      errorUpdatedAt: 5,
+      notify: () => {
+        received.push('second');
+      },
+    });
+    view.rerender({
+      errorUpdatedAt: 9,
+      notify: () => {
+        received.push('second');
+      },
+    });
+
+    expect(received).toEqual(['first', 'second']);
+  });
 });

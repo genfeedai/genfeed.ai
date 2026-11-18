@@ -42,6 +42,7 @@ export function isIgnorableServiceWorkerError(error: unknown): boolean {
  * Update prompts stay with `DeploymentVersionWatcher`.
  */
 export default function ServiceWorkerRegistrar() {
+  // use-effect-audit: ignore registers the service worker with the browser
   useEffect(() => {
     if (
       isDesktopClient() ||

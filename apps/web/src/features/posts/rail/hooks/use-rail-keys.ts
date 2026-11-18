@@ -87,6 +87,7 @@ export function useRailKeys({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [activeIndex, enabled, itemCount, onOpen, onRefresh]);
 
+  // use-effect-audit: ignore drives a DOM element or browser API
   useEffect(() => {
     itemRefs.current.get(activeIndex)?.scrollIntoView({ block: 'nearest' });
   }, [activeIndex]);

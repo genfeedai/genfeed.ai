@@ -139,6 +139,7 @@ function GroupControls({ group, bounds, nodeMap, zoom }: GroupControlsProps) {
   }
 
   // Focus input when editing starts
+  // use-effect-audit: ignore drives a DOM element or browser API
   useEffect(() => {
     if (isEditing && inputRef.current) {
       inputRef.current.focus();

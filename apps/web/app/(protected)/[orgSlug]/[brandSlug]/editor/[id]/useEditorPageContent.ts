@@ -223,6 +223,7 @@ export function useEditorPageContent(projectId: string) {
     [write],
   );
 
+  // use-effect-audit: ignore reports to analytics, an external system
   useEffect(() => {
     captureAnalyticsEvent(ANALYTICS_EVENTS.STUDIO_EDITOR_OPENED, {
       surface: 'canvas',

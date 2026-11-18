@@ -25,6 +25,7 @@ function EnabledAnalyticsPublicRouteSync() {
       .toLowerCase()
       .endsWith('@genfeed.ai') === true;
 
+  // use-effect-audit: ignore reports to analytics, an external system
   useEffect(() => {
     if (!isAuthLoaded || isLogoutRoute) {
       return;
@@ -39,6 +40,7 @@ function EnabledAnalyticsPublicRouteSync() {
     ensureAnalyticsAnonymous();
   }, [isAuthLoaded, isInternal, isLogoutRoute, user?.id]);
 
+  // use-effect-audit: ignore reports to analytics, an external system
   useEffect(() => {
     if (!isAuthLoaded || isLogoutRoute) {
       return;

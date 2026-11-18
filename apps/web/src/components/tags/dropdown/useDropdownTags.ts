@@ -114,6 +114,7 @@ export function useDropdownTags({
   }, [isOpen]);
 
   // Focus search input when opening
+  // use-effect-audit: ignore drives a DOM element or browser API
   useEffect(() => {
     if (isOpen && searchInputRef.current) {
       searchInputRef.current.focus();

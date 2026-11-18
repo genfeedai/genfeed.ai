@@ -322,6 +322,7 @@ export function usePostsList({
 
   const findAllPosts = useCallback(() => refreshPosts(), [refreshPosts]);
 
+  // use-effect-audit: ignore subscribes to a websocket
   useEffect(() => {
     if (!isSocketReady || !brandId) return;
     return subscribeToSocket(
