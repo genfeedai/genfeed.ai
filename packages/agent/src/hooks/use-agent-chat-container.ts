@@ -249,6 +249,7 @@ export function useAgentChatContainer({
       apiService.uploadAttachment(file, onProgress),
   });
   const previousDraftScopeKeyRef = useRef(draftScopeKey);
+  // use-effect-audit: ignore clears composer attachments when the thread scope changes within one thread
   useEffect(() => {
     const previousDraftScopeKey = previousDraftScopeKeyRef.current;
     if (previousDraftScopeKey === draftScopeKey) {
@@ -265,7 +266,6 @@ export function useAgentChatContainer({
       nextVersionSeparator >= 0 &&
       previousDraftScopeKey?.slice(0, previousVersionSeparator) ===
         draftScopeKey?.slice(0, nextVersionSeparator);
-
     if (isSameThreadScope) {
       clearAllAttachments();
     }
