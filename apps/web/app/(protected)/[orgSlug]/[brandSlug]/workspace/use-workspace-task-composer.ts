@@ -11,6 +11,7 @@ import {
   heyGenDefaultVoice,
   heyGenVoiceValue,
 } from '@helpers/voice/heygen-identity.helper';
+import { useResetOnChange } from '@hooks/utils/use-reset-on-change/use-reset-on-change';
 import { Prompt } from '@models/content/prompt.model';
 import { PromptsService } from '@services/content/prompts.service';
 import { logger } from '@services/core/logger.service';
@@ -43,6 +44,28 @@ import {
   extractBrandMentionMatch,
   getBrandDisplayLabel,
 } from './workspace-task-composer.helpers';
+
+function toFacecamDefaults(
+  brand: ReturnType<typeof useBrand>['selectedBrand'],
+): {
+  avatarId: string;
+  voiceId: string;
+  voiceProvider: string;
+} {
+  const voice = brand?.agentConfig?.defaultVoiceRef;
+  return {
+    avatarId: brand?.agentConfig?.defaultAvatarRef
+      ? heyGenAvatarValue(brand.agentConfig.defaultAvatarRef)
+      : '',
+    voiceId:
+      voice?.provider === VoiceProvider.HEYGEN &&
+      voice.externalVoiceId &&
+      voice.ownership
+        ? `heygen:${voice.ownership}:${voice.externalVoiceId}`
+        : '',
+    voiceProvider: voice?.provider ?? '',
+  };
+}
 
 export function useWorkspaceTaskComposer({
   onOpenChange,
@@ -84,9 +107,15 @@ export function useWorkspaceTaskComposer({
     ],
     [clonedOptions, organizationId, heygen.voices],
   );
-  const [facecamAvatarId, setFacecamAvatarId] = useState<string>('');
-  const [facecamVoiceId, setFacecamVoiceId] = useState<string>('');
-  const [facecamVoiceProvider, setFacecamVoiceProvider] = useState<string>('');
+  const [facecamAvatarId, setFacecamAvatarId] = useState<string>(
+    () => toFacecamDefaults(selectedBrand).avatarId,
+  );
+  const [facecamVoiceId, setFacecamVoiceId] = useState<string>(
+    () => toFacecamDefaults(selectedBrand).voiceId,
+  );
+  const [facecamVoiceProvider, setFacecamVoiceProvider] = useState<string>(
+    () => toFacecamDefaults(selectedBrand).voiceProvider,
+  );
   const facecamLoading = heygen.isLoading;
   const facecamError = heygen.error;
   const [facecamSaveAsDefault, setFacecamSaveAsDefault] = useState(false);
@@ -105,22 +134,20 @@ export function useWorkspaceTaskComposer({
     string | null
   >(null);
 
-  useEffect(() => {
-    setFacecamAvatarId(
-      selectedBrand?.agentConfig?.defaultAvatarRef
-        ? heyGenAvatarValue(selectedBrand.agentConfig.defaultAvatarRef)
-        : '',
-    );
-    const voice = selectedBrand?.agentConfig?.defaultVoiceRef;
-    setFacecamVoiceId(
-      voice?.provider === VoiceProvider.HEYGEN &&
-        voice.externalVoiceId &&
-        voice.ownership
-        ? `heygen:${voice.ownership}:${voice.externalVoiceId}`
-        : '',
-    );
-    setFacecamVoiceProvider(voice?.provider ?? '');
-  }, [selectedBrand]);
+  const facecamDefaults = toFacecamDefaults(selectedBrand);
+  useResetOnChange(
+    [
+      selectedBrand?.id,
+      facecamDefaults.avatarId,
+      facecamDefaults.voiceId,
+      facecamDefaults.voiceProvider,
+    ],
+    () => {
+      setFacecamAvatarId(facecamDefaults.avatarId);
+      setFacecamVoiceId(facecamDefaults.voiceId);
+      setFacecamVoiceProvider(facecamDefaults.voiceProvider);
+    },
+  );
 
   // use-effect-audit: ignore abortable request
   useEffect(() => {

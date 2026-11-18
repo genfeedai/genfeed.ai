@@ -230,6 +230,7 @@ export function useStoryboardDraftOutbox(
       queue.detach();
     };
   }, [queue]);
+  // use-effect-audit: ignore hands the run to the autosave queue
   useEffect(() => {
     queue?.adopt(run);
   }, [queue, run]);

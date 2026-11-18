@@ -130,6 +130,7 @@ export default function ReviewQueueView({
     };
   }, [onRefresh, setRefresh]);
 
+  // use-effect-audit: ignore reports the refresh state to the page shell
   useEffect(() => {
     setIsRefreshing(isRefreshing || isTurboRunLoading);
   }, [isTurboRunLoading, isRefreshing, setIsRefreshing]);
@@ -147,6 +148,7 @@ export default function ReviewQueueView({
 
   // The page's one search, with the Filters menu (source, status, batch)
   // attached inside it — no separate Filters button.
+  // use-effect-audit: ignore registers the toolbar nodes with the page shell
   useEffect(() => {
     setLeadingNode(
       <SearchField
@@ -194,6 +196,7 @@ export default function ReviewQueueView({
 
   // Discard batch stays in the action rail beside New content / refresh.
   const hasDiscardAction = hasTurboControls && canDiscardTurboRun;
+  // use-effect-audit: ignore registers the toolbar nodes with the page shell
   useEffect(() => {
     if (!hasDiscardAction) {
       setFiltersNode(null);

@@ -285,6 +285,7 @@ export function useEditorPageContent(projectId: string) {
     return () => controller.abort();
   }, [projectId, isIdentityLoaded]);
 
+  // use-effect-audit: ignore subscribes to the editor save outbox
   useEffect(() => {
     return editorSaveOutbox.subscribe(projectId, (status) => {
       if (status === 'conflict') {
@@ -304,6 +305,7 @@ export function useEditorPageContent(projectId: string) {
 
   // Every edit is saved within EDITOR_SAVE_MAX_WAIT_MS: a quiet period after
   // the last change, capped for continuous gestures.
+  // use-effect-audit: ignore schedules the debounced editor save
   useEffect(() => {
     if (state.editVersion === 0 || isReadOnly) {
       return;

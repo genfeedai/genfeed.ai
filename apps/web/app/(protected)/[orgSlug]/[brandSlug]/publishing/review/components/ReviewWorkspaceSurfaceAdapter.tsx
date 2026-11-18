@@ -82,6 +82,7 @@ export default function ReviewWorkspaceSurfaceAdapter({
     };
   }, [requestDetails]);
 
+  // use-effect-audit: ignore writes the page context into the agent chat store
   useEffect(() => {
     const currentContext = useAgentChatStore.getState().pageContext;
     const baseActions = currentContext?.suggestedActions ?? [];

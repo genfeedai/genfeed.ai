@@ -173,6 +173,7 @@ export function useTrainingsList({
   }, [refreshTrainings, onRefreshRegister]);
 
   // Listen for training status updates via websocket
+  // use-effect-audit: ignore subscribes to training status events
   useEffect(() => {
     const processingTrainings = trainings.filter(
       (t: ITraining) => t.status === TrainingStatus.PROCESSING,

@@ -175,6 +175,7 @@ function BrandContentContent() {
   const [websiteUrl, setWebsiteUrl] = useState('');
   const suggestionBrand = useRef('');
   const websites = useRef(new Map<string, string>());
+  // use-effect-audit: ignore reads browser storage after mount so server and client markup match
   useEffect(() => {
     if (!scope || isLoading || suggestionBrand.current === scope.brandId)
       return;
