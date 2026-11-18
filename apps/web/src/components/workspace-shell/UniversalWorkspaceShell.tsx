@@ -556,7 +556,7 @@ function UniversalWorkspaceShellContent({
     restorationFailure,
     safeFallbackHref,
   ]);
-  // use-effect-audit: ignore resets the conversation stores and retained thread when the route scope changes
+
   useEffect(() => {
     const hasScopeChanged = previousRouteScopeRef.current !== routeScope;
     if (hasScopeChanged) {
