@@ -295,6 +295,7 @@ export default function ModalPostPlatformsTab({
 
   // Removing the media a channel needs turns that channel off, so it never
   // publishes a post it cannot carry.
+  // use-effect-audit: ignore turns off channels whose required media was removed
   useEffect(() => {
     const isBlockedAndOn = (config: IPostPlatformConfig) =>
       config.enabled &&

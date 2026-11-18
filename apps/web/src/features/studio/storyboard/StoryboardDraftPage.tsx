@@ -67,6 +67,7 @@ export default function StoryboardDraftPage({
     run.config.plan ? transport : undefined,
     run,
   );
+  // use-effect-audit: ignore refreshes generation capabilities after a failed draft
   useEffect(() => {
     if (draft.snapshot?.status === 'failed') refreshCapabilities?.();
   }, [draft.snapshot?.status, refreshCapabilities]);
