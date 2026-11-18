@@ -1,10 +1,11 @@
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
+import { useResetOnChange } from '@hooks/utils/use-reset-on-change/use-reset-on-change';
 import { ManagedCreditsService } from '@services/billing/managed-credits.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { Input } from '@ui/primitives/input';
 import { Label } from '@ui/primitives/label';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import CreditTopUpPanel from './credit-top-up-panel';
 
 export default function ManagedCreditsCheckoutCard() {
@@ -12,11 +13,11 @@ export default function ManagedCreditsCheckoutCard() {
   const [email, setEmail] = useState(currentUser?.email ?? '');
   const [isStartingCheckout, setIsStartingCheckout] = useState(false);
 
-  useEffect(() => {
+  useResetOnChange([currentUser?.email], () => {
     if (currentUser?.email) {
       setEmail((previousEmail) => previousEmail || currentUser.email || '');
     }
-  }, [currentUser?.email]);
+  });
 
   const handleStartCheckout = async ({ credits }: { credits: number }) => {
     const normalizedEmail = email.trim();

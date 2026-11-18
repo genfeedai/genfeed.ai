@@ -26,7 +26,7 @@ import { ImageIcon } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import type {
   OrganizationCommunityAction,
@@ -96,11 +96,9 @@ export default function OrganizationCommunity({
 
   // Taking the last item of the last page off community leaves that page
   // empty: step back to the page that is now last, which loads it.
-  useEffect(() => {
-    if (data && page > lastPage) {
-      setPage(lastPage);
-    }
-  }, [data, lastPage, page]);
+  if (data && page > lastPage) {
+    setPage(lastPage);
+  }
 
   async function run(action: OrganizationCommunityAction, success: string) {
     const notifications = NotificationsService.getInstance();

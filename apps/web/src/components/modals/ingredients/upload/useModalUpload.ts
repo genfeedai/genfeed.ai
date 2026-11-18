@@ -348,14 +348,12 @@ export function useModalUpload({
     hasAutoSubmittedRef.current = false;
   }, [openKey]);
 
-  useEffect(() => {
-    if (
-      voiceCloneProvider === VoiceProvider.GENFEED_AI &&
-      !isSelfHostedVoiceAvailable
-    ) {
-      setVoiceCloneProvider(VoiceProvider.ELEVENLABS);
-    }
-  }, [isSelfHostedVoiceAvailable, voiceCloneProvider]);
+  if (
+    voiceCloneProvider === VoiceProvider.GENFEED_AI &&
+    !isSelfHostedVoiceAvailable
+  ) {
+    setVoiceCloneProvider(VoiceProvider.ELEVENLABS);
+  }
 
   useEffect(() => {
     if (

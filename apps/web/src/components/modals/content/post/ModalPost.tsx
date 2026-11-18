@@ -804,11 +804,9 @@ export default function ModalPost({
     [],
   );
 
-  useEffect(() => {
-    if (!hasXTarget) {
-      setIsThread(false);
-    }
-  }, [hasXTarget]);
+  if (!hasXTarget && isThread) {
+    setIsThread(false);
+  }
 
   // Article and Newsletter own their editors; hand off instead of submitting.
   const handleContinue = useCallback(() => {

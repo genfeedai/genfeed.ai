@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import type { StudioPlaygroundJob } from '@/features/studio/playground/types';
 import { groupStudioPlaygroundJobsByRun } from '@/features/studio/playground/utils/studio-playground-recipe';
 
@@ -53,11 +53,9 @@ export function useStudioJobSelection(
       : undefined;
   }, [selectedJob, visibleJobs]);
 
-  useEffect(() => {
-    if (selectedJobId && !selectedJob) {
-      setSelectedJobId(null);
-    }
-  }, [selectedJob, selectedJobId]);
+  if (selectedJobId && !selectedJob) {
+    setSelectedJobId(null);
+  }
 
   return {
     selectedJob,

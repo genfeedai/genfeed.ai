@@ -49,6 +49,7 @@ function EnabledAnalyticsPublicRouteSync() {
     captureAnalyticsPageview(pageviewKey, { app: ANALYTICS_APP_PUBLIC });
   }, [isAuthLoaded, isLogoutRoute, pageviewKey]);
 
+  // use-effect-audit: ignore reports the account scope to Sentry
   useEffect(() => {
     if (isAuthLoaded && !isLogoutRoute) {
       setSentryAccountContext({ userId: user?.id });

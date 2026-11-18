@@ -257,6 +257,7 @@ export function useFirstDrafts(): FirstDraftsState {
     acceptRun,
   ]);
 
+  // use-effect-audit: ignore writes to browser storage
   useEffect(() => {
     if (isRestoring || resolvedScope !== scopeKey) return;
     try {

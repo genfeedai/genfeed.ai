@@ -1,6 +1,7 @@
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { PUBLISHING_QUOTA_MAX } from '@genfeedai/contracts/constants';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useResetOnChange } from '@hooks/utils/use-reset-on-change/use-reset-on-change';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { OrganizationsService } from '@services/organization/organizations.service';
@@ -9,7 +10,7 @@ import { Button } from '@ui/primitives/button';
 import Field from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import type {
   PublishingCapField,
   PublishingCapKey,
@@ -50,27 +51,27 @@ export default function OrganizationPublishingCapsCard() {
     OrganizationsService.getInstance(token),
   );
 
-  const [caps, setCaps] = useState<PublishingCapsFormState>({
-    quotaInstagram: '',
-    quotaTiktok: '',
-    quotaTwitter: '',
-    quotaYoutube: '',
+  const getCapsFromSettings = (): PublishingCapsFormState => ({
+    quotaInstagram: toFormValue(settings?.quotaInstagram),
+    quotaTiktok: toFormValue(settings?.quotaTiktok),
+    quotaTwitter: toFormValue(settings?.quotaTwitter),
+    quotaYoutube: toFormValue(settings?.quotaYoutube),
   });
+  const [caps, setCaps] =
+    useState<PublishingCapsFormState>(getCapsFromSettings);
   const [isSaving, setIsSaving] = useState(false);
 
-  useEffect(() => {
-    setCaps({
-      quotaInstagram: toFormValue(settings?.quotaInstagram),
-      quotaTiktok: toFormValue(settings?.quotaTiktok),
-      quotaTwitter: toFormValue(settings?.quotaTwitter),
-      quotaYoutube: toFormValue(settings?.quotaYoutube),
-    });
-  }, [
-    settings?.quotaInstagram,
-    settings?.quotaTiktok,
-    settings?.quotaTwitter,
-    settings?.quotaYoutube,
-  ]);
+  useResetOnChange(
+    [
+      settings?.quotaInstagram,
+      settings?.quotaTiktok,
+      settings?.quotaTwitter,
+      settings?.quotaYoutube,
+    ],
+    () => {
+      setCaps(getCapsFromSettings());
+    },
+  );
 
   const handleCapChange = useCallback(
     (key: PublishingCapKey, value: string) => {

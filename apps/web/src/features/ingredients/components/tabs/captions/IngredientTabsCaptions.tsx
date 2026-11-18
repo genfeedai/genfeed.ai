@@ -24,7 +24,7 @@ import { SelectField } from '@ui/primitives/select';
 import { Download, Plus, Sparkles } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { type ChangeEvent, useEffect, useMemo, useState } from 'react';
+import { type ChangeEvent, useMemo, useState } from 'react';
 import type { IngredientTabsCaptionsProps } from '@/props/content/ingredient.props';
 
 const languageOptions: IFieldOption[] = [
@@ -81,11 +81,9 @@ export default function IngredientTabsCaptions({
   });
 
   // Set selectedCaption when captions load
-  useEffect(() => {
-    if (captions.length > 0 && !selectedCaption) {
-      setSelectedCaption(captions[0]);
-    }
-  }, [captions, selectedCaption]);
+  if (captions.length > 0 && !selectedCaption) {
+    setSelectedCaption(captions[0]);
+  }
 
   const handleGenerateCaption = async () => {
     setIsGenerating(true);
