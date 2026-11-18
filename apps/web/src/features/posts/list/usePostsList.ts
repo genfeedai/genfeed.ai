@@ -39,6 +39,8 @@ import {
 } from '@helpers/content/posts.helper';
 import { getBrowserTimezone } from '@helpers/formatting/timezone/timezone.helper';
 import { stripHtmlToPlainText } from '@helpers/security/strip-html.helper';
+import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
+import { viewerKeyPart } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import {
   isCollectionFetchReady,
@@ -79,8 +81,8 @@ import {
 } from '@/features/posts/list/posts-list-query';
 import { useIngredientSidebar } from '@/hooks/ui/ingredient/use-ingredient-sidebar/use-ingredient-sidebar';
 
-// Shared empty fallbacks — see `hydratedPostPresets` below. These must be
-// module-level constants so an omitted prop keeps a stable identity.
+// Shared empty fallbacks. These must be module-level constants so an omitted
+// prop keeps a stable identity.
 const EMPTY_POST_PRESETS: IPreset[] = [];
 const EMPTY_POSTS: IPost[] = [];
 
@@ -114,16 +116,9 @@ export function usePostsList({
   onRewriteWithAgent,
   onSuggestScheduleWithAgent,
 }: UsePostsListParams) {
-  // `?? []` inline would mint a fresh array on every render. That identity
-  // feeds `useEffect(..., [hydratedPostPresets])` below, which calls
-  // `setPostPresets` — an unconditional render loop on every caller that omits
-  // `initialPostPresets` (e.g. the superadmin posts page). Memoize the
+  // `?? []` inline would mint a fresh array on every render. Memoize the
   // fallbacks so an omitted prop stays referentially stable.
   const translateCollection = useTranslations('pages.posts.list.collection');
-  const hydratedPostPresets = useMemo(
-    () => initialPostPresets ?? EMPTY_POST_PRESETS,
-    [initialPostPresets],
-  );
   const hydratedPosts = useMemo(
     () => initialPosts ?? EMPTY_POSTS,
     [initialPosts],
@@ -197,8 +192,6 @@ export function usePostsList({
   );
 
   const [isGenerating, setIsGenerating] = useState(false);
-  const [postPresets, setPostPresets] =
-    useState<IPreset[]>(hydratedPostPresets);
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
 
   const postsRef = useRef<IPost[]>([]);
@@ -339,38 +332,37 @@ export function usePostsList({
     postsRef.current = posts;
   }, [posts]);
 
-  const loadPostPresets = useCallback(async () => {
-    if (scope !== PageScope.PUBLISHING || initialPostPresets !== undefined) {
-      return;
-    }
+  const { orgId, userId } = useAuthIdentity();
+  const presetsQuery = useQuery<IPreset[]>({
+    enabled: scope === PageScope.PUBLISHING && initialPostPresets === undefined,
+    queryFn: async () => {
+      try {
+        const presetsService = await getPresetsService();
+        if (!presetsService) {
+          return EMPTY_POST_PRESETS;
+        }
 
-    try {
-      const presetsService = await getPresetsService();
-      if (!presetsService) {
-        return;
-      }
+        const presetsData = (await presetsService.findAllPages({
+          category: ModelCategory.TEXT,
+        })) as IPreset[];
 
-      const presetsData = (await presetsService.findAllPages({
-        category: ModelCategory.TEXT,
-      })) as IPreset[];
-
-      setPostPresets(
-        presetsData.filter((preset) =>
+        return presetsData.filter((preset) =>
           preset.key.startsWith('preset.text.post.'),
-        ),
-      );
-    } catch (error) {
-      logger.error('Failed to load post presets', error);
-    }
-  }, [scope, getPresetsService, initialPostPresets]);
-
-  useResetOnChange([hydratedPostPresets], () => {
-    setPostPresets(hydratedPostPresets);
+        );
+      } catch (error) {
+        logger.error('Failed to load post presets', error);
+        throw error;
+      }
+    },
+    queryKey: ['post-presets', organizationId, viewerKeyPart(userId, orgId)],
+    refetchOnWindowFocus: false,
+    retry: false,
   });
-
-  useEffect(() => {
-    loadPostPresets();
-  }, [loadPostPresets]);
+  // A publishing page's cached presets are never handed to another scope.
+  const postPresets =
+    initialPostPresets ??
+    (scope === PageScope.PUBLISHING ? presetsQuery.data : undefined) ??
+    EMPTY_POST_PRESETS;
 
   const handlePostEvaluated = useCallback(
     (postId: string, score: number) => {
