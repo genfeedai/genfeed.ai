@@ -14,6 +14,7 @@ function OnboardingGuardInner({ children }: OnboardingGuardProps) {
   const { canRender, redirectTarget } = useOnboardingRouteAccess(pathname);
   const translatePending = useTranslations('pages.organizationRouting.pending');
 
+  // use-effect-audit: ignore redirects the route in the router
   useEffect(() => {
     if (redirectTarget) {
       replace(redirectTarget);

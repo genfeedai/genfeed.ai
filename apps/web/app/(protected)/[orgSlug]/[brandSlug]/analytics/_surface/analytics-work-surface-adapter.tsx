@@ -281,6 +281,7 @@ export default function AnalyticsWorkSurfaceAdapter({
     new URLSearchParams(restoredState.canonicalSearchParams),
   );
 
+  // use-effect-audit: ignore redirects the route in the router
   useEffect(() => {
     pendingSearchParamsRef.current = new URLSearchParams(
       restoredState.canonicalSearchParams,
