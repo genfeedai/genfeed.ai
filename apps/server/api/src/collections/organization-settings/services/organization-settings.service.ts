@@ -377,7 +377,7 @@ export class OrganizationSettingsService extends BaseService<
         isGenerateImagesEnabled: true,
         isGenerateMusicEnabled: true,
         isGenerateVideosEnabled: true,
-        isMcpApprovalRequired: true,
+        isMcpApprovalRequired: false,
         isNotificationsDiscordEnabled: false,
         isNotificationsTelegramEnabled: false,
         isNotificationsEmailEnabled: true,
