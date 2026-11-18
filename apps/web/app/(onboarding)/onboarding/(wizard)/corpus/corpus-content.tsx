@@ -13,9 +13,11 @@ import {
   KnowledgeSourceKind,
   KnowledgeSourcePurpose,
 } from '@genfeedai/contracts';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { KnowledgeSourcesService } from '@services/content/knowledge-sources.service';
 import { logger } from '@services/core/logger.service';
+import { useQueryClient } from '@tanstack/react-query';
 import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
@@ -23,7 +25,7 @@ import { SegmentedControl } from '@ui/primitives/segmented-control';
 import { Textarea } from '@ui/primitives/textarea';
 import { Upload } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import type { CorpusSourceView } from '@/features/onboarding/props/expert-path.props';
 import { ANALYTICS_EVENTS, captureAnalyticsEvent } from '@/lib/analytics';
 
@@ -35,6 +37,9 @@ const MODES = ['url', 'text', 'file'] as const;
 
 type CorpusMode = (typeof MODES)[number];
 type CorpusErrorKey = 'add' | 'load' | 'retry';
+
+const SOURCES_QUERY_KEY = 'onboarding-corpus-sources';
+const EMPTY_SOURCES: CorpusSourceView[] = [];
 
 const PENDING_STATES: readonly string[] = [
   KnowledgeProcessingState.QUEUED,
@@ -60,6 +65,7 @@ export default function CorpusContent() {
   const { selectedBrand } = useBrand();
   const brandId = selectedBrand?.id ?? null;
 
+  const queryClient = useQueryClient();
   const getKnowledgeService = useAuthedService((token: string) =>
     KnowledgeSourcesService.getInstance(token),
   );
@@ -70,38 +76,34 @@ export default function CorpusContent() {
   const [title, setTitle] = useState('');
   const [text, setText] = useState('');
   const [file, setFile] = useState<File | null>(null);
-  const [sources, setSources] = useState<CorpusSourceView[]>([]);
-  const [refreshTick, setRefreshTick] = useState(0);
   const [isAdding, setIsAdding] = useState(false);
   const [retryingSourceId, setRetryingSourceId] = useState<string | null>(null);
-  const [errorKey, setErrorKey] = useState<CorpusErrorKey | null>(null);
+  const [actionErrorKey, setActionErrorKey] = useState<CorpusErrorKey | null>(
+    null,
+  );
 
   // Load corpus sources and their current ingestion state; poll while any
   // source is still queued or processing.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: refreshTick is an intentional re-fire signal for the abortable poll
-  useEffect(() => {
-    if (!brandId) {
-      return;
-    }
-    const controller = new AbortController();
-    let pollTimer: ReturnType<typeof setTimeout> | undefined;
-
-    const load = async () => {
+  const sourcesQuery = useAuthedQuery<
+    KnowledgeSourcesService,
+    CorpusSourceView[]
+  >({
+    enabled: Boolean(brandId),
+    queryFn: async (service, signal) => {
       try {
-        const service = await getKnowledgeService();
         const all = await service.findForBrand(
-          { brandId, limit: SOURCE_LIST_LIMIT, page: 1 },
-          controller.signal,
+          { brandId: brandId ?? '', limit: SOURCE_LIST_LIMIT, page: 1 },
+          signal,
         );
         const corpus = all.filter(
           (source) => source.purpose === KnowledgeSourcePurpose.BRAND_TRUTH,
         );
-        const views = await Promise.all(
+        return await Promise.all(
           corpus.map(async (source) => {
             const versions = await service.findVersions(
               source.id,
-              brandId,
-              controller.signal,
+              brandId ?? '',
+              signal,
             );
             return {
               id: source.id,
@@ -111,37 +113,32 @@ export default function CorpusContent() {
             };
           }),
         );
-        if (controller.signal.aborted) {
-          return;
-        }
-        setSources(views);
-        if (
-          views.some((view) =>
-            PENDING_STATES.includes(view.version?.processingState ?? ''),
-          )
-        ) {
-          pollTimer = setTimeout(
-            () => setRefreshTick((tick) => tick + 1),
-            POLL_INTERVAL_MS,
-          );
-        }
       } catch (error) {
-        if (controller.signal.aborted) {
-          return;
+        if (!signal.aborted) {
+          logger.error('Failed to load corpus sources', error);
         }
-        logger.error('Failed to load corpus sources', error);
-        setErrorKey('load');
+        throw error;
       }
-    };
-
-    void load();
-    return () => {
-      controller.abort();
-      if (pollTimer) {
-        clearTimeout(pollTimer);
-      }
-    };
-  }, [brandId, getKnowledgeService, refreshTick]);
+    },
+    queryKey: [SOURCES_QUERY_KEY, brandId],
+    refetchInterval: (query) =>
+      query.state.data?.some((view) =>
+        PENDING_STATES.includes(view.version?.processingState ?? ''),
+      )
+        ? POLL_INTERVAL_MS
+        : false,
+    refetchOnWindowFocus: false,
+    retry: false,
+    service: (token: string) => KnowledgeSourcesService.getInstance(token),
+  });
+  const sources = sourcesQuery.data ?? EMPTY_SOURCES;
+  // A read already in flight predates the change, so it is replaced.
+  const refreshSources = useCallback(async () => {
+    await queryClient.cancelQueries({ queryKey: [SOURCES_QUERY_KEY] });
+    await queryClient.invalidateQueries({ queryKey: [SOURCES_QUERY_KEY] });
+  }, [queryClient]);
+  const errorKey: CorpusErrorKey | null =
+    actionErrorKey ?? (sourcesQuery.isError ? 'load' : null);
 
   const canAdd =
     (mode === 'url' && url.trim().length > 0) ||
@@ -153,7 +150,7 @@ export default function CorpusContent() {
       return;
     }
     setIsAdding(true);
-    setErrorKey(null);
+    setActionErrorKey(null);
     try {
       const service = await getKnowledgeService();
       if (mode === 'file' && file) {
@@ -202,14 +199,24 @@ export default function CorpusContent() {
         setText('');
       }
       setTitle('');
-      setRefreshTick((tick) => tick + 1);
+      void refreshSources();
     } catch (error) {
       logger.error('Failed to add corpus source', error);
-      setErrorKey('add');
+      setActionErrorKey('add');
     } finally {
       setIsAdding(false);
     }
-  }, [brandId, canAdd, file, getKnowledgeService, mode, text, title, url]);
+  }, [
+    brandId,
+    canAdd,
+    file,
+    getKnowledgeService,
+    mode,
+    refreshSources,
+    text,
+    title,
+    url,
+  ]);
 
   const handleRetry = useCallback(
     async (sourceId: string) => {
@@ -217,18 +224,18 @@ export default function CorpusContent() {
         return;
       }
       setRetryingSourceId(sourceId);
-      setErrorKey(null);
+      setActionErrorKey(null);
       try {
         await (await getKnowledgeService()).retry(sourceId, brandId);
-        setRefreshTick((tick) => tick + 1);
+        void refreshSources();
       } catch (error) {
         logger.error('Failed to retry corpus source', error);
-        setErrorKey('retry');
+        setActionErrorKey('retry');
       } finally {
         setRetryingSourceId(null);
       }
     },
-    [brandId, getKnowledgeService],
+    [brandId, getKnowledgeService, refreshSources],
   );
 
   const hasReadySource = sources.some(

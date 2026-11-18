@@ -105,8 +105,12 @@ export default function ElevenLabsAccountVoicesDialog({
   // cancels it so stale voices and cursors never land in the new list.
   const loadMoreControllerRef = useRef<AbortController | null>(null);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: a new search cancels the later page of the one before it.
-  useEffect(() => () => loadMoreControllerRef.current?.abort(), [search]);
+  // A new search cancels the later page of the one before it.
+  // use-effect-audit: ignore aborts an in-flight request when the search changes or the dialog unmounts
+  useEffect(() => {
+    void search;
+    return () => loadMoreControllerRef.current?.abort();
+  }, [search]);
 
   const loadMore = useCallback(async () => {
     if (!nextPageToken) return;
