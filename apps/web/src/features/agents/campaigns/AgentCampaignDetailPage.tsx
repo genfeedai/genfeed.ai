@@ -23,9 +23,10 @@ import { Button } from '@ui/primitives/button';
 import { ArrowLeft, Check, LayoutDashboard, Pause, Play } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import RecordFactLine from '@/components/record-detail/RecordFactLine';
 import { useAgentStrategies } from '@/features/agents/hooks/agent-strategies/use-agent-strategies';
+import { useNotifyOnLoadError } from '@/hooks/utils/use-notify-on-load-error/use-notify-on-load-error';
 import AgentCampaignAgentsList from './AgentCampaignAgentsList';
 import AgentCampaignContentQuota from './AgentCampaignContentQuota';
 import AgentCampaignDetailHeader from './AgentCampaignDetailHeader';
@@ -96,13 +97,11 @@ export default function AgentCampaignDetailPage() {
   const campaign = campaignQuery.data?.campaign ?? null;
   const status = campaignQuery.data?.status ?? null;
 
-  // One toast per failed read, after its retry, not one per attempt.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: errorUpdatedAt marks each new failed read.
-  useEffect(() => {
-    if (isError) {
-      notificationsService.error('Failed to load Program');
-    }
-  }, [errorUpdatedAt, isError, notificationsService]);
+  useNotifyOnLoadError({
+    errorUpdatedAt,
+    hasError: isError,
+    notify: () => notificationsService.error('Failed to load Program'),
+  });
 
   const loadCampaign = useCallback(() => {
     void refetch();

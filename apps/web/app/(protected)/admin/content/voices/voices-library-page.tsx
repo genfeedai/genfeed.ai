@@ -18,12 +18,13 @@ import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagina
 import { Volume2 } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
+import { Suspense, useCallback, useMemo, useState } from 'react';
 import type {
   ProviderFilter,
   VoiceCatalogToggleField,
 } from '@/features/admin/props/voices.props';
 import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
+import { useNotifyOnLoadError } from '@/hooks/utils/use-notify-on-load-error/use-notify-on-load-error';
 import {
   VoicesCatalogSearch,
   VoicesSyncAllButton,
@@ -124,13 +125,11 @@ function VoicesLibraryPageContent() {
     await refetch();
   }, [refetch]);
 
-  // One toast per failed read, after its retry, not one per attempt.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: errorUpdatedAt marks each new failed read.
-  useEffect(() => {
-    if (hasError) {
-      notifications.error('Failed to load voice catalog');
-    }
-  }, [errorUpdatedAt, hasError, notifications]);
+  useNotifyOnLoadError({
+    errorUpdatedAt,
+    hasError: hasError,
+    notify: () => notifications.error('Failed to load voice catalog'),
+  });
 
   const handleSync = useCallback(
     async (providers?: VoiceProvider[]) => {

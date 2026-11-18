@@ -24,7 +24,8 @@ import { EditableText } from '@ui/primitives/editable-text';
 import { getApiErrorMessage } from '@utils/error/error-handler.util';
 import { Database, Image } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect } from 'react';
+import { useCallback } from 'react';
+import { useNotifyOnLoadError } from '@/hooks/utils/use-notify-on-load-error/use-notify-on-load-error';
 
 export default function TrainingDetail({
   children,
@@ -66,13 +67,11 @@ export default function TrainingDetail({
     await refetch();
   }, [refetch]);
 
-  // One toast per failed read, after its retry, not one per attempt.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: errorUpdatedAt marks each new failed read.
-  useEffect(() => {
-    if (isError) {
-      notificationsService.error(translate('loadError'));
-    }
-  }, [errorUpdatedAt, isError, notificationsService, translate]);
+  useNotifyOnLoadError({
+    errorUpdatedAt,
+    hasError: isError,
+    notify: () => notificationsService.error(translate('loadError')),
+  });
 
   // Saves one edited field and reloads the record without the page-level
   // loading state, so the title does not flash while it saves.
