@@ -147,6 +147,7 @@ function PlainTextareaInner<T extends FieldValues = FieldValues>({
   );
   const adjustHeight = useTextareaSizing(stableTextareaRef, maxHeight);
 
+  // use-effect-audit: ignore drives a DOM element or browser API
   useEffect(() => {
     adjustHeight();
   }, [adjustHeight]);
@@ -213,6 +214,7 @@ function ControlledTextareaInner<T extends FieldValues = FieldValues>({
   const adjustHeight = useTextareaSizing(stableTextareaRef, maxHeight);
   const currentValue = value ?? '';
 
+  // use-effect-audit: ignore drives a DOM element or browser API
   useEffect(() => {
     const previousValue = previousValueRef.current;
     const textarea = stableTextareaRef.current;
@@ -327,6 +329,7 @@ function RegisteredTextareaInner<T extends FieldValues = FieldValues>({
     registerOnChangeRef.current = register.onChange;
   }, [register]);
 
+  // use-effect-audit: ignore drives a DOM element or browser API
   useEffect(() => {
     adjustHeight();
   }, [adjustHeight]);
