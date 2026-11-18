@@ -1,5 +1,6 @@
 import type { AgentPageContext as AgentRequestPageContext } from '@genfeedai/agent/models/agent-chat.model';
 import type { SuggestedAction } from '@genfeedai/agent/models/agent-suggested-action.model';
+import { readPageControls } from '@genfeedai/agent/utils/page-controls.bridge';
 import type { MemberRole } from '@genfeedai/contracts';
 import { getBrowserTimezone } from '@genfeedai/helpers/formatting/timezone/timezone.helper';
 
@@ -79,6 +80,11 @@ export function toAgentRequestPageContext(
 
   if (context.researchReferences?.length) {
     requestContext.researchReferences = context.researchReferences;
+  }
+
+  const pageControls = readPageControls();
+  if (pageControls) {
+    requestContext.pageControls = pageControls;
   }
 
   if (Object.keys(requestContext).length === 0) {

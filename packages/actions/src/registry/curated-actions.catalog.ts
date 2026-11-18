@@ -1395,6 +1395,14 @@ export const CURATED_ACTION_CATALOG = [
     toolset: 'ui',
   },
   {
+    category: 'other',
+    isReadOnly: true,
+    name: 'propose_page_changes',
+    surfaces: ['agent'],
+    toolset: 'ui',
+    uiActionType: 'page_control_change_card',
+  },
+  {
     category: 'content',
     claudeAccess: 'mcp',
     mcpApproval: 'posting',

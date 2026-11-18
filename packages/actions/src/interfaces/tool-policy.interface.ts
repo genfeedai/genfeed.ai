@@ -8,6 +8,7 @@ export type ToolUiActionType = Extract<
   | 'onboarding_checklist_card'
   | 'outreach_sequence_control_card'
   | 'oauth_connect_card'
+  | 'page_control_change_card'
   | 'brand_create_card'
   | 'brand_identity_confirmation_card'
   | 'outreach_sequence_create_card'

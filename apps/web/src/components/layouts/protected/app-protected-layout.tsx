@@ -24,6 +24,7 @@ import dynamic from 'next/dynamic';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Suspense, useEffect, useMemo, useRef } from 'react';
+import '@/components/agent/page-controls-bridge';
 import AnalyticsOrganizationSync from '@/components/analytics/AnalyticsOrganizationSync';
 import ProductionDataBanner from '@/components/banners/production-data/ProductionDataBanner';
 import { CommandPaletteInitializer } from '@/components/command-palette/command-palette-initializer/CommandPaletteInitializer';
