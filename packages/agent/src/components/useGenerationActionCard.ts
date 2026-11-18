@@ -60,6 +60,7 @@ import {
   shouldOfferAutoModel,
 } from '@helpers/model-allowlist.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import { useResetOnChange } from '@hooks/utils/use-reset-on-change/use-reset-on-change';
 import {
   buildAgentGenerationSetupScope,
   getGenerationSetup,
@@ -891,13 +892,12 @@ export function useGenerationActionCard({
       type: 'decline_finished',
     });
   }, [declineRunId, declineRunStatus]);
-
-  useEffect(() => {
-    const decision = action.data?.decision;
-    if (decision === 'declined' || decision === 'approved') {
-      dispatchCard({ decision, type: 'decision_restored' });
+  const savedDecision = action.data?.decision;
+  useResetOnChange([savedDecision], () => {
+    if (savedDecision === 'declined' || savedDecision === 'approved') {
+      dispatchCard({ decision: savedDecision, type: 'decision_restored' });
     }
-  }, [action.data?.decision]);
+  });
   // A decline the server accepted stays declining until its run settles.
   const isDeclineInFlight = isDeclining || isDeclineRunPending;
   const canDecline = Boolean(
