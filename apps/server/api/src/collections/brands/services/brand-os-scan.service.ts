@@ -96,7 +96,7 @@ export class BrandOsScanService {
       this.assertDeadline(preparation.scan.startedAt);
       const remaining =
         Date.parse(preparation.scan.startedAt) + SCAN_TIMEOUT_MS - Date.now();
-      const evidence = await this.scraper.scrapeWebsiteWithEvidence(
+      const evidence = await this.scraper.scrapeSetupSourceWithEvidence(
         normalized.url,
         { deadlineAt: performance.now() + remaining },
       );

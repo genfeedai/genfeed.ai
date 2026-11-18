@@ -1,11 +1,11 @@
 /**
- * Where a voice sample came from. Every origin is the brand's OWN writing:
- * posts imported from its connected accounts, posts Genfeed published for it,
- * or posts the user pasted as their own. Followed/imported inspiration
- * sources never enter the voice corpus.
+ * Evidence from the brand's accounts, its published posts, user-supplied
+ * writing, or its approved brand kit.
  */
 export type BrandVoiceSampleOrigin =
   | 'own-account'
+  | 'brand-kit'
+  | 'public-profile'
   | 'published-post'
   | 'pasted';
 
@@ -84,7 +84,13 @@ export interface IBrandVoiceCorpusSummary {
   sampleCount: number;
   replyCount: number;
   originalCount: number;
-  originCounts: Record<BrandVoiceSampleOrigin, number>;
+  originCounts: Record<
+    Exclude<BrandVoiceSampleOrigin, 'public-profile' | 'brand-kit'>,
+    number
+  > & {
+    'brand-kit'?: number;
+    'public-profile'?: number;
+  };
   platforms: string[];
   /** ISO dates (YYYY-MM-DD) of the oldest and newest dated sample. */
   dateRange: { from: string; to: string } | null;

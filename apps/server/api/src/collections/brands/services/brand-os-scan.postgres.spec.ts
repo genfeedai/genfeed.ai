@@ -232,8 +232,8 @@ describe.skipIf(!connectionString)(
     let requestId: string;
     let now: number;
     const scraper = {
-      scrapeWebsiteWithEvidence:
-        vi.fn<BrandScraperService['scrapeWebsiteWithEvidence']>(),
+      scrapeSetupSourceWithEvidence:
+        vi.fn<BrandScraperService['scrapeSetupSourceWithEvidence']>(),
     };
     function revisions(): BrandOsRevisionsService {
       return new BrandOsRevisionsService(
@@ -344,7 +344,7 @@ describe.skipIf(!connectionString)(
           agentConfig: { unrelated: 'before' },
         },
       });
-      scraper.scrapeWebsiteWithEvidence.mockResolvedValue(evidence());
+      scraper.scrapeSetupSourceWithEvidence.mockResolvedValue(evidence());
     });
     afterEach(async () => {
       vi.useRealTimers();
@@ -368,7 +368,7 @@ describe.skipIf(!connectionString)(
     function gateScraper() {
       const entered = deferred<void>();
       const release = deferred<WebsiteBrandScrapeEvidence>();
-      scraper.scrapeWebsiteWithEvidence.mockImplementationOnce(() => {
+      scraper.scrapeSetupSourceWithEvidence.mockImplementationOnce(() => {
         entered.resolve();
         return release.promise;
       });
@@ -383,7 +383,7 @@ describe.skipIf(!connectionString)(
       await expect(
         makeService().start({ ...input(), requestId: randomUUID() }),
       ).rejects.toThrow('Another scan is in progress');
-      expect(scraper.scrapeWebsiteWithEvidence).toHaveBeenCalledOnce();
+      expect(scraper.scrapeSetupSourceWithEvidence).toHaveBeenCalledOnce();
       gate.release.resolve(evidence());
       const terminal = await first;
       expect(terminal.revisionId).toBeTruthy();
@@ -743,7 +743,7 @@ describe.skipIf(!connectionString)(
       await expect(
         makeService().start({ ...input(), organizationId: 'foreign-org' }),
       ).rejects.toBeInstanceOf(NotFoundException);
-      expect(scraper.scrapeWebsiteWithEvidence).not.toHaveBeenCalled();
+      expect(scraper.scrapeSetupSourceWithEvidence).not.toHaveBeenCalled();
       const gate = gateScraper();
       const pending = makeService()
         .start(input())

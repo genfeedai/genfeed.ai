@@ -12,6 +12,7 @@ import type {
   MergedBrandAnalysis,
   XProfileScrapedData,
 } from '@api/services/brand-scraper/interfaces/brand-scraper.interfaces';
+import { toXBrandData } from '@api/services/brand-scraper/x-brand-data.util';
 import type {
   IBrandAgentPrompting,
   IExtractedBrandData,
@@ -82,6 +83,8 @@ export class BrandDataMapper {
   ): IScrapedBrandData {
     return this.buildScrapedBrandData({
       aboutText: merged.aboutText,
+      bannerUrl: merged.bannerUrl,
+      socialPostSamples: merged.contentSamples,
       companyName: merged.companyName,
       description: merged.description,
       fontFamily: merged.fontFamily,
@@ -117,15 +120,7 @@ export class BrandDataMapper {
     xData: XProfileScrapedData,
     sourceUrl: string,
   ): IScrapedBrandData {
-    return this.buildScrapedBrandData({
-      companyName: xData.displayName,
-      description: xData.bio,
-      logoUrl: xData.profileImageUrl,
-      metaDescription: xData.bio,
-      ogImage: xData.profileImageUrl,
-      scrapedAt: xData.scrapedAt,
-      sourceUrl,
-    });
+    return toXBrandData(xData, sourceUrl);
   }
 
   buildFallbackScrapedData(

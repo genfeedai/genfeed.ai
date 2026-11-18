@@ -304,6 +304,12 @@ export class MasterPromptGeneratorService {
       );
     }
 
+    if (brandData.socialPostSamples?.length) {
+      parts.push(
+        `Public social posts (writing examples):\n- ${brandData.socialPostSamples.join('\n- ')}`,
+      );
+    }
+
     if (brandData.pageExcerpts?.length) {
       parts.push(`Other site pages:\n- ${brandData.pageExcerpts.join('\n- ')}`);
     }

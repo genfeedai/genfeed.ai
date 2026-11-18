@@ -1,6 +1,7 @@
 import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
 import { MAX_HTML_BYTES } from '@api/services/brand-scraper/brand-scraper-http.util';
 import { BrandWebsiteParserService } from '@api/services/brand-scraper/brand-website-parser.service';
+import { PublicXBrandSourceService } from '@api/services/brand-scraper/public-x-brand-source.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -121,6 +122,7 @@ const mockConfigService = {
 // ---------------------------------------------------------------------------
 
 describe('BrandScraperService', () => {
+  const profile = vi.fn();
   let service: BrandScraperService;
   let fetchMock: ReturnType<typeof vi.fn>;
 
@@ -133,6 +135,12 @@ describe('BrandScraperService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         BrandScraperService,
+        {
+          provide: PublicXBrandSourceService,
+          useValue: {
+            profile: profile.mockReset().mockResolvedValue(undefined),
+          },
+        },
         BrandWebsiteParserService,
         { provide: ConfigService, useValue: mockConfigService },
         { provide: LoggerService, useValue: mockLogger },
@@ -146,6 +154,33 @@ describe('BrandScraperService', () => {
     vi.useRealTimers();
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
+  });
+
+  it('maps a single public X lookup to brand setup evidence and a writing sample', async () => {
+    profile.mockResolvedValueOnce({
+      name: 'Acme Studio',
+      handle: 'Acme',
+      bio: 'Objects for everyday use.',
+      avatar: 'https://pbs.twimg.com/avatar.jpg',
+      banner: 'https://pbs.twimg.com/banner.jpg',
+      latestText: 'A new collection, made by hand.',
+      latestSample: { id: '123', text: 'A new collection, made by hand.' },
+      readAt: '2026-11-01T00:00:00Z',
+    });
+    const result = await service.scrapeSetupSourceWithEvidence(
+      'https://twitter.com/Acme',
+    );
+    expect(profile).toHaveBeenCalledExactlyOnceWith('acme', undefined);
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(result.data).toMatchObject({
+      companyName: 'Acme Studio',
+      description: 'Objects for everyday use.',
+      logoUrl: 'https://pbs.twimg.com/avatar.jpg',
+      bannerUrl: 'https://pbs.twimg.com/banner.jpg',
+      socialLinks: { twitter: 'https://x.com/Acme' },
+      socialPostSamples: ['A new collection, made by hand.'],
+    });
+    expect(result.evidence[0]?.excerpt).toBe('A new collection, made by hand.');
   });
 
   describe.each([
@@ -1503,6 +1538,15 @@ describe('BrandScraperService', () => {
   <article><span data-testid="tweetText">Excited about #AI tools we are building together.</span></article>
 </body>
 </html>`;
+
+    it('keeps only the first visible writing example from the HTML fallback', async () => {
+      fetchMock.mockResolvedValue(makeResponse(xHtml));
+      const result = await service.scrapeXProfile('https://x.com/acme');
+      expect(result.recentTweets).toEqual([
+        `We just launched ${rocketEmoji} our new product!`,
+      ]);
+      expect(result.latestPostText).toBeUndefined();
+    });
 
     it('extracts handle from URL', async () => {
       fetchMock.mockResolvedValue(makeResponse(xHtml));

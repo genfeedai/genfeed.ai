@@ -47,6 +47,7 @@ export interface LinkedInScrapedData {
  * X/Twitter profile data extracted from scraping
  */
 export interface XProfileScrapedData {
+  latestPostText?: string;
   displayName?: string;
   handle?: string;
   bio?: string;
@@ -79,6 +80,7 @@ export interface BrandScrapeSources {
  * Merged analysis from all scraped sources
  */
 export interface MergedBrandAnalysis {
+  bannerUrl?: string;
   companyName?: string;
   description?: string;
   tagline?: string;

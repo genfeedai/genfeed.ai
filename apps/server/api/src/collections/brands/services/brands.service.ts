@@ -915,7 +915,7 @@ export class BrandsService extends BaseService<
     return this.brandGenerationService.generateBrandVoice(
       dto,
       organizationId,
-      (criteria) => this.findOne(criteria),
+      this.findOne.bind(this),
     );
   }
 
