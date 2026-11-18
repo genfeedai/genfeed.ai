@@ -160,7 +160,7 @@ describe('VideoPlayer', () => {
     Object.defineProperty(video, 'duration', { configurable: true, value: 60 });
     fireEvent.loadedMetadata(video);
     const slider = screen.getByRole('slider', { name: 'Seek video' });
-    expect(slider).toHaveAttribute('aria-valuemax', '60');
+    expect(slider).toHaveAttribute('max', '60');
     fireEvent.keyDown(slider, { key: 'ArrowRight' });
     expect(video.currentTime).toBeGreaterThan(0);
     fireEvent.click(screen.getByRole('button', { name: 'Mute video' }));
@@ -193,7 +193,8 @@ describe('VideoPlayer', () => {
       render(<VideoPlayer src="https://cdn.test/done.mp4" />);
 
       const slider = screen.getByRole('slider', { name: 'Seek video' });
-      expect(slider).toHaveAttribute('aria-valuemax', '10.125');
+      // The last stop snaps to the 0.1 step.
+      expect(slider).toHaveAttribute('max', '10.1');
       expect(slider).not.toBeDisabled();
       expect(screen.getByText(/\/ 0:10/)).toBeInTheDocument();
     });
@@ -205,7 +206,7 @@ describe('VideoPlayer', () => {
 
       expect(
         screen.getByRole('slider', { name: 'Seek video' }),
-      ).toHaveAttribute('aria-valuemax', '10.125');
+      ).toHaveAttribute('max', '10.1');
     });
 
     it('keeps the total once playback has ended', () => {
@@ -225,7 +226,7 @@ describe('VideoPlayer', () => {
 
       expect(
         screen.getByRole('slider', { name: 'Seek video' }),
-      ).toHaveAttribute('aria-valuemax', '1');
+      ).toHaveAttribute('max', '1');
       expect(screen.getByText(/\/ 0:00/)).toBeInTheDocument();
     });
   });

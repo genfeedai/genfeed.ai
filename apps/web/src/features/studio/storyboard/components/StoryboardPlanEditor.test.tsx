@@ -432,6 +432,9 @@ describe('persisted storyboard plan editor', () => {
     await act(async () => {
       fireEvent.keyDown(firstSlider, { key: 'ArrowRight' });
     });
+    await act(async () => {
+      fireEvent.keyUp(firstSlider, { key: 'ArrowRight' });
+    });
     expect(screen.getByTestId('shot-duration-1')).toHaveTextContent('5 s');
     expect(screen.getByRole('alert')).toHaveTextContent('Shorten another shot');
   });

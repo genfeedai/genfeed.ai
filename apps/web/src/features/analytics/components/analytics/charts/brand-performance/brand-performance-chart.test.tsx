@@ -184,7 +184,7 @@ describe('BrandPerformanceChart', () => {
       render(<BrandPerformanceChart data={mockData} isLoading />);
       const buttons = screen.getAllByRole('radio');
       buttons.forEach((button) => {
-        expect(button).toBeDisabled();
+        expect(button).toHaveAttribute('aria-disabled', 'true');
       });
     });
   });
@@ -362,7 +362,9 @@ describe('BrandPerformanceChart', () => {
   describe('Height Configuration', () => {
     it('uses default height of 300', () => {
       const { container } = render(<BrandPerformanceChart data={mockData} />);
-      const chartContainer = container.querySelector('[style*="height"]');
+      const chartContainer = container.querySelector(
+        'div.relative[style*="height"]',
+      );
       expect(chartContainer).toHaveStyle({ height: '300px' });
     });
 
@@ -370,7 +372,9 @@ describe('BrandPerformanceChart', () => {
       const { container } = render(
         <BrandPerformanceChart data={mockData} height={450} />,
       );
-      const chartContainer = container.querySelector('[style*="height"]');
+      const chartContainer = container.querySelector(
+        'div.relative[style*="height"]',
+      );
       expect(chartContainer).toHaveStyle({ height: '450px' });
     });
   });
