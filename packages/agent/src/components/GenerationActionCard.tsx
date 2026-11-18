@@ -5,12 +5,13 @@ import type {
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import type { ThreadAsset } from '@genfeedai/agent/utils/extract-thread-assets';
 import { cn } from '@helpers/formatting/cn/cn.util';
+import { useResetOnChange } from '@hooks/utils/use-reset-on-change/use-reset-on-change';
 import GenerationHarnessReceipt from '@ui/ingredients/tabs/prompts/GenerationHarnessReceipt';
 import { SegmentedControl } from '@ui/primitives/segmented-control';
 import { Image, Video } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 
 import { GenerationActionCanvas } from './GenerationActionCanvas';
 import { GenerationActionCardControls } from './GenerationActionCardControls';
@@ -151,20 +152,20 @@ export function GenerationActionCard({
   // Docked generation starts as a compact inferred-mode strip; settings open
   // on demand. Errors and pilot review expand automatically because they need
   // a decision, while ordinary idle cards can still default open elsewhere.
-  const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
+  const needsDecision =
+    status === 'error' || status === 'pilot_review' || status === 'declined';
+  const [isCollapsed, setIsCollapsed] = useState(
+    defaultCollapsed && !needsDecision,
+  );
   const [videoReferenceMode, setVideoReferenceMode] = useState<
     'startFrame' | 'endFrame' | 'videoReference'
   >('startFrame');
 
-  useEffect(() => {
-    if (
-      status === 'error' ||
-      status === 'pilot_review' ||
-      status === 'declined'
-    ) {
+  useResetOnChange([status], () => {
+    if (needsDecision) {
       setIsCollapsed(false);
     }
-  }, [status]);
+  });
 
   if (
     (videoReferenceMode === 'endFrame' && !supportsEndFrame) ||

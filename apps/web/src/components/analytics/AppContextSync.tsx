@@ -24,6 +24,7 @@ export default function AppContextSync() {
     setSentryRouteContext(resolveAnalyticsApp(pathname), pathname);
   }, [pathname]);
 
+  // use-effect-audit: ignore registers the analytics click listener
   useEffect(() => {
     setButtonActionListener((action) => {
       addSentryActionBreadcrumb(action);

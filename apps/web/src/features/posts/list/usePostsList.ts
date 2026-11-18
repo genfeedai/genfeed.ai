@@ -392,6 +392,7 @@ export function usePostsList({
     [credentials],
   );
 
+  // use-effect-audit: ignore redirects the route in the router
   useEffect(() => {
     if (
       isLoading ||

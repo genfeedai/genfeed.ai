@@ -3,6 +3,7 @@
 import { ButtonVariant, CardGap } from '@genfeedai/contracts';
 import { NEWSLETTER_PAID_PRICE_MAX_CREDITS } from '@genfeedai/contracts/constants';
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
+import { useResetOnChange } from '@hooks/utils/use-reset-on-change/use-reset-on-change';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { useQueryClient } from '@tanstack/react-query';
@@ -16,7 +17,7 @@ import { Switch } from '@ui/primitives/switch';
 import { Textarea } from '@ui/primitives/textarea';
 import { Settings2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import {
   NEWSLETTER_QUERY_KEY,
   useNewsletterService,
@@ -38,6 +39,23 @@ const EMPTY_FORM: NewsletterSettingsForm = {
   welcomeSubject: '',
 };
 
+function toSettingsForm(
+  saved: NonNullable<ReturnType<typeof useNewsletterSettings>['data']>,
+): NewsletterSettingsForm {
+  return {
+    footerText: saved.footerText ?? '',
+    isAttributionEnabled: saved.isAttributionEnabled,
+    isWelcomeEnabled: saved.isWelcomeEnabled,
+    paidPriceCredits:
+      saved.paidPriceCredits === null ? '' : String(saved.paidPriceCredits),
+    postalAddress: saved.postalAddress ?? '',
+    replyTo: saved.replyTo ?? '',
+    senderName: saved.senderName ?? '',
+    welcomeBody: saved.welcomeBody ?? '',
+    welcomeSubject: saved.welcomeSubject ?? '',
+  };
+}
+
 function orNull(value: string): string | null {
   const trimmed = value.trim();
   return trimmed ? trimmed : null;
@@ -55,26 +73,17 @@ export default function NewsletterSettingsPage() {
   const getService = useNewsletterService();
   const settings = useNewsletterSettings(brandId);
   const usage = useNewsletterUsage(brandId);
-  const [form, setForm] = useState<NewsletterSettingsForm>(EMPTY_FORM);
+  const [form, setForm] = useState<NewsletterSettingsForm>(() =>
+    settings.data ? toSettingsForm(settings.data) : EMPTY_FORM,
+  );
   const [isSaving, setIsSaving] = useState(false);
   const canRemoveAttribution = usage.data ? usage.data.plan !== 'free' : false;
 
-  useEffect(() => {
-    const saved = settings.data;
-    if (!saved) return;
-    setForm({
-      footerText: saved.footerText ?? '',
-      isAttributionEnabled: saved.isAttributionEnabled,
-      isWelcomeEnabled: saved.isWelcomeEnabled,
-      paidPriceCredits:
-        saved.paidPriceCredits === null ? '' : String(saved.paidPriceCredits),
-      postalAddress: saved.postalAddress ?? '',
-      replyTo: saved.replyTo ?? '',
-      senderName: saved.senderName ?? '',
-      welcomeBody: saved.welcomeBody ?? '',
-      welcomeSubject: saved.welcomeSubject ?? '',
-    });
-  }, [settings.data]);
+  useResetOnChange([settings.data], () => {
+    if (settings.data) {
+      setForm(toSettingsForm(settings.data));
+    }
+  });
 
   function update(patch: Partial<NewsletterSettingsForm>): void {
     setForm((current) => ({ ...current, ...patch }));

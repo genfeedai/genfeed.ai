@@ -122,6 +122,7 @@ export default function PostsList({
 
   // Pass ViewToggle to layout header (renders JSX — stays in component).
   // The admin list is always table rows, so it has no toggle.
+  // use-effect-audit: ignore registers the toolbar nodes with the page shell
   useEffect(() => {
     if (isAdminScope) return;
     setViewToggleNode(
@@ -149,6 +150,7 @@ export default function PostsList({
     return () => setViewToggleNode(null);
   }, [setViewToggleNode]);
 
+  // use-effect-audit: ignore registers the toolbar nodes with the page shell
   useEffect(() => {
     setLeadingNode(
       <PostsListSearch
