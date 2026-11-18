@@ -6,21 +6,16 @@
     "apps/extension/src/components/chat/ChatInput.tsx": 2,
     "apps/extension/src/components/pages/ReplyPage.tsx": 1,
     "apps/server/mcp/src/ui/preview-client.tsx": 2,
-    "apps/web/app/(protected)/[orgSlug]/[brandSlug]/clipper/useStudioClipperPage.ts": 3,
-    "apps/web/app/(protected)/[orgSlug]/[brandSlug]/settings/brand-kit/setup/content.tsx": 1,
     "apps/web/app/(public)/oauth/cli/content.tsx": 1,
-    "apps/web/src/components/modals/content/post/ModalPost.tsx": 1,
     "apps/web/src/components/workspace-shell/UniversalWorkspaceShell.tsx": 3,
     "apps/web/src/features/brands/components/brand-kit/BrandOsSettingsCard.tsx": 2,
-    "apps/web/src/features/ingredients/hooks/use-ingredients-list/use-ingredients-actions.ts": 1,
     "apps/web/src/features/studio/playground/hooks/useStudioComposerSetup.ts": 1,
     "apps/web/src/features/studio/storyboard/components/StoryboardAnimatic.tsx": 1,
-    "apps/web/src/features/studio/storyboard/components/StoryboardPlanEditor.tsx": 1,
     "apps/web/src/features/studio/storyboard/hooks/use-storyboard-character-replacements.ts": 2,
     "apps/web/src/features/studio/storyboard/StoryboardDraftPage.tsx": 1,
     "packages/agent/src/components/useAgentThreadList.ts": 1,
     "packages/agent/src/components/useGenerationActionCard.ts": 6,
-    "packages/agent/src/hooks/use-agent-chat-container.ts": 2,
+    "packages/agent/src/hooks/use-agent-chat-container.ts": 1,
     "packages/contexts/user/organization-context/organization-context.tsx": 1
   }
 }

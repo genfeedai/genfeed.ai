@@ -139,9 +139,9 @@ export default function ModalPost({
   );
   const selectedCredentialsRef = useRef(selectedCredentials);
   selectedCredentialsRef.current = selectedCredentials;
-  // A new post starts on the brand's Genfeed profile once per opening.
-  const defaultChannelsOpenVersionRef = useRef<number | null>(null);
   const brandScope = selectedBrand?.scope;
+  const defaultChannelsOpenVersionRef = useRef<number | null>(null);
+  // use-effect-audit: ignore a new post starts on the brand's Genfeed profile once per opening
   useEffect(() => {
     if (
       !isDestinationComposer ||

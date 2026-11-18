@@ -293,7 +293,7 @@ export function useIngredientsActions({
   const { openPostBatchModal } = usePostModal({
     onRefresh: () => findAllIngredientsByCategory(true),
   });
-
+  // use-effect-audit: ignore opens the upscale confirm dialog when a request arrives
   useEffect(() => {
     if (upscaleConfirmData) {
       const modelOptions = upscaleConfirmData.videoModelOptions ?? [];
