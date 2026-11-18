@@ -3053,7 +3053,7 @@ describe('ScheduledPostDeliveryService', () => {
       const result = await service.failTerminalValidation(post as never, error);
 
       expect(result.error).toBe(expectedMessage);
-      expect(mocks.logger.error).toHaveBeenCalledWith(
+      expect(mocks.logger.warn).toHaveBeenCalledWith(
         'Durable validation rejected queued publishing',
         expect.objectContaining({ error: expectedMessage }),
       );

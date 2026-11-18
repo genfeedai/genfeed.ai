@@ -1,9 +1,11 @@
 import {
   AGENT_TOOL_UNEXPECTED_FAILURE_MESSAGE,
   describeToolFailure,
+  isDeliberateToolRejection,
 } from '@api/services/agent-orchestrator/tools/agent-tool-failure.util';
 import {
   BadRequestException,
+  ForbiddenException,
   InternalServerErrorException,
 } from '@nestjs/common';
 import { describe, expect, it } from 'vitest';
@@ -55,5 +57,21 @@ describe('describeToolFailure', () => {
     ],
   ])('keeps the text of %s', (_label, error) => {
     expect(describeToolFailure(error)).toBe((error as Error).message);
+  });
+});
+
+describe('isDeliberateToolRejection', () => {
+  it.each([
+    [
+      'a 400 exception',
+      new BadRequestException('Answer the choice first.'),
+      true,
+    ],
+    ['a 403 exception', new ForbiddenException('Brand access denied'), true],
+    ['a 5xx exception', new InternalServerErrorException('boom'), false],
+    ['a plain error', new Error('socket hang up'), false],
+    ['a thrown string', 'boom', false],
+  ])('classifies %s', (_label, error, expected) => {
+    expect(isDeliberateToolRejection(error)).toBe(expected);
   });
 });

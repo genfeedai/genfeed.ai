@@ -8,6 +8,7 @@ import {
 } from '@mcp/mcp/resource-catalog';
 import { ClientService } from '@mcp/services/client.service';
 import { ToolRegistryService } from '@mcp/services/tool-registry.service';
+import { McpUpstreamError } from '@mcp/tools/mcp-tool-error';
 import { Test, TestingModule } from '@nestjs/testing';
 
 const MOCK_TOOLS = [
@@ -225,6 +226,7 @@ describe('ToolRegistryService', () => {
   let logger: {
     debug: ReturnType<typeof vi.fn>;
     error: ReturnType<typeof vi.fn>;
+    warn: ReturnType<typeof vi.fn>;
   };
 
   beforeEach(async () => {
@@ -1442,5 +1444,26 @@ describe('ToolRegistryService', () => {
       expect.stringContaining('get_account'),
       expect.any(Error),
     );
+  });
+
+  it('logs a held-post refusal as a warning, not an error', async () => {
+    clientService.executeAgentTool.mockRejectedValueOnce(
+      new McpUpstreamError(
+        'This post is held: it breaks the brand Policy. A member must approve it in the app before it can publish.',
+        { body: { errors: [{ code: 'brand_policy_held' }] }, status: 409 },
+      ),
+    );
+
+    const result = await service.handleToolCall({
+      arguments: {},
+      name: 'get_account',
+    });
+
+    expect(result).toMatchObject({ isError: true });
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.stringContaining('get_account'),
+      expect.any(McpUpstreamError),
+    );
+    expect(logger.error).not.toHaveBeenCalled();
   });
 });

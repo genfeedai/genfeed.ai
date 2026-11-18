@@ -24,13 +24,14 @@ function createClient() {
       key === 'GENFEEDAI_API_KEY' ? 'internal-service-key' : undefined,
     ),
   };
+  const logger = { error: vi.fn(), warn: vi.fn() };
   const client = new BaseApiClient(
-    { error: vi.fn() } as never,
+    logger as never,
     httpService as never,
     configService as never,
   );
 
-  return { client, instance };
+  return { client, instance, logger };
 }
 
 describe('BaseApiClient MCP origin proof', () => {
@@ -57,6 +58,7 @@ describe('BaseApiClient MCP origin proof', () => {
     };
     const logger = {
       error: vi.fn(),
+      warn: vi.fn(),
     };
     const client = new BaseApiClient(
       logger as never,
@@ -92,5 +94,37 @@ describe('BaseApiClient client attribution', () => {
     expect(instance.defaults.headers[UNATTRIBUTED_FORWARDED_HEADER]).toBe(
       UNATTRIBUTED_FORWARDED_VALUE,
     );
+  });
+});
+
+describe('BaseApiClient failure logging', () => {
+  it.each([400, 404, 409, 429])(
+    'logs a %s refusal from the API as a warning',
+    (status) => {
+      const { client, logger } = createClient();
+
+      client.logError('creating scheduled release', {
+        message: `Request failed with status code ${status}`,
+        response: { data: {}, status },
+      } as never);
+
+      expect(logger.warn).toHaveBeenCalledTimes(1);
+      expect(logger.error).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([
+    {
+      message: 'Request failed with status code 502',
+      response: { status: 502 },
+    },
+    { message: 'socket hang up' },
+  ])('logs $message as an error', (failure) => {
+    const { client, logger } = createClient();
+
+    client.logError('creating scheduled release', failure as never);
+
+    expect(logger.error).toHaveBeenCalledTimes(1);
+    expect(logger.warn).not.toHaveBeenCalled();
   });
 });

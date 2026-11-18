@@ -1,6 +1,7 @@
 import { isDeepStrictEqual } from 'node:util';
 import { BRAND_PROFILE_GENERATION_CREDIT_COST } from '@api/collections/brands/constants/brand-profile.constant';
 import {
+  BrandVoiceValidationError,
   buildBrandProfileAnalysisPrompt,
   parseGeneratedBrandProfile,
 } from '@api/collections/brands/utils/brand-profile-generation.util';
@@ -175,7 +176,17 @@ export class MasterPromptGeneratorService {
         voice: analysis.style,
       };
     } catch (error: unknown) {
-      this.loggerService.error(`${caller} failed`, error);
+      // The model's reply did not satisfy the profile contract. The scan
+      // continues on the placeholder voice below, so this is provider drift to
+      // watch in the logs and not a fault to report.
+      if (error instanceof BrandVoiceValidationError) {
+        this.loggerService.warn(`${caller} failed`, {
+          code: error.code,
+          error: error.message,
+        });
+      } else {
+        this.loggerService.error(`${caller} failed`, error);
+      }
 
       if (
         error instanceof InsufficientCreditsException ||

@@ -1,7 +1,7 @@
 /**
  * Normalises a Content-Security-Policy violation report so it can be logged
  * without query strings or fragments, and drops the reports that browser
- * extensions generate on every page.
+ * extensions and network middleboxes generate.
  */
 
 export interface CspViolation {
@@ -38,6 +38,29 @@ function toOrigin(value: string): string {
     return url.origin === 'null' ? url.protocol : url.origin;
   } catch {
     return '';
+  }
+}
+
+/**
+ * A blocked `https://analytics` is a request to a one-word host, which no
+ * public site serves. Browser shields, extensions and ISP filters rewrite
+ * requests to hosts like that, so the report says nothing about our policy.
+ * `localhost` stays: self-hosted and local installs use it.
+ */
+function isSingleLabelHostOrigin(origin: string): boolean {
+  if (!origin.startsWith('https://') && !origin.startsWith('http://')) {
+    return false;
+  }
+
+  try {
+    const { hostname } = new URL(origin);
+    return (
+      hostname !== 'localhost' &&
+      !hostname.includes('.') &&
+      !hostname.includes(':')
+    );
+  } catch {
+    return false;
   }
 }
 
@@ -79,8 +102,13 @@ export function parseCspViolation(payload: unknown): CspViolation | null {
     return null;
   }
 
+  const blockedOrigin = toOrigin(blocked);
+  if (isSingleLabelHostOrigin(blockedOrigin)) {
+    return null;
+  }
+
   return {
-    blockedOrigin: toOrigin(blocked),
+    blockedOrigin,
     effectiveDirective: directive.split(' ')[0] ?? directive,
   };
 }

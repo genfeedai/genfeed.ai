@@ -514,7 +514,13 @@ export class ToolRegistryService implements OnModuleInit {
       const done = await this.executeTool(name, args ?? {});
       return withOmittedReleases(done, prepared.invalid);
     } catch (error: unknown) {
-      this.logger.error(`Error handling tool call ${name}:`, error);
+      // A failure the classifier names (publishing held, rate limited, bad
+      // input) is a handled refusal the caller is told about, not a fault.
+      if (toMcpToolErrorResult(error)) {
+        this.logger.warn(`Tool call ${name} was refused:`, error);
+      } else {
+        this.logger.error(`Error handling tool call ${name}:`, error);
+      }
       return mcpToolFailureResult(error);
     }
   }

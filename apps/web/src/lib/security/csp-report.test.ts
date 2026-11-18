@@ -56,6 +56,34 @@ describe('parseCspViolation', () => {
     ).toBeNull();
   });
 
+  it.each(['https://analytics', 'http://metrics/collect?x=1'])(
+    'drops a request to the one-word host %s',
+    (blocked) => {
+      expect(
+        parseCspViolation({
+          'csp-report': {
+            'blocked-uri': blocked,
+            'effective-directive': 'connect-src',
+          },
+        }),
+      ).toBeNull();
+    },
+  );
+
+  it.each(['http://localhost:3000/x', 'https://analytics.example.test/x'])(
+    'keeps a dotted or local host %s',
+    (blocked) => {
+      expect(
+        parseCspViolation({
+          'csp-report': {
+            'blocked-uri': blocked,
+            'effective-directive': 'connect-src',
+          },
+        }),
+      ).not.toBeNull();
+    },
+  );
+
   it.each([null, 'text', 42, {}, { 'csp-report': {} }])(
     'ignores a malformed payload %#',
     (payload) => {

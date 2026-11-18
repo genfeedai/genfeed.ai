@@ -5,7 +5,10 @@ import { MetadataService } from '@api/collections/metadata/services/metadata.ser
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { WorkflowNodeContinuationService } from '@api/collections/workflows/services/workflow-node-continuation.service';
 import { WorkflowNodeContinuationCoordinatorService } from '@api/collections/workflows/services/workflow-node-continuation-coordinator.service';
-import { isAllowedReplicateOutputUrl } from '@api/endpoints/webhooks/replicate/webhooks.replicate.constants';
+import {
+  describeRejectedReplicateOutputHost,
+  isAllowedReplicateOutputUrl,
+} from '@api/endpoints/webhooks/replicate/webhooks.replicate.constants';
 import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
 import { ReplicateStatus } from '@api/services/integrations/replicate/helpers/replicate.enum';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
@@ -149,6 +152,7 @@ export class ReplicateGenerationWebhookHandler {
         'Replicate webhook: asset output URL rejected by host allowlist',
         {
           assetId: asset.id,
+          outputHost: describeRejectedReplicateOutputHost(imageUrl),
           predictionId: payload.id,
           status: payload.status,
         },
@@ -366,7 +370,11 @@ export class ReplicateGenerationWebhookHandler {
     } else if (typeof singleOutput === 'string') {
       this.loggerService.error(
         'Replicate webhook: output URL rejected by host allowlist',
-        { model: payload.model, predictionId: payload.id },
+        {
+          model: payload.model,
+          outputHost: describeRejectedReplicateOutputHost(singleOutput),
+          predictionId: payload.id,
+        },
       );
       this.loggerService.warn(
         'Replicate webhook: output array contained no URLs',
