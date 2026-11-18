@@ -73,6 +73,7 @@ export default function NavigationProgress() {
   const [isVisible, setIsVisible] = useState(false);
   const sightingRef = useRef<BarSighting | null>(null);
 
+  // use-effect-audit: ignore subscribes to navigation events
   useEffect(
     () =>
       subscribeNavigationStart(({ navigationType, url }) => {

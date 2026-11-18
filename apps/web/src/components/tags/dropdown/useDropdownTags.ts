@@ -90,6 +90,7 @@ export function useDropdownTags({
   }, [hasTags, loadError, notificationsService, scope]);
 
   // Calculate dropdown position when it opens
+  // use-effect-audit: ignore measures the trigger element in the DOM
   useEffect(() => {
     if (isOpen && buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect();

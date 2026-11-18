@@ -324,6 +324,7 @@ export default function BrandDetailSocialMediaCard({
       addBotPollRef.current = null;
     }
   }, []);
+  // use-effect-audit: ignore releases timers, requests or subscriptions on unmount
   useEffect(() => stopAddBotPolling, [stopAddBotPolling]);
 
   const startAddBotPolling = () => {
