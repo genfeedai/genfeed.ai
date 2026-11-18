@@ -245,6 +245,11 @@ describe('PromptConstructorNode', () => {
         />,
       );
 
+      // The UI library's own dev-mode focus checks schedule timers when its
+      // parts mount; they only warn and never touch state. Count what the node
+      // adds on top of them.
+      const libraryTimerCount = vi.getTimerCount();
+
       const textarea = screen.getByPlaceholderText('{"scene":"","camera":""}');
       fireEvent.focus(textarea);
       fireEvent.paste(textarea, {
@@ -252,13 +257,14 @@ describe('PromptConstructorNode', () => {
       });
       fireEvent.change(textarea, { target: { value: '{"scene":"night"}' } });
       fireEvent.blur(textarea);
+      expect(vi.getTimerCount()).toBeGreaterThan(libraryTimerCount);
 
       unmount();
 
       // Both the paste reformat and the 200ms autocomplete close set state on a
       // delay. Untracked, they fire into a torn-down tree — in CI that surfaced
       // as `ReferenceError: window is not defined` after the suite had finished.
-      expect(vi.getTimerCount()).toBe(0);
+      expect(vi.getTimerCount()).toBe(libraryTimerCount);
       expect(() =>
         act(() => {
           vi.runAllTimers();

@@ -138,9 +138,7 @@ export default function StoryboardShotCard({
                 min={minSeconds}
                 onValueChange={([seconds]) => setDraggedSeconds(seconds)}
                 onValueCommit={([seconds]) => {
-                  // A keyboard step commits before it reports the change, so the
-                  // drag preview is cleared after both have run.
-                  queueMicrotask(() => setDraggedSeconds(undefined));
+                  setDraggedSeconds(undefined);
                   onChangeDuration(seconds);
                 }}
                 step={storyboardDurationStep(durations)}

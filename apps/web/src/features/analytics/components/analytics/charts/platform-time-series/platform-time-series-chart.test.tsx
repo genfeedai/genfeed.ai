@@ -200,7 +200,7 @@ describe('PlatformTimeSeriesChart', () => {
       render(<PlatformTimeSeriesChart data={mockData} isLoading />);
       const buttons = screen.getAllByRole('button');
       buttons.forEach((button) => {
-        expect(button).toBeDisabled();
+        expect(button).toHaveAttribute('aria-disabled', 'true');
       });
     });
   });
@@ -529,7 +529,7 @@ describe('PlatformTimeSeriesChart', () => {
       render(<PlatformTimeSeriesChart data={mockData} isLoading />);
       const buttons = screen.getAllByRole('button');
       buttons.forEach((button) => {
-        expect(button).toBeDisabled();
+        expect(button).toHaveAttribute('aria-disabled', 'true');
       });
     });
 
@@ -537,7 +537,7 @@ describe('PlatformTimeSeriesChart', () => {
       render(<PlatformTimeSeriesChart data={mockData} isLoading />);
       const buttons = screen.getAllByRole('button');
       buttons.forEach((button) => {
-        expect(button).toBeDisabled();
+        expect(button).toHaveAttribute('aria-disabled', 'true');
       });
     });
   });

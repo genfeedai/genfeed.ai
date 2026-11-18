@@ -57,8 +57,15 @@ describe('SegmentedControl', () => {
 
   it('clears the option when deselecting is allowed', async () => {
     render(<Harness isDeselectable />);
-    await userEvent.click(screen.getByRole('radio', { name: '24h' }));
-    expect(screen.getByRole('radio', { name: '24h' })).not.toBeChecked();
+    expect(screen.getByRole('button', { name: '24h' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    await userEvent.click(screen.getByRole('button', { name: '24h' }));
+    expect(screen.getByRole('button', { name: '24h' })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
   });
 
   it('does not select a disabled option', () => {
@@ -111,14 +118,8 @@ describe('SegmentedControl', () => {
       />,
     );
 
-    expect(screen.getByRole('radio', { name: '24h' })).toHaveAttribute(
-      'data-state',
-      'on',
-    );
-    expect(screen.getByRole('radio', { name: '72h' })).toHaveAttribute(
-      'data-state',
-      'off',
-    );
+    expect(screen.getByRole('radio', { name: '24h' })).toBeChecked();
+    expect(screen.getByRole('radio', { name: '72h' })).not.toBeChecked();
   });
 
   it('keeps the selected state on tooltipped options in multiple mode', () => {
@@ -137,12 +138,12 @@ describe('SegmentedControl', () => {
     );
 
     expect(screen.getByRole('button', { name: 'Bluesky' })).toHaveAttribute(
-      'data-state',
-      'on',
+      'aria-pressed',
+      'true',
     );
     expect(screen.getByRole('button', { name: 'X' })).toHaveAttribute(
-      'data-state',
-      'off',
+      'aria-pressed',
+      'false',
     );
   });
 });
