@@ -94,6 +94,7 @@ export function useMasonryVideo({
   const handleDownload = useIngredientDownloadHandler();
 
   // Video playback control
+  // use-effect-audit: ignore controls a video element and its play timer
   useEffect(() => {
     if (!isHoveringRef.current) {
       stopAndResetVideo(videoRef);

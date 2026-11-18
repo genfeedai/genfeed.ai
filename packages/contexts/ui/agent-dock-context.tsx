@@ -87,6 +87,7 @@ export function AgentDockProvider({ children }: AgentDockProviderProps) {
     setHasRestored(true);
   }, []);
 
+  // use-effect-audit: ignore persists dock state to browser storage
   useEffect(() => {
     if (hasRestored) {
       persistAgentDockState({ isOpen });

@@ -240,6 +240,7 @@ export function BackgroundTaskProvider({ children }: LayoutProps) {
   const storageKey = getStorageKey(currentUser?.id);
   const [tasks, setTasks] = useState<IBackgroundTask[]>([]);
 
+  // use-effect-audit: ignore loads persisted tasks from local storage after hydration
   useEffect(() => {
     if (typeof window === 'undefined') {
       return;
@@ -248,6 +249,7 @@ export function BackgroundTaskProvider({ children }: LayoutProps) {
     setTasks(parsePersistedTasks(window.localStorage.getItem(storageKey)));
   }, [storageKey]);
 
+  // use-effect-audit: ignore persists tasks to local storage
   useEffect(() => {
     if (typeof window === 'undefined') {
       return;

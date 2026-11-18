@@ -28,6 +28,7 @@ export function useContextAuthedService<T>(
     getToken as (opts?: TokenOptions) => Promise<string | null>,
   );
 
+  // use-effect-audit: ignore keeps refs to the latest service factory and token getter
   useEffect(() => {
     factoryRef.current = factory;
     getTokenRef.current = getToken as (

@@ -71,6 +71,7 @@ export function useModelFavorites(): {
     }
   }, [currentUser, persistedFavoriteModelKeys]);
 
+  // use-effect-audit: ignore mirrors favorites into local storage
   useEffect(() => {
     writeStoredFavoriteModelKeys(favoriteModelKeys);
   }, [favoriteModelKeys]);
