@@ -180,6 +180,7 @@ export function useAppProtectedLayout(
   // session that becomes signed in. The server already rendered this route with
   // the session cookie, so auth resolving on a cold load must not refetch it.
   const prevIsSignedInRef = useRef<boolean | null>(null);
+  // use-effect-audit: ignore refreshes the router when the auth session signs in
   useEffect(() => {
     if (!isAuthLoaded) {
       return;
