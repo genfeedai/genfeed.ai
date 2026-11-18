@@ -542,7 +542,7 @@ function CliAuthPageContent() {
       user,
     ],
   );
-
+  // use-effect-audit: ignore starts the sign-in handoff once the session loads, through a controller aborted on cleanup
   useEffect(() => {
     if (!isLoaded) {
       return;
