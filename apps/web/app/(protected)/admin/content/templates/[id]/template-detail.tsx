@@ -58,14 +58,16 @@ export default function TemplateDetail({ templateId }: TemplateDetailProps) {
 
   // A template that cannot be read sends the operator back to the list; a
   // failed background refresh keeps the cached details on screen.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: detailQueryKey is rebuilt each render from templateId.
+  // use-effect-audit: ignore redirects the router once the read has failed
   useEffect(() => {
     if (!loadError) {
       return;
     }
     logger.error('Failed to load template', loadError);
     if (isGone) {
-      queryClient.removeQueries({ queryKey: detailQueryKey });
+      queryClient.removeQueries({
+        queryKey: ['admin', 'templates', 'detail', templateId],
+      });
     }
     notificationsService.error(loadErrorMessage);
     push(APP_ROUTES.ADMIN.CONTENT.TEMPLATES);
@@ -76,6 +78,7 @@ export default function TemplateDetail({ templateId }: TemplateDetailProps) {
     notificationsService,
     push,
     queryClient,
+    templateId,
   ]);
 
   const isLoading = template === undefined;

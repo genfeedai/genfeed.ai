@@ -1,3 +1,7 @@
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
 import type { AgentThread } from '@genfeedai/agent';
 import type {
   AgentChatMessage,
@@ -12,6 +16,11 @@ import AgentThreadsPanel from './AgentThreadsPanel';
 // The real composer is a rich-text editor jsdom cannot type into (its own spec
 // covers it). This stand-in keeps its contract: send, clear on success, keep
 // the draft when the send rejects.
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
+}));
+
 vi.mock('next/navigation', () => ({
   usePathname: () => '/acme/~/agent',
   useRouter: () => ({ replace: vi.fn() }),
@@ -176,6 +185,7 @@ function renderPanel(
       threads={threads}
       {...props}
     />,
+    { wrapper: queryClientWrapper(createTestQueryClient()) },
   );
 }
 

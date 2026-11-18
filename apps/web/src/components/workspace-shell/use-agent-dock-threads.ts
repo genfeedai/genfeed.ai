@@ -225,6 +225,7 @@ export function useAgentDockThreads(
 
   // The first message on a record's fresh conversation creates its thread;
   // remember it so the record reopens it next time.
+  // use-effect-audit: ignore persists the opened thread id to browser storage
   useEffect(() => {
     // Read the store, not this render: opening the record above may have
     // switched the thread in the same commit.
