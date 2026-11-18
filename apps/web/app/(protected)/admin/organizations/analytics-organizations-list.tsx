@@ -22,6 +22,7 @@ import {
 } from '@helpers/formatting/format/format.helper';
 import { updateCachedQueries } from '@hooks/auth/update-cached-queries/update-cached-queries';
 import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
+import { useResetOnChange } from '@hooks/utils/use-reset-on-change/use-reset-on-change';
 import type { TableAction, TableColumn } from '@props/ui/display/table.props';
 import {
   AnalyticsService,
@@ -42,7 +43,7 @@ import { format } from 'date-fns';
 import { ChevronLeft, ChevronRight, KeyRound } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import FilterMenu from '@/components/content/filter-menu/FilterMenu';
 import SearchField from '@/components/content/search-field/SearchField';
 import type { AnalyticsOrganizationsListProps } from '@/features/admin/props/analytics.props';
@@ -184,10 +185,9 @@ export default function AnalyticsOrganizationsList({
   const isPageLoading = organizationsQuery.isPlaceholderData;
 
   // A new search can leave the page past the last page of the new result set.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: reset on search only
-  useEffect(() => {
+  useResetOnChange([debouncedSearchTerm], () => {
     setPage(1);
-  }, [debouncedSearchTerm]);
+  });
 
   // A header click: the API orders by the clicked metric.
   const handleSortChange = useCallback(

@@ -158,6 +158,7 @@ export function useIngredientDetail({ type, id }: IngredientDetailProps) {
 
   const ingredientError = ingredientQuery.error;
   const hasIngredient = ingredientData !== undefined;
+  // use-effect-audit: ignore reports a failed load to the logger or a notification and leaves the page
   useEffect(() => {
     if (!ingredientError || hasIngredient) {
       return;

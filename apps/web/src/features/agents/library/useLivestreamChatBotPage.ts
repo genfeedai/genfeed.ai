@@ -366,6 +366,7 @@ export function useLivestreamChatBotPage(
     useState<LivestreamPagePlatform>(defaultPlatform);
 
   const { error: botError } = botQuery;
+  // use-effect-audit: ignore reports a failed load to the logger or a notification
   useEffect(() => {
     if (!botError) {
       return;
@@ -376,6 +377,7 @@ export function useLivestreamChatBotPage(
   }, [botError]);
 
   const { error: sessionError } = sessionQuery;
+  // use-effect-audit: ignore reports a failed load to the logger or a notification
   useEffect(() => {
     if (!sessionError) {
       return;

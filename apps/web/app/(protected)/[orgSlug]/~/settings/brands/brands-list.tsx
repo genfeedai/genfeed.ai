@@ -14,6 +14,7 @@ import {
 import type { IQueryParams } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import { useResetOnChange } from '@hooks/utils/use-reset-on-change/use-reset-on-change';
 import type { Brand } from '@models/organization/brand.model';
 import type {
   TableRowLink,
@@ -167,10 +168,9 @@ function BrandsListContent() {
   const [brandsToMove, setBrandsToMove] = useState<Brand[]>([]);
 
   // Selection is per page: ids picked on another page aren't in `selectedBrands`.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: reset on page change only
-  useEffect(() => {
+  useResetOnChange([currentPage], () => {
     setSelectedIds([]);
-  }, [currentPage]);
+  });
 
   const [blocked, setBlocked] = useState<{
     brand: Brand;

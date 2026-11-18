@@ -99,6 +99,7 @@ export default function AgentWorkflowBindCard({
   });
 
   // Each failed read is reported once, however often the card re-renders.
+  // use-effect-audit: ignore reports a failed load to the logger or a notification
   useEffect(() => {
     if (!loadError || reportedLoadErrorRef.current === loadError) {
       return;

@@ -215,6 +215,7 @@ export default function PostingSetPicker({
 
   // A read that navigation cancelled stays silent; a real failure is reported
   // once, after React Query's retry.
+  // use-effect-audit: ignore reports a failed load to the logger or a notification
   useEffect(() => {
     if (!loadError || isCancelledLoad(loadError)) {
       return;

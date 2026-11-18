@@ -7,6 +7,7 @@ import { useEffect } from 'react';
 import type { ErrorProps } from '@/props/ui/feedback/error.props';
 
 export default function AppError({ error, reset }: ErrorProps) {
+  // use-effect-audit: ignore reports the route error to the logger
   useEffect(() => {
     logger.error('Route segment error', {
       error,

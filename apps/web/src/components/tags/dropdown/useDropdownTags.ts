@@ -77,6 +77,7 @@ export function useDropdownTags({
   const hasTags = tagsQuery.data !== undefined;
 
   // A failed background refresh keeps the tags on screen without an alert.
+  // use-effect-audit: ignore reports a failed load to the logger or a notification
   useEffect(() => {
     if (!loadError || hasTags) {
       return;

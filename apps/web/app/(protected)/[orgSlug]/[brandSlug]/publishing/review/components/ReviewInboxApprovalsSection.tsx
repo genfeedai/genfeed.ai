@@ -1,5 +1,6 @@
 import { useConfirmModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
 import type { IReviewInboxItem } from '@genfeedai/contracts/interfaces';
+import { useResetOnChange } from '@hooks/utils/use-reset-on-change/use-reset-on-change';
 import CollectionSection from '@ui/collection/CollectionSection';
 import Pagination from '@ui/navigation/pagination/Pagination';
 import { EmptyState } from '@ui/primitives/empty-state';
@@ -56,11 +57,10 @@ export default function ReviewInboxApprovalsSection({
   );
 
   // A different source selection is a different list: start from its top.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: resets on the filter change only
-  useEffect(() => {
+  useResetOnChange([sourceFilters], () => {
     setRequestedPage(1);
     setPickedIds([]);
-  }, [sourceFilters]);
+  });
 
   // The table's own checkboxes see one page; the rest of the selection stays.
   const handleSelectionChange = useCallback(
