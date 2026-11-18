@@ -60,6 +60,7 @@ export function useModelFavorites(): {
     [currentUser?.settings, persistedFavoriteModelKeys],
   );
 
+  // use-effect-audit: ignore reads browser storage after mount so server and client markup match
   useEffect(() => {
     if (persistedFavoriteModelKeys !== null) {
       setFavoriteModelKeys(persistedFavoriteModelKeys);

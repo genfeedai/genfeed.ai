@@ -19,6 +19,7 @@ export default function ClientDateTime({
 }: ClientDateTimeProps) {
   const [label, setLabel] = useState(fallback);
 
+  // use-effect-audit: ignore formats the time on the client so server and client markup match
   useEffect(() => {
     const date = value === undefined ? new Date() : new Date(value);
 

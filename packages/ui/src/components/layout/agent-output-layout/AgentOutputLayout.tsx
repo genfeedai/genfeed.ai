@@ -89,6 +89,7 @@ export default function AgentOutputLayout({
     Boolean(resizeStorageKey) && !isAgentHidden && !isOutputCollapsed;
 
   // The stored split is read after mount: the server render has no storage.
+  // use-effect-audit: ignore reads browser storage after mount so server and client markup match
   useEffect(() => {
     if (resizeStorageKey) {
       setAgentShare(readStoredAgentShare(resizeStorageKey));

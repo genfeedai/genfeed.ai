@@ -79,6 +79,7 @@ export function AgentDockProvider({ children }: AgentDockProviderProps) {
   const attachHandlerRef = useRef<AgentDockAttachHandler | null>(null);
 
   // Restore after mount so the server render and first paint agree.
+  // use-effect-audit: ignore reads browser storage after mount so server and client markup match
   useEffect(() => {
     const persisted = readAgentDockPersistedState();
     if (persisted) {

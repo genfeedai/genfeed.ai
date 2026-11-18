@@ -50,6 +50,7 @@ export function useConnectCardDismissal(
     organizationId: string;
   } | null>(null);
 
+  // use-effect-audit: ignore reads browser storage after mount so server and client markup match
   useEffect(() => {
     setState({
       isDismissed: readIsDismissed(organizationId),

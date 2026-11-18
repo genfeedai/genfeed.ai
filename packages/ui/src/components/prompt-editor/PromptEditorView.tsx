@@ -83,6 +83,7 @@ function PromptEditorView({
     editor.view.dispatch(editor.state.tr);
   }, [editor, injectedEditor, placeholder]);
 
+  // use-effect-audit: ignore keeps the external editor's editable flag in step with the prop
   useEffect(() => {
     if (!editor || injectedEditor) {
       return;
