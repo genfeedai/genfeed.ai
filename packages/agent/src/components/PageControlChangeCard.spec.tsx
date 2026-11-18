@@ -107,6 +107,69 @@ describe('PageControlChangeCard', () => {
     ).toBeInTheDocument();
   });
 
+  it('puts the changes back when the person undoes them', async () => {
+    const components = [
+      switchControl('c1', 'Weekly recap', true),
+      switchControl('c2', 'Agent Emails', false),
+    ];
+    registerPageControlsBridge(createPage(components));
+
+    render(<PageControlChangeCard action={CARD} />);
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Apply changes' }),
+    );
+    await userEvent.click(await screen.findByRole('button', { name: 'Undo' }));
+
+    expect(await screen.findByText('Changes undone')).toBeInTheDocument();
+    expect(components.map((component) => component.checked)).toEqual([
+      true,
+      false,
+    ]);
+    expect(screen.getAllByText('Put back')).toHaveLength(2);
+    expect(screen.queryByRole('button', { name: 'Undo' })).toBeNull();
+  });
+
+  it('leaves a control the person changed after the agent did', async () => {
+    const components = [
+      switchControl('c1', 'Weekly recap', true),
+      switchControl('c2', 'Agent Emails', false),
+    ];
+    registerPageControlsBridge(createPage(components));
+
+    render(<PageControlChangeCard action={CARD} />);
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Apply changes' }),
+    );
+    // The person turns Weekly recap back on by hand before undoing.
+    components[0].checked = true;
+    await userEvent.click(await screen.findByRole('button', { name: 'Undo' }));
+
+    expect(
+      await screen.findByText('You changed this since, so it stays as it is.'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Put back')).toBeInTheDocument();
+    expect(components.map((component) => component.checked)).toEqual([
+      true,
+      false,
+    ]);
+  });
+
+  it('offers no undo when nothing was changed', async () => {
+    const components = [
+      switchControl('c1', 'Weekly recap', false),
+      switchControl('c2', 'Agent Emails', true),
+    ];
+    registerPageControlsBridge(createPage(components));
+
+    render(<PageControlChangeCard action={CARD} />);
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Apply changes' }),
+    );
+
+    await screen.findByText('Done');
+    expect(screen.queryByRole('button', { name: 'Undo' })).toBeNull();
+  });
+
   it('says what it could not change and offers another try', async () => {
     const components = [
       switchControl('c1', 'Weekly recap', true, {

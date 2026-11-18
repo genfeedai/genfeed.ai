@@ -1041,6 +1041,7 @@
         "label": "Require approval for MCP requests",
         "switchDescription": "On: image, video and other credit-spending MCP requests wait for approval. Off: they run straight away. Credit checks and quotes still apply. Publishing, scheduling and other outbound actions always wait.",
         "organizationRequired": "Your organization requires approval, so this stays on. An owner or admin can change that in organization settings.",
+        "confirm": "Lets your own credit-spending MCP requests run without approval",
         "saveError": "Could not save your MCP approval setting."
       },
       "agentMode": {
@@ -1219,16 +1220,19 @@
       "saveFailed": "Could not save the setting. Try again.",
       "breakoutResponses": {
         "label": "Breakout responses",
-        "description": "When one of your posts takes off, draft responses while it is still hot. Spends credits within your strategy budgets. Drafts wait for review."
+        "description": "When one of your posts takes off, draft responses while it is still hot. Spends credits within your strategy budgets. Drafts wait for review.",
+        "confirm": "Spends credits to draft responses when a post takes off"
       },
       "breakoutAutoPublish": {
         "label": "Breakout auto-publish",
         "description": "Let a response that passes every check schedule itself. That includes your brand rules, the quality gate and the fact check. Off keeps every response as a draft for review.",
+        "confirm": "Lets a response schedule itself without your review",
         "requiresResponses": "Turn on breakout responses first."
       },
       "brandVision": {
         "label": "Brand vision checks",
         "description": "Read your images and videos for required text, logos and products before they can be approved.",
+        "confirm": "Spends credits on every image and video check",
         "cost": "Costs about $0.005 per image, charged in credits."
       }
     },
@@ -1237,6 +1241,7 @@
       "label": "Require approval for MCP requests",
       "switchDescription": "On: image, video and other credit-spending MCP requests wait for approval. Off: members who also turn it off for themselves run them straight away. Credit checks and quotes still apply. Publishing, scheduling and other outbound actions always wait.",
       "risk": "Members who also turn this off for themselves can spend your organization's credits from an MCP client without anyone approving first.",
+      "confirm": "Changes whether members' credit-spending MCP requests wait for approval",
       "adminOnly": "Only owners and admins can change this setting.",
       "loading": "Loading settings…",
       "saving": "Saving…",
@@ -1832,6 +1837,7 @@
       "publishing": {
         "title": "Earned auto-publish",
         "enable": "Earn auto-publish per platform",
+        "confirm": "Lets this agent publish on a platform without your review once it earns it",
         "threshold": "Approvals to graduate",
         "progressTitle": "Platform progress",
         "choosePlatform": "Add a platform to this agent to track its progress.",

@@ -103,9 +103,9 @@ describe('the page controls bridge', () => {
       { action: 'setChecked', label: 'Agent Emails', value: true },
     ]);
 
-    expect(outcomes).toEqual([
-      { status: 'applied' },
-      { status: 'applied' },
+    expect(outcomes).toMatchObject([
+      { revert: { applied: false, previous: true }, status: 'applied' },
+      { revert: { applied: true, previous: false }, status: 'applied' },
       { status: 'unchanged' },
     ]);
     expect(saved).toEqual(['Weekly recap=false', 'Agent Emails=true']);

@@ -124,8 +124,22 @@ export type PageControlRefusalReason =
   | 'no-bridge'
   | 'unavailable';
 
+/** What it takes to put one applied change back as it was. */
+export interface PageControlRevert {
+  action: AgentPageControlChangeStep['action'];
+  /** The value the control held right after the change. */
+  applied: boolean | number | string;
+  /** The value the control held before it. */
+  previous: boolean | number | string;
+  ref: string;
+}
+
 export type PageControlChangeOutcome =
-  | { status: 'applied' }
+  | {
+      /** Absent when the control's earlier value is not one that can be set again. */
+      revert?: PageControlRevert;
+      status: 'applied';
+    }
   | { status: 'unchanged' }
   | {
       /** The page's own words: a `data-agent-confirm` sentence or an error. */
@@ -176,6 +190,8 @@ async function applyStep(
     return { reason: 'unavailable', status: 'refused' };
   }
 
+  const stateKey = STATE_KEY_BY_ACTION[step.action];
+  const previous = component[stateKey];
   const result = await bridge.act({
     steps: [{ action: step.action, args: [step.value], ref: component.ref }],
   });
@@ -187,7 +203,26 @@ async function applyStep(
     };
   }
   const changes = result.steps.flatMap((entry) => entry.changes ?? []);
-  return changes.length > 0 ? { status: 'applied' } : { status: 'unchanged' };
+  if (changes.length === 0) {
+    return { status: 'unchanged' };
+  }
+  // What the control holds now, not what was asked: a slider may round it.
+  const applied = bridge
+    .snapshot()
+    .find((current) => current.ref === component.ref)?.[stateKey];
+  return {
+    ...(isPrimitiveState(previous) && isPrimitiveState(applied)
+      ? {
+          revert: {
+            action: step.action,
+            applied,
+            previous,
+            ref: component.ref,
+          },
+        }
+      : {}),
+    status: 'applied',
+  };
 }
 
 /**
@@ -208,6 +243,61 @@ export async function applyPageControlChanges(
   const outcomes: PageControlChangeOutcome[] = [];
   for (const step of steps) {
     outcomes.push(await applyStep(bridge, step));
+  }
+  return outcomes;
+}
+
+export type PageControlUndoOutcome =
+  | { status: 'restored' }
+  | {
+      /** The page's own words when it refused the change. */
+      detail?: string;
+      reason: 'changed' | 'failed' | 'missing' | 'no-bridge';
+      status: 'kept';
+    };
+
+async function revertStep(
+  bridge: PageControlsBridge,
+  revert: PageControlRevert,
+): Promise<PageControlUndoOutcome> {
+  const component = bridge
+    .snapshot()
+    .find((current) => current.ref === revert.ref);
+  if (!component || component.offPage) {
+    return { reason: 'missing', status: 'kept' };
+  }
+  // A person changed it after the agent did: their value stands.
+  if (component[STATE_KEY_BY_ACTION[revert.action]] !== revert.applied) {
+    return { reason: 'changed', status: 'kept' };
+  }
+  const result = await bridge.act({
+    steps: [
+      { action: revert.action, args: [revert.previous], ref: revert.ref },
+    ],
+  });
+  return result.ok
+    ? { status: 'restored' }
+    : { detail: result.error?.message, reason: 'failed', status: 'kept' };
+}
+
+/**
+ * Puts the changes of an approved card back, newest first. A control the
+ * person changed since, or that left the page, keeps its value, and the
+ * result says so; one such control does not stop the others. The results line
+ * up with `reverts`.
+ */
+export async function undoPageControlChanges(
+  reverts: readonly PageControlRevert[],
+): Promise<PageControlUndoOutcome[]> {
+  const bridge = registeredBridge;
+  if (!bridge) {
+    return reverts.map(
+      (): PageControlUndoOutcome => ({ reason: 'no-bridge', status: 'kept' }),
+    );
+  }
+  const outcomes: PageControlUndoOutcome[] = [];
+  for (const revert of [...reverts].reverse()) {
+    outcomes.unshift(await revertStep(bridge, revert));
   }
   return outcomes;
 }
