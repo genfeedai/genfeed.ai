@@ -9,6 +9,7 @@ import {
   expandTcoLinks,
   replaceTcoLinks,
 } from '@api/services/brand-scraper/brand-short-link.util';
+import { reportSocialScrapeFailure } from '@api/services/brand-scraper/brand-social-scrape-failure.util';
 import { addSupportingPages } from '@api/services/brand-scraper/brand-supporting-pages.util';
 import { BrandWebsiteParserService } from '@api/services/brand-scraper/brand-website-parser.service';
 import type {
@@ -322,7 +323,7 @@ export class BrandScraperService {
 
       return result;
     } catch (error: unknown) {
-      this.loggerService.error(`${caller} failed`, error, { url });
+      reportSocialScrapeFailure(this.loggerService, caller, error, { url });
       throw error;
     }
   }
@@ -400,7 +401,7 @@ export class BrandScraperService {
 
       return result;
     } catch (error: unknown) {
-      this.loggerService.error(`${caller} failed`, error);
+      reportSocialScrapeFailure(this.loggerService, caller, error);
       throw error;
     }
   }

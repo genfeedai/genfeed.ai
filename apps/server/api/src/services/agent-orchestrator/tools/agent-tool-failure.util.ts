@@ -47,3 +47,15 @@ export function describeToolFailureForLog(error: unknown): string {
   }
   return typeof error === 'string' ? error : 'Unknown error';
 }
+
+/**
+ * A tool the guard turned down on purpose: a 4xx exception such as "answer the
+ * current choice first" or "brand access denied". The agent gets the text back
+ * and the user sees it, so it is a handled outcome and not a fault to report.
+ */
+export function isDeliberateToolRejection(error: unknown): boolean {
+  return (
+    error instanceof HttpException &&
+    error.getStatus() < HttpStatus.INTERNAL_SERVER_ERROR
+  );
+}

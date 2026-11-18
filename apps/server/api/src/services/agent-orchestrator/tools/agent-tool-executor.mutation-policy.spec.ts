@@ -78,7 +78,7 @@ function createWorkflowRunner() {
 }
 
 describe('AgentToolExecutorService mutation policy', () => {
-  const logger = { error: vi.fn(), log: vi.fn() };
+  const logger = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
   const publishHandler = {
     createPost: vi.fn(),
     schedulePost: vi.fn(),

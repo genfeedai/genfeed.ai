@@ -48,6 +48,9 @@ interface StatelessMcpRequest extends McpRequest {
 }
 
 /** Serves modern MCP requests and legacy stateless clients from one scoped factory. */
+/** Prefix of the SDK's report for a request it rejected with a 400. */
+const REJECTED_INBOUND_REQUEST_PREFIX = 'Rejected inbound request (';
+
 @Injectable()
 export class StreamableHttpService {
   /**
@@ -91,6 +94,23 @@ export class StreamableHttpService {
   }
 
   /**
+   * The SDK reports a request it turned away with a 400 (a body and headers
+   * that disagree, a missing Mcp-Method header) through the same callback as
+   * a handler fault. The client is told and fixes its request, so only the
+   * rest are errors.
+   */
+  private logHandlerError(message: string, error: unknown): void {
+    if (
+      error instanceof Error &&
+      error.message.startsWith(REJECTED_INBOUND_REQUEST_PREFIX)
+    ) {
+      this.logger.warn(message, error.message);
+      return;
+    }
+    this.logger.error(message, error);
+  }
+
+  /**
    * Handle a single MCP request with a throwaway server + transport. The SDK's
    * `handleRequest` performs method-appropriate handling (JSON-RPC over POST;
    * 405 for GET/DELETE in stateless mode), so all HTTP verbs route here.
@@ -107,7 +127,7 @@ export class StreamableHttpService {
         legacy: 'stateless',
         responseMode: 'auto',
         maxRequestBodySize: 1024 * 1024,
-        onerror: (error) => this.logger.error('MCP handler failed', error),
+        onerror: (error) => this.logHandlerError('MCP handler failed', error),
       },
     );
     const handleRequest = toNodeHandler(handler, {
