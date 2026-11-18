@@ -8,6 +8,13 @@ import 'reflect-metadata';
 import process from 'node:process';
 import { vi } from 'vitest';
 
+// The API unit project reuses workers (`isolate: false`), so a spec that
+// leaves fake timers on hangs every later file in that worker on its first
+// `setImmediate` or `setTimeout` (the 30-minute shard stall of 2026-11-17).
+// Setup files run again before each spec file, so resetting the clock here
+// stops one spec from poisoning the next.
+vi.useRealTimers();
+
 // Mock @genfeedai/prisma so unit tests never need the generated Prisma
 // client. Global fallback for any spec that doesn't set up its own
 // vi.mock('@genfeedai/prisma', ...) — uses the same canonical, schema-derived
