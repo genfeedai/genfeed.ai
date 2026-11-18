@@ -23,9 +23,10 @@ import { Search, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useCreativeAppAgentContext } from '@/hooks/agent/use-creative-app-agent-context/use-creative-app-agent-context';
 import type {
+  ClipperAvatarQualityChoice,
   ClipperWorkspaceProps,
   ProviderOption,
 } from '@/props/studio/clipper.props';
@@ -173,7 +174,6 @@ function ClipperProjectDetail(props: ReturnType<typeof useStudioClipperPage>) {
 function ClipperProjectControls({
   avatarId,
   avatarProvider,
-  avatarQuality,
   clipsService,
   draftFilename,
   draftSaveState,
@@ -200,7 +200,6 @@ function ClipperProjectControls({
   selectedIds,
   setAvatarId,
   setAvatarProvider,
-  setAvatarQuality,
   setGenerationMode,
   setMaxClips,
   setMinViralityScore,
@@ -220,6 +219,8 @@ function ClipperProjectControls({
 }: ReturnType<typeof useStudioClipperPage>) {
   const selectionLabels = useTranslations('ui.selectionGroups');
   const t = useTranslations('pages.studioClipper');
+  const [avatarQuality, setAvatarQuality] =
+    useState<ClipperAvatarQualityChoice>('auto');
   if (isHydrating) {
     return (
       <div className="flex min-h-64 items-center justify-center">
@@ -479,7 +480,7 @@ function ClipperProjectControls({
               <Button
                 variant={ButtonVariant.DEFAULT}
                 action="clipper.generate"
-                onClick={handleGenerate}
+                onClick={() => handleGenerate(avatarQuality)}
                 isDisabled={
                   isSubmitting ||
                   selectedCount === 0 ||

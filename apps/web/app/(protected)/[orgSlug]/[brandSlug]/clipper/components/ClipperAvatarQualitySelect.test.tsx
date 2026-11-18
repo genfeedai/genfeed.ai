@@ -4,6 +4,11 @@ import userEvent from '@testing-library/user-event';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import ClipperAvatarQualitySelect from './ClipperAvatarQualitySelect';
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@/../tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
 describe('ClipperAvatarQualitySelect', () => {
   beforeAll(() => {
     // Radix Select reads pointer capture and scroll APIs jsdom lacks.
