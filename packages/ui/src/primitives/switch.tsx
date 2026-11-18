@@ -1,6 +1,8 @@
 import { cn } from '@genfeedai/helpers';
-import * as SwitchPrimitives from '@radix-ui/react-switch';
+import { focusRingClassName } from '@ui/primitives/focus-ring';
 import { Skeleton } from '@ui/primitives/skeleton';
+import { Field, FieldDescription, FieldLabel } from '@ui-sdk/react/field';
+import { Switch as SwitchControl, SwitchThumb } from '@ui-sdk/react/switch';
 import type {
   ChangeEvent,
   ComponentPropsWithoutRef,
@@ -9,7 +11,7 @@ import type {
 } from 'react';
 
 type SwitchBaseProps = Omit<
-  ComponentPropsWithoutRef<typeof SwitchPrimitives.Root>,
+  ComponentPropsWithoutRef<typeof SwitchControl>,
   'checked' | 'disabled' | 'onChange' | 'onCheckedChange'
 >;
 
@@ -26,32 +28,35 @@ export interface SwitchProps extends SwitchBaseProps {
    * before the real value lands.
    */
   isLoading?: boolean;
+  /**
+   * Names the switch. Without a `label`, give the switch an `aria-label`: the
+   * page agent and screen readers find a control by its name.
+   */
   label?: ReactNode;
   onChange?: (event: ChangeEvent<HTMLInputElement>) => void;
   onCheckedChange?: (checked: boolean) => void;
-  ref?: React.Ref<HTMLButtonElement>;
   size?: SwitchSize;
   switchClassName?: string;
 }
 
 /**
- * Force semantic track/thumb contrast + travel off parent `data-state` so
- * on/off always slides left ↔ right in both Light and Dark. Do not center the
- * thumb with flex — translate owns position.
- *
- * Motion: the thumb travels on a non-overshooting ease-out, colors fade on the
- * standard ease, and pressing an enabled switch stretches the thumb (the
- * checked thumb is re-anchored to the right edge) so the toggle feels physical.
+ * The track is off by default and `data-checked` turns it on; the thumb travels
+ * on a non-overshooting ease-out, colors fade on the standard ease, and
+ * pressing an enabled switch stretches the thumb (the checked thumb is
+ * re-anchored to the right edge) so the toggle feels physical. Do not center
+ * the thumb with flex: translate owns position.
  */
-const SWITCH_CONTRAST_CLASSNAME = cn(
-  'justify-start',
-  'data-[state=unchecked]:!bg-muted-foreground data-[state=checked]:!bg-primary',
-  'data-[state=unchecked]:[&>span]:!translate-x-0',
-  'data-[state=unchecked]:[&>span]:!bg-background',
-  'data-[state=checked]:[&>span]:!bg-primary-foreground',
-  '[&>span]:![transition:translate_300ms_cubic-bezier(0.32,0.72,0,1),width_200ms_cubic-bezier(0.32,0.72,0,1),background-color_200ms_cubic-bezier(0.32,0.72,0,1)]',
-  'motion-reduce:[&>span]:!transition-none',
-  'focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+const SWITCH_TRACK_CLASSNAME = cn(
+  'group peer inline-flex shrink-0 cursor-pointer items-center justify-start rounded-full border-2 border-transparent bg-muted-foreground transition-colors duration-200',
+  'data-checked:bg-primary data-disabled:cursor-not-allowed data-disabled:opacity-50',
+  focusRingClassName,
+);
+
+const SWITCH_THUMB_CLASSNAME = cn(
+  'pointer-events-none block rounded-full bg-background shadow-lg ring-0',
+  'data-checked:bg-primary-foreground',
+  '[transition:translate_300ms_cubic-bezier(0.32,0.72,0,1),width_200ms_cubic-bezier(0.32,0.72,0,1),background-color_200ms_cubic-bezier(0.32,0.72,0,1)]',
+  'motion-reduce:transition-none',
 );
 
 /**
@@ -64,20 +69,18 @@ const SWITCH_SIZE_CLASSNAMES: Record<
   { root: string; thumb: string }
 > = {
   md: {
-    root: cn(
-      'h-8 w-14',
-      'data-[state=checked]:[&>span]:!translate-x-6',
-      'enabled:active:[&>span]:!w-8 data-[state=checked]:enabled:active:[&>span]:!translate-x-5',
+    root: 'h-8 w-14',
+    thumb: cn(
+      'size-7 data-checked:translate-x-6',
+      'group-enabled:group-active:w-8 group-enabled:group-active:data-checked:translate-x-5',
     ),
-    thumb: 'size-7',
   },
   sm: {
-    root: cn(
-      'h-5 w-9',
-      'data-[state=checked]:[&>span]:!translate-x-4',
-      'enabled:active:[&>span]:!w-5 data-[state=checked]:enabled:active:[&>span]:!translate-x-3',
+    root: 'h-5 w-9',
+    thumb: cn(
+      'size-4 data-checked:translate-x-4',
+      'group-enabled:group-active:w-5 group-enabled:group-active:data-checked:translate-x-3',
     ),
-    thumb: 'size-4',
   },
 };
 
@@ -88,7 +91,6 @@ const SWITCH_SKELETON_CLASSNAMES: Record<SwitchSize, string> = {
 };
 
 function Switch({
-  ref,
   checked,
   className,
   description,
@@ -111,16 +113,15 @@ function Switch({
       variant="circular"
     />
   ) : (
-    <SwitchPrimitives.Root
+    <SwitchControl
+      {...props}
+      checked={resolvedChecked}
       className={cn(
-        'peer inline-flex shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200 disabled:cursor-not-allowed disabled:opacity-50',
+        SWITCH_TRACK_CLASSNAME,
         sizeClassNames.root,
-        SWITCH_CONTRAST_CLASSNAME,
         switchClassName,
         className,
       )}
-      {...props}
-      checked={resolvedChecked}
       disabled={isDisabled}
       onCheckedChange={(nextChecked) => {
         onCheckedChange?.(nextChecked);
@@ -128,44 +129,45 @@ function Switch({
           target: { checked: nextChecked },
         } as ChangeEvent<HTMLInputElement>);
       }}
-      ref={ref}
     >
-      <SwitchPrimitives.Thumb
-        className={cn(
-          'pointer-events-none block rounded-full shadow-lg ring-0',
-          sizeClassNames.thumb,
-        )}
+      <SwitchThumb
+        className={cn(SWITCH_THUMB_CLASSNAME, sizeClassNames.thumb)}
       />
-    </SwitchPrimitives.Root>
+    </SwitchControl>
   );
 
   if (!label && !description) {
     return switchElement;
   }
 
-  // Never wrap a role=switch button in <label>/<fieldset>: the browser
-  // re-activates the control and Radix fires onCheckedChange twice (true then
-  // false) — controlled toggles look stuck. Text is non-interactive; switch
-  // owns the click.
-  // Label/description left, control right — vertically centered on the row.
+  // A caller's own accessible name wins: the label and description are then
+  // plain text beside the switch, as with a native control that has an
+  // `aria-label`. Otherwise the field names the switch from its label and
+  // description, so clicking the label toggles it without a native <label>
+  // wrapper. Label/description left, control right, centered on the row.
+  const hasOwnName = Boolean(props['aria-label'] || props['aria-labelledby']);
+  const LabelText = hasOwnName ? 'span' : FieldLabel;
+  const DescriptionText = hasOwnName ? 'span' : FieldDescription;
+  const Row = hasOwnName ? 'div' : Field;
+
   return (
-    <div className="flex w-full items-center justify-between gap-3">
+    <Row className="flex w-full items-center justify-between gap-3">
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         {label ? (
-          <span className={cn('text-sm font-medium text-foreground')}>
+          <LabelText className="text-sm font-medium text-foreground">
             {label}
-          </span>
+          </LabelText>
         ) : null}
         {description ? (
-          <span className={cn('text-xs text-muted-foreground')}>
+          <DescriptionText className="text-xs text-muted-foreground">
             {description}
-          </span>
+          </DescriptionText>
         ) : null}
       </div>
       <div className="flex shrink-0 items-center">{switchElement}</div>
-    </div>
+    </Row>
   );
 }
-Switch.displayName = SwitchPrimitives.Root.displayName ?? 'Switch';
+Switch.displayName = 'Switch';
 
 export { Switch };

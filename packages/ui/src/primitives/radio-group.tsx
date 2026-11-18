@@ -1,45 +1,64 @@
 'use client';
 
 import { cn } from '@genfeedai/helpers';
-import * as RadioGroupPrimitive from '@radix-ui/react-radio-group';
+import { focusRingClassName } from '@ui/primitives/focus-ring';
+import {
+  Radio,
+  RadioGroup as RadioGroupControl,
+  RadioIndicator,
+} from '@ui-sdk/react/radio';
 import { Circle } from 'lucide-react';
 import type { ComponentPropsWithRef } from 'react';
 
-function RadioGroup({
-  ref,
-  className,
-  ...props
-}: ComponentPropsWithRef<typeof RadioGroupPrimitive.Root>) {
+export type RadioGroupProps = Omit<
+  ComponentPropsWithRef<typeof RadioGroupControl>,
+  'onValueChange'
+> & {
+  onValueChange?: (value: string) => void;
+};
+
+/**
+ * A group of radios that keeps one value. Give it an accessible name (a
+ * `Field` label or an `aria-label`): the page agent and screen readers find
+ * the group by that name.
+ */
+function RadioGroup({ className, onValueChange, ...props }: RadioGroupProps) {
   return (
-    <RadioGroupPrimitive.Root
+    <RadioGroupControl
       className={cn('grid gap-2', className)}
+      onValueChange={(next) => {
+        // A person cannot clear a radio group; only the page's own code can,
+        // and the owner of the value already knows.
+        if (next !== null) {
+          onValueChange?.(next);
+        }
+      }}
       {...props}
-      ref={ref}
     />
   );
 }
-RadioGroup.displayName = RadioGroupPrimitive.Root.displayName;
+RadioGroup.displayName = 'RadioGroup';
 
 function RadioGroupItem({
-  ref,
   className,
   ...props
-}: ComponentPropsWithRef<typeof RadioGroupPrimitive.Item>) {
+}: ComponentPropsWithRef<typeof Radio>) {
   return (
-    <RadioGroupPrimitive.Item
-      ref={ref}
+    <Radio
       className={cn(
-        'aspect-square size-4 rounded-full border border-primary text-primary shadow focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50',
+        'aspect-square size-4 cursor-pointer rounded-full border border-primary text-primary shadow',
+        'data-disabled:cursor-not-allowed data-disabled:opacity-50',
+        focusRingClassName,
         className,
       )}
       {...props}
     >
-      <RadioGroupPrimitive.Indicator className="flex items-center justify-center">
-        <Circle className="size-3.5 fill-primary" />
-      </RadioGroupPrimitive.Indicator>
-    </RadioGroupPrimitive.Item>
+      <RadioIndicator className="flex items-center justify-center">
+        <Circle aria-hidden="true" className="size-3.5 fill-primary" />
+      </RadioIndicator>
+    </Radio>
   );
 }
-RadioGroupItem.displayName = RadioGroupPrimitive.Item.displayName;
+RadioGroupItem.displayName = 'RadioGroupItem';
 
 export { RadioGroup, RadioGroupItem };

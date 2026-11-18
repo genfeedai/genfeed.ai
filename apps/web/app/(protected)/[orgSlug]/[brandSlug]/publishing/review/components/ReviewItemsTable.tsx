@@ -102,7 +102,7 @@ export default function ReviewItemsTable({
                   ? translateReview('table.deselect')
                   : translateReview('table.select')
               }
-              className="size-4 border border-border bg-background shadow-sm data-[state=checked]:border-primary data-[state=checked]:bg-primary"
+              className="size-4 border border-border bg-background shadow-sm data-checked:border-primary data-checked:bg-primary"
               isChecked={isSelected}
               isDisabled={Boolean(rewritingIds?.has(item.id))}
               name={`review-select-${item.id}`}
