@@ -58,6 +58,7 @@ export function AgentWorkObjects({
     return sessionRef.current.id;
   }, []);
 
+  // use-effect-audit: ignore clears the work-object collection and its gate store when the thread changes
   useEffect(() => {
     loadedThreadRef.current = null;
     pollFailuresRef.current = 0;

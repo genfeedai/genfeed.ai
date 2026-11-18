@@ -218,6 +218,7 @@ export default function StudioIdentityFields({
     void genderFilter;
     autoPageCount.current = 0;
   }, [genderFilter]);
+  // use-effect-audit: ignore keeps paging the avatar catalogue until the gender filter has enough matches
   useEffect(() => {
     if (
       genderFilter === 'all' ||
