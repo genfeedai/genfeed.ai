@@ -724,8 +724,8 @@ export function useAgentChatContainer({
     restartStallClock();
   }, [activeThreadId, clearRunStalledFlag, restartStallClock, resumeRunWatch]);
 
-  // Output on a run the runtime marked stalled means it is alive after all.
   const stalledProgressKeyRef = useRef<string | null>(null);
+  // use-effect-audit: ignore output on a run the runtime marked stalled means it is alive after all
   useEffect(() => {
     if (!streamState.isRunStalled) {
       stalledProgressKeyRef.current = null;
