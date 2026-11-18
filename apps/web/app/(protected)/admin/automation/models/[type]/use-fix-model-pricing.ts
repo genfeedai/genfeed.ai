@@ -51,6 +51,7 @@ export function useFixModelPricing() {
   );
   const abortRef = useRef<AbortController | null>(null);
 
+  // use-effect-audit: ignore aborts the pending request when the page unmounts
   useEffect(() => () => abortRef.current?.abort(), []);
 
   const mutation = useMutation({

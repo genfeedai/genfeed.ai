@@ -131,6 +131,7 @@ export default function SettingsIntegrationsPage() {
   const loadError = providersQuery.error;
   const reportedLoadErrorRef = useRef<Error | null>(null);
 
+  // use-effect-audit: ignore reports a failed load to the logger or a notification
   useEffect(() => {
     if (!loadError || reportedLoadErrorRef.current === loadError) {
       return;
