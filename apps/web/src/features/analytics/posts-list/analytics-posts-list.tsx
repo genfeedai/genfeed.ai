@@ -15,12 +15,13 @@ import type { ExtensionPublicationCaptureResult } from '@genfeedai/contracts/int
 import type { FilterMenuFacet } from '@genfeedai/props/ui/forms/filter-menu.props';
 import { stripHtmlToPlainText } from '@helpers/security/strip-html.helper';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
+import { useSyncedState } from '@hooks/utils/use-synced-state/use-synced-state';
 import Pagination from '@ui/navigation/pagination/Pagination';
 import { Button } from '@ui/primitives/button';
 import { LayoutGrid } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import FilterMenu from '@/components/content/filter-menu/FilterMenu';
 import SearchField from '@/components/content/search-field/SearchField';
 import { useWinnerPosts } from '@/features/analytics/hooks/use-winner-posts/use-winner-posts';
@@ -70,19 +71,16 @@ export default function AnalyticsPostsList() {
   const searchParams = useSearchParams();
   const queryString = searchParams.toString();
   const urlFocusedPostId = searchParams.get('postId')?.trim() || '';
-  const [localFocusedPostId, setLocalFocusedPostId] = useState<
-    string | null | undefined
-  >(undefined);
+  const [localFocusedPostId, setLocalFocusedPostId] = useSyncedState<
+    string | null
+  >(urlFocusedPostId || null);
   const { filters, setFilter, brandId } = useAnalyticsContext();
   const trackTriggerRef = useRef<HTMLButtonElement>(null);
   const [isTrackModalOpen, setIsTrackModalOpen] = useState(false);
   const [trackingResult, setTrackingResult] =
     useState<ExtensionPublicationCaptureResult | null>(null);
   const translateTrack = useTranslations('pages.analytics.trackPost');
-  const focusedPostId =
-    (localFocusedPostId === undefined
-      ? (filters.postId ?? urlFocusedPostId)
-      : localFocusedPostId) ?? '';
+  const focusedPostId = localFocusedPostId ?? '';
   const search = filters.query ?? focusedPostId;
   const metric = (filters.metric ?? AnalyticsMetric.VIEWS) as
     | AnalyticsMetric.VIEWS
@@ -94,10 +92,6 @@ export default function AnalyticsPostsList() {
   const source = isWinnersView ? undefined : parsePostsSource(filters.source);
   const translateWinners = useTranslations('pages.analytics.winners');
   const translateSource = useTranslations('pages.analytics.sourceFilter');
-
-  useEffect(() => {
-    setLocalFocusedPostId(urlFocusedPostId || null);
-  }, [urlFocusedPostId]);
 
   const setFocusedPost = useCallback(
     (postId?: string) => {
@@ -111,7 +105,7 @@ export default function AnalyticsPostsList() {
       const query = nextSearchParams.toString();
       replace(query ? `${pathname}?${query}` : pathname);
     },
-    [pathname, replace, queryString],
+    [pathname, replace, queryString, setLocalFocusedPostId],
   );
 
   const { isLoading, topPosts, error, refetch } = useTopPosts({
