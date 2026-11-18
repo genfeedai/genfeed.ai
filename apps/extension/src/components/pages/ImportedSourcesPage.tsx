@@ -115,7 +115,9 @@ export function ImportedSourcesPage({
   );
 
   // A new workspace brand never keeps another brand's draft or list.
-  useEffect(() => {
+  const [seenBrandId, setSeenBrandId] = useState(brandId);
+  if (seenBrandId !== brandId) {
+    setSeenBrandId(brandId);
     setCapture(null);
     setRemixSource(null);
     setError(null);
@@ -123,6 +125,10 @@ export function ImportedSourcesPage({
     setDeletedSourceId(null);
     setSources([]);
     setMedia({});
+  }
+
+  // use-effect-audit: ignore tells the extension background which brand captures belong to
+  useEffect(() => {
     if (brandId) {
       void chrome.runtime.sendMessage({ brandId, event: 'captureSetBrand' });
     }

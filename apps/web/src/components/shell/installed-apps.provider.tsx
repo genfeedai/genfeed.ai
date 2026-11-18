@@ -5,13 +5,13 @@ import type { NativeSecondaryAppId } from '@genfeedai/contracts/constants';
 import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useMountedRef } from '@hooks/utils/use-mounted-ref/use-mounted-ref';
+import { useResetOnChange } from '@hooks/utils/use-reset-on-change/use-reset-on-change';
 import { MembersService } from '@services/organization/members.service';
 import { type QueryKey, useQueryClient } from '@tanstack/react-query';
 import {
   createContext,
   use,
   useCallback,
-  useEffect,
   useMemo,
   useRef,
   useState,
@@ -76,12 +76,12 @@ export function InstalledAppsProvider({
   const writeQueueRef = useRef<Promise<unknown>>(Promise.resolve());
   const isMountedRef = useMountedRef();
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: an organization switch retires the previous organization's writes.
-  useEffect(() => {
+  // An organization switch retires the previous organization's writes.
+  useResetOnChange([getMembers, organizationId], () => {
     scopeRef.current += 1;
     writeQueueRef.current = Promise.resolve();
     setPendingAppIds([]);
-  }, [getMembers, organizationId]);
+  });
 
   const write = useCallback(
     (appId: NativeSecondaryAppId, isInstalled: boolean): Promise<boolean> => {

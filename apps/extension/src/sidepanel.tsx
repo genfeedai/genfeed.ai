@@ -235,6 +235,7 @@ function SidePanelContent() {
 
   // A component inside the panel asked for another tab (for example Provider settings).
   const requestedTab = usePanelNavigationStore((s) => s.requestedTab);
+  // use-effect-audit: ignore consumes a tab request from the panel navigation store
   useEffect(() => {
     if (!requestedTab) return;
     dispatchPanel({ activeTab: requestedTab, type: 'setActiveTab' });
