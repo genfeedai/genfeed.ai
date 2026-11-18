@@ -159,8 +159,9 @@ export function useCrunGenerationQuote(
     return stored.quote;
   }, [readScope]);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: refresh intentionally schedules expiry/visibility requotes; scope contains the canonical request identity.
+  // use-effect-audit: ignore requests a quote from the server on a timer and aborts on cleanup
   useEffect(() => {
+    void refresh;
     const controller = new AbortController();
     controllerRef.current = controller;
     const epoch = ++epochRef.current;

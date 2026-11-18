@@ -213,8 +213,9 @@ export default function StudioIdentityFields({
   // has a full page of matches, the catalogue is exhausted, or the page budget
   // for this filter is spent (a rare gender must not walk the whole catalogue).
   const autoPageCount = useRef(0);
-  // biome-ignore lint/correctness/useExhaustiveDependencies: the budget restarts only when the filter changes
+  // use-effect-audit: ignore restarts the auto-paging budget when the gender filter changes
   useEffect(() => {
+    void genderFilter;
     autoPageCount.current = 0;
   }, [genderFilter]);
   useEffect(() => {
