@@ -648,27 +648,30 @@ export class WebSocketGateway
 
   private handleMediaFailed(data: MediaFailedEvent): void {
     if (!this.isServerOperational()) {
-      this.warnServerNotReady('media-failed', data);
+      this.warnServerNotReady('media-failed');
       return;
     }
 
     const { path, error, userId, room } = data;
     const targetRoom = this.getTargetRoom(userId, room);
-
-    this.server.to(targetRoom).emit(path, {
+    const payload = {
       error,
       status: 'failed',
       timestamp: new Date().toISOString(),
-    });
+    };
 
-    // Also emit with channel name for activities dropdown subscribers
-    this.server.to(targetRoom).emit('media-failed', {
-      error,
-      status: 'failed',
-      timestamp: new Date().toISOString(),
-    });
-
-    this.logger.error(`Sent media failed to ${targetRoom}: ${path}`, error);
+    try {
+      const destination = this.server.to(targetRoom);
+      destination.emit(path, payload);
+      // Keep the channel event for activities dropdown subscribers.
+      destination.emit('media-failed', payload);
+    } catch {
+      this.logger.error(
+        'WebSocket media failure notification dispatch failed',
+        undefined,
+        this.context,
+      );
+    }
   }
 
   private handleNotificationInboxUpdate(
