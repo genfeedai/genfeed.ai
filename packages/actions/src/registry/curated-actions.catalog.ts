@@ -1055,8 +1055,8 @@ export const CURATED_ACTION_CATALOG = [
   {
     category: 'other',
     name: 'get_review_queue',
-    surfaces: ['agent'],
-    toolset: 'content',
+    surfaces: ['agent', 'mcp'],
+    toolset: 'workspace',
     uiActionType: 'review_gate_card',
   },
   {
@@ -1296,6 +1296,13 @@ export const CURATED_ACTION_CATALOG = [
     name: 'manage_livestream_bot',
     surfaces: ['agent'],
     toolset: 'engagement',
+  },
+  {
+    category: 'other',
+    mutationPolicy: 'direct',
+    name: 'manage_task',
+    surfaces: ['mcp'],
+    toolset: 'workspace',
   },
   {
     category: 'social',

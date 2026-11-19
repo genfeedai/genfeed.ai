@@ -19,6 +19,7 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
+import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import {
   serializeCollection,
   serializeSingle,
@@ -309,20 +310,19 @@ export class TasksController extends BaseCRUDController<
     @Param('id') id: string,
     @Body() updateDto: UpdateTaskDto,
   ): Promise<JsonApiSingleResponse> {
-    // Review transitions route through the dedicated action methods, which carry
-    // the load-bearing side effects (event stream, realtime broadcast, feedback
-    // memory) — rather than a plain field write.
     if (updateDto.reviewState) {
       return this.applyReviewTransition(request, user, id, updateDto);
     }
 
-    if (updateDto.assigneeUserId !== undefined || updateDto.isDeleted) {
-      await this.taskReviewAccess.assertCanChangeTaskReviewer(user, id);
-    }
+    await this.taskReviewAccess.assertCanPatchTask(
+      user,
+      id,
+      updateDto,
+      getIsSuperAdmin(user, request),
+    );
 
     const result = await super.patch(request, user, id, updateDto);
 
-    // When a task is marked done/cancelled, check if parent's children are all complete
     if (updateDto.status === 'done' || updateDto.status === 'cancelled') {
       const task = await this.tasksService.findOneSelect(
         scopedWhere(user.organizationId, { id }),

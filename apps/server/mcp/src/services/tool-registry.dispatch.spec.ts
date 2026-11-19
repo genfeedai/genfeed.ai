@@ -45,6 +45,8 @@ describe('ToolRegistryService.classify', () => {
     // call); they classify first so nothing else can shadow them.
     ['check_channel', 'scheduler'],
     ['manage_campaign', 'content'],
+    ['get_review_queue', 'workspace-app'],
+    ['manage_task', 'workspace-app'],
     ['upload_media', 'agent-executor'],
     ['find_tools', 'tool-discovery'],
     ['send_chat_message', 'agent-chat'],

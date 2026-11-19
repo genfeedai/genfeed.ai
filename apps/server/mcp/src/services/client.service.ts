@@ -63,12 +63,7 @@ import {
 import { parseStoryboardRun } from '@mcp/services/client/storyboard.client';
 import { WorkflowClient } from '@mcp/services/client/workflow.client';
 import { WorkspaceClient } from '@mcp/services/client/workspace.client';
-import {
-  type CreateWorkspaceTaskParams,
-  type ListWorkspaceActivityParams,
-  type ListWorkspaceTasksParams,
-  WorkspaceAppClient,
-} from '@mcp/services/client/workspace-app.client';
+import { WorkspaceAppClient } from '@mcp/services/client/workspace-app.client';
 import type {
   Analytics,
   OrganizationAnalytics,
@@ -142,7 +137,7 @@ export class ClientService {
   private readonly content: ContentClient;
   private readonly clipper: ClipperClient;
   private readonly editor: EditorClient;
-  private readonly workspaceApp: WorkspaceAppClient;
+  readonly workspaceApp: WorkspaceAppClient;
   /** The scheduler proxy; release batches (#10134) call it directly. */
   readonly scheduler: SchedulerClient;
   private readonly campaigns: CampaignClient;
@@ -416,32 +411,6 @@ export class ClientService {
 
   startEditorRender(projectId: string): Promise<Record<string, unknown>> {
     return this.editor.startEditorRender(projectId);
-  }
-
-  listTasks(
-    params: ListWorkspaceTasksParams = {},
-  ): Promise<Array<Record<string, unknown>>> {
-    return this.workspaceApp.listTasks(params);
-  }
-
-  getTask(taskId: string): Promise<Record<string, unknown>> {
-    return this.workspaceApp.getTask(taskId);
-  }
-
-  createTask(
-    params: CreateWorkspaceTaskParams,
-  ): Promise<Record<string, unknown>> {
-    return this.workspaceApp.createTask(params);
-  }
-
-  listInbox(): Promise<Array<Record<string, unknown>>> {
-    return this.workspaceApp.listInbox();
-  }
-
-  listActivity(
-    params: ListWorkspaceActivityParams = {},
-  ): Promise<Array<Record<string, unknown>>> {
-    return this.workspaceApp.listActivity(params);
   }
 
   listPresets() {

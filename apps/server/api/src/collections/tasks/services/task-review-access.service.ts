@@ -3,6 +3,7 @@ import {
   type BrandAccessActor,
   BrandAccessService,
 } from '@api/authorization/brand-access/brand-access.service';
+import type { UpdateTaskDto } from '@api/collections/tasks/dto/update-task.dto';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
@@ -35,6 +36,54 @@ export class TaskReviewAccessService {
     private readonly brandAccess: BrandAccessService,
   ) {}
 
+  async assertCanPatchTask(
+    user: User,
+    taskId: string,
+    { assigneeUserId, brandId, isDeleted }: UpdateTaskDto,
+    isSuperAdmin: boolean,
+  ): Promise<void> {
+    const isChangingReviewer = assigneeUserId !== undefined || isDeleted;
+    if (isSuperAdmin && !isChangingReviewer) return;
+
+    const actor = this.actorOf(user);
+    const task = await this.requireTask(actor.organizationId, taskId);
+    if (!isSuperAdmin) {
+      await this.assertCanAccessBrand(actor, task.brandId);
+      if (brandId && brandId !== task.brandId) {
+        await this.assertCanAccessBrand(actor, brandId);
+      }
+    }
+    if (isChangingReviewer) await this.assertCanChangeReviewer(actor, task);
+    if (assigneeUserId && isCloudDeployment()) {
+      const assignee = {
+        organizationId: actor.organizationId,
+        userId: assigneeUserId,
+      };
+      try {
+        await this.assertCanAccessBrand(
+          assignee,
+          brandId === undefined ? task.brandId : brandId,
+        );
+      } catch (error: unknown) {
+        if (!(error instanceof ForbiddenException)) throw error;
+        throw new ForbiddenException(
+          'The assignee must be an active workspace member with access to this task.',
+        );
+      }
+    }
+  }
+
+  private async assertCanAccessBrand(
+    actor: BrandAccessActor,
+    brandId: string | null | undefined,
+  ): Promise<void> {
+    if (brandId) {
+      await this.brandAccess.assert(actor, brandId);
+    } else {
+      await this.brandAccess.resolve(actor);
+    }
+  }
+
   /** {@link assertCanDecide} for the task `taskId` of the caller's organization. */
   async assertCanDecideTask(
     user: User,
@@ -48,14 +97,6 @@ export class TaskReviewAccessService {
       this.actorOf(user),
       await this.requireTask(user.organizationId, taskId),
       decision,
-    );
-  }
-
-  /** {@link assertCanChangeReviewer} for the task `taskId` of the caller's organization. */
-  async assertCanChangeTaskReviewer(user: User, taskId: string): Promise<void> {
-    await this.assertCanChangeReviewer(
-      this.actorOf(user),
-      await this.requireTask(user.organizationId, taskId),
     );
   }
 

@@ -136,6 +136,10 @@ const API_CONTROLLERS: Record<string, { file: string; prefix: string }> = {
     file: 'collections/tasks/controllers/tasks.controller.ts',
     prefix: 'tasks',
   },
+  taskComments: {
+    file: 'collections/task-comments/controllers/task-comments.controller.ts',
+    prefix: 'tasks/:taskId/comments',
+  },
   activities: {
     file: 'collections/activities/controllers/activities.controller.ts',
     prefix: 'activities',
@@ -143,6 +147,10 @@ const API_CONTROLLERS: Record<string, { file: string; prefix: string }> = {
   reviewInbox: {
     file: 'collections/review-inbox/controllers/review-inbox.controller.ts',
     prefix: 'review-inbox',
+  },
+  turboRuns: {
+    file: 'services/turbo-run/turbo-run.controller.ts',
+    prefix: 'turbo-runs',
   },
   clipperProjectGeneration: {
     file: 'collections/clipper-projects/clipper-project-generation.controller.ts',
@@ -656,11 +664,30 @@ const ROUTE_CONTRACT: ContractRoute[] = [
   },
   { method: 'Get', sub: ':id', controller: 'tasks', tools: ['get_task'] },
   { method: 'Post', sub: '', controller: 'tasks', tools: ['create_task'] },
+  { method: 'Patch', sub: ':id', controller: 'tasks', tools: ['manage_task'] },
+  {
+    method: 'Post',
+    sub: '',
+    controller: 'taskComments',
+    tools: ['manage_task'],
+  },
+  {
+    method: 'Get',
+    sub: '',
+    controller: 'turboRuns',
+    tools: ['get_review_queue'],
+  },
+  {
+    method: 'Get',
+    sub: ':id',
+    controller: 'turboRuns',
+    tools: ['get_review_queue'],
+  },
   {
     method: 'Get',
     sub: '',
     controller: 'reviewInbox',
-    tools: ['get_inbox'],
+    tools: ['get_inbox', 'get_review_queue'],
   },
   {
     method: 'Get',
