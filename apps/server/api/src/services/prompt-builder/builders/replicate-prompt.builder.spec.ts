@@ -19,17 +19,6 @@ vi.mock('@genfeedai/helpers', async () => ({
     }
     return 'landscape';
   }),
-  DurationUtil: {
-    validateSoraDuration: vi.fn((duration?: number) => {
-      if (!duration) {
-        return 4;
-      }
-      if ([4, 8, 12].includes(duration)) {
-        return duration;
-      }
-      return 4;
-    }),
-  },
   getDefaultAspectRatio: vi.fn(() => '16:9'),
   normalizeAspectRatioForModel: vi.fn(
     (_model: string, ratio: string) => ratio || '16:9',
@@ -44,7 +33,6 @@ import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import {
   calculateAspectRatio,
   convertRatioToOrientation,
-  DurationUtil,
   getDefaultAspectRatio,
   normalizeAspectRatioForModel,
 } from '@genfeedai/helpers';
@@ -124,17 +112,6 @@ describe('ReplicatePromptBuilder', () => {
           return 'portrait';
         }
         return 'landscape';
-      },
-    );
-    (DurationUtil.validateSoraDuration as vi.Mock).mockImplementation(
-      (duration?: number) => {
-        if (!duration) {
-          return 4;
-        }
-        if ([4, 8, 12].includes(duration)) {
-          return duration;
-        }
-        return 4;
       },
     );
     (getDefaultAspectRatio as vi.Mock).mockReturnValue('16:9');
