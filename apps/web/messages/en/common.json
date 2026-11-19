@@ -241,6 +241,8 @@
         "description": "Failed to verify your account. Please try again.",
         "failed": "The provider rejected this authorization. Please try again.",
         "googleBusinessNotReadyTitle": "Google Business is not ready",
+        "instagramMissingScopes": "Meta did not grant access to your Instagram professional account. Restart authorization and allow access to the account you want to connect.",
+        "instagramMissingScopesTitle": "Instagram permission missing",
         "restartFailed": "Could not restart the connection. Go back and connect again.",
         "title": "Connection Failed",
         "youtubeAuthorizationFailed": "YouTube could not finish this connection. Restart authorization and try again.",

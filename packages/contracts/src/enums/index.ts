@@ -79,6 +79,7 @@ export * from './ingredient-lineage.enum';
 export * from './ingredient-origin.enum';
 export * from './insight.enum';
 export * from './instagram-media.enum';
+export * from './instagram-oauth-verify-error.enum';
 export * from './integration.enum';
 export * from './job.enum';
 export * from './knowledge-base.enum';
