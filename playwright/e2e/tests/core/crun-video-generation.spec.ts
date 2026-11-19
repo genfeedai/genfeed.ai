@@ -539,6 +539,8 @@ for (const key of [klingKey, veoKey]) {
       await expect(page.getByRole('option', { name: /4s/ })).toBeDisabled();
       await expect(page.getByRole('option', { name: /6s/ })).toBeDisabled();
       await page.keyboard.press('Escape');
+      await expect(durationControl).toHaveAttribute('aria-expanded', 'false');
+      await expect(durationControl).toBeFocused();
       await selectValue(page, 'Resolution', '4k');
       await page
         .getByRole('checkbox', { name: 'Translate prompt', exact: true })
