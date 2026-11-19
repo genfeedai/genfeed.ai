@@ -5,7 +5,6 @@ import { NotFoundException } from '@api/exceptions/not-found.exception';
 import type { ITenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.types';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import { isCloudDeployment } from '@genfeedai/config';
-import { MemberRole } from '@genfeedai/contracts';
 import {
   BRAND_HANDLE_RESERVED_MESSAGE,
   BRAND_HANDLE_TAKEN_MESSAGE,
@@ -13,8 +12,6 @@ import {
 } from '@genfeedai/contracts/constants';
 import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
 import { ConflictException, ForbiddenException } from '@nestjs/common';
-
-export const BRAND_OS_EDIT_ROLES = [MemberRole.OWNER, MemberRole.ADMIN];
 
 /**
  * Resolve a brand inside the caller's session organization, or 404.

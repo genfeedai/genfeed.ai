@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { BrandsModule } from '@api/collections/brands/brands.module';
 import { BrandFontAssetsController } from '@api/collections/brands/controllers/brand-font-assets.controller';
 import { BrandKitController } from '@api/collections/brands/controllers/brand-kit.controller';
+import { BrandKitEditsController } from '@api/collections/brands/controllers/brand-kit-edits.controller';
 import { BrandLutController } from '@api/collections/brands/controllers/brand-lut.controller';
 import { BrandOsRevisionsController } from '@api/collections/brands/controllers/brand-os-revisions.controller';
 import { BrandOsScanController } from '@api/collections/brands/controllers/brand-os-scan.controller';
@@ -68,6 +69,7 @@ describe('Brands split controllers', () => {
     ).toEqual([
       BrandRelocationsController,
       BrandOsRevisionsController,
+      BrandKitEditsController,
       BrandOsScanController,
       BrandFontAssetsController,
       BrandKitController,

@@ -1,5 +1,5 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
-import { BRAND_OS_EDIT_ROLES } from '@api/collections/brands/controllers/brand-access.helpers';
+import { BRAND_OS_EDIT_ROLES } from '@api/collections/brands/constants/brand-os-edit-roles.constant';
 import {
   type UpdateBrandAgentConfigDto,
   UpdateBrandAgentStrategyDto,

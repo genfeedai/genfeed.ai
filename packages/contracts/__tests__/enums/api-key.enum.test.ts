@@ -21,8 +21,8 @@ describe('api-key.enum', () => {
   });
 
   describe('ApiKeyScope', () => {
-    it('should have 29 members', () => {
-      expect(Object.values(ApiKeyScope)).toHaveLength(29);
+    it('should have 30 members', () => {
+      expect(Object.values(ApiKeyScope)).toHaveLength(30);
     });
 
     it('should have correct values', () => {
@@ -31,6 +31,7 @@ describe('api-key.enum', () => {
       expect(ApiKeyScope.VIDEOS_UPDATE).toBe('videos:update');
       expect(ApiKeyScope.VIDEOS_DELETE).toBe('videos:delete');
       expect(ApiKeyScope.BRANDS_WRITE).toBe('brands:write');
+      expect(ApiKeyScope.BRAND_KIT_WRITE).toBe('brand-kit:write');
       expect(ApiKeyScope.IMAGES_READ).toBe('images:read');
       expect(ApiKeyScope.IMAGES_CREATE).toBe('images:create');
       expect(ApiKeyScope.IMAGES_UPDATE).toBe('images:update');

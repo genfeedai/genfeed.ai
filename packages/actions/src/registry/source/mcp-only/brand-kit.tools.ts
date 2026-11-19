@@ -1,7 +1,16 @@
+import {
+  brandFontRolesSchema,
+  brandPaletteSchema,
+} from '@genfeedai/contracts/api-types/contracts/brand-kit-style.contract';
 import type { SourceTool } from '../../../interfaces/source-tool.interface';
 
 const text = { type: 'string' } as const;
 const texts = { type: 'array', items: text } as const;
+const schemaOptions = { io: 'input', target: 'draft-7' } as const;
+const { $schema: _paletteDialect, ...colorPalette } =
+  brandPaletteSchema.toJSONSchema(schemaOptions);
+const { $schema: _fontDialect, ...fontRoles } =
+  brandFontRolesSchema.toJSONSchema(schemaOptions);
 
 export const MCP_BRAND_KIT_TOOLS: SourceTool[] = [
   {
@@ -30,16 +39,9 @@ export const MCP_BRAND_KIT_TOOLS: SourceTool[] = [
             fontFamily: text,
             primaryColor: text,
             secondaryColor: text,
-            colorPalette: {
-              type: 'array',
-              items: {
-                type: 'object',
-                properties: { name: text, hex: text, usage: text },
-                required: ['name', 'hex'],
-              },
-            },
+            colorPalette,
             fontRoles: {
-              type: 'object',
+              ...fontRoles,
               description:
                 'Heading, body and caption assignments using the Brand Kit font role format.',
             },
