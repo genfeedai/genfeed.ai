@@ -255,39 +255,30 @@ describe('TwitterService (coverage)', () => {
       expect(result).toEqual(updated);
     });
 
-    it('saves the same rotated tokens after a transaction start timeout', async () => {
+    it('propagates a failed write without sending another refresh request', async () => {
       const cred = makeCredential({ refreshToken: 'enc-rt' });
-      const updated = makeCredential({ accessToken: 'new-access' });
       credentialsService.findOne.mockResolvedValue(cred);
       mockRefreshOAuth2Token.mockResolvedValue({
         accessToken: 'new-access',
         expiresIn: 7200,
         refreshToken: 'new-refresh',
       });
-      credentialsService.patch
-        .mockRejectedValueOnce(
-          Object.assign(
-            new Error('Unable to start a transaction in the given time.'),
-            {
-              code: 'P2028',
-            },
-          ),
-        )
-        .mockResolvedValueOnce(updated);
+      const error = Object.assign(
+        new Error('Unable to start a transaction in the given time.'),
+        { code: 'P2028' },
+      );
+      credentialsService.patch.mockRejectedValue(error);
 
-      await expect(service.refreshToken('org', 'brand')).resolves.toBe(updated);
+      await expect(service.refreshToken('org', 'brand')).rejects.toBe(error);
 
       expect(mockRefreshOAuth2Token).toHaveBeenCalledTimes(1);
-      expect(credentialsService.patch).toHaveBeenCalledTimes(2);
-      const [firstSave, secondSave] = credentialsService.patch.mock.calls;
-      expect(firstSave).toEqual([
+      expect(credentialsService.patch).toHaveBeenCalledExactlyOnceWith(
         cred.id,
         expect.objectContaining({
           accessToken: 'new-access',
           refreshToken: 'new-refresh',
         }),
-      ]);
-      expect(secondSave).toEqual(firstSave);
+      );
       expect(activitiesService.record).not.toHaveBeenCalled();
     });
 
@@ -397,12 +388,43 @@ describe('TwitterService (coverage)', () => {
   });
 
   describe('refreshToken errors', () => {
+    it('reports an unrelated HTTP 400 safely and keeps the credential connected', async () => {
+      credentialsService.findOne.mockResolvedValue(
+        makeCredential({ refreshToken: 'enc-rt' }),
+      );
+      mockRefreshOAuth2Token.mockRejectedValue(
+        Object.assign(new Error('Sensitive provider error'), {
+          code: 400,
+          data: {
+            error: 'invalid_request',
+            error_description: 'Invalid parameter',
+          },
+        }),
+      );
+
+      await expect(service.refreshToken('org', 'brand')).rejects.toThrow(
+        'X rejected the token refresh request (HTTP 400)',
+      );
+      expect(credentialsService.patch).not.toHaveBeenCalled();
+      expect(activitiesService.record).not.toHaveBeenCalled();
+    });
+
     it.each([
       {
         name: 'invalid_grant',
         error: Object.assign(new Error('Request failed with code 400'), {
           code: 400,
           data: { error: 'invalid_grant', error_description: 'Token revoked' },
+        }),
+      },
+      {
+        name: 'invalid_request for an invalid token',
+        error: Object.assign(new Error('Request failed with code 400'), {
+          code: 400,
+          data: {
+            error: 'invalid_request',
+            error_description: 'Value passed for the token was invalid.',
+          },
         }),
       },
       {
@@ -418,7 +440,9 @@ describe('TwitterService (coverage)', () => {
         credentialsService.findOne.mockResolvedValue(cred);
         mockRefreshOAuth2Token.mockRejectedValue(error);
 
-        await expect(service.refreshToken('org', 'brand')).rejects.toBe(error);
+        await expect(service.refreshToken('org', 'brand')).rejects.toThrow(
+          'X refused the refresh token. Please reconnect your X account.',
+        );
 
         expect(credentialsService.patch).toHaveBeenCalledWith(cred.id, {
           isConnected: false,
@@ -507,7 +531,7 @@ describe('TwitterService (coverage)', () => {
                 kind: 'alert_email',
                 label: '@vincentshipsit',
                 summary:
-                  'X refused to renew the connection (Request failed with code 400). Posts scheduled on this account will fail until you reconnect it.',
+                  'X refused to renew the connection (The OAuth refresh token is no longer valid). Posts scheduled on this account will fail until you reconnect it.',
                 version: 1,
               },
             },
@@ -524,7 +548,7 @@ describe('TwitterService (coverage)', () => {
 
         await expect(
           service.refreshToken('org', 'brand', 'cred-id'),
-        ).rejects.toBe(error);
+        ).rejects.toThrow('Please reconnect your X account.');
 
         expect(credentialsService.patch).toHaveBeenCalledWith('cred-id', {
           isConnected: false,
@@ -542,7 +566,7 @@ describe('TwitterService (coverage)', () => {
 
         await expect(
           service.refreshToken('org', 'brand', 'cred-id'),
-        ).rejects.toBe(error);
+        ).rejects.toThrow('Please reconnect your X account.');
 
         expect(credentialsService.patch).not.toHaveBeenCalled();
         expect(activitiesService.record).not.toHaveBeenCalled();
@@ -1944,7 +1968,7 @@ describe('TwitterService (coverage)', () => {
       expect(mockV2Get).not.toHaveBeenCalled();
     });
 
-    it('preserves disconnect/activity and the original rejected refresh', async () => {
+    it('preserves disconnect activity and gives reconnect guidance after rejection', async () => {
       storeCredential({ accessTokenExpiry: null });
       const error = Object.assign(new Error('refresh failed'), {
         code: 400,
@@ -1952,7 +1976,9 @@ describe('TwitterService (coverage)', () => {
       });
       mockRefreshOAuth2Token.mockRejectedValue(error);
 
-      await expect(readPage()).rejects.toBe(error);
+      await expect(readPage()).rejects.toThrow(
+        'Please reconnect your X account.',
+      );
 
       expect(credentialsService.patch).toHaveBeenCalledWith('cred-id', {
         isConnected: false,

@@ -190,13 +190,19 @@ describe('YoutubeAuthService.refreshToken', () => {
     expect(credentials[0].isConnected).toBe(false);
   });
 
-  it('disconnects a credential whose refresh token cannot be decrypted', async () => {
+  it('keeps the channel connected when a refresh token cannot be decrypted', async () => {
+    const refreshToken = EncryptionUtil.encrypt(REFRESH_TOKEN).replace(
+      /^./,
+      (first) => (first === '0' ? '1' : '0'),
+    );
     const { credentials, service } = setup({
-      credentials: [credential({ refreshToken: 'not-a-ciphertext' })],
+      credentials: [credential({ refreshToken })],
     });
 
-    await expect(service.refreshToken(orgId, brandId)).rejects.toThrow();
-    expect(credentials[0].isConnected).toBe(false);
+    await expect(service.refreshToken(orgId, brandId)).rejects.toThrow(
+      'Could not decrypt the YouTube refresh token',
+    );
+    expect(credentials[0].isConnected).toBe(true);
     expect(credentials[0]).not.toHaveProperty('accessToken');
   });
 
@@ -236,15 +242,15 @@ describe('YoutubeAuthService.refreshToken', () => {
     expect(credentials[0].isConnected).toBe(false);
   });
 
-  it('rethrows any other refresh failure and disconnects', async () => {
+  it('keeps the channel connected after a transient refresh failure', async () => {
     const { credentials, service } = setup({
       googleError: new Error('Network timeout'),
     });
 
     await expect(service.refreshToken(orgId, brandId)).rejects.toThrow(
-      'Network timeout',
+      'YouTube token refresh failed',
     );
-    expect(credentials[0].isConnected).toBe(false);
+    expect(credentials[0].isConnected).toBe(true);
   });
 
   it('fails when Google returns no access token', async () => {
@@ -255,7 +261,7 @@ describe('YoutubeAuthService.refreshToken', () => {
     await expect(service.refreshToken(orgId, brandId)).rejects.toThrow(
       'Failed to obtain access token from refresh',
     );
-    expect(credentials[0].isConnected).toBe(false);
+    expect(credentials[0].isConnected).toBe(true);
     expect(credentials[0]).not.toHaveProperty('accessToken');
   });
 
