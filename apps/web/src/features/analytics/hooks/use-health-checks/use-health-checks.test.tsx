@@ -139,7 +139,43 @@ describe('useHealthChecks', () => {
     );
   });
 
-  it('re-runs checks when runHealthChecks is called again', async () => {
+  it.each([ServiceHealthStatus.HEALTHY, ServiceHealthStatus.DEGRADED])(
+    'keeps a cached %s result out of a new observer during its first request',
+    async (cachedStatus) => {
+      fetchMock.mockResolvedValue(
+        createFetchResponse({ ok: true, payload: { status: cachedStatus } }),
+      );
+      const original = renderHook(() => useHealthChecks(), { wrapper });
+      await waitFor(() => {
+        expect(original.result.current.healthCheckedAt).not.toBeNull();
+      });
+
+      let finishCheck!: (response: Response) => void;
+      fetchMock.mockReturnValue(
+        new Promise<Response>((resolve) => {
+          finishCheck = resolve;
+        }),
+      );
+      const current = renderHook(() => useHealthChecks(), { wrapper });
+
+      expect(current.result.current.healthCheckedAt).toBeNull();
+      expect(current.result.current.healthAlertMessage).toBeNull();
+      expect(original.result.current.apiStatus).toBe(cachedStatus);
+      expect(fetchMock).toHaveBeenCalledTimes(4);
+
+      await act(async () => {
+        finishCheck(createFetchResponse({ ok: false }));
+      });
+      await waitFor(() => {
+        expect(current.result.current.apiStatus).toBe(
+          ServiceHealthStatus.UNHEALTHY,
+        );
+      });
+      expect(current.result.current.healthCheckedAt).not.toBeNull();
+    },
+  );
+
+  it('preserves the current snapshot while a manual retry is pending', async () => {
     fetchMock.mockResolvedValue(
       createFetchResponse({
         ok: true,
@@ -153,10 +189,25 @@ describe('useHealthChecks', () => {
       expect(result.current.healthCheckedAt).not.toBeNull();
     });
 
-    fetchMock.mockResolvedValue(createFetchResponse({ ok: false }));
+    const checkedAt = result.current.healthCheckedAt;
+    let finishCheck!: (response: Response) => void;
+    fetchMock.mockReturnValue(
+      new Promise<Response>((resolve) => {
+        finishCheck = resolve;
+      }),
+    );
+    let retry: Promise<void> | undefined;
+    act(() => {
+      retry = result.current.runHealthChecks();
+    });
+
+    expect(result.current.healthCheckedAt).toBe(checkedAt);
+    expect(result.current.apiStatus).toBe(ServiceHealthStatus.HEALTHY);
+    expect(result.current.healthAlertMessage).toBeNull();
 
     await act(async () => {
-      await result.current.runHealthChecks();
+      finishCheck(createFetchResponse({ ok: false }));
+      await retry;
     });
 
     await waitFor(() => {

@@ -61,9 +61,8 @@ async function fetchHealthStatus(
 }
 
 export function useHealthChecks(): UseHealthChecksReturn {
-  // Every mount checks again: the status of a minute ago is never shown as the
-  // current one, so nothing is kept after the last subscriber leaves.
-  const { data, refetch } = useQuery<HealthSnapshot>({
+  // Every observer checks on mount, and the cache expires with the last one.
+  const { data, isFetchedAfterMount, refetch } = useQuery<HealthSnapshot>({
     gcTime: 0,
     // A browser that reports itself offline still records the failed check.
     networkMode: 'always',
@@ -84,10 +83,11 @@ export function useHealthChecks(): UseHealthChecksReturn {
     refetchOnWindowFocus: false,
     retry: false,
   });
-  const apiStatus = data?.apiStatus ?? ServiceHealthStatus.HEALTHY;
+  const snapshot = isFetchedAfterMount ? data : undefined;
+  const apiStatus = snapshot?.apiStatus ?? ServiceHealthStatus.HEALTHY;
   const notificationsStatus =
-    data?.notificationsStatus ?? ServiceHealthStatus.HEALTHY;
-  const healthCheckedAt = data?.checkedAt ?? null;
+    snapshot?.notificationsStatus ?? ServiceHealthStatus.HEALTHY;
+  const healthCheckedAt = snapshot?.checkedAt ?? null;
 
   const runHealthChecks = useCallback(async (): Promise<void> => {
     await refetch();
