@@ -40,6 +40,7 @@ function targetFailure(
 /** Public post preview identity; credentials and storage keys never cross this boundary. */
 export function serializeAgentPost(
   post: Record<string, unknown>,
+  generationReceipt?: { receiptId: string; receiptState: string },
 ): Record<string, unknown> {
   const credential = record(post.credential);
   const platform = publicText(credential.platform);
@@ -118,6 +119,7 @@ export function serializeAgentPost(
     media,
     platform: post.platform ?? null,
     publishedAt: post.publishedAt ?? null,
+    ...generationReceipt,
     // The release (post group) that get_scheduled_release,
     // update_scheduled_release and control_scheduled_release accept.
     releaseId: typeof post.groupId === 'string' ? post.groupId : null,

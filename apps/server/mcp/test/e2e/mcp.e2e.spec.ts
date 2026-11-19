@@ -254,6 +254,27 @@ describe('MCP server e2e', () => {
     expect(upstreamPaths()).not.toContain('POST /v1/mcp-approvals');
   });
 
+  it('directs clients to attach media to the draft returned by generate_content', async () => {
+    const token = E2E_TOKENS.ownerWithAdminScope;
+    const { body: session } = await mcp.initialize(token);
+    const { body: createPost } = await mcp.callTool(token, 'find_tools', {
+      name: 'create_post',
+    });
+    const { body: generateContent } = await mcp.callTool(token, 'find_tools', {
+      name: 'generate_content',
+    });
+
+    expect(session.result?.instructions).toContain(
+      'create_post with its postId',
+    );
+    expect(createPost.result?.structuredContent?.tool).toMatchObject({
+      inputSchema: { properties: { postId: { type: 'string' } } },
+    });
+    expect(generateContent.result?.structuredContent?.tool).toMatchObject({
+      description: expect.stringContaining('save a draft'),
+    });
+  });
+
   describe('6. get_orgs', () => {
     it('lists every organization of the user and flags the one the token is bound to', async () => {
       const { body } = await mcp.callTool(

@@ -660,6 +660,21 @@ MCP gives an agent Genfeed's tools; [Agent Skills](/skills) give it the content
 knowledge to use them well. Install the catalog with
 `bunx skills add genfeedai/skills`.
 
+## Add Library media to generated copy
+
+1. Select a brand with `get_brands`. Call `generate_content` for social copy.
+   It saves a reviewable draft and returns `postId`, `content`, and `receiptId`
+   in `structuredContent.data`.
+2. Find a hosted Library image or video URL with `get_assets` or `upload_media`.
+   Call `create_post` with the returned `postId`, the same `brandId`, and the
+   URLs in `mediaUrls`. This updates the original draft's media in the order
+   supplied and keeps its text, title, visibility, and generation receipt.
+3. Call `get_posts` with the same `postId` to read back the draft, including
+   its media and `receiptId`. Retrying the attachment updates the same draft.
+
+If the draft is unavailable to edit or the media fails validation, the call
+fails. Omit `postId` to create a new draft from supplied text or Library media.
+
 ## Uploading local media
 
 The default MCP profile includes `upload_media` and `get_posts`. Select a brand before reserving an upload.

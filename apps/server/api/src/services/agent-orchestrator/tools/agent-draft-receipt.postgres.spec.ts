@@ -2,10 +2,15 @@ import { randomUUID } from 'node:crypto';
 import { AgentArtifactReferenceService } from '@api/agent-artifacts/agent-artifact-reference.service';
 import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
 import type { OnboardingCreditGrantsService } from '@api/collections/credits/services/onboarding-credit-grants.service';
+import { readPostGenerationReceipts } from '@api/collections/posts/services/post-generation-receipts.read';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { AgentCompletionCardBuilderService } from '@api/services/agent-orchestrator/agent-completion-card-builder.service';
 import { AgentOrchestratorUiActionFinalizerService } from '@api/services/agent-orchestrator/agent-orchestrator-ui-action-finalizer.service';
-import { createAgentTextDraft } from '@api/services/agent-orchestrator/tools/agent-publish-post-actions';
+import type { DraftMediaLookup } from '@api/services/agent-orchestrator/tools/agent-publish-draft-media.util';
+import {
+  attachGeneratedDraftMedia,
+  createAgentTextDraft,
+} from '@api/services/agent-orchestrator/tools/agent-publish-post-actions';
 import { AgentRouteRewriteService } from '@api/services/agent-orchestrator/tools/agent-route-rewrite.service';
 import { buildMutationApprovalCard } from '@api/services/agent-orchestrator/tools/mutation-approval-card';
 import { buildApprovedMutationOutcome } from '@api/services/agent-orchestrator/tools/mutation-approval-outcome';
@@ -47,6 +52,134 @@ describe.skipIf(!connectionString)(
     } as unknown as LoggerService;
     afterAll(async () => {
       await prisma?.$disconnect();
+    });
+
+    it('attaches Library media and preserves the generated draft and copy receipt on retry', async () => {
+      const db = database();
+      const requestKey = randomUUID();
+      const user = await db.user.create({
+        data: { handle: `attachment-${requestKey}` },
+      });
+      const organization = await db.organization.create({
+        data: {
+          label: 'Attachment fixture',
+          slug: `attachment-${requestKey}`,
+          userId: user.id,
+        },
+      });
+      const brand = await db.brand.create({
+        data: {
+          label: 'Attachment brand',
+          slug: `attachment-${requestKey}`,
+          organizationId: organization.id,
+        },
+      });
+      const scope = {
+        brandId: brand.id,
+        organizationId: organization.id,
+        userId: user.id,
+      };
+      const posts = new PostsService(
+        db as unknown as PrismaService,
+        logger,
+        {} as OnboardingCreditGrantsService,
+      );
+      const draft = await posts.create({
+        ...scope,
+        description: 'The original generated copy.',
+        ingredients: [],
+        label: 'Generated draft',
+        sourceActionId: requestKey,
+      });
+      const receiptFields = {
+        actorId: user.id,
+        brandId: brand.id,
+        candidateIndex: 0,
+        id: randomUUID(),
+        isDeleted: false,
+        mode: 'provisional_brand',
+        organizationId: organization.id,
+        requestHash: `sha256:${'0'.repeat(64)}`,
+        requestKey,
+        revision: 0,
+        state: 'needs_review',
+        surface: 'agent',
+      };
+      const timestamp = new Date();
+      const projection = {
+        ...receiptFields,
+        artifact: { id: draft.id, kind: 'post' },
+        createdAt: timestamp.toISOString(),
+        updatedAt: timestamp.toISOString(),
+      };
+      const receipt = await db.$transaction(async (tx) => {
+        const savedReceipt = await tx.brandedGenerationReceipt.create({
+          data: {
+            ...receiptFields,
+            createdAt: timestamp,
+            updatedAt: timestamp,
+            projection,
+          },
+        });
+        await tx.brandedGenerationReceiptEvent.create({
+          data: {
+            actorId: user.id,
+            brandId: brand.id,
+            operationHash: receiptFields.requestHash,
+            operationKey: 'create',
+            organizationId: organization.id,
+            projection,
+            receiptId: savedReceipt.id,
+            revision: 0,
+            type: 'create',
+          },
+        });
+        return savedReceipt;
+      });
+      const image = await db.ingredient.create({
+        data: { ...scope, category: 'IMAGE', status: 'UPLOADED' },
+      });
+      const args = {
+        brandId: brand.id,
+        content: 'Keep the draft copy instead.',
+        mediaUrls: [`https://cdn.test/ingredients/images/${image.id}`],
+        postId: draft.id,
+      };
+      const ingredients: DraftMediaLookup = {
+        findOne: (where) => db.ingredient.findFirst({ where }),
+      };
+
+      await expect(
+        attachGeneratedDraftMedia(posts, args, scope, ingredients),
+      ).resolves.toMatchObject({ data: { id: draft.id }, success: true });
+      await expect(
+        attachGeneratedDraftMedia(posts, args, scope, ingredients),
+      ).resolves.toMatchObject({ data: { id: draft.id }, success: true });
+      const saved = await db.post.findMany({
+        where: { organizationId: organization.id, isDeleted: false },
+        include: { ingredientLinks: true },
+      });
+      expect(saved).toMatchObject([
+        {
+          id: draft.id,
+          description: 'The original generated copy.',
+          label: 'Generated draft',
+          targetExecutionState: 'draft',
+          ingredientLinks: [{ ingredientId: image.id, position: 0 }],
+        },
+      ]);
+      expect(
+        await readPostGenerationReceipts(db, organization.id, saved),
+      ).toEqual(
+        new Map([
+          [draft.id, { receiptId: receipt.id, receiptState: 'needs_review' }],
+        ]),
+      );
+      expect(
+        await db.brandedGenerationReceipt.findUnique({
+          where: { id: receipt.id },
+        }),
+      ).toEqual(receipt);
     });
 
     it.each([

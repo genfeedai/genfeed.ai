@@ -24,6 +24,7 @@ import {
 } from '@api/collections/posts/services/post-ingredient-links.util';
 import {
   createPostChildWithLearning,
+  type GeneratedDraftEditScope,
   type PostLearningMutationContext,
   patchPostWithLearning,
   removePostWithLearning,
@@ -339,6 +340,7 @@ export class PostsService extends BaseService<
       PopulatePatterns.userMinimal,
       PopulatePatterns.brandMinimal,
     ],
+    draftScope?: GeneratedDraftEditScope,
   ): Promise<PostDocument> {
     if (!id) throw new ValidationException('Document ID is required');
     if (!dto || typeof dto !== 'object')
@@ -352,6 +354,7 @@ export class PostsService extends BaseService<
           dto,
           populate,
           fenceScope,
+          draftScope,
         ),
       ),
     );

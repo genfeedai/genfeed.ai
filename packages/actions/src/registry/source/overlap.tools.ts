@@ -17,7 +17,7 @@ export const OVERLAP_TOOLS: SourceTool[] = [
     description:
       'Create a post draft from supplied text for review. On MCP this never publishes or schedules: confirmed and existing-content publishing are rejected, and scheduledAt is ignored. Use create_scheduled_release for release drafts or approval-gated scheduling. Existing-content publishing is available only in the Genfeed app.',
     mcpDescription:
-      'Create a reviewable post draft from supplied text or media; never publishes or schedules. Publishing/scheduling requires a scheduled release and approval.',
+      'Create a reviewable post draft from supplied text or media. To attach Library media to a draft saved by generate_content, pass its postId, the same brandId, and mediaUrls. This keeps its text and generation receipt and replaces its media in the supplied order. Publishing and scheduling require a scheduled release and approval.',
     mcpHiddenParameters: [
       'caption',
       'confirmed',
@@ -69,7 +69,7 @@ export const OVERLAP_TOOLS: SourceTool[] = [
         },
         mediaUrls: {
           description:
-            'Library media URLs for a standalone draft post (the hosted url of an uploaded or generated asset), in slide order. A URL that is not a Library asset fails the call.',
+            'Hosted Library asset URLs in slide order. Required when passing postId; the list becomes that draft’s media.',
           items: { type: 'string' },
           type: 'array',
         },
@@ -83,6 +83,12 @@ export const OVERLAP_TOOLS: SourceTool[] = [
             type: 'string',
           },
           type: 'array',
+        },
+        postId: {
+          description:
+            'MCP only. The draft postId returned by generate_content. Pass the same brandId and mediaUrls. Existing text, title, and visibility are kept. An unavailable draft fails the call.',
+          minLength: 1,
+          type: 'string',
         },
         postingSetId: {
           type: 'string',
