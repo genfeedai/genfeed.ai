@@ -168,12 +168,6 @@
     "symbol": "StripeService.createPaymentSession"
   },
   {
-    "actual": 152,
-    "file": "apps/server/api/src/services/integrations/youtube/services/modules/youtube-auth.service.ts",
-    "metric": "method-lines",
-    "symbol": "YoutubeAuthService.refreshToken"
-  },
-  {
     "actual": 184,
     "file": "apps/server/api/src/services/prompt-builder/prompt-builder.service.ts",
     "metric": "method-lines",

@@ -47,8 +47,7 @@ import {
   toPrismaCredentialPlatform,
 } from '@genfeedai/contracts';
 import { isReservedExternalConnectionOAuthState } from '@genfeedai/helpers/integrations/external-connection-request.helper';
-import type { Prisma } from '@genfeedai/prisma';
-import { TagCategory as PrismaTagCategory } from '@genfeedai/prisma';
+import { type Prisma, TagCategory } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getTenantContext } from '@libs/prisma/tenant-context';
 import { Traced } from '@libs/tracing/traced';
@@ -803,7 +802,7 @@ export class CredentialsService
             backgroundColor: createTagDto.backgroundColor,
           }),
           brandId: credential.brandId,
-          category: PrismaTagCategory.CREDENTIAL,
+          category: TagCategory.CREDENTIAL,
           ...(createTagDto.description !== undefined && {
             description: createTagDto.description,
           }),
