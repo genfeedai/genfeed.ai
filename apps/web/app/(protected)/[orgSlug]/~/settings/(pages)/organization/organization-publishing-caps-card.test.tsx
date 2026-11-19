@@ -1,23 +1,25 @@
 import '@testing-library/jest-dom/vitest';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import type { ReactNode } from 'react';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import OrganizationPublishingCapsCard from './organization-publishing-caps-card';
 
 const mocks = vi.hoisted(() => ({
-  getOrganizationsService: vi.fn(),
-  loggerError: vi.fn(),
   notificationsError: vi.fn(),
   notificationsSuccess: vi.fn(),
   organizationId: 'org-1',
-  patchSettings: vi.fn(),
-  refresh: vi.fn(),
+  updateSettings: vi.fn(),
   settings: {
     quotaInstagram: 5,
     quotaTiktok: 1,
     quotaTwitter: 15,
     quotaYoutube: 5,
-  } as Record<string, unknown>,
+  } as Record<string, number>,
 }));
 
 vi.mock('next-intl', async () => {
@@ -31,21 +33,11 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
   }),
 }));
 
-vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: () => mocks.getOrganizationsService,
-}));
-
 vi.mock('@/hooks/data/organization/use-organization/use-organization', () => ({
   useOrganization: () => ({
-    refresh: mocks.refresh,
     settings: mocks.settings,
+    updateSettings: mocks.updateSettings,
   }),
-}));
-
-vi.mock('@services/core/logger.service', () => ({
-  logger: {
-    error: mocks.loggerError,
-  },
 }));
 
 vi.mock('@services/core/notifications.service', () => ({
@@ -57,33 +49,6 @@ vi.mock('@services/core/notifications.service', () => ({
   },
 }));
 
-vi.mock('@ui/card/Card', () => ({
-  default: ({ children, label }: { children: ReactNode; label?: string }) => (
-    <section>
-      {label ? <h2>{label}</h2> : null}
-      {children}
-    </section>
-  ),
-}));
-
-vi.mock('@ui/primitives/button', () => ({
-  Button: ({
-    children,
-    isDisabled,
-    onClick,
-    type = 'button',
-  }: {
-    children: ReactNode;
-    isDisabled?: boolean;
-    onClick?: () => void;
-    type?: 'button' | 'submit';
-  }) => (
-    <button type={type} disabled={isDisabled} onClick={onClick}>
-      {children}
-    </button>
-  ),
-}));
-
 describe('OrganizationPublishingCapsCard', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -93,11 +58,11 @@ describe('OrganizationPublishingCapsCard', () => {
       quotaTwitter: 15,
       quotaYoutube: 5,
     };
-    mocks.patchSettings.mockResolvedValue({});
-    mocks.refresh.mockResolvedValue(undefined);
-    mocks.getOrganizationsService.mockResolvedValue({
-      patchSettings: mocks.patchSettings,
-    });
+    mocks.updateSettings
+      .mockReset()
+      .mockImplementation(async (key: string, value: number) => {
+        mocks.settings = { ...mocks.settings, [key]: value };
+      });
   });
 
   it('renders a cap field per platform seeded from organization settings', () => {
@@ -115,78 +80,138 @@ describe('OrganizationPublishingCapsCard', () => {
     expect(screen.getByLabelText('TikTok')).toHaveValue(1);
   });
 
-  it('saves every cap as a number and refreshes settings', async () => {
+  it('puts the help text directly below the heading', () => {
     render(<OrganizationPublishingCapsCard />);
 
-    fireEvent.change(screen.getByLabelText('X'), { target: { value: '48' } });
-    fireEvent.change(screen.getByLabelText('TikTok'), {
-      target: { value: '0' },
-    });
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Save publishing caps' }),
-    );
-
-    await waitFor(() => {
-      expect(mocks.patchSettings).toHaveBeenCalledWith('org-1', {
-        quotaInstagram: 5,
-        quotaTiktok: 0,
-        quotaTwitter: 48,
-        quotaYoutube: 5,
-      });
-    });
-    expect(mocks.refresh).toHaveBeenCalledTimes(1);
-    expect(mocks.notificationsSuccess).toHaveBeenCalledWith(
-      'Publishing caps saved',
+    expect(
+      screen.getByRole('heading', { name: 'Daily publishing caps' })
+        .parentElement?.nextElementSibling,
+    ).toHaveTextContent(
+      'Max published posts per connected account per UTC day.',
     );
   });
 
-  it('rejects a cap above the maximum without calling the API', async () => {
+  it('saves only the edited field on blur and ignores an unchanged field', async () => {
     render(<OrganizationPublishingCapsCard />);
 
-    fireEvent.change(screen.getByLabelText('X'), {
-      target: { value: '1001' },
-    });
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Save publishing caps' }),
-    );
+    fireEvent.blur(screen.getByLabelText('Instagram'));
+    const tiktok = screen.getByLabelText('TikTok');
+    fireEvent.change(tiktok, { target: { value: '0' } });
+    expect(mocks.updateSettings).not.toHaveBeenCalled();
+    fireEvent.blur(tiktok);
 
     await waitFor(() => {
-      expect(mocks.notificationsError).toHaveBeenCalledWith(
-        'Each cap must be a whole number between 0 and 1000.',
+      expect(mocks.updateSettings).toHaveBeenCalledExactlyOnceWith(
+        'quotaTiktok',
+        0,
       );
+      expect(mocks.notificationsSuccess).toHaveBeenCalled();
     });
-    expect(mocks.patchSettings).not.toHaveBeenCalled();
   });
 
-  it('rejects an empty cap without calling the API', async () => {
+  it('saves on Enter via blur', async () => {
     render(<OrganizationPublishingCapsCard />);
 
-    fireEvent.change(screen.getByLabelText('Instagram'), {
-      target: { value: '' },
-    });
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Save publishing caps' }),
-    );
+    const twitter = screen.getByLabelText('X');
+    twitter.focus();
+    fireEvent.change(twitter, { target: { value: '48' } });
+    fireEvent.keyDown(twitter, { key: 'Enter' });
 
-    await waitFor(() => {
-      expect(mocks.notificationsError).toHaveBeenCalled();
-    });
-    expect(mocks.patchSettings).not.toHaveBeenCalled();
+    await waitFor(() =>
+      expect(mocks.updateSettings).toHaveBeenCalledExactlyOnceWith(
+        'quotaTwitter',
+        48,
+      ),
+    );
   });
 
-  it('reports a failed save', async () => {
-    mocks.patchSettings.mockRejectedValueOnce(new Error('boom'));
+  it.each(['', '1001'])('keeps invalid edits local (%j)', (value) => {
     render(<OrganizationPublishingCapsCard />);
 
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Save publishing caps' }),
-    );
+    const field = screen.getByLabelText('X');
+    fireEvent.change(field, { target: { value } });
+    fireEvent.blur(field);
 
+    expect(mocks.notificationsError).toHaveBeenCalledWith(
+      'Each cap must be a whole number between 0 and 1000.',
+    );
+    expect(mocks.updateSettings).not.toHaveBeenCalled();
+  });
+
+  it('keeps other inputs editable and serializes concurrent edits', async () => {
+    let finishSave: (() => void) | undefined;
+    mocks.updateSettings.mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          finishSave = resolve;
+        }),
+    );
+    render(<OrganizationPublishingCapsCard />);
+
+    const twitter = screen.getByLabelText('X');
+    fireEvent.change(twitter, { target: { value: '48' } });
+    fireEvent.blur(twitter);
+    await waitFor(() => expect(mocks.updateSettings).toHaveBeenCalledTimes(1));
+
+    const tiktok = screen.getByLabelText('TikTok');
+    expect(tiktok).toBeEnabled();
+    fireEvent.change(tiktok, { target: { value: '8' } });
+    fireEvent.blur(tiktok);
+    expect(mocks.updateSettings).toHaveBeenCalledTimes(1);
+
+    await act(async () => finishSave?.());
     await waitFor(() => {
+      expect(mocks.updateSettings.mock.calls).toEqual([
+        ['quotaTwitter', 48],
+        ['quotaTiktok', 8],
+      ]);
+    });
+  });
+
+  it('saves a revert when the prior edit is still in flight', async () => {
+    let finishSave: (() => void) | undefined;
+    mocks.updateSettings.mockImplementationOnce(
+      (key: string, value: number) =>
+        new Promise<void>((resolve) => {
+          finishSave = () => {
+            mocks.settings = { ...mocks.settings, [key]: value };
+            resolve();
+          };
+        }),
+    );
+    render(<OrganizationPublishingCapsCard />);
+
+    const tiktok = screen.getByLabelText('TikTok');
+    fireEvent.change(tiktok, { target: { value: '8' } });
+    fireEvent.blur(tiktok);
+    await waitFor(() => expect(mocks.updateSettings).toHaveBeenCalledTimes(1));
+
+    fireEvent.change(tiktok, { target: { value: '1' } });
+    fireEvent.blur(tiktok);
+    await act(async () => finishSave?.());
+
+    expect(mocks.updateSettings.mock.calls).toEqual([
+      ['quotaTiktok', 8],
+      ['quotaTiktok', 1],
+    ]);
+    expect(tiktok).toHaveValue(1);
+  });
+
+  it('retains a failed edit for another blur', async () => {
+    mocks.updateSettings.mockRejectedValueOnce(new Error('boom'));
+    render(<OrganizationPublishingCapsCard />);
+
+    const tiktok = screen.getByLabelText('TikTok');
+    fireEvent.change(tiktok, { target: { value: '8' } });
+    fireEvent.blur(tiktok);
+
+    await waitFor(() =>
       expect(mocks.notificationsError).toHaveBeenCalledWith(
         'Failed to save publishing caps',
-      );
-    });
-    expect(mocks.refresh).not.toHaveBeenCalled();
+      ),
+    );
+    expect(tiktok).toHaveValue(8);
+    fireEvent.blur(tiktok);
+    await waitFor(() => expect(mocks.updateSettings).toHaveBeenCalledTimes(2));
   });
 });
