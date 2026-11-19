@@ -939,7 +939,11 @@ describe('WebhooksService', () => {
           isDeleted: false,
           status: IngredientStatus.PROCESSING,
         },
-        { status: IngredientStatus.FAILED, isGenerationFailureConfirmed: true },
+        {
+          status: IngredientStatus.FAILED,
+          isGenerationFailureConfirmed: true,
+          generationError: errorMessage,
+        },
       );
     });
 
@@ -959,7 +963,11 @@ describe('WebhooksService', () => {
           isDeleted: false,
           status: IngredientStatus.PROCESSING,
         },
-        { status: IngredientStatus.FAILED, isGenerationFailureConfirmed: true },
+        {
+          status: IngredientStatus.FAILED,
+          isGenerationFailureConfirmed: true,
+          generationError: errorMessage,
+        },
       );
       expect(
         postProcessingOrchestrator.notifyBotGatewayFailureIfNeeded,
