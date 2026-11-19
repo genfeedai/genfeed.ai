@@ -211,6 +211,15 @@ Judgment, no check: one PR per change, no new env vars, name the root cause, CI 
 - Some `packages/*` folders are mirrors of published `@genfeedai/*` packages and may be dist-only.
 - If tests cannot resolve a published `@genfeedai/*` package, fix the alias or package entry resolution first.
 
+## Gardener Rule
+
+Tend the monorepo, and every other Genfeed repository, like a garden: tell the good plants from the weeds.
+
+- Before adding a feature, package or other new brick, check it has clear boundaries, so it can be updated, upgraded, refactored or taken out of the monorepo cleanly later.
+- Prefer isolated packages with an explicit public API over cross-imports into another package's internals.
+- Remove weeds as you find them: delete dead code instead of letting it pile up.
+- Keep the i18n gate strict: a cleanup PR deletes the strings and baseline entries for the code it removes.
+
 ## Optimization and Evidence Policy
 
 - Never describe a change as "best" or "optimized" without repo-specific justification.
