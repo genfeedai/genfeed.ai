@@ -26,10 +26,10 @@ describe('curated action catalog', () => {
     },
   );
   it('retains internal targets while listing only the two consolidated MCP envelopes', () => {
-    expect(ALL_TOOLS).toHaveLength(247);
-    expect(ALL_TOOLS.filter((tool) => tool.surfaces.mcp)).toHaveLength(173);
+    expect(ALL_TOOLS).toHaveLength(248);
+    expect(ALL_TOOLS.filter((tool) => tool.surfaces.mcp)).toHaveLength(176);
     const listed = getToolsForSurface('mcp').map((tool) => tool.name);
-    expect(listed).toHaveLength(169);
+    expect(listed).toHaveLength(172);
     expect(listed).toContain('check_channel');
     expect(listed).toContain('upload_media');
     for (const name of [
@@ -162,13 +162,11 @@ describe('curated action catalog', () => {
     ]);
   });
 
-  it('reviews the agent-only ad remix, brand voice, and workflow input actions', () => {
+  it('reviews the agent-only ad remix and workflow input actions', () => {
     for (const name of [
-      'draft_brand_voice_profile',
       'generate_ad_pack',
       'get_workflow_inputs',
       'prepare_ad_launch_review',
-      'save_brand_voice_profile',
     ]) {
       const tool = getToolByName(name);
       expect(tool, name).toBeDefined();

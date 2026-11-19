@@ -1,7 +1,7 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { API_KEY_POST_READ_SCOPES } from '@api/helpers/utils/auth/api-key-publishing-scope.util';
-import { isReadOnlyToolName } from '@genfeedai/actions';
-import { hasExplicitApiKeyAdminScope } from '@genfeedai/contracts';
+import { getToolByName, isReadOnlyToolName } from '@genfeedai/actions';
+import { ApiKeyScope, hasExplicitApiKeyAdminScope } from '@genfeedai/contracts';
 import { API_KEY_PERMISSION_GROUPS } from '@genfeedai/contracts/constants';
 import { ForbiddenException } from '@nestjs/common';
 
@@ -92,7 +92,10 @@ export function assertApiKeyAgentToolBaselineAccess(
   if (user.isApiKey !== true) {
     return;
   }
-  const toolScopes = AGENT_TOOL_READ_SCOPES[toolName];
+  const toolScopes =
+    getToolByName(toolName)?.toolset === 'brand-kit'
+      ? [ApiKeyScope.BRAND_KIT_WRITE, ApiKeyScope.BRANDS_WRITE]
+      : AGENT_TOOL_READ_SCOPES[toolName];
   if (toolScopes) {
     if (toolScopes.some((scope) => user.scopes?.includes(scope))) {
       return;

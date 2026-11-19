@@ -17,39 +17,6 @@ const {
   mockGetSubscriptionTier: vi.fn(),
 }));
 
-vi.mock('@genfeedai/contracts', () => ({
-  MemberRole: {
-    ADMIN: 'admin',
-    ANALYTICS: 'analytics',
-    CREATOR: 'creator',
-    OWNER: 'owner',
-    SUPPORT: 'support',
-    USER: 'user',
-  },
-  SubscriptionStatus: {
-    ACTIVE: 'ACTIVE',
-    CANCELLED: 'CANCELLED',
-    PAST_DUE: 'PAST_DUE',
-    TRIALING: 'TRIALING',
-  },
-  SubscriptionTier: {
-    BYOK: 'byok',
-    CREATOR: 'creator',
-    ENTERPRISE: 'enterprise',
-    FREE: 'free',
-    SCALE: 'scale',
-  },
-  subscriptionStatusFromStripe: (status: string | null | undefined) => {
-    const normalized = String(status ?? '')
-      .replace(/-/g, '_')
-      .toUpperCase();
-    if (normalized === 'CANCELED' || normalized === 'CANCELLED') {
-      return 'CANCELLED';
-    }
-    return normalized || 'INCOMPLETE';
-  },
-}));
-
 vi.mock('@api/collections/brands/services/brands.service', () => ({
   BrandsService: class BrandsService {},
 }));

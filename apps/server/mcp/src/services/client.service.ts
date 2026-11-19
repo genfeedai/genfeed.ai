@@ -19,6 +19,7 @@ import { AdsClient } from '@mcp/services/client/ads.client';
 import { AgentClient } from '@mcp/services/client/agent.client';
 import { AnalyticsClient } from '@mcp/services/client/analytics.client';
 import { BaseApiClient } from '@mcp/services/client/base-api-client';
+import { BrandKitClient } from '@mcp/services/client/brand-kit.client';
 import { CampaignClient } from '@mcp/services/client/campaign.client';
 import type {
   AdsGatewayInsightsParams,
@@ -138,6 +139,7 @@ export class ClientService {
   private readonly clipper: ClipperClient;
   private readonly editor: EditorClient;
   readonly workspaceApp: WorkspaceAppClient;
+  readonly brandKit: BrandKitClient;
   /** The scheduler proxy; release batches (#10134) call it directly. */
   readonly scheduler: SchedulerClient;
   private readonly campaigns: CampaignClient;
@@ -166,6 +168,7 @@ export class ClientService {
     this.clipper = new ClipperClient(this.base);
     this.editor = new EditorClient(this.base);
     this.workspaceApp = new WorkspaceAppClient(this.base);
+    this.brandKit = new BrandKitClient(this.base);
     this.scheduler = new SchedulerClient(this.base);
     this.campaigns = new CampaignClient(this.base);
     this.presets = new PresetsClient(this.base);

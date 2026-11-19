@@ -82,6 +82,23 @@ describe('MCP toolset profiles', () => {
     expect(listed.map((tool) => tool.name)).not.toContain('transform_media');
   });
 
+  it('keeps Brand Kit edits in an opt-in toolset', () => {
+    const edits = [
+      'draft_brand_voice_profile',
+      'manage_brand_kit',
+      'save_brand_voice_profile',
+    ];
+    const selected = getToolsForToolsets('mcp', ['brand-kit']).map(
+      ({ name }) => name,
+    );
+    const studio = getToolsForToolsets('mcp', STUDIO_MCP_PROFILE_TOOLSETS).map(
+      ({ name }) => name,
+    );
+    expect(selected).toEqual(expect.arrayContaining(edits));
+    expect(studio.filter((name) => edits.includes(name))).toEqual([]);
+    expect(edits.filter((name) => CLAUDE_MCP_TOOL_NAMES.has(name))).toEqual([]);
+  });
+
   it('adds brand and analytics to the default for the studio profile', () => {
     expect(STUDIO_MCP_PROFILE_TOOLSETS).toEqual([
       ...DEFAULT_MCP_PROFILE_TOOLSETS,

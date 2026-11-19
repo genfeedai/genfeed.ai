@@ -35,7 +35,12 @@ export const BRAND_VOICE_PROFILE_SCHEMA = closedObjectSchema({
     ),
   }),
   sampleOutput: STRING_SCHEMA,
-  strategy: closedObjectSchema({ goals: strings, topics: strings }),
+  strategy: closedObjectSchema({
+    competitors: strings,
+    goals: strings,
+    offers: strings,
+    topics: strings,
+  }),
   style: STRING_SCHEMA,
   taglines: strings,
   tone: STRING_SCHEMA,

@@ -372,7 +372,7 @@ describe('canonical MCP dispatch and immediate retirement', () => {
   );
 
   it('boots with all 171 raw definitions covered and advertises 30 Claude tools', async () => {
-    expect(ALL_TOOLS.filter((tool) => tool.surfaces.mcp)).toHaveLength(173);
+    expect(ALL_TOOLS.filter((tool) => tool.surfaces.mcp)).toHaveLength(176);
     expect(() => ToolRegistryService.validateDispatchCoverage()).not.toThrow();
     const { registry, module } = await build('claude');
     try {

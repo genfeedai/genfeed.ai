@@ -26,6 +26,7 @@ export const TOOLSET_NAMES = [
   'analytics',
   'articles',
   'brand',
+  'brand-kit',
   'clipper',
   'content',
   'core',
@@ -94,6 +95,12 @@ export const TOOLSETS: readonly ToolsetDefinition[] = [
       'Brand identity, completeness, publishing readiness, and the brand interview flow.',
     isAlwaysOn: false,
     name: 'brand',
+  },
+  {
+    description:
+      'Edit one Brand Kit section and draft or save a brand voice profile.',
+    isAlwaysOn: false,
+    name: 'brand-kit',
   },
   {
     description:

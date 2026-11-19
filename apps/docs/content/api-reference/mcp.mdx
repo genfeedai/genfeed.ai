@@ -344,6 +344,24 @@ automatically when it runs the agent on your own Claude Code or Codex CLI; see t
 The same snapshot is shown in **Brand settings → Agent context**
 ([Brands](/guides/brands#what-the-agent-knows)).
 
+### Brand Kit edits
+
+Connect to `/mcp?toolsets=brand,brand-kit` to read and edit a Brand Kit. On the
+standard MCP OAuth consent screen, select one brand and check **Allow Brand Kit
+edits**. Reconnect to add this permission to an existing connection. A signed-in
+Genfeed session can also use the tools within its existing brand access.
+
+1. Call `get_brand_completeness` with the selected `brandId` to find gaps.
+2. Call `manage_brand_kit` with `brandId`, `action`, and `fields`. Use
+   `visual_identity` for colors and fonts, `writing_voice` for tone and writing
+   guidance, or `strategy` for goals, platforms, and cadence. Visual edits
+   require an organization owner or admin. Use the upload tools to change assets.
+3. For an AI-drafted voice profile, call `draft_brand_voice_profile` with the
+   explicit `brandId`. Review the one-credit draft before passing its
+   `voiceProfile` to `save_brand_voice_profile` for the same brand.
+4. Call `get_brand_completeness` again and open **Settings → Brand Kit** to see
+   the saved values.
+
 ## Prompt enhancement
 
 Generation through MCP uses the same prompt enhancement as Studio and the

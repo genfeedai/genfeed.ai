@@ -10,6 +10,7 @@ import { BrandRelocationJobsModule } from '@api/collections/brands/brand-relocat
 import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { BrandFontAssetsController } from '@api/collections/brands/controllers/brand-font-assets.controller';
 import { BrandKitController } from '@api/collections/brands/controllers/brand-kit.controller';
+import { BrandKitEditsController } from '@api/collections/brands/controllers/brand-kit-edits.controller';
 import { BrandLutController } from '@api/collections/brands/controllers/brand-lut.controller';
 import { BrandOsRevisionsController } from '@api/collections/brands/controllers/brand-os-revisions.controller';
 import { BrandOsScanController } from '@api/collections/brands/controllers/brand-os-scan.controller';
@@ -32,6 +33,7 @@ import { CreditsModule } from '@api/collections/credits/credits.module';
 import { ImagesModule } from '@api/collections/images/images.module';
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
 import { LinksModule } from '@api/collections/links/links.module';
+import { MembersModule } from '@api/collections/members/members.module';
 import { ModelsModule } from '@api/collections/models/models.module';
 import { MusicsModule } from '@api/collections/musics/musics.module';
 import { OrganizationSettingsModule } from '@api/collections/organization-settings/organization-settings.module';
@@ -42,6 +44,7 @@ import { SkillsModule } from '@api/collections/skills/skills.module';
 import { VideosModule } from '@api/collections/videos/videos.module';
 import { CommonModule } from '@api/common/common.module';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
+import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { ByokModule } from '@api/services/byok/byok.module';
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
@@ -52,6 +55,7 @@ import { Module } from '@nestjs/common';
   controllers: [
     BrandRelocationsController,
     BrandOsRevisionsController,
+    BrandKitEditsController,
     BrandOsScanController,
     BrandFontAssetsController,
     BrandKitController,
@@ -87,6 +91,7 @@ import { Module } from '@nestjs/common';
     ImagesModule,
     IngredientsModule,
     LinksModule,
+    MembersModule,
     ModelsModule,
     MusicsModule,
     OrganizationSettingsModule,
@@ -113,6 +118,7 @@ import { Module } from '@nestjs/common';
     MasterPromptGeneratorService,
     CreditsGuard,
     CreditsInterceptor,
+    RolesGuard,
   ],
 })
 export class BrandsModule {}

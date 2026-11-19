@@ -113,11 +113,17 @@ const fixtures = [
   {
     id: 'save_brand_voice_profile',
     input: {
+      brandId: 'brand-1',
       voiceProfile: {
         tone: 'Warm',
         audience: ['Founders'],
         style: 'Direct',
-        strategy: { goals: ['Growth'], topics: ['AI'] },
+        strategy: {
+          competitors: ['Example Studio'],
+          goals: ['Growth'],
+          offers: ['Weekly reports'],
+          topics: ['AI'],
+        },
         prompting: {
           seeds: [
             {

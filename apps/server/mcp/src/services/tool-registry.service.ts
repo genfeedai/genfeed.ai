@@ -93,6 +93,7 @@ import {
   ANALYTICS_TOOL_NAMES,
   handleAnalyticsTool,
 } from '@mcp/tools/analytics.tool';
+import { handleBrandKitTool } from '@mcp/tools/brand-kit.tool';
 import {
   CLIPPER_PROJECTS_TOOL_NAMES,
   handleClipperProjectsTool,
@@ -234,6 +235,7 @@ type ExecutorKind =
   | 'clipper-projects'
   | 'editor'
   | 'workspace-app'
+  | 'brand-kit'
   | 'storyboard-capabilities'
   | 'presets'
   | 'models3d'
@@ -538,6 +540,7 @@ export class ToolRegistryService implements OnModuleInit {
     if (AGENT_CHAT_TOOL_NAMES.has(name)) return 'agent-chat';
     if (WORKFLOW_CONTROL_TOOL_NAMES.has(name)) return 'workflow-control';
     if (WORKSPACE_APP_TOOL_NAMES.has(name)) return 'workspace-app';
+    if (name === 'manage_brand_kit') return 'brand-kit';
     if (AGENT_EXECUTOR_TOOL_NAMES.has(name)) return 'agent-executor';
     if (ONBOARDING_TOOL_NAMES.has(name)) return 'onboarding';
     if (CONTENT_TOOL_NAMES.has(name)) return 'content';
@@ -651,6 +654,8 @@ export class ToolRegistryService implements OnModuleInit {
           name,
           args,
         );
+      case 'brand-kit':
+        return handleBrandKitTool(this.clientService.brandKit, args);
       case 'storyboard-capabilities':
         return handleStoryboardTool(this.clientService, name, args);
       case 'presets':

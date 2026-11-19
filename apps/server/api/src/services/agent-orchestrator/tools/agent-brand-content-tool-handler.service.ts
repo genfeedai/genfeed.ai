@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { isPlatformSuperAdmin } from '@api/auth/better-auth/better-auth-access.util';
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
+import type { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
 import { BrandFromUrlService } from '@api/collections/brands/services/brand-from-url.service';
 import {
   RequestContextMiddleware,
@@ -24,6 +25,7 @@ import type {
   IBrandVoiceCorpusSummary,
   IGeneratedBrandProfile,
 } from '@genfeedai/contracts/interfaces';
+import { isRecord } from '@genfeedai/utils/data/extract.util';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
 import {
@@ -40,6 +42,7 @@ const NEWLINES_PATTERN = /\n/g;
 const NON_ALPHANUMERIC_RUNS_PATTERN = /[^a-z0-9]+/g;
 
 interface AgentBrandsServiceLike {
+  brandAccessService?: Pick<BrandAccessService, 'assertBrandKitEdit'>;
   findOne: (
     params: Record<string, unknown>,
     context?: string,
@@ -82,7 +85,9 @@ interface BrandVoiceProfileDraft {
   prompting?: IBrandAgentPrompting;
   sampleOutput: string;
   strategy?: {
+    competitors?: string[];
     goals: string[];
+    offers?: string[];
     topics: string[];
   };
   style: string;
@@ -373,6 +378,7 @@ export class AgentBrandContentToolHandler {
         success: false,
       };
     }
+    await this.assertBrandVoiceToolAccess(ctx, String(brand.id));
 
     const profile = await this.brandsService.generateBrandVoice(
       {
@@ -473,7 +479,9 @@ export class AgentBrandContentToolHandler {
     const strategy = Object.fromEntries(
       (
         [
+          ['competitors', profile.strategy?.competitors],
           ['goals', profile.strategy?.goals],
+          ['offers', profile.strategy?.offers],
           ['topics', profile.strategy?.topics],
         ] as Array<[string, string[] | undefined]>
       ).filter(([, value]) => hasContent(value)),
@@ -506,13 +514,11 @@ export class AgentBrandContentToolHandler {
         success: false,
       };
     }
+    await this.assertBrandVoiceToolAccess(ctx, String(brand.id));
 
-    const rawProfile =
-      params.voiceProfile && typeof params.voiceProfile === 'object'
-        ? (params.voiceProfile as Record<string, unknown>)
-        : null;
+    const rawProfile = params.voiceProfile;
 
-    if (!rawProfile) {
+    if (!isRecord(rawProfile)) {
       return {
         creditsUsed: 0,
         error: 'save_brand_voice_profile requires a voiceProfile payload.',
@@ -542,29 +548,33 @@ export class AgentBrandContentToolHandler {
       style:
         typeof rawProfile.style === 'string' ? rawProfile.style.trim() : '',
       taglines: this.normalizeStringList(rawProfile.taglines),
-      strategy:
-        rawProfile.strategy &&
-        typeof rawProfile.strategy === 'object' &&
-        !Array.isArray(rawProfile.strategy)
-          ? {
-              goals: this.normalizeStringList(
-                (rawProfile.strategy as Record<string, unknown>).goals,
-              ),
-              topics: this.normalizeStringList(
-                (rawProfile.strategy as Record<string, unknown>).topics,
-              ),
-            }
-          : undefined,
+      strategy: isRecord(rawProfile.strategy)
+        ? {
+            competitors: this.normalizeStringList(
+              rawProfile.strategy.competitors,
+            ),
+            goals: this.normalizeStringList(rawProfile.strategy.goals),
+            offers: this.normalizeStringList(rawProfile.strategy.offers),
+            topics: this.normalizeStringList(rawProfile.strategy.topics),
+          }
+        : undefined,
       tone: typeof rawProfile.tone === 'string' ? rawProfile.tone.trim() : '',
       values: this.normalizeStringList(rawProfile.values),
       writingRules: this.normalizeStringList(rawProfile.writingRules),
     };
 
-    await this.brandsService.updateAgentConfig(
+    const saved = await this.brandsService.updateAgentConfig(
       String(brand.id),
       ctx.organizationId,
       this.buildApprovedProfilePatch(profile),
     );
+    if (!saved) {
+      return {
+        creditsUsed: 0,
+        error: 'Brand voice could not be saved.',
+        success: false,
+      };
+    }
 
     return {
       creditsUsed: 0,
@@ -575,6 +585,27 @@ export class AgentBrandContentToolHandler {
       },
       success: true,
     };
+  }
+
+  private async assertBrandVoiceToolAccess(
+    ctx: ToolExecutionContext,
+    brandId: string,
+  ) {
+    const credential = ctx.apiKeyContext ?? ctx.initiatingPrincipal;
+    if (!credential?.isApiKey) return;
+    if (!this.brandsService.brandAccessService) {
+      throw new ForbiddenException(
+        'Brand Kit edit authorization is unavailable',
+      );
+    }
+    await this.brandsService.brandAccessService.assertBrandKitEdit(
+      {
+        ...credential,
+        organizationId: ctx.organizationId,
+        userId: ctx.userId,
+      },
+      brandId,
+    );
   }
   async createBrandFromUrl(
     params: Record<string, unknown>,

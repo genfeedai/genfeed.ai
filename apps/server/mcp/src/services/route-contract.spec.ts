@@ -40,6 +40,10 @@ const BASE_CRUD_CREATE = '__BASE_CRUD_CREATE__';
  * inherit their collection routes from `BaseCRUDController`.
  */
 const API_CONTROLLERS: Record<string, { file: string; prefix: string }> = {
+  brandKitEdits: {
+    file: 'collections/brands/controllers/brand-kit-edits.controller.ts',
+    prefix: 'brands/:id/brand-kit',
+  },
   campaigns: {
     file: 'collections/campaigns/controllers/campaigns.controller.ts',
     prefix: 'campaigns',
@@ -665,6 +669,24 @@ const ROUTE_CONTRACT: ContractRoute[] = [
   { method: 'Get', sub: ':id', controller: 'tasks', tools: ['get_task'] },
   { method: 'Post', sub: '', controller: 'tasks', tools: ['create_task'] },
   { method: 'Patch', sub: ':id', controller: 'tasks', tools: ['manage_task'] },
+  {
+    method: 'Patch',
+    sub: 'visual-identity',
+    controller: 'brandKitEdits',
+    tools: ['manage_brand_kit'],
+  },
+  {
+    method: 'Patch',
+    sub: 'writing-voice',
+    controller: 'brandKitEdits',
+    tools: ['manage_brand_kit'],
+  },
+  {
+    method: 'Patch',
+    sub: 'strategy',
+    controller: 'brandKitEdits',
+    tools: ['manage_brand_kit'],
+  },
   {
     method: 'Post',
     sub: '',

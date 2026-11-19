@@ -1,8 +1,8 @@
 import { JWT_BEARER_GRANT_TYPE } from '@api/oauth/enterprise-managed-auth.constants';
-import { API_KEY_SCOPE_PRESETS } from '@genfeedai/contracts/constants';
 import {
   deriveAdminMcpResourceIdentifier,
   deriveClaudeMcpResourceIdentifier,
+  getMcpSupportedScopes,
   resolveMcpResourceIdentifier,
 } from '@genfeedai/helpers/integrations/mcp-resource.helper';
 import type { ConfigService } from '@libs/config/config.service';
@@ -173,7 +173,7 @@ export function buildOAuthAuthorizationServerMetadata(
     response_types_supported: ['code'],
     revocation_endpoint: `${issuer}/v1/oauth/revoke`,
     revocation_endpoint_auth_methods_supported: ['none'],
-    scopes_supported: [...API_KEY_SCOPE_PRESETS.mcp],
+    scopes_supported: getMcpSupportedScopes('standard'),
     service_documentation: `${docsUrl}/api-reference/mcp`,
     token_endpoint: `${issuer}/v1/oauth/token`,
     token_endpoint_auth_methods_supported: ['none'],

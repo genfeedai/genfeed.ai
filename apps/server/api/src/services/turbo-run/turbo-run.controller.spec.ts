@@ -210,6 +210,8 @@ describe('TurboRunController', () => {
         } as never;
         brandAccess.resolve.mockResolvedValue({
           brandIds: ['brand-1', 'brand-2'],
+          brandKitGrantBrandId: undefined,
+          membershipRole: MemberRole.CREATOR,
           role: MemberRole.CREATOR,
           where: { organizationId: 'org', isDeleted: false },
         });

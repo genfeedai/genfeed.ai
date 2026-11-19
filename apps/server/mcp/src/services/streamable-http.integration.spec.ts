@@ -95,7 +95,12 @@ describe('StreamableHttpService (real SDK integration)', () => {
     app.post(['/mcp', '/mcp/claude'], (req: McpRequest, res) => {
       const token = req.headers.authorization?.replace(/^Bearer /, '');
       if (token)
-        req.authContext = { token, role: 'user', organizationId: token };
+        req.authContext = {
+          token,
+          role: 'user',
+          organizationId: token,
+          hasBrandKitEditAccess: true,
+        };
       req.routeAccessMode = req.path.endsWith('/claude')
         ? 'claude'
         : 'standard';
@@ -501,7 +506,14 @@ describe('StreamableHttpService (real SDK integration)', () => {
 
   it('lists every permitted catalog tool over the wire, including the asset gallery', async () => {
     await withServer(async (baseUrl) => {
-      const listing = await postModern(baseUrl, 'tools/list');
+      const listing = await postModern(
+        baseUrl,
+        'tools/list',
+        {},
+        {
+          Authorization: 'Bearer fixture-auth',
+        },
+      );
       const expected = getToolsForSurface('mcp')
         .filter((tool) => tool.requiredRole === 'user')
         .map((tool) => tool.name)

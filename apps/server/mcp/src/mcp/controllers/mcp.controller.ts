@@ -14,6 +14,7 @@ import {
   buildUnknownToolsetsMessage,
   resolveMcpToolQuery,
 } from '@mcp/shared/middleware/toolsets-query.middleware';
+import { filterBrandKitTools } from '@mcp/tools/brand-kit.tool';
 import {
   BadRequestException,
   Controller,
@@ -125,10 +126,13 @@ export class McpController {
     }
 
     return {
-      tools: this.toolRegistry.getToolsForRoleAndToolsets(
-        role,
-        selection.toolsets,
-        request.authContext?.accessMode ?? 'standard',
+      tools: filterBrandKitTools(
+        this.toolRegistry.getToolsForRoleAndToolsets(
+          role,
+          selection.toolsets,
+          request.authContext?.accessMode ?? 'standard',
+        ),
+        request.authContext?.hasBrandKitEditAccess,
       ),
     };
   }

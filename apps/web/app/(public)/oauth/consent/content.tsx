@@ -21,6 +21,7 @@ import { EnvironmentService } from '@services/core/environment.service';
 import { OrganizationsService } from '@services/organization/organizations.service';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
+import { Checkbox } from '@ui/primitives/checkbox';
 import { SelectField } from '@ui/primitives/select';
 import {
   ArrowUpRight,
@@ -281,6 +282,7 @@ export default function OAuthConsentContent() {
   // Empty = every brand in the organization; a picked brand limits the
   // connection to that one brand.
   const [selectedBrandId, setSelectedBrandId] = useState('');
+  const [brandKitConsent, setBrandKitConsent] = useState<string | null>(null);
   const [isLoadingBrands, setIsLoadingBrands] = useState(false);
   const [isLoadingOrganizations, setIsLoadingOrganizations] = useState(true);
   const [organizationError, setOrganizationError] = useState<string | null>(
@@ -460,6 +462,21 @@ export default function OAuthConsentContent() {
   const canChooseAllOrganizations = organizations.length > 1 && !isAdmin;
   const isAllOrganizations =
     canChooseAllOrganizations && selectedOrganizationId === ALL_ORGANIZATIONS;
+  const canGrantBrandKitEdits = Boolean(
+    selectedBrand &&
+      !isAllOrganizations &&
+      !isClaude &&
+      !isAdmin &&
+      accessLevel !== 'read',
+  );
+  const brandKitConsentKey = JSON.stringify([
+    callbackPath,
+    selectedOrganizationId,
+    selectedBrandId,
+    accessLevel,
+  ]);
+  const hasBrandKitConsent =
+    canGrantBrandKitEdits && brandKitConsent === brandKitConsentKey;
   const defaultOrganization = organizations[0];
   const connectorOrganization = isAllOrganizations
     ? defaultOrganization
@@ -493,6 +510,8 @@ export default function OAuthConsentContent() {
         `${EnvironmentService.apiEndpoint}/oauth/authorize/decision`,
         {
           body: JSON.stringify({
+            allowBrandKitEdits:
+              approved && hasBrandKitConsent ? true : undefined,
             allowOrganizationSwitching:
               approved && isAllOrganizations ? true : undefined,
             approved,
@@ -681,9 +700,10 @@ export default function OAuthConsentContent() {
                     name="consent-organization"
                     placeholder={translateOrganization('placeholder')}
                     value={selectedOrganizationId || undefined}
-                    onChange={(event) =>
-                      setSelectedOrganizationId(event.target.value)
-                    }
+                    onChange={(event) => {
+                      setBrandKitConsent(null);
+                      setSelectedOrganizationId(event.target.value);
+                    }}
                   >
                     {organizations.map((organization) => (
                       <option key={organization.id} value={organization.id}>
@@ -710,7 +730,10 @@ export default function OAuthConsentContent() {
                     label={translateBrand('label')}
                     name="consent-brand"
                     value={selectedBrandId}
-                    onChange={(event) => setSelectedBrandId(event.target.value)}
+                    onChange={(event) => {
+                      setBrandKitConsent(null);
+                      setSelectedBrandId(event.target.value);
+                    }}
                   >
                     <option value="">{translateBrand('allBrands')}</option>
                     {brands.map((brand) => (
@@ -719,6 +742,20 @@ export default function OAuthConsentContent() {
                       </option>
                     ))}
                   </SelectField>
+                  {canGrantBrandKitEdits && selectedBrand && (
+                    <Checkbox
+                      isChecked={hasBrandKitConsent}
+                      isDisabled={consentState.isSubmitting}
+                      label={translateBrand('allowKitEdits', {
+                        brand: selectedBrand.label,
+                      })}
+                      onCheckedChange={(checked) =>
+                        setBrandKitConsent(
+                          checked === true ? brandKitConsentKey : null,
+                        )
+                      }
+                    />
+                  )}
                 </div>
 
                 {availableAccessLevels.length > 1 && (
@@ -727,9 +764,10 @@ export default function OAuthConsentContent() {
                     label={translate('access.label')}
                     name="consent-access-level"
                     value={accessLevel}
-                    onChange={(event) =>
-                      setAccessLevel(event.target.value as AccessLevel)
-                    }
+                    onChange={(event) => {
+                      setBrandKitConsent(null);
+                      setAccessLevel(event.target.value as AccessLevel);
+                    }}
                   >
                     {availableAccessLevels.map((level) => (
                       <option key={level} value={level}>

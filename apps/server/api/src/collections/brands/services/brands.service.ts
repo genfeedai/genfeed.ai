@@ -524,7 +524,7 @@ export class BrandsService extends BaseService<
     return updatedBrand;
   }
 
-  private async invalidateBrandContextCaches(
+  async invalidateBrandContextCaches(
     brandId: string,
     organizationId: string,
   ): Promise<void> {

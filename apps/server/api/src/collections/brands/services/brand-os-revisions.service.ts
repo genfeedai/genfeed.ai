@@ -1,5 +1,15 @@
+import type { UpdateBrandKitVisualIdentityDto } from '@api/collections/brands/dto/update-brand-kit-visual-identity.dto';
 import { BrandKitAssetsService } from '@api/collections/brands/services/brand-kit-assets.service';
 import { BrandWatermarkLogoService } from '@api/collections/brands/services/brand-watermark-logo.service';
+import {
+  validateBrandOsDiagnostics,
+  validateBrandOsEvidence,
+} from '@api/collections/brands/utils/brand-os-revision-validation.util';
+import {
+  brandVisualIdentityColumns,
+  parseVisualIdentity,
+  withVisualIdentity,
+} from '@api/collections/brands/utils/brand-visual-identity.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { rulesOwnerVideoJoins } from '@api/services/branded-generation-receipts/brand-identity-snapshot-projection.util';
 import { hashBrandGenerationRulesReviewV1 } from '@api/services/branded-generation-receipts/branded-generation-hash.util';
@@ -309,21 +319,73 @@ export class BrandOsRevisionsService {
         normalized,
         hasOwnedFieldEdit,
       );
-      if (row.status === BrandOsRevisionStatus.APPROVED)
-        return this.createDraft(tx, organizationId, brandId, persisted);
-      return this.toRevision(
-        await tx.brandOsRevision.update({
-          data: {
-            content: toPrismaJson(persisted),
-            generationRulesReviewHash: null,
-            updatedAt: new Date(
-              Math.max(Date.now(), row.updatedAt.getTime() + 1),
-            ),
-          },
-          where: { brandId, id, isDeleted: false, organizationId },
-        }),
-      );
+      return this.saveDraft(tx, organizationId, brandId, persisted, {
+        ...row,
+        id,
+      });
     });
+  }
+
+  /** Apply explicitly selected visual fields and keep the editor's draft in sync. */
+  async applyVisualIdentity(
+    organizationId: string,
+    brandId: string,
+    patch: UpdateBrandKitVisualIdentityDto,
+  ): Promise<IBrandOsRevision> {
+    const values = parseVisualIdentity(patch);
+    return this.prisma.$transaction(async (tx) => {
+      const brand = await this.lockBrand(tx, organizationId, brandId);
+      const revision = await tx.brandOsRevision.findFirst({
+        orderBy: { version: 'desc' },
+        where: {
+          brandId,
+          isDeleted: false,
+          organizationId,
+          status: { not: BrandOsRevisionStatus.SUPERSEDED },
+        },
+      });
+      const previous = revision
+        ? (revision.content as unknown as IBrandKitDraft)
+        : await this.buildCurrentBrandContent(brand, organizationId, brandId);
+      const persisted = this.normalize(
+        this.resolveDefaultKitContent(
+          previous,
+          withVisualIdentity(previous, values),
+          true,
+        ),
+        organizationId,
+        brandId,
+      );
+      // sql-risk-audit: ignore bulk-write-tenant-review -- scoped by the locked brand id and organization.
+      await tx.brand.updateMany({
+        data: brandVisualIdentityColumns(values),
+        where: { id: brandId, isDeleted: false, organizationId },
+      });
+      return this.saveDraft(tx, organizationId, brandId, persisted, revision);
+    });
+  }
+
+  private async saveDraft(
+    tx: Prisma.TransactionClient,
+    organizationId: string,
+    brandId: string,
+    content: IBrandKitDraft,
+    revision: Pick<BrandOsRevision, 'id' | 'status' | 'updatedAt'> | null,
+  ): Promise<IBrandOsRevision> {
+    if (!revision || revision.status === BrandOsRevisionStatus.APPROVED)
+      return this.createDraft(tx, organizationId, brandId, content);
+    return this.toRevision(
+      await tx.brandOsRevision.update({
+        data: {
+          content: toPrismaJson(content),
+          generationRulesReviewHash: null,
+          updatedAt: new Date(
+            Math.max(Date.now(), revision.updatedAt.getTime() + 1),
+          ),
+        },
+        where: { brandId, id: revision.id, isDeleted: false, organizationId },
+      }),
+    );
   }
 
   async approve(
@@ -797,9 +859,9 @@ export class BrandOsRevisionsService {
       throw new BadRequestException(
         'Invalid Brand OS content status or source',
       );
-    this.validateEvidence(content.evidence);
-    this.validateDiagnostics(content.diagnostics);
-    this.validateDiagnostics(content.readiness.diagnostics);
+    validateBrandOsEvidence(content.evidence);
+    validateBrandOsDiagnostics(content.diagnostics);
+    validateBrandOsDiagnostics(content.readiness.diagnostics);
     if (
       !['complete', 'partial', 'blocked', 'missing'].includes(
         content.readiness.status,
@@ -822,8 +884,8 @@ export class BrandOsRevisionsService {
         !['accept', 'reject', 'preserve'].includes(field.applyActionDefault)
       )
         throw new BadRequestException('Invalid Brand OS field');
-      this.validateEvidence(field.evidence);
-      this.validateDiagnostics(field.diagnostics);
+      validateBrandOsEvidence(field.evidence);
+      validateBrandOsDiagnostics(field.diagnostics);
       for (const value of [field.currentValue, field.proposedValue]) {
         if (value === undefined) continue;
         if (owner.valueKind === 'string' && typeof value !== 'string')
@@ -887,49 +949,6 @@ export class BrandOsRevisionsService {
       }
     }
     return { ...normalized, brandId, id: brandId, organizationId };
-  }
-
-  private validateEvidence(entries: unknown[]): void {
-    for (const entry of entries) {
-      if (
-        !entry ||
-        typeof entry !== 'object' ||
-        !('label' in entry) ||
-        typeof entry.label !== 'string' ||
-        !('sourceType' in entry) ||
-        typeof entry.sourceType !== 'string' ||
-        ![
-          'current_brand',
-          'website',
-          'manual',
-          'uploaded_guidance',
-          'system',
-        ].includes(entry.sourceType)
-      )
-        throw new BadRequestException('Invalid Brand OS evidence');
-      for (const key of ['url', 'excerpt', 'sourceId']) {
-        const value: unknown = Reflect.get(entry, key);
-        if (value !== undefined && typeof value !== 'string')
-          throw new BadRequestException('Invalid Brand OS evidence value');
-      }
-    }
-  }
-
-  private validateDiagnostics(entries: unknown[]): void {
-    for (const entry of entries) {
-      if (
-        !entry ||
-        typeof entry !== 'object' ||
-        !('code' in entry) ||
-        typeof entry.code !== 'string' ||
-        !('message' in entry) ||
-        typeof entry.message !== 'string' ||
-        !('severity' in entry) ||
-        typeof entry.severity !== 'string' ||
-        !['info', 'warning', 'error'].includes(entry.severity)
-      )
-        throw new BadRequestException('Invalid Brand OS diagnostic');
-    }
   }
 
   private toRevision(row: BrandOsRevision): IBrandOsRevision {
