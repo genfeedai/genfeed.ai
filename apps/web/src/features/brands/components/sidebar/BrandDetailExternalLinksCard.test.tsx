@@ -24,18 +24,27 @@ function makeLink(overrides: Partial<ExternalLink> = {}): ExternalLink {
 }
 
 describe('BrandDetailExternalLinksCard', () => {
-  it('shows the section title and Add link outside any card, with an empty state', () => {
+  it('shows an empty card below the section title and Add link', () => {
     render(
       <BrandDetailExternalLinksCard links={[]} onOpenLinkModal={vi.fn()} />,
     );
 
+    const section = screen.getByRole('region', { name: 'Website links' });
+    const emptyCard = within(section)
+      .getByRole('heading', { name: 'No website links yet.' })
+      .closest('.rounded-card');
+
+    expect(emptyCard).toBeInTheDocument();
     expect(
-      screen.getByRole('heading', { name: 'Website links' }),
-    ).toBeInTheDocument();
+      within(section)
+        .getByRole('heading', { name: 'Website links' })
+        .closest('.rounded-card'),
+    ).toBeNull();
     expect(
-      screen.getByRole('button', { name: 'Add link' }),
-    ).toBeInTheDocument();
-    expect(screen.getByText('No website links yet.')).toBeInTheDocument();
+      within(section)
+        .getByRole('button', { name: 'Add link' })
+        .closest('.rounded-card'),
+    ).toBeNull();
   });
 
   it('opens the link modal empty from Add link', () => {
