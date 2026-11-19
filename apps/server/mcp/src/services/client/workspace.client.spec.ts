@@ -1,5 +1,6 @@
+import { toMcpToolErrorResult } from '@mcp/tools/mcp-tool-error';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { BaseApiClient } from './base-api-client';
+import { BaseApiClient } from './base-api-client';
 import { WorkspaceClient } from './workspace.client';
 
 describe('approval-waiting job status (#6595)', () => {
@@ -81,14 +82,14 @@ describe('approval-waiting job status (#6595)', () => {
 
 describe('organization listing', () => {
   const get = vi.fn();
-  const client = new WorkspaceClient({
-    logger: { debug: vi.fn() },
-    request: async (
-      _operation: string,
-      call: (http: unknown) => Promise<unknown>,
-    ) => call({ get }),
-    failWith: vi.fn(),
-  } as unknown as BaseApiClient);
+  const logger = { debug: vi.fn(), error: vi.fn(), warn: vi.fn() };
+  const client = new WorkspaceClient(
+    new BaseApiClient(
+      logger as never,
+      { axiosRef: { create: () => ({ get }) } } as never,
+      { get: () => undefined } as never,
+    ),
+  );
 
   beforeEach(() => vi.resetAllMocks());
 
@@ -105,9 +106,56 @@ describe('organization listing', () => {
     });
   });
 
-  it('returns an empty list for an unexpected payload', async () => {
+  it('returns a valid empty organization list', async () => {
+    get.mockResolvedValueOnce({ data: { data: [] } });
+
+    await expect(client.listOrganizations()).resolves.toEqual([]);
+  });
+
+  it('reports an unexpected response as a lookup failure', async () => {
     get.mockResolvedValueOnce({ data: { errors: [] } });
 
-    expect(await client.listOrganizations()).toEqual([]);
+    await expect(client.listOrganizations()).rejects.toThrow(
+      'Could not load your organizations. Try get_orgs again',
+    );
+  });
+
+  it.each([
+    [401, 'Reconnect Genfeed'],
+    [403, 'check your organization access'],
+    [502, 'Try get_orgs again'],
+  ])(
+    'gives recovery guidance for HTTP %s without upstream details',
+    async (status, guidance) => {
+      get.mockRejectedValueOnce({
+        message: 'private account information',
+        response: {
+          data: { errors: [{ detail: 'private account information' }] },
+          status,
+        },
+      });
+
+      await expect(client.listOrganizations()).rejects.toMatchObject({
+        body: undefined,
+        message: expect.stringContaining(guidance),
+        status,
+      });
+      expect(
+        JSON.stringify([logger.error.mock.calls, logger.warn.mock.calls]),
+      ).not.toContain('private account information');
+    },
+  );
+
+  it('returns the retry delay when organization discovery is rate limited', async () => {
+    get.mockRejectedValueOnce({
+      response: { headers: { 'retry-after': '12' }, status: 429 },
+    });
+
+    const result = await client.listOrganizations().catch(toMcpToolErrorResult);
+
+    expect(result).toMatchObject({
+      isError: true,
+      structuredContent: { code: 'rate_limited', retryAfterSeconds: 12 },
+    });
   });
 });

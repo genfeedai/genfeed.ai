@@ -399,7 +399,7 @@ export class ToolRegistryService implements OnModuleInit {
         scoped.organization,
       );
     } catch (error: unknown) {
-      this.logger.error(`Error scoping tool call ${params.name}:`, error);
+      this.logger.warn('MCP tool call stopped during organization selection');
       return mcpToolFailureResult(error);
     }
     return this.clientService.runInOrganization(organizationId, () =>
