@@ -65,7 +65,7 @@ describe('BrandDetailSidebar', () => {
     onTogglePublicProfile: vi.fn(),
   };
 
-  it('renders the visibility card, the website links, then the children', () => {
+  it('shows connected accounts below visibility and above website links', () => {
     render(
       <BrandDetailSidebar {...props}>
         <div>Connected Accounts</div>
@@ -74,10 +74,10 @@ describe('BrandDetailSidebar', () => {
 
     const text = document.body.textContent ?? '';
     expect(text.indexOf('Account Settings Card')).toBeLessThan(
-      text.indexOf('External Links Card'),
-    );
-    expect(text.indexOf('External Links Card')).toBeLessThan(
       text.indexOf('Connected Accounts'),
+    );
+    expect(text.indexOf('Connected Accounts')).toBeLessThan(
+      text.indexOf('External Links Card'),
     );
   });
 });
