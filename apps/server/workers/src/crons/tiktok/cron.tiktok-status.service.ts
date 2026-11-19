@@ -402,7 +402,7 @@ export class CronTiktokStatusService implements OnModuleInit {
       provenance,
     );
     if (transitioned) {
-      void this.publishEventWebhookService.emitPostPublished({
+      await this.publishEventWebhookService.emitPostPublished({
         externalProviderId: postId,
         occurredAt: now,
         platform: CredentialPlatform.TIKTOK,
@@ -410,6 +410,11 @@ export class CronTiktokStatusService implements OnModuleInit {
         url: postUrl,
       });
     }
+
+    // Keep notification delivery independent of retryable activity and recurrence work.
+    await this.scheduledPostWorkflowService.processPendingPublishedFinalization(
+      post,
+    );
 
     this.logger.log(`${url} post ${post.id} verified and published`, {
       postId,
@@ -514,7 +519,7 @@ export class CronTiktokStatusService implements OnModuleInit {
     transitionInput: Record<string, unknown>,
     provenance: SystemWorkflowProvenance,
   ): Promise<boolean> {
-    const transitioned = await this.persistStatusTransition(
+    return this.persistStatusTransition(
       {
         detail,
         organizationId: post.organizationId,
@@ -526,14 +531,6 @@ export class CronTiktokStatusService implements OnModuleInit {
       provenance,
       post,
     );
-
-    if (outcome === 'published') {
-      await this.scheduledPostWorkflowService.processPendingPublishedFinalization(
-        post,
-      );
-    }
-
-    return transitioned;
   }
 
   private async executeStatusReconciliation(
