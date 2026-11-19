@@ -199,6 +199,15 @@ jobs:
       # publish a package built from any other one. Find that out here, before
       # the draft, the gates and the production deploy, not after them. The
       # check reads the registry and the pinned checkout only.
+      # The plan reads package manifests with acorn from the pinned checkout,
+      # which has no node_modules yet (run 44474179415: Cannot find package 'acorn').
+      - name: Setup Bun environment for the npm plan
+        if: ${{ inputs.recovery_run_id == '' && steps.source.outputs.release_sha != github.sha }}
+        uses: ./.github/actions/setup-bun-env
+        with:
+          node-version: '26.x'
+          install-command: 'bun install --frozen-lockfile'
+
       - name: Require an empty npm plan for a pinned SHA
         if: ${{ inputs.recovery_run_id == '' && steps.source.outputs.release_sha != github.sha }}
         env:
