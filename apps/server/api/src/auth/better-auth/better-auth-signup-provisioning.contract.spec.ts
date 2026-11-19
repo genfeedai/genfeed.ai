@@ -28,7 +28,6 @@ import { magicLink } from 'better-auth/plugins';
 import { describe, expect, it, vi } from 'vitest';
 import { BETTER_AUTH_BASE_PATH } from './better-auth.constants';
 import {
-  betterAuthUserAdditionalFields,
   buildBetterAuthMagicLinkOptions,
   buildBetterAuthUserDatabaseHooks,
 } from './better-auth.factory';
@@ -36,6 +35,7 @@ import type {
   IBetterAuthMagicLinkParams,
   ICreateBetterAuthOptions,
 } from './better-auth.types';
+import { betterAuthUserAdditionalFields } from './better-auth-user-fields';
 import { UserProvisioningListener } from './listeners/user-provisioning.listener';
 
 const AUTH_BASE_URL = 'http://localhost:3010';

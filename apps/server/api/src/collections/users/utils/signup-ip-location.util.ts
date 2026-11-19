@@ -4,6 +4,8 @@ import { isIP } from 'node:net';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { ISignupIpLocation } from '@genfeedai/contracts/interfaces';
+import databasePackage from '@ip-location-db/dbip-city-mmdb/package.json';
+import { traced } from '@libs/tracing/traced';
 import { Reader, type Response } from 'mmdb-lib';
 import { z } from 'zod';
 
@@ -27,33 +29,34 @@ const locationRecord = z.object({
 
 async function loadCityReader(version: 4 | 6): Promise<Reader<Response>> {
   const path = nodeRequire.resolve(
-    `@ip-location-db/dbip-city-mmdb/dbip-city-ipv${version}.mmdb`,
+    `${databasePackage.name}/dbip-city-ipv${version}.mmdb`,
     { paths: lookupPaths },
   );
   return new Reader<Response>(await readFile(path));
 }
 
-export async function lookupSignupIpLocation(
-  ipAddress: string,
-): Promise<ISignupIpLocation | null> {
-  const address = ipAddress.replace(IPV4_MAPPED_PREFIX, '');
-  const version = isIP(address);
-  if (version !== 4 && version !== 6) return null;
+export const lookupSignupIpLocation = traced(
+  'lookupSignupIpLocation',
+  async (ipAddress: string): Promise<ISignupIpLocation | null> => {
+    const address = ipAddress.replace(IPV4_MAPPED_PREFIX, '');
+    const version = isIP(address);
+    if (version !== 4 && version !== 6) return null;
 
-  const loading =
-    readers.get(version) ??
-    loadCityReader(version).catch((error: unknown) => {
-      readers.delete(version);
-      throw error;
-    });
-  readers.set(version, loading);
-  const result = locationRecord.safeParse((await loading).get(address));
-  if (!result.success) return null;
+    const loading =
+      readers.get(version) ??
+      loadCityReader(version).catch((error: unknown) => {
+        readers.delete(version);
+        throw error;
+      });
+    readers.set(version, loading);
+    const result = locationRecord.safeParse((await loading).get(address));
+    if (!result.success) return null;
 
-  const { city, country_code, state1 } = result.data;
-  return {
-    city: city || null,
-    country: regionNames.of(country_code) ?? country_code,
-    region: state1 || null,
-  };
-}
+    const { city, country_code, state1 } = result.data;
+    return {
+      city: city || null,
+      country: regionNames.of(country_code) ?? country_code,
+      region: state1 || null,
+    };
+  },
+);

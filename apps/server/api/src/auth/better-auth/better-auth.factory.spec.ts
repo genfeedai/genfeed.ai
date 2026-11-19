@@ -5,7 +5,6 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   applyEmailVerificationPolicy,
   assertSignupMagicLinkCanCreateUser,
-  betterAuthUserAdditionalFields,
   buildBetterAuthAdminOptions,
   buildBetterAuthAdvancedOptions,
   buildBetterAuthDashOptions,
@@ -26,6 +25,7 @@ import type {
   IBetterAuthRateLimitStore,
   ICreateBetterAuthOptions,
 } from './better-auth.types';
+import { betterAuthUserAdditionalFields } from './better-auth-user-fields';
 
 type PrismaForBetterAuth = ICreateBetterAuthOptions['prisma'];
 
@@ -822,9 +822,7 @@ describe('createBetterAuthInstance source', () => {
     // `Argument 'handle' is missing`, so no session is ever established.
     const source = createBetterAuthInstance.toString();
 
-    expect(source).toContain(
-      'additionalFields: betterAuthUserAdditionalFields',
-    );
+    expect(source).toContain('betterAuthUserAdditionalFields');
     expect(betterAuthUserAdditionalFields.handle).toEqual({
       input: false,
       required: false,

@@ -11,6 +11,7 @@ import { SubscriptionsModule } from '@api/collections/subscriptions/subscription
 import { UsersController } from '@api/collections/users/controllers/users.controller';
 import { UsersNotificationInboxController } from '@api/collections/users/controllers/users-notification-inbox.controller';
 import { UsersRelationshipsController } from '@api/collections/users/controllers/users-relationships.controller';
+import { UsersSignupNetworkController } from '@api/collections/users/controllers/users-signup-network.controller';
 import { UserOnboardingCompletionService } from '@api/collections/users/services/user-onboarding-completion.service';
 import { UsersCoreModule } from '@api/collections/users/users-core.module';
 import { CommonModule } from '@api/common/common.module';
@@ -23,6 +24,7 @@ import { Module } from '@nestjs/common';
   controllers: [
     UsersNotificationInboxController,
     UsersRelationshipsController,
+    UsersSignupNetworkController,
     UsersController,
   ],
   exports: [UsersCoreModule],

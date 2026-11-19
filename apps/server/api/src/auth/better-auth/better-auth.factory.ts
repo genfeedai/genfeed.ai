@@ -30,6 +30,7 @@ import type {
   ICreateBetterAuthOptions,
 } from './better-auth.types';
 import { isPlatformSuperAdmin } from './better-auth-access.util';
+import { betterAuthUserAdditionalFields } from './better-auth-user-fields';
 import { desktopSession } from './plugins/desktop-session.plugin';
 
 const NON_ALPHANUMERIC_RUNS_PATTERN = /[^a-z0-9]+/g;
@@ -47,17 +48,6 @@ const BETTER_AUTH_DEFAULT_ORGANIZATION_CATEGORY = 'BUSINESS';
 const BETTER_AUTH_MAGIC_LINK_EXPIRES_IN_SECONDS = 300;
 const SIGN_UP_MAGIC_LINK_INTENT = 'signup';
 const ADMIN_CREATE_USER_PATH = '/admin/create-user';
-
-export const betterAuthUserAdditionalFields = {
-  // The adapter must keep hook-supplied fields even though clients cannot set them.
-  handle: { input: false, required: false, type: 'string' },
-  signupIpAddress: {
-    input: false,
-    required: false,
-    returned: false,
-    type: 'string',
-  },
-} satisfies NonNullable<BetterAuthOptions['user']>['additionalFields'];
 
 type BetterAuthDatabaseHooks = NonNullable<BetterAuthOptions['databaseHooks']>;
 type BetterAuthMagicLinkDependencies = Pick<
