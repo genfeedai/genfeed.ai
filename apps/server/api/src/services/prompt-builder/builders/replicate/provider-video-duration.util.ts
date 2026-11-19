@@ -14,6 +14,8 @@ interface ProviderDurationRule {
  * builder and the Studio estimate both read this table, so the duration that
  * is priced is the duration the provider executes (Hailuo 5 s runs as 6 s).
  */
+const VEO_31_DURATION_RULE = { allowed: [4, 6, 8], fallback: 8 };
+
 const PROVIDER_VIDEO_DURATION_RULES: Readonly<
   Record<string, ProviderDurationRule>
 > = {
@@ -22,10 +24,9 @@ const PROVIDER_VIDEO_DURATION_RULES: Readonly<
     allowed: [6, 10],
     fallback: 6,
   },
-  [MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1_LITE]: {
-    allowed: [4, 6, 8],
-    fallback: 8,
-  },
+  [MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1]: VEO_31_DURATION_RULE,
+  [MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1_FAST]: VEO_31_DURATION_RULE,
+  [MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1_LITE]: VEO_31_DURATION_RULE,
 };
 
 /** Whether the provider's duration handling for this model is known here. */
