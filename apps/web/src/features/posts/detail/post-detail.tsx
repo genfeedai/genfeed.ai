@@ -41,6 +41,7 @@ import PostDetailNeedsYou from '@/features/posts/detail/components/PostDetailNee
 import PostDetailPublished from '@/features/posts/detail/components/PostDetailPublished';
 import { buildPostDetailFacts } from '@/features/posts/detail/post-detail-facts.helper';
 import { buildPostTargetPreview } from '@/features/posts/detail/post-detail-preview.helpers';
+import { isTikTokInboxDelivered } from '@/features/posts/detail/post-published.helper';
 import { usePostAgent } from '@/features/posts/hooks/use-post-agent/use-post-agent';
 import { usePostDetail } from '@/features/posts/hooks/use-post-detail/use-post-detail';
 import type { PostReviewSummary } from '@/props/components/post-detail-sidebar.props';
@@ -651,6 +652,7 @@ export default function PostDetail({
               <div className="flex min-w-0 flex-1 flex-col">
                 {isStandalonePage && isPublished ? (
                   <PostDetailPublished
+                    isTikTokInboxDelivered={isTikTokInboxDelivered(post)}
                     stats={analyticsStats}
                     thread={threadPreview}
                   />

@@ -1,4 +1,5 @@
 import {
+  CredentialPlatform,
   PostStatus,
   ReviewDecision,
   TargetExecutionState,
@@ -139,6 +140,28 @@ describe('PostDetailNeedsYou', () => {
         'Request failed with code 403 - You are not allowed to create a Tweet with duplicate content.',
       ),
     ).toBeInTheDocument();
+  });
+
+  it('shows the quota error when an Inbox upload fails before delivery', () => {
+    render(
+      <PostDetailNeedsYou
+        isPublished={false}
+        onRetryPublish={vi.fn()}
+        onReviewHref="/review"
+        post={buildPost({
+          platform: CredentialPlatform.TIKTOK,
+          status: PostStatus.FAILED,
+          targetError: {
+            code: 'quota_exceeded',
+            isRetryable: false,
+            message: 'Quota exceeded',
+          },
+          targetExecutionState: TargetExecutionState.FAILED,
+        })}
+      />,
+    );
+
+    expect(screen.getByText('Quota exceeded')).toBeVisible();
   });
 
   it('surfaces a post with review lineage and an unset decision, linking to the review queue', () => {
