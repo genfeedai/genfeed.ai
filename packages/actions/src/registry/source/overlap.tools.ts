@@ -13,11 +13,11 @@ import { WORKFLOW_CONTROL_TOOLS } from './workflow-control.tools';
 
 export const OVERLAP_TOOLS: SourceTool[] = [
   {
-    creditCost: 1,
+    creditCost: 0,
     description:
       'Create a post draft from supplied text for review. On MCP this never publishes or schedules: confirmed and existing-content publishing are rejected, and scheduledAt is ignored. Use create_scheduled_release for release drafts or approval-gated scheduling. Existing-content publishing is available only in the Genfeed app.',
     mcpDescription:
-      'Create a reviewable post draft from supplied text; never publishes or schedules. Publishing/scheduling requires a scheduled release and approval.',
+      'Create a reviewable post draft from supplied text or media; never publishes or schedules. Publishing/scheduling requires a scheduled release and approval.',
     mcpHiddenParameters: [
       'caption',
       'confirmed',
@@ -113,7 +113,8 @@ export const OVERLAP_TOOLS: SourceTool[] = [
           type: 'string',
         },
         visibility: {
-          description: 'Audience visibility, independent of publish lifecycle.',
+          description:
+            'Desired audience visibility. A draft can save this preference before a channel is chosen; the eventual channel must support it.',
           enum: ['public', 'private', 'unlisted'],
           type: 'string',
         },

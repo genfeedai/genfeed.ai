@@ -222,6 +222,38 @@ describe('MCP server e2e', () => {
     });
   });
 
+  it('advertises and creates a free private draft without queueing approval', async () => {
+    const token = E2E_TOKENS.ownerWithAdminScope;
+    const { body: discovery } = await mcp.callTool(token, 'find_tools', {
+      query: 'post',
+    });
+    expect(discovery.result?.structuredContent?.tools).toContainEqual(
+      expect.objectContaining({
+        creditCost: 0,
+        mutationPolicy: 'direct',
+        name: 'create_post',
+      }),
+    );
+
+    const { body: draft } = await mcp.callTool(token, 'create_post', {
+      brandId: 'brand_studio_main',
+      content: 'A caption for review',
+      mediaUrls: ['https://example.test/library-image.png'],
+      visibility: 'private',
+    });
+
+    expect(draft.result?.isError).not.toBe(true);
+    expect(draft.result?.structuredContent).toMatchObject({
+      creditsDebited: 0,
+      data: {
+        executionState: 'draft',
+        id: 'post_draft',
+        visibility: 'private',
+      },
+    });
+    expect(upstreamPaths()).not.toContain('POST /v1/mcp-approvals');
+  });
+
   describe('6. get_orgs', () => {
     it('lists every organization of the user and flags the one the token is bound to', async () => {
       const { body } = await mcp.callTool(

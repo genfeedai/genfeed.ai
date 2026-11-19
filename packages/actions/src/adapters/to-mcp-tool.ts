@@ -98,6 +98,9 @@ export function toMcpTools(tools: CanonicalToolDefinition[]): McpToolOutput[] {
           : deriveMcpToolPresentation(tool.name, tool.mutationPolicy);
       const creditPricing =
         tool.creditPricing ?? fixedCreditPricing(tool.creditCost);
+      // The shared policy still protects publishing through the in-app tool.
+      const mutationPolicy =
+        tool.name === 'create_post' ? 'direct' : tool.mutationPolicy;
       const requiresBrand = isMcpBrandRequiredTool(tool.name);
       const brandNote = requiresBrand
         ? MCP_BRAND_REQUIRED_NOTE
@@ -117,8 +120,8 @@ export function toMcpTools(tools: CanonicalToolDefinition[]): McpToolOutput[] {
           [MCP_CREDIT_COST_META_KEY]: tool.creditCost,
           [MCP_CREDIT_PRICING_META_KEY]: creditPricing,
           [MCP_TOOLSET_META_KEY]: tool.toolset,
-          ...(tool.mutationPolicy
-            ? { [MCP_MUTATION_POLICY_META_KEY]: tool.mutationPolicy }
+          ...(mutationPolicy
+            ? { [MCP_MUTATION_POLICY_META_KEY]: mutationPolicy }
             : {}),
         },
         annotations: presentation.annotations,
