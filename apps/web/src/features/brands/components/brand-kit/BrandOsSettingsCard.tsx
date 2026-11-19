@@ -20,6 +20,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { BRAND_KIT_FIELD_OWNERSHIP } from '@genfeedai/contracts/interfaces';
 import type { BrandVideoRulesV1 } from '@genfeedai/contracts/interfaces/content/branded-generation.interface';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useResetOnChange } from '@hooks/utils/use-reset-on-change/use-reset-on-change';
 import { BrandsService } from '@services/social/brands.service';
@@ -39,10 +40,11 @@ import {
 } from '@ui/primitives/select';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { useBrandOsDirtyNavigation } from '@/features/brands/hooks/use-brand-os-dirty-navigation';
 import type { BrandOsSettingsCardProps } from '@/features/brands/props/brand-os-settings.props';
 import { useUserRole } from '@/hooks/auth/use-user-role/use-user-role';
+import { useDebouncedCallback } from '@/hooks/utils/use-debounce/use-debounce';
 import BrandOsGenerationRulesReview from './BrandOsGenerationRulesReview';
 import BrandOsIdentityPreview from './BrandOsIdentityPreview';
 import BrandOsPolicyEditor from './BrandOsPolicyEditor';
@@ -80,7 +82,6 @@ export default function BrandOsSettingsCard({
   const [storedContent, setContent] = useState<IBrandKitDraft | null>(null);
   const [storedExportState, setExportState] =
     useState<IBrandOsExportState | null>(null);
-  const [storedLoading, setLoading] = useState(true);
   const [storedPending, setPending] = useState<string | null>(null);
   const [storedError, setError] = useState<string | null>(null);
   const [storedExportError, setExportError] = useState<string | null>(null);
@@ -96,7 +97,7 @@ export default function BrandOsSettingsCard({
   const currentRefresh = useRef(refreshKey);
   const pendingRef = useRef(false);
   const dirtyRef = useRef(false);
-  const autoSaveAttemptRef = useRef<string | null>(null);
+  const autoSaveIntent = useRef<IBrandKitDraft | null>(null);
   // Bumped by every successful save or approval so a history read that
   // started earlier never replaces newer persisted state.
   const mutationRef = useRef(0);
@@ -106,6 +107,7 @@ export default function BrandOsSettingsCard({
     currentScope.current.role !== role
   ) {
     currentScope.current = { brandId, getService, role };
+    autoSaveIntent.current = null;
     epoch.current += 1;
     pendingRef.current = false;
     dirtyRef.current = false;
@@ -125,7 +127,6 @@ export default function BrandOsSettingsCard({
   const exportError = hasCurrentScope ? storedExportError : null;
   const notice = hasCurrentScope ? storedNotice : null;
   const pending = hasCurrentScope ? storedPending : null;
-  const loading = !hasCurrentScope || storedLoading;
   function isCurrent(operationEpoch: number) {
     return (
       mounted.current &&
@@ -211,7 +212,6 @@ export default function BrandOsSettingsCard({
       mounted.current = false;
       acknowledgementRef.current = null;
       reviewEpoch.current += 1;
-      epoch.current += 1;
     };
   }, []);
 
@@ -229,72 +229,112 @@ export default function BrandOsSettingsCard({
     setExportState(null);
   });
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: revision events and explicit refresh reload server history
-  useEffect(() => {
-    const controller = new AbortController();
-    const operationEpoch = epoch.current;
-    const mutationAtStart = mutationRef.current;
-    async function load() {
-      clearAcknowledgement();
-      setLoading(true);
-      setError(null);
-      try {
-        const service = await getService();
-        if (!isCurrent(operationEpoch) || controller.signal.aborted) return;
-        const [revisionResult, exportResult] = await Promise.allSettled([
-          service.listBrandOsRevisions(brandId, controller.signal),
-          service.getBrandOsExport(brandId, controller.signal),
-        ]);
-        if (controller.signal.aborted || !isCurrent(operationEpoch)) return;
-        if (mutationRef.current !== mutationAtStart) {
-          setReload((value) => value + 1);
-          return;
-        }
-        if (revisionResult.status === 'rejected') throw revisionResult.reason;
-        const nextRevisions = revisionResult.value;
-        const organizationId = nextRevisions[0]?.organizationId;
-        if (
-          nextRevisions.some(
-            (revision) => !matchesRevisionScope(revision, organizationId),
-          )
-        )
-          throw new Error(t('operationFailed'));
-        if (
-          exportResult.status === 'fulfilled' &&
-          exportResult.value.brandId === brandId
-        ) {
-          setExportState(exportResult.value);
-          setExportError(null);
-        } else {
-          setExportState(null);
-          setExportError(
-            exportResult.status === 'rejected'
-              ? errorMessage(exportResult.reason, t('operationFailed'))
-              : t('operationFailed'),
-          );
-        }
-        clearAcknowledgement();
-        setLoadedEpoch(operationEpoch);
-        if (dirtyRef.current) {
-          setNotice(t('newRevisions'));
-          return;
-        }
-        setRevisions(nextRevisions);
-        setSelectedId(nextRevisions[0]?.id ?? '');
-        setContent(nextRevisions[0]?.content ?? null);
-      } catch (loadError) {
-        if (!controller.signal.aborted && isCurrent(operationEpoch)) {
-          setLoadedEpoch(operationEpoch);
-          setError(errorMessage(loadError, t('operationFailed')));
-        }
-      } finally {
-        if (!controller.signal.aborted && isCurrent(operationEpoch))
-          setLoading(false);
-      }
+  const cardId = useId();
+  const history = useAuthedQuery({
+    queryKey: [
+      'brand-os-history',
+      brandId,
+      cardId,
+      epoch.current,
+      refreshKey,
+      reload,
+    ],
+    service: (token) => BrandsService.getInstance(token),
+    gcTime: 0,
+    refetchOnReconnect: false,
+    refetchOnWindowFocus: false,
+    retry: false,
+    queryFn: async (service, signal) => {
+      signal.throwIfAborted();
+      const mutationAtStart = mutationRef.current;
+      const [revisions, designExport] = await Promise.allSettled([
+        service.listBrandOsRevisions(brandId, signal),
+        service.getBrandOsExport(brandId, signal),
+      ]);
+      return { mutationAtStart, revisions, designExport };
+    },
+  });
+  const loading = !hasCurrentScope || history.isPending || history.isFetching;
+
+  useResetOnChange([history.isFetching, refreshKey, reload], () => {
+    clearAcknowledgement();
+    if (history.isFetching) setError(null);
+  });
+  useResetOnChange([history.data, history.error], () => {
+    if (history.error) {
+      setLoadedEpoch(epoch.current);
+      setError(errorMessage(history.error, t('operationFailed')));
+      return;
     }
-    void load();
-    return () => controller.abort();
-  }, [brandId, getService, role, refreshKey, reload, t]);
+    if (!history.data) return;
+
+    const { mutationAtStart, revisions: result, designExport } = history.data;
+    if (mutationAtStart !== mutationRef.current) {
+      setReload((value) => value + 1);
+      return;
+    }
+
+    setLoadedEpoch(epoch.current);
+    if (result.status === 'rejected') {
+      setError(errorMessage(result.reason, t('operationFailed')));
+      return;
+    }
+    const nextRevisions = result.value;
+    const organizationId = nextRevisions[0]?.organizationId;
+    if (
+      nextRevisions.some(
+        (revision) => !matchesRevisionScope(revision, organizationId),
+      )
+    ) {
+      setError(t('operationFailed'));
+      return;
+    }
+    if (
+      designExport.status === 'fulfilled' &&
+      designExport.value.brandId === brandId
+    ) {
+      setExportState(designExport.value);
+      setExportError(null);
+    } else {
+      setExportState(null);
+      setExportError(
+        designExport.status === 'rejected'
+          ? errorMessage(designExport.reason, t('operationFailed'))
+          : t('operationFailed'),
+      );
+    }
+    if (dirty) {
+      setNotice(t('newRevisions'));
+      return;
+    }
+    setRevisions(nextRevisions);
+    setSelectedId(nextRevisions[0]?.id ?? '');
+    setContent(nextRevisions[0]?.content ?? null);
+  });
+
+  const scheduleAutoSave = useDebouncedCallback(() => {
+    const draft = autoSaveIntent.current;
+    if (
+      !draft ||
+      draft !== editedContentRef.current ||
+      !mounted.current ||
+      !isAutoSaveEnabled ||
+      !canManage ||
+      !dirty ||
+      pendingRef.current
+    )
+      return;
+    if (loading) {
+      void history.refetch({ cancelRefetch: false }).then(() => {
+        if (mounted.current && autoSaveIntent.current === draft)
+          scheduleAutoSave();
+      });
+      return;
+    }
+
+    autoSaveIntent.current = null;
+    saveDraft();
+  }, AUTO_SAVE_DELAY_MS);
 
   useBrandOsDirtyNavigation(brandId, dirty, t);
 
@@ -326,10 +366,29 @@ export default function BrandOsSettingsCard({
   }
 
   function editContent(update: (current: IBrandKitDraft) => IBrandKitDraft) {
-    if (!hasCurrentScope || !canManage || pendingRef.current) return;
+    const current = editedContentRef.current;
+    if (
+      !current ||
+      !hasCurrentScope ||
+      !canManage ||
+      pendingRef.current ||
+      !selected ||
+      selected.status === BrandOsRevisionStatus.SUPERSEDED
+    )
+      return;
+    const next = update(current);
+    const nextKey = JSON.stringify(next);
     clearAcknowledgement();
-    setContent((current) => (current ? update(current) : current));
     setNotice(null);
+    if (nextKey === JSON.stringify(current)) return;
+
+    editedContentRef.current = next;
+    setContent(next);
+    if (isAutoSaveEnabled) {
+      autoSaveIntent.current =
+        nextKey !== JSON.stringify(selected.content) ? next : null;
+      if (autoSaveIntent.current) scheduleAutoSave();
+    }
   }
 
   function changePolicy(policy: IBrandPublishPolicy | undefined) {
@@ -367,6 +426,7 @@ export default function BrandOsSettingsCard({
       if (isCurrent(operationEpoch)) {
         pendingRef.current = false;
         setPending(null);
+        if (autoSaveIntent.current) scheduleAutoSave();
       }
     }
   }
@@ -418,6 +478,7 @@ export default function BrandOsSettingsCard({
       )
         throw new Error(t('operationFailed'));
       mutationRef.current += 1;
+      autoSaveIntent.current = null;
       clearAcknowledgement();
       setRevisions((current) => [
         saved,
@@ -532,39 +593,6 @@ export default function BrandOsSettingsCard({
       isBusy: busy,
     });
   }, [onReadinessChange, loading, role, canManage, isApproved, dirty, busy]);
-
-  // Auto-save goes through the same expected-updatedAt save as the Save
-  // button. Content that already failed to save is not retried until it
-  // changes again, so a conflict keeps the edits without looping.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: saveDraft is recreated every render; the deps capture what it saves
-  useEffect(() => {
-    if (
-      !isAutoSaveEnabled ||
-      !dirty ||
-      !canManage ||
-      busy ||
-      loading ||
-      !contentKey ||
-      selected?.status === BrandOsRevisionStatus.SUPERSEDED ||
-      autoSaveAttemptRef.current === contentKey
-    )
-      return;
-    const timer = setTimeout(() => {
-      autoSaveAttemptRef.current = contentKey;
-      saveDraft();
-    }, AUTO_SAVE_DELAY_MS);
-    return () => clearTimeout(timer);
-  }, [
-    isAutoSaveEnabled,
-    dirty,
-    canManage,
-    busy,
-    loading,
-    contentKey,
-    selected?.id,
-    selected?.updatedAt,
-    selected?.status,
-  ]);
 
   const organizationId = revisions[0]?.organizationId ?? '';
   // Any selection, save, approval or history change closes the current preview.
@@ -775,6 +803,7 @@ export default function BrandOsSettingsCard({
                     isDisabled={busy}
                     onClick={() => {
                       clearAcknowledgement();
+                      autoSaveIntent.current = null;
                       setContent(selected.content);
                       setNotice(t('discarded'));
                     }}

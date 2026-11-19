@@ -1,3 +1,4 @@
+import { queryClientWrapper } from '@app-tests/query-client.harness';
 import { FontFamily, MemberRole } from '@genfeedai/contracts';
 import type {
   IBrandKitDraft,
@@ -9,7 +10,7 @@ import type { BrandIdentityPreviewResult } from '@services/ai/branded-generation
 import {
   act,
   fireEvent,
-  render,
+  render as renderWithTestingLibrary,
   screen,
   waitFor,
 } from '@testing-library/react';
@@ -23,6 +24,10 @@ import { Children, isValidElement } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { BrandOsGuideReadiness } from '@/features/brands/props/brand-os-settings.props';
 import BrandOsSettingsCard from './BrandOsSettingsCard';
+
+function render(element: Parameters<typeof renderWithTestingLibrary>[0]) {
+  return renderWithTestingLibrary(element, { wrapper: queryClientWrapper() });
+}
 
 const mocks = vi.hoisted(() => ({
   role: 'owner' as string | null | undefined,
