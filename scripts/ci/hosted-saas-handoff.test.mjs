@@ -47,7 +47,11 @@ const FRONTEND_SECRETS = [
   'SENTRY_AUTH_TOKEN',
   'TURBO_TOKEN',
 ];
-const ENGINE_SECRETS = FRONTEND_SECRETS;
+const ENGINE_SECRETS = [
+  ...FRONTEND_SECRETS,
+  'POST_DEPLOY_CANARY_EMAIL',
+  'POST_DEPLOY_CANARY_PASSWORD',
+];
 const ENTRY_SECRETS = ENGINE_SECRETS;
 
 // A skipped verify-suite must only be accepted when validate-release proved the
