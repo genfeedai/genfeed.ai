@@ -7,6 +7,8 @@ import type { LoggerService } from '@libs/logger/logger.service';
 import type { ClientService } from '@mcp/services/client.service';
 import { toNativeMcpMediaResult } from '@mcp/services/mcp-media-result.util';
 import { formatToolData } from '@mcp/shared/utils/tool-result-text.util';
+import { MCP_ORGANIZATION_BOUND } from '@mcp/tools/mcp-tool-error';
+import { ForbiddenException } from '@nestjs/common';
 
 type AccountManagementToolResult = {
   content: McpMediaToolResult['content'];
@@ -133,9 +135,11 @@ export function handleAccountManagementTool(
         );
       }
       if (!(await client.canSwitchOrganizations())) {
-        throw new Error(
-          'This connection was limited to one organization. Reconnect and choose "All organizations" on the consent screen.',
-        );
+        throw new ForbiddenException({
+          code: MCP_ORGANIZATION_BOUND,
+          message:
+            'This connection was limited to one organization. Reconnect and choose "All organizations" on the consent screen.',
+        });
       }
       const organization = matchOrganization(
         await client.listOrganizations(),

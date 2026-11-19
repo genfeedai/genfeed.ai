@@ -20,6 +20,8 @@ import { ZodError } from 'zod';
 const DIGITS_ONLY_PATTERN = /^\d+$/;
 const VALIDATION_FAILED_ERROR_PATTERN = /validation failed/i;
 
+export const MCP_ORGANIZATION_BOUND = 'mcp_organization_bound';
+
 /**
  * One contract for MCP gating failures. Transport rejections (auth and the
  * RateLimitService window) put the same object on JSON-RPC `error.data`.
@@ -581,7 +583,11 @@ export function classifyMcpToolFailure(
     });
   }
 
-  if (status === 401 || AUTH_MESSAGE.test(text)) {
+  if (
+    domainCode === MCP_ORGANIZATION_BOUND ||
+    status === 401 ||
+    AUTH_MESSAGE.test(text)
+  ) {
     return compactToolError({
       code: 'unauthorized',
       message: message || 'Authorization required.',
