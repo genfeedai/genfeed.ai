@@ -290,6 +290,37 @@ describe('BrandedTextActionsService', () => {
     });
   });
 
+  it.each([
+    [
+      'integrity_snapshot_schema_invalid',
+      'This Brand Kit has saved fields that generation cannot read. Open Settings → Brand Kit, correct the saved fields, and have a workspace owner or admin approve the revision before trying again.',
+    ],
+    [
+      'integrity_content_scope_mismatch',
+      'This Brand Kit revision does not match the selected brand. Open Settings → Brand Kit for this brand, scan its website or create a new draft, and have a workspace owner or admin approve the revision before trying again.',
+    ],
+  ])(
+    'gives a repair step for %s and keeps the request blocked',
+    async (reasonCode, message) => {
+      ctx.branded.generate.mockResolvedValue({
+        hasNewDispatch: false,
+        kind: 'stopped',
+        postId: null,
+        reasonCode,
+        receipt: receipt({ id: 'receipt-4', state: 'blocked' }),
+      });
+
+      expect(await ctx.service.run(request)).toEqual({
+        code: 'blocked',
+        hasNewDispatch: false,
+        kind: 'failed',
+        message,
+        reasonCode,
+        receiptId: 'receipt-4',
+      });
+    },
+  );
+
   it('does not call the seam when the mode cannot be resolved', async () => {
     ctx.modeResolver.resolve.mockRejectedValue(
       new Error('Brand access denied'),
