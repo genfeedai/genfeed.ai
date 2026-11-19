@@ -58,7 +58,7 @@ beforeEach(() => {
   queryClient = createTestQueryClient();
   mocks.organizationId = 'org-1';
   mocks.getMembers.mockResolvedValue(mocks);
-  mocks.findMyApps.mockResolvedValue(['playground']);
+  mocks.findMyApps.mockResolvedValue(['clipper']);
 });
 
 describe('InstalledAppsProvider (#5502)', () => {
@@ -66,7 +66,7 @@ describe('InstalledAppsProvider (#5502)', () => {
     const { result } = renderHook(useInstalledApps, { wrapper });
     expect(result.current.status).toBe('loading');
     await waitFor(() => expect(result.current.status).toBe('ready'));
-    expect(result.current.installedAppIds).toEqual(['playground']);
+    expect(result.current.installedAppIds).toEqual(['clipper']);
     expect(mocks.findMyApps).toHaveBeenCalledWith(expect.any(AbortSignal));
   });
 
@@ -83,12 +83,12 @@ describe('InstalledAppsProvider (#5502)', () => {
     await waitFor(() =>
       expect(result.current.pendingAppIds).toEqual(['turbo']),
     );
-    expect(result.current.installedAppIds).toEqual(['playground']);
+    expect(result.current.installedAppIds).toEqual(['clipper']);
 
-    await act(async () => pending.resolve(['playground', 'turbo']));
+    await act(async () => pending.resolve(['clipper', 'turbo']));
     await expect(saved).resolves.toBe(true);
     await waitFor(() =>
-      expect(result.current.installedAppIds).toEqual(['playground', 'turbo']),
+      expect(result.current.installedAppIds).toEqual(['clipper', 'turbo']),
     );
     expect(result.current.pendingAppIds).toEqual([]);
   });
@@ -100,10 +100,10 @@ describe('InstalledAppsProvider (#5502)', () => {
 
     let saved: Promise<boolean> | undefined;
     act(() => {
-      saved = result.current.uninstall('playground');
+      saved = result.current.uninstall('clipper');
     });
     await expect(saved).resolves.toBe(false);
-    expect(result.current.installedAppIds).toEqual(['playground']);
+    expect(result.current.installedAppIds).toEqual(['clipper']);
     await waitFor(() => expect(result.current.pendingAppIds).toEqual([]));
   });
 
@@ -111,7 +111,7 @@ describe('InstalledAppsProvider (#5502)', () => {
     const first = deferred<string[]>();
     mocks.installApp
       .mockReturnValueOnce(first.promise)
-      .mockResolvedValueOnce(['playground', 'turbo', 'storyboard']);
+      .mockResolvedValueOnce(['clipper', 'turbo', 'storyboard']);
     const { result } = renderHook(useInstalledApps, { wrapper });
     await waitFor(() => expect(result.current.status).toBe('ready'));
 
@@ -120,10 +120,10 @@ describe('InstalledAppsProvider (#5502)', () => {
       void result.current.install('storyboard');
     });
     await waitFor(() => expect(mocks.installApp).toHaveBeenCalledTimes(1));
-    await act(async () => first.resolve(['playground', 'turbo']));
+    await act(async () => first.resolve(['clipper', 'turbo']));
     await waitFor(() =>
       expect(result.current.installedAppIds).toEqual([
-        'playground',
+        'clipper',
         'turbo',
         'storyboard',
       ]),
@@ -155,7 +155,7 @@ describe('InstalledAppsProvider (#5502)', () => {
     await waitFor(() =>
       expect(result.current.installedAppIds).toEqual(['discovery']),
     );
-    await act(async () => stale.resolve(['playground', 'turbo']));
+    await act(async () => stale.resolve(['clipper', 'turbo']));
     await expect(saved).resolves.toBe(false);
     expect(result.current.installedAppIds).toEqual(['discovery']);
   });
@@ -168,7 +168,7 @@ describe('InstalledAppsProvider (#5502)', () => {
     const { result } = renderHook(useInstalledApps, { wrapper });
 
     expect(result.current.status).toBe('ready');
-    expect(result.current.installedAppIds).toEqual(['playground']);
+    expect(result.current.installedAppIds).toEqual(['clipper']);
   });
 
   it("never shows one organization's installations in another", async () => {
@@ -187,7 +187,7 @@ describe('InstalledAppsProvider (#5502)', () => {
   });
 
   it('keeps a confirmed installation when the list is read again', async () => {
-    mocks.installApp.mockResolvedValue(['playground', 'turbo']);
+    mocks.installApp.mockResolvedValue(['clipper', 'turbo']);
     const firstVisit = renderHook(useInstalledApps, { wrapper });
     await waitFor(() => expect(firstVisit.result.current.status).toBe('ready'));
     await act(async () => {
@@ -198,6 +198,6 @@ describe('InstalledAppsProvider (#5502)', () => {
     mocks.findMyApps.mockReturnValue(new Promise<never>(() => undefined));
     const { result } = renderHook(useInstalledApps, { wrapper });
 
-    expect(result.current.installedAppIds).toEqual(['playground', 'turbo']);
+    expect(result.current.installedAppIds).toEqual(['clipper', 'turbo']);
   });
 });

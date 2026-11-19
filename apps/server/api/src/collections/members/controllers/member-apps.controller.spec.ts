@@ -26,7 +26,7 @@ describe('MemberAppsController (#5502)', () => {
    */
   function makeController({ isReleasePreview = false } = {}) {
     const memberships = new Map<string, string[]>([
-      ['org-1/user-1', ['playground']],
+      ['org-1/user-1', ['storyboard']],
     ]);
     const reads: string[] = [];
     const membersService = {
@@ -75,7 +75,7 @@ describe('MemberAppsController (#5502)', () => {
     const { controller } = makeController();
 
     await expect(controller.findInstalledApps(makeUser())).resolves.toEqual({
-      installedAppIds: ['playground'],
+      installedAppIds: ['storyboard'],
     });
   });
 
@@ -84,7 +84,7 @@ describe('MemberAppsController (#5502)', () => {
     memberships.set('org-1/user-2', []);
 
     await expect(controller.installApp(makeUser(), 'turbo')).resolves.toEqual({
-      installedAppIds: ['playground', 'turbo'],
+      installedAppIds: ['storyboard', 'turbo'],
     });
     expect(memberships.get('org-1/user-2')).toEqual([]);
   });
@@ -95,14 +95,14 @@ describe('MemberAppsController (#5502)', () => {
     await expect(
       controller.installApp(makeUser(), 'motion'),
     ).rejects.toBeInstanceOf(ForbiddenException);
-    expect(memberships.get('org-1/user-1')).toEqual(['playground']);
+    expect(memberships.get('org-1/user-1')).toEqual(['storyboard']);
   });
 
   it('installs unreleased apps for an organization on release preview', async () => {
     const { controller } = makeController({ isReleasePreview: true });
 
     await expect(controller.installApp(makeUser(), 'motion')).resolves.toEqual({
-      installedAppIds: ['playground', 'motion'],
+      installedAppIds: ['storyboard', 'motion'],
     });
   });
 
@@ -112,19 +112,19 @@ describe('MemberAppsController (#5502)', () => {
     await expect(
       controller.installApp(makeUser({ isSuperAdmin: true }), 'editor'),
     ).rejects.toBeInstanceOf(ForbiddenException);
-    expect(memberships.get('org-1/user-1')).toEqual(['playground']);
+    expect(memberships.get('org-1/user-1')).toEqual(['storyboard']);
   });
 
   it('lets anyone uninstall a known app, including unreleased ones', async () => {
     const { controller, memberships } = makeController();
-    memberships.set('org-1/user-1', ['playground', 'messages']);
+    memberships.set('org-1/user-1', ['storyboard', 'messages']);
 
     await expect(
       controller.uninstallApp(makeUser(), 'messages'),
-    ).resolves.toEqual({ installedAppIds: ['playground'] });
+    ).resolves.toEqual({ installedAppIds: ['storyboard'] });
   });
 
-  it.each(['workspace', 'studio', '__proto__'])(
+  it.each(['workspace', 'playground', 'studio', '__proto__'])(
     'rejects the core or unknown app id %s',
     async (appId) => {
       const { controller, memberships } = makeController();
@@ -135,7 +135,7 @@ describe('MemberAppsController (#5502)', () => {
       await expect(
         controller.uninstallApp(makeUser(), appId),
       ).rejects.toBeInstanceOf(NotFoundException);
-      expect(memberships.get('org-1/user-1')).toEqual(['playground']);
+      expect(memberships.get('org-1/user-1')).toEqual(['storyboard']);
     },
   );
 
@@ -149,7 +149,7 @@ describe('MemberAppsController (#5502)', () => {
       controller.installApp(makeUser({ organizationId: '' }), 'turbo'),
     ).rejects.toBeInstanceOf(BadRequestException);
     expect(reads).toEqual([]);
-    expect(memberships.get('org-1/user-1')).toEqual(['playground']);
+    expect(memberships.get('org-1/user-1')).toEqual(['storyboard']);
   });
 
   it('reports a missing membership as not found', async () => {

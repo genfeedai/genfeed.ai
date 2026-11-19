@@ -22,7 +22,7 @@ const ALLOWED = { isAllowed: true, reason: null } as const;
 
 function availability(overrides: Partial<NativeAppAvailabilityInput> = {}) {
   return resolveNativeAppAvailability({
-    appId: 'playground',
+    appId: 'storyboard',
     flags: {},
     installedAppIds: [],
     organizationAccess: ALLOWED,
@@ -40,7 +40,7 @@ describe('native apps catalog (#5502)', () => {
       'publishing',
       'analytics',
     ]);
-    expect(CORE_APP_IDS).toEqual([...DASHBOARD_APP_IDS, 'agent']);
+    expect(CORE_APP_IDS).toEqual([...DASHBOARD_APP_IDS, 'agent', 'playground']);
     for (const coreAppId of CORE_APP_IDS) {
       expect(isNativeSecondaryAppId(coreAppId)).toBe(false);
     }
@@ -51,7 +51,7 @@ describe('native apps catalog (#5502)', () => {
     ['discovery', true],
     ['analytics', true],
     ['agent', true],
-    ['playground', false],
+    ['playground', true],
     ['studio', false],
   ])('answers whether %s is a core app: %s', (appId, expected) => {
     expect(isCoreAppId(appId)).toBe(expected);
@@ -87,25 +87,25 @@ describe('native apps catalog (#5502)', () => {
 describe('resolveNativeAppAvailability', () => {
   it('reports installed and pinned apps when access allows them', () => {
     expect(availability()).toBe('not-installed');
-    expect(availability({ installedAppIds: ['playground'] })).toBe('installed');
+    expect(availability({ installedAppIds: ['storyboard'] })).toBe('installed');
     expect(
       availability({
-        installedAppIds: ['playground'],
-        pinnedAppIds: ['playground'],
+        installedAppIds: ['storyboard'],
+        pinnedAppIds: ['storyboard'],
       }),
     ).toBe('pinned');
   });
 
   it('never shows a pin for an app that is not installed', () => {
-    expect(availability({ pinnedAppIds: ['playground'] })).toBe(
+    expect(availability({ pinnedAppIds: ['storyboard'] })).toBe(
       'not-installed',
     );
   });
 
   it('lets organization denial win over an installation and pin', () => {
     const preferences = {
-      installedAppIds: ['playground'],
-      pinnedAppIds: ['playground'],
+      installedAppIds: ['storyboard'],
+      pinnedAppIds: ['storyboard'],
     };
     expect(
       availability({
@@ -132,19 +132,19 @@ describe('resolveNativeAppAvailability', () => {
 
   it('lets the platform kill switch win over everything else', () => {
     const preferences = {
-      installedAppIds: ['playground'],
-      pinnedAppIds: ['playground'],
+      installedAppIds: ['storyboard'],
+      pinnedAppIds: ['storyboard'],
     };
-    expect(availability({ ...preferences, flags: { studio: false } })).toBe(
+    expect(availability({ ...preferences, flags: { storyboard: false } })).toBe(
       'platform-off',
     );
     expect(
       availability({
-        flags: { studio: false },
+        flags: { storyboard: false },
         organizationAccess: { isAllowed: false, reason: 'disabled' },
       }),
     ).toBe('platform-off');
-    expect(availability({ flags: { studio: true } })).toBe('not-installed');
+    expect(availability({ flags: { storyboard: true } })).toBe('not-installed');
   });
 
   it('reports an unreleased module as unreleased', () => {
@@ -158,7 +158,7 @@ describe('resolveNativeAppAvailability', () => {
   });
 
   it('treats unresolved organization access as unavailable', () => {
-    const preferences = { installedAppIds: ['playground'] };
+    const preferences = { installedAppIds: ['storyboard'] };
     expect(availability({ ...preferences, organizationAccess: null })).toBe(
       'unavailable',
     );
@@ -199,7 +199,14 @@ describe('isWorkflowLibraryVisible', () => {
 describe('normalizeInstalledAppIds', () => {
   it('drops unknown and duplicate installed ids in stored order', () => {
     expect(
-      normalizeInstalledAppIds(['turbo', 'studio', 7, 'turbo', 'clipper']),
+      normalizeInstalledAppIds([
+        'turbo',
+        'playground',
+        'studio',
+        7,
+        'turbo',
+        'clipper',
+      ]),
     ).toEqual(['turbo', 'clipper']);
     expect(normalizeInstalledAppIds(null)).toEqual([]);
   });
