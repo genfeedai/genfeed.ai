@@ -72,8 +72,18 @@ function build() {
     // A reviewer approved it in the inbox; MCP only redeems it.
     getApproval: vi.fn(async () => ({ ...approval, status: 'APPROVED' })),
   };
+  const workspaceApp = {
+    createTask: async () => fixture,
+    getReviewRun: async () => ({ id: fixture.id, attributes: { items: [] } }),
+    getTask: async () => fixture,
+    listActivity: async () => [fixture],
+    listInbox: async () => [fixture],
+    listTasks: async () => [fixture],
+    updateTask: async () => fixture,
+  };
   const client = new Proxy(methods, {
     get(target, key: string) {
+      if (key === 'workspaceApp') return workspaceApp;
       target[key] ??= vi
         .fn()
         .mockResolvedValue(
@@ -112,6 +122,7 @@ describe('MCP catalog presentation through the public registry', () => {
       if (tool.name === 'get_preset') args.key = 'productLaunch';
       if (tool.name === 'create_clipper_project_from_youtube')
         args.brandId = 'input-private';
+      if (tool.name === 'manage_task') args.action = 'complete';
       if (tool.name === 'run_clipper') args.mode = 'raw-cut';
       // One release or a batch is required, neither field alone.
       if (

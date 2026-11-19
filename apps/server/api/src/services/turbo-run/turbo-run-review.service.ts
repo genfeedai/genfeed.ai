@@ -180,13 +180,17 @@ export class TurboRunReviewService {
   async getTurboRun(
     turboRunId: string,
     orgId: string,
+    brandIds?: string[],
   ): Promise<ITurboRunSummary> {
     const turboRun = toTurboRunWithConfig(
       await findOrThrow(
         this.prisma.turboRun,
         {
           include: turboRunItemRowsInclude(orgId),
-          where: scopedWhere(orgId, { id: turboRunId }),
+          where: scopedWhere(orgId, {
+            id: turboRunId,
+            ...(brandIds === undefined ? {} : { brandId: { in: brandIds } }),
+          }),
         },
         'Turbo run',
         turboRunId,
@@ -200,6 +204,7 @@ export class TurboRunReviewService {
     orgId: string,
     query?: {
       brandId?: string;
+      brandIds?: string[];
       status?: TurboRunStatus;
       limit?: number;
       offset?: number;
@@ -209,6 +214,9 @@ export class TurboRunReviewService {
     const offset = query?.offset ?? 0;
     const filter = {
       ...(query?.brandId ? { brandId: query.brandId } : {}),
+      ...(query?.brandIds === undefined
+        ? {}
+        : { AND: [{ brandId: { in: query.brandIds } }] }),
       ...(query?.status
         ? { status: toPrismaTurboRunStatus(query.status) }
         : {}),

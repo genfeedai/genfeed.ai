@@ -104,8 +104,12 @@ export class TurboRunService {
   }
 
   @HandleErrors('get run', 'turbo-run')
-  getTurboRun(turboRunId: string, orgId: string): Promise<ITurboRunSummary> {
-    return this.reviewService.getTurboRun(turboRunId, orgId);
+  getTurboRun(
+    turboRunId: string,
+    orgId: string,
+    brandIds?: string[],
+  ): Promise<ITurboRunSummary> {
+    return this.reviewService.getTurboRun(turboRunId, orgId, brandIds);
   }
 
   @HandleErrors('get runs', 'turbo-run')
@@ -113,6 +117,7 @@ export class TurboRunService {
     orgId: string,
     query?: {
       brandId?: string;
+      brandIds?: string[];
       status?: TurboRunStatus;
       limit?: number;
       offset?: number;

@@ -120,6 +120,7 @@ describe('Manual actions HTTP routes', () => {
     const module = await Test.createTestingModule({
       controllers: [TurboRunController, SocialInboxController],
       providers: [
+        { provide: BrandAccessService, useValue: {} },
         TurboRunRewriteService,
         TurboRewriteCreditsGuard,
         SocialInboxSuggestedReplyService,
@@ -290,3 +291,5 @@ describe('Manual actions HTTP routes', () => {
     expect(db.socialMessage.findMany).not.toHaveBeenCalled();
   });
 });
+
+import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';

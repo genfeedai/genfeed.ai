@@ -501,6 +501,20 @@ Clipper and Motion. Added apps are not counted against the profile caps.
 | `turbo` | `content` |
 | `workspace` | `workspace` |
 
+### Workspace review and tasks
+
+Connect to `/mcp?toolsets=workspace` for `get_review_queue` and `manage_task`.
+
+- `get_review_queue` returns the ready Turbo items from the latest visible batch
+  and the pending workflow gates and MCP approvals from Publishing → Approvals.
+  Pass `brandId` to choose a brand or `turboRunId` to inspect another visible batch.
+  Batch queries support an optional item `status` filter. Review decisions stay
+  in Genfeed.
+- `manage_task` takes an `action` and an `input` containing `taskId`.
+  Use `update` to change task fields such as `status` or `assigneeUserId`,
+  `comment` with a Markdown `body`, or `complete` to move the task to Done
+  through the same status rules as Workspace → Tasks.
+
 `brand`, `engagement`, `knowledge`, and `skills-pro` have no app; select them
 with `?toolsets=`. An unknown app name returns HTTP 400 listing the valid
 names. The Claude connector at `/mcp/claude` keeps its fixed tool list.

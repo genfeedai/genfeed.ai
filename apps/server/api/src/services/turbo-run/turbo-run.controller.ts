@@ -1,4 +1,6 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
+import { resolveKnowledgeActor } from '@api/collections/contexts/utils/knowledge-actor.util';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -6,6 +8,7 @@ import type { CreditsGuardRequest } from '@api/helpers/guards/credits/credits.gu
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
+import type { ITenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.types';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import {
   serializeCollection,
@@ -54,6 +57,7 @@ export class TurboRunController {
     private readonly turboRunWorkflowService: TurboRunWorkflowService,
     private readonly loggerService: LoggerService,
     private readonly rewriteService: TurboRunRewriteService,
+    private readonly brandAccess: BrandAccessService,
   ) {}
 
   @Post()
@@ -131,14 +135,22 @@ export class TurboRunController {
     @Query('brandId') brandId?: string,
   ) {
     try {
-      const organization = resolveTenantReadScope(user).organizationId;
+      const scope = resolveTenantReadScope(user);
+      const brandIds = await this.resolveReviewBrandIds(
+        user,
+        scope,
+        brandId || scope.brandId,
+      );
 
-      const data = await this.turboRunService.getTurboRuns(organization, {
-        brandId: brandId || undefined,
-        limit: limit ? parseInt(limit, 10) : undefined,
-        offset: offset ? parseInt(offset, 10) : undefined,
-        status,
-      });
+      const data = await this.turboRunService.getTurboRuns(
+        scope.organizationId,
+        {
+          brandIds,
+          limit: limit ? parseInt(limit, 10) : undefined,
+          offset: offset ? parseInt(offset, 10) : undefined,
+          status,
+        },
+      );
       return serializeCollection(req, TurboRunSerializer, {
         docs: data.items,
         total: data.total,
@@ -155,15 +167,40 @@ export class TurboRunController {
     @Req() req: Request,
     @Param('id') id: string,
     @CurrentUser() user: User,
+    @Query('brandId') brandId?: string,
   ) {
     try {
-      const organization = resolveTenantReadScope(user).organizationId;
+      const scope = resolveTenantReadScope(user);
+      // By-ID reads use all reachable brands unless the caller selects one.
+      const brandIds = await this.resolveReviewBrandIds(user, scope, brandId);
 
-      const data = await this.turboRunService.getTurboRun(id, organization);
+      const data = await this.turboRunService.getTurboRun(
+        id,
+        scope.organizationId,
+        brandIds,
+      );
       return serializeSingle(req, TurboRunSerializer, data);
     } catch (error: unknown) {
       return ErrorResponse.handle(error, this.loggerService, 'getTurboRun');
     }
+  }
+
+  private async resolveReviewBrandIds(
+    user: User,
+    scope: ITenantReadScope,
+    selectedBrandId?: string,
+  ): Promise<string[] | undefined> {
+    const brandIds = scope.isOrganizationOverride
+      ? undefined
+      : (
+          await this.brandAccess.resolve(
+            resolveKnowledgeActor(user, undefined, scope),
+          )
+        ).brandIds;
+    if (!selectedBrandId) return brandIds;
+    return brandIds === undefined || brandIds.includes(selectedBrandId)
+      ? [selectedBrandId]
+      : [];
   }
 
   @Post(':id/process')

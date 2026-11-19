@@ -1,3 +1,4 @@
+import { BrandAccessModule } from '@api/authorization/brand-access/brand-access.module';
 import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { ContentIntelligenceModule } from '@api/collections/content-intelligence/content-intelligence.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
@@ -60,6 +61,7 @@ import { Module } from '@nestjs/common';
     NotificationsPublisherModule,
     AutonomousPublishingModule,
     AgentStreamPublisherModule,
+    BrandAccessModule,
     BrandsCoreModule,
     BullModule.registerQueue({
       defaultJobOptions: {

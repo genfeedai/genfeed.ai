@@ -57,6 +57,21 @@ describe('MCP toolset profiles', () => {
     );
   });
 
+  it('lists the review queue and task management only when Workspace is selected', () => {
+    const workspace = getToolsForToolsets('mcp', ['workspace']).map(
+      (tool) => tool.name,
+    );
+    const defaults = getToolsForToolsets(
+      'mcp',
+      DEFAULT_MCP_PROFILE_TOOLSETS,
+    ).map((tool) => tool.name);
+    expect(workspace).toEqual(
+      expect.arrayContaining(['get_review_queue', 'manage_task']),
+    );
+    expect(defaults).not.toContain('get_review_queue');
+    expect(defaults).not.toContain('manage_task');
+  });
+
   it('keeps the Claude connector inside the connector cap and free of generation', () => {
     const listed = getToolsForSurface('mcp').filter(
       (tool) =>
