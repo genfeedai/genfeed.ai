@@ -352,6 +352,35 @@ describe('OAuthConsentPage', () => {
     });
   });
 
+  it('requires the user to opt in again when the authorization request changes', async () => {
+    findOrganizationBrandsMock.mockResolvedValue([
+      { id: 'brand-1', label: 'First brand' },
+    ]);
+    mockDecisionResponse();
+    const view = render(<OAuthConsentPage />);
+    await screen.findByRole('option', { name: 'First brand' });
+    fireEvent.change(screen.getByLabelText('Brand'), {
+      target: { value: 'brand-1' },
+    });
+    const permission = () =>
+      screen.getByRole('checkbox', {
+        name: 'Allow Brand Kit edits for First brand',
+      });
+    fireEvent.click(permission());
+    expect(permission()).toBeChecked();
+
+    useSearchParamsMock.mockReturnValue(
+      oauthParams({ client_id: 'another_client' }),
+    );
+    view.rerender(<OAuthConsentPage />);
+    expect(permission()).not.toBeChecked();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Authorize' }));
+    await waitFor(() => expect(redirectMock).toHaveBeenCalled());
+    expect(lastDecisionBody()).toMatchObject({ client_id: 'another_client' });
+    expect(lastDecisionBody()).not.toHaveProperty('allowBrandKitEdits');
+  });
+
   it('shows the sole organization and grants it without another step', async () => {
     mockDecisionResponse();
     render(<OAuthConsentPage />);

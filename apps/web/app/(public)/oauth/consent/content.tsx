@@ -282,7 +282,7 @@ export default function OAuthConsentContent() {
   // Empty = every brand in the organization; a picked brand limits the
   // connection to that one brand.
   const [selectedBrandId, setSelectedBrandId] = useState('');
-  const [allowBrandKitEdits, setAllowBrandKitEdits] = useState(false);
+  const [brandKitConsent, setBrandKitConsent] = useState<string | null>(null);
   const [isLoadingBrands, setIsLoadingBrands] = useState(false);
   const [isLoadingOrganizations, setIsLoadingOrganizations] = useState(true);
   const [organizationError, setOrganizationError] = useState<string | null>(
@@ -469,6 +469,14 @@ export default function OAuthConsentContent() {
       !isAdmin &&
       accessLevel !== 'read',
   );
+  const brandKitConsentKey = JSON.stringify([
+    callbackPath,
+    selectedOrganizationId,
+    selectedBrandId,
+    accessLevel,
+  ]);
+  const hasBrandKitConsent =
+    canGrantBrandKitEdits && brandKitConsent === brandKitConsentKey;
   const defaultOrganization = organizations[0];
   const connectorOrganization = isAllOrganizations
     ? defaultOrganization
@@ -503,9 +511,7 @@ export default function OAuthConsentContent() {
         {
           body: JSON.stringify({
             allowBrandKitEdits:
-              approved && canGrantBrandKitEdits && allowBrandKitEdits
-                ? true
-                : undefined,
+              approved && hasBrandKitConsent ? true : undefined,
             allowOrganizationSwitching:
               approved && isAllOrganizations ? true : undefined,
             approved,
@@ -695,7 +701,7 @@ export default function OAuthConsentContent() {
                     placeholder={translateOrganization('placeholder')}
                     value={selectedOrganizationId || undefined}
                     onChange={(event) => {
-                      setAllowBrandKitEdits(false);
+                      setBrandKitConsent(null);
                       setSelectedOrganizationId(event.target.value);
                     }}
                   >
@@ -725,7 +731,7 @@ export default function OAuthConsentContent() {
                     name="consent-brand"
                     value={selectedBrandId}
                     onChange={(event) => {
-                      setAllowBrandKitEdits(false);
+                      setBrandKitConsent(null);
                       setSelectedBrandId(event.target.value);
                     }}
                   >
@@ -738,13 +744,15 @@ export default function OAuthConsentContent() {
                   </SelectField>
                   {canGrantBrandKitEdits && selectedBrand && (
                     <Checkbox
-                      isChecked={allowBrandKitEdits}
+                      isChecked={hasBrandKitConsent}
                       isDisabled={consentState.isSubmitting}
                       label={translateBrand('allowKitEdits', {
                         brand: selectedBrand.label,
                       })}
                       onCheckedChange={(checked) =>
-                        setAllowBrandKitEdits(checked === true)
+                        setBrandKitConsent(
+                          checked === true ? brandKitConsentKey : null,
+                        )
                       }
                     />
                   )}
@@ -757,7 +765,7 @@ export default function OAuthConsentContent() {
                     name="consent-access-level"
                     value={accessLevel}
                     onChange={(event) => {
-                      setAllowBrandKitEdits(false);
+                      setBrandKitConsent(null);
                       setAccessLevel(event.target.value as AccessLevel);
                     }}
                   >

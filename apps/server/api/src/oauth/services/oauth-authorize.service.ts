@@ -25,6 +25,7 @@ import {
 import { MCP_ADMIN_EMAIL_DOMAIN } from '@genfeedai/contracts/constants';
 import { resolveMcpAccessModeForResource } from '@genfeedai/helpers/integrations/mcp-resource.helper';
 import { ConfigService } from '@libs/config/config.service';
+import { runWithTenantContext } from '@libs/prisma/tenant-context';
 import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
@@ -195,21 +196,23 @@ export class OAuthAuthorizeService {
         'A connection limited to one brand stays in that brand’s organization',
       );
     }
-    if (dto.brandId) {
-      const brand = await this.prisma.brand.findFirst({
-        select: { id: true },
-        where: { id: dto.brandId, isDeleted: false, organizationId },
-      });
-      if (!brand) {
-        throw oauthError(
-          'invalid_request',
-          'Choose a brand that belongs to the selected organization',
-        );
-      }
-    }
-
     const accessMode = resolveMcpAccessModeForResource(resource);
     const isAdminResource = accessMode === 'admin';
+    const hasBrandKitConsent = dto.allowBrandKitEdits === true;
+    if (hasBrandKitConsent && (accessMode !== 'standard' || !dto.brandId)) {
+      throw oauthError(
+        'invalid_scope',
+        'Brand Kit editing requires one selected brand on a standard MCP connection',
+      );
+    }
+    if (dto.brandId) {
+      await this.assertBrandChoice(
+        organizationId,
+        userId,
+        dto.brandId,
+        hasBrandKitConsent,
+      );
+    }
     if (isAdminResource) {
       await this.assertAdminEndpointEligible(
         userId,
@@ -224,22 +227,7 @@ export class OAuthAuthorizeService {
     const scopes = isAdminResource
       ? [...clampedScopes, ApiKeyScope.ADMIN]
       : clampedScopes;
-    if (dto.allowBrandKitEdits === true) {
-      if (accessMode !== 'standard' || !dto.brandId) {
-        throw oauthError(
-          'invalid_scope',
-          'Brand Kit editing requires one selected brand on a standard MCP connection',
-        );
-      }
-      try {
-        await this.brandAccessService.assert(
-          { organizationId, userId },
-          dto.brandId,
-        );
-      } catch (error) {
-        if (!(error instanceof ForbiddenException)) throw error;
-        throw oauthError('access_denied', 'You cannot edit this brand');
-      }
+    if (hasBrandKitConsent) {
       scopes.push(ApiKeyScope.BRAND_KIT_WRITE);
     }
     // "All organizations": the connection may name any organization the user
@@ -289,6 +277,39 @@ export class OAuthAuthorizeService {
         state,
       }),
     };
+  }
+
+  private assertBrandChoice(
+    organizationId: string,
+    userId: string,
+    brandId: string,
+    hasBrandKitConsent: boolean,
+  ): Promise<void> {
+    // The consent organization is already proven by the live membership read.
+    return runWithTenantContext({ organizationId }, async () => {
+      if (hasBrandKitConsent) {
+        try {
+          await this.brandAccessService.assert(
+            { organizationId, userId },
+            brandId,
+          );
+        } catch (error) {
+          if (!(error instanceof ForbiddenException)) throw error;
+          throw oauthError('access_denied', 'You cannot edit this brand');
+        }
+        return;
+      }
+      const brand = await this.prisma.brand.findFirst({
+        select: { id: true },
+        where: { id: brandId, isDeleted: false, organizationId },
+      });
+      if (!brand) {
+        throw oauthError(
+          'invalid_request',
+          'Choose a brand that belongs to the selected organization',
+        );
+      }
+    });
   }
 
   async exchangeToken(dto: OAuthAuthorizationCodeGrant) {

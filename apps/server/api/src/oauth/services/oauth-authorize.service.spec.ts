@@ -1269,6 +1269,35 @@ describe('OAuth consent HTTP tenant context', () => {
     );
   });
 
+  it('checks Brand Kit consent inside the selected workspace tenant', async () => {
+    const brandCheckContexts: (string | undefined)[] = [];
+    harness.brandAccessService.assert.mockImplementation(async () => {
+      brandCheckContexts.push(getTenantContext()?.organizationId);
+    });
+
+    await request(app.getHttpServer())
+      .post('/v1/oauth/authorize/decision')
+      .send(
+        decision({
+          allowBrandKitEdits: true,
+          brandId: 'brand-2',
+          organizationId: 'org-2',
+          scope: 'brands:read',
+        }),
+      )
+      .expect(201);
+
+    expect(harness.membershipContexts).toEqual(['org-1']);
+    expect(brandCheckContexts).toEqual(['org-2']);
+    expect(harness.prisma.mcpOAuthAuthCode.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        defaultBrandId: 'brand-2',
+        organizationId: 'org-2',
+        scopes: ['brands:read', 'brand-kit:write'],
+      }),
+    });
+  });
+
   it.each([undefined, 'foreign-org', ''])(
     'rejects an omitted, foreign or empty HTTP choice (%s)',
     async (organizationId) => {
