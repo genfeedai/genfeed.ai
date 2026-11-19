@@ -1,7 +1,9 @@
 import '@testing-library/jest-dom/vitest';
 import { PlatformRole } from '@genfeedai/contracts';
 import type { IUser } from '@genfeedai/contracts/interfaces';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import type { ComponentProps } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import UserDetails from './user-details';
 
@@ -16,11 +18,16 @@ vi.mock('@services/core/clipboard.service', () => ({
   ClipboardService: { getInstance: () => ({ copyToClipboard: vi.fn() }) },
 }));
 
-const actions = vi.hoisted(() => ({ profile: vi.fn(), reset: vi.fn() }));
+const actions = vi.hoisted(() => ({
+  profile: vi.fn(),
+  reset: vi.fn(),
+  signupNetwork: vi.fn(),
+}));
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => async () => ({
     updateAdminProfile: actions.profile,
     resetOnboarding: actions.reset,
+    findSignupNetwork: actions.signupNetwork,
   }),
 }));
 
@@ -38,12 +45,28 @@ const user = {
   },
 } as unknown as IUser;
 
+function renderDetails(
+  element: React.ReactElement<ComponentProps<typeof UserDetails>>,
+) {
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  return render(
+    <QueryClientProvider client={client}>{element}</QueryClientProvider>,
+  );
+}
+
 describe('UserDetails', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    actions.signupNetwork.mockResolvedValue({
+      id: user.id,
+      ipAddress: null,
+      location: null,
+    });
   });
   it('cancels edits without writing and discards the draft on reopen', () => {
-    render(<UserDetails user={user} />);
+    renderDetails(<UserDetails user={user} />);
     fireEvent.click(screen.getByRole('button', { name: 'Edit profile' }));
     fireEvent.change(screen.getByLabelText('First name'), {
       target: { value: 'Draft' },
@@ -55,7 +78,7 @@ describe('UserDetails', () => {
   });
 
   it('preserves a legacy full name when opening the profile editor', () => {
-    render(
+    renderDetails(
       <UserDetails
         user={{
           ...user,
@@ -78,7 +101,7 @@ describe('UserDetails', () => {
     };
     actions.profile.mockResolvedValue(updated);
     const onUpdated = vi.fn();
-    render(<UserDetails user={user} onUpdated={onUpdated} />);
+    renderDetails(<UserDetails user={user} onUpdated={onUpdated} />);
     fireEvent.click(screen.getByRole('button', { name: 'Edit profile' }));
     fireEvent.change(screen.getByLabelText('First name'), {
       target: { value: 'Jane' },
@@ -101,7 +124,7 @@ describe('UserDetails', () => {
 
   it('retains the draft when saving fails so the operator can retry', async () => {
     actions.profile.mockRejectedValue(new Error('Network unavailable'));
-    render(<UserDetails user={user} />);
+    renderDetails(<UserDetails user={user} />);
     fireEvent.click(screen.getByRole('button', { name: 'Edit profile' }));
     fireEvent.change(screen.getByLabelText('First name'), {
       target: { value: 'Draft' },
@@ -120,7 +143,7 @@ describe('UserDetails', () => {
       onboardingType: null,
       onboardingStepsCompleted: [],
     });
-    render(<UserDetails user={user} />);
+    renderDetails(<UserDetails user={user} />);
     fireEvent.click(screen.getByRole('button', { name: 'Reset onboarding' }));
     expect(actions.reset).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
@@ -140,7 +163,7 @@ describe('UserDetails', () => {
   ])(
     'shows onboarding status as a badge when completed is %s',
     (isOnboardingCompleted, label) => {
-      render(<UserDetails user={{ ...user, isOnboardingCompleted }} />);
+      renderDetails(<UserDetails user={{ ...user, isOnboardingCompleted }} />);
 
       const badge = screen
         .getByText('Status')
@@ -150,22 +173,33 @@ describe('UserDetails', () => {
   );
 
   it('shows the signup source fields the record carries', () => {
-    render(<UserDetails user={user} />);
+    renderDetails(<UserDetails user={user} />);
 
     expect(screen.getByText('google.com')).toBeInTheDocument();
     expect(screen.getByText('/muse/x-twitter')).toBeInTheDocument();
     expect(screen.getByText('jane')).toBeInTheDocument();
   });
 
+  it('shows the recorded signup IP and approximate location', async () => {
+    actions.signupNetwork.mockResolvedValue({
+      id: user.id,
+      ipAddress: '2001:db8::1',
+      location: { city: 'Valletta', country: 'Malta', region: 'Valletta' },
+    });
+    renderDetails(<UserDetails user={user} />);
+    expect(await screen.findByText('2001:db8::1')).toBeInTheDocument();
+    expect(screen.getByText('Valletta, Malta')).toBeInTheDocument();
+  });
+
   it('reads a dash for fields the record lacks', () => {
-    render(<UserDetails user={{ ...user, signupAttribution: null }} />);
+    renderDetails(<UserDetails user={{ ...user, signupAttribution: null }} />);
 
     expect(screen.queryByText('Unknown')).not.toBeInTheDocument();
     expect(screen.getAllByText('—').length).toBeGreaterThan(3);
   });
 
   it('labels the platform role', () => {
-    render(
+    renderDetails(
       <UserDetails user={{ ...user, platformRole: PlatformRole.SUPERADMIN }} />,
     );
 

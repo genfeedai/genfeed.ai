@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { isIP } from 'node:net';
 import { isDisposableEmail } from '@api/auth/shared/signup-email-policy.util';
 import { type DashOptions, dash } from '@better-auth/infra';
 import { PlatformRole } from '@genfeedai/contracts';
@@ -29,6 +30,7 @@ import type {
   ICreateBetterAuthOptions,
 } from './better-auth.types';
 import { isPlatformSuperAdmin } from './better-auth-access.util';
+import { betterAuthUserAdditionalFields } from './better-auth-user-fields';
 import { desktopSession } from './plugins/desktop-session.plugin';
 
 const NON_ALPHANUMERIC_RUNS_PATTERN = /[^a-z0-9]+/g;
@@ -607,16 +609,19 @@ export function buildBetterAuthUserDatabaseHooks(
               message: DISPOSABLE_EMAIL_MESSAGE,
             });
           }
-          if (typed.handle) {
-            return { data: user };
-          }
+          // The Express auth mount pins this header to its trusted client address.
+          const ipAddress = context?.request?.headers.get('x-forwarded-for');
           return {
             data: {
               ...user,
-              handle: generateHandle({
-                email: typed.email,
-                name: typed.name,
-              }),
+              handle: typed.handle || generateHandle(typed),
+              ...(context?.path !== ADMIN_CREATE_USER_PATH &&
+              ipAddress &&
+              ipAddress.length <= 45 &&
+              !ipAddress.includes('%') &&
+              isIP(ipAddress)
+                ? { signupIpAddress: ipAddress }
+                : {}),
             },
           };
         },
@@ -926,18 +931,7 @@ export function createBetterAuthInstance(options: ICreateBetterAuthOptions) {
     user: {
       // Better Auth's `image` field maps onto the existing `User.avatar` column.
       fields: { image: 'avatar' },
-      // `handle` is a required + unique column that Better Auth does not know
-      // about, so it strips the value injected by the `create.before` hook
-      // below before the adapter write — every first-time sign-up then fails
-      // with `Argument 'handle' is missing`. Declaring it as a known
-      // (non-input) field preserves the hook-supplied value through to Prisma.
-      additionalFields: {
-        handle: {
-          input: false,
-          required: false,
-          type: 'string',
-        },
-      },
+      additionalFields: betterAuthUserAdditionalFields,
     },
     databaseHooks: buildBetterAuthUserDatabaseHooks(
       onUserCreated,

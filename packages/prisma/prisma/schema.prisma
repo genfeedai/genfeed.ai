@@ -682,6 +682,7 @@ contentLearningOperations ContentLearningOperation[]
   // Platform access is explicit and separate from organization/member roles.
   name                     String?
   emailVerified            Boolean         @default(false)
+  signupIpAddress          String?         @db.VarChar(45)
   // Better Auth Infra dash activity tracking. Nullable for users that predate tracking.
   lastActiveAt             DateTime?
   platformRole             PlatformRole    @default(USER)

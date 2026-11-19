@@ -7,6 +7,7 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import { useSyncedState } from '@hooks/utils/use-synced-state/use-synced-state';
 import { ClipboardService } from '@services/core/clipboard.service';
 import { UsersService } from '@services/organization/users.service';
+import { useQuery } from '@tanstack/react-query';
 import Card from '@ui/card/Card';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
@@ -82,6 +83,21 @@ export default function UserDetails({
   const getService = useAuthedService((token: string) =>
     UsersService.getInstance(token),
   );
+
+  const signupNetwork = useQuery({
+    gcTime: 0,
+    queryFn: async ({ signal }) => {
+      const service = await getService();
+      return service.findSignupNetwork(user.id, signal);
+    },
+    queryKey: ['admin-user-signup-network', user.id],
+  });
+  const location = signupNetwork.data?.location;
+  const locationLabel = location
+    ? [...new Set([location.city, location.region, location.country])]
+        .filter(Boolean)
+        .join(', ')
+    : null;
 
   async function save(action: 'profile' | 'reset') {
     if (saving.current) return;
@@ -327,6 +343,24 @@ export default function UserDetails({
       </DetailSection>
 
       <DetailSection title={translate('sections.signup')}>
+        <DetailRow label={translate('signupIpAddress')}>
+          {signupNetwork.isPending
+            ? translate('signupNetworkLoading')
+            : (signupNetwork.data?.ipAddress ??
+              translate('signupNetworkUnavailable'))}
+        </DetailRow>
+        <DetailRow label={translate('signupLocation')}>
+          {signupNetwork.isPending
+            ? translate('signupNetworkLoading')
+            : locationLabel || translate('signupNetworkUnavailable')}
+          {locationLabel ? (
+            <p className="text-xs text-muted-foreground">
+              <a className="underline" href="https://db-ip.com">
+                {translate('signupLocationAttribution')}
+              </a>
+            </p>
+          ) : null}
+        </DetailRow>
         <DetailRow label={translate('sourceCampaign')}>
           {campaignSource || EMPTY_VALUE}
         </DetailRow>

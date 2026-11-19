@@ -34,6 +34,11 @@
       "profile": "Profile",
       "signup": "Signup source"
     },
+    "signupIpAddress": "Signup IP address",
+    "signupLocation": "Approximate signup location",
+    "signupLocationAttribution": "IP geolocation by DB-IP",
+    "signupNetworkLoading": "Loading…",
+    "signupNetworkUnavailable": "Unavailable",
     "sourceCampaign": "Campaign source",
     "sourceCampaignName": "Campaign",
     "sourceContent": "Content",

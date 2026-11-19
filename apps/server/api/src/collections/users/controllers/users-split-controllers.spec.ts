@@ -1,6 +1,7 @@
 import { UsersController } from '@api/collections/users/controllers/users.controller';
 import { UsersNotificationInboxController } from '@api/collections/users/controllers/users-notification-inbox.controller';
 import { UsersRelationshipsController } from '@api/collections/users/controllers/users-relationships.controller';
+import { UsersSignupNetworkController } from '@api/collections/users/controllers/users-signup-network.controller';
 import { UsersModule } from '@api/collections/users/users.module';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { RequestMethod } from '@nestjs/common';
@@ -55,7 +56,7 @@ describe('Users split controllers', () => {
     );
   });
 
-  it('registers static relationships routes before wildcard user routes', () => {
+  it('registers the dedicated user controllers before wildcard user routes', () => {
     const controllers = Reflect.getMetadata(
       MODULE_METADATA.CONTROLLERS,
       UsersModule,
@@ -64,6 +65,7 @@ describe('Users split controllers', () => {
     expect(controllers).toEqual([
       UsersNotificationInboxController,
       UsersRelationshipsController,
+      UsersSignupNetworkController,
       UsersController,
     ]);
   });
