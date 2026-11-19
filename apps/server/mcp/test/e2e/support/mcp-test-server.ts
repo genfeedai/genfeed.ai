@@ -42,7 +42,9 @@ export interface McpTestServer {
   ) => Promise<McpRpcResponse<{ tools: Array<{ name: string }> }>>;
   initialize: (
     token: string | undefined,
-  ) => Promise<McpRpcResponse<{ serverInfo: { name: string } }>>;
+  ) => Promise<
+    McpRpcResponse<{ instructions?: string; serverInfo: { name: string } }>
+  >;
   listTools: (
     token: string | undefined,
   ) => Promise<McpRpcResponse<{ tools: Array<{ name: string }> }>>;

@@ -14,6 +14,7 @@ import {
   learningPublicationPostSelect,
 } from '@api/collections/content-learning/services/learning-publication-source.types';
 import type { PostDocument } from '@api/collections/posts/post.schema';
+import { readPostGenerationReceipts } from '@api/collections/posts/services/post-generation-receipts.read';
 import { preparePostPatchWrite } from '@api/collections/posts/services/post-patch-write.util';
 import { assertStrategyCadenceAdmission } from '@api/collections/posts/services/post-strategy-cadence-admission.util';
 import type { PostUpdateInput } from '@api/collections/posts/services/posts.service';
@@ -96,6 +97,11 @@ export type PostLearningPatchResult = {
 export type PostLearningRemoveResult = {
   deletedPost: PostDocument;
   childrenDeleted: number;
+};
+export type GeneratedDraftEditScope = {
+  organizationId: string;
+  brandId: string;
+  userId: string;
 };
 const accountSelect = {
   id: true,
@@ -511,16 +517,24 @@ async function preparePostMutation(
   dto: PostUpdateInput,
   remove: boolean,
   fenceScope: LearningMutationFenceScope,
+  draftScope?: GeneratedDraftEditScope,
 ): Promise<PostPlan | null> {
-  const tenantOrganizationId = isCrossOrgUnsafe()
-    ? undefined
-    : getTenantContext()?.organizationId;
+  const tenantOrganizationId =
+    draftScope?.organizationId ??
+    (isCrossOrgUnsafe() ? undefined : getTenantContext()?.organizationId);
   // tenant-scope-ignore: the pre-fence read only resolves the owning organization for its fence; discovery below re-reads under the fence.
   const owner = await tx.post.findFirst({
     where: {
       id,
       isDeleted: false,
       ...(tenantOrganizationId ? { organizationId: tenantOrganizationId } : {}),
+      ...(draftScope
+        ? {
+            brandId: draftScope.brandId,
+            userId: draftScope.userId,
+            targetExecutionState: TargetExecutionState.DRAFT,
+          }
+        : {}),
     },
     select: { organizationId: true },
   });
@@ -545,13 +559,46 @@ async function preparePostMutation(
 export async function patchPostWithLearning(
   tx: Prisma.TransactionClient,
   context: PostLearningMutationContext,
-  id: string,
-  dto: PostUpdateInput,
-  populate: PopulateInput,
+  patch: {
+    id: string;
+    dto: PostUpdateInput;
+    populate: PopulateInput;
+    draftScope?: GeneratedDraftEditScope;
+  },
   fenceScope: LearningMutationFenceScope,
 ): Promise<PostLearningPatchResult> {
-  const plan = await preparePostMutation(tx, id, dto, false, fenceScope);
+  const { id, dto, populate, draftScope } = patch;
+  const plan = await preparePostMutation(
+    tx,
+    id,
+    dto,
+    false,
+    fenceScope,
+    draftScope,
+  );
   if (!plan) throw new NotFoundException('Post', id);
+  // Recheck the authorized draft under the canonical mutation's row lock.
+  if (draftScope) {
+    const draft = await tx.post.findFirst({
+      where: {
+        id,
+        organizationId: draftScope.organizationId,
+        brandId: draftScope.brandId,
+        userId: draftScope.userId,
+        isDeleted: false,
+        targetExecutionState: TargetExecutionState.DRAFT,
+      },
+      select: { brandId: true, id: true, sourceActionId: true, userId: true },
+    });
+    if (
+      !draft ||
+      !(
+        await readPostGenerationReceipts(tx, draftScope.organizationId, [draft])
+      ).has(id)
+    ) {
+      throw new NotFoundException('Generated draft post', id);
+    }
+  }
   const before = await readPostMutationSnapshots(tx, plan),
     logs: PostLearningPatchResult['logs'] = [],
     afterCommit: (() => void)[] = [];

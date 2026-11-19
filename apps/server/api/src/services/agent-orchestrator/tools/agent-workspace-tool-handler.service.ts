@@ -23,6 +23,7 @@ import { readAgentLibraryFilters } from '@api/services/agent-orchestrator/tools/
 import {
   agentPostPreviewInclude,
   agentPostPreviewPopulate,
+  serializeAgentPostPreviews,
 } from '@api/services/agent-orchestrator/tools/agent-post-preview.util';
 import { resolvePublishValidationMedia } from '@api/services/agent-orchestrator/tools/agent-publish-target.util';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
@@ -44,7 +45,6 @@ import {
   type AgentBrandSerializedData,
   serializeAgentBrand,
   serializeAgentBrands,
-  serializeAgentPost,
 } from '@genfeedai/serializers';
 import { readIngredientMediaUrlWithFallback } from '@libs/media/media-url.util';
 import { Traced } from '@libs/tracing/traced';
@@ -508,12 +508,8 @@ export class AgentWorkspaceToolHandler {
     const matchStage: Record<string, unknown> = {
       isDeleted: false,
       organizationId: ctx.organizationId,
+      ...(await brandReadScope(this.brandAccessService, ctx)),
     };
-
-    Object.assign(
-      matchStage,
-      await brandReadScope(this.brandAccessService, ctx),
-    );
     const brandId = readRequiredString(params.brandId);
     if (brandId) matchStage.brandId = brandId;
     const executionState = params.executionState;
@@ -542,10 +538,11 @@ export class AgentWorkspaceToolHandler {
       creditsUsed: 0,
       data: {
         count: posts.docs?.length ?? 0,
-        posts:
-          posts.docs?.map((post) =>
-            serializeAgentPost(post as unknown as Record<string, unknown>),
-          ) ?? [],
+        posts: await serializeAgentPostPreviews(
+          this.postsService.prisma,
+          ctx.organizationId,
+          posts.docs ?? [],
+        ),
       },
       success: true,
     };
@@ -573,11 +570,14 @@ export class AgentWorkspaceToolHandler {
       return toolFailure(`Post ${postId} was not found.`);
     }
 
+    const [preview] = await serializeAgentPostPreviews(
+      this.postsService.prisma,
+      ctx.organizationId,
+      [post],
+    );
     return {
       creditsUsed: 0,
-      data: {
-        post: serializeAgentPost(post as unknown as Record<string, unknown>),
-      },
+      data: { post: preview },
       success: true,
     };
   }

@@ -40,7 +40,9 @@ import type {
   IReleaseGroup,
   ScheduleCanonicalPostInput,
 } from '@genfeedai/contracts/interfaces';
+import { serializeAgentPost } from '@genfeedai/serializers';
 import type { LoggerService } from '@libs/logger/logger.service';
+import { traced } from '@libs/tracing/traced';
 import { z } from 'zod';
 
 const STRICT_SCHEDULE_DATE_SCHEMA = z.string().datetime({ offset: true });
@@ -454,6 +456,73 @@ export function readAgentPostText(
   return typeof text === 'string' ? text.trim() : undefined;
 }
 
+const attachGeneratedDraftMedia = traced(
+  'attachGeneratedDraftMedia',
+  async (
+    postsService: PostsService,
+    params: Record<string, unknown>,
+    ctx: ToolExecutionContext,
+    ingredientsService?: DraftMediaLookup,
+  ): Promise<AgentToolResult> => {
+    const postId = readOptionalString(params.postId);
+    const brandId = readOptionalString(params.brandId);
+    if (!postId || !brandId) {
+      return {
+        creditsUsed: 0,
+        error: 'Use the postId and brandId of the generated draft.',
+        success: false,
+      };
+    }
+    if (ctx.validatedScope && ctx.validatedScope.brandId !== brandId) {
+      return {
+        creditsUsed: 0,
+        error: 'Use the brandId of the authorized draft.',
+        success: false,
+      };
+    }
+    const { organizationId, userId } = ctx;
+    const media = await resolveDraftMediaUrls({
+      brandId,
+      ingredients: ingredientsService,
+      organizationId,
+      params,
+    });
+    if (media.error !== undefined) {
+      return { creditsUsed: 0, error: media.error, success: false };
+    }
+    if (media.ingredientIds.length === 0) {
+      return {
+        creditsUsed: 0,
+        error: 'Provide at least one Library asset URL in mediaUrls.',
+        success: false,
+      };
+    }
+
+    const post = await postsService.patch(
+      postId,
+      { category: media.category, ingredients: media.ingredientIds },
+      [],
+      { brandId, organizationId, userId },
+    );
+    return {
+      creditsUsed: 0,
+      data: {
+        ...serializeAgentPost(post),
+        executionState: TargetExecutionState.DRAFT,
+        href: `${APP_ROUTES.PUBLISHING.POSTS}/${encodeURIComponent(postId)}`,
+        media: media.ingredientIds.map((assetId, order) => ({
+          assetId,
+          ingredientId: assetId,
+          order,
+        })),
+        title: post.label,
+        visibility: post.visibility,
+      },
+      success: true,
+    };
+  },
+);
+
 export async function createAgentTextDraft(
   postsService: PostsService,
   params: Record<string, unknown>,
@@ -461,6 +530,14 @@ export async function createAgentTextDraft(
   visibility: PostVisibility,
   ingredientsService?: DraftMediaLookup,
 ): Promise<AgentToolResult> {
+  if (Object.hasOwn(params, 'postId')) {
+    return attachGeneratedDraftMedia(
+      postsService,
+      params,
+      ctx,
+      ingredientsService,
+    );
+  }
   // A thread carries its validated brand; an MCP caller names it (#10071).
   const brandId =
     ctx.validatedScope?.brandId ?? readOptionalString(params.brandId);

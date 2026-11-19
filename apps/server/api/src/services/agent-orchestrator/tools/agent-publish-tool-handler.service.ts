@@ -927,7 +927,7 @@ export class AgentPublishToolHandler {
 
     await authorizeAgentTextDraft(this.agentScopeContextService, params, ctx);
 
-    if (ctx.isProactive)
+    if (ctx.isProactive && !Object.hasOwn(params, 'postId'))
       return this.createProactiveTextPost(params, ctx, visibility);
 
     return createAgentTextDraft(

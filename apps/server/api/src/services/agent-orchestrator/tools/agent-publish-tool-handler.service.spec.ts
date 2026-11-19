@@ -1132,6 +1132,19 @@ describe('create_post mediaUrls through the MCP (#9673)', () => {
   const url = (kind: 'images' | 'videos', id: string) =>
     `https://cdn.test/ingredients/${kind}/${id}`;
 
+  it('refuses a blank postId instead of creating a second draft', async () => {
+    const { run } = mcpDraft({
+      postId: ' ',
+      brandId: 'brand-1',
+      mediaUrls: [url('images', 'img-1')],
+    });
+
+    await expect(run).resolves.toMatchObject({
+      error: 'Use the postId and brandId of the generated draft.',
+      success: false,
+    });
+  });
+
   it('saves a draft whose media matches the URLs, in order', async () => {
     const f = mcpDraft({
       mediaUrls: [
