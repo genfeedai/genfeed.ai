@@ -1,4 +1,5 @@
 import type { CredentialPatch } from '@api/collections/credentials/credential.types';
+import { CredentialRefreshRejectedException } from '@api/collections/credentials/credential-refresh-rejected.exception';
 import {
   SERVER_TOKENS,
   type ServerCredentialStore,
@@ -9,11 +10,12 @@ import {
   buildGrantedScopesCredentialPatch,
   readOAuthTokenScopeField,
 } from '@genfeedai/helpers';
+import { isRecord } from '@genfeedai/utils/data/extract.util';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
-import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
+import { BadGatewayException, Inject, Injectable } from '@nestjs/common';
 import { OAuth2Client } from 'google-auth-library';
 
 @Traced()
@@ -38,7 +40,7 @@ export class YoutubeAuthService {
     const credentials = await this.credentialsService.resolveBrandAccount({
       brandId,
       credentialId,
-      // A failed refresh flips isConnected off; the retry still has to find it.
+      // Direct callers can still receive reconnect guidance for a disconnected channel.
       isDisconnectedIncluded: true,
       organizationId,
       platform: CredentialPlatform.YOUTUBE,
@@ -54,7 +56,7 @@ export class YoutubeAuthService {
         isDeleted: false,
       });
 
-      throw new Error(
+      throw new CredentialRefreshRejectedException(
         'Youtube refresh token not found. Please reconnect your account.',
       );
     }
@@ -69,118 +71,73 @@ export class YoutubeAuthService {
       this.requireOAuthConfig('YOUTUBE_REDIRECT_URI'),
     );
 
+    let refreshToken: string;
     try {
-      this.loggerService.log('Refreshing YouTube token', {
-        brandId,
-        clientId: `${clientId.substring(0, 20)}...`,
-        hasRefreshToken: !!credentials.refreshToken,
-        organizationId,
-        redirectUri: this.configService.get<string>('YOUTUBE_REDIRECT_URI'),
-        refreshTokenExpiry: credentials.refreshTokenExpiry,
-      });
-
-      const decryptedRefreshToken = credentials.refreshToken
-        ? EncryptionUtil.decrypt(credentials.refreshToken)
-        : null;
-
-      if (!decryptedRefreshToken) {
-        throw new Error('Failed to decrypt refresh token');
-      }
-
-      // Never log token previews (plaintext or ciphertext) — only safe signals.
-      if (decryptedRefreshToken.length < 50) {
-        this.loggerService.warn('Refresh token seems too short', {
-          length: decryptedRefreshToken.length,
-        });
-      }
-
-      await oauthClient.setCredentials({
-        refresh_token: decryptedRefreshToken,
-      });
-
-      this.loggerService.log('Credentials set, attempting token refresh', {
-        credentialKeys: oauthClient.credentials
-          ? Object.keys(oauthClient.credentials)
-          : [],
-        hasCredentials: !!oauthClient.credentials,
-      });
-
-      const tokenResponse = await oauthClient.getAccessToken();
-
-      this.loggerService.log('Token refresh response', {
-        hasRes: !!tokenResponse.res,
-        hasToken: !!tokenResponse.token,
-        tokenKeys: typeof tokenResponse.token === 'string' ? ['token'] : [],
-      });
-
-      const newCredentials = oauthClient.credentials;
-
-      if (!newCredentials?.access_token) {
-        this.loggerService.warn('No access token in refresh response', {
-          credentialsKeys: newCredentials ? Object.keys(newCredentials) : [],
-        });
-        throw new Error('Failed to obtain access token from refresh');
-      }
-
-      const updateData: CredentialPatch = {
-        accessToken: newCredentials.access_token,
-        isConnected: true,
-        isDeleted: false,
-      };
-
-      if (newCredentials.refresh_token) {
-        updateData.refreshToken = newCredentials.refresh_token;
-        this.loggerService.log('New refresh token received');
-      }
-
-      if (newCredentials.expiry_date) {
-        updateData.accessTokenExpiry = new Date(newCredentials.expiry_date);
-      }
-
-      const grantedScopesPatch = buildGrantedScopesCredentialPatch(
-        readOAuthTokenScopeField(newCredentials),
-      );
-      if (grantedScopesPatch) {
-        Object.assign(updateData, grantedScopesPatch);
-      }
-
-      await this.credentialsService.patch(credentials.id, updateData);
-
-      // Return the authenticated OAuth2 client to be used for API calls
-      return oauthClient;
-    } catch (error: unknown) {
-      const axiosError = error as {
-        response?: { data?: Record<string, unknown> };
-        code?: string;
-      };
-      this.loggerService.error(
-        'Refresh token failed',
-        axiosError?.response || error,
-      );
-
-      const isInvalidGrant =
-        axiosError?.response?.data?.error === 'invalid_grant' ||
-        (error as Error)?.message?.includes('invalid_grant') ||
-        axiosError?.code === 'invalid_grant';
-
-      await this.credentialsService.patch(credentials.id, {
-        isConnected: false,
-        isDeleted: false,
-      });
-
-      if (isInvalidGrant) {
-        throw new HttpException(
-          {
-            detail:
-              'Your YouTube connection has expired or been revoked. Please reconnect your YouTube account.',
-            title: 'YouTube Authentication Failed',
-          },
-          HttpStatus.UNAUTHORIZED,
-        );
-      }
-
-      throw error;
+      refreshToken = EncryptionUtil.decrypt(credentials.refreshToken);
+    } catch {
+      throw new Error('Could not decrypt the YouTube refresh token');
     }
+
+    if (refreshToken.length < 50) {
+      this.loggerService.warn('Refresh token seems too short', {
+        length: refreshToken.length,
+      });
+    }
+    oauthClient.setCredentials({ refresh_token: refreshToken });
+
+    try {
+      await oauthClient.getAccessToken();
+    } catch (error: unknown) {
+      const response =
+        isRecord(error) && isRecord(error.response) ? error.response : null;
+      if (isRecord(response?.data) && response.data.error === 'invalid_grant') {
+        if (credentials.isConnected) {
+          await this.credentialsService.patch(credentials.id, {
+            isConnected: false,
+          });
+        }
+        throw new CredentialRefreshRejectedException({
+          detail:
+            'Your YouTube connection has expired or been revoked. Please reconnect your YouTube account.',
+          title: 'YouTube Authentication Failed',
+        });
+      }
+      const status =
+        typeof response?.status === 'number'
+          ? ` (HTTP ${response.status})`
+          : '';
+      throw new BadGatewayException(`YouTube token refresh failed${status}`);
+    }
+
+    const newCredentials = oauthClient.credentials;
+    if (!newCredentials?.access_token) {
+      throw new BadGatewayException(
+        'Failed to obtain access token from refresh',
+      );
+    }
+
+    const updateData: CredentialPatch = {
+      accessToken: newCredentials.access_token,
+      isConnected: true,
+      isDeleted: false,
+    };
+    if (
+      newCredentials.refresh_token &&
+      newCredentials.refresh_token !== refreshToken
+    ) {
+      updateData.refreshToken = newCredentials.refresh_token;
+    }
+    if (newCredentials.expiry_date) {
+      updateData.accessTokenExpiry = new Date(newCredentials.expiry_date);
+    }
+    const grantedScopesPatch = buildGrantedScopesCredentialPatch(
+      readOAuthTokenScopeField(newCredentials),
+    );
+    await this.credentialsService.patch(credentials.id, {
+      ...updateData,
+      ...grantedScopesPatch,
+    });
+    return oauthClient;
   }
 
   private requireOAuthConfig(

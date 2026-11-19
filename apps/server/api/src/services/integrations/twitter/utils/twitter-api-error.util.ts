@@ -84,6 +84,10 @@ function readAxiosStatus(error: unknown): number | undefined {
   return readFiniteNumber(response?.status);
 }
 
+export function readTwitterHttpStatus(error: unknown): number | undefined {
+  return readStatus(error) ?? readAxiosStatus(error);
+}
+
 function readOAuthErrorText(error: unknown): string {
   if (!isObjectLike(error)) {
     return '';
@@ -129,7 +133,7 @@ export function isTwitterOAuthCodeError(error: unknown): boolean {
  * not a transient or per-user error.
  */
 export function isTwitterClientAuthError(error: unknown): boolean {
-  const status = readStatus(error) ?? readAxiosStatus(error);
+  const status = readTwitterHttpStatus(error);
   const oauthText = readOAuthErrorText(error);
   const message = readMessage(error).toLowerCase();
 
@@ -144,20 +148,22 @@ export function isTwitterClientAuthError(error: unknown): boolean {
 
 /**
  * True when the OAuth2 token endpoint definitively rejected a refresh token
- * (`invalid_grant`, or a 400/401 response). Network failures, 5xx and rate
- * limits are transient and return false. `invalid_client` is this deployment's
- * own app configuration, not the user's grant, so it returns false too.
+ * (`invalid_grant`, X's invalid-token response, or HTTP 401). Other request
+ * errors and app authentication failures do not establish a revoked grant.
  */
 export function isTwitterRefreshTokenRejectedError(error: unknown): boolean {
   if (isTwitterClientAuthError(error)) {
     return false;
   }
 
-  const status = readStatus(error) ?? readAxiosStatus(error);
+  const status = readTwitterHttpStatus(error);
+  const oauthText = readOAuthErrorText(error);
   return (
-    status === 400 ||
     status === 401 ||
-    readOAuthErrorText(error).includes('invalid_grant')
+    oauthText.includes('invalid_grant') ||
+    (status === 400 &&
+      oauthText.includes('invalid_request') &&
+      oauthText.includes('value passed for the token was invalid'))
   );
 }
 
