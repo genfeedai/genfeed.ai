@@ -522,7 +522,7 @@ export class WebhooksService {
       const metadataId = ingredient.metadataId;
       if (metadataId) {
         await this.metadataService.patch(metadataId, {
-          error: errorMessage,
+          error: generationError,
         });
       }
     }
@@ -534,7 +534,7 @@ export class WebhooksService {
 
     this.postProcessingOrchestrator.notifyBotGatewayFailureIfNeeded(
       ingredient.id.toString(),
-      errorMessage || 'Generation failed',
+      generationError,
     );
 
     const { dbUserId, userId, userRoom } = extractUserIds(ingredient.userId);
@@ -545,7 +545,7 @@ export class WebhooksService {
         brandId: ingredient.brandId ?? undefined,
         category: ingredient.category as IngredientCategory | string,
         dbUserId,
-        errorMessage,
+        errorMessage: generationError,
         ingredientId: ingredient.id.toString(),
         organizationId: ingredient.organizationId ?? undefined,
         userId,
@@ -559,14 +559,14 @@ export class WebhooksService {
     if (userId) {
       await this.websocketService.publishMediaFailed(
         websocketUrl,
-        errorMessage || 'Generation failed',
+        generationError,
         userId,
         userRoom,
       );
     }
 
     this.loggerService.log(`${logContext} marked as failed`, {
-      error: errorMessage,
+      error: generationError,
       ingredientId: ingredient.id,
     });
 
