@@ -101,14 +101,14 @@ export class ReplicatePollProcessor extends WorkerHost {
     )) as Record<string, unknown>;
     const status =
       typeof prediction.status === 'string' ? prediction.status : '';
+    const hasCompleted = status === 'succeeded' || status === 'completed';
+    const isExpectedFailure =
+      status === 'failed' || status === 'canceled' || status === 'cancelled';
     if (
       status === 'starting' ||
       status === 'processing' ||
       status === 'queued' ||
-      (isProcessingTimeout &&
-        !['succeeded', 'completed', 'failed', 'canceled', 'cancelled'].includes(
-          status,
-        ))
+      (isProcessingTimeout && !hasCompleted && !isExpectedFailure)
     ) {
       await this.pollAgainOrTimeOut(job.data, isProcessingTimeout);
       return;
@@ -119,7 +119,7 @@ export class ReplicatePollProcessor extends WorkerHost {
       job.data.outputIndex,
       job.data.outputKey,
     );
-    if ((status === 'succeeded' || status === 'completed') && output) {
+    if (hasCompleted && output) {
       const storedExternalId =
         job.data.outputIndex === undefined
           ? job.data.externalId
@@ -134,25 +134,37 @@ export class ReplicatePollProcessor extends WorkerHost {
       return;
     }
 
-    const error =
-      typeof prediction.error === 'string'
-        ? prediction.error
-        : `Replicate prediction ${job.data.externalId} ended with status ${status || 'unknown'} without an allowed output`;
+    const fallback = hasCompleted
+      ? 'Replicate completed without an allowed media output'
+      : 'Replicate generation did not complete';
+    const reason =
+      typeof prediction.error === 'string' ? prediction.error : fallback;
     await this.webhooks.handleFailedGenerationForIngredient(
       job.data.ingredientId,
-      error,
+      reason,
     );
     await this.abandonChain(job.data);
-    this.logger.error(`${this.logContext}: generation failed`, {
-      error,
-      externalId: job.data.externalId,
-      ingredientId: job.data.ingredientId,
-      // A "succeeded" prediction we cannot use is otherwise unexplainable from
-      // the logs: say what the provider returned, never the URL itself.
-      ...(status === 'succeeded' || status === 'completed'
-        ? { outputShape: this.describeOutputShape(prediction.output) }
-        : {}),
-    });
+
+    if (hasCompleted) {
+      this.logger.error(
+        `${this.logContext}: completed prediction has no allowed output`,
+        {
+          outputShape: this.describeOutputShape(prediction.output),
+          providerStatus: status,
+        },
+      );
+    } else if (isExpectedFailure) {
+      this.logger.warn(
+        `${this.logContext}: prediction ended without a result`,
+        {
+          providerStatus: status,
+        },
+      );
+    } else {
+      this.logger.error(`${this.logContext}: unexpected prediction status`, {
+        providerStatus: 'unknown',
+      });
+    }
   }
 
   private async pollAgainOrTimeOut(
