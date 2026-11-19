@@ -7,6 +7,7 @@ import {
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
   AssetCategory,
+  AssetScope,
   type BrandKitSlot,
   ModalEnum,
 } from '@genfeedai/contracts';
@@ -18,6 +19,7 @@ import {
   normalizeBrandHandle,
 } from '@genfeedai/contracts/constants';
 import type { IBrand, ILink } from '@genfeedai/contracts/interfaces';
+import { Brand } from '@genfeedai/models/organization/brand.model';
 import type { UseBrandDetailReturn } from '@genfeedai/props/pages/brand-detail.props';
 import { AssetsService } from '@genfeedai/services/content/assets.service';
 import { ClipboardService } from '@genfeedai/services/core/clipboard.service';
@@ -269,10 +271,13 @@ export function useBrandDetail(): UseBrandDetailReturn {
 
         const url = `PATCH /brands/${previousBrand.id}`;
 
-        // Optimistic: flip public-profile switch immediately (scope is the field).
-        if (field === 'scope') {
+        if (
+          field === 'scope' &&
+          (value === AssetScope.PUBLIC || value === AssetScope.BRAND)
+        ) {
+          // Keep the model's media getters while the visibility save is pending.
           applyBrand(
-            { ...previousBrand, [field]: value } as IBrand,
+            new Brand({ ...previousBrand, scope: value }),
             previousLinks,
           );
         }
@@ -282,10 +287,10 @@ export function useBrandDetail(): UseBrandDetailReturn {
           const updateData: Record<string, boolean | string> = {};
           updateData[field] = value;
 
-          const updatedAccount = (await service.patch(
+          const updatedAccount = await service.patch(
             previousBrand.id,
             updateData,
-          )) as IBrand;
+          );
 
           logger.info(`${url} success`, updatedAccount);
           applyBrand(updatedAccount, updatedAccount.links || previousLinks);
