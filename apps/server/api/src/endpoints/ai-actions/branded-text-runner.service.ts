@@ -37,6 +37,13 @@ const FAILURE_MESSAGES: Readonly<Record<string, string>> = {
   provider_output_empty: 'The text provider returned nothing. Try again.',
 };
 
+const BRAND_KIT_REPAIR_MESSAGES: Readonly<Partial<Record<string, string>>> = {
+  integrity_content_scope_mismatch:
+    'This Brand Kit revision does not match the selected brand. Open Settings → Brand Kit for this brand, scan its website or create a new draft, and have a workspace owner or admin approve the revision before trying again.',
+  integrity_snapshot_schema_invalid:
+    'This Brand Kit has saved fields that generation cannot read. Open Settings → Brand Kit, correct the saved fields, and have a workspace owner or admin approve the revision before trying again.',
+};
+
 /** A completed seam outcome is `ready`, `needs_review` or still `checking`; anything else reads as review. */
 function completedReceiptState(state: string): TextReceiptState {
   return state === 'ready' || state === 'checking' ? state : 'needs_review';
@@ -156,7 +163,9 @@ export class BrandedTextRunnerService {
         : {
             kind: 'failed',
             code: 'blocked',
-            message: `Your brand voice could not be applied (${outcome.reasonCode}). Nothing was written.`,
+            message:
+              BRAND_KIT_REPAIR_MESSAGES[outcome.reasonCode] ??
+              `Your brand voice could not be applied (${outcome.reasonCode}). Nothing was written.`,
             hasNewDispatch: outcome.hasNewDispatch,
             reasonCode: outcome.reasonCode,
             receiptId,
