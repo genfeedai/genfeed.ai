@@ -1,4 +1,5 @@
 import type { ClientService } from '@mcp/services/client.service';
+import { McpUpstreamError } from '@mcp/tools/mcp-tool-error';
 import {
   handleWorkspaceAppTool,
   WORKSPACE_APP_TOOL_NAMES,
@@ -219,6 +220,24 @@ describe('handleWorkspaceAppTool', () => {
       reviewItems: [],
     });
     expect(client.getReviewRun).toHaveBeenCalledWith('brand-1', 'batch-1');
+  });
+
+  it('lists pending approvals when Turbo is hidden and refuses missing explicit batches', async () => {
+    const client = buildClient();
+    const error = new McpUpstreamError('Not found', { status: 404 });
+    client.getReviewRun.mockRejectedValue(error);
+    const approval = { id: 'approval-1' };
+    client.listInbox.mockResolvedValue([approval]);
+
+    const result = await call(client, 'get_review_queue', {});
+    expect(result.structuredContent.data).toEqual({
+      turboRunId: null,
+      turboItems: [],
+      reviewItems: [approval],
+    });
+    await expect(
+      call(client, 'get_review_queue', { turboRunId: 'hidden' }),
+    ).rejects.toBe(error);
   });
 
   it('lists activity and only filters to active work when asked', async () => {

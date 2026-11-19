@@ -6,6 +6,7 @@ import {
 import { getPublicAppUrl } from '@mcp/mcp/setup-page';
 import type { ClientService } from '@mcp/services/client.service';
 import { formatToolData } from '@mcp/shared/utils/tool-result-text.util';
+import { McpUpstreamError } from '@mcp/tools/mcp-tool-error';
 import { z } from 'zod';
 
 export const WORKSPACE_APP_TOOL_NAMES = new Set([
@@ -122,7 +123,17 @@ async function listReviewQueue(
     throw new Error('Supply turboRunId to filter Turbo items by status.');
   }
   const [run, inbox] = await Promise.all([
-    client.getReviewRun(brandId, turboRunId),
+    client.getReviewRun(brandId, turboRunId).catch((error: unknown) => {
+      if (
+        !turboRunId &&
+        error instanceof McpUpstreamError &&
+        error.status === 404
+      ) {
+        // The Turbo module can be hidden while Publishing still shows pending approvals.
+        return undefined;
+      }
+      throw error;
+    }),
     client.listInbox(brandId),
   ]);
   const turboItems = (run?.attributes.items ?? []).filter((item) => {
