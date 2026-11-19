@@ -4,7 +4,6 @@
  * Consumers import these through `constants/native-apps.constant`.
  */
 export type NativeSecondaryAppId =
-  | 'playground'
   | 'storyboard'
   | 'turbo'
   | 'motion'

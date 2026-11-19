@@ -26,7 +26,7 @@ const mocks = vi.hoisted(() => ({
   togglePin: vi.fn(),
   install: vi.fn(),
   installed: {
-    installedAppIds: ['playground'] as string[],
+    installedAppIds: ['turbo'] as string[],
     pendingAppIds: [] as string[],
     status: 'ready' as 'loading' | 'ready' | 'error',
   },
@@ -141,11 +141,11 @@ describe('OrganizationAppsPage (#7842)', () => {
     mocks.brand.settings = {
       hasOrganizationBilling: true,
       hasPaidModuleSubscription: true,
-      moduleOverrides: {},
+      moduleOverrides: { turbo: true },
     };
     mocks.brand.settingsLoading = false;
     mocks.flags = RELEASED_FLAGS;
-    mocks.installed.installedAppIds = ['playground'];
+    mocks.installed.installedAppIds = ['turbo'];
     mocks.installed.pendingAppIds = [];
     mocks.installed.status = 'ready';
     mocks.install.mockResolvedValue(true);
@@ -159,7 +159,7 @@ describe('OrganizationAppsPage (#7842)', () => {
       screen
         .getAllByTestId(/^apps-app-(?!detail)/)
         .map((element) => element.dataset.testid),
-    ).toEqual(['apps-app-playground', 'apps-app-storyboard', 'apps-app-turbo']);
+    ).toEqual(['apps-app-turbo', 'apps-app-storyboard']);
   });
 
   it('shows the search and the grid without filters or a view toggle', () => {
@@ -169,7 +169,7 @@ describe('OrganizationAppsPage (#7842)', () => {
     expect(screen.queryByRole('button', { name: /^Filters/ })).toBeNull();
     expect(screen.queryByRole('button', { name: /^View: / })).toBeNull();
     expect(screen.getByRole('textbox')).toBeVisible();
-    expect(screen.getByTestId('apps-thumbnail-playground')).toBeInTheDocument();
+    expect(screen.getByTestId('apps-thumbnail-turbo')).toBeInTheDocument();
   });
 
   it('groups installed apps above the ones left to add, each with its description', () => {
@@ -182,7 +182,7 @@ describe('OrganizationAppsPage (#7842)', () => {
     ).toHaveLength(1);
     expect(
       within(screen.getByTestId('apps-section-installed')).getByText(
-        'Generate images, video, audio and text from a prompt.',
+        'Create content in bulk from one brief.',
       ),
     ).toBeInTheDocument();
     expect(
@@ -208,13 +208,13 @@ describe('OrganizationAppsPage (#7842)', () => {
       }),
     ).toHaveAttribute('aria-pressed', 'true');
     expect(
-      within(card('playground')).getByRole('button', {
-        name: 'Select Playground',
+      within(card('turbo')).getByRole('button', {
+        name: 'Select Turbo',
       }),
     ).toHaveAttribute('aria-pressed', 'false');
 
-    await selectApp(user, 'playground');
-    expect(detail()).toHaveTextContent('Your open canvas');
+    await selectApp(user, 'turbo');
+    expect(detail()).toHaveTextContent('Queue a batch of images and videos');
     expect(within(detail()).queryByText(/Break an idea/)).toBeNull();
   });
 
@@ -248,7 +248,7 @@ describe('OrganizationAppsPage (#7842)', () => {
     };
     render(<OrganizationAppsPage />);
 
-    expect(screen.getAllByTestId(/^apps-app-(?!detail)/)).toHaveLength(8);
+    expect(screen.getAllByTestId(/^apps-app-(?!detail)/)).toHaveLength(7);
   });
 
   it('opens an installed app and installs one that is not installed', async () => {
@@ -256,10 +256,10 @@ describe('OrganizationAppsPage (#7842)', () => {
     render(<OrganizationAppsPage />);
 
     expect(
-      within(card('playground')).getByRole('link', {
-        name: 'Open Playground',
+      within(card('turbo')).getByRole('link', {
+        name: 'Open Turbo',
       }),
-    ).toHaveAttribute('href', '/acme/moonrise/playground');
+    ).toHaveAttribute('href', '/acme/moonrise/turbo');
     await selectApp(user, 'storyboard');
     await user.click(
       within(detail()).getByRole('button', {
@@ -272,9 +272,10 @@ describe('OrganizationAppsPage (#7842)', () => {
   it('opens through the organization route when no brand is selected', () => {
     mocks.brand.selectedBrand = undefined;
     render(<OrganizationAppsPage />);
-    expect(
-      screen.getByRole('link', { name: 'Open Playground' }),
-    ).toHaveAttribute('href', '/acme/~/playground');
+    expect(screen.getByRole('link', { name: 'Open Turbo' })).toHaveAttribute(
+      'href',
+      '/acme/~/turbo',
+    );
   });
 
   it('explains a failed install without showing the app as installed', async () => {
@@ -332,7 +333,7 @@ describe('OrganizationAppsPage (#7842)', () => {
     render(<OrganizationAppsPage />);
 
     expect(screen.queryByTestId('apps-app-storyboard')).toBeNull();
-    expect(appState('playground')).toBe('installed');
+    expect(appState('turbo')).toBe('installed');
   });
 
   it('lists an app once it is released in Admin → Flags', () => {
@@ -354,7 +355,7 @@ describe('OrganizationAppsPage (#7842)', () => {
       isReleasePreviewEnabled: true,
       moduleOverrides: { automation: true },
     };
-    mocks.installed.installedAppIds = ['playground', 'automation'];
+    mocks.installed.installedAppIds = ['turbo', 'automation'];
     rerender(<OrganizationAppsPage />);
     expect(screen.queryByTestId('apps-workflows')).toBeNull();
     await selectApp(user, 'automation');
@@ -394,9 +395,9 @@ describe('OrganizationAppsPage (#7842)', () => {
     await selectApp(user, 'storyboard');
     expect(detail()).toBeInTheDocument();
 
-    await user.type(screen.getByPlaceholderText('Search apps'), 'prompt');
+    await user.type(screen.getByPlaceholderText('Search apps'), 'bulk');
 
-    expect(card('playground')).toBeInTheDocument();
+    expect(card('turbo')).toBeInTheDocument();
     expect(screen.queryByTestId('apps-app-storyboard')).toBeNull();
     expect(screen.queryByTestId('apps-app-detail')).toBeNull();
   });
@@ -409,14 +410,14 @@ describe('OrganizationAppsPage (#7842)', () => {
     await user.click(screen.getByRole('button', { name: 'Show all apps' }));
 
     expect(screen.queryByTestId('apps-empty')).toBeNull();
-    expect(screen.getAllByTestId(/^apps-app-(?!detail)/)).toHaveLength(3);
+    expect(screen.getAllByTestId(/^apps-app-(?!detail)/)).toHaveLength(2);
   });
 
   it('blocks repeat installs and removals while saving', async () => {
     const user = userEvent.setup();
-    mocks.installed.pendingAppIds = ['storyboard', 'playground'];
+    mocks.installed.pendingAppIds = ['storyboard', 'turbo'];
     render(<OrganizationAppsPage />);
-    await user.click(screen.getByRole('button', { name: 'Playground' }));
+    await user.click(screen.getByRole('button', { name: 'Turbo' }));
     expect(screen.getByRole('menuitem', { name: 'Remove' })).toHaveAttribute(
       'aria-disabled',
       'true',
@@ -435,16 +436,16 @@ describe('OrganizationAppsPage (#7842)', () => {
     const user = userEvent.setup();
     mocks.uninstall.mockResolvedValue(false);
     render(<OrganizationAppsPage />);
-    await user.click(screen.getByRole('button', { name: 'Playground' }));
-    await user.click(screen.getByRole('menuitem', { name: /Pin Playground/ }));
-    expect(mocks.togglePin).toHaveBeenCalledWith('playground');
-    await user.click(screen.getByRole('button', { name: 'Playground' }));
+    await user.click(screen.getByRole('button', { name: 'Turbo' }));
+    await user.click(screen.getByRole('menuitem', { name: /Pin Turbo/ }));
+    expect(mocks.togglePin).toHaveBeenCalledWith('turbo');
+    await user.click(screen.getByRole('button', { name: 'Turbo' }));
     await user.click(screen.getByRole('menuitem', { name: 'Remove' }));
-    expect(mocks.uninstall).toHaveBeenCalledWith('playground');
+    expect(mocks.uninstall).toHaveBeenCalledWith('turbo');
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      "Couldn't remove Playground. Try again.",
+      "Couldn't remove Turbo. Try again.",
     );
-    expect(appState('playground')).toBe('installed');
+    expect(appState('turbo')).toBe('installed');
   });
 
   it('keeps apps out of the chooser while access/installations are loading', () => {
@@ -490,7 +491,7 @@ describe('OrganizationAppsPage (#7842)', () => {
     };
     render(<OrganizationAppsPage />);
     const rows = screen.getAllByTestId(/^apps-app-(?!detail)/);
-    expect(rows).toHaveLength(8);
+    expect(rows).toHaveLength(7);
     for (const row of rows) {
       await user.click(within(row).getByRole('button', { name: /^Select / }));
       expect(

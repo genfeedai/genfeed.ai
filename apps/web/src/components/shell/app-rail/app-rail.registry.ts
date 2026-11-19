@@ -75,8 +75,8 @@ const APP_RAIL_ICONS: Readonly<Record<RouteManifestAppId, IconComponent>> = {
 };
 
 /**
- * The daily loop is fixed on the rail: workspace, agent, library, publishing,
- * analytics. Every other native app opens directly from the Apps launcher
+ * Core apps appear on the rail as they become available. Every other native
+ * app opens directly from the Apps launcher
  * once the member installs it, and can be pinned below the loop (#5502).
  * Studio tools are separate apps; there is no Studio parent. Derived from the
  * route manifest, in manifest order.

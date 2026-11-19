@@ -20,7 +20,7 @@ import type {
 
 /**
  * Product apps on the rail, in rail order: the dashboard (Workspace, Trends,
- * Library, Publishing, Analytics), then Agent, then the apps a member opens
+ * Library, Publishing, Analytics), then Agent and Playground, then the apps a member opens
  * from the launcher.
  */
 export const ROUTE_MANIFEST_APPS: readonly RouteManifestApp[] = [
@@ -80,11 +80,12 @@ export const ROUTE_MANIFEST_APPS: readonly RouteManifestApp[] = [
   {
     rootPath: '/playground',
     flag: 'studio',
-    group: 'app',
+    group: 'daily',
     homePath: '/playground',
     id: 'playground',
     isBrandAware: true,
     organizationModule: 'playground',
+    releaseItemId: 'playground',
   },
   {
     rootPath: '/storyboard',

@@ -62,7 +62,7 @@ export function resolveAvailableRailApps({
     if (!isAppRailItemEnabled(app, flags)) {
       return false;
     }
-    // A release-only app (Agent) shows once released to the organization.
+    // The organization must have release access to release-gated core apps.
     if (
       app.releaseItemId &&
       releaseVisibility !== undefined &&
@@ -79,6 +79,9 @@ export function resolveAvailableRailApps({
     }
     if (!app.organizationModule) {
       return true;
+    }
+    if (app.releaseItemId && moduleAccess !== undefined) {
+      return moduleAccess?.[app.organizationModule]?.isAllowed === true;
     }
     // Trends needs a paid plan: an organization without one does not get a
     // rail item that opens a locked page.
@@ -119,7 +122,7 @@ export function resolveOrganizationApps({
 
 /**
  * Whether the organization has an app beyond the core set (Workspace, Trends,
- * Library, Publishing, Analytics and Agent). The Apps link and the Modules
+ * Library, Publishing, Analytics, Agent and Playground). The Apps link and the Modules
  * settings page exist for choosing among those apps, so they show only then.
  */
 export function hasAppsBeyondDashboard(

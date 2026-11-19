@@ -264,7 +264,7 @@ test('a More menu destination paints without waiting for a server render', async
   const href = createBrandAppRoute(
     'test-org',
     'brand-1',
-    APP_ROUTES.STUDIO.PLAYGROUND,
+    APP_ROUTES.STUDIO.STORYBOARD,
   );
 
   await expectCommitWithinBudget({
@@ -288,7 +288,7 @@ test('a More menu destination paints without waiting for a server render', async
       await delayServerRenders(page);
 
       await page.getByTestId('app-rail-more').click();
-      const target = page.getByTestId('app-rail-more-item-playground');
+      const target = page.getByTestId('app-rail-more-item-storyboard');
       await expect(target).toHaveAttribute('href', href);
       await recordNavigationTiming(page);
 

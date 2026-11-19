@@ -12,7 +12,7 @@ test('organization Apps browser keeps scope, search and previews usable on deskt
     '[data-testid^="apps-app-"]:not([data-testid="apps-app-detail"])',
   );
   const detail = page.getByTestId('apps-app-detail');
-  await expect(apps).toHaveCount(8);
+  await expect(apps).toHaveCount(7);
   await expect(detail).toHaveCount(0);
   await expect(
     page.getByText('Plan a story scene by scene, then generate it.'),
@@ -61,7 +61,7 @@ test('organization Apps browser keeps scope, search and previews usable on deskt
   await page.getByPlaceholder('Search apps').fill('nothing-matches');
   await expect(page.getByTestId('apps-empty')).toBeVisible();
   await page.getByRole('button', { name: 'Show all apps' }).click();
-  await expect(apps).toHaveCount(8);
+  await expect(apps).toHaveCount(7);
 
   await page.screenshot({
     path: testInfo.outputPath('apps-desktop.png'),
@@ -97,7 +97,7 @@ test('organization Apps browser keeps scope, search and previews usable on deskt
 test('app installation and removal update the real member-app provider', async ({
   authenticatedPage: page,
 }) => {
-  let installedAppIds = ['playground'];
+  let installedAppIds = ['turbo'];
   const writes: string[] = [];
   await page.route('**/v1/members/me/apps**', async (route) => {
     const method = route.request().method();

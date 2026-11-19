@@ -129,14 +129,18 @@ test.describe('Unreleased Playground, Storyboard and Agent', () => {
     });
 
     await expect(page.getByTestId('app-rail-item-agent')).toBeVisible();
+    const playground = page.getByRole('link', { name: 'Playground' });
+    await expect(playground).toBeVisible();
+    await expect(playground).toHaveAttribute('href', brandPath('/playground'));
     const toggle = page.getByTestId('topbar-agent-dock-toggle');
     await expect(toggle).toBeEnabled();
     await toggle.click();
     await expect(page.getByTestId('workspace-panel-full-page')).toBeVisible();
 
-    await page.goto(brandPath('/playground'), {
-      waitUntil: 'domcontentloaded',
-    });
+    await playground.click();
+    await expect(page).toHaveURL(
+      (url) => url.pathname === brandPath('/playground'),
+    );
     await expect(page.getByText('Playground is not released yet')).toHaveCount(
       0,
     );
