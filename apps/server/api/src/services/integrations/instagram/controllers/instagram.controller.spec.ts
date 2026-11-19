@@ -582,6 +582,7 @@ describe('InstagramController', () => {
             code: 'auth-code',
             redirect_uri: 'https://app.genfeed.ai/oauth/instagram',
           },
+          timeout: 10_000,
         },
       );
       expect(httpGetMock).not.toHaveBeenCalledWith(
@@ -591,12 +592,12 @@ describe('InstagramController', () => {
       expect(httpPostMock).not.toHaveBeenCalled();
     });
 
-    it('rejects a grant missing instagram_basic with a permission-specific error, writing nothing', async () => {
+    it('rejects a public-profile-only grant with a stable error and saves no credential', async () => {
       mockGraphReads({
         debugToken: () =>
           of({
             data: {
-              data: { is_valid: true, scopes: ['instagram_content_publish'] },
+              data: { is_valid: true, scopes: ['public_profile'] },
             },
           }),
       });
@@ -607,7 +608,10 @@ describe('InstagramController', () => {
 
       expect(failure.getStatus()).toBe(HttpStatus.BAD_REQUEST);
       expect(failure.getResponse()).toEqual(
-        expect.objectContaining({ title: 'Missing permission' }),
+        expect.objectContaining({
+          code: 'instagram_missing_scopes',
+          title: 'Missing permission',
+        }),
       );
       expect(
         instagramServiceMock.listAuthorizedInstagramAccounts,

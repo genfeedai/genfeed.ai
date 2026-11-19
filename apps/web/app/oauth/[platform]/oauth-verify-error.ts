@@ -1,4 +1,7 @@
-import { YoutubeOAuthVerifyErrorCode } from '@genfeedai/contracts';
+import {
+  InstagramOAuthVerifyErrorCode,
+  YoutubeOAuthVerifyErrorCode,
+} from '@genfeedai/contracts';
 import { getJsonApiErrorMember } from '@services/core/json-api-error-message';
 import { getErrorStatus } from '@utils/error/json-api-status.util';
 
@@ -77,7 +80,8 @@ export function resolveOAuthPlatformVerifyFailure(input: {
     googleBusinessMember?.status === GOOGLE_BUSINESS_NOT_READY_STATUS;
   const canRestart =
     input.callbackSubmitted &&
-    (input.platform === 'youtube' ||
+    (input.platform === 'instagram' ||
+      input.platform === 'youtube' ||
       (input.platform === GOOGLE_BUSINESS_PLATFORM &&
         !isGoogleBusinessNotReady));
 
@@ -102,6 +106,19 @@ export function resolveOAuthPlatformVerifyFailure(input: {
       canRetry,
       messageKey: denied ? 'error.denied' : 'error.failed',
       titleKey: 'error.title',
+    };
+  }
+
+  if (
+    input.platform === 'instagram' &&
+    getJsonApiErrorMember(input.error)?.code ===
+      InstagramOAuthVerifyErrorCode.MISSING_SCOPES
+  ) {
+    return {
+      canRestart,
+      canRetry,
+      messageKey: 'error.instagramMissingScopes',
+      titleKey: 'error.instagramMissingScopesTitle',
     };
   }
 

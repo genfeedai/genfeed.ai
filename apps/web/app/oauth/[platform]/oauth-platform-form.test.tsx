@@ -464,6 +464,54 @@ describe('OAuthPlatformForm', () => {
     );
   });
 
+  it('explains a missing Instagram grant and starts a fresh authorization for the same brand', async () => {
+    window.sessionStorage.setItem(
+      'oauth_connect_context',
+      JSON.stringify({
+        brandId: BRAND_ID,
+        credentialId: VERIFIED_CREDENTIAL_ID,
+      }),
+    );
+    const postConnect = vi.fn().mockResolvedValue({
+      url: 'https://www.facebook.com/v26.0/dialog/oauth?state=fresh',
+    });
+    mocks.getServicesService.mockResolvedValue({
+      postConnect,
+      postVerify: mocks.postVerify,
+    });
+    mocks.postVerify.mockRejectedValueOnce({
+      errors: [{ code: 'instagram_missing_scopes', status: '400' }],
+    });
+    const open = vi.spyOn(window, 'open').mockImplementation(() => null);
+
+    render(<OAuthPlatformForm platform="instagram" />);
+
+    expect(
+      await screen.findByText('Instagram permission missing'),
+    ).toBeVisible();
+    expect(
+      screen.getByText(
+        'Meta did not grant access to your Instagram professional account. Restart authorization and allow access to the account you want to connect.',
+      ),
+    ).toBeVisible();
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Restart authorization' }),
+    );
+
+    await waitFor(() => {
+      expect(postConnect).toHaveBeenCalledWith({
+        brandId: BRAND_ID,
+        credentialId: VERIFIED_CREDENTIAL_ID,
+      });
+    });
+    expect(open).toHaveBeenCalledWith(
+      'https://www.facebook.com/v26.0/dialog/oauth?state=fresh&return_to=%2Fsettings%2Fpublishing',
+      '_self',
+    );
+    expect(mocks.postVerify).toHaveBeenCalledTimes(1);
+  });
+
   it('explains a missing YouTube channel and starts a fresh authorization', async () => {
     const brandId = '11111111-1111-4111-8111-111111111111';
     const credentialId = '22222222-2222-4222-8222-222222222222';

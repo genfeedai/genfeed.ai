@@ -11,7 +11,10 @@ import {
   INSTAGRAM_BASIC_SCOPE,
   toInstagramTokenGrant,
 } from '@api/services/integrations/instagram/utils/instagram-token-grant.util';
-import { CredentialPlatform } from '@genfeedai/contracts';
+import {
+  CredentialPlatform,
+  InstagramOAuthVerifyErrorCode,
+} from '@genfeedai/contracts';
 import type {
   InstagramDebugTokenResponse,
   InstagramPageResponse,
@@ -113,6 +116,7 @@ export class InstagramConnectionResolverService {
               code,
               redirect_uri: this.redirectUri,
             },
+            timeout: 10_000,
           },
         ),
       );
@@ -180,6 +184,7 @@ export class InstagramConnectionResolverService {
       );
       throw new HttpException(
         {
+          code: InstagramOAuthVerifyErrorCode.MISSING_SCOPES,
           detail:
             'Instagram needs permission to see your professional account. Please reconnect and approve that permission.',
           title: 'Missing permission',
