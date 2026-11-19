@@ -472,9 +472,17 @@ describe('ToolRegistryService', () => {
         name: 'get_account',
       });
 
-      expect(result).toMatchObject({ isError: true });
-      expect(JSON.stringify(result)).toContain('limited to one organization');
+      expect(result).toMatchObject({
+        isError: true,
+        structuredContent: {
+          code: 'unauthorized',
+          message: expect.stringContaining(
+            'Reconnect and choose "All organizations"',
+          ),
+        },
+      });
       expect(calls).toEqual([]);
+      expect(clientService.listOrganizations).not.toHaveBeenCalled();
     });
 
     it('warns and gives reconnect guidance when a bound grant tries to switch organizations', async () => {
