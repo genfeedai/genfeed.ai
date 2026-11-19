@@ -95,6 +95,8 @@ export interface BrandDetailSocialMediaCardProps {
   brandId: string;
   connections: BrandDetailSocialConnection[];
   connectedPlatformsCount: number;
+  /** Brand Profile URL when the card lives in a sidebar that closes on navigation. */
+  historyImportReturnTo?: string;
   /**
    * Reload the brand after an account is disconnected. The card owns the
    * mutation but not the connection list, so without this the removed account

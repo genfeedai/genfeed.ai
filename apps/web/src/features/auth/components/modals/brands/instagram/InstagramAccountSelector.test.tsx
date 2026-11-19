@@ -367,10 +367,16 @@ describe('InstagramAccountSelector', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Connect 2 accounts' }));
 
     await waitFor(() => {
-      expect(onConnected).toHaveBeenCalledWith({
-        avatarUrl: 'https://cdn.example.com/one.jpg',
-        name: 'Genfeed AI',
-      });
+      expect(onConnected).toHaveBeenCalledWith(
+        { avatarUrl: 'https://cdn.example.com/one.jpg', name: 'Genfeed AI' },
+        [
+          {
+            externalAvatar: 'https://cdn.example.com/one.jpg',
+            externalName: 'Genfeed AI',
+          },
+          { externalName: 'Genfeed Studio' },
+        ],
+      );
     });
     expect(mockServicesService.postSelectAccounts).toHaveBeenCalledWith(
       credentialId,
@@ -406,10 +412,10 @@ describe('InstagramAccountSelector', () => {
     expect(onConnected).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-    expect(onConnected).toHaveBeenCalledWith({
-      avatarUrl: undefined,
-      name: 'Genfeed AI',
-    });
+    expect(onConnected).toHaveBeenCalledWith(
+      { avatarUrl: undefined, name: 'Genfeed AI' },
+      [{ externalId: 'ig-account-1', externalName: 'Genfeed AI' }],
+    );
   });
 
   it('reports a persist failure through onError and keeps the selection', async () => {

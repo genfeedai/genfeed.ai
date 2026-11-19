@@ -1,9 +1,12 @@
 import '@testing-library/jest-dom/vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { rememberOAuthConnectContext } from '@/hooks/auth/use-platform-oauth-connect/oauth-connect-context';
 import OAuthPlatformForm from './oauth-platform-form';
 
 const mockInstagramAccountSelector = vi.fn();
+const BRAND_ID = '11111111-1111-4111-8111-111111111111';
+const VERIFIED_CREDENTIAL_ID = '22222222-2222-4222-8222-222222222222';
 
 const mocks = vi.hoisted(() => ({
   authIdentity: {
@@ -185,6 +188,31 @@ describe('OAuthPlatformForm', () => {
     expect(clearClientProtectedBootstrapCache).toHaveBeenCalledTimes(1);
 
     expect(mocks.navigate).toHaveBeenCalledWith('/settings/publishing');
+  });
+
+  it('returns the verified account for an optional import after authorization', async () => {
+    rememberOAuthConnectContext({
+      brandId: BRAND_ID,
+      credentialId: '33333333-3333-4333-8333-333333333333',
+      shouldOfferHistoryImport: true,
+    });
+    mocks.searchParams.set(
+      'return_to',
+      '/org/brand/settings/profile?tab=social',
+    );
+    mocks.postVerify.mockResolvedValue({
+      brandId: BRAND_ID,
+      id: VERIFIED_CREDENTIAL_ID,
+      isConnected: true,
+    });
+
+    render(<OAuthPlatformForm platform="youtube" />);
+
+    expect(mocks.navigate).not.toHaveBeenCalled();
+    expect(await screen.findByText('YouTube Connected')).toBeVisible();
+    expect(mocks.navigate).toHaveBeenCalledWith(
+      `/org/brand/settings/profile?tab=social&historyImportCredentialId=${VERIFIED_CREDENTIAL_ID}`,
+    );
   });
 
   it('forwards the issuer a Bluesky callback names so the API can check it', async () => {

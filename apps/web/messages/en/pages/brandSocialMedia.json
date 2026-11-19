@@ -108,7 +108,7 @@
     "postingTimes": "Posting times"
   },
   "importOnConnectTitle": "Import existing posts?",
-  "importOnConnectDescription": "Genfeed can import what this {platform} account published over the last 90 days to learn what works for this brand. You can also run the import later from the account's settings.",
+  "importOnConnectDescription": "Import up to 90 days of posts from {account}. You can also import them later from the account's settings.",
   "importOnConnectSkip": "Skip",
   "importOnConnectConfirm": "Import posts",
   "profilePictureAlt": "{account} profile picture",

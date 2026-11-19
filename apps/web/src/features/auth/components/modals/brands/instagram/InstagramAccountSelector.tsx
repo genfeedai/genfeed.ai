@@ -1,6 +1,7 @@
 'use client';
 
 import { ButtonVariant } from '@genfeedai/contracts';
+import type { ICredential } from '@genfeedai/contracts/interfaces';
 import { InstagramIcon } from '@genfeedai/helpers/ui/icons/brands';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import type { CredentialInstagram } from '@genfeedai/models/auth/credential.model';
@@ -54,6 +55,7 @@ export default function InstagramAccountSelector({
   // before moving on, since the rest need another connect.
   const [partialResult, setPartialResult] = useState<{
     account: ConnectionAccount;
+    credentials: readonly ICredential[];
     notice: string;
   } | null>(null);
 
@@ -151,6 +153,7 @@ export default function InstagramAccountSelector({
           .join(', ');
         setPartialResult({
           account,
+          credentials: connected,
           notice: translate('partial', {
             connected: connected.length,
             missing: missingNames,
@@ -160,7 +163,7 @@ export default function InstagramAccountSelector({
         return;
       }
 
-      onConnected(account);
+      onConnected(account, connected);
     } catch (confirmError) {
       logger.error(`${url} failed`, confirmError);
       const message = translate('confirmError');
@@ -191,7 +194,9 @@ export default function InstagramAccountSelector({
           </p>
           <Button
             label={translate('continue')}
-            onClick={() => onConnected(partialResult.account)}
+            onClick={() =>
+              onConnected(partialResult.account, partialResult.credentials)
+            }
           />
         </div>
       )}

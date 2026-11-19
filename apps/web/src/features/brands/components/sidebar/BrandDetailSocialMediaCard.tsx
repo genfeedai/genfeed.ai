@@ -35,7 +35,15 @@ import {
   DialogTitle,
 } from '@ui/primitives/dialog';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+import AccountHistoryImportOffers from '@/features/brands/components/integrations/AccountHistoryImportOffers';
 import AccountSettingsDialog from '@/features/brands/components/integrations/AccountSettingsDialog';
 import AccountsTable from '@/features/brands/components/integrations/AccountsTable';
 import ApiKeyConnectDialog from '@/features/brands/components/integrations/ApiKeyConnectDialog';
@@ -77,6 +85,7 @@ type ConnectablePlatform = Pick<
 export default function BrandDetailSocialMediaCard({
   brandId,
   connections,
+  historyImportReturnTo,
   isConnectAccountModalOpen: controlledIsConnectAccountModalOpen,
   onConnectAccountModalOpenChange,
   onRefresh,
@@ -129,10 +138,6 @@ export default function BrandDetailSocialMediaCard({
   const [settingsTarget, setSettingsTarget] = useState<SocialConnection | null>(
     null,
   );
-  // A new account on a platform with history import asks, before OAuth,
-  // whether to import its existing posts; the answer rides the connect call.
-  const [importChoiceTarget, setImportChoiceTarget] =
-    useState<ConnectablePlatform | null>(null);
   // Ghost, dev.to and Beehiiv connect with an API key, so they open a form
   // instead of redirecting to a provider. The target outlives the close so
   // the form keeps its fields while it animates out.
@@ -342,7 +347,6 @@ export default function BrandDetailSocialMediaCard({
   const handleConnectPlatform = async (
     item: ConnectablePlatform,
     credentialId?: string,
-    isHistoryImportRequested?: boolean,
   ) => {
     if (!item.isConnectAvailable) {
       return;
@@ -397,18 +401,9 @@ export default function BrandDetailSocialMediaCard({
       return;
     }
 
-    if (
-      !credentialId &&
-      isHistoryImportRequested === undefined &&
-      hasHistoryImport(item.platform)
-    ) {
-      setIsConnectAccountModalOpen(false);
-      setIsDialogOpen(false);
-      setImportChoiceTarget(item);
-      return;
-    }
-
     const platform = item.platform;
+    const shouldOfferHistoryImport =
+      !credentialId && hasHistoryImport(platform);
     try {
       setConnectingPlatform(platform);
       if (credentialId) {
@@ -418,7 +413,8 @@ export default function BrandDetailSocialMediaCard({
       // Provider redirects drop query params, so /oauth/[platform] reads
       // return_to from sessionStorage after verify.
       rememberOAuthReturnTo(
-        `${window.location.pathname}${window.location.search}`,
+        (shouldOfferHistoryImport && historyImportReturnTo) ||
+          `${window.location.pathname}${window.location.search}`,
       );
       const service = new ServicesService(
         resolveOAuthServicePath(platform, item.servicePath),
@@ -429,13 +425,14 @@ export default function BrandDetailSocialMediaCard({
       const credentialOAuth = await service.postConnect({
         brandId,
         ...(credentialId ? { credentialId } : {}),
-        ...(isHistoryImportRequested === undefined
-          ? {}
-          : { isHistoryImportRequested }),
+        ...(shouldOfferHistoryImport
+          ? { isHistoryImportRequested: false }
+          : {}),
       });
       rememberOAuthConnectContext({
         brandId,
         credentialId: credentialOAuth.id || credentialId,
+        shouldOfferHistoryImport,
       });
       window.open(credentialOAuth.url, '_self');
     } catch (error) {
@@ -445,14 +442,6 @@ export default function BrandDetailSocialMediaCard({
       );
       setConnectingPlatform(null);
       setReconnectingCredentialId(null);
-    }
-  };
-
-  const handleImportChoice = (isHistoryImportRequested: boolean) => {
-    const item = importChoiceTarget;
-    setImportChoiceTarget(null);
-    if (item) {
-      void handleConnectPlatform(item, undefined, isHistoryImportRequested);
     }
   };
 
@@ -699,45 +688,10 @@ export default function BrandDetailSocialMediaCard({
     />
   );
 
-  const importChoiceDialog = (
-    <Dialog
-      open={Boolean(importChoiceTarget)}
-      onOpenChange={(open) => {
-        if (!open) {
-          setImportChoiceTarget(null);
-        }
-      }}
-    >
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{translate('importOnConnectTitle')}</DialogTitle>
-          <DialogDescription>
-            {importChoiceTarget
-              ? translate('importOnConnectDescription', {
-                  platform: importChoiceTarget.label,
-                })
-              : ''}
-          </DialogDescription>
-        </DialogHeader>
-
-        <DialogFooter>
-          <Button
-            size={ButtonSize.SM}
-            variant={ButtonVariant.GHOST}
-            onClick={() => handleImportChoice(false)}
-          >
-            {translate('importOnConnectSkip')}
-          </Button>
-          <Button
-            size={ButtonSize.SM}
-            variant={ButtonVariant.DEFAULT}
-            onClick={() => handleImportChoice(true)}
-          >
-            {translate('importOnConnectConfirm')}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+  const importOffers = (
+    <Suspense fallback={null}>
+      <AccountHistoryImportOffers brandId={brandId} connections={connections} />
+    </Suspense>
   );
 
   const overrideDialog = (
@@ -808,6 +762,7 @@ export default function BrandDetailSocialMediaCard({
   if (isPageVariant) {
     return (
       <>
+        {importOffers}
         <AccountsTable
           accountHealth={healthRows}
           connections={connectedConnections}
@@ -844,7 +799,6 @@ export default function BrandDetailSocialMediaCard({
         />
 
         {disconnectDialog}
-        {importChoiceDialog}
         {apiKeyConnectDialog}
         {overrideDialog}
       </>
@@ -867,6 +821,7 @@ export default function BrandDetailSocialMediaCard({
           </Button>
         }
       >
+        {importOffers}
         {hasConnectedAccounts ? (
           <div className="grid gap-2 sm:grid-cols-2">
             {connectedConnections.map((connection) => (
@@ -963,7 +918,6 @@ export default function BrandDetailSocialMediaCard({
       </Dialog>
 
       {disconnectDialog}
-      {importChoiceDialog}
       {apiKeyConnectDialog}
       {overrideDialog}
     </>
