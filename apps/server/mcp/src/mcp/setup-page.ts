@@ -1013,9 +1013,16 @@ ${postHogSnippet}
           <li class="step">
             <span class="step-number">02</span>
             <div>
-              <p class="step-title">Authorize and verify</p>
-              <p class="step-copy">If browser authorization did not open during setup, run this. Approve access, then ask Codex to list your Genfeed brands.</p>
+              <p class="step-title">Approve access</p>
+              <p class="step-copy">Sign in and approve access in your browser. If the browser did not open during setup, run this command to start authorization.</p>
               ${renderCommandBlock({ id: 'codex-login-command', label: 'Copy Codex login command', textSafe: 'codex mcp login genfeed', ui })}
+            </div>
+          </li>
+          <li class="step">
+            <span class="step-number">03</span>
+            <div>
+              <p class="step-title">Verify in Codex</p>
+              <p class="step-copy">After approval, expect a Codex tab at <code class="${ui.inlineCode}">127.0.0.1</code> (localhost). You can close that tab. Return to Codex and ask it to list your Genfeed brands.</p>
             </div>
           </li>
         </ol>

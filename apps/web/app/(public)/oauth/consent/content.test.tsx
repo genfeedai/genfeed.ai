@@ -551,6 +551,33 @@ describe('OAuthConsentPage', () => {
     ).toHaveAttribute('href', '/first/~/connectors/agents');
   });
 
+  it.each([
+    ['Codex', 'http://127.0.0.1:50140/callback', 1],
+    ['OpenAI Codex', 'http://localhost:50140/callback', 1],
+    ['Codex', 'http://[::1]:50140/callback', 1],
+    ['Codex', 'https://example.com/callback', 0],
+    ['Another MCP client', 'http://127.0.0.1:50140/callback', 0],
+  ])(
+    'shows the Codex handoff to %s at %s only for Codex loopback',
+    async (clientName, redirectUri, expectedNoticeCount) => {
+      useSearchParamsMock.mockReturnValue(
+        oauthParams({ client_name: clientName, redirect_uri: redirectUri }),
+      );
+
+      render(<OAuthConsentPage />);
+      await screen.findByText('First workspace');
+
+      expect(screen.queryAllByText(/expect a localhost tab/i)).toHaveLength(
+        expectedNoticeCount,
+      );
+      expect(
+        screen.queryAllByText(
+          /return to codex and ask it to list your genfeed brands/i,
+        ),
+      ).toHaveLength(expectedNoticeCount);
+    },
+  );
+
   it('shows the official mark of the requesting client', async () => {
     useSearchParamsMock.mockReturnValue(
       oauthParams({
