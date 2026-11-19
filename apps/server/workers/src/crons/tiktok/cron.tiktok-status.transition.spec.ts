@@ -110,6 +110,8 @@ function createHarness() {
       .fn()
       .mockResolvedValue({ accessToken: 'encrypted-access-token' }),
   };
+  const publishedEvents: string[] = [];
+  const finalize = vi.fn().mockResolvedValue(true);
   const service = new CronTiktokStatusService(
     logger as never,
     {
@@ -136,21 +138,24 @@ function createHarness() {
     { queueSystemWorkflow: vi.fn().mockResolvedValue(undefined) } as never,
     {
       emitPostFailed: vi.fn().mockResolvedValue(undefined),
-      emitPostPublished: vi.fn().mockResolvedValue(undefined),
+      emitPostPublished: async (event: { externalProviderId: string }) => {
+        publishedEvents.push(event.externalProviderId);
+      },
     } as never,
     publishState,
     {
-      processPendingPublishedFinalization: vi.fn().mockResolvedValue(true),
+      processPendingPublishedFinalization: finalize,
     } as never,
   );
   service.onModuleInit();
 
-  const reconcile = async () => {
+  const reconcile = async (finalizationPending = false) => {
     const action = actions.get(TIKTOK_STATUS_ACTION_IDS.RECONCILE);
     if (!action) throw new Error('reconcile action was not registered');
     return action({
       input: {
         request: {
+          finalizationPending,
           maxAge: '2026-11-16T12:00:00.000Z',
           now: '2026-11-17T12:00:00.000Z',
           organizationId: 'org-1',
@@ -165,7 +170,7 @@ function createHarness() {
     });
   };
 
-  return { reconcile, stored, tiktokService };
+  return { finalize, publishedEvents, reconcile, stored, tiktokService };
 }
 
 describe('TikTok status reconciliation against the publish-state guards', () => {
@@ -183,6 +188,28 @@ describe('TikTok status reconciliation against the publish-state guards', () => 
       targetExecutionState: TargetExecutionState.PUBLISHED,
       url: 'https://www.tiktok.com/@brandhandle/video/tiktok-post-1',
     });
+  });
+
+  it('keeps the published webhook when finalization fails and retries finalization without a duplicate event', async () => {
+    const { finalize, publishedEvents, reconcile, stored, tiktokService } =
+      createHarness();
+    tiktokService.getPublishStatus.mockResolvedValue({
+      publicly_available_post_id: ['tiktok-post-1'],
+      status: 'PUBLISH_COMPLETE',
+    });
+    finalize.mockRejectedValueOnce(new Error('Recurrence unavailable'));
+
+    await reconcile();
+
+    expect(stored).toMatchObject({
+      externalId: 'tiktok-post-1',
+      targetExecutionState: TargetExecutionState.PUBLISHED,
+    });
+    expect(publishedEvents).toEqual(['tiktok-post-1']);
+
+    await expect(reconcile(true)).resolves.toBe(true);
+
+    expect(publishedEvents).toEqual(['tiktok-post-1']);
   });
 
   it('fails a PUBLISHING post when TikTok rejects the video', async () => {
