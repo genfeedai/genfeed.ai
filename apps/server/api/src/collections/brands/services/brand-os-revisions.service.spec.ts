@@ -246,6 +246,50 @@ function harness(initial: BrandOsRevision[] = [], legacyAgentConfig?: unknown) {
 }
 
 describe('BrandOsRevisionsService', () => {
+  it('persists visual fields on the brand and keeps the pending revision edits', async () => {
+    const pending = draft();
+    const description = pending.fields.description;
+    if (!description) throw new Error('Expected a description field');
+    description.proposedValue = 'Pending description';
+    const { brandWrites, service } = harness([
+      { ...row(), content: pending as unknown as Prisma.JsonValue },
+    ]);
+
+    const result = await service.applyVisualIdentity(ORG, BRAND, {
+      colorPalette: [{ name: 'Highlight', hex: '#aabbcc' }],
+      primaryColor: '#AABBCC',
+    });
+
+    expect(brandWrites).toEqual([
+      {
+        colorPalette: [{ name: 'Highlight', hex: '#AABBCC' }],
+        primaryColor: '#AABBCC',
+      },
+    ]);
+    expect(result.id).toBe('rev-1');
+    expect(result.status).toBe(BrandOsRevisionStatus.DRAFT);
+    expect(result.content.fields.description?.proposedValue).toBe(
+      'Pending description',
+    );
+    expect(result.content.fields.primaryColor).toMatchObject({
+      applyActionDefault: 'preserve',
+      currentValue: '#AABBCC',
+    });
+  });
+
+  it('refuses an invalid palette before saving any visual fields', async () => {
+    const { brandWrites, service } = harness([row()]);
+
+    await expect(
+      service.applyVisualIdentity(ORG, BRAND, {
+        colorPalette: [{ name: 'Highlight', hex: 'red' }],
+        primaryColor: '#AABBCC',
+      }),
+    ).rejects.toThrow(BadRequestException);
+    expect(brandWrites).toEqual([]);
+    expect((await service.list(ORG, BRAND))[0]?.content).toMatchObject(draft());
+  });
+
   it('projects an exact saved draft candidate on scoped reads without persistence or extra queries', async () => {
     const { service, tx, prisma } = harness([reviewedRow()]);
     const expected = hashBrandGenerationRulesReviewV1(rules());

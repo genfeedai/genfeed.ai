@@ -1,5 +1,7 @@
+import type { UpdateBrandKitVisualIdentityDto } from '@api/collections/brands/dto/update-brand-kit-visual-identity.dto';
 import { BrandKitAssetsService } from '@api/collections/brands/services/brand-kit-assets.service';
 import { BrandWatermarkLogoService } from '@api/collections/brands/services/brand-watermark-logo.service';
+import { toPersistedFontFamily } from '@api/collections/brands/utils/persisted-font-family';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { rulesOwnerVideoJoins } from '@api/services/branded-generation-receipts/brand-identity-snapshot-projection.util';
 import { hashBrandGenerationRulesReviewV1 } from '@api/services/branded-generation-receipts/branded-generation-hash.util';
@@ -309,21 +311,131 @@ export class BrandOsRevisionsService {
         normalized,
         hasOwnedFieldEdit,
       );
-      if (row.status === BrandOsRevisionStatus.APPROVED)
-        return this.createDraft(tx, organizationId, brandId, persisted);
-      return this.toRevision(
-        await tx.brandOsRevision.update({
-          data: {
-            content: toPrismaJson(persisted),
-            generationRulesReviewHash: null,
-            updatedAt: new Date(
-              Math.max(Date.now(), row.updatedAt.getTime() + 1),
-            ),
-          },
-          where: { brandId, id, isDeleted: false, organizationId },
-        }),
-      );
+      return this.saveDraft(tx, organizationId, brandId, persisted, {
+        ...row,
+        id,
+      });
     });
+  }
+
+  /** Apply explicitly selected visual fields and keep the editor's draft in sync. */
+  async applyVisualIdentity(
+    organizationId: string,
+    brandId: string,
+    patch: UpdateBrandKitVisualIdentityDto,
+  ): Promise<IBrandOsRevision> {
+    const values = this.parseVisualIdentity(patch);
+    return this.prisma.$transaction(async (tx) => {
+      const brand = await this.lockBrand(tx, organizationId, brandId);
+      const revision = await tx.brandOsRevision.findFirst({
+        orderBy: { version: 'desc' },
+        where: {
+          brandId,
+          isDeleted: false,
+          organizationId,
+          status: { not: BrandOsRevisionStatus.SUPERSEDED },
+        },
+      });
+      const previous = revision
+        ? (revision.content as unknown as IBrandKitDraft)
+        : await this.buildCurrentBrandContent(brand, organizationId, brandId);
+      const content = structuredClone(previous);
+      for (const owner of BRAND_KIT_FIELD_OWNERSHIP) {
+        if (owner.group !== 'visual') continue;
+        const value: unknown = Reflect.get(values, owner.key);
+        if (value === undefined) continue;
+        const field = content.fields[owner.key];
+        content.fields[owner.key] = {
+          ...owner,
+          applyActionDefault: 'preserve',
+          currentValue: value,
+          diagnostics: [],
+          evidence: [
+            { label: 'Owner edit', sourceType: 'manual' },
+            ...(field?.evidence.filter(
+              (entry) => entry.sourceType !== 'manual',
+            ) ?? []),
+          ],
+        };
+      }
+      const persisted = this.normalize(
+        this.resolveDefaultKitContent(previous, content, true),
+        organizationId,
+        brandId,
+      );
+      const { colorPalette, fontRoles, ...styles } = values;
+      // sql-risk-audit: ignore bulk-write-tenant-review -- scoped by the locked brand id and organization.
+      await tx.brand.updateMany({
+        data: {
+          ...styles,
+          ...(colorPalette === undefined
+            ? {}
+            : { colorPalette: toPrismaJson(colorPalette) }),
+          ...(fontRoles === undefined
+            ? {}
+            : { fontRoles: toPrismaJson(fontRoles) }),
+        },
+        where: { id: brandId, isDeleted: false, organizationId },
+      });
+      return this.saveDraft(tx, organizationId, brandId, persisted, revision);
+    });
+  }
+
+  private parseVisualIdentity(patch: UpdateBrandKitVisualIdentityDto) {
+    const {
+      backgroundColor,
+      colorPalette,
+      fontFamily,
+      fontRoles,
+      primaryColor,
+      secondaryColor,
+    } = patch;
+    const styles = { backgroundColor, primaryColor, secondaryColor };
+    if (
+      Object.values(styles).some(
+        (value) => value !== undefined && typeof value !== 'string',
+      )
+    )
+      throw new BadRequestException('Invalid Brand Kit visual style');
+    const persistedFontFamily = toPersistedFontFamily(fontFamily);
+    if (fontFamily !== undefined && !persistedFontFamily)
+      throw new BadRequestException('Invalid Brand Kit font family');
+    const palette = brandPaletteSchema.optional().safeParse(colorPalette);
+    const fonts = brandFontRolesSchema.optional().safeParse(fontRoles);
+    if (!palette.success || !fonts.success)
+      throw new BadRequestException('Invalid Brand Kit palette or font roles');
+    const values = {
+      ...styles,
+      colorPalette: palette.data,
+      fontFamily: persistedFontFamily,
+      fontRoles: fonts.data,
+    };
+    if (Object.values(values).every((value) => value === undefined))
+      throw new BadRequestException('At least one visual field is required');
+    return values;
+  }
+
+  private async saveDraft(
+    tx: Prisma.TransactionClient,
+    organizationId: string,
+    brandId: string,
+    content: IBrandKitDraft,
+    revision: Pick<BrandOsRevision, 'id' | 'status' | 'updatedAt'> | null,
+  ): Promise<IBrandOsRevision> {
+    if (!revision || revision.status === BrandOsRevisionStatus.APPROVED)
+      return this.createDraft(tx, organizationId, brandId, content);
+    return this.toRevision(
+      await tx.brandOsRevision.update({
+        data: {
+          content: toPrismaJson(content),
+          generationRulesReviewHash: null,
+          updatedAt: new Date(
+            Math.max(Date.now(), revision.updatedAt.getTime() + 1),
+          ),
+        },
+        where: { brandId, id: revision.id, isDeleted: false, organizationId },
+      }),
+    );
   }
 
   async approve(

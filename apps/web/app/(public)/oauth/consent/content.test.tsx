@@ -314,9 +314,42 @@ describe('OAuthConsentPage', () => {
     expect(
       screen.getByText('First workspace, Second brand only'),
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole('checkbox', {
+        name: 'Allow Brand Kit edits for Second brand',
+      }),
+    ).not.toBeChecked();
     fireEvent.click(screen.getByRole('button', { name: 'Authorize' }));
     await waitFor(() => expect(redirectMock).toHaveBeenCalled());
     expect(lastDecisionBody()).toMatchObject({ brandId: 'brand-2' });
+    expect(lastDecisionBody()).not.toHaveProperty('allowBrandKitEdits');
+  });
+
+  it('sends a Brand Kit edit grant only after explicit consent for the selected brand', async () => {
+    findOrganizationBrandsMock.mockResolvedValue([
+      { id: 'brand-1', label: 'First brand' },
+    ]);
+    mockDecisionResponse();
+    render(<OAuthConsentPage />);
+    await screen.findByRole('option', { name: 'First brand' });
+    expect(
+      screen.queryByRole('checkbox', { name: /allow brand kit edits/i }),
+    ).not.toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText('Brand'), {
+      target: { value: 'brand-1' },
+    });
+    fireEvent.click(
+      screen.getByRole('checkbox', {
+        name: 'Allow Brand Kit edits for First brand',
+      }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Authorize' }));
+    await waitFor(() => expect(redirectMock).toHaveBeenCalled());
+    expect(lastDecisionBody()).toMatchObject({
+      allowBrandKitEdits: true,
+      brandId: 'brand-1',
+    });
   });
 
   it('shows the sole organization and grants it without another step', async () => {

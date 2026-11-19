@@ -76,6 +76,7 @@ export class BrandsAgentConfigController {
     @Body() updateAgentConfigDto: UpdateBrandAgentConfigDto,
   ): Promise<JsonApiSingleResponse> {
     const organizationId = this.requireOrganizationId(user);
+    await verifyBrandAccess(this.brandsService, id, user);
 
     if (updateAgentConfigDto.enabledSkills !== undefined) {
       await this.skillsService.assertAccessibleSkillSlugs(

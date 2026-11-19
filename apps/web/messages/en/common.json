@@ -294,6 +294,7 @@
       "brand": {
         "allBrands": "All brands",
         "allBrandsDescription": "{organization}, all brands",
+        "allowKitEdits": "Allow Brand Kit edits for {brand}",
         "label": "Brand",
         "onlyBrandDescription": "{organization}, {brand} only"
       },

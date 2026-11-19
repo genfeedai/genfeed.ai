@@ -161,6 +161,15 @@ describe('PATCH /brands/:id/agent-config (HTTP pipeline)', () => {
     expect(updateAgentConfig).toHaveBeenCalledTimes(1);
   });
 
+  it('refuses a writing voice patch when the caller cannot access the brand', async () => {
+    findOne.mockResolvedValue(null);
+
+    await request(app.getHttpServer())
+      .patch(`/brands/${brandId}/agent-config`)
+      .send({ voice: { tone: 'confident' } })
+      .expect(404);
+  });
+
   it('does not invent an enabledSkills value when the caller omits it', async () => {
     await request(app.getHttpServer())
       .patch(`/brands/${brandId}/agent-config`)

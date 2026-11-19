@@ -78,6 +78,7 @@ import { HeyGenIdentityService } from '@api/services/integrations/heygen/service
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { paginatedQueryCacheTag } from '@api/shared/utils/query-cache/query-cache.util';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import {
   BRAND_HANDLE_RESERVED_MESSAGE,
   isReservedAppRootSegment,
@@ -97,6 +98,7 @@ import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
 } from '@nestjs/common';
 
@@ -524,7 +526,7 @@ export class BrandsService extends BaseService<
     return updatedBrand;
   }
 
-  private async invalidateBrandContextCaches(
+  async invalidateBrandContextCaches(
     brandId: string,
     organizationId: string,
   ): Promise<void> {
@@ -538,6 +540,24 @@ export class BrandsService extends BaseService<
     await this.accessBootstrapCacheService.invalidateForOrganization(
       organizationId,
     );
+  }
+
+  /** A consented OAuth key borrows the member's role only for this edit. */
+  async assertBrandKitEdit(actor: BrandAccessActor, brandId: string) {
+    const access = await this.brandAccessService.resolve(actor);
+    const hasBrandKitGrant = access.brandKitGrantBrandId === brandId;
+    if (
+      actor.isApiKey &&
+      !hasBrandKitGrant &&
+      !actor.scopes?.includes(ApiKeyScope.BRANDS_WRITE)
+    ) {
+      throw new ForbiddenException(
+        'Brand Kit editing requires consent for this brand',
+      );
+    }
+    const brand = await this.findOne({ AND: [access.where, { id: brandId }] });
+    if (!brand) throw new NotFoundException('Brand', brandId);
+    return { hasBrandKitGrant, membershipRole: access.membershipRole };
   }
 
   async updateIdentityForOrganization(

@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { isPlatformSuperAdmin } from '@api/auth/better-auth/better-auth-access.util';
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { BrandFromUrlService } from '@api/collections/brands/services/brand-from-url.service';
+import type { BrandsService } from '@api/collections/brands/services/brands.service';
 import {
   RequestContextMiddleware,
   type RequestWithContext,
@@ -40,6 +41,7 @@ const NEWLINES_PATTERN = /\n/g;
 const NON_ALPHANUMERIC_RUNS_PATTERN = /[^a-z0-9]+/g;
 
 interface AgentBrandsServiceLike {
+  assertBrandKitEdit?: BrandsService['assertBrandKitEdit'];
   findOne: (
     params: Record<string, unknown>,
     context?: string,
@@ -373,6 +375,7 @@ export class AgentBrandContentToolHandler {
         success: false,
       };
     }
+    await this.assertBrandVoiceToolAccess(ctx, String(brand.id));
 
     const profile = await this.brandsService.generateBrandVoice(
       {
@@ -506,6 +509,7 @@ export class AgentBrandContentToolHandler {
         success: false,
       };
     }
+    await this.assertBrandVoiceToolAccess(ctx, String(brand.id));
 
     const rawProfile =
       params.voiceProfile && typeof params.voiceProfile === 'object'
@@ -560,11 +564,18 @@ export class AgentBrandContentToolHandler {
       writingRules: this.normalizeStringList(rawProfile.writingRules),
     };
 
-    await this.brandsService.updateAgentConfig(
+    const saved = await this.brandsService.updateAgentConfig(
       String(brand.id),
       ctx.organizationId,
       this.buildApprovedProfilePatch(profile),
     );
+    if (!saved) {
+      return {
+        creditsUsed: 0,
+        error: 'Brand voice could not be saved.',
+        success: false,
+      };
+    }
 
     return {
       creditsUsed: 0,
@@ -575,6 +586,27 @@ export class AgentBrandContentToolHandler {
       },
       success: true,
     };
+  }
+
+  private async assertBrandVoiceToolAccess(
+    ctx: ToolExecutionContext,
+    brandId: string,
+  ) {
+    const credential = ctx.apiKeyContext ?? ctx.initiatingPrincipal;
+    if (!credential?.isApiKey) return;
+    if (!this.brandsService.assertBrandKitEdit) {
+      throw new ForbiddenException(
+        'Brand Kit edit authorization is unavailable',
+      );
+    }
+    await this.brandsService.assertBrandKitEdit(
+      {
+        ...credential,
+        organizationId: ctx.organizationId,
+        userId: ctx.userId,
+      },
+      brandId,
+    );
   }
   async createBrandFromUrl(
     params: Record<string, unknown>,

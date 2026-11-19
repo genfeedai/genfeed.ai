@@ -3,6 +3,7 @@ import 'reflect-metadata';
 import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { buildCodeChallenge } from '@api/auth/shared/pkce.util';
+import type { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
 import type { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
 import { TenantContextInterceptor } from '@api/helpers/interceptors/tenant-context/tenant-context.interceptor';
 import { ValidationPipe } from '@api/helpers/pipes/validation.pipe';
@@ -15,7 +16,11 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { tenantModelsFromMetadata } from '@libs/prisma/discover-tenant-models';
 import { getTenantContext } from '@libs/prisma/tenant-context';
 import { assertTenantScopedQuery } from '@libs/prisma/tenant-guard';
-import { type ExecutionContext, type INestApplication } from '@nestjs/common';
+import {
+  type ExecutionContext,
+  ForbiddenException,
+  type INestApplication,
+} from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
@@ -233,9 +238,11 @@ function buildHarness() {
       .fn()
       .mockResolvedValue({ id: 'refresh-1', refreshToken: 'refresh-plain' }),
   } as unknown as OAuthRefreshTokenService;
+  const brandAccessService = { assert: vi.fn().mockResolvedValue(undefined) };
 
   return {
     apiKeysService,
+    brandAccessService,
     membershipContexts,
     organizations,
     prisma,
@@ -247,6 +254,7 @@ function buildHarness() {
       configService,
       prisma,
       refreshTokenService,
+      brandAccessService as unknown as BrandAccessService,
     ),
   };
 }
@@ -349,7 +357,7 @@ describe('OAuthAuthorizeService', () => {
     const { apiKeysService, prisma, service } = buildHarness();
     const authorization = await service.decideAuthorization(
       makeUser(),
-      decision({ brandId: 'brand-1' }),
+      decision({ brandId: 'brand-1', scope: 'brands:read brand-kit:write' }),
     );
     expect(prisma.mcpOAuthAuthCode.create).toHaveBeenCalledWith({
       data: expect.objectContaining({ defaultBrandId: 'brand-1' }),
@@ -369,6 +377,60 @@ describe('OAuthAuthorizeService', () => {
       allowedBrandIds: ['brand-1'],
       defaultBrandId: 'brand-1',
     });
+    expect(keyInput.scopes).toEqual(['brands:read']);
+  });
+
+  it('mints only the explicitly consented Brand Kit permission for the selected brand', async () => {
+    const { service } = buildHarness();
+    const authorization = await service.decideAuthorization(
+      makeUser(),
+      decision({
+        allowBrandKitEdits: true,
+        brandId: 'brand-1',
+        scope: 'brands:read',
+      }),
+    );
+
+    const exchange = {
+      client_id: clientId,
+      code: new URL(authorization.redirectUrl).searchParams.get('code') ?? '',
+      code_verifier: verifier,
+      grant_type: 'authorization_code',
+      redirect_uri: redirectUri,
+      resource,
+    } as const;
+    await expect(
+      service.exchangeToken({ ...exchange, resource: `${resource}/claude` }),
+    ).rejects.toMatchObject({
+      response: { error: 'invalid_grant' },
+    });
+    const grant = await service.exchangeToken(exchange);
+
+    expect(grant.scope).toBe('brands:read brand-kit:write');
+  });
+
+  it('refuses Brand Kit consent without a selected brand', async () => {
+    const { service } = buildHarness();
+    await expect(
+      service.decideAuthorization(
+        makeUser(),
+        decision({ allowBrandKitEdits: true }),
+      ),
+    ).rejects.toMatchObject({ response: { error: 'invalid_scope' } });
+  });
+
+  it('refuses Brand Kit consent for a brand the member cannot reach', async () => {
+    const { brandAccessService, service } = buildHarness();
+    brandAccessService.assert.mockRejectedValue(new ForbiddenException());
+    await expect(
+      service.decideAuthorization(
+        makeUser(),
+        decision({
+          allowBrandKitEdits: true,
+          brandId: 'brand-1',
+        }),
+      ),
+    ).rejects.toMatchObject({ response: { error: 'access_denied' } });
   });
 
   it('reaches every brand when no brand is picked at consent', async () => {
@@ -855,7 +917,6 @@ describe('OAuthAuthorizeService', () => {
     });
   });
 });
-
 describe('Admin endpoint grant', () => {
   const adminResource = `${resource}/admin`;
 

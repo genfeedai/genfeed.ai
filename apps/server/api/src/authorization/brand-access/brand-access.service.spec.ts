@@ -251,6 +251,46 @@ describe('live Cloud member brand policy', () => {
       resource: `${resource}/claude`,
     });
 
+    it('resolves the live role for the selected Brand Kit grant without lifting the key role', async () => {
+      const f = fixture();
+      f.member.role.key = MemberRole.OWNER;
+      const scopes = ['brands:read', 'brand-kit:write'];
+      f.findKey.mockResolvedValue({
+        metadata: session({ allowedBrandIds: ['brand-a'] }),
+        scopes,
+      });
+      const grant = { ...keyActor, scopes };
+
+      expect(await f.service.resolve(grant)).toMatchObject({
+        brandIds: ['brand-a'],
+        brandKitGrantBrandId: 'brand-a',
+        membershipRole: MemberRole.OWNER,
+        role: MemberRole.USER,
+      });
+      await expect(f.service.assert(grant, 'brand-b')).rejects.toThrow(
+        'Brand access denied',
+      );
+      f.member.role.key = MemberRole.USER;
+      expect((await f.service.resolve(grant)).membershipRole).toBe(
+        MemberRole.USER,
+      );
+    });
+
+    it.each([
+      session(),
+      { ...claudeSession, allowedBrandIds: ['brand-a'] },
+      session({ allowedBrandIds: ['brand-a'], canSwitchOrganizations: true }),
+    ])(
+      'refuses a Brand Kit capability outside its consent binding',
+      async (metadata) => {
+        const f = fixture();
+        const scopes = ['brands:read', 'brand-kit:write'];
+        f.findKey.mockResolvedValue({ metadata, scopes });
+        const resolved = await f.service.resolve({ ...keyActor, scopes });
+        expect(resolved.brandKitGrantBrandId).toBeUndefined();
+      },
+    );
+
     it.each([
       [MemberRole.OWNER, 'standard', session()],
       [MemberRole.ADMIN, 'standard', session()],

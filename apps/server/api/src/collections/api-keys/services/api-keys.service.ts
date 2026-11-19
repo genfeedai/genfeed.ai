@@ -321,6 +321,23 @@ export class ApiKeysService extends BaseService<
     const { allowedBrandIds, ...keyFields } = createApiKeyDto;
     const scopes = keyFields.scopes ?? [...DEFAULT_API_KEY_SCOPES];
     this.assertValidScopes(scopes);
+    if (scopes.includes(ApiKeyScope.BRAND_KIT_WRITE)) {
+      const metadata = keyFields.metadata;
+      if (
+        trustedOrigin !== ActionOrigin.MCP ||
+        metadata?.kind !== MCP_OAUTH_SESSION_KIND ||
+        metadata.mcpAccessMode !== 'standard' ||
+        typeof metadata.resource !== 'string' ||
+        resolveMcpAccessModeForResource(metadata.resource) !== 'standard' ||
+        metadata[MCP_CAN_SWITCH_ORGANIZATIONS_METADATA_KEY] === true ||
+        allowedBrandIds?.length !== 1 ||
+        keyFields.defaultBrandId !== allowedBrandIds[0]
+      ) {
+        throw new BadRequestException(
+          'Brand Kit write permission requires an OAuth grant for one selected brand',
+        );
+      }
+    }
     await this.assertValidDefaultBrandId(
       keyFields.organizationId,
       keyFields.defaultBrandId,

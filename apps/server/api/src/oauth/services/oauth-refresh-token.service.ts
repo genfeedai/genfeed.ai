@@ -449,7 +449,8 @@ export class OAuthRefreshTokenService {
     const isAdmin = accessMode === 'admin';
     const isAllowed = (scope: string) =>
       (accessMode !== 'claude' || MCP_CLAUDE_SCOPE_CEILING.includes(scope)) &&
-      (isAdmin || scope !== ApiKeyScope.ADMIN);
+      (isAdmin || scope !== ApiKeyScope.ADMIN) &&
+      (accessMode === 'standard' || scope !== ApiKeyScope.BRAND_KIT_WRITE);
     const limited = scopes.filter(isAllowed);
     if (
       limited.length === 0 &&

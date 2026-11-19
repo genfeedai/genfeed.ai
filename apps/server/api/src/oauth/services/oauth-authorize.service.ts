@@ -6,6 +6,7 @@ import {
   safeEqual,
   toBase64Url,
 } from '@api/auth/shared/pkce.util';
+import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
 import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
 import { buildMcpOAuthSessionMetadata } from '@api/oauth/mcp-oauth-session-metadata.util';
 import {
@@ -27,6 +28,7 @@ import { ConfigService } from '@libs/config/config.service';
 import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -101,6 +103,7 @@ export class OAuthAuthorizeService {
     private readonly configService: ConfigService,
     private readonly prisma: PrismaService,
     private readonly refreshTokenService: OAuthRefreshTokenService,
+    private readonly brandAccessService: BrandAccessService,
   ) {}
 
   async buildAuthorizeRedirect(dto: OAuthAuthorizeRequestDto): Promise<string> {
@@ -205,8 +208,8 @@ export class OAuthAuthorizeService {
       }
     }
 
-    const isAdminResource =
-      resolveMcpAccessModeForResource(resource) === 'admin';
+    const accessMode = resolveMcpAccessModeForResource(resource);
+    const isAdminResource = accessMode === 'admin';
     if (isAdminResource) {
       await this.assertAdminEndpointEligible(
         userId,
@@ -221,6 +224,24 @@ export class OAuthAuthorizeService {
     const scopes = isAdminResource
       ? [...clampedScopes, ApiKeyScope.ADMIN]
       : clampedScopes;
+    if (dto.allowBrandKitEdits === true) {
+      if (accessMode !== 'standard' || !dto.brandId) {
+        throw oauthError(
+          'invalid_scope',
+          'Brand Kit editing requires one selected brand on a standard MCP connection',
+        );
+      }
+      try {
+        await this.brandAccessService.assert(
+          { organizationId, userId },
+          dto.brandId,
+        );
+      } catch (error) {
+        if (!(error instanceof ForbiddenException)) throw error;
+        throw oauthError('access_denied', 'You cannot edit this brand');
+      }
+      scopes.push(ApiKeyScope.BRAND_KIT_WRITE);
+    }
     // "All organizations": the connection may name any organization the user
     // belongs to on each call. Only meaningful with a second organization to
     // name. The Claude connector gets it too: its access mode stays `claude`

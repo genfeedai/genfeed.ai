@@ -4,8 +4,12 @@ import { isSystemBrandPrincipal } from '@api/authorization/brand-access/system-b
 import { resolveApiKeyEffectiveMemberRole } from '@api/helpers/utils/auth/api-key-role.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { isCloudDeployment } from '@genfeedai/config';
-import { MemberRole } from '@genfeedai/contracts';
-import { readApiKeyAllowedBrandIds } from '@genfeedai/contracts/constants';
+import { ApiKeyScope, MemberRole } from '@genfeedai/contracts';
+import {
+  MCP_CAN_SWITCH_ORGANIZATIONS_METADATA_KEY,
+  readApiKeyAllowedBrandIds,
+} from '@genfeedai/contracts/constants';
+import { resolveMcpAccessModeForResource } from '@genfeedai/helpers/integrations/mcp-resource.helper';
 import type { Prisma } from '@genfeedai/prisma';
 import { Traced } from '@libs/tracing/traced';
 import { ForbiddenException, Injectable } from '@nestjs/common';
@@ -35,9 +39,18 @@ export class BrandAccessService {
       throw new ForbiddenException('Brand access denied');
     }
     if (isSystemBrandPrincipal(actor)) {
-      return { where: base, role: MemberRole.OWNER, brandIds: undefined };
+      return {
+        where: base,
+        role: MemberRole.OWNER,
+        membershipRole: MemberRole.OWNER,
+        brandKitGrantBrandId: undefined,
+        brandIds: undefined,
+      };
     }
-    if (!isCloudDeployment()) {
+    if (
+      !isCloudDeployment() &&
+      !actor.scopes?.includes(ApiKeyScope.BRAND_KIT_WRITE)
+    ) {
       const keyBrandIds = await this.readSelfHostedKeyBrandIds(actor, tx);
       return {
         where: {
@@ -45,6 +58,8 @@ export class BrandAccessService {
           ...(keyBrandIds === undefined ? {} : { id: { in: keyBrandIds } }),
         },
         role: null,
+        membershipRole: null,
+        brandKitGrantBrandId: undefined,
         brandIds: keyBrandIds,
       };
     }
@@ -53,6 +68,7 @@ export class BrandAccessService {
     let keyBrandIds: string[] | undefined;
     let effectiveActor = actor;
     let isMembershipBrandView = false;
+    let brandKitGrantBrandId: string | undefined;
     if (actor.isApiKey) {
       if (!actor.apiKeyId?.trim()) {
         throw new ForbiddenException('Brand access denied');
@@ -67,6 +83,21 @@ export class BrandAccessService {
           key.scopes.includes(scope),
         ),
       };
+      const metadata = key.metadata;
+      if (
+        effectiveActor.scopes?.includes(ApiKeyScope.BRAND_KIT_WRITE) &&
+        isMembershipBrandView &&
+        keyBrandIds?.length === 1 &&
+        metadata &&
+        typeof metadata === 'object' &&
+        !Array.isArray(metadata) &&
+        metadata.mcpAccessMode === 'standard' &&
+        typeof metadata.resource === 'string' &&
+        resolveMcpAccessModeForResource(metadata.resource) === 'standard' &&
+        metadata[MCP_CAN_SWITCH_ORGANIZATIONS_METADATA_KEY] !== true
+      ) {
+        brandKitGrantBrandId = keyBrandIds[0];
+      }
     }
     const member = await tx.member.findFirst({
       where: {
@@ -120,6 +151,8 @@ export class BrandAccessService {
         ...(brandIds === undefined ? {} : { id: { in: brandIds } }),
       },
       role,
+      membershipRole,
+      brandKitGrantBrandId,
       brandIds,
     };
   }
