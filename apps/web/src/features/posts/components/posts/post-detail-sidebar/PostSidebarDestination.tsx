@@ -1,5 +1,6 @@
 'use client';
 
+import { CredentialPlatform, TargetExecutionState } from '@genfeedai/contracts';
 import ClientDateTime from '@ui/components/time/ClientDateTime';
 import AccountIdentity from '@ui/posts/account-identity/AccountIdentity';
 import { formatHandle } from '@ui/posts/platform-preview/platform-preview.helpers';
@@ -9,6 +10,7 @@ import { ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { Fragment, type ReactNode } from 'react';
+import { isTikTokInboxDelivered } from '@/features/posts/detail/post-published.helper';
 import type { PostSidebarDestinationProps } from '@/props/components/post-detail-sidebar.props';
 
 export function getPlatformLabel(
@@ -48,6 +50,9 @@ export default function PostSidebarDestination({
     platformLabel;
   const accountHandle = formatHandle(credential?.externalHandle ?? undefined);
   const whenValue = isPublished ? post.publicationDate : post.scheduledDate;
+  const isTikTokProcessing =
+    post.platform === CredentialPlatform.TIKTOK &&
+    post.targetExecutionState === TargetExecutionState.PUBLISHING;
 
   const facts: DestinationFact[] = [];
 
@@ -101,9 +106,19 @@ export default function PostSidebarDestination({
           platformLabel={platformLabel}
         />
 
-        <Badge status={post.status} className="shrink-0">
-          {post.status}
-        </Badge>
+        {isTikTokInboxDelivered(post) ? (
+          <Badge variant="info" className="shrink-0">
+            {translate('tiktokInboxDelivered')}
+          </Badge>
+        ) : isTikTokProcessing ? (
+          <Badge variant="info" className="shrink-0">
+            {translate('tiktokProcessing')}
+          </Badge>
+        ) : (
+          <Badge status={post.status} className="shrink-0">
+            {post.status}
+          </Badge>
+        )}
       </div>
 
       {facts.length > 0 ? (

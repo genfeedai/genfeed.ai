@@ -16,6 +16,7 @@ import { ChevronDown } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
+import { isTikTokInboxDelivered } from '@/features/posts/detail/post-published.helper';
 import type { PostSidebarWhenDockProps } from '@/props/components/post-detail-sidebar.props';
 
 import { getPlatformLabel } from './PostSidebarDestination';
@@ -54,6 +55,16 @@ export default function PostSidebarWhenDock({
   // user already picked a mode themselves.
   if (scheduleDraft && !hasChosenMode && mode !== 'schedule') {
     setMode('schedule');
+  }
+
+  if (isTikTokInboxDelivered(post)) {
+    return (
+      <div className={DOCK_CLASS_NAME} data-testid="post-when-dock">
+        <p className="text-sm text-muted-foreground">
+          {inspectorTranslate('tiktokInboxFinish')}
+        </p>
+      </div>
+    );
   }
 
   if (isPublished) {
