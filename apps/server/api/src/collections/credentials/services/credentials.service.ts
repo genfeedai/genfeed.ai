@@ -27,6 +27,7 @@ import {
 import { emitCredentialProfileSynced } from '@api/collections/credentials/utils/credential-profile-event.util';
 import { isMirrorableAvatarUrl } from '@api/collections/credentials/utils/provider-placeholder-image.util';
 import type { CreateTagDto } from '@api/collections/tags/dto/create-tag.dto';
+import { retryTransactionStart } from '@api/collections/workflows/utils/serializable-retry.util';
 import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { ValidationException } from '@api/exceptions/validation.exception';
@@ -46,8 +47,7 @@ import {
   toPrismaCredentialPlatform,
 } from '@genfeedai/contracts';
 import { isReservedExternalConnectionOAuthState } from '@genfeedai/helpers/integrations/external-connection-request.helper';
-import type { Prisma } from '@genfeedai/prisma';
-import { TagCategory as PrismaTagCategory } from '@genfeedai/prisma';
+import { type Prisma, TagCategory } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getTenantContext } from '@libs/prisma/tenant-context';
 import { Traced } from '@libs/tracing/traced';
@@ -248,14 +248,16 @@ export class CredentialsService
     const include = this.populateToInclude(populate) as
       | Prisma.CredentialInclude
       | undefined;
-    const updated = await runFencedLearningMutation(this.prisma, (tx, scope) =>
-      patchCredentialWithLearning(
-        tx,
-        this.learningMutationContext(),
-        id,
-        data as Prisma.CredentialUncheckedUpdateInput,
-        scope,
-        include,
+    const updated = await retryTransactionStart(() =>
+      runFencedLearningMutation(this.prisma, (tx, scope) =>
+        patchCredentialWithLearning(
+          tx,
+          this.learningMutationContext(),
+          id,
+          data as Prisma.CredentialUncheckedUpdateInput,
+          scope,
+          include,
+        ),
       ),
     );
     await this.invalidateCredentialMutationCache();
@@ -800,7 +802,7 @@ export class CredentialsService
             backgroundColor: createTagDto.backgroundColor,
           }),
           brandId: credential.brandId,
-          category: PrismaTagCategory.CREDENTIAL,
+          category: TagCategory.CREDENTIAL,
           ...(createTagDto.description !== undefined && {
             description: createTagDto.description,
           }),

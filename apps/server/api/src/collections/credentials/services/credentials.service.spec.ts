@@ -361,6 +361,28 @@ describe('CredentialsService', () => {
       ).toHaveBeenCalledWith(orgId);
     });
 
+    it('persists the refresh after a transaction acquisition timeout', async () => {
+      prisma.$transaction.mockRejectedValueOnce(
+        Object.assign(
+          new Error('Unable to start a transaction in the given time.'),
+          {
+            code: 'P2028',
+          },
+        ),
+      );
+
+      const updated = await service.patch('existing-id', {
+        accessTokenExpiry: new Date('2026-11-19T22:00:00Z'),
+        isConnected: true,
+      });
+
+      expect(updated).toMatchObject({
+        accessTokenExpiry: new Date('2026-11-19T22:00:00Z'),
+        isConnected: true,
+        organizationId: orgId,
+      });
+    });
+
     it('invalidates the organization bootstrap on soft delete', async () => {
       await service.remove('existing-id');
 

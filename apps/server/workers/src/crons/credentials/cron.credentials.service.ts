@@ -1,3 +1,4 @@
+import { CredentialRefreshRejectedException } from '@api/collections/credentials/credential-refresh-rejected.exception';
 import {
   type CredentialDocument,
   SERVER_TOKENS,
@@ -235,11 +236,18 @@ export class CronCredentialsService {
 
       return { credentialId: credential.id, success: true };
     } catch (error: unknown) {
-      this.logger.error(`${url} failed to refresh token`, {
+      const context = {
         credentialId: credential.id,
-        error,
         platform: credential.platform,
-      });
+      };
+      if (error instanceof CredentialRefreshRejectedException) {
+        this.logger.warn(`${url} requires channel reconnection`, context);
+      } else {
+        this.logger.error(`${url} failed to refresh token`, {
+          ...context,
+          error,
+        });
+      }
 
       return { credentialId: credential.id, error, success: false };
     }
