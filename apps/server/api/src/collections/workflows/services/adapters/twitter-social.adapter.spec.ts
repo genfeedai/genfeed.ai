@@ -3,15 +3,7 @@ import { TwitterSocialAdapter } from '@api/collections/workflows/services/adapte
 import type { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import { testId } from '@helpers/testing/test-id.helper';
 import type { LoggerService } from '@libs/logger/logger.service';
-import {
-  afterAll,
-  beforeAll,
-  beforeEach,
-  describe,
-  expect,
-  it,
-  vi,
-} from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { isSelfHostedDeployment } = vi.hoisted(() => ({
   isSelfHostedDeployment: vi.fn(() => false),
@@ -47,13 +39,6 @@ describe('TwitterSocialAdapter', () => {
     log: ReturnType<typeof vi.fn>;
     warn: ReturnType<typeof vi.fn>;
   };
-
-  beforeAll(() => {
-    // Run the real analyzer without the nested synckit worker in shared Vitest workers.
-    vi.stubEnv('RECHECK_SYNC_BACKEND', 'pure');
-  });
-
-  afterAll(() => vi.unstubAllEnvs());
 
   beforeEach(() => {
     isSelfHostedDeployment.mockReturnValue(false);
@@ -301,6 +286,11 @@ describe('TwitterSocialAdapter', () => {
   });
 
   describe('trigger checkers', () => {
+    beforeEach(() => {
+      // Use the in-process analyzer. Shared teardown clears env stubs after each test.
+      vi.stubEnv('RECHECK_SYNC_BACKEND', 'pure');
+    });
+
     it('createFollowerChecker should return newest follower', async () => {
       mockCredentialsService.findOne.mockResolvedValue({
         externalHandle: 'brand_handle',
