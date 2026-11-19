@@ -207,6 +207,28 @@ test('maps only declared hosted SaaS secrets across each workflow boundary', () 
   assert.doesNotMatch(publicDeployVercel, /secrets:\s*inherit/);
 });
 
+test('rollback redeploy maps the same secrets as the release deploy', () => {
+  const rollbackWorkflow = readFileSync(
+    fileURLToPath(
+      new URL(
+        '../../.github/workflows/rollback-hosted-saas.yml',
+        import.meta.url,
+      ),
+    ),
+    'utf8',
+  );
+
+  assert.deepEqual(
+    jobSecretMapping(
+      reusableCallBlock(
+        rollbackWorkflow,
+        './.github/workflows/deploy-hosted-saas.yml',
+      ),
+    ),
+    ENGINE_SECRETS,
+  );
+});
+
 test('in-repo engine never clones console and keeps OpenTofu off the entry workflow', () => {
   assert.doesNotMatch(
     publicDeployCore,

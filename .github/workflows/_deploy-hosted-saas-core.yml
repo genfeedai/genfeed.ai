@@ -843,9 +843,12 @@ jobs:
       # Signed-in journey: sign in as the production canary account, then read
       # the session, the app shell and one organization-scoped list. GET only,
       # apart from the sign-in call (asserted by signed-in-smoke.test.mjs).
-      # The credentials are repository secrets that travel the same explicit
-      # chain as the Vercel keys (release.yml, rollback-hosted-saas.yml,
-      # deploy-hosted-saas.yml, this workflow); nothing identifying the account
+      # The credentials are declared under workflow_call.secrets and mapped
+      # through the caller chain (release.yml, rollback-hosted-saas.yml,
+      # deploy-hosted-saas.yml, this workflow), so the secrets context carries
+      # the names. This job runs with environment: production, and a secret of
+      # the same name on that environment takes precedence over a repository
+      # secret, so keep each value in one place. Nothing identifying the account
       # lives in this repository. A missing secret fails the step.
       - name: Smoke signed-in journey
         timeout-minutes: 3
@@ -857,7 +860,7 @@ jobs:
         run: |
           set -uo pipefail
           if [ -z "${CANARY_EMAIL}" ] || [ -z "${CANARY_PASSWORD}" ]; then
-            echo "::error::Set the POST_DEPLOY_CANARY_EMAIL and POST_DEPLOY_CANARY_PASSWORD repository secrets."
+            echo "::error::Set POST_DEPLOY_CANARY_EMAIL and POST_DEPLOY_CANARY_PASSWORD as secrets on the production GitHub environment (or as repository secrets, not both)."
             exit 1
           fi
           echo "::add-mask::${CANARY_EMAIL}"
