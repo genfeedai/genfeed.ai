@@ -91,7 +91,25 @@ export async function setupOnboardingBrandGuideMocks(
     ),
     async (route) => {
       const pathname = new URL(route.request().url()).pathname;
-      if (pathname.endsWith('/approve')) {
+      if (route.request().method() === 'PATCH') {
+        const body: { content: IBrandKitDraft; updatedAt: string } = route
+          .request()
+          .postDataJSON();
+        if (body.updatedAt !== revision.updatedAt) {
+          await route.fulfill({
+            status: 409,
+            json: { errors: [{ status: '409' }] },
+          });
+          return;
+        }
+        revision = {
+          ...revision,
+          content: body.content,
+          updatedAt: new Date(
+            Date.parse(revision.updatedAt) + 1000,
+          ).toISOString(),
+        };
+      } else if (pathname.endsWith('/approve')) {
         revision = {
           ...revision,
           status: 'APPROVED',

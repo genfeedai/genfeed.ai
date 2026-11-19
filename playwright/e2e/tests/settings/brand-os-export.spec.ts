@@ -208,6 +208,14 @@ test('Brand OS settings downloads privately, publishes, explicitly updates a new
     settings.getByRole('button', { name: 'Update publication' }),
   ).toBeVisible();
   expect(approvals).toEqual(['revision-2']);
+  const history = settings.getByRole('combobox', { name: 'Revision history' });
+  await expect(history).toContainText('Revision 2');
+  await history.click();
+  await adminPage.getByRole('option', { name: /Revision 1/ }).click();
+  await expect(history).toContainText('Revision 1');
+  await settings.getByRole('button', { name: 'Refresh history' }).click();
+  await expect(history).toContainText('Revision 2');
+
   expect(publications).toEqual(['revision-1']);
   await settings.getByRole('button', { name: 'Update publication' }).click();
   await expect(

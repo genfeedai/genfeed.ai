@@ -24,6 +24,33 @@ test.describe('Desktop classic onboarding', () => {
     await wizard.assertSuccess();
   });
 
+  test('autosaves the latest brand guide edit and restores it on reload', async ({
+    desktopOnboardingPage: page,
+  }) => {
+    const settings = page.getByTestId('brand-os-settings');
+    const description = settings.getByRole('textbox', {
+      name: 'Description',
+      exact: true,
+    });
+    const openDescription = () =>
+      settings
+        .getByRole('button', { name: 'Description', exact: true })
+        .click();
+
+    await openDescription();
+    await expect(description).toHaveValue('A mock company for testing');
+    await description.fill('First edit');
+    await description.fill('Saved guide edit');
+    await expect(
+      settings.getByText('Revision 1 saved as a draft.'),
+    ).toBeVisible();
+    await expect(description).toHaveValue('Saved guide edit');
+
+    await page.reload();
+    await openDescription();
+    await expect(description).toHaveValue('Saved guide edit');
+  });
+
   test('keeps classic Skip available without approval', async ({
     desktopOnboardingPage,
   }) => {
