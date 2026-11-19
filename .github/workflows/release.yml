@@ -811,6 +811,8 @@ jobs:
       NEXT_PUBLIC_POSTHOG_KEY: ${{ secrets.NEXT_PUBLIC_POSTHOG_KEY }}
       SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
       TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+      POST_DEPLOY_CANARY_EMAIL: ${{ secrets.POST_DEPLOY_CANARY_EMAIL }}
+      POST_DEPLOY_CANARY_PASSWORD: ${{ secrets.POST_DEPLOY_CANARY_PASSWORD }}
 
   # Production is live once deploy-saas succeeds. Notify then, while npm
   # publish and channel promotion are still running and the GitHub release
