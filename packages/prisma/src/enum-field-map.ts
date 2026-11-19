@@ -9038,6 +9038,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'platformRole',
       'settings',
       'signupAttribution',
+      'signupIpAddress',
       'stripeCustomerId',
       'updatedAt',
       'userSubscription',

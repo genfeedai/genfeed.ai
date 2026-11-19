@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   applyEmailVerificationPolicy,
   assertSignupMagicLinkCanCreateUser,
+  betterAuthUserAdditionalFields,
   buildBetterAuthAdminOptions,
   buildBetterAuthAdvancedOptions,
   buildBetterAuthDashOptions,
@@ -41,7 +42,6 @@ function requireUserCreateHooks(
   if (!before || !after) {
     throw new Error('Better Auth user-create hooks are required');
   }
-  // The hooks ignore Better Auth's endpoint context, so specs pass none.
   return {
     after: (user: Parameters<typeof after>[0]) => after(user, null),
     before: (user: Parameters<typeof before>[0]) => before(user, null),
@@ -822,8 +822,14 @@ describe('createBetterAuthInstance source', () => {
     // `Argument 'handle' is missing`, so no session is ever established.
     const source = createBetterAuthInstance.toString();
 
-    expect(source).toContain('additionalFields');
-    expect(source).toMatch(/handle:\s*\{/);
+    expect(source).toContain(
+      'additionalFields: betterAuthUserAdditionalFields',
+    );
+    expect(betterAuthUserAdditionalFields.handle).toEqual({
+      input: false,
+      required: false,
+      type: 'string',
+    });
     expect(source).toMatch(
       /databaseHooks:\s*buildBetterAuthUserDatabaseHooks\(\s*onUserCreated/,
     );

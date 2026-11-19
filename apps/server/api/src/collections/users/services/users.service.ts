@@ -1,6 +1,7 @@
 import type { AdminUpdateUserProfileDto } from '@api/collections/users/dto/admin-update-user-profile.dto';
 import { CreateUserDto } from '@api/collections/users/dto/create-user.dto';
 import { UpdateUserDto } from '@api/collections/users/dto/update-user.dto';
+import { lookupSignupIpLocation } from '@api/collections/users/utils/signup-ip-location.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   BaseService,
@@ -9,6 +10,7 @@ import {
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import type {
   ISignupAttribution,
+  IUserSignupNetwork,
   PopulateOption,
 } from '@genfeedai/contracts/interfaces';
 import type { User } from '@genfeedai/prisma';
@@ -92,6 +94,27 @@ export class UsersService extends BaseService<
     populate: PopulateOption[] = [{ path: 'settings' }],
   ): Promise<User | null> {
     return await super.findOne(params, populate);
+  }
+
+  async findSignupNetwork(userId: string): Promise<IUserSignupNetwork | null> {
+    const user = await this.prisma.user.findFirst({
+      select: { signupIpAddress: true },
+      where: { id: userId, isDeleted: false },
+    });
+    if (!user) return null;
+
+    const ipAddress = user.signupIpAddress;
+    const location = ipAddress
+      ? await lookupSignupIpLocation(ipAddress).catch(() => {
+          this.logger.warn(
+            'Signup IP location lookup unavailable',
+            UsersService.name,
+          );
+          return null;
+        })
+      : null;
+
+    return { id: userId, ipAddress, location };
   }
 
   async patch(

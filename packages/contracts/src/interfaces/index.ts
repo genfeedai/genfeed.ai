@@ -436,6 +436,7 @@ export * from './ui/toolbar.interface';
 export * from './ui/tooltip-position.interface';
 export * from './ui/ui.interface';
 export * from './ui/workspace-shell.interface';
+export * from './users/signup-network.interface';
 export * from './users/user.interface';
 export * from './utils/config.interface';
 export * from './utils/connecting-states.interface';

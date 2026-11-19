@@ -28,6 +28,7 @@ import { magicLink } from 'better-auth/plugins';
 import { describe, expect, it, vi } from 'vitest';
 import { BETTER_AUTH_BASE_PATH } from './better-auth.constants';
 import {
+  betterAuthUserAdditionalFields,
   buildBetterAuthMagicLinkOptions,
   buildBetterAuthUserDatabaseHooks,
 } from './better-auth.factory';
@@ -195,6 +196,7 @@ function createSignupProvisioningHarness() {
       undefined,
       sessionCreated,
     ),
+    emailAndPassword: { enabled: true },
     plugins: [
       magicLink(
         buildBetterAuthMagicLinkOptions({
@@ -206,13 +208,7 @@ function createSignupProvisioningHarness() {
     rateLimit: { enabled: false },
     secret: AUTH_SECRET,
     user: {
-      additionalFields: {
-        handle: {
-          input: false,
-          required: false,
-          type: 'string',
-        },
-      },
+      additionalFields: betterAuthUserAdditionalFields,
       fields: { image: 'avatar' },
     },
   });
@@ -254,9 +250,11 @@ async function requestMagicLink(
 async function verifyMagicLink(
   harness: ReturnType<typeof createSignupProvisioningHarness>,
   token: string,
+  ipAddress?: string,
 ): Promise<Response> {
   return harness.request(
     `/magic-link/verify?token=${encodeURIComponent(token)}`,
+    ipAddress ? { headers: { 'x-forwarded-for': ipAddress } } : undefined,
   );
 }
 
@@ -281,7 +279,9 @@ describe('Better Auth signup provisioning contract', () => {
     const verificationResponse = await verifyMagicLink(
       harness,
       delivered.token,
+      '2001:db8::1',
     );
+    expect(harness.database.user[0]?.signupIpAddress).toBe('2001:db8::1');
     const sessionCookie = getSessionCookie(verificationResponse);
     const sessionResponse = await harness.request('/get-session', {
       headers: { cookie: sessionCookie },
@@ -292,6 +292,7 @@ describe('Better Auth signup provisioning contract', () => {
     expect(verificationResponse.status).toBe(200);
     expect(sessionResponse.status).toBe(200);
     expect(session.user.email).toBe(TEST_EMAIL);
+    expect(session.user).not.toHaveProperty('signupIpAddress');
     expect(harness.sessionCreated).toHaveBeenCalledWith({
       userId: session.user.id,
     });
@@ -314,6 +315,32 @@ describe('Better Auth signup provisioning contract', () => {
       ORGANIZATION_ID,
       session.user.id,
     );
+  });
+
+  it('records the email signup request address and keeps it out of the auth response', async () => {
+    const harness = createSignupProvisioningHarness();
+    const response = await harness.request('/sign-up/email', {
+      body: JSON.stringify({
+        email: TEST_EMAIL,
+        name: 'Signup user',
+        password: 'signup-test-password',
+      }),
+      headers: {
+        'content-type': 'application/json',
+        'x-forwarded-for': '198.51.100.3',
+      },
+      method: 'POST',
+    });
+
+    expect(response.status).toBe(200);
+    expect(harness.database.user[0]?.signupIpAddress).toBe('198.51.100.3');
+    expect(await response.json()).toMatchObject({
+      user: { email: TEST_EMAIL },
+    });
+    const session = await harness.request('/get-session', {
+      headers: { cookie: getSessionCookie(response) },
+    });
+    expect(await session.text()).not.toContain('signupIpAddress');
   });
 
   it('defers a verified OAuth gift until a usable session IP exists and releases it only once', async () => {

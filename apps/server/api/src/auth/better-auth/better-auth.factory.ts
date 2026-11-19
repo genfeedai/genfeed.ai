@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { isIP } from 'node:net';
 import { isDisposableEmail } from '@api/auth/shared/signup-email-policy.util';
 import { type DashOptions, dash } from '@better-auth/infra';
 import { PlatformRole } from '@genfeedai/contracts';
@@ -46,6 +47,17 @@ const BETTER_AUTH_DEFAULT_ORGANIZATION_CATEGORY = 'BUSINESS';
 const BETTER_AUTH_MAGIC_LINK_EXPIRES_IN_SECONDS = 300;
 const SIGN_UP_MAGIC_LINK_INTENT = 'signup';
 const ADMIN_CREATE_USER_PATH = '/admin/create-user';
+
+export const betterAuthUserAdditionalFields = {
+  // The adapter must keep hook-supplied fields even though clients cannot set them.
+  handle: { input: false, required: false, type: 'string' },
+  signupIpAddress: {
+    input: false,
+    required: false,
+    returned: false,
+    type: 'string',
+  },
+} satisfies NonNullable<BetterAuthOptions['user']>['additionalFields'];
 
 type BetterAuthDatabaseHooks = NonNullable<BetterAuthOptions['databaseHooks']>;
 type BetterAuthMagicLinkDependencies = Pick<
@@ -607,16 +619,19 @@ export function buildBetterAuthUserDatabaseHooks(
               message: DISPOSABLE_EMAIL_MESSAGE,
             });
           }
-          if (typed.handle) {
-            return { data: user };
-          }
+          // The Express auth mount pins this header to its trusted client address.
+          const ipAddress = context?.request?.headers.get('x-forwarded-for');
           return {
             data: {
               ...user,
-              handle: generateHandle({
-                email: typed.email,
-                name: typed.name,
-              }),
+              handle: typed.handle || generateHandle(typed),
+              ...(context?.path !== ADMIN_CREATE_USER_PATH &&
+              ipAddress &&
+              ipAddress.length <= 45 &&
+              !ipAddress.includes('%') &&
+              isIP(ipAddress)
+                ? { signupIpAddress: ipAddress }
+                : {}),
             },
           };
         },
@@ -926,18 +941,7 @@ export function createBetterAuthInstance(options: ICreateBetterAuthOptions) {
     user: {
       // Better Auth's `image` field maps onto the existing `User.avatar` column.
       fields: { image: 'avatar' },
-      // `handle` is a required + unique column that Better Auth does not know
-      // about, so it strips the value injected by the `create.before` hook
-      // below before the adapter write — every first-time sign-up then fails
-      // with `Argument 'handle' is missing`. Declaring it as a known
-      // (non-input) field preserves the hook-supplied value through to Prisma.
-      additionalFields: {
-        handle: {
-          input: false,
-          required: false,
-          type: 'string',
-        },
-      },
+      additionalFields: betterAuthUserAdditionalFields,
     },
     databaseHooks: buildBetterAuthUserDatabaseHooks(
       onUserCreated,

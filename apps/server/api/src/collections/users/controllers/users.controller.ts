@@ -44,13 +44,17 @@ import {
   type ISubscriptionsService,
   SUBSCRIPTIONS_SERVICE,
 } from '@genfeedai/contracts/interfaces/billing';
-import { UserSerializer } from '@genfeedai/serializers';
+import {
+  UserSerializer,
+  UserSignupNetworkSerializer,
+} from '@genfeedai/serializers';
 import {
   BadRequestException,
   Body,
   Controller,
   ForbiddenException,
   Get,
+  Header,
   HttpCode,
   Inject,
   Param,
@@ -469,6 +473,20 @@ export class UsersController {
     await this.usersService.resetOnboarding(userId);
     await this.userAccessCacheService.invalidateAll(userId);
     return this.findOne(request, userId);
+  }
+
+  @Get(':userId/signup-network')
+  @Header('Cache-Control', 'private, no-store')
+  @SetMetadata('roles', ['superadmin'])
+  @ApiExcludeEndpoint()
+  async findSignupNetwork(
+    @Req() request: Request,
+    @Param('userId') userId: string,
+  ) {
+    const data = await this.usersService.findSignupNetwork(userId);
+    return data
+      ? serializeSingle(request, UserSignupNetworkSerializer, data)
+      : returnNotFound(this.constructorName, userId);
   }
 
   @Get(':userId')
