@@ -1,3 +1,4 @@
+import { getToolByName } from '@genfeedai/actions';
 import type {
   BrandKitClient,
   BrandKitSection,
@@ -21,6 +22,15 @@ const brandKitEditInput = z.strictObject({
     ),
 });
 
+export function filterBrandKitTools<T extends { name: string }>(
+  tools: T[],
+  hasEditAccess?: boolean,
+): T[] {
+  return hasEditAccess
+    ? tools
+    : tools.filter(({ name }) => getToolByName(name)?.toolset !== 'brand-kit');
+}
+
 export async function handleBrandKitTool(
   client: Pick<BrandKitClient, 'updateSection'>,
   args: Record<string, unknown>,
@@ -28,7 +38,9 @@ export async function handleBrandKitTool(
   const { action, brandId, fields } = brandKitEditInput.parse(args);
   await client.updateSection(brandId, action, fields);
   return {
-    structuredContent: { action, brandId, updatedFields: Object.keys(fields) },
+    structuredContent: {
+      data: { action, brandId, updatedFields: Object.keys(fields) },
+    },
     content: [
       {
         type: 'text' as const,

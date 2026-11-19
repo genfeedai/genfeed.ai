@@ -21,10 +21,12 @@ describe('Brand Kit section edits', () => {
         {
           provide: BrandsService,
           useValue: {
-            assertBrandKitEdit: async () => ({
-              hasBrandKitGrant: true,
-              membershipRole: MemberRole.USER,
-            }),
+            brandAccessService: {
+              assertBrandKitEdit: async () => ({
+                hasBrandKitGrant: true,
+                membershipRole: MemberRole.USER,
+              }),
+            },
             updateAgentConfig: async (
               id: string,
               _orgId: string,

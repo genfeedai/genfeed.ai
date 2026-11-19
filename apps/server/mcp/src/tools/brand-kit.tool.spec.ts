@@ -23,7 +23,7 @@ describe('Brand Kit section tool', () => {
         fields: { frequency: 'weekly' },
       },
     ]);
-    expect(result.structuredContent).toEqual({
+    expect(result.structuredContent.data).toEqual({
       action: 'strategy',
       brandId: 'brand-1',
       updatedFields: ['frequency'],

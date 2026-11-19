@@ -28,6 +28,7 @@ import type {
   McpAuthContext,
   McpRequest,
 } from '@mcp/shared/interfaces/mcp-request.interface';
+import { filterBrandKitTools } from '@mcp/tools/brand-kit.tool';
 import {
   CallToolResultSchema,
   ListToolsResultSchema,
@@ -188,7 +189,12 @@ export class StreamableHttpService {
     });
 
     server.setRequestHandler('tools/list', () =>
-      ListToolsResultSchema.parse({ tools: toolRegistry.getTools() }),
+      ListToolsResultSchema.parse({
+        tools: filterBrandKitTools(
+          toolRegistry.getTools(),
+          authContext?.hasBrandKitEditAccess,
+        ),
+      }),
     );
 
     server.setRequestHandler('tools/call', async (request, ctx) => {

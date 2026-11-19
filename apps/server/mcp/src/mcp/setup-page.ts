@@ -20,6 +20,7 @@ import {
 } from '@genfeedai/helpers/integrations/connect-genfeed.helper';
 import {
   deriveMcpResourceIdentifierForMode,
+  getMcpSupportedScopes,
   OAUTH_PROTECTED_RESOURCE_WELL_KNOWN_PATH,
   resolveMcpResourceIdentifier,
 } from '@genfeedai/helpers/integrations/mcp-resource.helper';
@@ -289,11 +290,10 @@ export function getMcpProtectedResourceMetadata(
     resource_name: 'Genfeed',
     resource_policy_uri: `${getPublicWebsiteUrl()}/privacy`,
     resource_tos_uri: `${getPublicWebsiteUrl()}/terms`,
-    scopes_supported: [
-      ...(mode === 'claude'
-        ? MCP_CLAUDE_SCOPE_CEILING
-        : API_KEY_SCOPE_PRESETS.mcp),
-    ],
+    // Discovery includes optional permissions. The challenge above requests
+    // the default scopes so a Brand Kit grant still requires a brand choice
+    // and explicit consent.
+    scopes_supported: getMcpSupportedScopes(mode),
   };
 }
 

@@ -443,11 +443,13 @@ export const CURATED_ACTION_CATALOG = [
     uiActionType: 'engagement_opportunity_card',
   },
   {
+    actionClass: 'brand-context',
     category: 'generation',
+    mcpBrandRequired: true,
     mutationPolicy: 'direct',
     name: 'draft_brand_voice_profile',
-    surfaces: ['agent'],
-    toolset: 'brand',
+    surfaces: ['agent', 'mcp'],
+    toolset: 'brand-kit',
   },
   {
     category: 'proactive',
@@ -1283,6 +1285,15 @@ export const CURATED_ACTION_CATALOG = [
     toolset: 'content',
   },
   {
+    actionClass: 'brand-context',
+    category: 'social',
+    mcpBrandRequired: true,
+    mutationPolicy: 'direct',
+    name: 'manage_brand_kit',
+    surfaces: ['mcp'],
+    toolset: 'brand-kit',
+  },
+  {
     category: 'campaign',
     mcpCardKind: 'summary',
     mutationPolicy: 'direct',
@@ -1621,10 +1632,11 @@ export const CURATED_ACTION_CATALOG = [
   {
     actionClass: 'brand-context',
     category: 'generation',
+    mcpBrandRequired: true,
     mutationPolicy: 'direct',
     name: 'save_brand_voice_profile',
-    surfaces: ['agent'],
-    toolset: 'brand',
+    surfaces: ['agent', 'mcp'],
+    toolset: 'brand-kit',
   },
   {
     actionClass: 'brand-context',

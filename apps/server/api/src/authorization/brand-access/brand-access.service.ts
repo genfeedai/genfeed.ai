@@ -1,6 +1,7 @@
 import { findActorApiKey } from '@api/authorization/brand-access/actor-api-key.util';
 import { isMembershipBrandViewMcpSession } from '@api/authorization/brand-access/mcp-session-brand-view.util';
 import { isSystemBrandPrincipal } from '@api/authorization/brand-access/system-brand-principal.util';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { resolveApiKeyEffectiveMemberRole } from '@api/helpers/utils/auth/api-key-role.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { isCloudDeployment } from '@genfeedai/config';
@@ -183,20 +184,60 @@ export class BrandAccessService {
     return (await this.resolve(actor, tx)).where;
   }
 
+  /** The grant can borrow the live membership role for Brand Kit edits only. */
+  async assertBrandKitEdit(actor: BrandAccessActor, brandId: string) {
+    const access = await this.resolve(actor);
+    const hasBrandKitGrant = access.brandKitGrantBrandId === brandId;
+    if (
+      actor.isApiKey &&
+      !hasBrandKitGrant &&
+      !actor.scopes?.includes(ApiKeyScope.BRANDS_WRITE)
+    ) {
+      throw new ForbiddenException(
+        'Brand Kit editing requires consent for this brand',
+      );
+    }
+    if (
+      !(await this.findAccessibleBrand(
+        actor.organizationId,
+        brandId,
+        access.where,
+        this.prisma,
+      ))
+    ) {
+      throw new NotFoundException('Brand', brandId);
+    }
+    return { hasBrandKitGrant, membershipRole: access.membershipRole };
+  }
+
   async assert(
     actor: BrandAccessActor,
     brandId: string,
     tx: Prisma.TransactionClient = this.prisma,
   ): Promise<void> {
     const where = await this.predicate(actor, tx);
-    const brand = await tx.brand.findFirst({
+    const brand = await this.findAccessibleBrand(
+      actor.organizationId,
+      brandId,
+      where,
+      tx,
+    );
+    if (!brand) throw new ForbiddenException('Brand access denied');
+  }
+
+  private findAccessibleBrand(
+    organizationId: string,
+    brandId: string,
+    where: Prisma.BrandWhereInput,
+    tx: Prisma.TransactionClient,
+  ) {
+    return tx.brand.findFirst({
       where: {
-        organizationId: actor.organizationId,
+        organizationId,
         isDeleted: false,
         AND: [where, { id: brandId }],
       },
       select: { id: true },
     });
-    if (!brand) throw new ForbiddenException('Brand access denied');
   }
 }

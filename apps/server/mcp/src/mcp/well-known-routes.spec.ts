@@ -78,7 +78,7 @@ describe('registerWellKnownRoutes', () => {
       resource_name: 'Genfeed',
       resource_policy_uri: 'https://genfeed.ai/privacy',
       resource_tos_uri: 'https://genfeed.ai/terms',
-      scopes_supported: [...API_KEY_SCOPE_PRESETS.mcp],
+      scopes_supported: [...API_KEY_SCOPE_PRESETS.mcp, 'brand-kit:write'],
     });
   });
 

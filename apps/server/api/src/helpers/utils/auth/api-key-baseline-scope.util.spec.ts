@@ -38,6 +38,16 @@ describe('assertApiKeyAgentToolBaselineAccess', () => {
     ['a read-preset key', READ, 'get_posts'],
     ['a posts:read key', [ApiKeyScope.POSTS_READ], 'get_posts'],
     ['a drafting key', [ApiKeyScope.POSTS_DRAFT], 'get_posts'],
+    [
+      'a Brand Kit grant',
+      [ApiKeyScope.BRAND_KIT_WRITE],
+      'draft_brand_voice_profile',
+    ],
+    [
+      'a Brand Kit grant',
+      [ApiKeyScope.BRAND_KIT_WRITE],
+      'save_brand_voice_profile',
+    ],
   ])('lets %s run %s', (_label, scopes, tool) => {
     expect(() =>
       assertApiKeyAgentToolBaselineAccess({ isApiKey: true, scopes }, tool),
@@ -56,6 +66,8 @@ describe('assertApiKeyAgentToolBaselineAccess', () => {
   it.each([
     ['a read-preset key', READ, 'create_post'],
     ['a read-preset key', READ, 'transform_media'],
+    ['a Brand Kit grant', [ApiKeyScope.BRAND_KIT_WRITE], 'create_post'],
+    ['an existing MCP key', MCP, 'save_brand_voice_profile'],
     ['a key without scopes', [], 'get_brands'],
     [
       'a key without a posts scope',

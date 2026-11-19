@@ -60,7 +60,7 @@ export class BrandKitEditsController {
     @Body() dto: UpdateBrandKitVisualIdentityDto,
   ) {
     const { hasBrandKitGrant, membershipRole } =
-      await this.brands.assertBrandKitEdit(user, brandId);
+      await this.brands.brandAccessService.assertBrandKitEdit(user, brandId);
     if (hasBrandKitGrant) {
       if (!membershipRole || !BRAND_OS_EDIT_ROLES.includes(membershipRole)) {
         throw new ForbiddenException(
@@ -111,7 +111,7 @@ export class BrandKitEditsController {
     fields: BrandKitWritingVoiceDto | BrandKitStrategyDto,
     agentConfig: Pick<UpdateBrandAgentConfigDto, 'voice' | 'strategy'>,
   ) {
-    await this.brands.assertBrandKitEdit(user, brandId);
+    await this.brands.brandAccessService.assertBrandKitEdit(user, brandId);
     if (
       !fields ||
       Object.values(fields).every((value) => value === undefined)

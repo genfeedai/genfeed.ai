@@ -84,6 +84,7 @@ function build() {
   const client = new Proxy(methods, {
     get(target, key: string) {
       if (key === 'workspaceApp') return workspaceApp;
+      if (key === 'brandKit') return { updateSection: async () => undefined };
       target[key] ??= vi
         .fn()
         .mockResolvedValue(
@@ -123,6 +124,8 @@ describe('MCP catalog presentation through the public registry', () => {
       if (tool.name === 'create_clipper_project_from_youtube')
         args.brandId = 'input-private';
       if (tool.name === 'manage_task') args.action = 'complete';
+      if (tool.name === 'manage_brand_kit')
+        args.fields = { primaryColor: '#AABBCC' };
       if (tool.name === 'run_clipper') args.mode = 'raw-cut';
       // One release or a batch is required, neither field alone.
       if (
@@ -143,6 +146,8 @@ describe('MCP catalog presentation through the public registry', () => {
           'enhance_prompt',
           'transform_media',
           'generate_turbo_content',
+          'draft_brand_voice_profile',
+          'save_brand_voice_profile',
         ].includes(tool.name)
       )
         args.brandId = 'input-private';

@@ -1,3 +1,8 @@
+import { ApiKeyScope } from '@genfeedai/contracts';
+import {
+  API_KEY_SCOPE_PRESETS,
+  MCP_CLAUDE_SCOPE_CEILING,
+} from '@genfeedai/contracts/constants';
 import type { McpResourceIdentifierResolution } from '@genfeedai/contracts/interfaces';
 
 const MCP_PATH_SUFFIX_PATTERN = /\/mcp(?:\/claude|\/admin)?\/*$/i;
@@ -64,6 +69,15 @@ export function resolveMcpAccessModeForResource(
   } catch {
     return 'claude';
   }
+}
+
+export function getMcpSupportedScopes(
+  mode: 'standard' | 'claude' | 'admin',
+): string[] {
+  if (mode === 'claude') return [...MCP_CLAUDE_SCOPE_CEILING];
+  return mode === 'standard'
+    ? [...API_KEY_SCOPE_PRESETS.mcp, ApiKeyScope.BRAND_KIT_WRITE]
+    : [...API_KEY_SCOPE_PRESETS.mcp];
 }
 
 /** Well-known path for RFC 9728 protected-resource metadata. */

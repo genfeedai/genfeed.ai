@@ -1,7 +1,15 @@
 import type { UpdateBrandKitVisualIdentityDto } from '@api/collections/brands/dto/update-brand-kit-visual-identity.dto';
 import { BrandKitAssetsService } from '@api/collections/brands/services/brand-kit-assets.service';
 import { BrandWatermarkLogoService } from '@api/collections/brands/services/brand-watermark-logo.service';
-import { toPersistedFontFamily } from '@api/collections/brands/utils/persisted-font-family';
+import {
+  validateBrandOsDiagnostics,
+  validateBrandOsEvidence,
+} from '@api/collections/brands/utils/brand-os-revision-validation.util';
+import {
+  brandVisualIdentityColumns,
+  parseVisualIdentity,
+  withVisualIdentity,
+} from '@api/collections/brands/utils/brand-visual-identity.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { rulesOwnerVideoJoins } from '@api/services/branded-generation-receipts/brand-identity-snapshot-projection.util';
 import { hashBrandGenerationRulesReviewV1 } from '@api/services/branded-generation-receipts/branded-generation-hash.util';
@@ -324,7 +332,7 @@ export class BrandOsRevisionsService {
     brandId: string,
     patch: UpdateBrandKitVisualIdentityDto,
   ): Promise<IBrandOsRevision> {
-    const values = this.parseVisualIdentity(patch);
+    const values = parseVisualIdentity(patch);
     return this.prisma.$transaction(async (tx) => {
       const brand = await this.lockBrand(tx, organizationId, brandId);
       const revision = await tx.brandOsRevision.findFirst({
@@ -339,80 +347,22 @@ export class BrandOsRevisionsService {
       const previous = revision
         ? (revision.content as unknown as IBrandKitDraft)
         : await this.buildCurrentBrandContent(brand, organizationId, brandId);
-      const content = structuredClone(previous);
-      for (const owner of BRAND_KIT_FIELD_OWNERSHIP) {
-        if (owner.group !== 'visual') continue;
-        const value: unknown = Reflect.get(values, owner.key);
-        if (value === undefined) continue;
-        const field = content.fields[owner.key];
-        content.fields[owner.key] = {
-          ...owner,
-          applyActionDefault: 'preserve',
-          currentValue: value,
-          diagnostics: [],
-          evidence: [
-            { label: 'Owner edit', sourceType: 'manual' },
-            ...(field?.evidence.filter(
-              (entry) => entry.sourceType !== 'manual',
-            ) ?? []),
-          ],
-        };
-      }
       const persisted = this.normalize(
-        this.resolveDefaultKitContent(previous, content, true),
+        this.resolveDefaultKitContent(
+          previous,
+          withVisualIdentity(previous, values),
+          true,
+        ),
         organizationId,
         brandId,
       );
-      const { colorPalette, fontRoles, ...styles } = values;
       // sql-risk-audit: ignore bulk-write-tenant-review -- scoped by the locked brand id and organization.
       await tx.brand.updateMany({
-        data: {
-          ...styles,
-          ...(colorPalette === undefined
-            ? {}
-            : { colorPalette: toPrismaJson(colorPalette) }),
-          ...(fontRoles === undefined
-            ? {}
-            : { fontRoles: toPrismaJson(fontRoles) }),
-        },
+        data: brandVisualIdentityColumns(values),
         where: { id: brandId, isDeleted: false, organizationId },
       });
       return this.saveDraft(tx, organizationId, brandId, persisted, revision);
     });
-  }
-
-  private parseVisualIdentity(patch: UpdateBrandKitVisualIdentityDto) {
-    const {
-      backgroundColor,
-      colorPalette,
-      fontFamily,
-      fontRoles,
-      primaryColor,
-      secondaryColor,
-    } = patch;
-    const styles = { backgroundColor, primaryColor, secondaryColor };
-    if (
-      Object.values(styles).some(
-        (value) => value !== undefined && typeof value !== 'string',
-      )
-    )
-      throw new BadRequestException('Invalid Brand Kit visual style');
-    const persistedFontFamily = toPersistedFontFamily(fontFamily);
-    if (fontFamily !== undefined && !persistedFontFamily)
-      throw new BadRequestException('Invalid Brand Kit font family');
-    const palette = brandPaletteSchema.optional().safeParse(colorPalette);
-    const fonts = brandFontRolesSchema.optional().safeParse(fontRoles);
-    if (!palette.success || !fonts.success)
-      throw new BadRequestException('Invalid Brand Kit palette or font roles');
-    const values = {
-      ...styles,
-      colorPalette: palette.data,
-      fontFamily: persistedFontFamily,
-      fontRoles: fonts.data,
-    };
-    if (Object.values(values).every((value) => value === undefined))
-      throw new BadRequestException('At least one visual field is required');
-    return values;
   }
 
   private async saveDraft(
@@ -909,9 +859,9 @@ export class BrandOsRevisionsService {
       throw new BadRequestException(
         'Invalid Brand OS content status or source',
       );
-    this.validateEvidence(content.evidence);
-    this.validateDiagnostics(content.diagnostics);
-    this.validateDiagnostics(content.readiness.diagnostics);
+    validateBrandOsEvidence(content.evidence);
+    validateBrandOsDiagnostics(content.diagnostics);
+    validateBrandOsDiagnostics(content.readiness.diagnostics);
     if (
       !['complete', 'partial', 'blocked', 'missing'].includes(
         content.readiness.status,
@@ -934,8 +884,8 @@ export class BrandOsRevisionsService {
         !['accept', 'reject', 'preserve'].includes(field.applyActionDefault)
       )
         throw new BadRequestException('Invalid Brand OS field');
-      this.validateEvidence(field.evidence);
-      this.validateDiagnostics(field.diagnostics);
+      validateBrandOsEvidence(field.evidence);
+      validateBrandOsDiagnostics(field.diagnostics);
       for (const value of [field.currentValue, field.proposedValue]) {
         if (value === undefined) continue;
         if (owner.valueKind === 'string' && typeof value !== 'string')
@@ -999,49 +949,6 @@ export class BrandOsRevisionsService {
       }
     }
     return { ...normalized, brandId, id: brandId, organizationId };
-  }
-
-  private validateEvidence(entries: unknown[]): void {
-    for (const entry of entries) {
-      if (
-        !entry ||
-        typeof entry !== 'object' ||
-        !('label' in entry) ||
-        typeof entry.label !== 'string' ||
-        !('sourceType' in entry) ||
-        typeof entry.sourceType !== 'string' ||
-        ![
-          'current_brand',
-          'website',
-          'manual',
-          'uploaded_guidance',
-          'system',
-        ].includes(entry.sourceType)
-      )
-        throw new BadRequestException('Invalid Brand OS evidence');
-      for (const key of ['url', 'excerpt', 'sourceId']) {
-        const value: unknown = Reflect.get(entry, key);
-        if (value !== undefined && typeof value !== 'string')
-          throw new BadRequestException('Invalid Brand OS evidence value');
-      }
-    }
-  }
-
-  private validateDiagnostics(entries: unknown[]): void {
-    for (const entry of entries) {
-      if (
-        !entry ||
-        typeof entry !== 'object' ||
-        !('code' in entry) ||
-        typeof entry.code !== 'string' ||
-        !('message' in entry) ||
-        typeof entry.message !== 'string' ||
-        !('severity' in entry) ||
-        typeof entry.severity !== 'string' ||
-        !['info', 'warning', 'error'].includes(entry.severity)
-      )
-        throw new BadRequestException('Invalid Brand OS diagnostic');
-    }
   }
 
   private toRevision(row: BrandOsRevision): IBrandOsRevision {
