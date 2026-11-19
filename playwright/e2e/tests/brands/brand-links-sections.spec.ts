@@ -43,10 +43,16 @@ test.describe('Brand accounts and website links', () => {
     await expect(
       heading.locator('xpath=ancestor::*[contains(@class,"rounded-card")]'),
     ).toHaveCount(0);
+    const linksSection = authenticatedPage.getByRole('region', {
+      name: 'Website links',
+    });
     await expect(
-      heading
-        .locator('xpath=ancestor::section[1]')
-        .getByRole('button', { name: 'Add link' }),
+      linksSection.getByRole('button', { name: 'Add link' }),
+    ).toBeVisible();
+    await expect(
+      linksSection
+        .locator('.rounded-card')
+        .getByRole('heading', { name: 'No website links yet.' }),
     ).toBeVisible();
 
     await expect(
