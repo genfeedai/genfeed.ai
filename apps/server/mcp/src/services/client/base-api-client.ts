@@ -128,13 +128,46 @@ export class BaseApiClient {
     operation: string,
     call: (http: AxiosInstance) => Promise<T>,
     onError: (error: ApiError) => T,
+    { hasSensitiveErrorDetails = false } = {},
   ): Promise<T> {
     try {
       return await call(this.http);
     } catch (error: unknown) {
-      this.logError(operation, error as ApiError);
-      return onError(error as ApiError);
+      const upstream = error as ApiError;
+      const status = upstream.response?.status;
+      this.logError(
+        operation,
+        hasSensitiveErrorDetails
+          ? {
+              message: status
+                ? `Upstream HTTP ${status}`
+                : 'Upstream lookup failed',
+              response: { status },
+            }
+          : upstream,
+      );
+      return onError(upstream);
     }
+  }
+
+  /** Retain retry and status signals for a lookup without the upstream payload. */
+  requestWithSafeFailure<T>(
+    operation: string,
+    call: (http: AxiosInstance) => Promise<T>,
+    failureMessage: (status: number | undefined) => string,
+  ): Promise<T> {
+    return this.request(
+      operation,
+      call,
+      (error) => {
+        const status = error.response?.status;
+        throw new McpUpstreamError(failureMessage(status), {
+          retryAfterSeconds: readRetryAfterSeconds(error),
+          status,
+        });
+      },
+      { hasSensitiveErrorDetails: true },
+    );
   }
 
   /** `onError` factory: throw a fixed message (the bare-throw methods). */
