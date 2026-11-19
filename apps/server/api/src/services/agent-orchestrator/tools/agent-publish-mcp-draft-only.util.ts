@@ -96,20 +96,19 @@ export const authorizeAgentTextDraft = traced(
  * source post's brand belongs to the caller. The source post itself was
  * already read inside the caller's organization.
  */
-export const authorizeAgentSourcePostDraft = traced(
-  'authorizeAgentSourcePostDraft',
+export const authorizeSourceDraft = traced(
+  'authorizeSourceDraft',
   async (
     agentScopeContextService: AgentScopeContextService | undefined,
     ctx: ToolExecutionContext,
     sourceBrandId: string | undefined,
-    resourceLabel: string,
   ): Promise<void> => {
     if (!isMcpActionOrigin() || ctx.validatedScope) {
       await assertAgentPublishingScope(
         agentScopeContextService,
         ctx,
         sourceBrandId,
-        resourceLabel,
+        'source post',
       );
       return;
     }

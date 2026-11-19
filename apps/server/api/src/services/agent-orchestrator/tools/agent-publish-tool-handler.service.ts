@@ -15,8 +15,8 @@ import {
 } from '@api/services/agent-orchestrator/tools/agent-publish-canonical-actions';
 import { resolveConfirmedPublishTargets } from '@api/services/agent-orchestrator/tools/agent-publish-confirmed-targets.util';
 import {
-  authorizeAgentSourcePostDraft,
   authorizeAgentTextDraft,
+  authorizeSourceDraft,
   blockMcpCreatePost,
   isMcpActionOrigin,
   mcpDraftOnlyResult,
@@ -1006,14 +1006,8 @@ export class AgentPublishToolHandler {
           success: false,
         };
       }
-      // Repurposing saves a draft and publishes nothing, so an MCP call (no
-      // thread, no validated scope) is authorized by the source post's brand.
-      await authorizeAgentSourcePostDraft(
-        this.agentScopeContextService,
-        ctx,
-        readOptionalString(sourcePost.brandId),
-        'source post',
-      );
+      const brandId = readOptionalString(sourcePost.brandId);
+      await authorizeSourceDraft(this.agentScopeContextService, ctx, brandId);
 
       const result = await this.postRepurposeService?.repurpose({
         credentialId: readOptionalString(params.credentialId),
@@ -1040,7 +1034,7 @@ export class AgentPublishToolHandler {
           creditsUsed,
           `Post repurpose (agent rewrite) ${postId}`,
           ActivitySource.SCRIPT,
-          { brandId: readOptionalString(sourcePost.brandId) },
+          { brandId },
         );
       }
 
