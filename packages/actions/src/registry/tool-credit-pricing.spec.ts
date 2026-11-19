@@ -48,7 +48,6 @@ describe('tool credit pricing', () => {
       .sort();
     // Paid, but neither posting nor media generation: these run at once.
     expect(ungated).toEqual([
-      'create_post',
       'enhance_prompt',
       'generate_content',
       'repurpose_post',

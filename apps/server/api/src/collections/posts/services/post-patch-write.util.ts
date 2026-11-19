@@ -14,6 +14,7 @@ import {
   fromPrismaCredentialPlatform,
   TargetExecutionState,
 } from '@genfeedai/contracts';
+import { resolvePostVisibility } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
 import type { Prisma } from '@genfeedai/prisma';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, ConflictException } from '@nestjs/common';
@@ -218,6 +219,9 @@ export async function preparePostPatchWrite(
   const requestedVisibility = dto.visibility;
   const isPublishingPost =
     requestedExecutionState === TargetExecutionState.PUBLISHED;
+  const isPublishingTarget =
+    isPublishingPost ||
+    requestedExecutionState === TargetExecutionState.PUBLISHING;
   const changesApprovalScope = Object.keys(dto).some((key) =>
     PUBLISH_APPROVAL_MATERIAL_FIELDS.has(key),
   );
@@ -252,6 +256,7 @@ export async function preparePostPatchWrite(
     resolvedPlatform = domainPlatform;
   }
 
+  const requestedPlatform = resolvedPlatform ?? dto.platform;
   let currentPost: PostDocument | null = null;
   // Broader than the credential/platform-presence check below: also loads
   // the current row when the edit could invalidate an *already* scheduled
@@ -263,14 +268,14 @@ export async function preparePostPatchWrite(
 
   if (
     requestedExecutionState === TargetExecutionState.SCHEDULED ||
-    isPublishingPost ||
+    isPublishingTarget ||
     requestedVisibility !== undefined ||
     touchesScheduleRevalidationFields
   ) {
     currentPost = await context.findOne({ id });
     if (currentPost) {
       const targetCredentialId = dto.credentialId ?? currentPost.credentialId;
-      const targetPlatform = resolvedPlatform ?? currentPost.platform;
+      const targetPlatform = requestedPlatform ?? currentPost.platform;
       assertPublishTarget(
         requestedExecutionState,
         targetCredentialId,
@@ -279,9 +284,20 @@ export async function preparePostPatchWrite(
     }
   }
 
-  if (requestedVisibility !== undefined && currentPost) {
-    const targetPlatform = resolvedPlatform ?? currentPost.platform;
-    assertVisibilitySupported(requestedVisibility, targetPlatform);
+  const targetPlatform = requestedPlatform ?? currentPost?.platform;
+  const effectiveExecutionState =
+    requestedExecutionState ?? currentPost?.targetExecutionState;
+  if (
+    currentPost &&
+    (requestedVisibility !== undefined ||
+      isPublishingTarget ||
+      (requestedPlatform !== undefined &&
+        effectiveExecutionState === TargetExecutionState.DRAFT))
+  ) {
+    assertVisibilitySupported(
+      requestedVisibility ?? resolvePostVisibility(currentPost.visibility),
+      targetPlatform,
+    );
   }
 
   // Choke point for #5193: this covers both a PATCH that newly schedules a
@@ -290,13 +306,10 @@ export async function preparePostPatchWrite(
   // "editing media or the credential on a scheduled post re-validates it"
   // acceptance criterion, since `patch()` writes directly and never routes
   // through `PostLifecycleService`.
-  const effectiveExecutionState =
-    requestedExecutionState ?? currentPost?.targetExecutionState;
   if (
     currentPost &&
     effectiveExecutionState === TargetExecutionState.SCHEDULED
   ) {
-    const targetPlatform = resolvedPlatform ?? currentPost.platform;
     assertValidChannelTargetSchedule({
       caption: dto.description ?? currentPost.description,
       category: (dto.category as string | undefined) ?? currentPost.category,

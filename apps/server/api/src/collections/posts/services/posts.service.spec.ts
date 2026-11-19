@@ -438,7 +438,11 @@ describe('PostsService batchSchedule', () => {
     });
   });
 
-  it('allows an untargeted draft before an account is selected', async () => {
+  it.each([
+    PostVisibility.PUBLIC,
+    PostVisibility.PRIVATE,
+    PostVisibility.UNLISTED,
+  ])('saves %s visibility on an untargeted draft', async (visibility) => {
     const { post, service } = makeService();
 
     await service.create(
@@ -450,13 +454,40 @@ describe('PostsService batchSchedule', () => {
         organizationId: 'org-1',
         targetExecutionState: TargetExecutionState.DRAFT,
         userId: 'user-1',
+        visibility,
       },
       [],
     );
 
-    expect(post.create.mock.calls[0]?.[0].data).not.toHaveProperty(
-      'credentialId',
-    );
+    const saved = post.create.mock.calls[0]?.[0].data;
+    expect(saved).toMatchObject({
+      targetExecutionState: TargetExecutionState.DRAFT,
+      visibility,
+    });
+    expect(saved).not.toHaveProperty('credentialId');
+    expect(saved).not.toHaveProperty('platform');
+  });
+
+  it('requires compatible visibility when a private draft gets a channel', async () => {
+    const { post, service } = makeService();
+    post.findFirst.mockResolvedValue({
+      _count: { children: 0, ingredientLinks: 0 },
+      brandId: null,
+      credentialId: null,
+      id: 'post-1',
+      ingredientLinks: [],
+      isDeleted: false,
+      organizationId: 'org-1',
+      parentId: null,
+      platform: null,
+      publishApprovalId: null,
+      targetExecutionState: TargetExecutionState.DRAFT,
+      visibility: PostVisibility.PRIVATE,
+    });
+
+    await expect(
+      service.patch('post-1', { platform: CredentialPlatform.INSTAGRAM }, []),
+    ).rejects.toThrow('instagram does not support private visibility.');
   });
 
   it('persists published lifecycle independently from private visibility', async () => {

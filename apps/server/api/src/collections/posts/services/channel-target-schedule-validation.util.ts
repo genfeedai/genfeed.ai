@@ -43,23 +43,17 @@ export function assertPublishTarget(
   }
 }
 
-/**
- * The chosen visibility must be one the target platform's capability catalog
- * actually supports. Shared by `create` and `patch`.
- */
+/** A draft can store its visibility before it has a channel to validate against. */
 export function assertVisibilitySupported(
   visibility: PostVisibility,
   platform: string | null | undefined,
 ): void {
-  if (!platform && visibility === PostVisibility.PUBLIC) {
-    return;
-  }
   if (
-    !platform ||
+    platform &&
     !getSupportedPostVisibilities(platform).includes(visibility)
   ) {
     throw new BadRequestException(
-      `${platform ?? 'The selected platform'} does not support ${visibility} visibility.`,
+      `${platform} does not support ${visibility} visibility. Choose a visibility supported by this channel.`,
     );
   }
 }

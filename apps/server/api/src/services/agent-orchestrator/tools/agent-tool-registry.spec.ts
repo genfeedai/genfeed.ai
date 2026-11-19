@@ -184,9 +184,7 @@ describe('agent-tool-registry', () => {
   });
 
   it('should price every agent tool, including the folded cloud tools', () => {
-    // create_post is the one deliberate override: see EXTRA_AGENT_CREDIT_COSTS.
     for (const tool of getToolDefinitions()) {
-      if (tool.name === 'create_post') continue;
       expect(AGENT_CREDIT_COSTS[String(tool.name)], String(tool.name)).toBe(
         tool.creditCost,
       );
@@ -204,9 +202,12 @@ describe('agent-tool-registry', () => {
     );
   });
 
-  it('should keep the in-app create_post draft free while the catalog prices the MCP publish', () => {
+  it('keeps create_post free with the shared in-app approval policy', () => {
     expect(AGENT_CREDIT_COSTS.create_post).toBe(0);
-    expect(getToolByName('create_post')?.creditCost).toBe(1);
+    expect(getToolByName('create_post')).toMatchObject({
+      creditCost: 0,
+      mutationPolicy: 'approval-required',
+    });
   });
 
   it('should register refine_text as one agent action billed like a social draft', () => {

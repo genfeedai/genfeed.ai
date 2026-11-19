@@ -211,6 +211,17 @@ export async function startFakeGenfeedApi(): Promise<FakeGenfeedApi> {
           success: true,
         });
         return;
+      case 'create_post':
+        res.json({
+          creditsUsed: 0,
+          data: {
+            executionState: 'draft',
+            id: 'post_draft',
+            visibility: req.body?.parameters?.visibility,
+          },
+          success: true,
+        });
+        return;
       case 'create_brand_from_url':
         res.json({
           creditsUsed: 0,
