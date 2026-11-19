@@ -133,6 +133,7 @@ function createHandler(postRepurposeService?: RepurposeServiceFake) {
     create: vi.fn(),
     findOne: vi.fn(),
     findOneSelect: vi.fn(),
+    patch: vi.fn(),
   };
   const autonomousPolicy = {
     assessMediaForPolicy: vi.fn().mockResolvedValue(undefined),
@@ -1133,7 +1134,7 @@ describe('create_post mediaUrls through the MCP (#9673)', () => {
     `https://cdn.test/ingredients/${kind}/${id}`;
 
   it('refuses a blank postId instead of creating a second draft', async () => {
-    const { run } = mcpDraft({
+    const { postsService, run } = mcpDraft({
       postId: ' ',
       brandId: 'brand-1',
       mediaUrls: [url('images', 'img-1')],
@@ -1143,6 +1144,8 @@ describe('create_post mediaUrls through the MCP (#9673)', () => {
       error: 'Use the postId and brandId of the generated draft.',
       success: false,
     });
+    expect(postsService.create).not.toHaveBeenCalled();
+    expect(postsService.patch).not.toHaveBeenCalled();
   });
 
   it('saves a draft whose media matches the URLs, in order', async () => {
