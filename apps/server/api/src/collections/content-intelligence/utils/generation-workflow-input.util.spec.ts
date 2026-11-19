@@ -1,5 +1,5 @@
 import type { GenerateContentDto } from '@api/collections/content-intelligence/dto/generate-content.dto';
-import { toGenerationWorkflowDto } from '@api/collections/content-intelligence/utils/generation-workflow-input.util';
+import { toWorkflowInputDocument } from '@api/collections/workflows/utils/workflow-input-document.util';
 import { getActionDefinition } from '@genfeedai/actions';
 import { compileActionContract } from '@genfeedai/workflows/engine';
 import { describe, expect, it } from 'vitest';
@@ -34,7 +34,7 @@ const dtoWithUndefinedFields = {
   variationsCount: 1,
 } as unknown as GenerateContentDto;
 
-describe('toGenerationWorkflowDto', () => {
+describe('toWorkflowInputDocument', () => {
   it.each([
     'content-intelligence.load-context',
     'content-intelligence.load-patterns',
@@ -46,7 +46,7 @@ describe('toGenerationWorkflowDto', () => {
     ).toThrow(/Action contract input validation failed/);
     expect(() =>
       contract.validateInput(
-        { dto: toGenerationWorkflowDto(dtoWithUndefinedFields) },
+        { dto: toWorkflowInputDocument(dtoWithUndefinedFields) },
         PROVENANCE,
       ),
     ).not.toThrow();
@@ -61,7 +61,7 @@ describe('toGenerationWorkflowDto', () => {
       expect(() =>
         contract.validateInput(
           {
-            dto: toGenerationWorkflowDto(dtoWithUndefinedFields),
+            dto: toWorkflowInputDocument(dtoWithUndefinedFields),
             requireBrandHarness,
           },
           PROVENANCE,
@@ -80,14 +80,14 @@ describe('toGenerationWorkflowDto', () => {
   );
 
   it('drops undefined keys recursively and keeps every defined value', () => {
-    expect(toGenerationWorkflowDto(dtoWithUndefinedFields)).toEqual({
+    expect(toWorkflowInputDocument(dtoWithUndefinedFields)).toEqual({
       knowledge: { purposes: ['BRAND_TRUTH'] },
       platform: 'twitter',
       topic: 'Thursday ship day',
       variationsCount: 1,
     });
     expect(
-      Object.keys(toGenerationWorkflowDto(dtoWithUndefinedFields)),
+      Object.keys(toWorkflowInputDocument(dtoWithUndefinedFields)),
     ).not.toContain('brandId');
   });
 });
