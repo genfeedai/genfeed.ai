@@ -1,15 +1,6 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import TopbarEnd from '@/features/ingredients/components/topbars/end/TopbarEnd';
-
-const userDropdownSpy = vi.fn();
-
-vi.mock('@genfeedai/auth-client/react', () => ({
-  UserButton: () => <div data-testid="topbar-user-button" />,
-  useAuth: () => ({
-    isSignedIn: true,
-  }),
-}));
 
 vi.mock('@genfeedai/hooks/auth/use-auth-identity/use-auth-identity', () => ({
   useAuthIdentity: () => ({
@@ -40,32 +31,27 @@ vi.mock('@genfeedai/hooks/auth/use-auth-user/use-auth-user', () => ({
   }),
 }));
 
-vi.mock('@/components/menus/user-dropdown/UserDropdown', () => ({
-  default: (props: Record<string, unknown>) => {
-    userDropdownSpy(props);
-    return (
-      <>
-        <div data-testid="topbar-user-button" />
-        <div data-testid="topbar-user-settings" />
-      </>
-    );
-  },
+vi.mock('@genfeedai/hooks/navigation/use-org-url', () => ({
+  useOrgUrl: () => ({ orgHref: (href: string) => `/acme/~${href}` }),
+}));
+
+vi.mock('@/components/topbars/credits-bar/AccountCredits', () => ({
+  default: () => null,
 }));
 
 describe('TopbarEnd', () => {
-  it('renders user settings beside the signed-in user control', () => {
+  it('opens personal settings without exposing the signed-in name or email', () => {
     render(<TopbarEnd />);
 
-    expect(screen.getByTestId('topbar-user-settings')).toBeInTheDocument();
-    expect(screen.getByTestId('topbar-user-button')).toBeInTheDocument();
-    expect(userDropdownSpy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        imageUrl: null,
-        settingsScope: 'user',
-        side: 'bottom',
-        userEmail: 'test@example.com',
-        userName: 'Test User',
-      }),
+    fireEvent.pointerDown(
+      screen.getByRole('button', { name: 'Open account menu' }),
     );
+
+    const menu = screen.getByRole('menu');
+    expect(
+      within(menu).getByRole('menuitem', { name: 'Personal' }),
+    ).toBeVisible();
+    expect(menu).not.toHaveTextContent('Test User');
+    expect(menu).not.toHaveTextContent('test@example.com');
   });
 });

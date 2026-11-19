@@ -10,7 +10,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@ui/primitives/dropdown-menu';
@@ -26,7 +25,6 @@ interface DropdownItem {
 
 interface UserDropdownProps {
   userName: string;
-  userEmail: string;
   imageUrl?: string | null;
   settingsScope?: 'all' | 'user';
   side?: 'top' | 'bottom' | 'right';
@@ -37,7 +35,6 @@ export default function UserDropdown({
   settingsScope = 'all',
   side = 'top',
   userName,
-  userEmail,
 }: UserDropdownProps) {
   const { orgHref } = useOrgUrl();
   // Cross-scope switcher for the scope-specific Settings sidebar: each entry
@@ -87,15 +84,6 @@ export default function UserDropdown({
         side={side}
         sideOffset={side === 'right' ? 12 : 4}
       >
-        <DropdownMenuLabel className="font-normal">
-          <div className="flex flex-col gap-1">
-            <p className="font-medium leading-none">{userName}</p>
-            <p className="text-xs leading-none text-muted-foreground">
-              {userEmail}
-            </p>
-          </div>
-        </DropdownMenuLabel>
-        <DropdownMenuSeparator />
         <AccountCredits />
         {dropdownItems.map((item) => (
           <DropdownMenuItem key={item.href} asChild>

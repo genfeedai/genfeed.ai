@@ -33,7 +33,7 @@ vi.mock('@/components/topbars/credits-bar/AccountCredits', () => ({
 
 describe('UserDropdown', () => {
   it('renders an initials avatar trigger when no image is provided', () => {
-    render(<UserDropdown userName="Test User" userEmail="test@example.com" />);
+    render(<UserDropdown userName="Test User" />);
 
     const trigger = screen.getByRole('button', { name: 'Open account menu' });
     expect(trigger).toHaveTextContent('TU');
@@ -47,7 +47,6 @@ describe('UserDropdown', () => {
     render(
       <UserDropdown
         userName="Test User"
-        userEmail="test@example.com"
         imageUrl="https://cdn.example.com/avatar.png"
       />,
     );
@@ -57,20 +56,19 @@ describe('UserDropdown', () => {
     ).toHaveAttribute('src', 'https://cdn.example.com/avatar.png');
   });
 
-  it('keeps identity context in the account menu', () => {
-    render(<UserDropdown userName="Test User" userEmail="test@example.com" />);
+  it('keeps the user name out of the open account menu', () => {
+    render(<UserDropdown userName="Test User" />);
 
     fireEvent.pointerDown(
       screen.getByRole('button', { name: 'Open account menu' }),
     );
 
-    expect(screen.getAllByText('Test User')).toHaveLength(1);
-    expect(screen.getAllByText('test@example.com')).toHaveLength(1);
-    expect(screen.getByRole('menu')).toHaveClass('w-64');
+    const menu = screen.getByRole('menu');
+    expect(menu).not.toHaveTextContent('Test User');
   });
 
   it('shows the credit wallet in the account menu', () => {
-    render(<UserDropdown userName="Test User" userEmail="test@example.com" />);
+    render(<UserDropdown userName="Test User" />);
 
     expect(screen.queryByTestId('account-credits-mock')).toBeNull();
 
@@ -82,7 +80,7 @@ describe('UserDropdown', () => {
   });
 
   it('switches between the settings scopes (Help lives in the personal scope)', () => {
-    render(<UserDropdown userName="Test User" userEmail="test@example.com" />);
+    render(<UserDropdown userName="Test User" />);
 
     fireEvent.pointerDown(
       screen.getByRole('button', { name: 'Open account menu' }),
@@ -117,13 +115,7 @@ describe('UserDropdown', () => {
   });
 
   it('limits topbar user settings to personal destinations plus sign out', () => {
-    render(
-      <UserDropdown
-        settingsScope="user"
-        userName="Test User"
-        userEmail="test@example.com"
-      />,
-    );
+    render(<UserDropdown settingsScope="user" userName="Test User" />);
 
     fireEvent.pointerDown(
       screen.getByRole('button', { name: 'Open account menu' }),
@@ -150,13 +142,7 @@ describe('UserDropdown', () => {
   });
 
   it('exposes organization and brand settings in the full-scope menu', () => {
-    render(
-      <UserDropdown
-        settingsScope="all"
-        userName="Test User"
-        userEmail="test@example.com"
-      />,
-    );
+    render(<UserDropdown settingsScope="all" userName="Test User" />);
 
     fireEvent.pointerDown(
       screen.getByRole('button', { name: 'Open account menu' }),
