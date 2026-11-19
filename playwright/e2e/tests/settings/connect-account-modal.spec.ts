@@ -1,5 +1,6 @@
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { Page, Route } from '@playwright/test';
+import { createPlaywrightMockApiRoutePattern } from '../../config/environment';
 import { mockActiveSubscription } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { generateMockBrand } from '../../utils/api-interceptor';
@@ -47,8 +48,14 @@ async function mockBrandWithXAccount(page: Page): Promise<void> {
     });
   };
 
-  await page.route('**/api.genfeed.ai/**/brands/slug**', fulfillBrand);
-  await page.route('**/api.genfeed.ai/**/brands/brand-1', fulfillBrand);
+  await page.route(
+    createPlaywrightMockApiRoutePattern('brands/slug'),
+    fulfillBrand,
+  );
+  await page.route(
+    createPlaywrightMockApiRoutePattern('brands/brand-1$'),
+    fulfillBrand,
+  );
 }
 
 test.describe('Connect account modal', () => {
@@ -112,6 +119,50 @@ test.describe('Connect account modal', () => {
 
     await search.fill('no-such-platform');
     await expect(dialog.getByText('No platforms found.')).toBeVisible();
+  });
+
+  test('offers post import inline after account verification', async ({
+    authenticatedPage,
+  }) => {
+    const importRoute = createPlaywrightMockApiRoutePattern(
+      'social-sources/history-import',
+    );
+    await authenticatedPage.route(importRoute, (route) =>
+      route.fulfill({ json: { status: 'scheduled' }, status: 202 }),
+    );
+    await authenticatedPage.goto(
+      `${CONNECTED_ACCOUNTS_ROUTE}?historyImportCredentialId=credential-x-1`,
+    );
+
+    await expect(
+      authenticatedPage.getByText('Import existing posts?'),
+    ).toBeVisible();
+    await expect(authenticatedPage.getByRole('dialog')).toHaveCount(0);
+    await expect(
+      authenticatedPage
+        .getByRole('button', { name: 'Connect account' })
+        .first(),
+    ).toBeEnabled();
+
+    const importRequest = authenticatedPage.waitForRequest(importRoute);
+    await authenticatedPage
+      .getByRole('button', { name: 'Import posts' })
+      .click();
+
+    expect((await importRequest).postDataJSON()).toEqual({
+      credentialId: 'credential-x-1',
+    });
+    await expect(
+      authenticatedPage.getByText(
+        'Import queued. Posts appear in Discovery when it finishes.',
+      ),
+    ).toBeVisible();
+    await expect(
+      authenticatedPage.getByText('Import existing posts?'),
+    ).toHaveCount(0);
+    await expect(authenticatedPage).toHaveURL(
+      (url) => !url.searchParams.has('historyImportCredentialId'),
+    );
   });
 
   test('lists Discord and Slack under Messaging and starts the provider consent screen', async ({

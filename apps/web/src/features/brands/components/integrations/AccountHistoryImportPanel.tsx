@@ -26,7 +26,7 @@ const STATUS_VARIANT: Record<SocialSourceHistoryImportStatus, BadgeVariant> = {
   [SocialSourceHistoryImportStatus.SKIPPED]: 'warning',
 };
 
-function ownAccountSourcesQueryKey(brandId: string) {
+export function ownAccountSourcesQueryKey(brandId: string) {
   return ['own-account-sources', brandId] as const;
 }
 

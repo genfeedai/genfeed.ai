@@ -1,3 +1,4 @@
+import { queryClientWrapper } from '@app-tests/query-client.harness';
 import { CredentialPlatform } from '@genfeedai/contracts';
 import { resolveOAuthConnectPlatformCatalog } from '@genfeedai/helpers/oauth/oauth-connect-platforms';
 import {
@@ -14,6 +15,16 @@ import BrandDetailSocialMediaCard from '@/features/brands/components/sidebar/Bra
 const warmupConnection = vi.hoisted(() => ({ isConnected: true }));
 const useOAuthConnectPlatforms = vi.hoisted(() => vi.fn());
 const refreshBrands = vi.hoisted(() => vi.fn(async () => undefined));
+const scheduleHistoryImport = vi.fn();
+
+vi.mock('next/navigation', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('next/navigation')>()),
+  useSearchParams: () => new URLSearchParams(window.location.search),
+}));
+
+vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
+  useAuthedService: () => async () => ({ scheduleHistoryImport }),
+}));
 
 vi.mock(
   '@contexts/user/brand-context/brand-context',
@@ -224,6 +235,8 @@ describe('BrandDetailSocialMediaCard', () => {
   beforeEach(() => {
     warmupConnection.isConnected = true;
     vi.clearAllMocks();
+    window.history.replaceState(null, '', '/');
+    scheduleHistoryImport.mockResolvedValue({ status: 'scheduled' });
     useOAuthConnectPlatforms.mockReturnValue(
       resolveOAuthConnectPlatformCatalog({ threads: 'available' }),
     );
@@ -569,7 +582,7 @@ describe('BrandDetailSocialMediaCard', () => {
     expect(screen.queryByRole('tab', { name: 'Import' })).toBeNull();
   });
 
-  it('opens the Connect account modal and starts oauth for a chosen platform', async () => {
+  it('starts authorization as soon as a platform is chosen', async () => {
     render(
       <BrandDetailSocialMediaCard
         brandId="brand-1"
@@ -584,19 +597,64 @@ describe('BrandDetailSocialMediaCard', () => {
     );
     fireEvent.click(screen.getByText('Instagram'));
 
-    expect(postConnect).not.toHaveBeenCalled();
     expect(
-      screen.getByRole('heading', { name: 'Import existing posts?' }),
-    ).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Import posts' }));
+      screen.queryByText('Import existing posts?'),
+    ).not.toBeInTheDocument();
 
     await waitFor(() => {
       expect(postConnect).toHaveBeenCalledWith({
         brandId: 'brand-1',
-        isHistoryImportRequested: true,
+        isHistoryImportRequested: false,
       });
+      expect(openSpy).toHaveBeenCalledWith(
+        'https://oauth.example/connect',
+        '_self',
+      );
     });
   });
+
+  it.each([
+    {
+      choice: 'Import posts',
+      scheduledImports: [['verified-account', 'brand-1']],
+    },
+    { choice: 'Skip', scheduledImports: [] },
+  ])(
+    'allows $choice from the verified account page without blocking account settings',
+    async ({ choice, scheduledImports }) => {
+      window.history.replaceState(
+        null,
+        '',
+        '/?historyImportCredentialId=verified-account',
+      );
+      render(
+        <BrandDetailSocialMediaCard
+          brandId="brand-1"
+          connections={[
+            {
+              credentialId: 'verified-account',
+              externalId: 'channel-1',
+              isConnected: true,
+              name: 'Genfeed Studio',
+              platform: CredentialPlatform.YOUTUBE,
+            },
+          ]}
+          connectedPlatformsCount={1}
+          variant="page"
+        />,
+        { wrapper: queryClientWrapper() },
+      );
+
+      expect(screen.getByText(/posts from Genfeed Studio/)).toBeVisible();
+      expect(screen.getByRole('button', { name: 'Settings' })).toBeEnabled();
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      expect(scheduleHistoryImport).not.toHaveBeenCalled();
+      fireEvent.click(screen.getByRole('button', { name: choice }));
+
+      await waitFor(() => expect(window.location.search).toBe(''));
+      expect(scheduleHistoryImport.mock.calls).toEqual(scheduledImports);
+    },
+  );
 
   it('lets the page header own the Connect account modal', () => {
     const onConnectAccountModalOpenChange = vi.fn();
@@ -752,18 +810,18 @@ describe('BrandDetailSocialMediaCard', () => {
     ).toHaveAttribute('href', 'https://x.com/genfeedlabs');
   });
 
-  it('starts oauth directly from the social card', async () => {
+  it('starts oauth directly from the sidebar and returns to the brand profile', async () => {
     render(
       <BrandDetailSocialMediaCard
         brandId="brand-1"
         connections={[]}
         connectedPlatformsCount={0}
+        historyImportReturnTo="/org/brand/settings/profile"
       />,
     );
 
     fireEvent.click(screen.getByRole('button', { name: /connect/i }));
     fireEvent.click(screen.getByRole('button', { name: /instagram/i }));
-    fireEvent.click(screen.getByRole('button', { name: 'Skip' }));
 
     await waitFor(() => {
       expect(getToken).toHaveBeenCalled();
@@ -774,6 +832,9 @@ describe('BrandDetailSocialMediaCard', () => {
       expect(openSpy).toHaveBeenCalledWith(
         'https://oauth.example/connect',
         '_self',
+      );
+      expect(window.sessionStorage.getItem('oauth_return_to')).toBe(
+        '/org/brand/settings/profile',
       );
     });
   });

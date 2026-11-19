@@ -11,6 +11,9 @@ export const OAUTH_RETURN_TO_STORAGE_KEY = 'oauth_return_to';
 /** sessionStorage key read by `/oauth/[platform]` to start a fresh connect. */
 export const OAUTH_CONNECT_CONTEXT_STORAGE_KEY = 'oauth_connect_context';
 
+export const HISTORY_IMPORT_CREDENTIAL_QUERY_PARAM =
+  'historyImportCredentialId';
+
 export function rememberOAuthConnectContext(
   context: OAuthConnectContext,
 ): void {
@@ -28,6 +31,9 @@ export function rememberOAuthConnectContext(
       JSON.stringify({
         brandId: context.brandId,
         ...(credentialId ? { credentialId } : {}),
+        ...(context.shouldOfferHistoryImport
+          ? { shouldOfferHistoryImport: true }
+          : {}),
       }),
     );
   } catch {
@@ -54,6 +60,9 @@ export function readOAuthConnectContext(): OAuthConnectContext | null {
     return {
       brandId: parsed.brandId,
       ...(credentialId ? { credentialId } : {}),
+      ...(parsed.shouldOfferHistoryImport === true
+        ? { shouldOfferHistoryImport: true }
+        : {}),
     };
   } catch {
     return null;
@@ -89,10 +98,7 @@ export function redirectToOAuthAuthorization(
   redirect: OAuthAuthorizationRedirect,
 ): Window | null {
   rememberOAuthReturnTo(redirect.returnTo);
-  rememberOAuthConnectContext({
-    brandId: redirect.brandId,
-    credentialId: redirect.credentialId,
-  });
+  rememberOAuthConnectContext(redirect);
   const separator = redirect.authorizationUrl.includes('?') ? '&' : '?';
   return window.open(
     `${redirect.authorizationUrl}${separator}return_to=${encodeURIComponent(redirect.returnTo)}`,

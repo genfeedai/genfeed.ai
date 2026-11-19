@@ -86,6 +86,7 @@ export default function BrandSidebarPanel(props: BrandSidebarPanelProps) {
           connectedPlatformsCount={connectedPlatformsCount}
           error={error}
           socialConnections={socialConnections}
+          profileHref={profileHref}
           onCopy={handleCopy}
           onGenerateBanner={handleGenerateBanner}
           onGenerateLogo={handleGenerateLogo}

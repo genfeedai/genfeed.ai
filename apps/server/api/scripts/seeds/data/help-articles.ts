@@ -525,9 +525,9 @@ to a brand, so each brand can publish to its own accounts.</p>
   <li>Approve access on the platform's own sign-in screen. You return to
   Genfeed when it finishes.</li>
 </ol>
-<p>For Twitter, Instagram, TikTok, YouTube and LinkedIn, Genfeed first asks
-<strong>Import existing posts?</strong> Choose <strong>Import posts</strong> to
-bring in the account's recent post history, or <strong>Skip</strong>.</p>
+<p>After Genfeed verifies a Twitter, Instagram, TikTok, YouTube or LinkedIn
+account, you can choose <strong>Import posts</strong> to bring in its recent
+post history. You can skip it and import later from the account's settings.</p>
 
 <h2>Platforms you can connect</h2>
 <p>The connect dialog offers: Twitter, Instagram, Facebook, LinkedIn, Threads,
