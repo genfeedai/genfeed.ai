@@ -1,6 +1,8 @@
 'use client';
 
 import { cn } from '@genfeedai/helpers';
+import { DismissableLayer } from '@radix-ui/react-dismissable-layer';
+import { renderElement } from '@ui-sdk/react/primitive';
 import {
   SelectTrigger as SelectButton,
   SelectValue as SelectCurrent,
@@ -151,6 +153,7 @@ function SelectContent({
   ref,
   className,
   children,
+  render,
   ...props
 }: ComponentPropsWithRef<typeof SelectPopup>) {
   return (
@@ -160,6 +163,13 @@ function SelectContent({
         'max-h-[min(24rem,var(--available-height))] min-w-[max(8rem,var(--anchor-width))] overflow-y-auto border-0 p-1',
         fieldControlPopoverClassName,
         className,
+      )}
+      render={(partProps, state) => (
+        <>
+          {renderElement('div', partProps, render, state)}
+          {/* Yield the outer Radix overlay's Escape handler to the open Select. */}
+          {state.open ? <DismissableLayer hidden /> : null}
+        </>
       )}
       {...props}
     >
