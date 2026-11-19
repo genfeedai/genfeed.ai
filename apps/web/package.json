@@ -106,6 +106,7 @@
     "./*.ts",
     "./app/**",
     "./i18n/**",
+    "./src/components/agent/page-controls-bridge.ts",
     "./src/components/layouts/protected/**",
     "./src/config/**",
     "./src/features/**",
