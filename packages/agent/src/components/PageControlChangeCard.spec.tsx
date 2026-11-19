@@ -140,9 +140,10 @@ describe('PageControlChangeCard', () => {
     await userEvent.click(
       screen.getByRole('button', { name: 'Apply changes' }),
     );
-    // The person turns Weekly recap back on by hand before undoing.
+    const undo = await screen.findByRole('button', { name: 'Undo' });
+    // The person turns Weekly recap back on by hand after the card applies.
     components[0].checked = true;
-    await userEvent.click(await screen.findByRole('button', { name: 'Undo' }));
+    await userEvent.click(undo);
 
     expect(
       await screen.findByText('You changed this since, so it stays as it is.'),

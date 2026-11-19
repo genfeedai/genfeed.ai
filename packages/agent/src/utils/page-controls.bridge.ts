@@ -9,6 +9,7 @@ export interface PageControlsBridgeComponent {
   actions: string[];
   component: string;
   confirm?: string;
+  disabled?: boolean;
   label?: string;
   offPage?: boolean;
   ref: string;
@@ -49,6 +50,9 @@ const STATE_KEY_BY_ACTION: Record<
   AgentPageControlChangeStep['action'],
   'checked' | 'value'
 > = { setChecked: 'checked', setValue: 'value' };
+
+const CONTROL_SAVE_TIMEOUT_MS = 15_000;
+const CONTROL_SAVE_POLL_MS = 50;
 
 let registeredBridge: PageControlsBridge | null = null;
 
@@ -170,6 +174,18 @@ function findControlByLabel(
   return { component: matches[0] };
 }
 
+async function readSettledControl(bridge: PageControlsBridge, ref: string) {
+  const deadline = Date.now() + CONTROL_SAVE_TIMEOUT_MS;
+  // Controlled switches can stay disabled while the page saves their value.
+  do {
+    await new Promise((resolve) => setTimeout(resolve, CONTROL_SAVE_POLL_MS));
+    const current = bridge.snapshot().find((control) => control.ref === ref);
+    if (!current?.disabled || current.offPage) {
+      return current;
+    }
+  } while (Date.now() < deadline);
+}
+
 async function applyStep(
   bridge: PageControlsBridge,
   step: AgentPageControlChangeStep,
@@ -192,6 +208,9 @@ async function applyStep(
 
   const stateKey = STATE_KEY_BY_ACTION[step.action];
   const previous = component[stateKey];
+  if (previous === step.value) {
+    return { status: 'unchanged' };
+  }
   const result = await bridge.act({
     steps: [{ action: step.action, args: [step.value], ref: component.ref }],
   });
@@ -202,14 +221,16 @@ async function applyStep(
       status: 'refused',
     };
   }
-  const changes = result.steps.flatMap((entry) => entry.changes ?? []);
-  if (changes.length === 0) {
-    return { status: 'unchanged' };
+  const current = await readSettledControl(bridge, component.ref);
+  if (!current || current.offPage) {
+    return { reason: 'failed', status: 'refused' };
   }
-  // What the control holds now, not what was asked: a slider may round it.
-  const applied = bridge
-    .snapshot()
-    .find((current) => current.ref === component.ref)?.[stateKey];
+  const applied = current[stateKey];
+  if (applied === previous) {
+    return step.action === 'setChecked'
+      ? { reason: 'failed', status: 'refused' }
+      : { status: 'unchanged' };
+  }
   return {
     ...(isPrimitiveState(previous) && isPrimitiveState(applied)
       ? {
@@ -275,9 +296,14 @@ async function revertStep(
       { action: revert.action, args: [revert.previous], ref: revert.ref },
     ],
   });
-  return result.ok
+  if (!result.ok) {
+    return { detail: result.error?.message, reason: 'failed', status: 'kept' };
+  }
+  const restored = await readSettledControl(bridge, revert.ref);
+  return restored?.[STATE_KEY_BY_ACTION[revert.action]] === revert.previous &&
+    !restored.offPage
     ? { status: 'restored' }
-    : { detail: result.error?.message, reason: 'failed', status: 'kept' };
+    : { reason: 'failed', status: 'kept' };
 }
 
 /**

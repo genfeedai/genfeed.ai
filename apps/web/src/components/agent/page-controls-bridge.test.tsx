@@ -1,8 +1,9 @@
 import {
   applyPageControlChanges,
   readPageControls,
+  undoPageControlChanges,
 } from '@genfeedai/agent/utils/page-controls.bridge';
-import { render, screen } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import { useState } from 'react';
 import { describe, expect, it } from 'vitest';
 import SettingSwitch from '@/components/ui/setting-switch';
@@ -46,6 +47,28 @@ function Preferences({
         />
       </div>
     </div>
+  );
+}
+
+function SavedPreference({ save }: { save: () => Promise<boolean> }) {
+  const [isChecked, setIsChecked] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+
+  async function savePreference(next: boolean) {
+    setIsSaving(true);
+    if (await save()) {
+      setIsChecked(next);
+    }
+    setIsSaving(false);
+  }
+
+  return (
+    <SettingSwitch
+      isChecked={isChecked}
+      isDisabled={isSaving}
+      label="Weekly recap"
+      onCheckedChange={(next) => void savePreference(next)}
+    />
   );
 }
 
@@ -110,6 +133,50 @@ describe('the page controls bridge', () => {
     ]);
     expect(saved).toEqual(['Weekly recap=false', 'Agent Emails=true']);
     expect([isOn('Weekly recap'), isOn('Agent Emails')]).toEqual([false, true]);
+  });
+
+  it('offers Undo after the controlled switch saves and reads back its value', async () => {
+    const save = Promise.withResolvers<boolean>();
+    render(<SavedPreference save={() => save.promise} />);
+    const recap = screen.getByRole('switch', { name: 'Weekly recap' });
+
+    const pending = applyPageControlChanges([
+      { action: 'setChecked', label: 'Weekly recap', value: false },
+    ]);
+    await waitFor(() => expect(recap).toBeDisabled());
+    expect(recap).toBeChecked();
+    await act(async () => save.resolve(true));
+
+    const [outcome] = await pending;
+    expect(outcome).toMatchObject({
+      revert: { applied: false, previous: true },
+      status: 'applied',
+    });
+    expect(recap).not.toBeChecked();
+    if (outcome.status !== 'applied' || !outcome.revert) {
+      throw new Error('Expected an undo step for Weekly recap');
+    }
+    await expect(undoPageControlChanges([outcome.revert])).resolves.toEqual([
+      { status: 'restored' },
+    ]);
+    expect(recap).toBeChecked();
+  });
+
+  it('reports a failed save when the controlled switch keeps its value', async () => {
+    const save = Promise.withResolvers<boolean>();
+    render(<SavedPreference save={() => save.promise} />);
+    const recap = screen.getByRole('switch', { name: 'Weekly recap' });
+
+    const pending = applyPageControlChanges([
+      { action: 'setChecked', label: 'Weekly recap', value: false },
+    ]);
+    await waitFor(() => expect(recap).toBeDisabled());
+    await act(async () => save.resolve(false));
+
+    await expect(pending).resolves.toMatchObject([
+      { reason: 'failed', status: 'refused' },
+    ]);
+    expect(recap).toBeChecked();
   });
 
   it('leaves a control that needs the person, and one that is not on the page, alone', async () => {
