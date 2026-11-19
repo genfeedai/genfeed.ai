@@ -30,7 +30,6 @@ export default function TopbarEnd() {
         side="bottom"
         imageUrl={user.imageUrl}
         userName={displayName}
-        userEmail={emailAddress}
       />
     </div>
   );
