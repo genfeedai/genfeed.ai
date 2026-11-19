@@ -136,7 +136,11 @@ export class TurboRunController {
   ) {
     try {
       const scope = resolveTenantReadScope(user);
-      const brandIds = await this.resolveReviewBrandIds(user, scope, brandId);
+      const brandIds = await this.resolveReviewBrandIds(
+        user,
+        scope,
+        brandId || scope.brandId,
+      );
 
       const data = await this.turboRunService.getTurboRuns(
         scope.organizationId,
@@ -167,6 +171,7 @@ export class TurboRunController {
   ) {
     try {
       const scope = resolveTenantReadScope(user);
+      // By-ID reads use all reachable brands unless the caller selects one.
       const brandIds = await this.resolveReviewBrandIds(user, scope, brandId);
 
       const data = await this.turboRunService.getTurboRun(
@@ -183,9 +188,8 @@ export class TurboRunController {
   private async resolveReviewBrandIds(
     user: User,
     scope: ITenantReadScope,
-    requestedBrandId?: string,
+    selectedBrandId?: string,
   ): Promise<string[] | undefined> {
-    const selectedBrandId = requestedBrandId || scope.brandId;
     const brandIds = scope.isOrganizationOverride
       ? undefined
       : (
