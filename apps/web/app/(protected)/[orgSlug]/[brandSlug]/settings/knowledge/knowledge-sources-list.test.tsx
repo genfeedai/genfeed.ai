@@ -15,7 +15,14 @@ import {
 } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import userEvent from '@testing-library/user-event';
-import type { ReactNode } from 'react';
+import {
+  createContext,
+  type ReactNode,
+  Suspense,
+  startTransition,
+  use,
+  useContext,
+} from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
@@ -59,8 +66,11 @@ vi.mock('@contexts/ui/context-sidebar-context', async (importOriginal) => {
   };
 });
 
+const NavigationSearch = createContext<string | null>(null);
+
 vi.mock('next/navigation', () => ({
-  useSearchParams: () => new URLSearchParams(mocks.search),
+  useSearchParams: () =>
+    new URLSearchParams(useContext(NavigationSearch) ?? mocks.search),
   usePathname: () => '/org/brand/settings/knowledge',
   useRouter: () => ({ replace: mocks.replace }),
 }));
@@ -174,6 +184,22 @@ import {
   ContextSidebarProvider,
 } from '@contexts/ui/context-sidebar-context';
 import KnowledgeSourcesList from './knowledge-sources-list';
+
+function PauseNavigation({ pending }: { pending: Promise<never> }) {
+  use(pending);
+  return null;
+}
+
+function renderSelection(search: string, pending?: Promise<never>) {
+  return (
+    <Suspense fallback={<div>Loading selection</div>}>
+      <NavigationSearch.Provider value={search}>
+        <KnowledgeSourcesList brandId="brand-1" />
+        {pending && <PauseNavigation pending={pending} />}
+      </NavigationSearch.Provider>
+    </Suspense>
+  );
+}
 
 function row(
   id: string,
@@ -516,6 +542,57 @@ describe('KnowledgeSourcesList', () => {
 
     expect(mocks.archive).toHaveBeenCalledWith('a', 'brand-1');
     expect(screen.getByTestId('detail')).toHaveTextContent('Source b');
+  });
+
+  it('closes the archived selection while a different selection is suspended', async () => {
+    let finishArchive!: () => void;
+    mocks.archive.mockReturnValueOnce(
+      new Promise<void>((resolve) => {
+        finishArchive = resolve;
+      }),
+    );
+    mocks.useKnowledgeLibrary.mockReturnValue({
+      error: null,
+      isLoading: false,
+      refresh: mocks.refresh,
+      rows: [
+        row('a', KnowledgeProcessingState.READY),
+        row('b', KnowledgeProcessingState.READY),
+      ],
+      spaces: [],
+    });
+
+    const view = render(renderSelection('page=1&sourceId=a'));
+    let pendingArchive: Promise<void> | undefined;
+    act(() => {
+      pendingArchive = mocks.detailArchive?.();
+    });
+    await waitFor(() =>
+      expect(mocks.archive).toHaveBeenCalledWith('a', 'brand-1'),
+    );
+
+    await act(async () => {
+      const suspended = new Promise<never>(() => {});
+      startTransition(() =>
+        view.rerender(renderSelection('page=2&sourceId=b', suspended)),
+      );
+    });
+    expect(mocks.useKnowledgeLibrary).toHaveBeenCalledWith({
+      brandId: 'brand-1',
+      page: 2,
+      selectedSourceId: 'b',
+    });
+    expect(screen.getByText('Detail Source a')).toBeVisible();
+
+    await act(async () => {
+      finishArchive();
+      await pendingArchive;
+    });
+    expect(screen.queryByText('Detail Source a')).toBeNull();
+    expect(mocks.replace).toHaveBeenLastCalledWith(
+      '/org/brand/settings/knowledge?page=1',
+      { scroll: false },
+    );
   });
 
   it('deselects the archived source when it is still selected', async () => {
