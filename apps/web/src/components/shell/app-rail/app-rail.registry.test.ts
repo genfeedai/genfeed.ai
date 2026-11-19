@@ -47,8 +47,8 @@ describe('app rail registry', () => {
       'messages',
     ]);
     expect(APP_RAIL_REGISTRY.map((app) => app.group)).toEqual([
-      ...Array(6).fill('daily'),
-      ...Array(8).fill('app'),
+      ...Array(7).fill('daily'),
+      ...Array(7).fill('app'),
     ]);
     expect(APP_RAIL_REGISTRY.map((app) => app.id)).not.toContain('studio');
     expect(ADMIN_RAIL_APP.group).toBe('admin');
