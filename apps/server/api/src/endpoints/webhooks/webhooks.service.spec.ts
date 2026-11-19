@@ -1037,16 +1037,32 @@ describe('WebhooksService', () => {
       );
     });
 
-    it('should use default error message if none provided', async () => {
-      await service.handleFailedGeneration(externalId);
+    it.each([undefined, '', '  \t', INGREDIENT_PROCESSING_TIMEOUT_ERROR])(
+      'persists and publishes the fallback for a PROCESSING failure with reason %j',
+      async (reason) => {
+        await service.handleFailedGeneration(externalId, reason);
 
-      expect(websocketService.publishMediaFailed).toHaveBeenCalledWith(
-        expect.any(String),
-        'Generation failed',
-        expect.any(String),
-        expect.any(String),
-      );
-    });
+        expect(ingredientsService.patchAll).toHaveBeenCalledExactlyOnceWith(
+          {
+            id: mockIngredientId.toString(),
+            organizationId: mockOrgId,
+            isDeleted: false,
+            status: IngredientStatus.PROCESSING,
+          },
+          {
+            status: IngredientStatus.FAILED,
+            isGenerationFailureConfirmed: true,
+            generationError: 'Generation failed',
+          },
+        );
+        expect(websocketService.publishMediaFailed).toHaveBeenCalledWith(
+          expect.any(String),
+          'Generation failed',
+          expect.any(String),
+          expect.any(String),
+        );
+      },
+    );
 
     it('should handle failed image generation activity', async () => {
       await service.handleFailedGeneration(externalId, errorMessage);
