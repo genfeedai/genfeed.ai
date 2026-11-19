@@ -6,8 +6,7 @@ import BrandDetailAccountSettingsCard from '@/features/brands/components/sidebar
 import BrandDetailExternalLinksCard from '@/features/brands/components/sidebar/BrandDetailExternalLinksCard';
 
 /**
- * Public-profile column: visibility, website links, then the connected
- * social accounts.
+ * Public-profile column: visibility, connected social accounts, website links.
  *
  * - Connected social accounts arrive as `children`: they own the Connect
  *   account modal and the reconnect flows.
@@ -33,12 +32,12 @@ export default function BrandDetailSidebar({
         onToggle={onTogglePublicProfile}
       />
 
+      {children}
+
       <BrandDetailExternalLinksCard
         links={links}
         onOpenLinkModal={onOpenLinkModal}
       />
-
-      {children}
     </div>
   );
 }
