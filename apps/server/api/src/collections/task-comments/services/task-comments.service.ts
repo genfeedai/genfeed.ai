@@ -1,4 +1,7 @@
-import type { BrandAccessActor } from '@api/authorization/brand-access/brand-access.service';
+import {
+  type BrandAccessActor,
+  BrandAccessService,
+} from '@api/authorization/brand-access/brand-access.service';
 import type { MentionedMember } from '@api/collections/mentions/interfaces/mention.interface';
 import { TeammateMentionsService } from '@api/collections/mentions/services/teammate-mentions.service';
 import { CreateTaskCommentDto } from '@api/collections/task-comments/dto/create-task-comment.dto';
@@ -23,6 +26,7 @@ export class TaskCommentsService extends BaseService<
     public readonly prisma: PrismaService,
     public readonly logger: LoggerService,
     private readonly mentions: TeammateMentionsService,
+    private readonly brandAccess: BrandAccessService,
   ) {
     super(prisma, 'taskComment', logger);
   }
@@ -43,6 +47,12 @@ export class TaskCommentsService extends BaseService<
     });
     if (!task) {
       throw new NotFoundException('Task', taskId);
+    }
+
+    if (task.brandId) {
+      await this.brandAccess.assert(actor, task.brandId);
+    } else {
+      await this.brandAccess.resolve(actor);
     }
 
     const mentionedUserIds = this.mentions.normalize(input.mentionedUserIds);

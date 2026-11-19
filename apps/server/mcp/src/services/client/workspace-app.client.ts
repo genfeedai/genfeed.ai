@@ -1,3 +1,8 @@
+import type {
+  ITurboRunSummary,
+  TaskPriority,
+  TaskStatus,
+} from '@genfeedai/contracts/interfaces';
 import type { BaseApiClient } from './base-api-client';
 
 export interface ListWorkspaceTasksParams {
@@ -14,14 +19,27 @@ export interface CreateWorkspaceTaskParams {
   title: string;
 }
 
+export interface UpdateWorkspaceTaskParams {
+  assigneeUserId?: string | null;
+  description?: string;
+  priority?: TaskPriority;
+  status?: TaskStatus;
+  title?: string;
+}
+
 export interface ListWorkspaceActivityParams {
   activeOnly?: boolean;
   limit?: number;
   page?: number;
 }
 
+type ReviewRunResource = {
+  id: string;
+  attributes: Pick<ITurboRunSummary, 'items'>;
+};
+
 /**
- * Workspace app reads and the one task write: `/tasks`, `/review-inbox` and
+ * Workspace app reads and writes: `/tasks`, `/review-inbox` and
  * `/activities`. Thin proxies; the caller's bearer token carries organization
  * and brand, so tenant isolation is inherited from the API guards.
  */
@@ -85,16 +103,75 @@ export class WorkspaceAppClient {
     );
   }
 
-  listInbox(): Promise<Array<Record<string, unknown>>> {
+  updateTask(
+    taskId: string,
+    params: UpdateWorkspaceTaskParams,
+  ): Promise<Record<string, unknown>> {
+    return this.base.request(
+      'updating workspace task',
+      async (http) => {
+        const response = await http.patch(
+          `/tasks/${encodeURIComponent(taskId)}`,
+          params,
+        );
+        return this.base.unwrapObject(response);
+      },
+      this.base.failWithDetail('Failed to update workspace task'),
+    );
+  }
+
+  commentOnTask(
+    taskId: string,
+    body: string,
+  ): Promise<Record<string, unknown>> {
+    return this.base.request(
+      'commenting on workspace task',
+      async (http) => {
+        const response = await http.post(
+          `/tasks/${encodeURIComponent(taskId)}/comments`,
+          { body },
+        );
+        return this.base.unwrapObject(response);
+      },
+      this.base.failWithDetail('Failed to comment on workspace task'),
+    );
+  }
+
+  listInbox(brandId?: string): Promise<Array<Record<string, unknown>>> {
     this.base.logger.debug('Listing review inbox');
 
     return this.base.request(
       'listing review inbox',
       async (http) => {
-        const response = await http.get('/review-inbox');
+        const response = brandId
+          ? await http.get('/review-inbox', { params: { brandId } })
+          : await http.get('/review-inbox');
         return this.base.unwrapList<Record<string, unknown>>(response);
       },
-      this.base.failWith('Failed to list the review inbox'),
+      this.base.failWithDetail('Failed to list the review inbox'),
+    );
+  }
+
+  getReviewRun(
+    brandId?: string,
+    turboRunId?: string,
+  ): Promise<ReviewRunResource | undefined> {
+    return this.base.request(
+      'reading the Turbo review batch',
+      async (http) => {
+        if (turboRunId) {
+          const response = await http.get(
+            `/turbo-runs/${encodeURIComponent(turboRunId)}`,
+            { params: { brandId } },
+          );
+          return this.base.unwrapObject<ReviewRunResource>(response);
+        }
+        const response = await http.get('/turbo-runs', {
+          params: { brandId, limit: 1 },
+        });
+        return this.base.unwrapList<ReviewRunResource>(response)[0];
+      },
+      this.base.failWithDetail('Failed to read the Turbo review batch'),
     );
   }
 

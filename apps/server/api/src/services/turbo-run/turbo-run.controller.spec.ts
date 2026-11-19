@@ -34,6 +34,12 @@ describe('TurboRunController', () => {
       controllers: [TurboRunController],
       providers: [
         {
+          provide: BrandAccessService,
+          useValue: {
+            resolve: vi.fn().mockResolvedValue({ brandIds: ['brand-1'] }),
+          },
+        },
+        {
           provide: TurboRunRewriteService,
           useValue: rewriteService,
         },
@@ -143,7 +149,7 @@ describe('TurboRunController', () => {
         organizationId: 'org',
         userId: 'usr',
       } as never;
-      const result = await controller.getTurboRuns(mockReq, {} as never, user);
+      const result = await controller.getTurboRuns(mockReq, user);
       expect(service.getTurboRuns).toHaveBeenCalled();
       expect(result).toBeDefined();
     });
@@ -168,7 +174,7 @@ describe('TurboRunController', () => {
 
       expect(service.getTurboRuns).toHaveBeenCalledWith(
         expect.any(String),
-        expect.objectContaining({ brandId: 'brand-1' }),
+        expect.objectContaining({ brandIds: ['brand-1'] }),
       );
     });
   });
@@ -445,3 +451,5 @@ describe('TurboRunController', () => {
     });
   });
 });
+
+import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';

@@ -58,6 +58,9 @@ function build() {
       .fn()
       .mockResolvedValue({ success: true, creditsUsed: 0, data: fixture }),
     evaluateMcpToolResult: vi.fn().mockResolvedValue({ outcome: 'allowed' }),
+    getReviewRun: vi
+      .fn()
+      .mockResolvedValue({ id: fixture.id, attributes: { items: [] } }),
     isApprovalRequired: vi.fn().mockResolvedValue(true),
     createApproval: vi.fn(async (toolName, args) => {
       approval = {
@@ -112,6 +115,7 @@ describe('MCP catalog presentation through the public registry', () => {
       if (tool.name === 'get_preset') args.key = 'productLaunch';
       if (tool.name === 'create_clipper_project_from_youtube')
         args.brandId = 'input-private';
+      if (tool.name === 'manage_task') args.action = 'complete';
       if (tool.name === 'run_clipper') args.mode = 'raw-cut';
       // One release or a batch is required, neither field alone.
       if (

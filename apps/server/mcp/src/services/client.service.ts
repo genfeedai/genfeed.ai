@@ -67,6 +67,7 @@ import {
   type CreateWorkspaceTaskParams,
   type ListWorkspaceActivityParams,
   type ListWorkspaceTasksParams,
+  type UpdateWorkspaceTaskParams,
   WorkspaceAppClient,
 } from '@mcp/services/client/workspace-app.client';
 import type {
@@ -434,8 +435,20 @@ export class ClientService {
     return this.workspaceApp.createTask(params);
   }
 
-  listInbox(): Promise<Array<Record<string, unknown>>> {
-    return this.workspaceApp.listInbox();
+  updateTask(taskId: string, params: UpdateWorkspaceTaskParams) {
+    return this.workspaceApp.updateTask(taskId, params);
+  }
+
+  commentOnTask(taskId: string, body: string) {
+    return this.workspaceApp.commentOnTask(taskId, body);
+  }
+
+  listInbox(brandId?: string): Promise<Array<Record<string, unknown>>> {
+    return this.workspaceApp.listInbox(brandId);
+  }
+
+  getReviewRun(brandId?: string, turboRunId?: string) {
+    return this.workspaceApp.getReviewRun(brandId, turboRunId);
   }
 
   listActivity(

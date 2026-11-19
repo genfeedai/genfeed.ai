@@ -19,6 +19,7 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
+import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import {
   serializeCollection,
   serializeSingle,
@@ -246,6 +247,30 @@ export class TasksController extends BaseCRUDController<
     // Both ids must exist: `undefined === undefined` granted write access.
     const userOrgId = user.organizationId;
     return Boolean(userOrgId) && entity.organizationId === userOrgId;
+  }
+
+  protected override async assertPatchAllowed(
+    user: User,
+    task: TaskDocument,
+    update: Partial<UpdateTaskDto>,
+    request?: Request,
+  ): Promise<void> {
+    if (!getIsSuperAdmin(user, request)) {
+      await this.taskReviewAccess.assertCanAccessTaskBrand(user, task.brandId);
+      if (update.brandId && update.brandId !== task.brandId) {
+        await this.taskReviewAccess.assertCanAccessTaskBrand(
+          user,
+          update.brandId,
+        );
+      }
+    }
+    if (update.assigneeUserId) {
+      await this.taskReviewAccess.assertAssigneeCanAccessTask(
+        task.organizationId,
+        update.brandId === undefined ? task.brandId : update.brandId,
+        update.assigneeUserId,
+      );
+    }
   }
 
   @TenantReadPolicy('selected')

@@ -537,6 +537,7 @@ export class ToolRegistryService implements OnModuleInit {
     if (TOOL_DISCOVERY_TOOL_NAMES.has(name)) return 'tool-discovery';
     if (AGENT_CHAT_TOOL_NAMES.has(name)) return 'agent-chat';
     if (WORKFLOW_CONTROL_TOOL_NAMES.has(name)) return 'workflow-control';
+    if (WORKSPACE_APP_TOOL_NAMES.has(name)) return 'workspace-app';
     if (AGENT_EXECUTOR_TOOL_NAMES.has(name)) return 'agent-executor';
     if (ONBOARDING_TOOL_NAMES.has(name)) return 'onboarding';
     if (CONTENT_TOOL_NAMES.has(name)) return 'content';
@@ -550,7 +551,6 @@ export class ToolRegistryService implements OnModuleInit {
     if (SOCIAL_MESSAGES_TOOL_NAMES.has(name)) return 'social-messages';
     if (CLIPPER_PROJECTS_TOOL_NAMES.has(name)) return 'clipper-projects';
     if (EDITOR_TOOL_NAMES.has(name)) return 'editor';
-    if (WORKSPACE_APP_TOOL_NAMES.has(name)) return 'workspace-app';
     if (STORYBOARD_TOOL_NAMES.has(name)) return 'storyboard-capabilities';
     if (PRESET_TOOL_NAMES.has(name)) return 'presets';
     if (MODELS3D_TOOL_NAMES.has(name)) return 'models3d';

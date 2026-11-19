@@ -6,16 +6,48 @@ import {
 import { getPublicAppUrl } from '@mcp/mcp/setup-page';
 import type { ClientService } from '@mcp/services/client.service';
 import { formatToolData } from '@mcp/shared/utils/tool-result-text.util';
+import { z } from 'zod';
 
 export const WORKSPACE_APP_TOOL_NAMES = new Set([
   'create_task',
   'get_activity',
   'get_inbox',
+  'get_review_queue',
   'get_task',
   'get_tasks',
+  'manage_task',
 ]);
 
 const MAX_LIMIT = 100;
+const nonBlankText = z.string().trim().min(1);
+const taskReference = { taskId: nonBlankText };
+const manageTaskSchema = z.discriminatedUnion('action', [
+  z.strictObject({
+    action: z.literal('update'),
+    input: z.strictObject({
+      ...taskReference,
+      assigneeUserId: nonBlankText.nullable().optional(),
+      description: z.string().max(10000).optional(),
+      priority: z.enum(TASK_PRIORITIES).optional(),
+      status: z.enum(TASK_STATUSES).optional(),
+      title: nonBlankText.max(500).optional(),
+    }),
+  }),
+  z.strictObject({
+    action: z.literal('comment'),
+    input: z.strictObject({ ...taskReference, body: nonBlankText }),
+  }),
+  z.strictObject({
+    action: z.literal('complete'),
+    input: z.strictObject(taskReference),
+  }),
+]);
+const reviewQueueSchema = z.strictObject({
+  brandId: nonBlankText.optional(),
+  limit: z.number().int().min(1).max(MAX_LIMIT).optional(),
+  status: z.enum(['pending', 'completed', 'failed']).optional(),
+  turboRunId: nonBlankText.optional(),
+});
 
 /**
  * Workspace app MCP handlers: tasks, the review inbox and recent activity.
@@ -50,6 +82,10 @@ export async function handleWorkspaceAppTool(
       });
       return dataResult('Task created', task);
     }
+    case 'manage_task':
+      return manageTask(client, manageTaskSchema.parse(args));
+    case 'get_review_queue':
+      return listReviewQueue(client, reviewQueueSchema.parse(args));
     case 'get_inbox': {
       const items = await client.listInbox();
       return {
@@ -75,6 +111,69 @@ export async function handleWorkspaceAppTool(
     }
     default:
       throw new Error(`Unknown Workspace tool: ${name}`);
+  }
+}
+
+async function listReviewQueue(
+  client: ClientService,
+  { brandId, limit, status, turboRunId }: z.infer<typeof reviewQueueSchema>,
+) {
+  if (status && !turboRunId) {
+    throw new Error('Supply turboRunId to filter Turbo items by status.');
+  }
+  const [run, inbox] = await Promise.all([
+    client.getReviewRun(brandId, turboRunId),
+    client.listInbox(brandId),
+  ]);
+  const turboItems = (run?.attributes.items ?? []).filter((item) => {
+    if (status) return item.status.toLowerCase() === status;
+    return (
+      item.status === TurboRunItemStatus.COMPLETED &&
+      normalizeReviewDecision(item.reviewDecision) === ReviewDecision.UNSET
+    );
+  });
+  const reviewItems = inbox.slice(0, limit);
+  const data = {
+    reviewItems,
+    turboItems: turboItems.slice(0, limit),
+    turboRunId: run?.id ?? null,
+  };
+  const reviewUrl = `${getPublicAppUrl()}${APP_ROUTES.PUBLISHING.APPROVALS}`;
+  return {
+    structuredContent: { data },
+    content: [
+      {
+        text: `Found ${data.turboItems.length} Turbo items and ${reviewItems.length} pending approvals or workflow gates. Open Publishing Approvals to review them: ${reviewUrl}`,
+        type: 'text' as const,
+      },
+    ],
+  };
+}
+
+async function manageTask(
+  client: ClientService,
+  request: z.infer<typeof manageTaskSchema>,
+) {
+  switch (request.action) {
+    case 'update': {
+      const { taskId, ...patch } = request.input;
+      if (Object.keys(patch).length === 0) {
+        throw new Error('Specify at least one task field to update.');
+      }
+      return dataResult('Task updated', await client.updateTask(taskId, patch));
+    }
+    case 'comment': {
+      const { body, taskId } = request.input;
+      return dataResult(
+        'Comment added',
+        await client.commentOnTask(taskId, body),
+      );
+    }
+    case 'complete':
+      return dataResult(
+        'Task completed',
+        await client.updateTask(request.input.taskId, { status: 'done' }),
+      );
   }
 }
 
@@ -144,3 +243,9 @@ function readPage(args: Record<string, unknown>): number | undefined {
   if (typeof value !== 'number' || !Number.isFinite(value)) return undefined;
   return Math.max(Math.floor(value), 1);
 }
+
+import {
+  normalizeReviewDecision,
+  ReviewDecision,
+  TurboRunItemStatus,
+} from '@genfeedai/contracts';

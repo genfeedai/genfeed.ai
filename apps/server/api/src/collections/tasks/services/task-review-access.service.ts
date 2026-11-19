@@ -35,6 +35,39 @@ export class TaskReviewAccessService {
     private readonly brandAccess: BrandAccessService,
   ) {}
 
+  async assertCanAccessTaskBrand(
+    user: User,
+    brandId: string | null | undefined,
+  ): Promise<void> {
+    const actor = this.actorOf(user);
+    if (brandId) {
+      await this.brandAccess.assert(actor, brandId);
+    } else {
+      await this.brandAccess.resolve(actor);
+    }
+  }
+
+  async assertAssigneeCanAccessTask(
+    organizationId: string,
+    brandId: string | null | undefined,
+    userId: string,
+  ): Promise<void> {
+    if (!isCloudDeployment()) return;
+    const assignee = { organizationId, userId };
+    try {
+      if (brandId) {
+        await this.brandAccess.assert(assignee, brandId);
+      } else {
+        await this.brandAccess.resolve(assignee);
+      }
+    } catch (error: unknown) {
+      if (!(error instanceof ForbiddenException)) throw error;
+      throw new ForbiddenException(
+        'The assignee must be an active workspace member with access to this task.',
+      );
+    }
+  }
+
   /** {@link assertCanDecide} for the task `taskId` of the caller's organization. */
   async assertCanDecideTask(
     user: User,
