@@ -127,6 +127,7 @@ export default function ApiStatusProvider({
     }
   }, []);
 
+  // use-effect-audit: ignore checks API health on mount
   useEffect(() => {
     checkApiHealth();
   }, [checkApiHealth]);

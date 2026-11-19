@@ -198,6 +198,7 @@ const EXPECTED_SYSTEM_WORKFLOW_IDS: readonly string[] = [
   'agent.tool.prepare_voice_clone',
   'agent.tool.prepare_workflow_trigger',
   'agent.tool.present_work_object',
+  'agent.tool.propose_page_changes',
   'agent.tool.quote_visual_code_generation',
   'agent.tool.rate_content',
   'agent.tool.rate_ingredient',

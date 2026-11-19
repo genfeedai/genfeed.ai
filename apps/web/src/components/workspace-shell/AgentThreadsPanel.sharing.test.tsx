@@ -576,7 +576,7 @@ describe('AgentThreadsPanel sharing', () => {
     ).toBeVisible();
     expect(
       within(dialog).getByRole('radio', { name: /Only me/ }),
-    ).toBeDisabled();
+    ).toHaveAttribute('aria-disabled', 'true');
     expect(
       within(dialog).getByRole('radio', { name: /Only me/ }),
     ).not.toBeChecked();
@@ -688,7 +688,7 @@ describe('AgentThreadsPanel sharing', () => {
     await waitFor(() =>
       expect(
         within(dialog).getByRole('radio', { name: /Only me/ }),
-      ).toBeDisabled(),
+      ).toHaveAttribute('aria-disabled', 'true'),
     );
     finishMarco();
 
@@ -755,7 +755,7 @@ describe('AgentThreadsPanel sharing', () => {
     expect(scopeButton).toHaveTextContent('Access unverified');
     expect(
       within(dialog).getByRole('radio', { name: /Only me/ }),
-    ).toBeDisabled();
+    ).toHaveAttribute('aria-disabled', 'true');
   });
 
   it('tells a failed roster lookup from an empty one, and recovers on retry', async () => {

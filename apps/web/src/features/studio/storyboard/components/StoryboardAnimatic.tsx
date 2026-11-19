@@ -1,6 +1,7 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { useResetOnChange } from '@hooks/utils/use-reset-on-change/use-reset-on-change';
 import { Button } from '@ui/primitives/button';
 import { Pause, Play, RotateCcw } from 'lucide-react';
 import NextImage from 'next/image';
@@ -146,10 +147,8 @@ export default function StoryboardAnimatic({
     clock.current = { started: 0, elapsed: 0 };
   }, []);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: a new run/revision must reset playback.
-  useEffect(() => {
-    reset();
-  }, [scope, reset]);
+  // A new run/revision must reset playback.
+  useResetOnChange([scope], reset);
   // use-effect-audit: ignore interval timer outside React
   useEffect(() => {
     if (!playing) return;
@@ -166,6 +165,7 @@ export default function StoryboardAnimatic({
     }, 100);
     return () => clearInterval(timer);
   }, [playing, end]);
+  // use-effect-audit: ignore pauses playback when the shots stop being playable
   useEffect(() => {
     if (playing && !(singleShot ? singleReady : playable)) pause();
   }, [playing, singleShot, singleReady, playable, pause]);

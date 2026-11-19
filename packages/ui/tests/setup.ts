@@ -1,4 +1,6 @@
 import '../src/components/tests/setup';
+import './get-animations.stub';
+import './popover.stub';
 import { beforeAll } from 'vitest';
 import { preloadButtonTooltip } from '../src/primitives/button-tooltip';
 

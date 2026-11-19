@@ -352,6 +352,7 @@ export function usePostDetailThread({
   useSocketSubscriptions(wsSubscriptions);
 
   // Clear expanding state when all child posts are complete
+  // use-effect-audit: ignore announces completion once the thread expansion finishes
   useEffect(() => {
     if (
       isExpandingToThread &&

@@ -36,7 +36,7 @@ import Pagination from '@ui/navigation/pagination/Pagination';
 import { EmptyState } from '@ui/primitives/empty-state';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ReleaseBoard from '@/features/posts/board/release-board';
 import AccountGrid from '@/features/posts/grid/account-grid';
 import { usePublishingPostsViewPreference } from '@/features/posts/hooks/use-publishing-posts-view-preference/use-publishing-posts-view-preference';
@@ -408,8 +408,15 @@ export default function ReleasePostsList({
     [replaceSearchParams, storeView],
   );
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: runs once per mount to seed the URL from the brand's last choice; the toggle and handleViewModeChange own every change after that.
+  // Seeds the URL once per mount from the brand's last choice; the toggle and
+  // handleViewModeChange own every change after that.
+  const hasSeededViewRef = useRef(false);
+  // use-effect-audit: ignore seeds the URL from the brand's last view choice
   useEffect(() => {
+    if (hasSeededViewRef.current) {
+      return;
+    }
+    hasSeededViewRef.current = true;
     if (searchParams?.has(PUBLISHING_POSTS_QUERY_KEYS.VIEW)) {
       return;
     }
@@ -420,7 +427,7 @@ export default function ReleasePostsList({
     replaceSearchParams((params) => {
       params.set(PUBLISHING_POSTS_QUERY_KEYS.VIEW, storedView);
     });
-  }, []);
+  }, [getStoredView, replaceSearchParams, searchParams]);
 
   const handleSearchChange = useCallback(
     (value: string) => {

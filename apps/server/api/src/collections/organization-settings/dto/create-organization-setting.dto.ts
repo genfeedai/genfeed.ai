@@ -251,9 +251,9 @@ export class CreateOrganizationSettingDto {
   @IsBoolean()
   @IsOptional()
   @ApiProperty({
-    default: true,
+    default: false,
     description:
-      'Whether MCP requests that spend credits wait in the approvals queue. On by default; owners and admins may turn it off, and a member skips the queue only when their own setting is off too.',
+      'Whether MCP requests that spend credits wait in the approvals queue. Off by default; owners and admins may turn it on, and a member skips the queue only when their own setting is off too.',
     required: false,
   })
   readonly isMcpApprovalRequired?: boolean;

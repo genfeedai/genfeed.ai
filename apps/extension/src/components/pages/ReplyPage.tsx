@@ -216,6 +216,7 @@ export function ReplyPage({
 
   // The menu on a post hands that post over; the page's own copy of it, when
   // it is the same post, also carries the avatar and handle.
+  // use-effect-audit: ignore reads the extension platform store when the menu hands a post over
   useEffect(() => {
     if (!initialContent) return;
     const current = usePlatformStore.getState().pageContext.post;

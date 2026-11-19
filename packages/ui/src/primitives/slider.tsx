@@ -1,48 +1,108 @@
 'use client';
 
 import { cn } from '@genfeedai/helpers';
-import * as SliderPrimitive from '@radix-ui/react-slider';
+import {
+  SliderControl,
+  SliderIndicator,
+  Slider as SliderRoot,
+  SliderThumb,
+  SliderTrack,
+} from '@ui-sdk/react/slider';
 import type { ComponentPropsWithRef } from 'react';
 
+export interface SliderProps
+  extends Omit<
+    ComponentPropsWithRef<'div'>,
+    'defaultValue' | 'onChange' | 'value'
+  > {
+  defaultValue?: number[];
+  disabled?: boolean;
+  max?: number;
+  min?: number;
+  /** Runs when a drag or key press settles, not on every step of a drag. */
+  onValueCommit?: (value: number[]) => void;
+  onValueChange?: (value: number[]) => void;
+  step?: number;
+  /** One entry for each thumb. */
+  value?: number[];
+}
+
+/**
+ * A slider with one thumb for each entry of `value`. The value is always a
+ * list, so a single slider reads `value={[40]}` and `onValueChange={([next]) => …}`.
+ * A one-thumb slider is a number slider to ui-sdk, so the page agent sees a
+ * number it can set; name it with an `aria-label`.
+ */
 function Slider({
   ref,
   className,
   defaultValue,
+  disabled,
+  onValueChange,
+  onValueCommit,
   value,
+  min = 0,
+  'aria-label': ariaLabel,
+  'aria-labelledby': ariaLabelledBy,
   ...props
-}: ComponentPropsWithRef<typeof SliderPrimitive.Root>) {
-  const thumbCount = Array.isArray(value)
-    ? value.length
-    : Array.isArray(defaultValue)
-      ? defaultValue.length
-      : 1;
-  const thumbSlots = Array.from({ length: thumbCount }, (_, index) => index);
+}: SliderProps) {
+  const thumbCount = (value ?? defaultValue ?? [min]).length;
+  const thumbSlots = Array.from({ length: thumbCount }, (_, slot) => slot);
+  const rootClassName = cn(
+    'relative flex w-full touch-none select-none items-center',
+    className,
+  );
+  const parts = (
+    <SliderControl className="flex h-5 w-full items-center">
+      <SliderTrack className="relative h-1.5 w-full grow rounded-full bg-primary/20">
+        <SliderIndicator className="rounded-full bg-primary" />
+        {thumbSlots.map((slot) => (
+          <SliderThumb
+            aria-label={ariaLabel}
+            aria-labelledby={ariaLabelledBy}
+            className="block size-4 rounded-full border border-primary/50 bg-background shadow transition-colors has-focus-visible:ring-2 has-focus-visible:ring-ring has-focus-visible:ring-offset-2 has-focus-visible:ring-offset-background data-disabled:pointer-events-none data-disabled:opacity-50"
+            index={slot}
+            key={`thumb-${slot}`}
+          />
+        ))}
+      </SliderTrack>
+    </SliderControl>
+  );
+
+  if (thumbCount === 1) {
+    return (
+      <SliderRoot
+        {...props}
+        className={rootClassName}
+        defaultValue={defaultValue?.[0]}
+        disabled={disabled}
+        min={min}
+        onValueChange={(next) => onValueChange?.([next])}
+        onValueCommit={(next) => onValueCommit?.([next])}
+        ref={ref}
+        value={value?.[0]}
+      >
+        {parts}
+      </SliderRoot>
+    );
+  }
 
   return (
-    <SliderPrimitive.Root
-      ref={ref}
-      className={cn(
-        'relative flex w-full touch-none select-none items-center',
-        className,
-      )}
-      defaultValue={defaultValue}
-      value={value}
+    <SliderRoot
       {...props}
+      className={rootClassName}
+      defaultValue={defaultValue}
+      disabled={disabled}
+      min={min}
+      onValueChange={(next) => onValueChange?.(next)}
+      onValueCommit={(next) => onValueCommit?.(next)}
+      ref={ref}
+      value={value}
     >
-      <SliderPrimitive.Track className="relative h-1.5 w-full grow overflow-hidden rounded-full bg-primary/20">
-        <SliderPrimitive.Range className="absolute h-full bg-primary" />
-      </SliderPrimitive.Track>
-      {thumbSlots.map((slot) => (
-        <SliderPrimitive.Thumb
-          key={`thumb-${slot}`}
-          aria-label={props['aria-label']}
-          aria-labelledby={props['aria-labelledby']}
-          className="block size-4 rounded-full border border-primary/50 bg-background shadow transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50"
-        />
-      ))}
-    </SliderPrimitive.Root>
+      {parts}
+    </SliderRoot>
   );
 }
-Slider.displayName = SliderPrimitive.Root.displayName;
+Slider.displayName = 'Slider';
 
 export { Slider };

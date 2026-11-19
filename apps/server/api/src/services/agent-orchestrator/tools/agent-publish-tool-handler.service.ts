@@ -16,6 +16,7 @@ import {
 import { resolveConfirmedPublishTargets } from '@api/services/agent-orchestrator/tools/agent-publish-confirmed-targets.util';
 import {
   authorizeAgentTextDraft,
+  authorizeSourceDraft,
   blockMcpCreatePost,
   isMcpActionOrigin,
   mcpDraftOnlyResult,
@@ -1005,11 +1006,8 @@ export class AgentPublishToolHandler {
           success: false,
         };
       }
-      await this.assertPublishingScope(
-        ctx,
-        readOptionalString(sourcePost.brandId),
-        'source post',
-      );
+      const brandId = readOptionalString(sourcePost.brandId);
+      await authorizeSourceDraft(this.agentScopeContextService, ctx, brandId);
 
       const result = await this.postRepurposeService?.repurpose({
         credentialId: readOptionalString(params.credentialId),
@@ -1036,7 +1034,7 @@ export class AgentPublishToolHandler {
           creditsUsed,
           `Post repurpose (agent rewrite) ${postId}`,
           ActivitySource.SCRIPT,
-          { brandId: readOptionalString(sourcePost.brandId) },
+          { brandId },
         );
       }
 

@@ -1,3 +1,4 @@
+import type { AvatarRenderQuality } from '@genfeedai/contracts/constants';
 import type {
   AgentClipperRunIdentity,
   ClipProcessingFlow,
@@ -7,6 +8,8 @@ import type {
   HookClipApprovalStatus,
 } from '@genfeedai/contracts/interfaces';
 import type {
+  AvatarProvider,
+  ClipperAvatarQualityChoice,
   ClipperResultMode,
   IHighlight,
 } from '@/props/studio/clipper.props';
@@ -65,8 +68,19 @@ export interface GenerateClipsPayload {
   }>;
   avatarId?: string;
   avatarProvider?: string;
+  avatarQuality?: AvatarRenderQuality;
   mode: ClipperResultMode;
   voiceId?: string;
+}
+
+export interface BuildGenerateClipsPayloadInput {
+  avatarId: string;
+  avatarProvider: AvatarProvider;
+  avatarQuality?: ClipperAvatarQualityChoice;
+  editedHighlights: IHighlight[];
+  mode: ClipperResultMode;
+  selectedHighlightIds: string[];
+  voiceId: string;
 }
 
 export interface SubmitHookApprovalPayload {

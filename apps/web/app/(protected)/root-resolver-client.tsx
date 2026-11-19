@@ -80,6 +80,7 @@ export default function ProtectedRootResolver() {
     needsWorkspaceAction,
   ]);
 
+  // use-effect-audit: ignore sends the visitor on with the router
   useEffect(() => {
     if (
       isAccessStateLoading ||

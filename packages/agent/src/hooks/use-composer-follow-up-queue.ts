@@ -273,6 +273,7 @@ export function useComposerFollowUpQueue({
     sendNow(oldest.id);
   }, [queue, sendNow]);
 
+  // use-effect-audit: ignore dispatches the promoted follow-up once the interrupted run ends
   useEffect(() => {
     if (!isInterrupting) {
       return;
@@ -289,6 +290,7 @@ export function useComposerFollowUpQueue({
     }
   }, [dispatch, isBusy, isInterrupting]);
 
+  // use-effect-audit: ignore auto-dispatches the oldest queued follow-up when the composer is idle
   useEffect(() => {
     if (!canAutoDispatch || isReadOnly || isInterrupting) {
       autoDispatchLatchRef.current = null;

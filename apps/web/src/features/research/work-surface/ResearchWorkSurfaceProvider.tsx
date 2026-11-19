@@ -383,6 +383,7 @@ export function useRestoreResearchFinding(
     [findings],
   );
 
+  // use-effect-audit: ignore keeps the work surface and the requested URL finding in step
   useEffect(() => {
     if (!clearFinding || !setAuthorizedFinding) {
       return;

@@ -1,4 +1,4 @@
-import { performance } from 'node:perf_hooks';
+import { PerformanceObserver, performance } from 'node:perf_hooks';
 
 /** How often the loop is probed. A blocked loop delays the probe by the block. */
 const EVENT_LOOP_TICK_MS = 50;
@@ -11,6 +11,11 @@ interface EventLoopLagSample {
   lagMs: number;
 }
 
+interface GcPauseSample {
+  at: number;
+  pauseMs: number;
+}
+
 /**
  * Remembers how late each probe ran in the last few seconds, so a request that
  * took a second can say whether the process was blocked while it waited. A
@@ -19,7 +24,9 @@ interface EventLoopLagSample {
  */
 export class EventLoopLagSampler {
   private samples: EventLoopLagSample[] = [];
+  private gcPauses: GcPauseSample[] = [];
   private timer?: ReturnType<typeof setInterval>;
+  private gcObserver?: PerformanceObserver;
 
   /** Starts probing. Calling it again while running does nothing. */
   start(): void {
@@ -31,16 +38,45 @@ export class EventLoopLagSampler {
       expectedAt = now + EVENT_LOOP_TICK_MS;
     }, EVENT_LOOP_TICK_MS);
     this.timer.unref();
+    this.observeGcPauses();
   }
 
   stop(): void {
     if (this.timer) clearInterval(this.timer);
     this.timer = undefined;
+    this.gcObserver?.disconnect();
+    this.gcObserver = undefined;
     this.samples = [];
+    this.gcPauses = [];
   }
 
   get isRunning(): boolean {
     return this.timer !== undefined;
+  }
+
+  /** Garbage collection stops the loop too; keep each pause beside the probes. */
+  private observeGcPauses(): void {
+    try {
+      this.gcObserver = new PerformanceObserver((list) => {
+        for (const entry of list.getEntries()) {
+          this.recordGcPause(entry.startTime, entry.duration);
+        }
+      });
+      this.gcObserver.observe({ entryTypes: ['gc'] });
+    } catch {
+      // A runtime without the gc entry type still gets the lag reading.
+      this.gcObserver = undefined;
+    }
+  }
+
+  recordGcPause(at: number, pauseMs: number): void {
+    this.gcPauses.push({ at, pauseMs });
+    const oldest = at - EVENT_LOOP_RETAIN_MS;
+    let stale = 0;
+    while (stale < this.gcPauses.length && this.gcPauses[stale].at < oldest) {
+      stale += 1;
+    }
+    if (stale > 0) this.gcPauses.splice(0, stale);
   }
 
   record(at: number, lagMs: number): void {
@@ -66,6 +102,23 @@ export class EventLoopLagSampler {
       if (max === undefined || sample.lagMs > max) max = sample.lagMs;
     }
     return max === undefined ? undefined : Math.round(max);
+  }
+
+  /**
+   * Longest garbage-collection pause, in whole milliseconds, that began at or
+   * after `since`. Zero when none ran in the window; undefined while the
+   * sampler is not running. A slow request with high lag and a long pause was
+   * waiting on the collector; high lag with no pause was waiting on code.
+   */
+  maxGcPauseSince(since: number): number | undefined {
+    if (!this.timer || !this.gcObserver) return undefined;
+    let max = 0;
+    for (let index = this.gcPauses.length - 1; index >= 0; index -= 1) {
+      const pause = this.gcPauses[index];
+      if (pause.at < since) break;
+      if (pause.pauseMs > max) max = pause.pauseMs;
+    }
+    return Math.round(max);
   }
 }
 

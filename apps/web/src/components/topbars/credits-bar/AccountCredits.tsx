@@ -58,6 +58,7 @@ function AccountCreditsContent({
 
   // The menu content mounts when the menu opens: re-read the wallet then, so a
   // balance older than the stale window is never shown.
+  // use-effect-audit: ignore re-reads the wallet each time the menu content mounts
   useEffect(() => {
     void refreshRef.current();
   }, []);

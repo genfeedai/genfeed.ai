@@ -41,6 +41,7 @@ export default function JourneyPageContent() {
   const { isLoading, refresh, settings } = useOrganization();
   const translate = useTranslations('pages.onboarding.journey');
 
+  // use-effect-audit: ignore re-reads the organization settings each time the page opens
   useEffect(() => {
     void refresh();
   }, [refresh]);

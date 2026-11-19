@@ -74,6 +74,7 @@ export default function VideoExtendConfirmControls({
     [duration, model],
   );
 
+  // use-effect-audit: ignore reports the current selection to the confirm modal host
   useEffect(() => {
     if (!model || duration === undefined || cost === null) {
       return;

@@ -150,9 +150,8 @@ export default function AnalyticsBrandsList({
   const resolvedTotalPages = brandsResponse?.pagination?.totalPages;
 
   // A new search, sort or date range can leave the URL page past the last
-  // page of the new result set: start over at page 1. `searchParams`,
-  // `pathname` and `replace` are read only to build that URL.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: see above
+  // page of the new result set: start over at page 1.
+  // use-effect-audit: ignore moves the URL back to the last page that exists
   useEffect(() => {
     if (
       isShowingPreviousPage ||
@@ -167,7 +166,14 @@ export default function AnalyticsBrandsList({
     replace(query ? `${pathname}?${query}` : pathname, {
       scroll: false,
     });
-  }, [currentPage, isShowingPreviousPage, resolvedTotalPages]);
+  }, [
+    currentPage,
+    isShowingPreviousPage,
+    pathname,
+    replace,
+    resolvedTotalPages,
+    searchParams,
+  ]);
 
   const filterMenu = useMemo(() => {
     const facets: FilterMenuFacet[] = [

@@ -23,13 +23,15 @@ import { Search, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useCreativeAppAgentContext } from '@/hooks/agent/use-creative-app-agent-context/use-creative-app-agent-context';
 import type {
+  ClipperAvatarQualityChoice,
   ClipperWorkspaceProps,
   ProviderOption,
 } from '@/props/studio/clipper.props';
 import ClipperIngredientImport from './ClipperIngredientImport';
+import ClipperAvatarQualitySelect from './components/ClipperAvatarQualitySelect';
 import ClipperInputForm from './components/ClipperInputForm';
 import ClipperModeSelector from './components/ClipperModeSelector';
 import ClipperNewPane from './components/ClipperNewPane';
@@ -217,6 +219,8 @@ function ClipperProjectControls({
 }: ReturnType<typeof useStudioClipperPage>) {
   const selectionLabels = useTranslations('ui.selectionGroups');
   const t = useTranslations('pages.studioClipper');
+  const [avatarQuality, setAvatarQuality] =
+    useState<ClipperAvatarQualityChoice>('auto');
   if (isHydrating) {
     return (
       <div className="flex min-h-64 items-center justify-center">
@@ -432,6 +436,13 @@ function ClipperProjectControls({
                         : `Missing ${identityDefaults.missing.join(' and ')} defaults. Enter IDs manually or save them in brand defaults.`}
                 </p>
 
+                {avatarProvider === 'heygen' ? (
+                  <ClipperAvatarQualitySelect
+                    onQualityChange={setAvatarQuality}
+                    quality={avatarQuality}
+                  />
+                ) : null}
+
                 <OptionTileGroup
                   ariaLabel={selectionLabels('avatarProvider')}
                   columns={4}
@@ -469,7 +480,7 @@ function ClipperProjectControls({
               <Button
                 variant={ButtonVariant.DEFAULT}
                 action="clipper.generate"
-                onClick={handleGenerate}
+                onClick={() => handleGenerate(avatarQuality)}
                 isDisabled={
                   isSubmitting ||
                   selectedCount === 0 ||

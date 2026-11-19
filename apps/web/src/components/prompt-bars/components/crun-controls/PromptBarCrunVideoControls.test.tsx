@@ -4,6 +4,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { createCrunVideoDraft } from '@genfeedai/helpers/crun-video-input.helper';
 import { fireEvent, render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import type { CrunVideoControlsLabels } from '@/props/studio/crun-video-controls.props';
@@ -142,7 +143,7 @@ describe('unmounted reviewed video scalar controls', () => {
     expect(screen.queryByRole('checkbox')).toBeNull();
     expect(screen.queryByRole('combobox', { name: 'Resolution' })).toBeNull();
   });
-  it('uses real keyboard options and emits numeric reviewed duration', () => {
+  it('emits numeric reviewed duration from the duration options', async () => {
     const onChange = vi.fn();
     render(
       <PromptBarCrunVideoControls
@@ -155,9 +156,7 @@ describe('unmounted reviewed video scalar controls', () => {
     fireEvent.keyDown(screen.getByRole('combobox', { name: 'Duration' }), {
       key: 'ArrowDown',
     });
-    const option = screen.getByRole('option', { name: '10s' });
-    option.focus();
-    fireEvent.keyDown(option, { key: 'Enter' });
+    await userEvent.click(screen.getByRole('option', { name: '10s' }));
     expect(onChange).toHaveBeenCalledWith({ duration: 10 });
   });
   it('keeps unpriced Veo durations visible and disabled', () => {

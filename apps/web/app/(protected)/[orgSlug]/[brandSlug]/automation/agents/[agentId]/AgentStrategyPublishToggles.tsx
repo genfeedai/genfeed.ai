@@ -88,6 +88,7 @@ export default function AgentStrategyPublishToggles({
           <Checkbox
             aria-label={translate('enable')}
             checked={isAutoPublishEnabled}
+            data-agent-confirm={translate('confirm')}
             isDisabled={isSaving}
             onCheckedChange={(checked) =>
               void save({ autoPublishEnabled: checked === true })

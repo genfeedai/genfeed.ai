@@ -11,9 +11,9 @@ import { UsersService } from '@services/organization/users.service';
 import { useQueryClient } from '@tanstack/react-query';
 import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
-import { Switch } from '@ui/primitives/switch';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
+import SettingSwitch from '@/components/ui/setting-switch';
 
 type ProductEmailPreferenceValues = Partial<Record<ProductEmailTopic, boolean>>;
 
@@ -25,7 +25,11 @@ export default function ProductEmailPreferences() {
   const getService = useAuthedService((token: string) =>
     UsersService.getInstance(token),
   );
-  const [isSaving, setIsSaving] = useState(false);
+  // A save in flight locks only its own switch, so a person or an agent can
+  // change the other topics without waiting for it.
+  const [savingTopics, setSavingTopics] = useState<
+    readonly ProductEmailTopic[]
+  >([]);
   const [saveError, setSaveError] = useState<string | null>(null);
 
   // Cached: coming back to Notifications shows the saved values at once while
@@ -61,7 +65,7 @@ export default function ProductEmailPreferences() {
       : null;
 
   async function save(topic: ProductEmailTopic, isEnabled: boolean) {
-    setIsSaving(true);
+    setSavingTopics((current) => [...current, topic]);
     setSaveError(null);
     try {
       const service = await getService();
@@ -79,7 +83,9 @@ export default function ProductEmailPreferences() {
         'Your email preference could not be saved. Please try again.',
       );
     } finally {
-      setIsSaving(false);
+      setSavingTopics((current) =>
+        current.filter((savingTopic) => savingTopic !== topic),
+      );
     }
   }
 
@@ -97,16 +103,17 @@ export default function ProductEmailPreferences() {
         </Alert>
       ) : null}
       {PRODUCT_EMAIL_PREFERENCES.map(({ topic, label, description }) => (
-        <Switch
+        <SettingSwitch
           key={topic}
-          aria-label={label}
           label={label}
           description={description}
           isChecked={preferences[topic] ?? false}
-          isDisabled={isSaving || preferences[topic] === undefined}
+          isDisabled={
+            savingTopics.includes(topic) || preferences[topic] === undefined
+          }
           isLoading={isPending}
-          onChange={(event) => {
-            void save(topic, event.target.checked);
+          onCheckedChange={(isEnabled) => {
+            void save(topic, isEnabled);
           }}
         />
       ))}

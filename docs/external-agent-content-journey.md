@@ -119,18 +119,11 @@ as an activated external pack. Every brief records `appliedPacks`, the packs
 that actually contributed. `HarnessGenerationService` logs them as an
 operator-only receipt without pack contents.
 
-Hosted deployment can install a compiled CommonJS bundle into a private ECR
-image layered on the exact public server digest. Configure production secrets
-`CONTENT_HARNESS_BUNDLE_URI` (a private S3 object) and
-`CONTENT_HARNESS_BUNDLE_SHA256` (its lowercase SHA-256), together. The deploy role
-needs read access to that object. The bundle must be self-contained, at most
-5 MiB, and export `CONTENT_HARNESS_PACK` or a default `ContentHarnessPack`.
-It must contain no credentials or source maps. The pipeline validates the
-checksum before building, removes its temporary copy, and never publishes the
-module to GHCR or a shared cache. API boot smoke validates pack activation
-before services roll. With neither secret configured, the public base image is
-used and existing runtime package configuration is preserved. Without any
-external runtime configuration, only built-in packs load.
+Hosted deployment never bakes private packs into the server image: the hosted
+image is the public server digest, copied as is. Private packs reach hosted
+Genfeed as org-scoped harness profiles, seeded from the SSM parameters under
+`HARNESS_SEED_SSM_PATH` by the `harness-profile-seed` task. Without any external
+runtime configuration, only built-in packs load.
 
 Activation is not proven by merging this code. Record the deployed image digest,
 successful boot smoke, and sanitized loaded pack IDs/versions from the target

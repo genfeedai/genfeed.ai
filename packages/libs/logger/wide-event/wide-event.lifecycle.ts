@@ -64,6 +64,11 @@ export function finishWideEvent(
       mergeWideEventFields(event, {
         runtime: { event_loop_lag_max_ms: eventLoopLagMaxMs },
       });
+    const gcPauseMaxMs = eventLoopLagSampler.maxGcPauseSince(startedAt);
+    if (gcPauseMaxMs !== undefined)
+      mergeWideEventFields(event, {
+        runtime: { gc_pause_max_ms: gcPauseMaxMs },
+      });
     event.outcome = readWideEventOutcome(
       event.status_code,
       event.error !== undefined,

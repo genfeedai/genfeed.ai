@@ -326,6 +326,7 @@ export default function DateTimePicker({
   );
 
   const timezoneRef = useRef(timezone);
+  // use-effect-audit: ignore re-emits the value when the controlling timezone changes
   useEffect(() => {
     if (timezoneRef.current === timezone) {
       return;

@@ -4,6 +4,7 @@
 import { useCallback, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import SettingSwitch from '@/components/ui/setting-switch';
 import { PERSONAL_SETTINGS_ANCHOR } from '@/config/personal-settings-anchor';
 import { useAuthUser } from '@hooks/auth/use-auth-user/use-auth-user';
 import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
@@ -16,7 +17,6 @@ import Spinner from '@ui/primitives/spinner';
 import Card from '@ui/card/Card';
 import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
-import { Switch } from '@ui/primitives/switch';
 
 import ProductEmailPreferences from './product-email-preferences';
 
@@ -32,7 +32,10 @@ export default function SettingsNotificationsPage() {
   );
 
   const queryClient = useQueryClient();
-  const [isSaving, setIsSaving] = useState(false);
+  // One flag per switch: a save in flight locks only its own switch, so a
+  // person or an agent can change the others without waiting for it.
+  const [isSavingWorkflow, setIsSavingWorkflow] = useState(false);
+  const [isSavingAgent, setIsSavingAgent] = useState(false);
 
   // Each preference is cached: coming back to Notifications shows the saved
   // values at once while they refresh, and the toggles show a skeleton, never
@@ -85,7 +88,7 @@ export default function SettingsNotificationsPage() {
     async (isEnabled: boolean) => {
       const previousValue = isWorkflowNotificationsEmail;
       setCachedPreference(WORKFLOW_EMAIL_KEY, isEnabled);
-      setIsSaving(true);
+      setIsSavingWorkflow(true);
       try {
         const service = await getUsersService();
         const preference =
@@ -98,7 +101,7 @@ export default function SettingsNotificationsPage() {
           translate('settings.profile.workflowEmail.saveError'),
         );
       } finally {
-        setIsSaving(false);
+        setIsSavingWorkflow(false);
       }
     },
     [
@@ -114,7 +117,7 @@ export default function SettingsNotificationsPage() {
     async (isEnabled: boolean) => {
       const previousValue = isAgentNotificationsEmail;
       setCachedPreference(AGENT_EMAIL_KEY, isEnabled);
-      setIsSaving(true);
+      setIsSavingAgent(true);
       try {
         const service = await getUsersService();
         const preference =
@@ -125,7 +128,7 @@ export default function SettingsNotificationsPage() {
         setCachedPreference(AGENT_EMAIL_KEY, previousValue);
         notifications.error(translate('settings.profile.agentEmail.saveError'));
       } finally {
-        setIsSaving(false);
+        setIsSavingAgent(false);
       }
     },
     [
@@ -152,17 +155,18 @@ export default function SettingsNotificationsPage() {
         label={translate('settings.profile.workflowEmail.cardTitle')}
       >
         <div className="space-y-3">
-          <Switch
-            aria-label={translate('settings.profile.workflowEmail.label')}
+          <SettingSwitch
             label={translate('settings.profile.workflowEmail.label')}
             description={translate(
               'settings.profile.workflowEmail.description',
             )}
             isChecked={isWorkflowNotificationsEmail ?? false}
-            isDisabled={isSaving || isWorkflowNotificationsEmail === undefined}
+            isDisabled={
+              isSavingWorkflow || isWorkflowNotificationsEmail === undefined
+            }
             isLoading={workflowPreferenceQuery.isPending}
-            onChange={(e) =>
-              handleWorkflowEmailPreferenceChange(e.target.checked)
+            onCheckedChange={(isEnabled) =>
+              void handleWorkflowEmailPreferenceChange(isEnabled)
             }
           />
           {workflowPreferenceQuery.isError ? (
@@ -180,14 +184,17 @@ export default function SettingsNotificationsPage() {
               </div>
             </Alert>
           ) : null}
-          <Switch
-            aria-label={translate('settings.profile.agentEmail.label')}
+          <SettingSwitch
             label={translate('settings.profile.agentEmail.label')}
             description={translate('settings.profile.agentEmail.description')}
             isChecked={isAgentNotificationsEmail ?? false}
-            isDisabled={isSaving || isAgentNotificationsEmail === undefined}
+            isDisabled={
+              isSavingAgent || isAgentNotificationsEmail === undefined
+            }
             isLoading={agentPreferenceQuery.isPending}
-            onChange={(e) => handleAgentEmailPreferenceChange(e.target.checked)}
+            onCheckedChange={(isEnabled) =>
+              void handleAgentEmailPreferenceChange(isEnabled)
+            }
           />
           {agentPreferenceQuery.isError ? (
             <Alert variant="warning">

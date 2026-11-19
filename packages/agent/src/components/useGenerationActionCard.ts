@@ -60,6 +60,7 @@ import {
   shouldOfferAutoModel,
 } from '@helpers/model-allowlist.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import { useResetOnChange } from '@hooks/utils/use-reset-on-change/use-reset-on-change';
 import {
   buildAgentGenerationSetupScope,
   getGenerationSetup,
@@ -289,7 +290,6 @@ export function useGenerationActionCard({
   }, [setupScope, setupDefaults, initParams?.model]);
 
   // Fetch models on mount.
-  //
   // A failure here used to write into the card's generation `error` slot and
   // leave `models` empty while `modelsLoading` flipped false — the picker then
   // rendered fully enabled with nothing in it, so clicking a model did nothing
@@ -338,6 +338,7 @@ export function useGenerationActionCard({
     [],
   );
 
+  // use-effect-audit: ignore aborts the in-flight request and releases the thread busy flag on unmount
   useEffect(() => {
     return () => {
       abortRef.current?.abort();
@@ -484,51 +485,43 @@ export function useGenerationActionCard({
     setResolution(fallbackResolution);
   }
 
-  useEffect(() => {
-    const cleared: string[] = [];
-    if (!supportsEndFrame && endFrameId) {
-      setEndFrameId(null);
-      cleared.push('End Frame');
-    } else if (supportsInterpolation && !startFrameId && endFrameId) {
-      setEndFrameId(null);
-      cleared.push('End Frame');
-    } else if (
-      supportsEndFrame &&
-      !supportsInterpolation &&
-      startFrameId &&
-      endFrameId
-    ) {
-      setEndFrameId(null);
-      cleared.push('End Frame');
-    }
-    if (!supportsVideoReferences && videoReferenceIds.length > 0) {
-      setVideoReferenceIds([]);
-      cleared.push('Video Reference');
-    } else if (
-      supportsVideoReferences &&
-      videoReferenceIds.length > maxVideoReferences
-    ) {
-      setVideoReferenceIds((current) => current.slice(0, maxVideoReferences));
-      setReferenceNotice(
-        `Video References limited to ${maxVideoReferences} for the selected model.`,
-      );
-    }
-    if (cleared.length > 0) {
-      setReferenceNotice(
-        `${cleared.join(' and ')} cleared because the selected model does not support it.`,
-      );
-    }
-  }, [
-    endFrameId,
-    maxVideoReferences,
-    startFrameId,
-    supportsEndFrame,
-    supportsInterpolation,
-    supportsVideoReferences,
-    videoReferenceIds.length,
-  ]);
+  // Settings the chosen model cannot use are cleared while rendering, like the
+  // resolution above, so the stale pick never paints.
+  const cleared: string[] = [];
+  if (!supportsEndFrame && endFrameId) {
+    setEndFrameId(null);
+    cleared.push('End Frame');
+  } else if (supportsInterpolation && !startFrameId && endFrameId) {
+    setEndFrameId(null);
+    cleared.push('End Frame');
+  } else if (
+    supportsEndFrame &&
+    !supportsInterpolation &&
+    startFrameId &&
+    endFrameId
+  ) {
+    setEndFrameId(null);
+    cleared.push('End Frame');
+  }
+  if (!supportsVideoReferences && videoReferenceIds.length > 0) {
+    setVideoReferenceIds([]);
+    cleared.push('Video Reference');
+  } else if (
+    supportsVideoReferences &&
+    videoReferenceIds.length > maxVideoReferences
+  ) {
+    setVideoReferenceIds((current) => current.slice(0, maxVideoReferences));
+    setReferenceNotice(
+      `Video References limited to ${maxVideoReferences} for the selected model.`,
+    );
+  }
+  if (cleared.length > 0) {
+    setReferenceNotice(
+      `${cleared.join(' and ')} cleared because the selected model does not support it.`,
+    );
+  }
 
-  // Auto-resize textarea
+  // use-effect-audit: ignore auto-resizes the textarea element to its content
   useEffect(() => {
     const el = textareaRef.current;
     if (el) {
@@ -891,13 +884,12 @@ export function useGenerationActionCard({
       type: 'decline_finished',
     });
   }, [declineRunId, declineRunStatus]);
-
-  useEffect(() => {
-    const decision = action.data?.decision;
-    if (decision === 'declined' || decision === 'approved') {
-      dispatchCard({ decision, type: 'decision_restored' });
+  const savedDecision = action.data?.decision;
+  useResetOnChange([savedDecision], () => {
+    if (savedDecision === 'declined' || savedDecision === 'approved') {
+      dispatchCard({ decision: savedDecision, type: 'decision_restored' });
     }
-  }, [action.data?.decision]);
+  });
   // A decline the server accepted stays declining until its run settles.
   const isDeclineInFlight = isDeclining || isDeclineRunPending;
   const canDecline = Boolean(

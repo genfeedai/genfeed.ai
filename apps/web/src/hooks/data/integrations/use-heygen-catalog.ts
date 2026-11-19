@@ -9,6 +9,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useResetOnChange } from '@hooks/utils/use-reset-on-change/use-reset-on-change';
 import { getJsonApiErrorMember } from '@services/core/json-api-error-message';
 import { HeyGenService } from '@services/ingredients/heygen.service';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -118,17 +119,30 @@ export function useHeyGenCatalog({
 
   const [continuations, setContinuations] = useState<AvatarContinuations>({});
   const [isLoadingMoreAvatars, setIsLoadingMoreAvatars] = useState(false);
-  const [loadMoreError, setLoadMoreError] = useState<string | null>(null);
+  // A failure belongs to the catalogue scope that raised it, so a late
+  // failure from the previous organization never reads as this one's.
+  const loadScope = `${organizationId}\u0001${isEnabled}`;
+  const [loadMoreFailure, setLoadMoreFailure] = useState<{
+    message: string;
+    scope: string;
+  } | null>(null);
+  const loadMoreError =
+    loadMoreFailure?.scope === loadScope ? loadMoreFailure.message : null;
   const loadMoreController = useRef<AbortController | null>(null);
 
   // Another organization never receives a continuation still in flight.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: organizationId and isEnabled mark a new catalogue
-  useEffect(() => {
-    loadMoreController.current?.abort();
-    loadMoreController.current = null;
+  useResetOnChange([isEnabled, organizationId], () => {
     setIsLoadingMoreAvatars(false);
-    setLoadMoreError(null);
-    return () => loadMoreController.current?.abort();
+    setLoadMoreFailure(null);
+  });
+  // use-effect-audit: ignore aborts the in-flight continuation request when the catalogue changes or unmounts
+  useEffect(() => {
+    void isEnabled;
+    void organizationId;
+    return () => {
+      loadMoreController.current?.abort();
+      loadMoreController.current = null;
+    };
   }, [isEnabled, organizationId]);
 
   const partitions = useMemo(
@@ -181,7 +195,7 @@ export function useHeyGenCatalog({
     const abort = new AbortController();
     loadMoreController.current = abort;
     setIsLoadingMoreAvatars(true);
-    setLoadMoreError(null);
+    setLoadMoreFailure(null);
     try {
       const service = await getService();
       if (abort.signal.aborted) return;
@@ -223,25 +237,32 @@ export function useHeyGenCatalog({
               };
             });
           } catch {
-            if (!abort.signal.aborted) setLoadMoreError(LOAD_MORE_ERROR);
+            if (!abort.signal.aborted) {
+              setLoadMoreFailure({
+                message: LOAD_MORE_ERROR,
+                scope: loadScope,
+              });
+            }
           }
         }),
       );
     } catch {
-      if (!abort.signal.aborted) setLoadMoreError(LOAD_MORE_ERROR);
+      if (!abort.signal.aborted) {
+        setLoadMoreFailure({ message: LOAD_MORE_ERROR, scope: loadScope });
+      }
     } finally {
       if (loadMoreController.current === abort) {
         loadMoreController.current = null;
         setIsLoadingMoreAvatars(false);
       }
     }
-  }, [getService, isActive, isLoading, partitions]);
+  }, [getService, isActive, isLoading, loadScope, partitions]);
 
   const { refetch: refetchPublic } = publicAvatars;
   const { refetch: refetchPrivate } = privateAvatars;
   const { refetch: refetchVoices } = voicesQuery;
   const retry = useCallback(() => {
-    setLoadMoreError(null);
+    setLoadMoreFailure(null);
     void refetchPublic();
     void refetchPrivate();
     void refetchVoices();

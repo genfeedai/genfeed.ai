@@ -234,6 +234,7 @@ export default function ConnectGenfeedFlow() {
   // Agents authorize outside this page, so success is the first OAuth session
   // that was not already connected when the page loaded and has since reached
   // the MCP server.
+  // use-effect-audit: ignore records the agent that connected outside this page
   useEffect(() => {
     if (
       connectionStatus.status === 'loading' ||

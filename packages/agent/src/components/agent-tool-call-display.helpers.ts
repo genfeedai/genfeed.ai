@@ -53,6 +53,7 @@ export const TOOL_LABELS: Record<string, string> = {
   fetch_x_account_activity: 'X Account Activity',
   open_studio_handoff: 'Open Studio',
   pause_outreach_sequence: 'Pause outreach sequence',
+  propose_page_changes: 'Propose changes',
   edit_clip: 'Edit Clip',
   prepare_clipper_workflow_run: 'Prepare Clip Run',
   start_clip_analysis: 'Analyze Video',

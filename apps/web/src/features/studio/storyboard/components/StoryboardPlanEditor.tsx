@@ -170,6 +170,7 @@ export default function StoryboardPlanEditor({
     },
   });
   useImperativeHandle(ref, () => ({ flush: autosave.flush }), [autosave.flush]);
+  // use-effect-audit: ignore reports the autosave status to the host through its callback
   useEffect(() => {
     onSaveStatusChange?.(autosave.status);
   }, [onSaveStatusChange, autosave.status]);
@@ -292,7 +293,6 @@ export default function StoryboardPlanEditor({
     shot.stillFreshness === 'fresh' && shot.stillAssetId
       ? (assets[`image:${shot.stillAssetId}`]?.cdnUrl ?? undefined)
       : undefined;
-
   function edit(next: unknown) {
     if (isDisabled) return;
     const parsed = storyboardPlanSchema.safeParse(next);

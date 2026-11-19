@@ -147,6 +147,7 @@ export default function StudioIdentityFields({
           (settings.voiceRef?.provider === VoiceProvider.HEYGEN &&
             isHeyGenSpeechLoaded &&
             !selectedVoiceOption)));
+  // use-effect-audit: ignore clears a stale saved voice through the host settings callback
   useEffect(() => {
     if (isSavedVoiceStale) {
       onChange({ voiceRef: undefined, voiceId: undefined });
@@ -156,6 +157,7 @@ export default function StudioIdentityFields({
   // The brand's saved avatar and voice start as the visible pick, so there is
   // no hidden server-side fallback behind an empty selection.
   const brandDefaults = selectedBrand?.agentConfig;
+  // use-effect-audit: ignore prefills the brand's saved avatar and voice through the host settings callback
   useEffect(() => {
     if (
       !isAvatarType ||
@@ -211,10 +213,12 @@ export default function StudioIdentityFields({
   // has a full page of matches, the catalogue is exhausted, or the page budget
   // for this filter is spent (a rare gender must not walk the whole catalogue).
   const autoPageCount = useRef(0);
-  // biome-ignore lint/correctness/useExhaustiveDependencies: the budget restarts only when the filter changes
+  // use-effect-audit: ignore restarts the auto-paging budget when the gender filter changes
   useEffect(() => {
+    void genderFilter;
     autoPageCount.current = 0;
   }, [genderFilter]);
+  // use-effect-audit: ignore keeps paging the avatar catalogue until the gender filter has enough matches
   useEffect(() => {
     if (
       genderFilter === 'all' ||

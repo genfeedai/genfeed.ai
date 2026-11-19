@@ -32,15 +32,9 @@ describe('NegativePromptSelector', () => {
 
     expand();
 
-    expect(screen.getByLabelText('Blurry').getAttribute('data-state')).toBe(
-      'checked',
-    );
-    expect(screen.getByLabelText('Watermark').getAttribute('data-state')).toBe(
-      'checked',
-    );
-    expect(screen.getByLabelText('Distorted').getAttribute('data-state')).toBe(
-      'unchecked',
-    );
+    expect(screen.getByLabelText('Blurry')).toBeChecked();
+    expect(screen.getByLabelText('Watermark')).toBeChecked();
+    expect(screen.getByLabelText('Distorted')).not.toBeChecked();
     expect(screen.getByText('2 selected')).toBeTruthy();
   });
 

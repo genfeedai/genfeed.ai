@@ -58,6 +58,7 @@ export function AgentWorkObjects({
     return sessionRef.current.id;
   }, []);
 
+  // use-effect-audit: ignore clears the work-object collection and its gate store when the thread changes
   useEffect(() => {
     loadedThreadRef.current = null;
     pollFailuresRef.current = 0;
@@ -71,8 +72,11 @@ export function AgentWorkObjects({
     collection?.workObjects.some(
       (object) => object.reviewStatus === 'reviewing',
     ) ?? false;
-  // biome-ignore lint/correctness/useExhaustiveDependencies: New thread messages, work events and explicit retries invalidate the session collection.
+  // use-effect-audit: ignore reloads the session collection from the server on new work or retry
   useEffect(() => {
+    void messageCount;
+    void workEventVersion;
+    void retry;
     if (!threadId) return;
     const controller = new AbortController();
     let timer: ReturnType<typeof setTimeout> | undefined;

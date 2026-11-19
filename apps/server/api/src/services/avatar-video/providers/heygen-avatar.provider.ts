@@ -10,10 +10,11 @@ import { readHeygenVideoStatus } from '@api/services/integrations/heygen/heygen-
 import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
+  type AvatarRenderPlan,
   DEFAULT_AVATAR_VIDEO_ASPECT_RATIO,
   HEYGEN_AVATAR_ENGINE_MODEL_KEYS,
-  type HeyGenAvatarEngine,
   MODEL_KEYS,
+  resolveAvatarRenderPlan,
 } from '@genfeedai/contracts/constants';
 import type {
   AvatarVideoProviderName,
@@ -108,17 +109,32 @@ export class HeygenAvatarProvider implements AvatarVideoProvider {
         throw new Error('Could not freeze avatar submission provenance.');
       const aspectRatio =
         input.aspectRatio ?? DEFAULT_AVATAR_VIDEO_ASPECT_RATIO;
-      // The render engine is chosen here so pricing and dispatch cannot diverge.
-      const engine: HeyGenAvatarEngine = 'avatar_iv';
+      // The render plan is chosen here so pricing and dispatch cannot diverge.
+      let plan: AvatarRenderPlan | undefined;
+      if (input.referenceImageUrl) {
+        if (input.quality && input.quality !== 'draft')
+          throw new BadRequestException(
+            'A reference image renders as a draft. Avatar 6 needs a trained avatar look.',
+          );
+      } else {
+        const resolved = resolveAvatarRenderPlan(
+          native?.avatarRef ?? { avatarType: null, supportedEngines: [] },
+          input.quality,
+        );
+        if ('reason' in resolved)
+          throw new BadRequestException(resolved.reason);
+        plan = resolved.plan;
+      }
       const hold = await input.fundSubmission?.({
         isByok: connection.binding.kind === 'byok',
-        selection: input.referenceImageUrl
-          ? { modelKey: MODEL_KEYS.HEYGEN_AVATAR }
-          : {
+        selection: plan
+          ? {
               avatarType: native?.avatarRef.avatarType ?? undefined,
-              engine,
-              modelKey: HEYGEN_AVATAR_ENGINE_MODEL_KEYS[engine],
-            },
+              engine: plan.engine,
+              modelKey: HEYGEN_AVATAR_ENGINE_MODEL_KEYS[plan.engine],
+              ...(plan.resolution ? { resolution: plan.resolution } : {}),
+            }
+          : { modelKey: MODEL_KEYS.HEYGEN_AVATAR },
       });
       let jobId: string;
       try {
@@ -142,7 +158,8 @@ export class HeygenAvatarProvider implements AvatarVideoProvider {
               { inputText: input.script, voiceId: voice.voiceId },
               connection.apiKey,
               aspectRatio,
-              engine,
+              plan?.engine,
+              plan?.resolution,
             );
       } catch (error: unknown) {
         // A payment rejection or a request refused before it was sent returns

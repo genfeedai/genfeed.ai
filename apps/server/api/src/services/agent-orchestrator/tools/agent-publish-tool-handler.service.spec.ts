@@ -11,12 +11,14 @@ import {
   AgentPublishDecision,
   CredentialPlatform,
   IngredientCategory,
+  PostRepurposeMode,
   PostVisibility,
   ReleaseStatus,
 } from '@genfeedai/contracts';
 import { evaluateAgentPublishPolicy } from '@genfeedai/contracts/api-types/contracts/agent-publish-policy.contract';
 import type { CreateReleaseGroupInput } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
 import { LoggerService } from '@libs/logger/logger.service';
+import { ForbiddenException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 
 import { describe, expect, it, vi } from 'vitest';
@@ -46,7 +48,14 @@ function scopedContext(brandId: string): ToolExecutionContext {
   };
 }
 
-function createHandler() {
+interface RepurposeServiceFake {
+  repurpose(params: { platform: string; postId: string }): Promise<{
+    adjustments: unknown[];
+    draft: { id: string };
+  }>;
+}
+
+function createHandler(postRepurposeService?: RepurposeServiceFake) {
   const postGroupsService = {
     create: vi
       .fn()
@@ -120,7 +129,11 @@ function createHandler() {
       isBlocked: false,
     }),
   };
-  const postsService = { create: vi.fn(), findOne: vi.fn() };
+  const postsService = {
+    create: vi.fn(),
+    findOne: vi.fn(),
+    findOneSelect: vi.fn(),
+  };
   const autonomousPolicy = {
     assessMediaForPolicy: vi.fn().mockResolvedValue(undefined),
     resolveForTarget: vi
@@ -157,7 +170,7 @@ function createHandler() {
     ingredientsService,
     credentialsService,
     agentScopeContextService as never,
-    undefined,
+    postRepurposeService as never,
     undefined,
     agentStrategiesService as never,
     agentPublishAuditsService as never,
@@ -997,6 +1010,68 @@ describe('AgentPublishToolHandler server-owned confirmation (#4306)', () => {
   });
 });
 
+describe('repurpose_post through the MCP (#10583)', () => {
+  const mcpContext = (): ToolExecutionContext => ({
+    organizationId: 'org-1',
+    userId: 'user-1',
+  });
+
+  function repurposeFrom(brandId: string | undefined) {
+    const repurposeService: RepurposeServiceFake = {
+      repurpose: async ({ platform, postId }) => ({
+        adjustments: [],
+        draft: { id: `${postId}-${platform}-draft` },
+      }),
+    };
+    const f = createHandler(repurposeService);
+    f.postsService.findOneSelect.mockResolvedValue({ brandId });
+    return f;
+  }
+
+  const repurposeParams = {
+    mode: PostRepurposeMode.DETERMINISTIC,
+    platform: 'linkedin',
+    postId: 'post-1',
+  };
+
+  it('returns the new draft for a call with no thread and no validated scope', async () => {
+    const f = repurposeFrom('brand-1');
+
+    const result = await runWithActionOrigin({ origin: ActionOrigin.MCP }, () =>
+      f.handler.repurposePost(repurposeParams, mcpContext()),
+    );
+
+    expect(result).toMatchObject({
+      data: { id: 'post-1-linkedin-draft', status: 'draft' },
+      success: true,
+    });
+  });
+
+  it('refuses a source post whose brand the caller cannot use', async () => {
+    const f = repurposeFrom('brand-2');
+    f.agentScopeContextService.assertBrandAuthorized.mockRejectedValueOnce(
+      new ForbiddenException('Brand access denied'),
+    );
+
+    const result = await runWithActionOrigin({ origin: ActionOrigin.MCP }, () =>
+      f.handler.repurposePost(repurposeParams, mcpContext()),
+    );
+
+    expect(result).toMatchObject({
+      error: 'Brand access denied',
+      success: false,
+    });
+  });
+
+  it('still requires a validated scope outside the MCP', async () => {
+    const f = repurposeFrom('brand-1');
+
+    const result = await f.handler.repurposePost(repurposeParams, mcpContext());
+
+    expect(result.success).toBe(false);
+  });
+});
+
 describe('create_post mediaUrls through the MCP (#9673)', () => {
   const LIBRARY = {
     'img-1': { brandId: 'brand-1', category: 'IMAGE', status: 'UPLOADED' },
@@ -1013,14 +1088,33 @@ describe('create_post mediaUrls through the MCP (#9673)', () => {
       status: 'UPLOADED',
     },
     'vid-1': { brandId: 'brand-1', category: 'VIDEO', status: 'GENERATED' },
+    // Generated media: the served URL carries the storage id from `s3Key`,
+    // which is not the ingredient id (#10582).
+    'cmgen-img': {
+      brandId: 'brand-1',
+      category: 'IMAGE',
+      s3Key: 'ingredients/images/8f14e45f-ceea-467a-9575-0a9c4a1b2c3d',
+      status: 'GENERATED',
+    },
+    'cmgen-vid': {
+      brandId: 'brand-1',
+      category: 'VIDEO',
+      s3Key: 'ingredients/videos/0b6e1a52-77c3-4d10-9a4e-5f2d8c3e9b10',
+      status: 'GENERATED',
+    },
   } as const;
 
   function mcpDraft(params: Record<string, unknown>) {
     const f = createHandler();
     f.ingredientsService.findOne.mockImplementation(
-      async (where: { id: string }) => {
-        const found = LIBRARY[where.id as keyof typeof LIBRARY];
-        return found ? { id: where.id, ...found } : null;
+      async (where: { id?: string; s3Key?: string }) => {
+        const entries = Object.entries(LIBRARY) as Array<
+          [string, { s3Key?: string }]
+        >;
+        const hit = entries.find(([id, row]) =>
+          where.id !== undefined ? id === where.id : row.s3Key === where.s3Key,
+        );
+        return hit ? { id: hit[0], ...hit[1] } : null;
       },
     );
     f.postsService.create.mockImplementation(
@@ -1062,6 +1156,61 @@ describe('create_post mediaUrls through the MCP (#9673)', () => {
     ).resolves.toMatchObject({
       category: 'IMAGE',
       ingredients: ['img-3', 'img-1', 'img-2'],
+    });
+  });
+
+  it('takes the signed image url that get_assets returns', async () => {
+    const f = mcpDraft({
+      mediaUrls: [
+        'https://cdn.genfeed.ai/ingredients/images/8f14e45f-ceea-467a-9575-0a9c4a1b2c3d?Expires=1790000000&Signature=abc&Key-Pair-Id=K1',
+      ],
+    });
+
+    const result = await f.run;
+
+    expect(result.success).toBe(true);
+    expect(result.data).toMatchObject({
+      media: [{ assetId: 'cmgen-img', order: 0 }],
+    });
+    await expect(
+      f.postsService.create.mock.results[0].value,
+    ).resolves.toMatchObject({
+      category: 'IMAGE',
+      ingredients: ['cmgen-img'],
+    });
+  });
+
+  it('takes the signed video url that get_job_status returns', async () => {
+    const f = mcpDraft({
+      mediaUrls: [
+        'https://cdn.genfeed.ai/ingredients/videos/0b6e1a52-77c3-4d10-9a4e-5f2d8c3e9b10?Expires=1790000000&Signature=abc&Key-Pair-Id=K1',
+      ],
+    });
+
+    const result = await f.run;
+
+    expect(result.success).toBe(true);
+    await expect(
+      f.postsService.create.mock.results[0].value,
+    ).resolves.toMatchObject({
+      category: 'VIDEO',
+      ingredients: ['cmgen-vid'],
+    });
+  });
+
+  it('refuses the same asset named by its id and by its served url', async () => {
+    const f = mcpDraft({
+      mediaUrls: [
+        url('images', 'cmgen-img'),
+        'https://cdn.genfeed.ai/ingredients/images/8f14e45f-ceea-467a-9575-0a9c4a1b2c3d?Expires=1',
+      ],
+    });
+
+    const result = await f.run;
+
+    expect(result).toMatchObject({
+      error: expect.stringContaining('more than once'),
+      success: false,
     });
   });
 

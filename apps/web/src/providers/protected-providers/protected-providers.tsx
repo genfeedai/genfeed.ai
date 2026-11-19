@@ -64,8 +64,9 @@ export function ProtectedAuthGate({
     effectiveIsSignedIn ? 'in' : 'out',
   ].join(':');
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: sessionKey as a change trigger for auth token refresh
+  // use-effect-audit: ignore refreshes the auth token on a session change and retries on a timer, aborting on cleanup
   useEffect(() => {
+    void sessionKey;
     if (!effectiveIsAuthLoaded || !effectiveIsSignedIn) {
       setHasJwtToken(false);
       return;

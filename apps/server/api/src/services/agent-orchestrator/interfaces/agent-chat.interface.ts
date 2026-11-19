@@ -9,6 +9,7 @@ import type {
 } from '@genfeedai/contracts';
 import type {
   AgentArtifactReference,
+  AgentPageControl,
   AgentReviewQueueSnapshot,
   AnalyticsQueryReference,
   CreativeAppAgentContext,
@@ -42,6 +43,8 @@ export interface AgentPageContext {
   draftSummary?: string;
   draftTitle?: string;
   draftType?: string;
+  /** Controls on the viewer's page (untrusted; names and values are data). */
+  pageControls?: AgentPageControl[];
   postAuthor?: string;
   postContent?: string;
   researchReferences?: ScopedResearchFindingReference[];

@@ -46,6 +46,7 @@ export function useStudioReferenceSanitizer({
   settings,
   type,
 }: UseStudioReferenceSanitizerParams): void {
+  // use-effect-audit: ignore settles restored uploads in the workspace store once they attach
   useEffect(() => {
     if (
       pendingRestoredUploadIds?.every((id) =>
@@ -56,6 +57,7 @@ export function useStudioReferenceSanitizer({
     }
   }, [attachments, pendingRestoredUploadIds, setPendingRestoredUploadIds]);
 
+  // use-effect-audit: ignore removes unsupported references through the workspace store and warns
   useEffect(() => {
     if (type !== 'video' || pendingRestoredUploadIds) {
       return;

@@ -54,7 +54,7 @@ export default function AgentPolicyCard({
           </p>
         </div>
 
-        <div>
+        <div data-agent-confirm="Changes how much the agents may do without asking you first">
           <p className="text-sm font-medium">Default Autonomy Mode</p>
           <Select
             value={autonomyDefault}

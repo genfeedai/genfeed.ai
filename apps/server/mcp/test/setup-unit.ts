@@ -5,6 +5,8 @@
  * tests mock all database operations.
  */
 import { vi } from 'vitest';
+import './get-animations.stub';
+import './popover.stub';
 
 vi.stubEnv('NODE_ENV', 'test');
 process.env.PORT = '3014';

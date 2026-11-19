@@ -57,6 +57,7 @@ export default function ReviewWorkspaceSurfaceAdapter({
   }
 
   // Reveal only once the selection is registered again.
+  // use-effect-audit: ignore calls the workspace host to reveal its panel
   useEffect(() => {
     if (!isRevealPending || isDismissed) {
       return;

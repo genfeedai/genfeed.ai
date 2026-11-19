@@ -4,6 +4,7 @@ import {
 } from '@app-tests/query-client.harness';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { createAgent } from '@ui-sdk/react/agent';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import SettingsNotificationsPage from './settings-notifications-page';
 import '@testing-library/jest-dom/vitest';
@@ -274,5 +275,50 @@ describe('SettingsNotificationsPage', () => {
     const signal = mocks.findAgentEmailPreference.mock.calls[0]?.[0];
     unmount();
     expect(signal.aborted).toBe(true);
+  });
+  it('lets an agent find every preference by name and change two in one call', async () => {
+    const agent = createAgent();
+    const agentEmailSave = Promise.withResolvers<{ isEnabled: boolean }>();
+    mocks.patchAgentEmailPreference.mockReturnValue(agentEmailSave.promise);
+    render(<SettingsNotificationsPage />, { wrapper: queryClientWrapper() });
+    await screen.findByRole('switch', { name: 'Agent Emails' });
+    await screen.findByRole('switch', { name: 'Generation updates' });
+
+    expect(
+      agent.snapshot().map((entry) => `${entry.component}: ${entry.label}`),
+    ).toEqual([
+      'switch: Workflow Emails',
+      'switch: Agent Emails',
+      'switch: Getting started',
+      'switch: Weekly recap',
+      'switch: Daily recap',
+      'switch: Brand performance digest',
+      'switch: Publishing reminders',
+      'switch: Credit balance alerts',
+      'switch: Generation updates',
+      'switch: Reviews and mentions',
+    ]);
+
+    // The first save is still in flight when the second step runs.
+    const result = await agent.act({
+      steps: [
+        { action: 'setChecked', args: [true], ref: 'Agent Emails' },
+        { action: 'setChecked', args: [false], ref: 'Generation updates' },
+      ],
+    });
+    agentEmailSave.resolve({ isEnabled: true });
+
+    expect(result.error).toBeUndefined();
+    await waitFor(() =>
+      expect(
+        screen.getByRole('switch', { name: 'Generation updates' }),
+      ).not.toBeChecked(),
+    );
+    expect(screen.getByRole('switch', { name: 'Agent Emails' })).toBeChecked();
+    expect(mocks.patchAgentEmailPreference).toHaveBeenCalledWith(true);
+    expect(mocks.patchProductPreference).toHaveBeenCalledWith(
+      'generation.status',
+      false,
+    );
   });
 });

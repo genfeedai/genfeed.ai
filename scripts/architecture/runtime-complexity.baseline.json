@@ -30,7 +30,7 @@
     "symbol": "BillingAccountMigrationService.run"
   },
   {
-    "actual": 166,
+    "actual": 156,
     "file": "apps/server/api/src/collections/clipper-projects/services/clipper-generation-dispatch.service.ts",
     "metric": "method-lines",
     "symbol": "ClipperGenerationDispatchService.retryFailedClips"
@@ -138,7 +138,7 @@
     "symbol": "AgentAnalyticsToolHandler.getAnalytics"
   },
   {
-    "actual": 1074,
+    "actual": 1072,
     "file": "apps/server/api/src/services/agent-orchestrator/tools/agent-publish-tool-handler.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/services/agent-orchestrator/tools/agent-publish-tool-handler.service.ts"
@@ -246,7 +246,7 @@
     "symbol": "apps/server/workers/src/services/scheduled-post-delivery.service.ts"
   },
   {
-    "actual": 1377,
+    "actual": 1373,
     "file": "apps/web/app/(protected)/[orgSlug]/[brandSlug]/clipper/useStudioClipperPage.ts",
     "metric": "file-lines",
     "symbol": "apps/web/app/(protected)/[orgSlug]/[brandSlug]/clipper/useStudioClipperPage.ts"
@@ -318,7 +318,7 @@
     "symbol": "packages/agent/src/components/useAgentChatInput.ts"
   },
   {
-    "actual": 1252,
+    "actual": 1244,
     "file": "packages/agent/src/components/useGenerationActionCard.ts",
     "metric": "file-lines",
     "symbol": "packages/agent/src/components/useGenerationActionCard.ts"

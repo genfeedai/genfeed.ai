@@ -120,6 +120,7 @@ export function useCrunInputControls(
     () => normalizeCrunSettings(settings, controls, referenceCount),
     [settings, controls, referenceCount],
   );
+  // use-effect-audit: ignore reports the normalized settings patch to the parent
   useEffect(() => {
     if (Object.keys(patch).length) onChange(patch);
   }, [patch, onChange]);

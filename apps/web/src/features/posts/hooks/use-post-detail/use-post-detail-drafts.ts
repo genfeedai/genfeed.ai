@@ -115,7 +115,7 @@ export function usePostDetailDrafts({
     post && scheduleDraft !== (post.scheduledDate ?? '')
   );
 
-  // Initialize post data when post ID changes
+  // use-effect-audit: ignore seeds the saved-value refs and drafts when a different post loads
   useEffect(() => {
     if (!post) {
       return;
@@ -150,7 +150,7 @@ export function usePostDetailDrafts({
     setChildDescriptions(childDescriptionsMap);
   }, [post?.id, updateDescriptionRefs, updateLabelRefs, post]);
 
-  // Update refs when post data changes (for existing posts)
+  // use-effect-audit: ignore refreshes the saved-value refs when the loaded post changes
   useEffect(() => {
     if (!post || lastPostIdRef.current !== post.id) {
       return;
@@ -177,7 +177,7 @@ export function usePostDetailDrafts({
     });
   }, [post?.id, post?.description, post?.label, post?.children, post]);
 
-  // Sync parent post description and label drafts (only if not dirty)
+  // use-effect-audit: ignore resyncs the parent drafts from the saved post only when they are not dirty
   useEffect(() => {
     if (!post) {
       return;
@@ -203,7 +203,7 @@ export function usePostDetailDrafts({
     }
   }, [post?.id, post?.description, post?.label, post]);
 
-  // Sync child descriptions (only if not dirty)
+  // use-effect-audit: ignore resyncs the child drafts from the saved children only when they are not dirty
   useEffect(() => {
     if (!post) {
       return;

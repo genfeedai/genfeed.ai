@@ -1,4 +1,5 @@
 import { cn } from '@genfeedai/helpers';
+import { Input as TextInput } from '@ui-sdk/react/input';
 import type {
   ChangeEvent,
   FocusEvent,
@@ -25,14 +26,18 @@ export interface InputProps<T extends FieldValues = FieldValues>
   extends Omit<
     InputHTMLAttributes<HTMLInputElement>,
     | 'checked'
+    | 'defaultValue'
     | 'disabled'
     | 'name'
     | 'onBlur'
     | 'onChange'
     | 'readOnly'
     | 'required'
+    | 'value'
   > {
   control?: Control<T>;
+  /** The text a form reset returns to. */
+  defaultValue?: string | number | readonly string[];
   disabled?: boolean;
   hasError?: boolean;
   inputRef?: RefObject<HTMLInputElement | null>;
@@ -46,6 +51,7 @@ export interface InputProps<T extends FieldValues = FieldValues>
   onChange?: (event: ChangeEvent<HTMLInputElement>) => void;
   ref?: Ref<HTMLInputElement>;
   required?: boolean;
+  value?: string | number | readonly string[];
 }
 
 interface InputBaseProps<T extends FieldValues = FieldValues>
@@ -68,8 +74,20 @@ function assignRef(
   }
 }
 
+/** ui-sdk keeps a text value as a string; a number or a list reads as its text. */
+function toInputText(
+  value: string | number | readonly string[] | undefined,
+): string | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  return typeof value === 'object' ? value.join(',') : String(value);
+}
+
 function renderInput<T extends FieldValues = FieldValues>({
   className,
+  defaultValue,
   externalRef,
   hasError = false,
   id,
@@ -90,7 +108,8 @@ function renderInput<T extends FieldValues = FieldValues>({
 }: InputBaseProps<T>) {
   const inputId =
     id || label?.toLowerCase().replace(WHITESPACE_RUNS_PATTERN, '-');
-  const isCheckable = type === 'checkbox' || type === 'radio';
+  const isNativeOnly =
+    type === 'checkbox' || type === 'radio' || type === 'file';
   const inputClassName = cn(
     fieldControlClassName,
     fieldControlInputClassName,
@@ -98,11 +117,12 @@ function renderInput<T extends FieldValues = FieldValues>({
     className,
   );
 
-  const input = (
+  const input = isNativeOnly ? (
     <input
       {...props}
-      checked={isCheckable ? isChecked : undefined}
+      checked={isChecked}
       className={inputClassName}
+      defaultValue={defaultValue}
       disabled={isDisabled ?? disabled}
       id={inputId}
       name={name}
@@ -115,7 +135,25 @@ function renderInput<T extends FieldValues = FieldValues>({
       }}
       required={isRequired ?? required}
       type={type}
-      value={isCheckable ? undefined : (value ?? '')}
+    />
+  ) : (
+    <TextInput
+      {...props}
+      className={inputClassName}
+      defaultValue={toInputText(defaultValue)}
+      disabled={isDisabled ?? disabled}
+      id={inputId}
+      name={name}
+      onBlur={onBlur}
+      onChange={onChange}
+      readOnly={isReadOnly}
+      ref={(element) => {
+        assignRef(externalRef, element);
+        assignRef(inputRef, element);
+      }}
+      required={isRequired ?? required}
+      type={type}
+      value={toInputText(value) ?? ''}
     />
   );
 

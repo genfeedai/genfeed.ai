@@ -75,9 +75,9 @@ on:
         required: true
       TURBO_TOKEN:
         required: false
-      CONTENT_HARNESS_BUNDLE_URI:
+      POST_DEPLOY_CANARY_EMAIL:
         required: false
-      CONTENT_HARNESS_BUNDLE_SHA256:
+      POST_DEPLOY_CANARY_PASSWORD:
         required: false
 
 # A rehearsal never queues behind, or replaces a pending, real deploy.
@@ -152,5 +152,5 @@ jobs:
       NEXT_PUBLIC_POSTHOG_KEY: ${{ secrets.NEXT_PUBLIC_POSTHOG_KEY }}
       SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
       TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
-      CONTENT_HARNESS_BUNDLE_URI: ${{ secrets.CONTENT_HARNESS_BUNDLE_URI }}
-      CONTENT_HARNESS_BUNDLE_SHA256: ${{ secrets.CONTENT_HARNESS_BUNDLE_SHA256 }}
+      POST_DEPLOY_CANARY_EMAIL: ${{ secrets.POST_DEPLOY_CANARY_EMAIL }}
+      POST_DEPLOY_CANARY_PASSWORD: ${{ secrets.POST_DEPLOY_CANARY_PASSWORD }}

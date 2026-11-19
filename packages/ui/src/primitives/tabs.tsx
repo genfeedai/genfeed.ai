@@ -247,6 +247,7 @@ function TabsBar({
   const isContentSynchronized =
     activeTab === undefined || activeTab === activeValue;
 
+  // use-effect-audit: ignore tells the host which tab is active when it differs
   useEffect(() => {
     if (
       hasNavigationTabs ||

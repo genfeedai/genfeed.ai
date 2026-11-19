@@ -1,5 +1,10 @@
 import { cn } from '@genfeedai/helpers';
-import * as CheckboxPrimitive from '@radix-ui/react-checkbox';
+import { focusRingClassName } from '@ui/primitives/focus-ring';
+import {
+  Checkbox as CheckboxControl,
+  CheckboxIndicator,
+  type CheckedState,
+} from '@ui-sdk/react/checkbox';
 import { Check, Minus } from 'lucide-react';
 import type {
   ChangeEvent,
@@ -12,7 +17,7 @@ import type { Control, FieldValues, Path } from 'react-hook-form';
 import { useController } from 'react-hook-form';
 
 type CheckboxBaseProps = Omit<
-  ComponentPropsWithoutRef<typeof CheckboxPrimitive.Root>,
+  ComponentPropsWithoutRef<typeof CheckboxControl>,
   'disabled' | 'name' | 'onChange' | 'onCheckedChange' | 'required'
 >;
 
@@ -26,14 +31,14 @@ export interface CheckboxProps<T extends FieldValues = FieldValues>
   label?: ReactNode;
   name?: Path<T> | string;
   onChange?: (event: ChangeEvent<HTMLInputElement>) => void;
-  onCheckedChange?: (checked: CheckboxPrimitive.CheckedState) => void;
+  onCheckedChange?: (checked: CheckedState) => void;
   ref?: Ref<HTMLButtonElement>;
   required?: boolean;
 }
 
 interface CheckboxInnerProps<T extends FieldValues = FieldValues>
   extends CheckboxProps<T> {
-  checked?: CheckboxPrimitive.CheckedState;
+  checked?: CheckedState;
   externalRef?: Ref<HTMLButtonElement>;
   fieldOnBlur?: () => void;
   fieldOnChange?: (checked: boolean) => void;
@@ -62,7 +67,7 @@ function CheckboxInner<T extends FieldValues = FieldValues>({
   const resolvedChecked = checked ?? isChecked;
 
   const checkbox = (
-    <CheckboxPrimitive.Root
+    <CheckboxControl
       {...props}
       ref={(element) => {
         if (typeof externalRef === 'function') {
@@ -75,7 +80,10 @@ function CheckboxInner<T extends FieldValues = FieldValues>({
       }}
       checked={resolvedChecked}
       className={cn(
-        'peer inline-flex size-4 shrink-0 items-center justify-center rounded-sm border border-border bg-transparent text-primary-foreground shadow-sm transition-colors disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:border-primary data-[state=checked]:bg-primary data-[state=indeterminate]:border-primary data-[state=indeterminate]:bg-primary data-[state=checked]:bg-primary data-[state=unchecked]:hover:bg-hover',
+        'peer inline-flex size-4 shrink-0 cursor-pointer items-center justify-center rounded-sm border border-border bg-transparent text-primary-foreground shadow-sm transition-colors',
+        'data-checked:border-primary data-checked:bg-primary data-indeterminate:border-primary data-indeterminate:bg-primary',
+        'not-data-checked:not-data-indeterminate:hover:bg-hover data-disabled:cursor-not-allowed data-disabled:opacity-50',
+        focusRingClassName,
         className,
       )}
       disabled={isDisabled ?? disabled}
@@ -97,14 +105,16 @@ function CheckboxInner<T extends FieldValues = FieldValues>({
       }}
       required={isRequired ?? required}
     >
-      <CheckboxPrimitive.Indicator className="flex items-center justify-center text-current">
-        {resolvedChecked === 'indeterminate' ? (
-          <Minus size={12} strokeWidth={3} />
-        ) : (
-          <Check size={12} strokeWidth={3} />
-        )}
-      </CheckboxPrimitive.Indicator>
-    </CheckboxPrimitive.Root>
+      <CheckboxIndicator className="flex items-center justify-center text-current">
+        {(state) =>
+          state.indeterminate ? (
+            <Minus aria-hidden="true" size={12} strokeWidth={3} />
+          ) : (
+            <Check aria-hidden="true" size={12} strokeWidth={3} />
+          )
+        }
+      </CheckboxIndicator>
+    </CheckboxControl>
   );
 
   if (!label) {
@@ -155,6 +165,6 @@ function Checkbox<T extends FieldValues = FieldValues>({
 
   return <CheckboxInner {...props} externalRef={ref} />;
 }
-Checkbox.displayName = CheckboxPrimitive.Root.displayName;
+Checkbox.displayName = 'Checkbox';
 
 export { Checkbox };

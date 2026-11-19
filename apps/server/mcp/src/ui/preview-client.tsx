@@ -79,7 +79,6 @@ import { flushSync } from 'react-dom';
 import { createRoot } from 'react-dom/client';
 
 const LEADING_AT_SIGN_PATTERN = /^@/;
-
 function record(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value)
     ? (value as Record<string, unknown>)
@@ -497,6 +496,7 @@ function Description({ content, bridge }: DescriptionProps) {
 function usePendingCard(item: McpCard, bridge: PreviewBridge) {
   const [current, setCurrent] = useState(item);
   const [exhausted, setExhausted] = useState(false);
+  // use-effect-audit: ignore polls the job status through the host bridge, aborting and clearing the timer on cleanup
   useEffect(() => {
     const abortController = new AbortController();
     let timer: ReturnType<typeof setTimeout> | undefined;
@@ -772,9 +772,9 @@ function CardPreview({
   onAction,
 }: CardPreviewProps) {
   const { current, exhausted } = usePendingCard(item, bridge);
-  const [failed, setFailed] = useState(false);
-  // biome-ignore lint/correctness/useExhaustiveDependencies: A new tool result resets the media error state.
-  useEffect(() => setFailed(false), [item]);
+  // The media error belongs to the tool result that raised it.
+  const [failedItem, setFailedItem] = useState<McpCard | null>(null);
+  const failed = failedItem === item;
   const isJobFailed = ['failed', 'error', 'cancelled', 'canceled'].includes(
     current.status.toLowerCase(),
   );
@@ -794,7 +794,7 @@ function CardPreview({
     timeStyle: 'short',
   });
   const onMediaError = () => {
-    setFailed(true);
+    setFailedItem(item);
     bridge.resize();
   };
   const failedNotice = failed && (

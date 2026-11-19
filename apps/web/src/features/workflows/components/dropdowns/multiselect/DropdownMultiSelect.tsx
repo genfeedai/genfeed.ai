@@ -294,7 +294,7 @@ export default function MultiSelectDropdown({
                     onChange={() => {
                       // Row click/keyboard handles selection state.
                     }}
-                    className="size-3.5 border-border data-[state=checked]:bg-foreground data-[state=checked]:border-foreground data-[state=checked]:text-background"
+                    className="size-3.5 border-border data-checked:bg-foreground data-checked:border-foreground data-checked:text-background"
                   />
                 </div>
                 All
