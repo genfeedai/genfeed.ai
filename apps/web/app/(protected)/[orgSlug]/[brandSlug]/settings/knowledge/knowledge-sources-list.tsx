@@ -37,7 +37,14 @@ import { Button } from '@ui/primitives/button';
 import { Globe, Plus, RotateCcw } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import FilterMenu from '@/components/content/filter-menu/FilterMenu';
 import SearchField from '@/components/content/search-field/SearchField';
 import { useKnowledgeLibrary } from '@/features/library/knowledge/hooks/use-knowledge-library';
@@ -86,6 +93,7 @@ export default function KnowledgeSourcesList({
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const router = useRouter();
+  const search = searchParams.toString();
   const currentPage = Number(searchParams.get('page')) || 1;
   const sourceIds = searchParams.getAll('sourceId');
   const isInvalidSelection =
@@ -101,13 +109,7 @@ export default function KnowledgeSourcesList({
   // Only incoming navigation changes selection; polling/rerenders cannot reopen a closed panel.
   useResetOnChange([routeSourceId], () => setSelectedSourceId(routeSourceId));
   const selectionRef = useRef(selectedSourceId);
-  selectionRef.current = selectedSourceId;
-  const navigationRef = useRef({
-    pathname,
-    router,
-    search: searchParams.toString(),
-  });
-  navigationRef.current = { pathname, router, search: searchParams.toString() };
+  const navigationRef = useRef({ pathname, router, search });
   const changeSelection = useCallback(
     (sourceId: string | null, archivedId?: string) => {
       selectionRef.current = sourceId;
@@ -154,7 +156,6 @@ export default function KnowledgeSourcesList({
     [brandId, getSourcesService, getSpacesService, pathname],
   );
   const actionScopeRef = useRef(actionScope);
-  actionScopeRef.current = actionScope;
   const isMountedRef = useRef(true);
   // use-effect-audit: ignore releases timers, requests or subscriptions on unmount
   useEffect(() => {
@@ -170,7 +171,6 @@ export default function KnowledgeSourcesList({
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const refreshRef = useRef(refresh);
-  refreshRef.current = refresh;
   useResetOnChange([actionScope], () => setIsSubmitting(false));
 
   // A space that is not in this brand's list reads as no space filter, the
@@ -196,16 +196,33 @@ export default function KnowledgeSourcesList({
         : (rows.find((row) => row.source.id === selectedSourceId) ?? null)
       : null;
 
-  const actionableRef = useRef({
-    isLoading,
-    rowIds: new Set(rows.map((row) => row.source.id)),
-    selectedId: selectedRow?.source.id,
-  });
-  actionableRef.current = {
-    isLoading,
-    rowIds: new Set(rows.map((row) => row.source.id)),
-    selectedId: selectedRow?.source.id,
-  };
+  const displayedSourceId = selectedRow?.source.id;
+  const actionable = useMemo(
+    () => ({
+      isLoading,
+      rowIds: new Set(rows.map((row) => row.source.id)),
+      selectedId: displayedSourceId,
+    }),
+    [displayedSourceId, isLoading, rows],
+  );
+  const actionableRef = useRef(actionable);
+  // In-flight actions read only snapshots from a committed render.
+  useLayoutEffect(() => {
+    selectionRef.current = selectedSourceId;
+    navigationRef.current = { pathname, router, search };
+    actionScopeRef.current = actionScope;
+    actionableRef.current = actionable;
+    refreshRef.current = refresh;
+  }, [
+    actionable,
+    actionScope,
+    pathname,
+    refresh,
+    router,
+    search,
+    selectedSourceId,
+  ]);
+
   const isActionableSource = useCallback((sourceId: string) => {
     const current = actionableRef.current;
     return (
