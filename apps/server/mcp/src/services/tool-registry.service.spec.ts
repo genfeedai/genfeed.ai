@@ -40,6 +40,7 @@ const MOCK_TOOLS = [
     surfaces: { mcp: true },
   })),
   { name: 'get_account', requiredRole: undefined, surfaces: { mcp: true } },
+  { name: 'switch_org', requiredRole: undefined, surfaces: { mcp: true } },
   { name: 'get_trends', requiredRole: undefined, surfaces: { mcp: true } },
   {
     mutationPolicy: 'approval-required',
@@ -220,6 +221,7 @@ describe('ToolRegistryService', () => {
     canSwitchOrganizations: ReturnType<typeof vi.fn>;
     listOrganizations: ReturnType<typeof vi.fn>;
     runInOrganization: ReturnType<typeof vi.fn>;
+    switchOrganization: ReturnType<typeof vi.fn>;
     setBearerToken: ReturnType<typeof vi.fn>;
     updateSocialTags: ReturnType<typeof vi.fn>;
   };
@@ -331,6 +333,7 @@ describe('ToolRegistryService', () => {
             runInOrganization: vi.fn(
               (_organizationId: string, work: () => Promise<unknown>) => work(),
             ),
+            switchOrganization: vi.fn(),
             setBearerToken: vi.fn(),
             updateSocialTags: vi
               .fn()
@@ -472,6 +475,31 @@ describe('ToolRegistryService', () => {
       expect(result).toMatchObject({ isError: true });
       expect(JSON.stringify(result)).toContain('limited to one organization');
       expect(calls).toEqual([]);
+    });
+
+    it('warns and gives reconnect guidance when a bound grant tries to switch organizations', async () => {
+      clientService.canSwitchOrganizations.mockResolvedValue(false);
+
+      const result = await service.handleToolCall({
+        arguments: { organization: 'beta' },
+        name: 'switch_org',
+      });
+
+      expect(result).toMatchObject({
+        isError: true,
+        structuredContent: {
+          code: 'unauthorized',
+          message: expect.stringContaining(
+            'Reconnect and choose "All organizations"',
+          ),
+        },
+      });
+      expect(clientService.switchOrganization).not.toHaveBeenCalled();
+      expect(logger.warn).toHaveBeenCalledWith(
+        'Tool call switch_org was refused:',
+        expect.any(Error),
+      );
+      expect(logger.error).not.toHaveBeenCalled();
     });
 
     it('refuses an organization the user does not have', async () => {
