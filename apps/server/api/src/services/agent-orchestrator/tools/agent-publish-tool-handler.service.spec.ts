@@ -11,12 +11,14 @@ import {
   AgentPublishDecision,
   CredentialPlatform,
   IngredientCategory,
+  PostRepurposeMode,
   PostVisibility,
   ReleaseStatus,
 } from '@genfeedai/contracts';
 import { evaluateAgentPublishPolicy } from '@genfeedai/contracts/api-types/contracts/agent-publish-policy.contract';
 import type { CreateReleaseGroupInput } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
 import { LoggerService } from '@libs/logger/logger.service';
+import { ForbiddenException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 
 import { describe, expect, it, vi } from 'vitest';
@@ -46,7 +48,14 @@ function scopedContext(brandId: string): ToolExecutionContext {
   };
 }
 
-function createHandler() {
+interface RepurposeServiceFake {
+  repurpose(params: { platform: string; postId: string }): Promise<{
+    adjustments: unknown[];
+    draft: { id: string };
+  }>;
+}
+
+function createHandler(postRepurposeService?: RepurposeServiceFake) {
   const postGroupsService = {
     create: vi
       .fn()
@@ -120,7 +129,11 @@ function createHandler() {
       isBlocked: false,
     }),
   };
-  const postsService = { create: vi.fn(), findOne: vi.fn() };
+  const postsService = {
+    create: vi.fn(),
+    findOne: vi.fn(),
+    findOneSelect: vi.fn(),
+  };
   const autonomousPolicy = {
     assessMediaForPolicy: vi.fn().mockResolvedValue(undefined),
     resolveForTarget: vi
@@ -157,7 +170,7 @@ function createHandler() {
     ingredientsService,
     credentialsService,
     agentScopeContextService as never,
-    undefined,
+    postRepurposeService as never,
     undefined,
     agentStrategiesService as never,
     agentPublishAuditsService as never,
@@ -994,6 +1007,68 @@ describe('AgentPublishToolHandler server-owned confirmation (#4306)', () => {
     );
     expect(postGroupsService.create).not.toHaveBeenCalled();
     expect(postGroupsService.publishNow).not.toHaveBeenCalled();
+  });
+});
+
+describe('repurpose_post through the MCP (#10583)', () => {
+  const mcpContext = (): ToolExecutionContext => ({
+    organizationId: 'org-1',
+    userId: 'user-1',
+  });
+
+  function repurposeFrom(brandId: string | undefined) {
+    const repurposeService: RepurposeServiceFake = {
+      repurpose: async ({ platform, postId }) => ({
+        adjustments: [],
+        draft: { id: `${postId}-${platform}-draft` },
+      }),
+    };
+    const f = createHandler(repurposeService);
+    f.postsService.findOneSelect.mockResolvedValue({ brandId });
+    return f;
+  }
+
+  const repurposeParams = {
+    mode: PostRepurposeMode.DETERMINISTIC,
+    platform: 'linkedin',
+    postId: 'post-1',
+  };
+
+  it('returns the new draft for a call with no thread and no validated scope', async () => {
+    const f = repurposeFrom('brand-1');
+
+    const result = await runWithActionOrigin({ origin: ActionOrigin.MCP }, () =>
+      f.handler.repurposePost(repurposeParams, mcpContext()),
+    );
+
+    expect(result).toMatchObject({
+      data: { id: 'post-1-linkedin-draft', status: 'draft' },
+      success: true,
+    });
+  });
+
+  it('refuses a source post whose brand the caller cannot use', async () => {
+    const f = repurposeFrom('brand-2');
+    f.agentScopeContextService.assertBrandAuthorized.mockRejectedValueOnce(
+      new ForbiddenException('Brand access denied'),
+    );
+
+    const result = await runWithActionOrigin({ origin: ActionOrigin.MCP }, () =>
+      f.handler.repurposePost(repurposeParams, mcpContext()),
+    );
+
+    expect(result).toMatchObject({
+      error: 'Brand access denied',
+      success: false,
+    });
+  });
+
+  it('still requires a validated scope outside the MCP', async () => {
+    const f = repurposeFrom('brand-1');
+
+    const result = await f.handler.repurposePost(repurposeParams, mcpContext());
+
+    expect(result.success).toBe(false);
   });
 });
 
