@@ -487,6 +487,27 @@ describe('ToolRegistryService', () => {
       expect(calls).toEqual([]);
     });
 
+    it('returns the organization lookup retry delay without running the tool', async () => {
+      const calls = recordToolCalls();
+      clientService.listOrganizations.mockRejectedValueOnce(
+        new McpUpstreamError('Organization lookup rate limit reached.', {
+          retryAfterSeconds: 12,
+          status: 429,
+        }),
+      );
+
+      await expect(
+        service.handleToolCall({
+          arguments: { organization: 'beta' },
+          name: 'get_account',
+        }),
+      ).resolves.toMatchObject({
+        isError: true,
+        structuredContent: { code: 'rate_limited', retryAfterSeconds: 12 },
+      });
+      expect(calls).toEqual([]);
+    });
+
     it('tells an all-organizations connection which organization it started in and which others it can name', async () => {
       clientService.executeAgentTool.mockResolvedValue({
         creditsUsed: 0,
