@@ -71,6 +71,7 @@ import { OrganizationSettingsService } from '@api/collections/organization-setti
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
+import { toWorkflowInputDocument } from '@api/collections/workflows/utils/workflow-input-document.util';
 import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
 import { DEFAULT_MINI_TEXT_MODEL } from '@api/constants/default-mini-text-model.constant';
 import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
@@ -664,7 +665,7 @@ export class ArticlesService
         {
           actionType: ARTICLE_GENERATION_TOOL_ID,
           canonicalId: ARTICLE_GENERATION_WORKFLOW_ID,
-          inputValues: { brandId, dto: generateDto },
+          inputValues: { brandId, dto: toWorkflowInputDocument(generateDto) },
           metadata: { brandId, origin: 'api' },
           organizationId,
           runtimeContext: articleWorkflowRuntime(byok),
