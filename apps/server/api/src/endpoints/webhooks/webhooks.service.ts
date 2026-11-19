@@ -467,6 +467,11 @@ export class WebhooksService {
       return;
     }
 
+    const generationError =
+      !errorMessage?.trim() ||
+      errorMessage === INGREDIENT_PROCESSING_TIMEOUT_ERROR
+        ? 'Generation failed'
+        : errorMessage;
     if (ingredient.status !== IngredientStatus.PROCESSING) {
       if (ingredient.status === IngredientStatus.FAILED) {
         await this.generationSettlement.releaseOutput(
@@ -487,18 +492,14 @@ export class WebhooksService {
               status: IngredientStatus.FAILED,
             },
             {
-              generationError:
-                !errorMessage ||
-                errorMessage === INGREDIENT_PROCESSING_TIMEOUT_ERROR
-                  ? 'Generation failed'
-                  : errorMessage,
+              generationError,
             },
           );
       }
       return;
     }
     const claimed = await transitionIngredientStatus(this.ingredientsService, {
-      data: { isGenerationFailureConfirmed: true },
+      data: { generationError, isGenerationFailureConfirmed: true },
       from: IngredientStatus.PROCESSING,
       id: ingredient.id.toString(),
       organizationId: ingredient.organizationId,

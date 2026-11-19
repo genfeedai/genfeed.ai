@@ -363,7 +363,12 @@ export class ReplicateVideoBuilder extends BaseReplicateBuilder {
 
     const input: Veo31Input = {
       aspect_ratio: aspectRatio,
-      duration: params.duration ?? 8,
+      duration:
+        normalizeProviderVideoDuration(
+          MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1,
+          params.duration,
+          normalizedResolution,
+        ) ?? 8,
       generate_audio: params.isAudioEnabled ?? true,
       negative_prompt: negativePrompt,
       prompt: promptText,
@@ -406,7 +411,12 @@ export class ReplicateVideoBuilder extends BaseReplicateBuilder {
 
     const input: Veo31FastInput = {
       aspect_ratio: aspectRatio,
-      duration: params.duration ?? 8,
+      duration:
+        normalizeProviderVideoDuration(
+          MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1_FAST,
+          params.duration,
+          normalizedResolution,
+        ) ?? 8,
       generate_audio: params.isAudioEnabled ?? true,
       negative_prompt: negativePrompt,
       prompt: promptText,
