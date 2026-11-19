@@ -174,24 +174,27 @@ function getScopeTiles(
   }));
 }
 
-function getCallbackHost(
-  redirectUri: string | null,
-  unknownClientLabel: string,
-): string {
+function parseCallbackUrl(redirectUri: string | null): URL | null {
   if (!redirectUri) {
-    return unknownClientLabel;
+    return null;
   }
+
   try {
-    const url = new URL(redirectUri);
-    if (url.protocol === 'https:' || url.protocol === 'http:') {
-      return url.host;
-    }
-    // Native-app schemes (`cursor://anysphere.cursor-mcp`) identify the
-    // receiving app by the scheme, so show it alongside the host.
-    return url.host ? `${url.protocol}//${url.host}` : url.protocol;
+    return new URL(redirectUri);
   } catch {
+    return null;
+  }
+}
+
+function getCallbackHost(url: URL | null, unknownClientLabel: string): string {
+  if (!url) {
     return unknownClientLabel;
   }
+  if (url.protocol === 'https:' || url.protocol === 'http:') {
+    return url.host;
+  }
+  // Native-app schemes identify the receiving app by the scheme and host.
+  return url.host ? `${url.protocol}//${url.host}` : url.protocol;
 }
 
 /** Dropdown value for a connection that may act in every organization. */
@@ -202,6 +205,12 @@ const LOOPBACK_HOSTS: ReadonlySet<string> = new Set([
   '127.0.0.1',
   '[::1]',
 ]);
+
+const CODEX_CLIENT_NAME_PATTERN = /\bcodex\b/i;
+
+function isHttpLoopback(url: URL): boolean {
+  return url.protocol === 'http:' && LOOPBACK_HOSTS.has(url.hostname);
+}
 
 function isHttpsHost(url: URL, hosts: readonly string[]): boolean {
   return url.protocol === 'https:' && hosts.includes(url.hostname);
@@ -226,8 +235,7 @@ const CLIENT_LOGOS: readonly {
   },
   {
     isTrustedRedirect: (url) =>
-      isHttpsHost(url, ['chatgpt.com', 'openai.com']) ||
-      (url.protocol === 'http:' && LOOPBACK_HOSTS.has(url.hostname)),
+      isHttpsHost(url, ['chatgpt.com', 'openai.com']) || isHttpLoopback(url),
     pattern: /codex|openai|chatgpt/i,
     src: '/assets/agent-logos/openai.svg',
   },
@@ -238,24 +246,17 @@ const CLIENT_LOGOS: readonly {
   },
 ];
 
-function getClientLogo(
-  clientName: string,
-  redirectUri: string | null,
-): string | null {
-  if (!redirectUri) {
+function getClientLogo(clientName: string, url: URL | null): string | null {
+  if (!url) {
     return null;
   }
-  try {
-    const url = new URL(redirectUri);
-    return (
-      CLIENT_LOGOS.find(
-        ({ isTrustedRedirect, pattern }) =>
-          pattern.test(clientName) && isTrustedRedirect(url),
-      )?.src ?? null
-    );
-  } catch {
-    return null;
-  }
+
+  return (
+    CLIENT_LOGOS.find(
+      ({ isTrustedRedirect, pattern }) =>
+        pattern.test(clientName) && isTrustedRedirect(url),
+    )?.src ?? null
+  );
 }
 
 export default function OAuthConsentContent() {
@@ -482,7 +483,12 @@ export default function OAuthConsentContent() {
     ? defaultOrganization
     : (organizations.find(({ id }) => id === selectedOrganizationId) ??
       defaultOrganization);
-  const clientLogo = getClientLogo(clientName, redirectUri);
+  const callbackUrl = parseCallbackUrl(redirectUri);
+  const clientLogo = getClientLogo(clientName, callbackUrl);
+  const isCodexLoopback =
+    callbackUrl !== null &&
+    isHttpLoopback(callbackUrl) &&
+    CODEX_CLIENT_NAME_PATTERN.test(clientName);
 
   async function submitDecision(approved: boolean): Promise<void> {
     if (
@@ -669,7 +675,7 @@ export default function OAuthConsentContent() {
                     <p className="truncate text-xs text-muted-foreground">
                       {translate('request.returnsTo', {
                         host: getCallbackHost(
-                          redirectUri,
+                          callbackUrl,
                           translate('callbackHost.unknownClient'),
                         ),
                       })}
@@ -874,6 +880,12 @@ export default function OAuthConsentContent() {
             {consentState.error && (
               <p className="text-sm text-destructive" role="alert">
                 {consentState.error}
+              </p>
+            )}
+
+            {isCodexLoopback && (
+              <p className="text-sm text-muted-foreground">
+                {translate('request.codexHandoff', { host: callbackUrl.host })}
               </p>
             )}
 

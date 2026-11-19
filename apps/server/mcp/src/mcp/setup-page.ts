@@ -997,10 +997,7 @@ ${postHogSnippet}
       </section>
 
       <section class="${panelClass('codex')}" id="panel-codex" role="tabpanel" aria-labelledby="tab-codex" data-panel="codex">
-        <div class="setup-title-row">
-          <h3 class="instruction-title">Codex setup</h3>
-          <span class="${ui.badge}">CLI and IDE config</span>
-        </div>
+        <h3 class="instruction-title">Codex setup</h3>
         <ol class="steps">
           <li class="step">
             <span class="step-number">01</span>
@@ -1014,8 +1011,11 @@ ${postHogSnippet}
             <span class="step-number">02</span>
             <div>
               <p class="step-title">Authorize and verify</p>
-              <p class="step-copy">If browser authorization did not open during setup, run this. Approve access, then ask Codex to list your Genfeed brands.</p>
+              <p class="step-copy">Sign in and approve access in your browser. If the browser did not open during setup, run this command to start authorization.</p>
               ${renderCommandBlock({ id: 'codex-login-command', label: 'Copy Codex login command', textSafe: 'codex mcp login genfeed', ui })}
+              <p class="step-copy">After approval, expect a Codex tab at <code class="${ui.inlineCode}">127.0.0.1</code> (localhost).
+                You can close that tab. Return to Codex and ask it to list your Genfeed brands.
+              </p>
             </div>
           </li>
         </ol>

@@ -781,6 +781,11 @@ describe('MCP setup page', () => {
           (panel) => panel.getAttribute('id'),
         ),
       ).toEqual(['panel-codex']);
+      const panel = document.getElementById('panel-codex');
+      expect(panel?.textContent).toContain('127.0.0.1 (localhost)');
+      expect(panel?.textContent).toContain(
+        'Return to Codex and ask it to list your Genfeed brands.',
+      );
       expect(document.title).toBe('Codex setup — Genfeed MCP Server');
       expect(html).toContain(
         '<meta property="og:url" content="https://mcp.genfeed.ai/codex" />',

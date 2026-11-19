@@ -332,6 +332,7 @@
           "deny": "Deny"
         },
         "clientLabel": "Requesting client",
+        "codexHandoff": "After you authorize, expect a localhost tab at {host}. Return to Codex and ask it to list your Genfeed brands to verify the connection.",
         "returnsTo": "Returns to {host}",
         "adminNotice": "This is the Genfeed staff admin connection. This client can also perform administrative actions in this organization and approve its own queued actions.",
         "scopesLabel": "{clientName} can",
