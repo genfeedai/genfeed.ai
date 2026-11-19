@@ -658,7 +658,29 @@ describe('WebSocketGateway redis message dispatch', () => {
     );
     expect(roomEmit).toHaveBeenCalledWith(
       'media-failed',
-      expect.objectContaining({ status: 'failed' }),
+      expect.objectContaining({ error: 'render exploded', status: 'failed' }),
+    );
+    expect(mockLoggerService.error).not.toHaveBeenCalled();
+  });
+
+  it('reports a socket dispatch failure without logging the media error or destination', () => {
+    roomEmit.mockImplementationOnce(() => {
+      throw new Error('Socket adapter cannot reach the room');
+    });
+
+    dispatch(
+      'media-failed',
+      JSON.stringify({
+        error: 'render exploded',
+        path: '/videos/v1/failed',
+        userId: USER_ID,
+      }),
+    );
+
+    expect(mockLoggerService.error).toHaveBeenCalledExactlyOnceWith(
+      'WebSocket media failure notification dispatch failed',
+      undefined,
+      { service: 'WebSocketGateway' },
     );
   });
 
