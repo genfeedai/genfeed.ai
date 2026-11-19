@@ -24,7 +24,6 @@ import {
 } from '@api/services/agent-orchestrator/tools/agent-publish-mcp-draft-only.util';
 import { resolveAgentPublishMediaGate } from '@api/services/agent-orchestrator/tools/agent-publish-media-readiness.util';
 import {
-  attachGeneratedDraftMedia,
   createAgentTextDraft,
   createProactiveAgentTextPost,
   finishConfirmedPublish,
@@ -811,22 +810,6 @@ export class AgentPublishToolHandler {
   ): Promise<AgentToolResult> {
     const mcpBlock = blockMcpCreatePost(params);
     if (mcpBlock) return mcpBlock;
-    if (Object.hasOwn(params, 'postId')) {
-      if (!isMcpActionOrigin()) {
-        return {
-          creditsUsed: 0,
-          error: 'create_post postId is supported on MCP.',
-          success: false,
-        };
-      }
-      await authorizeAgentTextDraft(this.agentScopeContextService, params, ctx);
-      return attachGeneratedDraftMedia(
-        this.postsService,
-        params,
-        ctx,
-        this.ingredientsService,
-      );
-    }
     const visibility = parsePostVisibility(params.visibility);
     if (!visibility) {
       return {
@@ -944,7 +927,7 @@ export class AgentPublishToolHandler {
 
     await authorizeAgentTextDraft(this.agentScopeContextService, params, ctx);
 
-    if (ctx.isProactive)
+    if (ctx.isProactive && !Object.hasOwn(params, 'postId'))
       return this.createProactiveTextPost(params, ctx, visibility);
 
     return createAgentTextDraft(

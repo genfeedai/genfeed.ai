@@ -345,17 +345,11 @@ export class PostsService extends BaseService<
     if (!id) throw new ValidationException('Document ID is required');
     if (!dto || typeof dto !== 'object')
       throw new ValidationException('Update data is required');
+    const context = this.postLearningContext();
+    const patch = { id, dto, populate, draftScope };
     const result = await withLearningFenceEscalation((fenceScope) =>
       this.prisma.$transaction((tx) =>
-        patchPostWithLearning(
-          tx,
-          this.postLearningContext(),
-          id,
-          dto,
-          populate,
-          fenceScope,
-          draftScope,
-        ),
+        patchPostWithLearning(tx, context, patch, fenceScope),
       ),
     );
     const { updatedPost, currentPost, isPublishingPost } = result;

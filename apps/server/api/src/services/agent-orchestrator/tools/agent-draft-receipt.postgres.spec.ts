@@ -7,10 +7,7 @@ import { PostsService } from '@api/collections/posts/services/posts.service';
 import { AgentCompletionCardBuilderService } from '@api/services/agent-orchestrator/agent-completion-card-builder.service';
 import { AgentOrchestratorUiActionFinalizerService } from '@api/services/agent-orchestrator/agent-orchestrator-ui-action-finalizer.service';
 import type { DraftMediaLookup } from '@api/services/agent-orchestrator/tools/agent-publish-draft-media.util';
-import {
-  attachGeneratedDraftMedia,
-  createAgentTextDraft,
-} from '@api/services/agent-orchestrator/tools/agent-publish-post-actions';
+import { createAgentTextDraft } from '@api/services/agent-orchestrator/tools/agent-publish-post-actions';
 import { AgentRouteRewriteService } from '@api/services/agent-orchestrator/tools/agent-route-rewrite.service';
 import { buildMutationApprovalCard } from '@api/services/agent-orchestrator/tools/mutation-approval-card';
 import { buildApprovedMutationOutcome } from '@api/services/agent-orchestrator/tools/mutation-approval-outcome';
@@ -150,10 +147,22 @@ describe.skipIf(!connectionString)(
       };
 
       await expect(
-        attachGeneratedDraftMedia(posts, args, scope, ingredients),
+        createAgentTextDraft(
+          posts,
+          args,
+          scope,
+          PostVisibility.PUBLIC,
+          ingredients,
+        ),
       ).resolves.toMatchObject({ data: { id: draft.id }, success: true });
       await expect(
-        attachGeneratedDraftMedia(posts, args, scope, ingredients),
+        createAgentTextDraft(
+          posts,
+          args,
+          scope,
+          PostVisibility.PUBLIC,
+          ingredients,
+        ),
       ).resolves.toMatchObject({ data: { id: draft.id }, success: true });
       const saved = await db.post.findMany({
         where: { organizationId: organization.id, isDeleted: false },

@@ -559,12 +559,15 @@ async function preparePostMutation(
 export async function patchPostWithLearning(
   tx: Prisma.TransactionClient,
   context: PostLearningMutationContext,
-  id: string,
-  dto: PostUpdateInput,
-  populate: PopulateInput,
+  patch: {
+    id: string;
+    dto: PostUpdateInput;
+    populate: PopulateInput;
+    draftScope?: GeneratedDraftEditScope;
+  },
   fenceScope: LearningMutationFenceScope,
-  draftScope?: GeneratedDraftEditScope,
 ): Promise<PostLearningPatchResult> {
+  const { id, dto, populate, draftScope } = patch;
   const plan = await preparePostMutation(
     tx,
     id,

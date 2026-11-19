@@ -1489,9 +1489,7 @@ describe('post owner learning mutation protocol', () => {
     const result = await value.patchPostWithLearning(
       value.tx as never,
       value.context as never,
-      'post',
-      { ingredients: ['ingredient-new'] },
-      [],
+      { id: 'post', dto: { ingredients: ['ingredient-new'] }, populate: [] },
       'organization',
     );
     expect(value.approvals.assertPostMutable).toHaveBeenCalledWith(
@@ -1527,17 +1525,17 @@ describe('post owner learning mutation protocol', () => {
     await value.patchPostWithLearning(
       value.tx as never,
       value.context as never,
-      'post',
-      { description: 'original' },
-      [],
+      { id: 'post', dto: { description: 'original' }, populate: [] },
       'organization',
     );
     await value.patchPostWithLearning(
       value.tx as never,
       value.context as never,
-      'post',
-      { analyticsCollectionError: 'retry' } as never,
-      [],
+      {
+        id: 'post',
+        dto: { analyticsCollectionError: 'retry' } as never,
+        populate: [],
+      },
       'organization',
     );
     expect(value.approvals.invalidatePost).not.toHaveBeenCalled();
@@ -1598,9 +1596,7 @@ describe('post owner learning mutation protocol', () => {
       value.patchPostWithLearning(
         value.tx as never,
         value.context as never,
-        'post',
-        { organizationId: 'foreign' },
-        [],
+        { id: 'post', dto: { organizationId: 'foreign' }, populate: [] },
         'organization',
       ),
     ).rejects.toThrow(/authorized brand relocation/);
@@ -1659,9 +1655,7 @@ describe('post owner learning mutation protocol', () => {
       value.patchPostWithLearning(
         value.tx as never,
         value.context as never,
-        'post',
-        { isDeleted: true },
-        [],
+        { id: 'post', dto: { isDeleted: true }, populate: [] },
         'organization',
       ),
     ).rejects.toThrow('active execution');
@@ -1698,9 +1692,11 @@ describe('post owner learning mutation protocol', () => {
       value.patchPostWithLearning(
         value.tx as never,
         value.context as never,
-        'post',
-        { targetExecutionState: TargetExecutionState.SCHEDULED },
-        [],
+        {
+          id: 'post',
+          dto: { targetExecutionState: TargetExecutionState.SCHEDULED },
+          populate: [],
+        },
         'organization',
       ),
     ).rejects.toThrow('child provider execution is in flight');

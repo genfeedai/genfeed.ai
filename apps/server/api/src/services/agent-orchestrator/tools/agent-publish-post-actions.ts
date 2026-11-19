@@ -456,7 +456,7 @@ export function readAgentPostText(
   return typeof text === 'string' ? text.trim() : undefined;
 }
 
-export const attachGeneratedDraftMedia = traced(
+const attachGeneratedDraftMedia = traced(
   'attachGeneratedDraftMedia',
   async (
     postsService: PostsService,
@@ -530,6 +530,14 @@ export async function createAgentTextDraft(
   visibility: PostVisibility,
   ingredientsService?: DraftMediaLookup,
 ): Promise<AgentToolResult> {
+  if (Object.hasOwn(params, 'postId')) {
+    return attachGeneratedDraftMedia(
+      postsService,
+      params,
+      ctx,
+      ingredientsService,
+    );
+  }
   // A thread carries its validated brand; an MCP caller names it (#10071).
   const brandId =
     ctx.validatedScope?.brandId ?? readOptionalString(params.brandId);

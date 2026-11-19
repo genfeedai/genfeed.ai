@@ -37,6 +37,7 @@ export const readPostGenerationReceipts = traced(
         state: { in: ['checking', 'ready', 'needs_review'] },
         OR: candidates,
       },
+      take: candidates.length,
       select: {
         actorId: true,
         brandId: true,

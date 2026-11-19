@@ -40,6 +40,13 @@ export function blockMcpCreatePost(
   params: Record<string, unknown>,
 ): AgentToolResult | undefined {
   if (!isMcpActionOrigin()) {
+    if (Object.hasOwn(params, 'postId')) {
+      return {
+        creditsUsed: 0,
+        error: 'create_post postId is supported on MCP.',
+        success: false,
+      };
+    }
     return undefined;
   }
   if (params.confirmed === true || readPublishContentId(params)) {
