@@ -1,4 +1,4 @@
-import type { ClientService } from '@mcp/services/client.service';
+import type { WorkspaceAppClient } from '@mcp/services/client/workspace-app.client';
 import { McpUpstreamError } from '@mcp/tools/mcp-tool-error';
 import {
   handleWorkspaceAppTool,
@@ -23,7 +23,11 @@ function call(
   name: string,
   args: Record<string, unknown>,
 ) {
-  return handleWorkspaceAppTool(client as unknown as ClientService, name, args);
+  return handleWorkspaceAppTool(
+    client as unknown as WorkspaceAppClient,
+    name,
+    args,
+  );
 }
 
 describe('handleWorkspaceAppTool', () => {

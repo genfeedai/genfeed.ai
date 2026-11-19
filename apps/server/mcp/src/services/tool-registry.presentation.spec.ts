@@ -58,9 +58,6 @@ function build() {
       .fn()
       .mockResolvedValue({ success: true, creditsUsed: 0, data: fixture }),
     evaluateMcpToolResult: vi.fn().mockResolvedValue({ outcome: 'allowed' }),
-    getReviewRun: vi
-      .fn()
-      .mockResolvedValue({ id: fixture.id, attributes: { items: [] } }),
     isApprovalRequired: vi.fn().mockResolvedValue(true),
     createApproval: vi.fn(async (toolName, args) => {
       approval = {
@@ -75,8 +72,18 @@ function build() {
     // A reviewer approved it in the inbox; MCP only redeems it.
     getApproval: vi.fn(async () => ({ ...approval, status: 'APPROVED' })),
   };
+  const workspaceApp = {
+    createTask: async () => fixture,
+    getReviewRun: async () => ({ id: fixture.id, attributes: { items: [] } }),
+    getTask: async () => fixture,
+    listActivity: async () => [fixture],
+    listInbox: async () => [fixture],
+    listTasks: async () => [fixture],
+    updateTask: async () => fixture,
+  };
   const client = new Proxy(methods, {
     get(target, key: string) {
+      if (key === 'workspaceApp') return workspaceApp;
       target[key] ??= vi
         .fn()
         .mockResolvedValue(

@@ -4,7 +4,7 @@ import {
   TASK_STATUSES,
 } from '@genfeedai/contracts/interfaces';
 import { getPublicAppUrl } from '@mcp/mcp/setup-page';
-import type { ClientService } from '@mcp/services/client.service';
+import type { WorkspaceAppClient } from '@mcp/services/client/workspace-app.client';
 import { formatToolData } from '@mcp/shared/utils/tool-result-text.util';
 import { McpUpstreamError } from '@mcp/tools/mcp-tool-error';
 import { z } from 'zod';
@@ -52,11 +52,11 @@ const reviewQueueSchema = z.strictObject({
 
 /**
  * Workspace app MCP handlers: tasks, the review inbox and recent activity.
- * Each entry is a thin proxy to the live API via {@link ClientService}; org
+ * Each entry is a thin proxy to the live API via {@link WorkspaceAppClient}; org
  * scoping is enforced API-side. `create_task` only records a task.
  */
 export async function handleWorkspaceAppTool(
-  client: ClientService,
+  client: WorkspaceAppClient,
   name: string,
   args: Record<string, unknown>,
 ) {
@@ -116,7 +116,7 @@ export async function handleWorkspaceAppTool(
 }
 
 async function listReviewQueue(
-  client: ClientService,
+  client: WorkspaceAppClient,
   { brandId, limit, status, turboRunId }: z.infer<typeof reviewQueueSchema>,
 ) {
   if (status && !turboRunId) {
@@ -162,7 +162,7 @@ async function listReviewQueue(
 }
 
 async function manageTask(
-  client: ClientService,
+  client: WorkspaceAppClient,
   request: z.infer<typeof manageTaskSchema>,
 ) {
   switch (request.action) {

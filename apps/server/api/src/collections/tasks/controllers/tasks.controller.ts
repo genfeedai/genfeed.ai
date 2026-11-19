@@ -249,30 +249,6 @@ export class TasksController extends BaseCRUDController<
     return Boolean(userOrgId) && entity.organizationId === userOrgId;
   }
 
-  protected override async assertPatchAllowed(
-    user: User,
-    task: TaskDocument,
-    update: Partial<UpdateTaskDto>,
-    request?: Request,
-  ): Promise<void> {
-    if (!getIsSuperAdmin(user, request)) {
-      await this.taskReviewAccess.assertCanAccessTaskBrand(user, task.brandId);
-      if (update.brandId && update.brandId !== task.brandId) {
-        await this.taskReviewAccess.assertCanAccessTaskBrand(
-          user,
-          update.brandId,
-        );
-      }
-    }
-    if (update.assigneeUserId) {
-      await this.taskReviewAccess.assertAssigneeCanAccessTask(
-        task.organizationId,
-        update.brandId === undefined ? task.brandId : update.brandId,
-        update.assigneeUserId,
-      );
-    }
-  }
-
   @TenantReadPolicy('selected')
   @Get('by-identifier/:identifier')
   async findByIdentifier(
@@ -334,20 +310,19 @@ export class TasksController extends BaseCRUDController<
     @Param('id') id: string,
     @Body() updateDto: UpdateTaskDto,
   ): Promise<JsonApiSingleResponse> {
-    // Review transitions route through the dedicated action methods, which carry
-    // the load-bearing side effects (event stream, realtime broadcast, feedback
-    // memory) — rather than a plain field write.
     if (updateDto.reviewState) {
       return this.applyReviewTransition(request, user, id, updateDto);
     }
 
-    if (updateDto.assigneeUserId !== undefined || updateDto.isDeleted) {
-      await this.taskReviewAccess.assertCanChangeTaskReviewer(user, id);
-    }
+    await this.taskReviewAccess.assertCanPatchTask(
+      user,
+      id,
+      updateDto,
+      getIsSuperAdmin(user, request),
+    );
 
     const result = await super.patch(request, user, id, updateDto);
 
-    // When a task is marked done/cancelled, check if parent's children are all complete
     if (updateDto.status === 'done' || updateDto.status === 'cancelled') {
       const task = await this.tasksService.findOneSelect(
         scopedWhere(user.organizationId, { id }),

@@ -646,7 +646,11 @@ export class ToolRegistryService implements OnModuleInit {
       case 'editor':
         return handleEditorTool(this.clientService, name, args);
       case 'workspace-app':
-        return handleWorkspaceAppTool(this.clientService, name, args);
+        return handleWorkspaceAppTool(
+          this.clientService.workspaceApp,
+          name,
+          args,
+        );
       case 'storyboard-capabilities':
         return handleStoryboardTool(this.clientService, name, args);
       case 'presets':
