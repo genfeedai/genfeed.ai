@@ -446,6 +446,20 @@ test('a pinned release fails validation without Full Suite evidence or with pend
     'the npm plan is read from the pinned checkout before a draft exists',
   );
 
+  const install = step(validate, 'Setup Bun environment for the npm plan');
+
+  assert.equal(install.if, PINNED_ONLY);
+  assert.equal(install.uses, './.github/actions/setup-bun-env');
+  assert.equal(
+    install.with['install-command'],
+    'bun install --frozen-lockfile',
+  );
+  assert.ok(
+    names.indexOf('Checkout pinned master SHA') < names.indexOf(install.name) &&
+      names.indexOf(install.name) < names.indexOf(npm.name),
+    'dependencies are installed in the pinned checkout before the npm plan imports them',
+  );
+
   assert.equal(suite.if, PINNED_ONLY);
   assert.equal(
     suite.env.SUITE_VERIFIED,
