@@ -10,8 +10,13 @@ import { traced } from '@libs/tracing/traced';
 /** `CreatePostDto.ingredients` accepts 35 at most (the TikTok limit). */
 const MAX_DRAFT_MEDIA_ITEMS = 35;
 
-/** Canonical Library media URL: `<ingredients endpoint>/<images|videos|gifs>/<id>`. */
-const LIBRARY_MEDIA_URL_ID = /\/(?:images|videos|gifs)\/([^/?#]+)(?:[/?#]|$)/i;
+/**
+ * Library media URL: `<ingredients endpoint>/<images|videos|gifs>/<segment>`.
+ * The segment is the ingredient id for URLs built from an id, and the storage
+ * id for the signed URLs `get_assets` and `get_job_status` hand out (those are
+ * built from the asset's `s3Key`, whose last segment is not the ingredient id).
+ */
+const LIBRARY_MEDIA_URL_ID = /\/(images|videos|gifs)\/([^/?#]+)(?:[/?#]|$)/i;
 
 const READY_STATUSES: readonly string[] = [
   IngredientStatus.UPLOADED,
@@ -32,20 +37,63 @@ interface DraftMediaIngredient {
 }
 
 export interface DraftMediaLookup {
-  findOne(where: {
-    id: string;
-    isDeleted: false;
-    organizationId: string;
-  }): Promise<unknown>;
+  findOne(
+    where:
+      | { id: string; isDeleted: false; organizationId: string }
+      | { isDeleted: false; organizationId: string; s3Key: string },
+  ): Promise<unknown>;
 }
 
 export type DraftMediaResolution =
   | { ingredientIds: string[]; category?: PostCategory; error?: undefined }
   | { error: string };
 
-/** The Library asset id carried by a hosted media URL, if it has one. */
-function readLibraryMediaId(url: string): string | undefined {
-  return url.match(LIBRARY_MEDIA_URL_ID)?.[1];
+interface LibraryMediaReference {
+  /** The URL segment: an ingredient id or a storage id. */
+  segment: string;
+  /** The object key the URL was built from, when the URL is a CDN media URL. */
+  s3Key: string;
+}
+
+/** The Library asset reference carried by a hosted media URL, if it has one. */
+function readLibraryMediaReference(
+  url: string,
+): LibraryMediaReference | undefined {
+  const match = url.match(LIBRARY_MEDIA_URL_ID);
+  if (!match?.[1] || !match[2]) {
+    return undefined;
+  }
+  let segment = match[2];
+  try {
+    segment = decodeURIComponent(segment);
+  } catch {
+    // A malformed escape is kept as written and fails the lookup below.
+  }
+  return { s3Key: `ingredients/${match[1].toLowerCase()}/${segment}`, segment };
+}
+
+/**
+ * Finds the ingredient a media URL names: by ingredient id first, then by the
+ * object key the served URL was built from.
+ */
+async function findLibraryAsset(
+  ingredients: DraftMediaLookup,
+  reference: LibraryMediaReference,
+  organizationId: string,
+): Promise<DraftMediaIngredient | null> {
+  const byId = (await ingredients.findOne({
+    id: reference.segment,
+    isDeleted: false,
+    organizationId,
+  })) as DraftMediaIngredient | null;
+  if (byId) {
+    return byId;
+  }
+  return (await ingredients.findOne({
+    isDeleted: false,
+    organizationId,
+    s3Key: reference.s3Key,
+  })) as DraftMediaIngredient | null;
 }
 
 function readUrlList(value: unknown): string[] | { error: string } {
@@ -137,24 +185,25 @@ export const resolveDraftMediaUrls = traced(
     const ingredientIds: string[] = [];
     const categories = new Set<string>();
     for (const url of urls) {
-      const id = readLibraryMediaId(url);
-      if (!id) {
+      const reference = readLibraryMediaReference(url);
+      if (!reference) {
         return {
           error: `mediaUrls entry ${url} is not a Library asset URL. Upload it to the Library and pass the hosted url.`,
         };
       }
-      if (ingredientIds.includes(id)) {
-        return { error: `mediaUrls lists ${url} more than once.` };
-      }
-      const found = (await input.ingredients.findOne({
-        id,
-        isDeleted: false,
-        organizationId: input.organizationId,
-      })) as DraftMediaIngredient | null;
-      if (!found) {
+      const found = await findLibraryAsset(
+        input.ingredients,
+        reference,
+        input.organizationId,
+      );
+      if (!found?.id) {
         return {
           error: `mediaUrls entry ${url} was not found in the Library.`,
         };
+      }
+      const id = found.id;
+      if (ingredientIds.includes(id)) {
+        return { error: `mediaUrls lists ${url} more than once.` };
       }
       if (input.brandId && found.brandId && found.brandId !== input.brandId) {
         return {
