@@ -6,6 +6,7 @@ import {
   PageScope,
   Platform,
   PostCategory,
+  TargetExecutionState,
 } from '@genfeedai/contracts';
 import type { ICredential, IPost } from '@genfeedai/contracts/interfaces';
 import type { AnalyticsStat } from '@genfeedai/contracts/interfaces/analytics/analytics-ui.interface';
@@ -33,6 +34,20 @@ import {
   type PostDetailPendingOperations,
   setPostDetailOperation,
 } from './post-detail-operations';
+
+const TIKTOK_STATUS_POLL_INTERVAL_MS = 15_000;
+const TIKTOK_QUEUE_POLL_WINDOW_MS = 5 * 60_000;
+
+function isTikTokDeliveryPending(post: IPost | null | undefined): boolean {
+  if (post?.platform !== CredentialPlatform.TIKTOK) return false;
+  if (post.targetExecutionState === TargetExecutionState.PUBLISHING)
+    return true;
+  if (post.targetExecutionState !== TargetExecutionState.SCHEDULED)
+    return false;
+
+  const scheduleAge = Date.now() - Date.parse(post.scheduledDate ?? '');
+  return scheduleAge >= 0 && scheduleAge <= TIKTOK_QUEUE_POLL_WINDOW_MS;
+}
 
 export const GROK_FEEDBACK_QUESTIONS = [
   '@grok What are your thoughts on this thread?',
@@ -187,6 +202,10 @@ export function usePostDetailState({
       }
     },
     queryKey: ['post-detail', postId],
+    refetchInterval: ({ state }) =>
+      isTikTokDeliveryPending(state.data)
+        ? TIKTOK_STATUS_POLL_INTERVAL_MS
+        : false,
     service: (token: string) => PostsService.getInstance(token),
   });
   const post = postQuery.data ?? null;

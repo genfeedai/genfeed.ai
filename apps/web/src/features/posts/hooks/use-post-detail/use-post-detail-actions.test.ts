@@ -54,6 +54,7 @@ describe('usePostDetailActions', () => {
   const mockGetReleaseGroupsService = vi.fn();
   const mockNotificationsService = {
     error: vi.fn(),
+    info: vi.fn(),
     success: vi.fn(),
   };
   const mockRouter = { push: vi.fn(), replace: vi.fn() };
@@ -240,7 +241,7 @@ describe('usePostDetailActions', () => {
       );
     });
 
-    it('hands a TikTok video to the native app for music and final edits', async () => {
+    it('reports the queued TikTok Inbox upload before the provider confirms delivery', async () => {
       const { result } = renderHook(() =>
         usePostDetailActions({
           ...baseProps,
@@ -255,9 +256,10 @@ describe('usePostDetailActions', () => {
       expect(mockEnsureFromPost).toHaveBeenCalledWith('post-1');
       expect(mockPublishViaTikTokApp).toHaveBeenCalledWith('group-1', 'post-1');
       expect(mockPublishNow).not.toHaveBeenCalled();
-      expect(mockNotificationsService.success).toHaveBeenCalledWith(
-        'Sent to TikTok. Open your TikTok Inbox to add music or final edits, then publish.',
+      expect(mockNotificationsService.info).toHaveBeenCalledWith(
+        'TikTok Inbox upload queued',
       );
+      expect(mockNotificationsService.success).not.toHaveBeenCalled();
     });
 
     it('clears the schedule when the draft is empty', async () => {

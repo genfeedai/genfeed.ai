@@ -7,8 +7,8 @@ import PostDetailAnalytics from '@/features/posts/detail/components/PostDetailAn
 
 export interface PostDetailPublishedProps {
   stats: AnalyticsStat[];
-  /** The live thread, rendered the way the platform shows it. */
   thread: ReactNode;
+  isTikTokInboxDelivered?: boolean;
 }
 
 /**
@@ -19,6 +19,7 @@ export interface PostDetailPublishedProps {
 export default function PostDetailPublished({
   stats,
   thread,
+  isTikTokInboxDelivered = false,
 }: PostDetailPublishedProps) {
   const translate = useTranslations('pages.posts.detail');
 
@@ -32,7 +33,12 @@ export default function PostDetailPublished({
           <PostDetailAnalytics showEmptyState={false} stats={stats} />
         </section>
       ) : null}
-      <section aria-label={translate('publishedThread')} className="space-y-3">
+      <section
+        aria-label={translate(
+          isTikTokInboxDelivered ? 'tiktokInboxDraftThread' : 'publishedThread',
+        )}
+        className="space-y-3"
+      >
         {thread}
       </section>
     </div>

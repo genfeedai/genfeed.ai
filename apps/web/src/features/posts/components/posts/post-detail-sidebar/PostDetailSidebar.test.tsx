@@ -3,6 +3,7 @@ import {
   PostCategory,
   PostStatus,
   ReviewDecision,
+  TargetExecutionState,
 } from '@genfeedai/contracts';
 import type { IPost } from '@genfeedai/contracts/interfaces';
 import { fireEvent, render, screen, within } from '@testing-library/react';
@@ -14,7 +15,7 @@ import PostDetailSidebar from '@/features/posts/components/posts/post-detail-sid
 import type { PostDetailSidebarProps } from '@/props/components/post-detail-sidebar.props';
 
 vi.mock('next-intl', async () => {
-  const { translateFromCatalog } = await import('@ui/tests/next-intl.stub');
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
 
   return { useTranslations: translateFromCatalog };
 });
@@ -170,6 +171,61 @@ describe('PostDetailSidebar', () => {
     expect(
       screen.getByRole('link', { name: 'Open on platform' }),
     ).toHaveAttribute('href', 'https://example.com/post');
+  });
+
+  it('shows a confirmed TikTok Inbox receipt as an unpublished handoff', () => {
+    render(
+      <PostDetailSidebar
+        {...baseProps}
+        post={
+          {
+            category: PostCategory.VIDEO,
+            externalId: 'provider-receipt',
+            id: 'post-1',
+            ingredients: [],
+            platform: CredentialPlatform.TIKTOK,
+            status: PostStatus.PUBLIC,
+            targetExecutionState: TargetExecutionState.PUBLISHED,
+          } as Partial<IPost> as IPost
+        }
+      />,
+    );
+
+    expect(screen.getByText('Delivered to TikTok Inbox')).toBeVisible();
+    expect(
+      screen.getByText('Open your TikTok Inbox to finish editing and publish.'),
+    ).toBeVisible();
+    expect(
+      screen.queryByRole('heading', { name: 'Published' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: 'Open on platform' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('keeps a confirmed direct TikTok publication distinct from an Inbox receipt', () => {
+    render(
+      <PostDetailSidebar
+        {...baseProps}
+        post={
+          {
+            category: PostCategory.VIDEO,
+            externalId: 'provider-receipt',
+            id: 'post-1',
+            ingredients: [],
+            platform: CredentialPlatform.TIKTOK,
+            publicationDate: '2026-11-19T18:30:00.000Z',
+            status: PostStatus.PUBLIC,
+            targetExecutionState: TargetExecutionState.PUBLISHED,
+          } as Partial<IPost> as IPost
+        }
+      />,
+    );
+
+    expect(screen.getByRole('heading', { name: 'Published' })).toBeVisible();
+    expect(
+      screen.queryByText('Delivered to TikTok Inbox'),
+    ).not.toBeInTheDocument();
   });
 
   it('only shows Details | Preview tabs when a preview is provided', async () => {

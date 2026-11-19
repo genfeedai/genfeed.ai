@@ -9,6 +9,7 @@ vi.mock('next-intl', () => ({
     ({
       performance: 'Performance',
       publishedThread: 'Published thread',
+      tiktokInboxDraftThread: 'TikTok Inbox draft',
     })[key] ?? key,
 }));
 
@@ -37,5 +38,15 @@ describe('PostDetailPublished', () => {
     expect(
       screen.queryByRole('region', { name: 'Performance' }),
     ).not.toBeInTheDocument();
+  });
+
+  it('labels an Inbox delivery as a draft', () => {
+    render(
+      <PostDetailPublished isTikTokInboxDelivered stats={[]} thread="clip" />,
+    );
+
+    expect(
+      screen.getByRole('region', { name: 'TikTok Inbox draft' }),
+    ).toHaveTextContent('clip');
   });
 });

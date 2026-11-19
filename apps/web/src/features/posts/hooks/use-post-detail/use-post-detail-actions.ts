@@ -297,10 +297,8 @@ export function usePostDetailActions({
       const releases = await getReleaseGroupsService();
       const groupId = await resolveReleaseGroupId();
       await releases.publishTargetViaTikTokApp(groupId, requirePostId(post));
+      notificationsService.info('TikTok Inbox upload queued');
       await fetchPost();
-      notificationsService.success(
-        'Sent to TikTok. Open your TikTok Inbox to add music or final edits, then publish.',
-      );
     } catch (err) {
       logger.error('Failed to send video to TikTok app', err);
       notificationsService.error('Failed to send video to TikTok app');
