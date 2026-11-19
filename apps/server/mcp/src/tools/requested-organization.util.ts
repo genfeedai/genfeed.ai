@@ -1,7 +1,11 @@
 import { formatAgentError } from '@genfeedai/agent/server';
 import type { ClientService } from '@mcp/services/client.service';
 import { matchOrganization } from '@mcp/tools/account-management.tool';
-import { toMcpToolErrorResult } from '@mcp/tools/mcp-tool-error';
+import {
+  MCP_ORGANIZATION_BOUND,
+  toMcpToolErrorResult,
+} from '@mcp/tools/mcp-tool-error';
+import { ForbiddenException } from '@nestjs/common';
 
 /** Tools whose own `organization` argument is not a per-call organization. */
 const OWN_ORGANIZATION_ARGUMENT_TOOLS: ReadonlySet<string> = new Set([
@@ -62,9 +66,11 @@ export async function resolveRequestedOrganizationId(
     throw new Error('organization must be a name, slug or id from get_orgs.');
   }
   if (!(await client.canSwitchOrganizations())) {
-    throw new Error(
-      'This connection is limited to one organization. Reconnect and choose "All organizations" to act in several.',
-    );
+    throw new ForbiddenException({
+      code: MCP_ORGANIZATION_BOUND,
+      message:
+        'This connection is limited to one organization. Reconnect and choose "All organizations" to act in several.',
+    });
   }
   return matchOrganization(await client.listOrganizations(), wanted).id;
 }
