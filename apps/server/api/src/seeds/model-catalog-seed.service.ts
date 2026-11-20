@@ -357,10 +357,13 @@ export class ModelCatalogSeedService {
    * (active, non-deleted, non-legacy) default at all, and otherwise leaves
    * whatever already holds the pin — this row or another — untouched. A pin
    * held by a retired agent-chat key or a superseded media default is the old
-   * seeded default, not an operator's choice, so the catalog default takes it.
+   * seeded default, not an operator's choice, so the catalog default takes it,
+   * unless this row was demoted by an operator or rejected in review: handing
+   * it the pin would leave the category with no usable default.
    */
   private async resolveUpdateIsDefault(
     entry: ModelCatalogSeedEntry,
+    existingRow: ExistingModelRow,
   ): Promise<boolean | undefined> {
     if (!entry.isDefault) {
       return undefined;
@@ -378,10 +381,14 @@ export class ModelCatalogSeedService {
       },
     });
 
+    if (!activeDefault || isRetiredAgentChatModel(activeDefault.key)) {
+      return true;
+    }
+
     if (
-      !activeDefault ||
-      isRetiredAgentChatModel(activeDefault.key) ||
-      isSupersededMediaDefault(activeDefault.key)
+      isSupersededMediaDefault(activeDefault.key) &&
+      !this.isLifecyclePinnedByOperator(existingRow, entry) &&
+      existingRow.reviewStatus !== 'rejected'
     ) {
       return true;
     }
@@ -472,7 +479,10 @@ export class ModelCatalogSeedService {
         await this.demoteOtherCategoryDefaults(entry);
       }
     } else {
-      const targetIsDefault = await this.resolveUpdateIsDefault(entry);
+      const targetIsDefault = await this.resolveUpdateIsDefault(
+        entry,
+        existingRow,
+      );
       const isDiscoveredDraft = existingRow.isDiscovered === true;
       // A superadmin rejection leaves `isDiscovered` true. Curating it would flip
       // it to routable (the router gates on `!isDiscovered`), undoing the review.

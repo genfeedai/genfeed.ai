@@ -1119,5 +1119,50 @@ describe('ModelCatalogSeedService', () => {
         );
       },
     );
+
+    it.each([
+      ['an operator-demoted', { isLegacy: true }],
+      ['a retired', { lifecycle: ModelLifecycle.RETIRED }],
+      ['a review-rejected', { reviewStatus: 'rejected' }],
+    ])(
+      'keeps the superseded default when its replacement is %s',
+      async (_state, replacementRow) => {
+        const newDefaultKey =
+          MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE_EDIT;
+        const defaultEntry = UNIFIED_MODEL_CATALOG.find(
+          (entry) => entry.key === newDefaultKey,
+        );
+
+        prisma.model.findUnique.mockImplementation(
+          async ({ where }: { where: { key: string } }) =>
+            where.key === newDefaultKey
+              ? { id: 'existing-row', ...replacementRow }
+              : null,
+        );
+        prisma.model.findFirst.mockImplementation(
+          async ({ where }: { where?: { category?: string } }) =>
+            where?.category === defaultEntry?.category
+              ? { key: MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_4_5 }
+              : null,
+        );
+
+        await service.reconcileCatalog(UNIFIED_MODEL_CATALOG);
+
+        expect(callForKey(newDefaultKey)?.update).toMatchObject({
+          isDefault: false,
+        });
+        expect(callForKey(newDefaultKey)?.update).not.toHaveProperty(
+          'isActive',
+        );
+        expect(prisma.model.updateMany).not.toHaveBeenCalledWith(
+          expect.objectContaining({
+            where: expect.objectContaining({
+              category: defaultEntry?.category,
+              key: { not: newDefaultKey },
+            }),
+          }),
+        );
+      },
+    );
   });
 });

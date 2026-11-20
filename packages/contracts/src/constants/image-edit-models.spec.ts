@@ -4,6 +4,7 @@ import {
   DEFAULT_IMAGE_EDIT_MODEL_KEY,
   IMAGE_EDIT_CONTRACT_VERSION,
   readImageEditingRecipe,
+  resolveDefaultImageEditModel,
 } from './image-edit-models.constant';
 import { UNIFIED_MODEL_CATALOG } from './model-catalog.constant';
 import { MODEL_KEYS } from './model-keys.constant';
@@ -57,5 +58,28 @@ describe('dedicated image editing contract', () => {
     expect(
       readImageEditingRecipe({ ...recipe, quality: 'high' }),
     ).toBeUndefined();
+  });
+
+  describe('resolveDefaultImageEditModel', () => {
+    const flux = MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE_EDIT;
+    it.each([
+      ['a plain edit', {}],
+      ['one output', { outputs: 1 }],
+    ])('keeps the registry default for %s', (_name, controls) => {
+      expect(resolveDefaultImageEditModel(flux, controls)).toBe(flux);
+    });
+    it.each([
+      ['a mask', { maskId: 'mask' }],
+      ['seed 0', { seed: 0 }],
+      ['two outputs', { outputs: 2 }],
+      ['a fixed size', { size: '1024x1024' }],
+    ])('sends %s to the editor that accepts it', (_name, controls) => {
+      expect(resolveDefaultImageEditModel(flux, controls)).toBe(model);
+    });
+    it('leaves another registry default alone', () => {
+      expect(resolveDefaultImageEditModel('provider/editor', { seed: 1 })).toBe(
+        'provider/editor',
+      );
+    });
   });
 });

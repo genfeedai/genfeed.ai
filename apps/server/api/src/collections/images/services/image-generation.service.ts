@@ -68,6 +68,7 @@ import {
   isFlux3ImageModel,
   isImageEditModel,
   readImageEditingRecipe,
+  resolveDefaultImageEditModel,
 } from '@genfeedai/contracts/constants';
 import type {
   GenerationHarnessReceipt,
@@ -165,12 +166,15 @@ export class ImageGenerationService {
           })
         ).selectedModel
       : (dto.model ??
-        (
-          await this.routerService.resolveModelKey({
-            category: ModelCategory.IMAGE_EDIT,
-            organizationId: user.organizationId,
-          })
-        ).key);
+        resolveDefaultImageEditModel(
+          (
+            await this.routerService.resolveModelKey({
+              category: ModelCategory.IMAGE_EDIT,
+              organizationId: user.organizationId,
+            })
+          ).key,
+          dto,
+        ));
     const admittedDto = Object.assign(new EditImageDto(), dto, {
       model: resolvedModel,
     });
