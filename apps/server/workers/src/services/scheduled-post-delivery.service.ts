@@ -673,6 +673,9 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
 
     const isProviderDraft = result.isProviderDraft === true;
     const publishedAt = new Date();
+    // A provider may narrow the requested audience; store what it applied.
+    const visibility =
+      result.visibility ?? resolvePostVisibility(post.visibility);
     const persisted = await this.persistAcceptedPublishState(
       result,
       post,
@@ -681,7 +684,7 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
         executionState: TargetExecutionState.PUBLISHED,
         externalId: result.externalId,
         externalShortcode: result.externalShortcode ?? null,
-        visibility: resolvePostVisibility(post.visibility),
+        visibility,
         ...(!isProviderDraft
           ? { publicationDate: publishedAt, publishedAt }
           : {}),
@@ -692,7 +695,7 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
       transitionGuard,
       !isProviderDraft &&
         result.externalId?.trim() &&
-        resolvePostVisibility(post.visibility) === PostVisibility.PUBLIC &&
+        visibility === PostVisibility.PUBLIC &&
         result.executionState === TargetExecutionState.PUBLISHED
         ? {
             result: { ...result },

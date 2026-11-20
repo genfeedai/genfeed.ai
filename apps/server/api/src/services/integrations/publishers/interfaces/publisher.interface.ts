@@ -87,6 +87,13 @@ export interface PublishResult {
    * published activity, no repeat scheduling, and no publish timestamps.
    */
   isProviderDraft?: boolean;
+  /**
+   * The audience the provider actually applied, set by a publisher whose
+   * provider can narrow the requested audience (a YouTube channel setting that
+   * uploads privately). The worker stores it on the post so the public
+   * profile never lists content the provider keeps private.
+   */
+  visibility?: PostVisibility;
 }
 
 /**
