@@ -600,18 +600,6 @@ export default function ModalPost({
     },
     [onSubmit],
   );
-  const handleSaveDraft = useCallback(
-    () => submitWithIntent('draft'),
-    [submitWithIntent],
-  );
-  const handlePublishNow = useCallback(
-    () => submitWithIntent('publish'),
-    [submitWithIntent],
-  );
-  const handleSchedule = useCallback(
-    () => submitWithIntent('schedule'),
-    [submitWithIntent],
-  );
 
   // Called by Modal's onClose after modal is closed - just cleanup, don't re-close
   const handleModalClosed = useCallback(() => {
@@ -901,8 +889,6 @@ export default function ModalPost({
       onClose={handleModalClosed}
       isBodyScrollable={false}
     >
-      {/* One scroll region: the fields. The stepper stays above them and the
-          actions below, so Back, Cancel and Publish are always in reach. */}
       <Form
         className="min-h-0 flex-1"
         spacing="section"
@@ -921,59 +907,57 @@ export default function ModalPost({
           />
         )}
 
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-1">
-          <ModalPostSimpleFields
-            key={openVersion}
-            form={form}
-            media={
-              isEditMode || isThreadReply
-                ? undefined
-                : {
-                    isDisabled: isSubmitting,
-                    items: selectedMedia,
-                    onPickFromLibrary: handlePickFromLibrary,
-                    onRemove: handleRemoveMedia,
-                    onUpload: handleUploadMedia,
-                    requirementHint: mediaRequirementHint,
-                  }
-            }
-            composer={
-              isDestinationComposer
-                ? {
-                    credentials,
-                    destination,
-                    hasXTarget,
-                    channelIds: slackTargets.channelIds,
-                    isDisabled: isSubmitting,
-                    isLongPost,
-                    isThread,
-                    onSelectDestination: handleSelectDestination,
-                    onChannelChange: slackTargets.setChannel,
-                    onEditChannels: () => setComposerStep('channels'),
-                    onThreadChange: setIsThread,
-                    onToggleCredential: handleToggleCredential,
-                    selectedCredentialIds,
-                    step: composerStep,
-                    threadItemCount,
-                  }
-                : undefined
-            }
-            credentials={credentials.filter(
-              (account) => account.platform === selectedPlatform,
-            )}
-            isEditMode={isEditMode}
-            isSubmitting={isSubmitting}
-            selectedPlatform={selectedPlatform}
-            charLimit={charLimit}
-            currentLength={currentLength}
-            isOverLimit={isOverLimit}
-            isTitleRequired={isTitleRequired}
-            isTitleError={isTitleError}
-            onDraftGenerated={(draft) => {
-              adoptedDraftRef.current = draft;
-            }}
-          />
-        </div>
+        <ModalPostSimpleFields
+          key={openVersion}
+          form={form}
+          media={
+            isEditMode || isThreadReply
+              ? undefined
+              : {
+                  isDisabled: isSubmitting,
+                  items: selectedMedia,
+                  onPickFromLibrary: handlePickFromLibrary,
+                  onRemove: handleRemoveMedia,
+                  onUpload: handleUploadMedia,
+                  requirementHint: mediaRequirementHint,
+                }
+          }
+          composer={
+            isDestinationComposer
+              ? {
+                  credentials,
+                  destination,
+                  hasXTarget,
+                  channelIds: slackTargets.channelIds,
+                  isDisabled: isSubmitting,
+                  isLongPost,
+                  isThread,
+                  onSelectDestination: handleSelectDestination,
+                  onChannelChange: slackTargets.setChannel,
+                  onEditChannels: () => setComposerStep('channels'),
+                  onThreadChange: setIsThread,
+                  onToggleCredential: handleToggleCredential,
+                  selectedCredentialIds,
+                  step: composerStep,
+                  threadItemCount,
+                }
+              : undefined
+          }
+          credentials={credentials.filter(
+            (account) => account.platform === selectedPlatform,
+          )}
+          isEditMode={isEditMode}
+          isSubmitting={isSubmitting}
+          selectedPlatform={selectedPlatform}
+          charLimit={charLimit}
+          currentLength={currentLength}
+          isOverLimit={isOverLimit}
+          isTitleRequired={isTitleRequired}
+          isTitleError={isTitleError}
+          onDraftGenerated={(draft) => {
+            adoptedDraftRef.current = draft;
+          }}
+        />
 
         <ModalPostSimpleActions
           isSubmitting={isSubmitting}
@@ -993,9 +977,9 @@ export default function ModalPost({
               shouldValidate: true,
             })
           }
-          onSaveDraft={handleSaveDraft}
-          onPublishNow={handlePublishNow}
-          onSchedule={handleSchedule}
+          onSaveDraft={() => submitWithIntent('draft')}
+          onPublishNow={() => submitWithIntent('publish')}
+          onSchedule={() => submitWithIntent('schedule')}
           onContinue={handleContinue}
           composerStep={isDestinationComposer ? composerStep : undefined}
           onComposerStepChange={setComposerStep}
