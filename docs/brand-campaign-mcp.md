@@ -7,8 +7,8 @@ publishing, approval and provider delivery retain their current lifecycles.
 
 ## Readiness before scheduling
 
-Default MCP connections include `get_brand_publishing_readiness` with scheduler.
-Call `get_brands`, select the intended brand, and read readiness with its returned
+Default MCP connections include `check_channel(action=readiness)` with scheduler.
+Call `get_context(action=brands)`, select the intended brand, and read readiness with its returned
 ID. Choose a healthy, schedulable credential from that result.
 `check_channel` supplies channel rules and target validation; it does not replace
 credential discovery or health checks.
@@ -54,7 +54,7 @@ copy request while retaining the brand identity.
 ## Associate Library assets
 
 Read the campaign before composing a media prompt. Inspect generation options
-and cost before generation. Use `generate` with the campaign brief and brand ID,
+and cost before generation. Use `generate_media(action=media)` with the campaign brief and brand ID,
 wait for successful completion, inspect the result, then retain its actual
 Library ID on the campaign:
 
