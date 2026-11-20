@@ -44,7 +44,7 @@ export class LaunchCopyGeneratorService {
     private readonly loggerService: LoggerService,
     private readonly llmDispatcherService: LlmDispatcherService,
   ) {
-    this.defaultModel = LLM_DEFAULTS.background;
+    this.defaultModel = LLM_DEFAULTS.contentWriting;
   }
 
   /**
@@ -74,7 +74,7 @@ export class LaunchCopyGeneratorService {
     );
 
     const params: OpenRouterChatCompletionParams = {
-      max_tokens: 1200,
+      max_tokens: 2400,
       messages: [
         { content: prompt.system, role: 'system' },
         { content: prompt.user, role: 'user' },

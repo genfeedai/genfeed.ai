@@ -11,6 +11,7 @@ import {
   type OpenRouterStreamTokenHandler,
   type OpenRouterToolCallResponse,
 } from '@api/services/integrations/openrouter/dto/openrouter.dto';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
@@ -19,6 +20,17 @@ import { Injectable } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
 
 const REASONING_MANDATORY_ERROR_PATTERN = /reasoning is mandatory/i;
+
+/**
+ * Models that cannot turn reasoning off and think at medium effort by
+ * default. Their thinking tokens count against `max_tokens`, so a call that
+ * sets no reasoning preference would spend a short completion budget on
+ * thinking and come back truncated. Writing prompts are short and prescriptive,
+ * so they get the lowest effort the model supports.
+ */
+const LOW_EFFORT_REASONING_MODELS: ReadonlySet<string> = new Set([
+  MODEL_KEYS.OPENROUTER_GOOGLE_GEMINI_4_NEON,
+]);
 
 interface OpenRouterErrorDetails {
   message: string;
@@ -100,6 +112,10 @@ export class OpenRouterService {
   ): OpenRouterChatCompletionParams {
     return {
       ...params,
+      ...(params.reasoning === undefined &&
+      LOW_EFFORT_REASONING_MODELS.has(params.model)
+        ? { reasoning: { effort: 'low' } }
+        : {}),
       provider: {
         ...params.provider,
         ...OPENROUTER_FIRST_PARTY_PROVIDER_POLICY,

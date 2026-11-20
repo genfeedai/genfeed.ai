@@ -41,7 +41,6 @@ import { HarnessProfilesService } from '@api/collections/harness-profiles/servic
 import type { PersonaDocument } from '@api/collections/personas/schemas/persona.schema';
 import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { TemplatesService } from '@api/collections/templates/services/templates.service';
-import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import { scopedWhere } from '@api/index';
 import type { TextByokDispatch } from '@api/services/byok/text-dispatch-byok.util';
 import { ContentHarnessService } from '@api/services/harness/harness.service';
@@ -60,6 +59,7 @@ import {
 } from '@genfeedai/contracts';
 import {
   creatorArticlePath,
+  LLM_DEFAULTS,
   normalizeArticleSlug,
 } from '@genfeedai/contracts/constants';
 import type { AccountPublishingContext } from '@genfeedai/contracts/interfaces';
@@ -276,7 +276,8 @@ export class ArticlesContentService {
         },
         failureMessage: 'Failed to generate content from AI service',
         harnessContext: context.harnessContext,
-        model: context.modelConfig.generationModel || DEFAULT_TEXT_MODEL,
+        model:
+          context.modelConfig.generationModel || LLM_DEFAULTS.contentWriting,
         onBilling: (charge) => {
           billedCredits += charge.amount;
         },

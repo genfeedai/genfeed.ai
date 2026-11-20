@@ -63,7 +63,7 @@ export class ScriptGenerationService {
           },
           { content: buildScriptRequestPrompt(request), role: 'user' },
         ],
-        model: request.model ?? LLM_DEFAULTS.fastText,
+        model: request.model ?? LLM_DEFAULTS.contentWriting,
         temperature: 0.6,
       },
       request.organizationId,
