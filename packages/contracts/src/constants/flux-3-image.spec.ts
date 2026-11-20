@@ -5,7 +5,7 @@ import { UNIFIED_MODEL_CATALOG } from './model-catalog.constant';
 import { MODEL_KEYS } from './model-keys.constant';
 
 describe('FLUX.3 catalog and recipes', () => {
-  it('registers generation and editing on distinct registry endpoints without changing defaults', () => {
+  it('registers generation and editing on distinct registry endpoints, with FLUX.3 Edit as the editing default', () => {
     const keys = [
       MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE,
       MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE_EDIT,
@@ -18,7 +18,8 @@ describe('FLUX.3 catalog and recipes', () => {
       expect(row).toMatchObject({
         isActive: true,
         isPublic: true,
-        isDefault: false,
+        isDefault:
+          row.key === MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE_EDIT,
         maxOutputs: 1,
         maxReferences: 10,
         isBatchSupported: false,
@@ -28,7 +29,7 @@ describe('FLUX.3 catalog and recipes', () => {
       UNIFIED_MODEL_CATALOG.find(
         (row) => row.key === MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_4_5,
       )?.isDefault,
-    ).toBe(true);
+    ).toBe(false);
   });
   const recipe = {
     operation: 'image-edit',

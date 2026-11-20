@@ -59,7 +59,7 @@ describe('SELF_HOSTED_MODELS', () => {
     expect(voice?.cost).toBe(10);
   });
 
-  it('carries Avatar IV as the default avatar engine and Avatar V as the ultra option', () => {
+  it('carries Avatar IV as the lower-cost avatar engine and Avatar V as the ultra option', () => {
     const avatarIv = SELF_HOSTED_MODELS.find(
       (model) => model.key === MODEL_KEYS.HEYGEN_AVATAR_IV,
     );
@@ -69,7 +69,7 @@ describe('SELF_HOSTED_MODELS', () => {
 
     expect(avatarIv).toMatchObject({
       category: ModelCategory.AVATAR,
-      isDefault: true,
+      isDefault: false,
       lifecycle: ModelLifecycle.RECOMMENDED,
       pricingType: PricingType.PER_SECOND,
       provider: ModelProvider.HEYGEN,
@@ -112,7 +112,7 @@ describe('SELF_HOSTED_MODELS', () => {
       category: ModelCategory.AVATAR,
       cost: 85,
       costPerUnit: 17,
-      isDefault: false,
+      isDefault: true,
       lifecycle: ModelLifecycle.RECOMMENDED,
       pricingType: PricingType.PER_SECOND,
       provider: ModelProvider.HEYGEN,
