@@ -1294,6 +1294,34 @@ describe('BrandScraperService', () => {
       );
     });
 
+    it('warns, without an error report, when the site blocks both attempts', async () => {
+      fetchMock.mockResolvedValue(makeResponse('', 403));
+
+      await expect(service.scrapeWebsite('https://acme.com')).rejects.toThrow(
+        '403',
+      );
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('meta tag fallback also failed'),
+        expect.any(String),
+      );
+      expect(mockLogger.error).not.toHaveBeenCalledWith(
+        expect.stringContaining('meta tag fallback also failed'),
+        expect.anything(),
+      );
+    });
+
+    it('reports an error when the fallback fails for an unclassified reason', async () => {
+      fetchMock.mockRejectedValue(new Error('network failure'));
+
+      await expect(service.scrapeWebsite('https://acme.com')).rejects.toThrow(
+        'network failure',
+      );
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        expect.stringContaining('meta tag fallback also failed'),
+        expect.any(String),
+      );
+    });
+
     it('falls back to meta tags when first fetch returns non-OK', async () => {
       fetchMock
         .mockResolvedValueOnce(makeResponse('', 500))
