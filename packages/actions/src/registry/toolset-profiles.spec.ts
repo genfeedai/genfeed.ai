@@ -37,9 +37,9 @@ describe('MCP toolset profiles', () => {
         (tool) => tool.requiredRole === 'user',
       ).length;
     expect(BARE_MCP_URL_TOOL_CAP).toBe(30);
-    expect(userCount(DEFAULT_MCP_PROFILE_TOOLSETS)).toBe(28);
-    expect(userCount(DIRECTORY_MCP_PROFILE_TOOLSETS)).toBe(28);
-    expect(userCount(STUDIO_MCP_PROFILE_TOOLSETS)).toBe(28);
+    expect(userCount(DEFAULT_MCP_PROFILE_TOOLSETS)).toBe(29);
+    expect(userCount(DIRECTORY_MCP_PROFILE_TOOLSETS)).toBe(29);
+    expect(userCount(STUDIO_MCP_PROFILE_TOOLSETS)).toBe(29);
     expect(userCount(DEFAULT_MCP_PROFILE_TOOLSETS)).toBeLessThanOrEqual(
       BARE_MCP_URL_TOOL_CAP,
     );
@@ -203,12 +203,14 @@ describe('MCP toolset profiles', () => {
       'generate_media',
       'get_generation_catalog',
       'get_video_projects',
+      'run_video_project',
     ]);
     for (const tool of excluded.filter(
-      (entry) => entry.name !== 'generate_media',
+      (entry) => !['generate_media', 'run_video_project'].includes(entry.name),
     ))
       expect(tool.annotations?.readOnlyHint, tool.name).toBe(true);
     expect(CLAUDE_MCP_TOOL_NAMES.has('generate_media')).toBe(false);
+    expect(CLAUDE_MCP_TOOL_NAMES.has('run_video_project')).toBe(false);
   });
 
   it('resolves full to the unfiltered catalog and the others to toolset lists', () => {
