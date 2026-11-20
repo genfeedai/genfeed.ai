@@ -141,6 +141,46 @@ describe('OpenRouterService', () => {
       expect(body.stream).toBe(false);
     });
 
+    describe('when the model thinks at medium effort by default', () => {
+      const neon = 'google/gemini-4-neon';
+
+      async function sentReasoning(
+        params: OpenRouterChatCompletionParams,
+      ): Promise<unknown> {
+        httpService.post.mockReturnValueOnce(of(axiosResponse(mockResponse)));
+        await service.chatCompletion(params);
+        const body = httpService.post.mock.calls[0][1] as Record<
+          string,
+          unknown
+        >;
+        return body.reasoning;
+      }
+
+      it('asks for low effort so thinking leaves room in max_tokens', async () => {
+        expect(
+          await sentReasoning({
+            ...defaultParams,
+            max_tokens: 1000,
+            model: neon,
+          }),
+        ).toEqual({ effort: 'low' });
+      });
+
+      it('keeps a reasoning preference the caller set', async () => {
+        expect(
+          await sentReasoning({
+            ...defaultParams,
+            model: neon,
+            reasoning: { effort: 'high' },
+          }),
+        ).toEqual({ effort: 'high' });
+      });
+
+      it('leaves other models alone', async () => {
+        expect(await sentReasoning(defaultParams)).toBeUndefined();
+      });
+    });
+
     describe('when the model makes reasoning mandatory', () => {
       const reasoningMandatoryError = Object.assign(
         new Error('Request failed with status code 400'),

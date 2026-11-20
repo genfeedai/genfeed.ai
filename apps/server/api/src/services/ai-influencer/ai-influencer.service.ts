@@ -301,7 +301,7 @@ export class AiInfluencerService {
 
     try {
       const response = await this.openRouterService.chatCompletion({
-        max_tokens: 300,
+        max_tokens: 1000,
         messages: [
           { content: systemPrompt, role: 'system' },
           {
