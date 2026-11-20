@@ -264,5 +264,9 @@
     "styleNormal": "Normal",
     "uploaded": "Uploaded fonts",
     "weightFor": "Weight for {role}"
-  }
+  },
+  "changed": "Changed from the approved version",
+  "revertField": "Revert {label}",
+  "suggested": "Found in scan: {value}",
+  "useSuggestion": "Use"
 }

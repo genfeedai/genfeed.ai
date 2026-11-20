@@ -316,10 +316,8 @@ export const APP_ROUTES = {
     AGENT_LEARNING: '/settings/agent/learning',
     AGENT_RECEIPTS: '/settings/agent/receipts',
     BRAND_KIT: '/settings/brand-kit',
-    BRAND_KIT_STRATEGY: '/settings/brand-kit/strategy',
-    BRAND_KIT_VIDEO: '/settings/brand-kit/video',
-    BRAND_KIT_VISUAL: '/settings/brand-kit/visual',
-    BRAND_KIT_VOICE: '/settings/brand-kit/voice',
+    BRAND_KIT_STRATEGY: '/settings/brand-kit#strategy',
+    BRAND_KIT_VOICE: '/settings/brand-kit#voice',
     BRANDS: '/settings/brands',
     CREDITS: '/settings/credits',
     /** What creators earned from readers, and what the organization paid. */

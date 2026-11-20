@@ -1243,7 +1243,6 @@ export const ROUTE_MANIFEST_GROUPS: readonly RouteManifestGroup[] = [
       '/settings/agent/receipts',
       '/settings/brand-kit/rules',
       '/settings/brand-kit/setup',
-      '/settings/brand-kit/:tab',
       '/settings/agent/context',
       '/settings/agent/learning',
       '/settings/publishing',

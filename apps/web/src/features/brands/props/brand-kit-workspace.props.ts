@@ -34,14 +34,17 @@ export interface BrandKitLocalPreviewProps {
 
 export interface BrandKitWorkspaceProps extends BrandKitRevisionWorkspace {
   brand: IBrand;
-  tab: string;
-  onTabChange: (tab: string) => void;
   onScan: () => void;
   onManualImport: () => void;
   onRefreshBrand: () => Promise<void>;
   guidedSetupHref: string;
   contentRulesHref: string;
+  /** What is missing and how to import a draft; shown above the sections. */
   overview: ReactNode;
-  writingEditor: ReactNode;
+  /** The live agent profile's voice fields. */
+  voiceEditor: ReactNode;
+  /** The live agent profile's strategy fields. */
+  strategyEditor: ReactNode;
+  /** Logos, platform images, fonts, kit file and references. */
   assets: ReactNode;
 }
