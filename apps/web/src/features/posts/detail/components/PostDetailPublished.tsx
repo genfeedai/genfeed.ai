@@ -1,6 +1,7 @@
 'use client';
 
 import type { AnalyticsStat } from '@genfeedai/contracts/interfaces/analytics/analytics-ui.interface';
+import { Checkbox } from '@ui/primitives/checkbox';
 import { useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
 import PostDetailAnalytics from '@/features/posts/detail/components/PostDetailAnalytics';
@@ -9,17 +10,25 @@ export interface PostDetailPublishedProps {
   stats: AnalyticsStat[];
   thread: ReactNode;
   isTikTokInboxDelivered?: boolean;
+  isHiddenFromProfile?: boolean;
+  isUpdatingProfileVisibility?: boolean;
+  onHiddenFromProfileChange: (isHidden: boolean) => void;
 }
 
 /**
  * What a published post shows in the page body: how it performed, then the
  * thread as it went out. There is nothing left to edit, so the composer and
- * the sidebar's Preview tab are not rendered.
+ * the sidebar's Preview tab are not rendered. The one thing left to decide is
+ * whether the public Genfeed profile lists the post; the post itself stays up
+ * on the social network either way.
  */
 export default function PostDetailPublished({
   stats,
   thread,
   isTikTokInboxDelivered = false,
+  isHiddenFromProfile = false,
+  isUpdatingProfileVisibility = false,
+  onHiddenFromProfileChange,
 }: PostDetailPublishedProps) {
   const translate = useTranslations('pages.posts.detail');
 
@@ -40,6 +49,21 @@ export default function PostDetailPublished({
         className="space-y-3"
       >
         {thread}
+      </section>
+      <section
+        aria-label={translate('profileVisibility.ariaLabel')}
+        className="grid gap-1"
+      >
+        <Checkbox
+          name="hide-from-profile"
+          label={translate('profileVisibility.label')}
+          isChecked={isHiddenFromProfile}
+          isDisabled={isUpdatingProfileVisibility}
+          onChange={(event) => onHiddenFromProfileChange(event.target.checked)}
+        />
+        <p className="text-xs text-muted-foreground">
+          {translate('profileVisibility.hint')}
+        </p>
       </section>
     </div>
   );

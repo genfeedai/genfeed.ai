@@ -1,0 +1,1 @@
+ALTER TABLE "posts" ADD COLUMN "isHiddenFromProfile" BOOLEAN NOT NULL DEFAULT false;

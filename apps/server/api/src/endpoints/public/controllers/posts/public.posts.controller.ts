@@ -124,6 +124,7 @@ function publicPublishedWhere(brandId: string): PrismaWhereQuery {
     ],
     brandId,
     isDeleted: false,
+    isHiddenFromProfile: false,
     parentId: null,
   };
 }
@@ -170,6 +171,7 @@ export class PublicPostsController {
         postVisibilityReadFilter(PostVisibility.PUBLIC),
       ],
       isDeleted: false,
+      isHiddenFromProfile: false,
       ...PUBLIC_BRAND_FILTER,
     };
 
@@ -314,6 +316,7 @@ export class PublicPostsController {
           postVisibilityReadFilter(PostVisibility.PUBLIC),
         ],
         id: postId,
+        isHiddenFromProfile: false,
         ...PUBLIC_BRAND_FILTER,
         // A creator page names its brand, so another creator's post id
         // answers 404 under the wrong handle.
