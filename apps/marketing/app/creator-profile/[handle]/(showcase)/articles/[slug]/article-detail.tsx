@@ -214,6 +214,12 @@ export default function ArticleDetail({
       : null;
   const authorLabel = resolvePublicArticleAuthor(article);
   const brandLabel = brand?.label?.trim() || 'Genfeed';
+  // The call to action names the creator: never the platform on someone
+  // else's page when their brand did not load.
+  const creatorName =
+    authorLabel ||
+    brand?.label?.trim() ||
+    (handle === GENFEED_BRAND_HANDLE ? 'Genfeed' : `@${handle}`);
   const articleUrl = `${EnvironmentService.apps.website}${creatorArticlePath(handle, article.slug || article.id)}`;
   // Sanitized here, on the server: the sanitizer never ships to readers, and
   // the client island only receives markup that already went through it.
@@ -364,7 +370,7 @@ export default function ArticleDetail({
               {isPreview ? null : (
                 <MakeYourOwnBanner
                   articleTitle={article.label}
-                  creatorName={authorLabel || brandLabel}
+                  creatorName={creatorName}
                   handle={handle}
                   referralCode={referralCode}
                 />

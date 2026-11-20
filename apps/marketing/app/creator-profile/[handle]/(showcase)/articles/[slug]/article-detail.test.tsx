@@ -147,6 +147,30 @@ describe('ArticleDetail', () => {
     expect(new URL(href ?? '').searchParams.get('ref')).toBe('frend2345xyz');
   });
 
+  it('names the article author in the invitation when there is one', () => {
+    render(
+      <ArticleDetail
+        article={{ ...article, author: 'Vincent Tellier' } as Article}
+        handle="vincentshipsit"
+        isPreview={false}
+      />,
+    );
+
+    expect(
+      screen.getByRole('heading', {
+        name: "Make content like Vincent Tellier's",
+      }),
+    ).toBeInTheDocument();
+  });
+
+  it("names the creator's handle, never Genfeed, when their brand did not load", () => {
+    render(<ArticleDetail article={article} handle="acme" isPreview={false} />);
+
+    expect(
+      screen.getByRole('heading', { name: "Make content like @acme's" }),
+    ).toBeInTheDocument();
+  });
+
   it('keeps the view count and the invitation out of previews', async () => {
     render(<ArticleDetail article={article} handle="genfeedai" isPreview />);
     // Let any count request settle before asserting it never showed.
