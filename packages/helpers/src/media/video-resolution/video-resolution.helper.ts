@@ -105,6 +105,14 @@ export const videoModelResolutions: VideoModelResolution[] = [
   },
   {
     default: '720p',
+    model: MODEL_KEYS.REPLICATE_PRUNAAI_P_VIDEO_2,
+    resolutions: [
+      { label: '720p', value: '720p' },
+      { label: '1080p', value: '1080p' },
+    ],
+  },
+  {
+    default: '720p',
     model: MODEL_KEYS.REPLICATE_XAI_GROK_IMAGINE_VIDEO,
     resolutions: [
       { label: '480p', value: '480p' },

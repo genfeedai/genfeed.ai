@@ -12,6 +12,7 @@ import {
   LUMA_VIDEO_COMPILER_ID,
   MINIMAX_H3_VARIANT_VIDEO_COMPILER_ID,
   PIXVERSE_VIDEO_COMPILER_ID,
+  PRUNAAI_P_VIDEO_2_COMPILER_ID,
   REMAINING_VIDEO_COMPILER_VERSION,
   RUNWAY_VIDEO_COMPILER_ID,
   SEEDANCE_VIDEO_COMPILER_ID,
@@ -20,6 +21,7 @@ import {
   VIDU_VIDEO_COMPILER_ID,
   WAN_VIDEO_COMPILER_ID,
 } from '@genfeedai/contracts/api-types/contracts/video-generation-brief-compiler.contract';
+import { PRUNAAI_P_VIDEO_ASPECT_RATIOS } from '@genfeedai/contracts/api-types/contracts/video-generation-capability-profile.contract';
 import {
   buildRemainingVideoCapabilityProfile,
   type RemainingVideoCapabilityProfile,
@@ -612,6 +614,30 @@ export const REMAINING_VIDEO_GENERATION_BRIEF_FAMILIES: readonly RemainingVideoG
         durationField: 'duration',
         firstFrameField: 'image',
         modelLabel: 'Pixverse',
+      },
+    },
+    {
+      compilerId: PRUNAAI_P_VIDEO_2_COMPILER_ID,
+      compilerVersion: REMAINING_VIDEO_COMPILER_VERSION,
+      profiles: [
+        profile(
+          'prunaai-p-video-2-capability',
+          MODEL_KEYS.REPLICATE_PRUNAAI_P_VIDEO_2,
+          {
+            aspectRatios: PRUNAAI_P_VIDEO_ASPECT_RATIOS,
+            audioSupported: true,
+            maxSeconds: 10,
+            nativeFields: ['image'],
+          },
+        ),
+      ],
+      spec: {
+        aspectRatioField: 'aspect_ratio',
+        durationField: 'duration',
+        extraDefaults: { prompt_upsampling: true },
+        firstFrameField: 'image',
+        modelLabel: 'PrunaAI P-Video 2',
+        resolutionField: 'resolution',
       },
     },
     {
