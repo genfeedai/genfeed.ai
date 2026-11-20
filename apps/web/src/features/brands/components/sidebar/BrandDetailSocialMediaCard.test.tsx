@@ -53,10 +53,7 @@ const servicesPlatform = vi.fn();
 const warmingAccountHealth = {
   assessedAt: '2026-06-30T10:00:00.000Z',
   credentialId: 'credential-1',
-  holdPublishing: true,
-  holdReason: 'twitter publishing is held because account warmup is warming.',
   label: 'X Account',
-  override: { isActive: false },
   platform: CredentialPlatform.TWITTER,
   riskLevel: 'medium' as const,
   score: 56,
@@ -75,30 +72,6 @@ const warmingAccountHealth = {
   },
 };
 const listBrandAccountHealth = vi.fn(async () => [warmingAccountHealth]);
-const overrideAccountHealth = vi.fn(async () => ({
-  assessedAt: '2026-06-30T10:00:00.000Z',
-  credentialId: 'credential-1',
-  holdPublishing: false,
-  label: 'X Account',
-  override: { isActive: true },
-  platform: CredentialPlatform.TWITTER,
-  riskLevel: 'medium',
-  score: 56,
-  signals: {
-    connectedDays: 1,
-    profileSignals: 2,
-    publishedPosts: 0,
-    recentFailures: 0,
-  },
-  state: 'warming',
-  thresholds: {
-    maxRecentFailures: 0,
-    minConnectedDays: 10,
-    minProfileSignals: 2,
-    minPublishedPosts: 4,
-  },
-}));
-
 vi.mock('@genfeedai/auth-client/react', () => ({
   useAuth: () => ({
     getToken,
@@ -135,7 +108,6 @@ vi.mock('@services/organization/credentials.service', () => ({
       delete: deleteCredential,
       listBrandAccountHealth,
       listPostingTimes: vi.fn(async () => []),
-      overrideAccountHealth,
     }),
   },
 }));
@@ -903,7 +875,7 @@ describe('BrandDetailSocialMediaCard', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders account health and confirms a manual override', async () => {
+  it('renders account health without offering a publishing override', async () => {
     render(
       <BrandDetailSocialMediaCard
         brandId="brand-1"
@@ -926,18 +898,10 @@ describe('BrandDetailSocialMediaCard', () => {
     expect(await screen.findByText('Warming')).toBeInTheDocument();
     expect(await screen.findByText(/score 56/i)).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: /override 24h/i }));
-    fireEvent.click(screen.getByRole('button', { name: /confirm override/i }));
-
-    await waitFor(() => {
-      expect(overrideAccountHealth).toHaveBeenCalledWith(
-        'credential-1',
-        expect.objectContaining({
-          confirm: true,
-          reason: 'Manual override confirmed from brand social dashboard.',
-        }),
-      );
-    });
+    expect(
+      screen.queryByRole('button', { name: /override/i }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText(/on hold/i)).not.toBeInTheDocument();
   });
 
   it('disconnects a single account and leaves its platform siblings alone', async () => {

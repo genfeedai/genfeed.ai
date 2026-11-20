@@ -1,5 +1,4 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
-import type { AccountHealthService } from '@api/collections/credentials/services/account-health.service';
 import type { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import type { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
@@ -33,7 +32,6 @@ const HTML_TAGS_PATTERN = /<[^>]+>/g;
 const WHITESPACE_RUNS_PATTERN = /\s+/g;
 
 type PostCreateDependencies = {
-  accountHealthService: AccountHealthService;
   activityRecorder: ActivityRecorderService;
   credentialsService: CredentialsService;
   ingredientsService: IngredientsService;
@@ -232,25 +230,6 @@ export async function createPost({
     );
   }
 
-  let effectiveExecutionState = requestedExecutionState;
-  let warmupHoldReason: string | undefined;
-  if (
-    credential &&
-    requestedExecutionState === TargetExecutionState.SCHEDULED
-  ) {
-    const publishGate =
-      await dependencies.accountHealthService.evaluateScheduledPublishGate({
-        brandId: identity.brandId,
-        credentialId: credential.id,
-        organizationId: identity.organizationId,
-      });
-
-    if (publishGate.holdPublishing) {
-      effectiveExecutionState = TargetExecutionState.PAUSED;
-      warmupHoldReason = publishGate.reason;
-    }
-  }
-
   const data = await dependencies.postsService.create({
     ...createPostDto,
     brandId: firstIngredient?.brandId ?? identity.brandId,
@@ -270,11 +249,9 @@ export async function createPost({
     // fromPrismaCredentialPlatform already owns that mapping — an unknown
     // credential platform stays undefined rather than inventing a dual map.
     platform: domainPlatform,
-    publishIntent: warmupHoldReason ? 'warmup_hold' : undefined,
     publicationDate: createPostDto.publicationDate,
-    reviewFeedback: warmupHoldReason,
     scheduledDate: createPostDto.scheduledDate,
-    targetExecutionState: effectiveExecutionState,
+    targetExecutionState: requestedExecutionState,
     // Only the settings this channel declares are kept (a Slack `channelId`).
     targetSettings: createPostDto.targetSettings
       ? resolveChannelTargetSettings(
@@ -292,7 +269,7 @@ export async function createPost({
     entityId: data.id,
     entityModel: ActivityEntityModel.POST,
     key:
-      effectiveExecutionState === TargetExecutionState.SCHEDULED
+      requestedExecutionState === TargetExecutionState.SCHEDULED
         ? ActivityKey.POST_SCHEDULED
         : ActivityKey.POST_CREATED,
     organizationId: firstIngredient?.organizationId ?? identity.organizationId,
@@ -302,8 +279,7 @@ export async function createPost({
   });
 
   if (
-    effectiveExecutionState !== TargetExecutionState.DRAFT &&
-    !warmupHoldReason &&
+    requestedExecutionState !== TargetExecutionState.DRAFT &&
     domainPlatform === CredentialPlatform.YOUTUBE
   ) {
     dependencies.postsService.handleYoutubePost(data).catch((error) => {

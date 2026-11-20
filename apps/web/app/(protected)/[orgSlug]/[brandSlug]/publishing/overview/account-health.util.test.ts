@@ -8,9 +8,7 @@ function buildAccountHealth(
   return {
     credentialId: 'credential-1',
     handle: '@studio',
-    holdPublishing: false,
     label: 'Studio Instagram',
-    override: { isActive: false },
     platform: 'instagram' as AccountHealthSummary['platform'],
     riskLevel: 'low',
     score: 90,
@@ -40,8 +38,6 @@ describe('buildAccountHealthRows', () => {
         accountLabel: '@studio',
         connectedDays: 30,
         credentialId: 'credential-1',
-        holdPublishing: false,
-        holdReason: undefined,
         needsReconnect: false,
         platform: 'instagram',
         publishedPosts: 10,
@@ -53,7 +49,7 @@ describe('buildAccountHealthRows', () => {
     ]);
   });
 
-  it('orders reconnect, hold, and high-risk accounts ahead of healthy ones', () => {
+  it('orders reconnect and high-risk accounts ahead of healthy ones', () => {
     const rows = buildAccountHealthRows([
       buildAccountHealth({
         credentialId: 'healthy',
@@ -61,10 +57,9 @@ describe('buildAccountHealthRows', () => {
         score: 95,
       }),
       buildAccountHealth({
-        credentialId: 'held',
-        handle: '@held',
-        holdPublishing: true,
-        holdReason: 'warmup',
+        credentialId: 'warming',
+        handle: '@warming',
+        riskLevel: 'medium',
         score: 40,
         state: 'warming',
       }),
@@ -84,7 +79,7 @@ describe('buildAccountHealthRows', () => {
 
     expect(rows.map((row) => row.credentialId)).toEqual([
       'expired',
-      'held',
+      'warming',
       'healthy',
     ]);
   });

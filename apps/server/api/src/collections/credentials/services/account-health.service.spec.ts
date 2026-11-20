@@ -29,11 +29,6 @@ function makeCredential(overrides: Record<string, unknown> = {}) {
     platform: CredentialPlatform.TIKTOK,
     warmupAssessedAt: null,
     warmupHoldReason: null,
-    warmupManualOverride: false,
-    warmupOverrideConfirmedAt: null,
-    warmupOverrideConfirmedByUserId: null,
-    warmupOverrideReason: null,
-    warmupOverrideUntil: null,
     warmupRiskLevel: 'unknown',
     warmupScore: 0,
     warmupSignals: {},
@@ -96,9 +91,6 @@ describe('AccountHealthService', () => {
         makeCredential({
           id: 'credential-2',
           platform: 'TWITTER',
-          warmupManualOverride: true,
-          warmupOverrideReason: 'operator checked',
-          warmupOverrideUntil: new Date('2026-07-01T10:00:00.000Z'),
           warmupThresholds: { minConnectedDays: 15, minPublishedPosts: 5 },
         }),
         makeCredential(),
@@ -169,9 +161,7 @@ describe('AccountHealthService', () => {
       const summaries = await service.listBrandHealth('org-1', 'brand-1');
 
       expect(summaries).toEqual(expected);
-      expect(summaries[0].override.isActive).toBe(true);
       expect(summaries[1].signals.accountAgeDays).toBe(20);
-      expect(summaries[1].holdReason).not.toContain('Use TikTok manually');
       expect(prisma.credential.findMany).toHaveBeenCalledExactlyOnceWith({
         orderBy: { createdAt: 'asc' },
         where: {
@@ -250,7 +240,7 @@ describe('AccountHealthService', () => {
         publishedPosts: 0,
         recentFailures: 0,
       });
-      expect(summaries[0].holdPublishing).toBe(true);
+      expect(summaries[0].state).toBe('not_started');
       expect(prisma.$executeRaw).toHaveBeenCalledTimes(1);
     });
 
@@ -319,33 +309,21 @@ describe('AccountHealthService', () => {
     });
 
     expect(summary.platform).toBe(CredentialPlatform.TWITTER);
-    expect(summary.holdPublishing).toBe(true);
     expect(summary.state).toBe('not_started');
-    expect(prisma.$executeRaw.mock.calls[0]).toEqual(
-      expect.arrayContaining([
-        expect.stringContaining('twitter publishing is held'),
-      ]),
-    );
   });
 
-  it('holds scheduled publishing for a not-started warmup account', async () => {
-    const gate = await service.evaluateScheduledPublishGate({
+  it('reports a not-started warmup account as high risk and persists the assessment', async () => {
+    const summary = await service.assessCredentialHealth({
       brandId: 'brand-1',
       credentialId: 'credential-1',
       organizationId: 'org-1',
     });
 
-    expect(gate.holdPublishing).toBe(true);
-    expect(gate.summary.state).toBe('not_started');
-    expect(gate.summary.riskLevel).toBe('high');
+    expect(summary.state).toBe('not_started');
+    expect(summary.riskLevel).toBe('high');
     expect(prisma.$executeRaw).toHaveBeenCalledTimes(1);
     expect(prisma.$executeRaw.mock.calls[0]).toEqual(
-      expect.arrayContaining([
-        expect.stringContaining('tiktok publishing is held'),
-        'not_started',
-        'credential-1',
-        'org-1',
-      ]),
+      expect.arrayContaining(['not_started', 'credential-1', 'org-1']),
     );
   });
 
@@ -369,57 +347,8 @@ describe('AccountHealthService', () => {
     });
 
     expect(summary.state).toBe('healthy');
-    expect(summary.holdPublishing).toBe(false);
     expect(summary.thresholds.minConnectedDays).toBe(1);
     expect(summary.thresholds.minPublishedPosts).toBe(1);
-  });
-
-  it('requires and applies explicit manual overrides', async () => {
-    await expect(
-      service.confirmManualOverride({
-        credentialId: 'credential-1',
-        organizationId: 'org-1',
-        request: {
-          confirm: false as true,
-          reason: 'operator checked',
-        },
-        userId: 'user-1',
-      }),
-    ).rejects.toThrow('explicit confirmation');
-
-    prisma.credential.findFirst
-      .mockResolvedValueOnce(makeCredential())
-      .mockResolvedValueOnce(
-        makeCredential({
-          warmupManualOverride: true,
-          warmupOverrideConfirmedAt: now,
-          warmupOverrideConfirmedByUserId: 'user-1',
-          warmupOverrideReason: 'operator checked',
-          warmupOverrideUntil: new Date('2026-07-01T10:00:00.000Z'),
-        }),
-      );
-
-    const summary = await service.confirmManualOverride({
-      credentialId: 'credential-1',
-      organizationId: 'org-1',
-      request: {
-        confirm: true,
-        expiresAt: '2026-07-01T10:00:00.000Z',
-        reason: 'operator checked',
-      },
-      userId: 'user-1',
-    });
-
-    expect(summary.override.isActive).toBe(true);
-    expect(summary.holdPublishing).toBe(false);
-    expect(prisma.credential.update).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({
-          warmupManualOverride: true,
-          warmupOverrideConfirmedByUserId: 'user-1',
-        }),
-      }),
-    );
   });
 
   it('counts published and failed posts as account health signals', async () => {
@@ -482,28 +411,6 @@ describe('AccountHealthService', () => {
       recentFailures: expect.any(Number),
     });
     expect(signalsJson).not.toContain('tiktokAuthorized');
-  });
-
-  it('holds publishing for incomplete required checks and names them', async () => {
-    prisma.socialWarmupEnrollment.findFirst.mockResolvedValueOnce({
-      blueprintId: TIKTOK_SOCIAL_WARMUP_BLUEPRINT_ID,
-      blueprintVersion: TIKTOK_SOCIAL_WARMUP_BLUEPRINT_VERSION,
-      events: [],
-      signals: [],
-      startedAt: now,
-      state: 'ENROLLED',
-    });
-
-    const gate = await service.evaluateScheduledPublishGate({
-      brandId: 'brand-1',
-      credentialId: 'credential-1',
-      organizationId: 'org-1',
-    });
-
-    expect(gate.holdPublishing).toBe(true);
-    expect(gate.reason).toMatch(/required warm-up checks are incomplete/i);
-    expect(gate.reason).toMatch(/Use TikTok manually/i);
-    expect(gate.reason).toMatch(/does not guarantee reach or safety/i);
   });
 
   it('does not treat credential createdAt as native social-account age', async () => {

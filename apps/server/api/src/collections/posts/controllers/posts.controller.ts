@@ -9,7 +9,6 @@ import { OrganizationModule } from '@api/common/organization-modules/organizatio
  */
 
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { AccountHealthService } from '@api/collections/credentials/services/account-health.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { ContentEvaluationProjectionService } from '@api/collections/evaluations/services/content-evaluation-projection.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
@@ -115,7 +114,6 @@ export class PostsController extends BaseCRUDController<
 > {
   constructor(
     private readonly activityRecorder: ActivityRecorderService,
-    private readonly accountHealthService: AccountHealthService,
     private readonly credentialsService: CredentialsService,
     private readonly ingredientsService: IngredientsService,
     private readonly quotaService: QuotaService,
@@ -160,7 +158,6 @@ export class PostsController extends BaseCRUDController<
       const data = await createPost({
         createPostDto,
         dependencies: {
-          accountHealthService: this.accountHealthService,
           activityRecorder: this.activityRecorder,
           credentialsService: this.credentialsService,
           ingredientsService: this.ingredientsService,

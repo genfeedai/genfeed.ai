@@ -206,10 +206,7 @@ export function getCredentialBadge(credential: ICredential): {
     return { status: 'disconnected' };
   }
 
-  if (
-    credential.accountHealth?.holdPublishing ||
-    credential.accountHealth?.riskLevel === 'high'
-  ) {
+  if (credential.accountHealth?.riskLevel === 'high') {
     return { status: 'needs_attention' };
   }
 
@@ -229,10 +226,7 @@ export function needsAttentionCredential(credential: ICredential): boolean {
     return true;
   }
 
-  return Boolean(
-    credential.accountHealth?.holdPublishing ||
-      credential.accountHealth?.riskLevel === 'high',
-  );
+  return credential.accountHealth?.riskLevel === 'high';
 }
 
 export function getActivityBadge(activity: IActivity): {
@@ -341,10 +335,7 @@ export function summarizeCredentialHealth(
         return summary;
       }
 
-      if (
-        credential.accountHealth?.holdPublishing ||
-        credential.accountHealth?.riskLevel === 'high'
-      ) {
+      if (credential.accountHealth?.riskLevel === 'high') {
         summary.attention += 1;
       } else if (
         credential.accountHealth?.state === 'healthy' ||

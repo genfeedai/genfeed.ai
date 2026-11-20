@@ -380,9 +380,7 @@ describe('PublishingOverviewPage', () => {
       data: [
         {
           credentialId: 'credential-3',
-          holdPublishing: false,
           label: 'Brand Instagram',
-          override: { isActive: false },
           platform: 'instagram',
           riskLevel: 'low',
           score: 90,

@@ -112,10 +112,7 @@ function createEnrollment(
 const health: AccountHealthSummary = {
   assessedAt: '2026-08-14T12:00:00.000Z',
   credentialId: 'credential-1',
-  holdPublishing: true,
-  holdReason: 'tiktok publishing is held because account warmup is warming.',
   label: 'Studio TikTok',
-  override: { isActive: false },
   platform: CredentialPlatform.TIKTOK,
   riskLevel: 'medium',
   score: 42,
@@ -135,7 +132,6 @@ const health: AccountHealthSummary = {
 };
 
 describe('SocialWarmupProgram', () => {
-  const onOverrideRequest = vi.fn();
   const onReconnect = vi.fn();
 
   beforeEach(() => {
@@ -186,7 +182,6 @@ describe('SocialWarmupProgram', () => {
           platform: CredentialPlatform.TIKTOK,
         }}
         health={health}
-        onOverrideRequest={onOverrideRequest}
       />,
     );
 
@@ -320,8 +315,6 @@ describe('SocialWarmupProgram', () => {
         }}
         health={{
           ...health,
-          holdReason:
-            'youtube publishing is held because channel warmup is warming.',
           platform: CredentialPlatform.YOUTUBE,
         }}
       />,
@@ -356,8 +349,6 @@ describe('SocialWarmupProgram', () => {
         }}
         health={{
           ...health,
-          holdReason:
-            'linkedin publishing is held because profile warmup is warming.',
           platform: CredentialPlatform.LINKEDIN,
         }}
       />,
@@ -375,7 +366,7 @@ describe('SocialWarmupProgram', () => {
     });
   });
 
-  it('lists unmet hold checks and keeps override available', () => {
+  it('lists unmet checks as a notice and never offers a publishing override', () => {
     render(
       <SocialWarmupProgram
         connection={{
@@ -385,25 +376,19 @@ describe('SocialWarmupProgram', () => {
           platform: CredentialPlatform.TIKTOK,
         }}
         health={health}
-        onOverrideRequest={onOverrideRequest}
         onReconnect={onReconnect}
       />,
     );
 
-    expect(screen.getByText('Publishing is on hold')).toBeInTheDocument();
+    expect(screen.getByText('Unresolved checks')).toBeInTheDocument();
+    expect(screen.queryByText('Publishing is on hold')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /override/i }),
+    ).not.toBeInTheDocument();
     fireEvent.click(screen.getAllByRole('button', { name: /show /i })[0]);
     expect(screen.getByRole('tab', { name: 'Full blueprint' })).toHaveAttribute(
       'data-state',
       'active',
-    );
-    fireEvent.click(screen.getByRole('button', { name: 'Override 24h' }));
-    expect(onOverrideRequest).toHaveBeenCalledWith(
-      expect.objectContaining({
-        credentialId: 'credential-1',
-        unresolvedChecks: expect.arrayContaining([
-          expect.objectContaining({ title: expect.any(String) }),
-        ]),
-      }),
     );
   });
 
@@ -426,32 +411,5 @@ describe('SocialWarmupProgram', () => {
     expect(
       screen.getByText(/does not guarantee reach/i).textContent,
     ).not.toMatch(/guarantee of (reach|safety)/i);
-  });
-
-  it('still lists unresolved checks when a manual override is active', () => {
-    render(
-      <SocialWarmupProgram
-        connection={{
-          credentialId: 'credential-1',
-          platform: CredentialPlatform.TIKTOK,
-        }}
-        health={{
-          ...health,
-          holdPublishing: false,
-          override: {
-            expiresAt: '2026-08-15T12:00:00.000Z',
-            isActive: true,
-            reason: 'Manual override confirmed from brand social dashboard.',
-          },
-        }}
-      />,
-    );
-
-    expect(screen.getByText('Unresolved checks')).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        /manual override confirmed from brand social dashboard/i,
-      ),
-    ).toBeInTheDocument();
   });
 });
