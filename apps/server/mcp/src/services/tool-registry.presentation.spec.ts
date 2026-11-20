@@ -1,4 +1,9 @@
-import { getToolsForSurface } from '@genfeedai/actions';
+import {
+  type CanonicalToolDefinition,
+  getMcpCatalogOperations,
+  getToolByName,
+  getToolsForSurface,
+} from '@genfeedai/actions';
 import { isRecord } from '@genfeedai/utils/data/extract.util';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { ClientService } from '@mcp/services/client.service';
@@ -110,77 +115,106 @@ function build() {
   );
 }
 
-describe('MCP catalog presentation through the public registry', () => {
-  it.each(getToolsForSurface('mcp'))(
-    '$name keeps IDs in structured results and returns readable display text',
-    async (tool) => {
-      const registry = build();
-      const args = inputFor(tool.parameters) as Record<string, unknown>;
-      if (tool.name === 'get_articles') args.query = 'AI';
-      if (tool.name === 'update_remix_concept')
-        args.edits = { output: { count: 2 } };
-      if (tool.name === 'onboard_brand') args.action = 'complete';
-      if (tool.name === 'get_preset') args.key = 'productLaunch';
-      if (tool.name === 'create_clipper_project_from_youtube')
-        args.brandId = 'input-private';
-      if (tool.name === 'manage_task') args.action = 'complete';
-      if (tool.name === 'manage_brand_kit')
-        args.fields = { primaryColor: '#AABBCC' };
-      if (tool.name === 'run_clipper') args.mode = 'raw-cut';
-      // One release or a batch is required, neither field alone.
-      if (
-        tool.name === 'create_scheduled_release' &&
-        isRecord(tool.parameters)
-      ) {
-        const properties = isRecord(tool.parameters.properties)
-          ? tool.parameters.properties
-          : {};
-        args.release = inputFor(properties.release, 'release');
-      }
-      if (tool.name === 'update_scheduled_release')
-        args.changes = { title: 'Example' };
-      if (
-        [
-          'generate',
-          'generate_content',
-          'enhance_prompt',
-          'transform_media',
-          'generate_turbo_content',
-          'draft_brand_voice_profile',
-          'save_brand_voice_profile',
-        ].includes(tool.name)
-      )
-        args.brandId = 'input-private';
-      if (tool.name === 'storyboard_long_form') {
-        args.action = 'get';
-        args.runId = 'input-private';
-      }
-      if (tool.name === 'start_storyboard_long_form') {
-        args.stage = 'presenter';
-        args.inputHash = 'a'.repeat(64);
-      }
-      if (tool.name === 'storyboard_slideshow') {
-        args.action = 'get';
-        args.runId = 'input-private';
-      }
-      if (tool.name === 'start_storyboard_slideshow') {
-        args.inputHash = 'a'.repeat(64);
-      }
-      if (tool.name === 'storyboard_video') {
-        args.action = 'get';
-        args.runId = 'input-private';
-      }
-      if (tool.name === 'start_storyboard_video') {
-        args.stage = 'final';
-        args.shotIds = ['shot-1'];
-        args.inputHash = 'a'.repeat(64);
-      }
-      if (tool.name === 'resolve_approval') args.decision = 'decline';
-      // The listing fixture is the only organization the user can switch to.
-      if (tool.name === 'switch_org') args.organization = fixture.id;
+/** Arguments that satisfy one tool's schema, plus what its behaviour needs. */
+function argsFor(tool: CanonicalToolDefinition): Record<string, unknown> {
+  const args = inputFor(tool.parameters) as Record<string, unknown>;
+  if (tool.name === 'get_articles') args.query = 'AI';
+  if (tool.name === 'update_remix_concept')
+    args.edits = { output: { count: 2 } };
+  if (tool.name === 'onboard_brand') args.action = 'complete';
+  if (tool.name === 'get_preset') args.key = 'productLaunch';
+  if (tool.name === 'create_clipper_project_from_youtube')
+    args.brandId = 'input-private';
+  if (tool.name === 'manage_task') args.action = 'complete';
+  if (tool.name === 'manage_brand_kit')
+    args.fields = { primaryColor: '#AABBCC' };
+  if (tool.name === 'run_clipper') args.mode = 'raw-cut';
+  // One release or a batch is required, neither field alone.
+  if (tool.name === 'create_scheduled_release' && isRecord(tool.parameters)) {
+    const properties = isRecord(tool.parameters.properties)
+      ? tool.parameters.properties
+      : {};
+    args.release = inputFor(properties.release, 'release');
+  }
+  if (tool.name === 'update_scheduled_release')
+    args.changes = { title: 'Example' };
+  if (
+    [
+      'generate',
+      'generate_content',
+      'enhance_prompt',
+      'transform_media',
+      'generate_turbo_content',
+      'draft_brand_voice_profile',
+      'save_brand_voice_profile',
+    ].includes(tool.name)
+  )
+    args.brandId = 'input-private';
+  if (tool.name === 'storyboard_long_form') {
+    args.action = 'get';
+    args.runId = 'input-private';
+  }
+  if (tool.name === 'start_storyboard_long_form') {
+    args.stage = 'presenter';
+    args.inputHash = 'a'.repeat(64);
+  }
+  if (tool.name === 'storyboard_slideshow') {
+    args.action = 'get';
+    args.runId = 'input-private';
+  }
+  if (tool.name === 'start_storyboard_slideshow') {
+    args.inputHash = 'a'.repeat(64);
+  }
+  if (tool.name === 'storyboard_video') {
+    args.action = 'get';
+    args.runId = 'input-private';
+  }
+  if (tool.name === 'start_storyboard_video') {
+    args.stage = 'final';
+    args.shotIds = ['shot-1'];
+    args.inputHash = 'a'.repeat(64);
+  }
+  if (tool.name === 'resolve_approval') args.decision = 'decline';
+  // The listing fixture is the only organization the user can switch to.
+  if (tool.name === 'switch_org') args.organization = fixture.id;
+  return args;
+}
 
+/**
+ * One case per listed tool; a merged tool has one per action, which runs the
+ * original tool that action names.
+ */
+interface PresentationCase {
+  args: Record<string, unknown>;
+  label: string;
+  name: string;
+}
+
+const CASES = getToolsForSurface('mcp').flatMap((tool): PresentationCase[] => {
+  const operations = getMcpCatalogOperations(tool.name);
+  if (operations.length === 0)
+    return [{ args: argsFor(tool), label: tool.name, name: tool.name }];
+  return operations.flatMap((operation) => {
+    const target = getToolByName(operation.executionName);
+    return target
+      ? [
+          {
+            args: { action: operation.action, input: argsFor(target) },
+            label: `${tool.name}(action=${operation.action})`,
+            name: tool.name,
+          },
+        ]
+      : [];
+  });
+});
+
+describe('MCP catalog presentation through the public registry', () => {
+  it.each(CASES)(
+    '$label keeps IDs in structured results and returns readable display text',
+    async ({ args, name }) => {
+      const registry = build();
       let result = (await registry.handleToolCall({
-        name: tool.name,
+        name,
         arguments: args,
       })) as McpAppResult;
       if (result.structuredContent?.code === 'approval_pending') {
@@ -207,7 +241,7 @@ describe('MCP catalog presentation through the public registry', () => {
       expect(visible).not.toMatch(
         /result-private|org-private|user-private|approval-private|"id"\s*:/,
       );
-      if (!['find_tools', 'resolve_approval'].includes(tool.name))
+      if (!['find_tools', 'resolve_approval'].includes(name))
         expect(result.structuredContent?.data).toBeDefined();
     },
   );

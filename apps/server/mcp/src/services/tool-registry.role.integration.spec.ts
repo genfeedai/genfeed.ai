@@ -9,7 +9,7 @@ import { createEndpointRegistries } from '@mcp/services/tool-registry.endpoints.
  * actually denies/permits a role-gated tool — the unit specs mock the guard, so
  * they only prove delegation, not enforcement.
  *
- * Only the canonical-tools registry is mocked. `get_job_status` is a real
+ * Only the canonical-tools registry is mocked. `get_job_status` (run by check_job) is a real
  * account-management tool that classifies to a live executor (so dispatch
  * actually runs for the allowed case); here it is mocked as `admin`-gated purely
  * to exercise the guard — the tool's real tier is irrelevant to this test.
@@ -90,8 +90,8 @@ describe('ToolRegistryService role enforcement (real guard)', () => {
     const { client, registry } = build('user');
 
     const result = (await registry.handleToolCall({
-      arguments: { jobId: 'job_1' },
-      name: 'get_job_status',
+      arguments: { action: 'job', input: { jobId: 'job_1' } },
+      name: 'check_job',
     })) as { isError?: boolean; content: { text: string }[] };
 
     expect(result.isError).toBe(true);
@@ -104,8 +104,8 @@ describe('ToolRegistryService role enforcement (real guard)', () => {
     const { client, registry } = build('admin');
 
     const result = (await registry.handleToolCall({
-      arguments: { jobId: 'job_1' },
-      name: 'get_job_status',
+      arguments: { action: 'job', input: { jobId: 'job_1' } },
+      name: 'check_job',
     })) as { isError?: boolean; content: { text: string }[] };
 
     expect(result.isError).toBeFalsy();

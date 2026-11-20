@@ -29,7 +29,9 @@ describe('MCP brand-required generation tools', () => {
       expect(tool?.inputSchema.properties.brandId, name).toMatchObject({
         type: 'string',
       });
-      expect(tool?.description, name).toContain('call get_brands first');
+      expect(tool?.description, name).toContain(
+        'call get_context(action=brands) first',
+      );
     }
   });
 

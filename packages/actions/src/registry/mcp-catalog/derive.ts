@@ -59,10 +59,10 @@ function deriveCreditPricing(
   };
 }
 
-function deriveDataSource(
-  targets: readonly CanonicalToolDefinition[],
+/** The data source of a tool that runs tools with these sources: the widest one. */
+export function widestDataSource(
+  sources: readonly ToolDataSource[],
 ): ToolDataSource {
-  const sources = targets.map((tool) => tool.dataSource ?? 'stored');
   if (sources.includes('provider-paid')) return 'provider-paid';
   return sources.includes('provider') ? 'provider' : 'stored';
 }
@@ -99,7 +99,9 @@ export function deriveMcpCatalogPolicy(
     },
     creditCost: Math.min(...targets.map((tool) => tool.creditCost)),
     creditPricing: deriveCreditPricing(targets),
-    dataSource: deriveDataSource(targets),
+    dataSource: widestDataSource(
+      targets.map((tool) => tool.dataSource ?? 'stored'),
+    ),
     mutationPolicy: deriveMutationPolicy(targets),
     requiredRole: targets
       .map((tool) => tool.requiredRole)

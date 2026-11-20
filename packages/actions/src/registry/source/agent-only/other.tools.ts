@@ -44,7 +44,7 @@ export const AGENT_OTHER_TOOLS: SourceTool[] = [
       properties: {
         connectionId: {
           description:
-            'Durable connection request id from connect_social_account.',
+            'Durable connection request id returned when the connection was started.',
           type: 'string',
         },
         platform: {

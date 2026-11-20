@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isMcpListedToolName } from './mcp-catalog-calls';
+import { isMcpCatalogToolName, isMcpListedToolName } from './mcp-catalog-calls';
 import { ALL_TOOLS } from './tool-assembly';
 import {
   CORE_TOOLSET_NAME,
@@ -160,7 +160,10 @@ describe('getToolsets', () => {
         (summary) => summary.name === CORE_TOOLSET_NAME,
       );
       const expectedCount = ALL_TOOLS.filter(
-        (tool) => tool.toolset === CORE_TOOLSET_NAME && tool.surfaces[surface],
+        (tool) =>
+          tool.toolset === CORE_TOOLSET_NAME &&
+          tool.surfaces[surface] &&
+          (surface !== 'mcp' || isMcpListedToolName(tool.name)),
       ).length;
       expect(core, surface).toBeDefined();
       expect(core?.toolCount, surface).toBe(expectedCount);
@@ -193,7 +196,10 @@ describe('getToolsForToolsets', () => {
     const result = getToolsForToolsets('mcp', ['content']);
     const resultNames = new Set(result.map((tool) => tool.name));
 
-    for (const tool of result) {
+    // A merged tool spans toolsets, so every selection lists it.
+    for (const tool of result.filter(
+      (candidate) => !isMcpCatalogToolName(candidate.name),
+    )) {
       expect(['content', CORE_TOOLSET_NAME]).toContain(tool.toolset);
     }
     // A tool from an unrelated toolset must not leak in.

@@ -100,7 +100,7 @@ describe('native MCP image delivery', () => {
     expect(text).not.toMatch(/img-private|brand-private/);
     expect(result.structuredContent.data).toBe(data);
   });
-  it('returns extensionless JPEG bytes with correct MIME through get_job_status and card wrapping', async () => {
+  it('returns extensionless JPEG bytes with correct MIME through check_job and card wrapping', async () => {
     const fetcher = mockFetch(
       new Response(jpeg, {
         headers: {
@@ -119,8 +119,8 @@ describe('native MCP image delivery', () => {
       logger as unknown as LoggerService,
     );
     const result = await registry.handleToolCall({
-      name: 'get_job_status',
-      arguments: { jobId: 'img-1' },
+      name: 'check_job',
+      arguments: { action: 'job', input: { jobId: 'img-1' } },
     });
     const parsed = CallToolResultSchema.parse(result);
     expect(parsed.content).toContainEqual({

@@ -174,7 +174,7 @@ describe('MCP input documentation', () => {
       /Variable cost: .* credits per generation/,
     );
     expect(tool('generate').description).toContain(
-      'brandId is required: call get_brands',
+      'brandId is required: call get_context(action=brands)',
     );
     expect(tool('generate').inputSchema.properties.brandMode).toMatchObject({
       description: expect.stringContaining(
@@ -191,12 +191,20 @@ describe('MCP input documentation', () => {
     expect(tool('transform_media').description).toContain(
       'local merge is free',
     );
-    expect(tool('get_generation_options').description).toContain(
-      'never charges, reprices or authorizes',
-    );
-    expect(tool('get_generation_options').description).toContain(
-      'balance null; 0 means empty',
-    );
+    expect(
+      tool('get_generation_catalog').inputSchema.properties.action,
+    ).toMatchObject({
+      description: expect.stringContaining(
+        'never charges or authorizes generation',
+      ),
+    });
+    expect(
+      tool('get_generation_catalog').inputSchema.properties.action,
+    ).toMatchObject({
+      description: expect.stringContaining(
+        'balance null = unreadable wallet, 0 = empty',
+      ),
+    });
     expect(tool('resolve_approval').description).toContain('Owners/admins');
     expect(tool('control_scheduled_release').description).toContain(
       'All actions require server-enforced approval',

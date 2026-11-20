@@ -7,6 +7,7 @@ export {
   MCP_MUTATION_POLICY_META_KEY,
   MCP_TOOL_OUTPUT_SCHEMA,
   MCP_TOOLSET_META_KEY,
+  toMcpTool,
   toMcpTools,
 } from './adapters/to-mcp-tool';
 export type {
@@ -117,6 +118,7 @@ export {
   getRetiredMcpCatalogTool,
   isMcpCatalogToolName,
   isMcpListedToolName,
+  MCP_CATALOG_TOOL_NAMES,
   resolveMcpCatalogCall,
   validateMcpCatalogBindings,
 } from './registry/mcp-catalog-calls';

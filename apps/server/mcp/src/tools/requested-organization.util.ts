@@ -54,7 +54,7 @@ export function mcpToolFailureResult(error: unknown) {
 
 /**
  * The organization a tool call names with its `organization` argument (a name,
- * slug or id from get_orgs). A connection limited to one organization is
+ * slug or id from get_context(action=organizations)). A connection limited to one organization is
  * refused instead of being answered from the wrong one.
  */
 export async function resolveRequestedOrganizationId(
@@ -63,7 +63,9 @@ export async function resolveRequestedOrganizationId(
 ): Promise<string> {
   const wanted = typeof requested === 'string' ? requested.trim() : '';
   if (!wanted) {
-    throw new Error('organization must be a name, slug or id from get_orgs.');
+    throw new Error(
+      'organization must be a name, slug or id from get_context(action=organizations).',
+    );
   }
   if (!(await client.canSwitchOrganizations())) {
     throw new ForbiddenException({

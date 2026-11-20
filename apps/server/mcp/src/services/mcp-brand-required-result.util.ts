@@ -25,7 +25,7 @@ export function brandRequiredToolResult(brands: McpBrandOption[] | undefined) {
       brands: [],
       code: 'brand_required',
       message:
-        'Choose a brand for this generation. Your brands could not be loaded right now: call get_brands, then retry with its brandId.',
+        'Choose a brand for this generation. Your brands could not be loaded right now: call get_context(action=brands), then retry with its brandId.',
     });
   }
   if (brands.length === 0) {

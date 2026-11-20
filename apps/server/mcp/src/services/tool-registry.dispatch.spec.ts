@@ -184,9 +184,6 @@ describe('ToolRegistryService.validateDispatchCoverage', () => {
     mockState.tools = [
       { name: 'generate' },
       { name: 'create_brand_from_url' },
-      { name: 'get_brand_scan_status' },
-      { name: 'get_job_status' },
-      { name: 'get_meta_campaigns' },
       { name: 'resolve_approval' },
       { name: 'create_post' },
       { name: 'find_tools' },
@@ -198,7 +195,6 @@ describe('ToolRegistryService.validateDispatchCoverage', () => {
     mockState.tools = [
       { name: 'generate' },
       { name: 'create_brand_from_url' },
-      { name: 'get_brand_scan_status' },
       { name: 'totally_unrouted_tool' },
     ];
     expect(() => ToolRegistryService.validateDispatchCoverage()).toThrow(

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { resolveMcpAppToolsets } from './app-toolsets';
 import { CLAUDE_MCP_TOOL_NAMES } from './mcp-access-modes';
+import { MCP_CATALOG_TOOLS } from './mcp-catalog/catalog';
 import { getToolsForSurface } from './tool-registry';
 import type { ToolsetName } from './toolset-names';
 import {
@@ -33,7 +34,7 @@ describe('MCP toolset profiles', () => {
     const names = getToolsForToolsets('mcp', DEFAULT_MCP_PROFILE_TOOLSETS).map(
       (tool) => tool.name,
     );
-    expect(names).toContain('get_brand_publishing_readiness');
+    expect(names).toContain('check_channel');
     expect(names).toContain('create_scheduled_release');
   });
 
@@ -43,9 +44,9 @@ describe('MCP toolset profiles', () => {
         (tool) => tool.requiredRole === 'user',
       ).length;
     expect(BARE_MCP_URL_TOOL_CAP).toBe(30);
-    expect(userCount(DEFAULT_MCP_PROFILE_TOOLSETS)).toBe(30);
+    expect(userCount(DEFAULT_MCP_PROFILE_TOOLSETS)).toBe(29);
     expect(userCount(DIRECTORY_MCP_PROFILE_TOOLSETS)).toBe(24);
-    expect(userCount(STUDIO_MCP_PROFILE_TOOLSETS)).toBe(43);
+    expect(userCount(STUDIO_MCP_PROFILE_TOOLSETS)).toBe(34);
     expect(userCount(DEFAULT_MCP_PROFILE_TOOLSETS)).toBeLessThanOrEqual(
       BARE_MCP_URL_TOOL_CAP,
     );
@@ -66,9 +67,9 @@ describe('MCP toolset profiles', () => {
       DEFAULT_MCP_PROFILE_TOOLSETS,
     ).map((tool) => tool.name);
     expect(workspace).toEqual(
-      expect.arrayContaining(['get_review_queue', 'manage_task']),
+      expect.arrayContaining(['get_workspace', 'manage_task']),
     );
-    expect(defaults).not.toContain('get_review_queue');
+    expect(defaults).toContain('get_workspace');
     expect(defaults).not.toContain('manage_task');
   });
 
@@ -114,7 +115,7 @@ describe('MCP toolset profiles', () => {
     );
     expect(names).toEqual(expect.arrayContaining(['generate', 'get_assets']));
     expect(names).toEqual(
-      expect.arrayContaining(['get_analytics', 'fetch_x_posts']),
+      expect.arrayContaining(['get_insights', 'fetch_x_posts']),
     );
   });
 
@@ -130,17 +131,13 @@ describe('MCP toolset profiles', () => {
     expect(isMcpToolsetProfileName('not-a-profile')).toBe(false);
   });
 
-  it('keeps media upload and get_posts on content inside the bare-URL profile', () => {
-    const names = new Set<string>(
-      getToolsForToolsets('mcp', DEFAULT_MCP_PROFILE_TOOLSETS).map(
-        (tool) => tool.name,
-      ),
-    );
-    for (const name of ['upload_media', 'get_posts']) {
-      expect(names.has(name), name).toBe(true);
-      expect(
-        getToolsForToolsets('mcp', ['core']).some((tool) => tool.name === name),
-      ).toBe(false);
+  it('lists every merged tool on every selection', () => {
+    for (const toolsets of [['core'], DEFAULT_MCP_PROFILE_TOOLSETS] as const) {
+      const names = new Set<string>(
+        getToolsForToolsets('mcp', toolsets).map((tool) => tool.name),
+      );
+      for (const { name } of MCP_CATALOG_TOOLS)
+        expect(names.has(name), name).toBe(true);
     }
   });
 
@@ -162,7 +159,7 @@ describe('MCP toolset profiles', () => {
     ]);
   });
 
-  it('lists get_trends and get_analytics on the bare URL and on every selection that had them', () => {
+  it('lists get_insights on the bare URL and on every selection that had the reads', () => {
     const listed = (toolsets: readonly ToolsetName[]) =>
       getToolsForToolsets('mcp', toolsets).map((tool) => tool.name);
     for (const toolsets of [
@@ -172,11 +169,8 @@ describe('MCP toolset profiles', () => {
       ['analytics'] as const,
       [...resolveMcpAppToolsets(['analytics'])],
     ]) {
-      expect(listed(toolsets)).toEqual(
-        expect.arrayContaining(['get_trends', 'get_analytics']),
-      );
+      expect(listed(toolsets)).toContain('get_insights');
     }
-    expect(listed(['content'])).not.toContain('get_analytics');
   });
 
   it('lets a bare-URL client draft, preview and request publication of an article (#10073)', () => {
@@ -186,7 +180,7 @@ describe('MCP toolset profiles', () => {
     expect(names).toEqual(
       expect.arrayContaining([
         'create_article_draft',
-        'get_article_preview',
+        'get_content',
         'publish_article',
       ]),
     );
@@ -229,14 +223,17 @@ describe('MCP toolset profiles', () => {
       'mcp',
       DIRECTORY_MCP_PROFILE_TOOLSETS,
     );
-    for (const tool of directoryTools) {
-      expect(DIRECTORY_EXCLUDED_TOOLSETS).not.toContain(tool.toolset);
-    }
-    expect(
-      directoryTools.some(
-        (tool) => tool.toolset === 'generation' || tool.toolset === 'clipper',
-      ),
-    ).toBe(false);
+    // A merged tool is listed on every selection; the two that read clip and
+    // generation data are read-only.
+    const excluded = directoryTools.filter((tool) =>
+      DIRECTORY_EXCLUDED_TOOLSETS.includes(tool.toolset),
+    );
+    expect(excluded.map((tool) => tool.name).sort()).toEqual([
+      'get_generation_catalog',
+      'get_video_projects',
+    ]);
+    for (const tool of excluded)
+      expect(tool.annotations?.readOnlyHint, tool.name).toBe(true);
     expect(directoryTools.map((tool) => tool.name)).not.toContain('generate');
   });
 

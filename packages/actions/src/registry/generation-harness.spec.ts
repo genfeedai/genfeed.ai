@@ -32,8 +32,9 @@ describe('generation harness catalog', () => {
     'exposes settings on %s without credit charges',
     (surface) => {
       const tools = getToolsForSurface(surface);
+      // MCP lists the options reader as the merged get_generation_catalog.
       for (const name of [
-        'get_generation_options',
+        surface === 'mcp' ? 'get_generation_catalog' : 'get_generation_options',
         'set_generation_settings',
       ]) {
         expect(tools.find((tool) => tool.name === name)).toMatchObject({

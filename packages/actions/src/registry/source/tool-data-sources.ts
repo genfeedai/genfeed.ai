@@ -3,6 +3,8 @@ import {
   curatedActionNames,
   getCuratedAction,
 } from '../curated-action-catalog';
+import { widestDataSource } from '../mcp-catalog/derive';
+import { getMcpCatalogOperations } from '../mcp-catalog-calls';
 
 /**
  * Reads that call a third party and bill per call (credits or a platform
@@ -24,5 +26,11 @@ export const PROVIDER_FREE_TOOLS: ReadonlySet<string> = curatedActionNames(
 );
 
 export function toolDataSource(name: string): ToolDataSource {
+  const operations = getMcpCatalogOperations(name);
+  // A merged tool has the widest source of the tools it runs.
+  if (operations.length > 0)
+    return widestDataSource(
+      operations.map((operation) => toolDataSource(operation.executionName)),
+    );
   return getCuratedAction(name)?.dataSource ?? 'stored';
 }

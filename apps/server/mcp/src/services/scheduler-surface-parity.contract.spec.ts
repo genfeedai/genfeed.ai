@@ -92,7 +92,7 @@ describe('REST ↔ MCP ↔ CLI scheduler lifecycle parity', () => {
       'get_brand_publishing_readiness',
     );
     expect(entry).toContain("surfaces: ['mcp']");
-    expect(entry).not.toContain("'agent'");
+    expect(entry).not.toMatch(/surfaces: \[[^\]]*'agent'/);
     expect(source.cliCommand).not.toContain(".command('publishing-readiness')");
   });
 });

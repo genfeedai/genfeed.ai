@@ -32,9 +32,13 @@ export function getRetiredMcpCatalogTool(
   return OPERATION_BY_EXECUTION_NAME.get(name);
 }
 
-/** Whether a name is a merged tool, one that lists several original tools as actions. */
+/** The merged tools, each listing several original tools as actions. */
+export const MCP_CATALOG_TOOL_NAMES: readonly string[] = Object.freeze(
+  MCP_CATALOG_TOOLS.map((tool) => tool.name),
+);
+
 export function isMcpCatalogToolName(name: string): boolean {
-  return MCP_CATALOG_TOOLS.some((tool) => tool.name === name);
+  return MCP_CATALOG_TOOL_NAMES.includes(name);
 }
 
 export function getMcpCatalogOperations(

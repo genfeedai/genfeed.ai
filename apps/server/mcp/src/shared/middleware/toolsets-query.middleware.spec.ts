@@ -99,7 +99,7 @@ describe('resolveMcpToolQuery', () => {
     ]);
   });
 
-  it('lists get_trends and get_analytics for the bare URL, ?toolsets=analytics, ?app=analytics and studio', () => {
+  it('lists get_insights for the bare URL, ?toolsets=analytics, ?app=analytics and studio', () => {
     for (const query of [
       {},
       { toolsets: 'analytics' },
@@ -110,9 +110,7 @@ describe('resolveMcpToolQuery', () => {
         'mcp',
         resolveMcpToolQuery(query).toolsets,
       ).map((tool) => tool.name);
-      expect(names).toEqual(
-        expect.arrayContaining(['get_trends', 'get_analytics']),
-      );
+      expect(names).toContain('get_insights');
     }
   });
 

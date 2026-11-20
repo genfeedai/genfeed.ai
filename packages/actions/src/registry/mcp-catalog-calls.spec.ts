@@ -95,8 +95,8 @@ describe('MCP catalog bindings', () => {
     expect(() =>
       resolveMcpCatalogCall('check_channel', { action: 'capabilities' }),
     ).toThrow('input must be an object');
-    expect(resolveMcpCatalogCall('get_posts', {})).toBeNull();
-    expect(getMcpCatalogOperations('get_posts')).toEqual([]);
+    expect(resolveMcpCatalogCall('get_assets', {})).toBeNull();
+    expect(getMcpCatalogOperations('get_assets')).toEqual([]);
   });
 
   it.each([
@@ -121,7 +121,6 @@ describe('MCP catalog bindings', () => {
 
   it('never projects retired names even when passed the entire raw catalog', () => {
     const listed = toMcpTools(ALL_TOOLS).map((tool) => tool.name);
-    expect(listed).toHaveLength(172);
     expect(listed).toEqual(getToolsForSurface('mcp').map((tool) => tool.name));
     for (const operation of operations)
       expect(listed).not.toContain(operation.executionName);

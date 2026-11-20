@@ -129,7 +129,7 @@ export function settledBatchText(approval: McpApprovalResource): string | null {
   const outcome = recordedBatchOutcome(approval);
   if (outcome) return outcome;
   return approval.status === 'APPROVED'
-    ? 'This batch was approved in Genfeed and is being scheduled there. Check get_posts shortly; nothing more is needed from this call.'
+    ? 'This batch was approved in Genfeed and is being scheduled there. Check get_content(action=posts) shortly; nothing more is needed from this call.'
     : null;
 }
 

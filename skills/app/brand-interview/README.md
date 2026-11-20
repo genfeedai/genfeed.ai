@@ -29,4 +29,4 @@ npx skills add genfeedai/skills/brand-interview
 
 ## Notes
 
-The interview is backed by real tools (`get_brand_completeness`, `start_brand_interview`, `submit_brand_interview_answer`, `skip_brand_interview_question`) and persists to the brand's `voice` and `strategy` config, not to chat history. The question catalog and its field mapping are owned by the server.
+The interview is backed by real tools (`get_context` with `action` set to `brand_completeness`, `start_brand_interview`, `submit_brand_interview_answer`, `skip_brand_interview_question`) and persists to the brand's `voice` and `strategy` config, not to chat history. The question catalog and its field mapping are owned by the server.

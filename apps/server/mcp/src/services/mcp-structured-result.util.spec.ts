@@ -88,7 +88,7 @@ describe('withMcpStructuredContent', () => {
   });
 
   it('validates the requested tool family as well as standard envelope fields', () => {
-    const account = getToolByName('get_account');
+    const account = getToolByName('switch_org');
     const discovery = getToolByName('find_tools');
     expect(account).toBeDefined();
     expect(discovery).toBeDefined();

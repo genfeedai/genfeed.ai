@@ -261,13 +261,16 @@ it('lists the real mixed default with canonical wrappers inside the 30-tool bare
   );
   const user = build('user', [...actual.DEFAULT_MCP_PROFILE_TOOLSETS]);
   const maximum = build('superadmin', [...actual.DEFAULT_MCP_PROFILE_TOOLSETS]);
-  expect(user.getTools()).toHaveLength(actual.BARE_MCP_URL_TOOL_CAP);
+  expect(user.getTools()).toHaveLength(29);
+  expect(user.getTools().length).toBeLessThanOrEqual(
+    actual.BARE_MCP_URL_TOOL_CAP,
+  );
   // Admin-only tools are not on the standard endpoint, whatever the role.
-  expect(maximum.getTools()).toHaveLength(actual.BARE_MCP_URL_TOOL_CAP);
+  expect(maximum.getTools()).toHaveLength(29);
   const listed = names(user.getTools());
   expect(listed).toContain('check_channel');
-  expect(listed).toContain('get_trends');
-  expect(listed).toContain('get_analytics');
+  expect(listed).toContain('get_insights');
+  expect(listed).toContain('get_content');
   expect(listed).toContain('upload_media');
   for (const name of [
     'get_scheduler_capabilities',
@@ -292,6 +295,6 @@ it('lists the studio profile with generation inside its own cap', async () => {
   expect(listed.length).toBeLessThanOrEqual(actual.STUDIO_MCP_PROFILE_TOOL_CAP);
   expect(listed.length).toBeGreaterThan(actual.BARE_MCP_URL_TOOL_CAP);
   expect(names(listed)).toEqual(
-    expect.arrayContaining(['generate', 'get_analytics', 'get_brand_context']),
+    expect.arrayContaining(['generate', 'get_insights', 'get_context']),
   );
 });

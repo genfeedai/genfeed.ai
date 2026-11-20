@@ -38,8 +38,8 @@ export function matchOrganization(
   if (byName.length === 1) return byName[0];
   throw new Error(
     byName.length > 1
-      ? `More than one organization matches "${requested}". Use its id from get_orgs.`
-      : `No organization matches "${requested}". Run get_orgs to see yours.`,
+      ? `More than one organization matches "${requested}". Use its id from get_context(action=organizations).`
+      : `No organization matches "${requested}". Run get_context(action=organizations) to see yours.`,
   );
 }
 
@@ -131,7 +131,7 @@ export function handleAccountManagementTool(
         typeof a.organization === 'string' ? a.organization.trim() : '';
       if (!requested) {
         throw new Error(
-          'organization is required: a name, slug or id from get_orgs.',
+          'organization is required: a name, slug or id from get_context(action=organizations).',
         );
       }
       if (!(await client.canSwitchOrganizations())) {

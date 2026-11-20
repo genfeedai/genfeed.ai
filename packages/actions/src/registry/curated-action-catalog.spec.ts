@@ -7,6 +7,7 @@ import {
   isActionOnSurface,
   isPublishingApprovalRequired,
 } from './curated-action-catalog';
+import { MCP_CATALOG_TOOLS } from './mcp-catalog/catalog';
 import { isMcpCatalogToolName, isMcpListedToolName } from './mcp-catalog-calls';
 import { isReadOnlyToolName } from './mutation-policy';
 import { SOURCE_TOOLS } from './source/index';
@@ -25,21 +26,14 @@ describe('curated action catalog', () => {
       });
     },
   );
-  it('retains internal targets while listing only the two consolidated MCP envelopes', () => {
-    expect(ALL_TOOLS).toHaveLength(248);
-    expect(ALL_TOOLS.filter((tool) => tool.surfaces.mcp)).toHaveLength(176);
+  it('retains the tools a merged tool runs while listing only the merged tool', () => {
     const listed = getToolsForSurface('mcp').map((tool) => tool.name);
-    expect(listed).toHaveLength(172);
-    expect(listed).toContain('check_channel');
-    expect(listed).toContain('upload_media');
-    for (const name of [
-      'get_scheduler_capabilities',
-      'validate_scheduler_target',
-      'request_media_upload',
-      'complete_media_upload',
-    ]) {
-      expect(getToolByName(name)?.surfaces.mcp).toBe(true);
-      expect(listed).not.toContain(name);
+    for (const { name, operations } of MCP_CATALOG_TOOLS) {
+      expect(listed, name).toContain(name);
+      for (const { executes } of operations) {
+        expect(getToolByName(executes)?.surfaces.mcp, executes).toBe(true);
+        expect(listed, executes).not.toContain(executes);
+      }
     }
   });
   it('exposes link imports on agent and MCP in the analytics toolset', () => {

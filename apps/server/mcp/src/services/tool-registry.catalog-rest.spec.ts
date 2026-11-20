@@ -1,6 +1,10 @@
+import { MCP_CATALOG_TOOL_NAMES } from '@genfeedai/actions';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ClientService } from '@mcp/services/client.service';
-import { createEndpointRegistries } from '@mcp/services/tool-registry.endpoints.testing';
+import {
+  asMergedToolCall,
+  createEndpointRegistries,
+} from '@mcp/services/tool-registry.endpoints.testing';
 import type { ToolRegistryService } from '@mcp/services/tool-registry.service';
 
 /**
@@ -58,6 +62,7 @@ const MOCK_TOOLS = new Map(
     'create_brand_from_url',
     'get_brand_scan_status',
     'resolve_approval',
+    ...MCP_CATALOG_TOOL_NAMES,
   ].map((name) => [
     name,
     {
@@ -65,6 +70,7 @@ const MOCK_TOOLS = new Map(
         ? ('approval-required' as const)
         : undefined,
       name,
+      parameters: { properties: {}, required: [], type: 'object' },
       surfaces: { mcp: true },
     },
   ]),
@@ -183,10 +189,9 @@ async function callTool(
   name: string,
   args: Record<string, unknown> = {},
 ): Promise<ToolResult> {
-  return (await registry.handleToolCall({
-    arguments: args,
-    name,
-  })) as ToolResult;
+  return (await registry.handleToolCall(
+    asMergedToolCall({ arguments: args, name }),
+  )) as ToolResult;
 }
 
 describe('ToolRegistryService — boot-time drift guard', () => {
@@ -707,7 +712,7 @@ describe('Brand URL tools', () => {
     const standardNames = registry.standard
       .getToolsForRoleAndToolsets('admin', ['brand'])
       .map((tool) => tool.name);
-    expect(standardNames).toContain('get_brand_scan_status');
+    expect(standardNames).toContain('get_context');
     expect(standardNames).not.toContain('create_brand_from_url');
   });
 
@@ -717,6 +722,6 @@ describe('Brand URL tools', () => {
       .getToolsForRoleAndToolsets('user', ['brand'])
       .map((tool) => tool.name);
     expect(names).not.toContain('create_brand_from_url');
-    expect(names).toContain('get_brand_scan_status');
+    expect(names).toContain('get_context');
   });
 });
