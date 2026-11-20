@@ -2963,7 +2963,7 @@ test('test jobs start with the run and read the plan the Plan job publishes (#10
     for (const step of job.steps.slice(startIndex + 1)) {
       assert.match(
         JSON.stringify(step),
-        /steps\.start\.outputs\.(run|plan)|steps\.api-tests\.outcome/,
+        /steps\.start\.outputs\.(run|plan)|steps\.(?:api|app)-tests\.outcome/,
         `${jobId} step "${step.name}" must wait for the plan the start action reads`,
       );
     }
