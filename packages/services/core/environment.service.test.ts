@@ -203,7 +203,7 @@ describe('EnvironmentService', () => {
       vi.stubEnv('GENFEED_CLOUD', 'false');
 
       expect(EnvironmentService.MODELS_DEFAULT.image).toBe(
-        'google/nano-banana-2-lite',
+        'google/nano-banana-2.1',
       );
       expect(EnvironmentService.MODELS_DEFAULT.video).toBe('minimax/h3');
     });
@@ -214,7 +214,7 @@ describe('EnvironmentService', () => {
       vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', 'true');
 
       expect(EnvironmentService.MODELS_DEFAULT.image).toBe(
-        'google/nano-banana-2-lite',
+        'google/nano-banana-2.1',
       );
       expect(EnvironmentService.MODELS_DEFAULT.video).toBe('minimax/h3');
     });

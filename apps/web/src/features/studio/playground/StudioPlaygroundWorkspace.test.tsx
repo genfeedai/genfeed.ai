@@ -2646,7 +2646,7 @@ describe('StudioPlaygroundWorkspace', () => {
     };
     mocks.settings.mockReturnValue({
       resetSettings: vi.fn(),
-      settings: { modelKey: DEFAULT_IMAGE_EDIT_MODEL_KEY },
+      settings: { modelKey: MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_4_5 },
       setType: mocks.setType,
       type: 'image-edit',
       updateSettings: vi.fn(),
