@@ -1,6 +1,9 @@
 import { describe, expect, test } from 'vitest';
 import { CredentialPlatform, SocialWarmupSignalStatus } from '../../src';
-import { TIKTOK_SOCIAL_WARMUP_BLUEPRINT } from '../../src/api-types/contracts/social-warmup-blueprint.contract';
+import {
+  TIKTOK_SOCIAL_WARMUP_BLUEPRINT,
+  YOUTUBE_SOCIAL_WARMUP_BLUEPRINT,
+} from '../../src/api-types/contracts/social-warmup-blueprint.contract';
 import {
   evaluateSocialWarmupJourney,
   getSocialWarmupElapsedDays,
@@ -126,6 +129,52 @@ describe('social warm-up journey contract', () => {
       now: NOW,
     });
     expect(disconnected.isGraduated).toBe(false);
+  });
+
+  test('completes the YouTube channel steps from detected signals, leaving only what YouTube cannot share', () => {
+    const detected = [
+      'channel-setup-platform-signal',
+      'subscriptions-platform-signal',
+      'likes-platform-signal',
+      'genfeed-publish-outcomes-observed',
+      'first-upload-platform-signal',
+    ].map((key) => ({ key, status: SocialWarmupSignalStatus.AVAILABLE }));
+
+    const blocking = listBlockingSocialWarmupChecks(
+      YOUTUBE_SOCIAL_WARMUP_BLUEPRINT,
+      enrollment({ signals: detected }),
+    ).map((check) => check.id);
+
+    expect(blocking).toEqual(
+      expect.arrayContaining([
+        'search-niche-keywords',
+        'watch-niche-videos',
+        'check-homepage-relevance',
+      ]),
+    );
+    for (const automatic of [
+      'complete-channel-setup',
+      'subscribe-and-watch-subscriptions',
+      'first-shorts-upload',
+    ]) {
+      expect(blocking).not.toContain(automatic);
+    }
+  });
+
+  test('keeps an incomplete YouTube channel setup open until the signal turns available', () => {
+    const blocking = listBlockingSocialWarmupChecks(
+      YOUTUBE_SOCIAL_WARMUP_BLUEPRINT,
+      enrollment({
+        signals: [
+          {
+            key: 'channel-setup-platform-signal',
+            status: SocialWarmupSignalStatus.EMPTY,
+          },
+        ],
+      }),
+    ).map((check) => check.id);
+
+    expect(blocking).toContain('complete-channel-setup');
   });
 
   test('counts elapsed days from the enrollment start without using credential createdAt', () => {

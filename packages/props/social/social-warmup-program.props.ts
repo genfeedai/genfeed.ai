@@ -117,9 +117,8 @@ export interface SocialWarmupCheckItemProps {
   isPending?: boolean;
   onComplete: (itemId: string) => void;
   onFocusCheck?: (itemId: string) => void;
-  onReconnect?: () => void;
-  onRefreshSignals?: () => void;
   onReopen: (itemId: string) => void;
+  platformLabel: string;
 }
 
 export interface SocialWarmupProgramProps {

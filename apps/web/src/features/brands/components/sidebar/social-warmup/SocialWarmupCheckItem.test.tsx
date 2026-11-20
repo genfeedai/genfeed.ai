@@ -6,7 +6,8 @@ import {
 } from '@genfeedai/contracts';
 import { TIKTOK_SOCIAL_WARMUP_BLUEPRINT } from '@genfeedai/contracts/api-types/contracts/social-warmup-blueprint.contract';
 import type { ISocialWarmupEnrollment } from '@genfeedai/contracts/interfaces';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import SocialWarmupCheckItem from './SocialWarmupCheckItem';
 import {
@@ -60,67 +61,102 @@ function getCheck(id: string) {
 describe('SocialWarmupCheckItem', () => {
   const onComplete = vi.fn();
   const onReopen = vi.fn();
-  const onRefreshSignals = vi.fn();
-  const onReconnect = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('labels provenance and records user confirmation only from an explicit button', () => {
+  function renderCheck(
+    id: string,
+    enrollment: ISocialWarmupEnrollment,
+    props: { focusedCheckId?: string; isPending?: boolean } = {},
+  ) {
     const check = resolveWarmupCheck(
-      getCheck('use-native-app-manually'),
-      createEnrollment(),
+      getCheck(id),
+      enrollment,
       CredentialPlatform.TIKTOK,
     );
-
-    render(
+    return render(
       <SocialWarmupCheckItem
         check={check}
         onComplete={onComplete}
-        onReconnect={onReconnect}
-        onRefreshSignals={onRefreshSignals}
         onReopen={onReopen}
+        platformLabel="TikTok"
+        {...props}
       />,
     );
+  }
 
-    expect(screen.getByText('You confirmed')).toBeInTheDocument();
+  it('collapses to the title, the description and one switch', () => {
+    renderCheck('use-native-app-manually', createEnrollment());
+
     expect(
-      screen.getByRole('button', { name: 'Mark complete' }),
+      screen.getByText(getCheck('use-native-app-manually').title),
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole('button', { name: 'Reopen' }),
-    ).not.toBeInTheDocument();
+      screen.getByText(getCheck('use-native-app-manually').description),
+    ).toBeInTheDocument();
+    expect(screen.getAllByRole('switch')).toHaveLength(1);
+    expect(screen.queryByRole('button', { name: /mark complete/i })).toBeNull();
+    expect(screen.queryByText(/user_confirmed|you confirmed/i)).toBeNull();
+    expect(screen.queryByText(/only you can confirm/i)).toBeNull();
+  });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Mark complete' }));
+  it('confirms and reopens a manual step from its switch', async () => {
+    const { unmount } = renderCheck(
+      'use-native-app-manually',
+      createEnrollment(),
+    );
+    const title = getCheck('use-native-app-manually').title;
+
+    await userEvent.click(screen.getByRole('switch', { name: title }));
     expect(onComplete).toHaveBeenCalledWith('use-native-app-manually');
-  });
+    expect(onReopen).not.toHaveBeenCalled();
+    unmount();
 
-  it('lets a confirmed item be reopened', () => {
-    const check = resolveWarmupCheck(
-      getCheck('use-native-app-manually'),
-      createEnrollment({
-        completedItemIds: ['use-native-app-manually'],
-      }),
-      CredentialPlatform.TIKTOK,
+    renderCheck(
+      'use-native-app-manually',
+      createEnrollment({ completedItemIds: ['use-native-app-manually'] }),
     );
-
-    render(
-      <SocialWarmupCheckItem
-        check={check}
-        onComplete={onComplete}
-        onReopen={onReopen}
-      />,
-    );
-
-    fireEvent.click(screen.getByRole('button', { name: 'Reopen' }));
+    const confirmed = screen.getByRole('switch', { name: title });
+    expect(confirmed).toBeChecked();
+    await userEvent.click(confirmed);
     expect(onReopen).toHaveBeenCalledWith('use-native-app-manually');
-    expect(onComplete).not.toHaveBeenCalled();
   });
 
-  it('shows verified-from-platform copy and refresh for stale platform checks', () => {
-    const check = resolveWarmupCheck(
-      getCheck('observe-first-upload'),
+  it('keeps the switch of a step detected on the platform read-only and checked', () => {
+    renderCheck(
+      'observe-first-upload',
+      createEnrollment({
+        signals: [
+          {
+            brandId: 'brand-1',
+            createdAt: '2026-08-10T11:00:00.000Z',
+            enrollmentId: 'enrollment-1',
+            evidence: {},
+            id: 'signal-available',
+            isDeleted: false,
+            key: 'first-upload-platform-signal',
+            observedAt: '2026-08-10T11:00:00.000Z',
+            organizationId: 'org-1',
+            source: SocialWarmupSignalSource.PLATFORM,
+            status: SocialWarmupSignalStatus.AVAILABLE,
+            updatedAt: '2026-08-10T11:00:00.000Z',
+          },
+        ],
+      }),
+    );
+
+    const detected = screen.getByRole('switch', {
+      name: getCheck('observe-first-upload').title,
+    });
+    expect(detected).toBeChecked();
+    expect(detected).toBeDisabled();
+  });
+
+  it('explains where a platform check comes from and why it is not done once expanded', async () => {
+    renderCheck(
+      'observe-first-upload',
       createEnrollment({
         signals: [
           {
@@ -139,65 +175,62 @@ describe('SocialWarmupCheckItem', () => {
           },
         ],
       }),
-      CredentialPlatform.TIKTOK,
     );
 
-    render(
-      <SocialWarmupCheckItem
-        check={check}
-        onComplete={onComplete}
-        onRefreshSignals={onRefreshSignals}
-        onReopen={onReopen}
-      />,
+    expect(screen.queryByText(/detected automatically/i)).toBeNull();
+    await userEvent.click(
+      screen.getByRole('button', {
+        name: new RegExp(getCheck('observe-first-upload').title),
+      }),
     );
 
-    expect(screen.getByText('Verified from TikTok')).toBeInTheDocument();
+    expect(
+      screen.getByText('Detected automatically from TikTok.'),
+    ).toBeInTheDocument();
     expect(
       screen.getByText(/authorized tiktok evidence is stale/i),
     ).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Refresh signals' }));
-    expect(onRefreshSignals).toHaveBeenCalled();
     expect(
-      screen.queryByRole('button', { name: 'Mark complete' }),
-    ).not.toBeInTheDocument();
+      screen.getByRole('switch', {
+        name: getCheck('observe-first-upload').title,
+      }),
+    ).not.toBeChecked();
   });
 
-  it('exposes reconnect for disconnected platform checks', () => {
-    const check = resolveWarmupCheck(
-      getCheck('observe-first-upload'),
-      createEnrollment({ isCredentialConnected: false }),
-      CredentialPlatform.TIKTOK,
-    );
+  it('opens by itself when the unresolved-checks list points at it', () => {
+    renderCheck('use-native-app-manually', createEnrollment(), {
+      focusedCheckId: 'use-native-app-manually',
+    });
 
-    render(
-      <SocialWarmupCheckItem
-        check={check}
-        onComplete={onComplete}
-        onReconnect={onReconnect}
-        onReopen={onReopen}
-      />,
-    );
-
-    fireEvent.click(screen.getByRole('button', { name: 'Reconnect' }));
-    expect(onReconnect).toHaveBeenCalled();
+    expect(
+      screen.getByText(
+        'Only you can confirm this one. TikTok does not share it with Genfeed.',
+      ),
+    ).toBeInTheDocument();
   });
 
-  it('labels Genfeed-observed checks without implying private engagement telemetry', () => {
-    const check = resolveWarmupCheck(
-      getCheck('observe-genfeed-publish-activity'),
-      createEnrollment(),
-      CredentialPlatform.TIKTOK,
+  it('says a Genfeed-observed step is tracked from Genfeed posts', async () => {
+    renderCheck('observe-genfeed-publish-activity', createEnrollment());
+    await userEvent.click(
+      screen.getByRole('button', {
+        name: new RegExp(getCheck('observe-genfeed-publish-activity').title),
+      }),
     );
 
-    render(
-      <SocialWarmupCheckItem
-        check={check}
-        onComplete={onComplete}
-        onReopen={onReopen}
-      />,
-    );
+    expect(
+      screen.getByText('Tracked automatically from your Genfeed posts.'),
+    ).toBeInTheDocument();
+  });
 
-    expect(screen.getByText('Observed in Genfeed')).toBeInTheDocument();
-    expect(screen.queryByText(/private engagement/i)).not.toBeInTheDocument();
+  it('locks the switch while a change is being saved', () => {
+    renderCheck('use-native-app-manually', createEnrollment(), {
+      isPending: true,
+    });
+
+    expect(
+      screen.getByRole('switch', {
+        name: getCheck('use-native-app-manually').title,
+      }),
+    ).toBeDisabled();
   });
 });

@@ -101,6 +101,11 @@ interface YoutubeVideosResponse {
   }>;
 }
 
+interface YoutubeTotalResultsResponse {
+  items?: unknown[];
+  pageInfo?: { totalResults?: unknown };
+}
+
 interface YoutubeAnalyticsResponse {
   columnHeaders?: Array<{ name?: unknown }>;
   rows?: unknown[][];
@@ -309,6 +314,37 @@ export class YoutubeAuthorizedSignalsService {
         refreshAttemptedAt,
       );
 
+    const [playlistsResult, subscriptionsResult, likesResult] =
+      await this.fetchAccountActivityTotals(
+        accessToken,
+        grantedScopes,
+        selected.reason,
+      );
+    const channelSetupEvidence = this.evidenceMapper.buildChannelSetupEvidence(
+      grantedScopes,
+      selected.channel,
+      playlistsResult,
+      selected.reason,
+      previousSnapshot,
+      refreshAttemptedAt,
+    );
+    const subscriptionsEvidence = this.evidenceMapper.buildTotalCountEvidence(
+      'subscriptions-platform-signal',
+      grantedScopes,
+      subscriptionsResult,
+      selected.reason,
+      previousSnapshot,
+      refreshAttemptedAt,
+    );
+    const likesEvidence = this.evidenceMapper.buildTotalCountEvidence(
+      'likes-platform-signal',
+      grantedScopes,
+      likesResult,
+      selected.reason,
+      previousSnapshot,
+      refreshAttemptedAt,
+    );
+
     const uploadsPlaylistId = readString(
       selected.channel?.contentDetails?.relatedPlaylists?.uploads,
     );
@@ -371,6 +407,9 @@ export class YoutubeAuthorizedSignalsService {
       analyticsEvidence,
       firstUploadEvidence,
       nativeAgeEvidence,
+      channelSetupEvidence,
+      subscriptionsEvidence,
+      likesEvidence,
       genfeedEvidence,
     ];
     const snapshot = youtubeAuthorizedSignalsSnapshotSchema.parse({
@@ -470,6 +509,53 @@ export class YoutubeAuthorizedSignalsService {
 
     return {
       channels: Array.isArray(response.data?.items) ? response.data.items : [],
+    };
+  }
+
+  /** Playlists, subscriptions and liked videos of the authorized account. */
+  private async fetchAccountActivityTotals(
+    accessToken: string,
+    grantedScopes: string[],
+    selectionReason: YoutubeAuthorizedSignalReason | undefined,
+  ) {
+    const noRequest = { error: undefined, value: undefined };
+    if (!hasYoutubeDataScope(grantedScopes) || selectionReason) {
+      return [noRequest, noRequest, noRequest] as const;
+    }
+
+    return await Promise.all([
+      this.settle(() =>
+        this.fetchTotalResults(accessToken, 'playlists', { mine: true }),
+      ),
+      this.settle(() =>
+        this.fetchTotalResults(accessToken, 'subscriptions', { mine: true }),
+      ),
+      this.settle(() =>
+        this.fetchTotalResults(accessToken, 'videos', { myRating: 'like' }),
+      ),
+    ]);
+  }
+
+  private async fetchTotalResults(
+    accessToken: string,
+    resource: 'playlists' | 'subscriptions' | 'videos',
+    filter: Record<string, string | boolean>,
+  ): Promise<{ count: number }> {
+    const response = await firstValueFrom(
+      this.httpService.get<YoutubeTotalResultsResponse>(
+        `${YOUTUBE_DATA_API}/${resource}`,
+        {
+          headers: { Authorization: `Bearer ${accessToken}` },
+          params: { ...filter, maxResults: 1, part: 'id' },
+          timeout: YOUTUBE_SIGNAL_REQUEST_TIMEOUT_MS,
+        },
+      ),
+    );
+
+    return {
+      count:
+        readNonNegativeInteger(response.data?.pageInfo?.totalResults) ??
+        (Array.isArray(response.data?.items) ? response.data.items.length : 0),
     };
   }
 
@@ -743,6 +829,9 @@ export class YoutubeAuthorizedSignalsService {
       'owned-video-analytics-snapshot',
       'first-upload-platform-signal',
       'native-account-age',
+      'channel-setup-platform-signal',
+      'subscriptions-platform-signal',
+      'likes-platform-signal',
     ];
     const evidence = keys.map((key) => {
       const previous = previousSnapshot?.evidence.find(

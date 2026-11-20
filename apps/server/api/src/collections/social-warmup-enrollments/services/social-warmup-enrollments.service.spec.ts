@@ -737,6 +737,53 @@ describe('SocialWarmupEnrollmentsService', () => {
           value: { createdAt: '2026-01-01T00:00:00.000Z' },
         },
         {
+          fieldAvailability: { hasBanner: 'available' },
+          key: 'channel-setup-platform-signal',
+          observedAt: '2026-08-24T08:00:00.000Z',
+          provenance: 'platform_verified',
+          scope: {
+            granted: ['https://www.googleapis.com/auth/youtube'],
+            missing: [],
+            required: ['https://www.googleapis.com/auth/youtube'],
+          },
+          staleAt: null,
+          status: 'available',
+          value: {
+            customUrl: '@creator',
+            hasAbout: true,
+            hasBanner: true,
+            playlistCount: 1,
+          },
+        },
+        {
+          fieldAvailability: { count: 'available' },
+          key: 'subscriptions-platform-signal',
+          observedAt: '2026-08-24T08:00:00.000Z',
+          provenance: 'platform_verified',
+          scope: {
+            granted: ['https://www.googleapis.com/auth/youtube'],
+            missing: [],
+            required: ['https://www.googleapis.com/auth/youtube'],
+          },
+          staleAt: null,
+          status: 'empty',
+          value: { count: 1 },
+        },
+        {
+          fieldAvailability: { count: 'available' },
+          key: 'likes-platform-signal',
+          observedAt: '2026-08-24T08:00:00.000Z',
+          provenance: 'platform_verified',
+          scope: {
+            granted: ['https://www.googleapis.com/auth/youtube'],
+            missing: [],
+            required: ['https://www.googleapis.com/auth/youtube'],
+          },
+          staleAt: null,
+          status: 'available',
+          value: { count: 4 },
+        },
+        {
           fieldAvailability: { outcome: 'available' },
           key: 'genfeed-publish-outcomes-observed',
           observedAt: '2026-08-24T08:00:00.000Z',
@@ -767,6 +814,23 @@ describe('SocialWarmupEnrollmentsService', () => {
           organizationId: 'org-1',
           source: SocialWarmupSignalSource.PLATFORM,
           status: SocialWarmupSignalStatus.AVAILABLE,
+        }),
+      }),
+    );
+    expect(socialWarmupSignal.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          key: 'channel-setup-platform-signal',
+          source: SocialWarmupSignalSource.PLATFORM,
+          status: SocialWarmupSignalStatus.AVAILABLE,
+        }),
+      }),
+    );
+    expect(socialWarmupSignal.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          key: 'subscriptions-platform-signal',
+          status: SocialWarmupSignalStatus.EMPTY,
         }),
       }),
     );
