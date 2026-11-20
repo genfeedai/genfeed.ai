@@ -465,6 +465,16 @@ export const POST_ENHANCEMENT_CREDITS = calculateAgentRoundCredits(
   PRODUCT_TEXT_GEMINI_3_8_FLASH_PRICING,
 );
 
+/**
+ * Gemini 4 Neon list price on OpenRouter (Google AI Studio and Vertex), read
+ * 2026-11-20. Prompt $3 / completion $15 per 1M. The Vertex global endpoint
+ * (ZDR-eligible) bills the same list price.
+ */
+const PRODUCT_TEXT_GEMINI_4_NEON_PRICING = {
+  completionPerMillion: 15,
+  promptPerMillion: 3,
+} as const;
+
 /** Grok 4.3 list price on OpenRouter, read 2026-10-15. */
 const PRODUCT_TEXT_GROK_4_3_PRICING = {
   completionPerMillion: 2.5,
@@ -498,6 +508,28 @@ function buildProductTextCatalogEntries(): ModelCatalogSeedEntry[] {
       label: 'Gemini 3.8 Flash',
       lifecycle: ModelLifecycle.AVAILABLE,
       outputCostPerMillionTokens: pricing.completionPerMillion,
+      pricingType: PricingType.FLAT,
+      provider: ModelProvider.OPENROUTER,
+      qualityTier: QualityTier.HIGH,
+      speedTier: SpeedTier.FAST,
+    },
+    {
+      category: ModelCategory.TEXT,
+      cost: calculateAgentRoundCredits(PRODUCT_TEXT_GEMINI_4_NEON_PRICING),
+      costTier: CostTier.MEDIUM,
+      description:
+        'Gemini 4 Neon — the content writing model for articles, newsletters, captions, scripts and rewrites (`LLM_DEFAULTS.contentWriting`). Not offered in the agent chat picker.',
+      inputCostPerMillionTokens:
+        PRODUCT_TEXT_GEMINI_4_NEON_PRICING.promptPerMillion,
+      isActive: true,
+      isDefault: false,
+      isHighlighted: false,
+      isPublic: false,
+      key: MODEL_KEYS.OPENROUTER_GOOGLE_GEMINI_4_NEON,
+      label: 'Gemini 4 Neon',
+      lifecycle: ModelLifecycle.AVAILABLE,
+      outputCostPerMillionTokens:
+        PRODUCT_TEXT_GEMINI_4_NEON_PRICING.completionPerMillion,
       pricingType: PricingType.FLAT,
       provider: ModelProvider.OPENROUTER,
       qualityTier: QualityTier.HIGH,

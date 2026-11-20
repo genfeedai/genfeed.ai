@@ -223,7 +223,13 @@ export const LLM_DEFAULTS = {
   volumeAgent: AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_FLASH,
   /** Creative agent types, captions, planning, insights. */
   creativeAgent: AGENT_CHAT_MODEL_KEYS.CLAUDE_SONNET_5,
-  /** Fast cheap text — drafts, newsletters, workflow LLM nodes, vision scoring. */
+  /**
+   * Prose people read and post: articles, newsletters, captions, scripts and
+   * rewrites. Gemini 4 Neon, chosen for writing quality over price. Admin →
+   * Automation → Models can still override the article default per platform.
+   */
+  contentWriting: MODEL_KEYS.OPENROUTER_GOOGLE_GEMINI_4_NEON,
+  /** Fast cheap text — drafts, workflow LLM nodes, vision scoring. */
   fastText: AGENT_CHAT_MODEL_KEYS.GPT_5_6_LUNA,
   /** Content planning and long-form reasoning jobs. */
   planning: AGENT_CHAT_MODEL_KEYS.CLAUDE_SONNET_5,

@@ -10,6 +10,7 @@ import {
 import {
   AGENT_CHAT_MODEL_KEYS,
   DEFAULT_AGENT_CHAT_MODEL_KEY,
+  LLM_DEFAULTS,
   RETIRED_AGENT_CHAT_MODEL_KEYS,
   SELECTABLE_AGENT_CHAT_MODELS,
 } from './agent-chat-models.constant';
@@ -95,6 +96,26 @@ describe('UNIFIED_MODEL_CATALOG', () => {
     });
     // The composer shows this figure for AI Rewrite, so it must be the row's cost.
     expect(row?.cost).toBe(POST_ENHANCEMENT_CREDITS);
+    expect(row?.capabilities ?? []).not.toContain(AGENT_CHAT_CAPABILITY);
+    expect(agentRows.some((entry) => entry.key === row?.key)).toBe(false);
+  });
+
+  it('prices the content writing model without offering it as agent chat', () => {
+    const row = UNIFIED_MODEL_CATALOG.find(
+      (entry) => entry.key === LLM_DEFAULTS.contentWriting,
+    );
+
+    expect(LLM_DEFAULTS.contentWriting).toBe('google/gemini-4-neon');
+    expect(row).toMatchObject({
+      category: ModelCategory.TEXT,
+      inputCostPerMillionTokens: 3,
+      isActive: true,
+      isDefault: false,
+      isPublic: false,
+      lifecycle: ModelLifecycle.AVAILABLE,
+      outputCostPerMillionTokens: 15,
+      provider: ModelProvider.OPENROUTER,
+    });
     expect(row?.capabilities ?? []).not.toContain(AGENT_CHAT_CAPABILITY);
     expect(agentRows.some((entry) => entry.key === row?.key)).toBe(false);
   });

@@ -87,7 +87,7 @@ export class ContentWritingHandler implements SkillHandler {
           model:
             typeof params.model === 'string'
               ? params.model
-              : LLM_DEFAULTS.fastText,
+              : LLM_DEFAULTS.contentWriting,
           temperature: 0.7,
         },
         context.organizationId,

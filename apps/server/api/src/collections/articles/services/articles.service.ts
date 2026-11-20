@@ -74,7 +74,6 @@ import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-w
 import { toWorkflowInputDocument } from '@api/collections/workflows/utils/workflow-input-document.util';
 import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
 import { DEFAULT_MINI_TEXT_MODEL } from '@api/constants/default-mini-text-model.constant';
-import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { ArticleFilterUtil } from '@api/helpers/utils/article-filter/article-filter.util';
@@ -97,6 +96,7 @@ import {
   paginatedQueryCacheTag,
 } from '@api/shared/utils/query-cache/query-cache.util';
 import { ArticleScope, WorkflowExecutionTrigger } from '@genfeedai/contracts';
+import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 import type { Prisma } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -797,8 +797,8 @@ export class ArticlesService
     const systemDefault =
       (await this.agentChatModelRegistry?.resolveModelKey(
         undefined,
-        DEFAULT_TEXT_MODEL,
-      )) ?? DEFAULT_TEXT_MODEL;
+        LLM_DEFAULTS.contentWriting,
+      )) ?? LLM_DEFAULTS.contentWriting;
     const settings = await this.organizationSettingsService?.findOneSelect(
       scopedWhere(organizationId, {}),
       {

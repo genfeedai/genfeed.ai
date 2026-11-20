@@ -20,11 +20,10 @@ import { ArticlesService } from '@api/collections/articles/services/articles.ser
 import type { ArticlesContentService } from '@api/collections/articles/services/articles-content.service';
 import type { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { DEFAULT_MINI_TEXT_MODEL } from '@api/constants/default-mini-text-model.constant';
-import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/agent-chat-model-registry.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { getActionDefinition } from '@genfeedai/actions';
-import { MODEL_KEYS } from '@genfeedai/contracts/constants';
+import { LLM_DEFAULTS, MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { isRecord } from '@genfeedai/contracts/constants/type-guards.constant';
 import { compileActionContract } from '@genfeedai/workflows/engine';
 import { ConfigService } from '@libs/config/config.service';
@@ -174,7 +173,7 @@ describe('ArticlesService article cycle model config', () => {
 
     const config = await service.resolveArticleCycleModelConfig(organizationId);
 
-    expect(config.generationModel).toBe(DEFAULT_TEXT_MODEL);
+    expect(config.generationModel).toBe(LLM_DEFAULTS.contentWriting);
   });
 
   it('uses the Admin default TEXT model over the seed fallback when no explicit or org model is set', async () => {
@@ -186,11 +185,14 @@ describe('ArticlesService article cycle model config', () => {
 
     const config = await service.resolveArticleCycleModelConfig(organizationId);
 
-    expect(resolveModelKey).toHaveBeenCalledWith(undefined, DEFAULT_TEXT_MODEL);
+    expect(resolveModelKey).toHaveBeenCalledWith(
+      undefined,
+      LLM_DEFAULTS.contentWriting,
+    );
     expect(config.generationModel).toBe(adminDefaultModel);
   });
 
-  it('falls back to DEFAULT_TEXT_MODEL when the registry resolves nothing new', async () => {
+  it('falls back to LLM_DEFAULTS.contentWriting when the registry resolves nothing new', async () => {
     const resolveModelKey = vi
       .fn()
       .mockImplementation(
@@ -202,7 +204,7 @@ describe('ArticlesService article cycle model config', () => {
 
     const config = await service.resolveArticleCycleModelConfig(organizationId);
 
-    expect(config.generationModel).toBe(DEFAULT_TEXT_MODEL);
+    expect(config.generationModel).toBe(LLM_DEFAULTS.contentWriting);
   });
 
   it('applies the override when the org has no settings', async () => {
