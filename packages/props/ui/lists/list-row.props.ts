@@ -45,8 +45,8 @@ export type ListRowProps =
 export interface ListRowsSkeletonProps {
   rows?: number;
   /**
-   * `single` matches rows that are a title alone, `tall` rows that carry a
-   * facts line under the title, `media` rows that lead with a thumbnail.
+   * `single` matches rows that are a title alone (or one beside a small
+   * avatar), `tall` rows that carry a name, handle and facts line, `media` rows that lead with a thumbnail.
    */
   size?: 'default' | 'media' | 'single' | 'tall';
   'data-testid'?: string;

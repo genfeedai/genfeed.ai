@@ -11,7 +11,7 @@ User authorized complete implementation on 2026-10-01. Canonical delivery tracki
 
 **Why:** references on generation, Remix, reframe and upscale do not provide a dedicated instruction-based editing contract.
 
-**How to apply:** use `POST /images/:id/edit`, the `IMAGE_EDIT` model category and the supported editing contract registry. Seed `ideogram-ai/ideogram-4-5` as the editing default. Preserve ordinary IMAGE/VIDEO defaults. Persist outputs as IMAGE ingredients with parent/source lineage and a sanitized imageEdit recipe. Keep raw instructions unchanged and share normal asynchronous generation, funding, completion, cancellation and retry paths.
+**How to apply:** use `POST /images/:id/edit`, the `IMAGE_EDIT` model category and the supported editing contract registry. Seed `black-forest-labs/flux-3-image-edit` as the editing default (moved from `ideogram-ai/ideogram-4-5` on 2026-11-20; Ideogram stays for masks and multi-output edits). Preserve ordinary IMAGE/VIDEO defaults. Persist outputs as IMAGE ingredients with parent/source lineage and a sanitized imageEdit recipe. Keep raw instructions unchanged and share normal asynchronous generation, funding, completion, cancellation and retry paths.
 
 Provider contract verified from https://replicate.com/ideogram-ai/ideogram-4-5 on 2026-10-01: ordered 1–5 sources, optional black-edit/white-preserve mask matching primary dimensions, seven explicit sizes or source, integer seed 0–2147483647, native 1–8 outputs. Pin medium quality ($0.06 per output); generic generation inference cannot safely bind `images`/`mask`, so use a dedicated builder.
 
