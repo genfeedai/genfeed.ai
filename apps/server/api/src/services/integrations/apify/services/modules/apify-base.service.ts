@@ -6,6 +6,12 @@ import {
   ApifyActorRun,
   ApifyActorRunResponse,
 } from '@api/services/integrations/apify/interfaces/apify.interfaces';
+import {
+  APIFY_ACTOR_NOT_FOUND_STATUS,
+  ApifyActorAvailabilityTracker,
+  ApifyActorUnavailableException,
+  isApifyStartAccepted,
+} from '@api/services/integrations/apify/utils/apify-actor-availability.util';
 import { currentApifyCaller } from '@api/services/integrations/apify/utils/apify-caller.context';
 import {
   ApifyAccountSuspendedException,
@@ -152,6 +158,8 @@ export class ApifyBaseService {
    * Usage-limit suspensions keyed by token scope, so one organization's
    * exhausted BYOK account never blocks the hosted token or another org.
    */
+  private readonly actorAvailability = new ApifyActorAvailabilityTracker();
+
   private readonly accountLimitSuspensions = new Map<
     string,
     ApifyAccountLimitSuspension
@@ -328,6 +336,12 @@ export class ApifyBaseService {
     // account-limit suspension below stops calls once Apify reports it.
     await this.assertCollectionAdmission(scope);
 
+    const capability = registration?.capability ?? 'an unregistered actor';
+    const holdUntil = this.actorAvailability.getHoldUntil(scope, actorId);
+    if (holdUntil !== null) {
+      throw new ApifyActorUnavailableException(capability, holdUntil);
+    }
+
     const url = this.buildActorRunUrl(actorId);
 
     const caller = currentApifyCaller();
@@ -343,11 +357,22 @@ export class ApifyBaseService {
     );
 
     try {
+      // The shared axios interceptor reports every rejected status as an
+      // error, so a 404 start is read as a response and classified here.
       const runResponse = await firstValueFrom(
         this.httpService.post<ApifyActorRunResponse>(url, input, {
           headers: this.buildAuthHeaders(token),
+          validateStatus: isApifyStartAccepted,
         }),
       );
+      if (runResponse.status === APIFY_ACTOR_NOT_FOUND_STATUS) {
+        const until = this.actorAvailability.markUnavailable(scope, actorId);
+        this.loggerService.warn(
+          `${this.constructorName} Apify rejected the start of the ${capability} actor with 404; not retrying until ${new Date(until).toISOString()}`,
+          { actorId, caller, scope },
+        );
+        throw new ApifyActorUnavailableException(capability, until);
+      }
 
       const runId = runResponse.data.data.id;
       const datasetId = runResponse.data.data.defaultDatasetId;
@@ -373,6 +398,10 @@ export class ApifyBaseService {
 
       return datasetResponse.data;
     } catch (error: unknown) {
+      if (error instanceof ApifyActorUnavailableException) {
+        throw error;
+      }
+
       if (isApifyAccountLimitError(error)) {
         this.recordAccountLimit(scope, actorId, error);
         throw error;
@@ -391,6 +420,11 @@ export class ApifyBaseService {
   logFailure(label: string, error: unknown): void {
     if (error instanceof ApifyAccountSuspendedException) {
       this.loggerService.debug(`${label} skipped: ${error.message}`);
+      return;
+    }
+
+    if (error instanceof ApifyActorUnavailableException) {
+      this.loggerService.warn(`${label} skipped: ${error.message}`);
       return;
     }
 
