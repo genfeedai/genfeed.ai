@@ -1,4 +1,5 @@
 import { assertHostNotPrivate } from '@api/helpers/utils/ssrf/ssrf.util';
+import { classifyBrandScrapeError } from '@api/services/brand-scraper/brand-scrape-error.util';
 import {
   BrandScraperHttp,
   MAX_CSS_BYTES,
@@ -32,6 +33,7 @@ import {
   toXProfileScrapedData,
   toXSetupEvidence,
 } from '@api/services/brand-scraper/x-brand-data.util';
+import { BrandScrapeErrorCode } from '@genfeedai/contracts';
 import type {
   IBrandKitDiagnostic,
   IExtractedBrandData,
@@ -248,12 +250,27 @@ export class BrandScraperService {
           fontCandidates: [],
         };
       } catch (fallbackError: unknown) {
-        this.loggerService.error(
-          `${caller} meta tag fallback also failed`,
+        const failure =
           fallbackError instanceof Error
             ? fallbackError.name
-            : 'Fallback failed',
-        );
+            : 'Fallback failed';
+        // A site that refuses or never answers the scraper is an expected
+        // outcome that the scan already reports to the user. Only an
+        // unclassified failure is an error report.
+        if (
+          classifyBrandScrapeError(fallbackError).code !==
+          BrandScrapeErrorCode.UNKNOWN
+        ) {
+          this.loggerService.warn(
+            `${caller} meta tag fallback also failed`,
+            failure,
+          );
+        } else {
+          this.loggerService.error(
+            `${caller} meta tag fallback also failed`,
+            failure,
+          );
+        }
         throw error;
       }
     }
