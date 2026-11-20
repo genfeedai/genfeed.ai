@@ -142,6 +142,41 @@ describe('RedditService', () => {
     );
   });
 
+  it('holds a rejected app credential for an hour instead of calling Reddit every run', async () => {
+    (httpService.post as Mock).mockReturnValue(
+      of({ data: { error: 'invalid_client' }, status: 401 }),
+    );
+    const nowSpy = vi.spyOn(Date, 'now').mockReturnValue(1_700_000_000_000);
+
+    await expect(service.getTrends()).rejects.toMatchObject({ status: 401 });
+    await expect(service.getTrends()).rejects.toThrow(/Reddit rejected/);
+    expect(httpService.post).toHaveBeenCalledTimes(1);
+
+    nowSpy.mockReturnValue(1_700_000_000_000 + 60 * 60 * 1000 + 1);
+    await expect(service.getTrends()).rejects.toMatchObject({ status: 401 });
+    expect(httpService.post).toHaveBeenCalledTimes(2);
+    nowSpy.mockRestore();
+  });
+
+  it('reads a 401 token response without raising a transport error', async () => {
+    (httpService.post as Mock).mockReturnValue(
+      of({ data: { error: 'invalid_client' }, status: 401 }),
+    );
+
+    await service.getTrends().catch(() => undefined);
+
+    const config = (httpService.post as Mock).mock.calls[0][2] as {
+      validateStatus: (status: number) => boolean;
+    };
+    expect([200, 401, 403, 429, 500].map(config.validateStatus)).toEqual([
+      true,
+      true,
+      false,
+      false,
+      false,
+    ]);
+  });
+
   it('combines configured subreddit hot and daily top listings', async () => {
     (credentialsService.findOne as Mock).mockResolvedValue({
       externalId: '1w72r0ba',
