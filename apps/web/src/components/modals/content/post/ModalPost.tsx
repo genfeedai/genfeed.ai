@@ -600,18 +600,6 @@ export default function ModalPost({
     },
     [onSubmit],
   );
-  const handleSaveDraft = useCallback(
-    () => submitWithIntent('draft'),
-    [submitWithIntent],
-  );
-  const handlePublishNow = useCallback(
-    () => submitWithIntent('publish'),
-    [submitWithIntent],
-  );
-  const handleSchedule = useCallback(
-    () => submitWithIntent('schedule'),
-    [submitWithIntent],
-  );
 
   // Called by Modal's onClose after modal is closed - just cleanup, don't re-close
   const handleModalClosed = useCallback(() => {
@@ -899,8 +887,14 @@ export default function ModalPost({
       accessibleTitle={modalTitle}
       modalBoxClassName="max-w-4xl"
       onClose={handleModalClosed}
+      isBodyScrollable={false}
     >
-      <Form spacing="section" ref={formRef} onSubmit={handleFormSubmit}>
+      <Form
+        className="min-h-0 flex-1"
+        spacing="section"
+        ref={formRef}
+        onSubmit={handleFormSubmit}
+      >
         {isDestinationComposer ? (
           <ModalPostComposerStepper
             step={composerStep}
@@ -983,9 +977,9 @@ export default function ModalPost({
               shouldValidate: true,
             })
           }
-          onSaveDraft={handleSaveDraft}
-          onPublishNow={handlePublishNow}
-          onSchedule={handleSchedule}
+          onSaveDraft={() => submitWithIntent('draft')}
+          onPublishNow={() => submitWithIntent('publish')}
+          onSchedule={() => submitWithIntent('schedule')}
           onContinue={handleContinue}
           composerStep={isDestinationComposer ? composerStep : undefined}
           onComposerStepChange={setComposerStep}
