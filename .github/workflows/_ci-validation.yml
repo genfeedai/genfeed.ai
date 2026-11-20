@@ -324,6 +324,34 @@ jobs:
         env:
           SCOPED_WORKSPACES: ${{ steps.turbo-scope.outputs.workspaces || steps.scope.outputs.workspaces }}
         run: node scripts/ci/spec-typecheck-selection.mjs
+      # The jobs below start with the run instead of behind this one (#10272).
+      # They repeat the trust gate, install while this job plans, and read the
+      # plan from this artifact: its outputs when the job succeeds, a failure
+      # marker when it does not, so a failed Plan fails them at once.
+      - name: Write the plan for the jobs that start beside this job
+        if: ${{ success() }}
+        env:
+          PLAN_MANIFEST: ${{ steps.plan.outputs.manifest }}
+          PLAN_BASE: ${{ steps.base.outputs.sha }}
+          PLAN_HEAVY: ${{ steps.tier.outputs.heavy }}
+          PLAN_SPEC_RUN: ${{ steps.spec-selection.outputs.run }}
+          PLAN_SPEC_WORKSPACES: ${{ steps.spec-selection.outputs.workspaces }}
+          PLAN_SPEC_BUILD_FILTERS: ${{ steps.turbo-scope.outputs.build_filters }}
+          PLAN_OUTPUTS_FILE: ${{ runner.temp }}/test-plan-outputs/plan.json
+        run: node scripts/ci/test-plan-handoff.mjs publish
+      - name: Write the plan failure marker
+        if: ${{ failure() }}
+        run: |
+          mkdir -p "${RUNNER_TEMP}/test-plan-outputs"
+          echo '{"ok":false}' > "${RUNNER_TEMP}/test-plan-outputs/plan.json"
+      - name: Publish the plan
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: test-plan-outputs-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/test-plan-outputs/plan.json
+          retention-days: 7
+          if-no-files-found: error
 
   # Measurements only when the shared action changes. Two isolated Linux
   # runners compare complete frozen installs; no node_modules reuse or skipped
@@ -679,23 +707,31 @@ jobs:
   spec-typecheck:
     name: Spec Typecheck
     runs-on: ubuntu-latest
+    # The start step reads the Plan job's artifact, which needs `actions: read`.
+    permissions:
+      actions: read
+      contents: read
+      pull-requests: read
     timeout-minutes: 40
-    needs: plan
-    if: needs.plan.outputs.spec_run == 'true'
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Setup Bun environment
-        uses: ./.github/actions/setup-bun-env
+      # Starts with the Plan job: trust gate, install, then the plan's scope.
+      - name: Start test job
+        id: start
+        uses: ./.github/actions/start-test-leg
         with:
-          cache-prisma-client: 'true'
+          kind: spec-typecheck
+          run-heavy: ${{ inputs.run_heavy_tests }}
       # The typecheck base config resolves @genfeedai/contracts to its dist
       # output, so the package graph has to exist before any program is
       # created. A packages-only scope builds just the turbo-affected packages.
       - name: Build packages
+        if: steps.start.outputs.run == 'true'
         env:
-          BUILD_FILTERS: ${{ needs.plan.outputs.spec_build_filters }}
+          BUILD_FILTERS: ${{ fromJSON(steps.start.outputs.plan).spec_build_filters }}
         run: |
           set -euo pipefail
           if [ -n "${BUILD_FILTERS}" ]; then
@@ -710,8 +746,9 @@ jobs:
       # every workspace runs even after one fails. The pass condition is zero
       # errors; the ratchet baseline that allowed known errors is empty.
       - name: Spec Typecheck
+        if: steps.start.outputs.run == 'true'
         env:
-          SCOPED_WORKSPACES: ${{ needs.plan.outputs.spec_workspaces }}
+          SCOPED_WORKSPACES: ${{ fromJSON(steps.start.outputs.plan).spec_workspaces }}
         run: bun run check:spec-typecheck ${SCOPED_WORKSPACES}
 
   # Packages, server services (everything under apps/server except the API),
@@ -723,15 +760,37 @@ jobs:
   test-workspaces:
     name: Test Workspaces (${{ matrix.name }})
     runs-on: ubuntu-latest
+    # The start step reads the Plan job's artifact, which needs `actions: read`.
+    permissions:
+      actions: read
+      contents: read
+      pull-requests: read
     timeout-minutes: 30
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     strategy:
       fail-fast: false
       # Up to three balanced legs (packages, web and the extension) plus the
       # server leg, or four UI pools plus the server leg (five). Bound
       # simultaneous setup and test workers rather than allowing an unbounded
       # fan-out; the planner sizes the matrix so a run needs one wave of five.
+      #
+      # The legs start with the run, before the plan exists, so the matrix is
+      # the widest one the planner can produce: pool N runs the plan's Nth
+      # balanced leg, `server` the server leg, and a slot the plan leaves empty
+      # ends right after the install. The names are the full tier's.
       max-parallel: 5
-      matrix: ${{ fromJSON(needs.plan.outputs.workspace_matrix) }}
+      matrix:
+        include:
+          - name: workspaces-1/4
+            slot: '1'
+          - name: workspaces-2/4
+            slot: '2'
+          - name: workspaces-3/4
+            slot: '3'
+          - name: workspaces-4/4
+            slot: '4'
+          - name: server
+            slot: server
     services:
       postgres:
         image: pgvector/pgvector:pg17
@@ -758,7 +817,6 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     env:
-      CI_BASE_SHA: ${{ needs.plan.outputs.base }}
       DATABASE_URL: postgresql://genfeed:genfeed_local@localhost:5432/test
       KNOWLEDGE_TEST_DATABASE_URL: postgresql://genfeed:genfeed_local@localhost:5432/test
       WORKFLOW_BILLING_TEST_DATABASE_URL: postgresql://genfeed:genfeed_local@localhost:5432/test
@@ -767,22 +825,25 @@ jobs:
       BRAND_DELETE_SAFETY_TEST_DATABASE_URL: postgresql://genfeed:genfeed_local@localhost:5432/test
       CRUN_TEST_REDIS_URL: redis://localhost:6379
       REDIS_URL: redis://localhost:6379
-    needs: plan
-    if: needs.plan.outputs.workspace_tests == 'true'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
           fetch-depth: 0
           filter: blob:none
-      - name: Setup Bun environment
-        uses: ./.github/actions/setup-bun-env
+      - name: Start test job
+        id: start
+        uses: ./.github/actions/start-test-leg
         with:
-          cache-prisma-client: 'true'
+          kind: workspaces
+          slot: ${{ matrix.slot }}
+          run-heavy: ${{ inputs.run_heavy_tests }}
       - name: Run workspace tests
+        if: steps.start.outputs.run == 'true'
         env:
-          FORCE_FULL: ${{ needs.plan.outputs.force_full }}
-          WORKSPACE_FILTERS: ${{ matrix.filters }}
+          CI_BASE_SHA: ${{ fromJSON(steps.start.outputs.plan).base }}
+          FORCE_FULL: ${{ fromJSON(steps.start.outputs.plan).force_full }}
+          WORKSPACE_FILTERS: ${{ fromJSON(steps.start.outputs.leg).filters }}
         run: |
           set -euo pipefail
           # UI-only and extension-only legs have no ordinary Turbo filters. An
@@ -796,21 +857,22 @@ jobs:
           fi
       # The extension always runs in full; --affected never narrows it.
       - name: Run browser extension tests
-        if: ${{ !cancelled() && matrix.extension == 'true' }}
+        if: ${{ !cancelled() && steps.start.outputs.run == 'true' && fromJSON(steps.start.outputs.leg).extension == 'true' }}
         run: bunx turbo run test --continue --concurrency=1 --filter=@genfeedai/extension
       - name: Run UI shard
-        if: ${{ !cancelled() && matrix.ui_shard != '' }}
+        if: ${{ !cancelled() && steps.start.outputs.run == 'true' && fromJSON(steps.start.outputs.leg).ui_shard != '' }}
         env:
-          UI_SHARD: ${{ matrix.ui_shard }}
+          UI_SHARD: ${{ fromJSON(steps.start.outputs.leg).ui_shard }}
         run: |
           set -euo pipefail
           bunx turbo run test:shard --filter=@genfeedai/ui --concurrency=1 -- "$UI_SHARD"
       # Workers cron specs run under their own Vitest config
       # (apps/server/workers/vitest.cron.config.ts), outside `test`.
       - name: Run workers cron specs
-        if: ${{ !cancelled() && matrix.group == 'server' }}
+        if: ${{ !cancelled() && steps.start.outputs.run == 'true' && fromJSON(steps.start.outputs.leg).group == 'server' }}
         env:
-          FORCE_FULL: ${{ needs.plan.outputs.force_full }}
+          CI_BASE_SHA: ${{ fromJSON(steps.start.outputs.plan).base }}
+          FORCE_FULL: ${{ fromJSON(steps.start.outputs.plan).force_full }}
         run: |
           set -euo pipefail
           if [ "${FORCE_FULL}" = "true" ] || [ -z "${CI_BASE_SHA}" ]; then
@@ -822,9 +884,10 @@ jobs:
       # config, outside `test`. They boot the real MCP request path against an
       # in-process fake API, so they need no database or Redis.
       - name: Run MCP e2e specs
-        if: ${{ !cancelled() && matrix.group == 'server' }}
+        if: ${{ !cancelled() && steps.start.outputs.run == 'true' && fromJSON(steps.start.outputs.leg).group == 'server' }}
         env:
-          FORCE_FULL: ${{ needs.plan.outputs.force_full }}
+          CI_BASE_SHA: ${{ fromJSON(steps.start.outputs.plan).base }}
+          FORCE_FULL: ${{ fromJSON(steps.start.outputs.plan).force_full }}
         run: |
           set -euo pipefail
           if [ "${FORCE_FULL}" = "true" ] || [ -z "${CI_BASE_SHA}" ]; then
@@ -840,40 +903,53 @@ jobs:
   test-app:
     name: Test App (shard ${{ matrix.shard }}/${{ matrix.total }})
     runs-on: ubuntu-latest
+    # The start step reads the Plan job's artifact, which needs `actions: read`.
+    permissions:
+      actions: read
+      contents: read
+      pull-requests: read
     timeout-minutes: 30
-    needs: plan
-    env:
-      CI_BASE_SHA: ${{ needs.plan.outputs.base }}
-    if: needs.plan.outputs.app_tests == 'true'
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     strategy:
       fail-fast: false
       max-parallel: 4
-      matrix: ${{ fromJSON(needs.plan.outputs.app_matrix) }}
+      # The widest matrix the planner can produce (the full tier's four
+      # shards), so the legs start with the run. Shard N runs the plan's Nth
+      # shard; a shard the plan leaves empty ends right after the install.
+      matrix:
+        shard: [1, 2, 3, 4]
+        total: [4]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
           fetch-depth: 0
           filter: blob:none
-      - name: Setup Bun environment
-        uses: ./.github/actions/setup-bun-env
+      - name: Start test job
+        id: start
+        uses: ./.github/actions/start-test-leg
         with:
-          cache-prisma-client: 'true'
+          kind: app
+          slot: ${{ matrix.shard }}
+          run-heavy: ${{ inputs.run_heavy_tests }}
       - name: Build app workspace
+        if: steps.start.outputs.run == 'true'
         run: bunx turbo run build --filter='@genfeedai/web^...'
       # The shard runs the files Plan assigned to it; the full tier runs the
       # whole suite split by Vitest (scripts/ci/test-shard-selection.mjs).
       - name: Run app tests
         id: app-tests
+        if: steps.start.outputs.run == 'true'
         env:
           API_TEST_TIMINGS_OUTPUT: ${{ runner.temp }}/app-test-timings/shard-${{ matrix.shard }}.json
-          FORCE_FULL: ${{ needs.plan.outputs.force_full }}
+          CI_BASE_SHA: ${{ fromJSON(steps.start.outputs.plan).base }}
+          FORCE_FULL: ${{ fromJSON(steps.start.outputs.plan).force_full }}
           NODE_ENV: test
-          SHARD: ${{ matrix.shard }}
-          SHARD_TOTAL: ${{ matrix.total }}
+          SHARD: ${{ fromJSON(steps.start.outputs.leg).shard }}
+          SHARD_TOTAL: ${{ fromJSON(steps.start.outputs.leg).total }}
           SHARD_ROOT: apps/web
-          SHARD_FILE_COUNT: ${{ matrix.count }}
-          SHARD_FILES: ${{ matrix.files }}
+          SHARD_FILE_COUNT: ${{ fromJSON(steps.start.outputs.leg).count }}
+          SHARD_FILES: ${{ fromJSON(steps.start.outputs.leg).files }}
         run: |
           set -euo pipefail
           node scripts/ci/test-shard-selection.mjs > "${RUNNER_TEMP}/shard-selection.txt"
@@ -899,6 +975,11 @@ jobs:
   test-api:
     name: Test API (shard ${{ matrix.shard }}/${{ matrix.total }})
     runs-on: ubuntu-latest
+    # The start step reads the Plan job's artifact, which needs `actions: read`.
+    permissions:
+      actions: read
+      contents: read
+      pull-requests: read
     timeout-minutes: 30
     services:
       postgres:
@@ -926,7 +1007,6 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     env:
-      CI_BASE_SHA: ${{ needs.plan.outputs.base }}
       KNOWLEDGE_TEST_DATABASE_URL: postgresql://genfeed:genfeed_local@localhost:5432/test
       WORKFLOW_BILLING_TEST_DATABASE_URL: postgresql://genfeed:genfeed_local@localhost:5432/test
       CRUN_TEST_REDIS_URL: redis://localhost:6379
@@ -943,22 +1023,30 @@ jobs:
       AGENT_MASTER_THREAD_TEST_DATABASE_URL: postgresql://genfeed:genfeed_local@localhost:5432/agent_master_thread_test
       POST_LINK_TEST_DATABASE_URL: postgresql://genfeed:genfeed_local@localhost:5432/genfeed_7823_disposable
       REDIS_URL: redis://localhost:6379
-    needs: plan
-    if: needs.plan.outputs.api_tests == 'true'
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     strategy:
       fail-fast: false
       max-parallel: 8
-      matrix: ${{ fromJSON(needs.plan.outputs.api_matrix) }}
+      # The widest matrix the planner can produce (the full tier's eight
+      # shards), so the legs start with the run. Shard N runs the plan's Nth
+      # shard; the affected tier never plans more than four, so on most runs
+      # the rest end before their install.
+      matrix:
+        shard: [1, 2, 3, 4, 5, 6, 7, 8]
+        total: [8]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
           fetch-depth: 0
           filter: blob:none
-      - name: Setup Bun environment
-        uses: ./.github/actions/setup-bun-env
+      - name: Start test job
+        id: start
+        uses: ./.github/actions/start-test-leg
         with:
-          cache-prisma-client: 'true'
+          kind: api
+          slot: ${{ matrix.shard }}
+          run-heavy: ${{ inputs.run_heavy_tests }}
       # `working-directory: packages/prisma` + `bun x` (not root `bunx`): the
       # pinned `prisma` is workspace-local and Prisma 7 reads the datasource URL
       # only from packages/prisma/prisma.config.mjs. Migrate once, then copy the
@@ -966,6 +1054,7 @@ jobs:
       # Every shard provisions both: `vitest list --shard` ignores the shard, so
       # which shard gets a *.postgres.spec.ts file is not knowable ahead of time.
       - name: Provision billing-account-scope, credit-balance, brand-delete and post-link test databases
+        if: steps.start.outputs.run == 'true'
         working-directory: packages/prisma
         env:
           PGPASSWORD: genfeed_local
@@ -977,19 +1066,22 @@ jobs:
           psql -h localhost -U genfeed -d test -c "CREATE DATABASE agent_master_thread_test TEMPLATE billing_scope_test;"
           psql -h localhost -U genfeed -d test -c "CREATE DATABASE genfeed_7823_disposable;"
       - name: Build API dependencies
+        if: steps.start.outputs.run == 'true'
         run: bunx turbo run build --filter=./packages/**
       - name: Run API tests
         id: api-tests
+        if: steps.start.outputs.run == 'true'
         env:
           API_TEST_TIMINGS_OUTPUT: ${{ runner.temp }}/api-test-timings/shard-${{ matrix.shard }}.json
           BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET || 'test-better-auth-secret' }}
-          FORCE_FULL: ${{ needs.plan.outputs.force_full }}
+          CI_BASE_SHA: ${{ fromJSON(steps.start.outputs.plan).base }}
+          FORCE_FULL: ${{ fromJSON(steps.start.outputs.plan).force_full }}
           NODE_ENV: test
-          SHARD: ${{ matrix.shard }}
-          SHARD_TOTAL: ${{ matrix.total }}
+          SHARD: ${{ fromJSON(steps.start.outputs.leg).shard }}
+          SHARD_TOTAL: ${{ fromJSON(steps.start.outputs.leg).total }}
           SHARD_ROOT: apps/server/api
-          SHARD_FILE_COUNT: ${{ matrix.count }}
-          SHARD_FILES: ${{ matrix.files }}
+          SHARD_FILE_COUNT: ${{ fromJSON(steps.start.outputs.leg).count }}
+          SHARD_FILES: ${{ fromJSON(steps.start.outputs.leg).files }}
         run: |
           set -euo pipefail
           node scripts/ci/test-shard-selection.mjs > "${RUNNER_TEMP}/shard-selection.txt"
@@ -1016,11 +1108,13 @@ jobs:
   cloud-tenant-guard:
     name: Cloud Tenant Guard Sweep
     runs-on: ubuntu-latest
+    # The start step reads the Plan job's artifact, which needs `actions: read`.
+    permissions:
+      actions: read
+      contents: read
+      pull-requests: read
     timeout-minutes: 15
-    env:
-      CLOUD_SWEEP_BASE_SHA: ${{ needs.plan.outputs.base || github.sha }}
-    needs: plan
-    if: needs.plan.outputs.api_tests == 'true'
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     services:
       postgres:
         image: pgvector/pgvector:pg17
@@ -1048,24 +1142,35 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Fetch trusted baseline commit
-        run: git fetch origin "$CLOUD_SWEEP_BASE_SHA" --depth=1
-      - name: Setup Bun environment
-        uses: ./.github/actions/setup-bun-env
+      - name: Start test job
+        id: start
+        uses: ./.github/actions/start-test-leg
         with:
-          cache-prisma-client: 'true'
+          kind: cloud-tenant-guard
+          run-heavy: ${{ inputs.run_heavy_tests }}
+      - name: Fetch trusted baseline commit
+        if: steps.start.outputs.run == 'true'
+        env:
+          CLOUD_SWEEP_BASE_SHA: ${{ fromJSON(steps.start.outputs.plan).base || github.sha }}
+        run: |
+          git fetch origin "$CLOUD_SWEEP_BASE_SHA" --depth=1
+          echo "CLOUD_SWEEP_BASE_SHA=${CLOUD_SWEEP_BASE_SHA}" >> "$GITHUB_ENV"
       # Build uploads only OpenAPI, not API dist. Keep this job independent:
       # waiting for all of Build would serialize unrelated package/docs work.
       # Workflow-level TURBO_TOKEN/TURBO_TEAM apply here; cache hits are expected.
       # Runtime CLOUD configuration is loaded only after compilation.
       - name: Build API (compiled bundle)
+        if: steps.start.outputs.run == 'true'
         run: bunx turbo run build --filter=@genfeedai/api
       - name: Validate synthetic CLOUD configuration
+        if: steps.start.outputs.run == 'true'
         run: node --test scripts/ci/cloud-tenant-guard-sweep/*.test.mjs
       - name: Load job-local placeholder environment
+        if: steps.start.outputs.run == 'true'
         run: |
           sed '/^#/d; /^$/d' scripts/ci/cloud-tenant-guard-sweep/cloud-sweep.placeholders >> "$GITHUB_ENV"
       - name: Create owned private evidence directory
+        if: steps.start.outputs.run == 'true'
         run: |
           set -euo pipefail
           sweep_run_dir="$(mktemp -d "$RUNNER_TEMP/cloud-tenant-XXXXXX")"
@@ -1076,11 +1181,14 @@ jobs:
           echo "CLOUD_SWEEP_API_LOG=$sweep_run_dir/api.log" >> "$GITHUB_ENV"
           echo "CLOUD_SWEEP_REPORT=$sweep_run_dir/cloud-tenant-guard-report.json" >> "$GITHUB_ENV"
       - name: Apply Prisma migrations to test DB
+        if: steps.start.outputs.run == 'true'
         run: bun x prisma migrate deploy
         working-directory: packages/prisma
       - name: Prepare required verification policy before API boot
+        if: steps.start.outputs.run == 'true'
         run: bun scripts/ci/cloud-tenant-guard-sweep/prepare-fixture.mjs
       - name: Start restricted verification transport
+        if: steps.start.outputs.run == 'true'
         run: |
           set -euo pipefail
           node scripts/ci/cloud-tenant-guard-sweep/local-mail-stub.mjs > "$CLOUD_SWEEP_RUN_DIR/mail.log" 2>&1 &
@@ -1096,6 +1204,7 @@ jobs:
           exit 1
       - name: Start real API in CLOUD mode
         id: cloud-api
+        if: steps.start.outputs.run == 'true'
         run: |
           set -euo pipefail
           node --import ./scripts/ci/cloud-tenant-guard-sweep/api-observer.mjs apps/server/dist/apps/api/main.js > "$CLOUD_SWEEP_API_LOG" 2>&1 &
@@ -1113,10 +1222,11 @@ jobs:
           echo "::error::CLOUD API did not become healthy within 120s"
           exit 1
       - name: Sweep handlers with tenant enforcement enabled
+        if: steps.start.outputs.run == 'true'
         timeout-minutes: 10
         run: bun run ci:cloud-tenant-guard-sweep
       - name: Stop API
-        if: always()
+        if: ${{ always() && steps.start.outputs.run == 'true' }}
         run: |
           if [ -f "$CLOUD_SWEEP_RUN_DIR/cloud-api.pid" ]; then
             kill "$(cat "$CLOUD_SWEEP_RUN_DIR/cloud-api.pid")" 2>/dev/null || true
@@ -1131,18 +1241,18 @@ jobs:
             (umask 077; printf 'stopped\n' > "$CLOUD_SWEEP_RUN_DIR/api-stopped")
           fi
       - name: Scan final API stdout for swallowed tenant errors
-        if: always()
+        if: ${{ always() && steps.start.outputs.run == 'true' }}
         env:
           CLOUD_SWEEP_API_BOOT_OUTCOME: ${{ steps.cloud-api.outcome }}
         run: node scripts/ci/cloud-tenant-guard-sweep/scan-log.mjs
       - name: Stop restricted verification transport
-        if: always()
+        if: ${{ always() && steps.start.outputs.run == 'true' }}
         run: |
           if [ -f "$CLOUD_SWEEP_RUN_DIR/mail.pid" ]; then
             kill "$(cat "$CLOUD_SWEEP_RUN_DIR/mail.pid")" 2>/dev/null || true
           fi
       - name: Upload sanitized CLOUD tenant diagnostic summary
-        if: always()
+        if: ${{ always() && steps.start.outputs.run == 'true' }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: cloud-tenant-guard-${{ github.run_id }}-${{ github.run_attempt }}
@@ -1156,21 +1266,29 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
+    # The start step reads the Plan job's artifact, which needs `actions: read`.
+    permissions:
+      actions: read
+      contents: read
+      pull-requests: read
     timeout-minutes: 30
-    needs: plan
-    env:
-      CI_BASE_SHA: ${{ needs.plan.outputs.base }}
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
           fetch-depth: 0
           filter: blob:none
-      - name: Setup Bun environment
-        uses: ./.github/actions/setup-bun-env
+      - name: Start test job
+        id: start
+        uses: ./.github/actions/start-test-leg
         with:
-          cache-prisma-client: 'true'
+          kind: build
+          run-heavy: ${{ inputs.run_heavy_tests }}
       - name: Run build
+        if: steps.start.outputs.run == 'true'
+        env:
+          CI_BASE_SHA: ${{ fromJSON(steps.start.outputs.plan).base }}
         run: |
           if [ "$CI_IS_CHANGE_RUN" = "true" ]; then
             TURBO_SCM_BASE="$CI_BASE_SHA" bunx turbo run build --filter='./packages/*' --filter=@genfeedai/docs --affected
@@ -1178,24 +1296,24 @@ jobs:
             bun run build
           fi
       - name: Build api (compiled bundle)
-        if: needs.plan.outputs.api == 'true'
+        if: fromJSON(steps.start.outputs.plan).api == 'true'
         run: bunx turbo run build --filter=@genfeedai/api
       - name: Emit OpenAPI spec twice — must be byte-identical
-        if: needs.plan.outputs.api == 'true'
+        if: fromJSON(steps.start.outputs.plan).api == 'true'
         run: |
           cd apps/server/api
           bun run scripts/emit-openapi.ts --skip-build --out=/tmp/openapi-emit-1.json
           bun run scripts/emit-openapi.ts --skip-build --out=/tmp/openapi-emit-2.json
           cmp /tmp/openapi-emit-1.json /tmp/openapi-emit-2.json
       - name: Upload generated OpenAPI spec
-        if: needs.plan.outputs.api == 'true'
+        if: fromJSON(steps.start.outputs.plan).api == 'true'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: openapi-spec-${{ github.run_id }}-${{ github.run_attempt }}
           path: /tmp/openapi-emit-1.json
           retention-days: 7
       - name: Validate OpenAPI spec (operationId coverage/uniqueness + allowlist)
-        if: needs.plan.outputs.api == 'true'
+        if: fromJSON(steps.start.outputs.plan).api == 'true'
         run: cd apps/server/api && bun run openapi:validate -- --spec=/tmp/openapi-emit-1.json
 
   # Stable aggregate and the required status check. Every upstream job is
@@ -1214,30 +1332,39 @@ jobs:
   mcp-auth-runtime:
     name: MCP Auth Runtime
     runs-on: ubuntu-latest
+    # The start step reads the Plan job's artifact, which needs `actions: read`.
+    permissions:
+      actions: read
+      contents: read
+      pull-requests: read
     timeout-minutes: 20
-    needs: plan
-    if: needs.plan.outputs.mcp_auth_runtime == 'true'
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
-      - name: Setup Bun environment
-        uses: ./.github/actions/setup-bun-env
+      - name: Start test job
+        id: start
+        uses: ./.github/actions/start-test-leg
         with:
-          cache-prisma-client: 'true'
+          kind: mcp-auth-runtime
+          run-heavy: ${{ inputs.run_heavy_tests }}
       - name: Build real API and MCP packages
+        if: steps.start.outputs.run == 'true'
         run: bunx turbo run build --filter=@genfeedai/api --filter=@genfeedai/mcp --concurrency=2
       - name: Select owned report path
+        if: steps.start.outputs.run == 'true'
         shell: bash
         run: echo "MCP_AUTH_STATE=$RUNNER_TEMP/mcp-auth-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT" >> "$GITHUB_ENV"
       - name: Execute isolated real auth and brand policy journey
+        if: steps.start.outputs.run == 'true'
         shell: bash
         run: |
           tested_sha="$(git rev-parse HEAD)"
           node scripts/ci/mcp-auth-runtime.mjs --case-family brand-access --candidate-sha "$tested_sha" --tested-sha "$tested_sha" --state "$MCP_AUTH_STATE"
       - name: Upload sanitized runtime receipt
-        if: always()
+        if: ${{ always() && steps.start.outputs.run == 'true' }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: mcp-auth-runtime-${{ github.run_id }}-${{ github.run_attempt }}
@@ -1263,6 +1390,10 @@ jobs:
     if: >-
       ${{ always()
       && (github.event_name == 'pull_request' || github.event_name == 'merge_group' || github.event_name == 'push') }}
+    permissions:
+      actions: read
+      contents: read
+      pull-requests: read
     steps:
       - name: Require a ready pull request
         if: github.event_name == 'pull_request' && github.event.pull_request.draft
@@ -1295,6 +1426,16 @@ jobs:
           else
             echo "superseded=false" >> "$GITHUB_OUTPUT"
           fi
+
+      # The test jobs start with the run, before the plan exists, and a job
+      # the plan leaves nothing for ends as a success. So a success does not
+      # show that a planned job ran: this does. It reads the plan and fails
+      # when a job it called for ended idle.
+      - name: Verify every planned test job did its work
+        if: ${{ needs.plan.result == 'success' && steps.supersession.outputs.superseded != 'true' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/ci/test-plan-handoff.mjs verify
 
       - name: Aggregate test and build results
         env:
