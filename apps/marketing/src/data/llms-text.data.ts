@@ -286,6 +286,9 @@ export function buildLlmsIndex(): string {
   lines.push(
     `- [llms-full.txt](${BASE_URL}/llms-full.txt): Comprehensive platform documentation for AI assistants`,
   );
+  lines.push(
+    `- [llms-articles.txt](${BASE_URL}/llms-articles.txt): Every public article with a link to its Markdown copy (add .md to an article URL, or send Accept: text/markdown)`,
+  );
   lines.push('');
 
   return lines.join('\n');
