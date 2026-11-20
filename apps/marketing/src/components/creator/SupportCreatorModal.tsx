@@ -76,6 +76,7 @@ async function loadPaymentsService(signal?: AbortSignal) {
 export default function SupportCreatorModal({
   articleId,
   handle,
+  logoUrl,
   onOpenChange,
 }: SupportCreatorModalProps): React.ReactElement {
   const [state, setState] = useState<SupportModalState>({ status: 'loading' });
@@ -186,7 +187,7 @@ export default function SupportCreatorModal({
       <DialogContent size="sm">
         <DialogHeader>
           <div className="flex items-center gap-3">
-            <BrandAvatar alt={label} name={label} size="lg" />
+            <BrandAvatar alt={label} name={label} size="lg" src={logoUrl} />
             <div className="flex min-w-0 flex-col text-left">
               <DialogTitle>Support {label}</DialogTitle>
               <span className="text-sm text-muted-foreground">@{handle}</span>
