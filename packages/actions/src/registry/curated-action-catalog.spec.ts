@@ -207,6 +207,7 @@ describe('curated action catalog', () => {
     expect(tool?.parameters.required ?? []).toEqual([]);
     expect(Object.keys(tool?.parameters.properties ?? {}).sort()).toEqual([
       'articleId',
+      'brandId',
       'category',
       'limit',
       'query',

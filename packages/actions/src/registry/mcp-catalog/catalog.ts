@@ -305,11 +305,12 @@ export const MCP_CATALOG_TOOLS = [
   {
     name: 'save_post',
     description:
-      'Save content for review. Never publishes or schedules. post saves a reviewable draft from text or media; article imports reviewed HTML unchanged as an unpublished article draft; campaign manages native content campaigns; track_link tracks an already published X or YouTube post by URL.',
-    claudeActions: ['post', 'article'],
+      'Save content for review. Never publishes or schedules. post saves a reviewable draft from text or media; article imports reviewed HTML unchanged as an unpublished article draft in the chosen brand; article_update edits an existing article (label, slug, summary, HTML content with inline images, cover image) without publishing; campaign manages native content campaigns; track_link tracks an already published X or YouTube post by URL.',
+    claudeActions: ['post', 'article', 'article_update'],
     operations: [
       { action: 'post', executes: 'create_post' },
       { action: 'article', executes: 'create_article_draft' },
+      { action: 'article_update', executes: 'update_article_draft' },
       { action: 'campaign', executes: 'manage_campaign' },
       { action: 'track_link', executes: 'track_post_link' },
     ],

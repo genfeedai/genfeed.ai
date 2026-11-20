@@ -59,6 +59,7 @@ describe('Claude MCP access policy', () => {
         'get_posts',
         'get_articles',
         'create_article_draft',
+        'update_article_draft',
         'get_article_preview',
         'get_scheduler_capabilities',
         'validate_scheduler_target',
