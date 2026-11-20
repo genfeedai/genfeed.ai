@@ -84,7 +84,6 @@ import {
 } from '@api/helpers/utils/public-brand/public-brand-filter.util';
 import { scopedWhere } from '@api/index';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
-import { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/agent-chat-model-registry.service';
 import type { TextByokDispatch } from '@api/services/byok/text-dispatch-byok.util';
 import { CacheService } from '@api/services/cache/cache.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -162,8 +161,6 @@ export class ArticlesService
     @Optional()
     private readonly cacheInvalidationService?: CacheInvalidationService,
     @Optional() private readonly moduleRef?: ModuleRef,
-    @Optional()
-    private readonly agentChatModelRegistry?: AgentChatModelRegistryService,
   ) {
     super(prisma, 'article', logger, undefined, cacheService);
   }
@@ -792,13 +789,10 @@ export class ArticlesService
     organizationId: string,
     generationModelOverride?: string,
   ): Promise<ArticleCycleModelConfig> {
-    // The Admin default TEXT model (#5161) replaces the seed constant as the
-    // system default; explicit and org-configured models still win.
-    const systemDefault =
-      (await this.agentChatModelRegistry?.resolveModelKey(
-        undefined,
-        LLM_DEFAULTS.contentWriting,
-      )) ?? LLM_DEFAULTS.contentWriting;
+    // Articles are prose people read, so the system default is the content
+    // writing model, not the Admin default TEXT model (which serves agent chat
+    // and cheap background text). Explicit and org-configured models still win.
+    const systemDefault = LLM_DEFAULTS.contentWriting;
     const settings = await this.organizationSettingsService?.findOneSelect(
       scopedWhere(organizationId, {}),
       {
