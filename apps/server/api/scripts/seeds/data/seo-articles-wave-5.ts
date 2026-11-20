@@ -32,6 +32,10 @@ whether it is working.</p>
 ignored, the day-by-day process for your first 30 days, the mistakes that undo
 progress, and when it makes sense to run it yourself versus hand it to a service.</p>
 
+<h2>TL;DR</h2>
+
+<p>Pick one buyer and one problem, answer that buyer's real questions in public on a fixed schedule, and judge the first 30 days on conversations, not likes. Ship three posts in week one, add the other pillars and proof by week three, and decide what to keep on day 30.</p>
+
 <h2>What is B2B content?</h2>
 
 <p>B2B content is anything you publish to help a specific kind of business buyer
@@ -185,6 +189,29 @@ only when the first runs without strain.</p>
   </tbody>
 </table>
 
+<h2>Give this to your agent</h2>
+
+<p>Paste this into Claude, Codex, or any agent that works on your content. It carries the process above, so the agent follows the same steps and stops at the same review points.</p>
+
+<pre><code>I run B2B content for a company that sells to one specific kind of buyer. Help me run the first 30 days of a B2B content program.
+
+Before drafting anything, ask me for:
+- the one buyer (a specific role at a specific kind of company) and the one problem we solve for them
+- our position, voice (three adjectives and two example sentences) and the proof we can show
+
+Then work in this order:
+1. Days 1 to 7: draft the first three posts, each answering a question the buyer actually asks.
+2. Days 8 to 14: cover the three content pillars, one post per pillar per week.
+3. Days 15 to 21: add proof, such as a customer result or a worked example.
+4. Days 22 to 30: review the scorecard and recommend what to keep, change or drop.
+
+Rules:
+- Use only facts I give you. Mark anything you are unsure of instead of guessing.
+- No hype, no invented numbers, no claims about customers I have not named.
+- Stop for my approval before anything is published.
+
+Scorecard: count conversations started, replies from the target buyer and meetings that mention the content. Do not report likes as success.</code></pre>
+
 <h2>The scorecard: measure conversations, not applause</h2>
 
 <p>Likes tell you very little in B2B. Track a small scorecard each week:</p>
@@ -333,6 +360,10 @@ mistakes that undo progress, and when it makes sense to run it yourself versus h
 a team run it for you. If you have not decided who you are writing for, start with
 <a href="https://genfeed.ai/@genfeedai/articles/how-to-start-b2b-content-playbook">the 30-day
 B2B content playbook</a> and come back.</p>
+
+<h2>TL;DR</h2>
+
+<p>Founder-led LinkedIn works because buyers trust a person who explains their problem clearly and often. Fix your profile, post five repeatable types of content on a steady rhythm, answer every comment, and review the numbers after 30 days.</p>
 
 <h2>What is founder-led LinkedIn?</h2>
 
@@ -487,6 +518,27 @@ not say it to a prospect, rewrite it. In Genfeed, drafts go to an approval queue
 where you review them before they are published, which keeps the last human pass
 from being skipped.</p>
 
+<h2>Give this to your agent</h2>
+
+<p>Paste this into Claude, Codex, or any agent that works on your content. It carries the process above, so the agent follows the same steps and stops at the same review points.</p>
+
+<pre><code>I am a founder who wants to run LinkedIn as a distribution channel. Help me run the first 30 days.
+
+Before drafting anything, ask me for my target buyer, the one problem I solve, and three stories from my own work.
+
+Then work in this order:
+1. Days 1 to 3: rewrite my headline, About section and featured links so a stranger sees who I help and why.
+2. Days 4 to 14: draft a weekly rhythm using five repeatable post types, in my voice, from the stories I gave you.
+3. Days 15 to 21: add proof, and draft thoughtful comments on posts from peers and buyers.
+4. Days 22 to 30: review the scorecard and propose the plan for month two.
+
+Rules:
+- Write the skeleton and leave the voice to me. Flag every line you think I should rewrite in my own words.
+- No invented numbers, no engagement bait, no claims I cannot back up.
+- Stop for my approval before anything is published.
+
+Scorecard: conversations started, replies from target buyers and profile visits from them. Do not treat impressions as success.</code></pre>
+
 <h2>The scorecard</h2>
 
 <ul>
@@ -605,6 +657,10 @@ brainstorming, the step-by-step process for turning calls into posts, the rules
 that keep it safe for customers, the mistakes that undo it, and when it makes sense
 to run it yourself versus hand it to a service.</p>
 
+<h2>TL;DR</h2>
+
+<p>Customer calls already contain the posts you need. Set privacy rules first, collect notes from five sources, tag them, build a phrase bank, turn each item into a short format, review before publishing, and close the loop with the buyer.</p>
+
 <h2>What is call-mined content?</h2>
 
 <p>Call-mined content is content whose ideas, questions, objections, and wording come
@@ -721,6 +777,27 @@ reviews them, so nothing goes out on a busy week without a check.</p>
 each came from. Over a month, you will see which kinds of items travel and which do
 not, and the next batch gets better.</p>
 
+<h2>Give this to your agent</h2>
+
+<p>Paste this into Claude, Codex, or any agent that works on your content. It carries the process above, so the agent follows the same steps and stops at the same review points.</p>
+
+<pre><code>I want to turn customer conversations into B2B content. Help me run the process.
+
+Step 0: ask me for our privacy rules. Never include a name, a company, a number or any detail that could identify a customer unless I confirm it is approved.
+
+Then work in this order:
+1. Collect: I will paste notes from calls, support threads, emails, sales questions and reviews. Organize them by source.
+2. Tag every note by topic, objection and buying stage.
+3. Build a phrase bank of the exact words buyers use.
+4. Turn each strong item into a short post, using the buyer's phrasing instead of ours.
+5. List every claim in each draft and ask me to confirm it before I publish.
+6. After publishing, tell me which posts to follow up on with the people whose questions started them.
+
+Rules:
+- Anonymize by default and say what you changed.
+- Do not invent quotes. Use only wording that appears in the notes.
+- Stop for my approval before anything is published.</code></pre>
+
 <h2>Mistakes that undo it</h2>
 
 <p><strong>Publishing something that identifies a customer.</strong> It costs trust
@@ -814,6 +891,10 @@ is the strongest piece of proof the company owns. Then it sits in a navigation m
 set, why single-use proof gets wasted, the step-by-step process for getting twenty
 useful assets out of one story, the mistakes that undo it, and when it makes sense to
 run it yourself versus have a team do it.</p>
+
+<h2>TL;DR</h2>
+
+<p>One approved case study can feed about 20 pieces of content. Write the story spine, map it to formats, draft in batches, check every draft against the approved facts, and publish over several weeks so the proof lands more than once.</p>
 
 <h2>What does turning one case study into 20 assets mean?</h2>
 
@@ -922,6 +1003,27 @@ calls while it is fresh.</p>
 <p>Note which assets drew replies or came up on calls. The next story should lean
 into those shapes.</p>
 
+<h2>Give this to your agent</h2>
+
+<p>Paste this into Claude, Codex, or any agent that works on your content. It carries the process above, so the agent follows the same steps and stops at the same review points.</p>
+
+<pre><code>I have one approved customer case study. Help me turn it into about 20 pieces of content.
+
+Step 0: ask me which facts, quotes and numbers the customer approved. Treat everything else as off limits.
+
+Then work in this order:
+1. Write the story spine: the situation, the problem, what changed, the result and the lesson, in one paragraph each.
+2. Map the spine to formats using an asset map (LinkedIn posts, a short thread, a carousel outline, an email, a sales one-pager, a short video script).
+3. Draft the assets in batches of five.
+4. Review every draft against the spine and flag any fact that does not match the approved version.
+5. Propose a publishing calendar that spreads the assets over several weeks.
+6. After publishing, report which assets traveled furthest so I can reuse the pattern.
+
+Rules:
+- Every number and quote must match the approved case study exactly.
+- Do not invent customer details to make an asset more vivid.
+- Stop for my approval before anything is published.</code></pre>
+
 <h2>Mistakes that undo it</h2>
 
 <p><strong>Skipping the approval step.</strong> A published number the customer did
@@ -1012,6 +1114,10 @@ see, so they go unmeasured.</p>
 pipeline, why the usual metrics mislead, the step-by-step setup for a scorecard you
 can run in a spreadsheet, the mistakes that undo it, and when it makes sense to run it
 yourself versus have a team report it.</p>
+
+<h2>TL;DR</h2>
+
+<p>You cannot measure B2B content perfectly, but you can measure it consistently. Define the events, ask every lead how they heard of you, tag opportunities by content involvement, run a weekly scorecard, and judge results against your own baseline.</p>
 
 <h2>What does measuring content against pipeline mean?</h2>
 
@@ -1107,6 +1213,27 @@ what to stop, and what to test next.</p>
 than an industry number. For example: keep a format if it produces more replies from
 target buyers than the previous month, and stop it after three months if it does not.
 Write the rule down before you see the data.</p>
+
+<h2>Give this to your agent</h2>
+
+<p>Paste this into Claude, Codex, or any agent that works on your content. It carries the process above, so the agent follows the same steps and stops at the same review points.</p>
+
+<pre><code>Help me measure whether our B2B content is producing pipeline. I want consistent measurement, not perfect attribution.
+
+Step 0: ask me which events count (for example a booked call, a demo request or a qualified opportunity) and where we record them.
+
+Then work in this order:
+1. Draft a "How did you hear about us?" question for every form and first call, with a free-text field.
+2. Define a CRM tag for opportunities where content was involved, and explain how to apply it.
+3. Suggest tracking links only where buyers actually click, and tell me where not to bother.
+4. Build a weekly scorecard from the data I paste in: conversations, replies from target buyers, content-sourced leads.
+5. Prepare a monthly review: what to double down on, what to stop, what to test.
+6. Set decision rules against our own baseline, for example "double the format if it beats the baseline for four weeks".
+
+Rules:
+- Show your working. Do not present guesses as measured results.
+- Do not compare against industry benchmarks unless I supply the source.
+- Stop for my approval before changing any tracking or CRM setup.</code></pre>
 
 <h2>Mistakes that undo it</h2>
 
