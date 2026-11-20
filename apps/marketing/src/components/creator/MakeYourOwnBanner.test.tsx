@@ -7,11 +7,11 @@ describe('MakeYourOwnBanner', () => {
     render(<MakeYourOwnBanner handle="acme" referralCode="frend2345xyz" />);
 
     expect(
-      screen.getByRole('heading', { name: 'Make content like this' }),
+      screen.getByRole('heading', { name: 'Run content from your own agent' }),
     ).toBeInTheDocument();
     expect(
       screen.getByText(
-        'Turn a brief into articles, images and videos with Genfeed.',
+        'Video, images, posts and articles, made on your brand.',
       ),
     ).toBeVisible();
     const url = new URL(
@@ -45,7 +45,7 @@ describe('MakeYourOwnBanner', () => {
 
     expect(screen.queryByRole('heading')).not.toBeInTheDocument();
     expect(
-      screen.getByRole('region', { name: 'Make content like this' }),
+      screen.getByRole('region', { name: 'Run content from your own agent' }),
     ).toBeInTheDocument();
     expect(
       new URL(

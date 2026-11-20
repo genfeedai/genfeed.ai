@@ -41,18 +41,16 @@ export default function MakeYourOwnBanner({
           // The end-of-article band already carries the page's heading, so the
           // rail's copy of the offer is a label, not a second h2.
           <p className="text-base font-semibold text-foreground" id={headingId}>
-            Make content like this
+            Run content from your own agent
           </p>
         ) : (
           <h2 className="text-lg font-semibold text-foreground" id={headingId}>
-            Make content like this
+            Run content from your own agent
           </h2>
         )}
-        {isRail ? null : (
-          <p className="text-sm text-foreground/70">
-            Turn a brief into articles, images and videos with Genfeed.
-          </p>
-        )}
+        <p className="text-sm text-foreground/70">
+          Video, images, posts and articles, made on your brand.
+        </p>
       </div>
       <ButtonTracked
         asChild

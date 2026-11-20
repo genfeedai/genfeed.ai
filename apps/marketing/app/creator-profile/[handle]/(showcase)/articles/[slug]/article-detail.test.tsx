@@ -138,13 +138,13 @@ describe('ArticleDetail', () => {
     );
 
     expect(
-      screen.getByRole('heading', { name: 'Make content like this' }),
+      screen.getByRole('heading', { name: 'Run content from your own agent' }),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(
-        'Turn a brief into articles, images and videos with Genfeed.',
+      screen.getAllByText(
+        'Video, images, posts and articles, made on your brand.',
       ),
-    ).toBeVisible();
+    ).toHaveLength(2);
     // One offer in the outline rail, one at the end of the article.
     const links = screen.getAllByRole('link', { name: 'Start creating' });
     expect(links).toHaveLength(2);

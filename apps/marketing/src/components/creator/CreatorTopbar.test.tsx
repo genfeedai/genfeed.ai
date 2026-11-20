@@ -7,7 +7,7 @@ describe('CreatorTopbar', () => {
   it('offers the logo and one sign-up link, without the site menu', () => {
     render(<CreatorTopbar />);
 
-    const signUp = screen.getByRole('link', { name: 'Make your own' });
+    const signUp = screen.getByRole('link', { name: 'Start creating' });
 
     expect(new URL(signUp.getAttribute('href') ?? '').pathname).toBe(
       '/sign-up',
