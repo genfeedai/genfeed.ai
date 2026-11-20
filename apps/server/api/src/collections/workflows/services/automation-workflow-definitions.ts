@@ -187,20 +187,18 @@ function singleActionChild(options: {
   actionId: ActionId;
   canonicalId: string;
   description: string;
-  inputVariables?: WorkflowInputVariable[];
   label: string;
 }): SystemWorkflowGraphDefinition {
-  const inputVariables = options.inputVariables ?? requestInput;
   const execute = createGenfeedActionNode({
     actionId: options.actionId,
     id: 'execute',
-    inputVariableKeys: inputVariables.map((variable) => variable.key),
+    inputVariableKeys: ['request'],
     parameters: {},
     position: { x: 0, y: 0 },
   });
   return {
     canonicalId: options.canonicalId,
-    definition: { edges: [], inputVariables, nodes: [execute] },
+    definition: { edges: [], inputVariables: requestInput, nodes: [execute] },
     description: options.description,
     label: options.label,
     resultNodeId: execute.id,
@@ -1126,33 +1124,12 @@ export const AUTOMATION_CHILD_WORKFLOWS = [
     actionId: AUTOMATION_ACTION_IDS.AGENT_RESET,
     canonicalId: AUTOMATION_WORKFLOW_IDS.AGENT_RESET,
     description: 'Resets one due proactive strategy credit window.',
-    inputVariables: [
-      ...requestInput,
-      { key: 'item', label: 'Strategy', required: true, type: 'json' },
-      { key: 'now', label: 'Current time', required: true, type: 'string' },
-      {
-        key: 'organizationId',
-        label: 'Organization',
-        required: true,
-        type: 'string',
-      },
-    ],
     label: 'Reset Strategy Credit Window',
   }),
   singleActionChild({
     actionId: AUTOMATION_ACTION_IDS.AGENT_DISPATCH,
     canonicalId: AUTOMATION_WORKFLOW_IDS.AGENT_STRATEGY,
     description: 'Dispatches one due proactive agent strategy.',
-    inputVariables: [
-      ...requestInput,
-      { key: 'item', label: 'Strategy', required: true, type: 'json' },
-      {
-        key: 'organizationId',
-        label: 'Organization',
-        required: true,
-        type: 'string',
-      },
-    ],
     label: 'Dispatch Proactive Strategy',
   }),
   buildContentEngineBrandWorkflowDefinition(),
