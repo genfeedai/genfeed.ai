@@ -137,6 +137,10 @@ describe('ArticleDetail', () => {
       />,
     );
 
+    expect(
+      screen.getByRole('heading', { name: "Make content like Genfeed's" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/like “Show HN” with Genfeed/)).toBeVisible();
     const href = screen
       .getByRole('link', { name: 'Start creating' })
       .getAttribute('href');

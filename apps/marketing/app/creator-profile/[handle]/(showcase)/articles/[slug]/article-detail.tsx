@@ -363,6 +363,8 @@ export default function ArticleDetail({
             <footer className="space-y-6">
               {isPreview ? null : (
                 <MakeYourOwnBanner
+                  articleTitle={article.label}
+                  creatorName={authorLabel || brandLabel}
                   handle={handle}
                   referralCode={referralCode}
                 />
