@@ -15,6 +15,7 @@ import {
   asYoutubeVerifyException,
   buildYoutubeVerifyFailureLog,
   buildYoutubeVerifyRequestLog,
+  logYoutubeVerifyFailure,
   readYoutubeVerifyCorrelationId,
   type YoutubeOAuthVerifyProgress,
 } from '@api/services/integrations/youtube/utils/youtube-oauth-verify.util';
@@ -155,7 +156,8 @@ export class YoutubeController {
       return serializeSingle(request, CredentialSerializer, credential);
     } catch (error: unknown) {
       const safeError = asYoutubeVerifyException(error, progress.stage);
-      this.loggerService.error(
+      logYoutubeVerifyFailure(
+        this.loggerService,
         `${url} failed`,
         buildYoutubeVerifyFailureLog({
           correlationId,
