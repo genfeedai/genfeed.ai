@@ -3,6 +3,8 @@ export interface McpCatalogActionSpec {
   action: string;
   /** Name of the original tool that executes the action. */
   executes: string;
+  /** What the action does when the first sentence of the original's description is not enough. */
+  summary?: string;
 }
 
 /**
@@ -16,6 +18,11 @@ export interface McpCatalogToolSpec {
   description: string;
   /** Shorter wording for MCP `tools/list`; the same pricing note is appended. */
   mcpDescription?: string;
+  /**
+   * Actions a Claude connector grant may run. The tool is listed to Claude
+   * only when this is non-empty; every other action is refused there.
+   */
+  claudeActions?: readonly string[];
   operations: readonly McpCatalogActionSpec[];
 }
 

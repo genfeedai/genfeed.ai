@@ -10,11 +10,11 @@ export const GENFEED_MCP_SERVER_NAME = 'genfeed';
 export const GENFEED_MCP_TOKEN_ENV_VAR = 'GENFEED_API_KEY';
 
 /** First tool the agent must call in a new thread (curated MCP action). */
-export const GENFEED_BRAND_CONTEXT_TOOL = 'get_brand_context';
+export const GENFEED_BRAND_CONTEXT_TOOL = 'get_context';
 
 /**
  * MCP toolset profile for CLI turns. The bare MCP URL only lists core,
- * scheduler and content, which leaves out `get_brand_context` and the
+ * scheduler and content, which leaves out the brand context and the
  * generation, knowledge and memory tools the system prompt relies on.
  */
 export const GENFEED_MCP_AGENT_PROFILE = 'full';
@@ -91,7 +91,7 @@ export function buildDesktopCliAgentSystemPrompt(
     `Genfeed thread id: ${context.threadId}`,
     '',
     'Rules:',
-    `1. At the start of a new conversation, and whenever the brand changes, call the \`${GENFEED_BRAND_CONTEXT_TOOL}\` tool on the \`${GENFEED_MCP_SERVER_NAME}\` MCP server for the active brand before drafting anything. It returns the brand voice, knowledge, and memory you must follow.`,
+    `1. At the start of a new conversation, and whenever the brand changes, call the \`${GENFEED_BRAND_CONTEXT_TOOL}\` tool with its brand-context action on the \`${GENFEED_MCP_SERVER_NAME}\` MCP server for the active brand before drafting anything. It returns the brand voice, knowledge, and memory you must follow.`,
     `2. Use the \`${GENFEED_MCP_SERVER_NAME}\` MCP tools for every Genfeed action (content, media generation, scheduling, publishing, knowledge, memory). Never claim an action happened unless a genfeed tool confirmed it.`,
     '3. You have no access to files or shell commands on this computer in this conversation. Do not ask for them.',
     "4. Your own replies run on the user's subscription and cost no Genfeed credits, but Genfeed tools that generate media or publish still spend Genfeed credits. Say so before calling them.",

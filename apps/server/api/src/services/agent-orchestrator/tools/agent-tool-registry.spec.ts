@@ -13,6 +13,7 @@ import {
   getToolsForSurface,
   isMcpBrandRequiredTool,
   MCP_BRAND_REQUIRED_NOTE,
+  toMcpTool,
   toMcpTools,
 } from '@genfeedai/actions';
 
@@ -341,7 +342,7 @@ it('shares validation and prices across agent/MCP with client-specific documenta
   );
   expect(shared.length).toBeGreaterThan(0);
   expect(shared.map((tool) => String(tool.name))).toEqual(
-    expect.arrayContaining(['create_post', 'get_analytics']),
+    expect.arrayContaining(['create_post', 'get_assets']),
   );
   for (const tool of shared) {
     const mcp = mcpTools.get(String(tool.name));
@@ -380,7 +381,11 @@ it('shares validation and prices across agent/MCP with client-specific documenta
     }
     expect(tool.creditCost, tool.name).toBe(mcp._meta['genfeed.ai/creditCost']);
   }
-  expect(mcpTools.get('analyze_performance')?.description).toBe(
+  // `analyze_performance` is an unlisted action of `get_insights`; its own
+  // MCP wording is what the action's summary is read from.
+  const analyzePerformance = getToolByName('analyze_performance');
+  if (!analyzePerformance) throw new Error('Missing analyze_performance');
+  expect(toMcpTool(analyzePerformance).description).toBe(
     'Analyze 30-day engagement by content type, platform and posting time, including top posts.',
   );
 });

@@ -17,13 +17,13 @@ export const MCP_BRAND_REQUIRED_WHEN_MULTIPLE_TOOL_NAMES: ReadonlySet<string> =
   curatedActionNames((entry) => entry.mcpBrandRequiredWhenMultiple === true);
 
 export const MCP_BRAND_ID_DESCRIPTION =
-  'Brand that owns this generation. Required on MCP: call get_brands and pass one of its ids. A call without it is rejected with the list of your brands.';
+  'Brand that owns this generation. Required on MCP: call get_context(action=brands) and pass one of its ids. A call without it is rejected with the list of your brands.';
 
 export const MCP_BRAND_REQUIRED_NOTE =
-  'brandId is required: call get_brands first and pass the brand id.';
+  'brandId is required: call get_context(action=brands) first and pass the brand id.';
 
 export const MCP_BRAND_REQUIRED_WHEN_MULTIPLE_NOTE =
-  'brandId is required when the organization has more than one brand: call get_brands and pass the brand id.';
+  'brandId is required when the organization has more than one brand: call get_context(action=brands) and pass the brand id.';
 
 export function isMcpBrandRequiredTool(name: string): boolean {
   return MCP_BRAND_REQUIRED_TOOL_NAMES.has(name);

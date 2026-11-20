@@ -1,5 +1,5 @@
 import type { CanonicalToolDefinition } from '../interfaces/tool-definition.interface';
-import { isMcpListedToolName } from './mcp-catalog-calls';
+import { isMcpCatalogToolName, isMcpListedToolName } from './mcp-catalog-calls';
 import { ALL_TOOLS } from './tool-assembly';
 import type { ToolsetDefinition, ToolsetName } from './toolset-names';
 import { CORE_TOOLSET_NAME, isToolsetName, TOOLSETS } from './toolset-names';
@@ -180,6 +180,11 @@ export function getToolsForToolsets(
     allowed.add('insights');
   }
   return toolsOnSurface
-    .filter((tool) => allowed.has(tool.toolset))
+    .filter(
+      (tool) =>
+        allowed.has(tool.toolset) ||
+        // A merged tool spans toolsets, so every connection lists it.
+        (surface === 'mcp' && isMcpCatalogToolName(tool.name)),
+    )
     .sort((a, b) => a.name.localeCompare(b.name));
 }

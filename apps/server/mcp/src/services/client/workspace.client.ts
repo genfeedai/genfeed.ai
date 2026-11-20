@@ -78,7 +78,7 @@ export class WorkspaceClient {
           case 429:
             return 'Organization lookup rate limit reached.';
           default:
-            return 'Could not load your organizations. Try get_orgs again before retrying the tool.';
+            return 'Could not load your organizations. Try get_context(action=organizations) again before retrying the tool.';
         }
       },
     );

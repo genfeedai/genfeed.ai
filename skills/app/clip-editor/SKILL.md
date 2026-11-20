@@ -23,13 +23,13 @@ Re-cut a finished clip to a better start and end, or retitle it, without leaving
 
 ## Tools
 
-- `get_clip_context` reads a clip and the transcript around it. With a `projectId` it lists the clips of that project so you can find the one the user means.
+- `get_video_projects` with `action` set to `clip_context` reads a clip and the transcript around it. With a `projectId` it lists the clips of that project so you can find the one the user means.
 - `edit_clip` re-cuts a clip to a new window. It costs no credits.
 
 ## Workflow
 
-1. **Find the clip.** If the user did not name a clip result, call `get_clip_context` with the `projectId` and match on title or times. Ask which clip only when more than one fits.
-2. **Read before you cut.** Call `get_clip_context` with the `clipperResultId`. Check `clip.isEditable`. If it is false, say why (an avatar clip is regenerated from its script; an unfinished clip must finish first) and stop.
+1. **Find the clip.** If the user did not name a clip result, call `get_video_projects` with `action` set to `clip_context` and the `projectId` and match on title or times. Ask which clip only when more than one fits.
+2. **Read before you cut.** Call `get_video_projects` with `action` set to `clip_context` and the `clipperResultId`. Check `clip.isEditable`. If it is false, say why (an avatar clip is regenerated from its script; an unfinished clip must finish first) and stop.
 3. **Choose boundaries on speech.** Read the transcript lines around the clip. Start where a sentence starts and end where a sentence ends. Do not cut mid-word or mid-thought, and keep a beat of room after the last word.
 4. **Say the exact window, then wait.** Tell the user the new start and end in seconds, the new length, and the first and last words of the cut. Wait for a yes before calling `edit_clip`. A request that already names exact times counts as a yes.
 5. **Call `edit_clip`** with `clipperResultId` and only the fields that change (`startTime`, `endTime`, `title`).

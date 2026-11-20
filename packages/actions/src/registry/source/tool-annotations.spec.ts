@@ -1,11 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { toMcpTools } from '../../adapters/to-mcp-tool';
+import { toMcpTool, toMcpTools } from '../../adapters/to-mcp-tool';
 import type { CanonicalToolDefinition } from '../../interfaces/tool-definition.interface';
 import {
   CURATED_ACTION_CATALOG,
   isPublishingApprovalRequired,
 } from '../curated-action-catalog';
-import { isMcpListedToolName } from '../mcp-catalog-calls';
+import {
+  getMcpCatalogOperations,
+  isMcpListedToolName,
+} from '../mcp-catalog-calls';
 import {
   isApprovalRequiredToolName,
   isReadOnlyToolName,
@@ -186,8 +189,8 @@ const AUDITED_READ_PRESENTATIONS = [
   },
   {
     annotations: {
-      readOnlyHint: false,
-      destructiveHint: true,
+      readOnlyHint: true,
+      destructiveHint: false,
       idempotentHint: true,
       openWorldHint: true,
     },
@@ -248,7 +251,29 @@ const AUDITED_READ_PRESENTATIONS = [
   Pick<CanonicalToolDefinition, 'name' | 'title' | 'annotations'>
 >;
 
+/** The read tools that run several others: read-only, open-world when any target is. */
+const MERGED_READ_PRESENTATIONS = [
+  ['check_job', 'Check Job', true, false, true, false],
+  ['find_workflows', 'Find Workflows', true, false, true, false],
+  ['get_ads', 'Get Ads', true, false, true, true],
+  ['get_content', 'Get Content', true, false, true, true],
+  ['get_context', 'Get Context', true, false, true, true],
+  [
+    'get_generation_catalog',
+    'Get Generation Catalog',
+    true,
+    false,
+    true,
+    false,
+  ],
+  ['get_insights', 'Get Insights', true, false, true, false],
+  ['get_knowledge', 'Get Knowledge', true, false, true, true],
+  ['get_video_projects', 'Get Video Projects', true, false, true, true],
+  ['get_workspace', 'Get Workspace', true, false, true, true],
+];
+
 const FROZEN_MCP_PRESENTATIONS = [
+  ['get_review_queue', 'Get Review Queue', true, false, true, false],
   [
     'analyze_clipper_project',
     'Analyze Clipper Project',
@@ -445,7 +470,7 @@ const FROZEN_MCP_PRESENTATIONS = [
     false,
   ],
   ['get_clip_context', 'Get Clip Context', true, false, true, false],
-  ['get_clipper_project', 'Get Clipper Project', false, true, true, true],
+  ['get_clipper_project', 'Get Clipper Project', true, false, true, true],
   ['get_editor_project', 'Get Editor Project', true, false, true, false],
   ['get_task', 'Get Task', true, false, true, false],
   ['get_connection_status', 'Get Connection Status', true, false, true, false],
@@ -902,7 +927,7 @@ describe('MCP tool annotations', () => {
       expect(first.annotations).not.toBe(second.annotations);
       first.annotations.readOnlyHint = !annotations.readOnlyHint;
       expect(second.annotations, name).toEqual(annotations);
-      const [listed] = toMcpTools(canonical ? [canonical] : []);
+      const listed = canonical ? toMcpTool(canonical) : undefined;
       expect(listed?.title, name).toBe(title);
       expect(listed?.annotations, name).toEqual(annotations);
     },
@@ -932,7 +957,6 @@ describe('MCP tool annotations', () => {
         false,
         false,
       ],
-      ['get_review_queue', 'Get Review Queue', true, false, true, false],
       ['manage_brand_kit', 'Manage Brand Kit', false, true, false, false],
       ['manage_campaign', 'Manage Campaign', false, true, false, false],
       ['manage_task', 'Manage Task', false, true, false, false],
@@ -945,6 +969,7 @@ describe('MCP tool annotations', () => {
         false,
       ],
       ['upload_media', 'Upload Media', false, false, false, false],
+      ...MERGED_READ_PRESENTATIONS,
     ].sort((left, right) => String(left[0]).localeCompare(String(right[0])));
     for (const row of FROZEN_MCP_PRESENTATIONS.filter(
       (entry) => !isMcpListedToolName(String(entry[0])),
@@ -959,7 +984,6 @@ describe('MCP tool annotations', () => {
         tool?.annotations?.openWorldHint,
       ]).toEqual(row);
     }
-    expect(rows).toHaveLength(172);
     expect(rows.map((row) => row[0])).toEqual(expected.map((row) => row[0]));
     expect(rows).toEqual(expected);
   });
@@ -1003,7 +1027,7 @@ describe('MCP tool annotations', () => {
       expect(canonical, name).toBeDefined();
       expect(canonical?.title, name).toBe(title);
       expect(canonical?.annotations, name).toEqual(annotations);
-      const [listed] = toMcpTools(canonical ? [canonical] : []);
+      const listed = canonical ? toMcpTool(canonical) : undefined;
       expect(listed?.title, name).toBe(title);
       expect(listed?.annotations, name).toEqual(annotations);
     },
@@ -1129,45 +1153,54 @@ describe('MCP tool annotations', () => {
   });
 
   it('marks generation and publishing tools open-world', () => {
-    const publishing = new Set(
+    const publishing = new Set<string>(
       CURATED_ACTION_CATALOG.filter((entry) =>
         isPublishingApprovalRequired(entry),
       ).map((entry) => entry.name),
     );
 
+    const isOpenWorldName = (name: string): boolean =>
+      toolDataSource(name) !== 'stored' ||
+      name === 'get_ad_research_detail' ||
+      name === 'get_articles' ||
+      name === 'get_social_conversation' ||
+      name === 'get_ads_research' ||
+      name === 'get_social_conversations' ||
+      name === 'get_brand_context' ||
+      name === 'get_clipper_project' ||
+      name === 'run_clipper' ||
+      name === 'fetch_instagram_inspiration_detail' ||
+      name === 'fetch_instagram_inspiration' ||
+      name === 'search_knowledge' ||
+      name === 'onboard_brand' ||
+      name === 'execute_workflow' ||
+      name === 'enhance_prompt' ||
+      name === 'fetch_x_posts' ||
+      name === 'fetch_x_account_activity' ||
+      name === 'get_ads_ad_insights' ||
+      name === 'get_ads_adset_insights' ||
+      name === 'generate' ||
+      name.startsWith('generate_') ||
+      name === 'transform_media' ||
+      name === 'import_source_post' ||
+      name === 'render_3d' ||
+      name === 'start_remix_generation' ||
+      name === 'control_remix_generation' ||
+      name === 'replace_storyboard_character' ||
+      name === 'start_storyboard_long_form' ||
+      name === 'start_storyboard_slideshow' ||
+      name === 'start_storyboard_video' ||
+      publishing.has(name);
+
     for (const tool of getToolsForSurface('mcp')) {
+      const operations = getMcpCatalogOperations(tool.name);
+      // A merged tool is open-world when any tool it runs is.
       const isOpenWorld =
-        toolDataSource(tool.name) !== 'stored' ||
-        tool.name === 'get_ad_research_detail' ||
-        tool.name === 'get_articles' ||
-        tool.name === 'get_social_conversation' ||
-        tool.name === 'get_ads_research' ||
-        tool.name === 'get_social_conversations' ||
-        tool.name === 'get_brand_context' ||
-        tool.name === 'get_clipper_project' ||
-        tool.name === 'run_clipper' ||
-        tool.name === 'fetch_instagram_inspiration_detail' ||
-        tool.name === 'fetch_instagram_inspiration' ||
-        tool.name === 'search_knowledge' ||
-        tool.name === 'onboard_brand' ||
-        tool.name === 'execute_workflow' ||
-        tool.name === 'enhance_prompt' ||
-        tool.name === 'fetch_x_posts' ||
-        tool.name === 'fetch_x_account_activity' ||
-        tool.name === 'get_ads_ad_insights' ||
-        tool.name === 'get_ads_adset_insights' ||
-        tool.name === 'generate' ||
-        tool.name.startsWith('generate_') ||
-        tool.name === 'transform_media' ||
-        tool.name === 'import_source_post' ||
-        tool.name === 'render_3d' ||
-        tool.name === 'start_remix_generation' ||
-        tool.name === 'control_remix_generation' ||
-        tool.name === 'replace_storyboard_character' ||
-        tool.name === 'start_storyboard_long_form' ||
-        tool.name === 'start_storyboard_slideshow' ||
-        tool.name === 'start_storyboard_video' ||
-        publishing.has(tool.name);
+        operations.length > 0
+          ? operations.some((operation) =>
+              isOpenWorldName(operation.executionName),
+            )
+          : isOpenWorldName(tool.name);
       expect(tool.annotations?.openWorldHint, tool.name).toBe(isOpenWorld);
     }
   });

@@ -66,24 +66,19 @@ Use `find_tools` to discover the connected account's tools and input schemas.
 
 | Tool | Description |
 |------|-------------|
-| `get_account` | Read profile, credits, and usage as a readable message |
-| `get_brands` | Resolve the brand for the task |
-| `get_generation_options` | Read supported models and credit estimates |
+| `get_context` | Read the account, resolve the brand for the task, and read brand context |
+| `get_generation_catalog` | Read supported models, credit estimates and presets |
 | `generate` | Generate image, video, voice, or music for an approved request |
 | `generate_content` | Generate article drafts or social copy |
 | `get_assets` | List media and named characters |
-| `get_job_status` | Read generation progress and results |
-| `get_articles` | Search articles or retrieve one |
-| `get_posts` | Read posts or the content calendar |
-| `get_trends` | Discover topic ideas |
-| `get_content_analytics` | Read content performance |
-| `get_video_analytics` | Read video performance |
+| `check_job` | Read generation progress and results |
+| `get_content` | Read posts, the content calendar, releases and articles |
+| `get_insights` | Discover topic ideas and read content and video performance |
 | `create_scheduled_release` | Create a draft or scheduled multi-channel release |
-| `get_scheduled_release` | Read release execution state |
 | `control_scheduled_release` | Pause, resume, cancel, or publish a confirmed release |
 | `create_workflow` | Create an automation workflow |
 | `execute_workflow` | Run a saved workflow |
-| `get_workflow_status` | Read saved workflow status |
+| `find_workflows` | List saved workflows, templates and runs |
 
 Before generating, resolve a brand and confirm the requested spend. Before publishing,
 resolve a verified channel, check scheduler capabilities, validate the target, and

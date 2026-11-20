@@ -167,7 +167,7 @@ describe('DesktopCliAgentRuntimeService', () => {
       spawnCalls[0]?.args[
         (spawnCalls[0]?.args.indexOf('--append-system-prompt') ?? 0) + 1
       ];
-    expect(systemPrompt).toContain('get_brand_context');
+    expect(systemPrompt).toContain('get_context');
     expect(systemPrompt).toContain('brand-1');
 
     child.emitLines([

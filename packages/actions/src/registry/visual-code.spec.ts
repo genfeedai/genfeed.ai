@@ -7,6 +7,7 @@ import {
   VISUAL_CODE_ACTION_ALIASES,
   VISUAL_CODE_INPUT_SCHEMAS,
 } from './contracts/visual-code-action-contracts';
+import { isMcpListedToolName } from './mcp-catalog-calls';
 import { getToolByName, getToolsForSurface } from './tool-registry';
 import { DEFAULT_MCP_PROFILE_TOOLSETS } from './toolset-profiles';
 import { getToolsForToolsets } from './toolsets';
@@ -79,9 +80,11 @@ describe('visual-code canonical actions', () => {
       expect(
         getToolsForSurface('agent').some((item) => item.name === alias),
       ).toBe(true);
+      // A merged tool runs some aliases, so they are not listed themselves.
+      const isListed = isMcpListedToolName(alias);
       expect(
         getToolsForSurface('mcp').some((item) => item.name === alias),
-      ).toBe(true);
+      ).toBe(isListed);
       expect(
         getToolsForToolsets('mcp', ['core']).some(
           (item) => item.name === alias,

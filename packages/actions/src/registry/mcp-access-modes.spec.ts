@@ -11,7 +11,30 @@ import { getToolsForSurface } from './tool-registry';
 
 describe('Claude MCP access policy', () => {
   it('consolidates scheduler listing without changing the exact old agent allowlist', () => {
-    expect(CLAUDE_MCP_TOOL_NAMES.size).toBe(31);
+    // Four merged tools carry the reads the Claude grant already allowed.
+    expect(CLAUDE_MCP_TOOL_NAMES.size).toBe(17);
+    for (const name of [
+      'get_account',
+      'get_brands',
+      'get_brand_context',
+      'get_brand_completeness',
+      'get_brand_scan_status',
+      'get_brand_publishing_readiness',
+      'get_posts',
+      'get_articles',
+      'get_article_preview',
+      'get_scheduled_release',
+      'get_analytics',
+      'analyze_performance',
+      'get_content_analytics',
+      'get_video_analytics',
+      'get_linkedin_analytics',
+      'get_linkedin_connection_status',
+      'get_trends',
+    ])
+      expect(isToolAllowedInMcpAccessMode('claude', name), name).toBe(true);
+    for (const name of ['get_connection_status', 'get_social_conversations'])
+      expect(isToolAllowedInMcpAccessMode('claude', name), name).toBe(false);
     expect(CLAUDE_MCP_TOOL_NAMES.has('check_channel')).toBe(true);
     // Approval-gated: the Claude connector queues it, a reviewer in the app releases it (#10073).
     expect(CLAUDE_MCP_TOOL_NAMES.has('publish_article')).toBe(true);

@@ -76,7 +76,7 @@ export function composeMcpCatalogTool(
           description: targets
             .map(
               ({ operation, target }) =>
-                `${operation.action}: ${summarize(target.mcpDescription ?? target.description)}`,
+                `${operation.action}: ${operation.summary ?? summarize(target.mcpDescription ?? target.description)}`,
             )
             .join(' '),
           enum: spec.operations.map((operation) => operation.action),

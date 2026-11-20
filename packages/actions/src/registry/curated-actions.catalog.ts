@@ -119,7 +119,7 @@ export const CURATED_ACTION_CATALOG = [
   },
   {
     category: 'analytics',
-    claudeAccess: 'both',
+    claudeAccess: 'agent',
     isReadOnly: true,
     name: 'analyze_performance',
     surfaces: ['agent', 'mcp'],
@@ -203,7 +203,6 @@ export const CURATED_ACTION_CATALOG = [
   },
   {
     category: 'content',
-    claudeAccess: 'mcp',
     mcpCardKind: 'summary',
     name: 'check_channel',
     surfaces: ['mcp'],
@@ -214,6 +213,12 @@ export const CURATED_ACTION_CATALOG = [
     name: 'check_goal_progress',
     surfaces: ['agent'],
     toolset: 'goals',
+  },
+  {
+    category: 'other',
+    name: 'check_job',
+    surfaces: ['mcp'],
+    toolset: 'core',
   },
   {
     category: 'onboarding',
@@ -566,6 +571,12 @@ export const CURATED_ACTION_CATALOG = [
     toolset: 'core',
   },
   {
+    category: 'workflow',
+    name: 'find_workflows',
+    surfaces: ['mcp'],
+    toolset: 'workflows',
+  },
+  {
     category: 'other',
     mutationPolicy: 'direct',
     name: 'fork_skill',
@@ -647,7 +658,7 @@ export const CURATED_ACTION_CATALOG = [
   },
   {
     category: 'social',
-    claudeAccess: 'both',
+    claudeAccess: 'agent',
     mcpCardKind: 'summary',
     name: 'get_account',
     surfaces: ['agent', 'mcp'],
@@ -665,6 +676,12 @@ export const CURATED_ACTION_CATALOG = [
     dataSource: 'provider',
     name: 'get_ad_research_detail',
     surfaces: ['agent', 'mcp'],
+    toolset: 'ads',
+  },
+  {
+    category: 'ads',
+    name: 'get_ads',
+    surfaces: ['mcp'],
     toolset: 'ads',
   },
   {
@@ -698,7 +715,7 @@ export const CURATED_ACTION_CATALOG = [
   },
   {
     category: 'analytics',
-    claudeAccess: 'both',
+    claudeAccess: 'agent',
     name: 'get_analytics',
     surfaces: ['agent', 'mcp'],
     toolset: 'insights',
@@ -712,14 +729,14 @@ export const CURATED_ACTION_CATALOG = [
   },
   {
     category: 'content',
-    claudeAccess: 'both',
+    claudeAccess: 'agent',
     name: 'get_article_preview',
     surfaces: ['mcp'],
     toolset: 'articles',
   },
   {
     category: 'content',
-    claudeAccess: 'both',
+    claudeAccess: 'agent',
     isOpenWorld: true,
     mcpCardKind: 'article',
     name: 'get_articles',
@@ -736,14 +753,14 @@ export const CURATED_ACTION_CATALOG = [
   },
   {
     category: 'social',
-    claudeAccess: 'both',
+    claudeAccess: 'agent',
     name: 'get_brand_completeness',
     surfaces: ['agent', 'mcp'],
     toolset: 'brand',
   },
   {
     category: 'social',
-    claudeAccess: 'both',
+    claudeAccess: 'agent',
     isOpenWorld: true,
     name: 'get_brand_context',
     surfaces: ['agent', 'mcp'],
@@ -751,7 +768,7 @@ export const CURATED_ACTION_CATALOG = [
   },
   {
     category: 'social',
-    claudeAccess: 'both',
+    claudeAccess: 'agent',
     mcpCardKind: 'summary',
     name: 'get_brand_publishing_readiness',
     surfaces: ['mcp'],
@@ -759,14 +776,14 @@ export const CURATED_ACTION_CATALOG = [
   },
   {
     category: 'social',
-    claudeAccess: 'both',
+    claudeAccess: 'agent',
     name: 'get_brand_scan_status',
     surfaces: ['agent', 'mcp'],
     toolset: 'brand',
   },
   {
     category: 'social',
-    claudeAccess: 'both',
+    claudeAccess: 'agent',
     mcpCardKind: 'summary',
     name: 'get_brands',
     surfaces: ['agent', 'mcp'],
@@ -792,10 +809,10 @@ export const CURATED_ACTION_CATALOG = [
   },
   {
     annotationOverride: {
-      destructiveHint: true,
+      destructiveHint: false,
       idempotentHint: true,
       openWorldHint: true,
-      readOnlyHint: false,
+      readOnlyHint: true,
     },
     category: 'other',
     name: 'get_clipper_project',
@@ -815,11 +832,23 @@ export const CURATED_ACTION_CATALOG = [
     toolset: 'onboarding',
   },
   {
+    category: 'content',
+    name: 'get_content',
+    surfaces: ['mcp'],
+    toolset: 'content',
+  },
+  {
     category: 'analytics',
-    claudeAccess: 'both',
+    claudeAccess: 'agent',
     name: 'get_content_analytics',
     surfaces: ['mcp'],
     toolset: 'analytics',
+  },
+  {
+    category: 'social',
+    name: 'get_context',
+    surfaces: ['mcp'],
+    toolset: 'core',
   },
   {
     category: 'other',
@@ -850,6 +879,12 @@ export const CURATED_ACTION_CATALOG = [
     name: 'get_editor_projects',
     surfaces: ['mcp'],
     toolset: 'editor',
+  },
+  {
+    category: 'generation',
+    name: 'get_generation_catalog',
+    surfaces: ['mcp'],
+    toolset: 'generation',
   },
   {
     category: 'generation',
@@ -913,11 +948,23 @@ export const CURATED_ACTION_CATALOG = [
     toolset: 'workspace',
   },
   {
+    category: 'analytics',
+    name: 'get_insights',
+    surfaces: ['mcp'],
+    toolset: 'insights',
+  },
+  {
     category: 'other',
     mcpCardKind: 'media',
     name: 'get_job_status',
     surfaces: ['mcp'],
     toolset: 'core',
+  },
+  {
+    category: 'other',
+    name: 'get_knowledge',
+    surfaces: ['mcp'],
+    toolset: 'knowledge',
   },
   {
     category: 'other',
@@ -927,14 +974,14 @@ export const CURATED_ACTION_CATALOG = [
   },
   {
     category: 'analytics',
-    claudeAccess: 'both',
+    claudeAccess: 'agent',
     name: 'get_linkedin_analytics',
     surfaces: ['mcp'],
     toolset: 'analytics',
   },
   {
     category: 'other',
-    claudeAccess: 'both',
+    claudeAccess: 'agent',
     name: 'get_linkedin_connection_status',
     surfaces: ['mcp'],
     toolset: 'analytics',
@@ -1017,7 +1064,7 @@ export const CURATED_ACTION_CATALOG = [
   },
   {
     category: 'content',
-    claudeAccess: 'both',
+    claudeAccess: 'agent',
     mcpCardKind: 'post',
     name: 'get_posts',
     surfaces: ['agent', 'mcp'],
@@ -1057,7 +1104,7 @@ export const CURATED_ACTION_CATALOG = [
   },
   {
     category: 'content',
-    claudeAccess: 'both',
+    claudeAccess: 'agent',
     mcpCardKind: 'summary',
     name: 'get_scheduled_release',
     surfaces: ['mcp'],
@@ -1159,7 +1206,7 @@ export const CURATED_ACTION_CATALOG = [
   },
   {
     category: 'analytics',
-    claudeAccess: 'both',
+    claudeAccess: 'agent',
     name: 'get_trends',
     surfaces: ['agent', 'mcp'],
     toolset: 'insights',
@@ -1167,10 +1214,16 @@ export const CURATED_ACTION_CATALOG = [
   },
   {
     category: 'analytics',
-    claudeAccess: 'both',
+    claudeAccess: 'agent',
     name: 'get_video_analytics',
     surfaces: ['mcp'],
     toolset: 'analytics',
+  },
+  {
+    category: 'other',
+    name: 'get_video_projects',
+    surfaces: ['mcp'],
+    toolset: 'clipper',
   },
   {
     category: 'generation',
@@ -1219,6 +1272,12 @@ export const CURATED_ACTION_CATALOG = [
     name: 'get_workflows',
     surfaces: ['agent', 'mcp'],
     toolset: 'workflows',
+  },
+  {
+    category: 'other',
+    name: 'get_workspace',
+    surfaces: ['mcp'],
+    toolset: 'workspace',
   },
   {
     annotationHint: 'non-destructive-write',

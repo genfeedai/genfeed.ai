@@ -18,7 +18,6 @@ import { getToolsForToolsets, TOOLSET_NAMES } from './toolsets';
 const TOOLSETS_WITHOUT_APP = [
   'brand',
   'brand-kit',
-  'engagement',
   'knowledge',
   'models3d',
   'skills-pro',

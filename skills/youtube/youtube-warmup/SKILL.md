@@ -526,7 +526,7 @@ Every thumbnail should answer three questions before it is finalized:
 
 If you have access to Genfeed tools, use them throughout the warmup:
 
-### `get_trends` (Platform: YouTube)
+### `get_insights` with `action: trends` (Platform: YouTube)
 
 Use this during Phase 1 (Days 1-3) to identify:
 
@@ -547,7 +547,7 @@ Use this during Phase 3 (Days 7-10) to draft the warmup Short brief directly int
 
 ### Publishing through Genfeed
 
-Resolve the chosen brand with `get_brands` and its connected channel with `get_brand_publishing_readiness`. Call `check_channel` with `action: capabilities`, then `action: validate` and the proposed target in `input` before creating a release with `create_scheduled_release`. Use `control_scheduled_release` for an approved publish-now request. A pending approval is not a completed publication; hand the user its review link and wait for their decision.
+Resolve the chosen brand with `get_context` (`action: brands`) and its connected channel with `check_channel` (`action: readiness`). Call `check_channel` with `action: capabilities`, then `action: validate` and the proposed target in `input` before creating a release with `create_scheduled_release`. Use `control_scheduled_release` for an approved publish-now request. A pending approval is not a completed publication; hand the user its review link and wait for their decision.
 
 Only request scheduling or publishing after the user confirms:
 

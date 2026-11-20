@@ -58,7 +58,7 @@ export async function handleEditorTool(
       structuredContent: { data: { editorPath, projectId, status } },
       content: [
         {
-          text: `Render queued for Editor project ${projectId} (status: ${status}). Check progress with get_editor_project; the finished video appears as renderedVideo. Or [open it in the Editor](${getPublicAppUrl()}${editorPath}).`,
+          text: `Render queued for Editor project ${projectId} (status: ${status}). Check progress with get_video_projects(action=editor_project); the finished video appears as renderedVideo. Or [open it in the Editor](${getPublicAppUrl()}${editorPath}).`,
           type: 'text' as const,
         },
       ],

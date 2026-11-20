@@ -1,4 +1,7 @@
-import { MEDIA_GENERATION_CREDIT_FLOORS } from '@genfeedai/actions';
+import {
+  MCP_CATALOG_TOOL_NAMES,
+  MEDIA_GENERATION_CREDIT_FLOORS,
+} from '@genfeedai/actions';
 import { LoggerService } from '@libs/logger/logger.service';
 import { McpAuthGuard } from '@mcp/guards/mcp-auth.guard';
 import {
@@ -7,6 +10,7 @@ import {
   PUBLIC_MCP_RESOURCES,
 } from '@mcp/mcp/resource-catalog';
 import { ClientService } from '@mcp/services/client.service';
+import { withMergedToolCalls } from '@mcp/services/tool-registry.endpoints.testing';
 import { ToolRegistryService } from '@mcp/services/tool-registry.service';
 import { McpUpstreamError } from '@mcp/tools/mcp-tool-error';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -172,7 +176,21 @@ const MOCK_TOOLS = [
   },
 ];
 
-const TOOLS_BY_NAME = new Map(MOCK_TOOLS.map((t) => [t.name, t]));
+// The tools a merged tool runs and the merged tools themselves, the way the
+// registry resolves a call: the merged name first, then the tool it runs.
+const TOOLS_BY_NAME = new Map(
+  [
+    ...MOCK_TOOLS,
+    ...MCP_CATALOG_TOOL_NAMES.map((name) => ({
+      name,
+      requiredRole: undefined,
+      surfaces: { mcp: true },
+    })),
+  ].map((tool) => [
+    tool.name,
+    { parameters: { properties: {}, required: [], type: 'object' }, ...tool },
+  ]),
+);
 
 vi.mock('@genfeedai/actions', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@genfeedai/actions')>();
@@ -352,7 +370,7 @@ describe('ToolRegistryService', () => {
       ],
     }).compile();
 
-    service = module.get(ToolRegistryService);
+    service = withMergedToolCalls(module.get(ToolRegistryService));
     clientService = module.get(ClientService);
     logger = module.get(LoggerService);
   });

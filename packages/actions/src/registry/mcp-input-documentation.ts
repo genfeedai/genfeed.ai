@@ -5,7 +5,7 @@ import type { ToolParameterSchema } from '../interfaces/tool-definition.interfac
 
 const PARAMETER_DOCUMENTATION = new Map([
   [
-    'Brand that owns this generation. Required on MCP: call get_brands and pass one of its ids. A call without it is rejected with the list of your brands.',
+    'Brand that owns this generation. Required on MCP: call get_context(action=brands) and pass one of its ids. A call without it is rejected with the list of your brands.',
     'Owning brand ID from get_brands. Required; omission rejects with your brand list.',
   ],
   [

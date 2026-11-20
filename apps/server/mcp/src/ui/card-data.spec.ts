@@ -17,15 +17,11 @@ describe('MCP Apps card contract', () => {
   it('links content tools to a public HTML resource, preserving existing metadata', () => {
     const tools = toMcpTools(getToolsForSurface('mcp'));
     for (const name of [
-      'get_posts',
+      'get_content',
       'get_assets',
       'generate',
       'transform_media',
-      'get_articles',
-      'get_account',
-      'get_brands',
-      'get_scheduled_release',
-      'get_orgs',
+      'get_context',
       'switch_org',
     ]) {
       const tool = tools.find((item) => item.name === name);
@@ -36,8 +32,8 @@ describe('MCP Apps card contract', () => {
         _meta: { ...tool._meta, ui: { resourceUri: MCP_CARD_RESOURCE_URI } },
       });
     }
-    const unrelated = tools.find((item) => item.name === 'get_trends');
-    if (!unrelated) throw new Error('Missing get_trends');
+    const unrelated = tools.find((item) => item.name === 'get_insights');
+    if (!unrelated) throw new Error('Missing get_insights');
     expect(withCardMetadata(unrelated)).toBe(unrelated);
     const resource = cardResource();
     expect(resource.mimeType).toBe(MCP_APP_MIME_TYPE);
@@ -53,7 +49,7 @@ describe('MCP Apps card contract', () => {
       isPublicMcpRequest({
         jsonrpc: '2.0',
         method: 'tools/call',
-        params: { name: 'get_posts' },
+        params: { name: 'get_content' },
       }),
     ).toBe(false);
   });

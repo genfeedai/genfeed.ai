@@ -92,57 +92,61 @@ function withoutHiddenParameters(
   };
 }
 
+/** The tools a connection lists: MCP-surfaced and not an unlisted execution tool. */
 export function toMcpTools(tools: CanonicalToolDefinition[]): McpToolOutput[] {
   return tools
     .filter((tool) => tool.surfaces.mcp && isMcpListedToolName(tool.name))
-    .map((tool) => {
-      const presentation =
-        tool.title && tool.annotations
-          ? { annotations: tool.annotations, title: tool.title }
-          : deriveMcpToolPresentation(tool.name, tool.mutationPolicy);
-      const creditPricing =
-        tool.creditPricing ?? fixedCreditPricing(tool.creditCost);
-      // The shared policy still protects publishing through the in-app tool.
-      const mutationPolicy =
-        tool.name === 'create_post' ? 'direct' : tool.mutationPolicy;
-      const requiresBrand = isMcpBrandRequiredTool(tool.name);
-      const brandNote = requiresBrand
-        ? MCP_BRAND_REQUIRED_NOTE
-        : isMcpBrandRequiredWhenMultipleTool(tool.name)
-          ? MCP_BRAND_REQUIRED_WHEN_MULTIPLE_NOTE
-          : undefined;
-      const projected = withoutHiddenParameters(
-        tool.parameters,
-        tool.mcpHiddenParameters,
-      );
-      const parameters = requiresBrand
-        ? withRequiredMcpBrandId(projected)
-        : projected;
-      const description = tool.mcpDescription ?? tool.description;
-      return {
-        _meta: {
-          [MCP_CREDIT_COST_META_KEY]: tool.creditCost,
-          [MCP_CREDIT_PRICING_META_KEY]: creditPricing,
-          [MCP_TOOLSET_META_KEY]: tool.toolset,
-          ...(mutationPolicy
-            ? { [MCP_MUTATION_POLICY_META_KEY]: mutationPolicy }
-            : {}),
-        },
-        annotations: presentation.annotations,
-        description: rewriteRetiredMcpReferences(
-          appendCreditPricingDescription(
-            brandNote ? `${description} ${brandNote}` : description,
-            creditPricing,
-          ),
-        ),
-        inputSchema: rewriteSchemaDescriptions(
-          compactMcpInputDocumentation(parameters),
-          rewriteRetiredMcpReferences,
-        ),
-        name: tool.name,
-        outputSchema: getMcpToolOutputSchema(tool),
-        requiredRole: tool.requiredRole,
-        title: presentation.title,
-      };
-    });
+    .map(toMcpTool);
+}
+
+/** Projects one tool, listed or not (a merged tool's execution tool is not). */
+export function toMcpTool(tool: CanonicalToolDefinition): McpToolOutput {
+  const presentation =
+    tool.title && tool.annotations
+      ? { annotations: tool.annotations, title: tool.title }
+      : deriveMcpToolPresentation(tool.name, tool.mutationPolicy);
+  const creditPricing =
+    tool.creditPricing ?? fixedCreditPricing(tool.creditCost);
+  // The shared policy still protects publishing through the in-app tool.
+  const mutationPolicy =
+    tool.name === 'create_post' ? 'direct' : tool.mutationPolicy;
+  const requiresBrand = isMcpBrandRequiredTool(tool.name);
+  const brandNote = requiresBrand
+    ? MCP_BRAND_REQUIRED_NOTE
+    : isMcpBrandRequiredWhenMultipleTool(tool.name)
+      ? MCP_BRAND_REQUIRED_WHEN_MULTIPLE_NOTE
+      : undefined;
+  const projected = withoutHiddenParameters(
+    tool.parameters,
+    tool.mcpHiddenParameters,
+  );
+  const parameters = requiresBrand
+    ? withRequiredMcpBrandId(projected)
+    : projected;
+  const description = tool.mcpDescription ?? tool.description;
+  return {
+    _meta: {
+      [MCP_CREDIT_COST_META_KEY]: tool.creditCost,
+      [MCP_CREDIT_PRICING_META_KEY]: creditPricing,
+      [MCP_TOOLSET_META_KEY]: tool.toolset,
+      ...(mutationPolicy
+        ? { [MCP_MUTATION_POLICY_META_KEY]: mutationPolicy }
+        : {}),
+    },
+    annotations: presentation.annotations,
+    description: rewriteRetiredMcpReferences(
+      appendCreditPricingDescription(
+        brandNote ? `${description} ${brandNote}` : description,
+        creditPricing,
+      ),
+    ),
+    inputSchema: rewriteSchemaDescriptions(
+      compactMcpInputDocumentation(parameters),
+      rewriteRetiredMcpReferences,
+    ),
+    name: tool.name,
+    outputSchema: getMcpToolOutputSchema(tool),
+    requiredRole: tool.requiredRole,
+    title: presentation.title,
+  };
 }

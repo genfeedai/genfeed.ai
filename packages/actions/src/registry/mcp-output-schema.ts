@@ -37,11 +37,10 @@ export function getMcpToolResultFamily(
   tool: Pick<CanonicalToolDefinition, 'name' | 'category'>,
 ) {
   if (tool.name === 'find_tools') return 'discovery';
-  if (['get_account', 'get_orgs', 'switch_org'].includes(tool.name))
-    return 'object';
+  if (tool.name === 'switch_org') return 'object';
   if (
     tool.category === 'generation' ||
-    tool.name === 'get_job_status' ||
+    tool.name === 'check_job' ||
     tool.name === 'resolve_approval'
   )
     return 'media';

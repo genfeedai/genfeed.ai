@@ -28,7 +28,7 @@ bunx skills add genfeedai/skills --skill youtube-warmup
 - Creates Phase 2 (Days 4-7) channel optimization checklists: About page copy, playlist structure, channel art direction, and banner brief
 - Creates Phase 3 (Days 7-10) warmup Short briefs: full hook-to-CTA script, thumbnail brief, title formula, description template, and tag set
 - Explains YouTube trust signals, CTR vs. retention tradeoffs, and the Browse features traffic source
-- Provides SEO-first keyword discovery methods including Genfeed `get_trends` integration
+- Provides SEO-first keyword discovery methods including Genfeed `get_insights` (`action: trends`) integration
 - Outputs a 48-hour post-warmup assessment framework with CTR, average view duration, and traffic source signals
 - Guides the graduated content cadence from Shorts-only to long-form transition (Weeks 1-4)
 - Documents YouTube suppression triggers (clickbait CTR bait, misleading metadata, Content ID) specific to new channels

@@ -116,14 +116,14 @@ describe('organization listing', () => {
     get.mockResolvedValueOnce({ data: { errors: [] } });
 
     await expect(client.listOrganizations()).rejects.toThrow(
-      'Could not load your organizations. Try get_orgs again',
+      'Could not load your organizations. Try get_context(action=organizations) again',
     );
   });
 
   it.each([
     [401, 'Reconnect Genfeed'],
     [403, 'check your organization access'],
-    [502, 'Try get_orgs again'],
+    [502, 'Try get_context(action=organizations) again'],
   ])(
     'gives recovery guidance for HTTP %s without upstream details',
     async (status, guidance) => {
