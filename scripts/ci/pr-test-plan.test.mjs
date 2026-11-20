@@ -15,6 +15,7 @@ import {
   parseVitestList,
   readChangedFiles,
   selectShardCount,
+  TARGET_SHARD_SECONDS,
 } from './pr-test-plan.mjs';
 import { selectShardArguments } from './test-shard-selection.mjs';
 import { allPackageTestTasks } from './workspace-test-matrix.mjs';
@@ -135,6 +136,16 @@ test('selects bounded adaptive shard counts', () => {
   assert.equal(selectShardCount(737), 4);
   // The affected tier never exceeds four shards, however many files change.
   assert.equal(selectShardCount(5000), 4);
+});
+
+test('sizes shards to the recorded seconds when they are known', () => {
+  assert.equal(selectShardCount(0, 500), 0);
+  assert.equal(selectShardCount(300, 0), 1);
+  assert.equal(selectShardCount(300, TARGET_SHARD_SECONDS), 1);
+  assert.equal(selectShardCount(10, TARGET_SHARD_SECONDS + 1), 2);
+  assert.equal(selectShardCount(10, 2 * TARGET_SHARD_SECONDS), 2);
+  assert.equal(selectShardCount(10, 2 * TARGET_SHARD_SECONDS + 1), 4);
+  assert.equal(selectShardCount(10, 50 * TARGET_SHARD_SECONDS), 4);
 });
 
 test('a full-suite escalation shards the app suite four ways and the API suite eight ways', () => {
@@ -264,6 +275,81 @@ test('gives every planned file to exactly one shard', () => {
   assert.deepEqual(assignShardFiles([], 0), []);
 });
 
+test('fills the lightest shard with the heaviest file left', () => {
+  const weights = new Map([
+    ['a.test.ts', 100],
+    ['b.test.ts', 60],
+    ['c.test.ts', 50],
+    ['d.test.ts', 40],
+    ['e.test.ts', 30],
+    ['f.test.ts', 20],
+  ]);
+  // a: 100|0, b: 100|60, c: 100|110, d: 140|110, e: 140|140, f: 160|140
+  assert.deepEqual(
+    assignShardFiles([...weights.keys()].reverse(), 2, weights),
+    [
+      ['a.test.ts', 'd.test.ts', 'f.test.ts'],
+      ['b.test.ts', 'c.test.ts', 'e.test.ts'],
+    ],
+  );
+});
+
+test('deals files of equal weight the way an even split would', () => {
+  assert.deepEqual(
+    assignShardFiles(
+      ['e.test.ts', 'a.test.ts', 'c.test.ts', 'b.test.ts', 'd.test.ts'],
+      2,
+      new Map(),
+    ),
+    assignShardFiles(
+      ['e.test.ts', 'a.test.ts', 'c.test.ts', 'b.test.ts', 'd.test.ts'],
+      2,
+    ),
+  );
+});
+
+for (const [fileCount, shardCount] of [
+  [1, 1],
+  [7, 2],
+  [60, 4],
+  [401, 4],
+  [3, 4],
+]) {
+  test(`${fileCount} weighted files over ${shardCount} shards run once each`, () => {
+    // Weights from a fixed spread: a few slow files among many quick ones.
+    const files = Array.from(
+      { length: fileCount },
+      (_, index) => `apps/web/src/f-${String(index).padStart(3, '0')}.test.ts`,
+    );
+    const weights = new Map(
+      files.map((file, index) => [file, 0.2 + ((index * 37) % 11) ** 2]),
+    );
+    const shards = assignShardFiles(files, shardCount, weights);
+
+    assert.equal(shards.length, shardCount);
+    assert.deepEqual(shards.flat().sort(), files);
+  });
+}
+
+test('weighted shards end within one file of each other', () => {
+  const files = Array.from(
+    { length: 401 },
+    (_, index) => `apps/web/src/f-${String(index).padStart(3, '0')}.test.ts`,
+  );
+  const weights = new Map(
+    files.map((file, index) => [file, 0.2 + ((index * 37) % 11) ** 2]),
+  );
+  const heaviest = Math.max(...weights.values());
+  const loads = assignShardFiles(files, 4, weights).map((shard) =>
+    shard.reduce((sum, file) => sum + weights.get(file), 0),
+  );
+
+  assert.ok(
+    Math.max(...loads) - Math.min(...loads) <= heaviest,
+    `loads ${loads.join(', ')} differ by more than ${heaviest}`,
+  );
+});
+
 test('writes shard file lists relative to the suite root', () => {
   assert.deepEqual(
     createShardFileMatrix(
@@ -350,6 +436,79 @@ test('an affected plan gives each app and API shard its own files', () => {
       },
     ],
   });
+});
+
+test('a plan with recorded timings sizes and fills its shards by them', () => {
+  const appTests = Array.from(
+    { length: 6 },
+    (_, index) => `apps/web/src/app-${index}.test.tsx`,
+  );
+  const timings = {
+    app: new Map(
+      appTests.map((file, index) => [file, [200, 100, 50, 50, 40, 30][index]]),
+    ),
+  };
+  const plan = createPrTestPlan({
+    base: 'base-sha',
+    changedFiles: ['packages/contracts/src/interfaces/index.ts'],
+    appTests,
+    timings,
+  });
+
+  // 470 s of tests at 180 s a shard is three shards, rounded up to four.
+  assert.equal(plan.appTests.shards, 4);
+  assert.deepEqual(plan.appTests.timing, {
+    isTimed: true,
+    estimatedSeconds: 470,
+    shardSeconds: [200, 100, 90, 80],
+  });
+  assert.deepEqual(
+    plan.appTests.matrix.include.map(({ files }) => files),
+    [
+      'src/app-0.test.tsx',
+      'src/app-1.test.tsx',
+      'src/app-2.test.tsx\nsrc/app-4.test.tsx',
+      'src/app-3.test.tsx\nsrc/app-5.test.tsx',
+    ],
+  );
+});
+
+test('a plan without usable timings splits evenly by file count', () => {
+  const appTests = Array.from(
+    { length: 76 },
+    (_, index) => `apps/web/src/app-${String(index).padStart(2, '0')}.test.tsx`,
+  );
+  const plan = createPrTestPlan({
+    base: 'base-sha',
+    changedFiles: ['packages/contracts/src/interfaces/index.ts'],
+    appTests,
+    // Records of other files cover too little of the plan to weigh it.
+    timings: { app: new Map([['apps/web/src/other.test.tsx', 900]]) },
+  });
+
+  assert.equal(plan.appTests.shards, 2);
+  assert.deepEqual(plan.appTests.timing, {
+    isTimed: false,
+    estimatedSeconds: 0,
+    shardSeconds: [],
+  });
+  assert.deepEqual(
+    plan.appTests.matrix.include.map(({ count }) => count),
+    [38, 38],
+  );
+});
+
+test('a full-suite escalation ignores recorded timings', () => {
+  const plan = createPrTestPlan({
+    base: 'base-sha',
+    changedFiles: ['bun.lock'],
+    appTests: ['apps/web/src/a.test.tsx'],
+    timings: { app: new Map([['apps/web/src/a.test.tsx', 900]]) },
+  });
+
+  assert.equal(plan.appTests.shards, 4);
+  assert.deepEqual(plan.appTests.matrix, createShardMatrix(4));
+  assert.equal(plan.appTests.timing.isTimed, false);
 });
 
 test('a shard resolves its planned list back to the planned files', () => {

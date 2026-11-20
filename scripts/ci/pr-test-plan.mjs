@@ -6,6 +6,7 @@ import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
+import { loadTimings, weighFiles } from './test-timings.mjs';
 import {
   allPackageTestTasks,
   buildWorkspaceTestMatrix,
@@ -30,7 +31,7 @@ const FORCE_FULL_PATTERNS = [
   /^turbo\.json$/,
   /(^|\/)vitest\.(?:config|setup)\.[cm]?[jt]sx?$/,
   /^\.github\/actions\/setup-bun-env\//,
-  /^scripts\/ci\/(?:pr-test-plan|test-shard-selection|tests-gate)\.mjs$/,
+  /^scripts\/ci\/(?:pr-test-plan|test-shard-selection|test-timings|tests-gate)\.mjs$/,
   /^scripts\/ci\/workspace-test-matrix\.mjs$/,
 ];
 
@@ -98,11 +99,27 @@ export const FULL_SUITE_SHARDS = 4;
 // four shards, #9840), so it gets twice as many shards as the app suite.
 export const FULL_SUITE_API_SHARDS = 8;
 
-export function selectShardCount(testFileCount) {
+// A shard's tests aim to take about this long. A shard also spends its setup
+// and package build before its first test, so a shorter target buys runners,
+// not speed.
+export const TARGET_SHARD_SECONDS = 180;
+
+/**
+ * @param {number} testFileCount
+ * @param {number} [estimatedSeconds] recorded seconds for all the files, when
+ *   known: the shards then aim at TARGET_SHARD_SECONDS each, and the file
+ *   count only decides whether there is anything to run
+ */
+export function selectShardCount(testFileCount, estimatedSeconds) {
   if (!Number.isSafeInteger(testFileCount) || testFileCount < 0) {
     throw new TypeError('testFileCount must be a non-negative integer');
   }
   if (testFileCount === 0) return 0;
+  if (estimatedSeconds !== undefined) {
+    const wanted = Math.ceil(estimatedSeconds / TARGET_SHARD_SECONDS);
+    if (wanted <= 1) return 1;
+    return wanted === 2 ? 2 : 4;
+  }
   if (testFileCount <= 75) return 1;
   if (testFileCount <= 250) return 2;
   return 4;
@@ -128,20 +145,32 @@ export function createShardMatrix(shardCount) {
 const MAX_SHARD_LIST_BYTES = 100_000;
 export const MAX_PLAN_SHARD_LIST_BYTES = 400_000;
 
+const compareNames = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
+
 /**
  * Splits the planned test files over the shards: every file lands in exactly
- * one shard, and shard sizes differ by at most one file.
+ * one shard. The heaviest file goes first, each to the shard with the least
+ * work so far, so the shards end within one file's weight of each other. With
+ * no weights every file weighs the same and sizes differ by at most one file.
  *
  * @param {readonly string[]} files
  * @param {number} shardCount
+ * @param {ReadonlyMap<string, number>} [weights] seconds per file
  * @returns {string[][]}
  */
-export function assignShardFiles(files, shardCount) {
+export function assignShardFiles(files, shardCount, weights = new Map()) {
   const shards = Array.from({ length: shardCount }, () => []);
-  [...new Set(files)].sort().forEach((file, index) => {
-    shards[index % shardCount].push(file);
-  });
-  return shards;
+  const loads = new Array(shardCount).fill(0);
+  const weigh = (file) => weights.get(file) ?? 1;
+  const ordered = [...new Set(files)].sort(
+    (a, b) => weigh(b) - weigh(a) || compareNames(a, b),
+  );
+  for (const file of ordered) {
+    const lightest = loads.indexOf(Math.min(...loads));
+    shards[lightest].push(file);
+    loads[lightest] += weigh(file);
+  }
+  return shards.map((shardFiles) => shardFiles.sort());
 }
 
 /**
@@ -152,10 +181,11 @@ export function assignShardFiles(files, shardCount) {
  * @param {readonly string[]} files repository-relative test files
  * @param {number} shardCount
  * @param {string} suiteRoot repository-relative directory the suite runs in
+ * @param {ReadonlyMap<string, number>} [weights] seconds per file
  */
-export function createShardFileMatrix(files, shardCount, suiteRoot) {
+export function createShardFileMatrix(files, shardCount, suiteRoot, weights) {
   const matrix = createShardMatrix(shardCount);
-  const lists = assignShardFiles(files, shardCount).map((shardFiles) =>
+  const lists = assignShardFiles(files, shardCount, weights).map((shardFiles) =>
     shardFiles.map((file) => path.posix.relative(suiteRoot, file)),
   );
   if (
@@ -264,6 +294,27 @@ export function parseTurboDryRun(rawOutput) {
   return [...tasks].sort();
 }
 
+// What the plan expected of each shard, so a shard's measured time can be set
+// against it: the estimate is seconds of test time per shard, empty when the
+// shards were not filled by recorded time.
+function describeTiming(files, shardCount, weights, isFilled) {
+  if (!isFilled || !weights.isTimed) {
+    return { isTimed: false, estimatedSeconds: 0, shardSeconds: [] };
+  }
+  return {
+    isTimed: true,
+    estimatedSeconds: round(weights.totalSeconds),
+    shardSeconds: assignShardFiles(files, shardCount, weights.weights).map(
+      (shardFiles) =>
+        round(
+          shardFiles.reduce((sum, file) => sum + weights.weights.get(file), 0),
+        ),
+    ),
+  };
+}
+
+const round = (value) => Math.round(value * 10) / 10;
+
 export function createPrTestPlan({
   base,
   changedFiles,
@@ -272,6 +323,7 @@ export function createPrTestPlan({
   turboTasks = {},
   forceAllSurfaces = false,
   runHeavy = false,
+  timings = {},
 }) {
   const classification = classifyChangedFiles(changedFiles);
   const forceFull = runHeavy || classification.forceFull;
@@ -280,12 +332,21 @@ export function createPrTestPlan({
   // The full tier runs the whole app suite over four shards and the whole API
   // suite over eight; the affected tier sizes the shards to the exact changed
   // graph and never exceeds four.
+  // Recorded seconds per file fill the shards and size them; a suite with no
+  // usable record splits evenly by file count.
+  const appWeights = weighFiles(appTests, timings.app);
+  const apiWeights = weighFiles(apiTests, timings.api);
+  const shardCountFor = (tests, weights) =>
+    selectShardCount(
+      tests.length,
+      weights.isTimed ? weights.totalSeconds : undefined,
+    );
   const appShardCount = forceFull
     ? FULL_SUITE_SHARDS * Number(app)
-    : selectShardCount(appTests.length);
+    : shardCountFor(appTests, appWeights);
   const apiShardCount = forceFull
     ? FULL_SUITE_API_SHARDS * Number(api)
-    : selectShardCount(apiTests.length);
+    : shardCountFor(apiTests, apiWeights);
 
   // On a change run that is not escalated, the shards run the files this plan
   // lists: resolving the changed graph again in every shard costs each one 20
@@ -293,10 +354,20 @@ export function createPrTestPlan({
   // changed source file through another package's build output (#10273).
   const assignsFiles = !forceFull && !forceAllSurfaces;
   let appMatrix = assignsFiles
-    ? createShardFileMatrix(appTests, appShardCount, APP_SUITE_ROOT)
+    ? createShardFileMatrix(
+        appTests,
+        appShardCount,
+        APP_SUITE_ROOT,
+        appWeights.weights,
+      )
     : createShardMatrix(appShardCount);
   let apiMatrix = assignsFiles
-    ? createShardFileMatrix(apiTests, apiShardCount, API_SUITE_ROOT)
+    ? createShardFileMatrix(
+        apiTests,
+        apiShardCount,
+        API_SUITE_ROOT,
+        apiWeights.weights,
+      )
     : createShardMatrix(apiShardCount);
   if (
     shardListBytes(appMatrix) + shardListBytes(apiMatrix) >
@@ -348,6 +419,7 @@ export function createPrTestPlan({
       files: [...appTests],
       matrix: appMatrix,
       shards: appShardCount,
+      timing: describeTiming(appTests, appShardCount, appWeights, assignsFiles),
     },
     apiTests: {
       applicable: api && (forceFull || apiTests.length > 0),
@@ -355,6 +427,7 @@ export function createPrTestPlan({
       files: [...apiTests],
       matrix: apiMatrix,
       shards: apiShardCount,
+      timing: describeTiming(apiTests, apiShardCount, apiWeights, assignsFiles),
     },
     turboTasks: normalizedTurboTasks,
     workspaceGroups,
@@ -466,6 +539,11 @@ function parseArguments(argv) {
     base: '',
     event: '',
     runHeavy: false,
+    timings: path.join(
+      process.env.RUNNER_TEMP || REPOSITORY_ROOT,
+      'test-timings',
+      'test-timings.json',
+    ),
   };
 
   for (let index = 0; index < argv.length; index += 1) {
@@ -475,6 +553,9 @@ function parseArguments(argv) {
       index += 1;
     } else if (argument === '--event') {
       values.event = argv[index + 1] ?? '';
+      index += 1;
+    } else if (argument === '--timings') {
+      values.timings = argv[index + 1] ?? '';
       index += 1;
     } else if (argument === '--run-heavy') {
       values.runHeavy = (argv[index + 1] ?? '') === 'true';
@@ -527,6 +608,12 @@ function writeOutputs(plan, manifestPath) {
   );
 }
 
+function expectedShardSeconds({ timing }) {
+  return timing.isTimed
+    ? timing.shardSeconds.join(', ')
+    : 'no recorded timings, even split';
+}
+
 function writeSummary(plan) {
   const summaryPath = process.env.GITHUB_STEP_SUMMARY;
   if (!summaryPath) return;
@@ -536,11 +623,13 @@ function writeSummary(plan) {
       'App tests',
       plan.forceFull ? 'all' : plan.appTests.count,
       plan.appTests.shards,
+      expectedShardSeconds(plan.appTests),
     ],
     [
       'API tests',
       plan.forceFull ? 'all' : plan.apiTests.count,
       plan.apiTests.shards,
+      expectedShardSeconds(plan.apiTests),
     ],
   ];
   const groupRows = Object.entries(plan.workspaceGroups).map(
@@ -552,10 +641,11 @@ function writeSummary(plan) {
     `- Base: \`${plan.base}\``,
     `- Full-suite escalation: ${plan.forceFull ? 'yes' : 'no'}`,
     '',
-    '| Surface | Test files | Shards |',
-    '| --- | ---: | ---: |',
+    '| Surface | Test files | Shards | Expected seconds per shard |',
+    '| --- | ---: | ---: | --- |',
     ...rows.map(
-      ([surface, count, shards]) => `| ${surface} | ${count} | ${shards} |`,
+      ([surface, count, shards, expected]) =>
+        `| ${surface} | ${count} | ${shards} | ${expected} |`,
     ),
     '',
     '| Workspace group | Plan |',
@@ -614,6 +704,7 @@ async function runCli() {
     turboTasks,
     forceAllSurfaces,
     runHeavy: args.runHeavy,
+    timings: loadTimings(args.timings),
   });
   const manifestPath = path.join(
     process.env.RUNNER_TEMP || REPOSITORY_ROOT,

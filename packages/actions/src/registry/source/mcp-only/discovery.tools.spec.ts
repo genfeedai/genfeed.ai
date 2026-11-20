@@ -26,7 +26,6 @@ describe('MCP_DISCOVERY_TOOLS', () => {
       'limit',
       'name',
       'query',
-      'toolset',
     ]);
     expect(tool?.parameters.properties).toEqual(
       expect.objectContaining({
@@ -37,7 +36,6 @@ describe('MCP_DISCOVERY_TOOLS', () => {
         }),
         name: expect.objectContaining({ type: 'string' }),
         query: expect.objectContaining({ type: 'string' }),
-        toolset: expect.objectContaining({ type: 'string' }),
       }),
     );
   });

@@ -307,6 +307,40 @@ export default function PostDetail({
     }
   }, [post, getPostsService, notificationsService, router, href]);
 
+  const [isUpdatingProfileVisibility, setIsUpdatingProfileVisibility] =
+    useState(false);
+  const handleHiddenFromProfileChange = useCallback(
+    async (isHidden: boolean) => {
+      if (!post || isUpdatingProfileVisibility) {
+        return;
+      }
+
+      setIsUpdatingProfileVisibility(true);
+
+      try {
+        const service = await getPostsService();
+        await service.patch(post.id, { isHiddenFromProfile: isHidden });
+        await refreshPost();
+        notificationsService.success(
+          isHidden
+            ? 'Post hidden from your public profile'
+            : 'Post shown on your public profile',
+        );
+      } catch {
+        notificationsService.error('Failed to update profile visibility');
+      } finally {
+        setIsUpdatingProfileVisibility(false);
+      }
+    },
+    [
+      post,
+      isUpdatingProfileVisibility,
+      getPostsService,
+      refreshPost,
+      notificationsService,
+    ],
+  );
+
   const handleScoreSeo = useCallback(async () => {
     if (!post || isScoringSeo || isContentDirty) {
       return;
@@ -652,7 +686,12 @@ export default function PostDetail({
               <div className="flex min-w-0 flex-1 flex-col">
                 {isStandalonePage && isPublished ? (
                   <PostDetailPublished
+                    isHiddenFromProfile={post.isHiddenFromProfile}
                     isTikTokInboxDelivered={isTikTokInboxDelivered(post)}
+                    isUpdatingProfileVisibility={isUpdatingProfileVisibility}
+                    onHiddenFromProfileChange={(isHidden) =>
+                      void handleHiddenFromProfileChange(isHidden)
+                    }
                     stats={analyticsStats}
                     thread={threadPreview}
                   />

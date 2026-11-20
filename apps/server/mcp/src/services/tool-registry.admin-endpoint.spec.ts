@@ -18,7 +18,6 @@ function build(accessMode: McpAccessMode) {
     client as unknown as ClientService,
     logger as unknown as LoggerService,
     'superadmin',
-    ['core'],
     undefined,
     accessMode,
   );
@@ -31,7 +30,7 @@ const listedNames = (accessMode: McpAccessMode) =>
     .map((tool) => tool.name);
 
 describe('Admin MCP endpoint tool boundary', () => {
-  it('lists exactly the admin tools on the admin endpoint, whichever toolsets the URL selects', () => {
+  it('lists exactly the admin tools on the admin endpoint', () => {
     expect(listedNames('admin').sort()).toEqual(
       [...ADMIN_MCP_TOOL_NAMES].sort(),
     );

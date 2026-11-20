@@ -569,6 +569,9 @@ test('adopts a fair pull-request validation budget with a stricter ratchet targe
 // Nineteen until the repository contracts moved out of Static Checks into the
 // Source Contracts job (#5950, approved on the project decision card
 // 2026-11-09): one more runner per pull request for a shorter critical path.
+// The cap guards runner pressure per pull request (#5863: an 88-minute run with
+// specs queued for an hour). A job whose `if` pins the master ref never starts
+// on a pull request, so it is not counted (the nightly timing recorder, #10273).
 test('caps the recursively reachable CI runnable inventory at twenty jobs', () => {
   const graph = new Map([
     ['ci.yml', new Set(['_ci-validation.yml', '_ci-frontend.yml'])],
@@ -589,7 +592,11 @@ test('caps the recursively reachable CI runnable inventory at twenty jobs', () =
         runners += count(child);
       } else {
         assert.equal(job['runs-on'], 'ubuntu-latest');
-        runners++;
+        if (
+          !String(job.if ?? '').includes("github.ref == 'refs/heads/master'")
+        ) {
+          runners++;
+        }
       }
     }
     return runners;

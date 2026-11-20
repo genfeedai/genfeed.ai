@@ -51,6 +51,7 @@ export const POST_SCALAR_FIELDS = [
   'knowledgeReceipts',
   'isAnalyticsEnabled',
   'isDeleted',
+  'isHiddenFromProfile',
   'isRepeat',
   'isShareToFeedSelected',
   'label',

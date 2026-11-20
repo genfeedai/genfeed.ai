@@ -299,6 +299,7 @@ describe('FacebookService', () => {
       expect(url).toContain('scope=');
       expect(url).toContain('pages_manage_posts');
       expect(url).toContain('pages_manage_engagement');
+      expect(url).toContain('pages_read_user_content');
       expect(url).toContain('read_insights');
     });
 

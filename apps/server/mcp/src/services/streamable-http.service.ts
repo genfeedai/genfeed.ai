@@ -1,4 +1,3 @@
-import type { ToolsetName } from '@genfeedai/actions';
 import {
   getMcpToolOutputSchema,
   getToolByName,
@@ -119,11 +118,8 @@ export class StreamableHttpService {
   private async processRequest(req: Request, res: Response): Promise<void> {
     const request = req as StatelessMcpRequest;
     const authContext = request.authContext;
-    // Parsed by `toolsetsQueryMiddleware` before authentication runs, so this
-    // is populated for unauthenticated public `tools/list` requests too.
-    const toolsets = request.toolsets ?? [];
     const handler = createMcpHandler(
-      () => this.buildServer(authContext, toolsets, request.routeAccessMode),
+      () => this.buildServer(authContext, request.routeAccessMode),
       {
         legacy: 'stateless',
         responseMode: 'auto',
@@ -158,18 +154,13 @@ export class StreamableHttpService {
 
   private buildServer(
     authContext?: McpAuthContext,
-    toolsets: readonly ToolsetName[] = [],
     routeAccessMode: McpAccessMode = 'standard',
   ): Server {
     const accessMode = mostRestrictiveMcpAccessMode(
       routeAccessMode,
       authContext?.accessMode,
     );
-    const toolRegistry = this.createToolRegistry(
-      authContext,
-      toolsets,
-      routeAccessMode,
-    );
+    const toolRegistry = this.createToolRegistry(authContext, routeAccessMode);
 
     const serverInfo = getMcpServerInfo(
       getPublicMcpUrl(),
@@ -249,14 +240,12 @@ export class StreamableHttpService {
    */
   createToolRegistry(
     authContext?: McpAuthContext,
-    toolsets: readonly ToolsetName[] = [],
     routeAccessMode: McpAccessMode = 'standard',
   ): ToolRegistryService {
     return new ToolRegistryService(
       this.createClientService(authContext?.token),
       this.logger,
       authContext?.role ?? 'user',
-      toolsets,
       this.configService,
       mostRestrictiveMcpAccessMode(routeAccessMode, authContext?.accessMode),
     );

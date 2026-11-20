@@ -543,7 +543,7 @@ describe('FirstDraftsOnboarding', () => {
     ).toBeInTheDocument();
     fireEvent.click(screen.getByRole('radio', { name: /Codex/ }));
     expect(
-      screen.getByText(/codex mcp add genfeed --url .*profile=studio/),
+      screen.getByText(/codex mcp add genfeed --url /),
     ).toBeInTheDocument();
     expect(screen.getByText('Waiting for Codex to connect')).toBeVisible();
   });

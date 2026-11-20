@@ -5,16 +5,7 @@ import type {
 } from '../interfaces/tool-definition.interface';
 import { isMcpListedToolName } from './mcp-catalog-calls';
 import { ALL_TOOLS } from './tool-assembly';
-import {
-  BARE_MCP_URL_TOOL_CAP,
-  DEFAULT_MCP_PROFILE_TOOLSETS,
-} from './toolset-profiles';
-import {
-  CORE_TOOLSET_NAME,
-  getToolsForToolsets,
-  isToolsetName,
-  TOOLSETS,
-} from './toolsets';
+import { isToolsetName, TOOLSETS } from './toolset-names';
 
 export { ALL_TOOLS } from './tool-assembly';
 
@@ -46,24 +37,24 @@ if (toolsetsWithoutEntries.length > 0) {
   );
 }
 
-const CORE_MCP_TOOL_LIMIT = 12;
-const coreMcpToolCount = ALL_TOOLS.filter(
-  (tool) => tool.toolset === CORE_TOOLSET_NAME && tool.surfaces.mcp,
-).length;
-if (coreMcpToolCount > CORE_MCP_TOOL_LIMIT) {
-  throw new Error(
-    `core toolset exceeds the ${CORE_MCP_TOOL_LIMIT}-tool MCP limit: has ${coreMcpToolCount}`,
-  );
-}
+/**
+ * The most tools any connection lists to an ordinary caller. Every connection
+ * lists every tool, so this is the size of the whole user-facing MCP catalog.
+ * Merge related actions into an existing `{action, input}` tool instead of
+ * raising it.
+ */
+export const MCP_TOOL_CAP = 30;
 
 // The cap counts what an ordinary caller sees; admin-only tools are not listed to them.
-const bareUrlMcpToolCount = getToolsForToolsets(
-  'mcp',
-  DEFAULT_MCP_PROFILE_TOOLSETS,
-).filter((tool) => tool.requiredRole === 'user').length;
-if (bareUrlMcpToolCount > BARE_MCP_URL_TOOL_CAP) {
+const listedMcpToolCount = ALL_TOOLS.filter(
+  (tool) =>
+    tool.surfaces.mcp &&
+    isMcpListedToolName(tool.name) &&
+    tool.requiredRole === 'user',
+).length;
+if (listedMcpToolCount > MCP_TOOL_CAP) {
   throw new Error(
-    `default MCP profile exceeds the ${BARE_MCP_URL_TOOL_CAP}-tool bare-URL cap: has ${bareUrlMcpToolCount} (${DEFAULT_MCP_PROFILE_TOOLSETS.join(', ')})`,
+    `MCP catalog exceeds the ${MCP_TOOL_CAP}-tool cap: lists ${listedMcpToolCount}`,
   );
 }
 

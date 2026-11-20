@@ -1,15 +1,12 @@
 import {
   getToolByName,
-  getToolsetNames,
   getToolsForSurface,
-  getToolsForToolsets,
   isMcpBrandRequiredTool,
   isMcpBrandRequiredWhenMultipleTool,
   isToolAllowedInMcpAccessMode,
   type McpAccessMode,
   type McpToolOutput,
   readMcpBrandId,
-  type ToolsetName,
   toMcpTools,
 } from '@genfeedai/actions';
 import { formatAgentError } from '@genfeedai/agent/server';
@@ -279,12 +276,6 @@ export class ToolRegistryService implements OnModuleInit {
     // per-request role, so it falls back to `'user'` — deny-by-default for
     // admin tools.
     @Optional() private readonly requestRole: McpRole = 'user',
-    // The caller's resolved toolset selection (`resolveMcpToolQuery`). Empty
-    // means "every toolset" — `?profile=full`, and the DI singleton, which
-    // never threads a per-request selection and resolves toolsets per call
-    // via {@link getToolsForRoleAndToolsets}. The bare URL passes the default
-    // profile list, not an empty selection.
-    @Optional() private readonly requestToolsets: readonly ToolsetName[] = [],
     @Optional() private readonly configService?: ConfigService,
     @Optional() private readonly requestAccessMode: McpAccessMode = 'standard',
   ) {}
@@ -319,63 +310,26 @@ export class ToolRegistryService implements OnModuleInit {
     );
   }
 
-  getToolsForRole(role: McpRole): McpToolOutput[] {
-    return ToolRegistryService.filterToolsByRole(this.getAllTools(), role);
-  }
-
   /**
-   * Tools a role may invoke, narrowed to the requested toolsets (union'd with
-   * the always-on `core` toolset — `getToolsForToolsets` owns that union) or
-   * every tool when `toolsets` is empty. This is what `tools/list` and the
-   * REST mirror actually advertise; `handleToolCall` never filters by
-   * toolset, so a client can still call a tool outside its current
-   * `tools/list` view.
+   * Every tool a role may invoke on an endpoint. Every connection lists the
+   * whole catalog, so this is what `tools/list` and the REST mirror advertise.
+   * `handleToolCall` still gates each call by role.
    */
-  getToolsForRoleAndToolsets(
+  getToolsForRole(
     role: McpRole,
-    toolsets: readonly ToolsetName[],
     accessMode: McpAccessMode = this.requestAccessMode,
   ): McpToolOutput[] {
     return ToolRegistryService.filterToolsByRole(
-      toMcpTools(
-        accessMode === 'claude' || accessMode === 'admin'
-          ? getToolsForSurface('mcp')
-          : getToolsForToolsets('mcp', toolsets),
-      )
+      toMcpTools(getToolsForSurface('mcp'))
         .filter((tool) => isToolAllowedInMcpAccessMode(accessMode, tool.name))
         .map(withCardMetadata),
       role,
     );
   }
 
+  /** The tools this connection lists. */
   getTools(): McpToolOutput[] {
-    return this.getToolsForRoleAndToolsets(
-      this.requestRole,
-      this.requestToolsets,
-    );
-  }
-
-  /**
-   * The role-filtered full catalog, ignoring the caller's `?toolsets=`
-   * selection. Backs `find_tools` — a
-   * client should be able to discover a tool outside its currently-loaded
-   * toolset so it can reconnect with a broader selection.
-   */
-  getDiscoverableTools(): McpToolOutput[] {
     return this.getToolsForRole(this.requestRole);
-  }
-
-  /**
-   * Requested toolset names that exist in the catalog but have no MCP tools
-   * on this deploy. `find_tools` warns about them; they are not a failed
-   * connection. An empty request selection (`?profile=full`) warns about
-   * nothing — the caller did not name a specific empty toolset.
-   */
-  getIgnoredEmptyToolsets(): readonly ToolsetName[] {
-    const present = new Set(getToolsetNames('mcp'));
-    return this.requestToolsets
-      .filter((name) => !present.has(name))
-      .sort((a, b) => a.localeCompare(b));
   }
 
   getResources(): McpResource[] {

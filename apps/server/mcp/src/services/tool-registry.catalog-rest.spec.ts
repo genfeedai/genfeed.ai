@@ -758,14 +758,14 @@ describe('Brand URL tools', () => {
   it('lists brand creation on the admin endpoint and the scan status on the standard one', () => {
     const { registry } = build();
     const adminNames = registry.admin
-      .getToolsForRoleAndToolsets('admin', ['brand'])
+      .getToolsForRole('admin')
       .map((tool) => tool.name);
     expect(adminNames.sort()).toEqual([
       'create_brand_from_url',
       'resolve_approval',
     ]);
     const standardNames = registry.standard
-      .getToolsForRoleAndToolsets('admin', ['brand'])
+      .getToolsForRole('admin')
       .map((tool) => tool.name);
     expect(standardNames).toContain('get_context');
     expect(standardNames).not.toContain('create_brand_from_url');
@@ -774,7 +774,7 @@ describe('Brand URL tools', () => {
   it('does not advertise brand creation to user-tier callers', () => {
     const { registry } = build();
     const names = registry.standard
-      .getToolsForRoleAndToolsets('user', ['brand'])
+      .getToolsForRole('user')
       .map((tool) => tool.name);
     expect(names).not.toContain('create_brand_from_url');
     expect(names).toContain('get_context');

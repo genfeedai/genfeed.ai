@@ -9,7 +9,6 @@ import { StreamableHttpService } from '@mcp/services/streamable-http.service';
 import { asMergedToolCall } from '@mcp/services/tool-registry.endpoints.testing';
 import type { McpRequest } from '@mcp/shared/interfaces/mcp-request.interface';
 import { mcpAccessModeMiddleware } from '@mcp/shared/middleware/mcp-access-mode.middleware';
-import { toolsetsQueryMiddleware } from '@mcp/shared/middleware/toolsets-query.middleware';
 import { HttpService } from '@nestjs/axios';
 import express, { type NextFunction, type Response } from 'express';
 
@@ -71,7 +70,7 @@ function parseRpcBody(wire: string, contentType: string | null) {
 }
 
 /**
- * Boots the production MCP request path (access-mode and toolset middleware,
+ * Boots the production MCP request path (access-mode middleware,
  * `AuthService` token resolution, `StreamableHttpService`, the real tool
  * registry and role guard) against a Genfeed API at `apiBaseUrl`. Only the
  * Nest bootstrap, Redis rate limiter and analytics are left out.
@@ -131,7 +130,6 @@ export async function startMcpTestServer(
     ['/mcp', '/mcp/claude', '/mcp/admin'],
     express.json({ limit: '1mb' }),
     mcpAccessModeMiddleware,
-    toolsetsQueryMiddleware,
     authenticate,
     (req, res) => {
       streamableHttpService.handlePost(req, res).catch(() => {

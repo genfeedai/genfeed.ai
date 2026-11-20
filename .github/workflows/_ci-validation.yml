@@ -168,6 +168,17 @@ jobs:
         uses: ./.github/actions/setup-bun-env
         with:
           cache-prisma-client: 'true'
+      # Recorded seconds per test file, saved by the nightly Full Suite on
+      # master (record-test-timings below). The planner fills the shards with
+      # them; a miss only costs an even split.
+      - name: Restore recorded test timings
+        if: steps.tier.outputs.heavy != 'true'
+        continue-on-error: true
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/test-timings
+          key: test-timings-v1-unused
+          restore-keys: test-timings-v1-
       # Vitest supplies the exact affected app/API files; Turbo supplies the
       # affected workspace tasks. Lockfile, turbo, vitest config, bun-setup, and
       # the planner itself escalate to the full sharded path.
@@ -927,8 +938,10 @@ jobs:
       # The shard runs the files Plan assigned to it; the full tier runs the
       # whole suite split by Vitest (scripts/ci/test-shard-selection.mjs).
       - name: Run app tests
+        id: app-tests
         if: steps.start.outputs.run == 'true'
         env:
+          API_TEST_TIMINGS_OUTPUT: ${{ runner.temp }}/app-test-timings/shard-${{ matrix.shard }}.json
           CI_BASE_SHA: ${{ fromJSON(steps.start.outputs.plan).base }}
           FORCE_FULL: ${{ fromJSON(steps.start.outputs.plan).force_full }}
           NODE_ENV: test
@@ -942,7 +955,17 @@ jobs:
           node scripts/ci/test-shard-selection.mjs > "${RUNNER_TEMP}/shard-selection.txt"
           mapfile -t SELECTION < "${RUNNER_TEMP}/shard-selection.txt"
           cd apps/web && bunx vitest run --config ./vitest.config.mts \
-            --maxWorkers=2 "${SELECTION[@]}"
+            --maxWorkers=2 "${SELECTION[@]}" \
+            --reporter=default \
+            --reporter="$GITHUB_WORKSPACE/scripts/ci/api-test-timings-reporter.mjs"
+      - name: Upload app test timings
+        if: always() && steps.app-tests.outcome != 'skipped' && steps.app-tests.outcome != ''
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: app-test-timings-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.shard }}
+          path: ${{ runner.temp }}/app-test-timings/shard-${{ matrix.shard }}.json
+          retention-days: 7
+          if-no-files-found: error
 
   # API tests mirror the app job: the planner's matrix, the files the plan
   # gave the shard on the affected tier, the whole suite on the full tier.
@@ -1435,3 +1458,51 @@ jobs:
           BUILD_RESULT: ${{ needs.build.result }}
         shell: bash
         run: node scripts/ci/tests-gate.mjs | tee -a "$GITHUB_STEP_SUMMARY"
+
+  # The nightly Full Suite on master runs every test file, so its receipts give
+  # the seconds per file the planner fills shards with. The merged file lives in
+  # the Actions cache of master, which every pull request can read. Not part of
+  # the verdict: a failure here only leaves the previous timings in place.
+  record-test-timings:
+    name: Record Test Timings
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    continue-on-error: true
+    needs: [plan, test-app, test-api]
+    if: >-
+      ${{ !cancelled()
+      && github.ref == 'refs/heads/master'
+      && needs.plan.outputs.force_full == 'true'
+      && needs.test-app.result == 'success'
+      && needs.test-api.result == 'success' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Download app timings
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: app-test-timings-${{ github.run_id }}-${{ github.run_attempt }}-*
+          path: ${{ runner.temp }}/receipts/app
+      - name: Download API timings
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: api-test-timings-${{ github.run_id }}-${{ github.run_attempt }}-*
+          path: ${{ runner.temp }}/receipts/api
+      # The restore takes the newest earlier file; the post step saves the
+      # merged one under this run's key.
+      - name: Restore the previous timings
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/test-timings
+          key: test-timings-v1-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: test-timings-v1-
+      - name: Merge this run into the timings
+        run: |
+          set -euo pipefail
+          # download-artifact puts each artifact in a folder named after it.
+          node scripts/ci/test-timings.mjs merge \
+            --previous "${RUNNER_TEMP}/test-timings/test-timings.json" \
+            --app "${RUNNER_TEMP}/receipts/app" \
+            --api "${RUNNER_TEMP}/receipts/api" \
+            --out "${RUNNER_TEMP}/test-timings/test-timings.json"

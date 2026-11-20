@@ -59,13 +59,6 @@ export {
   isMcpApprovalSkippable,
   resolveEffectiveMutationPolicy,
 } from './registry/agent-action-class';
-export type { McpAppName } from './registry/app-toolsets';
-export {
-  isMcpAppName,
-  MCP_APP_NAMES,
-  MCP_APP_TOOLSETS,
-  resolveMcpAppToolsets,
-} from './registry/app-toolsets';
 export {
   getKnowledgeToolActionContract,
   KNOWLEDGE_RECEIPT_SCHEMA,
@@ -189,37 +182,15 @@ export {
   getToolsByCategory,
   getToolsForRole,
   getToolsForSurface,
+  MCP_TOOL_CAP,
 } from './registry/tool-registry';
-export type {
-  McpProfileResolution,
-  McpToolsetProfileName,
-} from './registry/toolset-profiles';
-export {
-  BARE_MCP_URL_TOOL_CAP,
-  BARE_URL_MCP_PROFILE,
-  CONNECTOR_MCP_TOOL_CAP,
-  DEFAULT_MCP_PROFILE_TOOLSETS,
-  DIRECTORY_EXCLUDED_TOOLSETS,
-  DIRECTORY_MCP_PROFILE_TOOLSETS,
-  isMcpToolsetProfileName,
-  MCP_PROFILE_NAMES,
-  resolveMcpProfile,
-  STUDIO_MCP_PROFILE_TOOL_CAP,
-  STUDIO_MCP_PROFILE_TOOLSETS,
-} from './registry/toolset-profiles';
 export type {
   ToolsetDefinition,
   ToolsetName,
-  ToolsetSelection,
-  ToolsetSummary,
-} from './registry/toolsets';
+} from './registry/toolset-names';
 export {
   CORE_TOOLSET_NAME,
-  getToolsetNames,
-  getToolsets,
-  getToolsForToolsets,
   isToolsetName,
-  parseToolsetSelection,
   TOOLSET_NAMES,
   TOOLSETS,
-} from './registry/toolsets';
+} from './registry/toolset-names';
