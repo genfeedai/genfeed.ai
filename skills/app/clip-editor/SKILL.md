@@ -1,6 +1,6 @@
 ---
 name: clip-editor
-description: Edit a finished clip directly from the agent. Read the clip and its transcript, propose an exact new window, then re-cut it with edit_clip once the user agrees. Triggers on "edit this clip", "cut the intro", "make this clip shorter", "this clip ends mid-sentence", "change where this clip starts", "retitle this clip".
+description: Edit a finished clip directly from the agent. Read the clip and its transcript, propose an exact new window, then re-cut it once the user agrees. Triggers on "edit this clip", "cut the intro", "make this clip shorter", "this clip ends mid-sentence", "change where this clip starts", "retitle this clip".
 version: 1.0.0
 tags:
   - genfeed
@@ -24,15 +24,15 @@ Re-cut a finished clip to a better start and end, or retitle it, without leaving
 ## Tools
 
 - `get_video_projects` with `action` set to `clip_context` reads a clip and the transcript around it. With a `projectId` it lists the clips of that project so you can find the one the user means.
-- `edit_clip` re-cuts a clip to a new window. It costs no credits.
+- The `recut` action of `run_video_project` re-cuts a clip to a new window. It costs no credits.
 
 ## Workflow
 
 1. **Find the clip.** If the user did not name a clip result, call `get_video_projects` with `action` set to `clip_context` and the `projectId` and match on title or times. Ask which clip only when more than one fits.
 2. **Read before you cut.** Call `get_video_projects` with `action` set to `clip_context` and the `clipperResultId`. Check `clip.isEditable`. If it is false, say why (an avatar clip is regenerated from its script; an unfinished clip must finish first) and stop.
 3. **Choose boundaries on speech.** Read the transcript lines around the clip. Start where a sentence starts and end where a sentence ends. Do not cut mid-word or mid-thought, and keep a beat of room after the last word.
-4. **Say the exact window, then wait.** Tell the user the new start and end in seconds, the new length, and the first and last words of the cut. Wait for a yes before calling `edit_clip`. A request that already names exact times counts as a yes.
-5. **Call `edit_clip`** with `clipperResultId` and only the fields that change (`startTime`, `endTime`, `title`).
+4. **Say the exact window, then wait.** Tell the user the new start and end in seconds, the new length, and the first and last words of the cut. Wait for a yes before calling `run_video_project` with `action` set to `recut`. A request that already names exact times counts as a yes.
+5. **Call `run_video_project`** with `action` set to `recut` and `input` holding `clipperResultId` and only the fields that change (`startTime`, `endTime`, `title`).
 6. **Report plainly.** The edit is queued as a new clip and takes a moment to process. Give the new window and the caption count. Do not say it is finished.
 
 ## Guardrails
@@ -42,5 +42,5 @@ Re-cut a finished clip to a better start and end, or retitle it, without leaving
 - Times are source-video seconds, not clip-relative seconds.
 - Never edit more than one clip per confirmation. Batch edits need the user to approve the list.
 - The original stays. Say so when the user worries about losing a cut.
-- If `edit_clip` refuses the window, relay the reason and offer the nearest window that works. Do not retry the same times.
+- If the `recut` action refuses the window, relay the reason and offer the nearest window that works. Do not retry the same times.
 - Do not invent transcript. If the transcript is empty around the clip, say you cannot place a cut and ask for times.

@@ -476,6 +476,19 @@ export const MCP_CATALOG_TOOLS = [
     ],
   },
   {
+    name: 'run_video_project',
+    description:
+      'Start and change clip and editor projects. create starts a clip project from a YouTube link; analyze finds highlights for free; run cuts the chosen highlights into clips (avatar clips are held per second and settle to the rendered length); recut moves a finished clip to a new start and end; editor_draft opens clips in the video editor; render exports an editor project. Read projects with get_video_projects.',
+    operations: [
+      { action: 'create', executes: 'create_clipper_project_from_youtube' },
+      { action: 'analyze', executes: 'analyze_clipper_project' },
+      { action: 'run', executes: 'run_clipper' },
+      { action: 'recut', executes: 'edit_clip' },
+      { action: 'editor_draft', executes: 'open_in_editor' },
+      { action: 'render', executes: 'start_editor_render' },
+    ],
+  },
+  {
     name: 'manage_workflow',
     description:
       'Change workflows. create saves one; duplicate copies one without touching the source; install adds a system workflow to the workspace; schedule turns its schedule on or off; execute runs it and spends credits, so inspect it first with find_workflows; create_ad_remix and create_instagram_remix build a remix workflow from a source ad or Instagram post.',
