@@ -1,4 +1,4 @@
-import { getToolsForSurface } from '@genfeedai/actions';
+import { getToolByName } from '@genfeedai/actions';
 import type { ClientService } from '@mcp/services/client.service';
 import { type RemixToolName, remixToolSchemas } from '@mcp/tools/remix.schemas';
 import { handleRemixTool, REMIX_TOOL_NAMES } from '@mcp/tools/remix.tool';
@@ -175,9 +175,12 @@ describe('handleRemixTool', () => {
   });
 
   it('advertises strict matching top-level schemas and preserves scene IDs and nullable clears', () => {
-    const tools = getToolsForSurface('mcp').filter((tool) =>
-      REMIX_TOOL_NAMES.has(tool.name),
-    );
+    // The remix tools run behind find_inspiration, save_remix and run_remix, so
+    // they keep their MCP surface but are not listed under their own names.
+    const tools = [...REMIX_TOOL_NAMES].flatMap((name) => {
+      const tool = getToolByName(name);
+      return tool ? [tool] : [];
+    });
     expect(tools).toHaveLength(8);
     for (const tool of tools) {
       const schema = remixToolSchemas[tool.name as RemixToolName];
