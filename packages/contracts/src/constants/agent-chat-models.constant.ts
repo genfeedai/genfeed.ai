@@ -211,12 +211,13 @@ export const LLM_DEFAULTS = {
    */
   grokFast: MODEL_KEYS.OPENROUTER_XAI_GROK_4_3,
   /**
-   * Seed fallback for product text (drafts, prompt enhancement) when no
-   * Admin → Automation → Models `isDefault` TEXT row resolves. Rejected
-   * Grok 4.1 Fast (OpenRouter zero-data-retention 404, #5161) in favor of a
-   * fast frontier model that passes the org's ZDR setting.
+   * Product text: posts, captions, drafts, prompt enhancement, and the review
+   * and update steps of an article. Gemini 4 Hydrogen at its default medium
+   * effort. Its reasoning is mandatory and counts against `max_tokens`, so
+   * short budgets carry an allowance (`TEXT_GENERATION_LIMITS`). Must have a
+   * zero-data-retention endpoint, which first-party requests require (#5161).
    */
-  productTextFallback: MODEL_KEYS.OPENROUTER_GOOGLE_GEMINI_3_8_FLASH,
+  productTextFallback: MODEL_KEYS.OPENROUTER_GOOGLE_GEMINI_4_HYDROGEN,
   /** High-frequency volume agent types and mechanical compression. */
   volumeAgent: AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_1_FLASH,
   /** Creative agent types, captions, planning, insights. */

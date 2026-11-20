@@ -1538,10 +1538,17 @@ export const MODEL_OUTPUT_CAPABILITIES: Record<string, ModelOutputCapability> =
       maxOutputs: 1,
       maxReferences: 0,
     },
-    // Seed fallback for product text (drafts, prompt enhancement) when no
-    // Admin default TEXT model is set — `LLM_DEFAULTS.productTextFallback`
-    // (#5161). Not in the agent chat picker.
+    // Previous product text fallback; `LLM_DEFAULTS.productTextFallback` is now
+    // Gemini 4 Hydrogen. Not in the agent chat picker.
     [MODEL_KEYS.OPENROUTER_GOOGLE_GEMINI_3_8_FLASH]: {
+      category: ModelCategory.TEXT,
+      isBatchSupported: false,
+      maxOutputs: 1,
+      maxReferences: 0,
+    },
+    // Product text — `LLM_DEFAULTS.productTextFallback` (posts, captions,
+    // drafts, prompt enhancement, article review). Not in the agent chat picker.
+    [MODEL_KEYS.OPENROUTER_GOOGLE_GEMINI_4_HYDROGEN]: {
       category: ModelCategory.TEXT,
       isBatchSupported: false,
       maxOutputs: 1,
