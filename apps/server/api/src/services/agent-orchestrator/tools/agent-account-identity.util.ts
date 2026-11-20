@@ -52,7 +52,11 @@ export async function readAccountIdentity(
           brandCount: brands.length,
           brands: brands
             .slice(0, ACCOUNT_BRAND_LIMIT)
-            .map(({ id, name }) => ({ id, name })),
+            .map(({ id, logo, name }) => ({
+              id,
+              ...(logo ? { logo } : {}),
+              name,
+            })),
         }
       : {}),
     ...(hasMissingBrandAccess

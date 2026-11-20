@@ -33,6 +33,7 @@ import { NewslettersModule } from '@api/collections/newsletters/newsletters.modu
 import { OptimizersModule } from '@api/collections/optimizers/optimizers.module';
 import { OrganizationSettingsModule } from '@api/collections/organization-settings/organization-settings.module';
 import { OrganizationsCoreModule } from '@api/collections/organizations/organizations-core.module';
+import { OrganizationLogoService } from '@api/collections/organizations/services/organization-logo.service';
 import { OutliersCoreModule } from '@api/collections/outliers/outliers-core.module';
 import { OutreachCampaignsModule } from '@api/collections/outreach-campaigns/outreach-campaigns.module';
 import { PersonasCoreModule } from '@api/collections/personas/personas-core.module';
@@ -165,6 +166,7 @@ import { MediaPromptEnhancementModule } from '@api/services/harness/media-prompt
 import { InstagramInspirationModule } from '@api/services/instagram-inspiration/instagram-inspiration.module';
 import { LlmDispatcherModule } from '@api/services/integrations/llm/llm-dispatcher.module';
 import { MediaReadinessModule } from '@api/services/media-readiness/media-readiness.module';
+import { MediaUrlsModule } from '@api/services/media-urls/media-urls.module';
 import { RouterModule } from '@api/services/router/router.module';
 import { ScriptGenerationService } from '@api/services/script-generation/script-generation.service';
 import { SeoModule } from '@api/services/seo/seo.module';
@@ -247,6 +249,7 @@ import { Module } from '@nestjs/common';
     MarketplaceIntegrationModule,
     McpApprovalsModule,
     MediaReadinessModule,
+    MediaUrlsModule,
     NewslettersModule,
     OrganizationSettingsModule,
     OrganizationsCoreModule,
@@ -330,6 +333,7 @@ import { Module } from '@nestjs/common';
     AgentStoryboardVideoTool,
     AgentTrendsToolHandler,
     AgentWorkspaceToolHandler,
+    OrganizationLogoService,
     AgentOrchestratorTurboRunService,
     AgentOrchestratorContextService,
     AgentOrchestratorPlanModeService,

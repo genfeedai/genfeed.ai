@@ -9,6 +9,7 @@ import {
   resolveCharacterFilter,
 } from '@api/collections/ingredients/services/ingredient-character-filter.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import { OrganizationLogoService } from '@api/collections/organizations/services/organization-logo.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
@@ -142,6 +143,8 @@ export class AgentWorkspaceToolHandler {
     private readonly usersService?: UsersService,
     @Optional()
     private readonly organizationsService?: OrganizationsService,
+    @Optional()
+    private readonly organizationLogoService?: OrganizationLogoService,
   ) {}
 
   /**
@@ -161,7 +164,9 @@ export class AgentWorkspaceToolHandler {
 
     const data: Record<string, unknown> = {};
     if (sections.has('profile')) {
-      data.profile = await this.readAccountProfile(ctx);
+      data.profile = await this.readAccountProfile(ctx, {
+        hasLogos: params.includeLogo === true,
+      });
     }
     if (sections.has('credits')) {
       data.credits = {
@@ -189,25 +194,56 @@ export class AgentWorkspaceToolHandler {
 
   private async readAccountProfile(
     ctx: ToolExecutionContext,
+    options: { hasLogos?: boolean } = {},
   ): Promise<Record<string, unknown>> {
     const brandId = ctx.brandId ?? ctx.validatedScope?.brandId;
     const identity = await readAccountIdentity(
       {
         brandCounter: this.brandsService,
-        listBrands: (context) => this.listAccessibleBrands(context),
+        listBrands: (context) => this.listAccessibleBrands(context, options),
         organizationsService: this.organizationsService,
         usersService: this.usersService,
       },
       ctx,
       brandId,
     );
+    const organizationLogoUrl = options.hasLogos
+      ? await this.readOrganizationLogoUrl(ctx, identity)
+      : undefined;
     return {
       ...identity,
       ...(brandId ? { brandId } : {}),
+      ...(organizationLogoUrl ? { organizationLogoUrl } : {}),
       organizationId: ctx.organizationId,
       role: await this.resolveOrganizationRole(ctx),
       userId: ctx.userId,
     };
+  }
+
+  /**
+   * The organization's own logo asset, else its first brand's logo: signup
+   * scraping saves the company logo on the brand, so most organizations have
+   * no logo of their own (the same order the admin leaderboard uses).
+   */
+  private async readOrganizationLogoUrl(
+    ctx: ToolExecutionContext,
+    identity: Record<string, unknown>,
+  ): Promise<string | undefined> {
+    const ownLogoUrl = await this.organizationLogoService
+      ?.resolveLogoUrls([ctx.organizationId])
+      .then((logoUrls) => logoUrls.get(ctx.organizationId))
+      .catch(() => undefined);
+    if (ownLogoUrl) {
+      return ownLogoUrl;
+    }
+    const brands = Array.isArray(identity.brands) ? identity.brands : [];
+    for (const brand of brands) {
+      const cdnUrl = (brand as { logo?: { cdnUrl?: unknown } }).logo?.cdnUrl;
+      if (typeof cdnUrl === 'string' && cdnUrl) {
+        return cdnUrl;
+      }
+    }
+    return undefined;
   }
 
   private async listAccessibleBrands(

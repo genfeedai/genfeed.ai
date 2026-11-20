@@ -56,6 +56,11 @@ export const OVERLAP_QUERY_TOOLS: SourceTool[] = [
           items: { enum: ['profile', 'credits', 'usage'], type: 'string' },
           type: 'array',
         },
+        includeLogo: {
+          description:
+            'Include each brand logo URL in the profile. Account cards set this themselves; leave it off otherwise.',
+          type: 'boolean',
+        },
       },
       type: 'object',
     },

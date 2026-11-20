@@ -327,9 +327,13 @@ function buildAccountView(data: Record<string, unknown>): McpCardView {
   if (Object.keys(profile).length) {
     const brandCount =
       typeof profile.brandCount === 'number' ? profile.brandCount : undefined;
-    const brandNames = (Array.isArray(profile.brands) ? profile.brands : [])
-      .map((brand) => text(record(brand), 'name'))
-      .filter(Boolean);
+    const brandChips = (Array.isArray(profile.brands) ? profile.brands : [])
+      .map((brand) => ({
+        avatarUrl: brandLogoUrl(record(brand)),
+        label: text(record(brand), 'name'),
+      }))
+      .filter((chip) => chip.label);
+    const brandNames = brandChips.map((chip) => chip.label);
     const brandsFact: McpCardFact[] =
       brandCount === 0 && text(profile, 'brandAccessMessage')
         ? fact('Brands', text(profile, 'brandAccessMessage'))
@@ -340,7 +344,8 @@ function buildAccountView(data: Record<string, unknown>): McpCardView {
                 {
                   ...(brandNames.length
                     ? {
-                        items: brandNames.map((label) => ({
+                        items: brandChips.map(({ avatarUrl, label }) => ({
+                          avatarUrl,
                           hasAvatar: true,
                           label,
                         })),
@@ -372,6 +377,7 @@ function buildAccountView(data: Record<string, unknown>): McpCardView {
             : []),
         ],
         {
+          avatarUrl: safeCardUrl(text(profile, 'organizationLogoUrl')),
           hasAvatar: true,
           id: text(profile, 'organizationId'),
           status: words(text(profile, 'role')),
@@ -468,10 +474,23 @@ export function withoutBrandLogos(data: Record<string, unknown>) {
     const { logo: _logo, ...rest } = record(value);
     return rest;
   };
+  const { organizationLogoUrl: _organizationLogoUrl, ...profile } = record(
+    data.profile,
+  );
   return {
     ...data,
     ...(Array.isArray(data.brands) ? { brands: data.brands.map(strip) } : {}),
     ...(data.brand ? { brand: strip(data.brand) } : {}),
+    ...(Object.keys(profile).length
+      ? {
+          profile: {
+            ...profile,
+            ...(Array.isArray(profile.brands)
+              ? { brands: profile.brands.map(strip) }
+              : {}),
+          },
+        }
+      : {}),
   };
 }
 
@@ -991,7 +1010,7 @@ export function withCardResult<T extends McpAppResult>(
     ...result,
     structuredContent: {
       ...result.structuredContent,
-      ...(name === 'get_brands'
+      ...(name === 'get_brands' || name === 'get_account'
         ? { data: withoutBrandLogos(record(result.structuredContent.data)) }
         : {}),
       genfeedCards: view,
