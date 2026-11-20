@@ -83,7 +83,10 @@ vi.mock('@/features/brands/components/brand-kit/BrandOsSettingsCard', () => ({
       content: mocks.revisionContent,
       approvedContent: null,
       renderFields: (groups) => <p>Revision fields: {groups.join(', ')}</p>,
-      review: <p>Revision history and export</p>,
+      review: <p>Approval and rules</p>,
+      history: <p>Revision picker</p>,
+      share: <p>Export and publish</p>,
+      policy: <p>Publishing policy editor</p>,
       isDirty: true,
       isLoading: false,
       isSaveDisabled: false,
@@ -163,6 +166,7 @@ describe('Brand Kit workspace', () => {
       'Writing voice',
       'Strategy',
       'Video',
+      'Publishing',
     ]);
     expect(
       screen.queryByRole('heading', { name: 'Brand Kit' }),
@@ -180,17 +184,37 @@ describe('Brand Kit workspace', () => {
     expect(screen.getByTestId('brand-kit-local-preview')).toBeInTheDocument();
   });
 
-  it('opens revision history from Review changes only', () => {
+  it('opens approval from Review changes only', () => {
     render(<BrandKitPage />);
-    expect(
-      screen.queryByText('Revision history and export'),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Approval and rules')).not.toBeInTheDocument();
     fireEvent.click(
       within(screen.getByTestId('subbar')).getByRole('button', {
         name: 'Review changes',
       }),
     );
-    expect(screen.getByText('Revision history and export')).toBeInTheDocument();
+    expect(screen.getByText('Approval and rules')).toBeInTheDocument();
+  });
+
+  it('puts the publishing policy on the page, not in a dialog', () => {
+    render(<BrandKitPage />);
+    expect(
+      screen.getByRole('heading', { level: 2, name: 'Publishing' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Publishing policy editor')).toBeInTheDocument();
+  });
+
+  it.each([
+    ['Version history', 'Revision picker'],
+    ['Share & export', 'Export and publish'],
+  ])('opens %s from the actions menu', async (item, body) => {
+    render(<BrandKitPage />);
+    expect(screen.queryByText(body)).not.toBeInTheDocument();
+    fireEvent.pointerDown(
+      screen.getByRole('button', { name: 'Brand Kit actions' }),
+      { button: 0, ctrlKey: false },
+    );
+    fireEvent.click(await screen.findByRole('menuitem', { name: item }));
+    expect(await screen.findByText(body)).toBeInTheDocument();
   });
 
   it('puts the page actions in the shared subbar', () => {

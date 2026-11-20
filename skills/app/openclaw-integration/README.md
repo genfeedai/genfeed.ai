@@ -76,8 +76,7 @@ Use `find_tools` to discover the connected account's tools and input schemas.
 | `get_insights` | Discover topic ideas and read content and video performance |
 | `schedule_release` | Create or update a draft or scheduled multi-channel release |
 | `control_release` | Pause, resume, cancel, or publish a confirmed release |
-| `create_workflow` | Create an automation workflow |
-| `execute_workflow` | Run a saved workflow |
+| `manage_workflow` | Create, duplicate, install, schedule or run a workflow |
 | `find_workflows` | List saved workflows, templates and runs |
 
 Before generating, resolve a brand and confirm the requested spend. Before publishing,
