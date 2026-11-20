@@ -22,7 +22,6 @@ describe('MCP Apps card contract', () => {
       'generate_media',
       'generate_text',
       'get_context',
-      'manage_workspace',
     ]) {
       const tool = tools.find((item) => item.name === name);
       expect(tool, name).toBeDefined();
@@ -474,8 +473,8 @@ describe('MCP Apps card contract', () => {
         { id: 'org-b', isActive: true, label: 'Beta' },
       ],
     };
-    for (const name of ['get_orgs', 'switch_org']) {
-      const view = buildCardView(name, data);
+    {
+      const view = buildCardView('get_orgs', data);
       expect(view?.layout).toBe('organizations');
       expect(view?.cards.map((card) => card.title)).toEqual(['Beta Studio']);
       expect(view?.organizations).toEqual({

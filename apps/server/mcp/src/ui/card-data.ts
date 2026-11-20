@@ -467,7 +467,7 @@ function buildBrandsView(data: Record<string, unknown>): McpCardView {
 }
 
 /**
- * `get_orgs` / `switch_org`: the organization dropdown plus the brands of the
+ * `get_orgs`: the organization dropdown plus the brands of the
  * organization the connection works inside. Identifiers stay in the
  * structured data; the card shows names.
  */
@@ -879,7 +879,7 @@ export function buildCardView(
   const data = record(payload);
   if (name === 'get_account') return buildAccountView(data);
   if (name === 'get_brands') return buildBrandsView(data);
-  if (name === 'get_orgs' || name === 'switch_org') {
+  if (name === 'get_orgs') {
     return buildOrganizationsView(data);
   }
   if (name === 'get_brand_publishing_readiness') {

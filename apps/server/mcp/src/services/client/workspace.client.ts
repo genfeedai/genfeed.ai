@@ -96,18 +96,6 @@ export class WorkspaceClient {
     );
   }
 
-  switchOrganization(organizationId: string): Promise<void> {
-    this.base.logger.debug('Switching organization', { organizationId });
-
-    return this.base.request(
-      'switching organization',
-      async (http) => {
-        await http.post('/auth/switch-organization', { organizationId });
-      },
-      this.base.failWithDetail('Failed to switch organization'),
-    );
-  }
-
   /** Brands the caller can see in the organization this connection is in. */
   listBrands(): Promise<OrganizationOptionBrand[]> {
     return this.base.request(

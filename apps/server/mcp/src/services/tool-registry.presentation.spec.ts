@@ -176,8 +176,6 @@ function argsFor(tool: CanonicalToolDefinition): Record<string, unknown> {
     args.inputHash = 'a'.repeat(64);
   }
   if (tool.name === 'resolve_approval') args.decision = 'decline';
-  // The listing fixture is the only organization the user can switch to.
-  if (tool.name === 'switch_org') args.organization = fixture.id;
   return args;
 }
 

@@ -1228,13 +1228,19 @@ function Preview({ result, notice, bridge }: PreviewProps) {
     setSwitchError('');
     bridge
       .request('tools/call', {
-        name: 'switch_org',
-        arguments: { organization: organizationId },
+        name: 'get_context',
+        arguments: { action: 'organizations', organization: organizationId },
       })
       .then((next) => {
         const fresh = readView(next);
-        if (fresh?.organizations) setSwitched(fresh);
-        else setSwitchError('Could not switch organization.');
+        // The connection has no stored organization: the view shows the one
+        // this read was scoped to.
+        if (fresh?.organizations) {
+          setSwitched({
+            ...fresh,
+            organizations: { ...fresh.organizations, activeId: organizationId },
+          });
+        } else setSwitchError('Could not switch organization.');
       })
       .catch((error: unknown) =>
         setSwitchError(

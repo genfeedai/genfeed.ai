@@ -290,7 +290,7 @@ export const MCP_CATALOG_TOOLS = [
         action: 'organizations',
         executes: 'get_orgs',
         summary:
-          'List member organizations, the active one and brands; with all-organizations consent any tool takes an optional organization.',
+          'List member organizations, the active one and brands; with all-organizations consent every other tool must name its organization.',
       },
       {
         action: 'brand_context',
@@ -508,13 +508,12 @@ export const MCP_CATALOG_TOOLS = [
   {
     name: 'manage_workspace',
     description:
-      'Work in the workspace. new_task records a task and task updates, comments on or completes one; neither starts work. new_chat and chat_message talk to the agent; switch_organization changes the active organization.',
+      'Work in the workspace. new_task records a task and task updates, comments on or completes one; neither starts work. new_chat and chat_message talk to the agent.',
     operations: [
       { action: 'new_task', executes: 'create_task' },
       { action: 'task', executes: 'manage_task' },
       { action: 'new_chat', executes: 'create_chat' },
       { action: 'chat_message', executes: 'send_chat_message' },
-      { action: 'switch_organization', executes: 'switch_org' },
     ],
   },
 ] as const satisfies readonly McpCatalogToolSpec[];

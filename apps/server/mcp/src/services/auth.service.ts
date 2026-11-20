@@ -28,6 +28,8 @@ export interface AuthResult {
   role?: McpRole;
   isApiKey?: boolean;
   hasBrandKitEditAccess?: boolean;
+  /** The user let this connection act in all of their organizations. */
+  canSwitchOrganizations?: boolean;
   error?: string;
   /**
    * The identity check itself failed (timeout, network, upstream 5xx), so the
@@ -147,6 +149,7 @@ export class AuthService {
         const scopes: string[] = Array.isArray(data.scopes) ? data.scopes : [];
         const result: AuthResult = {
           accessMode: parseMcpAccessMode(data.mcpAccessMode),
+          canSwitchOrganizations: data.canSwitchOrganizations === true,
           isApiKey,
           organizationId,
           hasBrandKitEditAccess:

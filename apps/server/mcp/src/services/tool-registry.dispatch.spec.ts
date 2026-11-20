@@ -83,7 +83,6 @@ describe('ToolRegistryService.classify', () => {
     ['set_generation_settings', 'agent-executor'],
     ['get_job_status', 'account-management'],
     ['get_orgs', 'account-management'],
-    ['switch_org', 'account-management'],
     // Removed in favour of get_job_status: no executor claims it any more.
     ['get_video_status', 'unknown'],
     ['get_assets', 'agent-executor'],

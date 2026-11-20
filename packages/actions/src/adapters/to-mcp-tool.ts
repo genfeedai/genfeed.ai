@@ -16,6 +16,7 @@ import {
   rewriteRetiredMcpReferences,
 } from '../registry/mcp-catalog-calls';
 import { compactMcpInputDocumentation } from '../registry/mcp-input-documentation';
+import { withMcpOrganizationArgument } from '../registry/mcp-organization';
 import { getMcpToolOutputSchema } from '../registry/mcp-output-schema';
 import { deriveMcpToolPresentation } from '../registry/source/tool-annotations';
 import {
@@ -54,7 +55,6 @@ export const MCP_TOOL_OUTPUT_SCHEMA = {
     message: { type: 'string' },
     tool: { type: 'object' },
     tools: { type: 'array' },
-    toolsets: { type: 'array' },
   },
   type: 'object',
 } as const satisfies ToolParameterSchema;
@@ -120,9 +120,9 @@ export function toMcpTool(tool: CanonicalToolDefinition): McpToolOutput {
     tool.parameters,
     tool.mcpHiddenParameters,
   );
-  const parameters = requiresBrand
-    ? withRequiredMcpBrandId(projected)
-    : projected;
+  const parameters = withMcpOrganizationArgument(
+    requiresBrand ? withRequiredMcpBrandId(projected) : projected,
+  );
   const description = tool.mcpDescription ?? tool.description;
   return {
     _meta: {

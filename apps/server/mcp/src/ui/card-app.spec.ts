@@ -926,8 +926,8 @@ describe('organization switcher', () => {
       )
       .find((data) => data.method === 'tools/call');
     expect(call?.params).toEqual({
-      arguments: { organization: 'org-b' },
-      name: 'switch_org',
+      arguments: { action: 'organizations', organization: 'org-b' },
+      name: 'get_context',
     });
 
     window.dispatchEvent(
@@ -938,7 +938,7 @@ describe('organization switcher', () => {
           id: call?.id,
           result: {
             structuredContent: {
-              genfeedCards: buildCardView('switch_org', {
+              genfeedCards: buildCardView('get_orgs', {
                 activeOrganizationId: 'org-b',
                 brands: [{ id: 'brand-9', label: 'Beta Studio' }],
                 canSwitchOrganizations: true,

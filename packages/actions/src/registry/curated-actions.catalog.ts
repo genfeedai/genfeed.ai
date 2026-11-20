@@ -2029,14 +2029,6 @@ export const CURATED_ACTION_CATALOG = [
     uiActionType: 'next_steps_card',
   },
   {
-    category: 'other',
-    mcpCardKind: 'summary',
-    mutationPolicy: 'direct',
-    name: 'switch_org',
-    surfaces: ['mcp'],
-    toolset: 'onboarding',
-  },
-  {
     category: 'social',
     mutationPolicy: 'direct',
     name: 'tag_social_conversation',

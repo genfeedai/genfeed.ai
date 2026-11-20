@@ -493,12 +493,6 @@ const ROUTE_CONTRACT: ContractRoute[] = [
     tools: ['get_orgs'],
   },
   {
-    method: 'Post',
-    sub: 'switch-organization',
-    controller: 'authSwitchOrganization',
-    tools: ['switch_org'],
-  },
-  {
     method: 'Get',
     sub: ':ingredientId/metadata',
     controller: 'ingredients',

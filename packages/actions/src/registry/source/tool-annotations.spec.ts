@@ -896,7 +896,6 @@ const FROZEN_MCP_PRESENTATIONS = [
     false,
     false,
   ],
-  ['switch_org', 'Switch Org', false, true, false, false],
   [
     'tag_social_conversation',
     'Tag Social Conversation',

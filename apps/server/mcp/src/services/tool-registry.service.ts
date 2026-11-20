@@ -61,6 +61,11 @@ import {
 } from '@mcp/services/mcp-catalog-call.util';
 import { unavailableInConnectorMessage } from '@mcp/services/mcp-connector-message.util';
 import { toNativeMcpMediaResult } from '@mcp/services/mcp-media-result.util';
+import { organizationRequiredToolResult } from '@mcp/services/mcp-organization-required-result.util';
+import {
+  readNamedBrandId,
+  withResultScope,
+} from '@mcp/services/mcp-organization-scope-result.util';
 import {
   agentGuideResource,
   jsonResource,
@@ -82,7 +87,10 @@ import {
   accountToolText,
   dataToolResult,
 } from '@mcp/shared/utils/tool-result-text.util';
-import { handleAccountManagementTool } from '@mcp/tools/account-management.tool';
+import {
+  handleAccountManagementTool,
+  loadOrganizationChoices,
+} from '@mcp/tools/account-management.tool';
 import { handleAdsGatewayTool } from '@mcp/tools/ads-gateway.tool';
 import { handleAgentChatTool } from '@mcp/tools/agent-chat.tool';
 import {
@@ -113,9 +121,10 @@ import {
 import { handlePresetTool, PRESET_TOOL_NAMES } from '@mcp/tools/presets.tool';
 import { handleRemixTool, REMIX_TOOL_NAMES } from '@mcp/tools/remix.tool';
 import {
+  isOrganizationExemptCall,
   mcpToolFailureResult,
   readRequestedOrganization,
-  resolveRequestedOrganizationId,
+  resolveRequestedOrganization,
 } from '@mcp/tools/requested-organization.util';
 import {
   handleSchedulerTool,
@@ -199,7 +208,6 @@ const PRE_DISPATCH_TOOL_NAMES: ReadonlySet<string> = new Set<string>([
 const ACCOUNT_MANAGEMENT_TOOL_NAMES: ReadonlySet<string> = new Set<string>([
   'get_job_status',
   'get_orgs',
-  'switch_org',
 ]);
 
 /**
@@ -278,6 +286,10 @@ export class ToolRegistryService implements OnModuleInit {
     @Optional() private readonly requestRole: McpRole = 'user',
     @Optional() private readonly configService?: ConfigService,
     @Optional() private readonly requestAccessMode: McpAccessMode = 'standard',
+    // Whether the connection may act in all of the user's organizations, from
+    // the identity check. Only then does a call have to name its organization.
+    @Optional()
+    private readonly requestCanSwitchOrganizations: boolean = false,
   ) {}
 
   /**
@@ -340,14 +352,23 @@ export class ToolRegistryService implements OnModuleInit {
     return [...PUBLIC_MCP_RESOURCES];
   }
 
-  /** A call may name its organization (see requested-organization.util). */
+  /**
+   * A call names its organization (see requested-organization.util). On a
+   * connection that covers several organizations a call that names none is
+   * refused with the list, never answered from a default.
+   */
   async handleToolCall(params: ToolCallParams) {
-    const scoped = readRequestedOrganization(params.name, params.arguments);
-    if (!scoped) return this.runToolCall(params);
+    const scoped = readRequestedOrganization(params.arguments);
+    if (!scoped) {
+      return (
+        (await this.refuseUnnamedOrganization(params)) ??
+        this.runToolCall(params)
+      );
+    }
 
-    let organizationId: string;
+    let organization: Awaited<ReturnType<typeof resolveRequestedOrganization>>;
     try {
-      organizationId = await resolveRequestedOrganizationId(
+      organization = await resolveRequestedOrganization(
         this.clientService,
         scoped.organization,
       );
@@ -355,9 +376,51 @@ export class ToolRegistryService implements OnModuleInit {
       this.logger.warn('MCP tool call stopped during organization selection');
       return mcpToolFailureResult(error);
     }
-    return this.clientService.runInOrganization(organizationId, () =>
-      this.runToolCall({ ...params, arguments: scoped.rest }),
-    );
+    return this.clientService.runInOrganization(organization.id, async () => {
+      const result = await this.runToolCall({
+        ...params,
+        arguments: scoped.rest,
+      });
+      return isOrganizationExemptCall(params.name, scoped.rest)
+        ? result
+        : withResultScope(result, {
+            brand: await this.findNamedBrand(scoped.rest),
+            organization: {
+              id: organization.id,
+              label: organization.label,
+              slug: organization.slug,
+            },
+          });
+    });
+  }
+
+  /** The brand a call names, from the organization it runs in; undefined when it names none or the lookup fails. */
+  private async findNamedBrand(args: Record<string, unknown>) {
+    const brandId = readNamedBrandId(args);
+    if (!brandId) return undefined;
+    try {
+      const brands = await this.clientService.listBrands();
+      const brand = brands.find((candidate) => candidate.id === brandId);
+      return brand ? { id: brand.id, label: brand.label } : undefined;
+    } catch {
+      return undefined;
+    }
+  }
+
+  /** The refusal for a call that names no organization on an all-organizations connection, else null. */
+  private async refuseUnnamedOrganization(params: ToolCallParams) {
+    if (isOrganizationExemptCall(params.name, params.arguments)) return null;
+    if (!this.requestCanSwitchOrganizations) return null;
+    try {
+      const { brandsByOrganization, isSwitchable, organizations } =
+        await loadOrganizationChoices(this.clientService, true);
+      return isSwitchable
+        ? organizationRequiredToolResult(organizations, brandsByOrganization)
+        : null;
+    } catch (error: unknown) {
+      this.logger.warn('MCP tool call stopped during organization selection');
+      return mcpToolFailureResult(error);
+    }
   }
 
   private async runToolCall(params: ToolCallParams) {

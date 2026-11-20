@@ -45,7 +45,6 @@ function buildClient() {
       };
       return brandsByOrganization[organizationId] ?? [];
     }),
-    switchOrganization: vi.fn().mockResolvedValue(undefined),
   };
 }
 
@@ -98,14 +97,14 @@ describe('handleAccountManagementTool', () => {
     });
   });
 
-  it('points at switch_org when switching is on', async () => {
+  it('tells an all-organizations connection to name the organization on every call', async () => {
     const client = buildClient();
     client.canSwitchOrganizations.mockResolvedValue(true);
 
     const result = await call(client, 'get_orgs', {});
 
     const text = textOf(result.content[0]);
-    expect(text).toContain('manage_workspace(action=switch_organization)');
+    expect(text).toContain('must name the organization it acts in');
     expect(text).not.toContain('reconnect');
     expect(result.structuredContent?.data).toMatchObject({
       canSwitchOrganizations: true,
@@ -124,23 +123,6 @@ describe('handleAccountManagementTool', () => {
       canSwitchOrganizations: false,
     });
     expect(textOf(result.content[0])).toContain('Beta');
-  });
-
-  it('switches organization and reports the refreshed listing', async () => {
-    const client = buildClient();
-    client.canSwitchOrganizations.mockResolvedValue(true);
-    client.listOrganizations.mockResolvedValue([
-      organization('org-a', 'Acme', false),
-      organization('org-b', 'Beta', true),
-    ]);
-
-    const result = await call(client, 'switch_org', { organization: ' Beta ' });
-
-    expect(client.switchOrganization).toHaveBeenCalledWith('org-b');
-    expect(textOf(result.content[0])).toContain('Switched organization.');
-    expect(result.structuredContent?.data).toMatchObject({
-      activeOrganizationId: 'org-b',
-    });
   });
 
   it('lists every organization with its own brands when the connection may use them all', async () => {
@@ -167,48 +149,6 @@ describe('handleAccountManagementTool', () => {
 
     expect(client.runInOrganization).not.toHaveBeenCalled();
     expect(textOf(result.content[0])).not.toContain('brandId');
-  });
-
-  it('refuses to switch when the connection was approved without switching', async () => {
-    const client = buildClient();
-
-    await expect(
-      call(client, 'switch_org', { organization: 'org-b' }),
-    ).rejects.toThrow(/limited to one organization/);
-    expect(client.switchOrganization).not.toHaveBeenCalled();
-  });
-
-  it('requires an organization to switch', async () => {
-    const client = buildClient();
-
-    await expect(call(client, 'switch_org', {})).rejects.toThrow(
-      /organization is required/,
-    );
-    expect(client.switchOrganization).not.toHaveBeenCalled();
-  });
-
-  it('rejects an organization the user does not belong to', async () => {
-    const client = buildClient();
-    client.canSwitchOrganizations.mockResolvedValue(true);
-
-    await expect(
-      call(client, 'switch_org', { organization: 'Nowhere' }),
-    ).rejects.toThrow(/No organization matches "Nowhere"/);
-    expect(client.switchOrganization).not.toHaveBeenCalled();
-  });
-
-  it('asks for the id when two organizations share a name', async () => {
-    const client = buildClient();
-    client.canSwitchOrganizations.mockResolvedValue(true);
-    client.listOrganizations.mockResolvedValue([
-      organization('org-a', 'Acme', true),
-      organization('org-b', 'Acme', false),
-    ]);
-
-    await expect(
-      call(client, 'switch_org', { organization: 'acme' }),
-    ).rejects.toThrow(/More than one organization matches/);
-    expect(client.switchOrganization).not.toHaveBeenCalled();
   });
 
   it('omits the reconnect guidance for a single organization', async () => {

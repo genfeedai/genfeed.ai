@@ -1,4 +1,5 @@
 import { formatAgentError } from '@genfeedai/agent/server';
+import type { OrganizationOption } from '@genfeedai/contracts/interfaces';
 import type { ClientService } from '@mcp/services/client.service';
 import { matchOrganization } from '@mcp/tools/account-management.tool';
 import {
@@ -7,11 +8,20 @@ import {
 } from '@mcp/tools/mcp-tool-error';
 import { ForbiddenException } from '@nestjs/common';
 
-/** Tools whose own `organization` argument is not a per-call organization. */
-const OWN_ORGANIZATION_ARGUMENT_TOOLS: ReadonlySet<string> = new Set([
-  'get_orgs',
-  'switch_org',
-]);
+/**
+ * Calls that work without naming an organization: they are how a caller learns
+ * which organizations it has, and an approval already belongs to one.
+ */
+export function isOrganizationExemptCall(
+  toolName: string,
+  args: Record<string, unknown> | undefined,
+): boolean {
+  if (toolName === 'find_tools' || toolName === 'resolve_approval') return true;
+  return (
+    toolName === 'get_context' &&
+    (args?.action === 'organizations' || args?.action === 'account')
+  );
+}
 
 /**
  * Splits the `organization` a call names (a connection the user authorized for
@@ -19,14 +29,10 @@ const OWN_ORGANIZATION_ARGUMENT_TOOLS: ReadonlySet<string> = new Set([
  * tool itself receives. Null when the call names none.
  */
 export function readRequestedOrganization(
-  toolName: string,
   args: Record<string, unknown> | undefined,
 ): { organization: unknown; rest: Record<string, unknown> } | null {
   const { organization, ...rest } = args ?? {};
-  return organization === undefined ||
-    OWN_ORGANIZATION_ARGUMENT_TOOLS.has(toolName)
-    ? null
-    : { organization, rest };
+  return organization === undefined ? null : { organization, rest };
 }
 
 /** The result a failed tool call returns to the client. */
@@ -57,10 +63,10 @@ export function mcpToolFailureResult(error: unknown) {
  * slug or id from get_context(action=organizations)). A connection limited to one organization is
  * refused instead of being answered from the wrong one.
  */
-export async function resolveRequestedOrganizationId(
+export async function resolveRequestedOrganization(
   client: Pick<ClientService, 'canSwitchOrganizations' | 'listOrganizations'>,
   requested: unknown,
-): Promise<string> {
+): Promise<OrganizationOption> {
   const wanted = typeof requested === 'string' ? requested.trim() : '';
   if (!wanted) {
     throw new Error(
@@ -74,5 +80,5 @@ export async function resolveRequestedOrganizationId(
         'This connection is limited to one organization. Reconnect and choose "All organizations" to act in several.',
     });
   }
-  return matchOrganization(await client.listOrganizations(), wanted).id;
+  return matchOrganization(await client.listOrganizations(), wanted);
 }
