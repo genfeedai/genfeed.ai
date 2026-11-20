@@ -529,6 +529,74 @@ describe('ApifyBaseService', () => {
       expect(httpService.post).toHaveBeenCalledTimes(2);
     });
 
+    describe('actor-start 404', () => {
+      const NOT_FOUND_ERROR = {
+        isAxiosError: true,
+        message: 'Request failed with status code 404',
+        name: 'AxiosError',
+        response: {
+          data: {
+            error: { message: 'Actor was not found', type: 'record-not-found' },
+          },
+          status: 404,
+        },
+      };
+
+      it('reports a safe unavailable-actor failure without an error-level log', async () => {
+        httpService.post.mockReturnValue(throwError(() => NOT_FOUND_ERROR));
+
+        const execution = service.runActor('test/actor', {});
+
+        await expect(execution).rejects.toThrow(
+          /^Apify actor for an unregistered actor is unavailable/,
+        );
+        await expect(execution).rejects.toBeInstanceOf(
+          ServiceUnavailableException,
+        );
+        expect(loggerService.error).not.toHaveBeenCalled();
+        expect(loggerService.warn).toHaveBeenCalledTimes(1);
+      });
+
+      it('does not call the same unavailable actor again until the hold ends', async () => {
+        httpService.post.mockReturnValue(throwError(() => NOT_FOUND_ERROR));
+
+        await expect(service.runActor('test/actor', {})).rejects.toBeDefined();
+        await expect(service.runActor('test/actor', {})).rejects.toBeDefined();
+        expect(httpService.post).toHaveBeenCalledTimes(1);
+
+        now += 60 * 60 * 1000 + 1;
+
+        await expect(service.runActor('test/actor', {})).rejects.toBeDefined();
+        expect(httpService.post).toHaveBeenCalledTimes(2);
+      });
+
+      it('keeps other actors callable', async () => {
+        httpService.post.mockReturnValueOnce(throwError(() => NOT_FOUND_ERROR));
+        await expect(service.runActor('test/actor', {})).rejects.toBeDefined();
+
+        httpService.post.mockReturnValue(
+          of({
+            data: {
+              data: {
+                defaultDatasetId: 'ds-1',
+                id: 'run-1',
+                status: 'RUNNING',
+              },
+            },
+          }),
+        );
+        httpService.get
+          .mockReturnValueOnce(
+            of({ data: { data: { id: 'run-1', status: 'SUCCEEDED' } } }),
+          )
+          .mockReturnValueOnce(of({ data: [{ title: 'ok' }] }));
+
+        await expect(service.runActor('other/actor', {})).resolves.toEqual([
+          { title: 'ok' },
+        ]);
+      });
+    });
+
     it('scopes a byok account limit to that organization only', async () => {
       byokFactory.resolveProvider.mockResolvedValue({
         apiKey: 'byok-key',
