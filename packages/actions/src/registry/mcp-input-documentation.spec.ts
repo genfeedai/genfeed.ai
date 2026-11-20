@@ -154,7 +154,7 @@ describe('MCP input documentation', () => {
     expect(toMcpTools(canonical)).toEqual(compact);
   });
 
-  it('retains standalone generation consent, pricing, receipts and brand guidance', () => {
+  it('retains generation consent, pricing, receipts and brand guidance', () => {
     const tools = toMcpTools(getToolsForSurface('mcp'));
     const tool = (name: string) => {
       const match = tools.find((entry) => entry.name === name);
@@ -166,34 +166,38 @@ describe('MCP input documentation', () => {
       if (!match) throw new Error(`Missing tool: ${name}`);
       return toMcpTool(match);
     };
-    expect(tool('generate').description).toMatch(
+    expect(original('generate').description).toMatch(
       /resolved model-specific quote and confirmation/,
     );
-    expect(tool('generate').description).toMatch(
+    expect(original('generate').description).toMatch(
       /Unresolved quotes never mean free/,
     );
-    expect(tool('generate').description).toMatch(
+    expect(original('generate').description).toMatch(
       /generationHarness exact submitted prompt/,
     );
-    expect(tool('generate').description).toMatch(
+    expect(original('generate').description).toMatch(
       /Variable cost: .* credits per generation/,
     );
-    expect(tool('generate').description).toContain(
+    expect(original('generate').description).toContain(
       'brandId is required: call get_context(action=brands)',
     );
-    expect(tool('generate').inputSchema.properties.brandMode).toMatchObject({
-      description: expect.stringContaining(
-        'Only after explicit user choice; never as fallback',
-      ),
-    });
-    expect(tool('generate_turbo_content').description).toContain(
+    expect(original('generate').inputSchema.properties.brandMode).toMatchObject(
+      {
+        description: expect.stringContaining(
+          'Only after explicit user choice; never as fallback',
+        ),
+      },
+    );
+    expect(original('generate_turbo_content').description).toContain(
       'spends only after approval',
     );
-    expect(tool('transform_media').description).toContain(
+    expect(original('transform_media').description).toContain(
       'Never enhance/rewrite instructions',
     );
-    expect(tool('transform_media').description).toContain('FLUX.3: one output');
-    expect(tool('transform_media').description).toContain(
+    expect(original('transform_media').description).toContain(
+      'FLUX.3: one output',
+    );
+    expect(original('transform_media').description).toContain(
       'local merge is free',
     );
     expect(

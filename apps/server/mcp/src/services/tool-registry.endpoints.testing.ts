@@ -34,7 +34,10 @@ export function createEndpointRegistries(
   }): boolean =>
     ADMIN_MCP_TOOL_NAMES.has(params.name) ||
     (params.name === 'onboard_brand' &&
-      params.arguments?.action === 'create_from_url');
+      params.arguments?.action === 'create_from_url') ||
+    (params.name === 'setup_brand' &&
+      (params.arguments?.input as { action?: unknown } | undefined)?.action ===
+        'create_from_url');
   return {
     admin,
     onModuleInit: () => standard.onModuleInit(),

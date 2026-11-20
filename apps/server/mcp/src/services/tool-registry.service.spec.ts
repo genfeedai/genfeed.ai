@@ -43,6 +43,7 @@ const MOCK_TOOLS = [
     requiredRole: undefined,
     surfaces: { mcp: true },
   })),
+  { name: 'find_tools', requiredRole: undefined, surfaces: { mcp: true } },
   { name: 'get_account', requiredRole: undefined, surfaces: { mcp: true } },
   { name: 'switch_org', requiredRole: undefined, surfaces: { mcp: true } },
   { name: 'get_trends', requiredRole: undefined, surfaces: { mcp: true } },
@@ -1356,8 +1357,8 @@ describe('ToolRegistryService', () => {
 
     it('does not gate tools without a requiredRole', async () => {
       await service.handleToolCall({
-        arguments: { brandId: 'brand-1', prompt: 'x', type: 'video' },
-        name: 'generate',
+        arguments: { query: 'workflows' },
+        name: 'find_tools',
       });
 
       expect(McpAuthGuard.checkToolRole).not.toHaveBeenCalled();

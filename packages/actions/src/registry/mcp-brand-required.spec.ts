@@ -9,7 +9,8 @@ import {
   readMcpBrandId,
   withRequiredMcpBrandId,
 } from './mcp-brand-required';
-import { getToolsForSurface } from './tool-registry';
+import { getRetiredMcpCatalogTool } from './mcp-catalog-calls';
+import { getToolByName, getToolsForSurface } from './tool-registry';
 
 describe('MCP brand-required generation tools', () => {
   it('names only tools that exist on the MCP surface', () => {
@@ -17,13 +18,21 @@ describe('MCP brand-required generation tools', () => {
       getToolsForSurface('mcp').map((tool) => tool.name),
     );
     for (const name of MCP_BRAND_REQUIRED_TOOL_NAMES) {
-      expect(mcpNames.has(name), name).toBe(true);
+      // A merged tool runs the original, which keeps its MCP surface unlisted.
+      expect(
+        mcpNames.has(name) || getToolByName(name)?.surfaces.mcp === true,
+        name,
+      ).toBe(true);
     }
   });
 
   it('requires brandId in the MCP input schema of every listed tool', () => {
     const tools = toMcpTools(getToolsForSurface('mcp'));
-    for (const name of MCP_BRAND_REQUIRED_TOOL_NAMES) {
+    // A retired tool is called through its merged tool, so the call checks
+    // brandId after the action resolves; only a listed tool shows it required.
+    for (const name of [...MCP_BRAND_REQUIRED_TOOL_NAMES].filter(
+      (candidate) => getRetiredMcpCatalogTool(candidate) === undefined,
+    )) {
       const tool = tools.find((candidate) => candidate.name === name);
       expect(tool?.inputSchema.required, name).toContain('brandId');
       expect(tool?.inputSchema.properties.brandId, name).toMatchObject({
@@ -37,7 +46,7 @@ describe('MCP brand-required generation tools', () => {
 
   it('leaves the canonical definition and other tools untouched', () => {
     const canonical = getToolsForSurface('mcp');
-    const generate = canonical.find((tool) => tool.name === 'generate');
+    const generate = getToolByName('generate');
     expect(generate?.parameters.required ?? []).not.toContain('brandId');
     const other = toMcpTools(canonical).find(
       (tool) => tool.name === 'get_brands',
@@ -85,6 +94,8 @@ describe('MCP brand-required generation tools', () => {
     ]);
     expect(message).toContain('generate requires brandId');
     expect(message).toContain('Acme (b1); Beta (b2)');
-    expect(describeMissingMcpBrand('generate', [])).toContain('onboard_brand');
+    expect(describeMissingMcpBrand('generate', [])).toContain(
+      'setup_brand(action=onboard)',
+    );
   });
 });

@@ -511,7 +511,7 @@ Negative prompt: blurry, distorted hands, extra fingers, plastic skin, oversatur
 
 ## Genfeed Integration
 
-- Use `generate` with `type: image` and a model key from the platform's available models
+- Use `generate_media` (`action: media`) with `type: image` and a model key from the platform's available models
 - Reference model capabilities from MODEL_OUTPUT_CAPABILITIES for supported features
 - Aspect ratios should match platform constants from model-aspect-ratios
 - For PuLID workflows, ensure reference image is uploaded first via the asset pipeline

@@ -1,4 +1,6 @@
 import type { PostEntity } from '@api/collections/posts/entities/post.entity';
+import type { PublishResult } from '@api/services/integrations/publishers/interfaces/publisher.interface';
+import { resolvePostVisibility } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
 import {
   PUBLISH_OUTCOME_UNCONFIRMED_CODE,
   PUBLISH_OUTCOME_UNVERIFIED_CODE,
@@ -62,4 +64,16 @@ export function resolveUnverifiedDeferral(
         message:
           'Provider publish outcome is not confirmed yet; verification will retry.',
       };
+}
+
+/**
+ * The audience to store for a published post: the one the provider applied
+ * when it narrowed the request (a private YouTube channel setting), else the
+ * one the post asked for.
+ */
+export function resolveAppliedVisibility(
+  result: Pick<PublishResult, 'visibility'>,
+  post: PostEntity,
+) {
+  return result.visibility ?? resolvePostVisibility(post.visibility);
 }

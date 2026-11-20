@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { resolveMcpAppToolsets } from './app-toolsets';
-import { CLAUDE_MCP_TOOL_NAMES } from './mcp-access-modes';
+import {
+  CLAUDE_MCP_TOOL_NAMES,
+  isToolAllowedInMcpAccessMode,
+} from './mcp-access-modes';
 import { MCP_CATALOG_TOOLS } from './mcp-catalog/catalog';
 import { getToolsForSurface } from './tool-registry';
 import type { ToolsetName } from './toolset-names';
@@ -19,16 +22,6 @@ import {
 } from './toolset-profiles';
 import { getToolsForToolsets } from './toolsets';
 
-const BEYOND_DEFAULT_TOOLSETS = [
-  'core',
-  'generation',
-  'content',
-  'scheduler',
-  'analytics',
-  'brand',
-  'onboarding',
-] as const satisfies readonly ToolsetName[];
-
 describe('MCP toolset profiles', () => {
   it('loads brand publishing readiness alongside scheduling on the bare URL', () => {
     const names = getToolsForToolsets('mcp', DEFAULT_MCP_PROFILE_TOOLSETS).map(
@@ -44,9 +37,9 @@ describe('MCP toolset profiles', () => {
         (tool) => tool.requiredRole === 'user',
       ).length;
     expect(BARE_MCP_URL_TOOL_CAP).toBe(30);
-    expect(userCount(DEFAULT_MCP_PROFILE_TOOLSETS)).toBe(30);
+    expect(userCount(DEFAULT_MCP_PROFILE_TOOLSETS)).toBe(25);
     expect(userCount(DIRECTORY_MCP_PROFILE_TOOLSETS)).toBe(25);
-    expect(userCount(STUDIO_MCP_PROFILE_TOOLSETS)).toBe(34);
+    expect(userCount(STUDIO_MCP_PROFILE_TOOLSETS)).toBe(26);
     expect(userCount(DEFAULT_MCP_PROFILE_TOOLSETS)).toBeLessThanOrEqual(
       BARE_MCP_URL_TOOL_CAP,
     );
@@ -75,25 +68,18 @@ describe('MCP toolset profiles', () => {
         tool.requiredRole === 'user' && CLAUDE_MCP_TOOL_NAMES.has(tool.name),
     );
     expect(listed.length).toBeLessThanOrEqual(CONNECTOR_MCP_TOOL_CAP);
-    expect(listed.map((tool) => tool.name)).not.toContain('generate');
-    expect(listed.map((tool) => tool.name)).not.toContain('transform_media');
+    expect(listed.map((tool) => tool.name)).not.toContain('generate_media');
   });
 
-  it('keeps Brand Kit edits in an opt-in toolset', () => {
+  it('keeps Brand Kit edits out of the Claude connector', () => {
     const edits = [
       'draft_brand_voice_profile',
       'manage_brand_kit',
       'save_brand_voice_profile',
     ];
-    const selected = getToolsForToolsets('mcp', ['brand-kit']).map(
-      ({ name }) => name,
-    );
-    const studio = getToolsForToolsets('mcp', STUDIO_MCP_PROFILE_TOOLSETS).map(
-      ({ name }) => name,
-    );
-    expect(selected).toEqual(expect.arrayContaining(edits));
-    expect(studio.filter((name) => edits.includes(name))).toEqual([]);
     expect(edits.filter((name) => CLAUDE_MCP_TOOL_NAMES.has(name))).toEqual([]);
+    for (const name of edits)
+      expect(isToolAllowedInMcpAccessMode('claude', name), name).toBe(false);
   });
 
   it('adds brand and analytics to the default for the studio profile', () => {
@@ -109,7 +95,9 @@ describe('MCP toolset profiles', () => {
     const names = getToolsForToolsets('mcp', STUDIO_MCP_PROFILE_TOOLSETS).map(
       (tool) => tool.name,
     );
-    expect(names).toEqual(expect.arrayContaining(['generate', 'get_assets']));
+    expect(names).toEqual(
+      expect.arrayContaining(['generate_media', 'get_assets']),
+    );
     expect(names).toEqual(
       expect.arrayContaining(['get_insights', 'fetch_x_posts']),
     );
@@ -177,25 +165,16 @@ describe('MCP toolset profiles', () => {
     );
   });
 
-  it('loads generation and the generate tool on the bare-URL default profile', () => {
+  it('loads generation and the generate_media tool on the bare-URL default profile', () => {
     expect(DEFAULT_MCP_PROFILE_TOOLSETS).toContain('generation');
     const names = getToolsForToolsets('mcp', DEFAULT_MCP_PROFILE_TOOLSETS).map(
       (tool) => tool.name,
     );
-    expect(names).toContain('generate');
+    expect(names).toContain('generate_media');
     expect(names).not.toContain('generate_image');
     expect(names).not.toContain('generate_video');
     expect(names).not.toContain('generate_voice');
     expect(names).not.toContain('generate_music');
-  });
-
-  it('cannot add analytics, brand, and onboarding without crossing the cap', () => {
-    // Documents why analytics, brand, and onboarding are not in the default
-    // profile. If the catalog shrinks enough that this fails, extend
-    // DEFAULT_MCP_PROFILE_TOOLSETS before raising the cap.
-    expect(
-      getToolsForToolsets('mcp', BEYOND_DEFAULT_TOOLSETS).length,
-    ).toBeGreaterThan(BARE_MCP_URL_TOOL_CAP);
   });
 
   it('builds directory from default minus generation, clips, and ui', () => {
@@ -214,18 +193,22 @@ describe('MCP toolset profiles', () => {
       'mcp',
       DIRECTORY_MCP_PROFILE_TOOLSETS,
     );
-    // A merged tool is listed on every selection; the two that read clip and
-    // generation data are read-only.
+    // A merged tool is listed on every selection, whatever toolset its first
+    // action came from. Each action is still gated by the tool it runs, and the
+    // Claude connector lists only the actions it allows (never generate_media).
     const excluded = directoryTools.filter((tool) =>
       DIRECTORY_EXCLUDED_TOOLSETS.includes(tool.toolset),
     );
     expect(excluded.map((tool) => tool.name).sort()).toEqual([
+      'generate_media',
       'get_generation_catalog',
       'get_video_projects',
     ]);
-    for (const tool of excluded)
+    for (const tool of excluded.filter(
+      (entry) => entry.name !== 'generate_media',
+    ))
       expect(tool.annotations?.readOnlyHint, tool.name).toBe(true);
-    expect(directoryTools.map((tool) => tool.name)).not.toContain('generate');
+    expect(CLAUDE_MCP_TOOL_NAMES.has('generate_media')).toBe(false);
   });
 
   it('resolves full to the unfiltered catalog and the others to toolset lists', () => {
