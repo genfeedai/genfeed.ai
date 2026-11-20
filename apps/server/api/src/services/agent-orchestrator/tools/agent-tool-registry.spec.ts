@@ -13,6 +13,7 @@ import {
   getToolsForSurface,
   isMcpBrandRequiredTool,
   MCP_BRAND_REQUIRED_NOTE,
+  MCP_ORGANIZATION_ARGUMENT,
   toMcpTool,
   toMcpTools,
 } from '@genfeedai/actions';
@@ -373,6 +374,11 @@ it('shares validation and prices across agent/MCP with client-specific documenta
       Object.entries(properties),
     );
     for (const [name, schema] of Object.entries(mcp.inputSchema.properties)) {
+      // MCP-only: names the organization a call acts in on an
+      // all-organizations connection; the agent runs inside one organization.
+      if (name === MCP_ORGANIZATION_ARGUMENT && !(name in agentProperties)) {
+        continue;
+      }
       expect(schemaValidation(schema), `${tool.name}.${name}`).toEqual(
         schemaValidation(
           name === 'brandId' && isBrandRequired && !(name in agentProperties)

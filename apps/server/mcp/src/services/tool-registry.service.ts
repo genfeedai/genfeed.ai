@@ -61,11 +61,7 @@ import {
 } from '@mcp/services/mcp-catalog-call.util';
 import { unavailableInConnectorMessage } from '@mcp/services/mcp-connector-message.util';
 import { toNativeMcpMediaResult } from '@mcp/services/mcp-media-result.util';
-import { organizationRequiredToolResult } from '@mcp/services/mcp-organization-required-result.util';
-import {
-  readNamedBrandId,
-  withResultScope,
-} from '@mcp/services/mcp-organization-scope-result.util';
+import { runInNamedOrganization } from '@mcp/services/mcp-organization-call.util';
 import {
   agentGuideResource,
   jsonResource,
@@ -87,10 +83,7 @@ import {
   accountToolText,
   dataToolResult,
 } from '@mcp/shared/utils/tool-result-text.util';
-import {
-  handleAccountManagementTool,
-  loadOrganizationChoices,
-} from '@mcp/tools/account-management.tool';
+import { handleAccountManagementTool } from '@mcp/tools/account-management.tool';
 import { handleAdsGatewayTool } from '@mcp/tools/ads-gateway.tool';
 import { handleAgentChatTool } from '@mcp/tools/agent-chat.tool';
 import {
@@ -120,12 +113,7 @@ import {
 } from '@mcp/tools/onboarding.tool';
 import { handlePresetTool, PRESET_TOOL_NAMES } from '@mcp/tools/presets.tool';
 import { handleRemixTool, REMIX_TOOL_NAMES } from '@mcp/tools/remix.tool';
-import {
-  isOrganizationExemptCall,
-  mcpToolFailureResult,
-  readRequestedOrganization,
-  resolveRequestedOrganization,
-} from '@mcp/tools/requested-organization.util';
+import { mcpToolFailureResult } from '@mcp/tools/requested-organization.util';
 import {
   handleSchedulerTool,
   SCHEDULER_TOOL_NAMES,
@@ -357,70 +345,16 @@ export class ToolRegistryService implements OnModuleInit {
    * connection that covers several organizations a call that names none is
    * refused with the list, never answered from a default.
    */
-  async handleToolCall(params: ToolCallParams) {
-    const scoped = readRequestedOrganization(params.arguments);
-    if (!scoped) {
-      return (
-        (await this.refuseUnnamedOrganization(params)) ??
-        this.runToolCall(params)
-      );
-    }
-
-    let organization: Awaited<ReturnType<typeof resolveRequestedOrganization>>;
-    try {
-      organization = await resolveRequestedOrganization(
-        this.clientService,
-        scoped.organization,
-      );
-    } catch (error: unknown) {
-      this.logger.warn('MCP tool call stopped during organization selection');
-      return mcpToolFailureResult(error);
-    }
-    return this.clientService.runInOrganization(organization.id, async () => {
-      const result = await this.runToolCall({
-        ...params,
-        arguments: scoped.rest,
-      });
-      return isOrganizationExemptCall(params.name, scoped.rest)
-        ? result
-        : withResultScope(result, {
-            brand: await this.findNamedBrand(scoped.rest),
-            organization: {
-              id: organization.id,
-              label: organization.label,
-              slug: organization.slug,
-            },
-          });
-    });
-  }
-
-  /** The brand a call names, from the organization it runs in; undefined when it names none or the lookup fails. */
-  private async findNamedBrand(args: Record<string, unknown>) {
-    const brandId = readNamedBrandId(args);
-    if (!brandId) return undefined;
-    try {
-      const brands = await this.clientService.listBrands();
-      const brand = brands.find((candidate) => candidate.id === brandId);
-      return brand ? { id: brand.id, label: brand.label } : undefined;
-    } catch {
-      return undefined;
-    }
-  }
-
-  /** The refusal for a call that names no organization on an all-organizations connection, else null. */
-  private async refuseUnnamedOrganization(params: ToolCallParams) {
-    if (isOrganizationExemptCall(params.name, params.arguments)) return null;
-    if (!this.requestCanSwitchOrganizations) return null;
-    try {
-      const { brandsByOrganization, isSwitchable, organizations } =
-        await loadOrganizationChoices(this.clientService, true);
-      return isSwitchable
-        ? organizationRequiredToolResult(organizations, brandsByOrganization)
-        : null;
-    } catch (error: unknown) {
-      this.logger.warn('MCP tool call stopped during organization selection');
-      return mcpToolFailureResult(error);
-    }
+  handleToolCall(params: ToolCallParams) {
+    return runInNamedOrganization(
+      {
+        canSwitchOrganizations: this.requestCanSwitchOrganizations,
+        client: this.clientService,
+        logger: this.logger,
+      },
+      params,
+      (args) => this.runToolCall({ ...params, arguments: args }),
+    );
   }
 
   private async runToolCall(params: ToolCallParams) {

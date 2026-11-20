@@ -124,6 +124,23 @@ describe('connection covering several organizations', () => {
     );
   });
 
+  it('marks the named organization active in an organizations listing', async () => {
+    const { registry } = build(true);
+
+    const result = (await registry.handleToolCall({
+      arguments: { action: 'organizations', organization: 'beta' },
+      name: 'get_context',
+    })) as { structuredContent?: { data?: Record<string, unknown> } };
+
+    expect(result.structuredContent?.data).toMatchObject({
+      activeOrganizationId: 'org-b',
+      organizations: [
+        { id: 'org-a', isActive: false },
+        { id: 'org-b', isActive: true },
+      ],
+    });
+  });
+
   it.each([
     { arguments: { action: 'organizations' }, name: 'get_context' },
     { arguments: { action: 'account' }, name: 'get_context' },
