@@ -19,6 +19,14 @@ import { BadRequestException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 
+const { mockResolveBrandContext } = vi.hoisted(() => ({
+  mockResolveBrandContext: vi.fn(),
+}));
+
+vi.mock('@api/collections/articles/utils/article-brand-context.util', () => ({
+  resolveArticleBrandContext: mockResolveBrandContext,
+}));
+
 describe('ArticlesController', () => {
   let controller: ArticlesController;
   let service: ArticlesService;
@@ -67,6 +75,7 @@ describe('ArticlesController', () => {
     getArticleVersions: vi.fn(),
     patch: vi.fn(),
     remove: vi.fn(),
+    prisma: {},
     publicArticleScope: {
       resolveHandle: vi.fn(async (): Promise<string | null> => 'genfeedai'),
     },
@@ -91,6 +100,13 @@ describe('ArticlesController', () => {
     vi.clearAllMocks();
     mockArticlesService.findAll.mockResolvedValue({ docs: [mockArticle] });
     mockConfigService.get.mockReturnValue(undefined);
+    mockResolveBrandContext.mockImplementation(
+      async (
+        _prisma: unknown,
+        _organizationId: string,
+        activeBrandId: string,
+      ) => activeBrandId,
+    );
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [ArticlesController],
@@ -271,6 +287,84 @@ describe('ArticlesController', () => {
       );
       expect(service.update).not.toHaveBeenCalled();
       expect(result).toBeDefined();
+    });
+  });
+
+  describe('brand context', () => {
+    const otherBrand = testId('other-brand');
+
+    beforeEach(() => {
+      mockResolveBrandContext.mockImplementation(
+        async (
+          _prisma: unknown,
+          _organizationId: string,
+          activeBrandId: string,
+          requestedBrandId?: string,
+        ) => requestedBrandId ?? activeBrandId,
+      );
+    });
+
+    it('finds an article in the brand the call names', async () => {
+      await controller.findOne(
+        mockRequest,
+        mockUser,
+        mockArticle.id,
+        otherBrand,
+      );
+
+      expect(service.findAll).toHaveBeenCalledWith(
+        {
+          where: expect.objectContaining({ brandId: otherBrand }),
+        },
+        { pagination: false },
+      );
+    });
+
+    it('updates an article in the brand the call names', async () => {
+      mockArticlesService.update.mockResolvedValue(mockArticle);
+
+      await controller.patch(mockRequest, mockUser, mockArticle.id, {
+        brandId: otherBrand,
+        label: 'Renamed',
+      });
+
+      expect(service.update).toHaveBeenCalledWith(
+        mockArticle.id,
+        { brandId: otherBrand, label: 'Renamed' },
+        mockPublicMetadata.user,
+        mockPublicMetadata.organization,
+        otherBrand,
+      );
+    });
+
+    it('creates an article in the brand the call names', async () => {
+      mockArticlesService.create.mockResolvedValue(mockArticle);
+
+      await controller.create(mockRequest, mockUser, {
+        brandId: otherBrand,
+        label: 'New',
+        slug: 'new',
+        summary: 'Summary',
+      });
+
+      expect(service.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          brandId: otherBrand,
+          organizationId: mockPublicMetadata.organization,
+        }),
+        expect.anything(),
+      );
+    });
+
+    it('stops when the brand is not usable', async () => {
+      mockResolveBrandContext.mockRejectedValue(new Error('Brand not found'));
+
+      await expect(
+        controller.patch(mockRequest, mockUser, mockArticle.id, {
+          brandId: otherBrand,
+        }),
+      ).rejects.toThrow('Brand not found');
+      expect(service.update).not.toHaveBeenCalled();
     });
   });
 

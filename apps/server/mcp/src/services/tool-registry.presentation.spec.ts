@@ -119,6 +119,7 @@ function build() {
 function argsFor(tool: CanonicalToolDefinition): Record<string, unknown> {
   const args = inputFor(tool.parameters) as Record<string, unknown>;
   if (tool.name === 'get_articles') args.query = 'AI';
+  if (tool.name === 'update_article_draft') args.label = 'Example';
   if (tool.name === 'update_remix_concept')
     args.edits = { output: { count: 2 } };
   if (tool.name === 'onboard_brand') args.action = 'complete';

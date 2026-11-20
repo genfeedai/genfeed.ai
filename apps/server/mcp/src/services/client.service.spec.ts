@@ -206,9 +206,33 @@ describe('ClientService (MCP)', () => {
 
       expect(mockAxiosInstance.get).toHaveBeenCalledWith(
         '/articles/article-123',
+        { params: undefined },
       );
       expect(result.title).toBe('Article Title');
       expect(result.wordCount).toBe(2);
+    });
+
+    it('should read an article of another brand by naming the brand', async () => {
+      (mockAxiosInstance.get as Mock).mockResolvedValue({
+        data: {
+          data: {
+            attributes: {
+              content: 'Full content',
+              coverImageUrl: 'https://cdn.genfeed.ai/cover.jpg',
+              label: 'Article Title',
+            },
+            id: 'article-123',
+          },
+        },
+      });
+
+      const result = await service.getArticle('article-123', 'brand-2');
+
+      expect(mockAxiosInstance.get).toHaveBeenCalledWith(
+        '/articles/article-123',
+        { params: { brandId: 'brand-2' } },
+      );
+      expect(result.coverImageUrl).toBe('https://cdn.genfeed.ai/cover.jpg');
     });
   });
 

@@ -4,6 +4,7 @@ import { CreateArticleDto } from '@api/collections/articles/dto/create-article.d
 import { UpdateArticleDto } from '@api/collections/articles/dto/update-article.dto';
 import type { ArticleDocument } from '@api/collections/articles/schemas/article.schema';
 import { ArticlesService } from '@api/collections/articles/services/articles.service';
+import { resolveArticleBrandContext } from '@api/collections/articles/utils/article-brand-context.util';
 import { ContentEvaluationProjectionService } from '@api/collections/evaluations/services/content-evaluation-projection.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
@@ -125,7 +126,8 @@ export class ArticlesController extends BaseCRUDController<
     @CurrentUser() user: User,
     @Body() createDto: CreateArticleDto,
   ) {
-    return super.create(request, user, createDto);
+    const brandId = await this.resolveBrand(user, createDto.brandId);
+    return super.create(request, user, { ...createDto, brandId });
   }
 
   @Delete(':id')
@@ -136,6 +138,17 @@ export class ArticlesController extends BaseCRUDController<
     @Param('id') id: string,
   ) {
     return super.remove(request, user, id);
+  }
+
+  /** The brand a call acts in: the named one, else the caller's active brand. */
+  private resolveBrand(user: User, requestedBrandId: string | undefined) {
+    return resolveArticleBrandContext(
+      this.articlesService.prisma,
+      user.organizationId,
+      user.brandId,
+      requestedBrandId,
+      user.allowedBrandIds,
+    );
   }
 
   /**
@@ -159,8 +172,10 @@ export class ArticlesController extends BaseCRUDController<
     @Req() request: Request,
     @CurrentUser() user: User,
     @Param('id') articleId: string,
+    @Query('brandId') requestedBrandId?: string,
   ): Promise<JsonApiSingleResponse> {
     const isSuperAdmin = getIsSuperAdmin(user, request);
+    const brandId = await this.resolveBrand(user, requestedBrandId);
 
     // Scope the database read for regular users instead of hydrating another
     // organization's article and rejecting it after the query.
@@ -170,7 +185,7 @@ export class ArticlesController extends BaseCRUDController<
         isDeleted: false,
         ...(!isSuperAdmin && {
           organizationId: user.organizationId.toString(),
-          ...(user.brandId ? { brandId: user.brandId } : {}),
+          ...(brandId ? { brandId } : {}),
           OR: [{ userId: user.userId ?? user.id }, { scope: 'ORGANIZATION' }],
         }),
       },
@@ -202,7 +217,7 @@ export class ArticlesController extends BaseCRUDController<
       request,
       this.serializer,
       (await this.evaluationProjection?.attachToItem(article, {
-        brandId: user.brandId,
+        brandId,
         contentType: 'article',
       })) ?? article,
     );
@@ -225,8 +240,10 @@ export class ArticlesController extends BaseCRUDController<
     @Req() request: Request,
     @CurrentUser() user: User,
     @Param('articleId') articleId: string,
+    @Query('brandId') requestedBrandId?: string,
   ): Promise<{ expiresInSeconds: number; url: string }> {
     const isSuperAdmin = getIsSuperAdmin(user, request);
+    const brandId = await this.resolveBrand(user, requestedBrandId);
     const article = await this.readAsSuperAdmin(
       isSuperAdmin,
       async () =>
@@ -235,7 +252,7 @@ export class ArticlesController extends BaseCRUDController<
             ? { id: articleId, isDeleted: false }
             : scopedWhere(user.organizationId.toString(), {
                 id: articleId,
-                ...(user.brandId ? { brandId: user.brandId } : {}),
+                ...(brandId ? { brandId } : {}),
                 OR: [
                   { userId: user.userId ?? user.id },
                   { scope: 'ORGANIZATION' },
@@ -306,20 +323,21 @@ export class ArticlesController extends BaseCRUDController<
     // A `restoreFromVersionId` in the patch body reverts the article to a prior
     // version (prompt snapshot). The restore path carries its own
     // ownership/version-exists guards; other update fields are ignored.
+    const brandId = await this.resolveBrand(user, updateDto.brandId);
     const data: ArticleDocument = updateDto.restoreFromVersionId
       ? await this.articlesService.restoreArticleVersion(
           articleId,
           updateDto.restoreFromVersionId,
           user.userId ?? user.id,
           user.organizationId,
-          user.brandId,
+          brandId,
         )
       : await this.articlesService.update(
           articleId,
           updateDto,
           user.userId ?? user.id,
           user.organizationId,
-          user.brandId,
+          brandId,
         );
 
     return serializeSingle(request, this.serializer, data);

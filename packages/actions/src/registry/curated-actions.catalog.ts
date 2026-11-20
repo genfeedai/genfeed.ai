@@ -305,6 +305,7 @@ export const CURATED_ACTION_CATALOG = [
   {
     category: 'content',
     claudeAccess: 'agent',
+    mcpBrandRequiredWhenMultiple: true,
     mutationPolicy: 'approval-required',
     name: 'create_article_draft',
     surfaces: ['mcp'],
@@ -2017,6 +2018,14 @@ export const CURATED_ACTION_CATALOG = [
     surfaces: ['agent', 'mcp'],
     toolset: 'generation',
     uiActionType: 'image_transform_card',
+  },
+  {
+    category: 'content',
+    claudeAccess: 'agent',
+    mutationPolicy: 'approval-required',
+    name: 'update_article_draft',
+    surfaces: ['mcp'],
+    toolset: 'articles',
   },
   {
     category: 'other',

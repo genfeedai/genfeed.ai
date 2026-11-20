@@ -17,6 +17,7 @@ import type { ToolRegistryService } from '@mcp/services/tool-registry.service';
 const CATALOG_REST_NAMES = [
   'get_video_analytics',
   'create_article_draft',
+  'update_article_draft',
   'get_article_preview',
   'publish_article',
   'get_articles',
@@ -105,6 +106,11 @@ function build() {
       .mockImplementation((toolName: string) =>
         Promise.resolve({ id: 'apr-1', status: 'PENDING', toolName }),
       ),
+    updateArticle: vi.fn().mockResolvedValue({
+      id: 'article-2',
+      status: 'DRAFT',
+      title: 'Renamed guide',
+    }),
     createArticleDraft: vi.fn().mockResolvedValue({
       id: 'article-2',
       status: 'DRAFT',
@@ -259,6 +265,52 @@ describe('catalog REST handlers — articles', () => {
     expect(result.content[0].text).toContain('requires approval');
   });
 
+  it('creates an article in the brand it names', async () => {
+    const { client, registry } = build();
+    const draft = {
+      brandId: 'brand-2',
+      content: '<p>Full content</p>',
+      coverImageUrl: 'https://cdn.genfeed.ai/assets/cover.jpg',
+      label: 'Reviewed guide',
+      slug: 'reviewed-guide',
+      summary: 'Verified',
+    };
+    await callTool(registry, 'create_article_draft', draft);
+    expect(client.createArticleDraft).toHaveBeenCalledWith(draft);
+  });
+
+  it('updates only the article fields it is given, including the cover and inline images', async () => {
+    const { client, registry } = build();
+    const result = await callTool(registry, 'update_article_draft', {
+      articleId: 'article-2',
+      brandId: 'brand-2',
+      content: '<p>Hi</p><img src="https://cdn.genfeed.ai/assets/inline.jpg">',
+      coverImageUrl: 'https://cdn.genfeed.ai/assets/cover.jpg',
+    });
+    expect(client.updateArticle).toHaveBeenCalledWith({
+      articleId: 'article-2',
+      brandId: 'brand-2',
+      content: '<p>Hi</p><img src="https://cdn.genfeed.ai/assets/inline.jpg">',
+      coverImageUrl: 'https://cdn.genfeed.ai/assets/cover.jpg',
+    });
+    expect(client.publishArticle).not.toHaveBeenCalled();
+    expect(result.content[0].text).toContain('was not published');
+  });
+
+  it.each([
+    { articleId: 'article-2' },
+    { articleId: 'article-2', coverImageUrl: 'http://cdn.genfeed.ai/c.jpg' },
+    { articleId: 'article-2', slug: 'Not A Slug' },
+  ])(
+    'refuses an article update that changes nothing valid: %j',
+    async (args) => {
+      const { client, registry } = build();
+      const result = await callTool(registry, 'update_article_draft', args);
+      expect(client.updateArticle).not.toHaveBeenCalled();
+      expect(result.isError).toBe(true);
+    },
+  );
+
   it('saves full reviewed HTML when draft creation is approved', async () => {
     const { client, registry } = build();
     const args = {
@@ -294,7 +346,7 @@ describe('catalog REST handlers — articles', () => {
       approvalId: 'apr-1',
       decision: 'approve',
     });
-    expect(client.publishArticle).toHaveBeenCalledWith('article-2');
+    expect(client.publishArticle).toHaveBeenCalledWith('article-2', undefined);
     expect(result.content[0].text).toContain('PUBLISHED');
   });
 
@@ -303,7 +355,10 @@ describe('catalog REST handlers — articles', () => {
     const result = await callTool(registry, 'get_article_preview', {
       articleId: 'article-2',
     });
-    expect(client.getArticlePreview).toHaveBeenCalledWith('article-2');
+    expect(client.getArticlePreview).toHaveBeenCalledWith(
+      'article-2',
+      undefined,
+    );
     expect(client.createApproval).not.toHaveBeenCalled();
     expect(result.structuredContent?.data).toMatchObject({
       expiresInSeconds: 3600,
@@ -370,7 +425,7 @@ describe('catalog REST handlers — articles', () => {
       articleId: 'article-1',
     });
 
-    expect(client.getArticle).toHaveBeenCalledWith('article-1');
+    expect(client.getArticle).toHaveBeenCalledWith('article-1', undefined);
     expect(client.searchArticles).not.toHaveBeenCalled();
     expect(result.content[0].text).toContain('Article: AI News');
     expect(result.content[0].text).toContain('Long form body');
