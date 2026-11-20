@@ -168,6 +168,20 @@ describe('AnthropicService', () => {
       expect(result.model).toBe('anthropic/claude-sonnet-5');
     });
 
+    it('sends the hyphenated native id for a dotted registry version', async () => {
+      mockCreate.mockResolvedValue(mockAnthropicResponse);
+
+      const result = await service.chatCompletion({
+        ...defaultParams,
+        model: 'anthropic/claude-sonnet-5.5',
+      });
+
+      expect(mockCreate).toHaveBeenCalledWith(
+        expect.objectContaining({ model: 'claude-sonnet-5-5' }),
+      );
+      expect(result.model).toBe('anthropic/claude-sonnet-5.5');
+    });
+
     it('should strip anthropic/ prefix from model name', async () => {
       mockCreate.mockResolvedValue(mockAnthropicResponse);
 

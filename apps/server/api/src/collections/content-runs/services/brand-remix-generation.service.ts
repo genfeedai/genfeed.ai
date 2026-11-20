@@ -273,7 +273,7 @@ export class BrandRemixGenerationService {
       brandId,
       config,
     );
-    let model: string = LLM_DEFAULTS.background;
+    let model: string = LLM_DEFAULTS.contentWriting;
     let price: {
       unitCredits: number;
       billingMode: 'credits' | 'byok';
@@ -314,7 +314,7 @@ export class BrandRemixGenerationService {
     } else {
       if (requestedModel !== undefined)
         throw new ConflictException(
-          'Copy remixes use the canonical background model.',
+          'Copy remixes use the canonical content-writing model.',
         );
       const unitCredits = sourcePostVariationCredits(1);
       price = {

@@ -181,6 +181,63 @@ describe('OpenRouterService', () => {
       });
     });
 
+    describe('request parameters a model does not list', () => {
+      async function sentBody(
+        params: OpenRouterChatCompletionParams,
+      ): Promise<Record<string, unknown>> {
+        httpService.post.mockReturnValueOnce(of(axiosResponse(mockResponse)));
+        await service.chatCompletion(params);
+        return httpService.post.mock.calls[0][1] as Record<string, unknown>;
+      }
+
+      it.each([
+        'anthropic/claude-sonnet-5.5',
+        'anthropic/claude-haiku-5.5',
+        'openai/gpt-6.1-terra',
+        'openai/gpt-6-luna',
+      ])('leaves temperature out for %s', async (model) => {
+        const body = await sentBody({
+          ...defaultParams,
+          model,
+          temperature: 0.7,
+        });
+
+        expect(body).not.toHaveProperty('temperature');
+      });
+
+      it.each([
+        'google/gemini-4-neon',
+        'x-ai/grok-4.7',
+        'deepseek/deepseek-v4.1-flash-1017',
+      ])('keeps temperature for %s', async (model) => {
+        const body = await sentBody({
+          ...defaultParams,
+          model,
+          temperature: 0.7,
+        });
+
+        expect(body.temperature).toBe(0.7);
+      });
+
+      it('requires listed parameters when the call sends a schema', async () => {
+        const body = await sentBody({
+          ...defaultParams,
+          response_format: {
+            json_schema: { name: 'verdict', schema: { type: 'object' } },
+            type: 'json_schema',
+          },
+        });
+
+        expect(body.provider).toMatchObject({ require_parameters: true });
+      });
+
+      it('does not narrow providers for a plain completion', async () => {
+        const body = await sentBody(defaultParams);
+
+        expect(body.provider).not.toHaveProperty('require_parameters');
+      });
+    });
+
     describe('when the model makes reasoning mandatory', () => {
       const reasoningMandatoryError = Object.assign(
         new Error('Request failed with status code 400'),
@@ -384,6 +441,7 @@ describe('OpenRouterService', () => {
       const params: OpenRouterChatCompletionParams = {
         ...defaultParams,
         max_tokens: 200,
+        model: 'x-ai/grok-4.7',
         temperature: 0.7,
       };
 

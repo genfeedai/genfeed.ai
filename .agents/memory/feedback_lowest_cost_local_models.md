@@ -13,7 +13,7 @@ last_verified: 2026-10-07
 |---|---|---|
 | Image | `black-forest-labs/flux-schnell` ($0.003) | Nano Banana 2 Lite ($0.034) |
 | Video | `prunaai/p-video` ($0.02/s) | MiniMax H3 ($0.08/s at 768P; $0.13/s at 2K) |
-| Chat | `deepseek/deepseek-v4-flash-0731` | DeepSeek V4 Flash |
+| Chat | `deepseek/deepseek-v4.1-flash-1017` | DeepSeek V4.1 Flash |
 
 **Why:** Cloud quality defaults still burn real Replicate / OpenRouter spend on testing. The operator asked to keep local and e2e on the cheapest models while using cost-ranked cloud defaults.
 

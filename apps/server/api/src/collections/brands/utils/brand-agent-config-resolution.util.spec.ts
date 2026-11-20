@@ -207,7 +207,7 @@ describe('resolveEffectiveAgentExecutionConfig', () => {
       strategy: {
         autonomyMode: 'auto_publish',
         brandId: strategyBrandId,
-        model: 'deepseek/deepseek-v4-flash-0731',
+        model: 'deepseek/deepseek-v4.1-flash-1017',
         platforms: ['twitter'],
         qualityTier: 'budget',
       } as never,
@@ -220,7 +220,7 @@ describe('resolveEffectiveAgentExecutionConfig', () => {
       platform: 'twitter',
       qualityTier: 'budget',
     });
-    expect(result.strategyModel).toBe('deepseek/deepseek-v4-flash-0731');
+    expect(result.strategyModel).toBe('deepseek/deepseek-v4.1-flash-1017');
   });
 });
 

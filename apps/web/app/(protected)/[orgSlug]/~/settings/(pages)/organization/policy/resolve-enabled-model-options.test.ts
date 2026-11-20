@@ -23,7 +23,7 @@ describe('resolveEnabledModelOptions', () => {
             category: ModelCategory.TEXT,
             id: modelId,
             key: 'deepseek/deepseek-v4-flash-0731',
-            label: 'DeepSeek V4 Flash',
+            label: 'DeepSeek V4.1 Flash',
           },
           {
             category: ModelCategory.TEXT,
@@ -35,7 +35,10 @@ describe('resolveEnabledModelOptions', () => {
         AGENT_THINKING_MODEL_CATEGORIES,
       ),
     ).toEqual([
-      { label: 'DeepSeek V4 Flash', value: 'deepseek/deepseek-v4-flash-0731' },
+      {
+        label: 'DeepSeek V4.1 Flash',
+        value: 'deepseek/deepseek-v4-flash-0731',
+      },
       {
         label: 'Gemini 2.5 Flash Lite',
         value: 'google/gemini-2.5-flash-lite',
@@ -59,7 +62,7 @@ describe('resolveEnabledModelOptions', () => {
         category: ModelCategory.TEXT,
         id: 'text-id',
         key: 'deepseek/deepseek-v4-flash-0731',
-        label: 'DeepSeek V4 Flash',
+        label: 'DeepSeek V4.1 Flash',
       },
       {
         category: ModelCategory.IMAGE,
@@ -76,7 +79,10 @@ describe('resolveEnabledModelOptions', () => {
         AGENT_THINKING_MODEL_CATEGORIES,
       ),
     ).toEqual([
-      { label: 'DeepSeek V4 Flash', value: 'deepseek/deepseek-v4-flash-0731' },
+      {
+        label: 'DeepSeek V4.1 Flash',
+        value: 'deepseek/deepseek-v4-flash-0731',
+      },
     ]);
     expect(
       resolveEnabledModelOptions(
@@ -107,7 +113,7 @@ describe('resolveEnabledModelOptions', () => {
             category: ModelCategory.TEXT,
             id: modelId,
             key: 'deepseek/deepseek-v4-flash-0731',
-            label: 'DeepSeek V4 Flash',
+            label: 'DeepSeek V4.1 Flash',
           },
         ],
         AGENT_THINKING_MODEL_CATEGORIES,
@@ -189,7 +195,7 @@ describe('resolveEnabledModelsForCategory', () => {
         category: ModelCategory.TEXT,
         id: 'text-id',
         key: 'deepseek/deepseek-v4-flash-0731',
-        label: 'DeepSeek V4 Flash',
+        label: 'DeepSeek V4.1 Flash',
       },
       {
         category: ModelCategory.IMAGE,
@@ -224,7 +230,7 @@ describe('resolveEnabledModelsForCategory', () => {
             category: ModelCategory.TEXT,
             id: modelId,
             key: 'deepseek/deepseek-v4-flash-0731',
-            label: 'DeepSeek V4 Flash',
+            label: 'DeepSeek V4.1 Flash',
           },
         ],
         AGENT_THINKING_MODEL_CATEGORIES,

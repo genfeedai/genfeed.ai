@@ -145,6 +145,22 @@ describe('OpenAiLlmService', () => {
       expect(callArgs.temperature).toBeUndefined();
     });
 
+    it.each(['openai/gpt-6.1-terra', 'openai/gpt-6-luna'])(
+      'caps output with max_completion_tokens and sends no temperature for %s',
+      async (model) => {
+        mockCreate.mockResolvedValue(makeOpenAIResponse());
+
+        await service.chatCompletion(
+          makeParams({ max_tokens: 700, model, temperature: 0.7 }),
+        );
+
+        const callArgs = mockCreate.mock.calls[0][0] as Record<string, unknown>;
+        expect(callArgs.temperature).toBeUndefined();
+        expect(callArgs.max_tokens).toBeUndefined();
+        expect(callArgs.max_completion_tokens).toBe(700);
+      },
+    );
+
     it('should map tool_calls from the response correctly', async () => {
       const toolCalls = [
         {
