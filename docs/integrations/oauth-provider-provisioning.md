@@ -150,8 +150,8 @@ and [v26.0 migration changes](https://developers.facebook.com/docs/graph-api/cha
    `packages/integrations/src/constants.ts`): `ads_management`, `ads_read`,
    `public_profile`, `email`, `pages_show_list`, `pages_manage_posts`,
    `pages_read_engagement`, `pages_manage_metadata`,
-   `pages_manage_engagement`, `read_insights`, and `publish_video`. Facebook
-   Page messaging is not part of the Genfeed inbox.
+   `pages_manage_engagement`, `pages_read_user_content`, `read_insights`, and
+   `publish_video`. Facebook Page messaging is not part of the Genfeed inbox.
 4. Complete business verification and App Review for permissions that require
    them before enabling the connection for non-test users.
 5. Set `FACEBOOK_APP_ID`, `FACEBOOK_APP_SECRET`, `FACEBOOK_REDIRECT_URI`,
