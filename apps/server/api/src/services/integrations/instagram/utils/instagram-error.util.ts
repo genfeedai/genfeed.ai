@@ -363,6 +363,24 @@ export function getSafeInstagramOAuthErrorLog(
   };
 }
 
+/**
+ * Whether a logged OAuth failure is the controller's own 4xx refusal, such as
+ * a missing permission or a stale OAuth state. The response already tells the
+ * user how to recover, so it is not an error report. A provider failure, a
+ * redirect mismatch, a misconfigured deployment (5xx) and unexpected errors
+ * stay errors.
+ */
+export function isUserRecoverableInstagramFailure(
+  log: InstagramOAuthErrorLog,
+): boolean {
+  return (
+    log.category === 'http_exception' &&
+    log.httpStatus !== undefined &&
+    log.httpStatus >= 400 &&
+    log.httpStatus < 500
+  );
+}
+
 export function throwMappedInstagramOAuthError(
   error: unknown,
   fallbackDetail: string,
