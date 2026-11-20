@@ -59,7 +59,7 @@ are in market at any moment. Its originators describe the figure as a rough
 guide rather than a measurement, and the real ratio depends on how often your
 category is bought. The practical point holds anyway: content has two jobs. It
 should be useful enough that the other 95% remember you, and specific enough that
-the few in market recognise their problem in it.</p>
+the few in market recognize their problem in it.</p>
 
 <h3>The buying committee problem</h3>
 
@@ -121,7 +121,7 @@ afternoon on these four things, in this order.</p>
   <li><strong>Write your position and voice.</strong> Capture what you believe that
   most of your category does not, what you will not say, how you sound (three
   adjectives and two example sentences), and what proof you can show. Keep it where
-  your tools can read it. In Genfeed this lives in brand setup and brand memory, so
+  your tools can read it. In Genfeed, this lives in brand setup and brand memory, so
   every draft starts from the same voice.</li>
   <li><strong>Build a source library.</strong> Collect the questions buyers ask in
   the first ten minutes of sales calls, the objections that come up late, where new
@@ -168,7 +168,7 @@ help before you offer a call.</p>
 
 <p>Read the scorecard (see below) and make three decisions: which format to keep,
 which to cut, and which topic to double down on. Then plan the second month. Change
-one thing at a time so you can tell what caused a difference.</p>
+one thing at a time so you can tell what made the difference.</p>
 
 <h2>Choosing your channel</h2>
 
@@ -196,7 +196,7 @@ only when the first runs without strain.</p>
   <li><strong>Inbound conversations</strong>: direct messages, intro requests, and
   prospects who mention a post in a call.</li>
   <li><strong>Pipeline touched</strong>: opportunities where the buyer engaged with
-  your content before or during the sale. Ask in discovery calls: "how did you first
+  your content before or during the sale. Ask in discovery calls: "How did you first
   hear about us?"</li>
   <li><strong>Effort</strong>: hours spent per week, so you can judge whether the
   loop is sustainable.</li>
@@ -254,7 +254,7 @@ person with time to manage it.</p>
 <h3>Done-for-you</h3>
 
 <p>When the work is clearly worth doing and the constraint is time or capacity, the
-math usually favours handing the whole loop to a service. The cost is fixed and
+math usually favors handing the whole loop to a service. The cost is fixed and
 predictable, and the overhead of keeping a weekly program running, week after
 week, without gaps, is what you are buying back.</p>
 
@@ -322,7 +322,7 @@ is operating judgment, so test it against your own results.</p>
 
 const FOUNDER_LED_LINKEDIN = `
 <p>Founder-led LinkedIn is one of the most common ways B2B companies start
-creating content, and one of the most commonly done badly. The founder posts for
+creating content, and one that is most often done badly. The founder posts for
 two weeks, gets a handful of likes, and decides LinkedIn does not work for their
 market. Usually the problem was not the platform. It was that nothing about the
 account told a buyer why to follow it.</p>
@@ -361,10 +361,10 @@ A founder who has explained that problem clearly, in public, many times, is easy
 trust.</p>
 
 <h3>Specific beats broad</h3>
-<p>LinkedIn favours writing that is credible and useful to a professional
-audience, and tends to punish anything that reads like an advert. That constraint is good news: the bar is
+<p>LinkedIn favors writing that is credible and useful to a professional
+audience, and tends to punish anything that reads like an ad. That constraint is good news: the bar is
 clarity, not production budget. Concrete detail from real work outperforms
-generalised advice.</p>
+generalized advice.</p>
 
 <h3>Conversations are the unit of growth</h3>
 <p>Comments are worth more than likes, and a good comment thread teaches the next
@@ -393,8 +393,8 @@ that try to remove all three end up with content that nobody remembers.</p>
   </tbody>
 </table>
 
-<p>What to avoid: posting daily for two weeks, then disappearing. The account built
-up very little and then went quiet. Three or four posts a week for three months
+<p>What to avoid: posting daily for two weeks, then disappearing. The account builds
+up very little and then goes quiet. Three or four posts a week for three months
 beats seven a week for three weeks.</p>
 
 <h2>The 30-day founder-led LinkedIn process</h2>
@@ -443,7 +443,7 @@ support tickets, and use five repeatable post types:</p>
 <p>A balanced week is two buyer questions, one decision story or worked example, and
 one take. Each post should open with a specific line that earns the "see more"
 click, keep paragraphs short, carry one idea, and end with a real question rather
-than "thoughts?". Keep promotion to a footnote, and only after the post has been
+than "thoughts?" Keep promotion to a footnote, and only after the post has been
 useful.</p>
 
 <h3>Days 15 to 21: add proof and engage like a peer</h3>
@@ -525,7 +525,7 @@ conversation with a buyer. Answer it like one.</p>
 
 <h3>When doing it yourself works</h3>
 
-<p>If the founder enjoys writing and can protect about two to three hours a week
+<p>If you enjoy writing and can protect about two to three hours a week
 for posts plus fifteen minutes a day for engagement, do it yourself. Nobody else
 has your examples, and the routine above is light enough to keep.</p>
 
@@ -585,7 +585,7 @@ done-for-you service works.</p>
 </ul>
 
 <h2>Sources and further reading</h2>
-<p>Platform ranking behaviour changes often and LinkedIn does not publish its
+<p>Platform ranking behavior changes often and LinkedIn does not publish its
 algorithm. The routine and post types above are operating judgment; check them
 against your own analytics and the platform's current documentation.</p>
 <ul>
@@ -621,7 +621,7 @@ apart in month two" has given you a post and the angle.</p>
 
 <h3>You write in the buyer's language</h3>
 <p>Buyers describe their problem differently from how a vendor describes the
-solution. When your post uses their phrasing, a reader recognises the problem in the
+solution. When your post uses their phrasing, a reader recognizes the problem in the
 first line, and that recognition is what stops the scroll.</p>
 
 <h3>You answer questions people already have</h3>
@@ -636,7 +636,7 @@ expect.</p>
 <h2>Does it actually work?</h2>
 
 <p>It works when the volume of calls is real: ten or more conversations to draw from
-gives you repeating patterns. With two or three calls you are mostly collecting
+give you repeating patterns. With two or three calls you are mostly collecting
 anecdotes. It also depends on discipline about privacy. The content is only useful
 if customers stay comfortable with it, so the rules in the next section come first.</p>
 
@@ -661,9 +661,9 @@ if customers stay comfortable with it, so the rules in the next section come fir
 
 <ol>
   <li><strong>Consent.</strong> Recording and use rules vary by place and by customer
-  agreement. Check what you have agreed with customers and what applies to you, and
+  agreement. Check what you have agreed to with customers and what applies to you, and
   record only with consent.</li>
-  <li><strong>Anonymise by default.</strong> Strip names, company names, and
+  <li><strong>Anonymize by default.</strong> Strip names, company names, and
   identifying details. A post should not let a reader work out who said it.</li>
   <li><strong>Ask before you attribute.</strong> If you want to name a customer, quote
   them, or share their numbers, get explicit permission in writing.</li>
@@ -692,7 +692,7 @@ than one tag. Anything you cannot tag is probably not worth publishing.</p>
 
 <h3>Step 3: Build a phrase bank</h3>
 
-<p>Copy the buyer's exact words, anonymised, into one list. These phrases are your
+<p>Copy the buyer's exact words, anonymized, into one list. These phrases are your
 openers and headlines. "We spent a quarter on this and have nothing to show" is a
 better first line than any sentence you would write from scratch.</p>
 
@@ -712,7 +712,7 @@ better first line than any sentence you would write from scratch.</p>
 
 <p>Run every draft through three checks: could a reader identify the customer, is
 every claim something you can support, and does it contain one specific detail only
-you could have written. In Genfeed, drafts wait in the approval queue until someone
+you could have written? In Genfeed, drafts wait in the approval queue until someone
 reviews them, so nothing goes out on a busy week without a check.</p>
 
 <h3>Step 6: Close the loop</h3>
@@ -724,7 +724,7 @@ not, and the next batch gets better.</p>
 <h2>Mistakes that undo it</h2>
 
 <p><strong>Publishing something that identifies a customer.</strong> It costs trust
-with exactly the people the content is meant to win. Anonymise by default and ask
+with exactly the people the content is meant to win. Anonymize by default and ask
 before you attribute.</p>
 
 <p><strong>Collecting without tagging.</strong> A folder of transcripts is not a source
@@ -761,7 +761,7 @@ ${DONE_FOR_YOU_PRICING}
 <h2>Summary</h2>
 
 <p>Buyers tell you what to write about every week. Capturing it, tagging it, and
-turning it into short, reviewed, anonymised posts gives you content that sounds like
+turning it into short, reviewed, anonymized posts gives you content that sounds like
 the market instead of like the vendor.</p>
 
 <p>The process is not complicated. The discipline to run it weekly, and to protect
@@ -777,7 +777,7 @@ make sure you have consent and that you are comfortable with how the recording i
 stored.</p>
 
 <h3>Is it safe to use what a customer said?</h3>
-<p>Only if you anonymise it and the post cannot identify them, or you have their
+<p>Only if you anonymize it and the post cannot identify them, or you have their
 explicit permission. When in doubt, ask or leave it out.</p>
 
 <h3>How many calls do I need before this works?</h3>
@@ -863,7 +863,7 @@ modest, make it five assets, not twenty. The number is a ceiling, not a target.<
 <ol>
   <li>Confirm in writing what you may say about the customer, which numbers you may
   use, and whether you may name them.</li>
-  <li>Agree who at the customer checks the final wording.</li>
+  <li>Agree on who at the customer checks the final wording.</li>
   <li>Ask whether they will let you quote them directly. A short, specific quote is
   worth more than a paragraph of your summary.</li>
 </ol>
@@ -907,8 +907,8 @@ campaign.</p>
 <h3>Step 4: Review against the spine</h3>
 
 <p>Check every asset for three things: does it match the approved facts exactly, does
-it add no claim the customer did not approve, and does it stand on its own without
-the original page. Send anything that names or quotes the customer for their check
+it avoid any claim the customer did not approve, and does it stand on its own without
+the original page? Send anything that names or quotes the customer for their check
 before it goes out.</p>
 
 <h3>Step 5: Publish across weeks, not in a day</h3>
@@ -917,7 +917,7 @@ before it goes out.</p>
 a burst. Hand the sales assets to the team in the first week so the story is used on
 calls while it is fresh.</p>
 
-<h3>Step 6: Measure what travelled</h3>
+<h3>Step 6: Measure what traveled</h3>
 
 <p>Note which assets drew replies or came up on calls. The next story should lean
 into those shapes.</p>
@@ -931,7 +931,7 @@ not approve can end the relationship and the story with it.</p>
 as padding. Match the count to the substance.</p>
 
 <p><strong>Changing the facts between formats.</strong> A rounded number in one post
-and an exact one in another invites questions. Work from the spine page.</p>
+and an exact one in another invite questions. Work from the spine page.</p>
 
 <p><strong>Publishing everything in one week.</strong> You use up the audience's
 attention at once and lose the repetition.</p>
@@ -970,7 +970,7 @@ decide how many assets it earns.</p>
 <h2>Frequently asked questions</h2>
 
 <h3>Can I do this with an anonymous customer?</h3>
-<p>Yes. Anonymised stories work, though quotes and logos are lost. Be clear about the
+<p>Yes. Anonymized stories work, though quotes and logos are lost. Be clear about the
 kind of company and the size of the result without identifying them.</p>
 
 <h3>What if the customer will not approve numbers?</h3>
@@ -1067,7 +1067,7 @@ an opportunity. Give each step a name and decide where it gets logged.</p>
 
 <p>Add one open-text field to your booking form and your discovery call notes: "How did
 you first hear about us?" Self-reported answers capture what trackers miss, such as
-"I keep seeing your posts". Log them in the CRM as written, then tag them.</p>
+"I keep seeing your posts." Log them in the CRM as written, then tag them.</p>
 
 <h3>Step 2: Tag opportunities by content involvement</h3>
 
@@ -1103,7 +1103,7 @@ what to stop, and what to test next.</p>
 
 <h3>Step 6: Set decision rules against your own baseline</h3>
 
-<p>Decide in advance what counts as "working", and compare to your own baseline rather
+<p>Decide in advance what counts as "working," and compare to your own baseline rather
 than an industry number. For example: keep a format if it produces more replies from
 target buyers than the previous month, and stop it after three months if it does not.
 Write the rule down before you see the data.</p>
@@ -1162,7 +1162,7 @@ have been publishing. Compare against your own baseline.</p>
 <h3>Is self-reported attribution reliable?</h3>
 <p>It is imperfect and biased toward the most memorable touch, but it captures
 influence that trackers miss. Use it alongside whatever tracking you have, not
-instead.</p>
+instead of it.</p>
 
 <h3>Do I need a marketing analytics tool?</h3>
 <p>Not to start. A spreadsheet and a CRM field are enough for the first quarter. Add

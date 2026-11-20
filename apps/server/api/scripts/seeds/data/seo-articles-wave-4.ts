@@ -33,17 +33,17 @@ const mcpLinks = [
 const briefs: readonly SeoArticleBrief[] = [
   {
     answer:
-      'Meta Muse does not list Genfeed among its built-in connectors, but you can add it yourself: open a Muse chat, ask it to create a custom connector, and give it Genfeed’s hosted MCP server address, https://mcp.genfeed.ai/mcp, over remote Streamable HTTP with OAuth. Muse sends you a sign-in link, you approve access in your browser, and from then on Muse can draft captions, images, and schedules through Genfeed — with every draft held for your review before it publishes.',
+      "Meta Muse does not list Genfeed among its built-in connectors, but you can add it yourself: open a Muse chat, ask it to create a custom connector, and give it Genfeed's hosted MCP server address, https://mcp.genfeed.ai/mcp, over remote Streamable HTTP with OAuth. Muse sends you a sign-in link, you approve access in your browser, and from then on Muse can draft captions, images, and schedules through Genfeed, with every draft held for your review before it publishes.",
     category: ArticleCategory.TUTORIAL,
     decisionRows: [
       {
-        choice: 'Muse’s built-in connector list',
-        fit: 'Apps already in Muse’s fixed catalog, ready with no setup',
+        choice: "Muse's built-in connector list",
+        fit: "Apps already in Muse's fixed catalog, ready with no setup",
         tradeoff:
           'Genfeed is not on that list, so scheduling stays unavailable through it alone',
       },
       {
-        choice: 'Custom connector to Genfeed’s MCP server',
+        choice: "Custom connector to Genfeed's MCP server",
         fit: 'Any brand, model, or platform Genfeed supports, added once in chat',
         tradeoff:
           'You ask Muse to create it yourself; there is no toggle in settings',
@@ -84,7 +84,7 @@ const briefs: readonly SeoArticleBrief[] = [
       {
         question: 'Is Genfeed an official Muse connector?',
         answer:
-          'No. Genfeed is not part of Muse’s built-in connector directory. It connects as a custom connector you add yourself using Genfeed’s MCP server.',
+          "No. Genfeed is not part of Muse's built-in connector directory. It connects as a custom connector you add yourself using Genfeed's MCP server.",
       },
       {
         question: 'What happens if I revoke access later?',
@@ -102,7 +102,7 @@ const briefs: readonly SeoArticleBrief[] = [
       ...mcpLinks,
     ],
     intro: [
-      'Meta Muse is Meta’s personal AI agent, not the Meta AI assistant built into Facebook, Instagram, and Messenger. Muse acts on your behalf through connectors — small bridges to the services you already use — and its built-in list is fixed, so a newer content platform like Genfeed will not appear there automatically.',
+      "Meta Muse is Meta's personal AI agent, not the Meta AI assistant built into Facebook, Instagram, and Messenger. Muse acts on your behalf through connectors (small bridges to the services you already use), and its built-in list is fixed, so a newer content platform like Genfeed will not appear there automatically.",
       'The workaround is the same one Muse supports for any service outside that list: a custom connector pointed at an MCP server. Genfeed runs a hosted MCP server built for exactly this, so setup is a short chat message and one browser approval, not a settings form.',
     ],
     label:
@@ -114,7 +114,7 @@ const briefs: readonly SeoArticleBrief[] = [
       'Brands and platforms actually used through the connector versus connected',
     ],
     mistakes: [
-      'Looking for Genfeed in Muse’s built-in connector list instead of adding it as a custom connector',
+      "Looking for Genfeed in Muse's built-in connector list instead of adding it as a custom connector",
       'Giving Muse a password, token, or API key when it only ever needs the OAuth sign-in link',
       'Letting a queued post publish without opening the draft in Genfeed first',
       'Approving the OAuth sign-in from the wrong Genfeed organization or brand',
@@ -124,22 +124,22 @@ const briefs: readonly SeoArticleBrief[] = [
       {
         heading: 'Which platforms Genfeed can publish to from Muse',
         paragraphs: [
-          'Once the connector is live, Muse is really talking to Genfeed’s own publishing layer, not to each network directly. The same brand, asset, and approval rules apply no matter which platform a post is headed to.',
-          'Genfeed currently publishes to sixteen destinations, so a request such as “post this to Instagram and Threads” or “queue this for LinkedIn next week” routes through one connector instead of one integration per app.',
+          "Once the connector is live, Muse is really talking to Genfeed's own publishing layer, not to each network directly. The same brand, asset, and approval rules apply no matter which platform a post is headed to.",
+          'Genfeed currently publishes to sixteen destinations, so a request such as "post this to Instagram and Threads" or "queue this for LinkedIn next week" routes through one connector instead of one integration per app.',
         ],
         points: [...GENFEED_PLATFORMS],
       },
       {
         heading: 'Keep a human between Muse and the publish button',
         paragraphs: [
-          'Muse never needs your Genfeed password or an API key for this connector — access runs on OAuth, so it opens a sign-in link and waits for you to approve it in a real browser tab. If a chat message ever asks you to paste a password or token instead, that is not how this connection is supposed to work; stop and check the source.',
+          'Muse never needs your Genfeed password or an API key for this connector. Access runs on OAuth, so it opens a sign-in link and waits for you to approve it in a real browser tab. If a chat message ever asks you to paste a password or token instead, that is not how this connection is supposed to work; stop and check the source.',
           'Genfeed holds generated captions, images, and schedules as drafts by default. Muse can prepare and even queue a post, but a person still has to open the draft and approve it before it goes out, which is the difference between a fast production step and an unsupervised one.',
         ],
       },
       {
         heading: 'Troubleshooting the Muse connector',
         paragraphs: [
-          'If Muse says it cannot reach the server, confirm you gave it the exact address, https://mcp.genfeed.ai/mcp, and chose remote Streamable HTTP rather than a local command — Muse’s bridge only proxies to a reachable URL, it does not run Genfeed on your behalf.',
+          "If Muse says it cannot reach the server, confirm you gave it the exact address, https://mcp.genfeed.ai/mcp, and chose remote Streamable HTTP rather than a local command. Muse's bridge only proxies to a reachable URL; it does not run Genfeed on your behalf.",
           'If the brand list comes back empty after you approve the sign-in link, the OAuth approval likely did not complete. Ask Muse to reconnect and re-open the link, and check that you were signed into the intended Genfeed organization when you approved it.',
         ],
       },
@@ -166,7 +166,7 @@ const briefs: readonly SeoArticleBrief[] = [
       {
         action: 'Open a chat with Muse.',
         detail:
-          'Use the account where you want the connector to live — Muse’s connectors are personal to that account.',
+          "Use the account where you want the connector to live. Muse's connectors are personal to that account.",
       },
       {
         action: 'Paste the connect request.',
@@ -175,12 +175,12 @@ const briefs: readonly SeoArticleBrief[] = [
       {
         action: 'Approve the sign-in link.',
         detail:
-          'Muse opens a browser tab for Genfeed’s OAuth flow; sign in and grant access there, not in the chat.',
+          "Muse opens a browser tab for Genfeed's OAuth flow; sign in and grant access there, not in the chat.",
       },
       {
         action: 'Confirm the brand list.',
         detail:
-          'Ask Muse to list your Genfeed brands — if it can, the connector is authenticated and scoped correctly.',
+          'Ask Muse to list your Genfeed brands. If it can, the connector is authenticated and scoped correctly.',
       },
       {
         action: 'Ask for a draft, not a publish.',
@@ -196,11 +196,11 @@ const briefs: readonly SeoArticleBrief[] = [
   },
   {
     answer:
-      'Grok Bot is xAI and Cursor’s always-on AI teammate: each Bot runs on its own persistent cloud computer and can keep working after you close the chat. Connect it to Genfeed the same way you would connect any other tool — point it at Genfeed’s hosted MCP server, https://mcp.genfeed.ai/mcp, over remote Streamable HTTP, approve the OAuth sign-in link once, and the Bot can then draft captions, images, and schedules through Genfeed while a person still approves what actually publishes.',
+      "Grok Bot is xAI and Cursor's always-on AI teammate: each Bot runs on its own persistent cloud computer and can keep working after you close the chat. Connect it to Genfeed the same way you would connect any other tool: point it at Genfeed's hosted MCP server, https://mcp.genfeed.ai/mcp, over remote Streamable HTTP, approve the OAuth sign-in link once, and the Bot can draft captions, images, and schedules through Genfeed while a person still approves what actually publishes.",
     category: ArticleCategory.TUTORIAL,
     decisionRows: [
       {
-        choice: 'A Bot’s own persistent cloud computer',
+        choice: "A Bot's own persistent cloud computer",
         fit: 'Long-running or scheduled jobs that need to survive after you close the chat',
         tradeoff:
           'The Bot can act while you are away, so a review gate matters more, not less',
@@ -228,7 +228,7 @@ const briefs: readonly SeoArticleBrief[] = [
       {
         question: 'Is Grok Bot the same as Grok?',
         answer:
-          'No. Grok is xAI’s chat assistant. Grok Bot is a separate always-on AI teammate that runs on its own persistent cloud computer and can work while you are offline.',
+          "No. Grok is xAI's chat assistant. Grok Bot is a separate always-on AI teammate that runs on its own persistent cloud computer and can work while you are offline.",
       },
       {
         question: 'Does Genfeed need an API key to work with Grok Bot?',
@@ -236,19 +236,19 @@ const briefs: readonly SeoArticleBrief[] = [
           'No. The hosted MCP server authenticates through OAuth with dynamic client registration, so no API key is generated or shared in chat.',
       },
       {
-        question: 'Can a Bot publish a post without approval while I’m away?',
+        question: "Can a Bot publish a post without approval while I'm away?",
         answer:
           'Not by default. Genfeed holds generated content as a draft, so a person still approves it before it reaches a platform, even if the Bot produced it unattended.',
       },
       {
         question: 'Which platforms can a Bot schedule to through Genfeed?',
         answer:
-          'All of Genfeed’s supported destinations: X, Instagram, TikTok, YouTube, Facebook, LinkedIn, Pinterest, Reddit, Threads, WordPress, Snapchat, Mastodon, Ghost, Shopify, Beehiiv, and Fanvue.',
+          "All of Genfeed's supported destinations: X, Instagram, TikTok, YouTube, Facebook, LinkedIn, Pinterest, Reddit, Threads, WordPress, Snapchat, Mastodon, Ghost, Shopify, Beehiiv, and Fanvue.",
       },
       {
         question: 'Do I need a specific plan to use Grok Bot at all?',
         answer:
-          'You need whichever plan xAI and Cursor require for Grok Bot access. That requirement is separate from Genfeed’s own setup, which only needs the MCP connector.',
+          "You need whichever plan xAI and Cursor require for Grok Bot access. That requirement is separate from Genfeed's own setup, which only needs the MCP connector.",
       },
       {
         question: 'Does connecting one Bot connect all of them?',
@@ -267,44 +267,44 @@ const briefs: readonly SeoArticleBrief[] = [
       ...mcpLinks,
     ],
     intro: [
-      'Grok Bot, launched in beta on August 11, 2026, is different from the Grok chat assistant: instead of answering inside one conversation, each Bot gets its own persistent cloud computer — a browser, filesystem, and terminal — and can keep running a job after you have moved on to something else.',
+      'Grok Bot, launched in beta on August 11, 2026, is different from the Grok chat assistant: instead of answering inside one conversation, each Bot gets its own persistent cloud computer (a browser, filesystem, and terminal) and can keep running a job after you have moved on to something else.',
       'That persistence is exactly why a review gate matters more, not less. Connecting a Bot to Genfeed over MCP gives it a real publishing workflow to draft and schedule content, while Genfeed keeps every generated post as a draft until a person approves it.',
     ],
     label:
       'Grok Bot + Genfeed: Automate Social Media Posting With an Always-On AI Teammate',
     metrics: [
       'Routines completed without needing a manual fix',
-      'Drafts approved as-is versus edited before publish',
+      'Drafts approved as-is versus edited before publishing',
       'Time from routine start to an approved, scheduled post',
       'Reconnect or OAuth failures per Bot per month',
     ],
     mistakes: [
       'Assuming a connector added in one Bot carries over to every other Bot',
-      'Giving a Bot an unbounded “keep posting” routine before testing one draft end to end',
+      'Giving a Bot an unbounded "keep posting" routine before testing one draft end to end',
       'Treating a stalled routine as broken when it is actually waiting on a held draft',
-      'Pasting a password or API key into the Bot’s chat instead of using the OAuth link',
+      "Pasting a password or API key into the Bot's chat instead of using the OAuth link",
     ],
     publishedAt: '2026-12-03T09:00:00.000Z',
     sections: [
       {
         heading: 'Which platforms a Bot can post to through Genfeed',
         paragraphs: [
-          'A Grok Bot reaches social platforms the same way Genfeed does for any other client: through Genfeed’s own connectors, not by xAI or Cursor building one integration per network.',
-          'That currently covers sixteen destinations, so a routine that says “draft this week’s LinkedIn and X posts” or “queue the Shopify product update” runs through the one Genfeed connector.',
+          "A Grok Bot reaches social platforms the same way Genfeed does for any other client: through Genfeed's own connectors, not by xAI or Cursor building one integration per network.",
+          'That currently covers sixteen destinations, so a routine that says "draft this week\'s LinkedIn and X posts" or "queue the Shopify product update" runs through the one Genfeed connector.',
         ],
         points: [...GENFEED_PLATFORMS],
       },
       {
         heading: 'Why the review gate matters more for an unattended Bot',
         paragraphs: [
-          'A Bot can run a routine while you are offline, which means nobody is watching the exact moment it decides a post is ready. Genfeed’s draft-and-approve model is the backstop: generated captions, images, and schedules wait for a person before they reach a platform, regardless of when the Bot produced them.',
+          "A Bot can run a routine while you are offline, which means nobody is watching the exact moment it decides a post is ready. Genfeed's draft-and-approve model is the backstop: generated captions, images, and schedules wait for a person before they reach a platform, regardless of when the Bot produced them.",
           'The connector never asks for your Genfeed password or an API key either. It authenticates through OAuth, so the Bot sends you a sign-in link and waits for approval in a real browser session, the same as any other MCP client.',
         ],
       },
       {
         heading: 'Troubleshooting the Grok Bot connection',
         paragraphs: [
-          'If the Bot cannot find Genfeed’s tools, check that it was given the exact server address, https://mcp.genfeed.ai/mcp, over remote Streamable HTTP — connector setup is per Bot, so a working connection in your personal Grok chat does not carry over automatically.',
+          "If the Bot cannot find Genfeed's tools, check that it was given the exact server address, https://mcp.genfeed.ai/mcp, over remote Streamable HTTP. Connector setup is per Bot, so a working connection in your personal Grok chat does not carry over automatically.",
           'If a routine stalls waiting on Genfeed, it is usually waiting on a held draft. Open Genfeed directly to approve or reject the pending item rather than assuming the Bot itself is stuck.',
         ],
       },
@@ -326,7 +326,7 @@ const briefs: readonly SeoArticleBrief[] = [
       },
     ],
     summary:
-      'Connect xAI and Cursor’s Grok Bot to Genfeed over MCP so it can draft and schedule social posts, with every post held for human approval first.',
+      "Connect xAI and Cursor's Grok Bot to Genfeed over MCP so it can draft and schedule social posts, with every post held for human approval first.",
     workflow: [
       {
         action: 'Open the Bot you want to connect.',
@@ -361,7 +361,7 @@ const briefs: readonly SeoArticleBrief[] = [
   },
   {
     answer:
-      'Add Genfeed to Claude Code with one command: claude mcp add --transport http genfeed --scope user https://mcp.genfeed.ai/mcp/claude. Then open /mcp, select genfeed, and authenticate in your browser. Verify with claude mcp list and by asking Claude Code to list your Genfeed brands. From there Claude Code can draft captions and schedule existing assets through Genfeed; create images, video and audio in Genfeed Studio. Genfeed holds content drafts for review before publishing. Codex users use the standard /mcp endpoint with codex mcp add and codex mcp login.',
+      'Add Genfeed to Claude Code with one command: claude mcp add --transport http genfeed --scope user https://mcp.genfeed.ai/mcp/claude. Then open /mcp, select genfeed, and authenticate in your browser. Verify with claude mcp list and by asking Claude Code to list your Genfeed brands. From there, Claude Code can draft captions and schedule existing assets through Genfeed; create images, video, and audio in Genfeed Studio. Genfeed holds content drafts for review before publishing. For Codex, use the standard /mcp endpoint with codex mcp add and codex mcp login.',
     category: ArticleCategory.TUTORIAL,
     decisionRows: [
       {
@@ -396,12 +396,12 @@ const briefs: readonly SeoArticleBrief[] = [
       {
         question: 'What does --scope user do?',
         answer:
-          'It stores the connection for your user account across every project on that machine, instead of a single project’s .mcp.json.',
+          "It stores the connection for your user account across every project on that machine, instead of in a single project's .mcp.json.",
       },
       {
         question: 'How do I confirm the connection worked?',
         answer:
-          'Run claude mcp list to see genfeed listed as connected, then ask Claude Code to list your Genfeed brands.',
+          'Run claude mcp list to confirm genfeed is connected, then ask Claude Code to list your Genfeed brands.',
       },
       {
         question: 'Can Claude Code publish a post directly?',
@@ -421,7 +421,7 @@ const briefs: readonly SeoArticleBrief[] = [
       {
         question: 'What if the OAuth session expires?',
         answer:
-          'Re-run /mcp, select genfeed, and re-authenticate. Claude Code does not silently fall back to a stored password, because there isn’t one.',
+          "Re-run /mcp, select genfeed, and re-authenticate. Claude Code does not silently fall back to a stored password because there isn't one.",
       },
     ],
     internalLinks: [
@@ -434,7 +434,7 @@ const briefs: readonly SeoArticleBrief[] = [
     ],
     intro: [
       'Claude Code and Codex are coding-agent CLIs, not social apps, so connecting one to Genfeed is a command-line task rather than a settings toggle: add the server, authenticate once in a browser, and verify the connection before asking either tool to do anything with your content.',
-      'Genfeed’s Claude connector uses remote Streamable HTTP and browser OAuth, with no manual-key fallback. Codex and other clients use the standard endpoint and can choose a scoped API key for headless use. Create media separately in Genfeed Studio, then use Claude with existing assets.',
+      "Genfeed's Claude connector uses remote Streamable HTTP and browser OAuth, with no manual-key fallback. Codex and other clients use the standard endpoint and can choose a scoped API key for headless use. Create media separately in Genfeed Studio, then use Claude with existing assets.",
     ],
     label:
       'How to Schedule Social Media Posts From Claude Code (MCP Setup Guide)',
@@ -455,22 +455,22 @@ const briefs: readonly SeoArticleBrief[] = [
       {
         heading: 'Which platforms Claude Code can schedule to',
         paragraphs: [
-          'Claude Code talks to Genfeed’s own publishing layer through MCP, so the same sixteen destinations are available whether you ask it to draft one post or plan a week of content.',
-          'A request such as “draft next week’s X and LinkedIn posts for the launch brand” routes through the one Genfeed connector rather than a separate integration per platform.',
+          "Claude Code talks to Genfeed's own publishing layer through MCP, so the same sixteen destinations are available whether you ask it to draft one post or plan a week of content.",
+          'A request such as "draft next week\'s X and LinkedIn posts for the launch brand" routes through the one Genfeed connector rather than a separate integration per platform.',
         ],
         points: [...GENFEED_PLATFORMS],
       },
       {
         heading: 'Keep a review gate between the CLI and the publish button',
         paragraphs: [
-          'Claude Code drafts captions and requests scheduling with existing assets. Genfeed applies workspace permissions and approval requirements before execution; the Claude connector cannot generate media or redeem pending approvals.',
+          'Claude Code drafts captions and requests scheduling with existing assets. Genfeed applies workspace permissions and approval requirements before execution; the Claude connector cannot generate media or clear pending approvals.',
           'Claude requires browser OAuth on the dedicated /mcp/claude endpoint. The scoped API key fallback applies to other clients; keep credentials out of prompts and committed config files.',
         ],
       },
       {
         heading: 'Troubleshooting the MCP connection',
         paragraphs: [
-          'If /mcp does not list genfeed, confirm the server was added with claude mcp add --transport http genfeed --scope user https://mcp.genfeed.ai/mcp/claude and that the scope matches where you are running Claude Code — a project-scoped and a user-scoped entry are tracked separately.',
+          'If /mcp does not list genfeed, confirm the server was added with claude mcp add --transport http genfeed --scope user https://mcp.genfeed.ai/mcp/claude and that the scope matches where you are running Claude Code. Project-scoped and user-scoped entries are tracked separately.',
           'If claude mcp list shows genfeed but a brand request fails, the OAuth session likely expired. Re-run /mcp, select genfeed, and re-authenticate in the browser rather than assuming the server is down.',
         ],
       },
