@@ -72,7 +72,17 @@ vi.mock('next-intl', async () => {
   return { useTranslations: translateFromCatalog };
 });
 vi.mock('@ui/modals/modal/Modal', () => ({
-  default: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  default: ({
+    children,
+    isBodyScrollable = true,
+  }: {
+    children: ReactNode;
+    isBodyScrollable?: boolean;
+  }) => (
+    <div data-testid="modal-body" data-scrollable={String(isBodyScrollable)}>
+      {children}
+    </div>
+  ),
 }));
 // One getter for every render, as the real hook returns.
 const getService = vi.hoisted(() => async () => mocks);
@@ -441,6 +451,32 @@ describe('ModalPost', () => {
         );
         await user.click(screen.getByRole('button', { name: 'Library video' }));
       }
+
+      it('scrolls only the fields so the steps and actions stay in reach', async () => {
+        const user = userEvent.setup();
+        renderComposer();
+        await user.click(screen.getByRole('button', { name: 'Acme on X' }));
+        await goToContent(user);
+
+        // The modal body does not scroll; the fields do, on their own.
+        expect(screen.getByTestId('modal-body')).toHaveAttribute(
+          'data-scrollable',
+          'false',
+        );
+        const fields = screen
+          .getByRole('textbox', { name: 'Post content' })
+          .closest('.overflow-y-auto');
+        expect(fields).not.toBeNull();
+        expect(fields).not.toContainElement(
+          screen.getByRole('navigation', { name: 'New post steps' }),
+        );
+        expect(fields).not.toContainElement(
+          screen.getByRole('button', { name: 'Cancel' }),
+        );
+        expect(fields).not.toContainElement(
+          screen.getByRole('button', { name: 'Back' }),
+        );
+      });
 
       it('asks where the post goes before what it says', async () => {
         const user = userEvent.setup();
