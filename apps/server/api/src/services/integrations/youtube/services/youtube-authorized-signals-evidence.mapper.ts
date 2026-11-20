@@ -69,6 +69,19 @@ const ANALYTICS_FIELDS = [
 
 const AGE_FIELDS = ['createdAt', 'createTime'] as const;
 
+const CHANNEL_SETUP_FIELDS = [
+  'customUrl',
+  'hasAbout',
+  'hasBanner',
+  'playlistCount',
+] as const;
+
+const TOTAL_COUNT_FIELDS = ['count'] as const;
+
+/** A "small set" of niche subscriptions, as the warm-up blueprint puts it. */
+const YOUTUBE_MIN_NICHE_SUBSCRIPTIONS = 3;
+const YOUTUBE_MIN_LIKED_VIDEOS = 1;
+
 type YoutubeSignalFieldStatus =
   (typeof youtubeAuthorizedSignalStatusValues)[number];
 
@@ -79,7 +92,10 @@ function toFieldAvailability(
 }
 
 export interface YoutubeChannelNode {
-  brandingSettings?: { channel?: { title?: unknown }; image?: unknown };
+  brandingSettings?: {
+    channel?: { title?: unknown };
+    image?: { bannerExternalUrl?: unknown };
+  };
   contentDetails?: { relatedPlaylists?: { uploads?: unknown } };
   id?: unknown;
   snippet?: {
@@ -561,6 +577,98 @@ export class YoutubeAuthorizedSignalsEvidenceMapper {
     };
   }
 
+  buildChannelSetupEvidence(
+    grantedScopes: string[],
+    channel: YoutubeChannelNode | undefined,
+    playlists: { error?: unknown; value?: { count: number } },
+    selectionReason: YoutubeAuthorizedSignalReason | undefined,
+    previousSnapshot: YoutubeAuthorizedSignalsSnapshot | undefined,
+    observedAt: string,
+  ): YoutubeAuthorizedSignalEvidence {
+    const requiredScopes = dataRequiredScopes(grantedScopes);
+    if (!channel || !playlists.value || selectionReason) {
+      return this.buildUnavailableEvidence(
+        'channel-setup-platform-signal',
+        requiredScopes,
+        grantedScopes,
+        playlists.error,
+        previousSnapshot,
+        observedAt,
+        selectionReason ??
+          (hasYoutubeDataScope(grantedScopes) ? undefined : 'missing_scope'),
+      );
+    }
+
+    const customUrl = readString(channel.snippet?.customUrl);
+    const hasAbout = Boolean(readString(channel.snippet?.description));
+    const hasBanner = Boolean(
+      readHttpUrl(channel.brandingSettings?.image?.bannerExternalUrl),
+    );
+    const playlistCount = playlists.value.count;
+    const isComplete =
+      Boolean(customUrl) && hasAbout && hasBanner && playlistCount > 0;
+
+    return {
+      fieldAvailability: toFieldAvailability(
+        CHANNEL_SETUP_FIELDS.map((field) => [
+          field,
+          field === 'customUrl' && !customUrl ? 'empty' : 'available',
+        ]),
+      ),
+      key: 'channel-setup-platform-signal',
+      observedAt,
+      provenance: 'platform_verified',
+      scope: this.buildScope(requiredScopes, grantedScopes),
+      staleAt: null,
+      status: isComplete ? 'available' : 'empty',
+      value: { customUrl, hasAbout, hasBanner, playlistCount },
+    };
+  }
+
+  /**
+   * Subscriptions and likes are read as totals from the authorized account:
+   * `available` once the warm-up threshold is met, `empty` before that.
+   */
+  buildTotalCountEvidence(
+    key: 'subscriptions-platform-signal' | 'likes-platform-signal',
+    grantedScopes: string[],
+    result: { error?: unknown; value?: { count: number } },
+    selectionReason: YoutubeAuthorizedSignalReason | undefined,
+    previousSnapshot: YoutubeAuthorizedSignalsSnapshot | undefined,
+    observedAt: string,
+  ): YoutubeAuthorizedSignalEvidence {
+    const requiredScopes = dataRequiredScopes(grantedScopes);
+    if (!result.value || selectionReason) {
+      return this.buildUnavailableEvidence(
+        key,
+        requiredScopes,
+        grantedScopes,
+        result.error,
+        previousSnapshot,
+        observedAt,
+        selectionReason ??
+          (hasYoutubeDataScope(grantedScopes) ? undefined : 'missing_scope'),
+      );
+    }
+
+    const threshold =
+      key === 'subscriptions-platform-signal'
+        ? YOUTUBE_MIN_NICHE_SUBSCRIPTIONS
+        : YOUTUBE_MIN_LIKED_VIDEOS;
+    return {
+      fieldAvailability: toFieldAvailability(
+        TOTAL_COUNT_FIELDS.map((field) => [field, 'available']),
+      ),
+      key,
+      observedAt,
+      provenance: 'platform_verified',
+      scope: this.buildScope(requiredScopes, grantedScopes),
+      staleAt: null,
+      status: result.value.count >= threshold ? 'available' : 'empty',
+      value: { count: result.value.count },
+    };
+  }
+
   buildUnavailableEvidence(
     key: PlatformEvidenceKey,
     requiredScopes: string[],
@@ -638,6 +746,15 @@ export class YoutubeAuthorizedSignalsEvidenceMapper {
     }
     if (key === 'native-account-age') {
       return AGE_FIELDS;
+    }
+    if (key === 'channel-setup-platform-signal') {
+      return CHANNEL_SETUP_FIELDS;
+    }
+    if (
+      key === 'subscriptions-platform-signal' ||
+      key === 'likes-platform-signal'
+    ) {
+      return TOTAL_COUNT_FIELDS;
     }
     return UPLOAD_FIELDS;
   }

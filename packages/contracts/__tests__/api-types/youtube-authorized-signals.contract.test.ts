@@ -28,6 +28,9 @@ function makeEvidence(
     case 'first-upload-platform-signal':
       return { ...common, key, provenance: 'platform_verified' as const };
     case 'native-account-age':
+    case 'channel-setup-platform-signal':
+    case 'subscriptions-platform-signal':
+    case 'likes-platform-signal':
       return { ...common, key, provenance: 'platform_verified' as const };
     case 'genfeed-publish-outcomes-observed':
       return {
@@ -62,14 +65,12 @@ describe('YouTube authorized signals contract', () => {
     expect(parsed.platform).toBe(CredentialPlatform.YOUTUBE);
   });
 
-  it('keeps native watch, search, subscription, and homepage evidence out of the authorized snapshot', () => {
+  it('keeps native watch, search, and homepage evidence out of the authorized snapshot', () => {
     const parsed = youtubeAuthorizedSignalsSnapshotSchema.parse(makeSnapshot());
 
     expect(parsed.evidence.map((evidence) => evidence.key)).not.toEqual(
       expect.arrayContaining([
         'watch-history-confirmed',
-        'subscriptions-confirmed',
-        'likes-confirmed',
         'comments-confirmed',
         'search-activity-confirmed',
         'homepage-tuning-confirmed',
@@ -120,8 +121,8 @@ describe('YouTube authorized signals contract', () => {
 
   it('records Genfeed clip lineage without treating it as platform telemetry', () => {
     const snapshot = makeSnapshot();
-    snapshot.evidence[6] = {
-      ...snapshot.evidence[6],
+    snapshot.evidence[9] = {
+      ...snapshot.evidence[9],
       provenance: 'genfeed_observed',
       status: 'available',
       value: {
@@ -138,7 +139,7 @@ describe('YouTube authorized signals contract', () => {
     };
 
     expect(
-      youtubeAuthorizedSignalsSnapshotSchema.parse(snapshot).evidence[6],
+      youtubeAuthorizedSignalsSnapshotSchema.parse(snapshot).evidence[9],
     ).toMatchObject({
       key: 'genfeed-publish-outcomes-observed',
       provenance: 'genfeed_observed',
