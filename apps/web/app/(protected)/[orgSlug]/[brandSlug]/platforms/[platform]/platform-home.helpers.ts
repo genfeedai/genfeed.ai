@@ -59,7 +59,7 @@ export function getPlatformConnectionHealth(
 
   const health = connection.accountHealth;
 
-  if (health?.holdPublishing || health?.riskLevel === 'high') {
+  if (health?.riskLevel === 'high') {
     return 'attention';
   }
 

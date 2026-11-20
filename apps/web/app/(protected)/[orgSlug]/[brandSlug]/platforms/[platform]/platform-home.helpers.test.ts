@@ -47,9 +47,7 @@ describe('platform-home helpers', () => {
       getPlatformConnectionHealth({
         accountHealth: {
           credentialId: '1',
-          holdPublishing: false,
           label: 'ok',
-          override: { isActive: false },
           platform: Platform.INSTAGRAM,
           riskLevel: 'low',
           score: 80,
@@ -75,9 +73,7 @@ describe('platform-home helpers', () => {
       getPlatformConnectionHealth({
         accountHealth: {
           credentialId: '1',
-          holdPublishing: true,
           label: 'risk',
-          override: { isActive: false },
           platform: Platform.INSTAGRAM,
           riskLevel: 'high',
           score: 10,
@@ -115,9 +111,7 @@ describe('platform-home helpers', () => {
       getPlatformConnectionHealth({
         accountHealth: {
           credentialId: '1',
-          holdPublishing: false,
           label: 'ok',
-          override: { isActive: false },
           platform: Platform.INSTAGRAM,
           riskLevel: 'low',
           score: 80,

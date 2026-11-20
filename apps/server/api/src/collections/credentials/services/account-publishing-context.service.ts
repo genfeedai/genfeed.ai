@@ -315,12 +315,6 @@ export class AccountPublishingContextService {
       hints.push(
         `Account warmup: ${context.accountHealth.state} (${context.accountHealth.riskLevel} risk, score ${context.accountHealth.score})`,
       );
-
-      if (context.accountHealth.holdPublishing) {
-        hints.push(
-          `Publishing hold: ${context.accountHealth.holdReason ?? 'Warmup guidance required before scheduling.'}`,
-        );
-      }
     }
 
     hints.push(`Provider readiness: ${context.readiness.state}`);

@@ -57,9 +57,6 @@ export default function CadenceGapsSection({
                       {translate('cadenceReconnect')}
                     </Badge>
                   ) : null}
-                  {gap.holdPublishing ? (
-                    <Badge variant="warning">{translate('cadenceHold')}</Badge>
-                  ) : null}
                 </PublishingAccountRow>
               ))}
             </ul>

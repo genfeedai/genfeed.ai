@@ -1,4 +1,3 @@
-import { AccountHealthService } from '@api/collections/credentials/services/account-health.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { ContentEvaluationProjectionService } from '@api/collections/evaluations/services/content-evaluation-projection.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
@@ -45,7 +44,6 @@ async function setupController(
     controllers: [PostsController],
     providers: [
       { provide: ActivityRecorderService, useValue: {} },
-      { provide: AccountHealthService, useValue: {} },
       { provide: CredentialsService, useValue: {} },
       { provide: IngredientsService, useValue: {} },
       { provide: QuotaService, useValue: {} },

@@ -2,7 +2,6 @@
   "accountDisconnected": "Account disconnected",
   "accountHealth": "Account health",
   "accountHealthDescription": "Warmup and risk signals.",
-  "accountHeldByWarmup": "This account is currently held by warmup state.",
   "accountsTableAccount": "Account",
   "accountsTablePlatform": "Platform",
   "accountsTableStatus": "Status",
@@ -12,9 +11,6 @@
   "channelAvailability": "{connectedCount, plural, one {# connected account} other {# connected accounts}} · {channelCount} channels available",
   "checking": "Checking",
   "checkingReadyReason": "Checking availability…",
-  "confirmOverride": "Confirm override",
-  "confirmWarmupOverride": "Confirm warmup override",
-  "confirmWarmupOverrideError": "Failed to confirm the warmup override",
   "connect": "Connect",
   "connectAccount": "Connect account",
   "connectAccountModalDescription": "Choose a platform to connect. Search or browse by category.",
@@ -35,7 +31,6 @@
   "dmReconnectBadge": "DMs need reconnect",
   "empty": "No social accounts connected yet.",
   "emptyAccountsTitle": "No accounts connected yet",
-  "expires": " · expires {time}",
   "apiKeyConnect": {
     "beehiiv": {
       "apiKeyHelp": "Create an API key in your Beehiiv workspace settings and paste it here.",
@@ -85,9 +80,7 @@
     "accountAgeFailed": "Platform account-age check failed. Missing or stale evidence is tracked separately.",
     "accountAgeMissing": "{publishedPosts, plural, one {# published post} other {# published posts}}. Native social-account age is not yet verified by the platform.",
     "accountAgeStale": "Platform account-age evidence is stale. Reconnect to refresh readiness checks.",
-    "accountAgeVerified": "{publishedPosts, plural, one {# published post} other {# published posts}} across {connectedDays, plural, one {# connected day} other {# connected days}}.",
-    "overrideActive": "Manual override active for this account.",
-    "publishingHeld": "Scheduled publishing is held for warmup."
+    "accountAgeVerified": "{publishedPosts, plural, one {# published post} other {# published posts}} across {connectedDays, plural, one {# connected day} other {# connected days}}."
   },
   "linked": "Linked",
   "manage": "Manage",
@@ -96,10 +89,6 @@
   "notReadyReason": "Not available yet",
   "openProfile": "Open {account}",
   "openProfileAria": "Open {account} on {platform}",
-  "override24h": "Override 24h",
-  "overrideConfirmed": "Warmup override confirmed",
-  "overrideDescription": "This bypasses the account-health publishing hold for 24 hours. Use it only after reviewing the platform warmup guidance.",
-  "overrideReason": "Manual override confirmed from brand social dashboard.",
   "settings": "Settings",
   "settingsDialogTitle": "{account} settings",
   "settingsSections": {

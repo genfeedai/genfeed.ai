@@ -205,11 +205,6 @@ describe('getCredentialBadge', () => {
   it.each([
     ['disconnected', { isConnected: false }, { status: 'disconnected' }],
     [
-      'publishing hold',
-      { accountHealth: { holdPublishing: true }, isConnected: true },
-      { status: 'needs_attention' },
-    ],
-    [
       'high risk',
       { accountHealth: { riskLevel: 'high' }, isConnected: true },
       { status: 'needs_attention' },
@@ -346,7 +341,7 @@ describe('summarizeCredentialHealth', () => {
       {
         id: 'blocked',
         isConnected: true,
-        accountHealth: { holdPublishing: true, riskLevel: 'high' },
+        accountHealth: { riskLevel: 'high' },
       },
       {
         id: 'disconnected',

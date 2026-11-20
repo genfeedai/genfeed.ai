@@ -27,7 +27,6 @@ function AccountSettingsSections({
   brandId,
   connection,
   health,
-  onOverrideRequest,
   onReconnect,
 }: AccountSettingsSectionsProps) {
   const translate = useTranslations('pages.brandSocialMedia');
@@ -75,7 +74,6 @@ function AccountSettingsSections({
           <SocialWarmupProgram
             connection={connection}
             health={health}
-            onOverrideRequest={onOverrideRequest}
             onReconnect={() => onReconnect(connection)}
           />
         ) : null}

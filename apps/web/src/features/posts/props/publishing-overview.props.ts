@@ -47,7 +47,6 @@ interface PublishingOverviewCadenceGap {
   credentialId: string;
   gapDays: number | null;
   hasUpcoming: boolean;
-  holdPublishing: boolean;
   lastPublishedAt: string | null;
   needsReconnect: boolean;
   platform: AccountHealthSummary['platform'];
@@ -64,8 +63,6 @@ export interface PublishingOverviewHealthRow {
   accountLabel: string;
   connectedDays: number;
   credentialId: string;
-  holdPublishing: boolean;
-  holdReason?: string;
   needsReconnect: boolean;
   platform: AccountHealthSummary['platform'];
   publishedPosts: number;

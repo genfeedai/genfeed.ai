@@ -186,7 +186,6 @@ describe('PostsController editor media and account', () => {
       {} as never,
       {} as never,
       {} as never,
-      {} as never,
       { findAll } as never,
       {} as never,
     );
@@ -227,7 +226,7 @@ describe('PostsController editor media and account', () => {
   });
 });
 
-describe('PostsController.create account-health warmup gate', () => {
+describe('PostsController.create scheduling', () => {
   const request = {
     get: vi.fn().mockReturnValue('localhost'),
     headers: {},
@@ -235,15 +234,8 @@ describe('PostsController.create account-health warmup gate', () => {
     protocol: 'https',
   } as never;
 
-  it('holds scheduled posts as pending when account warmup is not ready', async () => {
+  it('keeps a scheduled post scheduled however warmed up the account is', async () => {
     const activitiesService = { record: vi.fn().mockResolvedValue({}) };
-    const accountHealthService = {
-      evaluateScheduledPublishGate: vi.fn().mockResolvedValue({
-        holdPublishing: true,
-        reason: 'twitter publishing is held because account warmup is warming.',
-        summary: {},
-      }),
-    };
     const credentialsService = {
       findOne: vi.fn().mockResolvedValue({
         id: 'credential-1',
@@ -266,7 +258,6 @@ describe('PostsController.create account-health warmup gate', () => {
     };
     const controller = new PostsController(
       activitiesService as never,
-      accountHealthService as never,
       credentialsService as never,
       ingredientsService as never,
       quotaService as never,
@@ -287,29 +278,17 @@ describe('PostsController.create account-health warmup gate', () => {
       tags: [],
     });
 
-    expect(
-      accountHealthService.evaluateScheduledPublishGate,
-    ).toHaveBeenCalledWith({
-      brandId: 'brand-1',
-      credentialId: 'credential-1',
-      organizationId: 'org-1',
-    });
     expect(postsService.create).toHaveBeenCalledWith(
       expect.objectContaining({
-        publishIntent: 'warmup_hold',
-        reviewFeedback:
-          'twitter publishing is held because account warmup is warming.',
-        targetExecutionState: TargetExecutionState.PAUSED,
+        targetExecutionState: TargetExecutionState.SCHEDULED,
         visibility: PostVisibility.PUBLIC,
       }),
     );
-    expect(postsService.handleYoutubePost).not.toHaveBeenCalled();
   });
 
   it('rejects a draft-only API key before scheduling side effects', async () => {
     const credentialsService = { findOne: vi.fn() };
     const controller = new PostsController(
-      {} as never,
       {} as never,
       credentialsService as never,
       {} as never,
@@ -349,7 +328,6 @@ describe('PostsController.create account-health warmup gate', () => {
   it('treats omitted execution state as draft when no scheduled date is set', async () => {
     const credentialsService = { findOne: vi.fn().mockResolvedValue(null) };
     const controller = new PostsController(
-      {} as never,
       {} as never,
       credentialsService as never,
       {} as never,
@@ -412,7 +390,6 @@ describe('PostsController.patch publishing scopes', () => {
     };
     return {
       controller: new PostsController(
-        {} as never,
         {} as never,
         {} as never,
         {} as never,
@@ -482,7 +459,6 @@ describe('PostsController.findAll (#1223)', () => {
 
   const makeController = (findAll: ReturnType<typeof vi.fn>) =>
     new PostsController(
-      {} as never,
       {} as never,
       {} as never,
       {} as never,
