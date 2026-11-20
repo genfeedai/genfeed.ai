@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { toMcpTools } from '../adapters/to-mcp-tool';
+import { toMcpTool, toMcpTools } from '../adapters/to-mcp-tool';
 import type { ToolParameterSchema } from '../interfaces/tool-definition.interface';
 import { compactMcpInputDocumentation } from './mcp-input-documentation';
 import { getToolByName, getToolsForSurface } from './tool-registry';
@@ -161,6 +161,11 @@ describe('MCP input documentation', () => {
       if (!match) throw new Error(`Missing tool: ${name}`);
       return match;
     };
+    const original = (name: string) => {
+      const match = getToolByName(name);
+      if (!match) throw new Error(`Missing tool: ${name}`);
+      return toMcpTool(match);
+    };
     expect(tool('generate').description).toMatch(
       /resolved model-specific quote and confirmation/,
     );
@@ -206,10 +211,10 @@ describe('MCP input documentation', () => {
       ),
     });
     expect(tool('resolve_approval').description).toContain('Owners/admins');
-    expect(tool('control_scheduled_release').description).toContain(
+    expect(original('control_scheduled_release').description).toContain(
       'All actions require server-enforced approval',
     );
-    expect(tool('update_scheduled_release').description).toContain(
+    expect(original('update_scheduled_release').description).toContain(
       'Live-content changes may update public posts',
     );
   });
@@ -222,7 +227,7 @@ it.each([
 ])('shows the shorter scheduler guidance for %s on MCP', (name) => {
   const tool = getToolByName(name);
   if (!tool) throw new Error('Missing scheduler tool');
-  const [mcp] = toMcpTools([tool]);
+  const mcp = toMcpTool(tool);
   expect(mcp.description).toContain('check_channel(action=validate)');
   expect(mcp.description).not.toContain('validate_scheduler_target');
   expect(mcp.description.length).toBeLessThan(tool.description.length);

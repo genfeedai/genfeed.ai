@@ -268,6 +268,13 @@ export const CURATED_ACTION_CATALOG = [
     uiActionType: 'oauth_connect_card',
   },
   {
+    category: 'content',
+    mcpCardKind: 'summary',
+    name: 'control_release',
+    surfaces: ['mcp'],
+    toolset: 'scheduler',
+  },
+  {
     category: 'other',
     isOpenWorld: true,
     mcpApproval: 'generation',
@@ -280,7 +287,7 @@ export const CURATED_ACTION_CATALOG = [
     actionClass: 'outbound',
     annotationHint: 'destructive',
     category: 'content',
-    claudeAccess: 'both',
+    claudeAccess: 'agent',
     isPublishingApprovalRequired: true,
     mcpCardKind: 'summary',
     mutationPolicy: 'approval-required',
@@ -297,7 +304,7 @@ export const CURATED_ACTION_CATALOG = [
   },
   {
     category: 'content',
-    claudeAccess: 'both',
+    claudeAccess: 'agent',
     mutationPolicy: 'approval-required',
     name: 'create_article_draft',
     surfaces: ['mcp'],
@@ -368,7 +375,7 @@ export const CURATED_ACTION_CATALOG = [
   {
     annotationHint: 'non-destructive-write',
     category: 'content',
-    claudeAccess: 'both',
+    claudeAccess: 'agent',
     isPublishingApprovalRequired: true,
     mcpBrandRequiredWhenMultiple: true,
     mcpCardKind: 'post',
@@ -389,7 +396,7 @@ export const CURATED_ACTION_CATALOG = [
     actionClass: 'outbound',
     annotationHint: 'destructive',
     category: 'content',
-    claudeAccess: 'both',
+    claudeAccess: 'agent',
     isPublishingApprovalRequired: true,
     mcpCardKind: 'summary',
     mutationPolicy: 'approval-required',
@@ -1356,6 +1363,12 @@ export const CURATED_ACTION_CATALOG = [
   },
   {
     category: 'other',
+    name: 'manage_knowledge',
+    surfaces: ['mcp'],
+    toolset: 'knowledge',
+  },
+  {
+    category: 'other',
     mutationPolicy: 'direct',
     name: 'manage_livestream_bot',
     surfaces: ['agent'],
@@ -1363,8 +1376,26 @@ export const CURATED_ACTION_CATALOG = [
   },
   {
     category: 'other',
+    name: 'manage_skill',
+    surfaces: ['mcp'],
+    toolset: 'skills-pro',
+  },
+  {
+    category: 'social',
+    name: 'manage_social',
+    surfaces: ['mcp'],
+    toolset: 'social-inbox',
+  },
+  {
+    category: 'other',
     mutationPolicy: 'direct',
     name: 'manage_task',
+    surfaces: ['mcp'],
+    toolset: 'workspace',
+  },
+  {
+    category: 'other',
+    name: 'manage_workspace',
     surfaces: ['mcp'],
     toolset: 'workspace',
   },
@@ -1475,7 +1506,6 @@ export const CURATED_ACTION_CATALOG = [
   },
   {
     category: 'content',
-    claudeAccess: 'mcp',
     mcpApproval: 'posting',
     mutationPolicy: 'approval-required',
     name: 'publish_article',
@@ -1716,6 +1746,12 @@ export const CURATED_ACTION_CATALOG = [
     toolset: 'onboarding',
   },
   {
+    category: 'content',
+    name: 'save_post',
+    surfaces: ['mcp'],
+    toolset: 'content',
+  },
+  {
     actionClass: 'brand-context',
     category: 'onboarding',
     claudeAccess: 'agent',
@@ -1732,6 +1768,13 @@ export const CURATED_ACTION_CATALOG = [
     surfaces: ['agent'],
     toolset: 'content',
     uiActionType: 'schedule_post_card',
+  },
+  {
+    category: 'content',
+    mcpCardKind: 'summary',
+    name: 'schedule_release',
+    surfaces: ['mcp'],
+    toolset: 'scheduler',
   },
   {
     category: 'other',
@@ -1993,7 +2036,7 @@ export const CURATED_ACTION_CATALOG = [
     actionClass: 'outbound',
     annotationHint: 'destructive',
     category: 'content',
-    claudeAccess: 'both',
+    claudeAccess: 'agent',
     isPublishingApprovalRequired: true,
     mcpCardKind: 'summary',
     mutationPolicy: 'approval-required',

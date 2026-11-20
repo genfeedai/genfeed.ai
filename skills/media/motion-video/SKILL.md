@@ -143,7 +143,7 @@ A local render matches what Genfeed Motion produces in format, not in bookkeepin
 
 - **Same:** the `VisualComposition` named export, the limits above, frame-driven animation and H.264 MP4 or PNG output.
 - **Different:** no cloud revision history, cost receipt or Library entry exists until you upload the file. Do not describe a local render as a Genfeed Cloud project.
-- **To bring it into Genfeed:** with the Genfeed MCP connected, upload the MP4 with `upload_media`, then save a draft with `create_post`. Drafts only. Never schedule or publish without the owner's explicit confirmation.
+- **To bring it into Genfeed:** with the Genfeed MCP connected, upload the MP4 with `upload_media`, then save a draft with `save_post` (`action: post`). Drafts only. Never schedule or publish without the owner's explicit confirmation.
 
 ## Post copy
 

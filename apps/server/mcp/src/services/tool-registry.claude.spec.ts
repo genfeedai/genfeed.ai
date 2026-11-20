@@ -5,6 +5,7 @@ import {
 import type { LoggerService } from '@libs/logger/logger.service';
 import { McpResourceUri } from '@mcp/mcp/resource-catalog';
 import type { ClientService } from '@mcp/services/client.service';
+import { withMergedToolCalls } from '@mcp/services/tool-registry.endpoints.testing';
 import { ToolRegistryService } from '@mcp/services/tool-registry.service';
 
 function build() {
@@ -18,13 +19,15 @@ function build() {
     resolveApproval: vi.fn(),
   };
   const logger = { debug: vi.fn(), error: vi.fn(), warn: vi.fn() };
-  const registry = new ToolRegistryService(
-    client as unknown as ClientService,
-    logger as unknown as LoggerService,
-    'superadmin',
-    ['generation', 'workflows'],
-    undefined,
-    'claude',
+  const registry = withMergedToolCalls(
+    new ToolRegistryService(
+      client as unknown as ClientService,
+      logger as unknown as LoggerService,
+      'superadmin',
+      ['generation', 'workflows'],
+      undefined,
+      'claude',
+    ),
   );
   return { registry, client };
 }

@@ -334,9 +334,16 @@ it('serves every agent tool exactly as the catalog defines it', () => {
 });
 
 it('shares validation and prices across agent/MCP with client-specific documentation', () => {
-  const mcpTools = new Map(
-    toMcpTools(getToolsForSurface('mcp')).map((tool) => [tool.name, tool]),
-  );
+  // `create_post` is an unlisted action of `save_post`; it keeps the exact
+  // schema, price and wording checks of a listed tool.
+  const createPost = getToolByName('create_post');
+  if (!createPost) throw new Error('Missing create_post');
+  const mcpTools = new Map([
+    ...toMcpTools(getToolsForSurface('mcp')).map(
+      (tool) => [tool.name, tool] as const,
+    ),
+    ['create_post', toMcpTool(createPost)] as const,
+  ]);
   const shared = getToolDefinitions().filter((tool) =>
     mcpTools.has(String(tool.name)),
   );

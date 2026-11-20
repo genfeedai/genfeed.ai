@@ -185,7 +185,7 @@ describe('ToolRegistryService.validateDispatchCoverage', () => {
       { name: 'generate' },
       { name: 'create_brand_from_url' },
       { name: 'resolve_approval' },
-      { name: 'create_post' },
+      { name: 'repurpose_post' },
       { name: 'find_tools' },
     ];
     expect(() => ToolRegistryService.validateDispatchCoverage()).not.toThrow();

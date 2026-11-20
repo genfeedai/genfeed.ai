@@ -450,11 +450,10 @@ describe('toMcpTools', () => {
     }
     const schema = (name: string) =>
       tools.find((tool) => tool.name === name)?.outputSchema;
-    expect(schema('switch_org')?.properties.data).toEqual({ type: 'object' });
     expect(schema('find_tools')?.properties).toHaveProperty('toolsets');
     expect(schema('find_tools')?.properties).not.toHaveProperty('artifact');
     expect(schema('generate')?.properties).toHaveProperty('artifact');
-    expect(schema('switch_org')?.properties).not.toHaveProperty('tools');
+    expect(schema('manage_workspace')?.properties).not.toHaveProperty('tools');
   });
 
   it('emits only MCP-surfaced actions', () => {

@@ -228,11 +228,7 @@ describe('MCP server e2e', () => {
       query: 'post',
     });
     expect(discovery.result?.structuredContent?.tools).toContainEqual(
-      expect.objectContaining({
-        creditCost: 0,
-        mutationPolicy: 'direct',
-        name: 'create_post',
-      }),
+      expect.objectContaining({ name: 'save_post' }),
     );
 
     const { body: draft } = await mcp.callTool(token, 'create_post', {
@@ -257,19 +253,19 @@ describe('MCP server e2e', () => {
   it('directs clients to attach media to the draft returned by generate_content', async () => {
     const token = E2E_TOKENS.ownerWithAdminScope;
     const { body: session } = await mcp.initialize(token);
-    const { body: createPost } = await mcp.callTool(token, 'find_tools', {
-      name: 'create_post',
+    const { body: savePost } = await mcp.callTool(token, 'find_tools', {
+      name: 'save_post',
     });
     const { body: generateContent } = await mcp.callTool(token, 'find_tools', {
       name: 'generate_content',
     });
 
     expect(session.result?.instructions).toContain(
-      'create_post with its postId',
+      'save_post(action=post) with its postId',
     );
-    expect(createPost.result?.structuredContent?.tool).toMatchObject({
-      inputSchema: { properties: { postId: { type: 'string' } } },
-    });
+    expect(JSON.stringify(savePost.result?.structuredContent?.tool)).toContain(
+      '"postId"',
+    );
     expect(generateContent.result?.structuredContent?.tool).toMatchObject({
       description: expect.stringContaining('save a draft'),
     });

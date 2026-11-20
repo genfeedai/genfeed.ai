@@ -22,7 +22,7 @@ describe('MCP Apps card contract', () => {
       'generate',
       'transform_media',
       'get_context',
-      'switch_org',
+      'manage_workspace',
     ]) {
       const tool = tools.find((item) => item.name === name);
       expect(tool, name).toBeDefined();

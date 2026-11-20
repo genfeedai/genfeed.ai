@@ -24,7 +24,7 @@ export const MCP_APP_TOOLSETS = {
   messages: ['social-inbox'],
   motion: ['visual-code'],
   playground: ['generation'],
-  publishing: ['articles', 'content', 'onboarding', 'scheduler'],
+  publishing: ['content', 'onboarding', 'scheduler'],
   storyboard: ['inspiration'],
   turbo: ['content'],
   workspace: ['workspace'],

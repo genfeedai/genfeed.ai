@@ -98,9 +98,9 @@ https://mcp.genfeed.ai/mcp?toolsets=content,generation
 
 ### Brand campaigns
 
-The content toolset includes `manage_campaign` for native campaign context and
-Library asset membership. The default profile also includes publishing readiness
-and approved scheduling. Follow [Brand campaigns through MCP](../../../docs/brand-campaign-mcp.md)
+`save_post` with `action: campaign` handles native campaign context and
+Library asset membership. `check_channel` covers publishing readiness and
+`schedule_release` approved scheduling; every connection lists them. Follow [Brand campaigns through MCP](../../../docs/brand-campaign-mcp.md)
 for the complete context → asset → release workflow.
 
 ### Tool discovery meta tools

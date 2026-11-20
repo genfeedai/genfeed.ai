@@ -510,8 +510,11 @@ describe('ToolRegistryService', () => {
       clientService.canSwitchOrganizations.mockResolvedValue(false);
 
       const result = await service.handleToolCall({
-        arguments: { organization: 'beta' },
-        name: 'switch_org',
+        arguments: {
+          action: 'switch_organization',
+          input: { organization: 'beta' },
+        },
+        name: 'manage_workspace',
       });
 
       expect(result).toMatchObject({

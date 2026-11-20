@@ -74,8 +74,8 @@ Use `find_tools` to discover the connected account's tools and input schemas.
 | `check_job` | Read generation progress and results |
 | `get_content` | Read posts, the content calendar, releases and articles |
 | `get_insights` | Discover topic ideas and read content and video performance |
-| `create_scheduled_release` | Create a draft or scheduled multi-channel release |
-| `control_scheduled_release` | Pause, resume, cancel, or publish a confirmed release |
+| `schedule_release` | Create or update a draft or scheduled multi-channel release |
+| `control_release` | Pause, resume, cancel, or publish a confirmed release |
 | `create_workflow` | Create an automation workflow |
 | `execute_workflow` | Run a saved workflow |
 | `find_workflows` | List saved workflows, templates and runs |

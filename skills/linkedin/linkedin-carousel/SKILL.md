@@ -102,7 +102,7 @@ If rendered, add the output paths for the PNGs and the PDF, and what you checked
 
 If Genfeed tools are available:
 
-- `upload_media` stores the rendered PDF or PNGs; `create_post` saves a draft with `platforms: ["linkedin"]` and the media. It does not publish.
+- `upload_media` stores the rendered PDF or PNGs; `save_post` (`action: post`) saves a draft with `platforms: ["linkedin"]` and the media. It does not publish.
 - Publishing goes through `social-poster`, only on explicit confirmation.
 
 The skill works fully without Genfeed.

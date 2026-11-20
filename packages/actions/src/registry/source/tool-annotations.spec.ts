@@ -272,7 +272,19 @@ const MERGED_READ_PRESENTATIONS = [
   ['get_workspace', 'Get Workspace', true, false, true, true],
 ];
 
+const MERGED_WRITE_PRESENTATIONS = [
+  ['control_release', 'Control Release', false, true, false, true],
+  ['manage_knowledge', 'Manage Knowledge', false, true, false, false],
+  ['manage_skill', 'Manage Skill', false, true, false, false],
+  ['manage_social', 'Manage Social', false, true, false, true],
+  ['manage_workspace', 'Manage Workspace', false, true, false, false],
+  ['save_post', 'Save Post', false, true, false, true],
+  ['schedule_release', 'Schedule Release', false, true, false, true],
+];
+
 const FROZEN_MCP_PRESENTATIONS = [
+  ['manage_campaign', 'Manage Campaign', false, true, false, false],
+  ['manage_task', 'Manage Task', false, true, false, false],
   ['get_review_queue', 'Get Review Queue', true, false, true, false],
   [
     'analyze_clipper_project',
@@ -958,8 +970,6 @@ describe('MCP tool annotations', () => {
         false,
       ],
       ['manage_brand_kit', 'Manage Brand Kit', false, true, false, false],
-      ['manage_campaign', 'Manage Campaign', false, true, false, false],
-      ['manage_task', 'Manage Task', false, true, false, false],
       [
         'save_brand_voice_profile',
         'Save Brand Voice Profile',
@@ -970,6 +980,7 @@ describe('MCP tool annotations', () => {
       ],
       ['upload_media', 'Upload Media', false, false, false, false],
       ...MERGED_READ_PRESENTATIONS,
+      ...MERGED_WRITE_PRESENTATIONS,
     ].sort((left, right) => String(left[0]).localeCompare(String(right[0])));
     for (const row of FROZEN_MCP_PRESENTATIONS.filter(
       (entry) => !isMcpListedToolName(String(entry[0])),
