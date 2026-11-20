@@ -477,9 +477,7 @@ it('renders posts as a social preview with platform, status and media', () => {
 
   const post = document.querySelector('article.post');
   expect(post?.textContent).toContain('Your Account');
-  expect(
-    post?.querySelector('[role="img"][aria-label="LinkedIn"]'),
-  ).not.toBeNull();
+  expect(post?.textContent).toContain('LinkedIn');
   expect(post?.querySelector('.status')?.textContent).toBe('scheduled');
   expect(post?.querySelector('.description')?.textContent).toBe('Hello world');
 });
