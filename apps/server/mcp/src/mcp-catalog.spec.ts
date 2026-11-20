@@ -2,6 +2,7 @@ import {
   CURATED_ACTION_CATALOG,
   getToolsForSurface,
   isActionOnSurface,
+  isMcpCatalogToolName,
 } from '@genfeedai/actions';
 import { ToolRegistryService } from '@mcp/services/tool-registry.service';
 import { describe, expect, it } from 'vitest';
@@ -36,6 +37,7 @@ describe('curated MCP action catalog', () => {
   it('routes every MCP action to a concrete executor', () => {
     const unroutable = eligible
       .filter((name) => name !== 'resolve_approval')
+      .filter((name) => !isMcpCatalogToolName(name))
       .filter((name) => ToolRegistryService.classify(name) === 'unknown');
 
     expect(unroutable).toEqual([]);

@@ -1,5 +1,4 @@
 import {
-  getMcpCatalogOperations,
   getToolByName,
   getToolsetNames,
   getToolsForSurface,
@@ -528,14 +527,6 @@ export class ToolRegistryService implements OnModuleInit {
   }
 
   static classify(name: string): ExecutorKind {
-    const operations = getMcpCatalogOperations(name);
-    if (operations.length > 0) {
-      const kinds = operations.map((operation) =>
-        ToolRegistryService.classify(operation.executionName),
-      );
-      const first = kinds[0];
-      return first && kinds.every((kind) => kind === first) ? first : 'unknown';
-    }
     if (TOOL_DISCOVERY_TOOL_NAMES.has(name)) return 'tool-discovery';
     if (AGENT_CHAT_TOOL_NAMES.has(name)) return 'agent-chat';
     if (WORKFLOW_CONTROL_TOOL_NAMES.has(name)) return 'workflow-control';

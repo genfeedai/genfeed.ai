@@ -10,7 +10,11 @@ import {
   MCP_BRAND_REQUIRED_WHEN_MULTIPLE_NOTE,
   withRequiredMcpBrandId,
 } from '../registry/mcp-brand-required';
-import { isMcpListedToolName } from '../registry/mcp-catalog-calls';
+import { rewriteSchemaDescriptions } from '../registry/mcp-catalog/references';
+import {
+  isMcpListedToolName,
+  rewriteRetiredMcpReferences,
+} from '../registry/mcp-catalog-calls';
 import { compactMcpInputDocumentation } from '../registry/mcp-input-documentation';
 import { getMcpToolOutputSchema } from '../registry/mcp-output-schema';
 import { deriveMcpToolPresentation } from '../registry/source/tool-annotations';
@@ -125,11 +129,16 @@ export function toMcpTools(tools: CanonicalToolDefinition[]): McpToolOutput[] {
             : {}),
         },
         annotations: presentation.annotations,
-        description: appendCreditPricingDescription(
-          brandNote ? `${description} ${brandNote}` : description,
-          creditPricing,
+        description: rewriteRetiredMcpReferences(
+          appendCreditPricingDescription(
+            brandNote ? `${description} ${brandNote}` : description,
+            creditPricing,
+          ),
         ),
-        inputSchema: compactMcpInputDocumentation(parameters),
+        inputSchema: rewriteSchemaDescriptions(
+          compactMcpInputDocumentation(parameters),
+          rewriteRetiredMcpReferences,
+        ),
         name: tool.name,
         outputSchema: getMcpToolOutputSchema(tool),
         requiredRole: tool.requiredRole,
