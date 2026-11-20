@@ -14,9 +14,7 @@ function buildAccountHealth(
 ): AccountHealthSummary {
   return {
     credentialId: 'credential-1',
-    holdPublishing: false,
     label: 'Brand Instagram',
-    override: { isActive: false },
     platform: 'instagram' as AccountHealthSummary['platform'],
     riskLevel: 'low',
     score: 90,
@@ -167,10 +165,9 @@ describe('buildCadenceGaps', () => {
     expect(gaps[0]?.hasUpcoming).toBe(true);
   });
 
-  it('surfaces reconnect and hold-publishing state from account health', () => {
+  it('surfaces reconnect state from account health', () => {
     const accountHealth = [
       buildAccountHealth({
-        holdPublishing: true,
         reconnect: {
           credentialId: 'credential-1',
           isAvailable: true,
@@ -185,6 +182,5 @@ describe('buildCadenceGaps', () => {
     );
 
     expect(gaps[0]?.needsReconnect).toBe(true);
-    expect(gaps[0]?.holdPublishing).toBe(true);
   });
 });

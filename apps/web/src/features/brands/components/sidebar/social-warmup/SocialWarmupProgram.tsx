@@ -73,7 +73,6 @@ function formatRefreshTime(value: string | null): string | null {
 export default function SocialWarmupProgram({
   connection,
   health,
-  onOverrideRequest,
   onReconnect,
 }: SocialWarmupProgramProps) {
   const translate = useTranslations('pages.socialWarmup');
@@ -379,29 +378,10 @@ export default function SocialWarmupProgram({
         </Alert>
       ) : null}
 
-      {health?.override.isActive ? (
-        <Alert variant="info" icon={false}>
-          <AlertTitle>{translate('overrideActive')}</AlertTitle>
-          <AlertDescription>
-            {health.override.reason}
-            {health.override.expiresAt
-              ? ` · ${formatRefreshTime(health.override.expiresAt)}`
-              : ''}
-          </AlertDescription>
-        </Alert>
-      ) : null}
-
-      {health?.holdPublishing || model.unresolvedChecks.length > 0 ? (
+      {model.unresolvedChecks.length > 0 ? (
         <Alert variant="warning" icon={false}>
-          <AlertTitle>
-            {health?.holdPublishing
-              ? translate('holdTitle')
-              : translate('unresolved')}
-          </AlertTitle>
-          <AlertDescription className="space-y-2">
-            {health?.holdPublishing ? (
-              <p>{health.holdReason ?? translate('holdDescription')}</p>
-            ) : null}
+          <AlertTitle>{translate('unresolved')}</AlertTitle>
+          <AlertDescription>
             <ul className="space-y-1">
               {model.unresolvedChecks.map((check) => (
                 <li key={check.id}>
@@ -416,23 +396,6 @@ export default function SocialWarmupProgram({
                 </li>
               ))}
             </ul>
-            {health?.holdPublishing && onOverrideRequest ? (
-              <Button
-                onClick={() =>
-                  onOverrideRequest({
-                    credentialId: connection.credentialId,
-                    unresolvedChecks: model.unresolvedChecks.map((check) => ({
-                      id: check.id,
-                      title: check.title,
-                    })),
-                  })
-                }
-                size={ButtonSize.SM}
-                variant={ButtonVariant.SECONDARY}
-              >
-                {translate('override')}
-              </Button>
-            ) : null}
           </AlertDescription>
         </Alert>
       ) : null}

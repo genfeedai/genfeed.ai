@@ -94,9 +94,6 @@ export default function AccountHealthSection({
                       {translate('healthReconnect')}
                     </Badge>
                   ) : null}
-                  {row.holdPublishing ? (
-                    <Badge variant="warning">{translate('healthHold')}</Badge>
-                  ) : null}
                 </PublishingAccountRow>
               ))}
             </ul>

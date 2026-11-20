@@ -295,7 +295,6 @@
     "expiredToken": "This account needs to be reconnected. Scheduled targets on it will fail.",
     "failed": "Failed",
     "gapLabel": "Empty slot",
-    "hold": "On hold",
     "queued": "{count, plural, one {# queued} other {# queued}}",
     "reconnect": "Reconnect",
     "review": "Review",
