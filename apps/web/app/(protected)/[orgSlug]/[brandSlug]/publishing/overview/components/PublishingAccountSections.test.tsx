@@ -24,7 +24,6 @@ const row: PublishingOverviewHealthRow = {
   accountLabel: 'Studio account',
   connectedDays: 3,
   credentialId: 'instagram-1',
-  holdPublishing: true,
   needsReconnect: true,
   platform: CredentialPlatform.INSTAGRAM,
   publishedPosts: 0,
@@ -66,7 +65,6 @@ describe('publishing account sections', () => {
       'healthState.warming',
       'healthRisk.medium',
       'healthReconnect',
-      'healthHold',
     ]) {
       expect(within(list).getByText(label)).toHaveClass(
         'rounded-sm',
@@ -92,7 +90,7 @@ describe('publishing account sections', () => {
     expect(screen.queryByRole('link')).not.toBeInTheDocument();
   });
 
-  it('shows scheduled, reconnect, and hold together in cadence', () => {
+  it('shows scheduled and reconnect together in cadence', () => {
     render(
       <CadenceGapsSection
         connections={connections}
@@ -106,11 +104,7 @@ describe('publishing account sections', () => {
       />,
     );
     expect(screen.getByText('Studio Creator')).toBeInTheDocument();
-    for (const label of [
-      'cadenceScheduled',
-      'cadenceReconnect',
-      'cadenceHold',
-    ]) {
+    for (const label of ['cadenceScheduled', 'cadenceReconnect']) {
       expect(screen.getByText(label)).toHaveClass('rounded-sm', 'uppercase');
     }
     expect(screen.getByText('cadenceNeverPublished')).toBeInTheDocument();

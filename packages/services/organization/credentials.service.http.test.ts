@@ -17,11 +17,10 @@ const context = { credentialId, isReady: true };
 
 describe('CredentialsService HTTP methods', () => {
   let service: CredentialsService;
-  let server: ReturnType<typeof installFakeHttpRoutes>;
 
   beforeEach(() => {
     service = new CredentialsService('credentials-token');
-    server = installFakeHttpRoutes(service, {
+    installFakeHttpRoutes(service, {
       'GET /brand/brand_1/account-health': health,
       'GET /brand/brand_1/publishing-readiness': readiness,
       'GET /cred_1/instagram/pages': collectionDocument([
@@ -36,11 +35,6 @@ describe('CredentialsService HTTP methods', () => {
         { remaining: 10, used: 2 },
         { id: 'quota_1' },
       ),
-      'PATCH /cred_1/account-health/override': (body: unknown) => ({
-        credentialId,
-        override: body,
-        status: 'healthy',
-      }),
       'POST /cred_1/account-health/assess': (body: unknown) => ({
         credentialId,
         request: body,
@@ -101,20 +95,6 @@ describe('CredentialsService HTTP methods', () => {
       request: {},
       status: 'warning',
     });
-  });
-
-  it('overrideAccountHealth PATCHes the manual override and never POSTs it', async () => {
-    const override = {
-      confirm: true,
-      reason: 'Verified the account manually',
-    } as const;
-
-    const result = await service.overrideAccountHealth(credentialId, override);
-
-    expect(result).toEqual({ credentialId, override, status: 'healthy' });
-    expect(Object.keys(server.bodies)).toEqual([
-      'PATCH /cred_1/account-health/override',
-    ]);
   });
 
   it('getQuotaStatus extracts the quota resource', async () => {

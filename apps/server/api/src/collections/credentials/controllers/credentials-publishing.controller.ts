@@ -5,7 +5,6 @@ import {
   NextPostingSlotQueryDto,
   ReplaceCredentialPostingTimesDto,
 } from '@api/collections/credentials/dto/credential-posting-time.dto';
-import { ManualAccountHealthOverrideDto } from '@api/collections/credentials/dto/manual-account-health-override.dto';
 import { AccountHealthService } from '@api/collections/credentials/services/account-health.service';
 import { AccountPublishingContextService } from '@api/collections/credentials/services/account-publishing-context.service';
 import { CredentialPostingTimesService } from '@api/collections/credentials/services/credential-posting-times.service';
@@ -35,7 +34,6 @@ import {
   Delete,
   Get,
   Param,
-  Patch,
   Post,
   Put,
   Query,
@@ -245,25 +243,6 @@ export class CredentialsPublishingController {
       credentialId,
       organizationId: user.organizationId,
       request: dto,
-    });
-  }
-
-  @Patch(':credentialId/account-health/override')
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  @ApiOperation({
-    operationId: 'CredentialsController.overrideAccountHealth',
-    summary: 'overrideAccountHealth',
-  })
-  async overrideAccountHealth(
-    @Param('credentialId') credentialId: string,
-    @Body() dto: ManualAccountHealthOverrideDto,
-    @CurrentUser() user: User,
-  ): Promise<AccountHealthSummary> {
-    return this.accountHealthService.confirmManualOverride({
-      credentialId,
-      organizationId: user.organizationId,
-      request: dto,
-      userId: user.userId ?? user.id,
     });
   }
 
