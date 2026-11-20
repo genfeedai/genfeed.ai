@@ -35,7 +35,7 @@ describe('MCP toolset profiles', () => {
       (tool) => tool.name,
     );
     expect(names).toContain('check_channel');
-    expect(names).toContain('create_scheduled_release');
+    expect(names).toContain('schedule_release');
   });
 
   it('pins the ordinary-role counts of every profile against its cap', () => {
@@ -46,7 +46,7 @@ describe('MCP toolset profiles', () => {
     expect(BARE_MCP_URL_TOOL_CAP).toBe(30);
     expect(userCount(DEFAULT_MCP_PROFILE_TOOLSETS)).toBe(29);
     expect(userCount(DIRECTORY_MCP_PROFILE_TOOLSETS)).toBe(24);
-    expect(userCount(STUDIO_MCP_PROFILE_TOOLSETS)).toBe(34);
+    expect(userCount(STUDIO_MCP_PROFILE_TOOLSETS)).toBe(33);
     expect(userCount(DEFAULT_MCP_PROFILE_TOOLSETS)).toBeLessThanOrEqual(
       BARE_MCP_URL_TOOL_CAP,
     );
@@ -58,18 +58,14 @@ describe('MCP toolset profiles', () => {
     );
   });
 
-  it('lists the review queue and task management only when Workspace is selected', () => {
-    const workspace = getToolsForToolsets('mcp', ['workspace']).map(
-      (tool) => tool.name,
-    );
+  it('lists the review queue and task management on every selection through merged tools', () => {
     const defaults = getToolsForToolsets(
       'mcp',
       DEFAULT_MCP_PROFILE_TOOLSETS,
     ).map((tool) => tool.name);
-    expect(workspace).toEqual(
-      expect.arrayContaining(['get_workspace', 'manage_task']),
+    expect(defaults).toEqual(
+      expect.arrayContaining(['get_workspace', 'manage_workspace']),
     );
-    expect(defaults).toContain('get_workspace');
     expect(defaults).not.toContain('manage_task');
   });
 
@@ -154,7 +150,6 @@ describe('MCP toolset profiles', () => {
       'generation',
       'content',
       'scheduler',
-      'articles',
       'insights',
     ]);
   });
@@ -178,11 +173,7 @@ describe('MCP toolset profiles', () => {
       (tool) => tool.name,
     );
     expect(names).toEqual(
-      expect.arrayContaining([
-        'create_article_draft',
-        'get_content',
-        'publish_article',
-      ]),
+      expect.arrayContaining(['control_release', 'get_content', 'save_post']),
     );
   });
 

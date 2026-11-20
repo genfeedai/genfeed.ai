@@ -22,7 +22,7 @@ function tool(overrides: Partial<McpToolOutput> = {}): McpToolOutput {
     description: 'Create a post',
     inputSchema: { properties: {}, type: 'object' },
     outputSchema: MCP_TOOL_OUTPUT_SCHEMA,
-    name: 'create_post',
+    name: 'save_post',
     requiredRole: 'user',
     title: 'Create Post',
     ...overrides,
@@ -81,7 +81,7 @@ describe('handleToolDiscoveryTool', () => {
       const registry: ToolDiscoverySource = {
         getDiscoverableTools: () => [
           ...USER_VISIBLE_CORE_TOOL_NAMES.map(coreTool),
-          tool({ name: 'create_post' }),
+          tool({ name: 'save_post' }),
         ],
       };
 
@@ -108,7 +108,7 @@ describe('handleToolDiscoveryTool', () => {
 
     it('omits a toolset the caller cannot see any tool from', () => {
       const registry: ToolDiscoverySource = {
-        getDiscoverableTools: () => [tool({ name: 'create_post' })],
+        getDiscoverableTools: () => [tool({ name: 'save_post' })],
       };
 
       const result = handleToolDiscoveryTool(registry, 'find_tools', {});
@@ -144,7 +144,7 @@ describe('handleToolDiscoveryTool', () => {
 
     it('warns when a requested toolset has no tools on this deploy', () => {
       const registry: ToolDiscoverySource = {
-        getDiscoverableTools: () => [tool({ name: 'create_post' })],
+        getDiscoverableTools: () => [tool({ name: 'save_post' })],
         getIgnoredEmptyToolsets: () => ['goals'],
       };
 
@@ -161,7 +161,7 @@ describe('handleToolDiscoveryTool', () => {
   describe('find_tools with query or toolset (search)', () => {
     const registry: ToolDiscoverySource = {
       getDiscoverableTools: () => [
-        tool({ description: 'Create a post', name: 'create_post' }),
+        tool({ description: 'Create a post', name: 'save_post' }),
         tool({
           _meta: {
             'genfeed.ai/creditCost': 5,
@@ -327,10 +327,10 @@ describe('handleToolDiscoveryTool', () => {
     );
     const registry: ToolDiscoverySource = {
       getDiscoverableTools: () => [
-        tool({ description: 'Create a post', name: 'create_post' }),
+        tool({ description: 'Create a post', name: 'save_post' }),
         tool({
-          description: 'Import an article',
-          name: 'create_article_draft',
+          description: 'Repurpose a post',
+          name: 'repurpose_post',
         }),
       ],
     };
@@ -346,41 +346,39 @@ describe('handleToolDiscoveryTool', () => {
 
     it('prefers name over query and toolset', () => {
       const result = handleToolDiscoveryTool(registry, 'find_tools', {
-        name: 'create_post',
-        query: 'article',
+        name: 'save_post',
+        query: 'repurpose',
         toolset: 'content',
       });
       expectSuccess(result);
 
       expect(result.structuredContent?.tool).toMatchObject({
-        name: 'create_post',
+        name: 'save_post',
       });
       expect(result.structuredContent?.tools).toBeUndefined();
     });
 
     it('returns the full tool output for a known tool', () => {
       const result = handleToolDiscoveryTool(registry, 'find_tools', {
-        name: 'create_post',
+        name: 'save_post',
       });
       expectSuccess(result);
 
       expect(result.structuredContent?.tool).toMatchObject({
-        name: 'create_post',
+        name: 'save_post',
         inputSchema: { properties: {}, type: 'object' },
       });
     });
 
     it('suggests the closest matches for an unknown tool name', () => {
       const result = handleToolDiscoveryTool(registry, 'find_tools', {
-        name: 'create_post_typo',
+        name: 'save_post_typo',
       });
       expectError(result);
 
       expect(result.isError).toBe(true);
-      expect(result.content[0].text).toContain(
-        'Unknown tool "create_post_typo"',
-      );
-      expect(result.content[0].text).toContain('create_post');
+      expect(result.content[0].text).toContain('Unknown tool "save_post_typo"');
+      expect(result.content[0].text).toContain('save_post');
     });
 
     it('says so when nothing is close', () => {

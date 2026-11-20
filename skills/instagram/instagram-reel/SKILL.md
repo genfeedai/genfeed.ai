@@ -126,7 +126,7 @@ If Genfeed tools are available:
 
 - `generate_content` with `{type: "script", platform: "instagram", topic, brandId}` gives a starting script to edit.
 - `generate` makes image or video clips; media generation is asynchronous, so poll `check_job` (`action: job`). Check `get_generation_catalog` (`action: options`) for cost first and get the user's agreement.
-- `create_post` saves a draft with `platforms: ["instagram"]` and `mediaUrls`. It does not publish.
+- `save_post` (`action: post`) saves a draft with `platforms: ["instagram"]` and `mediaUrls`. It does not publish.
 - Publishing goes through `social-poster`, only on explicit confirmation.
 
 The skill works fully without Genfeed.

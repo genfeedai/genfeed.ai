@@ -15,13 +15,14 @@ import { getToolsForToolsets, TOOLSET_NAMES } from './toolsets';
  * Toolsets with MCP tools that no app opens. They stay reachable by name with
  * `?toolsets=`; adding a toolset forces a decision here.
  */
-const TOOLSETS_WITHOUT_APP = [
-  'brand',
-  'brand-kit',
-  'knowledge',
-  'models3d',
-  'skills-pro',
-] as const;
+const TOOLSETS_WITHOUT_APP = ['brand', 'brand-kit', 'models3d'] as const;
+
+/**
+ * Apps whose toolsets hold only merged tools. Those list on every connection,
+ * so the app opens nothing beyond core. Adding a tool of its own to one of
+ * these apps forces a decision here.
+ */
+const APPS_WITH_ONLY_MERGED_TOOLS = ['agent', 'workspace'] as const;
 
 describe('MCP app toolsets', () => {
   it('maps every core and native secondary app', () => {
@@ -38,7 +39,7 @@ describe('MCP app toolsets', () => {
     }
   });
 
-  it('opens at least one MCP tool beyond core for every app', () => {
+  it('opens at least one MCP tool beyond core for every app with tools of its own', () => {
     const coreNames = new Set(
       getToolsForToolsets('mcp', ['core']).map((tool) => tool.name),
     );
@@ -47,7 +48,11 @@ describe('MCP app toolsets', () => {
         'mcp',
         resolveMcpAppToolsets([app]),
       ).filter((tool) => !coreNames.has(tool.name));
-      expect(beyondCore.length, app).toBeGreaterThan(0);
+      if ((APPS_WITH_ONLY_MERGED_TOOLS as readonly string[]).includes(app)) {
+        expect(beyondCore.length, app).toBe(0);
+      } else {
+        expect(beyondCore.length, app).toBeGreaterThan(0);
+      }
     }
   });
 

@@ -116,7 +116,7 @@ Sources and gaps: [list]
 If Genfeed tools are available:
 
 - `get_content` (`action: articles`) shows existing articles, to match tone and avoid repeat topics.
-- `create_post` saves the promo post as a draft with `platforms: ["linkedin"]`. It does not publish.
+- `save_post` (`action: post`) saves the promo post as a draft with `platforms: ["linkedin"]`. It does not publish.
 - Publishing goes through `social-poster`, only on explicit confirmation.
 
 The skill works fully without Genfeed.

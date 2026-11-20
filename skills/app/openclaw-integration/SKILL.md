@@ -75,11 +75,11 @@ Resolve a brand before generation; never invent an identifier or select the firs
 | `get_assets` | List media or characters | `type` | `brandId`, `limit`, `offset`, `origin` |
 | `generate_content` | Generate article drafts or social copy | `topic`, `type`, `brandId` | `tone`, `length`, `platform`, `keywords` |
 | `get_insights` | Read trends, content and video performance, LinkedIn analytics and performance analysis | `action` (`overview`, `content`, `video`, `linkedin`, `performance` or `trends`) | `input` holds the original parameters, such as `videoId` and `timeRange` |
-| `create_post` | Save a text draft | | Discover the accepted draft fields |
+| `save_post` | Save a text draft, an article draft or a campaign, or link a tracked post | `action` (`post`, `article`, `campaign` or `track_link`) | `input` holds the original parameters; discover the accepted draft fields |
 | `get_content` | Read posts and the calendar, scheduled releases, articles and article previews | `action` (`posts`, `release`, `articles` or `article_preview`) | `input` holds the original parameters, such as `postId`, `executionState`, `limit`, `days`, `releaseId`, `articleId` or `query` |
 | `check_channel` | Read channel constraints, validate a proposed target, read a brand's connected channels and their health, or check an account connection | `action` (`capabilities`, `validate`, `readiness`, `connection_status` or `linkedin_connection`) | `input` contains original channel parameters; `input.platform` is required for validate and `input.brandId` for readiness |
-| `create_scheduled_release` | Create a draft or scheduled release | `release` with title, baseContent, timezone, targets | `idempotencyKey` |
-| `control_scheduled_release` | Pause, resume, cancel, or publish now | `releaseId`, `action` | |
+| `schedule_release` | Create or update a draft or scheduled release | `action` (`create` or `update`) | `input` holds `release` with title, baseContent, timezone and targets, and `idempotencyKey` |
+| `control_release` | Pause, resume, cancel or publish a release now, or publish an article | `action` (`control` or `publish`) | `input` holds `releaseId` and its own `action` |
 | `create_workflow` | Create an automation workflow | `label` | Discover current workflow fields |
 | `execute_workflow` | Run a saved workflow | `workflowId` | `variables`, `nodeIds`, `respectLocks` |
 | `find_workflows` | List saved workflows, templates, the system catalog, runs and one workflow | `action` (`list`, `templates`, `catalog`, `runs` or `inspect`) | `input` holds the original parameters, such as `status` and `limit` |
@@ -116,8 +116,8 @@ its documented commands. CLI commands and MCP tool names are separate interfaces
 1. Resolve the brand and connected credential with `get_context` (`action: brands`) and `check_channel` (`action: readiness`).
 2. Call `check_channel` with `action: capabilities`, then `action: validate` with the exact platform, caption, media, and channel settings in `input`.
 3. Confirm the exact content, destination, and time with the user.
-4. Call `create_scheduled_release` with a release containing `title`, `baseContent`, `timezone`, and `targets` with the verified `credentialId` and `platform`.
-5. Inspect its state with `get_scheduled_release`. For a confirmed immediate publication, use `control_scheduled_release` with `action: "publish-now"`.
+4. Call `schedule_release` with `action: create` and, in `input`, a release containing `title`, `baseContent`, `timezone`, and `targets` with the verified `credentialId` and `platform`.
+5. Inspect its state with `get_content` (`action: release`). For a confirmed immediate publication, use `control_release` with `action: control` and `input.action: "publish-now"`.
 6. If approval is pending, show its review link and wait. Never claim a queued approval published anything.
 
 ## Error Handling

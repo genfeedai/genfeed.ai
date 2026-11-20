@@ -63,7 +63,7 @@ or approved spending. Selecting a profile does not authorize writes or costs.
 | Generate media | `generate` (`type: image`, `video`, `voice` or `music`) | Exposed through generation; requires owner consent and a quoted, approved paid budget for live acceptance. |
 | Inspect progress | `get_job_status` | Exposed; live wait/reconnect recovery remains unverified. |
 | Retrieve output | `get_assets`, `get_posts` | Exposed; verify the actual client artifact or supported fallback. |
-| Prepare and schedule | `check_channel(action=capabilities\|validate)`, `get_brand_publishing_readiness`, `create_scheduled_release` | Exposed; readiness must agree with scheduler support. Creating a release is a write and retains approval checks. |
+| Prepare and schedule | `check_channel(action=capabilities\|validate)`, `get_brand_publishing_readiness`, `schedule_release(action=create)` | Exposed; readiness must agree with scheduler support. Creating a release is a write and retains approval checks. |
 | Inspect analytics | `get_analytics`, `get_content_analytics`, `get_video_analytics` | Exposed through analytics; requires scoped account data and live verification. |
 
 This document adds no actions or schemas and does not change the independently

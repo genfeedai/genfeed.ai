@@ -11,8 +11,8 @@ import { getToolsForSurface } from './tool-registry';
 
 describe('Claude MCP access policy', () => {
   it('consolidates scheduler listing without changing the exact old agent allowlist', () => {
-    // Four merged tools carry the reads the Claude grant already allowed.
-    expect(CLAUDE_MCP_TOOL_NAMES.size).toBe(17);
+    // Merged tools carry the reads and the drafts the Claude grant already allowed.
+    expect(CLAUDE_MCP_TOOL_NAMES.size).toBe(14);
     for (const name of [
       'get_account',
       'get_brands',
@@ -37,8 +37,8 @@ describe('Claude MCP access policy', () => {
       expect(isToolAllowedInMcpAccessMode('claude', name), name).toBe(false);
     expect(CLAUDE_MCP_TOOL_NAMES.has('check_channel')).toBe(true);
     // Approval-gated: the Claude connector queues it, a reviewer in the app releases it (#10073).
-    expect(CLAUDE_MCP_TOOL_NAMES.has('publish_article')).toBe(true);
-    expect(isToolAllowedInMcpAccessMode('claude', 'publish_article')).toBe(
+    expect(CLAUDE_MCP_TOOL_NAMES.has('control_release')).toBe(true);
+    expect(isToolAllowedInMcpAccessMode('claude', 'control_release')).toBe(
       true,
     );
     expect([...CLAUDE_MCP_AGENT_TOOL_NAMES].sort()).toEqual(

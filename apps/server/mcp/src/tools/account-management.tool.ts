@@ -89,7 +89,7 @@ async function describeOrganizations(
     organizations.length <= 1
       ? ''
       : isSwitchable
-        ? `This connection can use all of your organizations. It starts in ${workingIn}. To act in another organization for one call, pass its name, slug or id as "organization" on any tool (with that organization's brandId, listed under its brands in the structured result, for generation); switch_org changes the default instead.\n\n`
+        ? `This connection can use all of your organizations. It starts in ${workingIn}. To act in another organization for one call, pass its name, slug or id as "organization" on any tool (with that organization's brandId, listed under its brands in the structured result, for generation); manage_workspace(action=switch_organization) changes the default instead.\n\n`
         : `This connection works inside ${workingIn}. To work in another, reconnect and choose it on the consent screen (choose "All organizations" to use every one of them).\n\n`;
   return {
     content: [

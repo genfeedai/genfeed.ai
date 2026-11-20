@@ -105,7 +105,7 @@ describe('handleAccountManagementTool', () => {
     const result = await call(client, 'get_orgs', {});
 
     const text = textOf(result.content[0]);
-    expect(text).toContain('switch_org');
+    expect(text).toContain('manage_workspace(action=switch_organization)');
     expect(text).not.toContain('reconnect');
     expect(result.structuredContent?.data).toMatchObject({
       canSwitchOrganizations: true,

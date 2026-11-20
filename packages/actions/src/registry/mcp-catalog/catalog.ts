@@ -302,6 +302,91 @@ export const MCP_CATALOG_TOOLS = [
       { action: 'brand_scan_status', executes: 'get_brand_scan_status' },
     ],
   },
+  {
+    name: 'save_post',
+    description:
+      'Save content for review. Never publishes or schedules. post saves a reviewable draft from text or media; article imports reviewed HTML unchanged as an unpublished article draft; campaign manages native content campaigns; track_link tracks an already published X or YouTube post by URL.',
+    claudeActions: ['post', 'article'],
+    operations: [
+      { action: 'post', executes: 'create_post' },
+      { action: 'article', executes: 'create_article_draft' },
+      { action: 'campaign', executes: 'manage_campaign' },
+      { action: 'track_link', executes: 'track_post_link' },
+    ],
+  },
+  {
+    name: 'schedule_release',
+    description:
+      'Create or update a multi-channel release from prepared text and media. Run check_channel(action=validate) for each channel first. create saves a draft by default; a scheduled status or date requests future or recurring publishing. update changes content, media, recurrence, timing or one target. Every call needs server approval; review and apply it in Genfeed.',
+    claudeActions: ['create', 'update'],
+    operations: [
+      { action: 'create', executes: 'create_scheduled_release' },
+      { action: 'update', executes: 'update_scheduled_release' },
+    ],
+  },
+  {
+    name: 'control_release',
+    description:
+      'Control a release. control requests cancel, pause, resume or publish-now of a scheduled release; publish publishes an owned, reviewed article publicly. Review first with get_content, and check_channel(action=validate) before publish-now. Every call needs server-enforced approval.',
+    claudeActions: ['control', 'publish'],
+    operations: [
+      { action: 'control', executes: 'control_scheduled_release' },
+      { action: 'publish', executes: 'publish_article' },
+    ],
+  },
+  {
+    name: 'manage_knowledge',
+    description:
+      "Change a brand's Knowledge. capture saves a page, document, feed, media or text and ingests it; assign_purpose changes a source's purpose (Brand Truth, Inspiration, Research) or hides it from retrieval; archive removes a source from retrieval for good; retry requeues a failed ingestion.",
+    operations: [
+      { action: 'capture', executes: 'capture_knowledge' },
+      { action: 'assign_purpose', executes: 'assign_knowledge_purpose' },
+      { action: 'archive', executes: 'archive_knowledge_source' },
+      { action: 'retry', executes: 'retry_knowledge_ingestion' },
+    ],
+  },
+  {
+    name: 'manage_social',
+    description:
+      'Work the social inbox. draft_reply saves a reply or DM draft without sending; approve_draft and reject_draft decide a draft; reply and dm publish externally and need approval; assign, tag and resolve organize a conversation.',
+    operations: [
+      { action: 'draft_reply', executes: 'create_social_reply_draft' },
+      { action: 'approve_draft', executes: 'approve_social_draft' },
+      { action: 'reject_draft', executes: 'reject_social_draft' },
+      { action: 'reply', executes: 'post_social_reply' },
+      { action: 'dm', executes: 'send_social_dm' },
+      { action: 'assign', executes: 'assign_social_conversation' },
+      { action: 'tag', executes: 'tag_social_conversation' },
+      { action: 'resolve', executes: 'mark_social_conversation_resolved' },
+    ],
+  },
+  {
+    name: 'manage_skill',
+    description:
+      'Manage skills. create, fork, publish, rollback and archive change a skill; export reads its instructions when allowed; verify_pro checks a Skills Pro receipt and lists the skills it grants; install_pro installs one entitled pack after approval.',
+    operations: [
+      { action: 'create', executes: 'create_skill' },
+      { action: 'fork', executes: 'fork_skill' },
+      { action: 'publish', executes: 'publish_skill' },
+      { action: 'rollback', executes: 'rollback_skill' },
+      { action: 'archive', executes: 'archive_skill' },
+      { action: 'export', executes: 'export_skill' },
+      { action: 'verify_pro', executes: 'verify_skills_pro_entitlement' },
+      { action: 'install_pro', executes: 'install_skills_pro_skill' },
+    ],
+  },
+  {
+    name: 'manage_workspace',
+    description:
+      'Work in the workspace. new_task records a task and task updates, comments on or completes one; neither starts work. new_chat and chat_message talk to the agent; switch_organization changes the active organization.',
+    operations: [
+      { action: 'new_task', executes: 'create_task' },
+      { action: 'task', executes: 'manage_task' },
+      { action: 'new_chat', executes: 'create_chat' },
+      { action: 'chat_message', executes: 'send_chat_message' },
+      { action: 'switch_organization', executes: 'switch_org' },
+    ],
+  },
 ] as const satisfies readonly McpCatalogToolSpec[];
 
 export type McpCatalogToolName = (typeof MCP_CATALOG_TOOLS)[number]['name'];

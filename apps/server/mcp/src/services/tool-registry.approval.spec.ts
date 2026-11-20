@@ -90,7 +90,13 @@ vi.mock('@genfeedai/actions', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@genfeedai/actions')>();
   return {
     ...actual,
-    getToolByName: vi.fn((name: string) => MOCK_TOOLS[name]),
+    getToolByName: vi.fn(
+      (name: string) =>
+        MOCK_TOOLS[name] ??
+        (actual.isMcpCatalogToolName(name)
+          ? actual.getToolByName(name)
+          : undefined),
+    ),
     getToolsForSurface: vi.fn(
       (surface: Parameters<typeof actual.getToolsForSurface>[0]) =>
         surface === 'mcp'

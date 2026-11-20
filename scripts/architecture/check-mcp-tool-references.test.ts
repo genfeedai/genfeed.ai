@@ -15,7 +15,7 @@ const source = (text: string) => [{ path: 'fixture/SKILL.md', text }];
 function writeCatalog(surface = 'mcp') {
   writeFileSync(
     catalog,
-    `export const CURATED_ACTION_CATALOG = [\n  { name: 'create_post', surfaces: ['${surface}'] },\n  { name: 'rate_content', surfaces: ['agent'] },\n] as const;\n`,
+    `export const CURATED_ACTION_CATALOG = [\n  { name: 'repurpose_post', surfaces: ['${surface}'] },\n  { name: 'rate_content', surfaces: ['agent'] },\n] as const;\n`,
   );
 }
 beforeEach(() => {
@@ -78,12 +78,12 @@ describe('literal MCP instruction contract', () => {
         catalog,
         source(
           [
-            'Call `create_post` with the parameter `brand_id`.',
-            'Use `mcp__genfeed__create_post`.',
+            'Call `repurpose_post` with the parameter `brand_id`.',
+            'Use `mcp__genfeed__repurpose_post`.',
             '| `user_confirmed` | Manual-phone use |',
             'Node IDs: Use sequential format like `node_1`, `node_2`.',
             'Use `image` for the media type.',
-            'Call `create_post` on the `genfeed` MCP server.',
+            'Call `repurpose_post` on the `genfeed` MCP server.',
             '```json',
             '{ "name": "schema_example", "brand_id": "fixture" }',
             '```',
@@ -94,7 +94,7 @@ describe('literal MCP instruction contract', () => {
             'Genfeed call:',
             '```json',
             '{ "server": "genfeed", "tool":',
-            '  "create_post", "display_name": "schema_label", "arguments": { "name": "brand_name", "brand_id": "fixture" } }',
+            '  "repurpose_post", "display_name": "schema_label", "arguments": { "name": "brand_name", "brand_id": "fixture" } }',
             '```',
           ].join('\n'),
         ),
@@ -239,7 +239,7 @@ describe('literal MCP instruction contract', () => {
   it('fails when a referenced tool loses its MCP surface', () => {
     writeCatalog('agent');
     expect(() =>
-      assertMcpReferences(catalog, source('Call `create_post`.')),
+      assertMcpReferences(catalog, source('Call `repurpose_post`.')),
     ).toThrow('unsupported surface (agent)');
   });
   it.each([
@@ -249,7 +249,7 @@ describe('literal MCP instruction contract', () => {
   ])('fails closed for empty or malformed catalog', (text) => {
     writeFileSync(catalog, text);
     expect(() =>
-      checkReferenceSources(catalog, source('Call `create_post`.')),
+      checkReferenceSources(catalog, source('Call `repurpose_post`.')),
     ).toThrow();
   });
   it('scans both default instruction surfaces and disables each independently', () => {

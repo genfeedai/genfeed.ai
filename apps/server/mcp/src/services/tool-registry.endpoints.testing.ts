@@ -40,7 +40,10 @@ export function createEndpointRegistries(
     onModuleInit: () => standard.onModuleInit(),
     handleToolCall: (
       params: Parameters<ToolRegistryService['handleToolCall']>[0],
-    ) => (isAdminCall(params) ? admin : standard).handleToolCall(params),
+    ) =>
+      (isAdminCall(params) ? admin : standard).handleToolCall(
+        asMergedToolCall(params),
+      ),
     standard,
   };
 }

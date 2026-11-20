@@ -303,18 +303,20 @@ describe('StreamableHttpService (real SDK integration)', () => {
 
   it('rejects a result that violates the advertised tool-specific schema on the wire', async () => {
     const malformed = {
-      content: [{ type: 'text' as const, text: 'Account' }],
-      structuredContent: { data: {} },
+      content: [{ type: 'text' as const, text: 'Image' }],
+      structuredContent: { artifact: {} },
     };
-    Object.defineProperty(malformed.structuredContent, 'data', { value: [] });
+    Object.defineProperty(malformed.structuredContent, 'artifact', {
+      value: [],
+    });
     const call = vi
       .spyOn(ToolRegistryService.prototype, 'handleToolCall')
       .mockResolvedValue(malformed);
     try {
       await withServer(async (baseUrl) => {
         const result = await postModern(baseUrl, 'tools/call', {
-          name: 'switch_org',
-          arguments: { organization: 'org' },
+          name: 'generate',
+          arguments: { prompt: 'a red fox' },
         });
         expect(result.body.error).toBeDefined();
         expect(result.body.result).toBeUndefined();

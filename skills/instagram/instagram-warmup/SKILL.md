@@ -531,9 +531,9 @@ Use this during Phase 2 (Days 4-7) and before first post to identify:
 
 Filter results by niche keywords from the user's brand profile. Prioritize audio and hashtags that are trending within a specific niche rather than broad platform trending — niche relevance beats raw virality for warmup purposes.
 
-### `create_post`
+### `save_post` (`action: post`)
 
-Use this during Phase 3 (Days 8-10) to draft the warmup Reel or carousel brief directly into the Genfeed platform. When using `create_post` for warmup content:
+Use this during Phase 3 (Days 8-10) to draft the warmup Reel or carousel brief directly into the Genfeed platform. When using `save_post` (`action: post`) for warmup content:
 
 - Set platform to `instagram`
 - Mark the post as draft until the user confirms the image/video brief
@@ -542,7 +542,7 @@ Use this during Phase 3 (Days 8-10) to draft the warmup Reel or carousel brief d
 
 ### Publishing through Genfeed
 
-Resolve the chosen brand with `get_context` (`action: brands`) and its connected channel with `check_channel` (`action: readiness`). Call `check_channel` with `action: capabilities`, then `action: validate` and the proposed target in `input` before creating a release with `create_scheduled_release`. Use `control_scheduled_release` for an approved publish-now request. A pending approval is not a completed publication; hand the user its review link and wait for their decision.
+Resolve the chosen brand with `get_context` (`action: brands`) and its connected channel with `check_channel` (`action: readiness`). Call `check_channel` with `action: capabilities`, then `action: validate` and the proposed target in `input` before creating a release with `schedule_release` (`action: create`). Use `control_release` (`action: control`) for an approved publish-now request. A pending approval is not a completed publication; hand the user its review link and wait for their decision.
 
 Only request scheduling or publishing after the user confirms:
 

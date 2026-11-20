@@ -51,7 +51,6 @@ export const DEFAULT_MCP_PROFILE_TOOLSETS: readonly ToolsetName[] = [
   'generation',
   'content',
   'scheduler',
-  'articles',
   'insights',
 ];
 
