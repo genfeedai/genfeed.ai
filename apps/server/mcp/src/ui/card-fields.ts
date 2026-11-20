@@ -121,3 +121,32 @@ export function utcStamp(value: string): string {
 export function rows(value: unknown): Record<string, unknown>[] {
   return (Array.isArray(value) ? value : []).map(record);
 }
+
+/**
+ * Signed logo URLs belong to the card, not to the model: they are long and
+ * expire. The card view is built first, then the logos leave the data.
+ */
+export function withoutBrandLogos(data: Record<string, unknown>) {
+  const strip = (value: unknown) => {
+    const { logo: _logo, ...rest } = record(value);
+    return rest;
+  };
+  const { organizationLogoUrl: _organizationLogoUrl, ...profile } = record(
+    data.profile,
+  );
+  return {
+    ...data,
+    ...(Array.isArray(data.brands) ? { brands: data.brands.map(strip) } : {}),
+    ...(data.brand ? { brand: strip(data.brand) } : {}),
+    ...(Object.keys(profile).length
+      ? {
+          profile: {
+            ...profile,
+            ...(Array.isArray(profile.brands)
+              ? { brands: profile.brands.map(strip) }
+              : {}),
+          },
+        }
+      : {}),
+  };
+}

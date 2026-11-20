@@ -383,7 +383,11 @@ export default function ArticleDetail({
                 />
               ) : null}
               {brand && !isPreview && handle !== GENFEED_BRAND_HANDLE ? (
-                <SupportCreatorButton articleId={article.id} handle={handle} />
+                <SupportCreatorButton
+                  articleId={article.id}
+                  handle={handle}
+                  logoUrl={brand.logoUrl}
+                />
               ) : null}
               <ArticleAbout brand={brand} handle={handle} />
             </footer>

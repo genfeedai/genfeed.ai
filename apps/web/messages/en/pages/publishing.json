@@ -229,7 +229,6 @@
     "cadenceDescription": "Days since each connected account last published, and whether anything is queued.",
     "cadenceEmpty": "No connected accounts yet.",
     "cadenceGapDays": "{count, plural, one {# day since last publish} other {# days since last publish}}",
-    "cadenceHold": "On hold",
     "cadenceNeverPublished": "Never published",
     "cadenceReconnect": "Needs reconnect",
     "cadenceReconnectAction": "Reconnect",
@@ -237,7 +236,6 @@
     "cadenceTitle": "Cadence",
     "healthDescription": "Warmup state, risk, and reconnect for every connected account.",
     "healthEmpty": "No connected accounts yet.",
-    "healthHold": "On hold",
     "healthReconnect": "Needs reconnect",
     "healthReconnectAction": "Reconnect",
     "healthRisk": {
@@ -279,7 +277,6 @@
     "openEditor": "Open editor",
     "pausedHold": "This post is paused, so the publisher will not send it at the scheduled time.",
     "resume": "Resume post",
-    "warmupHold": "Publishing is held for this account: {reason}",
     "engagement": {
       "approval": "Approval",
       "auto": "Auto",

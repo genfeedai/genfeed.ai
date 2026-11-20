@@ -954,7 +954,7 @@ export const TWITTER_SOCIAL_WARMUP_BLUEPRINT =
               type: 'event',
             },
             description:
-              'When using Genfeed for reply drafts or publish, outcomes stay genfeed_observed and distinct from native-app replies.',
+              'Replies drafted or published in Genfeed are tracked separately from replies made in the native app.',
             days: [3, 4],
             evidenceIds: ['x-product-guidance', 'x-manage-tweets'],
             id: 'observe-genfeed-replies',
@@ -970,7 +970,7 @@ export const TWITTER_SOCIAL_WARMUP_BLUEPRINT =
               type: 'attestation',
             },
             description:
-              'Follows, likes, and bookmarks outside Genfeed remain user_confirmed; never farm engagement.',
+              'Follow, like and bookmark by hand in the native app. Genfeed never automates engagement.',
             days: [3, 4],
             evidenceIds: ['x-product-guidance'],
             id: 'selective-graph-actions',
@@ -1231,7 +1231,7 @@ export const INSTAGRAM_SOCIAL_WARMUP_BLUEPRINT =
               type: 'attestation',
             },
             description:
-              'Watch niche Reels and feed posts long enough to understand formats. Native consumption stays user_confirmed.',
+              'Watch niche Reels and feed posts long enough to understand formats. Done by hand in the native app.',
             days: [1, 2],
             evidenceIds: ['ig-product-guidance'],
             id: 'consume-niche-content',
@@ -1273,7 +1273,7 @@ export const INSTAGRAM_SOCIAL_WARMUP_BLUEPRINT =
               type: 'attestation',
             },
             description:
-              'Like and save relevant examples; follow a small set of peers. Outside-Genfeed actions stay user_confirmed.',
+              'Like and save relevant examples; follow a small set of peers. Done by hand in the native app.',
             days: [3, 4],
             evidenceIds: ['ig-product-guidance'],
             id: 'selective-engagement',
@@ -1289,7 +1289,7 @@ export const INSTAGRAM_SOCIAL_WARMUP_BLUEPRINT =
               type: 'event',
             },
             description:
-              'When using Genfeed for drafts/remix, outcomes stay genfeed_observed.',
+              'Drafts and remixes made in Genfeed are tracked automatically.',
             days: [3, 4],
             evidenceIds: ['ig-product-guidance', 'ig-content-publishing'],
             id: 'observe-genfeed-drafts',
@@ -1389,7 +1389,8 @@ export const YOUTUBE_SOCIAL_WARMUP_BLUEPRINT_VERSION = 1;
  * YouTube guided warm-up (#2220).
  * Channel setup, niche/search research, native viewing/engagement, first
  * Shorts, owned-video analytics, and a Shorts-to-long-form transition.
- * No automated watch time, subscriptions, likes, or comments.
+ * Reads subscriptions, likes, playlists and uploads from the authorized
+ * connection. Never automates watch time, subscriptions, likes, or comments.
  */
 export const YOUTUBE_SOCIAL_WARMUP_BLUEPRINT =
   socialWarmupBlueprintSchema.parse({
@@ -1432,6 +1433,22 @@ export const YOUTUBE_SOCIAL_WARMUP_BLUEPRINT =
         title: 'YouTube Videos list',
       },
       {
+        id: 'yt-playlists',
+        kind: 'platform_documentation',
+        reference:
+          'https://developers.google.com/youtube/v3/docs/playlists/list',
+        reviewedOn: '2026-11-20',
+        title: 'YouTube Playlists list',
+      },
+      {
+        id: 'yt-subscriptions',
+        kind: 'platform_documentation',
+        reference:
+          'https://developers.google.com/youtube/v3/docs/subscriptions/list',
+        reviewedOn: '2026-11-20',
+        title: 'YouTube Subscriptions list',
+      },
+      {
         id: 'yt-analytics',
         kind: 'platform_documentation',
         reference: 'https://developers.google.com/youtube/analytics',
@@ -1461,7 +1478,7 @@ export const YOUTUBE_SOCIAL_WARMUP_BLUEPRINT =
             type: 'attestation',
           },
           description:
-            'Complete native YouTube foundation without representing private watch history, subscriptions, likes, comments, search, or homepage ranking as API telemetry.',
+            'Complete native YouTube foundation without representing private watch history, search, or homepage ranking as API telemetry.',
           evidenceIds: ['yt-product-guidance'],
           id: 'manual-foundation-complete',
           provenance: 'user_confirmed',
@@ -1472,7 +1489,7 @@ export const YOUTUBE_SOCIAL_WARMUP_BLUEPRINT =
           completion: {
             description:
               'Authorized channel metadata and owned-upload signals have been refreshed when the connection allows.',
-            key: 'authorized-channel-snapshot',
+            key: 'channel-fields-platform-signal',
             type: 'signal',
           },
           description:
@@ -1563,7 +1580,7 @@ export const YOUTUBE_SOCIAL_WARMUP_BLUEPRINT =
               type: 'attestation',
             },
             description:
-              'Search niche keywords and watch top organic results. Search activity stays user_confirmed.',
+              'Search niche keywords and watch the top organic results.',
             days: [1, 2, 3],
             evidenceIds: ['yt-product-guidance'],
             id: 'search-niche-keywords',
@@ -1579,7 +1596,7 @@ export const YOUTUBE_SOCIAL_WARMUP_BLUEPRINT =
               type: 'attestation',
             },
             description:
-              'Watch niche videos in the native YouTube app. Watch history is not API-visible and stays user_confirmed.',
+              'Watch niche videos in the native YouTube app. YouTube does not share watch history, so you confirm this one.',
             days: [1, 2, 3],
             evidenceIds: ['yt-product-guidance'],
             id: 'watch-niche-videos',
@@ -1590,34 +1607,34 @@ export const YOUTUBE_SOCIAL_WARMUP_BLUEPRINT =
           {
             completion: {
               description:
-                'The user confirms they subscribed to relevant channels and watched from the subscription feed.',
-              key: 'subscriptions-confirmed',
-              type: 'attestation',
+                'The authorized channel follows at least three other channels.',
+              key: 'subscriptions-platform-signal',
+              type: 'signal',
             },
             description:
-              'Subscribe to a small set of active niche channels and watch from the subscription feed. Subscriptions stay user_confirmed.',
+              'Subscribe to at least three active niche channels in the native YouTube app.',
             days: [1, 2, 3],
-            evidenceIds: ['yt-product-guidance'],
+            evidenceIds: ['yt-subscriptions'],
             id: 'subscribe-and-watch-subscriptions',
-            provenance: 'user_confirmed',
-            requirement: 'required',
-            title: 'Subscribe and watch from subscriptions',
+            provenance: 'platform_verified',
+            requirement: 'required_when_available',
+            title: 'Subscribe to niche channels',
           },
           {
             completion: {
               description:
-                'The user confirms likes and comments made outside Genfeed were manual.',
-              key: 'likes-and-comments-confirmed',
-              type: 'attestation',
+                'The authorized channel has liked at least one video.',
+              key: 'likes-platform-signal',
+              type: 'signal',
             },
             description:
-              'Like and comment selectively in the native app. Likes and comments made outside Genfeed stay user_confirmed.',
+              'Like a few niche videos in the native YouTube app. Like selectively, never in bulk.',
             days: [1, 2, 3],
-            evidenceIds: ['yt-product-guidance'],
+            evidenceIds: ['yt-videos'],
             id: 'like-and-comment-selectively',
-            provenance: 'user_confirmed',
+            provenance: 'platform_verified',
             requirement: 'optional',
-            title: 'Like and comment selectively (manual)',
+            title: 'Like niche videos selectively',
           },
           {
             completion: {
@@ -1627,7 +1644,7 @@ export const YOUTUBE_SOCIAL_WARMUP_BLUEPRINT =
               type: 'attestation',
             },
             description:
-              'Check whether Home recommendations match the niche. Homepage ranking stays user_confirmed.',
+              'Check whether Home recommendations match the niche. YouTube does not share Home ranking, so you confirm this one.',
             days: [2, 3],
             evidenceIds: ['yt-product-guidance'],
             id: 'check-homepage-relevance',
@@ -1648,17 +1665,17 @@ export const YOUTUBE_SOCIAL_WARMUP_BLUEPRINT =
           {
             completion: {
               description:
-                'The user confirms handle, avatar, banner, About copy, and playlists are complete.',
-              key: 'channel-setup-confirmed',
-              type: 'attestation',
+                'The channel has a handle, a banner, About text and at least one playlist.',
+              key: 'channel-setup-platform-signal',
+              type: 'signal',
             },
             description:
-              'Finish YouTube channel setup in Studio before the first upload. Native Studio edits stay user_confirmed.',
+              'Finish the handle, banner, About text and a first playlist in YouTube Studio before the first upload.',
             days: [4, 5],
-            evidenceIds: ['yt-product-guidance'],
+            evidenceIds: ['yt-channels', 'yt-playlists'],
             id: 'complete-channel-setup',
-            provenance: 'user_confirmed',
-            requirement: 'required',
+            provenance: 'platform_verified',
+            requirement: 'required_when_available',
             title: 'Complete channel setup',
           },
           {
@@ -1696,18 +1713,18 @@ export const YOUTUBE_SOCIAL_WARMUP_BLUEPRINT =
           {
             completion: {
               description:
-                'Genfeed has recorded any draft or clip activity created inside Genfeed.',
-              key: 'genfeed-draft-activity-observed',
+                'Genfeed has recorded a scheduled, published or failed post for this channel.',
+              key: 'genfeed-publish-outcomes-observed',
               type: 'event',
             },
             description:
-              'When using Genfeed for Shorts drafts or clip lineage, outcomes stay genfeed_observed.',
+              'Shorts you schedule or publish from Genfeed are tracked automatically.',
             days: [6, 7],
             evidenceIds: ['yt-product-guidance', 'yt-upload'],
             id: 'observe-genfeed-drafts',
             provenance: 'genfeed_observed',
             requirement: 'optional',
-            title: 'Observe Genfeed draft activity',
+            title: 'Observe Genfeed post activity',
           },
         ],
         title: 'Channel setup',
@@ -1722,34 +1739,23 @@ export const YOUTUBE_SOCIAL_WARMUP_BLUEPRINT =
           {
             completion: {
               description:
-                'Genfeed has a first Shorts draft or publish outcome.',
-              key: 'first-shorts-upload',
-              type: 'event',
-            },
-            description:
-              'Upload one original Short with search-intent metadata. Prefer quality over volume.',
-            days: [8, 9],
-            evidenceIds: ['yt-product-guidance', 'yt-upload'],
-            id: 'first-shorts-upload',
-            provenance: 'genfeed_observed',
-            requirement: 'required_when_available',
-            title: 'First Shorts upload',
-          },
-          {
-            completion: {
-              description:
                 'Authorized owned uploads show the first video when permissions allow.',
               key: 'first-upload-platform-signal',
               type: 'signal',
             },
             description:
-              'When upload listing is available, verify the first Short appeared. Empty channels stay empty, not failed.',
+              'Upload one original Short with search-intent metadata. Prefer quality over volume. Empty channels stay empty, not failed.',
             days: [8, 9, 10],
-            evidenceIds: ['yt-playlist-items', 'yt-videos', 'yt-upload'],
-            id: 'observe-first-upload-platform',
+            evidenceIds: [
+              'yt-product-guidance',
+              'yt-playlist-items',
+              'yt-videos',
+              'yt-upload',
+            ],
+            id: 'first-shorts-upload',
             provenance: 'platform_verified',
             requirement: 'required_when_available',
-            title: 'Observe first upload on YouTube',
+            title: 'First Shorts upload',
           },
           {
             completion: {
@@ -2035,8 +2041,7 @@ export const LINKEDIN_SOCIAL_WARMUP_BLUEPRINT =
               key: 'native-profile-confirmed',
               type: 'attestation',
             },
-            description:
-              'Finish profile completeness in the native LinkedIn app. Native profile edits stay user_confirmed.',
+            description: 'Finish your profile in the native LinkedIn app.',
             days: [1, 2],
             evidenceIds: ['li-product-guidance'],
             id: 'complete-native-profile',
@@ -2093,8 +2098,7 @@ export const LINKEDIN_SOCIAL_WARMUP_BLUEPRINT =
               key: 'niche-feed-confirmed',
               type: 'attestation',
             },
-            description:
-              'Read the native LinkedIn home feed. Feed ranking and consumption stay user_confirmed.',
+            description: 'Read the native LinkedIn home feed.',
             days: [3, 4],
             evidenceIds: ['li-product-guidance'],
             id: 'read-niche-feed',
@@ -2109,8 +2113,7 @@ export const LINKEDIN_SOCIAL_WARMUP_BLUEPRINT =
               key: 'niche-search-confirmed',
               type: 'attestation',
             },
-            description:
-              'Search niche keywords and read top posts. Search activity stays user_confirmed.',
+            description: 'Search niche keywords and read the top posts.',
             days: [3, 4],
             evidenceIds: ['li-product-guidance'],
             id: 'search-niche-keywords',
@@ -2125,8 +2128,7 @@ export const LINKEDIN_SOCIAL_WARMUP_BLUEPRINT =
               key: 'saves-and-reactions-confirmed',
               type: 'attestation',
             },
-            description:
-              'Save and react selectively. Saves and reactions stay user_confirmed.',
+            description: 'Save and react selectively.',
             days: [3, 4],
             evidenceIds: ['li-product-guidance'],
             id: 'save-and-react-selectively',
@@ -2141,8 +2143,7 @@ export const LINKEDIN_SOCIAL_WARMUP_BLUEPRINT =
               key: 'niche-follows-confirmed',
               type: 'attestation',
             },
-            description:
-              'Follow active people in the niche. Follows stay user_confirmed.',
+            description: 'Follow active people in the niche.',
             days: [4],
             evidenceIds: ['li-product-guidance'],
             id: 'follow-niche-people',
@@ -2168,7 +2169,7 @@ export const LINKEDIN_SOCIAL_WARMUP_BLUEPRINT =
               type: 'attestation',
             },
             description:
-              'Send personalized connection notes. Connection requests stay user_confirmed and are never automated.',
+              'Send personalized connection notes. Genfeed never automates connection requests.',
             days: [5, 6, 7],
             evidenceIds: ['li-product-guidance'],
             id: 'send-personalized-connection-requests',
@@ -2183,8 +2184,7 @@ export const LINKEDIN_SOCIAL_WARMUP_BLUEPRINT =
               key: 'thoughtful-comments-confirmed',
               type: 'attestation',
             },
-            description:
-              'Leave thoughtful comments on niche posts. Comments stay user_confirmed.',
+            description: 'Leave thoughtful comments on niche posts.',
             days: [5, 6, 7],
             evidenceIds: ['li-product-guidance'],
             id: 'leave-thoughtful-comments',
@@ -2199,8 +2199,7 @@ export const LINKEDIN_SOCIAL_WARMUP_BLUEPRINT =
               key: 'welcome-messages-confirmed',
               type: 'attestation',
             },
-            description:
-              'Send brief welcome messages, not pitches. Messages stay user_confirmed.',
+            description: 'Send brief welcome messages, not pitches.',
             days: [6, 7],
             evidenceIds: ['li-product-guidance'],
             id: 'welcome-new-connections',
@@ -2332,7 +2331,7 @@ export const LINKEDIN_SOCIAL_WARMUP_BLUEPRINT =
               type: 'attestation',
             },
             description:
-              'SSI is not API-visible on this connection. Record it as user_confirmed and do not treat it as platform_verified.',
+              'LinkedIn does not share the Social Selling Index with Genfeed, so you confirm it.',
             days: [11, 12],
             evidenceIds: ['li-product-guidance'],
             id: 'confirm-ssi-observation',

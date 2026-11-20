@@ -294,8 +294,6 @@ describe('social warm-up blueprint contract', () => {
     for (const id of [
       'search-niche-keywords',
       'watch-niche-videos',
-      'subscribe-and-watch-subscriptions',
-      'like-and-comment-selectively',
       'check-homepage-relevance',
     ]) {
       expect(byId.get(id)).toMatchObject({
@@ -305,9 +303,11 @@ describe('social warm-up blueprint contract', () => {
     }
 
     for (const id of [
+      'subscribe-and-watch-subscriptions',
+      'complete-channel-setup',
       'refresh-authorized-channel',
       'snapshot-publishing-capability',
-      'observe-first-upload-platform',
+      'first-shorts-upload',
       'snapshot-owned-uploads',
       'snapshot-owned-video-analytics',
     ]) {
@@ -318,8 +318,13 @@ describe('social warm-up blueprint contract', () => {
       });
     }
 
-    expect(byId.get('first-shorts-upload')).toMatchObject({
-      completion: { type: 'event' },
+    expect(byId.get('like-and-comment-selectively')).toMatchObject({
+      completion: { key: 'likes-platform-signal', type: 'signal' },
+      provenance: 'platform_verified',
+      requirement: 'optional',
+    });
+    expect(byId.get('observe-genfeed-drafts')).toMatchObject({
+      completion: { key: 'genfeed-publish-outcomes-observed', type: 'event' },
       provenance: 'genfeed_observed',
     });
     expect(byId.get('confirm-shorts-to-longform-path')).toMatchObject({

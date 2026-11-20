@@ -26,9 +26,7 @@ function buildAccount(
   return {
     credentialId: 'credential-ig',
     handle: '@studio',
-    holdPublishing: false,
     label: 'Studio Instagram',
-    override: { isActive: false },
     platform: CredentialPlatform.INSTAGRAM,
     riskLevel: 'low',
     score: 90,

@@ -617,6 +617,15 @@ describe('InstagramController', () => {
         instagramServiceMock.listAuthorizedInstagramAccounts,
       ).not.toHaveBeenCalled();
       expect(credentialsPatchMock).not.toHaveBeenCalled();
+      // The user reconnects with the missing permission; that is not an error.
+      expect(loggerWarnMock).toHaveBeenCalledWith(
+        expect.stringContaining('failed'),
+        expect.objectContaining({
+          category: 'http_exception',
+          httpStatus: 400,
+        }),
+      );
+      expect(loggerErrorMock).not.toHaveBeenCalled();
     });
 
     it('reads permissions from granular_scopes when Meta leaves the scopes list empty', async () => {

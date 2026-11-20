@@ -459,7 +459,10 @@ describe('ToolRegistryService', () => {
       });
 
       expect(calls).toEqual([
-        { args: { topic: 'launch' }, organization: 'org-b' },
+        {
+          args: { includeLogo: true, topic: 'launch' },
+          organization: 'org-b',
+        },
       ]);
     });
 
@@ -583,7 +586,9 @@ describe('ToolRegistryService', () => {
 
       await service.handleToolCall({ arguments: {}, name: 'get_account' });
 
-      expect(calls).toEqual([{ args: {}, organization: null }]);
+      expect(calls).toEqual([
+        { args: { includeLogo: true }, organization: null },
+      ]);
     });
   });
 
@@ -1377,7 +1382,7 @@ describe('ToolRegistryService', () => {
 
     expect(clientService.executeAgentTool).toHaveBeenCalledWith(
       'get_account',
-      {},
+      { includeLogo: true },
       undefined,
     );
     expect(result).toMatchObject({

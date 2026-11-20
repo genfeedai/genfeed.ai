@@ -1,3 +1,4 @@
+import type { OrganizationLogoService } from '@api/collections/organizations/services/organization-logo.service';
 import type { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import type { UsersService } from '@api/collections/users/services/users.service';
 import {
@@ -7,6 +8,7 @@ import {
 } from '@api/services/agent-orchestrator/tools/agent-brand-access.util';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import type { AgentBrandSerializedData } from '@genfeedai/serializers';
+import { traced } from '@libs/tracing/traced';
 
 /** Brands listed in the account profile; `brandCount` carries the total. */
 const ACCOUNT_BRAND_LIMIT = 25;
@@ -52,7 +54,11 @@ export async function readAccountIdentity(
           brandCount: brands.length,
           brands: brands
             .slice(0, ACCOUNT_BRAND_LIMIT)
-            .map(({ id, name }) => ({ id, name })),
+            .map(({ id, logo, name }) => ({
+              id,
+              ...(logo ? { logo } : {}),
+              name,
+            })),
         }
       : {}),
     ...(hasMissingBrandAccess
@@ -110,3 +116,33 @@ async function readOnboardingCompleted(
     return undefined;
   }
 }
+
+/**
+ * The organization's own logo asset, else its first brand's logo: signup
+ * scraping saves the company logo on the brand, so most organizations have
+ * no logo of their own (the same order the admin leaderboard uses).
+ */
+export const readOrganizationLogoUrl = traced(
+  'readOrganizationLogoUrl',
+  async (
+    organizationLogoService: OrganizationLogoService | undefined,
+    ctx: ToolExecutionContext,
+    identity: Record<string, unknown>,
+  ): Promise<string | undefined> => {
+    const ownLogoUrl = await organizationLogoService
+      ?.resolveLogoUrls([ctx.organizationId])
+      .then((logoUrls) => logoUrls.get(ctx.organizationId))
+      .catch(() => undefined);
+    if (ownLogoUrl) {
+      return ownLogoUrl;
+    }
+    const brands = Array.isArray(identity.brands) ? identity.brands : [];
+    for (const brand of brands) {
+      const cdnUrl = (brand as { logo?: { cdnUrl?: unknown } }).logo?.cdnUrl;
+      if (typeof cdnUrl === 'string' && cdnUrl) {
+        return cdnUrl;
+      }
+    }
+    return undefined;
+  },
+);

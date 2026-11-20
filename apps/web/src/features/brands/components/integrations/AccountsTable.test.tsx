@@ -32,9 +32,7 @@ function buildHealth(
 ): AccountHealthSummary {
   return {
     credentialId: 'cred-1',
-    holdPublishing: false,
     label: 'Account',
-    override: { isActive: false },
     platform: CredentialPlatform.TWITTER,
     riskLevel: 'low',
     score: 80,
