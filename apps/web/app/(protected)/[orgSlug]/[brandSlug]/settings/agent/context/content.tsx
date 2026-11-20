@@ -70,7 +70,7 @@ export default function BrandSettingsAgentContextPage() {
       memory: '#agent-context-memories',
       profile: href(APP_ROUTES.SETTINGS.PROFILE),
       skills: href(APP_ROUTES.SETTINGS.SKILLS),
-      voice: href('/settings/brand-kit/voice'),
+      voice: href('/settings/brand-kit#voice'),
     }),
     [href],
   );

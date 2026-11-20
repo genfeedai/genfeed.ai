@@ -33,7 +33,6 @@ export interface BrandOsGuideReadiness {
 export interface BrandOsSettingsCardProps {
   brandId: string;
   refreshKey?: number;
-  fieldGroups?: readonly BrandKitFieldGroup[];
   renderWorkspace?: (workspace: BrandKitRevisionWorkspace) => ReactNode;
   isAutoSaveEnabled?: boolean;
   onRevisionSaved?: (revision: IBrandOsRevision) => void;
@@ -46,7 +45,8 @@ export interface BrandOsSettingsCardProps {
 export interface BrandOsRevisionFieldsProps {
   content: IBrandKitDraft;
   groups?: readonly BrandKitFieldGroup[];
-  showDecisions?: boolean;
+  /** `decisions` lists every field with an Include checkbox; `inline` shows each field as an editable row. */
+  variant?: 'decisions' | 'inline';
   isDisabled: boolean;
   onFieldChange: (
     key: BrandKitFieldKey,
@@ -93,7 +93,8 @@ export interface BrandOsPolicyListFieldProps {
 export interface BrandKitRevisionWorkspace {
   content: IBrandKitDraft | null;
   approvedContent: IBrandKitDraft | null;
-  editor: ReactNode;
+  /** The revision's fields for the given groups, as editable rows. */
+  renderFields: (groups: readonly BrandKitFieldGroup[]) => ReactNode;
   review: ReactNode;
   isDirty: boolean;
   isLoading: boolean;

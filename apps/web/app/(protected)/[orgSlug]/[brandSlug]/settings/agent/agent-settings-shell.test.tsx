@@ -59,7 +59,7 @@ describe('AgentSettingsShell', () => {
     ).toHaveAttribute('href', '/acme/acme/settings/agent/receipts');
     expect(screen.getByRole('link', { name: 'Writing voice' })).toHaveAttribute(
       'href',
-      '/acme/acme/settings/brand-kit/voice',
+      '/acme/acme/settings/brand-kit#voice',
     );
     expect(screen.getByText('Section body')).toBeInTheDocument();
   });

@@ -476,7 +476,7 @@ test.describe('Settings Connections & Sub-Pages', () => {
     test('shows the brand voice settings', async ({ authenticatedPage }) => {
       const settingsPage = new SettingsPage(authenticatedPage);
 
-      await settingsPage.open(brandPath('/settings/brand-kit/voice'));
+      await settingsPage.open(brandPath('/settings/brand-kit#voice'));
 
       await expect(
         settingsPage.canvas.getByRole('heading', {

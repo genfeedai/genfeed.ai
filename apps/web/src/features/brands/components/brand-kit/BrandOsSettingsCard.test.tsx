@@ -455,7 +455,7 @@ describe('Brand OS revision settings', () => {
     ).toBeInTheDocument();
   });
 
-  it('shows the saved value for a rejected compact field and persists include as accept', async () => {
+  it('shows the saved value with the scan suggestion beside it and persists it once applied', async () => {
     const content = draft();
     const description = content.fields.description;
     if (!description) throw new Error('Missing description fixture');
@@ -480,12 +480,11 @@ describe('Brand OS revision settings', () => {
     render(
       <BrandOsSettingsCard
         brandId="brand-1"
-        fieldGroups={['profile']}
         onRefreshBrand={mocks.refresh}
         onRevisionSaved={mocks.saved}
         renderWorkspace={(workspace) => (
           <>
-            {workspace.editor}
+            {workspace.renderFields(['profile'])}
             <Button
               label="Save draft"
               onClick={workspace.onSave}
@@ -495,19 +494,20 @@ describe('Brand OS revision settings', () => {
         )}
       />,
     );
-    expect(await openRevisionField('Description')).toHaveValue(
+    expect(await screen.findByLabelText('Description')).toHaveValue(
       'Saved description',
     );
     expect(
       screen.queryByDisplayValue('Proposed description'),
     ).not.toBeInTheDocument();
-    const include = screen.getByRole('checkbox', {
-      name: 'Include Description in approval',
-    });
-    expect(include).not.toBeChecked();
-    fireEvent.click(include);
-    expect(include).toBeChecked();
-    expect(await openRevisionField('Description')).toHaveValue(
+    expect(
+      screen.getByText('Found in scan: Proposed description'),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('checkbox', { name: /Include/ }),
+    ).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Use' }));
+    expect(screen.getByLabelText('Description')).toHaveValue(
       'Proposed description',
     );
     fireEvent.click(screen.getByRole('button', { name: 'Save draft' }));
@@ -528,6 +528,37 @@ describe('Brand OS revision settings', () => {
         }),
       ),
     );
+  });
+
+  it('reverts an edited inline field to the approved value', async () => {
+    const content = draft();
+    const description = content.fields.description;
+    if (!description) throw new Error('Missing description fixture');
+    content.fields.description = {
+      ...description,
+      applyActionDefault: 'accept',
+      currentValue: 'Saved description',
+      proposedValue: 'Edited description',
+    };
+    mocks.listBrandOsRevisions.mockResolvedValue([revision({ content })]);
+    render(
+      <BrandOsSettingsCard
+        brandId="brand-1"
+        onRefreshBrand={mocks.refresh}
+        onRevisionSaved={mocks.saved}
+        renderWorkspace={(workspace) => workspace.renderFields(['profile'])}
+      />,
+    );
+    expect(await screen.findByLabelText('Description')).toHaveValue(
+      'Edited description',
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Revert Description' }));
+    expect(screen.getByLabelText('Description')).toHaveValue(
+      'Saved description',
+    );
+    expect(
+      screen.queryByRole('button', { name: 'Revert Description' }),
+    ).not.toBeInTheDocument();
   });
 
   it('forks an approved revision and retains the approved history', async () => {

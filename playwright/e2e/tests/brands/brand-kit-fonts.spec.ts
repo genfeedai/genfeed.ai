@@ -49,7 +49,7 @@ test.describe('Brand kit fonts', () => {
       }),
     );
 
-    const route = brandPath('/settings/brand-kit/visual');
+    const route = brandPath('/settings/brand-kit');
     await authenticatedPage.goto(route, {
       timeout: 60000,
       waitUntil: 'domcontentloaded',

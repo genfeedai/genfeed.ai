@@ -5,7 +5,7 @@ import type {
 import type { Route } from '@playwright/test';
 import { expect, test } from '../../fixtures/auth.fixture';
 
-const BRAND_KIT_VIDEO = '/test-org/brand-1/settings/brand-kit/video';
+const BRAND_KIT_VIDEO = '/test-org/brand-1/settings/brand-kit';
 const APPROVED_DATE = '2026-11-12T10:00:00.000Z';
 
 interface VideoBrand {
