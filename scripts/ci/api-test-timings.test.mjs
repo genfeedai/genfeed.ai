@@ -289,11 +289,25 @@ test('CI retains affected selection and connected fixtures and uploads after fai
     /node scripts\/ci\/test-shard-selection\.mjs > "\$\{RUNNER_TEMP\}\/shard-selection\.txt"\n\s+mapfile -t SELECTION < "\$\{RUNNER_TEMP\}\/shard-selection\.txt"/,
   );
   assert.match(api, /--maxWorkers=2 "\$\{SELECTION\[@\]\}"/);
-  assert.match(api, /SHARD: \$\{\{ matrix\.shard \}\}/);
-  assert.match(api, /SHARD_TOTAL: \$\{\{ matrix\.total \}\}/);
+  // The shard jobs start before the plan exists: shard N takes the plan's Nth
+  // entry through the start action.
+  assert.match(
+    api,
+    /SHARD: \$\{\{ fromJSON\(steps\.start\.outputs\.leg\)\.shard \}\}/,
+  );
+  assert.match(
+    api,
+    /SHARD_TOTAL: \$\{\{ fromJSON\(steps\.start\.outputs\.leg\)\.total \}\}/,
+  );
   assert.match(api, /SHARD_ROOT: apps\/server\/api\n/);
-  assert.match(api, /SHARD_FILE_COUNT: \$\{\{ matrix\.count \}\}/);
-  assert.match(api, /SHARD_FILES: \$\{\{ matrix\.files \}\}/);
+  assert.match(
+    api,
+    /SHARD_FILE_COUNT: \$\{\{ fromJSON\(steps\.start\.outputs\.leg\)\.count \}\}/,
+  );
+  assert.match(
+    api,
+    /SHARD_FILES: \$\{\{ fromJSON\(steps\.start\.outputs\.leg\)\.files \}\}/,
+  );
   for (const fixture of [
     'postgres:',
     'redis:',
