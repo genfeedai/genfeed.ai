@@ -31,7 +31,13 @@ import BrandVideoFramePreview from './BrandVideoFramePreview';
 import BrandVideoTab from './BrandVideoTab';
 import { finishingFromBrand } from './brand-video-kit.helpers';
 
-type BrandKitSectionId = 'identity' | 'strategy' | 'video' | 'visual' | 'voice';
+type BrandKitSectionId =
+  | 'identity'
+  | 'publishing'
+  | 'strategy'
+  | 'video'
+  | 'visual'
+  | 'voice';
 
 interface BrandKitSectionProps {
   id: BrandKitSectionId;
@@ -75,6 +81,9 @@ export default function BrandKitWorkspace({
   assets,
   renderFields,
   review,
+  history,
+  share,
+  policy,
   content,
   approvedContent,
   isDirty,
@@ -87,7 +96,9 @@ export default function BrandKitWorkspace({
   onFinishingChange,
 }: BrandKitWorkspaceProps) {
   const t = useTranslations('pages.brandKitSettings');
-  const [isReviewOpen, setIsReviewOpen] = useState(false);
+  const [openDialog, setOpenDialog] = useState<
+    'history' | 'review' | 'share' | null
+  >(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(true);
   const [activeSection, setActiveSection] =
     useState<BrandKitSectionId>('identity');
@@ -144,6 +155,12 @@ export default function BrandKitWorkspace({
               <DropdownMenuItem asChild disabled={isDirty}>
                 <Link href={guidedSetupHref}>{t('guidedSetup')}</Link>
               </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => setOpenDialog('history')}>
+                {t('history')}
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => setOpenDialog('share')}>
+                {t('share')}
+              </DropdownMenuItem>
               <DropdownMenuItem onSelect={onManualImport} disabled={isDirty}>
                 {t('manualImport')}
               </DropdownMenuItem>
@@ -152,7 +169,7 @@ export default function BrandKitWorkspace({
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          <Button onClick={() => setIsReviewOpen(true)}>{t('review')}</Button>
+          <Button onClick={() => setOpenDialog('review')}>{t('review')}</Button>
         </>
       }
     >
@@ -252,6 +269,15 @@ export default function BrandKitWorkspace({
                 </p>
               )}
             </BrandKitSection>
+            {policy ? (
+              <BrandKitSection
+                id="publishing"
+                title={t('publishing')}
+                onActivate={setActiveSection}
+              >
+                {policy}
+              </BrandKitSection>
+            ) : null}
           </div>
           {isPreviewOpen ? (
             <div className="min-w-0 xl:sticky xl:top-4 xl:self-start">
@@ -280,7 +306,7 @@ export default function BrandKitWorkspace({
             <div className="flex gap-2">
               <Button
                 variant={ButtonVariant.SECONDARY}
-                onClick={() => setIsReviewOpen(true)}
+                onClick={() => setOpenDialog('review')}
               >
                 {t('review')}
               </Button>
@@ -290,14 +316,26 @@ export default function BrandKitWorkspace({
             </div>
           </div>
         ) : null}
-        <Dialog open={isReviewOpen} onOpenChange={setIsReviewOpen}>
-          <DialogContent size="lg">
-            <DialogHeader>
-              <DialogTitle>{t('review')}</DialogTitle>
-            </DialogHeader>
-            <DialogBody>{review}</DialogBody>
-          </DialogContent>
-        </Dialog>
+        {(
+          [
+            ['review', t('review'), review],
+            ['history', t('history'), history],
+            ['share', t('share'), share],
+          ] as const
+        ).map(([id, title, body]) => (
+          <Dialog
+            key={id}
+            open={openDialog === id}
+            onOpenChange={(isOpen) => setOpenDialog(isOpen ? id : null)}
+          >
+            <DialogContent size="lg">
+              <DialogHeader>
+                <DialogTitle>{title}</DialogTitle>
+              </DialogHeader>
+              <DialogBody>{body}</DialogBody>
+            </DialogContent>
+          </Dialog>
+        ))}
       </div>
     </Container>
   );

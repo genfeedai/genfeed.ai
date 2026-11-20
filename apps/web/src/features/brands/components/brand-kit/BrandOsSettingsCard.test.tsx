@@ -13,6 +13,7 @@ import {
   render as renderWithTestingLibrary,
   screen,
   waitFor,
+  within,
 } from '@testing-library/react';
 import { Button } from '@ui/primitives/button';
 import type {
@@ -559,6 +560,48 @@ describe('Brand OS revision settings', () => {
     expect(
       screen.queryByRole('button', { name: 'Revert Description' }),
     ).not.toBeInTheDocument();
+  });
+
+  it('splits the revision into approval, history, share and policy slots', async () => {
+    mocks.listBrandOsRevisions.mockResolvedValue([revision()]);
+    render(
+      <BrandOsSettingsCard
+        brandId="brand-1"
+        onRefreshBrand={mocks.refresh}
+        onRevisionSaved={mocks.saved}
+        renderWorkspace={(workspace) => (
+          <>
+            <section aria-label="approval">{workspace.review}</section>
+            <section aria-label="history">{workspace.history}</section>
+            <section aria-label="policy">{workspace.policy}</section>
+          </>
+        )}
+      />,
+    );
+    const approval = within(
+      await screen.findByRole('region', { name: 'approval' }),
+    );
+    expect(
+      await approval.findByRole('button', { name: 'Approve revision' }),
+    ).toBeInTheDocument();
+    expect(
+      approval.queryByRole('combobox', { name: 'Revision history' }),
+    ).not.toBeInTheDocument();
+    expect(
+      approval.queryByRole('button', { name: 'Refresh history' }),
+    ).not.toBeInTheDocument();
+    const history = within(screen.getByRole('region', { name: 'history' }));
+    expect(
+      history.getByRole('combobox', { name: 'Revision history' }),
+    ).toBeInTheDocument();
+    expect(
+      history.getByRole('button', { name: 'Refresh history' }),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByRole('region', { name: 'policy' })).getByRole(
+        'heading',
+      ),
+    ).toBeInTheDocument();
   });
 
   it('forks an approved revision and retains the approved history', async () => {

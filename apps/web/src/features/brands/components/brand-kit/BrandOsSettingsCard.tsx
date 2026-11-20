@@ -45,6 +45,7 @@ import { useBrandOsDirtyNavigation } from '@/features/brands/hooks/use-brand-os-
 import type { BrandOsSettingsCardProps } from '@/features/brands/props/brand-os-settings.props';
 import { useUserRole } from '@/hooks/auth/use-user-role/use-user-role';
 import { useDebouncedCallback } from '@/hooks/utils/use-debounce/use-debounce';
+import BrandOsExportPanel from './BrandOsExportPanel';
 import BrandOsGenerationRulesReview from './BrandOsGenerationRulesReview';
 import BrandOsIdentityPreview from './BrandOsIdentityPreview';
 import BrandOsPolicyEditor from './BrandOsPolicyEditor';
@@ -619,6 +620,240 @@ export default function BrandOsSettingsCard({
     exportState?.canPublish &&
     exportState.revisionId !== exportState.publishedRevisionId;
 
+  const status = (
+    <>
+      {error && (
+        <p role="alert" className="text-sm text-destructive">
+          {t('errorPreserved', { error })}
+        </p>
+      )}
+      {(notice || pending) && (
+        <p role="status" className="text-sm text-muted-foreground">
+          {pending ? t('progress', { action: pending }) : notice}
+        </p>
+      )}
+    </>
+  );
+  const historyPicker = (
+    <>
+      <div className="flex flex-wrap items-center gap-2">
+        <Select
+          value={selectedId}
+          onValueChange={(id) => {
+            const revision = revisions.find((entry) => entry.id === id);
+            if (!revision || dirty) return;
+            clearAcknowledgement();
+            setSelectedId(id);
+            setContent(revision.content);
+            setNotice(null);
+          }}
+          disabled={busy || dirty}
+        >
+          <SelectTrigger aria-label={t('history')} className="w-full sm:w-80">
+            <SelectValue placeholder={t('noRevisions')} />
+          </SelectTrigger>
+          <SelectContent>
+            {revisions.map((revision) => (
+              <SelectItem key={revision.id} value={revision.id}>
+                {t('revisionOption', {
+                  version: revision.version,
+                  status: t(`statuses.${revision.status.toLowerCase()}`),
+                })}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Button
+          label={t('refresh')}
+          variant={ButtonVariant.SECONDARY}
+          isDisabled={dirty || busy}
+          onClick={() => {
+            clearAcknowledgement();
+            setReload((value) => value + 1);
+          }}
+        />
+      </div>
+    </>
+  );
+  const revisionDetails = (
+    <>
+      {!canManage && (
+        <p className="text-sm text-muted-foreground">{t('membersReadOnly')}</p>
+      )}
+      {selected && (
+        <p className="text-xs text-muted-foreground">
+          {t('revisionDetails', {
+            version: selected.version,
+            status: t(`statuses.${selected.status.toLowerCase()}`),
+            date: new Date(selected.updatedAt).toLocaleString('en-US'),
+          })}
+          {selected.approvedAt
+            ? ` · ${t('approvedDate', { date: new Date(selected.approvedAt).toLocaleString('en-US') })}`
+            : ''}
+        </p>
+      )}
+    </>
+  );
+  const rulesReview = (
+    <>
+      {selected && !hasRules && (
+        <p className="text-sm text-muted-foreground">
+          {t('generationRulesReview.none')}
+        </p>
+      )}
+      {selected &&
+        hasRules &&
+        (!parsedRules?.success ||
+          (selected.status === BrandOsRevisionStatus.DRAFT &&
+            !hasCandidate)) && (
+          <p role="alert" className="text-sm text-destructive">
+            {t('generationRulesReview.unavailable')}
+          </p>
+        )}
+      {selected && parsedRules?.success && (
+        <BrandOsGenerationRulesReview
+          rules={parsedRules.data}
+          acknowledged={acknowledged}
+          isDisabled={!canManage || busy || dirty || !canReview}
+          showAcknowledgement={
+            selected.status === BrandOsRevisionStatus.DRAFT && canReview
+          }
+          onAcknowledgedChange={(checked) => {
+            if (
+              !canReview ||
+              !canManage ||
+              dirty ||
+              pendingRef.current ||
+              !binding
+            )
+              return;
+            acknowledgementRef.current = checked ? binding : null;
+            setAcknowledgement(checked ? binding : null);
+          }}
+        />
+      )}
+    </>
+  );
+  const diffReview = (
+    <>
+      {content && (
+        <BrandVideoRevisionDiff
+          approved={approvedContent}
+          draft={content}
+          finishingBaseline={finishingBaseline}
+        />
+      )}
+    </>
+  );
+  const policyEditor = (
+    <>
+      {content && (
+        <BrandOsPolicyEditor
+          policy={content.policy}
+          isDisabled={
+            !canManage ||
+            busy ||
+            selected?.status === BrandOsRevisionStatus.SUPERSEDED
+          }
+          onChange={changePolicy}
+        />
+      )}
+    </>
+  );
+  const actions = (
+    <>
+      {canManage && selected && (
+        <div className="flex flex-wrap gap-2">
+          <Button
+            label={
+              selected.status === BrandOsRevisionStatus.APPROVED
+                ? t('saveAsDraft')
+                : t('save')
+            }
+            isDisabled={
+              busy ||
+              selected.status === BrandOsRevisionStatus.SUPERSEDED ||
+              (selected.status === BrandOsRevisionStatus.DRAFT && !dirty)
+            }
+            onClick={saveDraft}
+          />
+          {selected.status === BrandOsRevisionStatus.DRAFT && (
+            <Button
+              label={t('approve')}
+              variant={ButtonVariant.SECONDARY}
+              isDisabled={busy || !canApprove}
+              onClick={approve}
+            />
+          )}
+          {dirty && (
+            <Button
+              label={t('discard')}
+              variant={ButtonVariant.SECONDARY}
+              isDisabled={busy}
+              onClick={() => {
+                clearAcknowledgement();
+                autoSaveIntent.current = null;
+                setContent(selected.content);
+                setNotice(t('discarded'));
+              }}
+            />
+          )}
+        </div>
+      )}
+      {dirty && (
+        <p role="status" className="text-sm text-muted-foreground">
+          {t('unsaved')}
+        </p>
+      )}
+    </>
+  );
+  const identityPreview = (
+    <>
+      {organizationId && (
+        <div className="border-t border-border pt-4">
+          <BrandOsIdentityPreview
+            organizationId={organizationId}
+            brandId={brandId}
+            refreshKey={identityPreviewKey}
+            isDisabled={dirty || busy}
+          />
+        </div>
+      )}
+    </>
+  );
+  const exportPanel = (
+    <BrandOsExportPanel
+      exportState={exportState}
+      exportError={exportError}
+      currentVersion={currentApproved?.version}
+      isPublicationOutdated={Boolean(publicationOutdated)}
+      canManage={canManage}
+      isBusy={busy}
+      isLoading={loading}
+      isDirty={dirty}
+      onRetry={() => void perform(t('exportLabel'), refreshExport)}
+      onDownload={download}
+      onPublish={(revisionId) =>
+        void perform(t('publishing'), async (service, operationEpoch) => {
+          const state = await service.publishBrandOsDesign(brandId, revisionId);
+          if (isCurrent(operationEpoch)) {
+            setExportState(state);
+            setNotice(t('published'));
+          }
+        })
+      }
+      onRevoke={() =>
+        void perform(t('revoking'), async (service, operationEpoch) => {
+          const state = await service.revokeBrandOsDesign(brandId);
+          if (isCurrent(operationEpoch)) {
+            setExportState(state);
+            setNotice(t('revoked'));
+          }
+        })
+      }
+    />
+  );
+
   const review = (
     <Card label={t('title')} gap={CardGap.LG}>
       <div
@@ -626,77 +861,13 @@ export default function BrandOsSettingsCard({
         className="space-y-4"
         data-testid="brand-os-settings"
       >
-        {error && (
-          <p role="alert" className="text-sm text-destructive">
-            {t('errorPreserved', { error })}
-          </p>
-        )}
-        {(notice || pending) && (
-          <p role="status" className="text-sm text-muted-foreground">
-            {pending ? t('progress', { action: pending }) : notice}
-          </p>
-        )}
+        {status}
         {loading ? (
           <p role="status">{t('loading')}</p>
         ) : (
           <>
-            <div className="flex flex-wrap items-center gap-2">
-              <Select
-                value={selectedId}
-                onValueChange={(id) => {
-                  const revision = revisions.find((entry) => entry.id === id);
-                  if (!revision || dirty) return;
-                  clearAcknowledgement();
-                  setSelectedId(id);
-                  setContent(revision.content);
-                  setNotice(null);
-                }}
-                disabled={busy || dirty}
-              >
-                <SelectTrigger
-                  aria-label={t('history')}
-                  className="w-full sm:w-80"
-                >
-                  <SelectValue placeholder={t('noRevisions')} />
-                </SelectTrigger>
-                <SelectContent>
-                  {revisions.map((revision) => (
-                    <SelectItem key={revision.id} value={revision.id}>
-                      {t('revisionOption', {
-                        version: revision.version,
-                        status: t(`statuses.${revision.status.toLowerCase()}`),
-                      })}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Button
-                label={t('refresh')}
-                variant={ButtonVariant.SECONDARY}
-                isDisabled={dirty || busy}
-                onClick={() => {
-                  clearAcknowledgement();
-                  setReload((value) => value + 1);
-                }}
-              />
-            </div>
-            {!canManage && (
-              <p className="text-sm text-muted-foreground">
-                {t('membersReadOnly')}
-              </p>
-            )}
-            {selected && (
-              <p className="text-xs text-muted-foreground">
-                {t('revisionDetails', {
-                  version: selected.version,
-                  status: t(`statuses.${selected.status.toLowerCase()}`),
-                  date: new Date(selected.updatedAt).toLocaleString('en-US'),
-                })}
-                {selected.approvedAt
-                  ? ` · ${t('approvedDate', { date: new Date(selected.approvedAt).toLocaleString('en-US') })}`
-                  : ''}
-              </p>
-            )}
+            {historyPicker}
+            {revisionDetails}
             {content && (
               <Collapsible defaultOpen={!renderWorkspace}>
                 <CollapsibleTrigger>
@@ -715,245 +886,21 @@ export default function BrandOsSettingsCard({
                 </CollapsibleContent>
               </Collapsible>
             )}
-            {selected && !hasRules && (
-              <p className="text-sm text-muted-foreground">
-                {t('generationRulesReview.none')}
-              </p>
-            )}
-            {selected &&
-              hasRules &&
-              (!parsedRules?.success ||
-                (selected.status === BrandOsRevisionStatus.DRAFT &&
-                  !hasCandidate)) && (
-                <p role="alert" className="text-sm text-destructive">
-                  {t('generationRulesReview.unavailable')}
-                </p>
-              )}
-            {selected && parsedRules?.success && (
-              <BrandOsGenerationRulesReview
-                rules={parsedRules.data}
-                acknowledged={acknowledged}
-                isDisabled={!canManage || busy || dirty || !canReview}
-                showAcknowledgement={
-                  selected.status === BrandOsRevisionStatus.DRAFT && canReview
-                }
-                onAcknowledgedChange={(checked) => {
-                  if (
-                    !canReview ||
-                    !canManage ||
-                    dirty ||
-                    pendingRef.current ||
-                    !binding
-                  )
-                    return;
-                  acknowledgementRef.current = checked ? binding : null;
-                  setAcknowledgement(checked ? binding : null);
-                }}
-              />
-            )}
-            {content && (
-              <BrandVideoRevisionDiff
-                approved={approvedContent}
-                draft={content}
-                finishingBaseline={finishingBaseline}
-              />
-            )}
-            {content && (
-              <BrandOsPolicyEditor
-                policy={content.policy}
-                isDisabled={
-                  !canManage ||
-                  busy ||
-                  selected?.status === BrandOsRevisionStatus.SUPERSEDED
-                }
-                onChange={changePolicy}
-              />
-            )}
+            {rulesReview}
+            {diffReview}
+            {policyEditor}
             {!content && (
               <p className="text-sm text-muted-foreground">{t('empty')}</p>
             )}
-            {canManage && selected && (
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  label={
-                    selected.status === BrandOsRevisionStatus.APPROVED
-                      ? t('saveAsDraft')
-                      : t('save')
-                  }
-                  isDisabled={
-                    busy ||
-                    selected.status === BrandOsRevisionStatus.SUPERSEDED ||
-                    (selected.status === BrandOsRevisionStatus.DRAFT && !dirty)
-                  }
-                  onClick={saveDraft}
-                />
-                {selected.status === BrandOsRevisionStatus.DRAFT && (
-                  <Button
-                    label={t('approve')}
-                    variant={ButtonVariant.SECONDARY}
-                    isDisabled={busy || !canApprove}
-                    onClick={approve}
-                  />
-                )}
-                {dirty && (
-                  <Button
-                    label={t('discard')}
-                    variant={ButtonVariant.SECONDARY}
-                    isDisabled={busy}
-                    onClick={() => {
-                      clearAcknowledgement();
-                      autoSaveIntent.current = null;
-                      setContent(selected.content);
-                      setNotice(t('discarded'));
-                    }}
-                  />
-                )}
-              </div>
-            )}
-            {dirty && (
-              <p role="status" className="text-sm text-muted-foreground">
-                {t('unsaved')}
-              </p>
-            )}
-            {organizationId && (
-              <div className="border-t border-border pt-4">
-                <BrandOsIdentityPreview
-                  organizationId={organizationId}
-                  brandId={brandId}
-                  refreshKey={identityPreviewKey}
-                  isDisabled={dirty || busy}
-                />
-              </div>
-            )}
+            {actions}
+            {identityPreview}
           </>
         )}
-        {exportError && (
-          <section
-            aria-label={t('exportLabel')}
-            className="space-y-3 border-t border-border pt-4"
-          >
-            <h3 className="text-sm font-semibold">{t('exportLabel')}</h3>
-            <p role="alert" className="text-sm text-destructive">
-              {exportError}
-            </p>
-            <Button
-              label={common('retry')}
-              isDisabled={busy || loading}
-              variant={ButtonVariant.SECONDARY}
-              onClick={() => void perform(t('exportLabel'), refreshExport)}
-            />
-          </section>
-        )}
-        {exportState && (
-          <div
-            className="space-y-3 border-t border-border pt-4"
-            role="region"
-            aria-label={t('exportLabel')}
-          >
-            <h3 className="text-sm font-semibold">
-              {t('exportTitle', {
-                state: t(`visibility.${exportState.state}`),
-              })}
-            </h3>
-            <p className="text-sm text-muted-foreground">
-              {exportState.state === 'unavailable' && exportState.revisionId
-                ? t('exportInvalid')
-                : t(`export.${exportState.state}`)}
-            </p>
-            {currentApproved && exportState.digest && (
-              <p className="text-xs text-muted-foreground">
-                {t('downloadVersion', { version: currentApproved.version })}
-              </p>
-            )}
-            {publicationOutdated && (
-              <p role="status" className="text-sm text-muted-foreground">
-                {t('publicationOutdated')}
-              </p>
-            )}
-            {exportState.publicUrl && (
-              <Link
-                className="block break-all text-sm underline"
-                href={exportState.publicUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                {t('publicLink')}
-              </Link>
-            )}
-            {exportState.revisionUrl && (
-              <Link
-                className="block break-all text-sm underline"
-                href={exportState.revisionUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                {t('revisionLink')}
-              </Link>
-            )}
-            <div className="flex flex-wrap gap-2">
-              <Button
-                label={t('download')}
-                isDisabled={busy || !exportState.digest}
-                onClick={download}
-              />
-              {canManage &&
-                exportState.canPublish &&
-                exportState.revisionId &&
-                exportState.digest &&
-                (!exportState.publicUrl || publicationOutdated) && (
-                  <Button
-                    label={
-                      publicationOutdated
-                        ? t('updatePublication')
-                        : t('publish')
-                    }
-                    variant={ButtonVariant.SECONDARY}
-                    isDisabled={busy || dirty}
-                    onClick={() => {
-                      const revisionId = exportState.revisionId;
-                      if (!revisionId) return;
-                      void perform(
-                        t('publishing'),
-                        async (service, operationEpoch) => {
-                          const state = await service.publishBrandOsDesign(
-                            brandId,
-                            revisionId,
-                          );
-                          if (isCurrent(operationEpoch)) {
-                            setExportState(state);
-                            setNotice(t('published'));
-                          }
-                        },
-                      );
-                    }}
-                  />
-                )}
-              {canManage && exportState.publicUrl && (
-                <Button
-                  label={t('revoke')}
-                  variant={ButtonVariant.SECONDARY}
-                  isDisabled={busy}
-                  onClick={() =>
-                    void perform(
-                      t('revoking'),
-                      async (service, operationEpoch) => {
-                        const state =
-                          await service.revokeBrandOsDesign(brandId);
-                        if (isCurrent(operationEpoch)) {
-                          setExportState(state);
-                          setNotice(t('revoked'));
-                        }
-                      },
-                    )
-                  }
-                />
-              )}
-            </div>
-          </div>
-        )}
+        {exportPanel}
       </div>
     </Card>
   );
+
   if (!renderWorkspace) return review;
   return renderWorkspace({
     content,
@@ -972,7 +919,39 @@ export default function BrandOsSettingsCard({
           onFieldChange={changeField}
         />
       ) : null,
-    review,
+    review: (
+      <div
+        aria-busy={loading || busy}
+        className="space-y-4"
+        data-testid="brand-os-settings"
+      >
+        {status}
+        {loading ? (
+          <p role="status">{t('loading')}</p>
+        ) : (
+          <>
+            {revisionDetails}
+            {diffReview}
+            {rulesReview}
+            {!content && (
+              <p className="text-sm text-muted-foreground">{t('empty')}</p>
+            )}
+            {actions}
+          </>
+        )}
+      </div>
+    ),
+    history: loading ? (
+      <p role="status">{t('loading')}</p>
+    ) : (
+      <div className="space-y-4">
+        {historyPicker}
+        {revisionDetails}
+        {identityPreview}
+      </div>
+    ),
+    share: <div className="space-y-4">{exportPanel}</div>,
+    policy: content ? policyEditor : null,
     isDirty: dirty,
     isLoading: loading,
     error,
