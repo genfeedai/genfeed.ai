@@ -1,3 +1,4 @@
+import type { PrismaClient } from '@genfeedai/prisma';
 import { describe, expect, it, vi } from 'vitest';
 import {
   assertArticleSchemaReady,
@@ -11,6 +12,7 @@ import {
   REQUIRED_ARTICLE_COLUMNS,
   resolveSeedPublishedAt,
   runArticlesSeed,
+  seedArticles,
   selectArticles,
 } from './articles.seed';
 import { HELP_ARTICLES } from './data/help-articles';
@@ -229,5 +231,68 @@ describe('articles seed selection', () => {
     expect(() => selectArticles([SEO_ARTICLES[0].slug, 'nope', 'x'])).toThrow(
       /Unknown article slug\(s\): nope, x/,
     );
+  });
+});
+
+describe('articles seed one-off publish shadow reclaim', () => {
+  const seo = SEO_ARTICLES[0].slug;
+
+  function buildPrisma() {
+    const updateMany = vi.fn().mockResolvedValue({ count: 1 });
+    const count = vi.fn().mockResolvedValue(1);
+    const findMany = vi.fn().mockResolvedValue([]);
+    const prisma = {
+      article: {
+        count,
+        create: vi.fn().mockResolvedValue({}),
+        findFirst: vi.fn().mockResolvedValue(null),
+        findMany,
+        update: vi.fn().mockResolvedValue({}),
+        updateMany,
+      },
+      brand: {
+        findMany: vi
+          .fn()
+          .mockResolvedValue([{ id: 'brand-1', label: 'Genfeed' }]),
+      },
+      organization: {
+        findMany: vi
+          .fn()
+          .mockResolvedValue([
+            { id: 'org-1', label: 'Genfeed.ai', userId: 'user-1' },
+          ]),
+      },
+      user: { findFirst: vi.fn().mockResolvedValue({ id: 'user-1' }) },
+    };
+    return { prisma: prisma as unknown as PrismaClient, updateMany };
+  }
+
+  it('archives a foreign published article that holds a named slug', async () => {
+    const { prisma, updateMany } = buildPrisma();
+    await seedArticles(
+      prisma,
+      { brandSlug: 'genfeedai', dryRun: false, slugs: [seo] },
+      { invalidateCache: vi.fn().mockResolvedValue(undefined) },
+    );
+
+    expect(updateMany).toHaveBeenCalledTimes(1);
+    expect(updateMany.mock.calls[0][0]).toMatchObject({
+      data: { status: 'ARCHIVED' },
+      where: {
+        organizationId: { not: 'org-1' },
+        slug: seo,
+        status: 'PUBLISHED',
+      },
+    });
+  });
+
+  it('leaves foreign articles alone on a dry run', async () => {
+    const { prisma, updateMany } = buildPrisma();
+    await seedArticles(
+      prisma,
+      { brandSlug: 'genfeedai', dryRun: true, slugs: [seo] },
+      { invalidateCache: vi.fn().mockResolvedValue(undefined) },
+    );
+    expect(updateMany).not.toHaveBeenCalled();
   });
 });

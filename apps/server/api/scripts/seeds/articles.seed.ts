@@ -12,7 +12,9 @@
  *    articles) and overwrites those rows. This is the operator-triggered path
  *    for creating or refreshing the platform articles. The default seed never
  *    touches them. Unknown slugs are rejected, and nothing outside the named
- *    slugs is changed (no foreign-shadow or retired-slug archiving).
+ *    slugs is changed. A published article from another organization that
+ *    holds a named slug is archived (it would shadow the canonical page and
+ *    block the unique index, #5904); retired-slug archiving does not run.
  *
  * Dry-run is the default. Pass `--live` to apply changes.
  *
@@ -819,8 +821,9 @@ export async function seedArticles(
     // Platform slugs win: a published article from another organization that
     // holds this slug would shadow the canonical page and block the unique
     // index (#5904), so archive it before publishing ours. Only the default
-    // seed does this: a one-off publish touches nothing but the rows it names.
-    if (!overwrite) {
+    // seed and a one-off publish both do this, and a one-off publish only for
+    // the slugs it names.
+    {
       const shadowWhere = {
         isDeleted: false,
         organizationId: { not: owner.organizationId },
