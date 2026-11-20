@@ -274,6 +274,7 @@ const MERGED_READ_PRESENTATIONS = [
 
 const MERGED_WRITE_PRESENTATIONS = [
   ['control_release', 'Control Release', false, true, false, true],
+  ['find_inspiration', 'Find Inspiration', false, false, false, true],
   ['generate_media', 'Generate Media', false, true, false, true],
   ['generate_text', 'Generate Text', false, true, false, true],
   ['manage_knowledge', 'Manage Knowledge', false, true, false, false],
@@ -282,6 +283,8 @@ const MERGED_WRITE_PRESENTATIONS = [
   ['manage_workflow', 'Manage Workflow', false, true, false, true],
   ['manage_workspace', 'Manage Workspace', false, true, false, false],
   ['save_post', 'Save Post', false, true, false, true],
+  ['run_remix', 'Run Remix', false, true, false, true],
+  ['save_remix', 'Save Remix', false, true, false, true],
   ['schedule_release', 'Schedule Release', false, true, false, true],
   ['setup_brand', 'Setup Brand', false, true, false, true],
 ];
