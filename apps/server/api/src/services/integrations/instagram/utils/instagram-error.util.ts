@@ -3,6 +3,7 @@ import {
   isObjectLike,
   readNonBlankString,
 } from '@genfeedai/utils/data/extract.util';
+import type { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import type { AxiosError } from 'axios';
 
@@ -379,6 +380,20 @@ export function isUserRecoverableInstagramFailure(
     log.httpStatus >= 400 &&
     log.httpStatus < 500
   );
+}
+
+/** Log a failed OAuth step with only safe fields, at the level it deserves. */
+export function logInstagramOAuthFailure(
+  logger: Pick<LoggerService, 'error' | 'warn'>,
+  message: string,
+  { error, stage }: { error: unknown; stage: string },
+): void {
+  const context = { stage, ...getSafeInstagramOAuthErrorLog(error) };
+  if (isUserRecoverableInstagramFailure(context)) {
+    logger.warn(message, context);
+  } else {
+    logger.error(message, context);
+  }
 }
 
 export function throwMappedInstagramOAuthError(

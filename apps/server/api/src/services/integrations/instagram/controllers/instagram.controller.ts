@@ -23,7 +23,7 @@ import { InstagramAuthorizedSignalsService } from '@api/services/integrations/in
 import { InstagramConnectionResolverService } from '@api/services/integrations/instagram/services/instagram-connection-resolver.service';
 import {
   getSafeInstagramOAuthErrorLog,
-  isUserRecoverableInstagramFailure,
+  logInstagramOAuthFailure,
   throwMappedInstagramOAuthError,
 } from '@api/services/integrations/instagram/utils/instagram-error.util';
 import { isUnconfiguredSecret } from '@genfeedai/config';
@@ -314,18 +314,10 @@ export class InstagramController {
 
       return serializeSingle(request, CredentialSerializer, credential);
     } catch (error: unknown) {
-      const failureLog = {
+      logInstagramOAuthFailure(this.loggerService, `${url} failed`, {
+        error,
         stage: failureStage,
-        ...getSafeInstagramOAuthErrorLog(error),
-      };
-      // A rejected grant or a missing permission is a state the user fixes by
-      // reconnecting, and the response already says how. Only a provider,
-      // configuration or unexpected failure is worth an error report.
-      if (isUserRecoverableInstagramFailure(failureLog)) {
-        this.loggerService.warn(`${url} failed`, failureLog);
-      } else {
-        this.loggerService.error(`${url} failed`, failureLog);
-      }
+      });
       return throwMappedInstagramOAuthError(
         error,
         'Failed to verify Instagram OAuth',
