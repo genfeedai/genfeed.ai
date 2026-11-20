@@ -489,7 +489,7 @@ describe('ModalPost', () => {
         await goToContent(user);
 
         expect(screen.getByRole('list', { name: 'Post to' })).toHaveTextContent(
-          'Acme on X',
+          '@acme_x',
         );
         expect(
           screen.getByRole('button', { name: 'Library video' }),

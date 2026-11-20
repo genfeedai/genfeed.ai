@@ -1,15 +1,17 @@
 'use client';
 
-import { ButtonVariant, formatPlatformLabel } from '@genfeedai/contracts';
+import { ButtonVariant } from '@genfeedai/contracts';
 import {
   APP_ROUTES,
   createPublishingCampaignRoute,
 } from '@genfeedai/contracts/constants';
+import { toConnectedAccount } from '@helpers/publisher/connected-account.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { CampaignsService } from '@services/content/campaigns.service';
 import { logger } from '@services/core/logger.service';
 import { useQueryClient } from '@tanstack/react-query';
+import ConnectedAccount from '@ui/display/connected-account/ConnectedAccount';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import {
@@ -126,7 +128,12 @@ export default function CampaignGenerateDialog({
                 key={account.id}
                 isDisabled={isGenerating}
                 isChecked={selectedIds.includes(account.id)}
-                label={`${formatPlatformLabel(account.platform)} · ${account.externalHandle || account.externalName || account.label || t('accounts.unnamed')}`}
+                label={
+                  <ConnectedAccount
+                    account={toConnectedAccount(account)}
+                    size="sm"
+                  />
+                }
                 onCheckedChange={(checked) =>
                   setSelectedIds((current) =>
                     checked === true

@@ -5,15 +5,13 @@ import type {
   PlatformPreviewShellProps,
 } from '@genfeedai/props/components/platform-preview.props';
 import Card from '@ui/card/Card';
-import AccountIdentity from '@ui/posts/account-identity/AccountIdentity';
+import ConnectedAccount from '@ui/display/connected-account/ConnectedAccount';
 import { PreviewPresentation } from '@ui/posts/platform-preview/PlatformPreview.context';
 import { renderCaptionEntities } from '@ui/posts/platform-preview/PlatformPreviewCaption';
 import {
-  formatHandle,
   getAuthorName,
   getPreviewStatus,
 } from '@ui/posts/platform-preview/platform-preview.helpers';
-import { getPlatformPreviewIcon } from '@ui/posts/platform-preview/platform-preview-icons';
 import { Badge } from '@ui/primitives/badge';
 import { useTranslations } from 'next-intl';
 import { useContext } from 'react';
@@ -69,18 +67,17 @@ export default function PreviewShell({
 }
 
 export function AuthorRow({ target, meta }: PlatformPreviewAuthorRowProps) {
-  const translate = useTranslations('ui.platformPreview');
-  const authorName = getAuthorName(target);
-
   return (
-    <AccountIdentity
-      avatarAlt={translate('avatarAlt', { name: authorName })}
-      avatarUrl={target.author?.avatarUrl}
-      handle={formatHandle(target.author?.handle)}
+    <ConnectedAccount
+      account={{
+        avatarUrl: target.author?.avatarUrl,
+        handle: target.author?.handle,
+        name: getAuthorName(target),
+        platform: target.platform,
+      }}
+      layout="stacked"
       meta={meta}
-      name={authorName}
-      PlatformIcon={getPlatformPreviewIcon(target.platform)}
-      platformLabel={target.platformLabel}
+      size="lg"
     />
   );
 }

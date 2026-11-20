@@ -1,10 +1,11 @@
 'use client';
 
-import { ButtonVariant, ComponentSize } from '@genfeedai/contracts';
+import { ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import { toConnectedAccount } from '@helpers/publisher/connected-account.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import Card from '@ui/card/Card';
-import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
+import ConnectedAccount from '@ui/display/connected-account/ConnectedAccount';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
@@ -41,16 +42,10 @@ export default function CampaignAccounts({ brandId }: CampaignAccountsProps) {
                 key={account.id}
                 className="flex flex-wrap items-center justify-between gap-2 text-sm"
               >
-                <span className="flex items-center gap-2">
-                  <PlatformBadge
-                    platform={account.platform}
-                    size={ComponentSize.SM}
-                  />
-                  {account.externalHandle ||
-                    account.externalName ||
-                    account.label ||
-                    t('accounts.unnamed')}
-                </span>
+                <ConnectedAccount
+                  account={toConnectedAccount(account)}
+                  size="sm"
+                />
                 <span className="text-muted-foreground">
                   {t(
                     eligibleAccounts.some((item) => item.id === account.id)

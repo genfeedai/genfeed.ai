@@ -6,6 +6,7 @@ import {
 import { getCurrentSocialWarmupBlueprint } from '@genfeedai/contracts/api-types/contracts/social-warmup-blueprint.contract';
 import type { AccountHealthSummary } from '@genfeedai/contracts/interfaces';
 import type { BrandDetailSocialConnection } from '@genfeedai/props/pages/brand-detail.props';
+import type { ConnectedAccountData } from '@genfeedai/props/ui/display/connected-account.props';
 import {
   getAccountConnectionStatus,
   isAccessTokenExpired,
@@ -57,6 +58,18 @@ export function isSocialProfilePlatform(
   platform: BrandDetailSocialConnection['platform'],
 ): boolean {
   return !NON_SOCIAL_PROFILE_PLATFORMS.has(platform);
+}
+
+/** A brand's social connection as the shared connected-account display takes it. */
+export function toConnectionAccount(
+  connection: BrandDetailSocialConnection,
+): ConnectedAccountData {
+  return {
+    avatarUrl: connection.avatarUrl,
+    handle: connection.handle,
+    name: connection.name || connection.label,
+    platform: connection.platform,
+  };
 }
 
 export function getConnectionLabel(

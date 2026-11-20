@@ -1,4 +1,7 @@
 'use client';
+import { toConnectedAccount } from '@genfeedai/helpers/publisher/connected-account.helper';
+import ConnectedAccount from '@ui/display/connected-account/ConnectedAccount';
+import { getConnectedAccountText } from '@ui/display/connected-account/connected-account.util';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import { Input } from '@ui/primitives/input';
@@ -38,7 +41,8 @@ export default function TurboSchedule({
         const target = targets.find(
           (entry) => entry.credentialId === credential.id,
         );
-        const label = credential.label || String(credential.platform);
+        const account = toConnectedAccount(credential);
+        const label = getConnectedAccountText(account).primary;
         const date = target?.scheduledDate
           ? new Date(target.scheduledDate)
           : null;
@@ -61,7 +65,7 @@ export default function TurboSchedule({
                   change(credential.id, { isSelected: checked === true })
                 }
               />
-              {label}
+              <ConnectedAccount account={account} size="xs" />
             </Label>
             <Input
               aria-label={t('scheduleFor', { name: label })}

@@ -11,7 +11,7 @@ import {
   NEWSLETTER_DELIVERY_MODES,
   type NewsletterDeliveryMode,
 } from '@genfeedai/contracts/constants';
-import type { ICredential } from '@genfeedai/contracts/interfaces';
+import { toConnectedAccount } from '@helpers/publisher/connected-account.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { NewslettersService } from '@services/content/newsletters.service';
@@ -19,6 +19,7 @@ import { ClipboardService } from '@services/core/clipboard.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import Card from '@ui/card/Card';
+import ConnectedAccount from '@ui/display/connected-account/ConnectedAccount';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Label } from '@ui/primitives/label';
@@ -43,15 +44,6 @@ const MODE_LABEL_KEYS = {
   schedule: 'modeSchedule',
   send: 'modeSend',
 } as const satisfies Record<NewsletterDeliveryMode, string>;
-
-function accountLabel(credential: ICredential): string {
-  return (
-    credential.label ||
-    credential.externalName ||
-    credential.externalHandle ||
-    'Beehiiv'
-  );
-}
 
 /**
  * Newsletter → a connected Beehiiv publication. Sending to the brand's own
@@ -185,7 +177,10 @@ export default function NewsletterDeliveryCard({
                 <SelectContent>
                   {accounts.map((credential) => (
                     <SelectItem key={credential.id} value={credential.id}>
-                      {accountLabel(credential)}
+                      <ConnectedAccount
+                        account={toConnectedAccount(credential)}
+                        size="xs"
+                      />
                     </SelectItem>
                   ))}
                 </SelectContent>

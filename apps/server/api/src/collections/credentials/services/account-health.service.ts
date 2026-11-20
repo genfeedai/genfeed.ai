@@ -434,6 +434,7 @@ export class AccountHealthService {
       return {
         assessedAt: now.toISOString(),
         credentialId: credential.id,
+        avatarUrl: readString(credential.externalAvatar),
         handle: readString(credential.externalHandle),
         label: this.getCredentialLabel(credential),
         platform,
@@ -468,6 +469,7 @@ export class AccountHealthService {
     return {
       assessedAt: now.toISOString(),
       credentialId: credential.id,
+      avatarUrl: readString(credential.externalAvatar),
       handle: readString(credential.externalHandle),
       label: this.getCredentialLabel(credential),
       platform,

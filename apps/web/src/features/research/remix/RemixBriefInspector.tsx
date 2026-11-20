@@ -25,9 +25,11 @@ import type {
   IAvatar,
 } from '@genfeedai/contracts/interfaces';
 import { formatSnakeCaseLabel } from '@helpers/formatting/format/format.helper';
+import { toConnectedAccount } from '@helpers/publisher/connected-account.helper';
 import { getVoiceName } from '@helpers/voice/voice-name.helper';
 import { useResetOnChange } from '@hooks/utils/use-reset-on-change/use-reset-on-change';
 import type { Voice } from '@models/ingredients/voice.model';
+import ConnectedAccount from '@ui/display/connected-account/ConnectedAccount';
 import { Alert } from '@ui/primitives/alert';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
@@ -888,10 +890,10 @@ export default function RemixBriefInspector(): ReactElement {
                       </SelectItem>
                       {destinationAccounts.map((account) => (
                         <SelectItem key={account.id} value={account.id}>
-                          {account.externalHandle ||
-                            account.externalName ||
-                            account.externalId ||
-                            account.id}
+                          <ConnectedAccount
+                            account={toConnectedAccount(account)}
+                            size="xs"
+                          />
                         </SelectItem>
                       ))}
                     </SelectContent>

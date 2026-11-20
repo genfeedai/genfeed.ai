@@ -2,6 +2,7 @@
 
 import { CardGap, CardPadding } from '@genfeedai/contracts';
 import Card from '@ui/card/Card';
+import { getConnectedAccountText } from '@ui/display/connected-account/connected-account.util';
 import { Badge } from '@ui/primitives/badge';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
@@ -34,8 +35,9 @@ export default function PublishingContentCard({
     'medium',
   );
   const channels = item.channels ?? [item.channel];
-  const accountLabel =
-    item.accounts?.[0]?.label ?? formatPublishingContentChannel(item.channel);
+  const accountLabel = item.accounts?.[0]
+    ? getConnectedAccountText(item.accounts[0]).primary
+    : formatPublishingContentChannel(item.channel);
   const hasMedia = Boolean(item.media);
   const summary =
     item.summary && item.summary !== item.title ? item.summary : '';

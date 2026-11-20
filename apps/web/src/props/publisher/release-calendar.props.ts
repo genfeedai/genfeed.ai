@@ -8,6 +8,7 @@ import type {
   IReleaseAnalyticsComparison,
   IReleaseGroup,
 } from '@genfeedai/contracts/interfaces';
+import type { ConnectedAccountData } from '@genfeedai/props/ui/display/connected-account.props';
 
 /**
  * Active calendar filters. `status` narrows the release itself; every other
@@ -28,8 +29,10 @@ export interface ReleaseCalendarFilters {
 
 export interface ReleaseCalendarFilterOption {
   label: string;
-  /** Platform whose icon leads the option, when the option is a platform or an account. */
+  /** Platform whose icon leads the option, when the option is a platform. */
   platform?: string;
+  /** Connected account whose avatar leads the option, when the option is an account. */
+  account?: ConnectedAccountData;
   value: string;
 }
 

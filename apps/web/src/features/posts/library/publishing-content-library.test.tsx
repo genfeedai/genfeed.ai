@@ -256,7 +256,7 @@ describe('PublishingContentLibrary', () => {
     render(<PublishingContentLibrary />);
 
     expect(screen.getAllByText('Thread').length).toBeGreaterThan(0);
-    expect(screen.getByTitle('acme_x')).toBeInTheDocument();
+    expect(screen.getByTitle('@acme_x')).toBeInTheDocument();
   });
 
   it.each([

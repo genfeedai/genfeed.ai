@@ -685,7 +685,7 @@ describe('OperationalHomeContent', () => {
     expect(
       within(publishing).getByRole('link', { name: /Launch announcement/ }),
     ).toHaveAttribute('href', '/acme/moonrise/publishing/posts/post_1');
-    expect(within(publishing).getByTitle('acme_x')).toBeInTheDocument();
+    expect(within(publishing).getByTitle('@acme_x')).toBeInTheDocument();
   });
 
   it('opens publication details from a publishing row without targets', () => {

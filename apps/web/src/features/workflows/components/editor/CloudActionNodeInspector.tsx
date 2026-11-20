@@ -6,7 +6,9 @@ import { readRecord } from '@genfeedai/utils/data/extract.util';
 import { ActionSchemaFields, PanelContainer } from '@genfeedai/workflows/ui';
 import { useUIStore, useWorkflowStore } from '@genfeedai/workflows/ui/stores';
 import { TIMEZONES } from '@helpers/formatting/timezone/timezone.helper';
-import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
+import ConnectedAccount from '@ui/display/connected-account/ConnectedAccount';
+import ConnectedAccountAvatar from '@ui/display/connected-account/ConnectedAccountAvatar';
+import { getConnectedAccountText } from '@ui/display/connected-account/connected-account.util';
 import { Button } from '@ui/primitives/button';
 import { Label } from '@ui/primitives/label';
 import {
@@ -28,8 +30,6 @@ import {
   useWorkflowActionScope,
 } from '@/features/workflows/hooks/useWorkflowActionDefaults';
 import { getWorkflowActionModelCategories } from '@/features/workflows/utils/workflow-model-categories';
-
-const LEADING_AT_SIGN_PATTERN = /^@/;
 
 const SCOPED_FIELDS = new Set([
   'agentStrategyId',
@@ -257,8 +257,14 @@ export function CloudActionNodeInspector() {
                   handleChange('credentialIds', values)
                 }
                 options={scope.credentials.map((credential) => ({
-                  icon: getPlatformIcon(credential.platform, 'h-3.5 w-3.5'),
-                  label: `@${credential.label.replace(LEADING_AT_SIGN_PATTERN, '')}`,
+                  icon: (
+                    <ConnectedAccountAvatar
+                      account={credential}
+                      isDecorative
+                      size="xs"
+                    />
+                  ),
+                  label: getConnectedAccountText(credential).primary,
                   value: credential.id,
                 }))}
                 placeholder={translate('selectAccounts')}
@@ -291,7 +297,7 @@ export function CloudActionNodeInspector() {
               <SelectContent>
                 {scope.credentials.map((credential) => (
                   <SelectItem key={credential.id} value={credential.id}>
-                    {credential.label}
+                    <ConnectedAccount account={credential} size="xs" />
                   </SelectItem>
                 ))}
               </SelectContent>

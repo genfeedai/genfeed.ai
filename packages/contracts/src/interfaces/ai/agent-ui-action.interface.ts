@@ -397,15 +397,21 @@ export interface AgentPublishSettingField {
  * per-channel override, capability-driven settings, and validation blockers.
  */
 export interface AgentPublishTargetProposal {
+  /** The connected account's profile picture, when it has one. */
+  avatarUrl?: string;
   blockers: AgentPublishValidationIssue[];
   caption?: string;
   captionMaxLength?: number;
   credentialId: string;
+  /** The connected account's handle, with or without the leading `@`. */
+  handle?: string;
   id: string;
   isCaptionRequired?: boolean;
   isSelected?: boolean;
   label: string;
   media?: AgentPublishTargetMedia[];
+  /** The connected account's own name or operator label. */
+  name?: string;
   platform: string;
   referenceState?: string;
   scheduledAt?: string;

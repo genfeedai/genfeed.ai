@@ -44,6 +44,32 @@ describe('agent-publish-target.util', () => {
     );
   });
 
+  it('carries the account avatar, handle and name so a card shows who it posts to', () => {
+    const [proposal] = buildAgentPublishTargetProposals({
+      caption: 'Ship this now',
+      credentials: [
+        {
+          externalAvatar: 'https://cdn.example/avatar.png',
+          externalHandle: 'genfeedai',
+          externalName: 'Genfeed',
+          id: 'cred-twitter',
+          label: ' ',
+          platform: 'twitter',
+        },
+      ],
+      defaultPlatforms: ['twitter'],
+      media: [],
+      publishMode: 'publish_now',
+      visibility: PostVisibility.PUBLIC,
+    });
+
+    expect(proposal).toMatchObject({
+      avatarUrl: 'https://cdn.example/avatar.png',
+      handle: 'genfeedai',
+      name: 'Genfeed',
+    });
+  });
+
   it('records a target-specific blocker when media is unsupported', () => {
     const proposals = buildAgentPublishTargetProposals({
       caption: 'Launch video',

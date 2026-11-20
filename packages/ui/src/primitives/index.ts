@@ -159,10 +159,6 @@ export {
   PaginationPrevious,
 } from './pagination';
 export {
-  default as PlatformSelector,
-  type PlatformSelectorProps,
-} from './platform-selector';
-export {
   Popover,
   PopoverAnchor,
   PopoverContent,

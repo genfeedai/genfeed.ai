@@ -1,9 +1,9 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { toConnectedAccount } from '@genfeedai/helpers/publisher/connected-account.helper';
 import type { ModalPostSelectedChannelsProps } from '@genfeedai/props/modals/modal.props';
-import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
-import { Avatar } from '@ui/primitives/avatar';
+import ConnectedAccount from '@ui/display/connected-account/ConnectedAccount';
 import { Button } from '@ui/primitives/button';
 import { useTranslations } from 'next-intl';
 
@@ -30,34 +30,17 @@ export default function ModalPostSelectedChannels({
         </span>
       ) : (
         <ul aria-label={translate('destinations')} className="contents">
-          {selected.map((credential) => {
-            const label =
-              credential.label ||
-              credential.externalHandle ||
-              credential.externalName ||
-              credential.platform;
-
-            return (
-              <li
-                className="inline-flex items-center gap-2 rounded-full border border-border py-0.5 pl-0.5 pr-2.5 text-sm"
-                key={credential.id}
-              >
-                <Avatar
-                  badge={
-                    <PlatformBadge
-                      platform={credential.platform}
-                      showLabel={false}
-                      variant="solid"
-                    />
-                  }
-                  name={label}
-                  size="xs"
-                  src={credential.externalAvatar}
-                />
-                <span className="max-w-40 truncate">{label}</span>
-              </li>
-            );
-          })}
+          {selected.map((credential) => (
+            <li
+              className="inline-flex max-w-52 items-center rounded-full border border-border py-0.5 pl-0.5 pr-2.5 text-sm"
+              key={credential.id}
+            >
+              <ConnectedAccount
+                account={toConnectedAccount(credential)}
+                size="xs"
+              />
+            </li>
+          ))}
         </ul>
       )}
       <Button

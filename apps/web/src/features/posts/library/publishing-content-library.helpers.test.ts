@@ -282,8 +282,9 @@ describe('publishing content library federation', () => {
     expect(items[0]?.accounts).toEqual([
       {
         avatarUrl: 'https://cdn.example/avatar.png',
+        handle: 'acme',
         id: 'cred-1',
-        label: 'acme',
+        name: null,
         platform: Platform.TWITTER,
       },
     ]);

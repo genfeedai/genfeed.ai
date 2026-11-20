@@ -1,7 +1,7 @@
 'use client';
 
 import { getPlatformIconComponent } from '@helpers/ui/platform-icon/platform-icon.helper';
-import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
+import ConnectedAccountAvatar from '@ui/display/connected-account/ConnectedAccountAvatar';
 import { Avatar } from '@ui/primitives/avatar';
 import { SimpleTooltip } from '@ui/primitives/tooltip';
 import { Globe, Mail, Share2 } from 'lucide-react';
@@ -22,20 +22,10 @@ export default function PublishingContentChannels({
     return (
       <div className="flex shrink-0 -space-x-2">
         {accounts.slice(0, MAX_VISIBLE_CHANNELS).map((account) => (
-          <Avatar
+          <ConnectedAccountAvatar
+            account={account}
             key={account.id}
-            alt={account.label}
-            badge={
-              <PlatformBadge
-                platform={account.platform}
-                showLabel={false}
-                variant="solid"
-              />
-            }
-            name={account.label}
             size="lg"
-            src={account.avatarUrl}
-            title={account.label}
           />
         ))}
         {accounts.length > MAX_VISIBLE_CHANNELS ? (
