@@ -227,8 +227,8 @@ describe('LLM_DEFAULTS', () => {
   it('points every picker-facing role at a catalogued model', () => {
     // grokFast, productTextFallback and contentWriting are deliberately not in
     // the agent chat picker: grokFast is the cheap X-drafts key,
-    // productTextFallback is the drafts/prompt-enhancement seed used only when
-    // no Admin default TEXT model resolves (#5161), and contentWriting is the
+    // productTextFallback is the posts, captions and prompt-enhancement model,
+    // and contentWriting is the
     // prose model for articles, newsletters, captions and scripts.
     const NON_PICKER_ROLES = new Set([
       'contentWriting',
@@ -259,7 +259,7 @@ describe('LLM_DEFAULTS', () => {
 
   it('keeps productTextFallback off the agent chat picker', () => {
     expect(LLM_DEFAULTS.productTextFallback).toBe(
-      MODEL_KEYS.OPENROUTER_GOOGLE_GEMINI_3_8_FLASH,
+      MODEL_KEYS.OPENROUTER_GOOGLE_GEMINI_4_HYDROGEN,
     );
     expect(getAgentChatModel(LLM_DEFAULTS.productTextFallback)).toBeUndefined();
   });

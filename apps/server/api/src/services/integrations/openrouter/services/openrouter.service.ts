@@ -24,10 +24,21 @@ const REASONING_MANDATORY_ERROR_PATTERN = /reasoning is mandatory/i;
 
 /**
  * Models that cannot turn reasoning off and think at medium effort by
- * default. Their thinking tokens count against `max_tokens`, so a call that
- * sets no reasoning preference would spend a short completion budget on
- * thinking and come back truncated. Writing prompts are short and prescriptive,
- * so they get the lowest effort the model supports.
+ * default. Their thinking tokens count against `max_tokens`. Callers that
+ * want a short answer ask for `reasoning.enabled: false`; these models reject
+ * that with a 400, and the usual retry at `minimal` fails too because they
+ * list no such effort, so the request is sent without the flag instead.
+ */
+const MANDATORY_REASONING_MODELS: ReadonlySet<string> = new Set([
+  MODEL_KEYS.OPENROUTER_GOOGLE_GEMINI_4_HYDROGEN,
+  MODEL_KEYS.OPENROUTER_GOOGLE_GEMINI_4_NEON,
+]);
+
+/**
+ * Mandatory-reasoning models that get the lowest effort when the caller sets
+ * no preference. Writing prompts are short and prescriptive, so Neon does not
+ * need to think at medium. Hydrogen stays at its default medium effort, which
+ * is where its quality gain over the previous product text model comes from.
  */
 const LOW_EFFORT_REASONING_MODELS: ReadonlySet<string> = new Set([
   MODEL_KEYS.OPENROUTER_GOOGLE_GEMINI_4_NEON,
@@ -111,16 +122,22 @@ export class OpenRouterService {
   private withRetentionPolicy(
     params: OpenRouterChatCompletionParams,
   ): OpenRouterChatCompletionParams {
-    const { temperature, ...rest } = params;
+    const { reasoning: requestedReasoning, temperature, ...rest } = params;
+    const reasoning =
+      requestedReasoning?.enabled === false &&
+      MANDATORY_REASONING_MODELS.has(params.model)
+        ? undefined
+        : requestedReasoning;
 
     return {
       ...rest,
+      ...(reasoning === undefined ? {} : { reasoning }),
       // Claude and the reasoning-era OpenAI models do not list `temperature`.
       // With `require_parameters` set, sending it leaves no provider to route to.
       ...(temperature !== undefined && modelAcceptsTemperature(params.model)
         ? { temperature }
         : {}),
-      ...(params.reasoning === undefined &&
+      ...(reasoning === undefined &&
       LOW_EFFORT_REASONING_MODELS.has(params.model)
         ? { reasoning: { effort: 'low' } }
         : {}),
