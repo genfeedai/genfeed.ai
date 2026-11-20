@@ -61,6 +61,7 @@ import {
 } from '@mcp/services/mcp-catalog-call.util';
 import { unavailableInConnectorMessage } from '@mcp/services/mcp-connector-message.util';
 import { toNativeMcpMediaResult } from '@mcp/services/mcp-media-result.util';
+import { runInNamedOrganization } from '@mcp/services/mcp-organization-call.util';
 import {
   agentGuideResource,
   jsonResource,
@@ -112,11 +113,7 @@ import {
 } from '@mcp/tools/onboarding.tool';
 import { handlePresetTool, PRESET_TOOL_NAMES } from '@mcp/tools/presets.tool';
 import { handleRemixTool, REMIX_TOOL_NAMES } from '@mcp/tools/remix.tool';
-import {
-  mcpToolFailureResult,
-  readRequestedOrganization,
-  resolveRequestedOrganizationId,
-} from '@mcp/tools/requested-organization.util';
+import { mcpToolFailureResult } from '@mcp/tools/requested-organization.util';
 import {
   handleSchedulerTool,
   SCHEDULER_TOOL_NAMES,
@@ -199,7 +196,6 @@ const PRE_DISPATCH_TOOL_NAMES: ReadonlySet<string> = new Set<string>([
 const ACCOUNT_MANAGEMENT_TOOL_NAMES: ReadonlySet<string> = new Set<string>([
   'get_job_status',
   'get_orgs',
-  'switch_org',
 ]);
 
 /**
@@ -278,6 +274,10 @@ export class ToolRegistryService implements OnModuleInit {
     @Optional() private readonly requestRole: McpRole = 'user',
     @Optional() private readonly configService?: ConfigService,
     @Optional() private readonly requestAccessMode: McpAccessMode = 'standard',
+    // Whether the connection may act in all of the user's organizations, from
+    // the identity check. Only then does a call have to name its organization.
+    @Optional()
+    private readonly requestCanSwitchOrganizations: boolean = false,
   ) {}
 
   /**
@@ -340,23 +340,20 @@ export class ToolRegistryService implements OnModuleInit {
     return [...PUBLIC_MCP_RESOURCES];
   }
 
-  /** A call may name its organization (see requested-organization.util). */
-  async handleToolCall(params: ToolCallParams) {
-    const scoped = readRequestedOrganization(params.name, params.arguments);
-    if (!scoped) return this.runToolCall(params);
-
-    let organizationId: string;
-    try {
-      organizationId = await resolveRequestedOrganizationId(
-        this.clientService,
-        scoped.organization,
-      );
-    } catch (error: unknown) {
-      this.logger.warn('MCP tool call stopped during organization selection');
-      return mcpToolFailureResult(error);
-    }
-    return this.clientService.runInOrganization(organizationId, () =>
-      this.runToolCall({ ...params, arguments: scoped.rest }),
+  /**
+   * A call names its organization (see requested-organization.util). On a
+   * connection that covers several organizations a call that names none is
+   * refused with the list, never answered from a default.
+   */
+  handleToolCall(params: ToolCallParams) {
+    return runInNamedOrganization(
+      {
+        canSwitchOrganizations: this.requestCanSwitchOrganizations,
+        client: this.clientService,
+        logger: this.logger,
+      },
+      params,
+      (args) => this.runToolCall({ ...params, arguments: args }),
     );
   }
 

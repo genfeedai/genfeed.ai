@@ -18,7 +18,7 @@ export const MCP_SERVER_INSTRUCTIONS = [
   'Genfeed is an AI content OS for brands.',
   'Call get_context(action=account) first: if profile.isOnboardingCompleted is false, the user just signed up, so run setup_brand(action=onboard) with them before generating anything.',
   'Call get_context(action=brands) and work inside the brand the user means.',
-  "When get_context(action=organizations) lists several organizations with ids, the user connected all of them: pass organization (name, slug or id) with that organization's brandId on a call to act in it. A connection that lists one organization stays in it.",
+  "When get_context(action=organizations) lists several organizations with ids, the user connected all of them: every other tool call must pass organization (name, slug or id) with that organization's brandId, and a call that names none is refused with the list. A connection that lists one organization stays in it.",
   'Use generate_text(action=content) for post copy. It saves a social draft and returns postId and receiptId. To add Library media, call save_post(action=post) with its postId, the same brandId, and mediaUrls. Use get_content(action=posts) to read back the draft.',
   'Use get_assets to find Library media or generate_media(action=media) for images, video and audio. Media generation is asynchronous, so poll check_job(action=job) until the job finishes.',
   'Before setting model on generate_media (actions media and transform), call get_generation_catalog(action=options) and pass a returned models key. Omit model to let the router choose. Do not invent model aliases.',

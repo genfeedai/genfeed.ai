@@ -45,7 +45,6 @@ const MOCK_TOOLS = [
   })),
   { name: 'find_tools', requiredRole: undefined, surfaces: { mcp: true } },
   { name: 'get_account', requiredRole: undefined, surfaces: { mcp: true } },
-  { name: 'switch_org', requiredRole: undefined, surfaces: { mcp: true } },
   { name: 'get_trends', requiredRole: undefined, surfaces: { mcp: true } },
   {
     mutationPolicy: 'approval-required',
@@ -505,34 +504,6 @@ describe('ToolRegistryService', () => {
       });
       expect(calls).toEqual([]);
       expect(clientService.listOrganizations).not.toHaveBeenCalled();
-    });
-
-    it('warns and gives reconnect guidance when a bound grant tries to switch organizations', async () => {
-      clientService.canSwitchOrganizations.mockResolvedValue(false);
-
-      const result = await service.handleToolCall({
-        arguments: {
-          action: 'switch_organization',
-          input: { organization: 'beta' },
-        },
-        name: 'manage_workspace',
-      });
-
-      expect(result).toMatchObject({
-        isError: true,
-        structuredContent: {
-          code: 'unauthorized',
-          message: expect.stringContaining(
-            'Reconnect and choose "All organizations"',
-          ),
-        },
-      });
-      expect(clientService.switchOrganization).not.toHaveBeenCalled();
-      expect(logger.warn).toHaveBeenCalledWith(
-        'Tool call switch_org was refused:',
-        expect.any(Error),
-      );
-      expect(logger.error).not.toHaveBeenCalled();
     });
 
     it('refuses an organization the user does not have', async () => {

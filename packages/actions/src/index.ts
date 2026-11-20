@@ -116,6 +116,11 @@ export {
   validateMcpCatalogBindings,
 } from './registry/mcp-catalog-calls';
 export {
+  MCP_ORGANIZATION_ARGUMENT,
+  MCP_ORGANIZATION_DESCRIPTION,
+  withMcpOrganizationArgument,
+} from './registry/mcp-organization';
+export {
   getMcpToolOutputSchema,
   getMcpToolResultFamily,
   MCP_RESULT_SCHEMAS,

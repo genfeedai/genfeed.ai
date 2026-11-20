@@ -248,6 +248,7 @@ export class StreamableHttpService {
       authContext?.role ?? 'user',
       this.configService,
       mostRestrictiveMcpAccessMode(routeAccessMode, authContext?.accessMode),
+      authContext?.canSwitchOrganizations === true,
     );
   }
 

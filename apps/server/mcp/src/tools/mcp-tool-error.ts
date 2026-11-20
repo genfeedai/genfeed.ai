@@ -36,6 +36,7 @@ const MCP_TOOL_ERROR_CODES = [
   'validation_failed',
   'approval_pending',
   'brand_required',
+  'organization_required',
   'policy_check_unavailable',
   'publishing_held',
 ] as const;
@@ -52,9 +53,18 @@ interface McpToolBrandOption {
   label: string;
 }
 
+interface McpToolOrganizationOption {
+  brands: McpToolBrandOption[];
+  id: string;
+  label: string;
+  slug: string;
+}
+
 export interface McpToolError {
   code: McpToolErrorCode;
   message: string;
+  /** The caller's organizations, listed when a call on an all-organizations connection names none. */
+  organizations?: McpToolOrganizationOption[];
   /** The caller's brands, listed when a generation call omits `brandId`. */
   brands?: McpToolBrandOption[];
   retryAfterSeconds?: number;
@@ -152,6 +162,7 @@ function compactToolError(error: McpToolError): McpToolError {
         }
       : {}),
     ...(error.brands ? { brands: error.brands } : {}),
+    ...(error.organizations ? { organizations: error.organizations } : {}),
     ...(error.batch ? { batch: error.batch } : {}),
     ...(error.invalidReleases?.length
       ? { invalidReleases: error.invalidReleases }

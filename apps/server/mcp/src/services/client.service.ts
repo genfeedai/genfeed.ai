@@ -585,10 +585,6 @@ export class ClientService {
     return this.workspace.canSwitchOrganizations();
   }
 
-  switchOrganization(organizationId: string): Promise<void> {
-    return this.workspace.switchOrganization(organizationId);
-  }
-
   listBrands(): Promise<OrganizationOptionBrand[]> {
     return this.workspace.listBrands();
   }

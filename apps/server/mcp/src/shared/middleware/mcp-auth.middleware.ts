@@ -173,6 +173,7 @@ export function createMcpAuthMiddleware({
 
     req.authContext = {
       accessMode: authResult.accessMode,
+      canSwitchOrganizations: authResult.canSwitchOrganizations,
       hasBrandKitEditAccess: authResult.hasBrandKitEditAccess,
       organizationId: authResult.organizationId,
       role: authResult.role || 'user',

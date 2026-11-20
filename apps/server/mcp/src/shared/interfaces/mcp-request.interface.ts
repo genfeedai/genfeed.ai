@@ -9,6 +9,7 @@ import type { Request } from 'express';
  */
 export interface McpAuthContext {
   accessMode?: McpAccessMode;
+  canSwitchOrganizations?: boolean;
   hasBrandKitEditAccess?: boolean;
   token?: string;
   userId?: string;
