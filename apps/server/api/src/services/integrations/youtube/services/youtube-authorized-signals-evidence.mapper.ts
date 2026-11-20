@@ -79,7 +79,7 @@ const CHANNEL_SETUP_FIELDS = [
 const TOTAL_COUNT_FIELDS = ['count'] as const;
 
 /** A "small set" of niche subscriptions, as the warm-up blueprint puts it. */
-export const YOUTUBE_MIN_NICHE_SUBSCRIPTIONS = 3;
+const YOUTUBE_MIN_NICHE_SUBSCRIPTIONS = 3;
 const YOUTUBE_MIN_LIKED_VIDEOS = 1;
 
 type YoutubeSignalFieldStatus =

@@ -314,33 +314,10 @@ export class YoutubeAuthorizedSignalsService {
         refreshAttemptedAt,
       );
 
-    const [playlistsResult, subscriptionsResult, likesResult] =
-      await this.fetchAccountActivityTotals(
-        accessToken,
-        grantedScopes,
-        selected.reason,
-      );
-    const channelSetupEvidence = this.evidenceMapper.buildChannelSetupEvidence(
+    const accountActivityEvidence = await this.buildAccountActivityEvidence(
+      accessToken,
       grantedScopes,
-      selected.channel,
-      playlistsResult,
-      selected.reason,
-      previousSnapshot,
-      refreshAttemptedAt,
-    );
-    const subscriptionsEvidence = this.evidenceMapper.buildTotalCountEvidence(
-      'subscriptions-platform-signal',
-      grantedScopes,
-      subscriptionsResult,
-      selected.reason,
-      previousSnapshot,
-      refreshAttemptedAt,
-    );
-    const likesEvidence = this.evidenceMapper.buildTotalCountEvidence(
-      'likes-platform-signal',
-      grantedScopes,
-      likesResult,
-      selected.reason,
+      selected,
       previousSnapshot,
       refreshAttemptedAt,
     );
@@ -378,18 +355,12 @@ export class YoutubeAuthorizedSignalsService {
       ownedUploadsEvidence.key === 'owned-uploads-snapshot'
         ? (ownedUploadsEvidence.value?.videos ?? []).map((video) => video.id)
         : [];
-    const analyticsResult =
-      hasExactGrantedScope(grantedScopes, YT_ANALYTICS_READONLY_SCOPE) &&
-      selected.reason === undefined &&
-      readString(selected.channel?.id)
-        ? await this.settle(() =>
-            this.fetchAnalytics(
-              accessToken,
-              readString(selected.channel?.id) ?? '',
-              videoIds,
-            ),
-          )
-        : { error: undefined, value: undefined };
+    const analyticsResult = await this.settleAnalytics(
+      accessToken,
+      grantedScopes,
+      selected,
+      videoIds,
+    );
 
     const analyticsEvidence = this.evidenceMapper.buildAnalyticsEvidence(
       grantedScopes,
@@ -407,9 +378,7 @@ export class YoutubeAuthorizedSignalsService {
       analyticsEvidence,
       firstUploadEvidence,
       nativeAgeEvidence,
-      channelSetupEvidence,
-      subscriptionsEvidence,
-      likesEvidence,
+      ...accountActivityEvidence,
       genfeedEvidence,
     ];
     const snapshot = youtubeAuthorizedSignalsSnapshotSchema.parse({
@@ -510,6 +479,69 @@ export class YoutubeAuthorizedSignalsService {
     return {
       channels: Array.isArray(response.data?.items) ? response.data.items : [],
     };
+  }
+
+  private async settleAnalytics(
+    accessToken: string,
+    grantedScopes: string[],
+    selected: YoutubeChannelSelection,
+    videoIds: string[],
+  ) {
+    const channelId = readString(selected.channel?.id);
+    if (
+      !hasExactGrantedScope(grantedScopes, YT_ANALYTICS_READONLY_SCOPE) ||
+      selected.reason !== undefined ||
+      !channelId
+    ) {
+      return { error: undefined, value: undefined };
+    }
+
+    return await this.settle(() =>
+      this.fetchAnalytics(accessToken, channelId, videoIds),
+    );
+  }
+
+  /** Channel setup, subscriptions and likes, in snapshot order. */
+  private async buildAccountActivityEvidence(
+    accessToken: string,
+    grantedScopes: string[],
+    selected: YoutubeChannelSelection,
+    previousSnapshot: YoutubeAuthorizedSignalsSnapshot | undefined,
+    observedAt: string,
+  ): Promise<YoutubeAuthorizedSignalEvidence[]> {
+    const [playlists, subscriptions, likes] =
+      await this.fetchAccountActivityTotals(
+        accessToken,
+        grantedScopes,
+        selected.reason,
+      );
+
+    return [
+      this.evidenceMapper.buildChannelSetupEvidence(
+        grantedScopes,
+        selected.channel,
+        playlists,
+        selected.reason,
+        previousSnapshot,
+        observedAt,
+      ),
+      this.evidenceMapper.buildTotalCountEvidence(
+        'subscriptions-platform-signal',
+        grantedScopes,
+        subscriptions,
+        selected.reason,
+        previousSnapshot,
+        observedAt,
+      ),
+      this.evidenceMapper.buildTotalCountEvidence(
+        'likes-platform-signal',
+        grantedScopes,
+        likes,
+        selected.reason,
+        previousSnapshot,
+        observedAt,
+      ),
+    ];
   }
 
   /** Playlists, subscriptions and liked videos of the authorized account. */
