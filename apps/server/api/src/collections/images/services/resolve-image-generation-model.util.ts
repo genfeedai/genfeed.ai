@@ -5,6 +5,7 @@ import type { RouterService } from '@api/services/router/router.service';
 import { ModelCategory } from '@genfeedai/contracts';
 import { resolveDefaultImageEditModel } from '@genfeedai/contracts/constants';
 import type { LoggerService } from '@libs/logger/logger.service';
+import { traced } from '@libs/tracing/traced';
 
 export interface ResolveImageGenerationModelDependencies {
   routerService: RouterService;
@@ -82,14 +83,17 @@ export async function resolveImageGenerationModel(
 }
 
 /** The editor an edit request that names no model runs on: the registry default, unless the request needs a control only another editor accepts. */
-export async function resolveImageEditDefaultModel(
-  routerService: RouterService,
-  dto: EditImageDto,
-  organizationId: string,
-): Promise<string> {
-  const { key } = await routerService.resolveModelKey({
-    category: ModelCategory.IMAGE_EDIT,
-    organizationId,
-  });
-  return resolveDefaultImageEditModel(key, dto);
-}
+export const resolveImageEditDefaultModel = traced(
+  'resolveImageEditDefaultModel',
+  async (
+    routerService: RouterService,
+    dto: EditImageDto,
+    organizationId: string,
+  ): Promise<string> => {
+    const { key } = await routerService.resolveModelKey({
+      category: ModelCategory.IMAGE_EDIT,
+      organizationId,
+    });
+    return resolveDefaultImageEditModel(key, dto);
+  },
+);
