@@ -517,7 +517,7 @@ listed.
 | `get_video_projects`, `run_video_project` | clip and editor projects; create, analyze, run, recut, render |
 | `find_inspiration`, `save_remix`, `run_remix` | Instagram and X inspiration; import and edit a saved concept; quote, start, control |
 | `manage_skill` | `create`, `fork`, `publish`, `rollback`, `archive`, `export`, `verify_pro`, `install_pro` |
-| `find_tools`, `resolve_approval` | discovery; redeem an approval |
+| `find_tools`, `get_assets` | discover tools; browse the Library |
 
 A retired tool name (`get_brands`, `create_post`, `generate_content` and so on)
 fails at once and names the tool and action that replaces it.
@@ -534,8 +534,8 @@ A connection can cover several organizations (the OAuth consent screen offers
   together with the `brandId` of that organization's brand.
 - A result that creates or changes something names the organization and the
   brand it acted in, and approvals show both.
-- `find_tools`, `resolve_approval` and `get_context(action=organizations)` do
-  not need it.
+- `find_tools`, `resolve_approval` (listed on admin connections only) and
+  `get_context(action=organizations)` do not need it.
 - A connection limited to one organization works inside it. Leave `organization`
   out there; naming one is refused.
 
