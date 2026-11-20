@@ -2,7 +2,7 @@ import { getApifyErrorStatus } from '@api/services/integrations/apify/utils/apif
 import { ServiceUnavailableException } from '@nestjs/common';
 
 /** How long an actor that Apify answered 404 for is left alone. */
-export const APIFY_ACTOR_UNAVAILABLE_MS = 60 * 60 * 1000;
+const APIFY_ACTOR_UNAVAILABLE_MS = 60 * 60 * 1000;
 
 /**
  * Thrown when Apify refuses to start an actor because it does not exist for
