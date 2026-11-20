@@ -24,6 +24,7 @@ describe('Meta API contract defaults', () => {
     expect(FACEBOOK_OAUTH_SCOPES).toEqual(
       expect.arrayContaining([
         'pages_manage_engagement',
+        'pages_read_user_content',
         'read_insights',
         'pages_show_list',
       ]),
