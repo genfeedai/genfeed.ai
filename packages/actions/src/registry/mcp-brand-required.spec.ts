@@ -70,6 +70,7 @@ describe('MCP brand-required generation tools', () => {
 
   it('keeps the multiple-brand rule apart from the always-required generation set', () => {
     expect([...MCP_BRAND_REQUIRED_WHEN_MULTIPLE_TOOL_NAMES]).toEqual([
+      'create_article_draft',
       'create_post',
     ]);
     expect(isMcpBrandRequiredWhenMultipleTool('create_post')).toBe(true);
