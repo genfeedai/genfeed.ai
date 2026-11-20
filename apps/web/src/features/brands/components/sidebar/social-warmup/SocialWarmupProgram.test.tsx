@@ -14,7 +14,13 @@ import type {
   ISocialWarmupEnrollment,
 } from '@genfeedai/contracts/interfaces';
 import { resolveOAuthServicePath } from '@genfeedai/helpers/oauth/oauth-connect-platforms';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import SocialWarmupProgram from './SocialWarmupProgram';
 
@@ -131,6 +137,16 @@ const health: AccountHealthSummary = {
   },
 };
 
+const MANUAL_CHECK_TITLE = 'Use TikTok manually';
+const FIRST_UPLOAD_CHECK_TITLE = 'Observe the first upload';
+
+function openFullBlueprint() {
+  fireEvent.mouseDown(screen.getByRole('tab', { name: 'Full blueprint' }), {
+    button: 0,
+    ctrlKey: false,
+  });
+}
+
 describe('SocialWarmupProgram', () => {
   const onReconnect = vi.fn();
 
@@ -217,38 +233,31 @@ describe('SocialWarmupProgram', () => {
     });
   });
 
-  it('checks in and reopens user-confirmed items', async () => {
-    render(
-      <SocialWarmupProgram
-        connection={{
-          credentialId: 'credential-1',
-          platform: CredentialPlatform.TIKTOK,
-        }}
-        health={health}
-      />,
+  it('checks in and reopens user-confirmed items from their switch', async () => {
+    const connection = {
+      credentialId: 'credential-1',
+      platform: CredentialPlatform.TIKTOK,
+    };
+    const { unmount } = render(
+      <SocialWarmupProgram connection={connection} health={health} />,
     );
+    openFullBlueprint();
 
-    fireEvent.click(
-      screen.getAllByRole('button', { name: 'Mark complete' })[0],
-    );
+    fireEvent.click(screen.getByRole('switch', { name: MANUAL_CHECK_TITLE }));
     await waitFor(() => {
       expect(completeItem).toHaveBeenCalled();
     });
+    unmount();
 
     hookState.data = createEnrollment({
-      completedItemIds: ['continue-post-upload-engagement'],
+      completedItemIds: ['use-native-app-manually'],
     });
-    render(
-      <SocialWarmupProgram
-        connection={{
-          credentialId: 'credential-1',
-          platform: CredentialPlatform.TIKTOK,
-        }}
-        health={health}
-      />,
-    );
+    render(<SocialWarmupProgram connection={connection} health={health} />);
+    openFullBlueprint();
 
-    fireEvent.click(screen.getAllByRole('button', { name: 'Reopen' })[0]);
+    const confirmed = screen.getByRole('switch', { name: MANUAL_CHECK_TITLE });
+    expect(confirmed).toBeChecked();
+    fireEvent.click(confirmed);
     await waitFor(() => {
       expect(reopenItem).toHaveBeenCalled();
     });
@@ -288,9 +297,14 @@ describe('SocialWarmupProgram', () => {
       button: 0,
       ctrlKey: false,
     });
+    fireEvent.click(
+      within(
+        screen.getByRole('article', { name: FIRST_UPLOAD_CHECK_TITLE }),
+      ).getByRole('button'),
+    );
     expect(
-      screen.getAllByText(/authorized tiktok evidence is stale/i).length,
-    ).toBeGreaterThan(0);
+      screen.getByText(/authorized tiktok evidence is stale/i),
+    ).toBeInTheDocument();
 
     fireEvent.click(
       screen.getAllByRole('button', { name: 'Refresh signals' })[0],
@@ -299,6 +313,42 @@ describe('SocialWarmupProgram', () => {
       expect(refreshAuthorizedSignals).toHaveBeenCalledWith('credential-1');
       expect(refresh).toHaveBeenCalled();
     });
+  });
+
+  it('offers one Reconnect when the connection limits what Genfeed can detect', () => {
+    hookState.data = createEnrollment({
+      signals: [
+        {
+          brandId: 'brand-1',
+          createdAt: '2026-08-10T11:00:00.000Z',
+          enrollmentId: 'enrollment-1',
+          evidence: {},
+          id: 'signal-limited',
+          isDeleted: false,
+          key: 'first-upload-platform-signal',
+          observedAt: '2026-08-10T11:00:00.000Z',
+          organizationId: 'org-1',
+          source: SocialWarmupSignalSource.PLATFORM,
+          status: SocialWarmupSignalStatus.PERMISSION_LIMITED,
+          updatedAt: '2026-08-10T11:00:00.000Z',
+        },
+      ],
+    });
+
+    render(
+      <SocialWarmupProgram
+        connection={{
+          credentialId: 'credential-1',
+          platform: CredentialPlatform.TIKTOK,
+        }}
+        health={health}
+        onReconnect={onReconnect}
+      />,
+    );
+    openFullBlueprint();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Reconnect' }));
+    expect(onReconnect).toHaveBeenCalledWith(CredentialPlatform.TIKTOK);
   });
 
   it('refreshes YouTube authorized signals from the shared enrollment UI', async () => {
