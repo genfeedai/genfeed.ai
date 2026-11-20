@@ -309,7 +309,7 @@ describe('ConnectGenfeedFlow', () => {
     ).not.toBeInTheDocument();
     expect(
       screen.getByText(
-        "codex mcp add genfeed --url 'https://mcp.genfeed.ai/mcp?profile=studio'",
+        'codex mcp add genfeed --url https://mcp.genfeed.ai/mcp',
       ),
     ).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Copy setup command' }));
@@ -502,7 +502,7 @@ describe('ConnectGenfeedFlow', () => {
     ).toBeInTheDocument();
     expect(
       screen.getByText(
-        "codex mcp add genfeed --url 'https://mcp.genfeed.ai/mcp?profile=studio' --bearer-token-env-var GENFEED_API_KEY",
+        'codex mcp add genfeed --url https://mcp.genfeed.ai/mcp --bearer-token-env-var GENFEED_API_KEY',
       ),
     ).toBeInTheDocument();
     expect(screen.queryByText(/gf_live_[A-Za-z0-9]/)).not.toBeInTheDocument();

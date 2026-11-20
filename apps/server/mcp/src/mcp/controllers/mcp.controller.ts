@@ -8,21 +8,8 @@ import { type McpRole } from '@mcp/services/auth.service';
 import { StreamableHttpService } from '@mcp/services/streamable-http.service';
 import { ToolRegistryService } from '@mcp/services/tool-registry.service';
 import type { McpRequest } from '@mcp/shared/interfaces/mcp-request.interface';
-import {
-  buildUnknownAppsMessage,
-  buildUnknownProfileMessage,
-  buildUnknownToolsetsMessage,
-  resolveMcpToolQuery,
-} from '@mcp/shared/middleware/toolsets-query.middleware';
 import { filterBrandKitTools } from '@mcp/tools/brand-kit.tool';
-import {
-  BadRequestException,
-  Controller,
-  Get,
-  Param,
-  Req,
-  Res,
-} from '@nestjs/common';
+import { Controller, Get, Param, Req, Res } from '@nestjs/common';
 import type { Response } from 'express';
 
 @Controller()
@@ -105,31 +92,11 @@ export class McpController {
   @Get('tools')
   getTools(@Req() request: McpRequest) {
     const role: McpRole = request?.authContext?.role ?? 'user';
-    const selection = resolveMcpToolQuery(request?.query ?? {});
-
-    if (selection.unknownProfile) {
-      throw new BadRequestException(
-        buildUnknownProfileMessage(selection.unknownProfile),
-      );
-    }
-
-    if (selection.unknown.length > 0) {
-      throw new BadRequestException(
-        buildUnknownToolsetsMessage(selection.unknown),
-      );
-    }
-
-    if (selection.unknownApps.length > 0) {
-      throw new BadRequestException(
-        buildUnknownAppsMessage(selection.unknownApps),
-      );
-    }
 
     return {
       tools: filterBrandKitTools(
-        this.toolRegistry.getToolsForRoleAndToolsets(
+        this.toolRegistry.getToolsForRole(
           role,
-          selection.toolsets,
           request.authContext?.accessMode ?? 'standard',
         ),
         request.authContext?.hasBrandKitEditAccess,
@@ -161,7 +128,6 @@ export class McpController {
 
     const toolRegistry = this.streamableHttpService.createToolRegistry(
       request.authContext,
-      request.toolsets,
       request.routeAccessMode,
     );
     const result = await toolRegistry.handleResourceRead({

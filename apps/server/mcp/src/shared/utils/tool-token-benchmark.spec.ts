@@ -1,11 +1,6 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
-import {
-  DEFAULT_MCP_PROFILE_TOOLSETS,
-  getToolsForSurface,
-  getToolsForToolsets,
-  toMcpTools,
-} from '@genfeedai/actions';
+import { getToolsForSurface, toMcpTools } from '@genfeedai/actions';
 import { dataToolResult } from '@mcp/shared/utils/tool-result-text.util';
 
 /** Same fixtures run on both revisions; no provider calls or production data. */
@@ -55,11 +50,9 @@ it('exports deterministic MCP token benchmark payloads when requested', () => {
     },
   };
   const payloads: Record<string, unknown> = {
-    'catalog/default': {
-      tools: toMcpTools(
-        getToolsForToolsets('mcp', DEFAULT_MCP_PROFILE_TOOLSETS),
-      ),
-    },
+    // The bare URL now lists the full catalog, so both keys carry it; the
+    // comparison script reads both names from older revisions too.
+    'catalog/default': { tools: toMcpTools(getToolsForSurface('mcp')) },
     'catalog/full': { tools: toMcpTools(getToolsForSurface('mcp')) },
   };
   for (const [name, data] of Object.entries(fixtures)) {

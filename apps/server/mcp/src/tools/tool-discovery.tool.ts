@@ -1,11 +1,9 @@
 import {
+  getMcpCatalogOperations,
   getRetiredMcpCatalogTool,
-  getToolsetNames,
   MCP_CREDIT_COST_META_KEY,
   MCP_MUTATION_POLICY_META_KEY,
-  MCP_TOOLSET_META_KEY,
   type McpToolOutput,
-  TOOLSETS,
 } from '@genfeedai/actions';
 import type {
   ToolDiscoveryEntry,
@@ -18,12 +16,16 @@ export const TOOL_DISCOVERY_TOOL_NAMES: ReadonlySet<string> = new Set([
   'find_tools',
 ]);
 
+const SENTENCE_END_PATTERN = /[.!?](\s|$)/;
 const DEFAULT_SEARCH_LIMIT = 20;
 const MAX_SEARCH_LIMIT = 50;
 const CLOSEST_MATCH_LIMIT = 5;
 
 function toDiscoveryEntry(tool: McpToolOutput): ToolDiscoveryEntry {
   return {
+    actions: getMcpCatalogOperations(tool.name).map(
+      (operation) => operation.action,
+    ),
     creditCost: Number(tool._meta[MCP_CREDIT_COST_META_KEY] ?? 0),
     description: tool.description,
     mutationPolicy: String(
@@ -31,7 +33,6 @@ function toDiscoveryEntry(tool: McpToolOutput): ToolDiscoveryEntry {
     ),
     name: tool.name,
     requiredRole: tool.requiredRole,
-    toolset: String(tool._meta[MCP_TOOLSET_META_KEY] ?? ''),
   };
 }
 
@@ -46,108 +47,51 @@ function errorResult(text: string) {
   return { content: [{ text, type: 'text' as const }], isError: true };
 }
 
-/**
- * Listing toolsets must be role-aware: it summarizes exactly what the caller
- * can currently see, derived from `registry.getDiscoverableTools()` (already
- * role-filtered) grouped by each tool's `genfeed.ai/toolset` `_meta` key. A
- * plain `user`, for example, must see `core` short by `resolve_approval` (a
- * superadmin-only tool) rather than the toolset's full unfiltered count.
- * `TOOLSETS` (the static catalog) supplies only the description and display
- * order — never the counts.
- */
-function handleListToolsets(registry: ToolDiscoverySource) {
-  const toolNamesByToolset = new Map<string, string[]>();
-  for (const tool of registry.getDiscoverableTools()) {
-    const toolsetName = String(tool._meta[MCP_TOOLSET_META_KEY] ?? '');
-    const names = toolNamesByToolset.get(toolsetName);
-    if (names) {
-      names.push(tool.name);
-    } else {
-      toolNamesByToolset.set(toolsetName, [tool.name]);
-    }
-  }
-
-  const toolsets = TOOLSETS.filter((definition) =>
-    toolNamesByToolset.has(definition.name),
-  ).map((definition) => {
-    const toolNames = [...(toolNamesByToolset.get(definition.name) ?? [])].sort(
-      (a, b) => a.localeCompare(b),
-    );
-    return { ...definition, toolCount: toolNames.length, toolNames };
-  });
-
-  const lines = toolsets.map(
-    (toolset) =>
-      `- ${toolset.name}${toolset.isAlwaysOn ? ' (always on)' : ''}: ${toolset.toolCount} tool(s) — ${toolset.description}`,
-  );
-
-  const ignoredEmptyToolsets = [
-    ...(registry.getIgnoredEmptyToolsets?.() ?? []),
-  ].sort((a, b) => a.localeCompare(b));
-  const warning =
-    ignoredEmptyToolsets.length > 0
-      ? `Warning: requested toolset(s) with no tools on this deploy were ignored: ${ignoredEmptyToolsets.join(', ')}.`
-      : undefined;
-
-  return textResult(
-    warning
-      ? `Available toolsets:\n\n${lines.join('\n')}\n\n${warning}`
-      : `Available toolsets:\n\n${lines.join('\n')}`,
-    {
-      ...(warning ? { ignoredEmptyToolsets } : {}),
-      toolsets,
-    },
-  );
+function firstSentence(text: string): string {
+  const end = text.search(SENTENCE_END_PATTERN);
+  return end === -1 ? text : text.slice(0, end + 1);
 }
 
+function describeEntry(entry: ToolDiscoveryEntry): string {
+  const actions =
+    entry.actions.length > 0 ? ` [actions: ${entry.actions.join(', ')}]` : '';
+  return `- ${entry.name}${actions}: ${firstSentence(entry.description)}`;
+}
+
+/**
+ * `find_tools` with no query lists every tool this connection serves; with a
+ * query it matches a tool name, its description, or the name of an action it
+ * runs, including the name of a retired tool.
+ */
 function handleSearchTools(
   registry: ToolDiscoverySource,
   args: Record<string, unknown>,
 ) {
-  const query = typeof args.query === 'string' ? args.query.trim() : '';
-  const toolsetFilter =
-    typeof args.toolset === 'string' ? args.toolset.trim().toLowerCase() : '';
-
-  if (!query && !toolsetFilter) {
-    return handleListToolsets(registry);
-  }
-
-  if (toolsetFilter) {
-    const validToolsets = getToolsetNames('mcp');
-    if (!(validToolsets as readonly string[]).includes(toolsetFilter)) {
-      return errorResult(
-        `Unknown toolset "${toolsetFilter}". Valid toolsets: ${validToolsets.join(', ')}.`,
-      );
-    }
-  }
-
+  const needle =
+    typeof args.query === 'string' ? args.query.trim().toLowerCase() : '';
   const rawLimit =
     typeof args.limit === 'number' ? args.limit : DEFAULT_SEARCH_LIMIT;
   const limit = Math.min(Math.max(Math.trunc(rawLimit), 1), MAX_SEARCH_LIMIT);
-  const needle = query.toLowerCase();
+  const retired = getRetiredMcpCatalogTool(needle);
 
-  const matches = registry
-    .getDiscoverableTools()
-    .map(toDiscoveryEntry)
-    .filter((entry) => {
-      if (toolsetFilter && entry.toolset !== toolsetFilter) return false;
-      if (!needle) return true;
-      return (
-        entry.name.toLowerCase().includes(needle) ||
-        entry.description.toLowerCase().includes(needle) ||
-        entry.toolset.toLowerCase().includes(needle)
-      );
-    })
-    .slice(0, limit);
+  const entries = registry.getTools().map(toDiscoveryEntry);
+  const matches = (
+    needle
+      ? entries.filter(
+          (entry) =>
+            entry.name === retired?.canonicalName ||
+            entry.name.toLowerCase().includes(needle) ||
+            entry.description.toLowerCase().includes(needle) ||
+            entry.actions.some((action) =>
+              action.toLowerCase().includes(needle),
+            ),
+        )
+      : entries
+  ).slice(0, needle ? limit : entries.length);
 
   return textResult(
     matches.length > 0
-      ? `Found ${matches.length} tool(s):\n\n${matches
-          .map(
-            (match) =>
-              `- ${match.name} (${match.toolset}): ${match.description}`,
-          )
-          .join('\n')}`
+      ? `${needle ? `Found ${matches.length} tool(s)` : `${matches.length} tool(s)`}:\n\n${matches.map(describeEntry).join('\n')}`
       : 'No matching tools found.',
     { tools: matches },
   );
@@ -158,7 +102,7 @@ function handleDescribeTool(
   args: Record<string, unknown>,
 ) {
   const name = typeof args.name === 'string' ? args.name.trim() : '';
-  const tools = registry.getDiscoverableTools();
+  const tools = registry.getTools();
   const retired = getRetiredMcpCatalogTool(name);
   const tool = tools.find(
     (candidate) => candidate.name === (retired?.canonicalName ?? name),
@@ -182,23 +126,9 @@ function handleDescribeTool(
         : undefined;
     return `- ${key}${required.has(key) ? ' (required)' : ' (optional)'}${typeof description === 'string' ? `: ${description}` : ''}`;
   });
-  const listed = registry.getTools?.();
-  const connection = listed
-    ? {
-        isListed: listed.some((candidate) => candidate.name === tool.name),
-        listedToolCount: listed.length,
-        toolset: String(tool._meta[MCP_TOOLSET_META_KEY] ?? ''),
-      }
-    : undefined;
-  const connectionText = connection
-    ? connection.isListed
-      ? 'This tool is listed by this connection. If your client cannot call it, refresh its MCP tool list or reconnect to the same server URL.'
-      : `This tool is not listed by this connection. Include the ${connection.toolset} toolset alongside your existing toolsets and reconnect. Keep the same endpoint and permissions.`
-    : undefined;
   return textResult(
-    `${tool.title || readableLabel(tool.name)}\n\n${retired ? `Use ${retired.canonicalName}(action=${retired.action}).\n\n` : ''}${tool.description}\n\nParameters:\n${parameters.length ? parameters.join('\n') : 'None.'}${connectionText ? `\n\n${connectionText}` : ''}`,
+    `${tool.title || readableLabel(tool.name)}\n\n${retired ? `Use ${retired.canonicalName}(action=${retired.action}).\n\n` : ''}${tool.description}\n\nParameters:\n${parameters.length ? parameters.join('\n') : 'None.'}`,
     {
-      ...(connection ? { connection } : {}),
       tool,
     },
   );
@@ -240,8 +170,8 @@ function closestMatches(name: string, tools: McpToolOutput[]): string[] {
 }
 
 /**
- * `find_tools`: `name` describes one tool, `query`/`toolset` search, and no
- * argument lists the toolsets.
+ * `find_tools`: `name` describes one tool, `query` searches, and no argument
+ * lists every tool.
  */
 export function handleToolDiscoveryTool(
   registry: ToolDiscoverySource,

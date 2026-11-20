@@ -52,7 +52,7 @@ export function buildClaudeMcpServerInstructions(): string {
     'Write copy yourself, then use save_post(action=post or article) to save it for review.',
     'Never schedule anything unless the user explicitly asks. Use existing assets from get_assets.',
     'Image, video and audio generation, workflows, batches and remix are unavailable through this connector.',
-    'Use find_tools to discover supported content operations. Toolset changes cannot enable generation.',
+    'Use find_tools to discover supported content operations.',
   ].join(' ');
 }
 

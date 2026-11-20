@@ -12,7 +12,6 @@ import type { McpAuthMiddlewareDependencies } from '@mcp/shared/interfaces/mcp-a
 import type { McpRequest } from '@mcp/shared/interfaces/mcp-request.interface';
 import { mcpAccessModeMiddleware } from '@mcp/shared/middleware/mcp-access-mode.middleware';
 import { createMcpAuthMiddleware } from '@mcp/shared/middleware/mcp-auth.middleware';
-import { toolsetsQueryMiddleware } from '@mcp/shared/middleware/toolsets-query.middleware';
 import {
   classifyMcpToolFailure,
   mcpJsonRpcError,
@@ -96,24 +95,11 @@ describe('createMcpAuthMiddleware mounted HTTP boundary', () => {
       routes,
       express.json({ limit: '1mb' }),
       mcpAccessModeMiddleware,
-      toolsetsQueryMiddleware,
       middleware,
       handler,
     );
-    app.get(
-      routes,
-      mcpAccessModeMiddleware,
-      toolsetsQueryMiddleware,
-      middleware,
-      handler,
-    );
-    app.delete(
-      routes,
-      mcpAccessModeMiddleware,
-      toolsetsQueryMiddleware,
-      middleware,
-      handler,
-    );
+    app.get(routes, mcpAccessModeMiddleware, middleware, handler);
+    app.delete(routes, mcpAccessModeMiddleware, middleware, handler);
     server = await new Promise<Server>((resolve) => {
       const listening = app.listen(0, '127.0.0.1', () => resolve(listening));
     });
@@ -464,20 +450,6 @@ describe('createMcpAuthMiddleware mounted HTTP boundary', () => {
     expect(extractBearerToken).not.toHaveBeenCalled();
   });
 
-  it.each([
-    '/mcp?toolsets=unknown',
-    '/mcp?profile=unknown',
-    '/mcp/claude?profile=full',
-    '/mcp/claude?toolsets=content',
-  ])('rejects catalog query before authentication on %s', async (route) => {
-    const response = await request(route, 'POST', null, 'tools/list');
-    expect(response.status).toBe(400);
-    expect(response.headers.get('www-authenticate')).toBeNull();
-    expect(await response.json()).toHaveProperty('error');
-    rejected(0, 0);
-    expect(extractBearerToken).not.toHaveBeenCalled();
-  });
-
   it.each(cases)(
     'preserves local limit rejection on %s %s',
     async (route, method) => {
@@ -548,7 +520,7 @@ describe('production authentication wiring', () => {
         /\['\/mcp', '\/mcp\/claude', '\/mcp\/admin'\]/,
       );
       expect(registration).toMatch(
-        /mcpAccessModeMiddleware,\s*toolsetsQueryMiddleware,\s*mcpAuthMiddleware,/,
+        /mcpAccessModeMiddleware,\s*mcpAuthMiddleware,/,
       );
       if (method === 'post')
         expect(registration).toContain("express.json({ limit: '1mb' })");

@@ -11,7 +11,6 @@ function tool(overrides: Partial<McpToolOutput> = {}): McpToolOutput {
   return {
     _meta: {
       'genfeed.ai/creditCost': 1,
-      'genfeed.ai/toolset': 'content',
     },
     annotations: {
       destructiveHint: true,
@@ -27,22 +26,6 @@ function tool(overrides: Partial<McpToolOutput> = {}): McpToolOutput {
     title: 'Create Post',
     ...overrides,
   };
-}
-
-/** The four `core` tools a plain `user` can see (everything but `resolve_approval`). */
-const USER_VISIBLE_CORE_TOOL_NAMES = [
-  'find_tools',
-  'get_account',
-  'get_brands',
-  'get_job_status',
-];
-
-function coreTool(name: string): McpToolOutput {
-  return tool({
-    _meta: { 'genfeed.ai/toolset': 'core' },
-    description: `${name} description`,
-    name,
-  });
 }
 
 /**
@@ -76,122 +59,56 @@ function expectError(
 }
 
 describe('handleToolDiscoveryTool', () => {
-  describe('find_tools with no arguments (list toolsets)', () => {
-    it('summarizes every toolset visible to the caller with counts, ordered and described by the static catalog', () => {
-      const registry: ToolDiscoverySource = {
-        getDiscoverableTools: () => [
-          ...USER_VISIBLE_CORE_TOOL_NAMES.map(coreTool),
-          tool({ name: 'save_post' }),
-        ],
-      };
+  const registry: ToolDiscoverySource = {
+    getTools: () => [
+      tool({ description: 'Create a post', name: 'save_post' }),
+      tool({
+        _meta: {
+          'genfeed.ai/creditCost': 5,
+          'genfeed.ai/mutationPolicy': 'approval-required',
+        },
+        description: 'Generate an image. Costs credits.',
+        name: 'generate',
+      }),
+      tool({
+        description: 'Admin only tool',
+        name: 'admin_only_tool',
+        requiredRole: 'admin',
+      }),
+    ],
+  };
 
+  describe('find_tools with no arguments (list every tool)', () => {
+    it('lists every tool this connection serves with its first sentence', () => {
       const result = handleToolDiscoveryTool(registry, 'find_tools', {});
       expectSuccess(result);
 
+      expect(result.content[0].text).toContain('3 tool(s):');
       expect(result.content[0].text).toContain(
-        `core (always on): ${USER_VISIBLE_CORE_TOOL_NAMES.length} tool(s)`,
+        '- generate: Generate an image.',
       );
-      expect(result.content[0].text).toContain('content: 1 tool(s)');
-
-      const toolsets = result.structuredContent?.toolsets as Array<{
-        name: string;
-        toolCount: number;
-        toolNames: string[];
-      }>;
-      // TOOLSETS lists `content` before `core` alphabetically — `find_tools`
-      // must follow the static catalog's order, not discovery order.
-      expect(toolsets.map((toolset) => toolset.name)).toEqual([
-        'content',
-        'core',
-      ]);
+      expect(result.content[0].text).not.toContain('Costs credits');
+      expect(result.structuredContent?.tools).toHaveLength(3);
     });
 
-    it('omits a toolset the caller cannot see any tool from', () => {
-      const registry: ToolDiscoverySource = {
-        getDiscoverableTools: () => [tool({ name: 'save_post' })],
+    it('does not cap the full list at the search limit', () => {
+      const many: ToolDiscoverySource = {
+        getTools: () =>
+          Array.from({ length: 30 }, (_, index) =>
+            tool({ name: `tool_${index}` }),
+          ),
       };
-
-      const result = handleToolDiscoveryTool(registry, 'find_tools', {});
-      expectSuccess(result);
-
-      const toolsets = result.structuredContent?.toolsets as Array<{
-        name: string;
-      }>;
-      expect(toolsets.map((toolset) => toolset.name)).toEqual(['content']);
-    });
-
-    it('is role-aware: a plain user sees core with 4 tools and never sees resolve_approval', () => {
-      // `getDiscoverableTools` is the registry's job to pre-filter by role —
-      // this fixture simulates what a `user`-scoped registry returns: every
-      // core tool except the superadmin-gated `resolve_approval`.
-      const registry: ToolDiscoverySource = {
-        getDiscoverableTools: () => USER_VISIBLE_CORE_TOOL_NAMES.map(coreTool),
-      };
-
-      const result = handleToolDiscoveryTool(registry, 'find_tools', {});
-      expectSuccess(result);
-
-      const toolsets = result.structuredContent?.toolsets as Array<{
-        name: string;
-        toolCount: number;
-        toolNames: string[];
-      }>;
-      const core = toolsets.find((toolset) => toolset.name === 'core');
-
-      expect(core?.toolCount).toBe(4);
-      expect(core?.toolNames).not.toContain('resolve_approval');
-    });
-
-    it('warns when a requested toolset has no tools on this deploy', () => {
-      const registry: ToolDiscoverySource = {
-        getDiscoverableTools: () => [tool({ name: 'save_post' })],
-        getIgnoredEmptyToolsets: () => ['goals'],
-      };
-
-      const result = handleToolDiscoveryTool(registry, 'find_tools', {});
-      expectSuccess(result);
-
-      expect(result.content[0].text).toContain(
-        'Warning: requested toolset(s) with no tools on this deploy were ignored: goals.',
-      );
-      expect(result.structuredContent?.ignoredEmptyToolsets).toEqual(['goals']);
-    });
-  });
-
-  describe('find_tools with query or toolset (search)', () => {
-    const registry: ToolDiscoverySource = {
-      getDiscoverableTools: () => [
-        tool({ description: 'Create a post', name: 'save_post' }),
-        tool({
-          _meta: {
-            'genfeed.ai/creditCost': 5,
-            'genfeed.ai/mutationPolicy': 'approval-required',
-            'genfeed.ai/toolset': 'generation',
-          },
-          description: 'Generate an image',
-          name: 'generate',
-        }),
-        tool({
-          description: 'Admin only tool',
-          name: 'admin_only_tool',
-          requiredRole: 'admin',
-        }),
-      ],
-    };
-
-    it('lists toolsets rather than erroring when query and toolset are both empty', () => {
-      const result = handleToolDiscoveryTool(registry, 'find_tools', {
+      const result = handleToolDiscoveryTool(many, 'find_tools', {
         query: '  ',
-        toolset: '',
       });
       expectSuccess(result);
 
-      expect(result.content[0].text).toContain('Available toolsets:');
-      expect(result.structuredContent?.toolsets).toBeDefined();
-      expect(result.structuredContent?.tools).toBeUndefined();
+      expect(result.structuredContent?.tools).toHaveLength(30);
     });
+  });
 
-    it('matches case-insensitively across name, description, and toolset', () => {
+  describe('find_tools with query (search)', () => {
+    it('matches case-insensitively across name and description', () => {
       const result = handleToolDiscoveryTool(registry, 'find_tools', {
         query: 'IMAGE',
       });
@@ -202,45 +119,6 @@ describe('handleToolDiscoveryTool', () => {
       ]);
     });
 
-    it('filters by toolset', () => {
-      const result = handleToolDiscoveryTool(registry, 'find_tools', {
-        toolset: 'generation',
-      });
-      expectSuccess(result);
-
-      expect(result.structuredContent?.tools).toEqual([
-        expect.objectContaining({
-          name: 'generate',
-          toolset: 'generation',
-        }),
-      ]);
-    });
-
-    it('lowercases and trims the toolset filter before matching', () => {
-      const result = handleToolDiscoveryTool(registry, 'find_tools', {
-        toolset: '  Generation  ',
-      });
-      expectSuccess(result);
-
-      expect(result.structuredContent?.tools).toEqual([
-        expect.objectContaining({ name: 'generate' }),
-      ]);
-    });
-
-    it('returns an isError result naming the valid MCP toolsets for an unknown toolset filter', () => {
-      const result = handleToolDiscoveryTool(registry, 'find_tools', {
-        toolset: 'not-a-real-toolset',
-      });
-      expectError(result);
-
-      expect(result.isError).toBe(true);
-      expect(result.content[0].text).toContain(
-        'Unknown toolset "not-a-real-toolset"',
-      );
-      expect(result.content[0].text).toContain('Valid toolsets:');
-      expect(result.content[0].text).toContain('content');
-    });
-
     it('reports mutationPolicy, creditCost, and requiredRole per hit', () => {
       const result = handleToolDiscoveryTool(registry, 'find_tools', {
         query: 'generate',
@@ -249,12 +127,12 @@ describe('handleToolDiscoveryTool', () => {
 
       expect(result.structuredContent?.tools).toEqual([
         {
+          actions: [],
           creditCost: 5,
-          description: 'Generate an image',
+          description: 'Generate an image. Costs credits.',
           mutationPolicy: 'approval-required',
           name: 'generate',
           requiredRole: 'user',
-          toolset: 'generation',
         },
       ]);
     });
@@ -284,9 +162,8 @@ describe('handleToolDiscoveryTool', () => {
       });
       expectSuccess(result);
 
-      // The fixture registry still returns the admin tool (role filtering is
-      // the registry's job via getDiscoverableTools), so the handler surfaces
-      // it — proving it does not re-filter or drop role-restricted hits.
+      // Role filtering is the registry's job, so the handler surfaces what it
+      // is given and does not re-filter role-restricted hits.
       expect(result.structuredContent?.tools).toEqual([
         expect.objectContaining({
           name: 'admin_only_tool',
@@ -297,36 +174,8 @@ describe('handleToolDiscoveryTool', () => {
   });
 
   describe('find_tools with name (describe)', () => {
-    it.each([true, false])(
-      'reports whether a discovered tool is listed (%s) and how to load it',
-      (isListed) => {
-        const gallery = tool({
-          name: 'get_assets',
-          _meta: { 'genfeed.ai/toolset': 'generation' },
-        });
-        const registry = {
-          getDiscoverableTools: () => [gallery],
-          getTools: () => (isListed ? [gallery] : []),
-        };
-        const result = handleToolDiscoveryTool(registry, 'find_tools', {
-          name: 'get_assets',
-        });
-        expectSuccess(result);
-        expect(result.structuredContent?.connection).toEqual({
-          isListed,
-          listedToolCount: isListed ? 1 : 0,
-          toolset: 'generation',
-        });
-        expect(result.content[0].text).toContain(
-          isListed ? 'refresh' : 'generation',
-        );
-        expect(result.content[0].text).toContain(
-          isListed ? 'same server URL' : 'existing toolsets',
-        );
-      },
-    );
     const registry: ToolDiscoverySource = {
-      getDiscoverableTools: () => [
+      getTools: () => [
         tool({ description: 'Create a post', name: 'save_post' }),
         tool({
           description: 'Repurpose a post',
@@ -335,20 +184,19 @@ describe('handleToolDiscoveryTool', () => {
       ],
     };
 
-    it('treats a blank name as no name and lists toolsets', () => {
+    it('treats a blank name as no name and lists every tool', () => {
       const result = handleToolDiscoveryTool(registry, 'find_tools', {
         name: '   ',
       });
       expectSuccess(result);
 
-      expect(result.content[0].text).toContain('Available toolsets:');
+      expect(result.content[0].text).toContain('2 tool(s):');
     });
 
-    it('prefers name over query and toolset', () => {
+    it('prefers name over query', () => {
       const result = handleToolDiscoveryTool(registry, 'find_tools', {
         name: 'save_post',
         query: 'repurpose',
-        toolset: 'content',
       });
       expectSuccess(result);
 
@@ -393,7 +241,7 @@ describe('handleToolDiscoveryTool', () => {
   });
 
   it('throws for an unrouted discovery tool name', () => {
-    const registry: ToolDiscoverySource = { getDiscoverableTools: () => [] };
+    const registry: ToolDiscoverySource = { getTools: () => [] };
 
     expect(() =>
       handleToolDiscoveryTool(registry, 'not_a_discovery_tool', {}),
@@ -404,7 +252,7 @@ describe('handleToolDiscoveryTool', () => {
 describe('retired tool discovery', () => {
   it('returns the already discoverable canonical descriptor and fixed action guidance', () => {
     const registry = {
-      getDiscoverableTools: () => toMcpTools(getToolsForSurface('mcp')),
+      getTools: () => toMcpTools(getToolsForSurface('mcp')),
     };
     const result = handleToolDiscoveryTool(registry, 'find_tools', {
       name: 'request_media_upload',
@@ -418,11 +266,29 @@ describe('retired tool discovery', () => {
     );
   });
   it('does not reveal retired names whose canonical tool is unavailable', () => {
-    const registry = { getDiscoverableTools: () => [] };
+    const registry = { getTools: () => [] };
     const result = handleToolDiscoveryTool(registry, 'find_tools', {
       name: 'request_media_upload',
     });
     expect(result).toMatchObject({ isError: true });
     expect(JSON.stringify(result)).not.toContain('upload_media(action=');
+  });
+});
+
+describe('retired tool search', () => {
+  it('finds the merged tool by a retired tool name and lists its actions', () => {
+    const registry = {
+      getTools: () => toMcpTools(getToolsForSurface('mcp')),
+    };
+    const result = handleToolDiscoveryTool(registry, 'find_tools', {
+      query: 'request_media_upload',
+    });
+    expectSuccess(result);
+    expect(result.structuredContent?.tools).toEqual([
+      expect.objectContaining({
+        actions: expect.arrayContaining(['request']),
+        name: 'upload_media',
+      }),
+    ]);
   });
 });

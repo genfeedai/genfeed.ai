@@ -12,8 +12,6 @@ const SAFE_URL_CHARS_PATTERN = /^[A-Za-z0-9:/._-]+$/;
 const SINGLE_QUOTES_PATTERN = /'/g;
 
 const ENVIRONMENT_VARIABLE = 'GENFEED_API_KEY';
-/** Codex needs generation tools, so its install URL selects the studio profile. */
-export const GENFEED_CODEX_MCP_PROFILE = 'studio';
 export const GENFEED_SKILLS_INSTALL_COMMAND = 'npx skills add genfeedai/agent';
 /** Name of the second server a Claude client adds to get generation tools. */
 export const GENFEED_CLAUDE_MEDIA_SERVER_NAME = 'genfeed-media';
@@ -31,19 +29,6 @@ function normalizeEndpoint(endpoint: string): string {
   }
 
   return end === endpoint.length ? endpoint : endpoint.slice(0, end);
-}
-
-/**
- * Codex installs default to the studio profile. A URL that already carries a
- * query (a picked profile or explicit toolsets) is left as the caller wrote it.
- */
-function withCodexProfile(endpoint: string): string {
-  const url = new URL(endpoint);
-  if (url.search || url.hash) {
-    return endpoint;
-  }
-
-  return `${endpoint}?profile=${GENFEED_CODEX_MCP_PROFILE}`;
 }
 
 function toShellArgument(value: string): string {
@@ -69,8 +54,8 @@ function toStandardEndpoint(endpoint: string): string {
 }
 
 /**
- * The standard endpoint with its default tools: a picked profile or toolset
- * could leave generation out.
+ * The standard endpoint without a query or fragment, so a client that pasted
+ * the Claude connector URL gets the standard server.
  */
 export function toDefaultStandardEndpoint(endpoint: string): string {
   const url = new URL(toStandardEndpoint(endpoint));
@@ -166,11 +151,7 @@ export function buildConnectGenfeedInstructions(
       : new URL(deriveClaudeMcpResourceIdentifier(url.toString())).pathname;
     authMethod = 'oauth';
   }
-  const mcpEndpoint = isClaude
-    ? url.toString()
-    : client === 'codex'
-      ? withCodexProfile(normalizeEndpoint(endpoint))
-      : normalizeEndpoint(endpoint);
+  const mcpEndpoint = isClaude ? url.toString() : normalizeEndpoint(endpoint);
   const shellEndpoint = toShellArgument(mcpEndpoint);
 
   if (authMethod === 'oauth') {
