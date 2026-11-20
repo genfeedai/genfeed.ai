@@ -1,6 +1,11 @@
 'use client';
 
-import { FONT_FAMILY_METADATA, FontFamily } from '@genfeedai/contracts';
+import {
+  ButtonSize,
+  ButtonVariant,
+  FONT_FAMILY_METADATA,
+  FontFamily,
+} from '@genfeedai/contracts';
 import type { IBrandKitAssetCandidate } from '@genfeedai/contracts/interfaces';
 import { BRAND_KIT_FIELD_OWNERSHIP } from '@genfeedai/contracts/interfaces';
 import { isRecord } from '@genfeedai/utils/data/extract.util';
@@ -21,7 +26,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
+import { StatusDot } from '@ui/primitives/status-dot';
 import { Textarea } from '@ui/primitives/textarea';
+import { Undo2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useRef, useState } from 'react';
 import type {
@@ -245,6 +252,17 @@ function hasRevisionDisplayValue(value: unknown): boolean {
   return false;
 }
 
+function summarizeRevisionValue(value: unknown): string {
+  if (typeof value === 'string') return value;
+  if (Array.isArray(value)) return value.map(summarizeRevisionValue).join(', ');
+  if (isRecord(value)) {
+    const named = value.label ?? value.url ?? value.name;
+    if (typeof named === 'string') return named;
+    return Object.values(value).map(summarizeRevisionValue).join(' ');
+  }
+  return String(value ?? '');
+}
+
 function candidateValue(candidate: IBrandKitAssetCandidate) {
   const {
     candidateId: _candidateId,
@@ -260,7 +278,7 @@ export default function BrandOsRevisionFields({
   isDisabled,
   onFieldChange,
   groups,
-  showDecisions = true,
+  variant = 'decisions',
 }: BrandOsRevisionFieldsProps) {
   const t = useTranslations('pages.brandOsSettings');
   return (
@@ -277,19 +295,194 @@ export default function BrandOsRevisionFields({
           evidence: [],
           diagnostics: [],
         };
-        const value = showDecisions
-          ? field.applyActionDefault === 'preserve'
-            ? field.currentValue
-            : (field.proposedValue ?? field.currentValue)
-          : field.applyActionDefault === 'reject'
-            ? field.currentValue
-            : hasRevisionDisplayValue(field.proposedValue)
-              ? field.proposedValue
-              : field.currentValue;
+        const value =
+          variant === 'decisions'
+            ? field.applyActionDefault === 'preserve'
+              ? field.currentValue
+              : (field.proposedValue ?? field.currentValue)
+            : field.applyActionDefault === 'reject'
+              ? field.currentValue
+              : hasRevisionDisplayValue(field.proposedValue)
+                ? field.proposedValue
+                : field.currentValue;
         const role = key === 'references' ? 'reference' : key;
         const candidates = content.assetCandidates.filter(
           (candidate) => candidate.role === role,
         );
+        const editor = (
+          <>
+            <ValueEditor
+              brandId={content.brandId}
+              label={label}
+              fieldKey={key}
+              value={value}
+              valueKind={valueKind}
+              assetRole={
+                key === 'logo'
+                  ? 'logo'
+                  : key === 'banner'
+                    ? 'banner'
+                    : 'reference'
+              }
+              isDisabled={isDisabled}
+              onChange={(next) =>
+                onFieldChange(key, {
+                  applyActionDefault: 'accept',
+                  proposedValue: next,
+                })
+              }
+            />
+            {candidates.length > 0 && (
+              <div
+                role="group"
+                className="space-y-2"
+                aria-label={t('candidatesLabel', { label })}
+              >
+                <p className="text-xs text-muted-foreground">
+                  {t('candidateHelp')}
+                </p>
+                {candidates.map((candidate) => {
+                  const values = Array.isArray(value) ? value : [value];
+                  const selected = values.some(
+                    (entry) =>
+                      isRecord(entry) &&
+                      ((candidate.url && entry.url === candidate.url) ||
+                        (candidate.id && entry.id === candidate.id)),
+                  );
+                  return (
+                    <Checkbox
+                      key={candidate.candidateId}
+                      aria-label={t('useCandidate', {
+                        label:
+                          candidate.label ??
+                          candidate.url ??
+                          candidate.candidateId,
+                      })}
+                      label={
+                        candidate.label ?? candidate.url ?? t('assetCandidate')
+                      }
+                      isDisabled={isDisabled}
+                      isChecked={selected}
+                      onCheckedChange={(checked) => {
+                        const remaining = values.filter(
+                          (entry) =>
+                            isRecord(entry) &&
+                            !(
+                              (candidate.url && entry.url === candidate.url) ||
+                              (candidate.id && entry.id === candidate.id)
+                            ),
+                        );
+                        const currentValues = Array.isArray(field.currentValue)
+                          ? field.currentValue
+                          : [field.currentValue];
+                        const restoreCurrent =
+                          checked !== true &&
+                          field.currentValue !== undefined &&
+                          (remaining.length === 0 ||
+                            JSON.stringify(remaining) ===
+                              JSON.stringify(currentValues));
+                        onFieldChange(key, {
+                          applyActionDefault: restoreCurrent
+                            ? 'preserve'
+                            : checked === true
+                              ? 'accept'
+                              : remaining.length
+                                ? 'accept'
+                                : 'reject',
+                          proposedValue: restoreCurrent
+                            ? field.currentValue
+                            : key === 'references'
+                              ? checked === true
+                                ? [...remaining, candidateValue(candidate)]
+                                : remaining
+                              : checked === true
+                                ? candidateValue(candidate)
+                                : undefined,
+                        });
+                      }}
+                    />
+                  );
+                })}
+              </div>
+            )}
+            {field.diagnostics.map((diagnostic) => (
+              <p
+                key={diagnostic.code}
+                className="text-xs text-muted-foreground"
+              >
+                {diagnostic.message}
+              </p>
+            ))}
+          </>
+        );
+        if (variant === 'inline') {
+          const isChanged =
+            field.applyActionDefault === 'accept' &&
+            field.proposedValue !== undefined &&
+            JSON.stringify(field.proposedValue) !==
+              JSON.stringify(field.currentValue);
+          const isSuggested =
+            field.applyActionDefault === 'reject' &&
+            hasRevisionDisplayValue(field.proposedValue) &&
+            JSON.stringify(field.proposedValue) !==
+              JSON.stringify(field.currentValue);
+          return (
+            <div
+              key={key}
+              className="grid gap-2 border-t border-border py-3 sm:grid-cols-[9rem_minmax(0,1fr)] sm:gap-4"
+            >
+              <div className="flex items-start gap-2 pt-1.5 text-sm text-muted-foreground">
+                <span>{label}</span>
+                {isChanged ? (
+                  <>
+                    <StatusDot
+                      tone="info"
+                      size="xs"
+                      role="img"
+                      aria-label={t('changed')}
+                      className="mt-1.5"
+                    />
+                    <Button
+                      variant={ButtonVariant.GHOST}
+                      size={ButtonSize.ICON}
+                      ariaLabel={t('revertField', { label })}
+                      isDisabled={isDisabled}
+                      icon={<Undo2 className="size-3.5" />}
+                      onClick={() =>
+                        onFieldChange(key, {
+                          applyActionDefault: 'preserve',
+                          proposedValue: field.currentValue,
+                        })
+                      }
+                    />
+                  </>
+                ) : null}
+              </div>
+              <div className="min-w-0 space-y-2">
+                {editor}
+                {isSuggested ? (
+                  <div className="flex items-center gap-2 rounded-md border border-border bg-tertiary py-1.5 pl-3 pr-1.5 text-xs text-muted-foreground">
+                    <span className="min-w-0 flex-1 truncate">
+                      {t('suggested', {
+                        value: summarizeRevisionValue(field.proposedValue),
+                      })}
+                    </span>
+                    <Button
+                      variant={ButtonVariant.SECONDARY}
+                      size={ButtonSize.XS}
+                      isDisabled={isDisabled}
+                      onClick={() =>
+                        onFieldChange(key, { applyActionDefault: 'accept' })
+                      }
+                    >
+                      {t('useSuggestion')}
+                    </Button>
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          );
+        }
         return (
           <Collapsible key={key}>
             <div className="flex items-center gap-3 border-t border-border">
@@ -317,113 +510,7 @@ export default function BrandOsRevisionFields({
                   {t(`groups.${group}`)}
                   {valueKind === 'string[]' ? ` · ${t('onePerLine')}` : ''}
                 </p>
-                <ValueEditor
-                  brandId={content.brandId}
-                  label={label}
-                  fieldKey={key}
-                  value={value}
-                  valueKind={valueKind}
-                  assetRole={
-                    key === 'logo'
-                      ? 'logo'
-                      : key === 'banner'
-                        ? 'banner'
-                        : 'reference'
-                  }
-                  isDisabled={isDisabled}
-                  onChange={(next) =>
-                    onFieldChange(key, {
-                      applyActionDefault: 'accept',
-                      proposedValue: next,
-                    })
-                  }
-                />
-                {candidates.length > 0 && (
-                  <div
-                    role="group"
-                    className="space-y-2"
-                    aria-label={t('candidatesLabel', { label })}
-                  >
-                    <p className="text-xs text-muted-foreground">
-                      {t('candidateHelp')}
-                    </p>
-                    {candidates.map((candidate) => {
-                      const values = Array.isArray(value) ? value : [value];
-                      const selected = values.some(
-                        (entry) =>
-                          isRecord(entry) &&
-                          ((candidate.url && entry.url === candidate.url) ||
-                            (candidate.id && entry.id === candidate.id)),
-                      );
-                      return (
-                        <Checkbox
-                          key={candidate.candidateId}
-                          aria-label={t('useCandidate', {
-                            label:
-                              candidate.label ??
-                              candidate.url ??
-                              candidate.candidateId,
-                          })}
-                          label={
-                            candidate.label ??
-                            candidate.url ??
-                            t('assetCandidate')
-                          }
-                          isDisabled={isDisabled}
-                          isChecked={selected}
-                          onCheckedChange={(checked) => {
-                            const remaining = values.filter(
-                              (entry) =>
-                                isRecord(entry) &&
-                                !(
-                                  (candidate.url &&
-                                    entry.url === candidate.url) ||
-                                  (candidate.id && entry.id === candidate.id)
-                                ),
-                            );
-                            const currentValues = Array.isArray(
-                              field.currentValue,
-                            )
-                              ? field.currentValue
-                              : [field.currentValue];
-                            const restoreCurrent =
-                              checked !== true &&
-                              field.currentValue !== undefined &&
-                              (remaining.length === 0 ||
-                                JSON.stringify(remaining) ===
-                                  JSON.stringify(currentValues));
-                            onFieldChange(key, {
-                              applyActionDefault: restoreCurrent
-                                ? 'preserve'
-                                : checked === true
-                                  ? 'accept'
-                                  : remaining.length
-                                    ? 'accept'
-                                    : 'reject',
-                              proposedValue: restoreCurrent
-                                ? field.currentValue
-                                : key === 'references'
-                                  ? checked === true
-                                    ? [...remaining, candidateValue(candidate)]
-                                    : remaining
-                                  : checked === true
-                                    ? candidateValue(candidate)
-                                    : undefined,
-                            });
-                          }}
-                        />
-                      );
-                    })}
-                  </div>
-                )}
-                {field.diagnostics.map((diagnostic) => (
-                  <p
-                    key={diagnostic.code}
-                    className="text-xs text-muted-foreground"
-                  >
-                    {diagnostic.message}
-                  </p>
-                ))}
+                {editor}
               </div>
             </CollapsibleContent>
           </Collapsible>

@@ -66,7 +66,6 @@ export default function BrandOsSettingsCard({
   onRefreshBrand,
   onRevisionSaved,
   onReadinessChange,
-  fieldGroups,
   finishingBaseline,
   renderWorkspace,
 }: BrandOsSettingsCardProps) {
@@ -959,19 +958,20 @@ export default function BrandOsSettingsCard({
   return renderWorkspace({
     content,
     approvedContent,
-    editor: content ? (
-      <BrandOsRevisionFields
-        content={content}
-        groups={fieldGroups}
-        showDecisions={false}
-        isDisabled={
-          !canManage ||
-          busy ||
-          selected?.status === BrandOsRevisionStatus.SUPERSEDED
-        }
-        onFieldChange={changeField}
-      />
-    ) : null,
+    renderFields: (groups) =>
+      content ? (
+        <BrandOsRevisionFields
+          content={content}
+          groups={groups}
+          variant="inline"
+          isDisabled={
+            !canManage ||
+            busy ||
+            selected?.status === BrandOsRevisionStatus.SUPERSEDED
+          }
+          onFieldChange={changeField}
+        />
+      ) : null,
     review,
     isDirty: dirty,
     isLoading: loading,

@@ -454,7 +454,7 @@ const ROUTE_CONTRACT: ContractRoute[] = [
     method: 'Patch',
     sub: ':articleId',
     controller: 'articles',
-    tools: ['publish_article'],
+    tools: ['publish_article', 'update_article_draft'],
   },
 
   // ── Analytics → content-performance (video/content analytics) ──

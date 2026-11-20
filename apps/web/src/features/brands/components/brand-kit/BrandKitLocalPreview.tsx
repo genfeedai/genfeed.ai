@@ -10,13 +10,7 @@ import type { BrandKitFieldKey } from '@genfeedai/contracts/interfaces';
 import { isRecord } from '@genfeedai/utils/data/extract.util';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
 import Card from '@ui/card/Card';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@ui/primitives/select';
+import { SegmentedControl } from '@ui/primitives/segmented-control';
 import { Tabs } from '@ui/primitives/tabs';
 import { SimpleTooltip } from '@ui/primitives/tooltip';
 import Image from 'next/image';
@@ -274,23 +268,16 @@ export default function BrandKitLocalPreview({
           ]}
         />
       </div>
-      <Select
+      <SegmentedControl
+        ariaLabel={t('templateLabel')}
         value={template}
-        onValueChange={(next) => {
-          if (next === 'cover' || next === 'profile' || next === 'social') {
-            setTemplate(next);
-          }
-        }}
-      >
-        <SelectTrigger aria-label={t('templateLabel')}>
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="social">{t('social')}</SelectItem>
-          <SelectItem value="cover">{t('cover')}</SelectItem>
-          <SelectItem value="profile">{t('profile')}</SelectItem>
-        </SelectContent>
-      </Select>
+        onValueChange={setTemplate}
+        options={[
+          { label: t('social'), value: 'social' },
+          { label: t('cover'), value: 'cover' },
+          { label: t('profile'), value: 'profile' },
+        ]}
+      />
       {isApprovedUnavailable ? (
         <p className="text-sm text-muted-foreground">{t('noApproved')}</p>
       ) : (

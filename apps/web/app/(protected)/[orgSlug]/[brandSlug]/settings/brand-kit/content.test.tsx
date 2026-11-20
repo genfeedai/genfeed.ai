@@ -1,13 +1,12 @@
 import type { IBrandKitDraft } from '@genfeedai/contracts/interfaces';
 import { fireEvent, render, screen, within } from '@testing-library/react';
-import type { ComponentProps, ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { BrandOsSettingsCardProps } from '@/features/brands/props/brand-os-settings.props';
 import BrandKitPage from './content';
 
 const mocks = vi.hoisted(() => ({
   role: 'owner',
-  pathname: '/acme/acme/settings/brand-kit',
   capture: vi.fn(),
   push: vi.fn(),
   upload: vi.fn(),
@@ -44,7 +43,7 @@ const mocks = vi.hoisted(() => ({
 }));
 vi.mock('next/navigation', () => ({
   useSearchParams: () => new URLSearchParams(),
-  usePathname: () => mocks.pathname,
+  usePathname: () => '/acme/acme/settings/brand-kit',
   useRouter: () => ({ push: mocks.push }),
 }));
 vi.mock('@hooks/navigation/use-org-url', () => ({
@@ -83,7 +82,7 @@ vi.mock('@/features/brands/components/brand-kit/BrandOsSettingsCard', () => ({
     renderWorkspace?.({
       content: mocks.revisionContent,
       approvedContent: null,
-      editor: <p>Versioned editor</p>,
+      renderFields: (groups) => <p>Revision fields: {groups.join(', ')}</p>,
       review: <p>Revision history and export</p>,
       isDirty: true,
       isLoading: false,
@@ -117,7 +116,9 @@ vi.mock(
 );
 vi.mock(
   '@/features/brands/components/brand-kit/writing-voice/BrandWritingVoiceEditor',
-  () => ({ default: () => <p>Writing editor</p> }),
+  () => ({
+    default: ({ section }: { section: string }) => <p>Live {section} editor</p>,
+  }),
 );
 vi.mock(
   '@/features/brands/components/sidebar/BrandDetailReferencesCard',
@@ -128,62 +129,73 @@ vi.mock(
 vi.mock('@ui/cards/brand-completeness-card/BrandCompletenessCard', () => ({
   default: () => <p>Completeness</p>,
 }));
-vi.mock('@ui/layout/container/Container', async () => {
-  const { Tabs } = await import('@ui/primitives/tabs');
-  return {
-    default: ({
-      children,
-      headerTabs,
-      right,
-    }: {
-      children: ReactNode;
-      headerTabs?: ComponentProps<typeof Tabs>;
-      right?: ReactNode;
-    }) => (
-      <div>
-        <div data-testid="subbar">
-          {headerTabs ? <Tabs {...headerTabs} /> : null}
-          {right}
-        </div>
-        {children}
-      </div>
-    ),
-  };
-});
+vi.mock('@ui/layout/container/Container', () => ({
+  default: ({
+    children,
+    right,
+  }: {
+    children: ReactNode;
+    right?: ReactNode;
+  }) => (
+    <div>
+      <div data-testid="subbar">{right}</div>
+      {children}
+    </div>
+  ),
+}));
 describe('Brand Kit workspace', () => {
   beforeEach(() => {
     mocks.role = 'owner';
-    mocks.pathname = '/acme/acme/settings/brand-kit';
   });
 
-  it('keeps five sections, a local preview and focused revision review without a duplicate page heading', () => {
+  it('shows every section on one page, with no tabs and no duplicate page heading', () => {
     render(<BrandKitPage />);
     expect(
+      screen.queryByRole('tab', { name: 'Overview' }),
+    ).not.toBeInTheDocument();
+    expect(
       screen
-        .getAllByRole('tab')
-        .slice(0, 5)
-        .map((tab) => tab.textContent),
+        .getAllByRole('heading', { level: 2 })
+        .map((heading) => heading.textContent),
     ).toEqual([
-      'Overview',
+      'Identity',
       'Visual identity',
       'Writing voice',
       'Strategy',
       'Video',
     ]);
-    expect(screen.getByTestId('brand-kit-local-preview')).toBeInTheDocument();
     expect(
       screen.queryByRole('heading', { name: 'Brand Kit' }),
     ).not.toBeInTheDocument();
+    expect(screen.getByTestId('brand-kit-local-preview')).toBeInTheDocument();
+  });
+
+  it('collapses and restores the preview rail', () => {
+    render(<BrandKitPage />);
+    fireEvent.click(screen.getByRole('button', { name: 'Hide preview' }));
+    expect(
+      screen.queryByTestId('brand-kit-local-preview'),
+    ).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Show preview' }));
+    expect(screen.getByTestId('brand-kit-local-preview')).toBeInTheDocument();
+  });
+
+  it('opens revision history from Review changes only', () => {
+    render(<BrandKitPage />);
     expect(
       screen.queryByText('Revision history and export'),
     ).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Review changes' }));
+    fireEvent.click(
+      within(screen.getByTestId('subbar')).getByRole('button', {
+        name: 'Review changes',
+      }),
+    );
     expect(screen.getByText('Revision history and export')).toBeInTheDocument();
   });
-  it('puts the section tabs and actions in the shared subbar, not in the content', () => {
+
+  it('puts the page actions in the shared subbar', () => {
     render(<BrandKitPage />);
     const subbar = within(screen.getByTestId('subbar'));
-    expect(subbar.getAllByRole('tab')).toHaveLength(5);
     expect(
       subbar.getByRole('button', { name: 'Scan website' }),
     ).toBeInTheDocument();
@@ -212,55 +224,23 @@ describe('Brand Kit workspace', () => {
     }
   });
 
-  it.each(['voice', 'strategy'] as const)(
-    'keeps the live %s editor outside the closed versioned snapshot',
-    (tab) => {
-      mocks.pathname = `/acme/acme/settings/brand-kit/${tab}`;
-      render(<BrandKitPage />);
-      expect(screen.getByText('Writing editor')).toBeInTheDocument();
-      expect(screen.queryByText('Versioned editor')).not.toBeInTheDocument();
-      expect(
-        screen.queryByRole('button', { name: 'Save draft' }),
-      ).not.toBeInTheDocument();
-      expect(
-        screen.queryByText('Unsaved revision changes'),
-      ).not.toBeInTheDocument();
-      fireEvent.click(
-        screen.getByRole('button', { name: 'Versioned identity snapshot' }),
-      );
-      expect(screen.getByText('Writing editor')).toBeInTheDocument();
-      expect(screen.getByText('Versioned editor')).toBeInTheDocument();
-      expect(
-        screen.getByRole('button', { name: 'Save draft' }),
-      ).toBeInTheDocument();
-      expect(screen.getByRole('status')).toHaveTextContent(
-        'Unsaved revision changes',
-      );
-    },
-  );
-
-  it('keeps the visual revision save bar outside the snapshot', () => {
-    mocks.pathname = '/acme/acme/settings/brand-kit/visual';
+  it('edits voice and strategy in their live editors and keeps the revision fields for visual and identity', () => {
     render(<BrandKitPage />);
+    expect(screen.getByText('Live voice editor')).toBeInTheDocument();
+    expect(screen.getByText('Live strategy editor')).toBeInTheDocument();
     expect(
-      screen.queryByRole('button', { name: 'Versioned identity snapshot' }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: 'Save draft' }),
+      screen.getByText('Revision fields: profile, links'),
     ).toBeInTheDocument();
+    expect(screen.getByText('Revision fields: visual')).toBeInTheDocument();
+  });
+
+  it('keeps one save bar for the revision draft', () => {
+    render(<BrandKitPage />);
     expect(screen.getByRole('status')).toHaveTextContent(
       'Unsaved revision changes',
     );
-  });
-
-  it.each([
-    ['Writing voice', '/acme/acme/settings/brand-kit/voice'],
-    ['Video', '/acme/acme/settings/brand-kit/video'],
-    ['Overview', '/acme/acme/settings/brand-kit'],
-  ])('navigates to a path, not a query param, for the %s tab', (name, href) => {
-    mocks.pathname = '/acme/acme/settings/brand-kit/visual';
-    render(<BrandKitPage />);
-    fireEvent.mouseDown(screen.getByRole('tab', { name }), { button: 0 });
-    expect(mocks.push).toHaveBeenCalledWith(href, { scroll: false });
+    expect(screen.getAllByRole('button', { name: 'Save draft' })).toHaveLength(
+      1,
+    );
   });
 });

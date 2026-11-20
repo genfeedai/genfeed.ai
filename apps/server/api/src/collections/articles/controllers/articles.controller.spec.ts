@@ -19,6 +19,14 @@ import { BadRequestException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 
+const { mockResolveBrandContext } = vi.hoisted(() => ({
+  mockResolveBrandContext: vi.fn(),
+}));
+
+vi.mock('@api/collections/articles/utils/article-brand-context.util', () => ({
+  resolveArticleBrandContext: mockResolveBrandContext,
+}));
+
 describe('ArticlesController', () => {
   let controller: ArticlesController;
   let service: ArticlesService;
@@ -67,6 +75,7 @@ describe('ArticlesController', () => {
     getArticleVersions: vi.fn(),
     patch: vi.fn(),
     remove: vi.fn(),
+    prisma: {},
     publicArticleScope: {
       resolveHandle: vi.fn(async (): Promise<string | null> => 'genfeedai'),
     },
@@ -91,6 +100,13 @@ describe('ArticlesController', () => {
     vi.clearAllMocks();
     mockArticlesService.findAll.mockResolvedValue({ docs: [mockArticle] });
     mockConfigService.get.mockReturnValue(undefined);
+    mockResolveBrandContext.mockImplementation(
+      async (
+        _prisma: unknown,
+        _organizationId: string,
+        activeBrandId: string,
+      ) => activeBrandId,
+    );
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [ArticlesController],
@@ -179,6 +195,17 @@ describe('ArticlesController', () => {
       );
 
       expect(isCrossOrgDuringRead).toBe(true);
+    });
+
+    it('does not look the named brand up in the superadmin organization', async () => {
+      await controller.findOne(
+        superAdminRequest,
+        mockUser,
+        mockArticle.id,
+        testId('foreign-brand'),
+      );
+
+      expect(mockResolveBrandContext.mock.calls).toEqual([]);
     });
 
     it('keeps a regular member inside the request tenant', async () => {
@@ -271,6 +298,104 @@ describe('ArticlesController', () => {
       );
       expect(service.update).not.toHaveBeenCalled();
       expect(result).toBeDefined();
+    });
+  });
+
+  describe('brand context', () => {
+    const otherBrand = testId('other-brand');
+
+    beforeEach(() => {
+      mockResolveBrandContext.mockImplementation(
+        async (
+          _prisma: unknown,
+          _organizationId: string,
+          activeBrandId: string,
+          requestedBrandId?: string,
+        ) => requestedBrandId ?? activeBrandId,
+      );
+    });
+
+    it('finds an article in the brand the call names', async () => {
+      let brandSearched: unknown;
+      mockArticlesService.findAll.mockImplementation(
+        async (pipeline: { where: { brandId?: string } }) => {
+          brandSearched = pipeline.where.brandId;
+          return { docs: [mockArticle] };
+        },
+      );
+
+      await controller.findOne(
+        mockRequest,
+        mockUser,
+        mockArticle.id,
+        otherBrand,
+      );
+
+      expect(brandSearched).toBe(otherBrand);
+    });
+
+    it('updates an article in the brand the call names', async () => {
+      let brandUpdated: unknown;
+      mockArticlesService.update.mockImplementation(
+        async (
+          _id: string,
+          _dto: unknown,
+          _userId: string,
+          _organizationId: string,
+          brandId: string,
+        ) => {
+          brandUpdated = brandId;
+          return mockArticle;
+        },
+      );
+
+      await controller.patch(mockRequest, mockUser, mockArticle.id, {
+        brandId: otherBrand,
+        label: 'Renamed',
+      });
+
+      expect(brandUpdated).toBe(otherBrand);
+    });
+
+    it('creates an article in the brand the call names', async () => {
+      let created: Record<string, unknown> = {};
+      mockArticlesService.create.mockImplementation(
+        async (dto: Record<string, unknown>) => {
+          created = dto;
+          return mockArticle;
+        },
+      );
+
+      await controller.create(mockRequest, mockUser, {
+        brandId: otherBrand,
+        label: 'New',
+        slug: 'new',
+        summary: 'Summary',
+      });
+
+      expect({
+        brandId: created.brandId,
+        organizationId: created.organizationId,
+      }).toEqual({
+        brandId: otherBrand,
+        organizationId: mockPublicMetadata.organization,
+      });
+    });
+
+    it('stops when the brand is not usable', async () => {
+      let isUpdated = false;
+      mockArticlesService.update.mockImplementation(async () => {
+        isUpdated = true;
+        return mockArticle;
+      });
+      mockResolveBrandContext.mockRejectedValue(new Error('Brand not found'));
+
+      await expect(
+        controller.patch(mockRequest, mockUser, mockArticle.id, {
+          brandId: otherBrand,
+        }),
+      ).rejects.toThrow('Brand not found');
+      expect(isUpdated).toBe(false);
     });
   });
 

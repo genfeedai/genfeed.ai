@@ -381,6 +381,7 @@ const FROZEN_MCP_PRESENTATIONS = [
     false,
   ],
   ['create_article_draft', 'Create Article Draft', false, true, false, false],
+  ['update_article_draft', 'Update Article Draft', false, true, false, false],
   ['create_brand_from_url', 'Create Brand From Url', false, true, false, false],
   ['create_chat', 'Create Chat', false, true, false, false],
   [

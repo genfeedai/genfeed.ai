@@ -6,6 +6,7 @@ export interface ArticleResponse {
   content: string;
   status: ArticleStatus | 'draft' | 'published' | 'processing';
   wordCount: number;
+  coverImageUrl?: string;
   createdAt: string;
   updatedAt?: string;
 }

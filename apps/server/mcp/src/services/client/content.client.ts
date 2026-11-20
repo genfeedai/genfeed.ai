@@ -7,6 +7,7 @@ import {
 import type {
   ArticleDraftInput,
   ArticlePreviewLink,
+  ArticleUpdateInput,
 } from '@genfeedai/contracts/interfaces/content/article-publishing.interface';
 import type {
   ApiResponse,
@@ -64,6 +65,9 @@ function reviewedArticleResponse(
     title: article.attributes.label ?? '',
     content,
     status: article.attributes.status as ArticleStatus,
+    ...(article.attributes.coverImageUrl
+      ? { coverImageUrl: article.attributes.coverImageUrl }
+      : {}),
     wordCount: countWords(content),
     createdAt: article.attributes.createdAt ?? new Date().toISOString(),
     updatedAt: article.attributes.updatedAt,
@@ -91,6 +95,7 @@ export class ContentClient {
                 ...(params.coverImageUrl
                   ? { coverImageUrl: params.coverImageUrl }
                   : {}),
+                ...(params.brandId ? { brandId: params.brandId } : {}),
                 status: ArticleStatus.DRAFT,
               },
             },
@@ -102,13 +107,38 @@ export class ContentClient {
     );
   }
 
-  getArticlePreview(articleId: string): Promise<ArticlePreviewLink> {
+  updateArticle(params: ArticleUpdateInput): Promise<ArticleResponse> {
+    const { articleId, ...fields } = params;
+    return this.base.request(
+      'updating article',
+      async (http) => {
+        const response = await http.patch<ApiResponse<ArticleResource>>(
+          `/articles/${encodeURIComponent(articleId)}`,
+          {
+            data: {
+              type: 'articles',
+              id: articleId,
+              attributes: fields,
+            },
+          },
+        );
+        return reviewedArticleResponse(response.data.data);
+      },
+      this.base.failWithDetail('Failed to update article'),
+    );
+  }
+
+  getArticlePreview(
+    articleId: string,
+    brandId?: string,
+  ): Promise<ArticlePreviewLink> {
     // Preview links are bearer credentials: do not log the response URL.
     return this.base.request(
       'getting article preview',
       async (http) => {
         const response = await http.get<ArticlePreviewLink>(
           `/articles/${encodeURIComponent(articleId)}/preview-links`,
+          { params: brandId ? { brandId } : undefined },
         );
         return response.data;
       },
@@ -116,7 +146,10 @@ export class ContentClient {
     );
   }
 
-  publishArticle(articleId: string): Promise<ArticleResponse> {
+  publishArticle(
+    articleId: string,
+    brandId?: string,
+  ): Promise<ArticleResponse> {
     return this.base.request(
       'publishing reviewed article',
       async (http) => {
@@ -126,7 +159,10 @@ export class ContentClient {
             data: {
               type: 'articles',
               id: articleId,
-              attributes: { status: ArticleStatus.PUBLISHED },
+              attributes: {
+                status: ArticleStatus.PUBLISHED,
+                ...(brandId ? { brandId } : {}),
+              },
             },
           },
         );
@@ -167,18 +203,23 @@ export class ContentClient {
     );
   }
 
-  getArticle(articleId: string): Promise<ArticleResponse> {
+  getArticle(articleId: string, brandId?: string): Promise<ArticleResponse> {
     this.base.logger.debug(`Getting article: ${articleId}`);
 
     return this.base.request(
       'getting article',
       async (http) => {
-        const response = await http.get(`/articles/${articleId}`);
+        const response = await http.get(`/articles/${articleId}`, {
+          params: brandId ? { brandId } : undefined,
+        });
         const article = response.data?.data;
         const content = article?.attributes?.content || '';
 
         return {
           content,
+          ...(article?.attributes?.coverImageUrl
+            ? { coverImageUrl: article.attributes.coverImageUrl }
+            : {}),
           createdAt: article?.attributes?.createdAt,
           id: article?.id,
           status: article?.attributes?.status || CONTENT_STATUS.PUBLISHED,

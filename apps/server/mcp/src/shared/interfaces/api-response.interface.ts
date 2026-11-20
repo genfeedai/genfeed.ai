@@ -37,6 +37,7 @@ interface ApiResource<TAttributes> {
 interface ArticleAttributes {
   category?: string;
   content?: string;
+  coverImageUrl?: string;
   createdAt?: string;
   id?: string;
   label?: string;

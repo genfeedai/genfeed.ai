@@ -1,7 +1,17 @@
 import type { SourceTool } from '../../../interfaces/source-tool.interface';
 
+const ARTICLE_BRAND_ID_PROPERTY = {
+  description:
+    'Brand the article lives in. Defaults to your active brand; pass it when the article belongs to another brand of the organization.',
+  type: 'string',
+} as const;
+
+const ARTICLE_IMAGE_URL_NOTE =
+  'Use the hosted https url of a Library asset or of a finished media upload.';
+
 const ARTICLE_SELECTOR_PROPERTIES = {
   articleId: { type: 'string' },
+  brandId: { type: 'string' },
   query: { type: 'string' },
   category: { type: 'string' },
   limit: { type: 'number' },
@@ -47,7 +57,62 @@ export const MCP_CONTENT_TOOLS: SourceTool[] = [
         },
         coverImageUrl: {
           type: 'string',
-          description: 'Optional absolute HTTPS cover image URL',
+          description: `Optional absolute HTTPS cover image URL. ${ARTICLE_IMAGE_URL_NOTE}`,
+        },
+        brandId: {
+          description:
+            'Brand that owns the article. Defaults to your active brand.',
+          type: 'string',
+        },
+      },
+    },
+  },
+  {
+    creditCost: 0,
+    description:
+      'Change an existing article in the connected organization: title, slug, summary, HTML content and cover image. Never changes publication status; publish separately. Inline images are <img src> tags in the content HTML that use a hosted Library or upload URL.',
+    mcpDescription:
+      'Update an existing article: label, slug, summary, HTML content and coverImageUrl. Pass only the fields to change. Never publishes. Inline images are <img> tags in content. Pass brandId when the article is not in your active brand.',
+    name: 'update_article_draft',
+    requiredRole: 'user',
+    parameters: {
+      type: 'object',
+      required: ['articleId'],
+      properties: {
+        articleId: {
+          type: 'string',
+          minLength: 1,
+          description: 'Article to update',
+        },
+        brandId: ARTICLE_BRAND_ID_PROPERTY,
+        label: {
+          type: 'string',
+          minLength: 1,
+          maxLength: 200,
+          description: 'New article title',
+        },
+        slug: {
+          type: 'string',
+          minLength: 1,
+          maxLength: 160,
+          pattern: '^[a-z0-9]+(?:-[a-z0-9]+)*$',
+          description: 'New canonical URL slug',
+        },
+        summary: {
+          type: 'string',
+          minLength: 1,
+          maxLength: 500,
+          description: 'New search-facing summary',
+        },
+        content: {
+          type: 'string',
+          minLength: 1,
+          maxLength: 250000,
+          description: `Full replacement article HTML. Put inline images as <img src="https://..."> tags. ${ARTICLE_IMAGE_URL_NOTE}`,
+        },
+        coverImageUrl: {
+          type: 'string',
+          description: `New absolute HTTPS cover image URL. ${ARTICLE_IMAGE_URL_NOTE}`,
         },
       },
     },
@@ -67,6 +132,7 @@ export const MCP_CONTENT_TOOLS: SourceTool[] = [
           minLength: 1,
           description: 'Owned article ID',
         },
+        brandId: ARTICLE_BRAND_ID_PROPERTY,
       },
     },
   },
@@ -87,6 +153,7 @@ export const MCP_CONTENT_TOOLS: SourceTool[] = [
           minLength: 1,
           description: 'Reviewed article ID to publish',
         },
+        brandId: ARTICLE_BRAND_ID_PROPERTY,
       },
     },
   },
@@ -119,6 +186,7 @@ export const MCP_CONTENT_TOOLS: SourceTool[] = [
           pattern: '\\S',
           type: 'string',
         },
+        brandId: ARTICLE_BRAND_ID_PROPERTY,
         query: {
           description: 'Search query over published articles.',
           minLength: 1,

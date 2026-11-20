@@ -101,9 +101,9 @@ describe('computeBrandCompleteness', () => {
 
     const expectedHrefs = {
       identity: '/settings/profile',
-      strategy: '/settings/brand-kit/strategy',
-      visual: '/settings/brand-kit/visual',
-      voice: '/settings/brand-kit/voice',
+      strategy: '/settings/brand-kit#strategy',
+      visual: '/settings/brand-kit#visual',
+      voice: '/settings/brand-kit#voice',
     } as const;
 
     for (const [key, href] of Object.entries(expectedHrefs)) {

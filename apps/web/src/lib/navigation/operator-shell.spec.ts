@@ -153,7 +153,7 @@ describe('operator-shell helpers', () => {
     expect(resolveOrganizationScopePath('/settings/publishing')).toBe(
       '/settings/brands',
     );
-    expect(resolveOrganizationScopePath('/settings/brand-kit/voice')).toBe(
+    expect(resolveOrganizationScopePath('/settings/brand-kit#voice')).toBe(
       '/settings/brands',
     );
     expect(resolveOrganizationScopePath('/settings/brand-kit/setup')).toBe(
