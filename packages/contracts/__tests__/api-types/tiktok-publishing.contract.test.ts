@@ -4,7 +4,10 @@ import {
   getChannelCapability,
   resolveChannelTargetSettings,
 } from '../../src/api-types/contracts/channel-capabilities.contract';
-import { validateTikTokPublishingSettings } from '../../src/api-types/contracts/tiktok-publishing.contract';
+import {
+  tikTokAppliedVisibility,
+  validateTikTokPublishingSettings,
+} from '../../src/api-types/contracts/tiktok-publishing.contract';
 
 describe('TikTok publishing consent', () => {
   it('never supplies privacy or enables interactions for the creator', () => {
@@ -65,5 +68,18 @@ describe('TikTok publishing consent', () => {
     expect(
       validateTikTokPublishingSettings({ ...settings, brandedContent: true }),
     ).toContain('Branded content cannot be private.');
+  });
+});
+
+describe('tikTokAppliedVisibility', () => {
+  it.each([
+    [{ privacyLevel: 'followers' }, 'private'],
+    [{ privacyLevel: 'friends' }, 'private'],
+    [{ privacyLevel: 'private' }, 'private'],
+    [{ privacyLevel: 'public' }, undefined],
+    [{}, undefined],
+    [null, undefined],
+  ])('maps %j to %s', (settings, expected) => {
+    expect(tikTokAppliedVisibility(settings)).toBe(expected);
   });
 });

@@ -5,6 +5,7 @@ import {
   resolveLinkedInVisibility,
 } from '@api/services/integrations/linkedin/services/linkedin.service';
 import { LINKEDIN_MULTI_IMAGE_LIMITS } from '@api/services/integrations/linkedin/services/linkedin-image-upload.util';
+import { resolveLinkedInAppliedVisibility } from '@api/services/integrations/linkedin/utils/linkedin-applied-visibility.util';
 import { BasePublisherService } from '@api/services/integrations/publishers/base-publisher.service';
 import type {
   MediaInfo,
@@ -129,11 +130,14 @@ export class LinkedInPublisherService extends BasePublisherService {
     );
     const externalId = found?.id;
     return externalId
-      ? this.createSuccessResult(
-          externalId,
-          this.platform,
-          this.buildPostUrl(externalId, context.credential),
-        )
+      ? {
+          ...this.createSuccessResult(
+            externalId,
+            this.platform,
+            this.buildPostUrl(externalId, context.credential),
+          ),
+          visibility: resolveLinkedInAppliedVisibility(context.settings),
+        }
       : null;
   }
 
@@ -214,7 +218,10 @@ export class LinkedInPublisherService extends BasePublisherService {
       }
 
       const postUrl = this.buildPostUrl(externalId, credential);
-      return this.createSuccessResult(externalId, this.platform, postUrl);
+      return {
+        ...this.createSuccessResult(externalId, this.platform, postUrl),
+        visibility: resolveLinkedInAppliedVisibility(context.settings),
+      };
     } catch (error: unknown) {
       this.logger.error(`${url} failed to publish`, {
         error: (error as Error)?.message,
