@@ -11,6 +11,8 @@ import { ArrowRight } from 'lucide-react';
  * referral code carried into sign-up.
  */
 export default function MakeYourOwnBanner({
+  articleTitle,
+  creatorName,
   handle,
   referralCode,
 }: MakeYourOwnBannerProps): React.ReactElement {
@@ -24,11 +26,11 @@ export default function MakeYourOwnBanner({
           className="text-lg font-semibold text-foreground"
           id="make-your-own-heading"
         >
-          Want to make your own?
+          Make content like {creatorName}&apos;s
         </h2>
         <p className="text-sm text-foreground/70">
-          Go from a brief to articles, images and videos like these with
-          Genfeed.
+          Go from a brief to articles, images and videos like &ldquo;
+          {articleTitle}&rdquo; with Genfeed.
         </p>
       </div>
       <ButtonTracked
