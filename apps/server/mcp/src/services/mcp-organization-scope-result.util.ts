@@ -20,6 +20,25 @@ export function readNamedBrandId(
   return undefined;
 }
 
+/** The structured result with each card marked with the organization it was created in, so the card polls its job from there. */
+function withCardOrganization(
+  structured: Record<string, unknown> | undefined,
+  organizationId: string,
+): Record<string, unknown> {
+  const view = structured?.genfeedCards as { cards?: unknown } | undefined;
+  if (!Array.isArray(view?.cards)) return structured ?? {};
+  return {
+    ...structured,
+    genfeedCards: {
+      ...view,
+      cards: view.cards.map((card: object) => ({
+        ...card,
+        organization: organizationId,
+      })),
+    },
+  };
+}
+
 /**
  * Names the organization and brand a call acted in, in the text a person reads
  * and in the structured result, so a draft, a scheduled post or a pending
@@ -36,7 +55,7 @@ export function withResultScope<T extends McpAppResult>(
     ...result,
     content: [...result.content, { text, type: 'text' as const }],
     structuredContent: {
-      ...result.structuredContent,
+      ...withCardOrganization(result.structuredContent, scope.organization.id),
       ...(scope.brand ? { brand: scope.brand } : {}),
       organization: scope.organization,
     },

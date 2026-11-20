@@ -14,7 +14,7 @@ function build(canSwitchOrganizations: boolean) {
     canSwitchOrganizations: vi.fn().mockResolvedValue(canSwitchOrganizations),
     executeAgentTool: vi.fn(async () => ({
       creditsUsed: 0,
-      data: { ok: true },
+      data: { ok: true } as Record<string, unknown>,
       success: true,
     })),
     isApprovalRequired: vi.fn().mockResolvedValue(false),
@@ -124,6 +124,32 @@ describe('connection covering several organizations', () => {
     );
   });
 
+  it('marks each card with the organization it was created in', async () => {
+    const { client, registry } = build(true);
+    client.executeAgentTool.mockResolvedValue({
+      creditsUsed: 0,
+      data: { items: [{ id: 'post-1', kind: 'post', title: 'Hello' }] },
+      success: true,
+    });
+
+    const result = (await registry.handleToolCall({
+      arguments: {
+        action: 'posts',
+        input: { brandId: 'brand-b' },
+        organization: 'beta',
+      },
+      name: 'get_content',
+    })) as {
+      structuredContent?: {
+        genfeedCards?: { cards?: { organization?: string }[] };
+      };
+    };
+
+    expect(
+      result.structuredContent?.genfeedCards?.cards?.[0]?.organization,
+    ).toBe('org-b');
+  });
+
   it('marks the named organization active in an organizations listing', async () => {
     const { registry } = build(true);
 
@@ -141,17 +167,30 @@ describe('connection covering several organizations', () => {
     });
   });
 
+  it('refuses an unnamed account read, which would answer from a default organization', async () => {
+    const { client, registry } = build(true);
+
+    const result = (await registry.handleToolCall({
+      arguments: { action: 'account' },
+      name: 'get_context',
+    })) as { isError?: boolean; structuredContent?: { code?: string } };
+
+    expect(result.structuredContent?.code).toBe('organization_required');
+    expect(client.executeAgentTool).not.toHaveBeenCalled();
+  });
+
   it.each([
     { arguments: { action: 'organizations' }, name: 'get_context' },
-    { arguments: { action: 'account' }, name: 'get_context' },
     { arguments: {}, name: 'find_tools' },
   ])('lets $name $arguments through without an organization', async (call) => {
     const { registry } = build(true);
 
     const result = (await registry.handleToolCall(call)) as {
+      isError?: boolean;
       structuredContent?: { code?: string };
     };
 
+    expect(result.isError).toBeFalsy();
     expect(result.structuredContent?.code).not.toBe('organization_required');
   });
 

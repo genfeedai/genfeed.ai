@@ -562,6 +562,33 @@ it('polls a pending job through the host and swaps in the finished video', async
   expect(document.querySelector('[role="progressbar"]')).toBeNull();
 });
 
+it('polls a pending job in the organization its card was created in', async () => {
+  const view = buildCardView('generate', {
+    category: 'VIDEO',
+    id: 'job-1',
+    progress: 40,
+    status: 'PROCESSING',
+  });
+  message('ui/notifications/tool-result', {
+    structuredContent: {
+      genfeedCards: {
+        ...view,
+        cards: view?.cards.map((card) => ({ ...card, organization: 'org-b' })),
+      },
+    },
+  });
+
+  await vi.advanceTimersByTimeAsync(5000);
+  const call = vi
+    .mocked(window.parent.postMessage)
+    .mock.calls.map(([data]) => data as { method?: string; params?: unknown })
+    .find((data) => data.method === 'tools/call');
+  expect(call?.params).toEqual({
+    arguments: { jobId: 'job-1', organization: 'org-b' },
+    name: 'get_job_status',
+  });
+});
+
 it('declares inline and fullscreen display modes at initialization', () => {
   expect(window.parent.postMessage).toHaveBeenCalledWith(
     expect.objectContaining({

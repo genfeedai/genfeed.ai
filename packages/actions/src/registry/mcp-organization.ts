@@ -4,7 +4,7 @@ import type { ToolParameterSchema } from '../interfaces/tool-definition.interfac
 export const MCP_ORGANIZATION_ARGUMENT = 'organization';
 
 export const MCP_ORGANIZATION_DESCRIPTION =
-  'Organization this call acts in: its name, slug or id from get_context(action=organizations). Required when the connection covers several organizations (a call without it is refused with the list of organizations and their brands); a connection limited to one organization refuses any other.';
+  'Organization this call acts in: its name, slug or id from get_context(action=organizations). Required when the connection covers several organizations (a call without it is refused with the list of organizations and their brands); a connection limited to one organization works inside it, so leave this argument out there (naming any organization is refused).';
 
 /** The parameters plus the optional organization every MCP tool accepts. */
 export function withMcpOrganizationArgument(

@@ -17,10 +17,7 @@ export function isOrganizationExemptCall(
   args: Record<string, unknown> | undefined,
 ): boolean {
   if (toolName === 'find_tools' || toolName === 'resolve_approval') return true;
-  return (
-    toolName === 'get_context' &&
-    (args?.action === 'organizations' || args?.action === 'account')
-  );
+  return toolName === 'get_context' && args?.action === 'organizations';
 }
 
 /**
