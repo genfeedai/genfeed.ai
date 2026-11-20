@@ -277,6 +277,7 @@ const MERGED_WRITE_PRESENTATIONS = [
   ['manage_knowledge', 'Manage Knowledge', false, true, false, false],
   ['manage_skill', 'Manage Skill', false, true, false, false],
   ['manage_social', 'Manage Social', false, true, false, true],
+  ['manage_workflow', 'Manage Workflow', false, true, false, true],
   ['manage_workspace', 'Manage Workspace', false, true, false, false],
   ['save_post', 'Save Post', false, true, false, true],
   ['schedule_release', 'Schedule Release', false, true, false, true],

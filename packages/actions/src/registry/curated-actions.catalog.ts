@@ -1395,6 +1395,12 @@ export const CURATED_ACTION_CATALOG = [
     toolset: 'workspace',
   },
   {
+    category: 'workflow',
+    name: 'manage_workflow',
+    surfaces: ['mcp'],
+    toolset: 'workflows',
+  },
+  {
     category: 'other',
     name: 'manage_workspace',
     surfaces: ['mcp'],

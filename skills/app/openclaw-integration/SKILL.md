@@ -80,8 +80,7 @@ Resolve a brand before generation; never invent an identifier or select the firs
 | `check_channel` | Read channel constraints, validate a proposed target, read a brand's connected channels and their health, or check an account connection | `action` (`capabilities`, `validate`, `readiness`, `connection_status` or `linkedin_connection`) | `input` contains original channel parameters; `input.platform` is required for validate and `input.brandId` for readiness |
 | `schedule_release` | Create or update a draft or scheduled release | `action` (`create` or `update`) | `input` holds `release` with title, baseContent, timezone and targets, and `idempotencyKey` |
 | `control_release` | Pause, resume, cancel or publish a release now, or publish an article | `action` (`control` or `publish`) | `input` holds `releaseId` and its own `action` |
-| `create_workflow` | Create an automation workflow | `label` | Discover current workflow fields |
-| `execute_workflow` | Run a saved workflow | `workflowId` | `variables`, `nodeIds`, `respectLocks` |
+| `manage_workflow` | Create, duplicate, install, schedule or run a workflow, or build an ad or Instagram remix workflow | `action` (`create`, `duplicate`, `install`, `schedule`, `execute`, `create_ad_remix` or `create_instagram_remix`) | `input` holds the original parameters, such as `label`, `workflowId`, `variables`, `nodeIds` and `respectLocks`; `execute` spends credits |
 | `find_workflows` | List saved workflows, templates, the system catalog, runs and one workflow | `action` (`list`, `templates`, `catalog`, `runs` or `inspect`) | `input` holds the original parameters, such as `status` and `limit` |
 
 Tool text is readable display content. Use `structuredContent.data` for identifiers
