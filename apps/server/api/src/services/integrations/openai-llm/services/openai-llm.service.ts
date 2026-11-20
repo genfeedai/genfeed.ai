@@ -1,4 +1,5 @@
 import { MissingProviderKeyException } from '@api/helpers/exceptions/missing-provider-key/missing-provider-key.exception';
+import { buildOpenAiSamplingParams } from '@api/services/integrations/llm/model-sampling.util';
 import type {
   OpenRouterChatCompletionParams,
   OpenRouterChatCompletionResponse,
@@ -139,23 +140,13 @@ export class OpenAiLlmService {
       const messages = this.convertMessages(params.messages);
       const tools = this.convertTools(params.tools);
 
-      // Reasoning models (o3, o4-mini) don't support temperature or max_tokens
-      const isReasoningModel = model.startsWith('o3') || model.startsWith('o4');
-
       const requestParams: Record<string, unknown> = {
         messages,
         model,
         stream: false,
       };
 
-      if (!isReasoningModel) {
-        if (params.temperature !== undefined) {
-          requestParams.temperature = params.temperature;
-        }
-        if (params.max_tokens !== undefined) {
-          requestParams.max_tokens = params.max_tokens;
-        }
-      }
+      Object.assign(requestParams, buildOpenAiSamplingParams(model, params));
 
       // Structured outputs on OpenAI, and guided decoding on the `local/`
       // vLLM server, both read the same OpenAI-shaped `response_format`.
@@ -260,22 +251,13 @@ export class OpenAiLlmService {
       const messages = this.convertMessages(params.messages);
       const tools = this.convertTools(params.tools);
 
-      const isReasoningModel = model.startsWith('o3') || model.startsWith('o4');
-
       const requestParams: Record<string, unknown> = {
         messages,
         model,
         stream: true,
       };
 
-      if (!isReasoningModel) {
-        if (params.temperature !== undefined) {
-          requestParams.temperature = params.temperature;
-        }
-        if (params.max_tokens !== undefined) {
-          requestParams.max_tokens = params.max_tokens;
-        }
-      }
+      Object.assign(requestParams, buildOpenAiSamplingParams(model, params));
 
       if (tools) {
         requestParams.tools = tools;
@@ -332,8 +314,6 @@ export class OpenAiLlmService {
       const messages = this.convertMessages(params.messages);
       const tools = this.convertTools(params.tools);
 
-      const isReasoningModel = model.startsWith('o3') || model.startsWith('o4');
-
       const requestParams: Record<string, unknown> = {
         messages,
         model,
@@ -341,14 +321,7 @@ export class OpenAiLlmService {
         stream_options: { include_usage: true },
       };
 
-      if (!isReasoningModel) {
-        if (params.temperature !== undefined) {
-          requestParams.temperature = params.temperature;
-        }
-        if (params.max_tokens !== undefined) {
-          requestParams.max_tokens = params.max_tokens;
-        }
-      }
+      Object.assign(requestParams, buildOpenAiSamplingParams(model, params));
 
       if (tools) {
         requestParams.tools = tools;

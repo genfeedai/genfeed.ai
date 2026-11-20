@@ -23,7 +23,6 @@ import {
   SpeedTier,
 } from '..';
 import {
-  AGENT_CHAT_MODEL_KEYS,
   AGENT_CHAT_MODELS,
   AGENT_FALLBACK_ROUND_CREDITS,
   calculateAgentRoundCredits,
@@ -422,9 +421,7 @@ function buildAgentCatalogEntries(): ModelCatalogSeedEntry[] {
       isDefault,
       isHighlighted: isDefault,
       lifecycle:
-        isDefault ||
-        model.key === HIGHLIGHTED_AGENT_CHAT_MODEL_KEY ||
-        model.key === AGENT_CHAT_MODEL_KEYS.GPT_5_6_SOL
+        isDefault || model.key === HIGHLIGHTED_AGENT_CHAT_MODEL_KEY
           ? ModelLifecycle.RECOMMENDED
           : ModelLifecycle.AVAILABLE,
       isPublic: !isSelfHosted,

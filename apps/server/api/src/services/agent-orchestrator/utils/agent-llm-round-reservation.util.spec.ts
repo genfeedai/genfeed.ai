@@ -28,7 +28,7 @@ const createRegistry = async () => {
             cost: model.creditCostPerRound,
             inputCostPerMillionTokens: model.pricing.promptPerMillion,
             isActive: true,
-            isDefault: model.key === AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_FLASH,
+            isDefault: model.key === AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_1_FLASH,
             isDiscovered: false,
             isFree: model.isFree ?? false,
             key: model.key,
@@ -182,9 +182,9 @@ describe('runReservedAgentLlmRound exact-cost settlement', () => {
       maximumCredits: 30,
       organizationId: 'org-1',
       pricer: registry,
-      requestedModel: AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_FLASH,
+      requestedModel: AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_1_FLASH,
       run: async () =>
-        response(AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_FLASH, { cost: 0.000842 }),
+        response(AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_1_FLASH, { cost: 0.000842 }),
       waived: false,
     });
 
@@ -197,7 +197,7 @@ describe('runReservedAgentLlmRound exact-cost settlement', () => {
         idempotencyKey: 'run-1:agent-llm-round:1',
         metadata: expect.objectContaining({
           costSource: 'provider_reported',
-          model: AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_FLASH,
+          model: AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_1_FLASH,
           promptTokens: 10_000,
           providerCostUsd: 0.000842,
         }),
@@ -226,7 +226,7 @@ describe('runReservedAgentLlmRound exact-cost settlement', () => {
       pricer: registry,
       requestedModel: AGENT_CHAT_MODEL_KEYS.OPENROUTER_AUTO,
       run: async () =>
-        response(AGENT_CHAT_MODEL_KEYS.CLAUDE_SONNET_5, { cost: 0.01 }),
+        response(AGENT_CHAT_MODEL_KEYS.CLAUDE_SONNET_5_5, { cost: 0.01 }),
       waived: false,
     });
 
@@ -235,9 +235,9 @@ describe('runReservedAgentLlmRound exact-cost settlement', () => {
   });
 
   it.each([
-    [AGENT_CHAT_MODEL_KEYS.CLAUDE_SONNET_5, 'claude-sonnet-5'],
-    [AGENT_CHAT_MODEL_KEYS.CLAUDE_OPUS_5, 'anthropic/claude-opus-5'],
-    [AGENT_CHAT_MODEL_KEYS.GPT_5_6_TERRA, 'openai/gpt-5.6-terra'],
+    [AGENT_CHAT_MODEL_KEYS.CLAUDE_SONNET_5_5, 'claude-sonnet-5'],
+    [AGENT_CHAT_MODEL_KEYS.CLAUDE_OPUS_5_5, 'anthropic/claude-opus-5'],
+    [AGENT_CHAT_MODEL_KEYS.GPT_6_1_TERRA, 'openai/gpt-5.6-terra'],
   ])(
     'prices a native %s round (answered as %s) from usage tokens × catalogue $/1M',
     async (requestedModel, responseModel) => {
@@ -284,9 +284,9 @@ describe('runReservedAgentLlmRound exact-cost settlement', () => {
       maximumCredits: 50,
       organizationId: 'org-1',
       pricer: registry,
-      requestedModel: AGENT_CHAT_MODEL_KEYS.CLAUDE_OPUS_5,
+      requestedModel: AGENT_CHAT_MODEL_KEYS.CLAUDE_OPUS_5_5,
       run: async () =>
-        response(AGENT_CHAT_MODEL_KEYS.CLAUDE_OPUS_5, {
+        response(AGENT_CHAT_MODEL_KEYS.CLAUDE_OPUS_5_5, {
           cost: 0.2,
           is_byok: true,
         }),
@@ -319,7 +319,7 @@ describe('runReservedAgentLlmRound exact-cost settlement', () => {
       pricer: registry,
       requestedModel: AGENT_CHAT_MODEL_KEYS.OPENROUTER_AUTO,
       run: async () =>
-        response(AGENT_CHAT_MODEL_KEYS.CLAUDE_OPUS_5, { cost: 0.05 }),
+        response(AGENT_CHAT_MODEL_KEYS.CLAUDE_OPUS_5_5, { cost: 0.05 }),
       waived: false,
     });
 
@@ -360,9 +360,9 @@ describe('runReservedAgentLlmRound exact-cost settlement', () => {
       maximumCredits: 10,
       organizationId: 'org-1',
       pricer: registry,
-      requestedModel: AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_FLASH,
+      requestedModel: AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_1_FLASH,
       run: async () =>
-        response(AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_FLASH, { cost: 0.001 }),
+        response(AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_1_FLASH, { cost: 0.001 }),
       waived: true,
     });
 

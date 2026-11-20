@@ -144,7 +144,7 @@ describe('AgentChatModelRegistryService', () => {
           row({
             cost: 1,
             isDefault: true,
-            key: 'deepseek/deepseek-v4-flash-0731',
+            key: 'deepseek/deepseek-v4.1-flash-1017',
             lifecycle: ModelLifecycle.AVAILABLE,
           }),
         ]),
@@ -157,10 +157,10 @@ describe('AgentChatModelRegistryService', () => {
     await service.refresh();
 
     await expect(service.getDefaultModelKey()).resolves.toBe(
-      'deepseek/deepseek-v4-flash-0731',
+      'deepseek/deepseek-v4.1-flash-1017',
     );
     await expect(service.resolveModelKey(undefined)).resolves.toBe(
-      'deepseek/deepseek-v4-flash-0731',
+      'deepseek/deepseek-v4.1-flash-1017',
     );
   });
 
@@ -448,7 +448,7 @@ describe('AgentChatModelRegistryService round pricing', () => {
     AGENT_CHAT_MODELS.map((model) =>
       row({
         cost: model.creditCostPerRound,
-        isDefault: model.key === AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_FLASH,
+        isDefault: model.key === AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_1_FLASH,
         isFree: model.isFree ?? false,
         key: model.key,
         label: model.label,
@@ -483,7 +483,7 @@ describe('AgentChatModelRegistryService round pricing', () => {
     await expect(
       service.getRoundCredits('vendor/brand-new'),
     ).resolves.toBeGreaterThan(
-      catalogCredits(AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_FLASH) ?? 0,
+      catalogCredits(AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_1_FLASH) ?? 0,
     );
   });
 
@@ -521,21 +521,21 @@ describe('AgentChatModelRegistryService round pricing', () => {
     await expect(
       service.calculateRoundProviderCostUsd({
         ...usage,
-        requestedModel: AGENT_CHAT_MODEL_KEYS.CLAUDE_SONNET_5,
+        requestedModel: AGENT_CHAT_MODEL_KEYS.CLAUDE_SONNET_5_5,
         responseModel: 'claude-sonnet-5',
       }),
     ).resolves.toBeCloseTo(
-      catalogCostUsd(AGENT_CHAT_MODEL_KEYS.CLAUDE_SONNET_5),
+      catalogCostUsd(AGENT_CHAT_MODEL_KEYS.CLAUDE_SONNET_5_5),
       12,
     );
     await expect(
       service.calculateRoundProviderCostUsd({
         ...usage,
-        requestedModel: AGENT_CHAT_MODEL_KEYS.CLAUDE_OPUS_5,
+        requestedModel: AGENT_CHAT_MODEL_KEYS.CLAUDE_OPUS_5_5,
         responseModel: 'claude-opus-5',
       }),
     ).resolves.toBeCloseTo(
-      catalogCostUsd(AGENT_CHAT_MODEL_KEYS.CLAUDE_OPUS_5),
+      catalogCostUsd(AGENT_CHAT_MODEL_KEYS.CLAUDE_OPUS_5_5),
       12,
     );
   });
@@ -546,11 +546,11 @@ describe('AgentChatModelRegistryService round pricing', () => {
     await expect(
       service.calculateRoundProviderCostUsd({
         ...usage,
-        requestedModel: AGENT_CHAT_MODEL_KEYS.GPT_5_6_TERRA,
-        responseModel: AGENT_CHAT_MODEL_KEYS.CLAUDE_OPUS_5,
+        requestedModel: AGENT_CHAT_MODEL_KEYS.GPT_6_1_TERRA,
+        responseModel: AGENT_CHAT_MODEL_KEYS.CLAUDE_OPUS_5_5,
       }),
     ).resolves.toBeCloseTo(
-      catalogCostUsd(AGENT_CHAT_MODEL_KEYS.CLAUDE_OPUS_5),
+      catalogCostUsd(AGENT_CHAT_MODEL_KEYS.CLAUDE_OPUS_5_5),
       12,
     );
   });
@@ -561,11 +561,11 @@ describe('AgentChatModelRegistryService round pricing', () => {
     await expect(
       service.calculateRoundProviderCostUsd({
         ...usage,
-        requestedModel: AGENT_CHAT_MODEL_KEYS.CLAUDE_OPUS_5,
+        requestedModel: AGENT_CHAT_MODEL_KEYS.CLAUDE_OPUS_5_5,
         responseModel: 'anthropic/claude-opus-5-20260901',
       }),
     ).resolves.toBeCloseTo(
-      catalogCostUsd(AGENT_CHAT_MODEL_KEYS.CLAUDE_OPUS_5),
+      catalogCostUsd(AGENT_CHAT_MODEL_KEYS.CLAUDE_OPUS_5_5),
       12,
     );
   });
@@ -573,7 +573,7 @@ describe('AgentChatModelRegistryService round pricing', () => {
   it('prefers the registry row token price over the contract catalogue', async () => {
     const service = await createService(
       catalogRows().map((entry) =>
-        entry.key === AGENT_CHAT_MODEL_KEYS.CLAUDE_SONNET_5
+        entry.key === AGENT_CHAT_MODEL_KEYS.CLAUDE_SONNET_5_5
           ? {
               ...entry,
               inputCostPerMillionTokens: 4,
@@ -586,7 +586,7 @@ describe('AgentChatModelRegistryService round pricing', () => {
     await expect(
       service.calculateRoundProviderCostUsd({
         ...usage,
-        requestedModel: AGENT_CHAT_MODEL_KEYS.CLAUDE_SONNET_5,
+        requestedModel: AGENT_CHAT_MODEL_KEYS.CLAUDE_SONNET_5_5,
       }),
     ).resolves.toBeCloseTo(0.04 + 0.04, 12);
   });
@@ -624,12 +624,14 @@ describe('AgentChatModelRegistryService round pricing', () => {
     const service = await createService();
     const estimates = await service.getMessageCostEstimatesMap();
 
-    expect(estimates[AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_FLASH]).toBeGreaterThan(
-      0,
+    expect(
+      estimates[AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_1_FLASH],
+    ).toBeGreaterThan(0);
+    expect(estimates[AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_1_FLASH]).toBeLessThan(
+      1,
     );
-    expect(estimates[AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_FLASH]).toBeLessThan(1);
-    expect(estimates[AGENT_CHAT_MODEL_KEYS.CLAUDE_OPUS_5]).toBeGreaterThan(
-      estimates[AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_FLASH],
+    expect(estimates[AGENT_CHAT_MODEL_KEYS.CLAUDE_OPUS_5_5]).toBeGreaterThan(
+      estimates[AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_1_FLASH],
     );
     expect(estimates[AGENT_CHAT_MODEL_KEYS.OPENROUTER_FREE]).toBe(0);
   });

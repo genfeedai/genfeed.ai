@@ -25,7 +25,7 @@ Synthetic stub example:
 
 ```sh
 OUT="${TMPDIR:?}/4924-verify" && G=apps/server/api/test/fixtures/content-evals/golden
-bun run eval:content -- --suite=judge --dispatcher=stub --judge=openai/gpt-5.6-luna --cross-family-judges=openai/gpt-5.6-luna --brand-context=scripts/content-eval/calibration/fixtures/brand-context.synthetic.json --max-credits=100 --fixture=$G/social-post.synthetic.jsonl,$G/thread.synthetic.jsonl,$G/article.synthetic.jsonl,$G/script.synthetic.jsonl,$G/newsletter.synthetic.jsonl,$G/image-caption.synthetic.jsonl --out="$OUT/stub-judge.json" --calibration-summary-out="$OUT/stub-summary.json"; echo "exit=$?"
+bun run eval:content -- --suite=judge --dispatcher=stub --judge=openai/gpt-6-luna --cross-family-judges=openai/gpt-6-luna --brand-context=scripts/content-eval/calibration/fixtures/brand-context.synthetic.json --max-credits=100 --fixture=$G/social-post.synthetic.jsonl,$G/thread.synthetic.jsonl,$G/article.synthetic.jsonl,$G/script.synthetic.jsonl,$G/newsletter.synthetic.jsonl,$G/image-caption.synthetic.jsonl --out="$OUT/stub-judge.json" --calibration-summary-out="$OUT/stub-summary.json"; echo "exit=$?"
 jq '[.aborted, .fixture.rowCount]' "$OUT/stub-judge.json"
 bun scripts/content-eval/calibration/quote.ts --report="$OUT/stub-judge.json" > "$OUT/quote-synthetic.json"
 ```
@@ -147,7 +147,7 @@ USD rounds to 1e-6. `perRowExpectedUsd` is expected USD divided by row count
 `Math.ceil(usdToCredits(capUsd))`.
 
 The a-priori estimate for ≥600 private rows and about 200 pairs, with
-`openai/gpt-5.6-luna` as both harness and cross-family key, is:
+`openai/gpt-6-luna` as both harness and cross-family key, is:
 
 | Arm | Estimated cost |
 |---|---|

@@ -10,6 +10,7 @@ import {
 } from '@api/collections/workflows/system-workflow-runner.service';
 import { toWorkflowInputDocument } from '@api/collections/workflows/utils/workflow-input-document.util';
 import { SystemWorkflowRetention } from '@api/collections/workflows/workflow-execution-retention.contract';
+import { TEXT_GENERATION_LIMITS } from '@api/constants/text-generation-limits.constant';
 import { SecurityUtil } from '@api/helpers/utils/security/security.util';
 import { AgentContextAssemblyService } from '@api/services/agent-context-assembly/agent-context-assembly.service';
 import {
@@ -310,7 +311,7 @@ export class ContentGeneratorService implements OnModuleInit {
     private readonly harnessGenerationService?: HarnessGenerationService,
     @Optional() private readonly moduleRef?: ModuleRef,
   ) {
-    this.defaultModel = LLM_DEFAULTS.background;
+    this.defaultModel = LLM_DEFAULTS.contentWriting;
   }
 
   onModuleInit(): void {
@@ -888,7 +889,7 @@ Return one variation per post.`;
   ): Promise<TResult> {
     return this.llmDispatcherService.completeStructured(
       {
-        max_tokens: 2000,
+        max_tokens: TEXT_GENERATION_LIMITS.contentGeneration,
         messages: [
           ...(systemPrompt
             ? [{ content: systemPrompt, role: 'system' as const }]

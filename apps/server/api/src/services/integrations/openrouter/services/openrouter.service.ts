@@ -1,4 +1,5 @@
 import { MissingProviderKeyException } from '@api/helpers/exceptions/missing-provider-key/missing-provider-key.exception';
+import { modelAcceptsTemperature } from '@api/services/integrations/llm/model-sampling.util';
 import {
   OPENROUTER_FIRST_PARTY_PROVIDER_POLICY,
   type OpenRouterChatCompletionEvidence,
@@ -110,8 +111,15 @@ export class OpenRouterService {
   private withRetentionPolicy(
     params: OpenRouterChatCompletionParams,
   ): OpenRouterChatCompletionParams {
+    const { temperature, ...rest } = params;
+
     return {
-      ...params,
+      ...rest,
+      // Claude and the reasoning-era OpenAI models do not list `temperature`.
+      // With `require_parameters` set, sending it leaves no provider to route to.
+      ...(temperature !== undefined && modelAcceptsTemperature(params.model)
+        ? { temperature }
+        : {}),
       ...(params.reasoning === undefined &&
       LOW_EFFORT_REASONING_MODELS.has(params.model)
         ? { reasoning: { effort: 'low' } }
@@ -119,7 +127,12 @@ export class OpenRouterService {
       provider: {
         ...params.provider,
         ...OPENROUTER_FIRST_PARTY_PROVIDER_POLICY,
-        ...(params.tools?.length ? { require_parameters: true } : {}),
+        // A schema needs a provider that enforces it. Claude on Bedrock private
+        // endpoints has no structured outputs, so without this OpenRouter may
+        // pick one and the response comes back unconstrained.
+        ...(params.tools?.length || params.response_format
+          ? { require_parameters: true }
+          : {}),
       },
     };
   }

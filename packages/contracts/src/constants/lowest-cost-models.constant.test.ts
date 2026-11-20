@@ -23,7 +23,7 @@ describe('lowest-cost model keys', () => {
       MODEL_KEYS.REPLICATE_PRUNAAI_P_VIDEO,
     );
     expect(LOWEST_COST_AGENT_CHAT_MODEL_KEY).toBe(
-      AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_FLASH,
+      AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_1_FLASH,
     );
   });
 
@@ -123,7 +123,7 @@ describe('deployment fallback model keys', () => {
       MODEL_KEYS.REPLICATE_MINIMAX_H3,
     );
     expect(getFallbackAgentChatModelKey(input)).toBe(
-      AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_FLASH,
+      AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_1_FLASH,
     );
   });
 
