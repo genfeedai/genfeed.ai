@@ -1746,6 +1746,12 @@ export const CURATED_ACTION_CATALOG = [
     toolset: 'inspiration',
   },
   {
+    category: 'other',
+    name: 'run_video_project',
+    surfaces: ['mcp'],
+    toolset: 'clipper',
+  },
+  {
     actionClass: 'brand-context',
     category: 'generation',
     mcpBrandRequired: true,

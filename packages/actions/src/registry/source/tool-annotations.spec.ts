@@ -282,6 +282,7 @@ const MERGED_WRITE_PRESENTATIONS = [
   ['manage_social', 'Manage Social', false, true, false, true],
   ['manage_workflow', 'Manage Workflow', false, true, false, true],
   ['manage_workspace', 'Manage Workspace', false, true, false, false],
+  ['run_video_project', 'Run Video Project', false, true, false, true],
   ['save_post', 'Save Post', false, true, false, true],
   ['run_remix', 'Run Remix', false, true, false, true],
   ['save_remix', 'Save Remix', false, true, false, true],
