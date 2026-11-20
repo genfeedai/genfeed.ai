@@ -472,7 +472,7 @@ export const SELF_HOSTED_MODELS = [
     description:
       'PrunaAI P-Video — cheapest text-to-video (T2V/I2V, draft mode). Use for local and e2e.',
     isDefault: false,
-    isHighlighted: true,
+    isHighlighted: false,
     key: MODEL_KEYS.REPLICATE_PRUNAAI_P_VIDEO,
     label: 'P-Video',
     minCost: 10,
@@ -480,6 +480,29 @@ export const SELF_HOSTED_MODELS = [
     provider: ModelProvider.REPLICATE,
     providerConfig: { name: 'p-video', owner: 'prunaai' },
     providerCostUsd: 0.02,
+  },
+  /**
+   * P-Video 2 — Replicate list $0.03/s at 720p, $0.06/s at 1080p (draft mode
+   * halves both). Seeded at the 720p base rate, 1.5x P-Video.
+   */
+  {
+    category: ModelCategory.VIDEO,
+    cost: 53,
+    costPerUnit: 11,
+    costTier: CostTier.LOW,
+    qualityTier: QualityTier.BASIC,
+    speedTier: SpeedTier.FAST,
+    description:
+      'PrunaAI P-Video 2 — quality-focused text-to-video and image-to-video, up to 1080p.',
+    isDefault: false,
+    isHighlighted: true,
+    key: MODEL_KEYS.REPLICATE_PRUNAAI_P_VIDEO_2,
+    label: 'P-Video 2',
+    minCost: 15,
+    pricingType: PricingType.PER_SECOND,
+    provider: ModelProvider.REPLICATE,
+    providerConfig: { name: 'p-video-2', owner: 'prunaai' },
+    providerCostUsd: 0.03,
   },
   /**
    * Seedream 5 Pro — Replicate list $0.045/img (1K) / $0.09/img (2K).

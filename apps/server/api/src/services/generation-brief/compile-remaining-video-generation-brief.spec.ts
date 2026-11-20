@@ -37,6 +37,39 @@ describe('compileRemainingVideoGenerationBrief', () => {
     expect(result.dispatch.duration).toBe(8);
   });
 
+  it('compiles P-Video 2 with the first frame, resolution and prompt upsampling', () => {
+    const brief = videoGenerationBriefSchema.parse({
+      constraints: [],
+      fidelityMode: 'off',
+      intent: { objective: 'a product spinning on a table' },
+      mediaKind: 'video',
+      output: {
+        aspectRatio: '9:16',
+        durationSeconds: 12,
+        resolution: '1080p',
+      },
+      references: [
+        { assetId: 'https://cdn.example.com/start.png', role: 'first_frame' },
+      ],
+      version: 1,
+    });
+
+    const result = compileRemainingVideoGenerationBrief({
+      brief,
+      family: familyFor(MODEL_KEYS.REPLICATE_PRUNAAI_P_VIDEO_2),
+      modelKey: MODEL_KEYS.REPLICATE_PRUNAAI_P_VIDEO_2,
+    });
+
+    expect(result.dispatch).toEqual({
+      aspect_ratio: '9:16',
+      duration: 10,
+      image: 'https://cdn.example.com/start.png',
+      prompt: 'a product spinning on a table',
+      prompt_upsampling: true,
+      resolution: '1080p',
+    });
+  });
+
   it('appends brandContext to the prompt and evidence when present (#4676)', () => {
     const brief = videoGenerationBriefSchema.parse({
       constraints: [],
