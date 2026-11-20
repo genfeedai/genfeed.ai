@@ -2,7 +2,6 @@ import { describe, expect, test } from 'vitest';
 import { CredentialPlatform, SocialWarmupSignalStatus } from '../../src';
 import { TIKTOK_SOCIAL_WARMUP_BLUEPRINT } from '../../src/api-types/contracts/social-warmup-blueprint.contract';
 import {
-  buildSocialWarmupRequiredCheckHoldReason,
   evaluateSocialWarmupJourney,
   getSocialWarmupElapsedDays,
   listBlockingSocialWarmupChecks,
@@ -43,7 +42,7 @@ describe('social warm-up journey contract', () => {
     expect(checks.some((check) => check.kind === 'graduation')).toBe(true);
   });
 
-  test('holds publishing while required native-app checks are incomplete', () => {
+  test('lists required native-app checks as incomplete and blocks graduation', () => {
     const blocking = listBlockingSocialWarmupChecks(
       TIKTOK_SOCIAL_WARMUP_BLUEPRINT,
       enrollment(),
@@ -59,13 +58,9 @@ describe('social warm-up journey contract', () => {
       platform: CredentialPlatform.TIKTOK,
     });
     expect(evaluation.isGraduated).toBe(false);
-    expect(evaluation.holdReason).toMatch(
-      /required warm-up checks are incomplete/i,
+    expect(evaluation.blockingChecks.map((check) => check.title)).toContain(
+      'Use TikTok manually',
     );
-    expect(evaluation.holdReason).toMatch(
-      /does not guarantee reach or safety/i,
-    );
-    expect(evaluation.holdReason).toMatch(/Use TikTok manually/i);
   });
 
   test('does not block required_when_available checks that are permission-limited', () => {
@@ -110,7 +105,6 @@ describe('social warm-up journey contract', () => {
     expect(ready.blockingChecks).toEqual([]);
     expect(ready.isReadyToGraduate).toBe(true);
     expect(ready.isGraduated).toBe(true);
-    expect(ready.holdReason).toBeUndefined();
 
     const tooSoon = evaluateSocialWarmupJourney({
       blueprint: TIKTOK_SOCIAL_WARMUP_BLUEPRINT,
@@ -137,22 +131,6 @@ describe('social warm-up journey contract', () => {
   test('counts elapsed days from the enrollment start without using credential createdAt', () => {
     expect(getSocialWarmupElapsedDays('2026-08-08T10:00:00.000Z', NOW)).toBe(7);
     expect(getSocialWarmupElapsedDays('not-a-date', NOW)).toBe(1);
-  });
-
-  test('builds an actionable hold reason that is not a reach guarantee', () => {
-    const reason = buildSocialWarmupRequiredCheckHoldReason('tiktok', [
-      { title: 'Use TikTok manually' },
-      { title: 'Watch niche content' },
-      { title: 'Like and save selectively' },
-      { title: 'Follow relevant creators' },
-    ]);
-    expect(reason).toMatch(
-      /Use TikTok manually; Watch niche content; Like and save selectively/,
-    );
-    expect(reason).toMatch(/and 1 more required check/);
-    expect(reason.toLowerCase()).not.toMatch(
-      /guarantees (reach|distribution|safety)/,
-    );
   });
 
   test('strips tokens and secrets from telemetry payloads', () => {

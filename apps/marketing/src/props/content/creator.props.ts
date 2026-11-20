@@ -138,6 +138,10 @@ export interface CommunityCreatorCardProps {
 }
 
 export interface MakeYourOwnBannerProps {
+  /** The article the reader just finished, named in the copy. */
+  articleTitle: string;
+  /** The creator's display name, named in the headline. */
+  creatorName: string;
   /** The creator whose page the reader is on, for tracking. */
   handle: string;
   /** The creator's referral code, carried into sign-up. */

@@ -19,7 +19,6 @@ import { CredentialsService } from '@services/organization/credentials.service';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import Loading from '@ui/loading/default/Loading';
 import { Alert, AlertActions, AlertDescription } from '@ui/primitives/alert';
-import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { EmptyState } from '@ui/primitives/empty-state';
 import Image from 'next/image';
@@ -200,9 +199,6 @@ function AccountGridLaneColumn({
             {translate('queued', { count: lane.queuedCount })}
           </p>
         </div>
-        {lane.account.holdPublishing ? (
-          <Badge variant="warning">{translate('hold')}</Badge>
-        ) : null}
       </header>
 
       <div className="flex flex-col gap-3 p-3">

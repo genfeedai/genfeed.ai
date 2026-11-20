@@ -34,22 +34,11 @@ export interface AccountHealthReconnect {
   reason: AccountHealthReconnectReason;
 }
 
-export interface AccountHealthOverride {
-  confirmedAt?: string;
-  confirmedByUserId?: string;
-  expiresAt?: string;
-  isActive: boolean;
-  reason?: string;
-}
-
 export interface AccountHealthSummary {
   assessedAt?: string;
   credentialId: string;
   handle?: string;
-  holdPublishing: boolean;
-  holdReason?: string;
   label: string;
-  override: AccountHealthOverride;
   platform: CredentialPlatform;
   reconnect?: AccountHealthReconnect;
   riskLevel: AccountHealthRiskLevel;
@@ -62,10 +51,4 @@ export interface AccountHealthSummary {
 export interface AssessAccountHealthRequest {
   signals?: Partial<AccountHealthSignals>;
   thresholds?: Partial<AccountHealthThresholds>;
-}
-
-export interface ManualAccountHealthOverrideRequest {
-  confirm: true;
-  expiresAt?: string;
-  reason: string;
 }

@@ -26,7 +26,7 @@ export function isCredentialAtRisk(
   if (!account) {
     return false;
   }
-  return account.holdPublishing || Boolean(account.reconnect?.isAvailable);
+  return Boolean(account.reconnect?.isAvailable);
 }
 
 /**

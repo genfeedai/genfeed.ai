@@ -109,10 +109,7 @@ describe('AccountPublishingContextService', () => {
     });
     accountHealthService.assessCredentialHealth.mockResolvedValue({
       credentialId,
-      holdPublishing: true,
-      holdReason: 'twitter publishing is held for warmup.',
       label: 'Founder X',
-      override: { isActive: false },
       platform: CredentialPlatform.TWITTER,
       riskLevel: 'medium',
       score: 56,

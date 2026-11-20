@@ -14,7 +14,7 @@ import { useEffect, useState } from 'react';
 import type { ReleaseRailAccountsProps } from '@/features/posts/props/release-rail.props';
 
 function isAccountAtRisk(account: AccountHealthSummary): boolean {
-  return account.holdPublishing || Boolean(account.reconnect?.isAvailable);
+  return Boolean(account.reconnect?.isAvailable);
 }
 
 export default function ReleaseRailAccounts({

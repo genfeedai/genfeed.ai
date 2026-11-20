@@ -4,11 +4,19 @@ import MakeYourOwnBanner from './MakeYourOwnBanner';
 
 describe('MakeYourOwnBanner', () => {
   it('invites the reader to sign up with the creator referral code', () => {
-    render(<MakeYourOwnBanner handle="acme" referralCode="frend2345xyz" />);
+    render(
+      <MakeYourOwnBanner
+        articleTitle="Vibe editing"
+        creatorName="Vincent"
+        handle="acme"
+        referralCode="frend2345xyz"
+      />,
+    );
 
     expect(
-      screen.getByRole('heading', { name: 'Want to make your own?' }),
+      screen.getByRole('heading', { name: "Make content like Vincent's" }),
     ).toBeInTheDocument();
+    expect(screen.getByText(/like “Vibe editing” with Genfeed/)).toBeVisible();
     const url = new URL(
       screen
         .getByRole('link', { name: 'Start creating' })
@@ -19,7 +27,13 @@ describe('MakeYourOwnBanner', () => {
   });
 
   it('offers plain sign-up when the creator has no code', () => {
-    render(<MakeYourOwnBanner handle="acme" />);
+    render(
+      <MakeYourOwnBanner
+        articleTitle="Vibe editing"
+        creatorName="Vincent"
+        handle="acme"
+      />,
+    );
 
     const url = new URL(
       screen

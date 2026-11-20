@@ -116,7 +116,6 @@ export class ProviderAccountPurgeService {
           refreshTokenExpiry: null,
           username: null,
           warmupAssessedAt: null,
-          warmupHoldReason: null,
           warmupRiskLevel: 'unknown',
           warmupScore: 0,
           warmupSignals: {},
