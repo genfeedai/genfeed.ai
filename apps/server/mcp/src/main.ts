@@ -29,7 +29,6 @@ import { RateLimitService } from '@mcp/services/rate-limit.service';
 import { StreamableHttpService } from '@mcp/services/streamable-http.service';
 import { mcpAccessModeMiddleware } from '@mcp/shared/middleware/mcp-access-mode.middleware';
 import { createMcpAuthMiddleware } from '@mcp/shared/middleware/mcp-auth.middleware';
-import { toolsetsQueryMiddleware } from '@mcp/shared/middleware/toolsets-query.middleware';
 import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
@@ -101,15 +100,10 @@ async function main(): Promise<void> {
 
   registerWellKnownRoutes(expressApp);
 
-  // `toolsetsQueryMiddleware` runs BEFORE authentication so an unknown
-  // `?toolsets=` or `?profile=` name is rejected the same way for an
-  // authenticated caller and an unauthenticated public discovery request
-  // (`tools/list`). A bare URL resolves to the default profile.
   expressApp.post(
     ['/mcp', '/mcp/claude', '/mcp/admin'],
     express.json({ limit: '1mb' }),
     mcpAccessModeMiddleware,
-    toolsetsQueryMiddleware,
     mcpAuthMiddleware,
     (req: Request, res: Response) => {
       streamableHttpService.handlePost(req, res).catch((err) => {
@@ -124,7 +118,6 @@ async function main(): Promise<void> {
   expressApp.get(
     ['/mcp', '/mcp/claude', '/mcp/admin'],
     mcpAccessModeMiddleware,
-    toolsetsQueryMiddleware,
     mcpAuthMiddleware,
     (req: Request, res: Response) => {
       streamableHttpService.handleGet(req, res).catch((err) => {
@@ -139,7 +132,6 @@ async function main(): Promise<void> {
   expressApp.delete(
     ['/mcp', '/mcp/claude', '/mcp/admin'],
     mcpAccessModeMiddleware,
-    toolsetsQueryMiddleware,
     mcpAuthMiddleware,
     (req: Request, res: Response) => {
       streamableHttpService.handleDelete(req, res).catch((err) => {

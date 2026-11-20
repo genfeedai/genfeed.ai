@@ -24,7 +24,6 @@ export function createEndpointRegistries(
     client,
     logger,
     role,
-    [],
     undefined,
     'admin',
   );

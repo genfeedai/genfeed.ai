@@ -126,7 +126,6 @@ function createRegistry(
     client as unknown as ClientService,
     logger,
     'user',
-    [],
     undefined,
     accessMode,
   );

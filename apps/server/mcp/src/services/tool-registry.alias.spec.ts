@@ -1,8 +1,8 @@
 import {
   ALL_TOOLS,
   CLAUDE_MCP_TOOL_NAMES,
-  CONNECTOR_MCP_TOOL_CAP,
   getMcpCatalogOperations,
+  MCP_TOOL_CAP,
 } from '@genfeedai/actions';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ClientService } from '@mcp/services/client.service';
@@ -76,7 +76,6 @@ async function build(mode: 'standard' | 'claude' = 'standard') {
     module.get(ClientService),
     module.get(LoggerService),
     'user',
-    ['core'],
     undefined,
     mode,
   );
@@ -386,9 +385,7 @@ describe('canonical MCP dispatch and immediate retirement', () => {
     expect(() => ToolRegistryService.validateDispatchCoverage()).not.toThrow();
     const { registry, module } = await build('claude');
     try {
-      expect(registry.getAllTools().length).toBeLessThanOrEqual(
-        CONNECTOR_MCP_TOOL_CAP,
-      );
+      expect(registry.getAllTools().length).toBeLessThanOrEqual(MCP_TOOL_CAP);
       expect(
         registry
           .getAllTools()

@@ -536,11 +536,9 @@ describe('StreamableHttpService (real SDK integration)', () => {
         name: 'find_tools',
         arguments: { name: 'get_assets' },
       });
-      expect(described.body.result.structuredContent.connection).toEqual({
-        isListed: true,
-        listedToolCount: expected.length,
-        toolset: 'core',
-      });
+      expect(described.body.result.structuredContent.tool.name).toBe(
+        'get_assets',
+      );
     });
   });
 

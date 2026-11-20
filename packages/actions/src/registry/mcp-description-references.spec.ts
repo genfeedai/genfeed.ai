@@ -10,11 +10,6 @@ import {
   getToolsForRole,
   getToolsForSurface,
 } from './tool-registry';
-import {
-  DEFAULT_MCP_PROFILE_TOOLSETS,
-  DIRECTORY_MCP_PROFILE_TOOLSETS,
-} from './toolset-profiles';
-import { getToolsForToolsets, TOOLSET_NAMES } from './toolsets';
 
 interface DescribedTool {
   description?: string;
@@ -65,21 +60,7 @@ function projectedView(
   return toMcpTools(tools).filter((tool) => allowed.has(tool.name));
 }
 
-const VIEWS = [
-  {
-    name: 'default profile',
-    tools: getToolsForToolsets('mcp', [...DEFAULT_MCP_PROFILE_TOOLSETS]),
-  },
-  {
-    name: 'directory profile',
-    tools: getToolsForToolsets('mcp', [...DIRECTORY_MCP_PROFILE_TOOLSETS]),
-  },
-  { name: 'full profile', tools: getToolsForSurface('mcp') },
-  ...TOOLSET_NAMES.map((toolset) => ({
-    name: `toolset ${toolset}`,
-    tools: getToolsForToolsets('mcp', [toolset]),
-  })),
-];
+const VIEWS = [{ name: 'connection', tools: getToolsForSurface('mcp') }];
 const ROLES: ToolRequiredRole[] = ['user', 'admin', 'superadmin'];
 
 describe('MCP tool descriptions only name tools on the same connection (#7177)', () => {

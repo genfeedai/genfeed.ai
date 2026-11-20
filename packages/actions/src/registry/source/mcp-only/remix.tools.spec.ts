@@ -1,12 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { CURATED_ACTION_CATALOG } from '../../curated-action-catalog';
 import { MUTATION_POLICY_BY_NAME } from '../../mutation-policy';
-import { DEFAULT_MCP_PROFILE_TOOLSETS } from '../../toolset-profiles';
 import { deriveMcpToolPresentation } from '../tool-annotations';
 import { MCP_REMIX_TOOLS } from './remix.tools';
 
 describe('MCP remix discovery and policy', () => {
-  it('keeps eight explicit MCP-only schemas off the bare default', () => {
+  it('keeps eight explicit MCP-only schemas', () => {
     expect(MCP_REMIX_TOOLS).toHaveLength(8);
     for (const tool of MCP_REMIX_TOOLS) {
       expect(tool.parameters.additionalProperties).toBe(false);
@@ -14,7 +13,6 @@ describe('MCP remix discovery and policy', () => {
         (entry) => entry.name === tool.name,
       );
       expect(catalog?.surfaces).toEqual(['mcp']);
-      expect(DEFAULT_MCP_PROFILE_TOOLSETS).not.toContain(catalog?.toolset);
       expect(tool.parameters.properties).not.toHaveProperty('organizationId');
       expect(tool.parameters.properties).not.toHaveProperty('approved');
     }

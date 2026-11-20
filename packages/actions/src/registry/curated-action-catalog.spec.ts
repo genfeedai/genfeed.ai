@@ -12,7 +12,7 @@ import { isMcpCatalogToolName, isMcpListedToolName } from './mcp-catalog-calls';
 import { isReadOnlyToolName } from './mutation-policy';
 import { SOURCE_TOOLS } from './source/index';
 import { ALL_TOOLS, getToolByName, getToolsForSurface } from './tool-registry';
-import { CORE_TOOLSET_NAME, isToolsetName } from './toolsets';
+import { CORE_TOOLSET_NAME, isToolsetName } from './toolset-names';
 
 describe('curated action catalog', () => {
   it.each(['get_clip_context', 'edit_clip'])(

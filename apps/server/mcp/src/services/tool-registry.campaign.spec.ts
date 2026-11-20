@@ -1,4 +1,3 @@
-import { DEFAULT_MCP_PROFILE_TOOLSETS } from '@genfeedai/actions';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ClientService } from '@mcp/services/client.service';
 import { withMergedToolCalls } from '@mcp/services/tool-registry.endpoints.testing';
@@ -51,7 +50,6 @@ async function setup() {
       module.get(ClientService),
       module.get(LoggerService),
       'user',
-      DEFAULT_MCP_PROFILE_TOOLSETS,
     ),
   );
   return { registry, client, module };

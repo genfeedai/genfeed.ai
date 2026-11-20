@@ -23,8 +23,6 @@ import {
   requiresMcpApproval,
 } from './tool-credit-pricing';
 import { getToolByName, getToolsForSurface } from './tool-registry';
-import { DEFAULT_MCP_PROFILE_TOOLSETS } from './toolset-profiles';
-import { getToolsForToolsets } from './toolsets';
 
 function pricingOf(name: string): ToolCreditPricing {
   const tool = getToolByName(name);
@@ -35,10 +33,9 @@ function pricingOf(name: string): ToolCreditPricing {
 }
 
 describe('tool credit pricing', () => {
-  it('gates default-profile media generation at the MCP approval boundary', () => {
+  it('gates every credit-spending MCP action at the approval boundary', () => {
     // MCP lists merged tools; each action runs, and is gated as, its original tool.
-    const defaultToolsets = new Set<string>(DEFAULT_MCP_PROFILE_TOOLSETS);
-    const spenders = getToolsForToolsets('mcp', DEFAULT_MCP_PROFILE_TOOLSETS)
+    const spenders = getToolsForSurface('mcp')
       .flatMap((tool) =>
         isMcpCatalogToolName(tool.name)
           ? getMcpCatalogOperations(tool.name).map((operation) =>
@@ -46,10 +43,7 @@ describe('tool credit pricing', () => {
             )
           : [tool],
       )
-      .filter(
-        (tool): tool is NonNullable<typeof tool> =>
-          tool !== undefined && defaultToolsets.has(tool.toolset),
-      )
+      .filter((tool): tool is NonNullable<typeof tool> => tool !== undefined)
       .filter((tool) => {
         const pricing = tool.creditPricing;
         return (
@@ -63,9 +57,14 @@ describe('tool credit pricing', () => {
       .sort();
     // Paid, but neither posting nor media generation: these run at once.
     expect(ungated).toEqual([
+      'create_brand_from_url',
+      'draft_brand_voice_profile',
       'enhance_prompt',
+      'fetch_x_account_activity',
+      'fetch_x_posts',
       'generate_content',
       'repurpose_post',
+      'start_brand_interview',
     ]);
     expect(spenders.map((tool) => tool.name)).toContain('generate');
     expect(getToolByName('generate')?.mutationPolicy).toBe('direct');

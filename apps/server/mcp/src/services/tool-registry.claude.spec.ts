@@ -24,7 +24,6 @@ function build() {
       client as unknown as ClientService,
       logger as unknown as LoggerService,
       'superadmin',
-      ['generation', 'workflows'],
       undefined,
       'claude',
     ),
@@ -140,7 +139,7 @@ describe('Claude connector execution boundary', () => {
     );
   });
 
-  it('keeps discovery restricted even with generation/workflow toolsets', async () => {
+  it('keeps discovery restricted to the Claude tools', async () => {
     const { registry } = build();
     const tools = registry
       .getTools()
@@ -152,12 +151,6 @@ describe('Claude connector execution boundary', () => {
         .sort(),
     );
     expect(tools).not.toContain('create_brand_from_url');
-    expect(
-      registry
-        .getDiscoverableTools()
-        .map((tool) => tool.name)
-        .sort(),
-    ).toEqual(tools);
     const discovery = await registry.handleToolCall({
       name: 'find_tools',
       arguments: { query: 'generate' },
