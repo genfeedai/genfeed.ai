@@ -218,4 +218,25 @@ describe('seedOpenRouterTextContracts', () => {
       kind: 'bounded',
     });
   });
+  it('approves the Gemini 4 Hydrogen tariff pinned to the ZDR Vertex endpoint', async () => {
+    const hydrogen = OPENROUTER_TEXT_CONTRACT_SEED.find(
+      (candidate) =>
+        candidate.modelKey === MODEL_KEYS.OPENROUTER_GOOGLE_GEMINI_4_HYDROGEN,
+    );
+    if (!hydrogen)
+      throw new Error('Hydrogen is missing from the contract seed');
+    const h = harness({ id: 'model-3', reviewedProviderContractVersion: null });
+    expect(await seedOpenRouterTextContracts(h.service, [hydrogen])).toBe(1);
+    const snapshot = buildOpenRouterTextSnapshot(hydrogen, 'model-3');
+    expect(snapshot.openapi).toMatchObject({
+      endpointSlug: 'google-vertex/global',
+      modelKey: MODEL_KEYS.OPENROUTER_GOOGLE_GEMINI_4_HYDROGEN,
+    });
+    // Ceilings are the dearest ZDR endpoint (priority), above the $1.50 / $7.50 list price.
+    expect(snapshot.pricing).toMatchObject({
+      completionUsdPerMillionCeiling: 13.5,
+      inputUsdPerMillionCeiling: 2.7,
+      kind: 'bounded',
+    });
+  });
 });

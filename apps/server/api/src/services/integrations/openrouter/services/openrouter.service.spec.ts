@@ -238,6 +238,61 @@ describe('OpenRouterService', () => {
       });
     });
 
+    describe('when a caller turns reasoning off for a model that cannot', () => {
+      async function sentReasoning(
+        params: OpenRouterChatCompletionParams,
+      ): Promise<unknown> {
+        httpService.post.mockReturnValueOnce(of(axiosResponse(mockResponse)));
+        await service.chatCompletion(params);
+        expect(httpService.post).toHaveBeenCalledTimes(1);
+        const body = httpService.post.mock.calls[0][1] as Record<
+          string,
+          unknown
+        >;
+        return body.reasoning;
+      }
+
+      it('sends Hydrogen at its default effort, with no reasoning field', async () => {
+        expect(
+          await sentReasoning({
+            ...defaultParams,
+            model: 'google/gemini-4-hydrogen',
+            reasoning: { enabled: false },
+          }),
+        ).toBeUndefined();
+      });
+
+      it('sends Neon at low effort instead of the rejected flag', async () => {
+        expect(
+          await sentReasoning({
+            ...defaultParams,
+            model: 'google/gemini-4-neon',
+            reasoning: { enabled: false },
+          }),
+        ).toEqual({ effort: 'low' });
+      });
+
+      it('keeps the flag for a model that can turn reasoning off', async () => {
+        expect(
+          await sentReasoning({
+            ...defaultParams,
+            model: 'x-ai/grok-4.7',
+            reasoning: { enabled: false },
+          }),
+        ).toEqual({ enabled: false });
+      });
+
+      it('keeps an effort the caller chose on Hydrogen', async () => {
+        expect(
+          await sentReasoning({
+            ...defaultParams,
+            model: 'google/gemini-4-hydrogen',
+            reasoning: { effort: 'high' },
+          }),
+        ).toEqual({ effort: 'high' });
+      });
+    });
+
     describe('when the model makes reasoning mandatory', () => {
       const reasoningMandatoryError = Object.assign(
         new Error('Request failed with status code 400'),
