@@ -703,7 +703,7 @@ export class NewslettersService
           },
           { content: prompt, role: 'user' },
         ],
-        model: LLM_DEFAULTS.fastText,
+        model: LLM_DEFAULTS.contentWriting,
         temperature: 0.55,
       });
       generatedContent = completion.choices?.[0]?.message?.content?.trim();

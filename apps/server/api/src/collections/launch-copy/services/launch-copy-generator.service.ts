@@ -44,7 +44,7 @@ export class LaunchCopyGeneratorService {
     private readonly loggerService: LoggerService,
     private readonly llmDispatcherService: LlmDispatcherService,
   ) {
-    this.defaultModel = LLM_DEFAULTS.background;
+    this.defaultModel = LLM_DEFAULTS.contentWriting;
   }
 
   /**

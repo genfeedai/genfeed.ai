@@ -54,6 +54,27 @@ export const OPENROUTER_TEXT_CONTRACT_SEED: readonly OpenRouterTextContractSeedE
         'https://openrouter.ai/api/v1/endpoints/zdr',
       ],
     },
+    {
+      // Pinned to google-vertex/global ($3 in / $15 out per million). The
+      // ceilings are the dearest ZDR endpoint, google-vertex/global/priority.
+      // Output is capped at the AI Studio limit so the admitted range stays
+      // bounded; Vertex allows more.
+      completionUsdPerMillionCeiling: 27,
+      contextLength: 1_048_576,
+      endpointSlug: 'google-vertex/global',
+      inputUsdPerMillionCeiling: 5.4,
+      maximumCompletionTokens: 65_536,
+      modelKey: MODEL_KEYS.OPENROUTER_GOOGLE_GEMINI_4_NEON,
+      observedAt: '2026-11-20T00:00:00.000Z',
+      reasoning: 'included-in-output-limit',
+      requestUsdCeiling: 0,
+      reviewedAt: '2026-11-20T00:00:00.000Z',
+      sourceUrls: [
+        'https://openrouter.ai/google/gemini-4-neon',
+        'https://openrouter.ai/api/v1/models/google/gemini-4-neon/endpoints',
+        'https://openrouter.ai/api/v1/endpoints/zdr',
+      ],
+    },
   ];
 
 export function buildOpenRouterTextSnapshot(

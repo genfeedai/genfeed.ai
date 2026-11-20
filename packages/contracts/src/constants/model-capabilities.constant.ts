@@ -1547,6 +1547,14 @@ export const MODEL_OUTPUT_CAPABILITIES: Record<string, ModelOutputCapability> =
       maxOutputs: 1,
       maxReferences: 0,
     },
+    // Content writing model — `LLM_DEFAULTS.contentWriting` (articles,
+    // newsletters, captions, scripts, rewrites). Not in the agent chat picker.
+    [MODEL_KEYS.OPENROUTER_GOOGLE_GEMINI_4_NEON]: {
+      category: ModelCategory.TEXT,
+      isBatchSupported: false,
+      maxOutputs: 1,
+      maxReferences: 0,
+    },
 
     [MODEL_KEYS.OPENROUTER_BAAI_BGE_LARGE_EN_V1_5]: {
       category: ModelCategory.EMBEDDING,

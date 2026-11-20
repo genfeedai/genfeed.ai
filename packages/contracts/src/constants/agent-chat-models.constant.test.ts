@@ -224,11 +224,16 @@ describe('LLM_DEFAULTS', () => {
   });
 
   it('points every picker-facing role at a catalogued model', () => {
-    // grokFast and productTextFallback are deliberately not in the agent
-    // chat picker: grokFast is the cheap X-drafts key, productTextFallback
-    // is the drafts/prompt-enhancement seed used only when no Admin default
-    // TEXT model resolves (#5161).
-    const NON_PICKER_ROLES = new Set(['grokFast', 'productTextFallback']);
+    // grokFast, productTextFallback and contentWriting are deliberately not in
+    // the agent chat picker: grokFast is the cheap X-drafts key,
+    // productTextFallback is the drafts/prompt-enhancement seed used only when
+    // no Admin default TEXT model resolves (#5161), and contentWriting is the
+    // prose model for articles, newsletters, captions and scripts.
+    const NON_PICKER_ROLES = new Set([
+      'contentWriting',
+      'grokFast',
+      'productTextFallback',
+    ]);
     for (const [role, key] of Object.entries(LLM_DEFAULTS)) {
       if (NON_PICKER_ROLES.has(role)) {
         continue;
@@ -242,6 +247,13 @@ describe('LLM_DEFAULTS', () => {
     expect(LLM_DEFAULTS.grokFast).toBe(MODEL_KEYS.OPENROUTER_XAI_GROK_4_3);
     expect(LLM_DEFAULTS.grokFast).not.toBe(LLM_DEFAULTS.grok);
     expect(getAgentChatModel(LLM_DEFAULTS.grokFast)).toBeUndefined();
+  });
+
+  it('keeps contentWriting on Gemini 4 Neon, off the agent chat picker', () => {
+    expect(LLM_DEFAULTS.contentWriting).toBe(
+      MODEL_KEYS.OPENROUTER_GOOGLE_GEMINI_4_NEON,
+    );
+    expect(getAgentChatModel(LLM_DEFAULTS.contentWriting)).toBeUndefined();
   });
 
   it('keeps productTextFallback off the agent chat picker', () => {
