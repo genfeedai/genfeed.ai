@@ -235,167 +235,172 @@ export default function ArticleDetail({
 
   return (
     <div className="flex min-h-screen flex-col px-4 pb-16 pt-10">
-      <div className="mx-auto w-full max-w-6xl">
-        <nav
-          aria-label="Breadcrumb"
-          className="mb-8 flex min-w-0 items-center gap-1.5 text-sm text-foreground/60"
-        >
-          <Link
-            className="shrink-0 hover:text-foreground"
-            href={creatorProfilePath(handle)}
+      {/*
+        One grid owns every block. Column one is the reading column: breadcrumb,
+        title, byline, cover, body and footer all share its left and right edge.
+        Column two is the outline rail, level with the first line of the body.
+      */}
+      <div className="mx-auto grid w-full max-w-5xl grid-cols-1 gap-x-16 lg:grid-cols-[minmax(0,44rem)_13rem] lg:justify-center">
+        <div className="min-w-0 lg:col-start-1">
+          <nav
+            aria-label="Breadcrumb"
+            className="mb-8 flex min-w-0 items-center gap-1.5 text-sm text-foreground/60"
           >
-            @{handle}
-          </Link>
-          <span aria-hidden="true">/</span>
-          <Link
-            className="shrink-0 hover:text-foreground"
-            href={creatorTabPath(handle, 'articles')}
-          >
-            articles
-          </Link>
-          <span aria-hidden="true">/</span>
-          <span aria-current="page" className="truncate text-foreground/80">
-            {article.label}
-          </span>
-        </nav>
-
-        <header className="mx-auto mb-8 max-w-3xl">
-          {article.category && (
-            <Badge className="mb-4" size="lg" variant="secondary">
-              {article.category}
-            </Badge>
-          )}
-          <h1 className="mb-4 text-3xl font-semibold text-foreground md:text-5xl md:leading-tight">
-            {article.label}
-          </h1>
-          {article.summary && (
-            <p className="mb-6 text-base text-foreground/70 md:text-lg">
-              {article.summary}
-            </p>
-          )}
-          <div className="flex flex-wrap items-center justify-between gap-4 border-y border-foreground/10 py-4">
             <Link
-              className="flex min-w-0 items-center gap-3"
+              className="shrink-0 hover:text-foreground"
               href={creatorProfilePath(handle)}
             >
-              <BrandAvatar
-                alt={`${brandLabel} logo`}
-                name={brandLabel}
-                size="md"
-                src={
-                  brand?.logoUrl ||
-                  (handle === GENFEED_BRAND_HANDLE
-                    ? cdnAsset('/assets/branding/logo.jpg')
-                    : undefined)
-                }
-              />
-              <span className="min-w-0">
-                <span className="block truncate text-sm font-semibold text-foreground">
-                  {authorLabel ? `${authorLabel} · ${brandLabel}` : brandLabel}
-                </span>
-                <span className="block text-xs text-foreground/60">
-                  @{handle}
-                  {article.publishedAt ? (
-                    <>
-                      {' · '}
-                      <time dateTime={article.publishedAt}>
-                        {formatArticlePublishedAt(article.publishedAt)}
-                      </time>
-                    </>
-                  ) : null}
-                  {article.readingTime
-                    ? ` · ${article.readingTime} min read`
-                    : null}
-                </span>
-              </span>
+              @{handle}
             </Link>
-            <div className="flex items-center gap-4">
-              {isPreview ? null : (
-                <ViewTracker id={article.id} target="article" />
-              )}
-              <CopyLinkButton url={articleUrl} />
-            </div>
-          </div>
-        </header>
+            <span aria-hidden="true">/</span>
+            <Link
+              className="shrink-0 hover:text-foreground"
+              href={creatorTabPath(handle, 'articles')}
+            >
+              articles
+            </Link>
+            <span aria-hidden="true">/</span>
+            <span aria-current="page" className="truncate text-foreground/80">
+              {article.label}
+            </span>
+          </nav>
 
-        <div className="mx-auto max-w-4xl">
+          <header className="mb-8">
+            {article.category && (
+              <Badge className="mb-4" size="lg" variant="secondary">
+                {article.category}
+              </Badge>
+            )}
+            <h1 className="mb-4 text-3xl font-semibold text-foreground md:text-5xl md:leading-tight">
+              {article.label}
+            </h1>
+            {article.summary && (
+              <p className="mb-6 text-base text-foreground/70 md:text-lg">
+                {article.summary}
+              </p>
+            )}
+            <div className="flex flex-wrap items-center justify-between gap-4 border-y border-foreground/10 py-4">
+              <Link
+                className="flex min-w-0 items-center gap-3"
+                href={creatorProfilePath(handle)}
+              >
+                <BrandAvatar
+                  alt={`${brandLabel} logo`}
+                  name={brandLabel}
+                  size="md"
+                  src={
+                    brand?.logoUrl ||
+                    (handle === GENFEED_BRAND_HANDLE
+                      ? cdnAsset('/assets/branding/logo.jpg')
+                      : undefined)
+                  }
+                />
+                <span className="min-w-0">
+                  <span className="block truncate text-sm font-semibold text-foreground">
+                    {authorLabel
+                      ? `${authorLabel} · ${brandLabel}`
+                      : brandLabel}
+                  </span>
+                  <span className="block text-xs text-foreground/60">
+                    @{handle}
+                    {article.publishedAt ? (
+                      <>
+                        {' · '}
+                        <time dateTime={article.publishedAt}>
+                          {formatArticlePublishedAt(article.publishedAt)}
+                        </time>
+                      </>
+                    ) : null}
+                    {article.readingTime
+                      ? ` · ${article.readingTime} min read`
+                      : null}
+                  </span>
+                </span>
+              </Link>
+              <div className="flex items-center gap-4">
+                {isPreview ? null : (
+                  <ViewTracker id={article.id} target="article" />
+                )}
+                <CopyLinkButton url={articleUrl} />
+              </div>
+            </div>
+          </header>
+
           <ArticleCover
             category={article.category}
             coverImageUrl={article.coverImageUrl}
             label={article.label}
             seed={article.slug || article.id}
           />
+
+          {isPreview && (
+            <Alert className="mb-8" variant="warning">
+              You are viewing a preview of this article. This article may not be
+              published or publicly visible yet.
+            </Alert>
+          )}
         </div>
 
-        {isPreview && (
-          <Alert className="mx-auto mb-8 max-w-3xl" variant="warning">
-            You are viewing a preview of this article. This article may not be
-            published or publicly visible yet.
-          </Alert>
-        )}
-
-        <div className="grid grid-cols-1 gap-12 lg:grid-cols-[minmax(0,1fr)_15rem]">
-          <div className="mx-auto w-full max-w-3xl min-w-0 space-y-12">
-            <div>
-              {isGated ? (
-                <GatedArticleBody
-                  applyHref={buildArticleApplyHref(article.label)}
-                  articleId={article.id}
-                  generations={generations}
-                  handle={handle}
-                  preview={{ html, sections }}
-                  slug={article.slug}
-                  unlockPriceCredits={article.unlockPriceCredits ?? null}
-                />
-              ) : (
-                <ArticleContent
-                  applyHref={buildArticleApplyHref(article.label)}
-                  generations={generations}
-                  sanitizedHtml={html}
-                  sections={sections}
-                  slug={article.slug}
-                  resource={resource}
-                />
-              )}
-              {resource ? (
-                <ArticleResource
-                  key={article.slug}
-                  slug={article.slug}
-                  resource={resource}
-                />
-              ) : null}
-            </div>
-
-            <footer className="space-y-6">
-              {isPreview ? null : (
-                <MakeYourOwnBanner
-                  articleTitle={article.label}
-                  creatorName={creatorName}
-                  handle={handle}
-                  referralCode={referralCode}
-                />
-              )}
-              {brand ? (
-                <ProfileSubscribe
-                  handle={handle}
-                  source="article"
-                  sourceRef={article.id}
-                />
-              ) : null}
-              {brand && !isPreview && handle !== GENFEED_BRAND_HANDLE ? (
-                <SupportCreatorButton articleId={article.id} handle={handle} />
-              ) : null}
-              <ArticleAbout brand={brand} handle={handle} />
-            </footer>
+        <div className="min-w-0 space-y-12 lg:col-start-1">
+          <div>
+            {isGated ? (
+              <GatedArticleBody
+                applyHref={buildArticleApplyHref(article.label)}
+                articleId={article.id}
+                generations={generations}
+                handle={handle}
+                preview={{ html, sections }}
+                slug={article.slug}
+                unlockPriceCredits={article.unlockPriceCredits ?? null}
+              />
+            ) : (
+              <ArticleContent
+                applyHref={buildArticleApplyHref(article.label)}
+                generations={generations}
+                sanitizedHtml={html}
+                sections={sections}
+                slug={article.slug}
+                resource={resource}
+              />
+            )}
+            {resource ? (
+              <ArticleResource
+                key={article.slug}
+                slug={article.slug}
+                resource={resource}
+              />
+            ) : null}
           </div>
 
-          <aside className="hidden lg:block">
-            {/* Public topbar is h-20; top-24 keeps a 1rem gap, matching heading scroll-mt-24. */}
-            <div className="lg:sticky lg:top-24 lg:self-start">
-              <ArticleOutline sections={sections} />
-            </div>
-          </aside>
+          <footer className="space-y-6">
+            {isPreview ? null : (
+              <MakeYourOwnBanner
+                articleTitle={article.label}
+                creatorName={creatorName}
+                handle={handle}
+                referralCode={referralCode}
+              />
+            )}
+            {brand ? (
+              <ProfileSubscribe
+                handle={handle}
+                source="article"
+                sourceRef={article.id}
+              />
+            ) : null}
+            {brand && !isPreview && handle !== GENFEED_BRAND_HANDLE ? (
+              <SupportCreatorButton articleId={article.id} handle={handle} />
+            ) : null}
+            <ArticleAbout brand={brand} handle={handle} />
+          </footer>
         </div>
+
+        <aside className="hidden lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:block">
+          {/* Public topbar is h-20; top-24 keeps a 1rem gap, matching heading scroll-mt-24. */}
+          <div className="lg:sticky lg:top-24 lg:mt-[3.25rem] lg:self-start">
+            <ArticleOutline sections={sections} />
+          </div>
+        </aside>
       </div>
     </div>
   );
