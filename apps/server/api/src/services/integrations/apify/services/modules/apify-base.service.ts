@@ -7,9 +7,10 @@ import {
   ApifyActorRunResponse,
 } from '@api/services/integrations/apify/interfaces/apify.interfaces';
 import {
+  APIFY_ACTOR_NOT_FOUND_STATUS,
   ApifyActorAvailabilityTracker,
   ApifyActorUnavailableException,
-  isApifyActorNotFoundError,
+  isApifyStartAccepted,
 } from '@api/services/integrations/apify/utils/apify-actor-availability.util';
 import { currentApifyCaller } from '@api/services/integrations/apify/utils/apify-caller.context';
 import {
@@ -356,19 +357,22 @@ export class ApifyBaseService {
     );
 
     try {
+      // The shared axios interceptor reports every rejected status as an
+      // error, so a 404 start is read as a response and classified here.
       const runResponse = await firstValueFrom(
         this.httpService.post<ApifyActorRunResponse>(url, input, {
           headers: this.buildAuthHeaders(token),
+          validateStatus: isApifyStartAccepted,
         }),
-      ).catch((error: unknown) => {
-        if (!isApifyActorNotFoundError(error)) throw error;
+      );
+      if (runResponse.status === APIFY_ACTOR_NOT_FOUND_STATUS) {
         const until = this.actorAvailability.markUnavailable(scope, actorId);
         this.loggerService.warn(
           `${this.constructorName} Apify rejected the start of the ${capability} actor with 404; not retrying until ${new Date(until).toISOString()}`,
           { actorId, caller, scope },
         );
         throw new ApifyActorUnavailableException(capability, until);
-      });
+      }
 
       const runId = runResponse.data.data.id;
       const datasetId = runResponse.data.data.defaultDatasetId;

@@ -1,4 +1,3 @@
-import { getApifyErrorStatus } from '@api/services/integrations/apify/utils/apify-error.util';
 import { ServiceUnavailableException } from '@nestjs/common';
 
 /** How long an actor that Apify answered 404 for is left alone. */
@@ -17,9 +16,16 @@ export class ApifyActorUnavailableException extends ServiceUnavailableException 
   }
 }
 
-/** True when Apify answered the actor-start request with HTTP 404. */
-export function isApifyActorNotFoundError(error: unknown): boolean {
-  return getApifyErrorStatus(error) === 404;
+export const APIFY_ACTOR_NOT_FOUND_STATUS = 404;
+
+/**
+ * `validateStatus` for the actor-start request: a 404 is a classified result
+ * the caller handles, not a transport error for the shared interceptor.
+ */
+export function isApifyStartAccepted(status: number): boolean {
+  return (
+    (status >= 200 && status < 300) || status === APIFY_ACTOR_NOT_FOUND_STATUS
+  );
 }
 
 /**

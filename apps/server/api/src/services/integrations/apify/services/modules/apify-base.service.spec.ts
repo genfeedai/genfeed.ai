@@ -165,6 +165,7 @@ describe('ApifyBaseService', () => {
           Authorization: 'Bearer test-token',
           'Content-Type': 'application/json',
         },
+        validateStatus: expect.any(Function),
       },
     );
     expect(httpService.get).toHaveBeenNthCalledWith(
@@ -276,6 +277,7 @@ describe('ApifyBaseService', () => {
           Authorization: 'Bearer byok-key',
           'Content-Type': 'application/json',
         },
+        validateStatus: expect.any(Function),
       },
     );
   });
@@ -530,20 +532,15 @@ describe('ApifyBaseService', () => {
     });
 
     describe('actor-start 404', () => {
-      const NOT_FOUND_ERROR = {
-        isAxiosError: true,
-        message: 'Request failed with status code 404',
-        name: 'AxiosError',
-        response: {
-          data: {
-            error: { message: 'Actor was not found', type: 'record-not-found' },
-          },
-          status: 404,
+      const NOT_FOUND_RESPONSE = {
+        data: {
+          error: { message: 'Actor was not found', type: 'record-not-found' },
         },
+        status: 404,
       };
 
       it('reports a safe unavailable-actor failure without an error-level log', async () => {
-        httpService.post.mockReturnValue(throwError(() => NOT_FOUND_ERROR));
+        httpService.post.mockReturnValue(of(NOT_FOUND_RESPONSE));
 
         const execution = service.runActor('test/actor', {});
 
@@ -557,8 +554,20 @@ describe('ApifyBaseService', () => {
         expect(loggerService.warn).toHaveBeenCalledTimes(1);
       });
 
+      it('lets only success and 404 through the shared interceptor', async () => {
+        httpService.post.mockReturnValue(of(NOT_FOUND_RESPONSE));
+        await expect(service.runActor('test/actor', {})).rejects.toBeDefined();
+
+        const config = httpService.post.mock.calls[0][2] as {
+          validateStatus: (status: number) => boolean;
+        };
+        expect(
+          [200, 201, 404, 401, 429, 500].map(config.validateStatus),
+        ).toEqual([true, true, true, false, false, false]);
+      });
+
       it('does not call the same unavailable actor again until the hold ends', async () => {
-        httpService.post.mockReturnValue(throwError(() => NOT_FOUND_ERROR));
+        httpService.post.mockReturnValue(of(NOT_FOUND_RESPONSE));
 
         await expect(service.runActor('test/actor', {})).rejects.toBeDefined();
         await expect(service.runActor('test/actor', {})).rejects.toBeDefined();
@@ -571,7 +580,7 @@ describe('ApifyBaseService', () => {
       });
 
       it('keeps other actors callable', async () => {
-        httpService.post.mockReturnValueOnce(throwError(() => NOT_FOUND_ERROR));
+        httpService.post.mockReturnValueOnce(of(NOT_FOUND_RESPONSE));
         await expect(service.runActor('test/actor', {})).rejects.toBeDefined();
 
         httpService.post.mockReturnValue(
