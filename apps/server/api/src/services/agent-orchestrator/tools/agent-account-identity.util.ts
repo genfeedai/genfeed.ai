@@ -8,6 +8,7 @@ import {
 } from '@api/services/agent-orchestrator/tools/agent-brand-access.util';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import type { AgentBrandSerializedData } from '@genfeedai/serializers';
+import { traced } from '@libs/tracing/traced';
 
 /** Brands listed in the account profile; `brandCount` carries the total. */
 const ACCOUNT_BRAND_LIMIT = 25;
@@ -121,24 +122,27 @@ async function readOnboardingCompleted(
  * scraping saves the company logo on the brand, so most organizations have
  * no logo of their own (the same order the admin leaderboard uses).
  */
-export async function readOrganizationLogoUrl(
-  organizationLogoService: OrganizationLogoService | undefined,
-  ctx: ToolExecutionContext,
-  identity: Record<string, unknown>,
-): Promise<string | undefined> {
-  const ownLogoUrl = await organizationLogoService
-    ?.resolveLogoUrls([ctx.organizationId])
-    .then((logoUrls) => logoUrls.get(ctx.organizationId))
-    .catch(() => undefined);
-  if (ownLogoUrl) {
-    return ownLogoUrl;
-  }
-  const brands = Array.isArray(identity.brands) ? identity.brands : [];
-  for (const brand of brands) {
-    const cdnUrl = (brand as { logo?: { cdnUrl?: unknown } }).logo?.cdnUrl;
-    if (typeof cdnUrl === 'string' && cdnUrl) {
-      return cdnUrl;
+export const readOrganizationLogoUrl = traced(
+  'readOrganizationLogoUrl',
+  async (
+    organizationLogoService: OrganizationLogoService | undefined,
+    ctx: ToolExecutionContext,
+    identity: Record<string, unknown>,
+  ): Promise<string | undefined> => {
+    const ownLogoUrl = await organizationLogoService
+      ?.resolveLogoUrls([ctx.organizationId])
+      .then((logoUrls) => logoUrls.get(ctx.organizationId))
+      .catch(() => undefined);
+    if (ownLogoUrl) {
+      return ownLogoUrl;
     }
-  }
-  return undefined;
-}
+    const brands = Array.isArray(identity.brands) ? identity.brands : [];
+    for (const brand of brands) {
+      const cdnUrl = (brand as { logo?: { cdnUrl?: unknown } }).logo?.cdnUrl;
+      if (typeof cdnUrl === 'string' && cdnUrl) {
+        return cdnUrl;
+      }
+    }
+    return undefined;
+  },
+);
