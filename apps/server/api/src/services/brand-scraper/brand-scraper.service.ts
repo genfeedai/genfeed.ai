@@ -1,4 +1,5 @@
 import { assertHostNotPrivate } from '@api/helpers/utils/ssrf/ssrf.util';
+import { isExpectedBrandScrapeFailure } from '@api/services/brand-scraper/brand-scrape-error.util';
 import {
   BrandScraperHttp,
   MAX_CSS_BYTES,
@@ -248,7 +249,11 @@ export class BrandScraperService {
           fontCandidates: [],
         };
       } catch (fallbackError: unknown) {
-        this.loggerService.error(
+        // A site that refuses or never answers the scraper is an expected
+        // outcome that the scan already reports to the user.
+        this.loggerService[
+          isExpectedBrandScrapeFailure(fallbackError) ? 'warn' : 'error'
+        ](
           `${caller} meta tag fallback also failed`,
           fallbackError instanceof Error
             ? fallbackError.name

@@ -36,6 +36,9 @@ export const youtubeAuthorizedSignalEvidenceKeys = [
   'owned-video-analytics-snapshot',
   'first-upload-platform-signal',
   'native-account-age',
+  'channel-setup-platform-signal',
+  'subscriptions-platform-signal',
+  'likes-platform-signal',
   'genfeed-publish-outcomes-observed',
 ] as const;
 
@@ -109,6 +112,19 @@ const publishingCapabilityValueSchema = z
     longUploadsStatus: z.string().optional(),
     privacyStatus: z.string().optional(),
   })
+  .strict();
+
+const channelSetupValueSchema = z
+  .object({
+    customUrl: z.string().optional(),
+    hasAbout: z.boolean(),
+    hasBanner: z.boolean(),
+    playlistCount: nonNegativeIntegerSchema,
+  })
+  .strict();
+
+const totalCountValueSchema = z
+  .object({ count: nonNegativeIntegerSchema })
   .strict();
 
 export const youtubeOwnedVideoAnalyticsSignalSchema = z
@@ -228,6 +244,33 @@ const nativeAccountAgeEvidenceSchema = z
   })
   .strict();
 
+const channelSetupEvidenceSchema = z
+  .object({
+    ...evidenceMetadataShape,
+    key: z.literal('channel-setup-platform-signal'),
+    provenance: z.literal(socialWarmupProvenanceSchema.enum.platform_verified),
+    value: channelSetupValueSchema.optional(),
+  })
+  .strict();
+
+const subscriptionsEvidenceSchema = z
+  .object({
+    ...evidenceMetadataShape,
+    key: z.literal('subscriptions-platform-signal'),
+    provenance: z.literal(socialWarmupProvenanceSchema.enum.platform_verified),
+    value: totalCountValueSchema.optional(),
+  })
+  .strict();
+
+const likesEvidenceSchema = z
+  .object({
+    ...evidenceMetadataShape,
+    key: z.literal('likes-platform-signal'),
+    provenance: z.literal(socialWarmupProvenanceSchema.enum.platform_verified),
+    value: totalCountValueSchema.optional(),
+  })
+  .strict();
+
 const genfeedPublishActivityEvidenceSchema = z
   .object({
     ...evidenceMetadataShape,
@@ -246,6 +289,9 @@ export const youtubeAuthorizedSignalEvidenceSchema = z.discriminatedUnion(
     ownedVideoAnalyticsEvidenceSchema,
     firstUploadEvidenceSchema,
     nativeAccountAgeEvidenceSchema,
+    channelSetupEvidenceSchema,
+    subscriptionsEvidenceSchema,
+    likesEvidenceSchema,
     genfeedPublishActivityEvidenceSchema,
   ],
 );
@@ -253,7 +299,9 @@ export const youtubeAuthorizedSignalEvidenceSchema = z.discriminatedUnion(
 export const youtubeAuthorizedSignalsSnapshotSchema = z
   .object({
     credentialId: z.string().trim().min(1),
-    evidence: z.array(youtubeAuthorizedSignalEvidenceSchema).length(7),
+    evidence: z
+      .array(youtubeAuthorizedSignalEvidenceSchema)
+      .length(youtubeAuthorizedSignalEvidenceKeys.length),
     grantedScopes: z.array(z.string().trim().min(1)),
     platform: z.literal(CredentialPlatform.YOUTUBE),
     refreshAttemptedAt: timestampSchema,

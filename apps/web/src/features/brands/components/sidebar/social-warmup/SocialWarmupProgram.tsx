@@ -159,6 +159,12 @@ export default function SocialWarmupProgram({
     );
   }, [blueprint, data, isRefreshingSignals, platform]);
 
+  const needsReconnect = fullChecks.some(
+    (check) =>
+      check.provenance !== 'user_confirmed' &&
+      (check.state === 'reconnect' || check.state === 'permission_limited'),
+  );
+
   // use-effect-audit: ignore drives a DOM element or browser API
   useEffect(() => {
     if (!focusedCheckId || view !== 'full') {
@@ -366,11 +372,35 @@ export default function SocialWarmupProgram({
         </Card>
       ) : null}
 
-      <p className="text-xs text-muted-foreground">
-        {lastRefreshLabel
-          ? translate('lastRefresh', { time: lastRefreshLabel })
-          : translate('lastRefreshUnknown')}
-      </p>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-xs text-muted-foreground">
+          {lastRefreshLabel
+            ? translate('lastRefresh', { time: lastRefreshLabel })
+            : translate('lastRefreshUnknown')}
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {canRefreshAuthorizedSignals(platform) ? (
+            <Button
+              isDisabled={isRefreshingSignals}
+              isLoading={isRefreshingSignals}
+              onClick={handleRefreshSignals}
+              size={ButtonSize.SM}
+              variant={ButtonVariant.SECONDARY}
+            >
+              {translate('refreshSignals')}
+            </Button>
+          ) : null}
+          {needsReconnect && onReconnect ? (
+            <Button
+              onClick={() => onReconnect(platform)}
+              size={ButtonSize.SM}
+              variant={ButtonVariant.SECONDARY}
+            >
+              {translate('reconnect')}
+            </Button>
+          ) : null}
+        </div>
+      </div>
 
       {signalsError ? (
         <Alert variant="destructive" icon={false}>
@@ -423,15 +453,8 @@ export default function SocialWarmupProgram({
               isPending={pendingItemId === check.id}
               key={check.id}
               onComplete={handleComplete}
-              onReconnect={
-                onReconnect ? () => onReconnect(platform) : undefined
-              }
-              onRefreshSignals={
-                canRefreshAuthorizedSignals(platform)
-                  ? handleRefreshSignals
-                  : undefined
-              }
               onReopen={handleReopen}
+              platformLabel={platformLabel}
             />
           ))
         ) : (
@@ -455,15 +478,8 @@ export default function SocialWarmupProgram({
                       isPending={pendingItemId === check.id}
                       key={check.id}
                       onComplete={handleComplete}
-                      onReconnect={
-                        onReconnect ? () => onReconnect(platform) : undefined
-                      }
-                      onRefreshSignals={
-                        canRefreshAuthorizedSignals(platform)
-                          ? handleRefreshSignals
-                          : undefined
-                      }
                       onReopen={handleReopen}
+                      platformLabel={platformLabel}
                     />
                   ))}
                 </section>
@@ -483,15 +499,8 @@ export default function SocialWarmupProgram({
                     isPending={pendingItemId === check.id}
                     key={check.id}
                     onComplete={handleComplete}
-                    onReconnect={
-                      onReconnect ? () => onReconnect(platform) : undefined
-                    }
-                    onRefreshSignals={
-                      canRefreshAuthorizedSignals(platform)
-                        ? handleRefreshSignals
-                        : undefined
-                    }
                     onReopen={handleReopen}
+                    platformLabel={platformLabel}
                   />
                 ))}
             </section>

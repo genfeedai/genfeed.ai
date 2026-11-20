@@ -189,6 +189,14 @@ export function classifyBrandScrapeError(error: unknown): IBrandScrapeWarning {
 }
 
 /**
+ * Whether a scrape failure is an expected outcome (a site that blocks the
+ * scraper, never answers, or times out) rather than an unclassified fault.
+ */
+export function isExpectedBrandScrapeFailure(error: unknown): boolean {
+  return classifyBrandScrapeError(error).code !== BrandScrapeErrorCode.UNKNOWN;
+}
+
+/**
  * Content-level check for a *successful* fetch that yielded nothing usable.
  * Distinct from `classifyBrandScrapeError` because no exception is thrown —
  * the scraper returns a well-formed but empty `IScrapedBrandData`.

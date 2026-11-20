@@ -23,6 +23,7 @@ import { InstagramAuthorizedSignalsService } from '@api/services/integrations/in
 import { InstagramConnectionResolverService } from '@api/services/integrations/instagram/services/instagram-connection-resolver.service';
 import {
   getSafeInstagramOAuthErrorLog,
+  logInstagramOAuthFailure,
   throwMappedInstagramOAuthError,
 } from '@api/services/integrations/instagram/utils/instagram-error.util';
 import { isUnconfiguredSecret } from '@genfeedai/config';
@@ -313,9 +314,9 @@ export class InstagramController {
 
       return serializeSingle(request, CredentialSerializer, credential);
     } catch (error: unknown) {
-      this.loggerService.error(`${url} failed`, {
+      logInstagramOAuthFailure(this.loggerService, `${url} failed`, {
+        error,
         stage: failureStage,
-        ...getSafeInstagramOAuthErrorLog(error),
       });
       return throwMappedInstagramOAuthError(
         error,

@@ -128,6 +128,18 @@ function makePreviousSnapshot(): YoutubeAuthorizedSignalsSnapshot {
         },
       },
       {
+        ...common,
+        key: 'channel-setup-platform-signal',
+        value: {
+          customUrl: '@creator',
+          hasAbout: true,
+          hasBanner: true,
+          playlistCount: 2,
+        },
+      },
+      { ...common, key: 'subscriptions-platform-signal', value: { count: 5 } },
+      { ...common, key: 'likes-platform-signal', value: { count: 7 } },
+      {
         fieldAvailability: { outcome: 'available' },
         key: 'genfeed-publish-outcomes-observed',
         observedAt: '2026-08-23T08:00:00.000Z',
@@ -198,90 +210,117 @@ describe('YoutubeAuthorizedSignalsService', () => {
       patch: vi.fn().mockResolvedValue(credential),
     };
     httpService = {
-      get: vi.fn().mockImplementation((url: string) => {
-        if (url.includes('/playlistItems')) {
-          return of({
-            data: {
-              items: [
-                {
-                  contentDetails: { videoId: 'video-1' },
-                  snippet: {
-                    publishedAt: '2026-08-10T12:00:00Z',
-                    title: 'First Short',
-                  },
+      get: vi
+        .fn()
+        .mockImplementation(
+          (url: string, config?: { params?: Record<string, unknown> }) => {
+            if (url.endsWith('/playlists')) {
+              return of({
+                data: { items: [{}], pageInfo: { totalResults: 2 } },
+              });
+            }
+            if (url.endsWith('/subscriptions')) {
+              return of({
+                data: { items: [{}], pageInfo: { totalResults: 5 } },
+              });
+            }
+            if (
+              url.endsWith('/videos') &&
+              config?.params?.myRating === 'like'
+            ) {
+              return of({
+                data: { items: [{}], pageInfo: { totalResults: 7 } },
+              });
+            }
+            if (url.includes('/playlistItems')) {
+              return of({
+                data: {
+                  items: [
+                    {
+                      contentDetails: { videoId: 'video-1' },
+                      snippet: {
+                        publishedAt: '2026-08-10T12:00:00Z',
+                        title: 'First Short',
+                      },
+                    },
+                  ],
                 },
-              ],
-            },
-          });
-        }
-        if (url.includes('/videos')) {
-          return of({
-            data: {
-              items: [
-                {
-                  contentDetails: { duration: 'PT45S' },
-                  id: 'video-1',
-                  snippet: {
-                    publishedAt: '2026-08-10T12:00:00Z',
-                    title: 'First Short',
-                  },
-                  statistics: {
-                    commentCount: '2',
-                    likeCount: '4',
-                    viewCount: '40',
-                  },
+              });
+            }
+            if (url.includes('/videos')) {
+              return of({
+                data: {
+                  items: [
+                    {
+                      contentDetails: { duration: 'PT45S' },
+                      id: 'video-1',
+                      snippet: {
+                        publishedAt: '2026-08-10T12:00:00Z',
+                        title: 'First Short',
+                      },
+                      statistics: {
+                        commentCount: '2',
+                        likeCount: '4',
+                        viewCount: '40',
+                      },
+                    },
+                  ],
                 },
-              ],
-            },
-          });
-        }
-        if (url.includes('youtubeanalytics')) {
-          return of({
-            data: {
-              columnHeaders: [
-                { name: 'video' },
-                { name: 'views' },
-                { name: 'averageViewDuration' },
-                { name: 'averageViewPercentage' },
-                { name: 'impressions' },
-                { name: 'impressionsClickThroughRate' },
-              ],
-              rows: [['video-1', 40, 20, 60, 800, 0.05]],
-            },
-          });
-        }
+              });
+            }
+            if (url.includes('youtubeanalytics')) {
+              return of({
+                data: {
+                  columnHeaders: [
+                    { name: 'video' },
+                    { name: 'views' },
+                    { name: 'averageViewDuration' },
+                    { name: 'averageViewPercentage' },
+                    { name: 'impressions' },
+                    { name: 'impressionsClickThroughRate' },
+                  ],
+                  rows: [['video-1', 40, 20, 60, 800, 0.05]],
+                },
+              });
+            }
 
-        return of({
-          data: {
-            items: [
-              {
-                contentDetails: { relatedPlaylists: { uploads: 'UU123' } },
-                id: 'UC123',
-                snippet: {
-                  customUrl: '@creator',
-                  description: 'Niche channel',
-                  publishedAt: '2026-01-01T00:00:00Z',
-                  thumbnails: {
-                    high: { url: 'https://youtube.example/avatar.jpg' },
+            return of({
+              data: {
+                items: [
+                  {
+                    brandingSettings: {
+                      image: {
+                        bannerExternalUrl: 'https://youtube.example/banner.jpg',
+                      },
+                    },
+                    contentDetails: { relatedPlaylists: { uploads: 'UU123' } },
+                    id: 'UC123',
+                    snippet: {
+                      customUrl: '@creator',
+                      description: 'Niche channel',
+                      publishedAt: '2026-01-01T00:00:00Z',
+                      thumbnails: {
+                        high: { url: 'https://youtube.example/avatar.jpg' },
+                      },
+                      title: 'Creator',
+                    },
+                    statistics: {
+                      hiddenSubscriberCount: false,
+                      subscriberCount: '12',
+                      videoCount: '1',
+                      viewCount: '40',
+                    },
+                    status: {
+                      isLinked: true,
+                      longUploadsStatus: 'allowed',
+                      privacyStatus: 'public',
+                    },
                   },
-                  title: 'Creator',
-                },
-                statistics: {
-                  hiddenSubscriberCount: false,
-                  subscriberCount: '12',
-                  videoCount: '1',
-                  viewCount: '40',
-                },
-                status: {
-                  isLinked: true,
-                  longUploadsStatus: 'allowed',
-                  privacyStatus: 'public',
-                },
+                ],
               },
-            ],
+            });
           },
-        });
-      }),
+        ),
     };
     prisma = {
       post: {
@@ -384,6 +423,24 @@ describe('YoutubeAuthorizedSignalsService', () => {
         ],
       },
     });
+    expect(evidenceOf(snapshot, 'channel-setup-platform-signal')).toMatchObject(
+      {
+        status: 'available',
+        value: {
+          customUrl: '@creator',
+          hasAbout: true,
+          hasBanner: true,
+          playlistCount: 2,
+        },
+      },
+    );
+    expect(evidenceOf(snapshot, 'subscriptions-platform-signal')).toMatchObject(
+      { status: 'available', value: { count: 5 } },
+    );
+    expect(evidenceOf(snapshot, 'likes-platform-signal')).toMatchObject({
+      status: 'available',
+      value: { count: 7 },
+    });
     expect(
       enrollmentsService.syncYoutubeAuthorizedSnapshot,
     ).toHaveBeenCalledWith({
@@ -391,6 +448,45 @@ describe('YoutubeAuthorizedSignalsService', () => {
       credentialId: credential.id,
       organizationId: 'org-1',
       snapshot,
+    });
+  });
+
+  it('reports channel setup, subscriptions and likes as empty until the warm-up thresholds are met', async () => {
+    const getDefault = httpService.get.getMockImplementation() as (
+      url: string,
+      config?: { params?: Record<string, unknown> },
+    ) => unknown;
+    httpService.get.mockImplementation(
+      (url: string, config?: { params?: Record<string, unknown> }) => {
+        if (url.endsWith('/playlists')) {
+          return of({ data: { items: [], pageInfo: { totalResults: 0 } } });
+        }
+        if (url.endsWith('/subscriptions')) {
+          return of({ data: { items: [{}], pageInfo: { totalResults: 2 } } });
+        }
+        if (url.endsWith('/videos') && config?.params?.myRating === 'like') {
+          return of({ data: { items: [], pageInfo: { totalResults: 0 } } });
+        }
+        return getDefault(url, config);
+      },
+    );
+
+    const snapshot = await service.refresh({
+      credentialId: credential.id,
+      force: true,
+      grantedScopes: fullScopes,
+      organizationId: 'org-1',
+    });
+
+    expect(evidenceOf(snapshot, 'channel-setup-platform-signal')).toMatchObject(
+      { status: 'empty', value: { playlistCount: 0 } },
+    );
+    expect(evidenceOf(snapshot, 'subscriptions-platform-signal')).toMatchObject(
+      { status: 'empty', value: { count: 2 } },
+    );
+    expect(evidenceOf(snapshot, 'likes-platform-signal')).toMatchObject({
+      status: 'empty',
+      value: { count: 0 },
     });
   });
 
@@ -653,6 +749,9 @@ describe('YoutubeAuthorizedSignalsService', () => {
       'owned-video-analytics-snapshot',
       'first-upload-platform-signal',
       'native-account-age',
+      'channel-setup-platform-signal',
+      'subscriptions-platform-signal',
+      'likes-platform-signal',
       'genfeed-publish-outcomes-observed',
     ]);
     expect(JSON.stringify(snapshot)).not.toMatch(

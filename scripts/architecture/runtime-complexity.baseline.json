@@ -366,7 +366,7 @@
     "symbol": "packages/contracts/src/api-types/contracts/generation-capability-profile.contract.ts"
   },
   {
-    "actual": 2490,
+    "actual": 2489,
     "file": "packages/contracts/src/api-types/contracts/social-warmup-blueprint.contract.ts",
     "metric": "file-lines",
     "symbol": "packages/contracts/src/api-types/contracts/social-warmup-blueprint.contract.ts"
