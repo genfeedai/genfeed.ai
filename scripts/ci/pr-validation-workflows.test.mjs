@@ -2941,6 +2941,13 @@ test('test jobs start with the run and read the plan the Plan job publishes (#10
     assert.equal(start.uses, './.github/actions/start-test-leg');
     assert.equal(start.with.kind, kind);
     assert.equal(start.with['run-heavy'], '${{ inputs.run_heavy_tests }}');
+    // Downloading the plan artifact needs `actions: read`; the workflow's own
+    // default does not grant it, and the download then fails with a 404.
+    assert.deepEqual(
+      job.permissions,
+      { actions: 'read', contents: 'read', 'pull-requests': 'read' },
+      `${jobId} reads the plan artifact`,
+    );
     assert.ok(
       names.every((name) => !/setup-bun-env/.test(name ?? '')),
       `${jobId} installs through the start action, after its preflight`,

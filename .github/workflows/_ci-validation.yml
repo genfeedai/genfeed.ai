@@ -696,6 +696,11 @@ jobs:
   spec-typecheck:
     name: Spec Typecheck
     runs-on: ubuntu-latest
+    # The start step reads the Plan job's artifact, which needs `actions: read`.
+    permissions:
+      actions: read
+      contents: read
+      pull-requests: read
     timeout-minutes: 40
     if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     steps:
@@ -744,6 +749,11 @@ jobs:
   test-workspaces:
     name: Test Workspaces (${{ matrix.name }})
     runs-on: ubuntu-latest
+    # The start step reads the Plan job's artifact, which needs `actions: read`.
+    permissions:
+      actions: read
+      contents: read
+      pull-requests: read
     timeout-minutes: 30
     if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     strategy:
@@ -882,6 +892,11 @@ jobs:
   test-app:
     name: Test App (shard ${{ matrix.shard }}/${{ matrix.total }})
     runs-on: ubuntu-latest
+    # The start step reads the Plan job's artifact, which needs `actions: read`.
+    permissions:
+      actions: read
+      contents: read
+      pull-requests: read
     timeout-minutes: 30
     if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     strategy:
@@ -937,6 +952,11 @@ jobs:
   test-api:
     name: Test API (shard ${{ matrix.shard }}/${{ matrix.total }})
     runs-on: ubuntu-latest
+    # The start step reads the Plan job's artifact, which needs `actions: read`.
+    permissions:
+      actions: read
+      contents: read
+      pull-requests: read
     timeout-minutes: 30
     services:
       postgres:
@@ -1065,6 +1085,11 @@ jobs:
   cloud-tenant-guard:
     name: Cloud Tenant Guard Sweep
     runs-on: ubuntu-latest
+    # The start step reads the Plan job's artifact, which needs `actions: read`.
+    permissions:
+      actions: read
+      contents: read
+      pull-requests: read
     timeout-minutes: 15
     if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     services:
@@ -1218,6 +1243,11 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
+    # The start step reads the Plan job's artifact, which needs `actions: read`.
+    permissions:
+      actions: read
+      contents: read
+      pull-requests: read
     timeout-minutes: 30
     if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     steps:
@@ -1279,6 +1309,11 @@ jobs:
   mcp-auth-runtime:
     name: MCP Auth Runtime
     runs-on: ubuntu-latest
+    # The start step reads the Plan job's artifact, which needs `actions: read`.
+    permissions:
+      actions: read
+      contents: read
+      pull-requests: read
     timeout-minutes: 20
     if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     steps:
