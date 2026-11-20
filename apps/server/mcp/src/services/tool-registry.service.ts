@@ -157,8 +157,8 @@ import {
   MCP_CARD_RESOURCE_HASH,
   withApprovalCard,
   withCardMetadata,
-  withoutBrandLogos,
 } from '@mcp/ui/card-data';
+import { withoutBrandLogos } from '@mcp/ui/card-fields';
 import { Injectable, type OnModuleInit, Optional } from '@nestjs/common';
 
 interface ToolCallParams {
