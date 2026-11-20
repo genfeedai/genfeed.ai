@@ -194,11 +194,18 @@ test.describe('Brand Kit video tab', () => {
       .getByRole('button', { name: 'Save draft', exact: true })
       .click();
 
+    // The unsaved-changes bar leaves the page once the revision is saved.
     await expect(
       authenticatedPage
         .getByRole('status')
-        .filter({ hasText: 'No unsaved changes' }),
-    ).toBeVisible();
+        .filter({ hasText: 'Unsaved revision changes' }),
+    ).toHaveCount(0);
+    await expect(
+      authenticatedPage.getByRole('button', {
+        name: 'Save draft',
+        exact: true,
+      }),
+    ).toHaveCount(0);
     expect(savedContents).toHaveLength(1);
     expect(savedContents[0].finishing?.watermark).toMatchObject({
       insetXRatio: 0.096,
