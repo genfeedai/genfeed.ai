@@ -45,7 +45,7 @@ describe('character generation tool params (#3441)', () => {
     ).toMatchObject({
       name: 'get_assets',
       surfaces: ['agent', 'mcp'],
-      toolset: 'generation',
+      toolset: 'core',
     });
     expect(CURATED_ACTION_CATALOG.map((entry) => entry.name)).not.toContain(
       'list_characters',

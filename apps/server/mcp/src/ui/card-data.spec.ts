@@ -19,8 +19,8 @@ describe('MCP Apps card contract', () => {
     for (const name of [
       'get_content',
       'get_assets',
-      'generate',
-      'transform_media',
+      'generate_media',
+      'generate_text',
       'get_context',
       'manage_workspace',
     ]) {
@@ -823,9 +823,9 @@ describe('MCP Apps card contract', () => {
 
   it('links tools under the MCP Apps key, the legacy flat key and the ChatGPT alias', () => {
     const tool = toMcpTools(getToolsForSurface('mcp')).find(
-      (item) => item.name === 'generate',
+      (item) => item.name === 'generate_media',
     );
-    if (!tool) throw new Error('Missing generate');
+    if (!tool) throw new Error('Missing generate_media');
 
     expect(MCP_CARD_RESOURCE_URI).toMatch(
       /^ui:\/\/genfeed\/content-cards-v5-[a-f0-9]{12}\.html$/,

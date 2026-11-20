@@ -274,6 +274,8 @@ const MERGED_READ_PRESENTATIONS = [
 
 const MERGED_WRITE_PRESENTATIONS = [
   ['control_release', 'Control Release', false, true, false, true],
+  ['generate_media', 'Generate Media', false, true, false, true],
+  ['generate_text', 'Generate Text', false, true, false, true],
   ['manage_knowledge', 'Manage Knowledge', false, true, false, false],
   ['manage_skill', 'Manage Skill', false, true, false, false],
   ['manage_social', 'Manage Social', false, true, false, true],
@@ -281,6 +283,7 @@ const MERGED_WRITE_PRESENTATIONS = [
   ['manage_workspace', 'Manage Workspace', false, true, false, false],
   ['save_post', 'Save Post', false, true, false, true],
   ['schedule_release', 'Schedule Release', false, true, false, true],
+  ['setup_brand', 'Setup Brand', false, true, false, true],
 ];
 
 const FROZEN_MCP_PRESENTATIONS = [
@@ -963,23 +966,6 @@ describe('MCP tool annotations', () => {
         isMcpListedToolName(String(row[0])),
       ),
       ['check_channel', 'Check Channel', true, false, true, false],
-      [
-        'draft_brand_voice_profile',
-        'Draft Brand Voice Profile',
-        false,
-        true,
-        false,
-        false,
-      ],
-      ['manage_brand_kit', 'Manage Brand Kit', false, true, false, false],
-      [
-        'save_brand_voice_profile',
-        'Save Brand Voice Profile',
-        false,
-        true,
-        false,
-        false,
-      ],
       ['upload_media', 'Upload Media', false, false, false, false],
       ...MERGED_READ_PRESENTATIONS,
       ...MERGED_WRITE_PRESENTATIONS,

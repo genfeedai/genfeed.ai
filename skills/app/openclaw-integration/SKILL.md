@@ -70,10 +70,10 @@ Resolve a brand before generation; never invent an identifier or select the firs
 | `find_tools` | Discover capabilities or inspect one schema | | `query`, `name`, `toolset` |
 | `get_context` | Read the account (profile, credits, usage), brands, organizations and brand context | `action` (`account`, `brands`, `organizations`, `brand_context`, `brand_completeness` or `brand_scan_status`) | `input` holds the original parameters, such as `include` or `brand` |
 | `get_generation_catalog` | List models, settings and credit estimates, presets and the visual-code catalog | `action` (`options`, `presets`, `preset`, `storyboard_capabilities`, `visual_code_catalog` or `visual_code_quote`) | `input` holds the original parameters, such as `type`, `modelKey` and `brandId` for `options` |
-| `generate` | Generate image, video, voice, or music | `type`, `prompt`, `brandId` | Type-specific settings from discovery |
+| `generate_media` | Generate image, video, voice, or music, or transform media | `action` (`media` or `transform`) | `input` holds the original parameters, such as `type`, `prompt` and `brandId` for `media` |
 | `check_job` | Read the progress and result of a generation, 3D model, visual project or workflow run | `action` (`job`, `model3d`, `visual_code_project`, `workflow_run` or `workflow_status`) | `input` holds the original parameters, such as `jobId` for `job` |
 | `get_assets` | List media or characters | `type` | `brandId`, `limit`, `offset`, `origin` |
-| `generate_content` | Generate article drafts or social copy | `topic`, `type`, `brandId` | `tone`, `length`, `platform`, `keywords` |
+| `generate_text` | Generate article drafts or social copy | `action` (`content`) | `input` holds the original parameters, such as `topic`, `type`, `brandId`, `tone`, `length`, `platform` and `keywords` |
 | `get_insights` | Read trends, content and video performance, LinkedIn analytics and performance analysis | `action` (`overview`, `content`, `video`, `linkedin`, `performance` or `trends`) | `input` holds the original parameters, such as `videoId` and `timeRange` |
 | `save_post` | Save a text draft, an article draft or a campaign, or link a tracked post | `action` (`post`, `article`, `campaign` or `track_link`) | `input` holds the original parameters; discover the accepted draft fields |
 | `get_content` | Read posts and the calendar, scheduled releases, articles and article previews | `action` (`posts`, `release`, `articles` or `article_preview`) | `input` holds the original parameters, such as `postId`, `executionState`, `limit`, `days`, `releaseId`, `articleId` or `query` |
@@ -99,14 +99,14 @@ its documented commands. CLI commands and MCP tool names are separate interfaces
 1. Read the account and brands; ask the user to select a brand when needed.
 2. Read generation options for the requested type and resolve a supported model.
 3. Obtain an estimate with the chosen model and settings, and confirm the intended spend.
-4. Call `generate` with `type: "image"` or `type: "video"`, the prompt, and resolved `brandId`.
+4. Call `generate_media` with `action` set to `media` and `input` holding `type: "image"` or `type: "video"`, the prompt, and resolved `brandId`.
 5. If approval is pending, show the review link and wait for the user's decision.
 6. After execution, use the returned job identifier with `check_job` (`action` set to `job`); render the returned media.
 
 ### Content Pipeline
 
 1. Call `get_insights` with `action` set to `trends` for topic evidence when available.
-2. Draft reviewed copy with `generate_content`, using the resolved brand and requested content type.
+2. Draft reviewed copy with `generate_text` (`action` set to `content`), using the resolved brand and requested content type.
 3. Generate a supporting visual only when the user requested and approved that generation.
 4. Save a draft or continue through the publishing workflow after explicit confirmation.
 

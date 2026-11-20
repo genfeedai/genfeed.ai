@@ -182,10 +182,8 @@ describe('ToolRegistryService.classify', () => {
 describe('ToolRegistryService.validateDispatchCoverage', () => {
   it('passes when every surfaced tool routes (resolve_approval excepted)', () => {
     mockState.tools = [
-      { name: 'generate' },
       { name: 'create_brand_from_url' },
       { name: 'resolve_approval' },
-      { name: 'repurpose_post' },
       { name: 'find_tools' },
     ];
     expect(() => ToolRegistryService.validateDispatchCoverage()).not.toThrow();
@@ -193,7 +191,6 @@ describe('ToolRegistryService.validateDispatchCoverage', () => {
 
   it('throws when a surfaced tool has no executor', () => {
     mockState.tools = [
-      { name: 'generate' },
       { name: 'create_brand_from_url' },
       { name: 'totally_unrouted_tool' },
     ];

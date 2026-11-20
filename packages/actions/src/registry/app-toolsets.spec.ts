@@ -15,7 +15,7 @@ import { getToolsForToolsets, TOOLSET_NAMES } from './toolsets';
  * Toolsets with MCP tools that no app opens. They stay reachable by name with
  * `?toolsets=`; adding a toolset forces a decision here.
  */
-const TOOLSETS_WITHOUT_APP = ['brand', 'brand-kit', 'models3d'] as const;
+const TOOLSETS_WITHOUT_APP = ['brand'] as const;
 
 /**
  * Apps whose toolsets hold only merged tools. Those list on every connection,
@@ -25,6 +25,11 @@ const TOOLSETS_WITHOUT_APP = ['brand', 'brand-kit', 'models3d'] as const;
 const APPS_WITH_ONLY_MERGED_TOOLS = [
   'agent',
   'automation',
+  'library',
+  'motion',
+  'playground',
+  'publishing',
+  'turbo',
   'workspace',
 ] as const;
 

@@ -373,7 +373,7 @@ function buildTool(
     category: 'generation',
     creditCost: 17,
     description: 'Generate a voice clip',
-    name: 'generate',
+    name: 'generate_media',
     parameters: {
       properties: { text: { type: 'string' } },
       required: ['text'],
@@ -452,7 +452,7 @@ describe('toMcpTools', () => {
       tools.find((tool) => tool.name === name)?.outputSchema;
     expect(schema('find_tools')?.properties).toHaveProperty('toolsets');
     expect(schema('find_tools')?.properties).not.toHaveProperty('artifact');
-    expect(schema('generate')?.properties).toHaveProperty('artifact');
+    expect(schema('generate_media')?.properties).toHaveProperty('artifact');
     expect(schema('manage_workspace')?.properties).not.toHaveProperty('tools');
   });
 
@@ -465,7 +465,7 @@ describe('toMcpTools', () => {
       }),
     ]);
 
-    expect(tools.map((tool) => tool.name)).toEqual(['generate']);
+    expect(tools.map((tool) => tool.name)).toEqual(['generate_media']);
   });
 
   it('advertises the credit cost under the namespaced _meta key', () => {
@@ -548,7 +548,7 @@ describe('toMcpTools', () => {
     const [tool] = toMcpTools([
       buildTool({
         annotations,
-        name: 'onboard_brand',
+        name: 'setup_brand',
         title: 'Stored presentation',
       }),
     ]);

@@ -423,7 +423,7 @@ describe('curated action catalog', () => {
       ['get_brands', 'core'],
       ['onboard_brand', 'core'],
       ['get_posts', 'content'],
-      ['get_assets', 'generation'],
+      ['get_assets', 'core'],
       ['resolve_approval', 'core'],
       ['create_post', 'content'],
       ['repurpose_post', 'content'],

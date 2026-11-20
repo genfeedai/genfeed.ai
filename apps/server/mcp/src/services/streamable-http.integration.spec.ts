@@ -539,7 +539,7 @@ describe('StreamableHttpService (real SDK integration)', () => {
       expect(described.body.result.structuredContent.connection).toEqual({
         isListed: true,
         listedToolCount: expected.length,
-        toolset: 'generation',
+        toolset: 'core',
       });
     });
   });

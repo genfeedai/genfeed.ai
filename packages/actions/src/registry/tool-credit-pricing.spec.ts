@@ -8,9 +8,13 @@ import {
 import { describe, expect, it } from 'vitest';
 import {
   MCP_CREDIT_PRICING_META_KEY,
-  toMcpTools,
+  toMcpTool,
 } from '../adapters/to-mcp-tool';
 import type { ToolCreditPricing } from '../interfaces/tool-definition.interface';
+import {
+  getMcpCatalogOperations,
+  isMcpCatalogToolName,
+} from './mcp-catalog-calls';
 import { MEDIA_GENERATION_CREDIT_FLOORS } from './media-generation';
 import {
   estimateToolCreditCost,
@@ -32,16 +36,27 @@ function pricingOf(name: string): ToolCreditPricing {
 
 describe('tool credit pricing', () => {
   it('gates default-profile media generation at the MCP approval boundary', () => {
-    const spenders = getToolsForToolsets(
-      'mcp',
-      DEFAULT_MCP_PROFILE_TOOLSETS,
-    ).filter((tool) => {
-      const pricing = tool.creditPricing;
-      return (
-        pricing !== undefined &&
-        isSpendingCreditPricing(pricing, tool.creditCost)
-      );
-    });
+    // MCP lists merged tools; each action runs, and is gated as, its original tool.
+    const defaultToolsets = new Set<string>(DEFAULT_MCP_PROFILE_TOOLSETS);
+    const spenders = getToolsForToolsets('mcp', DEFAULT_MCP_PROFILE_TOOLSETS)
+      .flatMap((tool) =>
+        isMcpCatalogToolName(tool.name)
+          ? getMcpCatalogOperations(tool.name).map((operation) =>
+              getToolByName(operation.executionName),
+            )
+          : [tool],
+      )
+      .filter(
+        (tool): tool is NonNullable<typeof tool> =>
+          tool !== undefined && defaultToolsets.has(tool.toolset),
+      )
+      .filter((tool) => {
+        const pricing = tool.creditPricing;
+        return (
+          pricing !== undefined &&
+          isSpendingCreditPricing(pricing, tool.creditCost)
+        );
+      });
     const ungated = spenders
       .filter((tool) => !requiresMcpApproval(tool))
       .map((tool) => tool.name)
@@ -162,11 +177,7 @@ describe('tool credit pricing', () => {
         `Variable cost: ${turboRun.creditPricing.minimum}–${turboRun.creditPricing.maximum} credits per Turbo run.`,
       );
     }
-    const [listed] = toMcpTools(
-      [generate, turboRun].filter(
-        (tool): tool is NonNullable<typeof tool> => tool !== undefined,
-      ),
-    );
+    const listed = generate ? toMcpTool(generate) : undefined;
     expect(listed?._meta[MCP_CREDIT_PRICING_META_KEY]).toMatchObject({
       mode: 'variable',
       unit: 'generation',

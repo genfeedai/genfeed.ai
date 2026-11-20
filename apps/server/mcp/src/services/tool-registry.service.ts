@@ -408,10 +408,18 @@ export class ToolRegistryService implements OnModuleInit {
 
   private async runToolCall(params: ToolCallParams) {
     const requestedArgs = params.arguments ?? {};
+    // Creating a brand from a URL is admin work that runs an agent tool, so it
+    // is routed before the merged tool is resolved.
+    const onboardInput =
+      params.name === 'setup_brand' && requestedArgs.action === 'onboard'
+        ? requestedArgs.input
+        : undefined;
     const brandCreation =
-      params.name === 'onboard_brand' &&
-      requestedArgs.action === 'create_from_url'
-        ? resolveOnboardBrandCall(requestedArgs)
+      typeof onboardInput === 'object' &&
+      onboardInput !== null &&
+      !Array.isArray(onboardInput) &&
+      (onboardInput as Record<string, unknown>).action === 'create_from_url'
+        ? resolveOnboardBrandCall(onboardInput as Record<string, unknown>)
         : null;
     let name = brandCreation?.agentToolName ?? params.name;
     let args = brandCreation?.parameters ?? requestedArgs;

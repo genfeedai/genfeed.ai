@@ -377,6 +377,67 @@ export const MCP_CATALOG_TOOLS = [
     ],
   },
   {
+    name: 'generate_text',
+    description:
+      'Write copy for a brand. content writes a post or article draft and saves it; turbo runs a batch and needs approval; repurpose turns an existing post into new ones; enhance rewrites a prompt before media generation. Pass brandId. Saved drafts are never published.',
+    operations: [
+      { action: 'content', executes: 'generate_content' },
+      { action: 'turbo', executes: 'generate_turbo_content' },
+      { action: 'repurpose', executes: 'repurpose_post' },
+      { action: 'enhance', executes: 'enhance_prompt' },
+    ],
+  },
+  {
+    name: 'generate_media',
+    description:
+      'Generate and transform media; every action that renders spends credits, so check get_generation_catalog first and poll check_job until the job ends. media makes an image, video, voice or music; transform edits existing media; model_3d makes a 3D model; visual_code, visual_code_revise, visual_code_retry, visual_code_export and visual_code_cancel run coded visuals; plan_video, plan_slideshow and plan_long_form plan a piece and start_video, start_slideshow and start_long_form run the approved plan.',
+    operations: [
+      { action: 'media', executes: 'generate' },
+      { action: 'transform', executes: 'transform_media' },
+      { action: 'model_3d', executes: 'render_3d' },
+      { action: 'visual_code', executes: 'generate_visual_code' },
+      { action: 'visual_code_revise', executes: 'revise_visual_code_project' },
+      { action: 'visual_code_retry', executes: 'retry_visual_code_project' },
+      { action: 'visual_code_export', executes: 'export_visual_code_project' },
+      { action: 'visual_code_cancel', executes: 'cancel_visual_code_project' },
+      { action: 'plan_video', executes: 'storyboard_video' },
+      { action: 'start_video', executes: 'start_storyboard_video' },
+      { action: 'plan_slideshow', executes: 'storyboard_slideshow' },
+      {
+        action: 'start_slideshow',
+        executes: 'start_storyboard_slideshow',
+      },
+      { action: 'plan_long_form', executes: 'storyboard_long_form' },
+      {
+        action: 'start_long_form',
+        executes: 'start_storyboard_long_form',
+      },
+    ],
+  },
+  {
+    name: 'setup_brand',
+    description:
+      'Set a brand up. onboard creates a brand from a URL or details; interview_start, interview_answer and interview_skip run the brand interview; connect_account and connect_oauth link a social account; brand_kit manages the kit (input.action picks what); voice_draft and voice_save draft and save the brand voice; generation_settings sets the brand defaults for generation.',
+    claudeActions: [
+      'onboard',
+      'interview_start',
+      'interview_answer',
+      'interview_skip',
+    ],
+    operations: [
+      { action: 'onboard', executes: 'onboard_brand' },
+      { action: 'interview_start', executes: 'start_brand_interview' },
+      { action: 'interview_answer', executes: 'submit_brand_interview_answer' },
+      { action: 'interview_skip', executes: 'skip_brand_interview_question' },
+      { action: 'connect_account', executes: 'connect_social_account' },
+      { action: 'connect_oauth', executes: 'initiate_oauth_connect' },
+      { action: 'brand_kit', executes: 'manage_brand_kit' },
+      { action: 'voice_draft', executes: 'draft_brand_voice_profile' },
+      { action: 'voice_save', executes: 'save_brand_voice_profile' },
+      { action: 'generation_settings', executes: 'set_generation_settings' },
+    ],
+  },
+  {
     name: 'manage_workflow',
     description:
       'Change workflows. create saves one; duplicate copies one without touching the source; install adds a system workflow to the workspace; schedule turns its schedule on or off; execute runs it and spends credits, so inspect it first with find_workflows; create_ad_remix and create_instagram_remix build a remix workflow from a source ad or Instagram post.',

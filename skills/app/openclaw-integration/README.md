@@ -68,8 +68,8 @@ Use `find_tools` to discover the connected account's tools and input schemas.
 |------|-------------|
 | `get_context` | Read the account, resolve the brand for the task, and read brand context |
 | `get_generation_catalog` | Read supported models, credit estimates and presets |
-| `generate` | Generate image, video, voice, or music for an approved request |
-| `generate_content` | Generate article drafts or social copy |
+| `generate_media` | Generate image, video, voice, or music for an approved request |
+| `generate_text` | Generate article drafts or social copy |
 | `get_assets` | List media and named characters |
 | `check_job` | Read generation progress and results |
 | `get_content` | Read posts, the content calendar, releases and articles |

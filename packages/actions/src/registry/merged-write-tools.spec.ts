@@ -76,7 +76,7 @@ describe('get_generation_options', () => {
 });
 
 describe('default MCP profile after the write-tool merges', () => {
-  it('loads transform_media and get_generation_catalog by default', () => {
+  it('loads generate_media and get_generation_catalog by default', () => {
     const names = new Set<string>(
       getToolsForToolsets('mcp', [
         'core',
@@ -85,9 +85,9 @@ describe('default MCP profile after the write-tool merges', () => {
         'scheduler',
       ]).map((tool) => tool.name),
     );
-    expect(names.has('transform_media')).toBe(true);
+    expect(names.has('generate_media')).toBe(true);
     expect(names.has('get_generation_catalog')).toBe(true);
-    expect(names.has('generate_content')).toBe(true);
+    expect(names.has('generate_text')).toBe(true);
     for (const removed of [
       'edit_image',
       'reframe_image',
