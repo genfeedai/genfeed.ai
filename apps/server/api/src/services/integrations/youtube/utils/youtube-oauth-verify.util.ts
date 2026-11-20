@@ -11,6 +11,7 @@ import {
 } from '@api/services/integrations/youtube/utils/youtube-error.util';
 import { YoutubeOAuthVerifyErrorCode } from '@genfeedai/contracts';
 import { isObjectLike } from '@genfeedai/utils/data/extract.util';
+import type { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
 
 /** Diagnostic reasons written to logs. They are not a client wire contract. */
@@ -457,6 +458,25 @@ export function buildYoutubeVerifyFailureLog(input: {
   }
 
   return log;
+}
+
+/**
+ * A 4xx verification failure (consent denied, stale state, rejected code, no
+ * channel, missing scopes) is something the user fixes by retrying the
+ * connection, so it logs at warn and does not open an error group. Anything
+ * else is a Genfeed or provider fault and stays an error.
+ */
+export function logYoutubeVerifyFailure(
+  logger: Pick<LoggerService, 'error' | 'warn'>,
+  message: string,
+  log: ReturnType<typeof buildYoutubeVerifyFailureLog>,
+): void {
+  const status = log.httpStatus;
+  if (typeof status === 'number' && status >= 400 && status < 500) {
+    logger.warn(message, log);
+    return;
+  }
+  logger.error(message, log);
 }
 
 export function assertYoutubeVerifyFailureLogKeys(
