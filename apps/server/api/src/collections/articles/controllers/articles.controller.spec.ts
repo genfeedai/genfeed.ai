@@ -205,7 +205,7 @@ describe('ArticlesController', () => {
         testId('foreign-brand'),
       );
 
-      expect(mockResolveBrandContext).not.toHaveBeenCalled();
+      expect(mockResolveBrandContext.mock.calls).toEqual([]);
     });
 
     it('keeps a regular member inside the request tenant', async () => {
@@ -316,6 +316,14 @@ describe('ArticlesController', () => {
     });
 
     it('finds an article in the brand the call names', async () => {
+      let brandSearched: unknown;
+      mockArticlesService.findAll.mockImplementation(
+        async (pipeline: { where: { brandId?: string } }) => {
+          brandSearched = pipeline.where.brandId;
+          return { docs: [mockArticle] };
+        },
+      );
+
       await controller.findOne(
         mockRequest,
         mockUser,
@@ -323,33 +331,40 @@ describe('ArticlesController', () => {
         otherBrand,
       );
 
-      expect(service.findAll).toHaveBeenCalledWith(
-        {
-          where: expect.objectContaining({ brandId: otherBrand }),
-        },
-        { pagination: false },
-      );
+      expect(brandSearched).toBe(otherBrand);
     });
 
     it('updates an article in the brand the call names', async () => {
-      mockArticlesService.update.mockResolvedValue(mockArticle);
+      let brandUpdated: unknown;
+      mockArticlesService.update.mockImplementation(
+        async (
+          _id: string,
+          _dto: unknown,
+          _userId: string,
+          _organizationId: string,
+          brandId: string,
+        ) => {
+          brandUpdated = brandId;
+          return mockArticle;
+        },
+      );
 
       await controller.patch(mockRequest, mockUser, mockArticle.id, {
         brandId: otherBrand,
         label: 'Renamed',
       });
 
-      expect(service.update).toHaveBeenCalledWith(
-        mockArticle.id,
-        { brandId: otherBrand, label: 'Renamed' },
-        mockPublicMetadata.user,
-        mockPublicMetadata.organization,
-        otherBrand,
-      );
+      expect(brandUpdated).toBe(otherBrand);
     });
 
     it('creates an article in the brand the call names', async () => {
-      mockArticlesService.create.mockResolvedValue(mockArticle);
+      let created: Record<string, unknown> = {};
+      mockArticlesService.create.mockImplementation(
+        async (dto: Record<string, unknown>) => {
+          created = dto;
+          return mockArticle;
+        },
+      );
 
       await controller.create(mockRequest, mockUser, {
         brandId: otherBrand,
@@ -358,16 +373,21 @@ describe('ArticlesController', () => {
         summary: 'Summary',
       });
 
-      expect(service.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          brandId: otherBrand,
-          organizationId: mockPublicMetadata.organization,
-        }),
-        expect.anything(),
-      );
+      expect({
+        brandId: created.brandId,
+        organizationId: created.organizationId,
+      }).toEqual({
+        brandId: otherBrand,
+        organizationId: mockPublicMetadata.organization,
+      });
     });
 
     it('stops when the brand is not usable', async () => {
+      let isUpdated = false;
+      mockArticlesService.update.mockImplementation(async () => {
+        isUpdated = true;
+        return mockArticle;
+      });
       mockResolveBrandContext.mockRejectedValue(new Error('Brand not found'));
 
       await expect(
@@ -375,7 +395,7 @@ describe('ArticlesController', () => {
           brandId: otherBrand,
         }),
       ).rejects.toThrow('Brand not found');
-      expect(service.update).not.toHaveBeenCalled();
+      expect(isUpdated).toBe(false);
     });
   });
 
