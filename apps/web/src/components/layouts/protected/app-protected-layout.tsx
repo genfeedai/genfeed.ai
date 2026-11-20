@@ -20,6 +20,7 @@ import type { ProtectedBootstrapData } from '@props/layout/protected-bootstrap.p
 import type { TopbarProps } from '@props/navigation/topbar.props';
 import { logger } from '@services/core/logger.service';
 import { ErrorBoundary } from '@ui/display/error-boundary/ErrorBoundary';
+import { ErrorFallback } from '@ui/error/ErrorFallback';
 import dynamic from 'next/dynamic';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -586,6 +587,9 @@ function AppProtectedLayoutContent({
   const isEditorCanvasRoute = isProtectedEditorCanvasRoute(pathname);
   const isWorkspaceRoute = isProtectedWorkspaceRoute(pathname);
   const translatePending = useTranslations('pages.organizationRouting.pending');
+  const translateSessionFailure = useTranslations(
+    'pages.organizationRouting.sessionFailure',
+  );
 
   return (
     <WorkspaceNavPanelProvider>
@@ -593,6 +597,16 @@ function AppProtectedLayoutContent({
         authPendingFallback={
           <WorkspaceFrameSkeleton label={translatePending('loading')} />
         }
+        authFailureFallback={(retry) => (
+          <main className="flex min-h-dvh w-full items-center justify-center bg-background px-4 py-10 sm:px-6">
+            <ErrorFallback
+              title={translateSessionFailure('title')}
+              description={translateSessionFailure('description')}
+              resetErrorBoundary={retry}
+              data-testid="session-token-failure"
+            />
+          </main>
+        )}
         renderModal={renderAppGlobalModal}
         includeAssetSelectionProvider={!isEditorCanvasRoute}
         includeApiStatusCheck={false}
