@@ -23,7 +23,7 @@ export interface LowestCostModelDefaultsInput {
  * turn does not bill flagship rates.
  *
  * Prices are Replicate / OpenRouter list (reviewed 2026-09):
- * - image: FLUX Schnell $0.003/image (Nano Banana 2 Lite is $0.034)
+ * - image: FLUX Schnell $0.003/image (Nano Banana 2.1 is $0.034)
  * - video: P-Video $0.02/s at 720p (MiniMax H3 is up to $0.13/s at 2K)
  * - chat: DeepSeek V4.1 Flash $0.15/$0.60 per 1M tokens
  */
@@ -36,7 +36,7 @@ export const LOWEST_COST_AGENT_CHAT_MODEL_KEY =
   AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_1_FLASH;
 
 export const CLOUD_QUALITY_IMAGE_MODEL_KEY =
-  MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA_2_LITE;
+  MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA_2_1;
 
 export const CLOUD_QUALITY_VIDEO_MODEL_KEY = MODEL_KEYS.REPLICATE_MINIMAX_H3;
 

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { ModelCategory } from '..';
 import {
+  DEFAULT_IMAGE_EDIT_MODEL_KEY,
   IMAGE_EDIT_CONTRACT_VERSION,
   readImageEditingRecipe,
 } from './image-edit-models.constant';
@@ -9,19 +10,26 @@ import { MODEL_KEYS } from './model-keys.constant';
 
 const model = MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_4_5;
 describe('dedicated image editing contract', () => {
-  it('seeds a priced category default independently of image generation', () => {
+  it('seeds the registry editing default as an image-edit row, apart from image generation', () => {
+    const editDefaults = UNIFIED_MODEL_CATALOG.filter(
+      (row) => row.category === ModelCategory.IMAGE_EDIT && row.isDefault,
+    );
+    expect(editDefaults.map((row) => row.key)).toEqual([
+      DEFAULT_IMAGE_EDIT_MODEL_KEY,
+    ]);
+    expect(editDefaults[0]).toMatchObject({ providerCostUsd: 0.024 });
     expect(
       UNIFIED_MODEL_CATALOG.find((row) => row.key === model),
     ).toMatchObject({
       category: ModelCategory.IMAGE_EDIT,
-      isDefault: true,
+      isDefault: false,
       providerCostUsd: 0.06,
     });
     expect(
       UNIFIED_MODEL_CATALOG.find(
         (row) => row.category === ModelCategory.IMAGE && row.isDefault,
       )?.key,
-    ).not.toBe(model);
+    ).not.toBe(DEFAULT_IMAGE_EDIT_MODEL_KEY);
   });
   it('allows only public recipe fields and rejects unsupported contracts', () => {
     const recipe = {

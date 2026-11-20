@@ -1069,5 +1069,55 @@ describe('ModelCatalogSeedService', () => {
         isPublic: true,
       });
     });
+
+    it.each([
+      [
+        'image',
+        MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA_2_1,
+        MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA_2_LITE,
+      ],
+      [
+        'image-edit',
+        MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE_EDIT,
+        MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_4_5,
+      ],
+      ['avatar', MODEL_KEYS.HEYGEN_AVATAR_6_TURBO, MODEL_KEYS.HEYGEN_AVATAR_IV],
+    ])(
+      'moves the %s default off the superseded seeded default',
+      async (_category, newDefaultKey, oldDefaultKey) => {
+        const defaultEntry = UNIFIED_MODEL_CATALOG.find(
+          (entry) => entry.key === newDefaultKey,
+        );
+        expect(defaultEntry?.isDefault).toBe(true);
+
+        prisma.model.findUnique.mockImplementation(
+          async ({ where }: { where: { key: string } }) =>
+            where.key === newDefaultKey ? { id: 'existing-row' } : null,
+        );
+        prisma.model.findFirst.mockImplementation(
+          async ({ where }: { where?: { category?: string } }) =>
+            where?.category === defaultEntry?.category
+              ? { key: oldDefaultKey }
+              : null,
+        );
+
+        await service.reconcileCatalog(UNIFIED_MODEL_CATALOG);
+
+        expect(callForKey(newDefaultKey)?.update).toMatchObject({
+          isActive: true,
+          isDefault: true,
+          isPublic: true,
+        });
+        expect(prisma.model.updateMany).toHaveBeenCalledWith(
+          expect.objectContaining({
+            data: { isDefault: false },
+            where: expect.objectContaining({
+              category: defaultEntry?.category,
+              key: { not: newDefaultKey },
+            }),
+          }),
+        );
+      },
+    );
   });
 });
