@@ -157,7 +157,7 @@ export const MCP_CATALOG_TOOLS = [
   {
     name: 'find_workflows',
     description:
-      'Read workflows: list them, templates, the system catalog, runs, or inspect one. Read-only.',
+      'Read workflows: list them, templates, the system catalog, runs, or inspect one (the status of a run is read with check_job). Read-only.',
     operations: [
       { action: 'list', executes: 'get_workflows' },
       { action: 'templates', executes: 'get_workflow_templates' },
@@ -374,6 +374,23 @@ export const MCP_CATALOG_TOOLS = [
       { action: 'export', executes: 'export_skill' },
       { action: 'verify_pro', executes: 'verify_skills_pro_entitlement' },
       { action: 'install_pro', executes: 'install_skills_pro_skill' },
+    ],
+  },
+  {
+    name: 'manage_workflow',
+    description:
+      'Change workflows. create saves one; duplicate copies one without touching the source; install adds a system workflow to the workspace; schedule turns its schedule on or off; execute runs it and spends credits, so inspect it first with find_workflows; create_ad_remix and create_instagram_remix build a remix workflow from a source ad or Instagram post.',
+    operations: [
+      { action: 'create', executes: 'create_workflow' },
+      { action: 'duplicate', executes: 'duplicate_workflow' },
+      { action: 'install', executes: 'install_system_workflow' },
+      { action: 'schedule', executes: 'set_workflow_schedule' },
+      { action: 'execute', executes: 'execute_workflow' },
+      { action: 'create_ad_remix', executes: 'create_ad_remix_workflow' },
+      {
+        action: 'create_instagram_remix',
+        executes: 'create_instagram_remix_workflow',
+      },
     ],
   },
   {

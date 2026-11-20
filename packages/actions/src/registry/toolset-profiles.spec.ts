@@ -44,9 +44,9 @@ describe('MCP toolset profiles', () => {
         (tool) => tool.requiredRole === 'user',
       ).length;
     expect(BARE_MCP_URL_TOOL_CAP).toBe(30);
-    expect(userCount(DEFAULT_MCP_PROFILE_TOOLSETS)).toBe(29);
-    expect(userCount(DIRECTORY_MCP_PROFILE_TOOLSETS)).toBe(24);
-    expect(userCount(STUDIO_MCP_PROFILE_TOOLSETS)).toBe(33);
+    expect(userCount(DEFAULT_MCP_PROFILE_TOOLSETS)).toBe(30);
+    expect(userCount(DIRECTORY_MCP_PROFILE_TOOLSETS)).toBe(25);
+    expect(userCount(STUDIO_MCP_PROFILE_TOOLSETS)).toBe(34);
     expect(userCount(DEFAULT_MCP_PROFILE_TOOLSETS)).toBeLessThanOrEqual(
       BARE_MCP_URL_TOOL_CAP,
     );

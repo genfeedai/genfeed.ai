@@ -22,7 +22,11 @@ const TOOLSETS_WITHOUT_APP = ['brand', 'brand-kit', 'models3d'] as const;
  * so the app opens nothing beyond core. Adding a tool of its own to one of
  * these apps forces a decision here.
  */
-const APPS_WITH_ONLY_MERGED_TOOLS = ['agent', 'workspace'] as const;
+const APPS_WITH_ONLY_MERGED_TOOLS = [
+  'agent',
+  'automation',
+  'workspace',
+] as const;
 
 describe('MCP app toolsets', () => {
   it('maps every core and native secondary app', () => {
