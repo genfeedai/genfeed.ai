@@ -140,15 +140,25 @@ export class ArticlesController extends BaseCRUDController<
     return super.remove(request, user, id);
   }
 
-  /** The brand a call acts in: the named one, else the caller's active brand. */
-  private resolveBrand(user: User, requestedBrandId: string | undefined) {
-    return resolveArticleBrandContext(
-      this.articlesService.prisma,
-      user.organizationId,
-      user.brandId,
-      requestedBrandId,
-      user.allowedBrandIds,
-    );
+  /**
+   * The brand a call acts in: the named one, else the caller's active brand. A
+   * superadmin reading across organizations keeps the active brand; the brand
+   * lookup is organization-scoped and would refuse another organization's.
+   */
+  private resolveBrand(
+    user: User,
+    requestedBrandId: string | undefined,
+    isSuperAdmin = false,
+  ) {
+    return isSuperAdmin
+      ? Promise.resolve(user.brandId)
+      : resolveArticleBrandContext(
+          this.articlesService.prisma,
+          user.organizationId,
+          user.brandId,
+          requestedBrandId,
+          user.allowedBrandIds,
+        );
   }
 
   /**
@@ -175,7 +185,11 @@ export class ArticlesController extends BaseCRUDController<
     @Query('brandId') requestedBrandId?: string,
   ): Promise<JsonApiSingleResponse> {
     const isSuperAdmin = getIsSuperAdmin(user, request);
-    const brandId = await this.resolveBrand(user, requestedBrandId);
+    const brandId = await this.resolveBrand(
+      user,
+      requestedBrandId,
+      isSuperAdmin,
+    );
 
     // Scope the database read for regular users instead of hydrating another
     // organization's article and rejecting it after the query.
@@ -243,7 +257,11 @@ export class ArticlesController extends BaseCRUDController<
     @Query('brandId') requestedBrandId?: string,
   ): Promise<{ expiresInSeconds: number; url: string }> {
     const isSuperAdmin = getIsSuperAdmin(user, request);
-    const brandId = await this.resolveBrand(user, requestedBrandId);
+    const brandId = await this.resolveBrand(
+      user,
+      requestedBrandId,
+      isSuperAdmin,
+    );
     const article = await this.readAsSuperAdmin(
       isSuperAdmin,
       async () =>

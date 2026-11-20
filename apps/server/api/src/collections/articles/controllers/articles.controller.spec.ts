@@ -197,6 +197,17 @@ describe('ArticlesController', () => {
       expect(isCrossOrgDuringRead).toBe(true);
     });
 
+    it('does not look the named brand up in the superadmin organization', async () => {
+      await controller.findOne(
+        superAdminRequest,
+        mockUser,
+        mockArticle.id,
+        testId('foreign-brand'),
+      );
+
+      expect(mockResolveBrandContext).not.toHaveBeenCalled();
+    });
+
     it('keeps a regular member inside the request tenant', async () => {
       let isCrossOrgDuringRead = true;
       mockArticlesService.findAll.mockImplementation(async () => {
