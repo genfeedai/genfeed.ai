@@ -722,14 +722,10 @@ test('keeps the workflow wired to the planner matrices and outputs', () => {
     /pr-test-plan\.mjs --event "\$\{\{ github\.event_name \}\}" --base "\$CI_BASE_SHA"/,
     'the planner must diff against CI_BASE_SHA',
   );
-  assert.match(
-    workflow,
-    /matrix: \$\{\{ fromJSON\(needs\.plan\.outputs\.app_matrix\) \}\}/,
-  );
-  assert.match(
-    workflow,
-    /matrix: \$\{\{ fromJSON\(needs\.plan\.outputs\.api_matrix\) \}\}/,
-  );
+  // The shard jobs start before the plan exists, so their matrices are the
+  // widest the planner can produce, and shard N runs the plan's Nth entry.
+  assert.match(workflow, /kind: app\n\s+slot: \$\{\{ matrix\.shard \}\}/);
+  assert.match(workflow, /kind: api\n\s+slot: \$\{\{ matrix\.shard \}\}/);
   // Each shard takes its selection from the plan: the files the plan gave it
   // on the affected tier, the whole suite split by Vitest on the full tier.
   const shardSelections = workflow.match(
@@ -743,11 +739,15 @@ test('keeps the workflow wired to the planner matrices and outputs', () => {
   assert.match(workflow, /SHARD_ROOT: apps\/web\n/);
   assert.match(workflow, /SHARD_ROOT: apps\/server\/api\n/);
   assert.equal(
-    workflow.match(/SHARD_FILES: \$\{\{ matrix\.files \}\}/g)?.length,
+    workflow.match(
+      /SHARD_FILES: \$\{\{ fromJSON\(steps\.start\.outputs\.leg\)\.files \}\}/g,
+    )?.length,
     2,
   );
   assert.equal(
-    workflow.match(/SHARD_FILE_COUNT: \$\{\{ matrix\.count \}\}/g)?.length,
+    workflow.match(
+      /SHARD_FILE_COUNT: \$\{\{ fromJSON\(steps\.start\.outputs\.leg\)\.count \}\}/g,
+    )?.length,
     2,
   );
   // No shard resolves the changed graph or the Vitest shard inline any more.
@@ -757,25 +757,25 @@ test('keeps the workflow wired to the planner matrices and outputs', () => {
     workflow,
     /name: Upload pull-request test plan[\s\S]*?actions\/upload-artifact@[0-9a-f]{40} # v7\.\d+\.\d+/,
   );
-  // The planner owns workspace filters; the job gates on its output alone.
-  assert.match(workflow, /if: needs\.plan\.outputs\.workspace_tests == 'true'/);
+  // The planner owns workspace filters; the job takes them from the plan leg
+  // its slot names.
+  assert.match(workflow, /kind: workspaces\n\s+slot: \$\{\{ matrix\.slot \}\}/);
+  assert.match(workflow, /name: Test Workspaces \(\$\{\{ matrix\.name \}\}\)/);
   assert.match(
     workflow,
-    /matrix: \$\{\{ fromJSON\(needs\.plan\.outputs\.workspace_matrix\) \}\}/,
+    /WORKSPACE_FILTERS: \$\{\{ fromJSON\(steps\.start\.outputs\.leg\)\.filters \}\}/,
   );
-  assert.match(workflow, /name: Test Workspaces \(\$\{\{ matrix\.name \}\}\)/);
-  assert.match(workflow, /WORKSPACE_FILTERS: \$\{\{ matrix\.filters \}\}/);
   // The diff base is the merge commit's first parent, resolved once by Plan;
   // the payload's `pull_request.base.sha` can be stale and over-escalate.
   assert.match(workflow, /base="\$\(git rev-parse HEAD\^1\)"/);
   assert.doesNotMatch(workflow, /github\.event\.pull_request\.base\.sha/);
   const baseConsumers = workflow.match(
-    /^ {6}CI_BASE_SHA: \$\{\{ needs\.plan\.outputs\.base \}\}$/gm,
+    /^ {10}CI_BASE_SHA: \$\{\{ fromJSON\(steps\.start\.outputs\.plan\)\.base \}\}$/gm,
   );
   assert.equal(
     baseConsumers?.length,
-    4,
-    'workspace, app, API, and build jobs read the planned base; static checks resolve the same base themselves',
+    6,
+    'the workspace tests, cron and MCP e2e specs, and the app, API and build jobs read the planned base; static checks resolve the same base themselves',
   );
   assert.match(
     readFileSync(
@@ -864,14 +864,17 @@ test('the browser extension runs in full while every other filter retains affect
     workflow.indexOf('      - name: Run workspace tests'),
     workflow.indexOf('      - name: Run UI shard'),
   );
-  assert.match(workspaceStep, /WORKSPACE_FILTERS: \$\{\{ matrix\.filters \}\}/);
+  assert.match(
+    workspaceStep,
+    /WORKSPACE_FILTERS: \$\{\{ fromJSON\(steps\.start\.outputs\.leg\)\.filters \}\}/,
+  );
   assert.match(
     workspaceStep,
     /if \[ "\$\{FORCE_FULL\}" = "true" \] \|\| \[ -z "\$\{CI_BASE_SHA\}" \]; then\n {12}bunx turbo run test --continue --concurrency=1 \$\{WORKSPACE_FILTERS\}\n {10}else\n {12}TURBO_SCM_BASE="\$\{CI_BASE_SHA\}" bunx turbo run test --continue --concurrency=1 --affected \$\{WORKSPACE_FILTERS\}\n {10}fi/,
   );
   assert.match(
     workspaceStep,
-    /- name: Run browser extension tests\n {8}if: \$\{\{ !cancelled\(\) && matrix\.extension == 'true' \}\}\n {8}run: bunx turbo run test --continue --concurrency=1 --filter=@genfeedai\/extension\n/,
+    /- name: Run browser extension tests\n {8}if: \$\{\{ !cancelled\(\) && steps\.start\.outputs\.run == 'true' && fromJSON\(steps\.start\.outputs\.leg\)\.extension == 'true' \}\}\n {8}run: bunx turbo run test --continue --concurrency=1 --filter=@genfeedai\/extension\n/,
   );
   assert.doesNotMatch(
     workspaceStep.slice(workspaceStep.indexOf('Run browser extension tests')),
@@ -890,7 +893,7 @@ test('server workspace leg runs the workers cron specs with affected selection',
   );
   assert.match(
     cronStep,
-    /if: \$\{\{ !cancelled\(\) && matrix\.group == 'server' \}\}/,
+    /if: \$\{\{ !cancelled\(\) && steps\.start\.outputs\.run == 'true' && fromJSON\(steps\.start\.outputs\.leg\)\.group == 'server' \}\}/,
   );
   assert.match(
     cronStep,
@@ -909,7 +912,7 @@ test('server workspace leg runs the MCP e2e specs with affected selection', () =
   );
   assert.match(
     e2eStep,
-    /if: \$\{\{ !cancelled\(\) && matrix\.group == 'server' \}\}/,
+    /if: \$\{\{ !cancelled\(\) && steps\.start\.outputs\.run == 'true' && fromJSON\(steps\.start\.outputs\.leg\)\.group == 'server' \}\}/,
   );
   assert.match(
     e2eStep,

@@ -569,13 +569,12 @@ function parseArguments(argv) {
   return values;
 }
 
-function writeOutputs(plan, manifestPath) {
-  const outputPath = process.env.GITHUB_OUTPUT;
-  if (!outputPath) {
-    throw new Error('GITHUB_OUTPUT is required');
-  }
-
-  const outputs = {
+/**
+ * The plan's job outputs, one entry each. The Plan job publishes the same
+ * values to the jobs that start beside it (scripts/ci/test-plan-handoff.mjs).
+ */
+export function createPlanOutputs(plan, manifestPath) {
+  return {
     app: plan.surfaces.app,
     api: plan.surfaces.api,
     app_tests: plan.appTests.applicable,
@@ -591,6 +590,15 @@ function writeOutputs(plan, manifestPath) {
     workspace_matrix: JSON.stringify(plan.workspaceMatrix),
     manifest: manifestPath,
   };
+}
+
+function writeOutputs(plan, manifestPath) {
+  const outputPath = process.env.GITHUB_OUTPUT;
+  if (!outputPath) {
+    throw new Error('GITHUB_OUTPUT is required');
+  }
+
+  const outputs = createPlanOutputs(plan, manifestPath);
 
   appendFileSync(
     outputPath,

@@ -1,0 +1,105 @@
+name: Start Test Leg
+description: >-
+  Starts a validation job beside the Plan job instead of behind it. Repeats the
+  contributor trust gate, skips the install when the planner cannot give this
+  job any work, installs, then reads the plan the Plan job publishes.
+  Run it right after checkout.
+
+inputs:
+  kind:
+    description: app, api, workspaces, cloud-tenant-guard, mcp-auth-runtime, spec-typecheck or build
+    required: true
+  slot:
+    description: Shard number, workspace pool number or `server`; empty for jobs without legs
+    required: false
+    default: ''
+  run-heavy:
+    description: The caller's run_heavy_tests input
+    required: false
+    default: 'false'
+
+outputs:
+  run:
+    description: '"true" when the plan gives this job work, "false" when it does not'
+    value: ${{ steps.await.outputs.run || steps.preflight.outputs.run }}
+  leg:
+    description: The plan's matrix entry for this job, as JSON
+    value: ${{ steps.await.outputs.leg || '{}' }}
+  plan:
+    description: The Plan job's scalar outputs as JSON (the matrices stay out)
+    value: ${{ steps.await.outputs.plan || '{}' }}
+
+runs:
+  using: composite
+  steps:
+    # The same gate as the Plan job's: an untrusted fork pull request must not
+    # install or run its own code here before a maintainer adds `run-ci`.
+    # scripts/ci/pr-validation-workflows.test.mjs keeps the copies identical.
+    - name: Check contributor trust
+      id: trust
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+      with:
+        script: |
+          const { data: pr } = await github.rest.pulls.get({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            pull_number: context.issue.number
+          });
+
+          const association = pr.author_association;
+          const trustedRoles = ['OWNER', 'MEMBER', 'COLLABORATOR'];
+          const isSameRepository =
+            pr.head.repo?.full_name === `${context.repo.owner}/${context.repo.repo}`;
+          const isTrusted = isSameRepository || trustedRoles.includes(association);
+          const hasLabel = pr.labels.some(l => l.name === 'run-ci');
+
+          // Trust decides *whether* CI runs; this decides *how much* of it.
+          // An external contributor stays external even once a maintainer
+          // adds `run-ci`: the label buys them a run, not the light tier.
+          core.setOutput('external', isTrusted ? 'false' : 'true');
+
+          if (isTrusted) {
+            const trustReason = isSameRepository
+              ? 'same-repo PR'
+              : `trusted contributor (${association})`;
+            core.info(`${trustReason} - CI allowed`);
+          } else if (hasLabel) {
+            core.info('External contributor with run-ci label - CI allowed');
+          } else {
+            core.setFailed(
+              `External contributor (${association}) - add the \`run-ci\` label to allow CI. ` +
+              'A maintainer must review the code and add the label.'
+            );
+          }
+
+    # Answers only from the changed files and only with the planner's own
+    # classification. A job it rules out has nothing to do whatever the plan
+    # says, so it skips the install; anything uncertain runs.
+    - name: Check this job can have work
+      id: preflight
+      shell: bash
+      env:
+        EVENT_NAME: ${{ github.event_name }}
+        MERGE_GROUP_BASE_SHA: ${{ github.event.merge_group.base_sha }}
+        LEG_KIND: ${{ inputs.kind }}
+        LEG_SLOT: ${{ inputs.slot }}
+        # The Plan job's tier step, from the same four signals.
+        HEAVY_HINT: ${{ github.event_name == 'merge_group' || inputs.run-heavy == 'true' || contains(github.event.pull_request.labels.*.name, 'full-suite') || steps.trust.outputs.external == 'true' }}
+      run: node scripts/ci/test-plan-handoff.mjs preflight
+
+    - name: Setup Bun environment
+      if: steps.preflight.outputs.may_run == 'true'
+      uses: ./.github/actions/setup-bun-env
+      with:
+        cache-prisma-client: 'true'
+
+    - name: Read the plan
+      id: await
+      if: steps.preflight.outputs.may_run == 'true'
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        LEG_KIND: ${{ inputs.kind }}
+        LEG_SLOT: ${{ inputs.slot }}
+      run: node scripts/ci/test-plan-handoff.mjs await

@@ -108,10 +108,13 @@ test('one Spec Typecheck job checks the whole selection', () => {
 
   assert.equal(job.name, 'Spec Typecheck');
   assert.equal(job.strategy, undefined);
-  assert.equal(job.needs, 'plan');
-  assert.equal(job.if, "needs.plan.outputs.spec_run == 'true'");
+  // The job starts with the run and reads the Plan job's scope through the
+  // start action; it does nothing when the plan puts no workspace in scope.
+  assert.equal(job.needs, undefined);
+  assert.equal(check.if, "steps.start.outputs.run == 'true'");
   assert.deepEqual(check.env, {
-    SCOPED_WORKSPACES: '${{ needs.plan.outputs.spec_workspaces }}',
+    SCOPED_WORKSPACES:
+      '${{ fromJSON(steps.start.outputs.plan).spec_workspaces }}',
   });
   assert.equal(check.run, 'bun run check:spec-typecheck ${SCOPED_WORKSPACES}');
 });
