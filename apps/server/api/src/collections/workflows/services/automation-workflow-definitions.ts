@@ -4,6 +4,7 @@ import type {
   WorkflowVisualNode,
 } from '@api/collections/workflows/schemas/workflow.schema';
 import { AUTOMATION_ACTION_IDS } from '@api/collections/workflows/services/automation-action-ids';
+import { withContractEntryInputs } from '@api/collections/workflows/services/automation-child-entry-inputs';
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-runner.service';
 import { SystemWorkflowRetention } from '@api/collections/workflows/workflow-execution-retention.contract';
 import { REPLY_BOT_WORKFLOW_IDS } from '@api/services/reply-bot/reply-bot-workflow-definition';
@@ -1205,7 +1206,7 @@ export const AUTOMATION_CHILD_WORKFLOWS = [
     description: 'Ingests paid creative research for one watched advertiser.',
     label: 'Ingest Advertiser Research',
   }),
-] satisfies SystemWorkflowGraphDefinition[];
+].map(withContractEntryInputs) satisfies SystemWorkflowGraphDefinition[];
 
 export const AUTOMATION_PARENT_WORKFLOWS = [
   buildAgentProactiveWorkflowDefinition(),

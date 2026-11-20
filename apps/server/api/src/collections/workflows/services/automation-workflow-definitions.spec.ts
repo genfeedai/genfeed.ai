@@ -156,24 +156,50 @@ describe('automation workflow definitions', () => {
     },
   );
 
-  it('preserves request-only inputs for other single-action children', () => {
+  it('derives the social trigger child inputs from its action contract', () => {
     const child = AUTOMATION_CHILD_WORKFLOWS.find(
       (definition) =>
         definition.canonicalId ===
         AUTOMATION_WORKFLOW_IDS.SOCIAL_TRIGGER_WORKFLOW,
     );
-    expect(child?.definition.inputVariables).toEqual([
-      {
-        key: 'request',
-        label: 'Workflow request',
-        required: false,
-        type: 'json',
-      },
-    ]);
+    expect(
+      child?.definition.inputVariables?.map((variable) => variable.key),
+    ).toEqual(['request', 'item', 'organizationId']);
     expect(child?.definition.nodes[0]?.data.inputVariableKeys).toEqual([
       'request',
+      'item',
+      'organizationId',
     ]);
     expect(child?.definition.nodes[0]?.data.config.parameters).toEqual({});
+  });
+
+  it('hands the brand item and organization to the harness winners prepare node (API-GENFEED-AI-B3)', () => {
+    const child = AUTOMATION_CHILD_WORKFLOWS.find(
+      (definition) =>
+        definition.canonicalId ===
+        AUTOMATION_WORKFLOW_IDS.HARNESS_WINNERS_BRAND,
+    );
+    if (!child) throw new Error('Missing harness brand child definition');
+    const converter = new WorkflowEngineConverterService();
+    const executable = converter.applyRuntimeInputValues(
+      child.definition,
+      converter.convertToExecutableWorkflow({
+        ...child.definition,
+        id: child.canonicalId,
+        organizationId: 'org-1',
+        userId: 'user-1',
+        versionId: 'fixture-version',
+      }),
+      { contextBaseId: 'base-1', item: 'brand-1', organizationId: 'org-1' },
+    );
+    const prepare = executable.nodes.find(
+      (node) => node.id === 'prepare-brand',
+    );
+
+    expect(buildActionExecutionInput(prepare?.config ?? {}, {})).toMatchObject({
+      item: 'brand-1',
+      organizationId: 'org-1',
+    });
   });
 
   it('decomposes trend delivery into three independent channel actions', () => {
@@ -299,6 +325,52 @@ describe('automation workflow definitions', () => {
           if (!wiredHandles.has(property)) {
             gaps.push(
               `${definition.canonicalId}:${node.id} missing edge for required "${property}"`,
+            );
+          }
+        }
+      }
+    }
+    expect(gaps).toEqual([]);
+  });
+
+  it("delivers every child entry node's required contract input from the fan-out's flat inputValues", () => {
+    // A `workflow.for-each` parent hands each child `{ ...baseInput, item }` as
+    // inputValues, and the converter copies only the keys a node lists in
+    // `inputVariableKeys` (and the child declares as an input variable) into
+    // that node. A required property that is neither declared nor listed never
+    // arrives, and the action contract rejects every run (API-GENFEED-AI-B3).
+    const gaps: string[] = [];
+    for (const child of AUTOMATION_CHILD_WORKFLOWS) {
+      const declared = new Set(
+        (child.definition.inputVariables ?? []).map((variable) => variable.key),
+      );
+      const targeted = new Set(
+        child.definition.edges.map((edge) => edge.target),
+      );
+      for (const node of child.definition.nodes) {
+        if (targeted.has(node.id)) continue;
+        const actionId = String(node.data.config.actionId);
+        if (
+          actionId === 'workflow.for-each' ||
+          actionId === 'workflow.run-child'
+        ) {
+          continue;
+        }
+        const required =
+          (
+            getActionDefinition(actionId)?.inputSchema as
+              | { required?: readonly string[] }
+              | undefined
+          )?.required ?? [];
+        const listed = new Set(
+          (node.data as { inputVariableKeys?: string[] }).inputVariableKeys ??
+            [],
+        );
+        for (const property of required) {
+          if (property === 'request') continue;
+          if (!declared.has(property) || !listed.has(property)) {
+            gaps.push(
+              `${child.canonicalId}:${node.id} never receives "${property}"`,
             );
           }
         }
