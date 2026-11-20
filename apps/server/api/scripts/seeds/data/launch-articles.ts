@@ -36,6 +36,10 @@ answered exactly the question you asked; the question was just vaguer than you
 realized. This tutorial gives you a repeatable structure for writing prompts
 that produce usable text on the first or second attempt instead of the sixth.</p>
 
+<h2>TL;DR</h2>
+
+<p>Bad AI output is usually a brief problem, not a model problem. Write each prompt with the CLEAR structure, fix the four common failures (vague, overloaded, conflicting, missing context), change one variable per iteration, and save every prompt that works.</p>
+
 <h2>The CLEAR framework</h2>
 
 <p>Five things decide whether a prompt lands. Write them down every time until
@@ -186,6 +190,25 @@ it cover every requirement, and can you ship it with light editing? When the
 answer to all four is yes, save the prompt. A personal prompt library compounds
 faster than any single clever trick.</p>
 
+<h2>Give this to your agent</h2>
+
+<p>Paste this into Claude, Codex, or any agent that works on your content. It carries the guidance above, so the agent follows the same steps and stops at the same review points.</p>
+
+<pre><code>Act as my prompt editor. I will paste a draft prompt. Rewrite it using the CLEAR structure, then explain what you changed.
+
+Steps:
+1. Ask me for the goal, the audience and the format if my draft does not say.
+2. Check the draft for four failures: too vague, too many requirements, conflicting instructions, missing context.
+3. Rewrite it with the CLEAR structure, keeping to three to five requirements that matter.
+4. Give me the rewrite and a one-line reason for each change.
+5. When I report the result, suggest one single change for the next iteration.
+
+Rules:
+- Change one variable per iteration so we learn what helped.
+- Do not invent facts about my product, audience or numbers. Ask instead.
+- Judge each result on four axes: it matches my intent, it is clean, it covers every requirement, and I can ship it with light editing.
+- When all four are yes, tell me to save the prompt to my library.</code></pre>
+
 <h2>Next</h2>
 
 <ul>
@@ -202,6 +225,10 @@ const ASSET_PROMPTING = `
 a visual model needs to know the subject, the treatment, the setting, the light,
 and the framing, and it will invent whichever of those you leave out. This
 tutorial covers images, video, and audio, with the prompt skeleton for each.</p>
+
+<h2>TL;DR</h2>
+
+<p>Asset prompts need structure: name the subject, treatment, setting, light and framing, because the model invents whatever you leave out. Use one skeleton each for image, video and audio, change one element per iteration, and compare more than one model.</p>
 
 <h2>Images</h2>
 
@@ -466,6 +493,25 @@ nouns do not.</p>
 <p>Change one element per iteration, compare outputs from more than one model,
 and save every prompt that works. The library is the asset, not any individual
 image.</p>
+
+<h2>Give this to your agent</h2>
+
+<p>Paste this into Claude, Codex, or any agent that works on your content. It carries the guidance above, so the agent follows the same steps and stops at the same review points.</p>
+
+<pre><code>Act as my prompt writer for images, video and audio. I will describe the asset I want. You write the prompt.
+
+Steps:
+1. Ask which kind of asset this is (image, video or audio) and where it will be used.
+2. Fill the skeleton for that kind. For images: subject, treatment, setting, light, framing. For video: add camera movement and what changes over time. For audio: add mood, pacing and instruments.
+3. Return one finished prompt, with every specific already chosen, and list the choices you made on my behalf.
+4. After I run it, suggest one change for the next version.
+
+Rules:
+- Five to seven descriptors that reinforce each other. No contradictions.
+- Do not name real people or copyrighted characters unless I confirm I have the rights.
+- Change one element per iteration, and suggest running a second model to compare.
+- Tell me which prompts are worth saving to my library.</code></pre>
+
 `;
 
 const IMAGE_PROMPT_TEMPLATES = `
@@ -480,6 +526,10 @@ agent</strong>. Each one states the job, hands the creative decisions to
 whatever already knows your brand, and pins the two or three constraints that
 actually break the image if they slip. The agent writes the prompt. You run the
 prompt.</p>
+
+<h2>TL;DR</h2>
+
+<p>Do not fill in brackets. Hand an agent the job, let it use your brand context to write the image prompt, then review the prompt before you run it. Take back anything legally load-bearing, any look you have already validated, and any face you reuse.</p>
 
 <h2>How to run a brief</h2>
 
@@ -664,6 +714,25 @@ worth taking back by hand:</p>
 <p>Everything else is better delegated. An agent that has read your last fifty
 posts has a sharper sense of your visual language than a bracket does, and
 unlike a bracket, it never ships to the generator unfilled.</p>
+
+<h2>Give this to your agent</h2>
+
+<p>Paste this into Claude, Codex, or any agent that works on your content. It carries the guidance above, so the agent follows the same steps and stops at the same review points.</p>
+
+<pre><code>You are my image prompt agent. I will give you a brief for one image job (for example a product shot, a colorway, a hero banner or a seasonal variant).
+
+Steps:
+1. Read my brand context (palette, product photos, audience, tone). If any of it is missing, ask me before you continue.
+2. Write one finished image prompt with every specific chosen: lighting, style, composition, setting and palette.
+3. List the choices you made so I can overrule any of them.
+4. Wait for my edits, then give me the final prompt to run.
+
+Rules:
+- Never leave brackets or placeholders in the prompt.
+- Do not invent claims, certifications or pack copy. Leave those for me to type.
+- If I name a shot that already converted, pin its lighting and framing instead of changing them.
+- Reuse the saved identity block for any recurring character. Do not improvise a face.</code></pre>
+
 `;
 
 const INSTAGRAM_GROWTH = `
@@ -675,6 +744,10 @@ half: what to post, when, and how Instagram decides who sees it.</p>
 specifications are in the
 <a href="https://docs.genfeed.ai/guides/publishing/social-media/instagram">Instagram
 connector reference</a>.</p>
+
+<h2>TL;DR</h2>
+
+<p>AI makes the supply of visuals cheap, but distribution is the real work. Optimize for reach and saves, not likes: one locked visual style, hooks and payoffs in the caption, two proven posting slots, and eight weeks of consistent data before you judge anything.</p>
 
 <h2>How ranking actually works</h2>
 
@@ -765,6 +838,27 @@ specific audience.</p>
 <p>Repeat that loop for eight weeks before you conclude anything. Instagram
 growth data is extremely noisy at low volume, and most "the algorithm changed"
 diagnoses are variance.</p>
+
+<h2>Give this to your agent</h2>
+
+<p>Paste this into Claude, Codex, or any agent that works on your content. It carries the guidance above, so the agent follows the same steps and stops at the same review points.</p>
+
+<pre><code>Act as my Instagram content planner. Help me run the weekly loop.
+
+Before you start, ask me for my niche, my audience, my brand style prompt and my two best-performing posting slots.
+
+Each week:
+1. Draft a batch of visuals from one locked style prompt.
+2. Write each caption with an explicit hook, a payoff and a save-oriented call to action.
+3. Propose a schedule using my two best slots.
+4. Remind me to block twenty minutes after each post to reply to comments.
+5. At the end of the week, ask me for reach and saves, and tell me which format to drop.
+
+Rules:
+- Judge by reach and saves, not likes.
+- Do not make claims about how the algorithm changed. Treat low-volume data as noisy and wait eight weeks before concluding anything.
+- Do not post or schedule anything without my approval.</code></pre>
+
 `;
 
 const TIKTOK_GROWTH = `
@@ -776,6 +870,10 @@ and the least forgiving of a weak first three seconds.</p>
 <p>Account connection, video specifications, and troubleshooting live in the
 <a href="https://docs.genfeed.ai/guides/publishing/social-media/tiktok">TikTok
 connector reference</a>.</p>
+
+<h2>TL;DR</h2>
+
+<p>TikTok decides distribution per video, so attempts are the input that matters. Win the first three seconds, niche down until you can describe the account in six words, post daily for sixty days, and A/B test hooks by posting the same video with two openings.</p>
 
 <h2>What the algorithm weighs</h2>
 
@@ -877,6 +975,27 @@ though the long one accumulated more watch seconds per viewer.</p>
 <p>The compounding advantage of generated video here is not that any single
 video is better. It is that you can afford sixty attempts instead of six, and on
 a per-video distribution model, attempts are the input that matters.</p>
+
+<h2>Give this to your agent</h2>
+
+<p>Paste this into Claude, Codex, or any agent that works on your content. It carries the guidance above, so the agent follows the same steps and stops at the same review points.</p>
+
+<pre><code>Act as my TikTok content planner for the next sixty days.
+
+Before you start, ask me for my niche (I should be able to describe it in six words), my audience and what footage or assets I already have.
+
+Steps:
+1. Propose ten video ideas, each with a hook for the first three seconds.
+2. For my five best ideas, write two different openings of the same video so I can test hooks a week apart.
+3. Draft the caption and hashtags for each video.
+4. Plan a daily posting rhythm, and suggest cross-posting my best vertical videos to Reels and Shorts.
+5. Every week, ask me for my analytics and find my real peak posting windows.
+
+Rules:
+- Do not copy trends I do not understand.
+- Do not post or schedule anything without my approval.
+- Do not draw conclusions before sixty days of data.</code></pre>
+
 `;
 
 const LINKEDIN_GROWTH = `
@@ -888,6 +1007,10 @@ clarity, not production budget.</p>
 <p>Connection, account types, media specifications, and analytics are in the
 <a href="https://docs.genfeed.ai/guides/publishing/social-media/linkedin">LinkedIn
 connector reference</a>.</p>
+
+<h2>TL;DR</h2>
+
+<p>LinkedIn rewards specific, credible, professionally useful writing and punishes anything that reads like an advert. Generate the skeleton, then write the specifics yourself, comment on other people's posts daily, and keep a fixed schedule of two considered posts a week.</p>
 
 <h2>What the algorithm weighs</h2>
 
@@ -979,6 +1102,26 @@ process behind the output.</p>
 <p>Generated drafts are useful here as a starting structure, but LinkedIn is the
 platform where the last 20% of human editing carries most of the value. Generate
 the skeleton; write the specifics yourself.</p>
+
+<h2>Give this to your agent</h2>
+
+<p>Paste this into Claude, Codex, or any agent that works on your content. It carries the guidance above, so the agent follows the same steps and stops at the same review points.</p>
+
+<pre><code>Act as my LinkedIn writing coach. You write skeletons and I write the specifics.
+
+Before you start, ask me for my role, my audience, three things I learned recently, and the tone I want.
+
+Steps:
+1. Propose two post angles a week, each answering a question my audience actually has.
+2. For each angle, write a skeleton: a first line that earns the click, the structure of the story, and a closing question.
+3. Mark every place where I must add a real detail, number or example from my own work.
+4. Each day, suggest two posts from other people that I should comment on, with a thoughtful comment angle for each.
+
+Rules:
+- No hype, no engagement bait, no invented numbers or stories.
+- Keep the tone professional and plain.
+- Do not post or comment on my behalf. I approve and publish everything.</code></pre>
+
 `;
 
 const YOUTUBE_GROWTH = `
@@ -990,6 +1133,10 @@ recommendation engine ever shows the video again.</p>
 <p>Channel connection, upload permissions, formats, and analytics are covered in
 the <a href="https://docs.genfeed.ai/guides/publishing/social-media/youtube">YouTube
 connector reference</a>.</p>
+
+<h2>TL;DR</h2>
+
+<p>YouTube is a search engine with a recommendation layer. Titles are queries, thumbnails are the click decision, and the first fifteen seconds decide whether the video is shown again. Research keywords before you script, publish at least twenty videos, and fix whichever of click-through rate or view duration the data points at.</p>
 
 <h2>Titles</h2>
 
@@ -1090,6 +1237,29 @@ recommendation engine will not.</p>
 videos when the click-through rate is 2%, or making better thumbnails when
 viewers leave at 0:20. Let the two numbers tell you which problem you
 have.</p>
+
+<h2>Give this to your agent</h2>
+
+<p>Paste this into Claude, Codex, or any agent that works on your content. It carries the guidance above, so the agent follows the same steps and stops at the same review points.</p>
+
+<pre><code>Act as my YouTube content planner. Help me plan, package and review videos.
+
+Before you start, ask me for my channel topic, my audience and my last ten videos with their click-through rate and average view duration.
+
+For each new video:
+1. Suggest keywords to research before scripting, and three title options that match a real query.
+2. Describe three thumbnail concepts at phone size, with one idea each.
+3. Write a hook for the first fifteen seconds.
+4. Draft the description and tags.
+
+Review step:
+- If click-through rate is low, work on the title and thumbnail. If viewers leave early, work on the hook and pacing. Tell me which problem the data shows.
+
+Rules:
+- Do not invent numbers or claim a result I have not measured.
+- Judge only after at least twenty videos.
+- Do not upload or publish anything without my approval.</code></pre>
+
 `;
 
 const OSS_LAUNCH_PLAYBOOK = `
@@ -1098,6 +1268,10 @@ or two apart, aimed at audiences that want opposite things: Hacker News wants
 the architecture and the honest caveats; Product Hunt wants the outcome and the
 screenshots. This is the operating playbook: gates, timing, copy structure, and
 what to measure.</p>
+
+<h2>TL;DR</h2>
+
+<p>Launching an open-source product means two launches, a week or two apart. Hacker News wants the architecture and the honest caveats, and Product Hunt wants the outcome and the screenshots. Close the readiness gate first, prepare the copy, and measure against a baseline.</p>
 
 <h2>Do not launch until the gate closes</h2>
 
@@ -1303,6 +1477,27 @@ predicts anything about week four.</p>
 <p>The playbook is deliberately boring. Launches fail on unglamorous things (a
 broken install command, an unanswered license question, no attribution on the
 one day traffic actually arrives) far more often than on positioning.</p>
+
+<h2>Give this to your agent</h2>
+
+<p>Paste this into Claude, Codex, or any agent that works on your content. It carries the guidance above, so the agent follows the same steps and stops at the same review points.</p>
+
+<pre><code>Act as my launch editor for an open-source product launch on Show HN and Product Hunt.
+
+Before you start, ask me for the repo link, the one-sentence description, the end-to-end walkthrough, and the baseline metrics I have recorded.
+
+Steps:
+1. Check the readiness list: a green end-to-end walkthrough, a README and screenshots, architecture docs, CONTRIBUTING and issue templates, and a clean-clone install transcript. Tell me what is missing and stop if the gate is not closed.
+2. Draft the Show HN title and first comment, with the architecture and the honest caveats.
+3. Draft the Product Hunt tagline, maker comment and gallery plan, with the outcome and screenshots.
+4. Draft the launch-day schedule and a launch-week content calendar.
+5. Set up UTM links and a baseline measurement plan.
+
+Rules:
+- Do not exaggerate. Mark every claim I must verify.
+- Do not post or submit anything without my approval.
+- Do not launch before the gate closes.</code></pre>
+
 `;
 
 const ORIGINAL_LAUNCH_BATCH_PUBLISHED_AT = '2026-08-13T01:38:45.528Z';
