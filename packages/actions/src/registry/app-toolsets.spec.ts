@@ -24,11 +24,15 @@ const TOOLSETS_WITHOUT_APP = ['brand'] as const;
  */
 const APPS_WITH_ONLY_MERGED_TOOLS = [
   'agent',
+  'analytics',
   'automation',
+  'discovery',
   'library',
+  'messages',
   'motion',
   'playground',
   'publishing',
+  'storyboard',
   'turbo',
   'workspace',
 ] as const;

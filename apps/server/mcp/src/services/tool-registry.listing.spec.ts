@@ -261,12 +261,12 @@ it('lists the real mixed default with canonical wrappers inside the 30-tool bare
   );
   const user = build('user', [...actual.DEFAULT_MCP_PROFILE_TOOLSETS]);
   const maximum = build('superadmin', [...actual.DEFAULT_MCP_PROFILE_TOOLSETS]);
-  expect(user.getTools()).toHaveLength(25);
+  expect(user.getTools()).toHaveLength(28);
   expect(user.getTools().length).toBeLessThanOrEqual(
     actual.BARE_MCP_URL_TOOL_CAP,
   );
   // Admin-only tools are not on the standard endpoint, whatever the role.
-  expect(maximum.getTools()).toHaveLength(25);
+  expect(maximum.getTools()).toHaveLength(28);
   const listed = names(user.getTools());
   expect(listed).toContain('check_channel');
   expect(listed).toContain('get_insights');

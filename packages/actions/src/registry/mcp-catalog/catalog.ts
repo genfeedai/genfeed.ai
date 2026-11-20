@@ -438,6 +438,44 @@ export const MCP_CATALOG_TOOLS = [
     ],
   },
   {
+    name: 'find_inspiration',
+    description:
+      'Fetch outside content to learn from. instagram and instagram_detail read Instagram inspiration for a brand; x_posts and x_account_activity read X posts and the activity of an account. Each call spends provider credits, so say what it costs before calling.',
+    operations: [
+      { action: 'instagram', executes: 'fetch_instagram_inspiration' },
+      {
+        action: 'instagram_detail',
+        executes: 'fetch_instagram_inspiration_detail',
+      },
+      { action: 'x_posts', executes: 'fetch_x_posts' },
+      { action: 'x_account_activity', executes: 'fetch_x_account_activity' },
+    ],
+  },
+  {
+    name: 'save_remix',
+    description:
+      'Prepare a remix without generating anything. import_source imports a public X, Instagram or TikTok post as a source and needs approval; concept saves a remix concept from an imported source; concept_update edits it at the expected revision; attach_source picks the Library video to analyze; storyboard_remix saves a storyboard remix.',
+    operations: [
+      { action: 'import_source', executes: 'import_source_post' },
+      { action: 'concept', executes: 'create_remix_concept' },
+      { action: 'concept_update', executes: 'update_remix_concept' },
+      { action: 'attach_source', executes: 'attach_remix_analysis_source' },
+      { action: 'storyboard_remix', executes: 'create_storyboard_remix' },
+    ],
+  },
+  {
+    name: 'run_remix',
+    description:
+      'Run a saved remix. quote saves a price quote for a revision without starting it; start runs the exact quote after approval and spends credits; control cancels or resumes a video or avatar run (input.action is cancel or resume); replace_character swaps a storyboard character; status reads the run, its revision, quotes and artifacts and is safe to repeat.',
+    operations: [
+      { action: 'quote', executes: 'quote_remix_generation' },
+      { action: 'start', executes: 'start_remix_generation' },
+      { action: 'control', executes: 'control_remix_generation' },
+      { action: 'replace_character', executes: 'replace_storyboard_character' },
+      { action: 'status', executes: 'get_remix_run' },
+    ],
+  },
+  {
     name: 'manage_workflow',
     description:
       'Change workflows. create saves one; duplicate copies one without touching the source; install adds a system workflow to the workspace; schedule turns its schedule on or off; execute runs it and spends credits, so inspect it first with find_workflows; create_ad_remix and create_instagram_remix build a remix workflow from a source ad or Instagram post.',

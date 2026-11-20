@@ -37,9 +37,9 @@ describe('MCP toolset profiles', () => {
         (tool) => tool.requiredRole === 'user',
       ).length;
     expect(BARE_MCP_URL_TOOL_CAP).toBe(30);
-    expect(userCount(DEFAULT_MCP_PROFILE_TOOLSETS)).toBe(25);
-    expect(userCount(DIRECTORY_MCP_PROFILE_TOOLSETS)).toBe(25);
-    expect(userCount(STUDIO_MCP_PROFILE_TOOLSETS)).toBe(26);
+    expect(userCount(DEFAULT_MCP_PROFILE_TOOLSETS)).toBe(28);
+    expect(userCount(DIRECTORY_MCP_PROFILE_TOOLSETS)).toBe(28);
+    expect(userCount(STUDIO_MCP_PROFILE_TOOLSETS)).toBe(28);
     expect(userCount(DEFAULT_MCP_PROFILE_TOOLSETS)).toBeLessThanOrEqual(
       BARE_MCP_URL_TOOL_CAP,
     );
@@ -99,7 +99,7 @@ describe('MCP toolset profiles', () => {
       expect.arrayContaining(['generate_media', 'get_assets']),
     );
     expect(names).toEqual(
-      expect.arrayContaining(['get_insights', 'fetch_x_posts']),
+      expect.arrayContaining(['get_insights', 'find_inspiration']),
     );
   });
 

@@ -572,6 +572,12 @@ export const CURATED_ACTION_CATALOG = [
   },
   {
     category: 'other',
+    name: 'find_inspiration',
+    surfaces: ['mcp'],
+    toolset: 'inspiration',
+  },
+  {
+    category: 'other',
     claudeAccess: 'both',
     mcpCardKind: 'summary',
     name: 'find_tools',
@@ -1734,6 +1740,12 @@ export const CURATED_ACTION_CATALOG = [
     toolset: 'clipper',
   },
   {
+    category: 'other',
+    name: 'run_remix',
+    surfaces: ['mcp'],
+    toolset: 'inspiration',
+  },
+  {
     actionClass: 'brand-context',
     category: 'generation',
     mcpBrandRequired: true,
@@ -1771,6 +1783,12 @@ export const CURATED_ACTION_CATALOG = [
     name: 'save_post',
     surfaces: ['mcp'],
     toolset: 'content',
+  },
+  {
+    category: 'other',
+    name: 'save_remix',
+    surfaces: ['mcp'],
+    toolset: 'inspiration',
   },
   {
     actionClass: 'brand-context',
