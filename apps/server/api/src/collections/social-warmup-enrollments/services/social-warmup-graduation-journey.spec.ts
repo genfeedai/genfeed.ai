@@ -304,12 +304,6 @@ function seedCredential(
     organizationId: 'org-1',
     platform: CredentialPlatform.TIKTOK,
     warmupAssessedAt: null,
-    warmupHoldReason: null,
-    warmupManualOverride: false,
-    warmupOverrideConfirmedAt: null,
-    warmupOverrideConfirmedByUserId: null,
-    warmupOverrideReason: null,
-    warmupOverrideUntil: null,
     warmupRiskLevel: 'unknown',
     warmupScore: 0,
     warmupSignals: {},
@@ -321,7 +315,7 @@ function seedCredential(
   return row;
 }
 
-describe('social warm-up graduation and publishing-gate journey (#2217)', () => {
+describe('social warm-up graduation journey (#2217)', () => {
   let store: ReturnType<typeof createMemoryPrisma>;
   let enrollments: SocialWarmupEnrollmentsService;
   let health: AccountHealthService;
@@ -447,91 +441,25 @@ describe('social warm-up graduation and publishing-gate journey (#2217)', () => 
       organizationId: 'org-1',
     });
     expect(summary.state).toBe('healthy');
-    expect(summary.holdPublishing).toBe(false);
   });
 
-  it('holds scheduled publishing for incomplete required checks with an actionable reason', async () => {
-    seedCredential(store);
-    await enrollments.enrollScoped({ credentialId: 'credential-1' }, context);
-
-    const gate = await health.evaluateScheduledPublishGate({
-      brandId: 'brand-1',
-      credentialId: 'credential-1',
-      organizationId: 'org-1',
-    });
-
-    expect(gate.holdPublishing).toBe(true);
-    expect(gate.reason).toMatch(/required warm-up checks are incomplete/i);
-    expect(gate.reason).toMatch(/Use TikTok manually/i);
-    expect(gate.reason).toMatch(/does not guarantee reach or safety/i);
-    expect(logger.log).toHaveBeenCalledWith(
-      SOCIAL_WARMUP_TELEMETRY_EVENT.publishingHold,
-      expect.objectContaining({
-        credentialId: 'credential-1',
-        holdReason: gate.reason,
-      }),
-    );
-  });
-
-  it('releases the hold with an expiring override without rewriting evidence', async () => {
+  it('keeps an incomplete journey as guidance: the account is assessed, never gated', async () => {
     seedCredential(store);
     const enrolled = await enrollments.enrollScoped(
       { credentialId: 'credential-1' },
       context,
     );
-    await enrollments.completeItemScoped(
-      enrolled.id,
-      'use-native-app-manually',
-      {},
-      context,
-    );
-    await enrollments.upsertSignalScoped(
-      enrolled.id,
-      {
-        evidence: { username: 'studio' },
-        key: 'profile-completeness-signal',
-        observedAt: START.toISOString(),
-        source: SocialWarmupSignalSource.PLATFORM,
-        status: SocialWarmupSignalStatus.AVAILABLE,
-      },
-      context,
-    );
 
-    const eventsBefore = store.events.map((event) => ({ ...event }));
-    const signalsBefore = store.signals.map((signal) => ({ ...signal }));
-
-    const summary = await health.confirmManualOverride({
-      credentialId: 'credential-1',
-      organizationId: 'org-1',
-      request: {
-        confirm: true,
-        expiresAt: '2026-08-09T10:00:00.000Z',
-        reason: 'Operator reviewed native-app-only remaining steps.',
-      },
-      userId: 'user-1',
-    });
-
-    expect(summary.override.isActive).toBe(true);
-    expect(summary.holdPublishing).toBe(false);
-    expect(store.events).toEqual(eventsBefore);
-    expect(store.signals).toEqual(signalsBefore);
-    expect(logger.log).toHaveBeenCalledWith(
-      SOCIAL_WARMUP_TELEMETRY_EVENT.override,
-      expect.objectContaining({
-        credentialId: 'credential-1',
-        reason: 'Operator reviewed native-app-only remaining steps.',
-      }),
-    );
-
-    vi.setSystemTime(new Date('2026-08-09T11:00:00.000Z'));
-    const expired = await health.evaluateScheduledPublishGate({
+    const summary = await health.assessCredentialHealth({
       brandId: 'brand-1',
       credentialId: 'credential-1',
       organizationId: 'org-1',
     });
-    expect(expired.holdPublishing).toBe(true);
-    expect(expired.summary.override.isActive).toBe(false);
-    expect(store.events).toEqual(eventsBefore);
+    const current = await enrollments.findOneScoped(enrolled.id, context);
+
+    expect(summary.state).toBe('warming');
+    expect(summary).not.toHaveProperty('holdPublishing');
+    expect(current.state).toBe(SocialWarmupEnrollmentState.ENROLLED);
   });
 
   it('covers partial scopes, revoked tokens, stale signals, reconnect, retry, and native-app-only provenance', async () => {
@@ -684,7 +612,7 @@ describe('social warm-up graduation and publishing-gate journey (#2217)', () => 
     ).toBe(true);
   });
 
-  it('keeps publishing held after a publish failure even with an otherwise warm account', async () => {
+  it('reports a risky account after a publish failure even with an otherwise warm account', async () => {
     seedCredential(store, {
       externalAvatar: 'https://cdn.example/a.png',
       externalHandle: '@studio',
@@ -732,13 +660,12 @@ describe('social warm-up graduation and publishing-gate journey (#2217)', () => 
       context,
     );
 
-    const gate = await health.evaluateScheduledPublishGate({
+    const summary = await health.assessCredentialHealth({
       brandId: 'brand-1',
       credentialId: 'credential-1',
       organizationId: 'org-1',
     });
-    expect(gate.summary.state).toBe('risky');
-    expect(gate.holdPublishing).toBe(true);
-    expect(gate.reason).toMatch(/risky/i);
+    expect(summary.state).toBe('risky');
+    expect(summary.riskLevel).toBe('high');
   });
 });

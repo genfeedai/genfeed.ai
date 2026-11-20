@@ -63,7 +63,6 @@ export function buildCadenceGaps(
       credentialId: summary.credentialId,
       gapDays,
       hasUpcoming: upcomingCredentialIds.has(summary.credentialId),
-      holdPublishing: summary.holdPublishing,
       lastPublishedAt,
       needsReconnect: Boolean(summary.reconnect?.isAvailable),
       platform: summary.platform,

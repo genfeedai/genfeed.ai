@@ -137,10 +137,38 @@ describe('ArticleDetail', () => {
       />,
     );
 
+    expect(
+      screen.getByRole('heading', { name: "Make content like Genfeed's" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/like “Show HN” with Genfeed/)).toBeVisible();
     const href = screen
       .getByRole('link', { name: 'Start creating' })
       .getAttribute('href');
     expect(new URL(href ?? '').searchParams.get('ref')).toBe('frend2345xyz');
+  });
+
+  it('names the article author in the invitation when there is one', () => {
+    render(
+      <ArticleDetail
+        article={{ ...article, author: 'Vincent Tellier' } as Article}
+        handle="vincentshipsit"
+        isPreview={false}
+      />,
+    );
+
+    expect(
+      screen.getByRole('heading', {
+        name: "Make content like Vincent Tellier's",
+      }),
+    ).toBeInTheDocument();
+  });
+
+  it("names the creator's handle, never Genfeed, when their brand did not load", () => {
+    render(<ArticleDetail article={article} handle="acme" isPreview={false} />);
+
+    expect(
+      screen.getByRole('heading', { name: "Make content like @acme's" }),
+    ).toBeInTheDocument();
   });
 
   it('keeps the view count and the invitation out of previews', async () => {

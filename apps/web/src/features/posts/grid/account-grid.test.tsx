@@ -42,9 +42,7 @@ function buildAccount(overrides: Record<string, unknown> = {}) {
   return {
     credentialId: 'credential-x',
     handle: '@desk',
-    holdPublishing: false,
     label: 'Desk X',
-    override: { isActive: false },
     platform: CredentialPlatform.TWITTER,
     reconnect: undefined,
     riskLevel: 'low',

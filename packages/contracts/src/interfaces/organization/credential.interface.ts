@@ -57,12 +57,6 @@ export interface ICredential extends IBaseEntity {
 
   accountHealth?: AccountHealthSummary;
   warmupAssessedAt?: string;
-  warmupHoldReason?: string;
-  warmupManualOverride?: boolean;
-  warmupOverrideConfirmedAt?: string;
-  warmupOverrideConfirmedByUserId?: string;
-  warmupOverrideReason?: string;
-  warmupOverrideUntil?: string;
   warmupRiskLevel?: AccountHealthSummary['riskLevel'];
   warmupScore?: number;
   warmupSignals?: Partial<AccountHealthSummary['signals']>;

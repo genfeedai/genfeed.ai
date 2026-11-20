@@ -22,8 +22,6 @@ export function buildAccountHealthRows(
         accountLabel: accountLabel(summary),
         connectedDays: summary.signals.connectedDays,
         credentialId: summary.credentialId,
-        holdPublishing: summary.holdPublishing,
-        holdReason: summary.holdReason,
         needsReconnect: Boolean(summary.reconnect?.isAvailable),
         platform: summary.platform,
         publishedPosts: summary.signals.publishedPosts,
@@ -36,9 +34,6 @@ export function buildAccountHealthRows(
     .sort((left, right) => {
       if (left.needsReconnect !== right.needsReconnect) {
         return left.needsReconnect ? -1 : 1;
-      }
-      if (left.holdPublishing !== right.holdPublishing) {
-        return left.holdPublishing ? -1 : 1;
       }
       const riskDelta = RISK_RANK[left.riskLevel] - RISK_RANK[right.riskLevel];
       if (riskDelta !== 0) {

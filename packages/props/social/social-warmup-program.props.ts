@@ -122,15 +122,9 @@ export interface SocialWarmupCheckItemProps {
   onReopen: (itemId: string) => void;
 }
 
-export interface SocialWarmupOverrideRequest {
-  credentialId: string;
-  unresolvedChecks: readonly Pick<SocialWarmupResolvedCheck, 'id' | 'title'>[];
-}
-
 export interface SocialWarmupProgramProps {
   connection: BrandDetailSocialConnection;
   health?: AccountHealthSummary;
   onHealthUpdated?: (summary: AccountHealthSummary) => void;
-  onOverrideRequest?: (request: SocialWarmupOverrideRequest) => void;
   onReconnect?: (platform: CredentialPlatform | string) => void;
 }

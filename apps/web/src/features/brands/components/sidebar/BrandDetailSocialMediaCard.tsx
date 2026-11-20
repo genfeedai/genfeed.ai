@@ -17,7 +17,6 @@ import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity
 import { useOAuthConnectPlatforms } from '@hooks/auth/use-oauth-connect-platforms/use-oauth-connect-platforms';
 import type { BrandDetailSocialMediaCardProps } from '@props/pages/brand-detail.props';
 import type { ApiKeyConnectTarget } from '@props/pages/brand-integrations.props';
-import type { SocialWarmupOverrideRequest } from '@props/social/social-warmup-program.props';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { ServicesService } from '@services/external/services.service';
@@ -122,16 +121,9 @@ export default function BrandDetailSocialMediaCard({
     [],
   );
   const [isHealthLoading, setIsHealthLoading] = useState(false);
-  const [overrideCredentialId, setOverrideCredentialId] = useState<
-    string | null
-  >(null);
-  const [overrideUnresolvedChecks, setOverrideUnresolvedChecks] = useState<
-    SocialWarmupOverrideRequest['unresolvedChecks']
-  >([]);
   const [selectedCredentialId, setSelectedCredentialId] = useState<
     string | null
   >(null);
-  const [isOverrideSubmitting, setIsOverrideSubmitting] = useState(false);
   const [disconnectTarget, setDisconnectTarget] =
     useState<SocialConnection | null>(null);
   const [isDisconnecting, setIsDisconnecting] = useState(false);
@@ -205,13 +197,6 @@ export default function BrandDetailSocialMediaCard({
   );
   const healthRows =
     accountHealth.length > 0 ? accountHealth : connectionHealth;
-  const selectedOverrideHealth = useMemo(
-    () =>
-      healthRows.find(
-        (summary) => summary.credentialId === overrideCredentialId,
-      ) ?? null,
-    [healthRows, overrideCredentialId],
-  );
   const supportedConnections = useMemo(
     () =>
       connectedConnections.filter((connection) =>
@@ -242,14 +227,6 @@ export default function BrandDetailSocialMediaCard({
     : false;
 
   function formatHealthDetail(summary: AccountHealthSummary): string {
-    if (summary.override.isActive) {
-      return translate('health.overrideActive');
-    }
-
-    if (summary.holdPublishing) {
-      return summary.holdReason ?? translate('health.publishingHeld');
-    }
-
     if (summary.signals.accountAgeStatus === 'STALE') {
       return translate('health.accountAgeStale');
     }
@@ -268,11 +245,6 @@ export default function BrandDetailSocialMediaCard({
       connectedDays: summary.signals.connectedDays,
       publishedPosts: summary.signals.publishedPosts,
     });
-  }
-
-  function handleOverrideRequest(request: SocialWarmupOverrideRequest) {
-    setOverrideCredentialId(request.credentialId);
-    setOverrideUnresolvedChecks(request.unresolvedChecks);
   }
 
   const loadAccountHealth = useCallback(
@@ -484,43 +456,6 @@ export default function BrandDetailSocialMediaCard({
     }
   };
 
-  const handleConfirmOverride = async () => {
-    if (!selectedOverrideHealth) {
-      return;
-    }
-
-    setIsOverrideSubmitting(true);
-    try {
-      const token = (await resolveAuthToken(getToken)) ?? '';
-      const service = CredentialsService.getInstance(token);
-      const updated = await service.overrideAccountHealth(
-        selectedOverrideHealth.credentialId,
-        {
-          confirm: true,
-          expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-          reason: translate('overrideReason'),
-        },
-      );
-      setAccountHealth((current) => {
-        const withoutUpdated = current.filter(
-          (summary) => summary.credentialId !== updated.credentialId,
-        );
-        return [...withoutUpdated, updated];
-      });
-      NotificationsService.getInstance().success(
-        translate('overrideConfirmed'),
-      );
-      setOverrideCredentialId(null);
-    } catch (error) {
-      logger.error('Failed to confirm account health override', error);
-      NotificationsService.getInstance().error(
-        translate('confirmWarmupOverrideError'),
-      );
-    } finally {
-      setIsOverrideSubmitting(false);
-    }
-  };
-
   const renderConnectButton = (item: ResolvedOAuthConnectPlatform) => {
     const connectKey = item.connectId ?? item.platform;
     const { Icon } = item;
@@ -563,7 +498,6 @@ export default function BrandDetailSocialMediaCard({
           <SocialWarmupProgram
             connection={selectedConnection}
             health={selectedHealth}
-            onOverrideRequest={handleOverrideRequest}
             onReconnect={(platform) => {
               const item = oauthConnectPlatforms.find(
                 (entry) => entry.platform === platform,
@@ -606,19 +540,6 @@ export default function BrandDetailSocialMediaCard({
                 <p className="text-xs leading-5 text-muted-foreground">
                   {formatHealthDetail(summary)}
                 </p>
-                {summary.holdPublishing ? (
-                  <Button
-                    size={ButtonSize.SM}
-                    variant={ButtonVariant.SECONDARY}
-                    className="h-8"
-                    onClick={() => {
-                      setOverrideUnresolvedChecks([]);
-                      setOverrideCredentialId(summary.credentialId);
-                    }}
-                  >
-                    {translate('override24h')}
-                  </Button>
-                ) : null}
               </div>
             ))}
           </div>
@@ -694,71 +615,6 @@ export default function BrandDetailSocialMediaCard({
     </Suspense>
   );
 
-  const overrideDialog = (
-    <Dialog
-      open={Boolean(selectedOverrideHealth)}
-      onOpenChange={(open) => {
-        if (!open) {
-          setOverrideCredentialId(null);
-          setOverrideUnresolvedChecks([]);
-        }
-      }}
-    >
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{translate('confirmWarmupOverride')}</DialogTitle>
-          <DialogDescription>
-            {translate('overrideDescription')}
-          </DialogDescription>
-        </DialogHeader>
-
-        {selectedOverrideHealth ? (
-          <div className="space-y-4">
-            <Alert variant="warning">
-              {selectedOverrideHealth.holdReason ??
-                translate('accountHeldByWarmup')}
-            </Alert>
-            {selectedOverrideHealth.override.reason ||
-            selectedOverrideHealth.override.expiresAt ? (
-              <p className="text-xs text-muted-foreground">
-                {selectedOverrideHealth.override.reason}
-                {selectedOverrideHealth.override.expiresAt
-                  ? translate('expires', {
-                      time: selectedOverrideHealth.override.expiresAt,
-                    })
-                  : ''}
-              </p>
-            ) : null}
-            {overrideUnresolvedChecks.length > 0 ? (
-              <ul className="space-y-1 text-sm text-muted-foreground">
-                {overrideUnresolvedChecks.map((check) => (
-                  <li key={check.id}>{check.title}</li>
-                ))}
-              </ul>
-            ) : null}
-            <DialogFooter>
-              <Button
-                size={ButtonSize.SM}
-                variant={ButtonVariant.GHOST}
-                onClick={() => setOverrideCredentialId(null)}
-              >
-                {translate('cancel')}
-              </Button>
-              <Button
-                size={ButtonSize.SM}
-                variant={ButtonVariant.SECONDARY}
-                isLoading={isOverrideSubmitting}
-                onClick={handleConfirmOverride}
-              >
-                {translate('confirmOverride')}
-              </Button>
-            </DialogFooter>
-          </div>
-        ) : null}
-      </DialogContent>
-    </Dialog>
-  );
-
   if (isPageVariant) {
     return (
       <>
@@ -794,13 +650,11 @@ export default function BrandDetailSocialMediaCard({
               setSettingsTarget(null);
             }
           }}
-          onOverrideRequest={handleOverrideRequest}
           onReconnect={handleReconnect}
         />
 
         {disconnectDialog}
         {apiKeyConnectDialog}
-        {overrideDialog}
       </>
     );
   }
@@ -919,7 +773,6 @@ export default function BrandDetailSocialMediaCard({
 
       {disconnectDialog}
       {apiKeyConnectDialog}
-      {overrideDialog}
     </>
   );
 }
