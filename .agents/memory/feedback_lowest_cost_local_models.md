@@ -11,7 +11,7 @@ last_verified: 2026-10-07
 
 | Surface | Development / staging / e2e | Production |
 |---|---|---|
-| Image | `black-forest-labs/flux-schnell` ($0.003) | Nano Banana 2 Lite ($0.034) |
+| Image | `black-forest-labs/flux-schnell` ($0.003) | Nano Banana 2.1 ($0.034) |
 | Video | `prunaai/p-video` ($0.02/s) | MiniMax H3 ($0.08/s at 768P; $0.13/s at 2K) |
 | Chat | `deepseek/deepseek-v4.1-flash-1017` | DeepSeek V4.1 Flash |
 

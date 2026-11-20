@@ -326,6 +326,7 @@ test.describe('Shell — navigation interactions', () => {
         'Publishing',
         'Analytics',
         'Agent',
+        'Playground',
       ]);
     await expect(rail.getByRole('link', { name: 'Discovery' })).toHaveCount(0);
 

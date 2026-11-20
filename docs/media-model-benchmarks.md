@@ -19,7 +19,7 @@ they are cheap or fast. FLUX.2/FLUX.3 and custom
 trained models require their own evidence rather than inheriting a family score.
 
 `NODE_ENV=production` uses current media defaults on cloud and self-hosted
-deployments: Nano Banana 2 Lite for images and MiniMax H3 for video.
+deployments: Nano Banana 2.1 for images and MiniMax H3 for video.
 Development, tests, staging and an unset `NODE_ENV` retain inexpensive defaults
 (Schnell and P-Video). That non-production catalog explicitly promotes Schnell
 to `RECOMMENDED`; its production row remains legacy. Existing operator settings
@@ -66,8 +66,8 @@ overall, available models, read 2026-10-07.
 | GPT Image 2.5 Flare (max) | 2 | 1163 (1156–1170) | 19,216 |
 | Ideogram 4.5 (High) | 23 | 1064 (1054–1074) | 2,796 |
 
-Ideogram 4.5 remains the curated `IMAGE_EDIT` category default, not the benchmark
-leader. Its seeded description uses medium quality, which is not the tested
+FLUX.3 Edit is the curated `IMAGE_EDIT` category default since the 2026-11-20 model
+audit, and Ideogram 4.5 stays for mask editing; neither is the benchmark leader. Its seeded description uses medium quality, which is not the tested
 High variant. Sunburst is currently cataloged under `IMAGE`, so an editing
 leaderboard result alone cannot make it an `IMAGE_EDIT` Auto candidate. Before
 changing that route, qualify category dispatch, references, mask behavior,
