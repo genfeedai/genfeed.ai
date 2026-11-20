@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 
-export type ConnectedAccountSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
+type ConnectedAccountSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
 
 /** The facts every surface needs to show one connected social account. */
 export interface ConnectedAccountData {

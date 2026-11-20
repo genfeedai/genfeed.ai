@@ -47,19 +47,6 @@ export function hasWarmupBlueprint(
   return Boolean(getCurrentSocialWarmupBlueprint(platform));
 }
 
-// Credentials that connect an ad or analytics account rather than a public
-// social profile: they have no profile page, avatar or follower presence, so
-// they stay on the Accounts page but never count as brand socials.
-const NON_SOCIAL_PROFILE_PLATFORMS = new Set<string>([
-  CredentialPlatform.GOOGLE_ADS,
-]);
-
-export function isSocialProfilePlatform(
-  platform: BrandDetailSocialConnection['platform'],
-): boolean {
-  return !NON_SOCIAL_PROFILE_PLATFORMS.has(platform);
-}
-
 /** A brand's social connection as the shared connected-account display takes it. */
 export function toConnectionAccount(
   connection: BrandDetailSocialConnection,

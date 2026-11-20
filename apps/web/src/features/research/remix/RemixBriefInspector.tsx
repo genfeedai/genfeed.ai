@@ -888,12 +888,9 @@ export default function RemixBriefInspector(): ReactElement {
                       <SelectItem value="brand-defaults">
                         {translate('destination.brandDefaults')}
                       </SelectItem>
-                      {destinationAccounts.map((account) => (
-                        <SelectItem key={account.id} value={account.id}>
-                          <ConnectedAccount
-                            account={toConnectedAccount(account)}
-                            size="xs"
-                          />
+                      {destinationAccounts.map((a) => (
+                        <SelectItem key={a.id} value={a.id}>
+                          <ConnectedAccount account={toConnectedAccount(a)} />
                         </SelectItem>
                       ))}
                     </SelectContent>

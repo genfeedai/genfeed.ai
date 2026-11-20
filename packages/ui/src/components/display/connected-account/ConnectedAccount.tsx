@@ -24,12 +24,11 @@ export default function ConnectedAccount({
 
   if (layout === 'inline') {
     return (
-      <span
-        className={cn('inline-flex min-w-0 items-center gap-2', className)}
-        title={primary}
-      >
+      <span className={cn('inline-flex min-w-0 items-center gap-2', className)}>
         <ConnectedAccountAvatar account={account} isDecorative size={size} />
-        <span className="truncate">{primary}</span>
+        <SimpleTooltip label={primary}>
+          <span className="truncate">{primary}</span>
+        </SimpleTooltip>
       </span>
     );
   }
