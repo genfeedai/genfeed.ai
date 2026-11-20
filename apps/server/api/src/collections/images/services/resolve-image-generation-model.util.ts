@@ -1,7 +1,9 @@
 import type { CreateImageDto } from '@api/collections/images/dto/create-image.dto';
+import type { EditImageDto } from '@api/collections/images/dto/edit-image.dto';
 import type { ImageGenerationResolvedBrand } from '@api/collections/images/services/image-generation.types';
 import type { RouterService } from '@api/services/router/router.service';
 import { ModelCategory } from '@genfeedai/contracts';
+import { resolveDefaultImageEditModel } from '@genfeedai/contracts/constants';
 import type { LoggerService } from '@libs/logger/logger.service';
 
 export interface ResolveImageGenerationModelDependencies {
@@ -77,4 +79,17 @@ export async function resolveImageGenerationModel(
   }
 
   return resolution.key;
+}
+
+/** The editor an edit request that names no model runs on: the registry default, unless the request needs a control only another editor accepts. */
+export async function resolveImageEditDefaultModel(
+  routerService: RouterService,
+  dto: EditImageDto,
+  organizationId: string,
+): Promise<string> {
+  const { key } = await routerService.resolveModelKey({
+    category: ModelCategory.IMAGE_EDIT,
+    organizationId,
+  });
+  return resolveDefaultImageEditModel(key, dto);
 }

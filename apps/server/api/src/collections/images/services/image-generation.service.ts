@@ -28,7 +28,10 @@ import {
   prepareImageGenerationSettings,
 } from '@api/collections/images/services/image-generation-settings.util';
 import { ImagesService } from '@api/collections/images/services/images.service';
-import { resolveImageGenerationModel } from '@api/collections/images/services/resolve-image-generation-model.util';
+import {
+  resolveImageEditDefaultModel,
+  resolveImageGenerationModel,
+} from '@api/collections/images/services/resolve-image-generation-model.util';
 import { IngredientGenerationCancellationService } from '@api/collections/ingredients/services/ingredient-generation-cancellation.service';
 import { ModelRegistrationService } from '@api/collections/models/services/model-registration.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
@@ -68,7 +71,6 @@ import {
   isFlux3ImageModel,
   isImageEditModel,
   readImageEditingRecipe,
-  resolveDefaultImageEditModel,
 } from '@genfeedai/contracts/constants';
 import type {
   GenerationHarnessReceipt,
@@ -166,15 +168,11 @@ export class ImageGenerationService {
           })
         ).selectedModel
       : (dto.model ??
-        resolveDefaultImageEditModel(
-          (
-            await this.routerService.resolveModelKey({
-              category: ModelCategory.IMAGE_EDIT,
-              organizationId: user.organizationId,
-            })
-          ).key,
+        (await resolveImageEditDefaultModel(
+          this.routerService,
           dto,
-        ));
+          user.organizationId,
+        )));
     const admittedDto = Object.assign(new EditImageDto(), dto, {
       model: resolvedModel,
     });
