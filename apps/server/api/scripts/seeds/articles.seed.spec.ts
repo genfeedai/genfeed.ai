@@ -7,10 +7,14 @@ import {
   getMissingArticleColumns,
   isLocalDatabaseUrl,
   parseArticlesSeedArgs,
+  parseSlugList,
   REQUIRED_ARTICLE_COLUMNS,
   resolveSeedPublishedAt,
   runArticlesSeed,
+  selectArticles,
 } from './articles.seed';
+import { HELP_ARTICLES } from './data/help-articles';
+import { SEO_ARTICLES } from './data/seo-articles';
 
 describe('articles seed schema preflight', () => {
   it('guards every physical column written by the launch seed', () => {
@@ -189,5 +193,41 @@ describe('articles seed schema preflight', () => {
       ),
     ).toBe(1);
     expect(countDeletedCacheKeys(null, 3)).toBe(0);
+  });
+});
+
+describe('articles seed selection', () => {
+  it('parses --slugs into a trimmed, de-duplicated list', () => {
+    expect(
+      parseArticlesSeedArgs(['--slugs= a-guide , b-guide,a-guide,']).slugs,
+    ).toEqual(['a-guide', 'b-guide']);
+    expect(parseSlugList('')).toBeUndefined();
+    expect(parseSlugList(' , ')).toBeUndefined();
+    expect(parseSlugList(undefined)).toBeUndefined();
+    expect(parseArticlesSeedArgs([]).slugs).toBeUndefined();
+  });
+
+  it('seeds only the help articles by default, create-only', () => {
+    const { articles, overwrite } = selectArticles(undefined);
+    expect(overwrite).toBe(false);
+    expect(articles).toBe(HELP_ARTICLES);
+
+    const seoSlugs = new Set(SEO_ARTICLES.map((article) => article.slug));
+    expect(articles.some((article) => seoSlugs.has(article.slug))).toBe(false);
+    expect(selectArticles([]).overwrite).toBe(false);
+  });
+
+  it('resolves named slugs from the bundled catalog and overwrites them', () => {
+    const seo = SEO_ARTICLES[0].slug;
+    const help = HELP_ARTICLES[0].slug;
+    const { articles, overwrite } = selectArticles([seo, help]);
+    expect(overwrite).toBe(true);
+    expect(articles.map((article) => article.slug)).toEqual([seo, help]);
+  });
+
+  it('rejects slugs that are not in the catalog', () => {
+    expect(() => selectArticles([SEO_ARTICLES[0].slug, 'nope', 'x'])).toThrow(
+      /Unknown article slug\(s\): nope, x/,
+    );
   });
 });

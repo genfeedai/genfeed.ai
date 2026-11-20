@@ -1,18 +1,23 @@
 /**
- * Seed Script: Launch Articles
+ * Seed Script: Articles
  *
- * Publishes the launch batch of public articles so genfeed.ai/articles is not
- * empty. The content was relocated out of `apps/docs` — docs.genfeed.ai stays
- * developer/product reference, prompting and growth tutorials live on the main
- * domain as articles.
+ * Two modes, both matched on `(organizationId, slug)`:
  *
- * Idempotent: rows are matched on `(organizationId, slug)`. Re-running refreshes
- * label/summary/content/category and re-publishes anything that drifted, without
- * ever moving an existing `publishedAt`.
+ * 1. Default seed (no `--slugs`): publishes the help articles that every
+ *    install, self-hosted included, needs. Create-only. A row that already
+ *    exists is skipped, so an edit made in the app is never overwritten.
+ *
+ * 2. One-off publish (`--slugs=a,b,c`): writes exactly the named articles from
+ *    the bundled catalog (the Genfeed marketing and SEO articles plus the help
+ *    articles) and overwrites those rows. This is the operator-triggered path
+ *    for creating or refreshing the platform articles. The default seed never
+ *    touches them. Unknown slugs are rejected, and nothing outside the named
+ *    slugs is changed (no foreign-shadow or retired-slug archiving).
  *
  * Dry-run is the default. Pass `--live` to apply changes.
  *
  * Usage:
+ *   bun run apps/server/api/scripts/seeds/articles.seed.ts --slugs=<slug>,<slug> --brandSlug=genfeedai --ownerEmail=<email>
  *   bun run apps/server/api/scripts/seeds/articles.seed.ts
  *   bun run apps/server/api/scripts/seeds/articles.seed.ts --live
  *   bun run apps/server/api/scripts/seeds/articles.seed.ts --organizationId=<id>
@@ -57,7 +62,11 @@ import { SEO_ARTICLES } from './data/seo-articles';
 
 const EDGE_BRACKETS_PATTERN = /^\[|\]$/g;
 
-const SEEDED_ARTICLES = [...SEO_ARTICLES, ...HELP_ARTICLES] as const;
+/** Seeded on every install, create-only. */
+const DEFAULT_SEED_ARTICLES = HELP_ARTICLES;
+
+/** Everything `--slugs` may name. Only ever written on an operator's request. */
+const PUBLISHABLE_ARTICLES = [...SEO_ARTICLES, ...HELP_ARTICLES] as const;
 
 const logger = new Logger('ArticlesSeed');
 const SUPPORTED_CLUSTERS = ['local', 'staging', 'production'] as const;
@@ -74,6 +83,7 @@ type SeedArgs = {
   organizationId?: string;
   organizationLabel?: string;
   ownerEmail?: string;
+  slugs?: string[];
   userId?: string;
   validateRuntime: boolean;
 };
@@ -149,9 +159,66 @@ export function parseArticlesSeedArgs(args: readonly string[]): SeedArgs {
     ownerEmail: args
       .find((arg) => arg.startsWith('--ownerEmail='))
       ?.split('=')[1],
+    slugs: parseSlugList(
+      args.find((arg) => arg.startsWith('--slugs='))?.slice('--slugs='.length),
+    ),
     userId: args.find((arg) => arg.startsWith('--userId='))?.split('=')[1],
     validateRuntime: args.includes('--validate-runtime'),
   };
+}
+
+/** `a, b,,a` -> `['a', 'b']`; undefined or blank -> undefined. */
+export function parseSlugList(value?: string | null): string[] | undefined {
+  if (value === undefined || value === null) {
+    return undefined;
+  }
+
+  const slugs = [
+    ...new Set(
+      value
+        .split(',')
+        .map((slug) => slug.trim())
+        .filter(Boolean),
+    ),
+  ];
+
+  return slugs.length > 0 ? slugs : undefined;
+}
+
+/**
+ * Resolves the articles one run will write. No slugs means the default seed;
+ * named slugs must all exist in the bundled catalog.
+ */
+export function selectArticles(slugs?: readonly string[] | null): {
+  articles: readonly (typeof PUBLISHABLE_ARTICLES)[number][];
+  overwrite: boolean;
+} {
+  if (!slugs || slugs.length === 0) {
+    return { articles: DEFAULT_SEED_ARTICLES, overwrite: false };
+  }
+
+  const bySlug = new Map<string, (typeof PUBLISHABLE_ARTICLES)[number]>(
+    PUBLISHABLE_ARTICLES.map((article) => [article.slug, article]),
+  );
+  const articles: (typeof PUBLISHABLE_ARTICLES)[number][] = [];
+  const unknown: string[] = [];
+
+  for (const slug of slugs) {
+    const article = bySlug.get(slug);
+    if (article) {
+      articles.push(article);
+    } else {
+      unknown.push(slug);
+    }
+  }
+
+  if (unknown.length > 0) {
+    throw new Error(
+      `Unknown article slug(s): ${unknown.join(', ')}. Names must match a slug in the bundled catalog.`,
+    );
+  }
+
+  return { articles, overwrite: true };
 }
 
 function getSpawnArgsForCluster(cluster: SupportedCluster): string[] {
@@ -624,6 +691,7 @@ async function invalidatePublicArticleCache(): Promise<void> {
 async function reportSeededRows(
   prisma: PrismaClient,
   owner: SeedOwner,
+  slugs: readonly string[],
 ): Promise<void> {
   const rows = await prisma.article.findMany({
     orderBy: { slug: 'asc' },
@@ -638,12 +706,7 @@ async function reportSeededRows(
     },
     where: {
       organizationId: owner.organizationId,
-      slug: {
-        in: [
-          ...SEEDED_ARTICLES.map((article) => article.slug),
-          ...RETIRED_ARTICLE_SLUGS,
-        ],
-      },
+      slug: { in: [...slugs] },
     },
   });
 
@@ -698,6 +761,11 @@ export interface ArticlesSeedOptions {
   organizationId?: string | null;
   organizationLabel?: string | null;
   ownerEmail?: string | null;
+  /**
+   * One-off publish: write exactly these slugs from the bundled catalog and
+   * overwrite existing rows. Omit for the default create-only seed.
+   */
+  slugs?: readonly string[] | null;
   userId?: string | null;
 }
 
@@ -733,8 +801,10 @@ export async function seedArticles(
     userId: parseOptionalId(options.userId),
   });
 
+  const { articles, overwrite } = selectArticles(options.slugs);
+
   logger.log(
-    `${options.dryRun ? 'DRY RUN' : 'LIVE'} publishing ${SEEDED_ARTICLES.length} article(s) into ${owner.organizationLabel} / ${owner.brandLabel} (${owner.organizationId}/${owner.brandId})${options.environmentLabel ? ` for ${options.environmentLabel}` : ''}`,
+    `${options.dryRun ? 'DRY RUN' : 'LIVE'} ${overwrite ? 'publishing (overwrite)' : 'seeding (create-only)'} ${articles.length} article(s) into ${owner.organizationLabel} / ${owner.brandLabel} (${owner.organizationId}/${owner.brandId})${options.environmentLabel ? ` for ${options.environmentLabel}` : ''}`,
   );
 
   let created = 0;
@@ -743,32 +813,37 @@ export async function seedArticles(
     ORIGINAL_LAUNCH_BATCH_PUBLISHED_AT,
   );
 
-  for (const article of SEEDED_ARTICLES) {
+  let skipped = 0;
+
+  for (const article of articles) {
     // Platform slugs win: a published article from another organization that
     // holds this slug would shadow the canonical page and block the unique
-    // index (#5904), so archive it before publishing ours.
-    const shadowWhere = {
-      isDeleted: false,
-      organizationId: { not: owner.organizationId },
-      slug: article.slug,
-      status: ArticleStatus.PUBLISHED,
-    };
-    if (options.dryRun) {
-      const shadows = await prisma.article.count({ where: shadowWhere });
-      if (shadows > 0) {
-        logger.warn(
-          `[DRY RUN] would archive ${shadows} foreign published article(s) shadowing ${article.slug}`,
-        );
-      }
-    } else {
-      const { count } = await prisma.article.updateMany({
-        data: { status: ArticleStatus.ARCHIVED },
-        where: shadowWhere,
-      });
-      if (count > 0) {
-        logger.warn(
-          `Archived ${count} foreign published article(s) shadowing ${article.slug}`,
-        );
+    // index (#5904), so archive it before publishing ours. Only the default
+    // seed does this: a one-off publish touches nothing but the rows it names.
+    if (!overwrite) {
+      const shadowWhere = {
+        isDeleted: false,
+        organizationId: { not: owner.organizationId },
+        slug: article.slug,
+        status: ArticleStatus.PUBLISHED,
+      };
+      if (options.dryRun) {
+        const shadows = await prisma.article.count({ where: shadowWhere });
+        if (shadows > 0) {
+          logger.warn(
+            `[DRY RUN] would archive ${shadows} foreign published article(s) shadowing ${article.slug}`,
+          );
+        }
+      } else {
+        const { count } = await prisma.article.updateMany({
+          data: { status: ArticleStatus.ARCHIVED },
+          where: shadowWhere,
+        });
+        if (count > 0) {
+          logger.warn(
+            `Archived ${count} foreign published article(s) shadowing ${article.slug}`,
+          );
+        }
       }
     }
 
@@ -780,6 +855,14 @@ export async function seedArticles(
         slug: article.slug,
       },
     });
+
+    if (existing && !overwrite) {
+      logger.log(
+        `Skipped article ${article.slug}: already exists (the default seed never overwrites)`,
+      );
+      skipped += 1;
+      continue;
+    }
 
     if (existing) {
       const intendedPublishedAt = new Date(article.publishedAt);
@@ -840,7 +923,7 @@ export async function seedArticles(
     created += 1;
   }
 
-  for (const slug of RETIRED_ARTICLE_SLUGS) {
+  for (const slug of overwrite ? [] : RETIRED_ARTICLE_SLUGS) {
     const retired = await prisma.article.findFirst({
       select: { id: true, status: true },
       where: {
@@ -865,13 +948,18 @@ export async function seedArticles(
     }
   }
 
-  logger.log(`Articles seed summary: created=${created}, refreshed=${updated}`);
+  logger.log(
+    `Articles seed summary: created=${created}, refreshed=${updated}, skipped=${skipped}`,
+  );
 
   if (!options.dryRun && created + updated > 0) {
     await hooks.invalidateCache();
   }
 
-  await reportSeededRows(prisma, owner);
+  await reportSeededRows(prisma, owner, [
+    ...articles.map((article) => article.slug),
+    ...(overwrite ? [] : RETIRED_ARTICLE_SLUGS),
+  ]);
 
   return { created, dryRun: options.dryRun, owner, refreshed: updated };
 }
@@ -948,6 +1036,7 @@ export async function runArticlesSeed(): Promise<void> {
         organizationId: args.organizationId,
         organizationLabel: args.organizationLabel,
         ownerEmail: args.ownerEmail,
+        slugs: args.slugs,
         userId: args.userId,
       },
       { invalidateCache: invalidatePublicArticleCache },
