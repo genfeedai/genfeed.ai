@@ -29,7 +29,6 @@ export type {
 } from './interfaces/action-execution.interface';
 export { GENFEED_ACTION_NODE_TYPE } from './interfaces/action-execution.interface';
 export type {
-  McpCatalogCanonicalName,
   McpCatalogOperation,
   ResolvedMcpCatalogCall,
 } from './interfaces/mcp-catalog-call.interface';
@@ -116,6 +115,7 @@ export {
 export {
   getMcpCatalogOperations,
   getRetiredMcpCatalogTool,
+  isMcpCatalogToolName,
   isMcpListedToolName,
   resolveMcpCatalogCall,
   validateMcpCatalogBindings,

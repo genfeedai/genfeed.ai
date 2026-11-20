@@ -202,12 +202,6 @@ export const CURATED_ACTION_CATALOG = [
     toolset: 'memory',
   },
   {
-    annotationOverride: {
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: false,
-      readOnlyHint: true,
-    },
     category: 'content',
     claudeAccess: 'mcp',
     mcpCardKind: 'summary',
@@ -1964,15 +1958,8 @@ export const CURATED_ACTION_CATALOG = [
     toolset: 'ui',
   },
   {
-    annotationOverride: {
-      destructiveHint: false,
-      idempotentHint: false,
-      openWorldHint: false,
-      readOnlyHint: false,
-    },
     category: 'content',
     mcpCardKind: 'summary',
-    mutationPolicy: 'direct',
     name: 'upload_media',
     surfaces: ['mcp'],
     toolset: 'content',

@@ -247,45 +247,6 @@ const releasesBatchSchema = {
 
 export const MCP_SCHEDULER_TOOLS: SourceTool[] = [
   {
-    name: 'check_channel',
-    creditCost: 0,
-    requiredRole: 'user',
-    description:
-      'Check publishing channel capabilities or validate a proposed target. capabilities lists channels when input is omitted; validate checks input.platform and returns errors/warnings/validationState. Read-only.',
-    parameters: {
-      type: 'object',
-      additionalProperties: false,
-      properties: {
-        action: { type: 'string', enum: ['capabilities', 'validate'] },
-        input: {
-          anyOf: [
-            SCHEDULER_CAPABILITIES_PARAMETERS,
-            SCHEDULER_VALIDATE_PARAMETERS,
-          ],
-        },
-      },
-      required: ['action'],
-      oneOf: [
-        {
-          type: 'object',
-          properties: {
-            action: { type: 'string', enum: ['capabilities'] },
-            input: SCHEDULER_CAPABILITIES_PARAMETERS,
-          },
-          required: ['action'],
-        },
-        {
-          type: 'object',
-          properties: {
-            action: { type: 'string', enum: ['validate'] },
-            input: SCHEDULER_VALIDATE_PARAMETERS,
-          },
-          required: ['action', 'input'],
-        },
-      ],
-    },
-  },
-  {
     creditCost: 0,
     description:
       'Create a multi-channel release from prepared content and existing media. Use after check_channel(action=validate) for each channel. status draft (the default) saves for review; status scheduled or a scheduledDate requests future publishing, including recurring releases. Pass one release in `release`, or a whole week in `releases` (1 to 50, one organization, one approval for the batch): every release is validated on its own, invalid ones are named in the result and left out. Scheduling waits for server-enforced approval. A batch of up to 3 releases can be approved in the chat; a larger batch is reviewed and approved once in Genfeed, which then schedules every release without another call. If this connection cannot resolve approvals, review and release it in Genfeed.',
