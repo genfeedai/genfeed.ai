@@ -47,6 +47,23 @@ describe('website next.config', () => {
           source: '/',
         },
         {
+          destination: '/creator-profile/:handle/articles/:slug/markdown',
+          source:
+            '/@:handle([a-z0-9]+(?:-[a-z0-9]+)*)/articles/:slug([a-z0-9]+(?:-[a-z0-9]+)*).md',
+        },
+        {
+          destination: '/creator-profile/:handle/articles/:slug/markdown',
+          has: [
+            {
+              key: 'accept',
+              type: 'header',
+              value: '.*text/markdown.*',
+            },
+          ],
+          source:
+            '/@:handle([a-z0-9]+(?:-[a-z0-9]+)*)/articles/:slug([a-z0-9]+(?:-[a-z0-9]+)*)',
+        },
+        {
           destination: '/creator-profile/:handle',
           source: '/@:handle([a-z0-9]+(?:-[a-z0-9]+)*)',
         },
