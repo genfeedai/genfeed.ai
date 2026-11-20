@@ -449,6 +449,11 @@
     text-underline-offset: 0.2em;
   }
 
+  /* Chart and illustration figures take the card radius, like every surface. */
+  & :where(figure img) {
+    border-radius: var(--radius-card);
+  }
+
   & :where(blockquote) {
     border-inline-start-color: var(--gen-accent-border-strong);
     font-style: normal;

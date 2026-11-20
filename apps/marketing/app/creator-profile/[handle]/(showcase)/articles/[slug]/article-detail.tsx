@@ -1,4 +1,5 @@
 import { getArticleResource } from '@data/article-resources.data';
+import { CardPadding } from '@genfeedai/contracts';
 import {
   creatorArticlePath,
   creatorProfilePath,
@@ -21,6 +22,7 @@ import type { Article } from '@models/content/article.model';
 import type { Brand } from '@models/organization/brand.model';
 import type { ArticleGenerationBlockData } from '@props/content/public-article.props';
 import { EnvironmentService } from '@services/core/environment.service';
+import Card from '@ui/card/Card';
 import { Alert } from '@ui/primitives/alert';
 import { Badge } from '@ui/primitives/badge';
 import { BrandAvatar } from '@ui/primitives/brand-avatar';
@@ -118,9 +120,12 @@ const GENFEED_SOCIAL_LINKS: readonly AboutSocialLink[] = [
 ] as const;
 
 export function ArticleAbout({
+  actions,
   brand,
   handle = GENFEED_BRAND_HANDLE,
 }: {
+  /** What a reader can do about this creator, set under the bio. */
+  actions?: React.ReactNode;
   brand?: Brand | null;
   handle?: string;
 }): React.ReactElement {
@@ -149,12 +154,12 @@ export function ArticleAbout({
   );
 
   return (
-    <div className="border border-foreground/10 bg-foreground/5 p-4 backdrop-blur-sm md:p-6">
+    <Card actions={actions} padding={CardPadding.XL}>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
         <BrandAvatar
           alt={`${label} logo`}
           name={label}
-          size="2xl"
+          size="xl"
           src={logoUrl}
         />
         <div className="min-w-0 flex-1 space-y-3">
@@ -183,7 +188,7 @@ export function ArticleAbout({
           )}
         </div>
       </div>
-    </div>
+    </Card>
   );
 }
 
@@ -214,12 +219,6 @@ export default function ArticleDetail({
       : null;
   const authorLabel = resolvePublicArticleAuthor(article);
   const brandLabel = brand?.label?.trim() || 'Genfeed';
-  // The call to action names the creator: never the platform on someone
-  // else's page when their brand did not load.
-  const creatorName =
-    authorLabel ||
-    brand?.label?.trim() ||
-    (handle === GENFEED_BRAND_HANDLE ? 'Genfeed' : `@${handle}`);
   const articleUrl = `${EnvironmentService.apps.website}${creatorArticlePath(handle, article.slug || article.id)}`;
   // Sanitized here, on the server: the sanitizer never ships to readers, and
   // the client island only receives markup that already went through it.
@@ -374,24 +373,30 @@ export default function ArticleDetail({
 
           <footer className="space-y-6">
             {isPreview ? null : (
-              <MakeYourOwnBanner
-                articleTitle={article.label}
-                creatorName={creatorName}
-                handle={handle}
-                referralCode={referralCode}
-              />
+              <MakeYourOwnBanner handle={handle} referralCode={referralCode} />
             )}
-            {brand ? (
-              <ProfileSubscribe
-                handle={handle}
-                source="article"
-                sourceRef={article.id}
-              />
-            ) : null}
-            {brand && !isPreview && handle !== GENFEED_BRAND_HANDLE ? (
-              <SupportCreatorButton articleId={article.id} handle={handle} />
-            ) : null}
-            <ArticleAbout brand={brand} handle={handle} />
+            <ArticleAbout
+              actions={
+                brand ? (
+                  <>
+                    <ProfileSubscribe
+                      handle={handle}
+                      layout="compact"
+                      source="article"
+                      sourceRef={article.id}
+                    />
+                    {!isPreview && handle !== GENFEED_BRAND_HANDLE ? (
+                      <SupportCreatorButton
+                        articleId={article.id}
+                        handle={handle}
+                      />
+                    ) : null}
+                  </>
+                ) : undefined
+              }
+              brand={brand}
+              handle={handle}
+            />
           </footer>
         </div>
 
@@ -401,8 +406,6 @@ export default function ArticleDetail({
             <ArticleOutline sections={sections} />
             {isPreview ? null : (
               <MakeYourOwnBanner
-                articleTitle={article.label}
-                creatorName={creatorName}
                 handle={handle}
                 layout="rail"
                 referralCode={referralCode}

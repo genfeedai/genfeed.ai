@@ -138,9 +138,13 @@ describe('ArticleDetail', () => {
     );
 
     expect(
-      screen.getByRole('heading', { name: "Make content like Genfeed's" }),
+      screen.getByRole('heading', { name: 'Make content like this' }),
     ).toBeInTheDocument();
-    expect(screen.getByText(/like “Show HN” with Genfeed/)).toBeVisible();
+    expect(
+      screen.getByText(
+        'Turn a brief into articles, images and videos with Genfeed.',
+      ),
+    ).toBeVisible();
     // One offer in the outline rail, one at the end of the article.
     const links = screen.getAllByRole('link', { name: 'Start creating' });
     expect(links).toHaveLength(2);
@@ -149,30 +153,6 @@ describe('ArticleDetail', () => {
         new URL(link.getAttribute('href') ?? '').searchParams.get('ref'),
       ).toBe('frend2345xyz');
     }
-  });
-
-  it('names the article author in the invitation when there is one', () => {
-    render(
-      <ArticleDetail
-        article={{ ...article, author: 'Vincent Tellier' } as Article}
-        handle="vincentshipsit"
-        isPreview={false}
-      />,
-    );
-
-    expect(
-      screen.getByRole('heading', {
-        name: "Make content like Vincent Tellier's",
-      }),
-    ).toBeInTheDocument();
-  });
-
-  it("names the creator's handle, never Genfeed, when their brand did not load", () => {
-    render(<ArticleDetail article={article} handle="acme" isPreview={false} />);
-
-    expect(
-      screen.getByRole('heading', { name: "Make content like @acme's" }),
-    ).toBeInTheDocument();
   });
 
   it('keeps the view count and the invitation out of previews', async () => {

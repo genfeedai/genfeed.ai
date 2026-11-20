@@ -4,19 +4,16 @@ import MakeYourOwnBanner from './MakeYourOwnBanner';
 
 describe('MakeYourOwnBanner', () => {
   it('invites the reader to sign up with the creator referral code', () => {
-    render(
-      <MakeYourOwnBanner
-        articleTitle="Vibe editing"
-        creatorName="Vincent"
-        handle="acme"
-        referralCode="frend2345xyz"
-      />,
-    );
+    render(<MakeYourOwnBanner handle="acme" referralCode="frend2345xyz" />);
 
     expect(
-      screen.getByRole('heading', { name: "Make content like Vincent's" }),
+      screen.getByRole('heading', { name: 'Make content like this' }),
     ).toBeInTheDocument();
-    expect(screen.getByText(/like “Vibe editing” with Genfeed/)).toBeVisible();
+    expect(
+      screen.getByText(
+        'Turn a brief into articles, images and videos with Genfeed.',
+      ),
+    ).toBeVisible();
     const url = new URL(
       screen
         .getByRole('link', { name: 'Start creating' })
@@ -27,13 +24,7 @@ describe('MakeYourOwnBanner', () => {
   });
 
   it('offers plain sign-up when the creator has no code', () => {
-    render(
-      <MakeYourOwnBanner
-        articleTitle="Vibe editing"
-        creatorName="Vincent"
-        handle="acme"
-      />,
-    );
+    render(<MakeYourOwnBanner handle="acme" />);
 
     const url = new URL(
       screen
@@ -46,8 +37,6 @@ describe('MakeYourOwnBanner', () => {
   it('stacks the same offer into the outline rail without a second heading', () => {
     render(
       <MakeYourOwnBanner
-        articleTitle="Vibe editing"
-        creatorName="Vincent"
         handle="acme"
         layout="rail"
         referralCode="frend2345xyz"
@@ -56,7 +45,7 @@ describe('MakeYourOwnBanner', () => {
 
     expect(screen.queryByRole('heading')).not.toBeInTheDocument();
     expect(
-      screen.getByRole('region', { name: "Make content like Vincent's" }),
+      screen.getByRole('region', { name: 'Make content like this' }),
     ).toBeInTheDocument();
     expect(
       new URL(
