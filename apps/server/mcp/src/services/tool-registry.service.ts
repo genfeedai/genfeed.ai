@@ -157,8 +157,8 @@ import {
   MCP_CARD_RESOURCE_HASH,
   withApprovalCard,
   withCardMetadata,
-  withoutBrandLogos,
 } from '@mcp/ui/card-data';
+import { withoutBrandLogos } from '@mcp/ui/card-fields';
 import { Injectable, type OnModuleInit, Optional } from '@nestjs/common';
 
 interface ToolCallParams {
@@ -595,8 +595,10 @@ export class ToolRegistryService implements OnModuleInit {
       case 'agent-executor': {
         const result = await this.clientService.executeAgentTool(
           name,
-          // Brand cards show the brand's logo.
-          name === 'get_brands' ? { ...args, includeLogo: true } : args,
+          // Brand and account cards show the brand's logo.
+          name === 'get_brands' || name === 'get_account'
+            ? { ...args, includeLogo: true }
+            : args,
           approvedApprovalId ? { approvedApprovalId } : undefined,
         );
         return this.toMcpResult(
@@ -880,7 +882,7 @@ export class ToolRegistryService implements OnModuleInit {
       name === 'get_account' ? undefined : getToolByName(name)?.title,
     );
     // The card keeps the signed logos; the model's text does not.
-    if (name === 'get_brands' && isRecord(payload))
+    if ((name === 'get_brands' || name === 'get_account') && isRecord(payload))
       response.content[0].text = dataToolResult(
         withoutBrandLogos(payload),
         getToolByName(name)?.title,

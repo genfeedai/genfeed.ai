@@ -99,7 +99,11 @@ export default function CreatorRail({
       <ProfileSignupCta handle={handle} referralCode={referralCode} />
 
       {handle === GENFEED_BRAND_HANDLE ? null : (
-        <SupportCreatorButton className="w-full" handle={handle} />
+        <SupportCreatorButton
+          className="w-full"
+          handle={handle}
+          logoUrl={brand.logoUrl}
+        />
       )}
 
       <ProfileSubscribe handle={handle} source="profile" />
