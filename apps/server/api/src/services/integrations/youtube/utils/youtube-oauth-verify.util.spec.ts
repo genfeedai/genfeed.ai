@@ -4,6 +4,7 @@ import {
   buildYoutubeVerifyFailureLog,
   buildYoutubeVerifyRequestLog,
   classifyYoutubeVerifyFailure,
+  logYoutubeVerifyFailure,
   readYoutubeVerifyCorrelationId,
   YoutubeChannelMissingError,
   YoutubeOAuthVerifyFailureReason,
@@ -249,4 +250,55 @@ describe('youtube oauth verify diagnostics', () => {
     });
     expect(JSON.stringify(log)).not.toContain(SECRET_ACCESS);
   });
+
+  it.each([
+    [
+      'token_exchange',
+      providerError({
+        message: 'Bad Request',
+        reason: 'invalid_grant',
+        status: 400,
+      }),
+      'warn',
+    ],
+    [
+      'channel_lookup',
+      providerError({
+        message: 'Permission denied',
+        reason: 'insufficientPermissions',
+        status: 403,
+      }),
+      'warn',
+    ],
+    [
+      'channel_lookup',
+      providerError({
+        message: 'Backend Error',
+        reason: 'backendError',
+        status: 503,
+      }),
+      'error',
+    ],
+  ] as const)(
+    'logs a %s failure of this kind at %s level',
+    (stage, error, level) => {
+      const logger = { error: vi.fn(), warn: vi.fn() };
+      const safeError = asYoutubeVerifyException(error, stage);
+
+      logYoutubeVerifyFailure(
+        logger,
+        'verify failed',
+        buildYoutubeVerifyFailureLog({
+          correlationId: 'req-12345678',
+          error,
+          safeError,
+          stage,
+        }),
+      );
+
+      const other = level === 'warn' ? 'error' : 'warn';
+      expect(logger[level]).toHaveBeenCalledTimes(1);
+      expect(logger[other]).not.toHaveBeenCalled();
+    },
+  );
 });

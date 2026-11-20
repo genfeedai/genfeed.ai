@@ -2,6 +2,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
+import { MCP_CATALOG_TOOLS } from '../mcp-catalog/catalog';
 import { AGENT_ONLY_TOOLS } from './agent-only/index';
 import { BRAND_FROM_URL_TOOLS } from './brand-from-url.tools';
 import { BRAND_INTERVIEW_TOOLS } from './brand-interview.tools';
@@ -40,7 +41,7 @@ describe('hand-authored action definitions', () => {
   });
 
   it('concatenates every definition shard in order', () => {
-    expect(SOURCE_TOOLS).toEqual([
+    const authored = [
       ...VISUAL_CODE_TOOLS,
       ...OVERLAP_TOOLS,
       ...OVERLAP_INSPIRATION_TOOLS,
@@ -48,7 +49,12 @@ describe('hand-authored action definitions', () => {
       ...MCP_ONLY_TOOLS,
       ...BRAND_INTERVIEW_TOOLS,
       ...BRAND_FROM_URL_TOOLS,
-    ]);
+    ];
+    expect(SOURCE_TOOLS.slice(0, authored.length)).toEqual(authored);
+    // The merged MCP tools follow, composed from the authored tools.
+    expect(
+      SOURCE_TOOLS.slice(authored.length).map((tool) => tool.name),
+    ).toEqual(MCP_CATALOG_TOOLS.map((tool) => tool.name));
   });
 
   it('keeps surface intent out of definition shards', () => {

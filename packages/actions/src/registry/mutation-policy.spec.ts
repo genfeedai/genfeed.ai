@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { getActionDefinition } from './action-registry';
 import { CURATED_ACTION_CATALOG } from './curated-action-catalog';
+import { isMcpCatalogToolName } from './mcp-catalog-calls';
 import {
   evaluateMutationPolicy,
   getDeclaredMutationPolicy,
@@ -53,8 +54,8 @@ describe('mutation policy map', () => {
   });
 
   it('preserves direct free upload and read-only channel-check semantics', () => {
-    expect(MUTATION_POLICY_BY_NAME.upload_media).toBe('direct');
-    expect(MUTATION_POLICY_BY_NAME.check_channel).toBeUndefined();
+    expect(getToolByName('upload_media')?.mutationPolicy).toBe('direct');
+    expect(getToolByName('check_channel')?.mutationPolicy).toBeUndefined();
   });
   it('creates brands directly and reads scan status without mutation', () => {
     expect(getToolByName('create_brand_from_url')).toMatchObject({
@@ -95,6 +96,7 @@ describe('mutation policy map', () => {
     const missing = ALL_TOOLS.filter(
       (tool) =>
         toolRequiresMutationPolicy(tool.name) &&
+        !isMcpCatalogToolName(tool.name) &&
         getDeclaredMutationPolicy(tool.name) === undefined,
     ).map((tool) => tool.name);
     expect(missing).toEqual([]);

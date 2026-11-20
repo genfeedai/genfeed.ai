@@ -7,7 +7,7 @@ import {
   isActionOnSurface,
   isPublishingApprovalRequired,
 } from './curated-action-catalog';
-import { isMcpListedToolName } from './mcp-catalog-calls';
+import { isMcpCatalogToolName, isMcpListedToolName } from './mcp-catalog-calls';
 import { isReadOnlyToolName } from './mutation-policy';
 import { SOURCE_TOOLS } from './source/index';
 import { ALL_TOOLS, getToolByName, getToolsForSurface } from './tool-registry';
@@ -500,9 +500,12 @@ describe('curated action catalog policy fields', () => {
   ];
 
   it('declares a mutation policy for every write tool and none for a read', () => {
+    // A merged tool takes its policy from the tools its actions run.
     const missing = CURATED_ACTION_CATALOG.filter(
       (entry) =>
-        !isReadOnlyToolName(entry.name) && !('mutationPolicy' in entry),
+        !isReadOnlyToolName(entry.name) &&
+        !isMcpCatalogToolName(entry.name) &&
+        !('mutationPolicy' in entry),
     ).map((entry) => entry.name);
     const onReads = CURATED_ACTION_CATALOG.filter(
       (entry) => isReadOnlyToolName(entry.name) && 'mutationPolicy' in entry,
