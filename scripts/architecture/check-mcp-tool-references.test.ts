@@ -15,7 +15,7 @@ const source = (text: string) => [{ path: 'fixture/SKILL.md', text }];
 function writeCatalog(surface = 'mcp') {
   writeFileSync(
     catalog,
-    `export const CURATED_ACTION_CATALOG = [\n  { name: 'repurpose_post', surfaces: ['${surface}'] },\n  { name: 'rate_content', surfaces: ['agent'] },\n] as const;\n`,
+    `export const CURATED_ACTION_CATALOG = [\n  { name: 'refresh_post', surfaces: ['${surface}'] },\n  { name: 'rate_content', surfaces: ['agent'] },\n] as const;\n`,
   );
 }
 beforeEach(() => {
@@ -78,12 +78,12 @@ describe('literal MCP instruction contract', () => {
         catalog,
         source(
           [
-            'Call `repurpose_post` with the parameter `brand_id`.',
-            'Use `mcp__genfeed__repurpose_post`.',
+            'Call `refresh_post` with the parameter `brand_id`.',
+            'Use `mcp__genfeed__refresh_post`.',
             '| `user_confirmed` | Manual-phone use |',
             'Node IDs: Use sequential format like `node_1`, `node_2`.',
             'Use `image` for the media type.',
-            'Call `repurpose_post` on the `genfeed` MCP server.',
+            'Call `refresh_post` on the `genfeed` MCP server.',
             '```json',
             '{ "name": "schema_example", "brand_id": "fixture" }',
             '```',
@@ -94,7 +94,7 @@ describe('literal MCP instruction contract', () => {
             'Genfeed call:',
             '```json',
             '{ "server": "genfeed", "tool":',
-            '  "repurpose_post", "display_name": "schema_label", "arguments": { "name": "brand_name", "brand_id": "fixture" } }',
+            '  "refresh_post", "display_name": "schema_label", "arguments": { "name": "brand_name", "brand_id": "fixture" } }',
             '```',
           ].join('\n'),
         ),
@@ -152,16 +152,24 @@ describe('literal MCP instruction contract', () => {
   it('recognizes single-word curated and namespaced tools', () => {
     writeFileSync(
       catalog,
-      "export const CURATED_ACTION_CATALOG = [\n  { name: 'generate', surfaces: ['agent'] },\n] as const;\n",
+      "export const CURATED_ACTION_CATALOG = [\n  { name: 'draft_clip', surfaces: ['agent'] },\n] as const;\n",
     );
     expect(
       checkReferenceSources(
         catalog,
-        source('Use `generate`.\nmcp__genfeed__generate'),
+        source('Use `draft_clip`.\nmcp__genfeed__draft_clip'),
       ),
     ).toEqual([
-      expect.objectContaining({ line: 1, name: 'generate', surface: 'agent' }),
-      expect.objectContaining({ line: 2, name: 'generate', surface: 'agent' }),
+      expect.objectContaining({
+        line: 1,
+        name: 'draft_clip',
+        surface: 'agent',
+      }),
+      expect.objectContaining({
+        line: 2,
+        name: 'draft_clip',
+        surface: 'agent',
+      }),
     ]);
   });
   it('reports multiline call fields at their original line', () => {
@@ -239,7 +247,7 @@ describe('literal MCP instruction contract', () => {
   it('fails when a referenced tool loses its MCP surface', () => {
     writeCatalog('agent');
     expect(() =>
-      assertMcpReferences(catalog, source('Call `repurpose_post`.')),
+      assertMcpReferences(catalog, source('Call `refresh_post`.')),
     ).toThrow('unsupported surface (agent)');
   });
   it.each([
@@ -249,7 +257,7 @@ describe('literal MCP instruction contract', () => {
   ])('fails closed for empty or malformed catalog', (text) => {
     writeFileSync(catalog, text);
     expect(() =>
-      checkReferenceSources(catalog, source('Call `repurpose_post`.')),
+      checkReferenceSources(catalog, source('Call `refresh_post`.')),
     ).toThrow();
   });
   it('scans both default instruction surfaces and disables each independently', () => {

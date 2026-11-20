@@ -182,7 +182,7 @@ Offer two hooks when the user is undecided. State the character count.
 
 If Genfeed tools are available:
 
-- `generate_content` with `{type: "post", platform: "linkedin", topic, brandId}` gives a starting draft to edit against this skill.
+- `generate_text` with `{action: "content", input: {type: "post", platform: "linkedin", topic, brandId}}` gives a starting draft to edit against this skill.
 - `save_post` (`action: post`) saves a draft with `platforms: ["linkedin"]`. It does not publish.
 - Publishing goes through `social-poster`, only on explicit confirmation.
 

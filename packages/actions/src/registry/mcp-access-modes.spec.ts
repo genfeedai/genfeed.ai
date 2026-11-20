@@ -12,7 +12,7 @@ import { getToolsForSurface } from './tool-registry';
 describe('Claude MCP access policy', () => {
   it('consolidates scheduler listing without changing the exact old agent allowlist', () => {
     // Merged tools carry the reads and the drafts the Claude grant already allowed.
-    expect(CLAUDE_MCP_TOOL_NAMES.size).toBe(14);
+    expect(CLAUDE_MCP_TOOL_NAMES.size).toBe(11);
     for (const name of [
       'get_account',
       'get_brands',
@@ -41,6 +41,9 @@ describe('Claude MCP access policy', () => {
     expect(isToolAllowedInMcpAccessMode('claude', 'control_release')).toBe(
       true,
     );
+    // The brand interview and brand creation stay open to Claude as actions of setup_brand.
+    expect(CLAUDE_MCP_TOOL_NAMES.has('setup_brand')).toBe(true);
+    expect(CLAUDE_MCP_TOOL_NAMES.has('generate_media')).toBe(false);
     expect([...CLAUDE_MCP_AGENT_TOOL_NAMES].sort()).toEqual(
       [
         'get_account',

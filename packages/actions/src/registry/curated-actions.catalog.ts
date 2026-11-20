@@ -630,6 +630,13 @@ export const CURATED_ACTION_CATALOG = [
     toolset: 'content',
   },
   {
+    category: 'generation',
+    mcpCardKind: 'media',
+    name: 'generate_media',
+    surfaces: ['mcp'],
+    toolset: 'generation',
+  },
+  {
     actionClass: 'credit-spending',
     category: 'content',
     mutationPolicy: 'direct',
@@ -642,6 +649,13 @@ export const CURATED_ACTION_CATALOG = [
     mutationPolicy: 'direct',
     name: 'generate_reply_variants',
     surfaces: ['agent'],
+    toolset: 'content',
+  },
+  {
+    category: 'content',
+    mcpCardKind: 'post',
+    name: 'generate_text',
+    surfaces: ['mcp'],
     toolset: 'content',
   },
   {
@@ -757,7 +771,7 @@ export const CURATED_ACTION_CATALOG = [
     mcpCardKind: 'media',
     name: 'get_assets',
     surfaces: ['agent', 'mcp'],
-    toolset: 'generation',
+    toolset: 'core',
   },
   {
     category: 'social',
@@ -1416,7 +1430,7 @@ export const CURATED_ACTION_CATALOG = [
   {
     actionClass: 'brand-context',
     category: 'social',
-    claudeAccess: 'both',
+    claudeAccess: 'agent',
     isOpenWorld: true,
     mcpCardKind: 'summary',
     mutationPolicy: 'direct',
@@ -1836,9 +1850,16 @@ export const CURATED_ACTION_CATALOG = [
     toolset: 'workflows',
   },
   {
+    category: 'social',
+    mcpCardKind: 'summary',
+    name: 'setup_brand',
+    surfaces: ['mcp'],
+    toolset: 'core',
+  },
+  {
     actionClass: 'brand-context',
     category: 'social',
-    claudeAccess: 'both',
+    claudeAccess: 'agent',
     mutationPolicy: 'approval-required',
     name: 'skip_brand_interview_question',
     surfaces: ['agent', 'mcp'],
@@ -1861,7 +1882,7 @@ export const CURATED_ACTION_CATALOG = [
   {
     actionClass: 'brand-context',
     category: 'social',
-    claudeAccess: 'both',
+    claudeAccess: 'agent',
     mutationPolicy: 'approval-required',
     name: 'start_brand_interview',
     surfaces: ['agent', 'mcp'],
@@ -1963,7 +1984,7 @@ export const CURATED_ACTION_CATALOG = [
   {
     actionClass: 'brand-context',
     category: 'social',
-    claudeAccess: 'both',
+    claudeAccess: 'agent',
     mutationPolicy: 'approval-required',
     name: 'submit_brand_interview_answer',
     surfaces: ['agent', 'mcp'],
