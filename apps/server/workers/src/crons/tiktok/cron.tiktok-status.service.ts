@@ -16,6 +16,7 @@ import {
   TikTokPublishStatus,
   WorkflowExecutionTrigger,
 } from '@genfeedai/contracts';
+import { tikTokAppliedVisibility } from '@genfeedai/contracts/api-types/contracts/tiktok-publishing.contract';
 import type { IChannelTargetError } from '@genfeedai/contracts/interfaces';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -640,7 +641,10 @@ export class CronTiktokStatusService implements OnModuleInit {
             publicationDate: publishedAt,
             publishedAt,
             url: String(input.postUrl ?? ''),
-            visibility: post.visibility ?? PostVisibility.PUBLIC,
+            visibility:
+              tikTokAppliedVisibility(post.targetSettings) ??
+              post.visibility ??
+              PostVisibility.PUBLIC,
             workflowExecutionId: provenance.executionId,
           }
         : {

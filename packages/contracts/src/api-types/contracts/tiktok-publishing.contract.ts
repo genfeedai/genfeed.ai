@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { PostVisibility } from '../..';
 import { tiktokAuthorizedSignalsSnapshotSchema } from './tiktok-authorized-signals.contract';
 
 export const TIKTOK_PRIVACY_OPTIONS = [
@@ -15,6 +16,27 @@ export const TIKTOK_PRIVACY_OPTIONS = [
   },
   { label: 'Only me', value: 'private', providerValue: 'SELF_ONLY' },
 ] as const;
+
+/**
+ * The audience a TikTok post's Privacy setting limits it to: private for
+ * Followers, Friends and Only me, nothing for Everyone or an unset value, so
+ * the post keeps the audience it asked for. Followers and Friends are not
+ * public, so the public Genfeed profile must not list them.
+ */
+export function tikTokAppliedVisibility(
+  targetSettings: unknown,
+): PostVisibility | undefined {
+  const privacyLevel =
+    targetSettings && typeof targetSettings === 'object'
+      ? (targetSettings as Record<string, unknown>).privacyLevel
+      : undefined;
+  const selected = TIKTOK_PRIVACY_OPTIONS.find(
+    (option) => option.value === privacyLevel,
+  );
+  return selected && selected.value !== 'public'
+    ? PostVisibility.PRIVATE
+    : undefined;
+}
 
 const capabilitiesSchema = z.object({
   creatorNickname: z.string().min(1),

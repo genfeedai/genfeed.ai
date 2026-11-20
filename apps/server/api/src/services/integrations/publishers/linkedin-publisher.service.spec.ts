@@ -350,6 +350,25 @@ describe('LinkedInPublisherService', () => {
         );
       });
 
+      it.each([
+        ['CONNECTIONS', 'private'],
+        ['PUBLIC', undefined],
+        [undefined, undefined],
+      ])(
+        'reports the audience for LinkedIn visibility %s',
+        async (visibility, expected) => {
+          const context = createPublishContext(
+            mockTextPost,
+            visibility ? { visibility } : {},
+          );
+          linkedInService.createTextPost.mockResolvedValue({ id: 'urn:li:1' });
+
+          const result = await service.publish(context);
+
+          expect(result.visibility).toBe(expected);
+        },
+      );
+
       it('should return failed result when text post externalId is null', async () => {
         const context = createPublishContext(mockTextPost);
 
