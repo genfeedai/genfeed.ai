@@ -1,10 +1,9 @@
 'use client';
 
 import { CredentialPlatform, TargetExecutionState } from '@genfeedai/contracts';
+import { toConnectedAccount } from '@genfeedai/helpers/publisher/connected-account.helper';
 import ClientDateTime from '@ui/components/time/ClientDateTime';
-import AccountIdentity from '@ui/posts/account-identity/AccountIdentity';
-import { formatHandle } from '@ui/posts/platform-preview/platform-preview.helpers';
-import { getPlatformPreviewIcon } from '@ui/posts/platform-preview/platform-preview-icons';
+import ConnectedAccount from '@ui/display/connected-account/ConnectedAccount';
 import { Badge } from '@ui/primitives/badge';
 import { ExternalLink } from 'lucide-react';
 import Link from 'next/link';
@@ -43,12 +42,6 @@ export default function PostSidebarDestination({
     post.platform,
     translate('unknownPlatform'),
   );
-  const accountName =
-    credential?.externalName?.trim() ||
-    credential?.label?.trim() ||
-    credential?.externalHandle?.trim() ||
-    platformLabel;
-  const accountHandle = formatHandle(credential?.externalHandle ?? undefined);
   const whenValue = isPublished ? post.publicationDate : post.scheduledDate;
   const isTikTokProcessing =
     post.platform === CredentialPlatform.TIKTOK &&
@@ -95,15 +88,17 @@ export default function PostSidebarDestination({
       data-testid="post-destination"
     >
       <div className="flex items-center justify-between gap-3">
-        <AccountIdentity
-          avatarAlt={translate('avatarAlt', { name: accountName })}
-          avatarUrl={credential?.externalAvatar}
-          handle={accountHandle}
-          name={accountName}
-          PlatformIcon={
-            post.platform ? getPlatformPreviewIcon(post.platform) : undefined
+        <ConnectedAccount
+          account={
+            credential
+              ? {
+                  ...toConnectedAccount(credential),
+                  platform: post.platform ?? credential.platform,
+                }
+              : { name: platformLabel, platform: post.platform ?? '' }
           }
-          platformLabel={platformLabel}
+          layout="stacked"
+          size="lg"
         />
 
         {isTikTokInboxDelivered(post) ? (

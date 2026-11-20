@@ -6,7 +6,7 @@ import {
 } from '@genfeedai/contracts';
 import type { IPostingSet } from '@genfeedai/contracts/interfaces';
 import { isRecord, readString } from '@genfeedai/utils/data/extract.util';
-import { getCredentialLabel } from '@helpers/publisher/credential-label.helper';
+import { toConnectedAccount } from '@helpers/publisher/connected-account.helper';
 import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { POSTING_SETS_QUERY_KEY } from '@hooks/data/content/use-posting-sets/use-posting-sets';
@@ -16,6 +16,9 @@ import { NotificationsService } from '@services/core/notifications.service';
 import { isCancelledRequest } from '@services/core/operation-error';
 import { useQueryClient } from '@tanstack/react-query';
 import Card from '@ui/card/Card';
+import ConnectedAccount from '@ui/display/connected-account/ConnectedAccount';
+import ConnectedAccountAvatar from '@ui/display/connected-account/ConnectedAccountAvatar';
+import { getConnectedAccountText } from '@ui/display/connected-account/connected-account.util';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import { Badge } from '@ui/primitives/badge';
@@ -292,18 +295,29 @@ export default function PublishingPostingSetsSection({
                 ) : null}
                 {preview.length > 0 ? (
                   <ul className="space-y-1 text-xs text-muted-foreground">
-                    {preview.map((target) => (
-                      <li
-                        key={`${target.credentialId}-${target.platform}`}
-                        className="flex items-center gap-2"
-                      >
-                        <PlatformBadge
-                          platform={target.platform}
-                          size={ComponentSize.SM}
-                        />
-                        {target.credentialId}
-                      </li>
-                    ))}
+                    {preview.map((target) => {
+                      const credential = connectedCredentials.find(
+                        (item) => item.id === target.credentialId,
+                      );
+                      return (
+                        <li
+                          key={`${target.credentialId}-${target.platform}`}
+                          className="flex items-center gap-2"
+                        >
+                          {credential ? (
+                            <ConnectedAccount
+                              account={toConnectedAccount(credential)}
+                              size="xs"
+                            />
+                          ) : (
+                            <PlatformBadge
+                              platform={target.platform}
+                              size={ComponentSize.SM}
+                            />
+                          )}
+                        </li>
+                      );
+                    })}
                   </ul>
                 ) : null}
               </Card>
@@ -337,7 +351,10 @@ export default function PublishingPostingSetsSection({
             <SelectContent>
               {connectedCredentials.map((credential) => (
                 <SelectItem key={credential.id} value={credential.id}>
-                  {getCredentialLabel(credential)}
+                  <ConnectedAccount
+                    account={toConnectedAccount(credential)}
+                    size="xs"
+                  />
                 </SelectItem>
               ))}
             </SelectContent>
@@ -352,8 +369,19 @@ export default function PublishingPostingSetsSection({
               return (
                 <Button
                   key={credentialId}
+                  icon={
+                    credential ? (
+                      <ConnectedAccountAvatar
+                        account={toConnectedAccount(credential)}
+                        size="xs"
+                      />
+                    ) : undefined
+                  }
                   label={
-                    credential ? getCredentialLabel(credential) : credentialId
+                    credential
+                      ? getConnectedAccountText(toConnectedAccount(credential))
+                          .primary
+                      : credentialId
                   }
                   size={ButtonSize.SM}
                   variant={ButtonVariant.SECONDARY}

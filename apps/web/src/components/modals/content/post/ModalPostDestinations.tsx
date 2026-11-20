@@ -1,12 +1,12 @@
 'use client';
 
-import { formatPlatformLabel } from '@genfeedai/contracts';
+import { toConnectedAccount } from '@genfeedai/helpers/publisher/connected-account.helper';
 import type {
   ComposerDestination,
   ModalPostDestinationsProps,
 } from '@genfeedai/props/modals/modal.props';
-import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
-import { Avatar } from '@ui/primitives/avatar';
+import ConnectedAccount from '@ui/display/connected-account/ConnectedAccount';
+import { getConnectedAccountText } from '@ui/display/connected-account/connected-account.util';
 import FormControl from '@ui/primitives/field';
 import { OptionTile, OptionTileGroup } from '@ui/primitives/option-tile';
 import { Separator } from '@ui/primitives/separator';
@@ -19,20 +19,6 @@ const DESTINATION_ICONS = {
 } as const;
 
 const DESTINATIONS: ComposerDestination[] = ['article', 'newsletter'];
-
-function getCredentialLabel(credential: {
-  externalHandle?: string | null;
-  externalName?: string | null;
-  label?: string | null;
-  platform: string;
-}): string {
-  return (
-    credential.label ||
-    credential.externalHandle ||
-    credential.externalName ||
-    credential.platform
-  );
-}
 
 /**
  * Destination picker for the unified composer: connected accounts as avatars
@@ -75,34 +61,21 @@ export default function ModalPostDestinations({
             value={selectedCredentialIds}
           >
             {credentials.map((credential) => {
-              const label = getCredentialLabel(credential);
+              const account = toConnectedAccount(credential);
+              const text = getConnectedAccountText(account);
 
               return (
                 <OptionTile
-                  ariaLabel={label}
-                  icon={
-                    <Avatar
-                      badge={
-                        <PlatformBadge
-                          platform={credential.platform}
-                          showLabel={false}
-                          variant="solid"
-                        />
-                      }
-                      name={label}
-                      size="lg"
-                      src={credential.externalAvatar}
-                    />
-                  }
+                  ariaLabel={text.name ?? text.primary}
                   key={credential.id}
                   value={credential.id}
                 >
-                  <span className="flex min-w-0 flex-1 flex-col leading-tight">
-                    <span className="truncate font-medium">{label}</span>
-                    <span className="truncate text-xs text-foreground/60">
-                      {formatPlatformLabel(credential.platform)}
-                    </span>
-                  </span>
+                  <ConnectedAccount
+                    account={account}
+                    className="flex-1"
+                    layout="stacked"
+                    size="lg"
+                  />
                 </OptionTile>
               );
             })}

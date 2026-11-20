@@ -276,7 +276,7 @@
     "symbol": "apps/web/src/components/workspace-shell/UniversalWorkspaceShell.tsx"
   },
   {
-    "actual": 1091,
+    "actual": 1090,
     "file": "apps/web/src/features/research/remix/RemixBriefInspector.tsx",
     "metric": "file-lines",
     "symbol": "apps/web/src/features/research/remix/RemixBriefInspector.tsx"

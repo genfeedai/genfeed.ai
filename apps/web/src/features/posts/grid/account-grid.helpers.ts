@@ -52,6 +52,7 @@ export function credentialFromAccount(
   account: AccountHealthSummary,
 ): TargetPreviewCredential {
   return {
+    externalAvatar: account.avatarUrl,
     externalHandle: account.handle,
     externalName: account.label,
     label: account.label,

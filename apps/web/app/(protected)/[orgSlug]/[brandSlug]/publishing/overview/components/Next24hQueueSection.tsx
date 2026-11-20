@@ -1,5 +1,5 @@
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
+import ConnectedAccountAvatar from '@ui/display/connected-account/ConnectedAccountAvatar';
 import { ListRow } from '@ui/lists/list-row/ListRow';
 import { useTranslations } from 'next-intl';
 import { WorkspaceSurface } from '@/components/overview/WorkspaceSurface';
@@ -49,9 +49,9 @@ export default function Next24hQueueSection({
                         density="compact"
                         href={href(item.href)}
                         leading={
-                          <PlatformBadge
-                            platform={item.platform}
-                            showLabel={false}
+                          <ConnectedAccountAvatar
+                            account={item.account}
+                            size="md"
                           />
                         }
                         title={item.title}

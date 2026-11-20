@@ -3,11 +3,13 @@ import type {
   IReleaseGroup,
 } from '@genfeedai/contracts/interfaces';
 import type { BrandDetailSocialConnection } from '@genfeedai/props/pages/brand-detail.props';
+import type { ConnectedAccountData } from '@genfeedai/props/ui/display/connected-account.props';
 import type { ReactNode } from 'react';
 import type { AsyncState } from '@/props/shared/async-state.types';
 
 /** One SCHEDULED channel target due within the next 24 hours. */
 interface PublishingOverviewQueueItem {
+  account: ConnectedAccountData;
   accountLabel: string;
   href: string;
   platform: string;

@@ -3,6 +3,8 @@
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { getActionDefinition } from '@genfeedai/actions';
 import { Platform } from '@genfeedai/contracts';
+import type { ConnectedAccountStackItem } from '@genfeedai/props/ui/display/connected-account.props';
+import { toConnectedAccount } from '@helpers/publisher/connected-account.helper';
 import { useCallback, useMemo } from 'react';
 import { useAgentStrategies } from '@/features/agents/hooks/agent-strategies/use-agent-strategies';
 
@@ -11,11 +13,7 @@ const PUBLISHING_PLATFORMS = new Set<string>([
   Platform.LINKEDIN,
 ]);
 
-interface WorkflowScopedAccount {
-  id: string;
-  label: string;
-  platform: string;
-}
+type WorkflowScopedAccount = ConnectedAccountStackItem;
 
 interface WorkflowScopedBrand {
   id: string;
@@ -61,13 +59,8 @@ export function useWorkflowActionScope(): WorkflowActionScope {
           PUBLISHING_PLATFORMS.has(String(credential.platform)),
       )
       .map((credential) => ({
+        ...toConnectedAccount(credential),
         id: credential.id,
-        label:
-          credential.externalHandle ||
-          credential.externalName ||
-          credential.label ||
-          String(credential.platform),
-        platform: String(credential.platform),
       }));
   }, [credentials]);
 

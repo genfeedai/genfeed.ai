@@ -5,13 +5,6 @@ import type { BrandDetailSocialConnection } from '@genfeedai/props/pages/brand-d
 
 export type AccountConnectionStatus = 'connected' | 'needsReconnect';
 
-export type AccountAvatarSize = 'sm' | 'md';
-
-export interface AccountAvatarProps {
-  connection: BrandDetailSocialConnection;
-  size?: AccountAvatarSize;
-}
-
 export interface AccountCellProps {
   connection: BrandDetailSocialConnection;
 }

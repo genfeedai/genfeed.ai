@@ -12,7 +12,8 @@ import {
 } from '@genfeedai/helpers/formatting/timezone/timezone.helper';
 import { usePostingSets } from '@hooks/data/content/use-posting-sets/use-posting-sets';
 import { usePostingSignatures } from '@hooks/data/content/use-posting-signatures/use-posting-signatures';
-import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
+import ConnectedAccount from '@ui/display/connected-account/ConnectedAccount';
+import { getConnectedAccountText } from '@ui/display/connected-account/connected-account.util';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
@@ -33,7 +34,7 @@ import { type ReactElement, useCallback, useMemo, useState } from 'react';
 import {
   readPublishTargetProposals,
   resolveLiveTargetBlockers,
-  targetAccountSuffix,
+  targetAccount,
 } from './publish-post-card.helpers';
 import {
   buildSignatureAttachments,
@@ -450,10 +451,7 @@ export function SchedulePostCard({
               const blockers = isSelected
                 ? (targetBlockers[target.id] ?? [])
                 : [];
-              const accountSuffix = targetAccountSuffix(
-                target,
-                targetProposals,
-              );
+              const account = targetAccount(target);
               const isUnhealthy = !isHealthyReferenceState(
                 target.referenceState,
               );
@@ -461,31 +459,17 @@ export function SchedulePostCard({
                 <div key={target.id} className="border border-border p-3">
                   <div className="mb-2 flex items-center justify-between gap-2">
                     <Toggle
-                      aria-label={
-                        accountSuffix
-                          ? `${target.label} ${accountSuffix}`
-                          : undefined
-                      }
+                      aria-label={getConnectedAccountText(account).primary}
                       onPressedChange={() => toggleTarget(target.id)}
                       pressed={isSelected}
                       size="sm"
                       variant="chip"
                     >
-                      <PlatformBadge
-                        className="bg-transparent p-0"
-                        platform={target.platform}
-                      />
+                      <ConnectedAccount account={account} size="xs" />
                     </Toggle>
-                    {accountSuffix || isUnhealthy ? (
+                    {isUnhealthy ? (
                       <span className="text-xs text-muted-foreground">
-                        {[
-                          accountSuffix,
-                          isUnhealthy
-                            ? postingSetsTranslate('disconnected')
-                            : null,
-                        ]
-                          .filter(Boolean)
-                          .join(' · ')}
+                        {postingSetsTranslate('disconnected')}
                       </span>
                     ) : null}
                   </div>

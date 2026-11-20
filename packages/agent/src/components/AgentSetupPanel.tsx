@@ -12,14 +12,11 @@ import type { Brand } from '@genfeedai/models/organization/brand.model';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import Card from '@ui/card/Card';
 import BrandCompletenessCard from '@ui/cards/brand-completeness-card/BrandCompletenessCard';
-import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
+import ConnectedAccount from '@ui/display/connected-account/ConnectedAccount';
 import { Alert } from '@ui/primitives/alert';
-import { Avatar } from '@ui/primitives/avatar';
 import { LayoutGrid } from 'lucide-react';
 import type { ReactElement } from 'react';
 import { useMemo } from 'react';
-
-const LEADING_AT_SIGN_PATTERN = /^@/;
 
 interface AgentSetupPanelProps {
   brand: Brand | undefined | null;
@@ -29,22 +26,11 @@ interface AgentSetupPanelProps {
   onOAuthConnect?: (platform: string) => void | Promise<void>;
 }
 
-function getConnectionLabel(connection: AgentSetupConnection): string {
-  return (
-    connection.name ||
-    connection.label ||
-    connection.handle ||
-    connection.platform
-  );
-}
-
 function ConnectedAccountChip({
   connection,
 }: {
   connection: AgentSetupConnection;
 }): ReactElement {
-  const label = getConnectionLabel(connection);
-
   return (
     <Card
       padding={CardPadding.SM}
@@ -52,30 +38,16 @@ function ConnectedAccountChip({
       className="min-w-0"
       bodyClassName="flex-row items-center"
     >
-      <Avatar
-        alt={`${label} profile picture`}
-        badge={
-          <PlatformBadge
-            platform={connection.platform}
-            showLabel={false}
-            variant="solid"
-          />
-        }
-        name={label}
+      <ConnectedAccount
+        account={{
+          avatarUrl: connection.avatarUrl,
+          handle: connection.handle,
+          name: connection.name || connection.label,
+          platform: connection.platform,
+        }}
+        layout="stacked"
         size="md"
-        src={connection.avatarUrl}
       />
-
-      <span className="min-w-0 text-left">
-        <span className="block truncate text-xs font-medium text-foreground">
-          {label}
-        </span>
-        {connection.handle ? (
-          <span className="block truncate text-2xs text-muted-foreground">
-            @{connection.handle.replace(LEADING_AT_SIGN_PATTERN, '')}
-          </span>
-        ) : null}
-      </span>
     </Card>
   );
 }

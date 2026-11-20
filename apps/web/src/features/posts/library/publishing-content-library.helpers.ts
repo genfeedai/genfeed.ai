@@ -11,6 +11,7 @@ import type {
   IPost,
   IReleaseGroup,
 } from '@genfeedai/contracts/interfaces';
+import { toConnectedAccount } from '@genfeedai/helpers/publisher/connected-account.helper';
 import { stripHtmlToSingleLine } from '@helpers/security/strip-html.helper';
 import type { Article } from '@models/content/article.model';
 import type { Newsletter } from '@models/content/newsletter.model';
@@ -159,18 +160,7 @@ export function createPublishingContentAccounts(
 ): PublishingContentAccount[] {
   return credentials.flatMap((credential) =>
     credential
-      ? [
-          {
-            avatarUrl: credential.externalAvatar,
-            id: credential.id,
-            label:
-              credential.label ||
-              credential.externalHandle ||
-              credential.externalName ||
-              credential.platform,
-            platform: credential.platform,
-          },
-        ]
+      ? [{ ...toConnectedAccount(credential), id: credential.id }]
       : [],
   );
 }

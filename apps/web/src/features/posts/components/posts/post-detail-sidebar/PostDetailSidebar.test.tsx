@@ -159,10 +159,7 @@ describe('PostDetailSidebar', () => {
     );
 
     const destination = screen.getByTestId('post-destination');
-    expect(
-      within(destination).getByRole('img', { name: 'Instagram' }),
-    ).toBeInTheDocument();
-    expect(screen.queryByText('Instagram')).not.toBeInTheDocument();
+    expect(within(destination).getAllByText('Instagram')).toHaveLength(1);
     expect(screen.getAllByText(/@genfeed/)).toHaveLength(1);
     expect(destination).toHaveTextContent('Main account');
     expect(destination).toHaveTextContent(PostStatus.SCHEDULED);

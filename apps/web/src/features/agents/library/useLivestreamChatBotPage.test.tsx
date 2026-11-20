@@ -89,7 +89,12 @@ describe('useLivestreamChatBotPage', () => {
     });
     await waitFor(() => {
       expect(firstVisit.result.current.restreamCredentials).toEqual([
-        { id: 'cred-restream-1', label: 'restream-main' },
+        {
+          avatarUrl: null,
+          handle: 'restream-main',
+          id: 'cred-restream-1',
+          name: null,
+        },
       ]);
     });
     firstVisit.unmount();
@@ -106,7 +111,12 @@ describe('useLivestreamChatBotPage', () => {
     expect(result.current.form.youtubeChannelId).toBe('UC-friday');
     expect(result.current.session?.status).toBe('active');
     expect(result.current.restreamCredentials).toEqual([
-      { id: 'cred-restream-1', label: 'restream-main' },
+      {
+        avatarUrl: null,
+        handle: 'restream-main',
+        id: 'cred-restream-1',
+        name: null,
+      },
     ]);
   });
 
