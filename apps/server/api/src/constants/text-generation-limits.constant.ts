@@ -2,7 +2,7 @@ export const TEXT_GENERATION_LIMITS = {
   articleImagePrompt: 400,
   articleVirality: 700,
   hookGeneration: 900,
-  newsletterDraft: 1400,
+  newsletterDraft: 3000,
   newsletterTopicProposal: 700,
   postEnhancement: 500,
   postThreadExpansion: 900,
@@ -10,6 +10,6 @@ export const TEXT_GENERATION_LIMITS = {
   postTweetGeneration: 700,
   promptEnhancement: 600,
   promptRemix: 600,
-  scriptDraft: 1800,
+  scriptDraft: 3000,
   tweetReply: 300,
 } as const;

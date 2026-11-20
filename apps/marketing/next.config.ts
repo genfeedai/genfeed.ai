@@ -1,7 +1,10 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createAppNextConfig } from '@genfeedai/next-config';
-import { CREATOR_PROFILE_REWRITES } from './src/data/creator-routes';
+import {
+  CREATOR_ARTICLE_MARKDOWN_REWRITES,
+  CREATOR_PROFILE_REWRITES,
+} from './src/data/creator-routes';
 import {
   X_PLAYER_CARD_PATH,
   X_PLAYER_FRAME_ANCESTORS,
@@ -24,6 +27,7 @@ const config = createAppNextConfig({
             '<https://genfeed.ai/llms.txt>; rel="describedby"; type="text/plain"',
             '<https://genfeed.ai/llms.txt>; rel="llm-context"; type="text/plain"',
             '<https://genfeed.ai/llms-full.txt>; rel="describedby"; type="text/plain"',
+            '<https://genfeed.ai/llms-articles.txt>; rel="describedby"; type="text/plain"',
             '<https://api.genfeed.ai/v1/openapi.json>; rel="service-desc"; type="application/vnd.oai.openapi+json"',
           ].join(', '),
         },
@@ -95,6 +99,7 @@ const config = createAppNextConfig({
         ],
         source: '/',
       },
+      ...CREATOR_ARTICLE_MARKDOWN_REWRITES,
       ...CREATOR_PROFILE_REWRITES,
     ],
     fallback: [],

@@ -73,7 +73,7 @@ export class ContentWritingHandler implements SkillHandler {
     try {
       const completion = await this.llmDispatcherService.chatCompletion(
         {
-          max_tokens: 400,
+          max_tokens: 1200,
           messages: [
             {
               content: this.buildRewritePrompt(harnessBrief, targetPlatform),

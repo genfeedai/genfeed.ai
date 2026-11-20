@@ -20,7 +20,6 @@ import { ArticlesService } from '@api/collections/articles/services/articles.ser
 import type { ArticlesContentService } from '@api/collections/articles/services/articles-content.service';
 import type { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { DEFAULT_MINI_TEXT_MODEL } from '@api/constants/default-mini-text-model.constant';
-import { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/agent-chat-model-registry.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { getActionDefinition } from '@genfeedai/actions';
 import { LLM_DEFAULTS, MODEL_KEYS } from '@genfeedai/contracts/constants';
@@ -54,17 +53,12 @@ describe('ArticlesService article cycle model config', () => {
     } | null,
     {
       hasSettingsService = true,
-      agentChatModelRegistry,
       runWorkflow,
     }: {
       hasSettingsService?: boolean;
       runWorkflow?: (request: { inputValues: Record<string, unknown> }) => {
         result: unknown;
       };
-      agentChatModelRegistry?: Pick<
-        AgentChatModelRegistryService,
-        'resolveModelKey'
-      >;
     } = {},
   ) {
     const prisma = {
@@ -124,7 +118,6 @@ describe('ArticlesService article cycle model config', () => {
       undefined, // organizationsService
       undefined, // cacheInvalidationService
       moduleRef,
-      agentChatModelRegistry as AgentChatModelRegistryService | undefined,
     );
 
     return {
@@ -170,37 +163,6 @@ describe('ArticlesService article cycle model config', () => {
 
   it('falls back to the system default when the org has no settings', async () => {
     const { service } = buildService(null);
-
-    const config = await service.resolveArticleCycleModelConfig(organizationId);
-
-    expect(config.generationModel).toBe(LLM_DEFAULTS.contentWriting);
-  });
-
-  it('uses the Admin default TEXT model over the seed fallback when no explicit or org model is set', async () => {
-    const adminDefaultModel = MODEL_KEYS.REPLICATE_GOOGLE_GEMINI_3_PRO;
-    const resolveModelKey = vi.fn().mockResolvedValue(adminDefaultModel);
-    const { service } = buildService(null, {
-      agentChatModelRegistry: { resolveModelKey },
-    });
-
-    const config = await service.resolveArticleCycleModelConfig(organizationId);
-
-    expect(resolveModelKey).toHaveBeenCalledWith(
-      undefined,
-      LLM_DEFAULTS.contentWriting,
-    );
-    expect(config.generationModel).toBe(adminDefaultModel);
-  });
-
-  it('falls back to LLM_DEFAULTS.contentWriting when the registry resolves nothing new', async () => {
-    const resolveModelKey = vi
-      .fn()
-      .mockImplementation(
-        (_key: string | undefined, fallbackKey: string) => fallbackKey,
-      );
-    const { service } = buildService(null, {
-      agentChatModelRegistry: { resolveModelKey },
-    });
 
     const config = await service.resolveArticleCycleModelConfig(organizationId);
 
