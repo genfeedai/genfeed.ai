@@ -14,29 +14,47 @@ export default function MakeYourOwnBanner({
   articleTitle,
   creatorName,
   handle,
+  layout = 'inline',
   referralCode,
 }: MakeYourOwnBannerProps): React.ReactElement {
+  const isRail = layout === 'rail';
+  const headline = `Make content like ${creatorName}'s`;
+  const headingId = isRail
+    ? 'make-your-own-rail-heading'
+    : 'make-your-own-heading';
+
   return (
     <section
-      aria-labelledby="make-your-own-heading"
-      className="flex flex-col gap-4 border border-primary/20 bg-primary/10 p-6 md:flex-row md:items-center md:justify-between"
+      aria-labelledby={headingId}
+      className={
+        isRail
+          ? 'flex flex-col gap-4 border border-primary/20 bg-primary/10 p-4'
+          : 'flex flex-col gap-4 border border-primary/20 bg-primary/10 p-6 md:flex-row md:items-center md:justify-between'
+      }
     >
       <div className="min-w-0 space-y-1">
-        <h2
-          className="text-lg font-semibold text-foreground"
-          id="make-your-own-heading"
-        >
-          Make content like {creatorName}&apos;s
-        </h2>
-        <p className="text-sm text-foreground/70">
-          Go from a brief to articles, images and videos like &ldquo;
-          {articleTitle}&rdquo; with Genfeed.
-        </p>
+        {isRail ? (
+          // The end-of-article band already carries the page's heading, so the
+          // rail's copy of the offer is a label, not a second h2.
+          <p className="text-base font-semibold text-foreground" id={headingId}>
+            {headline}
+          </p>
+        ) : (
+          <h2 className="text-lg font-semibold text-foreground" id={headingId}>
+            {headline}
+          </h2>
+        )}
+        {isRail ? null : (
+          <p className="text-sm text-foreground/70">
+            Go from a brief to articles, images and videos like &ldquo;
+            {articleTitle}&rdquo; with Genfeed.
+          </p>
+        )}
       </div>
       <ButtonTracked
         asChild
         variant={ButtonVariant.DEFAULT}
-        size={ButtonSize.PUBLIC}
+        size={isRail ? ButtonSize.DEFAULT : ButtonSize.PUBLIC}
         withWrapper={false}
         trackingName="signup_cta_click"
         trackingData={{
@@ -47,7 +65,7 @@ export default function MakeYourOwnBanner({
         }}
       >
         <a
-          className="shrink-0"
+          className={isRail ? 'w-full' : 'shrink-0'}
           href={getProfileSignupHref(referralCode)}
           rel="noopener noreferrer"
           target="_blank"

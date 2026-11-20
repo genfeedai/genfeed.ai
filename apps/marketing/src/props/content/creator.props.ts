@@ -144,6 +144,11 @@ export interface MakeYourOwnBannerProps {
   creatorName: string;
   /** The creator whose page the reader is on, for tracking. */
   handle: string;
+  /**
+   * `inline` is the end-of-article band; `rail` is the same offer stacked into
+   * the outline column, so it can sit beside the body while it is read.
+   */
+  layout?: 'inline' | 'rail';
   /** The creator's referral code, carried into sign-up. */
   referralCode?: string | null;
 }

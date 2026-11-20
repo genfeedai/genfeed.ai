@@ -42,4 +42,28 @@ describe('MakeYourOwnBanner', () => {
     );
     expect(url.searchParams.has('ref')).toBe(false);
   });
+
+  it('stacks the same offer into the outline rail without a second heading', () => {
+    render(
+      <MakeYourOwnBanner
+        articleTitle="Vibe editing"
+        creatorName="Vincent"
+        handle="acme"
+        layout="rail"
+        referralCode="frend2345xyz"
+      />,
+    );
+
+    expect(screen.queryByRole('heading')).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('region', { name: "Make content like Vincent's" }),
+    ).toBeInTheDocument();
+    expect(
+      new URL(
+        screen
+          .getByRole('link', { name: 'Start creating' })
+          .getAttribute('href') ?? '',
+      ).searchParams.get('ref'),
+    ).toBe('frend2345xyz');
+  });
 });

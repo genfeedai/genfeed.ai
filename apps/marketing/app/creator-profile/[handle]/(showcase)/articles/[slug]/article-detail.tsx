@@ -397,8 +397,17 @@ export default function ArticleDetail({
 
         <aside className="hidden lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:block">
           {/* Public topbar is h-20; top-24 keeps a 1rem gap, matching heading scroll-mt-24. */}
-          <div className="lg:sticky lg:top-24 lg:mt-[3.25rem] lg:self-start">
+          <div className="space-y-8 lg:sticky lg:top-24 lg:mt-[3.25rem] lg:self-start">
             <ArticleOutline sections={sections} />
+            {isPreview ? null : (
+              <MakeYourOwnBanner
+                articleTitle={article.label}
+                creatorName={creatorName}
+                handle={handle}
+                layout="rail"
+                referralCode={referralCode}
+              />
+            )}
           </div>
         </aside>
       </div>
