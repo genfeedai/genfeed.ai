@@ -6,6 +6,7 @@ import { getMcpWwwAuthenticateHeader } from '@mcp/mcp/setup-page';
 import { AuthService } from '@mcp/services/auth.service';
 import type { PostHogAnalyticsService } from '@mcp/services/posthog-analytics.service';
 import { StreamableHttpService } from '@mcp/services/streamable-http.service';
+import { asMergedToolCall } from '@mcp/services/tool-registry.endpoints.testing';
 import type { McpRequest } from '@mcp/shared/interfaces/mcp-request.interface';
 import { mcpAccessModeMiddleware } from '@mcp/shared/middleware/mcp-access-mode.middleware';
 import { toolsetsQueryMiddleware } from '@mcp/shared/middleware/toolsets-query.middleware';
@@ -207,10 +208,11 @@ export async function startMcpTestServer(
 
   return {
     callTool: (token, name, args = {}) =>
-      statelessRpc<McpToolCallResult>(token, 'tools/call', {
-        arguments: args,
-        name,
-      }),
+      statelessRpc<McpToolCallResult>(
+        token,
+        'tools/call',
+        asMergedToolCall({ arguments: args, name }),
+      ),
     callAdminTool: (token, name, args = {}) =>
       statelessRpc<McpToolCallResult>(
         token,

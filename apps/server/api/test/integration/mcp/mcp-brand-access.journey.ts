@@ -12,6 +12,7 @@ import type {
   McpRuntimeActorLabel,
   McpRuntimeCase,
 } from '@api-test/integration/mcp/mcp-auth-runtime.interface';
+import { asMergedToolCall } from '@api-test/integration/mcp/mcp-merged-call.util';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import {
   StreamableHTTPClientTransport,
@@ -152,7 +153,9 @@ try {
     args: Record<string, unknown> = {},
   ) => {
     try {
-      return await sessions[label].client.callTool({ name, arguments: args });
+      return await sessions[label].client.callTool(
+        asMergedToolCall({ arguments: args, name }),
+      );
     } catch (error) {
       if (
         error instanceof StreamableHTTPError &&
@@ -309,10 +312,9 @@ try {
   });
   await caseRun('B04_KEY_CAP_AND_DIRECT_PARITY', async () => {
     visible(
-      await requireKeyClient().client.callTool({
-        name: 'get_brands',
-        arguments: {},
-      }),
+      await requireKeyClient().client.callTool(
+        asMergedToolCall({ name: 'get_brands', arguments: {} }),
+      ),
       ['A'],
     );
     for (const token of [key, sessions.U.token]) {
@@ -363,25 +365,29 @@ try {
   await caseRun('B06_HEADER_CONTEXT_SPOOF', async () => {
     for (const current of [sessions.U, requireKeyClient()]) {
       current.headers['X-Organization-Id'] = fixture.foreignOrganizationId;
-      const result = await current.client.callTool({
-        name: 'get_brands',
-        arguments: {
-          organizationId: fixture.foreignOrganizationId,
-          isApiKey: false,
-          role: 'owner',
-          context: {
+      const result = await current.client.callTool(
+        asMergedToolCall({
+          name: 'get_brands',
+          arguments: {
             organizationId: fixture.foreignOrganizationId,
-            userId: fixture.actors.W.id,
+            isApiKey: false,
+            role: 'owner',
+            context: {
+              organizationId: fixture.foreignOrganizationId,
+              userId: fixture.actors.W.id,
+            },
           },
-        },
-      });
+        }),
+      );
       requireMcpRuntime(
         !JSON.stringify(result).includes(fixture.brands.X),
         'MCP_CLIENT_CLAIM',
       );
       delete current.headers['X-Organization-Id'];
       visible(
-        await current.client.callTool({ name: 'get_brands', arguments: {} }),
+        await current.client.callTool(
+          asMergedToolCall({ name: 'get_brands', arguments: {} }),
+        ),
         ['A'],
       );
     }
@@ -483,10 +489,9 @@ try {
     await denyTool('W', 'get_brands', { brand: fixture.brands.B });
     visible(await tool('W', 'get_brands'), ['A']);
     visible(
-      await requireKeyClient().client.callTool({
-        name: 'get_brands',
-        arguments: {},
-      }),
+      await requireKeyClient().client.callTool(
+        asMergedToolCall({ name: 'get_brands', arguments: {} }),
+      ),
       ['A'],
     );
   });
