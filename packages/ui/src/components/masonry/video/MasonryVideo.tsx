@@ -103,6 +103,7 @@ function MasonryVideoTile({
     isProcessing,
     isFailed,
     isUnavailable,
+    isExpired,
     isFleetNsfwLocked,
     isInteractionBlocked,
     hasPosterThumbnail,
@@ -156,6 +157,7 @@ function MasonryVideoTile({
           video={video}
           metadata={metadata}
           isUnavailable={isUnavailable}
+          isExpired={isExpired}
           isProcessing={isProcessing}
           isFailed={isFailed}
           failureReason={failureReason}

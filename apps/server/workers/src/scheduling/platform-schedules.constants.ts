@@ -10,6 +10,7 @@ import { NEWSLETTER_SENDS_SCHEDULE } from '@workers/crons/newsletter-sends/cron.
 import { NOTIFICATION_RETENTION_SCHEDULE } from '@workers/crons/notification-retention/notification-retention.constants';
 import { OAUTH_CLIENT_CLEANUP_SCHEDULE } from '@workers/crons/oauth-client-cleanup/oauth-client-cleanup.constants';
 import { TRANSCRIPT_PURGE_SCHEDULE } from '@workers/crons/transcript-purge/transcript-purge.constants';
+import { VIDEO_RETENTION_SCHEDULE } from '@workers/crons/video-retention/video-retention.constants';
 import { X_REPLY_WATCH_SCHEDULE } from '@workers/crons/x-replies/x-reply-watch.constants';
 import type { Job } from 'bullmq';
 
@@ -74,6 +75,7 @@ export const PLATFORM_SCHEDULED_TASKS = {
   STREAK_MAINTENANCE: 'streak-maintenance',
   TIKTOK_STATUS: 'tiktok-status',
   TRANSCRIPT_PURGE: 'transcript-purge',
+  VIDEO_RETENTION: 'video-retention',
   WORKFLOW_ARTIFACT_CLEANUP: 'workflow-artifact-cleanup',
   WORKFLOW_EXECUTION_PURGE: 'workflow-execution-purge',
   WORKFLOW_CONTINUATION_RECONCILE: 'workflow-continuation-reconcile',
@@ -314,6 +316,10 @@ export const PLATFORM_SCHEDULE_CATALOG = {
   },
   [PLATFORM_SCHEDULED_TASKS.TRANSCRIPT_PURGE]: {
     pattern: TRANSCRIPT_PURGE_SCHEDULE,
+    timezone: 'UTC',
+  },
+  [PLATFORM_SCHEDULED_TASKS.VIDEO_RETENTION]: {
+    pattern: VIDEO_RETENTION_SCHEDULE,
     timezone: 'UTC',
   },
   [PLATFORM_SCHEDULED_TASKS.WORKFLOW_ARTIFACT_CLEANUP]: {

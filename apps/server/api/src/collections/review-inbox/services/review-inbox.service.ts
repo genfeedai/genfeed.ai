@@ -2,7 +2,10 @@ import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.
 import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
 import { resolveBrandLogoCdnUrls } from '@api/collections/brands/utils/brand-logo-urls.util';
 import { approvalGenerationQuote } from '@api/collections/mcp-approvals/schemas/mcp-approval-pricing.schema';
-import { expireStaleMcpApprovals } from '@api/collections/mcp-approvals/utils/mcp-approval-expiry.util';
+import {
+  expireLateSchedulingApprovals,
+  expireStaleMcpApprovals,
+} from '@api/collections/mcp-approvals/utils/mcp-approval-expiry.util';
 import {
   describeMcpApprovalAction,
   MCP_APPROVAL_CAPTION_ARGUMENT_KEYS,
@@ -317,7 +320,7 @@ export class ReviewInboxService {
     allowedBrandIds: string[] | undefined,
   ): Promise<IReviewInboxItem[]> {
     await expireStaleMcpApprovals(this.prisma.mcpApproval, organizationId);
-    const approvals = await this.prisma.mcpApproval.findMany({
+    const pending = await this.prisma.mcpApproval.findMany({
       orderBy: { createdAt: 'asc' },
       select: {
         arguments: true,
@@ -332,6 +335,17 @@ export class ReviewInboxService {
         status: McpApprovalStatus.PENDING,
       }),
     });
+
+    // A scheduling request whose publish times have all passed can no longer be
+    // acted on, so it closes itself instead of waiting in the inbox.
+    const lateIds = new Set(
+      await expireLateSchedulingApprovals(
+        this.prisma.mcpApproval,
+        organizationId,
+        pending,
+      ),
+    );
+    const approvals = pending.filter((approval) => !lateIds.has(approval.id));
 
     const accountBrandIds = allowedBrandIds
       ? await this.loadBatchAccountBrandIds(organizationId, approvals)

@@ -1,0 +1,66 @@
+# Weekly stale branch report — reporting only.
+#
+# Lists every remote branch that is not on master and says what it needs:
+# open a pull request for work that has none, delete a branch whose work is
+# already on master, decide on a pull request that stalled or was closed
+# unmerged. The result goes to the job summary and to one rolling tracking
+# issue. Branches under codex/ and grok/ belong to other agents and are only
+# listed.
+#
+# Read-only against the branches, compare and pull request APIs: it never
+# deletes, pushes or merges anything. This workflow is NOT reusable and is
+# never needed by release.yml.
+
+name: Stale Branches
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 6 * * 1" # Monday 06:17 UTC
+
+concurrency:
+  group: stale-branches
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  report:
+    name: Stale branch report
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: read
+    steps:
+      - name: Checkout workflow helpers
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Build the report and update the tracking issue
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        with:
+          script: |
+            const path = require('node:path');
+            const { pathToFileURL } = require('node:url');
+            const { runStaleBranchReport } = await import(
+              pathToFileURL(
+                path.join(
+                  process.env.GITHUB_WORKSPACE,
+                  'scripts/ci/stale-branches.mjs',
+                ),
+              ).href,
+            );
+            const { owner, repo } = context.repo;
+            await runStaleBranchReport({
+              github,
+              owner,
+              repo,
+              runUrl: process.env.RUN_URL,
+              core,
+            });

@@ -50,6 +50,7 @@ import { CronTiktokModule } from '@workers/crons/tiktok/cron.tiktok.module';
 import { CronTranscriptPurgeModule } from '@workers/crons/transcript-purge/cron.transcript-purge.module';
 import { CronTrendsModule } from '@workers/crons/trends/cron.trends.module';
 import { CronTurboRunModule } from '@workers/crons/turbo-run/cron.turbo-run.module';
+import { CronVideoRetentionModule } from '@workers/crons/video-retention/cron.video-retention.module';
 import { CronWorkflowArtifactsModule } from '@workers/crons/workflow-artifacts/cron.workflow-artifacts.module';
 import { CronXRepliesModule } from '@workers/crons/x-replies/cron.x-replies.module';
 import { CronYoutubeModule } from '@workers/crons/youtube/cron.youtube.module';
@@ -126,6 +127,7 @@ import { CrunReconcileService } from '@workers/services/crun-reconcile.service';
     CronTiktokModule,
     CronTranscriptPurgeModule,
     CronTrendsModule,
+    CronVideoRetentionModule,
     CronWorkflowArtifactsModule,
     CronXRepliesModule,
     CronYoutubeModule,

@@ -4176,6 +4176,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'scope',
       'sourceActionId',
       'status',
+      'storageExpiredAt',
       'templateVersion',
       'training',
       'trainingId',

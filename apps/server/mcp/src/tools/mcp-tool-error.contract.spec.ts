@@ -7,6 +7,7 @@ import { z } from 'zod';
 import {
   approvalPendingToolResult,
   classifyMcpToolFailure,
+  confirmationRequiredToolResult,
   type McpToolError,
   McpUpstreamError,
   mcpJsonRpcError,
@@ -288,6 +289,19 @@ describe('MCP tool error contract', () => {
     );
     expect(result.structuredContent).not.toHaveProperty('retryAfterSeconds');
     expect(result.structuredContent).not.toHaveProperty('estimatedCredits');
+  });
+
+  it('returns confirmation_required without queueing an approval', () => {
+    const result = confirmationRequiredToolResult('create_scheduled_release');
+
+    expect(result.isError).toBe(true);
+    expect(result.structuredContent).toMatchObject({
+      code: 'confirmation_required',
+      toolName: 'create_scheduled_release',
+    });
+    expect(result.structuredContent.message).toContain('Nothing was published');
+    expect(result.structuredContent).not.toHaveProperty('approvalId');
+    expect(result.structuredContent).not.toHaveProperty('nextStepUrl');
   });
 
   it('reports a zero estimate when the caller supplies one', () => {

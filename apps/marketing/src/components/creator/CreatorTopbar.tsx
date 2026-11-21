@@ -17,7 +17,7 @@ export default function CreatorTopbar(): React.ReactElement {
           size={ButtonSize.PUBLIC}
           trackingData={{
             action: 'creator_topbar_cta',
-            label: 'Make your own',
+            label: 'Start creating',
           }}
           trackingName="signup_cta_click"
           variant={ButtonVariant.SECONDARY}
@@ -28,7 +28,7 @@ export default function CreatorTopbar(): React.ReactElement {
             rel="noopener noreferrer"
             target="_blank"
           >
-            Make your own
+            Start creating
           </a>
         </ButtonTracked>
       </div>

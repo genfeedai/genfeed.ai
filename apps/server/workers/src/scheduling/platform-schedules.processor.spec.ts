@@ -62,6 +62,7 @@ describe('PlatformSchedulesProcessor', () => {
   const tiktok = { checkPendingTiktokPosts: handler() };
   const transcripts = { purgeExpiredTranscripts: handler() };
   const trends = { refreshGlobalTrends: handler() };
+  const videoRetention = { expireUnpostedVideos: handler() };
   const video = {
     reconcileEditorRenders: handler(),
     reconcileRawCutClips: handler(),
@@ -256,6 +257,10 @@ describe('PlatformSchedulesProcessor', () => {
         transcripts.purgeExpiredTranscripts,
       ],
       [
+        PLATFORM_SCHEDULED_TASKS.VIDEO_RETENTION,
+        videoRetention.expireUnpostedVideos,
+      ],
+      [
         PLATFORM_SCHEDULED_TASKS.WORKFLOW_ARTIFACT_CLEANUP,
         workflowArtifacts.queueExpiredArtifactCleanup,
       ],
@@ -323,6 +328,7 @@ describe('PlatformSchedulesProcessor', () => {
         modelDeprecation as never,
         replicateModels as never,
         transcripts as never,
+        videoRetention as never,
         workflowArtifacts as never,
         externalVoiceCatalog as never,
         new PlatformMediaSchedulesService(
