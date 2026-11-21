@@ -336,6 +336,45 @@ describe('ReviewInboxService', () => {
       });
     });
 
+    it('closes a scheduling request whose publish times have all passed instead of listing it', async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-11-21T13:30:00.000Z'));
+      try {
+        const approval = (id: string, scheduledDate: string) => ({
+          arguments: {
+            release: {
+              baseContent: `Post ${id}`,
+              brandId: 'brand-1',
+              scheduledDate,
+              targets: [],
+            },
+          },
+          createdAt: new Date('2026-11-21T10:00:00.000Z'),
+          id,
+          pricingQuote: null,
+          toolName: 'create_scheduled_release',
+          user: { email: null, firstName: 'Vincent', lastName: null },
+        });
+        prisma.mcpApproval.findMany.mockResolvedValue([
+          approval('late', '2026-11-21T13:00:00.000Z'),
+          approval('ahead', '2026-11-21T15:00:00.000Z'),
+        ]);
+
+        const items = await service.listPending(
+          { organizationId: 'org-1' },
+          ownerAccess,
+        );
+
+        expect(items.map((item) => item.approvalId)).toEqual(['ahead']);
+        expect(prisma.mcpApproval.updateMany.mock.calls[1][0]).toMatchObject({
+          data: { result: { reason: 'expired' }, status: 'DECLINED' },
+          where: { id: { in: ['late'] }, organizationId: 'org-1' },
+        });
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
     it('never lists MCP approvals for viewers below admin', async () => {
       await service.listPending(
         { organizationId: 'org-1' },

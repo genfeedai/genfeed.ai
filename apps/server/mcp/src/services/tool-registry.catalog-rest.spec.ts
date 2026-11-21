@@ -243,7 +243,7 @@ describe('catalog REST handlers — video', () => {
 });
 
 describe('catalog REST handlers — articles', () => {
-  it('saves an article draft at once and queues publishing', async () => {
+  it('saves an article draft at once and publishes only once the agent confirms', async () => {
     const { client, registry } = build();
     const draft = {
       label: 'Reviewed guide',
@@ -258,11 +258,16 @@ describe('catalog REST handlers — articles', () => {
     const result = await callTool(registry, 'publish_article', {
       articleId: 'article-2',
     });
-    expect(client.createApproval).toHaveBeenCalledWith('publish_article', {
-      articleId: 'article-2',
-    });
+    expect(client.createApproval).not.toHaveBeenCalled();
     expect(client.publishArticle).not.toHaveBeenCalled();
-    expect(result.content[0].text).toContain('requires approval');
+    expect(result.content[0].text).toContain('Nothing was published');
+
+    await callTool(registry, 'publish_article', {
+      articleId: 'article-2',
+      confirmed: true,
+    });
+    expect(client.createApproval).not.toHaveBeenCalled();
+    expect(client.publishArticle).toHaveBeenCalledWith('article-2', undefined);
   });
 
   it('creates an article in the brand it names', async () => {
