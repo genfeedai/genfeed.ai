@@ -20,7 +20,6 @@ then open the relevant topic files. Add detailed topic entries here; keep MEMORY
 - [ui_primitives](ui_primitives.md) — every surface, including MCP previews, composes shared UI components; no raw HTML controls
 - [feedback_motion_page_menu_only](feedback_motion_page_menu_only.md) — app elements do not animate; only the page menu (`data-motion="allow"`) and loaders keep motion, enforced by `packages/styles/motion-policy.css`
 - [proxy_middleware](proxy_middleware.md) — Next.js 16 renamed `middleware.ts` → `proxy.ts`
-- [ready_pr_default](ready_pr_default.md) — ready PRs by default; draft only on request
 - [no_external_symlinks](no_external_symlinks.md) — internal symlinks only (public repo)
 - [p0_priority_not_label](p0_priority_not_label.md) — priority lives in native organization Issue Fields, not labels or project-local duplicates
 - [no_issue_body_frontmatter](no_issue_body_frontmatter.md) — no YAML in issue bodies
@@ -202,7 +201,7 @@ Load on demand: [e2e-architecture](context/e2e-architecture.md) · [progress](co
 ## Features and system
 
 - [features/agent](features/agent/README.md) — turn flow, context parity, model resolution, billing pointers
-- [AGENT-RUNTIME](system/AGENT-RUNTIME.md) · [CRITICAL-NEVER-DO](system/CRITICAL-NEVER-DO.md) · [SYSTEM-RULES](system/SYSTEM-RULES.md) · [PRIORITY-READING](system/PRIORITY-READING.md) · [CROSS-PROJECT-RULES](system/CROSS-PROJECT-RULES.md) · [OPEN-SOURCE-CONTEXT](system/OPEN-SOURCE-CONTEXT.md) · [SELF-HOSTED-GUIDE](system/SELF-HOSTED-GUIDE.md)
+- [CRITICAL-NEVER-DO](system/CRITICAL-NEVER-DO.md) · [CROSS-PROJECT-RULES](system/CROSS-PROJECT-RULES.md) · [OPEN-SOURCE-CONTEXT](system/OPEN-SOURCE-CONTEXT.md) · [SELF-HOSTED-GUIDE](system/SELF-HOSTED-GUIDE.md)
 
 - [Dynamic video workflows](spec-dynamic-video-workflows.md) — #4500 localization and scene composition contracts.
 

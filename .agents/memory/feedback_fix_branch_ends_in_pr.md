@@ -25,7 +25,8 @@ release path — it is lost work that looks finished.
 **How to apply:**
 
 - After implementation and focused verification, run `gh pr create` on the
-  same branch. Ready by default (`ready_pr_default.md`); draft only on request.
+  same branch. Open it as a draft, push while it is a draft, and mark it ready once the branch is
+  finished (`AGENTS.md`, Pull Requests).
 - The PR body carries one `Closes #N` line per issue
   (`feedback_pr_closes_one_issue_per_keyword.md`).
 - An issue handoff that says "do not open a PR" still means "push and open the

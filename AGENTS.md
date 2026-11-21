@@ -35,13 +35,9 @@ type: feedback | project | reference
 
 Then add a line to `.agents/memory/reference_memory_catalog.md` pointing at it. Keep `.agents/memory/MEMORY.md` as the short task-entry map. See `.agents/memory/README.md` for the full format and wiring details.
 
-## Essential Reading
+## Before Editing
 
-1. `.agents/memory/system/CRITICAL-NEVER-DO.md` — production-breaking violations
-2. `.agents/memory/system/SYSTEM-RULES.md` — coding standards and patterns
-3. `.agents/memory/system/AGENT-RUNTIME.md` — task loop, context checkpoints
-
-Before editing, read the task-relevant references linked from the memory map. Research before editing: never change code you haven't read, and search 3+ similar implementations before writing new code.
+Read the task-relevant references linked from the memory map. `.agents/memory/system/CRITICAL-NEVER-DO.md` holds the file-management rules. Research before editing: never change code you haven't read, and search 3+ similar implementations before writing new code.
 
 ## Project Overview
 

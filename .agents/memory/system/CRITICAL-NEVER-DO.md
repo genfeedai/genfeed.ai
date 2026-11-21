@@ -1,15 +1,11 @@
 # CRITICAL: NEVER DO THIS
 
-Violations that break builds, lose data, or violate architecture. For positive coding standards, see the repo's `AGENTS.md`.
+Violations that break builds, lose data, or violate architecture. Coding rules live in the repo's `AGENTS.md`.
 
-## Project-Specific Highlights
+## Commands
 
-Read BOTH this file and the project's own critical doc before coding.
-
-- Frontend (`apps/web`): NEVER run unscoped full builds at repo root. Use scoped Bun/Turbo app builds (for example `bunx turbo build --filter=@genfeedai/web`). See: `.agents/memory/system/CRITICAL-NEVER-DO.md`
-- Backend (`apps/server`): Scoped tests allowed (single file/module). NEVER unscoped `bun test`. Enforce `isDeleted: false`. See: `.agents/memory/system/CRITICAL-NEVER-DO.md`
-
----
+- NEVER run unscoped full builds at repo root. Use scoped Bun/Turbo builds (for example `bunx turbo build --filter=@genfeedai/web`).
+- Backend (`apps/server`): scoped tests are allowed (single file or module). NEVER run unscoped `bun test`.
 
 ## File Management
 
@@ -19,31 +15,12 @@ All operations within the workspace root only. NEVER use `/tmp`, `/private/tmp`,
 
 ### NEVER DELETE Protected Root Files
 
-At repo root: `AGENTS.md` and `CLAUDE.md`, `CONTRIBUTING.md`, `DESIGN.md`, `README.md`, and `RELEASING.md`. These are intentional root documentation surfaces -- NOT duplicates of `.agents/` files.
+These root files are intentional documentation surfaces, NOT duplicates of `.agents/` files: `AGENTS.md`, `CLAUDE.md`, `CONTEXT.md`, `CONTRIBUTING.md`, `DESIGN.md`, `README.md`, `RELEASING.md`, and the community and legal files `CCLA.md`, `CODE_OF_CONDUCT.md`, `GOVERNANCE.md`, `ICLA.md`, `SECURITY.md`, `SUPPORT.md`, `TRADEMARK.md`.
 
 ### NEVER Create Root-Level .md Files
 
-Only the current intentional root docs are allowed at root: `AGENTS.md` and `CLAUDE.md`, `CONTRIBUTING.md`, `DESIGN.md`, `README.md`, and `RELEASING.md`. Everything else goes in `.agents/`.
+Only the files listed above are allowed at root. Everything else goes in `.agents/`.
 
-### Session Files: ONE FILE PER DAY
+## Types
 
-Pattern: `.agents/sessions/YYYY-MM-DD.md`. Multiple sessions same day -> add to SAME file. Only allowed patterns: `README.md`, `TEMPLATE.md`, `YYYY-MM-DD.md`.
-
----
-
-## Coding Violations
-
-Most of these are stated once in the repo's `AGENTS.md` and are now guard-enforced in CI; kept here
-as a one-line index, not restated in full.
-
-- **Organization scoping + `isDeleted: false` on every tenant-scoped query** — enforced by
-  `bun run check:tenant-scope` (`scripts/architecture/check-tenant-scope.ts`).
-- **No inline interfaces** (props -> `packages/props/` or the owning `apps/web/src/features/<feature>/props/`, state/helpers -> `packages/contracts/src/interfaces/`)
-  — enforced for `apps/web/app/**` by `bun run check:inline-types`.
-- **Serializers live only in `packages/serializers/`, never in API modules; never return a raw DB record**
-  — see `context/system-patterns.md` (Serializer triplet); cross-checked by `bun run check:serializer-drift`.
-- **Soft delete is `isDeleted: boolean`; there is no `deletedAt`.**
-- **No new `useEffect`; AbortController in every async effect** — ratcheted by `bun run check:use-effect` (baseline only shrinks); see `AGENTS.md`.
-- **No dynamic `import('...')` inline in type definitions; no backward-compatibility wrappers/aliases/re-exports**
-  — not guard-checked; green-field policy, fix at the source (`AGENTS.md` Project Overview).
-- **Compound indexes live in Prisma schema `@@index` or explicit migrations**, close to the owning model.
+- No dynamic `import('...')` inline in type definitions.
