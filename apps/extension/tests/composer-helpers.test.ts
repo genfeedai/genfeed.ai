@@ -142,12 +142,12 @@ describe('composer-helpers', () => {
       document
         .getElementById('simplebox-placeholder')
         ?.addEventListener('click', () => {
-          setTimeout(() => {
+          queueMicrotask(() => {
             document.body.insertAdjacentHTML(
               'beforeend',
               '<div id="contenteditable-root" contenteditable="true"></div>',
             );
-          }, 20);
+          });
         });
 
       await expect(activateComposer(YOUTUBE)).resolves.toBe(true);

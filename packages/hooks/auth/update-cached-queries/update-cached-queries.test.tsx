@@ -3,7 +3,7 @@ import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const viewer = vi.hoisted(() => ({
   getToken: async () => 'token',
@@ -51,6 +51,10 @@ function Wrapper({ children }: { children: ReactNode }) {
 }
 
 describe('updateCachedQueries', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   beforeEach(() => {
     reads.pending = [];
     client = new QueryClient();
@@ -84,6 +88,7 @@ describe('updateCachedQueries', () => {
   });
 
   it('keeps the write when a refresh of a loaded page was in flight', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
     const view = renderHook(() => useRows(1), { wrapper: Wrapper });
     await waitFor(() => expect(reads.pending).toHaveLength(1));
     await act(async () => reads.pending[0](['a']));
@@ -102,7 +107,7 @@ describe('updateCachedQueries', () => {
     // it would before checking the write held.
     await act(async () => {
       reads.pending[1](['a']);
-      await new Promise((resolve) => setTimeout(resolve, 0));
+      await vi.advanceTimersByTimeAsync(0);
     });
 
     expect(view.result.current.rows).toEqual(['a!']);

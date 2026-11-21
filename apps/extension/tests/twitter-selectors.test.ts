@@ -152,13 +152,13 @@ describe('Twitter Selectors', () => {
     it('should resolve when element appears in DOM', async () => {
       const promise = waitForElement('replyTextarea', 2000);
 
-      // Add element after a short delay
-      setTimeout(() => {
+      // Add the element after the wait has started
+      queueMicrotask(() => {
         const el = document.createElement('div');
         el.setAttribute('data-testid', 'tweetTextarea_0');
         el.id = 'delayed';
         document.body.appendChild(el);
-      }, 100);
+      });
 
       const element = await promise;
       expect(element).not.toBeNull();

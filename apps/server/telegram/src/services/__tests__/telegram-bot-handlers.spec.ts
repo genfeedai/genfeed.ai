@@ -156,8 +156,8 @@ function makeSession(
   };
 }
 
-function flush(ms = 10): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+function flush(): Promise<void> {
+  return new Promise((resolve) => setImmediate(resolve));
 }
 
 /**
@@ -1464,12 +1464,13 @@ describe('TelegramBotManager handlers', () => {
       const ctx = createCtx({ callbackQuery: { data: 'confirm:run' } });
 
       await getEventHandler('callback_query:data')(asContext(ctx));
-      await flush(30);
+      await vi.waitFor(() => {
+        expect(ctx.reply).toHaveBeenCalledWith(
+          'Workflow completed successfully.',
+        );
+      });
 
       expect(httpMock.get.mock.calls.length).toBeGreaterThanOrEqual(2);
-      expect(ctx.reply).toHaveBeenCalledWith(
-        'Workflow completed successfully.',
-      );
     });
 
     it('tells the user the workflow is still running when polling times out', async () => {

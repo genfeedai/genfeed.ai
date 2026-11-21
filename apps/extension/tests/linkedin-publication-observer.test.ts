@@ -404,7 +404,7 @@ it('treats an empty runtime reply as no capture context', async () => {
   try {
     stop = attachLinkedInPublicationObserver();
     await flush();
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    await new Promise((resolve) => setImmediate(resolve));
   } finally {
     process.off('unhandledRejection', onRejection);
   }

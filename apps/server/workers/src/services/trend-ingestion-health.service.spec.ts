@@ -452,7 +452,7 @@ describe('TrendIngestionHealthService', () => {
     health.getHealth.mockImplementation(async () => {
       inFlight += 1;
       peak = Math.max(peak, inFlight);
-      await new Promise((resolve) => setTimeout(resolve, 1));
+      await new Promise((resolve) => setImmediate(resolve));
       inFlight -= 1;
       return [];
     });

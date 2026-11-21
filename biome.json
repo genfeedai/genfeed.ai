@@ -156,10 +156,6 @@
         "**/testing/**",
         "playwright/**",
         "!apps/server/api/test/integration/proactive-agent-production-turn*",
-        "!apps/extension/**",
-        "!apps/desktop/**",
-        "!apps/server/{workers,files,slack,discord,mcp,telegram}/**",
-        "!packages/**",
         "!playwright/**",
         "!scripts/**",
         "!tests/**"

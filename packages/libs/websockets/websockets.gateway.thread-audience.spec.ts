@@ -83,6 +83,7 @@ describe('WebSocketGateway shared thread delivery (#9938)', () => {
     userId: 'user-alice',
   });
 
+  // biome-ignore lint/style/noRestrictedGlobals: real socket.io round trips between the gateway and the clients; there is no single event to await
   const settle = () => new Promise((resolve) => setTimeout(resolve, 100));
   const typesFor = (name: string) =>
     (received.get(name) ?? []).map((delivery) => delivery.type);

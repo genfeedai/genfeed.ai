@@ -75,8 +75,10 @@ describe('xterm browser harness smoke test', () => {
       terminal.write('hello xterm\r\n', resolve);
     });
 
-    // Give the DOM renderer a tick to flush row updates (rAF-based in xterm)
-    await new Promise<void>((resolve) => setTimeout(resolve, 50));
+    // The DOM renderer flushes row updates on an animation frame; wait for two.
+    await new Promise<void>((resolve) => {
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+    });
 
     const rows = host.querySelector('.xterm-rows');
     expect(rows).not.toBeNull();

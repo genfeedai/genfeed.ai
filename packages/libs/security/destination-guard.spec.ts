@@ -321,13 +321,8 @@ describe('destination guard', () => {
 
     const pendingRead = reader?.read();
     const cancellation = reader?.cancel();
-    const settled = await Promise.race([
-      cancellation?.then(() => 'cancelled'),
-      new Promise<'timed-out'>((resolve) =>
-        setTimeout(() => resolve('timed-out'), 250),
-      ),
-    ]);
-    if (settled === 'timed-out') pinnedResponse?.destroy();
+    // A cancel that waits on the stuck socket hangs here and fails on the test timeout.
+    const settled = await cancellation?.then(() => 'cancelled');
 
     expect(settled).toBe('cancelled');
     expect(pinnedResponse?.destroyed).toBe(true);

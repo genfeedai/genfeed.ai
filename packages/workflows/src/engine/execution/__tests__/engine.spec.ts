@@ -1070,7 +1070,7 @@ describe('WorkflowEngine', () => {
             release();
           }
         }
-        await new Promise((resolve) => setTimeout(resolve, 0));
+        await new Promise((resolve) => setImmediate(resolve));
       }
 
       const result = await runPromise;

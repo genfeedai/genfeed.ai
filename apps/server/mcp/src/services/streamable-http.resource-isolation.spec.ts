@@ -21,7 +21,7 @@ describe('StreamableHttpService.createToolRegistry', () => {
             defaults: { headers: { ...config.headers } },
             get: async () => {
               // Yield so a concurrent caller can overwrite a shared header.
-              await new Promise((resolve) => setTimeout(resolve, 5));
+              await new Promise((resolve) => setImmediate(resolve));
               callerSeenByApi.push(instance.defaults.headers.Authorization);
               return { data: { data: {} } };
             },
