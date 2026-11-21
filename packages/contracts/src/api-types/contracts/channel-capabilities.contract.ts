@@ -14,6 +14,10 @@ import {
 } from '../..';
 import { blueskyChannelCapability } from './channel-capabilities.bluesky';
 import {
+  collectCaptionWarnings,
+  validateCaption,
+} from './channel-caption.contract';
+import {
   type ChannelSettingDefinition,
   type ChannelSettingFieldType,
   type ChannelValidationIssue,
@@ -144,13 +148,6 @@ export const channelCaptionCapabilitySchema = z.object({
   extendedMaxLength: z.number().int().positive().optional(),
   required: z.boolean().optional(),
 });
-
-/** The longest caption a channel accepts: its extended ceiling, else its limit. */
-export function getCaptionCeiling(
-  caption: z.infer<typeof channelCaptionCapabilitySchema>,
-): number {
-  return caption.extendedMaxLength ?? caption.maxLength;
-}
 
 /**
  * How a channel treats animated source media (GIF and friends).
@@ -1270,58 +1267,6 @@ function invalidResult(
     validationState: TargetValidationState.INVALID,
     warnings: [],
   };
-}
-
-function validateCaption(
-  input: ValidateChannelTargetSettingsInput,
-  capability: ChannelCapability,
-): ChannelValidationIssue[] {
-  const caption = input.caption ?? '';
-  const captionLength = Array.from(caption).length;
-  const errors: ChannelValidationIssue[] = [];
-
-  if (capability.caption.required && caption.trim().length === 0) {
-    errors.push({
-      code: 'channel_target.caption_required',
-      field: 'caption',
-      message: `${capability.label} requires caption text.`,
-      severity: 'error',
-    });
-  }
-
-  const ceiling = getCaptionCeiling(capability.caption);
-  if (captionLength > ceiling) {
-    errors.push({
-      code: 'channel_target.caption_too_long',
-      field: 'caption',
-      message: `${capability.label} captions must be ${ceiling} characters or fewer.`,
-      severity: 'error',
-    });
-  }
-
-  return errors;
-}
-
-function collectCaptionWarnings(
-  input: ValidateChannelTargetSettingsInput,
-  capability: ChannelCapability,
-): ChannelValidationIssue[] {
-  const { extendedMaxLength, maxLength } = capability.caption;
-  if (extendedMaxLength === undefined) return [];
-
-  const captionLength = Array.from(input.caption ?? '').length;
-  if (captionLength <= maxLength || captionLength > extendedMaxLength) {
-    return [];
-  }
-
-  return [
-    {
-      code: 'channel_target.caption_over_standard_length',
-      field: 'caption',
-      message: `${capability.label} caption is ${captionLength} characters. Posts over ${maxLength} need an account with long posts enabled, otherwise ${capability.label} refuses them.`,
-      severity: 'warning',
-    },
-  ];
 }
 
 function validateMedia(
