@@ -46,4 +46,34 @@ describe('buildArticleSections', () => {
       sections: [],
     });
   });
+
+  it('folds a trailing Sources list into a closed details under its heading', () => {
+    const { html, sections } = buildArticleSections(
+      '<h2>Conclusion</h2><p>Done.</p><h2>Sources</h2><ul><li>One</li><li>Two</li></ul>',
+    );
+
+    expect(sections.map((section) => section.id)).toEqual([
+      'conclusion',
+      'sources',
+    ]);
+    expect(html).toContain(
+      '</h2><details class="gen-article-sources"><summary><span class="gen-sources-closed">Show 2 sources</span><span class="gen-sources-open">Hide sources</span></summary><ul><li>One</li><li>Two</li></ul></details>',
+    );
+    expect(html).not.toContain('<details open');
+  });
+
+  it('stops the fold at the next h2', () => {
+    const { html } = buildArticleSections(
+      '<h2>References</h2><ol><li>A</li></ol><h2>Next</h2><p>After</p>',
+    );
+
+    expect(html).toContain('Show 1 source</span>');
+    expect(html).toContain('</details><h2 id="next"');
+  });
+
+  it('leaves a Sources heading with nothing under it alone', () => {
+    const { html } = buildArticleSections('<h2>Sources</h2>');
+
+    expect(html).not.toContain('<details');
+  });
 });

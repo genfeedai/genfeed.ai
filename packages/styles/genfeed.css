@@ -436,9 +436,22 @@
    and collapse buttons mounted into each code block.
    -------------------------------------------------------------------------- */
 .gen-article-prose {
+  /* Long-form reading is set in the editorial serif; the headings, captions,
+     figures and the Sources fold stay in the product sans. */
+  font-family: var(--font-serif);
+
+  & :where(h1, h2, h3, h4, figcaption, summary, th) {
+    font-family: var(--font-sans);
+  }
+
   & :where(a) {
     text-decoration-color: var(--gen-accent-border-strong);
     text-underline-offset: 0.2em;
+  }
+
+  /* Chart and illustration figures take the card radius, like every surface. */
+  & :where(figure img) {
+    border-radius: var(--radius-card);
   }
 
   & :where(blockquote) {
@@ -474,6 +487,69 @@
       content: none;
     }
   }
+}
+
+/* Sources: the heading stays in the outline, the list folds beneath it. */
+.gen-article-sources {
+  border-block: 1px solid var(--gray-alpha-200);
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  line-height: 1.5rem;
+}
+
+.gen-article-sources > summary {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding-block: 0.75rem;
+  cursor: pointer;
+  list-style: none;
+  color: hsl(var(--muted-foreground));
+  transition-property: color;
+}
+
+.gen-article-sources > summary::-webkit-details-marker {
+  display: none;
+}
+
+.gen-article-sources > summary::after {
+  content: "";
+  width: 0.5rem;
+  height: 0.5rem;
+  margin-inline-start: auto;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: translateY(-0.125rem) rotate(45deg);
+  transition-property: transform;
+  transition-duration: 200ms;
+}
+
+.gen-article-sources[open] > summary::after {
+  transform: translateY(0.125rem) rotate(-135deg);
+}
+
+.gen-article-sources > summary:hover {
+  color: hsl(var(--foreground));
+}
+
+.gen-article-sources > summary:focus-visible {
+  outline: 2px solid hsl(var(--info) / 0.7);
+  outline-offset: 2px;
+}
+
+.gen-article-sources .gen-sources-open,
+.gen-article-sources[open] .gen-sources-closed {
+  display: none;
+}
+
+.gen-article-sources[open] .gen-sources-open {
+  display: inline;
+}
+
+.gen-article-sources > :where(ul, ol) {
+  margin-block: 0 1rem;
+  font-size: 0.875rem;
+  line-height: 1.5rem;
 }
 
 /* The wrapper — not the `pre` — is the positioning context, so the buttons
