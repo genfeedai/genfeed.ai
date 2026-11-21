@@ -1592,7 +1592,7 @@ describe('TelegramBotManager handlers', () => {
       handlers.get(REDIS_EVENTS.INTEGRATION_CREATED)?.({
         platform: 'TELEGRAM',
       });
-      await flush(0);
+      await flush();
 
       // Only the two initialize() calls hit the API — malformed events do not.
       expect(httpMock.get).toHaveBeenCalledTimes(2);
@@ -1638,7 +1638,7 @@ describe('TelegramBotManager handlers', () => {
         integrationId: 'int-1',
         platform: 'TELEGRAM',
       });
-      await flush(0);
+      await flush();
 
       expect(logger.error).toHaveBeenCalledWith(
         'Failed to handle Redis integration event',

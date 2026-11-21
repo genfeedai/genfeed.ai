@@ -994,7 +994,7 @@ describe('WorkflowEngine', () => {
       });
       // n2 is already in flight when the abort fires; it fails during the drain.
       const failer: NodeExecutor = vi.fn(async () => {
-        await new Promise((resolve) => setTimeout(resolve, 5));
+        await new Promise((resolve) => setImmediate(resolve));
         throw new Error('sibling failed during drain');
       });
 
