@@ -49,7 +49,9 @@ function createService() {
       {
         resolveModelKey: vi
           .fn()
-          .mockImplementation(async (key?: string) => key ?? 'openai/mini-text'),
+          .mockImplementation(
+            async (key?: string) => key ?? 'openai/mini-text',
+          ),
       } as never,
       material as never,
     ),
@@ -141,9 +143,7 @@ describe('BrandedContentActionsService', () => {
 
       await ctx.service.generateSocial(social);
 
-      expect(seamOf(ctx.branded).input.model).toBe(
-        LLM_DEFAULTS.contentWriting,
-      );
+      expect(seamOf(ctx.branded).input.model).toBe(LLM_DEFAULTS.contentWriting);
     });
 
     it('reports the provisional draft as a review receipt', async () => {
