@@ -1271,6 +1271,12 @@ export const MODEL_OUTPUT_CAPABILITIES: Record<string, ModelOutputCapability> =
       maxOutputs: 1,
       maxReferences: 0,
     },
+    [MODEL_KEYS.ELEVENLABS_V4_TURBO]: {
+      category: ModelCategory.VOICE,
+      isBatchSupported: false,
+      maxOutputs: 1,
+      maxReferences: 0,
+    },
     [MODEL_KEYS.ELEVENLABS_MULTILINGUAL_V2]: {
       category: ModelCategory.VOICE,
       isBatchSupported: false,

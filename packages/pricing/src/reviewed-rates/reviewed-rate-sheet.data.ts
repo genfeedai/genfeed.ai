@@ -759,6 +759,20 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
     verifiedAt: '2026-10-14T09:00:00.000Z',
   },
   {
+    endpoint: 'elevenlabs/eleven_v4_turbo',
+    provider: 'elevenlabs',
+    rates: [
+      {
+        component: 'output',
+        unit: 'character',
+        unitPriceUsd: 0.00004,
+        when: {},
+      },
+    ],
+    sourceUrl: 'https://elevenlabs.io/pricing/api',
+    verifiedAt: '2026-11-21T09:00:00.000Z',
+  },
+  {
     endpoint: 'fal-ai/elevenlabs/music',
     provider: 'fal',
     rates: [
