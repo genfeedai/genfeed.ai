@@ -309,6 +309,16 @@ describe('hosted SaaS on-demand seed contract', () => {
     expect(seed).toContain('A seed needs a reason.');
   });
 
+  test('model retirement runs the sync task with --retire-models, live only when asked', async () => {
+    const seed = await workflow('seed-hosted-saas.yml');
+
+    expect(seed).toContain('          - model-registry-retirement');
+    expect(seed).toContain('--retire-models');
+    expect(seed).toMatch(
+      /model-registry-retirement\)[\s\S]*reference_data_sync_task_definition_arn[\s\S]*if \[ "\$\{LIVE\}" = "true" \]; then\n\s+retire_args\+=\(--live\)/,
+    );
+  });
+
   test('report seeds run fixed queries in a read-only transaction', async () => {
     const seed = await workflow('seed-hosted-saas.yml');
     const start = seed.indexOf('READ_ONLY_REPORT_SCRIPT: |');

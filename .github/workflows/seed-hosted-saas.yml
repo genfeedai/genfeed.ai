@@ -17,6 +17,12 @@ run-name: Seed hosted SaaS | ${{ inputs.seed }} | ${{ inputs.live && 'live' || '
 #   reference-data-sync  Model catalog, rates, skills, presets, elements, fonts.
 #                        The dry run only validates that the catalogs load, since
 #                        the sync has no diff mode. Live is idempotent.
+#   model-registry-retirement
+#                        Switches off the model rows the catalog retired (and
+#                        unpriced rows it seeds inactive): isActive, isPublic and
+#                        isHighlighted go false. The dry run lists each row it
+#                        would change and writes nothing; live applies it. A row
+#                        holding a category default is listed and left.
 #   backfill-report      Read-only: prints the newest data_backfills rows (the
 #                        report each batched backfill migration writes).
 #   webhook-id-report    Read-only: counts live workflows whose webhook id lacks
@@ -64,6 +70,7 @@ on:
         options:
           - articles
           - reference-data-sync
+          - model-registry-retirement
           - backfill-report
           - webhook-id-report
           - instagram-reconnect-report
@@ -283,6 +290,21 @@ jobs:
                   override+=(--command-arg "${arg}")
                 done
               fi
+              ;;
+            model-registry-retirement)
+              TASK_DEFINITION=$(tofu output -raw reference_data_sync_task_definition_arn)
+              CONTAINER=reference-data-sync
+              LOG_GROUP="/ecs/${PROJECT}-production/reference-data-sync"
+              # The definition's own command is the full sync, so both modes
+              # override it. --retire-models alone is a dry run.
+              override=(--container-name "${CONTAINER}")
+              retire_args=(apps/server/dist/apps/api-reference-data-sync/main --retire-models)
+              if [ "${LIVE}" = "true" ]; then
+                retire_args+=(--live)
+              fi
+              for arg in "${node_prefix[@]}" "${retire_args[@]}"; do
+                override+=(--command-arg "${arg}")
+              done
               ;;
             backfill-report | webhook-id-report | instagram-reconnect-report | storyboard-unbilled-report | reserved-slug-report | linkedin-credential-report | release-health-report)
               TASK_DEFINITION=$(tofu output -raw migrate_task_definition_arn)
