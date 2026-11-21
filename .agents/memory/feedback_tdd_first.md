@@ -19,7 +19,7 @@ topics: [testing, tdd, workflow, coverage, e2e]
 4. **Coverage growth is intentional:** When hardening launch blockers (webhooks, credits, bootstrap, migrations), add structural migration guards and service specs that lock the acceptance criteria, not only happy-path smoke.
 5. **E2E expansion is CI-first:** Prefer adding hermetic `*.integration.spec.ts` / API E2E tier files that PR CI runs. On the laptop (restrictive local-verification machine), do **not** run full monorepo typecheck/test/build or broad Playwright unless Vincent explicitly asks for a **named** local check in the current conversation. See global `local_verification_scope` memory for machine identification.
 6. **CPU hygiene:** Default verification is **scoped** (`bun test` on the changed package/file when allowed) or **PR CI**. Never “just run the full suite” to feel done.
-7. **Memory vs skills:** This rule is project memory for all agents. Repo skills such as `verification-before-completion` and `testing-expert` still apply; they do not override TDD-first design order.
+7. **Memory vs skills:** This rule is project memory for all agents. Repo skills such as `verification-before-completion` still apply; they do not override TDD-first design order.
 8. **Handoff proof:** When another session or contributor continues the work, leave **executable** coverage (unit/integration/hermetic launch-path contracts) so the next agent does not re-probe production with guesses. Chat-only summaries are not a handoff.
 9. **Agent + workflow surfaces:** Agent tool handlers, workflow executors, node claims, BullMQ processors, and batch credit paths are high-churn AI targets — every residual fix on those paths must extend the matching `*.spec.ts` or `launch-path-contracts.integration.spec.ts`.
 

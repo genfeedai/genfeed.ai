@@ -98,7 +98,7 @@ Always in context — repo-wide prohibitions, do not re-read them to "check":
 
 Scoped by `paths` frontmatter — load only when the matching files are in play:
 
-- [00-security](rules/00-security.md) · [better_auth_additional_fields](rules/better_auth_additional_fields.md) (`apps/server/api/src/auth/**`)
+- [00-security](rules/00-security.md) · [better_auth_additional_fields](rules/better_auth_additional_fields.md) (`apps/server/api/src/auth/**`) · [coding-standards](rules/coding-standards.md) (`**/*.ts`, `**/*.tsx`; judgement calls review reads)
 
 On-demand skills — invoked by task, formerly always-loaded rules:
 
@@ -196,7 +196,7 @@ On-demand skills — invoked by task, formerly always-loaded rules:
 
 Start with the matching reference: [system-patterns](context/system-patterns.md) · [project-structure](context/project-structure.md) · [project-style-guide](context/project-style-guide.md) · [skills-architecture](context/skills-architecture.md) · [provider-integration-pattern](context/provider-integration-pattern.md)
 
-Load on demand: [e2e-architecture](context/e2e-architecture.md) · [progress](context/progress.md) · [tech-context](context/tech-context.md) · [product-context](context/product-context.md) · [project-overview](context/project-overview.md) · [project-brief](context/project-brief.md) · [project-vision](context/project-vision.md) · [api-cache-invalidation](context/api-cache-invalidation.md)
+Load on demand: [lockstep-surfaces](context/lockstep-surfaces.md) · [e2e-architecture](context/e2e-architecture.md) · [progress](context/progress.md) · [tech-context](context/tech-context.md) · [product-context](context/product-context.md) · [project-overview](context/project-overview.md) · [project-brief](context/project-brief.md) · [project-vision](context/project-vision.md) · [api-cache-invalidation](context/api-cache-invalidation.md)
 
 ## Features and system
 
