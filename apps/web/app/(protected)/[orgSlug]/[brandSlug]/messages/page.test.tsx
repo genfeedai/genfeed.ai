@@ -785,7 +785,7 @@ describe('SocialMessagesPage', () => {
     await waitFor(() =>
       expect(mocks.refreshInboxIndicators).toHaveBeenCalled(),
     );
-    await new Promise((resolve) => setTimeout(resolve, 50));
+    await new Promise((resolve) => setImmediate(resolve));
 
     expect(mocks.markRead).not.toHaveBeenCalledWith(
       'conversation-1',
@@ -938,11 +938,7 @@ describe('SocialMessagesPage', () => {
     );
     render(<SocialMessagesPage />);
     await screen.findByRole('button', { name: 'Sync inbox' });
-    await chooseFilter(
-      userEvent.setup(),
-      /^account/i,
-      /Instagram · instagram account/,
-    );
+    await chooseFilter(userEvent.setup(), /^account/i, /instagram account/);
     await waitFor(() =>
       expect(mocks.listPage).toHaveBeenLastCalledWith(
         expect.objectContaining({ credentialId: 'credential-instagram' }),

@@ -13,10 +13,11 @@ import type {
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { formatDateInTimezone } from '@helpers/formatting/timezone/timezone.helper';
+import { accountHealthToConnectedAccount } from '@helpers/publisher/connected-account.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { logger } from '@services/core/logger.service';
 import { CredentialsService } from '@services/organization/credentials.service';
-import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
+import ConnectedAccount from '@ui/display/connected-account/ConnectedAccount';
 import Loading from '@ui/loading/default/Loading';
 import { Alert, AlertActions, AlertDescription } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
@@ -190,15 +191,13 @@ function AccountGridLaneColumn({
       data-testid="account-grid-lane"
     >
       <header className="flex items-start gap-3 border-b border-border px-3 py-3">
-        <PlatformBadge platform={lane.account.platform} showLabel={false} />
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-medium">
-            {accountLabel(lane.account)}
-          </p>
-          <p className="text-xs text-muted-foreground">
-            {translate('queued', { count: lane.queuedCount })}
-          </p>
-        </div>
+        <ConnectedAccount
+          account={accountHealthToConnectedAccount(lane.account)}
+          className="flex-1"
+          layout="stacked"
+          meta={translate('queued', { count: lane.queuedCount })}
+          size="lg"
+        />
       </header>
 
       <div className="flex flex-col gap-3 p-3">

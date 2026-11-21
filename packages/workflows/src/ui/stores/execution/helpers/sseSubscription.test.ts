@@ -103,7 +103,7 @@ function makeStore(): TestState {
 }
 
 function flush(): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, 0));
+  return new Promise((resolve) => setImmediate(resolve));
 }
 
 function makeData(overrides: Partial<ExecutionData> = {}): ExecutionData {

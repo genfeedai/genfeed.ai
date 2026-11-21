@@ -354,7 +354,9 @@ export class ModelCatalogSeedService {
    * When the catalog does name this key as the default, the seed still only
    * self-heals: it reclaims the pin when the category has no usable
    * (active, non-deleted, non-legacy) default at all, and otherwise leaves
-   * whatever already holds the pin — this row or another — untouched.
+   * whatever already holds the pin — this row or another — untouched. A pin
+   * held by a retired agent-chat key is the old seeded default, not an
+   * operator's choice, so the catalog default takes it.
    */
   private async resolveUpdateIsDefault(
     entry: ModelCatalogSeedEntry,

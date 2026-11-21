@@ -87,6 +87,8 @@ export interface McpCard {
   description: string;
   /** An article's full text, for the reader. */
   body?: string;
+  /** The organization a job card was created in, so polling reads it from there. */
+  organization?: string;
   kind: McpCardKind;
   status: string;
   platform: string;

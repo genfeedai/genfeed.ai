@@ -63,7 +63,7 @@ describe('FFmpegCoreService', () => {
     );
 
     proc.on.mockImplementation((event: string, cb: (code?: number) => void) => {
-      if (event === 'close') setTimeout(() => cb(exitCode), 0);
+      if (event === 'close') setImmediate(() => cb(exitCode));
     });
 
     return proc;

@@ -12,6 +12,7 @@ import type {
 import type {
   ArticleDraftInput,
   ArticlePreviewLink,
+  ArticleUpdateInput,
 } from '@genfeedai/contracts/interfaces/content/article-publishing.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ConfigService } from '@mcp/config/config.service';
@@ -336,20 +337,30 @@ export class ClientService {
     return this.content.createArticleDraft(params);
   }
 
-  getArticlePreview(articleId: string): Promise<ArticlePreviewLink> {
-    return this.content.getArticlePreview(articleId);
+  updateArticle(params: ArticleUpdateInput): Promise<ArticleResponse> {
+    return this.content.updateArticle(params);
   }
 
-  publishArticle(articleId: string): Promise<ArticleResponse> {
-    return this.content.publishArticle(articleId);
+  getArticlePreview(
+    articleId: string,
+    brandId?: string,
+  ): Promise<ArticlePreviewLink> {
+    return this.content.getArticlePreview(articleId, brandId);
+  }
+
+  publishArticle(
+    articleId: string,
+    brandId?: string,
+  ): Promise<ArticleResponse> {
+    return this.content.publishArticle(articleId, brandId);
   }
 
   searchArticles(params: ArticleSearchParams): Promise<ArticleSearchResult[]> {
     return this.content.searchArticles(params);
   }
 
-  getArticle(articleId: string): Promise<ArticleResponse> {
-    return this.content.getArticle(articleId);
+  getArticle(articleId: string, brandId?: string): Promise<ArticleResponse> {
+    return this.content.getArticle(articleId, brandId);
   }
 
   publishContent(params: PublishContentParams): Promise<PostResponse[]> {
@@ -572,10 +583,6 @@ export class ClientService {
 
   canSwitchOrganizations(): Promise<boolean> {
     return this.workspace.canSwitchOrganizations();
-  }
-
-  switchOrganization(organizationId: string): Promise<void> {
-    return this.workspace.switchOrganization(organizationId);
   }
 
   listBrands(): Promise<OrganizationOptionBrand[]> {

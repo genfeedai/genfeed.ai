@@ -1,17 +1,12 @@
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { useConfirmModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
-import {
-  ButtonSize,
-  ButtonVariant,
-  CardGap,
-  formatPlatformLabel,
-} from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant, CardGap } from '@genfeedai/contracts';
 import {
   APP_ROUTES,
   isArticleDeliveryPlatform,
 } from '@genfeedai/contracts/constants';
 import type { ICredential } from '@genfeedai/contracts/interfaces';
-import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
+import { toConnectedAccount } from '@helpers/publisher/connected-account.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { ArticlesService } from '@services/content/articles.service';
@@ -19,8 +14,10 @@ import { ClipboardService } from '@services/core/clipboard.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import Card from '@ui/card/Card';
+import ConnectedAccountAvatar from '@ui/display/connected-account/ConnectedAccountAvatar';
+import { getConnectedAccountText } from '@ui/display/connected-account/connected-account.util';
 import { Button } from '@ui/primitives/button';
-import { Clipboard, PlugZap, Send } from 'lucide-react';
+import { Clipboard, PlugZap } from 'lucide-react';
 import NextLink from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useState } from 'react';
@@ -30,16 +27,6 @@ import LongFormDeliveryHistory from '../long-form-delivery/long-form-delivery-hi
 import { useSourceDeliveries } from '../long-form-delivery/use-source-deliveries';
 
 const HTML_TAGS_PATTERN = /<[^>]*>/g;
-
-function accountLabel(credential: ICredential): string {
-  return (
-    credential.label ||
-    credential.externalName ||
-    credential.externalHandle ||
-    formatPlatformLabel(credential.platform) ||
-    credential.platform
-  );
-}
 
 /**
  * Article → connected Ghost / WordPress / Medium / Dev.to account. With no
@@ -100,7 +87,9 @@ export default function ArticleDeliveryCard({
 
   const deliver = useCallback(
     async (credential: ICredential) => {
-      const account = accountLabel(credential);
+      const account = getConnectedAccountText(
+        toConnectedAccount(credential),
+      ).primary;
       setDeliveringCredentialId(credential.id);
       try {
         const service = await getArticlesService();
@@ -141,7 +130,8 @@ export default function ArticleDeliveryCard({
       {accounts.length > 0 ? (
         <div className="space-y-2">
           {accounts.map((credential) => {
-            const account = accountLabel(credential);
+            const connectedAccount = toConnectedAccount(credential);
+            const account = getConnectedAccountText(connectedAccount).primary;
             return (
               <Button
                 key={credential.id}
@@ -151,9 +141,10 @@ export default function ArticleDeliveryCard({
                 size={ButtonSize.SM}
                 className="w-full justify-start"
                 icon={
-                  getPlatformIcon(credential.platform, 'size-4') ?? (
-                    <Send className="size-4" />
-                  )
+                  <ConnectedAccountAvatar
+                    account={connectedAccount}
+                    size="xs"
+                  />
                 }
                 isLoading={deliveringCredentialId === credential.id}
                 isDisabled={

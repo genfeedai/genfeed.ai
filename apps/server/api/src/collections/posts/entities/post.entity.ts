@@ -78,6 +78,7 @@ export class PostEntity extends BaseEntity {
   declare readonly timezone: string;
   declare readonly isShareToFeedSelected: boolean;
   declare readonly isAnalyticsEnabled: boolean;
+  declare readonly isHiddenFromProfile: boolean;
   declare readonly analyticsNextCollectAt?: Date;
   declare readonly retryCount?: number;
   declare readonly lastAttemptAt?: Date;

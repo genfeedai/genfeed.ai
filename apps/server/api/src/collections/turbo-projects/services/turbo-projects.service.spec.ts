@@ -400,7 +400,7 @@ describe('TurboProjectsService', () => {
         { caption: 'Edited mid-schedule' },
         scope,
       );
-      await new Promise((resolve) => setTimeout(resolve, 10));
+      await new Promise((resolve) => setImmediate(resolve));
       expect(events).toEqual(['schedule-read-caption']);
 
       finishSchedule();

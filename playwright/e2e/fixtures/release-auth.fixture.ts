@@ -4,6 +4,7 @@ import type {
   OrganizationOption,
 } from '@genfeedai/contracts/interfaces';
 import { test as base, expect } from '@playwright/test';
+import { waitRealTime } from '../utils/real-time';
 
 export const releaseApiURL =
   process.env.API_BASE_URL || 'http://localhost:3010';
@@ -45,13 +46,10 @@ export const test = base.extend<{ releaseAccount: ReleaseAccount }>({
       attempt += 1
     ) {
       const retryAfterSeconds = Number(signup.headers()['x-retry-after']);
-      await new Promise((resolve) =>
-        setTimeout(
-          resolve,
-          (Number.isFinite(retryAfterSeconds) && retryAfterSeconds > 0
-            ? retryAfterSeconds
-            : SIGNUP_RATE_LIMIT_FALLBACK_SECONDS) * 1000,
-        ),
+      await waitRealTime(
+        (Number.isFinite(retryAfterSeconds) && retryAfterSeconds > 0
+          ? retryAfterSeconds
+          : SIGNUP_RATE_LIMIT_FALLBACK_SECONDS) * 1000,
       );
       signup = await postSignup();
     }

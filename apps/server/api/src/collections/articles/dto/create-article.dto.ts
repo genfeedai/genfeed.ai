@@ -111,4 +111,13 @@ export class CreateArticleDto {
   @IsOptional()
   @IsDateString()
   publishedAt?: string;
+
+  @ApiProperty({
+    description:
+      "Brand that owns the article. On create it defaults to the caller's active brand. On update it names the brand the article lives in, when that is not the caller's active brand. It must belong to the caller's organization and be one the caller can use.",
+    required: false,
+  })
+  @IsOptional()
+  @IsEntityId()
+  brandId?: string;
 }

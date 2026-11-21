@@ -1,3 +1,4 @@
+import { waitRealTime } from '@e2e/utils/real-time';
 import type { Page } from '@playwright/test';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { buildProtectedAppBootstrapPayload } from '../../utils/api-interceptor';
@@ -91,7 +92,9 @@ async function mockLongScopeNames(
 
 async function settle(page: Parameters<typeof tryClick>[0]): Promise<void> {
   await page.waitForLoadState('domcontentloaded').catch(() => {});
-  await page.waitForTimeout(400);
+  await page
+    .waitForLoadState('networkidle', { timeout: 5_000 })
+    .catch(() => {});
 }
 
 async function assertHealthy(
@@ -326,6 +329,7 @@ test.describe('Shell — navigation interactions', () => {
         'Publishing',
         'Analytics',
         'Agent',
+        'Playground',
       ]);
     await expect(rail.getByRole('link', { name: 'Discovery' })).toHaveCount(0);
 
@@ -375,7 +379,7 @@ test.describe('Shell — navigation interactions', () => {
         .getByRole('link', { name: /^Library/ })
         .locator('[data-sidebar-active-highlight]'),
     ).toHaveCount(1);
-    await authenticatedPage.waitForTimeout(400);
+    await waitRealTime(400);
     expectSingleGlide(await stopTrackingHighlight(authenticatedPage));
 
     await assertHealthy(authenticatedPage);
@@ -397,7 +401,7 @@ test.describe('Shell — navigation interactions', () => {
 
     // The active app (Workspace) has no preview.
     await rail.getByRole('link', { name: /^Workspace/ }).hover();
-    await authenticatedPage.waitForTimeout(500);
+    await waitRealTime(500);
     await expect(preview).toHaveCount(0);
 
     // An inactive app opens its preview, and its header links to the app.

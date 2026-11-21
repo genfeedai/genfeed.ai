@@ -1,3 +1,4 @@
+// biome-ignore-all lint/style/noRestrictedGlobals: mocked fetches take simulated time under fakeClock() so the scrape deadline tests can measure how the budget is shared
 import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
 import { MAX_HTML_BYTES } from '@api/services/brand-scraper/brand-scraper-http.util';
 import { BrandWebsiteParserService } from '@api/services/brand-scraper/brand-website-parser.service';
@@ -1291,6 +1292,34 @@ describe('BrandScraperService', () => {
 
       await expect(service.scrapeWebsite('https://acme.com')).rejects.toThrow(
         'network failure',
+      );
+    });
+
+    it('warns, without an error report, when the site blocks both attempts', async () => {
+      fetchMock.mockResolvedValue(makeResponse('', 403));
+
+      await expect(service.scrapeWebsite('https://acme.com')).rejects.toThrow(
+        '403',
+      );
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('meta tag fallback also failed'),
+        expect.any(String),
+      );
+      expect(mockLogger.error).not.toHaveBeenCalledWith(
+        expect.stringContaining('meta tag fallback also failed'),
+        expect.anything(),
+      );
+    });
+
+    it('reports an error when the fallback fails for an unclassified reason', async () => {
+      fetchMock.mockRejectedValue(new Error('network failure'));
+
+      await expect(service.scrapeWebsite('https://acme.com')).rejects.toThrow(
+        'network failure',
+      );
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        expect.stringContaining('meta tag fallback also failed'),
+        expect.any(String),
       );
     });
 

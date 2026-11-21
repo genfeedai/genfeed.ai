@@ -4,6 +4,7 @@ import type {
   WorkflowVisualNode,
 } from '@api/collections/workflows/schemas/workflow.schema';
 import { AUTOMATION_ACTION_IDS } from '@api/collections/workflows/services/automation-action-ids';
+import { withContractEntryInputs } from '@api/collections/workflows/services/automation-child-entry-inputs';
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-runner.service';
 import { SystemWorkflowRetention } from '@api/collections/workflows/workflow-execution-retention.contract';
 import { REPLY_BOT_WORKFLOW_IDS } from '@api/services/reply-bot/reply-bot-workflow-definition';
@@ -186,20 +187,18 @@ function singleActionChild(options: {
   actionId: ActionId;
   canonicalId: string;
   description: string;
-  inputVariables?: WorkflowInputVariable[];
   label: string;
 }): SystemWorkflowGraphDefinition {
-  const inputVariables = options.inputVariables ?? requestInput;
   const execute = createGenfeedActionNode({
     actionId: options.actionId,
     id: 'execute',
-    inputVariableKeys: inputVariables.map((variable) => variable.key),
+    inputVariableKeys: ['request'],
     parameters: {},
     position: { x: 0, y: 0 },
   });
   return {
     canonicalId: options.canonicalId,
-    definition: { edges: [], inputVariables, nodes: [execute] },
+    definition: { edges: [], inputVariables: requestInput, nodes: [execute] },
     description: options.description,
     label: options.label,
     resultNodeId: execute.id,
@@ -1125,33 +1124,12 @@ export const AUTOMATION_CHILD_WORKFLOWS = [
     actionId: AUTOMATION_ACTION_IDS.AGENT_RESET,
     canonicalId: AUTOMATION_WORKFLOW_IDS.AGENT_RESET,
     description: 'Resets one due proactive strategy credit window.',
-    inputVariables: [
-      ...requestInput,
-      { key: 'item', label: 'Strategy', required: true, type: 'json' },
-      { key: 'now', label: 'Current time', required: true, type: 'string' },
-      {
-        key: 'organizationId',
-        label: 'Organization',
-        required: true,
-        type: 'string',
-      },
-    ],
     label: 'Reset Strategy Credit Window',
   }),
   singleActionChild({
     actionId: AUTOMATION_ACTION_IDS.AGENT_DISPATCH,
     canonicalId: AUTOMATION_WORKFLOW_IDS.AGENT_STRATEGY,
     description: 'Dispatches one due proactive agent strategy.',
-    inputVariables: [
-      ...requestInput,
-      { key: 'item', label: 'Strategy', required: true, type: 'json' },
-      {
-        key: 'organizationId',
-        label: 'Organization',
-        required: true,
-        type: 'string',
-      },
-    ],
     label: 'Dispatch Proactive Strategy',
   }),
   buildContentEngineBrandWorkflowDefinition(),
@@ -1205,7 +1183,7 @@ export const AUTOMATION_CHILD_WORKFLOWS = [
     description: 'Ingests paid creative research for one watched advertiser.',
     label: 'Ingest Advertiser Research',
   }),
-] satisfies SystemWorkflowGraphDefinition[];
+].map(withContractEntryInputs) satisfies SystemWorkflowGraphDefinition[];
 
 export const AUTOMATION_PARENT_WORKFLOWS = [
   buildAgentProactiveWorkflowDefinition(),

@@ -8,11 +8,13 @@ import {
 } from '@genfeedai/contracts';
 import { CHANNEL_CAPABILITIES } from '@genfeedai/contracts/api-types/contracts';
 import { getPostVisibilityOptions } from '@genfeedai/helpers/content/posts.helper';
+import { toConnectedAccount } from '@genfeedai/helpers/publisher/connected-account.helper';
 import {
   hasFormErrors,
   parseFormErrors,
 } from '@genfeedai/helpers/ui/form-error/form-error.helper';
 import type { ModalPostSimpleFieldsProps } from '@genfeedai/props/modals/modal.props';
+import { getConnectedAccountText } from '@ui/display/connected-account/connected-account.util';
 import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import FormControl from '@ui/primitives/field';
@@ -172,7 +174,7 @@ export default function ModalPostSimpleFields({
               <option value="">{translate('noAccount')}</option>
               {credentials.map((account) => (
                 <option key={account.id} value={account.id}>
-                  {account.label || account.externalHandle || account.platform}
+                  {getConnectedAccountText(toConnectedAccount(account)).primary}
                 </option>
               ))}
             </SelectField>

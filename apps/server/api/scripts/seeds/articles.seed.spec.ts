@@ -1,3 +1,4 @@
+import type { PrismaClient } from '@genfeedai/prisma';
 import { describe, expect, it, vi } from 'vitest';
 import {
   assertArticleSchemaReady,
@@ -7,10 +8,15 @@ import {
   getMissingArticleColumns,
   isLocalDatabaseUrl,
   parseArticlesSeedArgs,
+  parseSlugList,
   REQUIRED_ARTICLE_COLUMNS,
   resolveSeedPublishedAt,
   runArticlesSeed,
+  seedArticles,
+  selectArticles,
 } from './articles.seed';
+import { HELP_ARTICLES } from './data/help-articles';
+import { SEO_ARTICLES } from './data/seo-articles';
 
 describe('articles seed schema preflight', () => {
   it('guards every physical column written by the launch seed', () => {
@@ -189,5 +195,104 @@ describe('articles seed schema preflight', () => {
       ),
     ).toBe(1);
     expect(countDeletedCacheKeys(null, 3)).toBe(0);
+  });
+});
+
+describe('articles seed selection', () => {
+  it('parses --slugs into a trimmed, de-duplicated list', () => {
+    expect(
+      parseArticlesSeedArgs(['--slugs= a-guide , b-guide,a-guide,']).slugs,
+    ).toEqual(['a-guide', 'b-guide']);
+    expect(parseSlugList('')).toBeUndefined();
+    expect(parseSlugList(' , ')).toBeUndefined();
+    expect(parseSlugList(undefined)).toBeUndefined();
+    expect(parseArticlesSeedArgs([]).slugs).toBeUndefined();
+  });
+
+  it('seeds only the help articles by default, create-only', () => {
+    const { articles, overwrite } = selectArticles(undefined);
+    expect(overwrite).toBe(false);
+    expect(articles).toBe(HELP_ARTICLES);
+
+    const seoSlugs = new Set(SEO_ARTICLES.map((article) => article.slug));
+    expect(articles.some((article) => seoSlugs.has(article.slug))).toBe(false);
+    expect(selectArticles([]).overwrite).toBe(false);
+  });
+
+  it('resolves named slugs from the bundled catalog and overwrites them', () => {
+    const seo = SEO_ARTICLES[0].slug;
+    const help = HELP_ARTICLES[0].slug;
+    const { articles, overwrite } = selectArticles([seo, help]);
+    expect(overwrite).toBe(true);
+    expect(articles.map((article) => article.slug)).toEqual([seo, help]);
+  });
+
+  it('rejects slugs that are not in the catalog', () => {
+    expect(() => selectArticles([SEO_ARTICLES[0].slug, 'nope', 'x'])).toThrow(
+      /Unknown article slug\(s\): nope, x/,
+    );
+  });
+});
+
+describe('articles seed one-off publish shadow reclaim', () => {
+  const seo = SEO_ARTICLES[0].slug;
+
+  function buildPrisma() {
+    const updateMany = vi.fn().mockResolvedValue({ count: 1 });
+    const count = vi.fn().mockResolvedValue(1);
+    const findMany = vi.fn().mockResolvedValue([]);
+    const prisma = {
+      article: {
+        count,
+        create: vi.fn().mockResolvedValue({}),
+        findFirst: vi.fn().mockResolvedValue(null),
+        findMany,
+        update: vi.fn().mockResolvedValue({}),
+        updateMany,
+      },
+      brand: {
+        findMany: vi
+          .fn()
+          .mockResolvedValue([{ id: 'brand-1', label: 'Genfeed' }]),
+      },
+      organization: {
+        findMany: vi
+          .fn()
+          .mockResolvedValue([
+            { id: 'org-1', label: 'Genfeed.ai', userId: 'user-1' },
+          ]),
+      },
+      user: { findFirst: vi.fn().mockResolvedValue({ id: 'user-1' }) },
+    };
+    return { prisma: prisma as unknown as PrismaClient, updateMany };
+  }
+
+  it('archives a foreign published article that holds a named slug', async () => {
+    const { prisma, updateMany } = buildPrisma();
+    await seedArticles(
+      prisma,
+      { brandSlug: 'genfeedai', dryRun: false, slugs: [seo] },
+      { invalidateCache: vi.fn().mockResolvedValue(undefined) },
+    );
+
+    expect(updateMany).toHaveBeenCalledTimes(1);
+    expect(updateMany.mock.calls[0][0]).toMatchObject({
+      data: { status: 'ARCHIVED' },
+      where: {
+        organizationId: { not: 'org-1' },
+        slug: seo,
+        status: 'PUBLISHED',
+      },
+    });
+  });
+
+  it('leaves foreign articles alone on a dry run', async () => {
+    const { prisma, updateMany } = buildPrisma();
+    await seedArticles(
+      prisma,
+      { brandSlug: 'genfeedai', dryRun: true, slugs: [seo] },
+      { invalidateCache: vi.fn().mockResolvedValue(undefined) },
+    );
+    expect(updateMany).not.toHaveBeenCalled();
   });
 });

@@ -66,7 +66,7 @@ describe('VideoCompletionService', () => {
   let ingredientRow: Record<string, unknown>;
 
   async function waitForAsyncHandler(): Promise<void> {
-    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+    await new Promise<void>((resolve) => setImmediate(resolve));
   }
 
   beforeEach(async () => {

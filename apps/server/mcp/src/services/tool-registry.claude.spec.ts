@@ -5,6 +5,7 @@ import {
 import type { LoggerService } from '@libs/logger/logger.service';
 import { McpResourceUri } from '@mcp/mcp/resource-catalog';
 import type { ClientService } from '@mcp/services/client.service';
+import { withMergedToolCalls } from '@mcp/services/tool-registry.endpoints.testing';
 import { ToolRegistryService } from '@mcp/services/tool-registry.service';
 
 function build() {
@@ -18,13 +19,14 @@ function build() {
     resolveApproval: vi.fn(),
   };
   const logger = { debug: vi.fn(), error: vi.fn(), warn: vi.fn() };
-  const registry = new ToolRegistryService(
-    client as unknown as ClientService,
-    logger as unknown as LoggerService,
-    'superadmin',
-    ['generation', 'workflows'],
-    undefined,
-    'claude',
+  const registry = withMergedToolCalls(
+    new ToolRegistryService(
+      client as unknown as ClientService,
+      logger as unknown as LoggerService,
+      'superadmin',
+      undefined,
+      'claude',
+    ),
   );
   return { registry, client };
 }
@@ -137,7 +139,7 @@ describe('Claude connector execution boundary', () => {
     );
   });
 
-  it('keeps discovery restricted even with generation/workflow toolsets', async () => {
+  it('keeps discovery restricted to the Claude tools', async () => {
     const { registry } = build();
     const tools = registry
       .getTools()
@@ -149,12 +151,6 @@ describe('Claude connector execution boundary', () => {
         .sort(),
     );
     expect(tools).not.toContain('create_brand_from_url');
-    expect(
-      registry
-        .getDiscoverableTools()
-        .map((tool) => tool.name)
-        .sort(),
-    ).toEqual(tools);
     const discovery = await registry.handleToolCall({
       name: 'find_tools',
       arguments: { query: 'generate' },

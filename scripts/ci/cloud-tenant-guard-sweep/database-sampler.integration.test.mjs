@@ -10,6 +10,12 @@ import {
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
+
+function realWait(ms) {
+  // biome-ignore lint/style/noRestrictedGlobals: a real worker thread keeps its own cadence; its elapsed time is what these cases wait on
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 import { Worker } from 'node:worker_threads';
 import { createApiObserver } from './api-observer-core.mjs';
 import {
@@ -47,6 +53,7 @@ async function waitForQueryStart(slots, timeoutMs = 10_000) {
   if (!started.async) return started.value;
   let timer;
   const timedOut = new Promise((resolve) => {
+    // biome-ignore lint/style/noRestrictedGlobals: the worker's own cadence timer is the thing under test; this guard races its real wait
     timer = setTimeout(resolve, timeoutMs, 'timed-out');
   });
   try {
@@ -169,7 +176,7 @@ for (const [scenario, category, outcome] of [
 ])
   test(`real worker preserves ${scenario} terminal diagnostic during drain`, async (t) => {
     const f = await workerFixture(t, scenario);
-    await new Promise((resolve) => setTimeout(resolve, 2050));
+    await realWait(2050);
     assert.equal(f.finish().state, 'complete');
     const sample = f.read().database.find((r) => r.kind === 'database');
     assert.equal(sample.outcome, outcome);
@@ -254,7 +261,7 @@ for (const [scenario, category, outcome] of [
   });
 test('query failure is conserved through successful reconnect at next permitted cadence', async (t) => {
   const f = await workerFixture(t, 'query-timeout');
-  await new Promise((resolve) => setTimeout(resolve, 4050));
+  await realWait(4050);
   assert.equal(f.finish().state, 'complete');
   const samples = f.read().database.filter((r) => r.kind === 'database');
   assert.equal(samples.length, 2);
@@ -297,7 +304,7 @@ test('pre-ready worker exit rejects with fixed redacted failure', async (t) => {
 });
 test('after-ready nonzero exit cannot acknowledge successful sealing', async (t) => {
   const f = await workerFixture(t, 'post-exit');
-  await new Promise((resolve) => setTimeout(resolve, 60));
+  await realWait(60);
   assert.equal(f.finish().state, 'failed');
   assert.throws(f.read);
 });
@@ -413,7 +420,7 @@ test('native pre-ready write failure rejects without native payload', async (t) 
 test('unknown private control message remains failed and cannot be repaired by subsequent stop', async (t) => {
   const f = await workerFixture(t);
   f.worker.postMessage({ type: 'unknown', private: 'private-token' });
-  await new Promise((resolve) => setTimeout(resolve, 30));
+  await realWait(30);
   assert.equal(f.finish().state, 'failed');
   assert.throws(f.read);
 });

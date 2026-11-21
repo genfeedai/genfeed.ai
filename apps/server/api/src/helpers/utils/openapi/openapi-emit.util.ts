@@ -23,6 +23,7 @@ import { validateOpenApiSpec } from './openapi-spec-validation.util';
  * coverage, so CI fails loudly instead of committing a broken artifact.
  */
 export function maybeEmitOpenApiDocument(app: INestApplication): boolean {
+  // biome-ignore lint/style/noProcessEnv: CI emit hook runs from main.ts before the app serves
   const emitPath = process.env.OPENAPI_EMIT_PATH;
   if (!emitPath) {
     return false;

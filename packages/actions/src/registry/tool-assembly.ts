@@ -5,6 +5,8 @@ import {
   getCuratedAction,
   isActionOnSurface,
 } from './curated-action-catalog';
+import { MCP_CATALOG_TOOLS } from './mcp-catalog/catalog';
+import { deriveMcpCatalogPolicy } from './mcp-catalog/derive';
 import {
   MUTATION_POLICY_BY_NAME,
   toolRequiresMutationPolicy,
@@ -73,8 +75,8 @@ if (catalogViolations.length > 0) {
   );
 }
 
-const CANONICAL_SOURCE_TOOLS: CanonicalToolDefinition[] =
-  CURATED_ACTION_CATALOG.map((entry) => {
+const BASE_TOOLS: CanonicalToolDefinition[] = CURATED_ACTION_CATALOG.map(
+  (entry) => {
     const tool = definitionsByName.get(entry.name);
     if (!tool) {
       throw new Error(`Missing curated action definition: ${entry.name}`);
@@ -125,7 +127,61 @@ const CANONICAL_SOURCE_TOOLS: CanonicalToolDefinition[] =
       uiActionType: curated?.uiActionType,
       ...(mutationPolicy ? { mutationPolicy } : {}),
     };
+  },
+);
+
+const BASE_TOOLS_BY_NAME = new Map(BASE_TOOLS.map((tool) => [tool.name, tool]));
+const CATALOG_SPECS_BY_NAME = new Map<
+  string,
+  (typeof MCP_CATALOG_TOOLS)[number]
+>(MCP_CATALOG_TOOLS.map((spec) => [spec.name, spec]));
+
+/**
+ * A merged MCP tool takes its annotations, pricing, data source, policy and
+ * role from the tools its actions run, so it cannot be declared to behave
+ * differently from what it executes.
+ */
+function withMcpCatalogPolicy(
+  tool: CanonicalToolDefinition,
+): CanonicalToolDefinition {
+  const spec = CATALOG_SPECS_BY_NAME.get(tool.name);
+  if (!spec) return tool;
+  const source = definitionsByName.get(tool.name);
+  const targets = spec.operations.map((operation) => {
+    const target = BASE_TOOLS_BY_NAME.get(operation.executes);
+    if (!target) {
+      throw new Error(
+        `MCP catalog tool ${spec.name} runs unknown tool ${operation.executes}`,
+      );
+    }
+    return target;
   });
+  const policy = deriveMcpCatalogPolicy(targets);
+  const { mutationPolicy: _dropped, ...rest } = tool;
+  return {
+    ...rest,
+    annotations: policy.annotations,
+    creditCost: policy.creditCost,
+    creditPricing: policy.creditPricing,
+    dataSource: policy.dataSource,
+    description: appendCreditPricingDescription(
+      source?.description ?? tool.description,
+      policy.creditPricing,
+    ),
+    ...(source?.mcpDescription
+      ? {
+          mcpDescription: appendCreditPricingDescription(
+            source.mcpDescription,
+            policy.creditPricing,
+          ),
+        }
+      : {}),
+    ...(policy.mutationPolicy ? { mutationPolicy: policy.mutationPolicy } : {}),
+    requiredRole: policy.requiredRole,
+  };
+}
+
+const CANONICAL_SOURCE_TOOLS = BASE_TOOLS.map(withMcpCatalogPolicy);
 
 /**
  * Curated product actions only. HTTP endpoints remain documented by OpenAPI,

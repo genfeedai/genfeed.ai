@@ -83,7 +83,7 @@ describe('ClipperIngredientImport', () => {
     mocks.brand = { isReady: false, selectedBrand: undefined };
 
     render(<ClipperIngredientImport videoId="video-1" />);
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    await new Promise((resolve) => setImmediate(resolve));
 
     expect(mocks.created).toEqual([]);
     expect(

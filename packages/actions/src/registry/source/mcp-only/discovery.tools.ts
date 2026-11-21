@@ -1,36 +1,29 @@
 import type { SourceTool } from '../../../interfaces/source-tool.interface';
 
 /**
- * MCP discovery meta tools.
- *
- * These let a client that only connected with a subset of toolsets (via
- * `?toolsets=`) still find and inspect tools it did not list — they are the
- * reason the always-on `core` toolset exists. Schemas and handling live on
- * the MCP server (`apps/server/mcp`); this shard only declares the curated
- * catalog contract these tools must satisfy.
+ * MCP discovery meta tool. Every connection lists every tool, so this finds
+ * a tool or action by what it does and describes one tool's input. Schemas and
+ * handling live on the MCP server (`apps/server/mcp`); this shard only declares
+ * the curated catalog contract the tool must satisfy.
  */
 export const MCP_DISCOVERY_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      'Find tools callable on this connection, filtered by its endpoint permissions and caller role. Tools excluded from this endpoint are never returned. Can discover callable tools outside the current ?toolsets= selection. No arguments: list available toolsets and counts. query and/or toolset: search by name, description or toolset. name: describe one callable tool with its input schema, mutation policy, credit cost and required role.',
+      'Find tools callable on this connection, filtered by its endpoint permissions and caller role. No arguments: list every tool. query: search by tool name, description or the name of an action it runs. name: describe one tool, or a retired tool name, with its input schema, mutation policy, credit cost and required role.',
     mcpDescription:
-      'Discover permitted tools, including outside ?toolsets=. No args: toolsets/counts. query/toolset: search. name: schema, policy, cost, role and connection listing status. Discovery does not load tools into the client; refresh a stale client list.',
+      'Discover permitted tools. No args: list all. query: search tool and action names and descriptions. name: schema, policy, cost and role.',
     name: 'find_tools',
     parameters: {
       properties: {
         name: {
           description:
-            'Exact tool name to describe. Takes precedence over query and toolset.',
+            'Exact tool name to describe. Takes precedence over query.',
           type: 'string',
         },
         query: {
           description:
-            'Case-insensitive substring to match against tool name, description, or toolset.',
-          type: 'string',
-        },
-        toolset: {
-          description: 'Restrict a search to one toolset.',
+            'Case-insensitive substring to match against tool name, description or action name.',
           type: 'string',
         },
         limit: {

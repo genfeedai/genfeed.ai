@@ -85,6 +85,7 @@ export const postAttributes = createEntityAttributes([
   'children',
   'order',
   'isShareToFeedSelected',
+  'isHiddenFromProfile',
   'generationId',
   'brandedReceiptId',
   'brandedReceiptState',

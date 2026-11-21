@@ -1,41 +1,45 @@
 import {
   CURATED_ACTION_CATALOG,
+  getMcpCatalogOperations,
+  getRetiredMcpCatalogTool,
   getToolsForSurface,
   isActionOnSurface,
+  isMcpCatalogToolName,
+  MCP_CATALOG_TOOL_NAMES,
 } from '@genfeedai/actions';
 import { ToolRegistryService } from '@mcp/services/tool-registry.service';
 import { describe, expect, it } from 'vitest';
 
-const RETIRED_MCP_TOOL_NAMES = new Set([
-  'get_scheduler_capabilities',
-  'validate_scheduler_target',
-  'request_media_upload',
-  'complete_media_upload',
-]);
 const eligible = CURATED_ACTION_CATALOG.filter((entry) =>
   isActionOnSurface(entry, 'mcp'),
 ).map((entry) => entry.name);
+// The tools a merged tool runs are eligible for MCP but are not listed.
+const unlisted = eligible.filter(
+  (name) => getRetiredMcpCatalogTool(name) !== undefined,
+);
 
 describe('curated MCP action catalog', () => {
   it('lists exactly the actions reviewed for MCP', () => {
-    const expected = eligible.filter(
-      (name) => !RETIRED_MCP_TOOL_NAMES.has(name),
-    );
+    const expected = eligible.filter((name) => !unlisted.includes(name));
     const actual = getToolsForSurface('mcp').map((tool) => tool.name);
 
-    expect(eligible).toHaveLength(176);
-    expect(actual).toHaveLength(172);
-    expect(
-      eligible.filter((name) => RETIRED_MCP_TOOL_NAMES.has(name)).sort(),
-    ).toEqual([...RETIRED_MCP_TOOL_NAMES].sort());
-    for (const retiredName of RETIRED_MCP_TOOL_NAMES)
-      expect(actual).not.toContain(retiredName);
-    expect(actual).toEqual(expected);
+    expect(unlisted.length).toBeGreaterThan(0);
+    for (const name of unlisted) expect(actual).not.toContain(name);
+    expect([...actual].sort()).toEqual([...expected].sort());
+  });
+
+  it('lists every merged tool and keeps what it runs eligible for MCP', () => {
+    for (const name of MCP_CATALOG_TOOL_NAMES) {
+      expect(eligible).toContain(name);
+      for (const operation of getMcpCatalogOperations(name))
+        expect(eligible).toContain(operation.executionName);
+    }
   });
 
   it('routes every MCP action to a concrete executor', () => {
     const unroutable = eligible
       .filter((name) => name !== 'resolve_approval')
+      .filter((name) => !isMcpCatalogToolName(name))
       .filter((name) => ToolRegistryService.classify(name) === 'unknown');
 
     expect(unroutable).toEqual([]);

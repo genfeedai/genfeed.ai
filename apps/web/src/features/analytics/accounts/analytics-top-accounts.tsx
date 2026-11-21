@@ -13,6 +13,7 @@ import {
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { AnalyticsService } from '@services/analytics/analytics.service';
 import { logger } from '@services/core/logger.service';
+import ConnectedAccount from '@ui/display/connected-account/ConnectedAccount';
 import { ListRow } from '@ui/lists/list-row/ListRow';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
@@ -100,9 +101,16 @@ export default function AnalyticsTopAccounts({
                 `${APP_ROUTES.ANALYTICS.ACCOUNTS}/${account.identity.credentialId}`,
               )}
               title={
-                account.identity.label ||
-                account.identity.externalHandle ||
-                account.identity.externalName
+                <ConnectedAccount
+                  account={{
+                    avatarUrl: account.identity.externalAvatar,
+                    handle: account.identity.externalHandle,
+                    name:
+                      account.identity.label || account.identity.externalName,
+                    platform: account.identity.platform,
+                  }}
+                  size="sm"
+                />
               }
               trailing={
                 <span className="text-sm text-foreground/60">

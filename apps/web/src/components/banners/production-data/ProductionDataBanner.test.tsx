@@ -38,7 +38,7 @@ function mockDbModeFetch(mode = 'production') {
 async function expectNoDbModeFetch(
   fetchSpy: ReturnType<typeof mockDbModeFetch>,
 ): Promise<void> {
-  await new Promise((resolve) => setTimeout(resolve, 50));
+  await new Promise((resolve) => setImmediate(resolve));
   expect(fetchSpy).not.toHaveBeenCalled();
   expect(screen.queryByTestId('production-data-banner')).toBeNull();
 }

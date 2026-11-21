@@ -5,11 +5,16 @@ import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   authorityFieldEntryKeys,
+  countMapEntryKeys,
   crossOrgEntryKeys,
   findRatchetGrowth,
   RATCHET_SOURCES,
   runRatchetGrowthCheck,
+  runtimeComplexityEntryKeys,
+  stringListEntryKeys,
   tenantScopeEntryKeys,
+  typeAssertionEntryKeys,
+  untranslatedStringEntryKeys,
 } from './check-ratchet-growth';
 
 const CROSS_ORG = RATCHET_SOURCES[0];
@@ -136,6 +141,99 @@ describe('useEffect baseline', () => {
         baseline({ 'a.tsx': 1 }),
       ),
     ).toEqual([]);
+  });
+});
+
+describe('runtime-complexity baseline', () => {
+  const source = RATCHET_SOURCES.find(
+    ({ file }) =>
+      file === 'scripts/architecture/runtime-complexity.baseline.json',
+  ) as NonNullable<(typeof RATCHET_SOURCES)[number]>;
+  const baseline = (actual: number, symbol = 'a.ts'): string =>
+    JSON.stringify([{ actual, file: 'a.ts', metric: 'file-lines', symbol }]);
+
+  it('counts a ceiling once per unit of size', () => {
+    expect(runtimeComplexityEntryKeys(baseline(3))).toEqual([
+      'a.ts|file-lines|a.ts',
+      'a.ts|file-lines|a.ts',
+      'a.ts|file-lines|a.ts',
+    ]);
+  });
+
+  it('rejects a raised ceiling', () => {
+    const growth = findRatchetGrowth(source, baseline(10), baseline(12));
+
+    expect(growth.map(({ added, key }) => [key, added])).toEqual([
+      ['a.ts|file-lines|a.ts', 2],
+    ]);
+  });
+
+  it('rejects a ceiling for a symbol the base did not carry', () => {
+    const growth = findRatchetGrowth(
+      source,
+      baseline(10),
+      baseline(10, 'B.run'),
+    );
+
+    expect(growth.map(({ key }) => key)).toEqual(['a.ts|file-lines|B.run']);
+  });
+
+  it('accepts a lowered or dropped ceiling', () => {
+    expect(findRatchetGrowth(source, baseline(10), baseline(8))).toEqual([]);
+    expect(findRatchetGrowth(source, baseline(10), '[]')).toEqual([]);
+  });
+});
+
+describe('count-map and list baselines', () => {
+  it('counts a TypeScript map entry once per counted finding and ignores comments', () => {
+    expect(
+      countMapEntryKeys(
+        `// 'commented.ts': 9\nexport const B: Readonly<Record<string, number>> = { 'a.ts': 2, 'b.ts': 1 };`,
+      ),
+    ).toEqual(['a.ts', 'a.ts', 'b.ts']);
+  });
+
+  it('reads the spec paths of a string list', () => {
+    expect(
+      stringListEntryKeys(
+        `// 'commented.spec.ts'\nexport const B: readonly string[] = ['a.test.ts', 'b.test.ts'];`,
+      ),
+    ).toEqual(['a.test.ts', 'b.test.ts']);
+  });
+
+  it('counts untranslated strings per file', () => {
+    expect(
+      untranslatedStringEntryKeys(
+        JSON.stringify({ files: { 'a.tsx': 2 }, version: 1 }),
+      ),
+    ).toEqual(['a.tsx', 'a.tsx']);
+  });
+
+  it('counts type assertions per kind and file', () => {
+    expect(
+      typeAssertionEntryKeys(
+        JSON.stringify({ as_any: {}, as_never: { 'a.ts': 2 }, ts_ignore: {} }),
+      ),
+    ).toEqual(['as_never|a.ts', 'as_never|a.ts']);
+  });
+
+  it('rejects a file whose as-never count rose', () => {
+    const source = RATCHET_SOURCES.find(
+      ({ file }) =>
+        file === 'scripts/architecture/type-assertions.baseline.json',
+    ) as NonNullable<(typeof RATCHET_SOURCES)[number]>;
+    const baseline = (count: number): string =>
+      JSON.stringify({
+        as_any: {},
+        as_never: { 'a.ts': count },
+        ts_ignore: {},
+      });
+
+    expect(
+      findRatchetGrowth(source, baseline(1), baseline(2)).map(
+        ({ added, key }) => [key, added],
+      ),
+    ).toEqual([['as_never|a.ts', 1]]);
   });
 });
 

@@ -756,6 +756,19 @@ export const MODEL_OUTPUT_CAPABILITIES: Record<string, ModelOutputCapability> =
       maxOutputs: 4,
       maxReferences: 1,
     },
+    [MODEL_KEYS.REPLICATE_PRUNAAI_P_VIDEO_2]: {
+      aspectRatios: ['16:9', '9:16', '4:3', '3:4', '3:2', '2:3', '1:1'],
+      category: ModelCategory.VIDEO,
+      defaultAspectRatio: '16:9',
+      defaultDuration: 5,
+      durations: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+      hasDurationEditing: true,
+      hasResolutionOptions: true,
+      hasSpeech: true,
+      isBatchSupported: false,
+      maxOutputs: 4,
+      maxReferences: 1,
+    },
     [MODEL_KEYS.REPLICATE_WAN_VIDEO_WAN_2_2_I2V_FAST]: {
       aspectRatios: ASPECT_RATIOS.VEO,
       category: ModelCategory.VIDEO,
@@ -1538,10 +1551,25 @@ export const MODEL_OUTPUT_CAPABILITIES: Record<string, ModelOutputCapability> =
       maxOutputs: 1,
       maxReferences: 0,
     },
-    // Seed fallback for product text (drafts, prompt enhancement) when no
-    // Admin default TEXT model is set — `LLM_DEFAULTS.productTextFallback`
-    // (#5161). Not in the agent chat picker.
+    // Previous product text fallback; `LLM_DEFAULTS.productTextFallback` is now
+    // Gemini 4 Hydrogen. Not in the agent chat picker.
     [MODEL_KEYS.OPENROUTER_GOOGLE_GEMINI_3_8_FLASH]: {
+      category: ModelCategory.TEXT,
+      isBatchSupported: false,
+      maxOutputs: 1,
+      maxReferences: 0,
+    },
+    // Product text — `LLM_DEFAULTS.productTextFallback` (posts, captions,
+    // drafts, prompt enhancement, article review). Not in the agent chat picker.
+    [MODEL_KEYS.OPENROUTER_GOOGLE_GEMINI_4_HYDROGEN]: {
+      category: ModelCategory.TEXT,
+      isBatchSupported: false,
+      maxOutputs: 1,
+      maxReferences: 0,
+    },
+    // Content writing model — `LLM_DEFAULTS.contentWriting` (articles,
+    // newsletters, captions, scripts, rewrites). Not in the agent chat picker.
+    [MODEL_KEYS.OPENROUTER_GOOGLE_GEMINI_4_NEON]: {
       category: ModelCategory.TEXT,
       isBatchSupported: false,
       maxOutputs: 1,

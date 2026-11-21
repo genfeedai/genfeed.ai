@@ -106,7 +106,7 @@ describe('useDesktopCliAgentChat transport selection', () => {
 
     const { result } = renderHook(() => useDesktopCliAgentChat());
 
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    await new Promise((resolve) => setImmediate(resolve));
     expect(result.current.isEnabled).toBe(false);
   });
 

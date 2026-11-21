@@ -24,7 +24,6 @@ import {
   PostVisibility,
   TargetExecutionState,
 } from '@genfeedai/contracts';
-import { resolvePostVisibility } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
 import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaService } from '@libs/prisma/prisma.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
@@ -44,6 +43,7 @@ import {
 import { SCHEDULED_POST_RETRY_BACKOFF_SECONDS } from '@workers/services/scheduled-post.constants';
 import {
   readPostString,
+  resolveAppliedVisibility,
   resolveUnverifiedDeferral,
 } from '@workers/services/scheduled-post.utils';
 import { loadScheduledActionPost } from '@workers/services/scheduled-post-action-load.util';
@@ -681,7 +681,7 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
         executionState: TargetExecutionState.PUBLISHED,
         externalId: result.externalId,
         externalShortcode: result.externalShortcode ?? null,
-        visibility: resolvePostVisibility(post.visibility),
+        visibility: resolveAppliedVisibility(result, post),
         ...(!isProviderDraft
           ? { publicationDate: publishedAt, publishedAt }
           : {}),
@@ -692,7 +692,7 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
       transitionGuard,
       !isProviderDraft &&
         result.externalId?.trim() &&
-        resolvePostVisibility(post.visibility) === PostVisibility.PUBLIC &&
+        resolveAppliedVisibility(result, post) === PostVisibility.PUBLIC &&
         result.executionState === TargetExecutionState.PUBLISHED
         ? {
             result: { ...result },

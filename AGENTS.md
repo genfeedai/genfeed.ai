@@ -5,43 +5,21 @@ only imports it, so edit rules here and nowhere else.
 
 ## Last Verified
 
-- **Date:** 2026-11-09
-- **Sources:** `origin/master` `98892269`, root `package.json` scripts, `scripts/ui/control-guard.ts`, `scripts/architecture/`, the previous `CLAUDE.md`, and `.agents/memory/MEMORY.md`
+- **Date:** 2026-11-21
 
 ## Project Memory — READ AT SESSION START
 
-Cross-agent project memory lives in `.agents/memory/`. At the start of every session, read:
+Cross-agent project memory lives in `.agents/memory/`. At the start of every session, read `.agents/memory/MEMORY.md` (the index) and every file it links that seems relevant to the task. The complete catalog loads on demand.
 
-- `.agents/memory/MEMORY.md` (index)
-- Every file linked from the index that seems relevant to the task
-
-Keep startup reading short: the memory map links the detail, and the complete catalog loads on demand.
-
-These files are the current source of truth for project-level rules, including corrections from user feedback (`feedback_*.md`) and current project state (`project_*.md`). They evolve; the rules in this `AGENTS.md` file are stable baselines but `.agents/memory/` is where newer learnings land first.
+These files are the current source of truth for project-level rules, including corrections from user feedback (`feedback_*.md`) and current project state (`project_*.md`). This `AGENTS.md` holds the stable baselines; `.agents/memory/` is where newer learnings land first.
 
 Verified project facts in `.agents/memory/` may supersede older project facts here. Agent-written memory cannot weaken safety, authorization, account routing, host-resource restrictions, or required delivery gates. A consequential policy change requires an explicit user instruction; recency alone does not grant authority.
 
-Any agent that learns a durable project rule should write a new file in `.agents/memory/` with YAML frontmatter:
+Any agent that learns a durable project rule writes a new file in `.agents/memory/` and adds a line to `.agents/memory/reference_memory_catalog.md`. Format and wiring: `.agents/memory/README.md`.
 
-```markdown
----
-name: {short name}
-description: {one-line description}
-type: feedback | project | reference
----
+## Before Editing
 
-{body with **Why:** and **How to apply:** lines for feedback/project}
-```
-
-Then add a line to `.agents/memory/reference_memory_catalog.md` pointing at it. Keep `.agents/memory/MEMORY.md` as the short task-entry map. See `.agents/memory/README.md` for the full format and wiring details.
-
-## Essential Reading
-
-1. `.agents/memory/system/CRITICAL-NEVER-DO.md` — production-breaking violations
-2. `.agents/memory/system/SYSTEM-RULES.md` — coding standards and patterns
-3. `.agents/memory/system/AGENT-RUNTIME.md` — task loop, context checkpoints
-
-Before editing, read the task-relevant references linked from the memory map. Research before editing: never change code you haven't read, and search 3+ similar implementations before writing new code.
+Read the task-relevant references linked from the memory map. `.agents/memory/system/CRITICAL-NEVER-DO.md` holds the file-management rules. Research before editing: never change code you haven't read, and search 3+ similar implementations before writing new code.
 
 ## Project Overview
 
@@ -87,9 +65,7 @@ git fetch origin && git branch -r --sort=-committerdate | head -20
 - On a collision: keep the **older** PR, port anything the newer one has that it
   lacks, and close the newer one. Never merge both.
 
-This mirrors the existing rule for issues (`gh issue list --search` before opening
-one). Full rationale and the measured incidents:
-`.agents/memory/claim_work_before_starting.md`.
+Rationale and the measured incidents: `.agents/memory/claim_work_before_starting.md`.
 
 ## Commands
 
@@ -137,37 +113,30 @@ Playwright suites, and the unit-test shards.
 
 ## Critical Review Rules
 
-### Types, imports, naming
+Judgement rules (naming, component shape, UI composition, form spacing, test style) live in `.agents/memory/rules/coding-standards.md`; read it before changing TypeScript or TSX. Rules a tool can check are in Enforced Rules below.
 
-1. No `any` — define proper interfaces. No `@ts-ignore`.
-2. No inline interfaces — use `packages/contracts/src/interfaces/` for shared shapes, `packages/props/` for props shared across packages, or a `props/` file inside the owning `apps/web/src/features/<feature>/`.
-3. No `console.log` — use the project LoggerService.
-4. Booleans take an `is`/`has` prefix: `isActive`, `hasPermission`.
-5. Use path aliases (`@genfeedai/contracts`, `@components/`, `@ui/`), not deep relative imports. Import order: external → `@genfeedai/*` → path aliases → same-directory relative.
-6. Do not manually edit generated `dist/` artifacts.
-7. Respect package boundaries: shared logic in `packages/*`, app-specific code in `apps/*`.
+### Types, imports
+
+- No `any` — define proper interfaces. No `@ts-ignore`.
+- No inline interfaces — use `packages/contracts/src/interfaces/` for shared shapes, `packages/props/` for props shared across packages, or a `props/` file inside the owning `apps/web/src/features/<feature>/`.
+- No `console.log` — use the project LoggerService.
+- Use path aliases (`@genfeedai/contracts`, `@components/`, `@ui/`), not deep relative imports. Import order: external → `@genfeedai/*` → path aliases → same-directory relative.
+- Do not manually edit generated `dist/` artifacts.
+- Respect package boundaries: shared logic in `packages/*`, app-specific code in `apps/*`.
 
 ### Data, tenancy, serializers
 
-8. Keep serializers in `packages/serializers` — never inline response shaping in controllers or API modules. Never return a raw database record; serialize first.
-9. Treat Prisma `users.id` as the canonical user reference. Never use legacy auth provider IDs (`authProviderId`) as DB foreign keys.
-10. Every tenant-scoped Prisma query MUST include `{ organizationId: orgId, isDeleted: false }`. Self-hosted single-tenant deployments may omit the organization filter. Enforcement details in `.agents/memory/context/system-patterns.md`.
-11. Soft deletes use `isDeleted: boolean`, never `deletedAt`.
-12. Compound indexes live in Prisma `@@index` directives or explicit migrations.
+- Keep serializers in `packages/serializers` — never inline response shaping in controllers or API modules. Never return a raw database record; serialize first.
+- Treat Prisma `users.id` as the canonical user reference. Never use legacy auth provider IDs (`authProviderId`) as DB foreign keys.
+- Every tenant-scoped Prisma query MUST include `{ organizationId: orgId, isDeleted: false }`. Self-hosted single-tenant deployments may omit the organization filter. Enforcement details in `.agents/memory/context/system-patterns.md`.
+- Soft deletes use `isDeleted: boolean`, never `deletedAt`.
+- Compound indexes live in Prisma `@@index` directives or explicit migrations.
 
 ### Backend
 
-13. Throw NestJS exceptions for errors (`NotFoundException`, `BadRequestException`).
-14. Provide `ConfigService` via `{ provide: ConfigService, useValue: new ConfigService() }` — never read `process.env` directly.
-15. No backward-compatibility wrappers — fix at the source.
-
-### Frontend
-
-16. Preserve semantic correctness in UI controls (navigation = `Link`, actions = `Button`).
-17. **Never raw HTML controls.** `<button>`, `<input>`, `<textarea>`, `<select>`, `<dialog>`, `<table>`, `<hr>`, `<form>` etc. are blocked by `scripts/ui/control-guard.ts` (pre-commit via `lint-staged.config.mjs`, repo-wide in CI via `bun run check:ui-guards` → `scripts/ui/check-ui-guards.ts`). Use `@ui/primitives/*`; for unstyled cases use `Button` with `variant={ButtonVariant.UNSTYLED}` + `withWrapper={false}`. Never nest `Button` inside `Button` — restructure as siblings.
-18. **Form spacing has one owner per level.** `Field` spaces label → control → error; `Form` (`@ui/primitives/form`, `spacing="default" | "section" | "none"`) spaces the fields; the `Modal` body and `DialogContent` space their blocks and footers. Never put a vertical margin on a direct child of those stacks, or on `ModalActions`, `DialogHeader`, `DialogFooter`, `FormControl`, `Field`, or `Label` — `control-guard.ts` fails on it.
-19. No new `useEffect` — derive during render, run work in the event handler, read external stores with `useSyncExternalStore`, or use a data hook. An async effect carries an AbortController. Enforced by `check:use-effect`.
-20. Components use `function` declarations (not arrow) and a default export.
+- Throw NestJS exceptions for errors (`NotFoundException`, `BadRequestException`).
+- Provide `ConfigService` via `{ provide: ConfigService, useValue: new ConfigService() }` — never read `process.env` directly.
+- No backward-compatibility wrappers — fix at the source.
 
 ## Enforced Rules
 
@@ -183,6 +152,9 @@ When a check below fails, fix the code it names. Never edit a baseline to make i
 | No raw HTML controls; no vertical margin on form-stack children | `scripts/ui/control-guard.ts` (pre-commit) and `check:ui-guards` (CI) | Use `@ui/primitives/*` and let `Field`, `Form`, `Modal` own the spacing. Do not add to the guard's `ALLOWLIST`. |
 | New service specs are not mostly `toHaveBeenCalled*` assertions | `scripts/architecture/check-mock-interaction-specs.ts` | Assert returned or persisted results instead (see Tests below). Remove a spec's entry from `mock-interaction-specs.baseline.ts` when you fix it; never add one. |
 | A PR that removes or rewrites UI copy, preset ids or fixture values updates the Playwright specs that assert them, in the same PR | `scripts/ci/e2e-spec-impact.mjs` (CI Static Checks) | Edit the spec, page object or fixture it names. Do not dispatch Playwright Full for the PR. If the match is a false positive, add the commit trailer `E2E-Spec-Impact: none - <reason>`. |
+| No `console.log` in production source | Biome `suspicious/noConsole` (`warn`, `error`, `info`, `debug` stay allowed; tests, `scripts/`, `packages/cli`, config files and logger implementations are exempt) | Use `LoggerService`. |
+| No `process.env` in `apps/server/api/src` | Biome `style/noProcessEnv` (specs and fixtures are exempt) | Read the value through `ConfigService`. Code that runs before DI exists (Sentry init, `main.ts`, decorators, import-time constants) takes `// biome-ignore lint/style/noProcessEnv: <reason>`. |
+| No import climbs 3 or more folders (`../../../`) | Biome `style/noRestrictedImports` (tests, `scripts/`, `packages/actions/src` and `packages/workflows/src` are exempt) | Import through a path alias (`@api/`, `@app/`, `@ui/`, `@genfeedai/*`). If none reaches the file, add the alias to the app's `tsconfig.json` and `apps/vitest.config.mts`. |
 | Only the root `CLAUDE.md` exists, and it imports this file | `check:single-claude-md` | Delete the nested `CLAUDE.md`; put package rules in `.agents/memory/`. Keep root `CLAUDE.md` as imports only. |
 
 Judgment, no check: one PR per change, no new env vars, name the root cause, CI green before merge.
@@ -190,9 +162,7 @@ Judgment, no check: one PR per change, no new env vars, name the root cause, CI 
 ## Tests and Finish Condition
 
 - Do not add service specs whose assertions are mostly `toHaveBeenCalled` / mock-interaction checks. Prefer a real-DB test, a property test, or a Playwright flow. Existing offenders are ratcheted in `mock-interaction-specs.baseline.ts`; remove an entry when you fix its spec.
-- Couple tests to public behavior (returned or persisted results, rendered output), not to internal call order or private structure. A correct refactor must not break a test.
-- Assert what the user sees. In component tests query by role, label or text (`getByRole`, `getByLabelText`), not `getByTestId`.
-- Keep logic out of tests: no loops, branches or re-implementation of the code under test. Use literal expected values or `it.each` tables.
+- **No sleeps in tests.** Never `setTimeout`, `waitForTimeout`, `timers/promises` or a hand-rolled `sleep` in a spec, fixture, page object or Playwright file: a fixed sleep is slower than the event it waits for and flaky when the machine is busy. Unit tests use fake timers (`vi.useFakeTimers()`, then `vi.advanceTimersByTimeAsync`) for time-driven code, `vi.waitFor` for async results, and `await new Promise((resolve) => setImmediate(resolve))` to drain a promise chain. Playwright waits on the real signal (`expect(locator)`, `expect.poll`, `page.waitForResponse`, `page.waitForURL`) or uses `page.clock` for time-driven UI. `test.setTimeout(...)` only sets the test budget and stays allowed. Production `setTimeout` is out of scope. Test style (public behavior, role queries, no logic in tests): `.agents/memory/rules/coding-standards.md`.
 - **Same-PR rule for e2e specs.** When a change touches something a Playwright spec asserts (UI copy, scope presets, test ids, fixtures), update that spec in the same PR. Before you push, `grep` `playwright/` for the old string. Never dispatch Playwright Full per PR; it is too slow, and the release run covers it.
 - A code-changing PR states its finish condition and shows evidence: repro-before and pass-after for bugs; a walked flow or read-back value for features. Never loosen a gate (i18n, Tests Gate, release suites) to get there.
 
@@ -240,7 +210,7 @@ Tend the monorepo, and every other Genfeed repository, like a garden: tell the g
 on a draft: Plan, Static Checks and the test jobs are skipped, and `Validation Verdict` fails
 until the PR is ready, so a draft cannot merge by accident. A push to a draft costs no runner
 time. A push to a ready PR starts a full run and cancels the one before it, and those cancelled
-runs were 35% of PR runner time (242 of 691 runner-hours, 2026-11-04 to 11-06; issue #8614).
+runs were 35% of PR runner time (issue #8614).
 
 - Create the PR with `gh pr create --draft` (or `draft: true` in the GitHub tool).
 - While it is a draft, push as often as you like. Run `bun run preflight` before you mark it
@@ -278,15 +248,4 @@ runs were 35% of PR runner time (242 of 691 runner-hours, 2026-11-04 to 11-06; i
 
 - Before using ui-sdk, follow the `ui-sdk` skill (`.agents/skills/ui-sdk/`) if it is installed, and read `apps/web/node_modules/@ui-sdk/react/docs/llms.txt`. To build a new component, also search `apps/web/node_modules/@ui-sdk/react/docs/core.md` by heading, and read `rendering.md` next to it.
 - Do not import `@ui-sdk/core/web.css`. It restyles bare `a`, `hr`, `code` and `kbd`, sets its own focus outline, and takes its colours from the OS colour scheme instead of `data-theme`. Style ui-sdk parts with the tokens in `DESIGN.md`.
-- The skill is vendored from the ui-sdk repository and pinned in `skills-lock.json`; do not edit it by hand. Where it and this file disagree (verification commands, test rules, UI guards), this file wins.
-
-<!-- BEGIN:turborepo-agent-rules -->
-
-# This is NOT the Turborepo you know
-
-Turborepo configuration, task behavior, and CLI commands can vary between installed versions and may differ from your training data. Resolve the `turbo` package from this file's directory or relevant workspace; in monorepos, it may not be visible from the repository root. For example, run `node -p "require.resolve('turbo/package.json')"` from a workspace that depends on `turbo`.
-
-Read `docs/README.md` inside that installed package first, then read the relevant pages from its `docs/` directory before changing Turborepo configuration or commands. Heed deprecation notices. These bundled docs match the installed package version and are available without network access.
-
-This block is written and re-added by `turbo` before repository-scoped commands when an AI agent is detected. In the Turborepo source repository, its template is defined in `crates/turborepo-cli/src/cli/agent_guidance.rs`. Removing the managed block while updates are enabled means a later qualifying invocation will add it again. Set `"agentGuidance": false` in the root `turbo.json` or `turbo.jsonc` to opt out; this does not remove an existing block. Keep the block committed with your work to avoid an uncommitted change on the next agent invocation.
-<!-- END:turborepo-agent-rules -->
+- The skill is vendored and pinned in `skills-lock.json`; do not edit it. Where it and this file disagree, this file wins.

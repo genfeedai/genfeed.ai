@@ -77,11 +77,8 @@ test.describe('Workflow templates & executions interactions', () => {
 
     // Click through a couple of category filter buttons, then back to All.
     await tryClick(authenticatedPage, 'button:has-text("Social")');
-    await authenticatedPage.waitForTimeout(250);
     await tryClick(authenticatedPage, 'button:has-text("Video")');
-    await authenticatedPage.waitForTimeout(250);
     await tryClick(authenticatedPage, 'button:has-text("All")');
-    await authenticatedPage.waitForTimeout(250);
 
     await expect(authenticatedPage.locator('body')).toBeVisible();
     await expectNoErrorOverlay(authenticatedPage);
@@ -207,9 +204,7 @@ test.describe('Workflow templates & executions interactions', () => {
     ).toBeVisible();
 
     await tryClick(authenticatedPage, 'button:has-text("Next")');
-    await authenticatedPage.waitForTimeout(300);
     await tryClick(authenticatedPage, 'button:has-text("Previous")');
-    await authenticatedPage.waitForTimeout(300);
 
     await expect(authenticatedPage.locator('body')).toBeVisible();
     await expectNoErrorOverlay(authenticatedPage);

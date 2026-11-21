@@ -397,41 +397,6 @@ describe('cards for settings, plans and receipts', () => {
     });
   });
 
-  it('cards the toolsets find_tools lists, from its unwrapped result', () => {
-    expect(
-      withCardResult('find_tools', {
-        content: [{ text: 'Available toolsets', type: 'text' as const }],
-        structuredContent: {
-          toolsets: [
-            {
-              description: 'Accounts, brands and posts.',
-              isAlwaysOn: true,
-              name: 'core',
-              toolCount: 14,
-              toolNames: [],
-            },
-          ],
-        },
-      }),
-    ).toMatchObject({
-      structuredContent: {
-        genfeedCards: {
-          cards: [
-            {
-              description: 'Accounts, brands and posts.',
-              facts: [
-                { label: 'Tools', value: '14' },
-                { label: 'Loaded', status: 'active', value: 'Always on' },
-              ],
-              title: 'Core',
-            },
-          ],
-          title: 'Toolsets',
-        },
-      },
-    });
-  });
-
   it('cards the tools a find_tools search matched', () => {
     expect(
       withCardResult('find_tools', {

@@ -36,6 +36,7 @@ export interface AccountHealthReconnect {
 
 export interface AccountHealthSummary {
   assessedAt?: string;
+  avatarUrl?: string;
   credentialId: string;
   handle?: string;
   label: string;

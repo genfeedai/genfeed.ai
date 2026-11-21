@@ -167,17 +167,15 @@ function resolveCostTier(creditCostPerRound: number): CostTier {
  * flags must reference these members (never inline `"provider/model"`).
  */
 export const AGENT_CHAT_MODEL_KEYS = {
-  CLAUDE_OPUS_5: 'anthropic/claude-opus-5',
-  CLAUDE_SONNET_5: 'anthropic/claude-sonnet-5',
-  DEEPSEEK_V4_FLASH: 'deepseek/deepseek-v4-flash-0731',
-  GEMINI_2_5_FLASH_LITE: 'google/gemini-2.5-flash-lite',
+  CLAUDE_HAIKU_5_5: 'anthropic/claude-haiku-5.5',
+  CLAUDE_OPUS_5_5: 'anthropic/claude-opus-5.5',
+  CLAUDE_SONNET_5_5: 'anthropic/claude-sonnet-5.5',
+  DEEPSEEK_V4_1_FLASH: 'deepseek/deepseek-v4.1-flash-1017',
   GEMINI_3_5_FLASH_LITE: 'google/gemini-3.5-flash-lite',
-  GEMINI_3_6_FLASH: 'google/gemini-3.6-flash',
-  GPT_5_6_LUNA: 'openai/gpt-5.6-luna',
-  GPT_5_6_SOL: 'openai/gpt-5.6-sol',
-  GPT_5_6_TERRA: 'openai/gpt-5.6-terra',
-  GROK_4_6: 'x-ai/grok-4.6',
-  KIMI_K3: 'moonshotai/kimi-k3',
+  GPT_6_1_TERRA: 'openai/gpt-6.1-terra',
+  GPT_6_LUNA: 'openai/gpt-6-luna',
+  GROK_4_7: 'x-ai/grok-4.7',
+  KIMI_K3_1_PRO: 'moonshotai/kimi-k3.1-pro',
   LOCAL_MISTRAL_SMALL: 'local/mistral-small',
   LOCAL_QWEN_32B: 'local/qwen-32b',
   NEMOTRON_3_ULTRA_FREE: 'nvidia/nemotron-3-ultra-550b-a55b:free',
@@ -202,37 +200,44 @@ export const LLM_DEFAULTS = {
    * Seed fallback for agent chat turns. The live default is operator-owned in
    * Admin → Automation → Models and is read from the model registry at runtime.
    */
-  agentChat: AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_FLASH,
-  /** Background scoring, intel, launch copy. */
-  background: AGENT_CHAT_MODEL_KEYS.GEMINI_2_5_FLASH_LITE,
+  agentChat: AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_1_FLASH,
+  /** Background scoring, judging, task decomposition and scene analysis. */
+  background: AGENT_CHAT_MODEL_KEYS.CLAUDE_HAIKU_5_5,
   /** xAI / Grok jobs (trends, X realtime). */
-  grok: AGENT_CHAT_MODEL_KEYS.GROK_4_6,
+  grok: AGENT_CHAT_MODEL_KEYS.GROK_4_7,
   /**
    * Cheapest live Grok for high-frequency X drafts. Not in the picker.
    * Grok 4.1 Fast lost every OpenRouter endpoint in 2026-10.
    */
   grokFast: MODEL_KEYS.OPENROUTER_XAI_GROK_4_3,
   /**
-   * Seed fallback for product text (drafts, prompt enhancement) when no
-   * Admin → Automation → Models `isDefault` TEXT row resolves. Rejected
-   * Grok 4.1 Fast (OpenRouter zero-data-retention 404, #5161) in favor of a
-   * fast frontier model that passes the org's ZDR setting.
+   * Product text: posts, captions, drafts, prompt enhancement, and the review
+   * and update steps of an article. Gemini 4 Hydrogen at its default medium
+   * effort. Its reasoning is mandatory and counts against `max_tokens`, so
+   * short budgets carry an allowance (`TEXT_GENERATION_LIMITS`). Must have a
+   * zero-data-retention endpoint, which first-party requests require (#5161).
    */
-  productTextFallback: MODEL_KEYS.OPENROUTER_GOOGLE_GEMINI_3_8_FLASH,
+  productTextFallback: MODEL_KEYS.OPENROUTER_GOOGLE_GEMINI_4_HYDROGEN,
   /** High-frequency volume agent types and mechanical compression. */
-  volumeAgent: AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_FLASH,
+  volumeAgent: AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_1_FLASH,
   /** Creative agent types, captions, planning, insights. */
-  creativeAgent: AGENT_CHAT_MODEL_KEYS.CLAUDE_SONNET_5,
-  /** Fast cheap text — drafts, newsletters, workflow LLM nodes, vision scoring. */
-  fastText: AGENT_CHAT_MODEL_KEYS.GPT_5_6_LUNA,
+  creativeAgent: AGENT_CHAT_MODEL_KEYS.CLAUDE_SONNET_5_5,
+  /**
+   * Prose people read and post: articles, newsletters, captions, scripts and
+   * rewrites. Gemini 4 Neon, chosen for writing quality over price. Admin →
+   * Automation → Models can still override the article default per platform.
+   */
+  contentWriting: MODEL_KEYS.OPENROUTER_GOOGLE_GEMINI_4_NEON,
+  /** Fast cheap text — drafts, workflow LLM nodes, vision scoring. */
+  fastText: AGENT_CHAT_MODEL_KEYS.GPT_6_LUNA,
   /** Content planning and long-form reasoning jobs. */
-  planning: AGENT_CHAT_MODEL_KEYS.CLAUDE_SONNET_5,
+  planning: AGENT_CHAT_MODEL_KEYS.CLAUDE_SONNET_5_5,
   /** Featured / recommended step-up in pickers (not the default). */
-  highlighted: AGENT_CHAT_MODEL_KEYS.GPT_5_6_TERRA,
+  highlighted: AGENT_CHAT_MODEL_KEYS.GPT_6_1_TERRA,
   /** Org-owned inference fleet. */
   localFleet: AGENT_CHAT_MODEL_KEYS.LOCAL_QWEN_32B,
   /** When a `local/` model is requested but no GPU fleet is configured. */
-  selfHostedFallback: AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_FLASH,
+  selfHostedFallback: AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_1_FLASH,
 } as const;
 
 interface AgentChatModelDefinition {
@@ -281,31 +286,32 @@ const AGENT_CHAT_MODEL_DEFINITIONS: AgentChatModelDefinition[] = [
     description:
       'Fast, low-cost agent chat with current tool-calling support and 1M context',
     isReasoning: true,
-    key: AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_FLASH,
-    label: 'DeepSeek V4 Flash',
-    // OpenRouter live (2026-09-01): $0.05 / $0.16 per 1M
-    pricing: { completionPerMillion: 0.16, promptPerMillion: 0.05 },
+    key: AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_1_FLASH,
+    label: 'DeepSeek V4.1 Flash',
+    // OpenRouter live (2026-11-20): $0.15 / $0.60 per 1M
+    pricing: { completionPerMillion: 0.6, promptPerMillion: 0.15 },
     qualityTier: QualityTier.BASIC,
     speedTier: SpeedTier.FAST,
   },
   {
-    brandSlug: 'google',
+    brandSlug: 'anthropic',
     description:
-      'Default daily driver via OpenRouter — fast Flash-Lite, cheap tool turns',
+      'Fast and cheap Claude for light chat turns, scoring and judging',
     isReasoning: true,
-    key: AGENT_CHAT_MODEL_KEYS.GEMINI_2_5_FLASH_LITE,
-    label: 'Gemini 2.5 Flash Lite',
-    // OpenRouter live (2026-08-07): $0.10 / $0.40 per 1M
-    pricing: { completionPerMillion: 0.4, promptPerMillion: 0.1 },
-    qualityTier: QualityTier.BASIC,
+    key: AGENT_CHAT_MODEL_KEYS.CLAUDE_HAIKU_5_5,
+    label: 'Claude Haiku 5.5',
+    // OpenRouter live (2026-11-20): $0.10 / $0.50 per 1M
+    pricing: { completionPerMillion: 0.5, promptPerMillion: 0.1 },
+    qualityTier: QualityTier.STANDARD,
     speedTier: SpeedTier.FAST,
   },
   {
     brandSlug: 'openai',
     description: 'Fast and cheap — short chat turns and quick edits',
-    key: AGENT_CHAT_MODEL_KEYS.GPT_5_6_LUNA,
-    label: 'GPT-5.6 Luna',
-    pricing: { completionPerMillion: 0.6, promptPerMillion: 0.1 },
+    key: AGENT_CHAT_MODEL_KEYS.GPT_6_LUNA,
+    label: 'GPT-6 Luna',
+    // OpenRouter live (2026-11-20): $0.10 / $0.50 per 1M
+    pricing: { completionPerMillion: 0.5, promptPerMillion: 0.1 },
     qualityTier: QualityTier.STANDARD,
     speedTier: SpeedTier.FAST,
   },
@@ -324,9 +330,10 @@ const AGENT_CHAT_MODEL_DEFINITIONS: AgentChatModelDefinition[] = [
     brandSlug: 'openai',
     description: 'Balanced for heavier agentic work',
     isReasoning: true,
-    key: AGENT_CHAT_MODEL_KEYS.GPT_5_6_TERRA,
-    label: 'GPT-5.6 Terra',
-    pricing: { completionPerMillion: 6, promptPerMillion: 1 },
+    key: AGENT_CHAT_MODEL_KEYS.GPT_6_1_TERRA,
+    label: 'GPT-6.1 Terra',
+    // OpenRouter live (2026-11-20): $1 / $5 per 1M
+    pricing: { completionPerMillion: 5, promptPerMillion: 1 },
     qualityTier: QualityTier.HIGH,
     speedTier: SpeedTier.MEDIUM,
   },
@@ -334,19 +341,10 @@ const AGENT_CHAT_MODEL_DEFINITIONS: AgentChatModelDefinition[] = [
     brandSlug: 'x-ai',
     description: 'Real-time knowledge, fast responses',
     isReasoning: true,
-    key: AGENT_CHAT_MODEL_KEYS.GROK_4_6,
-    label: 'Grok 4.6',
+    key: AGENT_CHAT_MODEL_KEYS.GROK_4_7,
+    label: 'Grok 4.7',
+    // OpenRouter live (2026-11-20): $2 / $6 per 1M
     pricing: { completionPerMillion: 6, promptPerMillion: 2 },
-    qualityTier: QualityTier.HIGH,
-    speedTier: SpeedTier.FAST,
-  },
-  {
-    brandSlug: 'google',
-    description: 'Fast agentic reasoning with a large context window',
-    isReasoning: true,
-    key: AGENT_CHAT_MODEL_KEYS.GEMINI_3_6_FLASH,
-    label: 'Gemini 3.6 Flash',
-    pricing: { completionPerMillion: 7.5, promptPerMillion: 1.5 },
     qualityTier: QualityTier.HIGH,
     speedTier: SpeedTier.FAST,
   },
@@ -354,8 +352,9 @@ const AGENT_CHAT_MODEL_DEFINITIONS: AgentChatModelDefinition[] = [
     brandSlug: 'anthropic',
     description: 'Balanced intelligence for long multi-step work',
     isReasoning: true,
-    key: AGENT_CHAT_MODEL_KEYS.CLAUDE_SONNET_5,
-    label: 'Claude Sonnet 5',
+    key: AGENT_CHAT_MODEL_KEYS.CLAUDE_SONNET_5_5,
+    label: 'Claude Sonnet 5.5',
+    // OpenRouter live (2026-11-20): $2 / $10 per 1M
     pricing: { completionPerMillion: 10, promptPerMillion: 2 },
     qualityTier: QualityTier.HIGH,
     speedTier: SpeedTier.MEDIUM,
@@ -364,9 +363,10 @@ const AGENT_CHAT_MODEL_DEFINITIONS: AgentChatModelDefinition[] = [
     brandSlug: 'moonshotai',
     description: 'Agentic reasoning and multimodal work',
     isReasoning: true,
-    key: AGENT_CHAT_MODEL_KEYS.KIMI_K3,
-    label: 'Kimi K3',
-    pricing: { completionPerMillion: 15, promptPerMillion: 3 },
+    key: AGENT_CHAT_MODEL_KEYS.KIMI_K3_1_PRO,
+    label: 'Kimi K3.1 Pro',
+    // OpenRouter live (2026-11-20): $0.253 / $8.80 per 1M
+    pricing: { completionPerMillion: 8.8, promptPerMillion: 0.253 },
     qualityTier: QualityTier.ULTRA,
     speedTier: SpeedTier.MEDIUM,
   },
@@ -374,19 +374,10 @@ const AGENT_CHAT_MODEL_DEFINITIONS: AgentChatModelDefinition[] = [
     brandSlug: 'anthropic',
     description: 'Most capable — reserve for hard planning and review',
     isReasoning: true,
-    key: AGENT_CHAT_MODEL_KEYS.CLAUDE_OPUS_5,
-    label: 'Claude Opus 5',
-    pricing: { completionPerMillion: 25, promptPerMillion: 5 },
-    qualityTier: QualityTier.ULTRA,
-    speedTier: SpeedTier.SLOW,
-  },
-  {
-    brandSlug: 'openai',
-    description: 'Deepest reasoning — expensive, use deliberately',
-    isReasoning: true,
-    key: AGENT_CHAT_MODEL_KEYS.GPT_5_6_SOL,
-    label: 'GPT-5.6 Sol',
-    pricing: { completionPerMillion: 30, promptPerMillion: 5 },
+    key: AGENT_CHAT_MODEL_KEYS.CLAUDE_OPUS_5_5,
+    label: 'Claude Opus 5.5',
+    // OpenRouter live (2026-11-20): $4 / $20 per 1M
+    pricing: { completionPerMillion: 20, promptPerMillion: 4 },
     qualityTier: QualityTier.ULTRA,
     speedTier: SpeedTier.SLOW,
   },
@@ -466,21 +457,31 @@ export const DEFAULT_GROK_MODEL_KEY = LLM_DEFAULTS.grok;
  */
 export const RETIRED_AGENT_CHAT_MODEL_KEYS: ReadonlySet<string> = new Set([
   'anthropic/claude-opus-4-6',
+  'anthropic/claude-opus-5',
   'anthropic/claude-sonnet-4-5',
   'anthropic/claude-sonnet-4-5-20250514',
   'anthropic/claude-sonnet-4-5-20250929',
   'anthropic/claude-sonnet-4.5',
+  'anthropic/claude-sonnet-5',
   'deepseek/deepseek-chat',
+  'deepseek/deepseek-v4-flash-0731',
+  'google/gemini-2.5-flash-lite',
   'google/gemini-3-flash-preview',
+  'google/gemini-3.6-flash',
   'moonshotai/kimi-k2.5',
+  'moonshotai/kimi-k3',
   AGENT_CHAT_MODEL_KEYS.NEMOTRON_3_ULTRA_FREE,
   'openai/gpt-4o',
   'openai/gpt-4o-mini',
+  'openai/gpt-5.6-luna',
+  'openai/gpt-5.6-sol',
+  'openai/gpt-5.6-terra',
   'openai/o3',
   'openai/o4-mini',
   'openrouter/auto-beta',
   'x-ai/grok-4',
   'x-ai/grok-4.5',
+  'x-ai/grok-4.6',
   'x-ai/grok-4-fast',
 ]);
 

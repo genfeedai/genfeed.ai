@@ -71,6 +71,7 @@ export class Post extends BaseEntity implements IPost {
   declare public sourceWorkflowId?: string | null;
   declare public sourceWorkflowName?: string | null;
   declare public isShareToFeedSelected?: boolean;
+  declare public isHiddenFromProfile?: boolean;
   declare public seoScore?: number | null;
   declare public seoBreakdown?: SeoScorecardSnapshot | null;
   declare public crossPosts?: IPost['crossPosts'];

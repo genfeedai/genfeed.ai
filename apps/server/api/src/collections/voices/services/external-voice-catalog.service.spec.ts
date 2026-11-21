@@ -98,7 +98,7 @@ function createCatalogTable(seed: StoredVoice[] = []) {
       // the transaction returns before any of its writes land.
       $transaction: vi.fn(async (operations: { run: () => unknown }[]) => {
         roundTrips++;
-        await new Promise((resolve) => setTimeout(resolve, 0));
+        await new Promise((resolve) => setImmediate(resolve));
         return operations.map((operation) => operation.run());
       }),
       externalVoice,

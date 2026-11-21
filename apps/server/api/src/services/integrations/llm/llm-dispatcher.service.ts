@@ -584,12 +584,12 @@ export class LlmDispatcherService {
             throw error;
           }
           this.loggerService.warn(
-            `${this.constructorName}: Free router unavailable — falling back to ${AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_FLASH}`,
+            `${this.constructorName}: Free router unavailable — falling back to ${AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_1_FLASH}`,
           );
           return this.openRouterService.chatCompletion(
             {
               ...params,
-              model: AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_FLASH,
+              model: AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_1_FLASH,
             },
             apiKeyOverride,
           );
@@ -628,12 +628,12 @@ export class LlmDispatcherService {
             throw error;
           }
           this.loggerService.warn(
-            `${this.constructorName}: Free router stream unavailable — falling back to ${AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_FLASH}`,
+            `${this.constructorName}: Free router stream unavailable — falling back to ${AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_1_FLASH}`,
           );
           return this.openRouterService.streamChatCompletionAggregated(
             {
               ...params,
-              model: AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_FLASH,
+              model: AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_1_FLASH,
             },
             apiKeyOverride,
             onToken,

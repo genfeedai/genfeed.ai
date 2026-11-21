@@ -168,7 +168,7 @@ describe('YoutubeUploadService', () => {
       (async function* () {
         while (true) {
           yield Buffer.from('video chunk');
-          await new Promise((resolve) => setTimeout(resolve, 1));
+          await new Promise((resolve) => setImmediate(resolve));
         }
       })(),
     );

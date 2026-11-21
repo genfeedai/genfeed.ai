@@ -73,7 +73,7 @@ export class ContentWritingHandler implements SkillHandler {
     try {
       const completion = await this.llmDispatcherService.chatCompletion(
         {
-          max_tokens: 400,
+          max_tokens: 1200,
           messages: [
             {
               content: this.buildRewritePrompt(harnessBrief, targetPlatform),
@@ -87,7 +87,7 @@ export class ContentWritingHandler implements SkillHandler {
           model:
             typeof params.model === 'string'
               ? params.model
-              : LLM_DEFAULTS.fastText,
+              : LLM_DEFAULTS.contentWriting,
           temperature: 0.7,
         },
         context.organizationId,

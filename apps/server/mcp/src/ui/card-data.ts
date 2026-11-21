@@ -26,6 +26,7 @@ import {
   summaryCard,
   text,
   utcStamp,
+  withoutBrandLogos,
   words,
 } from '@mcp/ui/card-fields';
 import {
@@ -327,9 +328,13 @@ function buildAccountView(data: Record<string, unknown>): McpCardView {
   if (Object.keys(profile).length) {
     const brandCount =
       typeof profile.brandCount === 'number' ? profile.brandCount : undefined;
-    const brandNames = (Array.isArray(profile.brands) ? profile.brands : [])
-      .map((brand) => text(record(brand), 'name'))
-      .filter(Boolean);
+    const brandChips = (Array.isArray(profile.brands) ? profile.brands : [])
+      .map((brand) => ({
+        avatarUrl: brandLogoUrl(record(brand)),
+        label: text(record(brand), 'name'),
+      }))
+      .filter((chip) => chip.label);
+    const brandNames = brandChips.map((chip) => chip.label);
     const brandsFact: McpCardFact[] =
       brandCount === 0 && text(profile, 'brandAccessMessage')
         ? fact('Brands', text(profile, 'brandAccessMessage'))
@@ -340,7 +345,8 @@ function buildAccountView(data: Record<string, unknown>): McpCardView {
                 {
                   ...(brandNames.length
                     ? {
-                        items: brandNames.map((label) => ({
+                        items: brandChips.map(({ avatarUrl, label }) => ({
+                          avatarUrl,
                           hasAvatar: true,
                           label,
                         })),
@@ -372,6 +378,7 @@ function buildAccountView(data: Record<string, unknown>): McpCardView {
             : []),
         ],
         {
+          avatarUrl: safeCardUrl(text(profile, 'organizationLogoUrl')),
           hasAvatar: true,
           id: text(profile, 'organizationId'),
           status: words(text(profile, 'role')),
@@ -460,23 +467,7 @@ function buildBrandsView(data: Record<string, unknown>): McpCardView {
 }
 
 /**
- * Signed logo URLs belong to the card, not to the model: they are long and
- * expire. The card view is built first, then the logos leave the data.
- */
-export function withoutBrandLogos(data: Record<string, unknown>) {
-  const strip = (value: unknown) => {
-    const { logo: _logo, ...rest } = record(value);
-    return rest;
-  };
-  return {
-    ...data,
-    ...(Array.isArray(data.brands) ? { brands: data.brands.map(strip) } : {}),
-    ...(data.brand ? { brand: strip(data.brand) } : {}),
-  };
-}
-
-/**
- * `get_orgs` / `switch_org`: the organization dropdown plus the brands of the
+ * `get_orgs`: the organization dropdown plus the brands of the
  * organization the connection works inside. Identifiers stay in the
  * structured data; the card shows names.
  */
@@ -888,7 +879,7 @@ export function buildCardView(
   const data = record(payload);
   if (name === 'get_account') return buildAccountView(data);
   if (name === 'get_brands') return buildBrandsView(data);
-  if (name === 'get_orgs' || name === 'switch_org') {
+  if (name === 'get_orgs') {
     return buildOrganizationsView(data);
   }
   if (name === 'get_brand_publishing_readiness') {
@@ -991,7 +982,7 @@ export function withCardResult<T extends McpAppResult>(
     ...result,
     structuredContent: {
       ...result.structuredContent,
-      ...(name === 'get_brands'
+      ...(name === 'get_brands' || name === 'get_account'
         ? { data: withoutBrandLogos(record(result.structuredContent.data)) }
         : {}),
       genfeedCards: view,

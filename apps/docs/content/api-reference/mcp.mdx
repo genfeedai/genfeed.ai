@@ -66,7 +66,7 @@ not in the Genfeed container's `.env`:
 
 ```bash
 export GENFEED_API_KEY=gf_live_xxx
-codex mcp add genfeed --url 'http://localhost:3014/mcp?profile=studio' --bearer-token-env-var GENFEED_API_KEY
+codex mcp add genfeed --url 'http://localhost:3014/mcp' --bearer-token-env-var GENFEED_API_KEY
 ```
 
 To enter the key without putting its value in shell history:
@@ -83,7 +83,7 @@ You can also add the server in your user-level `~/.codex/config.toml`:
 
 ```toml
 [mcp_servers.genfeed]
-url = "http://localhost:3014/mcp?profile=studio"
+url = "http://localhost:3014/mcp"
 bearer_token_env_var = "GENFEED_API_KEY"
 ```
 
@@ -231,8 +231,9 @@ configuration, so they must be reachable from the browser doing the sign-in.
 
 ## Create a brand from a URL
 
-Organization owners and admins can call `create_brand_from_url` with an HTTP or
-HTTPS `url`, an optional `label`, and optional `approve` (default `false`). A
+Organization owners and admins can call `setup_brand(action=onboard)` with
+`input: { action: "create_from_url", url, label, approve }`: an HTTP or HTTPS
+`url`, an optional `label`, and optional `approve` (default `false`). A
 successful scan returns the brand id, revision id, draft or approved revision
 status, completeness score, incomplete fields, and `reviewUrl`. Review the guide
 at that URL before generating content. Set `approve: true` only when you want to
@@ -241,27 +242,27 @@ approve the guide in the same call.
 URL checks time out after eight seconds and reject blocked destinations before
 creating a brand. If processing takes more than twenty seconds after creation,
 the response includes `brandId`, `reviewUrl`, and `scanStatus: running`. Poll
-`get_brand_scan_status` with that `brandId` for the current guide and completeness.
+`get_context(action=brand_scan_status)` with that `brandId` for the current guide and completeness.
 If voice analysis is unavailable, the completed response includes
-`voiceAnalysis: unavailable`. Both tools are available in the `brand` toolset
-and in agent chat. The scan uses the model provider keys you configured; see
+`voiceAnalysis: unavailable`. Both calls are listed on every connection
+and are available in agent chat. The scan uses the model provider keys you configured; see
 [Provider API Keys](/self-host/provider-api-keys).
 
 ## Social accounts, brand scope, and media
 
-Use `get_brands` then pass `brandId` into generation and connection tools.
-`brandId` is required on `generate`, `generate_content`, `generate_turbo_content`,
-`enhance_prompt` and `transform_media`, even when you own one brand: a call
+Use `get_context(action=brands)` then pass `brandId` into generation and connection tools.
+`brandId` is required on `generate_media(action=media)`, `generate_text(action=content)`, `generate_text(action=turbo)`,
+`generate_text(action=enhance)` and `generate_media(action=transform)`, even when you own one brand: a call
 without it returns `brand_required` and your brand list. Genfeed does not silently
 pick a brand.
 
-`connect_social_account` returns a `connectionId` and a browser authorization URL.
-Poll `get_connection_status` with that id. Provider denial or failure is stored
+`setup_brand(action=connect_account)` returns a `connectionId` and a browser authorization URL.
+Poll `check_channel(action=connection_status)` with that id. Provider denial or failure is stored
 on that row immediately (`denied` / `failed`); do not wait for the 15-minute
 expiry. Replay the same id after a client restart; it does not create another
 credential.
 
-An image `generate` call returns structured artifact metadata plus a native image part when
+An image `generate_media(action=media)` call returns structured artifact metadata plus a native image part when
 the client supports it, with a text fallback. Video results are downloadable files
 or open links; they do not claim inline playback. `selectedContext` is task-only
 and is not saved as Knowledge.
@@ -271,13 +272,13 @@ and `gf status <id>`; see [CLI](/api-reference/cli).
 
 ## Avatar video and personal voices
 
-`generate` with `type: "avatar"` renders a talking-head video of the brand's
+`generate_media(action=media)` with `type: "avatar"` renders a talking-head video of the brand's
 saved identity (its default avatar and voice). `prompt` is the topic Genfeed
 writes a spoken script for; with `isVerbatim: true` it is spoken exactly as
 written. `aspectRatio` defaults to `9:16`, and `voiceId` swaps the brand default
 voice for a saved one. The call follows the [approval rules](#approvals) of other
 paid generation, is billed per second of the rendered clip, and returns the Library
-video id: poll it with `get_job_status`.
+video id: poll it with `check_job(action=job)`.
 
 Personal voices belong to the organization's own connected ElevenLabs account;
 nothing falls back to a platform account.
@@ -287,9 +288,9 @@ nothing falls back to a platform account.
   the connected account (`q` searches, `pageToken` pages) and reports
   `connection.status`; a `disconnected` account returns no voices and says to
   connect it in Genfeed.
-- `get_generation_options` with `type: "voice"` returns the same saved voices and
+- `get_generation_catalog(action=options)` with `type: "voice"` returns the same saved voices and
   whether an account is connected.
-- `set_generation_settings` with `scope: "brand"` and `defaultVoice` (`voiceId`
+- `setup_brand(action=generation_settings)` with `scope: "brand"` and `defaultVoice` (`voiceId`
   for a saved voice, or `externalVoiceId` to first save a voice from the
   connected account) makes the voice the brand default.
 
@@ -303,7 +304,7 @@ Library.
 
 1. Upload a 15 s to 10 min video of yourself facing the camera with
    `upload_media`. Only your own uploads can be used.
-2. `transform_media` with `operation: "digital_twin"` and `videoId` sends the
+2. `generate_media(action=transform)` with `operation: "digital_twin"` and `videoId` sends the
    video to HeyGen and starts training. It follows the
    [approval rules](#approvals) of other media transforms. The result has the twin and a `consentLink`: the
    person on camera opens it and records a short consent statement on HeyGen's
@@ -313,16 +314,16 @@ Library.
    `failure` and a plain `nextStep`. The twin can be used only when `status` is
    `READY`.
 4. If the consent link expired (links last 24 hours) or HeyGen declined the
-   consent, `transform_media` with `operation: "digital_twin_consent"` and
+   consent, `generate_media(action=transform)` with `operation: "digital_twin_consent"` and
    `twinId` returns a new link.
-5. `set_generation_settings` with `scope: "brand"` and
+5. `setup_brand(action=generation_settings)` with `scope: "brand"` and
    `defaultAvatar: { twinId }` makes a ready twin the brand's default avatar and
    its voice the default voice (`isTwinVoiceUsed: false` keeps the current
-   voice). `generate` with `type: "avatar"` then renders with it.
+   voice). `generate_media(action=media)` with `type: "avatar"` then renders with it.
 
 ## Brand context
 
-`get_brand_context` returns what Genfeed's own agent is given about a brand in
+`get_context(action=brand_context)` returns what Genfeed's own agent is given about a brand in
 chat: identity, guidelines, voice (including writing rules and real example
 posts), strategy and topics, custom instructions, prompt seeds, performance
 insights, proven patterns, Brand Knowledge, recent posts, saved memories,
@@ -346,20 +347,20 @@ The same snapshot is shown in **Brand settings → Agent context**
 
 ### Brand Kit edits
 
-Connect to `/mcp?toolsets=brand,brand-kit` to read and edit a Brand Kit. On the
+Connect to `/mcp` and call `setup_brand(action=brand_kit)` to read and edit a Brand Kit. On the
 standard MCP OAuth consent screen, select one brand and check **Allow Brand Kit
 edits**. Reconnect to add this permission to an existing connection. A signed-in
 Genfeed session can also use the tools within its existing brand access.
 
-1. Call `get_brand_completeness` with the selected `brandId` to find gaps.
-2. Call `manage_brand_kit` with `brandId`, `action`, and `fields`. Use
+1. Call `get_context(action=brand_completeness)` with the selected `brandId` to find gaps.
+2. Call `setup_brand(action=brand_kit)` with `brandId`, `action`, and `fields`. Use
    `visual_identity` for colors and fonts, `writing_voice` for tone and writing
    guidance, or `strategy` for goals, platforms, and cadence. Visual edits
    require an organization owner or admin. Use the upload tools to change assets.
-3. For an AI-drafted voice profile, call `draft_brand_voice_profile` with the
+3. For an AI-drafted voice profile, call `setup_brand(action=voice_draft)` with the
    explicit `brandId`. Review the one-credit draft before passing its
-   `voiceProfile` to `save_brand_voice_profile` for the same brand.
-4. Call `get_brand_completeness` again and open **Settings → Brand Kit** to see
+   `voiceProfile` to `setup_brand(action=voice_save)` for the same brand.
+4. Call `get_context(action=brand_completeness)` again and open **Settings → Brand Kit** to see
    the saved values.
 
 ## Prompt enhancement
@@ -368,7 +369,7 @@ Generation through MCP uses the same prompt enhancement as Studio and the
 in-app agent. It is **on by default** for image and video, and it applies the
 brand's guidelines plus any hosted harness packs.
 
-**It is never silent.** Every `generate` result says what was sent to the model:
+**It is never silent.** Every `generate_media(action=media)` result says what was sent to the model:
 
 - the result text shows `Prompt enhancement: applied` or `skipped`, the setting
   it followed (`default`, `organization setting`, `brand setting` or `this call`),
@@ -381,19 +382,19 @@ brand's guidelines plus any hosted harness packs.
 If enhancement is on and fails, the call stops before any provider is billed.
 It does not fall back to your raw prompt.
 
-**Turn it off for one call** with `harness: false` on `generate`. The provider
+**Turn it off for one call** with `harness: false` on `generate_media(action=media)`. The provider
 then receives your prompt unchanged and the result reports `skipped`.
 `harness: true` forces it on for that call.
 
-**Change the default** with `set_generation_settings`: `scope` is
+**Change the default** with `setup_brand(action=generation_settings)`: `scope` is
 `organization` or `brand` (a brand also needs `brandId`), and `isEnabled` is
 `true`, `false`, or `null` to reset to inherit. A call overrides the brand,
 a brand overrides the organization, and the organization overrides the default
-(on). `get_generation_options` with a `brandId` shows the effective setting and
+(on). `get_generation_catalog(action=options)` with a `brandId` shows the effective setting and
 where it came from. Changes show up in the app's **Prompt enhancement settings**.
 
-**Preview before you spend.** `enhance_prompt` returns the enhanced prompt
-without creating media. Pass that text to `generate` with `harness: false` to
+**Preview before you spend.** `generate_text(action=enhance)` returns the enhanced prompt
+without creating media. Pass that text to `generate_media(action=media)` with `harness: false` to
 submit exactly what you reviewed.
 
 Client skills such as `image-prompt-engineer` stay optional. If one already
@@ -403,24 +404,23 @@ rewrote your prompt, send `harness: false` so it is not enhanced twice.
 
 The presets you see in Studio and the Storyboard are readable over MCP. Both
 tools are read only: nothing is generated and no credits are spent. They are in
-the `inspiration` toolset, so they are not on the bare MCP URL; add
-`?toolsets=inspiration` (see [Toolsets](#toolsets)).
+`get_generation_catalog(action=presets)` and `get_generation_catalog(action=preset)`.
 
-- `get_presets` lists presets with a key, kind, label and description. `kind` is
+- `get_generation_catalog(action=presets)` lists presets with a key, kind, label and description. `kind` is
   `image`, `image-edit`, `video`, `storyboard`, `ad`, `playbook` or
   `cinematic-short`. Pass `kind` or `search` to narrow the list.
-- `get_preset` reads one preset by key. For a `cinematic-short` it returns the
+- `get_generation_catalog(action=preset)` reads one preset by key. For a `cinematic-short` it returns the
   slots to fill and a worked example. Pass `slots` (and optionally `brandName`)
   to also get the compiled prompt, the timed shot plan in whole frames, the
   negative prompt and the sound spec. Slots are only compiled for cinematic
   shorts.
 
-Pass the compiled prompt to `generate`. Approval and credits stay on that call.
+Pass the compiled prompt to `generate_media(action=media)`. Approval and credits stay on that call.
 
 ## Publishing readiness
 
 Before scheduling, call `check_channel` with `action: capabilities` and
-`get_brand_publishing_readiness` for the selected brand. A connected account
+`check_channel(action=readiness)` for the selected brand. A connected account
 alone does not make its channel schedulable. Readiness combines credential
 health with the canonical scheduler capability catalog.
 
@@ -449,7 +449,7 @@ shared `RateLimitService` window). JSON-RPC `error.code` stays numeric.
 | `rate_limited` | `RateLimitService`, or an upstream `429` | none | `retryAfterSeconds` when the limiter reported a wait |
 | `validation_failed` | REST `ValidationPipe` / `ErrorResponse.validationFailed` field errors, or a missing required tool argument | none | `errors[]` of `{ field, message }` |
 | `approval_pending` | `mutationPolicy: 'approval-required'` queued the write instead of running it | `/publishing/approvals` | `approvalId`, `toolName`, `approvalStatus`, `canResolveApproval` |
-| `brand_required` | A generation tool (`generate`, `generate_content`, `generate_turbo_content`, `enhance_prompt`, `transform_media`) was called without `brandId` | none | `brands[]` of `{ id, label }`, the caller's brands |
+| `brand_required` | A generation tool (`generate_media(action=media)`, `generate_text(action=content)`, `generate_text(action=turbo)`, `generate_text(action=enhance)`, `generate_media(action=transform)`) was called without `brandId` | none | `brands[]` of `{ id, label }`, the caller's brands |
 
 `message` is always set. `retryAfterSeconds` and `nextStepUrl` are omitted
 when they do not apply; `rate_limited` does not invent a URL. Paths are app
@@ -463,7 +463,7 @@ ever picked for you.
 ## Approvals
 
 "Require approval for MCP requests" is off by default for every organization and
-member, so credit-spending calls such as `generate` run straight away. An owner
+member, so credit-spending calls such as `generate_media(action=media)` run straight away. An owner
 or admin can turn it on in Settings, Organization, and a member can turn it on
 for themselves in Settings, Personal. A call waits in the approvals queue as soon
 as either switch is on. Credit balance checks and quotes always apply, and
@@ -483,130 +483,96 @@ Each call uses the permissions on the authorized token or key.
 Generation tools call the model providers whose keys you configured; see
 [Provider API Keys](/self-host/provider-api-keys).
 
-## Toolsets
+## Tools and organizations
 
-The bare endpoint uses the `default` profile. Profiles shape the advertised
-`tools/list` selection:
+Every connection lists the same tools, at most 30 for an ordinary user (the
+list is checked in CI). Nothing needs selecting: `?toolsets=`, `?profile=` and
+`?app=` are no longer read, and an old URL that still carries them connects and
+gets the same list. The Claude connector at `/mcp/claude` keeps its fixed,
+smaller list.
 
-| Endpoint selector | Advertised toolsets |
+Most tools take an `action` and one `input` object, so one tool covers a family
+of operations. Permissions and approvals are checked on the call, whatever is
+listed.
+
+| Tool | Actions |
 | --- | --- |
-| No selector or `?profile=default` | `core`, `generation`, `content`, `scheduler`, `articles`, and `insights` (`get_trends` and `get_analytics`), hard-capped at 30 tools. |
-| `?profile=directory` | The same bounded selection, with `generation`, `clipper`, and `ui` excluded. This profile does not imply directory approval. |
-| `?profile=studio` | The default selection plus `brand` and `analytics`, capped at 43 tools. Generation, content, scheduling, brand and analytics, without ads tools. Codex installs use this profile. |
-| `?profile=full` | All toolsets, subject to the caller's permissions. |
+| `get_context` | `account`, `brands`, `organizations`, `brand_context`, `brand_completeness`, `brand_scan_status` |
+| `setup_brand` | `onboard`, `interview_*`, `connect_account`, `connect_oauth`, `brand_kit`, `voice_draft`, `voice_save`, `generation_settings` |
+| `generate_text` | `content`, `turbo`, `repurpose`, `enhance` |
+| `generate_media` | `media`, `transform`, `model_3d`, `visual_code*`, `plan_*` and `start_*` for video, slideshow and long form |
+| `check_job` | `job`, `model3d`, `visual_code_project`, `workflow_run`, `workflow_status` |
+| `get_generation_catalog` | `options`, `presets`, `preset`, `storyboard_capabilities`, `visual_code_catalog`, `visual_code_quote` |
+| `get_content` | `posts`, `release`, `articles`, `article_preview` |
+| `save_post` | `post`, `article`, `article_update`, `campaign`, `track_link` |
+| `schedule_release`, `control_release` | `create`, `update`; `control`, `publish` |
+| `check_channel` | `capabilities`, `validate`, `readiness`, `connection_status`, `linkedin_connection` |
+| `upload_media` | `request`, `complete` |
+| `get_insights` | `overview`, `content`, `video`, `linkedin`, `performance`, `trends` |
+| `get_ads` | Meta, Google and TikTok accounts, campaigns, insights, top performers, research |
+| `get_knowledge`, `manage_knowledge` | read and search; capture, assign purpose, archive, retry |
+| `get_workspace`, `manage_workspace` | tasks, activity, inbox, review queue, conversations; new task, task update, chat |
+| `manage_social` | `draft_reply`, `approve_draft`, `reject_draft`, `reply`, `dm`, `assign`, `tag`, `resolve` |
+| `find_workflows`, `manage_workflow` | list, templates, runs, inspect; create, duplicate, install, schedule, execute |
+| `get_video_projects`, `run_video_project` | clip and editor projects; create, analyze, run, recut, render |
+| `find_inspiration`, `save_remix`, `run_remix` | Instagram and X inspiration; import and edit a saved concept; quote, start, control |
+| `manage_skill` | `create`, `fork`, `publish`, `rollback`, `archive`, `export`, `verify_pro`, `install_pro` |
+| `find_tools`, `get_assets` | discover tools; browse the Library |
 
-### Add an app with `?app=`
+A retired tool name (`get_brands`, `create_post`, `generate_content` and so on)
+fails at once and names the tool and action that replaces it.
 
-`?app=` adds the tools behind a Genfeed app to whatever the rest of the URL
-selects (the default, `?profile=`, or `?toolsets=`). It is additive and accepts
-several names, so `?profile=studio&app=clipper,motion` is the studio set plus
-Clipper and Motion. Added apps are not counted against the profile caps.
-`?profile=full` already includes everything.
+### Several organizations on one connection
 
-| App | Toolsets it adds |
-| --- | --- |
-| `agent` | `agent-chat` |
-| `analytics` | `analytics`, `insights` |
-| `automation` | `workflows` |
-| `clipper` | `clipper` |
-| `editor` | `editor` |
-| `discovery` | `ads`, `inspiration` |
-| `library`, `playground` | `generation` |
-| `messages` | `social-inbox` |
-| `motion` | `visual-code` |
-| `publishing` | `articles`, `content`, `onboarding`, `scheduler` |
-| `storyboard` | `inspiration` |
-| `turbo` | `content` |
-| `workspace` | `workspace` |
+A connection can cover several organizations (the OAuth consent screen offers
+**All organizations**). Such a connection has no default organization:
+
+- Call `get_context(action=organizations)` to list the organizations with their
+  ids, slugs and brands.
+- Every other tool takes an `organization` argument (name, slug or id). A call
+  without it is refused with `organization_required` and the same list. Pass it
+  together with the `brandId` of that organization's brand.
+- A result that creates or changes something names the organization and the
+  brand it acted in, and approvals show both.
+- `find_tools`, `resolve_approval` (listed on admin connections only) and
+  `get_context(action=organizations)` do not need it.
+- A connection limited to one organization works inside it. Leave `organization`
+  out there; naming one is refused.
 
 ### Workspace review and tasks
 
-Connect to `/mcp?toolsets=workspace` for `get_review_queue` and `manage_task`.
+`get_workspace(action=review_queue)` and `manage_workspace(action=task)`:
 
-- `get_review_queue` returns the ready Turbo items from the latest visible batch
+- `get_workspace(action=review_queue)` returns the ready Turbo items from the latest visible batch
   and the pending workflow gates and MCP approvals from Publishing → Approvals.
   Pass `brandId` to choose a brand or `turboRunId` to inspect another visible batch.
   Batch queries support an optional item `status` filter. Review decisions stay
   in Genfeed.
-- `manage_task` takes an `action` and an `input` containing `taskId`.
+- `manage_workspace(action=task)` takes an `input` containing `taskId` and an `action`.
   Use `update` to change task fields such as `status` or `assigneeUserId`,
   `comment` with a Markdown `body`, or `complete` to move the task to Done
   through the same status rules as Workspace → Tasks.
 
-`brand`, `engagement`, `knowledge`, and `skills-pro` have no app; select them
-with `?toolsets=`. An unknown app name returns HTTP 400 listing the valid
-names. The Claude connector at `/mcp/claude` keeps its fixed tool list.
-
-To expose the available content journey, including generation and analytics,
-select these toolsets explicitly:
-
-```text
-http://localhost:3014/mcp?toolsets=content,generation,analytics,brand,scheduler,articles
-```
-
-- **`core` is always included** and cannot be excluded. It holds discovery and
-  account/status tools.
-- **A nonempty `toolsets` selection wins over `profile`.** Use comma-separated,
-  kebab-case toolset names.
-- **Absent or blank `toolsets` uses the selected profile**, or `default` when
-  no profile is supplied. For example, `?toolsets=&profile=full` selects all
-  toolsets; `?toolsets=` alone uses `default`.
-- **Unknown toolset names, or an unknown profile when profile selection applies,
-  return HTTP 400** before authentication, including public discovery requests.
-- **`tools/call` permissions are unchanged.** A tool outside the advertised
-  selection can still be called directly by name if the token permits it.
-  Discovery selectors do not grant authorization or bypass approval checks.
-
-### Available toolsets
-
-| Toolset | Description |
-| --- | --- |
-| `core` | Account basics and tool discovery. Always included on every connection regardless of the requested toolsets. |
-| `content` | Posts, articles, the content calendar, repurposing, X post activity, and LinkedIn and article generation through `generate_content`. |
-| `scheduler` | Scheduled release lifecycle and channel scheduling capability discovery. |
-| `generation` | Image, video, music, voice, and avatar generation, media transforms (edit, reframe, upscale, merge), generation options, plus listing generated media. |
-| `workflows` | Workflow creation, execution, scheduling, and template management. |
-| `insights` | The two headline reads, `get_trends` and `get_analytics`. Included in the default profile, and selecting `analytics` includes it. |
-| `analytics` | Content, video, and LinkedIn analytics and performance analysis, plus the `insights` reads. |
-| `social-inbox` | Social conversation triage: replies, approvals, direct messages, and account activity. |
-| `brand` | `create_brand_from_url`, `get_brand_scan_status`, brand identity, completeness, publishing readiness, the brand interview flow, and the `get_brand_context` snapshot. |
-| `ads` | Meta, Google, and TikTok ad account, campaign, and insight tools. |
-| `inspiration` | Instagram and TikTok inspiration and top-performer discovery. |
-| `clipper` | Clip project creation, analysis, and highlight extraction from source video. |
-| `knowledge` | Capture, search, and manage brand knowledge sources. |
-| `agent-chat` | Chat with the account and coordinate work across agents: send messages, list and transfer conversations, and request assets from another agent. |
-| `skills-pro` | Verify and install Skills Pro packs. |
-
 ### Saved remix handoff
 
-Imported-post remix is not on the bare MCP URL. Reconnect with an explicit
-profile so discovery includes the inspiration, content, generation, analytics,
-brand, and scheduler toolsets:
-
-```text
-http://localhost:3014/mcp?toolsets=inspiration,content,generation,analytics,brand,scheduler
-```
-
-`core` is still added automatically. The bare URL keeps the `default` profile
-and its 30-tool cap, which does not advertise these actions; use
-`?profile=full` to list every tool.
+Imported-post remix uses `save_remix` and `run_remix`, which every connection lists.
 
 Call the actions in this order. Saving, importing, reading, editing, attaching,
 and quoting never dispatch generation, publish, or add brand Knowledge.
 
-1. `import_source_post`: public X, Instagram, or TikTok URL plus explicit
+1. `save_remix(action=import_source)`: public X, Instagram, or TikTok URL plus explicit
    `brandId`. Approval is required. Unsupported, private, or missing inputs fail
    closed. The result is the imported source identity and whether it was reused.
-2. `create_remix_concept`: `brandId` and `sourcePostId`. Creates or reuses the
+2. `save_remix(action=concept)`: `brandId` and `sourcePostId`. Creates or reuses the
    canonical saved concept and returns its current revision.
-3. `update_remix_concept`: `runId`, `expectedRevision`, and at least one edit.
+3. `save_remix(action=concept_update)`: `runId`, `expectedRevision`, and at least one edit.
    A stale revision fails instead of overwriting.
-4. `attach_remix_analysis_source`: optional, for video or avatar output.
+4. `save_remix(action=attach_source)`: optional, for video or avatar output.
    Pass a same-brand Library video id, or `null` to clear it. The Library video
    is the analyzed media. The imported post URL, author, and selector stay
    provenance.
-5. `quote_remix_generation`: persists an exact quote for `expectedRevision`
-   and does not start work. Read it back with `get_remix_run` before approval.
+5. `run_remix(action=quote)`: persists an exact quote for `expectedRevision`
+   and does not start work. Read it back with `run_remix(action=status)` before approval.
    Image and copy accept only `operation: "generate"` and reject scene or repair
    fields. Image requires a registered image `model`; `crun/` models do not
    support remix quotes and are rejected. Copy rejects a caller `model` and uses
@@ -614,12 +580,12 @@ and quoting never dispatch generation, publish, or add brand Knowledge.
    `analysis`, `generate`, or `repair` on the scene pipeline. A quote expires 15
    minutes after it is saved. Provider, model, BYOK, source, or recipe changes
    require a new quote.
-6. `start_remix_generation`: approval-required. Pass the persisted `quoteId`
+6. `run_remix(action=start)`: approval-required. Pass the persisted `quoteId`
    and the same revision. A repeated accepted call returns the same canonical
    run and does not start the attempt again.
-7. `get_remix_run`: safe reconnect. Returns revision, lineage, quotes, receipts,
+7. `run_remix(action=status)`: safe reconnect. Returns revision, lineage, quotes, receipts,
    and artifacts without starting another run.
-8. `control_remix_generation`: approval-required `cancel` or `resume` for an
+8. `run_remix(action=control)`: approval-required `cancel` or `resume` for an
    existing video or avatar scene pipeline. Image and copy have no control
    action.
 
@@ -628,31 +594,19 @@ execute through the scene pipeline. Single-scene legacy video or avatar start
 is not an unquoted shortcut. Live native-client acceptance, paid provider
 calls, and real publishing are not claimed here.
 
-### Discover tools outside your selection
+### Discover a tool
 
-One read-only meta tool, always in `core`, lets an agent find a tool that
-isn't in its current selection. `find_tools` takes `{ name?, query?, toolset?, limit? }`:
+The read-only `find_tools` takes `{ name?, query?, limit? }`:
 
-- **No arguments**: every toolset available on this server, with tool counts.
-- **`query` and/or `toolset`**: case-insensitive substring search over tool
-  name, description, and toolset.
-- **`name`**: the full tool definition for one name, including the closest
-  name matches when the name isn't found.
+- **No arguments**: every tool this connection lists, with its actions.
+- **`query`**: case-insensitive substring search over tool name, description and
+  action name. A retired tool name finds the tool that replaced it.
+- **`name`**: the full definition of one tool, including the closest name
+  matches when the name isn't found.
 
-These search the full, role-filtered catalog regardless of the caller's
-current toolset selection. Once an agent has a tool's name and schema from
-`find_tools`, it can call that tool directly with `tools/call` (narrowing
-`tools/list` only narrows discovery, not what can be invoked) or reconnect
-with a broader `?toolsets=` selection so the tool appears in future
-`tools/list` responses.
-
-### Connect with a toolset selection
-
-The toolset selector applies to the standard connector. Claude uses the fixed `/mcp/claude` catalog.
-
-```bash
-codex mcp add genfeed --url 'http://localhost:3014/mcp?toolsets=content,generation,analytics,brand,scheduler,articles' --bearer-token-env-var GENFEED_API_KEY
-```
+Discovery returns descriptions; it does not install a tool into the client's
+callable tool list. If the client cannot call a listed tool, refresh its MCP
+tool list or reconnect to the same server URL.
 
 ## Skills
 
@@ -662,14 +616,14 @@ knowledge to use them well. Install the catalog with
 
 ## Add Library media to generated copy
 
-1. Select a brand with `get_brands`. Call `generate_content` for social copy.
+1. Select a brand with `get_context(action=brands)`. Call `generate_text(action=content)` for social copy.
    It saves a reviewable draft and returns `postId`, `content`, and `receiptId`
    in `structuredContent.data`.
 2. Find a hosted Library image or video URL with `get_assets` or `upload_media`.
-   Call `create_post` with the returned `postId`, the same `brandId`, and the
+   Call `save_post(action=post)` with the returned `postId`, the same `brandId`, and the
    URLs in `mediaUrls`. This updates the original draft's media in the order
    supplied and keeps its text, title, visibility, and generation receipt.
-3. Call `get_posts` with the same `postId` to read back the draft, including
+3. Call `get_content(action=posts)` with the same `postId` to read back the draft, including
    its media and `receiptId`. Retrying the attachment updates the same draft.
 
 If the draft is unavailable to edit or the media fails validation, the call
@@ -677,7 +631,7 @@ fails. Omit `postId` to create a new draft from supplied text or Library media.
 
 ## Uploading local media
 
-The default MCP profile includes `upload_media` and `get_posts`. Select a brand before reserving an upload.
+Every connection lists `upload_media` and `get_content(action=posts)`. Select a brand before reserving an upload.
 
 1. Call `upload_media` with `action: request` and `input: { filename, contentType, category }`.
 2. Upload to the returned `uploadUrl` before it expires. For `method: PUT`, send
@@ -685,22 +639,22 @@ The default MCP profile includes `upload_media` and `get_posts`. Select a brand 
    send the returned `localUpload` object as JSON, adding the base64-encoded file
    bytes as `localUpload.source.data`. Respect the returned file constraints.
 3. Call `upload_media` with `action: complete` and `input: { assetId }`. Its `media` entries
-   can be passed to `create_scheduled_release`; a returned hosted `url` can also
-   be used in `create_post` `mediaUrls`. Scheduling retains its approval checks.
-4. Use `get_posts` with `postId` to read a post's targets, state, media, and timestamps.
+   can be passed to `schedule_release(action=create)`; a returned hosted `url` can also
+   be used in `save_post(action=post)` `mediaUrls`. Scheduling retains its approval checks.
+4. Use `get_content(action=posts)` with `postId` to read a post's targets, state, media, and timestamps.
 
 Upload reservation creates a pending asset. Both upload actions are non-destructive
-writes; `get_posts` is read-only. None of these tools publishes a post.
+writes; `get_content(action=posts)` is read-only. None of these tools publishes a post.
 
 ## Interactive content cards
 
 MCP Apps hosts can render Genfeed content directly in the conversation:
 
-- **Content calendar:** `get_posts` with `days`, shown as one column per day, with open days and the drafts count.
+- **Content calendar:** `get_content(action=posts)` with `days`, shown as one column per day, with open days and the drafts count.
 - **Post previews:** platform, status, copy and media. Generated caption variations appear once each in a responsive grid; a single result keeps one card.
 - **Images:** compact previews with expand and open controls; metadata stays out of the primary view.
 - **Video and audio players.**
-- **Running generations:** a progress state that re-reads `get_job_status` until the media is ready.
+- **Running generations:** a progress state that re-reads `check_job(action=job)` until the media is ready.
 - **Article cards.**
 
 Account lookups return a readable message with setup status, role, credits, and
@@ -715,7 +669,7 @@ The MCP server serves a self-contained HTML resource at
 `text/html;profile=mcp-app`. Selected tool descriptors link it through
 `_meta.ui.resourceUri`. They also carry the legacy `ui/resourceUri` key and the
 ChatGPT `openai/outputTemplate` alias. The widget uses the standard MCP Apps
-JSON-RPC bridge, and its only tool call is the read-only `get_job_status`.
+JSON-RPC bridge, and its only tool call is the read-only `check_job(action=job)`.
 The resource bundles Genfeed's shared Card, Button, Badge, typography, media
 players and Dialog components with the product stylesheet and Satoshi served from the MCP origin. Its content
 hash changes when shared UI, styles or the font change, invalidating host caches.
@@ -745,7 +699,7 @@ authorizes separately and carries the generation tools.
 This is a custom connector; Genfeed is not yet submitted or published in the public Claude directory.
 Existing connections to `/mcp` retain their original capabilities.
 
-The restriction is bound to the OAuth resource, persists across token refresh and is enforced on execution and discovery. Changing the toolset/profile or using the Claude token on `/mcp` does not enable generation; a separate connection to `/mcp` has its own grant. Workflows, Turbo runs, remix, arbitrary agent calls and approval redemption are unavailable through this connector. Other clients use the standard `/mcp` connector.
+The restriction is bound to the OAuth resource, persists across token refresh and is enforced on execution and discovery. Using the Claude token on `/mcp` does not enable generation; a separate connection to `/mcp` has its own grant. Workflows, Turbo runs, remix, arbitrary agent calls and approval redemption are unavailable through this connector. Other clients use the standard `/mcp` connector.
 
 ## Troubleshooting
 

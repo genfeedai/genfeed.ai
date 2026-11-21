@@ -21,6 +21,7 @@ export default function SupportCreatorButton({
   articleId,
   className,
   handle,
+  logoUrl,
 }: SupportCreatorButtonProps): React.ReactElement {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -44,6 +45,7 @@ export default function SupportCreatorButton({
         <SupportCreatorModal
           articleId={articleId}
           handle={handle}
+          logoUrl={logoUrl}
           onOpenChange={setIsOpen}
         />
       ) : null}

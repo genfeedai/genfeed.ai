@@ -1,9 +1,9 @@
+import { settle } from '@e2e/utils/interaction-helpers';
 import {
   mockNetworkError,
   mockServerError,
 } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
-import { settle } from '../../utils/interaction-helpers';
 import { expectNoErrorOverlay } from '../../utils/route-assertions';
 
 /**

@@ -19,6 +19,7 @@ import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { TableColumn } from '@props/ui/display/table.props';
 import { AnalyticsMetricLabel } from '@ui/analytics/metric-definition/AnalyticsMetricInfo';
 import Card from '@ui/card/Card';
+import ConnectedAccount from '@ui/display/connected-account/ConnectedAccount';
 import Table from '@ui/display/table/Table';
 import { ErrorFallback } from '@ui/error/ErrorFallback';
 import LoadingState from '@ui/feedback/LoadingState';
@@ -116,6 +117,19 @@ export default function AnalyticsAccountDetail() {
         />
       }
     >
+      {detail ? (
+        <ConnectedAccount
+          account={{
+            avatarUrl: detail.identity.externalAvatar,
+            handle: detail.identity.externalHandle,
+            name: detail.identity.label || detail.identity.externalName,
+            platform: detail.identity.platform,
+          }}
+          className="mb-4"
+          layout="stacked"
+          size="lg"
+        />
+      ) : null}
       <div className="grid gap-4 md:grid-cols-3">
         {(detail?.metrics ?? []).map((metric) => (
           <Card key={metric.metric}>

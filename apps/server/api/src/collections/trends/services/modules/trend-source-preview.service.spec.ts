@@ -571,7 +571,7 @@ describe('TrendSourcePreviewService', () => {
         async () => {
           inFlight += 1;
           peak = Math.max(peak, inFlight);
-          await new Promise((resolve) => setTimeout(resolve, 0));
+          await new Promise((resolve) => setImmediate(resolve));
           inFlight -= 1;
           return [];
         },

@@ -106,7 +106,7 @@ describe('YoutubeService', () => {
     (fs.createWriteStream as Mock).mockReturnValue({
       on: vi.fn().mockImplementation((event, callback) => {
         if (event === 'finish') {
-          setTimeout(callback, 0);
+          setImmediate(callback);
         }
         return this;
       }),
@@ -176,7 +176,7 @@ describe('YoutubeService', () => {
       mockWriter.on.mockImplementation(
         (event: string, callback: () => void) => {
           if (event === 'finish') {
-            setTimeout(callback, 0);
+            setImmediate(callback);
           }
           return mockWriter;
         },

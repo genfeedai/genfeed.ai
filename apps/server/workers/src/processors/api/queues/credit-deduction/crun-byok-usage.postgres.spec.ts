@@ -282,16 +282,18 @@ describe('Crun BYOK usage real Serializable ledger boundaries', () => {
     return { org, id, task, usage, run, assertCount };
   }
   async function waitForBlocked(name: string) {
-    const deadline = Date.now() + 5000;
-    while (Date.now() < deadline) {
-      const waiting = await pool.query<{ blocked: boolean }>(
-        "SELECT EXISTS (SELECT 1 FROM pg_stat_activity WHERE application_name=$1 AND wait_event_type='Lock') AS blocked",
-        [name],
-      );
-      if (waiting.rows[0]?.blocked) return;
-      await new Promise<void>((resolve) => setTimeout(resolve, 5));
-    }
-    throw new Error('SQL barrier was not observed');
+    await vi.waitFor(
+      async () => {
+        const waiting = await pool.query<{ blocked: boolean }>(
+          "SELECT EXISTS (SELECT 1 FROM pg_stat_activity WHERE application_name=$1 AND wait_event_type='Lock') AS blocked",
+          [name],
+        );
+        if (!waiting.rows[0]?.blocked) {
+          throw new Error('SQL barrier was not observed');
+        }
+      },
+      { interval: 5, timeout: 5000 },
+    );
   }
   it.each([0, 3])(
     'valid usage %s commits one ledger and Activity without debit or lease mutation',
@@ -396,7 +398,6 @@ describe('Crun BYOK usage real Serializable ledger boundaries', () => {
     let primaryFailure = false;
     const cleanupErrors: unknown[] = [];
     let update: Promise<unknown> | undefined;
-    let barrierTimer: ReturnType<typeof setTimeout> | undefined;
     try {
       consumer = f.run().catch((error: unknown) => {
         consumerErrors.push(error);
@@ -407,14 +408,7 @@ describe('Crun BYOK usage real Serializable ledger boundaries', () => {
           if (consumerErrors.length) throw consumerErrors[0];
           throw new Error('Consumer finished before proof lock barrier');
         }),
-        new Promise<never>((_resolve, reject) => {
-          barrierTimer = setTimeout(
-            () => reject(new Error('Consumer proof lock barrier not reached')),
-            5000,
-          );
-        }),
       ]);
-      clearTimeout(barrierTimer);
       await mutation.query("SELECT set_config('application_name', $1, false)", [
         mutationApplication,
       ]);
@@ -441,7 +435,6 @@ describe('Crun BYOK usage real Serializable ledger boundaries', () => {
       primaryFailure = true;
       throw error;
     } finally {
-      clearTimeout(barrierTimer);
       resume();
       const settled = await Promise.allSettled([consumer, update]);
       cleanupErrors.push(

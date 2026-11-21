@@ -477,9 +477,7 @@ it('renders posts as a social preview with platform, status and media', () => {
 
   const post = document.querySelector('article.post');
   expect(post?.textContent).toContain('Your Account');
-  expect(
-    post?.querySelector('[role="img"][aria-label="LinkedIn"]'),
-  ).not.toBeNull();
+  expect(post?.textContent).toContain('LinkedIn');
   expect(post?.querySelector('.status')?.textContent).toBe('scheduled');
   expect(post?.querySelector('.description')?.textContent).toBe('Hello world');
 });
@@ -562,6 +560,33 @@ it('polls a pending job through the host and swaps in the finished video', async
   expect(video?.poster).toBe('https://cdn.genfeed.ai/poster.jpg');
   expect(video?.preload).toBe('metadata');
   expect(document.querySelector('[role="progressbar"]')).toBeNull();
+});
+
+it('polls a pending job in the organization its card was created in', async () => {
+  const view = buildCardView('generate', {
+    category: 'VIDEO',
+    id: 'job-1',
+    progress: 40,
+    status: 'PROCESSING',
+  });
+  message('ui/notifications/tool-result', {
+    structuredContent: {
+      genfeedCards: {
+        ...view,
+        cards: view?.cards.map((card) => ({ ...card, organization: 'org-b' })),
+      },
+    },
+  });
+
+  await vi.advanceTimersByTimeAsync(5000);
+  const call = vi
+    .mocked(window.parent.postMessage)
+    .mock.calls.map(([data]) => data as { method?: string; params?: unknown })
+    .find((data) => data.method === 'tools/call');
+  expect(call?.params).toEqual({
+    arguments: { jobId: 'job-1', organization: 'org-b' },
+    name: 'get_job_status',
+  });
 });
 
 it('declares inline and fullscreen display modes at initialization', () => {
@@ -928,8 +953,8 @@ describe('organization switcher', () => {
       )
       .find((data) => data.method === 'tools/call');
     expect(call?.params).toEqual({
-      arguments: { organization: 'org-b' },
-      name: 'switch_org',
+      arguments: { action: 'organizations', organization: 'org-b' },
+      name: 'get_context',
     });
 
     window.dispatchEvent(
@@ -940,7 +965,7 @@ describe('organization switcher', () => {
           id: call?.id,
           result: {
             structuredContent: {
-              genfeedCards: buildCardView('switch_org', {
+              genfeedCards: buildCardView('get_orgs', {
                 activeOrganizationId: 'org-b',
                 brands: [{ id: 'brand-9', label: 'Beta Studio' }],
                 canSwitchOrganizations: true,

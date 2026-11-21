@@ -6,13 +6,13 @@ import { ArticlesService } from '@api/collections/articles/services/articles.ser
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { DEFAULT_MINI_TEXT_MODEL } from '@api/constants/default-mini-text-model.constant';
-import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import {
   assertOrganizationCreditsAvailable,
   resolveTextModelMinimumCredits,
 } from '@api/helpers/utils/credits/organization-credits-gate.util';
 import type { TextByokDispatch } from '@api/services/byok/text-dispatch-byok.util';
 import { TextGenerationCreditsService } from '@api/services/byok/text-generation-credits.service';
+import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 import type { Request } from 'express';
@@ -45,7 +45,7 @@ export class ArticleGenerationCreditsService {
         dto.model,
       );
     const billedModels = [
-      modelConfig.generationModel || DEFAULT_TEXT_MODEL,
+      modelConfig.generationModel || LLM_DEFAULTS.contentWriting,
       modelConfig.reviewModel || DEFAULT_MINI_TEXT_MODEL,
       modelConfig.updateModel || DEFAULT_MINI_TEXT_MODEL,
     ];

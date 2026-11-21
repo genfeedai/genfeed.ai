@@ -120,7 +120,7 @@ describe('OAuthPlatformForm', () => {
       (callback, timeout, ...args) => {
         if (timeout === 3000 && typeof callback === 'function') {
           callback(...args);
-          return 1 as unknown as ReturnType<typeof setTimeout>;
+          return 1 as unknown as ReturnType<typeof globalThis.setTimeout>;
         }
 
         return realSetTimeout(callback, timeout, ...args);

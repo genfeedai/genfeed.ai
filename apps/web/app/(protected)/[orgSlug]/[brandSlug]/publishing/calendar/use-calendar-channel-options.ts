@@ -1,5 +1,7 @@
 import { formatPlatformLabel } from '@genfeedai/contracts';
 import { normalizePostingTimes } from '@genfeedai/contracts/api-types/contracts/credential-posting-times.contract';
+import { toConnectedAccount } from '@genfeedai/helpers/publisher/connected-account.helper';
+import { getConnectedAccountText } from '@ui/display/connected-account/connected-account.util';
 import { useMemo } from 'react';
 import type { CalendarChannelOptionsInput } from '@/features/posts/props/content-calendar-controller.props';
 import type { ReleaseCalendarFilterOption } from '@/props/publisher/release-calendar.props';
@@ -10,15 +12,14 @@ export function useCalendarChannelOptions({
 }: CalendarChannelOptionsInput) {
   const credentialOptions: ReleaseCalendarFilterOption[] = useMemo(
     () =>
-      credentials.map((credential) => ({
-        label:
-          credential.label ||
-          credential.externalName ||
-          credential.externalHandle ||
-          (formatPlatformLabel(credential.platform) ?? credential.platform),
-        platform: credential.platform,
-        value: credential.id,
-      })),
+      credentials.map((credential) => {
+        const account = toConnectedAccount(credential);
+        return {
+          account,
+          label: getConnectedAccountText(account).primary,
+          value: credential.id,
+        };
+      }),
     [credentials],
   );
 

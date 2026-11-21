@@ -141,6 +141,158 @@ describe('OpenRouterService', () => {
       expect(body.stream).toBe(false);
     });
 
+    describe('when the model thinks at medium effort by default', () => {
+      const neon = 'google/gemini-4-neon';
+
+      async function sentReasoning(
+        params: OpenRouterChatCompletionParams,
+      ): Promise<unknown> {
+        httpService.post.mockReturnValueOnce(of(axiosResponse(mockResponse)));
+        await service.chatCompletion(params);
+        const body = httpService.post.mock.calls[0][1] as Record<
+          string,
+          unknown
+        >;
+        return body.reasoning;
+      }
+
+      it('asks for low effort so thinking leaves room in max_tokens', async () => {
+        expect(
+          await sentReasoning({
+            ...defaultParams,
+            max_tokens: 1000,
+            model: neon,
+          }),
+        ).toEqual({ effort: 'low' });
+      });
+
+      it('keeps a reasoning preference the caller set', async () => {
+        expect(
+          await sentReasoning({
+            ...defaultParams,
+            model: neon,
+            reasoning: { effort: 'high' },
+          }),
+        ).toEqual({ effort: 'high' });
+      });
+
+      it('leaves other models alone', async () => {
+        expect(await sentReasoning(defaultParams)).toBeUndefined();
+      });
+    });
+
+    describe('request parameters a model does not list', () => {
+      async function sentBody(
+        params: OpenRouterChatCompletionParams,
+      ): Promise<Record<string, unknown>> {
+        httpService.post.mockReturnValueOnce(of(axiosResponse(mockResponse)));
+        await service.chatCompletion(params);
+        return httpService.post.mock.calls[0][1] as Record<string, unknown>;
+      }
+
+      it.each([
+        'anthropic/claude-sonnet-5.5',
+        'anthropic/claude-haiku-5.5',
+        'openai/gpt-6.1-terra',
+        'openai/gpt-6-luna',
+      ])('leaves temperature out for %s', async (model) => {
+        const body = await sentBody({
+          ...defaultParams,
+          model,
+          temperature: 0.7,
+        });
+
+        expect(body).not.toHaveProperty('temperature');
+      });
+
+      it.each([
+        'google/gemini-4-neon',
+        'x-ai/grok-4.7',
+        'deepseek/deepseek-v4.1-flash-1017',
+      ])('keeps temperature for %s', async (model) => {
+        const body = await sentBody({
+          ...defaultParams,
+          model,
+          temperature: 0.7,
+        });
+
+        expect(body.temperature).toBe(0.7);
+      });
+
+      it('requires listed parameters when the call sends a schema', async () => {
+        const body = await sentBody({
+          ...defaultParams,
+          response_format: {
+            json_schema: { name: 'verdict', schema: { type: 'object' } },
+            type: 'json_schema',
+          },
+        });
+
+        expect(body.provider).toMatchObject({ require_parameters: true });
+      });
+
+      it('does not narrow providers for a plain completion', async () => {
+        const body = await sentBody(defaultParams);
+
+        expect(body.provider).not.toHaveProperty('require_parameters');
+      });
+    });
+
+    describe('when a caller turns reasoning off for a model that cannot', () => {
+      async function sentReasoning(
+        params: OpenRouterChatCompletionParams,
+      ): Promise<unknown> {
+        httpService.post.mockReturnValueOnce(of(axiosResponse(mockResponse)));
+        await service.chatCompletion(params);
+        expect(httpService.post).toHaveBeenCalledTimes(1);
+        const body = httpService.post.mock.calls[0][1] as Record<
+          string,
+          unknown
+        >;
+        return body.reasoning;
+      }
+
+      it('sends Hydrogen at its default effort, with no reasoning field', async () => {
+        expect(
+          await sentReasoning({
+            ...defaultParams,
+            model: 'google/gemini-4-hydrogen',
+            reasoning: { enabled: false },
+          }),
+        ).toBeUndefined();
+      });
+
+      it('sends Neon at low effort instead of the rejected flag', async () => {
+        expect(
+          await sentReasoning({
+            ...defaultParams,
+            model: 'google/gemini-4-neon',
+            reasoning: { enabled: false },
+          }),
+        ).toEqual({ effort: 'low' });
+      });
+
+      it('keeps the flag for a model that can turn reasoning off', async () => {
+        expect(
+          await sentReasoning({
+            ...defaultParams,
+            model: 'x-ai/grok-4.7',
+            reasoning: { enabled: false },
+          }),
+        ).toEqual({ enabled: false });
+      });
+
+      it('keeps an effort the caller chose on Hydrogen', async () => {
+        expect(
+          await sentReasoning({
+            ...defaultParams,
+            model: 'google/gemini-4-hydrogen',
+            reasoning: { effort: 'high' },
+          }),
+        ).toEqual({ effort: 'high' });
+      });
+    });
+
     describe('when the model makes reasoning mandatory', () => {
       const reasoningMandatoryError = Object.assign(
         new Error('Request failed with status code 400'),
@@ -344,6 +496,7 @@ describe('OpenRouterService', () => {
       const params: OpenRouterChatCompletionParams = {
         ...defaultParams,
         max_tokens: 200,
+        model: 'x-ai/grok-4.7',
         temperature: 0.7,
       };
 

@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { toMcpTools } from '../adapters/to-mcp-tool';
+import { toMcpTool } from '../adapters/to-mcp-tool';
 import { getToolByName } from './tool-registry';
 
 describe('MCP schema projection (#7178)', () => {
   const canonical = getToolByName('create_post');
 
   it('hides the app-only create_post fields from the MCP schema', () => {
-    const [tool] = toMcpTools(canonical ? [canonical] : []);
+    const tool = toMcpTool(canonical as NonNullable<typeof canonical>);
     const properties = Object.keys(tool.inputSchema.properties);
 
     for (const hidden of [
@@ -25,7 +25,7 @@ describe('MCP schema projection (#7178)', () => {
   });
 
   it('lists one post text field and no scheduling fields, since a draft never schedules (#10071)', () => {
-    const [tool] = toMcpTools(canonical ? [canonical] : []);
+    const tool = toMcpTool(canonical as NonNullable<typeof canonical>);
     const properties = Object.keys(tool.inputSchema.properties);
 
     for (const inert of [
@@ -43,7 +43,7 @@ describe('MCP schema projection (#7178)', () => {
   });
 
   it('asks for brandId only when the organization has several brands (#10071)', () => {
-    const [tool] = toMcpTools(canonical ? [canonical] : []);
+    const tool = toMcpTool(canonical as NonNullable<typeof canonical>);
 
     expect(tool.inputSchema.required ?? []).not.toContain('brandId');
     expect(tool.inputSchema.properties.brandId).toMatchObject({

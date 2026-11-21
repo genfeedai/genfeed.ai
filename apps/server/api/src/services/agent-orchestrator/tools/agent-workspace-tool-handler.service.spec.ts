@@ -229,6 +229,7 @@ function buildHandler(overrides: {
   credits?: unknown;
   ingredients?: unknown;
   members?: unknown;
+  organizationLogoService?: unknown;
   organizations?: unknown;
   personas?: unknown;
   transactions?: unknown;
@@ -257,6 +258,7 @@ function buildHandler(overrides: {
       overrides.characterFilter as HandlerArgs[8],
       overrides.users as HandlerArgs[9],
       overrides.organizations as HandlerArgs[10],
+      overrides.organizationLogoService as HandlerArgs[11],
     ),
   );
 }
@@ -816,6 +818,95 @@ describe('AgentWorkspaceToolHandler.getAccount', () => {
         userId: 'user-1',
       },
     });
+  });
+
+  it('adds each brand logo to the account profile only when includeLogo is set', async () => {
+    const logo = {
+      category: 'LOGO',
+      cdnUrl: 'https://cdn.example/acme.png',
+      id: 'l1',
+    };
+    const brandDocs = [
+      { id: 'brand-a', label: 'Acme', name: 'Acme', slug: 'acme' },
+      { id: 'brand-b', label: 'Beta', name: 'Beta', slug: 'beta' },
+    ];
+    const handler = buildHandler({
+      brands: {
+        attachBrandKitAssetRelations: vi
+          .fn()
+          .mockResolvedValue([{ ...brandDocs[0], logo }, brandDocs[1]]),
+        findAll: vi.fn().mockResolvedValue({ docs: brandDocs }),
+      },
+    });
+
+    const plain = await handler.getAccount({ include: ['profile'] }, baseCtx);
+    const withLogos = await handler.getAccount(
+      { include: ['profile'], includeLogo: true },
+      baseCtx,
+    );
+
+    expect(
+      (plain.data as { profile: { brands: unknown[] } }).profile.brands,
+    ).toEqual([
+      { id: 'brand-a', name: 'Acme' },
+      { id: 'brand-b', name: 'Beta' },
+    ]);
+    expect(
+      (withLogos.data as { profile: { brands: unknown[] } }).profile.brands,
+    ).toEqual([
+      { id: 'brand-a', logo, name: 'Acme' },
+      { id: 'brand-b', name: 'Beta' },
+    ]);
+  });
+
+  it("gives the account the organization's own logo, else its first brand's", async () => {
+    const logo = {
+      category: 'LOGO',
+      cdnUrl: 'https://cdn.example/acme.png',
+      id: 'l1',
+    };
+    const brandDocs = [
+      { id: 'brand-a', label: 'Acme', name: 'Acme', slug: 'acme' },
+    ];
+    const brands = {
+      attachBrandKitAssetRelations: vi
+        .fn()
+        .mockResolvedValue([{ ...brandDocs[0], logo }]),
+      findAll: vi.fn().mockResolvedValue({ docs: brandDocs }),
+    };
+    const own = buildHandler({
+      brands,
+      organizationLogoService: {
+        resolveLogoUrls: vi
+          .fn()
+          .mockResolvedValue(
+            new Map([['org-1', 'https://cdn.example/org.png']]),
+          ),
+      },
+    });
+    const none = buildHandler({
+      brands,
+      organizationLogoService: {
+        resolveLogoUrls: vi.fn().mockResolvedValue(new Map()),
+      },
+    });
+    const params = { include: ['profile'], includeLogo: true };
+
+    const withOwnLogo = await own.getAccount(params, baseCtx);
+    const withBrandLogo = await none.getAccount(params, baseCtx);
+    const plain = await own.getAccount({ include: ['profile'] }, baseCtx);
+
+    expect(
+      (withOwnLogo.data as { profile: Record<string, unknown> }).profile
+        .organizationLogoUrl,
+    ).toBe('https://cdn.example/org.png');
+    expect(
+      (withBrandLogo.data as { profile: Record<string, unknown> }).profile
+        .organizationLogoUrl,
+    ).toBe('https://cdn.example/acme.png');
+    expect(
+      (plain.data as { profile: Record<string, unknown> }).profile,
+    ).not.toHaveProperty('organizationLogoUrl');
   });
 
   it('reports a zero-brand account instead of omitting the brands (#7176)', async () => {

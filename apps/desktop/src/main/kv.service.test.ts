@@ -61,7 +61,7 @@ describe('DesktopKvService', () => {
     service.setValueSync('offline.mode', '1');
     expect(service.getValueSync('offline.mode')).toBe('1');
 
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    await new Promise((resolve) => setImmediate(resolve));
     expect(prisma.store.get('offline.mode')).toBe('1');
   });
 

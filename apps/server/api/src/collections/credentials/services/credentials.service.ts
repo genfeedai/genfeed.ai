@@ -912,7 +912,7 @@ export class CredentialsService
         }
         assertUrlNotPrivate(profile.avatarUrl);
         const metadata = await this.filesClientService.uploadToS3(
-          credentialId,
+          `${credentialId}-${Date.now()}`,
           'social-avatars',
           {
             type: FileInputType.URL,

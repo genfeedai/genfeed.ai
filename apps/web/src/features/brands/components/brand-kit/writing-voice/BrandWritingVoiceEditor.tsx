@@ -34,7 +34,7 @@ import {
 } from './useBrandWritingProfile';
 
 /**
- * Full-page brand writing voice + agent profile editor (`/settings/brand-kit/voice`).
+ * Full-page brand writing voice + agent profile editor (`/settings/brand-kit#voice`).
  * Not speech/TTS — see Agent Defaults identity for default speaking voice.
  */
 export default function BrandWritingVoiceEditor({

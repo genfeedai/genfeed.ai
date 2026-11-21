@@ -346,7 +346,7 @@ describe('routes.constant', () => {
         'coffee',
         APP_ROUTES.SETTINGS.BRAND_KIT_VOICE,
       ),
-    ).toBe('/acme/coffee/settings/brand-kit/voice');
+    ).toBe('/acme/coffee/settings/brand-kit#voice');
   });
 
   describe('reserved app root segments', () => {

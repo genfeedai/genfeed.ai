@@ -36,7 +36,7 @@ function ProtectedRoot({ isShellMounted }: { isShellMounted: boolean }) {
 
 async function settle() {
   await act(async () => {
-    await new Promise((done) => setTimeout(done, 0));
+    await new Promise((done) => setImmediate(done));
   });
 }
 

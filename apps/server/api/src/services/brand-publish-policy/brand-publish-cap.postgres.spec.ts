@@ -124,6 +124,7 @@ describe.skipIf(!connectionString)(
       brandId: string,
     ): Promise<void> {
       // Slow enough that an unlocked second publish counts before this lands.
+      // biome-ignore lint/style/noRestrictedGlobals: widens the race window against a real Postgres so an unlocked second publish would count first
       await new Promise((resolve) => setTimeout(resolve, 100));
       await client.$executeRaw`INSERT INTO "posts" ("id","brandId","organizationId","scheduledDate","targetExecutionState") VALUES (${randomUUID()},${brandId},${organizationId},${publishAt},${TargetExecutionState.SCHEDULED})`;
     }

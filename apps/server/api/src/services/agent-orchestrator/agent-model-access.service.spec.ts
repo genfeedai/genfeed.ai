@@ -71,9 +71,9 @@ describe('AgentModelAccessService free-tier lock', () => {
   });
 
   it.each([
-    ['a strategy / org override pin', AGENT_CHAT_MODEL_KEYS.CLAUDE_OPUS_5],
+    ['a strategy / org override pin', AGENT_CHAT_MODEL_KEYS.CLAUDE_OPUS_5_5],
     ['a creative agent-type default', LLM_DEFAULTS.creativeAgent],
-    ['a requested frontier model', AGENT_CHAT_MODEL_KEYS.GPT_5_6_SOL],
+    ['a requested frontier model', AGENT_CHAT_MODEL_KEYS.CLAUDE_OPUS_5_5],
     ['the dynamic router', AGENT_CHAT_MODEL_KEYS.OPENROUTER_AUTO],
   ])(
     'locks an unsubscribed org to DeepSeek regardless of %s',
@@ -91,8 +91,8 @@ describe('AgentModelAccessService free-tier lock', () => {
 
     await expect(service.resolveAccess('org-1')).resolves.toEqual({
       isLocked: true,
-      lockedModelKey: AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_FLASH,
-      lockedModelLabel: 'DeepSeek V4 Flash',
+      lockedModelKey: AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_1_FLASH,
+      lockedModelLabel: 'DeepSeek V4.1 Flash',
       reason: 'free_tier',
     });
   });
@@ -103,8 +103,8 @@ describe('AgentModelAccessService free-tier lock', () => {
     });
 
     await expect(
-      service.enforceModel('org-1', AGENT_CHAT_MODEL_KEYS.CLAUDE_OPUS_5),
-    ).resolves.toBe(AGENT_CHAT_MODEL_KEYS.CLAUDE_OPUS_5);
+      service.enforceModel('org-1', AGENT_CHAT_MODEL_KEYS.CLAUDE_OPUS_5_5),
+    ).resolves.toBe(AGENT_CHAT_MODEL_KEYS.CLAUDE_OPUS_5_5);
     await expect(service.resolveAccess('org-1')).resolves.toEqual(
       expect.objectContaining({ isLocked: false, lockedModelKey: null }),
     );
@@ -118,8 +118,8 @@ describe('AgentModelAccessService free-tier lock', () => {
     });
 
     await expect(
-      service.enforceModel('org-1', AGENT_CHAT_MODEL_KEYS.CLAUDE_SONNET_5),
-    ).resolves.toBe(AGENT_CHAT_MODEL_KEYS.CLAUDE_SONNET_5);
+      service.enforceModel('org-1', AGENT_CHAT_MODEL_KEYS.CLAUDE_SONNET_5_5),
+    ).resolves.toBe(AGENT_CHAT_MODEL_KEYS.CLAUDE_SONNET_5_5);
   });
 
   it('locks a trial, which is not a paid subscription', async () => {
@@ -130,7 +130,7 @@ describe('AgentModelAccessService free-tier lock', () => {
     });
 
     await expect(
-      service.enforceModel('org-1', AGENT_CHAT_MODEL_KEYS.CLAUDE_SONNET_5),
+      service.enforceModel('org-1', AGENT_CHAT_MODEL_KEYS.CLAUDE_SONNET_5_5),
     ).resolves.toBe(LLM_DEFAULTS.agentChat);
   });
 
@@ -139,8 +139,8 @@ describe('AgentModelAccessService free-tier lock', () => {
     const { prisma, service } = createService({ subscriptions: [] });
 
     await expect(
-      service.enforceModel('org-1', AGENT_CHAT_MODEL_KEYS.CLAUDE_OPUS_5),
-    ).resolves.toBe(AGENT_CHAT_MODEL_KEYS.CLAUDE_OPUS_5);
+      service.enforceModel('org-1', AGENT_CHAT_MODEL_KEYS.CLAUDE_OPUS_5_5),
+    ).resolves.toBe(AGENT_CHAT_MODEL_KEYS.CLAUDE_OPUS_5_5);
     await expect(service.resolveAccess('org-1')).resolves.toEqual(
       expect.objectContaining({ isLocked: false }),
     );
@@ -151,7 +151,7 @@ describe('AgentModelAccessService free-tier lock', () => {
     const { service } = createService({ subscriptionReadFails: true });
 
     await expect(
-      service.enforceModel('org-1', AGENT_CHAT_MODEL_KEYS.CLAUDE_OPUS_5),
+      service.enforceModel('org-1', AGENT_CHAT_MODEL_KEYS.CLAUDE_OPUS_5_5),
     ).resolves.toBe(LLM_DEFAULTS.agentChat);
   });
 
@@ -160,8 +160,11 @@ describe('AgentModelAccessService free-tier lock', () => {
       subscriptions: [activeSubscription()],
     });
 
-    await service.enforceModel('org-1', AGENT_CHAT_MODEL_KEYS.CLAUDE_OPUS_5);
-    await service.enforceModel('org-1', AGENT_CHAT_MODEL_KEYS.CLAUDE_SONNET_5);
+    await service.enforceModel('org-1', AGENT_CHAT_MODEL_KEYS.CLAUDE_OPUS_5_5);
+    await service.enforceModel(
+      'org-1',
+      AGENT_CHAT_MODEL_KEYS.CLAUDE_SONNET_5_5,
+    );
 
     expect(prisma.subscription.findMany).toHaveBeenCalledTimes(1);
     expect(prisma.subscription.findMany).toHaveBeenCalledWith(

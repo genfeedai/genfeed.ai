@@ -6,6 +6,8 @@ import {
   LivestreamTranscriptSource,
   Platform,
 } from '@genfeedai/contracts';
+import type { ConnectedAccountStackItem } from '@genfeedai/props/ui/display/connected-account.props';
+import { toConnectedAccount } from '@helpers/publisher/connected-account.helper';
 import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
@@ -221,10 +223,7 @@ function isSameLivestreamForm(
   );
 }
 
-export type RestreamCredentialOption = {
-  id: string;
-  label: string;
-};
+export type RestreamCredentialOption = ConnectedAccountStackItem;
 
 function isLivestreamBotFor(
   candidate: Bot,
@@ -318,11 +317,8 @@ export function useLivestreamChatBotPage(
         signal,
       );
       return credentials.map((credential) => ({
+        ...toConnectedAccount(credential),
         id: credential.id,
-        label:
-          credential.externalHandle ||
-          credential.externalId ||
-          `Restream ${credential.id.slice(0, 6)}`,
       }));
     },
     queryKey: restreamCredentialsQueryKey(brandId ?? ''),

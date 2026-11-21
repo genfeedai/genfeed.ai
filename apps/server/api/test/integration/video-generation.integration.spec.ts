@@ -232,10 +232,10 @@ integrationDescribe('Video Generation Integration Tests', () => {
       }));
 
       ffmpegService.createKenBurnsVideoWithTransitions.mockImplementation(
-        () =>
-          new Promise((resolve) =>
-            setTimeout(() => resolve(`/tmp/video-${Date.now()}.mp4`), 100),
-          ),
+        async () => {
+          await new Promise((resolve) => setImmediate(resolve));
+          return `/tmp/video-${Date.now()}.mp4`;
+        },
       );
 
       const results = await Promise.all(
@@ -307,7 +307,7 @@ integrationDescribe('Video Generation Integration Tests', () => {
   });
 
   describe('Error Handling and Recovery', () => {
-    it('should retry failed API calls with exponential backoff', async () => {
+    it('should retry failed API calls until one succeeds', async () => {
       let attempts = 0;
       const mockGenerateImage = vi.fn().mockImplementation(() => {
         attempts++;
@@ -317,7 +317,7 @@ integrationDescribe('Video Generation Integration Tests', () => {
         return Promise.resolve('base64-image');
       });
 
-      const result = await retryWithBackoff(() => mockGenerateImage(), 3, 1000);
+      const result = await retry(() => mockGenerateImage(), 3);
 
       expect(result).toBe('base64-image');
       expect(attempts).toBe(3);
@@ -379,18 +379,13 @@ function generateVideoWithQueueing(request: { user: string; prompt: string }) {
   return Promise.resolve(`/tmp/video-${request.prompt}.mp4`);
 }
 
-async function retryWithBackoff<T>(
-  fn: () => Promise<T>,
-  maxRetries: number,
-  delay: number,
-): Promise<T> {
+async function retry<T>(fn: () => Promise<T>, maxRetries: number): Promise<T> {
   let lastError: unknown;
   for (let i = 0; i < maxRetries; i++) {
     try {
       return await fn();
     } catch (error: unknown) {
       lastError = error;
-      await new Promise((resolve) => setTimeout(resolve, delay * 2 ** i));
     }
   }
   throw lastError;

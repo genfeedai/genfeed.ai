@@ -688,7 +688,7 @@ describe('AgentOrchestratorContextService resolveModel chain (chat model pin)', 
   it('runs a free-tier org on the locked model and drops its thinking override', async () => {
     const { modelAccess: access, service } = createServiceForModelResolution({
       agentPolicy: { thinkingModelOverride: 'thinking-model' },
-      lockedModel: 'deepseek/deepseek-v4-flash-0731',
+      lockedModel: 'deepseek/deepseek-v4.1-flash-1017',
     });
 
     const result = await service.resolveSystemPromptAndModel(
@@ -700,7 +700,7 @@ describe('AgentOrchestratorContextService resolveModel chain (chat model pin)', 
       CONTEXT.organizationId,
       'resolved-model',
     );
-    expect(result.model).toBe('deepseek/deepseek-v4-flash-0731');
+    expect(result.model).toBe('deepseek/deepseek-v4.1-flash-1017');
     expect(result.policy.thinkingModelOverride).toBeNull();
   });
 

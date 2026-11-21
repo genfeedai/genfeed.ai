@@ -24,7 +24,6 @@ workspaces); frontend apps are `apps/web`, `apps/docs`, `apps/marketing`, `apps/
 
 ## Key References
 
-- Agent runtime: `./AGENT-RUNTIME.md`
 - ADRs: `./architecture/`
 - Skills, routines, and memory boundary:
   `../architecture/ADR-SKILLS-ROUTINES-MEMORY-BOUNDARY.md`

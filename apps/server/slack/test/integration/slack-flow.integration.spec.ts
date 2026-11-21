@@ -197,10 +197,8 @@ describe('Slack Bot Manager Integration Flow', () => {
         platform: 'SLACK',
       });
 
-      // Allow async processing (fetchAndAddIntegration is async)
-      await new Promise((resolve) => setTimeout(resolve, 200));
-
-      expect(service.getActiveCount()).toBe(2);
+      // fetchAndAddIntegration is async
+      await vi.waitFor(() => expect(service.getActiveCount()).toBe(2));
     });
 
     it('should handle INTEGRATION_DELETED event from Redis', async () => {
@@ -220,9 +218,7 @@ describe('Slack Bot Manager Integration Flow', () => {
         platform: 'SLACK',
       });
 
-      await new Promise((resolve) => setTimeout(resolve, 200));
-
-      expect(service.getActiveCount()).toBe(0);
+      await vi.waitFor(() => expect(service.getActiveCount()).toBe(0));
     });
   });
 

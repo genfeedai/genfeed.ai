@@ -446,10 +446,10 @@ When analyzing ad performance, always deliver in this structure:
 
 If you have access to Genfeed tools, use them for enhanced results:
 
-- Use `analyze_performance` tool to pull real-time campaign data and generate automated insights
+- Use `get_insights` with `action` set to `performance` to pull real-time campaign data and generate automated insights
 - Reference `ad-insights` data for platform-specific performance breakdowns
 - Use `ad-optimization-recommendations` for AI-generated optimization suggestions
-- Cross-reference with `get_ads_research` to compare performance against competitor benchmarks
+- Cross-reference with `get_ads` (`action` set to `research`) to compare performance against competitor benchmarks
 - Use brand context from the conversation for voice consistency
 - Reference the user's content patterns and top-performing posts when available
 - Feed analysis results into `ad-copy-creator` skill for data-informed creative refreshes

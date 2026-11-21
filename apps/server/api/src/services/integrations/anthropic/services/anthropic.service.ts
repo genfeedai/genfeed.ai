@@ -22,6 +22,9 @@ import { Injectable } from '@nestjs/common';
 /** Registry keys for native Anthropic models carry this provider prefix. */
 const ANTHROPIC_MODEL_PREFIX = 'anthropic/';
 
+/** `5.5` in `claude-sonnet-5.5` becomes `5-5`. */
+const DOTTED_VERSION_PATTERN = /(\d)\.(\d)/g;
+
 @Traced()
 @Injectable()
 export class AnthropicService {
@@ -217,13 +220,13 @@ export class AnthropicService {
   }
 
   /**
-   * Convert Anthropic response to OpenRouter-compatible format. `model` is the
-   * provider-native id sent to the SDK; the response carries the canonical
-   * `anthropic/`-prefixed registry key so billing prices the round correctly.
+   * Convert Anthropic response to OpenRouter-compatible format. `registryKey`
+   * is the `anthropic/`-prefixed key the caller asked for (not the native id
+   * sent to the SDK), so billing prices the round against the catalogue row.
    */
   private convertResponse(
     response: Message,
-    model: string,
+    registryKey: string,
   ): OpenRouterChatCompletionResponse {
     let textContent: string | null = null;
     const toolCalls: OpenRouterToolCallResponse[] = [];
@@ -262,7 +265,7 @@ export class AnthropicService {
         },
       ],
       id: response.id,
-      model: `${ANTHROPIC_MODEL_PREFIX}${model}`,
+      model: registryKey,
       usage: {
         completion_tokens: response.usage.output_tokens,
         prompt_tokens: response.usage.input_tokens,
@@ -272,11 +275,24 @@ export class AnthropicService {
     };
   }
 
-  /** Strip the `anthropic/` registry prefix for the native SDK. */
+  /**
+   * Native SDK id for a registry key. The registry (and OpenRouter) spell
+   * versions with a dot (`claude-sonnet-5.5`); Anthropic's own API spells them
+   * with a hyphen (`claude-sonnet-5-5`).
+   */
   private toNativeModel(model: string): string {
-    return model.startsWith(ANTHROPIC_MODEL_PREFIX)
+    const bare = model.startsWith(ANTHROPIC_MODEL_PREFIX)
       ? model.slice(ANTHROPIC_MODEL_PREFIX.length)
       : model;
+
+    return bare.replace(DOTTED_VERSION_PATTERN, '$1-$2');
+  }
+
+  /** The `anthropic/`-prefixed registry key for whatever the caller passed. */
+  private toRegistryKey(model: string): string {
+    return model.startsWith(ANTHROPIC_MODEL_PREFIX)
+      ? model
+      : `${ANTHROPIC_MODEL_PREFIX}${model}`;
   }
 
   /**
@@ -352,7 +368,10 @@ export class AnthropicService {
       }
 
       const response = await client.messages.create(requestParams);
-      const converted = this.convertResponse(response as Message, model);
+      const converted = this.convertResponse(
+        response as Message,
+        this.toRegistryKey(params.model),
+      );
 
       return structuredOutputName
         ? this.unwrapStructuredOutput(converted, structuredOutputName)
@@ -475,7 +494,10 @@ export class AnthropicService {
 
       const finalMessage = await stream.finalMessage();
 
-      return this.convertResponse(finalMessage as Message, model);
+      return this.convertResponse(
+        finalMessage as Message,
+        this.toRegistryKey(params.model),
+      );
     } catch (error: unknown) {
       this.loggerService.error(
         `${this.constructorName}.streamChatCompletionAggregated failed`,

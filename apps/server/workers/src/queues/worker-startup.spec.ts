@@ -178,7 +178,7 @@ async function createStartupFixture(
   const registerDefinitions = scheduledPosts.onModuleInit.bind(scheduledPosts);
   vi.spyOn(scheduledPosts, 'onModuleInit').mockImplementation(async () => {
     // Make the initialization window deterministic while a job is waiting.
-    await new Promise((resolve) => setTimeout(resolve, 100));
+    await new Promise((resolve) => setImmediate(resolve));
     if (failure === 'registration')
       throw new Error('Definition registration failed');
     registerDefinitions();

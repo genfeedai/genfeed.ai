@@ -12,13 +12,13 @@ import {
 /** Settles after a macrotask so a second caller can join the pending request. */
 function settleLater(outcome: Error | Response): Promise<Response> {
   return new Promise((resolve, reject) => {
-    setTimeout(() => {
+    setImmediate(() => {
       if (outcome instanceof Error) {
         reject(outcome);
         return;
       }
       resolve(outcome);
-    }, 20);
+    });
   });
 }
 

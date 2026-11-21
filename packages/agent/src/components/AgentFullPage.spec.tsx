@@ -259,6 +259,7 @@ function createApiService(overrides: Record<string, unknown> = {}) {
 
 function createAbortAwareValue<T>(value: T, signal?: AbortSignal): Promise<T> {
   return new Promise<T>((resolve, reject) => {
+    // biome-ignore lint/style/noRestrictedGlobals: a setImmediate hop reorders the bootstrap specs below against React's own timers
     const timer = setTimeout(() => {
       if (signal?.aborted) {
         reject(new DOMException('Aborted', 'AbortError'));
@@ -1609,7 +1610,7 @@ describe('AgentFullPage', () => {
 
     rerender(<AgentFullPage apiService={apiService as never} />);
 
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    await new Promise((resolve) => setImmediate(resolve));
 
     expect(storeState.resetActiveConversationState).not.toHaveBeenCalled();
     expect(storeState.setActiveThread).not.toHaveBeenCalled();

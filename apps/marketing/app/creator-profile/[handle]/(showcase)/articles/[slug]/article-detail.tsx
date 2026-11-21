@@ -270,7 +270,7 @@ export default function ArticleDetail({
                 {article.category}
               </Badge>
             )}
-            <h1 className="mb-4 text-3xl font-semibold text-foreground md:text-5xl md:leading-tight">
+            <h1 className="mb-4 text-3xl font-semibold text-foreground md:text-4xl md:leading-tight">
               {article.label}
             </h1>
             {article.summary && (
@@ -389,6 +389,7 @@ export default function ArticleDetail({
                       <SupportCreatorButton
                         articleId={article.id}
                         handle={handle}
+                        logoUrl={brand.logoUrl}
                       />
                     ) : null}
                   </>

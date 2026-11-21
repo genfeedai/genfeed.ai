@@ -78,7 +78,7 @@ export class WorkspaceClient {
           case 429:
             return 'Organization lookup rate limit reached.';
           default:
-            return 'Could not load your organizations. Try get_orgs again before retrying the tool.';
+            return 'Could not load your organizations. Try get_context(action=organizations) again before retrying the tool.';
         }
       },
     );
@@ -93,18 +93,6 @@ export class WorkspaceClient {
         return response.data?.data?.canSwitchOrganizations === true;
       },
       this.base.failWith('Failed to read the connection'),
-    );
-  }
-
-  switchOrganization(organizationId: string): Promise<void> {
-    this.base.logger.debug('Switching organization', { organizationId });
-
-    return this.base.request(
-      'switching organization',
-      async (http) => {
-        await http.post('/auth/switch-organization', { organizationId });
-      },
-      this.base.failWithDetail('Failed to switch organization'),
     );
   }
 

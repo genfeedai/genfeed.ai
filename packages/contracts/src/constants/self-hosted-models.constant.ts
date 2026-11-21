@@ -35,7 +35,7 @@ export const SELF_HOSTED_MODELS = [
     speedTier: SpeedTier.MEDIUM,
     description:
       'FLUX.3 Image — generation and reference editing with up to ten images, five resolutions and one output.',
-    isDefault: false,
+    isDefault: category === ModelCategory.IMAGE_EDIT,
     isHighlighted: true,
     key:
       category === ModelCategory.IMAGE
@@ -62,7 +62,7 @@ export const SELF_HOSTED_MODELS = [
     speedTier: SpeedTier.MEDIUM,
     description:
       'Ideogram 4.5 — instruction-based image editing with up to five source images and an optional mask. Medium quality preserves source proportions by default.',
-    isDefault: true,
+    isDefault: false,
     isHighlighted: true,
     key: MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_4_5,
     label: 'Ideogram 4.5',
@@ -79,7 +79,7 @@ export const SELF_HOSTED_MODELS = [
     speedTier: SpeedTier.MEDIUM,
     description:
       'Google Nano Banana 2 Lite — fast 1K image generation and editing with up to 14 references.',
-    isDefault: true,
+    isDefault: false,
     isHighlighted: true,
     key: MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA_2_LITE,
     label: 'Nano Banana 2 Lite',
@@ -140,8 +140,8 @@ export const SELF_HOSTED_MODELS = [
     speedTier: SpeedTier.FAST,
     description:
       'Google Nano Banana 2.1 — image generation and editing at 1K, 2K, and 4K with up to 14 references. The seeded USD is the 1K output price; 2K and 4K bill from the reviewed rate sheet.',
-    isDefault: false,
-    isHighlighted: false,
+    isDefault: true,
+    isHighlighted: true,
     key: MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA_2_1,
     label: 'Nano Banana 2.1',
     provider: ModelProvider.REPLICATE,
@@ -472,7 +472,7 @@ export const SELF_HOSTED_MODELS = [
     description:
       'PrunaAI P-Video — cheapest text-to-video (T2V/I2V, draft mode). Use for local and e2e.',
     isDefault: false,
-    isHighlighted: true,
+    isHighlighted: false,
     key: MODEL_KEYS.REPLICATE_PRUNAAI_P_VIDEO,
     label: 'P-Video',
     minCost: 10,
@@ -480,6 +480,30 @@ export const SELF_HOSTED_MODELS = [
     provider: ModelProvider.REPLICATE,
     providerConfig: { name: 'p-video', owner: 'prunaai' },
     providerCostUsd: 0.02,
+  },
+  /**
+   * P-Video 2 — Replicate list $0.03/s at 720p, $0.06/s at 1080p (draft mode
+   * halves both). Seeded at the 720p base rate; live credit pricing turns
+   * $0.03/s into 10 credits/s, so the seed carries the same figures.
+   */
+  {
+    category: ModelCategory.VIDEO,
+    cost: 50,
+    costPerUnit: 10,
+    costTier: CostTier.LOW,
+    qualityTier: QualityTier.BASIC,
+    speedTier: SpeedTier.FAST,
+    description:
+      'PrunaAI P-Video 2 — quality-focused text-to-video and image-to-video, up to 1080p.',
+    isDefault: false,
+    isHighlighted: true,
+    key: MODEL_KEYS.REPLICATE_PRUNAAI_P_VIDEO_2,
+    label: 'P-Video 2',
+    minCost: 10,
+    pricingType: PricingType.PER_SECOND,
+    provider: ModelProvider.REPLICATE,
+    providerConfig: { name: 'p-video-2', owner: 'prunaai' },
+    providerCostUsd: 0.03,
   },
   /**
    * Seedream 5 Pro — Replicate list $0.045/img (1K) / $0.09/img (2K).
@@ -737,7 +761,8 @@ export const SELF_HOSTED_MODELS = [
     providerCostUsd: 0.0385,
   },
   /**
-   * HeyGen Avatar IV, the default avatar engine. HeyGen bills per output
+   * HeyGen Avatar IV, the lower-cost avatar engine (Avatar 6 Turbo is the
+   * catalog default). HeyGen bills per output
    * second by avatar type: $0.0385 for a photo avatar, $0.0805 for a digital
    * twin or studio avatar (pricing page, 2026-10-10). This row carries the
    * photo-avatar band; the reviewed `avatar_type` rates price each request,
@@ -752,7 +777,7 @@ export const SELF_HOSTED_MODELS = [
     speedTier: SpeedTier.MEDIUM,
     description:
       'HeyGen Avatar IV — talking-avatar video from a trained HeyGen look. 65 credits for a 5 s photo-avatar clip, 135 for digital twins and studio avatars.',
-    isDefault: true,
+    isDefault: false,
     isHighlighted: false,
     key: MODEL_KEYS.HEYGEN_AVATAR_IV,
     label: 'HeyGen Avatar IV',
@@ -822,8 +847,8 @@ export const SELF_HOSTED_MODELS = [
     speedTier: SpeedTier.MEDIUM,
     description:
       'HeyGen Avatar 6 Turbo — the lower-cost Avatar 6 engine for trained looks, rendered at 1080p. 85 credits for a 5 s clip.',
-    isDefault: false,
-    isHighlighted: false,
+    isDefault: true,
+    isHighlighted: true,
     key: MODEL_KEYS.HEYGEN_AVATAR_6_TURBO,
     label: 'HeyGen Avatar 6 Turbo',
     lifecycle: ModelLifecycle.RECOMMENDED,

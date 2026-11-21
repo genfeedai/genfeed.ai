@@ -1,16 +1,12 @@
 import {
-  getMcpCatalogOperations,
   getToolByName,
-  getToolsetNames,
   getToolsForSurface,
-  getToolsForToolsets,
   isMcpBrandRequiredTool,
   isMcpBrandRequiredWhenMultipleTool,
   isToolAllowedInMcpAccessMode,
   type McpAccessMode,
   type McpToolOutput,
   readMcpBrandId,
-  type ToolsetName,
   toMcpTools,
 } from '@genfeedai/actions';
 import { formatAgentError } from '@genfeedai/agent/server';
@@ -65,6 +61,7 @@ import {
 } from '@mcp/services/mcp-catalog-call.util';
 import { unavailableInConnectorMessage } from '@mcp/services/mcp-connector-message.util';
 import { toNativeMcpMediaResult } from '@mcp/services/mcp-media-result.util';
+import { runInNamedOrganization } from '@mcp/services/mcp-organization-call.util';
 import {
   agentGuideResource,
   jsonResource,
@@ -116,11 +113,7 @@ import {
 } from '@mcp/tools/onboarding.tool';
 import { handlePresetTool, PRESET_TOOL_NAMES } from '@mcp/tools/presets.tool';
 import { handleRemixTool, REMIX_TOOL_NAMES } from '@mcp/tools/remix.tool';
-import {
-  mcpToolFailureResult,
-  readRequestedOrganization,
-  resolveRequestedOrganizationId,
-} from '@mcp/tools/requested-organization.util';
+import { mcpToolFailureResult } from '@mcp/tools/requested-organization.util';
 import {
   handleSchedulerTool,
   SCHEDULER_TOOL_NAMES,
@@ -157,8 +150,8 @@ import {
   MCP_CARD_RESOURCE_HASH,
   withApprovalCard,
   withCardMetadata,
-  withoutBrandLogos,
 } from '@mcp/ui/card-data';
+import { withoutBrandLogos } from '@mcp/ui/card-fields';
 import { Injectable, type OnModuleInit, Optional } from '@nestjs/common';
 
 interface ToolCallParams {
@@ -203,7 +196,6 @@ const PRE_DISPATCH_TOOL_NAMES: ReadonlySet<string> = new Set<string>([
 const ACCOUNT_MANAGEMENT_TOOL_NAMES: ReadonlySet<string> = new Set<string>([
   'get_job_status',
   'get_orgs',
-  'switch_org',
 ]);
 
 /**
@@ -280,14 +272,12 @@ export class ToolRegistryService implements OnModuleInit {
     // per-request role, so it falls back to `'user'` — deny-by-default for
     // admin tools.
     @Optional() private readonly requestRole: McpRole = 'user',
-    // The caller's resolved toolset selection (`resolveMcpToolQuery`). Empty
-    // means "every toolset" — `?profile=full`, and the DI singleton, which
-    // never threads a per-request selection and resolves toolsets per call
-    // via {@link getToolsForRoleAndToolsets}. The bare URL passes the default
-    // profile list, not an empty selection.
-    @Optional() private readonly requestToolsets: readonly ToolsetName[] = [],
     @Optional() private readonly configService?: ConfigService,
     @Optional() private readonly requestAccessMode: McpAccessMode = 'standard',
+    // Whether the connection may act in all of the user's organizations, from
+    // the identity check. Only then does a call have to name its organization.
+    @Optional()
+    private readonly requestCanSwitchOrganizations: boolean = false,
   ) {}
 
   /**
@@ -320,63 +310,26 @@ export class ToolRegistryService implements OnModuleInit {
     );
   }
 
-  getToolsForRole(role: McpRole): McpToolOutput[] {
-    return ToolRegistryService.filterToolsByRole(this.getAllTools(), role);
-  }
-
   /**
-   * Tools a role may invoke, narrowed to the requested toolsets (union'd with
-   * the always-on `core` toolset — `getToolsForToolsets` owns that union) or
-   * every tool when `toolsets` is empty. This is what `tools/list` and the
-   * REST mirror actually advertise; `handleToolCall` never filters by
-   * toolset, so a client can still call a tool outside its current
-   * `tools/list` view.
+   * Every tool a role may invoke on an endpoint. Every connection lists the
+   * whole catalog, so this is what `tools/list` and the REST mirror advertise.
+   * `handleToolCall` still gates each call by role.
    */
-  getToolsForRoleAndToolsets(
+  getToolsForRole(
     role: McpRole,
-    toolsets: readonly ToolsetName[],
     accessMode: McpAccessMode = this.requestAccessMode,
   ): McpToolOutput[] {
     return ToolRegistryService.filterToolsByRole(
-      toMcpTools(
-        accessMode === 'claude' || accessMode === 'admin'
-          ? getToolsForSurface('mcp')
-          : getToolsForToolsets('mcp', toolsets),
-      )
+      toMcpTools(getToolsForSurface('mcp'))
         .filter((tool) => isToolAllowedInMcpAccessMode(accessMode, tool.name))
         .map(withCardMetadata),
       role,
     );
   }
 
+  /** The tools this connection lists. */
   getTools(): McpToolOutput[] {
-    return this.getToolsForRoleAndToolsets(
-      this.requestRole,
-      this.requestToolsets,
-    );
-  }
-
-  /**
-   * The role-filtered full catalog, ignoring the caller's `?toolsets=`
-   * selection. Backs `find_tools` — a
-   * client should be able to discover a tool outside its currently-loaded
-   * toolset so it can reconnect with a broader selection.
-   */
-  getDiscoverableTools(): McpToolOutput[] {
     return this.getToolsForRole(this.requestRole);
-  }
-
-  /**
-   * Requested toolset names that exist in the catalog but have no MCP tools
-   * on this deploy. `find_tools` warns about them; they are not a failed
-   * connection. An empty request selection (`?profile=full`) warns about
-   * nothing — the caller did not name a specific empty toolset.
-   */
-  getIgnoredEmptyToolsets(): readonly ToolsetName[] {
-    const present = new Set(getToolsetNames('mcp'));
-    return this.requestToolsets
-      .filter((name) => !present.has(name))
-      .sort((a, b) => a.localeCompare(b));
   }
 
   getResources(): McpResource[] {
@@ -387,32 +340,37 @@ export class ToolRegistryService implements OnModuleInit {
     return [...PUBLIC_MCP_RESOURCES];
   }
 
-  /** A call may name its organization (see requested-organization.util). */
-  async handleToolCall(params: ToolCallParams) {
-    const scoped = readRequestedOrganization(params.name, params.arguments);
-    if (!scoped) return this.runToolCall(params);
-
-    let organizationId: string;
-    try {
-      organizationId = await resolveRequestedOrganizationId(
-        this.clientService,
-        scoped.organization,
-      );
-    } catch (error: unknown) {
-      this.logger.warn('MCP tool call stopped during organization selection');
-      return mcpToolFailureResult(error);
-    }
-    return this.clientService.runInOrganization(organizationId, () =>
-      this.runToolCall({ ...params, arguments: scoped.rest }),
+  /**
+   * A call names its organization (see requested-organization.util). On a
+   * connection that covers several organizations a call that names none is
+   * refused with the list, never answered from a default.
+   */
+  handleToolCall(params: ToolCallParams) {
+    return runInNamedOrganization(
+      {
+        canSwitchOrganizations: this.requestCanSwitchOrganizations,
+        client: this.clientService,
+        logger: this.logger,
+      },
+      params,
+      (args) => this.runToolCall({ ...params, arguments: args }),
     );
   }
 
   private async runToolCall(params: ToolCallParams) {
     const requestedArgs = params.arguments ?? {};
+    // Creating a brand from a URL is admin work that runs an agent tool, so it
+    // is routed before the merged tool is resolved.
+    const onboardInput =
+      params.name === 'setup_brand' && requestedArgs.action === 'onboard'
+        ? requestedArgs.input
+        : undefined;
     const brandCreation =
-      params.name === 'onboard_brand' &&
-      requestedArgs.action === 'create_from_url'
-        ? resolveOnboardBrandCall(requestedArgs)
+      typeof onboardInput === 'object' &&
+      onboardInput !== null &&
+      !Array.isArray(onboardInput) &&
+      (onboardInput as Record<string, unknown>).action === 'create_from_url'
+        ? resolveOnboardBrandCall(onboardInput as Record<string, unknown>)
         : null;
     let name = brandCreation?.agentToolName ?? params.name;
     let args = brandCreation?.parameters ?? requestedArgs;
@@ -528,14 +486,6 @@ export class ToolRegistryService implements OnModuleInit {
   }
 
   static classify(name: string): ExecutorKind {
-    const operations = getMcpCatalogOperations(name);
-    if (operations.length > 0) {
-      const kinds = operations.map((operation) =>
-        ToolRegistryService.classify(operation.executionName),
-      );
-      const first = kinds[0];
-      return first && kinds.every((kind) => kind === first) ? first : 'unknown';
-    }
     if (TOOL_DISCOVERY_TOOL_NAMES.has(name)) return 'tool-discovery';
     if (AGENT_CHAT_TOOL_NAMES.has(name)) return 'agent-chat';
     if (WORKFLOW_CONTROL_TOOL_NAMES.has(name)) return 'workflow-control';
@@ -595,8 +545,10 @@ export class ToolRegistryService implements OnModuleInit {
       case 'agent-executor': {
         const result = await this.clientService.executeAgentTool(
           name,
-          // Brand cards show the brand's logo.
-          name === 'get_brands' ? { ...args, includeLogo: true } : args,
+          // Brand and account cards show the brand's logo.
+          name === 'get_brands' || name === 'get_account'
+            ? { ...args, includeLogo: true }
+            : args,
           approvedApprovalId ? { approvedApprovalId } : undefined,
         );
         return this.toMcpResult(
@@ -880,7 +832,7 @@ export class ToolRegistryService implements OnModuleInit {
       name === 'get_account' ? undefined : getToolByName(name)?.title,
     );
     // The card keeps the signed logos; the model's text does not.
-    if (name === 'get_brands' && isRecord(payload))
+    if ((name === 'get_brands' || name === 'get_account') && isRecord(payload))
       response.content[0].text = dataToolResult(
         withoutBrandLogos(payload),
         getToolByName(name)?.title,

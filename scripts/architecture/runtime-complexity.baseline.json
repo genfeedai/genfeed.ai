@@ -72,7 +72,7 @@
     "symbol": "apps/server/api/src/collections/skills/services/skills.service.ts"
   },
   {
-    "actual": 1221,
+    "actual": 1199,
     "file": "apps/server/api/src/collections/workflows/services/automation-workflow-definitions.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/collections/workflows/services/automation-workflow-definitions.ts"
@@ -210,13 +210,13 @@
     "symbol": "apps/server/files/src/processors/video.processor.ts"
   },
   {
-    "actual": 1354,
+    "actual": 1037,
     "file": "apps/server/mcp/src/mcp/setup-page.ts",
     "metric": "file-lines",
     "symbol": "apps/server/mcp/src/mcp/setup-page.ts"
   },
   {
-    "actual": 1746,
+    "actual": 1744,
     "file": "apps/server/mcp/src/ui/preview-client.tsx",
     "metric": "file-lines",
     "symbol": "apps/server/mcp/src/ui/preview-client.tsx"
@@ -276,7 +276,7 @@
     "symbol": "apps/web/src/components/workspace-shell/UniversalWorkspaceShell.tsx"
   },
   {
-    "actual": 1091,
+    "actual": 1090,
     "file": "apps/web/src/features/research/remix/RemixBriefInspector.tsx",
     "metric": "file-lines",
     "symbol": "apps/web/src/features/research/remix/RemixBriefInspector.tsx"

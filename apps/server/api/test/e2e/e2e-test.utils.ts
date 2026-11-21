@@ -458,12 +458,6 @@ export const createTestIntegration = (
 });
 
 /**
- * Wait for a specified number of milliseconds
- */
-export const wait = (ms: number) =>
-  new Promise((resolve) => setTimeout(resolve, ms));
-
-/**
  * Generate a unique test ID string
  */
 export const generateIdString = () => randomUUID();

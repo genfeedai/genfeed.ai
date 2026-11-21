@@ -332,6 +332,16 @@ export class CreatePostDto {
   readonly isAnalyticsEnabled?: boolean;
 
   @ApiProperty({
+    default: false,
+    description:
+      'Keep this post off the public Genfeed profile while it stays live on its network',
+    required: false,
+  })
+  @IsOptional()
+  @IsBoolean()
+  readonly isHiddenFromProfile?: boolean;
+
+  @ApiProperty({
     description: 'Originating content run ID for closed-loop attribution',
     required: false,
   })

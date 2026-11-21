@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 import { runInNewContext } from 'node:vm';
 
 import { RECOVERY_GREEN_THRESHOLD } from './scheduled-failure-tracker.mjs';
+import { PLAN_OUTPUT_NAMES } from './test-plan-handoff.mjs';
 
 import './install-visual-runtime-deps.test.mjs';
 import './coverage-failure-reporter.test.mjs';
@@ -325,10 +326,15 @@ test('consolidates static validation into one runner slot', () => {
   }
 
   const build = jobBlock(workflow, 'build', 'ci.yml');
+  assert.doesNotMatch(
+    build,
+    /^ {4}needs:/m,
+    'build starts with the run and reads the plan from the Plan job artifact',
+  );
   assert.match(
     build,
-    /^ {4}needs: plan$/m,
-    'build must start straight off the plan instead of queueing behind statics',
+    /uses: \.\/\.github\/actions\/start-test-leg/,
+    'build repeats the trust gate and reads the plan through the start action',
   );
   assert.match(
     build,
@@ -563,6 +569,9 @@ test('adopts a fair pull-request validation budget with a stricter ratchet targe
 // Nineteen until the repository contracts moved out of Static Checks into the
 // Source Contracts job (#5950, approved on the project decision card
 // 2026-11-09): one more runner per pull request for a shorter critical path.
+// The cap guards runner pressure per pull request (#5863: an 88-minute run with
+// specs queued for an hour). A job whose `if` pins the master ref never starts
+// on a pull request, so it is not counted (the nightly timing recorder, #10273).
 test('caps the recursively reachable CI runnable inventory at twenty jobs', () => {
   const graph = new Map([
     ['ci.yml', new Set(['_ci-validation.yml', '_ci-frontend.yml'])],
@@ -583,7 +592,11 @@ test('caps the recursively reachable CI runnable inventory at twenty jobs', () =
         runners += count(child);
       } else {
         assert.equal(job['runs-on'], 'ubuntu-latest');
-        runners++;
+        if (
+          !String(job.if ?? '').includes("github.ref == 'refs/heads/master'")
+        ) {
+          runners++;
+        }
       }
     }
     return runners;
@@ -1228,9 +1241,13 @@ test('external contributor pull requests run the heavy tier maintainers skip', (
   // The tier is resolved once, in the Plan job, and reaches every heavy
   // decision through the planner. A job that re-derives it from
   // `inputs.run_heavy_tests` would silently keep external contributors on the
-  // affected tier.
+  // affected tier. The early test jobs only hand the input to the start action,
+  // whose preflight adds the other three signals; it uses the answer to skip an
+  // install and nothing else, and the verdict fails a job it wrongly skipped.
   assert.doesNotMatch(
-    ci.slice(ci.indexOf('  static-checks:')),
+    ci
+      .slice(ci.indexOf('  static-checks:'))
+      .replaceAll(/run-heavy: \$\{\{ inputs\.run_heavy_tests \}\}/g, ''),
     /inputs\.run_heavy_tests(?![^\n]*description)/,
   );
   assert.match(trust, /--run-heavy "\$\{\{ steps\.tier\.outputs\.heavy \}\}"/);
@@ -2427,11 +2444,12 @@ test('MCP real transport job is planned, required and publishes only its sanitiz
   const workflow = readWorkflow('_ci-validation.yml');
   const runtime = jobBlock(workflow, 'mcp-auth-runtime', 'ci.yml');
   const gate = jobBlock(workflow, 'tests-gate', 'ci.yml');
-  assert.match(runtime, /if: needs\.plan\.outputs\.mcp_auth_runtime == 'true'/);
+  assert.match(runtime, /kind: mcp-auth-runtime/);
+  assert.doesNotMatch(runtime, /needs\./);
   assert.match(runtime, /timeout-minutes: 20/);
   assert.match(runtime, /--case-family brand-access/);
   assert.match(runtime, /--filter=@genfeedai\/api --filter=@genfeedai\/mcp/);
-  assert.match(runtime, /if: always\(\)/);
+  assert.match(runtime, /always\(\) && steps\.start\.outputs\.run == 'true'/);
   assert.match(runtime, /path:.*report\.json/);
   assert.match(runtime, /if-no-files-found: error/);
   assert.match(runtime, /retention-days: 7/);
@@ -2889,4 +2907,208 @@ test('domain sequences preserve independent workload replacement and never cance
     }
   }
   assert.equal(sequences, 3456);
+});
+
+const EARLY_TEST_JOBS = {
+  'spec-typecheck': 'spec-typecheck',
+  'test-workspaces': 'workspaces',
+  'test-app': 'app',
+  'test-api': 'api',
+  'cloud-tenant-guard': 'cloud-tenant-guard',
+  build: 'build',
+  'mcp-auth-runtime': 'mcp-auth-runtime',
+};
+
+test('test jobs start with the run and read the plan the Plan job publishes (#10272)', () => {
+  // None of these may wait on Plan: that wait was a median 2.1 minutes in front
+  // of every test. Each repeats the trust gate through the start action, skips
+  // its install when the planner cannot give it work, and reads the plan from
+  // the artifact the Plan job writes.
+  const jobs = parseYaml(readWorkflow('_ci-validation.yml')).jobs;
+  const plan = jobs.plan;
+
+  for (const [jobId, kind] of Object.entries(EARLY_TEST_JOBS)) {
+    const job = jobs[jobId];
+    assert.equal(job.needs, undefined, `${jobId} must not wait for plan`);
+    assert.equal(job.if, plan.if, `${jobId} skips drafts exactly as plan does`);
+    assert.doesNotMatch(
+      JSON.stringify(job),
+      /needs\.plan/,
+      `${jobId} must read the plan through the start action`,
+    );
+
+    const names = job.steps.map((entry) => entry.name ?? entry.uses);
+    const startIndex = job.steps.findIndex((entry) => entry.id === 'start');
+    assert.ok(
+      names.findIndex((name) => name?.startsWith('actions/checkout')) <
+        startIndex,
+      `${jobId} checks out before the start action, a local action`,
+    );
+    const start = job.steps[startIndex];
+    assert.equal(start.uses, './.github/actions/start-test-leg');
+    assert.equal(start.with.kind, kind);
+    assert.equal(start.with['run-heavy'], '${{ inputs.run_heavy_tests }}');
+    // Downloading the plan artifact needs `actions: read`; the workflow's own
+    // default does not grant it, and the download then fails with a 404.
+    assert.deepEqual(
+      job.permissions,
+      { actions: 'read', contents: 'read', 'pull-requests': 'read' },
+      `${jobId} reads the plan artifact`,
+    );
+    assert.ok(
+      names.every((name) => !/setup-bun-env/.test(name ?? '')),
+      `${jobId} installs through the start action, after its preflight`,
+    );
+
+    for (const step of job.steps.slice(startIndex + 1)) {
+      assert.match(
+        JSON.stringify(step),
+        /steps\.start\.outputs\.(run|plan)|steps\.(?:api|app)-tests\.outcome/,
+        `${jobId} step "${step.name}" must wait for the plan the start action reads`,
+      );
+    }
+  }
+});
+
+test('the start action repeats the Plan trust gate, then skips, installs and reads the plan in order', () => {
+  const action = parseYaml(
+    readFileSync(
+      path.join(
+        REPOSITORY_ROOT,
+        '.github',
+        'actions',
+        'start-test-leg',
+        'action.yml',
+      ),
+      'utf8',
+    ),
+  );
+  const plan = parseYaml(readWorkflow('_ci-validation.yml')).jobs.plan;
+  const find = (steps, name) => steps.find((entry) => entry.name === name);
+
+  assert.deepEqual(
+    find(action.runs.steps, 'Check contributor trust'),
+    {
+      ...find(plan.steps, 'Check contributor trust'),
+      id: 'trust',
+    },
+    'the start action trust gate must stay identical to the plan trust gate',
+  );
+  assert.deepEqual(
+    action.runs.steps.map((entry) => entry.name),
+    [
+      'Check contributor trust',
+      'Check this job can have work',
+      'Setup Bun environment',
+      'Read the plan',
+    ],
+    'untrusted code must not install, and an idle job must not install',
+  );
+  const [, preflight, install, read] = action.runs.steps;
+  assert.equal(install.if, "steps.preflight.outputs.may_run == 'true'");
+  assert.equal(read.if, "steps.preflight.outputs.may_run == 'true'");
+  // The preflight's heavy signal is the Plan job's tier step, signal for signal.
+  const tier = find(plan.steps, 'Resolve heavy test tier');
+  assert.match(tier.env.RUN_HEAVY_INPUT, /inputs\.run_heavy_tests/);
+  assert.match(tier.env.FULL_SUITE_LABEL, /'full-suite'/);
+  assert.match(
+    tier.env.EXTERNAL_CONTRIBUTOR,
+    /steps\.check\.outputs\.external/,
+  );
+  assert.match(tier.run, /merge_group/);
+  const hint = preflight.env.HEAVY_HINT;
+  assert.match(hint, /github\.event_name == 'merge_group'/);
+  assert.match(hint, /inputs\.run-heavy == 'true'/);
+  assert.match(
+    hint,
+    /contains\(github\.event\.pull_request\.labels\.\*\.name, 'full-suite'\)/,
+  );
+  assert.match(hint, /steps\.trust\.outputs\.external == 'true'/);
+});
+
+test('the Plan job publishes every output it declares, or a failure marker', () => {
+  const plan = parseYaml(readWorkflow('_ci-validation.yml')).jobs.plan;
+  const names = plan.steps.map((entry) => entry.name);
+
+  assert.deepEqual(
+    Object.keys(plan.outputs),
+    PLAN_OUTPUT_NAMES,
+    'a Plan output the early jobs cannot read would reach only the verdict',
+  );
+  const write = plan.steps.find((entry) =>
+    entry.name?.startsWith('Write the plan for'),
+  );
+  const marker = plan.steps.find(
+    (entry) => entry.name === 'Write the plan failure marker',
+  );
+  const upload = plan.steps.find((entry) => entry.name === 'Publish the plan');
+  assert.equal(write.if, '${{ success() }}');
+  assert.equal(marker.if, '${{ failure() }}');
+  assert.match(marker.run, /\{"ok":false\}/);
+  assert.equal(upload.if, '${{ !cancelled() }}');
+  assert.equal(upload.with.name, 'test-plan-outputs-${{ github.run_attempt }}');
+  assert.ok(
+    names.indexOf(write.name) >
+      names.indexOf('Select spec typecheck workspaces'),
+    'the plan is published after the last step that decides part of it',
+  );
+  assert.equal(names.at(-1), upload.name, 'publishing is the last Plan step');
+});
+
+test('test job names stay the ones the release evidence expects', () => {
+  const jobs = parseYaml(readWorkflow('_ci-validation.yml')).jobs;
+  const app = jobs['test-app'].strategy.matrix;
+  const api = jobs['test-api'].strategy.matrix;
+  const workspaces = jobs['test-workspaces'].strategy.matrix.include;
+
+  assert.deepEqual(app, { shard: [1, 2, 3, 4], total: [4] });
+  assert.deepEqual(api, { shard: [1, 2, 3, 4, 5, 6, 7, 8], total: [8] });
+  assert.deepEqual(
+    workspaces.map((entry) => [entry.name, entry.slot]),
+    [
+      ['workspaces-1/4', '1'],
+      ['workspaces-2/4', '2'],
+      ['workspaces-3/4', '3'],
+      ['workspaces-4/4', '4'],
+      ['server', 'server'],
+    ],
+  );
+  assert.equal(
+    jobs['test-app'].name,
+    'Test App (shard ${{ matrix.shard }}/${{ matrix.total }})',
+  );
+  assert.equal(
+    jobs['test-api'].name,
+    'Test API (shard ${{ matrix.shard }}/${{ matrix.total }})',
+  );
+  assert.equal(
+    jobs['test-workspaces'].name,
+    'Test Workspaces (${{ matrix.name }})',
+  );
+});
+
+test('the verdict fails a planned test job that ended idle, and may read the run', () => {
+  const core = parseYaml(readWorkflow('_ci-validation.yml')).jobs['tests-gate'];
+  const names = core.steps.map((entry) => entry.name);
+  const verify = core.steps.find(
+    (entry) => entry.name === 'Verify every planned test job did its work',
+  );
+
+  assert.deepEqual(core.permissions, {
+    actions: 'read',
+    contents: 'read',
+    'pull-requests': 'read',
+  });
+  assert.equal(verify.run, 'node scripts/ci/test-plan-handoff.mjs verify');
+  assert.match(verify.if, /needs\.plan\.result == 'success'/);
+  assert.match(verify.if, /steps\.supersession\.outputs\.superseded != 'true'/);
+  assert.ok(
+    names.indexOf(verify.name) <
+      names.indexOf('Aggregate test and build results'),
+  );
+  assert.equal(
+    parseYaml(readWorkflow('ci.yml')).jobs.core.permissions.actions,
+    'read',
+    'the called workflow can only read the Plan artifact if its caller allows it',
+  );
 });

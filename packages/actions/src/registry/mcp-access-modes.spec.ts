@@ -11,13 +11,39 @@ import { getToolsForSurface } from './tool-registry';
 
 describe('Claude MCP access policy', () => {
   it('consolidates scheduler listing without changing the exact old agent allowlist', () => {
-    expect(CLAUDE_MCP_TOOL_NAMES.size).toBe(31);
+    // Merged tools carry the reads and the drafts the Claude grant already allowed.
+    expect(CLAUDE_MCP_TOOL_NAMES.size).toBe(11);
+    for (const name of [
+      'get_account',
+      'get_brands',
+      'get_brand_context',
+      'get_brand_completeness',
+      'get_brand_scan_status',
+      'get_brand_publishing_readiness',
+      'get_posts',
+      'get_articles',
+      'get_article_preview',
+      'get_scheduled_release',
+      'get_analytics',
+      'analyze_performance',
+      'get_content_analytics',
+      'get_video_analytics',
+      'get_linkedin_analytics',
+      'get_linkedin_connection_status',
+      'get_trends',
+    ])
+      expect(isToolAllowedInMcpAccessMode('claude', name), name).toBe(true);
+    for (const name of ['get_connection_status', 'get_social_conversations'])
+      expect(isToolAllowedInMcpAccessMode('claude', name), name).toBe(false);
     expect(CLAUDE_MCP_TOOL_NAMES.has('check_channel')).toBe(true);
     // Approval-gated: the Claude connector queues it, a reviewer in the app releases it (#10073).
-    expect(CLAUDE_MCP_TOOL_NAMES.has('publish_article')).toBe(true);
-    expect(isToolAllowedInMcpAccessMode('claude', 'publish_article')).toBe(
+    expect(CLAUDE_MCP_TOOL_NAMES.has('control_release')).toBe(true);
+    expect(isToolAllowedInMcpAccessMode('claude', 'control_release')).toBe(
       true,
     );
+    // The brand interview and brand creation stay open to Claude as actions of setup_brand.
+    expect(CLAUDE_MCP_TOOL_NAMES.has('setup_brand')).toBe(true);
+    expect(CLAUDE_MCP_TOOL_NAMES.has('generate_media')).toBe(false);
     expect([...CLAUDE_MCP_AGENT_TOOL_NAMES].sort()).toEqual(
       [
         'get_account',
@@ -36,6 +62,7 @@ describe('Claude MCP access policy', () => {
         'get_posts',
         'get_articles',
         'create_article_draft',
+        'update_article_draft',
         'get_article_preview',
         'get_scheduler_capabilities',
         'validate_scheduler_target',

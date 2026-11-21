@@ -1,11 +1,10 @@
 import {
   ButtonSize,
   ButtonVariant,
-  ComponentSize,
   formatEnumLabel,
-  formatPlatformLabel,
 } from '@genfeedai/contracts';
-import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
+import { toConnectedAccount } from '@helpers/publisher/connected-account.helper';
+import ConnectedAccount from '@ui/display/connected-account/ConnectedAccount';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { ExternalLink } from 'lucide-react';
@@ -35,26 +34,20 @@ export default function LongFormDeliveryHistory({
             const credential = credentials.find(
               (item) => item.id === target.credentialId,
             );
-            const platformLabel =
-              formatPlatformLabel(target.platform) ?? target.platform;
-            const accountLabel =
-              credential?.label ||
-              credential?.externalName ||
-              credential?.externalHandle ||
-              platformLabel;
 
             return (
               <li
                 key={target.id}
                 className="flex flex-wrap items-center justify-between gap-2 text-sm"
               >
-                <div className="min-w-0">
-                  <p className="truncate font-medium">{accountLabel}</p>
-                  <PlatformBadge
-                    platform={target.platform}
-                    size={ComponentSize.SM}
-                  />
-                </div>
+                <ConnectedAccount
+                  account={
+                    credential
+                      ? toConnectedAccount(credential)
+                      : { platform: target.platform }
+                  }
+                  layout="stacked"
+                />
                 <div className="flex items-center gap-2">
                   <Badge status={target.executionState}>
                     {formatEnumLabel(target.executionState)}

@@ -1,18 +1,17 @@
 import { ButtonVariant } from '@genfeedai/contracts';
 import type { BrandDetailConnectedAccountProps } from '@props/pages/brand-detail.props';
+import ConnectedAccount from '@ui/display/connected-account/ConnectedAccount';
 import { Button } from '@ui/primitives/button';
 import { SimpleTooltip } from '@ui/primitives/tooltip';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import AccountAvatar from '@/features/brands/components/integrations/AccountAvatar';
 import {
   getAccountConnectionStatus,
   getConnectionLabel,
+  toConnectionAccount,
 } from '@/features/brands/components/integrations/account-connection-status.util';
 
-const LEADING_AT_SIGN_PATTERN = /^@/;
-
-export default function ConnectedAccount({
+export default function BrandDetailConnectedAccount({
   connection,
   isSelected = false,
   onSelect,
@@ -23,27 +22,21 @@ export default function ConnectedAccount({
     getAccountConnectionStatus(connection) === 'needsReconnect';
   const content = (
     <>
-      <AccountAvatar connection={connection} size="md" />
-
-      <span className="min-w-0 text-left">
-        <span className="flex min-w-0 items-center gap-1.5">
-          <span className="block truncate text-sm font-medium">{label}</span>
-          {needsReconnect ? (
-            <SimpleTooltip label={translate('needsReconnect')}>
-              <span
-                aria-label={translate('needsReconnect')}
-                className="gen-dot gen-dot-warning shrink-0"
-                role="img"
-              />
-            </SimpleTooltip>
-          ) : null}
-        </span>
-        {connection.handle ? (
-          <span className="block truncate text-xs text-muted-foreground">
-            @{connection.handle.replace(LEADING_AT_SIGN_PATTERN, '')}
-          </span>
-        ) : null}
-      </span>
+      <ConnectedAccount
+        account={toConnectionAccount(connection)}
+        className="flex-1"
+        layout="stacked"
+        size="lg"
+      />
+      {needsReconnect ? (
+        <SimpleTooltip label={translate('needsReconnect')}>
+          <span
+            aria-label={translate('needsReconnect')}
+            className="gen-dot gen-dot-warning shrink-0"
+            role="img"
+          />
+        </SimpleTooltip>
+      ) : null}
     </>
   );
   const className = `flex min-w-0 items-center gap-3 rounded-md px-3 py-2 shadow-border transition-colors ${

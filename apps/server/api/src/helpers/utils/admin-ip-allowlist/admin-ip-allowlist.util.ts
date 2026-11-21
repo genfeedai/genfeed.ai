@@ -57,6 +57,7 @@ function isUnattributedLoopbackForward(request: AdminIpRequest): boolean {
 }
 
 export function getAdminAllowedIps(): string[] {
+  // biome-ignore lint/style/noProcessEnv: plain util used by guards and middleware without ConfigService
   return (process.env.ADMIN_ALLOWED_IPS || '')
     .split(',')
     .map(normalizeAdminIp)

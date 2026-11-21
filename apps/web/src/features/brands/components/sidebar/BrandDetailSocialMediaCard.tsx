@@ -55,7 +55,7 @@ import {
 } from '@/features/brands/components/integrations/account-connection-status.util';
 import { getHealthBadgeVariant } from '@/features/brands/components/integrations/account-health-badge-variant';
 import ConnectAccountModal from '@/features/brands/components/integrations/ConnectAccountModal';
-import ConnectedAccount from '@/features/brands/components/sidebar/BrandDetailConnectedAccount';
+import BrandDetailConnectedAccount from '@/features/brands/components/sidebar/BrandDetailConnectedAccount';
 import SocialWarmupProgram from '@/features/brands/components/sidebar/social-warmup/SocialWarmupProgram';
 import {
   rememberOAuthConnectContext,
@@ -679,7 +679,7 @@ export default function BrandDetailSocialMediaCard({
         {hasConnectedAccounts ? (
           <div className="grid gap-2 sm:grid-cols-2">
             {connectedConnections.map((connection) => (
-              <ConnectedAccount
+              <BrandDetailConnectedAccount
                 key={connection.credentialId}
                 connection={connection}
                 isSelected={
@@ -720,7 +720,7 @@ export default function BrandDetailSocialMediaCard({
               <div className="grid gap-2 sm:grid-cols-2">
                 {connectedConnections.map((connection) => (
                   <div className="space-y-1" key={connection.credentialId}>
-                    <ConnectedAccount connection={connection} />
+                    <BrandDetailConnectedAccount connection={connection} />
                     <Button
                       variant={ButtonVariant.GHOST}
                       size={ButtonSize.SM}

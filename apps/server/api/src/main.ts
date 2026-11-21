@@ -133,6 +133,7 @@ async function main() {
     // Hermetic boot-check gate (CI, on PRs): license verification and the
     // dynamic AppModule import complete before this exit, so the full compiled
     // provider graph still loads without requiring env, DB, or Redis.
+    // biome-ignore lint/style/noProcessEnv: boot check exits before any provider is built
     if (process.env.BOOT_CHECK === '1') {
       process.exit(0);
     }

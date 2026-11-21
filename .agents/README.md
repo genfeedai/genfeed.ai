@@ -9,7 +9,7 @@ Project-level `.agents/` for all AI agent knowledge, skills, and operational doc
 
 ## Read First
 
-1. `memory/system/PRIORITY-READING.md`
+1. `memory/MEMORY.md`
 2. `memory/system/CRITICAL-NEVER-DO.md`
 3. `memory/system/OPEN-SOURCE-CONTEXT.md`
 

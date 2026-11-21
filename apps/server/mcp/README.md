@@ -37,8 +37,7 @@ port avoid the default debug-port collision tracked in
 The public `tools/list`, `resources/list`, and card `resources/read` requests
 can be inspected directly through a local MCP client. `initialize`, tool calls,
 and tenant resources still require a valid development API session or API key;
-local operation does not bypass authentication or tenant isolation. Select
-`?profile=full` to inspect the complete curated MCP catalog.
+local operation does not bypass authentication or tenant isolation. The list is the same on every connection.
 
 Run the automated suites on the repository's designated verification host
 (Mac Studio), including when the dev server runs on the MacBook. The MCP
@@ -57,90 +56,47 @@ Card, Button, Badge, Avatar, Collapsible, Dialog, Progress, Text and Heading.
 The Tailwind stylesheet and CSP-compatible Satoshi font are shared product assets.
 Widget layout uses shared utilities; it must not recreate component styling.
 
-## Toolsets
+## Tools
 
-The bare endpoint uses the default profile (hard-capped at 28 tools for the
-ordinary role; CI fails on overflow). `?profile=full` exposes the complete catalog (144 tools at the
-#7815 benchmark revision). Compact output schemas and bounded readable results
-reduce serialized payload size; model-token savings depend on the client.
-See the [token benchmark](TOKEN_BENCHMARK.md) for measurements and reproduction.
-Callers can narrow the advertised tools with `?toolsets=` on the `/mcp` endpoint:
+Every connection lists every tool its role may call, at most `MCP_TOOL_CAP`
+(30) for the ordinary role; CI fails on overflow. `?toolsets=`, `?profile=` and
+`?app=` are no longer read: a URL that still carries them connects and gets the
+same list, and the REST mirror (`GET /v1/tools`) returns the same catalog.
+Compact output schemas and bounded readable results reduce serialized payload
+size; model-token savings depend on the client. See the
+[token benchmark](TOKEN_BENCHMARK.md) for measurements and reproduction.
 
-```
-https://mcp.genfeed.ai/mcp?toolsets=content,generation
-```
-
-- **Comma-separated, kebab-case names** — see `getToolsets('mcp')` (exported
-  from `@genfeedai/actions`) for the live list, or call the `find_tools`
-  meta tool once connected.
-- **`core` is always included** and cannot be excluded — it holds the
-  discovery meta tool (`find_tools`) plus
-  a handful of always-needed account/status tools.
-- **`?app=clipper,motion` adds the toolsets behind those apps** to the
-  selection made by the rest of the URL (default, `?profile=`, or
-  `?toolsets=`). Apps are `agent`, `analytics`, `automation`, `clipper`,
-  `discovery`, `editor`, `library`, `messages`, `motion`, `playground`,
-  `publishing`, `storyboard`, `turbo` and `workspace`. The map
-  is `MCP_APP_TOOLSETS` in `packages/actions`.
-- **Omitting the parameter (or passing an empty value) uses `?profile=`**, and
-  a bare URL gets the `default` profile: `core`, `generation`, `content`,
-  `scheduler` and `articles`, capped at 28 tools. `?profile=studio` adds `brand` and
-  `analytics` (capped at 43) and is what Codex installs use. Use
-  `?profile=full` for every tool.
-- **An unknown toolset name is rejected with an HTTP 400** and a JSON-RPC
-  `-32602` error naming the valid toolsets, before authentication runs (so it
-  also applies to the unauthenticated public `tools/list` discovery path).
-- The REST mirror (`GET /v1/tools`) accepts the same `?toolsets=` parameter.
-- **`tools/call` is unaffected** — a tool outside the current `tools/list`
-  selection can still be invoked directly. Toolsets only shape discovery, not
-  authorization (role-based access control is unchanged and still
-  authoritative).
+- **Most tools take `action` and one `input` object.** The catalog is
+  `MCP_CATALOG_TOOLS` in `packages/actions`; the original tools stay the
+  executors and are never listed. A retired tool name fails at once and names its
+  replacement.
+- **Every tool declares an `organization` argument.** On a connection covering
+  several organizations a call that names none is refused with the list of
+  organizations and their brands (`organization_required`); a connection limited
+  to one organization works inside it and refuses a named one. There is no stored
+  default and no `switch_org`.
+- **`tools/call` permissions are unchanged.** Role-based access control and
+  approvals stay authoritative.
 
 ### Brand campaigns
 
-The content toolset includes `manage_campaign` for native campaign context and
-Library asset membership. The default profile also includes publishing readiness
-and approved scheduling. Follow [Brand campaigns through MCP](../../../docs/brand-campaign-mcp.md)
+`save_post` with `action: campaign` handles native campaign context and
+Library asset membership. `check_channel` covers publishing readiness and
+`schedule_release` approved scheduling; every connection lists them. Follow [Brand campaigns through MCP](../../../docs/brand-campaign-mcp.md)
 for the complete context → asset → release workflow.
 
-### Tool discovery meta tools
+### Tool discovery
 
-Because `tools/list` can be narrowed, one read-only meta tool (always in the
-`core` toolset), `find_tools { name?, query?, toolset?, limit? }`, helps a
-client find something outside its current selection so it can reconnect with
-a broader `?toolsets=`:
-
-- No arguments — every toolset available on this server, with tool counts.
-- `query` and/or `toolset` — case-insensitive substring search over tool name,
-  description, and toolset.
-- `name` — the full tool definition for one name, including the closest name
-  matches when the name is not found. `connection.isListed` distinguishes a tool
-  listed by this connection from a permitted tool outside its selected profile.
-
-Discovery returns descriptions; it does not install a tool into the client's
-callable tool list. If `connection.isListed` is true but the client cannot call
-the tool, refresh its MCP tool list or reconnect to the same server URL. If it
-is false, include the returned toolset alongside the existing selection before
-reconnecting. Keep the existing authentication and endpoint restrictions.
+`find_tools { name?, query?, limit? }` is read-only. No arguments lists every
+tool with its actions; `query` searches tool names, descriptions and action
+names (a retired tool name finds the tool that replaced it); `name` returns one
+tool's full definition. Discovery does not install a tool into the client's
+callable list: if a listed tool is missing in the client, refresh its MCP tool
+list or reconnect to the same server URL.
 
 The transport is stateless and does not send tool/resource list-change
 notifications. Its discovery and setup examples both advertise `listChanged:
 false`; clients need a fresh discovery after server upgrades or scope changes.
-Library galleries use `get_assets` in the generation toolset. The clipper
-toolset also exposes `get_clip_context` and `edit_clip` for the installed
-clip-editor skill, using the same tenant-scoped handlers as the in-app agent.
-
-These search the full, role-filtered catalog regardless of the caller's
-current toolset selection — they are for discovering what else exists, not
-just what is currently loaded.
-
-### Setup page
-
-The setup page at `/` renders a toolset picker (checkboxes, `core` checked
-and disabled) that rewrites the displayed endpoint, its copy button, and the
-Claude Code / Codex / AI-prompt snippets to include the selected toolsets —
-so copying a snippet after picking toolsets connects with exactly that
-selection.
 
 ## Tests
 

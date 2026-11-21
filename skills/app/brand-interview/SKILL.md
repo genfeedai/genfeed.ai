@@ -18,7 +18,7 @@ Use this when the operator asks to be interviewed or grilled, when their brand v
 
 The interview is backed by real tools. Use them; do not simulate the flow in prose.
 
-- `get_brand_completeness` — read the current score and which fields are missing. Call this first.
+- `get_context` with `action` set to `brand_completeness` — read the current score and which fields are missing. Call this first.
 - `start_brand_interview` — begin the session and get the first question.
 - `submit_brand_interview_answer` — persist an accepted answer to its field.
 - `skip_brand_interview_question` — record a deliberate skip.

@@ -138,6 +138,7 @@ function card(value: unknown): McpCard | undefined {
     title: text(row.title),
     description: text(row.description),
     body: text(row.body) || undefined,
+    organization: text(row.organization) || undefined,
     kind: row.kind as McpCard['kind'],
     status: text(row.status),
     platform: text(row.platform),
@@ -512,23 +513,20 @@ function usePendingCard(item: McpCard, bridge: PreviewBridge) {
         bridge
           .request('tools/call', {
             name: 'get_job_status',
-            arguments: { jobId: next.id },
+            arguments: { jobId: next.id, organization: item.organization },
           })
           .then((result) => {
             if (abortController.signal.aborted) return;
             const fresh = readView(result)?.cards[0];
-            if (!fresh) {
-              poll(next, attempt + 1);
-              return;
-            }
+            if (!fresh) return poll(next, attempt + 1);
             const updated = { ...fresh, id: fresh.id || next.id };
             flushSync(() => setCurrent(updated));
             bridge.resize();
             poll(updated, attempt + 1);
           })
-          .catch(() => {
-            if (!abortController.signal.aborted) poll(next, attempt + 1);
-          });
+          .catch(
+            () => abortController.signal.aborted || poll(next, attempt + 1),
+          );
       }, 5000);
     }
     poll(item, 0);
@@ -1228,8 +1226,8 @@ function Preview({ result, notice, bridge }: PreviewProps) {
     setSwitchError('');
     bridge
       .request('tools/call', {
-        name: 'switch_org',
-        arguments: { organization: organizationId },
+        name: 'get_context',
+        arguments: { action: 'organizations', organization: organizationId },
       })
       .then((next) => {
         const fresh = readView(next);

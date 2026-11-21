@@ -383,7 +383,7 @@ describe('trusted proactive turn limits and memory routing', () => {
           organizationId: 'org',
         },
       },
-      model: 'deepseek/deepseek-v4-flash-0731',
+      model: 'deepseek/deepseek-v4.1-flash-1017',
       policy: {
         autonomyMode: AgentAutonomyMode.SUPERVISED,
         thinkingModelOverride: null,
@@ -395,7 +395,7 @@ describe('trusted proactive turn limits and memory routing', () => {
     await service.execute(prepared.state);
 
     const call = stream.runStreamLoop.mock.calls[0];
-    expect(call?.[3]).toBe('deepseek/deepseek-v4-flash-0731');
+    expect(call?.[3]).toBe('deepseek/deepseek-v4.1-flash-1017');
     expect(call?.[5]).toEqual(
       expect.objectContaining({ thinkingModelOverride: null }),
     );

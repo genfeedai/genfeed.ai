@@ -296,11 +296,13 @@ describe('SchedulePostCard', () => {
             {
               ...target,
               credentialId: 'cred-linkedin-a',
+              handle: 'studio-a',
               id: 'schedule-target-cred-linkedin-a',
             },
             {
               ...target,
               credentialId: 'cred-linkedin-b',
+              handle: 'studio-b',
               id: 'schedule-target-cred-linkedin-b',
             },
           ],
@@ -309,10 +311,10 @@ describe('SchedulePostCard', () => {
     );
 
     expect(
-      screen.getByRole('button', { name: 'LinkedIn cred-linkedin-a' }),
+      screen.getByRole('button', { name: '@studio-a' }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: 'LinkedIn cred-linkedin-b' }),
+      screen.getByRole('button', { name: '@studio-b' }),
     ).toBeInTheDocument();
   });
 });
@@ -341,12 +343,14 @@ describe('SchedulePostCard disconnected target', () => {
               {
                 ...target,
                 credentialId: 'cred-linkedin-a',
+                handle: 'studio-a',
                 id: 'schedule-target-cred-linkedin-a',
                 referenceState: 'expired',
               },
               {
                 ...target,
                 credentialId: 'cred-linkedin-b',
+                handle: 'studio-b',
                 id: 'schedule-target-cred-linkedin-b',
               },
             ],
@@ -358,12 +362,10 @@ describe('SchedulePostCard disconnected target', () => {
     );
 
     expect(
-      screen.getByRole('button', { name: 'LinkedIn cred-linkedin-a' }),
+      screen.getByRole('button', { name: '@studio-a' }),
     ).toBeInTheDocument();
-    expect(
-      screen.getByText('cred-linkedin-a · Disconnected'),
-    ).toBeInTheDocument();
-    expect(screen.getByText('cred-linkedin-b')).toBeInTheDocument();
+    expect(screen.getAllByText('Disconnected')).toHaveLength(2);
+    expect(screen.getByText('@studio-b')).toBeInTheDocument();
   });
 });
 

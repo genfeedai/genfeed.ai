@@ -20,7 +20,6 @@ then open the relevant topic files. Add detailed topic entries here; keep MEMORY
 - [ui_primitives](ui_primitives.md) — every surface, including MCP previews, composes shared UI components; no raw HTML controls
 - [feedback_motion_page_menu_only](feedback_motion_page_menu_only.md) — app elements do not animate; only the page menu (`data-motion="allow"`) and loaders keep motion, enforced by `packages/styles/motion-policy.css`
 - [proxy_middleware](proxy_middleware.md) — Next.js 16 renamed `middleware.ts` → `proxy.ts`
-- [ready_pr_default](ready_pr_default.md) — ready PRs by default; draft only on request
 - [no_external_symlinks](no_external_symlinks.md) — internal symlinks only (public repo)
 - [p0_priority_not_label](p0_priority_not_label.md) — priority lives in native organization Issue Fields, not labels or project-local duplicates
 - [no_issue_body_frontmatter](no_issue_body_frontmatter.md) — no YAML in issue bodies
@@ -99,7 +98,7 @@ Always in context — repo-wide prohibitions, do not re-read them to "check":
 
 Scoped by `paths` frontmatter — load only when the matching files are in play:
 
-- [00-security](rules/00-security.md) · [better_auth_additional_fields](rules/better_auth_additional_fields.md) (`apps/server/api/src/auth/**`)
+- [00-security](rules/00-security.md) · [better_auth_additional_fields](rules/better_auth_additional_fields.md) (`apps/server/api/src/auth/**`) · [coding-standards](rules/coding-standards.md) (`**/*.ts`, `**/*.tsx`; judgement calls review reads)
 
 On-demand skills — invoked by task, formerly always-loaded rules:
 
@@ -197,12 +196,12 @@ On-demand skills — invoked by task, formerly always-loaded rules:
 
 Start with the matching reference: [system-patterns](context/system-patterns.md) · [project-structure](context/project-structure.md) · [project-style-guide](context/project-style-guide.md) · [skills-architecture](context/skills-architecture.md) · [provider-integration-pattern](context/provider-integration-pattern.md)
 
-Load on demand: [e2e-architecture](context/e2e-architecture.md) · [progress](context/progress.md) · [tech-context](context/tech-context.md) · [product-context](context/product-context.md) · [project-overview](context/project-overview.md) · [project-brief](context/project-brief.md) · [project-vision](context/project-vision.md) · [api-cache-invalidation](context/api-cache-invalidation.md)
+Load on demand: [lockstep-surfaces](context/lockstep-surfaces.md) · [e2e-architecture](context/e2e-architecture.md) · [progress](context/progress.md) · [tech-context](context/tech-context.md) · [product-context](context/product-context.md) · [project-overview](context/project-overview.md) · [project-brief](context/project-brief.md) · [project-vision](context/project-vision.md) · [api-cache-invalidation](context/api-cache-invalidation.md)
 
 ## Features and system
 
 - [features/agent](features/agent/README.md) — turn flow, context parity, model resolution, billing pointers
-- [AGENT-RUNTIME](system/AGENT-RUNTIME.md) · [CRITICAL-NEVER-DO](system/CRITICAL-NEVER-DO.md) · [SYSTEM-RULES](system/SYSTEM-RULES.md) · [PRIORITY-READING](system/PRIORITY-READING.md) · [CROSS-PROJECT-RULES](system/CROSS-PROJECT-RULES.md) · [OPEN-SOURCE-CONTEXT](system/OPEN-SOURCE-CONTEXT.md) · [SELF-HOSTED-GUIDE](system/SELF-HOSTED-GUIDE.md)
+- [CRITICAL-NEVER-DO](system/CRITICAL-NEVER-DO.md) · [CROSS-PROJECT-RULES](system/CROSS-PROJECT-RULES.md) · [OPEN-SOURCE-CONTEXT](system/OPEN-SOURCE-CONTEXT.md) · [SELF-HOSTED-GUIDE](system/SELF-HOSTED-GUIDE.md)
 
 - [Dynamic video workflows](spec-dynamic-video-workflows.md) — #4500 localization and scene composition contracts.
 

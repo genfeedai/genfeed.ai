@@ -1,5 +1,7 @@
 import { mkdir } from 'node:fs/promises';
 import path from 'node:path';
+import { settle } from '@e2e/utils/interaction-helpers';
+import { waitRealTime } from '@e2e/utils/real-time';
 import { DEFAULT_PLATFORM_FLAGS } from '@genfeedai/contracts/constants';
 import { expect, type Page, type Route, test } from '@playwright/test';
 import {
@@ -24,7 +26,6 @@ import {
   generateMockBrand,
   generateMockOrganization,
 } from '../utils/api-interceptor';
-import { settle } from '../utils/interaction-helpers';
 
 const E2E_ORG_SLUG = 'test-org';
 const E2E_BRAND_SLUG = 'brand-1';
@@ -214,7 +215,7 @@ const WEBSITE_PRODUCT_TARGETS: CaptureTarget[] = [
         .evaluate((el) => el.scrollIntoView({ block: 'start' }))
         .catch(() => {});
       // Recharts draws its lines in; wait for the animation to finish.
-      await page.waitForTimeout(3_000);
+      await waitRealTime(3_000);
     },
   },
   { fileName: 'discovery.png', path: brandPath('/discovery/trends') },
@@ -242,7 +243,7 @@ const WEBSITE_PRODUCT_TARGETS: CaptureTarget[] = [
           subtree: true,
         });
       });
-      await page.waitForTimeout(500);
+      await waitRealTime(500);
     },
   },
   { fileName: 'automation.png', path: brandPath('/automation/workflows') },

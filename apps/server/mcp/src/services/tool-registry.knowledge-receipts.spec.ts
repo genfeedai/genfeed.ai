@@ -4,6 +4,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { ClientService } from '@mcp/services/client.service';
+import { withMergedToolCalls } from '@mcp/services/tool-registry.endpoints.testing';
 import { ToolRegistryService } from '@mcp/services/tool-registry.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -46,10 +47,12 @@ describe('search_knowledge over MCP', () => {
     warn: vi.fn(),
   };
   const registry = () =>
-    new ToolRegistryService(
-      client as unknown as ClientService,
-      logger as unknown as LoggerService,
-      'superadmin',
+    withMergedToolCalls(
+      new ToolRegistryService(
+        client as unknown as ClientService,
+        logger as unknown as LoggerService,
+        'superadmin',
+      ),
     );
 
   beforeEach(() => {

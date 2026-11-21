@@ -1,3 +1,4 @@
+import { waitRealTime } from '@e2e/utils/real-time';
 import {
   buildExecutionJsonApiResource,
   mockActiveSubscription,
@@ -222,7 +223,7 @@ test.describe('Workflow Editor', () => {
     const executionRequest = await executionRequestPromise;
 
     expect(executionRequest.url()).toContain('/workflow-executions');
-    await authenticatedPage.waitForTimeout(300);
+    await waitRealTime(300);
     expect(legacyExecuteCalled).toBe(false);
   });
 

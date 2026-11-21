@@ -15,12 +15,12 @@ const ROW_SKELETON_KEYS = [
 ] as const;
 
 const CONTENT_HEIGHT = {
-  // A title line alone: 20px.
-  single: 'min-h-5',
+  // A title line alone, or one that carries a small avatar: 24px.
+  single: 'min-h-6',
   // A compact row's title line plus its meta line: 36px.
   default: 'min-h-9',
-  // Title, meta and a facts line, as an account row has: 52px.
-  tall: 'min-h-[3.25rem]',
+  // Name, handle and a facts line, as an account row has: 56px.
+  tall: 'min-h-14',
   // Rows that lead with a thumbnail and carry detail text: 62px.
   media: 'min-h-[3.875rem]',
 } as const;

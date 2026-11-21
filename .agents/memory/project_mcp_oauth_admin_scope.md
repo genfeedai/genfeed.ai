@@ -25,6 +25,5 @@ role cap or by reading the membership role in the MCP server; grant the scope at
 consent. Existing tokens keep the old scopes until the client reconnects. The MCP
 e2e suite (`apps/server/mcp/test/e2e`) pins the journey. Org switching is
 opt-in: with the consent checkbox ticked (2+ orgs, not the Claude connector) the
-session key stores `canSwitchOrganizations`, `switch_org` records the chosen org in
-`activeOrganizationId`, and the API key guard honours it only while the user's
+session key stores `canSwitchOrganizations`, a tool call names its org with the `organization` argument (there is no `switch_org` and no stored default; a call naming none is refused with the org list), and the API key guard honours the named org only while the user's
 membership there is live. The key row itself never changes org.

@@ -5,9 +5,7 @@
   "reviewDescription": "Review extracted and inferred evidence before accepting it. Candidate colors stay separate from Genfeed product tokens.",
   "reviewTitle": "Review brand evidence",
   "settingsAriaLabel": "Brand Kit settings",
-  "sectionsLabel": "Brand Kit sections",
   "actionsLabel": "Brand Kit actions",
-  "overview": "Overview",
   "visual": "Visual identity",
   "voice": "Writing voice",
   "strategy": "Strategy",
@@ -23,7 +21,6 @@
   "snapshot": "Versioned identity snapshot",
   "snapshotHelp": "Writing edits save to the live agent profile. Review the versioned snapshot separately before approving it.",
   "unsaved": "Unsaved revision changes",
-  "saved": "No unsaved changes",
   "saveDraft": "Save draft",
   "createManualDraft": "Create manual draft",
   "capturedDraft": "Website scan & captured draft",
@@ -119,5 +116,11 @@
     "skipped": "Left out {file}: {reason}.",
     "title": "Kit file",
     "tooLarge": "Kit files can be at most 64 MB."
-  }
+  },
+  "identity": "Identity",
+  "hidePreview": "Hide preview",
+  "showPreview": "Show preview",
+  "history": "Version history",
+  "share": "Share & export",
+  "publishing": "Publishing"
 }

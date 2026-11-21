@@ -463,19 +463,12 @@ describe('Crun durable PostgreSQL submission and leases', () => {
         (value) => ({ status: 'fulfilled' as const, value }),
         (reason: unknown) => ({ status: 'rejected' as const, reason }),
       );
-    let barrierTimer: ReturnType<typeof setTimeout> | undefined;
     try {
       await Promise.race([
         posted,
         submission.then((outcome) => {
           if (outcome.status === 'rejected') throw outcome.reason;
           throw new Error('Submission finished before provider barrier');
-        }),
-        new Promise<never>((_resolve, reject) => {
-          barrierTimer = setTimeout(
-            () => reject(new Error('Provider submission barrier not reached')),
-            5000,
-          );
         }),
       ]);
       expect(
@@ -490,7 +483,6 @@ describe('Crun durable PostgreSQL submission and leases', () => {
         ),
       ).toEqual({ count: 0 });
     } finally {
-      clearTimeout(barrierTimer);
       accept();
       await submission;
     }

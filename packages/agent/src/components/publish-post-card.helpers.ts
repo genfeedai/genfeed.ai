@@ -5,6 +5,7 @@ import type {
 } from '@genfeedai/agent/models/agent-chat.model';
 import { PostVisibility } from '@genfeedai/contracts';
 import { validateChannelTargetSettings } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
+import type { ConnectedAccountData } from '@genfeedai/props/ui/display/connected-account.props';
 import { isRecord, readString } from '@genfeedai/utils/data/extract.util';
 
 const VISIBILITY_VALUES = [
@@ -186,6 +187,7 @@ export function readPublishTargetProposals(
 
     return [
       {
+        avatarUrl: readString(item.avatarUrl),
         blockers: readIssues(item.blockers),
         caption: readString(item.caption),
         captionMaxLength:
@@ -193,6 +195,7 @@ export function readPublishTargetProposals(
             ? item.captionMaxLength
             : undefined,
         credentialId,
+        handle: readString(item.handle),
         id,
         isCaptionRequired:
           typeof item.isCaptionRequired === 'boolean'
@@ -202,6 +205,7 @@ export function readPublishTargetProposals(
           typeof item.isSelected === 'boolean' ? item.isSelected : undefined,
         label: readString(item.label) ?? platform,
         media: readMedia(item.media),
+        name: readString(item.name),
         platform,
         settingFields: readSettingFields(item.settingFields),
         settings,
@@ -223,18 +227,16 @@ export function readPublishTargetProposals(
   });
 }
 
-/**
- * The platform logo and name come from PlatformBadge; this is only the extra
- * text that tells two accounts of the same platform apart.
- */
-export function targetAccountSuffix(
+/** The connected account a publish target posts to, for the shared account display. */
+export function targetAccount(
   target: AgentPublishTargetProposal,
-  all: AgentPublishTargetProposal[],
-): string | null {
-  const samePlatformCount = all.filter(
-    (candidate) => candidate.platform === target.platform,
-  ).length;
-  return samePlatformCount > 1 ? target.credentialId : null;
+): ConnectedAccountData {
+  return {
+    avatarUrl: target.avatarUrl,
+    handle: target.handle,
+    name: target.name,
+    platform: target.platform,
+  };
 }
 
 export function resolveEffectiveCaption(

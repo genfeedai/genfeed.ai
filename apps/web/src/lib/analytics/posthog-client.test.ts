@@ -56,7 +56,7 @@ async function loadClient(): Promise<PosthogClientModule> {
 
 /** Flush the dynamic import()/microtask queue used by initAnalytics. */
 async function flushInit(): Promise<void> {
-  await new Promise((resolve) => setTimeout(resolve, 0));
+  await new Promise((resolve) => setImmediate(resolve));
 }
 
 /** Run scheduled idle work synchronously, the way a fully idle browser would. */

@@ -281,28 +281,19 @@ describe('extractSourceText', () => {
       new Uint8Array(KNOWLEDGE_SOURCE_MAX_BYTES + 1),
     ]);
     tracked.cancel.mockReturnValue(new Promise(() => {}));
-    let deadline: ReturnType<typeof setTimeout> | undefined;
-    try {
-      const outcome = await Promise.race([
-        extractSourceText({
-          category: KnowledgeBaseCategory.DOCUMENT,
-          fetchImpl: vi.fn().mockResolvedValue(tracked.response),
-          referenceUrl,
-        }).then(
-          () => 'unexpected success',
-          (error: unknown) =>
-            error instanceof Error ? error.message : 'unexpected error',
-        ),
-        new Promise<string>((resolve) => {
-          deadline = setTimeout(() => resolve('blocked by cleanup'), 100);
-        }),
-      ]);
-      expect(outcome).toBe(sizeError);
-      expect(tracked.release).toHaveBeenCalledOnce();
-      expect(tracked.stream.locked).toBe(false);
-    } finally {
-      clearTimeout(deadline);
-    }
+    // A cleanup that blocks on the stuck cancel hangs here and fails on the test timeout.
+    const outcome = await extractSourceText({
+      category: KnowledgeBaseCategory.DOCUMENT,
+      fetchImpl: vi.fn().mockResolvedValue(tracked.response),
+      referenceUrl,
+    }).then(
+      () => 'unexpected success',
+      (error: unknown) =>
+        error instanceof Error ? error.message : 'unexpected error',
+    );
+    expect(outcome).toBe(sizeError);
+    expect(tracked.release).toHaveBeenCalledOnce();
+    expect(tracked.stream.locked).toBe(false);
   });
 
   it('cancels an unread HTTP failure without masking the status or waiting for cleanup', async () => {

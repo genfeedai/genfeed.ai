@@ -1,6 +1,7 @@
 import { TargetExecutionState } from '@genfeedai/contracts';
 import type { IReleaseGroup } from '@genfeedai/contracts/interfaces';
 import { getPublishingReleaseHref } from '@helpers/content/posts.helper';
+import { toConnectedAccount } from '@helpers/publisher/connected-account.helper';
 import type {
   Next24hQueueGroup,
   Next24hQueueItem,
@@ -55,6 +56,9 @@ export function buildNext24hQueue(
       }
 
       items.push({
+        account: target.credential
+          ? toConnectedAccount(target.credential)
+          : { platform: target.platform },
         accountLabel: resolveAccountLabel(target.credential, target.platform),
         href: getPublishingReleaseHref(release.id),
         platform: target.platform,

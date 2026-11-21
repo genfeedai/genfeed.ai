@@ -142,8 +142,8 @@ Offer two hooks when undecided.
 
 If Genfeed tools are available:
 
-- `generate_content` with `{type: "caption", platform: "instagram", topic, brandId}` gives a starting draft to edit.
-- `create_post` saves the draft with `platforms: ["instagram"]` and `mediaUrls`. It does not publish.
+- `generate_text` with `{action: "content", input: {type: "caption", platform: "instagram", topic, brandId}}` gives a starting draft to edit.
+- `save_post` (`action: post`) saves the draft with `platforms: ["instagram"]` and `mediaUrls`. It does not publish.
 - Use `check_channel` with `{action: "capabilities", input: {platform: "instagram"}}` for media rules.
 - Publishing goes through `social-poster`, only on explicit confirmation.
 

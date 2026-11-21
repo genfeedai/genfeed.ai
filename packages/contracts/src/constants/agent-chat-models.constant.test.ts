@@ -112,11 +112,11 @@ describe('AGENT_CHAT_MODELS', () => {
 
   it('uses the current low-cost DeepSeek tool model as the cloud fallback', () => {
     expect(DEFAULT_AGENT_CHAT_MODEL_KEY).toBe(
-      AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_FLASH,
+      AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_1_FLASH,
     );
     expect(getAgentChatModel(DEFAULT_AGENT_CHAT_MODEL_KEY)).toMatchObject({
       creditCostPerRound: 1,
-      pricing: { completionPerMillion: 0.16, promptPerMillion: 0.05 },
+      pricing: { completionPerMillion: 0.6, promptPerMillion: 0.15 },
     });
   });
 
@@ -192,12 +192,13 @@ describe('getAgentChatModelRoundCredits', () => {
     expect(AGENT_FALLBACK_ROUND_CREDITS).toBeGreaterThan(0);
   });
 
-  it('retires Grok 4 / 4.5 and keeps Grok 4.6 selectable', () => {
+  it('retires Grok 4 / 4.5 / 4.6 and keeps Grok 4.7 selectable', () => {
     expect(isRetiredAgentChatModel('x-ai/grok-4')).toBe(true);
     expect(isRetiredAgentChatModel('x-ai/grok-4.5')).toBe(true);
+    expect(isRetiredAgentChatModel('x-ai/grok-4.6')).toBe(true);
     expect(
       SELECTABLE_AGENT_CHAT_MODELS.some(
-        (model) => model.key === AGENT_CHAT_MODEL_KEYS.GROK_4_6,
+        (model) => model.key === AGENT_CHAT_MODEL_KEYS.GROK_4_7,
       ),
     ).toBe(true);
     expect(
@@ -224,11 +225,16 @@ describe('LLM_DEFAULTS', () => {
   });
 
   it('points every picker-facing role at a catalogued model', () => {
-    // grokFast and productTextFallback are deliberately not in the agent
-    // chat picker: grokFast is the cheap X-drafts key, productTextFallback
-    // is the drafts/prompt-enhancement seed used only when no Admin default
-    // TEXT model resolves (#5161).
-    const NON_PICKER_ROLES = new Set(['grokFast', 'productTextFallback']);
+    // grokFast, productTextFallback and contentWriting are deliberately not in
+    // the agent chat picker: grokFast is the cheap X-drafts key,
+    // productTextFallback is the posts, captions and prompt-enhancement model,
+    // and contentWriting is the
+    // prose model for articles, newsletters, captions and scripts.
+    const NON_PICKER_ROLES = new Set([
+      'contentWriting',
+      'grokFast',
+      'productTextFallback',
+    ]);
     for (const [role, key] of Object.entries(LLM_DEFAULTS)) {
       if (NON_PICKER_ROLES.has(role)) {
         continue;
@@ -244,9 +250,16 @@ describe('LLM_DEFAULTS', () => {
     expect(getAgentChatModel(LLM_DEFAULTS.grokFast)).toBeUndefined();
   });
 
+  it('keeps contentWriting on Gemini 4 Neon, off the agent chat picker', () => {
+    expect(LLM_DEFAULTS.contentWriting).toBe(
+      MODEL_KEYS.OPENROUTER_GOOGLE_GEMINI_4_NEON,
+    );
+    expect(getAgentChatModel(LLM_DEFAULTS.contentWriting)).toBeUndefined();
+  });
+
   it('keeps productTextFallback off the agent chat picker', () => {
     expect(LLM_DEFAULTS.productTextFallback).toBe(
-      MODEL_KEYS.OPENROUTER_GOOGLE_GEMINI_3_8_FLASH,
+      MODEL_KEYS.OPENROUTER_GOOGLE_GEMINI_4_HYDROGEN,
     );
     expect(getAgentChatModel(LLM_DEFAULTS.productTextFallback)).toBeUndefined();
   });

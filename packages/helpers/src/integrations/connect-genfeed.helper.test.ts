@@ -148,34 +148,13 @@ describe('buildConnectGenfeedInstructions', () => {
       'https://mcp.genfeed.ai/mcp',
     );
     expect(codex.primaryCommand).toBe(
-      "codex mcp add genfeed --url 'https://mcp.genfeed.ai/mcp?profile=studio'",
+      'codex mcp add genfeed --url https://mcp.genfeed.ai/mcp',
     );
     expect(codex.authorizationInstruction).toContain('codex mcp login genfeed');
     expect(claude.primaryCommand).toBe(
       'claude mcp add --transport http genfeed --scope user https://mcp.genfeed.ai/mcp/claude',
     );
     expect(claude.authorizationInstruction).toContain('/mcp');
-  });
-
-  it('keeps an endpoint that already carries a query as written for Codex', () => {
-    const instructions = buildConnectGenfeedInstructions(
-      'codex',
-      'https://mcp.genfeed.ai/mcp?profile=full',
-    );
-    expect(instructions.primaryCommand).toBe(
-      "codex mcp add genfeed --url 'https://mcp.genfeed.ai/mcp?profile=full'",
-    );
-  });
-
-  it('does not add the studio profile for Claude or other clients', () => {
-    for (const client of ['claude-code', 'generic'] as const) {
-      const instructions = buildConnectGenfeedInstructions(
-        client,
-        'https://mcp.genfeed.ai/mcp',
-      );
-      expect(instructions.configuration).not.toContain('profile=studio');
-      expect(instructions.primaryCommand ?? '').not.toContain('profile=studio');
-    }
   });
 
   it('quotes configured endpoints with shell metacharacters', () => {
@@ -252,10 +231,10 @@ describe('buildConnectGenfeedInstructions', () => {
     );
 
     expect(instructions.primaryCommand).toBe(
-      "codex mcp add genfeed --url 'http://localhost:3014/mcp?profile=studio' --bearer-token-env-var GENFEED_API_KEY",
+      'codex mcp add genfeed --url http://localhost:3014/mcp --bearer-token-env-var GENFEED_API_KEY',
     );
     expect(instructions.configuration).toContain(
-      'url = "http://localhost:3014/mcp?profile=studio"',
+      'url = "http://localhost:3014/mcp"',
     );
     expect(instructions.configuration).toContain(
       'bearer_token_env_var = "GENFEED_API_KEY"',
@@ -293,7 +272,7 @@ describe('buildConnectGenfeedInstructions', () => {
     );
 
     expect(instructions.primaryCommand).toContain(
-      "'https://mcp.genfeed.ai/mcp?profile=studio' --bearer-token-env-var",
+      'https://mcp.genfeed.ai/mcp --bearer-token-env-var',
     );
   });
 });

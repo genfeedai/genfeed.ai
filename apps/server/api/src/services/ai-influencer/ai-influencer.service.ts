@@ -62,7 +62,7 @@ const SUPPORTED_PLATFORMS: readonly AiInfluencerPlatform[] = [
 
 const DEFAULT_IMAGE_WIDTH = 1024;
 const DEFAULT_IMAGE_HEIGHT = 1024;
-const CAPTION_MODEL = LLM_DEFAULTS.creativeAgent;
+const CAPTION_MODEL = LLM_DEFAULTS.contentWriting;
 const IMAGE_MODEL = 'fal-ai/flux-lora';
 const MAX_CAPTION_LENGTH = 2200; // Instagram caption limit
 const CAPTION_TEMPERATURE = 0.8;
@@ -301,7 +301,7 @@ export class AiInfluencerService {
 
     try {
       const response = await this.openRouterService.chatCompletion({
-        max_tokens: 300,
+        max_tokens: 1000,
         messages: [
           { content: systemPrompt, role: 'system' },
           {

@@ -28,6 +28,7 @@ import { cloneElement, isValidElement, useCallback, useState } from 'react';
 
 // Relative import: @ui/lib/* isn't aliased (the @ui test alias maps to
 // src/components), and accordion.tsx sources this same hook the same way.
+// biome-ignore lint/style/noRestrictedImports: no alias reaches src/lib in tests
 import { useMounted } from '../../../lib/hooks';
 
 export default function SwitcherDropdown({

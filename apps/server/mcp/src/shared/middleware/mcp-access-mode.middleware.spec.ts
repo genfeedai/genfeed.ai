@@ -4,14 +4,13 @@ import type { Response } from 'express';
 
 describe('Claude endpoint routing', () => {
   it.each([{ profile: 'full' }, { toolsets: 'generation' }])(
-    'rejects catalog overrides %j',
+    'ignores the retired catalog query %j',
     (query) => {
       const req = { path: '/mcp/claude', query } as unknown as McpRequest;
-      const res = { status: vi.fn().mockReturnThis(), json: vi.fn() };
       const next = vi.fn();
-      mcpAccessModeMiddleware(req, res as unknown as Response, next);
-      expect(res.status).toHaveBeenCalledWith(400);
-      expect(next).not.toHaveBeenCalled();
+      mcpAccessModeMiddleware(req, {} as Response, next);
+      expect(req.routeAccessMode).toBe('claude');
+      expect(next).toHaveBeenCalledOnce();
     },
   );
   it.each(['/mcp/claude', '/mcp/claude/', '/MCP/CLAUDE', '/Mcp/Claude/'])(

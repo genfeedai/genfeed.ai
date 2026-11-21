@@ -82,19 +82,6 @@ function makeReq(overrides: Partial<Request> = {}): Request {
   } as unknown as Request;
 }
 
-/**
- * `ToolRegistryService`'s constructor args are captured positionally (the
- * mock has no parameter names to key off of), but asserting a fixed index is
- * fragile against constructor reordering. The toolset selection is the only
- * array-shaped argument (client service and logger are objects, role is a
- * string), so finding it by shape is a cleaner, reorder-safe assertion.
- */
-function getConstructedToolsets(callIndex = 0): unknown {
-  return toolRegistryConstructorCalls[callIndex]?.find((arg) =>
-    Array.isArray(arg),
-  );
-}
-
 function makeRes(): Response & {
   status: ReturnType<typeof vi.fn>;
   json: ReturnType<typeof vi.fn>;
@@ -252,22 +239,6 @@ describe('StreamableHttpService', () => {
       expect(mockSetBearerToken).toHaveBeenCalledWith('bearer-xyz');
     });
 
-    it('threads the request-scoped toolset selection into the registry', async () => {
-      const req = makeReq({
-        toolsets: ['content'],
-      } as unknown as Partial<Request>);
-
-      await service.handlePost(req, makeRes());
-
-      expect(getConstructedToolsets()).toEqual(['content']);
-    });
-
-    it('defaults to an empty toolset selection ("every tool") when unset', async () => {
-      await service.handlePost(makeReq({ headers: {} }), makeRes());
-
-      expect(getConstructedToolsets()).toEqual([]);
-    });
-
     it('instruments the request server with the authenticated identity', async () => {
       const authContext = {
         organizationId: 'organization-123',
@@ -348,11 +319,10 @@ describe('StreamableHttpService', () => {
     await service.handlePost(
       {
         body: { method: 'tools/list' },
-        toolsets: ['generation'],
         ...request,
       } as unknown as Request,
       makeRes(),
     );
-    expect(toolRegistryConstructorCalls.at(-1)?.[5]).toBe('claude');
+    expect(toolRegistryConstructorCalls.at(-1)?.[4]).toBe('claude');
   });
 });

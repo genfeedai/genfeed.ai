@@ -125,6 +125,7 @@ export function LogMethod(options: LogMethodOptions = {}): MethodDecorator {
 
   // In production, automatically disable logStart and logEnd, but keep error logging
   // Only apply defaults if not explicitly configured (respect explicit decorator settings)
+  // biome-ignore lint/style/noProcessEnv: decorator factory runs at class-definition time, before DI
   const isProduction = process.env.NODE_ENV === 'production';
   if (isProduction) {
     if (options.logStart === undefined) {

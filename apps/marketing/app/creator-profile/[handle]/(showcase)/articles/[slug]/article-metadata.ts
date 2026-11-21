@@ -92,6 +92,8 @@ export async function buildPublicArticleMetadata(
   return {
     alternates: {
       canonical: articleUrl,
+      // The agent-readable copy; `markdown/route.ts` serves it.
+      types: { 'text/markdown': `${articleUrl}.md` },
     },
     description: articleDescription,
     openGraph: {

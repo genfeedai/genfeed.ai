@@ -211,12 +211,12 @@ describe('BrandRemixGenerationService exact quotes', () => {
 
   it('quotes copy with canonical model and credits and rejects arbitrary copy models', async () => {
     config.draft.output = { kind: 'copy', count: 3 };
-    await expect(quote()).rejects.toThrow('canonical background model');
+    await expect(quote()).rejects.toThrow('canonical content-writing model');
     await service.quote('org-1', 'run-1', user as never, {
       expectedRevision: 1,
     });
     expect(config.generationQuote).toMatchObject({
-      model: LLM_DEFAULTS.background,
+      model: LLM_DEFAULTS.contentWriting,
       billingMode: 'credits',
       unitCredits: sourcePostVariationCredits(1),
       total: 3 * sourcePostVariationCredits(1),

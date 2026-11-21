@@ -632,7 +632,7 @@ describe('TelegramBotManager', () => {
         platform: 'TELEGRAM',
       });
 
-      await new Promise((resolve) => setTimeout(resolve, 0));
+      await new Promise((resolve) => setImmediate(resolve));
 
       expect(service.getActiveCount()).toBe(1);
       expect(httpService.get).toHaveBeenCalledWith(
@@ -665,7 +665,7 @@ describe('TelegramBotManager', () => {
         platform: 'DISCORD',
       });
 
-      await new Promise((resolve) => setTimeout(resolve, 0));
+      await new Promise((resolve) => setImmediate(resolve));
 
       expect(service.getActiveCount()).toBe(0);
       expect(httpService.get).toHaveBeenCalledTimes(1);
@@ -825,7 +825,7 @@ describe('TelegramBotManager', () => {
         platform: 'TELEGRAM',
       });
 
-      await new Promise((resolve) => setTimeout(resolve, 0));
+      await new Promise((resolve) => setImmediate(resolve));
 
       const workflowsCommandHandler = mockBot.command.mock.calls.find(
         ([command]) => command === 'workflows',
@@ -860,7 +860,7 @@ describe('TelegramBotManager', () => {
       });
 
       await service.handleRun(runWorkflowCtx, '4242', 'org-123');
-      await new Promise((resolve) => setTimeout(resolve, 0));
+      await new Promise((resolve) => setImmediate(resolve));
 
       expect(httpService.post).toHaveBeenCalledWith(
         'http://localhost:3010/v1/internal/orgs/org-123/workflow-executions',

@@ -80,6 +80,11 @@
     "performance": "Performance",
     "publishedThread": "Published thread",
     "tiktokInboxDraftThread": "TikTok Inbox draft",
+    "profileVisibility": {
+      "ariaLabel": "Public profile",
+      "label": "Hide from my public Genfeed profile",
+      "hint": "The post stays live on the social network. Only the Genfeed profile page stops listing it."
+    },
     "contentLabel": "Content",
     "choosePlatform": "Choose a platform to preview this post.",
     "threadFooter": {

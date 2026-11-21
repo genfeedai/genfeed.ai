@@ -1,8 +1,7 @@
 import type { CredentialMentionItem } from '@genfeedai/agent/services/agent-api.service';
-import { ButtonVariant, ComponentSize } from '@genfeedai/contracts';
+import { ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@helpers/formatting/cn/cn.util';
-import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
-import { Avatar } from '@ui/primitives/avatar';
+import ConnectedAccountAvatar from '@ui/display/connected-account/ConnectedAccountAvatar';
 import { Button } from '@ui/primitives/button';
 import {
   type ReactElement,
@@ -77,26 +76,21 @@ export function CredentialMentionList({
               : 'text-popover-foreground hover:bg-accent/50',
           )}
         >
-          {item.avatar && (
-            <Avatar
-              alt={item.handle}
-              name={item.handle}
-              size="sm"
-              src={item.avatar}
-            />
-          )}
+          <ConnectedAccountAvatar
+            account={{
+              avatarUrl: item.avatar,
+              handle: item.handle,
+              name: item.name,
+              platform: item.platform,
+            }}
+            size="sm"
+          />
           <div className="flex flex-col">
             <span className="font-medium">!{item.handle}</span>
             {item.name !== item.handle && (
               <span className="text-xs text-muted-foreground">{item.name}</span>
             )}
           </div>
-          <PlatformBadge
-            className="ml-auto"
-            platform={item.platform}
-            showLabel={false}
-            size={ComponentSize.SM}
-          />
         </Button>
       ))}
     </div>

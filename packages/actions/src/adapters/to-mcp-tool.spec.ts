@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { CanonicalToolDefinition } from '../interfaces/tool-definition.interface';
+import { MCP_CATALOG_TOOLS } from '../registry/mcp-catalog/catalog';
 import {
   ALL_TOOLS,
   getToolByName,
@@ -8,6 +9,7 @@ import {
 import {
   MCP_CREDIT_COST_META_KEY,
   MCP_TOOLSET_META_KEY,
+  toMcpTool,
   toMcpTools,
 } from './to-mcp-tool';
 
@@ -282,8 +284,8 @@ const AUDITED_READ_PRESENTATIONS = [
   },
   {
     annotations: {
-      readOnlyHint: false,
-      destructiveHint: true,
+      readOnlyHint: true,
+      destructiveHint: false,
       idempotentHint: true,
       openWorldHint: true,
     },
@@ -371,7 +373,7 @@ function buildTool(
     category: 'generation',
     creditCost: 17,
     description: 'Generate a voice clip',
-    name: 'generate',
+    name: 'generate_media',
     parameters: {
       properties: { text: { type: 'string' } },
       required: ['text'],
@@ -391,12 +393,12 @@ describe('toMcpTools', () => {
       const canonical = getToolByName(name);
       expect(canonical, name).toBeDefined();
       if (!canonical) throw new Error(`Missing canonical tool ${name}`);
-      const [fallback] = toMcpTools([
+      const fallback = toMcpTool(
         buildTool({ ...canonical, annotations: undefined, title: undefined }),
-      ]);
+      );
       expect(fallback?.title, name).toBe(title);
       expect(fallback?.annotations, name).toEqual(annotations);
-      const [assembled] = toMcpTools([canonical]);
+      const assembled = toMcpTool(canonical);
       expect(assembled?.title, name).toBe(title);
       expect(assembled?.annotations, name).toEqual(annotations);
     },
@@ -411,13 +413,13 @@ describe('toMcpTools', () => {
         openWorldHint: true,
         readOnlyHint: true,
       };
-      const [tool] = toMcpTools([
+      const tool = toMcpTool(
         buildTool({
           name,
           annotations,
           title: 'Stored audited presentation',
         }),
-      ]);
+      );
       expect(tool?.title).toBe('Stored audited presentation');
       expect(tool?.annotations).toEqual(annotations);
     },
@@ -448,11 +450,10 @@ describe('toMcpTools', () => {
     }
     const schema = (name: string) =>
       tools.find((tool) => tool.name === name)?.outputSchema;
-    expect(schema('get_account')?.properties.data).toEqual({ type: 'object' });
     expect(schema('find_tools')?.properties).toHaveProperty('toolsets');
     expect(schema('find_tools')?.properties).not.toHaveProperty('artifact');
-    expect(schema('generate')?.properties).toHaveProperty('artifact');
-    expect(schema('get_account')?.properties).not.toHaveProperty('tools');
+    expect(schema('generate_media')?.properties).toHaveProperty('artifact');
+    expect(schema('manage_workspace')?.properties).not.toHaveProperty('tools');
   });
 
   it('emits only MCP-surfaced actions', () => {
@@ -464,7 +465,7 @@ describe('toMcpTools', () => {
       }),
     ]);
 
-    expect(tools.map((tool) => tool.name)).toEqual(['generate']);
+    expect(tools.map((tool) => tool.name)).toEqual(['generate_media']);
   });
 
   it('advertises the credit cost under the namespaced _meta key', () => {
@@ -520,9 +521,7 @@ describe('toMcpTools', () => {
   it.each(AUDITED_PRESENTATIONS)(
     'derives audited presentation for $name when the fixture has not stored it',
     ({ name, creditCost, mutationPolicy, title, annotations }) => {
-      const [tool] = toMcpTools([
-        buildTool({ creditCost, mutationPolicy, name }),
-      ]);
+      const tool = toMcpTool(buildTool({ creditCost, mutationPolicy, name }));
       expect(tool?.title).toBe(title);
       expect(tool?.annotations).toEqual(annotations);
     },
@@ -531,9 +530,9 @@ describe('toMcpTools', () => {
   it.each(OPEN_WORLD_PRESENTATIONS)(
     'derives external presentation for $name without stored presentation',
     ({ name, creditCost, mutationPolicy, toolset, title, annotations }) => {
-      const [tool] = toMcpTools([
+      const tool = toMcpTool(
         buildTool({ creditCost, mutationPolicy, name, toolset }),
-      ]);
+      );
       expect(tool?.title).toBe(title);
       expect(tool?.annotations).toEqual(annotations);
     },
@@ -549,7 +548,7 @@ describe('toMcpTools', () => {
     const [tool] = toMcpTools([
       buildTool({
         annotations,
-        name: 'onboard_brand',
+        name: 'setup_brand',
         title: 'Stored presentation',
       }),
     ]);
@@ -558,16 +557,11 @@ describe('toMcpTools', () => {
   });
 });
 
-it('projects the raw eligible catalog without advertising legacy aliases', () => {
-  const names = toMcpTools(ALL_TOOLS).map((tool) => tool.name);
-  expect(names).toHaveLength(172);
-  for (const name of [
-    'get_scheduler_capabilities',
-    'validate_scheduler_target',
-    'request_media_upload',
-    'complete_media_upload',
-  ])
-    expect(names).not.toContain(name);
-  expect(names).toContain('check_channel');
-  expect(names).toContain('upload_media');
+it('projects the raw eligible catalog without advertising the tools a merged tool runs', () => {
+  const names = new Set(toMcpTools(ALL_TOOLS).map((tool) => tool.name));
+  for (const tool of MCP_CATALOG_TOOLS) {
+    expect(names.has(tool.name), tool.name).toBe(true);
+    for (const operation of tool.operations)
+      expect(names.has(operation.executes), operation.executes).toBe(false);
+  }
 });

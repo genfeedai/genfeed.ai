@@ -17,16 +17,11 @@ describe('MCP Apps card contract', () => {
   it('links content tools to a public HTML resource, preserving existing metadata', () => {
     const tools = toMcpTools(getToolsForSurface('mcp'));
     for (const name of [
-      'get_posts',
+      'get_content',
       'get_assets',
-      'generate',
-      'transform_media',
-      'get_articles',
-      'get_account',
-      'get_brands',
-      'get_scheduled_release',
-      'get_orgs',
-      'switch_org',
+      'generate_media',
+      'generate_text',
+      'get_context',
     ]) {
       const tool = tools.find((item) => item.name === name);
       expect(tool, name).toBeDefined();
@@ -36,8 +31,8 @@ describe('MCP Apps card contract', () => {
         _meta: { ...tool._meta, ui: { resourceUri: MCP_CARD_RESOURCE_URI } },
       });
     }
-    const unrelated = tools.find((item) => item.name === 'get_trends');
-    if (!unrelated) throw new Error('Missing get_trends');
+    const unrelated = tools.find((item) => item.name === 'get_insights');
+    if (!unrelated) throw new Error('Missing get_insights');
     expect(withCardMetadata(unrelated)).toBe(unrelated);
     const resource = cardResource();
     expect(resource.mimeType).toBe(MCP_APP_MIME_TYPE);
@@ -53,7 +48,7 @@ describe('MCP Apps card contract', () => {
       isPublicMcpRequest({
         jsonrpc: '2.0',
         method: 'tools/call',
-        params: { name: 'get_posts' },
+        params: { name: 'get_content' },
       }),
     ).toBe(false);
   });
@@ -424,6 +419,50 @@ describe('MCP Apps card contract', () => {
     expect(genfeedCards.cards[0].avatarUrl).toBe(logo.cdnUrl);
   });
 
+  it('shows each brand logo on the account card and keeps it out of the data the model reads', () => {
+    const logo = {
+      cdnUrl: 'https://cdn.genfeed.ai/logos/acme?sig=1',
+      id: 'a1',
+    };
+    const result = withCardResult('get_account', {
+      content: [],
+      structuredContent: {
+        data: {
+          profile: {
+            brandCount: 2,
+            brands: [
+              { id: 'b1', logo, name: 'Acme' },
+              { id: 'b2', name: 'Beta' },
+            ],
+            organizationLogoUrl: 'https://cdn.genfeed.ai/logos/studio?sig=1',
+            organizationName: 'Studio',
+          },
+        },
+      },
+    });
+
+    expect(result.structuredContent?.data).toEqual({
+      profile: {
+        brandCount: 2,
+        brands: [
+          { id: 'b1', name: 'Acme' },
+          { id: 'b2', name: 'Beta' },
+        ],
+        organizationName: 'Studio',
+      },
+    });
+    const { genfeedCards } = result.structuredContent as unknown as {
+      genfeedCards: McpCardView;
+    };
+    expect(genfeedCards.cards[0].avatarUrl).toBe(
+      'https://cdn.genfeed.ai/logos/studio?sig=1',
+    );
+    expect(genfeedCards.cards[0].facts?.[0].items).toEqual([
+      { avatarUrl: logo.cdnUrl, hasAvatar: true, label: 'Acme' },
+      { avatarUrl: undefined, hasAvatar: true, label: 'Beta' },
+    ]);
+  });
+
   it('builds the workspace card from the organizations and the active brands', () => {
     const data = {
       activeOrganizationId: 'org-b',
@@ -434,8 +473,8 @@ describe('MCP Apps card contract', () => {
         { id: 'org-b', isActive: true, label: 'Beta' },
       ],
     };
-    for (const name of ['get_orgs', 'switch_org']) {
-      const view = buildCardView(name, data);
+    {
+      const view = buildCardView('get_orgs', data);
       expect(view?.layout).toBe('organizations');
       expect(view?.cards.map((card) => card.title)).toEqual(['Beta Studio']);
       expect(view?.organizations).toEqual({
@@ -783,9 +822,9 @@ describe('MCP Apps card contract', () => {
 
   it('links tools under the MCP Apps key, the legacy flat key and the ChatGPT alias', () => {
     const tool = toMcpTools(getToolsForSurface('mcp')).find(
-      (item) => item.name === 'generate',
+      (item) => item.name === 'generate_media',
     );
-    if (!tool) throw new Error('Missing generate');
+    if (!tool) throw new Error('Missing generate_media');
 
     expect(MCP_CARD_RESOURCE_URI).toMatch(
       /^ui:\/\/genfeed\/content-cards-v5-[a-f0-9]{12}\.html$/,

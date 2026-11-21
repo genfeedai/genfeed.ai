@@ -38,7 +38,7 @@ describe('StreamableHttpService (real SDK integration)', () => {
           return {
             defaults,
             post: async () => {
-              await new Promise((resolve) => setTimeout(resolve, 5));
+              await new Promise((resolve) => setImmediate(resolve));
               return {
                 data: {
                   success: true,
@@ -181,9 +181,9 @@ describe('StreamableHttpService (real SDK integration)', () => {
             ))
               expect(names).not.toContain(operation.executionName);
           }
-          for (const operation of ['check_channel', 'upload_media'].flatMap(
-            getMcpCatalogOperations,
-          )) {
+          for (const operation of ['check_channel', 'upload_media']
+            .flatMap(getMcpCatalogOperations)
+            .filter((candidate) => candidate.action in inputs)) {
             const input = inputs[operation.action];
             const methods = [list, validate, execute];
             const calls = [
@@ -303,18 +303,20 @@ describe('StreamableHttpService (real SDK integration)', () => {
 
   it('rejects a result that violates the advertised tool-specific schema on the wire', async () => {
     const malformed = {
-      content: [{ type: 'text' as const, text: 'Account' }],
-      structuredContent: { data: {} },
+      content: [{ type: 'text' as const, text: 'Image' }],
+      structuredContent: { artifact: {} },
     };
-    Object.defineProperty(malformed.structuredContent, 'data', { value: [] });
+    Object.defineProperty(malformed.structuredContent, 'artifact', {
+      value: [],
+    });
     const call = vi
       .spyOn(ToolRegistryService.prototype, 'handleToolCall')
       .mockResolvedValue(malformed);
     try {
       await withServer(async (baseUrl) => {
         const result = await postModern(baseUrl, 'tools/call', {
-          name: 'get_account',
-          arguments: { sections: ['profile'] },
+          name: 'generate',
+          arguments: { prompt: 'a red fox' },
         });
         expect(result.body.error).toBeDefined();
         expect(result.body.result).toBeUndefined();
@@ -360,7 +362,7 @@ describe('StreamableHttpService (real SDK integration)', () => {
       expect(JSON.parse(listing.text).result.tools).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
-            name: 'get_posts',
+            name: 'get_content',
             _meta: expect.objectContaining({
               ui: { resourceUri: MCP_CARD_RESOURCE_URI },
             }),
@@ -489,7 +491,7 @@ describe('StreamableHttpService (real SDK integration)', () => {
       expect(listing.response.status).toBe(200);
       expect(listing.body.result.tools).toEqual(
         expect.arrayContaining([
-          expect.objectContaining({ name: 'get_posts' }),
+          expect.objectContaining({ name: 'get_content' }),
         ]),
       );
     });
@@ -534,11 +536,9 @@ describe('StreamableHttpService (real SDK integration)', () => {
         name: 'find_tools',
         arguments: { name: 'get_assets' },
       });
-      expect(described.body.result.structuredContent.connection).toEqual({
-        isListed: true,
-        listedToolCount: expected.length,
-        toolset: 'generation',
-      });
+      expect(described.body.result.structuredContent.tool.name).toBe(
+        'get_assets',
+      );
     });
   });
 
@@ -626,7 +626,10 @@ describe('StreamableHttpService (real SDK integration)', () => {
           postModern(
             baseUrl,
             'tools/call',
-            { name: 'get_account', arguments: {} },
+            {
+              name: 'get_context',
+              arguments: { action: 'account', input: {} },
+            },
             { Authorization: `Bearer ${token}` },
           ),
         ),
@@ -682,7 +685,7 @@ describe('StreamableHttpService (real SDK integration)', () => {
         const listing = await client.listTools();
         expect(listing.tools).toEqual(
           expect.arrayContaining([
-            expect.objectContaining({ name: 'get_posts' }),
+            expect.objectContaining({ name: 'get_content' }),
           ]),
         );
       } finally {
@@ -775,7 +778,7 @@ describe('StreamableHttpService (real SDK integration)', () => {
       expect(status).toBe(200);
       const { result } = JSON.parse(text);
       expect(result.protocolVersion).toBe('2025-11-25');
-      expect(result.instructions).toContain('get_brands');
+      expect(result.instructions).toContain('get_context(action=brands)');
       expect(result.serverInfo).toMatchObject({
         description: expect.stringContaining('Genfeed'),
         name: 'genfeed-mcp-server',

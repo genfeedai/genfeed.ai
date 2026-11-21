@@ -165,6 +165,8 @@ export interface SupportCreatorModalProps {
   /** The article the reader is on, when sent from an article page. */
   articleId?: string;
   handle: string;
+  /** The creator's logo, shown beside their name in the modal. */
+  logoUrl?: string;
   onOpenChange: (isOpen: boolean) => void;
 }
 
@@ -174,6 +176,8 @@ export interface SupportCreatorButtonProps {
   /** Layout only (width, alignment); the button owns its look. */
   className?: string;
   handle: string;
+  /** The creator's logo, shown beside their name in the modal. */
+  logoUrl?: string;
 }
 
 /** A section of the community gallery, one per sub-nav link. */

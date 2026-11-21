@@ -7,11 +7,12 @@ import {
   isActionOnSurface,
   isPublishingApprovalRequired,
 } from './curated-action-catalog';
-import { isMcpListedToolName } from './mcp-catalog-calls';
+import { MCP_CATALOG_TOOLS } from './mcp-catalog/catalog';
+import { isMcpCatalogToolName, isMcpListedToolName } from './mcp-catalog-calls';
 import { isReadOnlyToolName } from './mutation-policy';
 import { SOURCE_TOOLS } from './source/index';
 import { ALL_TOOLS, getToolByName, getToolsForSurface } from './tool-registry';
-import { CORE_TOOLSET_NAME, isToolsetName } from './toolsets';
+import { CORE_TOOLSET_NAME, isToolsetName } from './toolset-names';
 
 describe('curated action catalog', () => {
   it.each(['get_clip_context', 'edit_clip'])(
@@ -25,21 +26,14 @@ describe('curated action catalog', () => {
       });
     },
   );
-  it('retains internal targets while listing only the two consolidated MCP envelopes', () => {
-    expect(ALL_TOOLS).toHaveLength(248);
-    expect(ALL_TOOLS.filter((tool) => tool.surfaces.mcp)).toHaveLength(176);
+  it('retains the tools a merged tool runs while listing only the merged tool', () => {
     const listed = getToolsForSurface('mcp').map((tool) => tool.name);
-    expect(listed).toHaveLength(172);
-    expect(listed).toContain('check_channel');
-    expect(listed).toContain('upload_media');
-    for (const name of [
-      'get_scheduler_capabilities',
-      'validate_scheduler_target',
-      'request_media_upload',
-      'complete_media_upload',
-    ]) {
-      expect(getToolByName(name)?.surfaces.mcp).toBe(true);
-      expect(listed).not.toContain(name);
+    for (const { name, operations } of MCP_CATALOG_TOOLS) {
+      expect(listed, name).toContain(name);
+      for (const { executes } of operations) {
+        expect(getToolByName(executes)?.surfaces.mcp, executes).toBe(true);
+        expect(listed, executes).not.toContain(executes);
+      }
     }
   });
   it('exposes link imports on agent and MCP in the analytics toolset', () => {
@@ -213,6 +207,7 @@ describe('curated action catalog', () => {
     expect(tool?.parameters.required ?? []).toEqual([]);
     expect(Object.keys(tool?.parameters.properties ?? {}).sort()).toEqual([
       'articleId',
+      'brandId',
       'category',
       'limit',
       'query',
@@ -428,7 +423,7 @@ describe('curated action catalog', () => {
       ['get_brands', 'core'],
       ['onboard_brand', 'core'],
       ['get_posts', 'content'],
-      ['get_assets', 'generation'],
+      ['get_assets', 'core'],
       ['resolve_approval', 'core'],
       ['create_post', 'content'],
       ['repurpose_post', 'content'],
@@ -500,9 +495,12 @@ describe('curated action catalog policy fields', () => {
   ];
 
   it('declares a mutation policy for every write tool and none for a read', () => {
+    // A merged tool takes its policy from the tools its actions run.
     const missing = CURATED_ACTION_CATALOG.filter(
       (entry) =>
-        !isReadOnlyToolName(entry.name) && !('mutationPolicy' in entry),
+        !isReadOnlyToolName(entry.name) &&
+        !isMcpCatalogToolName(entry.name) &&
+        !('mutationPolicy' in entry),
     ).map((entry) => entry.name);
     const onReads = CURATED_ACTION_CATALOG.filter(
       (entry) => isReadOnlyToolName(entry.name) && 'mutationPolicy' in entry,

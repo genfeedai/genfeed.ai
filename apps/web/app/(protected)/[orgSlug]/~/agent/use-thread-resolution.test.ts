@@ -144,7 +144,7 @@ describe('useThreadResolution', () => {
       expect(result.current.resolvedThreads).toHaveLength(5000),
     );
     // Give a 101st page every chance to be asked for and land.
-    await act(() => new Promise((resolve) => setTimeout(resolve, 50)));
+    await act(() => new Promise((resolve) => setImmediate(resolve)));
 
     expect(result.current.resolvedThreads).toHaveLength(5000);
     expect(result.current.isResolved('page-100-49')).toBe(true);

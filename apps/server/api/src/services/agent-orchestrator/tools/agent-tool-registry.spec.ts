@@ -13,6 +13,8 @@ import {
   getToolsForSurface,
   isMcpBrandRequiredTool,
   MCP_BRAND_REQUIRED_NOTE,
+  MCP_ORGANIZATION_ARGUMENT,
+  toMcpTool,
   toMcpTools,
 } from '@genfeedai/actions';
 
@@ -333,15 +335,22 @@ it('serves every agent tool exactly as the catalog defines it', () => {
 });
 
 it('shares validation and prices across agent/MCP with client-specific documentation', () => {
-  const mcpTools = new Map(
-    toMcpTools(getToolsForSurface('mcp')).map((tool) => [tool.name, tool]),
-  );
+  // `create_post` is an unlisted action of `save_post`; it keeps the exact
+  // schema, price and wording checks of a listed tool.
+  const createPost = getToolByName('create_post');
+  if (!createPost) throw new Error('Missing create_post');
+  const mcpTools = new Map([
+    ...toMcpTools(getToolsForSurface('mcp')).map(
+      (tool) => [tool.name, tool] as const,
+    ),
+    ['create_post', toMcpTool(createPost)] as const,
+  ]);
   const shared = getToolDefinitions().filter((tool) =>
     mcpTools.has(String(tool.name)),
   );
   expect(shared.length).toBeGreaterThan(0);
   expect(shared.map((tool) => String(tool.name))).toEqual(
-    expect.arrayContaining(['create_post', 'get_analytics']),
+    expect.arrayContaining(['create_post', 'get_assets']),
   );
   for (const tool of shared) {
     const mcp = mcpTools.get(String(tool.name));
@@ -365,6 +374,11 @@ it('shares validation and prices across agent/MCP with client-specific documenta
       Object.entries(properties),
     );
     for (const [name, schema] of Object.entries(mcp.inputSchema.properties)) {
+      // MCP-only: names the organization a call acts in on an
+      // all-organizations connection; the agent runs inside one organization.
+      if (name === MCP_ORGANIZATION_ARGUMENT && !(name in agentProperties)) {
+        continue;
+      }
       expect(schemaValidation(schema), `${tool.name}.${name}`).toEqual(
         schemaValidation(
           name === 'brandId' && isBrandRequired && !(name in agentProperties)
@@ -380,7 +394,11 @@ it('shares validation and prices across agent/MCP with client-specific documenta
     }
     expect(tool.creditCost, tool.name).toBe(mcp._meta['genfeed.ai/creditCost']);
   }
-  expect(mcpTools.get('analyze_performance')?.description).toBe(
+  // `analyze_performance` is an unlisted action of `get_insights`; its own
+  // MCP wording is what the action's summary is read from.
+  const analyzePerformance = getToolByName('analyze_performance');
+  if (!analyzePerformance) throw new Error('Missing analyze_performance');
+  expect(toMcpTool(analyzePerformance).description).toBe(
     'Analyze 30-day engagement by content type, platform and posting time, including top posts.',
   );
 });

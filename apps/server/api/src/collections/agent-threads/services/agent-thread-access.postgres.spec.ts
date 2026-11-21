@@ -1615,7 +1615,7 @@ describe.skipIf(!connectionString)(
           isSettled = true;
           return resolved;
         });
-        await new Promise((resolve) => setTimeout(resolve, 50));
+        await new Promise((resolve) => setImmediate(resolve));
 
         expect(isSettled).toBe(false);
         release();

@@ -30,7 +30,7 @@ const event: ILlmCompletionTelemetryEvent = {
   completionTokens: 500,
   isByok: false,
   latencyMs: 42,
-  model: 'deepseek/deepseek-v4-flash-0731',
+  model: 'deepseek/deepseek-v4.1-flash-1017',
   organizationId: 'org-1',
   promptTokens: 1_000,
   provider: 'openrouter',
@@ -132,9 +132,9 @@ describe('LlmCompletionTelemetryService', () => {
         brandId: 'brand-1',
         costEvidence: 'calculated',
         isByok: false,
-        model: 'deepseek/deepseek-v4-flash-0731',
+        model: 'deepseek/deepseek-v4.1-flash-1017',
         organizationId: 'org-1',
-        vendorCostMicros: 130,
+        vendorCostMicros: 450,
       }),
     ]);
 

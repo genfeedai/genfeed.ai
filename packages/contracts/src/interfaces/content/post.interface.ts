@@ -95,6 +95,7 @@ export interface IPost extends IBaseEntity {
   children?: IPost[];
   order?: number;
   isShareToFeedSelected?: boolean;
+  isHiddenFromProfile?: boolean;
   platformUrl?: string | null;
   sourceActionId?: string | null;
   listeningTopicId?: string | null;

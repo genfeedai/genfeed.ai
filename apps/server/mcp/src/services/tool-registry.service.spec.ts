@@ -1,4 +1,7 @@
-import { MEDIA_GENERATION_CREDIT_FLOORS } from '@genfeedai/actions';
+import {
+  MCP_CATALOG_TOOL_NAMES,
+  MEDIA_GENERATION_CREDIT_FLOORS,
+} from '@genfeedai/actions';
 import { LoggerService } from '@libs/logger/logger.service';
 import { McpAuthGuard } from '@mcp/guards/mcp-auth.guard';
 import {
@@ -7,6 +10,7 @@ import {
   PUBLIC_MCP_RESOURCES,
 } from '@mcp/mcp/resource-catalog';
 import { ClientService } from '@mcp/services/client.service';
+import { withMergedToolCalls } from '@mcp/services/tool-registry.endpoints.testing';
 import { ToolRegistryService } from '@mcp/services/tool-registry.service';
 import { McpUpstreamError } from '@mcp/tools/mcp-tool-error';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -39,8 +43,8 @@ const MOCK_TOOLS = [
     requiredRole: undefined,
     surfaces: { mcp: true },
   })),
+  { name: 'find_tools', requiredRole: undefined, surfaces: { mcp: true } },
   { name: 'get_account', requiredRole: undefined, surfaces: { mcp: true } },
-  { name: 'switch_org', requiredRole: undefined, surfaces: { mcp: true } },
   { name: 'get_trends', requiredRole: undefined, surfaces: { mcp: true } },
   {
     mutationPolicy: 'approval-required',
@@ -172,7 +176,21 @@ const MOCK_TOOLS = [
   },
 ];
 
-const TOOLS_BY_NAME = new Map(MOCK_TOOLS.map((t) => [t.name, t]));
+// The tools a merged tool runs and the merged tools themselves, the way the
+// registry resolves a call: the merged name first, then the tool it runs.
+const TOOLS_BY_NAME = new Map(
+  [
+    ...MOCK_TOOLS,
+    ...MCP_CATALOG_TOOL_NAMES.map((name) => ({
+      name,
+      requiredRole: undefined,
+      surfaces: { mcp: true },
+    })),
+  ].map((tool) => [
+    tool.name,
+    { parameters: { properties: {}, required: [], type: 'object' }, ...tool },
+  ]),
+);
 
 vi.mock('@genfeedai/actions', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@genfeedai/actions')>();
@@ -352,7 +370,7 @@ describe('ToolRegistryService', () => {
       ],
     }).compile();
 
-    service = module.get(ToolRegistryService);
+    service = withMergedToolCalls(module.get(ToolRegistryService));
     clientService = module.get(ClientService);
     logger = module.get(LoggerService);
   });
@@ -459,7 +477,10 @@ describe('ToolRegistryService', () => {
       });
 
       expect(calls).toEqual([
-        { args: { topic: 'launch' }, organization: 'org-b' },
+        {
+          args: { includeLogo: true, topic: 'launch' },
+          organization: 'org-b',
+        },
       ]);
     });
 
@@ -483,31 +504,6 @@ describe('ToolRegistryService', () => {
       });
       expect(calls).toEqual([]);
       expect(clientService.listOrganizations).not.toHaveBeenCalled();
-    });
-
-    it('warns and gives reconnect guidance when a bound grant tries to switch organizations', async () => {
-      clientService.canSwitchOrganizations.mockResolvedValue(false);
-
-      const result = await service.handleToolCall({
-        arguments: { organization: 'beta' },
-        name: 'switch_org',
-      });
-
-      expect(result).toMatchObject({
-        isError: true,
-        structuredContent: {
-          code: 'unauthorized',
-          message: expect.stringContaining(
-            'Reconnect and choose "All organizations"',
-          ),
-        },
-      });
-      expect(clientService.switchOrganization).not.toHaveBeenCalled();
-      expect(logger.warn).toHaveBeenCalledWith(
-        'Tool call switch_org was refused:',
-        expect.any(Error),
-      );
-      expect(logger.error).not.toHaveBeenCalled();
     });
 
     it('refuses an organization the user does not have', async () => {
@@ -583,7 +579,9 @@ describe('ToolRegistryService', () => {
 
       await service.handleToolCall({ arguments: {}, name: 'get_account' });
 
-      expect(calls).toEqual([{ args: {}, organization: null }]);
+      expect(calls).toEqual([
+        { args: { includeLogo: true }, organization: null },
+      ]);
     });
   });
 
@@ -1330,8 +1328,8 @@ describe('ToolRegistryService', () => {
 
     it('does not gate tools without a requiredRole', async () => {
       await service.handleToolCall({
-        arguments: { brandId: 'brand-1', prompt: 'x', type: 'video' },
-        name: 'generate',
+        arguments: { query: 'workflows' },
+        name: 'find_tools',
       });
 
       expect(McpAuthGuard.checkToolRole).not.toHaveBeenCalled();
@@ -1377,7 +1375,7 @@ describe('ToolRegistryService', () => {
 
     expect(clientService.executeAgentTool).toHaveBeenCalledWith(
       'get_account',
-      {},
+      { includeLogo: true },
       undefined,
     );
     expect(result).toMatchObject({

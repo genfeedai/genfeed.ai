@@ -436,7 +436,7 @@ describe('UpgradePlan', () => {
 
       // The retry captured the confirmation the user has since cancelled;
       // running it would change the plan they just declined.
-      await new Promise((resolve) => setTimeout(resolve, 20));
+      await new Promise((resolve) => setImmediate(resolve));
       expect(changeSubscriptionPlan).toHaveBeenCalledTimes(1);
     });
   });

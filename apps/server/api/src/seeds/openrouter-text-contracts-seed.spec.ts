@@ -15,7 +15,9 @@ import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { describe, expect, it, vi } from 'vitest';
 
 const GEMINI = MODEL_KEYS.OPENROUTER_GOOGLE_GEMINI_3_8_FLASH;
-const entry = OPENROUTER_TEXT_CONTRACT_SEED[0];
+const entry = OPENROUTER_TEXT_CONTRACT_SEED.find(
+  (candidate) => candidate.modelKey === GEMINI,
+) as (typeof OPENROUTER_TEXT_CONTRACT_SEED)[number];
 
 function harness(
   model: { id: string; reviewedProviderContractVersion: string | null } | null,
@@ -37,7 +39,7 @@ function harness(
 describe('seedOpenRouterTextContracts', () => {
   it('approves the Gemini 3.8 Flash tariff with the agreed ceilings', async () => {
     const h = harness({ id: 'model-1', reviewedProviderContractVersion: null });
-    expect(await seedOpenRouterTextContracts(h.service)).toBe(1);
+    expect(await seedOpenRouterTextContracts(h.service, [entry])).toBe(1);
     const snapshot = buildOpenRouterTextSnapshot(entry, 'model-1');
     const version = quoteSnapshotHash(snapshot);
     expect(snapshot.endpoint).toBe(GEMINI);
@@ -66,7 +68,7 @@ describe('seedOpenRouterTextContracts', () => {
 
   it('writes a contract the private text reader accepts', async () => {
     const h = harness({ id: 'model-1', reviewedProviderContractVersion: null });
-    await seedOpenRouterTextContracts(h.service);
+    await seedOpenRouterTextContracts(h.service, [entry]);
     const { create: stored } =
       h.prisma.modelProviderContract.upsert.mock.calls[0][0];
     // The reader selects only the descriptor columns; mirror its select.
@@ -97,7 +99,7 @@ describe('seedOpenRouterTextContracts', () => {
 
   it('turns the seeded tariff into a platform quote instead of PRICING_UNAVAILABLE', async () => {
     const h = harness({ id: 'model-1', reviewedProviderContractVersion: null });
-    await seedOpenRouterTextContracts(h.service);
+    await seedOpenRouterTextContracts(h.service, [entry]);
     const { create: stored } =
       h.prisma.modelProviderContract.upsert.mock.calls[0][0];
     const {
@@ -149,14 +151,14 @@ describe('seedOpenRouterTextContracts', () => {
       id: 'model-1',
       reviewedProviderContractVersion: version,
     });
-    expect(await seedOpenRouterTextContracts(h.service)).toBe(0);
+    expect(await seedOpenRouterTextContracts(h.service, [entry])).toBe(0);
     expect(h.prisma.modelProviderContract.upsert).not.toHaveBeenCalled();
     expect(h.prisma.model.updateMany).not.toHaveBeenCalled();
   });
 
   it('skips a catalog without the platform model row', async () => {
     const h = harness(null);
-    expect(await seedOpenRouterTextContracts(h.service)).toBe(0);
+    expect(await seedOpenRouterTextContracts(h.service, [entry])).toBe(0);
     expect(h.prisma.modelProviderContract.upsert).not.toHaveBeenCalled();
   });
 
@@ -168,7 +170,7 @@ describe('seedOpenRouterTextContracts', () => {
         reviewedBy: 'operator-1',
       },
     );
-    expect(await seedOpenRouterTextContracts(h.service)).toBe(0);
+    expect(await seedOpenRouterTextContracts(h.service, [entry])).toBe(0);
     expect(h.prisma.model.updateMany).not.toHaveBeenCalled();
   });
 
@@ -180,7 +182,7 @@ describe('seedOpenRouterTextContracts', () => {
         reviewedBy: 'operator-1',
       },
     );
-    expect(await seedOpenRouterTextContracts(older.service)).toBe(1);
+    expect(await seedOpenRouterTextContracts(older.service, [entry])).toBe(1);
     const own = harness(
       { id: 'model-1', reviewedProviderContractVersion: 'old' },
       {
@@ -188,12 +190,53 @@ describe('seedOpenRouterTextContracts', () => {
         reviewedBy: OPENROUTER_TEXT_CONTRACT_REVIEWER,
       },
     );
-    expect(await seedOpenRouterTextContracts(own.service)).toBe(1);
+    expect(await seedOpenRouterTextContracts(own.service, [entry])).toBe(1);
   });
 
   it('does not count a promotion that lost the compare-and-set', async () => {
     const h = harness({ id: 'model-1', reviewedProviderContractVersion: null });
     h.prisma.model.updateMany.mockResolvedValue({ count: 0 });
-    expect(await seedOpenRouterTextContracts(h.service)).toBe(0);
+    expect(await seedOpenRouterTextContracts(h.service, [entry])).toBe(0);
+  });
+  it('approves the Gemini 4 Neon tariff pinned to the ZDR Vertex endpoint', async () => {
+    const neon = OPENROUTER_TEXT_CONTRACT_SEED.find(
+      (candidate) =>
+        candidate.modelKey === MODEL_KEYS.OPENROUTER_GOOGLE_GEMINI_4_NEON,
+    );
+    if (!neon) throw new Error('Neon is missing from the contract seed');
+    const h = harness({ id: 'model-2', reviewedProviderContractVersion: null });
+    expect(await seedOpenRouterTextContracts(h.service, [neon])).toBe(1);
+    const snapshot = buildOpenRouterTextSnapshot(neon, 'model-2');
+    expect(snapshot.openapi).toMatchObject({
+      endpointSlug: 'google-vertex/global',
+      modelKey: MODEL_KEYS.OPENROUTER_GOOGLE_GEMINI_4_NEON,
+    });
+    // Ceilings are the dearest ZDR endpoint (priority), above the $3 / $15 list price.
+    expect(snapshot.pricing).toMatchObject({
+      completionUsdPerMillionCeiling: 27,
+      inputUsdPerMillionCeiling: 5.4,
+      kind: 'bounded',
+    });
+  });
+  it('approves the Gemini 4 Hydrogen tariff pinned to the ZDR Vertex endpoint', async () => {
+    const hydrogen = OPENROUTER_TEXT_CONTRACT_SEED.find(
+      (candidate) =>
+        candidate.modelKey === MODEL_KEYS.OPENROUTER_GOOGLE_GEMINI_4_HYDROGEN,
+    );
+    if (!hydrogen)
+      throw new Error('Hydrogen is missing from the contract seed');
+    const h = harness({ id: 'model-3', reviewedProviderContractVersion: null });
+    expect(await seedOpenRouterTextContracts(h.service, [hydrogen])).toBe(1);
+    const snapshot = buildOpenRouterTextSnapshot(hydrogen, 'model-3');
+    expect(snapshot.openapi).toMatchObject({
+      endpointSlug: 'google-vertex/global',
+      modelKey: MODEL_KEYS.OPENROUTER_GOOGLE_GEMINI_4_HYDROGEN,
+    });
+    // Ceilings are the dearest ZDR endpoint (priority), above the $1.50 / $7.50 list price.
+    expect(snapshot.pricing).toMatchObject({
+      completionUsdPerMillionCeiling: 13.5,
+      inputUsdPerMillionCeiling: 2.7,
+      kind: 'bounded',
+    });
   });
 });

@@ -1747,7 +1747,9 @@ describe('AgentChatContainer', () => {
     fireEvent.scroll(container);
     expect(disconnect).toHaveBeenCalled();
     pinConversationScrollToBottomMock.mockClear();
-    await new Promise((resolve) => setTimeout(resolve, 40));
+    await act(async () => {
+      await new Promise((resolve) => setImmediate(resolve));
+    });
     expect(pinConversationScrollToBottomMock).not.toHaveBeenCalled();
     view.unmount();
     vi.unstubAllGlobals();

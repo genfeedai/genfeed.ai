@@ -513,9 +513,7 @@ describe('DiscordBotManager', () => {
         platform: 'DISCORD',
       });
 
-      await new Promise((resolve) => setTimeout(resolve, 50));
-
-      expect(service.getActiveCount()).toBe(1);
+      await vi.waitFor(() => expect(service.getActiveCount()).toBe(1));
     });
 
     it('should ignore events for non-discord platforms', async () => {
@@ -541,7 +539,7 @@ describe('DiscordBotManager', () => {
         platform: 'SLACK',
       });
 
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      await new Promise((resolve) => setImmediate(resolve));
 
       expect(service.getActiveCount()).toBe(0);
     });

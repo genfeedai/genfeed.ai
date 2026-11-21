@@ -92,7 +92,7 @@ function makeIntegration(
 }
 
 function flush(): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, 0));
+  return new Promise((resolve) => setImmediate(resolve));
 }
 
 describe('SlackBotManager workflows', () => {

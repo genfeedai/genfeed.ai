@@ -381,6 +381,25 @@ describe('TikTokPublisherService', () => {
         );
       });
 
+      it.each([
+        ['public', undefined],
+        ['followers', 'private'],
+        ['friends', 'private'],
+        ['private', 'private'],
+      ])(
+        'reports the audience for TikTok privacy %s',
+        async (privacyLevel, expected) => {
+          const context = createPublishContext(mockVideoPost, { privacyLevel });
+          tiktokService.uploadVideo.mockResolvedValue({
+            data: { isPending: false, post_id: 'tiktok-video-1' },
+          });
+
+          const result = await service.publish(context);
+
+          expect(result.visibility).toBe(expected);
+        },
+      );
+
       it('should handle pending state with publish_id', async () => {
         const context = createPublishContext(mockVideoPost);
         const mockPublishId = 'publish-pending-123';

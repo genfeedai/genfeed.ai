@@ -258,7 +258,7 @@ describe('LlmDispatcherService', () => {
 
     it('should route deepseek/ models to OpenRouterService', async () => {
       await service.chatCompletion(
-        makeParams('deepseek/deepseek-v4-flash-0731'),
+        makeParams('deepseek/deepseek-v4.1-flash-1017'),
       );
 
       expect(openRouterService.chatCompletion).toHaveBeenCalled();
@@ -281,7 +281,7 @@ describe('LlmDispatcherService', () => {
         .mockRejectedValueOnce({ response: { status: 404 } })
         .mockResolvedValueOnce({
           ...mockResponse,
-          model: 'deepseek/deepseek-v4-flash-0731',
+          model: 'deepseek/deepseek-v4.1-flash-1017',
           usage: { ...mockResponse.usage, cost: 0.001 },
         });
 
@@ -291,10 +291,10 @@ describe('LlmDispatcherService', () => {
       );
 
       expect(openRouterService.chatCompletion).toHaveBeenLastCalledWith(
-        expect.objectContaining({ model: 'deepseek/deepseek-v4-flash-0731' }),
+        expect.objectContaining({ model: 'deepseek/deepseek-v4.1-flash-1017' }),
         undefined,
       );
-      expect(result.model).toBe('deepseek/deepseek-v4-flash-0731');
+      expect(result.model).toBe('deepseek/deepseek-v4.1-flash-1017');
     });
   });
 
@@ -307,7 +307,7 @@ describe('LlmDispatcherService', () => {
       await service.chatCompletion(makeParams('local/my-model'));
 
       expect(openRouterService.chatCompletion).toHaveBeenCalledWith(
-        expect.objectContaining({ model: 'deepseek/deepseek-v4-flash-0731' }),
+        expect.objectContaining({ model: 'deepseek/deepseek-v4.1-flash-1017' }),
       );
       expect(loggerService.warn).toHaveBeenCalled();
     });
@@ -361,7 +361,7 @@ describe('LlmDispatcherService', () => {
       byokService.resolveApiKey.mockResolvedValue({ apiKey: 'or-key' });
 
       await service.chatCompletion(
-        makeParams('deepseek/deepseek-v4-flash-0731'),
+        makeParams('deepseek/deepseek-v4.1-flash-1017'),
         orgId,
       );
 
@@ -505,7 +505,7 @@ describe('LlmDispatcherService', () => {
 
     it('should route other models to OpenRouterService for streaming', async () => {
       await service.streamChatCompletion(
-        makeParams('deepseek/deepseek-v4-flash-0731'),
+        makeParams('deepseek/deepseek-v4.1-flash-1017'),
       );
 
       expect(openRouterService.streamChatCompletion).toHaveBeenCalled();
@@ -567,7 +567,7 @@ describe('LlmDispatcherService', () => {
 
     it('should route other models to OpenRouterService', async () => {
       await service.streamChatCompletionAggregated(
-        makeParams('deepseek/deepseek-v4-flash-0731'),
+        makeParams('deepseek/deepseek-v4.1-flash-1017'),
       );
 
       expect(
@@ -621,7 +621,7 @@ describe('LlmDispatcherService', () => {
       expect(
         openRouterService.streamChatCompletionAggregated,
       ).toHaveBeenCalledWith(
-        expect.objectContaining({ model: 'deepseek/deepseek-v4-flash-0731' }),
+        expect.objectContaining({ model: 'deepseek/deepseek-v4.1-flash-1017' }),
         undefined,
         undefined,
       );
@@ -663,7 +663,7 @@ describe('LlmDispatcherService', () => {
     });
     it('emits one telemetry event per chatCompletion without prompt content', async () => {
       await service.chatCompletion(
-        makeParams('deepseek/deepseek-v4-flash-0731'),
+        makeParams('deepseek/deepseek-v4.1-flash-1017'),
         orgId,
         { brandId: 'brand-1', runId: 'run-1', threadId: 'thread-1' },
       );

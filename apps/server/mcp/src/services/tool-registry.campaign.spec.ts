@@ -1,6 +1,6 @@
-import { DEFAULT_MCP_PROFILE_TOOLSETS } from '@genfeedai/actions';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ClientService } from '@mcp/services/client.service';
+import { withMergedToolCalls } from '@mcp/services/tool-registry.endpoints.testing';
 import { ToolRegistryService } from '@mcp/services/tool-registry.service';
 import { Test } from '@nestjs/testing';
 
@@ -45,11 +45,12 @@ async function setup() {
       { provide: LoggerService, useValue: logger },
     ],
   }).compile();
-  const registry = new ToolRegistryService(
-    module.get(ClientService),
-    module.get(LoggerService),
-    'user',
-    DEFAULT_MCP_PROFILE_TOOLSETS,
+  const registry = withMergedToolCalls(
+    new ToolRegistryService(
+      module.get(ClientService),
+      module.get(LoggerService),
+      'user',
+    ),
   );
   return { registry, client, module };
 }
@@ -60,9 +61,9 @@ describe('native campaign registry journey', () => {
     try {
       expect(registry.getTools().map((tool) => tool.name)).toEqual(
         expect.arrayContaining([
-          'manage_campaign',
-          'get_brand_publishing_readiness',
-          'create_scheduled_release',
+          'save_post',
+          'check_channel',
+          'schedule_release',
         ]),
       );
     } finally {
