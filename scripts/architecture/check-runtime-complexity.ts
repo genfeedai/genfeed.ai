@@ -89,7 +89,13 @@ export type RuntimeComplexityBaselineEntry = Pick<
 export type RuntimeComplexityRatchetViolation =
   RuntimeComplexityBaselineEntry & {
     baseline?: number;
-    type: 'growth' | 'new-violation' | 'stale-baseline';
+    type: 'growth' | 'new-violation';
+  };
+
+/** A ceiling above what the code now measures; a sweep can lower or drop it. */
+export type RuntimeComplexityLowerableCeiling =
+  RuntimeComplexityBaselineEntry & {
+    baseline: number;
   };
 
 export type RuntimeMethodMetric = {
@@ -424,6 +430,12 @@ export function runtimeComplexityBaselineFromViolations(
     .sort(compareBaselineEntries);
 }
 
+/**
+ * The stored number is a ceiling: the check fails when a violation is new or
+ * grows past it. A violation that shrinks or disappears is not a failure, so
+ * editing a large file does not force an edit to the shared baseline.
+ * `lowerableRuntimeComplexityCeilings` lists what a sweep can tighten.
+ */
 export function evaluateRuntimeComplexityRatchet(
   baseline: readonly RuntimeComplexityBaselineEntry[],
   current: readonly RuntimeComplexityViolation[],
@@ -431,7 +443,6 @@ export function evaluateRuntimeComplexityRatchet(
   const baselineByKey = new Map(
     baseline.map((entry) => [baselineEntryKey(entry), entry]),
   );
-  const currentKeys = new Set<string>();
   const violations: RuntimeComplexityRatchetViolation[] = [];
 
   for (const violation of current) {
@@ -441,9 +452,7 @@ export function evaluateRuntimeComplexityRatchet(
       metric: violation.metric,
       symbol: violation.symbol,
     };
-    const key = baselineEntryKey(entry);
-    currentKeys.add(key);
-    const ceiling = baselineByKey.get(key);
+    const ceiling = baselineByKey.get(baselineEntryKey(entry));
 
     if (!ceiling) {
       violations.push({ ...entry, type: 'new-violation' });
@@ -455,30 +464,27 @@ export function evaluateRuntimeComplexityRatchet(
         baseline: ceiling.actual,
         type: 'growth',
       });
-      continue;
     }
-    if (entry.actual < ceiling.actual) {
-      violations.push({
-        ...entry,
-        baseline: ceiling.actual,
-        type: 'stale-baseline',
-      });
-    }
-  }
-
-  for (const entry of baseline) {
-    if (currentKeys.has(baselineEntryKey(entry))) {
-      continue;
-    }
-    violations.push({
-      ...entry,
-      actual: 0,
-      baseline: entry.actual,
-      type: 'stale-baseline',
-    });
   }
 
   return violations;
+}
+
+export function lowerableRuntimeComplexityCeilings(
+  baseline: readonly RuntimeComplexityBaselineEntry[],
+  current: readonly RuntimeComplexityViolation[],
+): RuntimeComplexityLowerableCeiling[] {
+  const currentByKey = new Map(
+    current.map((violation) => [baselineEntryKey(violation), violation]),
+  );
+
+  return baseline.flatMap((entry) => {
+    const actual = currentByKey.get(baselineEntryKey(entry))?.actual ?? 0;
+
+    return actual < entry.actual
+      ? [{ ...entry, actual, baseline: entry.actual }]
+      : [];
+  });
 }
 
 export function runRuntimeComplexityCheck(
@@ -717,10 +723,16 @@ function writeRatchetBaseline(
 function reportRatchet(
   result: RuntimeComplexityResult,
   violations: readonly RuntimeComplexityRatchetViolation[],
+  lowerable: readonly RuntimeComplexityLowerableCeiling[],
 ): void {
   console.log(
-    `Runtime complexity full-repository ratchet: ${result.scannedFileCount} classified file(s), ${result.violations.length} baselined threshold violation(s), ${violations.length} ratchet drift(s).`,
+    `Runtime complexity full-repository ratchet: ${result.scannedFileCount} classified file(s), ${result.violations.length} baselined threshold violation(s), ${violations.length} ratchet failure(s).`,
   );
+  if (lowerable.length > 0) {
+    console.log(
+      `${lowerable.length} baseline ceiling(s) sit above the current size. This does not fail the check; run \`bun run check:runtime-complexity:update\` in a sweep PR to lower them.`,
+    );
+  }
   for (const violation of violations) {
     if (violation.type === 'new-violation') {
       console.error(
@@ -728,14 +740,8 @@ function reportRatchet(
       );
       continue;
     }
-    if (violation.type === 'growth') {
-      console.error(
-        `- [GROWTH] ${violation.file} ${violation.symbol} ${violation.metric}=${violation.actual} > baseline ${violation.baseline}`,
-      );
-      continue;
-    }
     console.error(
-      `- [STALE] ${violation.file} ${violation.symbol} ${violation.metric}=${violation.actual} < baseline ${violation.baseline}; lower or remove the baseline entry`,
+      `- [GROWTH] ${violation.file} ${violation.symbol} ${violation.metric}=${violation.actual} > baseline ${violation.baseline}`,
     );
   }
 }
@@ -782,6 +788,7 @@ function main(): void {
     rootDir,
   });
   let ratchetViolations: RuntimeComplexityRatchetViolation[] = [];
+  let lowerableCeilings: RuntimeComplexityLowerableCeiling[] = [];
   if (options.ratchet) {
     if (options.updateRatchet) {
       const baseline = runtimeComplexityBaselineFromViolations(
@@ -792,8 +799,13 @@ function main(): void {
         `Updated ${RATCHET_BASELINE_PATH} with ${baseline.length} violation ceiling(s).`,
       );
     } else {
+      const baseline = readRatchetBaseline(rootDir);
       ratchetViolations = evaluateRuntimeComplexityRatchet(
-        readRatchetBaseline(rootDir),
+        baseline,
+        result.violations,
+      );
+      lowerableCeilings = lowerableRuntimeComplexityCeilings(
+        baseline,
         result.violations,
       );
     }
@@ -810,7 +822,7 @@ function main(): void {
   if (options.json) {
     process.stdout.write(serialized);
   } else if (options.ratchet && !options.updateRatchet) {
-    reportRatchet(result, ratchetViolations);
+    reportRatchet(result, ratchetViolations, lowerableCeilings);
   } else {
     reportHuman(result);
   }
