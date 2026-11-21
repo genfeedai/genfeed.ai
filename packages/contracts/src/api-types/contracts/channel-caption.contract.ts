@@ -6,15 +6,22 @@
  * declares `extendedMaxLength`. A caption between the two is a warning and the
  * provider decides; only a caption past the ceiling is an error.
  */
-import type {
-  ChannelCapability,
-  ValidateChannelTargetSettingsInput,
-} from './channel-capabilities.contract';
 import type { ChannelValidationIssue } from './channel-setting-validation.contract';
 
 interface CaptionLimits {
   maxLength: number;
   extendedMaxLength?: number;
+}
+
+/** The slice of a channel capability the caption rules read. */
+interface CaptionRuleChannel {
+  label: string;
+  caption: CaptionLimits & { required?: boolean };
+}
+
+/** The slice of a target's settings the caption rules read. */
+interface CaptionRuleInput {
+  caption?: string | null;
 }
 
 /** The longest caption a channel accepts: its extended ceiling, else its limit. */
@@ -23,8 +30,8 @@ export function getCaptionCeiling(caption: CaptionLimits): number {
 }
 
 export function validateCaption(
-  input: ValidateChannelTargetSettingsInput,
-  capability: ChannelCapability,
+  input: CaptionRuleInput,
+  capability: CaptionRuleChannel,
 ): ChannelValidationIssue[] {
   const caption = input.caption ?? '';
   const captionLength = Array.from(caption).length;
@@ -53,8 +60,8 @@ export function validateCaption(
 }
 
 export function collectCaptionWarnings(
-  input: ValidateChannelTargetSettingsInput,
-  capability: ChannelCapability,
+  input: CaptionRuleInput,
+  capability: CaptionRuleChannel,
 ): ChannelValidationIssue[] {
   const { extendedMaxLength, maxLength } = capability.caption;
   if (extendedMaxLength === undefined) return [];
