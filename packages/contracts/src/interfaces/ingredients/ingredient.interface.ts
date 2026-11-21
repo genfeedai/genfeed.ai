@@ -108,6 +108,8 @@ export interface IIngredient extends IBaseEntity {
   recreateCount?: number;
   isDefault: boolean;
   isFavorite: boolean;
+  /** ISO time the retention sweep deleted the file; the media no longer exists. */
+  storageExpiredAt?: string | null;
   isSelected?: boolean;
   isActive?: boolean;
   isPlaying?: boolean;

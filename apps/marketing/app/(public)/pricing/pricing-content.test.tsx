@@ -321,4 +321,22 @@ describe('PricingContent', () => {
     expect(fourK).toHaveTextContent('102 credits');
     expect(screen.queryByText(/^50 credits/)).not.toBeInTheDocument();
   });
+  it('states how long unposted videos are stored on each plan', () => {
+    render(<PricingContent />);
+    const cells = within(
+      screen.getByRole('rowheader', { name: 'Unposted video storage' })
+        .parentElement as HTMLElement,
+    ).getAllByRole('cell');
+
+    // Pay-as-you-go, Pro, Scale, Enterprise.
+    expect(cells.map((cell) => cell.textContent)).toEqual([
+      '7 days',
+      '30 days',
+      '30 days',
+      '30 days',
+    ]);
+    expect(
+      screen.getByText(/Videos you have not posted are kept for 7 days/),
+    ).toBeInTheDocument();
+  });
 });

@@ -4,6 +4,7 @@ import type { IMetadata, IVideo } from '@genfeedai/contracts/interfaces';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import DropdownStatus from '@ui/dropdowns/status/DropdownStatus';
+import ExpiredVideoNotice from '@ui/masonry/shared/ExpiredVideoNotice';
 import MasonryFailureNotice from '@ui/masonry/shared/MasonryFailureNotice';
 import { MASONRY_MEDIA_HOVER_CLASS } from '@ui/masonry/shared/masonry-hover-motion';
 import Image from 'next/image';
@@ -14,6 +15,7 @@ type MasonryVideoMediaAreaProps = {
   video: IVideo;
   metadata: IMetadata | null;
   isUnavailable: boolean;
+  isExpired: boolean;
   isProcessing: boolean;
   isFailed: boolean;
   failureReason: string | null;
@@ -48,6 +50,7 @@ export default function MasonryVideoMediaArea({
   video,
   metadata,
   isUnavailable,
+  isExpired,
   isProcessing,
   isFailed,
   failureReason,
@@ -93,7 +96,7 @@ export default function MasonryVideoMediaArea({
   // A grant that is still pending carries no URL. A <video> pointed at the
   // placeholder image would fire `error` at once and report a saved asset as
   // unplayable, so the poster stands in until the grant resolves.
-  const isPlaceholderShown = isUnavailable || !ingredientUrl;
+  const isPlaceholderShown = isUnavailable || isExpired || !ingredientUrl;
 
   return (
     <>
@@ -128,6 +131,8 @@ export default function MasonryVideoMediaArea({
             />
           )}
 
+          {isExpired && <ExpiredVideoNotice ingredientId={video.id} />}
+
           {posterImageUrl ? (
             <Image
               src={posterImageUrl}
@@ -136,7 +141,7 @@ export default function MasonryVideoMediaArea({
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
               className={cn(
                 'object-cover object-center outline-media',
-                (isFailed || isFleetNsfwLocked) && 'blur-sm',
+                (isFailed || isExpired || isFleetNsfwLocked) && 'blur-sm',
               )}
               loading="lazy"
               onLoad={() => onImageLoad?.()}

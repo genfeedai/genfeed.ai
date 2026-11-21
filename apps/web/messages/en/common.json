@@ -2438,6 +2438,10 @@
     "noPreview": "No preview",
     "videoBadge": "Video"
   },
+  "videoRetention": {
+    "title": "Video expired",
+    "description": "Videos that were never posted are removed after {payg} days on pay-as-you-go and {subscriber} days on a subscription."
+  },
   "libraryRetry": {
     "genericFailureReason": "Generation failed.",
     "retry": "Retry",

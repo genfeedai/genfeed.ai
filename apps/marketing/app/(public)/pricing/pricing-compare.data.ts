@@ -1,4 +1,5 @@
 import { SubscriptionTier } from '@genfeedai/contracts';
+import { videoRetentionDays } from '@genfeedai/contracts/constants';
 import {
   getPlanByTier,
   getPlanLabel,
@@ -96,6 +97,10 @@ export function buildPricingCompareRows(): PricingCompareRow[] {
     {
       label: 'Brands and channels',
       values: cells((tier) => formatLimit(entitlementOf(tier).brandLimit)),
+    },
+    {
+      label: 'Unposted video storage',
+      values: cells((tier) => `${videoRetentionDays(hasPaidApps(tier))} days`),
     },
     {
       label: 'Automation, Messages, Discovery',
