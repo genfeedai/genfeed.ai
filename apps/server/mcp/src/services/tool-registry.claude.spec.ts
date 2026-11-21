@@ -15,6 +15,7 @@ function build() {
     createScheduledRelease: vi.fn(),
     updateScheduledRelease: vi.fn(),
     controlScheduledRelease: vi.fn(),
+    publishArticle: vi.fn(),
     executeAgentTool: vi.fn(),
     resolveApproval: vi.fn(),
   };
@@ -64,30 +65,30 @@ describe('Claude connector execution boundary', () => {
       arguments: { releaseId: 'release-1', action: 'resume' },
     },
     { name: 'publish_article', arguments: { articleId: 'article-1' } },
-  ])('queues $name without executing a public-channel write', async (call) => {
-    const { registry, client } = build();
-    client.createApproval.mockResolvedValue({
-      id: 'approval-1',
-      status: 'PENDING',
-      toolName: call.name,
-      arguments: call.arguments,
-    });
-    const result = await registry.handleToolCall(call);
-    expect(client.createApproval).toHaveBeenCalledExactlyOnceWith(
-      call.name,
-      call.arguments,
-    );
-    expect(result).toMatchObject({
-      isError: true,
-      structuredContent: { code: 'approval_pending' },
-    });
-    expect(client.createScheduledRelease).not.toHaveBeenCalled();
-    expect(client.updateScheduledRelease).not.toHaveBeenCalled();
-    expect(client.controlScheduledRelease).not.toHaveBeenCalled();
-    expect(client.executeAgentTool).not.toHaveBeenCalled();
-    expect(client.resolveApproval).not.toHaveBeenCalled();
-    expect(JSON.stringify(result)).not.toContain('call `resolve_approval`');
-  });
+  ])(
+    'holds $name until the agent confirms, with no web approval',
+    async (call) => {
+      const { registry, client } = build();
+      const result = await registry.handleToolCall(call);
+      expect(client.createApproval).not.toHaveBeenCalled();
+      expect(result).toMatchObject({
+        isError: true,
+        structuredContent: {
+          code: 'confirmation_required',
+          toolName: call.name,
+        },
+      });
+      expect(result).not.toHaveProperty('structuredContent.approvalId');
+      expect(result).not.toHaveProperty('structuredContent.nextStepUrl');
+      expect(JSON.stringify(result)).toContain('Nothing was published');
+      expect(client.createScheduledRelease).not.toHaveBeenCalled();
+      expect(client.updateScheduledRelease).not.toHaveBeenCalled();
+      expect(client.controlScheduledRelease).not.toHaveBeenCalled();
+      expect(client.publishArticle).not.toHaveBeenCalled();
+      expect(client.executeAgentTool).not.toHaveBeenCalled();
+      expect(client.resolveApproval).not.toHaveBeenCalled();
+    },
+  );
 
   it.each([
     'generate',

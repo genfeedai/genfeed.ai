@@ -142,6 +142,19 @@ const MCP_APPROVAL_NEVER_SKIPPED_TOOL_NAMES = curatedActionNames(
 );
 
 /**
+ * Publishing and scheduling tools an MCP agent confirms with the person in the
+ * conversation. They never wait in the web approvals queue.
+ */
+const MCP_AGENT_CONFIRMED_TOOL_NAMES = curatedActionNames(
+  (entry) => entry.isMcpAgentConfirmed === true,
+);
+
+/** Whether an MCP call to this tool is confirmed in the agent, not queued on the web. */
+export function isMcpAgentConfirmedTool(toolName: string): boolean {
+  return MCP_AGENT_CONFIRMED_TOOL_NAMES.has(toolName);
+}
+
+/**
  * Publishing tools the OUTBOUND class does not list: they put content in front
  * of an audience, so an MCP call waits for a reviewer.
  */

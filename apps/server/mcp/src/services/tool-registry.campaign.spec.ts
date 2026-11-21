@@ -141,7 +141,7 @@ describe('native campaign registry journey', () => {
     }
   });
 
-  it('keeps the campaign link in the pending publishing approval without dispatching a release', async () => {
+  it('asks the agent to confirm a campaign release without queueing or dispatching it', async () => {
     const { registry, client, module } = await setup();
     const args = {
       idempotencyKey: 'launch-release-1',
@@ -161,11 +161,10 @@ describe('native campaign registry journey', () => {
         name: 'create_scheduled_release',
         arguments: args,
       });
-      expect(JSON.stringify(result)).toContain('approval-1');
-      expect(client.createApproval).toHaveBeenCalledWith(
-        'create_scheduled_release',
-        args,
-      );
+      expect(result).toMatchObject({
+        structuredContent: { code: 'confirmation_required' },
+      });
+      expect(client.createApproval).not.toHaveBeenCalled();
       expect(client.createScheduledRelease).not.toHaveBeenCalled();
       expect(client.manageCampaign).not.toHaveBeenCalled();
     } finally {
@@ -173,9 +172,10 @@ describe('native campaign registry journey', () => {
     }
   });
 
-  it('forwards campaign identity and idempotency after the server returns an approved release action', async () => {
+  it('forwards campaign identity and idempotency once the agent confirms the release', async () => {
     const { registry, client, module } = await setup();
     const args = {
+      confirmed: true,
       idempotencyKey: 'launch-release-1',
       release: {
         brandId: 'brand-1',
@@ -188,12 +188,6 @@ describe('native campaign registry journey', () => {
         targets: [{ credentialId: 'credential-1', platform: 'twitter' }],
       },
     };
-    client.createApproval.mockResolvedValue({
-      id: 'approval-1',
-      status: 'APPROVED',
-      toolName: 'create_scheduled_release',
-      arguments: args,
-    });
     try {
       const result = await registry.handleToolCall({
         name: 'create_scheduled_release',
@@ -204,14 +198,10 @@ describe('native campaign registry journey', () => {
           data: { id: 'release-1', campaignId: 'campaign-1' },
         },
       });
-      expect(client.claimApprovalExecution).toHaveBeenCalledWith('approval-1');
+      expect(client.createApproval).not.toHaveBeenCalled();
       expect(client.createScheduledRelease).toHaveBeenCalledWith(
         args.release,
         'launch-release-1',
-      );
-      expect(client.attachApprovalResult).toHaveBeenCalledWith(
-        'approval-1',
-        expect.anything(),
       );
     } finally {
       await module.close();

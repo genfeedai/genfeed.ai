@@ -346,28 +346,28 @@ describe('ToolRegistryService — approval queue', () => {
       ],
     },
     { status: 'unknown' },
-  ])('queues a scheduler dispatch with %j', async (effects) => {
-    const { client, registry } = build();
+  ])(
+    'asks for confirmation instead of dispatching a release with %j',
+    async (effects) => {
+      const { client, registry } = build();
 
-    await registry.handleToolCall({
-      arguments: {
-        release: {
-          baseContent: 'Hello',
-          targets: [{ credentialId: 'credential-1', platform: 'linkedin' }],
-          timezone: 'Europe/Malta',
-          title: 'Launch',
-          ...effects,
+      await registry.handleToolCall({
+        arguments: {
+          release: {
+            baseContent: 'Hello',
+            targets: [{ credentialId: 'credential-1', platform: 'linkedin' }],
+            timezone: 'Europe/Malta',
+            title: 'Launch',
+            ...effects,
+          },
         },
-      },
-      name: 'create_scheduled_release',
-    });
+        name: 'create_scheduled_release',
+      });
 
-    expect(client.createApproval).toHaveBeenCalledWith(
-      'create_scheduled_release',
-      expect.objectContaining({ release: expect.any(Object) }),
-    );
-    expect(client.createScheduledRelease).not.toHaveBeenCalled();
-  });
+      expect(client.createApproval).not.toHaveBeenCalled();
+      expect(client.createScheduledRelease).not.toHaveBeenCalled();
+    },
+  );
 
   it.each([undefined, 'draft'])(
     'creates a release draft with status %s without an approval',
@@ -392,9 +392,34 @@ describe('ToolRegistryService — approval queue', () => {
     },
   );
 
-  it('keeps a scheduled release in the queue even when the member opted out of approvals', async () => {
+  it('asks the agent to confirm a scheduled release and queues nothing on the web', async () => {
     const { client, registry } = build();
-    client.isApprovalRequired.mockResolvedValue(false);
+    client.isApprovalRequired.mockResolvedValue(true);
+    const extra = {};
+
+    const result = (await registry.handleToolCall({
+      arguments: {
+        release: {
+          baseContent: 'Hello',
+          scheduledDate: '2026-12-01T10:00:00.000Z',
+          targets: [{ credentialId: 'credential-1', platform: 'linkedin' }],
+          timezone: 'Europe/Malta',
+          title: 'Launch',
+        },
+        ...extra,
+      },
+      name: 'create_scheduled_release',
+    })) as { structuredContent?: { code?: string } };
+
+    expect(result.structuredContent?.code).toBe('confirmation_required');
+    expect(client.createApproval).not.toHaveBeenCalled();
+    expect(client.createScheduledRelease).not.toHaveBeenCalled();
+  });
+
+  it('schedules a release once the agent passes confirmed, with no approval row', async () => {
+    const { client, registry } = build();
+    client.isApprovalRequired.mockResolvedValue(true);
+    const extra = { confirmed: true };
 
     await registry.handleToolCall({
       arguments: {
@@ -405,13 +430,35 @@ describe('ToolRegistryService — approval queue', () => {
           timezone: 'Europe/Malta',
           title: 'Launch',
         },
+        ...extra,
       },
       name: 'create_scheduled_release',
     });
 
-    expect(client.isApprovalRequired).not.toHaveBeenCalled();
-    expect(client.createApproval).toHaveBeenCalledOnce();
-    expect(client.createScheduledRelease).not.toHaveBeenCalled();
+    expect(client.createApproval).not.toHaveBeenCalled();
+    expect(client.createScheduledRelease).toHaveBeenCalledOnce();
+    expect(client.createScheduledRelease.mock.calls[0][0]).not.toHaveProperty(
+      'confirmed',
+    );
+  });
+
+  it('saves an undated draft without asking for confirmation', async () => {
+    const { client, registry } = build();
+
+    await registry.handleToolCall({
+      arguments: {
+        release: {
+          baseContent: 'Hello',
+          targets: [{ credentialId: 'credential-1', platform: 'linkedin' }],
+          timezone: 'Europe/Malta',
+          title: 'Launch',
+        },
+      },
+      name: 'create_scheduled_release',
+    });
+
+    expect(client.createApproval).not.toHaveBeenCalled();
+    expect(client.createScheduledRelease).toHaveBeenCalledOnce();
   });
 
   it('declines an approval without executing the deferred tool', async () => {

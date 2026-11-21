@@ -1,5 +1,6 @@
 import {
   getToolByName,
+  isMcpAgentConfirmedTool,
   isMcpApprovalSkippable,
   requiresMcpApproval,
 } from '@genfeedai/actions';
@@ -25,6 +26,22 @@ export function isMcpApprovalGated(
     }
   }
   return requiresMcpApproval(getToolByName(name));
+}
+
+/**
+ * Whether this call publishes and so needs the person's yes in the conversation: a
+ * dated release, a change to one, publish-now or resume, or an article publication.
+ * Undated drafts, cancel and pause run without it.
+ */
+export function requiresMcpAgentConfirmation(
+  name: string,
+  args?: Record<string, unknown>,
+): boolean {
+  if (!isMcpAgentConfirmedTool(name)) return false;
+  if (name === 'control_scheduled_release') {
+    return args?.action === 'publish-now' || args?.action === 'resume';
+  }
+  return isMcpApprovalGated(name, args);
 }
 
 /** A release that is a draft and carries no time to publish at. */
@@ -55,14 +72,17 @@ export function isMcpApprovalRedeemable(name: string): boolean {
 /**
  * Whether this call must wait in the approvals queue. A credit spender runs straight away
  * once the organization and the member have both turned "Require approval for MCP
- * requests" off; the API still checks credits and quotes. Outbound and other gated writes
- * are never waived, and a failed policy lookup keeps the approval.
+ * requests" off; the API still checks credits and quotes. Publishing tools are never
+ * queued: the agent confirms them with the person instead. Other gated writes are never
+ * waived, and a failed policy lookup keeps the approval.
  */
 export async function requiresMcpToolApproval(
   client: Pick<ClientService, 'isApprovalRequired'>,
   name: string,
   args?: Record<string, unknown>,
 ): Promise<boolean> {
+  // Publishing is confirmed in the agent (`requiresMcpAgentConfirmation`), never queued.
+  if (isMcpAgentConfirmedTool(name)) return false;
   if (!isMcpApprovalGated(name, args)) return false;
   return !isMcpApprovalSkippable(name) || (await client.isApprovalRequired());
 }

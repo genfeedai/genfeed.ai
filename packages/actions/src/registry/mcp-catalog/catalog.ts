@@ -318,7 +318,7 @@ export const MCP_CATALOG_TOOLS = [
   {
     name: 'schedule_release',
     description:
-      'Create or update a multi-channel release from prepared text and media. Run check_channel(action=validate) for each channel first. create saves a draft by default; a scheduled status or date requests future or recurring publishing. update changes content, media, recurrence, timing or one target. Every call needs server approval; review and apply it in Genfeed.',
+      'Create or update a multi-channel release from prepared text and media. Run check_channel(action=validate) for each channel first. create saves a draft by default; a scheduled status or date requests future or recurring publishing. update changes content, media, recurrence, timing or one target. Scheduling or changing a release never waits in the web approvals queue: the first call changes nothing and returns what to confirm; after the person agrees in this conversation, repeat it with confirmed true in the input. Drafts need no confirmation.',
     claudeActions: ['create', 'update'],
     operations: [
       { action: 'create', executes: 'create_scheduled_release' },
@@ -328,7 +328,7 @@ export const MCP_CATALOG_TOOLS = [
   {
     name: 'control_release',
     description:
-      'Control a release. control requests cancel, pause, resume or publish-now of a scheduled release; publish publishes an owned, reviewed article publicly. Review first with get_content, and check_channel(action=validate) before publish-now. Every call needs server-enforced approval.',
+      'Control a release. control requests cancel, pause, resume or publish-now of a scheduled release; publish publishes an owned, reviewed article publicly. Review first with get_content, and check_channel(action=validate) before publish-now. publish-now, resume and publish change nothing on the first call: show the person what returns, and after they agree in this conversation repeat it with confirmed true in the input. cancel and pause need no confirmation.',
     claudeActions: ['control', 'publish'],
     operations: [
       { action: 'control', executes: 'control_scheduled_release' },

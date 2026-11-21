@@ -99,4 +99,13 @@ describe('ProfileSubscribe', () => {
     );
     expect(screen.getByRole('button', { name: 'Subscribe' })).toBeEnabled();
   });
+
+  it('can sit in a row of actions as a single button, without the group', () => {
+    render(
+      <ProfileSubscribe handle="acme" layout="compact" source="article" />,
+    );
+
+    expect(screen.queryByRole('group')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Subscribe' })).toBeEnabled();
+  });
 });

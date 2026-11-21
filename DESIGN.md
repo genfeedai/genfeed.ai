@@ -618,7 +618,7 @@ before contrast does.
 | `heading-md`       | 20px | 28px    | 600    | subsection headings                   |
 | `heading-lg`       | 24px | 32px    | 600    | section headings                      |
 | `headline-display` | 30px | 40px    | 600    | page titles                           |
-| `editorial`        | 36px | 40px    | 400    | Zodiak serif, editorial covers only   |
+| `editorial`        | 36px | 40px    | 400    | Zodiak serif, editorial covers and long-form article bodies |
 
 **11px is a hard floor.** Anything that wants to be smaller wants to be uppercase
 instead. Use `text-2xs` (11px/14px); `text-[10px]` is not a size, it is a bug.
@@ -650,7 +650,7 @@ Satoshi is the product sans and Zodiak the editorial serif, both loaded as
 `--font-satoshi` / `--font-zodiak` with a system stack behind them. Satoshi has a
 low x-height for its point size, which is the second reason the 11px floor exists.
 
-Zodiak is for editorial covers only: no prices, headings, or product chrome. Italic
+Zodiak is for editorial covers and the body text of long-form articles (`.gen-article-prose`): no prices, headings, or product chrome. Italic
 is not a heading style either — no half-italic accent word in a headline, and no
 italic blockquotes. Emphasis comes from weight and colour.
 
