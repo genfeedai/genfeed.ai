@@ -39,6 +39,7 @@ const GENERATION_INGREDIENT_COLUMNS = {
   s3Key: true,
   scope: true,
   status: true,
+  storageExpiredAt: true,
   templateVersion: true,
   trainingId: true,
   transformations: true,

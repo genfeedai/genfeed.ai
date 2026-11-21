@@ -276,6 +276,11 @@ const UI_TEST_MESSAGES = {
       download: 'Download',
       merge: 'Merge',
     },
+    videoRetention: {
+      title: 'Video expired',
+      description:
+        'Videos that were never posted are removed after {payg} days on pay-as-you-go and {subscriber} days on a subscription.',
+    },
     libraryRetry: {
       genericFailureReason: 'Generation failed.',
       retry: 'Retry',

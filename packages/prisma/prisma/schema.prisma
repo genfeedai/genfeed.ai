@@ -2623,6 +2623,10 @@ model Ingredient {
   // reused by the pre-publish media readiness gate.
   mediaProbe            Json?
   mediaProbedAt         DateTime?
+  /// Set when the retention sweep deleted this video's file from storage. The
+  /// row stays so the Library, posts and receipts still resolve; the media
+  /// itself is gone. Never cleared: a regenerated video is a new ingredient.
+  storageExpiredAt      DateTime?
   postedTo              String[]                 @default([])
   qualityScore          Float?
   qualityFeedback       String[]                 @default([])
