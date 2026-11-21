@@ -15,7 +15,7 @@ export const OVERLAP_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      'Create a post draft from supplied text for review. On MCP this never publishes or schedules: confirmed and existing-content publishing are rejected, and scheduledAt is ignored. Use create_scheduled_release for release drafts or approval-gated scheduling. Existing-content publishing is available only in the Genfeed app.',
+      'Create a post draft from supplied text for review. On MCP this never publishes or schedules: confirmed and existing-content publishing are rejected, and scheduledAt is ignored. Use create_scheduled_release for release drafts or confirmed scheduling. Existing-content publishing is available only in the Genfeed app.',
     mcpDescription:
       'Save a reviewable draft from text or media. To attach Library media to a generated draft, pass its postId, the same brandId, and mediaUrls. This replaces the ordered media and keeps the draft’s text and generation receipt. This tool never publishes or schedules.',
     mcpHiddenParameters: [
@@ -51,7 +51,7 @@ export const OVERLAP_TOOLS: SourceTool[] = [
         },
         confirmed: {
           description:
-            'Genfeed app publishing only. Rejected on MCP; use create_scheduled_release for approval-gated scheduling.',
+            'Genfeed app publishing only. Rejected on MCP; use create_scheduled_release for confirmed scheduling.',
           type: 'boolean',
         },
         content: {

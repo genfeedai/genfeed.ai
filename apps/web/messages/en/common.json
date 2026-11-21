@@ -1043,7 +1043,7 @@
       "mcpApproval": {
         "cardTitle": "MCP approvals",
         "label": "Require approval for MCP requests",
-        "switchDescription": "On: image, video and other credit-spending MCP requests wait for approval. Off: they run straight away. Credit checks and quotes still apply. Publishing, scheduling and other outbound actions always wait.",
+        "switchDescription": "On: image, video and other credit-spending MCP requests wait for approval. Off: they run straight away. Credit checks and quotes still apply. Publishing and scheduling never wait here: your agent asks you to confirm in the conversation. Sending messages and replies always waits.",
         "organizationRequired": "Your organization requires approval, so this stays on. An owner or admin can change that in organization settings.",
         "confirm": "Lets your own credit-spending MCP requests run without approval",
         "saveError": "Could not save your MCP approval setting."
@@ -1243,7 +1243,7 @@
     "organizationMcpApproval": {
       "title": "MCP approvals",
       "label": "Require approval for MCP requests",
-      "switchDescription": "On: image, video and other credit-spending MCP requests wait for approval. Off: members who also turn it off for themselves run them straight away. Credit checks and quotes still apply. Publishing, scheduling and other outbound actions always wait.",
+      "switchDescription": "On: image, video and other credit-spending MCP requests wait for approval. Off: members who also turn it off for themselves run them straight away. Credit checks and quotes still apply. Publishing and scheduling never wait here: your agent asks you to confirm in the conversation. Sending messages and replies always waits.",
       "risk": "Members who also turn this off for themselves can spend your organization's credits from an MCP client without anyone approving first.",
       "confirm": "Changes whether members' credit-spending MCP requests wait for approval",
       "adminOnly": "Only owners and admins can change this setting.",

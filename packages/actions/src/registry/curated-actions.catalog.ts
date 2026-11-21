@@ -50,8 +50,15 @@ export interface CuratedActionCatalogEntry {
   claudeAccess?: CuratedClaudeAccess;
   /** Absent means the tool reads our own database (`stored`). */
   dataSource?: Exclude<ToolDataSource, 'stored'>;
-  /** Credit spender whose MCP approval the organization setting may never waive. */
+  /**
+   * Credit spender whose MCP approval the organization setting may never waive.
+   */
   isMcpApprovalNeverSkipped?: true;
+  /**
+   * Publishing or scheduling tool the MCP agent confirms with the person in the
+   * conversation (`confirmed: true`) instead of queueing a web approval.
+   */
+  isMcpAgentConfirmed?: true;
   /** Reaches a live third party or the open web beyond what the default rules detect. */
   isOpenWorld?: true;
   isPublishingApprovalRequired?: true;
@@ -288,6 +295,7 @@ export const CURATED_ACTION_CATALOG = [
     annotationHint: 'destructive',
     category: 'content',
     claudeAccess: 'agent',
+    isMcpAgentConfirmed: true,
     isPublishingApprovalRequired: true,
     mcpCardKind: 'summary',
     mutationPolicy: 'approval-required',
@@ -398,6 +406,7 @@ export const CURATED_ACTION_CATALOG = [
     annotationHint: 'destructive',
     category: 'content',
     claudeAccess: 'agent',
+    isMcpAgentConfirmed: true,
     isPublishingApprovalRequired: true,
     mcpCardKind: 'summary',
     mutationPolicy: 'approval-required',
@@ -1533,6 +1542,7 @@ export const CURATED_ACTION_CATALOG = [
   },
   {
     category: 'content',
+    isMcpAgentConfirmed: true,
     mcpApproval: 'posting',
     mutationPolicy: 'approval-required',
     name: 'publish_article',
@@ -2089,6 +2099,7 @@ export const CURATED_ACTION_CATALOG = [
     annotationHint: 'destructive',
     category: 'content',
     claudeAccess: 'agent',
+    isMcpAgentConfirmed: true,
     isPublishingApprovalRequired: true,
     mcpCardKind: 'summary',
     mutationPolicy: 'approval-required',

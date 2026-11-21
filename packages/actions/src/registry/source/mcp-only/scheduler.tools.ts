@@ -236,9 +236,15 @@ const SCHEDULER_VALIDATE_PARAMETERS: ToolParameterSchema = {
   type: 'object',
 };
 
+const confirmedSchema = {
+  description:
+    'Set true only after the person has explicitly agreed, in this conversation, to exactly this call. Without it the call publishes nothing and returns what to confirm.',
+  type: 'boolean',
+} as const;
+
 const releasesBatchSchema = {
   description:
-    'A batch of releases for one organization, approved once. Use instead of release. Each release is one post on one channel (one target; no recurrence, attachments or target settings): send one release per channel.',
+    'A batch of releases for one organization, confirmed once. Use instead of release. Each release is one post on one channel (one target; no recurrence, attachments or target settings): send one release per channel.',
   items: releaseCreateSchema,
   maxItems: MAX_BATCH_RELEASES,
   minItems: 1,
@@ -249,12 +255,13 @@ export const MCP_SCHEDULER_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      'Create a multi-channel release from prepared content and existing media. Use after check_channel(action=validate) for each channel. status draft (the default) saves for review; status scheduled or a scheduledDate requests future publishing, including recurring releases. Pass one release in `release`, or a whole week in `releases` (1 to 50, one organization, one approval for the batch): every release is validated on its own, invalid ones are named in the result and left out. Scheduling waits for server-enforced approval. A batch of up to 3 releases can be approved in the chat; a larger batch is reviewed and approved once in Genfeed, which then schedules every release without another call. If this connection cannot resolve approvals, review and release it in Genfeed.',
+      'Create a multi-channel release from prepared content and existing media. Use after check_channel(action=validate) for each channel. status draft (the default) saves for review; status scheduled or a scheduledDate requests future publishing, including recurring releases. Pass one release in `release`, or a whole week in `releases` (1 to 50, one organization, one confirmation for the batch): every release is validated on its own, invalid ones are named in the result and left out. Scheduling never waits in the web approvals queue: the first call schedules nothing and returns what to confirm; show it to the person, and only after they agree in this conversation repeat the same call with confirmed true. Drafts need no confirmation.',
     mcpDescription:
-      'Create a multi-channel release from prepared text/media after check_channel(action=validate) for each channel. Default draft saves for review; scheduled status or scheduledDate requests future/recurring publishing. Pass `release` (one) or `releases` (1-50, one organization, one approval): each is validated alone, invalid ones are named and left out. Server approval required to schedule: up to 3 releases can be approved in chat; a larger batch is approved once in Genfeed, which schedules all of them with no second call.',
+      'Create a multi-channel release from prepared text/media after check_channel(action=validate) for each channel. Default draft saves for review; scheduled status or scheduledDate requests future/recurring publishing. Pass `release` (one) or `releases` (1-50, one organization, one confirmation): each is validated alone, invalid ones are named and left out. To schedule, ask the person first: the first call schedules nothing; after they agree in this conversation, repeat it with confirmed true. Drafts need no confirmation.',
     name: 'create_scheduled_release',
     parameters: {
       properties: {
+        confirmed: confirmedSchema,
         idempotencyKey: { type: 'string' },
         release: releaseCreateSchema,
         releases: releasesBatchSchema,
@@ -294,9 +301,9 @@ export const MCP_SCHEDULER_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      'Change content, media, recurrence or timing on an existing release, or scheduling/settings on one target. Use get_scheduled_release to inspect its current content and state, then check_channel(action=validate) before changing publishing settings. Changes to already-live content may update public posts. Every update waits for server-enforced approval; review and apply in Genfeed.',
+      'Change content, media, recurrence or timing on an existing release, or scheduling/settings on one target. Use get_scheduled_release to inspect its current content and state, then check_channel(action=validate) before changing publishing settings. Changes to already-live content may update public posts. The first call changes nothing and returns what to confirm; after the person agrees in this conversation, repeat it with confirmed true.',
     mcpDescription:
-      "Update release content/media/recurrence/timing or one target's scheduling/settings. Inspect get_scheduled_release first; check_channel(action=validate) before publishing-setting changes. Live-content changes may update public posts. All updates require server approval; review/apply in Genfeed.",
+      "Update release content/media/recurrence/timing or one target's scheduling/settings. Inspect get_scheduled_release first; check_channel(action=validate) before publishing-setting changes. Live-content changes may update public posts. First call changes nothing; after the person agrees in this conversation, repeat with confirmed true.",
     name: 'update_scheduled_release',
     parameters: {
       properties: {
@@ -304,6 +311,7 @@ export const MCP_SCHEDULER_TOOLS: SourceTool[] = [
           properties: updateProperties,
           type: 'object',
         },
+        confirmed: confirmedSchema,
         releaseId: { type: 'string' },
         scope: {
           enum: ['release', 'target'],
@@ -322,9 +330,9 @@ export const MCP_SCHEDULER_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      'Request cancel, pause, resume or publish-now for an existing release. Use get_scheduled_release to review exact content, channels and timing; check check_channel(action=validate) before publish-now, and confirm the selected publishing credential is still connected before resume. publish-now requests immediate public posting and resume may restart scheduled or recurring posting. Every action waits for server-enforced approval; review and release in Genfeed.',
+      'Request cancel, pause, resume or publish-now for an existing release. Use get_scheduled_release to review exact content, channels and timing; check check_channel(action=validate) before publish-now, and confirm the selected publishing credential is still connected before resume. publish-now requests immediate public posting and resume may restart scheduled or recurring posting. publish-now and resume change nothing on the first call: show the person what returns, and after they agree in this conversation repeat the call with confirmed true. cancel and pause need no confirmation.',
     mcpDescription:
-      'Request cancel, pause, resume or publish-now. First review content/channels/timing with get_scheduled_release; check_channel(action=validate) before publish-now; verify the publishing credential remains connected before resume. publish-now requests immediate public posting; resume may restart scheduled/recurring posting. All actions require server-enforced approval; review/release in Genfeed.',
+      'Request cancel, pause, resume or publish-now. First review content/channels/timing with get_scheduled_release; check_channel(action=validate) before publish-now; verify the publishing credential remains connected before resume. publish-now requests immediate public posting; resume may restart scheduled/recurring posting. publish-now and resume: first call changes nothing; after the person agrees in this conversation, repeat with confirmed true. cancel and pause need none.',
     name: 'control_scheduled_release',
     parameters: {
       properties: {
@@ -332,6 +340,7 @@ export const MCP_SCHEDULER_TOOLS: SourceTool[] = [
           enum: ['cancel', 'pause', 'resume', 'publish-now'],
           type: 'string',
         },
+        confirmed: confirmedSchema,
         releaseId: { type: 'string' },
       },
       required: ['releaseId', 'action'],
