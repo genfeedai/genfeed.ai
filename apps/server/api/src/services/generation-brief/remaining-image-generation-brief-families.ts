@@ -2,6 +2,7 @@ import {
   FAL_FLUX_2_PRO_IMAGE_COMPILER_ID,
   FAL_FLUX_IMAGE_COMPILER_ID,
   FAL_NANO_BANANA_2_IMAGE_COMPILER_ID,
+  FAL_SEEDREAM_5_5_IMAGE_COMPILER_ID,
   GPT_IMAGE_IMAGE_COMPILER_ID,
   GROK_IMAGINE_IMAGE_COMPILER_ID,
   HIGGSFIELD_ADS_STUDIO_IMAGE_COMPILER_ID,
@@ -301,6 +302,18 @@ export const REMAINING_IMAGE_GENERATION_BRIEF_FAMILIES: readonly RemainingImageG
         modelLabel: 'Fal Nano Banana 2',
         referenceField: 'image_input',
         referenceFieldIsArray: true,
+      },
+    },
+    {
+      compilerId: FAL_SEEDREAM_5_5_IMAGE_COMPILER_ID,
+      compilerVersion: REMAINING_IMAGE_COMPILER_VERSION,
+      profiles: [
+        profile('fal-seedream-5-5-capability', MODEL_KEYS.FAL_SEEDREAM_5_5, 0, {
+          seedSupported: false,
+        }),
+      ],
+      spec: {
+        modelLabel: 'Fal Seedream 5.5',
       },
     },
   ];

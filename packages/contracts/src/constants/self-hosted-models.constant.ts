@@ -550,6 +550,32 @@ export const SELF_HOSTED_MODELS = [
     providerCostUsd: 0.09,
   },
   /**
+   * Seedream 5.5 text-to-image on fal — $0.03/img up to 2.61 MP, $0.0405/img
+   * above (fal llms.txt, read 2026-11-21). Seeded at the 2K rate, which is
+   * fal's default `auto_2K`, so 2K runs are never undercharged. Prompt only:
+   * Seedream 5 Pro stays for reference-image work.
+   */
+  {
+    category: ModelCategory.IMAGE,
+    cost: 14,
+    costTier: CostTier.MEDIUM,
+    qualityTier: QualityTier.HIGH,
+    speedTier: SpeedTier.MEDIUM,
+    description:
+      'ByteDance Seedream 5.5 via fal — text-to-image up to 4.6 MP, rates above Seedream 5 Pro at less than half the price. No reference images.',
+    endpoint: 'bytedance/seedream/v5.5/text-to-image',
+    isDefault: false,
+    isHighlighted: true,
+    key: MODEL_KEYS.FAL_SEEDREAM_5_5,
+    label: 'Seedream 5.5',
+    provider: ModelProvider.FAL,
+    providerConfig: {
+      name: 'seedream/v5.5/text-to-image',
+      owner: 'bytedance',
+    },
+    providerCostUsd: 0.0405,
+  },
+  /**
    * GPT Image 1.5 — still selectable via the Legacy pill. Seed at `high`
    * (the model's top OpenAPI quality band) so we never undercharge.
    */
