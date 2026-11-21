@@ -123,7 +123,7 @@ describe('ReleaseRailAccounts', () => {
   it('does not fetch account health without a brand in scope', async () => {
     api.accounts = [buildAccount()];
     const { container } = render(<RailHarness />);
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    await new Promise((resolve) => setImmediate(resolve));
     expect(api.requestedBrands).toEqual([]);
     expect(container).toBeEmptyDOMElement();
   });

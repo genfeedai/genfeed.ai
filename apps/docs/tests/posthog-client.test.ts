@@ -14,7 +14,7 @@ vi.mock('posthog-js', () => {
 async function loadInstrumentationClient(): Promise<void> {
   vi.resetModules();
   await import('../instrumentation-client');
-  await new Promise((resolve) => setTimeout(resolve, 0));
+  await new Promise((resolve) => setImmediate(resolve));
 }
 
 beforeEach(() => {

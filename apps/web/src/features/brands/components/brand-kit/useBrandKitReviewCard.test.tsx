@@ -238,7 +238,7 @@ describe('claimed Brand OS draft lifecycle', () => {
     await act(async () => {
       await client.invalidateQueries({ queryKey: ['brand-os-claimed-draft'] });
       // React Query hands the refreshed read to observers on the next tick.
-      await new Promise((done) => setTimeout(done, 0));
+      await new Promise((done) => setImmediate(done));
     });
 
     expect(result.current.draft?.readiness.score).toBe(60);

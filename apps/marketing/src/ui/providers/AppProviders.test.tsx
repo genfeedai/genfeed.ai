@@ -82,7 +82,7 @@ describe('website AppProviders', () => {
     );
 
     await screen.findByText('Page');
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    await new Promise((resolve) => setImmediate(resolve));
     expect(screen.queryByTestId('error-debug-modal')).not.toBeInTheDocument();
   });
 

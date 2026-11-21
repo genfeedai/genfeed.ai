@@ -1,6 +1,6 @@
 import { logger } from '@genfeedai/services/core/logger.service';
 import { act, renderHook } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   useDebounce,
   useDebouncedAPI,
@@ -12,6 +12,14 @@ vi.mock('@genfeedai/services/core/logger.service', () => ({
     error: vi.fn(),
   },
 }));
+
+beforeEach(() => {
+  vi.useFakeTimers();
+});
+
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 describe('useDebounce', () => {
   it('returns initial value immediately', () => {
@@ -32,7 +40,7 @@ describe('useDebounce', () => {
 
     // Wait for debounce
     await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 150));
+      await vi.advanceTimersByTimeAsync(150);
     });
 
     expect(result.current).toBe('changed');
@@ -70,7 +78,7 @@ describe('useDebouncedCallback', () => {
 
     // Wait for debounce
     await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 150));
+      await vi.advanceTimersByTimeAsync(150);
     });
 
     expect(callback).toHaveBeenCalledTimes(1);
@@ -144,7 +152,7 @@ describe('useDebouncedAPI', () => {
 
     // Wait for debounce
     await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 150));
+      await vi.advanceTimersByTimeAsync(150);
     });
 
     expect(apiCall).toHaveBeenCalledTimes(1);
@@ -156,7 +164,10 @@ describe('useDebouncedAPI', () => {
 
   it('cancels previous requests when new call is made', async () => {
     const apiCall = vi.fn().mockImplementation(async (arg, { signal }) => {
-      await new Promise((resolve) => setTimeout(resolve, 200));
+      // The request stays in flight until the hook aborts it.
+      await new Promise<void>((resolve) => {
+        signal.addEventListener('abort', () => resolve());
+      });
       if (signal.aborted) {
         throw new Error('AbortError');
       }
@@ -170,7 +181,7 @@ describe('useDebouncedAPI', () => {
     });
 
     await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await vi.advanceTimersByTimeAsync(100);
     });
 
     act(() => {
@@ -178,7 +189,7 @@ describe('useDebouncedAPI', () => {
     });
 
     await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await vi.advanceTimersByTimeAsync(100);
     });
 
     // Should only have been called twice (first call gets aborted)
@@ -195,7 +206,7 @@ describe('useDebouncedAPI', () => {
     });
 
     await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 150));
+      await vi.advanceTimersByTimeAsync(150);
     });
 
     expect(result.current.isLoading).toBe(false);
@@ -214,7 +225,7 @@ describe('useDebouncedAPI', () => {
     });
 
     await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 150));
+      await vi.advanceTimersByTimeAsync(150);
     });
 
     expect(result.current.isLoading).toBe(false);
@@ -233,7 +244,7 @@ describe('useDebouncedAPI', () => {
     });
 
     await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 150));
+      await vi.advanceTimersByTimeAsync(150);
     });
 
     expect(apiCall).not.toHaveBeenCalled();

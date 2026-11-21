@@ -2,7 +2,7 @@ import type { IStudioGenerateDraft } from '@genfeedai/contracts/interfaces';
 import { logger } from '@services/core/logger.service';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { useCallback } from 'react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { StudioGenerateDraftPayload } from '@/features/studio/playground/types';
 import {
   createStudioPlaygroundDraftOutbox,
@@ -135,6 +135,14 @@ function savedPrompts(): string[] {
 
 describe('useStudioPlaygroundDraft', () => {
   beforeEach(() => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  beforeEach(() => {
     vi.clearAllMocks();
     window.localStorage.clear();
     mocks.userId.current = 'user-1';
@@ -194,7 +202,9 @@ describe('useStudioPlaygroundDraft', () => {
     const view = renderDraft({ payload: buildPayload('saved') });
 
     await waitFor(() => expect(view.onRestore).toHaveBeenCalledTimes(1));
-    await new Promise((resolve) => setTimeout(resolve, QUIET_PERIOD));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(QUIET_PERIOD);
+    });
 
     expect(mocks.saveCurrent).not.toHaveBeenCalled();
   });
@@ -202,7 +212,9 @@ describe('useStudioPlaygroundDraft', () => {
   it('does not create a draft for an untouched, empty composer', async () => {
     renderDraft();
     await waitFor(() => expect(mocks.getCurrent).toHaveBeenCalled());
-    await new Promise((resolve) => setTimeout(resolve, QUIET_PERIOD));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(QUIET_PERIOD);
+    });
 
     expect(mocks.saveCurrent).not.toHaveBeenCalled();
   });
@@ -219,7 +231,9 @@ describe('useStudioPlaygroundDraft', () => {
 
     // Back to what the server held before B, while B is still in flight.
     view.rerender({ ...baseProps(view), payload: buildPayload('A') });
-    await new Promise((resolve) => setTimeout(resolve, QUIET_PERIOD));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(QUIET_PERIOD);
+    });
     await act(async () => {
       saveB.resolve({});
     });
@@ -377,7 +391,9 @@ describe('useStudioPlaygroundDraft', () => {
     await waitFor(() => expect(failingThenOk).toHaveBeenCalledTimes(1));
 
     renderDraft();
-    await new Promise((resolve) => setTimeout(resolve, 100));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(100);
+    });
     // B is waiting on its retry: reading now would restore the older draft.
     expect(mocks.getCurrent).not.toHaveBeenCalled();
 
@@ -398,7 +414,9 @@ describe('useStudioPlaygroundDraft', () => {
     // user-2 signs in on this tab while user-1's write waits on its retry.
     mocks.userId.current = 'user-2';
     view.rerender({ ...baseProps(view), payload: buildPayload('user-1 text') });
-    await new Promise((resolve) => setTimeout(resolve, 2500));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2500);
+    });
 
     expect(savedPrompts()).toEqual(['user-1 text']);
   });
@@ -418,7 +436,9 @@ describe('useStudioPlaygroundDraft', () => {
     view.rerender({ ...baseProps(view), payload: buildPayload('rejected') });
 
     await waitFor(() => expect(view.result.current.saveStatus).toBe('failed'));
-    await new Promise((resolve) => setTimeout(resolve, 2500));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2500);
+    });
     expect(mocks.saveCurrent).toHaveBeenCalledTimes(1);
   });
 
@@ -459,7 +479,9 @@ describe('useStudioPlaygroundDraft', () => {
     await waitFor(() => expect(mocks.getCurrent).toHaveBeenCalledTimes(1));
 
     view.rerender({ ...baseProps(view), payload: buildPayload('typed') });
-    await new Promise((resolve) => setTimeout(resolve, QUIET_PERIOD));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(QUIET_PERIOD);
+    });
     expect(mocks.saveCurrent).not.toHaveBeenCalled();
 
     // The load is retried; once it succeeds the edit is saved.
@@ -478,7 +500,9 @@ describe('useStudioPlaygroundDraft', () => {
       isAutosaveEnabled: false,
       payload: buildPayload('remix objective'),
     });
-    await new Promise((resolve) => setTimeout(resolve, QUIET_PERIOD));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(QUIET_PERIOD);
+    });
     view.unmount();
 
     expect(mocks.saveCurrent).not.toHaveBeenCalled();

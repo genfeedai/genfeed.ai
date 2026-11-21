@@ -87,7 +87,7 @@ describe('AssetDeepLink', () => {
     await act(async () => {
       await client.refetchQueries();
       // React Query notifies observers on the next tick.
-      await new Promise((resolve) => setTimeout(resolve, 0));
+      await new Promise((resolve) => setImmediate(resolve));
     });
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
