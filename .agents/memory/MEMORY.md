@@ -18,7 +18,8 @@ do not load every linked file. Add detailed entries to the catalog, keeping this
 - Honor the globally configured verification host. Command lists do not authorize
   tests, typechecks, or builds on a restricted host.
 - Search existing work before claiming a surface. Keep changes on a scoped branch,
-  publish a ready PR, and retain required verification and review gates.
+  open the PR as a draft, mark it ready once when the branch is finished, and retain
+  required verification and review gates.
 
 ## Task entry points
 
