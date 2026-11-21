@@ -1,0 +1,105 @@
+name: Announce release
+
+# Posts the hand-written patch notes in docs/release-notes/<tag>.md to the
+# Discord announcement channel once a Release run has finished successfully, so
+# the GitHub release is public and npm and the channels are promoted. Dispatch it
+# with a tag to post (or post again) the notes of any release whose file is on
+# master.
+#
+# Needs the repository secret DISCORD_RELEASE_WEBHOOK_URL (an announcement
+# channel webhook). Without it, or without a notes file for the tag, an
+# automatic run only warns and the Release run is unaffected. A manual dispatch
+# fails loudly instead.
+on:
+  workflow_run:
+    workflows:
+      - Release
+    types:
+      - completed
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: stable release tag (vX.Y.Z) whose notes file is on master
+        required: true
+        type: string
+
+concurrency:
+  group: announce-release-${{ inputs.tag || github.event.workflow_run.display_title }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  announce:
+    name: Post patch notes to Discord
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    # A re-run of a Release run would announce the same release twice.
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+        github.event.workflow_run.run_attempt == 1)
+    # An automatic run never turns a finished release red; a manual one shows
+    # its failure.
+    continue-on-error: ${{ github.event_name == 'workflow_run' }}
+    steps:
+      - name: Resolve the tag
+        id: tag
+        shell: bash
+        env:
+          EVENT: ${{ github.event_name }}
+          INPUT_TAG: ${{ inputs.tag }}
+          RUN_TITLE: ${{ github.event.workflow_run.display_title }}
+        run: |
+          if [ "$EVENT" = "workflow_dispatch" ]; then
+            tag="$INPUT_TAG"
+          else
+            # Release names its runs "Release <tag>".
+            tag="${RUN_TITLE#Release }"
+          fi
+          if ! [[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::warning::\"$tag\" is not a stable vX.Y.Z release; nothing announced"
+            echo "tag=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+      - name: Check out the notes and the poster
+        if: steps.tag.outputs.tag != ''
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: master
+          persist-credentials: false
+          sparse-checkout: |
+            scripts/ci/announce-release.mjs
+            docs/release-notes
+          sparse-checkout-cone-mode: false
+
+      - name: Post to Discord
+        if: steps.tag.outputs.tag != ''
+        shell: bash
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_RELEASE_WEBHOOK_URL }}
+          EVENT: ${{ github.event_name }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          notes="docs/release-notes/${TAG}.md"
+          problem=""
+          if [ -z "$DISCORD_WEBHOOK_URL" ]; then
+            problem="DISCORD_RELEASE_WEBHOOK_URL is not set"
+          elif [ ! -f "$notes" ]; then
+            problem="$notes is not on master"
+          fi
+          if [ -n "$problem" ]; then
+            if [ "$EVENT" = "workflow_dispatch" ]; then
+              echo "::error::$problem; nothing announced"
+              exit 1
+            fi
+            echo "::warning::$problem; nothing announced"
+            exit 0
+          fi
+          NOTES_FILE="$notes" \
+            RELEASE_URL="https://github.com/${GH_REPO}/releases/tag/${TAG}" \
+            node scripts/ci/announce-release.mjs
