@@ -911,9 +911,6 @@ export class CredentialsService
           throw new Error('Credential avatar URL must use http or https');
         }
         assertUrlNotPrivate(profile.avatarUrl);
-        // A fresh key per import: a fixed `<credentialId>` key kept the same CDN
-        // URL after a reconnect, so CloudFront (24 h default TTL, no
-        // Cache-Control on the object) and browsers kept showing the old photo.
         const metadata = await this.filesClientService.uploadToS3(
           `${credentialId}-${Date.now()}`,
           'social-avatars',
