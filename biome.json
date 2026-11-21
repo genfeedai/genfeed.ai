@@ -155,6 +155,7 @@
         "**/mocks/**",
         "**/testing/**",
         "playwright/**",
+        "!apps/server/api/test/integration/proactive-agent-production-turn*",
         "!apps/web/**",
         "!apps/extension/**",
         "!apps/desktop/**",

@@ -1038,13 +1038,12 @@ export async function createProactiveProductionTurnFixture() {
     await redis.subscribe(channel, (payload) => {
       if (record(payload).ready === true) resolveReceipt();
     });
-    let readinessTimer: ReturnType<typeof globalThis.setTimeout> | undefined;
+    let readinessTimer: ReturnType<typeof setTimeout> | undefined;
     try {
       await redis.publish(channel, { ready: true });
       await Promise.race([
         receipt,
         new Promise<never>((_, rejectTimeout) => {
-          // biome-ignore lint/style/noRestrictedGlobals: a real Redis readiness deadline, not a sleep
           readinessTimer = setTimeout(
             () =>
               rejectTimeout(new Error('Real Redis pub/sub readiness failed')),
@@ -1409,7 +1408,6 @@ export async function createProactiveProductionTurnFixture() {
       while ((await lockRows(actor)).length) {
         if (Date.now() >= end)
           throw new Error('Owned dispatch backend did not release its lock');
-        // biome-ignore lint/style/noRestrictedGlobals: polls a real Postgres lock owner from a fixture; there is no event to wait on
         await new Promise((resolve) => setTimeout(resolve, 20));
       }
     };

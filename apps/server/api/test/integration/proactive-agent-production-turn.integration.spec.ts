@@ -484,7 +484,6 @@ describe('proactive production turn acceptance', () => {
       await waitForDispatchBarrier(provider.entered);
       const owner = await fixture.observeDispatchLock(actor);
       const started = Date.now();
-      // biome-ignore lint/style/noRestrictedGlobals: the real dispatch lock lease is 30 seconds; the test must outlast it
       await new Promise((resolve) => setTimeout(resolve, 31_000));
       expect(Date.now() - started).toBeGreaterThanOrEqual(30_000);
       expect(await fixture.observeDispatchLock(actor)).toEqual(owner);
@@ -650,12 +649,11 @@ describe('proactive production turn acceptance', () => {
 });
 
 async function waitForDispatchBarrier(entered: Promise<void>) {
-  let timer: ReturnType<typeof globalThis.setTimeout> | undefined;
+  let timer: ReturnType<typeof setTimeout> | undefined;
   try {
     await Promise.race([
       entered,
       new Promise<never>((_, reject) => {
-        // biome-ignore lint/style/noRestrictedGlobals: a deadline on a real barrier, not a sleep
         timer = setTimeout(
           () => reject(new Error('Dispatch barrier was not reached')),
           10_000,
