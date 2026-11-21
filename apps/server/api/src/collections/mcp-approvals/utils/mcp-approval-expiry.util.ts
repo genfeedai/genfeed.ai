@@ -77,30 +77,33 @@ export const expireStaleMcpApprovals = traced(
  * time. Takes the pending rows the caller already read, so it adds no query to
  * the listing. Returns the ids it closed.
  */
-export async function expireLateSchedulingApprovals(
-  delegate: Pick<Prisma.McpApprovalDelegate, 'updateMany'>,
-  organizationId: string,
-  pending: readonly { arguments: unknown; id: string; toolName: string }[],
-  now: Date = new Date(),
-): Promise<string[]> {
-  const lateIds = pending
-    .filter((approval) => {
-      if (approval.toolName !== 'create_scheduled_release') return false;
-      const latest = latestScheduledTime(approval.arguments);
-      return latest !== null && latest < now.getTime();
-    })
-    .map((approval) => approval.id);
-  if (lateIds.length === 0) return [];
-  await delegate.updateMany({
-    data: {
-      resolvedAt: now,
-      result: { reason: MCP_APPROVAL_EXPIRED_REASON },
-      status: McpApprovalStatus.DECLINED,
-    },
-    where: scopedWhere(organizationId, {
-      id: { in: lateIds },
-      status: McpApprovalStatus.PENDING,
-    }),
-  });
-  return lateIds;
-}
+export const expireLateSchedulingApprovals = traced(
+  'expireLateSchedulingApprovals',
+  async (
+    delegate: Pick<Prisma.McpApprovalDelegate, 'updateMany'>,
+    organizationId: string,
+    pending: readonly { arguments: unknown; id: string; toolName: string }[],
+    now: Date = new Date(),
+  ): Promise<string[]> => {
+    const lateIds = pending
+      .filter((approval) => {
+        if (approval.toolName !== 'create_scheduled_release') return false;
+        const latest = latestScheduledTime(approval.arguments);
+        return latest !== null && latest < now.getTime();
+      })
+      .map((approval) => approval.id);
+    if (lateIds.length === 0) return [];
+    await delegate.updateMany({
+      data: {
+        resolvedAt: now,
+        result: { reason: MCP_APPROVAL_EXPIRED_REASON },
+        status: McpApprovalStatus.DECLINED,
+      },
+      where: scopedWhere(organizationId, {
+        id: { in: lateIds },
+        status: McpApprovalStatus.PENDING,
+      }),
+    });
+    return lateIds;
+  },
+);
