@@ -1398,6 +1398,7 @@ describe.skipIf(!enabled)(
           );
         if (runtime(f).workerErrors.length)
           throw new Error(runtime(f).workerErrors.join('\n'));
+        // biome-ignore lint/style/noRestrictedGlobals: polls a real renderer receipt; there is no event to wait on
         await new Promise((accept) => setTimeout(accept, 25));
       }
       if (!running)
@@ -1450,6 +1451,7 @@ describe.skipIf(!enabled)(
           Math.min(100, terminalDeadline - Date.now()),
         );
         if (delayMs > 0)
+          // biome-ignore lint/style/noRestrictedGlobals: polls a real renderer receipt; there is no event to wait on
           await new Promise((accept) => setTimeout(accept, delayMs));
       }
       expect(cancelled).toBe(true);

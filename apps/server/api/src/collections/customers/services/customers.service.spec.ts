@@ -195,7 +195,7 @@ describe('CustomersService.upsertForOrganization', () => {
     const { inTenant, rows, service } = setup();
     const stripeCustomersCreated: string[] = [];
     const createStripeCustomer = async (billingEmail: string) => {
-      await new Promise((resolve) => setTimeout(resolve, 10));
+      await new Promise((resolve) => setImmediate(resolve));
       stripeCustomersCreated.push(billingEmail);
       return billingEmail === 'first@acme.test' ? 'cus_first' : 'cus_second';
     };

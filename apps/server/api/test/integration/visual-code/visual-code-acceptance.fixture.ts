@@ -1422,6 +1422,7 @@ export async function createVisualCodeAcceptanceFixture(
             const state = await job.getState();
             if (state === 'completed' && observedCompletions.has(jobId)) return;
             if (state === 'failed') throw new Error(job.failedReason);
+            // biome-ignore lint/style/noRestrictedGlobals: polls a real broker job; there is no event to wait on
             await new Promise((accept) => setTimeout(accept, 100));
           }
           throw new Error(`Actual broker job timed out: ${jobId}`);

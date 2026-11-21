@@ -92,8 +92,8 @@ describe('GoogleAdsService', () => {
         callback();
       }
 
-      return 0 as unknown as ReturnType<typeof setTimeout>;
-    }) as unknown as typeof setTimeout);
+      return 0 as unknown as ReturnType<typeof globalThis.setTimeout>;
+    }) as unknown as typeof globalThis.setTimeout);
   });
 
   afterEach(() => {

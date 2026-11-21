@@ -324,7 +324,7 @@ describe('FileQueueService', () => {
       );
       vi.spyOn(global, 'setTimeout').mockImplementation((callback) => {
         callback();
-        return {} as ReturnType<typeof setTimeout>;
+        return {} as ReturnType<typeof globalThis.setTimeout>;
       });
 
       await expect(service.waitForJob(jobId, 100)).rejects.toThrow(

@@ -548,8 +548,8 @@ describe('StepExecutorService', () => {
           if (typeof callback === 'function') {
             callback();
           }
-          return 0 as unknown as ReturnType<typeof setTimeout>;
-        }) as unknown as typeof setTimeout);
+          return 0 as unknown as ReturnType<typeof globalThis.setTimeout>;
+        }) as unknown as typeof globalThis.setTimeout);
 
       const result = await service.execute(
         {
@@ -604,8 +604,8 @@ describe('StepExecutorService', () => {
           if (typeof callback === 'function') {
             callback();
           }
-          return 0 as unknown as ReturnType<typeof setTimeout>;
-        }) as unknown as typeof setTimeout);
+          return 0 as unknown as ReturnType<typeof globalThis.setTimeout>;
+        }) as unknown as typeof globalThis.setTimeout);
 
       const error = await service
         .execute(
@@ -642,8 +642,8 @@ describe('StepExecutorService', () => {
           if (typeof callback === 'function') {
             callback();
           }
-          return 0 as unknown as ReturnType<typeof setTimeout>;
-        }) as unknown as typeof setTimeout);
+          return 0 as unknown as ReturnType<typeof globalThis.setTimeout>;
+        }) as unknown as typeof globalThis.setTimeout);
 
       const error = await service
         .execute(

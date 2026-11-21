@@ -21,24 +21,22 @@ function freePort(): Promise<number> {
   });
 }
 
-function waitForPort(port: number): Promise<void> {
-  const attempt = (remaining: number): Promise<void> =>
-    new Promise((resolve, reject) => {
-      const socket = connect({ host: '127.0.0.1', port });
-      socket.once('connect', () => {
-        socket.destroy();
-        resolve();
-      });
-      socket.once('error', () => {
-        socket.destroy();
-        if (remaining <= 0) {
-          reject(new Error('redis-server did not start'));
-          return;
-        }
-        setTimeout(() => attempt(remaining - 1).then(resolve, reject), 50);
-      });
-    });
-  return attempt(100);
+async function waitForPort(port: number): Promise<void> {
+  await vi.waitFor(
+    () =>
+      new Promise<void>((resolve, reject) => {
+        const socket = connect({ host: '127.0.0.1', port });
+        socket.once('connect', () => {
+          socket.destroy();
+          resolve();
+        });
+        socket.once('error', (error) => {
+          socket.destroy();
+          reject(error);
+        });
+      }),
+    { interval: 50, timeout: 5_000 },
+  );
 }
 
 /**

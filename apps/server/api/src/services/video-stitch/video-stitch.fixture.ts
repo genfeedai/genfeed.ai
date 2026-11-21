@@ -128,6 +128,8 @@ export class VideoStitchFixture {
   readonly failWaitFor = new Map<string, Error>();
   /** Status reads that fail like an unreachable files service. */
   readonly failStatusFor = new Map<string, Error>();
+  /** How many times each job's status was read, failed reads included. */
+  readonly statusReads = new Map<string, number>();
   readonly jobResults = new Map<string, Record<string, unknown>>();
   readonly jobStates = new Map<string, JobState>();
   /** Jobs the queue still holds; anything else answers 404 like the files service. */
@@ -251,6 +253,11 @@ export class VideoStitchFixture {
   }
 
   /** Simulates a job the queue lost or evicted. */
+  /** Drops every job so a background tracker still polling gives up on its next read. */
+  dropAllJobs(): void {
+    this.knownJobs.clear();
+  }
+
   dropJob(jobId: string): void {
     this.knownJobs.delete(jobId);
     this.jobStates.delete(jobId);
@@ -414,11 +421,13 @@ export class VideoStitchFixture {
   private queue() {
     return {
       findJobStatus: async (jobId: string) => {
+        this.statusReads.set(jobId, (this.statusReads.get(jobId) ?? 0) + 1);
         const failure = this.failStatusFor.get(jobId);
         if (failure) throw failure;
         return this.knownJobs.has(jobId) ? this.status(jobId) : null;
       },
       getJobStatus: async (jobId: string) => {
+        this.statusReads.set(jobId, (this.statusReads.get(jobId) ?? 0) + 1);
         const failure = this.failStatusFor.get(jobId);
         if (failure) throw failure;
         if (!this.knownJobs.has(jobId)) {

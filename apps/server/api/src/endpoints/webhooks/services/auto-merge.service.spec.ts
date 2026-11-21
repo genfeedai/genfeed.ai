@@ -13,7 +13,7 @@ import {
 } from '@genfeedai/contracts';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mergeSettings = {
   isCaptionsEnabled: false,
@@ -61,8 +61,14 @@ describe('AutoMergeService', () => {
     await vi.waitFor(() => {
       expect(ingredientsService.findAll).toHaveBeenCalled();
     });
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    await new Promise((resolve) => setImmediate(resolve));
   };
+
+  afterEach(() => {
+    // The code under test tracks its merge job in the background; without a job
+    // to find, that tracker stops instead of polling into the next spec file.
+    fixture.dropAllJobs();
+  });
 
   beforeEach(() => {
     fixture = new VideoStitchFixture();
@@ -153,7 +159,7 @@ describe('AutoMergeService', () => {
     await vi.waitFor(() => expect(fixture.mergeJobs()).toHaveLength(1));
     await trigger(group[2] as IngredientDocument);
 
-    await new Promise((resolve) => setTimeout(resolve, 10));
+    await new Promise((resolve) => setImmediate(resolve));
     expect(fixture.outputs()).toHaveLength(1);
     expect(fixture.mergeJobs()).toHaveLength(1);
   });

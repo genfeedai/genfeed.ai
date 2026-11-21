@@ -206,6 +206,7 @@ try {
         // Four real principals share the production three-per-ten-second cap.
         // Respect its response interval; never clear counters or bypass it.
         await new Promise((resolve) =>
+          // biome-ignore lint/style/noRestrictedGlobals: waits out the real production sign-in rate-limit window; the cap must not be bypassed
           setTimeout(resolve, retryAfter * 1000 + 100),
         );
         signin = await signIn();

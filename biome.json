@@ -143,6 +143,47 @@
       }
     },
     {
+      "includes": [
+        "**/*.spec.*",
+        "**/*.test.*",
+        "**/__tests__/**",
+        "**/__mocks__/**",
+        "**/e2e/**",
+        "**/test/**",
+        "**/tests/**",
+        "**/fixtures/**",
+        "**/mocks/**",
+        "**/testing/**",
+        "playwright/**",
+        "!apps/server/api/test/integration/proactive-agent-production-turn*",
+        "!apps/web/**",
+        "!apps/extension/**",
+        "!apps/desktop/**",
+        "!apps/marketing/**",
+        "!apps/docs/**",
+        "!apps/server/{workers,files,slack,discord,mcp,telegram}/**",
+        "!packages/**",
+        "!playwright/**",
+        "!scripts/**",
+        "!tests/**"
+      ],
+      "plugins": ["./configs/biome/no-test-sleep.grit"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedGlobals": {
+              "level": "error",
+              "options": {
+                "deniedGlobals": {
+                  "setTimeout": "No setTimeout sleeps in tests. Use fake timers (vi.useFakeTimers + vi.advanceTimersByTimeAsync) or wait on the real event."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
       "includes": ["skills/*/*/**/*.json", "!skills/app/**"],
       "formatter": {
         "enabled": false

@@ -210,15 +210,21 @@ describe('downloadLinkedInMedia', () => {
   it('keeps one deadline across header arrival and stalled body cleanup', async () => {
     const cancel = vi.fn().mockRejectedValue(new Error('cleanup failed'));
     const body = new ReadableStream<Uint8Array>({ cancel });
+    let sendHeaders: () => void = () => undefined;
+    const headersArrived = new Promise<void>((resolve) => {
+      sendHeaders = resolve;
+    });
     vi.mocked(safeFetch).mockImplementation(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 100_000));
+      await headersArrived;
       return new Response(body);
     });
     const outcome = downloadLinkedInMedia(
       'https://public.example/media',
       'video',
     ).catch((error: unknown) => error);
-    await vi.advanceTimersByTimeAsync(119_999);
+    await vi.advanceTimersByTimeAsync(100_000);
+    sendHeaders();
+    await vi.advanceTimersByTimeAsync(19_999);
     expect(cancel).not.toHaveBeenCalled();
     await vi.advanceTimersByTimeAsync(1);
     expect(await outcome).toMatchObject({

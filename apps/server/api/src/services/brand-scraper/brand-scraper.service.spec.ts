@@ -1,3 +1,4 @@
+// biome-ignore-all lint/style/noRestrictedGlobals: mocked fetches take simulated time under fakeClock() so the scrape deadline tests can measure how the budget is shared
 import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
 import { MAX_HTML_BYTES } from '@api/services/brand-scraper/brand-scraper-http.util';
 import { BrandWebsiteParserService } from '@api/services/brand-scraper/brand-website-parser.service';

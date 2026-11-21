@@ -59,7 +59,7 @@ const baseWorkflowRows: WorkflowRow[] = [
 
 /** Lets every pending promise continuation run. */
 function flushPendingWork(): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, 0));
+  return new Promise((resolve) => setImmediate(resolve));
 }
 
 describe('SettingsService favorite workflows', () => {

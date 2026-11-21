@@ -412,7 +412,7 @@ describe.skipIf(!redisAvailable)(
       const publishWorker = new Worker(
         scheduledPublishQueueName,
         async (job) => {
-          await new Promise((resolve) => setTimeout(resolve, 50));
+          await new Promise((resolve) => setImmediate(resolve));
           publishProcessed.push(job.id ?? '');
         },
         { concurrency: 1, connection: { url: redisUrl } },
@@ -489,6 +489,7 @@ describe.skipIf(!redisAvailable)(
           // completion; a few ms here keeps this stub realistic enough that
           // queueSystemWorkflow's own post-add claimability check still
           // observes the job before it finishes.
+          // biome-ignore lint/style/noRestrictedGlobals: simulated job duration against a real Redis; the post-add claimability check needs a real interval
           await new Promise((resolve) => setTimeout(resolve, 50));
           interactiveJobCompleted.push(job.id ?? '');
         },

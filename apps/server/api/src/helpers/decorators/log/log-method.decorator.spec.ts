@@ -412,7 +412,7 @@ describe('LogMethod Decorator', () => {
 
         @LogPerformance()
         async testMethod() {
-          await new Promise((resolve) => setTimeout(resolve, 10));
+          await Promise.resolve();
           return 'done';
         }
       }

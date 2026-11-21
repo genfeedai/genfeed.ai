@@ -301,6 +301,7 @@ describe.skipIf(!connectionString)(
               if (reads === 1)
                 await Promise.race([
                   rendezvous,
+                  // biome-ignore lint/style/noRestrictedGlobals: bounds the rendezvous: the first reader holds a real row lock, so the second never arrives
                   new Promise<void>((resolve) => setTimeout(resolve, 75)),
                 ]);
               return result;
