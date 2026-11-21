@@ -1,10 +1,10 @@
 import { randomUUID } from 'node:crypto';
-import { waitRealTime } from '@e2e/utils/real-time';
 import type {
   IBrand,
   OrganizationOption,
 } from '@genfeedai/contracts/interfaces';
 import { test as base, expect } from '@playwright/test';
+import { waitRealTime } from '../utils/real-time';
 
 export const releaseApiURL =
   process.env.API_BASE_URL || 'http://localhost:3010';

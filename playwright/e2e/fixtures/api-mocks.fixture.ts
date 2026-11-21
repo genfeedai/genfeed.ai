@@ -1,4 +1,3 @@
-import { waitRealTime } from '@e2e/utils/real-time';
 import {
   ActivityKey,
   AgentThreadMode,
@@ -48,6 +47,7 @@ import {
   generateMockSubscription,
   generateMockUser,
 } from '../utils/api-interceptor';
+import { waitRealTime } from '../utils/real-time';
 
 /**
  * API Mock Fixtures for Playwright E2E Tests

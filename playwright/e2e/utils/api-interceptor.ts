@@ -1,4 +1,3 @@
-import { waitRealTime } from '@e2e/utils/real-time';
 import {
   ActivityKey,
   AnalyticsMetric,
@@ -48,6 +47,7 @@ import {
   createPlaywrightApiRoutePattern,
   playwrightApiEndpoint,
 } from '../config/environment';
+import { waitRealTime } from './real-time';
 
 /**
  * API Interceptor for Playwright E2E Tests
