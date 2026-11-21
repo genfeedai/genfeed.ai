@@ -29,6 +29,7 @@ export * from './branded-generation-feedback.contract';
 export * from './cadence-expansion.contract';
 export * from './cadence-slot-generate.contract';
 export * from './channel-capabilities.contract';
+export * from './channel-caption.contract';
 export * from './channel-repurpose.contract';
 export * from './clipper-highlight-detection.contract';
 export * from './content-geo-optimization.contract';
