@@ -131,6 +131,11 @@ export interface ProfileSubscribeProps {
   handle: string;
   source: Extract<BrandSubscriberPublicSource, 'profile' | 'article' | 'post'>;
   sourceRef?: string;
+  /**
+   * `bar` is the joined Newsletter + Subscribe group that spans a rail.
+   * `compact` is one button that sits in a row of actions.
+   */
+  layout?: 'bar' | 'compact';
 }
 
 export interface CommunityCreatorCardProps {
@@ -138,12 +143,13 @@ export interface CommunityCreatorCardProps {
 }
 
 export interface MakeYourOwnBannerProps {
-  /** The article the reader just finished, named in the copy. */
-  articleTitle: string;
-  /** The creator's display name, named in the headline. */
-  creatorName: string;
   /** The creator whose page the reader is on, for tracking. */
   handle: string;
+  /**
+   * `inline` is the end-of-article band; `rail` is the same offer stacked into
+   * the outline column, so it can sit beside the body while it is read.
+   */
+  layout?: 'inline' | 'rail';
   /** The creator's referral code, carried into sign-up. */
   referralCode?: string | null;
 }

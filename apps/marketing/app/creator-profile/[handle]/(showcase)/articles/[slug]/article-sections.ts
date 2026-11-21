@@ -9,6 +9,9 @@ const HTML_TAGS_PATTERN = /<[^>]*>/g;
 const NON_ALPHANUMERIC_RUNS_PATTERN = /[^a-z0-9]+/g;
 const EDGE_HYPHENS_PATTERN = /^-+|-+$/g;
 const MAX_ID_LENGTH = 80;
+const SOURCES_LABEL_PATTERN =
+  /^(?:sources|references|further reading|sources and further reading)$/i;
+const LIST_ITEM_PATTERN = /<li[\s>]/gi;
 
 const HTML_ENTITIES: Record<string, string> = {
   '&#39;': "'",
@@ -37,6 +40,42 @@ function slugifyHeading(label: string): string {
     .replace(NON_ALPHANUMERIC_RUNS_PATTERN, '-')
     .slice(0, MAX_ID_LENGTH)
     .replace(EDGE_HYPHENS_PATTERN, '');
+}
+
+/**
+ * A "Sources" list is reference material: ten links between the conclusion and
+ * the footer push the end of the article a screen away. The heading stays
+ * where it is, so the outline and `#sources` links keep working, and the list
+ * beneath it folds into a native `details` that is closed until asked for.
+ * No script: the fold works before the page hydrates.
+ */
+function foldSourcesSection(
+  html: string,
+  sections: readonly ArticleSection[],
+): string {
+  const source = sections.find(
+    (section) =>
+      section.level === 2 && SOURCES_LABEL_PATTERN.test(section.label),
+  );
+  const headingStart = source ? html.indexOf(`<h2 id="${source.id}"`) : -1;
+  const headingEnd =
+    headingStart === -1 ? -1 : html.indexOf('</h2>', headingStart);
+  if (headingEnd === -1) {
+    return html;
+  }
+
+  const bodyStart = headingEnd + '</h2>'.length;
+  const nextHeading = html.indexOf('<h2', bodyStart);
+  const bodyEnd = nextHeading === -1 ? html.length : nextHeading;
+  const body = html.slice(bodyStart, bodyEnd).trim();
+  if (!body) {
+    return html;
+  }
+
+  const count = body.match(LIST_ITEM_PATTERN)?.length ?? 0;
+  const noun = count === 1 ? 'source' : 'sources';
+  const openLabel = count > 0 ? `Show ${count} ${noun}` : 'Show sources';
+  return `${html.slice(0, bodyStart)}<details class="gen-article-sources"><summary><span class="gen-sources-closed">${openLabel}</span><span class="gen-sources-open">Hide ${noun}</span></summary>${body}</details>${html.slice(bodyEnd)}`;
 }
 
 /**
@@ -78,5 +117,5 @@ export function buildArticleSections(sanitizedHtml: string): ArticleSections {
     },
   );
 
-  return { html, sections };
+  return { html: foldSourcesSection(html, sections), sections };
 }
