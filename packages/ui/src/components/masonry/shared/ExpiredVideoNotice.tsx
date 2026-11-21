@@ -3,6 +3,7 @@
 import { VIDEO_RETENTION_DAYS } from '@genfeedai/contracts/constants';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useTranslations } from 'next-intl';
+import { Component, type ReactNode } from 'react';
 
 export interface ExpiredVideoNoticeProps {
   ingredientId: string;
@@ -10,12 +11,42 @@ export interface ExpiredVideoNoticeProps {
 }
 
 /**
+ * Renders nothing when its children throw. Public galleries (profiles, the
+ * marketing site) mount a tile without an intl provider, so `useTranslations`
+ * throws there: a missing caption must not take the gallery down.
+ */
+class QuietBoundary extends Component<
+  { children: ReactNode },
+  { hasError: boolean }
+> {
+  state = { hasError: false };
+
+  static getDerivedStateFromError(): { hasError: boolean } {
+    return { hasError: true };
+  }
+
+  render(): ReactNode {
+    return this.state.hasError ? null : this.props.children;
+  }
+}
+
+/**
  * Shown in place of a video whose file the retention sweep deleted. Its own
  * component, like `MasonryFailureNotice`, so a tile whose video still exists
- * calls no `useTranslations` and read-only galleries render without an intl
- * provider.
+ * calls no `useTranslations`. Where there is no intl provider the notice is
+ * left out and the tile shows its placeholder alone.
  */
-export default function ExpiredVideoNotice({
+export default function ExpiredVideoNotice(
+  props: ExpiredVideoNoticeProps,
+): React.ReactElement {
+  return (
+    <QuietBoundary>
+      <ExpiredVideoNoticeContent {...props} />
+    </QuietBoundary>
+  );
+}
+
+function ExpiredVideoNoticeContent({
   ingredientId,
   className,
 }: ExpiredVideoNoticeProps): React.ReactElement {

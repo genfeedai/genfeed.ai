@@ -3,6 +3,7 @@ import { OrganizationPaidAccessService } from '@api/common/subscriptions/organiz
 import { VideoRetentionService } from '@api/services/video-retention/video-retention.service';
 import {
   IngredientCategory,
+  IngredientOrigin,
   IngredientStatus,
   SubscriptionStatus,
   TargetExecutionState,
@@ -97,6 +98,7 @@ describe.skipIf(!connectionString)(
           createdAt: daysAgo(ageDays),
           id: `vr-${name}-${suffix}`,
           organizationId: org,
+          origin: IngredientOrigin.GENERATED,
           s3Key: `ingredients/videos/vr-${name}-${suffix}`,
           status: IngredientStatus.GENERATED,
           userId,
@@ -342,6 +344,72 @@ describe.skipIf(!connectionString)(
       const second = await service.sweep(NOW);
       expect(second).toMatchObject({ deleted: 1, failed: 0 });
       expect(await expiredAt('flaky')).toEqual(NOW);
+    });
+
+    it.each([
+      ['uploaded', IngredientOrigin.UPLOADED],
+      ['imported', IngredientOrigin.IMPORTED],
+      ['of unknown origin', IngredientOrigin.UNKNOWN],
+    ])('keeps a video that is %s, however old', async (_label, origin) => {
+      await video('theirs', paygOrgId, 400, {
+        origin,
+        status: IngredientStatus.UPLOADED,
+      });
+
+      await service.sweep(NOW);
+
+      expect(deletedKeys).toEqual([]);
+      expect(await expiredAt('theirs')).toBeNull();
+    });
+
+    it('lets a video that keeps failing hold back neither the cap nor the videos after it', async () => {
+      await video('a-stuck', paygOrgId, 40);
+      await video('b-fine', paygOrgId, 40);
+      files.deleteStoredObject.mockImplementation(async (key: string) => {
+        if (key.includes('vr-a-stuck')) throw new Error('object locked');
+        deletedKeys.push(key);
+      });
+
+      const totals = await service.sweep(NOW);
+
+      expect(totals).toMatchObject({ deleted: 1, failed: 1 });
+      expect(deletedKeys).toEqual([`ingredients/videos/vr-b-fine-${suffix}`]);
+      expect(await expiredAt('a-stuck')).toBeNull();
+      expect(await expiredAt('b-fine')).toEqual(NOW);
+    });
+
+    it('does not delete a video that was posted after the batch was listed', async () => {
+      await video('late', paygOrgId, 40);
+      // The post lands after the batch was listed and before the claim: the
+      // claim repeats every keep rule, so it has to see the post.
+      const ingredient = sweepPrisma.ingredient as unknown as {
+        updateMany: (args: unknown) => Promise<unknown>;
+      };
+      const claim = ingredient.updateMany.bind(ingredient);
+      let posted = false;
+      ingredient.updateMany = async (args: unknown) => {
+        if (!posted) {
+          posted = true;
+          await post(
+            'late',
+            TargetExecutionState.SCHEDULED,
+            `vr-late-${suffix}`,
+            'entity',
+          );
+        }
+        return claim(args);
+      };
+
+      let totals: Awaited<ReturnType<typeof service.sweep>>;
+      try {
+        totals = await service.sweep(NOW);
+      } finally {
+        ingredient.updateMany = claim;
+      }
+
+      expect(deletedKeys).toEqual([]);
+      expect(totals).toMatchObject({ deleted: 0, failed: 0 });
+      expect(await expiredAt('late')).toBeNull();
     });
 
     it('keeps every file on a deployment without organization billing', async () => {

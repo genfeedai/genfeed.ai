@@ -4,6 +4,7 @@ import { scopedWhere } from '@api/tenancy/scoped-where';
 import { hasOrganizationBilling } from '@genfeedai/config';
 import {
   IngredientCategory,
+  IngredientOrigin,
   IngredientStatus,
   TargetExecutionState,
 } from '@genfeedai/contracts';
@@ -20,6 +21,10 @@ const BATCH_SIZE = 100;
 const ORGANIZATION_PAGE_SIZE = 200;
 const DELETE_CONCURRENCY = 5;
 const MAX_DELETES_PER_RUN = 5_000;
+/** Failed attempts do not use up the delete cap, but a run still ends. */
+const MAX_ATTEMPTS_PER_RUN = MAX_DELETES_PER_RUN * 2;
+/** In a row within one organization: the files service is most likely down. */
+const MAX_CONSECUTIVE_FAILURES = 25;
 const VIDEO_KEY_PREFIX = 'ingredients/videos/';
 
 const VIDEO_CATEGORIES = [
@@ -54,6 +59,8 @@ export type VideoRetentionTotals = {
   skippedOrganizations: number;
 };
 
+type ExpireOutcome = 'deleted' | 'failed' | 'skipped';
+
 type VideoRow = { id: string; s3Key: string | null };
 
 /**
@@ -63,9 +70,10 @@ type VideoRow = { id: string; s3Key: string | null };
  * `storageExpiredAt`, so the Library can say the file expired instead of
  * showing a broken player.
  *
- * A video attached to a post that is scheduled, publishing, published or
- * failed is never touched, and neither is one the files service cannot name a
- * `ingredients/videos/` key for. The window is read from the organization's
+ * Only videos the platform generated (`origin` GENERATED) are swept: an upload,
+ * an import or a legacy row of unknown origin is the user's own file. A video
+ * attached to a post that is scheduled, publishing, published or failed is
+ * never touched. The window is read from the organization's
  * subscription at sweep time, so an upgrade extends it and a downgrade shortens
  * it. An organization whose subscription cannot be read is skipped, never
  * treated as pay-as-you-go. Deployments without organization billing keep
@@ -94,7 +102,7 @@ export class VideoRetentionService {
     if (!hasOrganizationBilling()) return totals;
 
     let afterOrganizationId: string | null = null;
-    while (totals.deleted + totals.failed < MAX_DELETES_PER_RUN) {
+    while (!this.isRunFull(totals)) {
       const organizationIds = await this.listOrganizationIds(
         now,
         afterOrganizationId,
@@ -103,7 +111,7 @@ export class VideoRetentionService {
       afterOrganizationId = organizationIds[organizationIds.length - 1] ?? null;
 
       for (const organizationId of organizationIds) {
-        if (totals.deleted + totals.failed >= MAX_DELETES_PER_RUN) break;
+        if (this.isRunFull(totals)) break;
         totals.organizations += 1;
 
         let isSubscriber: boolean;
@@ -133,17 +141,25 @@ export class VideoRetentionService {
     return totals;
   }
 
+  private isRunFull(totals: VideoRetentionTotals): boolean {
+    return (
+      totals.deleted >= MAX_DELETES_PER_RUN ||
+      totals.deleted + totals.failed >= MAX_ATTEMPTS_PER_RUN
+    );
+  }
+
   static cutoff(now: Date, isSubscriber: boolean): Date {
     return new Date(
       now.getTime() - videoRetentionDays(isSubscriber) * MS_PER_DAY,
     );
   }
 
-  /** Never-posted stored videos older than `cutoff`; organization added by the caller. */
+  /** Never-posted generated videos older than `cutoff`; organization added by the caller. */
   private expiredWhere(cutoff: Date) {
     return {
       category: { in: VIDEO_CATEGORIES },
       createdAt: { lt: cutoff },
+      origin: IngredientOrigin.GENERATED,
       postEntities: {
         none: {
           isDeleted: false,
@@ -197,8 +213,9 @@ export class VideoRetentionService {
   ): Promise<void> {
     const cutoff = VideoRetentionService.cutoff(now, isSubscriber);
     let afterId: string | null = null;
+    let consecutiveFailures = 0;
 
-    while (totals.deleted + totals.failed < MAX_DELETES_PER_RUN) {
+    while (!this.isRunFull(totals)) {
       const rows: VideoRow[] = await this.prisma.ingredient.findMany({
         orderBy: { id: 'asc' },
         select: { id: true, s3Key: true },
@@ -211,67 +228,98 @@ export class VideoRetentionService {
       if (rows.length === 0) return;
       afterId = rows[rows.length - 1]?.id ?? null;
 
-      const stillExpired = await this.recheck(organizationId, rows, cutoff);
-      for (let i = 0; i < stillExpired.length; i += DELETE_CONCURRENCY) {
-        const chunk = stillExpired.slice(i, i + DELETE_CONCURRENCY);
-        const results = await Promise.all(
-          chunk.map((row) => this.expire(organizationId, row, now)),
+      for (let i = 0; i < rows.length; i += DELETE_CONCURRENCY) {
+        const chunk = rows.slice(i, i + DELETE_CONCURRENCY);
+        const outcomes = await Promise.all(
+          chunk.map((row) => this.expire(organizationId, row, cutoff, now)),
         );
-        for (const isDeleted of results) {
-          if (isDeleted) totals.deleted += 1;
-          else totals.failed += 1;
+        for (const outcome of outcomes) {
+          if (outcome === 'deleted') {
+            totals.deleted += 1;
+            consecutiveFailures = 0;
+          } else if (outcome === 'failed') {
+            totals.failed += 1;
+            consecutiveFailures += 1;
+          }
         }
+        // A row that keeps failing must not hold back the rest of the run, but
+        // a string of failures means the files service is down: stop this
+        // organization and try again on the next run.
+        if (consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) return;
+        if (this.isRunFull(totals)) return;
       }
     }
   }
 
-  /** Narrows the window between listing a batch and deleting from it. */
-  private async recheck(
-    organizationId: string,
-    rows: VideoRow[],
-    cutoff: Date,
-  ): Promise<VideoRow[]> {
-    const ids = rows.map((row) => row.id);
-    const rowsStillExpired = await this.prisma.ingredient.findMany({
-      select: { id: true },
-      where: scopedWhere(organizationId, {
-        ...this.expiredWhere(cutoff),
-        id: { in: ids },
-      }),
-    });
-    const keep = new Set(rowsStillExpired.map((row) => row.id));
-    return rows.filter((row) => keep.has(row.id));
-  }
-
-  /** Deletes the file, then stamps the row. Returns false when either step failed. */
+  /**
+   * Claims the row, then deletes its file. The claim is one conditional update
+   * that repeats every keep rule, so a video scheduled since the batch was
+   * listed is not claimed, and nothing is deleted for it. A failed delete
+   * gives the claim back so the next run retries.
+   */
   private async expire(
     organizationId: string,
     row: VideoRow,
+    cutoff: Date,
     now: Date,
-  ): Promise<boolean> {
+  ): Promise<ExpireOutcome> {
     const storageKey = VideoRetentionService.storageKey(row);
     try {
-      await this.files.deleteStoredObject(storageKey);
-      await this.prisma.ingredient.updateMany({
+      const claim = await this.prisma.ingredient.updateMany({
         data: { storageExpiredAt: now },
         where: scopedWhere(organizationId, {
+          ...this.expiredWhere(cutoff),
           id: row.id,
-          storageExpiredAt: null,
         }),
       });
-      return true;
+      if (claim.count === 0) return 'skipped';
     } catch (error: unknown) {
-      this.logger.error('Video retention failed to delete a file', {
-        context: this.context,
-        error: getErrorMessage(error),
-        ingredientId: row.id,
-        organizationId,
-      });
-      Sentry.captureException(error, {
-        tags: { area: 'video-retention', ingredientId: row.id },
-      });
-      return false;
+      this.reportFailure(error, organizationId, row.id);
+      return 'failed';
     }
+
+    try {
+      await this.files.deleteStoredObject(storageKey);
+      return 'deleted';
+    } catch (error: unknown) {
+      this.reportFailure(error, organizationId, row.id);
+      await this.releaseClaim(organizationId, row.id, now);
+      return 'failed';
+    }
+  }
+
+  private async releaseClaim(
+    organizationId: string,
+    ingredientId: string,
+    claimedAt: Date,
+  ): Promise<void> {
+    try {
+      await this.prisma.ingredient.updateMany({
+        data: { storageExpiredAt: null },
+        where: scopedWhere(organizationId, {
+          id: ingredientId,
+          storageExpiredAt: claimedAt,
+        }),
+      });
+    } catch (error: unknown) {
+      this.reportFailure(error, organizationId, ingredientId);
+    }
+  }
+
+  private reportFailure(
+    error: unknown,
+    organizationId: string,
+    ingredientId: string,
+  ): void {
+    this.logger.error('Video retention failed to expire a video', {
+      context: this.context,
+      error: getErrorMessage(error),
+      ingredientId,
+      organizationId,
+    });
+    Sentry.captureException(error, {
+      tags: { area: 'video-retention', ingredientId },
+    });
   }
 
   /**
