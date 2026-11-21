@@ -130,6 +130,7 @@ describe.skipIf(!connectionString)(
           timeline.push('second starts');
         },
       );
+      // biome-ignore lint/style/noRestrictedGlobals: lets the second review queue on a real Postgres advisory lock before the first releases
       await new Promise((resolve) => setTimeout(resolve, 300));
       timeline.push('first released');
       await first.release();

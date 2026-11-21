@@ -451,7 +451,7 @@ describe('HarnessReviewFeedbackService', () => {
     harnessProfilesService.getActiveForBrand.mockImplementation(async () => {
       const snapshot = stored;
       // Yield so an unserialized second call would read the same snapshot.
-      await new Promise((resolve) => setTimeout(resolve, 5));
+      await new Promise((resolve) => setImmediate(resolve));
       return snapshot;
     });
     harnessProfilesService.update.mockImplementation(

@@ -289,8 +289,12 @@ describe('BrandFromUrlService', () => {
     vi.useFakeTimers();
     const h = harness();
     const collected = await h.scans.startAndCollect();
+    let finishScan: () => void = () => undefined;
+    const scanFinished = new Promise<void>((resolve) => {
+      finishScan = resolve;
+    });
     h.scans.startAndCollect.mockImplementation(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 21_000));
+      await scanFinished;
       h.scans.get.mockResolvedValue(collected.scan);
       return collected;
     });
@@ -320,7 +324,8 @@ describe('BrandFromUrlService', () => {
       isBillingDelegated: true,
     });
     expect(h.credits.settleReservation).not.toHaveBeenCalled();
-    await vi.advanceTimersByTimeAsync(1000);
+    finishScan();
+    await vi.advanceTimersByTimeAsync(0);
     expect(h.revisions.update).toHaveBeenCalledOnce();
     expect(h.credits.settleReservation).toHaveBeenCalledOnce();
     const status = await handler.getBrandScanStatus(

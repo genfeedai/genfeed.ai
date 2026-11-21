@@ -1058,7 +1058,9 @@ describe('VideoStitchService', () => {
     it('persists a merge that finishes after the waiting caller timeout', async () => {
       const handle = await fixture.service.stitch(request());
       const tracking = fixture.service.trackInBackground(handle, 1_000, 1);
-      await new Promise((resolve) => setTimeout(resolve, 10));
+      await vi.waitFor(() =>
+        expect(fixture.statusReads.get(handle.jobId)).toBeGreaterThan(0),
+      );
       fixture.completeJob(
         handle.jobId,
         `ingredients/videos/${handle.outputId}`,
@@ -1122,7 +1124,9 @@ describe('VideoStitchService', () => {
       const handle = await fixture.service.stitch(request());
       fixture.failStatusFor.set(handle.jobId, new Error('socket hang up'));
       const tracking = fixture.service.trackInBackground(handle, 1_000, 1);
-      await new Promise((resolve) => setTimeout(resolve, 10));
+      await vi.waitFor(() =>
+        expect(fixture.statusReads.get(handle.jobId)).toBeGreaterThan(0),
+      );
       fixture.failStatusFor.delete(handle.jobId);
       fixture.completeJob(
         handle.jobId,

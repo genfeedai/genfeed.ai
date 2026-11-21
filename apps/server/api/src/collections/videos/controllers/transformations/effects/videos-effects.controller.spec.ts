@@ -261,7 +261,7 @@ describe('VideosEffectsController', () => {
     });
 
     await harness.controller.reverseVideo(mockRequest, mockUser, videoId);
-    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+    await new Promise<void>((resolve) => setImmediate(resolve));
 
     expect(harness.ingredients).toEqual([
       {

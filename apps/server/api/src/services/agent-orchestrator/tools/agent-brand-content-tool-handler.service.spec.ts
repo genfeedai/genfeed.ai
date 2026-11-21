@@ -125,8 +125,12 @@ describe('AgentBrandContentToolHandler', () => {
     const completion = new Promise<typeof completed>((resolve) => {
       finish = resolve;
     });
+    let finishStart: () => void = () => undefined;
+    const startReturned = new Promise<void>((resolve) => {
+      finishStart = resolve;
+    });
     h.service.start.mockImplementation(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 5000));
+      await startReturned;
       return { createdAt: Date.now(), running, completion };
     });
     let hasReturned = false;
@@ -136,7 +140,9 @@ describe('AgentBrandContentToolHandler', () => {
         hasReturned = true;
         return value;
       });
-    await vi.advanceTimersByTimeAsync(24_999);
+    await vi.advanceTimersByTimeAsync(5_000);
+    finishStart();
+    await vi.advanceTimersByTimeAsync(19_999);
     expect(hasReturned).toBe(false);
     await vi.advanceTimersByTimeAsync(1);
     expect(await result).toEqual({

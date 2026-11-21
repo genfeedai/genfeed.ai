@@ -5,7 +5,6 @@ import {
   generateTestId,
   generateTestUrl,
   testErrors,
-  waitFor,
 } from '@api-test/mocks/test.helpers';
 
 type TestEntity = {
@@ -81,25 +80,6 @@ describe('test helpers', () => {
     expect(generateTestUrl('/path')).toBe('https://test.example.com/path');
     expect(generateTestId()).toMatch(/^test-id-\w+$/u);
     expect(generateTestId()).not.toBe(generateTestId());
-  });
-
-  it('waitFor stays pending until its delay elapses', async () => {
-    vi.useFakeTimers();
-    try {
-      let isResolved = false;
-      const pending = waitFor(5).then(() => {
-        isResolved = true;
-      });
-
-      await vi.advanceTimersByTimeAsync(4);
-      expect(isResolved).toBe(false);
-
-      await vi.advanceTimersByTimeAsync(1);
-      await pending;
-      expect(isResolved).toBe(true);
-    } finally {
-      vi.useRealTimers();
-    }
   });
 
   it('exposes common error instances', () => {

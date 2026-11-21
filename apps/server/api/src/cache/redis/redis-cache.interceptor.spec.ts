@@ -4,7 +4,10 @@ import type { CacheOptions } from '@api/shared/interfaces/cache/cache.interfaces
 import type { CallHandler, ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Test, type TestingModule } from '@nestjs/testing';
-import { of, throwError } from 'rxjs';
+import { firstValueFrom, of, throwError } from 'rxjs';
+
+const drainPromises = () =>
+  new Promise<void>((resolve) => setImmediate(resolve));
 
 vi.mock('ioredis', () => {
   const createMultiMock = () => ({
@@ -169,15 +172,12 @@ describe('RedisCacheInterceptor', () => {
       expect(cacheService.get).toHaveBeenCalled();
       expect(mockCallHandler.handle).toHaveBeenCalled();
 
-      await new Promise<void>((resolve) => {
-        setTimeout(() => {
-          expect(cacheService.set).toHaveBeenCalledWith(
-            expect.any(String),
-            handlerResult,
-            { tags: ['test'], ttl: 300 },
-          );
-          resolve();
-        }, 0);
+      await vi.waitFor(() => {
+        expect(cacheService.set).toHaveBeenCalledWith(
+          expect.any(String),
+          handlerResult,
+          { tags: ['test'], ttl: 300 },
+        );
       });
     });
 
@@ -320,15 +320,11 @@ describe('RedisCacheInterceptor', () => {
         mockCallHandler,
       );
 
-      await new Promise<void>((resolve) => {
-        result$.subscribe((value) => {
-          expect(value).toBeNull();
-          setTimeout(() => {
-            expect(cacheService.set).not.toHaveBeenCalled();
-            resolve();
-          }, 0);
-        });
-      });
+      const value = await firstValueFrom(result$);
+      await drainPromises();
+
+      expect(value).toBeNull();
+      expect(cacheService.set).not.toHaveBeenCalled();
     });
 
     it('should cache null values when cacheNullValues is true', async () => {
@@ -345,17 +341,14 @@ describe('RedisCacheInterceptor', () => {
         mockCallHandler,
       );
 
-      await new Promise<void>((resolve) => {
-        result$.subscribe(() => {
-          setTimeout(() => {
-            expect(cacheService.set).toHaveBeenCalledWith(
-              expect.any(String),
-              null,
-              expect.any(Object),
-            );
-            resolve();
-          }, 0);
-        });
+      await firstValueFrom(result$);
+
+      await vi.waitFor(() => {
+        expect(cacheService.set).toHaveBeenCalledWith(
+          expect.any(String),
+          null,
+          expect.any(Object),
+        );
       });
     });
 
@@ -376,13 +369,10 @@ describe('RedisCacheInterceptor', () => {
         mockCallHandler,
       );
 
-      await new Promise<void>((resolve) => {
-        result$.subscribe(() => {
-          setTimeout(() => {
-            expect(cacheService.set).toHaveBeenCalled();
-            resolve();
-          }, 0);
-        });
+      await firstValueFrom(result$);
+
+      await vi.waitFor(() => {
+        expect(cacheService.set).toHaveBeenCalled();
       });
     });
 
@@ -403,15 +393,11 @@ describe('RedisCacheInterceptor', () => {
         mockCallHandler,
       );
 
-      await new Promise<void>((resolve) => {
-        result$.subscribe((value) => {
-          expect(value).toEqual(resultWithoutCache);
-          setTimeout(() => {
-            expect(cacheService.set).not.toHaveBeenCalled();
-            resolve();
-          }, 0);
-        });
-      });
+      const value = await firstValueFrom(result$);
+      await drainPromises();
+
+      expect(value).toEqual(resultWithoutCache);
+      expect(cacheService.set).not.toHaveBeenCalled();
     });
   });
 

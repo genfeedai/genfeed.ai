@@ -1,3 +1,4 @@
+// biome-ignore-all lint/style/noRestrictedGlobals: the fake storage wire simulates connect, byte and response latency on real timers; the timing is what the upload tests measure
 import {
   IncomingMessage,
   type RequestOptions,
@@ -642,7 +643,7 @@ describe('FanvueService', () => {
       connecting = connectionDelayMs > 0;
       readonly bytes: Buffer[] = [];
       private headersReceived = false;
-      private idleTimer?: ReturnType<typeof setTimeout>;
+      private idleTimer?: ReturnType<typeof globalThis.setTimeout>;
       private writeTimer?: ReturnType<typeof setTimeout>;
       private idleMilliseconds = 0;
 

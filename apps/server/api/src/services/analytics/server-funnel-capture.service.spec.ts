@@ -190,14 +190,13 @@ describe('ServerFunnelCaptureService (genfeedai/genfeed.ai#4969)', () => {
       await capturePromise;
 
       // AbortSignal.timeout runs on the platform's own timer, which fake
-      // timers do not intercept, so prove it actually fires by waiting past
-      // the deadline with a real timer. If the timeout were removed (no
-      // `signal` at all, or a signal that never aborts), this would hang
-      // `aborted` at false forever instead of flipping to true here.
-      await new Promise((resolve) =>
-        setTimeout(resolve, CAPTURE_TIMEOUT_MS + 100),
-      );
-      expect(capturedSignal?.aborted).toBe(true);
+      // timers do not intercept, so prove it actually fires by polling for the
+      // abort. If the timeout were removed (no `signal` at all, or a signal
+      // that never aborts), `aborted` stays false and this poll times out.
+      await vi.waitFor(() => expect(capturedSignal?.aborted).toBe(true), {
+        interval: 50,
+        timeout: CAPTURE_TIMEOUT_MS + 2_000,
+      });
 
       timeoutSpy.mockRestore();
     }, 10_000);

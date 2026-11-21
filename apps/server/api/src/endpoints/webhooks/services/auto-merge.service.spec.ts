@@ -61,7 +61,7 @@ describe('AutoMergeService', () => {
     await vi.waitFor(() => {
       expect(ingredientsService.findAll).toHaveBeenCalled();
     });
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    await new Promise((resolve) => setImmediate(resolve));
   };
 
   beforeEach(() => {
@@ -153,7 +153,7 @@ describe('AutoMergeService', () => {
     await vi.waitFor(() => expect(fixture.mergeJobs()).toHaveLength(1));
     await trigger(group[2] as IngredientDocument);
 
-    await new Promise((resolve) => setTimeout(resolve, 10));
+    await new Promise((resolve) => setImmediate(resolve));
     expect(fixture.outputs()).toHaveLength(1);
     expect(fixture.mergeJobs()).toHaveLength(1);
   });

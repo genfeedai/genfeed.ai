@@ -396,7 +396,7 @@ describe('Crun BYOK usage real Serializable ledger boundaries', () => {
     let primaryFailure = false;
     const cleanupErrors: unknown[] = [];
     let update: Promise<unknown> | undefined;
-    let barrierTimer: ReturnType<typeof setTimeout> | undefined;
+    let barrierTimer: ReturnType<typeof globalThis.setTimeout> | undefined;
     try {
       consumer = f.run().catch((error: unknown) => {
         consumerErrors.push(error);

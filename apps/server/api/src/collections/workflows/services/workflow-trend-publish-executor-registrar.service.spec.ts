@@ -413,7 +413,7 @@ describe('WorkflowTrendPublishExecutorRegistrarService post caps (#7458)', () =>
     const postsService = {
       create: vi.fn(async (data: { targetExecutionState: string }) => {
         // The post only becomes visible to counts a moment after create starts.
-        await new Promise((resolve) => setTimeout(resolve, 5));
+        await new Promise((resolve) => setImmediate(resolve));
         events.push('create');
         if (data.targetExecutionState === TargetExecutionState.SCHEDULED)
           scheduled.push('post');

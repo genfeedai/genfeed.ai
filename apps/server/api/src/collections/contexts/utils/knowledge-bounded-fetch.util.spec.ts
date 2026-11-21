@@ -81,24 +81,19 @@ describe('fetchKnowledgeBytes reader lifecycle', () => {
     const tracked = trackedResponse([[1, 2, 3, 4, 5]]);
     tracked.cancel.mockReturnValue(new Promise(() => {}));
     vi.mocked(safeFetch).mockResolvedValue(tracked.response);
-    let deadline: ReturnType<typeof setTimeout> | undefined;
-    try {
-      const outcome = await Promise.race([
-        fetchKnowledgeBytes({ maxBytes: 4, referenceUrl, timeoutMs: 20 }).then(
-          () => 'unexpected success',
-          (error: unknown) =>
-            error instanceof Error ? error.message : 'unexpected error',
-        ),
-        new Promise<string>((resolve) => {
-          deadline = setTimeout(() => resolve('blocked by cleanup'), 100);
-        }),
-      ]);
-      expect(outcome).toBe('The source exceeds the ingest size limit');
-      expect(tracked.release).toHaveBeenCalledOnce();
-      expect(tracked.stream.locked).toBe(false);
-    } finally {
-      clearTimeout(deadline);
-    }
+    // A cleanup that blocks on the stuck cancel hangs here and fails on the test timeout.
+    const outcome = await fetchKnowledgeBytes({
+      maxBytes: 4,
+      referenceUrl,
+      timeoutMs: 20,
+    }).then(
+      () => 'unexpected success',
+      (error: unknown) =>
+        error instanceof Error ? error.message : 'unexpected error',
+    );
+    expect(outcome).toBe('The source exceeds the ingest size limit');
+    expect(tracked.release).toHaveBeenCalledOnce();
+    expect(tracked.stream.locked).toBe(false);
   });
 
   it('cancels an incomplete errored stream and releases its reader without masking the transfer error', async () => {
