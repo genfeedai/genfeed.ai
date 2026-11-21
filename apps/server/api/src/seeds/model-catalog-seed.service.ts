@@ -18,7 +18,7 @@ export type ModelCatalogSeedResult = {
   written: number;
 };
 
-export type ModelRetirementRow = {
+type ModelRetirementRow = {
   isActive: boolean;
   isHighlighted: boolean;
   isPublic: boolean;
@@ -232,6 +232,7 @@ export class ModelCatalogSeedService {
     }
 
     // tenant-scope-ignore: platform registry rows only (organizationId null)
+    // sql-risk-audit: ignore unbounded-read -- Bounded by the retired and unpriced key sets and the platform-row filter; one-off operator seed, not a request path.
     const rows = await this.prisma.model.findMany({
       orderBy: { key: 'asc' },
       select: {
