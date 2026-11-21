@@ -1,6 +1,6 @@
+import { assertHealthy } from '@e2e/utils/interaction-helpers';
 import type { Page } from '@playwright/test';
 import { expect, test } from '../../fixtures/auth.fixture';
-import { assertHealthy } from '../../utils/interaction-helpers';
 import { expectNoErrorOverlay, tryClick } from '../../utils/route-assertions';
 
 /**

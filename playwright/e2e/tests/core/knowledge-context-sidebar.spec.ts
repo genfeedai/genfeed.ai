@@ -1,3 +1,4 @@
+import { waitRealTime } from '@e2e/utils/real-time';
 import type { Page } from '@playwright/test';
 import { mockActiveSubscription } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
@@ -62,7 +63,7 @@ async function mockKnowledge(page: Page) {
       listReads += 1;
       if (listReads > 1) {
         // Selecting a row reloads the list; make the reload visible.
-        await new Promise((resolve) => setTimeout(resolve, RELOAD_DELAY_MS));
+        await waitRealTime(RELOAD_DELAY_MS);
       }
       await route.fulfill({
         json: {

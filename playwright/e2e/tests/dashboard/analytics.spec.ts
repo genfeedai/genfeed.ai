@@ -1,3 +1,4 @@
+import { waitRealTime } from '@e2e/utils/real-time';
 import type { Locator, Page, Route } from '@playwright/test';
 import { createPlaywrightApiRoutePattern } from '../../config/environment';
 import {
@@ -227,7 +228,7 @@ test.describe('Dashboard Analytics', () => {
         authenticatedPage,
         createPlaywrightApiRoutePattern(),
         async (route) => {
-          await new Promise((resolve) => setTimeout(resolve, 1500));
+          await waitRealTime(1500);
           await route.fallback();
         },
       );

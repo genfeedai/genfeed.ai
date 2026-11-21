@@ -100,7 +100,9 @@ const CONTRACTS: PageContextContract[] = [
 
 async function settle(page: Parameters<typeof expectNoErrorOverlay>[0]) {
   await page.waitForLoadState('domcontentloaded').catch(() => {});
-  await page.waitForTimeout(300);
+  await page
+    .waitForLoadState('networkidle', { timeout: 5_000 })
+    .catch(() => {});
 }
 
 test.describe('Shell page context contract', () => {

@@ -1,13 +1,13 @@
 import {
+  assertHealthy,
+  fillPrompt,
+  settle,
+} from '@e2e/utils/interaction-helpers';
+import {
   mockExpiredSubscription,
   mockInsufficientCredits,
 } from '../../fixtures/api-mocks.fixture';
 import { test } from '../../fixtures/auth.fixture';
-import {
-  assertHealthy,
-  fillPrompt,
-  settle,
-} from '../../utils/interaction-helpers';
 import { tryClick } from '../../utils/route-assertions';
 
 /**

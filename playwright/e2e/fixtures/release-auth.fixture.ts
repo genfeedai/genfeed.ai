@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { waitRealTime } from '@e2e/utils/real-time';
 import type {
   IBrand,
   OrganizationOption,
@@ -45,13 +46,10 @@ export const test = base.extend<{ releaseAccount: ReleaseAccount }>({
       attempt += 1
     ) {
       const retryAfterSeconds = Number(signup.headers()['x-retry-after']);
-      await new Promise((resolve) =>
-        setTimeout(
-          resolve,
-          (Number.isFinite(retryAfterSeconds) && retryAfterSeconds > 0
-            ? retryAfterSeconds
-            : SIGNUP_RATE_LIMIT_FALLBACK_SECONDS) * 1000,
-        ),
+      await waitRealTime(
+        (Number.isFinite(retryAfterSeconds) && retryAfterSeconds > 0
+          ? retryAfterSeconds
+          : SIGNUP_RATE_LIMIT_FALLBACK_SECONDS) * 1000,
       );
       signup = await postSignup();
     }

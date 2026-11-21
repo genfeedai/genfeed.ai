@@ -1,3 +1,4 @@
+import { waitRealTime } from '@e2e/utils/real-time';
 import {
   ActivityKey,
   AnalyticsMetric,
@@ -3070,7 +3071,7 @@ export async function mockApiEndpoint(
 
   await page.route(urlPattern, async (route) => {
     if (delay > 0) {
-      await new Promise((resolve) => setTimeout(resolve, delay));
+      await waitRealTime(delay);
     }
 
     await route.fulfill({

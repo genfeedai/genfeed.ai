@@ -1,3 +1,5 @@
+import { settle } from '@e2e/utils/interaction-helpers';
+import { waitRealTime } from '@e2e/utils/real-time';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { Page } from '@playwright/test';
 import {
@@ -142,7 +144,7 @@ test.describe('Logout Flow', () => {
       await authenticatedPage.reload();
 
       // Wait for any redirects
-      await authenticatedPage.waitForTimeout(1000);
+      await settle(authenticatedPage);
 
       // Depending on implementation, should redirect to login or stay with error
       const url = authenticatedPage.url();
@@ -166,7 +168,7 @@ test.describe('Logout Flow', () => {
       await authenticatedPage.goto(APP_ROUTES.LOGOUT);
 
       // Wait for any redirects
-      await authenticatedPage.waitForTimeout(1000);
+      await settle(authenticatedPage);
 
       // Should still be on a valid page (login or home)
       const url = authenticatedPage.url();
@@ -182,7 +184,7 @@ test.describe('Logout Flow', () => {
       );
 
       // Simulate logout mid-navigation
-      await authenticatedPage.waitForTimeout(100);
+      await waitRealTime(100);
       await simulateLogout(authenticatedPage);
 
       // Wait for navigation to complete

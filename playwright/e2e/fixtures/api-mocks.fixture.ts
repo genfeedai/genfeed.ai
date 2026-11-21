@@ -1,3 +1,4 @@
+import { waitRealTime } from '@e2e/utils/real-time';
 import {
   ActivityKey,
   AgentThreadMode,
@@ -425,7 +426,7 @@ export async function mockVideoGenerationSuccess(
 
     if (method === 'POST') {
       if (delay > 0) {
-        await new Promise((resolve) => setTimeout(resolve, delay));
+        await waitRealTime(delay);
       }
 
       await route.fulfill({
@@ -589,7 +590,7 @@ export async function mockImageGenerationSuccess(
 
     if (method === 'POST') {
       if (delay > 0) {
-        await new Promise((resolve) => setTimeout(resolve, delay));
+        await waitRealTime(delay);
       }
 
       await route.fulfill({
@@ -678,7 +679,7 @@ export async function mockMusicGenerationSuccess(
 
     if (method === 'POST') {
       if (delay > 0) {
-        await new Promise((resolve) => setTimeout(resolve, delay));
+        await waitRealTime(delay);
       }
 
       await route.fulfill({
@@ -723,7 +724,7 @@ export async function mockAvatarGenerationSuccess(
 
     if (method === 'POST') {
       if (delay > 0) {
-        await new Promise((resolve) => setTimeout(resolve, delay));
+        await waitRealTime(delay);
       }
 
       await route.fulfill({
@@ -4286,7 +4287,7 @@ export async function mockPostsList(
 
   const fulfillPosts = async (route: Route) => {
     if (delay > 0) {
-      await new Promise((r) => setTimeout(r, delay));
+      await waitRealTime(delay);
     }
     const url = route.request().url();
     const urlObj = new URL(url);
@@ -4790,7 +4791,7 @@ export async function mockPostPublishing(
 
   await routeApiPattern(page, '/post-groups/from-post', async (route) => {
     if (delay > 0) {
-      await new Promise((r) => setTimeout(r, delay));
+      await waitRealTime(delay);
     }
     const body = route.request().postDataJSON() as
       | { postId?: string }
@@ -4822,7 +4823,7 @@ export async function mockPostPublishing(
 
   await routeApiPattern(page, '/post-groups/*/targets/*', async (route) => {
     if (delay > 0) {
-      await new Promise((r) => setTimeout(r, delay));
+      await waitRealTime(delay);
     }
     const body = route.request().postDataJSON() as
       | { action?: string; scheduledDate?: string }
@@ -4870,7 +4871,7 @@ export async function mockPostPublishing(
         return;
       }
       if (delay > 0) {
-        await new Promise((r) => setTimeout(r, delay));
+        await waitRealTime(delay);
       }
       const payload = buildPostAttributes({
         ...post,
@@ -4889,7 +4890,7 @@ export async function mockPostPublishing(
   // Mock tweet generation
   await routeApiPattern(page, '/posts/generate**', async (route) => {
     if (delay > 0) {
-      await new Promise((r) => setTimeout(r, delay));
+      await waitRealTime(delay);
     }
     await route.fulfill({
       body: JSON.stringify([

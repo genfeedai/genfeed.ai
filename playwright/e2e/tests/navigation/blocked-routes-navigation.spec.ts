@@ -4,6 +4,7 @@ import {
 } from '@e2e/fixtures/api-mocks.fixture';
 import { expect, test } from '@e2e/fixtures/auth.fixture';
 import { expectCommitWithinBudget } from '@e2e/utils/navigation-budget';
+import { waitRealTime } from '@e2e/utils/real-time';
 import {
   APP_ROUTES,
   createBrandAppRoute,
@@ -145,7 +146,7 @@ async function delayServerRenders(page: Page): Promise<void> {
       url.searchParams.has('_rsc') || url.pathname.startsWith('/_next/data'),
     async (route) => {
       if (!isPrefetchRequest(route.request())) {
-        await new Promise((resolve) => setTimeout(resolve, SERVER_LATENCY_MS));
+        await waitRealTime(SERVER_LATENCY_MS);
       }
       await route.fallback();
     },
