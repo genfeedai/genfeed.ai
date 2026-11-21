@@ -93,6 +93,7 @@ import { SentryModule } from '@sentry/nestjs/setup';
     AppCollectionsModule,
     AppIntegrationsModule,
     AppProductServicesModule,
+    // biome-ignore lint/style/noProcessEnv: static module metadata is evaluated at import time, before DI
     ...(process.env.NODE_ENV === 'development' ? [DevModule] : []),
   ],
   providers: [

@@ -8,15 +8,15 @@ import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
 import { Textarea } from '@ui/primitives/textarea';
 import { Text } from '@ui/typography/text';
-import Link from 'next/link';
-import { type FormEvent, useEffect, useRef, useState } from 'react';
 import {
   WEBSITE_ANALYTICS_EVENTS,
   type WebsiteAnalyticsEventProperties,
-} from '../../../src/analytics/analytics-events';
-import { captureWebsiteAnalyticsEvent } from '../../../src/analytics/posthog-client';
-import { loadPublicService } from '../../../src/api/load-public-service';
-import { buildAuthHandoffHref } from '../../../src/auth/auth-handoff';
+} from '@website-src/analytics/analytics-events';
+import { captureWebsiteAnalyticsEvent } from '@website-src/analytics/posthog-client';
+import { loadPublicService } from '@website-src/api/load-public-service';
+import { buildAuthHandoffHref } from '@website-src/auth/auth-handoff';
+import Link from 'next/link';
+import { type FormEvent, useEffect, useRef, useState } from 'react';
 import {
   BrandOSPreviewState,
   type BrandOSPreviewStateName,

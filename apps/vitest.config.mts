@@ -346,6 +346,10 @@ export default defineConfig({
         replacement: path.resolve(appRoot, './app/$1'),
       },
       {
+        find: /^@website-src\/(.*)$/,
+        replacement: path.resolve(appRoot, './src/$1'),
+      },
+      {
         find: /^@creator\/(.*)$/,
         replacement: path.resolve(appRoot, './app/creator-profile/[handle]/$1'),
       },

@@ -91,7 +91,28 @@
       "performance": {
         "useTopLevelRegex": "error"
       },
-      "preset": "recommended"
+      "preset": "recommended",
+      "style": {
+        "noRestrictedImports": {
+          "level": "error",
+          "options": {
+            "patterns": [
+              {
+                "group": ["../../../**"],
+                "message": "Climbing 3 or more folders: use a path alias (@api/, @genfeedai/*, @ui/) instead."
+              }
+            ]
+          }
+        }
+      },
+      "suspicious": {
+        "noConsole": {
+          "level": "error",
+          "options": {
+            "allow": ["assert", "debug", "error", "info", "warn"]
+          }
+        }
+      }
     }
   },
   "overrides": [
@@ -292,6 +313,12 @@
             "noRestrictedImports": {
               "level": "error",
               "options": {
+                "patterns": [
+                  {
+                    "group": ["../../../**"],
+                    "message": "Climbing 3 or more folders: use a path alias (@api/, @genfeedai/*, @ui/) instead."
+                  }
+                ],
                 "paths": {
                   "@nestjs/common": {
                     "importNames": ["NotFoundException"],
@@ -300,6 +327,114 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    {
+      "includes": [
+        "apps/server/api/src/**",
+        "!**/*.spec.*",
+        "!**/*.test.*",
+        "!**/*.fixture.*",
+        "!**/__tests__/**",
+        "!**/__mocks__/**",
+        "!**/fixtures/**",
+        "!**/mocks/**",
+        "!**/testing/**"
+      ],
+      "linter": {
+        "rules": {
+          "style": {
+            "noProcessEnv": "error"
+          }
+        }
+      }
+    },
+    {
+      "includes": [
+        "**/*.spec.*",
+        "**/*.test.*",
+        "**/*.stories.*",
+        "**/*.fixture.*",
+        "**/__tests__/**",
+        "**/__mocks__/**",
+        "**/e2e/**",
+        "**/test/**",
+        "**/tests/**",
+        "**/fixtures/**",
+        "**/mocks/**",
+        "**/testing/**",
+        "playwright/**",
+        "scripts/**",
+        "**/scripts/**",
+        "packages/actions/src/**",
+        "packages/workflows/src/**",
+        "!apps/server/api/src/**"
+      ],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": [
+        "apps/server/api/src/**/*.spec.*",
+        "apps/server/api/src/**/*.test.*",
+        "apps/server/api/src/**/__tests__/**",
+        "apps/server/api/src/**/testing/**"
+      ],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "paths": {
+                  "@nestjs/common": {
+                    "importNames": ["NotFoundException"],
+                    "message": "Use the JSON:API NotFoundException from @api/helpers/exceptions/http/not-found.exception instead of the @nestjs/common built-in (audit C2c: one 404 shape)."
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": [
+        "**/*.spec.*",
+        "**/*.test.*",
+        "**/*.stories.*",
+        "**/*.fixture.*",
+        "**/__tests__/**",
+        "**/__mocks__/**",
+        "**/e2e/**",
+        "**/test/**",
+        "**/tests/**",
+        "**/fixtures/**",
+        "**/mocks/**",
+        "**/testing/**",
+        "playwright/**",
+        "scripts/**",
+        "**/scripts/**",
+        "configs/**",
+        "packages/cli/**",
+        "**/logger.util.ts",
+        "packages/services/core/logger.service.ts",
+        "packages/services/core/deferred-logger.ts",
+        "**/*.entrypoint.ts",
+        "**/*.config.ts",
+        "**/*.config.mjs"
+      ],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noConsole": "off"
           }
         }
       }

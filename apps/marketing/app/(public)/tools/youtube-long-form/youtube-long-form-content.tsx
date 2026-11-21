@@ -13,14 +13,14 @@ import { Input } from '@ui/primitives/input';
 import { OptionTile, OptionTileGroup } from '@ui/primitives/option-tile';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
-import { Sparkles } from 'lucide-react';
-import Link from 'next/link';
-import { type FormEvent, useEffect, useRef, useState } from 'react';
 import {
   WEBSITE_ANALYTICS_EVENTS,
   type WebsiteAnalyticsEventProperties,
-} from '../../../../src/analytics/analytics-events';
-import { captureWebsiteAnalyticsEvent } from '../../../../src/analytics/posthog-client';
+} from '@website-src/analytics/analytics-events';
+import { captureWebsiteAnalyticsEvent } from '@website-src/analytics/posthog-client';
+import { Sparkles } from 'lucide-react';
+import Link from 'next/link';
+import { type FormEvent, useEffect, useRef, useState } from 'react';
 
 const OUTPUT_OPTIONS: ReadonlyArray<{
   description: string;

@@ -23,6 +23,7 @@ export const RateLimit = (options: RateLimitOptions) =>
  * Common rate limit presets
  */
 function getEnvInt(key: string, fallback: number): number {
+  // biome-ignore lint/style/noProcessEnv: preset limits are module-level constants evaluated at import time
   const raw = process.env[key];
   const parsed = raw ? Number.parseInt(raw, 10) : Number.NaN;
 

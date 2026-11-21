@@ -7,6 +7,9 @@ import type {
   SwitcherDropdownProps,
   SwitcherDropdownTrailingAction,
 } from '@genfeedai/props/ui/menus/switcher-dropdown.props';
+// Relative import: @ui/lib/* isn't aliased (the @ui test alias maps to
+// src/components), and accordion.tsx sources this same hook the same way.
+import { useMounted } from '@ui/lib/hooks';
 import { BrandAvatar } from '@ui/primitives/brand-avatar';
 import { Button } from '@ui/primitives/button';
 import {
@@ -25,10 +28,6 @@ import { Check, Plus } from 'lucide-react';
 import Link from 'next/link';
 import type React from 'react';
 import { cloneElement, isValidElement, useCallback, useState } from 'react';
-
-// Relative import: @ui/lib/* isn't aliased (the @ui test alias maps to
-// src/components), and accordion.tsx sources this same hook the same way.
-import { useMounted } from '../../../lib/hooks';
 
 export default function SwitcherDropdown({
   items,

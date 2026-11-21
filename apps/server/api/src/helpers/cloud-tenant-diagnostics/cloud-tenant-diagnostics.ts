@@ -26,6 +26,7 @@ const methods = [
   'unavailable',
 ] as const;
 export function getCloudTenantObserver(): CloudTenantObserver | undefined {
+  // biome-ignore lint/style/noProcessEnv: CI-only diagnostics read the raw process env on purpose
   const env = process.env;
   if (
     Reflect.get(env, 'CLOUD_SWEEP_DIAGNOSTICS') !== '1' ||

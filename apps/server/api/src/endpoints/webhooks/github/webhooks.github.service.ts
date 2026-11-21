@@ -1,5 +1,6 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
@@ -21,12 +22,13 @@ interface AlertResult {
 @Injectable()
 export class GitHubWebhookService {
   constructor(
+    private readonly configService: ConfigService,
     private readonly logger: LoggerService,
     private readonly apiKeysService: ApiKeysService,
   ) {}
 
   validateSignature(rawBody: Buffer, signature: string): void {
-    const secret = process.env.GITHUB_WEBHOOK_SECRET;
+    const secret = this.configService.get('GITHUB_WEBHOOK_SECRET');
     if (!secret) {
       throw new UnauthorizedException('Webhook secret not configured');
     }
