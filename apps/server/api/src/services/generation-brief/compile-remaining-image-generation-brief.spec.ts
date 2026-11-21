@@ -1,7 +1,10 @@
 import { compileRemainingImageGenerationBrief } from '@api/services/generation-brief/compile-remaining-image-generation-brief';
 import { REMAINING_IMAGE_GENERATION_BRIEF_FAMILIES } from '@api/services/generation-brief/remaining-image-generation-brief-families';
 import { imageGenerationBriefSchema } from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
-import { GPT_IMAGE_IMAGE_COMPILER_ID } from '@genfeedai/contracts/api-types/contracts/generation-brief-compiler.contract';
+import {
+  FAL_SEEDREAM_5_5_IMAGE_COMPILER_ID,
+  GPT_IMAGE_IMAGE_COMPILER_ID,
+} from '@genfeedai/contracts/api-types/contracts/generation-brief-compiler.contract';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { normalizeAspectRatioForModel } from '@genfeedai/helpers';
 import { describe, expect, it } from 'vitest';
@@ -42,6 +45,26 @@ describe('compileRemainingImageGenerationBrief', () => {
     );
     expect(result.evidence.compilerId).toBe(GPT_IMAGE_IMAGE_COMPILER_ID);
     expect(result.evidence.omittedSignals).toEqual([]);
+  });
+
+  it('compiles a Seedream 5.5 request on fal to its own family, prompt only', () => {
+    const brief = imageGenerationBriefSchema.parse({
+      constraints: [],
+      fidelityMode: 'off',
+      intent: { objective: 'a sunset over the ocean' },
+      mediaKind: 'image',
+      output: { aspectRatio: '16:9' },
+      version: 1,
+    });
+
+    const result = compileRemainingImageGenerationBrief({
+      brief,
+      family: familyFor(MODEL_KEYS.FAL_SEEDREAM_5_5),
+      modelKey: MODEL_KEYS.FAL_SEEDREAM_5_5,
+    });
+
+    expect(result.dispatch.prompt).toBe('a sunset over the ocean');
+    expect(result.evidence.compilerId).toBe(FAL_SEEDREAM_5_5_IMAGE_COMPILER_ID);
   });
 
   it('maps avoid constraints onto SDXL negative_prompt under guided fidelity', () => {
