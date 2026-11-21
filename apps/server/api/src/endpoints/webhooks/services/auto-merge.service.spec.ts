@@ -13,7 +13,7 @@ import {
 } from '@genfeedai/contracts';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mergeSettings = {
   isCaptionsEnabled: false,
@@ -63,6 +63,12 @@ describe('AutoMergeService', () => {
     });
     await new Promise((resolve) => setImmediate(resolve));
   };
+
+  afterEach(() => {
+    // The code under test tracks its merge job in the background; without a job
+    // to find, that tracker stops instead of polling into the next spec file.
+    fixture.dropAllJobs();
+  });
 
   beforeEach(() => {
     fixture = new VideoStitchFixture();

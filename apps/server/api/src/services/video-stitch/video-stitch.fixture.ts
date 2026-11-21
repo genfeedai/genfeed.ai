@@ -253,6 +253,11 @@ export class VideoStitchFixture {
   }
 
   /** Simulates a job the queue lost or evicted. */
+  /** Drops every job so a background tracker still polling gives up on its next read. */
+  dropAllJobs(): void {
+    this.knownJobs.clear();
+  }
+
   dropJob(jobId: string): void {
     this.knownJobs.delete(jobId);
     this.jobStates.delete(jobId);
