@@ -308,12 +308,9 @@ export const REMAINING_IMAGE_GENERATION_BRIEF_FAMILIES: readonly RemainingImageG
       compilerId: FAL_SEEDREAM_5_5_IMAGE_COMPILER_ID,
       compilerVersion: REMAINING_IMAGE_COMPILER_VERSION,
       profiles: [
-        profile(
-          'fal-seedream-5-5-capability',
-          MODEL_KEYS.FAL_SEEDREAM_5_5,
-          0,
-          { seedSupported: false },
-        ),
+        profile('fal-seedream-5-5-capability', MODEL_KEYS.FAL_SEEDREAM_5_5, 0, {
+          seedSupported: false,
+        }),
       ],
       spec: {
         modelLabel: 'Fal Seedream 5.5',
