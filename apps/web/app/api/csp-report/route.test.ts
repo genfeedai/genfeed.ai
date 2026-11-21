@@ -63,7 +63,7 @@ describe('POST /api/csp-report', () => {
       },
     );
 
-    await new Promise((resolve) => setTimeout(resolve, 10));
+    await new Promise((resolve) => setImmediate(resolve));
     expect(isAnswered).toBe(false);
 
     finishFlush(true);

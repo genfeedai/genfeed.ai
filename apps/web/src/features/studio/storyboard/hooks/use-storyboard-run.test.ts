@@ -373,7 +373,7 @@ describe('useStoryboardRun', () => {
     });
     await act(async () => {
       landOlderRead({ ...run, phase: 'prefilled', revision: 1 });
-      await new Promise((done) => setTimeout(done, 0));
+      await new Promise((done) => setImmediate(done));
     });
 
     expect(result.current.run?.revision).toBe(2);
@@ -396,7 +396,7 @@ describe('useStoryboardRun', () => {
     );
 
     await act(async () => {
-      await new Promise((done) => setTimeout(done, 2));
+      await new Promise((done) => setImmediate(done));
       await result.current.refresh();
     });
 

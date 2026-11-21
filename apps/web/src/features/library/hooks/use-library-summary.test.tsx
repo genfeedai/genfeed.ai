@@ -235,6 +235,7 @@ describe('useLibrarySummary', () => {
   it('shows the counts that changed while the first read was pending', async () => {
     const staleSummary = { ...SUMMARY_PAYLOAD, total: 6 };
     const freshSummary = { ...SUMMARY_PAYLOAD, total: 7 };
+    let landStaleRead: () => void = () => undefined;
     fetchMock
       .mockImplementationOnce(
         (_url: string, init?: RequestInit) =>
@@ -242,10 +243,8 @@ describe('useLibrarySummary', () => {
             init?.signal?.addEventListener('abort', () =>
               reject(new DOMException('aborted', 'AbortError')),
             );
-            setTimeout(
-              () => resolve(createFetchResponse(true, staleSummary)),
-              50,
-            );
+            landStaleRead = () =>
+              resolve(createFetchResponse(true, staleSummary));
           }),
       )
       .mockResolvedValue(createFetchResponse(true, freshSummary));
@@ -259,6 +258,8 @@ describe('useLibrarySummary', () => {
     await act(async () => {
       dispatchLibraryAssetsRefresh({ isListRefresh: false });
     });
+    // The first read lands late, after the refresh replaced it.
+    landStaleRead();
 
     await waitFor(() => {
       expect(result.current.summary?.total).toBe(7);

@@ -40,7 +40,7 @@ async function loadClient(): Promise<WebsitePosthogClientModule> {
  * to run inline — the scheduling itself is covered by its own case below.
  */
 async function flushInit(): Promise<void> {
-  await new Promise((resolve) => setTimeout(resolve, 0));
+  await new Promise((resolve) => setImmediate(resolve));
 }
 
 /** Run scheduled idle work synchronously, the way a fully idle browser would. */

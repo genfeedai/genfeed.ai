@@ -76,7 +76,7 @@ describe('useMasterThread', () => {
     first.unmount();
 
     const second = renderHook(() => useMasterThread(api, true, 'acme'));
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    await new Promise((resolve) => setImmediate(resolve));
     expect(second.result.current).toEqual({
       hasFailed: false,
       isLoading: false,

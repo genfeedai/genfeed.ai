@@ -22,7 +22,7 @@ import type {
   TextareaHTMLAttributes,
 } from 'react';
 import { Children, isValidElement } from 'react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { BrandOsGuideReadiness } from '@/features/brands/props/brand-os-settings.props';
 import BrandOsSettingsCard from './BrandOsSettingsCard';
 
@@ -1837,6 +1837,12 @@ describe('mounted current approved identity preview', () => {
 });
 
 describe('opt-in auto-save and guide readiness', () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
   async function renderAutoSaving(
     onReadinessChange: (readiness: BrandOsGuideReadiness) => void = vi.fn(),
   ) {
@@ -1852,7 +1858,9 @@ describe('opt-in auto-save and guide readiness', () => {
     await openRevisionField('Description');
   }
   function settle(ms = 1800) {
-    return act(() => new Promise<void>((resolve) => setTimeout(resolve, ms)));
+    return act(async () => {
+      await vi.advanceTimersByTimeAsync(ms);
+    });
   }
 
   it('saves settled edits once through the expected-updatedAt save and never approves', async () => {

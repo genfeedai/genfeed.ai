@@ -785,7 +785,7 @@ describe('SocialMessagesPage', () => {
     await waitFor(() =>
       expect(mocks.refreshInboxIndicators).toHaveBeenCalled(),
     );
-    await new Promise((resolve) => setTimeout(resolve, 50));
+    await new Promise((resolve) => setImmediate(resolve));
 
     expect(mocks.markRead).not.toHaveBeenCalledWith(
       'conversation-1',
