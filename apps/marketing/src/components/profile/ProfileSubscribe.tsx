@@ -1,7 +1,7 @@
 'use client';
 
 import { getFollowSignUpHref } from '@data/app-links';
-import { ButtonVariant } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { ProfileSubscribeProps } from '@props/content/creator.props';
 import { ButtonGroup, ButtonGroupText } from '@ui/primitives/button-group';
 import ButtonTracked from '@web-components/buttons/tracked/ButtonTracked';
@@ -24,12 +24,14 @@ type SubscribeState =
 export default function ProfileSubscribe({
   handle,
   source,
+  layout = 'bar',
   sourceRef,
 }: ProfileSubscribeProps) {
   const [state, setState] = useState<SubscribeState>('idle');
   const isSubscribed = state === 'subscribed';
   const isPending = state === 'confirmation-sent';
   const isDone = isSubscribed || isPending;
+  const isCompact = layout === 'compact';
   const buttonLabel = isSubscribed
     ? 'Subscribed'
     : isPending
@@ -66,33 +68,42 @@ export default function ProfileSubscribe({
     }
   }
 
+  const subscribeButton = (
+    <ButtonTracked
+      className={isCompact ? undefined : 'flex-1'}
+      isDisabled={isDone}
+      isLoading={state === 'sending'}
+      onClick={() => void handleSubscribe()}
+      size={isCompact ? ButtonSize.SM : undefined}
+      trackingData={{
+        action: 'profile_subscribe',
+        label: 'Subscribe',
+        profile: handle,
+        source,
+      }}
+      trackingName="creator_subscribe_click"
+      type="button"
+      variant={ButtonVariant.DEFAULT}
+      withWrapper={false}
+    >
+      <Icon aria-hidden="true" className="size-4" />
+      {buttonLabel}
+    </ButtonTracked>
+  );
+
   return (
     <div className="space-y-2">
-      <ButtonGroup aria-label="Subscribe to the newsletter">
-        <ButtonGroupText>
-          <Mail aria-hidden="true" />
-          Newsletter
-        </ButtonGroupText>
-        <ButtonTracked
-          className="flex-1"
-          isDisabled={isDone}
-          isLoading={state === 'sending'}
-          onClick={() => void handleSubscribe()}
-          trackingData={{
-            action: 'profile_subscribe',
-            label: 'Subscribe',
-            profile: handle,
-            source,
-          }}
-          trackingName="creator_subscribe_click"
-          type="button"
-          variant={ButtonVariant.DEFAULT}
-          withWrapper={false}
-        >
-          <Icon aria-hidden="true" className="size-4" />
-          {buttonLabel}
-        </ButtonTracked>
-      </ButtonGroup>
+      {isCompact ? (
+        subscribeButton
+      ) : (
+        <ButtonGroup aria-label="Subscribe to the newsletter">
+          <ButtonGroupText>
+            <Mail aria-hidden="true" />
+            Newsletter
+          </ButtonGroupText>
+          {subscribeButton}
+        </ButtonGroup>
+      )}
       {state === 'confirmation-sent' ? (
         <p className="text-sm text-foreground" role="status">
           Check your inbox and confirm to finish subscribing.

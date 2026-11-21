@@ -43,6 +43,7 @@ import {
 } from '@mcp/services/mcp-approval-answer.util';
 import {
   isMcpApprovalRedeemable,
+  requiresMcpAgentConfirmation,
   requiresMcpToolApproval,
 } from '@mcp/services/mcp-approval-gate.util';
 import {
@@ -99,6 +100,7 @@ import { CONTENT_TOOL_NAMES, handleContentTool } from '@mcp/tools/content.tool';
 import { EDITOR_TOOL_NAMES, handleEditorTool } from '@mcp/tools/editor.tool';
 import { handleGoogleAdsTool } from '@mcp/tools/google-ads.tool';
 import {
+  confirmationRequiredToolResult,
   mcpToolErrorResult,
   toMcpToolErrorResult,
 } from '@mcp/tools/mcp-tool-error';
@@ -455,6 +457,16 @@ export class ToolRegistryService implements OnModuleInit {
       const prepared = await prepareToolBatch(this.clientService, name, args);
       if (prepared.kind === 'rejected') return prepared.result;
       args = prepared.args;
+
+      // Publishing is confirmed with the person in the conversation, never queued on
+      // the web: without `confirmed: true` nothing runs and the agent is told to ask.
+      if (requiresMcpAgentConfirmation(name, args)) {
+        if (args?.confirmed !== true) {
+          return confirmationRequiredToolResult(name, prepared.invalid);
+        }
+        const { confirmed: _confirmed, ...confirmedArgs } = args;
+        args = confirmedArgs;
+      }
 
       if (await requiresMcpToolApproval(this.clientService, name, args)) {
         const approval = await this.clientService.createApproval(

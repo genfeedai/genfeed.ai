@@ -12,7 +12,7 @@ import {
 describe('model.enum', () => {
   describe('ModelKey', () => {
     it('should have 167 members', () => {
-      expect(Object.values(MODEL_KEYS)).toHaveLength(167);
+      expect(Object.values(MODEL_KEYS)).toHaveLength(168);
     });
 
     it('should have correct values', () => {

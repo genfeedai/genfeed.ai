@@ -449,6 +449,7 @@ shared `RateLimitService` window). JSON-RPC `error.code` stays numeric.
 | `rate_limited` | `RateLimitService`, or an upstream `429` | none | `retryAfterSeconds` when the limiter reported a wait |
 | `validation_failed` | REST `ValidationPipe` / `ErrorResponse.validationFailed` field errors, or a missing required tool argument | none | `errors[]` of `{ field, message }` |
 | `approval_pending` | `mutationPolicy: 'approval-required'` queued the write instead of running it | `/publishing/approvals` | `approvalId`, `toolName`, `approvalStatus`, `canResolveApproval` |
+| `confirmation_required` | A publishing call (dated release, release update, `publish-now`, `resume`, article publication) without `confirmed: true`; nothing ran and no approval was queued | none | `toolName` |
 | `brand_required` | A generation tool (`generate_media(action=media)`, `generate_text(action=content)`, `generate_text(action=turbo)`, `generate_text(action=enhance)`, `generate_media(action=transform)`) was called without `brandId` | none | `brands[]` of `{ id, label }`, the caller's brands |
 
 `message` is always set. `retryAfterSeconds` and `nextStepUrl` are omitted
@@ -467,8 +468,16 @@ member, so credit-spending calls such as `generate_media(action=media)` run stra
 or admin can turn it on in Settings, Organization, and a member can turn it on
 for themselves in Settings, Personal. A call waits in the approvals queue as soon
 as either switch is on. Credit balance checks and quotes always apply, and
-publishing, scheduling and other outbound actions always wait for approval,
-whatever these switches say.
+sending messages, replies and outreach always wait for approval, whatever these
+switches say.
+
+Publishing never uses the web approvals queue. `schedule_release` (a dated
+release, or an update to one), `control_release` (`publish-now`, `resume` and
+`publish`) and article publication are confirmed with the person in the
+conversation. The first call changes nothing and returns `confirmation_required`;
+the agent shows the person what will go out, and repeats the same call with
+`confirmed: true` only after they agree. Release drafts, `cancel` and `pause`
+need no confirmation.
 
 ## Tools
 

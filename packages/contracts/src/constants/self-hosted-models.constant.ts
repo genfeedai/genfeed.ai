@@ -506,6 +506,30 @@ export const SELF_HOSTED_MODELS = [
     providerCostUsd: 0.03,
   },
   /**
+   * Wan 3 — Replicate list $0.05/s at 480p, $0.10/s at 720p, $0.20/s at 1080p.
+   * Seeded at the 720p base rate; the reviewed rate sheet quotes the other
+   * bands per resolution. Live credit pricing turns $0.10/s into 34 credits/s.
+   */
+  {
+    category: ModelCategory.VIDEO,
+    cost: 167,
+    costPerUnit: 34,
+    costTier: CostTier.MEDIUM,
+    qualityTier: QualityTier.HIGH,
+    speedTier: SpeedTier.MEDIUM,
+    description:
+      'Alibaba Wan 3 — text-to-video or image-to-video, 2–30 seconds at 480p, 720p or 1080p.',
+    isDefault: false,
+    isHighlighted: true,
+    key: MODEL_KEYS.REPLICATE_ALIBABA_WAN_3,
+    label: 'Wan 3',
+    minCost: 34,
+    pricingType: PricingType.PER_SECOND,
+    provider: ModelProvider.REPLICATE,
+    providerConfig: { name: 'wan-3', owner: 'alibaba' },
+    providerCostUsd: 0.1,
+  },
+  /**
    * Seedream 5 Pro — Replicate list $0.045/img (1K) / $0.09/img (2K).
    * Seed at 2K list so higher-res runs do not undercharge.
    */
@@ -524,6 +548,32 @@ export const SELF_HOSTED_MODELS = [
     provider: ModelProvider.REPLICATE,
     providerConfig: { name: 'seedream-5-pro', owner: 'bytedance' },
     providerCostUsd: 0.09,
+  },
+  /**
+   * Seedream 5.5 text-to-image on fal — $0.03/img up to 2.61 MP, $0.0405/img
+   * above (fal llms.txt, read 2026-11-21). Seeded at the 2K rate, which is
+   * fal's default `auto_2K`, so 2K runs are never undercharged. Prompt only:
+   * Seedream 5 Pro stays for reference-image work.
+   */
+  {
+    category: ModelCategory.IMAGE,
+    cost: 14,
+    costTier: CostTier.MEDIUM,
+    qualityTier: QualityTier.HIGH,
+    speedTier: SpeedTier.MEDIUM,
+    description:
+      'ByteDance Seedream 5.5 via fal — text-to-image up to 4.6 MP, rates above Seedream 5 Pro at less than half the price. No reference images.',
+    endpoint: 'bytedance/seedream/v5.5/text-to-image',
+    isDefault: false,
+    isHighlighted: true,
+    key: MODEL_KEYS.FAL_SEEDREAM_5_5,
+    label: 'Seedream 5.5',
+    provider: ModelProvider.FAL,
+    providerConfig: {
+      name: 'seedream/v5.5/text-to-image',
+      owner: 'bytedance',
+    },
+    providerCostUsd: 0.0405,
   },
   /**
    * GPT Image 1.5 — still selectable via the Legacy pill. Seed at `high`

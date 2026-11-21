@@ -43,6 +43,8 @@ Detailed docs: `.agents/README.md`
 - `bun.lock` is `merge=binary` — on conflict: `rm bun.lock && bun install`.
 - Conventional commits: `fix:`, `feat:`, `refactor:`, `chore:`.
 - When session work is complete, ship it: commit, push the short-lived branch, open a PR to `master`. Review is gated by the PR, not by a per-commit approval dance.
+- **Work is not done until it is a pull request.** A branch is not a deliverable: commits on a pushed branch with no PR are invisible, and the redesign that sat on one never shipped. Open the PR (as a draft, per Pull Requests below) before you report the work done, and put its URL in the report. Never write "done", "ready" or "pushed to a branch" without a PR number. If you stop before it is finished, open the draft PR anyway and say what is left. Before you end a session, run `git branch -r --no-merged origin/master` and open a PR for every branch of yours that appears.
+- **Delete the branch once its PR merges.** Repository setting "Automatically delete head branches" is on; delete any branch of yours that is still left. The weekly `Stale Branches` workflow (`scripts/ci/stale-branches.mjs`) lists what is left (no PR, merged, stalled) in one rolling issue; it only reports, it never deletes. `codex/*` and `grok/*` belong to other agents: never touch them.
 - **Scan staged content for secrets before every commit** (`.env*`, `secrets/`, tokens, private keys, provider credentials). If found, STOP and flag — this repo is public; a leak is indexed before it can be rotated. Never commit it, even if explicitly staged.
 
 ## Claiming Work — search open PRs before you start

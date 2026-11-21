@@ -506,6 +506,8 @@ export const FAL_FLUX_IMAGE_COMPILER_ID = 'fal-flux-image-compiler';
 export const FAL_FLUX_2_PRO_IMAGE_COMPILER_ID = 'fal-flux-2-pro-image-compiler';
 export const FAL_NANO_BANANA_2_IMAGE_COMPILER_ID =
   'fal-nano-banana-2-image-compiler';
+export const FAL_SEEDREAM_5_5_IMAGE_COMPILER_ID =
+  'fal-seedream-5-5-image-compiler';
 export const REMAINING_IMAGE_COMPILER_VERSION = 1;
 
 export type ImageGenerationBriefDispatch =
