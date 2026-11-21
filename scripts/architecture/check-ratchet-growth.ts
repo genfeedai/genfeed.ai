@@ -164,6 +164,118 @@ export function deadCodeEntryKeys(content: string): string[] {
   ];
 }
 
+/**
+ * String-keyed numeric maps in a baseline module (`'path/file.ts': 3`), one key
+ * per counted finding, so a PR that raises a count is growth. Read from the
+ * syntax tree, so a path inside a comment is not an entry.
+ */
+export function countMapEntryKeys(content: string): string[] {
+  const sourceFile = ts.createSourceFile(
+    'baseline.ts',
+    content,
+    ts.ScriptTarget.Latest,
+    true,
+  );
+  const keys: string[] = [];
+
+  const visit = (node: ts.Node): void => {
+    if (
+      ts.isPropertyAssignment(node) &&
+      ts.isStringLiteralLike(node.name) &&
+      ts.isNumericLiteral(node.initializer)
+    ) {
+      keys.push(
+        ...Array.from(
+          { length: Number(node.initializer.text) },
+          () => (node.name as ts.StringLiteralLike).text,
+        ),
+      );
+    }
+
+    ts.forEachChild(node, visit);
+  };
+
+  visit(sourceFile);
+  return keys;
+}
+
+/** Every string element of an array literal in a baseline module (a list of spec paths). */
+export function stringListEntryKeys(content: string): string[] {
+  const sourceFile = ts.createSourceFile(
+    'baseline.ts',
+    content,
+    ts.ScriptTarget.Latest,
+    true,
+  );
+  const keys: string[] = [];
+
+  const visit = (node: ts.Node): void => {
+    if (ts.isArrayLiteralExpression(node)) {
+      for (const element of node.elements) {
+        if (ts.isStringLiteralLike(element)) {
+          keys.push(element.text);
+        }
+      }
+    }
+
+    ts.forEachChild(node, visit);
+  };
+
+  visit(sourceFile);
+  return keys;
+}
+
+function countedKeys(
+  prefix: string,
+  counts: Readonly<Record<string, number>> | undefined,
+): string[] {
+  return Object.entries(counts ?? {}).flatMap(([file, count]) =>
+    Array.from({ length: count }, () => `${prefix}${file}`),
+  );
+}
+
+/** The package-layering baseline is a flat JSON map of file to upward-import count. */
+export function packageLayeringEntryKeys(content: string): string[] {
+  return countedKeys('', JSON.parse(content) as Record<string, number>);
+}
+
+/** The untranslated-strings baseline is JSON with a `files` map of file to string count. */
+export function untranslatedStringEntryKeys(content: string): string[] {
+  const parsed = JSON.parse(content) as { files?: Record<string, number> };
+
+  return countedKeys('', parsed.files);
+}
+
+/** The type-assertion baseline is JSON with one file-to-count map per assertion kind. */
+export function typeAssertionEntryKeys(content: string): string[] {
+  const parsed = JSON.parse(content) as Record<string, Record<string, number>>;
+
+  return Object.entries(parsed).flatMap(([kind, counts]) =>
+    countedKeys(`${kind}|`, counts),
+  );
+}
+
+/**
+ * The runtime-complexity baseline is a JSON list of ceilings. Each ceiling
+ * counts once per unit of size, so raising one, or adding a new one, is growth;
+ * lowering or dropping one is not.
+ */
+export function runtimeComplexityEntryKeys(content: string): string[] {
+  const parsed = JSON.parse(content) as Array<{
+    actual: number;
+    file: string;
+    metric: string;
+    symbol: string;
+  }>;
+
+  return parsed.flatMap((entry) =>
+    Array.from(
+      { length: entry.actual },
+      () => `${entry.file}|${entry.metric}|${entry.symbol}`,
+    ),
+  );
+}
+
 export const RATCHET_SOURCES: readonly RatchetSource[] = [
   {
     entryKeys: crossOrgEntryKeys,
@@ -206,6 +318,68 @@ export const RATCHET_SOURCES: readonly RatchetSource[] = [
     instead:
       'derive the value during render, run it in the event handler, or use a data hook instead of a new useEffect; give async effects an AbortController',
     name: 'useEffect calls',
+  },
+  {
+    entryKeys: runtimeComplexityEntryKeys,
+    file: 'scripts/architecture/runtime-complexity.baseline.json',
+    instead:
+      'split the file, method or constructor instead of raising its ceiling or baselining a new one',
+    name: 'runtime complexity ceilings',
+  },
+  {
+    entryKeys: countMapEntryKeys,
+    file: 'scripts/architecture/traced-definitions.baseline.ts',
+    instead:
+      "define the exported async function through traced('name', fn) instead of baselining it",
+    name: 'untraced async definitions',
+  },
+  {
+    entryKeys: stringListEntryKeys,
+    file: 'scripts/architecture/mock-interaction-specs.baseline.ts',
+    instead:
+      'assert returned or persisted results instead of mock interactions; never add a spec to the baseline',
+    name: 'mock-interaction specs',
+  },
+  {
+    entryKeys: untranslatedStringEntryKeys,
+    file: 'scripts/architecture/untranslated-strings.baseline.json',
+    instead:
+      'add a key to apps/web/messages/en/<namespace>.json and resolve it with next-intl instead of baselining the string',
+    name: 'untranslated strings',
+  },
+  {
+    entryKeys: typeAssertionEntryKeys,
+    file: 'scripts/architecture/type-assertions.baseline.json',
+    instead:
+      'fix the type at the source instead of adding an as never cast to the baseline',
+    name: 'type assertions',
+  },
+  {
+    entryKeys: packageLayeringEntryKeys,
+    file: 'scripts/architecture/package-layering.baseline.json',
+    instead:
+      'remove the upward import, or move the shared code down a layer, instead of baselining it',
+    name: 'package layering imports',
+  },
+  {
+    entryKeys: countMapEntryKeys,
+    file: 'scripts/architecture/local-type-guards.baseline.ts',
+    instead: 'import the shared type guard instead of copying it locally',
+    name: 'local type guards',
+  },
+  {
+    entryKeys: countMapEntryKeys,
+    file: 'scripts/architecture/relation-alias-reads.baseline.ts',
+    instead:
+      'read the canonical relation field instead of a relation alias (docs/identity-resolution.md)',
+    name: 'relation-alias reads',
+  },
+  {
+    entryKeys: crossOrgEntryKeys,
+    file: 'scripts/architecture/billing-account-scope-registration.baseline.ts',
+    instead:
+      'go through resolveBillingAccountAccess instead of importing registerBillingAccountScope',
+    name: 'billing account scope registrations',
   },
 ];
 
