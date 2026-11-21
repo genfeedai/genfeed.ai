@@ -7,6 +7,7 @@ import { BrandedTextRunnerService } from '@api/endpoints/ai-actions/branded-text
 import type { BrandedTextGenerationRequestV1 } from '@api/services/branded-text-generation/branded-text-generation.types';
 import { PostFormat, TargetExecutionState } from '@genfeedai/contracts';
 import { getChannelCapability } from '@genfeedai/contracts/api-types/contracts';
+import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const requestKey = '6f1c1b1e-1a0b-4e0f-9a3e-0c3d2f4b5a6c';
@@ -46,7 +47,9 @@ function createService() {
       posts as never,
       {} as never,
       {
-        resolveModelKey: vi.fn().mockResolvedValue('openai/mini-text'),
+        resolveModelKey: vi
+          .fn()
+          .mockImplementation(async (key?: string) => key ?? 'openai/mini-text'),
       } as never,
       material as never,
     ),
@@ -131,6 +134,16 @@ describe('BrandedContentActionsService', () => {
         '<topic>\nOur public API launch\n</topic>',
       );
       expect(seam.input.originalPrompt).toContain('Write 2 distinct posts');
+    });
+
+    it('dispatches the post on the content writing model, not the registry default', async () => {
+      completed('First post');
+
+      await ctx.service.generateSocial(social);
+
+      expect(seamOf(ctx.branded).input.model).toBe(
+        LLM_DEFAULTS.contentWriting,
+      );
     });
 
     it('reports the provisional draft as a review receipt', async () => {
