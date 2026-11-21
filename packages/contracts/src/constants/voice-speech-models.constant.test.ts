@@ -32,6 +32,7 @@ describe('VOICE_SPEECH_MODELS', () => {
   it('maps each voice catalog to the models that can speak it', () => {
     expect(voiceSpeechModelKeysFor(VoiceProvider.ELEVENLABS)).toEqual([
       MODEL_KEYS.ELEVENLABS_V4,
+      MODEL_KEYS.ELEVENLABS_V4_TURBO,
       MODEL_KEYS.ELEVENLABS_MULTILINGUAL_V2,
       MODEL_KEYS.ELEVENLABS_FLASH_V2_5,
     ]);

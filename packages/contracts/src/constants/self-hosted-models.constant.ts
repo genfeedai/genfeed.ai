@@ -960,6 +960,30 @@ export const SELF_HOSTED_MODELS = [
     providerConfig: { name: 'eleven_v4', owner: 'elevenlabs' },
     providerCostUsd: 0.08,
   },
+  /**
+   * Eleven v4 Turbo: the v4 family tuned for low latency, listed at half the
+   * v4 price ($0.04 per 1,000 characters, elevenlabs.io/pricing/api, read
+   * 2026-11-21). Same 90+ languages. The 10,000-character limit is the
+   * conservative v4 figure; the docs state none for Turbo.
+   */
+  {
+    category: ModelCategory.VOICE,
+    cost: 14,
+    costTier: CostTier.LOW,
+    qualityTier: QualityTier.HIGH,
+    speedTier: SpeedTier.FAST,
+    description:
+      'ElevenLabs v4 Turbo — the v4 voice family at about 100 ms latency and half the price, 90+ languages, up to 10,000 characters. 14 credits per 1,000 characters.',
+    isDefault: false,
+    isHighlighted: true,
+    key: MODEL_KEYS.ELEVENLABS_V4_TURBO,
+    label: 'ElevenLabs v4 Turbo',
+    lifecycle: ModelLifecycle.RECOMMENDED,
+    pricingType: PricingType.FLAT,
+    provider: ModelProvider.ELEVENLABS,
+    providerConfig: { name: 'eleven_v4_turbo', owner: 'elevenlabs' },
+    providerCostUsd: 0.04,
+  },
   {
     category: ModelCategory.VOICE,
     cost: 27,

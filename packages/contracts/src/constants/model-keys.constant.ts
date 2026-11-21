@@ -108,6 +108,7 @@ export const MODEL_KEYS = {
   HEYGEN_VIDEO: 'heygen/heygen-video-1',
   HEYGEN_VOICE: 'heygen/heygen-voice-1',
   ELEVENLABS_V4: 'elevenlabs/eleven_v4',
+  ELEVENLABS_V4_TURBO: 'elevenlabs/eleven_v4_turbo',
   ELEVENLABS_MULTILINGUAL_V2: 'elevenlabs/eleven_multilingual_v2',
   ELEVENLABS_FLASH_V2_5: 'elevenlabs/eleven_flash_v2_5',
   REPLICATE_DEEPSEEK_AI_DEEPSEEK_R1: 'deepseek-ai/deepseek-r1',

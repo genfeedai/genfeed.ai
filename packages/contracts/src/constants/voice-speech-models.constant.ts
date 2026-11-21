@@ -23,6 +23,11 @@ export const VOICE_SPEECH_MODELS: Readonly<Record<string, VoiceSpeechModel>> = {
     providerModelId: 'eleven_v4',
     voiceProvider: VoiceProvider.ELEVENLABS,
   },
+  [MODEL_KEYS.ELEVENLABS_V4_TURBO]: {
+    maxCharacters: 10_000,
+    providerModelId: 'eleven_v4_turbo',
+    voiceProvider: VoiceProvider.ELEVENLABS,
+  },
   [MODEL_KEYS.ELEVENLABS_MULTILINGUAL_V2]: {
     maxCharacters: 10_000,
     providerModelId: 'eleven_multilingual_v2',

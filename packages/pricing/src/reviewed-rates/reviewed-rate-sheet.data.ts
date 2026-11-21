@@ -759,6 +759,20 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
     verifiedAt: '2026-10-14T09:00:00.000Z',
   },
   {
+    endpoint: 'elevenlabs/eleven_v4_turbo',
+    provider: 'elevenlabs',
+    rates: [
+      {
+        component: 'output',
+        unit: 'character',
+        unitPriceUsd: 0.00004,
+        when: {},
+      },
+    ],
+    sourceUrl: 'https://elevenlabs.io/pricing/api',
+    verifiedAt: '2026-11-21T09:00:00.000Z',
+  },
+  {
     // fal bills $0.03 per image up to 2,610,000 pixels and $0.0405 above. One
     // rate at the upper band, so a 1K request is quoted slightly high, never low.
     endpoint: 'bytedance/seedream/v5.5/text-to-image',
