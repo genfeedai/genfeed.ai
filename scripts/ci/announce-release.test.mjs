@@ -11,13 +11,13 @@ import {
 
 const WEBHOOK = 'https://discord.com/api/webhooks/1/token';
 
-function recordingFetch(statuses = [204]) {
+function recordingFetch(statuses = [204], retryAfter = 0) {
   const calls = [];
   const fetchImpl = async (url, init) => {
     calls.push({ body: JSON.parse(init.body), url });
     const status = statuses[Math.min(calls.length - 1, statuses.length - 1)];
     return {
-      json: async () => ({ retry_after: 0 }),
+      json: async () => ({ retry_after: retryAfter }),
       ok: status >= 200 && status < 300,
       status,
     };
@@ -81,21 +81,42 @@ test('posts every chunk to the webhook and reports how many', async () => {
   assert.equal(sent, 2);
   assert.deepEqual(
     calls.map((call) => call.url),
-    [WEBHOOK, WEBHOOK],
+    [`${WEBHOOK}?wait=true`, `${WEBHOOK}?wait=true`],
   );
 });
 
-test('retries once after a rate limit, then succeeds', async () => {
-  const { calls, fetchImpl } = recordingFetch([429, 204]);
+test('waits the full retry_after once after a rate limit, then succeeds', async () => {
+  const { calls, fetchImpl } = recordingFetch([429, 204], 30);
+  const waits = [];
   const sent = await announceRelease({
     fetchImpl,
     notes: '- one',
     releaseUrl: 'https://example.test/release',
+    sleep: async (ms) => {
+      waits.push(ms);
+    },
     tag: 'v0.3.4',
     webhookUrl: WEBHOOK,
   });
   assert.equal(sent, 1);
   assert.equal(calls.length, 2);
+  assert.deepEqual(waits, [30_000]);
+});
+
+test('a rate limit longer than the job can wait fails instead of retrying early', async () => {
+  const { calls, fetchImpl } = recordingFetch([429, 204], 600);
+  await assert.rejects(
+    announceRelease({
+      fetchImpl,
+      notes: '- one',
+      releaseUrl: 'https://example.test/release',
+      sleep: async () => {},
+      tag: 'v0.3.4',
+      webhookUrl: WEBHOOK,
+    }),
+    /asked to wait 600s/,
+  );
+  assert.equal(calls.length, 1);
 });
 
 test('a Discord error fails with the status and never the webhook URL', async () => {
@@ -162,6 +183,12 @@ test('the workflow follows Release, reads one secret and never fails a finished 
     'every action is pinned to a full commit SHA',
   );
   assert.match(workflow, /persist-credentials: false/);
+  // A mistyped tag fails a manual run and only warns on an automatic one.
+  assert.match(
+    workflow,
+    /if \[ "\$EVENT" = "workflow_dispatch" \]; then\n {14}echo "::error::\\"\$tag\\" is not a stable/,
+  );
+  assert.match(workflow, /::warning::\\"\$tag\\" is not a stable/);
   // Never print the webhook: the run only echoes the problem it found.
   assert.doesNotMatch(workflow, /echo[^\n]*DISCORD_WEBHOOK_URL"?\s*$/m);
 });

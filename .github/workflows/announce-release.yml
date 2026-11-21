@@ -59,6 +59,10 @@ jobs:
             tag="${RUN_TITLE#Release }"
           fi
           if ! [[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            if [ "$EVENT" = "workflow_dispatch" ]; then
+              echo "::error::\"$tag\" is not a stable vX.Y.Z release; nothing announced"
+              exit 1
+            fi
             echo "::warning::\"$tag\" is not a stable vX.Y.Z release; nothing announced"
             echo "tag=" >> "$GITHUB_OUTPUT"
             exit 0

@@ -12,7 +12,8 @@ const WEBHOOK_PATTERN =
   /^https:\/\/(?:[a-z]+\.)?discord(?:app)?\.com\/api\/webhooks\//;
 // Discord caps an embed description at 4096 characters; stay well under it.
 export const MAX_CHUNK_LENGTH = 3800;
-const MAX_RETRY_WAIT_MS = 10_000;
+// The job times out after 5 minutes; a longer rate-limit wait cannot finish.
+const MAX_RETRY_WAIT_MS = 120_000;
 
 export function chunkNotes(notes, maxLength = MAX_CHUNK_LENGTH) {
   const chunks = [];
@@ -54,20 +55,26 @@ export function buildPayloads({ tag, releaseUrl, notes }) {
   }));
 }
 
-async function post(fetchImpl, webhookUrl, payload) {
+async function post({ fetchImpl, sleep }, webhookUrl, payload) {
+  // wait=true makes Discord confirm the message was created before it answers.
+  const url = new URL(webhookUrl);
+  url.searchParams.set('wait', 'true');
   for (let attempt = 0; attempt < 2; attempt += 1) {
-    const response = await fetchImpl(webhookUrl, {
+    const response = await fetchImpl(url.toString(), {
       body: JSON.stringify(payload),
       headers: { 'Content-Type': 'application/json' },
       method: 'POST',
     });
     if (response.status === 429 && attempt === 0) {
       const body = await response.json().catch(() => ({}));
-      const waitMs = Math.min(
-        Math.max(Number(body.retry_after) || 1, 0) * 1000,
-        MAX_RETRY_WAIT_MS,
-      );
-      await new Promise((resolve) => setTimeout(resolve, waitMs));
+      const waitMs = Math.max(Number(body.retry_after) || 1, 0) * 1000;
+      if (waitMs > MAX_RETRY_WAIT_MS) {
+        // Retrying early would only be rate limited again.
+        throw new Error(
+          `Discord asked to wait ${Math.ceil(waitMs / 1000)}s; run Announce release again later`,
+        );
+      }
+      await sleep(waitMs);
       continue;
     }
     if (!response.ok) {
@@ -81,6 +88,7 @@ export async function announceRelease({
   fetchImpl = fetch,
   notes,
   releaseUrl,
+  sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
   tag,
   webhookUrl,
 }) {
@@ -95,7 +103,7 @@ export async function announceRelease({
     throw new Error(`release notes for ${tag} are empty`);
   }
   for (const payload of payloads) {
-    await post(fetchImpl, webhookUrl, payload);
+    await post({ fetchImpl, sleep }, webhookUrl, payload);
   }
   return payloads.length;
 }
