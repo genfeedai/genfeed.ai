@@ -1,3 +1,8 @@
+import AssetDeepLink from '@app/(protected)/[orgSlug]/[brandSlug]/library/assets/asset-deep-link';
+import LibraryCaptionsPage from '@app/(protected)/[orgSlug]/[brandSlug]/library/captions/page';
+import ImportedLibrary from '@app/(protected)/[orgSlug]/[brandSlug]/library/imported/imported-library';
+import LibraryCharactersPage from '@app/(protected)/[orgSlug]/[brandSlug]/library/references/content';
+import LibraryVoicesPage from '@app/(protected)/[orgSlug]/[brandSlug]/library/voices/library-voices-page';
 import {
   LibraryPlace,
   PageScope,
@@ -15,11 +20,6 @@ import { LIBRARY_TYPE_PRESETS } from '@/features/library/browser/library-browser
 import LibraryOverview from '@/features/library/overview/library-overview';
 import VoiceStudio from '@/features/voice-studio/voice-studio';
 import type { OrgRootAppEntryPageProps } from '@/props/layout/org-root-app-page.props';
-import AssetDeepLink from '../../../[brandSlug]/library/assets/asset-deep-link';
-import LibraryCaptionsPage from '../../../[brandSlug]/library/captions/page';
-import ImportedLibrary from '../../../[brandSlug]/library/imported/imported-library';
-import LibraryCharactersPage from '../../../[brandSlug]/library/references/content';
-import LibraryVoicesPage from '../../../[brandSlug]/library/voices/library-voices-page';
 
 const ORG_LIBRARY_PRESET_ROUTE_BY_SEGMENT: Readonly<Record<string, string>> = {
   avatars: APP_ROUTES.LIBRARY.AVATARS,

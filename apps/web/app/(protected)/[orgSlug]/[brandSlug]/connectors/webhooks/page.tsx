@@ -1,1 +1,4 @@
-export { default, generateMetadata } from '../../../~/connectors/webhooks/page';
+export {
+  default,
+  generateMetadata,
+} from '@app/(protected)/[orgSlug]/~/connectors/webhooks/page';

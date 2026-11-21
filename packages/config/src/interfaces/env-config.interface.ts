@@ -134,6 +134,8 @@ export interface IEnvConfig {
 
   OPUSPRO_WEBHOOK_SECRET?: string;
 
+  GITHUB_WEBHOOK_SECRET?: string;
+
   HEDRA_KEY?: string;
   HEDRA_URL?: string;
 

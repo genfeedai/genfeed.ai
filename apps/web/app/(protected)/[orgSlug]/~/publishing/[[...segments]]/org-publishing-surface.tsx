@@ -1,3 +1,10 @@
+import ContentCalendarPage from '@app/(protected)/[orgSlug]/[brandSlug]/publishing/calendar/content-calendar-page';
+import PublishingCampaignComparePage from '@app/(protected)/[orgSlug]/[brandSlug]/publishing/campaigns/compare/page';
+import PublishingOverviewRoute from '@app/(protected)/[orgSlug]/[brandSlug]/publishing/overview/page';
+import PublishingContentEditorPage from '@app/(protected)/[orgSlug]/[brandSlug]/publishing/posts/[id]/PublishingContentEditorPage';
+import PublishingLayoutContent from '@app/(protected)/[orgSlug]/[brandSlug]/publishing/publishing-layout-content';
+import { renderPostsListPage } from '@app/(protected)/[orgSlug]/[brandSlug]/publishing/publishing-list-page';
+import ReviewQueueContent from '@app/(protected)/[orgSlug]/[brandSlug]/publishing/review/review-queue-content';
 import { PageScope } from '@genfeedai/contracts';
 import {
   APP_ROUTES,
@@ -17,13 +24,6 @@ import NewsletterSettingsPage from '@/features/newsletter/settings/NewsletterSet
 import NewsletterSubscribersPage from '@/features/newsletter/subscribers/NewsletterSubscribersPage';
 import type { OrgRootAppEntryPageProps } from '@/props/layout/org-root-app-page.props';
 import type { PostsListSearchParams } from '@/props/publishing/publishing-list-page.props';
-import ContentCalendarPage from '../../../[brandSlug]/publishing/calendar/content-calendar-page';
-import PublishingCampaignComparePage from '../../../[brandSlug]/publishing/campaigns/compare/page';
-import PublishingOverviewRoute from '../../../[brandSlug]/publishing/overview/page';
-import PublishingContentEditorPage from '../../../[brandSlug]/publishing/posts/[id]/PublishingContentEditorPage';
-import PublishingLayoutContent from '../../../[brandSlug]/publishing/publishing-layout-content';
-import { renderPostsListPage } from '../../../[brandSlug]/publishing/publishing-list-page';
-import ReviewQueueContent from '../../../[brandSlug]/publishing/review/review-queue-content';
 
 const NEWSLETTER_PAGES: Readonly<Record<string, ComponentType>> = {
   '': NewsletterSubscribersPage,

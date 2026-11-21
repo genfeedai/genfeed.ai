@@ -1,4 +1,5 @@
 import { RetiredModelException } from '@api/helpers/exceptions/retired-model/retired-model.exception';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ModelCategory, ModelLifecycle } from '@genfeedai/contracts';
 import {
   CALLABLE_GENERATION_MODEL_TYPES,
@@ -13,7 +14,6 @@ import {
   ForbiddenException,
   Injectable,
 } from '@nestjs/common';
-import { PrismaService } from '../../../shared/modules/prisma/prisma.service';
 import { OrganizationSettingsService } from '../../organization-settings/services/organization-settings.service';
 import type { TrainingDocument } from '../../trainings/schemas/training.schema';
 import type { ModelDocument } from '../schemas/model.schema';

@@ -1,1 +1,4 @@
-export { default, generateMetadata } from '../../../~/agent/new/page';
+export {
+  default,
+  generateMetadata,
+} from '@app/(protected)/[orgSlug]/~/agent/new/page';

@@ -89,6 +89,7 @@ export async function queueYoutubePostUpload(
         ) || [],
       title: post.label || 'Untitled',
       userId,
+      // biome-ignore lint/style/noProcessEnv: plain util with no injected config
       websocketUrl: process.env.WEBSOCKET_URL,
     });
 

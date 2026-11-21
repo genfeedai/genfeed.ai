@@ -1,4 +1,4 @@
 export {
   default,
   generateMetadata,
-} from '../../../[brandSlug]/discovery/overview/page';
+} from '@app/(protected)/[orgSlug]/[brandSlug]/discovery/overview/page';

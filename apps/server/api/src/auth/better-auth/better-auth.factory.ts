@@ -947,6 +947,7 @@ export function createBetterAuthInstance(options: ICreateBetterAuthOptions) {
           sendMagicLink,
           signupGate,
           storeToken:
+            // biome-ignore lint/style/noProcessEnv: factory builds the auth plugin set at import time, outside DI
             process.env.NODE_ENV === 'development' ? 'plain' : 'hashed',
         }),
       ),

@@ -1,8 +1,8 @@
+import { getPublicBrandBySlug } from '@creator/(showcase)/creator-loader';
 import { buildArticleMarkdown } from '@data/article-markdown';
 import { creatorArticlePath } from '@genfeedai/contracts/constants';
 import type { PublicArticleRouteProps } from '@props/content/public-article.props';
 import { EnvironmentService } from '@services/core/environment.service';
-import { getPublicBrandBySlug } from '../../../creator-loader';
 import { resolvePublicArticleAuthor } from '../article-author';
 import { getCreatorArticleCached } from '../article-loader';
 
