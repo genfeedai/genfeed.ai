@@ -38,7 +38,7 @@ describe('StreamableHttpService (real SDK integration)', () => {
           return {
             defaults,
             post: async () => {
-              await new Promise((resolve) => setTimeout(resolve, 5));
+              await new Promise((resolve) => setImmediate(resolve));
               return {
                 data: {
                   success: true,

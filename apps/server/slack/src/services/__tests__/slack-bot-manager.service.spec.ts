@@ -537,7 +537,7 @@ describe('SlackBotManager', () => {
         platform: 'SLACK',
       });
 
-      await new Promise((resolve) => setTimeout(resolve, 0));
+      await new Promise((resolve) => setImmediate(resolve));
 
       expect(service.getActiveCount()).toBe(1);
       expect(httpService.get).toHaveBeenCalledWith(

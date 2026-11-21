@@ -896,7 +896,7 @@ it.each(['loading', 'refreshing'])(
     const prior = structuredClone(session[PENDING]);
     mocks.status = status;
     const stop = service.initializePublicationCapture();
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    await new Promise((resolve) => setImmediate(resolve));
     expect(session[PENDING]).toEqual(prior);
     expect(session[CONFIRMED]).toEqual(confirmed);
     expect(mocks.request).not.toHaveBeenCalled();
@@ -915,7 +915,7 @@ it('blocked verified state removes pending attempts after cold startup', async (
   await begin();
   mocks.status = 'loading';
   const stop = service.initializePublicationCapture();
-  await new Promise((resolve) => setTimeout(resolve, 0));
+  await new Promise((resolve) => setImmediate(resolve));
   expect(session[PENDING]).not.toEqual({});
   mocks.status = 'blocked';
   const cancel = mocks.subscribe.mock.calls.at(-1)?.[0];
@@ -945,7 +945,7 @@ it.each(['loading', 'refreshing'])(
     const outbox = structuredClone(local[OUTBOX]);
     mocks.status = status;
     const stop = service.initializePublicationCapture();
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    await new Promise((resolve) => setImmediate(resolve));
     local['genfeed-settings'] = { recordOwnPublications: false };
     const storage = vi
       .mocked(chrome.storage.onChanged.addListener)

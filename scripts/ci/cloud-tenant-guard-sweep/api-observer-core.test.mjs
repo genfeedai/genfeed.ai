@@ -779,7 +779,7 @@ test('tenant throw scope isolates concurrent continuations and retains detached 
       'organization-id-mismatch',
     );
     responses[0].emit('finish');
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    await new Promise((resolve) => setImmediate(resolve));
     f.observer.tenantFailure(
       'Credential',
       'findFirst',

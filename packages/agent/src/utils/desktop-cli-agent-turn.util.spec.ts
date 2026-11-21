@@ -44,7 +44,7 @@ function createBridge(options: { threadId?: string } = {}) {
   return { bridge, cancelTurn, emit, requests };
 }
 
-const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
+const flush = () => new Promise((resolve) => setImmediate(resolve));
 
 describe('runDesktopCliAgentTurn', () => {
   let activeTurnRef: DesktopCliAgentTurnHandleRef;

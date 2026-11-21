@@ -84,12 +84,13 @@ const waitForJobStatus = async (
   jobId: string,
   expectedStatus: string,
 ) => {
-  for (let attempt = 0; attempt < 20; attempt += 1) {
+  const startedAt = Date.now();
+  while (Date.now() - startedAt < 2_000) {
     const job = await service.getGenerationJob(jobId);
     if (job?.status === expectedStatus) {
       return job;
     }
-    await new Promise((resolve) => setTimeout(resolve, 25));
+    await new Promise((resolve) => setImmediate(resolve));
   }
 
   throw new Error(`Timed out waiting for ${expectedStatus}`);

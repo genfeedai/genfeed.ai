@@ -90,6 +90,7 @@ describe('WebSocketGateway agent thread status (#5636)', () => {
   }
 
   /** Let every emitted packet reach every connected client. */
+  // biome-ignore lint/style/noRestrictedGlobals: real socket.io round trips between the gateway and the clients; there is no single event to await
   const settle = () => new Promise((resolve) => setTimeout(resolve, 100));
 
   beforeEach(async () => {

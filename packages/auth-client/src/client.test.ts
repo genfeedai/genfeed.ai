@@ -279,7 +279,8 @@ describe('signOut across tabs', () => {
   });
 
   async function settleBroadcast(): Promise<void> {
-    await new Promise((resolve) => setTimeout(resolve, 20));
+    await new Promise((resolve) => setImmediate(resolve));
+    await new Promise((resolve) => setImmediate(resolve));
   }
 
   it('tells the other tabs once the server ended the session', async () => {
@@ -289,8 +290,9 @@ describe('signOut across tabs', () => {
     });
 
     await signOut();
-    await settleBroadcast();
 
+    await vi.waitFor(() => expect(signedOutMessages).toBe(1));
+    await settleBroadcast();
     expect(signedOutMessages).toBe(1);
   });
 

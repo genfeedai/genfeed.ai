@@ -44,7 +44,7 @@ describe('WebSocketService (Files)', () => {
     module.get<ConfigService>(ConfigService);
 
     // Wait for Redis initialization
-    await new Promise((resolve) => setTimeout(resolve, 100));
+    await new Promise((resolve) => setImmediate(resolve));
   });
 
   afterEach(() => {

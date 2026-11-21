@@ -10,7 +10,7 @@ import '@testing-library/jest-dom/vitest';
  */
 async function settleDeferredLogging(): Promise<void> {
   await vi.dynamicImportSettled();
-  await new Promise((resolve) => setTimeout(resolve, 0));
+  await new Promise((resolve) => setImmediate(resolve));
 }
 
 const navigationState = vi.hoisted(() => ({

@@ -2434,15 +2434,9 @@ describe('useAgentChatStream', () => {
     await act(async () => {
       await Promise.resolve();
     });
-    await act(
-      () =>
-        new Promise((resolve) => {
-          setTimeout(resolve, 200);
-        }),
-    );
 
     // Events are not replayed, so the reconnect is what corrects the rows.
-    expect(getThreads).toHaveBeenCalledTimes(2);
+    await waitFor(() => expect(getThreads).toHaveBeenCalledTimes(2));
     expect(refreshListener).not.toHaveBeenCalled();
     window.removeEventListener('agent:threads:refresh', refreshListener);
   });

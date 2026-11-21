@@ -470,14 +470,13 @@ describe('WebhookClientProcessor', () => {
 
     it('uses one budget across DNS and header acquisition instead of restarting the timeout', async () => {
       vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+      let resolveDns: () => void = () => undefined;
       dnsLookupMock.mockImplementation(
         () =>
-          new Promise((resolve) =>
-            setTimeout(
-              () => resolve([{ address: '93.184.216.34', family: 4 }]),
-              10_000,
-            ),
-          ),
+          new Promise((resolve) => {
+            resolveDns = () =>
+              resolve([{ address: '93.184.216.34', family: 4 }]);
+          }),
       );
       httpService.post.mockReturnValue(new Observable(() => undefined));
       let settled = false;
@@ -488,6 +487,8 @@ describe('WebhookClientProcessor', () => {
           settled = true;
         });
       await vi.advanceTimersByTimeAsync(10_000);
+      resolveDns();
+      await vi.advanceTimersByTimeAsync(0);
       expect(httpService.post).toHaveBeenCalledOnce();
       expect(settled).toBe(false);
       await vi.advanceTimersByTimeAsync(20_000);

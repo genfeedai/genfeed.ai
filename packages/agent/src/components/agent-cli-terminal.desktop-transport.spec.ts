@@ -68,7 +68,7 @@ function setup() {
   };
 }
 
-const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
+const flush = () => new Promise((resolve) => setImmediate(resolve));
 
 describe('createDesktopTerminalTransport', () => {
   it('creates PTYs through the bridge and streams their output', async () => {
