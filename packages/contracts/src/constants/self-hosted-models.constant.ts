@@ -483,12 +483,13 @@ export const SELF_HOSTED_MODELS = [
   },
   /**
    * P-Video 2 — Replicate list $0.03/s at 720p, $0.06/s at 1080p (draft mode
-   * halves both). Seeded at the 720p base rate, 1.5x P-Video.
+   * halves both). Seeded at the 720p base rate; live credit pricing turns
+   * $0.03/s into 10 credits/s, so the seed carries the same figures.
    */
   {
     category: ModelCategory.VIDEO,
-    cost: 53,
-    costPerUnit: 11,
+    cost: 50,
+    costPerUnit: 10,
     costTier: CostTier.LOW,
     qualityTier: QualityTier.BASIC,
     speedTier: SpeedTier.FAST,
@@ -498,7 +499,7 @@ export const SELF_HOSTED_MODELS = [
     isHighlighted: true,
     key: MODEL_KEYS.REPLICATE_PRUNAAI_P_VIDEO_2,
     label: 'P-Video 2',
-    minCost: 15,
+    minCost: 10,
     pricingType: PricingType.PER_SECOND,
     provider: ModelProvider.REPLICATE,
     providerConfig: { name: 'p-video-2', owner: 'prunaai' },
