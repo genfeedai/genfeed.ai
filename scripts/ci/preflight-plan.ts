@@ -212,7 +212,9 @@ export function planPreflight(input: PreflightPlanInput): PreflightStep[] {
   if (biomeFiles.length > 0) {
     steps.push({
       command: [
-        'bunx',
+        'bun',
+        'run',
+        '--silent',
         'biome',
         'check',
         '--config-path=biome-staged.json',

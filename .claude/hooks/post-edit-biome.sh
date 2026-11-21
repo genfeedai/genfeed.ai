@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 # PostToolUse hook (Edit|Write): format + lint the just-edited file with Biome.
 # Auto-fixes what it can in place; exit 2 surfaces remaining issues to the agent
-# immediately instead of at the pre-push checklist. Fail-open on infra errors.
+# immediately instead of at the pre-push checklist. Fails loudly when node_modules
+# is missing; fail-open only when bun or python3 is absent.
 set -u
 
 export PATH="$HOME/.bun/bin:$PATH"
-command -v bunx >/dev/null 2>&1 || exit 0
+command -v bun >/dev/null 2>&1 || exit 0
 
 input=$(cat)
 file=$(printf '%s' "$input" | python3 -c 'import json,sys; print((json.load(sys.stdin).get("tool_input") or {}).get("file_path",""))' 2>/dev/null) || exit 0
@@ -31,7 +32,15 @@ cd "$root" || exit 0
 # Pass the path relative to that root so the overrides match.
 rel="${file#"$root"/}"
 
-if ! output=$(bunx biome check --write --no-errors-on-unmatched "$rel" 2>&1); then
+# `bun run biome` runs the pinned local Biome and exits 127 when node_modules is
+# missing. `bunx biome` would run an unrelated npm package and check nothing.
+output=$(bun run --silent biome check --write --no-errors-on-unmatched "$rel" 2>&1)
+status=$?
+if [ "$status" -eq 127 ]; then
+  echo "Biome did not run on $rel: run 'bun install' in $root first." >&2
+  exit 2
+fi
+if [ "$status" -ne 0 ]; then
   {
     echo "Biome found unfixable issues in $rel — fix them now:"
     printf '%s\n' "$output" | tail -40

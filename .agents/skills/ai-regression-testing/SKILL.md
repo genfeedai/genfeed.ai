@@ -42,7 +42,6 @@ Confirmation Required:
 
 Delegates To:
 
-- `testing-expert` for general testing strategy
 - `react-testing-library` for React component tests
 - `playwright-e2e-init` or `e2e-testing` for browser workflows
 - `debug` when the root cause is still unknown

@@ -4,17 +4,16 @@ Dev and build skills for the Genfeed.ai monorepo. These guide AI agents when bui
 
 ## What belongs here
 
-- Framework skills (React, NestJS, Tailwind, TypeScript)
-- Build tooling skills (Docker, Turborepo, Biome)
+- Repo-specific build and validation skills (Biome, Bun, Next.js validators)
 - Quality skills (code review, refactoring, security audit)
 - Architecture skills (scaffolding, package design, serializer patterns)
 - Product planning skills (issue PRD writing and PRD quality gates)
-- Repo-specific guards (multitenancy-guard, prepush-guard, serializer-boundary)
 
 ## What does NOT belong here
 
 - Product/content skills (content creation, publishing) — those go in `skills/` at repo root, preferably synced from `genfeedai/skills`
 - Personal/local skills — those go in `~/.agents/skills/` (not committed)
+- Generic framework skills (React, NestJS, Tailwind, TypeScript, Docker, Turborepo). Read the installed package's own docs instead.
 - Generic business, outbound, hiring, fundraising, CRM, or growth-ops skills that do not help build this repository
 
 ## How `.claude/skills/` works
