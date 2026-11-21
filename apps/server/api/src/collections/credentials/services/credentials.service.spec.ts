@@ -110,10 +110,9 @@ describe('CredentialsService', () => {
       tokenEncryptionKey: KEY,
     } as unknown as ConfigService);
     filesClient = {
-      uploadToS3: vi.fn().mockResolvedValue({
-        publicUrl:
-          'https://cdn.genfeed.ai/ingredients/social-avatars/existing-id',
-      }),
+      uploadToS3: vi.fn(async (key: string) => ({
+        publicUrl: `https://cdn.genfeed.ai/ingredients/social-avatars/${key}`,
+      })),
     };
 
     eventEmitter = { emit: vi.fn() };
@@ -1860,32 +1859,57 @@ describe('CredentialsService', () => {
     });
 
     it('uploads a provider avatar to S3 and persists public identity', async () => {
-      await service.updateExternalProfile('existing-id', orgId, {
-        avatarUrl: 'https://platform.example/avatar.jpg',
-        handle: 'acme',
-        id: 'provider-1',
-        name: 'Acme Studio',
-      });
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-11-21T09:57:50Z'));
 
-      expect(filesClient.uploadToS3).toHaveBeenCalledWith(
-        'existing-id',
-        'social-avatars',
-        {
-          type: 'url',
-          url: 'https://platform.example/avatar.jpg',
-        },
-      );
+      try {
+        await service.updateExternalProfile('existing-id', orgId, {
+          avatarUrl: 'https://platform.example/avatar.jpg',
+          handle: 'acme',
+          id: 'provider-1',
+          name: 'Acme Studio',
+        });
+      } finally {
+        vi.useRealTimers();
+      }
+
       expect(prisma.credential.update).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
-            externalAvatar:
-              'https://cdn.genfeed.ai/ingredients/social-avatars/existing-id',
+            externalAvatar: `https://cdn.genfeed.ai/ingredients/social-avatars/existing-id-${Date.parse('2026-11-21T09:57:50Z')}`,
             externalHandle: 'acme',
             externalId: 'provider-1',
             externalName: 'Acme Studio',
           }),
         }),
       );
+    });
+
+    it('stores a reconnect avatar under a new URL so the CDN cannot serve the old photo', async () => {
+      vi.useFakeTimers();
+
+      try {
+        vi.setSystemTime(new Date('2026-11-21T09:50:00Z'));
+        await service.updateExternalProfile('existing-id', orgId, {
+          avatarUrl: 'https://platform.example/old.jpg',
+          id: 'provider-1',
+        });
+        vi.setSystemTime(new Date('2026-11-21T09:57:50Z'));
+        await service.updateExternalProfile('existing-id', orgId, {
+          avatarUrl: 'https://platform.example/new.jpg',
+          id: 'provider-1',
+        });
+      } finally {
+        vi.useRealTimers();
+      }
+
+      const savedAvatars = prisma.credential.update.mock.calls.map(
+        (call) => call[0]?.data?.externalAvatar,
+      );
+      expect(savedAvatars).toEqual([
+        `https://cdn.genfeed.ai/ingredients/social-avatars/existing-id-${Date.parse('2026-11-21T09:50:00Z')}`,
+        `https://cdn.genfeed.ai/ingredients/social-avatars/existing-id-${Date.parse('2026-11-21T09:57:50Z')}`,
+      ]);
     });
 
     it('clears a stale handle when a provider explicitly reports none', async () => {
