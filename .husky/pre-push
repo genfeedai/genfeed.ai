@@ -40,7 +40,7 @@ echo "pre-push: Biome check on files changed since origin/master"
 code_files="$(printf '%s\n' "$changed" | grep -E '\.(js|jsx|ts|tsx|mjs|cjs|json|css)$' || true)"
 if [ -n "$code_files" ]; then
   # shellcheck disable=SC2086 # intentional word-splitting: paths are repo-relative, no spaces
-  printf '%s\n' "$code_files" | xargs bunx biome check \
+  printf '%s\n' "$code_files" | xargs bun run --silent biome check \
     --config-path=biome-staged.json --no-errors-on-unmatched || exit 1
 fi
 

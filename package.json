@@ -37,6 +37,7 @@
   },
   "packageManager": "bun@1.4.4",
   "scripts": {
+    "biome": "sh scripts/sh/biome.sh",
     "audit:api": "bun run audit:api:endpoints && bun run audit:api:sql",
     "audit:api:endpoints": "bun run scripts/api-audit/endpoint-inventory.ts",
     "audit:api:smoke": "bun run scripts/api-audit/openapi-smoke.ts",
