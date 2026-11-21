@@ -17,7 +17,9 @@ const BRAND_BASE = '/test-org/brand-1';
 
 async function settle(page: Parameters<typeof tryClick>[0]): Promise<void> {
   await page.waitForLoadState('domcontentloaded').catch(() => {});
-  await page.waitForTimeout(400);
+  await page
+    .waitForLoadState('networkidle', { timeout: 5_000 })
+    .catch(() => {});
 }
 
 async function assertHealthy(

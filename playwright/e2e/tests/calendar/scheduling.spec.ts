@@ -206,12 +206,8 @@ test.describe('Calendar — Scheduling', () => {
     // Navigate forward
     await calendarPage.goToNextPeriod().catch(() => {});
 
-    // Wait for calendar update
-    await authenticatedPage.waitForTimeout(500);
-
     // Navigate backward
     await calendarPage.goToPreviousPeriod().catch(() => {});
-    await authenticatedPage.waitForTimeout(500);
 
     // Should still be on calendar page
     await expect(authenticatedPage).toHaveURL(/calendar/);

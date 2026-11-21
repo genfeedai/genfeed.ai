@@ -1,3 +1,4 @@
+import { settle } from '@e2e/utils/interaction-helpers';
 import { PostStatus } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import {
@@ -280,7 +281,6 @@ test.describe('Posts — Management', () => {
 
     // Search should filter (URL updates with search param)
     await postsPage.search('Unique').catch(() => {});
-    await authenticatedPage.waitForTimeout(500);
 
     // Page should remain on the not-posted filter
     await expect(authenticatedPage).toHaveURL(
@@ -308,7 +308,7 @@ test.describe('Posts — Management', () => {
     const count = await postsPage.getPostCount();
     if (count > 0) {
       await postsPage.clickPost(0);
-      await authenticatedPage.waitForTimeout(1000);
+      await settle(authenticatedPage);
 
       // Should navigate to post detail page
       const url = authenticatedPage.url();
@@ -337,11 +337,9 @@ test.describe('Posts — Management', () => {
 
     // Try switching to table view
     await postsPage.switchToTableView().catch(() => {});
-    await authenticatedPage.waitForTimeout(300);
 
     // Try switching back to grid view
     await postsPage.switchToGridView().catch(() => {});
-    await authenticatedPage.waitForTimeout(300);
 
     // Should still be on the not-posted filter
     await postsPage.assertOnNotPostedTab();

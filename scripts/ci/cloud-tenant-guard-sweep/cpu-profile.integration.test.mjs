@@ -44,6 +44,7 @@ test('actual worker inspector seals main-isolate CPU while deterministic main co
     if (child.exitCode === null) child.kill('SIGKILL');
   });
   const result = await new Promise((resolve, reject) => {
+    // biome-ignore lint/style/noRestrictedGlobals: wall-clock guard on a real child process; fake timers cannot stop a child stuck in a busy loop
     watchdog = setTimeout(() => {
       child.kill('SIGKILL');
       reject(new Error('Busy-main inspector proof exceeded child watchdog'));

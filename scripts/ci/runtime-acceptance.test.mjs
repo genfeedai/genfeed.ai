@@ -3862,6 +3862,7 @@ test('dedicated work timeout supervises a real child/grandchild and waits all pr
     });
     value.clock.sleep = (ms) =>
       new Promise((resolve) =>
+        // biome-ignore lint/style/noRestrictedGlobals: the stub clock lets a real child process run for a moment between budget checks
         setTimeout(
           () => {
             value.now(1000 + DEDICATED_BUDGETS['agent-production'].workEnd);

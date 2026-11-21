@@ -47,6 +47,7 @@ import {
   createPlaywrightApiRoutePattern,
   playwrightApiEndpoint,
 } from '../config/environment';
+import { waitRealTime } from './real-time';
 
 /**
  * API Interceptor for Playwright E2E Tests
@@ -3070,7 +3071,7 @@ export async function mockApiEndpoint(
 
   await page.route(urlPattern, async (route) => {
     if (delay > 0) {
-      await new Promise((resolve) => setTimeout(resolve, delay));
+      await waitRealTime(delay);
     }
 
     await route.fulfill({

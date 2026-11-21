@@ -155,10 +155,7 @@
         "**/mocks/**",
         "**/testing/**",
         "playwright/**",
-        "!apps/server/api/test/integration/proactive-agent-production-turn*",
-        "!playwright/**",
-        "!scripts/**",
-        "!tests/**"
+        "!apps/server/api/test/integration/proactive-agent-production-turn*"
       ],
       "plugins": ["./configs/biome/no-test-sleep.grit"],
       "linter": {

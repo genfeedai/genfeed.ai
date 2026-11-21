@@ -1,3 +1,4 @@
+import { settle } from '@e2e/utils/interaction-helpers';
 import {
   APP_ROUTES,
   createPublishingPostsFilterRoute,
@@ -309,12 +310,10 @@ export class PostsPage {
 
   async switchToGridView(): Promise<void> {
     await this.gridViewButton.first().click();
-    await this.page.waitForTimeout(300);
   }
 
   async switchToTableView(): Promise<void> {
     await this.tableViewButton.first().click();
-    await this.page.waitForTimeout(300);
   }
 
   // ── Post list helpers ──────────────────────────────────
@@ -348,12 +347,11 @@ export class PostsPage {
 
   async search(query: string): Promise<void> {
     await this.searchInput.fill(query);
-    await this.page.waitForTimeout(500);
+    await settle(this.page);
   }
 
   async openFilters(): Promise<void> {
     await this.filtersButton.click();
-    await this.page.waitForTimeout(300);
   }
 
   // ── Prompt bar ─────────────────────────────────────────
