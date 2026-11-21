@@ -12,7 +12,17 @@
  * For each changed app or package source file it collects the string literals
  * and JSX text that the PR removed (and did not re-add in the same file), then
  * looks for them in `playwright/`. A hit in a spec, page object or fixture that
- * the PR did not touch fails the check.
+ * fails the check, touched by the PR or not: a touched spec can keep the line
+ * that broke.
+ *
+ * Three shapes the plain phrase match misses, each replayed from a real miss in
+ * the tests (#10333 broke specs fixed by #10362 and #10376 on master):
+ * - A message with a placeholder (`Resize to {format}`): the fixed text around
+ *   the placeholder is matched, because a spec asserts the rendered string.
+ * - A label shortened to text a spec already used as a loose locator
+ *   (`Skip for now` became `Skip`, and `getByRole('button', { name: 'Skip' })`
+ *   without `exact` now also matches `Skip onboarding`).
+ * - A removed glyph (`'⏳'`): the spec builds its text around it.
  *
  * Opt out when the match is a false positive: add a commit trailer
  * `E2E-Spec-Impact: none - <reason>` to any commit in the PR.
@@ -50,6 +60,20 @@ const WHITESPACE_PATTERN = /\s+/g;
 const INTERPOLATION_PATTERN = /\$\{/;
 const ESCAPED_QUOTE_PATTERN = /\\(['"`])/g;
 const REGEX_ESCAPE_PATTERN = /[.*+?^${}()|[\]\\]/g;
+// ICU message placeholders (`{format}`, `{count, plural, ...}`), not `${...}`.
+const ICU_PLACEHOLDER_PATTERN = /(?<!\$)\{[A-Za-z_][\w]*(?:,[^{}]*)?\}/;
+const ICU_PLACEHOLDER_SPLIT_PATTERN = /(?<!\$)\{[A-Za-z_][\w]*(?:,[^{}]*)?\}/g;
+// One emoji or pictograph, with an optional variation selector.
+const GLYPH_PATTERN = /^\p{Extended_Pictographic}\uFE0F?$/u;
+// Locator arguments a spec uses to find visible text.
+const LOCATOR_STRING_PATTERN =
+  /(?:\bgetBy(?:Text|Label|Placeholder|Title|AltText)\(\s*|\bname:\s*)(['"`])((?:\\.|(?!\1)[^\\\n])*)\1/g;
+const EXACT_OPTION_PATTERN = /\bexact:\s*true\b/;
+const LETTER_PATTERN = /[A-Za-z]/;
+const OBJECT_KEY_SUFFIX_PATTERN = /^\s*:/;
+const MIN_LOCATOR_LENGTH = 4;
+const LOCATOR_CALL_LOOKBACK = 160;
+const LOCATOR_CALL_LOOKAHEAD = 80;
 
 const UTILITY_CLASS_PATTERN =
   /^(?:[a-z0-9]+:)*-?(?:flex|grid|inline|block|text|bg|border|ring|outline|divide|space|gap|size|shadow|rounded|opacity|object|overflow|items|justify|self|content|place|font|leading|tracking|whitespace|break|truncate|cursor|pointer|select|transition|duration|ease|animate|transform|translate|scale|rotate|origin|z|top|bottom|left|right|inset|col|row|order|basis|grow|shrink|aspect|line|list|underline|sr|min|max|w|h|p[xytblrse]?|m[xytblrse]?)-/;
@@ -77,13 +101,15 @@ function isClassList(text) {
  * `phrase`: visible copy with a space, matched anywhere in a spec.
  * `token`: a kebab or snake case id (preset id, test id), matched
  * only when the spec quotes it exactly.
+ * `glyph`: one emoji, matched anywhere in a spec (specs build text around it).
  */
 export function classifyLiteral(raw) {
   const text = normalizeSpace(raw.replace(ESCAPED_QUOTE_PATTERN, '$1'));
+  if (GLYPH_PATTERN.test(text)) return { kind: 'glyph', text };
   if (
     text.length < MIN_PHRASE_LENGTH ||
     text.length > MAX_LITERAL_LENGTH ||
-    !/[A-Za-z]/.test(text) ||
+    !LETTER_PATTERN.test(text) ||
     INTERPOLATION_PATTERN.test(text) ||
     CODE_CHARACTER_PATTERN.test(text)
   ) {
@@ -102,6 +128,48 @@ export function classifyLiteral(raw) {
   return null;
 }
 
+/**
+ * Classify a raw literal, splitting a message with placeholders into the fixed
+ * text around them: a spec asserts the rendered `Resize to Square`, never the
+ * `Resize to {format}` template, so the template itself would never match.
+ */
+export function classifyLiterals(raw) {
+  if (!ICU_PLACEHOLDER_PATTERN.test(raw)) {
+    const literal = classifyLiteral(raw);
+    return literal ? [literal] : [];
+  }
+  return raw
+    .split(ICU_PLACEHOLDER_SPLIT_PATTERN)
+    .map(classifyLiteral)
+    .filter((literal) => literal?.kind === 'phrase');
+}
+
+/** Short visible labels on one line (`Skip`), too short to be a phrase. */
+export function extractLabels(line) {
+  if (IMPORT_LINE_PATTERN.test(line)) return [];
+  const found = [];
+  for (const match of line.matchAll(QUOTED_LITERAL_PATTERN)) {
+    // `"agent": "Connect Agent"`: the key is not visible text.
+    const isObjectKey = OBJECT_KEY_SUFFIX_PATTERN.test(
+      line.slice(match.index + match[0].length),
+    );
+    if (!isObjectKey) found.push(match[2]);
+  }
+  for (const match of line.matchAll(JSX_INLINE_TEXT_PATTERN)) {
+    found.push(match[1]);
+  }
+  return found
+    .map((raw) => normalizeSpace(raw.replace(ESCAPED_QUOTE_PATTERN, '$1')))
+    .filter(
+      (text) =>
+        text.length >= MIN_LOCATOR_LENGTH &&
+        text.length <= MAX_LITERAL_LENGTH &&
+        LETTER_PATTERN.test(text) &&
+        !INTERPOLATION_PATTERN.test(text) &&
+        !CODE_CHARACTER_PATTERN.test(text),
+    );
+}
+
 /** Candidate literals on one source line. */
 export function extractLiterals(line) {
   if (IMPORT_LINE_PATTERN.test(line)) return [];
@@ -116,11 +184,43 @@ export function extractLiterals(line) {
   if (JSX_BARE_TEXT_PATTERN.test(trimmed) && trimmed.includes(' ')) {
     found.push(trimmed);
   }
-  return found.map(classifyLiteral).filter(Boolean);
+  return found.flatMap(classifyLiterals);
 }
 
 export function isShippedSource(file) {
   return SOURCE_PATH_PATTERN.test(file) && !NON_SHIPPED_PATH_PATTERN.test(file);
+}
+
+function containsWholeWords(phrase, label) {
+  const escaped = label.replace(REGEX_ESCAPE_PATTERN, '\\$&');
+  return new RegExp(`(?:^|[^A-Za-z0-9])${escaped}(?:$|[^A-Za-z0-9])`, 'i').test(
+    phrase,
+  );
+}
+
+/**
+ * A removed phrase and the shorter label that replaced it on the same line
+ * (`Skip for now` -> `Skip`). A spec that used the short text as a loose
+ * locator matched the long label; it now matches any label containing the
+ * short text. Lines pair by position inside one run of removed then added
+ * lines, so an unrelated short label elsewhere in the file never counts.
+ */
+function recordShortenings(shortened, removedLines, addedLines) {
+  if (removedLines.length !== addedLines.length) return;
+  removedLines.forEach((removed, index) => {
+    for (const literal of removed) {
+      if (literal.kind !== 'phrase') continue;
+      for (const label of addedLines[index]) {
+        if (
+          label.length < literal.text.length &&
+          containsWholeWords(literal.text, label)
+        ) {
+          const key = `phrase:${literal.text}`;
+          shortened.set(key, [...(shortened.get(key) ?? []), label]);
+        }
+      }
+    }
+  });
 }
 
 /**
@@ -131,13 +231,21 @@ export function removedLiteralsByFile(diffText) {
   const perFile = new Map();
   let current = null;
   let isHeader = false;
+  let run = { added: [], removed: [] };
+  const flushRun = () => {
+    const bucket = current ? perFile.get(current) : null;
+    if (bucket) recordShortenings(bucket.shortened, run.removed, run.added);
+    run = { added: [], removed: [] };
+  };
   for (const line of diffText.split('\n')) {
     if (line.startsWith('diff --git ')) {
+      flushRun();
       isHeader = true;
       current = null;
       continue;
     }
     if (line.startsWith('@@')) {
+      flushRun();
       isHeader = false;
       continue;
     }
@@ -155,23 +263,37 @@ export function removedLiteralsByFile(diffText) {
     const bucket =
       perFile.get(current) ??
       perFile
-        .set(current, { added: new Set(), removed: new Map() })
+        .set(current, {
+          added: new Set(),
+          removed: new Map(),
+          shortened: new Map(),
+        })
         .get(current);
     if (line.startsWith('+')) {
-      for (const literal of extractLiterals(line.slice(1))) {
+      const literals = extractLiterals(line.slice(1));
+      for (const literal of literals) {
         bucket.added.add(`${literal.kind}:${literal.text}`);
       }
+      run.added.push(extractLabels(line.slice(1)));
     } else if (line.startsWith('-')) {
-      for (const literal of extractLiterals(line.slice(1))) {
+      if (run.added.length > 0) flushRun();
+      const literals = extractLiterals(line.slice(1));
+      for (const literal of literals) {
         bucket.removed.set(`${literal.kind}:${literal.text}`, literal);
       }
+      run.removed.push(literals);
     }
   }
+  flushRun();
   const result = new Map();
-  for (const [file, { added, removed }] of perFile) {
+  for (const [file, { added, removed, shortened }] of perFile) {
     const gone = [...removed]
       .filter(([key]) => !added.has(key))
-      .map(([, literal]) => literal);
+      .map(([key, literal]) =>
+        shortened.has(key)
+          ? { ...literal, shortenedTo: [...new Set(shortened.get(key))] }
+          : literal,
+      );
     if (gone.length > 0) result.set(file, gone);
   }
   return result;
@@ -182,24 +304,71 @@ function tokenPattern(text) {
   return new RegExp(`(['"\`])${escaped}\\1`);
 }
 
-/** Spec files that still reference a removed literal and were not touched. */
-export function findStaleReferences({ removed, specs, changedFiles }) {
-  const touched = new Set(changedFiles);
-  const untouched = specs.filter((spec) => !touched.has(spec.file));
+/** Strings a spec passes to a text locator without `exact: true`. */
+export function looseLocatorStrings(content) {
+  const found = new Set();
+  for (const match of content.matchAll(LOCATOR_STRING_PATTERN)) {
+    const text = normalizeSpace(match[2]).toLowerCase();
+    if (text.length < MIN_LOCATOR_LENGTH || INTERPOLATION_PATTERN.test(text)) {
+      continue;
+    }
+    const end = match.index + match[0].length;
+    const lookback = content.slice(
+      Math.max(0, match.index - LOCATOR_CALL_LOOKBACK),
+      match.index + match[0].length,
+    );
+    const lastLocator = lookback.lastIndexOf('getBy');
+    const callStart = lastLocator === -1 ? 0 : lastLocator;
+    const lookahead = content.slice(end, end + LOCATOR_CALL_LOOKAHEAD);
+    const closing = lookahead.indexOf(')');
+    const call =
+      lookback.slice(callStart) +
+      (closing === -1 ? lookahead : lookahead.slice(0, closing));
+    if (!EXACT_OPTION_PATTERN.test(call)) found.add(text);
+  }
+  return found;
+}
+
+function isPresentIn(spec, literal, matcher, needle) {
+  if (literal.kind === 'token') return matcher.test(spec.content);
+  if (literal.kind === 'glyph') return spec.content.includes(literal.text);
+  return spec.normalized.includes(needle);
+}
+
+/**
+ * Spec files that still reference a removed literal. A spec the PR touched is
+ * checked too: #10333 edited onboarding.spec.ts and playground-video-actions
+ * and left the very lines that broke, so touching a file proves nothing about
+ * the line. `specs` carry the text as it stands after the PR.
+ */
+export function findStaleReferences({ removed, specs }) {
+  const looseLocators = new Map();
   const findings = [];
   for (const [sourceFile, literals] of removed) {
     for (const literal of literals) {
       const matcher =
         literal.kind === 'token' ? tokenPattern(literal.text) : null;
       const needle = literal.text.toLowerCase();
-      for (const spec of untouched) {
-        const hit =
-          literal.kind === 'token'
-            ? matcher.test(spec.content)
-            : spec.normalized.includes(needle);
-        if (hit) {
+      for (const spec of specs) {
+        if (isPresentIn(spec, literal, matcher, needle)) {
           findings.push({
             literal: literal.text,
+            sourceFile,
+            specFile: spec.file,
+          });
+          continue;
+        }
+        if (!literal.shortenedTo) continue;
+        if (!looseLocators.has(spec.file)) {
+          looseLocators.set(spec.file, looseLocatorStrings(spec.content));
+        }
+        const loose = literal.shortenedTo.find((label) =>
+          looseLocators.get(spec.file).has(label.toLowerCase()),
+        );
+        if (loose) {
+          findings.push({
+            literal: literal.text,
+            looseLocator: loose,
             sourceFile,
             specFile: spec.file,
           });
@@ -208,6 +377,13 @@ export function findStaleReferences({ removed, specs, changedFiles }) {
     }
   }
   return findings;
+}
+
+export function describeFinding(finding) {
+  if (finding.looseLocator) {
+    return `::error file=${finding.specFile}::"${finding.literal}" was shortened in ${finding.sourceFile}, and this spec finds "${finding.looseLocator}" without exact: true, so it now also matches every longer label that contains it. Add exact: true or assert the new label.`;
+  }
+  return `::error file=${finding.specFile}::"${finding.literal}" was removed or changed in ${finding.sourceFile}, but this spec still references it.`;
 }
 
 export function hasOptOut(commitMessages) {
@@ -310,7 +486,6 @@ function run() {
   const removed = removedLiteralsByFile(diff);
   const stillShipped = new Map();
   const findings = findStaleReferences({
-    changedFiles,
     removed,
     specs: loadSpecs(),
   }).filter(({ literal }) => {
@@ -320,9 +495,7 @@ function run() {
     return !stillShipped.get(literal);
   });
   if (findings.length === 0) {
-    console.log(
-      'No removed UI string is still asserted by an untouched e2e spec.',
-    );
+    console.log('No removed UI string is still asserted by an e2e spec.');
     return 0;
   }
 
@@ -335,9 +508,7 @@ function run() {
   }
 
   for (const finding of findings.slice(0, MAX_REPORTED_FINDINGS)) {
-    console.log(
-      `::error file=${finding.specFile}::"${finding.literal}" was removed or changed in ${finding.sourceFile}, but this spec still references it.`,
-    );
+    console.log(describeFinding(finding));
   }
   console.log(
     [
