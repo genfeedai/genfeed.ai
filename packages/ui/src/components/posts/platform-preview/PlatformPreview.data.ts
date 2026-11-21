@@ -9,6 +9,7 @@ import {
   type ChannelCapability,
   type ChannelMediaKind,
   type ChannelTargetValidationResult,
+  getCaptionCeiling,
   getChannelCapability,
   PRODUCTIZED_SCHEDULER_PLATFORMS,
   validateChannelTargetSettings,
@@ -43,15 +44,22 @@ export function countPreviewCharacters(text: string): number {
   return Array.from(text).length;
 }
 
+/**
+ * Count state for the preview. `maxLength` is the standard length the counter
+ * shows; `ceiling` is the longest caption the channel accepts (X long posts).
+ * Only a caption past the ceiling is over the limit and cut in the preview.
+ */
 export function getCaptionPreviewState(
   caption: string,
   maxLength?: number,
+  ceiling: number | undefined = maxLength,
 ): CaptionPreviewState {
   const characters = Array.from(caption);
   const count = characters.length;
 
-  if (!maxLength || count <= maxLength) {
+  if (!ceiling || count <= ceiling) {
     return {
+      ceiling,
       count,
       isOverLimit: false,
       maxLength,
@@ -60,10 +68,11 @@ export function getCaptionPreviewState(
   }
 
   return {
+    ceiling,
     count,
     isOverLimit: true,
     maxLength,
-    previewText: `${characters.slice(0, maxLength).join('')}...`,
+    previewText: `${characters.slice(0, ceiling).join('')}...`,
   };
 }
 
@@ -88,6 +97,7 @@ export function resolvePlatformPreviewTarget(
     captionState: getCaptionPreviewState(
       target.caption,
       capability?.caption.maxLength,
+      capability ? getCaptionCeiling(capability.caption) : undefined,
     ),
     media,
     platformLabel:

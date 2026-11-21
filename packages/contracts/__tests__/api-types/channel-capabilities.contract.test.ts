@@ -384,7 +384,7 @@ describe('validateChannelTargetSettings', () => {
 
   test('enforces text limits and media compatibility', () => {
     const result = validateChannelTargetSettings({
-      caption: 'x'.repeat(281),
+      caption: 'x'.repeat(25_001),
       media: [
         { id: 'asset_1', kind: 'image' },
         { id: 'asset_2', kind: 'image' },
@@ -401,6 +401,40 @@ describe('validateChannelTargetSettings', () => {
         expect.objectContaining({ code: 'channel_target.caption_too_long' }),
         expect.objectContaining({
           code: 'channel_target.too_many_media_items',
+        }),
+      ]),
+    );
+  });
+
+  test('lets an X caption past 280 characters through with a warning', () => {
+    const result = validateChannelTargetSettings({
+      caption: 'x'.repeat(1_200),
+      platform: CredentialPlatform.TWITTER,
+      publishMode: 'scheduled',
+    });
+
+    expect(result.valid).toBe(true);
+    expect(result.errors).toEqual([]);
+    expect(result.warnings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: 'channel_target.caption_over_standard_length',
+        }),
+      ]),
+    );
+  });
+
+  test('does not warn for an X caption within 280 characters', () => {
+    const result = validateChannelTargetSettings({
+      caption: 'x'.repeat(280),
+      platform: CredentialPlatform.TWITTER,
+      publishMode: 'scheduled',
+    });
+
+    expect(result.warnings).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: 'channel_target.caption_over_standard_length',
         }),
       ]),
     );
