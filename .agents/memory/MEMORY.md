@@ -25,6 +25,8 @@ do not load every linked file. Add detailed entries to the catalog, keeping this
 
 - **Feature inventory and product boundaries:** [product feature map](reference_product_feature_map.md) and [Imported / Generated / Knowledge](feedback_imported_generated_knowledge_boundary.md). Read before proposing capture, Ideas or remix UI; GitHub owns live gap status.
 
+- **Editing routes, curated actions, MCP tools, the Prisma schema or UI copy:** [lockstep surfaces](context/lockstep-surfaces.md). Files that must change together, and the check that fails when one is missed.
+
 - **Before implementation:** [system patterns](context/system-patterns.md),
   [project structure](context/project-structure.md), and
   [style guide](context/project-style-guide.md). Read the relevant sections.

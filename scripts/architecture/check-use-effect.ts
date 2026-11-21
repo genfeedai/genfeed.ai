@@ -12,7 +12,7 @@
  *   use_effect                  every `useEffect(` / `React.useEffect(` call
  *   async_effect_without_abort  an effect callback that awaits, calls `.then`
  *                               or `fetch`, and never mentions AbortController,
- *                               AbortSignal or `signal` (AGENTS.md rule 19)
+ *                               AbortSignal or `signal` (AGENTS.md Enforced Rules)
  *
  * Counts may only go down. A new file, or a file whose count rises, fails. A
  * file whose count falls fails until its baseline entry is pruned in the same

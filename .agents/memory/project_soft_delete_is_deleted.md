@@ -15,4 +15,4 @@ type: project
 - Wire APIs that need a deletion instant surface **`updatedAt`** (with `isDeleted: true`), not a parallel timestamp field.
 - Desktop local DB (`@genfeedai/desktop-prisma` `DesktopAsset`) uses `isDeleted` (migration `0004_desktop_asset_is_deleted`); contracts mirror that.
 
-**Related:** `AGENTS.md` rule 11 (never use `deletedAt`), desktop sync push rejection path in `desktop-sync.service.ts`.
+**Related:** `AGENTS.md` Data rules (never use `deletedAt`), desktop sync push rejection path in `desktop-sync.service.ts`.
