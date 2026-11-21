@@ -1,0 +1,27 @@
+// Fixed sleeps in tests. Fake timers, or wait on the real event. See "Tests and Finish Condition" in AGENTS.md.
+// Bare `setTimeout` is denied by `style/noRestrictedGlobals` in the same biome.json override.
+language js;
+
+or {
+  `$page.waitForTimeout($_)` as $call where {
+    register_diagnostic(
+      span = $call,
+      message = "No waitForTimeout in tests. Wait on a locator, a response or a URL (expect(locator).toBeVisible(), page.waitForResponse, expect.poll).",
+      severity = "error"
+    )
+  },
+  or { `globalThis.setTimeout($_, $_)`, `global.setTimeout($_, $_)`, `window.setTimeout($_, $_)` } as $call where {
+    register_diagnostic(
+      span = $call,
+      message = "No setTimeout sleeps in tests. Use fake timers (vi.useFakeTimers + vi.advanceTimersByTimeAsync) or wait on the real event.",
+      severity = "error"
+    )
+  },
+  or { `import $_ from "node:timers/promises"`, `import $_ from "timers/promises"` } as $import where {
+    register_diagnostic(
+      span = $import,
+      message = "No timers/promises sleeps in tests. Use fake timers or wait on the real event.",
+      severity = "error"
+    )
+  }
+}
