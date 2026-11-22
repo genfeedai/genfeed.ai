@@ -2,6 +2,7 @@ import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { SocialSourceHistoryImportModule } from '@api/collections/social-sources/social-source-history-import.module';
 import { SocialWarmupEnrollmentsModule } from '@api/collections/social-warmup-enrollments/social-warmup-enrollments.module';
+import { DEFAULT_HTTP_TIMEOUT_MS } from '@api/constants/http-timeout.constant';
 import { SERVER_TOKENS } from '@api/server.dependencies';
 import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
 import { FileQueueModule } from '@api/services/files-microservice/queue/file-queue.module';
@@ -32,7 +33,7 @@ const BaseModule = createServiceModule(YoutubeService, {
     TagResolutionModule,
     BrandsCoreModule,
     CredentialsCoreModule,
-    HttpModule,
+    HttpModule.register({ timeout: DEFAULT_HTTP_TIMEOUT_MS }),
   ],
   additionalProviders: [
     YoutubeAuthService,

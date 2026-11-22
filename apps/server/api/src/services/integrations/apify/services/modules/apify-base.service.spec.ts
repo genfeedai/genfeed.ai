@@ -1,3 +1,4 @@
+import { UPLOAD_HTTP_TIMEOUT_MS } from '@api/constants/http-timeout.constant';
 import { ByokProviderFactoryService } from '@api/services/byok/byok-provider-factory.service';
 import { ApifyBaseService } from '@api/services/integrations/apify/services/modules/apify-base.service';
 import { runWithApifyCaller } from '@api/services/integrations/apify/utils/apify-caller.context';
@@ -186,6 +187,7 @@ describe('ApifyBaseService', () => {
           Authorization: 'Bearer test-token',
           'Content-Type': 'application/json',
         },
+        timeout: UPLOAD_HTTP_TIMEOUT_MS,
       },
     );
   });

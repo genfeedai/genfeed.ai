@@ -46,6 +46,7 @@ import { TagsModule } from '@api/collections/tags/tags.module';
 import { TemplatesModule } from '@api/collections/templates/templates.module';
 import { TrainingsModule } from '@api/collections/trainings/trainings.module';
 import { VotesModule } from '@api/collections/votes/votes.module';
+import { DEFAULT_HTTP_TIMEOUT_MS } from '@api/constants/http-timeout.constant';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { ModelsGuard } from '@api/helpers/guards/models/models.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
@@ -105,7 +106,7 @@ import { Module } from '@nestjs/common';
     BrandsCoreModule,
     ByokModule,
     CreditsModule,
-    HttpModule,
+    HttpModule.register({ timeout: DEFAULT_HTTP_TIMEOUT_MS }),
     IngredientsModule,
     MetadataModule,
     OrganizationSettingsModule,
