@@ -255,6 +255,24 @@ describe('TwitterService (coverage)', () => {
       expect(result).toEqual(updated);
     });
 
+    it('never writes isDeleted, so a credential deleted mid-refresh stays deleted', async () => {
+      credentialsService.findOne.mockResolvedValue(
+        makeCredential({ refreshToken: 'enc-rt' }),
+      );
+      mockRefreshOAuth2Token.mockResolvedValue({
+        accessToken: 'new-access',
+        expiresIn: 7200,
+        refreshToken: 'new-refresh',
+      });
+      credentialsService.patch.mockResolvedValue(makeCredential());
+
+      await service.refreshToken('org', 'brand');
+
+      expect(credentialsService.patch.mock.calls[0][1]).not.toHaveProperty(
+        'isDeleted',
+      );
+    });
+
     it('propagates a failed write without sending another refresh request', async () => {
       const cred = makeCredential({ refreshToken: 'enc-rt' });
       credentialsService.findOne.mockResolvedValue(cred);

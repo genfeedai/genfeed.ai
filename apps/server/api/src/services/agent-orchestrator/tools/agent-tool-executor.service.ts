@@ -51,6 +51,7 @@ import {
   isAgentStoryboardTool,
 } from '@api/services/agent-orchestrator/tools/agent-storyboard-tool-handler.service';
 import { AgentThreadToolHandler } from '@api/services/agent-orchestrator/tools/agent-thread-tool-handler.service';
+import { moveUndeclaredBrandArgument } from '@api/services/agent-orchestrator/tools/agent-tool-brand-argument.util';
 import { AgentToolCatalogHandler } from '@api/services/agent-orchestrator/tools/agent-tool-catalog-handler.service';
 import { dispatchRegisteredAgentTool } from '@api/services/agent-orchestrator/tools/agent-tool-dispatch.routes';
 import {
@@ -532,6 +533,10 @@ export class AgentToolExecutorService implements OnModuleInit {
       }
     }
     assertScope(context.apiKeyContext ?? {}, toolName, parameters);
+    ({ context, parameters } = moveUndeclaredBrandArgument(toolName, {
+      context,
+      parameters,
+    }));
     try {
       // The runner persists an execution before dispatching its tool node.
       // Reject inaccessible brands before that write, then recheck at dispatch.

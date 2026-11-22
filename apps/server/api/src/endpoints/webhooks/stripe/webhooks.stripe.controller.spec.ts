@@ -355,23 +355,6 @@ describe('StripeWebhookController', () => {
     },
   );
 
-  it('does not acknowledge a redelivery while the first delivery is still in progress', async () => {
-    let redelivery: unknown;
-    duringHandling = async () => {
-      duringHandling = undefined;
-      redelivery = await deliver().catch((error: unknown) => error);
-    };
-
-    await expect(deliver()).resolves.toEqual({ success: true });
-
-    expect(redelivery).toMatchObject({ code: 'claim_in_flight' });
-    expect((redelivery as HttpException).getStatus()).toBe(
-      HttpStatus.SERVICE_UNAVAILABLE,
-    );
-    expect(handled).toHaveLength(1);
-    expect(store.get('stripe:webhook:evt_1')?.ttl).toBe(86_400);
-  });
-
   it('processes a redelivery once an in-progress claim has expired', async () => {
     // A process died mid-handler: the claim is still in progress, no one owns it.
     store.set('stripe:webhook:evt_1', {

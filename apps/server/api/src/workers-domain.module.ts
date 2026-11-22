@@ -229,7 +229,6 @@ import { TurboRunReconcileService } from '@api/services/turbo-run/turbo-run-reco
 import { TurboRunStreamService } from '@api/services/turbo-run/turbo-run-stream.service';
 import { GenerationEventWebhookService } from '@api/services/webhook-client/generation-event-webhook.service';
 import { PublishEventWebhookService } from '@api/services/webhook-client/publish-event-webhook.service';
-import { WebhookClientService } from '@api/services/webhook-client/webhook-client.service';
 import { WebhookDispatchService } from '@api/services/webhook-client/webhook-dispatch.service';
 import { WorkflowEventWebhookService } from '@api/services/webhook-client/workflow-event-webhook.service';
 import { WhisperService } from '@api/services/whisper/whisper.service';
@@ -438,7 +437,6 @@ const WORKER_DOMAIN_SERVICES = [
   VideoGenerationLineageService,
   VoiceGenerationService,
   VoicesService,
-  WebhookClientService,
   WebhookDispatchService,
   WebhooksService,
   WhatsappPublisherService,

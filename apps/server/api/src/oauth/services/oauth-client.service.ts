@@ -1,7 +1,11 @@
 import { randomBytes } from 'node:crypto';
 import { JWT_BEARER_GRANT_TYPE } from '@api/oauth/enterprise-managed-auth.constants';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { safeFetch } from '@libs/security/destination-guard';
+import { LoggerService } from '@libs/logger/logger.service';
+import {
+  DestinationGuardError,
+  safeFetch,
+} from '@libs/security/destination-guard';
 import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { z } from 'zod';
@@ -11,6 +15,12 @@ const REDIRECT_URI_SCHEME_PATTERN = /^[a-z][a-z0-9+.-]*$/;
 const MAX_AGE_CACHE_CONTROL_PATTERN = /(?:^|,)\s*max-age=(\d+)/i;
 const NO_STORE_CACHE_CONTROL_PATTERN =
   /(?:^|,)\s*(?:no-store|no-cache)(?:\s|,|$)/i;
+
+/**
+ * The metadata host could not answer (network error, timeout, 5xx). Distinct
+ * from a document the host did answer with and we rejected.
+ */
+class ClientMetadataUnavailableError extends Error {}
 
 export type OAuthClientRecord = {
   clientId: string;
@@ -184,6 +194,21 @@ function validateRedirectUri(value: string): string {
   );
 }
 
+function sameMetadata(
+  persisted: OAuthClientRecord,
+  next: Omit<OAuthClientRecord, 'clientId' | 'createdAt'>,
+): boolean {
+  const same = (a: readonly string[], b: readonly string[]) =>
+    a.length === b.length && a.every((value, index) => value === b[index]);
+  return (
+    persisted.clientName === next.clientName &&
+    persisted.tokenEndpointAuthMethod === next.tokenEndpointAuthMethod &&
+    same(persisted.grantTypes, next.grantTypes) &&
+    same(persisted.redirectUris, next.redirectUris) &&
+    same(persisted.responseTypes, next.responseTypes)
+  );
+}
+
 @Traced()
 @Injectable()
 export class OAuthClientService {
@@ -192,7 +217,15 @@ export class OAuthClientService {
     { client: OAuthClientRecord; expiresAt: number }
   >();
 
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly inflightDocuments = new Map<
+    string,
+    Promise<OAuthClientRecord>
+  >();
+
+  constructor(
+    private readonly logger: LoggerService,
+    private readonly prisma: PrismaService,
+  ) {}
 
   async register(dto: RegisterOAuthClientDto) {
     const redirectUris = Array.from(
@@ -222,13 +255,51 @@ export class OAuthClientService {
     };
   }
 
+  /**
+   * `allowPersistedFallback` is for token refresh and revocation only: when the
+   * metadata host is unreachable (network error, timeout, 5xx) the row persisted
+   * from an earlier successful fetch stands in. A 4xx or an invalid document is
+   * the client's own answer and never falls back. Authorization and code
+   * exchange stay strict so consent always reflects the live document.
+   */
   async requireClient(
     clientId: string,
     redirectUri?: string,
+    options: { allowPersistedFallback?: boolean } = {},
   ): Promise<OAuthClientRecord> {
-    const client = clientId.startsWith('oauth_')
-      ? await this.prisma.oAuthClient.findUnique({ where: { clientId } })
-      : await this.resolveDocumentClient(clientId);
+    const isDocumentClient = !clientId.startsWith('oauth_');
+    let persisted: OAuthClientRecord | null = null;
+    let client: OAuthClientRecord | null;
+    let fromPersistedFallback = false;
+    if (!isDocumentClient) {
+      client = await this.prisma.oAuthClient.findUnique({
+        where: { clientId },
+      });
+    } else {
+      persisted = await this.prisma.oAuthClient.findUnique({
+        where: { clientId },
+      });
+      try {
+        client = await this.resolveDocumentClient(clientId);
+      } catch (error) {
+        if (
+          !(error instanceof ClientMetadataUnavailableError) ||
+          !options.allowPersistedFallback ||
+          !persisted
+        ) {
+          throw oauthError(
+            'invalid_client',
+            'Unable to validate client metadata document',
+          );
+        }
+        this.logger.warn(
+          'OAuth client metadata host unavailable; using persisted client',
+          { clientId, reason: error.message },
+        );
+        client = persisted;
+        fromPersistedFallback = true;
+      }
+    }
     if (!client) {
       throw oauthError('invalid_client', 'Unknown OAuth client');
     }
@@ -247,29 +318,35 @@ export class OAuthClientService {
       }
     }
 
-    if (!clientId.startsWith('oauth_')) {
-      // Grant and refresh rows reference oauth_clients.clientId. Persist only
-      // validated document metadata; subsequent requests still resolve CIMD
-      // rather than trusting this snapshot as a registered client.
-      const metadata = {
-        clientName: client.clientName,
-        grantTypes: client.grantTypes,
-        redirectUris: client.redirectUris,
-        responseTypes: client.responseTypes,
-        tokenEndpointAuthMethod: client.tokenEndpointAuthMethod,
-      };
-      await this.prisma.oAuthClient.upsert({
-        where: { clientId },
-        create: { clientId, ...metadata },
-        update: metadata,
-      });
+    if (isDocumentClient && !fromPersistedFallback) {
+      await this.persistDocumentClient(client, persisted);
     }
     return client;
   }
 
-  private async resolveDocumentClient(
-    clientId: string,
-  ): Promise<OAuthClientRecord> {
+  private async persistDocumentClient(
+    client: OAuthClientRecord,
+    persisted: OAuthClientRecord | null,
+  ): Promise<void> {
+    // Grant and refresh rows reference oauth_clients.clientId. Persist only
+    // validated document metadata; subsequent requests still resolve CIMD
+    // rather than trusting this snapshot as a registered client.
+    const metadata = {
+      clientName: client.clientName,
+      grantTypes: client.grantTypes,
+      redirectUris: client.redirectUris,
+      responseTypes: client.responseTypes,
+      tokenEndpointAuthMethod: client.tokenEndpointAuthMethod,
+    };
+    if (persisted && sameMetadata(persisted, metadata)) return;
+    await this.prisma.oAuthClient.upsert({
+      where: { clientId: client.clientId },
+      create: { clientId: client.clientId, ...metadata },
+      update: metadata,
+    });
+  }
+
+  private resolveDocumentClient(clientId: string): Promise<OAuthClientRecord> {
     try {
       const url = new URL(clientId);
       if (
@@ -282,10 +359,34 @@ export class OAuthClientService {
       ) {
         throw new Error('Invalid client metadata URL');
       }
-      const cached = this.documentClients.get(clientId);
-      if (cached && cached.expiresAt > Date.now()) return cached.client;
-      this.documentClients.delete(clientId);
-      const response = await safeFetch(
+    } catch {
+      return Promise.reject(
+        oauthError(
+          'invalid_client',
+          'Unable to validate client metadata document',
+        ),
+      );
+    }
+    const cached = this.documentClients.get(clientId);
+    if (cached && cached.expiresAt > Date.now()) {
+      return Promise.resolve(cached.client);
+    }
+    this.documentClients.delete(clientId);
+    const inflight = this.inflightDocuments.get(clientId);
+    if (inflight) return inflight;
+    const fetched = this.fetchDocumentClient(clientId).finally(() => {
+      this.inflightDocuments.delete(clientId);
+    });
+    this.inflightDocuments.set(clientId, fetched);
+    return fetched;
+  }
+
+  private async fetchDocumentClient(
+    clientId: string,
+  ): Promise<OAuthClientRecord> {
+    let response: Response;
+    try {
+      response = await safeFetch(
         clientId,
         {
           headers: { Accept: 'application/json' },
@@ -294,6 +395,23 @@ export class OAuthClientService {
         },
         { allowedSchemes: ['https:'], maxRedirects: 0 },
       );
+    } catch (error) {
+      // A destination the guard refuses is a policy answer, not an outage.
+      if (error instanceof DestinationGuardError) {
+        throw oauthError(
+          'invalid_client',
+          'Unable to validate client metadata document',
+        );
+      }
+      throw new ClientMetadataUnavailableError(
+        error instanceof Error ? error.name : 'fetch failed',
+      );
+    }
+    if (response.status >= 500) {
+      await response.body?.cancel();
+      throw new ClientMetadataUnavailableError(`status ${response.status}`);
+    }
+    try {
       if (
         !response.ok ||
         response.headers
@@ -321,21 +439,7 @@ export class OAuthClientService {
         responseTypes: metadata.response_types,
         tokenEndpointAuthMethod: metadata.token_endpoint_auth_method,
       };
-      const cacheControl = response.headers.get('cache-control') ?? '';
-      const maxAge = MAX_AGE_CACHE_CONTROL_PATTERN.exec(cacheControl)?.[1];
-      const ttl = NO_STORE_CACHE_CONTROL_PATTERN.test(cacheControl)
-        ? 0
-        : Math.min(Number(maxAge ?? 60), 300) * 1000;
-      if (ttl > 0) {
-        if (this.documentClients.size >= 256) {
-          const oldest = this.documentClients.keys().next().value;
-          if (oldest !== undefined) this.documentClients.delete(oldest);
-        }
-        this.documentClients.set(clientId, {
-          client,
-          expiresAt: Date.now() + ttl,
-        });
-      }
+      this.cacheDocumentClient(clientId, client, response);
       return client;
     } catch {
       throw oauthError(
@@ -343,5 +447,23 @@ export class OAuthClientService {
         'Unable to validate client metadata document',
       );
     }
+  }
+
+  private cacheDocumentClient(
+    clientId: string,
+    client: OAuthClientRecord,
+    response: Response,
+  ): void {
+    const cacheControl = response.headers.get('cache-control') ?? '';
+    const maxAge = MAX_AGE_CACHE_CONTROL_PATTERN.exec(cacheControl)?.[1];
+    const ttl = NO_STORE_CACHE_CONTROL_PATTERN.test(cacheControl)
+      ? 0
+      : Math.min(Number(maxAge ?? 60), 300) * 1000;
+    if (ttl <= 0) return;
+    if (this.documentClients.size >= 256) {
+      const oldest = this.documentClients.keys().next().value;
+      if (oldest !== undefined) this.documentClients.delete(oldest);
+    }
+    this.documentClients.set(clientId, { client, expiresAt: Date.now() + ttl });
   }
 }

@@ -34,6 +34,7 @@ describe('MusicsOperationsController', () => {
   const loggerService = {
     error: vi.fn(),
     log: vi.fn(),
+    warn: vi.fn(),
   };
 
   const user = {
@@ -87,6 +88,24 @@ describe('MusicsOperationsController', () => {
     musicGenerationService.generateMusic.mockRejectedValue(error);
 
     await expect(controller.create(request, user, dto)).rejects.toBe(error);
+    expect(loggerService.warn).toHaveBeenCalledWith(
+      'MusicsOperationsController.create failed',
+      expect.objectContaining({
+        operation: 'create',
+        service: 'MusicsOperationsController',
+      }),
+    );
+    expect(loggerService.error).not.toHaveBeenCalled();
+  });
+
+  it('logs delegated server faults as errors', async () => {
+    const error = new HttpException(
+      { detail: 'Provider unavailable', title: 'Provider failed' },
+      HttpStatus.SERVICE_UNAVAILABLE,
+    );
+    musicGenerationService.generateMusic.mockRejectedValue(error);
+
+    await expect(controller.create(request, user, dto)).rejects.toBe(error);
     expect(loggerService.error).toHaveBeenCalledWith(
       'MusicsOperationsController.create failed',
       expect.objectContaining({
@@ -94,6 +113,7 @@ describe('MusicsOperationsController', () => {
         service: 'MusicsOperationsController',
       }),
     );
+    expect(loggerService.warn).not.toHaveBeenCalled();
   });
 
   it('preserves POST /musics and its OpenAPI identity', () => {

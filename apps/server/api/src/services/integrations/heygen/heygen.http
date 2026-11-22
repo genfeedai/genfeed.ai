@@ -1,7 +1,7 @@
 ### Genfeed HeyGen catalogs (backed by HeyGen API v3)
 
-### Available renderable avatar looks
-GET {{apiBaseUrl}}/heygen/avatars
+### One page of renderable avatar looks (public by default)
+GET {{apiBaseUrl}}/heygen/avatars/page?ownership=public
 Authorization: Bearer {{bearerToken}}
 
 ### Public and connected-account voices

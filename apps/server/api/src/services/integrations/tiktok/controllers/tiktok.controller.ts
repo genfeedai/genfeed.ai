@@ -9,6 +9,10 @@ import {
   oauthLogFlags,
   throwIfOAuthCallbackError,
 } from '@api/collections/credentials/utils/oauth-callback-error.util';
+import {
+  claimOAuthVerifyCredential,
+  verifiedOAuthState,
+} from '@api/collections/credentials/utils/oauth-verify-claim.util';
 import { SocialSourceHistoryImportService } from '@api/collections/social-sources/services/social-source-history-import.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -144,11 +148,15 @@ export class TiktokController {
         );
       }
 
-      const existingCredential =
-        await this.credentialsService.findPendingOAuthCredential(
-          state,
-          CredentialPlatform.TIKTOK,
-        );
+      const claim = await claimOAuthVerifyCredential(
+        this.credentialsService,
+        state,
+        CredentialPlatform.TIKTOK,
+      );
+      if (claim?.alreadyConnected) {
+        return serializeSingle(request, CredentialSerializer, claim.credential);
+      }
+      const existingCredential = claim?.credential;
 
       if (!existingCredential) {
         throw new HttpException(
@@ -213,7 +221,7 @@ export class TiktokController {
             : undefined,
           isConnected: true,
           isDeleted: false, // Reactivate if previously disconnected
-          oauthState: null,
+          oauthState: verifiedOAuthState(state),
           refreshToken: refresh_token,
           refreshTokenExpiry: refreshExpiresIn
             ? new Date(Date.now() + refreshExpiresIn * 1000)

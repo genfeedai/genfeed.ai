@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import {
   getAccountConnectionStatus,
   getConnectionLabel,
+  getReconnectReason,
   isAccessTokenExpired,
   needsDirectMessageReconnect,
 } from './account-connection-status.util';
@@ -113,4 +114,36 @@ describe('needsDirectMessageReconnect', () => {
       ).toBe(expected);
     },
   );
+});
+
+describe('getReconnectReason', () => {
+  it.each([
+    ['no platform identity', { externalId: undefined }, 'noIdentity'],
+    ['a lapsed connection', { isConnected: false }, 'disconnected'],
+    [
+      'an expired token',
+      { accessTokenExpiry: '2020-01-01T00:00:00.000Z' },
+      'expired',
+    ],
+    ['a healthy connection', {}, undefined],
+  ] as const)('names %s', (_label, overrides, expected) => {
+    expect(getReconnectReason(buildConnection({ ...overrides }))).toBe(
+      expected,
+    );
+  });
+
+  it('agrees with getAccountConnectionStatus on which accounts need a reason', () => {
+    const connections = [
+      buildConnection({ externalId: undefined }),
+      buildConnection({ isConnected: false }),
+      buildConnection({ accessTokenExpiry: '2020-01-01T00:00:00.000Z' }),
+      buildConnection(),
+    ];
+
+    for (const connection of connections) {
+      expect(getReconnectReason(connection) !== undefined).toBe(
+        getAccountConnectionStatus(connection) === 'needsReconnect',
+      );
+    }
+  });
 });

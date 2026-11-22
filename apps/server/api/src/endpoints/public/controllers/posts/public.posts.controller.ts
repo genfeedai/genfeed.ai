@@ -145,7 +145,6 @@ export class PublicPostsController {
   @Get()
   @Cache({
     keyGenerator: (req) => `public:posts:${JSON.stringify(req.query)}`,
-    isInvalidationGuarded: true,
     tags: ['posts', 'public', CACHE_TAGS.PUBLIC_BRAND_CONTENT],
     ttl: 600, // 10 minutes
   })
@@ -224,7 +223,6 @@ export class PublicPostsController {
   @Cache({
     keyGenerator: (req) =>
       `public:posts:ingredients:${JSON.stringify(req.query)}`,
-    isInvalidationGuarded: true,
     tags: ['ingredients', 'posts', 'public', CACHE_TAGS.PUBLIC_BRAND_CONTENT],
     ttl: 600, // 10 minutes
   })
@@ -291,7 +289,6 @@ export class PublicPostsController {
   @Cache({
     keyGenerator: (req) =>
       `public:post:${req.params?.postId ?? 'unknown'}:brand:${req.query?.brand ?? ''}`,
-    isInvalidationGuarded: true,
     tags: ['posts', CACHE_TAGS.PUBLIC_BRAND_CONTENT],
     ttl: 1800, // 30 minutes
   })

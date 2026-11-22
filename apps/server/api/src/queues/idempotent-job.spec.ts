@@ -54,4 +54,41 @@ describe('reserveIdempotentJob', () => {
       expect(removed).toEqual(['job-1']);
     });
   }
+
+  describe('when a concurrent enqueue reclaims the id before the removal', () => {
+    function racingQueue(afterRemoveFails: 'active' | undefined) {
+      let reads = 0;
+      return {
+        getJob: async () => {
+          reads += 1;
+          if (reads === 1) {
+            return {
+              getState: async (): Promise<'completed'> => 'completed',
+              remove: async () => {
+                throw new Error('Could not remove job: locked');
+              },
+            };
+          }
+          return afterRemoveFails
+            ? {
+                getState: async () => afterRemoveFails,
+                remove: async () => undefined,
+              }
+            : undefined;
+        },
+      };
+    }
+
+    it('reports the reclaimed job as already queued', async () => {
+      const result = await reserveIdempotentJob(racingQueue('active'), 'job-1');
+
+      expect(result).toEqual({ alreadyQueued: true, state: 'active' });
+    });
+
+    it('still throws when the removal failed for another reason', async () => {
+      await expect(
+        reserveIdempotentJob(racingQueue(undefined), 'job-1'),
+      ).rejects.toThrow('locked');
+    });
+  });
 });

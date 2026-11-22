@@ -3,6 +3,7 @@ import type { TrendingSoundDocument } from '@api/collections/trends/schemas/tren
 import type { TrendingVideoDocument } from '@api/collections/trends/schemas/trending-video.schema';
 import { TrendRefreshHealthService } from '@api/collections/trends/services/modules/trend-refresh-health.service';
 import { isWithinTimeframe } from '@api/collections/trends/utils/brand-niche.util';
+import { logTrendProviderFailure } from '@api/collections/trends/utils/trend-provider-failure-log.util';
 import {
   captureTrendRefreshEvidence,
   classifyTrendProviderError,
@@ -294,7 +295,8 @@ export class TrendVideoService {
                 ? 'persistence_failed'
                 : classifyTrendProviderError(error),
             );
-            this.loggerService.error(
+            logTrendProviderFailure(
+              this.loggerService,
               `Failed to fetch viral videos for ${platform}`,
               error,
             );
@@ -544,7 +546,8 @@ export class TrendVideoService {
                 ? 'persistence_failed'
                 : classifyTrendProviderError(error),
             );
-            this.loggerService.error(
+            logTrendProviderFailure(
+              this.loggerService,
               `Failed to fetch hashtags for ${platform}`,
               error,
             );

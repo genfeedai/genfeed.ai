@@ -8,6 +8,7 @@ then open the relevant topic files. Add detailed topic entries here; keep MEMORY
 - [Voluntary contributions](feedback_voluntary_contributions.md) — repository contributions are unpaid; never advertise funded contributor work
 - [Website direct booking links](feedback_website_direct_booking_links.md) — Book a call opens the configured booking page; no scheduling iframe
 
+- [interleaving-models](rules/interleaving-models.md) — claim, retry and promote protocols get a `*.model.spec.ts` that runs the real code on every schedule, crash and expiry, and replays the past bug
 - [product_switches_in_platform_settings](rules/product_switches_in_platform_settings.md) — product feature switches are typed Admin platform settings read through the cached `getFeatureSettings()`; env holds only secrets and infrastructure (#5407)
 - [never_lose_code](never_lose_code.md) — branch+push WIP before destructive git ops
 - [Keep future delivery workflows](feedback_keep_future_delivery_workflows.md) — browser/mobile/IDE lanes remain available; manual browser/mobile runs default to validation, with release readiness verified separately

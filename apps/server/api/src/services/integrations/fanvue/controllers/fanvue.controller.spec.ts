@@ -102,7 +102,9 @@ function setup({
       Object.assign(row, { account, isConnected: true, secrets });
       return { id: row.id, isConnected: true };
     },
-    findPendingOAuthCredential: async (state: string, platform: string) => {
+    // No request has claimed any state, so a lost claim finds nothing to wait for.
+    findOne: async () => null,
+    claimPendingOAuthCredential: async (state: string, platform: string) => {
       const row = credentials.find(
         (item) =>
           item.state === state &&

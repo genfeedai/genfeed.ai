@@ -53,7 +53,7 @@ describe('FileProcessor', () => {
   };
   let ffmpegService: {
     getTempPath: ReturnType<typeof vi.fn>;
-    cleanupTempFiles: ReturnType<typeof vi.fn>;
+    removeTempDir: ReturnType<typeof vi.fn>;
     addTextOverlay: ReturnType<typeof vi.fn>;
   };
   let httpService: { get: ReturnType<typeof vi.fn> };
@@ -76,7 +76,7 @@ describe('FileProcessor', () => {
     };
     ffmpegService = {
       addTextOverlay: vi.fn().mockResolvedValue(undefined),
-      cleanupTempFiles: vi.fn().mockResolvedValue(undefined),
+      removeTempDir: vi.fn().mockResolvedValue(undefined),
       getTempPath: vi.fn((type: string, id: string) => `/tmp/${type}-${id}`),
     };
     httpService = {
@@ -306,9 +306,9 @@ describe('FileProcessor', () => {
       const result = await processor.handleCleanupFiles(job);
 
       expect(result.success).toBe(true);
-      expect(ffmpegService.cleanupTempFiles).toHaveBeenCalledWith(
-        'ingredient-1',
+      expect(ffmpegService.removeTempDir).toHaveBeenCalledWith(
         'clips',
+        'ingredient-1',
       );
     });
 
@@ -320,14 +320,14 @@ describe('FileProcessor', () => {
 
       await processor.handleCleanupFiles(job);
 
-      expect(ffmpegService.cleanupTempFiles).toHaveBeenCalledWith(
-        'ingredient-1',
+      expect(ffmpegService.removeTempDir).toHaveBeenCalledWith(
         'output',
+        'ingredient-1',
       );
     });
 
     it('does not throw and returns success: false on cleanup failure', async () => {
-      ffmpegService.cleanupTempFiles.mockRejectedValueOnce(new Error('locked'));
+      ffmpegService.removeTempDir.mockRejectedValueOnce(new Error('locked'));
       const job = createMockJob('cleanup-temp-files', createJobData());
 
       const result = await processor.handleCleanupFiles(job);

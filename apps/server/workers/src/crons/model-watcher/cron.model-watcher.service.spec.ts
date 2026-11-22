@@ -129,6 +129,7 @@ describe('CronModelWatcherService', () => {
               status: 'unavailable',
             }),
             fetchReplicateSchema: vi.fn(),
+            findTakenKeys: vi.fn().mockResolvedValue(new Set<string>()),
             touchLastSyncedAt: vi.fn().mockResolvedValue(undefined),
           },
         },
@@ -248,6 +249,52 @@ describe('CronModelWatcherService', () => {
       expect(
         modelDiscoveryService.createDraftModel.mock.calls[0][0],
       ).not.toHaveProperty('categoryConfidence');
+    });
+
+    it('neither counts nor drafts a listed model whose key another provider or a retired row holds', async () => {
+      globalThis.fetch = vi.fn().mockResolvedValueOnce({
+        json: () =>
+          Promise.resolve({
+            next: null,
+            results: [
+              {
+                is_official: true,
+                description: 'Held by an OpenRouter row',
+                latest_version: { id: 'v1', openapi_schema: {} },
+                name: 'gpt-4o',
+                owner: 'openai',
+                url: 'https://replicate.com/openai/gpt-4o',
+              },
+              {
+                is_official: true,
+                description: 'A brand new model',
+                latest_version: { id: 'v2', openapi_schema: {} },
+                name: 'imagen-5',
+                owner: 'google',
+                url: 'https://replicate.com/google/imagen-5',
+              },
+            ],
+          }),
+        ok: true,
+      } as Response);
+      modelDiscoveryService.findTakenKeys.mockResolvedValueOnce(
+        new Set(['openai/gpt-4o']),
+      );
+      modelDiscoveryService.createDraftModel.mockResolvedValueOnce({
+        id: 'new-draft-id',
+        key: 'google/imagen-5',
+      } as unknown as ServerModelRecord);
+
+      const result = await service.discoverNewModels();
+
+      expect(result.newModelsFound).toBe(1);
+      expect(result.draftsCreated).toBe(1);
+      expect(result.errors).toBe(0);
+      expect(
+        modelDiscoveryService.createDraftModel.mock.calls.map(
+          ([input]) => input.endpoint,
+        ),
+      ).toEqual(['google/imagen-5']);
     });
 
     it('carries the category confidence onto the draft when one was decided', async () => {

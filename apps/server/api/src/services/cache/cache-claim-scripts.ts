@@ -30,3 +30,11 @@ end
 redis.call('DEL', KEYS[1])
 return 1
 `;
+
+export const EXTEND_OWNED_LOCK_SCRIPT = `
+if redis.call('GET', KEYS[1]) ~= ARGV[1] then
+  return 0
+end
+redis.call('EXPIRE', KEYS[1], ARGV[2])
+return 1
+`;

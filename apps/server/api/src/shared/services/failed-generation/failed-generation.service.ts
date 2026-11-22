@@ -178,12 +178,13 @@ export class FailedGenerationService {
         room,
       );
     } else {
-      setTimeout(() => {
-        void this.websocketService.emit(websocketUrl, {
-          result: null,
-          status: IngredientStatus.FAILED,
-        });
-      }, delay);
+      // Wait here instead of on a detached timer: a timer that outlives the
+      // job is lost when the process stops, and its rejection has no handler.
+      await new Promise<void>((resolve) => setTimeout(resolve, delay));
+      await this.websocketService.emit(websocketUrl, {
+        result: null,
+        status: IngredientStatus.FAILED,
+      });
     }
   }
 

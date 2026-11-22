@@ -71,8 +71,7 @@ describe.skipIf(!connectionString)(
         prisma as unknown as PrismaService,
         logger as never,
         {
-          invalidateByTags: vi.fn(),
-          invalidateGuardedTags: vi.fn().mockResolvedValue(0),
+          invalidateByTags: vi.fn().mockResolvedValue(0),
         } as never,
         cacheInvalidationService as never,
         accessBootstrapCacheService as never,
