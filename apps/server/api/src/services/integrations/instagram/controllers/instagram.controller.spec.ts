@@ -46,7 +46,7 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 import type { Request } from 'express';
-import { of, throwError } from 'rxjs';
+import { of, Subject, throwError } from 'rxjs';
 
 const instagramBrandId = testId('brand');
 const instagramOrganizationId = testId('org');
@@ -421,6 +421,7 @@ describe('InstagramController', () => {
         exchange?: Record<string, unknown>;
         businessId?: string;
         debugToken?: () => unknown;
+        identity?: () => unknown;
       } = {},
     ) {
       httpGetMock.mockImplementation((url: string) => {
@@ -430,12 +431,15 @@ describe('InstagramController', () => {
           });
         }
         if (url.endsWith('/me')) {
-          return of({
-            data: {
-              client_business_id: overrides.businessId ?? 'business-1',
-              id: 'system-user-1',
-            },
-          });
+          return (
+            overrides.identity?.() ??
+            of({
+              data: {
+                client_business_id: overrides.businessId ?? 'business-1',
+                id: 'system-user-1',
+              },
+            })
+          );
         }
         if (url.endsWith('/debug_token')) {
           return (
@@ -666,6 +670,42 @@ describe('InstagramController', () => {
       expect(
         instagramServiceMock.listAuthorizedInstagramAccounts,
       ).toHaveBeenCalled();
+    });
+
+    it('asks for the business identity and the granted permissions at the same time', async () => {
+      const identity = new Subject<{ data: Record<string, string> }>();
+      const debugToken = new Subject<{ data: Record<string, unknown> }>();
+      mockGraphReads({
+        debugToken: () => debugToken,
+        identity: () => identity,
+      });
+
+      const pending = controller.verify(mockRequest, {
+        code: 'auth-code',
+        state,
+      });
+      await new Promise((resolve) => setImmediate(resolve));
+
+      // Neither read has answered yet, and both are already on the wire.
+      const requested = httpGetMock.mock.calls.map(([url]) => String(url));
+      expect(requested.some((url) => url.endsWith('/me'))).toBe(true);
+      expect(requested.some((url) => url.endsWith('/debug_token'))).toBe(true);
+
+      identity.next({ data: { client_business_id: 'business-1' } });
+      identity.complete();
+      debugToken.next({
+        data: { data: { is_valid: true, scopes: GRANTED_UNIFIED_SCOPES } },
+      });
+      debugToken.complete();
+      await pending;
+
+      expect(credentialsPatchMock).toHaveBeenCalledWith(
+        'test-object-id',
+        expect.objectContaining({
+          externalBusinessId: 'business-1',
+          grantedScopes: GRANTED_UNIFIED_SCOPES,
+        }),
+      );
     });
 
     it('takes granted permissions from the exchange response when Meta includes them', async () => {
