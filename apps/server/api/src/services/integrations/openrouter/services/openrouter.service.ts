@@ -320,9 +320,7 @@ export class OpenRouterService {
           },
           {
             ...(transport?.signal ? { signal: transport.signal } : {}),
-            ...(transport?.timeout !== undefined
-              ? { timeout: transport.timeout }
-              : {}),
+            timeout: transport?.timeout ?? UPLOAD_HTTP_TIMEOUT_MS,
             headers: {
               Authorization: `Bearer ${apiKey}`,
               'Content-Type': 'application/json',
