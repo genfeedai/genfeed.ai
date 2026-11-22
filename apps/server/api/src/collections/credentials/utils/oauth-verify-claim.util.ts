@@ -17,7 +17,7 @@ import { getTenantContext } from '@libs/prisma/tenant-context';
 import { traced } from '@libs/tracing/traced';
 
 /** How long a second verify waits for the request that claimed the state. */
-const OAUTH_VERIFY_CLAIM_WAIT_MS = 15_000;
+export const OAUTH_VERIFY_CLAIM_WAIT_MS = 15_000;
 const OAUTH_VERIFY_CLAIM_POLL_MS = 250;
 const CLAIMED_OAUTH_STATE_PREFIX = 'claimed:';
 const VERIFIED_OAUTH_STATE_PREFIX = 'verified:';
@@ -39,6 +39,9 @@ type OAuthVerifyClaimStore = Pick<
   CredentialsService,
   'claimPendingOAuthCredential' | 'findOne'
 >;
+
+type OAuth1VerifyClaimStore = OAuthVerifyClaimStore &
+  Pick<CredentialsService, 'findOAuth1VerifyCredential'>;
 
 /** The row a verify request owns once it won the claim. Never equals a state. */
 const claimedOAuthState = (state: string): string =>
@@ -242,5 +245,42 @@ export const claimOAuthVerifyCredential = traced(
     }
     const connected = await awaitClaimingRequest(store, filter);
     return connected ? { alreadyConnected: true, credential: connected } : null;
+  },
+);
+
+/** The state a row was issued with, whichever marker it carries now. */
+const rawOAuthState = (
+  oauthState: string | null | undefined,
+): string | null => {
+  const raw = oauthState
+    ?.replace(CLAIMED_OAUTH_STATE_PREFIX, '')
+    .replace(VERIFIED_OAUTH_STATE_PREFIX, '');
+  return raw || null;
+};
+
+/**
+ * `claimOAuthVerifyCredential` for an OAuth 1.0a callback, which names its
+ * row by the request token the provider issued instead of by the state. The
+ * row found that way is claimed through its state, so of two verifies of one
+ * request token only one may spend it, and the other answers with the account
+ * the first connected.
+ */
+export const claimOAuth1VerifyCredential = traced(
+  'claimOAuth1VerifyCredential',
+  async (
+    store: OAuth1VerifyClaimStore,
+    oauthToken: string,
+    platform: CredentialPlatform,
+    scope: OAuthCredentialScope,
+  ): Promise<OAuthVerifyClaim | null> => {
+    const row = await store.findOAuth1VerifyCredential(
+      oauthToken,
+      platform,
+      scope,
+    );
+    const state = rawOAuthState(row?.oauthState);
+    return state
+      ? claimOAuthVerifyCredential(store, state, platform, scope)
+      : null;
   },
 );

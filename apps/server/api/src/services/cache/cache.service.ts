@@ -5,6 +5,7 @@ import {
   SET_OWNED_CLAIM_VALUE_SCRIPT,
 } from '@api/services/cache/cache-claim-scripts';
 import { CacheClientService } from '@api/services/cache/cache-client.service';
+import { CacheLocks } from '@api/services/cache/cache-locks';
 import { CacheTagsService } from '@api/services/cache/cache-tags.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
@@ -191,12 +192,15 @@ export type ResearchReservationNote = 'duplicate' | 'noted' | 'unavailable';
 export class CacheService {
   private readonly defaultTtl = 300; // 5 minutes default
   private readonly constructorName = this.constructor.name;
+  private readonly locks: CacheLocks;
 
   constructor(
     private readonly cacheClientService: CacheClientService,
     private readonly cacheTagsService: CacheTagsService,
     private readonly logger: LoggerService,
-  ) {}
+  ) {
+    this.locks = new CacheLocks(cacheClientService, logger);
+  }
 
   private get client(): Redis {
     return this.cacheClientService.instance;
@@ -755,28 +759,7 @@ export class CacheService {
     lockKey: string,
     ttlSeconds: number = 300,
   ): Promise<boolean> {
-    if (!this.isAvailable) {
-      return false;
-    }
-
-    try {
-      const key = `lock:${lockKey}`;
-      // SET NX (only set if not exists) with EX (expiration in seconds)
-      const result = await this.client.set(
-        key,
-        Date.now().toString(),
-        'EX',
-        ttlSeconds,
-        'NX',
-      );
-      return result === 'OK';
-    } catch (error: unknown) {
-      this.logOperationError('acquireLock', {
-        error,
-        lockKey,
-      });
-      return false;
-    }
+    return this.locks.acquire(lockKey, ttlSeconds);
   }
 
   async acquireOwnedClaim(
@@ -925,30 +908,19 @@ export class CacheService {
   }
 
   /**
-   * Release a distributed lock.
+   * Release a distributed lock this process holds. A lock that expired and
+   * now belongs to another holder is left alone and reported as not released.
    *
    * @param lockKey - The lock identifier to release
    */
   async releaseLock(lockKey: string): Promise<boolean> {
-    if (!this.isAvailable) {
-      return false;
-    }
-
-    try {
-      const key = `lock:${lockKey}`;
-      return (await this.client.del(key)) > 0;
-    } catch (error: unknown) {
-      this.logOperationError('releaseLock', {
-        error,
-        lockKey,
-      });
-      return false;
-    }
+    return this.locks.release(lockKey);
   }
 
   /**
    * Execute a function while holding a distributed lock.
-   * Automatically acquires lock before execution and releases after.
+   * Automatically acquires lock before execution and releases after, and
+   * extends it while `fn` runs so work longer than the TTL keeps its lock.
    * If lock cannot be acquired, returns null without executing the function.
    *
    * @param lockKey - Unique identifier for the lock
@@ -960,18 +932,6 @@ export class CacheService {
     fn: () => Promise<T>,
     ttlSeconds: number = 300,
   ): Promise<T | null> {
-    const acquired = await this.acquireLock(lockKey, ttlSeconds);
-    if (!acquired) {
-      this.logger.debug(
-        `${this.constructorName} withLock: lock not acquired for ${lockKey}`,
-      );
-      return null;
-    }
-
-    try {
-      return await fn();
-    } finally {
-      await this.releaseLock(lockKey);
-    }
+    return this.locks.run(lockKey, fn, ttlSeconds);
   }
 }
