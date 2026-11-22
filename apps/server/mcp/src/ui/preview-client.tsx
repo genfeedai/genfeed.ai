@@ -169,6 +169,12 @@ function card(value: unknown): McpCard | undefined {
                 approvalId: text(item.approvalId),
                 decision: item.decision,
                 label: text(item.label) || 'Approve',
+                // The card carries the organization the approval was queued
+                // in, so a connection that covers several resolves it there.
+                organization:
+                  text(item.organization) ||
+                  text(row.organization) ||
+                  undefined,
               },
             ];
           return [];
@@ -1258,6 +1264,7 @@ function Preview({ result, notice, bridge }: PreviewProps) {
         arguments: {
           approvalId: action.approvalId,
           decision: action.decision,
+          ...(action.organization ? { organization: action.organization } : {}),
         },
       })
       .then((outcome) => {

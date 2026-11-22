@@ -76,6 +76,8 @@ interface McpResolveApprovalAction {
   approvalId: string;
   decision: 'approve' | 'decline';
   label: string;
+  /** The organization the approval was queued in; the view names it on the call. */
+  organization?: string;
 }
 
 /** A button on a card; the view runs it through the host. */
