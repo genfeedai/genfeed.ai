@@ -332,6 +332,64 @@ describe('CacheService', () => {
       (mockRedisClient.set as vi.Mock).mockResolvedValue(null);
       await expect(service.acquireLock('resource', 60)).resolves.toBe(false);
     });
+
+    it('releases only the lock it holds, by the token it wrote', async () => {
+      (mockRedisClient.set as vi.Mock).mockResolvedValue('OK');
+      (mockRedisClient.eval as vi.Mock).mockResolvedValue(1);
+      await service.acquireLock('resource', 60);
+      const token = (mockRedisClient.set as vi.Mock).mock.calls[0][1];
+
+      await expect(service.releaseLock('resource')).resolves.toBe(true);
+
+      expect(mockRedisClient.eval).toHaveBeenCalledWith(
+        expect.stringContaining("redis.call('GET', KEYS[1]) ~= ARGV[1]"),
+        1,
+        'lock:resource',
+        token,
+      );
+      expect(mockRedisClient.del).not.toHaveBeenCalled();
+    });
+
+    it('leaves a lock that expired and was taken by another holder', async () => {
+      (mockRedisClient.set as vi.Mock).mockResolvedValue('OK');
+      (mockRedisClient.eval as vi.Mock).mockResolvedValue(0);
+      await service.acquireLock('resource', 60);
+
+      await expect(service.releaseLock('resource')).resolves.toBe(false);
+    });
+
+    it('does not release a lock this process never acquired', async () => {
+      await expect(service.releaseLock('resource')).resolves.toBe(false);
+      expect(mockRedisClient.eval).not.toHaveBeenCalled();
+      expect(mockRedisClient.del).not.toHaveBeenCalled();
+    });
+
+    it('extends the lock while the work under withLock outlasts a third of its TTL', async () => {
+      vi.useFakeTimers();
+      try {
+        (mockRedisClient.set as vi.Mock).mockResolvedValue('OK');
+        (mockRedisClient.eval as vi.Mock).mockResolvedValue(1);
+        let finish: () => void = () => undefined;
+        const work = new Promise<void>((resolve) => {
+          finish = resolve;
+        });
+
+        const running = service.withLock('resource', () => work, 30);
+        await vi.advanceTimersByTimeAsync(10_000);
+        finish();
+        await expect(running).resolves.toBeUndefined();
+
+        const scripts = (mockRedisClient.eval as vi.Mock).mock.calls.map(
+          ([script]) => String(script),
+        );
+        expect(scripts.some((script) => script.includes("'EXPIRE'"))).toBe(
+          true,
+        );
+        expect(scripts.at(-1)).toContain("redis.call('DEL', KEYS[2])");
+      } finally {
+        vi.useRealTimers();
+      }
+    });
   });
 
   describe('owned claims', () => {
