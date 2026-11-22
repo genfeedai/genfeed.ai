@@ -1,3 +1,4 @@
+import { DEFAULT_HTTP_TIMEOUT_MS } from '@api/constants/http-timeout.constant';
 import { SkillRegistryService } from '@api/skills-pro/services/skill-registry.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -107,14 +108,42 @@ describe('SkillRegistryService', () => {
 
       const result = await service.getRegistry();
 
-      expect(mockFetch).toHaveBeenCalledWith(
+      expect(mockFetch.mock.calls[0][0]).toBe(
         'https://cdn.genfeed.ai/skills/registry.json',
       );
+      expect(mockFetch.mock.calls[0][1].signal).toBeInstanceOf(AbortSignal);
       expect(result).toEqual({
         bundlePrice: 49,
         skills: mockSkills,
         updatedAt: '2026-01-15T00:00:00Z',
       });
+    });
+
+    it('aborts a registry fetch that never answers instead of hanging', async () => {
+      // The native timer behind AbortSignal.timeout cannot be driven by fake
+      // timers, so the spy hands back a signal that has already timed out.
+      const timeoutSpy = vi
+        .spyOn(AbortSignal, 'timeout')
+        .mockImplementation(() =>
+          AbortSignal.abort(new DOMException('timed out', 'TimeoutError')),
+        );
+      global.fetch = vi.fn(
+        (_url: string | URL | Request, init?: RequestInit) =>
+          new Promise<Response>((_resolve, reject) => {
+            init?.signal?.addEventListener('abort', () =>
+              reject(init.signal?.reason),
+            );
+            if (init?.signal?.aborted) reject(init.signal.reason);
+          }),
+      ) as unknown as typeof fetch;
+
+      const result = await service.getRegistry();
+
+      expect(timeoutSpy.mock.calls[0][0]).toBe(DEFAULT_HTTP_TIMEOUT_MS);
+      expect(result.skills).toEqual([]);
+      expect(loggerService.warn.mock.calls[0][0]).toContain(
+        'failed to fetch registry',
+      );
     });
 
     it('should use bundlePrice from CDN when available instead of bundle.price', async () => {

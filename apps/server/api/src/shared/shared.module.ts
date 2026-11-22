@@ -1,4 +1,5 @@
 import { MembersModule } from '@api/collections/members/members.module';
+import { DEFAULT_HTTP_TIMEOUT_MS } from '@api/constants/http-timeout.constant';
 import { NotificationsPublisherModule } from '@api/services/notifications/publisher/notifications-publisher.module';
 import { TaskQueueClientService } from '@api/services/task-queue-client/task-queue-client.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
@@ -45,7 +46,7 @@ class AxiosErrorInterceptorSetup implements OnModuleInit {
 @Module({
   exports: [
     ConfigModule,
-    HttpModule,
+    HttpModule.register({ timeout: DEFAULT_HTTP_TIMEOUT_MS }),
     MembersModule,
     NotificationsPublisherModule,
     SharedService,
@@ -53,7 +54,7 @@ class AxiosErrorInterceptorSetup implements OnModuleInit {
   ],
   imports: [
     ConfigModule,
-    HttpModule,
+    HttpModule.register({ timeout: DEFAULT_HTTP_TIMEOUT_MS }),
     MembersModule,
     NotificationsPublisherModule,
   ],

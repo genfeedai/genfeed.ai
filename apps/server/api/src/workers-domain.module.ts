@@ -108,6 +108,7 @@ import {
   WORKFLOW_EXECUTOR,
 } from '@api/collections/workflows/workflows.tokens';
 import { OrganizationPaidAccessService } from '@api/common/subscriptions/organization-paid-access.service';
+import { DEFAULT_HTTP_TIMEOUT_MS } from '@api/constants/http-timeout.constant';
 import { AccountAnalyticsSnapshotService } from '@api/endpoints/analytics/account-analytics-snapshot.service';
 import { ManagedInferenceClientService } from '@api/endpoints/v1/managed-inference/managed-inference-client.service';
 import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
@@ -485,7 +486,7 @@ const WORKER_DOMAIN_SERVICES = [
     OutliersCoreModule,
     CacheModule,
     ConfigModule,
-    HttpModule,
+    HttpModule.register({ timeout: DEFAULT_HTTP_TIMEOUT_MS }),
     LoggerModule,
     MediaUrlsModule,
     PrismaModule,

@@ -1,3 +1,4 @@
+import { DEFAULT_HTTP_TIMEOUT_MS } from '@api/constants/http-timeout.constant';
 import { ActivityRecordingModule } from '@api/services/activity-recording/activity-recording.module';
 import { ByokModule } from '@api/services/byok/byok.module';
 import { ApifyService } from '@api/services/integrations/apify/services/apify.service';
@@ -20,7 +21,7 @@ const BaseModule = createServiceModule(ApifyService, {
   additionalExports: [ApifyAdsService],
   additionalImports: [
     ActivityRecordingModule,
-    HttpModule,
+    HttpModule.register({ timeout: DEFAULT_HTTP_TIMEOUT_MS }),
     ByokModule,
     ResearchAccessModule,
   ],
