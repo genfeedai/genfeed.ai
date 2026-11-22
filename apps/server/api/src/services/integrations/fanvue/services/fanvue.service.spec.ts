@@ -499,28 +499,70 @@ describe('FanvueService', () => {
       });
     });
 
-    it('should disconnect when token refresh API call fails', async () => {
-      const nearExpiry = new Date(Date.now() + 2 * 60 * 1000); // 2 minutes from now
-      const mockCredential = {
-        id: 'test-object-id',
-        accessToken: 'encrypted-token',
-        accessTokenExpiry: nearExpiry,
-        platform: CredentialPlatform.FANVUE,
-        refreshToken: 'encrypted-refresh',
-      };
+    const refusal = (status: number) =>
+      Object.assign(new Error(`Request failed with status code ${status}`), {
+        response: { data: { error: 'invalid_grant' }, status },
+      });
+    const nearExpiryCredential = () => ({
+      accessToken: 'encrypted-token',
+      accessTokenExpiry: new Date(Date.now() + 2 * 60 * 1000),
+      id: 'test-object-id',
+      platform: CredentialPlatform.FANVUE,
+      refreshToken: 'encrypted-refresh',
+    });
 
+    it('disconnects when the token endpoint refuses the refresh token', async () => {
+      const mockCredential = nearExpiryCredential();
       credentialsService.findOne.mockResolvedValue(mockCredential as never);
-      httpService.post.mockReturnValue(
-        throwError(() => new Error('Token refresh failed')),
-      );
+      httpService.post.mockReturnValue(throwError(() => refusal(400)));
 
-      await expect(service.refreshToken(orgId, brandId)).rejects.toThrow(
-        'Token refresh failed',
-      );
+      await expect(service.refreshToken(orgId, brandId)).rejects.toMatchObject({
+        kind: PublishErrorKind.CHANNEL_DISCONNECTED,
+      });
       expect(credentialsService.patch).toHaveBeenCalledWith(mockCredential.id, {
         isConnected: false,
       });
       expect(loggerService.error).toHaveBeenCalled();
+    });
+
+    it('keeps the account connected when the provider fails for another reason', async () => {
+      credentialsService.findOne.mockResolvedValue(
+        nearExpiryCredential() as never,
+      );
+      httpService.post.mockReturnValue(throwError(() => refusal(503)));
+
+      await expect(service.refreshToken(orgId, brandId)).rejects.toThrow();
+      expect(credentialsService.patch).not.toHaveBeenCalled();
+    });
+
+    it('keeps the account connected on a network failure', async () => {
+      credentialsService.findOne.mockResolvedValue(
+        nearExpiryCredential() as never,
+      );
+      httpService.post.mockReturnValue(
+        throwError(() => new Error('socket hang up')),
+      );
+
+      await expect(service.refreshToken(orgId, brandId)).rejects.toThrow(
+        'socket hang up',
+      );
+      expect(credentialsService.patch).not.toHaveBeenCalled();
+    });
+
+    it('uses the token another refresh stored when this one was refused after the rotation', async () => {
+      credentialsService.findOne
+        .mockResolvedValueOnce(nearExpiryCredential() as never)
+        .mockResolvedValueOnce({
+          ...nearExpiryCredential(),
+          accessToken: 'encrypted-new-token',
+          refreshToken: 'encrypted-rotated-refresh',
+        } as never);
+      httpService.post.mockReturnValue(throwError(() => refusal(400)));
+
+      const result = await service.refreshToken(orgId, brandId);
+
+      expect(result.accessToken).toBe('decrypted_encrypted-new-token');
+      expect(credentialsService.patch).not.toHaveBeenCalled();
     });
 
     it('should use old refresh token when new one is not returned', async () => {

@@ -372,6 +372,7 @@ export class TiktokService {
   ): Promise<CredentialDocument> {
     const url = 'TiktokService refreshToken';
     this.loggerService.log(`${url} started`);
+    let usedRefreshToken: string | undefined;
 
     try {
       const credential = await this.findCredential(
@@ -383,6 +384,7 @@ export class TiktokService {
       if (!credential?.refreshToken) {
         throw new Error('No refresh token available');
       }
+      usedRefreshToken = credential.refreshToken;
 
       // Decrypt the refresh token before use
       const decryptedRefreshToken = EncryptionUtil.decrypt(
@@ -467,6 +469,15 @@ export class TiktokService {
           brandId,
           credentialId,
         );
+        // Refresh tokens rotate: a refusal after another refresh stored a new
+        // one is the spent token, not a lost grant.
+        if (
+          credential?.accessToken &&
+          credential.refreshToken &&
+          credential.refreshToken !== usedRefreshToken
+        ) {
+          return normalizeCredential(credential);
+        }
         if (credential) {
           await this.handleAuthError(
             credential.id,

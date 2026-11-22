@@ -53,6 +53,13 @@ function mapRefreshFailure(
     : mapUnpublishedRequestFailure(failure);
 }
 
+/** The token endpoint refused the refresh token itself (HTTP 400 or 401). */
+function isGrantRefusal(error: unknown): boolean {
+  const status = (error as { response?: { status?: number } })?.response
+    ?.status;
+  return status === HTTP_BAD_REQUEST || status === HTTP_UNAUTHORIZED;
+}
+
 /**
  * An upload creates no post, so every failure left nothing published. A file
  * Fanvue refuses is not retried; any other refusal, including a 403 or 404
@@ -379,13 +386,54 @@ export class FanvueService {
           (error as { response?: { data?: unknown } })?.response?.data ||
           (error as Error)?.message,
       });
-      await this.credentialsService.patch(credential.id, {
-        isConnected: false,
-      });
-      // The token endpoint refusing the refresh token means the grant is gone.
-      // Any other failure left nothing published, so it can be tried again.
+      // Only the token endpoint refusing the refresh token means the grant is
+      // gone. A timeout, a 5xx or a rate limit proves nothing about it, and the
+      // account must keep publishing once the provider answers again.
+      if (isGrantRefusal(error)) {
+        const rotated = await this.findRotatedCredential(
+          { brandId, credentialId, organizationId },
+          credential.refreshToken,
+        );
+        if (rotated) {
+          return rotated;
+        }
+        await this.credentialsService.patch(credential.id, {
+          isConnected: false,
+        });
+      }
       throwAsPublishError(error, mapRefreshFailure);
     }
+  }
+
+  /**
+   * Refresh tokens rotate: when two requests (here or on another API instance)
+   * refresh the same account at once, the second is refused because the first
+   * already spent the token. That refusal is not a lost grant, so look the
+   * credential up again and use what the winner stored.
+   */
+  private async findRotatedCredential(
+    scope: { brandId: string; credentialId?: string; organizationId: string },
+    usedRefreshToken: string,
+  ): Promise<{
+    accessToken: string;
+    credential: Record<string, unknown>;
+  } | null> {
+    const latest = await this.credentialsService.resolveBrandAccount({
+      ...scope,
+      isDisconnectedIncluded: true,
+      platform: CredentialPlatform.FANVUE,
+    });
+    if (
+      !latest?.accessToken ||
+      !latest.refreshToken ||
+      latest.refreshToken === usedRefreshToken
+    ) {
+      return null;
+    }
+    return {
+      accessToken: EncryptionUtil.decrypt(latest.accessToken),
+      credential: latest,
+    };
   }
 
   /**
