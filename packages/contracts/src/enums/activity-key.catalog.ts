@@ -101,6 +101,7 @@ export type ActivityMessageId =
   | 'activity.post.unverified'
   | 'activity.agent.review_changed'
   | 'activity.agent.review_expired'
+  | 'activity.agent.input_requested'
   | 'activity.social.replies'
   | 'activity.credits.low'
   | 'activity.review.requested'
