@@ -1,4 +1,8 @@
 import { CacheClientService } from '@api/services/cache/cache-client.service';
+import {
+  TAG_EPOCH_TTL_SECONDS,
+  tagEpochKey,
+} from '@api/services/cache/cache-tag-epoch';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
@@ -55,6 +59,16 @@ export class CacheTagsService {
     }
 
     try {
+      // Mark the tags as changed first, for fills that are computing a value
+      // right now: even with no entry to delete yet, such a fill must not
+      // store what it read before this invalidation.
+      const epochs = this.client.multi();
+      for (const tag of tags) {
+        epochs.incr(tagEpochKey(tag));
+        epochs.expire(tagEpochKey(tag), TAG_EPOCH_TTL_SECONDS);
+      }
+      await epochs.exec();
+
       let invalidatedCount = 0;
 
       for (const tag of tags) {

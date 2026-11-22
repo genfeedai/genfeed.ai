@@ -15,6 +15,7 @@ function buildService(
 ) {
   const values = new Map<string, string>();
   const sets = new Map<string, Set<string>>();
+  const epochs = new Map<string, number>();
   const logs: Log[] = [];
   const redis = {
     multi: () => {
@@ -31,6 +32,13 @@ function buildService(
           if (options.failing === 'exec') throw new Error('pipeline error');
           for (const command of queued) command();
           return [];
+        },
+        expire: () => pipeline,
+        incr: (key: string) => {
+          queued.push(() => {
+            epochs.set(key, (epochs.get(key) ?? 0) + 1);
+          });
+          return pipeline;
         },
         sadd: (key: string, member: string) => {
           queued.push(() => {
@@ -61,7 +69,7 @@ function buildService(
       warn: record('warn'),
     } as unknown as LoggerService,
   );
-  return { logs, service, sets, values };
+  return { epochs, logs, service, sets, values };
 }
 
 describe('CacheTagsService', () => {
@@ -101,6 +109,20 @@ describe('CacheTagsService', () => {
         message: expect.stringContaining('setTags error'),
       },
     ]);
+  });
+
+  it('marks every tag as changed, even when no entry existed to delete', async () => {
+    const { epochs, service } = buildService();
+
+    await service.invalidateByTags(['empty-tag', 'other-tag']);
+    await service.invalidateByTags(['empty-tag']);
+
+    expect(epochs).toEqual(
+      new Map([
+        ['tag-epoch:empty-tag', 2],
+        ['tag-epoch:other-tag', 1],
+      ]),
+    );
   });
 
   it('returns 0 when a tag has no associated keys', async () => {
