@@ -514,7 +514,7 @@ describe('InstagramController', () => {
           grantedScopes: GRANTED_UNIFIED_SCOPES,
           isConnected: false,
           isDeleted: false,
-          oauthState: null,
+          oauthState: 'verified:opaque-oauth-state',
         }),
       );
       expect(credentialsUpdateExternalProfileMock).toHaveBeenCalledWith(
