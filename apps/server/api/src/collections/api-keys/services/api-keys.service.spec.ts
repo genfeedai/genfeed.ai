@@ -175,7 +175,11 @@ describe('ApiKeysService', () => {
         replacement,
       );
 
-      expect(service.createWithKey).toHaveBeenCalledWith(rotatePayload);
+      expect(service.createWithKey).toHaveBeenCalledWith(
+        rotatePayload,
+        undefined,
+        undefined,
+      );
       expect(service.revoke).toHaveBeenCalledWith('key-1');
       expect(cacheInvalidationService.invalidate).toHaveBeenCalledWith(
         'apiKeys:list:org-1',
@@ -185,6 +189,34 @@ describe('ApiKeysService', () => {
       expect(cacheInvalidationService.invalidateByTags).toHaveBeenCalledWith([
         'apiKeys',
       ]);
+    });
+
+    it('retires the original key inside the caller transaction and leaves caches to the caller', async () => {
+      const { cacheInvalidationService, service } = createHarness();
+      const replacement = {
+        apiKey: { id: 'key-2' } as ApiKeyDocument,
+        plainKey: 'gf_test_rotated',
+      };
+      const transaction = {
+        apiKey: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
+      };
+      service.createWithKey.mockResolvedValue(replacement);
+
+      await expect(
+        service.rotateWithKey(
+          'key-1',
+          rotatePayload,
+          undefined,
+          transaction as never,
+        ),
+      ).resolves.toBe(replacement);
+
+      expect(transaction.apiKey.updateMany).toHaveBeenCalledWith({
+        data: { isRevoked: true, revokedAt: expect.any(Date) },
+        where: { id: 'key-1', organizationId: rotatePayload.organizationId },
+      });
+      expect(service.revoke).not.toHaveBeenCalled();
+      expect(cacheInvalidationService.invalidate).not.toHaveBeenCalled();
     });
 
     it('revokes the replacement key when revoking the original fails', async () => {
