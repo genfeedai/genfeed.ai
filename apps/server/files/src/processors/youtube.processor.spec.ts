@@ -16,8 +16,10 @@ describe('YoutubeProcessor', () => {
     );
   }
 
-  function uploadJob(name = 'upload-youtube'): Job {
+  function uploadJob(name = 'upload-youtube', attemptsMade = 0): Job {
     return {
+      attemptsMade,
+      opts: { attempts: 3 },
       data: {
         credential: { accessToken: 'token' },
         ingredientId: 'ingredient-1',
@@ -65,6 +67,34 @@ describe('YoutubeProcessor', () => {
     await buildProcessor().process(job);
     expect(youtubeService.uploadVideo).toHaveBeenCalledWith(
       expect.objectContaining({ sourceStorageKey: job.data.sourceStorageKey }),
+    );
+  });
+
+  it('rethrows without publishing a failed status on a non-final attempt', async () => {
+    youtubeService.uploadVideo.mockRejectedValueOnce(new Error('quota'));
+
+    await expect(buildProcessor().process(uploadJob())).rejects.toThrow(
+      'quota',
+    );
+
+    expect(redisService.publish).not.toHaveBeenCalled();
+  });
+
+  it('publishes the failed status once on the final attempt and rethrows', async () => {
+    youtubeService.uploadVideo.mockRejectedValueOnce(new Error('quota'));
+
+    await expect(
+      buildProcessor().process(uploadJob('upload-youtube', 2)),
+    ).rejects.toThrow('quota');
+
+    expect(redisService.publish).toHaveBeenCalledTimes(1);
+    expect(redisService.publish).toHaveBeenCalledWith(
+      'youtube:upload:complete',
+      expect.objectContaining({
+        error: 'quota',
+        postId: 'post-1',
+        status: 'failed',
+      }),
     );
   });
 });

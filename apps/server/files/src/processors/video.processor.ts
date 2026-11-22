@@ -237,14 +237,16 @@ export class VideoProcessor extends WorkerHost {
         userId,
         room,
       );
-      await this.publishVideoCompletion(
-        ingredientId,
-        userId,
-        organizationId,
-        'failed',
-        null,
-        message,
-      );
+      if (isFinalAttempt(job)) {
+        await this.publishVideoCompletion(
+          ingredientId,
+          userId,
+          organizationId,
+          'failed',
+          null,
+          message,
+        );
+      }
       throw error;
     }
   }
@@ -899,14 +901,16 @@ export class VideoProcessor extends WorkerHost {
     } catch (error: unknown) {
       this.logger.error(`Extract frames failed for job ${job.id}:`, error);
       const message = getErrorMessage(error);
-      await this.publishVideoCompletion(
-        ingredientId,
-        job.data.userId,
-        job.data.organizationId,
-        'failed',
-        null,
-        message,
-      );
+      if (isFinalAttempt(job)) {
+        await this.publishVideoCompletion(
+          ingredientId,
+          job.data.userId,
+          job.data.organizationId,
+          'failed',
+          null,
+          message,
+        );
+      }
       throw error;
     }
   }
@@ -947,14 +951,16 @@ export class VideoProcessor extends WorkerHost {
     } catch (error: unknown) {
       this.logger.error(`Get video metadata failed for job ${job.id}:`, error);
       const message = getErrorMessage(error);
-      await this.publishVideoCompletion(
-        ingredientId,
-        job.data.userId,
-        job.data.organizationId,
-        'failed',
-        null,
-        message,
-      );
+      if (isFinalAttempt(job)) {
+        await this.publishVideoCompletion(
+          ingredientId,
+          job.data.userId,
+          job.data.organizationId,
+          'failed',
+          null,
+          message,
+        );
+      }
       throw error;
     }
   }
@@ -992,14 +998,16 @@ export class VideoProcessor extends WorkerHost {
     } catch (error: unknown) {
       const message = getErrorMessage(error);
       this.logger.error(`Hook remix job ${job.id} failed: ${message}`);
-      await this.publishVideoCompletion(
-        job.data.ingredientId,
-        job.data.userId,
-        job.data.organizationId,
-        'failed',
-        null,
-        message,
-      );
+      if (isFinalAttempt(job)) {
+        await this.publishVideoCompletion(
+          job.data.ingredientId,
+          job.data.userId,
+          job.data.organizationId,
+          'failed',
+          null,
+          message,
+        );
+      }
       throw error;
     }
   }
