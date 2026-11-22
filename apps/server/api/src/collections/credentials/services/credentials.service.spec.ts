@@ -1327,6 +1327,33 @@ describe('CredentialsService', () => {
       );
     });
 
+    it.each(['verified:opaque-state', 'claimed:opaque-state'])(
+      'keeps the %s marker on the connected row so a late second verify still finds it',
+      async (marker) => {
+        useStoredRows([
+          {
+            ...pendingCredential,
+            isDeleted: false,
+            oauthState: marker,
+          },
+        ]);
+
+        await service.updateExternalProfile('pending-1', orgId, {
+          handle: 'second_account',
+          id: 'account-2',
+        });
+
+        expect(prisma.credential.update).toHaveBeenCalledWith(
+          expect.objectContaining({
+            data: expect.objectContaining({
+              isConnected: true,
+              oauthState: marker,
+            }),
+          }),
+        );
+      },
+    );
+
     it('rejects the losing writer of a concurrent claim on the same pending row', async () => {
       // Two concurrent select-account requests choosing *different*
       // accounts never collide on the externalId unique constraint (only

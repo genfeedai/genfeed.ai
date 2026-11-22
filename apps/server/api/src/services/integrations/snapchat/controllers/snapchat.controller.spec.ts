@@ -157,7 +157,7 @@ describe('SnapchatController', () => {
   });
 
   describe('verify()', () => {
-    it('stores the exchanged tokens on the pending credential and clears its state', async () => {
+    it('stores the exchanged tokens on the pending credential and marks its state verified', async () => {
       const { controller, credentials } = setup();
       await controller.connect(request, user, { brandId: 'brand-id' });
 
@@ -170,13 +170,13 @@ describe('SnapchatController', () => {
         accessToken: 'snap-access-token',
         id: 'credential-1',
         isConnected: true,
-        oauthState: null,
+        oauthState: 'verified:state-1',
         refreshToken: 'snap-refresh-token',
       });
       expect(credentials[0]).toMatchObject({
         accessToken: 'snap-access-token',
         isConnected: true,
-        oauthState: null,
+        oauthState: 'verified:state-1',
       });
     });
 

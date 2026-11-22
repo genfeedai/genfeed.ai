@@ -276,7 +276,7 @@ describe('BlueskyController', () => {
             description: 'https://pds.example.com',
             isConnected: true,
             isDeleted: false,
-            oauthState: null,
+            oauthState: 'verified:library-state',
             oauthTokenSecret: null,
           },
           credentialId: 'pending-1',
