@@ -79,6 +79,10 @@ const REPOSITORY_CONTRACTS = [
     command: ['bun', 'run', 'check:test-module-providers'],
     name: 'test module providers',
   },
+  {
+    command: ['bun', 'run', 'check:http-timeout'],
+    name: 'outbound HTTP timeout',
+  },
   { command: ['bun', 'run', 'check:ui-guards'], name: 'UI guards' },
   {
     command: ['bun', 'run', 'check:window-open-after-await'],

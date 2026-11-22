@@ -41,8 +41,8 @@ const EDIT_ENDPOINT_PATTERN =
 const VOICE_HINT_PATTERN = /\b(speech|voice|tts|narrat\w*|speaker)\b/;
 const LEADING_DIGIT_PATTERN = /^\d/;
 
-/** Public Replicate model pages are the structured rate source (#6196). */
-const REPLICATE_PAGE_TIMEOUT_MS = 30_000;
+/** Every Replicate request, the public model page (#6196) and the API, gives up after this. */
+const REPLICATE_REQUEST_TIMEOUT_MS = 30_000;
 
 /**
  * Schema property shape from Replicate OpenAPI schema inspection.
@@ -379,6 +379,7 @@ export class ModelDiscoveryService {
           'Content-Type': 'application/json',
         },
         method: 'GET',
+        signal: AbortSignal.timeout(REPLICATE_REQUEST_TIMEOUT_MS),
       });
 
       if (!response.ok) {
@@ -425,6 +426,7 @@ export class ModelDiscoveryService {
             'Content-Type': 'application/json',
           },
           method: 'GET',
+          signal: AbortSignal.timeout(REPLICATE_REQUEST_TIMEOUT_MS),
         },
       );
 
@@ -463,7 +465,7 @@ export class ModelDiscoveryService {
     const controller = new AbortController();
     const timeout = setTimeout(
       () => controller.abort(),
-      REPLICATE_PAGE_TIMEOUT_MS,
+      REPLICATE_REQUEST_TIMEOUT_MS,
     );
     try {
       const response = await fetch(sourceUrl, {
