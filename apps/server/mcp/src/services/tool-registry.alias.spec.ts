@@ -280,7 +280,36 @@ describe('canonical MCP dispatch and immediate retirement', () => {
       }
       expect(client.executeAgentTool).not.toHaveBeenCalled();
       expect(client.createApproval).not.toHaveBeenCalled();
-      expect(logger.warn).not.toHaveBeenCalled();
+      expect(logger.error).not.toHaveBeenCalled();
+    } finally {
+      await module.close();
+    }
+  });
+
+  it.each([
+    [
+      { action: 'posts', brandId: 'brand-1', input: {} },
+      'get_content accepts only action and input, not brandId. Put the fields of the action inside input',
+    ],
+    [
+      { action: 'post', input: {} },
+      '"post" is not an action of get_content. Use one of: posts, release, articles, article_preview.',
+    ],
+  ])('tells the agent how to repair %j', async (arguments_, guidance) => {
+    const { registry, module } = await build();
+    try {
+      const result = await registry.handleToolCall({
+        name: 'get_content',
+        arguments: arguments_,
+      });
+
+      expect(result).toMatchObject({
+        isError: true,
+        structuredContent: { code: 'validation_failed' },
+      });
+      expect(
+        (result as { content: { text: string }[] }).content[0].text,
+      ).toContain(guidance);
     } finally {
       await module.close();
     }
@@ -330,7 +359,7 @@ describe('canonical MCP dispatch and immediate retirement', () => {
         expect(client.listSchedulerCapabilities).not.toHaveBeenCalled();
         expect(client.validateSchedulerTarget).not.toHaveBeenCalled();
         expect(client.createApproval).not.toHaveBeenCalled();
-        expect(logger.warn).not.toHaveBeenCalled();
+        expect(logger.error).not.toHaveBeenCalled();
       } finally {
         await module.close();
       }
@@ -371,7 +400,7 @@ describe('canonical MCP dispatch and immediate retirement', () => {
         expect(client.listSchedulerCapabilities).not.toHaveBeenCalled();
         expect(client.validateSchedulerTarget).not.toHaveBeenCalled();
         expect(client.createApproval).not.toHaveBeenCalled();
-        expect(logger.warn).not.toHaveBeenCalled();
+        expect(logger.error).not.toHaveBeenCalled();
       } finally {
         await module.close();
       }

@@ -9,8 +9,11 @@ import {
 } from '@api/services/integrations/apify/interfaces/apify.interfaces';
 import {
   APIFY_ACTOR_NOT_FOUND_STATUS,
+  APIFY_ACTOR_RUN_TIMEOUT_HOLD_MS,
   ApifyActorAvailabilityTracker,
+  ApifyActorRunTimeoutException,
   ApifyActorUnavailableException,
+  isApifyActorDeferral,
   isApifyStartAccepted,
 } from '@api/services/integrations/apify/utils/apify-actor-availability.util';
 import { currentApifyCaller } from '@api/services/integrations/apify/utils/apify-caller.context';
@@ -404,6 +407,23 @@ export class ApifyBaseService {
         throw error;
       }
 
+      if (error instanceof ApifyActorRunTimeoutException) {
+        // Apify is slow for this actor: stop the run it is still billing,
+        // leave the actor alone for a while, and let the caller degrade.
+        await this.abortRun(error.runId, token);
+        const until = this.actorAvailability.markUnavailable(
+          scope,
+          actorId,
+          Date.now(),
+          APIFY_ACTOR_RUN_TIMEOUT_HOLD_MS,
+        );
+        this.loggerService.warn(
+          `${this.constructorName} Apify run for the ${capability} actor did not finish in ${error.maxWaitMs}ms; aborted, not retrying until ${new Date(until).toISOString()}`,
+          { actorId, caller, runId: error.runId, scope },
+        );
+        throw error;
+      }
+
       if (isApifyAccountLimitError(error)) {
         this.recordAccountLimit(scope, actorId, error);
         throw error;
@@ -425,8 +445,8 @@ export class ApifyBaseService {
       return;
     }
 
-    if (error instanceof ApifyActorUnavailableException) {
-      this.loggerService.warn(`${label} skipped: ${error.message}`);
+    if (isApifyActorDeferral(error)) {
+      this.loggerService.warn(`${label} skipped: ${(error as Error).message}`);
       return;
     }
 
@@ -619,7 +639,32 @@ export class ApifyBaseService {
       await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
     }
 
-    throw new Error(`Actor run ${runId} timed out after ${maxWaitMs}ms`);
+    throw new ApifyActorRunTimeoutException(runId, maxWaitMs);
+  }
+
+  /**
+   * Ask Apify to stop a run that overran the wait budget. Best effort: a run
+   * that already finished answers 4xx, and any failure only means it stops on
+   * its own limits.
+   */
+  private async abortRun(runId: string, token: string): Promise<void> {
+    try {
+      await firstValueFrom(
+        this.httpService.post(
+          `${this.apiUrl}/actor-runs/${runId}/abort`,
+          {},
+          {
+            headers: this.buildAuthHeaders(token),
+            validateStatus: (status: number) => status < 500,
+          },
+        ),
+      );
+    } catch (error: unknown) {
+      this.loggerService.warn(
+        `${this.constructorName} could not abort Apify run ${runId}`,
+        { error: describeApifyError(error) },
+      );
+    }
   }
 
   buildActorRunUrl(actorId: string): string {

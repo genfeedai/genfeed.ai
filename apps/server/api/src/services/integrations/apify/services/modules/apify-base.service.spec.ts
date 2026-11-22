@@ -1,6 +1,10 @@
 import { UPLOAD_HTTP_TIMEOUT_MS } from '@api/constants/http-timeout.constant';
 import { ByokProviderFactoryService } from '@api/services/byok/byok-provider-factory.service';
 import { ApifyBaseService } from '@api/services/integrations/apify/services/modules/apify-base.service';
+import {
+  ApifyActorRunTimeoutException,
+  ApifyActorUnavailableException,
+} from '@api/services/integrations/apify/utils/apify-actor-availability.util';
 import { runWithApifyCaller } from '@api/services/integrations/apify/utils/apify-caller.context';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -814,6 +818,95 @@ describe('ApifyBaseService', () => {
         /Apify/i,
       );
       expect(httpService.post).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('actor run overruns the wait budget', () => {
+    const STARTED = of({
+      data: {
+        data: { defaultDatasetId: 'ds-1', id: 'run-1', status: 'RUNNING' },
+      },
+    });
+    let nowSpy: ReturnType<typeof vi.spyOn>;
+    let now: number;
+
+    beforeEach(() => {
+      now = 1_700_000_000_000;
+      nowSpy = vi.spyOn(Date, 'now').mockImplementation(() => now);
+      vi.useFakeTimers({ toFake: ['setTimeout'] });
+      httpService.post.mockImplementation((url: string) =>
+        url.endsWith('/abort') ? of({ data: {}, status: 200 }) : STARTED,
+      );
+      // Every status poll reports a run that is still going, two minutes later.
+      httpService.get.mockImplementation(() => {
+        now += 130_000;
+        return of({ data: { data: { id: 'run-1', status: 'RUNNING' } } });
+      });
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+      nowSpy.mockRestore();
+    });
+
+    const runToTimeout = async () => {
+      const execution = service.runActor('test/actor', {});
+      const settled = execution.catch((error: unknown) => error);
+      await vi.advanceTimersByTimeAsync(5000);
+      return settled;
+    };
+
+    it('aborts the run and reports a warning, not an error', async () => {
+      const error = await runToTimeout();
+
+      expect(error).toBeInstanceOf(ApifyActorRunTimeoutException);
+      expect((error as Error).message).toBe(
+        'Actor run run-1 timed out after 120000ms',
+      );
+      expect(httpService.post.mock.calls.map(([url]) => url)).toEqual([
+        'https://api.apify.com/v2/acts/test~actor/runs',
+        'https://api.apify.com/v2/actor-runs/run-1/abort',
+      ]);
+      expect(loggerService.error).not.toHaveBeenCalled();
+      expect(loggerService.warn).toHaveBeenCalledTimes(1);
+    });
+
+    it('leaves the actor alone for the hold, then tries it again', async () => {
+      await runToTimeout();
+
+      const held = await service.runActor('test/actor', {}).catch((e) => e);
+      expect(held).toBeInstanceOf(ApifyActorUnavailableException);
+      expect(httpService.post).toHaveBeenCalledTimes(2);
+
+      now += 15 * 60 * 1000 + 1;
+      const retried = await runToTimeout();
+      expect(retried).toBeInstanceOf(ApifyActorRunTimeoutException);
+      expect(httpService.post).toHaveBeenCalledTimes(4);
+    });
+
+    it('still reports the timeout when the abort call fails', async () => {
+      httpService.post.mockImplementation((url: string) =>
+        url.endsWith('/abort')
+          ? throwError(() => new Error('apify down'))
+          : STARTED,
+      );
+
+      expect(await runToTimeout()).toBeInstanceOf(
+        ApifyActorRunTimeoutException,
+      );
+      expect(loggerService.error).not.toHaveBeenCalled();
+    });
+
+    it('lets callers log the timeout as a warning', () => {
+      service.logFailure(
+        'caller failed',
+        new ApifyActorRunTimeoutException('run-1', 120000),
+      );
+
+      expect(loggerService.error).not.toHaveBeenCalled();
+      expect(loggerService.warn).toHaveBeenCalledWith(
+        'caller failed skipped: Actor run run-1 timed out after 120000ms',
+      );
     });
   });
 

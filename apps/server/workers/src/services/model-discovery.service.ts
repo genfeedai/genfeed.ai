@@ -145,6 +145,18 @@ export type ReplicateModelFetch =
   | { status: 'not_found' }
   | { status: 'failed' };
 
+/** Prisma's code for a write that violates a unique constraint. */
+const UNIQUE_CONSTRAINT_VIOLATION_CODE = 'P2002';
+
+function isUniqueConstraintViolation(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    error.code === UNIQUE_CONSTRAINT_VIOLATION_CODE
+  );
+}
+
 /** The row's pricing type for the unit its page bills. */
 function pricingTypeForUnit(unit: string | null | undefined): PricingType {
   if (unit === 'second') return PricingType.PER_SECOND;
@@ -161,6 +173,24 @@ export class ModelDiscoveryService {
     private readonly typedDecisionService: TypedDecisionService,
     private readonly platformSettingsService: PlatformSettingsService,
   ) {}
+
+  /**
+   * The subset of `keys` that already name a registry row. `models.key` is
+   * unique across every provider, organization and soft-deleted row, so a key
+   * held by an OpenRouter row, a HeyGen row or a retired row blocks a draft
+   * just as a live row of the discovering provider does.
+   */
+  async findTakenKeys(keys: readonly string[]): Promise<Set<string>> {
+    if (keys.length === 0) {
+      return new Set();
+    }
+    // tenant-scope-ignore: the registry key is globally unique, so only a lookup across every provider, tenant and soft-deleted row says whether a draft can take it
+    const rows = await this.modelsService.prisma.model.findMany({
+      select: { key: true },
+      where: { key: { in: [...keys] } },
+    });
+    return new Set(rows.map((row) => row.key));
+  }
 
   /**
    * Create a draft model entry in the database.
@@ -188,6 +218,16 @@ export class ModelDiscoveryService {
       if (existing) {
         this.logger.log(
           `${context} model already exists, skipping: ${modelKey}`,
+        );
+        return null;
+      }
+
+      // `models.key` is unique across providers and soft-deleted rows, so the
+      // endpoint+provider lookup above misses a row another provider (or a
+      // retired row) holds, and the insert would then fail on the key.
+      if ((await this.findTakenKeys([modelKey])).has(modelKey)) {
+        this.logger.log(
+          `${context} key is already in the registry, skipping: ${modelKey}`,
         );
         return null;
       }
@@ -260,11 +300,25 @@ export class ModelDiscoveryService {
 
       return draftModel;
     } catch (error: unknown) {
+      // A second worker drafting the same model between the lookups above and
+      // the insert is the only expected failure: the row exists, so the run
+      // skips it like any other taken key.
+      if (isUniqueConstraintViolation(error)) {
+        this.logger.warn(
+          `${context} a row already holds this model, skipping: ${modelKey}`,
+        );
+        return null;
+      }
+      // The error goes in the `trace` slot: the logger serialises an Error
+      // there with its name, message and code, whereas an Error nested in the
+      // context object serialises as `{}`.
       this.logger.error(
         `${context} failed to create draft model: ${modelKey}`,
+        error,
         {
-          error,
-          modelInfo,
+          category: modelInfo.category,
+          endpoint: modelInfo.endpoint,
+          provider: modelInfo.provider,
         },
       );
       return null;

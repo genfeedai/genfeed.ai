@@ -32,12 +32,14 @@ function credentialStore(rows: StoredCredential[]) {
       // Only the fields the callback reads; the rest of the row is not used.
       return row ? (row as unknown as PendingCredential) : null;
     },
-    patch: async (id, update) => {
-      const row = table.get(String(id));
-      if (row) {
-        Object.assign(row, update);
+    // Applies the update only to rows that still match the conditional filter.
+    patchAll: async (filter, update) => {
+      const row = table.get(String(filter.id));
+      if (!row || row.isConnected !== filter.isConnected) {
+        return { modifiedCount: 0 };
       }
-      return row as unknown as Awaited<ReturnType<Store['patch']>>;
+      Object.assign(row, update);
+      return { modifiedCount: 1 };
     },
   };
   return { store, table };
@@ -132,6 +134,30 @@ describe('throwIfOAuthCallbackError', () => {
       status: HttpStatus.BAD_REQUEST,
       title: 'Authorization denied',
     });
+    expect(table.get('cred-1')).toEqual(pendingTwitter({ isConnected: true }));
+  });
+
+  it('does not mark a credential that connected after the lookup', async () => {
+    const { store, table } = credentialStore([pendingTwitter()]);
+    const lookup = store.findPendingOAuthCredential;
+    store.findPendingOAuthCredential = async (state, platform) => {
+      const found = await lookup(state, platform);
+      // Another request completes the connection right after this lookup.
+      const row = table.get('cred-1');
+      if (row) {
+        row.isConnected = true;
+      }
+      return found && ({ ...found } as typeof found);
+    };
+
+    await callbackFailure(
+      throwIfOAuthCallbackError(
+        store,
+        { error: 'server_error', state: 'opaque-state' },
+        CredentialPlatform.TWITTER,
+      ),
+    );
+
     expect(table.get('cred-1')).toEqual(pendingTwitter({ isConnected: true }));
   });
 

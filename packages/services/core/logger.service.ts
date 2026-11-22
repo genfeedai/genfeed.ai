@@ -12,6 +12,8 @@ import { holdSentryReport } from './sentry-held-reports';
 
 interface LogContext {
   error?: Error | unknown;
+  /** Splits a warning into one Sentry issue per cause instead of per message. */
+  fingerprint?: string[];
   reportToSentry?: boolean;
   tags?: Record<string, string>;
   [key: string]: unknown;
@@ -197,6 +199,7 @@ const captureSentryMessage = (
         obj && typeof obj === 'object'
           ? (obj as Record<string, unknown>)
           : undefined,
+      fingerprint: logContext?.fingerprint,
       level,
       tags: logContext?.tags,
     };

@@ -139,8 +139,17 @@ describe('BlueskyController', () => {
               return { id: credentialId, platform: 'BLUESKY' };
             },
             findOne: async () => existingAccount,
+            claimPendingOAuthCredential: async (state: string) =>
+              pendingByState[state] ?? null,
             findPendingOAuthCredential: async (state: string) =>
               pendingByState[state] ?? null,
+            patchAll: async (
+              filter: { id: string },
+              update: Record<string, unknown>,
+            ) => {
+              patches.push({ id: filter.id, update });
+              return { modifiedCount: 1 };
+            },
             patch: async (id: string, update: Record<string, unknown>) => {
               patches.push({ id, update });
               return { id };

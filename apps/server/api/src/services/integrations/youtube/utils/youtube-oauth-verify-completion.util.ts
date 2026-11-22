@@ -2,6 +2,7 @@ import type { CredentialDocument } from '@api/collections/credentials/credential
 import type { CreateCredentialVerifyDto } from '@api/collections/credentials/dto/create-credential.dto';
 import type { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { throwIfOAuthCallbackError } from '@api/collections/credentials/utils/oauth-callback-error.util';
+import { claimOAuthVerifyCredential } from '@api/collections/credentials/utils/oauth-verify-claim.util';
 import type { SocialSourceHistoryImportService } from '@api/collections/social-sources/services/social-source-history-import.service';
 import type { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
 import type { YoutubeAuthorizedSignalsService } from '@api/services/integrations/youtube/services/youtube-authorized-signals.service';
@@ -100,11 +101,15 @@ export async function completeYoutubeOAuthVerification(
   }
 
   progress.stage = 'state_validation';
-  const existingCredential =
-    await credentialsService.findPendingOAuthCredential(
-      state,
-      CredentialPlatform.YOUTUBE,
-    );
+  const claim = await claimOAuthVerifyCredential(
+    credentialsService,
+    state,
+    CredentialPlatform.YOUTUBE,
+  );
+  if (claim?.alreadyConnected) {
+    return claim.credential;
+  }
+  const existingCredential = claim?.credential;
 
   if (!existingCredential) {
     throw new HttpException(

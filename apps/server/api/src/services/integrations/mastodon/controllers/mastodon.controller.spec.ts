@@ -99,7 +99,9 @@ describe('MastodonController', () => {
         credentials.push(credential);
         return { credential, state: credential.oauthState };
       },
-      findPendingOAuthCredential: async (
+      // No request has claimed any state, so a lost claim finds nothing to wait for.
+      findOne: async () => null,
+      claimPendingOAuthCredential: async (
         state: string,
         platform: CredentialPlatform,
       ) =>

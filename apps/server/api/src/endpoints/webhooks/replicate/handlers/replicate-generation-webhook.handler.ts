@@ -20,6 +20,9 @@ import { Injectable } from '@nestjs/common';
 
 const DIGITS_ONLY_PATTERN = /^\d+$/;
 
+const REJECTED_OUTPUT_ERROR =
+  'Provider output was not served from a trusted media host';
+
 /**
  * Handles the non-training branches of the Replicate webhook: asset
  * (banner/logo) generations and regular ingredient media generations, both
@@ -367,18 +370,22 @@ export class ReplicateGenerationWebhookHandler {
         payload.id,
         singleOutput,
       );
-    } else if (typeof singleOutput === 'string') {
-      this.loggerService.error(
+    } else {
+      // The callback was answered and the job has a durable outcome: the
+      // ingredient fails now instead of sitting in PROCESSING until the
+      // timeout cron reports it. The signed callback itself was valid, so this
+      // is a rejected delivery, not a server fault.
+      this.loggerService.warn(
         'Replicate webhook: output URL rejected by host allowlist',
         {
           model: payload.model,
-          outputHost: describeRejectedReplicateOutputHost(singleOutput),
+          outputHost: describeRejectedReplicateOutputHost(singleOutput ?? ''),
           predictionId: payload.id,
         },
       );
-      this.loggerService.warn(
-        'Replicate webhook: output array contained no URLs',
-        { predictionId: payload.id },
+      await this.webhooksService.handleFailedGeneration(
+        payload.id,
+        REJECTED_OUTPUT_ERROR,
       );
     }
   }
