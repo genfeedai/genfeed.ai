@@ -27,8 +27,23 @@ const GROUP_VALUE_LIMIT = 450;
 const GROUP_MAX_LINES = 4;
 const MESSAGE_MARGIN = 400;
 const CODE_FENCE = '```';
-const FOOTER =
+const FOOTER_APPROVED_RATE =
   'The approved rate keeps charging until an operator approves a change.';
+const FOOTER_NEW_MODELS_ONLY =
+  'New models stay inactive and unpriced until an operator reviews them. Nothing is charging.';
+
+/**
+ * A run that only found new drafts and data errors has no approved rate to
+ * keep charging: a draft is inactive and a data-error row is not served.
+ */
+function footerFor(report: ModelScanReport): string {
+  const touchesApprovedRate =
+    report.priceChanges.length > 0 ||
+    report.removedByProvider.length > 0 ||
+    report.delisted.length > 0 ||
+    report.unreadable.length > 0;
+  return touchesApprovedRate ? FOOTER_APPROVED_RATE : FOOTER_NEW_MODELS_ONLY;
+}
 
 /** True when the run found nothing an operator has to act on. */
 function isModelScanReportEmpty(report: ModelScanReport): boolean {
@@ -285,9 +300,10 @@ export function buildModelScanCard(
   );
 
   const summary = summarize(report);
+  const footer = footerFor(report);
   const used =
     summary.length +
-    FOOTER.length +
+    footer.length +
     fields.reduce((total, field) => total + field.value.length, 0) +
     MESSAGE_MARGIN;
   const room = Math.min(
@@ -306,7 +322,7 @@ export function buildModelScanCard(
       : {}),
     color,
     fields,
-    footer: FOOTER,
+    footer,
     summary: `${summary}\n${codeBlock(prompt, room)}`,
     title: `Model scan: ${PROVIDER_NAMES[report.provider]}`,
   };
