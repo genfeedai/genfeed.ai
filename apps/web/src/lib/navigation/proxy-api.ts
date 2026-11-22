@@ -61,67 +61,7 @@ export type BootstrapRead =
   | { bootstrap: BootstrapResponse | null; isAvailable: true }
   | { isAvailable: false };
 
-const UNAVAILABLE_BOOTSTRAP: BootstrapRead = { isAvailable: false };
-
-/**
- * Longest the proxy waits on one API read. Every protected navigation waits on
- * these, so a slow API must degrade to "unavailable" long before the platform
- * kills the request.
- */
-const PROXY_API_TIMEOUT_MS = 3_000;
-
-export async function fetchBootstrap(token: string): Promise<BootstrapRead> {
-  try {
-    const response = await fetch(`${getApiBaseUrl()}/auth/bootstrap`, {
-      cache: 'no-store',
-      headers: {
-        Accept: 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      signal: AbortSignal.timeout(PROXY_API_TIMEOUT_MS),
-    });
-
-    if (!response.ok) {
-      return UNAVAILABLE_BOOTSTRAP;
-    }
-
-    return {
-      bootstrap: (await response.json()) as BootstrapResponse | null,
-      isAvailable: true,
-    };
-  } catch {
-    return UNAVAILABLE_BOOTSTRAP;
-  }
-}
-
-/**
- * The caller's organizations, or null when the API did not answer in time,
- * refused, or failed.
- */
-export async function fetchMineOrganizations(
-  token: string,
-): Promise<OrganizationMineResponseItem[] | null> {
-  try {
-    const response = await fetch(`${getApiBaseUrl()}/organizations?mine=true`, {
-      cache: 'no-store',
-      headers: {
-        Accept: 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      signal: AbortSignal.timeout(PROXY_API_TIMEOUT_MS),
-    });
-
-    if (!response.ok) {
-      return null;
-    }
-
-    return (await response.json()) as OrganizationMineResponseItem[] | null;
-  } catch {
-    return null;
-  }
-}
-
-export interface BearerTokenResult {
+interface BearerTokenResult {
   /**
    * The exchange failed on a network error, timeout or 5xx. The API did not
    * reject the session, so this is not a sign-out.
