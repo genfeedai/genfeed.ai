@@ -77,7 +77,7 @@ describe('YoutubeProcessor', () => {
       'quota',
     );
 
-    expect(redisService.publish).not.toHaveBeenCalled();
+    expect(redisService.publish.mock.calls).toEqual([]);
   });
 
   it('publishes the failed status once on the final attempt and rethrows', async () => {
@@ -87,14 +87,15 @@ describe('YoutubeProcessor', () => {
       buildProcessor().process(uploadJob('upload-youtube', 2)),
     ).rejects.toThrow('quota');
 
-    expect(redisService.publish).toHaveBeenCalledTimes(1);
-    expect(redisService.publish).toHaveBeenCalledWith(
-      'youtube:upload:complete',
-      expect.objectContaining({
-        error: 'quota',
-        postId: 'post-1',
-        status: 'failed',
-      }),
-    );
+    expect(redisService.publish.mock.calls).toEqual([
+      [
+        'youtube:upload:complete',
+        expect.objectContaining({
+          error: 'quota',
+          postId: 'post-1',
+          status: 'failed',
+        }),
+      ],
+    ]);
   });
 });
