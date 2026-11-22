@@ -1,20 +1,25 @@
 import OAuthPlatformForm from '@app/oauth/[platform]/oauth-platform-form';
-import { createDynamicPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
-import { Suspense } from 'react';
-import type { OAuthPageProps } from '@/props/pages/page.props';
+import { Platform } from '@genfeedai/contracts/enums';
+import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
 
-export const generateMetadata = createDynamicPageMetadata(
-  'platform',
-  (platform) =>
-    `Connect ${platform.charAt(0).toUpperCase() + platform.slice(1)}`,
-);
+/**
+ * Root layout components call `usePathname()`, which is a request-time hole on
+ * a route whose param is unknown. Prerendering every connectable platform gives
+ * each callback a fully static shell, so no Suspense boundary is streamed.
+ */
+export function generateStaticParams() {
+  return Object.values(Platform).map((platform) => ({
+    platform: platform.replaceAll('_', '-'),
+  }));
+}
 
-export default async function OAuthPlatformPage({ params }: OAuthPageProps) {
-  const { platform } = await params;
+export const generateMetadata = createPageMetadata('Connect account');
 
-  return (
-    <Suspense fallback={null}>
-      <OAuthPlatformForm platform={platform} />
-    </Suspense>
-  );
+/**
+ * The provider redirects here with a single-use `code`. The page reads no
+ * request data on the server, so its shell is static and nothing sits behind a
+ * server-streamed Suspense boundary; the client reads the callback URL itself.
+ */
+export default function OAuthPlatformPage() {
+  return <OAuthPlatformForm />;
 }

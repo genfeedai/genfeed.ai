@@ -164,15 +164,13 @@ export const APP_ROUTES = {
     WORKFLOWS_NEW: '/automation/workflows/new',
   },
   DISCOVERY: {
-    FOLLOWING: '/discovery/following',
     ADS: '/discovery/ads',
     /**
-     * Canonical Discovery home. Bare ROOT permanently redirects here so Overview
-     * is a complete path (same pattern as workspace/overview).
+     * Canonical Discovery home: one feed of outside signals. Bare ROOT
+     * permanently redirects here so Feed is a complete path.
      */
-    OVERVIEW: '/discovery/overview',
+    FEED: '/discovery/feed',
     ROOT: '/discovery',
-    TREND_TURNOVER: '/discovery/trend-turnover',
     /** Market trends: topics, viral videos, hashtags, sounds, source health. */
     TRENDS: '/discovery/trends',
   },

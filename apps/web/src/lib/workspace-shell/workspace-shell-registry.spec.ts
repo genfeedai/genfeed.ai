@@ -84,7 +84,7 @@ describe('workspace shell trusted registry', () => {
   it.each([
     ['/acme/~/connectors/api-keys', 'Connectors', 'API keys'],
     ['/acme/~/automation', 'Automation', 'Overview'],
-    ['/acme/moonrise/discovery/overview', 'Discovery', 'Overview'],
+    ['/acme/moonrise/discovery/feed', 'Discovery', 'Feed'],
     ['/acme/moonrise/discovery/ads', 'Discovery', 'Ads'],
     ['/acme/moonrise/platforms/instagram', 'Platforms', 'Instagram'],
     ['/acme/moonrise', 'Workspace', 'Overview'],
@@ -115,7 +115,6 @@ describe('workspace shell trusted registry', () => {
       'Discovery',
       'Instagram Trends',
     ],
-    ['/acme/moonrise/discovery/trend-turnover', 'Discovery', 'Trend Turnover'],
     ['/acme/moonrise/automation/workflows', 'Automation', 'Workflows'],
     ['/acme/moonrise/automation/workflows/new', 'Automation', 'New Workflow'],
     [
@@ -595,17 +594,17 @@ describe('workspace shell trusted registry', () => {
   });
 
   it('registers organization-scoped Discovery as an embedded surface', () => {
-    const route = resolveWorkspaceShellRoute('/acme/~/discovery/overview');
+    const route = resolveWorkspaceShellRoute('/acme/~/discovery/feed');
 
     expect(route).toMatchObject({
       adapter: { key: 'discovery', status: 'embedded' },
-      canonicalUrl: '/:orgSlug/~/discovery/overview',
-      safeFallback: '/:orgSlug/~/discovery/overview',
+      canonicalUrl: '/:orgSlug/~/discovery/feed',
+      safeFallback: '/:orgSlug/~/discovery/feed',
       scope: 'organization',
       surfaceKey: 'discovery',
     });
     expect(route && resolveWorkspaceShellSafeFallback(route)).toBe(
-      '/acme/~/discovery/overview',
+      '/acme/~/discovery/feed',
     );
   });
 
@@ -621,11 +620,11 @@ describe('workspace shell trusted registry', () => {
     expect(route).toMatchObject({
       adapter: { key: 'discovery', status: 'embedded' },
       mode: 'canvas',
-      safeFallback: '/:orgSlug/:brandSlug/discovery/overview',
+      safeFallback: '/:orgSlug/:brandSlug/discovery/feed',
       surfaceKey: 'discovery',
     });
     expect(route && resolveWorkspaceShellSafeFallback(route)).toBe(
-      '/acme/moonrise/discovery/overview',
+      '/acme/moonrise/discovery/feed',
     );
   });
 

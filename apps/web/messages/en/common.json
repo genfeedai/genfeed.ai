@@ -236,6 +236,7 @@
         "title": "Sign in required"
       },
       "connecting": "Connecting your {platform} account…",
+      "connectingAccount": "Connecting your account…",
       "error": {
         "denied": "Authorization was denied. You can try connecting again.",
         "description": "Failed to verify your account. Please try again.",

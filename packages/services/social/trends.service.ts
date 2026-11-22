@@ -274,36 +274,4 @@ export class TrendsService extends BaseService<Trend> {
       response.data || { count: 0, message: 'Refresh failed', success: false }
     );
   }
-
-  async getTurnoverStats(
-    days: 7 | 30 | 90 = 30,
-  ): Promise<TrendTurnoverResponse> {
-    const response = await this.instance.get<TrendTurnoverResponse>(
-      '/turnover',
-      { params: { days } },
-    );
-    return response.data;
-  }
-}
-
-export interface TrendTurnoverPlatformStats {
-  platform: string;
-  appeared: number;
-  died: number;
-  alive: number;
-  avgLifespanDays: number;
-  turnoverRate: number;
-}
-
-export interface TrendTimelineEntry {
-  date: string;
-  appeared: number;
-  died: number;
-}
-
-export interface TrendTurnoverResponse {
-  days: number;
-  byPlatform: TrendTurnoverPlatformStats[];
-  totals: Omit<TrendTurnoverPlatformStats, 'platform'>;
-  timeline: TrendTimelineEntry[];
 }

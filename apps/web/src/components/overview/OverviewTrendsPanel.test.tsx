@@ -108,7 +108,7 @@ describe('OverviewTrendsPanel', () => {
       <OverviewTrendsPanel
         isLoading={false}
         trends={TRENDS}
-        viewAllHref="/discovery/overview"
+        viewAllHref="/discovery/feed"
       />,
     );
 
@@ -120,7 +120,7 @@ describe('OverviewTrendsPanel', () => {
       <OverviewTrendsPanel
         isLoading={false}
         trends={TRENDS}
-        viewAllHref="/discovery/overview"
+        viewAllHref="/discovery/feed"
       />,
     );
 
@@ -136,7 +136,7 @@ describe('OverviewTrendsPanel', () => {
         isLoading={false}
         tone="default"
         trends={TRENDS}
-        viewAllHref="/discovery/overview"
+        viewAllHref="/discovery/feed"
       />,
     );
 
@@ -151,13 +151,13 @@ describe('OverviewTrendsPanel', () => {
       <OverviewTrendsPanel
         isLoading={false}
         trends={TRENDS}
-        viewAllHref="/discovery/overview"
+        viewAllHref="/discovery/feed"
       />,
     );
 
     expect(screen.getByRole('link', { name: /view all/i })).toHaveAttribute(
       'href',
-      '/discovery/overview',
+      '/discovery/feed',
     );
   });
 
@@ -166,7 +166,7 @@ describe('OverviewTrendsPanel', () => {
       <OverviewTrendsPanel
         isLoading={false}
         trends={TRENDS}
-        viewAllHref="/discovery/overview"
+        viewAllHref="/discovery/feed"
       />,
     );
 
@@ -187,7 +187,7 @@ describe('OverviewTrendsPanel', () => {
       <OverviewTrendsPanel
         isLoading={false}
         trends={TRENDS}
-        viewAllHref="/discovery/overview"
+        viewAllHref="/discovery/feed"
       />,
     );
 
@@ -200,7 +200,7 @@ describe('OverviewTrendsPanel', () => {
       <OverviewTrendsPanel
         isLoading={true}
         trends={[]}
-        viewAllHref="/discovery/overview"
+        viewAllHref="/discovery/feed"
       />,
     );
 
@@ -215,7 +215,7 @@ describe('OverviewTrendsPanel', () => {
       <OverviewTrendsPanel
         isLoading={false}
         trends={[]}
-        viewAllHref="/discovery/overview"
+        viewAllHref="/discovery/feed"
       />,
     );
 

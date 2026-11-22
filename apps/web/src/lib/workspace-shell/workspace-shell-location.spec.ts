@@ -36,7 +36,7 @@ describe('workspace shell URL restoration', () => {
     '/acme/moonrise/library/references',
     '/acme/moonrise/messages',
     '/acme/~/messages',
-    '/acme/~/discovery/overview',
+    '/acme/~/discovery/feed',
     '/acme/moonrise/settings/skills',
     '/acme/moonrise/storyboard',
     '/acme/moonrise/workspace/tasks/task-1',

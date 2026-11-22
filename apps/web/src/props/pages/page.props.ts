@@ -1,7 +1,3 @@
-export interface OAuthPageProps {
-  params: Promise<{ platform: string }>;
-}
-
 export interface TagsFilterPageProps {
   params: Promise<{
     filter: 'all' | 'default' | 'organization' | 'account';

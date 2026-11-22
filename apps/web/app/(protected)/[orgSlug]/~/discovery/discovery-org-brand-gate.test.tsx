@@ -10,7 +10,7 @@ const mocks = vi.hoisted(() => ({
   brands: [] as Array<{ id: string; label: string; slug: string }>,
   isReady: true,
   orgSlug: 'acme',
-  pathname: '/acme/~/discovery/overview',
+  pathname: '/acme/~/discovery/feed',
   replace: vi.fn(),
 }));
 
@@ -57,11 +57,11 @@ describe('DiscoveryOrgBrandGate', () => {
     mocks.brands = [];
     mocks.isReady = true;
     mocks.orgSlug = 'acme';
-    mocks.pathname = '/acme/~/discovery/overview';
+    mocks.pathname = '/acme/~/discovery/feed';
   });
 
   it('renders children on brand-scoped discovery routes', () => {
-    mocks.pathname = '/acme/moonrise/discovery/overview';
+    mocks.pathname = '/acme/moonrise/discovery/feed';
 
     render(
       <DiscoveryOrgBrandGate>
@@ -82,9 +82,7 @@ describe('DiscoveryOrgBrandGate', () => {
       </DiscoveryOrgBrandGate>,
     );
 
-    expect(mocks.replace).toHaveBeenCalledWith(
-      '/acme/moonrise/discovery/overview',
-    );
+    expect(mocks.replace).toHaveBeenCalledWith('/acme/moonrise/discovery/feed');
   });
 
   it('lists brands when more than one brand exists', () => {
@@ -104,11 +102,11 @@ describe('DiscoveryOrgBrandGate', () => {
     ).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Moonrise' })).toHaveAttribute(
       'href',
-      '/acme/moonrise/discovery/overview',
+      '/acme/moonrise/discovery/feed',
     );
     expect(screen.getByRole('link', { name: 'Paperclip' })).toHaveAttribute(
       'href',
-      '/acme/paperclip/discovery/overview',
+      '/acme/paperclip/discovery/feed',
     );
     expect(mocks.replace).not.toHaveBeenCalled();
   });
