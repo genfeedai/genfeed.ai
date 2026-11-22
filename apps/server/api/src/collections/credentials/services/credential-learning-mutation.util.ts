@@ -436,13 +436,34 @@ export async function patchCredentialWithLearning(
   ]);
   return context.normalizeDocument(updated);
 }
+/**
+ * Disconnecting a credential keeps the row (posts and schedules reference it)
+ * but must not keep a usable connection: the provider tokens and OAuth
+ * handshake material are cleared with the soft delete.
+ */
+const DISCONNECTED_CREDENTIAL_DATA = {
+  accessToken: null,
+  accessTokenExpiry: null,
+  accessTokenSecret: null,
+  grantedScopes: [],
+  grantedScopesCapturedAt: null,
+  isConnected: false,
+  isDeleted: true,
+  oauthState: null,
+  oauthToken: null,
+  oauthTokenHash: null,
+  oauthTokenSecret: null,
+  refreshToken: null,
+  refreshTokenExpiry: null,
+} satisfies Prisma.CredentialUncheckedUpdateInput;
+
 export async function removeCredentialWithLearning(
   tx: Prisma.TransactionClient,
   context: CredentialLearningMutationContext,
   id: string,
   fenceScope: LearningMutationFenceScope,
 ): Promise<CredentialDocument | null> {
-  const data = { isDeleted: true };
+  const data = DISCONNECTED_CREDENTIAL_DATA;
   const plan = await prepareCredentialMutation(
     tx,
     { id, isDeleted: false },

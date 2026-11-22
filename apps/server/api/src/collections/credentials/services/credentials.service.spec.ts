@@ -386,7 +386,14 @@ describe('CredentialsService', () => {
       await service.remove('existing-id');
 
       expect(prisma.credential.update).toHaveBeenCalledWith(
-        expect.objectContaining({ data: { isDeleted: true } }),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            accessToken: null,
+            isConnected: false,
+            isDeleted: true,
+            refreshToken: null,
+          }),
+        }),
       );
       expect(
         accessBootstrapCache.invalidateForOrganization,
