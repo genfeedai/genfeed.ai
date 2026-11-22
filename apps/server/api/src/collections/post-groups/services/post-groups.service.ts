@@ -1,6 +1,7 @@
 import type { PostGroupsQueryDto } from '@api/collections/post-groups/dto/post-groups-query.dto';
 import type { SchedulerPostGroup } from '@api/collections/post-groups/services/post-group.types';
 import { PostGroupContractService } from '@api/collections/post-groups/services/post-group-contract.service';
+import { PostGroupIdempotencyService } from '@api/collections/post-groups/services/post-group-idempotency.service';
 import { PostGroupPersistenceService } from '@api/collections/post-groups/services/post-group-persistence.service';
 import { PostGroupReadinessService } from '@api/collections/post-groups/services/post-group-readiness.service';
 import {
@@ -89,6 +90,7 @@ export class PostGroupsService {
     private readonly persistenceService: PostGroupPersistenceService,
     private readonly contractService: PostGroupContractService,
     private readonly readinessService: PostGroupReadinessService,
+    private readonly idempotency: PostGroupIdempotencyService,
   ) {}
 
   async create(
@@ -104,96 +106,46 @@ export class PostGroupsService {
       headerIdempotencyKey,
     );
 
-    if (input.idempotencyKey) {
-      const existing = await this.replayExisting(
-        organizationId,
-        input.idempotencyKey,
-        userId,
-        apiKeyContext,
-      );
-      if (existing) {
-        return existing;
-      }
-    }
-
-    const status = this.contractService.resolveCreateStatus(input);
-    assertApiKeyPublishingScope(
-      apiKeyContext ?? {},
-      status === ReleaseStatus.DRAFT ? 'draft' : 'schedule',
-    );
-    const scheduledAt = this.contractService.toDate(input.scheduledDate);
-    let release: IReleaseGroup;
-    try {
-      release = await this.prisma.$transaction((tx) =>
-        this.persistenceService.createPostGroup(tx, {
-          input,
-          organizationId,
-          provenance,
-          scheduledAt,
-          status,
-          userId,
-        }),
-      );
-    } catch (error) {
-      // A concurrent create with the same key won the unique index
-      // [organizationId, idempotencyKey]: return its group.
-      if (input.idempotencyKey && this.isUniqueConstraintError(error)) {
-        const existing = await this.replayExisting(
-          organizationId,
-          input.idempotencyKey,
-          userId,
-          apiKeyContext,
+    const { group, replayed } = await this.idempotency.run(
+      organizationId,
+      input.idempotencyKey,
+      async (idempotencyKey) => {
+        const status = this.contractService.resolveCreateStatus(input);
+        assertApiKeyPublishingScope(
+          apiKeyContext ?? {},
+          status === ReleaseStatus.DRAFT ? 'draft' : 'schedule',
         );
-        if (existing) {
-          return existing;
-        }
-      }
-      throw error;
-    }
-
-    this.logger.debug('Created scheduler post group', {
-      groupId: release.id,
-      organizationId,
-      targetCount: release.targets?.length ?? 0,
-    });
-
-    if (release.status === ReleaseStatus.SCHEDULED) {
-      await this.approveReleaseTargets(release, userId, 'scheduled');
-    }
-    return release;
-  }
-
-  private isUniqueConstraintError(error: unknown): boolean {
-    return (
-      error !== null &&
-      typeof error === 'object' &&
-      'code' in error &&
-      (error as { code?: unknown }).code === 'P2002'
+        const scheduledAt = this.contractService.toDate(input.scheduledDate);
+        return this.prisma.$transaction((tx) =>
+          this.persistenceService.createPostGroup(tx, {
+            input: { ...input, idempotencyKey },
+            organizationId,
+            provenance,
+            scheduledAt,
+            status,
+            userId,
+          }),
+        );
+      },
     );
-  }
 
-  /** The group already made for this key, approved again when still scheduled. */
-  private async replayExisting(
-    organizationId: string,
-    idempotencyKey: string,
-    userId: string,
-    apiKeyContext?: ApiKeyPublishingContext,
-  ): Promise<IReleaseGroup | undefined> {
-    const existing = await this.persistenceService.findByIdempotencyKey(
-      organizationId,
-      idempotencyKey,
-    );
-    if (!existing) {
-      return undefined;
+    if (replayed) {
+      assertApiKeyPublishingScope(
+        apiKeyContext ?? {},
+        publishingCapabilityForReleaseStatus(group.status),
+      );
+    } else {
+      this.logger.debug('Created scheduler post group', {
+        groupId: group.id,
+        organizationId,
+        targetCount: group.targets?.length ?? 0,
+      });
     }
-    assertApiKeyPublishingScope(
-      apiKeyContext ?? {},
-      publishingCapabilityForReleaseStatus(existing.status),
-    );
-    if (existing.status === ReleaseStatus.SCHEDULED) {
-      await this.approveReleaseTargets(existing, userId, 'scheduled');
+
+    if (group.status === ReleaseStatus.SCHEDULED) {
+      await this.approveReleaseTargets(group, userId, 'scheduled');
     }
-    return existing;
+    return group;
   }
 
   async getOne(

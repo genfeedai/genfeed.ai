@@ -123,7 +123,7 @@ describe('handleSchedulerTool', () => {
 
     it('sends a deterministic content key when no key or approval exists', async () => {
       const first = await keyFor({ release });
-      expect(first).toMatch(/^mcp-release:[0-9a-f]{64}$/);
+      expect(first).toMatch(/^mcp-release:content:[0-9a-f]{64}$/);
       expect(await keyFor({ release: { ...release } })).toBe(first);
     });
 

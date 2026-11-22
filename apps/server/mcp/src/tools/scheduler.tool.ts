@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import { stableStringify } from '@genfeedai/contracts/constants/canonical-json.constant';
+import { CONTENT_RELEASE_IDEMPOTENCY_PREFIX } from '@genfeedai/contracts/constants/release-idempotency.constant';
 import { SCHEDULED_RELEASE_BATCH_MAX } from '@genfeedai/contracts/interfaces';
 import { isRecord } from '@genfeedai/utils/data/extract.util';
 import type {
@@ -204,7 +205,7 @@ function hashContent(value: unknown): string {
  * gets another key. Argument order does not matter.
  */
 function contentKey(release: Record<string, unknown>): string {
-  return `mcp-release:${hashContent(release)}`;
+  return `${CONTENT_RELEASE_IDEMPOTENCY_PREFIX}${hashContent(release)}`;
 }
 
 /** The `releases` of a batch call, each checked for the fields every release needs. */
