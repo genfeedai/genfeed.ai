@@ -79,6 +79,10 @@ import { StripeWebhookController } from '@api/endpoints/webhooks/stripe/webhooks
 import { StripeWebhookService } from '@api/endpoints/webhooks/stripe/webhooks.stripe.service';
 import { TransactionUtil } from '@api/helpers/utils/transaction/transaction.util';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
+import {
+  RELEASE_OWNED_CLAIM_SCRIPT,
+  SET_OWNED_CLAIM_VALUE_SCRIPT,
+} from '@api/services/cache/cache-claim-scripts';
 import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
 import { StripePaymentRevenueReferenceService } from '@api/services/integrations/stripe/services/stripe-payment-revenue-reference.service';
 import { LifecycleEmailService } from '@api/services/lifecycle-emails/lifecycle-email.service';
@@ -135,6 +139,35 @@ const createRedisPublisherDouble = () => {
     del: vi.fn(async (key: string): Promise<number> => {
       return store.delete(key) ? 1 : 0;
     }),
+    get: vi.fn(async (key: string): Promise<string | null> => {
+      return store.get(key) ?? null;
+    }),
+    // The two owned-claim scripts the webhook controller runs, in memory.
+    eval: vi.fn(
+      async (
+        script: string,
+        _keyCount: number,
+        ...args: (string | number)[]
+      ): Promise<number> => {
+        if (script === SET_OWNED_CLAIM_VALUE_SCRIPT) {
+          const [claimKey, resultKey, token, value] = args as string[];
+          if (store.get(claimKey) !== token) {
+            return 0;
+          }
+          store.set(resultKey, value);
+          return 1;
+        }
+        if (script === RELEASE_OWNED_CLAIM_SCRIPT) {
+          const [claimKey, token] = args as string[];
+          if (store.get(claimKey) !== token) {
+            return 0;
+          }
+          store.delete(claimKey);
+          return 1;
+        }
+        throw new Error('Unexpected Redis script in the Stripe webhook spec');
+      },
+    ),
     set: vi.fn(
       async (
         key: string,
