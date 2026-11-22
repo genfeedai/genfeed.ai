@@ -8,11 +8,11 @@ import { describe, expect, it } from 'vitest';
 import {
   getPostCategoryForMedia,
   getPostMediaRequirement,
-  getPostTargetSettingsForMedia,
   getUnmetPostMediaRequirements,
   isPostMediaRequirementMet,
   MAX_POST_MEDIA_ITEMS,
   mergePostMedia,
+  targetsForMedia,
 } from './post-media.helper';
 
 function media(id: string, category: IngredientCategory): IIngredient {
@@ -114,22 +114,30 @@ describe('getUnmetPostMediaRequirements', () => {
   });
 });
 
-describe('getPostTargetSettingsForMedia', () => {
+describe('targetsForMedia', () => {
   it.each([
-    [undefined, [IngredientCategory.VIDEO], undefined],
-    [Platform.INSTAGRAM, [IngredientCategory.VIDEO], { placement: 'reel' }],
-    [Platform.INSTAGRAM, [IngredientCategory.IMAGE], { placement: 'feed' }],
+    [undefined, [IngredientCategory.VIDEO], {}],
+    [
+      Platform.INSTAGRAM,
+      [IngredientCategory.VIDEO],
+      { targetSettings: { placement: 'reel' } },
+    ],
+    [
+      Platform.INSTAGRAM,
+      [IngredientCategory.IMAGE],
+      { targetSettings: { placement: 'feed' } },
+    ],
     [
       Platform.INSTAGRAM,
       [IngredientCategory.IMAGE, IngredientCategory.VIDEO],
-      { placement: 'feed' },
+      { targetSettings: { placement: 'feed' } },
     ],
-    [Platform.INSTAGRAM, [], { placement: 'feed' }],
-    [Platform.TIKTOK, [IngredientCategory.VIDEO], undefined],
-    [Platform.YOUTUBE, [IngredientCategory.VIDEO], undefined],
+    [Platform.INSTAGRAM, [], { targetSettings: { placement: 'feed' } }],
+    [Platform.TIKTOK, [IngredientCategory.VIDEO], {}],
+    [Platform.YOUTUBE, [IngredientCategory.VIDEO], {}],
   ])('resolves %s media %j to %j', (platform, categories, expected) => {
     expect(
-      getPostTargetSettingsForMedia(
+      targetsForMedia(
         platform,
         categories.map((category, index) => media(String(index), category)),
       ),

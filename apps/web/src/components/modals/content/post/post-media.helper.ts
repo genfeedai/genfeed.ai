@@ -130,20 +130,26 @@ export function getPostCategoryForMedia(
   return undefined;
 }
 
-/** A single Instagram video is a Reel; images and carousels go to the feed. */
-export function getPostTargetSettingsForMedia(
+/**
+ * Spreadable post fields for the channel's target settings. A single Instagram
+ * video is a Reel; images and carousels go to the feed. Other platforms add
+ * nothing.
+ */
+export function targetsForMedia(
   platform: string | undefined,
   media: readonly IIngredient[],
-): Record<string, unknown> | undefined {
+): { targetSettings?: Record<string, unknown> } {
   if (platform !== Platform.INSTAGRAM) {
-    return undefined;
+    return {};
   }
 
   const isReel =
     media.length === 1 && getPostCategoryForMedia(media) === PostCategory.VIDEO;
   return {
-    ...resolveChannelTargetSettings(platform, {
-      placement: isReel ? 'reel' : 'feed',
-    }),
+    targetSettings: {
+      ...resolveChannelTargetSettings(platform, {
+        placement: isReel ? 'reel' : 'feed',
+      }),
+    },
   };
 }
