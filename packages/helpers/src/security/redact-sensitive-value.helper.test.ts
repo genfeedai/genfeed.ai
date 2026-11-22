@@ -33,6 +33,51 @@ describe('redactSensitiveValue', () => {
     });
   });
 
+  it('redacts OAuth state, authorization code and verifier keys', () => {
+    expect(
+      redactSensitiveValue({
+        authorizationCode: 'code-abc',
+        code_verifier: 'verifier-abc',
+        oauthState: 'state-abc',
+        platform: 'twitter',
+      }),
+    ).toEqual({
+      authorizationCode: REDACTED_VALUE,
+      code_verifier: REDACTED_VALUE,
+      oauthState: REDACTED_VALUE,
+      platform: 'twitter',
+    });
+  });
+
+  it('redacts code and state in an OAuth callback payload', () => {
+    expect(
+      redactSensitiveValue({ code: 'code-abc', state: 'state-abc' }),
+    ).toEqual({ code: REDACTED_VALUE, state: REDACTED_VALUE });
+  });
+
+  it('redacts code and state query parameters and keeps the rest of the URL', () => {
+    expect(
+      redactSensitiveString(
+        'GET /v1/services/twitter/verify?code=code-abc&state=state-abc&safe=1#top',
+      ),
+    ).toBe(
+      `GET /v1/services/twitter/verify?code=${REDACTED_VALUE}&state=${REDACTED_VALUE}&safe=1#top`,
+    );
+  });
+
+  it('keeps error codes and execution states readable', () => {
+    expect(redactSensitiveValue({ code: 'P2002', status: 500 })).toEqual({
+      code: 'P2002',
+      status: 500,
+    });
+    expect(
+      redactSensitiveValue({ executionState: 'running', state: 'running' }),
+    ).toEqual({ executionState: 'running', state: 'running' });
+    expect(
+      redactSensitiveString('GET /v1/items?error_code=E1&country=FR'),
+    ).toBe('GET /v1/items?error_code=E1&country=FR');
+  });
+
   it('redacts inline assignments and provider-shaped tokens', () => {
     const providerToken = ['sk', 'proj', '1234567890abcdef'].join('-');
     const githubToken = ['ghp', '1234567890abcdef'].join('_');
