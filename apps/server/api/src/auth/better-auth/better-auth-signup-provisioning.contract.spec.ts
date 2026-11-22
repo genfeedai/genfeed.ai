@@ -170,6 +170,11 @@ function createSignupProvisioningHarness() {
     } as unknown as import('@api/collections/billing-accounts/services/billing-accounts.service').BillingAccountsService,
     creditBalanceService as unknown as CreditBalanceService,
     creditsUtilsService as unknown as OnboardingCreditGrantsService,
+    {
+      $transaction: async (
+        fn: (tx: { $queryRaw: ReturnType<typeof vi.fn> }) => Promise<unknown>,
+      ) => fn({ $queryRaw: vi.fn().mockResolvedValue([]) }),
+    } as unknown as PrismaService,
     logger as unknown as LoggerService,
   );
   const listener = new UserProvisioningListener(

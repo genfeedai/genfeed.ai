@@ -8,9 +8,14 @@ import { OrganizationsService } from '@api/collections/organizations/services/or
 import { RolesService } from '@api/collections/roles/services/roles.service';
 import { SettingsService } from '@api/collections/settings/services/settings.service';
 import { UserSetupService } from '@api/collections/users/services/user-setup.service';
+import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import { OrganizationCategory } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
+
+const passthroughTransaction = async <T>(
+  fn: (tx: { $queryRaw: ReturnType<typeof vi.fn> }) => Promise<T>,
+): Promise<T> => fn({ $queryRaw: vi.fn().mockResolvedValue([]) });
 
 describe('UserSetupService', () => {
   let service: UserSetupService;
@@ -99,6 +104,7 @@ describe('UserSetupService', () => {
       mockBillingAccountsService as unknown as BillingAccountsService,
       mockCreditBalanceService as unknown as CreditBalanceService,
       mockOnboardingCreditGrantsService as unknown as OnboardingCreditGrantsService,
+      { $transaction: passthroughTransaction } as unknown as PrismaService,
       mockLogger as unknown as LoggerService,
     );
   });

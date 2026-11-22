@@ -23,6 +23,7 @@ import { OrganizationsService } from '@api/collections/organizations/services/or
 import { RolesService } from '@api/collections/roles/services/roles.service';
 import { resolveOrganizationCreatorRole } from '@api/collections/roles/utils/resolve-organization-creator-role.util';
 import { SettingsService } from '@api/collections/settings/services/settings.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   PERSONAL_EMAIL_DOMAIN_LIST,
   resolveDefaultOrganizationCategory,
@@ -41,6 +42,16 @@ import type { Member, Setting } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
 import { ForbiddenException, Injectable } from '@nestjs/common';
+
+/**
+ * Interactive transaction budget for the setup lock. The transaction holds only
+ * the advisory lock while the setup steps run on their own connections, so the
+ * timeout must cover the whole setup chain and any caller queued behind it.
+ */
+const USER_SETUP_LOCK_TRANSACTION_OPTIONS = {
+  maxWait: 10_000,
+  timeout: 60_000,
+} as const;
 
 export interface UserSetupProfile {
   email?: string | null;
@@ -70,6 +81,7 @@ export class UserSetupService {
     private readonly billingAccountsService: BillingAccountsService,
     private readonly creditBalanceService: CreditBalanceService,
     private readonly onboardingCreditGrantsService: OnboardingCreditGrantsService,
+    private readonly prisma: PrismaService,
     private readonly logger: LoggerService,
   ) {}
 
@@ -82,6 +94,25 @@ export class UserSetupService {
    * @throws Error if any critical step fails (cascading failure)
    */
   async initializeUserResources(
+    userId: string,
+    category?: OrganizationCategory,
+    profile?: UserSetupProfile,
+  ): Promise<UserSetupResult> {
+    // Sign-up, the first authenticated request, onboarding and the checkout
+    // webhook can all reach this for one new user at the same moment. Each
+    // step is a check-then-create, so the whole chain runs under a per-user
+    // advisory lock. The steps below call services that use the global Prisma
+    // client and cannot take `tx`, so the lock transaction stays open around
+    // them and holds only the lock: a second caller blocks on it, then runs the
+    // same steps, which re-read and return what the first caller created.
+    return await this.prisma.$transaction(async (tx) => {
+      // sql-risk-audit: ignore raw-sql-review -- Takes a transaction-scoped advisory lock keyed on the user id; no table, tenant data or index is read.
+      await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`user-setup:${userId}`}, 0))::text`;
+      return await this.provisionUserResources(userId, category, profile);
+    }, USER_SETUP_LOCK_TRANSACTION_OPTIONS);
+  }
+
+  private async provisionUserResources(
     userId: string,
     category?: OrganizationCategory,
     profile?: UserSetupProfile,
