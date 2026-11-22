@@ -15,13 +15,12 @@ import { useRouter } from 'next/navigation';
 // The menu brings the dropdown menu and its positioning code (about 38 kB of
 // first-load JS), which every profile route would pay for although only the
 // Wall tab shows a filter. It loads after the page is interactive; until then
-// the trigger is a plain disabled button of the same size.
+// the trigger is a disabled ghost button.
 const FilterMenu = dynamic(
   () => import('@ui/navigation/filter-menu/FilterMenu'),
   {
     loading: () => (
       <Button
-        className="h-8 shrink-0 gap-1.5 px-2.5 text-xs"
         isDisabled
         size={ButtonSize.SM}
         variant={ButtonVariant.GHOST}
