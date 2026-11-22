@@ -60,12 +60,19 @@ const DRAFT = {
   triggerTweetText: 'Shipping weekly beats shipping big.',
 };
 
+const openedTab = {
+  close: vi.fn(),
+  location: { href: '' },
+  opener: null as unknown,
+};
+
 describe('RepliesWarmupQueue', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    openedTab.location.href = '';
     service.findAwaitingApproval.mockResolvedValue({ data: [DRAFT], total: 1 });
     service.getReplyQueueUsage.mockResolvedValue(USAGE);
-    vi.spyOn(window, 'open').mockReturnValue(null);
+    vi.spyOn(window, 'open').mockReturnValue(openedTab as unknown as Window);
   });
 
   it('shows the drafted reply under the post it answers', async () => {
@@ -97,10 +104,10 @@ describe('RepliesWarmupQueue', () => {
         'Better',
       ),
     );
-    expect(window.open).toHaveBeenCalledWith(
-      'https://x.com/intent/post?in_reply_to=1&text=Better',
-      '_blank',
-      'noopener,noreferrer',
+    await waitFor(() =>
+      expect(openedTab.location.href).toBe(
+        'https://x.com/intent/post?in_reply_to=1&text=Better',
+      ),
     );
     expect(service.confirmReplyQueueItemPosted).not.toHaveBeenCalled();
 
@@ -113,6 +120,74 @@ describe('RepliesWarmupQueue', () => {
     );
     await waitFor(() =>
       expect(screen.queryByDisplayValue('Better')).not.toBeInTheDocument(),
+    );
+  });
+
+  it('opens the tab inside the click, before the reply request resolves', async () => {
+    let resolveOpen: (value: { intentUrl: string }) => void = () => undefined;
+    service.openReplyQueueItem.mockReturnValue(
+      new Promise((resolve) => {
+        resolveOpen = resolve;
+      }),
+    );
+    render(<RepliesWarmupQueue />);
+    await screen.findByDisplayValue('Sharp take.');
+
+    fireEvent.click(screen.getByRole('button', { name: 'openInX' }));
+
+    expect(window.open).toHaveBeenCalledTimes(1);
+    expect(openedTab.location.href).toBe('');
+
+    resolveOpen({ intentUrl: 'https://x.com/intent/post?text=Sharp' });
+    await waitFor(() =>
+      expect(openedTab.location.href).toBe(
+        'https://x.com/intent/post?text=Sharp',
+      ),
+    );
+  });
+
+  it('closes the opened tab when the reply request fails', async () => {
+    service.openReplyQueueItem.mockRejectedValue(new Error('nope'));
+    render(<RepliesWarmupQueue />);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'openInX' }));
+
+    await waitFor(() => expect(openedTab.close).toHaveBeenCalledTimes(1));
+    expect(
+      screen.queryByRole('button', { name: 'markPosted' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('keeps the first row busy while a second row finishes its action', async () => {
+    const SECOND = { ...DRAFT, id: 'activity-2', draftReplyText: 'Other.' };
+    service.findAwaitingApproval.mockResolvedValue({
+      data: [DRAFT, SECOND],
+      total: 2,
+    });
+    let resolveFirst: (value: typeof USAGE) => void = () => undefined;
+    service.dismissReplyQueueItem.mockImplementation((id: string) =>
+      id === 'activity-1'
+        ? new Promise((resolve) => {
+            resolveFirst = resolve;
+          })
+        : Promise.resolve(USAGE),
+    );
+    render(<RepliesWarmupQueue />);
+
+    const dismissButtons = await screen.findAllByRole('button', {
+      name: 'dismiss',
+    });
+    fireEvent.click(dismissButtons[0]);
+    fireEvent.click(dismissButtons[1]);
+
+    await waitFor(() =>
+      expect(screen.queryByDisplayValue('Other.')).not.toBeInTheDocument(),
+    );
+    expect(screen.getByRole('button', { name: 'dismiss' })).toBeDisabled();
+
+    resolveFirst(USAGE);
+    await waitFor(() =>
+      expect(screen.queryByDisplayValue('Sharp take.')).not.toBeInTheDocument(),
     );
   });
 
