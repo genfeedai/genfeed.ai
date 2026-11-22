@@ -30,6 +30,38 @@ export const STATE_MESSAGE_KEYS = {
   warming: 'state.warming',
 } as const satisfies Record<AccountHealthSummary['state'], string>;
 
+/** Why an account needs reconnecting, as a `reconnectReason.*` message key. */
+export type ReconnectReason = 'disconnected' | 'expired' | 'noIdentity';
+
+export const RECONNECT_REASON_MESSAGE_KEYS = {
+  disconnected: 'reconnectReason.disconnected',
+  expired: 'reconnectReason.expired',
+  noIdentity: 'reconnectReason.noIdentity',
+} as const satisfies Record<ReconnectReason, string>;
+
+/**
+ * Names the first thing wrong with an account that needs reconnecting, in the
+ * same order `getAccountConnectionStatus` checks them. `undefined` for an
+ * account that is connected.
+ */
+export function getReconnectReason(
+  connection: Pick<
+    BrandDetailSocialConnection,
+    'accessTokenExpiry' | 'externalId' | 'isConnected'
+  >,
+): ReconnectReason | undefined {
+  if (!connection.externalId) {
+    return 'noIdentity';
+  }
+  if (connection.isConnected === false) {
+    return 'disconnected';
+  }
+  if (isAccessTokenExpired(connection.accessTokenExpiry)) {
+    return 'expired';
+  }
+  return undefined;
+}
+
 const HISTORY_IMPORT_PLATFORMS = new Set<string>(
   Object.values(SocialSourcePlatform),
 );

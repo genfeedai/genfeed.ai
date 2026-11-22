@@ -19,8 +19,10 @@ import {
 import { useTranslations } from 'next-intl';
 import {
   getAccountConnectionStatus,
+  getReconnectReason,
   hasWarmupBlueprint,
   needsDirectMessageReconnect,
+  RECONNECT_REASON_MESSAGE_KEYS,
   STATE_MESSAGE_KEYS,
 } from './account-connection-status.util';
 import { getHealthBadgeVariant } from './account-health-badge-variant';
@@ -76,6 +78,7 @@ export default function AccountStatusIcons({
   const translate = useTranslations('pages.brandSocialMedia');
   const needsReconnect =
     getAccountConnectionStatus(connection) === 'needsReconnect';
+  const reconnectReason = getReconnectReason(connection);
 
   // `healthOverride` is the live-fetched health for the brand; the connection's
   // own `accountHealth` is whatever the brand payload carried. Prefer the
@@ -92,7 +95,11 @@ export default function AccountStatusIcons({
           isLoading={isReconnecting}
           onClick={onReconnect}
           size={ButtonSize.ICON}
-          tooltip={translate('needsReconnect')}
+          tooltip={
+            reconnectReason
+              ? translate(RECONNECT_REASON_MESSAGE_KEYS[reconnectReason])
+              : translate('needsReconnect')
+          }
           tooltipPosition="top"
           variant={ButtonVariant.GHOST}
           withWrapper={false}
@@ -123,7 +130,7 @@ export default function AccountStatusIcons({
           isLoading={isReconnecting}
           onClick={onReconnect}
           size={ButtonSize.ICON}
-          tooltip={translate('dmReconnectBadge')}
+          tooltip={translate('dmReconnectHint')}
           tooltipPosition="top"
           variant={ButtonVariant.GHOST}
           withWrapper={false}

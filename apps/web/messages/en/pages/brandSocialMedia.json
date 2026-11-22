@@ -29,6 +29,7 @@
   "disconnectAccountDescription": "{account} stops publishing for this brand. Other accounts on {platform} are untouched, and you can reconnect it later.",
   "disconnectNamed": "Disconnect {account}",
   "dmReconnectBadge": "DMs need reconnect",
+  "dmReconnectHint": "This X account has no access to DMs. Click to reconnect it and turn them on.",
   "empty": "No social accounts connected yet.",
   "emptyAccountsTitle": "No accounts connected yet",
   "apiKeyConnect": {
@@ -85,6 +86,11 @@
   "linked": "Linked",
   "manage": "Manage",
   "needsReconnect": "Needs reconnect",
+  "reconnectReason": {
+    "disconnected": "Connection lost. Click to reconnect.",
+    "expired": "Access expired. Click to reconnect.",
+    "noIdentity": "Sign-in didn't finish. Click to reconnect."
+  },
   "noPlatformsFound": "No platforms found.",
   "notReadyReason": "Not available yet",
   "openProfile": "Open {account}",

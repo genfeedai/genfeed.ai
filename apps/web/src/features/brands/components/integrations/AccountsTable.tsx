@@ -84,8 +84,11 @@ export default function AccountsTable({
       },
       {
         // Icon-only, so the header is read by screen readers only. It sits at
-        // the row's right end, where the hover actions appear over it.
-        className: 'w-px whitespace-nowrap pr-2',
+        // the row's right end. On a hover-capable pointer the row actions
+        // float over that end, so the cell reserves their width (3 buttons and
+        // their fade, 11rem) and the icons stay visible, with their tooltips,
+        // beside the actions instead of under them.
+        className: 'w-px whitespace-nowrap pr-2 [@media(hover:hover)]:pr-44',
         header: (
           <span className="sr-only">{translate('accountsTableStatus')}</span>
         ),
