@@ -1,5 +1,6 @@
 import '@testing-library/jest-dom/vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { renderToString } from 'react-dom/server';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { rememberOAuthConnectContext } from '@/hooks/auth/use-platform-oauth-connect/oauth-connect-context';
 import OAuthPlatformForm from './oauth-platform-form';
@@ -18,7 +19,7 @@ const mocks = vi.hoisted(() => ({
   loggerInfo: vi.fn(),
   postVerify: vi.fn(),
   navigate: vi.fn(),
-  searchParams: new URLSearchParams(),
+  callbackParams: new URLSearchParams(),
 }));
 
 const { clearClientProtectedBootstrapCache } = vi.hoisted(() => ({
@@ -100,10 +101,17 @@ vi.mock('./oauth-return-navigation', () => ({
   navigateToReturnPath: mocks.navigate,
 }));
 
-vi.mock('next/navigation', () => ({
-  usePathname: () => '/',
-  useSearchParams: () => mocks.searchParams,
-}));
+/** The callback page reads its input from the URL the provider redirected to. */
+function renderCallback(platform: string) {
+  const query = mocks.callbackParams.toString();
+  window.history.replaceState(
+    null,
+    '',
+    `/oauth/${platform}${query ? `?${query}` : ''}`,
+  );
+
+  return render(<OAuthPlatformForm />);
+}
 
 describe('OAuthPlatformForm', () => {
   beforeEach(() => {
@@ -126,7 +134,7 @@ describe('OAuthPlatformForm', () => {
         return realSetTimeout(callback, timeout, ...args);
       },
     );
-    mocks.searchParams = new URLSearchParams({
+    mocks.callbackParams = new URLSearchParams({
       code: 'code-1',
       return_to: '/settings/publishing',
       state: 'state-1',
@@ -142,6 +150,34 @@ describe('OAuthPlatformForm', () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+    window.history.replaceState(null, '', '/');
+  });
+
+  it('server-renders a visible pending shell instead of an empty body', () => {
+    const html = renderToString(<OAuthPlatformForm />);
+
+    expect(html).toContain('Connecting your account…');
+    expect(mocks.postVerify).not.toHaveBeenCalled();
+  });
+
+  it('exchanges the callback code once and shows the returned account', async () => {
+    mocks.callbackParams = new URLSearchParams({
+      code: 'code-from-url',
+      state: 'state-from-url',
+    });
+    mocks.postVerify.mockResolvedValue({
+      externalName: 'Shayla',
+      id: 'credential-1',
+      isConnected: true,
+    });
+
+    renderCallback('instagram');
+
+    expect(await screen.findByText('Instagram Connected')).toBeVisible();
+    expect(screen.getByText('Shayla')).toBeVisible();
+    expect(mocks.postVerify.mock.calls).toEqual([
+      [{ code: 'code-from-url', state: 'state-from-url' }],
+    ]);
   });
 
   it('shows the connected account picture with the platform logo', async () => {
@@ -153,7 +189,7 @@ describe('OAuthPlatformForm', () => {
       isConnected: true,
     });
 
-    render(<OAuthPlatformForm platform="instagram" />);
+    renderCallback('instagram');
 
     expect(await screen.findByText('Instagram Connected')).toBeVisible();
     expect(
@@ -165,7 +201,7 @@ describe('OAuthPlatformForm', () => {
   });
 
   it('verifies an OAuth callback and redirects to the return path', async () => {
-    render(<OAuthPlatformForm platform="instagram" />);
+    renderCallback('instagram');
 
     expect(
       screen.getByText('Connecting your Instagram account…'),
@@ -196,7 +232,7 @@ describe('OAuthPlatformForm', () => {
       credentialId: '33333333-3333-4333-8333-333333333333',
       shouldOfferHistoryImport: true,
     });
-    mocks.searchParams.set(
+    mocks.callbackParams.set(
       'return_to',
       '/org/brand/settings/profile?tab=social',
     );
@@ -206,7 +242,7 @@ describe('OAuthPlatformForm', () => {
       isConnected: true,
     });
 
-    render(<OAuthPlatformForm platform="youtube" />);
+    renderCallback('youtube');
 
     expect(mocks.navigate).not.toHaveBeenCalled();
     expect(await screen.findByText('YouTube Connected')).toBeVisible();
@@ -216,13 +252,13 @@ describe('OAuthPlatformForm', () => {
   });
 
   it('forwards the issuer a Bluesky callback names so the API can check it', async () => {
-    mocks.searchParams = new URLSearchParams({
+    mocks.callbackParams = new URLSearchParams({
       code: 'code-1',
       iss: 'https://bsky.social',
       state: 'state-1',
     });
 
-    render(<OAuthPlatformForm platform="bluesky" />);
+    renderCallback('bluesky');
 
     await waitFor(() => {
       expect(mocks.postVerify).toHaveBeenCalledWith({
@@ -238,7 +274,7 @@ describe('OAuthPlatformForm', () => {
     // provider redirect drops query params (no return_to survives Twitter).
     // Literal key mirrors OAUTH_RETURN_TO_STORAGE_KEY without importing the
     // hook module into this test.
-    mocks.searchParams = new URLSearchParams({
+    mocks.callbackParams = new URLSearchParams({
       code: 'code-1',
       state: 'state-1',
     });
@@ -247,7 +283,7 @@ describe('OAuthPlatformForm', () => {
       '/demo/brand/settings/profile',
     );
 
-    render(<OAuthPlatformForm platform="twitter" />);
+    renderCallback('twitter');
 
     await waitFor(() => {
       expect(mocks.postVerify).toHaveBeenCalledWith({
@@ -261,13 +297,13 @@ describe('OAuthPlatformForm', () => {
   });
 
   it('rejects a stored off-origin path and redirects to the default path', async () => {
-    mocks.searchParams = new URLSearchParams({
+    mocks.callbackParams = new URLSearchParams({
       code: 'code-1',
       state: 'state-1',
     });
     window.sessionStorage.setItem('oauth_return_to', '//evil.com');
 
-    render(<OAuthPlatformForm platform="twitter" />);
+    renderCallback('twitter');
 
     await waitFor(() => {
       expect(mocks.postVerify).toHaveBeenCalledWith({
@@ -283,13 +319,13 @@ describe('OAuthPlatformForm', () => {
   });
 
   it('rejects an off-origin return_to and redirects to the default path', async () => {
-    mocks.searchParams = new URLSearchParams({
+    mocks.callbackParams = new URLSearchParams({
       code: 'code-1',
       return_to: '//evil.com',
       state: 'state-1',
     });
 
-    render(<OAuthPlatformForm platform="instagram" />);
+    renderCallback('instagram');
 
     await waitFor(() => {
       expect(mocks.postVerify).toHaveBeenCalledWith({
@@ -305,13 +341,13 @@ describe('OAuthPlatformForm', () => {
   });
 
   it('forwards the X Ads OAuth 1.0a request token and verifier', async () => {
-    mocks.searchParams = new URLSearchParams({
+    mocks.callbackParams = new URLSearchParams({
       oauth_token: 'request-token',
       oauth_verifier: 'oauth-verifier',
       return_to: '/settings/publishing',
     });
 
-    render(<OAuthPlatformForm platform="x-ads" />);
+    renderCallback('x-ads');
 
     await waitFor(() => {
       expect(mocks.postVerify).toHaveBeenCalledWith({
@@ -327,7 +363,7 @@ describe('OAuthPlatformForm', () => {
       isLoaded: false,
       isSignedIn: false,
     };
-    const { rerender } = render(<OAuthPlatformForm platform="twitter" />);
+    const { rerender } = renderCallback('twitter');
 
     expect(mocks.getServicesService).not.toHaveBeenCalled();
 
@@ -335,7 +371,7 @@ describe('OAuthPlatformForm', () => {
       isLoaded: true,
       isSignedIn: true,
     };
-    rerender(<OAuthPlatformForm platform="twitter" />);
+    rerender(<OAuthPlatformForm />);
 
     await waitFor(() => {
       expect(mocks.postVerify).toHaveBeenCalledWith({
@@ -352,7 +388,7 @@ describe('OAuthPlatformForm', () => {
       isSignedIn: false,
     };
 
-    render(<OAuthPlatformForm platform="twitter" />);
+    renderCallback('twitter');
 
     expect(mocks.getServicesService).not.toHaveBeenCalled();
     expect(screen.getByRole('link', { name: 'Sign In' })).toHaveAttribute(
@@ -370,7 +406,7 @@ describe('OAuthPlatformForm', () => {
         postVerify: mocks.postVerify,
       });
 
-    render(<OAuthPlatformForm platform="twitter" />);
+    renderCallback('twitter');
 
     const retry = await screen.findByRole('button', { name: 'Try again' });
     fireEvent.click(retry);
@@ -385,14 +421,14 @@ describe('OAuthPlatformForm', () => {
   });
 
   it('persists a provider denial through verify instead of exchanging a code', async () => {
-    mocks.searchParams = new URLSearchParams({
+    mocks.callbackParams = new URLSearchParams({
       error: 'access_denied',
       return_to: '/settings/publishing',
       state: 'state-1',
     });
     mocks.postVerify.mockRejectedValueOnce(new Error('Authorization denied'));
 
-    render(<OAuthPlatformForm platform="twitter" />);
+    renderCallback('twitter');
 
     await waitFor(() => {
       expect(mocks.postVerify).toHaveBeenCalledWith({
@@ -416,10 +452,10 @@ describe('OAuthPlatformForm', () => {
   });
 
   it('renders failure state and default back link when verification fails', async () => {
-    mocks.searchParams = new URLSearchParams({ code: 'bad-code' });
+    mocks.callbackParams = new URLSearchParams({ code: 'bad-code' });
     mocks.postVerify.mockRejectedValueOnce(new Error('verify failed'));
 
-    render(<OAuthPlatformForm platform="youtube" />);
+    renderCallback('youtube');
 
     await waitFor(() => {
       expect(mocks.loggerError).toHaveBeenCalledWith(
@@ -455,7 +491,7 @@ describe('OAuthPlatformForm', () => {
     const rejection = Object.assign(new Error('Bad Request'), { status: 400 });
     mocks.postVerify.mockRejectedValueOnce(rejection);
 
-    render(<OAuthPlatformForm platform="instagram" />);
+    renderCallback('instagram');
 
     expect(await screen.findByText('Connection Failed')).toBeVisible();
     expect(mocks.loggerError).toHaveBeenCalledWith(
@@ -484,7 +520,7 @@ describe('OAuthPlatformForm', () => {
     });
     const open = vi.spyOn(window, 'open').mockImplementation(() => null);
 
-    render(<OAuthPlatformForm platform="instagram" />);
+    renderCallback('instagram');
 
     expect(
       await screen.findByText('Instagram permission missing'),
@@ -540,7 +576,7 @@ describe('OAuthPlatformForm', () => {
     });
     const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
 
-    render(<OAuthPlatformForm platform="youtube" />);
+    renderCallback('youtube');
 
     expect(await screen.findByText('No YouTube channel found')).toBeVisible();
     expect(
@@ -608,7 +644,7 @@ describe('OAuthPlatformForm', () => {
         ],
       });
 
-      render(<OAuthPlatformForm platform="youtube" />);
+      renderCallback('youtube');
 
       expect(await screen.findByText(message)).toBeVisible();
       expect(
@@ -632,7 +668,7 @@ describe('OAuthPlatformForm', () => {
       needsAccountSelection: true,
     });
 
-    render(<OAuthPlatformForm platform="instagram" />);
+    renderCallback('instagram');
 
     await waitFor(() => {
       expect(screen.getByTestId('instagram-account-selector')).toBeVisible();
@@ -651,7 +687,7 @@ describe('OAuthPlatformForm', () => {
       needsAccountSelection: true,
     });
 
-    render(<OAuthPlatformForm platform="google-business" />);
+    renderCallback('google-business');
 
     expect(
       await screen.findByTestId('google-business-location-selector'),
@@ -669,7 +705,7 @@ describe('OAuthPlatformForm', () => {
       isConnected: true,
     });
 
-    render(<OAuthPlatformForm platform="google-business" />);
+    renderCallback('google-business');
 
     expect(await screen.findByText('Google Business Connected')).toBeVisible();
     expect(screen.getByText('Corner Cafe')).toBeVisible();
@@ -687,7 +723,7 @@ describe('OAuthPlatformForm', () => {
       needsAccountSelection: true,
     });
 
-    render(<OAuthPlatformForm platform="instagram" />);
+    renderCallback('instagram');
 
     fireEvent.click(await screen.findByText('cancel-selection'));
 
@@ -703,7 +739,7 @@ describe('OAuthPlatformForm', () => {
       needsAccountSelection: true,
     });
 
-    render(<OAuthPlatformForm platform="instagram" />);
+    renderCallback('instagram');
 
     const confirmButton = await screen.findByText('confirm-selection');
     fireEvent.click(confirmButton);
@@ -725,7 +761,7 @@ describe('OAuthPlatformForm', () => {
       needsAccountSelection: false,
     });
 
-    render(<OAuthPlatformForm platform="youtube" />);
+    renderCallback('youtube');
 
     await waitFor(() => {
       expect(screen.getByText('YouTube Connected')).toBeVisible();
