@@ -1,6 +1,9 @@
 import * as Sentry from '@sentry/nextjs';
 import { NextResponse } from 'next/server';
-import { parseCspViolation } from '@/lib/security/csp-report';
+import {
+  describeCspViolation,
+  parseCspViolation,
+} from '@/lib/security/csp-report';
 
 const MAX_BODY_BYTES = 16_384;
 // A serverless instance can freeze the moment this route answers, before the
@@ -43,7 +46,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     reportedViolations.size < MAX_REMEMBERED_VIOLATIONS
   ) {
     reportedViolations.add(key);
-    Sentry.captureMessage('CSP report-only violation', {
+    Sentry.captureMessage(describeCspViolation(violation), {
       fingerprint: [
         'csp-report-only',
         violation.effectiveDirective,
