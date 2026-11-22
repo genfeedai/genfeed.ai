@@ -1,4 +1,5 @@
 import { OrganizationModuleAccessModule } from '@api/common/organization-modules/organization-module-access.module';
+import { DEFAULT_HTTP_TIMEOUT_MS } from '@api/constants/http-timeout.constant';
 import { HeyGenModule } from '@api/services/integrations/heygen/heygen.module';
 /**
  * ClipperProjectsCoreModule
@@ -76,7 +77,7 @@ import { Module } from '@nestjs/common';
     ClipperResultsModule,
     CreditsModule,
     IngredientsModule,
-    HttpModule,
+    HttpModule.register({ timeout: DEFAULT_HTTP_TIMEOUT_MS }),
     MetadataModule,
     AvatarVideoModule,
     VideoGenerationModule,

@@ -196,6 +196,7 @@ export function usePostDetail({
 
   // 4. CRUD actions (save, delete, enhance)
   const actions = usePostDetailActions({
+    autoSaveRefs: drafts.autoSaveRefs,
     descriptionDraft: drafts.descriptionDraft,
     fetchPost: state.fetchPost,
     getPostsService: state.getPostsService,

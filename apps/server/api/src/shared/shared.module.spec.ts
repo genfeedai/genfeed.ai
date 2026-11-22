@@ -1,69 +1,59 @@
-import {
-  AxiosErrorInterceptorSetup,
-  SharedModule,
-} from '@api/shared/shared.module';
-import type { LoggerService } from '@libs/logger/logger.service';
-import type { HttpService } from '@nestjs/axios';
-import type { AxiosError } from 'axios';
+import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { join } from 'node:path';
+import { DEFAULT_HTTP_TIMEOUT_MS } from '@api/constants/http-timeout.constant';
+import { SharedModule } from '@api/shared/shared.module';
+import { HttpModule, HttpService } from '@nestjs/axios';
+import type { DynamicModule } from '@nestjs/common';
+import { Test } from '@nestjs/testing';
 
-type ErrorHandler = (error: AxiosError) => Promise<never>;
+const SRC_ROOT = join(__dirname, '..');
 
-function setUpInterceptor() {
-  const levels: string[] = [];
-  let handler: ErrorHandler | undefined;
-  const httpService = {
-    axiosRef: {
-      interceptors: {
-        response: {
-          use: (_onFulfilled: undefined, onRejected: ErrorHandler) => {
-            handler = onRejected;
-          },
-        },
-      },
-    },
-  } as unknown as HttpService;
-  const logger = {
-    error: () => levels.push('error'),
-    warn: () => levels.push('warn'),
-  } as unknown as LoggerService;
-
-  new AxiosErrorInterceptorSetup(httpService, logger).onModuleInit();
-
-  return {
-    levels,
-    reject: (status?: number) =>
-      handler?.({
-        config: { method: 'get', url: 'https://provider.example/v1' },
-        message: 'failed',
-        response: status === undefined ? undefined : { status },
-      } as AxiosError).catch(() => undefined),
-  };
+function moduleFiles(dir: string): string[] {
+  return readdirSync(dir).flatMap((entry) => {
+    const path = join(dir, entry);
+    if (statSync(path).isDirectory()) {
+      return entry === 'node_modules' ? [] : moduleFiles(path);
+    }
+    return path.endsWith('.module.ts') ? [path] : [];
+  });
 }
 
 describe('SharedModule', () => {
   it('should be defined', () => {
     expect(SharedModule).toBeDefined();
   });
-});
 
-describe('AxiosErrorInterceptorSetup', () => {
-  it.each([
-    [400, 'warn'],
-    [404, 'warn'],
-    [409, 'warn'],
-    [422, 'warn'],
-    [401, 'error'],
-    [402, 'error'],
-    [403, 'error'],
-    [429, 'error'],
-    [500, 'error'],
-    [503, 'error'],
-    [undefined, 'error'],
-  ])('logs an upstream status of %s at the %s level', async (status, level) => {
-    const { levels, reject } = setUpInterceptor();
+  it('registers its HTTP client with the default timeout', async () => {
+    const imports: unknown[] = Reflect.getMetadata('imports', SharedModule);
+    const httpModule = imports.find(
+      (entry): entry is DynamicModule =>
+        typeof entry === 'object' &&
+        entry !== null &&
+        (entry as DynamicModule).module === HttpModule,
+    );
+    expect(httpModule).toBeDefined();
 
-    await reject(status);
+    const testing = await Test.createTestingModule({
+      imports: [httpModule as DynamicModule],
+    }).compile();
 
-    expect(levels).toEqual([level]);
+    expect(testing.get(HttpService).axiosRef.defaults.timeout).toBe(
+      DEFAULT_HTTP_TIMEOUT_MS,
+    );
+  });
+
+  it('leaves no module importing HttpModule without a timeout', () => {
+    const bare = moduleFiles(SRC_ROOT).filter((file) =>
+      readFileSync(file, 'utf8')
+        .split('\n')
+        .some(
+          (line) =>
+            !line.startsWith('import ') &&
+            /\bHttpModule\b(?!\.register)(?![A-Za-z])/.test(line) &&
+            !line.includes('export class'),
+        ),
+    );
+
+    expect(bare).toEqual([]);
   });
 });

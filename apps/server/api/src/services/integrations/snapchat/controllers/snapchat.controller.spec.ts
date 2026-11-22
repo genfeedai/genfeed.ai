@@ -73,7 +73,9 @@ function setup() {
       credentials.push(credential);
       return { credential, state: credential.oauthState };
     },
-    findPendingOAuthCredential: async (state: string, platform: string) =>
+    // No request has claimed any state, so a lost claim finds nothing to wait for.
+    findOne: async () => null,
+    claimPendingOAuthCredential: async (state: string, platform: string) =>
       credentials.find(
         (credential) =>
           credential.oauthState === state && credential.platform === platform,

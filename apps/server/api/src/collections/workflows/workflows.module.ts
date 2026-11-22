@@ -10,6 +10,7 @@ import { WorkflowMediaCredentialRouteService } from '@api/collections/workflows/
 import { WorkflowMediaDispatchAdmissionService } from '@api/collections/workflows/services/workflow-media-dispatch-admission.service';
 import { WorkflowMediaProviderPlanService } from '@api/collections/workflows/services/workflow-media-provider-plan.service';
 import { OrganizationModuleAccessModule } from '@api/common/organization-modules/organization-module-access.module';
+import { DEFAULT_HTTP_TIMEOUT_MS } from '@api/constants/http-timeout.constant';
 import { WebhooksMediaModule } from '@api/endpoints/webhooks/webhooks-media.module';
 import { BrandPublishPolicyModule } from '@api/services/brand-publish-policy/brand-publish-policy.module';
 import { BrandedTextGenerationModule } from '@api/services/branded-text-generation/branded-text-generation.module';
@@ -238,7 +239,7 @@ import { Module } from '@nestjs/common';
     SourcePostsModule,
     SharedModule,
     TrendsModule,
-    HttpModule,
+    HttpModule.register({ timeout: DEFAULT_HTTP_TIMEOUT_MS }),
     TwitterModule,
     TikTokAdsModule,
     YoutubeModule,

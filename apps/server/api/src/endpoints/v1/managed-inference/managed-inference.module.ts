@@ -1,5 +1,6 @@
 import { ApiKeysModule } from '@api/collections/api-keys/api-keys.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
+import { DEFAULT_HTTP_TIMEOUT_MS } from '@api/constants/http-timeout.constant';
 import { ManagedInferenceController } from '@api/endpoints/v1/managed-inference/managed-inference.controller';
 import { ManagedInferenceService } from '@api/endpoints/v1/managed-inference/managed-inference.service';
 import { ManagedInferenceClientService } from '@api/endpoints/v1/managed-inference/managed-inference-client.service';
@@ -22,7 +23,7 @@ import { Module } from '@nestjs/common';
     CreditsModule,
     FalModule,
     ManagedInferenceRuntimeModule,
-    HttpModule,
+    HttpModule.register({ timeout: DEFAULT_HTTP_TIMEOUT_MS }),
     LeonardoAIModule,
     LoggerModule,
     PollUntilModule,

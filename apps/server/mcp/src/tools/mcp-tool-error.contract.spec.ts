@@ -1,3 +1,4 @@
+import { McpToolInputError } from '@genfeedai/actions';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { getPublicAppUrl } from '@mcp/mcp/setup-page';
 import { HttpException, HttpStatus } from '@nestjs/common';
@@ -8,7 +9,7 @@ import {
   approvalPendingToolResult,
   classifyMcpToolFailure,
   confirmationRequiredToolResult,
-  isUpstreamClientError,
+  isMcpToolRefusal,
   type McpToolError,
   McpUpstreamError,
   mcpJsonRpcError,
@@ -387,24 +388,45 @@ describe('MCP tool error contract', () => {
       classifyMcpToolFailure({ message: 'API down', status: 500 }),
     ).toBeNull();
   });
-});
 
-describe('isUpstreamClientError', () => {
+  it('answers a caller input mistake as a validation failure naming the field', () => {
+    const result = toMcpToolErrorResult(
+      new McpToolInputError('brandId applies only with articleId', 'brandId'),
+    );
+
+    expect(result).toMatchObject({
+      isError: true,
+      structuredContent: {
+        code: 'validation_failed',
+        errors: [
+          { field: 'brandId', message: 'brandId applies only with articleId' },
+        ],
+      },
+    });
+    expect(result?.content[0].text).toBe(
+      'brandId: brandId applies only with articleId',
+    );
+  });
+
   it.each([
+    ['an input mistake', new McpToolInputError('bad', 'action'), true],
     [
       'an upstream 404',
-      new McpUpstreamError('Not found', { status: 404 }),
+      new McpUpstreamError('Failed to switch organization', { status: 404 }),
       true,
     ],
-    ['an upstream 400', new McpUpstreamError('Bad', { status: 400 }), true],
-    ['an upstream 500', new McpUpstreamError('Down', { status: 500 }), false],
     [
-      'an upstream failure with no status',
-      new McpUpstreamError('x', {}),
+      'an upstream 403',
+      new McpUpstreamError('Failed to read', { status: 403 }),
+      true,
+    ],
+    [
+      'an upstream 500',
+      new McpUpstreamError('Failed to read', { status: 500 }),
       false,
     ],
-    ['a plain Error', new Error('Failed to get article preview'), false],
-  ])('classifies %s as %s', (_name, error, expected) => {
-    expect(isUpstreamClientError(error)).toBe(expected);
+    ['an unexpected error', new Error('boom'), false],
+  ])('treats %s as a refusal: %s', (_label, error, isRefusal) => {
+    expect(isMcpToolRefusal(error)).toBe(isRefusal);
   });
 });

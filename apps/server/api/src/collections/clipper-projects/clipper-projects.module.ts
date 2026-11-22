@@ -15,6 +15,7 @@ import { CreditsModule } from '@api/collections/credits/credits.module';
 import { EditorProjectsModule } from '@api/collections/editor-projects/editor-projects.module';
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
 import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
+import { DEFAULT_HTTP_TIMEOUT_MS } from '@api/constants/http-timeout.constant';
 import { PublicClipperToolStoreModule } from '@api/services/public-clipper-tool/public-clipper-tool-store.module';
 import { UploadsModule } from '@api/services/uploads/uploads.module';
 import { HttpModule } from '@nestjs/axios';
@@ -32,7 +33,7 @@ import { Module } from '@nestjs/common';
   ],
   exports: [ClipperProjectsCoreModule],
   imports: [
-    HttpModule,
+    HttpModule.register({ timeout: DEFAULT_HTTP_TIMEOUT_MS }),
     ClipperProjectsCoreModule,
     ClipperResultsModule,
     CreditsModule,

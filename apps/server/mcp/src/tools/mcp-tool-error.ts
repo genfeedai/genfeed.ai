@@ -1,4 +1,7 @@
-import { describeAvatarVideoPricing } from '@genfeedai/actions';
+import {
+  describeAvatarVideoPricing,
+  McpToolInputError,
+} from '@genfeedai/actions';
 import {
   APP_ROUTES,
   createBrandAppRoute,
@@ -131,19 +134,6 @@ export class McpUpstreamError extends Error {
     this.retryAfterSeconds = details.retryAfterSeconds;
     this.status = details.status;
   }
-}
-
-/**
- * The Genfeed API answered 4xx (a missing article, a refused request). The
- * caller gets the refusal in the tool result, so it is not a server fault.
- */
-export function isUpstreamClientError(error: unknown): boolean {
-  return (
-    error instanceof McpUpstreamError &&
-    error.status !== undefined &&
-    error.status >= 400 &&
-    error.status < 500
-  );
 }
 
 function appUrl(path: string): string {
@@ -510,6 +500,14 @@ function readMcpToolFailureSignals(error: unknown): McpToolFailureSignals {
       })),
     };
   }
+  if (error instanceof McpToolInputError) {
+    return {
+      domainCode: 'VALIDATION_FAILED',
+      message: error.message,
+      status: 400,
+      validationErrors: [{ field: error.field, message: error.message }],
+    };
+  }
   if (typeof error === 'string') {
     return { message: error };
   }
@@ -660,6 +658,21 @@ export function classifyMcpToolFailure(
   }
 
   return null;
+}
+
+/**
+ * True when the caller caused the failure and the server did not: the
+ * classifier names it (bad input, rate limit, plan), or the upstream API
+ * refused it with a 4xx. The caller is told; it is not a server fault.
+ */
+export function isMcpToolRefusal(error: unknown): boolean {
+  const signals = readMcpToolFailureSignals(error);
+  if (classifyMcpToolFailure(signals)) return true;
+  return (
+    signals.status !== undefined &&
+    signals.status >= 400 &&
+    signals.status < 500
+  );
 }
 
 export function toMcpToolErrorResult(

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseCspViolation } from './csp-report';
+import { describeCspViolation, parseCspViolation } from './csp-report';
 
 describe('parseCspViolation', () => {
   it.each([
@@ -48,6 +48,9 @@ describe('parseCspViolation', () => {
   it.each([
     { 'blocked-uri': 'chrome-extension://abc/inject.js' },
     { 'blocked-uri': 'inline', 'source-file': 'moz-extension://abc/inject.js' },
+    { 'blocked-uri': 'about' },
+    { 'blocked-uri': 'about:blank' },
+    { 'blocked-uri': 'inline', 'source-file': 'about:blank' },
   ])('drops browser extension noise %#', (fields) => {
     expect(
       parseCspViolation({
@@ -88,6 +91,41 @@ describe('parseCspViolation', () => {
     'ignores a malformed payload %#',
     (payload) => {
       expect(parseCspViolation(payload)).toBeNull();
+    },
+  );
+});
+
+describe('describeCspViolation', () => {
+  it.each([
+    {
+      expected: 'CSP violation: img-src blocked cdn.example.test',
+      violation: {
+        blockedOrigin: 'https://cdn.example.test',
+        effectiveDirective: 'img-src',
+      },
+    },
+    {
+      expected: 'CSP violation: script-src-elem blocked inline',
+      violation: {
+        blockedOrigin: 'inline',
+        effectiveDirective: 'script-src-elem',
+      },
+    },
+    {
+      expected: 'CSP violation: connect-src blocked localhost:3000',
+      violation: {
+        blockedOrigin: 'http://localhost:3000',
+        effectiveDirective: 'connect-src',
+      },
+    },
+    {
+      expected: 'CSP violation: font-src blocked unknown',
+      violation: { blockedOrigin: '', effectiveDirective: 'font-src' },
+    },
+  ])(
+    'names the directive and the host: $expected',
+    ({ expected, violation }) => {
+      expect(describeCspViolation(violation)).toBe(expected);
     },
   );
 });

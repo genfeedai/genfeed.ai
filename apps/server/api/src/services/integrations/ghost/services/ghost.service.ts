@@ -1,5 +1,6 @@
 import type { Agent as HttpsAgent } from 'node:https';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { UPLOAD_HTTP_TIMEOUT_MS } from '@api/constants/http-timeout.constant';
 import type { ProviderVerificationPage } from '@api/services/integrations/publishers/interfaces/publish-verification.interface';
 import type { PublishContext } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import { parseGhostVerificationPage } from '@api/services/integrations/publishers/publisher-article-verification-pages.util';
@@ -214,6 +215,7 @@ export class GhostService {
           },
           httpsAgent: agent,
           maxRedirects: 0,
+          timeout: UPLOAD_HTTP_TIMEOUT_MS,
         }),
       );
 

@@ -233,7 +233,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // receipt.
     {
       file: 'apps/server/api/src/skills-pro/services/skill-download.service.ts',
-      line: 382,
+      line: 383,
     },
     // #6120: superadmin platform billing-account migration; each write targets
     // that organization's own rows.

@@ -38,7 +38,7 @@ describe('GoogleSearchConsoleController', () => {
     connectAccount: ReturnType<typeof vi.fn>;
     findOne: ReturnType<typeof vi.fn>;
     findOneSelect: ReturnType<typeof vi.fn>;
-    findPendingOAuthCredential: ReturnType<typeof vi.fn>;
+    claimPendingOAuthCredential: ReturnType<typeof vi.fn>;
     patch: ReturnType<typeof vi.fn>;
   };
   let oauthService: {
@@ -84,7 +84,7 @@ describe('GoogleSearchConsoleController', () => {
         .mockResolvedValue({ ...credential, isConnected: true }),
       findOne: vi.fn().mockResolvedValue(credential),
       findOneSelect: delegateFindOneSelect(),
-      findPendingOAuthCredential: vi.fn().mockResolvedValue(credential),
+      claimPendingOAuthCredential: vi.fn().mockResolvedValue(credential),
       patch: vi.fn().mockResolvedValue({ ...credential, isConnected: true }),
     };
     oauthService = {
@@ -173,7 +173,7 @@ describe('GoogleSearchConsoleController', () => {
       state: 'opaque-oauth-state',
     });
 
-    expect(credentialsService.findPendingOAuthCredential).toHaveBeenCalledWith(
+    expect(credentialsService.claimPendingOAuthCredential).toHaveBeenCalledWith(
       'opaque-oauth-state',
       'google_search_console',
       {
@@ -207,7 +207,7 @@ describe('GoogleSearchConsoleController', () => {
   });
 
   it('rejects an OAuth state not pending for the authenticated user', async () => {
-    credentialsService.findPendingOAuthCredential.mockResolvedValueOnce(null);
+    credentialsService.claimPendingOAuthCredential.mockResolvedValueOnce(null);
 
     await expect(
       controller.verify(request, user, {

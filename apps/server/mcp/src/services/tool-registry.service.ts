@@ -101,7 +101,7 @@ import { EDITOR_TOOL_NAMES, handleEditorTool } from '@mcp/tools/editor.tool';
 import { handleGoogleAdsTool } from '@mcp/tools/google-ads.tool';
 import {
   confirmationRequiredToolResult,
-  isUpstreamClientError,
+  isMcpToolRefusal,
   mcpToolErrorResult,
   toMcpToolErrorResult,
 } from '@mcp/tools/mcp-tool-error';
@@ -488,9 +488,9 @@ export class ToolRegistryService implements OnModuleInit {
       return withOmittedReleases(done, prepared.invalid);
     } catch (error: unknown) {
       // A failure the classifier names (publishing held, rate limited, bad
-      // input) or an upstream 4xx (a missing article) is a handled refusal the
-      // caller is told about, not a fault.
-      if (toMcpToolErrorResult(error) || isUpstreamClientError(error)) {
+      // input) or the API refused with a 4xx is a handled refusal the caller
+      // is told about, not a fault.
+      if (isMcpToolRefusal(error)) {
         this.logger.warn(`Tool call ${name} was refused:`, error);
       } else {
         this.logger.error(`Error handling tool call ${name}:`, error);

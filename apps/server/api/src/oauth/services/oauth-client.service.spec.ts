@@ -1,18 +1,39 @@
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { safeFetch } from '@libs/security/destination-guard';
+import type { LoggerService } from '@libs/logger/logger.service';
+import {
+  DestinationGuardError,
+  safeFetch,
+} from '@libs/security/destination-guard';
 import { OAuthClientService } from './oauth-client.service';
 
-vi.mock('@libs/security/destination-guard', () => ({ safeFetch: vi.fn() }));
+vi.mock('@libs/security/destination-guard', async (importOriginal) => ({
+  ...(await importOriginal<
+    typeof import('@libs/security/destination-guard')
+  >()),
+  safeFetch: vi.fn(),
+}));
 
 beforeEach(() => {
   vi.mocked(safeFetch).mockReset();
 });
 
-function buildService(upsert = vi.fn().mockResolvedValue(undefined)) {
+const logger = { warn: vi.fn() };
+
+function buildService() {
   const clients = new Map<string, Record<string, unknown>>();
   const prisma = {
     oAuthClient: {
-      upsert,
+      upsert: vi.fn(
+        async (args: {
+          where: { clientId: string };
+          create: Record<string, unknown>;
+        }) => {
+          clients.set(args.where.clientId, {
+            ...args.create,
+            createdAt: new Date('2026-07-23T12:00:00.000Z'),
+          });
+        },
+      ),
       create: vi.fn(async ({ data }: { data: Record<string, unknown> }) => {
         const client = {
           ...data,
@@ -27,7 +48,11 @@ function buildService(upsert = vi.fn().mockResolvedValue(undefined)) {
       ),
     },
   } as unknown as PrismaService;
-  return new OAuthClientService(prisma);
+  const service = new OAuthClientService(
+    logger as unknown as LoggerService,
+    prisma,
+  );
+  return Object.assign(service, { clients, upsert: prisma.oAuthClient.upsert });
 }
 
 describe('OAuthClientService', () => {
@@ -166,8 +191,7 @@ describe('OAuth CIMD clients', () => {
 
   it('persists validated CIMD metadata for grant foreign keys and checks redirects without DCR', async () => {
     vi.mocked(safeFetch).mockResolvedValue(documentResponse());
-    const upsert = vi.fn().mockResolvedValue(undefined);
-    const service = buildService(upsert);
+    const service = buildService();
     await expect(
       service.requireClient(clientId, metadata.redirect_uris[0]),
     ).resolves.toMatchObject({
@@ -177,7 +201,7 @@ describe('OAuth CIMD clients', () => {
       grantTypes: ['authorization_code'],
       tokenEndpointAuthMethod: 'none',
     });
-    expect(upsert).toHaveBeenCalledWith({
+    expect(service.upsert).toHaveBeenCalledWith({
       where: { clientId },
       create: expect.objectContaining({
         clientId,
@@ -363,6 +387,128 @@ describe('OAuth CIMD clients', () => {
       ).rejects.toMatchObject({
         response: { error_description: 'Unregistered redirect URI' },
       });
+    });
+  });
+
+  describe('metadata host outage', () => {
+    const fallback = { allowPersistedFallback: true };
+
+    async function persistedService() {
+      vi.mocked(safeFetch).mockImplementation(async () =>
+        documentResponse(metadata, { 'cache-control': 'no-store' }),
+      );
+      const service = buildService();
+      await service.requireClient(clientId);
+      vi.mocked(safeFetch).mockReset();
+      return service;
+    }
+
+    it.each([
+      ['a network error', () => Promise.reject(new TypeError('fetch failed'))],
+      [
+        'a timeout',
+        () =>
+          Promise.reject(
+            new DOMException('The operation timed out', 'TimeoutError'),
+          ),
+      ],
+      ['a 503', async () => new Response('down', { status: 503 })],
+    ])(
+      'uses the persisted client on %s when fallback is allowed',
+      async (_n, outcome) => {
+        const service = await persistedService();
+        vi.mocked(safeFetch).mockImplementation(outcome);
+
+        await expect(
+          service.requireClient(clientId, metadata.redirect_uris[0], fallback),
+        ).resolves.toMatchObject({
+          clientId,
+          clientName: 'Document client',
+          redirectUris: metadata.redirect_uris,
+        });
+        await expect(
+          service.requireClient(
+            clientId,
+            'https://attacker.example/callback',
+            fallback,
+          ),
+        ).rejects.toMatchObject({ response: { error: 'invalid_request' } });
+        expect(logger.warn).toHaveBeenCalled();
+        expect(JSON.stringify(logger.warn.mock.calls)).not.toContain('token');
+      },
+    );
+
+    it('stays invalid_client on an outage without the fallback option', async () => {
+      const service = await persistedService();
+      vi.mocked(safeFetch).mockRejectedValue(new TypeError('fetch failed'));
+      await expect(service.requireClient(clientId)).rejects.toMatchObject({
+        response: { error: 'invalid_client' },
+      });
+    });
+
+    it('stays invalid_client on an outage when nothing is persisted', async () => {
+      vi.mocked(safeFetch).mockRejectedValue(new TypeError('fetch failed'));
+      await expect(
+        buildService().requireClient(clientId, undefined, fallback),
+      ).rejects.toMatchObject({ response: { error: 'invalid_client' } });
+    });
+
+    it('does not fall back on a 404, an invalid document or a guard refusal', async () => {
+      const service = await persistedService();
+      for (const outcome of [
+        async () => new Response('nope', { status: 404 }),
+        async () =>
+          documentResponse({
+            ...metadata,
+            client_id: 'https://other.example/m.json',
+          }),
+        async () => documentResponse({ client_id: clientId }),
+        async () => {
+          throw new DestinationGuardError('blocked destination');
+        },
+      ]) {
+        vi.mocked(safeFetch).mockImplementation(outcome);
+        await expect(
+          service.requireClient(clientId, undefined, fallback),
+        ).rejects.toMatchObject({ response: { error: 'invalid_client' } });
+      }
+    });
+  });
+
+  it('shares one fetch between concurrent resolves of the same client', async () => {
+    vi.mocked(safeFetch).mockImplementation(async () =>
+      documentResponse(metadata, { 'cache-control': 'no-store' }),
+    );
+    const service = buildService();
+    const [first, second] = await Promise.all([
+      service.requireClient(clientId),
+      service.requireClient(clientId),
+    ]);
+    expect(safeFetch).toHaveBeenCalledTimes(1);
+    expect(second).toBe(first);
+    await service.requireClient(clientId);
+    expect(safeFetch).toHaveBeenCalledTimes(2);
+  });
+
+  it('writes a changed document once and skips the write when it is unchanged', async () => {
+    vi.mocked(safeFetch).mockImplementation(async () =>
+      documentResponse(metadata, { 'cache-control': 'no-store' }),
+    );
+    const service = buildService();
+    await service.requireClient(clientId);
+    await service.requireClient(clientId);
+    expect(service.upsert).toHaveBeenCalledTimes(1);
+
+    vi.mocked(safeFetch).mockImplementation(async () =>
+      documentResponse(
+        { ...metadata, redirect_uris: ['https://client.example/new'] },
+        { 'cache-control': 'no-store' },
+      ),
+    );
+    await service.requireClient(clientId);
+    expect(service.upsert).toHaveBeenCalledTimes(2);
+    expect(service.clients.get(clientId)).toMatchObject({
+      redirectUris: ['https://client.example/new'],
     });
   });
 

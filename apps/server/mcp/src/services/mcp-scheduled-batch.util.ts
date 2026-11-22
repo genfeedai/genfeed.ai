@@ -3,6 +3,7 @@ import {
   type IScheduledReleaseBatchPending,
   readScheduledReleaseBatch,
   SCHEDULED_RELEASE_BATCH_PREVIEW_MAX,
+  SCHEDULED_RELEASE_TOOL_NAME,
 } from '@genfeedai/contracts/interfaces';
 import { isRecord } from '@genfeedai/utils/data/extract.util';
 import type { SchedulerClient } from '@mcp/services/client/scheduler.client';
@@ -105,12 +106,42 @@ export function recordedBatchOutcome(
   return `${parts.join(', ')}. Nothing more is scheduled by calling again.`;
 }
 
+/**
+ * A release call that names neither `release` nor `releases` has nothing to
+ * schedule. It is refused here, before an approval is queued: an approval
+ * with no release can never run and fails when a reviewer redeems it.
+ */
+function missingReleaseResult(): PreparedScheduledBatch {
+  return {
+    kind: 'rejected',
+    result: mcpToolErrorResult({
+      code: 'validation_failed',
+      errors: [
+        {
+          field: 'release',
+          message:
+            'Pass release (one release) or releases (a batch). Put the release fields inside it: input={release:{title, baseContent, timezone, targets:[{credentialId, platform}]}}.',
+        },
+      ],
+      message:
+        'Nothing was scheduled and no approval was queued. Repeat the call with release or releases.',
+    }),
+  };
+}
+
 /** {@link prepareScheduledBatch} for a tool call; any other call passes through untouched. */
 export async function prepareToolBatch(
   client: { scheduler: Pick<SchedulerClient, 'validateScheduledReleaseBatch'> },
   name: string,
   args: Record<string, unknown> | undefined,
 ): Promise<PreparedScheduledBatch> {
+  if (
+    name === SCHEDULED_RELEASE_TOOL_NAME &&
+    args?.release === undefined &&
+    args?.releases === undefined
+  ) {
+    return missingReleaseResult();
+  }
   if (!readScheduledReleaseBatch(name, args)) {
     return { args: args ?? {}, invalid: [], kind: 'ready' };
   }

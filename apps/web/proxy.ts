@@ -32,6 +32,7 @@ import {
   getBetterAuthBearerToken,
   type OrganizationMineResponseItem,
 } from '@/lib/navigation/proxy-api';
+import { createSlugCache } from '@/lib/navigation/slug-cache';
 
 const SEMVER_PATTERN =
   /^(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?(?:\+[0-9A-Za-z.-]+)?$/;
@@ -227,13 +228,12 @@ type WorkspaceSlugs = {
 const WORKSPACE_SLUG_CACHE_TTL_MS = 300_000;
 const WORKSPACE_SLUG_COOKIE_NAME = 'gf_ws';
 const WORKSPACE_SLUG_COOKIE_MAX_AGE_S = 300;
-const workspaceSlugCache = new Map<
-  string,
-  {
-    expiresAt: number;
-    slugs: WorkspaceSlugs;
-  }
->();
+const WORKSPACE_SLUG_CACHE_MAX_ENTRIES = 1_000;
+const workspaceSlugCache = createSlugCache<WorkspaceSlugs>({
+  isValid: (slugs) => isValidWorkspaceOrgSlug(slugs.orgSlug),
+  maxEntries: WORKSPACE_SLUG_CACHE_MAX_ENTRIES,
+  ttlMs: WORKSPACE_SLUG_CACHE_TTL_MS,
+});
 
 async function getCookieSecret(): Promise<CryptoKey | null> {
   const secret = process.env.COOKIE_SECRET;
@@ -332,43 +332,25 @@ function deleteSlugCookie(response: NextResponse): void {
   response.cookies.delete(WORKSPACE_SLUG_COOKIE_NAME);
 }
 
-function readWorkspaceSlugCache(
+async function readWorkspaceSlugCache(
   cacheKey?: string | null,
-): WorkspaceSlugs | null {
+): Promise<WorkspaceSlugs | null> {
   if (!cacheKey || process.env.NODE_ENV === 'test') {
     return null;
   }
 
-  const entry = workspaceSlugCache.get(cacheKey);
-  if (!entry) {
-    return null;
-  }
-
-  if (entry.expiresAt <= Date.now()) {
-    workspaceSlugCache.delete(cacheKey);
-    return null;
-  }
-
-  if (!isValidWorkspaceOrgSlug(entry.slugs.orgSlug)) {
-    workspaceSlugCache.delete(cacheKey);
-    return null;
-  }
-
-  return entry.slugs;
+  return workspaceSlugCache.read(cacheKey);
 }
 
-function writeWorkspaceSlugCache(
+async function writeWorkspaceSlugCache(
   cacheKey: string | null | undefined,
   slugs: WorkspaceSlugs,
-) {
+): Promise<void> {
   if (!cacheKey || process.env.NODE_ENV === 'test') {
     return;
   }
 
-  workspaceSlugCache.set(cacheKey, {
-    expiresAt: Date.now() + WORKSPACE_SLUG_CACHE_TTL_MS,
-    slugs,
-  });
+  await workspaceSlugCache.write(cacheKey, slugs);
 }
 
 type SlugResolution = {
@@ -456,7 +438,7 @@ async function continueWithCurrentWorkspace(
     return NextResponse.next();
   }
 
-  writeWorkspaceSlugCache(cacheKey, slugs);
+  await writeWorkspaceSlugCache(cacheKey, slugs);
   const cookieValue = await encodeSlugCookie(slugs);
   const response = NextResponse.next();
   if (cookieValue) {
@@ -657,7 +639,7 @@ async function resolveActiveWorkspaceSlugs(
     return { cookieValue, slugs: fromReferer };
   }
 
-  const cached = skipSlugCookie ? null : readWorkspaceSlugCache(cacheKey);
+  const cached = skipSlugCookie ? null : await readWorkspaceSlugCache(cacheKey);
   if (mayReuseCurrentWorkspace && cached) {
     return { cookieValue: null, slugs: cached };
   }
@@ -667,7 +649,7 @@ async function resolveActiveWorkspaceSlugs(
     if (cookieRaw) {
       const fromCookie = await decodeSlugCookie(cookieRaw);
       if (fromCookie) {
-        writeWorkspaceSlugCache(cacheKey, fromCookie);
+        await writeWorkspaceSlugCache(cacheKey, fromCookie);
         return { cookieValue: null, slugs: fromCookie };
       }
     }
@@ -689,7 +671,7 @@ async function resolveActiveWorkspaceSlugs(
     return null;
   }
 
-  writeWorkspaceSlugCache(cacheKey, slugs);
+  await writeWorkspaceSlugCache(cacheKey, slugs);
   const cookieValue = await encodeSlugCookie(slugs);
   return { cookieValue, slugs };
 }

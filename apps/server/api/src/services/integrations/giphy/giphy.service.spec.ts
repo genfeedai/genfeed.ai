@@ -1,3 +1,4 @@
+import { UPLOAD_HTTP_TIMEOUT_MS } from '@api/constants/http-timeout.constant';
 import { GiphyService } from '@api/services/integrations/giphy/giphy.service';
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
@@ -65,6 +66,16 @@ describe('GiphyService', () => {
       'https://upload.giphy.com/v1/gifs',
       expect.anything(),
       expect.objectContaining({ headers: expect.anything() }),
+    );
+  });
+
+  it('uploadGif gives the upload the long upload timeout', async () => {
+    httpService.post.mockReturnValue(of({ data: { data: { id: 'g' } } }));
+
+    await service.uploadGif('/tmp/test.gif');
+
+    expect(httpService.post.mock.calls[0][2].timeout).toBe(
+      UPLOAD_HTTP_TIMEOUT_MS,
     );
   });
 
