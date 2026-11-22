@@ -1,3 +1,4 @@
+import { settle } from '@e2e/utils/interaction-helpers';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import {
   mockActiveSubscription,
