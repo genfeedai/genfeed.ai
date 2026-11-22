@@ -29,6 +29,7 @@ const privacyPolicySections = [
     content: [
       'When you sign in with Google or connect a Google service, Genfeed receives only the data the features you use need: your name, email address, and profile photo for Google sign-in; your YouTube channel details, videos, comments, live chat, and channel analytics for YouTube; the Google Ads accounts and campaign data you authorize for Google Ads; and search performance data for the properties you authorize in Google Search Console.',
       'We use this data to show your content and analytics in Genfeed and to upload videos and post the comment and live chat replies you create or configure. OAuth tokens are encrypted at rest. We do not sell Google user data, use it for advertising, or use it to develop, improve, or train generalized AI or machine learning models. We call Google’s APIs only to run the features you use, and we never use your connection to collect or refresh data for our own purposes. Genfeed staff may access Google data already stored in our systems when you ask us for support, to operate and troubleshoot the service, to investigate a security issue or abuse, or when the law requires it.',
+      'How we protect Google data: OAuth access and refresh tokens are encrypted with AES-256-GCM before they are stored, and the encryption key is kept in the server configuration, not in the database. Google data moves between your browser, Genfeed and Google over HTTPS. Inside Genfeed, Google data you connect is available only to members of the workspace that connected it, and Genfeed staff access is limited to the cases above.',
       "Genfeed's use and transfer of information received from Google APIs adheres to the Google API Services User Data Policy, including the Limited Use requirements.",
       'YouTube features use YouTube API Services. By connecting YouTube you agree to the YouTube Terms of Service, and Google processes your data under the Google Privacy Policy.',
       'You can disconnect a Google service in Genfeed at any time or revoke Genfeed’s access from your Google Account permissions page. To delete data Genfeed stored from Google, contact privacy@genfeed.ai.',
@@ -129,7 +130,7 @@ const privacyRights = [
   },
   {
     description:
-      'Genfeed.ai is committed to protecting your data using industry-standard security measures. However, no method of transmission over the Internet is 100% secure.',
+      'Genfeed.ai is committed to protecting your data using industry-standard security measures. Genfeed is served over HTTPS, and OAuth tokens for connected accounts are encrypted with AES-256-GCM before they are stored. However, no method of transmission over the Internet is 100% secure.',
     icon: Lock,
     shortLabel: 'Security',
     title: 'Data security',

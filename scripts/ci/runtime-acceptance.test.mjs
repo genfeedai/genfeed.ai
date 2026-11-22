@@ -1165,6 +1165,42 @@ test('failure summary falls back to the failed child log tail when no report cas
   assert.equal(lines.at(-1), '  line 49');
 });
 
+test('failure summary reads the failed command of a stage that runs commands under other names', async (t) => {
+  const { value } = await stateFixture(t);
+  await writeFile(
+    path.join(value.state, 'raw/publisher.report.json'),
+    JSON.stringify({
+      testResults: [
+        { name: '/repo/passes.spec.ts', status: 'passed', message: '' },
+        { name: '/repo/broken.spec.ts', status: 'failed', message: '' },
+      ],
+    }),
+    { mode: 0o600 },
+  );
+  await writeFile(
+    path.join(value.state, 'raw/publisher-1.stderr'),
+    "Error: Nest can't resolve dependencies of PostGroupsService\n",
+    { mode: 0o600 },
+  );
+  value.evidence.push('raw/publisher.report.json', 'raw/publisher-1.stderr');
+  const text = await failureSummary(
+    value,
+    {
+      failures: [{ stage: 'agent', code: 'CHILD_FAILED' }],
+      commands: [
+        { stage: 'agent', exitCode: 0, signal: null },
+        { stage: 'publisher', exitCode: 1, signal: null },
+      ],
+    },
+    {},
+  );
+  assert.equal(
+    text.trimEnd().split('\n')[0],
+    `runtime-acceptance failed ${SHA} stage=agent code=CHILD_FAILED command=publisher exit=1`,
+  );
+  assert.match(text, /Nest can't resolve dependencies of PostGroupsService/);
+});
+
 test('sealing a failed outcome logs the summary before the evidence is sealed', async (t) => {
   const { value, env } = await stateFixture(t);
   const logged = [];
