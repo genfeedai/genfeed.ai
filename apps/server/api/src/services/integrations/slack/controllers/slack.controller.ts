@@ -1,6 +1,7 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { claimOAuthVerifyCredential } from '@api/collections/credentials/utils/oauth-verify-claim.util';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
@@ -93,11 +94,16 @@ export class SlackController {
       );
     }
 
-    const credential = await this.credentialsService.findPendingOAuthCredential(
+    const claim = await claimOAuthVerifyCredential(
+      this.credentialsService,
       state,
       CredentialPlatform.SLACK,
       { organizationId: user.organizationId, userId: user.userId ?? user.id },
     );
+    if (claim?.alreadyConnected) {
+      return serializeSingle(request, CredentialSerializer, claim.credential);
+    }
+    const credential = claim?.credential;
 
     if (!credential) {
       throw new HttpException(

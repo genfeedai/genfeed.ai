@@ -25,6 +25,12 @@ import {
   requireCredentialRelationId,
 } from '@api/collections/credentials/utils/credential-persistence.util';
 import { emitCredentialProfileSynced } from '@api/collections/credentials/utils/credential-profile-event.util';
+import {
+  buildPendingOAuthFilter,
+  claimedPendingOAuthFilter,
+  claimPendingOAuthRow,
+  toPendingOAuthCredential,
+} from '@api/collections/credentials/utils/oauth-verify-claim.util';
 import { isMirrorableAvatarUrl } from '@api/collections/credentials/utils/provider-placeholder-image.util';
 import type { CreateTagDto } from '@api/collections/tags/dto/create-tag.dto';
 import { retryTransactionStart } from '@api/collections/workflows/utils/serializable-retry.util';
@@ -46,10 +52,8 @@ import {
   fromPrismaCredentialPlatform,
   toPrismaCredentialPlatform,
 } from '@genfeedai/contracts';
-import { isReservedExternalConnectionOAuthState } from '@genfeedai/helpers/integrations/external-connection-request.helper';
 import { type Prisma, TagCategory } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getTenantContext } from '@libs/prisma/tenant-context';
 import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
@@ -690,48 +694,30 @@ export class CredentialsService
     platform: CredentialPlatform,
     scope?: Partial<OAuthCredentialScope>,
   ): Promise<PendingOAuthCredential | null> {
-    if (
-      typeof state !== 'string' ||
-      !state.trim() ||
-      isReservedExternalConnectionOAuthState(state)
-    ) {
+    const filter = buildPendingOAuthFilter(state, platform, scope);
+
+    return filter ? toPendingOAuthCredential(await this.findOne(filter)) : null;
+  }
+
+  /**
+   * Take ownership of a pending OAuth connection: one conditional write moves
+   * the row from its state to a claim marker, so of two verify requests for
+   * the same state only one gets the row and may spend the single-use code.
+   */
+  async claimPendingOAuthCredential(
+    state: string,
+    platform: CredentialPlatform,
+    scope?: Partial<OAuthCredentialScope>,
+  ): Promise<PendingOAuthCredential | null> {
+    const filter = buildPendingOAuthFilter(state, platform, scope);
+
+    if (!filter || !(await claimPendingOAuthRow(this.prisma, filter))) {
       return null;
     }
 
-    // Callers that omit `scope` (the provider-error callback util) still run
-    // inside the authenticated request, so default to its tenant.
-    const scopedOrganizationId =
-      scope?.organizationId ?? getTenantContext()?.organizationId;
-
-    const credential = await this.findOne({
-      isConnected: false,
-      oauthState: state,
-      platform,
-      updatedAt: { gte: new Date(Date.now() - OAUTH_STATE_TTL_MS) },
-      ...(scopedOrganizationId
-        ? {
-            organizationId: requireCredentialRelationId(
-              scopedOrganizationId,
-              'organizationId',
-            ),
-          }
-        : {}),
-      ...(scope?.userId
-        ? {
-            userId: requireCredentialRelationId(scope.userId, 'userId'),
-          }
-        : {}),
-    });
-
-    if (
-      !credential?.brandId ||
-      !credential.organizationId ||
-      !credential.userId
-    ) {
-      return null;
-    }
-
-    return credential as PendingOAuthCredential;
+    return toPendingOAuthCredential(
+      await this.findOne(claimedPendingOAuthFilter(filter)),
+    );
   }
 
   /**
@@ -760,15 +746,7 @@ export class CredentialsService
       userId: requireCredentialRelationId(scope.userId, 'userId'),
     });
 
-    if (
-      !credential?.brandId ||
-      !credential.organizationId ||
-      !credential.userId
-    ) {
-      return null;
-    }
-
-    return credential as PendingOAuthCredential;
+    return toPendingOAuthCredential(credential);
   }
 
   /**
