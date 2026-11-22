@@ -126,7 +126,7 @@ describe('MediumController', () => {
 
   describe('verify', () => {
     it('does not log the raw OAuth state or authorization code', async () => {
-      credentialsService.findPendingOAuthCredential.mockResolvedValue(null);
+      credentialsService.claimPendingOAuthCredential.mockResolvedValue(null);
 
       await controller
         .verify(request, { code: 'code-abc', state: 'state-abc' })
