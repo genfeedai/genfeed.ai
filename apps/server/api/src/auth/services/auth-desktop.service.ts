@@ -249,91 +249,124 @@ export class AuthDesktopService {
       throw new ForbiddenException('Super admin access required');
     }
 
-    const consumeResult = await this.prisma.desktopAuthCode.updateMany({
-      data: { usedAt: new Date() },
-      where: {
-        id: record.id,
-        organizationId: record.organizationId,
-        usedAt: null,
-        userId: record.userId,
-      },
-    });
-
-    if (consumeResult.count !== 1) {
-      throw new BadRequestException('Invalid desktop authorization code');
-    }
-
-    const desktopSession =
-      await this.betterAuthService.createDesktopSessionCookie(record.userId);
-    if (!desktopSession) {
-      throw new ServiceUnavailableException(
-        'Better Auth is required to create a desktop session',
-      );
-    }
-
-    if (dto.sessionOnly) {
-      return {
-        issuedAt: new Date().toISOString(),
-        session: desktopSession.cookie,
-        token: '',
-        userEmail: record.userEmail,
-        userId: record.userId,
-        userName: record.userName,
-      };
-    }
-
-    let plainKey: string;
+    // Claim, session and key commit together. A failure after the claim rolls
+    // it back, so a transient error leaves the app a code it can still present
+    // instead of one burned with no credentials behind it. The Better Auth
+    // session lives outside this transaction, so it is revoked on rollback.
+    const issued: { sessionToken?: string } = {};
+    let result: { apiKeyId?: string; response: DesktopAuthExchangeResult };
     try {
-      ({ plainKey } = await this.apiKeysService.createWithKey(
-        {
-          category: ApiKeyCategory.GENFEEDAI,
-          description: 'Auto-generated key for Genfeed Desktop',
-          expiresAt: new Date(
-            Date.now() + DESKTOP_SESSION_TTL_MS,
-          ).toISOString(),
-          label: 'Desktop',
-          metadata: {
-            kind: 'desktop-session',
+      result = await this.prisma.$transaction(async (transaction) => {
+        const consumeResult = await transaction.desktopAuthCode.updateMany({
+          data: { usedAt: new Date() },
+          where: {
+            id: record.id,
+            organizationId: record.organizationId,
+            usedAt: null,
+            userId: record.userId,
           },
-          organizationId: record.organizationId,
-          rateLimit: 120,
-          scopes: record.scopes,
+        });
+
+        if (consumeResult.count !== 1) {
+          throw new BadRequestException('Invalid desktop authorization code');
+        }
+
+        const desktopSession =
+          await this.betterAuthService.createDesktopSessionCookie(
+            record.userId,
+          );
+        if (!desktopSession) {
+          throw new ServiceUnavailableException(
+            'Better Auth is required to create a desktop session',
+          );
+        }
+        issued.sessionToken = desktopSession.token;
+
+        const exchanged = {
+          issuedAt: new Date().toISOString(),
+          session: desktopSession.cookie,
+          userEmail: record.userEmail,
           userId: record.userId,
-        },
-        ActionOrigin.UI,
-      ));
-    } catch (error: unknown) {
-      try {
-        await this.betterAuthService.revokeDesktopSession(desktopSession.token);
-        this.logger.warn(
-          'Revoked Better Auth desktop session after API key creation failed',
+          userName: record.userName,
+        };
+
+        if (dto.sessionOnly) {
+          return { response: { ...exchanged, token: '' } };
+        }
+
+        const { apiKey, plainKey } = await this.apiKeysService.createWithKey(
           {
-            service: AuthDesktopService.name,
+            category: ApiKeyCategory.GENFEEDAI,
+            description: 'Auto-generated key for Genfeed Desktop',
+            expiresAt: new Date(
+              Date.now() + DESKTOP_SESSION_TTL_MS,
+            ).toISOString(),
+            label: 'Desktop',
+            metadata: {
+              kind: 'desktop-session',
+            },
+            organizationId: record.organizationId,
+            rateLimit: 120,
+            scopes: record.scopes,
             userId: record.userId,
           },
+          ActionOrigin.UI,
+          transaction,
         );
-      } catch (compensationError: unknown) {
-        // `LoggerService.error(message, trace, context)` — the thrown value
-        // belongs in the trace slot so winston serializes its stack.
-        this.logger.error(
-          'Failed to revoke Better Auth desktop session',
-          compensationError,
-          {
-            service: AuthDesktopService.name,
-            userId: record.userId,
-          },
+        return {
+          apiKeyId: apiKey.id,
+          response: { ...exchanged, token: plainKey },
+        };
+      });
+    } catch (error: unknown) {
+      if (issued.sessionToken) {
+        await this.revokeSessionAfterFailure(
+          issued.sessionToken,
+          record.userId,
         );
       }
       throw error;
     }
 
-    return {
-      issuedAt: new Date().toISOString(),
-      session: desktopSession.cookie,
-      token: plainKey,
-      userEmail: record.userEmail,
-      userId: record.userId,
-      userName: record.userName,
-    };
+    if (result.apiKeyId) {
+      try {
+        await this.apiKeysService.invalidateRotationCaches(
+          record.organizationId,
+          result.apiKeyId,
+          result.apiKeyId,
+        );
+      } catch (error: unknown) {
+        // Best effort: the credentials committed, and a cache failure must not
+        // turn the exchange into an error for a code that is now spent.
+        this.logger.error(
+          'Failed to invalidate API key caches after desktop exchange',
+          error,
+          { service: AuthDesktopService.name, userId: record.userId },
+        );
+      }
+    }
+
+    return result.response;
+  }
+
+  private async revokeSessionAfterFailure(
+    sessionToken: string,
+    userId: string,
+  ): Promise<void> {
+    try {
+      await this.betterAuthService.revokeDesktopSession(sessionToken);
+      this.logger.warn(
+        'Revoked Better Auth desktop session after API key creation failed',
+        { service: AuthDesktopService.name, userId },
+      );
+    } catch (compensationError: unknown) {
+      // `LoggerService.error(message, trace, context)` — the thrown value
+      // belongs in the trace slot so winston serializes its stack.
+      this.logger.error(
+        'Failed to revoke Better Auth desktop session',
+        compensationError,
+        { service: AuthDesktopService.name, userId },
+      );
+    }
   }
 }

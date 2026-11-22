@@ -484,22 +484,6 @@ export class OAuthRefreshTokenService {
   }
 
   /**
-   * Best-effort revocation of a session key that was issued but could not be
-   * paired with a refresh token. Used by the compensating path here and in
-   * the authorization-code exchange; never throws over the original failure.
-   */
-  async revokeIssuedApiKey(apiKeyId: string): Promise<void> {
-    try {
-      await this.apiKeysService.revoke(apiKeyId);
-    } catch (error) {
-      this.logger.error('Failed to revoke an orphaned MCP OAuth session key', {
-        apiKeyId,
-        error,
-      });
-    }
-  }
-
-  /**
    * A refresh token was presented twice. Either the legitimate client
    * replayed it or the token leaked, and the two are indistinguishable, so
    * the whole rotation family is burned (RFC 6819 §5.2.2.3).

@@ -77,14 +77,24 @@ const membershipSelect = {
 function buildHarness() {
   const records = new Map<string, Record<string, unknown>>();
   const membershipContexts: Array<string | undefined> = [];
+  const mintedKeyIds = new Set<string>();
   const apiKeysService = {
-    createWithKey: vi.fn().mockResolvedValue({
-      apiKey: {
-        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-      },
-      plainKey: 'gf_live_oauth',
+    createWithKey: vi.fn(async () => {
+      const id = `key-${mintedKeyIds.size + 1}`;
+      mintedKeyIds.add(id);
+      return {
+        apiKey: {
+          expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+          id,
+        },
+        plainKey: 'gf_live_oauth',
+      };
     }),
+    invalidateRotationCaches: vi.fn().mockResolvedValue(undefined),
   } as unknown as ApiKeysService;
+  const logger = {
+    error: vi.fn(),
+  } as unknown as LoggerService;
   const client: OAuthClientRecord = {
     clientId,
     clientName: 'Claude',
@@ -116,7 +126,31 @@ function buildHarness() {
     },
   ];
   const brands = [{ id: 'brand-1', organizationId: 'org-1' }];
+  // A transaction that keeps what its callback wrote, or puts every code and
+  // minted key back as they were when the callback throws.
+  const runTransaction = async <R>(
+    run: (transaction: PrismaService) => Promise<R>,
+  ): Promise<R> => {
+    const savedCodes = new Map(
+      Array.from(records, ([key, row]) => [key, { ...row }]),
+    );
+    const savedKeys = new Set(mintedKeyIds);
+    try {
+      return await run(prisma);
+    } catch (error) {
+      for (const [key, row] of records) {
+        const before = savedCodes.get(key);
+        if (before) Object.assign(row, before);
+        else records.delete(key);
+      }
+      for (const id of Array.from(mintedKeyIds)) {
+        if (!savedKeys.has(id)) mintedKeyIds.delete(id);
+      }
+      throw error;
+    }
+  };
   const prisma = {
+    $transaction: vi.fn(runTransaction),
     brand: {
       findFirst: vi.fn(
         async ({
@@ -243,7 +277,9 @@ function buildHarness() {
   return {
     apiKeysService,
     brandAccessService,
+    logger,
     membershipContexts,
+    mintedKeyIds,
     organizations,
     prisma,
     refreshTokenService,
@@ -255,6 +291,7 @@ function buildHarness() {
       prisma,
       refreshTokenService,
       brandAccessService as unknown as BrandAccessService,
+      logger,
     ),
   };
 }
@@ -347,9 +384,11 @@ describe('OAuthAuthorizeService', () => {
     expect(apiKeysService.createWithKey).toHaveBeenCalledWith(
       expect.objectContaining({ organizationId: 'org-2', userId: 'user-1' }),
       'mcp',
+      expect.anything(),
     );
     expect(refreshTokenService.issue).toHaveBeenCalledWith(
       expect.objectContaining({ organizationId: 'org-2', userId: 'user-1' }),
+      expect.anything(),
     );
   });
 
@@ -605,6 +644,7 @@ describe('OAuthAuthorizeService', () => {
         userId: 'user-1',
       }),
       'mcp',
+      expect.anything(),
     );
 
     await expect(
@@ -618,6 +658,80 @@ describe('OAuthAuthorizeService', () => {
       }),
     ).rejects.toMatchObject({
       response: expect.objectContaining({ error: 'invalid_grant' }),
+    });
+  });
+
+  describe('exchange failures after the code is claimed', () => {
+    async function authorizedExchange(
+      harness: ReturnType<typeof buildHarness>,
+    ) {
+      const authorization = await harness.service.decideAuthorization(
+        makeUser(),
+        decision(),
+      );
+      const code = new URL(authorization.redirectUrl).searchParams.get('code');
+      return {
+        client_id: clientId,
+        code: code as string,
+        code_verifier: verifier,
+        grant_type: 'authorization_code' as const,
+        redirect_uri: redirectUri,
+        resource,
+      };
+    }
+
+    it('keeps the code usable and mints no key when the refresh token cannot be issued', async () => {
+      const harness = buildHarness();
+      const exchange = await authorizedExchange(harness);
+      vi.mocked(harness.refreshTokenService.issue).mockRejectedValueOnce(
+        new Error('database blip'),
+      );
+
+      await expect(harness.service.exchangeToken(exchange)).rejects.toThrow(
+        'database blip',
+      );
+      expect(harness.mintedKeyIds.size).toBe(0);
+
+      await expect(
+        harness.service.exchangeToken(exchange),
+      ).resolves.toMatchObject({
+        access_token: 'gf_live_oauth',
+        refresh_token: 'refresh-plain',
+      });
+      expect(harness.mintedKeyIds.size).toBe(1);
+    });
+
+    it('keeps the code usable when the key cannot be created', async () => {
+      const harness = buildHarness();
+      const exchange = await authorizedExchange(harness);
+      vi.mocked(harness.apiKeysService.createWithKey).mockRejectedValueOnce(
+        new Error('database blip'),
+      );
+
+      await expect(harness.service.exchangeToken(exchange)).rejects.toThrow(
+        'database blip',
+      );
+      await expect(
+        harness.service.exchangeToken(exchange),
+      ).resolves.toMatchObject({ token_type: 'Bearer' });
+    });
+
+    it('still answers with the tokens when the cache cannot be invalidated after commit', async () => {
+      const harness = buildHarness();
+      const exchange = await authorizedExchange(harness);
+      vi.mocked(
+        harness.apiKeysService.invalidateRotationCaches,
+      ).mockRejectedValueOnce(new Error('redis down'));
+
+      await expect(
+        harness.service.exchangeToken(exchange),
+      ).resolves.toMatchObject({ refresh_token: 'refresh-plain' });
+      expect(harness.logger.error).toHaveBeenCalled();
+      await expect(
+        harness.service.exchangeToken(exchange),
+      ).rejects.toMatchObject({
+        response: expect.objectContaining({ error: 'invalid_grant' }),
+      });
     });
   });
 
@@ -648,6 +762,7 @@ describe('OAuthAuthorizeService', () => {
         metadata: expect.objectContaining({ resource }),
       }),
       'mcp',
+      expect.anything(),
     );
   });
 
@@ -1103,6 +1218,7 @@ describe('Claude resource grant', () => {
         scopes: ['posts:draft'],
       }),
       'mcp',
+      expect.anything(),
     );
   });
 });
@@ -1147,6 +1263,7 @@ describe('Organization switching grant', () => {
         metadata: expect.objectContaining({ canSwitchOrganizations: true }),
       }),
       'mcp',
+      expect.anything(),
     );
   });
 
@@ -1181,6 +1298,7 @@ describe('Organization switching grant', () => {
         }),
       }),
       'mcp',
+      expect.anything(),
     );
   });
 
@@ -1203,6 +1321,7 @@ describe('Organization switching grant', () => {
         }),
       }),
       'mcp',
+      expect.anything(),
     );
   });
 });
@@ -1266,6 +1385,7 @@ describe('OAuth consent HTTP tenant context', () => {
     expect(harness.apiKeysService.createWithKey).toHaveBeenCalledWith(
       expect.objectContaining({ organizationId: 'org-2' }),
       'mcp',
+      expect.anything(),
     );
   });
 
