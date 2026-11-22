@@ -1,3 +1,4 @@
+import { DEFAULT_HTTP_TIMEOUT_MS } from '@api/constants/http-timeout.constant';
 import { ApiKeyHelperModule } from '@api/services/api-key/api-key-helper.module';
 import { HedraController } from '@api/services/integrations/hedra/controllers/hedra.controller';
 import { HedraService } from '@api/services/integrations/hedra/services/hedra.service';
@@ -6,7 +7,10 @@ import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
 
 const BaseModule = createServiceModule(HedraService, {
-  additionalImports: [HttpModule, ApiKeyHelperModule],
+  additionalImports: [
+    HttpModule.register({ timeout: DEFAULT_HTTP_TIMEOUT_MS }),
+    ApiKeyHelperModule,
+  ],
 });
 
 @Module({

@@ -110,7 +110,9 @@ describe('DiscordController', () => {
         connected.push({ account, credentialId, organizationId, tokens });
         return { id: credentialId, isConnected: true };
       },
-      findPendingOAuthCredential: async (
+      // No request has claimed any state, so a lost claim finds nothing to wait for.
+      findOne: async () => null,
+      claimPendingOAuthCredential: async (
         state: string,
         platform: CredentialPlatform,
         scope: { organizationId: string; userId: string },

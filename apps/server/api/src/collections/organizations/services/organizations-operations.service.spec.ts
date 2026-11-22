@@ -21,6 +21,7 @@ import { OrganizationsOperationsService } from '@api/collections/organizations/s
 import type { RolesService } from '@api/collections/roles/services/roles.service';
 import type { UsersService } from '@api/collections/users/services/users.service';
 import type { UserAccessCacheService } from '@api/common/services/user-access-cache.service';
+import type { CacheService } from '@api/services/cache/cache.service';
 import { SubscriptionTier } from '@genfeedai/contracts';
 import { SINGLE_ORGANIZATION_LIMIT } from '@genfeedai/pricing';
 import { HttpException, HttpStatus } from '@nestjs/common';
@@ -34,6 +35,7 @@ describe('OrganizationsOperationsService', () => {
   };
   const membersService = {
     create: vi.fn(),
+    remove: vi.fn(),
     findActiveForUserAccess: vi.fn(),
     findOne: vi.fn(),
     findOneSelect: delegateFindOneSelect(),
@@ -47,6 +49,7 @@ describe('OrganizationsOperationsService', () => {
   const organizationsService = {
     count: vi.fn(),
     create: vi.fn(),
+    remove: vi.fn(),
     findOne: vi.fn(),
     findOneSelect: delegateFindOneSelect(),
     generateUniqueSlug: vi.fn(),
@@ -67,6 +70,23 @@ describe('OrganizationsOperationsService', () => {
   const userAccessCacheService = { invalidateAll: vi.fn() };
   const organizationLogoService = { resolveLogoUrls: vi.fn() };
   const eventEmitter = { emit: vi.fn() };
+  // In-memory claim store with the real set-if-absent / owner-only-release
+  // semantics; `cacheOutage` makes it report `unavailable` like a down cache.
+  const claims = new Map<string, string>();
+  let cacheOutage = false;
+  const cacheService = {
+    acquireOwnedClaim: async (key: string, token: string) => {
+      if (cacheOutage) return 'unavailable';
+      if (claims.has(key)) return 'duplicate';
+      claims.set(key, token);
+      return 'claimed';
+    },
+    releaseOwnedClaim: async (key: string, token: string) => {
+      if (claims.get(key) !== token) return false;
+      claims.delete(key);
+      return true;
+    },
+  };
   const user = {
     brandId: 'brand_active',
     id: 'user_1',
@@ -85,10 +105,13 @@ describe('OrganizationsOperationsService', () => {
     userAccessCacheService as unknown as UserAccessCacheService,
     organizationLogoService as unknown as OrganizationLogoService,
     eventEmitter as unknown as EventEmitter2,
+    cacheService as unknown as CacheService,
   );
 
   beforeEach(() => {
     vi.clearAllMocks();
+    claims.clear();
+    cacheOutage = false;
     mockCloudMode = true;
     organizationSettingsService.findOne.mockResolvedValue({
       subscriptionTier: SubscriptionTier.FREE,
@@ -310,6 +333,112 @@ describe('OrganizationsOperationsService', () => {
         status: HttpStatus.FORBIDDEN,
       });
       expect(organizationsService.create).not.toHaveBeenCalled();
+    });
+
+    describe('persisted organization state', () => {
+      interface StoredOrganization {
+        id: string;
+        isDeleted: boolean;
+        userId: string;
+      }
+      interface StoredMember {
+        id: string;
+        isDeleted: boolean;
+      }
+      let organizations: StoredOrganization[];
+      let members: StoredMember[];
+      const drain = () => new Promise((resolve) => setImmediate(resolve));
+      const liveOrganizations = () =>
+        organizations.filter((organization) => !organization.isDeleted);
+
+      beforeEach(() => {
+        organizations = [];
+        members = [];
+        organizationsService.count.mockImplementation(async () => {
+          await drain();
+          return liveOrganizations().length;
+        });
+        organizationsService.create.mockImplementation(
+          async (data: { userId: string }) => {
+            await drain();
+            const stored = {
+              id: `org_${organizations.length + 1}`,
+              isDeleted: false,
+              userId: data.userId,
+            };
+            organizations.push(stored);
+            return { ...stored, label: 'New Org', slug: 'new-org' };
+          },
+        );
+        organizationsService.remove.mockImplementation(async (id: string) => {
+          const stored = organizations.find((row) => row.id === id);
+          if (stored) stored.isDeleted = true;
+          return stored ?? null;
+        });
+        membersService.create.mockImplementation(async () => {
+          const stored = {
+            id: `member_${members.length + 1}`,
+            isDeleted: false,
+          };
+          members.push(stored);
+          return stored;
+        });
+        membersService.remove.mockImplementation(async (id: string) => {
+          const stored = members.find((row) => row.id === id);
+          if (stored) stored.isDeleted = true;
+          return stored ?? null;
+        });
+      });
+
+      it('lets exactly one of two concurrent creates at the limit boundary through', async () => {
+        const results = await Promise.allSettled([
+          service.createOrganization({ label: 'Org A' }, user),
+          service.createOrganization({ label: 'Org B' }, user),
+        ]);
+
+        expect(results.filter((r) => r.status === 'fulfilled')).toHaveLength(1);
+        expect(liveOrganizations()).toHaveLength(SINGLE_ORGANIZATION_LIMIT);
+      });
+
+      it('accepts a create again once the previous one finished and was refused by the limit', async () => {
+        await service.createOrganization({ label: 'Org A' }, user);
+
+        await expect(
+          service.createOrganization({ label: 'Org B' }, user),
+        ).rejects.toMatchObject({ status: HttpStatus.FORBIDDEN });
+        expect(liveOrganizations()).toHaveLength(1);
+        expect(claims.size).toBe(0);
+      });
+
+      it('leaves no live organization or membership when a late step fails', async () => {
+        billingAccountsService.ensureForOrganization.mockRejectedValueOnce(
+          new Error('billing unavailable'),
+        );
+
+        await expect(
+          service.createOrganization({ label: 'Org A' }, user),
+        ).rejects.toThrow('billing unavailable');
+
+        expect(organizations).toHaveLength(1);
+        expect(liveOrganizations()).toHaveLength(0);
+        expect(members.filter((member) => !member.isDeleted)).toHaveLength(0);
+        expect(eventEmitter.emit).not.toHaveBeenCalled();
+        expect(claims.size).toBe(0);
+
+        // The failed attempt no longer counts against the plan limit.
+        await expect(
+          service.createOrganization({ label: 'Org A' }, user),
+        ).resolves.toMatchObject({ organization: { id: 'org_2' } });
+        expect(liveOrganizations()).toHaveLength(1);
+      });
+
+      it('still creates the organization when the cache is unavailable', async () => {
+        cacheOutage = true;
+
+        await service.createOrganization({ label: 'Org A' }, user);
+
+        expect(liveOrganizations()).toHaveLength(1);
+      });
     });
 
     it.each([

@@ -23,7 +23,7 @@ describe('RestreamController OAuth encrypt path', () => {
   const credentialsService = {
     beginOAuthForBrand: vi.fn(),
     connectAccount: vi.fn(),
-    findPendingOAuthCredential: vi.fn(),
+    claimPendingOAuthCredential: vi.fn(),
     patch: vi.fn(),
   };
   const brandsService = {
@@ -42,7 +42,7 @@ describe('RestreamController OAuth encrypt path', () => {
   });
 
   it('stores exchanged tokens via CredentialsService.patch (encrypt-on-write)', async () => {
-    credentialsService.findPendingOAuthCredential.mockResolvedValue({
+    credentialsService.claimPendingOAuthCredential.mockResolvedValue({
       id: 'cred-pending',
     });
     restreamService.exchangeCodeForToken.mockResolvedValue({
@@ -70,7 +70,7 @@ describe('RestreamController OAuth encrypt path', () => {
       'oauth-state',
     );
 
-    expect(credentialsService.findPendingOAuthCredential).toHaveBeenCalledWith(
+    expect(credentialsService.claimPendingOAuthCredential).toHaveBeenCalledWith(
       'oauth-state',
       CredentialPlatform.RESTREAM,
       expect.objectContaining({ organizationId: 'org-1' }),
@@ -98,7 +98,7 @@ describe('RestreamController OAuth encrypt path', () => {
       "Restream OAuth is missing a resolvable 'organization' id",
     );
     expect(
-      credentialsService.findPendingOAuthCredential,
+      credentialsService.claimPendingOAuthCredential,
     ).not.toHaveBeenCalled();
   });
 });

@@ -80,7 +80,7 @@ export const MCP_CATALOG_TOOLS = [
         action: 'articles',
         executes: 'get_articles',
         summary:
-          'Read one article by articleId or search published articles by query, optionally by category; pass exactly one of articleId or query.',
+          'Read one article by articleId, or search published articles by query, optionally by category; pass exactly one of articleId or query. brandId goes with articleId only; category and limit with query only.',
       },
       {
         action: 'article_preview',
@@ -318,7 +318,7 @@ export const MCP_CATALOG_TOOLS = [
   {
     name: 'schedule_release',
     description:
-      'Create or update a multi-channel release from prepared text and media. Run check_channel(action=validate) for each channel first. create saves a draft by default; a scheduled status or date requests future or recurring publishing. update changes content, media, recurrence, timing or one target. Scheduling or changing a release never waits in the web approvals queue: the first call changes nothing and returns what to confirm; after the person agrees in this conversation, repeat it with confirmed true in the input. Drafts need no confirmation.',
+      'Create or update a multi-channel release from prepared text and media. Run check_channel(action=validate) for each channel first. create takes input={release:{...}} for one release or input={releases:[...]} for a batch, never the release fields at the top of input, and saves a draft by default; a scheduled status or date requests future or recurring publishing. update changes content, media, recurrence, timing or one target. Scheduling or changing a release never waits in the web approvals queue: the first call changes nothing and returns what to confirm; after the person agrees in this conversation, repeat it with confirmed true in the input. Drafts need no confirmation.',
     claudeActions: ['create', 'update'],
     operations: [
       { action: 'create', executes: 'create_scheduled_release' },

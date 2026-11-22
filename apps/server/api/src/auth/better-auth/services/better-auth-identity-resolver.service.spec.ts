@@ -1,3 +1,4 @@
+import type { IBetterAuthResolvedIdentity } from '@api/auth/better-auth/better-auth.types';
 import type { BrandsService } from '@api/collections/brands/services/brands.service';
 import type { MembersService } from '@api/collections/members/services/members.service';
 import type { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
@@ -9,6 +10,39 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { BetterAuthIdentityResolverService } from './better-auth-identity-resolver.service';
 
+/** In-memory stand-in with the same read-epoch / set-if-unchanged contract. */
+class FakeIdentityCache {
+  readonly entries = new Map<string, IBetterAuthResolvedIdentity>();
+  private readonly epochs = new Map<string, number>();
+  isAvailable = true;
+
+  async get(userId: string): Promise<IBetterAuthResolvedIdentity | null> {
+    return this.isAvailable ? (this.entries.get(userId) ?? null) : null;
+  }
+
+  async readEpoch(userId: string): Promise<string | null> {
+    return this.isAvailable ? String(this.epochs.get(userId) ?? 0) : null;
+  }
+
+  async setIfUnchanged(
+    userId: string,
+    identity: IBetterAuthResolvedIdentity,
+    epoch: string | null,
+  ): Promise<void> {
+    if (!this.isAvailable || epoch === null) {
+      return;
+    }
+    if (String(this.epochs.get(userId) ?? 0) === epoch) {
+      this.entries.set(userId, identity);
+    }
+  }
+
+  async invalidateForUser(userId: string): Promise<void> {
+    this.epochs.set(userId, (this.epochs.get(userId) ?? 0) + 1);
+    this.entries.delete(userId);
+  }
+}
+
 describe('BetterAuthIdentityResolverService', () => {
   let usersService: {
     findOne: ReturnType<typeof vi.fn>;
@@ -19,11 +53,7 @@ describe('BetterAuthIdentityResolverService', () => {
   let membersService: {
     findActiveForUserAccess: ReturnType<typeof vi.fn>;
   };
-  let identityCache: {
-    get: ReturnType<typeof vi.fn>;
-    set: ReturnType<typeof vi.fn>;
-    invalidateForUser: ReturnType<typeof vi.fn>;
-  };
+  let identityCache: FakeIdentityCache;
   let userSetupService: {
     initializeUserResources: ReturnType<typeof vi.fn>;
   };
@@ -36,11 +66,7 @@ describe('BetterAuthIdentityResolverService', () => {
     membersService = {
       findActiveForUserAccess: vi.fn().mockResolvedValue([]),
     };
-    identityCache = {
-      get: vi.fn().mockResolvedValue(null),
-      invalidateForUser: vi.fn().mockResolvedValue(undefined),
-      set: vi.fn().mockResolvedValue(undefined),
-    };
+    identityCache = new FakeIdentityCache();
     userSetupService = {
       initializeUserResources: vi.fn(),
     };
@@ -371,7 +397,7 @@ describe('BetterAuthIdentityResolverService', () => {
       organizationId: 'org_c',
       userId: 'user_c',
     };
-    identityCache.get.mockResolvedValue(cachedIdentity);
+    identityCache.entries.set('user_c', cachedIdentity);
 
     const identity = await resolver.resolve('user_c');
 
@@ -380,7 +406,7 @@ describe('BetterAuthIdentityResolverService', () => {
     expect(membersService.findActiveForUserAccess).not.toHaveBeenCalled();
     expect(organizationsService.findAll).not.toHaveBeenCalled();
     expect(brandsService.findOne).not.toHaveBeenCalled();
-    expect(identityCache.set).not.toHaveBeenCalled();
+    expect(identityCache.entries.get('user_c')).toEqual(cachedIdentity);
   });
 
   it('caches the resolved identity after a cache miss', async () => {
@@ -392,8 +418,7 @@ describe('BetterAuthIdentityResolverService', () => {
 
     const identity = await resolver.resolve('user_5');
 
-    expect(identityCache.get).toHaveBeenCalledWith('user_5');
-    expect(identityCache.set).toHaveBeenCalledWith('user_5', identity);
+    expect(identityCache.entries.get('user_5')).toEqual(identity);
     expect(usersService.patch).toHaveBeenCalledWith('user_5', {
       lastUsedOrganizationId: 'org_5',
     });
@@ -405,6 +430,67 @@ describe('BetterAuthIdentityResolverService', () => {
     await expect(resolver.resolve('missing')).rejects.toBeInstanceOf(
       UnauthorizedException,
     );
-    expect(identityCache.set).not.toHaveBeenCalled();
+    expect(identityCache.entries.size).toBe(0);
+  });
+
+  it('does not store an identity that has no organization', async () => {
+    usersService.findOne.mockResolvedValue({ id: 'user_setup' });
+    membersService.findActiveForUserAccess.mockResolvedValue([]);
+    userSetupService.initializeUserResources.mockRejectedValue(
+      new Error('setup failed'),
+    );
+
+    const identity = await resolver.resolve('user_setup');
+
+    expect(identity.organizationId).toBeUndefined();
+    expect(identityCache.entries.size).toBe(0);
+  });
+
+  it('does not store the pre-switch identity when an invalidation lands mid-resolve', async () => {
+    let members = [{ organizationId: 'org_old' }];
+    usersService.findOne.mockResolvedValue({ id: 'user_sw' });
+    membersService.findActiveForUserAccess.mockImplementation(async () => {
+      const snapshot = members;
+      // The organization switch commits and invalidates while this resolve
+      // is still in flight.
+      members = [{ organizationId: 'org_new' }];
+      await identityCache.invalidateForUser('user_sw');
+      return snapshot;
+    });
+    organizationsService.findAll.mockImplementation(
+      async (query: { where: { id: { in: string[] } } }) => ({
+        docs: query.where.id.in.map((id) => ({ id })),
+      }),
+    );
+
+    const inFlight = await resolver.resolve('user_sw');
+    expect(inFlight.organizationId).toBe('org_old');
+    expect(identityCache.entries.has('user_sw')).toBe(false);
+
+    membersService.findActiveForUserAccess.mockImplementation(
+      async () => members,
+    );
+    const next = await resolver.resolve('user_sw');
+
+    expect(next.organizationId).toBe('org_new');
+    expect(identityCache.entries.get('user_sw')?.organizationId).toBe(
+      'org_new',
+    );
+  });
+
+  it('still returns the identity when the cache is unavailable', async () => {
+    identityCache.isAvailable = false;
+    usersService.findOne.mockResolvedValue({ id: 'user_nc' });
+    membersService.findActiveForUserAccess.mockResolvedValue([
+      { organizationId: 'org_nc' },
+    ]);
+    organizationsService.findAll.mockResolvedValue({
+      docs: [{ id: 'org_nc' }],
+    });
+
+    const identity = await resolver.resolve('user_nc');
+
+    expect(identity.organizationId).toBe('org_nc');
+    expect(identityCache.entries.size).toBe(0);
   });
 });

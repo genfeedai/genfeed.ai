@@ -8,6 +8,7 @@ import type {
 } from '@api/services/integrations/linkedin/linkedin-trends.port';
 import {
   createLinkedInMultiImagePost,
+  putLinkedInMedia,
   uploadLinkedInImageAsset,
 } from '@api/services/integrations/linkedin/services/linkedin-image-upload.util';
 import {
@@ -694,13 +695,11 @@ export class LinkedInService {
         mediaSource,
       );
 
-      await firstValueFrom(
-        this.httpService.put(uploadUrl, video, {
-          headers: {
-            Authorization: `Bearer ${decryptedAccessToken}`,
-            'Content-Type': 'application/octet-stream',
-          },
-        }),
+      await putLinkedInMedia(
+        this.httpService,
+        uploadUrl,
+        video,
+        `Bearer ${decryptedAccessToken}`,
       );
 
       // Step 3: Create share with video

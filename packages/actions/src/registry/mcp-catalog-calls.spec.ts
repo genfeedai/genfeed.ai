@@ -8,6 +8,7 @@ import {
   resolveMcpCatalogCall,
   validateMcpCatalogBindings,
 } from './mcp-catalog-calls';
+import { McpToolInputError } from './mcp-tool-input-error';
 import { ALL_TOOLS, getToolByName, getToolsForSurface } from './tool-registry';
 
 const names = ['check_channel', 'upload_media'];
@@ -110,6 +111,38 @@ describe('MCP catalog bindings', () => {
     { action: 'capabilities', input: 'x' },
   ])('rejects invalid new envelope before execution: %j', (args) => {
     expect(() => resolveMcpCatalogCall('check_channel', args)).toThrow();
+  });
+
+  it.each([
+    [
+      'get_context',
+      { action: 'account', brandId: 'b1', input: {} },
+      'get_context accepts only action and input, not brandId. Put the fields of the action inside input: get_context(action=<one of ',
+      'brandId',
+    ],
+    [
+      'get_content',
+      { action: 'post' },
+      '"post" is not an action of get_content. Use one of: posts, release, articles, article_preview.',
+      'action',
+    ],
+    [
+      'get_content',
+      {},
+      'get_content needs an action. Use one of: posts, release, articles, article_preview.',
+      'action',
+    ],
+  ])('tells the caller how to repair %s %j', (name, args, message, field) => {
+    let caught: unknown;
+    try {
+      resolveMcpCatalogCall(name, args);
+    } catch (error: unknown) {
+      caught = error;
+    }
+
+    expect(caught).toBeInstanceOf(McpToolInputError);
+    expect((caught as McpToolInputError).message).toContain(message);
+    expect((caught as McpToolInputError).field).toBe(field);
   });
 
   it.each(['request', 'complete'])('requires upload %s input', (action) => {

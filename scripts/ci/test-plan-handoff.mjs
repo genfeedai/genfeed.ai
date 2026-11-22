@@ -388,7 +388,21 @@ export async function awaitPlanOutputs({
     const { artifacts } = await getJson(listUrl);
     const artifact = pickPlanArtifact(artifacts, attempt);
     if (artifact) {
-      const plan = await download({ artifact, token, fetchImpl });
+      // The list shows an artifact a moment before its archive can be
+      // downloaded: the download answers 404 for the first seconds. Poll again
+      // instead of failing the job (the Test App, API and Workspaces jobs failed
+      // this way on every run that day).
+      let plan;
+      try {
+        plan = await download({ artifact, token, fetchImpl });
+      } catch (error) {
+        if (!isTransientDownloadError(error)) throw error;
+        process.stderr.write(
+          `${error.message}; the artifact is not downloadable yet, retrying\n`,
+        );
+        await wait(intervalMs);
+        continue;
+      }
       if (plan?.ok !== true) {
         throw new Error('The Plan job failed; there is no plan to read');
       }
@@ -401,6 +415,12 @@ export async function awaitPlanOutputs({
     await wait(intervalMs);
   }
   throw new Error('Timed out waiting for the Plan job to publish its outputs');
+}
+
+/** A download that can succeed on a later poll: not yet served, or a server error. */
+export function isTransientDownloadError(error) {
+  const status = error?.status;
+  return status === 404 || status === 408 || status === 429 || status >= 500;
 }
 
 export async function downloadArtifactJson({
@@ -420,8 +440,11 @@ export async function downloadArtifactJson({
       ? await fetchImpl(location)
       : first;
   if (!response.ok) {
-    throw new Error(
-      `Downloading ${artifact.name} failed with HTTP ${response.status}`,
+    throw Object.assign(
+      new Error(
+        `Downloading ${artifact.name} failed with HTTP ${response.status}`,
+      ),
+      { status: response.status },
     );
   }
   const directory = mkdtempSync(path.join(tmpdir(), 'test-plan-'));

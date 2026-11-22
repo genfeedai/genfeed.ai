@@ -65,7 +65,16 @@ describe('usePostDetailActions', () => {
   const mockSetEnhancingPostId = vi.fn();
   const mockSetEnhancingAction = vi.fn();
 
+  const makeAutoSaveRefs = () => ({
+    currentDescriptions: { current: new Map<string, string>() },
+    currentLabels: { current: new Map<string, string>() },
+    lastSavedDescriptions: { current: new Map<string, string>() },
+    lastSavedLabels: { current: new Map<string, string>() },
+    timeouts: { current: new Map<string, NodeJS.Timeout>() },
+  });
+
   const baseProps = {
+    autoSaveRefs: makeAutoSaveRefs(),
     descriptionDraft: 'Draft description',
     fetchPost: mockFetchPost,
     getPostsService: mockGetPostsService,
@@ -334,6 +343,53 @@ describe('usePostDetailActions', () => {
         'Post deleted successfully',
       );
       expect(mockRouter.push).toHaveBeenCalledWith('/acme/publishing');
+    });
+
+    it('settles unsaved edits of a deleted post so no auto-save patches it', async () => {
+      const autoSaveRefs = makeAutoSaveRefs();
+      autoSaveRefs.currentDescriptions.current.set('post-1', 'Typed text');
+      autoSaveRefs.timeouts.current.set('post-1', {} as NodeJS.Timeout);
+      const { result } = renderHook(() =>
+        usePostDetailActions({ ...baseProps, autoSaveRefs }),
+      );
+
+      act(() => {
+        result.current.handleDeletePost();
+      });
+      const confirm = mockOpenConfirmDelete.mock.calls[0][0] as {
+        onConfirm: () => Promise<void>;
+      };
+      await act(async () => {
+        await confirm.onConfirm();
+      });
+
+      expect(autoSaveRefs.timeouts.current.size).toBe(0);
+      expect(autoSaveRefs.lastSavedDescriptions.current.get('post-1')).toBe(
+        'Typed text',
+      );
+    });
+
+    it('keeps unsaved edits pending when the delete fails', async () => {
+      mockServiceDelete.mockRejectedValue(new Error('boom'));
+      const autoSaveRefs = makeAutoSaveRefs();
+      autoSaveRefs.currentDescriptions.current.set('post-1', 'Typed text');
+      const { result } = renderHook(() =>
+        usePostDetailActions({ ...baseProps, autoSaveRefs }),
+      );
+
+      act(() => {
+        result.current.handleDeletePost();
+      });
+      const confirm = mockOpenConfirmDelete.mock.calls[0][0] as {
+        onConfirm: () => Promise<void>;
+      };
+      await act(async () => {
+        await confirm.onConfirm();
+      });
+
+      expect(autoSaveRefs.lastSavedDescriptions.current.has('post-1')).toBe(
+        false,
+      );
     });
 
     it('notifies when the delete fails', async () => {
