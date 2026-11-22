@@ -41,7 +41,7 @@ describe('publishing diagnostics helpers', () => {
   it('redacts nested secrets without removing non-secret evidence', () => {
     const redacted = redactPublishingDiagnosticValue({
       callbackUrl:
-        'https://example.com/oauth/callback?code=visible&access_token=secret-token',
+        'https://example.com/oauth/callback?code=auth-code&attempt=2&access_token=secret-token',
       headers: {
         Authorization: 'Bearer abc.def.ghi',
         requestId: 'req_123',
@@ -56,7 +56,7 @@ describe('publishing diagnostics helpers', () => {
 
     expect(redacted).toEqual({
       callbackUrl:
-        'https://example.com/oauth/callback?code=visible&access_token=[REDACTED]',
+        'https://example.com/oauth/callback?code=[REDACTED]&attempt=2&access_token=[REDACTED]',
       headers: {
         Authorization: '[REDACTED]',
         requestId: 'req_123',
