@@ -40,11 +40,13 @@ describe('PrivacyContent Google user data disclosure', () => {
     render(<PrivacyContent />);
 
     expect(
-      screen.getByText(/encrypted with AES-256-GCM before they are stored/),
+      screen.getByText(
+        /How we protect Google data: OAuth access and refresh tokens are encrypted with AES-256-GCM/,
+      ),
     ).toBeInTheDocument();
     expect(
       screen.getByText(
-        /move between your browser, Genfeed and Google over HTTPS/,
+        /moves between your browser, Genfeed and Google over HTTPS/,
       ),
     ).toBeInTheDocument();
     expect(
