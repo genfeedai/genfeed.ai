@@ -11,6 +11,7 @@ import { ProviderAccountPurgeService } from '@api/collections/credentials/servic
 import {
   claimOAuthVerifyCredential,
   OAUTH_VERIFY_CLAIM_WAIT_MS,
+  verifiedOAuthState,
 } from '@api/collections/credentials/utils/oauth-verify-claim.util';
 import {
   explore,
@@ -30,10 +31,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
  * the request that holds the claim crashing before any step.
  *
  * Harms it states:
- * - the code is exchanged twice (ruled out);
+ * - the code is exchanged twice (#10824);
  * - a verify that lost the claim to a request that then connected the account
- *   answers "invalid state", which the user sees as a failed connection (a gap
- *   in #10824, tracked in #10863).
+ *   answers "invalid state", which the user sees as a failed connection (the
+ *   gap in #10824 that #10871 closed).
  */
 
 const STATE = 'oauth-state-1';
@@ -90,6 +91,7 @@ function matches(row: Row, where: Where): boolean {
       return Object.entries(condition).every(([operator, operand]) => {
         if (operator === 'not') return actual !== operand;
         if (operator === 'gte') return (actual as Date) >= (operand as Date);
+        if (operator === 'in') return (operand as unknown[]).includes(actual);
         throw new Error(
           `The model does not know the filter ${key}.${operator}.`,
         );
@@ -165,7 +167,7 @@ async function exchangeAndConnect(
   await sim.step('postgres UPDATE connect the credential');
   Object.assign(world.row, {
     isConnected: true,
-    oauthState: null,
+    oauthState: verifiedOAuthState(STATE),
     updatedAt: new Date(),
   });
 }
@@ -178,7 +180,6 @@ type Verify = (actor: string) => Promise<void>;
 
 function oauthScenario(
   makeVerify: (sim: Simulation, world: World) => Verify,
-  options: { rulesOutLostAnswers: boolean } = { rulesOutLostAnswers: false },
 ): () => Scenario {
   return () => {
     vi.clearAllTimers();
@@ -191,7 +192,6 @@ function oauthScenario(
     };
     return {
       final: () => {
-        if (!options.rulesOutLostAnswers) return null;
         for (const [actor, outcome] of world.outcomes) {
           // A request that waited out its whole budget gave up on a provider
           // slower than the wait; that limit is stated, not a race.
@@ -212,9 +212,7 @@ function oauthScenario(
       snapshot: () =>
         JSON.stringify([
           world.row.isConnected,
-          world.row.oauthState === null
-            ? null
-            : world.row.oauthState.startsWith('claimed:'),
+          world.row.oauthState?.split(':')[0] ?? null,
           world.exchanges,
           [...world.lostWhileHeld].sort(),
           [...world.outcomes.entries()]
@@ -315,29 +313,6 @@ describe('OAuth verify claim, every interleaving', () => {
         'verify 2: postgres SELECT credential',
         'verify 1: provider exchanges the code',
         'verify 2: provider exchanges the code',
-      ],
-    });
-  });
-
-  // Tracked in #10863: the winner clears the state when it connects, so a
-  // loser whose marker lookup comes after that finds nothing. When the issue is
-  // fixed this test fails; delete it and pass `rulesOutLostAnswers: true` in
-  // the first test.
-  it('still answers a lost claim with invalid state when the winner connected in between (#10863)', async () => {
-    const result = await explore(
-      oauthScenario(realVerify, { rulesOutLostAnswers: true }),
-    );
-
-    expect(result.violation).toEqual({
-      message:
-        'verify 2 answered invalid state before its wait ended, although the request holding the claim connected the account',
-      trace: [
-        'verify 1: postgres UPDATE credential',
-        'verify 2: postgres UPDATE credential',
-        'verify 1: postgres SELECT credential',
-        'verify 1: provider exchanges the code',
-        'verify 1: postgres UPDATE connect the credential',
-        'verify 2: postgres SELECT credential',
       ],
     });
   });
