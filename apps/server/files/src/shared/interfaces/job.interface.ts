@@ -78,6 +78,8 @@ export interface YoutubeJobData extends BaseJobData {
   isUnlisted: boolean;
   status?: 'public' | 'private' | 'scheduled' | 'unlisted';
   scheduledDate?: string;
+  /** Set on the job right after YouTube accepts the video, so a retry skips the upload. */
+  externalId?: string;
 }
 
 export interface VideoProcessingParams {

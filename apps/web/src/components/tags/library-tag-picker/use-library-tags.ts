@@ -5,6 +5,10 @@ import type { ITag, ITagColorSwatch } from '@genfeedai/contracts/interfaces';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import { TagsService } from '@genfeedai/services/content/tags.service';
+import {
+  isCollectionFetchReady,
+  useCollectionScope,
+} from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback } from 'react';
 import { LIBRARY_TAGS_QUERY_KEY } from './library-tags-query-key';
@@ -19,11 +23,13 @@ export function useLibraryTags({
   brandId,
   isEnabled = true,
 }: {
-  /** Omit for the active brand. */
+  /** Omit for the brand in the URL. */
   brandId?: string;
   isEnabled?: boolean;
 } = {}) {
   const { isSignedIn } = useAuthIdentity();
+  const collectionScope = useCollectionScope();
+  const scopedBrandId = brandId ?? collectionScope.brandId;
   const queryClient = useQueryClient();
   const getTagsService = useAuthedService((token: string) =>
     TagsService.getInstance(token),
@@ -34,12 +40,19 @@ export function useLibraryTags({
     isError,
     isLoading,
   } = useQuery<ITag[]>({
-    enabled: isEnabled && Boolean(isSignedIn),
+    enabled:
+      isEnabled &&
+      Boolean(isSignedIn) &&
+      isCollectionFetchReady(collectionScope),
     queryFn: async ({ signal }) => {
       const service = await getTagsService();
-      return service.findLibraryTags({ brandId, signal });
+      return service.findLibraryTags({ brandId: scopedBrandId, signal });
     },
-    queryKey: [LIBRARY_TAGS_QUERY_KEY, brandId ?? 'active'],
+    queryKey: [
+      LIBRARY_TAGS_QUERY_KEY,
+      collectionScope.organizationId,
+      scopedBrandId ?? 'org',
+    ],
   });
 
   const refresh = useCallback(

@@ -6,14 +6,30 @@ import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useLibraryTags } from './use-library-tags';
 
-const { identity, tagsService } = vi.hoisted(() => ({
+const { identity, scope, tagsService } = vi.hoisted(() => ({
   identity: { isSignedIn: true },
+  scope: {
+    brandId: 'brand-1' as string | undefined,
+    isReady: true,
+    organizationId: 'org-1',
+    pageScope: 'brand' as 'brand' | 'org',
+  },
   tagsService: { createLibraryTag: vi.fn(), findLibraryTags: vi.fn() },
 }));
 
 vi.mock('@genfeedai/hooks/auth/use-auth-identity/use-auth-identity', () => ({
   useAuthIdentity: () => identity,
 }));
+
+vi.mock(
+  '@hooks/navigation/use-collection-scope/use-collection-scope',
+  async (importOriginal) => ({
+    ...(await importOriginal<
+      typeof import('@hooks/navigation/use-collection-scope/use-collection-scope')
+    >()),
+    useCollectionScope: () => ({ ...scope }),
+  }),
+);
 
 vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => async () => tagsService,
@@ -32,10 +48,22 @@ function wrapper({ children }: { children: ReactNode }) {
   return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
 }
 
+function stableWrapper() {
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  return ({ children }: { children: ReactNode }) => (
+    <QueryClientProvider client={client}>{children}</QueryClientProvider>
+  );
+}
+
 describe('useLibraryTags', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     identity.isSignedIn = true;
+    scope.brandId = 'brand-1';
+    scope.isReady = true;
+    scope.pageScope = 'brand';
     tagsService.findLibraryTags.mockResolvedValue([launch]);
   });
 
@@ -53,13 +81,40 @@ describe('useLibraryTags', () => {
     );
   });
 
-  it('asks for the active brand when none is given', async () => {
+  it('asks for the brand in the URL when none is given', async () => {
     const { result } = renderHook(() => useLibraryTags(), { wrapper });
 
     await waitFor(() => expect(result.current.tags).toEqual([launch]));
-    expect(
-      tagsService.findLibraryTags.mock.calls[0]?.[0].brandId,
-    ).toBeUndefined();
+    expect(tagsService.findLibraryTags.mock.calls[0]?.[0].brandId).toBe(
+      'brand-1',
+    );
+  });
+
+  it('shows the new brand tags after the active brand switches', async () => {
+    const tagA = { id: 'tag-a', label: 'Brand A' } as ITag;
+    const tagB = { id: 'tag-b', label: 'Brand B' } as ITag;
+    tagsService.findLibraryTags.mockImplementation(
+      async ({ brandId }: { brandId?: string }) =>
+        brandId === 'brand-b' ? [tagB] : [tagA],
+    );
+    scope.brandId = 'brand-a';
+    const { result, rerender } = renderHook(() => useLibraryTags(), {
+      wrapper: stableWrapper(),
+    });
+    await waitFor(() => expect(result.current.tags).toEqual([tagA]));
+
+    scope.brandId = 'brand-b';
+    rerender();
+
+    await waitFor(() => expect(result.current.tags).toEqual([tagB]));
+  });
+
+  it('does not load while the brand route has no brand id yet', () => {
+    scope.brandId = undefined;
+    const { result } = renderHook(() => useLibraryTags(), { wrapper });
+
+    expect(result.current.tags).toEqual([]);
+    expect(tagsService.findLibraryTags).not.toHaveBeenCalled();
   });
 
   it('does not load while signed out or disabled', async () => {
