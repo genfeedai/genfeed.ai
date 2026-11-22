@@ -23,26 +23,7 @@ import type {
   AvatarTwinProgressProps,
   AvatarTwinVoiceChoice,
 } from '@/features/avatar-twins/props/avatar-twin.props';
-
-/**
- * Opens a tab synchronously (inside the click) so a popup blocker allows it,
- * then points it at the link once the API has issued one.
- */
-async function openInNewTab(resolveUrl: () => Promise<string>): Promise<void> {
-  const tab = window.open('', '_blank');
-  try {
-    const url = await resolveUrl();
-    if (tab) {
-      tab.opener = null;
-      tab.location.href = url;
-    } else {
-      window.location.assign(url);
-    }
-  } catch (error: unknown) {
-    tab?.close();
-    throw error;
-  }
-}
+import { openInNewTab } from '@/lib/navigation/open-in-new-tab';
 
 /**
  * Everything after the take is submitted: training, the consent step on the
