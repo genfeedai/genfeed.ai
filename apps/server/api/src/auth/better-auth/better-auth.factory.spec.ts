@@ -25,6 +25,11 @@ import type {
   IBetterAuthRateLimitStore,
   ICreateBetterAuthOptions,
 } from './better-auth.types';
+import {
+  createFakeRateLimitRedis,
+  type IFakeRateLimitRedis,
+} from './better-auth-rate-limit.testing';
+import { buildRedisRateLimitStore } from './better-auth-rate-limit.util';
 import { betterAuthUserAdditionalFields } from './better-auth-user-fields';
 
 type PrismaForBetterAuth = ICreateBetterAuthOptions['prisma'];
@@ -626,22 +631,14 @@ describe('assertSignupMagicLinkCanCreateUser', () => {
   });
 });
 
-/** In-memory stand-in for the Redis KV that records the args it was called with. */
+/** The production store over an in-memory Redis that runs the script atomically. */
 function createFakeRateLimitStore(): IBetterAuthRateLimitStore & {
-  readonly entries: Map<string, string>;
-  readonly setCalls: Array<{ key: string; value: string; ttlSeconds: number }>;
+  readonly redis: IFakeRateLimitRedis;
 } {
-  const entries = new Map<string, string>();
-  const setCalls: Array<{ key: string; value: string; ttlSeconds: number }> =
-    [];
+  const redis = createFakeRateLimitRedis();
   return {
-    entries,
-    get: async (key) => entries.get(key) ?? null,
-    set: async (key, value, ttlSeconds) => {
-      entries.set(key, value);
-      setCalls.push({ key, ttlSeconds, value });
-    },
-    setCalls,
+    ...buildRedisRateLimitStore({ instance: redis, isReady: true }),
+    redis,
   };
 }
 
@@ -694,13 +691,41 @@ describe('buildRateLimitStorage', () => {
 
     await storage.consume('ip:1.2.3.4', RATE_LIMIT_RULE);
 
-    const [call] = store.setCalls;
-    expect(call.key).toBe('ba:ratelimit:ip:1.2.3.4');
-    expect(JSON.parse(call.value)).toMatchObject({
+    const key = 'ba:ratelimit:ip:1.2.3.4';
+    expect(JSON.parse(store.redis.entries.get(key) ?? 'null')).toMatchObject({
       count: 1,
       key: 'ip:1.2.3.4',
     });
-    expect(call.ttlSeconds).toBe(RATE_LIMIT_TTL_SECONDS);
+    expect(store.redis.ttls.get(key)).toBe(RATE_LIMIT_TTL_SECONDS);
+  });
+
+  it('counts every request of a concurrent burst', async () => {
+    const store = createFakeRateLimitStore();
+    const storage = buildRateLimitStorage(store);
+    const burst = { max: 50, window: 10 };
+
+    const decisions = await Promise.all(
+      Array.from({ length: 20 }, () => storage.consume('ip:1.2.3.4', burst)),
+    );
+
+    expect(decisions.every((decision) => decision.allowed)).toBe(true);
+    expect(
+      JSON.parse(store.redis.entries.get('ba:ratelimit:ip:1.2.3.4') ?? 'null'),
+    ).toMatchObject({ count: 20 });
+  });
+
+  it('denies the requests of a concurrent burst beyond the max', async () => {
+    const storage = buildRateLimitStorage(createFakeRateLimitStore());
+
+    const decisions = await Promise.all(
+      Array.from({ length: 10 }, () =>
+        storage.consume('ip:1.2.3.4', RATE_LIMIT_RULE),
+      ),
+    );
+
+    expect(decisions.filter((decision) => decision.allowed)).toHaveLength(
+      RATE_LIMIT_RULE.max,
+    );
   });
 
   it('counts each key separately', async () => {
@@ -718,13 +743,24 @@ describe('buildRateLimitStorage', () => {
 
   it('fails open when the store throws', async () => {
     const storage = buildRateLimitStorage({
-      get: async () => {
-        throw new Error('redis down');
-      },
-      set: async () => {
+      consume: async () => {
         throw new Error('redis down');
       },
     });
+
+    expect(await storage.consume('ip:1.2.3.4', RATE_LIMIT_RULE)).toEqual({
+      allowed: true,
+      retryAfter: null,
+    });
+  });
+
+  it('fails open when the cache is unavailable', async () => {
+    const storage = buildRateLimitStorage(
+      buildRedisRateLimitStore({
+        instance: createFakeRateLimitRedis(),
+        isReady: false,
+      }),
+    );
 
     expect(await storage.consume('ip:1.2.3.4', RATE_LIMIT_RULE)).toEqual({
       allowed: true,
