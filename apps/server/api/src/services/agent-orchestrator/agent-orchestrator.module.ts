@@ -99,6 +99,7 @@ import { AgentToolsController } from '@api/services/agent-orchestrator/agent-too
 import { AgentTurnAcceptanceService } from '@api/services/agent-orchestrator/agent-turn-acceptance.service';
 import { AgentTurnRoundRunnerService } from '@api/services/agent-orchestrator/agent-turn-round-runner.service';
 import { AgentTurnWorkflowExecutionService } from '@api/services/agent-orchestrator/agent-turn-workflow-execution.service';
+import { AgentEventContentGateBinderService } from '@api/services/agent-orchestrator/agent-event-content-gate-binder.service';
 import { AgentUntrustedContentGateService } from '@api/services/agent-orchestrator/agent-untrusted-content-gate.service';
 import { AgentAdsResearchToolHandler } from '@api/services/agent-orchestrator/tools/agent-ads-research-tool-handler.service';
 import { AgentAnalyticsToolHandler } from '@api/services/agent-orchestrator/tools/agent-analytics-tool-handler.service';
@@ -369,6 +370,7 @@ import { Module } from '@nestjs/common';
     AgentCadenceExecutionService,
     AgentCadenceMediaGenerationService,
     AgentUntrustedContentGateService,
+    AgentEventContentGateBinderService,
     {
       provide: 'AGENT_BRANDS_SERVICE',
       useExisting: BrandsService,

@@ -334,6 +334,13 @@ const WORKFLOW_ACTIONS = [
     'AudioLines',
   ],
   [
+    'agentEventRun',
+    'Run Content Agent',
+    'Starts one run of a hired content agent with the trigger event as its brief.',
+    'ai',
+    'Bot',
+  ],
+  [
     'newsletterGen',
     'Generate Newsletter Draft',
     'Generates one newsletter draft.',

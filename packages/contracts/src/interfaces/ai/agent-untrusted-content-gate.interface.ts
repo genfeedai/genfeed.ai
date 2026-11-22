@@ -140,6 +140,14 @@ export const CONNECTOR_TOOLS: ReadonlySet<string> = new Set<string>([
   'get_social_conversations',
 ]);
 
+/**
+ * The text a workflow trigger event carries into an agent run (a mention, a
+ * comment, a keyword match, a webhook body). Not a tool: the name labels the
+ * gate decision and its audit row, and anyone who can post where the trigger
+ * listens can write into it, so it classifies like connector content.
+ */
+export const WORKFLOW_TRIGGER_EVENT_CONTENT_NAME = 'workflow_trigger_event';
+
 /** Tools whose results carry text extracted from a file the user supplied. */
 export const USER_UPLOAD_TOOLS: ReadonlySet<string> = new Set<string>([
   'ingest_source_media',
@@ -160,7 +168,10 @@ export function readAgentUntrustedContentSource(
   if (WEB_FETCH_TOOLS.has(toolName)) {
     return 'web_fetch';
   }
-  if (CONNECTOR_TOOLS.has(toolName)) {
+  if (
+    CONNECTOR_TOOLS.has(toolName) ||
+    toolName === WORKFLOW_TRIGGER_EVENT_CONTENT_NAME
+  ) {
     return 'connector';
   }
   if (USER_UPLOAD_TOOLS.has(toolName)) {

@@ -18,6 +18,11 @@ import {
 } from './schema-builders';
 
 type InputField =
+  | 'dailyCap'
+  | 'eventId'
+  | 'eventText'
+  | 'instruction'
+  | 'strategyId'
   | 'activeWordColor'
   | 'backgroundOpacity'
   | 'bottomAnchorRatio'
@@ -322,6 +327,8 @@ function inputFieldSchema(field: InputField): ActionJsonSchema {
     case 'useIdentityDefaults':
     case 'useLlm':
       return BOOLEAN_SCHEMA;
+    case 'dailyCap':
+      return INTEGER_SCHEMA;
     case 'autoAnalyzeAfterHours':
     case 'hashtagCount':
     case 'maxLength':
@@ -894,6 +901,24 @@ const WORKFLOW_NODE_CONTRACTS: Readonly<Record<string, ActionContractSchemas>> =
         },
         ['musicUrl', 'sourceType'],
       ),
+    },
+    // Starts a hired content agent's run from a trigger event (#10897). A step
+    // that skips (cap, budget, replay) still completes and says why.
+    agentEventRun: {
+      inputSchema: inputSchema([
+        'dailyCap',
+        'eventId',
+        'eventText',
+        'instruction',
+        'strategyId',
+      ]),
+      outputSchema: objectOutput({
+        agentExecutionId: nullableSchema(STRING_SCHEMA),
+        message: STRING_SCHEMA,
+        reason: nullableSchema(STRING_SCHEMA),
+        started: BOOLEAN_SCHEMA,
+        threadId: nullableSchema(STRING_SCHEMA),
+      }),
     },
     newsletterGen: {
       inputSchema: inputSchema([

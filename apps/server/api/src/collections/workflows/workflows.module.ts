@@ -1,4 +1,8 @@
 import { BrandAccessModule } from '@api/authorization/brand-access/brand-access.module';
+import { AgentEventRunService } from '@api/services/agent-event-run/agent-event-run.service';
+import { AgentRuntimeService } from '@api/services/agent-runtime/agent-runtime.service';
+import { AgentThreadingCoreModule } from '@api/services/agent-threading/agent-threading-core.module';
+import { AgentStrategiesCoreModule } from '@api/collections/agent-strategies/agent-strategies-core.module';
 import { AgentStrategyPerformanceModule } from '@api/collections/agent-strategies/agent-strategy-performance.module';
 import { ModelsModule } from '@api/collections/models/models.module';
 import { PersonasCoreModule } from '@api/collections/personas/personas-core.module';
@@ -76,6 +80,7 @@ import { SystemWorkflowDefinitionRegistrarService } from '@api/collections/workf
 import { TrendNotificationWorkflowService } from '@api/collections/workflows/services/trend-notification-workflow.service';
 import { VideoQaContinuityResolverService } from '@api/collections/workflows/services/video-qa-continuity-resolver.service';
 import { WorkflowArtifactLifecycleService } from '@api/collections/workflows/services/workflow-artifact-lifecycle.service';
+import { WorkflowAgentEventExecutorRegistrarService } from '@api/collections/workflows/services/workflow-agent-event-executor-registrar.service';
 import { WorkflowAutomationExecutorRegistrarService } from '@api/collections/workflows/services/workflow-automation-executor-registrar.service';
 import { WorkflowContentExecutorRegistrarService } from '@api/collections/workflows/services/workflow-content-executor-registrar.service';
 import { WorkflowCoreExecutorRegistrarService } from '@api/collections/workflows/services/workflow-core-executor-registrar.service';
@@ -158,6 +163,7 @@ import { Module } from '@nestjs/common';
     WebhooksController,
   ],
   exports: [
+    AgentEventRunService,
     BatchWorkflowExecutionService,
     SYSTEM_WORKFLOW_CATALOG,
     SYSTEM_WORKFLOW_RUNNER,
@@ -191,6 +197,8 @@ import { Module } from '@nestjs/common';
     PersonasCoreModule,
     MediaUrlsModule,
     AgentStrategyPerformanceModule,
+    AgentStrategiesCoreModule,
+    AgentThreadingCoreModule,
     WorkflowsCoreModule,
     FeaturedWorkflowsModule,
     MediaLocalizationModule,
@@ -276,6 +284,11 @@ import { Module } from '@nestjs/common';
     WorkflowUpscaleFundingService,
     WorkflowKnowledgeGroundingService,
     WorkflowContentExecutorRegistrarService,
+    WorkflowAgentEventExecutorRegistrarService,
+    // A hired agent's runs started by trigger events (#10897). AgentRuntimeModule
+    // imports this module, so the facade is provided here rather than imported.
+    AgentRuntimeService,
+    AgentEventRunService,
     WorkflowPostGenerationService,
     WorkflowReviewGateFeedbackService,
     WorkflowAutomationExecutorRegistrarService,
