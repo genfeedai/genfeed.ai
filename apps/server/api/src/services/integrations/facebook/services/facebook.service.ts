@@ -1,3 +1,4 @@
+import { UPLOAD_HTTP_TIMEOUT_MS } from '@api/constants/http-timeout.constant';
 import {
   SERVER_TOKENS,
   type ServerCredentialStore,
@@ -460,6 +461,7 @@ export class FacebookService {
               file_url: videoUrl,
               title,
             },
+            timeout: UPLOAD_HTTP_TIMEOUT_MS,
           },
         ),
       );

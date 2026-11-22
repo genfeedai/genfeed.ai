@@ -1,3 +1,4 @@
+import { UPLOAD_HTTP_TIMEOUT_MS } from '@api/constants/http-timeout.constant';
 import type {
   ApifyActorRun,
   ApifyActorRunResponse,
@@ -530,7 +531,7 @@ export class ResearchCollectionRunner {
     const response = await firstValueFrom(
       this.httpService.get<T[]>(
         `${API_URL}/datasets/${encodeURIComponent(datasetId)}/items`,
-        { headers: this.authHeaders(token) },
+        { headers: this.authHeaders(token), timeout: UPLOAD_HTTP_TIMEOUT_MS },
       ),
     );
     return response.data;

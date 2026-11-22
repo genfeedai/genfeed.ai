@@ -1,7 +1,9 @@
+import { UPLOAD_HTTP_TIMEOUT_MS } from '@api/constants/http-timeout.constant';
 import {
   downloadLinkedInMedia,
   type LinkedInMediaSource,
 } from '@api/services/integrations/linkedin/services/linkedin-media-download.util';
+import { traced } from '@libs/tracing/traced';
 import type { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 
@@ -21,6 +23,27 @@ interface LinkedInUploadContext {
   httpService: HttpService;
   ingredientsEndpoint: string;
 }
+
+/** PUT media bytes to a LinkedIn upload URL, with the long upload timeout. */
+export const putLinkedInMedia = traced(
+  'putLinkedInMedia',
+  async (
+    httpService: HttpService,
+    uploadUrl: string,
+    body: Buffer,
+    authorization: string,
+  ): Promise<void> => {
+    await firstValueFrom(
+      httpService.put(uploadUrl, body, {
+        headers: {
+          Authorization: authorization,
+          'Content-Type': 'application/octet-stream',
+        },
+        timeout: UPLOAD_HTTP_TIMEOUT_MS,
+      }),
+    );
+  },
+);
 
 /**
  * Register a digital media asset and upload the image bytes behind it.
@@ -72,13 +95,11 @@ export async function uploadLinkedInImageAsset(
     mediaSource,
   );
 
-  await firstValueFrom(
-    httpService.put(uploadUrl, image, {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        'Content-Type': 'application/octet-stream',
-      },
-    }),
+  await putLinkedInMedia(
+    httpService,
+    uploadUrl,
+    image,
+    `Bearer ${accessToken}`,
   );
 
   return assetId;
@@ -113,14 +134,7 @@ async function uploadLinkedInRestImage(
     mediaSource,
   );
 
-  await firstValueFrom(
-    httpService.put(uploadUrl, image, {
-      headers: {
-        Authorization: headers.Authorization,
-        'Content-Type': 'application/octet-stream',
-      },
-    }),
-  );
+  await putLinkedInMedia(httpService, uploadUrl, image, headers.Authorization);
 
   return imageUrn;
 }

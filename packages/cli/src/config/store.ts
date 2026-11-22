@@ -36,18 +36,31 @@ function mergeAgentConfig(
   };
 }
 
+async function readConfigFromDisk(): Promise<Config> {
+  try {
+    const content = await readFile(CONFIG_PATH, 'utf8');
+    return configSchema.parse(JSON.parse(content));
+  } catch {
+    return structuredClone(defaultConfig);
+  }
+}
+
 export async function loadConfig(): Promise<Config> {
   if (cachedConfig) return cachedConfig;
 
-  try {
-    const content = await readFile(CONFIG_PATH, 'utf8');
-    const parsed = JSON.parse(content);
-    cachedConfig = configSchema.parse(parsed);
-    return cachedConfig;
-  } catch {
-    cachedConfig = structuredClone(defaultConfig);
-    return cachedConfig;
-  }
+  cachedConfig = await readConfigFromDisk();
+  return cachedConfig;
+}
+
+/**
+ * Read-modify-write for every setter. Re-reads the file right before the write so a
+ * field another process saved since this one loaded is kept, and changes only what
+ * `mutate` touches. The in-process cache is never the base of a write.
+ */
+async function updateConfig(mutate: (config: Config) => void): Promise<void> {
+  const config = await readConfigFromDisk();
+  mutate(config);
+  await saveConfig(config);
 }
 
 export async function saveConfig(config: Config): Promise<void> {
@@ -184,10 +197,10 @@ export async function setProfileField<K extends keyof Profile>(
   value: Profile[K],
   profileName?: string
 ): Promise<void> {
-  const config = await loadConfig();
-  const { name } = resolveProfile(config, profileName);
-  (config.profiles[name] as Record<string, unknown>)[field as string] = value;
-  await saveConfig(config);
+  await updateConfig((config) => {
+    const { name } = resolveProfile(config, profileName);
+    (config.profiles[name] as Record<string, unknown>)[field as string] = value;
+  });
 }
 
 export async function setApiKey(key: string, profileName?: string): Promise<void> {
@@ -210,18 +223,17 @@ export async function setAgentModel(
   model: string | undefined,
   profileName?: string
 ): Promise<void> {
-  const config = await loadConfig();
-  const { name, profile } = resolveProfile(config, profileName);
+  await updateConfig((config) => {
+    const { name, profile } = resolveProfile(config, profileName);
 
-  config.profiles[name] = {
-    ...profile,
-    agent: {
-      ...profile.agent,
-      model,
-    },
-  };
-
-  await saveConfig(config);
+    config.profiles[name] = {
+      ...profile,
+      agent: {
+        ...profile.agent,
+        model,
+      },
+    };
+  });
 }
 
 export async function getOrganizationId(): Promise<string | undefined> {
@@ -258,50 +270,54 @@ export async function setLastAgentThreadId(
   organizationId?: string,
   profileName?: string
 ): Promise<void> {
-  const config = await loadConfig();
   const runtime = readRuntimeOverrides();
-  const { name, profile } = resolveProfile(config, profileName);
-  const resolvedProfile = mergeProfileWithRuntime(profile, runtime);
-  const storageKey = resolveAgentThreadStorageKey(organizationId ?? resolvedProfile.organizationId);
 
-  config.profiles[name] = {
-    ...profile,
-    agent: {
-      ...profile.agent,
-      lastThreadIdByOrganization: {
-        ...profile.agent.lastThreadIdByOrganization,
-        [storageKey]: threadId,
+  await updateConfig((config) => {
+    const { name, profile } = resolveProfile(config, profileName);
+    const resolvedProfile = mergeProfileWithRuntime(profile, runtime);
+    const storageKey = resolveAgentThreadStorageKey(
+      organizationId ?? resolvedProfile.organizationId
+    );
+
+    config.profiles[name] = {
+      ...profile,
+      agent: {
+        ...profile.agent,
+        lastThreadIdByOrganization: {
+          ...profile.agent.lastThreadIdByOrganization,
+          [storageKey]: threadId,
+        },
       },
-    },
-  };
-
-  await saveConfig(config);
+    };
+  });
 }
 
 export async function clearLastAgentThreadId(
   organizationId?: string,
   profileName?: string
 ): Promise<void> {
-  const config = await loadConfig();
   const runtime = readRuntimeOverrides();
-  const { name, profile } = resolveProfile(config, profileName);
-  const resolvedProfile = mergeProfileWithRuntime(profile, runtime);
-  const storageKey = resolveAgentThreadStorageKey(organizationId ?? resolvedProfile.organizationId);
 
-  const lastThreadIdByOrganization = {
-    ...profile.agent.lastThreadIdByOrganization,
-  };
-  delete lastThreadIdByOrganization[storageKey];
+  await updateConfig((config) => {
+    const { name, profile } = resolveProfile(config, profileName);
+    const resolvedProfile = mergeProfileWithRuntime(profile, runtime);
+    const storageKey = resolveAgentThreadStorageKey(
+      organizationId ?? resolvedProfile.organizationId
+    );
 
-  config.profiles[name] = {
-    ...profile,
-    agent: {
-      ...profile.agent,
-      lastThreadIdByOrganization,
-    },
-  };
+    const lastThreadIdByOrganization = {
+      ...profile.agent.lastThreadIdByOrganization,
+    };
+    delete lastThreadIdByOrganization[storageKey];
 
-  await saveConfig(config);
+    config.profiles[name] = {
+      ...profile,
+      agent: {
+        ...profile.agent,
+        lastThreadIdByOrganization,
+      },
+    };
+  });
 }
 
 export async function setRole(role: 'user' | 'admin', profileName?: string): Promise<void> {
@@ -309,37 +325,37 @@ export async function setRole(role: 'user' | 'admin', profileName?: string): Pro
 }
 
 export async function createProfile(name: string, profile?: Partial<Profile>): Promise<void> {
-  const config = await loadConfig();
-  if (config.profiles[name]) {
-    throw new Error(`Profile "${name}" already exists.`);
-  }
-
   const profileOverrides = Object.fromEntries(
     Object.entries(profile ?? {}).filter(([, value]) => value !== undefined)
   ) as Partial<Profile>;
 
-  config.profiles[name] = {
-    ...defaultProfile,
-    ...profileOverrides,
-    agent: {
-      ...defaultProfile.agent,
-      ...profileOverrides.agent,
-    },
-    defaults: {
-      ...defaultProfile.defaults,
-      ...profileOverrides.defaults,
-    },
-  };
-  await saveConfig(config);
+  await updateConfig((config) => {
+    if (config.profiles[name]) {
+      throw new Error(`Profile "${name}" already exists.`);
+    }
+
+    config.profiles[name] = {
+      ...defaultProfile,
+      ...profileOverrides,
+      agent: {
+        ...defaultProfile.agent,
+        ...profileOverrides.agent,
+      },
+      defaults: {
+        ...defaultProfile.defaults,
+        ...profileOverrides.defaults,
+      },
+    };
+  });
 }
 
 export async function setActiveProfileName(name: string): Promise<void> {
-  const config = await loadConfig();
-  if (!config.profiles[name]) {
-    throw new Error(`Profile "${name}" does not exist.`);
-  }
-  config.activeProfile = name;
-  await saveConfig(config);
+  await updateConfig((config) => {
+    if (!config.profiles[name]) {
+      throw new Error(`Profile "${name}" does not exist.`);
+    }
+    config.activeProfile = name;
+  });
 }
 
 export async function listProfiles(): Promise<

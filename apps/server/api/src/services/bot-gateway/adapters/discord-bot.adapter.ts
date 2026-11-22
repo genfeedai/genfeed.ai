@@ -1,4 +1,5 @@
 import { verify } from 'node:crypto';
+import { UPLOAD_HTTP_TIMEOUT_MS } from '@api/constants/http-timeout.constant';
 import {
   BotCommandType,
   BotInteractionType,
@@ -309,7 +310,11 @@ export class DiscordBotAdapter implements IBotPlatformAdapter {
           new Blob([new Uint8Array(upload.attachment)]),
           upload.name,
         );
-        await firstValueFrom(this.httpService.post(webhookUrl, form));
+        await firstValueFrom(
+          this.httpService.post(webhookUrl, form, {
+            timeout: UPLOAD_HTTP_TIMEOUT_MS,
+          }),
+        );
       } else {
         const payload: Record<string, unknown> = {
           content: caption || '',

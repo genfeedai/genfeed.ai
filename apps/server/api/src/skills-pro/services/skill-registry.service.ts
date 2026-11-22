@@ -1,3 +1,4 @@
+import { DEFAULT_HTTP_TIMEOUT_MS } from '@api/constants/http-timeout.constant';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import type {
   SkillsProRegistryCatalogDto,
@@ -80,7 +81,9 @@ export class SkillRegistryService {
 
     let response: Response;
     try {
-      response = await fetch(registryUrl);
+      response = await fetch(registryUrl, {
+        signal: AbortSignal.timeout(DEFAULT_HTTP_TIMEOUT_MS),
+      });
     } catch (error) {
       this.loggerService.warn(
         `${this.constructorName} failed to fetch registry`,

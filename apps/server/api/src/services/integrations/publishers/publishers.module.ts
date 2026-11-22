@@ -1,5 +1,6 @@
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { PostsModule } from '@api/collections/posts/posts.module';
+import { DEFAULT_HTTP_TIMEOUT_MS } from '@api/constants/http-timeout.constant';
 import { SERVER_TOKENS } from '@api/index';
 import { BeehiivModule } from '@api/services/integrations/beehiiv/beehiiv.module';
 import { BlueskyModule } from '@api/services/integrations/bluesky/bluesky.module';
@@ -97,7 +98,7 @@ const SERVER_PUBLISHER_FACTORY_PROVIDER = {
   imports: [
     ConfigModule,
     MediaUrlsModule,
-    HttpModule,
+    HttpModule.register({ timeout: DEFAULT_HTTP_TIMEOUT_MS }),
     LoggerModule,
 
     // Platform integration modules

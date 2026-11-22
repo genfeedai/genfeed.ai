@@ -1,5 +1,6 @@
 import type { CredentialDocument } from '@api/collections/credentials/credential.types';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { UPLOAD_HTTP_TIMEOUT_MS } from '@api/constants/http-timeout.constant';
 import {
   DiscordApiError,
   type DiscordWebhookFile,
@@ -164,6 +165,7 @@ export class DiscordPublisherService extends BasePublisherService {
         this.httpService.get<ArrayBuffer>(mediaUrl, {
           maxContentLength: DISCORD_MAX_FILE_BYTES,
           responseType: 'arraybuffer',
+          timeout: UPLOAD_HTTP_TIMEOUT_MS,
         }),
       );
       const bytes = new Uint8Array(response.data);
