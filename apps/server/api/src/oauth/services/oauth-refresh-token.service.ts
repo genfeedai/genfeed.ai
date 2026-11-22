@@ -96,8 +96,8 @@ function buildTokenResponse(
  * scope grant of the access token (API key) it renews. Rotation is
  * single-use: presenting a consumed token is treated as theft and revokes
  * the whole replacement chain (RFC 6819 §5.2.2.3). Revoking the API key from
- * settings invalidates the refresh token because the key must still be active
- * at refresh time.
+ * settings invalidates the refresh token because the key must not be revoked
+ * at refresh time (it may have expired: the refresh token outlives it).
  */
 @Traced()
 @Injectable()
@@ -151,7 +151,9 @@ export class OAuthRefreshTokenService {
     }
     let scopes = this.narrowScopes(record.scopes, dto.scope);
 
-    const apiKey = await this.apiKeysService.findActiveById(record.apiKeyId);
+    // The refresh token outlives its access key, so an expired key is
+    // expected here; a revoked one is not.
+    const apiKey = await this.apiKeysService.findUnrevokedById(record.apiKeyId);
     if (
       !apiKey ||
       apiKey.organizationId !== record.organizationId ||
