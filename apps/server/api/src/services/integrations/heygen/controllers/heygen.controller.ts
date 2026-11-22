@@ -14,7 +14,6 @@ import { HeyGenVoiceCatalogService } from '@api/services/integrations/heygen/ser
 import { HEYGEN_CREDENTIALS_INVALID_ERROR_CODE } from '@genfeedai/contracts/constants';
 import type {
   HeyGenAvatarCatalogPage,
-  HeyGenCatalogAvatar,
   HeyGenCatalogVoice,
   HeyGenSpeechVoiceCatalog,
 } from '@genfeedai/contracts/interfaces';
@@ -38,15 +37,6 @@ type HeygenVoicesResponse = ProviderCatalogResponse<
 type HeygenSpeechVoicesResponse = ProviderCatalogResponse<
   'speech-voices',
   HeyGenSpeechVoiceCatalog & {
-    provider: 'heygen';
-    count: number;
-  }
->;
-
-type HeygenAvatarsResponse = ProviderCatalogResponse<
-  'avatars',
-  {
-    avatars: HeyGenCatalogAvatar[];
     provider: 'heygen';
     count: number;
   }
@@ -167,36 +157,6 @@ export class HeyGenController {
     } catch (error: unknown) {
       this.loggerService.error(
         `${this.constructorName} getAvatarPage failed`,
-        undefined,
-        describeProviderCatalogError(error),
-      );
-      throwProviderCatalogError(
-        'Failed to fetch HeyGen avatars',
-        error,
-        HEYGEN_CATALOG_ERROR_OPTIONS,
-      );
-    }
-  }
-
-  @Get('avatars')
-  async getAvatars(@CurrentUser() user: User): Promise<HeygenAvatarsResponse> {
-    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    this.loggerService.log(url);
-
-    try {
-      const avatars = await this.heygenService.getAvatars(user.organizationId);
-
-      return serializeProviderCatalog({
-        attributes: {
-          avatars,
-          count: avatars.length,
-          provider: 'heygen',
-        },
-        type: 'avatars',
-      });
-    } catch (error: unknown) {
-      this.loggerService.error(
-        `${url} failed`,
         undefined,
         describeProviderCatalogError(error),
       );

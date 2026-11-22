@@ -39,7 +39,6 @@ describe('HeyGenController', () => {
   let controller: HeyGenController;
   let heygenService: {
     getConnectionStatus: ReturnType<typeof vi.fn>;
-    getAvatars: ReturnType<typeof vi.fn>;
     getAvatarPage: ReturnType<typeof vi.fn>;
     getSpeechVoices: ReturnType<typeof vi.fn>;
   };
@@ -62,7 +61,6 @@ describe('HeyGenController', () => {
       getConnectionStatus: vi
         .fn()
         .mockResolvedValue({ hasCustomKey: true, isConnected: true }),
-      getAvatars: vi.fn().mockResolvedValue([]),
       getAvatarPage: vi.fn(),
       getSpeechVoices: vi.fn(),
     };
@@ -172,17 +170,6 @@ describe('HeyGenController', () => {
     },
   );
 
-  it('uses the same stable code when avatars hit rejected credentials', async () => {
-    heygenService.getAvatars.mockRejectedValue(
-      providerFailure({ status: 401 }),
-    );
-    const error = await controller.getAvatars(mockUser).catch((e) => e);
-    expect(error.getStatus()).toBe(HttpStatus.BAD_GATEWAY);
-    expect(error.getResponse()).toMatchObject({
-      code: 'HEYGEN_CREDENTIALS_INVALID',
-    });
-  });
-
   it('surfaces a not-connected configuration failure as a client error', async () => {
     voiceCatalogService.getVoices.mockRejectedValue(
       new BadRequestException('Connect HeyGen to load identities.'),
@@ -233,31 +220,6 @@ describe('HeyGenController', () => {
     );
     expect(second.data.attributes.voices[0].voiceId).toBe(
       `voice-${testId('other-org')}`,
-    );
-  });
-
-  // --- getAvatars ---
-  it('should return mapped avatars with correct shape', async () => {
-    heygenService.getAvatars.mockResolvedValue([
-      { avatarId: 'a1', index: 0, name: 'Avatar1', preview: 'https://img.png' },
-    ]);
-
-    const result = await controller.getAvatars(mockUser);
-    expect(result.data.type).toBe('avatars');
-    expect(result.data.attributes.provider).toBe('heygen');
-    expect(result.data.attributes.count).toBe(1);
-    expect(result.data.attributes.avatars[0]).toEqual({
-      avatarId: 'a1',
-      index: 0,
-      name: 'Avatar1',
-      preview: 'https://img.png',
-    });
-  });
-
-  it('should throw HttpException when getAvatars fails', async () => {
-    heygenService.getAvatars.mockRejectedValue(new Error('timeout'));
-    await expect(controller.getAvatars(mockUser)).rejects.toThrow(
-      HttpException,
     );
   });
 
@@ -327,9 +289,8 @@ describe('HeyGenController', () => {
 
   it('should log on every endpoint call', async () => {
     await controller.getVoices(mockUser);
-    await controller.getAvatars(mockUser);
     await controller.getStatus(mockUser);
-    expect(loggerService.log).toHaveBeenCalledTimes(3);
+    expect(loggerService.log).toHaveBeenCalledTimes(2);
   });
 
   it('should handle unknown error message in getVoices', async () => {

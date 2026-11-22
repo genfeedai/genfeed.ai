@@ -35,10 +35,6 @@ Authorization: Bearer {{bearerToken}}
 # Provider Avatars
 ########################################
 
-### Get HeyGen Avatars
-GET {{apiBaseUrl}}/avatars/heygen/avatars
-Authorization: Bearer {{bearerToken}}
-
 ### Get Hedra Avatars
 GET {{apiBaseUrl}}/avatars/hedra/avatars
 Authorization: Bearer {{bearerToken}}
