@@ -110,7 +110,11 @@ function buildService(options: BuildServiceOptions = {}) {
   const apiKeysService = {
     createWithKey: options.apiKeyError
       ? vi.fn().mockRejectedValue(options.apiKeyError)
-      : vi.fn().mockResolvedValue({ plainKey: 'gf_desktop_key' }),
+      : vi.fn().mockResolvedValue({
+          apiKey: { id: 'desktop-key-1' },
+          plainKey: 'gf_desktop_key',
+        }),
+    invalidateRotationCaches: vi.fn().mockResolvedValue(undefined),
   } as unknown as ApiKeysService;
   let sessionSequence = 0;
   const betterAuthService = {
@@ -134,7 +138,25 @@ function buildService(options: BuildServiceOptions = {}) {
     error: vi.fn(),
     warn: vi.fn(),
   } as unknown as LoggerService;
+  // A transaction that keeps what its callback wrote, or puts every code back
+  // as it was when the callback throws.
+  const runTransaction = async <R>(
+    run: (transaction: PrismaService) => Promise<R>,
+  ): Promise<R> => {
+    const saved = new Map(
+      Array.from(records, ([key, row]) => [key, { ...row }]),
+    );
+    try {
+      return await run(prisma);
+    } catch (error) {
+      for (const [key, row] of records) {
+        Object.assign(row, saved.get(key));
+      }
+      throw error;
+    }
+  };
   const prisma = {
+    $transaction: vi.fn(runTransaction),
     desktopAuthCode: {
       create: vi.fn(async ({ data }: { data: Record<string, unknown> }) => {
         const record = {
@@ -249,6 +271,7 @@ describe('AuthDesktopService', () => {
         userId,
       }),
       'ui',
+      expect.anything(),
     );
   });
 
@@ -402,6 +425,57 @@ describe('AuthDesktopService', () => {
       'Revoked Better Auth desktop session after API key creation failed',
       expect.objectContaining({ userId }),
     );
+  });
+
+  it('keeps the code usable when API-key creation fails, then exchanges it once', async () => {
+    const { apiKeysService, issuedSessionTokens, service } = buildService();
+    const authorization = await createAuthorization(service);
+    const exchange = { code: authorization.code, codeVerifier, state };
+    vi.mocked(apiKeysService.createWithKey).mockRejectedValueOnce(
+      new Error('database blip'),
+    );
+
+    await expect(service.exchangeCode(exchange)).rejects.toThrow(
+      'database blip',
+    );
+    expect(issuedSessionTokens.size).toBe(0);
+
+    await expect(service.exchangeCode(exchange)).resolves.toMatchObject({
+      token: 'gf_desktop_key',
+    });
+    expect(issuedSessionTokens.size).toBe(1);
+    await expect(service.exchangeCode(exchange)).rejects.toThrow(
+      'Invalid desktop authorization code',
+    );
+  });
+
+  it('keeps the code usable when Better Auth is unavailable for the first try', async () => {
+    const { betterAuthService, service } = buildService();
+    const authorization = await createAuthorization(service);
+    const exchange = { code: authorization.code, codeVerifier, state };
+    vi.mocked(
+      betterAuthService.createDesktopSessionCookie,
+    ).mockResolvedValueOnce(null);
+
+    await expect(service.exchangeCode(exchange)).rejects.toThrow(
+      'Better Auth is required to create a desktop session',
+    );
+    await expect(service.exchangeCode(exchange)).resolves.toMatchObject({
+      token: 'gf_desktop_key',
+    });
+  });
+
+  it('still answers with the credentials when the cache cannot be invalidated after commit', async () => {
+    const { apiKeysService, logger, service } = buildService();
+    const authorization = await createAuthorization(service);
+    vi.mocked(apiKeysService.invalidateRotationCaches).mockRejectedValueOnce(
+      new Error('redis down'),
+    );
+
+    await expect(
+      service.exchangeCode({ code: authorization.code, codeVerifier, state }),
+    ).resolves.toMatchObject({ token: 'gf_desktop_key' });
+    expect(logger.error).toHaveBeenCalled();
   });
 
   it('returns only the session, with no API key, for a super admin session-only exchange', async () => {
