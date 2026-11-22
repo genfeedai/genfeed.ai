@@ -8,6 +8,36 @@ import type {
 } from '@api/services/integrations/twitter/services/twitter-response.mapper';
 import type { LearningFormat } from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
 
+type TimelineMedia = NonNullable<
+  NonNullable<TwitterTimelineResponse['includes']>['media']
+>[number];
+
+/** What the signal card shows: the best mp4 for video, the photo url for images. */
+function projectTimelineMedia(media: readonly (TimelineMedia | undefined)[]) {
+  const attached = media.filter((item): item is TimelineMedia => Boolean(item));
+  const hasVideo = attached.some(
+    (item) => item.type === 'video' || item.type === 'animated_gif',
+  );
+  const mediaUrls = attached.flatMap((item) => {
+    const variant = item.variants
+      ?.filter((candidate) => candidate.content_type === 'video/mp4')
+      .sort((a, b) => (b.bit_rate ?? 0) - (a.bit_rate ?? 0))[0];
+    const url = variant?.url ?? item.url;
+    return url ? [url] : [];
+  });
+  const thumbnailUrl = attached[0]?.preview_image_url ?? attached[0]?.url;
+
+  return {
+    contentType: hasVideo
+      ? ('video' as const)
+      : attached.length > 0
+        ? ('image' as const)
+        : ('tweet' as const),
+    mediaUrls,
+    thumbnailUrl,
+  };
+}
+
 /** Preserve normal timeline projection; add separate evidence only on explicit capture. */
 export function mapTwitterTimeline(
   result: Readonly<TwitterTimelineResponse>,
@@ -52,6 +82,7 @@ export function mapTwitterTimeline(
             }).breakoutExposures,
           }
         : {}),
+      ...projectTimelineMedia(media),
       authorAvatarUrl: author?.profile_image_url ?? user.profileImageUrl,
       authorFollowersCount:
         author?.public_metrics?.followers_count ?? user.followersCount,

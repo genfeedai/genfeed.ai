@@ -163,7 +163,7 @@ vi.mock('@/features/trends/desk/desk-filter-rail', () => ({
     source: string;
   }) => (
     <div data-source={source} data-testid="desk-filter-rail">
-      {['all', 'trends', 'owned'].map((value) => (
+      {['all', 'trends', 'imported'].map((value) => (
         <button key={value} onClick={() => onSourceChange(value)} type="button">
           {`source ${value}`}
         </button>
@@ -344,9 +344,9 @@ describe('DiscoveryDesk', () => {
     expect(screen.getByText('Workflow demo clip')).toBeInTheDocument();
     expect(screen.queryByText('Creator collab teaser')).not.toBeInTheDocument();
 
-    selectSource('owned');
+    selectSource('imported');
 
-    expect(mocks.setParamState).toHaveBeenCalledWith('source', 'owned');
+    expect(mocks.setParamState).toHaveBeenCalledWith('source', 'imported');
     expect(screen.getByTestId('desk-empty-state')).toBeInTheDocument();
     expect(screen.queryByText('Workflow demo clip')).not.toBeInTheDocument();
 

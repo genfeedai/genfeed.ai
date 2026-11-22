@@ -19,7 +19,7 @@ const CONTENT_TYPE_OPTIONS: DiscoveryDeskContentTypeFilter[] = [
 ];
 
 /** Where a signal comes from. `following` opens the Following deck. */
-const SOURCE_OPTIONS = ['trends', 'owned', 'imported', 'following'] as const;
+const SOURCE_OPTIONS = ['trends', 'imported', 'following'] as const;
 
 const SORT_OPTIONS: DiscoveryDeskSort[] = [
   'velocity',

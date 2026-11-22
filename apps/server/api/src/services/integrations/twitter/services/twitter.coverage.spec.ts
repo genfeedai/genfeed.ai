@@ -823,7 +823,7 @@ describe('TwitterService (coverage)', () => {
         'users/uid-1/tweets',
         expect.objectContaining({
           expansions: 'author_id,attachments.media_keys',
-          'media.fields': 'type',
+          'media.fields': 'type,url,preview_image_url,variants',
           'tweet.fields': expect.stringContaining('organic_metrics'),
         }),
       );
@@ -863,13 +863,88 @@ describe('TwitterService (coverage)', () => {
         2,
         'users/uid-1/tweets',
         expect.objectContaining({
-          expansions: 'author_id',
+          expansions: 'author_id,attachments.media_keys',
+          'media.fields': 'type,url,preview_image_url,variants',
           'tweet.fields':
-            'created_at,public_metrics,author_id,referenced_tweets,in_reply_to_user_id',
+            'created_at,public_metrics,author_id,referenced_tweets,in_reply_to_user_id,attachments',
         }),
       );
       expect(tweets[0]).not.toHaveProperty('breakoutExposures');
       expect(tweets[0]).not.toHaveProperty('nativeAuthorVerified');
+    });
+
+    it('maps photo and video attachments onto the signal media fields', async () => {
+      mockV2Get
+        .mockResolvedValueOnce({ data: { id: 'uid-1', username: 'creator' } })
+        .mockResolvedValueOnce({
+          data: [
+            { id: 'text', author_id: 'uid-1', text: 'Text' },
+            {
+              attachments: { media_keys: ['photo-1'] },
+              author_id: 'uid-1',
+              id: 'photo',
+              text: 'Photo',
+            },
+            {
+              attachments: { media_keys: ['video-1'] },
+              author_id: 'uid-1',
+              id: 'video',
+              text: 'Video',
+            },
+          ],
+          includes: {
+            media: [
+              {
+                media_key: 'photo-1',
+                type: 'photo',
+                url: 'https://pbs.twimg.com/media/photo.jpg',
+              },
+              {
+                media_key: 'video-1',
+                preview_image_url: 'https://pbs.twimg.com/poster.jpg',
+                type: 'video',
+                variants: [
+                  {
+                    bit_rate: 256000,
+                    content_type: 'video/mp4',
+                    url: 'https://video.twimg.com/low.mp4',
+                  },
+                  {
+                    content_type: 'application/x-mpegURL',
+                    url: 'https://video.twimg.com/stream.m3u8',
+                  },
+                  {
+                    bit_rate: 2176000,
+                    content_type: 'video/mp4',
+                    url: 'https://video.twimg.com/high.mp4',
+                  },
+                ],
+              },
+            ],
+          },
+        });
+
+      const tweets = await service.getUserTimelineByUsername('creator');
+
+      expect(
+        tweets.map(({ contentType, mediaUrls, thumbnailUrl }) => ({
+          contentType,
+          mediaUrls,
+          thumbnailUrl,
+        })),
+      ).toEqual([
+        { contentType: 'tweet', mediaUrls: [], thumbnailUrl: undefined },
+        {
+          contentType: 'image',
+          mediaUrls: ['https://pbs.twimg.com/media/photo.jpg'],
+          thumbnailUrl: 'https://pbs.twimg.com/media/photo.jpg',
+        },
+        {
+          contentType: 'video',
+          mediaUrls: ['https://video.twimg.com/high.mp4'],
+          thumbnailUrl: 'https://pbs.twimg.com/poster.jpg',
+        },
+      ]);
     });
 
     it('requests and maps the profile image onto each tweet', async () => {

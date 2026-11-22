@@ -165,6 +165,22 @@ describe('DeskLightTableView', () => {
     expect(screen.queryByText('Untitled')).toBeNull();
   });
 
+  it('shows who posted with the shared account avatar, falling back to initials', () => {
+    renderView({
+      items: [
+        buildItem({
+          authorAvatarUrl: undefined,
+          authorHandle: 'builderx',
+          authorName: 'Builder X',
+          key: 'trend:one',
+        }),
+      ],
+    });
+
+    expect(getCard()).toHaveTextContent('@builderx');
+    expect(getCard()).toHaveTextContent('BX');
+  });
+
   it('packs cards on the Library ordered masonry instead of a fixed grid', () => {
     renderView();
 

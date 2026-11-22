@@ -76,17 +76,10 @@ function buildFinding(item: DiscoveryDeskItem): AuthorizedResearchFinding {
 const SOURCE_VALUES: readonly DiscoveryDeskSource[] = [
   'trends',
   'following',
-  'owned',
   'imported',
 ];
 
-const DESK_SOURCE_TABS = [
-  'all',
-  'trends',
-  'owned',
-  'imported',
-  'following',
-] as const;
+const DESK_SOURCE_TABS = ['all', 'trends', 'imported', 'following'] as const;
 
 function isDeskSourceTab(
   value: string,
