@@ -83,10 +83,10 @@ export default function AccountStatusIcons({
   const health = healthOverride ?? connection.accountHealth;
 
   return (
-    <div className="flex items-center gap-0.5">
+    <div className="flex items-center justify-end gap-0.5">
       {needsReconnect ? (
         <Button
-          ariaLabel={translate('reconnect')}
+          ariaLabel={translate('needsReconnect')}
           icon={<TriangleAlert aria-hidden="true" className="text-warning" />}
           isDisabled={isReconnectDisabled}
           isLoading={isReconnecting}

@@ -383,14 +383,13 @@ describe('BrandDetailSocialMediaCard', () => {
     );
 
     expect(screen.getByRole('img', { name: 'Connected' })).toBeInTheDocument();
-    // The broken account's warning icon is its Reconnect button; the
-    // connected account keeps Reconnect in its row actions.
+    // The broken account's warning icon is a Reconnect button.
     const brokenRow = screen
       .getAllByRole('row')
       .find((row) => row.textContent?.includes('Broken TikTok'));
     expect(
       within(brokenRow as HTMLElement).getByRole('button', {
-        name: 'Reconnect',
+        name: 'Needs reconnect',
       }),
     ).toBeEnabled();
   });

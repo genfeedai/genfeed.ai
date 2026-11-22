@@ -100,7 +100,9 @@ describe('AccountsTable', () => {
       />,
     );
 
-    expect(screen.getByRole('button', { name: 'Reconnect' })).toBeEnabled();
+    expect(
+      screen.getByRole('button', { name: 'Needs reconnect' }),
+    ).toBeEnabled();
   });
 
   it('derives Needs reconnect from a connected credential missing its externalId identity', () => {
@@ -117,7 +119,9 @@ describe('AccountsTable', () => {
       />,
     );
 
-    expect(screen.getByRole('button', { name: 'Reconnect' })).toBeEnabled();
+    expect(
+      screen.getByRole('button', { name: 'Needs reconnect' }),
+    ).toBeEnabled();
   });
 
   it('derives Needs reconnect from an expired access token', () => {
@@ -136,7 +140,9 @@ describe('AccountsTable', () => {
       />,
     );
 
-    expect(screen.getByRole('button', { name: 'Reconnect' })).toBeEnabled();
+    expect(
+      screen.getByRole('button', { name: 'Needs reconnect' }),
+    ).toBeEnabled();
   });
 
   it('spins only the Reconnect icon of the account that is reconnecting', () => {
@@ -202,7 +208,7 @@ describe('AccountsTable', () => {
     ).toBeInTheDocument();
   });
 
-  it('reconnects from the warning icon, and offers Reconnect only once for that row', () => {
+  it('reconnects from the warning icon, which is also still offered in the row actions', () => {
     const onReconnect = vi.fn();
     const connection = buildConnection({ isConnected: false, name: 'Stale' });
 
@@ -222,14 +228,14 @@ describe('AccountsTable', () => {
     expect(
       screen.queryByRole('img', { name: 'Connected' }),
     ).not.toBeInTheDocument();
-    const reconnectButtons = screen.getAllByRole('button', {
-      name: 'Reconnect',
-    });
-    expect(reconnectButtons).toHaveLength(1);
-
-    fireEvent.click(reconnectButtons[0]);
+    fireEvent.click(screen.getByRole('button', { name: 'Needs reconnect' }));
     expect(onReconnect).toHaveBeenCalledTimes(1);
     expect(onReconnect).toHaveBeenCalledWith(connection);
+
+    // The hover actions keep Reconnect for every row, so it stays reachable
+    // while the row's hover actions cover the status icon.
+    fireEvent.click(screen.getByRole('button', { name: 'Reconnect' }));
+    expect(onReconnect).toHaveBeenCalledTimes(2);
   });
 
   it('disables the warning icon while that account reconnects or its platform is unavailable', () => {
@@ -270,7 +276,7 @@ describe('AccountsTable', () => {
     const buttonFor = (name: string) =>
       within(
         dataRows.find((row) => row.textContent?.includes(name)) as HTMLElement,
-      ).getByRole('button', { name: 'Reconnect' });
+      ).getByRole('button', { name: 'Needs reconnect' });
 
     expect(buttonFor('Busy')).toBeDisabled();
     expect(buttonFor('Down')).toBeDisabled();

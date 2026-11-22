@@ -22,7 +22,6 @@ import AccountCell from './AccountCell';
 import AccountStatusBadge from './AccountStatusBadge';
 import AccountStatusIcons from './AccountStatusIcons';
 import {
-  getAccountConnectionStatus,
   getConnectionLabel,
   needsDirectMessageReconnect,
 } from './account-connection-status.util';
@@ -79,10 +78,14 @@ export default function AccountsTable({
   const columns = useMemo<TableColumn<BrandDetailSocialConnection>[]>(
     () => [
       {
-        // Icon-only, so the header is read by screen readers only. It leads the
-        // row: the hover actions float over the row's right end and would
-        // cover a trailing status.
-        className: 'w-px whitespace-nowrap pr-0',
+        header: translate('accountsTableAccount'),
+        key: 'account',
+        render: (connection) => <AccountCell connection={connection} />,
+      },
+      {
+        // Icon-only, so the header is read by screen readers only. It sits at
+        // the row's right end, where the hover actions appear over it.
+        className: 'w-px whitespace-nowrap',
         header: (
           <span className="sr-only">{translate('accountsTableStatus')}</span>
         ),
@@ -99,11 +102,6 @@ export default function AccountsTable({
           />
         ),
         sortable: false,
-      },
-      {
-        header: translate('accountsTableAccount'),
-        key: 'account',
-        render: (connection) => <AccountCell connection={connection} />,
       },
     ],
     [
@@ -138,10 +136,6 @@ export default function AccountsTable({
         isDisabled: (connection) =>
           unavailablePlatforms.has(connection.platform) ||
           reconnectingCredentialId === connection.credentialId,
-        // An account that needs reconnecting is reconnected from its status
-        // icon, so the row never offers the same control twice.
-        isVisible: (connection) =>
-          getAccountConnectionStatus(connection) !== 'needsReconnect',
         onClick: onReconnect,
         tooltip: translate('reconnect'),
       },
