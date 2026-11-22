@@ -440,6 +440,75 @@ describe('ApiKeysService', () => {
     });
   });
 
+  describe('expired keys', () => {
+    function serviceWith(findMany: MockFn) {
+      const service = Object.create(
+        ApiKeysService.prototype,
+      ) as ApiKeysService & { delegate: { findMany: MockFn } };
+      Object.defineProperty(service, 'delegate', {
+        configurable: true,
+        value: { findMany },
+      });
+      return service;
+    }
+
+    // Emulates the database filter on the one field that matters here.
+    function expiredKeyDelegate() {
+      const expired = {
+        expiresAt: new Date(Date.now() - 1000),
+        id: 'key-1',
+        isRevoked: false,
+      };
+      return vi.fn(
+        async ({
+          where,
+        }: {
+          where: { OR?: Array<{ expiresAt?: unknown }> };
+        }) => (where.OR ? [] : [expired]),
+      );
+    }
+
+    it('findByKey (request authentication) filters out expired keys', async () => {
+      const findMany = vi.fn().mockResolvedValue([]);
+      const service = serviceWith(findMany);
+      service.computeFingerprint = ApiKeysService.prototype.computeFingerprint;
+
+      await expect(service.findByKey('gf_test_plain')).resolves.toBeNull();
+      for (const [query] of findMany.mock.calls) {
+        expect(query.where.OR).toEqual([
+          { expiresAt: null },
+          { expiresAt: { gt: expect.any(Date) } },
+        ]);
+      }
+    });
+
+    it('findActiveById still rejects an expired key', async () => {
+      const service = serviceWith(expiredKeyDelegate());
+
+      await expect(service.findActiveById('key-1')).resolves.toBeNull();
+    });
+
+    it('findUnrevokedById returns an expired key', async () => {
+      const service = serviceWith(expiredKeyDelegate());
+
+      await expect(service.findUnrevokedById('key-1')).resolves.toMatchObject({
+        id: 'key-1',
+      });
+    });
+
+    it('findUnrevokedById excludes revoked keys', async () => {
+      const findMany = vi.fn().mockResolvedValue([]);
+      const service = serviceWith(findMany);
+
+      await expect(service.findUnrevokedById('key-1')).resolves.toBeNull();
+      expect(findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'key-1', isRevoked: false },
+        }),
+      );
+    });
+  });
+
   describe('findActiveById', () => {
     it('returns null when the row is revoked or expired', async () => {
       const service = Object.create(
