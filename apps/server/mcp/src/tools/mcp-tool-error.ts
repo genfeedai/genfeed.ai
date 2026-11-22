@@ -133,6 +133,19 @@ export class McpUpstreamError extends Error {
   }
 }
 
+/**
+ * The Genfeed API answered 4xx (a missing article, a refused request). The
+ * caller gets the refusal in the tool result, so it is not a server fault.
+ */
+export function isUpstreamClientError(error: unknown): boolean {
+  return (
+    error instanceof McpUpstreamError &&
+    error.status !== undefined &&
+    error.status >= 400 &&
+    error.status < 500
+  );
+}
+
 function appUrl(path: string): string {
   return `${getPublicAppUrl()}${path}`;
 }

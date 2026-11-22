@@ -133,7 +133,7 @@ export class ContentClient {
     brandId?: string,
   ): Promise<ArticlePreviewLink> {
     // Preview links are bearer credentials: do not log the response URL.
-    return this.base.request(
+    return this.base.requestWithSafeFailure(
       'getting article preview',
       async (http) => {
         const response = await http.get<ArticlePreviewLink>(
@@ -142,7 +142,10 @@ export class ContentClient {
         );
         return response.data;
       },
-      this.base.failWith('Failed to get article preview'),
+      (status) =>
+        status === 404
+          ? 'Article not found. Check the articleId and brandId.'
+          : 'Failed to get article preview',
     );
   }
 

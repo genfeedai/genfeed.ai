@@ -8,6 +8,7 @@ import {
   approvalPendingToolResult,
   classifyMcpToolFailure,
   confirmationRequiredToolResult,
+  isUpstreamClientError,
   type McpToolError,
   McpUpstreamError,
   mcpJsonRpcError,
@@ -385,5 +386,25 @@ describe('MCP tool error contract', () => {
     expect(
       classifyMcpToolFailure({ message: 'API down', status: 500 }),
     ).toBeNull();
+  });
+});
+
+describe('isUpstreamClientError', () => {
+  it.each([
+    [
+      'an upstream 404',
+      new McpUpstreamError('Not found', { status: 404 }),
+      true,
+    ],
+    ['an upstream 400', new McpUpstreamError('Bad', { status: 400 }), true],
+    ['an upstream 500', new McpUpstreamError('Down', { status: 500 }), false],
+    [
+      'an upstream failure with no status',
+      new McpUpstreamError('x', {}),
+      false,
+    ],
+    ['a plain Error', new Error('Failed to get article preview'), false],
+  ])('classifies %s as %s', (_name, error, expected) => {
+    expect(isUpstreamClientError(error)).toBe(expected);
   });
 });
