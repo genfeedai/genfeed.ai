@@ -74,32 +74,6 @@ const runtimeCaching: RuntimeCaching[] = [
     matcher: /^https:\/\/(?:staging-)?cdn\.genfeed\.ai\/.*/i,
   },
   {
-    handler: new CacheFirst({
-      cacheName: 'google-fonts-webfonts',
-      plugins: [
-        new ExpirationPlugin({
-          maxAgeFrom: 'last-used',
-          maxAgeSeconds: 365 * ONE_DAY_SECONDS,
-          maxEntries: 8,
-        }),
-      ],
-    }),
-    matcher: /^https:\/\/fonts\.gstatic\.com\/.*/i,
-  },
-  {
-    handler: new StaleWhileRevalidate({
-      cacheName: 'google-fonts-stylesheets',
-      plugins: [
-        new ExpirationPlugin({
-          maxAgeFrom: 'last-used',
-          maxAgeSeconds: 7 * ONE_DAY_SECONDS,
-          maxEntries: 8,
-        }),
-      ],
-    }),
-    matcher: /^https:\/\/fonts\.googleapis\.com\/.*/i,
-  },
-  {
     handler: new StaleWhileRevalidate({
       cacheName: 'next-image',
       plugins: [
