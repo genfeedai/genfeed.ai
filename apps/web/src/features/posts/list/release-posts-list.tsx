@@ -60,6 +60,7 @@ import {
 } from '@/features/posts/release/release-actions';
 import ReleaseDetailDrawer from '@/features/posts/release/release-detail-drawer';
 import { createReleaseMutationRunner } from '@/features/posts/release/release-mutation-runner';
+import { useReleasePendingActions } from '@/features/posts/release/use-release-pending-actions';
 import CapturedPostsList from './captured-posts-list';
 import {
   CAPTURED_POSTS_SORT_OPTIONS,
@@ -151,7 +152,8 @@ export default function ReleasePostsList({
     () => NotificationsService.getInstance(),
     [],
   );
-  const [pendingAction, setPendingAction] = useState<string | null>(null);
+  const { inFlightReleaseIds, pendingActions, setPendingAction } =
+    useReleasePendingActions();
   const [drawerError, setDrawerError] = useState<string | null>(null);
   const queryKey = buildReleasePostsListQueryKey({
     brandId,
@@ -246,6 +248,7 @@ export default function ReleasePostsList({
     () =>
       createReleaseMutationRunner({
         getReleaseGroupsService,
+        inFlightReleaseIds,
         notificationsService,
         onSuccess: (updated) => {
           queryClient.setQueryData(queryKey, (current: typeof data) => {
@@ -266,7 +269,14 @@ export default function ReleasePostsList({
         setDrawerError,
         setPendingAction,
       }),
-    [getReleaseGroupsService, notificationsService, queryClient, queryKey],
+    [
+      getReleaseGroupsService,
+      inFlightReleaseIds,
+      notificationsService,
+      queryClient,
+      queryKey,
+      setPendingAction,
+    ],
   );
 
   // The name opens the primary target's post page; a release without targets
@@ -290,6 +300,10 @@ export default function ReleasePostsList({
     [data.releases, selectedReleaseId],
   );
 
+  const pendingAction = selectedReleaseId
+    ? (pendingActions.get(selectedReleaseId) ?? null)
+    : null;
+
   const selectRelease = useCallback(
     (releaseId: string) => {
       replaceSearchParams((params) => {
@@ -311,8 +325,10 @@ export default function ReleasePostsList({
       if (!selectedReleaseId) {
         return;
       }
-      void runMutation(RELEASE_RESCHEDULE_ACTION, (service) =>
-        service.update(selectedReleaseId, { scheduledDate }),
+      void runMutation(
+        RELEASE_RESCHEDULE_ACTION,
+        selectedReleaseId,
+        (service) => service.update(selectedReleaseId, { scheduledDate }),
       );
     },
     [runMutation, selectedReleaseId],
@@ -323,8 +339,11 @@ export default function ReleasePostsList({
       if (!selectedReleaseId) {
         return;
       }
-      void runMutation(targetRescheduleAction(targetId), (service) =>
-        service.updateTarget(selectedReleaseId, targetId, { scheduledDate }),
+      void runMutation(
+        targetRescheduleAction(targetId),
+        selectedReleaseId,
+        (service) =>
+          service.updateTarget(selectedReleaseId, targetId, { scheduledDate }),
       );
     },
     [runMutation, selectedReleaseId],
@@ -340,10 +359,13 @@ export default function ReleasePostsList({
       if (!selectedReleaseId) {
         return;
       }
-      void runMutation(targetRetryAction(targetId), (service) =>
-        service.updateTarget(selectedReleaseId, targetId, {
-          executionState: TargetState.SCHEDULED,
-        }),
+      void runMutation(
+        targetRetryAction(targetId),
+        selectedReleaseId,
+        (service) =>
+          service.updateTarget(selectedReleaseId, targetId, {
+            executionState: TargetState.SCHEDULED,
+          }),
       );
     },
     [runMutation, selectedReleaseId],
@@ -354,8 +376,11 @@ export default function ReleasePostsList({
       if (!selectedReleaseId) {
         return;
       }
-      void runMutation(targetManualPostAction(targetId), (service) =>
-        service.completeManualPost(selectedReleaseId, targetId, postUrl),
+      void runMutation(
+        targetManualPostAction(targetId),
+        selectedReleaseId,
+        (service) =>
+          service.completeManualPost(selectedReleaseId, targetId, postUrl),
       );
     },
     [runMutation, selectedReleaseId],
@@ -366,8 +391,10 @@ export default function ReleasePostsList({
       if (!selectedReleaseId) {
         return;
       }
-      void runMutation(targetManualPostAction(targetId), (service) =>
-        service.skipManualPost(selectedReleaseId, targetId),
+      void runMutation(
+        targetManualPostAction(targetId),
+        selectedReleaseId,
+        (service) => service.skipManualPost(selectedReleaseId, targetId),
       );
     },
     [runMutation, selectedReleaseId],
