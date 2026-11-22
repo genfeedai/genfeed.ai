@@ -1,3 +1,4 @@
+import { UPLOAD_HTTP_TIMEOUT_MS } from '@api/constants/http-timeout.constant';
 import {
   ManagedInferenceOperation,
   ManagedInferenceProvider,
@@ -50,6 +51,7 @@ export class ManagedInferenceClientService {
           headers: {
             Authorization: `Bearer ${params.apiKey}`,
           },
+          timeout: UPLOAD_HTTP_TIMEOUT_MS,
         },
       ),
     );
@@ -87,6 +89,7 @@ export class ManagedInferenceClientService {
           headers: {
             Authorization: `Bearer ${params.apiKey}`,
           },
+          timeout: UPLOAD_HTTP_TIMEOUT_MS,
         },
       ),
     );

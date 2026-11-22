@@ -2,6 +2,7 @@ vi.mock('@libs/config/config.service', () => ({
   ConfigService: class ConfigService {},
 }));
 
+import { UPLOAD_HTTP_TIMEOUT_MS } from '@api/constants/http-timeout.constant';
 import {
   ManagedInferenceOperation,
   ManagedInferenceProvider,
@@ -73,6 +74,7 @@ describe('ManagedInferenceClientService', () => {
         headers: {
           Authorization: 'Bearer gf_live_managed',
         },
+        timeout: UPLOAD_HTTP_TIMEOUT_MS,
       },
     );
   });

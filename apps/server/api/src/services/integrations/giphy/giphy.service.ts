@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import { UPLOAD_HTTP_TIMEOUT_MS } from '@api/constants/http-timeout.constant';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
@@ -38,6 +39,7 @@ export class GiphyService {
       const res = await firstValueFrom(
         this.httpService.post(this.uploadUrl, form, {
           headers: form.getHeaders(),
+          timeout: UPLOAD_HTTP_TIMEOUT_MS,
         }),
       );
       this.loggerService.log(`${url} success`, res.data);

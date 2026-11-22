@@ -1,3 +1,4 @@
+import { UPLOAD_HTTP_TIMEOUT_MS } from '@api/constants/http-timeout.constant';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { ByokProviderFactoryService } from '@api/services/byok/byok-provider-factory.service';
 import { CacheService } from '@api/services/cache/cache.service';
@@ -393,6 +394,7 @@ export class ApifyBaseService {
       const datasetResponse = await firstValueFrom(
         this.httpService.get<T[]>(datasetUrl, {
           headers: this.buildAuthHeaders(token),
+          timeout: UPLOAD_HTTP_TIMEOUT_MS,
         }),
       );
 

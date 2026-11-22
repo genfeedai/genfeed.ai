@@ -2,6 +2,7 @@
  * X Activity / Account Activity subscription helpers (connect later).
  * Registers webhook URL and user subscriptions when env is configured.
  */
+import { DEFAULT_HTTP_TIMEOUT_MS } from '@api/constants/http-timeout.constant';
 import { buildXActivityCrcResponseBody } from '@api/services/reply-bot/x-activity-crc.util';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -169,6 +170,7 @@ export class XActivitySubscriptionService {
     const listRes = await fetch('https://api.x.com/2/webhooks', {
       headers: { Authorization: `Bearer ${bearerToken}` },
       method: 'GET',
+      signal: AbortSignal.timeout(DEFAULT_HTTP_TIMEOUT_MS),
     });
     if (listRes.ok) {
       const body = (await listRes.json()) as {
@@ -188,6 +190,7 @@ export class XActivitySubscriptionService {
         'Content-Type': 'application/json',
       },
       method: 'POST',
+      signal: AbortSignal.timeout(DEFAULT_HTTP_TIMEOUT_MS),
     });
     if (!createRes.ok) {
       const text = await createRes.text();
@@ -213,6 +216,7 @@ export class XActivitySubscriptionService {
       {
         headers: { Authorization: `Bearer ${userAccessToken}` },
         method: 'POST',
+        signal: AbortSignal.timeout(DEFAULT_HTTP_TIMEOUT_MS),
       },
     );
     if (!res.ok) {

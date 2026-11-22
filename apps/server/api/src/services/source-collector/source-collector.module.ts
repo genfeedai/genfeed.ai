@@ -1,4 +1,5 @@
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
+import { DEFAULT_HTTP_TIMEOUT_MS } from '@api/constants/http-timeout.constant';
 import { ApifyModule } from '@api/services/integrations/apify/apify.module';
 import { InstagramModule } from '@api/services/integrations/instagram/instagram.module';
 import { LinkedInModule } from '@api/services/integrations/linkedin/linkedin.module';
@@ -25,7 +26,7 @@ import { Module } from '@nestjs/common';
   exports: [SourceCollectorService],
   imports: [
     LoggerModule,
-    HttpModule,
+    HttpModule.register({ timeout: DEFAULT_HTTP_TIMEOUT_MS }),
     CredentialsCoreModule,
     TwitterModule,
     InstagramModule,
