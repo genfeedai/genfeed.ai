@@ -36,7 +36,13 @@ import { OrganizationsService } from '@services/organization/organizations.servi
 import { UsersService } from '@services/organization/users.service';
 import { BrandsService } from '@services/social/brands.service';
 import { useSearchParams } from 'next/navigation';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useEffectEvent,
+  useRef,
+  useState,
+} from 'react';
 import type {
   PostSignupRoutingState,
   SkippedHandleNotice,
@@ -80,13 +86,12 @@ export function usePostSignupRouting(): PostSignupRoutingState {
   const requestedAccountType = parseOnboardingAccountType(
     searchParams.get('accountType'),
   );
-  const calledRef = useRef(false);
   const [routingAttempt, setRoutingAttempt] = useState(0);
   const [showFallback, setShowFallback] = useState(false);
   const [skippedHandle, setSkippedHandle] =
     useState<SkippedHandleNotice | null>(null);
   const resumeAfterSkippedHandleRef = useRef<(() => void) | null>(null);
-  const hasAuthUser = Boolean(authUser);
+  const isReady = !isLoading && Boolean(currentUser) && Boolean(authUser);
   const authPrimaryEmail = authUser?.primaryEmailAddress?.emailAddress ?? '';
   const checkoutEmail = currentUser?.email || authPrimaryEmail || '';
   const hasBrandOsHandoff = Boolean(
@@ -97,7 +102,6 @@ export function usePostSignupRouting(): PostSignupRoutingState {
     resumeAfterSkippedHandleRef.current?.();
   }, []);
   const retryBrandOsHandoff = useCallback(() => {
-    calledRef.current = false;
     setShowFallback(false);
     setRoutingAttempt((attempt) => attempt + 1);
   }, []);
@@ -205,25 +209,10 @@ export function usePostSignupRouting(): PostSignupRoutingState {
     }
   }, [requestedAccountType]);
 
-  // use-effect-audit: ignore subscribes to browser events
-  useEffect(() => {
-    if (isLoading || !currentUser || !hasAuthUser || calledRef.current) {
-      return;
-    }
-
-    calledRef.current = true;
-    if (routingAttempt > 0) {
-      setShowFallback(false);
-    }
-    const abortController = new AbortController();
-    const { signal } = abortController;
-    const fallbackTimeout = window.setTimeout(() => {
-      if (!signal.aborted) {
-        setShowFallback(true);
-      }
-    }, 12_000);
-
-    const route = async () => {
+  // Reads the latest user, token getter and resolvers when it starts, so a
+  // changed identity neither aborts nor restarts the routing in flight.
+  const route = useEffectEvent(
+    async (signal: AbortSignal, fallbackTimeout: number) => {
       const redirectTo = (href: string) => {
         if (!signal.aborted) {
           window.location.href = href;
@@ -348,7 +337,8 @@ export function usePostSignupRouting(): PostSignupRoutingState {
             },
             claimHandle,
             {
-              isOnboardingCompleted: currentUser.isOnboardingCompleted === true,
+              isOnboardingCompleted:
+                currentUser?.isOnboardingCompleted === true,
             },
           ).catch((error: unknown) => {
             logger.error('Failed to claim handle after auth', error);
@@ -716,9 +706,27 @@ export function usePostSignupRouting(): PostSignupRoutingState {
       }
 
       await redirectToOnboarding();
-    };
+    },
+  );
 
-    route().catch((error) => {
+  // use-effect-audit: ignore subscribes to browser events
+  useEffect(() => {
+    if (!isReady) {
+      return;
+    }
+
+    if (routingAttempt > 0) {
+      setShowFallback(false);
+    }
+    const abortController = new AbortController();
+    const { signal } = abortController;
+    const fallbackTimeout = window.setTimeout(() => {
+      if (!signal.aborted) {
+        setShowFallback(true);
+      }
+    }, 12_000);
+
+    route(signal, fallbackTimeout).catch((error) => {
       if (signal.aborted) {
         return;
       }
@@ -731,26 +739,7 @@ export function usePostSignupRouting(): PostSignupRoutingState {
       abortController.abort();
       window.clearTimeout(fallbackTimeout);
     };
-  }, [
-    checkoutEmail,
-    currentUser,
-    getToken,
-    hasAuthUser,
-    isLoading,
-    requestedBrandDomainParam,
-    requestedBrandNameParam,
-    requestedBrandOsTokenParam,
-    requestedClipToolTokenParam,
-    requestedCreditsParam,
-    requestedPlanParam,
-    requestedHandleParam,
-    requestedFollowParam,
-    requestedReferralCodeParam,
-    routingAttempt,
-    searchQuery,
-    resolveCheckoutReturnHref,
-    resolveOnboardingHref,
-  ]);
+  }, [isReady, routingAttempt]);
 
   return {
     continueAfterSkippedHandle,
