@@ -9,6 +9,7 @@ import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
+import { CacheService } from '@api/services/cache/cache.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import { testId } from '@helpers/testing/test-id.helper';
@@ -40,8 +41,37 @@ vi.mock('@helpers/utils/response/response.util', () => ({
   setTopLinks: vi.fn((_req, opts) => opts),
 }));
 
+/** An in-memory cache with the owned-claim semantics the controller relies on. */
+function createCacheDouble() {
+  const store = new Map<string, string>();
+  return {
+    acquireOwnedClaim: vi.fn(async (key: string, token: string) => {
+      if (store.has(key)) return 'duplicate';
+      store.set(key, token);
+      return 'claimed';
+    }),
+    get: vi.fn(async (key: string) => {
+      const value = store.get(key);
+      return value === undefined ? null : JSON.parse(value);
+    }),
+    releaseOwnedClaim: vi.fn(async (key: string, token: string) => {
+      if (store.get(key) !== token) return false;
+      store.delete(key);
+      return true;
+    }),
+    setOwnedClaimValue: vi.fn(
+      async (claimKey: string, token: string, resultKey: string, value) => {
+        if (store.get(claimKey) !== token) return false;
+        store.set(resultKey, JSON.stringify(value));
+        return true;
+      },
+    ),
+  };
+}
+
 describe('TrainingsController', () => {
   let controller: TrainingsController;
+  let cacheDouble: ReturnType<typeof createCacheDouble>;
   let trainingsService: vi.Mocked<TrainingsService>;
 
   const fixtureId = testId('fixture');
@@ -59,6 +89,7 @@ describe('TrainingsController', () => {
   } as Request;
 
   beforeEach(async () => {
+    cacheDouble = createCacheDouble();
     const module: TestingModule = await Test.createTestingModule({
       controllers: [TrainingsController],
       providers: [
@@ -82,6 +113,10 @@ describe('TrainingsController', () => {
             log: vi.fn(),
             warn: vi.fn(),
           },
+        },
+        {
+          provide: CacheService,
+          useValue: cacheDouble,
         },
         {
           provide: NotificationsPublisherService,
@@ -228,6 +263,93 @@ describe('TrainingsController', () => {
         }),
       );
       expect(result).toBeDefined();
+    });
+
+    describe('with an Idempotency-Key', () => {
+      const creditedRequest = () =>
+        ({
+          ...mockRequest,
+          creditsConfig: { amount: 50, description: 'Model training' },
+        }) as unknown as Request & { creditsConfig: { amount: number } };
+
+      it('creates the training once and answers a retry with it, free of charge', async () => {
+        trainingsService.createTrainingWithSources.mockResolvedValue({
+          sourceImages: mockSourceImages,
+          training: mockTraining,
+        } as never);
+        trainingsService.findOne.mockResolvedValue(mockTraining as never);
+        const first = creditedRequest();
+        const retry = creditedRequest();
+
+        await controller.create(first, mockUser, createDto, 'key-1');
+        const replayed = await controller.create(
+          retry,
+          mockUser,
+          createDto,
+          'key-1',
+        );
+
+        expect(
+          trainingsService.createTrainingWithSources,
+        ).toHaveBeenCalledTimes(1);
+        expect(replayed).toMatchObject({ data: { id: mockTraining.id } });
+        expect(first.creditsConfig.amount).toBe(50);
+        expect(retry.creditsConfig.amount).toBe(0);
+      });
+
+      it('lets the caller retry the key after the first attempt failed', async () => {
+        trainingsService.createTrainingWithSources
+          .mockRejectedValueOnce(new Error('upstream failure'))
+          .mockResolvedValueOnce({
+            sourceImages: mockSourceImages,
+            training: mockTraining,
+          } as never);
+
+        await expect(
+          controller.create(mockRequest, mockUser, createDto, 'key-1'),
+        ).rejects.toThrow(HttpException);
+        const result = await controller.create(
+          mockRequest,
+          mockUser,
+          createDto,
+          'key-1',
+        );
+
+        expect(result).toMatchObject({ data: { id: mockTraining.id } });
+        expect(
+          trainingsService.createTrainingWithSources,
+        ).toHaveBeenCalledTimes(2);
+      });
+
+      it('refuses a duplicate that arrives while the first is still creating', async () => {
+        let finish: (value: never) => void = () => undefined;
+        trainingsService.createTrainingWithSources.mockReturnValueOnce(
+          new Promise((resolve) => {
+            finish = resolve;
+          }),
+        );
+
+        const first = controller.create(
+          mockRequest,
+          mockUser,
+          createDto,
+          'key-1',
+        );
+        await new Promise((resolve) => setImmediate(resolve));
+
+        await expect(
+          controller.create(mockRequest, mockUser, createDto, 'key-1'),
+        ).rejects.toMatchObject({ status: 409 });
+        expect(
+          trainingsService.createTrainingWithSources,
+        ).toHaveBeenCalledTimes(1);
+
+        finish({
+          sourceImages: mockSourceImages,
+          training: mockTraining,
+        } as never);
+        await first;
+      });
     });
 
     it('wraps a service error into a 500 HttpException', async () => {

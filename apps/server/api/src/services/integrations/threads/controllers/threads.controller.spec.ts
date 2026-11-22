@@ -337,7 +337,7 @@ describe('ThreadsController', () => {
         'credential-id',
         expect.objectContaining({
           accessToken: 'long-token',
-          oauthState: null,
+          oauthState: 'verified:opaque-oauth-state',
         }),
       );
       expect(mockCredentialsService.updateExternalProfile).toHaveBeenCalledWith(

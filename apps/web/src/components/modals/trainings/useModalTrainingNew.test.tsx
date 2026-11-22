@@ -22,7 +22,7 @@ vi.mock('@genfeedai/helpers/ui/modal/modal.helper', () => ({
 vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: (factory: (token: string) => unknown) => {
     const service = String(factory).includes('Trainings')
-      ? { post: mocks.post }
+      ? { createIdempotent: mocks.post }
       : {
           confirmUpload: mocks.confirmUpload,
           getPresignedUploadUrl: mocks.getPresignedUploadUrl,
@@ -135,6 +135,25 @@ describe('useModalTrainingNew submit', () => {
     const firstSources = mocks.post.mock.calls[0][0].sources;
     expect(mocks.post.mock.calls[1][0].sources).toEqual(firstSources);
     expect(firstSources).toHaveLength(10);
+  });
+
+  it('sends the same idempotency key when a retry follows a failed create', async () => {
+    mocks.post
+      .mockRejectedValueOnce({ isTimeout: true })
+      .mockResolvedValueOnce({ id: 'training-1' });
+
+    const { result } = await renderReadyHook();
+
+    await act(async () => {
+      await result.current.onSubmit(submitEvent());
+    });
+    await act(async () => {
+      await result.current.onSubmit(submitEvent());
+    });
+
+    const [firstKey, retryKey] = mocks.post.mock.calls.map((call) => call[1]);
+    expect(firstKey).toEqual(expect.any(String));
+    expect(retryKey).toBe(firstKey);
   });
 
   it('uploads only the files that failed on the previous attempt', async () => {

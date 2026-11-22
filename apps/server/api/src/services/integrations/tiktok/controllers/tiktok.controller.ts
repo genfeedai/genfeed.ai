@@ -9,7 +9,10 @@ import {
   oauthLogFlags,
   throwIfOAuthCallbackError,
 } from '@api/collections/credentials/utils/oauth-callback-error.util';
-import { claimOAuthVerifyCredential } from '@api/collections/credentials/utils/oauth-verify-claim.util';
+import {
+  claimOAuthVerifyCredential,
+  verifiedOAuthState,
+} from '@api/collections/credentials/utils/oauth-verify-claim.util';
 import { SocialSourceHistoryImportService } from '@api/collections/social-sources/services/social-source-history-import.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -218,7 +221,7 @@ export class TiktokController {
             : undefined,
           isConnected: true,
           isDeleted: false, // Reactivate if previously disconnected
-          oauthState: null,
+          oauthState: verifiedOAuthState(state),
           refreshToken: refresh_token,
           refreshTokenExpiry: refreshExpiresIn
             ? new Date(Date.now() + refreshExpiresIn * 1000)
