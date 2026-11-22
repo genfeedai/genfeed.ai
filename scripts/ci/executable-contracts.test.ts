@@ -76,6 +76,10 @@ const REPOSITORY_CONTRACTS = [
     name: 'test module providers',
   },
   { command: ['bun', 'run', 'check:ui-guards'], name: 'UI guards' },
+  {
+    command: ['bun', 'run', 'check:window-open-after-await'],
+    name: 'window.open after await',
+  },
   { command: ['bun', 'run', 'design:check'], name: 'design system contracts' },
   {
     command: ['bun', 'run', 'check:serializer-drift'],

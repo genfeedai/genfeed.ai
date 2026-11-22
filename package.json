@@ -108,6 +108,7 @@
     "check:test-collection": "node scripts/architecture/check-test-collection.mjs",
     "check:test-id-literals": "bun run scripts/architecture/check-test-id-literals.ts",
     "check:test-module-providers": "bun run scripts/architecture/check-test-module-providers.ts",
+    "check:window-open-after-await": "bun run scripts/architecture/check-window-open-after-await.ts",
     "check:id-derived-media-urls": "bun run scripts/architecture/check-id-derived-media-urls.ts",
     "check:short-lived-media-grants": "bun run scripts/architecture/check-short-lived-media-grants.ts",
     "check:cross-org-unsafe": "bun run scripts/architecture/check-cross-org-unsafe.ts",
