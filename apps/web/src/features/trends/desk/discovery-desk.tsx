@@ -19,9 +19,8 @@ import {
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { LayoutGrid, TableProperties, TrendingUp } from 'lucide-react';
-import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useCallback, useMemo, useReducer } from 'react';
+import { useCallback, useMemo, useReducer, useState } from 'react';
 import SearchField from '@/components/content/search-field/SearchField';
 import { useOptionalDiscoveryRemix } from '@/features/research/remix/DiscoveryRemixProvider';
 import {
@@ -53,7 +52,7 @@ import {
 import DeskTableView from '@/features/trends/desk/desk-table-view';
 import { useDeskKeyboard } from '@/features/trends/desk/use-desk-keyboard';
 import { useDiscoveryDeskItems } from '@/features/trends/desk/use-discovery-desk-items';
-import FollowingDeck from '@/features/trends/following/following-deck';
+import FollowSourceModal from '@/features/trends/following/FollowSourceModal';
 import type {
   DiscoveryDeskItem,
   DiscoveryDeskSort,
@@ -101,9 +100,9 @@ const SORT_VALUES: readonly DiscoveryDeskSort[] = [
  * "Light table" grid.
  */
 export default function DiscoveryDesk() {
-  const router = useRouter();
   const translateDesk = useTranslations('common.trends.desk');
   const brandId = useBrandId();
+  const [isFollowOpen, setIsFollowOpen] = useState(false);
   const { brandSlug, href, orgHref, activeHref } = useOrgUrl();
   const surface = useOptionalResearchWorkSurface();
   const [search, setSearch] = useResearchQueryState();
@@ -234,15 +233,11 @@ export default function DiscoveryDesk() {
 
   const handleSourceTabChange = useCallback(
     (value: string) => {
-      if (value === 'following') {
-        router.push(href(APP_ROUTES.DISCOVERY.FOLLOWING));
-        return;
-      }
       if (isDeskSourceTab(value)) {
         handleSourceChange(value);
       }
     },
-    [handleSourceChange, href, router],
+    [handleSourceChange],
   );
 
   const handleContentTypeChange = useCallback(
@@ -313,7 +308,6 @@ export default function DiscoveryDesk() {
       filteredBySearch.find((item) => item.key === state.cursorKey) ?? null,
   });
 
-  const followingHref = href(APP_ROUTES.DISCOVERY.FOLLOWING);
   const publishingHref = brandSlug
     ? activeHref(APP_ROUTES.SETTINGS.PROFILE)
     : orgHref(APP_ROUTES.SETTINGS.BRANDS);
@@ -348,13 +342,6 @@ export default function DiscoveryDesk() {
     [translateDesk],
   );
 
-  const isFollowingView = sourceParam === 'following';
-  // The URL source can change before the reducer catches up, so never hand
-  // the Following deck an item from another source in that window.
-  const followingItems = useMemo(
-    () => filteredBySearch.filter((item) => item.source === 'following'),
-    [filteredBySearch],
-  );
   const hasDeskItems = !isLoading && !currentError && items.length > 0;
 
   return (
@@ -396,13 +383,11 @@ export default function DiscoveryDesk() {
                     count: filteredBySearch.length,
                   })}
             </Badge>
-            {!isFollowingView ? (
-              <ViewMenu
-                activeView={view}
-                onChange={setView}
-                options={viewOptions}
-              />
-            ) : null}
+            <ViewMenu
+              activeView={view}
+              onChange={setView}
+              options={viewOptions}
+            />
             <DeskSourcesMenu
               brandId={brandId}
               onSourcesChanged={refresh}
@@ -427,7 +412,7 @@ export default function DiscoveryDesk() {
           </Alert>
         ) : null}
 
-        {isLoading && !isFollowingView && view === ViewType.GRID ? (
+        {isLoading && view === ViewType.GRID ? (
           // The light-table skeleton mirrors the grid it is waiting for.
           <CollectionView
             data-testid="desk-light-table-skeleton"
@@ -445,30 +430,11 @@ export default function DiscoveryDesk() {
           </div>
         ) : null}
 
-        {isFollowingView && !isLoading && !currentError ? (
-          <FollowingDeck
-            brandId={brandId}
-            cursorKey={state.cursorKey}
-            items={followingItems}
-            onCursor={handleCursor}
-            onSelectFinding={
-              surface?.isEmbedded ? handleSelectFinding : undefined
-            }
-            onSourcesChanged={refresh}
-            onToggleSelect={handleToggleSelect}
-            selection={state.selection}
-            sources={sources}
-          />
-        ) : null}
-
-        {!isFollowingView &&
-        !isLoading &&
-        !currentError &&
-        items.length === 0 ? (
+        {!isLoading && !currentError && items.length === 0 ? (
           <>
             <DiscoveryReadinessCards summary={summary} />
             <DeskEmptyState
-              followingHref={followingHref}
+              onFollowCreators={() => setIsFollowOpen(true)}
               hasSearch={false}
               isRefreshing={isRefreshing}
               onClearSearch={() => setSearch('')}
@@ -479,10 +445,10 @@ export default function DiscoveryDesk() {
           </>
         ) : null}
 
-        {!isFollowingView && hasDeskItems ? (
+        {hasDeskItems ? (
           filteredBySearch.length === 0 ? (
             <DeskEmptyState
-              followingHref={followingHref}
+              onFollowCreators={() => setIsFollowOpen(true)}
               hasSearch={Boolean(search.trim())}
               isRefreshing={isRefreshing}
               onClearSearch={() => setSearch('')}
@@ -519,6 +485,14 @@ export default function DiscoveryDesk() {
       </Container>
 
       <DeskSelectionBar items={selectedItems} onClear={handleClearSelection} />
+
+      <FollowSourceModal
+        brandId={brandId}
+        existingSources={sources}
+        open={isFollowOpen}
+        onFollowed={refresh}
+        onOpenChange={setIsFollowOpen}
+      />
     </>
   );
 }

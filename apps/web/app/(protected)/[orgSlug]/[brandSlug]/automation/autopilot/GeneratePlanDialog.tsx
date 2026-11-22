@@ -241,7 +241,7 @@ export default function GeneratePlanDialog({
                       <p className="text-xs text-foreground/60">
                         {translate('seedSourcesEmpty')}{' '}
                         <Link
-                          href={href(APP_ROUTES.DISCOVERY.OVERVIEW)}
+                          href={href(APP_ROUTES.DISCOVERY.FEED)}
                           className="underline"
                         >
                           {translate('seedSourcesEmptyCta')}
