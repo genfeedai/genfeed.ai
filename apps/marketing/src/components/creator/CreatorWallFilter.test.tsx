@@ -1,5 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { lazy, Suspense } from 'react';
+import { renderToString } from 'react-dom/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import CreatorWallFilter from './CreatorWallFilter';
 
@@ -91,6 +92,39 @@ describe('CreatorWallFilter', () => {
     fireEvent.click(screen.getByRole('menuitem', { name: 'Clear filters' }));
 
     expect(push).toHaveBeenCalledWith('/@shayla/posts');
+  });
+
+  it('puts a link for the whole wall and each platform in the server HTML', () => {
+    const html = renderToString(
+      <CreatorWallFilter
+        active="tiktok"
+        handle="shayla"
+        platforms={['instagram', 'tiktok']}
+      />,
+    );
+    const links = [
+      ...html.matchAll(/<a [^>]*href="([^"]+)"[^>]*>([^<]*)</g),
+    ].map(([, href, label]) => [href, label]);
+
+    expect(links).toEqual([
+      ['/@shayla/posts', 'All platforms'],
+      ['/@shayla/posts?platform=instagram', 'Instagram'],
+      ['/@shayla/posts?platform=tiktok', 'TikTok'],
+    ]);
+    expect(html).toMatch(/aria-current="page"[^>]*>TikTok</);
+  });
+
+  it('links to the whole wall as the current view when no platform is chosen', () => {
+    const html = renderToString(
+      <CreatorWallFilter
+        active={null}
+        handle="shayla"
+        platforms={['instagram', 'tiktok']}
+      />,
+    );
+
+    expect(html).toMatch(/aria-current="page"[^>]*>All platforms</);
+    expect(html).not.toMatch(/aria-current="page"[^>]*>(Instagram|TikTok)</);
   });
 
   it('shows nothing when the creator has one platform or none', () => {

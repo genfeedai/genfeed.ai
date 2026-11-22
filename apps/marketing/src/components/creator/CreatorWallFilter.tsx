@@ -10,6 +10,7 @@ import { getPlatformIconComponent } from '@genfeedai/helpers/ui/platform-icon/pl
 import type { CreatorWallFilterProps } from '@props/content/creator.props';
 import { Button } from '@ui/primitives/button';
 import dynamic from 'next/dynamic';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
 // The menu brings the dropdown menu and its positioning code (about 38 kB of
@@ -38,6 +39,11 @@ const FilterMenu = dynamic(
  * control every list in the app uses. The choice lives in the URL as
  * `?platform=`, so a filtered wall can be linked and the page stays rendered
  * on the server.
+ *
+ * The menu loads after the page is interactive, so the server HTML also holds
+ * a link for the whole wall and for each platform. They keep every filtered
+ * view reachable and crawlable without script, and a screen reader finds them
+ * before the menu is ready; the menu is what a sighted visitor uses.
  */
 export default function CreatorWallFilter({
   active,
@@ -54,6 +60,25 @@ export default function CreatorWallFilter({
 
   return (
     <div className="flex justify-end">
+      <nav aria-label="Filter the wall by platform" className="sr-only">
+        <ul>
+          <li>
+            <Link aria-current={active ? undefined : 'page'} href={base}>
+              All platforms
+            </Link>
+          </li>
+          {platforms.map((platform) => (
+            <li key={platform}>
+              <Link
+                aria-current={active === platform ? 'page' : undefined}
+                href={`${base}?platform=${platform}`}
+              >
+                {formatPlatformLabel(platform) ?? platform}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </nav>
       <FilterMenu
         allLabel="All"
         clearLabel="Clear filters"
