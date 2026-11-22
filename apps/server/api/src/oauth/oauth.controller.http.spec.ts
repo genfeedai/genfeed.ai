@@ -88,7 +88,10 @@ describe('OAuth endpoints real HTTP pipeline', () => {
       providers: [
         {
           provide: OAuthClientService,
-          useValue: new OAuthClientService(prisma as unknown as PrismaService),
+          useValue: new OAuthClientService(
+            logger as unknown as LoggerService,
+            prisma as unknown as PrismaService,
+          ),
         },
         { provide: OAuthAuthorizeService, useValue: authorizeService },
         {
