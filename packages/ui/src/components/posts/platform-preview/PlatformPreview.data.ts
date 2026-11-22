@@ -11,6 +11,7 @@ import {
   type ChannelTargetValidationResult,
   getCaptionCeiling,
   getChannelCapability,
+  measurePlatformText,
   PRODUCTIZED_SCHEDULER_PLATFORMS,
   validateChannelTargetSettings,
 } from '@genfeedai/contracts/api-types/contracts';
@@ -40,22 +41,49 @@ export function resolvePreviewPlatform(
   return parsePlatform(platform);
 }
 
-export function countPreviewCharacters(text: string): number {
-  return Array.from(text).length;
+/** Caption length as the channel counts it, the same count validation and publishing use. */
+export function countPreviewCharacters(
+  text: string,
+  platform: CredentialPlatform | string,
+): number {
+  return measurePlatformText(text, platform);
+}
+
+/** The longest prefix of `characters` the channel still counts within `ceiling`. */
+function cutToCeiling(
+  characters: string[],
+  platform: CredentialPlatform | string,
+  ceiling: number,
+): string {
+  let low = 0;
+  let high = Math.min(characters.length, ceiling);
+  while (low < high) {
+    const middle = Math.ceil((low + high) / 2);
+    if (
+      measurePlatformText(characters.slice(0, middle).join(''), platform) <=
+      ceiling
+    ) {
+      low = middle;
+    } else {
+      high = middle - 1;
+    }
+  }
+  return characters.slice(0, low).join('');
 }
 
 /**
  * Count state for the preview. `maxLength` is the standard length the counter
  * shows; `ceiling` is the longest caption the channel accepts (X long posts).
  * Only a caption past the ceiling is over the limit and cut in the preview.
+ * Lengths are counted the way the channel counts them (weighted on X).
  */
 export function getCaptionPreviewState(
   caption: string,
+  platform: CredentialPlatform | string,
   maxLength?: number,
   ceiling: number | undefined = maxLength,
 ): CaptionPreviewState {
-  const characters = Array.from(caption);
-  const count = characters.length;
+  const count = measurePlatformText(caption, platform);
 
   if (!ceiling || count <= ceiling) {
     return {
@@ -72,7 +100,7 @@ export function getCaptionPreviewState(
     count,
     isOverLimit: true,
     maxLength,
-    previewText: `${characters.slice(0, ceiling).join('')}...`,
+    previewText: `${cutToCeiling(Array.from(caption), platform, ceiling)}...`,
   };
 }
 
@@ -96,6 +124,7 @@ export function resolvePlatformPreviewTarget(
     capability,
     captionState: getCaptionPreviewState(
       target.caption,
+      resolvedPlatform ?? target.platform,
       capability?.caption.maxLength,
       capability ? getCaptionCeiling(capability.caption) : undefined,
     ),

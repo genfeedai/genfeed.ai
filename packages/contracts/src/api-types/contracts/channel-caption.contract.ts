@@ -1,12 +1,17 @@
 /**
  * Caption length rules for scheduler channels.
  *
+ * Lengths are counted the way the channel counts them (`measurePlatformText`:
+ * weighted on X, graphemes on Bluesky, code points elsewhere), so validation,
+ * the preview and the publisher agree.
+ *
  * `maxLength` is the standard length a channel counts against. A channel whose
  * limit depends on the connected account (X long posts need Premium) also
  * declares `extendedMaxLength`. A caption between the two is a warning and the
  * provider decides; only a caption past the ceiling is an error.
  */
 import type { ChannelValidationIssue } from './channel-setting-validation.contract';
+import { measurePlatformText } from './platform-text-length.contract';
 
 interface CaptionLimits {
   maxLength: number;
@@ -16,6 +21,7 @@ interface CaptionLimits {
 /** The slice of a channel capability the caption rules read. */
 interface CaptionRuleChannel {
   label: string;
+  platform: string;
   caption: CaptionLimits & { required?: boolean };
 }
 
@@ -34,7 +40,7 @@ export function validateCaption(
   capability: CaptionRuleChannel,
 ): ChannelValidationIssue[] {
   const caption = input.caption ?? '';
-  const captionLength = Array.from(caption).length;
+  const captionLength = measurePlatformText(caption, capability.platform);
   const errors: ChannelValidationIssue[] = [];
 
   if (capability.caption.required && caption.trim().length === 0) {
@@ -66,7 +72,10 @@ export function collectCaptionWarnings(
   const { extendedMaxLength, maxLength } = capability.caption;
   if (extendedMaxLength === undefined) return [];
 
-  const captionLength = Array.from(input.caption ?? '').length;
+  const captionLength = measurePlatformText(
+    input.caption ?? '',
+    capability.platform,
+  );
   if (captionLength <= maxLength || captionLength > extendedMaxLength) {
     return [];
   }

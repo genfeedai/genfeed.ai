@@ -1,51 +1,5 @@
-import { CredentialPlatform } from '@genfeedai/contracts';
 import { getChannelCapability } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
-import { parseTweet } from 'twitter-text';
-
-/**
- * Whether a channel counts text with X's weighted rules: every URL is 23,
- * and emoji and CJK characters count 2.
- */
-export function isWeightedPlatformLength(platform: string): boolean {
-  return (
-    getChannelCapability(platform)?.platform === CredentialPlatform.TWITTER
-  );
-}
-
-const graphemeSegmenter = new Intl.Segmenter(undefined, {
-  granularity: 'grapheme',
-});
-
-/**
- * Whether a channel counts user-perceived characters (graphemes) instead of
- * code points. Bluesky limits a post to 300 graphemes, so a family emoji or a
- * flag counts once there.
- */
-function isGraphemePlatformLength(platform: string): boolean {
-  return (
-    getChannelCapability(platform)?.platform === CredentialPlatform.BLUESKY
-  );
-}
-
-/**
- * Text length as the channel counts it: `twitter-text` weighted length for X,
- * graphemes for Bluesky, code points everywhere else. Generation, the
- * autopilot gate, fan-out and the publisher all measure with this so they
- * agree on what fits.
- */
-export function measurePlatformText(text: string, platform: string): number {
-  if (isWeightedPlatformLength(platform)) {
-    return parseTweet(text).weightedLength;
-  }
-  if (isGraphemePlatformLength(platform)) {
-    let count = 0;
-    for (const _segment of graphemeSegmenter.segment(text)) {
-      count += 1;
-    }
-    return count;
-  }
-  return Array.from(text).length;
-}
+import { isWeightedPlatformLength } from '@genfeedai/contracts/api-types/contracts/platform-text-length.contract';
 
 /** The channel's caption limit, or undefined when the channel has none. */
 export function getPlatformTextLimit(platform: string): number | undefined {

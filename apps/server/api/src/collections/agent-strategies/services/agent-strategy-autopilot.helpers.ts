@@ -9,10 +9,10 @@ import type {
 import type { PostDocument } from '@api/collections/posts/post.schema';
 import type { ReviewTurboRunItemFormat } from '@api/services/turbo-run/constants/review-turbo-run-item-format.constant';
 import { Platform } from '@genfeedai/contracts';
+import { measurePlatformText } from '@genfeedai/contracts/api-types/contracts/platform-text-length.contract';
 import {
   describePlatformTextLimit,
   getPlatformTextLimit,
-  measurePlatformText,
 } from '@genfeedai/helpers/content/platform-text-length.helper';
 
 const CALL_TO_ACTION_PATTERN = /comment|click|learn more|reply|share|visit/i;
