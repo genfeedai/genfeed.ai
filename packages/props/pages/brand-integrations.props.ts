@@ -20,13 +20,7 @@ export interface AccountStatusBadgeProps {
   health?: AccountHealthSummary;
 }
 
-export interface AccountStatusIconsProps extends AccountStatusBadgeProps {
-  /** The platform cannot start a reconnect right now. */
-  isReconnectDisabled: boolean;
-  /** This account's reconnect is starting. */
-  isReconnecting: boolean;
-  onReconnect: () => void;
-}
+export type AccountStatusIconsProps = AccountStatusBadgeProps;
 
 export type AccountSettingsSection = 'health' | 'import' | 'postingTimes';
 

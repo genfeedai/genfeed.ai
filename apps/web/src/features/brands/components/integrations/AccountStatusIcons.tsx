@@ -1,10 +1,8 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { AccountHealthSummary } from '@genfeedai/contracts/interfaces';
 import { cn } from '@genfeedai/helpers';
 import type { AccountStatusIconsProps } from '@props/pages/brand-integrations.props';
-import { Button } from '@ui/primitives/button';
 import { SimpleTooltip } from '@ui/primitives/tooltip';
 import {
   CircleCheck,
@@ -19,10 +17,8 @@ import {
 import { useTranslations } from 'next-intl';
 import {
   getAccountConnectionStatus,
-  getReconnectReason,
   hasWarmupBlueprint,
   needsDirectMessageReconnect,
-  RECONNECT_REASON_MESSAGE_KEYS,
   STATE_MESSAGE_KEYS,
 } from './account-connection-status.util';
 import { getHealthBadgeVariant } from './account-health-badge-variant';
@@ -59,9 +55,11 @@ function StatusIcon({ icon: Icon, label, tone }: StatusIconProps) {
 }
 
 /**
- * Status column of the Accounts table: one icon per state, the full wording in
- * a tooltip. A state the person can fix is a button, so the warning icon is the
- * Reconnect control itself and spins while the reconnect starts.
+ * Status column of the Accounts table: one icon per state, the full wording as
+ * the icon's accessible name. The icons only show state. What the person can
+ * do about it (Reconnect, with the cause in its tooltip) is in the row's hover
+ * actions, which replace these icons while the row is hovered, so nothing here
+ * is a button that the actions could cover.
  *
  * "Needs reconnect" wins over everything else. A connected account shows a
  * check; when the platform runs the warm-up blueprint and health data is
@@ -71,14 +69,10 @@ function StatusIcon({ icon: Icon, label, tone }: StatusIconProps) {
 export default function AccountStatusIcons({
   connection,
   health: healthOverride,
-  isReconnectDisabled,
-  isReconnecting,
-  onReconnect,
 }: AccountStatusIconsProps) {
   const translate = useTranslations('pages.brandSocialMedia');
   const needsReconnect =
     getAccountConnectionStatus(connection) === 'needsReconnect';
-  const reconnectReason = getReconnectReason(connection);
 
   // `healthOverride` is the live-fetched health for the brand; the connection's
   // own `accountHealth` is whatever the brand payload carried. Prefer the
@@ -88,21 +82,10 @@ export default function AccountStatusIcons({
   return (
     <div className="flex items-center justify-end gap-0.5">
       {needsReconnect ? (
-        <Button
-          ariaLabel={translate('needsReconnect')}
-          icon={<TriangleAlert aria-hidden="true" className="text-warning" />}
-          isDisabled={isReconnectDisabled}
-          isLoading={isReconnecting}
-          onClick={onReconnect}
-          size={ButtonSize.ICON}
-          tooltip={
-            reconnectReason
-              ? translate(RECONNECT_REASON_MESSAGE_KEYS[reconnectReason])
-              : translate('needsReconnect')
-          }
-          tooltipPosition="top"
-          variant={ButtonVariant.GHOST}
-          withWrapper={false}
+        <StatusIcon
+          icon={TriangleAlert}
+          label={translate('needsReconnect')}
+          tone="warning"
         />
       ) : (
         <StatusIcon
@@ -121,19 +104,10 @@ export default function AccountStatusIcons({
         />
       ) : null}
       {needsDirectMessageReconnect(connection) ? (
-        <Button
-          ariaLabel={translate('dmReconnectBadge')}
-          icon={
-            <MessageSquareWarning aria-hidden="true" className="text-warning" />
-          }
-          isDisabled={isReconnectDisabled}
-          isLoading={isReconnecting}
-          onClick={onReconnect}
-          size={ButtonSize.ICON}
-          tooltip={translate('dmReconnectHint')}
-          tooltipPosition="top"
-          variant={ButtonVariant.GHOST}
-          withWrapper={false}
+        <StatusIcon
+          icon={MessageSquareWarning}
+          label={translate('dmReconnectBadge')}
+          tone="warning"
         />
       ) : null}
     </div>

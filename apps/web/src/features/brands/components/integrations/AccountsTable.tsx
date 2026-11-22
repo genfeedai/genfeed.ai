@@ -5,7 +5,6 @@ import {
   formatPlatformLabel,
 } from '@genfeedai/contracts';
 import type { AccountHealthSummary } from '@genfeedai/contracts/interfaces';
-import { cn } from '@genfeedai/helpers';
 import type { BrandDetailSocialConnection } from '@genfeedai/props/pages/brand-detail.props';
 import type { AccountsTableProps } from '@props/pages/brand-integrations.props';
 import type { TableAction, TableColumn } from '@props/ui/display/table.props';
@@ -14,7 +13,15 @@ import { createSummaryRowSidebar } from '@ui/display/table/summary-row-sidebar';
 import AppTable from '@ui/display/table/Table';
 import { Button } from '@ui/primitives/button';
 import { EmptyState } from '@ui/primitives/empty-state';
-import { Link2, Plus, RefreshCw, Settings, Unlink } from 'lucide-react';
+import {
+  Link2,
+  MessageSquareWarning,
+  Plus,
+  RefreshCw,
+  Settings,
+  TriangleAlert,
+  Unlink,
+} from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
 import DirectMessageReconnectNotice from '@/features/messages/components/DirectMessageReconnectNotice';
@@ -22,8 +29,11 @@ import AccountCell from './AccountCell';
 import AccountStatusBadge from './AccountStatusBadge';
 import AccountStatusIcons from './AccountStatusIcons';
 import {
+  getAccountConnectionStatus,
   getConnectionLabel,
+  getReconnectReason,
   needsDirectMessageReconnect,
+  RECONNECT_REASON_MESSAGE_KEYS,
 } from './account-connection-status.util';
 
 const LEADING_AT_SIGN_PATTERN = /^@/;
@@ -84,11 +94,10 @@ export default function AccountsTable({
       },
       {
         // Icon-only, so the header is read by screen readers only. It sits at
-        // the row's right end. On a hover-capable pointer the row actions
-        // float over that end, so the cell reserves their width (3 buttons and
-        // their fade, 11rem) and the icons stay visible, with their tooltips,
-        // beside the actions instead of under them.
-        className: 'w-px whitespace-nowrap pr-2 [@media(hover:hover)]:pr-44',
+        // the row's right end with the same 8px inset as the hover actions
+        // (`px-2`), so the icons and the actions that replace them on hover
+        // line up.
+        className: 'w-px whitespace-nowrap pr-2',
         header: (
           <span className="sr-only">{translate('accountsTableStatus')}</span>
         ),
@@ -97,40 +106,45 @@ export default function AccountsTable({
           <AccountStatusIcons
             connection={connection}
             health={healthByCredentialId.get(connection.credentialId)}
-            isReconnectDisabled={unavailablePlatforms.has(connection.platform)}
-            isReconnecting={
-              reconnectingCredentialId === connection.credentialId
-            }
-            onReconnect={() => onReconnect(connection)}
           />
         ),
         sortable: false,
       },
     ],
-    [
-      healthByCredentialId,
-      onReconnect,
-      reconnectingCredentialId,
-      translate,
-      unavailablePlatforms,
-    ],
+    [healthByCredentialId, translate],
   );
 
   const actions = useMemo<TableAction<BrandDetailSocialConnection>[]>(
     () => [
       {
-        // Spins while that row's reconnect is starting, so the click reads as
-        // working until the browser leaves for the provider.
-        icon: (connection) => (
-          // ui-guard-allow:loading-spinner -- reconnect icon rotates while the reconnect starts, not a loading placeholder
-          <RefreshCw
-            aria-hidden="true"
-            className={cn(
-              reconnectingCredentialId === connection.credentialId &&
-                'animate-spin',
-            )}
-          />
+        // The DM warning is only shown on hover (the status icons are
+        // replaced by the row actions), so it is an action of its own: the
+        // explanation is its tooltip and clicking it reconnects.
+        icon: (
+          <MessageSquareWarning aria-hidden="true" className="text-warning" />
         ),
+        isDisabled: (connection) =>
+          unavailablePlatforms.has(connection.platform) ||
+          reconnectingCredentialId === connection.credentialId,
+        ariaLabel: translate('dmReconnectBadge'),
+        isVisible: needsDirectMessageReconnect,
+        onClick: onReconnect,
+        tooltip: translate('dmReconnectHint'),
+      },
+      {
+        // An account that needs reconnecting shows the warning here, with the
+        // cause in the tooltip, so its detail stays readable on hover. Spins
+        // while that row's reconnect is starting, so the click reads as
+        // working until the browser leaves for the provider.
+        icon: (connection) =>
+          reconnectingCredentialId === connection.credentialId ? (
+            // ui-guard-allow:loading-spinner -- reconnect icon rotates while the reconnect starts, not a loading placeholder
+            <RefreshCw aria-hidden="true" className="animate-spin" />
+          ) : getAccountConnectionStatus(connection) === 'needsReconnect' ? (
+            <TriangleAlert aria-hidden="true" className="text-warning" />
+          ) : (
+            <RefreshCw aria-hidden="true" />
+          ),
         // Only the row being reconnected is disabled — keyed by
         // credentialId, not platform, so reconnecting one account doesn't
         // freeze Reconnect for a sibling account on the same platform. A
@@ -139,8 +153,14 @@ export default function AccountsTable({
         isDisabled: (connection) =>
           unavailablePlatforms.has(connection.platform) ||
           reconnectingCredentialId === connection.credentialId,
+        ariaLabel: translate('reconnect'),
         onClick: onReconnect,
-        tooltip: translate('reconnect'),
+        tooltip: (connection) => {
+          const reason = getReconnectReason(connection);
+          return reason
+            ? translate(RECONNECT_REASON_MESSAGE_KEYS[reason])
+            : translate('reconnect');
+        },
       },
       {
         icon: <Settings aria-hidden="true" />,

@@ -389,7 +389,7 @@ describe('BrandDetailSocialMediaCard', () => {
       .find((row) => row.textContent?.includes('Broken TikTok'));
     expect(
       within(brokenRow as HTMLElement).getByRole('button', {
-        name: 'Needs reconnect',
+        name: 'Reconnect',
       }),
     ).toBeEnabled();
   });

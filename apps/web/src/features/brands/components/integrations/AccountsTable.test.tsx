@@ -101,8 +101,11 @@ describe('AccountsTable', () => {
     );
 
     expect(
-      screen.getByRole('button', { name: 'Needs reconnect' }),
-    ).toBeEnabled();
+      screen.getByRole('img', { name: 'Needs reconnect' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('img', { name: 'Connected' }),
+    ).not.toBeInTheDocument();
   });
 
   it('derives Needs reconnect from a connected credential missing its externalId identity', () => {
@@ -120,8 +123,11 @@ describe('AccountsTable', () => {
     );
 
     expect(
-      screen.getByRole('button', { name: 'Needs reconnect' }),
-    ).toBeEnabled();
+      screen.getByRole('img', { name: 'Needs reconnect' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('img', { name: 'Connected' }),
+    ).not.toBeInTheDocument();
   });
 
   it('derives Needs reconnect from an expired access token', () => {
@@ -141,8 +147,11 @@ describe('AccountsTable', () => {
     );
 
     expect(
-      screen.getByRole('button', { name: 'Needs reconnect' }),
-    ).toBeEnabled();
+      screen.getByRole('img', { name: 'Needs reconnect' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('img', { name: 'Connected' }),
+    ).not.toBeInTheDocument();
   });
 
   it('spins only the Reconnect icon of the account that is reconnecting', () => {
@@ -208,7 +217,7 @@ describe('AccountsTable', () => {
     ).toBeInTheDocument();
   });
 
-  it('reconnects from the warning icon, which is also still offered in the row actions', () => {
+  it('reconnects from the warning action that replaces the status icon on hover', () => {
     const onReconnect = vi.fn();
     const connection = buildConnection({ isConnected: false, name: 'Stale' });
 
@@ -225,20 +234,23 @@ describe('AccountsTable', () => {
       />,
     );
 
+    // The status icon only shows state; the actions hold the one control.
     expect(
-      screen.queryByRole('img', { name: 'Connected' }),
+      screen.getByRole('img', { name: 'Needs reconnect' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Needs reconnect' }),
     ).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Needs reconnect' }));
-    expect(onReconnect).toHaveBeenCalledTimes(1);
-    expect(onReconnect).toHaveBeenCalledWith(connection);
 
-    // The hover actions keep Reconnect for every row, so it stays reachable
-    // while the row's hover actions cover the status icon.
-    fireEvent.click(screen.getByRole('button', { name: 'Reconnect' }));
-    expect(onReconnect).toHaveBeenCalledTimes(2);
+    const reconnectButtons = screen.getAllByRole('button', {
+      name: 'Reconnect',
+    });
+    expect(reconnectButtons).toHaveLength(1);
+    fireEvent.click(reconnectButtons[0]);
+    expect(onReconnect).toHaveBeenCalledWith(connection);
   });
 
-  it('disables the warning icon while that account reconnects or its platform is unavailable', () => {
+  it('disables the warning action while that account reconnects or its platform is unavailable', () => {
     const connections = [
       buildConnection({
         credentialId: 'c-busy',
@@ -276,14 +288,14 @@ describe('AccountsTable', () => {
     const buttonFor = (name: string) =>
       within(
         dataRows.find((row) => row.textContent?.includes(name)) as HTMLElement,
-      ).getByRole('button', { name: 'Needs reconnect' });
+      ).getByRole('button', { name: 'Reconnect' });
 
     expect(buttonFor('Busy')).toBeDisabled();
     expect(buttonFor('Down')).toBeDisabled();
     expect(buttonFor('Fine')).toBeEnabled();
   });
 
-  it('flags an X account without DM access with its own icon that reconnects', () => {
+  it('flags an X account without DM access with a status icon and an action that reconnects', () => {
     const onReconnect = vi.fn();
     const connection = buildConnection({
       directMessageCapability: 'reconnect',
@@ -306,6 +318,9 @@ describe('AccountsTable', () => {
 
     // Still connected: the DM icon sits next to the check, not instead of it.
     expect(screen.getByRole('img', { name: 'Connected' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('img', { name: 'DMs need reconnect' }),
+    ).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'DMs need reconnect' }));
     expect(onReconnect).toHaveBeenCalledWith(connection);
   });
