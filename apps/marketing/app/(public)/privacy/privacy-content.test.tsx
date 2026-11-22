@@ -36,6 +36,26 @@ describe('PrivacyContent Google user data disclosure', () => {
     ).toBeInTheDocument();
   });
 
+  it('names the protections applied to Google user data', () => {
+    render(<PrivacyContent />);
+
+    expect(
+      screen.getByText(
+        /How we protect Google data: OAuth access and refresh tokens are encrypted with AES-256-GCM/,
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /moves between your browser, Genfeed and Google over HTTPS/,
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /available only to members of the workspace that connected it/,
+      ),
+    ).toBeInTheDocument();
+  });
+
   it('links the Google and YouTube policies and the revocation page', () => {
     render(<PrivacyContent />);
 
