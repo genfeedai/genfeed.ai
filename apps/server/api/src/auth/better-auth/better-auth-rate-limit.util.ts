@@ -5,13 +5,16 @@
  * is exercised by tests against the real adapter rather than a hand-written
  * lookalike.
  */
+
 import type {
   BetterAuthRateLimitDegradationReason,
   BetterAuthRateLimitOperation,
+  IBetterAuthRateLimitDecision,
   IBetterAuthRateLimitRedisClient,
   IBetterAuthRateLimitStore,
   IBuildRedisRateLimitStoreOptions,
 } from './better-auth.types';
+import { CONSUME_RATE_LIMIT_SCRIPT } from './better-auth-rate-limit.script';
 
 /** One signal per minute is enough to alert on, cheap enough to never flood. */
 const DEFAULT_DEGRADATION_SIGNAL_INTERVAL_MS = 60_000;
@@ -41,15 +44,28 @@ function invokeObserver(notify: () => void): void {
   }
 }
 
+function parseDecision(reply: unknown): IBetterAuthRateLimitDecision | null {
+  if (!Array.isArray(reply)) {
+    return null;
+  }
+  const [allowed, retryAfter] = reply;
+  if (typeof allowed !== 'number' || typeof retryAfter !== 'number') {
+    return null;
+  }
+  return allowed === 1
+    ? { allowed: true, retryAfter: null }
+    : { allowed: false, retryAfter };
+}
+
 /**
  * Adapt the isolated rate-limit Redis client (#1186 — its own logical DB so a
  * queue backlog or cache-invalidation storm can't add latency to the hot auth
- * path) into the shared KV contract Better Auth's `customStorage` is built on.
+ * path) into the atomic counter contract Better Auth's `customStorage` is built on.
  *
  * **Fails open by design.** The client is gated on `isReady` and every command
  * is wrapped, so a Redis outage degrades cross-instance rate limiting instead of
- * breaking authentication. A read that fails reads as "no window recorded yet",
- * which lets the request through rather than blocking it.
+ * breaking authentication. A failed consume lets the request through
+ * rather than blocking it.
  *
  * **Failing open silently is the operational hazard.** Auth keeps returning 200
  * while cross-instance brute-force throttling stops enforcing, so the outage is
@@ -147,31 +163,37 @@ export function buildRedisRateLimitStore(
   }
 
   return {
-    get: async (key) => {
+    consume: async (key, input) => {
       if (!client.isReady) {
-        signalDegraded('get', 'client-unavailable');
+        signalDegraded('consume', 'client-unavailable');
         return null;
       }
       try {
-        const value = (await client.instance.get(key)) ?? null;
-        signalHealthy('get');
-        return value;
-      } catch (error) {
-        signalDegraded('get', 'command-failed', error);
-        return null;
-      }
-    },
-    set: async (key, value, ttlSeconds) => {
-      if (!client.isReady) {
-        signalDegraded('set', 'client-unavailable');
-        return;
-      }
-      try {
-        await client.instance.set(key, value, 'EX', ttlSeconds);
-        signalHealthy('set');
+        const reply = await client.instance.eval(
+          CONSUME_RATE_LIMIT_SCRIPT,
+          1,
+          key,
+          input.now,
+          input.windowMs,
+          input.max,
+          input.ttlSeconds,
+          input.identity,
+        );
+        const decision = parseDecision(reply);
+        if (!decision) {
+          signalDegraded(
+            'consume',
+            'command-failed',
+            new Error('Unexpected rate-limit script reply'),
+          );
+          return null;
+        }
+        signalHealthy('consume');
+        return decision;
       } catch (error) {
         // Fail open: never let a Redis error break auth rate limiting.
-        signalDegraded('set', 'command-failed', error);
+        signalDegraded('consume', 'command-failed', error);
+        return null;
       }
     },
   };
