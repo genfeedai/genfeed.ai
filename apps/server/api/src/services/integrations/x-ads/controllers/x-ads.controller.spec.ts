@@ -66,8 +66,11 @@ interface CredentialRow {
   brandId: string;
   id: string;
   isConnected: boolean;
+  oauthState: string | null;
   organizationId: string;
   platform: string;
+  /** What the callback finds the row by; the connection keeps it, like the database. */
+  requestTokenHash: string | null;
   secrets: Record<string, unknown>;
   userId: string;
 }
@@ -96,6 +99,8 @@ function setup({
   ];
   const credentials: CredentialRow[] = [];
   const issuedTokens = new Map([['request-token', 'request-token-secret']]);
+  const exchanges: string[] = [];
+  const spentTokens = new Set<string>();
   const brandsService = {
     findOne: async (where: {
       id: string;
@@ -109,6 +114,15 @@ function setup({
           brand.organizationId === where.organizationId,
       ) ?? null,
   };
+  const view = (row: CredentialRow) => ({
+    brandId: row.brandId,
+    id: row.id,
+    isConnected: row.isConnected,
+    oauthState: row.oauthState,
+    organizationId: row.organizationId,
+    userId: row.userId,
+    ...row.secrets,
+  });
   const credentialsService = {
     attachOAuth1RequestToken: async (
       id: string,
@@ -129,6 +143,7 @@ function setup({
         oauthTokenHash: `hash:${oauthToken}`,
         oauthTokenSecret: EncryptionUtil.encrypt(oauthTokenSecret),
       };
+      row.requestTokenHash = `hash:${oauthToken}`;
       return row;
     },
     beginOAuthForBrand: async (
@@ -140,8 +155,10 @@ function setup({
         brandId: brand.id,
         id: `credential-${credentials.length + 1}`,
         isConnected: false,
+        oauthState: 'opaque-state',
         organizationId: brand.organizationId,
         platform,
+        requestTokenHash: null,
         secrets: {},
         userId,
       };
@@ -158,24 +175,44 @@ function setup({
         (item) => item.id === id && item.organizationId === organizationId,
       );
       if (!row) throw new Error('credential not found');
-      Object.assign(row, { account, isConnected: true, secrets });
+      // The connection settles the claim marker, as the reconcile does.
+      Object.assign(row, {
+        account,
+        isConnected: true,
+        oauthState: row.oauthState?.replace('claimed:', 'verified:') ?? null,
+        secrets,
+      });
       return { id: row.id, isConnected: true };
     },
-    findPendingOAuth1Credential: async (
+    findOAuth1VerifyCredential: async (
       oauthToken: string,
       platform: string,
       owner: { organizationId: string; userId: string },
     ) => {
       const row = credentials.find(
         (item) =>
-          item.secrets.oauthTokenHash === `hash:${oauthToken}` &&
+          item.requestTokenHash === `hash:${oauthToken}` &&
           item.platform === platform &&
           item.organizationId === owner.organizationId &&
           item.userId === owner.userId,
       );
-      return row
-        ? { id: row.id, ...row.secrets, organizationId: row.organizationId }
-        : null;
+      return row ? view(row) : null;
+    },
+    /** A row holds its claim marker while a verify is talking to X, and the settled marker after. */
+    findOne: async (where: { oauthState: { in: string[] } }) => {
+      const row = credentials.find(
+        (item) =>
+          item.oauthState && where.oauthState.in.includes(item.oauthState),
+      );
+      return row ? view(row) : null;
+    },
+    claimPendingOAuthCredential: async (state: string) => {
+      const row = credentials.find(
+        (item) => item.oauthState === state && !item.isConnected,
+      );
+      if (!row) return null;
+      row.oauthState = `claimed:${state}`;
+      return view(row);
     },
   };
   const xAdsOAuthService = {
@@ -184,10 +221,17 @@ function setup({
       secret: string,
       verifier: string,
     ) => {
+      exchanges.push(token);
       if (exchangeError) throw exchangeError;
-      if (issuedTokens.get(token) !== secret || verifier !== 'oauth-verifier') {
+      // X spends a request token on the first exchange.
+      if (
+        spentTokens.has(token) ||
+        issuedTokens.get(token) !== secret ||
+        verifier !== 'oauth-verifier'
+      ) {
         throw new Error('401 from X');
       }
+      spentTokens.add(token);
       return {
         accessToken: 'access-token',
         accessTokenSecret: 'access-token-secret',
@@ -222,7 +266,7 @@ function setup({
     xAdsOAuthService as unknown as XAdsOAuthService,
     xAdsService as unknown as XAdsService,
   );
-  return { controller, credentials };
+  return { controller, credentials, exchanges };
 }
 
 /** Starts the connect flow so a pending X Ads credential holds the request token. */
@@ -367,6 +411,35 @@ describe('XAdsController', () => {
         expect(credentials[0].isConnected).toBe(false);
       },
     );
+
+    it('exchanges the request token once when two verifies race, answering both with the account', async () => {
+      const { controller, exchanges } = await connected();
+
+      const [first, second] = await Promise.all([
+        controller.verify(request, user, verifyBody),
+        controller.verify(request, user, verifyBody),
+      ]);
+
+      expect(exchanges).toEqual(['request-token']);
+      expect(first).toEqual({
+        data: { id: 'credential-1', isConnected: true },
+      });
+      expect(second).toMatchObject({
+        data: { id: 'credential-1', isConnected: true },
+      });
+    });
+
+    it('answers a verify that arrives after the connection with the account, without a second exchange', async () => {
+      const { controller, exchanges } = await connected();
+      await controller.verify(request, user, verifyBody);
+
+      const late = await controller.verify(request, user, verifyBody);
+
+      expect(exchanges).toEqual(['request-token']);
+      expect(late).toMatchObject({
+        data: { id: 'credential-1', isConnected: true },
+      });
+    });
 
     it('rejects a callback without the OAuth 1.0a parameters', async () => {
       const { controller } = await connected();

@@ -532,6 +532,12 @@ async function settleCredentialReconciliation(
     // Keep the verify marker: a second verify of the same state that is only
     // now looking the row up still finds the connected account.
     oauthState: carriedOAuthState(source.oauthState),
+    // An OAuth 1.0a callback finds its row by this hash (a SHA-256 of the
+    // single-use request token, not a secret): a second verify of the same
+    // token that arrives after the connection still finds the account.
+    ...(carriedOAuthState(source.oauthState)
+      ? { oauthTokenHash: source.oauthTokenHash }
+      : {}),
     externalId: input.externalId,
     isConnected: true,
     ...(typeof source.isHistoryImportRequested === 'boolean'

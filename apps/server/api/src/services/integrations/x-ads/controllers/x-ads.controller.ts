@@ -5,6 +5,7 @@ import {
   CreateCredentialVerifyDto,
 } from '@api/collections/credentials/dto/create-credential.dto';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { claimOAuth1VerifyCredential } from '@api/collections/credentials/utils/oauth-verify-claim.util';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -156,15 +157,21 @@ export class XAdsController {
     }
 
     try {
-      const credential =
-        await this.credentialsService.findPendingOAuth1Credential(
-          body.oauthToken,
-          CredentialPlatform.X_ADS,
-          {
-            organizationId: user.organizationId,
-            userId: user.userId ?? user.id,
-          },
-        );
+      // Of two verifies of one request token only one may exchange it; the
+      // other answers with the account the first connected.
+      const claim = await claimOAuth1VerifyCredential(
+        this.credentialsService,
+        body.oauthToken,
+        CredentialPlatform.X_ADS,
+        {
+          organizationId: user.organizationId,
+          userId: user.userId ?? user.id,
+        },
+      );
+      if (claim?.alreadyConnected) {
+        return serializeSingle(request, CredentialSerializer, claim.credential);
+      }
+      const credential = claim?.credential;
 
       if (!credential) {
         throw new HttpException(
