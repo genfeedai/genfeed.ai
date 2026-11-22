@@ -46,9 +46,12 @@ const { default: CreatorProfilePage, generateMetadata } = await import(
 const { generateMetadata: generateArticlesMetadata } = await import(
   './articles/page'
 );
-const { getCreatorProfileData, getPublicBrandBySlug } = await import(
-  './creator-loader'
-);
+const {
+  getCreatorPlatformPosts,
+  getCreatorProfileData,
+  getPublicBrandBySlug,
+  resolveCreatorPlatform,
+} = await import('./creator-loader');
 const { CreatorOverview } = await import('./creator-view');
 
 function page<T>(items: T[], total = items.length): IPaginatedResponse<T> {
@@ -137,6 +140,49 @@ describe('getCreatorProfileData', () => {
     findPublicProfileBySlug.mockResolvedValue(null);
 
     await expect(getCreatorProfileData('data-missing')).resolves.toBeNull();
+  });
+});
+
+describe('the wall platform filter', () => {
+  const socials = [
+    {
+      handle: 'acme',
+      platform: 'instagram',
+      url: 'https://instagram.com/acme',
+    },
+    { handle: 'acme', platform: 'tiktok', url: 'https://tiktok.com/@acme' },
+  ] as Brand['socials'];
+
+  it('narrows the wall only to a platform the creator connected', () => {
+    const connected = brand({ socials });
+
+    expect(resolveCreatorPlatform('instagram', connected)).toBe('instagram');
+    expect(resolveCreatorPlatform('youtube', connected)).toBeNull();
+    expect(resolveCreatorPlatform(undefined, connected)).toBeNull();
+    expect(resolveCreatorPlatform('instagram', brand())).toBeNull();
+  });
+
+  it('lists one platform’s posts for the brand, page by page', async () => {
+    const filtered = page([POST], 1);
+    findPublicPostsPage.mockResolvedValue(filtered);
+
+    await expect(
+      getCreatorPlatformPosts('brand-1', 24, 2, 'instagram'),
+    ).resolves.toBe(filtered);
+    expect(findPublicPostsPage).toHaveBeenCalledWith({
+      brand: 'brand-1',
+      limit: 24,
+      page: 2,
+      platform: 'instagram',
+    });
+  });
+
+  it('reads a failed filtered listing as an empty page', async () => {
+    findPublicPostsPage.mockRejectedValue(new Error('posts down'));
+
+    await expect(
+      getCreatorPlatformPosts('brand-1', 24, 1, 'tiktok'),
+    ).resolves.toMatchObject({ items: [], total: 0 });
   });
 });
 

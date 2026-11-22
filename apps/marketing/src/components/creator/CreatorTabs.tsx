@@ -10,7 +10,7 @@ import { UnderlineNav } from '@ui/primitives/underline-nav';
 const TAB_LABELS: Record<CreatorProfileTab, string> = {
   articles: 'Articles',
   images: 'Images',
-  posts: 'Posts',
+  posts: 'Wall',
   videos: 'Videos',
 };
 

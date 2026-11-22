@@ -142,4 +142,23 @@ describe('Pagination', () => {
       expect(link).toBeInTheDocument();
     });
   });
+
+  it('keeps the given query parameters in every page link', () => {
+    render(
+      <Pagination
+        currentPage={2}
+        hrefParams={{ platform: 'instagram' }}
+        totalPages={3}
+      />,
+    );
+
+    expect(screen.getByText('3').closest('a')).toHaveAttribute(
+      'href',
+      '?platform=instagram&page=3',
+    );
+    expect(screen.getByLabelText('Go to previous page')).toHaveAttribute(
+      'href',
+      '?platform=instagram&page=1',
+    );
+  });
 });

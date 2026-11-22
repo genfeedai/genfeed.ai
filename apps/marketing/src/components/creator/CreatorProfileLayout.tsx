@@ -2,13 +2,12 @@ import { creatorProfilePath } from '@genfeedai/contracts/constants';
 import type { CreatorProfileLayoutProps } from '@props/content/creator.props';
 import { EnvironmentService } from '@services/core/environment.service';
 import { BrandBanner } from '@ui/primitives/brand-banner';
-import CreatorRail from './CreatorRail';
+import CreatorHeader from './CreatorHeader';
 import CreatorTabs from './CreatorTabs';
 
 /**
- * The creator showcase: a sticky rail about the creator beside their public
- * work, which opens with their banner. On small screens the rail stacks above
- * the banner.
+ * The creator showcase: the banner across the top, the creator's header
+ * overlapping it, then the tabs and their content on one column.
  */
 export default function CreatorProfileLayout({
   active,
@@ -19,31 +18,27 @@ export default function CreatorProfileLayout({
   referralCode,
 }: CreatorProfileLayoutProps): React.ReactElement {
   return (
-    <div className="mx-auto w-full max-w-7xl px-4 pb-16 pt-10 lg:px-6">
-      <div className="grid grid-cols-1 gap-10 lg:grid-cols-[18rem_minmax(0,1fr)]">
-        <aside className="lg:sticky lg:top-24 lg:self-start">
-          <CreatorRail
-            brand={brand}
-            counts={counts}
-            handle={handle}
-            profileUrl={`${EnvironmentService.apps.website}${creatorProfilePath(handle)}`}
-            referralCode={referralCode}
-          />
-        </aside>
-        <div className="min-w-0 space-y-8">
-          {brand.bannerUrl ? (
-            <BrandBanner
-              alt={`${brand.label?.trim() || `@${handle}`} banner`}
-              isPriority
-              shape="rounded"
-              sizes="(min-width: 1280px) 904px, (min-width: 1024px) calc(100vw - 25rem), 100vw"
-              src={brand.bannerUrl}
-            />
-          ) : null}
-          <CreatorTabs active={active} counts={counts} handle={handle} />
-          {children}
-        </div>
-      </div>
+    <div className="mx-auto w-full max-w-6xl space-y-6 px-4 pb-16 pt-6 lg:px-6">
+      {brand.bannerUrl ? (
+        <BrandBanner
+          alt={`${brand.label?.trim() || `@${handle}`} banner`}
+          className="sm:max-h-72"
+          isPriority
+          shape="rounded"
+          sizes="(min-width: 1280px) 1152px, 100vw"
+          src={brand.bannerUrl}
+        />
+      ) : null}
+      <CreatorHeader
+        brand={brand}
+        counts={counts}
+        handle={handle}
+        hasBanner={Boolean(brand.bannerUrl)}
+        profileUrl={`${EnvironmentService.apps.website}${creatorProfilePath(handle)}`}
+        referralCode={referralCode}
+      />
+      <CreatorTabs active={active} counts={counts} handle={handle} />
+      <div className="min-w-0">{children}</div>
     </div>
   );
 }
