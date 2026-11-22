@@ -62,6 +62,16 @@ vi.mock('./useReviewInboxApprovals', async (importOriginal) => ({
   useReviewInboxApprovals: () => mocks.approvals,
 }));
 
+vi.mock('@hooks/navigation/use-collection-scope/use-collection-scope', () => ({
+  isCollectionFetchReady: () => true,
+  useCollectionScope: () => ({
+    brandId: 'brand-1',
+    isReady: true,
+    organizationId: 'org-1',
+    pageScope: 'brand',
+  }),
+}));
+
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => mocks.getTurboRunsService,
 }));
