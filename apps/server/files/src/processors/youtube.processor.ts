@@ -1,3 +1,4 @@
+import { isFinalAttempt } from '@files/processors/video-processor.util';
 import { YoutubeService } from '@files/services/youtube/youtube.service';
 import {
   JobResult,
@@ -79,14 +80,16 @@ export class YoutubeProcessor extends WorkerHost {
         `YouTube upload failed for post ${postId}: ${(error as Error)?.message}`,
         error,
       );
-      await this.publishYoutubeCompletion(
-        postId,
-        userId,
-        organizationId,
-        'failed',
-        null,
-        (error as Error)?.message,
-      );
+      if (isFinalAttempt(job)) {
+        await this.publishYoutubeCompletion(
+          postId,
+          userId,
+          organizationId,
+          'failed',
+          null,
+          (error as Error)?.message,
+        );
+      }
       throw error;
     }
   }

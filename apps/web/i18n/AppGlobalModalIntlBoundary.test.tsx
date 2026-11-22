@@ -38,8 +38,8 @@ const CASES = [
   },
   {
     pathname: '/acme/brand/analytics/overview',
-    id: 'analytics.trendTurnover.heading',
-    value: pages.analytics.trendTurnover.heading,
+    id: 'analytics.topVideos.title',
+    value: pages.analytics.topVideos.title,
   },
   {
     pathname: '/acme/brand/library/assets',
@@ -289,16 +289,14 @@ describe('host global modal catalog boundary', () => {
     const view = render(
       hostTree(
         <AppGlobalModalIntlBoundary kind="confirm">
-          <Probe id="analytics.trendTurnover.heading" />
+          <Probe id="analytics.topVideos.title" />
         </AppGlobalModalIntlBoundary>,
         onError,
       ),
     );
     view.unmount();
     await Promise.resolve();
-    expect(
-      screen.queryByText(pages.analytics.trendTurnover.heading),
-    ).toBeNull();
+    expect(screen.queryByText(pages.analytics.topVideos.title)).toBeNull();
     expect(onError).not.toHaveBeenCalled();
   });
 });

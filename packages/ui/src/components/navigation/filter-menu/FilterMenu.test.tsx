@@ -3,11 +3,7 @@ import type { FilterMenuFacet } from '@genfeedai/props/ui/forms/filter-menu.prop
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
-import FilterMenu from '@/components/content/filter-menu/FilterMenu';
-
-vi.mock('next-intl', () => ({
-  useTranslations: () => (key: string) => key,
-}));
+import FilterMenu from './FilterMenu';
 
 const OPTIONS = [
   { label: 'Image', value: 'image' },
@@ -17,6 +13,7 @@ const OPTIONS = [
 function renderMenu(facets: FilterMenuFacet[], onClear = vi.fn()) {
   render(
     <FilterMenu
+      allLabel="All"
       clearLabel="Clear filters"
       facets={facets}
       getActiveCountLabel={(count) => `${count} active`}

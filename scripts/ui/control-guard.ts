@@ -111,7 +111,6 @@ export const ALLOWLIST = {
     'apps/marketing/src/components/content/post-card/PostCard.tsx',
     'apps/marketing/src/components/home/_marketplace-cta.tsx',
     'apps/web/src/features/analytics/overview/analytics-overview.tsx',
-    'apps/web/src/features/analytics/trend-turnover/analytics-trend-turnover.tsx',
     'apps/web/src/features/brands/components/latest-articles/BrandDetailLatestArticles.tsx',
     'apps/web/src/features/brands/components/latest-images/BrandDetailLatestImages.tsx',
     'apps/web/src/features/brands/components/latest-videos/BrandDetailLatestVideos.tsx',
