@@ -1,5 +1,6 @@
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { Prisma } from '@genfeedai/prisma';
+import { traced } from '@libs/tracing/traced';
 
 export interface WorkflowPollStateWrite {
   /** Platform event id to store as this node's cursor; omit to keep it. */
@@ -20,49 +21,55 @@ export interface WorkflowPollStateWrite {
  * so the missing `metadata` and `metadata.pollState` parents are created
  * first. The node id is bound as a parameter, never interpolated.
  */
-export async function writeWorkflowPollState(
-  prisma: PrismaService,
-  write: WorkflowPollStateWrite,
-): Promise<void> {
-  const { lastEventId, nodeId, organizationId, polledAt, workflowId } = write;
-  const withParents = Prisma.sql`jsonb_set(
-    jsonb_set(
-      COALESCE("config", '{}'::jsonb),
-      ARRAY['metadata']::text[],
-      COALESCE("config"->'metadata', '{}'::jsonb)
-    ),
-    ARRAY['metadata', 'pollState']::text[],
-    COALESCE("config"#>'{metadata,pollState}', '{}'::jsonb)
-  )`;
-  const withPolledAt = Prisma.sql`jsonb_set(
-    ${withParents},
-    ARRAY['metadata', 'pollState', 'lastPolledAt']::text[],
-    to_jsonb(${polledAt}::text)
-  )`;
-  const nextConfig =
-    lastEventId === undefined
-      ? withPolledAt
-      : Prisma.sql`jsonb_set(
-    ${withPolledAt},
-    ARRAY['metadata', 'pollState', ${nodeId}]::text[],
-    to_jsonb(${lastEventId}::text)
-  )`;
+export const writeWorkflowPollState = traced(
+  'writeWorkflowPollState',
+  async (
+    prisma: PrismaService,
+    write: WorkflowPollStateWrite,
+  ): Promise<void> => {
+    const { lastEventId, nodeId, organizationId, polledAt, workflowId } = write;
+    const withParents = Prisma.sql`jsonb_set(
+      jsonb_set(
+        COALESCE("config", '{}'::jsonb),
+        ARRAY['metadata']::text[],
+        COALESCE("config"->'metadata', '{}'::jsonb)
+      ),
+      ARRAY['metadata', 'pollState']::text[],
+      COALESCE("config"#>'{metadata,pollState}', '{}'::jsonb)
+    )`;
+    const withPolledAt = Prisma.sql`jsonb_set(
+      ${withParents},
+      ARRAY['metadata', 'pollState', 'lastPolledAt']::text[],
+      to_jsonb(${polledAt}::text)
+    )`;
+    const nextConfig =
+      lastEventId === undefined
+        ? withPolledAt
+        : Prisma.sql`jsonb_set(
+      ${withPolledAt},
+      ARRAY['metadata', 'pollState', ${nodeId}]::text[],
+      to_jsonb(${lastEventId}::text)
+    )`;
 
-  // sql-risk-audit: ignore raw-sql-review -- Updates one row by primary key, bound to organizationId and isDeleted = false; no scan, join or aggregate.
-  await prisma.$executeRaw(Prisma.sql`
-    UPDATE "workflows"
-    SET "config" = ${nextConfig},
-        "updatedAt" = NOW()
-    WHERE "id" = ${workflowId}
-      AND "organizationId" = ${organizationId}
-      AND "isDeleted" = false
-  `);
-}
+    // sql-risk-audit: ignore raw-sql-review -- Updates one row by primary key, bound to organizationId and isDeleted = false; no scan, join or aggregate.
+    await prisma.$executeRaw(Prisma.sql`
+      UPDATE "workflows"
+      SET "config" = ${nextConfig},
+          "updatedAt" = NOW()
+      WHERE "id" = ${workflowId}
+        AND "organizationId" = ${organizationId}
+        AND "isDeleted" = false
+    `);
+  },
+);
 
 export function socialTriggerJobId(
   workflowId: string,
   nodeId: string,
   eventId: string,
 ): string {
-  return ['social-trigger', workflowId, nodeId, eventId].join('-');
+  // BullMQ rejects a custom job id that contains ':'.
+  return ['social-trigger', workflowId, nodeId, eventId]
+    .join('-')
+    .replaceAll(':', '-');
 }
