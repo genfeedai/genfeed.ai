@@ -12,7 +12,7 @@ import { ConflictException, Injectable } from '@nestjs/common';
  */
 export const CONTENT_KEY_DEDUPE_WINDOW_MS = 10 * 60 * 1000;
 
-/** Keys walked in one call; holes left by deleted groups are far fewer. */
+/** Keys walked in one call; the walk starts at the last held key, so one or two steps are normal. */
 const MAX_KEY_STEPS = 25;
 
 export interface IdempotentCreateResult {
@@ -33,13 +33,15 @@ export interface IdempotentCreateResult {
  *
  * The unique index cannot be reused, so the n-th release of identical content
  * is stored under `<key>` (n = 0) or `<key>:<n>`. The latest release is the
- * only one that can still be fresh, and every earlier one is stale or
- * cancelled. A call therefore counts the live groups under the key prefix, and
- * starts its walk at the last of them instead of at `<key>`; the walk is in
- * order and stops at the first fresh live group (replay) or the first free key
- * (create). The count never exceeds the highest generation, so the walk cannot
- * start past a fresh group, and it stays short however often the same post is
- * repeated, so identical content never runs out of keys.
+ * only one that can still be fresh, and every earlier one is stale, cancelled
+ * or deleted. A call therefore counts the groups under the key prefix, deleted
+ * ones included because they still hold their key, and starts its walk at the
+ * last of them instead of at `<key>`; the walk is in order and stops at the
+ * first fresh live group (replay) or the first free key (create). Generations
+ * are filled in order, so the count never exceeds the highest generation and
+ * the walk cannot start past a fresh group. It stays short however often the
+ * same post is repeated or deleted, so identical content never runs out of
+ * keys.
  *
  * Two concurrent identical calls walk to the same free key; one create wins the
  * unique index and the other re-reads and replays it. A key held by a deleted

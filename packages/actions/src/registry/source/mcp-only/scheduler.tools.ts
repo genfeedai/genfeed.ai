@@ -264,7 +264,7 @@ export const MCP_SCHEDULER_TOOLS: SourceTool[] = [
         confirmed: confirmedSchema,
         idempotencyKey: {
           description:
-            'Optional. Leave it out: identical calls are already deduplicated, so repeating a call after a timeout or lost response returns the release already made instead of creating a second one.',
+            'Optional. Leave it out for a normal retry: an identical call repeated within ten minutes returns the release already made instead of creating a second one. Pass your own key only when a retry may come later than that.',
           type: 'string',
         },
         release: releaseCreateSchema,

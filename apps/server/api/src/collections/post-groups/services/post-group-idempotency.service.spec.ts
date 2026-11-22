@@ -41,8 +41,11 @@ describe('PostGroupIdempotencyService', () => {
     deletedKeys = new Set();
     nextId = 1;
     const persistence = {
+      // Deleted groups still hold their unique-index entry, so they count.
       countByIdempotencyKeyPrefix: async (_org: string, prefix: string) =>
-        [...groups.keys()].filter((key) => key.startsWith(prefix)).length,
+        [...groups.keys(), ...deletedKeys].filter((key) =>
+          key.startsWith(prefix),
+        ).length,
       findByIdempotencyKey: async (_org: string, key: string) =>
         groups.get(key),
     } as unknown as PostGroupPersistenceService;
@@ -85,6 +88,21 @@ describe('PostGroupIdempotencyService', () => {
 
     expect(result.replayed).toBe(false);
     expect(groups.get(`${CONTENT_KEY}:1`)?.id).toBe(result.group.id);
+  });
+
+  it('creates past any number of soft-deleted holders of a content-derived key', async () => {
+    deletedKeys.add(CONTENT_KEY);
+    for (let generation = 1; generation < 40; generation++) {
+      deletedKeys.add(`${CONTENT_KEY}:${generation}`);
+    }
+
+    const result = await service.run('org-1', CONTENT_KEY, create);
+    const retried = await service.run('org-1', CONTENT_KEY, create);
+
+    expect(result.replayed).toBe(false);
+    expect(groups.get(`${CONTENT_KEY}:40`)?.id).toBe(result.group.id);
+    expect(retried.replayed).toBe(true);
+    expect(retried.group.id).toBe(result.group.id);
   });
 
   it('keeps replaying a cancelled group for a caller-chosen key', async () => {
