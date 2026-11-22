@@ -67,6 +67,7 @@ function state(
     isHighlightedItemMissing: false,
     isLoading: false,
     items: [approval],
+    onAnswer: vi.fn().mockResolvedValue(undefined),
     onDecide: vi.fn().mockResolvedValue(undefined),
     onDecideMany: vi.fn().mockResolvedValue(undefined),
     onSourceFilterChange: vi.fn(),
@@ -272,6 +273,106 @@ describe('ReviewInboxApprovalsSection', () => {
     expect(
       screen.queryByRole('button', { name: 'Approve' }),
     ).not.toBeInTheDocument();
+  });
+
+  describe('agent questions', () => {
+    const question: IReviewInboxItem = {
+      ...approval,
+      actionDetails: null,
+      actionTitle: 'Pick a tone',
+      approvalId: null,
+      estimatedCredits: null,
+      id: 'agent_input_request:thread-1:req-tone',
+      kind: 'agent_input_request',
+      preview: { caption: 'Which tone should the launch posts use?', mediaUrl: null },
+      question: {
+        allowFreeText: true,
+        isMultiSelect: false,
+        maxSelections: null,
+        options: [
+          { description: 'Light and fun', id: 'playful', label: 'Playful' },
+          { description: null, id: 'formal', label: 'Formal' },
+        ],
+        prompt: 'Which tone should the launch posts use?',
+        requestId: 'req-tone',
+        threadId: 'thread-1',
+      },
+      requestedByLabel: null,
+      source: 'agent',
+      sourceLabel: 'Launch week',
+      toolName: null,
+    };
+
+    it('answers with an option in the row', () => {
+      const onAnswer = vi.fn().mockResolvedValue(undefined);
+      render(
+        <ReviewInboxApprovalsSection
+          approvals={state({ items: [question], onAnswer })}
+        />,
+      );
+
+      fireEvent.click(screen.getByRole('button', { name: 'Formal' }));
+
+      expect(onAnswer).toHaveBeenCalledWith(question, {
+        answer: 'Formal',
+        optionIds: ['formal'],
+      });
+      expect(
+        screen.queryByRole('button', { name: 'Approve' }),
+      ).not.toBeInTheDocument();
+    });
+
+    it('answers with typed text when the agent accepts a free answer', () => {
+      const onAnswer = vi.fn().mockResolvedValue(undefined);
+      render(
+        <ReviewInboxApprovalsSection
+          approvals={state({ items: [question], onAnswer })}
+        />,
+      );
+      const send = screen.getByRole('button', { name: 'Send' });
+      expect(send).toBeDisabled();
+
+      fireEvent.change(screen.getByLabelText('Your answer'), {
+        target: { value: '  Dry and direct ' },
+      });
+      fireEvent.click(send);
+
+      expect(onAnswer).toHaveBeenCalledWith(question, {
+        answer: 'Dry and direct',
+      });
+    });
+
+    it('offers only the thread for a question that takes several answers', () => {
+      const multi: IReviewInboxItem = {
+        ...question,
+        question: question.question && {
+          ...question.question,
+          isMultiSelect: true,
+        },
+      };
+      render(
+        <ReviewInboxApprovalsSection approvals={state({ items: [multi] })} />,
+      );
+
+      expect(
+        screen.queryByRole('button', { name: 'Formal' }),
+      ).not.toBeInTheDocument();
+      expect(screen.getByText(/takes several answers/)).toBeInTheDocument();
+    });
+
+    it('shows a view-only member the question without a way to answer', () => {
+      render(
+        <ReviewInboxApprovalsSection
+          approvals={state({ items: [{ ...question, isResolvable: false }] })}
+        />,
+      );
+
+      expect(screen.getByText('Pick a tone')).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', { name: 'Formal' }),
+      ).not.toBeInTheDocument();
+      expect(screen.getByText(/Only the thread owner/)).toBeInTheDocument();
+    });
   });
 
   it('renders nothing when there is nothing to decide', () => {

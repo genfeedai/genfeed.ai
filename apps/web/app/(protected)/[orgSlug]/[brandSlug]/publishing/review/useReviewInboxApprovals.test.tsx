@@ -10,6 +10,7 @@ import {
 } from './useReviewInboxApprovals';
 
 const fixture = vi.hoisted(() => ({
+  answerQuestion: vi.fn(),
   decide: vi.fn(),
   decideMany: vi.fn(),
   getPendingItems: vi.fn(),
@@ -36,6 +37,7 @@ vi.mock(
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => async () => ({
+    answerQuestion: fixture.answerQuestion,
     decide: fixture.decide,
     decideMany: fixture.decideMany,
     getPendingItems: fixture.getPendingItems,
@@ -251,6 +253,75 @@ describe('useReviewInboxApprovals', () => {
     expect(fixture.notificationError).toHaveBeenCalled();
     expect(fixture.getPendingItems).toHaveBeenCalledTimes(2);
     expect(result.current.decidingItemId).toBeNull();
+  });
+
+  it('answers an agent question through its thread, reports it and reloads', async () => {
+    fixture.answerQuestion.mockResolvedValue(undefined);
+    const question = item({
+      id: 'agent_input_request:thread-1:req-tone',
+      kind: 'agent_input_request',
+      question: {
+        allowFreeText: false,
+        isMultiSelect: false,
+        maxSelections: null,
+        options: [{ description: null, id: 'playful', label: 'Playful' }],
+        prompt: 'Which tone?',
+        requestId: 'req-tone',
+        threadId: 'thread-1',
+      },
+      source: 'agent',
+    });
+    const { result } = renderHook(() => useReviewInboxApprovals(), {
+      wrapper,
+    });
+    await waitFor(() => expect(result.current.items).toHaveLength(2));
+
+    await act(() =>
+      result.current.onAnswer(question, {
+        answer: 'Playful',
+        optionIds: ['playful'],
+      }),
+    );
+
+    expect(fixture.answerQuestion).toHaveBeenCalledWith({
+      answer: 'Playful',
+      optionIds: ['playful'],
+      requestId: 'req-tone',
+      threadId: 'thread-1',
+    });
+    expect(fixture.notificationSuccess).toHaveBeenCalledWith(
+      'Answer sent. The agent continues.',
+    );
+    expect(fixture.getPendingItems).toHaveBeenCalledTimes(2);
+    expect(result.current.decidingItemId).toBeNull();
+  });
+
+  it('reports a failed answer and reloads the server state', async () => {
+    fixture.answerQuestion.mockRejectedValue(new Error('already answered'));
+    const question = item({
+      id: 'agent_input_request:thread-1:req-tone',
+      kind: 'agent_input_request',
+      question: {
+        allowFreeText: true,
+        isMultiSelect: false,
+        maxSelections: null,
+        options: [],
+        prompt: 'Which tone?',
+        requestId: 'req-tone',
+        threadId: 'thread-1',
+      },
+      source: 'agent',
+    });
+    const { result } = renderHook(() => useReviewInboxApprovals(), {
+      wrapper,
+    });
+    await waitFor(() => expect(result.current.items).toHaveLength(2));
+
+    await act(() => result.current.onAnswer(question, { answer: 'Playful' }));
+
+    expect(fixture.notificationError).toHaveBeenCalled();
+    expect(fixture.notificationSuccess).not.toHaveBeenCalled();
+    expect(fixture.getPendingItems).toHaveBeenCalledTimes(2);
   });
 
   it('flags an approval deep link whose row is no longer pending', async () => {

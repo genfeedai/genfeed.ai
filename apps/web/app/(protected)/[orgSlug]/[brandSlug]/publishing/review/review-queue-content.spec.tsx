@@ -23,6 +23,7 @@ const mocks = vi.hoisted(() => ({
     isLoading: false,
     items: [],
     onDecide: vi.fn(),
+    onAnswer: vi.fn(),
     onDecideMany: vi.fn(),
     onSourceFilterChange: vi.fn(),
     refresh: vi.fn(),

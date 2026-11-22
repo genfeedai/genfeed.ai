@@ -248,7 +248,7 @@ export const MCP_CATALOG_TOOLS = [
         action: 'inbox',
         executes: 'get_inbox',
         summary:
-          'List what waits for review in the workspace inbox: workflow review gates and queued MCP approvals. Read-only; decisions are made in the app.',
+          'List what waits for review in the workspace inbox: workflow review gates, queued MCP approvals and questions an agent run waits on. Read-only; decisions and answers are made in the app.',
       },
       {
         action: 'review_queue',
