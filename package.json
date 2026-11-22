@@ -106,6 +106,7 @@
     "check:tenant-scope": "bun run scripts/architecture/check-tenant-scope.ts",
     "check:traced-definitions": "bun run scripts/architecture/check-traced-definitions.ts",
     "check:test-collection": "node scripts/architecture/check-test-collection.mjs",
+    "check:final-attempt-failure": "bun run scripts/architecture/check-final-attempt-failure.ts",
     "check:test-id-literals": "bun run scripts/architecture/check-test-id-literals.ts",
     "check:test-module-providers": "bun run scripts/architecture/check-test-module-providers.ts",
     "check:window-open-after-await": "bun run scripts/architecture/check-window-open-after-await.ts",
