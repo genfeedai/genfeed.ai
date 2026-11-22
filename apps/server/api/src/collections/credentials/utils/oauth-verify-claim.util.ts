@@ -17,7 +17,7 @@ import { getTenantContext } from '@libs/prisma/tenant-context';
 import { traced } from '@libs/tracing/traced';
 
 /** How long a second verify waits for the request that claimed the state. */
-const OAUTH_VERIFY_CLAIM_WAIT_MS = 15_000;
+export const OAUTH_VERIFY_CLAIM_WAIT_MS = 15_000;
 const OAUTH_VERIFY_CLAIM_POLL_MS = 250;
 const CLAIMED_OAUTH_STATE_PREFIX = 'claimed:';
 const VERIFIED_OAUTH_STATE_PREFIX = 'verified:';

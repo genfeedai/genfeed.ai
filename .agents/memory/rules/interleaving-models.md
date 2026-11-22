@@ -14,6 +14,8 @@ A claim, retry or promote protocol over Redis or Postgres gets a model beside th
 - Replay the past bug: keep a compact copy of the code before its fix as a second scenario and assert the exact counterexample it fails with. A model that has never failed has not been shown to look.
 - Give the scenario a `snapshot` so equal states are explored once; without it three actors of two steps are already 90 schedules.
 - Model the crash as a `crashable` actor, never as a thrown error: a crash skips `catch` and `finally`.
+- Code that waits or polls: fake only `Date`, `setTimeout` and `clearTimeout` (the explorer settles on `setImmediate`), reset the clock and clear timers at the start of every schedule, and add an `environment('time passes', () => vi.getTimerCount() > 0, () => vi.advanceTimersByTime(step))`. Put the clock in the snapshot.
+- A race the model finds in code that is already fixed goes in an issue, and the model asserts its exact trace beside the issue number until the fix lands; never widen the invariant to hide it.
 - Keep a hand-written unit test when it guards behavior the model does not state (security, legal, wire format). Delete one the model subsumes.
 
-Reference: `webhooks.stripe.controller.model.spec.ts` (replays #10800); `apps/server/workers/src/services/thread-comment-delivery.service.model.spec.ts` (replays #10792; a Postgres double that evaluates the sweep's real `where`, and throws on a filter it does not know).
+Reference: `webhooks.stripe.controller.model.spec.ts` (replays #10800); `apps/server/workers/src/services/thread-comment-delivery.service.model.spec.ts` (replays #10792; a Postgres double that evaluates the sweep's real `where`, and throws on a filter it does not know); `apps/server/api/src/collections/credentials/utils/oauth-verify-claim.util.model.spec.ts` (replays #10824, with time passing; it found the gap #10863 that #10871 closed).
