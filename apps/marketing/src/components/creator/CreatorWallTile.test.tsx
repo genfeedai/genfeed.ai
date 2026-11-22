@@ -3,7 +3,17 @@ import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import CreatorWallTile from './CreatorWallTile';
 
-const brand = { id: 'b1', logoUrl: 'https://cdn.example.com/logo.png' };
+const brand = {
+  id: 'b1',
+  logoUrl: 'https://cdn.example.com/logo.png',
+  socials: [
+    {
+      handle: 'shayla_updates',
+      platform: 'twitter',
+      url: 'https://x.com/shayla_updates',
+    },
+  ],
+};
 
 function renderTile(post: Record<string, unknown>) {
   return render(
@@ -57,6 +67,24 @@ describe('CreatorWallTile', () => {
       container.querySelector('img[src^="https://cdn.example.com/a"]'),
     ).toBeNull();
     expect(screen.getByText('Hot take: walk to brief.')).toBeTruthy();
-    expect(screen.getByText('@shayla')).toBeTruthy();
+    expect(screen.getByText('@shayla_updates')).toBeTruthy();
+  });
+
+  it('counts a mixed image and video carousel', () => {
+    renderTile({
+      ingredients: [
+        image('a'),
+        {
+          category: 'video',
+          id: 'v',
+          ingredientUrl: 'https://cdn.example.com/v.mp4',
+          status: 'generated',
+        },
+      ],
+      label: 'Mixed',
+      platform: 'instagram',
+    });
+
+    expect(screen.getByText('2')).toBeTruthy();
   });
 });
