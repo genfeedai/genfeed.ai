@@ -10,6 +10,7 @@
  * - Member record
  */
 
+import { randomUUID } from 'node:crypto';
 import { BillingAccountsService } from '@api/collections/billing-accounts/services/billing-accounts.service';
 import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
@@ -23,6 +24,7 @@ import { OrganizationsService } from '@api/collections/organizations/services/or
 import { RolesService } from '@api/collections/roles/services/roles.service';
 import { resolveOrganizationCreatorRole } from '@api/collections/roles/utils/resolve-organization-creator-role.util';
 import { SettingsService } from '@api/collections/settings/services/settings.service';
+import { CacheService } from '@api/services/cache/cache.service';
 import {
   PERSONAL_EMAIL_DOMAIN_LIST,
   resolveDefaultOrganizationCategory,
@@ -36,11 +38,17 @@ import {
   buildPersonalOrganizationSlugSeed,
   resolveSignupOrganizationLabel,
   resolveSignupWorkspaceLabel,
+  sleep,
 } from '@genfeedai/helpers';
 import type { Member, Setting } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
 import { ForbiddenException, Injectable } from '@nestjs/common';
+
+/** Longer than a setup run; a dead holder's claim expires on its own. */
+const USER_SETUP_CLAIM_TTL_SECONDS = 60;
+const USER_SETUP_CLAIM_RETRY_DELAY_MS = 150;
+const USER_SETUP_CLAIM_MAX_WAIT_MS = 10_000;
 
 export interface UserSetupProfile {
   email?: string | null;
@@ -70,6 +78,7 @@ export class UserSetupService {
     private readonly billingAccountsService: BillingAccountsService,
     private readonly creditBalanceService: CreditBalanceService,
     private readonly onboardingCreditGrantsService: OnboardingCreditGrantsService,
+    private readonly cacheService: CacheService,
     private readonly logger: LoggerService,
   ) {}
 
@@ -82,6 +91,63 @@ export class UserSetupService {
    * @throws Error if any critical step fails (cascading failure)
    */
   async initializeUserResources(
+    userId: string,
+    category?: OrganizationCategory,
+    profile?: UserSetupProfile,
+  ): Promise<UserSetupResult> {
+    // Sign-up, the first authenticated request, onboarding and the checkout
+    // webhook can all reach this for one new user at the same moment, and each
+    // step is a check-then-create. One caller at a time holds a cache claim
+    // (no database connection); the others wait for it, then run the same
+    // idempotent steps, which find the holder's rows and create nothing.
+    const claimKey = `user-setup:${userId}`;
+    const token = randomUUID();
+    const claimed = await this.acquireSetupClaim(claimKey, token, userId);
+    try {
+      return await this.provisionUserResources(userId, category, profile);
+    } finally {
+      if (claimed) {
+        await this.cacheService.releaseOwnedClaim(claimKey, token);
+      }
+    }
+  }
+
+  /**
+   * Resolves true when this caller holds the claim. A cache outage or an
+   * exhausted wait proceeds without it: sign-up must never block, and the
+   * steps re-read before creating.
+   */
+  private async acquireSetupClaim(
+    claimKey: string,
+    token: string,
+    userId: string,
+  ): Promise<boolean> {
+    for (
+      let waitedMs = 0;
+      waitedMs <= USER_SETUP_CLAIM_MAX_WAIT_MS;
+      waitedMs += USER_SETUP_CLAIM_RETRY_DELAY_MS
+    ) {
+      const outcome = await this.cacheService.acquireOwnedClaim(
+        claimKey,
+        token,
+        USER_SETUP_CLAIM_TTL_SECONDS,
+      );
+      if (outcome === 'claimed') {
+        return true;
+      }
+      if (outcome === 'unavailable') {
+        return false;
+      }
+      await sleep(USER_SETUP_CLAIM_RETRY_DELAY_MS);
+    }
+    this.logger.warn(
+      `Timed out waiting for the user setup claim for user ${userId}; continuing without it`,
+      this.context,
+    );
+    return false;
+  }
+
+  private async provisionUserResources(
     userId: string,
     category?: OrganizationCategory,
     profile?: UserSetupProfile,
