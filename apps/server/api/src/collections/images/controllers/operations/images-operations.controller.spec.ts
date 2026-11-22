@@ -95,7 +95,6 @@ import { NotificationsPublisherService } from '@api/services/notifications/publi
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { RouterService } from '@api/services/router/router.service';
 import { GenerationEventWebhookService } from '@api/services/webhook-client/generation-event-webhook.service';
-import { WebhookClientService } from '@api/services/webhook-client/webhook-client.service';
 import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
 import { IngredientCompletionService } from '@api/shared/services/poll-until/ingredient-completion.service';
 import { PollTimeoutException } from '@api/shared/services/poll-until/poll-until.exception';
@@ -582,12 +581,6 @@ describe('ImagesOperationsController', () => {
           useValue: {
             getPromptByKey: vi.fn().mockResolvedValue(null),
             renderPrompt: vi.fn(),
-          },
-        },
-        {
-          provide: WebhookClientService,
-          useValue: {
-            sendIngredientWebhook: vi.fn().mockResolvedValue(undefined),
           },
         },
         {

@@ -10,6 +10,7 @@ describe('AgentMessagesService', () => {
   const agentMessage = {
     count: vi.fn(),
     create: vi.fn(),
+    createMany: vi.fn(),
     findFirst: vi.fn(),
     findMany: vi.fn(),
   };
@@ -194,6 +195,50 @@ describe('AgentMessagesService', () => {
         ],
         isLegacyArtifactReferenceEligible: false,
       }),
+    });
+  });
+
+  describe('addMessage with a caller-chosen id', () => {
+    const input = {
+      brandId: 'brand-1',
+      content: 'Hello',
+      id: 'execution-1',
+      organizationId: 'org-1',
+      role: 'user' as never,
+      room: 'thread-1',
+      userId: 'user-1',
+    };
+
+    it('inserts once and returns the stored message when a second writer used the same id', async () => {
+      const stored = { id: 'execution-1', content: 'Hello' };
+      agentMessage.createMany.mockResolvedValue({ count: 0 });
+      agentMessage.findFirst.mockResolvedValue(stored);
+
+      await expect(service.addMessage(input)).resolves.toEqual(stored);
+
+      expect(agentMessage.createMany).toHaveBeenCalledWith({
+        data: [
+          expect.objectContaining({ id: 'execution-1', threadId: 'thread-1' }),
+        ],
+        skipDuplicates: true,
+      });
+      expect(agentMessage.create).not.toHaveBeenCalled();
+      expect(agentMessage.findFirst).toHaveBeenCalledWith({
+        where: expect.objectContaining({
+          id: 'execution-1',
+          isDeleted: false,
+          organizationId: 'org-1',
+        }),
+      });
+    });
+
+    it('refuses an id that belongs to a deleted message or another organization', async () => {
+      agentMessage.createMany.mockResolvedValue({ count: 0 });
+      agentMessage.findFirst.mockResolvedValue(null);
+
+      await expect(service.addMessage(input)).rejects.toThrow(
+        'Agent message id is already in use',
+      );
     });
   });
 
