@@ -115,7 +115,7 @@ const DEFAULT_IGNORE_GLOBS = [
   '**/*.d.ts',
 ];
 
-const HTTP_MENTION = /\bHttpModule\b|\bfetch\s*\(/u;
+const HTTP_MENTION = /\b(?:HttpModule|fetch)\b/u;
 
 const IGNORE_MARKER = 'http-timeout-audit: ignore';
 

@@ -100,6 +100,10 @@ const c = await fetch(url, { signal });`;
     expect(lines(source)).toEqual([]);
   });
 
+  it('finds a fetch call with a comment between the name and its arguments', () => {
+    expect(lines('await fetch /* download */ (url);')).toEqual([1]);
+  });
+
   it('does not follow fetch options held in a variable', () => {
     expect(lines('await fetch(url, init);')).toEqual([]);
   });
