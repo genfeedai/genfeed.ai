@@ -175,6 +175,7 @@ export function ThreadSegments({ target }: PlatformPreviewRendererProps) {
       {target.threadSegments.map((segment, index) => {
         const state = getCaptionPreviewState(
           segment.caption,
+          target.platform,
           target.capability?.caption.maxLength,
           target.capability
             ? getCaptionCeiling(target.capability.caption)

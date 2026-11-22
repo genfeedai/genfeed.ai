@@ -58,6 +58,7 @@ export * from './media-readiness.contract';
 export * from './media-text-decisions.contract';
 export * from './native-host.contract';
 export * from './outreach-capabilities.contract';
+export * from './platform-text-length.contract';
 export * from './posting-sets.contract';
 export * from './posts.contract';
 export * from './prompt-optimization.contract';

@@ -1,7 +1,5 @@
-import {
-  getPlatformTextLimit,
-  measurePlatformText,
-} from '@genfeedai/helpers/content/platform-text-length.helper';
+import { measurePlatformText } from '@genfeedai/contracts/api-types/contracts/platform-text-length.contract';
+import { getPlatformTextLimit } from '@genfeedai/helpers/content/platform-text-length.helper';
 
 const HTTP_URLS_PATTERN = /https?:\/\/\S+/gu;
 const NON_WORD_RUNS_PATTERN = /[^\p{L}\p{N}]+/gu;

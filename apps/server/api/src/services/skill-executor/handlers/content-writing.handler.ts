@@ -8,11 +8,11 @@ import type {
 } from '@api/services/skill-executor/interfaces/skill-executor.interfaces';
 import { SkillBrandBriefService } from '@api/services/skill-executor/skill-brand-brief.service';
 import { ContentIntelligencePlatform } from '@genfeedai/contracts';
+import { measurePlatformText } from '@genfeedai/contracts/api-types/contracts/platform-text-length.contract';
 import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 import {
   describePlatformTextLimit,
   getPlatformTextLimit,
-  measurePlatformText,
 } from '@genfeedai/helpers/content/platform-text-length.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';

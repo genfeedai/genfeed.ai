@@ -21,7 +21,7 @@ import {
   getChannelCapability,
   getChannelThreadChildCapability,
 } from '@genfeedai/contracts/api-types/contracts';
-import { measurePlatformText } from '@genfeedai/helpers/content/platform-text-length.helper';
+import { measurePlatformText } from '@genfeedai/contracts/api-types/contracts/platform-text-length.contract';
 import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 
