@@ -457,7 +457,9 @@ describe('WebSocketGateway redis message dispatch', () => {
   const USER_ROOM = `user:${USER_ID}`;
 
   let gateway: WebSocketGateway;
-  let roomEmit: ReturnType<typeof vi.fn>;
+  let roomEmit: ReturnType<
+    typeof vi.fn<(event: string, payload: unknown) => void>
+  >;
   let serverTo: ReturnType<typeof vi.fn>;
   let serverEmit: ReturnType<typeof vi.fn>;
   let localEmits: RecordedEmit[];
@@ -503,7 +505,7 @@ describe('WebSocketGateway redis message dispatch', () => {
     vi.clearAllMocks();
     vi.useFakeTimers();
 
-    roomEmit = vi.fn();
+    roomEmit = vi.fn<(event: string, payload: unknown) => void>();
     localEmits = [];
     clusterEmits = [];
     serverTo = vi.fn((room: string | string[]) => ({
