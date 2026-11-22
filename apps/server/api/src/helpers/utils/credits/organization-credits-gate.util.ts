@@ -3,7 +3,10 @@ import type { ModelsService } from '@api/collections/models/services/models.serv
 import { baseModelKey } from '@api/collections/models/utils/model-key.util';
 import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import { createInsufficientCreditsException } from '@api/helpers/utils/credits/insufficient-credits.util';
-import { getMinimumTextCredits } from '@api/helpers/utils/text-pricing/text-pricing.util';
+import {
+  getMinimumTextCredits,
+  MINIMUM_ACTION_CREDITS,
+} from '@api/helpers/utils/text-pricing/text-pricing.util';
 import { BadRequestException } from '@nestjs/common';
 
 export async function assertOrganizationCreditsAvailable(
@@ -58,7 +61,7 @@ export async function resolveTextModelMinimumCredits(
     return getMinimumTextCredits(model);
   }
 
-  return model.cost || 0;
+  return Math.max(MINIMUM_ACTION_CREDITS, model.cost || 0);
 }
 
 export async function getDefaultTextMinimumCredits(
