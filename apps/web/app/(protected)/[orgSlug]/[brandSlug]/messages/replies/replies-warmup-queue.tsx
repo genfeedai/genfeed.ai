@@ -16,6 +16,7 @@ import { Textarea } from '@ui/primitives/textarea';
 import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
+import { openInNewTab } from '@/lib/navigation/open-in-new-tab';
 
 const LEADING_AT_SIGN_PATTERN = /^@/;
 const QUEUE_LIMIT = 20;
@@ -56,7 +57,7 @@ export default function RepliesWarmupQueue() {
   const loadError = queueQuery.error ?? usageQuery.error;
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [openedIds, setOpenedIds] = useState<string[]>([]);
-  const [busyId, setBusyId] = useState<string | null>(null);
+  const [busyIds, setBusyIds] = useState<string[]>([]);
 
   // use-effect-audit: ignore reports a load failure to the logger and notifications
   useEffect(() => {
@@ -71,20 +72,17 @@ export default function RepliesWarmupQueue() {
     return drafts[item.id] ?? item.draftReplyText ?? '';
   }
 
-  async function runAction(
-    item: BotActivity,
-    action: (service: BotActivitiesService) => Promise<void>,
-  ) {
-    setBusyId(item.id);
+  async function runAction(item: BotActivity, action: () => Promise<void>) {
+    setBusyIds((previous) => [...previous, item.id]);
     try {
-      await action(await getBotActivitiesService());
+      await action();
     } catch (error: unknown) {
       logger.error('Warm-up reply action failed', error);
       toast.error(
         error instanceof Error ? error.message : translate('actionFailed'),
       );
     } finally {
-      setBusyId(null);
+      setBusyIds((previous) => previous.filter((id) => id !== item.id));
     }
   }
 
@@ -104,16 +102,22 @@ export default function RepliesWarmupQueue() {
   }
 
   function handleOpen(item: BotActivity) {
-    return runAction(item, async (service) => {
-      const result = await service.openReplyQueueItem(item.id, draftOf(item));
-      window.open(result.intentUrl, '_blank', 'noopener,noreferrer');
+    // The tab opens inside the click, before any request, so a popup blocker
+    // allows it; runAction starts its action synchronously for the same reason.
+    return runAction(item, async () => {
+      await openInNewTab(async () => {
+        const service = await getBotActivitiesService();
+        const result = await service.openReplyQueueItem(item.id, draftOf(item));
+        return result.intentUrl;
+      });
       setOpenedIds((previous) => [...previous, item.id]);
       toast.message(translate('opened'));
     });
   }
 
   function handlePosted(item: BotActivity) {
-    return runAction(item, async (service) => {
+    return runAction(item, async () => {
+      const service = await getBotActivitiesService();
       applyUsage(await service.confirmReplyQueueItemPosted(item.id));
       removeItem(item.id);
       toast.success(translate('posted'));
@@ -121,7 +125,8 @@ export default function RepliesWarmupQueue() {
   }
 
   function handleDismiss(item: BotActivity) {
-    return runAction(item, async (service) => {
+    return runAction(item, async () => {
+      const service = await getBotActivitiesService();
       applyUsage(await service.dismissReplyQueueItem(item.id));
       removeItem(item.id);
       toast.message(translate('dismissed'));
@@ -161,7 +166,7 @@ export default function RepliesWarmupQueue() {
           LEADING_AT_SIGN_PATTERN,
           '',
         );
-        const isBusy = busyId === item.id;
+        const isBusy = busyIds.includes(item.id);
         const hasOpened = openedIds.includes(item.id);
 
         return (
