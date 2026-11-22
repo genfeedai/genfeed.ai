@@ -23,6 +23,7 @@ const {
   createCheckoutSessionMock,
   currentUserState,
   getTokenMock,
+  getTokenState,
   getMyOrganizationsMock,
   updateAccountTypeMock,
   findOrganizationBrandsMock,
@@ -53,6 +54,9 @@ const {
     isLoading: false,
   },
   getTokenMock: vi.fn(),
+  getTokenState: {
+    current: undefined as unknown as () => Promise<string | null>,
+  },
   getMyOrganizationsMock: vi.fn(),
   updateAccountTypeMock: vi.fn(),
   findOrganizationBrandsMock: vi.fn(),
@@ -82,7 +86,7 @@ vi.mock('@/lib/analytics', () => ({
 
 vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => ({
   useAuthIdentity: () => ({
-    getToken: getTokenMock,
+    getToken: getTokenState.current,
     isLoaded: true,
     isSignedIn: true,
     orgId: null,
@@ -245,6 +249,7 @@ describe('PostSignupPage behavior', () => {
     patchBrandMock.mockReset();
     patchBrandMock.mockResolvedValue({});
     getTokenMock.mockReset();
+    getTokenState.current = getTokenMock;
     getMyOrganizationsMock.mockReset();
     updateAccountTypeMock.mockReset();
     updateAccountTypeMock.mockResolvedValue({});
@@ -908,5 +913,93 @@ describe('PostSignupPage behavior', () => {
       expect(locationState.href).toBe('/onboarding/brand');
     });
     expect(getMyOrganizationsMock).not.toHaveBeenCalled();
+  });
+
+  it('finishes routing once when the user and token getter change identity while it is in flight', async () => {
+    let releaseToken: (token: string) => void = () => undefined;
+    resolveAuthTokenMock.mockReturnValue(
+      new Promise<string>((resolve) => {
+        releaseToken = resolve;
+      }),
+    );
+
+    const { rerender } = render(<PostSignupPage />);
+    await vi.waitFor(() => {
+      expect(resolveAuthTokenMock).toHaveBeenCalledTimes(1);
+    });
+
+    currentUserState.currentUser = {
+      ...currentUserState.currentUser,
+    };
+    getTokenState.current = vi.fn(async () => 'next-token');
+    rerender(<PostSignupPage />);
+    await act(async () => {
+      await new Promise((resolve) => setImmediate(resolve));
+    });
+    expect(locationState.href).toBe('http://localhost/onboarding/post-signup');
+
+    await act(async () => {
+      releaseToken('api-token');
+    });
+
+    await waitFor(() => {
+      expect(locationState.href).toBe('/onboarding/brand');
+    });
+    expect(resolveAuthTokenMock).toHaveBeenCalledTimes(1);
+    expect(getMyOrganizationsMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('runs routing once when the user reloads while it is in flight', async () => {
+    let releaseToken: (token: string) => void = () => undefined;
+    resolveAuthTokenMock.mockReturnValue(
+      new Promise<string>((resolve) => {
+        releaseToken = resolve;
+      }),
+    );
+
+    const { rerender } = render(<PostSignupPage />);
+    await vi.waitFor(() => {
+      expect(resolveAuthTokenMock).toHaveBeenCalledTimes(1);
+    });
+
+    currentUserState.isLoading = true;
+    rerender(<PostSignupPage />);
+    currentUserState.isLoading = false;
+    rerender(<PostSignupPage />);
+    await act(async () => {
+      await new Promise((resolve) => setImmediate(resolve));
+    });
+
+    await act(async () => {
+      releaseToken('api-token');
+    });
+
+    await waitFor(() => {
+      expect(locationState.href).toBe('/onboarding/brand');
+    });
+    expect(resolveAuthTokenMock).toHaveBeenCalledTimes(1);
+    expect(getMyOrganizationsMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('stops routing when the page unmounts', async () => {
+    let releaseToken: (token: string) => void = () => undefined;
+    resolveAuthTokenMock.mockReturnValue(
+      new Promise<string>((resolve) => {
+        releaseToken = resolve;
+      }),
+    );
+
+    const { unmount } = render(<PostSignupPage />);
+    await vi.waitFor(() => {
+      expect(resolveAuthTokenMock).toHaveBeenCalledTimes(1);
+    });
+
+    unmount();
+    await act(async () => {
+      releaseToken('api-token');
+      await new Promise((resolve) => setImmediate(resolve));
+    });
+
+    expect(locationState.href).toBe('http://localhost/onboarding/post-signup');
   });
 });
