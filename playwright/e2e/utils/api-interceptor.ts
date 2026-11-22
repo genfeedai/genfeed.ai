@@ -2001,39 +2001,6 @@ async function handleTrendsRoute(route: Route): Promise<void> {
     return;
   }
 
-  if (url.includes('/turnover')) {
-    await route.fulfill({
-      body: JSON.stringify({
-        byPlatform: [
-          {
-            alive: 8,
-            appeared: 4,
-            avgLifespanDays: 12,
-            died: 1,
-            platform: 'tiktok',
-            turnoverRate: 0.2,
-          },
-        ],
-        days: 30,
-        timeline: buildTimeSeriesPoints().map((point) => ({
-          appeared: 1,
-          date: point.date,
-          died: 0,
-        })),
-        totals: {
-          alive: 8,
-          appeared: 4,
-          avgLifespanDays: 12,
-          died: 1,
-          turnoverRate: 0.2,
-        },
-      }),
-      contentType: 'application/json',
-      status: 200,
-    });
-    return;
-  }
-
   if (url.includes('/videos')) {
     await route.fulfill({
       body: JSON.stringify({
