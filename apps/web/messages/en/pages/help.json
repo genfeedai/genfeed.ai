@@ -151,17 +151,13 @@
     "title": "Reply drip",
     "body": "Timed follow-ups after a first reply. Configure the drip so no conversation goes cold."
   },
-  "discoveryOverview": {
+  "discoveryFeed": {
     "title": "Discovery",
     "body": "Content from accounts and topics you follow, ranked by what is moving. Save anything to remix later."
   },
   "discoveryTrends": {
     "title": "Trends",
     "body": "Topics, viral videos, hashtags, and sounds gaining traction across platforms, with the health of each trend source."
-  },
-  "discoveryTrendTurnover": {
-    "title": "Trend turnover",
-    "body": "How fast trends rise and fade on each platform, so you can time content before a topic peaks."
   },
   "discoveryAds": {
     "title": "Ads research",

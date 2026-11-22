@@ -8,7 +8,7 @@ import {
 /**
  * Deep interaction specs for the brand-scoped trends analytics surfaces:
  * the Trends list, a single Trend detail view, a platform-scoped trends
- * breakdown, Trend Turnover, Streaks, and Hooks.
+ * breakdown, Streaks, and Hooks.
  *
  * These pages render trend tables, viral-score charts, platform filter tabs,
  * and a Refresh control via the shared analytics layout. The analytics trends +
@@ -45,7 +45,6 @@ test.describe('Analytics — Trends (deep interactions)', () => {
     `${BRAND}/discovery/trends`,
     `${BRAND}/discovery/trends/detail/mock-id`,
     `${BRAND}/discovery/trends/platforms/tiktok`,
-    `${BRAND}/discovery/trend-turnover`,
     `${BRAND}/analytics/streaks`,
     `${BRAND}/analytics/hooks`,
   ];
@@ -111,23 +110,6 @@ test.describe('Analytics — Trends (deep interactions)', () => {
     await exerciseDateRange(authenticatedPage);
     await exerciseRefresh(authenticatedPage);
     await tryClick(authenticatedPage, 'tbody tr');
-
-    await expect(authenticatedPage.locator('body')).toBeVisible();
-    await expectNoErrorOverlay(authenticatedPage);
-  });
-
-  test('trend turnover cycles date-range and chart controls', async ({
-    authenticatedPage,
-  }) => {
-    await assertRouteRenders(
-      authenticatedPage,
-      `${BRAND}/discovery/trend-turnover`,
-    );
-
-    await exerciseDateRange(authenticatedPage);
-    await tryClick(authenticatedPage, '[role="tab"]');
-    await tryClick(authenticatedPage, '[role="combobox"]');
-    await exerciseRefresh(authenticatedPage);
 
     await expect(authenticatedPage.locator('body')).toBeVisible();
     await expectNoErrorOverlay(authenticatedPage);

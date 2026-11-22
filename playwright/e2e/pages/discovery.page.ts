@@ -4,7 +4,7 @@ import type { Locator, Page } from '@playwright/test';
 /**
  * Page Object Model for the Discovery pages.
  *
- * Covers /discovery (redirects to /discovery/overview), /discovery/overview
+ * Covers /discovery (redirects to /discovery/feed), /discovery/feed
  * (the "Signal Desk") and /discovery/ads (platform is a tab/query filter on
  * this one page, not a route). #4317 (closes #4299) hard-retired
  * /discovery/socials, /discovery/following, /discovery/discovery,
@@ -42,7 +42,7 @@ export class DiscoveryPage {
     await this.waitForPageLoad();
   }
 
-  async gotoSection(section: 'overview' | 'ads'): Promise<void> {
+  async gotoSection(section: 'feed' | 'ads'): Promise<void> {
     await this.page.goto(`/discovery/${section}`);
     await this.waitForPageLoad();
   }

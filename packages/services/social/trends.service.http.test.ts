@@ -281,29 +281,6 @@ describe('TrendsService HTTP methods', () => {
         success: false,
       });
     });
-
-    it('getTurnoverStats GETs with the days window', async () => {
-      const payload = {
-        byPlatform: [],
-        days: 7,
-        timeline: [],
-        totals: {
-          alive: 0,
-          appeared: 0,
-          avgLifespanDays: 0,
-          died: 0,
-          turnoverRate: 0,
-        },
-      };
-      http.get.mockResolvedValue(axiosResponse(payload));
-
-      const result = await service.getTurnoverStats(7);
-
-      expect(http.get).toHaveBeenCalledWith('/turnover', {
-        params: { days: 7 },
-      });
-      expect(result).toEqual(payload);
-    });
   });
 });
 
