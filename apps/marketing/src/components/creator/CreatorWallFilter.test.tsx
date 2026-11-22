@@ -1,22 +1,38 @@
 import { fireEvent, render, screen } from '@testing-library/react';
+import { lazy, Suspense } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import CreatorWallFilter from './CreatorWallFilter';
 
 const push = vi.fn();
+
+// `next/dynamic` never resolves its chunk under vitest; React.lazy loads the
+// same real menu from the same import.
+vi.mock('next/dynamic', () => ({
+  default: (loader: () => Promise<{ default: React.ComponentType<never> }>) => {
+    const Menu = lazy(loader);
+    return function LazyMenu(props: Record<string, unknown>) {
+      return (
+        <Suspense fallback={null}>
+          <Menu {...(props as never)} />
+        </Suspense>
+      );
+    };
+  },
+}));
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push }),
 }));
 
 /** Radix menus open from the keyboard: Enter on the trigger, Arrow Right on a facet. */
-function openMenu() {
-  fireEvent.keyDown(screen.getByRole('button', { name: /^Filters/ }), {
+async function openMenu() {
+  fireEvent.keyDown(await screen.findByRole('button', { name: /^Filters/ }), {
     key: 'Enter',
   });
 }
 
-function openPlatforms() {
-  openMenu();
+async function openPlatforms() {
+  await openMenu();
   const facet = screen.getByRole('menuitem', { name: /Platform/ });
   facet.focus();
   fireEvent.keyDown(facet, { key: 'ArrowRight' });
@@ -36,7 +52,7 @@ describe('CreatorWallFilter', () => {
       />,
     );
 
-    openPlatforms();
+    await openPlatforms();
     fireEvent.click(
       await screen.findByRole('menuitemradio', { name: 'TikTok' }),
     );
@@ -53,7 +69,7 @@ describe('CreatorWallFilter', () => {
       />,
     );
 
-    openPlatforms();
+    await openPlatforms();
 
     expect(
       (
@@ -62,7 +78,7 @@ describe('CreatorWallFilter', () => {
     ).toBe('true');
   });
 
-  it('clears back to the whole wall', () => {
+  it('clears back to the whole wall', async () => {
     render(
       <CreatorWallFilter
         active="instagram"
@@ -71,7 +87,7 @@ describe('CreatorWallFilter', () => {
       />,
     );
 
-    openMenu();
+    await openMenu();
     fireEvent.click(screen.getByRole('menuitem', { name: 'Clear filters' }));
 
     expect(push).toHaveBeenCalledWith('/@shayla/posts');
