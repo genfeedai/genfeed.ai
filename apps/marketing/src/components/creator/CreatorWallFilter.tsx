@@ -1,22 +1,25 @@
+'use client';
+
 import { formatPlatformLabel } from '@genfeedai/contracts';
 import { creatorTabPath } from '@genfeedai/contracts/constants';
-import { cn } from '@genfeedai/helpers';
 import { getPlatformIconComponent } from '@genfeedai/helpers/ui/platform-icon/platform-icon.helper';
 import type { CreatorWallFilterProps } from '@props/content/creator.props';
-import Link from 'next/link';
-
-const CHIP_CLASS =
-  'inline-flex h-8 items-center gap-2 rounded-full border px-3 text-sm font-medium transition-colors';
+import FilterMenu from '@ui/navigation/filter-menu/FilterMenu';
+import { useRouter } from 'next/navigation';
 
 /**
- * Narrows the wall to one platform. Each chip is a link to the same page with
- * `?platform=`, so a filtered wall is a URL and needs no script.
+ * Narrows the wall to one platform with the shared Filters menu, the same
+ * control every list in the app uses. The choice lives in the URL as
+ * `?platform=`, so a filtered wall can be linked and the page stays rendered
+ * on the server.
  */
 export default function CreatorWallFilter({
   active,
   handle,
   platforms,
 }: CreatorWallFilterProps): React.ReactElement | null {
+  const router = useRouter();
+
   if (platforms.length < 2) {
     return null;
   }
@@ -24,28 +27,38 @@ export default function CreatorWallFilter({
   const base = creatorTabPath(handle, 'posts');
 
   return (
-    <nav aria-label="Filter by platform" className="flex flex-wrap gap-2">
-      {[null, ...platforms].map((platform) => {
-        const Icon = platform ? getPlatformIconComponent(platform) : undefined;
-        const isActive = platform === active;
+    <div className="flex justify-end">
+      <FilterMenu
+        allLabel="All"
+        clearLabel="Clear filters"
+        facets={[
+          {
+            defaultValue: '',
+            key: 'platform',
+            label: 'Platform',
+            onChange: (platform) =>
+              router.push(platform ? `${base}?platform=${platform}` : base),
+            options: platforms.map((platform) => {
+              const Icon = getPlatformIconComponent(platform);
 
-        return (
-          <Link
-            aria-current={isActive ? 'page' : undefined}
-            className={cn(
-              CHIP_CLASS,
-              isActive
-                ? 'border-foreground bg-foreground text-background'
-                : 'border-border text-foreground/60 hover:border-border-strong hover:text-foreground',
-            )}
-            href={platform ? `${base}?platform=${platform}` : base}
-            key={platform ?? 'all'}
-          >
-            {Icon ? <Icon aria-hidden="true" className="size-3.5" /> : null}
-            {platform ? (formatPlatformLabel(platform) ?? platform) : 'All'}
-          </Link>
-        );
-      })}
-    </nav>
+              return {
+                icon: Icon ? (
+                  <Icon aria-hidden="true" className="size-4" />
+                ) : undefined,
+                label: formatPlatformLabel(platform) ?? platform,
+                value: platform,
+              };
+            }),
+            selection: 'single',
+            value: active ?? '',
+          },
+        ]}
+        getActiveCountLabel={(count) =>
+          count === 1 ? '1 active filter' : `${count} active filters`
+        }
+        label="Filters"
+        onClear={() => router.push(base)}
+      />
+    </div>
   );
 }

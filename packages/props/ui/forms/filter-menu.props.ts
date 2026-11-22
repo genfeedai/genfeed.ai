@@ -69,3 +69,22 @@ export interface FilterMenuProps {
    */
   hasAdminScope?: boolean;
 }
+
+/**
+ * The shared menu has no translations, so every text is required. Apps that
+ * have messages wrap it and fill the `FilterMenuProps` defaults.
+ */
+export interface SharedFilterMenuProps
+  extends Omit<
+    FilterMenuProps,
+    | 'allLabel'
+    | 'clearLabel'
+    | 'getActiveCountLabel'
+    | 'hasAdminScope'
+    | 'label'
+  > {
+  allLabel: string;
+  clearLabel: string;
+  getActiveCountLabel: (count: number) => string;
+  label: string;
+}
