@@ -41,6 +41,32 @@ describe('useFormSubmitWithState', () => {
     expect(mockHandler).toHaveBeenCalled();
   });
 
+  it('runs the handler once when submitted twice before the first resolves', async () => {
+    let resolveHandler: () => void = () => {};
+    const mockHandler = vi.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveHandler = resolve;
+        }),
+    );
+    const { result } = renderHook(() => useFormSubmitWithState(mockHandler));
+    const event = { preventDefault: vi.fn() };
+
+    await act(async () => {
+      void result.current.onSubmit(event);
+      void result.current.onSubmit(event);
+    });
+
+    expect(mockHandler.mock.calls).toHaveLength(1);
+    expect(event.preventDefault.mock.calls).toHaveLength(2);
+
+    await act(async () => {
+      resolveHandler();
+    });
+
+    await waitFor(() => expect(result.current.isSubmitting).toBe(false));
+  });
+
   it('sets isSubmitting true during handler execution', async () => {
     let resolveHandler: (() => void) | null = null;
     const mockHandler = vi.fn(

@@ -12,6 +12,18 @@ type OAuthCallbackErrorDto = {
   state?: string;
 };
 
+/**
+ * Loggable summary of an OAuth callback. The `state` ties a pending connection
+ * to a user and the `code` is a single-use credential, so logs get presence
+ * flags, never the values.
+ */
+export function oauthLogFlags(dto: { code?: string; state?: string }): {
+  hasCode: boolean;
+  hasState: boolean;
+} {
+  return { hasCode: Boolean(dto.code), hasState: Boolean(dto.state) };
+}
+
 type OAuthCallbackCredentialStore = Pick<
   CredentialsService,
   'findPendingOAuthCredential' | 'patchAll'

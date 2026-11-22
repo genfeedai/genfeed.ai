@@ -22,6 +22,7 @@ import { openExternalUrl } from '@/utils/browser';
 import { ApiError, AuthError, GenfeedError, handleError } from '@/utils/errors';
 
 const CALLBACK_TIMEOUT = 120_000; // 2 minutes
+const EXCHANGE_TIMEOUT_MS = 60_000;
 
 interface PkceParams {
   challenge: string;
@@ -94,16 +95,28 @@ export async function exchangeAuthCode(
   apiBaseUrl: string,
   params: ExchangeAuthCodeParams
 ): Promise<ExchangeResponse> {
-  const response = await fetch(`${apiBaseUrl}/auth/desktop/exchange`, {
-    body: JSON.stringify({
-      code: params.code,
-      codeVerifier: params.codeVerifier,
-      ...(params.sessionOnly ? { sessionOnly: true } : {}),
-      state: params.state,
-    }),
-    headers: { 'Content-Type': 'application/json' },
-    method: 'POST',
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${apiBaseUrl}/auth/desktop/exchange`, {
+      body: JSON.stringify({
+        code: params.code,
+        codeVerifier: params.codeVerifier,
+        ...(params.sessionOnly ? { sessionOnly: true } : {}),
+        state: params.state,
+      }),
+      headers: { 'Content-Type': 'application/json' },
+      method: 'POST',
+      signal: AbortSignal.timeout(EXCHANGE_TIMEOUT_MS),
+    });
+  } catch (error) {
+    if (error instanceof Error && error.name === 'TimeoutError') {
+      throw new GenfeedError(
+        'Token exchange timed out',
+        'Try again with `gf login` or use `gf login -k <key>` for manual auth'
+      );
+    }
+    throw error;
+  }
 
   if (!response.ok) {
     const body = await response.text().catch(() => 'Unknown error');
@@ -149,15 +162,24 @@ function waitForOAuthExchange(
     const pkce = generatePkce();
     const expectedState = generateState();
 
+    let callbackHandled = false;
+
     const server = createServer(async (req: IncomingMessage, res: ServerResponse) => {
       const url = new URL(req.url ?? '/', `http://localhost`);
 
       if (url.pathname === '/callback') {
+        if (callbackHandled) {
+          res.writeHead(409, { 'Content-Type': 'text/plain' });
+          res.end('Callback already handled');
+          return;
+        }
+
         const error = url.searchParams.get('error');
         const code = url.searchParams.get('code');
         const returnedState = url.searchParams.get('state');
 
         if (error) {
+          callbackHandled = true;
           res.writeHead(200, { 'Content-Type': 'text/html' });
           res.end(callbackPage('Authentication failed', error, false));
           cleanup();
@@ -172,6 +194,7 @@ function waitForOAuthExchange(
         }
 
         if (returnedState !== expectedState) {
+          callbackHandled = true;
           res.writeHead(400, { 'Content-Type': 'text/html' });
           res.end(callbackPage('Error', 'State mismatch. Possible CSRF.', false));
           cleanup();
@@ -179,6 +202,7 @@ function waitForOAuthExchange(
           return;
         }
 
+        callbackHandled = true;
         try {
           const data = await exchangeAuthCode(endpoints.apiBaseUrl, {
             code,
@@ -226,6 +250,7 @@ function waitForOAuthExchange(
       clearTimeout(timeout);
       process.removeListener('SIGINT', onSigint);
       server.close();
+      server.closeIdleConnections();
     }
 
     function onSigint() {

@@ -2,13 +2,19 @@ import { isRecord } from '@genfeedai/contracts/constants/type-guards.constant';
 export const REDACTED_VALUE = '[REDACTED]';
 
 const SENSITIVE_KEY_PATTERN =
-  /(^|[_-])(access[_-]?token|api[_-]?key|authorization|bearer|client[_-]?secret|cookie|id[_-]?token|password|private[_-]?key|refresh[_-]?token|secret|session|token)([_-]|$)/i;
+  /(^|[_-])(access[_-]?token|api[_-]?key|authorization|bearer|client[_-]?secret|code[_-]?verifier|cookie|id[_-]?token|oauth[_-]?state|password|private[_-]?key|refresh[_-]?token|secret|session|token)([_-]|$)/i;
 
 const SENSITIVE_CAMEL_CASE_KEY_PATTERN =
-  /(authorization|cookie|password|secret|token|privateKey|apiKey|codeVerifier)(hash|encrypted|ciphertext|value)?$/i;
+  /(authorization|cookie|password|secret|token|privateKey|apiKey|codeVerifier|oauthState|authorizationCode)(hash|encrypted|ciphertext|value)?$/i;
 
 const SENSITIVE_QUERY_PARAM_PATTERN =
   /([?&][^=&#]*(?:access[_-]?token|api[_-]?key|client[_-]?secret|id[_-]?token|password|refresh[_-]?token|secret|session|token)[^=&#]*=)[^&#]*/gi;
+
+// `code` and `state` are too common as key names (error codes, execution
+// states) to redact by key, so they are matched by exact parameter name here
+// and as a pair in `isOAuthCallbackPayload` below.
+const OAUTH_QUERY_PARAM_PATTERN =
+  /([?&](?:code|state|oauth[_-]?state|code[_-]?verifier)=)[^&#\s]*/gi;
 
 const AUTH_HEADER_PATTERN = /\b(Bearer|Basic)\s+[A-Za-z0-9._~+/=-]+/gi;
 const INLINE_SECRET_PATTERN =
@@ -28,6 +34,13 @@ function isSensitiveKey(key: string): boolean {
     SENSITIVE_KEY_PATTERN.test(key) ||
     SENSITIVE_CAMEL_CASE_KEY_PATTERN.test(key)
   );
+}
+
+// An OAuth callback payload carries the authorization `code` and the `state`
+// together. Either alone is ambiguous (error code, execution state), so only
+// the pair is treated as a credential.
+function isOAuthCallbackPayload(source: Record<string, unknown>): boolean {
+  return typeof source.code === 'string' && typeof source.state === 'string';
 }
 
 function isPrivateKeyMarkerCharacter(character: string): boolean {
@@ -176,6 +189,7 @@ export function redactSensitiveString(value: string): string {
       return `${scheme} ${REDACTED_VALUE}`;
     })
     .replace(SENSITIVE_QUERY_PARAM_PATTERN, `$1${REDACTED_VALUE}`)
+    .replace(OAUTH_QUERY_PARAM_PATTERN, `$1${REDACTED_VALUE}`)
     .replace(DISCORD_WEBHOOK_PATH_PATTERN, `$1${REDACTED_VALUE}`)
     .replace(TELEGRAM_BOT_PATH_PATTERN, `$1${REDACTED_VALUE}`)
     .replace(INLINE_SECRET_PATTERN, `$1${REDACTED_VALUE}`)
@@ -272,10 +286,12 @@ function redactNode(
       return REDACTED_UNSERIALIZABLE_VALUE;
     }
 
+    const oauthCallback = isOAuthCallbackPayload(source);
     return Object.fromEntries(
       Object.entries(source).map(([key, entry]) => [
         key,
-        isSensitiveKey(key)
+        isSensitiveKey(key) ||
+        (oauthCallback && (key === 'code' || key === 'state'))
           ? REDACTED_VALUE
           : redactNode(entry, depth + 1, ancestors),
       ]),

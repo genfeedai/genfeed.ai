@@ -5,6 +5,7 @@ import {
   CreateCredentialVerifyDto,
 } from '@api/collections/credentials/dto/create-credential.dto';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { oauthLogFlags } from '@api/collections/credentials/utils/oauth-callback-error.util';
 import { claimOAuthVerifyCredential } from '@api/collections/credentials/utils/oauth-verify-claim.util';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -102,7 +103,7 @@ export class RedditController {
     @Body() createCredentialVerifyDto: Partial<CreateCredentialVerifyDto>,
   ) {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    this.loggerService.log(url, createCredentialVerifyDto);
+    this.loggerService.log(url, oauthLogFlags(createCredentialVerifyDto));
 
     const { code, state } = createCredentialVerifyDto;
 

@@ -18,11 +18,12 @@ export type PostDetailOperation = (typeof POST_DETAIL_OPERATIONS)[number];
 export type PostDetailPendingOperations = ReadonlySet<PostDetailOperation>;
 
 /**
- * Operations that disable Schedule and Publish now. Today only a schedule or
- * publish save does; other saves keep the buttons available.
+ * Operations that disable Schedule and Publish now. A schedule or publish
+ * save does, and so does the description save that runs first: a click during
+ * it would start a second save-then-publish.
  */
 const POST_DETAIL_PUBLISH_BLOCKING_OPERATIONS: readonly PostDetailOperation[] =
-  ['save-schedule'];
+  ['save-description', 'save-schedule'];
 
 export function setPostDetailOperation(
   pending: PostDetailPendingOperations,

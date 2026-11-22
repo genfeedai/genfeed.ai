@@ -45,6 +45,7 @@ import { ListeningTopicAttributionService } from '@api/collections/listening-top
 import { ListeningTopicCollectorService } from '@api/collections/listening-topics/services/listening-topic-collector.service';
 import { ListeningTopicsService } from '@api/collections/listening-topics/services/listening-topics.service';
 import { PostGroupContractService } from '@api/collections/post-groups/services/post-group-contract.service';
+import { PostGroupIdempotencyService } from '@api/collections/post-groups/services/post-group-idempotency.service';
 import { PostGroupPersistenceService } from '@api/collections/post-groups/services/post-group-persistence.service';
 import { PostGroupReadinessService } from '@api/collections/post-groups/services/post-group-readiness.service';
 import { PostGroupsService } from '@api/collections/post-groups/services/post-groups.service';
@@ -315,6 +316,7 @@ describeWithDatabase('Listening content attribution lifecycle (#1798)', () => {
       persistenceService,
       contractService,
       readinessService,
+      new PostGroupIdempotencyService(persistenceService),
     );
   });
 
