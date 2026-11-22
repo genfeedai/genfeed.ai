@@ -1,5 +1,6 @@
 import { BrandsModule } from '@api/collections/brands/brands.module';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
+import { DEFAULT_HTTP_TIMEOUT_MS } from '@api/constants/http-timeout.constant';
 import { GhostController } from '@api/services/integrations/ghost/controllers/ghost.controller';
 import { GhostService } from '@api/services/integrations/ghost/services/ghost.service';
 import { createServiceModule } from '@api/shared/service-module.factory';
@@ -7,7 +8,11 @@ import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
 
 const BaseModule = createServiceModule(GhostService, {
-  additionalImports: [HttpModule, BrandsModule, CredentialsCoreModule],
+  additionalImports: [
+    HttpModule.register({ timeout: DEFAULT_HTTP_TIMEOUT_MS }),
+    BrandsModule,
+    CredentialsCoreModule,
+  ],
 });
 
 @Module({

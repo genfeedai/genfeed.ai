@@ -1,3 +1,4 @@
+import { UPLOAD_HTTP_TIMEOUT_MS } from '@api/constants/http-timeout.constant';
 import { MissingProviderKeyException } from '@api/helpers/exceptions/missing-provider-key/missing-provider-key.exception';
 import { modelAcceptsTemperature } from '@api/services/integrations/llm/model-sampling.util';
 import {
@@ -210,6 +211,7 @@ export class OpenRouterService {
               'HTTP-Referer': 'https://genfeed.ai',
               'X-Title': 'Genfeed AI',
             },
+            timeout: UPLOAD_HTTP_TIMEOUT_MS,
           },
         ),
       );
@@ -359,6 +361,7 @@ export class OpenRouterService {
               'X-Title': 'Genfeed AI',
             },
             responseType: 'stream',
+            timeout: UPLOAD_HTTP_TIMEOUT_MS,
           },
         ),
       );
@@ -562,6 +565,7 @@ export class OpenRouterService {
             'X-Title': 'Genfeed AI',
           },
           responseType: 'stream',
+          timeout: UPLOAD_HTTP_TIMEOUT_MS,
         },
       ),
     );

@@ -2,6 +2,7 @@ import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { SocialSourceHistoryImportModule } from '@api/collections/social-sources/social-source-history-import.module';
 import { SocialWarmupEnrollmentsModule } from '@api/collections/social-warmup-enrollments/social-warmup-enrollments.module';
+import { DEFAULT_HTTP_TIMEOUT_MS } from '@api/constants/http-timeout.constant';
 import { InstagramController } from '@api/services/integrations/instagram/controllers/instagram.controller';
 import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
 import { InstagramAuthorizedSignalsService } from '@api/services/integrations/instagram/services/instagram-authorized-signals.service';
@@ -11,7 +12,11 @@ import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
 
 const BaseModule = createServiceModule(InstagramService, {
-  additionalImports: [HttpModule, BrandsCoreModule, CredentialsCoreModule],
+  additionalImports: [
+    HttpModule.register({ timeout: DEFAULT_HTTP_TIMEOUT_MS }),
+    BrandsCoreModule,
+    CredentialsCoreModule,
+  ],
   additionalProviders: [InstagramConnectionResolverService],
 });
 

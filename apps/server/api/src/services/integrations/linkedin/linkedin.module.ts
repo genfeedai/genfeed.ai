@@ -3,6 +3,7 @@ import { CredentialsCoreModule } from '@api/collections/credentials/credentials-
 import { PlatformSettingsModule } from '@api/collections/platform-settings/platform-settings.module';
 import { SocialSourceHistoryImportModule } from '@api/collections/social-sources/social-source-history-import.module';
 import { SocialWarmupEnrollmentsModule } from '@api/collections/social-warmup-enrollments/social-warmup-enrollments.module';
+import { DEFAULT_HTTP_TIMEOUT_MS } from '@api/constants/http-timeout.constant';
 import { SERVER_TOKENS } from '@api/server.dependencies';
 import { BrandScraperModule } from '@api/services/brand-scraper/brand-scraper.module';
 import { LinkedInController } from '@api/services/integrations/linkedin/controllers/linkedin.controller';
@@ -20,7 +21,7 @@ const LINKEDIN_TREND_RESOLVER_PROVIDER = {
 
 const BaseModule = createServiceModule(LinkedInService, {
   additionalImports: [
-    HttpModule,
+    HttpModule.register({ timeout: DEFAULT_HTTP_TIMEOUT_MS }),
     BrandScraperModule,
     BrandsCoreModule,
     CredentialsCoreModule,

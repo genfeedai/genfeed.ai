@@ -1,3 +1,7 @@
+import {
+  DEFAULT_HTTP_TIMEOUT_MS,
+  UPLOAD_HTTP_TIMEOUT_MS,
+} from '@api/constants/http-timeout.constant';
 import { Traced } from '@libs/tracing/traced';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
@@ -105,7 +109,12 @@ export class DiscordWebhookService {
             : payload,
           // Read Discord's own error body instead of an axios exception that
           // carries the webhook URL, which contains its token.
-          { validateStatus: () => true },
+          {
+            timeout: message.files?.length
+              ? UPLOAD_HTTP_TIMEOUT_MS
+              : DEFAULT_HTTP_TIMEOUT_MS,
+            validateStatus: () => true,
+          },
         ),
       );
       statusCode = response.status;
