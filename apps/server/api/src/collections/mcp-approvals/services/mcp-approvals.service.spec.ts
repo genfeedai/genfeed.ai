@@ -428,6 +428,61 @@ describe('McpApprovalsService', () => {
       expect(mcpApproval.create).not.toHaveBeenCalled();
     });
 
+    it('treats an executed approval as finished and opens a new one for the same call', async () => {
+      // A small in-memory table that honours the filters createPending sends.
+      const rows: Record<string, unknown>[] = [];
+      mcpApproval.findFirst.mockImplementation(
+        async ({ where }: { where: Record<string, unknown> }) =>
+          rows.find(
+            (row) =>
+              row.idempotencyKey === where.idempotencyKey &&
+              (where.executedAt === undefined ||
+                row.executedAt === where.executedAt) &&
+              (where.status as { in: string[] }).in.includes(
+                row.status as string,
+              ),
+          ) ?? null,
+      );
+      mcpApproval.create.mockImplementation(
+        async ({ data }: { data: Record<string, unknown> }) => {
+          const row = {
+            ...data,
+            executedAt: null,
+            id: `approval-${rows.length}`,
+          };
+          rows.push(row);
+          return row;
+        },
+      );
+
+      const first = await service.createPending(
+        'org-1',
+        'user-1',
+        'delete_file',
+        { path: '/tmp/file.txt' },
+      );
+      const again = await service.createPending(
+        'org-1',
+        'user-1',
+        'delete_file',
+        { path: '/tmp/file.txt' },
+      );
+      // Before it runs, the same call is the same approval.
+      expect(again.id).toBe(first.id);
+
+      Object.assign(rows[0], { executedAt: new Date(), status: 'APPROVED' });
+      const afterExecution = await service.createPending(
+        'org-1',
+        'user-1',
+        'delete_file',
+        { path: '/tmp/file.txt' },
+      );
+
+      expect(afterExecution.id).not.toBe(first.id);
+      expect(afterExecution.status).toBe('PENDING');
+      expect(rows).toHaveLength(2);
+    });
+
     it('reuses the concurrent logical write after the database uniqueness fence wins', async () => {
       const concurrent = { id: 'approval-winner', status: 'PENDING' };
       mcpApproval.findFirst

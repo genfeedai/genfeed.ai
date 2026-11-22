@@ -35,7 +35,7 @@ interface YoutubeControllerBrandsServiceMock {
 interface YoutubeControllerCredentialsServiceMock {
   beginOAuthForBrand: ReturnType<typeof vi.fn>;
   findOne: ReturnType<typeof vi.fn>;
-  findPendingOAuthCredential: ReturnType<typeof vi.fn>;
+  claimPendingOAuthCredential: ReturnType<typeof vi.fn>;
   patch: ReturnType<typeof vi.fn>;
   updateExternalProfile: ReturnType<typeof vi.fn>;
 }
@@ -100,7 +100,7 @@ describe('YoutubeController', () => {
       findOne: vi
         .fn()
         .mockResolvedValue({ id: credentialId, refreshToken: 'rt_saved' }),
-      findPendingOAuthCredential: vi.fn().mockResolvedValue({
+      claimPendingOAuthCredential: vi.fn().mockResolvedValue({
         brandId,
         id: credentialId,
         organizationId: orgId,
@@ -311,7 +311,9 @@ describe('YoutubeController', () => {
     });
 
     it('should throw NOT_FOUND when no pending credential found', async () => {
-      credentialsService.findPendingOAuthCredential.mockResolvedValueOnce(null);
+      credentialsService.claimPendingOAuthCredential.mockResolvedValueOnce(
+        null,
+      );
       await expect(controller.verify(mockRequest, dto)).rejects.toThrow(
         HttpException,
       );

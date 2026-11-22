@@ -25,7 +25,8 @@ describe('RedditController', () => {
   let brandsService: { findOne: ReturnType<typeof vi.fn> };
   let credentialsService: {
     beginOAuthForBrand: ReturnType<typeof vi.fn>;
-    findPendingOAuthCredential: ReturnType<typeof vi.fn>;
+    claimPendingOAuthCredential: ReturnType<typeof vi.fn>;
+    findOne: ReturnType<typeof vi.fn>;
     patch: ReturnType<typeof vi.fn>;
     updateExternalProfile: ReturnType<typeof vi.fn>;
   };
@@ -64,7 +65,8 @@ describe('RedditController', () => {
         credential: { id: credentialId },
         state: 'opaque-oauth-state',
       }),
-      findPendingOAuthCredential: vi.fn().mockResolvedValue({
+      findOne: vi.fn(),
+      claimPendingOAuthCredential: vi.fn().mockResolvedValue({
         brandId,
         id: credentialId,
         organizationId: orgId,
@@ -249,7 +251,10 @@ describe('RedditController', () => {
     });
 
     it('should throw NOT_FOUND when no pending credential found', async () => {
-      credentialsService.findPendingOAuthCredential.mockResolvedValueOnce(null);
+      credentialsService.claimPendingOAuthCredential.mockResolvedValueOnce(
+        null,
+      );
+      credentialsService.findOne.mockResolvedValueOnce(null);
       await expect(controller.verify(mockRequest, dto)).rejects.toThrow(
         HttpException,
       );

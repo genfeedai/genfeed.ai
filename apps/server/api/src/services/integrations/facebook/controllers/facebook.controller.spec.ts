@@ -38,7 +38,7 @@ describe('FacebookController', () => {
       credential: { id: 'test-object-id' },
       state: 'opaque-oauth-state',
     }),
-    findPendingOAuthCredential: vi.fn().mockResolvedValue({
+    claimPendingOAuthCredential: vi.fn().mockResolvedValue({
       id: 'test-object-id',
       externalId: undefined,
       organizationId: 'test-object-id',
@@ -46,6 +46,7 @@ describe('FacebookController', () => {
     }),
     patch: vi.fn().mockResolvedValue({ id: 'cred-1' }),
     updateExternalProfile: vi.fn().mockResolvedValue({ id: 'cred-1' }),
+    findOne: vi.fn().mockResolvedValue(null),
   };
 
   const mockBrandsService = {
@@ -124,7 +125,7 @@ describe('FacebookController', () => {
       });
 
       expect(
-        mockCredentialsService.findPendingOAuthCredential,
+        mockCredentialsService.claimPendingOAuthCredential,
       ).toHaveBeenCalledWith('opaque-oauth-state', CredentialPlatform.FACEBOOK);
       expect(mockCredentialsService.patch).toHaveBeenCalledWith(
         'test-object-id',
@@ -214,9 +215,10 @@ describe('FacebookController', () => {
     });
 
     it('rejects a callback whose state matches no pending credential', async () => {
-      mockCredentialsService.findPendingOAuthCredential.mockResolvedValueOnce(
+      mockCredentialsService.claimPendingOAuthCredential.mockResolvedValueOnce(
         null,
       );
+      mockCredentialsService.findOne.mockResolvedValueOnce(null);
 
       await expect(
         controller.verify({} as never, {

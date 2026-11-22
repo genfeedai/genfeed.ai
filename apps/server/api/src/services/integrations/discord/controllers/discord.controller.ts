@@ -1,6 +1,7 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { claimOAuthVerifyCredential } from '@api/collections/credentials/utils/oauth-verify-claim.util';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { DiscordService } from '@api/services/integrations/discord/services/discord.service';
@@ -94,11 +95,16 @@ export class DiscordController {
 
     const organization = user.organizationId;
     const userId = user.userId ?? user.id;
-    const credential = await this.credentialsService.findPendingOAuthCredential(
+    const claim = await claimOAuthVerifyCredential(
+      this.credentialsService,
       state,
       CredentialPlatform.DISCORD,
       { organizationId: organization, userId },
     );
+    if (claim?.alreadyConnected) {
+      return serializeSingle(request, CredentialSerializer, claim.credential);
+    }
+    const credential = claim?.credential;
 
     if (!credential) {
       throw new HttpException(
