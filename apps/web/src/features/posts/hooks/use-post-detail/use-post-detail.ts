@@ -44,6 +44,7 @@ export interface UsePostDetailReturn {
 
   // Status flags
   isUpdating: boolean;
+  isPublishBlocked: boolean;
   isSavingDescription: boolean;
   isSavingSchedule: boolean;
   isSavingIngredients: boolean;
@@ -276,6 +277,7 @@ export function usePostDetail({
     isLastChildGrokTweet: state.isLastChildGrokTweet,
     isLoading: state.isLoading,
     isPublished: state.isPublished,
+    isPublishBlocked: state.isPublishBlocked,
     isSavingDescription: state.isSavingDescription,
     isSavingIngredients: state.isSavingIngredients,
     isSavingSchedule: state.isSavingSchedule,
