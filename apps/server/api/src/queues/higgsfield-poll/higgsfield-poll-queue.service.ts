@@ -1,3 +1,4 @@
+import { reserveIdempotentJob } from '@api/queues/idempotent-job';
 import {
   HIGGSFIELD_POLL_DELAY_MS,
   HIGGSFIELD_POLL_QUEUE,
@@ -38,6 +39,16 @@ export class HiggsFieldPollQueueService {
     }
 
     const attempt = data.attempt ?? 1;
+    const jobId = `higgsfield-poll-${data.ingredientId}-${attempt}`;
+    const reservation = await reserveIdempotentJob(this.queue, jobId);
+    if (reservation.alreadyQueued) {
+      this.logger.log(`${this.logContext}: poll attempt already queued`, {
+        ingredientId: data.ingredientId,
+        jobId,
+        state: reservation.state,
+      });
+      return jobId;
+    }
     const job = await this.queue.add(
       'poll-higgsfield-video',
       { ...data, attempt },
@@ -45,7 +56,7 @@ export class HiggsFieldPollQueueService {
         attempts: 2,
         backoff: { delay: 5_000, type: 'exponential' },
         delay: delayMs,
-        jobId: `higgsfield-poll-${data.ingredientId}-${attempt}`,
+        jobId,
         removeOnComplete: 100,
         removeOnFail: 50,
       },

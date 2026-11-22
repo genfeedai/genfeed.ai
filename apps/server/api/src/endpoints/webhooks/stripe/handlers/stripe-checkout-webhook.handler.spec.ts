@@ -7,6 +7,7 @@ import type { ReferralsService } from '@api/collections/referrals/services/refer
 import type { UserSetupService } from '@api/collections/users/services/user-setup.service';
 import type { StripeAttributionTrackerService } from '@api/endpoints/webhooks/stripe/handlers/stripe-attribution-tracker.service';
 import { StripeCheckoutWebhookHandler } from '@api/endpoints/webhooks/stripe/handlers/stripe-checkout-webhook.handler';
+import { StripeWebhookBillingError } from '@api/endpoints/webhooks/stripe/stripe-webhook-billing.error';
 import type { ManagedStripeCheckoutService } from '@api/services/integrations/stripe/services/managed-stripe-checkout.service';
 import type { StripeCheckoutSession } from '@api/services/integrations/stripe/services/stripe.service';
 import {
@@ -159,9 +160,6 @@ function world() {
         state.managed.results.get(sessionId) ?? null,
       isSessionProvisioned: async (sessionId: string) =>
         state.managed.provisioned.has(sessionId),
-      logProvisioningContention: (sessionId: string) => {
-        w.journal.push(`contention ${sessionId}`);
-      },
       markSessionProvisioned: async (sessionId: string) => {
         const isMarked = fail(state.managed.faults.mark);
         if (isMarked) state.managed.provisioned.add(sessionId);
@@ -170,7 +168,12 @@ function world() {
       withProvisioningLock: async <T>(
         _sessionId: string,
         run: () => Promise<T>,
-      ) => (state.managed.isLocked ? null : await run()),
+      ) => {
+        if (state.managed.isLocked) {
+          throw new StripeWebhookBillingError('claim_in_flight');
+        }
+        return await run();
+      },
     } as unknown as ManagedStripeCheckoutService,
     {
       findOne: async (where: { userId: string }) => {
@@ -368,6 +371,41 @@ describe('StripeCheckoutWebhookHandler', () => {
       w.fees.set('pi_1', { currency: 'usd', feeMinor: 201 });
       return w;
     }
+
+    it('still grants the pack exactly once when the cache is unavailable', async () => {
+      const w = subscribed();
+      w.cache.isDown = true;
+
+      await w.handler.handleCheckoutCompleted(checkout(PAYG), 'test');
+      await w.handler.handleCheckoutCompleted(checkout(PAYG), 'test');
+
+      expect(w.ledger).toEqual([
+        expect.objectContaining({
+          amount: 500,
+          organizationId: 'org_1',
+          referenceId: 'cs_payg_1',
+        }),
+      ]);
+    });
+
+    it('does not acknowledge a pack another delivery is granting right now, then grants it once that delivery is gone', async () => {
+      const w = subscribed();
+      w.cache.held.set(
+        'stripe-checkout-session:organization-payment:lock:cs_payg_1',
+        'other-delivery',
+      );
+
+      await expect(
+        w.handler.handleCheckoutCompleted(checkout(PAYG), 'test'),
+      ).rejects.toMatchObject({ code: 'claim_in_flight', isRetryable: true });
+      expect(w.ledger).toEqual([]);
+
+      w.cache.held.clear();
+      await w.handler.handleCheckoutCompleted(checkout(PAYG), 'test');
+
+      expect(w.ledger).toHaveLength(1);
+      expect(w.cache.held.size).toBe(0);
+    });
 
     it('grants the pack once, books revenue and its fee, and credits the referrer across replays', async () => {
       const w = subscribed();
@@ -697,14 +735,29 @@ describe('StripeCheckoutWebhookHandler', () => {
       expect(logged(w, 'log')).toEqual(['test managed checkout provisioned']);
     });
 
-    it('stands aside while another delivery holds the provisioning lock', async () => {
+    it('does not acknowledge a session another delivery is provisioning right now', async () => {
       const w = returningBuyer();
       w.managed.isLocked = true;
 
-      await w.handler.handleCheckoutCompleted(checkout(MANAGED), 'test');
+      await expect(
+        w.handler.handleCheckoutCompleted(checkout(MANAGED), 'test'),
+      ).rejects.toMatchObject({ code: 'claim_in_flight', isRetryable: true });
 
       expect(w.ledger).toEqual([]);
-      expect(w.journal).toEqual(['contention cs_managed_1']);
+    });
+
+    it('acknowledges a provisioned session whose cached result has expired', async () => {
+      const w = returningBuyer();
+      w.managed.provisioned.add('cs_managed_1');
+
+      await expect(
+        w.handler.handleCheckoutCompleted(checkout(MANAGED), 'test'),
+      ).resolves.toBeUndefined();
+
+      expect(w.ledger).toEqual([]);
+      expect(logged(w, 'log')).toEqual([
+        'test managed checkout already provisioned',
+      ]);
     });
 
     it('provisions nothing for a session without an email', async () => {
@@ -841,6 +894,31 @@ describe('StripeCheckoutWebhookHandler', () => {
       return w;
     }
 
+    it('still grants the pack exactly once when the cache is unavailable', async () => {
+      const w = member(OrganizationCategory.CREATOR);
+      w.cache.isDown = true;
+
+      await w.handler.handleCheckoutCompleted(checkout(USER_CHECKOUT), 'test');
+      await w.handler.handleCheckoutCompleted(checkout(USER_CHECKOUT), 'test');
+
+      expect(w.ledger).toEqual([
+        expect.objectContaining({ amount: 300, organizationId: 'org_own' }),
+      ]);
+    });
+
+    it('does not acknowledge a pack another delivery is granting right now', async () => {
+      const w = member(OrganizationCategory.CREATOR);
+      w.cache.held.set(
+        'stripe-checkout-session:user-credit:lock:cs_user_1',
+        'other-delivery',
+      );
+
+      await expect(
+        w.handler.handleCheckoutCompleted(checkout(USER_CHECKOUT), 'test'),
+      ).rejects.toMatchObject({ code: 'claim_in_flight', isRetryable: true });
+      expect(w.ledger).toEqual([]);
+    });
+
     it('grants the pack once to the buyer creator organization and records the purchase across replays', async () => {
       const w = member(OrganizationCategory.CREATOR);
 
@@ -937,6 +1015,32 @@ describe('StripeCheckoutWebhookHandler', () => {
       payment_intent: 'pi_1',
     };
     const receiptIdOf = (w: World) => String(w.receipts[0]?.receiptId);
+
+    it('still records one receipt when the cache is unavailable and Stripe replays', async () => {
+      const w = world();
+      w.cache.isDown = true;
+
+      await w.handler.handleCheckoutCompleted(checkout(SKILLS), 'test');
+      await w.handler.handleCheckoutCompleted(checkout(SKILLS), 'test');
+
+      expect(w.receipts).toHaveLength(1);
+      expect(w.receipts[0]).toMatchObject({
+        data: expect.objectContaining({ provisioningStatus: 'completed' }),
+      });
+    });
+
+    it('does not acknowledge a receipt another delivery is writing right now', async () => {
+      const w = world();
+      w.cache.held.set(
+        'stripe-checkout-session:skills-pro-receipt:lock:cs_skills_1',
+        'other-delivery',
+      );
+
+      await expect(
+        w.handler.handleCheckoutCompleted(checkout(SKILLS), 'test'),
+      ).rejects.toMatchObject({ code: 'claim_in_flight', isRetryable: true });
+      expect(w.receipts).toEqual([]);
+    });
 
     it('records the receipt, emails the install command and provisions the buyer by lower-case email', async () => {
       const w = world();

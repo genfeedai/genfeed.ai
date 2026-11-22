@@ -362,7 +362,7 @@ export class StripeCheckoutWebhookHandler {
       );
 
     if (provisioned === null) {
-      this.managedStripeCheckoutService.logProvisioningContention(sessionId);
+      this.loggerService.log(`${url} managed checkout already provisioned`);
       return;
     }
 
