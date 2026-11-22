@@ -115,7 +115,7 @@ export function mapStripeWebhookError(
       return {
         kind: StripeWebhookErrorKind.EXPECTED,
         shouldAcknowledge: false,
-        shouldReleaseIdempotencyKey: false,
+        shouldReleaseIdempotencyKey: true,
         shouldReportAsFault: false,
         status,
       };

@@ -232,4 +232,74 @@ describe('ManagedStripeCheckoutService', () => {
       expect(cache.incr).not.toHaveBeenCalled();
     });
   });
+
+  describe('withProvisioningLock', () => {
+    /** Cache double with real three-state owned-claim semantics. */
+    function claimingService(mode: 'free' | 'down' = 'free') {
+      const held = new Map<string, string>();
+      const cache = {
+        acquireOwnedClaim: async (key: string, token: string) => {
+          if (mode === 'down') return 'unavailable' as const;
+          if (held.has(key)) return 'duplicate' as const;
+          held.set(key, token);
+          return 'claimed' as const;
+        },
+        generateKey: (...parts: string[]) => parts.join(':'),
+        releaseOwnedClaim: async (key: string, token: string) => {
+          if (held.get(key) !== token) return false;
+          held.delete(key);
+          return true;
+        },
+      };
+      const service = new ManagedStripeCheckoutService(
+        { get: vi.fn() } as unknown as ConfigService,
+        {} as unknown as StripeService,
+        cache as unknown as CacheService,
+        { warn: vi.fn() } as unknown as LoggerService,
+      );
+
+      return { held, service };
+    }
+
+    it('runs the work under the claim and releases it afterwards, even when the work fails', async () => {
+      const { held, service } = claimingService();
+
+      await expect(
+        service.withProvisioningLock('cs_1', async () => {
+          expect([...held.keys()]).toEqual(['managed-checkout:lock:cs_1']);
+          return 'provisioned';
+        }),
+      ).resolves.toBe('provisioned');
+      await expect(
+        service.withProvisioningLock('cs_1', async () => {
+          throw new Error('provisioning failed');
+        }),
+      ).rejects.toThrow('provisioning failed');
+
+      expect(held.size).toBe(0);
+    });
+
+    it('still runs the work when the cache is unavailable', async () => {
+      const { service } = claimingService('down');
+
+      await expect(
+        service.withProvisioningLock('cs_1', async () => 'provisioned'),
+      ).resolves.toBe('provisioned');
+    });
+
+    it('throws a retryable error, without running the work, while another delivery holds the claim', async () => {
+      const { held, service } = claimingService();
+      held.set('managed-checkout:lock:cs_1', 'other-delivery');
+      const runs: string[] = [];
+
+      await expect(
+        service.withProvisioningLock('cs_1', async () => {
+          runs.push('ran');
+        }),
+      ).rejects.toMatchObject({ code: 'claim_in_flight', isRetryable: true });
+
+      expect(runs).toEqual([]);
+      expect(held.get('managed-checkout:lock:cs_1')).toBe('other-delivery');
+    });
+  });
 });

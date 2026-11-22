@@ -35,6 +35,12 @@ export interface BetterAuthServerTokenOptions {
 
 const TOKEN_ATTEMPTS = 2;
 /**
+ * Longest one `/token` attempt may take. Every protected navigation waits on
+ * this exchange, so a stalled connection must give up well inside the edge
+ * budget. Two attempts plus the retry pause stay under 7 seconds.
+ */
+const TOKEN_REQUEST_TIMEOUT_MS = 3_000;
+/**
  * Pause before the retry. Both attempts of one production exchange failed 31ms
  * apart (APP-GENFEED-AI-1P, #9561), too soon for a reset connection or a
  * restarting API task to recover.
@@ -147,6 +153,18 @@ function isRetryable(failure: TokenAttemptFailure): boolean {
   );
 }
 
+/**
+ * True when a failure says nothing about the session: a network error, a
+ * timeout, a 5xx, or a prerender that ended. False for a refused session (4xx)
+ * or a response without a token. Callers that hold a session cookie keep the
+ * user signed in on a transient failure and redirect only on a rejection.
+ */
+export function isTransientBetterAuthTokenFailure(
+  failure: BetterAuthServerTokenFailure,
+): boolean {
+  return failure.reason === 'prerender-ended' || isRetryable(failure);
+}
+
 async function requestToken(
   cookieHeader: string,
   attempt: number,
@@ -161,6 +179,7 @@ async function requestToken(
           cookie: cookieHeader,
           [UNATTRIBUTED_FORWARDED_HEADER]: UNATTRIBUTED_FORWARDED_VALUE,
         },
+        signal: AbortSignal.timeout(TOKEN_REQUEST_TIMEOUT_MS),
       },
     );
 

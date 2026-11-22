@@ -9,6 +9,7 @@
  * In cloud deployments, HeyGen delivers completion via webhook
  * (POST /v1/webhooks/heygen/callback) and this queue is a no-op.
  */
+import { hasLiveJob, reserveIdempotentJob } from '@api/queues/idempotent-job';
 import {
   HEYGEN_POLL_DELAY_MS,
   HEYGEN_POLL_QUEUE,
@@ -50,6 +51,15 @@ export class HeygenPollQueueService {
 
     const attempt = data.attempt ?? 1;
     const jobId = this.jobId(data.continuationId, attempt);
+    const reservation = await reserveIdempotentJob(this.queue, jobId);
+    if (reservation.alreadyQueued) {
+      this.logger.log(`${this.logContext}: poll attempt already queued`, {
+        continuationId: data.continuationId,
+        jobId,
+        state: reservation.state,
+      });
+      return jobId;
+    }
     const job = await this.queue.add(
       'poll-heygen-video',
       { ...data, attempt },
@@ -78,9 +88,7 @@ export class HeygenPollQueueService {
     if (!this.queue) {
       return false;
     }
-    return (
-      (await this.queue.getJob(this.jobId(continuationId, attempt))) !== null
-    );
+    return hasLiveJob(this.queue, this.jobId(continuationId, attempt));
   }
 
   private jobId(continuationId: string, attempt: number): string {

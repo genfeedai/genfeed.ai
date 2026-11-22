@@ -143,6 +143,82 @@ describe('StripeWebhookSupportService', () => {
       ]);
     });
 
+    it('fulfils the session without a claim when the cache is unavailable, and never twice', async () => {
+      const w = world();
+      w.cache.isDown = true;
+      const reference = w.service.buildCheckoutSessionCreditReference(
+        'organization-payment',
+        'cs_down_1',
+      );
+      const runGrant = () =>
+        w.service.withCheckoutSessionProcessing(
+          'cs_down_1',
+          'organization-payment',
+          () =>
+            w.service.addPurchasedCredits(
+              'org_1',
+              100,
+              'pay-as-you-go',
+              'Credit pack purchase (100 credits)',
+              reference,
+            ),
+        );
+
+      await expect(runGrant()).resolves.toBe(true);
+      await expect(runGrant()).resolves.toBe(false);
+
+      expect(w.ledger).toHaveLength(1);
+      expect(w.cache.held.size).toBe(0);
+    });
+
+    it('throws a retryable error instead of reporting "processed" while another delivery holds the claim', async () => {
+      const w = world();
+      w.cache.held.set(
+        'stripe-checkout-session:user-credit:lock:cs_1',
+        'other-delivery',
+      );
+      const runs: string[] = [];
+
+      await expect(
+        w.service.withCheckoutSessionProcessing(
+          'cs_1',
+          'user-credit',
+          async () => {
+            runs.push('ran');
+            return 'done';
+          },
+        ),
+      ).rejects.toMatchObject({ code: 'claim_in_flight', isRetryable: true });
+
+      expect(runs).toEqual([]);
+      expect(
+        w.cache.held.get('stripe-checkout-session:user-credit:lock:cs_1'),
+      ).toBe('other-delivery');
+    });
+
+    it('releases its claim when the callback fails so the retry can run', async () => {
+      const w = world();
+
+      await expect(
+        w.service.withCheckoutSessionProcessing(
+          'cs_1',
+          'user-credit',
+          async () => {
+            throw new Error('grant failed');
+          },
+        ),
+      ).rejects.toThrow('grant failed');
+
+      expect(w.cache.held.size).toBe(0);
+      await expect(
+        w.service.withCheckoutSessionProcessing(
+          'cs_1',
+          'user-credit',
+          async () => 'done',
+        ),
+      ).resolves.toBe('done');
+    });
+
     it('leaves the session unmarked when the callback fails', async () => {
       const w = world();
 
