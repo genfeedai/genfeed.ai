@@ -21,6 +21,7 @@ type MockFn = ReturnType<typeof vi.fn>;
 interface MockPrisma {
   warmupAccount: { findFirst: MockFn };
   brand: { findFirst: MockFn };
+  $queryRaw: MockFn;
   $transaction: MockFn;
   invitation: {
     count: MockFn;
@@ -149,6 +150,7 @@ function buildPrisma(): MockPrisma {
     brand: {
       findFirst: vi.fn().mockResolvedValue({ id: 'brand_default_123' }),
     },
+    $queryRaw: vi.fn(),
     $transaction: vi.fn(),
     invitation: {
       count: vi.fn(),
@@ -1033,6 +1035,108 @@ describe('InvitationService', () => {
 
       expect(prisma.user.create).not.toHaveBeenCalled();
       expect(prisma.member.create).not.toHaveBeenCalled();
+    });
+  });
+  describe('createInvitation concurrency', () => {
+    it('leaves one pending invitation when two creates for the same email overlap', async () => {
+      const { prisma, service } = buildService();
+      prisma.role.findFirst.mockResolvedValue({ id: roleId, key: roleKey });
+      prisma.organization.findFirst.mockResolvedValue({
+        id: orgId,
+        label: 'Acme',
+      });
+      prisma.user.findFirst.mockResolvedValue(null);
+
+      const rows: InvitationRow[] = [];
+      const locks = new Map<string, Promise<void>>();
+      const yieldToPeers = async () => {
+        for (let turn = 0; turn < 5; turn += 1) {
+          await Promise.resolve();
+        }
+      };
+      prisma.invitation.updateMany.mockImplementation(
+        async (args: { where: Partial<InvitationRow> }) => {
+          await yieldToPeers();
+          const matching = rows.filter(
+            (row) =>
+              !row.isDeleted &&
+              row.revokedAt === null &&
+              row.email === args.where.email,
+          );
+          for (const row of matching) {
+            row.isDeleted = true;
+            row.revokedAt = now;
+            row.status = 'canceled';
+          }
+          return { count: matching.length };
+        },
+      );
+      prisma.invitation.create.mockImplementation(
+        async (args: { data: Partial<InvitationRow> }) => {
+          await yieldToPeers();
+          const row = makeInvitation({
+            ...args.data,
+            id: `inv_${rows.length + 1}`,
+          });
+          rows.push(row);
+          return row;
+        },
+      );
+      // In-memory stand-in for pg_advisory_xact_lock: a second transaction
+      // asking for a held key waits until the holder's transaction finishes.
+      prisma.$transaction.mockImplementation(
+        async (callback: (tx: MockPrisma) => Promise<unknown>) => {
+          const releases: Array<() => void> = [];
+          const tx = {
+            ...prisma,
+            $queryRaw: vi.fn(
+              async (_sql: TemplateStringsArray, key: string) => {
+                while (locks.has(key)) {
+                  await locks.get(key);
+                }
+                let release = () => {};
+                locks.set(
+                  key,
+                  new Promise<void>((resolve) => {
+                    release = () => {
+                      locks.delete(key);
+                      resolve();
+                    };
+                  }),
+                );
+                releases.push(release);
+                return [];
+              },
+            ),
+          };
+          try {
+            return await callback(tx);
+          } finally {
+            for (const release of releases) {
+              release();
+            }
+          }
+        },
+      );
+
+      const input = {
+        email: 'new@example.com',
+        invitedByUserId: userId,
+        organizationId: orgId,
+        sendEmail: false,
+      };
+      const [first, second] = await Promise.all([
+        service.createInvitation(input),
+        service.createInvitation(input),
+      ]);
+
+      const pending = rows.filter(
+        (row) => !row.isDeleted && row.revokedAt === null,
+      );
+      expect(pending).toHaveLength(1);
+      expect(rows).toHaveLength(2);
+      expect(pending[0]?.id).toBe(second.id);
+      expect(first.id).not.toBe(second.id);
     });
   });
 });
