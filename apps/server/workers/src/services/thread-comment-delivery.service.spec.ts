@@ -28,16 +28,25 @@ function createMocks() {
       },
     },
     publisherFactory: { getPublisher: vi.fn() },
+    sweepLease: {
+      extend: vi.fn().mockResolvedValue(true),
+      release: vi.fn().mockResolvedValue(undefined),
+    },
+    sweepLock: { acquire: vi.fn() },
   };
 }
 
 function createService(mocks: Mocks): ThreadCommentDeliveryService {
+  if (!mocks.sweepLock.acquire.getMockImplementation()) {
+    mocks.sweepLock.acquire.mockResolvedValue(mocks.sweepLease);
+  }
   return new ThreadCommentDeliveryService(
     mocks.logger as never,
     mocks.prisma as never,
     mocks.organizationsService as never,
     mocks.credentialsService as never,
     mocks.publisherFactory as never,
+    mocks.sweepLock as never,
   );
 }
 
@@ -230,5 +239,173 @@ describe('ThreadCommentDeliveryService', () => {
       ([args]) => args.data.targetExecutionState,
     );
     expect(states).toContain(TargetExecutionState.FAILED);
+  });
+
+  describe('claiming a comment', () => {
+    it('does not send a comment whose claim matched nothing, nor the later ones of its thread', async () => {
+      mocks.prisma.post.findMany.mockResolvedValue([
+        createChild({ id: 'child-1', order: 1 }),
+        createChild({ id: 'child-2', order: 2 }),
+      ]);
+      mocks.prisma.post.findFirst.mockResolvedValueOnce(createParent());
+      mocks.prisma.post.updateMany.mockResolvedValue({ count: 0 });
+
+      await createService(mocks).publishDueThreadComments();
+
+      expect(publishThreadChildren).not.toHaveBeenCalled();
+      expect(mocks.prisma.post.updateMany).toHaveBeenCalledTimes(1);
+    });
+
+    it('claims only a scheduled, undeleted comment outside the backoff window', async () => {
+      mocks.prisma.post.findMany.mockResolvedValue([createChild()]);
+      mocks.prisma.post.findFirst.mockResolvedValueOnce(createParent());
+
+      await createService(mocks).publishDueThreadComments();
+
+      const where = mocks.prisma.post.updateMany.mock.calls[0]?.[0]?.where;
+      const readWhere = mocks.prisma.post.findMany.mock.calls[0]?.[0]?.where;
+      expect(where.isDeleted).toBe(false);
+      expect(where.organizationId).toBe('org-1');
+      expect(where.id).toBe('child-1');
+      expect(where.AND).toEqual(readWhere.AND);
+    });
+
+    describe('against a shared store', () => {
+      interface StoredChild {
+        id: string;
+        isDeleted: boolean;
+        lastAttemptAt: Date | null;
+        scheduled: boolean;
+      }
+
+      function useStore(children: StoredChild[]) {
+        const rows = new Map(children.map((c) => [c.id, c]));
+        const where = (
+          mocks.prisma.post.findMany as ReturnType<typeof vi.fn>
+        ).mockName('findMany');
+        where.mockImplementation(async () =>
+          [...rows.values()]
+            .filter((r) => r.scheduled && !r.isDeleted && !r.lastAttemptAt)
+            .map((r, i) => createChild({ id: r.id, order: i + 1 })),
+        );
+        mocks.prisma.post.updateMany.mockImplementation(
+          async (args: {
+            data: { lastAttemptAt?: Date };
+            where: { id: string; isDeleted: boolean };
+          }) => {
+            const row = rows.get(args.where.id);
+            if (
+              !row ||
+              !args.data.lastAttemptAt ||
+              row.isDeleted !== args.where.isDeleted ||
+              !row.scheduled ||
+              row.lastAttemptAt
+            ) {
+              return { count: 0 };
+            }
+            row.lastAttemptAt = args.data.lastAttemptAt;
+            return { count: 1 };
+          },
+        );
+        return rows;
+      }
+
+      it('does not send a comment deleted or unscheduled after the list was read', async () => {
+        const rows = useStore([
+          {
+            id: 'child-1',
+            isDeleted: false,
+            lastAttemptAt: null,
+            scheduled: true,
+          },
+          {
+            id: 'child-2',
+            isDeleted: false,
+            lastAttemptAt: null,
+            scheduled: true,
+          },
+        ]);
+        mocks.prisma.post.findFirst.mockResolvedValue(createParent());
+        publishThreadChildren.mockImplementation(async () => {
+          // The creator removes the next comment while this one is in flight.
+          const next = rows.get('child-2');
+          if (next) next.isDeleted = true;
+        });
+
+        await createService(mocks).publishDueThreadComments();
+
+        const sent = publishThreadChildren.mock.calls.map(
+          ([, [child]]) => child.id,
+        );
+        expect(sent).toEqual(['child-1']);
+      });
+
+      it('sends each comment once when two sweeps hold the same list', async () => {
+        useStore([
+          {
+            id: 'child-1',
+            isDeleted: false,
+            lastAttemptAt: null,
+            scheduled: true,
+          },
+          {
+            id: 'child-2',
+            isDeleted: false,
+            lastAttemptAt: null,
+            scheduled: true,
+          },
+        ]);
+        mocks.prisma.post.findFirst.mockResolvedValue(createParent());
+        const list = await mocks.prisma.post.findMany();
+        // Both sweeps read the list before either has stamped anything.
+        mocks.prisma.post.findMany.mockResolvedValue(list);
+
+        const first = createService(mocks);
+        const second = createService(mocks);
+        await Promise.all([
+          first.publishDueThreadComments(),
+          second.publishDueThreadComments(),
+        ]);
+
+        const sent = publishThreadChildren.mock.calls
+          .map(([, [child]]) => child.id)
+          .sort();
+        expect(sent).toEqual(['child-1', 'child-2']);
+      });
+    });
+  });
+
+  describe('sweep lock', () => {
+    it('does nothing while another run holds the lock', async () => {
+      mocks.sweepLock.acquire.mockResolvedValue(null);
+
+      await createService(mocks).publishDueThreadComments();
+
+      expect(mocks.prisma.post.findMany).not.toHaveBeenCalled();
+      expect(publishThreadChildren).not.toHaveBeenCalled();
+      expect(mocks.sweepLease.release).not.toHaveBeenCalled();
+    });
+
+    it('releases its own lock when the sweep is done, even after a failure', async () => {
+      mocks.prisma.post.findMany.mockRejectedValue(new Error('db down'));
+
+      await createService(mocks).publishDueThreadComments();
+
+      expect(mocks.sweepLock.acquire).toHaveBeenCalledWith(
+        'genfeed:lock:thread-comment-sweep',
+      );
+      expect(mocks.sweepLease.release).toHaveBeenCalledOnce();
+    });
+
+    it('stops sending when the lock was lost', async () => {
+      mocks.prisma.post.findMany.mockResolvedValue([createChild()]);
+      mocks.prisma.post.findFirst.mockResolvedValueOnce(createParent());
+      mocks.sweepLease.extend.mockResolvedValue(false);
+
+      await createService(mocks).publishDueThreadComments();
+
+      expect(publishThreadChildren).not.toHaveBeenCalled();
+      expect(mocks.sweepLease.release).toHaveBeenCalledOnce();
+    });
   });
 });
