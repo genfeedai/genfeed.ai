@@ -117,6 +117,22 @@ describe('buildModelScanCard', () => {
     );
   });
 
+  it('claims nothing about charging when the run only found a data error', () => {
+    const card = build({
+      ...emptyReport,
+      dataErrors: [
+        {
+          modelKey: 'fal-ai/runway-gen3',
+          reason: 'Stored under fal, but fal no longer serves it.',
+        },
+      ],
+    });
+
+    expect(card?.footer).toBe(
+      'The scan changes no rate. Check the row in the admin models page before acting.',
+    );
+  });
+
   it('keeps the approved-rate footer when a price changed', () => {
     const card = build({
       ...emptyReport,

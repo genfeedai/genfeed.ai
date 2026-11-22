@@ -31,10 +31,14 @@ const FOOTER_APPROVED_RATE =
   'The approved rate keeps charging until an operator approves a change.';
 const FOOTER_NEW_MODELS_ONLY =
   'New models stay inactive and unpriced until an operator reviews them. Nothing is charging.';
+const FOOTER_DATA_ERRORS =
+  'The scan changes no rate. Check the row in the admin models page before acting.';
 
 /**
- * A run that only found new drafts and data errors has no approved rate to
- * keep charging: a draft is inactive and a data-error row is not served.
+ * Only a run that touches a model with an approved rate may say that rate keeps
+ * charging. A draft is inactive and has none, and a data-error row is not
+ * served by its provider, so those runs get a footer that claims nothing about
+ * charging.
  */
 function footerFor(report: ModelScanReport): string {
   const touchesApprovedRate =
@@ -42,7 +46,10 @@ function footerFor(report: ModelScanReport): string {
     report.removedByProvider.length > 0 ||
     report.delisted.length > 0 ||
     report.unreadable.length > 0;
-  return touchesApprovedRate ? FOOTER_APPROVED_RATE : FOOTER_NEW_MODELS_ONLY;
+  if (touchesApprovedRate) return FOOTER_APPROVED_RATE;
+  return report.dataErrors.length > 0
+    ? FOOTER_DATA_ERRORS
+    : FOOTER_NEW_MODELS_ONLY;
 }
 
 /** True when the run found nothing an operator has to act on. */
