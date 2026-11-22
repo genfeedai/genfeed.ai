@@ -12,6 +12,7 @@ import {
   isPostMediaRequirementMet,
   MAX_POST_MEDIA_ITEMS,
   mergePostMedia,
+  targetsForMedia,
 } from './post-media.helper';
 
 function media(id: string, category: IngredientCategory): IIngredient {
@@ -110,5 +111,36 @@ describe('getUnmetPostMediaRequirements', () => {
     expect(getUnmetPostMediaRequirements(platforms, attached)).toEqual(
       expected,
     );
+  });
+});
+
+describe('targetsForMedia', () => {
+  it.each([
+    [undefined, [IngredientCategory.VIDEO], {}],
+    [
+      Platform.INSTAGRAM,
+      [IngredientCategory.VIDEO],
+      { targetSettings: { placement: 'reel' } },
+    ],
+    [
+      Platform.INSTAGRAM,
+      [IngredientCategory.IMAGE],
+      { targetSettings: { placement: 'feed' } },
+    ],
+    [
+      Platform.INSTAGRAM,
+      [IngredientCategory.IMAGE, IngredientCategory.VIDEO],
+      { targetSettings: { placement: 'feed' } },
+    ],
+    [Platform.INSTAGRAM, [], { targetSettings: { placement: 'feed' } }],
+    [Platform.TIKTOK, [IngredientCategory.VIDEO], {}],
+    [Platform.YOUTUBE, [IngredientCategory.VIDEO], {}],
+  ])('resolves %s media %j to %j', (platform, categories, expected) => {
+    expect(
+      targetsForMedia(
+        platform,
+        categories.map((category, index) => media(String(index), category)),
+      ),
+    ).toEqual(expected);
   });
 });

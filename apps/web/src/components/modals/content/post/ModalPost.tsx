@@ -59,6 +59,7 @@ import {
   getUnmetPostMediaRequirements,
   isPostMediaRequirementMet,
   mergePostMedia,
+  targetsForMedia,
 } from './post-media.helper';
 import {
   isXPlatform,
@@ -372,6 +373,7 @@ export default function ModalPost({
 
             return postsService.post({
               ...shared,
+              ...targetsForMedia(platform, selectedMediaRef.current),
               ...slackTargets.getTargetSettings(target),
               ...(category ? { category } : {}),
               description: caption,
@@ -477,6 +479,7 @@ export default function ModalPost({
               label: formData.label?.trim() || '',
               parentId: formData.parentId || undefined,
               platform: formData.platform,
+              ...targetsForMedia(formData.platform, selectedMediaRef.current),
               ...(formData.scheduledDate
                 ? { scheduledDate: formData.scheduledDate }
                 : {}),
