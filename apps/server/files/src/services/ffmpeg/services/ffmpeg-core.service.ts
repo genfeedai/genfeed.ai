@@ -348,6 +348,31 @@ export class FFmpegCoreService implements OnModuleInit {
   }
 
   /**
+   * Remove the working directory `getTempPath(type, ingredientId)` made for a
+   * job, with everything in it. Callers pass the same two names they passed
+   * there, never a path.
+   */
+  async removeTempDir(type: string, ingredientId: string): Promise<void> {
+    try {
+      const dir = resolveContainedPath(
+        FILES_TMP_ROOT,
+        path.join(
+          assertSafeSegment(type, 'type', createBadRequest),
+          assertSafeSegment(ingredientId, 'ingredientId', createBadRequest),
+        ),
+        createBadRequest,
+      );
+      await fs.rm(dir, { force: true, recursive: true });
+      this.loggerService.log(`Cleaned up temp directory: ${dir}`);
+    } catch (error: unknown) {
+      this.loggerService.error(
+        `Failed to clean up ${type}/${ingredientId}`,
+        error,
+      );
+    }
+  }
+
+  /**
    * Clean up temporary files
    */
   async cleanupTempFiles(...filePaths: string[]): Promise<void> {

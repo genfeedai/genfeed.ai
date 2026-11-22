@@ -40,7 +40,7 @@ describe('TaskProcessor', () => {
   let processor: TaskProcessor;
   let ffmpegService: {
     addCaptions: ReturnType<typeof vi.fn>;
-    cleanupTempFiles: ReturnType<typeof vi.fn>;
+    removeTempDir: ReturnType<typeof vi.fn>;
     getTempPath: ReturnType<typeof vi.fn>;
     getVideoMetadata: ReturnType<typeof vi.fn>;
     resizeVideo: ReturnType<typeof vi.fn>;
@@ -76,7 +76,7 @@ describe('TaskProcessor', () => {
             onProgress?.({ percent: 50 });
           },
         ),
-      cleanupTempFiles: vi.fn(),
+      removeTempDir: vi.fn(),
       getTempPath: vi.fn().mockReturnValue('/workspace/temp/caption/asset-1'),
       getVideoMetadata: vi
         .fn()

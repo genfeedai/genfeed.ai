@@ -43,6 +43,10 @@ export class FFmpegService {
     return this.core.getTempPath(type, ingredientId);
   }
 
+  async removeTempDir(type: string, ingredientId: string): Promise<void> {
+    return this.core.removeTempDir(type, ingredientId);
+  }
+
   async cleanupTempFiles(...filePaths: string[]): Promise<void> {
     return this.core.cleanupTempFiles(...filePaths);
   }
