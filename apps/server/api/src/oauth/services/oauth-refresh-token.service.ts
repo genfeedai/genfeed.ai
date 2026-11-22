@@ -1,5 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import { hashToken, toBase64Url } from '@api/auth/shared/pkce.util';
+import type { ApiKeyDocument } from '@api/collections/api-keys/schemas/api-key.schema';
 import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
 import {
   buildMcpOAuthSessionMetadata,
@@ -21,7 +22,7 @@ import {
   readApiKeyAllowedBrandIds,
 } from '@genfeedai/contracts/constants';
 import { resolveMcpAccessModeForResource } from '@genfeedai/helpers/integrations/mcp-resource.helper';
-import type { McpOAuthRefreshToken } from '@genfeedai/prisma';
+import type { McpOAuthRefreshToken, Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
@@ -35,6 +36,12 @@ const WHITESPACE_RUN_PATTERN = /\s+/;
 export const MCP_OAUTH_SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 /** Lifetime of a refresh token; each rotation issues a fresh window. */
 const MCP_OAUTH_REFRESH_TOKEN_TTL_MS = 90 * 24 * 60 * 60 * 1000;
+/**
+ * A consumed refresh token presented again within this window by the same
+ * client is a retry of a response that never arrived, not theft: the client
+ * is given a fresh pair rotated from the live successor.
+ */
+export const MCP_OAUTH_REFRESH_GRACE_MS = 10_000;
 /** Bound on the rotation chain walked during reuse detection. */
 const MAX_REFRESH_CHAIN_DEPTH = 64;
 
@@ -58,6 +65,16 @@ export type IssueRefreshTokenInput = {
   resource: string;
   scopes: string[];
   userId: string;
+};
+
+type RotationInput = {
+  accessMode: McpAccessMode;
+  apiKey: ApiKeyDocument;
+  claimed: McpOAuthRefreshToken;
+  expiresAt: Date;
+  grantedScopes: string[];
+  lineage: ReturnType<typeof readMcpOAuthSessionLineage>;
+  scopes: string[];
 };
 
 function oauthError(error: string, description: string): BadRequestException {
@@ -95,9 +112,12 @@ function buildTokenResponse(
  * A refresh token is bound to the user, organization, client, resource and
  * scope grant of the access token (API key) it renews. Rotation is
  * single-use: presenting a consumed token is treated as theft and revokes
- * the whole replacement chain (RFC 6819 §5.2.2.3). Revoking the API key from
- * settings invalidates the refresh token because the key must not be revoked
- * at refresh time (it may have expired: the refresh token outlives it).
+ * the whole replacement chain (RFC 6819 §5.2.2.3), except that a retry by the
+ * same client within MCP_OAUTH_REFRESH_GRACE_MS is answered from the live
+ * successor, because the response to the first call may never have arrived.
+ * Revoking the API key from settings invalidates the refresh token because
+ * the key must not be revoked at refresh time (it may have expired: the
+ * refresh token outlives it).
  */
 @Traced()
 @Injectable()
@@ -110,9 +130,14 @@ export class OAuthRefreshTokenService {
   ) {}
 
   /** Mint and persist a refresh token; the plaintext is returned exactly once. */
-  async issue(input: IssueRefreshTokenInput): Promise<IssuedRefreshToken> {
+  async issue(
+    input: IssueRefreshTokenInput,
+    transaction?: Prisma.TransactionClient,
+  ): Promise<IssuedRefreshToken> {
     const refreshToken = toBase64Url(randomBytes(32));
-    const record = await this.prisma.mcpOAuthRefreshToken.create({
+    const record = await (
+      transaction ?? this.prisma
+    ).mcpOAuthRefreshToken.create({
       data: {
         apiKeyId: input.apiKeyId,
         clientId: input.clientId,
@@ -140,15 +165,25 @@ export class OAuthRefreshTokenService {
   async refresh(dto: OAuthRefreshTokenGrant): Promise<McpOAuthTokenResponse> {
     await this.requireClientAllowingOutage(dto.client_id);
 
-    const record = await this.prisma.mcpOAuthRefreshToken.findUnique({
+    let record = await this.prisma.mcpOAuthRefreshToken.findUnique({
       where: { tokenHash: hashToken(dto.refresh_token) },
     });
     if (!record || record.clientId !== dto.client_id) {
       throw invalidGrant();
     }
     if (record.consumedAt) {
-      await this.markFamilyCompromised(record);
-      throw invalidGrant();
+      const successor = await this.findGraceSuccessor(record);
+      if (!successor) {
+        await this.markFamilyCompromised(record);
+        throw invalidGrant();
+      }
+      this.logger.log('MCP OAuth refresh retried within the grace window', {
+        clientId: record.clientId,
+        organizationId: record.organizationId,
+        refreshTokenId: record.id,
+        userId: record.userId,
+      });
+      record = successor;
     }
     if (record.revokedAt || record.expiresAt <= new Date()) {
       throw invalidGrant();
@@ -184,85 +219,43 @@ export class OAuthRefreshTokenService {
     );
     scopes = modeScopes;
 
-    // Single-use claim. Losing this race means another request presented the
-    // same token concurrently, which is the same compromise the `consumedAt`
-    // check above catches sequentially — the only difference is that both
-    // requests read the row before either consumed it.
-    const consumed = await this.prisma.mcpOAuthRefreshToken.updateMany({
-      data: { consumedAt: new Date() },
-      where: {
-        clientId: record.clientId,
-        consumedAt: null,
-        id: record.id,
-        organizationId: record.organizationId,
-        revokedAt: null,
-        userId: record.userId,
-      },
+    // Claim, key rotation, replacement token and chain link commit together.
+    // A failure anywhere rolls the claim back, so a transient error leaves the
+    // client holding a token it can still present, not one burned as reuse.
+    const expiresAt = new Date(Date.now() + MCP_OAUTH_SESSION_TTL_MS);
+    const outcome = await this.rotateInTransaction({
+      accessMode,
+      apiKey,
+      claimed: record,
+      expiresAt,
+      grantedScopes,
+      lineage,
+      scopes,
     });
-    if (consumed.count !== 1) {
+    if (!outcome) {
       await this.markFamilyCompromised(record);
       throw invalidGrant();
     }
+    const { replacement, rotated } = outcome;
 
-    const expiresAt = new Date(Date.now() + MCP_OAUTH_SESSION_TTL_MS);
-    const rotated = await this.apiKeysService.rotateWithKey(
-      apiKey.id,
-      {
-        // The brand chosen at consent, and the limit to it, survive every
-        // rotation.
-        allowedBrandIds: readApiKeyAllowedBrandIds(apiKey.metadata),
-        category: ApiKeyCategory.GENFEEDAI,
-        defaultBrandId: apiKey.defaultBrandId ?? undefined,
-        description: 'OAuth session for a remote MCP client',
-        expiresAt: expiresAt.toISOString(),
-        label: 'MCP OAuth',
-        // Keys minted before grant lineage existed fall back to their own id,
-        // which then stays stable for every later rotation.
-        metadata: buildMcpOAuthSessionMetadata(record.resource, {
-          ...lineage,
-          accessMode,
-        }),
-        organizationId: record.organizationId,
-        rateLimit: apiKey.rateLimit ?? 120,
-        scopes,
-        userId: record.userId,
-      },
-      ActionOrigin.MCP,
-    );
-
-    // From here the previous key is already revoked, so a failure would leave
-    // a live key the client cannot renew. Compensate by revoking what was just
-    // issued rather than returning a credential with no refresh path.
-    let replacement: IssuedRefreshToken;
     try {
-      // The grant itself is unchanged by a narrowed access-token request
-      // (RFC 6749 §6), so the replacement stays bound to the consented scopes.
-      replacement = await this.issue({
-        apiKeyId: rotated.apiKey.id,
-        clientId: record.clientId,
-        organizationId: record.organizationId,
-        resource: record.resource,
-        scopes: grantedScopes,
-        userId: record.userId,
-      });
+      await this.apiKeysService.invalidateRotationCaches(
+        record.organizationId,
+        apiKey.id,
+        rotated.apiKey.id,
+      );
     } catch (error) {
-      await this.revokeIssuedApiKey(rotated.apiKey.id);
-      throw error;
+      // Best effort: the rotation committed, and a cache failure must not
+      // turn it into an error the client then retries as reuse.
+      this.logger.error('Failed to invalidate API key caches after refresh', {
+        apiKeyId: apiKey.id,
+        error,
+      });
     }
 
-    // Link before re-reading: a concurrent loser that walks the chain after
-    // this sees the replacement and revokes it, and one that marks the family
-    // compromised before this read is caught by the check below. Between them
-    // no interleaving lets a compromised family keep a live credential.
-    await this.prisma.mcpOAuthRefreshToken.updateMany({
-      data: { replacedById: replacement.id },
-      where: {
-        id: record.id,
-        organizationId: record.organizationId,
-        userId: record.userId,
-      },
-    });
-
+    // A concurrent loser that marked the family compromised before the
+    // transaction committed has not seen the replacement; revoke it here.
+    // One that walks the chain after the commit sees it and revokes it.
     const settled = await this.prisma.mcpOAuthRefreshToken.findFirst({
       where: {
         id: record.id,
@@ -286,6 +279,120 @@ export class OAuthRefreshTokenService {
       scopes,
       replacement.refreshToken,
     );
+  }
+
+  /** Returns null when another request claimed the token first. */
+  private rotateInTransaction({
+    accessMode,
+    apiKey,
+    claimed,
+    expiresAt,
+    grantedScopes,
+    lineage,
+    scopes,
+  }: RotationInput): Promise<{
+    replacement: IssuedRefreshToken;
+    rotated: Awaited<ReturnType<ApiKeysService['rotateWithKey']>>;
+  } | null> {
+    return this.prisma.$transaction(async (transaction) => {
+      // Single-use claim. Losing this race means another request presented the
+      // same token concurrently, which is the same compromise the `consumedAt`
+      // check above catches sequentially: both requests read the row before
+      // either consumed it.
+      const consumed = await transaction.mcpOAuthRefreshToken.updateMany({
+        data: { consumedAt: new Date() },
+        where: {
+          clientId: claimed.clientId,
+          consumedAt: null,
+          id: claimed.id,
+          organizationId: claimed.organizationId,
+          revokedAt: null,
+          userId: claimed.userId,
+        },
+      });
+      if (consumed.count !== 1) {
+        return null;
+      }
+
+      const rotated = await this.apiKeysService.rotateWithKey(
+        apiKey.id,
+        {
+          // The brand chosen at consent, and the limit to it, survive every
+          // rotation.
+          allowedBrandIds: readApiKeyAllowedBrandIds(apiKey.metadata),
+          category: ApiKeyCategory.GENFEEDAI,
+          defaultBrandId: apiKey.defaultBrandId ?? undefined,
+          description: 'OAuth session for a remote MCP client',
+          expiresAt: expiresAt.toISOString(),
+          label: 'MCP OAuth',
+          // Keys minted before grant lineage existed fall back to their own
+          // id, which then stays stable for every later rotation.
+          metadata: buildMcpOAuthSessionMetadata(claimed.resource, {
+            ...lineage,
+            accessMode,
+          }),
+          organizationId: claimed.organizationId,
+          rateLimit: apiKey.rateLimit ?? 120,
+          scopes,
+          userId: claimed.userId,
+        },
+        ActionOrigin.MCP,
+        transaction,
+      );
+      // The grant itself is unchanged by a narrowed access-token request
+      // (RFC 6749 §6), so the replacement stays bound to the consented scopes.
+      const replacement = await this.issue(
+        {
+          apiKeyId: rotated.apiKey.id,
+          clientId: claimed.clientId,
+          organizationId: claimed.organizationId,
+          resource: claimed.resource,
+          scopes: grantedScopes,
+          userId: claimed.userId,
+        },
+        transaction,
+      );
+      await transaction.mcpOAuthRefreshToken.updateMany({
+        data: { replacedById: replacement.id },
+        where: {
+          id: claimed.id,
+          organizationId: claimed.organizationId,
+          userId: claimed.userId,
+        },
+      });
+      return { replacement, rotated };
+    });
+  }
+
+  /**
+   * The live successor of a token consumed moments ago, or null when the
+   * presentation is reuse. Reuse is anything outside the grace window, a token
+   * revoked or already marked compromised, or a successor that has itself been
+   * used or revoked.
+   */
+  private async findGraceSuccessor(
+    consumed: McpOAuthRefreshToken,
+  ): Promise<McpOAuthRefreshToken | null> {
+    if (
+      !consumed.consumedAt ||
+      !consumed.replacedById ||
+      consumed.revokedAt ||
+      consumed.compromisedAt ||
+      Date.now() - consumed.consumedAt.getTime() > MCP_OAUTH_REFRESH_GRACE_MS
+    ) {
+      return null;
+    }
+    return this.prisma.mcpOAuthRefreshToken.findFirst({
+      where: {
+        clientId: consumed.clientId,
+        compromisedAt: null,
+        consumedAt: null,
+        id: consumed.replacedById,
+        organizationId: consumed.organizationId,
+        revokedAt: null,
+        userId: consumed.userId,
+      },
+    });
   }
 
   /**
