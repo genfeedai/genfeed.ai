@@ -25,7 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
-import { RefreshCw, Trash2 } from 'lucide-react';
+import { Plus, RefreshCw, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
@@ -178,6 +178,8 @@ export type AdsResearchWatchlistPanelProps = {
   isLoading: boolean;
   loadError?: string;
   readiness: AdWatchlistPlatformReadiness[];
+  /** Competitors the brand already names that are not watched yet. */
+  suggestions?: string[];
   onAdd: (input: {
     advertiserHandle: string;
     platform: AdWatchlistPlatform;
@@ -202,6 +204,7 @@ export function AdsResearchWatchlistPanel({
   isLoading,
   loadError,
   readiness,
+  suggestions = [],
   onAdd,
   onPoll,
   onRemove,
@@ -214,13 +217,47 @@ export function AdsResearchWatchlistPanel({
   const blockedPlatforms = readiness.filter((entry) => !entry.available);
 
   return (
-    <Card className="mb-4">
-      <div className="space-y-1">
-        <div className="text-sm font-semibold text-foreground">
-          {translate('title')}
+    <div className="space-y-4">
+      {suggestions.length > 0 ? (
+        <div className="space-y-2" data-testid="watchlist-suggestions">
+          <div className="flex items-center justify-between gap-2">
+            <div className="text-xs font-medium text-foreground">
+              {translate('suggestions.title')}
+            </div>
+            <Button
+              variant={ButtonVariant.GHOST}
+              size={ButtonSize.SM}
+              disabled={isAdding}
+              onClick={() => {
+                for (const name of suggestions) {
+                  onAdd({ advertiserHandle: name, platform });
+                }
+              }}
+            >
+              {translate('suggestions.watchAll')}
+            </Button>
+          </div>
+          <p className="text-xs text-foreground/60">
+            {translate('suggestions.description')}
+          </p>
+          <ul className="flex flex-wrap gap-2">
+            {suggestions.map((name) => (
+              <li key={name}>
+                <Button
+                  ariaLabel={translate('suggestions.watch', { name })}
+                  variant={ButtonVariant.SECONDARY}
+                  size={ButtonSize.SM}
+                  disabled={isAdding}
+                  icon={<Plus className="size-3.5" />}
+                  onClick={() => onAdd({ advertiserHandle: name, platform })}
+                >
+                  {name}
+                </Button>
+              </li>
+            ))}
+          </ul>
         </div>
-        <p className="text-xs text-foreground/60">{translate('description')}</p>
-      </div>
+      ) : null}
 
       <div className="flex flex-wrap items-center gap-2">
         <Input
@@ -306,6 +343,6 @@ export function AdsResearchWatchlistPanel({
           ))}
         </ul>
       )}
-    </Card>
+    </div>
   );
 }

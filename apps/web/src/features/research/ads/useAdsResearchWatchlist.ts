@@ -13,6 +13,43 @@ import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 
 const LEADING_AT_SIGN_PATTERN = /^@/;
+const URL_PREFIX_PATTERN = /^https?:\/\/(?:www\.)?/i;
+
+function normalizeCompetitorKey(value: string): string {
+  return value
+    .trim()
+    .replace(URL_PREFIX_PATTERN, '')
+    .replace(LEADING_AT_SIGN_PATTERN, '')
+    .toLowerCase();
+}
+
+/**
+ * The brand already names its competitors (onboarding scan or the brand
+ * strategy), so the watchlist starts from them rather than from an empty
+ * form. Competitors that are already watched are left out.
+ */
+export function getCompetitorSuggestions(
+  named: readonly string[] | undefined,
+  watched: readonly AdWatchedAdvertiser[],
+): string[] {
+  const watchedKeys = new Set(
+    watched.flatMap((advertiser) =>
+      [advertiser.advertiserHandle, advertiser.advertiserName]
+        .filter((value): value is string => Boolean(value))
+        .map(normalizeCompetitorKey),
+    ),
+  );
+  const seen = new Set<string>();
+
+  return (named ?? []).flatMap((name) => {
+    const key = normalizeCompetitorKey(name);
+    if (!key || watchedKeys.has(key) || seen.has(key)) {
+      return [];
+    }
+    seen.add(key);
+    return [name.trim()];
+  });
+}
 
 export type AdsResearchWatchlistApi = {
   addError?: string;
@@ -22,6 +59,8 @@ export type AdsResearchWatchlistApi = {
   isLoading: boolean;
   loadError?: string;
   readiness: AdWatchlistPlatformReadiness[];
+  /** Competitors the brand's own strategy names that are not watched yet. */
+  suggestions: string[];
   addAdvertiser: (input: CreateAdWatchedAdvertiserInput) => Promise<boolean>;
   pollAdvertiser: (id: string) => Promise<void>;
   removeAdvertiser: (id: string) => Promise<void>;
@@ -36,7 +75,7 @@ export type AdsResearchWatchlistApi = {
 export function useAdsResearchWatchlist(
   onPolled?: () => void,
 ): AdsResearchWatchlistApi {
-  const { brandId, isReady } = useBrand();
+  const { brandId, isReady, selectedBrand } = useBrand();
   const getWatchlistService = useAuthedService((token: string) =>
     AdWatchedAdvertisersService.getInstance(token),
   );
@@ -164,5 +203,9 @@ export function useAdsResearchWatchlist(
     pollAdvertiser,
     readiness,
     removeAdvertiser,
+    suggestions: getCompetitorSuggestions(
+      selectedBrand?.agentConfig?.strategy?.competitors,
+      advertisers,
+    ),
   };
 }
