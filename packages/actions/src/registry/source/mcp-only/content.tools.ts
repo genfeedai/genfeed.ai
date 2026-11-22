@@ -193,7 +193,11 @@ export const MCP_CONTENT_TOOLS: SourceTool[] = [
           pattern: '\\S',
           type: 'string',
         },
-        brandId: ARTICLE_BRAND_ID_PROPERTY,
+        brandId: {
+          description:
+            'Only with articleId: the brand the article lives in (defaults to your active brand). Not allowed with query: a search covers the whole organization.',
+          type: 'string',
+        },
         query: {
           description: 'Search query over published articles.',
           minLength: 1,

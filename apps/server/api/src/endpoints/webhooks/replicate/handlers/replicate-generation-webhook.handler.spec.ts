@@ -276,11 +276,15 @@ describe('ReplicateGenerationWebhookHandler', () => {
       await handler.handleCompleted(succeeded([FOREIGN_URL]));
 
       expect(finalizedOutputs).toEqual([]);
-      expect(errors).toEqual([
-        'Replicate webhook: output URL rejected by host allowlist',
+      expect(failedOutputs).toEqual([
+        [
+          PREDICTION,
+          'Provider output was not served from a trusted media host',
+        ],
       ]);
+      expect(errors).toEqual([]);
       expect(warnings).toEqual([
-        'Replicate webhook: output array contained no URLs',
+        'Replicate webhook: output URL rejected by host allowlist',
       ]);
     });
 
