@@ -54,7 +54,7 @@ const BOT_REASON =
 const PROCESSOR_REASON =
   'Processors download and upload large media through `HttpService`. Register it with a timeout and give the long transfers a longer per-call timeout, as the API does with `UPLOAD_HTTP_TIMEOUT_MS`.';
 
-/** Remaining sites are tracked in the follow-up issue linked from #10855. */
+/** Remaining sites are tracked in #10860. */
 export const HTTP_TIMEOUT_ALLOWANCES: readonly HttpTimeoutAllowance[] = [
   {
     count: 1,
