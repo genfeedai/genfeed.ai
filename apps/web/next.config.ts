@@ -233,7 +233,7 @@ const config = createAppNextConfig({
       source: createOrganizationAppRoute(':orgSlug', '/admin/:path*'),
     },
     {
-      destination: APP_ROUTES.DISCOVERY.OVERVIEW,
+      destination: APP_ROUTES.DISCOVERY.FEED,
       permanent: false,
       source: APP_ROUTES.DISCOVERY.ROOT,
     },
@@ -241,7 +241,7 @@ const config = createAppNextConfig({
       destination: createBrandAppRoute(
         ':orgSlug',
         ':brandSlug',
-        APP_ROUTES.DISCOVERY.OVERVIEW,
+        APP_ROUTES.DISCOVERY.FEED,
       ),
       permanent: false,
       source: createBrandAppRoute(

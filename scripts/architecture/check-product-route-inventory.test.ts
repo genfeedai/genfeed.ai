@@ -239,12 +239,13 @@ describe('runCheckProductRouteInventory', () => {
     // The bare `/connectors` paths are configuration redirects, not pages, and
     // organization Library and Publishing got static entries in front of the
     // catch-all. Organization settings Preferences folded into General. The
-    // brand kit is one page with anchors; its /:tab route is gone.
+    // brand kit is one page with anchors; its /:tab route is gone. Discovery dropped its
+    // Following and Trend Turnover pages (four routes across brand and org).
     expect(runCheckProductRouteInventory()).toMatchObject({
       appPublicRouteCount: 25,
       issues: [],
-      protectedPageCount: 257,
-      protectedRouteCount: 281,
+      protectedPageCount: 253,
+      protectedRouteCount: 277,
       publicRouteCount: 123,
       websitePublicRouteCount: 98,
     });

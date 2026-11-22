@@ -225,7 +225,7 @@ function topPostsDocument(requestUrl: string): unknown {
  * E2E Tests for Analytics Deep Pages
  *
  * Tests verify that analytics sub-pages (insights, hooks,
- * performance-lab, trend-turnover, posts) load correctly
+ * performance-lab, posts) load correctly
  * with expected UI structure and elements.
  * All API calls are mocked.
  */
@@ -490,87 +490,6 @@ test.describe('Analytics Deep Pages', () => {
       await expect(
         authenticatedPage.getByText('Failed to load patterns'),
       ).toHaveCount(0);
-      expect(seen.length).toBeGreaterThan(0);
-    });
-  });
-
-  test.describe('Trend Turnover Page', () => {
-    test('should display trend turnover page', async ({
-      authenticatedPage,
-    }) => {
-      const analyticsPage = new AnalyticsPage(authenticatedPage);
-      const route = brandPath(APP_ROUTES.DISCOVERY.TREND_TURNOVER);
-
-      await authenticatedPage.goto(route);
-      await analyticsPage.waitForPageLoad();
-
-      await expect(authenticatedPage).toHaveURL(/trend-turnover/);
-      await expect(
-        analyticsPage.sectionHeading('Trend Turnover'),
-      ).toBeVisible();
-      await assertNoErrorBoundaryFallback(authenticatedPage, route);
-    });
-
-    test('should show trend analysis content', async ({
-      authenticatedPage,
-    }) => {
-      const analyticsPage = new AnalyticsPage(authenticatedPage);
-      const route = brandPath(APP_ROUTES.DISCOVERY.TREND_TURNOVER);
-      const main = authenticatedPage.locator('main');
-
-      // `GET /trends/turnover` (`TrendsService.getTurnoverStats`,
-      // `TrendTurnoverResponse`).
-      const seen = await mockApiRoute(
-        authenticatedPage,
-        'trends/turnover\\?',
-        async (r) => {
-          await r.fulfill(
-            jsonApi({
-              byPlatform: [
-                {
-                  alive: 3,
-                  appeared: 6,
-                  avgLifespanDays: 4.5,
-                  died: 3,
-                  platform: 'instagram',
-                  turnoverRate: 50,
-                },
-              ],
-              days: 30,
-              timeline: [
-                { appeared: 2, date: '2026-09-21', died: 1 },
-                { appeared: 4, date: '2026-09-22', died: 2 },
-              ],
-              totals: {
-                alive: 3,
-                appeared: 6,
-                avgLifespanDays: 4.5,
-                died: 3,
-                turnoverRate: 50,
-              },
-            }),
-          );
-        },
-      );
-
-      await authenticatedPage.goto(route);
-      await analyticsPage.waitForPageLoad();
-      await assertNoErrorBoundaryFallback(authenticatedPage, route);
-
-      const rows = main.locator('table tbody tr');
-      await expect(rows).toHaveCount(1);
-      await expect(rows).toContainText('Instagram');
-      await expect(rows).toContainText('4.5d');
-      await expect(rows).toContainText('50%');
-      await expect(
-        main.getByTestId('metric-card').filter({ hasText: 'Appeared' }),
-      ).toContainText('6');
-      await expect(
-        main.getByTestId('metric-card').filter({ hasText: 'Died' }),
-      ).toContainText('3');
-      await expect(
-        main.getByTestId('metric-card').filter({ hasText: 'Turnover Rate' }),
-      ).toContainText('50%');
       expect(seen.length).toBeGreaterThan(0);
     });
   });
