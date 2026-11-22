@@ -71,6 +71,10 @@ const REPOSITORY_CONTRACTS = [
     command: ['bun', 'run', 'check:test-id-literals'],
     name: 'test id literal guard',
   },
+  {
+    command: ['bun', 'run', 'check:test-module-providers'],
+    name: 'test module providers',
+  },
   { command: ['bun', 'run', 'check:ui-guards'], name: 'UI guards' },
   { command: ['bun', 'run', 'design:check'], name: 'design system contracts' },
   {
