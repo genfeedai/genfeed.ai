@@ -30,7 +30,7 @@ export interface CreatorRouteProps {
 }
 
 export interface CreatorTabRouteProps extends CreatorRouteProps {
-  searchParams: Promise<{ page?: string }>;
+  searchParams: Promise<{ page?: string; platform?: string }>;
 }
 
 export interface CreatorPostRouteProps {
@@ -44,12 +44,19 @@ export interface CreatorTabCounts {
   videos: number;
 }
 
-export interface CreatorRailProps {
+export interface CreatorHeaderProps {
   brand: Brand;
   counts: CreatorTabCounts;
   handle: string;
+  /** The banner sits above the header, so the avatar overlaps its lower edge. */
+  hasBanner: boolean;
   profileUrl: string;
   referralCode: string | null;
+}
+
+export interface CreatorAccountsProps {
+  brand: Brand;
+  handle: string;
 }
 
 export interface ViewTrackerProps {
@@ -121,9 +128,25 @@ export interface CreatorPostMediaProps {
   media: CreatorPostMediaItem[];
 }
 
-export interface CreatorPostGridProps {
+export interface CreatorWallProps {
+  /** The creator's picture, worn by text-only tiles as the account's avatar. */
+  brand: Brand;
   handle: string;
   posts: Post[];
+}
+
+export interface CreatorWallTileProps {
+  brand: Brand;
+  handle: string;
+  post: Post;
+}
+
+export interface CreatorWallFilterProps {
+  /** The platform the wall is narrowed to, or null for every post. */
+  active: string | null;
+  handle: string;
+  /** Platforms the creator has connected, one chip each. */
+  platforms: string[];
 }
 
 export interface ProfileSubscribeProps {
