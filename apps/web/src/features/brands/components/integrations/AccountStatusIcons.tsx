@@ -87,8 +87,7 @@ export default function AccountStatusIcons({
       {needsReconnect ? (
         <Button
           ariaLabel={translate('reconnect')}
-          className="text-warning hover:text-warning"
-          icon={<TriangleAlert aria-hidden="true" />}
+          icon={<TriangleAlert aria-hidden="true" className="text-warning" />}
           isDisabled={isReconnectDisabled}
           isLoading={isReconnecting}
           onClick={onReconnect}
@@ -117,8 +116,9 @@ export default function AccountStatusIcons({
       {needsDirectMessageReconnect(connection) ? (
         <Button
           ariaLabel={translate('dmReconnectBadge')}
-          className="text-warning hover:text-warning"
-          icon={<MessageSquareWarning aria-hidden="true" />}
+          icon={
+            <MessageSquareWarning aria-hidden="true" className="text-warning" />
+          }
           isDisabled={isReconnectDisabled}
           isLoading={isReconnecting}
           onClick={onReconnect}
