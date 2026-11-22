@@ -85,7 +85,7 @@ export default function AccountsTable({
       {
         // Icon-only, so the header is read by screen readers only. It sits at
         // the row's right end, where the hover actions appear over it.
-        className: 'w-px whitespace-nowrap',
+        className: 'w-px whitespace-nowrap pr-2',
         header: (
           <span className="sr-only">{translate('accountsTableStatus')}</span>
         ),
