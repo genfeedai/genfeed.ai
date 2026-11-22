@@ -1,4 +1,5 @@
 import { PlatformSettingsModule } from '@api/collections/platform-settings/platform-settings.module';
+import { DEFAULT_HTTP_TIMEOUT_MS } from '@api/constants/http-timeout.constant';
 import { MurekaService } from '@api/services/integrations/mureka/services/mureka.service';
 import { PollUntilModule } from '@api/shared/services/poll-until/poll-until.module';
 import { ConfigModule } from '@libs/config/config.module';
@@ -11,7 +12,7 @@ import { Module } from '@nestjs/common';
   imports: [
     PlatformSettingsModule,
     ConfigModule,
-    HttpModule,
+    HttpModule.register({ timeout: DEFAULT_HTTP_TIMEOUT_MS }),
     LoggerModule,
     PollUntilModule,
   ],

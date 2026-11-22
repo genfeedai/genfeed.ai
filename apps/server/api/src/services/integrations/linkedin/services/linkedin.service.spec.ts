@@ -1,3 +1,4 @@
+import { UPLOAD_HTTP_TIMEOUT_MS } from '@api/constants/http-timeout.constant';
 import type { Mock } from 'vitest';
 
 vi.mock('@libs/security/destination-guard', async (importOriginal) => {
@@ -229,6 +230,7 @@ describe('LinkedInService', () => {
               Authorization: 'Bearer access-token',
               'Content-Type': 'application/octet-stream',
             },
+            timeout: UPLOAD_HTTP_TIMEOUT_MS,
           },
         );
         expect(mockHttpService.post.mock.invocationCallOrder[0]).toBeLessThan(

@@ -2,6 +2,7 @@ import { createHash, timingSafeEqual } from 'node:crypto';
 import { inferFirstPartySkillTaxonomy } from '@api/collections/skills/catalog/first-party-skill-taxonomy';
 import { SkillLibraryService } from '@api/collections/skills/services/skill-library.service';
 import { SkillsService } from '@api/collections/skills/services/skills.service';
+import { UPLOAD_HTTP_TIMEOUT_MS } from '@api/constants/http-timeout.constant';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
@@ -485,7 +486,9 @@ export class SkillDownloadService {
   }
 
   private async downloadPack(downloadUrl: string): Promise<Buffer> {
-    const response = await fetch(downloadUrl);
+    const response = await fetch(downloadUrl, {
+      signal: AbortSignal.timeout(UPLOAD_HTTP_TIMEOUT_MS),
+    });
     let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
     let complete = false;
     try {

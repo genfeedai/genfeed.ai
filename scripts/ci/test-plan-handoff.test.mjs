@@ -380,6 +380,46 @@ test('waits for the Plan job, then returns its outputs', async () => {
   assert.equal(waits.length, 2);
 });
 
+test('polls again while a listed plan artifact is not downloadable yet', async () => {
+  const failures = [404, 404, 503];
+  const waits = [];
+  const outputs = await awaitPlanOutputs({
+    repository: 'o/r',
+    runId: '7',
+    attempt: 1,
+    token: 't',
+    fetchImpl: async () => jsonResponse({ artifacts: [artifact(1)] }),
+    download: async () => {
+      const status = failures.shift();
+      if (status) {
+        throw Object.assign(new Error(`HTTP ${status}`), { status });
+      }
+      return { ok: true, outputs: { app_tests: 'true' } };
+    },
+    wait: async (ms) => waits.push(ms),
+  });
+
+  assert.deepEqual(outputs, { app_tests: 'true' });
+  assert.equal(waits.length, 3);
+});
+
+test('a plan artifact that is refused for good fails the job', async () => {
+  await assert.rejects(
+    awaitPlanOutputs({
+      repository: 'o/r',
+      runId: '7',
+      attempt: 1,
+      token: 't',
+      fetchImpl: async () => jsonResponse({ artifacts: [artifact(1)] }),
+      download: async () => {
+        throw Object.assign(new Error('HTTP 403'), { status: 403 });
+      },
+      wait: async () => {},
+    }),
+    /HTTP 403/,
+  );
+});
+
 test('a failed Plan job fails the jobs waiting on it at once', async () => {
   await assert.rejects(
     awaitPlanOutputs({
