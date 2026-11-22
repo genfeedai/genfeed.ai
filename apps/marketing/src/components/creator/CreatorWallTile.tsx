@@ -46,7 +46,11 @@ export default function CreatorWallTile({
   const publishedAt = post.publishedAt ?? post.createdAt;
   const media = getPostMedia(post.ingredients);
   const lead = media[0];
-  const imageCount = media.filter((item) => item.kind === 'image').length;
+  // The account that published the post; a post with no matching connected
+  // account falls back to the profile handle.
+  const accountHandle =
+    brand.socials?.find((social) => social.platform === post.platform)
+      ?.handle ?? handle;
   const label = `${platformLabel ? `${platformLabel}: ` : ''}${title}`;
 
   if (!lead) {
@@ -63,13 +67,13 @@ export default function CreatorWallTile({
           <ConnectedAccountAvatar
             account={{
               avatarUrl: brand.logoUrl,
-              handle,
+              handle: accountHandle,
               platform: post.platform ?? '',
             }}
             isDecorative
             size="sm"
           />
-          <span className="min-w-0 truncate">@{handle}</span>
+          <span className="min-w-0 truncate">@{accountHandle}</span>
           {publishedAt ? (
             <time className="ml-auto shrink-0" dateTime={publishedAt}>
               {postDateFormatter.format(new Date(publishedAt))}
@@ -112,12 +116,12 @@ export default function CreatorWallTile({
         />
       ) : null}
       <span className="absolute right-2 top-2 flex gap-1.5">
-        {imageCount > 1 ? (
+        {media.length > 1 ? (
           <Badge
             icon={<Layers aria-hidden="true" className="size-3.5" />}
             isSolid
             shape="pill"
-            value={imageCount}
+            value={media.length}
             variant="secondary"
           />
         ) : null}
