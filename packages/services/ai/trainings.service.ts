@@ -18,6 +18,28 @@ export class TrainingsService extends BaseService<Training> {
   }
 
   /**
+   * Create a training that is safe to retry. The same key with the same body
+   * returns the training the first request created instead of starting and
+   * charging a second one.
+   */
+  async createIdempotent(
+    body: Record<string, unknown>,
+    idempotencyKey: string,
+  ): Promise<Training> {
+    return this.executeWithErrorHandling(
+      `POST ${this.baseURL}`,
+      this.instance
+        .post<JsonApiResponseDocument>(
+          '',
+          BaseService.cleanBody(body, { excludeId: true }),
+          { headers: { 'Idempotency-Key': idempotencyKey } },
+        )
+        .then((res) => res.data)
+        .then(async (res) => await this.mapOne(res)),
+    );
+  }
+
+  /**
    * Get generated images for a training
    */
   async getTrainingImages(
