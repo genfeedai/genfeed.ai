@@ -130,6 +130,7 @@ export const claimPendingOAuthRow = traced(
       userId: filter.userId ?? { not: null },
     };
 
+    // sql-risk-audit: ignore bulk-write-tenant-review -- A compare-and-set on one pending row: the single-use oauthState (and the row's updatedAt) pick the row, isDeleted is false, and the caller's organization and user narrow it whenever the verify request names them. count === 1 is the claim.
     const { count } = await prisma.credential.updateMany({
       data: { oauthState: claimedOAuthState(filter.oauthState) },
       where,
