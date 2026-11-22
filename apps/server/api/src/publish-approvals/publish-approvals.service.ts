@@ -33,6 +33,7 @@ import {
   withMediaWarningProvenance,
   withMediaWarnings,
 } from '@api/publish-approvals/publish-approval-media-gate';
+import { describeLostPublishClaim } from '@api/publish-approvals/publish-claim-held.util';
 import type { ServerLogger, ServerPrisma } from '@api/server.dependencies';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import {
@@ -535,9 +536,12 @@ export class PublishApprovalsService {
         },
       });
       if (claimed.count !== 1) {
-        throw new ConflictException(
-          'Publish approval is not queued or is already executing.',
+        const { status } = await this.getApprovalOrThrow(
+          params.organizationId,
+          params.approvalId,
+          params.postId,
         );
+        throw new ConflictException(describeLostPublishClaim(status));
       }
 
       const updated = await this.getApprovalOrThrow(
