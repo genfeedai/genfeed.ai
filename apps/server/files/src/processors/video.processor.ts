@@ -107,6 +107,25 @@ export class VideoProcessor extends WorkerHost {
     };
   }
 
+  /** Reports the failure only when no retry is left; an earlier attempt may still succeed. */
+  private async publishFinalFailure(
+    job: Job<VideoJobData>,
+    message: string,
+  ): Promise<void> {
+    if (!isFinalAttempt(job)) {
+      return;
+    }
+    const { ingredientId, organizationId, userId } = job.data;
+    await this.publishVideoCompletion(
+      ingredientId,
+      userId,
+      organizationId,
+      'failed',
+      null,
+      message,
+    );
+  }
+
   private async publishVideoCompletion(
     ingredientId: string,
     userId: string,
@@ -237,16 +256,7 @@ export class VideoProcessor extends WorkerHost {
         userId,
         room,
       );
-      if (isFinalAttempt(job)) {
-        await this.publishVideoCompletion(
-          ingredientId,
-          userId,
-          organizationId,
-          'failed',
-          null,
-          message,
-        );
-      }
+      await this.publishFinalFailure(job, message);
       throw error;
     }
   }
@@ -901,16 +911,7 @@ export class VideoProcessor extends WorkerHost {
     } catch (error: unknown) {
       this.logger.error(`Extract frames failed for job ${job.id}:`, error);
       const message = getErrorMessage(error);
-      if (isFinalAttempt(job)) {
-        await this.publishVideoCompletion(
-          ingredientId,
-          job.data.userId,
-          job.data.organizationId,
-          'failed',
-          null,
-          message,
-        );
-      }
+      await this.publishFinalFailure(job, message);
       throw error;
     }
   }
@@ -951,16 +952,7 @@ export class VideoProcessor extends WorkerHost {
     } catch (error: unknown) {
       this.logger.error(`Get video metadata failed for job ${job.id}:`, error);
       const message = getErrorMessage(error);
-      if (isFinalAttempt(job)) {
-        await this.publishVideoCompletion(
-          ingredientId,
-          job.data.userId,
-          job.data.organizationId,
-          'failed',
-          null,
-          message,
-        );
-      }
+      await this.publishFinalFailure(job, message);
       throw error;
     }
   }
@@ -998,16 +990,7 @@ export class VideoProcessor extends WorkerHost {
     } catch (error: unknown) {
       const message = getErrorMessage(error);
       this.logger.error(`Hook remix job ${job.id} failed: ${message}`);
-      if (isFinalAttempt(job)) {
-        await this.publishVideoCompletion(
-          job.data.ingredientId,
-          job.data.userId,
-          job.data.organizationId,
-          'failed',
-          null,
-          message,
-        );
-      }
+      await this.publishFinalFailure(job, message);
       throw error;
     }
   }
