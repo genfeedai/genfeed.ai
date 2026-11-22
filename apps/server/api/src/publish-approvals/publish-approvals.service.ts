@@ -536,16 +536,12 @@ export class PublishApprovalsService {
         },
       });
       if (claimed.count !== 1) {
-        const current = await this.getApprovalOrThrow(
+        const { status } = await this.getApprovalOrThrow(
           params.organizationId,
           params.approvalId,
           params.postId,
         );
-        throw new ConflictException(
-          describeLostPublishClaim(
-            this.contractCodec.parseStatus(current.status),
-          ),
-        );
+        throw new ConflictException(describeLostPublishClaim(status));
       }
 
       const updated = await this.getApprovalOrThrow(
