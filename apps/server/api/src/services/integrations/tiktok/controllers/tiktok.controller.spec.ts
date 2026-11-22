@@ -236,7 +236,7 @@ describe('TiktokController', () => {
           accessToken: 'tt_access',
           isConnected: true,
           isDeleted: false,
-          oauthState: null,
+          oauthState: 'verified:opaque-oauth-state',
           refreshToken: 'tt_refresh',
           grantedScopes: [
             'user.info.basic',

@@ -218,7 +218,7 @@ describe('MastodonController', () => {
           },
           id: 'credential-1',
           isConnected: true,
-          oauthState: null,
+          oauthState: 'verified:state-1',
           oauthToken: null,
           oauthTokenSecret: null,
         }),

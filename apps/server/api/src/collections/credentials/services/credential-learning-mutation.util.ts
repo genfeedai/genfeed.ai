@@ -9,6 +9,7 @@ import {
 import { learningPublicationCredentialSelect } from '@api/collections/content-learning/services/learning-publication-source.types';
 import type { CredentialDocument } from '@api/collections/credentials/credential.types';
 import { pickCarriedConnectionColumns } from '@api/collections/credentials/utils/credential-persistence.util';
+import { carriedOAuthState } from '@api/collections/credentials/utils/oauth-verify-claim.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { scopedWhere } from '@api/index';
 import { Prisma } from '@genfeedai/prisma';
@@ -528,6 +529,9 @@ async function settleCredentialReconciliation(
     ...input.connectionUpdate,
     ...input.profileUpdate,
     ...clearedOAuth,
+    // Keep the verify marker: a second verify of the same state that is only
+    // now looking the row up still finds the connected account.
+    oauthState: carriedOAuthState(source.oauthState),
     externalId: input.externalId,
     isConnected: true,
     ...(typeof source.isHistoryImportRequested === 'boolean'

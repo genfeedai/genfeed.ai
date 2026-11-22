@@ -6,7 +6,10 @@ import {
 } from '@api/collections/credentials/dto/create-credential.dto';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { throwIfOAuthCallbackError } from '@api/collections/credentials/utils/oauth-callback-error.util';
-import { claimOAuthVerifyCredential } from '@api/collections/credentials/utils/oauth-verify-claim.util';
+import {
+  claimOAuthVerifyCredential,
+  verifiedOAuthState,
+} from '@api/collections/credentials/utils/oauth-verify-claim.util';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
@@ -216,7 +219,7 @@ export class BlueskyController {
         description: new URL(completed.audience).origin,
         isConnected: true,
         isDeleted: false,
-        oauthState: null,
+        oauthState: verifiedOAuthState(body.state),
         oauthTokenSecret: null,
       },
     );
