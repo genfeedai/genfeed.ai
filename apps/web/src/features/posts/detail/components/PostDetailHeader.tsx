@@ -70,6 +70,7 @@ export interface PostDetailHeaderProps {
   /** Commits the schedule draft — the primary action once a date is picked. */
   onScheduleSave?: () => void;
   isScheduleDirty?: boolean;
+  isPublishBlocked?: boolean;
   isSavingSchedule?: boolean;
 }
 
@@ -109,6 +110,7 @@ export default function PostDetailHeader({
   onPublishNow,
   onScheduleSave,
   isScheduleDirty = false,
+  isPublishBlocked = false,
   isSavingSchedule = false,
 }: PostDetailHeaderProps) {
   const Heading = headingLevel === 1 ? 'h1' : 'h2';
@@ -138,7 +140,7 @@ export default function PostDetailHeader({
       return (
         <Button
           icon={<CalendarClock className="size-4" />}
-          isDisabled={isSavingSchedule}
+          isDisabled={isSavingSchedule || isPublishBlocked}
           isLoading={isSavingSchedule}
           label={
             isSavingSchedule ? translate('scheduling') : translate('schedule')
@@ -152,7 +154,7 @@ export default function PostDetailHeader({
       return (
         <Button
           icon={<Send className="size-4" />}
-          isDisabled={isSavingSchedule}
+          isDisabled={isSavingSchedule || isPublishBlocked}
           isLoading={isSavingSchedule}
           label={
             isSavingSchedule ? translate('publishing') : translate('publishNow')
@@ -165,6 +167,7 @@ export default function PostDetailHeader({
     return undefined;
   }, [
     isPublished,
+    isPublishBlocked,
     isSavingSchedule,
     isScheduleDirty,
     onPublishNow,

@@ -30,7 +30,7 @@ import { ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { type ReactNode, useCallback, useMemo, useState } from 'react';
+import { type ReactNode, useCallback, useMemo, useRef, useState } from 'react';
 import TargetPreview from '@/components/previews/TargetPreview';
 import RecordFactLine from '@/components/record-detail/RecordFactLine';
 import EngagementPreview from '@/features/posts/components/posts/engagement-preview/EngagementPreview';
@@ -98,6 +98,7 @@ export default function PostDetail({
     childDescriptions,
     scheduleDraft,
     selectedIngredients,
+    isPublishBlocked,
     isSavingDescription,
     isSavingSchedule,
     isSavingIngredients,
@@ -178,9 +179,16 @@ export default function PostDetail({
   });
   const [isScoringSeo, setIsScoringSeo] = useState(false);
   const [isTikTokPublishingReady, setIsTikTokPublishingReady] = useState(false);
+  // Set synchronously at entry: the description save below is awaited, and a
+  // second click before the disabled state renders must not start a second
+  // save-then-publish.
+  const isPublishInFlightRef = useRef(false);
   const guardTikTokPublish = useCallback(
     (action: () => Promise<void>) => {
       return async () => {
+        if (isPublishInFlightRef.current) {
+          return;
+        }
         if (
           post?.platform === CredentialPlatform.TIKTOK &&
           !isTikTokPublishingReady
@@ -190,8 +198,13 @@ export default function PostDetail({
           );
           return;
         }
-        await handleContentSave();
-        await action();
+        isPublishInFlightRef.current = true;
+        try {
+          await handleContentSave();
+          await action();
+        } finally {
+          isPublishInFlightRef.current = false;
+        }
       };
     },
     [
@@ -448,6 +461,7 @@ export default function PostDetail({
           post={post}
           credential={credential}
           scheduleDraft={scheduleDraft}
+          isPublishBlocked={isPublishBlocked}
           isSavingSchedule={isSavingSchedule}
           isScheduleDirty={isScheduleDirty}
           isScoringSeo={isScoringSeo}
@@ -485,6 +499,7 @@ export default function PostDetail({
     saveSchedule,
     isContentDirty,
     isPublished,
+    isPublishBlocked,
     isSavingSchedule,
     isScheduleDirty,
     isScoringSeo,
@@ -595,6 +610,7 @@ export default function PostDetail({
         headingLevel: isPagePresentation ? (1 as const) : (2 as const),
         isExpandingToThread,
         isPublished,
+        isPublishBlocked,
         isSavingSchedule,
         isScheduleDirty: isScheduleDirty && scheduleDraft !== '',
         onCreateRemix: isSourcePostVariationPlatform(post.platform)
