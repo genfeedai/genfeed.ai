@@ -316,4 +316,33 @@ describe('FilterMenu', () => {
     await user.keyboard('{ArrowUp}{ArrowUp}');
     expect(search).toHaveFocus();
   });
+
+  it('skips options the selection cap disabled when moving with the arrow keys', async () => {
+    const user = userEvent.setup();
+    const options = Array.from({ length: 10 }, (_, index) => ({
+      label: `Tag ${index}`,
+      value: `tag-${index}`,
+    }));
+    renderMenu([
+      {
+        key: 'tags',
+        label: 'Tags',
+        maxSelected: 1,
+        onChange: vi.fn(),
+        options,
+        searchPlaceholder: 'Search tags',
+        selection: 'multiple',
+        values: ['tag-1'],
+      },
+    ]);
+    await openFacet(user, /Tags/);
+    const search = await screen.findByLabelText('Search tags');
+    search.focus();
+    await user.keyboard('{ArrowDown}');
+    expect(
+      screen.getByRole('menuitemcheckbox', { name: 'Tag 1' }),
+    ).toHaveFocus();
+    await user.keyboard('{ArrowUp}');
+    expect(search).toHaveFocus();
+  });
 });

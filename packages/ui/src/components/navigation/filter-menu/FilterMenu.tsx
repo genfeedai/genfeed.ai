@@ -53,7 +53,9 @@ const MENU_ITEM_SELECTOR =
 
 function getMenuItems(root: HTMLElement | null): HTMLElement[] {
   return root
-    ? Array.from(root.querySelectorAll<HTMLElement>(MENU_ITEM_SELECTOR))
+    ? Array.from(root.querySelectorAll<HTMLElement>(MENU_ITEM_SELECTOR)).filter(
+        (item) => item.getAttribute('aria-disabled') !== 'true',
+      )
     : [];
 }
 
