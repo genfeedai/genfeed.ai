@@ -57,8 +57,15 @@ export class BetterAuthIdentityResolverService {
       return cached;
     }
 
+    // Read the epoch before resolving: an invalidation that lands while the
+    // resolve is in flight bumps it, and the write below is then skipped.
+    const epoch = await this.identityCache.readEpoch(userId);
     const identity = await this.resolveFromDatabase(userId);
-    await this.identityCache.set(userId, identity);
+    // A user mid-setup has no organization yet; caching that would keep them
+    // without one after setup completes.
+    if (identity.organizationId) {
+      await this.identityCache.setIfUnchanged(userId, identity, epoch);
+    }
     return identity;
   }
 

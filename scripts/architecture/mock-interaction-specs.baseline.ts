@@ -45,7 +45,6 @@ export const MOCK_INTERACTION_SPEC_BASELINE: readonly string[] = [
   'apps/server/api/src/analytics/services/post-analytics-collection-state.service.spec.ts',
   'apps/server/api/src/auth/better-auth/better-auth-rate-limit.util.spec.ts',
   'apps/server/api/src/auth/better-auth/listeners/user-provisioning.listener.spec.ts',
-  'apps/server/api/src/auth/better-auth/services/better-auth-identity-resolver.service.spec.ts',
   'apps/server/api/src/cache/redis/redis-cache.interceptor.spec.ts',
   'apps/server/api/src/collections/activities/services/activities.service.spec.ts',
   'apps/server/api/src/collections/ad-performance/services/ad-performance.service.tenant.spec.ts',
