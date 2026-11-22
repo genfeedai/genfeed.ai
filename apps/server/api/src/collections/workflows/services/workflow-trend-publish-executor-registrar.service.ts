@@ -68,6 +68,10 @@ import { Injectable, Optional } from '@nestjs/common';
 const NON_ALPHANUMERIC_RUNS_PATTERN = /[^a-z0-9]+/g;
 const EDGE_HYPHEN_PATTERN = /^-|-$/g;
 const LEADING_HASH_PATTERN = /^#/;
+const TREND_DIGEST_WORKLOAD_TYPE = 'workflow-trend-digest';
+const DIGEST_CHARGE_DESCRIPTION = 'Daily trends digest';
+/** Long enough to settle right after delivery, short enough to free a stranded hold. */
+const DIGEST_HOLD_TTL_MS = 60 * 60 * 1000;
 
 @Traced()
 @Injectable()
@@ -105,7 +109,7 @@ export class WorkflowTrendPublishExecutorRegistrarService {
     workflowId: string,
     summaries: Array<{ nodeType: string; output?: Record<string, unknown> }>,
   ): Promise<void> {
-    if (!this.creditsUtilsService || !this.cacheService) {
+    if (!this.creditsUtilsService) {
       return;
     }
 
@@ -139,26 +143,39 @@ export class WorkflowTrendPublishExecutorRegistrarService {
       return;
     }
 
-    const chargeKey = `workflow-digest-charged:${workflowId}:${this.digestUtcDateKey()}`;
-    const charged = await this.cacheService.acquireLock(chargeKey, 93_600);
-    if (!charged) {
-      return;
-    }
-
+    // One hold per workflow and UTC day, kept in the credit ledger and not in
+    // Redis. Reserve and settle are both keyed, so running this twice charges
+    // once and a second run settles a hold the first left behind; a Redis
+    // outage cannot skip the charge. A hold nothing settles expires and frees
+    // the credits.
+    const day = this.digestUtcDateKey();
+    const idempotencyKey = `${TREND_DIGEST_WORKLOAD_TYPE}:${workflowId}:${day}`;
     try {
-      await this.creditsUtilsService.deductCreditsFromOrganization(
-        orgId,
-        ownerUserId,
-        creditCost,
-        'Daily trends digest',
-        ActivitySource.TREND_SCAN,
-      );
+      const reservation = await this.creditsUtilsService.reserveCredits({
+        actorUserId: ownerUserId,
+        amount: creditCost,
+        description: DIGEST_CHARGE_DESCRIPTION,
+        expiresAt: new Date(Date.now() + DIGEST_HOLD_TTL_MS),
+        idempotencyKey,
+        organizationId: orgId,
+        source: ActivitySource.TREND_SCAN,
+        workloadId: `${workflowId}:${day}`,
+        workloadType: TREND_DIGEST_WORKLOAD_TYPE,
+      });
+      await this.creditsUtilsService.settleReservation({
+        actorUserId: ownerUserId,
+        actualAmount: creditCost,
+        description: DIGEST_CHARGE_DESCRIPTION,
+        organizationId: orgId,
+        reservationId: reservation.id,
+        settlementIdempotencyKey: idempotencyKey,
+        source: ActivitySource.TREND_SCAN,
+      });
     } catch (error) {
       this.loggerService.error(
         `${this.logContext} trend digest charge failed`,
         { error, organizationId: orgId, workflowId },
       );
-      await this.cacheService.releaseLock(chargeKey);
     }
   }
 
