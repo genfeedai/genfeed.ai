@@ -493,17 +493,62 @@ describe('useSubscription', () => {
       const mockUrl = 'https://billing.stripe.com/portal';
       mockStripeService.getPortalUrl.mockResolvedValue({ url: mockUrl });
 
-      const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
+      const tab = { close: vi.fn(), location: { href: '' }, opener: window };
+      const openSpy = vi
+        .spyOn(window, 'open')
+        .mockReturnValue(tab as unknown as Window);
 
       const { result } = renderHook(() => useSubscription(), {
         wrapper: createQueryWrapper(),
       });
       await result.current.openBillingPortal();
 
-      await waitFor(() => {
-        expect(openSpy).toHaveBeenCalledWith(mockUrl, '_blank');
-      });
+      expect(tab.location.href).toBe(mockUrl);
+      expect(tab.opener).toBeNull();
 
+      openSpy.mockRestore();
+    });
+
+    it('opens the tab inside the click, before the portal request resolves', async () => {
+      let resolvePortal: (value: { url: string }) => void = () => undefined;
+      mockStripeService.getPortalUrl.mockReturnValue(
+        new Promise((resolve) => {
+          resolvePortal = resolve;
+        }),
+      );
+      const tab = { close: vi.fn(), location: { href: '' }, opener: window };
+      const openSpy = vi
+        .spyOn(window, 'open')
+        .mockReturnValue(tab as unknown as Window);
+
+      const { result } = renderHook(() => useSubscription(), {
+        wrapper: createQueryWrapper(),
+      });
+      const opening = result.current.openBillingPortal();
+
+      expect(openSpy).toHaveBeenCalledTimes(1);
+      expect(tab.location.href).toBe('');
+
+      resolvePortal({ url: 'https://billing.stripe.com/portal' });
+      await opening;
+
+      expect(tab.location.href).toBe('https://billing.stripe.com/portal');
+      openSpy.mockRestore();
+    });
+
+    it('closes the opened tab when the portal request fails', async () => {
+      mockStripeService.getPortalUrl.mockRejectedValue(new Error('Failed'));
+      const tab = { close: vi.fn(), location: { href: '' }, opener: window };
+      const openSpy = vi
+        .spyOn(window, 'open')
+        .mockReturnValue(tab as unknown as Window);
+
+      const { result } = renderHook(() => useSubscription(), {
+        wrapper: createQueryWrapper(),
+      });
+      await result.current.openBillingPortal();
+
+      expect(tab.close).toHaveBeenCalledTimes(1);
       openSpy.mockRestore();
     });
 

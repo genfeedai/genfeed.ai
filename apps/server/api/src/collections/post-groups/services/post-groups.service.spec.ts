@@ -1,5 +1,6 @@
 import { CredentialPublishingReadinessService } from '@api/collections/credentials/services/credential-publishing-readiness.service';
 import { PostGroupContractService } from '@api/collections/post-groups/services/post-group-contract.service';
+import { PostGroupIdempotencyService } from '@api/collections/post-groups/services/post-group-idempotency.service';
 import { PostGroupPersistenceService } from '@api/collections/post-groups/services/post-group-persistence.service';
 import { PostGroupReadinessService } from '@api/collections/post-groups/services/post-group-readiness.service';
 import { seedReleaseListPage } from '@api/collections/post-groups/services/post-group-release-list.testing';
@@ -243,6 +244,7 @@ describe('PostGroupsService', () => {
         // scheduler delegates to, so the real collaborator has to be wired up.
         CredentialPublishingReadinessService,
         PostGroupContractService,
+        PostGroupIdempotencyService,
         PostGroupPersistenceService,
         PostGroupReadinessService,
         PostGroupsService,
@@ -903,6 +905,38 @@ describe('PostGroupsService', () => {
     expect(result.id).toBe('existing-group');
     expect(prisma.postGroup.create).not.toHaveBeenCalled();
     expect(prisma.post.create).not.toHaveBeenCalled();
+  });
+
+  it('returns the existing group when a concurrent create wins the idempotency key', async () => {
+    prisma.postGroup.findFirst
+      .mockResolvedValueOnce(null)
+      .mockResolvedValue(
+        makeGroup({ id: 'winner-group', idempotencyKey: 'same-request' }),
+      );
+    prisma.post.findMany.mockResolvedValue([
+      makeTarget({ groupId: 'winner-group', id: 'target-1' }),
+    ]);
+    prisma.$transaction.mockRejectedValueOnce(
+      Object.assign(new Error('Unique constraint failed'), { code: 'P2002' }),
+    );
+
+    const result = await service.create(
+      'org-1',
+      'user-1',
+      {
+        baseContent: 'Launch note for X',
+        brandId: 'brand-1',
+        status: ReleaseStatus.DRAFT,
+        targets: [
+          { credentialId: 'cred-x', platform: CredentialPlatform.TWITTER },
+        ],
+        timezone: 'UTC',
+        title: 'Launch note',
+      },
+      'same-request',
+    );
+
+    expect(result.id).toBe('winner-group');
   });
 
   it('waits for sibling approval checks before returning a release failure', async () => {
