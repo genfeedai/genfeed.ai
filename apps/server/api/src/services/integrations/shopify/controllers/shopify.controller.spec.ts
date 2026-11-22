@@ -6,6 +6,7 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import type { BrandsService } from '@api/collections/brands/services/brands.service';
 import type { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { carriedOAuthState } from '@api/collections/credentials/utils/oauth-verify-claim.util';
 import type { ShopifyService } from '@api/services/integrations/shopify/services/shopify.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { Request } from 'express';
@@ -97,7 +98,9 @@ function setup() {
         account,
         accessToken: tokens.accessToken,
         isConnected: true,
-        oauthState: null,
+        // Reconcile keeps the claim marker on the connected row, which is how
+        // a late second verify finds the account.
+        oauthState: carriedOAuthState(credential.oauthState),
       });
       return { ...credential };
     },
@@ -114,13 +117,18 @@ function setup() {
       credential.oauthState = `claimed:${state}`;
       return { ...credential };
     },
-    findOne: async (query: { id?: string; oauthState?: string }) =>
-      credentials.find(
-        (item) =>
-          (query.id !== undefined && item.id === query.id) ||
-          (query.oauthState !== undefined &&
-            item.oauthState === query.oauthState),
-      ) ?? null,
+    findOne: async (query: {
+      id?: string;
+      oauthState?: string | { in: string[] };
+    }) =>
+      credentials.find((item) => {
+        if (query.id !== undefined) return item.id === query.id;
+        const wanted = query.oauthState;
+        if (wanted === undefined) return false;
+        return typeof wanted === 'string'
+          ? item.oauthState === wanted
+          : item.oauthState !== null && wanted.in.includes(item.oauthState);
+      }) ?? null,
   } as unknown as CredentialsService;
 
   const shopifyService = {
@@ -259,7 +267,7 @@ describe('ShopifyController', () => {
       });
       expect(credentials[0]).toMatchObject({
         isConnected: true,
-        oauthState: null,
+        oauthState: 'claimed:state-1',
       });
     });
 
@@ -284,14 +292,14 @@ describe('ShopifyController', () => {
         expect(exchanges.length).toBe(1);
         expect(credentials[0]).toMatchObject({
           isConnected: true,
-          oauthState: null,
+          oauthState: 'claimed:state-1',
         });
       } finally {
         vi.useRealTimers();
       }
     });
 
-    it('leaves an already connected credential connected when the state is replayed', async () => {
+    it('answers a replayed state with the connected credential and exchanges nothing', async () => {
       const { controller, credentials, exchanges } = setup();
       await controller.connect(request, user, {
         brandId: 'brand-id',
@@ -301,7 +309,7 @@ describe('ShopifyController', () => {
 
       await expect(
         controller.verify(request, { code: 'auth-code', state: 'state-1' }),
-      ).rejects.toMatchObject({ status: 404 });
+      ).resolves.toMatchObject({ id: 'credential-1', isConnected: true });
 
       expect(exchanges.length).toBe(1);
       expect(credentials[0]).toMatchObject({ isConnected: true });
