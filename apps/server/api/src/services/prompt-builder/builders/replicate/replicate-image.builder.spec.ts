@@ -48,7 +48,18 @@ import {
   calculateAspectRatio,
   getDefaultAspectRatio,
 } from '@genfeedai/helpers';
+import { REVIEWED_RATE_SHEET_ENTRIES } from '@genfeedai/pricing';
 import type { ConfigService } from '@libs/config/config.service';
+
+const RESOLUTION_PRICED_NANO_BANANA_RATES = REVIEWED_RATE_SHEET_ENTRIES.filter(
+  (entry) =>
+    entry.provider === 'replicate' &&
+    entry.endpoint.startsWith('google/nano-banana') &&
+    entry.rates.some((rate) => 'resolution' in rate.when),
+).map((entry) => [
+  entry.endpoint,
+  entry.rates.map((rate) => rate.when.resolution),
+]);
 
 const createParams = (
   overrides: Partial<PromptBuilderParams> = {},
@@ -184,21 +195,14 @@ describe('ReplicateImageBuilder', () => {
       },
     );
 
-    it('should send the schema default tier when Nano Banana 2.1 has no built-in one', () => {
-      expect(
-        buildImagePrompt(
-          MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA_2_1,
-          createParams({ height: 1024, width: 1024 }),
-          'A priced image',
-        ).resolution,
-      ).toBeUndefined();
-
+    it('should send the schema default tier over the built-in one for Nano Banana 2.1', () => {
       vi.mocked(resolveModelSchema).mockReturnValueOnce({
         properties: { resolution: { default: '2K', type: 'string' } },
         required: [],
         type: 'object',
       } as unknown as ReplicateModelSchema);
       vi.mocked(getSchemaDefault).mockReturnValueOnce('2K');
+
       expect(
         buildImagePrompt(
           MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA_2_1,
@@ -207,6 +211,22 @@ describe('ReplicateImageBuilder', () => {
         ).resolution,
       ).toBe('2K');
     });
+
+    // API-GENFEED-AI-BE: Nano Banana 2.1 sent no resolution when its model row
+    // carried no input schema, so its quote found no reviewed rate and the
+    // request failed with "Unpriced or ambiguous variant: output".
+    it.each(RESOLUTION_PRICED_NANO_BANANA_RATES)(
+      'should send %s a resolution its reviewed rates price when none is requested',
+      (model, pricedResolutions) => {
+        const result = buildImagePrompt(
+          model,
+          createParams({ height: 1024, width: 1024 }),
+          'A priced image',
+        );
+
+        expect(pricedResolutions).toContain(result.resolution);
+      },
+    );
 
     it('should route Imagen 4 to dedicated builder', () => {
       const result = buildImagePrompt(
