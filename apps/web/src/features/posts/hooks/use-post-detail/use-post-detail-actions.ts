@@ -20,6 +20,7 @@ import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime';
 import { useCallback } from 'react';
 import { requirePostId } from './require-post-id';
+import type { UsePostDetailDraftsReturn } from './use-post-detail-drafts';
 
 const REWRITE_LIMIT_REASON_PATTERN =
   /^The rewrite does not fit the [1-9]\d{0,5}-character limit for [a-z][a-z_]{0,30}\. Shorten the instruction or the draft and try again\.$/;
@@ -36,6 +37,8 @@ export interface UsePostDetailActionsOptions {
     successMessage?: string,
     silent?: boolean,
   ) => Promise<IPost | null>;
+  /** Auto-save bookkeeping; a deleted post must not fire a pending save. */
+  autoSaveRefs: UsePostDetailDraftsReturn['autoSaveRefs'];
 
   // Draft accessors
   descriptionDraft: string;
@@ -75,6 +78,29 @@ export interface UsePostDetailActionsReturn {
   ) => Promise<string[] | null>;
 }
 
+/**
+ * The post is gone, so whatever was typed into it cannot be saved. Cancel its
+ * pending timer and mark the drafts saved so no later timer patches it.
+ */
+function settleAutoSave(
+  refs: UsePostDetailDraftsReturn['autoSaveRefs'],
+  postId: string,
+): void {
+  const pendingTimeout = refs.timeouts.current.get(postId);
+  if (pendingTimeout) {
+    clearTimeout(pendingTimeout);
+    refs.timeouts.current.delete(postId);
+  }
+  refs.lastSavedDescriptions.current.set(
+    postId,
+    refs.currentDescriptions.current.get(postId) ?? '',
+  );
+  refs.lastSavedLabels.current.set(
+    postId,
+    refs.currentLabels.current.get(postId) ?? '',
+  );
+}
+
 function getSafeRewriteReason(error: unknown): string | undefined {
   const member = getJsonApiErrorMember(error);
   const detail = member?.detail?.trim();
@@ -102,6 +128,7 @@ export function usePostDetailActions({
   router,
   fetchPost,
   updateActivePost,
+  autoSaveRefs,
   descriptionDraft,
   labelDraft,
   scheduleDraft,
@@ -329,8 +356,10 @@ export function usePostDetailActions({
       entityName: 'post',
       onConfirm: async () => {
         try {
+          const postId = requirePostId(post);
           const service = await getPostsService();
-          await service.delete(requirePostId(post));
+          await service.delete(postId);
+          settleAutoSave(autoSaveRefs, postId);
           notificationsService.success('Post deleted successfully');
           router.push(href('/publishing'));
         } catch (err) {
@@ -341,6 +370,7 @@ export function usePostDetailActions({
     });
   }, [
     post,
+    autoSaveRefs,
     openConfirmDelete,
     getPostsService,
     notificationsService,
