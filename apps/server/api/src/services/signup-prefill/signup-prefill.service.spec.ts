@@ -4,6 +4,7 @@ import type { BrandsService } from '@api/collections/brands/services/brands.serv
 import type { HarnessProfilesService } from '@api/collections/harness-profiles/services/harness-profiles.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import type { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
+import type { CacheService } from '@api/services/cache/cache.service';
 import type { MasterPromptGeneratorService } from '@api/services/knowledge-base/master-prompt-generator.service';
 import {
   SignupPrefillService,
@@ -36,7 +37,25 @@ const provenance = {
   workflowVersionId: 'v1',
 };
 
-function createHarness() {
+/** Redis as every API task sees it: one claim table shared by all of them. */
+function createSharedClaims() {
+  const claims = new Map<string, string>();
+  return {
+    claims,
+    acquireOwnedClaim: vi.fn(async (key: string, token: string) => {
+      if (claims.has(key)) return 'duplicate' as const;
+      claims.set(key, token);
+      return 'claimed' as const;
+    }),
+    releaseOwnedClaim: vi.fn(async (key: string, token: string) => {
+      if (claims.get(key) !== token) return false;
+      claims.delete(key);
+      return true;
+    }),
+  };
+}
+
+function createHarness(cache = createSharedClaims()) {
   const scrapedData = {
     companyName: 'Acme',
     description: 'Brand details',
@@ -96,6 +115,7 @@ function createHarness() {
     persistence as unknown as BrandPersistenceService,
     generator as unknown as MasterPromptGeneratorService,
     harness as unknown as HarnessProfilesService,
+    cache as unknown as CacheService,
   );
   const state: SignupPrefillState = {
     brandDomain: 'acme.example',
@@ -106,6 +126,7 @@ function createHarness() {
     websiteUrl: 'https://acme.example/',
   };
   return {
+    cache,
     service,
     logger,
     state,
@@ -262,6 +283,64 @@ describe('SignupPrefillService explicit URL scan', () => {
     expect(complete).toBeDefined();
     complete?.({ data: h.scrapedData });
     await scan;
+    expect(
+      (await h.service.scanBrandUrl(h.state.request, 'https://acme.example'))
+        .status,
+    ).toBe('completed');
+  });
+
+  it('rejects a same-brand scan that another API task is running, and frees the claim after', async () => {
+    const cache = createSharedClaims();
+    const first = createHarness(cache);
+    const second = createHarness(cache);
+    let complete:
+      | ((value: { data: typeof first.scrapedData }) => void)
+      | undefined;
+    first.scraper.scrapeSetupSourceWithEvidence.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          complete = resolve;
+        }),
+    );
+    const scan = first.service.scanBrandUrl(
+      first.state.request,
+      'https://acme.example',
+    );
+    for (let i = 0; i < 20 && !complete; i++) await Promise.resolve();
+
+    await expect(
+      second.service.scanBrandUrl(second.state.request, 'https://acme.example'),
+    ).rejects.toBeInstanceOf(ConflictException);
+    expect(second.scraper.scrapeSetupSourceWithEvidence).not.toHaveBeenCalled();
+
+    complete?.({ data: first.scrapedData });
+    await scan;
+    expect(cache.claims.size).toBe(0);
+    expect(
+      (
+        await second.service.scanBrandUrl(
+          second.state.request,
+          'https://acme.example',
+        )
+      ).status,
+    ).toBe('completed');
+  });
+
+  it('frees the claim when the scan fails', async () => {
+    const h = createHarness();
+    h.persistence.updateBrandWithScrapedData.mockRejectedValueOnce(
+      new Error('write failed'),
+    );
+    await expect(
+      h.service.scanBrandUrl(h.state.request, 'https://acme.example'),
+    ).rejects.toThrow('write failed');
+    expect(h.cache.claims.size).toBe(0);
+  });
+
+  it('still scans when the cache cannot grant a claim', async () => {
+    const cache = createSharedClaims();
+    cache.acquireOwnedClaim.mockResolvedValue('unavailable' as never);
+    const h = createHarness(cache);
     expect(
       (await h.service.scanBrandUrl(h.state.request, 'https://acme.example'))
         .status,
