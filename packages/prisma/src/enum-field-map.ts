@@ -735,6 +735,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'isDeleted',
       'organization',
       'organizationId',
+      'pendingInputAt',
       'thread',
       'threadId',
       'updatedAt',

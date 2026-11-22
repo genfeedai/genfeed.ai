@@ -170,7 +170,10 @@ export default function ReviewInboxApprovalsTable({
       {
         icon: <Check />,
         isDisabled: () => isDeciding,
-        isVisible: (item) => item.isResolvable && item.batchCount === null,
+        isVisible: (item) =>
+          item.isResolvable &&
+          item.batchCount === null &&
+          item.kind !== 'agent_input_request',
         onClick: (item) => {
           void onDecide(item, 'approve');
         },
@@ -180,7 +183,8 @@ export default function ReviewInboxApprovalsTable({
       {
         icon: <X />,
         isDisabled: () => isDeciding,
-        isVisible: (item) => item.isResolvable,
+        isVisible: (item) =>
+          item.isResolvable && item.kind !== 'agent_input_request',
         onClick: (item) => {
           void onDecide(item, 'reject');
         },

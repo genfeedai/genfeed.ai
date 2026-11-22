@@ -17,6 +17,7 @@ import { AgentThreadProjectorService } from '@api/services/agent-threading/servi
 import { AgentThreadStatusPublisherService } from '@api/services/agent-threading/services/agent-thread-status-publisher.service';
 import { ThreadContextCompressorService } from '@api/services/agent-threading/services/thread-context-compressor.service';
 import { AgentThreadEventType } from '@api/services/agent-threading/types/agent-thread.types';
+import { oldestPendingInputAt } from '@api/services/agent-threading/utils/oldest-pending-input-at.util';
 import { validateAgentInputAnswer } from '@api/services/agent-threading/utils/validate-agent-input-answer.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { ResolveAgentInputRequestParams } from '@genfeedai/contracts/interfaces/ai/agent-input-request.interface';
@@ -356,6 +357,9 @@ export class AgentThreadEngineService {
       where: scopedWhere(params.organizationId, { id: snapshotRow.id }),
       data: {
         data: toPrismaJson(nextSnapshotData),
+        // Kept with the pending list in the same write, so the review inbox
+        // never sees a marker that disagrees with the snapshot.
+        pendingInputAt: oldestPendingInputAt(projected.pendingInputRequests),
         updatedAt: new Date(),
       },
     });

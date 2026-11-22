@@ -12,7 +12,13 @@ import type { AgentThreadSnapshot } from '@genfeedai/prisma';
 
 export type { AgentThreadSnapshot } from '@genfeedai/prisma';
 
-export interface AgentThreadSnapshotDocument extends AgentThreadSnapshot {
+/**
+ * The snapshot as the projector and its readers see it, with the JSON `data`
+ * unwrapped into fields. `pendingInputAt` is storage-only: the engine writes it
+ * beside the pending list, and only the review inbox's query reads it.
+ */
+export interface AgentThreadSnapshotDocument
+  extends Omit<AgentThreadSnapshot, 'pendingInputAt'> {
   activeRun?: AgentThreadActiveRun;
   lastAssistantMessage?: AgentThreadLastAssistantMessage;
   lastSequence: number;
