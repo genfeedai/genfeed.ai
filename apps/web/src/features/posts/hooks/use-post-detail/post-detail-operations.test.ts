@@ -9,7 +9,7 @@ describe('isPostDetailPublishBlocked', () => {
   it.each<[PostDetailOperation, boolean]>([
     ['update', false],
     ['save-ingredients', false],
-    ['save-description', false],
+    ['save-description', true],
     ['save-schedule', true],
     ['toggle-grok', false],
     ['toggle-first-comment', false],

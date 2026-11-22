@@ -26,6 +26,7 @@ export interface PostDetailSidebarProps {
   post: IPost | null;
   credential: ICredential | undefined;
   scheduleDraft: string;
+  isPublishBlocked?: boolean;
   isSavingSchedule: boolean;
   isScheduleDirty: boolean;
   isScoringSeo?: boolean;
@@ -73,6 +74,7 @@ export interface PostSidebarDestinationProps {
 export interface PostSidebarWhenDockProps {
   post: IPost;
   scheduleDraft: string;
+  isPublishBlocked?: boolean;
   isSavingSchedule: boolean;
   isScheduleDirty: boolean;
   isPublished: boolean;
