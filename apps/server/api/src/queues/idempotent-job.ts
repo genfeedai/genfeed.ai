@@ -1,3 +1,4 @@
+import { traced } from '@libs/tracing/traced';
 import type { Job } from 'bullmq';
 
 /**
@@ -64,13 +65,13 @@ export async function reserveIdempotentJob(
  * `getJob` resolves to `undefined` for a missing id, and a completed or failed
  * job retained under the id does not count as a running job.
  */
-export async function hasLiveJob(
-  queue: JobLookupQueue,
-  jobId: string,
-): Promise<boolean> {
-  const job = await queue.getJob(jobId);
-  if (!job) {
-    return false;
-  }
-  return ACTIVE_JOB_STATES.has(await job.getState());
-}
+export const hasLiveJob = traced(
+  'hasLiveJob',
+  async (queue: JobLookupQueue, jobId: string): Promise<boolean> => {
+    const job = await queue.getJob(jobId);
+    if (!job) {
+      return false;
+    }
+    return ACTIVE_JOB_STATES.has(await job.getState());
+  },
+);
