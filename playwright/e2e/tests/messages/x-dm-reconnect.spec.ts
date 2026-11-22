@@ -125,8 +125,13 @@ test.describe('Reconnect X to enable DMs', () => {
       .getByRole('row')
       .filter({ hasText: '@shipshitdev' });
 
-    await expect(oldGrantRow.getByText('DMs need reconnect')).toBeVisible();
-    await expect(dmGrantRow.getByText('DMs need reconnect')).toHaveCount(0);
+    // Status is icon-only: the DM warning is a button named by its tooltip.
+    await expect(
+      oldGrantRow.getByRole('button', { name: 'DMs need reconnect' }),
+    ).toBeVisible();
+    await expect(
+      dmGrantRow.getByRole('button', { name: 'DMs need reconnect' }),
+    ).toHaveCount(0);
 
     await oldGrantRow.getByText('@genfeedai').click();
 

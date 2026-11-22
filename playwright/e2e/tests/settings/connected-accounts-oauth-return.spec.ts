@@ -91,6 +91,6 @@ test.describe('Accounts after the OAuth redirect', () => {
     });
     await expect(table).toBeVisible({ timeout: 20000 });
     await expect(table.getByText('@GenfeedAI')).toBeVisible();
-    await expect(table.getByText('Connected', { exact: true })).toBeVisible();
+    await expect(table.getByRole('img', { name: 'Connected' })).toBeVisible();
   });
 });
