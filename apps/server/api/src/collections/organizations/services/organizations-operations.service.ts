@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { BillingAccountsService } from '@api/collections/billing-accounts/services/billing-accounts.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
@@ -18,6 +19,7 @@ import {
   getIsSuperAdmin,
   getSubscriptionTier,
 } from '@api/helpers/utils/auth/auth.util';
+import { CacheService } from '@api/services/cache/cache.service';
 import { generateLabel } from '@api/shared/utils/label/label.util';
 import { isCloudDeployment } from '@genfeedai/config';
 import type { OrganizationOption } from '@genfeedai/contracts/interfaces';
@@ -29,6 +31,9 @@ import { runWithTenantContext } from '@libs/prisma/tenant-context';
 import { Traced } from '@libs/tracing/traced';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+
+/** Long enough for one provisioning run; a crashed holder frees it on expiry. */
+const ORGANIZATION_CREATE_CLAIM_TTL_SECONDS = 60;
 
 export interface CreateOrganizationOperationInput {
   billingAccountId?: string;
@@ -61,6 +66,7 @@ export class OrganizationsOperationsService {
     private readonly userAccessCacheService: UserAccessCacheService,
     private readonly organizationLogoService: OrganizationLogoService,
     private readonly eventEmitter: EventEmitter2,
+    private readonly cacheService: CacheService,
     private readonly skillLibrary?: SkillLibraryService,
   ) {}
 
@@ -170,6 +176,47 @@ export class OrganizationsOperationsService {
       );
     }
 
+    // The plan limit is a count-then-create read, so two concurrent creates by
+    // one user could both pass it. One create per user at a time holds a cache
+    // claim; a cache outage proceeds without it, as user setup does.
+    const claimKey = `organization-create:${userId}`;
+    const token = randomUUID();
+    const claim = await this.cacheService.acquireOwnedClaim(
+      claimKey,
+      token,
+      ORGANIZATION_CREATE_CLAIM_TTL_SECONDS,
+    );
+    if (claim === 'duplicate') {
+      throw new HttpException(
+        {
+          detail: 'An organization is already being created',
+          title: 'Conflict',
+        },
+        HttpStatus.CONFLICT,
+      );
+    }
+
+    try {
+      return await this.createOrganizationUnderClaim(
+        input,
+        user,
+        userId,
+        label,
+      );
+    } finally {
+      if (claim === 'claimed') {
+        await this.cacheService.releaseOwnedClaim(claimKey, token);
+      }
+    }
+  }
+
+  private async createOrganizationUnderClaim(
+    input: CreateOrganizationOperationInput,
+    user: User,
+    userId: string,
+    label: string,
+  ): Promise<CreatedOrganizationResult> {
+    // The limit is read before the first write, inside the claim.
     await this.assertOrganizationCreationAllowed(user, userId);
 
     const userDocument = await this.usersService.findOneSelect(
@@ -193,10 +240,27 @@ export class OrganizationsOperationsService {
     const organizationId = organization.id.toString();
 
     // Everything below provisions the NEW organization, which is not the
-    // creator's request tenant; scope it to the org it creates.
-    const brand = await runWithTenantContext({ organizationId }, () =>
-      this.provisionOrganization({ input, label, organization, user, userId }),
-    );
+    // creator's request tenant; scope it to the org it creates. The writes
+    // span several services with no shared transaction, so a failure
+    // soft-deletes what this call created instead of leaving a live
+    // half-created organization that counts against the plan limit.
+    const created: { memberId?: string } = {};
+    let brand: Awaited<ReturnType<typeof this.provisionOrganization>>;
+    try {
+      brand = await runWithTenantContext({ organizationId }, () =>
+        this.provisionOrganization({
+          created,
+          input,
+          label,
+          organization,
+          user,
+          userId,
+        }),
+      );
+    } catch (error: unknown) {
+      await this.rollbackOrganization(organizationId, userId, created);
+      throw error;
+    }
 
     await this.usersService.patch(userId, {
       lastUsedOrganizationId: organizationId,
@@ -226,14 +290,30 @@ export class OrganizationsOperationsService {
     };
   }
 
+  /** Compensation: soft-delete the membership and the organization. */
+  private async rollbackOrganization(
+    organizationId: string,
+    userId: string,
+    created: { memberId?: string },
+  ): Promise<void> {
+    await runWithTenantContext({ organizationId }, async () => {
+      if (created.memberId) {
+        await this.membersService.remove(created.memberId);
+      }
+    });
+    await this.organizationsService.remove(organizationId);
+    await this.userAccessCacheService.invalidateAll(userId);
+  }
+
   private async provisionOrganization(params: {
+    created: { memberId?: string };
     input: CreateOrganizationOperationInput;
     label: string;
     organization: OrganizationDocument;
     user: User;
     userId: string;
   }) {
-    const { input, label, organization, user, userId } = params;
+    const { created, input, label, organization, user, userId } = params;
     const organizationId = organization.id.toString();
 
     await this.organizationSettingsService.ensureForOrganization(
@@ -255,7 +335,7 @@ export class OrganizationsOperationsService {
     } as unknown as Parameters<BrandsService['create']>[0]);
 
     const role = await resolveOrganizationCreatorRole(this.rolesService);
-    await this.membersService.create({
+    const member = await this.membersService.create({
       currentBrandId: brand.id.toString(),
       isActive: true,
       organizationId: organization.id,
@@ -263,6 +343,7 @@ export class OrganizationsOperationsService {
       roleKey: role.key,
       userId,
     } as unknown as Parameters<MembersService['create']>[0]);
+    created.memberId = member.id.toString();
 
     const settings = await this.organizationSettingsService.findOneSelect(
       { organizationId: organization.id },
