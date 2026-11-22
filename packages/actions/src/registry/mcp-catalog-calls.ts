@@ -6,6 +6,7 @@ import type { CanonicalToolDefinition } from '../interfaces/tool-definition.inte
 import { MCP_CATALOG_TOOLS } from './mcp-catalog/catalog';
 import { deriveMcpCatalogPolicy } from './mcp-catalog/derive';
 import { createRetiredReferenceRewriter } from './mcp-catalog/references';
+import { McpToolInputError } from './mcp-tool-input-error';
 
 const OPERATIONS: readonly McpCatalogOperation[] = Object.freeze(
   MCP_CATALOG_TOOLS.flatMap((tool) =>
@@ -67,6 +68,22 @@ function isPlainInput(value: unknown): value is Record<string, unknown> {
   );
 }
 
+function actionList(operations: readonly McpCatalogOperation[]): string {
+  return operations.map((operation) => operation.action).join(', ');
+}
+
+function unknownActionMessage(
+  name: string,
+  action: unknown,
+  operations: readonly McpCatalogOperation[],
+): string {
+  const given =
+    typeof action === 'string' && action.length <= 60
+      ? `"${action}" is not an action of ${name}.`
+      : `${name} needs an action.`;
+  return `${given} Use one of: ${actionList(operations)}.`;
+}
+
 /**
  * Resolves a call to a merged tool into the original tool it runs, or throws
  * for a retired name or a malformed envelope. `isInputRequired` says whether
@@ -80,24 +97,37 @@ export function resolveMcpCatalogCall(
 ): ResolvedMcpCatalogCall | null {
   const retired = getRetiredMcpCatalogTool(name);
   if (retired) {
-    throw new Error(
+    throw new McpToolInputError(
       `Tool ${name} has been removed from MCP. Use ${mcpCatalogReplacement(retired)}.`,
     );
   }
   const operations = getMcpCatalogOperations(name);
   if (operations.length === 0) return null;
-  if (Object.keys(args).some((key) => key !== 'action' && key !== 'input')) {
-    throw new Error(`${name} accepts only action and input.`);
+  const strayKeys = Object.keys(args).filter(
+    (key) => key !== 'action' && key !== 'input',
+  );
+  if (strayKeys.length > 0) {
+    throw new McpToolInputError(
+      `${name} accepts only action and input, not ${strayKeys.join(', ')}. Put the fields of the action inside input: ${name}(action=<one of ${actionList(operations)}>, input={...}).`,
+      strayKeys[0],
+    );
   }
   const operation = operations.find(
     (candidate) => candidate.action === args.action,
   );
-  if (!operation) throw new Error(`Invalid ${name} action.`);
+  if (!operation) {
+    throw new McpToolInputError(
+      unknownActionMessage(name, args.action, operations),
+      'action',
+    );
+  }
   const input =
     args.input === undefined && !isInputRequired(operation.executionName)
       ? {}
       : args.input;
-  if (!isPlainInput(input)) throw new Error(`${name} input must be an object.`);
+  if (!isPlainInput(input)) {
+    throw new McpToolInputError(`${name} input must be an object.`, 'input');
+  }
   return { ...operation, requestedName: name, arguments: input };
 }
 
