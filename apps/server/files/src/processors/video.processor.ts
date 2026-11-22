@@ -231,7 +231,7 @@ export class VideoProcessor extends WorkerHost {
         room,
       );
 
-      this.ffmpegService.cleanupTempFiles(ingredientId, 'resize');
+      this.ffmpegService.removeTempDir('resize', ingredientId);
 
       await this.publishVideoCompletion(
         ingredientId,
@@ -298,7 +298,7 @@ export class VideoProcessor extends WorkerHost {
         room,
       );
 
-      this.ffmpegService.cleanupTempFiles(ingredientId, 'captions');
+      this.ffmpegService.removeTempDir('captions', ingredientId);
       const result = {
         jobId: String(job.id),
         jobType: JOB_TYPES.ADD_CAPTIONS,
@@ -378,7 +378,7 @@ export class VideoProcessor extends WorkerHost {
         room,
       );
 
-      this.ffmpegService.cleanupTempFiles(ingredientId, 'gif');
+      this.ffmpegService.removeTempDir('gif', ingredientId);
       return { outputPath, s3Key, success: true };
     } catch (error: unknown) {
       const message = getErrorMessage(error);
@@ -420,7 +420,7 @@ export class VideoProcessor extends WorkerHost {
         room,
       );
 
-      this.ffmpegService.cleanupTempFiles(ingredientId, 'reverse');
+      this.ffmpegService.removeTempDir('reverse', ingredientId);
       return { outputPath, s3Key, success: true };
     } catch (error: unknown) {
       const message = getErrorMessage(error);
@@ -462,7 +462,7 @@ export class VideoProcessor extends WorkerHost {
         room,
       );
 
-      this.ffmpegService.cleanupTempFiles(ingredientId, 'mirror');
+      this.ffmpegService.removeTempDir('mirror', ingredientId);
       return { outputPath, s3Key, success: true };
     } catch (error: unknown) {
       const message = getErrorMessage(error);
@@ -507,7 +507,7 @@ export class VideoProcessor extends WorkerHost {
 
       const s3Key = this.s3Service.generateS3Key('videos', ingredientId);
       await this.s3Service.uploadFile(s3Key, outputPath, 'video/mp4');
-      this.ffmpegService.cleanupTempFiles(ingredientId, 'trim');
+      this.ffmpegService.removeTempDir('trim', ingredientId);
 
       await this.publishVideoCompletion(
         ingredientId,
@@ -573,7 +573,7 @@ export class VideoProcessor extends WorkerHost {
       const s3Key = this.s3Service.generateS3Key('videos', ingredientId);
       await this.s3Service.uploadFile(s3Key, outputPath, 'video/mp4');
       const url = this.s3Service.getPublicUrl(s3Key);
-      this.ffmpegService.cleanupTempFiles(ingredientId, 'clip-trim');
+      this.ffmpegService.removeTempDir('clip-trim', ingredientId);
 
       await this.publishVideoCompletion(
         ingredientId,
@@ -661,7 +661,7 @@ export class VideoProcessor extends WorkerHost {
         room,
       );
 
-      this.ffmpegService.cleanupTempFiles(ingredientId, 'overlay');
+      this.ffmpegService.removeTempDir('overlay', ingredientId);
       return { outputPath, s3Key, success: true };
     } catch (error: unknown) {
       const message = getErrorMessage(error);
@@ -705,7 +705,7 @@ export class VideoProcessor extends WorkerHost {
         room,
       );
 
-      this.ffmpegService.cleanupTempFiles(ingredientId, 'portrait');
+      this.ffmpegService.removeTempDir('portrait', ingredientId);
       const result = {
         jobId: String(job.id),
         jobType: JOB_TYPES.CONVERT_TO_PORTRAIT,
@@ -856,7 +856,7 @@ export class VideoProcessor extends WorkerHost {
       );
       throw error;
     } finally {
-      await this.ffmpegService.cleanupTempFiles(inputPath, outputPath);
+      await this.ffmpegService.removeTempDir('audio', ingredientId);
     }
   }
 

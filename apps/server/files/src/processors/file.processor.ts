@@ -262,7 +262,7 @@ export class FileProcessor extends WorkerHost {
       }
 
       for (const dir of tempDirs) {
-        await this.ffmpegService.cleanupTempFiles(ingredientId, dir);
+        await this.ffmpegService.removeTempDir(dir, ingredientId);
       }
 
       this.logger.log(`Cleaned up temp files for ingredient ${ingredientId}`);
