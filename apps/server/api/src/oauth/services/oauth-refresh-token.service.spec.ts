@@ -756,6 +756,21 @@ describe('OAuthRefreshTokenService', () => {
     });
   });
 
+  it('lets refresh and revoke use the persisted client when its metadata host is down', async () => {
+    const { clientService, service } = buildHarness();
+    vi.mocked(clientService.requireClient).mockClear();
+
+    await service.revoke({ client_id: clientId, token: 'unknown-token-value' });
+    await expect(
+      service.refresh(refreshGrant('unknown-token-value')),
+    ).rejects.toMatchObject(invalidGrant);
+
+    expect(vi.mocked(clientService.requireClient).mock.calls).toEqual([
+      [clientId, undefined, { allowPersistedFallback: true }],
+      [clientId, undefined, { allowPersistedFallback: true }],
+    ]);
+  });
+
   it('revokes a refresh token and its access key, and is idempotent for unknown tokens', async () => {
     const { apiKeys, apiKeysService, seedApiKey, seedRefreshToken, service } =
       buildHarness();

@@ -196,6 +196,12 @@ export class InvitationService {
       input.expiresAt ?? new Date(Date.now() + INVITATION_EXPIRY_MS);
 
     const invitation = await this.prisma.$transaction(async (tx) => {
+      // Serialise concurrent creates for one org + email: without the lock both
+      // cancel-then-create runs read "no pending invitation" and each inserts one.
+      const lockKey = `invitation:create:${input.organizationId}:${email}`;
+      // sql-risk-audit: ignore raw-sql-review -- Takes a transaction-scoped advisory lock on a per-org-email key; no table, tenant data or index is read.
+      await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${lockKey}, 0))::text`;
+
       await tx.invitation.updateMany({
         data: { isDeleted: true, revokedAt: new Date(), status: 'canceled' },
         where: scopedWhere(input.organizationId, {

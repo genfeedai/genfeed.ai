@@ -1,5 +1,6 @@
 import { PostRetryService } from '@api/collections/posts/services/post-retry.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
+import type { CacheService } from '@api/services/cache/cache.service';
 import { PostStatus, TargetExecutionState } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { HttpStatus } from '@nestjs/common';
@@ -28,10 +29,70 @@ describe('PostRetryService', () => {
     patch: vi.fn(),
     prisma: { post: { updateMany: vi.fn() } },
   };
-  const service = new PostRetryService(postsService as unknown as PostsService);
+  const claims = new Map<string, string>();
+  const cacheService = {
+    acquireOwnedClaim: vi.fn(async (key: string, token: string) => {
+      if (claims.has(key)) {
+        return 'duplicate' as const;
+      }
+      claims.set(key, token);
+      return 'claimed' as const;
+    }),
+    releaseOwnedClaim: vi.fn(async (key: string, token: string) => {
+      if (claims.get(key) !== token) {
+        return false;
+      }
+      claims.delete(key);
+      return true;
+    }),
+  };
+  const service = new PostRetryService(
+    postsService as unknown as PostsService,
+    cacheService as unknown as CacheService,
+  );
 
   afterEach(() => {
     vi.clearAllMocks();
+    claims.clear();
+  });
+
+  it('re-arms and queues once when two retries overlap', async () => {
+    const stored = { ...failedPost };
+    let rearmWrites = 0;
+    postsService.findOne.mockImplementation(async () => {
+      const snapshot = { ...stored };
+      await new Promise((resolve) => setImmediate(resolve));
+      return snapshot;
+    });
+    postsService.patch.mockImplementation(async () => {
+      await new Promise((resolve) => setImmediate(resolve));
+      rearmWrites += 1;
+      stored.targetExecutionState = TargetExecutionState.SCHEDULED;
+      return { ...stored };
+    });
+
+    const results = await Promise.allSettled([
+      service.retryPost(postId, organizationId),
+      service.retryPost(postId, organizationId),
+    ]);
+
+    expect(rearmWrites).toBe(1);
+    expect(results.filter((r) => r.status === 'fulfilled')).toHaveLength(1);
+    const rejected = results.find((r) => r.status === 'rejected');
+    expect(rejected).toMatchObject({
+      reason: { status: HttpStatus.CONFLICT },
+    });
+    expect(claims.size).toBe(0);
+  });
+
+  it('releases the claim when the re-arm fails so the retry can be repeated', async () => {
+    postsService.findOne.mockResolvedValue(failedPost);
+    postsService.patch.mockRejectedValueOnce(new Error('write failed'));
+
+    await expect(service.retryPost(postId, organizationId)).rejects.toThrow(
+      'write failed',
+    );
+    expect(claims.size).toBe(0);
   });
 
   it('re-arms thread children that failed only because their parent did', async () => {
