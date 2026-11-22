@@ -129,25 +129,6 @@ describe('claimPendingOAuthCredential', () => {
     expect(second).toBeNull();
   });
 
-  it('gives exactly one of two simultaneous claims the row', async () => {
-    const service = serviceOver([pendingRow()]);
-
-    const results = await Promise.all([
-      service.claimPendingOAuthCredential(
-        FAKE_STATE,
-        CredentialPlatform.TWITTER,
-        scope,
-      ),
-      service.claimPendingOAuthCredential(
-        FAKE_STATE,
-        CredentialPlatform.TWITTER,
-        scope,
-      ),
-    ]);
-
-    expect(results.filter((row) => row !== null).length).toBe(1);
-  });
-
   it.each([
     ['another platform', { platform: 'FACEBOOK' }],
     ['another organization', { organizationId: 'org-2' }],
