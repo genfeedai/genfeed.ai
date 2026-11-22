@@ -17,7 +17,12 @@ const ACTIVE_JOB_STATES = new Set<string>([
   'waiting',
   'delayed',
   'prioritized',
+  'waiting-children',
 ]);
+
+type JobLookupQueue = {
+  getJob(jobId: string): Promise<Pick<Job, 'getState' | 'remove'> | undefined>;
+};
 
 export type IdempotentJobReservation =
   | { alreadyQueued: true; state: string }
@@ -37,11 +42,7 @@ export type IdempotentJobReservation =
  * options, log messages, and return values — this owns only the precheck.
  */
 export async function reserveIdempotentJob(
-  queue: {
-    getJob(
-      jobId: string,
-    ): Promise<Pick<Job, 'getState' | 'remove'> | undefined>;
-  },
+  queue: JobLookupQueue,
   jobId: string,
 ): Promise<IdempotentJobReservation> {
   const existingJob = await queue.getJob(jobId);
@@ -56,4 +57,20 @@ export async function reserveIdempotentJob(
 
   await existingJob.remove();
   return { alreadyQueued: false };
+}
+
+/**
+ * True only when a job with this id exists and is still in flight. BullMQ's
+ * `getJob` resolves to `undefined` for a missing id, and a completed or failed
+ * job retained under the id does not count as a running job.
+ */
+export async function hasLiveJob(
+  queue: JobLookupQueue,
+  jobId: string,
+): Promise<boolean> {
+  const job = await queue.getJob(jobId);
+  if (!job) {
+    return false;
+  }
+  return ACTIVE_JOB_STATES.has(await job.getState());
 }
