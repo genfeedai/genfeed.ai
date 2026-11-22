@@ -8,6 +8,7 @@ import {
 import type { CreatorWallTileProps } from '@props/content/creator.props';
 import ConnectedAccountAvatar from '@ui/display/connected-account/ConnectedAccountAvatar';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
+import { Badge } from '@ui/primitives/badge';
 import { focusRingClassName } from '@ui/primitives/focus-ring';
 import { Layers, Play } from 'lucide-react';
 import Link from 'next/link';
@@ -112,12 +113,13 @@ export default function CreatorWallTile({
       ) : null}
       <span className="absolute right-2 top-2 flex gap-1.5">
         {imageCount > 1 ? (
-          <span
-            className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-2xs font-semibold ${MARK_CLASS}`}
-          >
-            <Layers aria-hidden="true" className="size-3.5" />
-            {imageCount}
-          </span>
+          <Badge
+            icon={<Layers aria-hidden="true" className="size-3.5" />}
+            isSolid
+            shape="pill"
+            value={imageCount}
+            variant="secondary"
+          />
         ) : null}
         {lead.kind === 'video' ? (
           <span
