@@ -99,6 +99,7 @@ export function resolveMcpCatalogCall(
   if (retired) {
     throw new McpToolInputError(
       `Tool ${name} has been removed from MCP. Use ${mcpCatalogReplacement(retired)}.`,
+      'name',
     );
   }
   const operations = getMcpCatalogOperations(name);
