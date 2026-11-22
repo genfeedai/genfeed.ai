@@ -1354,6 +1354,54 @@ describe('CredentialsService', () => {
       },
     );
 
+    it('keeps the request-token hash with the marker so a late OAuth 1.0a verify finds the account', async () => {
+      useStoredRows([
+        {
+          ...pendingCredential,
+          isDeleted: false,
+          oauthState: 'claimed:opaque-state',
+          oauthTokenHash: 'request-token-hash',
+        },
+      ]);
+
+      await service.updateExternalProfile('pending-1', orgId, {
+        handle: 'second_account',
+        id: 'account-2',
+      });
+
+      expect(prisma.credential.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            oauthToken: null,
+            oauthTokenHash: 'request-token-hash',
+            oauthTokenSecret: null,
+          }),
+        }),
+      );
+    });
+
+    it('clears the request-token hash when the row carries no marker', async () => {
+      useStoredRows([
+        {
+          ...pendingCredential,
+          isDeleted: false,
+          oauthState: null,
+          oauthTokenHash: 'request-token-hash',
+        },
+      ]);
+
+      await service.updateExternalProfile('pending-1', orgId, {
+        handle: 'second_account',
+        id: 'account-2',
+      });
+
+      expect(prisma.credential.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ oauthTokenHash: null }),
+        }),
+      );
+    });
+
     it('rejects the losing writer of a concurrent claim on the same pending row', async () => {
       // Two concurrent select-account requests choosing *different*
       // accounts never collide on the externalId unique constraint (only
@@ -1706,7 +1754,7 @@ describe('CredentialsService', () => {
       expect(prisma.credential.findFirst).not.toHaveBeenCalled();
     });
 
-    it('resolves an OAuth 1.0a request token by hash inside the caller scope', async () => {
+    it('resolves an OAuth 1.0a request token by hash inside the caller scope, in any verify state', async () => {
       prisma.credential.findFirst.mockResolvedValueOnce({
         brandId,
         id: 'credential-1',
@@ -1714,7 +1762,7 @@ describe('CredentialsService', () => {
         userId: 'u1',
       });
 
-      const credential = await service.findPendingOAuth1Credential(
+      const credential = await service.findOAuth1VerifyCredential(
         'request-token',
         'x-ads' as never,
         { organizationId: orgId, userId: 'u1' },
@@ -1722,7 +1770,6 @@ describe('CredentialsService', () => {
 
       expect(prisma.credential.findFirst).toHaveBeenCalledWith({
         where: {
-          isConnected: false,
           isDeleted: false,
           oauthTokenHash:
             '3dc30238bf4b801c0cb801511cfdda3a9a9d767f737068df3f5f76c3a32a8eac',

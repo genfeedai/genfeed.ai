@@ -278,6 +278,42 @@ describe('CacheService', () => {
     });
   });
 
+  describe('getOrSet with tags', () => {
+    it('stores the value only while the tags keep the epochs read before the factory ran', async () => {
+      (mockRedisClient.get as vi.Mock).mockResolvedValue(null);
+      mockRedisClient.mget.mockResolvedValue(['4', null]);
+      (mockRedisClient.eval as vi.Mock).mockResolvedValue(0);
+
+      await expect(
+        service.getOrSet('key', async () => ({ id: 1 }), {
+          tags: ['a', 'b'],
+          ttl: 60,
+        }),
+      ).resolves.toEqual({ id: 1 });
+
+      expect(mockRedisClient.mget).toHaveBeenCalledWith(
+        'tag-epoch:a',
+        'tag-epoch:b',
+      );
+      // The epochs travel with the write so the script can refuse a stale one.
+      expect(mockRedisClient.eval).toHaveBeenCalledWith(
+        expect.stringContaining("redis.call('SETEX', KEYS[1]"),
+        5,
+        'key',
+        'tag-epoch:a',
+        'tag-epoch:b',
+        'tag:a',
+        'tag:b',
+        '60',
+        JSON.stringify({ id: 1 }),
+        '2',
+        '4',
+        '0',
+      );
+      expect(mockRedisClient.setex).not.toHaveBeenCalled();
+    });
+  });
+
   describe('acquireLock', () => {
     it('acquires the lock using SET NX EX with positional args', async () => {
       (mockRedisClient.set as vi.Mock).mockResolvedValue('OK');
@@ -295,6 +331,64 @@ describe('CacheService', () => {
     it('returns false when the lock is already held', async () => {
       (mockRedisClient.set as vi.Mock).mockResolvedValue(null);
       await expect(service.acquireLock('resource', 60)).resolves.toBe(false);
+    });
+
+    it('releases only the lock it holds, by the token it wrote', async () => {
+      (mockRedisClient.set as vi.Mock).mockResolvedValue('OK');
+      (mockRedisClient.eval as vi.Mock).mockResolvedValue(1);
+      await service.acquireLock('resource', 60);
+      const token = (mockRedisClient.set as vi.Mock).mock.calls[0][1];
+
+      await expect(service.releaseLock('resource')).resolves.toBe(true);
+
+      expect(mockRedisClient.eval).toHaveBeenCalledWith(
+        expect.stringContaining("redis.call('GET', KEYS[1]) ~= ARGV[1]"),
+        1,
+        'lock:resource',
+        token,
+      );
+      expect(mockRedisClient.del).not.toHaveBeenCalled();
+    });
+
+    it('leaves a lock that expired and was taken by another holder', async () => {
+      (mockRedisClient.set as vi.Mock).mockResolvedValue('OK');
+      (mockRedisClient.eval as vi.Mock).mockResolvedValue(0);
+      await service.acquireLock('resource', 60);
+
+      await expect(service.releaseLock('resource')).resolves.toBe(false);
+    });
+
+    it('does not release a lock this process never acquired', async () => {
+      await expect(service.releaseLock('resource')).resolves.toBe(false);
+      expect(mockRedisClient.eval).not.toHaveBeenCalled();
+      expect(mockRedisClient.del).not.toHaveBeenCalled();
+    });
+
+    it('extends the lock while the work under withLock outlasts a third of its TTL', async () => {
+      vi.useFakeTimers();
+      try {
+        (mockRedisClient.set as vi.Mock).mockResolvedValue('OK');
+        (mockRedisClient.eval as vi.Mock).mockResolvedValue(1);
+        let finish: () => void = () => undefined;
+        const work = new Promise<void>((resolve) => {
+          finish = resolve;
+        });
+
+        const running = service.withLock('resource', () => work, 30);
+        await vi.advanceTimersByTimeAsync(10_000);
+        finish();
+        await expect(running).resolves.toBeUndefined();
+
+        const scripts = (mockRedisClient.eval as vi.Mock).mock.calls.map(
+          ([script]) => String(script),
+        );
+        expect(scripts.some((script) => script.includes("'EXPIRE'"))).toBe(
+          true,
+        );
+        expect(scripts.at(-1)).toContain("redis.call('DEL', KEYS[2])");
+      } finally {
+        vi.useRealTimers();
+      }
     });
   });
 

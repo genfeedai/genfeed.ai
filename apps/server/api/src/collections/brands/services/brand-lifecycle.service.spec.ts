@@ -124,8 +124,7 @@ describe('BrandLifecycleService', () => {
       prisma,
       loggerService,
       {
-        invalidateByTags: vi.fn(),
-        invalidateGuardedTags: async (tags: string[]) => {
+        invalidateByTags: async (tags: string[]) => {
           for (const [key, entryTags] of cachedPublicResponses) {
             if (entryTags.some((tag) => tags.includes(tag))) {
               cachedPublicResponses.delete(key);

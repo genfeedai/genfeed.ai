@@ -31,6 +31,7 @@ class MockFFmpegService {
   resizeVideo = vi.fn().mockResolvedValue(undefined);
   getTempPath = vi.fn((type: string, id: string) => `/tmp/${type}-${id}`);
   cleanupTempFiles = vi.fn();
+  removeTempDir = vi.fn();
   executeFFmpeg = vi.fn();
   validateBinary = vi.fn();
   getFFmpegVersion = vi.fn();
@@ -522,9 +523,9 @@ describe('VideoProcessor', () => {
     it('should cleanup temp files after processing', async () => {
       await processor.handleResize(mockJob);
 
-      expect(ffmpegService.cleanupTempFiles).toHaveBeenCalledWith(
-        mockJobData.ingredientId,
+      expect(ffmpegService.removeTempDir).toHaveBeenCalledWith(
         'resize',
+        mockJobData.ingredientId,
       );
     });
 
@@ -903,9 +904,9 @@ describe('VideoProcessor', () => {
 
       expect(result.success).toBe(true);
       expect(ffmpegService.reverseVideo).toHaveBeenCalled();
-      expect(ffmpegService.cleanupTempFiles).toHaveBeenCalledWith(
-        expect.any(String),
+      expect(ffmpegService.removeTempDir).toHaveBeenCalledWith(
         'reverse',
+        expect.any(String),
       );
     });
 
@@ -930,9 +931,9 @@ describe('VideoProcessor', () => {
 
       expect(result.success).toBe(true);
       expect(ffmpegService.mirrorVideo).toHaveBeenCalled();
-      expect(ffmpegService.cleanupTempFiles).toHaveBeenCalledWith(
-        expect.any(String),
+      expect(ffmpegService.removeTempDir).toHaveBeenCalledWith(
         'mirror',
+        expect.any(String),
       );
     });
 
@@ -1126,9 +1127,9 @@ describe('VideoProcessor', () => {
 
       await processor.handleClipTrim(job);
 
-      expect(ffmpegService.cleanupTempFiles).toHaveBeenCalledWith(
-        data.ingredientId,
+      expect(ffmpegService.removeTempDir).toHaveBeenCalledWith(
         'clip-trim',
+        data.ingredientId,
       );
     });
 
@@ -1459,7 +1460,7 @@ describe('VideoProcessor', () => {
       );
       expect(s3Service.uploadFile).not.toHaveBeenCalled();
       expect(ffmpegService.convertVideoToAudio).not.toHaveBeenCalled();
-      expect(ffmpegService.cleanupTempFiles).toHaveBeenCalled();
+      expect(ffmpegService.removeTempDir).toHaveBeenCalled();
       expect(webSocketService.emitError).toHaveBeenCalled();
     });
 
@@ -1565,9 +1566,9 @@ describe('VideoProcessor', () => {
       expect(s3Service.deleteFile).toHaveBeenCalledWith(
         'videos/test-ingredient-123.mp4',
       );
-      expect(ffmpegService.cleanupTempFiles).toHaveBeenCalledWith(
-        expect.stringContaining('input.mp4'),
-        expect.stringContaining('output.mp3'),
+      expect(ffmpegService.removeTempDir).toHaveBeenCalledWith(
+        'audio',
+        expect.any(String),
       );
     });
 
