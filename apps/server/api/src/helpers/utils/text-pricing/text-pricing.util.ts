@@ -58,17 +58,21 @@ export function roundUpTextCredits(credits: number): number {
   return Math.ceil(Number((credits * factor).toFixed(6))) / factor;
 }
 
+/** No action runs on a balance below one whole credit. */
+export const MINIMUM_ACTION_CREDITS = 1;
+
 /**
  * Admission gate, never the charge: the balance a caller needs before the
- * model runs. Per-token models gate on one whole credit; the bill itself is
+ * model runs, and never less than {@link MINIMUM_ACTION_CREDITS}, whatever the
+ * model costs (a free or fractional-price row included). The bill itself is
  * {@link calculateEstimatedTextCredits}.
  */
 export function getMinimumTextCredits(model: TextPricedModel): number {
   if (model.pricingType === 'per-token') {
-    return 1;
+    return MINIMUM_ACTION_CREDITS;
   }
 
-  return model.minCost || model.cost || 0;
+  return Math.max(MINIMUM_ACTION_CREDITS, model.minCost || model.cost || 0);
 }
 
 function hasTokenRates(model: TextPricedModel): boolean {
