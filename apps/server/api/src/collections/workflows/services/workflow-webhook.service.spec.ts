@@ -10,6 +10,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('WorkflowWebhookService', () => {
   const prisma = {
+    $executeRaw: vi.fn(),
     $queryRaw: vi.fn(),
     workflow: {
       findFirst: vi.fn(),
@@ -222,6 +223,7 @@ describe('WorkflowWebhookService', () => {
         organizationId: 'org-1',
       });
       prisma.workflow.update.mockResolvedValue({});
+      prisma.$executeRaw.mockResolvedValue(1);
     });
 
     it.each(['disabled', 'subscription-required'])(
@@ -241,7 +243,7 @@ describe('WorkflowWebhookService', () => {
           'org-1',
           'automation',
         );
-        expect(prisma.workflow.update).not.toHaveBeenCalled();
+        expect(prisma.$executeRaw).not.toHaveBeenCalled();
         expect(
           workflowExecutorService.executeManualWorkflow,
         ).not.toHaveBeenCalled();
@@ -256,7 +258,7 @@ describe('WorkflowWebhookService', () => {
       await expect(service.triggerViaWebhook('wh_1', {})).rejects.toMatchObject(
         { status: 503 },
       );
-      expect(prisma.workflow.update).not.toHaveBeenCalled();
+      expect(prisma.$executeRaw).not.toHaveBeenCalled();
       expect(
         workflowExecutorService.executeManualWorkflow,
       ).not.toHaveBeenCalled();
@@ -290,7 +292,7 @@ describe('WorkflowWebhookService', () => {
         { status: 403 },
       );
       expect(moduleAccess.assertAccess).toHaveBeenCalledTimes(2);
-      expect(prisma.workflow.update).toHaveBeenCalledTimes(1);
+      expect(prisma.$executeRaw).toHaveBeenCalledTimes(1);
       expect(
         workflowExecutorService.executeManualWorkflow,
       ).toHaveBeenCalledTimes(1);
@@ -315,19 +317,11 @@ describe('WorkflowWebhookService', () => {
         { foo: 'bar' },
         { triggerSource: 'webhook', webhookId: 'wh_1' },
         WorkflowExecutionTrigger.API,
+        undefined,
+        undefined,
       );
-      expect(prisma.workflow.update).toHaveBeenCalledWith({
-        data: {
-          config: expect.objectContaining({
-            webhookTriggerCount: 3,
-          }),
-        },
-        where: {
-          id: 'workflow-1',
-          isDeleted: false,
-          organizationId: 'org-1',
-        },
-      });
+      expect(prisma.$executeRaw).toHaveBeenCalledTimes(1);
+      expect(prisma.workflow.update).not.toHaveBeenCalled();
     });
 
     // Every webhook trigger runs the workflow executor. There is no
@@ -354,6 +348,8 @@ describe('WorkflowWebhookService', () => {
         {},
         { triggerSource: 'webhook', webhookId: 'wh_1' },
         WorkflowExecutionTrigger.API,
+        undefined,
+        undefined,
       );
     });
 
@@ -375,6 +371,141 @@ describe('WorkflowWebhookService', () => {
       await expect(service.triggerViaWebhook('wh_missing', {})).rejects.toThrow(
         'Webhook not found or workflow deleted',
       );
+    });
+  });
+
+  describe('trigger bookkeeping against the stored config', () => {
+    interface StoredRow {
+      config: Record<string, unknown>;
+      id: string;
+      organizationId: string;
+    }
+
+    let row: StoredRow;
+    // Runs once, at the start of the next write: a change that lands after
+    // the trigger read the workflow and before its write applies.
+    let beforeNextWrite: (() => Promise<void>) | undefined;
+
+    async function runBeforeNextWrite(): Promise<void> {
+      const hook = beforeNextWrite;
+      beforeNextWrite = undefined;
+      await hook?.();
+    }
+
+    // Interprets the bookkeeping UPDATE the way Postgres does: only the two
+    // bookkeeping keys change, the count is incremented from the stored value.
+    async function applyBookkeepingUpdate(query: {
+      values: unknown[];
+    }): Promise<number> {
+      await runBeforeNextWrite();
+      const [triggeredAt, id, organizationId] = query.values;
+      if (row.id !== id || row.organizationId !== organizationId) {
+        return 0;
+      }
+      const stored = row.config.webhookTriggerCount;
+      const current = typeof stored === 'number' ? stored : 0;
+      row.config = {
+        ...row.config,
+        webhookLastTriggeredAt: triggeredAt,
+        webhookTriggerCount: current + 1,
+      };
+      return 1;
+    }
+
+    beforeEach(() => {
+      beforeNextWrite = undefined;
+      row = {
+        config: {
+          webhookAuthType: 'secret',
+          webhookId: 'wh_1',
+          webhookSecret: 'whsec_old',
+        },
+        id: 'workflow-1',
+        organizationId: 'org-1',
+      };
+      prisma.$queryRaw.mockResolvedValue([{ id: 'workflow-1' }]);
+      prisma.$executeRaw.mockImplementation(applyBookkeepingUpdate);
+      prisma.workflow.findFirst.mockImplementation(() =>
+        Promise.resolve({ ...row, config: { ...row.config } }),
+      );
+      prisma.workflow.update.mockImplementation(
+        async (args: { data: { config: Record<string, unknown> } }) => {
+          await runBeforeNextWrite();
+          row.config = { ...args.data.config };
+          return {};
+        },
+      );
+      workflowsService.findOne.mockImplementation(() =>
+        Promise.resolve({
+          id: 'workflow-1',
+          organizationId: 'org-1',
+          userId: 'user-1',
+          webhookSecret: row.config.webhookSecret,
+        }),
+      );
+      workflowExecutorService.executeManualWorkflow.mockResolvedValue({
+        executionId: 'run-1',
+        status: 'started',
+      });
+    });
+
+    it('counts two deliveries and records the last trigger time', async () => {
+      await service.triggerViaWebhook('wh_1', { n: 1 });
+      await service.triggerViaWebhook('wh_1', { n: 2 });
+
+      expect(row.config.webhookTriggerCount).toBe(2);
+      expect(typeof row.config.webhookLastTriggeredAt).toBe('string');
+    });
+
+    it('keeps a secret rotated after the workflow was read', async () => {
+      beforeNextWrite = async () => {
+        await service.regenerateWebhookSecret('workflow-1', 'org-1');
+      };
+      const rotatedFrom = row.config.webhookSecret;
+
+      await service.triggerViaWebhook('wh_1', {});
+
+      expect(row.config.webhookSecret).toMatch(/^whsec_/);
+      expect(row.config.webhookSecret).not.toBe(rotatedFrom);
+      expect(row.config.webhookTriggerCount).toBe(1);
+    });
+
+    it('keeps a deleted webhook secret deleted', async () => {
+      beforeNextWrite = async () => {
+        await service.deleteWebhook('workflow-1', 'org-1');
+      };
+
+      await service.triggerViaWebhook('wh_1', {});
+
+      expect(row.config.webhookSecret).toBeNull();
+      expect(row.config.webhookId).toBeNull();
+    });
+
+    it('keeps an unrelated config key saved after the read', async () => {
+      beforeNextWrite = () => {
+        row.config = { ...row.config, concurrencyLimit: 4 };
+        return Promise.resolve();
+      };
+
+      await service.triggerViaWebhook('wh_1', {});
+
+      expect(row.config.concurrencyLimit).toBe(4);
+      expect(row.config.webhookTriggerCount).toBe(1);
+    });
+
+    it('derives the run idempotency key from workflow id and delivery id', async () => {
+      await service.triggerViaWebhook('wh_1', {}, 'delivery-1');
+      await service.triggerViaWebhook('wh_1', {}, 'delivery-1');
+      await service.triggerViaWebhook('wh_1', {}, 'delivery-2');
+      await service.triggerViaWebhook('wh_1', {});
+
+      const keys = workflowExecutorService.executeManualWorkflow.mock.calls.map(
+        (call) => call[7],
+      );
+      expect(keys[0]).toMatch(/^webhook:workflow-1:[0-9a-f]{64}$/);
+      expect(keys[1]).toBe(keys[0]);
+      expect(keys[2]).not.toBe(keys[0]);
+      expect(keys[3]).toBeUndefined();
     });
   });
 });
