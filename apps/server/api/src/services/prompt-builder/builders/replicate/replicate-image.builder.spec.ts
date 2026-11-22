@@ -51,15 +51,16 @@ import {
 import { REVIEWED_RATE_SHEET_ENTRIES } from '@genfeedai/pricing';
 import type { ConfigService } from '@libs/config/config.service';
 
-const RESOLUTION_PRICED_NANO_BANANA_RATES = REVIEWED_RATE_SHEET_ENTRIES.filter(
-  (entry) =>
-    entry.provider === 'replicate' &&
-    entry.endpoint.startsWith('google/nano-banana') &&
-    entry.rates.some((rate) => 'resolution' in rate.when),
-).map((entry) => [
-  entry.endpoint,
-  entry.rates.map((rate) => rate.when.resolution),
-]);
+const RESOLUTION_PRICED_NANO_BANANA_RATES: Array<[string, unknown[]]> =
+  REVIEWED_RATE_SHEET_ENTRIES.filter(
+    (entry) =>
+      entry.provider === 'replicate' &&
+      entry.endpoint.startsWith('google/nano-banana') &&
+      entry.rates.some((rate) => 'resolution' in rate.when),
+  ).map((entry) => [
+    entry.endpoint,
+    entry.rates.map((rate) => rate.when.resolution),
+  ]);
 
 const createParams = (
   overrides: Partial<PromptBuilderParams> = {},
