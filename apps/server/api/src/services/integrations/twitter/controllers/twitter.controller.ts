@@ -6,6 +6,7 @@ import {
 } from '@api/collections/credentials/dto/create-credential.dto';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { throwIfOAuthCallbackError } from '@api/collections/credentials/utils/oauth-callback-error.util';
+import { claimOAuthVerifyCredential } from '@api/collections/credentials/utils/oauth-verify-claim.util';
 import { SocialSourceHistoryImportService } from '@api/collections/social-sources/services/social-source-history-import.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -176,11 +177,15 @@ export class TwitterController {
         );
       }
 
-      const credential =
-        await this.credentialsService.findPendingOAuthCredential(
-          state,
-          CredentialPlatform.TWITTER,
-        );
+      const claim = await claimOAuthVerifyCredential(
+        this.credentialsService,
+        state,
+        CredentialPlatform.TWITTER,
+      );
+      if (claim?.alreadyConnected) {
+        return serializeSingle(request, CredentialSerializer, claim.credential);
+      }
+      const credential = claim?.credential;
 
       if (!credential) {
         throw new HttpException(
@@ -191,18 +196,7 @@ export class TwitterController {
 
       const { organizationId } = credential;
 
-      // Retrieve stored PKCE code verifier (encrypted via schema setter)
-      const codeVerifier = credential.oauthTokenSecret
-        ? EncryptionUtil.decrypt(credential.oauthTokenSecret)
-        : null;
-
-      if (!codeVerifier) {
-        throw new HttpException(
-          { detail: 'Missing PKCE code verifier', title: 'OAuth Error' },
-          HttpStatus.BAD_REQUEST,
-        );
-      }
-
+      const codeVerifier = this.readCodeVerifier(credential.oauthTokenSecret);
       const oauth = this.getOAuthConfig();
       const client = new TwitterApi({
         clientId: oauth.clientId,
@@ -398,6 +392,22 @@ export class TwitterController {
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
+  }
+
+  /** The stored PKCE code verifier (encrypted via schema setter). */
+  private readCodeVerifier(oauthTokenSecret: string | null | undefined) {
+    const codeVerifier = oauthTokenSecret
+      ? EncryptionUtil.decrypt(oauthTokenSecret)
+      : null;
+
+    if (!codeVerifier) {
+      throw new HttpException(
+        { detail: 'Missing PKCE code verifier', title: 'OAuth Error' },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    return codeVerifier;
   }
 
   private getOAuthConfig() {

@@ -44,7 +44,7 @@ describe('MediumController', () => {
   const credentialsService = {
     beginOAuthForBrand: vi.fn(),
     connectAccount: vi.fn(),
-    findPendingOAuthCredential: vi.fn(),
+    claimPendingOAuthCredential: vi.fn(),
     patch: vi.fn(),
   };
   const mediumService = {
@@ -126,7 +126,7 @@ describe('MediumController', () => {
 
   describe('verify', () => {
     it('resolves ownership from state and persists canonical token fields', async () => {
-      credentialsService.findPendingOAuthCredential.mockResolvedValue({
+      credentialsService.claimPendingOAuthCredential.mockResolvedValue({
         brandId,
         id: 'credential-id',
         organizationId,
@@ -153,7 +153,7 @@ describe('MediumController', () => {
       });
 
       expect(
-        credentialsService.findPendingOAuthCredential,
+        credentialsService.claimPendingOAuthCredential,
       ).toHaveBeenCalledWith('opaque-oauth-state', CredentialPlatform.MEDIUM);
       expect(credentialsService.connectAccount).toHaveBeenCalledWith(
         'credential-id',
@@ -183,12 +183,12 @@ describe('MediumController', () => {
 
       expect(result).toHaveProperty('errors');
       expect(
-        credentialsService.findPendingOAuthCredential,
+        credentialsService.claimPendingOAuthCredential,
       ).not.toHaveBeenCalled();
     });
 
     it('rejects an unknown or expired OAuth state', async () => {
-      credentialsService.findPendingOAuthCredential.mockResolvedValue(null);
+      credentialsService.claimPendingOAuthCredential.mockResolvedValue(null);
 
       const result = await controller.verify(request, {
         code: 'authorization-code',
@@ -202,7 +202,7 @@ describe('MediumController', () => {
     });
 
     it('rethrows intentional HTTP failures', async () => {
-      credentialsService.findPendingOAuthCredential.mockRejectedValue(
+      credentialsService.claimPendingOAuthCredential.mockRejectedValue(
         new HttpException('Forbidden', 403),
       );
 

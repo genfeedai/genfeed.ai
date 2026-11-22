@@ -51,6 +51,7 @@ function setup() {
   ];
   const credentials: StoredCredential[] = [];
   const products: ProductRequest[] = [];
+  const exchanges: string[] = [];
   let isShopifyDown = false;
 
   const brandsService = {
@@ -100,10 +101,25 @@ function setup() {
       });
       return { ...credential };
     },
-    findPendingOAuthCredential: async (state: string, platform: string) =>
+    // The claim is atomic like the database write: the first caller takes the
+    // row and leaves a marker, every later caller finds nothing.
+    claimPendingOAuthCredential: async (state: string, platform: string) => {
+      const credential = credentials.find(
+        (item) =>
+          item.oauthState === state &&
+          item.platform === platform &&
+          !item.isConnected,
+      );
+      if (!credential) return null;
+      credential.oauthState = `claimed:${state}`;
+      return { ...credential };
+    },
+    findOne: async (query: { id?: string; oauthState?: string }) =>
       credentials.find(
-        (credential) =>
-          credential.oauthState === state && credential.platform === platform,
+        (item) =>
+          (query.id !== undefined && item.id === query.id) ||
+          (query.oauthState !== undefined &&
+            item.oauthState === query.oauthState),
       ) ?? null,
   } as unknown as CredentialsService;
 
@@ -130,6 +146,7 @@ function setup() {
       return { id: 12345, title };
     },
     exchangeCodeForToken: async (shop: string, code: string) => {
+      exchanges.push(code);
       const tokens = SHOPIFY_TOKENS[`${shop}:${code}`];
       if (!tokens) throw new Error('Invalid code');
       return tokens;
@@ -153,6 +170,7 @@ function setup() {
   return {
     controller,
     credentials,
+    exchanges,
     products,
     setShopifyDown: () => {
       isShopifyDown = true;
@@ -243,6 +261,50 @@ describe('ShopifyController', () => {
         isConnected: true,
         oauthState: null,
       });
+    });
+
+    it('exchanges the code once when two verifies race and answers both with the connection', async () => {
+      vi.useFakeTimers();
+      try {
+        const { controller, credentials, exchanges } = setup();
+        await controller.connect(request, user, {
+          brandId: 'brand-id',
+          shop: 'myshop.myshopify.com',
+        });
+
+        const both = Promise.all([
+          controller.verify(request, { code: 'auth-code', state: 'state-1' }),
+          controller.verify(request, { code: 'auth-code', state: 'state-1' }),
+        ]);
+        await vi.advanceTimersByTimeAsync(1000);
+        const [first, second] = await both;
+
+        expect(first).toMatchObject({ id: 'credential-1', isConnected: true });
+        expect(second).toMatchObject({ id: 'credential-1', isConnected: true });
+        expect(exchanges.length).toBe(1);
+        expect(credentials[0]).toMatchObject({
+          isConnected: true,
+          oauthState: null,
+        });
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('leaves an already connected credential connected when the state is replayed', async () => {
+      const { controller, credentials, exchanges } = setup();
+      await controller.connect(request, user, {
+        brandId: 'brand-id',
+        shop: 'myshop.myshopify.com',
+      });
+      await controller.verify(request, { code: 'auth-code', state: 'state-1' });
+
+      await expect(
+        controller.verify(request, { code: 'auth-code', state: 'state-1' }),
+      ).rejects.toMatchObject({ status: 404 });
+
+      expect(exchanges.length).toBe(1);
+      expect(credentials[0]).toMatchObject({ isConnected: true });
     });
 
     it('rejects a state that no pending credential carries', async () => {

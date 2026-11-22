@@ -14,7 +14,7 @@ type OAuthCallbackErrorDto = {
 
 type OAuthCallbackCredentialStore = Pick<
   CredentialsService,
-  'findPendingOAuthCredential' | 'patch'
+  'findPendingOAuthCredential' | 'patchAll'
 >;
 
 /**
@@ -71,12 +71,17 @@ export async function throwIfOAuthCallbackError(
     );
   }
 
-  await credentialsService.patch(credential.id, {
-    oauthState:
-      outcome === 'denied'
-        ? EXTERNAL_CONNECTION_DENIED_STATE
-        : EXTERNAL_CONNECTION_FAILED_STATE,
-  });
+  // Conditional on the row still being pending: a request that connected this
+  // credential in the meantime must not be marked denied or failed.
+  await credentialsService.patchAll(
+    { id: credential.id, isConnected: false },
+    {
+      oauthState:
+        outcome === 'denied'
+          ? EXTERNAL_CONNECTION_DENIED_STATE
+          : EXTERNAL_CONNECTION_FAILED_STATE,
+    },
+  );
 
   throw new HttpException(
     {
