@@ -36,8 +36,6 @@ describe('Trends split controllers', () => {
     getBrandViralVideos: read('getBrandViralVideos'),
     getTrendingHashtags: read('getTrendingHashtags'),
     getTrendingSounds: read('getTrendingSounds'),
-    getTrendTimeline: read('getTrendTimeline'),
-    getTurnoverStats: read('getTurnoverStats'),
     getViralLeaderboard: read('getViralLeaderboard'),
     getViralVideos: read('getViralVideos'),
   };
@@ -65,8 +63,6 @@ describe('Trends split controllers', () => {
     [TrendsAnalyticsController, 'getViralLeaderboard', 'leaderboard'],
     [TrendsAnalyticsController, 'getTrendingHashtags', 'hashtags'],
     [TrendsAnalyticsController, 'getTrendingSounds', 'sounds'],
-    [TrendsAnalyticsController, 'getTurnoverStats', 'turnover'],
-    [TrendsAnalyticsController, 'getTurnoverTimeline', 'turnover/timeline'],
   ] as const)(
     'preserves moved route metadata',
     (controllerClass, methodName, path) => {
@@ -186,56 +182,5 @@ describe('Trends split controllers', () => {
       ['getTrendingHashtags', market],
       ['getTrendingSounds', market],
     ]);
-  });
-
-  it('preserves turnover aggregation and supported-day parsing', async () => {
-    const byPlatform = [
-      {
-        alive: 7,
-        appeared: 10,
-        avgLifespanDays: 4.25,
-        died: 3,
-        platform: 'tiktok',
-        turnoverRate: 30,
-      },
-      {
-        alive: 3,
-        appeared: 5,
-        avgLifespanDays: 6.5,
-        died: 2,
-        platform: 'youtube',
-        turnoverRate: 40,
-      },
-    ];
-    const timeline = [{ alive: 10, appeared: 15, date: '2026-07-27', died: 5 }];
-    responses.getTurnoverStats = byPlatform;
-    responses.getTrendTimeline = timeline;
-
-    const result = await analyticsController.getTurnoverStats('7');
-
-    expect(reads).toEqual(
-      expect.arrayContaining([
-        ['getTurnoverStats', 7],
-        ['getTrendTimeline', 7],
-      ]),
-    );
-    expect(result).toEqual({
-      byPlatform,
-      days: 7,
-      timeline,
-      totals: {
-        alive: 10,
-        appeared: 15,
-        avgLifespanDays: 5.4,
-        died: 5,
-        turnoverRate: 33,
-      },
-    });
-  });
-
-  it('defaults unsupported turnover windows to 30 days', async () => {
-    await analyticsController.getTurnoverTimeline('14');
-
-    expect(reads).toEqual([['getTrendTimeline', 30]]);
   });
 });
