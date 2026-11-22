@@ -106,6 +106,14 @@ export function useModalPostBatch(props: ModalPostBatchProps) {
       }
 
       const expiryValue = credential.accessTokenExpiry;
+      // Meta system-user tokens can explicitly have no expiry. Missing or
+      // malformed expiry metadata on other connections still needs recovery.
+      if (
+        credential.platform === CredentialPlatform.INSTAGRAM &&
+        expiryValue === null
+      ) {
+        return true;
+      }
       if (!expiryValue) {
         return false;
       }

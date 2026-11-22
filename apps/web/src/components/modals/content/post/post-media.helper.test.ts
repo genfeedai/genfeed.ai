@@ -8,6 +8,7 @@ import { describe, expect, it } from 'vitest';
 import {
   getPostCategoryForMedia,
   getPostMediaRequirement,
+  getPostTargetSettingsForMedia,
   getUnmetPostMediaRequirements,
   isPostMediaRequirementMet,
   MAX_POST_MEDIA_ITEMS,
@@ -110,5 +111,28 @@ describe('getUnmetPostMediaRequirements', () => {
     expect(getUnmetPostMediaRequirements(platforms, attached)).toEqual(
       expected,
     );
+  });
+});
+
+describe('getPostTargetSettingsForMedia', () => {
+  it.each([
+    [undefined, [IngredientCategory.VIDEO], undefined],
+    [Platform.INSTAGRAM, [IngredientCategory.VIDEO], { placement: 'reel' }],
+    [Platform.INSTAGRAM, [IngredientCategory.IMAGE], { placement: 'feed' }],
+    [
+      Platform.INSTAGRAM,
+      [IngredientCategory.IMAGE, IngredientCategory.VIDEO],
+      { placement: 'feed' },
+    ],
+    [Platform.INSTAGRAM, [], { placement: 'feed' }],
+    [Platform.TIKTOK, [IngredientCategory.VIDEO], undefined],
+    [Platform.YOUTUBE, [IngredientCategory.VIDEO], undefined],
+  ])('resolves %s media %j to %j', (platform, categories, expected) => {
+    expect(
+      getPostTargetSettingsForMedia(
+        platform,
+        categories.map((category, index) => media(String(index), category)),
+      ),
+    ).toEqual(expected);
   });
 });

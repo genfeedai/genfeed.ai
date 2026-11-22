@@ -56,6 +56,7 @@ import ModalPostSimpleHeader from './ModalPostSimpleHeader';
 import {
   getPostCategoryForMedia,
   getPostMediaRequirement,
+  getPostTargetSettingsForMedia,
   getUnmetPostMediaRequirements,
   isPostMediaRequirementMet,
   mergePostMedia,
@@ -372,6 +373,10 @@ export default function ModalPost({
 
             return postsService.post({
               ...shared,
+              targetSettings: getPostTargetSettingsForMedia(
+                platform,
+                selectedMediaRef.current,
+              ),
               ...slackTargets.getTargetSettings(target),
               ...(category ? { category } : {}),
               description: caption,
@@ -477,6 +482,10 @@ export default function ModalPost({
               label: formData.label?.trim() || '',
               parentId: formData.parentId || undefined,
               platform: formData.platform,
+              targetSettings: getPostTargetSettingsForMedia(
+                formData.platform,
+                selectedMediaRef.current,
+              ),
               ...(formData.scheduledDate
                 ? { scheduledDate: formData.scheduledDate }
                 : {}),

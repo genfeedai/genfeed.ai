@@ -3,6 +3,7 @@ import {
   Platform,
   PostCategory,
 } from '@genfeedai/contracts';
+import { resolveChannelTargetSettings } from '@genfeedai/contracts/api-types/contracts';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 
@@ -127,4 +128,22 @@ export function getPostCategoryForMedia(
     return PostCategory.IMAGE;
   }
   return undefined;
+}
+
+/** A single Instagram video is a Reel; images and carousels go to the feed. */
+export function getPostTargetSettingsForMedia(
+  platform: string | undefined,
+  media: readonly IIngredient[],
+): Record<string, unknown> | undefined {
+  if (platform !== Platform.INSTAGRAM) {
+    return undefined;
+  }
+
+  const isReel =
+    media.length === 1 && getPostCategoryForMedia(media) === PostCategory.VIDEO;
+  return {
+    ...resolveChannelTargetSettings(platform, {
+      placement: isReel ? 'reel' : 'feed',
+    }),
+  };
 }
