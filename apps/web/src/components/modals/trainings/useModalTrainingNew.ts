@@ -80,11 +80,15 @@ export function useModalTrainingNew({ onSuccess }: ModalTrainingNewProps) {
   // Uploads that finished while this modal is open, keyed by file identity, so
   // a retry resumes instead of uploading the same files again.
   const uploadedImageIdsRef = useRef<Map<File, string>>(new Map());
+  // One key per create attempt chain: a retry after a lost response reuses it,
+  // so the server returns the training it already made instead of a second one.
+  const createKeyRef = useRef<string | null>(null);
   const isSubmitInFlightRef = useRef(false);
 
   const closeModalTrainingNew = useCallback(() => {
     closeModal(ModalEnum.TRAINING_UPLOAD);
     uploadedImageIdsRef.current = new Map();
+    createKeyRef.current = null;
     form.reset();
     setFiles([]);
     setFileStatuses(new Map());
@@ -350,7 +354,11 @@ export function useModalTrainingNew({ onSuccess }: ModalTrainingNewProps) {
         trigger: formData.trigger,
       };
 
-      const training = await service.post(body);
+      createKeyRef.current ??= crypto.randomUUID();
+      const training = await service.createIdempotent(
+        body,
+        createKeyRef.current,
+      );
 
       if (training) {
         logger.info('Training created successfully', training);
