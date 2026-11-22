@@ -1,8 +1,11 @@
 import type { ConnectionAccount } from '@genfeedai/props/ui/feedback/connection-success.props';
 
-export interface OAuthPlatformFormProps {
+export interface OAuthCallbackLocation {
   platform: string;
+  searchParams: URLSearchParams;
 }
+
+export type OAuthPlatformFormContentProps = OAuthCallbackLocation;
 
 export type VerifyResult =
   | { status: 'loading' }
