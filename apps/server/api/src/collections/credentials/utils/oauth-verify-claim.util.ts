@@ -54,11 +54,17 @@ const claimedOAuthState = (state: string): string =>
 export const verifiedOAuthState = (state: string): string =>
   `${VERIFIED_OAUTH_STATE_PREFIX}${state}`;
 
-/** The marker to carry over when a settled row is reconciled, else null. */
+/**
+ * The marker to carry over when a claimed row is reconciled into a connected
+ * account (it may still hold the claim marker, or the settled one), else null.
+ */
 export const carriedOAuthState = (
   oauthState: string | null | undefined,
 ): string | null =>
-  oauthState?.startsWith(VERIFIED_OAUTH_STATE_PREFIX) ? oauthState : null;
+  oauthState?.startsWith(VERIFIED_OAUTH_STATE_PREFIX) ||
+  oauthState?.startsWith(CLAIMED_OAUTH_STATE_PREFIX)
+    ? oauthState
+    : null;
 
 /** The pending-connection lookup, or null when the state cannot match. */
 export function buildPendingOAuthFilter(
