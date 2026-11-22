@@ -230,4 +230,90 @@ describe('FilterMenu', () => {
       screen.queryByRole('menuitemcheckbox', { name: 'Tag 3' }),
     ).not.toBeInTheDocument();
   });
+  it('counts and keeps an empty-string option that differs from the default', async () => {
+    const user = userEvent.setup();
+    const options = [
+      { label: 'All', value: 'all' },
+      { label: 'Unassigned', value: '' },
+      ...Array.from({ length: 9 }, (_, index) => ({
+        label: `Brand ${index}`,
+        value: `brand-${index}`,
+      })),
+    ];
+    renderMenu([
+      {
+        defaultValue: 'all',
+        key: 'brand',
+        label: 'Brand',
+        onChange: vi.fn(),
+        options,
+        searchPlaceholder: 'Search brands',
+        selection: 'single',
+        value: '',
+      },
+    ]);
+    expect(screen.getByRole('button', { name: /^Filters/ })).toHaveTextContent(
+      'Filters11 active',
+    );
+    await openFacet(user, /Brand/);
+    await user.type(await screen.findByLabelText('Search brands'), 'Brand 4');
+    expect(
+      screen.getByRole('menuitemradio', { name: 'Unassigned' }),
+    ).toBeVisible();
+    expect(
+      screen.queryByRole('menuitemradio', { name: 'Brand 5' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('does not count an empty value when the facet has no empty option', () => {
+    renderMenu([
+      {
+        defaultValue: 'all',
+        key: 'status',
+        label: 'Status',
+        onChange: vi.fn(),
+        options: [
+          { label: 'All', value: 'all' },
+          { label: 'Live', value: 'live' },
+        ],
+        selection: 'single',
+        value: '',
+      },
+    ]);
+    expect(screen.getByRole('button', { name: /^Filters/ })).toHaveTextContent(
+      /^Filters$/,
+    );
+  });
+
+  it('moves between the search box and the options with the arrow keys', async () => {
+    const user = userEvent.setup();
+    const options = Array.from({ length: 10 }, (_, index) => ({
+      label: `Tag ${index}`,
+      value: `tag-${index}`,
+    }));
+    renderMenu([
+      {
+        key: 'tags',
+        label: 'Tags',
+        onChange: vi.fn(),
+        options,
+        searchPlaceholder: 'Search tags',
+        selection: 'multiple',
+        values: [],
+      },
+    ]);
+    await openFacet(user, /Tags/);
+    const search = await screen.findByLabelText('Search tags');
+    search.focus();
+    await user.keyboard('{ArrowDown}');
+    expect(
+      screen.getByRole('menuitemcheckbox', { name: 'Tag 0' }),
+    ).toHaveFocus();
+    await user.keyboard('{ArrowDown}');
+    expect(
+      screen.getByRole('menuitemcheckbox', { name: 'Tag 1' }),
+    ).toHaveFocus();
+    await user.keyboard('{ArrowUp}{ArrowUp}');
+    expect(search).toHaveFocus();
+  });
 });

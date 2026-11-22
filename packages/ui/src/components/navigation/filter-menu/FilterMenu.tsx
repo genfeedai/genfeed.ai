@@ -25,7 +25,7 @@ import {
 import { Input } from '@ui/primitives/input';
 import { SHELL_ICON_CLASS } from '@ui-constants/shell-chrome.constant';
 import { ListFilter } from 'lucide-react';
-import { useState } from 'react';
+import { type KeyboardEvent, useRef, useState } from 'react';
 
 /** A search box earns its place once a list is longer than a glance. */
 const SEARCH_THRESHOLD = 8;
@@ -37,7 +37,24 @@ function getActiveCount(facet: FilterMenuFacet): number {
   if (facet.isCounted === false) {
     return 0;
   }
-  return facet.value && facet.value !== facet.defaultValue ? 1 : 0;
+  if (facet.value === '') {
+    // An empty value is "no filter" unless the facet lists it as a real choice
+    // next to a different default.
+    const isChoice =
+      facet.options.some((option) => option.value === '') &&
+      facet.defaultValue !== undefined;
+    return isChoice && facet.defaultValue !== '' ? 1 : 0;
+  }
+  return facet.value !== facet.defaultValue ? 1 : 0;
+}
+
+const MENU_ITEM_SELECTOR =
+  '[role="menuitem"],[role="menuitemradio"],[role="menuitemcheckbox"]';
+
+function getMenuItems(root: HTMLElement | null): HTMLElement[] {
+  return root
+    ? Array.from(root.querySelectorAll<HTMLElement>(MENU_ITEM_SELECTOR))
+    : [];
 }
 
 function FilterMenuFacetItem({
@@ -48,15 +65,13 @@ function FilterMenuFacetItem({
   facet: FilterMenuFacet;
 }) {
   const [searchTerm, setSearchTerm] = useState('');
+  const searchRef = useRef<HTMLInputElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
   const term = searchTerm.trim().toLowerCase();
   const hasSearch =
     Boolean(facet.searchPlaceholder) && facet.options.length > SEARCH_THRESHOLD;
   const selectedValues =
-    facet.selection === 'multiple'
-      ? facet.values
-      : facet.value
-        ? [facet.value]
-        : [];
+    facet.selection === 'multiple' ? facet.values : [facet.value];
   // Selected options stay visible while searching so a filter never vanishes.
   const visibleOptions =
     hasSearch && term
@@ -78,6 +93,27 @@ function FilterMenuFacetItem({
     summary = String(facet.values.length);
   }
 
+  // The search box is not a menu item, so the arrow keys never reach it. Down
+  // leaves it for the first option; Up on the first option comes back to it.
+  const handleSearchKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    // Menu typeahead would otherwise swallow every keystroke.
+    event.stopPropagation();
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      getMenuItems(listRef.current)[0]?.focus();
+    }
+  };
+  const handleListKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key !== 'ArrowUp' || !hasSearch) {
+      return;
+    }
+    if (getMenuItems(listRef.current)[0] === event.target) {
+      event.preventDefault();
+      event.stopPropagation();
+      searchRef.current?.focus();
+    }
+  };
+
   const isLimitReached =
     facet.selection === 'multiple' &&
     facet.maxSelected !== undefined &&
@@ -97,15 +133,19 @@ function FilterMenuFacetItem({
             <Input
               aria-label={facet.searchPlaceholder}
               className="h-control-sm text-xs"
-              // Menu typeahead would otherwise swallow every keystroke.
-              onKeyDown={(event) => event.stopPropagation()}
+              ref={searchRef}
+              onKeyDown={handleSearchKeyDown}
               onChange={(event) => setSearchTerm(event.target.value)}
               placeholder={facet.searchPlaceholder}
               value={searchTerm}
             />
           </div>
         ) : null}
-        <div className="max-h-80 overflow-y-auto py-1">
+        <div
+          className="max-h-80 overflow-y-auto py-1"
+          onKeyDown={handleListKeyDown}
+          ref={listRef}
+        >
           {facet.options.length === 0 ? (
             <DropdownMenuItem disabled>{facet.emptyLabel}</DropdownMenuItem>
           ) : facet.selection === 'single' ? (
