@@ -72,6 +72,28 @@ const openBillingPortal = async () => {
     ).toEqual([1]);
   });
 
+  it('flags a call inside a for await loop', () => {
+    expect(
+      lines(
+        'async function f(xs) { for await (const u of xs) { window.open(u, "_blank"); } }',
+      ),
+    ).toEqual([1]);
+  });
+
+  it('flags a call written with whitespace around the dot', () => {
+    expect(
+      lines('async function f() { await g(); window .open(u, "_blank"); }'),
+    ).toEqual([1]);
+  });
+
+  it('counts an expression-bodied callback once', () => {
+    expect(lines('p.then(() => (window.open(u, "_blank")));')).toEqual([1]);
+  });
+
+  it('does not treat a function returned from a callback as the callback', () => {
+    expect(lines('p.then(() => () => window.open(u, "_blank"));')).toEqual([]);
+  });
+
   it('accepts the tab opened before the request', () => {
     const source = `
 async function openInNewTab(resolveUrl) {

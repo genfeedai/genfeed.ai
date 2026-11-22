@@ -91,7 +91,7 @@ const DEFAULT_IGNORE_GLOBS = [
   '**/*.d.ts',
 ];
 
-const WINDOW_OPEN_MENTION = /\b(?:window|globalThis)\.open\b/u;
+const WINDOW_OPEN_MENTION = /\b(?:window|globalThis)\s*\.\s*open\b/u;
 
 const IGNORE_MARKER = 'window-open-audit: ignore';
 
@@ -163,8 +163,7 @@ function collectBody(fn: ts.FunctionLikeDeclaration): Body {
     if (isWindowOpenCall(node)) body.opens.push(node);
     ts.forEachChild(node, visit);
   };
-  if (fn.body) ts.forEachChild(fn.body, visit);
-  if (fn.body && ts.isExpression(fn.body)) visit(fn.body);
+  if (fn.body) visit(fn.body);
   return body;
 }
 
@@ -179,7 +178,11 @@ function scriptKind(file: string): ts.ScriptKind {
 
 function precedes(await_: ts.Node, call: ts.CallExpression): boolean {
   // An `await` that wraps the call itself finishes after it opened the tab.
-  if (await_.getStart() <= call.getStart() && await_.end >= call.end) {
+  if (
+    ts.isAwaitExpression(await_) &&
+    await_.getStart() <= call.getStart() &&
+    await_.end >= call.end
+  ) {
     return false;
   }
   return await_.getStart() < call.end;
