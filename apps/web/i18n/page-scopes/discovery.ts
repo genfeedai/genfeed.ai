@@ -5,7 +5,6 @@ import remixBrief from '../../messages/en/pages/remixBrief.json';
 const messages = {
   analytics: {
     trends: analytics.trends,
-    trendTurnover: analytics.trendTurnover,
   },
   adsResearch,
   remixBrief,
