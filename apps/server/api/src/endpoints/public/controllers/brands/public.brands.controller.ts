@@ -105,7 +105,6 @@ export class PublicBrandsController {
   @Cache({
     keyGenerator: (req) =>
       `public:brands:highlighted:${req.query.isHighlighted ?? 'false'}:limit:${req.query.limit ?? '10'}:page:${req.query.page ?? '1'}:sort:${req.query.sortBy === 'highlighted' ? 'highlighted' : 'newest'}`,
-    isInvalidationGuarded: true,
     tags: ['brands', 'public', CACHE_TAGS.PUBLIC_BRAND_CONTENT],
     ttl: 1800, // 30 minutes
   })
@@ -134,7 +133,6 @@ export class PublicBrandsController {
   @Get('slug')
   @Cache({
     keyGenerator: (req) => `brand:slug:${req.query.slug ?? ''}`,
-    isInvalidationGuarded: true,
     tags: ['brands', 'slugs', CACHE_TAGS.PUBLIC_BRAND_CONTENT],
     ttl: 3600, // 1 hour
   })
@@ -173,7 +171,6 @@ export class PublicBrandsController {
   @Get(':brandId')
   @Cache({
     keyGenerator: (req) => `public:brand:${req.params?.brandId ?? 'unknown'}`,
-    isInvalidationGuarded: true,
     tags: ['brands', CACHE_TAGS.PUBLIC_BRAND_CONTENT],
     ttl: 1800, // 30 minutes
   })
@@ -210,7 +207,6 @@ export class PublicBrandsController {
   @Cache({
     keyGenerator: (req) =>
       `public:brand:${req.params?.brandId ?? 'unknown'}:referral`,
-    isInvalidationGuarded: true,
     tags: ['brands', 'referral', CACHE_TAGS.PUBLIC_BRAND_CONTENT],
     ttl: 300, // 5 minutes: a newly created code should reach the profile soon
   })
@@ -246,7 +242,6 @@ export class PublicBrandsController {
   @Cache({
     keyGenerator: (req) =>
       `public:brand:${req.params?.brandId ?? 'unknown'}:links:${req.query.sort ?? '-createdAt'}`,
-    isInvalidationGuarded: true,
     tags: ['brands', 'links', CACHE_TAGS.PUBLIC_BRAND_CONTENT],
     ttl: 1800, // 30 minutes
   })
@@ -285,7 +280,6 @@ export class PublicBrandsController {
   @Cache({
     keyGenerator: (req) =>
       `public:brand:${req.params?.brandId ?? 'unknown'}:videos:${req.query.page ?? 1}:${req.query.limit ?? 20}:${req.query.sort ?? '-createdAt'}`,
-    isInvalidationGuarded: true,
     tags: ['brands', 'videos', CACHE_TAGS.PUBLIC_BRAND_CONTENT],
     ttl: 900, // 15 minutes
   })
@@ -329,7 +323,6 @@ export class PublicBrandsController {
   @Cache({
     keyGenerator: (req) =>
       `public:brand:${req.params?.brandId ?? 'unknown'}:images:${req.query.page ?? 1}:${req.query.limit ?? 20}:${req.query.sort ?? '-createdAt'}`,
-    isInvalidationGuarded: true,
     tags: ['brands', 'images', CACHE_TAGS.PUBLIC_BRAND_CONTENT],
     ttl: 900, // 15 minutes
   })
@@ -373,7 +366,6 @@ export class PublicBrandsController {
   @Cache({
     keyGenerator: (req) =>
       `public:brand:${req.params?.brandId ?? 'unknown'}:articles:${req.query.page ?? 1}:${req.query.limit ?? 20}:${req.query.sort ?? '-createdAt'}`,
-    isInvalidationGuarded: true,
     tags: ['brands', 'articles', CACHE_TAGS.PUBLIC_BRAND_CONTENT],
     ttl: 900, // 15 minutes
   })

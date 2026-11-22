@@ -172,8 +172,9 @@ export class BrandLifecycleService {
 
     // Public brand and post responses are cached for up to an hour and a cache
     // hit skips the visibility query, so a deleted brand would stay readable.
-    // Guarded: a fill that began before the delete must not store afterwards.
-    await this.cacheService?.invalidateGuardedTags([
+    // A fill that began before the delete must not store afterwards; every
+    // tag invalidation marks its tags as changed for fills in flight.
+    await this.cacheService?.invalidateByTags([
       CACHE_TAGS.PUBLIC_BRAND_CONTENT,
     ]);
 

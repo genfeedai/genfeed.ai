@@ -278,6 +278,42 @@ describe('CacheService', () => {
     });
   });
 
+  describe('getOrSet with tags', () => {
+    it('stores the value only while the tags keep the epochs read before the factory ran', async () => {
+      (mockRedisClient.get as vi.Mock).mockResolvedValue(null);
+      mockRedisClient.mget.mockResolvedValue(['4', null]);
+      (mockRedisClient.eval as vi.Mock).mockResolvedValue(0);
+
+      await expect(
+        service.getOrSet('key', async () => ({ id: 1 }), {
+          tags: ['a', 'b'],
+          ttl: 60,
+        }),
+      ).resolves.toEqual({ id: 1 });
+
+      expect(mockRedisClient.mget).toHaveBeenCalledWith(
+        'tag-epoch:a',
+        'tag-epoch:b',
+      );
+      // The epochs travel with the write so the script can refuse a stale one.
+      expect(mockRedisClient.eval).toHaveBeenCalledWith(
+        expect.stringContaining("redis.call('SETEX', KEYS[1]"),
+        5,
+        'key',
+        'tag-epoch:a',
+        'tag-epoch:b',
+        'tag:a',
+        'tag:b',
+        '60',
+        JSON.stringify({ id: 1 }),
+        '2',
+        '4',
+        '0',
+      );
+      expect(mockRedisClient.setex).not.toHaveBeenCalled();
+    });
+  });
+
   describe('acquireLock', () => {
     it('acquires the lock using SET NX EX with positional args', async () => {
       (mockRedisClient.set as vi.Mock).mockResolvedValue('OK');
