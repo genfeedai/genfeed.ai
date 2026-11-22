@@ -591,6 +591,7 @@ export class HeyGenService {
     ownership?: 'public' | 'private',
     pageItems?: Record<string, unknown>[],
     lookId?: string,
+    groupId?: string,
   ): Promise<HeyGenCatalogLook[]> {
     const partitions = ownership
       ? [ownership]
@@ -610,7 +611,9 @@ export class HeyGenService {
           '/avatars/looks',
           connection.apiKey,
           50,
-          { ownership: partition },
+          // The group filter narrows the listing to one avatar group, so a
+          // look is proven public/private without paging the whole catalogue.
+          { ownership: partition, ...(groupId ? { group_id: groupId } : {}) },
           lookId,
         ));
       // Five look/group resolutions at a time; groups are deduplicated per request.
@@ -703,6 +706,33 @@ export class HeyGenService {
     return z.object({ data: groupSchema }).parse(response.data).data;
   }
 
+  /**
+   * The avatar group of a look, used only to narrow the filtered listing that
+   * proves ownership. Never trusted as proof itself, so any lookup failure
+   * falls back to the unfiltered listing.
+   */
+  private async readLookGroupId(
+    lookId: string,
+    apiKey: string,
+  ): Promise<string | null> {
+    try {
+      const response = await firstValueFrom(
+        this.httpService.get<unknown>(
+          `${this.endpoint}/avatars/looks/${encodeURIComponent(lookId)}`,
+          { headers: this.getHeaders(apiKey), timeout: 15_000 },
+        ),
+      );
+      const parsed = z
+        .object({
+          data: z.object({ group_id: z.string().nullish() }),
+        })
+        .safeParse(response.data);
+      return parsed.success ? (parsed.data.data.group_id ?? null) : null;
+    } catch {
+      return null;
+    }
+  }
+
   public async resolveAvatarSelection(
     candidate: HeyGenAvatarCandidate,
     organizationId: string,
@@ -727,11 +757,19 @@ export class HeyGenService {
         ? 'byok'
         : (candidate.connection?.kind ?? 'platform'),
     );
+    // The public catalogue holds thousands of looks, far more than one request
+    // can page through; a look is found through its avatar group instead.
+    const groupId =
+      candidate.ownership === 'public'
+        ? (candidate.groupId ??
+          (await this.readLookGroupId(candidate.lookId, connection.apiKey)))
+        : null;
     const catalog = await this.readAvatarCatalog(
       connection,
       candidate.ownership,
       undefined,
       candidate.lookId,
+      groupId ?? undefined,
     );
     const avatarRef = catalog.find(
       ({ avatarRef: avatar }) => avatar.lookId === candidate.lookId,
