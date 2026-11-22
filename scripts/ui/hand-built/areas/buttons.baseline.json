@@ -482,9 +482,6 @@
     "apps/web/src/features/studio/storyboard/components/StoryboardRuntimeRail.tsx": {
       "unstyled-look": 1
     },
-    "apps/web/src/features/trends/following/following-deck.tsx": {
-      "unstyled-look": 2
-    },
     "apps/web/src/features/trends/list/components/HookRemixModal.tsx": {
       "button-restyle": 2
     },
