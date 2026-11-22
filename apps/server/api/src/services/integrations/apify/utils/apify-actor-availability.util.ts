@@ -4,6 +4,13 @@ import { ServiceUnavailableException } from '@nestjs/common';
 const APIFY_ACTOR_UNAVAILABLE_MS = 60 * 60 * 1000;
 
 /**
+ * How long an actor whose run overran the wait budget is left alone. A run
+ * that is still going after two minutes means Apify is slow for that actor, so
+ * the next scheduled tick does not start another one on top of it.
+ */
+export const APIFY_ACTOR_RUN_TIMEOUT_HOLD_MS = 15 * 60 * 1000;
+
+/**
  * Thrown when Apify refuses to start an actor because it does not exist for
  * the token (removed, renamed, or not accessible). The message names the
  * capability the caller asked for, never the actor id or the token.
@@ -14,6 +21,28 @@ export class ApifyActorUnavailableException extends ServiceUnavailableException 
       `Apify actor for ${capability} is unavailable. Not retrying until ${new Date(unavailableUntilMs).toISOString()}.`,
     );
   }
+}
+
+/**
+ * Thrown when an accepted actor run is still going after the wait budget. It
+ * is Apify being slow, not a defect in the caller: callers treat it like an
+ * unavailable actor (degraded result, warning, no error-level report).
+ */
+export class ApifyActorRunTimeoutException extends ServiceUnavailableException {
+  constructor(
+    readonly runId: string,
+    readonly maxWaitMs: number,
+  ) {
+    super(`Actor run ${runId} timed out after ${maxWaitMs}ms`);
+  }
+}
+
+/** A held-off or timed-out actor: expected upstream slowness, not an error. */
+export function isApifyActorDeferral(error: unknown): boolean {
+  return (
+    error instanceof ApifyActorUnavailableException ||
+    error instanceof ApifyActorRunTimeoutException
+  );
 }
 
 export const APIFY_ACTOR_NOT_FOUND_STATUS = 404;
@@ -29,14 +58,19 @@ export function isApifyStartAccepted(status: number): boolean {
 }
 
 /**
- * Remembers actors Apify answered 404 for, so a scheduled caller does not
- * call the same unavailable actor on every tick.
+ * Remembers actors Apify answered 404 for, or whose run overran the wait
+ * budget, so a scheduled caller does not call them again on every tick.
  */
 export class ApifyActorAvailabilityTracker {
   private readonly unavailableUntilMs = new Map<string, number>();
 
-  markUnavailable(scope: string, actorId: string, now = Date.now()): number {
-    const until = now + APIFY_ACTOR_UNAVAILABLE_MS;
+  markUnavailable(
+    scope: string,
+    actorId: string,
+    now = Date.now(),
+    holdMs = APIFY_ACTOR_UNAVAILABLE_MS,
+  ): number {
+    const until = now + holdMs;
     this.unavailableUntilMs.set(`${scope}:${actorId}`, until);
     return until;
   }
