@@ -362,11 +362,7 @@ export class StripeCheckoutWebhookHandler {
       );
 
     if (provisioned === null) {
-      // The processed marker says this session was fulfilled earlier and its
-      // short-lived result has expired; nothing is left to provision.
-      this.loggerService.log(`${url} managed checkout already provisioned`, {
-        sessionId,
-      });
+      this.loggerService.log(`${url} managed checkout already provisioned`);
       return;
     }
 
