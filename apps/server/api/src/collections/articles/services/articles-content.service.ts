@@ -42,6 +42,7 @@ import type { PersonaDocument } from '@api/collections/personas/schemas/persona.
 import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { TemplatesService } from '@api/collections/templates/services/templates.service';
 import { scopedWhere } from '@api/index';
+import { toActionJsonOutput } from '@api/services/agent-orchestrator/utils/agent-action-output.util';
 import type { TextByokDispatch } from '@api/services/byok/text-dispatch-byok.util';
 import { ContentHarnessService } from '@api/services/harness/harness.service';
 import {
@@ -639,13 +640,17 @@ export class ArticlesContentService {
       }),
     );
 
-    return {
+    // The context travels through workflow actions whose output contracts
+    // validate it as a JSON document. Prompt-builder fields copied across as
+    // `undefined` (a brand without a description) fail that validation, so
+    // hand over the JSON form (API-GENFEED-AI-BF).
+    return toActionJsonOutput({
       brief,
       promptBuilder: buildPromptBuilderBrandContext({
         brand,
         persona: harnessPersona,
       }),
-    };
+    });
   }
 
   async prepareExistingReview(
