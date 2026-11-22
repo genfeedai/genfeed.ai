@@ -290,25 +290,12 @@ export class ThreadCommentDeliveryService {
           parent.externalId)
         : parent.externalId;
 
-      // The stamp is the claim: it only matches a child that is still
-      // SCHEDULED, not deleted and not attempted inside the backoff window, so
-      // of two workers holding the same list only one gets count 1.
-      const claim = await this.prisma.post.updateMany({
-        data: { lastAttemptAt: new Date(), retryCount: { increment: 1 } },
-        where: scopedWhere(parent.organizationId, {
-          AND: [
-            postExecutionStateReadFilter(TargetExecutionState.SCHEDULED),
-            {
-              OR: [
-                { lastAttemptAt: null },
-                { lastAttemptAt: { lte: backoffThreshold } },
-              ],
-            },
-          ],
-          id: child.id,
-        }),
-      });
-      if (claim.count !== 1) {
+      const isClaimed = await this.claimChild(
+        parent.organizationId,
+        child.id,
+        backoffThreshold,
+      );
+      if (!isClaimed) {
         // Another worker has it, or it was deleted or unscheduled after the
         // list was read. A later reply must not go out ahead of this one, so
         // the thread stops here for this tick.
@@ -350,6 +337,34 @@ export class ThreadCommentDeliveryService {
    * A comment never overtakes the one before it: an earlier sibling still
    * waiting for its own delay holds this one back.
    */
+  /**
+   * The attempt stamp is the claim: it only matches a child that is still
+   * SCHEDULED, not deleted and not attempted inside the backoff window, so of
+   * two workers holding the same list only one gets count 1.
+   */
+  private async claimChild(
+    organizationId: string,
+    childId: string,
+    backoffThreshold: Date,
+  ): Promise<boolean> {
+    const claim = await this.prisma.post.updateMany({
+      data: { lastAttemptAt: new Date(), retryCount: { increment: 1 } },
+      where: scopedWhere(organizationId, {
+        AND: [
+          postExecutionStateReadFilter(TargetExecutionState.SCHEDULED),
+          {
+            OR: [
+              { lastAttemptAt: null },
+              { lastAttemptAt: { lte: backoffThreshold } },
+            ],
+          },
+        ],
+        id: childId,
+      }),
+    });
+    return claim.count === 1;
+  }
+
   private async hasUnfinishedEarlierSibling(
     parentId: string,
     child: ThreadCommentChild,
