@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
@@ -15,6 +16,7 @@ import type {
   StripeRecurringInterval,
 } from '@api/endpoints/webhooks/stripe/stripe-webhook.util';
 import { getEmailLogMetadata } from '@api/endpoints/webhooks/stripe/stripe-webhook.util';
+import { StripeWebhookBillingError } from '@api/endpoints/webhooks/stripe/stripe-webhook-billing.error';
 import { scopedWhere } from '@api/index';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { CacheService } from '@api/services/cache/cache.service';
@@ -167,6 +169,21 @@ export class StripeWebhookSupportService {
    * The Redis processed marker is a fast path only. Checkout side effects must
    * be idempotent in Postgres because a marker write can fail after the callback
    * succeeds and Stripe can then replay the webhook.
+   *
+   * The session claim only keeps concurrent deliveries from racing, and it has
+   * three outcomes:
+   * - claimed: run the callback, then release the claim.
+   * - unavailable (cache Redis down or erroring): run the callback anyway. The
+   *   credit grant is guarded by a unique index on the checkout session
+   *   reference, so a replay grants nothing twice, while skipping it would
+   *   leave a paid customer without credits and Stripe without a reason to
+   *   retry.
+   * - duplicate (another delivery holds the claim now): throw a retryable
+   *   error. That delivery may still fail, so acknowledging this one would
+   *   lose the event.
+   *
+   * Returns null only when the processed marker says the session was already
+   * fulfilled.
    */
   async withCheckoutSessionProcessing<T>(
     sessionId: string,
@@ -174,50 +191,72 @@ export class StripeWebhookSupportService {
     fn: () => Promise<T>,
   ): Promise<T | null> {
     const processedKey = this.buildCheckoutSessionProcessedKey(kind, sessionId);
-
-    return await this.cacheService.withLock(
-      this.buildCheckoutSessionLockKey(kind, sessionId),
-      async () => {
-        if (await this.cacheService.exists(processedKey)) {
-          return null;
-        }
-
-        const result = await fn();
-        try {
-          const didMarkProcessed = await this.cacheService.set(
-            processedKey,
-            {
-              kind,
-              processedAt: new Date().toISOString(),
-              sessionId,
-            },
-            {
-              tags: [CHECKOUT_SESSION_NAMESPACE, kind, sessionId],
-              ttl: CHECKOUT_SESSION_PROCESSED_TTL_SECONDS,
-            },
-          );
-
-          if (!didMarkProcessed) {
-            this.loggerService.warn(
-              `${this.constructorName} failed to cache Stripe checkout processed marker`,
-              { kind, sessionId },
-            );
-          }
-        } catch (error: unknown) {
-          this.loggerService.warn(
-            `${this.constructorName} failed to cache Stripe checkout processed marker`,
-            {
-              error: this.toErrorMessage(error),
-              kind,
-              sessionId,
-            },
-          );
-        }
-
-        return result;
-      },
+    const lockKey = this.buildCheckoutSessionLockKey(kind, sessionId);
+    const token = randomUUID();
+    const claim = await this.cacheService.acquireOwnedClaim(
+      lockKey,
+      token,
       CHECKOUT_SESSION_LOCK_TTL_SECONDS,
     );
+
+    if (claim === 'duplicate') {
+      this.loggerService.warn(
+        `${this.constructorName} checkout session is being processed by another delivery`,
+        { kind, sessionId },
+      );
+      throw new StripeWebhookBillingError('claim_in_flight');
+    }
+
+    if (claim === 'unavailable') {
+      this.loggerService.warn(
+        `${this.constructorName} cache unavailable, fulfilling checkout session without a claim`,
+        { kind, sessionId },
+      );
+    }
+
+    try {
+      if (await this.cacheService.exists(processedKey)) {
+        return null;
+      }
+
+      const result = await fn();
+      try {
+        const didMarkProcessed = await this.cacheService.set(
+          processedKey,
+          {
+            kind,
+            processedAt: new Date().toISOString(),
+            sessionId,
+          },
+          {
+            tags: [CHECKOUT_SESSION_NAMESPACE, kind, sessionId],
+            ttl: CHECKOUT_SESSION_PROCESSED_TTL_SECONDS,
+          },
+        );
+
+        if (!didMarkProcessed) {
+          this.loggerService.warn(
+            `${this.constructorName} failed to cache Stripe checkout processed marker`,
+            { kind, sessionId },
+          );
+        }
+      } catch (error: unknown) {
+        this.loggerService.warn(
+          `${this.constructorName} failed to cache Stripe checkout processed marker`,
+          {
+            error: this.toErrorMessage(error),
+            kind,
+            sessionId,
+          },
+        );
+      }
+
+      return result;
+    } finally {
+      if (claim === 'claimed') {
+        await this.cacheService.releaseOwnedClaim(lockKey, token);
+      }
+    }
   }
 
   buildCheckoutSessionCreditReference(
