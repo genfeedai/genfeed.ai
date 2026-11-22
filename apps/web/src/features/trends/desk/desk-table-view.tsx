@@ -11,7 +11,6 @@ import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { ISourcePost } from '@genfeedai/contracts/interfaces';
 import { getRelativeTime } from '@helpers/formatting/date/date.helper';
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
-import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type {
   TrendItem,
@@ -23,6 +22,7 @@ import { ClipboardService } from '@services/core/clipboard.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { SourcePostsService } from '@services/social/source-posts.service';
+import ConnectedAccountAvatar from '@ui/display/connected-account/ConnectedAccountAvatar';
 import AppTable from '@ui/display/table/Table';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
@@ -613,7 +613,16 @@ export default function DeskTableView({
         key: 'author',
         render: (item) => (
           <div className="flex items-center gap-2">
-            {getPlatformIcon(item.platform, 'size-4')}
+            <ConnectedAccountAvatar
+              account={{
+                avatarUrl: item.authorAvatarUrl,
+                handle: item.authorHandle,
+                name: item.authorName,
+                platform: item.platform,
+              }}
+              isDecorative
+              size="sm"
+            />
             <span className="truncate text-sm text-foreground/80">
               {item.authorHandle ? `@${item.authorHandle}` : item.platform}
             </span>

@@ -395,17 +395,15 @@ export class TwitterService {
       }
 
       const params: Record<string, string | number | string[]> = {
-        expansions: options.captureBreakoutEvidence
-          ? 'author_id,attachments.media_keys'
-          : 'author_id',
+        expansions: 'author_id,attachments.media_keys',
         max_results: maxResults,
+        'media.fields': 'type,url,preview_image_url,variants',
         'tweet.fields':
           options.captureBreakoutEvidence && options.accessToken
             ? 'created_at,public_metrics,organic_metrics,author_id,referenced_tweets,in_reply_to_user_id,attachments'
-            : 'created_at,public_metrics,author_id,referenced_tweets,in_reply_to_user_id',
+            : 'created_at,public_metrics,author_id,referenced_tweets,in_reply_to_user_id,attachments',
         'user.fields': 'username,name,public_metrics,profile_image_url',
       };
-      if (options.captureBreakoutEvidence) params['media.fields'] = 'type';
       if (exclude.length > 0) {
         params.exclude = exclude;
       }

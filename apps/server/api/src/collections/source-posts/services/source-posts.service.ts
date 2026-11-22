@@ -168,6 +168,7 @@ export class SourcePostsService {
       search?: string;
       sourceId?: string;
       sourceType?: string;
+      excludeSourceTypes?: readonly string[];
     } = {},
   ): Promise<SourcePostListResult> {
     const page = Math.max(1, query.page ?? 1);
@@ -726,6 +727,7 @@ export class SourcePostsService {
       search?: string;
       sourceId?: string;
       sourceType?: string;
+      excludeSourceTypes?: readonly string[];
     },
   ) {
     const where: Record<string, unknown> = scopedWhere(context.organizationId, {
@@ -741,12 +743,19 @@ export class SourcePostsService {
     }
 
     // Applied before take/skip so followed-account posts cannot fill the page.
-    if (query.sourceType) {
+    const excludedSourceTypes = query.excludeSourceTypes ?? [];
+    if (query.sourceType || excludedSourceTypes.length > 0) {
       where.source = {
         brandId: context.brandId,
         isDeleted: false,
         organizationId: context.organizationId,
-        sourceType: query.sourceType,
+        sourceType:
+          excludedSourceTypes.length > 0
+            ? {
+                ...(query.sourceType ? { equals: query.sourceType } : {}),
+                notIn: [...excludedSourceTypes],
+              }
+            : query.sourceType,
       };
     }
 

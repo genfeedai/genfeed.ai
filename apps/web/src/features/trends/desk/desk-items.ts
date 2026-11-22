@@ -3,7 +3,6 @@ import type { TrendContentItem } from '@props/trends/trends-page.props';
 import type {
   DiscoveryDeskItem,
   DiscoveryDeskItemMetrics,
-  DiscoveryDeskSource,
 } from '@/features/trends/props/discovery-desk.props';
 import {
   getSourcePostRemixAvailability,
@@ -21,9 +20,14 @@ const FALLBACK_SUFFIX_PATTERN = /-fallback-[1-9]\d*$/;
  */
 const HAS_REMIX_SURFACE = true;
 
+/**
+ * A signal is something the brand did not post itself: sample content and
+ * the brand's own posts (`owned_brand_reference`) are not signals.
+ */
 export function isObservedTrendContent(item: TrendContentItem): boolean {
   return (
     item.sourcePreviewState !== 'fallback' &&
+    item.sourceClassification?.sourceKind !== 'owned_brand_reference' &&
     !FALLBACK_SUFFIX_PATTERN.test(item.id)
   );
 }
@@ -83,10 +87,6 @@ export function toDeskItemFromTrend(item: TrendContentItem): DiscoveryDeskItem {
     hasDurableSourceReference,
     HAS_REMIX_SURFACE,
   );
-  const source: DiscoveryDeskSource =
-    item.sourceClassification?.sourceKind === 'owned_brand_reference'
-      ? 'owned'
-      : 'trends';
 
   return {
     authorHandle: item.authorHandle,
@@ -109,7 +109,7 @@ export function toDeskItemFromTrend(item: TrendContentItem): DiscoveryDeskItem {
             trendId: item.trendId,
           }
         : null,
-    source,
+    source: 'trends',
     sourceUrl: item.sourceUrl,
     text: item.text,
     thumbnailUrl: item.thumbnailUrl,
@@ -121,13 +121,12 @@ export function toDeskItemFromTrend(item: TrendContentItem): DiscoveryDeskItem {
 }
 
 /**
- * URL and extension imports surface under `imported`. Posts from the brand's
- * own connected accounts stay under `owned`. Followed creators stay under
- * `following`. None of these are generated outputs.
+ * URL and extension imports surface under `imported`. Followed creators stay
+ * under `following`. Neither is a generated output.
  */
 export function toDeskItemFromSourcePost(
   post: ISourcePost,
-  options: { isImportedPost?: boolean; isOwnAccount?: boolean } = {},
+  options: { isImportedPost?: boolean } = {},
 ): DiscoveryDeskItem {
   const metrics: DiscoveryDeskItemMetrics = {
     comments: post.metrics?.comments,
@@ -142,7 +141,9 @@ export function toDeskItemFromSourcePost(
   );
 
   return {
+    authorAvatarUrl: post.authorAvatarUrl ?? undefined,
     authorHandle: post.authorHandle ?? undefined,
+    authorName: post.authorDisplayName ?? undefined,
     contentType: normalizeSourcePostContentType(post.contentType),
     engagement,
     id: post.id,
@@ -157,11 +158,7 @@ export function toDeskItemFromSourcePost(
     remixSelector: opensPrefilledRemix
       ? { kind: 'source_post', sourcePostId: post.id }
       : null,
-    source: options.isImportedPost
-      ? 'imported'
-      : options.isOwnAccount
-        ? 'owned'
-        : 'following',
+    source: options.isImportedPost ? 'imported' : 'following',
     sourceUrl: post.sourceUrl ?? undefined,
     text: post.text ?? undefined,
     thumbnailUrl: post.thumbnailUrl ?? undefined,

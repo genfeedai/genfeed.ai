@@ -12,6 +12,7 @@ import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper'
 import type { CollectionOverflowAction } from '@props/ui/collection/collection.props';
 import Card from '@ui/card/Card';
 import CollectionItemActions from '@ui/collection/CollectionItemActions';
+import ConnectedAccountAvatar from '@ui/display/connected-account/ConnectedAccountAvatar';
 import OrderedMasonry from '@ui/display/masonry/OrderedMasonry';
 import { MASONRY_MEDIA_HOVER_CLASS } from '@ui/masonry/shared/masonry-hover-motion';
 import { Badge } from '@ui/primitives/badge';
@@ -82,6 +83,18 @@ function DeskLightCard({
   const label =
     item.title || item.text || item.trendTopic || translateCard('untitled');
   const handle = item.authorHandle ? `@${item.authorHandle}` : item.platform;
+  const author = (
+    <ConnectedAccountAvatar
+      account={{
+        avatarUrl: item.authorAvatarUrl,
+        handle: item.authorHandle,
+        name: item.authorName,
+        platform: item.platform,
+      }}
+      isDecorative
+      size="sm"
+    />
+  );
   const velocityLabel =
     item.velocity >= 1
       ? translateCard('velocityPerHour', {
@@ -184,7 +197,7 @@ function DeskLightCard({
               )}
             >
               <span className="flex min-w-0 items-center gap-1.5 text-xs">
-                {getPlatformIcon(item.platform, 'size-3.5')}
+                {author}
                 <span className="truncate font-medium">{handle}</span>
                 <span
                   className={
@@ -207,7 +220,7 @@ function DeskLightCard({
         ) : (
           <span className="flex flex-col gap-2.5 p-3.5 [@media(hover:none)]:pb-14">
             <span className="flex min-w-0 items-center gap-2 pr-7 text-sm text-foreground/80">
-              {getPlatformIcon(item.platform, 'size-4')}
+              {author}
               <span className="truncate">{handle}</span>
             </span>
             {item.title && item.text && item.title !== item.text ? (

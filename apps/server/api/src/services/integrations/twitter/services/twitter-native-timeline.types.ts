@@ -22,7 +22,17 @@ export type TwitterTimelineResponse = {
     };
   }>;
   includes?: {
-    media?: Array<{ media_key?: string; type: string }>;
+    media?: Array<{
+      media_key?: string;
+      type: string;
+      url?: string;
+      preview_image_url?: string;
+      variants?: Array<{
+        bit_rate?: number;
+        content_type?: string;
+        url?: string;
+      }>;
+    }>;
     users?: Array<{
       id: string;
       username?: string;
@@ -42,6 +52,11 @@ export interface TwitterTimelinePost {
   breakoutExposures?: Partial<
     Record<BreakoutExposureMetric, BreakoutExposureEvidence>
   >;
+  /** `video` for video and animated GIF, `image` for photos, else `tweet`. */
+  contentType?: 'image' | 'tweet' | 'video';
+  /** Playable mp4 for video, the photo url for images. */
+  mediaUrls?: string[];
+  thumbnailUrl?: string;
   createdAt?: Date;
   authorId?: string;
   authorUsername?: string;

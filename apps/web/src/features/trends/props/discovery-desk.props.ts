@@ -7,11 +7,11 @@ type DiscoveryDeskItemKind = 'trend' | 'source_post' | 'viral_video';
 
 /**
  * `trends` = public platform trend surface, `following` = creators the brand
- * follows via Social Sources, `owned` = the brand's own connected accounts
- * (source classification `owned_brand_reference`), `imported` = a single post
- * saved by URL or the extension for remix. Imported is not brand Knowledge.
+ * follows via Social Sources, `imported` = a single post saved by URL or the
+ * extension for remix. Imported is not brand Knowledge. The brand's own posts
+ * are never signals; they live in Analytics and Library.
  */
-export type DiscoveryDeskSource = 'trends' | 'following' | 'owned' | 'imported';
+export type DiscoveryDeskSource = 'trends' | 'following' | 'imported';
 
 export type DiscoveryDeskSort =
   | 'velocity'
@@ -34,6 +34,10 @@ export interface DiscoveryDeskItem {
   platform: string;
   source: DiscoveryDeskSource;
   authorHandle?: string;
+  /** Display name of the author, for the avatar's initials and tooltip. */
+  authorName?: string;
+  /** The author's profile picture, when the source collected one. */
+  authorAvatarUrl?: string;
   title?: string;
   text?: string;
   thumbnailUrl?: string;

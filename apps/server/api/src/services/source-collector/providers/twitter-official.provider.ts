@@ -190,6 +190,9 @@ function mapOfficialTweet(tweet: {
   breakoutExposures?: Partial<
     Record<BreakoutExposureMetric, BreakoutExposureEvidence>
   >;
+  contentType?: 'image' | 'tweet' | 'video';
+  mediaUrls?: string[];
+  thumbnailUrl?: string;
   id: string;
   text: string;
   createdAt?: Date;
@@ -209,7 +212,7 @@ function mapOfficialTweet(tweet: {
     ...normalizeSourcePostFlags(tweet),
     authorId: tweet.authorId,
     authorUsername: tweet.authorUsername,
-    contentType: 'tweet',
+    contentType: tweet.contentType ?? 'tweet',
     ...(tweet.breakoutExposures
       ? {
           breakoutExposures: tweet.breakoutExposures,
@@ -225,8 +228,10 @@ function mapOfficialTweet(tweet: {
     id: tweet.id,
     inReplyToId: tweet.inReplyToId,
     isRepost: tweet.isRetweet,
+    mediaUrls: tweet.mediaUrls,
     metrics: tweet.metrics,
     platform: SocialSourcePlatform.TWITTER,
     text: tweet.text,
+    thumbnailUrl: tweet.thumbnailUrl,
   };
 }

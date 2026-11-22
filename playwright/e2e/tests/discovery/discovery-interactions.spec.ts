@@ -126,8 +126,8 @@ test.describe('Discovery — deep interactions', () => {
       authenticatedPage.getByText('Creator collab teaser'),
     ).toBeHidden();
 
-    await chooseSource(/^My accounts/);
-    await expect(authenticatedPage).toHaveURL(/source=owned/);
+    await chooseSource(/^Imported/);
+    await expect(authenticatedPage).toHaveURL(/source=imported/);
     await expect(
       authenticatedPage.getByText('Workflow demo clip'),
     ).toBeHidden();
