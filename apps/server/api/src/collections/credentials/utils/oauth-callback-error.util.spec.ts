@@ -1,4 +1,7 @@
-import { throwIfOAuthCallbackError } from '@api/collections/credentials/utils/oauth-callback-error.util';
+import {
+  oauthLogFlags,
+  throwIfOAuthCallbackError,
+} from '@api/collections/credentials/utils/oauth-callback-error.util';
 import { CredentialPlatform } from '@genfeedai/contracts';
 import {
   EXTERNAL_CONNECTION_DENIED_STATE,
@@ -165,5 +168,21 @@ describe('throwIfOAuthCallbackError', () => {
       ),
     ).toEqual({ status: HttpStatus.BAD_REQUEST, title: 'Invalid payload' });
     expect(table.get('cred-1')?.oauthState).toBe('opaque-state');
+  });
+});
+
+describe('oauthLogFlags', () => {
+  it('reports presence flags without the values', () => {
+    const summary = oauthLogFlags({
+      code: 'code-abc',
+      state: 'state-abc',
+    });
+
+    expect(summary).toEqual({ hasCode: true, hasState: true });
+    expect(JSON.stringify(summary)).not.toContain('state-abc');
+    expect(oauthLogFlags({})).toEqual({
+      hasCode: false,
+      hasState: false,
+    });
   });
 });

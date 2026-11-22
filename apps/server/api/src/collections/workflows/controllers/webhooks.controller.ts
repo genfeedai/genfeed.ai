@@ -82,6 +82,8 @@ export class WebhooksController {
     @Body() payload: WebhookPayload,
     @Headers('x-webhook-secret') secretHeader?: string,
     @Headers('authorization') authHeader?: string,
+    @Headers('idempotency-key') idempotencyKeyHeader?: string,
+    @Headers('webhook-id') webhookDeliveryIdHeader?: string,
   ): Promise<{ data: { runId: string; status: string; message: string } }> {
     const webhookId = `${WORKFLOW_WEBHOOK_ID_PREFIX}${webhookIdSuffix}`;
     const workflow =
@@ -152,6 +154,9 @@ export class WebhooksController {
       const result = await this.workflowWebhookService.triggerViaWebhook(
         webhookId,
         payload,
+        idempotencyKeyHeader?.trim() ||
+          webhookDeliveryIdHeader?.trim() ||
+          undefined,
       );
 
       return {

@@ -261,6 +261,79 @@ describe('WorkflowExecutorService', () => {
     expect(executionsService.createExecution).not.toHaveBeenCalled();
   });
 
+  it('reports the existing run for a redelivered manual request instead of starting another', async () => {
+    const startedAt = new Date('2026-01-01T00:00:00Z');
+    executionsService.findOne.mockResolvedValue({
+      completedAt: null,
+      creditsUsed: 0,
+      id: 'existing-run',
+      startedAt,
+      status: WorkflowExecutionStatus.RUNNING,
+      workflowId: 'workflow-1',
+    });
+    const executeDocument = vi.spyOn(service, 'executeManualWorkflowDocument');
+
+    const result = await service.executeManualWorkflow(
+      'workflow-1',
+      'user-1',
+      'org-1',
+      {},
+      undefined,
+      WorkflowExecutionTrigger.API,
+      undefined,
+      'webhook:workflow-1:abc',
+    );
+
+    expect(result).toMatchObject({
+      executionId: 'existing-run',
+      startedAt,
+      status: WorkflowExecutionStatus.RUNNING,
+      workflowId: 'workflow-1',
+    });
+    expect(executionsService.findOne).toHaveBeenCalledWith({
+      idempotencyKey: 'webhook:workflow-1:abc',
+      isDeleted: false,
+      organizationId: 'org-1',
+    });
+    expect(executeDocument).not.toHaveBeenCalled();
+    expect(executionsService.createExecution).not.toHaveBeenCalled();
+  });
+
+  it('passes the idempotency key to the new run when none exists yet', async () => {
+    executionsService.findOne.mockResolvedValue(null);
+    prisma.workflow.findFirst.mockResolvedValue({
+      config: {},
+      currentVersion: currentVersion({ nodes: [] }),
+      id: 'workflow-1',
+      organizationId: 'org-1',
+      userId: 'user-1',
+    });
+    const executeDocument = vi
+      .spyOn(service, 'executeManualWorkflowDocument')
+      .mockResolvedValue({
+        executionId: 'new-run',
+        nodeResults: [],
+        startedAt: new Date(),
+        status: WorkflowExecutionStatus.RUNNING,
+        totalCreditsUsed: 0,
+        workflowId: 'workflow-1',
+      });
+
+    await service.executeManualWorkflow(
+      'workflow-1',
+      'user-1',
+      'org-1',
+      {},
+      undefined,
+      WorkflowExecutionTrigger.API,
+      undefined,
+      'webhook:workflow-1:abc',
+    );
+
+    expect(executeDocument.mock.calls).toHaveLength(1);
+    expect(executeDocument.mock.calls[0][6]).toBe('webhook:workflow-1:abc');
+  });
+
   it('executes a multi-node manual workflow through persistence and completion', async () => {
     const firstOutput = { draft: 'Ready to publish' };
     const executedNodes: Array<{
