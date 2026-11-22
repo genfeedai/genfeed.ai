@@ -440,6 +440,7 @@ export class WorkflowExecutorService {
     metadata?: Record<string, unknown>,
     trigger: WorkflowExecutionTrigger = WorkflowExecutionTrigger.MANUAL,
     agentScope?: ValidatedAgentScope,
+    idempotencyKey?: string,
   ): Promise<WorkflowExecutionResult> {
     if (agentScope) {
       if (!this.agentScopeContextService) {
@@ -451,6 +452,33 @@ export class WorkflowExecutorService {
         agentScope,
         'workflow',
       );
+    }
+
+    // A redelivered request carries the key of a run that already exists:
+    // report that run instead of starting (or re-entering) another.
+    if (idempotencyKey) {
+      const existing = await this.executionsService.findOneSelect(
+        { idempotencyKey, isDeleted: false, organizationId },
+        {
+          completedAt: true,
+          creditsUsed: true,
+          id: true,
+          startedAt: true,
+          status: true,
+          workflowId: true,
+        },
+      );
+      if (existing) {
+        return {
+          completedAt: existing.completedAt ?? undefined,
+          executionId: existing.id,
+          nodeResults: [],
+          startedAt: existing.startedAt ?? new Date(),
+          status: existing.status as WorkflowExecutionStatus,
+          totalCreditsUsed: existing.creditsUsed ?? 0,
+          workflowId: String(existing.workflowId ?? workflowId),
+        };
+      }
     }
 
     const workflowDoc = await findOrThrow(
@@ -480,6 +508,7 @@ export class WorkflowExecutorService {
         ? { ...metadata, agentScope: toAgentScopeMetadata(agentScope) }
         : metadata,
       trigger,
+      idempotencyKey,
     );
   }
 

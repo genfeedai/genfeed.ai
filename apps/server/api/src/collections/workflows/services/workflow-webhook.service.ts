@@ -1,4 +1,4 @@
-import { randomBytes } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import { type WorkflowDocument } from '@api/collections/workflows/schemas/workflow.schema';
 import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
@@ -12,7 +12,7 @@ import {
   WorkflowExecutionTrigger,
   WorkflowWebhookAuthType,
 } from '@genfeedai/contracts';
-import { toPrismaJson } from '@genfeedai/prisma';
+import { Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
 import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
@@ -145,6 +145,7 @@ export class WorkflowWebhookService {
   async triggerViaWebhook(
     webhookId: string,
     payload: Record<string, unknown>,
+    deliveryId?: string,
   ): Promise<{ runId: string; status: string }> {
     const workflow = await this.findByWebhookId(webhookId);
 
@@ -166,14 +167,7 @@ export class WorkflowWebhookService {
 
     await this.moduleAccess.assertAccess(organizationId, 'automation');
 
-    const currentWebhookTriggerCount =
-      typeof workflow.webhookTriggerCount === 'number'
-        ? workflow.webhookTriggerCount
-        : 0;
-    await this.patchWorkflowConfig(String(workflow.id), organizationId, {
-      webhookLastTriggeredAt: new Date().toISOString(),
-      webhookTriggerCount: currentWebhookTriggerCount + 1,
-    });
+    await this.recordWebhookTrigger(String(workflow.id), organizationId);
 
     if (!this.workflowExecutorService) {
       throw new Error(
@@ -195,6 +189,10 @@ export class WorkflowWebhookService {
             webhookId,
           },
           WorkflowExecutionTrigger.API,
+          undefined,
+          deliveryId
+            ? this.buildDeliveryIdempotencyKey(String(workflow.id), deliveryId)
+            : undefined,
         ),
     );
 
@@ -216,6 +214,60 @@ export class WorkflowWebhookService {
    */
   private generateWebhookId(): string {
     return `${WORKFLOW_WEBHOOK_ID_PREFIX}${randomBytes(16).toString('base64url')}`;
+  }
+
+  /**
+   * One run per (workflow, provider delivery id). The id is hashed so an
+   * arbitrarily long header value still yields a bounded key.
+   */
+  private buildDeliveryIdempotencyKey(
+    workflowId: string,
+    deliveryId: string,
+  ): string {
+    const digest = createHash('sha256')
+      .update(deliveryId, 'utf8')
+      .digest('hex');
+    return `webhook:${workflowId}:${digest}`;
+  }
+
+  /**
+   * Record a trigger in the config's bookkeeping keys with one statement.
+   *
+   * The count is incremented in SQL and only `webhookLastTriggeredAt` and
+   * `webhookTriggerCount` are written, so concurrent deliveries each count,
+   * and a secret rotated or any other config edit saved meanwhile is not
+   * overwritten by a stale copy of the whole `config` blob.
+   */
+  private async recordWebhookTrigger(
+    workflowId: string,
+    organizationId: string,
+  ): Promise<void> {
+    // sql-risk-audit: ignore raw-sql-review -- every value is a bound parameter; the JSON paths are constants
+    const updated = await this.prisma.$executeRaw(Prisma.sql`
+      UPDATE "workflows"
+      SET "config" = jsonb_set(
+        jsonb_set(
+          COALESCE("config", '{}'::jsonb),
+          '{webhookLastTriggeredAt}',
+          to_jsonb(${new Date().toISOString()}::text)
+        ),
+        '{webhookTriggerCount}',
+        to_jsonb(
+          CASE
+            WHEN "config" #>> '{webhookTriggerCount}' ~ '^[0-9]+$'
+              THEN ("config" #>> '{webhookTriggerCount}')::int
+            ELSE 0
+          END + 1
+        )
+      )
+      WHERE "id" = ${workflowId}
+        AND "organizationId" = ${organizationId}
+        AND "isDeleted" = false
+    `);
+
+    if (updated === 0) {
+      throw new NotFoundException('Workflow');
+    }
   }
 
   private getWorkflowConfigRecord(config: unknown): Record<string, unknown> {

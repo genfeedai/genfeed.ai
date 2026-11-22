@@ -281,21 +281,37 @@ async function requestSharedToken(
 
   pruneServerTokenCache();
   const entry: ServerTokenCacheEntry = { expiresAt: 0 };
-  entry.promise = fetchServerToken(cookieHeader, options, entry).then(
-    (token) => {
-      delete entry.promise;
+  entry.promise = fetchServerToken(cookieHeader, options, entry)
+    .then((token) => {
       if (token && serverTokenCache.get(cacheKey) === entry) {
         entry.token = token;
         entry.expiresAt = getTokenExpiry(token);
-      } else {
-        serverTokenCache.delete(cacheKey);
       }
       return token;
-    },
-  );
+    })
+    .finally(() => {
+      // Runs on every outcome, so a rejected exchange never leaves its
+      // in-flight promise behind for later callers to await.
+      delete entry.promise;
+      if (!entry.token && serverTokenCache.get(cacheKey) === entry) {
+        serverTokenCache.delete(cacheKey);
+      }
+    });
   serverTokenCache.set(cacheKey, entry);
 
   return entry.promise;
+}
+
+function reportFailure(
+  options: BetterAuthServerTokenOptions,
+  failure: BetterAuthServerTokenFailure,
+): void {
+  try {
+    options.onFailure?.(failure);
+  } catch {
+    // This package has no logger, and the callback is only a report. Its
+    // exception must not replace the exchange's outcome or skip the cleanup.
+  }
 }
 
 async function fetchServerToken(
@@ -312,7 +328,7 @@ async function fetchServerToken(
     const isPrerenderEnded = result.reason === 'prerender-ended';
     const willRetry =
       !isPrerenderEnded && isRetryable(result) && attempt < TOKEN_ATTEMPTS;
-    options.onFailure?.({ ...result, isFinal: !willRetry });
+    reportFailure(options, { ...result, isFinal: !willRetry });
     if (isPrerenderEnded) {
       // Callers that joined from a live request still deserve a token.
       entry.hasTransientFailure = true;

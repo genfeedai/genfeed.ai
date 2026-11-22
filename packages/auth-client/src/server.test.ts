@@ -114,6 +114,23 @@ describe('getBetterAuthServerToken', () => {
     await expect(getBetterAuthServerToken('session=abc')).resolves.toBe('jwt');
   });
 
+  it('keeps a throwing onFailure from poisoning the key or changing the outcome', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(new Response(null, { status: 401 }))
+      .mockResolvedValueOnce(Response.json({ token: 'jwt' }));
+    vi.stubGlobal('fetch', fetchMock);
+    const onFailure = vi.fn(() => {
+      throw new Error('reporter down');
+    });
+
+    await expect(
+      getBetterAuthServerToken('session=abc', { onFailure }),
+    ).resolves.toBeNull();
+    await expect(getBetterAuthServerToken('session=abc')).resolves.toBe('jwt');
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
   it.each([
     [{ reason: 'network' as const }, true],
     [{ reason: 'http' as const, status: 503 }, true],

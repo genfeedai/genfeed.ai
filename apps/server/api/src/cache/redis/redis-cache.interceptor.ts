@@ -83,6 +83,10 @@ export class RedisCacheInterceptor implements NestInterceptor {
       return next.handle();
     }
 
+    // Only the cache read may fall back to running the handler. The handler
+    // runs outside any catch so its own error reaches the client unchanged and
+    // its side effects run once.
+    let epochs: string[] | null;
     try {
       const cachedResult = await this.cacheService.get(cacheKey);
 
@@ -95,24 +99,31 @@ export class RedisCacheInterceptor implements NestInterceptor {
 
       // Read before the handler runs: an invalidation that lands while the
       // handler is reading must stop its result from being stored.
-      const epochs = cacheOptions.isInvalidationGuarded
+      epochs = cacheOptions.isInvalidationGuarded
         ? await this.cacheService.readTagEpochs(cacheOptions.tags ?? [])
         : null;
+    } catch (error: unknown) {
+      this.logger.error(`${this.constructorName} failed`, error);
+      return next.handle();
+    }
 
-      const result = await firstValueFrom(next.handle());
+    const result = await firstValueFrom(next.handle());
 
+    try {
       if (this.shouldCacheResult(result, cacheOptions)) {
         // The response is already built, so it does not wait for the Redis
         // write (SETEX plus one SADD per tag). A failed write only costs the
         // next request a miss.
         void this.storeResult(cacheKey, result, cacheOptions, epochs);
       }
-
-      return of(result);
     } catch (error: unknown) {
-      this.logger.error(`${this.constructorName} failed`, error);
-      return next.handle();
+      this.logger.error(
+        `${this.constructorName} failed to store ${cacheKey}`,
+        error,
+      );
     }
+
+    return of(result);
   }
 
   private async storeResult(
