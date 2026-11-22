@@ -32,6 +32,11 @@ import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { Inject, Injectable } from '@nestjs/common';
 import { createChannelTargetError } from '@workers/crons/posts/post-publish-error.util';
 import { SCHEDULED_POST_RETRY_BACKOFF_SECONDS } from '@workers/services/scheduled-post.constants';
+import {
+  type ScheduledPostSweepLease,
+  ScheduledPostSweepLockService,
+  THREAD_COMMENT_SWEEP_LOCK_KEY,
+} from '@workers/services/scheduled-post-sweep-lock.service';
 
 type ThreadCommentParent = Post & {
   ingredients?: Array<{ id: string }>;
@@ -65,48 +70,84 @@ export class ThreadCommentDeliveryService {
     private readonly credentialsService: ServerCredentialStore,
     @Inject(SERVER_TOKENS.publisherFactory)
     private readonly publisherFactory: ServerPublisherFactory,
+    private readonly sweepLock: ScheduledPostSweepLockService,
   ) {}
 
   async publishDueThreadComments(): Promise<void> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    const now = new Date();
+    let lease: ScheduledPostSweepLease | null = null;
 
     try {
-      const dueChildren = await this.findDueChildren(now);
-      if (dueChildren.length === 0) {
+      // The sweep reads a list and then works through it for as long as the
+      // providers take. Without the lock, a slow run is re-read by the next
+      // tick (or by the second task of a rolling deploy) while it is still
+      // going.
+      lease = await this.sweepLock.acquire(THREAD_COMMENT_SWEEP_LOCK_KEY);
+      if (!lease) {
+        this.logger.log(`${url} sweep skipped: a run is still going`);
         return;
       }
-
-      const byParent = new Map<string, ThreadCommentChild[]>();
-      for (const child of dueChildren) {
-        if (!child.parentId) {
-          continue;
-        }
-        const siblings = byParent.get(child.parentId) ?? [];
-        siblings.push(child);
-        byParent.set(child.parentId, siblings);
-      }
-
-      this.logger.log(`${url} found due comments`, {
-        parentCount: byParent.size,
-        total: dueChildren.length,
-      });
-
-      for (const [parentId, children] of byParent) {
-        await this.publishParentComments(parentId, children, url);
-      }
+      await this.sweepDueComments(lease, url);
     } catch (error: unknown) {
       this.logger.error(`${url} sweep failed`, {
         error: getErrorMessage(error, { fallback: () => 'Unknown error' }),
       });
+    } finally {
+      await lease?.release();
     }
   }
 
-  private async findDueChildren(now: Date): Promise<ThreadCommentChild[]> {
-    const backoffThreshold = new Date(
+  private async sweepDueComments(
+    lease: ScheduledPostSweepLease,
+    url: string,
+  ): Promise<void> {
+    const now = new Date();
+    const backoffThreshold = this.backoffThresholdFor(now);
+
+    const dueChildren = await this.findDueChildren(now, backoffThreshold);
+    if (dueChildren.length === 0) {
+      return;
+    }
+
+    const byParent = new Map<string, ThreadCommentChild[]>();
+    for (const child of dueChildren) {
+      if (!child.parentId) {
+        continue;
+      }
+      const siblings = byParent.get(child.parentId) ?? [];
+      siblings.push(child);
+      byParent.set(child.parentId, siblings);
+    }
+
+    this.logger.log(`${url} found due comments`, {
+      parentCount: byParent.size,
+      total: dueChildren.length,
+    });
+
+    for (const [parentId, children] of byParent) {
+      if (!(await lease.extend())) {
+        this.logger.warn(`${url} sweep lost its lock; stopping`);
+        return;
+      }
+      await this.publishParentComments(
+        parentId,
+        children,
+        url,
+        backoffThreshold,
+      );
+    }
+  }
+
+  private backoffThresholdFor(now: Date): Date {
+    return new Date(
       now.getTime() - SCHEDULED_POST_RETRY_BACKOFF_SECONDS * 1000,
     );
+  }
 
+  private async findDueChildren(
+    now: Date,
+    backoffThreshold: Date,
+  ): Promise<ThreadCommentChild[]> {
     const children = await this.prisma.post.findMany({
       include: {
         ingredientLinks: orderedPostIngredientLinks({ select: { id: true } }),
@@ -148,6 +189,7 @@ export class ThreadCommentDeliveryService {
     parentId: string,
     children: ThreadCommentChild[],
     url: string,
+    backoffThreshold: Date,
   ): Promise<void> {
     const loadedParent = await this.prisma.post.findFirst({
       include: {
@@ -248,10 +290,21 @@ export class ThreadCommentDeliveryService {
           parent.externalId)
         : parent.externalId;
 
-      await this.prisma.post.updateMany({
-        data: { lastAttemptAt: new Date(), retryCount: { increment: 1 } },
-        where: scopedWhere(parent.organizationId, { id: child.id }),
-      });
+      const isClaimed = await this.claimChild(
+        parent.organizationId,
+        child.id,
+        backoffThreshold,
+      );
+      if (!isClaimed) {
+        // Another worker has it, or it was deleted or unscheduled after the
+        // list was read. A later reply must not go out ahead of this one, so
+        // the thread stops here for this tick.
+        this.logger.log(`${url} comment not claimed; skipping thread`, {
+          childPostId: child.id,
+          parentId,
+        });
+        return;
+      }
 
       try {
         await publisher.publishThreadChildren(
@@ -284,6 +337,34 @@ export class ThreadCommentDeliveryService {
    * A comment never overtakes the one before it: an earlier sibling still
    * waiting for its own delay holds this one back.
    */
+  /**
+   * The attempt stamp is the claim: it only matches a child that is still
+   * SCHEDULED, not deleted and not attempted inside the backoff window, so of
+   * two workers holding the same list only one gets count 1.
+   */
+  private async claimChild(
+    organizationId: string,
+    childId: string,
+    backoffThreshold: Date,
+  ): Promise<boolean> {
+    const claim = await this.prisma.post.updateMany({
+      data: { lastAttemptAt: new Date(), retryCount: { increment: 1 } },
+      where: scopedWhere(organizationId, {
+        AND: [
+          postExecutionStateReadFilter(TargetExecutionState.SCHEDULED),
+          {
+            OR: [
+              { lastAttemptAt: null },
+              { lastAttemptAt: { lte: backoffThreshold } },
+            ],
+          },
+        ],
+        id: childId,
+      }),
+    });
+    return claim.count === 1;
+  }
+
   private async hasUnfinishedEarlierSibling(
     parentId: string,
     child: ThreadCommentChild,

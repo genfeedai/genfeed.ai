@@ -4,7 +4,9 @@ import { RedisService } from '@libs/redis/redis.service';
 import { Injectable } from '@nestjs/common';
 import { SCHEDULED_POST_SWEEP_LOCK_TTL_MS } from '@workers/services/scheduled-post.constants';
 
-const LOCK_KEY = 'genfeed:lock:scheduled-post-sweep';
+const SCHEDULED_POST_SWEEP_LOCK_KEY = 'genfeed:lock:scheduled-post-sweep';
+export const THREAD_COMMENT_SWEEP_LOCK_KEY =
+  'genfeed:lock:thread-comment-sweep';
 
 const EXTEND_SCRIPT = `
 if redis.call('GET', KEYS[1]) == ARGV[1] then
@@ -38,8 +40,13 @@ export class ScheduledPostSweepLockService {
     private readonly logger: LoggerService,
   ) {}
 
-  /** The lease, or null when another run holds the lock. */
-  async acquire(): Promise<ScheduledPostSweepLease | null> {
+  /**
+   * The lease, or null when another run holds the lock. Each sweep passes its
+   * own key, so unrelated sweeps do not exclude one another.
+   */
+  async acquire(
+    lockKey: string = SCHEDULED_POST_SWEEP_LOCK_KEY,
+  ): Promise<ScheduledPostSweepLease | null> {
     const redis = this.redisService.getPublisher();
     // No shared Redis (single-process desktop): there is no second run to
     // exclude, and the job id still dedupes.
@@ -47,7 +54,7 @@ export class ScheduledPostSweepLockService {
 
     const token = randomUUID();
     const acquired = await redis.set(
-      LOCK_KEY,
+      lockKey,
       token,
       'PX',
       SCHEDULED_POST_SWEEP_LOCK_TTL_MS,
@@ -62,7 +69,7 @@ export class ScheduledPostSweepLockService {
             (await redis.eval(
               EXTEND_SCRIPT,
               1,
-              LOCK_KEY,
+              lockKey,
               token,
               SCHEDULED_POST_SWEEP_LOCK_TTL_MS,
             )) === 1
@@ -76,7 +83,7 @@ export class ScheduledPostSweepLockService {
       },
       release: async () => {
         try {
-          await redis.eval(RELEASE_SCRIPT, 1, LOCK_KEY, token);
+          await redis.eval(RELEASE_SCRIPT, 1, lockKey, token);
         } catch (error: unknown) {
           // The lock expires on its own after the TTL.
           this.logger.warn('Scheduled post sweep lock release failed', {
