@@ -5,6 +5,10 @@ import { YoutubeSocialAdapter } from '@api/collections/workflows/services/adapte
 import { AUTOMATION_WORKFLOW_IDS } from '@api/collections/workflows/services/automation-workflow-definitions';
 import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import type { TriggerEvent } from '@api/collections/workflows/services/workflow-executor.service';
+import {
+  socialTriggerJobId,
+  writeWorkflowPollState,
+} from '@api/collections/workflows/services/workflow-poll-state';
 import { scopedWhere } from '@api/index';
 import { CacheService } from '@api/services/cache/cache.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -13,7 +17,7 @@ import {
   WorkflowLifecycle,
   WorkflowStatus,
 } from '@genfeedai/contracts';
-import { toPrismaJson, type Workflow } from '@genfeedai/prisma';
+import type { Workflow } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
@@ -180,6 +184,7 @@ export class ReplyPollingWorkflowService {
     }
     const wfConfig = (workflow.config as WorkflowConfig) ?? {};
     const pollState: PollState = wfConfig.metadata?.pollState ?? {};
+    let nextEventId: string | undefined;
     const workflowOrganizationId = this.requiredString(
       workflow.organizationId,
       'workflow.organizationId',
@@ -205,9 +210,13 @@ export class ReplyPollingWorkflowService {
           type: node.type,
           userId: workflowUserId,
         };
-        await this.executionQueue.queueTriggerEvent(triggerEvent);
+        // Enqueue first, advance the cursor second: a crash in between
+        // re-delivers the event, which the job id makes a no-op.
+        await this.executionQueue.queueTriggerEvent(triggerEvent, {
+          jobId: socialTriggerJobId(workflow.id, node.id, result.lastEventId),
+        });
         triggered = true;
-        pollState[node.id] = result.lastEventId;
+        nextEventId = result.lastEventId;
       }
     } catch (error) {
       this.logger.error(`${this.logContext} social polling failed`, {
@@ -216,15 +225,12 @@ export class ReplyPollingWorkflowService {
       });
       errors = 1;
     }
-    pollState.lastPolledAt = new Date().toISOString();
-    await this.prisma.workflow.update({
-      data: {
-        config: toPrismaJson({
-          ...wfConfig,
-          metadata: { ...(wfConfig.metadata ?? {}), pollState },
-        }),
-      },
-      where: scopedWhere(workflowOrganizationId, { id: workflow.id }),
+    await writeWorkflowPollState(this.prisma, {
+      lastEventId: nextEventId,
+      nodeId: node.id,
+      organizationId: workflowOrganizationId,
+      polledAt: new Date().toISOString(),
+      workflowId: workflow.id,
     });
     return {
       errors,
