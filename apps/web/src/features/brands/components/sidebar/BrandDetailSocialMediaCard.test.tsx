@@ -382,10 +382,17 @@ describe('BrandDetailSocialMediaCard', () => {
       />,
     );
 
-    expect(screen.getByText('Connected')).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'Connected' })).toBeInTheDocument();
+    // The broken account's warning icon is its Reconnect button; the
+    // connected account keeps Reconnect in its row actions.
+    const brokenRow = screen
+      .getAllByRole('row')
+      .find((row) => row.textContent?.includes('Broken TikTok'));
     expect(
-      screen.getByText('Reconnect', { selector: 'span' }),
-    ).toBeInTheDocument();
+      within(brokenRow as HTMLElement).getByRole('button', {
+        name: 'Reconnect',
+      }),
+    ).toBeEnabled();
   });
 
   it('passes fetched account health down to the accounts table on the page variant', async () => {
@@ -408,8 +415,10 @@ describe('BrandDetailSocialMediaCard', () => {
     // `listBrandAccountHealth` (mocked above) returns a "warming" summary
     // for credential-1 — the accounts table must show that live health next
     // to the account's "Connected" badge.
-    expect(await screen.findByText('Warming')).toBeInTheDocument();
-    expect(screen.getByText('Connected')).toBeInTheDocument();
+    expect(
+      await screen.findByRole('img', { name: 'Warming' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'Connected' })).toBeInTheDocument();
   });
 
   it('still fetches account health when the only connection is connected but needs reconnecting', async () => {

@@ -84,7 +84,7 @@
   },
   "linked": "Linked",
   "manage": "Manage",
-  "needsReconnect": "Reconnect",
+  "needsReconnect": "Needs reconnect",
   "noPlatformsFound": "No platforms found.",
   "notReadyReason": "Not available yet",
   "openProfile": "Open {account}",

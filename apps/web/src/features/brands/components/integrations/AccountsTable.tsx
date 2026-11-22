@@ -12,7 +12,6 @@ import type { TableAction, TableColumn } from '@props/ui/display/table.props';
 
 import { createSummaryRowSidebar } from '@ui/display/table/summary-row-sidebar';
 import AppTable from '@ui/display/table/Table';
-import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { EmptyState } from '@ui/primitives/empty-state';
 import { Link2, Plus, RefreshCw, Settings, Unlink } from 'lucide-react';
@@ -21,7 +20,9 @@ import { useMemo } from 'react';
 import DirectMessageReconnectNotice from '@/features/messages/components/DirectMessageReconnectNotice';
 import AccountCell from './AccountCell';
 import AccountStatusBadge from './AccountStatusBadge';
+import AccountStatusIcons from './AccountStatusIcons';
 import {
+  getAccountConnectionStatus,
   getConnectionLabel,
   needsDirectMessageReconnect,
 } from './account-connection-status.util';
@@ -78,27 +79,40 @@ export default function AccountsTable({
   const columns = useMemo<TableColumn<BrandDetailSocialConnection>[]>(
     () => [
       {
+        // Icon-only, so the header is read by screen readers only. It leads the
+        // row: the hover actions float over the row's right end and would
+        // cover a trailing status.
+        className: 'w-px whitespace-nowrap pr-0',
+        header: (
+          <span className="sr-only">{translate('accountsTableStatus')}</span>
+        ),
+        key: 'status',
+        render: (connection) => (
+          <AccountStatusIcons
+            connection={connection}
+            health={healthByCredentialId.get(connection.credentialId)}
+            isReconnectDisabled={unavailablePlatforms.has(connection.platform)}
+            isReconnecting={
+              reconnectingCredentialId === connection.credentialId
+            }
+            onReconnect={() => onReconnect(connection)}
+          />
+        ),
+        sortable: false,
+      },
+      {
         header: translate('accountsTableAccount'),
         key: 'account',
         render: (connection) => <AccountCell connection={connection} />,
       },
-      {
-        header: translate('accountsTableStatus'),
-        key: 'status',
-        render: (connection) => (
-          <div className="flex flex-wrap items-center gap-1.5">
-            <AccountStatusBadge
-              connection={connection}
-              health={healthByCredentialId.get(connection.credentialId)}
-            />
-            {needsDirectMessageReconnect(connection) ? (
-              <Badge variant="warning">{translate('dmReconnectBadge')}</Badge>
-            ) : null}
-          </div>
-        ),
-      },
     ],
-    [healthByCredentialId, translate],
+    [
+      healthByCredentialId,
+      onReconnect,
+      reconnectingCredentialId,
+      translate,
+      unavailablePlatforms,
+    ],
   );
 
   const actions = useMemo<TableAction<BrandDetailSocialConnection>[]>(
@@ -124,6 +138,10 @@ export default function AccountsTable({
         isDisabled: (connection) =>
           unavailablePlatforms.has(connection.platform) ||
           reconnectingCredentialId === connection.credentialId,
+        // An account that needs reconnecting is reconnected from its status
+        // icon, so the row never offers the same control twice.
+        isVisible: (connection) =>
+          getAccountConnectionStatus(connection) !== 'needsReconnect',
         onClick: onReconnect,
         tooltip: translate('reconnect'),
       },
