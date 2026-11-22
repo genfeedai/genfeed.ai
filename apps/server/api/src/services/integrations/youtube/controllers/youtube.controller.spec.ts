@@ -256,7 +256,7 @@ describe('YoutubeController', () => {
           accessToken: 'yt_access',
           accessTokenExpiry: expect.any(Date),
           isConnected: true,
-          oauthState: null,
+          oauthState: 'verified:opaque-oauth-state',
           oauthToken: null,
           oauthTokenSecret: null,
           refreshToken: 'yt_refresh',
