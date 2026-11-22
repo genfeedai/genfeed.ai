@@ -868,7 +868,6 @@ export class ArticlesService
       throw new Error('ArticlesContentService not available');
     }
 
-    // Get article
     const article = await this.findOne({
       id: articleId,
       OR: [{ userId }, { organizationId }],

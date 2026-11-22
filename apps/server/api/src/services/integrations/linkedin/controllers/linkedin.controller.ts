@@ -167,7 +167,6 @@ export class LinkedInController {
         });
       }
 
-      // Get user profile
       const profile = await this.linkedInService.getUserProfile(accessToken);
 
       // Calculate token expiry

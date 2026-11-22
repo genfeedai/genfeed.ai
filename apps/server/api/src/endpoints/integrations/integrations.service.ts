@@ -100,7 +100,6 @@ export class IntegrationsService {
       );
     }
 
-    // Encrypt the bot token
     const encryptedToken = this.cryptoService.encrypt(dto.botToken);
 
     const integration = await this.prisma.orgIntegration.create({
@@ -229,7 +228,6 @@ export class IntegrationsService {
       where: scopedWhere(orgId, { id: integrationId }),
     });
 
-    // Emit Redis event
     await this.emitIntegrationEvent(REDIS_EVENTS.INTEGRATION_UPDATED, {
       integrationId: updated.id,
       orgId,
@@ -255,7 +253,6 @@ export class IntegrationsService {
       where: scopedWhere(orgId, { id: integrationId }),
     });
 
-    // Emit Redis event
     await this.emitIntegrationEvent(REDIS_EVENTS.INTEGRATION_DELETED, {
       integrationId: existing.id,
       orgId,

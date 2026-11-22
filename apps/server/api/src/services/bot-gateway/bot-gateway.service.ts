@@ -118,7 +118,6 @@ export class BotGatewayService {
   ): Promise<IBotResponse> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
-    // Validate prompt
     if (!message.prompt || message.prompt.trim().length === 0) {
       return {
         message:
@@ -194,7 +193,6 @@ export class BotGatewayService {
       };
     }
 
-    // Resolve user
     const resolvedUser = await this.userResolverService.resolveUser(
       message.platform,
       message.platformUserId,
@@ -241,7 +239,6 @@ export class BotGatewayService {
   private async handleStatusCommand(
     message: IBotMessage,
   ): Promise<IBotResponse> {
-    // Resolve user
     const resolvedUser = await this.userResolverService.resolveUser(
       message.platform,
       message.platformUserId,

@@ -1160,7 +1160,6 @@ async function generateReplyWithVideo(
       return;
     }
 
-    // Poll for video completion
     const videoUrl = await pollForVideoCompletion(videoData.data.id, token);
 
     if (videoUrl === 'failed') {

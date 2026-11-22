@@ -89,7 +89,6 @@ export class FilesImageToVideoService extends FilesService {
         );
       }
     } else {
-      // Merge all processed clips
       await this.mergeProcessedClips(
         _websocketURL,
         ingredientId,

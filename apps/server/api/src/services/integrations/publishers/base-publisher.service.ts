@@ -206,7 +206,6 @@ export abstract class BasePublisherService implements IPublisher {
       }
     }
 
-    // Check image support
     if (mediaInfo.isImagePost && !this.supportsImages) {
       return {
         error: `${this.platform} does not support image posts`,
@@ -226,7 +225,6 @@ export abstract class BasePublisherService implements IPublisher {
       };
     }
 
-    // Check carousel support
     if (mediaInfo.isCarousel && !this.supportsCarousel) {
       return {
         error: `${this.platform} does not support carousel posts`,

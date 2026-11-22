@@ -430,7 +430,6 @@ export class PostsOperationsController {
         );
       }
 
-      // Create the remix post
       const remixPost = await this.postsService.createRemix(
         postId,
         dto.description,

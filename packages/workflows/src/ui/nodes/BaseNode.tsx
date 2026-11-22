@@ -781,7 +781,6 @@ function arePropsEqual(prev: BaseNodeProps, next: BaseNodeProps): boolean {
   if (prev.title !== next.title) return false;
   if (prev.titleElement !== next.titleElement) return false;
 
-  // Check hideStatusIndicator
   if (prev.hideStatusIndicator !== next.hideStatusIndicator) return false;
   if (prev.minWidth !== next.minWidth) return false;
   if (prev.minHeight !== next.minHeight) return false;

@@ -312,7 +312,6 @@ export class FacebookService {
         throw new Error('Facebook credential not found');
       }
 
-      // Decrypt the access token
       const decryptedAccessToken = EncryptionUtil.decrypt(
         this.requireString(credential.accessToken, 'Facebook access token'),
       );

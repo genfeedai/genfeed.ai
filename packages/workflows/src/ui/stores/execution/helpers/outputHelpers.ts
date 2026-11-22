@@ -128,7 +128,6 @@ export function getOutputUpdate(
     return { outputText: textOutput };
   }
 
-  // Resize nodes
   if (nodeType === 'resize') {
     return { outputMedia: outputValue };
   }

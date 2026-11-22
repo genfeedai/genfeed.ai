@@ -635,16 +635,13 @@ export class RouterService {
   private analyzePrompt(prompt: string): PromptAnalysis {
     const lowerPrompt = prompt.toLowerCase();
 
-    // Quality indicators
     const hasQualityIndicators = HIGH_QUALITY_PROMPT_PATTERN.test(lowerPrompt);
 
-    // Speed indicators
     const hasSpeedIndicators = SPEED_PROMPT_PATTERN.test(lowerPrompt);
 
     // Style indicators
     const hasSpecificStyle = ARTISTIC_STYLE_PROMPT_PATTERN.test(lowerPrompt);
 
-    // Detect features
     const detectedFeatures: string[] = [];
     if (CINEMATIC_PROMPT_PATTERN.test(lowerPrompt)) {
       detectedFeatures.push('cinematic');
@@ -696,7 +693,6 @@ export class RouterService {
       return null;
     }
 
-    // Score all models
     const scoredModels = models.map((model) => ({
       model,
       score: this.scoreModel(model, analysis, options),
@@ -774,7 +770,6 @@ export class RouterService {
         promptLength: options.prompt.length,
       });
 
-      // Analyze prompt
       const analysis = this.analyzePrompt(options.prompt);
 
       const enabledModels = await this.restrictToEnabledModels(

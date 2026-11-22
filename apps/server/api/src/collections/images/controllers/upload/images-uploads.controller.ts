@@ -243,7 +243,6 @@ export class ImagesUploadsController {
         break;
     }
 
-    // Validate the uploaded file
     const validatedFile = InputValidationUtil.validateFileUpload(file, 'file', {
       allowedExtensions,
       allowedMimeTypes,

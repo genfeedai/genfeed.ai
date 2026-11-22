@@ -229,10 +229,8 @@ export class BrandInterviewService {
       throw new BadRequestException(`Unknown field key: ${requestedKey}`);
     }
 
-    // Normalize the answer
     const normalized = this.normalizeAnswer(answer, question);
 
-    // Write to brand
     await this.writeFieldToBrand(
       brandId,
       organizationId,

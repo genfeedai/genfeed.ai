@@ -74,7 +74,6 @@ export class MediumController {
         },
       );
 
-      // Generate auth URL
       const authUrl = this.mediumService.generateAuthUrl(state);
 
       return serializeSingle(request, CredentialOAuthSerializer, {
@@ -134,7 +133,6 @@ export class MediumController {
         });
       }
 
-      // Get user profile
       const profile = await this.mediumService.getUserProfile(accessToken);
 
       // Calculate token expiry

@@ -499,7 +499,6 @@ function SchemaInputsComponent({
           return null;
         }
 
-        // Boolean type
         if (property.type === 'boolean') {
           return (
             <CheckboxInput

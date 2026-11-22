@@ -245,7 +245,6 @@ export function useStudioClipperPage(options?: { projectId?: string }) {
   const [isHydrating, setIsHydrating] = useState(Boolean(projectIdFromRoute));
   const [error, setError] = useState<string | null>(null);
 
-  // Project state
   const [project, setProject] = useState<ProjectState | null>(null);
   const [pendingReferenceFrameId, setPendingReferenceFrameId] = useState<
     string | null
