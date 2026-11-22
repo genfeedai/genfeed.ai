@@ -1,9 +1,5 @@
 import { resolveAuthContinuation } from '@genfeedai/auth-client/callback';
-import {
-  getBetterAuthServerToken,
-  isBetterAuthEnabled,
-  isTransientBetterAuthTokenFailure,
-} from '@genfeedai/auth-client/server';
+import { isBetterAuthEnabled } from '@genfeedai/auth-client/server';
 import {
   hasSingleStepOnboarding,
   isDesktopClient,
@@ -29,41 +25,20 @@ import {
   isSeededWorkspaceEntrypoint,
   ORG_SCOPED_PREFIXES,
 } from '@/lib/navigation/protected-path-scope';
+import {
+  type BootstrapRead,
+  fetchBootstrap,
+  fetchMineOrganizations,
+  getBetterAuthBearerToken,
+} from '@/lib/navigation/proxy-api';
 
 const SEMVER_PATTERN =
   /^(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?(?:\+[0-9A-Za-z.-]+)?$/;
-const TRAILING_SLASH_PATTERN = /\/$/;
 const PLUS_SIGNS_PATTERN = /\+/g;
 const SLASHES_PATTERN = /\//g;
 const BASE64_PADDING_PATTERN = /=+$/;
 const HYPHENS_PATTERN = /-/g;
 const UNDERSCORES_PATTERN = /_/g;
-
-type BootstrapBrandSummary = {
-  id: string;
-  organization?: {
-    accountType?: string | null;
-    slug?: string;
-  };
-  slug?: string;
-};
-
-type BootstrapResponse = {
-  access?: {
-    brandId?: string;
-    isOnboardingCompleted?: boolean;
-  };
-  brands?: BootstrapBrandSummary[];
-  currentUser?: {
-    isOnboardingCompleted?: boolean;
-    onboardingStepsCompleted?: unknown;
-  } | null;
-};
-
-type OrganizationMineResponseItem = {
-  isActive: boolean;
-  slug?: string;
-};
 
 const ONBOARDING_PATH = APP_ROUTES.ONBOARDING.ROOT;
 const SEEDED_WORKSPACE_PATH = createBrandAppRoute(
@@ -160,26 +135,6 @@ const FLAT_PATH_REDIRECTS = new Map<string, string>([
   [APP_ROUTES.DISCOVERY.ROOT, APP_ROUTES.DISCOVERY.FEED],
   [APP_ROUTES.WORKSPACE.ROOT, APP_ROUTES.WORKSPACE.OVERVIEW],
 ]);
-
-function getApiBaseUrl(): string {
-  const rawBaseUrl = (
-    process.env.API_URL ||
-    process.env.NEXT_PUBLIC_API_ENDPOINT ||
-    'http://localhost:3010/v1'
-  ).replace(TRAILING_SLASH_PATTERN, '');
-
-  try {
-    const url = new URL(rawBaseUrl);
-    if (url.pathname === '' || url.pathname === '/') {
-      url.pathname = '/v1';
-      return url.toString().replace(TRAILING_SLASH_PATTERN, '');
-    }
-  } catch {
-    // Relative paths such as /v1 are already valid API bases for fetch.
-  }
-
-  return rawBaseUrl;
-}
 
 function canonicalizeFlatProtectedPath(pathname: string): string {
   return FLAT_PATH_REDIRECTS.get(pathname) ?? pathname;
@@ -510,17 +465,6 @@ async function continueWithCurrentWorkspace(
 }
 
 /**
- * Either a bootstrap payload or the fact that the API did not give us one.
- * Kept distinct so a successful response with a null body still falls through
- * to the organizations lookup, as an unmemoised fetch did.
- */
-type BootstrapRead =
-  | { bootstrap: BootstrapResponse | null; isAvailable: true }
-  | { isAvailable: false };
-
-const UNAVAILABLE_BOOTSTRAP: BootstrapRead = { isAvailable: false };
-
-/**
  * One `/auth/bootstrap` read per proxy invocation.
  *
  * Onboarding gating and workspace-slug resolution both need the same payload,
@@ -534,37 +478,6 @@ const bootstrapByRequest = new WeakMap<
   NextRequest,
   Map<string, Promise<BootstrapRead>>
 >();
-
-/**
- * Longest the proxy waits on one API read. Every protected navigation waits on
- * these, so a slow API must degrade to "unavailable" long before the platform
- * kills the request.
- */
-const PROXY_API_TIMEOUT_MS = 3_000;
-
-async function fetchBootstrap(token: string): Promise<BootstrapRead> {
-  try {
-    const response = await fetch(`${getApiBaseUrl()}/auth/bootstrap`, {
-      cache: 'no-store',
-      headers: {
-        Accept: 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      signal: AbortSignal.timeout(PROXY_API_TIMEOUT_MS),
-    });
-
-    if (!response.ok) {
-      return UNAVAILABLE_BOOTSTRAP;
-    }
-
-    return {
-      bootstrap: (await response.json()) as BootstrapResponse | null,
-      isAvailable: true,
-    };
-  } catch {
-    return UNAVAILABLE_BOOTSTRAP;
-  }
-}
 
 function readBootstrap(
   token: string,
@@ -632,31 +545,10 @@ async function readBootstrapWorkspaceSlugs(
       ?.slug;
 
   if (!orgSlug) {
-    let organizationsResponse: Response;
-
-    try {
-      organizationsResponse = await fetch(
-        `${getApiBaseUrl()}/organizations?mine=true`,
-        {
-          cache: 'no-store',
-          headers: {
-            Accept: 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          signal: AbortSignal.timeout(PROXY_API_TIMEOUT_MS),
-        },
-      );
-    } catch {
+    const organizations = await fetchMineOrganizations(token);
+    if (!organizations) {
       return null;
     }
-
-    if (!organizationsResponse.ok) {
-      return null;
-    }
-
-    const organizations = (await organizationsResponse.json()) as
-      | OrganizationMineResponseItem[]
-      | null;
     orgSlug =
       organizations?.find((organization) => organization.isActive)?.slug ??
       organizations?.[0]?.slug;
@@ -954,38 +846,6 @@ function getBetterAuthSessionCookie(req: NextRequest): string | null {
     req.cookies.get('__Secure-better-auth.session_token')?.value ||
     null
   );
-}
-
-interface BearerTokenResult {
-  /**
-   * The exchange failed on a network error, timeout or 5xx. The API did not
-   * reject the session, so this is not a sign-out.
-   */
-  hasTransientFailure: boolean;
-  token: string | null;
-}
-
-async function getBetterAuthBearerToken(
-  req: NextRequest,
-): Promise<BearerTokenResult> {
-  const cookieHeader = req.headers.get('cookie');
-  if (!cookieHeader) {
-    return { hasTransientFailure: false, token: null };
-  }
-
-  let hasTransientFailure = false;
-  // Every navigation and RSC prefetch passes through here. The shared helper
-  // reuses one token per session, since `/token` is rate limited per client.
-  const token = await getBetterAuthServerToken(cookieHeader, {
-    onFailure: (failure) => {
-      if (failure.isFinal && isTransientBetterAuthTokenFailure(failure)) {
-        hasTransientFailure = true;
-      }
-    },
-    tokenUrl: `${getApiBaseUrl()}/auth/token`,
-  });
-
-  return { hasTransientFailure: token === null && hasTransientFailure, token };
 }
 
 /**
