@@ -7,6 +7,7 @@ import { useCloudWorkflow } from './useCloudWorkflow';
 const mocks = vi.hoisted(() => {
   const service = {
     create: vi.fn().mockResolvedValue({ id: 'wf-created', inputVariables: [] }),
+    get: vi.fn(),
     listBrands: vi.fn().mockResolvedValue([]),
     update: vi.fn().mockResolvedValue({ id: 'wf-created', inputVariables: [] }),
   };
@@ -116,5 +117,51 @@ describe('useCloudWorkflow autosave', () => {
       mocks.service.create.mock.calls[0][0].nodes[0].data,
     ).not.toHaveProperty('progress');
     expect(useCloudWorkflowStore.getState().workflowId).toBe('wf-created');
+  });
+
+  it('keeps and saves an edit made before the /new to /workflows/N handoff commits', async () => {
+    const newPage = renderHook(() => useCloudWorkflow());
+    await advance(0);
+    const addNode = (id: string) =>
+      act(() => {
+        useWorkflowStore.getState().onNodesChange([
+          {
+            type: 'add',
+            item: {
+              id,
+              type: 'prompt',
+              position: { x: 0, y: 0 },
+              data: {
+                prompt: id,
+                label: 'Prompt',
+                status: 'idle',
+                variables: {},
+              },
+            },
+          },
+        ]);
+      });
+    addNode('n1');
+    await advance();
+    expect(useCloudWorkflowStore.getState().workflowId).toBe('wf-created');
+
+    // Edit lands after the create resolved, before the route commits.
+    addNode('n2');
+    newPage.unmount();
+    renderHook(() => useCloudWorkflow({ workflowId: 'wf-created' }));
+    await advance(0);
+
+    expect(mocks.service.get).not.toHaveBeenCalled();
+    expect(useWorkflowStore.getState().nodes.map((node) => node.id)).toContain(
+      'n2',
+    );
+
+    await advance();
+    const lastUpdate = mocks.service.update.mock.calls.at(-1);
+    expect(lastUpdate?.[0]).toBe('wf-created');
+    expect(
+      lastUpdate?.[1].nodes.map((node: { id: string }) => node.id),
+    ).toContain('n2');
+    expect(useWorkflowStore.getState().isDirty).toBe(false);
   });
 });
