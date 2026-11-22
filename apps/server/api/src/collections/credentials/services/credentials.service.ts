@@ -721,21 +721,22 @@ export class CredentialsService
   }
 
   /**
-   * Resolve an OAuth 1.0a callback through its provider-issued request token.
-   * The lookup remains TTL-bound and tenant/user scoped, preventing a token
-   * copied from another session from attaching credentials across accounts.
+   * Resolve an OAuth 1.0a callback through its provider-issued request token,
+   * in whatever state its verify is: pending, claimed by a verify that is
+   * still talking to the provider, or already settled. The lookup remains
+   * TTL-bound and tenant/user scoped, preventing a token copied from another
+   * session from attaching credentials across accounts.
    */
-  async findPendingOAuth1Credential(
+  async findOAuth1VerifyCredential(
     oauthToken: string,
     platform: CredentialPlatform,
     scope: OAuthCredentialScope,
-  ): Promise<PendingOAuthCredential | null> {
+  ): Promise<CredentialDocument | null> {
     if (typeof oauthToken !== 'string' || !oauthToken.trim()) {
       return null;
     }
 
-    const credential = await this.findOne({
-      isConnected: false,
+    return this.findOne({
       oauthTokenHash: hashOAuthRequestToken(oauthToken),
       organizationId: requireCredentialRelationId(
         scope.organizationId,
@@ -745,8 +746,6 @@ export class CredentialsService
       updatedAt: { gte: new Date(Date.now() - OAUTH_STATE_TTL_MS) },
       userId: requireCredentialRelationId(scope.userId, 'userId'),
     });
-
-    return toPendingOAuthCredential(credential);
   }
 
   /**
