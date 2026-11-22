@@ -798,11 +798,16 @@ export class PostGroupPersistenceService {
       where: scopedWhere(organizationId, { groupId, id: targetId }),
     })) as Parameters<typeof flattenPostIngredients>[0] | null;
 
-    if (!target) {
+    // A post in the group without a credential or platform (a thread child, a
+    // legacy row) is not a channel target. getTargets drops the same rows.
+    const flattened = target
+      ? (flattenPostIngredients(target) as unknown as SchedulerPostTargetRow)
+      : null;
+    if (!flattened || !isSchedulerPostTarget(flattened)) {
       throw new NotFoundException('ChannelTarget', targetId);
     }
 
-    return flattenPostIngredients(target) as unknown as SchedulerPostTarget;
+    return flattened;
   }
 
   async getTargets(
