@@ -23,7 +23,7 @@ describe('WordpressController', () => {
       credential: { id: 'credential-id' },
       state: 'opaque-oauth-state',
     }),
-    findPendingOAuthCredential: vi.fn().mockResolvedValue({
+    claimPendingOAuthCredential: vi.fn().mockResolvedValue({
       brandId: 'brand-id',
       id: 'credential-id',
       organizationId: 'organization-id',

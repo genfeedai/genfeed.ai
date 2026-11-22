@@ -6,6 +6,7 @@ import {
 } from '@api/collections/credentials/dto/create-credential.dto';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { oauthLogFlags } from '@api/collections/credentials/utils/oauth-callback-error.util';
+import { claimOAuthVerifyCredential } from '@api/collections/credentials/utils/oauth-verify-claim.util';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import {
@@ -167,11 +168,15 @@ export class ThreadsController {
         });
       }
 
-      const existingCredential =
-        await this.credentialsService.findPendingOAuthCredential(
-          state,
-          CredentialPlatform.THREADS,
-        );
+      const claim = await claimOAuthVerifyCredential(
+        this.credentialsService,
+        state,
+        CredentialPlatform.THREADS,
+      );
+      if (claim?.alreadyConnected) {
+        return serializeSingle(request, CredentialSerializer, claim.credential);
+      }
+      const existingCredential = claim?.credential;
 
       if (!existingCredential) {
         return returnNotFound('Pending OAuth credential', state);

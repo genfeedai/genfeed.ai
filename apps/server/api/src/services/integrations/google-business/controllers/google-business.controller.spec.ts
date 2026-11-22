@@ -81,7 +81,7 @@ describe('GoogleBusinessController', () => {
         }),
         findConnectedAccounts: async () => heldAccounts,
         findOne: async () => pending,
-        findPendingOAuthCredential: async () => pending,
+        claimPendingOAuthCredential: async () => pending,
         patch: async (id: string, update: Record<string, unknown>) => {
           patched.push(update);
           return { ...pending, ...update, id };
