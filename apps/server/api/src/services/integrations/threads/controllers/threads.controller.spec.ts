@@ -45,7 +45,8 @@ describe('ThreadsController', () => {
   const mockBrandsService = { findOne: vi.fn() };
   const mockCredentialsService = {
     beginOAuthForBrand: vi.fn(),
-    findPendingOAuthCredential: vi.fn(),
+    claimPendingOAuthCredential: vi.fn(),
+    findOne: vi.fn(),
     patch: vi.fn(),
     updateExternalProfile: vi.fn(),
   };
@@ -267,7 +268,10 @@ describe('ThreadsController', () => {
     });
 
     it('preserves not found when pending OAuth state does not exist', async () => {
-      mockCredentialsService.findPendingOAuthCredential.mockResolvedValue(null);
+      mockCredentialsService.claimPendingOAuthCredential.mockResolvedValue(
+        null,
+      );
+      mockCredentialsService.findOne.mockResolvedValueOnce(null);
 
       await expect(
         controller.verify(mockRequest, {
@@ -279,7 +283,7 @@ describe('ThreadsController', () => {
 
     it('fails closed when the redirect URI is unavailable before token exchange', async () => {
       configValues.THREADS_REDIRECT_URI = 'PLACEHOLDER_NOT_CONFIGURED';
-      mockCredentialsService.findPendingOAuthCredential.mockResolvedValue({
+      mockCredentialsService.claimPendingOAuthCredential.mockResolvedValue({
         brandId: 'brand-id',
         id: 'credential-id',
         organizationId: 'organization-id',
@@ -298,7 +302,7 @@ describe('ThreadsController', () => {
     });
 
     it('resolves tenant ownership from the pending OAuth state', async () => {
-      mockCredentialsService.findPendingOAuthCredential.mockResolvedValue({
+      mockCredentialsService.claimPendingOAuthCredential.mockResolvedValue({
         brandId: 'brand-id',
         id: 'credential-id',
         organizationId: 'organization-id',
@@ -327,7 +331,7 @@ describe('ThreadsController', () => {
       });
 
       expect(
-        mockCredentialsService.findPendingOAuthCredential,
+        mockCredentialsService.claimPendingOAuthCredential,
       ).toHaveBeenCalledWith('opaque-oauth-state', CredentialPlatform.THREADS);
       expect(mockCredentialsService.patch).toHaveBeenCalledWith(
         'credential-id',

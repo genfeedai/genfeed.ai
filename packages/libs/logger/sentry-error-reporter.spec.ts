@@ -4,7 +4,11 @@ import {
   SENTRY_REPORT_THROTTLE_MS,
   SentryReportThrottle,
 } from '@libs/logger/sentry-error-reporter';
-import { BadRequestException } from '@nestjs/common';
+import {
+  BadRequestException,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 
 describe('normalizeErrorMessageForFingerprint', () => {
   it.each([
@@ -68,6 +72,23 @@ describe('buildLoggedErrorReport', () => {
       }),
     ).toBeNull();
   });
+
+  it.each([
+    ['a 404', new NotFoundException('Article'), false],
+    ['a 400', new BadRequestException('Bad input'), false],
+    ['a 500', new InternalServerErrorException('Broke'), true],
+    ['a plain Error', new Error('Broke'), true],
+  ])(
+    'reports %s logged as the error field of the context: %s',
+    (_name, error, isReported) => {
+      const report = buildLoggedErrorReport({
+        message: 'ArticlesService update failed',
+        trace: { error, id: 'article-1' },
+      });
+
+      expect(report !== null).toBe(isReported);
+    },
+  );
 
   it('does not report what the exception handler already sends', () => {
     expect(

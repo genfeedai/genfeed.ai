@@ -2085,21 +2085,21 @@
     },
     {
       "category": "unbounded-read",
-      "count": 3,
+      "count": 1,
       "file": "apps/server/api/src/collections/trends/services/modules/trend-video.service.ts",
       "growth": "growing",
       "target": "trendingHashtag"
     },
     {
       "category": "unbounded-read",
-      "count": 3,
+      "count": 1,
       "file": "apps/server/api/src/collections/trends/services/modules/trend-video.service.ts",
       "growth": "growing",
       "target": "trendingSound"
     },
     {
       "category": "unbounded-read",
-      "count": 3,
+      "count": 1,
       "file": "apps/server/api/src/collections/trends/services/modules/trend-video.service.ts",
       "growth": "growing",
       "target": "trendingVideo"

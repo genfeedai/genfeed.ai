@@ -516,6 +516,20 @@ export class ApiKeysService extends BaseService<
   }
 
   /**
+   * Re-read a key by id for the OAuth refresh flow only, ignoring `expiresAt`.
+   * A refresh token outlives the access key it renews, so the key may already
+   * be expired when it is exchanged. Revoked keys are still excluded, and the
+   * result must never be used to authenticate a request.
+   */
+  async findUnrevokedById(id: string): Promise<ApiKeyDocument | null> {
+    const matches = await this.delegate.findMany({
+      take: 1,
+      where: { id, isRevoked: false },
+    });
+    return (matches[0] as ApiKeyDocument | undefined) ?? null;
+  }
+
+  /**
    * Update last used timestamp and increment usage count
    */
   async updateLastUsed(keyId: string, ip?: string): Promise<void> {

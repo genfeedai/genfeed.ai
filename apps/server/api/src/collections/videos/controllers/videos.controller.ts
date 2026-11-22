@@ -12,6 +12,7 @@ import { VideosService } from '@api/collections/videos/services/videos.service';
 import { VotesService } from '@api/collections/votes/services/votes.service';
 import type { RequestWithContext as ExpressRequest } from '@api/common/middleware/request-context.middleware';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
+import { DEFAULT_HTTP_TIMEOUT_MS } from '@api/constants/http-timeout.constant';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
 import {
   Credits,
@@ -354,7 +355,9 @@ export class VideosController {
         coverStyle,
       );
 
-      const thumbnailResponse = await fetch(thumbnailUrl);
+      const thumbnailResponse = await fetch(thumbnailUrl, {
+        signal: AbortSignal.timeout(DEFAULT_HTTP_TIMEOUT_MS),
+      });
       if (!thumbnailResponse.ok) {
         throw new HttpException(
           {

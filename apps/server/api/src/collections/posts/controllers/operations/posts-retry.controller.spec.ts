@@ -9,6 +9,7 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { PostsRetryController } from '@api/collections/posts/controllers/operations/posts-retry.controller';
 import { PostRetryService } from '@api/collections/posts/services/post-retry.service';
 import type { PostsService } from '@api/collections/posts/services/posts.service';
+import type { CacheService } from '@api/services/cache/cache.service';
 import { ApiKeyScope, TargetExecutionState } from '@genfeedai/contracts';
 import { PostSerializer } from '@genfeedai/serializers';
 import { testId } from '@helpers/testing/test-id.helper';
@@ -88,7 +89,13 @@ function buildController() {
       log: silent,
       warn: silent,
     } as unknown as LoggerService,
-    new PostRetryService(postsService as unknown as PostsService),
+    new PostRetryService(
+      postsService as unknown as PostsService,
+      {
+        acquireOwnedClaim: async () => 'unavailable',
+        releaseOwnedClaim: async () => false,
+      } as unknown as CacheService,
+    ),
   );
   const state = (id: string) =>
     posts.find((row) => row.id === id)?.targetExecutionState;

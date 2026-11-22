@@ -444,3 +444,122 @@ describe('useCloudWorkflowStore.scheduleAutoSave', () => {
     expect(useCloudWorkflowStore.getState().cloudError).toBe('Autosave failed');
   });
 });
+
+function workflowData(id: string, label: string): CloudWorkflowData {
+  return { ...savedWorkflow(), id, label };
+}
+
+describe('useCloudWorkflowStore editor session', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    useWorkflowStore.setState({
+      edgeStyle: 'default',
+      edges: [],
+      groups: [],
+      isDirty: false,
+      isSaving: false,
+      nodes: [],
+      workflowId: null,
+      workflowName: '',
+    });
+    useCloudWorkflowStore.setState({
+      cloudError: null,
+      hasQueuedSave: false,
+      inputVariables: [],
+      lifecycle: WorkflowLifecycle.DRAFT,
+      pendingBrandId: null,
+      pendingCreateMetadata: null,
+      pendingTemplateId: null,
+      workflowId: null,
+    });
+  });
+
+  it('keeps the newest load when an older, slower load resolves last', async () => {
+    const { service, get } = createService();
+    const slowA = createDeferred<CloudWorkflowData>();
+    get.mockImplementation((id: string) =>
+      id === 'wf-a'
+        ? slowA.promise
+        : Promise.resolve(workflowData('wf-b', 'Workflow B')),
+    );
+
+    const loadA = useCloudWorkflowStore
+      .getState()
+      .loadFromCloud('wf-a', service);
+    await useCloudWorkflowStore.getState().loadFromCloud('wf-b', service);
+    slowA.resolve(workflowData('wf-a', 'Workflow A'));
+    await loadA;
+
+    expect(useWorkflowStore.getState().workflowId).toBe('wf-b');
+    expect(useWorkflowStore.getState().workflowName).toBe('Workflow B');
+    expect(useCloudWorkflowStore.getState().workflowId).toBe('wf-b');
+    expect(useCloudWorkflowStore.getState().isCloudLoading).toBe(false);
+  });
+
+  it('does not report an aborted load as an error', async () => {
+    const { service, get } = createService();
+    const controller = new AbortController();
+    get.mockImplementation(async () => {
+      controller.abort();
+      throw Object.assign(new Error('canceled'), { isCancelled: true });
+    });
+
+    await useCloudWorkflowStore
+      .getState()
+      .loadFromCloud('wf-a', service, controller.signal);
+
+    expect(useCloudWorkflowStore.getState().cloudError).toBeNull();
+    expect(useCloudWorkflowStore.getState().isCloudLoading).toBe(false);
+  });
+
+  it('drops a create that resolves after the editor moved to another workflow', async () => {
+    useWorkflowStore.setState({ nodes: oneNode as never, isDirty: true });
+    useCloudWorkflowStore.setState({ pendingBrandId: 'brand-1' });
+    const { service, create, update, get } = createService();
+    const pendingCreate = createDeferred<CloudWorkflowData>();
+    create.mockReturnValue(pendingCreate.promise);
+    get.mockResolvedValue(workflowData('wf-b', 'Workflow B'));
+
+    const save = useCloudWorkflowStore.getState().saveToCloud(service);
+    useCloudWorkflowStore.getState().resetCloudState();
+    await useCloudWorkflowStore.getState().loadFromCloud('wf-b', service);
+    pendingCreate.resolve(workflowData('wf-n', 'Created'));
+    await save;
+
+    expect(useWorkflowStore.getState().workflowId).toBe('wf-b');
+    expect(useCloudWorkflowStore.getState().workflowId).toBe('wf-b');
+    expect(useWorkflowStore.getState().workflowName).toBe('Workflow B');
+    expect(useWorkflowStore.getState().isSaving).toBe(false);
+    expect(update).not.toHaveBeenCalled();
+  });
+
+  it('does not auto-save a stale load over a newer graph during a trailing save', async () => {
+    const staleNodes = [oneNode[0]];
+    const newerNodes = [
+      ...oneNode,
+      { data: {}, id: 'n2', position: { x: 1, y: 1 }, type: 'prompt' },
+    ];
+    useWorkflowStore.setState({
+      isDirty: true,
+      nodes: newerNodes as never,
+      workflowId: 'wf-1',
+    });
+    useCloudWorkflowStore.setState({ workflowId: 'wf-1' });
+    const { service, update, get } = createService();
+    const pendingPut = createDeferred<CloudWorkflowData>();
+    update.mockReturnValue(pendingPut.promise);
+    get.mockResolvedValue({
+      ...savedWorkflow(),
+      nodes: staleNodes as never,
+    });
+
+    const save = useCloudWorkflowStore.getState().saveToCloud(service);
+    await useCloudWorkflowStore.getState().loadFromCloud('wf-1', service);
+    pendingPut.resolve(savedWorkflow());
+    await save;
+
+    expect(update).toHaveBeenCalledTimes(1);
+    expect(useWorkflowStore.getState().isDirty).toBe(false);
+    expect(useWorkflowStore.getState().isSaving).toBe(false);
+  });
+});

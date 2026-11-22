@@ -1,3 +1,4 @@
+import { DEFAULT_HTTP_TIMEOUT_MS } from '@api/constants/http-timeout.constant';
 /**
  * Credits Module
  * Usage credits system: track AI generation credits, manage credit packages,
@@ -72,7 +73,7 @@ import { Module } from '@nestjs/common';
     NotificationsPublisherModule,
     OrganizationSettingsModule,
     ServerFunnelCaptureModule,
-    HttpModule,
+    HttpModule.register({ timeout: DEFAULT_HTTP_TIMEOUT_MS }),
 
     TransactionModule,
   ],

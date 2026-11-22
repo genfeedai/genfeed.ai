@@ -15,10 +15,6 @@ import type {
   TrendSourceKind,
   TrendSourceReferenceResult,
 } from '@api/collections/trends/interfaces/trend.interfaces';
-import type {
-  TrendTimelineEntry,
-  TrendTurnoverStats,
-} from '@api/collections/trends/interfaces/trend-turnover.interface';
 import type { TrendingHashtagDocument } from '@api/collections/trends/schemas/trending-hashtag.schema';
 import type { TrendingSoundDocument } from '@api/collections/trends/schemas/trending-sound.schema';
 import type { TrendingVideoDocument } from '@api/collections/trends/schemas/trending-video.schema';
@@ -975,19 +971,5 @@ export class TrendsService {
    */
   markExpiredSoundsAsHistorical(): Promise<number> {
     return this.trendVideoService.markExpiredSoundsAsHistorical();
-  }
-
-  /**
-   * Get trend appearance and death counts by platform for the given period.
-   */
-  getTurnoverStats(days: 7 | 30 | 90): Promise<TrendTurnoverStats[]> {
-    return this.trendVideoService.getTurnoverStats(days);
-  }
-
-  /**
-   * Get daily trend births and deaths timeline for the given period.
-   */
-  getTrendTimeline(days: 7 | 30 | 90): Promise<TrendTimelineEntry[]> {
-    return this.trendVideoService.getTrendTimeline(days);
   }
 }

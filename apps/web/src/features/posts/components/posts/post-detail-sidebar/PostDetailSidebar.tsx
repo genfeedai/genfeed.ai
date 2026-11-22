@@ -38,6 +38,7 @@ export default function PostDetailSidebar({
   post,
   credential,
   scheduleDraft,
+  isPublishBlocked = false,
   isSavingSchedule,
   isScheduleDirty,
   isScoringSeo = false,
@@ -310,6 +311,7 @@ export default function PostDetailSidebar({
       <PostSidebarWhenDock
         post={post}
         scheduleDraft={scheduleDraft}
+        isPublishBlocked={isPublishBlocked}
         isSavingSchedule={isSavingSchedule}
         isScheduleDirty={isScheduleDirty}
         isPublished={isPublished}

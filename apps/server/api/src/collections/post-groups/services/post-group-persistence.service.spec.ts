@@ -295,6 +295,29 @@ describe('PostGroupPersistenceService', () => {
     expect(prisma.credential.findMany).not.toHaveBeenCalled();
   });
 
+  it('returns a channel target and rejects a post without a credential or platform as not found', async () => {
+    prisma.post.findFirst.mockResolvedValueOnce(makeTarget({ id: 'target-1' }));
+    await expect(
+      service.getTargetOrThrow(prisma as never, 'org-1', 'group-1', 'target-1'),
+    ).resolves.toMatchObject({ id: 'target-1' });
+
+    prisma.post.findFirst.mockResolvedValueOnce({
+      ...makeTarget({ id: 'child-1' }),
+      platform: null,
+    });
+    await expect(
+      service.getTargetOrThrow(prisma as never, 'org-1', 'group-1', 'child-1'),
+    ).rejects.toThrow(NotFoundException);
+
+    prisma.post.findFirst.mockResolvedValueOnce({
+      ...makeTarget({ id: 'legacy-1' }),
+      credentialId: null,
+    });
+    await expect(
+      service.getTargetOrThrow(prisma as never, 'org-1', 'group-1', 'legacy-1'),
+    ).rejects.toThrow(NotFoundException);
+  });
+
   function releaseListStatements(): { sql: string; values: unknown[] }[] {
     return prisma.$queryRaw.mock.calls
       .map(([statement]) => statement as { sql: string; values: unknown[] })

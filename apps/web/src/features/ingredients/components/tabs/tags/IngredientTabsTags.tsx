@@ -8,6 +8,10 @@ import { TagsService } from '@genfeedai/services/content/tags.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import { IngredientEndpoints } from '@genfeedai/utils/media/ingredients.util';
+import {
+  isCollectionFetchReady,
+  useCollectionScope,
+} from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useQuery } from '@tanstack/react-query';
 import Card from '@ui/card/Card';
 import MetricCard from '@ui/cards/metric-card/MetricCard';
@@ -30,6 +34,8 @@ export default function IngredientTabsTags({
   onTagsUpdate,
 }: ExtendedIngredientTabsTagsProps) {
   const { isSignedIn } = useAuthIdentity();
+  const collectionScope = useCollectionScope();
+  const { brandId, organizationId } = collectionScope;
   const [tags, setTags] = useState<ITag[]>(ingredient.tags || []);
   const [isUpdating, setIsUpdating] = useState(false);
   const [newTagName, setNewTagName] = useState('');
@@ -51,12 +57,17 @@ export default function IngredientTabsTags({
 
   // The brand's own tags plus organization-wide tags, never another brand's.
   const { data: allTags = [], isLoading } = useQuery({
-    queryKey: [LIBRARY_TAGS_QUERY_KEY, 'ingredient-tabs'],
+    queryKey: [
+      LIBRARY_TAGS_QUERY_KEY,
+      'ingredient-tabs',
+      organizationId,
+      brandId ?? 'org',
+    ],
     queryFn: async () => {
       const service = await getTagsService();
-      return service.findLibraryTags();
+      return service.findLibraryTags({ brandId });
     },
-    enabled: !!isSignedIn,
+    enabled: !!isSignedIn && isCollectionFetchReady(collectionScope),
   });
 
   const availableTags = useMemo(() => {

@@ -1,5 +1,6 @@
 import { OrganizationSettingsModule } from '@api/collections/organization-settings/organization-settings.module';
 import { OrganizationPaidAccessModule } from '@api/common/subscriptions/organization-paid-access.module';
+import { DEFAULT_HTTP_TIMEOUT_MS } from '@api/constants/http-timeout.constant';
 import { SERVER_TOKENS } from '@api/server.dependencies';
 import { ByokService } from '@api/services/byok/byok.service';
 import { ByokProviderFactoryService } from '@api/services/byok/byok-provider-factory.service';
@@ -22,7 +23,7 @@ const SERVER_BYOK_RESOLVER_PROVIDER = {
   ],
   imports: [
     CacheModule,
-    HttpModule,
+    HttpModule.register({ timeout: DEFAULT_HTTP_TIMEOUT_MS }),
     OrganizationPaidAccessModule,
     OrganizationSettingsModule,
   ],

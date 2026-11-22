@@ -10,6 +10,7 @@ import type { RolesService } from '@api/collections/roles/services/roles.service
 import type { SkillLibraryService } from '@api/collections/skills/services/skill-library.service';
 import type { UsersService } from '@api/collections/users/services/users.service';
 import type { UserAccessCacheService } from '@api/common/services/user-access-cache.service';
+import type { CacheService } from '@api/services/cache/cache.service';
 import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import { runWithTenantContext } from '@libs/prisma/tenant-context';
 import {
@@ -100,6 +101,10 @@ describe('OrganizationsOperationsService tenant guard (CLOUD)', () => {
     userAccessCacheService as unknown as UserAccessCacheService,
     organizationLogoService as unknown as OrganizationLogoService,
     { emit: vi.fn() } as unknown as EventEmitter2,
+    {
+      acquireOwnedClaim: vi.fn().mockResolvedValue('unavailable'),
+      releaseOwnedClaim: vi.fn(),
+    } as unknown as CacheService,
     skillLibrary as unknown as SkillLibraryService,
   );
 
@@ -180,6 +185,7 @@ describe('OrganizationsOperationsService tenant guard (CLOUD)', () => {
       label: 'New',
     });
     rolesService.findOne.mockResolvedValue({ id: 'role_1' });
+    membersService.create.mockResolvedValue({ id: 'member_1' });
     brandsService.create.mockImplementation(async () => {
       seen.push(getTenantContext()?.organizationId);
       return { id: 'brand_new', label: 'New' };

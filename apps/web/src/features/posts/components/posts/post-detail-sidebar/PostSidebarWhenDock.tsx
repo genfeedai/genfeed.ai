@@ -34,6 +34,7 @@ const DOCK_CLASS_NAME =
 export default function PostSidebarWhenDock({
   post,
   scheduleDraft,
+  isPublishBlocked = false,
   isSavingSchedule,
   isScheduleDirty,
   isPublished,
@@ -103,7 +104,7 @@ export default function PostSidebarWhenDock({
     : activeMode === 'schedule' && !scheduleDraft
       ? translate('chooseDateTime')
       : undefined;
-  const isBlocked = isSavingSchedule || isTikTokBlocked;
+  const isBlocked = isSavingSchedule || isPublishBlocked || isTikTokBlocked;
 
   return (
     <div className={DOCK_CLASS_NAME} data-testid="post-when-dock">

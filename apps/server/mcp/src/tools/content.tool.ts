@@ -1,3 +1,4 @@
+import { McpToolInputError } from '@genfeedai/actions';
 import type { ClientService } from '@mcp/services/client.service';
 import { formatListResult } from '@mcp/shared/utils/format-list-result.util';
 import {
@@ -23,10 +24,18 @@ function requireArticleString(
 ): string {
   const value = args[key];
   if (typeof value !== 'string' || !value.trim() || value.length > maxLength)
-    throw new Error(
+    throw new McpToolInputError(
       `${key} must be a nonempty string of at most ${maxLength} characters`,
+      key,
     );
   return value;
+}
+
+function invalidSlug(): McpToolInputError {
+  return new McpToolInputError(
+    'slug must be lowercase letters and digits separated by single hyphens, for example my-article',
+    'slug',
+  );
 }
 
 function readOptionalBrandId(
@@ -43,9 +52,11 @@ function readHttpsUrl(args: Record<string, unknown>, key: string) {
   try {
     protocol = new URL(value).protocol;
   } catch {
-    throw new Error(`${key} must be an absolute HTTPS URL`);
+    throw new McpToolInputError(`${key} must be an absolute HTTPS URL`, key);
   }
-  if (protocol !== 'https:') throw new Error('Cover image must use HTTPS');
+  if (protocol !== 'https:') {
+    throw new McpToolInputError(`${key} must use HTTPS`, key);
+  }
   return value;
 }
 
@@ -60,7 +71,7 @@ export async function handleContentTool(
     case 'create_article_draft': {
       const label = requireArticleString(args, 'label', 200);
       const slug = requireArticleString(args, 'slug', 160);
-      if (!SLUG_PATTERN.test(slug)) throw new Error('Invalid article slug');
+      if (!SLUG_PATTERN.test(slug)) throw invalidSlug();
       const summary = requireArticleString(args, 'summary', 500);
       const content = requireArticleString(args, 'content', 250000);
       const coverImageUrl =
@@ -97,8 +108,7 @@ export async function handleContentTool(
         args.slug === undefined
           ? undefined
           : requireArticleString(args, 'slug', 160);
-      if (slug !== undefined && !SLUG_PATTERN.test(slug))
-        throw new Error('Invalid article slug');
+      if (slug !== undefined && !SLUG_PATTERN.test(slug)) throw invalidSlug();
       const summary =
         args.summary === undefined
           ? undefined
@@ -118,8 +128,9 @@ export async function handleContentTool(
         content === undefined &&
         coverImageUrl === undefined
       ) {
-        throw new Error(
+        throw new McpToolInputError(
           'Pass at least one of label, slug, summary, content or coverImageUrl to change',
+          'label',
         );
       }
       const article = await client.updateArticle({
@@ -184,11 +195,17 @@ export async function handleContentTool(
         (hasArticleId && !articleId) ||
         (hasQuery && !query)
       ) {
-        throw new Error('Pass exactly one of articleId or query');
+        throw new McpToolInputError(
+          'Pass exactly one of articleId or query: articleId reads one article, query searches published articles',
+          hasArticleId ? 'articleId' : 'query',
+        );
       }
       if (articleId) {
         if (args.category !== undefined || args.limit !== undefined) {
-          throw new Error('category and limit apply only to a query search');
+          throw new McpToolInputError(
+            'category and limit apply only to a query search; drop them when reading one article by articleId',
+            args.category !== undefined ? 'category' : 'limit',
+          );
         }
         const article = await client.getArticle(
           articleId,
@@ -205,7 +222,10 @@ export async function handleContentTool(
         };
       }
       if (args.brandId !== undefined) {
-        throw new Error('brandId applies only when reading one article');
+        throw new McpToolInputError(
+          'brandId applies only when reading one article by articleId. A query search covers the whole organization: drop brandId.',
+          'brandId',
+        );
       }
       const articles = await client.searchArticles({
         category: args.category as string | undefined,

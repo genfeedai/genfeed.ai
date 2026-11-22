@@ -1,110 +1,148 @@
 import type { IBetterAuthResolvedIdentity } from '@api/auth/better-auth/better-auth.types';
 import { BetterAuthIdentityCacheService } from '@api/common/services/better-auth-identity-cache.service';
-import { LoggerService } from '@libs/logger/logger.service';
-import { RedisService } from '@libs/redis/redis.service';
-import { Test, type TestingModule } from '@nestjs/testing';
+import type { LoggerService } from '@libs/logger/logger.service';
+import type { RedisService } from '@libs/redis/redis.service';
+
+/**
+ * Key-value stand-in for the publisher. `eval` mirrors the guarded-write
+ * script; the real script runs in better-auth-identity-cache.integration.spec.
+ */
+class FakePublisher {
+  readonly store = new Map<string, string>();
+  isFailing = false;
+
+  private guard(): void {
+    if (this.isFailing) {
+      throw new Error('redis down');
+    }
+  }
+
+  async get(key: string): Promise<string | null> {
+    this.guard();
+    return this.store.get(key) ?? null;
+  }
+
+  async eval(
+    _script: string,
+    _keyCount: number,
+    identityKey: string,
+    epochKey: string,
+    expectedEpoch: string,
+    _ttl: string,
+    serialized: string,
+  ): Promise<number> {
+    this.guard();
+    if ((this.store.get(epochKey) ?? '0') !== expectedEpoch) {
+      return 0;
+    }
+    this.store.set(identityKey, serialized);
+    return 1;
+  }
+
+  multi() {
+    const steps: Array<() => void> = [];
+    const chain = {
+      exec: async () => {
+        this.guard();
+        for (const step of steps) {
+          step();
+        }
+        return [];
+      },
+      expire: () => chain,
+      incr: (key: string) => {
+        steps.push(() =>
+          this.store.set(key, String(Number(this.store.get(key) ?? '0') + 1)),
+        );
+        return chain;
+      },
+      unlink: (key: string) => {
+        steps.push(() => this.store.delete(key));
+        return chain;
+      },
+    };
+    return chain;
+  }
+}
 
 describe('BetterAuthIdentityCacheService', () => {
-  let service: BetterAuthIdentityCacheService;
-  let publisher: {
-    get: ReturnType<typeof vi.fn>;
-    setex: ReturnType<typeof vi.fn>;
-    unlink: ReturnType<typeof vi.fn>;
-  };
-  let redisService: { getPublisher: ReturnType<typeof vi.fn> };
-  let logger: {
-    debug: ReturnType<typeof vi.fn>;
-    error: ReturnType<typeof vi.fn>;
-    log: ReturnType<typeof vi.fn>;
-    warn: ReturnType<typeof vi.fn>;
-  };
-
   const identity: IBetterAuthResolvedIdentity = {
     brandId: 'brand-1',
     isSuperAdmin: false,
     organizationId: 'org-1',
     userId: 'user-1',
   };
+  const errors: unknown[] = [];
 
-  beforeEach(async () => {
-    publisher = {
-      get: vi.fn().mockResolvedValue(null),
-      setex: vi.fn().mockResolvedValue('OK'),
-      unlink: vi.fn().mockResolvedValue(1),
-    };
-    redisService = { getPublisher: vi.fn().mockReturnValue(publisher) };
-    logger = { debug: vi.fn(), error: vi.fn(), log: vi.fn(), warn: vi.fn() };
+  let publisher: FakePublisher | null;
+  let service: BetterAuthIdentityCacheService;
 
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        BetterAuthIdentityCacheService,
-        { provide: RedisService, useValue: redisService },
-        { provide: LoggerService, useValue: logger },
-      ],
-    }).compile();
-
-    service = module.get(BetterAuthIdentityCacheService);
+  beforeEach(() => {
+    errors.length = 0;
+    publisher = new FakePublisher();
+    service = new BetterAuthIdentityCacheService(
+      { getPublisher: () => publisher } as unknown as RedisService,
+      {
+        error: (message: string) => errors.push(message),
+      } as unknown as LoggerService,
+    );
   });
 
-  describe('get', () => {
-    it('returns null when nothing is cached', async () => {
-      await expect(service.get('user-1')).resolves.toBeNull();
-      expect(publisher.get).toHaveBeenCalledWith('ba-identity:user-1');
-    });
+  it('returns null on a miss and the parsed identity on a hit', async () => {
+    await expect(service.get('user-1')).resolves.toBeNull();
 
-    it('returns the parsed identity on a hit', async () => {
-      publisher.get.mockResolvedValue(JSON.stringify(identity));
+    await service.setIfUnchanged('user-1', identity, '0');
 
-      await expect(service.get('user-1')).resolves.toEqual(identity);
-    });
-
-    it('returns null when Redis is unavailable', async () => {
-      redisService.getPublisher.mockReturnValue(null);
-
-      await expect(service.get('user-1')).resolves.toBeNull();
-    });
-
-    it('returns null and logs when the read throws', async () => {
-      publisher.get.mockRejectedValue(new Error('redis down'));
-
-      await expect(service.get('user-1')).resolves.toBeNull();
-      expect(logger.error).toHaveBeenCalled();
-    });
+    await expect(service.get('user-1')).resolves.toEqual(identity);
   });
 
-  describe('set', () => {
-    it('writes the identity with a TTL', async () => {
-      await service.set('user-1', identity);
+  it('skips a write whose epoch is stale after an invalidation', async () => {
+    const epoch = await service.readEpoch('user-1');
+    await service.invalidateForUser('user-1');
 
-      expect(publisher.setex).toHaveBeenCalledWith(
-        'ba-identity:user-1',
-        expect.any(Number),
-        JSON.stringify(identity),
-      );
-    });
+    await service.setIfUnchanged('user-1', identity, epoch);
 
-    it('swallows write failures', async () => {
-      publisher.setex.mockRejectedValue(new Error('redis down'));
-
-      await expect(service.set('user-1', identity)).resolves.toBeUndefined();
-      expect(logger.error).toHaveBeenCalled();
-    });
+    await expect(service.get('user-1')).resolves.toBeNull();
+    await expect(service.readEpoch('user-1')).resolves.toBe('1');
   });
 
-  describe('invalidateForUser', () => {
-    it('unlinks the identity key', async () => {
-      await service.invalidateForUser('user-1');
+  it('removes a cached identity on invalidation', async () => {
+    await service.setIfUnchanged('user-1', identity, '0');
 
-      expect(publisher.unlink).toHaveBeenCalledWith('ba-identity:user-1');
-    });
+    await service.invalidateForUser('user-1');
 
-    it('swallows invalidation failures', async () => {
-      publisher.unlink.mockRejectedValue(new Error('redis down'));
+    await expect(service.get('user-1')).resolves.toBeNull();
+  });
 
-      await expect(
-        service.invalidateForUser('user-1'),
-      ).resolves.toBeUndefined();
-      expect(logger.error).toHaveBeenCalled();
-    });
+  it('does not write without an epoch', async () => {
+    await service.setIfUnchanged('user-1', identity, null);
+
+    await expect(service.get('user-1')).resolves.toBeNull();
+  });
+
+  it('reads, writes and invalidates as a no-op when Redis is unavailable', async () => {
+    publisher = null;
+
+    await expect(service.get('user-1')).resolves.toBeNull();
+    await expect(service.readEpoch('user-1')).resolves.toBeNull();
+    await expect(
+      service.setIfUnchanged('user-1', identity, '0'),
+    ).resolves.toBeUndefined();
+    await expect(service.invalidateForUser('user-1')).resolves.toBeUndefined();
+  });
+
+  it('swallows and logs Redis failures', async () => {
+    publisher?.store.set('ba-identity:user-1', JSON.stringify(identity));
+    if (publisher) {
+      publisher.isFailing = true;
+    }
+
+    await expect(service.get('user-1')).resolves.toBeNull();
+    await expect(service.readEpoch('user-1')).resolves.toBeNull();
+    await expect(
+      service.setIfUnchanged('user-1', identity, '0'),
+    ).resolves.toBeUndefined();
+    await expect(service.invalidateForUser('user-1')).resolves.toBeUndefined();
+    expect(errors).toHaveLength(4);
   });
 });

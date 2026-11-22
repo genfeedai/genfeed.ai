@@ -90,7 +90,7 @@ describe('InstagramController', () => {
   let controller: InstagramController;
   let brandsFindOneMock: ReturnType<typeof vi.fn>;
   let credentialsBeginOAuthForBrandMock: ReturnType<typeof vi.fn>;
-  let credentialsFindPendingOAuthCredentialMock: ReturnType<typeof vi.fn>;
+  let credentialsClaimPendingOAuthCredentialMock: ReturnType<typeof vi.fn>;
   let credentialsPatchMock: ReturnType<typeof vi.fn>;
   let credentialsResolveBrandAccountMock: ReturnType<typeof vi.fn>;
   let credentialsFindConnectedAccountsMock: ReturnType<typeof vi.fn>;
@@ -141,7 +141,7 @@ describe('InstagramController', () => {
       credential: { id: 'test-object-id' },
       state: 'opaque-oauth-state',
     });
-    credentialsFindPendingOAuthCredentialMock = vi.fn().mockResolvedValue({
+    credentialsClaimPendingOAuthCredentialMock = vi.fn().mockResolvedValue({
       brandId: instagramBrandId,
       id: 'test-object-id',
       organizationId: instagramOrganizationId,
@@ -184,7 +184,7 @@ describe('InstagramController', () => {
       findConnectedAccounts: credentialsFindConnectedAccountsMock,
       findOne: credentialsFindOneMock,
       findOneSelect: delegateFindOneSelect(),
-      findPendingOAuthCredential: credentialsFindPendingOAuthCredentialMock,
+      claimPendingOAuthCredential: credentialsClaimPendingOAuthCredentialMock,
       patch: credentialsPatchMock,
       resolveBrandAccount: credentialsResolveBrandAccountMock,
       updateExternalProfile: credentialsUpdateExternalProfileMock,
@@ -456,7 +456,7 @@ describe('InstagramController', () => {
     }
 
     beforeEach(() => {
-      credentialsFindPendingOAuthCredentialMock.mockResolvedValue({
+      credentialsClaimPendingOAuthCredentialMock.mockResolvedValue({
         brandId,
         id: 'test-object-id',
         organizationId: orgId,
@@ -786,7 +786,7 @@ describe('InstagramController', () => {
         igAccount({ id: 'ig-account-a' }),
         igAccount({ id: 'ig-account-b' }),
       ]);
-      credentialsFindPendingOAuthCredentialMock.mockResolvedValue({
+      credentialsClaimPendingOAuthCredentialMock.mockResolvedValue({
         brandId,
         id: 'test-object-id',
         organizationId: orgId,
@@ -910,7 +910,7 @@ describe('InstagramController', () => {
       instagramServiceMock.listAuthorizedInstagramAccounts.mockResolvedValue([
         igAccount({ id: 'ig-account-unrelated' }),
       ]);
-      credentialsFindPendingOAuthCredentialMock.mockResolvedValue({
+      credentialsClaimPendingOAuthCredentialMock.mockResolvedValue({
         brandId,
         id: 'test-object-id',
         organizationId: orgId,
@@ -942,7 +942,7 @@ describe('InstagramController', () => {
       instagramServiceMock.listAuthorizedInstagramAccounts.mockResolvedValue([
         igAccount({ id: 'ig-account-a' }),
       ]);
-      credentialsFindPendingOAuthCredentialMock.mockResolvedValue({
+      credentialsClaimPendingOAuthCredentialMock.mockResolvedValue({
         brandId,
         id: 'test-object-id',
         organizationId: orgId,
@@ -1063,7 +1063,7 @@ describe('InstagramController', () => {
         get: vi.fn(() => undefined),
       } as unknown as ConfigService;
       const emptyCredentialsMock = {
-        findPendingOAuthCredential: vi.fn().mockResolvedValue({
+        claimPendingOAuthCredential: vi.fn().mockResolvedValue({
           brandId,
           id: 'credential-id',
           organizationId: orgId,
@@ -1338,8 +1338,85 @@ describe('InstagramController', () => {
       expect(credentialsPatchMock).not.toHaveBeenCalled();
     });
 
+    it('exchanges the code once when the callback page verifies twice at the same time', async () => {
+      vi.useFakeTimers();
+      let isConnected = false;
+      const pending = {
+        brandId,
+        id: 'test-object-id',
+        organizationId: orgId,
+        userId: instagramUserId,
+        warmupSignals: {},
+      };
+      // The second request loses the claim; its lookups see the first
+      // request's row until that request connects it.
+      credentialsClaimPendingOAuthCredentialMock
+        .mockResolvedValueOnce(pending)
+        .mockResolvedValue(null);
+      credentialsFindOneMock.mockImplementation(async () => ({
+        brandId,
+        id: 'test-object-id',
+        isConnected,
+      }));
+      credentialsUpdateExternalProfileMock.mockImplementation(async () => {
+        isConnected = true;
+        return { brandId, id: 'test-object-id', isConnected };
+      });
+      mockSuccessfulTokenExchange();
+      instagramServiceMock.listAuthorizedInstagramAccounts.mockResolvedValue([
+        igAccount({ id: 'ig-account-id' }),
+      ]);
+
+      try {
+        const both = Promise.all([
+          controller.verify(mockRequest, { code: 'auth-code', state }),
+          controller.verify(mockRequest, { code: 'auth-code', state }),
+        ]);
+        await vi.advanceTimersByTimeAsync(1000);
+        const [first, second] = await both;
+
+        expect(first.data).toEqual({
+          brandId,
+          id: 'test-object-id',
+          isConnected: true,
+        });
+        expect(second.data).toEqual(first.data);
+        const exchanges = httpGetMock.mock.calls.filter(([url]) =>
+          String(url).endsWith('/oauth/access_token'),
+        );
+        expect(exchanges.length).toBe(1);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('fails an unknown state with not found and never calls the provider', async () => {
+      credentialsClaimPendingOAuthCredentialMock.mockResolvedValue(null);
+      credentialsFindOneMock.mockResolvedValue(null);
+
+      const result = await controller.verify(mockRequest, {
+        code: 'auth-code',
+        state: 'unknown-state',
+      });
+
+      expect(result).toHaveProperty('errors');
+      expect(httpGetMock.mock.calls.length).toBe(0);
+    });
+
+    it('writes nothing to the credential when the exchange fails after the claim', async () => {
+      httpGetMock.mockImplementation(() =>
+        throwError(() => new Error('code already used')),
+      );
+
+      await expect(
+        controller.verify(mockRequest, { code: 'auth-code', state }),
+      ).rejects.toBeInstanceOf(HttpException);
+
+      expect(credentialsPatchMock.mock.calls.length).toBe(0);
+    });
+
     it('should return not found when credential does not exist', async () => {
-      credentialsFindPendingOAuthCredentialMock.mockResolvedValue(null);
+      credentialsClaimPendingOAuthCredentialMock.mockResolvedValue(null);
 
       const result = await controller.verify(mockRequest, {
         code: 'code',

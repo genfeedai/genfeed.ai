@@ -35,7 +35,6 @@ import {
 import type { Request } from 'express';
 
 type HeyGenVoice = Awaited<ReturnType<HeyGenService['getVoices']>>[number];
-type HeyGenAvatar = Awaited<ReturnType<HeyGenService['getAvatars']>>[number];
 type HedraVoice = Awaited<ReturnType<HedraService['getVoices']>>[number];
 type HedraAvatar = Awaited<ReturnType<HedraService['getAvatars']>>[number];
 type ElevenLabsVoice = Awaited<
@@ -49,7 +48,7 @@ interface ProviderVoicesAttributes<TVoice> {
 
 interface ProviderAvatarsAttributes<TAvatar> {
   avatars: TAvatar[];
-  provider: 'heygen' | 'hedra';
+  provider: 'hedra';
 }
 
 @AutoSwagger()
@@ -89,36 +88,6 @@ export class AvatarsController {
 
       throw new HttpException(
         'Failed to fetch HeyGen voices',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-  }
-
-  // Get HeyGen avatars list
-  @Get('heygen/avatars')
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async getHeygenAvatars(
-    @CurrentUser() user: User,
-  ): Promise<JsonApiSingleResponse<ProviderAvatarsAttributes<HeyGenAvatar>>> {
-    try {
-      const avatars = await this.heygenService.getAvatars(user.organizationId);
-
-      return serializeProviderCatalog({
-        attributes: {
-          avatars,
-          provider: 'heygen',
-        },
-        id: 'heygen',
-        type: 'avatar-provider',
-      });
-    } catch (error: unknown) {
-      this.loggerService.error(
-        `${this.constructorName} ${CallerUtil.getCallerName()} failed`,
-        error,
-      );
-
-      throw new HttpException(
-        'Failed to fetch HeyGen avatars',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }

@@ -18,7 +18,6 @@ interface StoredJob {
 
 const NOW = new Date('2026-11-06T12:00:00.000Z').getTime();
 const HOUR = 3_600_000;
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
 const upload: YoutubeJobData = {
   createdAt: new Date('2026-01-01T00:00:00.000Z'),
@@ -73,6 +72,11 @@ describe('YoutubeQueueService', () => {
         data: YoutubeJobData,
         opts: Record<string, unknown>,
       ) => {
+        // BullMQ ignores an add whose id is already stored.
+        const duplicate = jobs.find((job) => job.id === String(opts.jobId));
+        if (duplicate) {
+          return duplicate;
+        }
         const stored: StoredJob = {
           data,
           id: String(opts.jobId),
@@ -91,7 +95,18 @@ describe('YoutubeQueueService', () => {
         );
         return [];
       },
-      getJob: async (id: string) => jobs.find((stored) => stored.id === id),
+      getJob: async (id: string) => {
+        const stored = jobs.find((job) => job.id === id);
+        return stored
+          ? {
+              ...stored,
+              getState: async () => stored.state,
+              remove: async () => {
+                jobs = jobs.filter((job) => job !== stored);
+              },
+            }
+          : undefined;
+      },
       getJobCounts: async () => {
         const counts: Record<string, number> = {};
         for (const stored of jobs) {
@@ -134,7 +149,7 @@ describe('YoutubeQueueService', () => {
           state: 'waiting',
         },
       ]);
-      expect(added.id).toMatch(UUID);
+      expect(added.id).toBe('youtube-upload-post-123');
     },
   );
 
@@ -147,12 +162,55 @@ describe('YoutubeQueueService', () => {
     },
   );
 
-  it('gives every upload of the same post its own job', async () => {
-    const first = await service.addUploadJob(upload);
+  it('keeps one job when the same post is enqueued twice', async () => {
+    await service.addUploadJob(upload);
     const second = await service.addUploadJob(upload);
 
-    expect(second.id).not.toBe(first.id);
-    expect(jobs).toHaveLength(2);
+    expect(second.id).toBe('youtube-upload-post-123');
+    expect(jobs.map(({ id }) => id)).toEqual(['youtube-upload-post-123']);
+  });
+
+  it.each(['active', 'waiting'] as const)(
+    'does not replace a %s upload',
+    async (state) => {
+      jobs.push({
+        data: upload,
+        id: 'youtube-upload-post-123',
+        name: JOB_TYPES.UPLOAD_YOUTUBE,
+        opts: {},
+        state,
+      });
+
+      await service.addUploadJob({ ...upload, title: 'Second' });
+
+      expect(jobs.map(({ data, state }) => [data.title, state])).toEqual([
+        ['Test Video', state],
+      ]);
+    },
+  );
+
+  it.each(['failed', 'completed'] as const)(
+    'enqueues a live job after a retained %s one with the same id',
+    async (state) => {
+      seedFinished('youtube-upload-post-123', state, HOUR);
+
+      const added = await service.addUploadJob({ ...upload, title: 'Retry' });
+
+      expect(added.id).toBe('youtube-upload-post-123');
+      expect(jobs.map(({ data, state }) => [data.title, state])).toEqual([
+        ['Retry', 'waiting'],
+      ]);
+    },
+  );
+
+  it('uses a different job per post', async () => {
+    await service.addUploadJob(upload);
+    await service.addUploadJob({ ...upload, postId: 'post-999' });
+
+    expect(jobs.map(({ id }) => id)).toEqual([
+      'youtube-upload-post-123',
+      'youtube-upload-post-999',
+    ]);
   });
 
   it('finds a queued upload by id', async () => {

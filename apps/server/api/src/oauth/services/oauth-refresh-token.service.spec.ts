@@ -132,6 +132,10 @@ function buildHarness() {
       if (row.expiresAt && row.expiresAt <= new Date()) return null;
       return row;
     }),
+    findUnrevokedById: vi.fn(async (id: string) => {
+      const row = apiKeys.get(id);
+      return row && !row.isRevoked ? row : null;
+    }),
     findByKey: vi.fn(async (plainKey: string) => {
       const match = plainKey.match(/^gf_test_(key-\d+)$/);
       const row = match ? apiKeys.get(match[1]) : undefined;
@@ -460,6 +464,43 @@ describe('OAuthRefreshTokenService', () => {
     expect(apiKeysService.rotateWithKey).not.toHaveBeenCalled();
   });
 
+  it('refreshes after the linked access key has expired', async () => {
+    const { apiKeys, seedApiKey, seedRefreshToken, service } = buildHarness();
+    const expired = seedApiKey({
+      expiresAt: new Date(Date.now() - 24 * 60 * 60 * 1000),
+    });
+    seedRefreshToken('refresh-plain-token-after-expiry', {
+      apiKeyId: expired.id,
+    });
+
+    const response = await service.refresh(
+      refreshGrant('refresh-plain-token-after-expiry'),
+    );
+
+    expect(response.access_token).not.toBe(`gf_test_${expired.id}`);
+    expect(response.access_token).toMatch(/^gf_test_key-\d+$/);
+    expect(response.refresh_token).not.toBe('refresh-plain-token-after-expiry');
+    expect(response.expires_in).toBeGreaterThan(29 * 24 * 60 * 60);
+    expect(apiKeys.get(expired.id)?.isRevoked).toBe(true);
+  });
+
+  it('rejects a refresh when the linked access key is revoked', async () => {
+    const { apiKeysService, seedApiKey, seedRefreshToken, service } =
+      buildHarness();
+    const revoked = seedApiKey({
+      expiresAt: new Date(Date.now() - 1000),
+      isRevoked: true,
+    });
+    seedRefreshToken('refresh-plain-token-key-revoked', {
+      apiKeyId: revoked.id,
+    });
+
+    await expect(
+      service.refresh(refreshGrant('refresh-plain-token-key-revoked')),
+    ).rejects.toMatchObject(invalidGrant);
+    expect(apiKeysService.rotateWithKey).not.toHaveBeenCalled();
+  });
+
   it('rejects a revoked refresh token', async () => {
     const { apiKeysService, seedApiKey, seedRefreshToken, service } =
       buildHarness();
@@ -713,6 +754,21 @@ describe('OAuthRefreshTokenService', () => {
     ).rejects.toMatchObject({
       response: expect.objectContaining({ error: 'invalid_target' }),
     });
+  });
+
+  it('lets refresh and revoke use the persisted client when its metadata host is down', async () => {
+    const { clientService, service } = buildHarness();
+    vi.mocked(clientService.requireClient).mockClear();
+
+    await service.revoke({ client_id: clientId, token: 'unknown-token-value' });
+    await expect(
+      service.refresh(refreshGrant('unknown-token-value')),
+    ).rejects.toMatchObject(invalidGrant);
+
+    expect(vi.mocked(clientService.requireClient).mock.calls).toEqual([
+      [clientId, undefined, { allowPersistedFallback: true }],
+      [clientId, undefined, { allowPersistedFallback: true }],
+    ]);
   });
 
   it('revokes a refresh token and its access key, and is idempotent for unknown tokens', async () => {

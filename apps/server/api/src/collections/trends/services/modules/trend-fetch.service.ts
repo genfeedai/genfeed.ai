@@ -6,6 +6,7 @@ import type {
 } from '@api/collections/trends/interfaces/trend.interfaces';
 import { TrendRefreshHealthService } from '@api/collections/trends/services/modules/trend-refresh-health.service';
 import { getRejectedGrokTrendReason } from '@api/collections/trends/utils/grok-trend-rejection.util';
+import { logTrendProviderFailure } from '@api/collections/trends/utils/trend-provider-failure-log.util';
 import {
   captureTrendRefreshEvidence,
   classifyTrendProviderError,
@@ -253,7 +254,11 @@ export class TrendFetchService {
         'fallback_failed',
         classifyTrendProviderError(error),
       );
-      this.loggerService.error('twitter Apify trend fallback failed', error);
+      logTrendProviderFailure(
+        this.loggerService,
+        'twitter Apify trend fallback failed',
+        error,
+      );
       return [];
     }
   }
@@ -560,7 +565,8 @@ export class TrendFetchService {
         'fallback_failed',
         classifyTrendProviderError(error),
       );
-      this.loggerService.error(
+      logTrendProviderFailure(
+        this.loggerService,
         `${platform} Apify trend fallback failed`,
         error,
       );
@@ -767,7 +773,8 @@ export class TrendFetchService {
           try {
             trends = await handler();
           } catch (error: unknown) {
-            this.loggerService.error(
+            logTrendProviderFailure(
+              this.loggerService,
               `Failed to fetch trends for ${platform}`,
               error,
             );

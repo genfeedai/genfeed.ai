@@ -51,7 +51,9 @@ describe('TwitterController', () => {
       state: 'opaque-oauth-state',
     }),
     findOne: vi.fn().mockResolvedValue({ id: 'cred', isConnected: true }),
+    claimPendingOAuthCredential: vi.fn(),
     findPendingOAuthCredential: vi.fn(),
+    patchAll: vi.fn().mockResolvedValue({ modifiedCount: 1 }),
     patch: vi.fn().mockResolvedValue({ id: 'cred', isConnected: true }),
     updateExternalProfile: vi
       .fn()
@@ -267,7 +269,7 @@ describe('TwitterController', () => {
       const organizationId = testId('org');
       const state = 'opaque-oauth-state';
 
-      mockCredentialsService.findPendingOAuthCredential.mockResolvedValue({
+      mockCredentialsService.claimPendingOAuthCredential.mockResolvedValue({
         brandId,
         id: 'cred',
         oauthTokenSecret: 'encrypted-code-verifier',
@@ -280,7 +282,7 @@ describe('TwitterController', () => {
       });
 
       expect(
-        mockCredentialsService.findPendingOAuthCredential,
+        mockCredentialsService.claimPendingOAuthCredential,
       ).toHaveBeenCalledWith('opaque-oauth-state', 'twitter');
       expect(mockCredentialsService.patch).toHaveBeenCalledWith(
         'cred',
@@ -317,7 +319,7 @@ describe('TwitterController', () => {
     });
 
     it('still returns the credential when authorized signal refresh fails', async () => {
-      mockCredentialsService.findPendingOAuthCredential.mockResolvedValue({
+      mockCredentialsService.claimPendingOAuthCredential.mockResolvedValue({
         brandId: testId('brand'),
         id: 'cred',
         oauthTokenSecret: 'encrypted-code-verifier',
@@ -351,9 +353,10 @@ describe('TwitterController', () => {
       expect(
         mockCredentialsService.findPendingOAuthCredential,
       ).toHaveBeenCalledWith('opaque-oauth-state', 'twitter');
-      expect(mockCredentialsService.patch).toHaveBeenCalledWith('cred', {
-        oauthState: 'denied',
-      });
+      expect(mockCredentialsService.patchAll).toHaveBeenCalledWith(
+        { id: 'cred', isConnected: false },
+        { oauthState: 'denied' },
+      );
       expect(mockLoginWithOAuth2).not.toHaveBeenCalled();
     });
 
@@ -365,7 +368,10 @@ describe('TwitterController', () => {
 
     it('should throw BAD_REQUEST when credential not found', async () => {
       const state = 'foreign-or-expired-state';
-      mockCredentialsService.findPendingOAuthCredential.mockResolvedValue(null);
+      mockCredentialsService.claimPendingOAuthCredential.mockResolvedValue(
+        null,
+      );
+      mockCredentialsService.findOne.mockResolvedValueOnce(null);
 
       await expect(
         controller.verify({} as Request, { code: 'code', state }),
@@ -374,7 +380,7 @@ describe('TwitterController', () => {
 
     it('should throw BAD_REQUEST when code verifier is missing', async () => {
       const state = 'opaque-oauth-state';
-      mockCredentialsService.findPendingOAuthCredential.mockResolvedValue({
+      mockCredentialsService.claimPendingOAuthCredential.mockResolvedValue({
         id: 'cred',
         oauthTokenSecret: null,
       });
@@ -385,7 +391,7 @@ describe('TwitterController', () => {
     });
 
     it('returns BAD_REQUEST when X rejects an expired authorization code', async () => {
-      mockCredentialsService.findPendingOAuthCredential.mockResolvedValue({
+      mockCredentialsService.claimPendingOAuthCredential.mockResolvedValue({
         id: 'cred',
         oauthTokenSecret: 'encrypted-code-verifier',
         organizationId: testId('org'),
@@ -417,7 +423,7 @@ describe('TwitterController', () => {
     });
 
     it('surfaces invalid X client credentials as a Service Unavailable deployment error', async () => {
-      mockCredentialsService.findPendingOAuthCredential.mockResolvedValue({
+      mockCredentialsService.claimPendingOAuthCredential.mockResolvedValue({
         id: 'cred',
         oauthTokenSecret: 'encrypted-code-verifier',
         organizationId: testId('org'),
@@ -453,7 +459,7 @@ describe('TwitterController', () => {
     });
 
     it('surfaces an unauthorized_client body as the same Service Unavailable deployment error', async () => {
-      mockCredentialsService.findPendingOAuthCredential.mockResolvedValue({
+      mockCredentialsService.claimPendingOAuthCredential.mockResolvedValue({
         id: 'cred',
         oauthTokenSecret: 'encrypted-code-verifier',
         organizationId: testId('org'),

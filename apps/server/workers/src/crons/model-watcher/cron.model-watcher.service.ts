@@ -164,10 +164,26 @@ export class CronModelWatcherService {
       this.logger.log(`${url} ${officialModels.length} official models`);
 
       // Step 4: Diff against existing models in DB.
-      const newModels = officialModels.filter((m) => {
+      const unregisteredModels = officialModels.filter((m) => {
         const key = `${m.owner}/${m.name}`;
         return !existingModels.has(key);
       });
+
+      // A key another provider's row or a retired row holds cannot take a
+      // draft (`models.key` is unique), and that row is already the reviewed
+      // answer, so such a model is neither new nor drafted.
+      const takenKeys = await this.modelDiscoveryService.findTakenKeys(
+        unregisteredModels.map((m) => `${m.owner}/${m.name}`),
+      );
+      const newModels = unregisteredModels.filter(
+        (m) => !takenKeys.has(`${m.owner}/${m.name}`),
+      );
+      if (takenKeys.size > 0) {
+        this.logger.log(
+          `${url} skipped ${takenKeys.size} listed models whose key is already in the registry under another provider or was retired`,
+          { keys: [...takenKeys].sort() },
+        );
+      }
 
       summary.newModelsFound = newModels.length;
 
@@ -185,9 +201,9 @@ export class CronModelWatcherService {
       // Step 5: Add exact fetches for registry rows the listing does not
       // carry (no longer official, or removed), so the full registry is synced.
       const candidates = new Map<string, IReplicateModel>(
-        officialModels.map(
-          (model) => [`${model.owner}/${model.name}`, model] as const,
-        ),
+        officialModels
+          .filter((model) => !takenKeys.has(`${model.owner}/${model.name}`))
+          .map((model) => [`${model.owner}/${model.name}`, model] as const),
       );
       await this.fetchMissingRegistryModels(
         candidates,

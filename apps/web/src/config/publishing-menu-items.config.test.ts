@@ -14,7 +14,6 @@ describe('PUBLISHING_MENU_ITEMS', () => {
     ['Publishing', PUBLISHING_MENU_ITEMS, APP_ROUTES.PUBLISHING.OVERVIEW],
     ['Analytics', ANALYTICS_MENU_ITEMS, APP_ROUTES.ANALYTICS.OVERVIEW],
     ['Automation', AUTOMATION_MENU_ITEMS, APP_ROUTES.AUTOMATION.OVERVIEW],
-    ['Discovery', DISCOVERY_MENU_ITEMS, APP_ROUTES.DISCOVERY.OVERVIEW],
     ['Organization workspace', ORG_MENU_ITEMS, APP_ROUTES.WORKSPACE.OVERVIEW],
   ] as const)(
     '%s uses the shared Overview label and icon in both selection states',
@@ -28,6 +27,14 @@ describe('PUBLISHING_MENU_ITEMS', () => {
       );
     },
   );
+
+  it('Discovery opens on Feed, not Overview, because it is one feed of outside signals', () => {
+    expect(
+      DISCOVERY_MENU_ITEMS.find(
+        (item) => item.href === APP_ROUTES.DISCOVERY.FEED,
+      ),
+    ).toEqual(expect.objectContaining({ label: 'Feed' }));
+  });
 
   it('is non-empty', () => {
     expect(PUBLISHING_MENU_ITEMS.length).toBeGreaterThan(0);

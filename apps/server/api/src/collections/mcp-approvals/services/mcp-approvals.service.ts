@@ -104,6 +104,9 @@ export class McpApprovalsService extends BaseService<
     });
     const existing = (await this.delegate.findFirst({
       where: scopedWhere(organizationId, {
+        // An executed approval has done its work: a later identical call is a
+        // new request that needs its own consent, not a replay of this one.
+        executedAt: null,
         idempotencyKey,
         status: {
           in: [McpApprovalStatus.APPROVED, McpApprovalStatus.PENDING],
@@ -558,6 +561,9 @@ export class McpApprovalsService extends BaseService<
   ): Promise<McpApproval | null> {
     return (await this.delegate.findFirst({
       where: scopedWhere(organizationId, {
+        // An executed approval has done its work: a later identical call is a
+        // new request that needs its own consent, not a replay of this one.
+        executedAt: null,
         idempotencyKey,
         status: {
           in: [McpApprovalStatus.APPROVED, McpApprovalStatus.PENDING],

@@ -133,6 +133,17 @@ describe('logger.service', () => {
       );
     });
 
+    it('should pass a fingerprint to Sentry so one message splits per cause', () => {
+      logger.warn('Fingerprinted warning', {
+        fingerprint: ['auth', 'http', '429'],
+      });
+
+      expect(mockCaptureMessage).toHaveBeenCalledWith(
+        'Fingerprinted warning',
+        expect.objectContaining({ fingerprint: ['auth', 'http', '429'] }),
+      );
+    });
+
     it('should include tags in Sentry if provided', () => {
       const obj = { tags: { service: 'api' } };
       logger.warn('Tagged warning', obj);

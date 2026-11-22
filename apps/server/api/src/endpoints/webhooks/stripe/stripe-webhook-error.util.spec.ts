@@ -55,10 +55,10 @@ describe('stripe-webhook-error.util', () => {
       expect(mapping.kind).toBe(StripeWebhookErrorKind.EXPECTED);
       expect(mapping.status).toBe(HttpStatus.BAD_REQUEST);
       expect(mapping.shouldReportAsFault).toBe(false);
-      expect(mapping.shouldReleaseIdempotencyKey).toBe(false);
+      expect(mapping.shouldReleaseIdempotencyKey).toBe(true);
     });
 
-    it.each(['identity_missing', 'identity_stale'] as const)(
+    it.each(['identity_missing', 'identity_stale', 'claim_in_flight'] as const)(
       'keeps %s (a race a later delivery can win) retryable and releases the event key',
       (code) => {
         const mapping = mapStripeWebhookError(

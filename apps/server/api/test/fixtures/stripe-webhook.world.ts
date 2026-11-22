@@ -83,6 +83,12 @@ export function stripeWebhookWorld() {
       settingsPatch: [] as Error[],
       userCreate: [] as unknown[],
     },
+    cache: {
+      // Claim keys another delivery holds right now, mapped to their token.
+      held: new Map<string, string>(),
+      // The cache Redis is down: every read misses, every write fails.
+      isDown: false,
+    },
     fees: new Map<string, { currency: string; feeMinor: number } | Error>(),
     journal: [] as string[],
     ledger: [] as WorldRow[],
@@ -217,18 +223,28 @@ export function stripeWebhookWorld() {
   };
 
   const cacheService = {
-    exists: async (key: string) => state.markers.has(key),
+    acquireOwnedClaim: async (key: string, token: string, ttl: number) => {
+      state.locks.push({ key, ttlSeconds: ttl });
+      if (state.cache.isDown) return 'unavailable' as const;
+      if (state.cache.held.has(key)) return 'duplicate' as const;
+      state.cache.held.set(key, token);
+      return 'claimed' as const;
+    },
+    exists: async (key: string) =>
+      !state.cache.isDown && state.markers.has(key),
     generateKey: (...parts: string[]) => parts.join(':'),
+    releaseOwnedClaim: async (key: string, token: string) => {
+      if (state.cache.held.get(key) !== token) return false;
+      state.cache.held.delete(key);
+      return true;
+    },
     set: async (key: string, value: unknown, options: unknown) => {
+      if (state.cache.isDown) return false;
       const fault = state.faults.marker.shift();
       if (fault instanceof Error) throw fault;
       if (fault === false) return false;
       state.markers.set(key, { options, value });
       return true;
-    },
-    withLock: async <T>(key: string, run: () => Promise<T>, ttl: number) => {
-      state.locks.push({ key, ttlSeconds: ttl });
-      return await run();
     },
   };
 

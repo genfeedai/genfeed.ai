@@ -1,6 +1,7 @@
 import { WorkflowLifecycle } from '@genfeedai/contracts';
 import { useWorkflowStore } from '@genfeedai/workflows/ui/stores';
 import { logger } from '@services/core/logger.service';
+import { isCancelledRequest } from '@services/core/operation-error';
 import { create } from 'zustand';
 import { cloudNodeTypes } from '@/features/workflows/nodes/merged-node-types';
 import {
@@ -31,6 +32,12 @@ interface CloudWorkflowState {
   lifecycle: CloudWorkflowData['lifecycle'];
   /** Organization owning this workflow */
   organizationId: string | null;
+  /**
+   * Editor session epoch. Bumped when the session is reset or a load starts;
+   * an async continuation that captured an older epoch belongs to a previous
+   * session and must not write into either store.
+   */
+  sessionEpoch: number;
   /** Whether the cloud store is currently loading data */
   isCloudLoading: boolean;
   /** Whether the initial cloud hydration has completed */
@@ -54,6 +61,7 @@ interface CloudWorkflowActions {
   loadFromCloud: (
     workflowId: string,
     service: WorkflowApiService,
+    signal?: AbortSignal,
   ) => Promise<void>;
   /** Save the current shared store state to the cloud API */
   saveToCloud: (service: WorkflowApiService) => Promise<void>;
@@ -164,11 +172,25 @@ export const useCloudWorkflowStore = create<CloudWorkflowStore>()(
       }
     },
 
-    loadFromCloud: async (workflowId, service) => {
-      set({ cloudError: null, isCloudLoading: true });
+    loadFromCloud: async (workflowId, service, signal) => {
+      // A load starts a new editor session: an in-flight save or an older
+      // load belongs to the previous one and is dropped when it settles.
+      get().cancelAutoSave();
+      useWorkflowStore.setState({ isSaving: false });
+      const epoch = get().sessionEpoch + 1;
+      const isSuperseded = () => get().sessionEpoch !== epoch;
+      set({
+        cloudError: null,
+        hasQueuedSave: false,
+        isCloudLoading: true,
+        sessionEpoch: epoch,
+      });
 
       try {
-        const data = await service.get(workflowId);
+        const data = await service.get(workflowId, signal);
+        if (isSuperseded()) {
+          return;
+        }
         const supportedNodeTypes = new Set(Object.keys(cloudNodeTypes));
         const { nodes: normalizedNodes, repairs } =
           normalizeWorkflowNodeCollection(data.nodes ?? [], supportedNodeTypes);
@@ -218,6 +240,13 @@ export const useCloudWorkflowStore = create<CloudWorkflowStore>()(
           workflowId: data.id,
         });
       } catch (error) {
+        if (isSuperseded()) {
+          return;
+        }
+        if (signal?.aborted || isCancelledRequest(error)) {
+          set({ isCloudLoading: false });
+          return;
+        }
         const message =
           error instanceof Error ? error.message : 'Failed to load workflow';
         set({ cloudError: message, isCloudLoading: false });
@@ -270,8 +299,12 @@ export const useCloudWorkflowStore = create<CloudWorkflowStore>()(
         pendingBrandId: get().pendingBrandId,
         pendingCreateMetadata: null,
         pendingTemplateId: null,
+        sessionEpoch: get().sessionEpoch + 1,
         workflowId: null,
       });
+      // A save of the previous session never reports back (its continuation
+      // is dropped), so it cannot clear the flag itself.
+      useWorkflowStore.setState({ isSaving: false });
     },
 
     saveToCloud: async (service) => {
@@ -302,6 +335,7 @@ export const useCloudWorkflowStore = create<CloudWorkflowStore>()(
 
       useWorkflowStore.setState({ isSaving: true });
       set({ hasQueuedSave: false });
+      const epoch = get().sessionEpoch;
 
       const snapshot = getCloudWorkflowSnapshot(workflowStore);
       const snapshotKey = JSON.stringify(snapshot);
@@ -325,6 +359,9 @@ export const useCloudWorkflowStore = create<CloudWorkflowStore>()(
 
         if (workflowId) {
           savedData = await service.update(workflowId, payload);
+          if (get().sessionEpoch !== epoch) {
+            return;
+          }
         } else {
           savedData = await service.create({
             ...payload,
@@ -335,6 +372,10 @@ export const useCloudWorkflowStore = create<CloudWorkflowStore>()(
             label: payload.label || 'Untitled Workflow',
             ...(pendingTemplateId ? { templateId: pendingTemplateId } : {}),
           });
+
+          if (get().sessionEpoch !== epoch) {
+            return;
+          }
 
           if (!savedData.id) {
             throw new Error('Workflow save did not return an id');
@@ -372,6 +413,9 @@ export const useCloudWorkflowStore = create<CloudWorkflowStore>()(
           await get().saveToCloud(service);
         }
       } catch (error) {
+        if (get().sessionEpoch !== epoch) {
+          return;
+        }
         const message =
           error instanceof Error ? error.message : 'Failed to save workflow';
         useWorkflowStore.setState({ isSaving: false });
@@ -411,6 +455,8 @@ export const useCloudWorkflowStore = create<CloudWorkflowStore>()(
 
       set({ autoSaveTimeoutId: timeoutId });
     },
+
+    sessionEpoch: 0,
 
     setCloudError: (error) => {
       set({ cloudError: error });

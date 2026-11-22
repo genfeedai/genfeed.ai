@@ -1791,7 +1791,7 @@ describe('AppRail', () => {
         ['Turbo', '/acme/~/turbo'],
         ['Editor', '/acme/~/editor'],
         ['Library', '/acme/~/library/assets'],
-        ['Trends', '/acme/~/discovery/overview'],
+        ['Trends', '/acme/~/discovery/feed'],
         ['Publishing', '/acme/~/publishing/overview'],
         ['Analytics', '/acme/~/analytics/overview'],
         ['Automation', '/acme/~/automation/overview'],
@@ -1808,7 +1808,7 @@ describe('AppRail', () => {
       render(<AppRail orgSlug="acme" pinnedAppIds={LAUNCHER_APP_IDS} />);
       expect(screen.getByRole('link', { name: 'Trends' })).toHaveAttribute(
         'href',
-        '/acme/~/discovery/overview',
+        '/acme/~/discovery/feed',
       );
     });
 
@@ -1822,7 +1822,7 @@ describe('AppRail', () => {
       );
       expect(screen.getByRole('link', { name: 'Trends' })).toHaveAttribute(
         'href',
-        '/acme/my-brand/discovery/overview',
+        '/acme/my-brand/discovery/feed',
       );
     });
 
@@ -1855,7 +1855,7 @@ describe('AppRail', () => {
 
       expect(screen.getByRole('link', { name: 'Trends' })).toHaveAttribute(
         'href',
-        '/acme/my-brand/discovery/overview',
+        '/acme/my-brand/discovery/feed',
       );
       expect(screen.getByRole('link', { name: 'Publishing' })).toHaveAttribute(
         'href',
@@ -1872,7 +1872,7 @@ describe('AppRail', () => {
 
       expect(screen.getByRole('link', { name: 'Trends' })).toHaveAttribute(
         'href',
-        '/acme/~/discovery/overview',
+        '/acme/~/discovery/feed',
       );
       expect(
         screen.queryByRole('link', { name: 'Remix' }),

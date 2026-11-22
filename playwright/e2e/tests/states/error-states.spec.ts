@@ -134,11 +134,11 @@ test.describe('App surfaces — fetch error states', () => {
     await assertHealthy(authenticatedPage, route);
   });
 
-  test('Discovery overview survives a server error', async ({
+  test('Discovery feed survives a server error', async ({
     authenticatedPage,
   }) => {
     await mockServerError(authenticatedPage, '**/discovery**');
-    const route = `${ORG_BRAND}/discovery/overview`;
+    const route = `${ORG_BRAND}/discovery/feed`;
     await authenticatedPage.goto(route, { waitUntil: 'domcontentloaded' });
     await settle(authenticatedPage);
     await assertHealthy(authenticatedPage, route);

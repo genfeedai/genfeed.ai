@@ -506,7 +506,7 @@ describe('workspace dashboard sections', () => {
         }}
         executions={[]}
         stats={makeStats()}
-        trendsHref="/org/brand/discovery/overview"
+        trendsHref="/org/brand/discovery/feed"
         trendItems={[]}
         // One task is enough signal to get past the first-run block below.
         workspaceTasks={[makeTask()]}
@@ -516,7 +516,7 @@ describe('workspace dashboard sections', () => {
     const trendsPanel = screen.getByTestId('overview-trends-panel');
     expect(trendsPanel.querySelector('a')).toHaveAttribute(
       'href',
-      '/org/brand/discovery/overview',
+      '/org/brand/discovery/feed',
     );
   });
 
@@ -534,7 +534,7 @@ describe('workspace dashboard sections', () => {
         }}
         executions={[]}
         stats={makeStats()}
-        trendsHref="/org/brand/discovery/overview"
+        trendsHref="/org/brand/discovery/feed"
         trendItems={[]}
         workspaceTasks={[]}
       />,

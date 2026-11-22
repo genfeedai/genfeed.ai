@@ -530,52 +530,73 @@ describe('PublishApprovalsService', () => {
     },
   );
 
-  it('allows only one queued execution claimant', async () => {
-    const approval = makeApproval({ scopeDigest: scopeDigest() });
-    const publishApproval = {
-      findFirst: vi.fn().mockResolvedValue(approval),
-      updateMany: vi.fn().mockResolvedValue({ count: 0 }),
-    };
-    const service = new PublishApprovalsService(
-      {
-        credential: {
-          findFirst: vi.fn().mockResolvedValue({ id: 'credential-1' }),
-        },
-        member: { findFirst: vi.fn().mockResolvedValue({ id: 'member-1' }) },
-        organization: {
-          findFirst: vi.fn().mockResolvedValue({ userId: 'user-1' }),
-        },
-        post: {
-          findFirst: vi
-            .fn()
-            .mockResolvedValue(makePost({ publishApprovalId: 'approval-1' })),
-        },
-        publishApproval,
-      } as never,
-      {
-        assertVersionPinCurrent: vi.fn(),
-      } as unknown as AgentArtifactReferenceService,
-    );
+  it.each([
+    [
+      PublishApprovalStatus.EXECUTING,
+      'Publish approval is already claimed by another run.',
+    ],
+    [
+      PublishApprovalStatus.PUBLISHED,
+      'Publish approval is already claimed by another run.',
+    ],
+    [PublishApprovalStatus.QUEUED, 'Publish approval is not queued.'],
+    [PublishApprovalStatus.FAILED, 'Publish approval is not queued.'],
+  ])(
+    'allows only one queued execution claimant, and names an approval now %s',
+    async (currentStatus, message) => {
+      const approval = makeApproval({ scopeDigest: scopeDigest() });
+      const publishApproval = {
+        findFirst: vi
+          .fn()
+          .mockResolvedValueOnce(approval)
+          .mockResolvedValue({
+            ...approval,
+            status: currentStatus,
+            updatedAt: new Date(NOW.getTime() + 1_000),
+          }),
+        updateMany: vi.fn().mockResolvedValue({ count: 0 }),
+      };
+      const service = new PublishApprovalsService(
+        {
+          credential: {
+            findFirst: vi.fn().mockResolvedValue({ id: 'credential-1' }),
+          },
+          member: { findFirst: vi.fn().mockResolvedValue({ id: 'member-1' }) },
+          organization: {
+            findFirst: vi.fn().mockResolvedValue({ userId: 'user-1' }),
+          },
+          post: {
+            findFirst: vi
+              .fn()
+              .mockResolvedValue(makePost({ publishApprovalId: 'approval-1' })),
+          },
+          publishApproval,
+        } as never,
+        {
+          assertVersionPinCurrent: vi.fn(),
+        } as unknown as AgentArtifactReferenceService,
+      );
 
-    await expect(
-      service.claimForExecution({
-        approvalId: 'approval-1',
-        operationId: 'operation-1',
-        organizationId: 'org-1',
-        postId: 'post-1',
-        versionPinId: 'pin-1',
-      }),
-    ).rejects.toThrow('already executing');
-
-    expect(publishApproval.updateMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: expect.objectContaining({
-          status: PublishApprovalStatus.QUEUED,
-          updatedAt: NOW,
+      await expect(
+        service.claimForExecution({
+          approvalId: 'approval-1',
+          operationId: 'operation-1',
+          organizationId: 'org-1',
+          postId: 'post-1',
+          versionPinId: 'pin-1',
         }),
-      }),
-    );
-  });
+      ).rejects.toThrow(message);
+
+      expect(publishApproval.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            status: PublishApprovalStatus.QUEUED,
+            updatedAt: NOW,
+          }),
+        }),
+      );
+    },
+  );
 
   it('resets an expired execution lease before claiming a retry', async () => {
     const expiredAt = new Date('2026-07-13T20:00:00.000Z');

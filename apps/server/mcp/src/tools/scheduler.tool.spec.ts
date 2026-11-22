@@ -105,6 +105,84 @@ describe('handleSchedulerTool', () => {
     ]);
   });
 
+  describe('keyless release idempotency', () => {
+    const release = {
+      baseContent: 'Hello',
+      brandId: 'brand-1',
+      scheduledDate: '2026-12-01T09:00:00.000Z',
+      targets: [{ credentialId: 'credential-1', platform: 'linkedin' }],
+      timezone: 'Europe/Malta',
+      title: 'Launch',
+    };
+
+    async function keyFor(args: Record<string, unknown>) {
+      const client = buildClient();
+      await call(client, 'create_scheduled_release', args);
+      return client.createScheduledRelease.mock.calls[0][1] as string;
+    }
+
+    it('sends a deterministic content key when no key or approval exists', async () => {
+      const first = await keyFor({ release });
+      expect(first).toMatch(/^mcp-release:content:[0-9a-f]{64}$/);
+      expect(await keyFor({ release: { ...release } })).toBe(first);
+    });
+
+    it('ignores property order', async () => {
+      const reordered = {
+        title: release.title,
+        timezone: release.timezone,
+        targets: [{ platform: 'linkedin', credentialId: 'credential-1' }],
+        scheduledDate: release.scheduledDate,
+        brandId: release.brandId,
+        baseContent: release.baseContent,
+      };
+      expect(await keyFor({ release: reordered })).toBe(
+        await keyFor({ release }),
+      );
+    });
+
+    it('changes the key for another time or target', async () => {
+      const base = await keyFor({ release });
+      expect(
+        await keyFor({
+          release: { ...release, scheduledDate: '2026-12-02T09:00:00.000Z' },
+        }),
+      ).not.toBe(base);
+      expect(
+        await keyFor({
+          release: {
+            ...release,
+            targets: [{ credentialId: 'credential-2', platform: 'linkedin' }],
+          },
+        }),
+      ).not.toBe(base);
+    });
+
+    it('derives the batch key independent of property order', async () => {
+      const batchKey = async (releases: Record<string, unknown>[]) => {
+        const createScheduledReleaseBatch = vi
+          .fn()
+          .mockResolvedValue({ created: [], errors: [] });
+        const client = {
+          scheduler: { createScheduledReleaseBatch },
+        } as unknown as ClientService;
+        await handleSchedulerTool(client, 'create_scheduled_release', {
+          releases,
+        });
+        return createScheduledReleaseBatch.mock.calls[0][1] as string;
+      };
+      const reordered = {
+        title: release.title,
+        timezone: release.timezone,
+        targets: [{ platform: 'linkedin', credentialId: 'credential-1' }],
+        scheduledDate: release.scheduledDate,
+        brandId: release.brandId,
+        baseContent: release.baseContent,
+      };
+      expect(await batchKey([reordered])).toBe(await batchKey([release]));
+    });
+  });
+
   it('creates a release and forwards the idempotency key separately', async () => {
     const client = buildClient();
     const release = {

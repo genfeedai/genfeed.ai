@@ -38,7 +38,9 @@ export function isYoutubeUrl(value: string | undefined): value is string {
   }
 }
 
-export function isFinalAttempt(job: Job<VideoJobData>): boolean {
+export function isFinalAttempt(
+  job: Pick<Job, 'attemptsMade' | 'opts'>,
+): boolean {
   return job.attemptsMade + 1 >= (job.opts.attempts ?? 1);
 }
 

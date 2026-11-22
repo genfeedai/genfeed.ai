@@ -204,9 +204,6 @@
     "apps/web/src/components/command-palette/command-palette-item/CommandPaletteItem.tsx": {
       "unstyled-look": 1
     },
-    "apps/web/src/components/content/filter-menu/FilterMenu.tsx": {
-      "button-restyle": 1
-    },
     "apps/web/src/components/desktop/DesktopLocalProviderSettings.tsx": {
       "unstyled-look": 4
     },
@@ -481,9 +478,6 @@
     },
     "apps/web/src/features/studio/storyboard/components/StoryboardRuntimeRail.tsx": {
       "unstyled-look": 1
-    },
-    "apps/web/src/features/trends/following/following-deck.tsx": {
-      "unstyled-look": 2
     },
     "apps/web/src/features/trends/list/components/HookRemixModal.tsx": {
       "button-restyle": 2

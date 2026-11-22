@@ -96,8 +96,8 @@ function buildTokenResponse(
  * scope grant of the access token (API key) it renews. Rotation is
  * single-use: presenting a consumed token is treated as theft and revokes
  * the whole replacement chain (RFC 6819 §5.2.2.3). Revoking the API key from
- * settings invalidates the refresh token because the key must still be active
- * at refresh time.
+ * settings invalidates the refresh token because the key must not be revoked
+ * at refresh time (it may have expired: the refresh token outlives it).
  */
 @Traced()
 @Injectable()
@@ -127,8 +127,18 @@ export class OAuthRefreshTokenService {
     return { id: record.id, refreshToken };
   }
 
+  /**
+   * Refresh and revocation come from clients that already completed an
+   * authorization, so a metadata host outage must not lock them out.
+   */
+  private requireClientAllowingOutage(clientId: string) {
+    return this.clientService.requireClient(clientId, undefined, {
+      allowPersistedFallback: true,
+    });
+  }
+
   async refresh(dto: OAuthRefreshTokenGrant): Promise<McpOAuthTokenResponse> {
-    await this.clientService.requireClient(dto.client_id);
+    await this.requireClientAllowingOutage(dto.client_id);
 
     const record = await this.prisma.mcpOAuthRefreshToken.findUnique({
       where: { tokenHash: hashToken(dto.refresh_token) },
@@ -151,7 +161,9 @@ export class OAuthRefreshTokenService {
     }
     let scopes = this.narrowScopes(record.scopes, dto.scope);
 
-    const apiKey = await this.apiKeysService.findActiveById(record.apiKeyId);
+    // The refresh token outlives its access key, so an expired key is
+    // expected here; a revoked one is not.
+    const apiKey = await this.apiKeysService.findUnrevokedById(record.apiKeyId);
     if (
       !apiKey ||
       apiKey.organizationId !== record.organizationId ||
@@ -281,7 +293,7 @@ export class OAuthRefreshTokenService {
    * revealing whether the token existed or belonged to the client.
    */
   async revoke(dto: OAuthRevokeTokenDto): Promise<void> {
-    await this.clientService.requireClient(dto.client_id);
+    await this.requireClientAllowingOutage(dto.client_id);
 
     // The hint only orders the lookups; RFC 7009 §2.1 says to fall back to
     // the other token type when the hinted one does not match.

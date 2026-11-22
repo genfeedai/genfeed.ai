@@ -150,6 +150,7 @@ function createHookData(
     isLastChildGrokTweet: false,
     isLoading: false,
     isPublished: false,
+    isPublishBlocked: false,
     isSavingDescription: false,
     isSavingIngredients: false,
     isSavingSchedule: false,

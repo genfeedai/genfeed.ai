@@ -68,10 +68,26 @@ const REPOSITORY_CONTRACTS = [
   },
   { command: ['bun', 'run', 'check:tenant-scope'], name: 'tenant scope' },
   {
+    command: ['bun', 'run', 'check:final-attempt-failure'],
+    name: 'final-attempt failure',
+  },
+  {
     command: ['bun', 'run', 'check:test-id-literals'],
     name: 'test id literal guard',
   },
+  {
+    command: ['bun', 'run', 'check:test-module-providers'],
+    name: 'test module providers',
+  },
+  {
+    command: ['bun', 'run', 'check:http-timeout'],
+    name: 'outbound HTTP timeout',
+  },
   { command: ['bun', 'run', 'check:ui-guards'], name: 'UI guards' },
+  {
+    command: ['bun', 'run', 'check:window-open-after-await'],
+    name: 'window.open after await',
+  },
   { command: ['bun', 'run', 'design:check'], name: 'design system contracts' },
   {
     command: ['bun', 'run', 'check:serializer-drift'],

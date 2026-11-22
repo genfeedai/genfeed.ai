@@ -385,10 +385,9 @@ describe('ToolRegistryService — approval queue', () => {
         arguments: { release },
       });
       expect(client.createApproval).not.toHaveBeenCalled();
-      expect(client.createScheduledRelease).toHaveBeenCalledWith(
-        release,
-        undefined,
-      );
+      expect(client.createScheduledRelease.mock.calls).toEqual([
+        [release, expect.stringMatching(/^mcp-release:content:[0-9a-f]{64}$/)],
+      ]);
     },
   );
 

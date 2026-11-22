@@ -7,6 +7,10 @@ import { StripeWebhookBillingError } from '@api/endpoints/webhooks/stripe/stripe
 import { StripeWebhookErrorKind } from '@api/endpoints/webhooks/stripe/stripe-webhook-error.util';
 import { StripeWebhookController } from '@api/endpoints/webhooks/stripe/webhooks.stripe.controller';
 import type { StripeWebhookService } from '@api/endpoints/webhooks/stripe/webhooks.stripe.service';
+import {
+  RELEASE_OWNED_CLAIM_SCRIPT,
+  SET_OWNED_CLAIM_VALUE_SCRIPT,
+} from '@api/services/cache/cache-claim-scripts';
 import type { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
 import type { SystemEventsService } from '@api/services/system-events/system-events.service';
 import type { LoggerService } from '@libs/logger/logger.service';
@@ -32,12 +36,15 @@ describe('StripeWebhookController', () => {
   let recorded: Row[];
   let handled: [Row, string][];
   let claims: unknown[][];
-  let claimedKeys: Set<string>;
+  // The event-id keys in Redis: value and seconds left before expiry.
+  let store: Map<string, { ttl: number; value: string }>;
   let releasedKeys: string[];
   let logs: LogEntry[];
   let warnings: LogEntry[];
   let errors: LogEntry[];
   let handlerFailure: unknown;
+  // Runs inside the handler, to act as another delivery or process would.
+  let duringHandling: (() => Promise<void>) | undefined;
   let isEventStoreDown: boolean;
   let controller: StripeWebhookController;
 
@@ -60,24 +67,45 @@ describe('StripeWebhookController', () => {
     recorded = [];
     handled = [];
     claims = [];
-    claimedKeys = new Set();
+    store = new Map();
     releasedKeys = [];
     logs = [];
     warnings = [];
     errors = [];
     handlerFailure = undefined;
+    duringHandling = undefined;
     isEventStoreDown = false;
 
     const publisher = {
-      del: async (key: string) => {
-        releasedKeys.push(key);
-        return Number(claimedKeys.delete(key));
+      // Redis EVAL of the shared compare-and-set scripts, with their semantics.
+      eval: async (script: string, _keyCount: number, ...args: unknown[]) => {
+        if (script === SET_OWNED_CLAIM_VALUE_SCRIPT) {
+          const [claimKey, resultKey, token, value, ttl] = args as [
+            string,
+            string,
+            string,
+            string,
+            number,
+          ];
+          if (store.get(claimKey)?.value !== token) return 0;
+          store.set(resultKey, { ttl, value });
+          return 1;
+        }
+        if (script === RELEASE_OWNED_CLAIM_SCRIPT) {
+          const [claimKey, token] = args as [string, string];
+          if (store.get(claimKey)?.value !== token) return 0;
+          store.delete(claimKey);
+          releasedKeys.push(claimKey);
+          return 1;
+        }
+        throw new Error('Unexpected script');
       },
+      get: async (key: string) => store.get(key)?.value ?? null,
       // Redis SET NX: only the first delivery of an event id claims it.
-      set: async (key: string, ...options: unknown[]) => {
-        claims.push([key, ...options]);
-        if (claimedKeys.has(key)) return null;
-        claimedKeys.add(key);
+      set: async (key: string, value: string, ...options: unknown[]) => {
+        claims.push([key, value, ...options]);
+        if (store.has(key)) return null;
+        store.set(key, { ttl: Number(options[1]), value });
         return 'OK';
       },
     };
@@ -105,6 +133,7 @@ describe('StripeWebhookController', () => {
       {
         handleWebhookEvent: async (delivered: Row, url: string) => {
           timeline.push('handled');
+          await duringHandling?.();
           if (handlerFailure) throw handlerFailure;
           handled.push([delivered, url]);
         },
@@ -127,8 +156,13 @@ describe('StripeWebhookController', () => {
       [event, expect.stringContaining('StripeWebhookController')],
     ]);
     expect(claims).toEqual([
-      ['stripe:webhook:evt_1', expect.any(String), 'EX', 86_400, 'NX'],
+      ['stripe:webhook:evt_1', expect.any(String), 'EX', 300, 'NX'],
     ]);
+    // Promoted from in-progress to the 24 hour done marker.
+    expect(store.get('stripe:webhook:evt_1')).toEqual({
+      ttl: 86_400,
+      value: expect.not.stringContaining('in-progress:'),
+    });
     expect(logs).toEqual([
       [
         expect.stringContaining('webhook validated'),
@@ -219,10 +253,10 @@ describe('StripeWebhookController', () => {
       ],
     ]);
     expect(releasedKeys).toEqual(['stripe:webhook:evt_456']);
-    expect(claimedKeys.has('stripe:webhook:evt_456')).toBe(false);
+    expect(store.has('stripe:webhook:evt_456')).toBe(false);
   });
 
-  it('passes an expected handler 4xx through and keeps the key', async () => {
+  it('passes an expected handler 4xx through and releases the key so the redelivery is processed', async () => {
     const expected = new BadRequestException(
       'Managed checkout is not configured',
     );
@@ -239,7 +273,12 @@ describe('StripeWebhookController', () => {
         }),
       ],
     ]);
-    expect(releasedKeys).toEqual([]);
+    expect(releasedKeys).toEqual(['stripe:webhook:evt_1']);
+
+    failWith(undefined);
+    await expect(deliver()).resolves.toEqual({ success: true });
+
+    expect(handled).toHaveLength(1);
   });
 
   it('acknowledges a Prisma unique-constraint replay instead of a 500', async () => {
@@ -312,7 +351,67 @@ describe('StripeWebhookController', () => {
       ]);
       expect(errors).toEqual([]);
       expect(releasedKeys).toEqual([]);
-      expect(claimedKeys.has('stripe:webhook:evt_1')).toBe(true);
+      expect(store.get('stripe:webhook:evt_1')?.ttl).toBe(86_400);
     },
   );
+
+  it('processes a redelivery once an in-progress claim has expired', async () => {
+    // A process died mid-handler: the claim is still in progress, no one owns it.
+    store.set('stripe:webhook:evt_1', {
+      ttl: 300,
+      value: 'in-progress:dead-process',
+    });
+    await expect(deliver()).rejects.toMatchObject({ code: 'claim_in_flight' });
+    expect(handled).toEqual([]);
+
+    store.delete('stripe:webhook:evt_1'); // the 300 second TTL elapsed
+
+    await expect(deliver()).resolves.toEqual({ success: true });
+    expect(handled).toHaveLength(1);
+  });
+
+  it('acknowledges a redelivery of an event that completed, including one marked before in-progress claims existed', async () => {
+    store.set('stripe:webhook:evt_1', {
+      ttl: 86_400,
+      value: '2026-11-21T00:00:00.000Z',
+    });
+
+    await expect(deliver()).resolves.toEqual({ success: true });
+
+    expect(handled).toEqual([]);
+  });
+
+  it('never releases or promotes a claim another delivery owns now', async () => {
+    failWith(new Error('Processing failed'));
+    // Our claim expired mid-handler and a newer delivery took the key over.
+    duringHandling = async () => {
+      store.set('stripe:webhook:evt_1', {
+        ttl: 300,
+        value: 'in-progress:newer-delivery',
+      });
+    };
+
+    await expect(deliver()).rejects.toThrow('Processing failed');
+
+    expect(releasedKeys).toEqual([]);
+    expect(store.get('stripe:webhook:evt_1')?.value).toBe(
+      'in-progress:newer-delivery',
+    );
+  });
+
+  it('does not promote another delivery’s claim after the handler succeeds', async () => {
+    duringHandling = async () => {
+      store.set('stripe:webhook:evt_1', {
+        ttl: 300,
+        value: 'in-progress:newer-delivery',
+      });
+    };
+
+    await expect(deliver()).resolves.toEqual({ success: true });
+
+    expect(store.get('stripe:webhook:evt_1')).toEqual({
+      ttl: 300,
+      value: 'in-progress:newer-delivery',
+    });
+  });
 });

@@ -6,6 +6,7 @@ import {
 } from '@api/collections/credentials/dto/create-credential.dto';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { throwIfOAuthCallbackError } from '@api/collections/credentials/utils/oauth-callback-error.util';
+import { claimOAuthVerifyCredential } from '@api/collections/credentials/utils/oauth-verify-claim.util';
 import { SocialSourceHistoryImportService } from '@api/collections/social-sources/services/social-source-history-import.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -136,11 +137,15 @@ export class LinkedInController {
         });
       }
 
-      const existingCredential =
-        await this.credentialsService.findPendingOAuthCredential(
-          state,
-          CredentialPlatform.LINKEDIN,
-        );
+      const claim = await claimOAuthVerifyCredential(
+        this.credentialsService,
+        state,
+        CredentialPlatform.LINKEDIN,
+      );
+      if (claim?.alreadyConnected) {
+        return serializeSingle(request, CredentialSerializer, claim.credential);
+      }
+      const existingCredential = claim?.credential;
 
       if (!existingCredential) {
         return returnNotFound('Pending OAuth credential', state);

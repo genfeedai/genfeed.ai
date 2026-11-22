@@ -195,6 +195,16 @@ describe('PostDetailHeader', () => {
     expect(onPublishNow).not.toHaveBeenCalled();
   });
 
+  it('disables Publish now while a blocking save runs', () => {
+    renderHeader({}, { isPublishBlocked: true });
+    expect(screen.getByRole('button', { name: 'Publish now' })).toBeDisabled();
+  });
+
+  it('disables Schedule while a blocking save runs', () => {
+    renderHeader({}, { isPublishBlocked: true, isScheduleDirty: true });
+    expect(screen.getByRole('button', { name: 'Schedule' })).toBeDisabled();
+  });
+
   it('carries no primary action once the post is published', () => {
     renderHeader({}, { isPublished: true });
 

@@ -1,12 +1,9 @@
-import type {
-  TrendTimelineEntry,
-  TrendTurnoverStats,
-} from '@api/collections/trends/interfaces/trend-turnover.interface';
 import type { TrendingHashtagDocument } from '@api/collections/trends/schemas/trending-hashtag.schema';
 import type { TrendingSoundDocument } from '@api/collections/trends/schemas/trending-sound.schema';
 import type { TrendingVideoDocument } from '@api/collections/trends/schemas/trending-video.schema';
 import { TrendRefreshHealthService } from '@api/collections/trends/services/modules/trend-refresh-health.service';
 import { isWithinTimeframe } from '@api/collections/trends/utils/brand-niche.util';
+import { logTrendProviderFailure } from '@api/collections/trends/utils/trend-provider-failure-log.util';
 import {
   captureTrendRefreshEvidence,
   classifyTrendProviderError,
@@ -298,7 +295,8 @@ export class TrendVideoService {
                 ? 'persistence_failed'
                 : classifyTrendProviderError(error),
             );
-            this.loggerService.error(
+            logTrendProviderFailure(
+              this.loggerService,
               `Failed to fetch viral videos for ${platform}`,
               error,
             );
@@ -548,7 +546,8 @@ export class TrendVideoService {
                 ? 'persistence_failed'
                 : classifyTrendProviderError(error),
             );
-            this.loggerService.error(
+            logTrendProviderFailure(
+              this.loggerService,
               `Failed to fetch hashtags for ${platform}`,
               error,
             );
@@ -830,141 +829,5 @@ export class TrendVideoService {
           AND "expiresAt" <= CURRENT_TIMESTAMP`,
     };
     return sweeps[modelType]();
-  }
-
-  // ==================== Trend Turnover Analytics ====================
-
-  /**
-   * Aggregate trend appearance and death counts by platform
-   * across hashtags, videos, and sounds for a given period.
-   */
-  async getTurnoverStats(days: 7 | 30 | 90): Promise<TrendTurnoverStats[]> {
-    const periodStart = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
-
-    const [hashtagDocs, videoDocs, soundDocs] = await Promise.all([
-      this.prisma.trendingHashtag.findMany({
-        where: { createdAt: { gte: periodStart }, isDeleted: false },
-      }),
-      this.prisma.trendingVideo.findMany({
-        where: { createdAt: { gte: periodStart }, isDeleted: false },
-      }),
-      this.prisma.trendingSound.findMany({
-        where: { createdAt: { gte: periodStart }, isDeleted: false },
-      }),
-    ]);
-
-    type DocRow = { data: unknown; createdAt: Date };
-    const allDocs: DocRow[] = [
-      ...hashtagDocs.map((d) => ({ createdAt: d.createdAt, data: d.data })),
-      ...videoDocs.map((d) => ({ createdAt: d.createdAt, data: d.data })),
-      ...soundDocs.map((d) => ({ createdAt: d.createdAt, data: d.data })),
-    ];
-
-    const platformMap = new Map<
-      string,
-      { appeared: number; died: number; alive: number; totalLifespanMs: number }
-    >();
-
-    for (const row of allDocs) {
-      const d = row.data as Record<string, unknown>;
-      const platform = (d.platform as string) || 'unknown';
-      const isCurrent = d.isCurrent === true;
-      const lastSeenAt = d.lastSeenAt
-        ? new Date(d.lastSeenAt as string)
-        : row.createdAt;
-      const lifespanMs = isCurrent
-        ? 0
-        : lastSeenAt.getTime() - row.createdAt.getTime();
-
-      const existing = platformMap.get(platform) ?? {
-        alive: 0,
-        appeared: 0,
-        died: 0,
-        totalLifespanMs: 0,
-      };
-      platformMap.set(platform, {
-        alive: existing.alive + (isCurrent ? 1 : 0),
-        appeared: existing.appeared + 1,
-        died: existing.died + (isCurrent ? 0 : 1),
-        totalLifespanMs: existing.totalLifespanMs + lifespanMs,
-      });
-    }
-
-    return Array.from(platformMap.entries())
-      .map(([platform, stats]) => ({
-        alive: stats.alive,
-        appeared: stats.appeared,
-        avgLifespanDays:
-          stats.died > 0
-            ? Math.round((stats.totalLifespanMs / stats.died / 86400000) * 10) /
-              10
-            : 0,
-        died: stats.died,
-        platform,
-        turnoverRate:
-          stats.appeared > 0
-            ? Math.round((stats.died / stats.appeared) * 100)
-            : 0,
-      }))
-      .sort((a, b) => b.turnoverRate - a.turnoverRate);
-  }
-
-  /**
-   * Return daily buckets of trend births and deaths for the given period.
-   */
-  async getTrendTimeline(days: 7 | 30 | 90): Promise<TrendTimelineEntry[]> {
-    const periodStart = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
-
-    const [hashtagDocs, videoDocs, soundDocs] = await Promise.all([
-      this.prisma.trendingHashtag.findMany({
-        where: { isDeleted: false },
-      }),
-      this.prisma.trendingVideo.findMany({
-        where: { isDeleted: false },
-      }),
-      this.prisma.trendingSound.findMany({
-        where: { isDeleted: false },
-      }),
-    ]);
-
-    type DocRow = { data: unknown; createdAt: Date };
-    const allDocs: DocRow[] = [
-      ...hashtagDocs.map((d) => ({ createdAt: d.createdAt, data: d.data })),
-      ...videoDocs.map((d) => ({ createdAt: d.createdAt, data: d.data })),
-      ...soundDocs.map((d) => ({ createdAt: d.createdAt, data: d.data })),
-    ];
-
-    const birthMap = new Map<string, number>();
-    const deathMap = new Map<string, number>();
-
-    for (const row of allDocs) {
-      const d = row.data as Record<string, unknown>;
-      const isCurrent = d.isCurrent === true;
-
-      // births: created within the period
-      if (row.createdAt >= periodStart) {
-        const dateStr = row.createdAt.toISOString().slice(0, 10);
-        birthMap.set(dateStr, (birthMap.get(dateStr) ?? 0) + 1);
-      }
-
-      // deaths: not current, with lastSeenAt/updatedAt within period
-      if (!isCurrent && d.lastSeenAt) {
-        const deathDate = new Date(d.lastSeenAt as string);
-        if (deathDate >= periodStart) {
-          const dateStr = deathDate.toISOString().slice(0, 10);
-          deathMap.set(dateStr, (deathMap.get(dateStr) ?? 0) + 1);
-        }
-      }
-    }
-
-    const allDates = new Set([...birthMap.keys(), ...deathMap.keys()]);
-
-    return Array.from(allDates)
-      .sort()
-      .map((date) => ({
-        appeared: birthMap.get(date) ?? 0,
-        date,
-        died: deathMap.get(date) ?? 0,
-      }));
   }
 }

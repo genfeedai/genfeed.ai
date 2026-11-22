@@ -73,6 +73,34 @@ export function isReportableTokenExchangeFailure(
   );
 }
 
+type TokenExchangeLogContext = BetterAuthServerTokenFailure & {
+  fingerprint: string[];
+  reportToSentry: boolean;
+  tags: Record<string, string>;
+};
+
+/**
+ * One Sentry issue per cause: the reason plus the HTTP status or system error
+ * code. Without it every failed exchange lands in one warning titled by its
+ * message, and a 429 from the rate limiter reads the same as a reset socket.
+ * Carries no cookie or token (`BetterAuthServerTokenFailure` holds neither).
+ */
+export function toTokenExchangeLogContext(
+  failure: BetterAuthServerTokenFailure,
+): TokenExchangeLogContext {
+  const cause = String(failure.status ?? failure.code ?? 'none');
+
+  return {
+    ...failure,
+    fingerprint: ['better-auth-token-exchange', failure.reason, cause],
+    reportToSentry: isReportableTokenExchangeFailure(failure),
+    tags: {
+      auth_token_cause: cause,
+      auth_token_reason: failure.reason,
+    },
+  };
+}
+
 export const getServerAuthToken = cache(async (): Promise<string> => {
   if (await isProtectedBootstrapBypassed()) {
     return '';
@@ -90,10 +118,10 @@ export const getServerAuthToken = cache(async (): Promise<string> => {
     return (
       (await getBetterAuthServerToken(cookieHeader, {
         onFailure: (failure) =>
-          logger.warn('Better Auth token exchange failed', {
-            ...failure,
-            reportToSentry: isReportableTokenExchangeFailure(failure),
-          }),
+          logger.warn(
+            'Better Auth token exchange failed',
+            toTokenExchangeLogContext(failure),
+          ),
       })) ?? ''
     );
   } catch (error) {

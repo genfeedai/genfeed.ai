@@ -1,6 +1,7 @@
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
+import { UPLOAD_HTTP_TIMEOUT_MS } from '@api/constants/http-timeout.constant';
 import type { Models3dProviderData } from '@api/endpoints/v1/models3d/interfaces/models3d.interfaces';
 import {
   MODELS3D_BUILD_TIERS,
@@ -186,7 +187,9 @@ export class Models3dBuildService {
   }
 
   private async download(url: string): Promise<Buffer> {
-    const response = await fetch(url);
+    const response = await fetch(url, {
+      signal: AbortSignal.timeout(UPLOAD_HTTP_TIMEOUT_MS),
+    });
     if (!response.ok) {
       throw new Error(`Downloading the angle sheet failed: ${response.status}`);
     }
