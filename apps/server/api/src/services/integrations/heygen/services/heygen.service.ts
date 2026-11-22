@@ -11,6 +11,8 @@ import {
   toCatalogAvatar,
   voiceSchema,
 } from '@api/services/integrations/heygen/helpers/heygen-catalog';
+import { readHeyGenLookGroupId } from '@api/services/integrations/heygen/helpers/heygen-look-group';
+import { getHeyGenLookUnusableReason } from '@api/services/integrations/heygen/helpers/heygen-look-readiness';
 import {
   buildHeyGenSpeechBody,
   countHeyGenSpeechCharacters,
@@ -56,7 +58,6 @@ import { PollUntilService } from '@api/shared/services/poll-until/poll-until.ser
 import { ApiKeyCategory, ByokProvider } from '@genfeedai/contracts';
 import {
   type AvatarVideoAspectRatio,
-  getEligibleHeyGenAvatarEngines,
   type HeyGenAvatar6Resolution,
   type HeyGenAvatarEngine,
 } from '@genfeedai/contracts/constants';
@@ -611,8 +612,6 @@ export class HeyGenService {
           '/avatars/looks',
           connection.apiKey,
           50,
-          // The group filter narrows the listing to one avatar group, so a
-          // look is proven public/private without paging the whole catalogue.
           { ownership: partition, ...(groupId ? { group_id: groupId } : {}) },
           lookId,
         ));
@@ -639,34 +638,12 @@ export class HeyGenService {
                   groupUnavailable = true;
                 }
               }
-              const reason =
-                !look.avatar_type ||
-                !['studio_avatar', 'digital_twin', 'photo_avatar'].includes(
-                  look.avatar_type,
-                )
-                  ? 'Avatar type could not be verified.'
-                  : getEligibleHeyGenAvatarEngines({
-                        avatarType: look.avatar_type,
-                        supportedEngines: look.supported_api_engines,
-                      }).length === 0
-                    ? 'This look supports no HeyGen avatar engine Genfeed can price.'
-                    : partition === 'private' && look.status !== 'completed'
-                      ? 'This look has not completed training.'
-                      : partition === 'private' &&
-                          (groupUnavailable ||
-                            (look.group_id &&
-                              (!group || group.id !== look.group_id)))
-                        ? 'Avatar group readiness could not be verified.'
-                        : partition === 'private' &&
-                            group &&
-                            group.status !== 'completed'
-                          ? 'This avatar group is not ready.'
-                          : partition === 'private' &&
-                              group &&
-                              group.consent_status !== null &&
-                              group.consent_status !== 'accepted'
-                            ? 'Avatar consent is pending or rejected.'
-                            : null;
+              const reason = getHeyGenLookUnusableReason({
+                group,
+                groupUnavailable,
+                look,
+                partition,
+              });
               const avatarRef: HeyGenAvatarRef = {
                 version: 1,
                 source: 'heygen-look',
@@ -706,33 +683,6 @@ export class HeyGenService {
     return z.object({ data: groupSchema }).parse(response.data).data;
   }
 
-  /**
-   * The avatar group of a look, used only to narrow the filtered listing that
-   * proves ownership. Never trusted as proof itself, so any lookup failure
-   * falls back to the unfiltered listing.
-   */
-  private async readLookGroupId(
-    lookId: string,
-    apiKey: string,
-  ): Promise<string | null> {
-    try {
-      const response = await firstValueFrom(
-        this.httpService.get<unknown>(
-          `${this.endpoint}/avatars/looks/${encodeURIComponent(lookId)}`,
-          { headers: this.getHeaders(apiKey), timeout: 15_000 },
-        ),
-      );
-      const parsed = z
-        .object({
-          data: z.object({ group_id: z.string().nullish() }),
-        })
-        .safeParse(response.data);
-      return parsed.success ? (parsed.data.data.group_id ?? null) : null;
-    } catch {
-      return null;
-    }
-  }
-
   public async resolveAvatarSelection(
     candidate: HeyGenAvatarCandidate,
     organizationId: string,
@@ -757,12 +707,15 @@ export class HeyGenService {
         ? 'byok'
         : (candidate.connection?.kind ?? 'platform'),
     );
-    // The public catalogue holds thousands of looks, far more than one request
-    // can page through; a look is found through its avatar group instead.
+    // A public look is found through its avatar group, not by paging thousands.
     const groupId =
       candidate.ownership === 'public'
         ? (candidate.groupId ??
-          (await this.readLookGroupId(candidate.lookId, connection.apiKey)))
+          (await readHeyGenLookGroupId(
+            this.httpService,
+            `${this.endpoint}/avatars/looks/${encodeURIComponent(candidate.lookId)}`,
+            this.getHeaders(connection.apiKey),
+          )))
         : null;
     const catalog = await this.readAvatarCatalog(
       connection,
