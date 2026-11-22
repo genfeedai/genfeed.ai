@@ -1,3 +1,4 @@
+import { DEFAULT_HTTP_TIMEOUT_MS } from '@api/constants/http-timeout.constant';
 import { ApiKeyHelperModule } from '@api/services/api-key/api-key-helper.module';
 import { ByokModule } from '@api/services/byok/byok.module';
 import { HeyGenController } from '@api/services/integrations/heygen/controllers/heygen.controller';
@@ -14,7 +15,7 @@ import { Module } from '@nestjs/common';
 
 const BaseModule = createServiceModule(HeyGenService, {
   additionalImports: [
-    HttpModule,
+    HttpModule.register({ timeout: DEFAULT_HTTP_TIMEOUT_MS }),
     ApiKeyHelperModule,
     PollUntilModule,
     ByokModule,

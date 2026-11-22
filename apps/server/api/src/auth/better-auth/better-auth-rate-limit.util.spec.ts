@@ -18,11 +18,17 @@ import type {
   IBetterAuthRateLimitRedisClient,
   IBetterAuthRateLimitRedisCommands,
 } from './better-auth.types';
+import { createFakeRateLimitRedis } from './better-auth-rate-limit.testing';
 import { buildRedisRateLimitStore } from './better-auth-rate-limit.util';
 
 const KEY = 'ba:ratelimit:203.0.113.10|/sign-in/email';
-const VALUE = '{"count":1,"lastRequest":1}';
-const TTL_SECONDS = 60;
+const CONSUME_INPUT = {
+  identity: 'ip',
+  max: 3,
+  now: 1_000,
+  ttlSeconds: 60,
+  windowMs: 10_000,
+};
 const SIGNAL_INTERVAL_MS = 60_000;
 const REARM_FLOOR_MS = 5_000;
 
@@ -32,10 +38,7 @@ function createThrowingClient(
 ): IBetterAuthRateLimitRedisClient {
   return {
     instance: {
-      get: async () => {
-        throw error;
-      },
-      set: async () => {
+      eval: async () => {
         throw error;
       },
     },
@@ -66,17 +69,9 @@ interface IMutableRateLimitRedisClient {
   isReady: boolean;
 }
 
-/** A healthy client backed by an in-memory map, with a flippable ready flag. */
+/** A healthy client backed by an in-memory Redis, with a flippable ready flag. */
 function createRecoverableClient(): IMutableRateLimitRedisClient {
-  const entries = new Map<string, string>();
-  const instance: IBetterAuthRateLimitRedisCommands = {
-    get: async (key) => entries.get(key) ?? null,
-    set: async (key, value) => {
-      entries.set(key, value);
-      return 'OK';
-    },
-  };
-  return { instance, isReady: true };
+  return { instance: createFakeRateLimitRedis(), isReady: true };
 }
 
 describe('buildRedisRateLimitStore observability', () => {
@@ -88,7 +83,7 @@ describe('buildRedisRateLimitStore observability', () => {
     vi.useRealTimers();
   });
 
-  it('reports a thrown `get` while still failing open with null', async () => {
+  it('reports a thrown command while still failing open with null', async () => {
     const onDegraded =
       vi.fn<(event: IBetterAuthRateLimitDegradedEvent) => void>();
     const redisError = new Error('ECONNREFUSED');
@@ -96,33 +91,31 @@ describe('buildRedisRateLimitStore observability', () => {
       onDegraded,
     });
 
-    await expect(store.get(KEY)).resolves.toBeNull();
+    await expect(store.consume(KEY, CONSUME_INPUT)).resolves.toBeNull();
 
     expect(onDegraded).toHaveBeenCalledTimes(1);
     expect(onDegraded).toHaveBeenCalledWith({
       error: redisError,
-      operation: 'get',
+      operation: 'consume',
       reason: 'command-failed',
       suppressedCount: 0,
     });
   });
 
-  it('reports a thrown `set` while still failing open without rejecting', async () => {
+  it('reports an unusable script reply as a failed command', async () => {
     const onDegraded =
       vi.fn<(event: IBetterAuthRateLimitDegradedEvent) => void>();
-    const redisError = new Error('ECONNREFUSED');
-    const store = buildRedisRateLimitStore(createThrowingClient(redisError), {
-      onDegraded,
-    });
+    const store = buildRedisRateLimitStore(
+      { instance: { eval: async () => 'OK' }, isReady: true },
+      { onDegraded },
+    );
 
-    await expect(store.set(KEY, VALUE, TTL_SECONDS)).resolves.toBeUndefined();
+    await expect(store.consume(KEY, CONSUME_INPUT)).resolves.toBeNull();
 
     expect(onDegraded).toHaveBeenCalledTimes(1);
-    expect(onDegraded).toHaveBeenCalledWith({
-      error: redisError,
-      operation: 'set',
+    expect(onDegraded.mock.calls[0]?.[0]).toMatchObject({
+      operation: 'consume',
       reason: 'command-failed',
-      suppressedCount: 0,
     });
   });
 
@@ -136,11 +129,11 @@ describe('buildRedisRateLimitStore observability', () => {
       onDegraded,
     });
 
-    await expect(store.get(KEY)).resolves.toBeNull();
+    await expect(store.consume(KEY, CONSUME_INPUT)).resolves.toBeNull();
 
     expect(onDegraded).toHaveBeenCalledTimes(1);
     expect(onDegraded).toHaveBeenCalledWith({
-      operation: 'get',
+      operation: 'consume',
       reason: 'client-unavailable',
       suppressedCount: 0,
     });
@@ -159,17 +152,17 @@ describe('buildRedisRateLimitStore observability', () => {
       onDegraded,
     });
 
-    await store.get(KEY);
+    await store.consume(KEY, CONSUME_INPUT);
     for (let request = 0; request < 5; request += 1) {
-      await store.get(KEY);
-      await store.set(KEY, VALUE, TTL_SECONDS);
+      await store.consume(KEY, CONSUME_INPUT);
+      await store.consume(KEY, CONSUME_INPUT);
     }
 
     expect(onDegraded).toHaveBeenCalledTimes(1);
     expect(onDegraded.mock.calls[0]?.[0].suppressedCount).toBe(0);
 
     vi.advanceTimersByTime(SIGNAL_INTERVAL_MS);
-    await store.get(KEY);
+    await store.consume(KEY, CONSUME_INPUT);
 
     expect(onDegraded).toHaveBeenCalledTimes(2);
     // The 10 operations swallowed inside the closed window are accounted for,
@@ -192,35 +185,35 @@ describe('buildRedisRateLimitStore observability', () => {
     });
 
     client.isReady = false;
-    await store.get(KEY);
-    await store.set(KEY, VALUE, TTL_SECONDS);
+    await store.consume(KEY, CONSUME_INPUT);
+    await store.consume(KEY, CONSUME_INPUT);
     client.isReady = true;
-    await store.set(KEY, VALUE, TTL_SECONDS);
+    await store.consume(KEY, CONSUME_INPUT);
 
     expect(onRecovered).toHaveBeenCalledTimes(1);
     expect(onRecovered).toHaveBeenCalledWith({
       degradedCount: 2,
-      operation: 'set',
+      operation: 'consume',
     });
 
     // A healthy run must stay quiet…
-    await store.get(KEY);
+    await store.consume(KEY, CONSUME_INPUT);
     expect(onRecovered).toHaveBeenCalledTimes(1);
 
     // …a fresh outage inside the re-arm floor is still throttled, which is what
     // stops recovery from handing a flapping client an unthrottled channel…
     client.isReady = false;
-    await store.get(KEY);
+    await store.consume(KEY, CONSUME_INPUT);
     expect(onDegraded).toHaveBeenCalledTimes(1);
 
     // …and past the floor it signals, far sooner than the full window the first
     // outage opened, so a genuinely new outage is not silenced by the old one.
     vi.advanceTimersByTime(REARM_FLOOR_MS);
-    await store.get(KEY);
+    await store.consume(KEY, CONSUME_INPUT);
 
     expect(onDegraded).toHaveBeenCalledTimes(2);
     expect(onDegraded.mock.calls[1]?.[0]).toEqual({
-      operation: 'get',
+      operation: 'consume',
       reason: 'client-unavailable',
       suppressedCount: 1,
     });
@@ -244,9 +237,9 @@ describe('buildRedisRateLimitStore observability', () => {
 
     for (let request = 0; request < 20; request += 1) {
       client.isReady = false;
-      await store.get(KEY);
+      await store.consume(KEY, CONSUME_INPUT);
       client.isReady = true;
-      await store.get(KEY);
+      await store.consume(KEY, CONSUME_INPUT);
     }
 
     expect(onDegraded).toHaveBeenCalledTimes(1);
@@ -255,8 +248,7 @@ describe('buildRedisRateLimitStore observability', () => {
     expect(onRecovered).toHaveBeenCalledTimes(1);
 
     // Throttling the signal must not have touched the data path.
-    await store.set(KEY, VALUE, TTL_SECONDS);
-    await expect(store.get(KEY)).resolves.toBe(VALUE);
+    await expect(store.consume(KEY, CONSUME_INPUT)).resolves.not.toBeNull();
   });
 
   it('clamps a re-arm floor longer than the window itself', async () => {
@@ -272,24 +264,24 @@ describe('buildRedisRateLimitStore observability', () => {
     });
 
     client.isReady = false;
-    await store.get(KEY);
+    await store.consume(KEY, CONSUME_INPUT);
     client.isReady = true;
-    await store.get(KEY);
+    await store.consume(KEY, CONSUME_INPUT);
 
     client.isReady = false;
-    await store.get(KEY);
+    await store.consume(KEY, CONSUME_INPUT);
     expect(onDegraded).toHaveBeenCalledTimes(1);
 
     // Clamped, so the wait after recovery is one whole window at worst. Left
     // unclamped this floor would have pushed the next signal ten windows out —
     // the option would delay the very signal it exists to hurry along.
     vi.advanceTimersByTime(SIGNAL_INTERVAL_MS);
-    await store.get(KEY);
+    await store.consume(KEY, CONSUME_INPUT);
 
     expect(onDegraded).toHaveBeenCalledTimes(2);
   });
 
-  it('stays quiet and returns the stored value while Redis is healthy', async () => {
+  it('stays quiet and returns the decision while Redis is healthy', async () => {
     const onDegraded =
       vi.fn<(event: IBetterAuthRateLimitDegradedEvent) => void>();
     const onRecovered =
@@ -299,10 +291,16 @@ describe('buildRedisRateLimitStore observability', () => {
       onRecovered,
     });
 
-    await store.set(KEY, VALUE, TTL_SECONDS);
-
-    await expect(store.get(KEY)).resolves.toBe(VALUE);
-    await expect(store.get('ba:ratelimit:unseen')).resolves.toBeNull();
+    for (let request = 0; request < CONSUME_INPUT.max; request += 1) {
+      await expect(store.consume(KEY, CONSUME_INPUT)).resolves.toEqual({
+        allowed: true,
+        retryAfter: null,
+      });
+    }
+    await expect(store.consume(KEY, CONSUME_INPUT)).resolves.toEqual({
+      allowed: false,
+      retryAfter: 10,
+    });
     expect(onDegraded).not.toHaveBeenCalled();
     expect(onRecovered).not.toHaveBeenCalled();
   });
@@ -320,11 +318,13 @@ describe('buildRedisRateLimitStore observability', () => {
     const store = buildRedisRateLimitStore(client, { onDegraded, onRecovered });
 
     client.isReady = false;
-    await expect(store.get(KEY)).resolves.toBeNull();
-    await expect(store.set(KEY, VALUE, TTL_SECONDS)).resolves.toBeUndefined();
+    await expect(store.consume(KEY, CONSUME_INPUT)).resolves.toBeNull();
 
     client.isReady = true;
-    await expect(store.set(KEY, VALUE, TTL_SECONDS)).resolves.toBeUndefined();
+    await expect(store.consume(KEY, CONSUME_INPUT)).resolves.toEqual({
+      allowed: true,
+      retryAfter: null,
+    });
 
     expect(onDegraded).toHaveBeenCalled();
     expect(onRecovered).toHaveBeenCalled();
@@ -333,7 +333,6 @@ describe('buildRedisRateLimitStore observability', () => {
   it('fails open with no observers wired, exactly as before', async () => {
     const store = buildRedisRateLimitStore(createThrowingClient());
 
-    await expect(store.get(KEY)).resolves.toBeNull();
-    await expect(store.set(KEY, VALUE, TTL_SECONDS)).resolves.toBeUndefined();
+    await expect(store.consume(KEY, CONSUME_INPUT)).resolves.toBeNull();
   });
 });

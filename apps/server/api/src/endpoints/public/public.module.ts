@@ -13,6 +13,7 @@ import { ReferralsModule } from '@api/collections/referrals/referrals.module';
 import { VideosModule } from '@api/collections/videos/videos.module';
 import { WaitlistModule } from '@api/collections/waitlist/waitlist.module';
 import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
+import { DEFAULT_HTTP_TIMEOUT_MS } from '@api/constants/http-timeout.constant';
 import { PublicArticlesController } from '@api/endpoints/public/controllers/articles/public.articles.controller';
 import { PublicBrandOsController } from '@api/endpoints/public/controllers/brand-os/public.brand-os.controller';
 import { PublicBrandsController } from '@api/endpoints/public/controllers/brands/public.brands.controller';
@@ -68,7 +69,7 @@ import { Module } from '@nestjs/common';
     FilesClientModule,
     MediaUrlsModule,
     FileQueueModule,
-    HttpModule,
+    HttpModule.register({ timeout: DEFAULT_HTTP_TIMEOUT_MS }),
     ImagesModule,
     IngredientsModule,
     LinksModule,

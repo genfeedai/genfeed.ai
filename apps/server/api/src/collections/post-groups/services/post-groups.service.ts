@@ -1,6 +1,7 @@
 import type { PostGroupsQueryDto } from '@api/collections/post-groups/dto/post-groups-query.dto';
 import type { SchedulerPostGroup } from '@api/collections/post-groups/services/post-group.types';
 import { PostGroupContractService } from '@api/collections/post-groups/services/post-group-contract.service';
+import { PostGroupIdempotencyService } from '@api/collections/post-groups/services/post-group-idempotency.service';
 import { PostGroupPersistenceService } from '@api/collections/post-groups/services/post-group-persistence.service';
 import { PostGroupReadinessService } from '@api/collections/post-groups/services/post-group-readiness.service';
 import {
@@ -89,6 +90,7 @@ export class PostGroupsService {
     private readonly persistenceService: PostGroupPersistenceService,
     private readonly contractService: PostGroupContractService,
     private readonly readinessService: PostGroupReadinessService,
+    private readonly idempotency: PostGroupIdempotencyService,
   ) {}
 
   async create(
@@ -104,50 +106,46 @@ export class PostGroupsService {
       headerIdempotencyKey,
     );
 
-    if (input.idempotencyKey) {
-      const existing = await this.persistenceService.findByIdempotencyKey(
-        organizationId,
-        input.idempotencyKey,
-      );
-      if (existing) {
+    const { group, replayed } = await this.idempotency.run(
+      organizationId,
+      input.idempotencyKey,
+      async (idempotencyKey) => {
+        const status = this.contractService.resolveCreateStatus(input);
         assertApiKeyPublishingScope(
           apiKeyContext ?? {},
-          publishingCapabilityForReleaseStatus(existing.status),
+          status === ReleaseStatus.DRAFT ? 'draft' : 'schedule',
         );
-        if (existing.status === ReleaseStatus.SCHEDULED) {
-          await this.approveReleaseTargets(existing, userId, 'scheduled');
-        }
-        return existing;
-      }
-    }
-
-    const status = this.contractService.resolveCreateStatus(input);
-    assertApiKeyPublishingScope(
-      apiKeyContext ?? {},
-      status === ReleaseStatus.DRAFT ? 'draft' : 'schedule',
+        const scheduledAt = this.contractService.toDate(input.scheduledDate);
+        return this.prisma.$transaction((tx) =>
+          this.persistenceService.createPostGroup(tx, {
+            input: { ...input, idempotencyKey },
+            organizationId,
+            provenance,
+            scheduledAt,
+            status,
+            userId,
+          }),
+        );
+      },
     );
-    const scheduledAt = this.contractService.toDate(input.scheduledDate);
-    const release = await this.prisma.$transaction((tx) =>
-      this.persistenceService.createPostGroup(tx, {
-        input,
+
+    if (replayed) {
+      assertApiKeyPublishingScope(
+        apiKeyContext ?? {},
+        publishingCapabilityForReleaseStatus(group.status),
+      );
+    } else {
+      this.logger.debug('Created scheduler post group', {
+        groupId: group.id,
         organizationId,
-        provenance,
-        scheduledAt,
-        status,
-        userId,
-      }),
-    );
-
-    this.logger.debug('Created scheduler post group', {
-      groupId: release.id,
-      organizationId,
-      targetCount: release.targets?.length ?? 0,
-    });
-
-    if (release.status === ReleaseStatus.SCHEDULED) {
-      await this.approveReleaseTargets(release, userId, 'scheduled');
+        targetCount: group.targets?.length ?? 0,
+      });
     }
-    return release;
+
+    if (group.status === ReleaseStatus.SCHEDULED) {
+      await this.approveReleaseTargets(group, userId, 'scheduled');
+    }
+    return group;
   }
 
   async getOne(

@@ -1,3 +1,4 @@
+import { UPLOAD_HTTP_TIMEOUT_MS } from '@api/constants/http-timeout.constant';
 import {
   SERVER_TOKENS,
   type ServerCredentialStore,
@@ -284,6 +285,7 @@ describe('FacebookService', () => {
           title: 'title',
           description: 'caption',
         },
+        timeout: UPLOAD_HTTP_TIMEOUT_MS,
       },
     );
   });
