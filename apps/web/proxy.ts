@@ -2,6 +2,7 @@ import { resolveAuthContinuation } from '@genfeedai/auth-client/callback';
 import {
   getBetterAuthServerToken,
   isBetterAuthEnabled,
+  isTransientBetterAuthTokenFailure,
 } from '@genfeedai/auth-client/server';
 import {
   hasSingleStepOnboarding,
@@ -534,6 +535,13 @@ const bootstrapByRequest = new WeakMap<
   Map<string, Promise<BootstrapRead>>
 >();
 
+/**
+ * Longest the proxy waits on one API read. Every protected navigation waits on
+ * these, so a slow API must degrade to "unavailable" long before the platform
+ * kills the request.
+ */
+const PROXY_API_TIMEOUT_MS = 3_000;
+
 async function fetchBootstrap(token: string): Promise<BootstrapRead> {
   try {
     const response = await fetch(`${getApiBaseUrl()}/auth/bootstrap`, {
@@ -542,6 +550,7 @@ async function fetchBootstrap(token: string): Promise<BootstrapRead> {
         Accept: 'application/json',
         Authorization: `Bearer ${token}`,
       },
+      signal: AbortSignal.timeout(PROXY_API_TIMEOUT_MS),
     });
 
     if (!response.ok) {
@@ -634,6 +643,7 @@ async function readBootstrapWorkspaceSlugs(
             Accept: 'application/json',
             Authorization: `Bearer ${token}`,
           },
+          signal: AbortSignal.timeout(PROXY_API_TIMEOUT_MS),
         },
       );
     } catch {
@@ -946,19 +956,36 @@ function getBetterAuthSessionCookie(req: NextRequest): string | null {
   );
 }
 
+interface BearerTokenResult {
+  /**
+   * The exchange failed on a network error, timeout or 5xx. The API did not
+   * reject the session, so this is not a sign-out.
+   */
+  hasTransientFailure: boolean;
+  token: string | null;
+}
+
 async function getBetterAuthBearerToken(
   req: NextRequest,
-): Promise<string | null> {
+): Promise<BearerTokenResult> {
   const cookieHeader = req.headers.get('cookie');
   if (!cookieHeader) {
-    return null;
+    return { hasTransientFailure: false, token: null };
   }
 
+  let hasTransientFailure = false;
   // Every navigation and RSC prefetch passes through here. The shared helper
   // reuses one token per session, since `/token` is rate limited per client.
-  return getBetterAuthServerToken(cookieHeader, {
+  const token = await getBetterAuthServerToken(cookieHeader, {
+    onFailure: (failure) => {
+      if (failure.isFinal && isTransientBetterAuthTokenFailure(failure)) {
+        hasTransientFailure = true;
+      }
+    },
     tokenUrl: `${getApiBaseUrl()}/auth/token`,
   });
+
+  return { hasTransientFailure: token === null && hasTransientFailure, token };
 }
 
 /**
@@ -1165,7 +1192,8 @@ async function routeBetterAuthRequest(
   if (isBetterAuthPublicRoute(pathname)) {
     if (hasSession && pathname.startsWith('/login')) {
       const token =
-        options.preferredBearerToken ?? (await getBetterAuthBearerToken(req));
+        options.preferredBearerToken ??
+        (await getBetterAuthBearerToken(req)).token;
       let response = token
         ? await redirectSignedInUserToDefaultRoute(
             req,
@@ -1176,7 +1204,7 @@ async function routeBetterAuthRequest(
         : null;
 
       if (!response && options.preferredBearerToken) {
-        const fallbackToken = await getBetterAuthBearerToken(req);
+        const fallbackToken = (await getBetterAuthBearerToken(req)).token;
         response = fallbackToken
           ? await redirectSignedInUserToDefaultRoute(
               req,
@@ -1211,11 +1239,21 @@ async function routeBetterAuthRequest(
     return continueWithCurrentWorkspace(req, sessionCookie);
   }
 
-  const token =
-    options.preferredBearerToken ?? (await getBetterAuthBearerToken(req));
-  if (!token) {
-    return redirectToLoginPreservingDestination(req);
+  let resolvedToken = options.preferredBearerToken ?? null;
+  if (!resolvedToken) {
+    const tokenResult = await getBetterAuthBearerToken(req);
+    resolvedToken = tokenResult.token;
+    if (!resolvedToken) {
+      // A blip in the API must not sign the user out. The proxy only routes:
+      // the token picks the workspace and gates onboarding, and the API still
+      // authorises every data request, so continuing on the current path
+      // grants nothing. Only a rejected session goes to login.
+      return tokenResult.hasTransientFailure
+        ? continueWithCurrentWorkspace(req, sessionCookie)
+        : redirectToLoginPreservingDestination(req);
+    }
   }
+  const token: string = resolvedToken;
 
   // Better Auth always returns browser sign-ins to `/`. A validated product
   // continuation is carried as data on that fixed callback and consumed only
@@ -1254,7 +1292,7 @@ async function routeBetterAuthRequest(
       return resolved;
     }
 
-    const fallbackToken = await getBetterAuthBearerToken(req);
+    const fallbackToken = (await getBetterAuthBearerToken(req)).token;
     return fallbackToken
       ? resolveCanonicalProtectedPath(
           canonicalPathname,

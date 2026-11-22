@@ -5,7 +5,9 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
+  type BetterAuthServerTokenFailure,
   getBetterAuthServerToken,
+  isTransientBetterAuthTokenFailure,
   resetBetterAuthServerTokenCache,
 } from './server';
 
@@ -71,6 +73,62 @@ describe('getBetterAuthServerToken', () => {
       cookie: 'session=abc',
       [UNATTRIBUTED_FORWARDED_HEADER]: UNATTRIBUTED_FORWARDED_VALUE,
     });
+  });
+
+  it('gives every token request a timeout signal', async () => {
+    const fetchMock = vi.fn(async () => Response.json({ token: 'jwt' }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await getBetterAuthServerToken('session=abc');
+
+    const [, init] = fetchMock.mock.calls[0] as unknown as [
+      string,
+      RequestInit,
+    ];
+    expect(init.signal).toBeInstanceOf(AbortSignal);
+  });
+
+  it('reports a timeout as a final transient failure and does not cache it', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout'] });
+    const fetchMock = vi
+      .fn()
+      .mockRejectedValueOnce(new DOMException('timed out', 'TimeoutError'))
+      .mockRejectedValueOnce(new DOMException('timed out', 'TimeoutError'))
+      .mockResolvedValueOnce(Response.json({ token: 'jwt' }));
+    vi.stubGlobal('fetch', fetchMock);
+    const failures: BetterAuthServerTokenFailure[] = [];
+
+    const first = getBetterAuthServerToken('session=abc', {
+      onFailure: (failure) => failures.push(failure),
+    });
+    await vi.waitFor(async () => {
+      await vi.advanceTimersByTimeAsync(300);
+      expect(failures).toHaveLength(2);
+    });
+
+    await expect(first).resolves.toBeNull();
+    expect(failures.at(-1)?.isFinal).toBe(true);
+    expect(
+      isTransientBetterAuthTokenFailure(failures.at(-1) ?? failures[0]),
+    ).toBe(true);
+    await expect(getBetterAuthServerToken('session=abc')).resolves.toBe('jwt');
+  });
+
+  it.each([
+    [{ reason: 'network' as const }, true],
+    [{ reason: 'http' as const, status: 503 }, true],
+    [{ reason: 'prerender-ended' as const }, true],
+    [{ reason: 'http' as const, status: 401 }, false],
+    [{ reason: 'http' as const, status: 403 }, false],
+    [{ reason: 'missing-token' as const, status: 200 }, false],
+  ])('classifies %j as transient: %s', (partial, expected) => {
+    expect(
+      isTransientBetterAuthTokenFailure({
+        attempt: 1,
+        isFinal: true,
+        ...partial,
+      }),
+    ).toBe(expected);
   });
 
   it('requests the token from the URL the caller names', async () => {
