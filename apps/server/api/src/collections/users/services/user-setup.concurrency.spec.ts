@@ -8,9 +8,9 @@ import type { OrganizationsService } from '@api/collections/organizations/servic
 import type { RolesService } from '@api/collections/roles/services/roles.service';
 import type { SettingsService } from '@api/collections/settings/services/settings.service';
 import { UserSetupService } from '@api/collections/users/services/user-setup.service';
-import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import type { CacheService } from '@api/services/cache/cache.service';
 import type { LoggerService } from '@libs/logger/logger.service';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 interface Row {
   id: string;
@@ -25,7 +25,7 @@ const yieldTurn = () => new Promise<void>((resolve) => setImmediate(resolve));
  * callers interleave between a check and the create that follows it, exactly as
  * concurrent requests do against Postgres.
  */
-function buildFakeDatabase(options: { honourAdvisoryLock: boolean }) {
+function buildFakeDatabase(options: { cacheAvailable: boolean }) {
   const organizations: Row[] = [];
   const members: Row[] = [];
   const brands: Row[] = [];
@@ -34,50 +34,32 @@ function buildFakeDatabase(options: { honourAdvisoryLock: boolean }) {
   const creditBalances = new Set<string>();
   const signupGifts = new Set<string>();
   const billingAccounts = new Set<string>();
-  const heldKeys = new Map<string, Promise<void>>();
+  const claims = new Map<string, string>();
   let sequence = 0;
   const nextId = (prefix: string) => `${prefix}_${++sequence}`;
 
-  // Models `pg_advisory_xact_lock`: a second transaction on the same key blocks
-  // until the first one commits or rolls back.
-  const transaction = async <T>(
-    fn: (tx: {
-      $queryRaw: (strings: TemplateStringsArray, key: string) => Promise<[]>;
-    }) => Promise<T>,
-  ): Promise<T> => {
-    let release: () => void = () => undefined;
-    let ownedKey: string | null = null;
-    const tx = {
-      $queryRaw: async (_strings: TemplateStringsArray, key: string) => {
-        if (!options.honourAdvisoryLock) {
-          return [] as [];
-        }
-        for (;;) {
-          const holder = heldKeys.get(key);
-          if (!holder) {
-            break;
-          }
-          await holder;
-        }
-        ownedKey = key;
-        heldKeys.set(
-          key,
-          new Promise<void>((resolve) => {
-            release = resolve;
-          }),
-        );
-        return [] as [];
-      },
-    };
-    try {
-      return await fn(tx);
-    } finally {
-      if (ownedKey) {
-        heldKeys.delete(ownedKey);
+  // Real owned-claim semantics: set-if-absent, and only the owner releases.
+  const cache = {
+    acquireOwnedClaim: async (key: string, token: string) => {
+      await yieldTurn();
+      if (!options.cacheAvailable) {
+        return 'unavailable' as const;
       }
-      release();
-    }
+      if (claims.has(key)) {
+        return 'duplicate' as const;
+      }
+      claims.set(key, token);
+      return 'claimed' as const;
+    },
+    releaseOwnedClaim: async (key: string, token: string) => {
+      if (claims.get(key) !== token) {
+        return false;
+      }
+      claims.delete(key);
+      return true;
+    },
   };
+  const warn = vi.fn();
 
   const services = {
     billingAccountsService: {
@@ -195,20 +177,20 @@ function buildFakeDatabase(options: { honourAdvisoryLock: boolean }) {
       services.billingAccountsService as unknown as BillingAccountsService,
       services.creditBalanceService as unknown as CreditBalanceService,
       services.onboardingCreditGrantsService as unknown as OnboardingCreditGrantsService,
-      {
-        $transaction: transaction,
-      } as unknown as PrismaService,
+      cache as unknown as CacheService,
       {
         debug: vi.fn(),
         error: vi.fn(),
         log: vi.fn(),
-        warn: vi.fn(),
+        warn,
       } as unknown as LoggerService,
     );
 
   return {
     billingAccounts,
     brands,
+    claims,
+    warn,
     buildService,
     creditBalances,
     members,
@@ -221,12 +203,36 @@ function buildFakeDatabase(options: { honourAdvisoryLock: boolean }) {
 
 describe('UserSetupService concurrent first-run setup', () => {
   const userId = 'user_new';
+  const claimKey = `user-setup:${userId}`;
+
+  beforeEach(() => {
+    // Only timers are faked: the fake database yields through setImmediate.
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  // The fake database yields through real setImmediate while the claim wait
+  // uses faked timers, so alternate: drain real turns, then advance the clock.
+  const settle = async <T>(promises: Promise<T>[]): Promise<T[]> => {
+    let done = false;
+    const all = Promise.all(promises).finally(() => {
+      done = true;
+    });
+    for (let step = 0; step < 200 && !done; step += 1) {
+      await new Promise((resolve) => setImmediate(resolve));
+      await vi.advanceTimersByTimeAsync(150);
+    }
+    return all;
+  };
 
   it('creates exactly one organization and one set of defaults for four concurrent callers', async () => {
-    const db = buildFakeDatabase({ honourAdvisoryLock: true });
+    const db = buildFakeDatabase({ cacheAvailable: true });
     const service = db.buildService();
 
-    const results = await Promise.all(
+    const results = await settle(
       Array.from({ length: 4 }, () => service.initializeUserResources(userId)),
     );
 
@@ -244,14 +250,15 @@ describe('UserSetupService concurrent first-run setup', () => {
     expect(new Set(results.map((r) => r.member.id))).toEqual(
       new Set([db.members[0].id]),
     );
+    expect(db.claims.size).toBe(0);
   });
 
   it('returns the existing resources without creating anything when another caller finished first', async () => {
-    const db = buildFakeDatabase({ honourAdvisoryLock: true });
+    const db = buildFakeDatabase({ cacheAvailable: true });
     const service = db.buildService();
 
-    const first = await service.initializeUserResources(userId);
-    const second = await service.initializeUserResources(userId);
+    const [first] = await settle([service.initializeUserResources(userId)]);
+    const [second] = await settle([service.initializeUserResources(userId)]);
 
     expect(second.organization.id).toBe(first.organization.id);
     expect(second.brand.id).toBe(first.brand.id);
@@ -264,10 +271,10 @@ describe('UserSetupService concurrent first-run setup', () => {
   });
 
   it('does not serialise setup for different users', async () => {
-    const db = buildFakeDatabase({ honourAdvisoryLock: true });
+    const db = buildFakeDatabase({ cacheAvailable: true });
     const service = db.buildService();
 
-    await Promise.all([
+    await settle([
       service.initializeUserResources('user_a'),
       service.initializeUserResources('user_b'),
     ]);
@@ -276,14 +283,35 @@ describe('UserSetupService concurrent first-run setup', () => {
     expect(db.members).toHaveLength(2);
   });
 
-  it('shows the race the lock closes: without it, concurrent callers duplicate resources', async () => {
-    const db = buildFakeDatabase({ honourAdvisoryLock: false });
+  it('still completes setup when the cache is unavailable', async () => {
+    const db = buildFakeDatabase({ cacheAvailable: false });
     const service = db.buildService();
 
-    await Promise.all(
-      Array.from({ length: 2 }, () => service.initializeUserResources(userId)),
-    );
+    const [result] = await settle([service.initializeUserResources(userId)]);
 
-    expect(db.organizations.length).toBeGreaterThan(1);
+    expect(result.organization.id).toBe(db.organizations[0].id);
+    expect(db.organizations).toHaveLength(1);
+    expect(db.members).toHaveLength(1);
+  });
+
+  it('completes without duplicates when the wait is exhausted after the holder finished', async () => {
+    const db = buildFakeDatabase({ cacheAvailable: true });
+    const service = db.buildService();
+    const [first] = await settle([service.initializeUserResources(userId)]);
+    // The holder finished but its claim is still standing (lost release).
+    db.claims.set(claimKey, 'finished-holder');
+
+    const [second] = await settle([service.initializeUserResources(userId)]);
+
+    expect(second.organization.id).toBe(first.organization.id);
+    expect(second.member.id).toBe(first.member.id);
+    expect(db.organizations).toHaveLength(1);
+    expect(db.members).toHaveLength(1);
+    expect(db.brands).toHaveLength(1);
+    expect(db.claims.get(claimKey)).toBe('finished-holder');
+    expect(db.warn).toHaveBeenCalledWith(
+      expect.stringContaining('Timed out waiting for the user setup claim'),
+      'UserSetupService',
+    );
   });
 });

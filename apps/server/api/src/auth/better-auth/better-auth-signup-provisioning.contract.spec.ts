@@ -16,6 +16,7 @@ import type {
   TransactionUtil,
 } from '@api/helpers/utils/transaction/transaction.util';
 import type { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
+import type { CacheService } from '@api/services/cache/cache.service';
 import type { LifecycleEmailService } from '@api/services/lifecycle-emails/lifecycle-email.service';
 import type { SignupPrefillWorkflowService } from '@api/services/signup-prefill/signup-prefill-workflow.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -171,10 +172,9 @@ function createSignupProvisioningHarness() {
     creditBalanceService as unknown as CreditBalanceService,
     creditsUtilsService as unknown as OnboardingCreditGrantsService,
     {
-      $transaction: async (
-        fn: (tx: { $queryRaw: ReturnType<typeof vi.fn> }) => Promise<unknown>,
-      ) => fn({ $queryRaw: vi.fn().mockResolvedValue([]) }),
-    } as unknown as PrismaService,
+      acquireOwnedClaim: vi.fn().mockResolvedValue('claimed'),
+      releaseOwnedClaim: vi.fn().mockResolvedValue(true),
+    } as unknown as CacheService,
     logger as unknown as LoggerService,
   );
   const listener = new UserProvisioningListener(
