@@ -61,6 +61,7 @@ describe('ModelDiscoveryService', () => {
     findAllActive: ReturnType<typeof vi.fn>;
     create: ReturnType<typeof vi.fn>;
     patch: ReturnType<typeof vi.fn>;
+    prisma: { model: { findMany: ReturnType<typeof vi.fn> } };
   };
   let mockConfigService: {
     get: ReturnType<typeof vi.fn>;
@@ -85,6 +86,7 @@ describe('ModelDiscoveryService', () => {
       findAllActive: vi.fn().mockResolvedValue([]),
       findOne: vi.fn().mockResolvedValue(null),
       patch: vi.fn().mockResolvedValue(undefined),
+      prisma: { model: { findMany: vi.fn().mockResolvedValue([]) } },
     };
 
     // The Jev adapter's wire format is still being fixed (#4910), so every
@@ -114,6 +116,28 @@ describe('ModelDiscoveryService', () => {
     );
   });
 
+  describe('findTakenKeys', () => {
+    it('returns the keys a registry row already holds', async () => {
+      mockModelsService.prisma.model.findMany.mockResolvedValue([
+        { key: 'openai/gpt-4o' },
+      ]);
+
+      const taken = await service.findTakenKeys([
+        'openai/gpt-4o',
+        'google/imagen-5',
+      ]);
+
+      expect([...taken]).toEqual(['openai/gpt-4o']);
+    });
+
+    it('returns no keys without querying when none are asked about', async () => {
+      const taken = await service.findTakenKeys([]);
+
+      expect(taken.size).toBe(0);
+      expect(mockModelsService.prisma.model.findMany).not.toHaveBeenCalled();
+    });
+  });
+
   describe('createDraftModel', () => {
     const modelInfo: IModelDiscoveryInput = {
       category: ModelCategory.IMAGE,
@@ -133,6 +157,53 @@ describe('ModelDiscoveryService', () => {
 
       expect(result).toBeNull();
       expect(mockModelsService.create).not.toHaveBeenCalled();
+    });
+
+    it('skips a model whose key a row of another provider or a retired row holds', async () => {
+      mockModelsService.prisma.model.findMany.mockResolvedValue([
+        { key: 'acme-labs/test-model' },
+      ]);
+
+      const result = await service.createDraftModel(modelInfo);
+
+      expect(result).toBeNull();
+      expect(mockModelsService.create).not.toHaveBeenCalled();
+      expect(mockLoggerService.error).not.toHaveBeenCalled();
+    });
+
+    it('treats a unique-constraint failure from a concurrent run as a skip, not an error', async () => {
+      mockModelsService.create.mockRejectedValue(
+        Object.assign(new Error('Unique constraint failed on key'), {
+          code: 'P2002',
+        }),
+      );
+
+      const result = await service.createDraftModel(modelInfo);
+
+      expect(result).toBeNull();
+      expect(mockLoggerService.error).not.toHaveBeenCalled();
+    });
+
+    it('logs any other failure with the underlying error in the trace slot', async () => {
+      const failure = Object.assign(new Error('null value in column "label"'), {
+        code: 'P2011',
+      });
+      mockModelsService.create.mockRejectedValue(failure);
+
+      const result = await service.createDraftModel(modelInfo);
+
+      expect(result).toBeNull();
+      expect(mockLoggerService.error.mock.calls).toEqual([
+        [
+          'ModelDiscoveryService createDraftModel failed to create draft model: acme-labs/test-model',
+          failure,
+          {
+            category: ModelCategory.IMAGE,
+            endpoint: 'acme-labs/test-model',
+            provider: ModelProvider.REPLICATE,
+          },
+        ],
+      ]);
     });
 
     it('should create draft model when it does not exist', async () => {
