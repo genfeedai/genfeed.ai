@@ -35,6 +35,19 @@ export class E2ETestModule {
     };
   }
 
+  /** A module that keeps its providers private except for what it exports. */
+  static async forPrivate(options: { providers?: unknown[] } = {}) {
+    return {
+      exports: [LoggerService],
+      module: E2ETestModule,
+      providers: [...DEFAULT_PROVIDERS, ...(options.providers ?? [])],
+    };
+  }
+
+  static async forLooping() {
+    return E2ETestModule.forLooping();
+  }
+
   static async forTasks(options: { providers?: unknown[] } = {}) {
     return E2ETestModule.forRoot({
       controllers: [TasksController],
@@ -103,7 +116,42 @@ export class TokenConsumerService {
   constructor(@Inject(RUNNER) private readonly runner: unknown) {}
 }
 `,
-  'src/tokens.ts': "export const RUNNER = Symbol('runner');\n",
+  'src/tokens.ts': `
+export const RUNNER = Symbol('runner');
+export const MAYBE = 'maybe';
+export const OTHER_RUNNER = Symbol('runner');
+`,
+  'src/alias-consumer.service.ts': `
+import { Inject as InjectToken } from '@nestjs/common';
+import { RUNNER } from './tokens';
+
+export class AliasConsumerService {
+  constructor(@InjectToken(RUNNER) private readonly runner: unknown) {}
+}
+`,
+  'src/optional-consumer.service.ts': `
+import { Inject, Optional } from '@nestjs/common';
+import { MAYBE } from './tokens';
+
+export class OptionalConsumerService {
+  constructor(@Optional() @Inject(MAYBE) private readonly maybe?: unknown) {}
+}
+`,
+  'src/required-consumer.service.ts': `
+import { Inject } from '@nestjs/common';
+import { MAYBE } from './tokens';
+
+export class RequiredConsumerService {
+  constructor(@Inject(MAYBE) private readonly maybe: unknown) {}
+}
+`,
+  'src/existing-consumer.service.ts': `
+import { LoggerService } from './logger.service';
+
+export class ExistingConsumerService {
+  constructor(private readonly logger: LoggerService) {}
+}
+`,
   'test/e2e-test.module.ts': HARNESS_MODULE,
 };
 
@@ -147,8 +195,12 @@ import { PostGroupIdempotencyService } from '../src/post-group-idempotency.servi
 import { PostGroupsService } from '../src/post-groups.service';
 import { QueueConsumerService } from '../src/queue-consumer.service';
 import { MAIL_QUEUE } from '../src/queue-names';
+import { AliasConsumerService } from '../src/alias-consumer.service';
+import { ExistingConsumerService } from '../src/existing-consumer.service';
+import { OptionalConsumerService } from '../src/optional-consumer.service';
+import { RequiredConsumerService } from '../src/required-consumer.service';
 import { TokenConsumerService } from '../src/token-consumer.service';
-import { RUNNER } from '../src/tokens';
+import { MAYBE, OTHER_RUNNER, RUNNER } from '../src/tokens';
 import { getQueueToken } from '@nestjs/bullmq';
 `;
 
@@ -182,7 +234,8 @@ describe('check-test-module-providers', () => {
     `);
 
     expect(result.violations).toEqual([]);
-    expect(result.checked).toBeGreaterThan(0);
+    expect(result.checked).toBe(2);
+    expect(result.skipped).toEqual([]);
   });
 
   it('names a collaborator a controller gained behind a forX helper (#9986)', () => {
@@ -207,6 +260,8 @@ describe('check-test-module-providers', () => {
     `);
 
     expect(result.violations).toEqual([]);
+    expect(result.checked).toBe(1);
+    expect(result.skipped).toEqual([]);
   });
 
   it('reads a Test.createTestingModule literal with no factory', () => {
@@ -232,15 +287,22 @@ describe('check-test-module-providers', () => {
     `);
 
     expect(result.violations).toEqual([]);
+    expect(result.checked).toBe(1);
+    expect(result.skipped).toEqual([]);
   });
 
-  it('does not require an @Optional collaborator', () => {
-    const result = check(`${HEADER}
-      await E2ETestModule.forTasks({ providers: [] });
+  it('does not require an @Optional collaborator, and requires the same token without it', () => {
+    const optional = check(`${HEADER}
+      await E2ETestModule.forRoot({ providers: [OptionalConsumerService] });
+    `);
+    const required = check(`${HEADER}
+      await E2ETestModule.forRoot({ providers: [RequiredConsumerService] });
     `);
 
-    expect(result.violations.map((violation) => violation.parameter)).toEqual([
-      'review',
+    expect(optional.violations).toEqual([]);
+    expect(optional.checked).toBe(1);
+    expect(required.violations.map((violation) => violation.missing)).toEqual([
+      'MAYBE',
     ]);
   });
 
@@ -261,6 +323,8 @@ describe('check-test-module-providers', () => {
       'MAIL_QUEUE',
     ]);
     expect(provided.violations).toEqual([]);
+    expect(provided.checked).toBe(1);
+    expect(provided.skipped).toEqual([]);
   });
 
   it('reads queue tokens built by mapping over queue names', () => {
@@ -277,6 +341,8 @@ describe('check-test-module-providers', () => {
     `);
 
     expect(result.violations).toEqual([]);
+    expect(result.checked).toBe(1);
+    expect(result.skipped).toEqual([]);
   });
 
   it('names a missing @Inject token', () => {
@@ -293,6 +359,8 @@ describe('check-test-module-providers', () => {
       'RUNNER',
     ]);
     expect(fixed.violations).toEqual([]);
+    expect(fixed.checked).toBe(1);
+    expect(fixed.skipped).toEqual([]);
   });
 
   it('skips a module it cannot read completely instead of calling it clean', () => {
@@ -348,5 +416,338 @@ describe('check-test-module-providers', () => {
     expect(result.violations.map((violation) => violation.missing)).toEqual([
       'PostGroupIdempotencyService',
     ]);
+  });
+  it('matches a string constant to the literal it holds, and keeps symbols apart', () => {
+    const byLiteral = check(`${HEADER}
+      await E2ETestModule.forRoot({
+        providers: [RequiredConsumerService, { provide: 'maybe', useValue: {} }],
+      });
+    `);
+    const byConstant = check(`${HEADER}
+      await E2ETestModule.forRoot({
+        providers: [RequiredConsumerService, { provide: MAYBE, useValue: {} }],
+      });
+    `);
+    const otherSymbol = check(`${HEADER}
+      await E2ETestModule.forRoot({
+        providers: [TokenConsumerService, { provide: OTHER_RUNNER, useValue: {} }],
+      });
+    `);
+
+    expect(byLiteral.violations).toEqual([]);
+    expect(byLiteral.checked).toBe(1);
+    expect(byConstant.violations).toEqual([]);
+    expect(byConstant.checked).toBe(1);
+    expect(
+      otherSymbol.violations.map((violation) => violation.missing),
+    ).toEqual(['RUNNER']);
+  });
+
+  it('names the target of a useExisting alias', () => {
+    const missing = check(`${HEADER}
+      await E2ETestModule.forRoot({
+        providers: [{ provide: 'alias', useExisting: ExistingConsumerService }],
+      });
+    `);
+    const provided = check(`${HEADER}
+      await E2ETestModule.forRoot({
+        providers: [
+          ExistingConsumerService,
+          { provide: 'alias', useExisting: ExistingConsumerService },
+        ],
+      });
+    `);
+
+    expect(missing.violations).toEqual([
+      expect.objectContaining({
+        missing: 'ExistingConsumerService',
+        neededBy: 'the provider for "alias"',
+        parameter: 'inject',
+      }),
+    ]);
+    expect(provided.violations).toEqual([]);
+    expect(provided.checked).toBe(1);
+  });
+
+  it('checks the inject list of a factory provider that builds no class', () => {
+    const missing = check(`${HEADER}
+      await E2ETestModule.forRoot({
+        providers: [
+          {
+            provide: 'client',
+            useFactory: () => ({}),
+            inject: [PostGroupIdempotencyService],
+          },
+        ],
+      });
+    `);
+    const replaced = check(`${HEADER}
+      await E2ETestModule.forRoot({
+        providers: [
+          {
+            provide: 'client',
+            useFactory: () => ({}),
+            inject: [PostGroupIdempotencyService],
+          },
+          { provide: 'client', useValue: {} },
+        ],
+      });
+    `);
+
+    expect(missing.violations).toEqual([
+      expect.objectContaining({
+        missing: 'PostGroupIdempotencyService',
+        neededBy: 'the provider for "client"',
+      }),
+    ]);
+    expect(replaced.violations).toEqual([]);
+    expect(replaced.checked).toBe(1);
+  });
+
+  it('expands a list spread at every site, so a later spread restores a replaced class', () => {
+    const result = check(`${HEADER}
+      const real = [PostGroupsService];
+      await E2ETestModule.forRoot({
+        providers: [...real, { provide: PostGroupsService, useValue: {} }, ...real],
+      });
+    `);
+
+    expect(result.violations.map((violation) => violation.missing)).toEqual([
+      'PostGroupIdempotencyService',
+    ]);
+  });
+
+  it('follows only the branch that runs when the condition is known', () => {
+    const dropped = check(`${HEADER}
+      await E2ETestModule.forRoot({
+        providers: [PostGroupsService, ...(false ? [PostGroupIdempotencyService] : [])],
+      });
+    `);
+    const kept = check(`${HEADER}
+      await E2ETestModule.forRoot({
+        providers: [PostGroupsService, ...(true ? [PostGroupIdempotencyService] : [])],
+      });
+    `);
+    const nullish = check(`${HEADER}
+      await E2ETestModule.forRoot({
+        providers: [PostGroupsService, ...([] ?? [PostGroupIdempotencyService])],
+      });
+    `);
+
+    expect(dropped.violations.map((violation) => violation.missing)).toEqual([
+      'PostGroupIdempotencyService',
+    ]);
+    expect(kept.violations).toEqual([]);
+    expect(kept.checked).toBe(1);
+    expect(nullish.violations.map((violation) => violation.missing)).toEqual([
+      'PostGroupIdempotencyService',
+    ]);
+  });
+
+  it('skips a gap that only a branch it cannot decide supplies', () => {
+    const result = check(`${HEADER}
+      declare const flag: boolean;
+      await E2ETestModule.forRoot({
+        providers: [PostGroupsService, ...(flag ? [PostGroupIdempotencyService] : [])],
+      });
+    `);
+
+    expect(result.violations).toEqual([]);
+    expect(result.checked).toBe(0);
+    expect(result.skipped).toHaveLength(1);
+  });
+
+  it('does not treat slice, filter or a re-mapping map as a passthrough', () => {
+    const sliced = check(`${HEADER}
+      await E2ETestModule.forRoot({
+        providers: [PostGroupsService, ...[PostGroupIdempotencyService].slice(1)],
+      });
+    `);
+    const filtered = check(`${HEADER}
+      await E2ETestModule.forRoot({
+        providers: [
+          PostGroupsService,
+          ...[PostGroupIdempotencyService].filter(() => false),
+        ],
+      });
+    `);
+    const remapped = check(`${HEADER}
+      await E2ETestModule.forRoot({
+        providers: [
+          PostGroupsService,
+          ...[PostGroupIdempotencyService].map(() => LoggerService),
+        ],
+      });
+    `);
+
+    for (const result of [sliced, filtered, remapped]) {
+      expect(result.violations).toEqual([]);
+      expect(result.checked).toBe(0);
+      expect(result.skipped).toHaveLength(1);
+    }
+  });
+
+  it('keeps a provider list that a map returns unchanged or rebuilt', () => {
+    const result = check(`${HEADER}
+      await E2ETestModule.forRoot({
+        providers: [
+          ...[PostGroupsService, PostGroupIdempotencyService].map((provider) => {
+            if (provider === PostGroupsService) {
+              return { ...provider, useFactory: () => ({}) };
+            }
+            return provider;
+          }),
+        ],
+      });
+    `);
+
+    expect(result.violations).toEqual([]);
+    expect(result.checked).toBe(1);
+  });
+
+  it('keeps a module’s providers private unless it exports them', () => {
+    const leaked = check(`${HEADER}
+      const priv = await E2ETestModule.forPrivate({
+        providers: [PostGroupIdempotencyService],
+      });
+      await Test.createTestingModule({
+        imports: [priv],
+        providers: [PostGroupsService],
+      }).compile();
+    `);
+    const exported = check(`${HEADER}
+      const priv = await E2ETestModule.forPrivate({
+        providers: [PostGroupsService, PostGroupIdempotencyService],
+      });
+      await Test.createTestingModule({ imports: [priv] }).compile();
+    `);
+
+    expect(leaked.violations).toEqual([
+      expect.objectContaining({
+        definition: 'Test.createTestingModule',
+        missing: 'PostGroupIdempotencyService',
+        neededBy: 'PostGroupsService',
+      }),
+    ]);
+    expect(exported.violations).toEqual([]);
+    expect(exported.checked).toBe(2);
+  });
+
+  it('reads an options variable instead of treating it as omitted', () => {
+    const readable = check(`${HEADER}
+      const options = { providers: [PostGroupsService] };
+      await E2ETestModule.forRoot(options);
+    `);
+    const unreadable = check(`${HEADER}
+      declare const options: { providers: unknown[] };
+      await E2ETestModule.forRoot(options);
+    `);
+
+    expect(readable.violations.map((violation) => violation.missing)).toEqual([
+      'PostGroupIdempotencyService',
+    ]);
+    expect(unreadable.violations).toEqual([]);
+    expect(unreadable.checked).toBe(0);
+    expect(unreadable.skipped).toHaveLength(1);
+  });
+
+  it('reads spread metadata in assignment order and skips a spread it cannot read', () => {
+    const spread = check(`${HEADER}
+      const metadata = { providers: [PostGroupsService, LoggerService] };
+      await Test.createTestingModule({ ...metadata }).compile();
+    `);
+    const overridden = check(`${HEADER}
+      const metadata = { providers: [PostGroupsService] };
+      await Test.createTestingModule({
+        ...metadata,
+        providers: [PostGroupsService, PostGroupIdempotencyService, LoggerService],
+      }).compile();
+    `);
+    const unreadable = check(`${HEADER}
+      declare const metadata: object;
+      await Test.createTestingModule({
+        providers: [PostGroupsService],
+        ...metadata,
+      }).compile();
+    `);
+
+    expect(spread.violations.map((violation) => violation.missing)).toEqual([
+      'PostGroupIdempotencyService',
+    ]);
+    expect(overridden.violations).toEqual([]);
+    expect(overridden.checked).toBe(1);
+    expect(unreadable.violations).toEqual([]);
+    expect(unreadable.skipped).toHaveLength(1);
+  });
+
+  it('does not recurse through a factory that calls itself', () => {
+    const result = check(`${HEADER}
+      await E2ETestModule.forLooping();
+    `);
+
+    expect(result.violations).toEqual([]);
+    expect(result.checked).toBe(0);
+    expect(result.skipped).toHaveLength(1);
+  });
+
+  it('reads a Nest decorator through the name it is imported as', () => {
+    const result = check(`${HEADER}
+      await E2ETestModule.forRoot({ providers: [AliasConsumerService] });
+    `);
+
+    expect(result.violations.map((violation) => violation.missing)).toEqual([
+      'RUNNER',
+    ]);
+  });
+
+  it('reports a queue it cannot look up as skipped, and still reports other gaps', () => {
+    const result = check(`${HEADER}
+      declare const queues: Map<string, unknown>;
+      await E2ETestModule.forRoot({
+        providers: [
+          QueueConsumerService,
+          PostGroupsService,
+          ...[...queues].map(([name, queue]) => ({
+            provide: getQueueToken(name),
+            useValue: queue,
+          })),
+        ],
+      });
+    `);
+
+    expect(result.violations.map((violation) => violation.missing)).toEqual([
+      'PostGroupIdempotencyService',
+    ]);
+    expect(result.skipped).toHaveLength(1);
+    expect(result.skipped[0]?.reason).toContain('queue');
+  });
+
+  it('skips an unreadable-provider definition whichever order the file lists it in', () => {
+    const result = check(`${HEADER}
+      declare const names: string[];
+      await E2ETestModule.forRoot({ providers: [PostGroupsService] });
+      await E2ETestModule.forRoot({
+        providers: [
+          PostGroupsService,
+          ...names.map((name) => ({ provide: name, useValue: {} })),
+        ],
+      });
+    `);
+
+    expect(result.violations).toHaveLength(1);
+    expect(result.checked).toBe(1);
+    expect(result.skipped).toHaveLength(1);
+  });
+
+  it('skips a module whose compile is given a mocker', () => {
+    const mocked = check(`${HEADER}
+      await Test.createTestingModule({ providers: [PostGroupsService] })
+        .useMocker(() => ({}))
+        .compile();
+    `);
+
+    expect(mocked.violations).toEqual([]);
+    expect(mocked.checked).toBe(0);
+    expect(mocked.skipped).toHaveLength(1);
   });
 });
