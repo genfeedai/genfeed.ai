@@ -1,3 +1,4 @@
+import { isFinalAttempt } from '@files/processors/video-processor.util';
 import { YoutubeService } from '@files/services/youtube/youtube.service';
 import {
   JobResult,
@@ -60,16 +61,18 @@ export class YoutubeProcessor extends WorkerHost {
         `YouTube upload failed for post ${postId}: ${(error as Error)?.message}`,
         error,
       );
-      // The video is already on YouTube: a retry only redoes the follow-up.
-      if (job.data.externalId) throw error;
-      await this.publishYoutubeCompletion(
-        postId,
-        userId,
-        organizationId,
-        'failed',
-        null,
-        (error as Error)?.message,
-      );
+      // Once the video is on YouTube a retry only redoes the follow-up, so
+      // the post is never reported as failed.
+      if (isFinalAttempt(job) && !job.data.externalId) {
+        await this.publishYoutubeCompletion(
+          postId,
+          userId,
+          organizationId,
+          'failed',
+          null,
+          (error as Error)?.message,
+        );
+      }
       throw error;
     }
   }

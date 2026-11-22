@@ -176,15 +176,19 @@ export class WorkflowApiService extends HTTPBaseService {
   }
 
   /** Get a single workflow by ID */
-  async get(id: string): Promise<CloudWorkflowData> {
+  async get(id: string, signal?: AbortSignal): Promise<CloudWorkflowData> {
     try {
       const response = await this.instance.get<JsonApiResponseDocument>(
         `/${id}`,
+        { signal },
       );
       const item = deserializeResource<CloudWorkflowData>(response.data);
       return this.normalizeWorkflowData(item);
     } catch (error) {
-      logger.error('Failed to get workflow', { error, workflowId: id });
+      // A read superseded by navigation is not a failure worth reporting.
+      if (!isCancelledRequest(error)) {
+        logger.error('Failed to get workflow', { error, workflowId: id });
+      }
       throw error;
     }
   }
