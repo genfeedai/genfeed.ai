@@ -1,17 +1,61 @@
+import { randomUUID } from 'node:crypto';
 import type { PostDocument } from '@api/collections/posts/post.schema';
 import { PostsService } from '@api/collections/posts/services/posts.service';
+import { CacheService } from '@api/services/cache/cache.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import { TargetExecutionState } from '@genfeedai/contracts';
 import { Prisma } from '@genfeedai/prisma';
 import { Traced } from '@libs/tracing/traced';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 
+const POST_RETRY_CLAIM_TTL_SECONDS = 30;
+
 @Traced()
 @Injectable()
 export class PostRetryService {
-  constructor(private readonly postsService: PostsService) {}
+  constructor(
+    private readonly postsService: PostsService,
+    private readonly cacheService: CacheService,
+  ) {}
 
+  /**
+   * The FAILED check and the re-arm write are separate statements, so two
+   * overlapping retries both read FAILED and both re-arm and enqueue. One
+   * claim per post lets a single retry through at a time; the loser gets a 409
+   * and a later click re-reads the real state. A cache outage proceeds
+   * unclaimed, as before.
+   */
   async retryPost(
+    postId: string,
+    organizationId: string,
+  ): Promise<PostDocument> {
+    const claimKey = `post-retry:${organizationId}:${postId}`;
+    const token = randomUUID();
+    const claim = await this.cacheService.acquireOwnedClaim(
+      claimKey,
+      token,
+      POST_RETRY_CLAIM_TTL_SECONDS,
+    );
+    if (claim === 'duplicate') {
+      throw new HttpException(
+        {
+          detail: 'A retry for this post is already in progress',
+          title: 'Retry in progress',
+        },
+        HttpStatus.CONFLICT,
+      );
+    }
+
+    try {
+      return await this.rearmFailedPost(postId, organizationId);
+    } finally {
+      if (claim === 'claimed') {
+        await this.cacheService.releaseOwnedClaim(claimKey, token);
+      }
+    }
+  }
+
+  private async rearmFailedPost(
     postId: string,
     organizationId: string,
   ): Promise<PostDocument> {
