@@ -446,6 +446,12 @@ describe('WebSocketGateway', () => {
   });
 });
 
+interface RecordedEmit {
+  event: string;
+  payload: unknown;
+  room: string | string[] | undefined;
+}
+
 describe('WebSocketGateway redis message dispatch', () => {
   const USER_ID = 'aaaaaaaa-0000-0000-0000-000000000001';
   const USER_ROOM = `user:${USER_ID}`;
@@ -454,6 +460,8 @@ describe('WebSocketGateway redis message dispatch', () => {
   let roomEmit: ReturnType<typeof vi.fn>;
   let serverTo: ReturnType<typeof vi.fn>;
   let serverEmit: ReturnType<typeof vi.fn>;
+  let localEmits: RecordedEmit[];
+  let clusterEmits: RecordedEmit[];
   let dispatch: (channel: string, message: string) => void;
 
   const mockRedisService: Mocked<
@@ -496,10 +504,21 @@ describe('WebSocketGateway redis message dispatch', () => {
     vi.useFakeTimers();
 
     roomEmit = vi.fn();
-    serverTo = vi.fn(() => ({ emit: roomEmit }));
+    localEmits = [];
+    clusterEmits = [];
+    serverTo = vi.fn((room: string | string[]) => ({
+      emit: (event: string, payload: unknown) => {
+        roomEmit(event, payload);
+        localEmits.push({ event, payload, room });
+      },
+    }));
     serverEmit = vi.fn();
     const server = {
-      emit: serverEmit,
+      // `local` skips the Redis adapter relay; `to`/`emit` fan out cluster-wide.
+      emit: (event: string, payload: unknown) => {
+        clusterEmits.push({ event, payload, room: undefined });
+      },
+      local: { emit: serverEmit, to: serverTo },
       sockets: {
         adapter: {
           rooms: new Map<string, Set<string>>([
@@ -507,7 +526,11 @@ describe('WebSocketGateway redis message dispatch', () => {
           ]),
         },
       },
-      to: serverTo,
+      to: (room: string | string[]) => ({
+        emit: (event: string, payload: unknown) => {
+          clusterEmits.push({ event, payload, room });
+        },
+      }),
     } as unknown as Server;
 
     gateway = new WebSocketGateway(
@@ -867,10 +890,41 @@ describe('WebSocketGateway redis message dispatch', () => {
     gateway.emitToUser(USER_ID, 'direct-event', { value: 1 });
     gateway.emitToOrganization('org-1', 'org-event', { value: 2 });
 
-    expect(serverTo).toHaveBeenCalledWith(USER_ROOM);
-    expect(roomEmit).toHaveBeenCalledWith('direct-event', { value: 1 });
-    expect(serverTo).toHaveBeenCalledWith('org-org-1');
-    expect(roomEmit).toHaveBeenCalledWith('org-event', { value: 2 });
+    expect(clusterEmits).toEqual([
+      { event: 'direct-event', payload: { value: 1 }, room: USER_ROOM },
+      { event: 'org-event', payload: { value: 2 }, room: 'org-org-1' },
+    ]);
+    expect(localEmits).toEqual([]);
+  });
+
+  it.each([
+    ['notification-inbox', { organizationId: 'org-1', userIds: [USER_ID] }],
+    ['asset-status', { assetId: 'a1', status: 'ready', userId: USER_ID }],
+    [
+      'agent-chat',
+      {
+        data: { threadId: 't1', userId: USER_ID },
+        type: 'agent-message',
+      },
+    ],
+  ])(
+    'delivers pub/sub %s events to local sockets only, never cluster-wide',
+    (channel, payload) => {
+      dispatch(channel, JSON.stringify(payload));
+
+      expect(localEmits.map((emit) => emit.room)).toEqual([USER_ROOM]);
+      expect(clusterEmits).toEqual([]);
+    },
+  );
+
+  it('keeps the generic broadcast local to this instance', () => {
+    dispatch(
+      'generic-events',
+      JSON.stringify({ data: { value: 1 }, path: '/generic/broadcast' }),
+    );
+
+    expect(serverEmit).toHaveBeenCalledTimes(1);
+    expect(clusterEmits).toEqual([]);
   });
 
   it('tracks connections and cleans up on disconnect', async () => {
