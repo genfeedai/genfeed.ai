@@ -125,6 +125,21 @@ describe('MediumController', () => {
   });
 
   describe('verify', () => {
+    it('does not log the raw OAuth state or authorization code', async () => {
+      credentialsService.findPendingOAuthCredential.mockResolvedValue(null);
+
+      await controller
+        .verify(request, { code: 'code-abc', state: 'state-abc' })
+        .catch(() => undefined);
+
+      const logged = JSON.stringify([
+        ...loggerService.log.mock.calls,
+        ...loggerService.error.mock.calls,
+      ]);
+      expect(logged).not.toContain('state-abc');
+      expect(logged).not.toContain('code-abc');
+    });
+
     it('resolves ownership from state and persists canonical token fields', async () => {
       credentialsService.findPendingOAuthCredential.mockResolvedValue({
         brandId,
