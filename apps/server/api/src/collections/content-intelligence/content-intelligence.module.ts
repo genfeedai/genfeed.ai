@@ -1,4 +1,5 @@
 import { PlatformSettingsModule } from '@api/collections/platform-settings/platform-settings.module';
+import { DEFAULT_HTTP_TIMEOUT_MS } from '@api/constants/http-timeout.constant';
 /**
  * Content Intelligence Module
  * AI-powered content analysis and generation: creator scraping, pattern extraction,
@@ -56,7 +57,7 @@ import { Module } from '@nestjs/common';
     ConfigModule,
     ContentPerformanceModule,
     ContentHarnessModule,
-    HttpModule,
+    HttpModule.register({ timeout: DEFAULT_HTTP_TIMEOUT_MS }),
     LlmDispatcherModule,
     MembersModule,
     PersonasCoreModule,

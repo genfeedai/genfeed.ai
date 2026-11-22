@@ -127,8 +127,18 @@ export class OAuthRefreshTokenService {
     return { id: record.id, refreshToken };
   }
 
+  /**
+   * Refresh and revocation come from clients that already completed an
+   * authorization, so a metadata host outage must not lock them out.
+   */
+  private requireClientAllowingOutage(clientId: string) {
+    return this.clientService.requireClient(clientId, undefined, {
+      allowPersistedFallback: true,
+    });
+  }
+
   async refresh(dto: OAuthRefreshTokenGrant): Promise<McpOAuthTokenResponse> {
-    await this.clientService.requireClient(dto.client_id);
+    await this.requireClientAllowingOutage(dto.client_id);
 
     const record = await this.prisma.mcpOAuthRefreshToken.findUnique({
       where: { tokenHash: hashToken(dto.refresh_token) },
@@ -283,7 +293,7 @@ export class OAuthRefreshTokenService {
    * revealing whether the token existed or belonged to the client.
    */
   async revoke(dto: OAuthRevokeTokenDto): Promise<void> {
-    await this.clientService.requireClient(dto.client_id);
+    await this.requireClientAllowingOutage(dto.client_id);
 
     // The hint only orders the lookups; RFC 7009 §2.1 says to fall back to
     // the other token type when the hinted one does not match.

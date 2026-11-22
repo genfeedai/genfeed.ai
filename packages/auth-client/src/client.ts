@@ -95,11 +95,15 @@ const DEFAULT_TOKEN_REQUEST_OPTIONS: BetterAuthTokenRequestOptions = {};
 
 interface BetterAuthTokenCacheEntry {
   expiresAt: number;
+  isForced?: boolean;
   promise?: Promise<string | null>;
   token?: string;
 }
 
 const betterAuthTokenCache = new Map<string, BetterAuthTokenCacheEntry>();
+// A forced refresh that is waiting for an older in-flight exchange to settle
+// before it starts its own exchange. Callers that arrive meanwhile share it.
+const pendingForcedRefreshes = new Map<string, Promise<string | null>>();
 
 export function getBetterAuthTokenContextKey(
   context: BetterAuthTokenContext,
@@ -235,10 +239,15 @@ function getReusableTokenPromise(
   cacheKey: string,
   isForceRefresh: boolean,
 ): Promise<string | null> | null {
+  const pendingForcedRefresh = pendingForcedRefreshes.get(cacheKey);
+  if (pendingForcedRefresh) {
+    return pendingForcedRefresh;
+  }
+
   const cacheEntry = betterAuthTokenCache.get(cacheKey);
   const inFlightPromise = getInFlightTokenPromise(cacheEntry);
 
-  if (inFlightPromise) {
+  if (inFlightPromise && !(isForceRefresh && !cacheEntry?.isForced)) {
     return inFlightPromise;
   }
   if (isForceRefresh) {
@@ -288,8 +297,9 @@ function clearInFlightTokenPromise(
 
 function createBetterAuthTokenExchange(
   cacheKey: string,
+  isForced = false,
 ): Promise<string | null> {
-  const cacheEntry: BetterAuthTokenCacheEntry = { expiresAt: 0 };
+  const cacheEntry: BetterAuthTokenCacheEntry = { expiresAt: 0, isForced };
   const exchange = authClient
     .$fetch<{ token: string }>('/token', { method: 'GET' })
     .then(extractBetterAuthToken)
@@ -308,6 +318,35 @@ function createBetterAuthTokenExchange(
 }
 
 /**
+ * A forced refresh must never resolve with a token whose exchange started
+ * before the call (an organization switch relies on that). When an older
+ * exchange is in flight, wait for it to settle, ignoring its result and error,
+ * then start one new exchange that every concurrent forced caller shares.
+ */
+function createForcedTokenExchange(cacheKey: string): Promise<string | null> {
+  const inFlightPromise = getInFlightTokenPromise(
+    betterAuthTokenCache.get(cacheKey),
+  );
+  if (!inFlightPromise) {
+    return createBetterAuthTokenExchange(cacheKey, true);
+  }
+
+  const forcedRefresh: Promise<string | null> = inFlightPromise
+    .then(
+      () => undefined,
+      () => undefined,
+    )
+    .then(() => createBetterAuthTokenExchange(cacheKey, true))
+    .finally(() => {
+      if (pendingForcedRefreshes.get(cacheKey) === forcedRefresh) {
+        pendingForcedRefreshes.delete(cacheKey);
+      }
+    });
+  pendingForcedRefreshes.set(cacheKey, forcedRefresh);
+  return forcedRefresh;
+}
+
+/**
  * Retrieves a Bearer JWT minted by the Better Auth `jwt` plugin via its server
  * `GET /token` endpoint (the jwt *client* plugin only exposes `jwks`, not a
  * `token()` action in 1.6.x — so we call `$fetch` directly). Non-hook, so it is
@@ -322,9 +361,12 @@ export function getBetterAuthToken(
   options = DEFAULT_TOKEN_REQUEST_OPTIONS,
 ): Promise<string | null> {
   const cacheKey = getBetterAuthTokenCacheKey(contextKey, options.template);
+  const isForceRefresh = options.forceRefresh === true;
   const tokenPromise =
-    getReusableTokenPromise(cacheKey, options.forceRefresh === true) ??
-    createBetterAuthTokenExchange(cacheKey);
+    getReusableTokenPromise(cacheKey, isForceRefresh) ??
+    (isForceRefresh
+      ? createForcedTokenExchange(cacheKey)
+      : createBetterAuthTokenExchange(cacheKey));
 
   return waitForTokenConsumer(tokenPromise, options.signal);
 }
