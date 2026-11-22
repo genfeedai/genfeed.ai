@@ -905,6 +905,38 @@ describe('PostGroupsService', () => {
     expect(prisma.post.create).not.toHaveBeenCalled();
   });
 
+  it('returns the existing group when a concurrent create wins the idempotency key', async () => {
+    prisma.postGroup.findFirst
+      .mockResolvedValueOnce(null)
+      .mockResolvedValue(
+        makeGroup({ id: 'winner-group', idempotencyKey: 'same-request' }),
+      );
+    prisma.post.findMany.mockResolvedValue([
+      makeTarget({ groupId: 'winner-group', id: 'target-1' }),
+    ]);
+    prisma.$transaction.mockRejectedValueOnce(
+      Object.assign(new Error('Unique constraint failed'), { code: 'P2002' }),
+    );
+
+    const result = await service.create(
+      'org-1',
+      'user-1',
+      {
+        baseContent: 'Launch note for X',
+        brandId: 'brand-1',
+        status: ReleaseStatus.DRAFT,
+        targets: [
+          { credentialId: 'cred-x', platform: CredentialPlatform.TWITTER },
+        ],
+        timezone: 'UTC',
+        title: 'Launch note',
+      },
+      'same-request',
+    );
+
+    expect(result.id).toBe('winner-group');
+  });
+
   it('waits for sibling approval checks before returning a release failure', async () => {
     vi.useRealTimers();
     let finishSibling = () => {};

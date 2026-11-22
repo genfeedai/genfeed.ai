@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { stableStringify } from '@genfeedai/contracts/constants/canonical-json.constant';
 import { SCHEDULED_RELEASE_BATCH_MAX } from '@genfeedai/contracts/interfaces';
 import { isRecord } from '@genfeedai/utils/data/extract.util';
 import type {
@@ -75,7 +76,7 @@ export function handleSchedulerTool(
       const result = await client.createScheduledRelease(
         release,
         optionalString(a, 'idempotencyKey') ??
-          (approvalId ? `mcp-release:${approvalId}` : undefined),
+          (approvalId ? `mcp-release:${approvalId}` : contentKey(release)),
       );
       return textDataResult('Scheduled release created', result);
     },
@@ -181,7 +182,7 @@ async function createReleaseBatch(
   const key =
     approvalId ??
     optionalString(args, 'idempotencyKey') ??
-    createHash('sha256').update(JSON.stringify(releases)).digest('hex');
+    hashContent(releases);
   const result = await client.scheduler.createScheduledReleaseBatch(
     releases,
     key,
@@ -190,6 +191,20 @@ async function createReleaseBatch(
     `Scheduled ${result.created.length} of ${releases.length} releases`,
     result,
   );
+}
+
+function hashContent(value: unknown): string {
+  return createHash('sha256').update(stableStringify(value)).digest('hex');
+}
+
+/**
+ * Key of a release made without an explicit key or approval. The same release
+ * (content, targets, time, brand) always gets the same key, so a repeat after a
+ * lost response returns the release already made; a different time or target
+ * gets another key. Argument order does not matter.
+ */
+function contentKey(release: Record<string, unknown>): string {
+  return `mcp-release:${hashContent(release)}`;
 }
 
 /** The `releases` of a batch call, each checked for the fields every release needs. */
