@@ -4,7 +4,11 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import AppIntlProvider from '@app-i18n/AppIntlProvider';
-import { render as renderView, screen } from '@testing-library/react';
+import {
+  fireEvent,
+  render as renderView,
+  screen,
+} from '@testing-library/react';
 import type { ReactNode } from 'react';
 import {
   afterEach,
@@ -90,8 +94,18 @@ vi.mock('./onboarding-funnel-analytics', () => ({
   default: () => <div data-testid="onboarding-funnel-analytics" />,
 }));
 
+const platformFlagsState = vi.hoisted(() => ({
+  isReady: true,
+  isUnavailable: false,
+}));
+const notifyPlatformFlagsChangedMock = vi.hoisted(() => vi.fn());
+
 vi.mock('@/lib/platform-flags/use-platform-flags', () => ({
-  usePlatformFlags: () => ({ flags: {}, isReady: true }),
+  usePlatformFlags: () => ({ flags: {}, ...platformFlagsState }),
+}));
+
+vi.mock('@/lib/platform-flags/platform-flags-sync', () => ({
+  notifyPlatformFlagsChanged: notifyPlatformFlagsChangedMock,
 }));
 
 vi.mock('@/components/analytics/AnalyticsOrganizationSync', () => ({
@@ -106,6 +120,8 @@ describe('app/(onboarding)/layout.tsx', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     isSignedIn = true;
+    platformFlagsState.isReady = true;
+    platformFlagsState.isUnavailable = false;
     navigationMocks.pathname = '/onboarding/brand';
     delete process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED;
     delete process.env.NEXT_PUBLIC_DESKTOP_SHELL;
@@ -224,4 +240,37 @@ describe('app/(onboarding)/layout.tsx', () => {
       expect(screen.getByTestId('child')).toHaveTextContent('hello');
     },
   );
+
+  it('shows a spinner and no children while platform flags are pending', () => {
+    platformFlagsState.isReady = false;
+
+    render(
+      <OnboardingSetupLayout>
+        <span data-testid="child">hello</span>
+      </OnboardingSetupLayout>,
+    );
+
+    expect(screen.getByRole('status', { name: 'Loading' })).toBeInTheDocument();
+    expect(screen.queryByTestId('child')).not.toBeInTheDocument();
+  });
+
+  it('shows a retryable error instead of a blank page when platform flags fail', () => {
+    platformFlagsState.isReady = false;
+    platformFlagsState.isUnavailable = true;
+
+    render(
+      <OnboardingSetupLayout>
+        <span data-testid="child">hello</span>
+      </OnboardingSetupLayout>,
+    );
+
+    expect(
+      screen.getByTestId('platform-flags-unavailable'),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId('child')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button'));
+
+    expect(notifyPlatformFlagsChangedMock).toHaveBeenCalledTimes(1);
+  });
 });

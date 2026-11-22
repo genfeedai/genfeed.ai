@@ -1,3 +1,4 @@
+import { reserveIdempotentJob } from '@api/queues/idempotent-job';
 import {
   REPLICATE_POLL_DELAY_MS,
   REPLICATE_POLL_QUEUE,
@@ -33,6 +34,16 @@ export class ReplicatePollQueueService {
     }
 
     const attempt = data.attempt ?? 1;
+    const jobId = `replicate-poll-${data.ingredientId}-${attempt}`;
+    const reservation = await reserveIdempotentJob(this.queue, jobId);
+    if (reservation.alreadyQueued) {
+      this.logger.log(`${this.logContext}: poll attempt already queued`, {
+        ingredientId: data.ingredientId,
+        jobId,
+        state: reservation.state,
+      });
+      return jobId;
+    }
     const job = await this.queue.add(
       'poll-replicate-generation',
       { ...data, attempt },
@@ -40,7 +51,7 @@ export class ReplicatePollQueueService {
         attempts: 2,
         backoff: { delay: 5_000, type: 'exponential' },
         delay: delayMs,
-        jobId: `replicate-poll-${data.ingredientId}-${attempt}`,
+        jobId,
         removeOnComplete: 100,
         removeOnFail: 50,
       },
