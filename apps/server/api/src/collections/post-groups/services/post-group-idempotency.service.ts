@@ -2,6 +2,7 @@ import { PostGroupPersistenceService } from '@api/collections/post-groups/servic
 import { ReleaseStatus } from '@genfeedai/contracts';
 import { CONTENT_RELEASE_IDEMPOTENCY_PREFIX } from '@genfeedai/contracts/constants/release-idempotency.constant';
 import type { IReleaseGroup } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import { ConflictException, Injectable } from '@nestjs/common';
 
 /**
@@ -46,6 +47,7 @@ export interface IdempotentCreateResult {
  * moves on to the next key.
  */
 @Injectable()
+@Traced()
 export class PostGroupIdempotencyService {
   constructor(
     private readonly persistenceService: PostGroupPersistenceService,
