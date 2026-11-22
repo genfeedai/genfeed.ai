@@ -2479,6 +2479,40 @@ describe('AgentToolExecutorService', () => {
     },
   );
 
+  it('reserves a media upload in the brand the caller names', async () => {
+    const { brandsService, presignedUploadService, service } = createService();
+    brandsService.findOne.mockImplementation(
+      async (query: { id?: string }) => ({
+        id: query.id ?? testId('default-brand'),
+      }),
+    );
+    presignedUploadService.getPresignedUploadUrl.mockResolvedValue({
+      expiresIn: 3600,
+      id: 'asset-1',
+      publicUrl: 'https://cdn.example.test/images/asset-1',
+      s3Key: 'ingredients/images/asset-1',
+      uploadMethod: 'PUT',
+      uploadUrl: 'https://s3.example.test/upload',
+    });
+
+    const result = await service.executeTool(
+      'request_media_upload',
+      {
+        brandId: testId('named-brand'),
+        category: 'image',
+        contentType: 'image/png',
+        filename: 'launch.png',
+      },
+      { organizationId: testId('org'), userId: testId('user') },
+    );
+
+    expect(result.success).toBe(true);
+    expect(presignedUploadService.getPresignedUploadUrl).toHaveBeenCalledWith(
+      expect.objectContaining({ brandId: testId('named-brand') }),
+      expect.objectContaining({ filename: 'launch.png' }),
+    );
+  });
+
   it('finalizes an upload as an asset id scheduled releases accept', async () => {
     const { presignedUploadService, service } = createService();
     presignedUploadService.confirmUpload.mockResolvedValue({
