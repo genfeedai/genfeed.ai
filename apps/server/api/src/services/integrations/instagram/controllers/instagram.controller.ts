@@ -9,7 +9,10 @@ import {
   extractReconnectCredentialIdFromWarmupSignals,
 } from '@api/collections/credentials/services/credentials.service';
 import { throwIfOAuthCallbackError } from '@api/collections/credentials/utils/oauth-callback-error.util';
-import { claimOAuthVerifyCredential } from '@api/collections/credentials/utils/oauth-verify-claim.util';
+import {
+  claimOAuthVerifyCredential,
+  verifiedOAuthState,
+} from '@api/collections/credentials/utils/oauth-verify-claim.util';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import {
@@ -268,7 +271,7 @@ export class InstagramController {
           externalBusinessId: businessId,
           isConnected: false,
           isDeleted: false,
-          oauthState: null,
+          oauthState: verifiedOAuthState(state),
           refreshToken: undefined,
           refreshTokenExpiry: undefined,
           // Unknown scopes must not inherit a previous token's grant.

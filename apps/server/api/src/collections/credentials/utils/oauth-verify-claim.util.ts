@@ -20,6 +20,7 @@ import { traced } from '@libs/tracing/traced';
 const OAUTH_VERIFY_CLAIM_WAIT_MS = 15_000;
 const OAUTH_VERIFY_CLAIM_POLL_MS = 250;
 const CLAIMED_OAUTH_STATE_PREFIX = 'claimed:';
+const VERIFIED_OAUTH_STATE_PREFIX = 'verified:';
 
 export type PendingOAuthFilter = {
   isConnected: false;
@@ -42,6 +43,22 @@ type OAuthVerifyClaimStore = Pick<
 /** The row a verify request owns once it won the claim. Never equals a state. */
 const claimedOAuthState = (state: string): string =>
   `${CLAIMED_OAUTH_STATE_PREFIX}${state}`;
+
+/**
+ * What a verify endpoint writes to `oauthState` when its claim is settled,
+ * in place of clearing it. The row keeps a trace of the claim, so a second
+ * verify that lost the race and looks the row up after the winner finished
+ * still finds the account instead of answering "invalid state". Like the claim
+ * marker it never equals a real state, so it cannot be claimed again.
+ */
+export const verifiedOAuthState = (state: string): string =>
+  `${VERIFIED_OAUTH_STATE_PREFIX}${state}`;
+
+/** The marker to carry over when a settled row is reconciled, else null. */
+export const carriedOAuthState = (
+  oauthState: string | null | undefined,
+): string | null =>
+  oauthState?.startsWith(VERIFIED_OAUTH_STATE_PREFIX) ? oauthState : null;
 
 /** The pending-connection lookup, or null when the state cannot match. */
 export function buildPendingOAuthFilter(
@@ -87,6 +104,23 @@ export const claimedPendingOAuthFilter = (
 ): PendingOAuthFilter => ({
   ...filter,
   oauthState: claimedOAuthState(filter.oauthState),
+});
+
+/**
+ * The lookup for a row a verify request has taken: it holds the claim marker
+ * while the provider exchange runs, and the settled marker after it finished.
+ */
+const claimTraceFilter = (filter: PendingOAuthFilter) => ({
+  oauthState: {
+    in: [
+      claimedOAuthState(filter.oauthState),
+      verifiedOAuthState(filter.oauthState),
+    ],
+  },
+  organizationId: filter.organizationId,
+  platform: filter.platform,
+  updatedAt: filter.updatedAt,
+  userId: filter.userId,
 });
 
 export function toPendingOAuthCredential(
@@ -145,9 +179,11 @@ const pause = (ms: number): Promise<void> =>
 
 /**
  * The state was already claimed. While the claiming request is still talking
- * to the provider its row carries the claim marker: wait for that row to
- * connect. A state with no claim marker is unknown, expired or fully used, and
- * never answers with some other account.
+ * to the provider its row carries the claim marker: wait for it to settle. A
+ * row that already settled answers at once, whether the request connected the
+ * account or left it waiting for the user to pick one. A state with no marker
+ * is unknown, expired or never claimed, and never answers with some other
+ * account; a claim that was given back (the exchange failed) ends the wait.
  */
 const awaitClaimingRequest = traced(
   'awaitClaimingRequest',
@@ -155,26 +191,18 @@ const awaitClaimingRequest = traced(
     store: OAuthVerifyClaimStore,
     filter: PendingOAuthFilter,
   ): Promise<CredentialDocument | null> => {
-    const { organizationId, platform, userId } = filter;
-    const inFlight = await store.findOne(claimedPendingOAuthFilter(filter));
-
-    if (!inFlight) {
-      return null;
-    }
-
+    const settledState = verifiedOAuthState(filter.oauthState);
     const deadline = Date.now() + OAUTH_VERIFY_CLAIM_WAIT_MS;
-    while (Date.now() < deadline) {
-      const row = await store.findOne({
-        id: inFlight.id,
-        organizationId,
-        platform,
-        userId,
-      });
-      if (row?.isConnected) {
+    do {
+      const row = await store.findOne(claimTraceFilter(filter));
+      if (!row) {
+        return null;
+      }
+      if (row.oauthState === settledState || row.isConnected) {
         return row;
       }
       await pause(OAUTH_VERIFY_CLAIM_POLL_MS);
-    }
+    } while (Date.now() < deadline);
     return null;
   },
 );

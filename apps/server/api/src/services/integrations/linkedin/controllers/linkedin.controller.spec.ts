@@ -272,7 +272,7 @@ describe('LinkedInController', () => {
           accessToken: 'linkedin-token',
           isConnected: true,
           isDeleted: false,
-          oauthState: null,
+          oauthState: 'verified:opaque-oauth-state',
           grantedScopes: ['openid', 'profile', 'w_member_social'],
           grantedScopesCapturedAt: expect.any(Date),
         }),

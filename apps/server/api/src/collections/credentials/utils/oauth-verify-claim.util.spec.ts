@@ -8,7 +8,10 @@ vi.mock('@genfeedai/prisma', async () => {
 import { CredentialCryptoService } from '@api/collections/credentials/services/credential-crypto.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { ProviderAccountPurgeService } from '@api/collections/credentials/services/provider-account-purge.service';
-import { claimOAuthVerifyCredential } from '@api/collections/credentials/utils/oauth-verify-claim.util';
+import {
+  claimOAuthVerifyCredential,
+  verifiedOAuthState,
+} from '@api/collections/credentials/utils/oauth-verify-claim.util';
 import { CredentialPlatform } from '@genfeedai/contracts';
 import type { ConfigService } from '@libs/config/config.service';
 import type { EventEmitter2 } from '@nestjs/event-emitter';
@@ -37,6 +40,9 @@ function matches(row: Row, where: Where): boolean {
     if (wanted !== null && typeof wanted === 'object') {
       if ('not' in wanted) {
         return actual !== (wanted as { not: unknown }).not;
+      }
+      if ('in' in wanted) {
+        return (wanted as { in: unknown[] }).in.includes(actual);
       }
       if ('gte' in wanted) {
         return (actual as Date) >= (wanted as { gte: Date }).gte;
@@ -217,7 +223,10 @@ describe('claimOAuthVerifyCredential', () => {
         throw new Error('provider rejected the code');
       }
       const row = rows.find((item) => item.id === claim.credential.id);
-      Object.assign(row ?? {}, { isConnected: true, oauthState: null });
+      Object.assign(row ?? {}, {
+        isConnected: true,
+        oauthState: verifiedOAuthState(state),
+      });
       return { connected: true, id: claim.credential.id };
     }
 
@@ -275,7 +284,7 @@ describe('claimOAuthVerifyCredential', () => {
     expect(rows[0].isConnected).toBe(false);
   });
 
-  it('leaves a connected credential connected when a later exchange fails', async () => {
+  it('answers a verify that arrives after the winner finished with the connection, without a second exchange', async () => {
     const rows = [pendingRow()];
     const first = verifier(rows);
     const firstResult = first.verify(FAKE_STATE);
@@ -284,11 +293,38 @@ describe('claimOAuthVerifyCredential', () => {
     expect(await firstResult).toEqual({ connected: true, id: 'credential-1' });
 
     const second = verifier(rows, true);
-    await expect(second.verify(FAKE_STATE)).rejects.toThrow(
-      'invalid or expired state',
-    );
+    expect(await second.verify(FAKE_STATE)).toEqual({
+      connected: true,
+      id: 'credential-1',
+    });
 
     expect(second.exchanges.length).toBe(0);
-    expect(rows[0]).toMatchObject({ isConnected: true, oauthState: null });
+    expect(rows[0]).toMatchObject({
+      isConnected: true,
+      oauthState: verifiedOAuthState(FAKE_STATE),
+    });
+  });
+
+  it('answers a verify that arrives after the winner left the account waiting for a choice', async () => {
+    const rows = [pendingRow({ oauthState: verifiedOAuthState(FAKE_STATE) })];
+    const { exchanges, verify } = verifier(rows);
+
+    expect(await verify(FAKE_STATE)).toEqual({
+      connected: false,
+      id: 'credential-1',
+    });
+    expect(exchanges.length).toBe(0);
+  });
+
+  it('never matches a state that only appears inside another row marker', async () => {
+    const rows = [
+      pendingRow({ oauthState: verifiedOAuthState('someone-elses-state') }),
+    ];
+    const { exchanges, verify } = verifier(rows);
+
+    await expect(verify(FAKE_STATE)).rejects.toThrow(
+      'invalid or expired state',
+    );
+    expect(exchanges.length).toBe(0);
   });
 });

@@ -89,7 +89,7 @@ describe('PinterestController', () => {
       'credential-id',
       expect.objectContaining({
         accessToken: 'pinterest-token',
-        oauthState: null,
+        oauthState: 'verified:opaque-oauth-state',
         refreshToken: 'pinterest-refresh-token',
       }),
     );
