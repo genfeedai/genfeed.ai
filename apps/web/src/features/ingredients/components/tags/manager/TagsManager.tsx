@@ -7,6 +7,10 @@ import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-a
 import { IngredientsService } from '@genfeedai/services/content/ingredients.service';
 import { TagsService } from '@genfeedai/services/content/tags.service';
 import { logger } from '@genfeedai/services/core/logger.service';
+import {
+  isCollectionFetchReady,
+  useCollectionScope,
+} from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useQuery } from '@tanstack/react-query';
 import Loading from '@ui/loading/default/Loading';
 import { Button } from '@ui/primitives/button';
@@ -25,6 +29,8 @@ export default function TagsManager({
   isReadOnly = false,
 }: TagsManagerComponentProps) {
   const { isSignedIn } = useAuthIdentity();
+  const collectionScope = useCollectionScope();
+  const { brandId, organizationId } = collectionScope;
 
   const getIngredientsService = useAuthedService((token: string) =>
     IngredientsService.getInstance(token),
@@ -52,12 +58,17 @@ export default function TagsManager({
     refetch: refreshAvailableTags,
   } = useQuery({
     // The brand's own tags plus organization-wide tags, never another brand's.
-    queryKey: [LIBRARY_TAGS_QUERY_KEY, 'tags-manager'],
+    queryKey: [
+      LIBRARY_TAGS_QUERY_KEY,
+      'tags-manager',
+      organizationId,
+      brandId ?? 'org',
+    ],
     queryFn: async () => {
       const service = await getTagsService();
-      return service.findLibraryTags();
+      return service.findLibraryTags({ brandId });
     },
-    enabled: !!isSignedIn,
+    enabled: !!isSignedIn && isCollectionFetchReady(collectionScope),
   });
 
   const handleAddTag = async (tag: ITag) => {

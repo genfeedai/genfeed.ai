@@ -13,6 +13,7 @@ import { StripeWebhookController } from '@api/endpoints/webhooks/stripe/webhooks
 import { StripeWebhookService } from '@api/endpoints/webhooks/stripe/webhooks.stripe.service';
 import { HttpExceptionFilter } from '@api/helpers/filters/http-exception/http-exception.filter';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { SET_OWNED_CLAIM_VALUE_SCRIPT } from '@api/services/cache/cache-claim-scripts';
 import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
 import { selectSoftwareSubscriptionItem } from '@api/services/integrations/stripe/services/stripe-software-item.util';
 import { LifecycleEmailService } from '@api/services/lifecycle-emails/lifecycle-email.service';
@@ -98,7 +99,7 @@ describe('Stripe billing HTTP composition', () => {
   let tierUpdates: unknown[];
   let warnings: LogEntry[];
   let errors: LogEntry[];
-  let claimedKeys: Set<string>;
+  let claimedKeys: Map<string, string>;
   let releasedKeys: string[];
   let app: INestApplication;
 
@@ -123,7 +124,7 @@ describe('Stripe billing HTTP composition', () => {
     tierUpdates = [];
     warnings = [];
     errors = [];
-    claimedKeys = new Set();
+    claimedKeys = new Map();
     releasedKeys = [];
 
     const logger = {
@@ -166,15 +167,26 @@ describe('Stripe billing HTTP composition', () => {
         },
       },
     };
-    // Redis SET NX claims an event id; a failed delivery releases it.
+    // Redis SET NX claims an event id and a promote or release only succeeds
+    // for the delivery that owns the claim.
     const publisher = {
-      del: async (key: string) => {
-        releasedKeys.push(key);
-        return Number(claimedKeys.delete(key));
+      eval: async (script: string, _keyCount: number, ...args: unknown[]) => {
+        if (script === SET_OWNED_CLAIM_VALUE_SCRIPT) {
+          const [claimKey, resultKey, token, value] = args as string[];
+          if (claimedKeys.get(claimKey) !== token) return 0;
+          claimedKeys.set(resultKey, value);
+          return 1;
+        }
+        const [claimKey, token] = args as string[];
+        if (claimedKeys.get(claimKey) !== token) return 0;
+        releasedKeys.push(claimKey);
+        claimedKeys.delete(claimKey);
+        return 1;
       },
-      set: async (key: string) => {
+      get: async (key: string) => claimedKeys.get(key) ?? null,
+      set: async (key: string, value: string) => {
         if (claimedKeys.has(key)) return null;
-        claimedKeys.add(key);
+        claimedKeys.set(key, value);
         return 'OK';
       },
     };

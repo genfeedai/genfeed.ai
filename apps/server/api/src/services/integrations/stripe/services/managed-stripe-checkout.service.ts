@@ -1,3 +1,5 @@
+import { randomUUID } from 'node:crypto';
+import { StripeWebhookBillingError } from '@api/endpoints/webhooks/stripe/stripe-webhook-billing.error';
 import {
   getCheckoutRedirectBaseUrls,
   isLoopbackRedirectUrl,
@@ -173,22 +175,41 @@ export class ManagedStripeCheckoutService {
     );
   }
 
+  /**
+   * Serialise provisioning of one checkout session. Provisioning is idempotent
+   * in Postgres (the credit grant is unique per session, the user and API key
+   * are get-or-create), so when the cache is unavailable it runs without the
+   * claim instead of leaving a paid session unprovisioned. When another
+   * delivery holds the claim it throws a retryable error rather than letting
+   * the webhook be acknowledged as done.
+   */
   async withProvisioningLock<T>(
     sessionId: string,
     fn: () => Promise<T>,
-  ): Promise<T | null> {
-    return await this.cacheService.withLock(
-      this.buildLockKey(sessionId),
-      fn,
+  ): Promise<T> {
+    const lockKey = this.buildLockKey(sessionId);
+    const token = randomUUID();
+    const claim = await this.cacheService.acquireOwnedClaim(
+      lockKey,
+      token,
       MANAGED_CHECKOUT_LOCK_TTL_SECONDS,
     );
-  }
 
-  logProvisioningContention(sessionId: string): void {
-    this.loggerService.warn(
-      `${this.constructorName} lock not acquired for managed checkout`,
-      { sessionId },
-    );
+    if (claim === 'duplicate') {
+      this.loggerService.warn(
+        `${this.constructorName} lock not acquired for managed checkout`,
+        { sessionId },
+      );
+      throw new StripeWebhookBillingError('claim_in_flight');
+    }
+
+    try {
+      return await fn();
+    } finally {
+      if (claim === 'claimed') {
+        await this.cacheService.releaseOwnedClaim(lockKey, token);
+      }
+    }
   }
 
   private buildResultKey(sessionId: string): string {
