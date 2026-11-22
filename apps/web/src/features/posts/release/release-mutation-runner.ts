@@ -5,16 +5,19 @@ import type { NotificationsService } from '@services/core/notifications.service'
 
 export type RunReleaseMutation = (
   action: string,
+  releaseId: string,
   mutation: (service: ReleaseGroupsService) => Promise<IReleaseGroup>,
   onFailure?: () => void,
 ) => Promise<void>;
 
 export interface ReleaseMutationRunnerDeps {
   getReleaseGroupsService: () => Promise<ReleaseGroupsService>;
+  /** Shared across runner rebuilds; a release in this set is mid-request. */
+  inFlightReleaseIds: Set<string>;
   notificationsService: NotificationsService;
   onSuccess: (updated: IReleaseGroup) => void;
   setDrawerError?: (message: string | null) => void;
-  setPendingAction: (action: string | null) => void;
+  setPendingAction: (releaseId: string, action: string | null) => void;
 }
 
 export function mutationErrorMessage(error: unknown): string {
@@ -33,8 +36,12 @@ export function mutationErrorMessage(error: unknown): string {
 export function createReleaseMutationRunner(
   deps: ReleaseMutationRunnerDeps,
 ): RunReleaseMutation {
-  return async (action, mutation, onFailure) => {
-    deps.setPendingAction(action);
+  return async (action, releaseId, mutation, onFailure) => {
+    if (deps.inFlightReleaseIds.has(releaseId)) {
+      return;
+    }
+    deps.inFlightReleaseIds.add(releaseId);
+    deps.setPendingAction(releaseId, action);
     deps.setDrawerError?.(null);
 
     try {
@@ -48,7 +55,8 @@ export function createReleaseMutationRunner(
       deps.setDrawerError?.(message);
       deps.notificationsService.error(message);
     } finally {
-      deps.setPendingAction(null);
+      deps.inFlightReleaseIds.delete(releaseId);
+      deps.setPendingAction(releaseId, null);
     }
   };
 }

@@ -117,6 +117,7 @@ export default function ContentCalendarPage({
     setSelectedReleaseId,
     pendingAction,
     pendingDrop,
+    pendingDropAction,
     drawerError,
     setDrawerError,
     handleEventDrop,
@@ -418,9 +419,9 @@ export default function ContentCalendarPage({
         onChooseCardOnly={handleCardOnlyDrop}
         onChooseRepublish={handleRepublishDrop}
         pendingAction={
-          pendingAction === CALENDAR_MOVE_ACTION ||
-          pendingAction === CALENDAR_REPUBLISH_ACTION
-            ? pendingAction
+          pendingDropAction === CALENDAR_MOVE_ACTION ||
+          pendingDropAction === CALENDAR_REPUBLISH_ACTION
+            ? pendingDropAction
             : null
         }
       />
