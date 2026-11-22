@@ -16,4 +16,4 @@ A claim, retry or promote protocol over Redis or Postgres gets a model beside th
 - Model the crash as a `crashable` actor, never as a thrown error: a crash skips `catch` and `finally`.
 - Keep a hand-written unit test when it guards behavior the model does not state (security, legal, wire format). Delete one the model subsumes.
 
-Reference: `webhooks.stripe.controller.model.spec.ts` (replays #10800).
+Reference: `webhooks.stripe.controller.model.spec.ts` (replays #10800); `apps/server/workers/src/services/thread-comment-delivery.service.model.spec.ts` (replays #10792; a Postgres double that evaluates the sweep's real `where`, and throws on a filter it does not know).
