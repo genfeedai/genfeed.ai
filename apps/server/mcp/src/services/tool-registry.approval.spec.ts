@@ -2,6 +2,7 @@ import { McpApprovalStatus } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ClientService } from '@mcp/services/client.service';
 import { createEndpointRegistries } from '@mcp/services/tool-registry.endpoints.testing';
+import { ToolRegistryService } from '@mcp/services/tool-registry.service';
 import type { McpApprovalResource } from '@mcp/shared/interfaces/approval.interface';
 
 /**
@@ -1019,5 +1020,123 @@ describe('ToolRegistryService — approval queue', () => {
 
     expect(result.isError).toBe(true);
     expect(result.content[0].text).toContain('approvalId and decision');
+  });
+});
+
+describe('ToolRegistryService — approval on a connection covering several organizations', () => {
+  function buildSwitchable() {
+    const { client } = build();
+    const seen: { activeOrganization: string | null }[] = [];
+    let activeOrganization: string | null = null;
+    const switchable = Object.assign(client, {
+      canSwitchOrganizations: vi.fn().mockResolvedValue(true),
+      createApproval: vi.fn(async () => {
+        seen.push({ activeOrganization });
+        return {
+          arguments: {
+            expectedRevision: 2,
+            quoteId: 'quote-1',
+            runId: 'run-1',
+          },
+          id: 'apr-1',
+          status: McpApprovalStatus.PENDING,
+          toolName: 'start_remix_generation',
+        };
+      }),
+      listOrganizations: vi.fn().mockResolvedValue([
+        { id: 'org-a', isActive: true, label: 'Acme', slug: 'acme' },
+        { id: 'org-b', isActive: false, label: 'Beta', slug: 'beta' },
+      ]),
+      resolveApproval: vi.fn(async () => {
+        seen.push({ activeOrganization });
+        return { id: 'apr-1', status: McpApprovalStatus.DECLINED };
+      }),
+      runInOrganization: vi.fn(
+        async (organizationId: string, work: () => Promise<unknown>) => {
+          activeOrganization = organizationId;
+          try {
+            return await work();
+          } finally {
+            activeOrganization = null;
+          }
+        },
+      ),
+    });
+    const logger = {
+      debug: vi.fn(),
+      error: vi.fn(),
+      log: vi.fn(),
+      warn: vi.fn(),
+    };
+    const registryFor = (accessMode: 'admin' | 'standard') =>
+      new ToolRegistryService(
+        switchable as unknown as ClientService,
+        logger as unknown as LoggerService,
+        'admin',
+        undefined,
+        accessMode,
+        true,
+      );
+    // Writes queue on the standard connection; resolve_approval is served by
+    // the admin connection.
+    return {
+      adminRegistry: registryFor('admin'),
+      client: switchable,
+      registry: registryFor('standard'),
+      seen,
+    };
+  }
+
+  it('hands the card the organization the approval was queued in, and declines there', async () => {
+    const { adminRegistry, client, registry, seen } = buildSwitchable();
+
+    const queued = (await registry.handleToolCall({
+      arguments: {
+        action: 'start',
+        input: { expectedRevision: 2, quoteId: 'quote-1', runId: 'run-1' },
+        organization: 'beta',
+      },
+      name: 'run_remix',
+    })) as {
+      structuredContent?: {
+        genfeedCards?: {
+          cards?: { id?: string; organization?: string }[];
+        };
+      };
+    };
+    const card = queued.structuredContent?.genfeedCards?.cards?.[0];
+
+    expect(card?.organization).toBe('org-b');
+    expect(card?.id).toBe('apr-1');
+    expect(seen).toEqual([{ activeOrganization: 'org-b' }]);
+
+    // The card's action carries that organization, so the decision runs in it.
+    await adminRegistry.handleToolCall({
+      arguments: {
+        approvalId: 'apr-1',
+        decision: 'decline',
+        organization: card?.organization,
+      },
+      name: 'resolve_approval',
+    });
+
+    expect(client.resolveApproval).toHaveBeenCalledWith('apr-1', 'decline');
+    expect(seen.at(-1)).toEqual({ activeOrganization: 'org-b' });
+  });
+
+  it('refuses a decision that names an organization the user cannot reach, without touching the approval', async () => {
+    const { adminRegistry, client } = buildSwitchable();
+
+    const result = (await adminRegistry.handleToolCall({
+      arguments: {
+        approvalId: 'apr-1',
+        decision: 'decline',
+        organization: 'someone-elses-org',
+      },
+      name: 'resolve_approval',
+    })) as { isError?: boolean };
+
+    expect(result.isError).toBe(true);
+    expect(client.resolveApproval).not.toHaveBeenCalled();
   });
 });
