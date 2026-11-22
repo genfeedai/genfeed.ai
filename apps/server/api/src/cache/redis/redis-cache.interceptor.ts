@@ -99,9 +99,7 @@ export class RedisCacheInterceptor implements NestInterceptor {
 
       // Read before the handler runs: an invalidation that lands while the
       // handler is reading must stop its result from being stored.
-      epochs = cacheOptions.isInvalidationGuarded
-        ? await this.cacheService.readTagEpochs(cacheOptions.tags ?? [])
-        : null;
+      epochs = await this.cacheService.readTagEpochs(cacheOptions.tags ?? []);
     } catch (error: unknown) {
       this.logger.error(`${this.constructorName} failed`, error);
       return next.handle();
@@ -133,9 +131,9 @@ export class RedisCacheInterceptor implements NestInterceptor {
     epochs: string[] | null,
   ): Promise<void> {
     try {
-      if (cacheOptions.isInvalidationGuarded) {
-        // Without epochs the cache cannot prove the value is current, so a
-        // guarded response is not stored at all.
+      if (cacheOptions.tags?.length) {
+        // Every response stored with tags is guarded: without epochs the cache
+        // cannot prove the value is current, so it is not stored at all.
         if (epochs) {
           await this.cacheService.setUnlessTagsInvalidated(
             cacheKey,

@@ -57,7 +57,11 @@ describe('RedisCacheInterceptor', () => {
             del: vi.fn(),
             get: vi.fn(),
             invalidateByTags: vi.fn(),
+            readTagEpochs: vi.fn(async (tags: string[]) =>
+              tags.length ? tags.map(() => '0') : null,
+            ),
             set: vi.fn(),
+            setUnlessTagsInvalidated: vi.fn(),
           },
         },
         {
@@ -173,10 +177,11 @@ describe('RedisCacheInterceptor', () => {
       expect(mockCallHandler.handle).toHaveBeenCalled();
 
       await vi.waitFor(() => {
-        expect(cacheService.set).toHaveBeenCalledWith(
+        expect(cacheService.setUnlessTagsInvalidated).toHaveBeenCalledWith(
           expect.any(String),
           handlerResult,
           { tags: ['test'], ttl: 300 },
+          ['0'],
         );
       });
     });

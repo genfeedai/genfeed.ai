@@ -142,8 +142,9 @@ export class TwitterTokenRefreshService {
         accessTokenExpiry: expiresIn
           ? new Date(Date.now() + expiresIn * 1000)
           : undefined,
+        // A refresh that succeeds reconnects a disconnected channel, but never
+        // restores one deleted while the provider call was in flight.
         isConnected: true,
-        isDeleted: false,
         refreshToken: newRefreshToken,
         ...buildGrantedScopesCredentialPatch(scope),
       });

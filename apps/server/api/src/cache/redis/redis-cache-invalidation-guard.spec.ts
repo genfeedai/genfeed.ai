@@ -49,7 +49,7 @@ class InMemoryTaggedCache {
     return true;
   };
 
-  invalidateGuardedTags = async (tags: string[]): Promise<number> => {
+  invalidateByTags = async (tags: string[]): Promise<number> => {
     for (const tag of tags)
       this.epochs.set(tag, (this.epochs.get(tag) ?? 0) + 1);
     let removed = 0;
@@ -64,7 +64,6 @@ class InMemoryTaggedCache {
 }
 
 const GUARDED: CacheOptions = {
-  isInvalidationGuarded: true,
   keyGenerator: (request) => `public:brand:${request.params?.brandId}`,
   tags: ['brands', CACHE_TAGS.PUBLIC_BRAND_CONTENT],
   ttl: 1800,
@@ -107,7 +106,7 @@ describe('public response cache and invalidation', () => {
     brand = null; // the brand is deleted
     expect(await call(readBrand)).toBe('visible brand'); // stale hit
 
-    await cache.invalidateGuardedTags([CACHE_TAGS.PUBLIC_BRAND_CONTENT]);
+    await cache.invalidateByTags([CACHE_TAGS.PUBLIC_BRAND_CONTENT]);
 
     expect(await call(readBrand)).toBeNull();
   });
@@ -127,7 +126,7 @@ describe('public response cache and invalidation', () => {
     const inFlight = call(slowRead);
     await new Promise((resolve) => setImmediate(resolve));
     brand = null;
-    await cache.invalidateGuardedTags([CACHE_TAGS.PUBLIC_BRAND_CONTENT]);
+    await cache.invalidateByTags([CACHE_TAGS.PUBLIC_BRAND_CONTENT]);
     finishRead();
 
     expect(await inFlight).toBe('visible brand'); // the racing caller keeps its answer
@@ -153,8 +152,8 @@ describe('public response cache and invalidation', () => {
     expect(cache.entries.size).toBe(0);
   });
 
-  it('keeps storing unguarded responses without consulting the epochs', async () => {
-    const { cache, call } = setup({ ...GUARDED, isInvalidationGuarded: false });
+  it('keeps storing responses that carry no tags without consulting the epochs', async () => {
+    const { cache, call } = setup({ ...GUARDED, tags: undefined });
     cache.isAvailable = false;
 
     await call(async () => 'models');
