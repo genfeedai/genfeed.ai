@@ -289,7 +289,7 @@ describe('TwitterController', () => {
         expect.objectContaining({
           accessToken: 'oauth2-access-token',
           isConnected: true,
-          oauthState: null,
+          oauthState: 'verified:opaque-oauth-state',
           oauthToken: null,
           oauthTokenSecret: null,
           refreshToken: 'oauth2-refresh-token',

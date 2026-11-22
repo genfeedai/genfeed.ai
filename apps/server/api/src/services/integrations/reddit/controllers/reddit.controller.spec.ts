@@ -217,7 +217,7 @@ describe('RedditController', () => {
         expect.objectContaining({
           accessToken: 'at_reddit',
           isConnected: true,
-          oauthState: null,
+          oauthState: 'verified:opaque-oauth-state',
           refreshToken: 'rt_reddit',
         }),
       );
