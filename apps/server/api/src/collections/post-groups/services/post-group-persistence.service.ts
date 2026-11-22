@@ -471,6 +471,18 @@ export class PostGroupPersistenceService {
     );
   }
 
+  /** How many live groups hold `idempotencyKey` or `<idempotencyKey>:<n>`. */
+  countByIdempotencyKeyPrefix(
+    organizationId: string,
+    idempotencyKey: string,
+  ): Promise<number> {
+    return this.prisma.postGroup.count({
+      where: scopedWhere(organizationId, {
+        idempotencyKey: { startsWith: idempotencyKey },
+      }),
+    });
+  }
+
   /**
    * One page of the release list.
    *

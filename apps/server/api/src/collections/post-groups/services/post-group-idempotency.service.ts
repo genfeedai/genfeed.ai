@@ -4,8 +4,15 @@ import { CONTENT_RELEASE_IDEMPOTENCY_PREFIX } from '@genfeedai/contracts/constan
 import type { IReleaseGroup } from '@genfeedai/contracts/interfaces';
 import { ConflictException, Injectable } from '@nestjs/common';
 
-/** Content-derived keys retry with `:1`, `:2`, ... after a cancelled release. */
-const MAX_KEY_GENERATIONS = 25;
+/**
+ * A content-derived key replays a release made within this window. The MCP
+ * client times out after 30 s and agents retry at once, so a retry always falls
+ * inside it; a deliberate repeat of the same post later does not.
+ */
+export const CONTENT_KEY_DEDUPE_WINDOW_MS = 10 * 60 * 1000;
+
+/** Keys walked in one call; holes left by deleted groups are far fewer. */
+const MAX_KEY_STEPS = 25;
 
 export interface IdempotentCreateResult {
   group: IReleaseGroup;
@@ -16,11 +23,27 @@ export interface IdempotentCreateResult {
 /**
  * Makes release creation idempotent on `[organizationId, idempotencyKey]`.
  *
- * - A caller-chosen key replays whatever group holds it, in any state.
- * - A content-derived key (`CONTENT_RELEASE_IDEMPOTENCY_PREFIX`) replays only a
- *   group that is not cancelled. The unique index cannot be reused, so after a
- *   cancelled group the next release is made under `<key>:<n>`.
- * - A create that loses a race on the unique index returns the winner.
+ * - A caller-chosen key (or an approval-id key) replays whatever group holds
+ *   it, in any state, with no time limit.
+ * - A content-derived key (`CONTENT_RELEASE_IDEMPOTENCY_PREFIX`) replays a group
+ *   only while it is live (not cancelled) and younger than
+ *   `CONTENT_KEY_DEDUPE_WINDOW_MS`. Otherwise it is a deliberate repeat and
+ *   gets a new release.
+ *
+ * The unique index cannot be reused, so the n-th release of identical content
+ * is stored under `<key>` (n = 0) or `<key>:<n>`. The latest release is the
+ * only one that can still be fresh, and every earlier one is stale or
+ * cancelled. A call therefore counts the live groups under the key prefix, and
+ * starts its walk at the last of them instead of at `<key>`; the walk is in
+ * order and stops at the first fresh live group (replay) or the first free key
+ * (create). The count never exceeds the highest generation, so the walk cannot
+ * start past a fresh group, and it stays short however often the same post is
+ * repeated, so identical content never runs out of keys.
+ *
+ * Two concurrent identical calls walk to the same free key; one create wins the
+ * unique index and the other re-reads and replays it. A key held by a deleted
+ * group (invisible to the read) fails the create the same way, and the walk
+ * moves on to the next key.
  */
 @Injectable()
 export class PostGroupIdempotencyService {
@@ -37,19 +60,32 @@ export class PostGroupIdempotencyService {
       return { group: await create(undefined), replayed: false };
     }
 
+    const now = new Date();
     const derived = key.startsWith(CONTENT_RELEASE_IDEMPOTENCY_PREFIX);
-    for (let generation = 0; generation < MAX_KEY_GENERATIONS; generation++) {
+    const start = derived
+      ? Math.max(
+          0,
+          (await this.persistenceService.countByIdempotencyKeyPrefix(
+            organizationId,
+            key,
+          )) - 1,
+        )
+      : 0;
+
+    for (let step = 0; step < MAX_KEY_STEPS; step++) {
+      const generation = start + step;
       const attemptKey = generation === 0 ? key : `${key}:${generation}`;
-      const existing = await this.findReplayable(
+      const found = await this.findReplayable(
         organizationId,
         attemptKey,
         derived,
+        now,
       );
-      if (existing === 'cancelled') {
-        continue;
+      if (found.state === 'replay') {
+        return { group: found.group, replayed: true };
       }
-      if (existing) {
-        return { group: existing, replayed: true };
+      if (found.state === 'stale') {
+        continue;
       }
 
       try {
@@ -62,14 +98,15 @@ export class PostGroupIdempotencyService {
           organizationId,
           attemptKey,
           derived,
+          now,
         );
-        if (winner && winner !== 'cancelled') {
-          return { group: winner, replayed: true };
+        if (winner.state === 'replay') {
+          return { group: winner.group, replayed: true };
         }
         if (!derived) {
           throw error;
         }
-        // The key is held by a cancelled or deleted group: try the next one.
+        // The key is held by a stale, cancelled or deleted group: go on.
       }
     }
     throw new ConflictException('Release idempotency key is exhausted');
@@ -79,15 +116,28 @@ export class PostGroupIdempotencyService {
     organizationId: string,
     key: string,
     derived: boolean,
-  ): Promise<IReleaseGroup | 'cancelled' | undefined> {
+    now: Date,
+  ): Promise<
+    | { state: 'replay'; group: IReleaseGroup }
+    | { state: 'stale' }
+    | { state: 'free' }
+  > {
     const existing = await this.persistenceService.findByIdempotencyKey(
       organizationId,
       key,
     );
-    if (existing && derived && existing.status === ReleaseStatus.CANCELLED) {
-      return 'cancelled';
+    if (!existing) {
+      return { state: 'free' };
     }
-    return existing;
+    if (
+      derived &&
+      (existing.status === ReleaseStatus.CANCELLED ||
+        now.getTime() - new Date(existing.createdAt).getTime() >
+          CONTENT_KEY_DEDUPE_WINDOW_MS)
+    ) {
+      return { state: 'stale' };
+    }
+    return { group: existing, state: 'replay' };
   }
 
   private isUniqueConstraintError(error: unknown): boolean {

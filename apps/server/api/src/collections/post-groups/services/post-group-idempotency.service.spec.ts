@@ -1,4 +1,7 @@
-import { PostGroupIdempotencyService } from '@api/collections/post-groups/services/post-group-idempotency.service';
+import {
+  CONTENT_KEY_DEDUPE_WINDOW_MS,
+  PostGroupIdempotencyService,
+} from '@api/collections/post-groups/services/post-group-idempotency.service';
 import type { PostGroupPersistenceService } from '@api/collections/post-groups/services/post-group-persistence.service';
 import { ReleaseStatus } from '@genfeedai/contracts';
 import { CONTENT_RELEASE_IDEMPOTENCY_PREFIX } from '@genfeedai/contracts/constants/release-idempotency.constant';
@@ -21,6 +24,7 @@ describe('PostGroupIdempotencyService', () => {
       });
     }
     const group = {
+      createdAt: new Date().toISOString(),
       id: `group-${nextId++}`,
       status: ReleaseStatus.SCHEDULED,
     } as IReleaseGroup;
@@ -31,15 +35,25 @@ describe('PostGroupIdempotencyService', () => {
   };
 
   beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-11-22T10:00:00.000Z'));
     groups = new Map();
     deletedKeys = new Set();
     nextId = 1;
     const persistence = {
+      countByIdempotencyKeyPrefix: async (_org: string, prefix: string) =>
+        [...groups.keys()].filter((key) => key.startsWith(prefix)).length,
       findByIdempotencyKey: async (_org: string, key: string) =>
         groups.get(key),
     } as unknown as PostGroupPersistenceService;
     service = new PostGroupIdempotencyService(persistence);
   });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  const MINUTE = 60 * 1000;
 
   it('replays a live group for a content-derived key', async () => {
     const first = await service.run('org-1', CONTENT_KEY, create);
@@ -113,5 +127,76 @@ describe('PostGroupIdempotencyService', () => {
 
     expect(result.replayed).toBe(false);
     expect(result.group.id).toBe('group-1');
+  });
+
+  it('replays identical content one minute later', async () => {
+    const first = await service.run('org-1', CONTENT_KEY, create);
+    vi.advanceTimersByTime(MINUTE);
+
+    const second = await service.run('org-1', CONTENT_KEY, create);
+
+    expect(second.replayed).toBe(true);
+    expect(second.group.id).toBe(first.group.id);
+  });
+
+  it('creates a new live group for identical content 11 minutes later', async () => {
+    const first = await service.run('org-1', CONTENT_KEY, create);
+    vi.advanceTimersByTime(11 * MINUTE);
+
+    const second = await service.run('org-1', CONTENT_KEY, create);
+
+    expect(CONTENT_KEY_DEDUPE_WINDOW_MS).toBe(10 * MINUTE);
+    expect(second.replayed).toBe(false);
+    expect(second.group.id).not.toBe(first.group.id);
+    expect(second.group.status).toBe(ReleaseStatus.SCHEDULED);
+  });
+
+  it('replays the latest group, not the first, for a call inside the second window', async () => {
+    await service.run('org-1', CONTENT_KEY, create);
+    vi.advanceTimersByTime(11 * MINUTE);
+    const second = await service.run('org-1', CONTENT_KEY, create);
+    vi.advanceTimersByTime(MINUTE);
+
+    const third = await service.run('org-1', CONTENT_KEY, create);
+
+    expect(third.replayed).toBe(true);
+    expect(third.group.id).toBe(second.group.id);
+    expect(groups.size).toBe(2);
+  });
+
+  it('creates exactly one group for two concurrent identical calls', async () => {
+    const results = await Promise.all([
+      service.run('org-1', CONTENT_KEY, create),
+      service.run('org-1', CONTENT_KEY, create),
+    ]);
+
+    expect(groups.size).toBe(1);
+    expect(results[0].group.id).toBe(results[1].group.id);
+    expect(results.filter((result) => result.replayed)).toHaveLength(1);
+  });
+
+  it('creates exactly one new group for concurrent retries after an old one', async () => {
+    await service.run('org-1', CONTENT_KEY, create);
+    vi.advanceTimersByTime(11 * MINUTE);
+
+    const results = await Promise.all([
+      service.run('org-1', CONTENT_KEY, create),
+      service.run('org-1', CONTENT_KEY, create),
+    ]);
+
+    expect(groups.size).toBe(2);
+    expect(results[0].group.id).toBe(results[1].group.id);
+  });
+
+  it('accepts 30 spaced-out identical repeats', async () => {
+    const ids = new Set<string>();
+    for (let day = 0; day < 30; day++) {
+      const result = await service.run('org-1', CONTENT_KEY, create);
+      expect(result.replayed).toBe(false);
+      ids.add(result.group.id);
+      vi.advanceTimersByTime(24 * 60 * MINUTE);
+    }
+
+    expect(ids.size).toBe(30);
   });
 });
