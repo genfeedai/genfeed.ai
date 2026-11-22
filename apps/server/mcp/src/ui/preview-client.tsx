@@ -9,7 +9,6 @@ import {
   formatPlatformLabel,
 } from '@genfeedai/contracts';
 import type {
-  McpCalendarDay,
   McpCard,
   McpCardAction,
   McpCardMedia,
@@ -31,6 +30,11 @@ import type {
 } from '@mcp/shared/interfaces/mcp-preview.interface';
 import { isAccountAvatarOrigin } from '@mcp/ui/avatar-origins';
 import { CardBoundary } from '@mcp/ui/card-boundary';
+import {
+  localCalendarDays,
+  localDayKey,
+  parseDay,
+} from '@mcp/ui/card-calendar';
 import { FactValue, MetricList, StatusBadge } from '@mcp/ui/card-parts';
 import uiMessages from '@preview-messages/ui';
 import Card from '@ui/card/Card';
@@ -169,12 +173,7 @@ function card(value: unknown): McpCard | undefined {
                 approvalId: text(item.approvalId),
                 decision: item.decision,
                 label: text(item.label) || 'Approve',
-                // The card carries the organization the approval was queued
-                // in, so a connection that covers several resolves it there.
-                organization:
-                  text(item.organization) ||
-                  text(row.organization) ||
-                  undefined,
+                organization: text(row.organization) || undefined,
               },
             ];
           return [];
@@ -1096,36 +1095,6 @@ function CardPreview({
     </article>
   );
 }
-function localDayKey(date: Date) {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-}
-function parseDay(value: string) {
-  const [year, month, day] = value.split('-').map(Number);
-  return new Date(year, month - 1, day, 12);
-}
-function localCalendarDays(days: McpCalendarDay[]) {
-  const keys = new Set<string>();
-  const posts = new Map<string, McpCard[]>();
-  const first = parseDay(days[0]?.date || '');
-  if (!Number.isNaN(first.getTime()))
-    for (let offset = 0; offset < days.length; offset++) {
-      const date = new Date(first);
-      date.setDate(first.getDate() + offset);
-      keys.add(localDayKey(date));
-    }
-  for (const day of days)
-    for (const post of day.posts) {
-      const date = new Date(post.date);
-      if (Number.isNaN(date.getTime())) continue;
-      const key = localDayKey(date);
-      keys.add(key);
-      posts.set(key, [...(posts.get(key) || []), post]);
-    }
-  return [...keys].sort().map((date) => ({
-    date,
-    posts: (posts.get(date) || []).sort((a, b) => a.date.localeCompare(b.date)),
-  }));
-}
 function OrganizationSwitcher({
   error,
   isSwitching,
@@ -1264,7 +1233,7 @@ function Preview({ result, notice, bridge }: PreviewProps) {
         arguments: {
           approvalId: action.approvalId,
           decision: action.decision,
-          ...(action.organization ? { organization: action.organization } : {}),
+          organization: action.organization,
         },
       })
       .then((outcome) => {
