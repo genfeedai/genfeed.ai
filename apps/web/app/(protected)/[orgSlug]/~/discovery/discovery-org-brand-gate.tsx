@@ -21,11 +21,11 @@ function getDiscoveryScopedPath(pathname: string, orgSlug: string): string {
   const index = pathname.indexOf(marker);
 
   if (index === -1) {
-    return '/discovery/overview';
+    return '/discovery/feed';
   }
 
   const rest = pathname.slice(index + marker.length);
-  return rest ? `/discovery${rest}` : '/discovery/overview';
+  return rest ? `/discovery${rest}` : '/discovery/feed';
 }
 
 /**

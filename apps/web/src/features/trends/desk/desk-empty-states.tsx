@@ -41,11 +41,10 @@ export function DiscoveryReadinessCards({
 
 /**
  * The Desk's "nothing here" state. Mirrors the retired
- * `TrendContentEmptyState`, corrected: the Following link is the brand-scoped
- * `/discovery/following` route.
+ * `TrendContentEmptyState`; following creators opens the follow dialog.
  */
 export function DeskEmptyState({
-  followingHref,
+  onFollowCreators,
   hasSearch,
   isRefreshing,
   onClearSearch,
@@ -53,7 +52,7 @@ export function DeskEmptyState({
   publishingHref,
   sourceHealthHref,
 }: {
-  followingHref: string;
+  onFollowCreators: () => void;
   hasSearch: boolean;
   isRefreshing: boolean;
   onClearSearch: () => void;
@@ -92,12 +91,13 @@ export function DeskEmptyState({
               {translateDesk('emptyState.connectAccounts')}
             </Link>
           </Button>
-          <Button asChild size={ButtonSize.SM} variant={ButtonVariant.GHOST}>
-            <Link href={followingHref}>
-              <AtSign className="size-3.5" />
-              {translateDesk('emptyState.followCreators')}
-            </Link>
-          </Button>
+          <Button
+            icon={<AtSign className="size-3.5" />}
+            label={translateDesk('emptyState.followCreators')}
+            onClick={onFollowCreators}
+            size={ButtonSize.SM}
+            variant={ButtonVariant.GHOST}
+          />
           <Button asChild size={ButtonSize.SM} variant={ButtonVariant.GHOST}>
             <Link href={sourceHealthHref}>
               <Activity className="size-3.5" />

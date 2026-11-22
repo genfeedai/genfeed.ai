@@ -212,7 +212,7 @@ describe('operator-shell helpers', () => {
       '/settings',
       '/settings/organization',
       '/storyboard',
-      '/discovery/overview',
+      '/discovery/feed',
       '/publishing',
       '/messages',
       '/admin',
