@@ -30,18 +30,7 @@ export class YoutubeProcessor extends WorkerHost {
   }
 
   private async handleUpload(job: Job<YoutubeJobData>): Promise<JobResult> {
-    const {
-      credential,
-      postId,
-      ingredientId,
-      userId,
-      organizationId,
-      title,
-      description,
-      tags,
-      status,
-      scheduledDate,
-    } = job.data;
+    const { postId, userId, organizationId, status } = job.data;
 
     this.logger.log(
       `Processing YouTube upload job ${job.id} for post ${postId}`,
@@ -49,25 +38,17 @@ export class YoutubeProcessor extends WorkerHost {
 
     try {
       await job.updateProgress(10);
-      if (!credential) {
-        throw new Error('Credential data missing from job');
-      }
-
-      const externalId = await this.youtubeService.uploadVideo({
-        credential,
-        description: description || '',
-        ingredientId,
-        ...(job.data.sourceStorageKey
-          ? { sourceStorageKey: job.data.sourceStorageKey }
-          : {}),
-        scheduledDate: scheduledDate ? new Date(scheduledDate) : undefined,
-        status: status || 'private',
-        tags: tags || [],
-        title: title || 'Untitled',
-      });
+      const externalId =
+        job.data.externalId ?? (await this.uploadAndRecord(job));
       const videoUrl = `https://www.youtube.com/watch?v=${externalId}`;
-      await job.updateProgress(100);
-      await this.publishYoutubeCompletion(
+      try {
+        await job.updateProgress(100);
+      } catch (progressError: unknown) {
+        this.logger.warn(
+          `Progress update failed after upload for post ${postId}: ${(progressError as Error)?.message}`,
+        );
+      }
+      await this.emitYoutubeCompletion(
         postId,
         userId,
         organizationId,
@@ -80,7 +61,9 @@ export class YoutubeProcessor extends WorkerHost {
         `YouTube upload failed for post ${postId}: ${(error as Error)?.message}`,
         error,
       );
-      if (isFinalAttempt(job)) {
+      // Once the video is on YouTube a retry only redoes the follow-up, so
+      // the post is never reported as failed.
+      if (isFinalAttempt(job) && !job.data.externalId) {
         await this.publishYoutubeCompletion(
           postId,
           userId,
@@ -94,12 +77,68 @@ export class YoutubeProcessor extends WorkerHost {
     }
   }
 
+  /**
+   * Upload the video, then store the external id on the job at once so a retry
+   * of this job never uploads a second copy.
+   */
+  private async uploadAndRecord(job: Job<YoutubeJobData>): Promise<string> {
+    const { credential, ingredientId, title, description, tags, status } =
+      job.data;
+    if (!credential) {
+      throw new Error('Credential data missing from job');
+    }
+
+    const externalId = await this.youtubeService.uploadVideo({
+      credential,
+      description: description || '',
+      ingredientId,
+      ...(job.data.sourceStorageKey
+        ? { sourceStorageKey: job.data.sourceStorageKey }
+        : {}),
+      scheduledDate: job.data.scheduledDate
+        ? new Date(job.data.scheduledDate)
+        : undefined,
+      status: status || 'private',
+      tags: tags || [],
+      title: title || 'Untitled',
+    });
+    try {
+      await job.updateData({ ...job.data, externalId });
+    } catch (persistError: unknown) {
+      this.logger.error(
+        `Failed to record YouTube video ${externalId} on job ${job.id}: ${(persistError as Error)?.message}`,
+        persistError,
+      );
+    }
+    return externalId;
+  }
+
   private mapUploadStatusToCompletionStatus(
     status: string | undefined,
   ): 'unlisted' | 'public' | 'private' | 'scheduled' | 'failed' {
     return status === 'public' || status === 'private' || status === 'scheduled'
       ? status
       : 'unlisted';
+  }
+
+  /** Publish the completion event; a failure fails the job so a retry sends it. */
+  private async emitYoutubeCompletion(
+    postId: string,
+    userId: string,
+    organizationId: string,
+    status: 'unlisted' | 'public' | 'private' | 'scheduled' | 'failed',
+    result: { externalId: string; videoUrl: string } | null,
+    error?: string,
+  ): Promise<void> {
+    await this.redisService.publish('youtube:upload:complete', {
+      error,
+      organizationId,
+      postId,
+      result,
+      status,
+      timestamp: new Date().toISOString(),
+      userId,
+    });
   }
 
   private async publishYoutubeCompletion(
@@ -111,15 +150,14 @@ export class YoutubeProcessor extends WorkerHost {
     error?: string,
   ): Promise<void> {
     try {
-      await this.redisService.publish('youtube:upload:complete', {
-        error,
-        organizationId,
+      await this.emitYoutubeCompletion(
         postId,
-        result,
-        status,
-        timestamp: new Date().toISOString(),
         userId,
-      });
+        organizationId,
+        status,
+        result,
+        error,
+      );
     } catch (publishError: unknown) {
       this.logger.error(
         `Failed to publish YouTube completion event: ${(publishError as Error)?.message}`,

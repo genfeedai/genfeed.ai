@@ -24,6 +24,14 @@ const YOUTUBE_JOB_CONFIGS: Partial<Record<JobType, JobConfig>> = {
   },
 };
 
+/** States in which a job may still upload; it must not be replaced. */
+const IN_FLIGHT_STATES = new Set<string>([
+  'active',
+  'waiting',
+  'delayed',
+  'prioritized',
+]);
+
 @Injectable()
 export class YoutubeQueueService extends BaseQueueService<YoutubeJobData> {
   protected readonly jobConfigs = YOUTUBE_JOB_CONFIGS;
@@ -38,20 +46,45 @@ export class YoutubeQueueService extends BaseQueueService<YoutubeJobData> {
   async addUploadUnlistedJob(
     data: YoutubeJobData,
   ): Promise<Job<YoutubeJobData>> {
-    return this.addJob(
+    return this.addDeterministicJob(
       JOB_TYPES.UPLOAD_YOUTUBE_UNLISTED,
       data,
       'YouTube unlisted upload',
-      `post ${data.postId}`,
     );
   }
 
   async addUploadJob(data: YoutubeJobData): Promise<Job<YoutubeJobData>> {
-    return this.addJob(
+    return this.addDeterministicJob(
       JOB_TYPES.UPLOAD_YOUTUBE,
       data,
       'YouTube upload',
-      `post ${data.postId}`,
     );
+  }
+
+  /**
+   * One upload job per post: `youtube-upload-<postId>` (hyphens only, BullMQ
+   * rejects ':' in ids). A job still in flight is returned instead of added
+   * again. A finished job retained under the id is removed first, so a retry
+   * of a failed post still enqueues.
+   */
+  private async addDeterministicJob(
+    jobType: JobType,
+    data: YoutubeJobData,
+    logLabel: string,
+  ): Promise<Job<YoutubeJobData>> {
+    const jobId = `youtube-upload-${data.postId}`;
+    const existing = await this.queue.getJob(jobId);
+    if (existing) {
+      const state = await existing.getState();
+      if (IN_FLIGHT_STATES.has(state)) {
+        this.logger.log(
+          `${logLabel} job ${jobId} already ${state}; not queuing a second upload`,
+        );
+        return existing as Job<YoutubeJobData>;
+      }
+      await existing.remove();
+    }
+
+    return this.addJob(jobType, data, logLabel, `post ${data.postId}`, jobId);
   }
 }

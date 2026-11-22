@@ -5,6 +5,16 @@ import { render } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import IngredientTabsTags from '@/features/ingredients/components/tabs/tags/IngredientTabsTags';
 
+vi.mock('@hooks/navigation/use-collection-scope/use-collection-scope', () => ({
+  isCollectionFetchReady: () => true,
+  useCollectionScope: () => ({
+    brandId: 'brand-1',
+    isReady: true,
+    organizationId: 'org-1',
+    pageScope: 'brand',
+  }),
+}));
+
 vi.mock('@/features/ingredients/components/tags/manager/TagsManager', () => ({
   default: () => <div data-testid="tags-manager" />,
 }));
