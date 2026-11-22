@@ -284,7 +284,10 @@ describe('ReviewInboxApprovalsSection', () => {
       estimatedCredits: null,
       id: 'agent_input_request:thread-1:req-tone',
       kind: 'agent_input_request',
-      preview: { caption: 'Which tone should the launch posts use?', mediaUrl: null },
+      preview: {
+        caption: 'Which tone should the launch posts use?',
+        mediaUrl: null,
+      },
       question: {
         allowFreeText: true,
         isMultiSelect: false,

@@ -144,7 +144,10 @@ export function useReviewInboxApprovals(
       } catch (answerError: unknown) {
         logger.error('Review inbox answer failed', answerError);
         notifications.error(
-          getJsonApiErrorMessage(answerError, translate('questionAnswerFailed')),
+          getJsonApiErrorMessage(
+            answerError,
+            translate('questionAnswerFailed'),
+          ),
         );
       } finally {
         setDecidingItemId(null);
