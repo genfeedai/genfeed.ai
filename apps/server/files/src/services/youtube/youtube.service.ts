@@ -11,8 +11,6 @@ import { Auth, google, youtube_v3 } from 'googleapis';
 
 @Injectable()
 export class YoutubeService {
-  private youtubeAPI: ReturnType<typeof google.youtube> | null = null;
-
   constructor(
     private readonly configService: ConfigService,
     private readonly logger: LoggerService,
@@ -20,9 +18,12 @@ export class YoutubeService {
   ) {}
 
   /**
-   * Initialize YouTube API with credentials
+   * Create a YouTube API client for one upload. The client is never stored on
+   * the instance, so concurrent uploads for different accounts cannot share it.
    */
-  private initializeYoutubeAPI(credential: YoutubeCredential): void {
+  private createYoutubeAPI(
+    credential: YoutubeCredential,
+  ): ReturnType<typeof google.youtube> {
     const oauth2Client = new google.auth.OAuth2(
       credential.clientId,
       credential.clientSecret,
@@ -42,7 +43,7 @@ export class YoutubeService {
       this.logger.log('Access token refreshed');
     });
 
-    this.youtubeAPI = google.youtube({
+    return google.youtube({
       auth: oauth2Client,
       version: 'v3',
     });
@@ -74,7 +75,7 @@ export class YoutubeService {
     try {
       this.logger.log(`Uploading video ${ingredientId} to YouTube`);
 
-      this.initializeYoutubeAPI(credential);
+      const youtubeAPI = this.createYoutubeAPI(credential);
 
       // Download video file
       let videoUrl = `${this.configService.ingredientsEndpoint}/videos/${ingredientId}`;
@@ -158,10 +159,6 @@ export class YoutubeService {
       }
 
       // Upload to YouTube
-      if (!this.youtubeAPI) {
-        throw new Error('YouTube API not initialized');
-      }
-
       const insertParams: youtube_v3.Params$Resource$Videos$Insert = {
         media: {
           body: fs.createReadStream(filePath),
@@ -176,7 +173,7 @@ export class YoutubeService {
           status: statusConfig,
         },
       };
-      const res = await this.youtubeAPI.videos.insert(insertParams, {});
+      const res = await youtubeAPI.videos.insert(insertParams, {});
 
       if (!res.data.id) {
         throw new Error('Failed to upload video to YouTube');
