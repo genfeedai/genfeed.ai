@@ -108,15 +108,6 @@ vi.mock('@/lib/platform-flags/platform-flags-sync', () => ({
   notifyPlatformFlagsChanged: notifyPlatformFlagsChangedMock,
 }));
 
-vi.mock(
-  '@/components/shell/workspace-frame-skeleton/WorkspaceFrameSkeleton',
-  () => ({
-    default: ({ label }: { label: string }) => (
-      <div data-testid="workspace-frame-skeleton" data-label={label} />
-    ),
-  }),
-);
-
 vi.mock('@/components/analytics/AnalyticsOrganizationSync', () => ({
   default: () => <div data-testid="analytics-organization-sync" />,
 }));
@@ -250,7 +241,7 @@ describe('app/(onboarding)/layout.tsx', () => {
     },
   );
 
-  it('shows a skeleton and no children while platform flags are pending', () => {
+  it('shows a spinner and no children while platform flags are pending', () => {
     platformFlagsState.isReady = false;
 
     render(
@@ -259,7 +250,7 @@ describe('app/(onboarding)/layout.tsx', () => {
       </OnboardingSetupLayout>,
     );
 
-    expect(screen.getByTestId('workspace-frame-skeleton')).toBeInTheDocument();
+    expect(screen.getByRole('status', { name: 'Loading' })).toBeInTheDocument();
     expect(screen.queryByTestId('child')).not.toBeInTheDocument();
   });
 

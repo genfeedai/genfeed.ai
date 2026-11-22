@@ -949,6 +949,38 @@ describe('PostSignupPage behavior', () => {
     expect(getMyOrganizationsMock).toHaveBeenCalledTimes(1);
   });
 
+  it('runs routing once when the user reloads while it is in flight', async () => {
+    let releaseToken: (token: string) => void = () => undefined;
+    resolveAuthTokenMock.mockReturnValue(
+      new Promise<string>((resolve) => {
+        releaseToken = resolve;
+      }),
+    );
+
+    const { rerender } = render(<PostSignupPage />);
+    await vi.waitFor(() => {
+      expect(resolveAuthTokenMock).toHaveBeenCalledTimes(1);
+    });
+
+    currentUserState.isLoading = true;
+    rerender(<PostSignupPage />);
+    currentUserState.isLoading = false;
+    rerender(<PostSignupPage />);
+    await act(async () => {
+      await new Promise((resolve) => setImmediate(resolve));
+    });
+
+    await act(async () => {
+      releaseToken('api-token');
+    });
+
+    await waitFor(() => {
+      expect(locationState.href).toBe('/onboarding/brand');
+    });
+    expect(resolveAuthTokenMock).toHaveBeenCalledTimes(1);
+    expect(getMyOrganizationsMock).toHaveBeenCalledTimes(1);
+  });
+
   it('stops routing when the page unmounts', async () => {
     let releaseToken: (token: string) => void = () => undefined;
     resolveAuthTokenMock.mockReturnValue(

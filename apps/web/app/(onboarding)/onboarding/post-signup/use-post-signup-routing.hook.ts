@@ -92,6 +92,12 @@ export function usePostSignupRouting(): PostSignupRoutingState {
     useState<SkippedHandleNotice | null>(null);
   const resumeAfterSkippedHandleRef = useRef<(() => void) | null>(null);
   const isReady = !isLoading && Boolean(currentUser) && Boolean(authUser);
+  // Latched: a later reload of the user must not abort the routing in flight
+  // and start a second run with side effects.
+  const [hasBecomeReady, setHasBecomeReady] = useState(false);
+  if (isReady && !hasBecomeReady) {
+    setHasBecomeReady(true);
+  }
   const authPrimaryEmail = authUser?.primaryEmailAddress?.emailAddress ?? '';
   const checkoutEmail = currentUser?.email || authPrimaryEmail || '';
   const hasBrandOsHandoff = Boolean(
@@ -711,7 +717,7 @@ export function usePostSignupRouting(): PostSignupRoutingState {
 
   // use-effect-audit: ignore subscribes to browser events
   useEffect(() => {
-    if (!isReady) {
+    if (!hasBecomeReady) {
       return;
     }
 
@@ -739,7 +745,7 @@ export function usePostSignupRouting(): PostSignupRoutingState {
       abortController.abort();
       window.clearTimeout(fallbackTimeout);
     };
-  }, [isReady, routingAttempt]);
+  }, [hasBecomeReady, routingAttempt]);
 
   return {
     continueAfterSkippedHandle,

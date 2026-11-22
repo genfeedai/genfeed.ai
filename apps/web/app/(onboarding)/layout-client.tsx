@@ -8,11 +8,11 @@ import ApiStatusProvider from '@providers/api-status/api-status.provider';
 import ThemePreferenceSync from '@providers/theme-sync/theme-preference-sync';
 import { ErrorBoundary } from '@ui/display/error-boundary/ErrorBoundary';
 import { ErrorFallback } from '@ui/error/ErrorFallback';
+import Spinner from '@ui/primitives/spinner';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Suspense } from 'react';
 import AnalyticsOrganizationSync from '@/components/analytics/AnalyticsOrganizationSync';
-import WorkspaceFrameSkeleton from '@/components/shell/workspace-frame-skeleton/WorkspaceFrameSkeleton';
 import { FeatureFlagProvider } from '@/hooks/feature-flags/provider';
 import { useIsDesktopClient } from '@/hooks/ui/use-is-desktop-client/use-is-desktop-client';
 import { notifyPlatformFlagsChanged } from '@/lib/platform-flags/platform-flags-sync';
@@ -25,7 +25,6 @@ export default function OnboardingSetupLayout({ children }: LayoutProps) {
   const translateUnavailable = useTranslations(
     'pages.platformFlags.unavailable',
   );
-  const translatePending = useTranslations('pages.organizationRouting.pending');
   const pathname = usePathname();
   const isDesktop = useIsDesktopClient();
   const isDesktopLocalOnboarding =
@@ -54,7 +53,9 @@ export default function OnboardingSetupLayout({ children }: LayoutProps) {
         />
       </main>
     ) : (
-      <WorkspaceFrameSkeleton label={translatePending('loading')} />
+      <main className="flex min-h-dvh w-full items-center justify-center bg-background">
+        <Spinner className="size-16 text-primary" />
+      </main>
     )
   ) : (
     <FeatureFlagProvider defaults={platformFlags}>
