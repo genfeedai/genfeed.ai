@@ -16,10 +16,10 @@ import CreatorArticleGrid from '@web-components/creator/CreatorArticleGrid';
 import CreatorProfileLayout from '@web-components/creator/CreatorProfileLayout';
 import CreatorSection from '@web-components/creator/CreatorSection';
 import CreatorWall from '@web-components/creator/CreatorWall';
-import CreatorWallFilter from '@web-components/creator/CreatorWallFilter';
 import ProfileEmptyState from '@web-components/profile/ProfileEmptyState';
 import ProfileImages from '@web-components/profile/ProfileImages';
 import ProfileVideos from '@web-components/profile/ProfileVideos';
+import dynamic from 'next/dynamic';
 import { notFound } from 'next/navigation';
 import '@styles/masonry.css';
 import {
@@ -31,6 +31,12 @@ import {
   getCreatorProfileData,
   resolveCreatorPlatform,
 } from './creator-loader';
+
+// The Filters menu brings the dropdown menu with it, which only the Wall tab
+// needs, so it loads in its own chunk instead of with every profile route.
+const CreatorWallFilter = dynamic(
+  () => import('@web-components/creator/CreatorWallFilter'),
+);
 
 const TAB_TOTAL_LABELS: Record<CreatorProfileTab, string> = {
   articles: 'articles',
