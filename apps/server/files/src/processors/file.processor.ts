@@ -194,7 +194,6 @@ export class FileProcessor extends WorkerHost {
         }
       }
 
-      // Download voices
       this.logger.log('Downloading voices');
       for (let i = 0; i < voices.length; i++) {
         const filePath = await this.downloadIngredientFile(

@@ -247,7 +247,6 @@ export abstract class BaseIntegrationController {
         user.organizationId,
       );
 
-      // Generate OAuth URL
       const oauthResult = await this.generateOAuthUrl(brand.id, user);
 
       // Before anything is persisted: a platform whose provider-app config is

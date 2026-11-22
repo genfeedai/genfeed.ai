@@ -63,7 +63,6 @@ export class DiscordController {
       { isConnected: false },
     );
 
-    // Generate Discord OAuth URL
     const authUrl = this.discordService.generateAuthUrl(state);
 
     return serializeSingle(request, CredentialOAuthSerializer, {
@@ -116,7 +115,6 @@ export class DiscordController {
       );
     }
 
-    // Exchange code for tokens
     const tokenData = await this.discordService.exchangeCodeForToken(code);
 
     if (!tokenData?.access_token) {

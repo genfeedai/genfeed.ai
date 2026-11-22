@@ -81,7 +81,6 @@ export function createServiceModule(
   const providersArray = [ServiceClass, ...additionalProviders] as Provider[];
   const exportsArray = [ServiceClass, ...additionalExports];
 
-  // Validate providers array
   const invalidProvidersInArray = providersArray.filter((prov) => prov == null);
   if (invalidProvidersInArray.length > 0) {
     throw new Error(
@@ -89,7 +88,6 @@ export function createServiceModule(
     );
   }
 
-  // Validate exports array
   const invalidExports = exportsArray.filter((exp) => exp == null);
   if (invalidExports.length > 0) {
     throw new Error(

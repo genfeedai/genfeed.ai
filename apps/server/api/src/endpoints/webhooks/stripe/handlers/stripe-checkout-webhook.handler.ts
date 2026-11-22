@@ -810,7 +810,6 @@ export class StripeCheckoutWebhookHandler {
         return;
       }
 
-      // Find user
       const dbUser = await this.usersService.findOne({
         id: userId,
       });

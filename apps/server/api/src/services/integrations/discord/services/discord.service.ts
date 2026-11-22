@@ -232,7 +232,6 @@ export class DiscordService {
         );
       }
 
-      // Decrypt refresh token
       const decryptedRefreshToken = EncryptionUtil.decrypt(
         credential.refreshToken,
       );

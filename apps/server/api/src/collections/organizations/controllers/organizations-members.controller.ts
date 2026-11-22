@@ -263,7 +263,6 @@ export class OrganizationsMembersController {
       memberUpdate = { ...updateMemberDto, brandIds };
     }
 
-    // Update the member
     const updatedMember = await this.membersService.patch(
       memberId,
       memberUpdate,

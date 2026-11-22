@@ -150,7 +150,6 @@ export class WebhooksController {
     });
 
     try {
-      // Trigger the workflow
       const result = await this.workflowWebhookService.triggerViaWebhook(
         webhookId,
         payload,

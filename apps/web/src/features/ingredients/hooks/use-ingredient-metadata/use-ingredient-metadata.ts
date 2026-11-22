@@ -53,7 +53,6 @@ export function useIngredientMetadata(
           [field]: value,
         };
 
-        // Patch metadata
         await service.patchMetadata(ingredient.id, updatedMetadata);
 
         // Reload the ingredient using the provided reload callback (uses correct service)

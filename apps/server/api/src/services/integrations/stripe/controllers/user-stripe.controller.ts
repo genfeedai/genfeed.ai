@@ -269,7 +269,6 @@ export class UserStripeController {
         return returnNotFound('User', user.id);
       }
 
-      // Get user subscription
       const subscription = await this.userSubscriptionsService.findByUser(
         dbUser.id.toString(),
       );

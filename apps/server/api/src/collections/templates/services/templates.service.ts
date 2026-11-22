@@ -450,10 +450,8 @@ export class TemplatesService {
         templateId: dto.templateId,
       });
 
-      // Get template
       const template = await this.findOne(dto.templateId, organization);
 
-      // Fill in variables
       let generatedContent = this.fillVariables(
         template.content ?? '',
         dto.variables,
@@ -469,7 +467,6 @@ export class TemplatesService {
         );
       }
 
-      // Track usage
       await this.trackUsage(
         dto.templateId,
         organization,
@@ -590,10 +587,8 @@ export class TemplatesService {
    */
   renderPrompt(template: string, variables: Record<string, unknown>): string {
     try {
-      // Compile the template with Handlebars
       const compiledTemplate = Handlebars.compile(template);
 
-      // Render with variables
       let rendered = compiledTemplate(variables);
 
       // Clean up multiple consecutive newlines (3+ newlines -> 2 newlines)

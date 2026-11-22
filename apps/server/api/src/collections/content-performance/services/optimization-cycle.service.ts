@@ -326,7 +326,6 @@ export class OptimizationCycleService {
         platformMap.set(item.platform, existing);
       }
 
-      // Content types
       if (item.contentType) {
         const existing = contentTypeMap.get(item.contentType) || {
           count: 0,

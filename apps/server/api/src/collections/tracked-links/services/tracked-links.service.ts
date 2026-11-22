@@ -175,7 +175,6 @@ export class TrackedLinksService {
       throw new Error('Failed to generate unique short code');
     }
 
-    // Build UTM URL
     const utmUrl = this.buildUTMUrl(dto.url, {
       campaign: dto.campaignName || dto.utm?.campaign,
       content: dto.contentId || dto.utm?.content,
@@ -187,7 +186,6 @@ export class TrackedLinksService {
     // Generate short URL
     const shortUrl = `${getShortLinkBaseUrl()}/${shortCode}`;
 
-    // Create tracked link
     const trackedLink = await this.prisma.trackedLink.create({
       data: {
         brandId,

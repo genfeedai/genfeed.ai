@@ -107,7 +107,6 @@ export class ConfigService extends createServiceConfig<NotificationsEnvConfig>({
       }
     }
 
-    // Log successful configuration
     this.logger.log('Configuration validated successfully');
     this.logger.log(`   Environment: ${this.envConfig.NODE_ENV}`);
     this.logger.log(`   Port: ${this.envConfig.PORT}`);

@@ -107,7 +107,6 @@ export class TikTokPublisherService extends BasePublisherService {
     const shouldHandoffToTikTokApp =
       context.settings[TIKTOK_APP_HANDOFF_SETTING] === true;
 
-    // Log the attempt
     this.logPublishAttempt(context, mediaInfo);
 
     // Validate

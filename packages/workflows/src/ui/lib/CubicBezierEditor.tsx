@@ -107,7 +107,6 @@ function CubicBezierEditorComponent({
   // Linear reference path
   const linearPath = `M ${p0x} ${p0y} L ${p3x} ${p3y}`;
 
-  // Grid lines
   const gridLines = [];
   for (let i = 0; i <= 4; i++) {
     const t = i / 4;

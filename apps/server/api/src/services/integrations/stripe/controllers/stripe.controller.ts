@@ -308,7 +308,6 @@ export class StripeController {
     }
 
     try {
-      // Find organization subscription
       const subscription = await this.subscriptionsService.findByOrganizationId(
         user.organizationId,
       );

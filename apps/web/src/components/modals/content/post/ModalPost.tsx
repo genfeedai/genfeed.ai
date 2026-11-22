@@ -850,7 +850,6 @@ export default function ModalPost({
     );
   }, [composerTranslate, mediaTargetPlatforms, selectedMedia]);
 
-  // YouTube requires a title
   const isTitleRequired = selectedPlatform === Platform.YOUTUBE;
   const titleValue = form.watch('label');
   const isTitleError =
