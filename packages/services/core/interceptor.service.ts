@@ -316,8 +316,10 @@ export abstract class HTTPBaseService {
   protected async requestOrganizationHeaders(): Promise<
     Record<string, string>
   > {
-    await requestOrganizationGate.whenSettled();
-    return this.confirmedOrganizationHeaders();
+    // The headers of the moment the check settled: scope cleared between the
+    // release and this continuation must not send the request without them.
+    const headers = await requestOrganizationGate.whenSettledHeaders();
+    return this.confirmedOrganizationHeaders(headers);
   }
 
   /**
@@ -328,7 +330,9 @@ export abstract class HTTPBaseService {
     return false;
   }
 
-  private confirmedOrganizationHeaders(): Record<string, string> {
+  private confirmedOrganizationHeaders(
+    settledHeaders?: Record<string, string>,
+  ): Record<string, string> {
     if (
       this.boundOrganizationId !== undefined &&
       (!this.boundOrganizationId ||
@@ -339,7 +343,7 @@ export abstract class HTTPBaseService {
     ) {
       throw createOrganizationNotConfirmedError();
     }
-    return requestOrganizationGate.getHeaders();
+    return settledHeaders ?? requestOrganizationGate.getHeaders();
   }
 
   private handleRequest = (

@@ -294,6 +294,10 @@ export class OrganizationController {
   // A device copy is drawn once per hard load: after it ends, by whatever
   // way, the page waits for the check like any other.
   private hasDrawnFromCopy = false;
+  // A refused copy is gone only once the caches and the device stores are
+  // cleared. A cleanup that failed stays owed, and the next reconciliation
+  // pays it before anything is confirmed.
+  private wipePending = false;
   // Set by an explicit switch once it has confirmed the organization, so the
   // route change that follows does not read the list again.
   private switchConfirmation: { organizationId: string; slug: string } | null =
@@ -327,11 +331,15 @@ export class OrganizationController {
 
   /** Ends everything this controller still has pending (the provider unmounts). */
   public dispose(): void {
+    // A read still in flight must not confirm the shared request gate for a
+    // provider that mounts after this one.
+    this.generation += 1;
     this.clearSwitchConfirmation();
   }
 
   /** The browser listener of the provider is going away. */
   public release(): void {
+    this.generation += 1;
     this.releaseRequestOrganization();
   }
 
@@ -373,14 +381,25 @@ export class OrganizationController {
    * user, another organization behind the slug, a refusal), never on a
    * failure or a navigation.
    */
-  private exitProvisional(options: { wipe: boolean }): void {
-    if (!this.provisional) return;
-    this.releaseRequestOrganization();
-    if (options.wipe) {
-      // Whatever the copy restored leaves the screen with the stores.
-      void this.ports.clearTenantCaches();
-      void this.ports.wipeDeviceStores();
+  private exitProvisional(options: { wipe: boolean }): Promise<void> {
+    if (this.provisional) {
+      this.releaseRequestOrganization();
+      if (options.wipe) this.wipePending = true;
     }
+    return this.payPendingWipe();
+  }
+
+  /** Whatever the copy restored leaves the screen with the stores. */
+  private async payPendingWipe(): Promise<void> {
+    if (!this.wipePending) return;
+    await this.ports.clearTenantCaches();
+    await this.ports.wipeDeviceStores();
+    this.wipePending = false;
+  }
+
+  /** An exit nobody waits for: a cleanup that fails stays owed. */
+  private exitProvisionalWithoutWaiting(options: { wipe: boolean }): void {
+    this.exitProvisional(options).catch(() => undefined);
   }
 
   /**
@@ -395,6 +414,7 @@ export class OrganizationController {
     if (current) {
       const stays =
         !inputs.bypass &&
+        !(inputs.isLoaded && !inputs.isSignedIn) &&
         provisional !== null &&
         current.slug === routeSlug &&
         current.organizationId === provisional.organizationId &&
@@ -402,7 +422,9 @@ export class OrganizationController {
       if (!stays) {
         // Another route is ordinary navigation; the same route with a copy
         // that no longer holds (signed out, another user) is a refusal.
-        this.exitProvisional({ wipe: current.slug === routeSlug });
+        this.exitProvisionalWithoutWaiting({
+          wipe: current.slug === routeSlug,
+        });
       }
       return;
     }
@@ -549,6 +571,10 @@ export class OrganizationController {
     if (!this.isCurrentGeneration(generation, routeSlug)) {
       return;
     }
+    await this.payPendingWipe();
+    if (!this.isCurrentGeneration(generation, routeSlug)) {
+      return;
+    }
     await this.invalidateTenantState();
     const initialService = await getMembershipService();
     const readMembership = membershipReader(initialService);
@@ -561,7 +587,10 @@ export class OrganizationController {
       if (this.isCurrentGeneration(generation, routeSlug)) {
         // The organization is gone or the member was removed: the copy of it
         // on this device goes too, and nothing held for it is ever sent.
-        this.exitProvisional({ wipe: true });
+        await this.exitProvisional({ wipe: true });
+        if (!this.isCurrentGeneration(generation, routeSlug)) {
+          return;
+        }
         this.ports.reportMismatch('route-unauthorized');
         this.setState({
           confirmedOrganizationId: null,
@@ -582,7 +611,7 @@ export class OrganizationController {
     ) {
       // The slug now names another organization than the copy was kept for:
       // nothing of the copy may stay, and the shell remounts for this one.
-      this.exitProvisional({ wipe: true });
+      await this.exitProvisional({ wipe: true });
       await this.invalidateTenantState();
     }
 
