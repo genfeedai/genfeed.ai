@@ -2,6 +2,7 @@ import {
   KIE_KLING_INPUT_SCHEMA,
   KIE_MINIMAX_H3_IMAGE_INPUT_SCHEMA,
   KIE_MINIMAX_H3_TEXT_INPUT_SCHEMA,
+  KIE_SEEDANCE_FAST_INPUT_SCHEMA,
   KIE_WAN_3_INPUT_SCHEMA,
 } from '@api/seeds/model-provider-offers.seed';
 import { describe, expect, it } from 'vitest';
@@ -411,5 +412,61 @@ describe('kie Wan 3.0 offer', () => {
     ['a resolution kie lacks', { resolution: '4k' }],
   ])('leaves a request with %s on Replicate', (_name, extra) => {
     expect(map({ prompt: 'Sunrise', ...extra })).toBeNull();
+  });
+});
+
+describe('kie Seedance 2.0 Fast offer', () => {
+  const ENDPOINT = 'bytedance/seedance-2-fast';
+  const FIRST = 'https://example.com/first.png';
+  const LAST = 'https://example.com/last.png';
+  /** What the Replicate builder sends for a plain text request. */
+  const TEXT = {
+    aspect_ratio: '9:16',
+    duration: 6,
+    generate_audio: false,
+    prompt: 'Sunrise',
+    resolution: '480p',
+  };
+
+  function map(providerInput: Record<string, unknown>) {
+    return mapProviderOfferInput(
+      KIE_SEEDANCE_FAST_INPUT_SCHEMA,
+      { providerInput },
+      { endpoint: ENDPOINT },
+    );
+  }
+
+  it('keeps a text request as it is', () => {
+    expect(map(TEXT)).toEqual(TEXT);
+  });
+
+  it('sends the start and end frames under kie names', () => {
+    expect(map({ ...TEXT, image: FIRST, last_frame: LAST })).toEqual({
+      ...TEXT,
+      first_frame_url: FIRST,
+      last_frame_url: LAST,
+    });
+    expect(
+      map({ ...TEXT, image: FIRST, last_frame_image: LAST }),
+    ).toMatchObject({ last_frame_url: LAST });
+  });
+
+  it('ignores empty reference lists', () => {
+    expect(
+      map({ ...TEXT, reference_audios: [], reference_images: [] }),
+    ).toEqual(TEXT);
+  });
+
+  it.each([
+    ['reference images', { reference_images: [FIRST] }],
+    ['reference videos', { reference_videos: ['https://example.com/a.mp4'] }],
+    ['reference audio', { reference_audios: ['https://example.com/a.mp3'] }],
+    ['a seed', { seed: 7 }],
+    ['an end frame without a start frame', { last_frame: LAST }],
+    ['a ratio kie lacks', { aspect_ratio: '21:9' }],
+    ['a resolution kie lacks', { resolution: '1080p' }],
+    ['a duration kie lacks', { duration: 20 }],
+  ])('leaves a request with %s on Replicate', (_name, extra) => {
+    expect(map({ ...TEXT, ...extra })).toBeNull();
   });
 });

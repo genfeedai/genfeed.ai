@@ -129,6 +129,32 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
     ],
   },
   {
+    // kie model page (read 2026-11-23): "Seedance 2.0 Fast costs 11.7 credits
+    // ($0.059) per second at 480p and 24.8 credits ($0.124) at 720p" without
+    // video input; kie marks Seedance 2.0 prices as beta. Reference video is
+    // billed on input plus output seconds, so the offer adapter refuses it.
+    provider: 'kie',
+    endpoint: 'bytedance/seedance-2-fast',
+    sourceUrl: 'https://kie.ai/seedance-2-0',
+    verifiedAt: '2026-11-23',
+    rates: [
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.059,
+        when: { resolution: '480p' },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.124,
+        when: { resolution: '720p' },
+        isPerOutput: true,
+      },
+    ],
+  },
+  {
     // Higgsfield publishes no price page. These rates are the account's own
     // `POST /estimate/<endpoint>` answers (2026-11-15): per second of source
     // video, rounded up to a whole second, by output resolution.
