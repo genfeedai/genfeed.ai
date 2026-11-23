@@ -92,8 +92,10 @@ describe('ReleaseRailAccounts', () => {
     ];
     render(<RailHarness brandId="brand-1" />);
 
-    const chip = await screen.findByRole('button', { name: '@brand' });
-    const other = screen.getByRole('button', { name: '@other' });
+    const chip = await screen.findByRole('button', {
+      name: '@brand, Instagram',
+    });
+    const other = screen.getByRole('button', { name: '@other, Instagram' });
     expect(chip).toHaveAttribute('aria-pressed', 'false');
 
     fireEvent.click(chip as HTMLElement);
@@ -118,7 +120,7 @@ describe('ReleaseRailAccounts', () => {
 
     expect(
       await screen.findByRole('button', {
-        name: '@brand, Reconnect needed',
+        name: '@brand, Instagram, Reconnect needed',
       }),
     ).toBeInTheDocument();
   });
