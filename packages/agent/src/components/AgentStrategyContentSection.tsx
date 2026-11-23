@@ -1,9 +1,9 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import AccountPicker from '@ui/display/connected-account/AccountPicker';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Label } from '@ui/primitives/label';
-import { SegmentedControl } from '@ui/primitives/segmented-control';
 import { Textarea } from '@ui/primitives/textarea';
 import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
@@ -128,9 +128,12 @@ export function AgentStrategyContentSection({
 
       <div className="space-y-1">
         <span className="text-xs font-medium text-foreground">Platforms</span>
-        <SegmentedControl
-          appearance="chip"
+        <AccountPicker
           ariaLabel={selectionLabels('platforms')}
+          items={PLATFORM_OPTIONS.map((platform) => ({
+            id: platform,
+            platform,
+          }))}
           onValueChange={(next) => {
             const changed = [
               ...next.filter((platform) => !platforms.includes(platform)),
@@ -140,11 +143,6 @@ export function AgentStrategyContentSection({
               handleTogglePlatform(platform);
             }
           }}
-          options={PLATFORM_OPTIONS.map((platform) => ({
-            label: <span className="capitalize">{platform}</span>,
-            value: platform,
-          }))}
-          size="sm"
           type="multiple"
           value={platforms}
         />

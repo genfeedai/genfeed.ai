@@ -6,10 +6,7 @@ import { accountHealthToConnectedAccount } from '@helpers/publisher/connected-ac
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { logger } from '@services/core/logger.service';
 import { CredentialsService } from '@services/organization/credentials.service';
-import ConnectedAccountAvatar from '@ui/display/connected-account/ConnectedAccountAvatar';
-import { getConnectedAccountText } from '@ui/display/connected-account/connected-account.util';
-import { Badge } from '@ui/primitives/badge';
-import { SegmentedControl } from '@ui/primitives/segmented-control';
+import AccountPicker from '@ui/display/connected-account/AccountPicker';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 import type { ReleaseRailAccountsProps } from '@/features/posts/props/release-rail.props';
@@ -65,36 +62,18 @@ export default function ReleaseRailAccounts({
     return null;
   }
 
-  const options = accounts.map((account) => {
-    const connectedAccount = accountHealthToConnectedAccount(account);
-    const label = getConnectedAccountText(connectedAccount).primary;
-
-    return {
-      ariaLabel: translate('accounts.ariaToggle', { account: label }),
-      icon: (
-        <ConnectedAccountAvatar
-          account={connectedAccount}
-          isDecorative
-          size="xs"
-        />
-      ),
-      label: (
-        <>
-          <span className="max-w-32 truncate">{label}</span>
-          {isAccountAtRisk(account) ? <Badge variant="warning">!</Badge> : null}
-        </>
-      ),
-      tooltip: isAccountAtRisk(account)
-        ? translate('accounts.needsReconnect')
-        : undefined,
-      value: account.credentialId,
-    };
-  });
+  const items = accounts.map((account) => ({
+    ...accountHealthToConnectedAccount(account),
+    id: account.credentialId,
+    warning: isAccountAtRisk(account)
+      ? translate('accounts.needsReconnect')
+      : undefined,
+  }));
 
   return (
-    <SegmentedControl
-      appearance="chip"
+    <AccountPicker
       ariaLabel={translate('accounts.label')}
+      items={items}
       onValueChange={(nextIds) => {
         const changed = [
           ...nextIds.filter((id) => !selectedCredentialIds.includes(id)),
@@ -104,7 +83,6 @@ export default function ReleaseRailAccounts({
           onToggle(credentialId);
         }
       }}
-      options={options}
       size="sm"
       type="multiple"
       value={selectedCredentialIds}

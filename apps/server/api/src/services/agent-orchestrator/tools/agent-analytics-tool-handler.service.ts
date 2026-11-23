@@ -8,7 +8,10 @@ import { parseTrackPostLinkInput } from '@api/collections/posts/services/post-li
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { AnalyticsService } from '@api/endpoints/analytics/analytics.service';
 import { AgentScopeContextService } from '@api/index';
-import { authorizeExternalPublicationBrand } from '@api/services/agent-orchestrator/tools/agent-publish-scope.util';
+import {
+  assertContextBrandMatches,
+  authorizeExternalPublicationBrand,
+} from '@api/services/agent-orchestrator/tools/agent-publish-scope.util';
 import { AgentPublishToolHandler } from '@api/services/agent-orchestrator/tools/agent-publish-tool-handler.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { readOptionalString } from '@api/services/agent-orchestrator/tools/agent-tool-parameter-readers';
@@ -19,12 +22,7 @@ import type {
   AgentUiAction,
 } from '@genfeedai/contracts/interfaces';
 import { Traced } from '@libs/tracing/traced';
-import {
-  BadRequestException,
-  ForbiddenException,
-  Injectable,
-  Optional,
-} from '@nestjs/common';
+import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 
 type AgentOrganizationOverview = {
   avgEngagementRate?: number;
@@ -74,10 +72,11 @@ export class AgentAnalyticsToolHandler {
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
     const input = parseTrackPostLinkInput(params);
-    if (!ctx.brandId || ctx.brandId !== input.brandId)
-      throw new ForbiddenException(
-        'Post link must match the authenticated brand context',
-      );
+    assertContextBrandMatches(
+      ctx,
+      input.brandId,
+      'Post link must match the authenticated brand context',
+    );
     await authorizeExternalPublicationBrand(
       this.agentScopeContextService,
       input.brandId,

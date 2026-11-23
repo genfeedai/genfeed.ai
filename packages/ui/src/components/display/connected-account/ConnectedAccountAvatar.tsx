@@ -9,7 +9,8 @@ import { getConnectedAccountText } from './connected-account.util';
 
 // Platforms whose connection is an ad or analytics account: no profile
 // picture exists, so the platform logo is the avatar and the corner badge
-// would only repeat it.
+// would only repeat it. A platform shown before any account is connected (a
+// platform picker) has no picture, handle or name either: same treatment.
 const LOGO_AVATAR_PLATFORMS = new Set<string>([CredentialPlatform.GOOGLE_ADS]);
 
 /**
@@ -26,8 +27,10 @@ export default function ConnectedAccountAvatar({
   size = 'md',
 }: ConnectedAccountAvatarProps) {
   const { name, primary } = getConnectedAccountText(account);
+  const isPlatformOnly = !account.avatarUrl && !account.handle && !account.name;
   const isLogoAvatar =
-    !account.avatarUrl && LOGO_AVATAR_PLATFORMS.has(account.platform);
+    !account.avatarUrl &&
+    (LOGO_AVATAR_PLATFORMS.has(account.platform) || isPlatformOnly);
 
   const avatar = (
     <Avatar
