@@ -1,5 +1,6 @@
 import type { AgentScopeContextService } from '@api/agent-context/agent-scope-context.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
+import { ForbiddenException } from '@nestjs/common';
 
 export async function assertAgentPublishingScope(
   agentScopeContextService: AgentScopeContextService | undefined,
@@ -22,6 +23,22 @@ export async function assertAgentPublishingScope(
     resourceBrandId,
     resourceLabel,
   );
+}
+
+/**
+ * Refuses a request whose own `context.brandId` names a different brand than
+ * the one it acts on. A caller that sends no context brand, such as an MCP
+ * connection that passes only tool parameters, is not refused here:
+ * `authorizeExternalPublicationBrand` is what proves the brand.
+ */
+export function assertContextBrandMatches(
+  ctx: ToolExecutionContext,
+  brandId: string,
+  message: string,
+): void {
+  if (ctx.brandId && ctx.brandId !== brandId) {
+    throw new ForbiddenException(message);
+  }
 }
 
 /**

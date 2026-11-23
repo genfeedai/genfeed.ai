@@ -88,6 +88,33 @@ describe('track_post_link agent action', () => {
     ]);
   });
 
+  it('imports the link when the call carries no context brand, as an MCP call does', async () => {
+    const f = await fixture();
+    const { brandId: _contextBrand, ...mcpCtx } = ctx;
+    expect(await f.handler.trackPostLink(input, mcpCtx)).toMatchObject({
+      success: true,
+      data: { postId: 'post-for-https://youtu.be/abc' },
+    });
+    expect(f.tracked).toEqual([
+      {
+        brandId: testId('brand'),
+        organizationId: testId('org'),
+        url: 'https://youtu.be/abc',
+        userId: testId('user'),
+      },
+    ]);
+  });
+
+  it('still refuses a brand outside the organization when the call carries no context brand', async () => {
+    const f = await fixture();
+    f.brandOwners.set(testId('brand'), testId('other-org'));
+    const { brandId: _contextBrand, ...mcpCtx } = ctx;
+    await expect(f.handler.trackPostLink(input, mcpCtx)).rejects.toThrow(
+      'unavailable',
+    );
+    expect(f.tracked).toEqual([]);
+  });
+
   it('rejects a foreign context brand before import', async () => {
     const f = await fixture();
     await expect(
