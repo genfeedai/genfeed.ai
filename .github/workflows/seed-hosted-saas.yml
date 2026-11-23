@@ -47,6 +47,9 @@ run-name: Seed hosted SaaS | ${{ inputs.seed }} | ${{ inputs.live && 'live' || '
 #                        skipped workflow.status emails older than 30 days (#10382,
 #                        #10384), scheduled-post.publish runs per day (#10392) and
 #                        overdue scheduled or publishing posts per platform.
+#   post-media-report    Read-only: for two named posts, every post-to-image link
+#                        (position, category, status, deleted flag), behind the
+#                        posts list showing a text mark and a broken image.
 #
 #   approvals-page-report
 #                        Read-only: per organization (largest five, no ids) the
@@ -80,6 +83,7 @@ on:
           - linkedin-credential-report
           - release-health-report
           - approvals-page-report
+          - post-media-report
       live:
         description: "apply the seed; unchecked is a dry run"
         required: false
@@ -222,6 +226,7 @@ jobs:
               'storyboard-unbilled-report': `WITH ops AS (SELECT r."organizationId" AS org, j.kind, op FROM content_runs r CROSS JOIN (VALUES ('still', 'stillOperations'), ('shotRender', 'shotRenderOperations'), ('asset', 'assetOperations')) AS j(kind, key) CROSS JOIN LATERAL jsonb_array_elements(CASE WHEN jsonb_typeof(r.config -> j.key) = 'array' THEN r.config -> j.key ELSE '[]'::jsonb END) AS op WHERE r."contract" = 'storyboard-run' AND r."isDeleted" = false AND op ->> 'state' = 'ready' AND op ->> 'billing' = 'released' AND op ->> 'billingMode' = 'platform') SELECT o.org AS "organizationId", o.kind, COALESCE(cr.status::text, 'none') AS "reservationStatus", count(*)::int AS "operations", COALESCE(sum((o.op ->> 'credits')::numeric), 0)::float AS "credits", min(left(o.op ->> 'updatedAt', 10)) AS "firstDate", max(left(o.op ->> 'updatedAt', 10)) AS "lastDate" FROM ops o LEFT JOIN credit_reservations cr ON cr.id = o.op ->> 'reservationId' GROUP BY o.org, o.kind, COALESCE(cr.status::text, 'none') ORDER BY "credits" DESC, o.org, o.kind LIMIT 200`,
               'linkedin-credential-report': `SELECT * FROM (SELECT 'summary' AS kind, c."platform"::text AS platform, NULL::text AS "organizationId", NULL::text AS "brandId", c."isConnected", c."isDeleted", (c."brandId" IS NOT NULL) AS "hasBrand", (c."organizationId" IS NOT NULL) AS "hasOrganization", NULL::boolean AS "brandDeleted", NULL::boolean AS "hasTrendPreferences", count(*)::int AS credentials, count(DISTINCT c."brandId")::int AS brands, max(left(c."updatedAt"::text, 10)) AS "lastUpdated" FROM credentials c WHERE c."platform" IN ('INSTAGRAM', 'LINKEDIN', 'PINTEREST', 'REDDIT', 'TIKTOK', 'TWITTER', 'YOUTUBE') GROUP BY c."platform", c."isConnected", c."isDeleted", (c."brandId" IS NOT NULL), (c."organizationId" IS NOT NULL) UNION ALL SELECT 'linkedin', 'LINKEDIN', c."organizationId", c."brandId", c."isConnected", c."isDeleted", (c."brandId" IS NOT NULL), (c."organizationId" IS NOT NULL), b."isDeleted", EXISTS (SELECT 1 FROM trend_preferences p WHERE p."brandId" = c."brandId" AND p."isDeleted" = false), 1, 1, left(c."updatedAt"::text, 10) FROM credentials c LEFT JOIN brands b ON b.id = c."brandId" WHERE c."platform" = 'LINKEDIN' AND c."isDeleted" = false) q ORDER BY kind DESC, platform, "isConnected" DESC, "organizationId", "brandId" LIMIT 200`,
               'approvals-page-report': `SELECT * FROM ((SELECT 'turboRuns' AS kind, count(*)::int AS a, COALESCE(sum(jsonb_array_length(CASE WHEN jsonb_typeof(t.items) = 'array' THEN t.items ELSE '[]'::jsonb END)), 0)::int AS b, COALESCE(max(pg_column_size(t.*)), 0)::int AS c, COALESCE(sum(pg_column_size(t.*)), 0)::int AS d FROM turbo_runs t WHERE t."isDeleted" = false GROUP BY t."organizationId" ORDER BY d DESC LIMIT 5) UNION ALL (SELECT 'turboRunItems', count(*)::int, 0, COALESCE(max(pg_column_size(i.*)), 0)::int, COALESCE(sum(pg_column_size(i.*)), 0)::int FROM turbo_run_items i WHERE i."isDeleted" = false GROUP BY i."organizationId" ORDER BY 5 DESC LIMIT 5) UNION ALL (SELECT 'pendingMcp', count(*)::int, 0, COALESCE(max(pg_column_size(m.arguments)), 0)::int, COALESCE(sum(pg_column_size(m.arguments)), 0)::int FROM mcp_approvals m WHERE m.status::text = 'PENDING' AND m."isDeleted" = false GROUP BY m."organizationId" ORDER BY 2 DESC LIMIT 5)) q LIMIT 20`,
+              'post-media-report': `SELECT p.id, p."isDeleted" AS "postDeleted", l.position, l."ingredientId", i.category::text AS category, i.status::text AS status, i."isDeleted" AS "ingredientDeleted" FROM posts p LEFT JOIN post_ingredients l ON l."postId" = p.id LEFT JOIN ingredients i ON i.id = l."ingredientId" WHERE p.id IN ('canis353nqysuarmocyi6zx4h', 'cmwqfts08007x0fnxcbe0cjw4') ORDER BY p.id, l.position LIMIT 20`,
               'release-health-report': `SELECT metric, value FROM (SELECT 'abandonedRuns' AS metric, count(*) AS value FROM workflow_executions WHERE status IN ('PENDING', 'RUNNING') AND "updatedAt" < (now() AT TIME ZONE 'UTC') - interval '7 days' UNION ALL SELECT 'duePurgeRuns', count(*) FROM workflow_executions WHERE "purgeAt" <= (now() AT TIME ZONE 'UTC') AND status IN ('COMPLETED', 'FAILED', 'CANCELLED') UNION ALL SELECT 'skippedEmailsOver30d', count(*) FROM notification_deliveries WHERE topic = 'workflow.status' AND channel = 'email' AND status = 'skipped' AND "createdAt" < (now() AT TIME ZONE 'UTC') - interval '30 days' UNION ALL SELECT 'publishRuns ' || to_char("createdAt", 'MM-DD'), count(*) FROM workflow_executions WHERE "canonicalId" = 'scheduled-post.publish' AND "createdAt" > (now() AT TIME ZONE 'UTC') - interval '4 days' GROUP BY 1 UNION ALL SELECT 'overduePosts ' || coalesce(platform, '-') || ' ' || "targetExecutionState", count(*) FROM posts WHERE "isDeleted" = false AND "targetExecutionState" IN ('scheduled', 'publishing') AND "scheduledDate" < (now() AT TIME ZONE 'UTC') - interval '1 hour' GROUP BY 1 UNION ALL SELECT 'postsDue ' || to_char("scheduledDate", 'MM-DD'), count(*) FROM posts WHERE "isDeleted" = false AND "scheduledDate" > (now() AT TIME ZONE 'UTC') - interval '4 days' AND "scheduledDate" <= (now() AT TIME ZONE 'UTC') GROUP BY 1) m ORDER BY metric LIMIT 100`,
             };
             const name = process.argv[1];
@@ -306,7 +311,7 @@ jobs:
                 override+=(--command-arg "${arg}")
               done
               ;;
-            backfill-report | webhook-id-report | instagram-reconnect-report | storyboard-unbilled-report | linkedin-credential-report | release-health-report | approvals-page-report)
+            backfill-report | webhook-id-report | instagram-reconnect-report | storyboard-unbilled-report | linkedin-credential-report | release-health-report | approvals-page-report | post-media-report)
               TASK_DEFINITION=$(tofu output -raw migrate_task_definition_arn)
               CONTAINER=migrate
               LOG_GROUP="/ecs/${PROJECT}-production/migrate"
