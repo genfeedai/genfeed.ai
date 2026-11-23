@@ -5,6 +5,7 @@ import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { resetAnalytics } from '@/lib/analytics';
+import { clearPersistedQueryCache } from '@/lib/query-cache/persisted-query-cache';
 
 export default function LogoutPage() {
   const { push } = useRouter();
@@ -15,6 +16,8 @@ export default function LogoutPage() {
 
     async function performSignOut() {
       resetAnalytics();
+      // Nothing of the session stays on a shared device.
+      await clearPersistedQueryCache();
       try {
         await signOut();
       } catch {
