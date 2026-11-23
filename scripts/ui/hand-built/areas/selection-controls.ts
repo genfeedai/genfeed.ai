@@ -21,8 +21,8 @@ const BG_PRIMARY_TINT_CLASS_PATTERN = /(^|\s)bg-primary\/\d+(\s|$)/;
 
 /**
  * Choice controls have shared components: `SegmentedControl` (single or
- * multiple, segmented bar or chips), `OptionTileGroup` + `OptionTile`
- * (selectable bordered tiles), `Toggle` (one on/off chip) and `Tabs`.
+ * multiple, a segmented bar), `OptionTileGroup` + `OptionTile`
+ * (selectable bordered tiles), `Toggle` (one on/off button) and `Tabs`.
  * A selection is never painted by hand:
  *
  * - `selection-button`: a `Button` whose `variant` flips on a selection check.
@@ -166,7 +166,7 @@ function scanButtons(source: HandBuiltSource): HandBuiltFinding[] {
       ) {
         findings.push({
           detail:
-            'UNSTYLED <Button> paints a selected tile (border-primary + bg-primary/*). Use OptionTile or SegmentedControl appearance="chip".',
+            'UNSTYLED <Button> paints a selected tile (border-primary + bg-primary/*). Use OptionTile or SegmentedControl.',
           file: source.file,
           line: lineOf(source.sourceFile, node),
           rule: 'selection-tile',

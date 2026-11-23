@@ -66,8 +66,7 @@ export type SegmentedControlProps<TValue extends string = string> =
     );
 
 /**
- * A data-driven choice control: a joined bar of segments (`appearance`
- * "segmented", the default) or a row of chips (`appearance` "chip").
+ * A data-driven choice control: a joined bar of segments.
  *
  * Single mode always keeps one option selected unless `isDeselectable` is set.
  * Multiple mode toggles each option independently.
@@ -76,7 +75,6 @@ function SegmentedControl<TValue extends string = string>(
   props: SegmentedControlProps<TValue>,
 ) {
   const {
-    appearance,
     ariaLabel,
     className,
     isDisabled,
@@ -87,12 +85,11 @@ function SegmentedControl<TValue extends string = string>(
   } = props;
 
   const itemClassName = segmentedItemVariants({
-    appearance,
     isFullWidth,
     size,
   });
   const listClassName = cn(
-    segmentedListVariants({ appearance, isFullWidth, size }),
+    segmentedListVariants({ isFullWidth, size }),
     className,
   );
   const withTooltip = (
