@@ -272,7 +272,7 @@ jobs:
                   "--organizationLabel=${HOSTED_ORGANIZATION_LABEL}" \
                   "--brandSlug=${BRAND_SLUG}" \
                   --live; do
-                  override+=(--command-arg "${arg}")
+                  override+=("--command-arg=${arg}")
                 done
               fi
               ;;
@@ -287,7 +287,7 @@ jobs:
                 for arg in "${node_prefix[@]}" \
                   apps/server/dist/apps/api-reference-data-sync/main \
                   --validate-runtime; do
-                  override+=(--command-arg "${arg}")
+                  override+=("--command-arg=${arg}")
                 done
               fi
               ;;
@@ -303,7 +303,7 @@ jobs:
                 retire_args+=(--live)
               fi
               for arg in "${node_prefix[@]}" "${retire_args[@]}"; do
-                override+=(--command-arg "${arg}")
+                override+=("--command-arg=${arg}")
               done
               ;;
             backfill-report | webhook-id-report | instagram-reconnect-report | storyboard-unbilled-report | linkedin-credential-report | release-health-report | approvals-page-report)
