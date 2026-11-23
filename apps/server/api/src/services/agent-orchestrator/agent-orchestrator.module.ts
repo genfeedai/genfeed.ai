@@ -73,6 +73,7 @@ import { AgentCadenceExecutionService } from '@api/services/agent-orchestrator/a
 import { AgentCadenceMediaGenerationService } from '@api/services/agent-orchestrator/agent-cadence-media-generation.service';
 import { AgentChatModelRegistryModule } from '@api/services/agent-orchestrator/agent-chat-model-registry.module';
 import { AgentCompletionCardBuilderService } from '@api/services/agent-orchestrator/agent-completion-card-builder.service';
+import { AgentEventContentGateBinderService } from '@api/services/agent-orchestrator/agent-event-content-gate-binder.service';
 import { AgentGenerationDecisionService } from '@api/services/agent-orchestrator/agent-generation-decision.service';
 import { AgentKnowledgeCitationService } from '@api/services/agent-orchestrator/agent-knowledge-citation.service';
 import { AgentOrchestratorController } from '@api/services/agent-orchestrator/agent-orchestrator.controller';
@@ -99,7 +100,6 @@ import { AgentToolsController } from '@api/services/agent-orchestrator/agent-too
 import { AgentTurnAcceptanceService } from '@api/services/agent-orchestrator/agent-turn-acceptance.service';
 import { AgentTurnRoundRunnerService } from '@api/services/agent-orchestrator/agent-turn-round-runner.service';
 import { AgentTurnWorkflowExecutionService } from '@api/services/agent-orchestrator/agent-turn-workflow-execution.service';
-import { AgentEventContentGateBinderService } from '@api/services/agent-orchestrator/agent-event-content-gate-binder.service';
 import { AgentUntrustedContentGateService } from '@api/services/agent-orchestrator/agent-untrusted-content-gate.service';
 import { AgentAdsResearchToolHandler } from '@api/services/agent-orchestrator/tools/agent-ads-research-tool-handler.service';
 import { AgentAnalyticsToolHandler } from '@api/services/agent-orchestrator/tools/agent-analytics-tool-handler.service';

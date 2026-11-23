@@ -1,5 +1,5 @@
-import { AgentUntrustedContentGateService } from '@api/services/agent-orchestrator/agent-untrusted-content-gate.service';
 import { AgentEventRunService } from '@api/services/agent-event-run/agent-event-run.service';
+import { AgentUntrustedContentGateService } from '@api/services/agent-orchestrator/agent-untrusted-content-gate.service';
 import { WORKFLOW_TRIGGER_EVENT_CONTENT_NAME } from '@genfeedai/contracts/interfaces';
 import { Injectable, OnModuleInit } from '@nestjs/common';
 

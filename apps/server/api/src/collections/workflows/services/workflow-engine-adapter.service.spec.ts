@@ -3,6 +3,7 @@ import type {
   WorkflowInputVariable,
   WorkflowVisualNode,
 } from '@api/collections/workflows/schemas/workflow.schema';
+import { WorkflowAgentEventExecutorRegistrarService } from '@api/collections/workflows/services/workflow-agent-event-executor-registrar.service';
 import { WorkflowAutomationExecutorRegistrarService } from '@api/collections/workflows/services/workflow-automation-executor-registrar.service';
 import { WorkflowContentExecutorRegistrarService } from '@api/collections/workflows/services/workflow-content-executor-registrar.service';
 import { WorkflowCoreExecutorRegistrarService } from '@api/collections/workflows/services/workflow-core-executor-registrar.service';
@@ -160,6 +161,7 @@ function createWorkflowEngineAdapterForTest(
     automation,
     trendPublish,
     lipSync,
+    new WorkflowAgentEventExecutorRegistrarService(dependency(1)),
   );
   return new WorkflowEngineAdapterService(
     dependency(1),

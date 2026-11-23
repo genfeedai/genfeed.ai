@@ -120,7 +120,9 @@ function table(sim: Simulation, world: World) {
       insert(data),
     findFirst: async ({ where }: { where: Where }) => {
       const found = world.rows.find((row) => matches(row, where));
-      sim.observed(found ? { ...found, claimedAt: undefined, createdAt: undefined } : null);
+      sim.observed(
+        found ? { ...found, claimedAt: undefined, createdAt: undefined } : null,
+      );
       return found ? { ...found } : null;
     },
     update: async ({ data, where }: { data: Partial<Row>; where: Where }) => {
@@ -227,7 +229,9 @@ function scenarioWith(options: Options): () => Scenario {
       final: () => {
         if (
           world.clockAdvanced &&
-          world.rows.some((row) => row.status === AgentEventRunStatus.CLAIMED) &&
+          world.rows.some(
+            (row) => row.status === AgentEventRunStatus.CLAIMED,
+          ) &&
           executionsOpened(world) === 0
         ) {
           return 'a claim that ran out was never retaken, so the event was never started';
@@ -258,18 +262,26 @@ function scenarioWith(options: Options): () => Scenario {
         const prisma = table(sim, world) as unknown as PrismaService;
         const service = options.makeService(
           prisma,
-          runtime(sim, world, options.runtimeIsIdempotent) as unknown as AgentRuntimeService,
+          runtime(
+            sim,
+            world,
+            options.runtimeIsIdempotent,
+          ) as unknown as AgentRuntimeService,
         );
         if (options.timePasses) {
           sim.environment(
             'the claim lease runs out',
             () =>
               !world.clockAdvanced &&
-              world.rows.some((row) => row.status === AgentEventRunStatus.CLAIMED),
+              world.rows.some(
+                (row) => row.status === AgentEventRunStatus.CLAIMED,
+              ),
             () => {
               world.clockAdvanced = true;
               vi.setSystemTime(
-                new Date(START.getTime() + AGENT_EVENT_RUN_CLAIM_LEASE_MS + 1000),
+                new Date(
+                  START.getTime() + AGENT_EVENT_RUN_CLAIM_LEASE_MS + 1000,
+                ),
               );
             },
           );
@@ -296,7 +308,12 @@ function shippedService(
   prisma: PrismaService,
   runtimeDouble: AgentRuntimeService,
 ): AgentEventRunService {
-  return new AgentEventRunService(prisma, strategies, runtimeDouble, logger as never);
+  return new AgentEventRunService(
+    prisma,
+    strategies,
+    runtimeDouble,
+    logger as never,
+  );
 }
 
 /**

@@ -74,7 +74,10 @@ describe('buildAgentEventObjective', () => {
 
   it('is just the instruction for an event with no text', () => {
     expect(
-      buildAgentEventObjective({ eventText: '  ', instruction: 'Draft a post' }),
+      buildAgentEventObjective({
+        eventText: '  ',
+        instruction: 'Draft a post',
+      }),
     ).toBe('Draft a post');
   });
 });
@@ -84,7 +87,9 @@ describe('resolveAgentEventDailyCap', () => {
     expect(resolveAgentEventDailyCap(undefined)).toBe(
       AGENT_EVENT_RUN_DAILY_CAP_DEFAULT,
     );
-    expect(resolveAgentEventDailyCap(0)).toBe(AGENT_EVENT_RUN_DAILY_CAP_DEFAULT);
+    expect(resolveAgentEventDailyCap(0)).toBe(
+      AGENT_EVENT_RUN_DAILY_CAP_DEFAULT,
+    );
     expect(resolveAgentEventDailyCap('5')).toBe(
       AGENT_EVENT_RUN_DAILY_CAP_DEFAULT,
     );

@@ -7,7 +7,15 @@ import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { IAgentRuntimeStartTurnInput } from '@genfeedai/contracts/interfaces';
 import { AgentEventRunStatus, PrismaClient } from '@genfeedai/prisma';
 import { PrismaPg } from '@prisma/adapter-pg';
-import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  afterAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  type Mock,
+  vi,
+} from 'vitest';
 
 vi.unmock('@genfeedai/prisma');
 vi.unmock('@prisma/adapter-pg');
@@ -35,14 +43,23 @@ describe.skipIf(!connectionString)(
       }
       return prisma;
     };
-    const logger = { debug: vi.fn(), error: vi.fn(), log: vi.fn(), warn: vi.fn() };
+    const logger = {
+      debug: vi.fn(),
+      error: vi.fn(),
+      log: vi.fn(),
+      warn: vi.fn(),
+    };
 
     let organizationId: string;
     let userId: string;
     let strategyId: string;
     let turns: IAgentRuntimeStartTurnInput[];
-    let startTurn: ReturnType<typeof vi.fn>;
-    let isWithheld: ReturnType<typeof vi.fn>;
+    let startTurn: Mock<
+      (
+        input: IAgentRuntimeStartTurnInput,
+      ) => Promise<{ executionId: string; threadId: string }>
+    >;
+    let isWithheld: Mock<(input: { content: string }) => Promise<boolean>>;
     let service: AgentEventRunService;
 
     async function createStrategy(
@@ -92,7 +109,9 @@ describe.skipIf(!connectionString)(
     } as unknown as AgentStrategiesService;
 
     function event(
-      overrides: Partial<Parameters<AgentEventRunService['runForEvent']>[0]> = {},
+      overrides: Partial<
+        Parameters<AgentEventRunService['runForEvent']>[0]
+      > = {},
     ) {
       return service.runForEvent({
         eventId: 'post-1',
@@ -133,9 +152,12 @@ describe.skipIf(!connectionString)(
       startTurn = vi.fn(async (input: IAgentRuntimeStartTurnInput) => {
         turns.push(input);
         const requestId = String(input.metadata?.clientRequestId);
-        return { executionId: `exec-${requestId}`, threadId: `thread-${turns.length}` };
+        return {
+          executionId: `exec-${requestId}`,
+          threadId: `thread-${turns.length}`,
+        };
       });
-      isWithheld = vi.fn().mockResolvedValue(false);
+      isWithheld = vi.fn(async () => false);
       service = new AgentEventRunService(
         database() as unknown as PrismaService,
         strategies,
@@ -156,7 +178,8 @@ describe.skipIf(!connectionString)(
       expect(turns).toHaveLength(1);
       const [claim] = await rows();
       expect(claim).toMatchObject({
-        agentExecutionId: (outcome as { agentExecutionId: string }).agentExecutionId,
+        agentExecutionId: (outcome as { agentExecutionId: string })
+          .agentExecutionId,
         status: AgentEventRunStatus.STARTED,
         workflowExecutionId: 'wf-exec-1',
         workflowId: 'wf-1',
@@ -205,7 +228,9 @@ describe.skipIf(!connectionString)(
         strategyId,
         userId,
       });
-      expect(turn?.objective).toContain('Draft a reply post about this mention');
+      expect(turn?.objective).toContain(
+        'Draft a reply post about this mention',
+      );
       expect(turn?.objective).toContain('untrusted user-generated data');
       expect(turn?.objective).not.toMatch(/ignore all previous instructions/i);
       expect(JSON.stringify(turn?.metadata)).not.toContain('brand-evil');

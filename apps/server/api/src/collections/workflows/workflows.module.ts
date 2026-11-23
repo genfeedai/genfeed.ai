@@ -1,7 +1,4 @@
 import { BrandAccessModule } from '@api/authorization/brand-access/brand-access.module';
-import { AgentEventRunService } from '@api/services/agent-event-run/agent-event-run.service';
-import { AgentRuntimeService } from '@api/services/agent-runtime/agent-runtime.service';
-import { AgentThreadingCoreModule } from '@api/services/agent-threading/agent-threading-core.module';
 import { AgentStrategiesCoreModule } from '@api/collections/agent-strategies/agent-strategies-core.module';
 import { AgentStrategyPerformanceModule } from '@api/collections/agent-strategies/agent-strategy-performance.module';
 import { ModelsModule } from '@api/collections/models/models.module';
@@ -16,6 +13,9 @@ import { WorkflowMediaProviderPlanService } from '@api/collections/workflows/ser
 import { OrganizationModuleAccessModule } from '@api/common/organization-modules/organization-module-access.module';
 import { DEFAULT_HTTP_TIMEOUT_MS } from '@api/constants/http-timeout.constant';
 import { WebhooksMediaModule } from '@api/endpoints/webhooks/webhooks-media.module';
+import { AgentEventRunService } from '@api/services/agent-event-run/agent-event-run.service';
+import { AgentRuntimeService } from '@api/services/agent-runtime/agent-runtime.service';
+import { AgentThreadingCoreModule } from '@api/services/agent-threading/agent-threading-core.module';
 import { BrandPublishPolicyModule } from '@api/services/brand-publish-policy/brand-publish-policy.module';
 import { BrandedTextGenerationModule } from '@api/services/branded-text-generation/branded-text-generation.module';
 import { ByokModule } from '@api/services/byok/byok.module';
@@ -79,8 +79,8 @@ import { SystemWorkflowCatalogService } from '@api/collections/workflows/service
 import { SystemWorkflowDefinitionRegistrarService } from '@api/collections/workflows/services/system-workflow-definition-registrar.service';
 import { TrendNotificationWorkflowService } from '@api/collections/workflows/services/trend-notification-workflow.service';
 import { VideoQaContinuityResolverService } from '@api/collections/workflows/services/video-qa-continuity-resolver.service';
-import { WorkflowArtifactLifecycleService } from '@api/collections/workflows/services/workflow-artifact-lifecycle.service';
 import { WorkflowAgentEventExecutorRegistrarService } from '@api/collections/workflows/services/workflow-agent-event-executor-registrar.service';
+import { WorkflowArtifactLifecycleService } from '@api/collections/workflows/services/workflow-artifact-lifecycle.service';
 import { WorkflowAutomationExecutorRegistrarService } from '@api/collections/workflows/services/workflow-automation-executor-registrar.service';
 import { WorkflowContentExecutorRegistrarService } from '@api/collections/workflows/services/workflow-content-executor-registrar.service';
 import { WorkflowCoreExecutorRegistrarService } from '@api/collections/workflows/services/workflow-core-executor-registrar.service';
