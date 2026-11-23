@@ -25,6 +25,15 @@ export interface CancelProcessingIngredientInput {
   userId?: string;
 }
 
+export interface CancelExecutionGenerationsInput {
+  executionId: string;
+  organizationId: string;
+  userId?: string;
+}
+
+/** One cancel sweep covers at most this many generations of a run. */
+const EXECUTION_CANCEL_LIMIT = 100;
+
 /**
  * Stops an in-flight studio generation: best-effort provider cancel, then
  * mark the placeholder FAILED so waitForCompletion unblocks and webhooks
@@ -117,6 +126,47 @@ export class IngredientGenerationCancellationService {
         [PopulatePatterns.metadataFull],
       )) ?? ingredient
     );
+  }
+
+  /**
+   * Stopping an agent run stops the generations it already started, the same
+   * way a direct cancel does. One generation that cannot be cancelled never
+   * keeps the others running. Returns how many placeholders it cancelled.
+   */
+  async cancelProcessingForExecution(
+    input: CancelExecutionGenerationsInput,
+  ): Promise<number> {
+    const rows = await this.ingredientsService.prisma.ingredient.findMany({
+      orderBy: { id: 'asc' },
+      select: { id: true },
+      take: EXECUTION_CANCEL_LIMIT,
+      where: scopedWhere(input.organizationId, {
+        status: IngredientStatus.PROCESSING,
+        workflowExecutionId: input.executionId,
+      }),
+    });
+
+    let cancelledCount = 0;
+    for (const row of rows) {
+      try {
+        const cancelled = await this.cancelProcessingIngredient({
+          id: row.id,
+          organizationId: input.organizationId,
+          userId: input.userId,
+        });
+        if (cancelled.status === IngredientStatus.FAILED) cancelledCount += 1;
+      } catch (error: unknown) {
+        this.loggerService.warn(
+          'Stopping a run could not cancel one of its generations',
+          {
+            error: (error as Error)?.message,
+            executionId: input.executionId,
+            ingredientId: row.id,
+          },
+        );
+      }
+    }
+    return cancelledCount;
   }
 
   private async cancelProviderJob(
