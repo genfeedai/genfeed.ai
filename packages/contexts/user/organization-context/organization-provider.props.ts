@@ -6,7 +6,7 @@ import type { LayoutProps } from '@genfeedai/props/layout/layout.props';
  * while the membership check runs; requests are held until the check names
  * the same organization.
  */
-export type ProvisionalOrganizationCopy = {
+type ProvisionalOrganizationCopy = {
   organizationId: string;
   userId: string;
 };
