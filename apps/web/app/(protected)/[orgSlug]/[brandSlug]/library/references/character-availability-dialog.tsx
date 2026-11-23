@@ -4,6 +4,7 @@ import { ButtonVariant } from '@genfeedai/contracts';
 import { Button } from '@ui/primitives/button';
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -43,28 +44,30 @@ export default function CharacterAvailabilityDialog({
           </DialogDescription>
         </DialogHeader>
 
-        {character ? (
-          <CharacterAvailabilityFields
-            brands={brands}
-            draft={controls.draft}
-            isDisabled={controls.isSaving}
-            onChange={controls.setDraft}
-            owningBrandId={character.owningBrandId ?? ''}
-          />
-        ) : null}
+        <DialogBody className="flex flex-col gap-4">
+          {character ? (
+            <CharacterAvailabilityFields
+              brands={brands}
+              draft={controls.draft}
+              isDisabled={controls.isSaving}
+              onChange={controls.setDraft}
+              owningBrandId={character.owningBrandId ?? ''}
+            />
+          ) : null}
 
-        {character && !character.isGranted ? (
-          <CharacterGrantsFields character={character} />
-        ) : null}
+          {character && !character.isGranted ? (
+            <CharacterGrantsFields character={character} />
+          ) : null}
 
-        {character?.isShared ? (
-          <CharacterOwnershipFields
-            brands={brands}
-            character={character}
-            isMoving={controls.isMoving}
-            onMove={controls.moveOwnership}
-          />
-        ) : null}
+          {character?.isShared ? (
+            <CharacterOwnershipFields
+              brands={brands}
+              character={character}
+              isMoving={controls.isMoving}
+              onMove={controls.moveOwnership}
+            />
+          ) : null}
+        </DialogBody>
 
         <DialogFooter>
           <Button

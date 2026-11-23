@@ -34,6 +34,7 @@ describe('Dialog scrolling', () => {
       .closest('[data-modal-scroll-region]');
     expect(region).toHaveClass('min-h-0', 'overflow-y-auto');
     expect(screen.getByRole('dialog')).toHaveClass('max-h-[90dvh]');
+    expect(screen.getByRole('dialog')).not.toHaveClass('overflow-y-auto');
     expect(region).not.toContainElement(
       screen.getByRole('heading', { name: 'Long setup' }),
     );

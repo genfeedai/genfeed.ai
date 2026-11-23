@@ -5,6 +5,7 @@ import type { ModelFixPromptFallbackDialogProps } from '@props/admin/model-fix-p
 import { Button } from '@ui/primitives/button';
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -32,13 +33,15 @@ export default function ModelFixPromptFallbackDialog({
           <DialogTitle>{fallback?.title}</DialogTitle>
           <DialogDescription>{t('promptFallbackHint')}</DialogDescription>
         </DialogHeader>
-        <Textarea
-          aria-label={fallback?.title}
-          className="max-h-96 font-mono text-xs"
-          isReadOnly
-          rows={14}
-          value={fallback?.text ?? ''}
-        />
+        <DialogBody className="flex flex-col gap-4">
+          <Textarea
+            aria-label={fallback?.title}
+            className="max-h-96 font-mono text-xs"
+            isReadOnly
+            rows={14}
+            value={fallback?.text ?? ''}
+          />
+        </DialogBody>
         <DialogFooter>
           <Button variant={ButtonVariant.SECONDARY} onClick={onClose}>
             {t('promptFallbackClose')}

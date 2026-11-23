@@ -74,6 +74,7 @@ vi.mock('@services/core/notifications.service', () => ({
 
 vi.mock('@ui/primitives/dialog', () => ({
   Dialog: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  DialogBody: ({ children }: { children: ReactNode }) => <div>{children}</div>,
   DialogContent: ({ children }: { children: ReactNode }) => (
     <div>{children}</div>
   ),

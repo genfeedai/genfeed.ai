@@ -27,6 +27,7 @@ import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -566,6 +567,8 @@ export default function BrandDetailSocialMediaCard({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{translate('disconnectAccount')}</DialogTitle>
+        </DialogHeader>
+        <DialogBody>
           <DialogDescription>
             {disconnectTarget
               ? translate('disconnectAccountDescription', {
@@ -574,7 +577,7 @@ export default function BrandDetailSocialMediaCard({
                 })
               : ''}
           </DialogDescription>
-        </DialogHeader>
+        </DialogBody>
 
         <DialogFooter>
           <Button
@@ -715,29 +718,47 @@ export default function BrandDetailSocialMediaCard({
             </DialogDescription>
           </DialogHeader>
 
-          {hasVisibleConnections ? (
-            <div className="space-y-4">
-              <div className="grid gap-2 sm:grid-cols-2">
-                {connectedConnections.map((connection) => (
-                  <div className="space-y-1" key={connection.credentialId}>
-                    <BrandDetailConnectedAccount connection={connection} />
-                    <Button
-                      variant={ButtonVariant.GHOST}
-                      size={ButtonSize.SM}
-                      className="h-7 px-2 text-2xs"
-                      onClick={() => setDisconnectTarget(connection)}
-                    >
-                      {translate('disconnectNamed', {
-                        account: getConnectionLabel(connection),
-                      })}
-                    </Button>
-                  </div>
-                ))}
-              </div>
+          <DialogBody className="flex flex-col gap-4">
+            {hasVisibleConnections ? (
+              <div className="space-y-4">
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {connectedConnections.map((connection) => (
+                    <div className="space-y-1" key={connection.credentialId}>
+                      <BrandDetailConnectedAccount connection={connection} />
+                      <Button
+                        variant={ButtonVariant.GHOST}
+                        size={ButtonSize.SM}
+                        className="h-7 px-2 text-2xs"
+                        onClick={() => setDisconnectTarget(connection)}
+                      >
+                        {translate('disconnectNamed', {
+                          account: getConnectionLabel(connection),
+                        })}
+                      </Button>
+                    </div>
+                  ))}
+                </div>
 
-              <div className="space-y-4 border-t border-border pt-4">
+                <div className="space-y-4 border-t border-border pt-4">
+                  <p className="text-sm text-muted-foreground">
+                    {translate('addAnotherDescription')}
+                  </p>
+                  {allPlatformGroups.map((group) => (
+                    <div key={group.id} className="space-y-2">
+                      <p className="text-xs font-medium uppercase tracking-label text-muted-foreground">
+                        {group.label}
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {group.platforms.map(renderConnectButton)}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
                 <p className="text-sm text-muted-foreground">
-                  {translate('addAnotherDescription')}
+                  {translate('connectSocialAccountsDescription')}
                 </p>
                 {allPlatformGroups.map((group) => (
                   <div key={group.id} className="space-y-2">
@@ -750,24 +771,8 @@ export default function BrandDetailSocialMediaCard({
                   </div>
                 ))}
               </div>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">
-                {translate('connectSocialAccountsDescription')}
-              </p>
-              {allPlatformGroups.map((group) => (
-                <div key={group.id} className="space-y-2">
-                  <p className="text-xs font-medium uppercase tracking-label text-muted-foreground">
-                    {group.label}
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {group.platforms.map(renderConnectButton)}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+            )}
+          </DialogBody>
         </DialogContent>
       </Dialog>
 

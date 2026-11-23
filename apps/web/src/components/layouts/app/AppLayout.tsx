@@ -3,7 +3,12 @@
 import { SidebarNavigationProvider } from '@genfeedai/contexts/ui/sidebar-navigation-context';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import ErrorBoundary from '@ui/display/error-boundary/ErrorBoundary';
-import { Dialog, DialogContent, DialogTitle } from '@ui/primitives/dialog';
+import {
+  Dialog,
+  DialogBody,
+  DialogContent,
+  DialogTitle,
+} from '@ui/primitives/dialog';
 import {
   cloneElement,
   type ReactElement,
@@ -202,21 +207,23 @@ export default function AppLayout({
               }}
             >
               <DialogTitle className="sr-only">Navigation</DialogTitle>
-              {mobileRailContent ? (
-                <div
-                  // The drawer keeps the topbar band clear (its close button
-                  // sits there), so the rail begins below it.
-                  className="flex h-full w-[var(--desktop-rail-width)] shrink-0 flex-col bg-foreground/5 pt-[var(--shell-topbar-height)]"
-                  data-testid="mobile-app-rail"
-                >
-                  {mobileRailContent}
-                </div>
-              ) : null}
-              {mobileMenuContent ? (
-                <div className="h-full min-w-0 flex-1 pt-[var(--shell-topbar-height)]">
-                  {mobileMenuContent}
-                </div>
-              ) : null}
+              <DialogBody scrollable={false} className="flex h-full flex-row">
+                {mobileRailContent ? (
+                  <div
+                    // The drawer keeps the topbar band clear (its close button
+                    // sits there), so the rail begins below it.
+                    className="flex h-full w-[var(--desktop-rail-width)] shrink-0 flex-col bg-foreground/5 pt-[var(--shell-topbar-height)]"
+                    data-testid="mobile-app-rail"
+                  >
+                    {mobileRailContent}
+                  </div>
+                ) : null}
+                {mobileMenuContent ? (
+                  <div className="h-full min-w-0 flex-1 pt-[var(--shell-topbar-height)]">
+                    {mobileMenuContent}
+                  </div>
+                ) : null}
+              </DialogBody>
             </DialogContent>
           </Dialog>
         ) : null}

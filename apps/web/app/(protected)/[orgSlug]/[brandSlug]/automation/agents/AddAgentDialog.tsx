@@ -3,6 +3,7 @@ import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-c
 import { Button } from '@ui/primitives/button';
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -46,13 +47,15 @@ export default function AddAgentDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] max-w-4xl overflow-y-auto overscroll-contain border border-border bg-background">
+      <DialogContent className="w-[calc(100vw-2rem)] max-w-4xl border border-border bg-background">
         <DialogHeader>
           <DialogTitle>{translate('title')}</DialogTitle>
           <DialogDescription>{translate('description')}</DialogDescription>
         </DialogHeader>
 
-        <ContentTeamHirePage isEmbedded onCreated={handleCreated} />
+        <DialogBody className="flex flex-col gap-4">
+          <ContentTeamHirePage isEmbedded onCreated={handleCreated} />
+        </DialogBody>
 
         <DialogFooter className="items-center gap-3 sm:justify-between sm:space-x-0">
           <p className="text-sm text-muted-foreground">

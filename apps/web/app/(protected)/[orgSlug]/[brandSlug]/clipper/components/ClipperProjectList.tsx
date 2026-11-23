@@ -14,6 +14,7 @@ import {
 import { Button } from '@ui/primitives/button';
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -175,16 +176,21 @@ export default function ClipperProjectList({
             <DialogTitle>{t('renameTitle')}</DialogTitle>
             <DialogDescription>{t('renameDescription')}</DialogDescription>
           </DialogHeader>
-          <Form onSubmit={(event) => void saveName(event)}>
-            <Field label={t('projectName')}>
-              <Input
-                aria-label={t('projectName')}
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-                maxLength={120}
-                disabled={isSaving}
-              />
-            </Field>
+          <Form
+            className="min-h-0 flex-1"
+            onSubmit={(event) => void saveName(event)}
+          >
+            <DialogBody className="flex flex-col gap-4">
+              <Field label={t('projectName')}>
+                <Input
+                  aria-label={t('projectName')}
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                  maxLength={120}
+                  disabled={isSaving}
+                />
+              </Field>
+            </DialogBody>
             <DialogFooter>
               <Button
                 variant={ButtonVariant.GHOST}
