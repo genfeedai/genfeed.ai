@@ -1,4 +1,5 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import LibraryAssetTypeFilter from '@/features/ingredients/layout/library-asset-type-filter';
 
@@ -21,45 +22,34 @@ vi.mock('next/navigation', () => ({
     ),
 }));
 
-vi.mock('@ui/buttons/dropdown/button-dropdown/ButtonDropdown', () => ({
-  default: ({
-    onChange,
-    options,
-    value,
-  }: {
-    onChange: (name: string, value: string) => void;
-    options: readonly { label: string; value: string }[];
-    value: string;
-  }) => (
-    <button
-      type="button"
-      data-options={options.map((option) => option.label).join(',')}
-      data-value={value}
-      onClick={() => onChange('assetType', 'images')}
-    >
-      Change asset type
-    </button>
-  ),
-}));
-
 describe('LibraryAssetTypeFilter', () => {
   beforeEach(() => {
     replaceMock.mockClear();
   });
 
-  it('treats the route type as a filter and keeps cross-type context', () => {
+  it('treats the route type as a filter and keeps cross-type context', async () => {
+    const user = userEvent.setup();
     render(<LibraryAssetTypeFilter />);
 
-    const trigger = screen.getByRole('button', {
-      name: 'Change asset type',
+    const trigger = screen.getByRole('combobox', {
+      name: 'Filter by asset type',
     });
-    expect(trigger).toHaveAttribute('data-value', 'videos');
-    expect(trigger).toHaveAttribute(
-      'data-options',
-      'Videos,Images,GIFs,Avatars,Voices,Music,Captions',
-    );
+    expect(trigger).toHaveTextContent('Videos');
 
-    fireEvent.click(trigger);
+    await user.click(trigger);
+    expect(
+      screen.getAllByRole('option').map((option) => option.textContent),
+    ).toEqual([
+      'Videos',
+      'Images',
+      'GIFs',
+      'Avatars',
+      'Voices',
+      'Music',
+      'Captions',
+    ]);
+
+    await user.click(screen.getByRole('option', { name: 'Images' }));
 
     expect(replaceMock).toHaveBeenCalledWith(
       '/acme/moonrise/library/images?folder=folder-1&taskId=task-1',

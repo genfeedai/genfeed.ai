@@ -3,10 +3,10 @@
 import type { TrainingSchema } from '@genfeedai/client/schemas';
 import { ButtonVariant, TrainingCategory } from '@genfeedai/contracts';
 import { Button } from '@ui/primitives/button';
-import FormDropdown from '@ui/primitives/dropdown-field';
 import FormControl from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
-import { Image, RefreshCw, SlidersHorizontal, Tag } from 'lucide-react';
+import { OptionSelect } from '@ui/primitives/option-select';
+import { Image, RefreshCw } from 'lucide-react';
 import type { DropzoneInputProps, DropzoneRootProps } from 'react-dropzone';
 import type { Control, FieldErrors, UseFormWatch } from 'react-hook-form';
 
@@ -103,20 +103,18 @@ export default function TrainingFormInputs({
           isRequired
           error={errors.category?.message}
         >
-          <FormDropdown
-            name="category"
-            icon={<Tag className="size-4" />}
-            label="Category"
-            value={watch('category')}
-            className="h-10 px-3 gap-2 text-sm flex-shrink-0 bg-muted text-foreground"
+          <OptionSelect
+            ariaLabel="Category"
+            className="w-full"
             isDisabled={isSubmitting}
             options={[
-              { key: TrainingCategory.SUBJECT, label: 'Subject' },
-              { key: TrainingCategory.STYLE, label: 'Style' },
+              { label: 'Subject', value: TrainingCategory.SUBJECT },
+              { label: 'Style', value: TrainingCategory.STYLE },
             ]}
-            onChange={(e) => {
-              onCategoryChange(e.target.value as TrainingCategory);
-            }}
+            onValueChange={(value) =>
+              onCategoryChange(value as TrainingCategory)
+            }
+            value={watch('category')}
           />
         </FormControl>
 
@@ -125,23 +123,19 @@ export default function TrainingFormInputs({
           error={errors.steps?.message}
           helpText="More steps = better quality, higher cost"
         >
-          <FormDropdown
-            name="steps"
-            icon={<SlidersHorizontal className="size-4" />}
-            label="Steps"
-            value={watch('steps')}
-            className="h-10 px-3 gap-2 text-sm flex-shrink-0 bg-muted text-foreground"
+          <OptionSelect
+            ariaLabel="Steps"
+            className="w-full"
             isDisabled={isSubmitting}
             options={[
-              { key: 1000, label: '1,000 (Low)' },
-              { key: 2000, label: '2,000 (Medium)' },
-              { key: 3000, label: '3,000 (Default)' },
-              { key: 4000, label: '4,000 (High)' },
-              { key: 5000, label: '5,000 (Best)' },
+              { label: '1,000 (Low)', value: '1000' },
+              { label: '2,000 (Medium)', value: '2000' },
+              { label: '3,000 (Default)', value: '3000' },
+              { label: '4,000 (High)', value: '4000' },
+              { label: '5,000 (Best)', value: '5000' },
             ]}
-            onChange={(e) => {
-              onStepsChange(Number(e.target.value));
-            }}
+            onValueChange={(value) => onStepsChange(Number(value))}
+            value={String(watch('steps'))}
           />
         </FormControl>
       </div>
