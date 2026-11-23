@@ -32,6 +32,21 @@ CREATE FUNCTION pg_temp.answerable_requests(snapshot_data jsonb) RETURNS SETOF j
   );
 $$ LANGUAGE sql;
 
+-- Older snapshots still hold the superseded requests in the pending list. Drop
+-- them, so a later answer to the newest question leaves nothing waiting.
+UPDATE "agent_thread_snapshots" AS snapshot
+SET "data" = jsonb_set(
+  snapshot."data",
+  '{pendingInputRequests}',
+  COALESCE(
+    (SELECT jsonb_agg(request) FROM pg_temp.answerable_requests(snapshot."data") AS request),
+    '[]'::jsonb
+  )
+)
+WHERE jsonb_typeof(snapshot."data" -> 'pendingInputRequests') = 'array'
+  AND jsonb_array_length(snapshot."data" -> 'pendingInputRequests') >
+    (SELECT count(*) FROM pg_temp.answerable_requests(snapshot."data"));
+
 -- Existing waiting threads: the oldest answerable question's time, falling back
 -- to the snapshot's last update when a request carries no valid createdAt.
 UPDATE "agent_thread_snapshots" AS snapshot
