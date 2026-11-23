@@ -42,6 +42,7 @@ export * from './google-business.constant';
 export * from './heygen-avatar-engines.constant';
 export * from './heygen-error-codes.constant';
 export * from './image-edit-models.constant';
+export * from './instagram.constant';
 export * from './library.constant';
 export * from './library-asset-routes.constant';
 export * from './library-routes.constant';

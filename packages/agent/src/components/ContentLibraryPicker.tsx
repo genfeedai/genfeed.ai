@@ -1,45 +1,29 @@
 'use client';
 
 import type { ContentMentionItem } from '@genfeedai/agent/types/mention.types';
-import {
-  ButtonVariant,
-  CardEmptySize,
-  ComponentSize,
-} from '@genfeedai/contracts';
 import type { ContentLibraryPickerProps } from '@genfeedai/props/agent/content-library-picker.props';
-import { cn } from '@helpers/formatting/cn/cn.util';
-import { Button } from '@ui/primitives/button';
-import {
-  Dialog,
-  DialogBody,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@ui/primitives/dialog';
-import { EmptyState } from '@ui/primitives/empty-state';
-import FormSearchbar from '@ui/primitives/searchbar';
-import Spinner from '@ui/primitives/spinner';
-import { FileText, ImageIcon } from 'lucide-react';
-import Image from 'next/image';
+import type { LibraryGridItem } from '@genfeedai/props/ui/content/library-picker.props';
+import LibraryPicker from '@ui/content/library-picker/LibraryPicker';
 import { type ReactElement, useMemo, useState } from 'react';
 
 export type { ContentLibraryPickerProps } from '@genfeedai/props/agent/content-library-picker.props';
 
 const EMPTY_ITEMS: readonly ContentMentionItem[] = [];
 
-function contentTypeIcon(contentType: string): ReactElement {
-  const normalized = contentType.toLowerCase();
-  if (
-    normalized.includes('image') ||
-    normalized.includes('photo') ||
-    normalized.includes('visual')
-  ) {
-    return <ImageIcon aria-hidden="true" className="size-5" />;
-  }
-  return <FileText aria-hidden="true" className="size-5" />;
+function toGridItem(item: ContentMentionItem): LibraryGridItem {
+  return {
+    id: item.id,
+    kind: item.contentType,
+    thumbnailUrl: item.thumbnailUrl,
+    title: item.contentTitle,
+  };
 }
 
+/**
+ * The agent's Library attach dialog. It owns what is agent-specific: the
+ * mention items, local or remote search, and the knowledge section. The
+ * dialog, search field and grid are the shared `LibraryPicker`.
+ */
 export function ContentLibraryPicker({
   isOpen,
   title = 'Reference library content',
@@ -61,132 +45,64 @@ export function ContentLibraryPicker({
     setQuery('');
   }
 
-  const filteredItems = useMemo(() => {
-    if (search.searchMode === 'remote') return items;
+  const gridItems = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
-    if (!normalizedQuery) {
-      return items;
-    }
+    const visible =
+      search.searchMode === 'remote' || !normalizedQuery
+        ? items
+        : items.filter(
+            (item) =>
+              item.contentTitle.toLowerCase().includes(normalizedQuery) ||
+              item.contentType.toLowerCase().includes(normalizedQuery),
+          );
 
-    return items.filter(
-      (item) =>
-        item.contentTitle.toLowerCase().includes(normalizedQuery) ||
-        item.contentType.toLowerCase().includes(normalizedQuery),
-    );
+    return visible.map(toGridItem);
   }, [items, query, search.searchMode]);
 
+  const itemsById = useMemo(
+    () => new Map(items.map((item) => [item.id, item])),
+    [items],
+  );
+
+  const hasNoLibraryContent =
+    items.length === 0 && !(search.searchMode === 'remote' && query.trim());
+
   return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[min(80dvh,560px)] w-full max-w-lg flex-col gap-0 overflow-hidden border-border bg-popover p-0">
-        <DialogHeader className="border-b border-border px-4 py-3">
-          <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>{description}</DialogDescription>
-        </DialogHeader>
-
-        <DialogBody scrollable={false} className="flex flex-col">
-          {knowledgeSection ? (
-            <div className="border-b border-border px-4 py-3">
-              {knowledgeSection}
-            </div>
-          ) : null}
-
-          <div className="border-b border-border px-4 py-3">
-            <FormSearchbar
-              ariaLabel="Search library content"
-              onChange={(event) =>
-                search.searchMode === 'remote'
-                  ? search.onSearchQueryChange(event.target.value)
-                  : setQuery(event.target.value)
-              }
-              placeholder={
-                search.searchMode === 'remote'
-                  ? 'Search your Library…'
-                  : 'Search by title or type…'
-              }
-              size={ComponentSize.SM}
-              value={query}
-            />
-          </div>
-
-          <div
-            aria-busy={isLoading}
-            className="min-h-0 flex-1 overflow-y-auto p-3"
-            role="listbox"
-            aria-label="Library content"
-          >
-            {isLoading ? (
-              <div className="flex justify-center py-8">
-                <Spinner ariaLabel="Loading library" />
-              </div>
-            ) : filteredItems.length === 0 ? (
-              <EmptyState
-                size={CardEmptySize.SM}
-                title={
-                  items.length === 0 &&
-                  !(search.searchMode === 'remote' && query.trim())
-                    ? 'No library content available yet.'
-                    : 'No matching content.'
-                }
-              />
-            ) : (
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                {filteredItems.map((item) => {
-                  const isSelected = selectedIds?.has(item.id) ?? false;
-
-                  return (
-                    <Button
-                      key={item.id}
-                      variant={ButtonVariant.UNSTYLED}
-                      withWrapper={false}
-                      role="option"
-                      aria-selected={isSelected}
-                      aria-label={`Reference ${item.contentTitle}`}
-                      isDisabled={isSelected}
-                      onClick={() => {
-                        onSelect(item);
-                      }}
-                      className={cn(
-                        'group flex flex-col overflow-hidden rounded-lg border border-border bg-card text-left transition-colors',
-                        isSelected
-                          ? 'opacity-50'
-                          : 'hover:border-primary/40 hover:bg-foreground/5',
-                      )}
-                    >
-                      <div className="relative aspect-square w-full overflow-hidden bg-background">
-                        {item.thumbnailUrl ? (
-                          <Image
-                            src={item.thumbnailUrl}
-                            alt=""
-                            fill
-                            sizes="160px"
-                            className="object-cover"
-                            unoptimized
-                          />
-                        ) : (
-                          <div className="flex size-full items-center justify-center text-muted-foreground">
-                            {contentTypeIcon(item.contentType)}
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex min-w-0 flex-col gap-0.5 px-2 py-1.5">
-                        <span className="truncate text-xs font-medium text-foreground/90">
-                          {item.contentTitle}
-                        </span>
-                        <span className="truncate text-2xs uppercase tracking-label text-muted-foreground">
-                          {item.contentType}
-                        </span>
-                      </div>
-                    </Button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-          {footer ? (
-            <div className="border-t border-border px-4 py-3">{footer}</div>
-          ) : null}
-        </DialogBody>
-      </DialogContent>
-    </Dialog>
+    <LibraryPicker
+      description={description}
+      emptyLabel={
+        hasNoLibraryContent
+          ? 'No library content available yet.'
+          : 'No matching content.'
+      }
+      footer={footer}
+      getItemAriaLabel={(item) => `Reference ${item.title}`}
+      gridLabel="Library content"
+      isLoading={isLoading}
+      isOpen={isOpen}
+      isSelectedLocked
+      items={gridItems}
+      loadingLabel="Loading library"
+      onOpenChange={onOpenChange}
+      onQueryChange={
+        search.searchMode === 'remote' ? search.onSearchQueryChange : setQuery
+      }
+      onSelect={(item) => {
+        const mention = itemsById.get(item.id);
+        if (mention) {
+          onSelect(mention);
+        }
+      }}
+      query={query}
+      searchLabel="Search library content"
+      searchPlaceholder={
+        search.searchMode === 'remote'
+          ? 'Search your Library…'
+          : 'Search by title or type…'
+      }
+      selectedIds={selectedIds}
+      title={title}
+      topSection={knowledgeSection}
+    />
   );
 }

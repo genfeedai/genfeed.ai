@@ -887,6 +887,9 @@
     "generate": "Generate",
     "generating": "Generating your illustration…"
   },
+  "libraryPicker": {
+    "sources": "Library sources"
+  },
   "filtersButton": {
     "menu": "Filters",
     "clear": "Clear filters",

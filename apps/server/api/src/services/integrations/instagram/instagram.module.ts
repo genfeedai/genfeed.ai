@@ -7,6 +7,7 @@ import { InstagramController } from '@api/services/integrations/instagram/contro
 import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
 import { InstagramAuthorizedSignalsService } from '@api/services/integrations/instagram/services/instagram-authorized-signals.service';
 import { InstagramConnectionResolverService } from '@api/services/integrations/instagram/services/instagram-connection-resolver.service';
+import { InstagramHashtagSearchService } from '@api/services/integrations/instagram/services/instagram-hashtag-search.service';
 import { createServiceModule } from '@api/shared/service-module.factory';
 import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
@@ -22,7 +23,11 @@ const BaseModule = createServiceModule(InstagramService, {
 
 @Module({
   controllers: [InstagramController],
-  exports: [...(BaseModule.exports ?? []), InstagramAuthorizedSignalsService],
+  exports: [
+    ...(BaseModule.exports ?? []),
+    InstagramAuthorizedSignalsService,
+    InstagramHashtagSearchService,
+  ],
   imports: [
     ...(BaseModule.imports ?? []),
     SocialWarmupEnrollmentsModule,
@@ -31,6 +36,7 @@ const BaseModule = createServiceModule(InstagramService, {
   providers: [
     ...(BaseModule.providers ?? []),
     InstagramAuthorizedSignalsService,
+    InstagramHashtagSearchService,
   ],
 })
 export class InstagramModule {}

@@ -1,5 +1,12 @@
 import { TrendFetchService } from '@api/collections/trends/services/modules/trend-fetch.service';
-import { recordTrendProviderOutcome } from '@api/collections/trends/utils/trend-refresh-evidence.util';
+import {
+  captureTrendRefreshEvidence,
+  recordTrendProviderOutcome,
+} from '@api/collections/trends/utils/trend-refresh-evidence.util';
+import {
+  InstagramHashtagAccessError,
+  InstagramHashtagBudgetError,
+} from '@api/services/integrations/instagram/services/instagram-hashtag-search.service';
 import { LinkedInTrendResolverService } from '@api/services/integrations/linkedin/services/linkedin-trend-resolver.service';
 import { runtimeSettingsMock } from '@api-test/helpers/runtime-settings.mock';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -43,6 +50,9 @@ describe('TrendFetchService', () => {
   };
   const mockInstagramService = {
     getTrends: vi.fn(),
+  };
+  const mockInstagramHashtagSearch = {
+    readTopMedia: vi.fn(),
   };
   const mockTiktokService = {
     getTrends: vi.fn(),
@@ -97,6 +107,7 @@ describe('TrendFetchService', () => {
       mockPinterestService as never,
       mockTiktokService as never,
       refreshHealth as never,
+      mockInstagramHashtagSearch as never,
     );
   });
 
@@ -446,6 +457,7 @@ describe('TrendFetchService', () => {
     });
 
     it('returns authorized Instagram account signals before Apify for scoped refreshes', async () => {
+      mockPrisma.trendPreferences.findFirst.mockResolvedValueOnce(null);
       mockInstagramService.getTrends.mockResolvedValue([
         { growthRate: 12, mentions: 900, topic: '#native-instagram' },
       ]);
@@ -470,6 +482,117 @@ describe('TrendFetchService', () => {
         topic: '#native-instagram',
       });
     });
+
+    it('stores the official hashtag search media as the trend preview, without asking Apify', async () => {
+      mockPrisma.trendPreferences.findFirst.mockResolvedValueOnce({
+        config: { hashtags: ['#Coffee'], keywords: [] },
+      });
+      mockInstagramHashtagSearch.readTopMedia.mockResolvedValue([
+        {
+          hashtag: 'coffee',
+          items: [
+            {
+              caption: 'Morning pour',
+              commentsCount: 4,
+              id: 'media-1',
+              likeCount: 96,
+              mediaType: 'IMAGE',
+              mediaUrl: 'https://cdn.example/1.jpg',
+              permalink: 'https://www.instagram.com/p/abc/',
+              timestamp: '2026-11-22T08:00:00+0000',
+            },
+            {
+              commentsCount: 1,
+              id: 'media-2',
+              likeCount: 9,
+              mediaType: 'CAROUSEL_ALBUM',
+              permalink: 'https://www.instagram.com/p/def/',
+            },
+          ],
+        },
+      ]);
+
+      const result = await service.fetchPlatformTrends(
+        'instagram',
+        'org-1',
+        'brand-1',
+      );
+
+      expect(mockInstagramHashtagSearch.readTopMedia).toHaveBeenCalledWith(
+        'org-1',
+        'brand-1',
+        ['#Coffee'],
+      );
+      expect(mockApifyService.getInstagramTrends).not.toHaveBeenCalled();
+      expect(mockInstagramService.getTrends).not.toHaveBeenCalled();
+      expect(result).toHaveLength(1);
+      expect(result[0]).toMatchObject({
+        mentions: 110,
+        platform: 'instagram',
+        topic: '#coffee',
+      });
+      expect(result[0].metadata).toMatchObject({
+        provider: 'instagram-hashtag-search',
+        sourcePreviewState: 'live',
+      });
+      expect(result[0].metadata?.sourcePreviewCache).toEqual([
+        {
+          contentType: 'image',
+          id: 'media-1',
+          mediaUrl: 'https://cdn.example/1.jpg',
+          metrics: { comments: 4, likes: 96 },
+          platform: 'instagram',
+          publishedAt: '2026-11-22T08:00:00+0000',
+          sourceUrl: 'https://www.instagram.com/p/abc/',
+          text: 'Morning pour',
+          thumbnailUrl: 'https://cdn.example/1.jpg',
+        },
+        {
+          // No media_url: the permalink alone, and no thumbnail.
+          contentType: 'image',
+          id: 'media-2',
+          metrics: { comments: 1, likes: 9 },
+          platform: 'instagram',
+          sourceUrl: 'https://www.instagram.com/p/def/',
+        },
+      ]);
+    });
+
+    it.each([
+      [
+        'the week budget is spent',
+        new InstagramHashtagBudgetError(),
+        'budget_exhausted',
+      ],
+      [
+        'the app lacks Public Content Access',
+        new InstagramHashtagAccessError(),
+        'access_required',
+      ],
+    ])(
+      'records refresh health, not a healthy source, when %s',
+      async (_name, error, reason) => {
+        mockPrisma.trendPreferences.findFirst.mockResolvedValueOnce({
+          config: { hashtags: ['coffee'] },
+        });
+        mockInstagramHashtagSearch.readTopMedia.mockRejectedValue(error);
+
+        const { evidence, result } = await captureTrendRefreshEvidence(() =>
+          service.fetchPlatformTrends('instagram', 'org-1', 'brand-1', {
+            allowApifyFallback: false,
+          }),
+        );
+
+        expect(result).toEqual([]);
+        expect(evidence).toHaveLength(1);
+        expect(evidence[0]).toMatchObject({
+          outcome: 'native_failed',
+          platform: 'instagram',
+          reason,
+        });
+        expect(evidence[0].lastSuccessfulRefreshAt).toBeNull();
+      },
+    );
 
     it('uses Apify only for unsupported global TikTok public discovery', async () => {
       mockApifyService.getTikTokTrends.mockResolvedValue([
