@@ -121,7 +121,7 @@ export async function CreatorOverview({
           <div className="space-y-12">
             <CreatorSection
               href={creatorTabPath(canonicalHandle, 'posts')}
-              title="Wall"
+              title="Posts"
               total={counts.posts}
             >
               <CreatorWall
@@ -176,7 +176,7 @@ export async function CreatorTab({
 }: {
   handle: string;
   page: number;
-  /** The raw `?platform=`; only the wall reads it. */
+  /** The raw `?platform=`; only the posts tab reads it. */
   platform?: string;
   tab: CreatorProfileTab;
 }): Promise<React.ReactElement> {
