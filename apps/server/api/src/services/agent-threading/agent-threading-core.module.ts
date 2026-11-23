@@ -3,8 +3,10 @@ import { AgentMessagesModule } from '@api/collections/agent-messages/agent-messa
 import { AgentThreadsModule } from '@api/collections/agent-threads/agent-threads.module';
 import { PlatformSettingsModule } from '@api/collections/platform-settings/platform-settings.module';
 import { UsersCoreModule } from '@api/collections/users/users-core.module';
+import { ActivityRecordingModule } from '@api/services/activity-recording/activity-recording.module';
 import { AgentExecutionLaneService } from '@api/services/agent-threading/services/agent-execution-lane.service';
 import { AgentExecutionRecoveryEventService } from '@api/services/agent-threading/services/agent-execution-recovery-event.service';
+import { AgentInputAlertService } from '@api/services/agent-threading/services/agent-input-alert.service';
 import { AgentProfileResolverService } from '@api/services/agent-threading/services/agent-profile-resolver.service';
 import { AgentRuntimeSessionService } from '@api/services/agent-threading/services/agent-runtime-session.service';
 import { AgentThreadEngineService } from '@api/services/agent-threading/services/agent-thread-engine.service';
@@ -35,6 +37,7 @@ import { Module } from '@nestjs/common';
     ThreadContextCompressorService,
   ],
   imports: [
+    ActivityRecordingModule,
     PlatformSettingsModule,
     AgentThreadsModule,
     AgentMemoriesModule,
@@ -45,6 +48,7 @@ import { Module } from '@nestjs/common';
   ],
   providers: [
     AgentExecutionLaneService,
+    AgentInputAlertService,
     AgentExecutionRecoveryEventService,
     AgentProfileResolverService,
     AgentRuntimeSessionService,
