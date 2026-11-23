@@ -1,4 +1,8 @@
-import type { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import type {
+  ButtonSize,
+  ButtonVariant,
+  DropdownDirection,
+} from '@genfeedai/contracts';
 import type { ButtonHTMLAttributes, MouseEvent, ReactNode } from 'react';
 
 /**
