@@ -13,7 +13,7 @@ export function setDeviceStoreScope(
   currentScope = scope ? `${scope.userId}:${scope.organizationId}` : null;
 }
 
-export function getDeviceStoreScope(): string | null {
+function getDeviceStoreScope(): string | null {
   return currentScope;
 }
 
