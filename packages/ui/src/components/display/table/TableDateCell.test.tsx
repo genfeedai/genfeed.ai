@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import TableDateCell from '@ui/display/table/TableDateCell';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -11,17 +11,21 @@ describe('TableDateCell', () => {
     vi.useRealTimers();
   });
 
-  it('shows a current-year date with its time on one line, titled with the full date', () => {
+  it('shows a current-year date with its time on one line, with the full date in its tooltip', () => {
     render(<TableDateCell timeZone="UTC" value="2026-10-25T22:41:00Z" />);
 
     const time = screen.getByText('Oct 25, 10:41 PM');
     expect(time.tagName).toBe('TIME');
     expect(time).toHaveAttribute('datetime', '2026-10-25T22:41:00.000Z');
-    expect(time).toHaveAttribute(
-      'title',
+    expect(time).toHaveClass('whitespace-nowrap');
+
+    fireEvent.pointerMove(time, { pointerType: 'mouse' });
+    act(() => {
+      vi.advanceTimersByTime(1000);
+    });
+    expect(screen.getByRole('tooltip')).toHaveTextContent(
       'Sunday, October 25, 2026 at 10:41 PM',
     );
-    expect(time).toHaveClass('whitespace-nowrap');
   });
 
   it('shows the year instead of the time for an older date', () => {
