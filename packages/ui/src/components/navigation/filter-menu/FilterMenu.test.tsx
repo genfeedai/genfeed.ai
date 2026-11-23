@@ -5,6 +5,12 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import FilterMenu from './FilterMenu';
 
+const { useTranslationsMock } = vi.hoisted(() => ({
+  useTranslationsMock: vi.fn(),
+}));
+
+vi.mock('next-intl', () => ({ useTranslations: useTranslationsMock }));
+
 const OPTIONS = [
   { label: 'Image', value: 'image' },
   { label: 'Video', value: 'video' },
@@ -344,5 +350,51 @@ describe('FilterMenu', () => {
     ).toHaveFocus();
     await user.keyboard('{ArrowUp}');
     expect(search).toHaveFocus();
+  });
+  it('fills the four texts from the app messages when none is passed', async () => {
+    const user = userEvent.setup();
+    useTranslationsMock.mockReturnValue(
+      (key: string, values?: { count: number }) =>
+        key === 'activeCount' ? `${values?.count} messages active` : key,
+    );
+    render(
+      <FilterMenu
+        facets={[
+          {
+            key: 'type',
+            label: 'Type',
+            onChange: vi.fn(),
+            options: OPTIONS,
+            selection: 'multiple',
+            values: ['image'],
+          },
+        ]}
+        onClear={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: /^menu/ }));
+
+    expect(screen.getByText('1 messages active')).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: 'clear' })).toBeInTheDocument();
+  });
+
+  it('never reads the app messages when every text is passed', () => {
+    useTranslationsMock.mockImplementation(() => {
+      throw new Error('no intl provider');
+    });
+
+    expect(() =>
+      renderMenu([
+        {
+          key: 'type',
+          label: 'Type',
+          onChange: vi.fn(),
+          options: OPTIONS,
+          selection: 'multiple',
+          values: [],
+        },
+      ]),
+    ).not.toThrow();
   });
 });

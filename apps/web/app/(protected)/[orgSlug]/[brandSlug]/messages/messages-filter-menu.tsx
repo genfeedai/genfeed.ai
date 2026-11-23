@@ -3,8 +3,8 @@ import type { SocialPlatform } from '@genfeedai/contracts/interfaces';
 import { toConnectedAccount } from '@genfeedai/helpers/publisher/connected-account.helper';
 import ConnectedAccountAvatar from '@ui/display/connected-account/ConnectedAccountAvatar';
 import { getConnectedAccountText } from '@ui/display/connected-account/connected-account.util';
+import FilterMenu from '@ui/navigation/filter-menu/FilterMenu';
 import { useTranslations } from 'next-intl';
-import FilterMenu from '@/components/content/filter-menu/FilterMenu';
 import type { MessagesFilterMenuProps } from '@/features/messages/props/messages-filter-menu.props';
 import type {
   MessagesInboxView,

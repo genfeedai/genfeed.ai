@@ -403,7 +403,7 @@ vi.mock('@ui/primitives/input', () => ({
 
 // The real menu is covered by FilterMenu's own tests; here every option is a
 // plain button named "<facet>: <option>" so page wiring can be asserted.
-vi.mock('@/components/content/filter-menu/FilterMenu', () => ({
+vi.mock('@ui/navigation/filter-menu/FilterMenu', () => ({
   default: ({
     facets,
     onClear,

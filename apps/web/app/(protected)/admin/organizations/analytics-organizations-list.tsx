@@ -31,10 +31,12 @@ import {
 } from '@services/analytics/analytics.service';
 import { logger } from '@services/core/logger.service';
 import { useQueryClient } from '@tanstack/react-query';
+import SearchField from '@ui/content/search-field/SearchField';
 import AppTable from '@ui/display/table/Table';
 import TableRowSummary from '@ui/display/table/TableRowSummary';
 import TableUserCell from '@ui/display/table/TableUserCell';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
+import FilterMenu from '@ui/navigation/filter-menu/FilterMenu';
 import { Alert, AlertDescription } from '@ui/primitives/alert';
 import { Badge } from '@ui/primitives/badge';
 import { BrandAvatar } from '@ui/primitives/brand-avatar';
@@ -44,8 +46,6 @@ import { ChevronLeft, ChevronRight, KeyRound } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useState } from 'react';
-import FilterMenu from '@/components/content/filter-menu/FilterMenu';
-import SearchField from '@/components/content/search-field/SearchField';
 import type { AnalyticsOrganizationsListProps } from '@/features/admin/props/analytics.props';
 import { useDebounce } from '@/hooks/utils/use-debounce/use-debounce';
 

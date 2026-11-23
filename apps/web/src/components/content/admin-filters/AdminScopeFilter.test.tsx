@@ -4,7 +4,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import AdminScopeFilter from '@/components/content/admin-filters/AdminScopeFilter';
-import FilterMenu from '@/components/content/filter-menu/FilterMenu';
+import ScopedFilterMenu from '@/components/content/admin-filters/ScopedFilterMenu';
 
 const mocks = vi.hoisted(() => ({
   query: 'organization=org-1&brand=brand-1&page=2&q=wide',
@@ -76,7 +76,7 @@ describe('AdminScopedFilterMenu', () => {
   it('puts the organization and brand after the page facets in one Filters menu', async () => {
     const user = userEvent.setup();
     render(
-      <FilterMenu
+      <ScopedFilterMenu
         facets={[
           {
             key: 'status',
@@ -156,7 +156,7 @@ describe('AdminScopedFilterMenu', () => {
   it('clears the page filters first, then the organization and brand', async () => {
     const user = userEvent.setup();
     const onClear = vi.fn();
-    render(<FilterMenu facets={[]} hasAdminScope onClear={onClear} />);
+    render(<ScopedFilterMenu facets={[]} hasAdminScope onClear={onClear} />);
 
     await user.click(screen.getByRole('button', { name: /^Filters/ }));
     await user.click(screen.getByRole('menuitem', { name: 'Clear filters' }));

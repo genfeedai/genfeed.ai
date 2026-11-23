@@ -6,7 +6,7 @@ import { getModelProviderLabel } from '@genfeedai/helpers/ui/model-badge.helper'
 import type { FilterMenuFacet } from '@genfeedai/props/ui/forms/filter-menu.props';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import FilterMenu from '@/components/content/filter-menu/FilterMenu';
+import ScopedFilterMenu from '@/components/content/admin-filters/ScopedFilterMenu';
 import {
   type AdminModelsFiltersProps,
   resolveAdminModelFilters,
@@ -85,7 +85,7 @@ export default function AdminModelsFilters({
   ];
 
   return (
-    <FilterMenu
+    <ScopedFilterMenu
       clearLabel={translate('clearFilters')}
       facets={facets}
       hasAdminScope
