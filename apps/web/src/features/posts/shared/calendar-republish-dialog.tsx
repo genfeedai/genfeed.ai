@@ -5,6 +5,7 @@ import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -43,12 +44,14 @@ export default function CalendarRepublishDialog({
             {translate('republishDescription')}
           </DialogDescription>
         </DialogHeader>
-        <Alert>
-          <AlertTitle>{translate('republishOutcomesTitle')}</AlertTitle>
-          <AlertDescription>
-            {translate('republishOutcomesBody')}
-          </AlertDescription>
-        </Alert>
+        <DialogBody className="flex flex-col gap-4">
+          <Alert>
+            <AlertTitle>{translate('republishOutcomesTitle')}</AlertTitle>
+            <AlertDescription>
+              {translate('republishOutcomesBody')}
+            </AlertDescription>
+          </Alert>
+        </DialogBody>
         <DialogFooter>
           <Button
             isDisabled={isPending}

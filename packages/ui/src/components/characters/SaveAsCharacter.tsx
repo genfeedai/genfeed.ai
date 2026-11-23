@@ -18,6 +18,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@ui/primitives/button';
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -266,37 +267,39 @@ export default function SaveAsCharacter({
               {translate('saveExisting.description')}
             </DialogDescription>
           </DialogHeader>
-          <Image
-            src={imageUrl}
-            width={320}
-            height={240}
-            alt={translate('saveExisting.preview')}
-            className="max-h-60 w-full object-contain"
-          />
-          <Input
-            aria-label={translate('fields.name')}
-            placeholder={translate('fields.namePlaceholder')}
-            value={name}
-            disabled={saving}
-            onChange={(event) => setName(event.target.value)}
-          />
-          <Input
-            aria-label={translate('fields.handle')}
-            placeholder={translate('fields.handlePlaceholder')}
-            value={handle}
-            disabled={saving}
-            onChange={(event) => setHandle(event.target.value)}
-          />
-          {inspectionUnavailable ? (
-            <p className="text-sm text-muted-foreground">
-              {translate('saveExisting.inspectionUnavailable')}
-            </p>
-          ) : null}
-          {error ? (
-            <p role="alert" className="text-sm text-destructive">
-              {error}
-            </p>
-          ) : null}
+          <DialogBody className="flex flex-col gap-4">
+            <Image
+              src={imageUrl}
+              width={320}
+              height={240}
+              alt={translate('saveExisting.preview')}
+              className="max-h-60 w-full object-contain"
+            />
+            <Input
+              aria-label={translate('fields.name')}
+              placeholder={translate('fields.namePlaceholder')}
+              value={name}
+              disabled={saving}
+              onChange={(event) => setName(event.target.value)}
+            />
+            <Input
+              aria-label={translate('fields.handle')}
+              placeholder={translate('fields.handlePlaceholder')}
+              value={handle}
+              disabled={saving}
+              onChange={(event) => setHandle(event.target.value)}
+            />
+            {inspectionUnavailable ? (
+              <p className="text-sm text-muted-foreground">
+                {translate('saveExisting.inspectionUnavailable')}
+              </p>
+            ) : null}
+            {error ? (
+              <p role="alert" className="text-sm text-destructive">
+                {error}
+              </p>
+            ) : null}
+          </DialogBody>
           <DialogFooter>
             {loadError ? (
               <Button

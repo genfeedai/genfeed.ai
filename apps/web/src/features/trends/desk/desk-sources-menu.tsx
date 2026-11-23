@@ -16,6 +16,7 @@ import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -300,23 +301,25 @@ export default function DeskSourcesMenu({
               })}
             </DialogDescription>
           </DialogHeader>
-          <div className="max-h-[50vh] divide-y divide-border overflow-y-auto rounded-card border border-border">
-            {sources.length ? (
-              sources.map((source) => (
-                <SourceRow
-                  key={source.id}
-                  busyId={busyId}
-                  source={source}
-                  onRemove={removeSource}
-                  onSync={syncSource}
-                />
-              ))
-            ) : (
-              <div className="p-5 text-sm text-foreground/70">
-                {translateDesk('sourcesMenu.noSourcesFollowed')}
-              </div>
-            )}
-          </div>
+          <DialogBody className="flex flex-col gap-4">
+            <div className="divide-y divide-border rounded-card border border-border">
+              {sources.length ? (
+                sources.map((source) => (
+                  <SourceRow
+                    key={source.id}
+                    busyId={busyId}
+                    source={source}
+                    onRemove={removeSource}
+                    onSync={syncSource}
+                  />
+                ))
+              ) : (
+                <div className="p-5 text-sm text-foreground/70">
+                  {translateDesk('sourcesMenu.noSourcesFollowed')}
+                </div>
+              )}
+            </div>
+          </DialogBody>
           <DialogFooter>
             <Button
               icon={<Plus className="size-4" />}

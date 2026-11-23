@@ -20,6 +20,7 @@ import {
 } from '@ui/primitives/definition-list';
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogDescription,
   DialogHeader,
@@ -215,16 +216,16 @@ export function AgentTextArtifactPreview({
               'bg-black/60 backdrop-blur-[1px]' /* design-system-allow-content-color */
             }
           />
-          <DialogContent className="max-h-[90dvh] max-w-3xl overflow-hidden border-border-strong bg-popover p-0">
+          <DialogContent className="max-w-3xl overflow-hidden border-border-strong bg-popover p-0">
             <DialogHeader className="border-b border-border px-5 py-4">
               <DialogTitle>{data.title || 'Content preview'}</DialogTitle>
               <DialogDescription>
                 Format-aware preview · content remains editable until publish
               </DialogDescription>
             </DialogHeader>
-            <div className="overflow-y-auto p-5">
+            <DialogBody className="p-5">
               <ArtifactPreviewBody data={data} expanded author={author} />
-            </div>
+            </DialogBody>
           </DialogContent>
         </DialogPortal>
       </Dialog>

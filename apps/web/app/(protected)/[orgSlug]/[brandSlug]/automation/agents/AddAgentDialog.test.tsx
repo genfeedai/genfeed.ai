@@ -13,6 +13,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock('@ui/primitives/dialog', () => ({
   Dialog: ({ children, open }: { children: ReactNode; open: boolean }) =>
     open ? <div role="dialog">{children}</div> : null,
+  DialogBody: ({ children }: { children: ReactNode }) => <div>{children}</div>,
   DialogContent: ({
     children,
     className,

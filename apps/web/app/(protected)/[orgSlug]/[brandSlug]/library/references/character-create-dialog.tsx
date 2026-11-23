@@ -5,6 +5,7 @@ import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogDescription,
   DialogHeader,
@@ -55,149 +56,151 @@ export default function CharacterCreateDialog({
           </DialogDescription>
         </DialogHeader>
 
-        {step === 'describe' || step === 'candidate' ? (
-          <div className="flex flex-col gap-3">
-            <Textarea
-              aria-label={translate('fields.description')}
-              data-testid="character-description"
-              isDisabled={isGenerating || step === 'candidate'}
-              onChange={(event) => create.setDescription(event.target.value)}
-              placeholder={translate('fields.descriptionPlaceholder')}
-              value={create.description}
-            />
-            <Checkbox
-              isChecked={create.isNonHumanoid}
-              isDisabled={isGenerating || step === 'candidate'}
-              label={translate('fields.nonHumanoid')}
-              name="character-non-humanoid"
-              onCheckedChange={(checked) =>
-                create.setIsNonHumanoid(checked === true)
-              }
-            />
-            <Input
-              aria-label={translate('fields.seed')}
-              data-testid="character-seed"
-              isDisabled={isGenerating || step === 'candidate'}
-              onChange={(event) => create.setSeed(event.target.value)}
-              placeholder={translate('fields.seed')}
-              value={create.seed}
-            />
-            {step === 'describe' ? (
-              <Button
-                data-testid="generate-sheet"
-                isDisabled={
-                  isGenerating || create.description.trim().length === 0
+        <DialogBody className="flex flex-col gap-4">
+          {step === 'describe' || step === 'candidate' ? (
+            <div className="flex flex-col gap-3">
+              <Textarea
+                aria-label={translate('fields.description')}
+                data-testid="character-description"
+                isDisabled={isGenerating || step === 'candidate'}
+                onChange={(event) => create.setDescription(event.target.value)}
+                placeholder={translate('fields.descriptionPlaceholder')}
+                value={create.description}
+              />
+              <Checkbox
+                isChecked={create.isNonHumanoid}
+                isDisabled={isGenerating || step === 'candidate'}
+                label={translate('fields.nonHumanoid')}
+                name="character-non-humanoid"
+                onCheckedChange={(checked) =>
+                  create.setIsNonHumanoid(checked === true)
                 }
-                isLoading={isGenerating}
-                label={
-                  isGenerating
-                    ? translate('actions.generating')
-                    : translate('actions.generate')
-                }
-                onClick={() => {
-                  void generateSheet();
-                }}
-                size={ButtonSize.DEFAULT}
-                variant={ButtonVariant.DEFAULT}
               />
-            ) : null}
-          </div>
-        ) : null}
-
-        {step === 'candidate' && candidate ? (
-          <div className="flex flex-col gap-3">
-            <IngredientThumbnail
-              alt={translate('candidate.alt')}
-              className="w-full rounded object-cover outline-media"
-              ingredient={candidateIngredient}
-              size={512}
-              testId="candidate-image"
-            />
-            <div className="flex flex-wrap gap-2">
-              <Button
-                data-testid="regenerate-sheet"
-                isDisabled={isGenerating}
-                isLoading={isGenerating}
-                label={translate('actions.regenerate')}
-                onClick={() => {
-                  void generateSheet();
-                }}
-                variant={ButtonVariant.SECONDARY}
+              <Input
+                aria-label={translate('fields.seed')}
+                data-testid="character-seed"
+                isDisabled={isGenerating || step === 'candidate'}
+                onChange={(event) => create.setSeed(event.target.value)}
+                placeholder={translate('fields.seed')}
+                value={create.seed}
               />
-              <Button
-                data-testid="discard-sheet"
-                isDisabled={isGenerating}
-                label={translate('actions.discard')}
-                onClick={discardCandidate}
-                variant={ButtonVariant.GHOST}
-              />
-              <Button
-                data-testid="approve-sheet"
-                isDisabled={isGenerating}
-                label={translate('actions.approve')}
-                onClick={approveCandidate}
-                variant={ButtonVariant.DEFAULT}
-              />
+              {step === 'describe' ? (
+                <Button
+                  data-testid="generate-sheet"
+                  isDisabled={
+                    isGenerating || create.description.trim().length === 0
+                  }
+                  isLoading={isGenerating}
+                  label={
+                    isGenerating
+                      ? translate('actions.generating')
+                      : translate('actions.generate')
+                  }
+                  onClick={() => {
+                    void generateSheet();
+                  }}
+                  size={ButtonSize.DEFAULT}
+                  variant={ButtonVariant.DEFAULT}
+                />
+              ) : null}
             </div>
-          </div>
-        ) : null}
+          ) : null}
 
-        {step === 'approve' && candidate ? (
-          <div className="flex flex-col gap-3">
-            <IngredientThumbnail
-              alt={translate('candidate.alt')}
-              className="w-full rounded object-cover outline-media"
-              ingredient={candidateIngredient}
-              size={512}
-            />
-            <Input
-              aria-label={translate('fields.name')}
-              data-testid="character-name"
-              onChange={(event) => approve.setLabel(event.target.value)}
-              placeholder={translate('fields.namePlaceholder')}
-              value={approve.label}
-            />
-            <Input
-              aria-label={translate('fields.handle')}
-              data-testid="character-handle"
-              onChange={(event) => approve.setHandle(event.target.value)}
-              placeholder={translate('fields.handlePlaceholder')}
-              value={approve.handle}
-            />
-            {canManageSharing ? (
-              <CharacterAvailabilityFields
-                brands={brands}
-                draft={approve.availability}
-                isDisabled={isCreating}
-                onChange={approve.setAvailability}
-                owningBrandId={brandId}
+          {step === 'candidate' && candidate ? (
+            <div className="flex flex-col gap-3">
+              <IngredientThumbnail
+                alt={translate('candidate.alt')}
+                className="w-full rounded object-cover outline-media"
+                ingredient={candidateIngredient}
+                size={512}
+                testId="candidate-image"
               />
-            ) : null}
-            <div className="flex flex-wrap gap-2">
-              <Button
-                data-testid="discard-sheet"
-                isDisabled={isCreating}
-                label={translate('actions.discard')}
-                onClick={discardCandidate}
-                variant={ButtonVariant.GHOST}
-              />
-              <Button
-                data-testid="create-character"
-                isDisabled={isCreating}
-                isLoading={isCreating}
-                label={
-                  isCreating
-                    ? translate('actions.creating')
-                    : translate('actions.save')
-                }
-                onClick={() => {
-                  void createCharacter();
-                }}
-                variant={ButtonVariant.DEFAULT}
-              />
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  data-testid="regenerate-sheet"
+                  isDisabled={isGenerating}
+                  isLoading={isGenerating}
+                  label={translate('actions.regenerate')}
+                  onClick={() => {
+                    void generateSheet();
+                  }}
+                  variant={ButtonVariant.SECONDARY}
+                />
+                <Button
+                  data-testid="discard-sheet"
+                  isDisabled={isGenerating}
+                  label={translate('actions.discard')}
+                  onClick={discardCandidate}
+                  variant={ButtonVariant.GHOST}
+                />
+                <Button
+                  data-testid="approve-sheet"
+                  isDisabled={isGenerating}
+                  label={translate('actions.approve')}
+                  onClick={approveCandidate}
+                  variant={ButtonVariant.DEFAULT}
+                />
+              </div>
             </div>
-          </div>
-        ) : null}
+          ) : null}
+
+          {step === 'approve' && candidate ? (
+            <div className="flex flex-col gap-3">
+              <IngredientThumbnail
+                alt={translate('candidate.alt')}
+                className="w-full rounded object-cover outline-media"
+                ingredient={candidateIngredient}
+                size={512}
+              />
+              <Input
+                aria-label={translate('fields.name')}
+                data-testid="character-name"
+                onChange={(event) => approve.setLabel(event.target.value)}
+                placeholder={translate('fields.namePlaceholder')}
+                value={approve.label}
+              />
+              <Input
+                aria-label={translate('fields.handle')}
+                data-testid="character-handle"
+                onChange={(event) => approve.setHandle(event.target.value)}
+                placeholder={translate('fields.handlePlaceholder')}
+                value={approve.handle}
+              />
+              {canManageSharing ? (
+                <CharacterAvailabilityFields
+                  brands={brands}
+                  draft={approve.availability}
+                  isDisabled={isCreating}
+                  onChange={approve.setAvailability}
+                  owningBrandId={brandId}
+                />
+              ) : null}
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  data-testid="discard-sheet"
+                  isDisabled={isCreating}
+                  label={translate('actions.discard')}
+                  onClick={discardCandidate}
+                  variant={ButtonVariant.GHOST}
+                />
+                <Button
+                  data-testid="create-character"
+                  isDisabled={isCreating}
+                  isLoading={isCreating}
+                  label={
+                    isCreating
+                      ? translate('actions.creating')
+                      : translate('actions.save')
+                  }
+                  onClick={() => {
+                    void createCharacter();
+                  }}
+                  variant={ButtonVariant.DEFAULT}
+                />
+              </div>
+            </div>
+          ) : null}
+        </DialogBody>
       </DialogContent>
     </Dialog>
   );

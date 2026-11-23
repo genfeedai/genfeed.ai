@@ -11,6 +11,7 @@ import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogDescription,
   DialogHeader,
@@ -82,107 +83,109 @@ export function ContentLibraryPicker({
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
 
-        {knowledgeSection ? (
+        <DialogBody scrollable={false} className="flex flex-col">
+          {knowledgeSection ? (
+            <div className="border-b border-border px-4 py-3">
+              {knowledgeSection}
+            </div>
+          ) : null}
+
           <div className="border-b border-border px-4 py-3">
-            {knowledgeSection}
-          </div>
-        ) : null}
-
-        <div className="border-b border-border px-4 py-3">
-          <FormSearchbar
-            ariaLabel="Search library content"
-            onChange={(event) =>
-              search.searchMode === 'remote'
-                ? search.onSearchQueryChange(event.target.value)
-                : setQuery(event.target.value)
-            }
-            placeholder={
-              search.searchMode === 'remote'
-                ? 'Search your Library…'
-                : 'Search by title or type…'
-            }
-            size={ComponentSize.SM}
-            value={query}
-          />
-        </div>
-
-        <div
-          aria-busy={isLoading}
-          className="min-h-0 flex-1 overflow-y-auto p-3"
-          role="listbox"
-          aria-label="Library content"
-        >
-          {isLoading ? (
-            <div className="flex justify-center py-8">
-              <Spinner ariaLabel="Loading library" />
-            </div>
-          ) : filteredItems.length === 0 ? (
-            <EmptyState
-              size={CardEmptySize.SM}
-              title={
-                items.length === 0 &&
-                !(search.searchMode === 'remote' && query.trim())
-                  ? 'No library content available yet.'
-                  : 'No matching content.'
+            <FormSearchbar
+              ariaLabel="Search library content"
+              onChange={(event) =>
+                search.searchMode === 'remote'
+                  ? search.onSearchQueryChange(event.target.value)
+                  : setQuery(event.target.value)
               }
+              placeholder={
+                search.searchMode === 'remote'
+                  ? 'Search your Library…'
+                  : 'Search by title or type…'
+              }
+              size={ComponentSize.SM}
+              value={query}
             />
-          ) : (
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-              {filteredItems.map((item) => {
-                const isSelected = selectedIds?.has(item.id) ?? false;
+          </div>
 
-                return (
-                  <Button
-                    key={item.id}
-                    variant={ButtonVariant.UNSTYLED}
-                    withWrapper={false}
-                    role="option"
-                    aria-selected={isSelected}
-                    aria-label={`Reference ${item.contentTitle}`}
-                    isDisabled={isSelected}
-                    onClick={() => {
-                      onSelect(item);
-                    }}
-                    className={cn(
-                      'group flex flex-col overflow-hidden rounded-lg border border-border bg-card text-left transition-colors',
-                      isSelected
-                        ? 'opacity-50'
-                        : 'hover:border-primary/40 hover:bg-foreground/5',
-                    )}
-                  >
-                    <div className="relative aspect-square w-full overflow-hidden bg-background">
-                      {item.thumbnailUrl ? (
-                        <Image
-                          src={item.thumbnailUrl}
-                          alt=""
-                          fill
-                          sizes="160px"
-                          className="object-cover"
-                          unoptimized
-                        />
-                      ) : (
-                        <div className="flex size-full items-center justify-center text-muted-foreground">
-                          {contentTypeIcon(item.contentType)}
-                        </div>
+          <div
+            aria-busy={isLoading}
+            className="min-h-0 flex-1 overflow-y-auto p-3"
+            role="listbox"
+            aria-label="Library content"
+          >
+            {isLoading ? (
+              <div className="flex justify-center py-8">
+                <Spinner ariaLabel="Loading library" />
+              </div>
+            ) : filteredItems.length === 0 ? (
+              <EmptyState
+                size={CardEmptySize.SM}
+                title={
+                  items.length === 0 &&
+                  !(search.searchMode === 'remote' && query.trim())
+                    ? 'No library content available yet.'
+                    : 'No matching content.'
+                }
+              />
+            ) : (
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                {filteredItems.map((item) => {
+                  const isSelected = selectedIds?.has(item.id) ?? false;
+
+                  return (
+                    <Button
+                      key={item.id}
+                      variant={ButtonVariant.UNSTYLED}
+                      withWrapper={false}
+                      role="option"
+                      aria-selected={isSelected}
+                      aria-label={`Reference ${item.contentTitle}`}
+                      isDisabled={isSelected}
+                      onClick={() => {
+                        onSelect(item);
+                      }}
+                      className={cn(
+                        'group flex flex-col overflow-hidden rounded-lg border border-border bg-card text-left transition-colors',
+                        isSelected
+                          ? 'opacity-50'
+                          : 'hover:border-primary/40 hover:bg-foreground/5',
                       )}
-                    </div>
-                    <div className="flex min-w-0 flex-col gap-0.5 px-2 py-1.5">
-                      <span className="truncate text-xs font-medium text-foreground/90">
-                        {item.contentTitle}
-                      </span>
-                      <span className="truncate text-2xs uppercase tracking-label text-muted-foreground">
-                        {item.contentType}
-                      </span>
-                    </div>
-                  </Button>
-                );
-              })}
-            </div>
-          )}
-        </div>
-        {footer ? (
-          <div className="border-t border-border px-4 py-3">{footer}</div>
-        ) : null}
+                    >
+                      <div className="relative aspect-square w-full overflow-hidden bg-background">
+                        {item.thumbnailUrl ? (
+                          <Image
+                            src={item.thumbnailUrl}
+                            alt=""
+                            fill
+                            sizes="160px"
+                            className="object-cover"
+                            unoptimized
+                          />
+                        ) : (
+                          <div className="flex size-full items-center justify-center text-muted-foreground">
+                            {contentTypeIcon(item.contentType)}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex min-w-0 flex-col gap-0.5 px-2 py-1.5">
+                        <span className="truncate text-xs font-medium text-foreground/90">
+                          {item.contentTitle}
+                        </span>
+                        <span className="truncate text-2xs uppercase tracking-label text-muted-foreground">
+                          {item.contentType}
+                        </span>
+                      </div>
+                    </Button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+          {footer ? (
+            <div className="border-t border-border px-4 py-3">{footer}</div>
+          ) : null}
+        </DialogBody>
       </DialogContent>
     </Dialog>
   );
