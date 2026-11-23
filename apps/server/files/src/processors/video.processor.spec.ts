@@ -164,6 +164,7 @@ describe('VideoProcessor', () => {
   let webSocketService: MockWebSocketService;
   let loggerService: MockLoggerService;
   let redisService: RedisService;
+  let completionPublisher: { publish: Mock };
   const ytDlpService = {
     downloadVideo: vi.fn().mockResolvedValue('/tmp/audio-test/input.mp4'),
   };
@@ -205,6 +206,7 @@ describe('VideoProcessor', () => {
     }).compile();
 
     redisService = module.get(RedisService);
+    completionPublisher = { publish: vi.fn().mockResolvedValue(undefined) };
 
     const videoMergeJobService = new VideoMergeJobService(
       ffmpegService as unknown as never,
@@ -227,15 +229,15 @@ describe('VideoProcessor', () => {
     };
 
     // VideoProcessor constructor order: FFmpegService, HookRemixService,
-    // VideoMergeJobService, S3Service, WebSocketService, RedisService,
-    // LoggerService, RemotionRenderJobService, reference extraction, YtDlpService
+    // VideoMergeJobService, S3Service, WebSocketService,
+    // VideoCompletionPublisherService, LoggerService, RemotionRenderJobService, reference extraction, YtDlpService
     processor = new VideoProcessor(
       ffmpegService as unknown as never,
       hookRemixService as unknown as never,
       videoMergeJobService,
       s3Service as unknown as never,
       webSocketService as unknown as never,
-      redisService,
+      completionPublisher as never,
       loggerService as unknown as never,
       remotionRenderJobService as never,
       clipperReferenceFrameExtractionService as never,
@@ -446,8 +448,7 @@ describe('VideoProcessor', () => {
       expect(ffmpegService.resizeVideo).toHaveBeenCalled();
       expect(s3Service.uploadFile).toHaveBeenCalled();
       expect(webSocketService.emitSuccess).toHaveBeenCalled();
-      expect(redisService.publish).toHaveBeenCalledWith(
-        'video-processing-complete',
+      expect(completionPublisher.publish).toHaveBeenCalledWith(
         expect.objectContaining({
           ingredientId: mockJobData.ingredientId,
           status: 'completed',
@@ -484,9 +485,8 @@ describe('VideoProcessor', () => {
       );
 
       expect(webSocketService.emitError).toHaveBeenCalled();
-      expect(redisService.publish).toHaveBeenCalledTimes(1);
-      expect(redisService.publish).toHaveBeenCalledWith(
-        'video-processing-complete',
+      expect(completionPublisher.publish).toHaveBeenCalledTimes(1);
+      expect(completionPublisher.publish).toHaveBeenCalledWith(
         expect.objectContaining({
           error: 'Resize failed',
           ingredientId: mockJobData.ingredientId,
@@ -502,7 +502,7 @@ describe('VideoProcessor', () => {
         'Resize failed',
       );
 
-      expect(redisService.publish).not.toHaveBeenCalled();
+      expect(completionPublisher.publish).not.toHaveBeenCalled();
     });
 
     it('should emit progress updates during processing', async () => {
@@ -731,8 +731,7 @@ describe('VideoProcessor', () => {
       );
       expect(ffmpegService.addCaptions).toHaveBeenCalled();
       expect(webSocketService.emitSuccess).toHaveBeenCalled();
-      expect(redisService.publish).toHaveBeenCalledWith(
-        'video-processing-complete',
+      expect(completionPublisher.publish).toHaveBeenCalledWith(
         expect.objectContaining({
           ingredientId: data.ingredientId,
           result: expect.objectContaining({
@@ -807,8 +806,7 @@ describe('VideoProcessor', () => {
 
       await expect(processor.handleAddCaptions(job)).rejects.toThrow();
       expect(webSocketService.emitError).toHaveBeenCalled();
-      expect(redisService.publish).toHaveBeenCalledWith(
-        'video-processing-complete',
+      expect(completionPublisher.publish).toHaveBeenCalledWith(
         expect.objectContaining({
           ingredientId: data.ingredientId,
           result: expect.objectContaining({
@@ -831,8 +829,7 @@ describe('VideoProcessor', () => {
 
       await expect(processor.handleAddCaptions(job)).rejects.toThrow();
 
-      expect(redisService.publish).not.toHaveBeenCalledWith(
-        'video-processing-complete',
+      expect(completionPublisher.publish).not.toHaveBeenCalledWith(
         expect.objectContaining({ status: 'failed' }),
       );
     });
@@ -845,8 +842,7 @@ describe('VideoProcessor', () => {
 
       await processor.handleAddCaptions(job);
 
-      expect(redisService.publish).not.toHaveBeenCalledWith(
-        'video-processing-complete',
+      expect(completionPublisher.publish).not.toHaveBeenCalledWith(
         expect.anything(),
       );
     });
@@ -967,8 +963,7 @@ describe('VideoProcessor', () => {
         10, // duration = endTime - startTime
         expect.any(Function),
       );
-      expect(redisService.publish).toHaveBeenCalledWith(
-        'video-processing-complete',
+      expect(completionPublisher.publish).toHaveBeenCalledWith(
         expect.objectContaining({
           result: expect.objectContaining({
             duration: 10,
@@ -1039,8 +1034,7 @@ describe('VideoProcessor', () => {
       expect(result.success).toBe(true);
       expect(result.s3Key).toBeDefined();
       expect(result.url).toBeDefined();
-      expect(redisService.publish).toHaveBeenCalledWith(
-        'video-processing-complete',
+      expect(completionPublisher.publish).toHaveBeenCalledWith(
         expect.objectContaining({
           result: expect.objectContaining({
             jobId: 'raw-cut-trim-clip-1',
@@ -1073,8 +1067,7 @@ describe('VideoProcessor', () => {
 
       await expect(processor.handleClipTrim(job)).rejects.toThrow();
 
-      expect(redisService.publish).not.toHaveBeenCalledWith(
-        'video-processing-complete',
+      expect(completionPublisher.publish).not.toHaveBeenCalledWith(
         expect.objectContaining({ status: 'failed' }),
       );
     });
@@ -1150,8 +1143,7 @@ describe('VideoProcessor', () => {
         'Clip trim failed',
       );
       expect(webSocketService.emitError).toHaveBeenCalled();
-      expect(redisService.publish).toHaveBeenCalledWith(
-        'video-processing-complete',
+      expect(completionPublisher.publish).toHaveBeenCalledWith(
         expect.objectContaining({
           result: expect.objectContaining({
             jobId: 'raw-cut-trim-clip-1',
@@ -1326,8 +1318,7 @@ describe('VideoProcessor', () => {
         expect.any(Function),
         'contain-blur',
       );
-      expect(redisService.publish).toHaveBeenCalledWith(
-        'video-processing-complete',
+      expect(completionPublisher.publish).toHaveBeenCalledWith(
         expect.objectContaining({
           result: expect.objectContaining({
             jobId: 'raw-cut-frame-clip-1',
@@ -1661,8 +1652,7 @@ describe('VideoProcessor', () => {
       await expect(processor.handleExtractFrames(job)).rejects.toThrow(
         'Frame extraction failed',
       );
-      expect(redisService.publish).toHaveBeenCalledWith(
-        'video-processing-complete',
+      expect(completionPublisher.publish).toHaveBeenCalledWith(
         expect.objectContaining({
           status: 'failed',
         }),
@@ -1709,8 +1699,7 @@ describe('VideoProcessor', () => {
       await expect(processor.handleGetVideoMetadata(job)).rejects.toThrow(
         'Metadata failed',
       );
-      expect(redisService.publish).toHaveBeenCalledWith(
-        'video-processing-complete',
+      expect(completionPublisher.publish).toHaveBeenCalledWith(
         expect.objectContaining({
           status: 'failed',
         }),
@@ -1758,18 +1747,32 @@ describe('VideoProcessor', () => {
       );
     });
 
-    it('should handle Redis publish errors gracefully in publishVideoCompletion', async () => {
-      (redisService.publish as Mock).mockRejectedValueOnce(
+    it('fails a finished job whose completion event was not stored, so it runs again', async () => {
+      completionPublisher.publish.mockRejectedValueOnce(
         new Error('Redis error'),
       );
 
       const job = createMockJob(JOB_TYPES.RESIZE_VIDEO, createMockJobData());
 
-      // Should not throw, just log error
-      await processor.handleResize(job);
+      await expect(processor.handleResize(job)).rejects.toThrow('Redis error');
+    });
 
+    it('keeps the original error when a failure event cannot be stored', async () => {
+      ffmpegService.resizeVideo.mockRejectedValueOnce(new Error('ffmpeg died'));
+      completionPublisher.publish.mockRejectedValueOnce(
+        new Error('Redis error'),
+      );
+
+      const job = createMockJob(
+        JOB_TYPES.RESIZE_VIDEO,
+        createMockJobData(),
+        'job-123',
+        { attemptsMade: 2 },
+      );
+
+      await expect(processor.handleResize(job)).rejects.toThrow('ffmpeg died');
       expect(loggerService.error).toHaveBeenCalledWith(
-        expect.stringContaining('Failed to publish video completion event'),
+        expect.stringContaining('Failed to queue video completion event'),
       );
     });
   });
@@ -1824,7 +1827,7 @@ describe('VideoProcessor', () => {
 
         await expect(run(job)).rejects.toThrow('ffprobe failed');
 
-        expect(redisService.publish).not.toHaveBeenCalled();
+        expect(completionPublisher.publish).not.toHaveBeenCalled();
       });
 
       it('publishes the failed completion once on the final attempt and rethrows', async () => {
@@ -1835,9 +1838,8 @@ describe('VideoProcessor', () => {
 
         await expect(run(job)).rejects.toThrow('ffprobe failed');
 
-        expect(redisService.publish).toHaveBeenCalledTimes(1);
-        expect(redisService.publish).toHaveBeenCalledWith(
-          'video-processing-complete',
+        expect(completionPublisher.publish).toHaveBeenCalledTimes(1);
+        expect(completionPublisher.publish).toHaveBeenCalledWith(
           expect.objectContaining({
             error: 'ffprobe failed',
             ingredientId: data.ingredientId,
