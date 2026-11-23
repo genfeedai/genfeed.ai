@@ -1,14 +1,16 @@
 import type { AvatarVideoGenerationService } from '@api/collections/videos/services/avatar-video-generation.service';
-import type { WorkflowEngineExecutorHelperService } from '@api/collections/workflows/services/workflow-engine-executor-helper.service';
+import { WorkflowEngineExecutorHelperService } from '@api/collections/workflows/services/workflow-engine-executor-helper.service';
 import { WorkflowMediaProcessingExecutorRegistrarService } from '@api/collections/workflows/services/workflow-media-processing-executor-registrar.service';
+import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
 import {
   createExecutableActionNode,
   type INodeExecutor,
   type NodeExecutor,
   WorkflowEngine,
 } from '@genfeedai/workflows/engine';
-import type { ConfigService } from '@libs/config/config.service';
-import { describe, expect, it, vi } from 'vitest';
+import { ConfigService } from '@libs/config/config.service';
+import { Test } from '@nestjs/testing';
+import { describe, expect, it, onTestFinished, vi } from 'vitest';
 
 vi.mock(
   '@api/collections/workflows/services/workflow-engine-executor-helper.service',
@@ -649,5 +651,168 @@ describe('WorkflowMediaProcessingExecutorRegistrarService', () => {
         ),
       ).toBeFalsy();
     });
+  });
+});
+
+describe('workflow direct media input grants', () => {
+  const context = {
+    organizationId: 'org-1',
+    runId: 'run-1',
+    userId: 'user-1',
+    workflowId: 'workflow-1',
+    workflowVersionId: 'version-1',
+  };
+
+  async function createInputHarness(isAuthorizedDeliveryEnabled = true) {
+    vi.stubEnv('PORT', '3001');
+    vi.stubEnv('DATABASE_URL', 'postgresql://fixture@127.0.0.1:5432/unused');
+    onTestFinished(() => {
+      vi.unstubAllEnvs();
+    });
+    const config = new ConfigService();
+    vi.spyOn(config, 'isAuthorizedMediaDeliveryEnabled', 'get').mockReturnValue(
+      isAuthorizedDeliveryEnabled,
+    );
+    vi.spyOn(config, 'ingredientsEndpoint', 'get').mockReturnValue(
+      'https://cdn.example/ingredients',
+    );
+    const helper = {
+      readConfigString: (
+        value: Record<string, unknown> | undefined,
+        key: string,
+      ) => (typeof value?.[key] === 'string' ? value[key] : undefined),
+      resolveConfiguredMediaInput: (node: {
+        config?: Record<string, unknown>;
+      }) => node.config?.url ?? node.config?.resolvedUrl,
+    };
+    const issuer = {
+      issueServerPublish: vi.fn(
+        async () =>
+          new Map([['media-1', 'https://grant.example/media-1?sig=fresh']]),
+      ),
+    };
+    const module = await Test.createTestingModule({
+      providers: [
+        WorkflowMediaProcessingExecutorRegistrarService,
+        { provide: WorkflowEngineExecutorHelperService, useValue: helper },
+        { provide: ConfigService, useValue: config },
+        { provide: AuthorizedMediaUrlService, useValue: issuer },
+      ],
+    }).compile();
+    onTestFinished(() => module.close());
+    const engine = new WorkflowEngine();
+    module
+      .get(WorkflowMediaProcessingExecutorRegistrarService)
+      .register(engine);
+    return { engine, issuer };
+  }
+
+  it.each([
+    ['input-image', 'image'],
+    ['input-video', 'video'],
+  ])('reauthorizes saved Library media for %s', async (type, itemCategory) => {
+    const { engine, issuer } = await createInputHarness();
+    const result = await engine.getExecutor(type)?.(
+      {
+        id: 'input-1',
+        inputs: [],
+        label: 'Media',
+        type,
+        config: {
+          itemCategory,
+          itemId: 'media-1',
+          source: 'library',
+          resolvedUrl: 'https://cdn.example/unsigned-or-expired',
+        },
+      },
+      new Map(),
+      context,
+    );
+    expect(result).toBe('https://grant.example/media-1?sig=fresh');
+    expect(issuer.issueServerPublish).toHaveBeenCalledWith('org-1', [
+      'media-1',
+    ]);
+  });
+
+  it('reauthorizes a brand video as an ingredient rather than a brand image asset', async () => {
+    const { engine } = await createInputHarness();
+    const result = await engine.getExecutor('input-video')?.(
+      {
+        id: 'input-1',
+        inputs: [],
+        label: 'Video',
+        type: 'input-video',
+        config: {
+          source: 'brand-references',
+          itemId: 'media-1',
+          itemCategory: 'reference',
+          resolvedUrl: 'https://cdn.example/old',
+        },
+      },
+      new Map(),
+      context,
+    );
+    expect(result).toBe('https://grant.example/media-1?sig=fresh');
+  });
+
+  it('preserves an explicit URL input', async () => {
+    const { engine, issuer } = await createInputHarness();
+    const result = await engine.getExecutor('input-video')?.(
+      {
+        id: 'input-1',
+        inputs: [],
+        label: 'Video',
+        type: 'input-video',
+        config: { source: 'url', url: 'https://owned.example/video.mp4' },
+      },
+      new Map(),
+      context,
+    );
+    expect(result).toBe('https://owned.example/video.mp4');
+    expect(issuer.issueServerPublish).not.toHaveBeenCalled();
+  });
+
+  it('keeps self-hosted media resolution when authorized delivery is off', async () => {
+    const { engine, issuer } = await createInputHarness(false);
+    const result = await engine.getExecutor('input-video')?.(
+      {
+        id: 'input-1',
+        inputs: [],
+        label: 'Video',
+        type: 'input-video',
+        config: {
+          source: 'library',
+          itemId: 'media-1',
+          itemCategory: 'video',
+          resolvedUrl: 'https://cdn.example/ingredients/videos/media-1',
+        },
+      },
+      new Map(),
+      context,
+    );
+    expect(result).toBe('https://cdn.example/ingredients/videos/media-1');
+    expect(issuer.issueServerPublish).not.toHaveBeenCalled();
+  });
+
+  it('rejects unavailable media rather than using its saved URL', async () => {
+    const { engine, issuer } = await createInputHarness();
+    issuer.issueServerPublish.mockResolvedValue(new Map());
+    await expect(
+      engine.getExecutor('input-video')?.(
+        {
+          id: 'input-1',
+          inputs: [],
+          label: 'Video',
+          type: 'input-video',
+          config: {
+            source: 'library',
+            itemId: 'media-1',
+            resolvedUrl: 'https://cdn.example/old',
+          },
+        },
+        new Map(),
+        context,
+      ),
+    ).rejects.toThrow('The source has no authorized media URL');
   });
 });

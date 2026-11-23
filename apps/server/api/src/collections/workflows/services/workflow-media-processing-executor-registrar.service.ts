@@ -12,7 +12,10 @@ import { FilesClientService } from '@api/services/files-microservice/client/file
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import { HeyGenSubmissionRejectedError } from '@api/services/integrations/heygen/errors/heygen-submission-rejected.error';
 import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
-import { resolveAssetProcessingUrl } from '@api/services/media-urls/processing-media-url.util';
+import {
+  resolveAssetProcessingUrl,
+  resolveIngredientProcessingUrl,
+} from '@api/services/media-urls/processing-media-url.util';
 import { VideoStitchService } from '@api/services/video-stitch/video-stitch.service';
 import type { VideoStitchRequest } from '@api/services/video-stitch/video-stitch.types';
 import { WhisperService } from '@api/services/whisper/whisper.service';
@@ -32,6 +35,7 @@ import type { CoverTitlePlacement } from '@genfeedai/contracts/interfaces';
 import {
   createVideoQaExecutor,
   createVideoStitchExecutor,
+  type ExecutableNode,
   type VideoStitchProcessorParams,
   type WorkflowEngine,
 } from '@genfeedai/workflows/engine';
@@ -126,12 +130,50 @@ export class WorkflowMediaProcessingExecutorRegistrarService {
   }
 
   private registerDirectMediaInputExecutors(engine: WorkflowEngine): void {
-    engine.registerExecutor('input-image', async (node) =>
-      this.helper.resolveConfiguredMediaInput(node, 'image'),
+    engine.registerExecutor('input-image', async (node, _inputs, context) =>
+      this.resolveDirectMediaInput(node, 'image', context.organizationId),
     );
-    engine.registerExecutor('input-video', async (node) =>
-      this.helper.resolveConfiguredMediaInput(node, 'video'),
+    engine.registerExecutor('input-video', async (node, _inputs, context) =>
+      this.resolveDirectMediaInput(node, 'video', context.organizationId),
     );
+  }
+
+  /**
+   * A Library image or video is fetched through a fresh grant for its
+   * ingredient, never through the URL saved in the node: that URL is the
+   * unsigned CDN path (403 for a private asset) or a grant that has expired.
+   */
+  private async resolveDirectMediaInput(
+    node: ExecutableNode,
+    defaultCategory: 'image' | 'video',
+    organizationId: string,
+  ): Promise<string> {
+    const source = this.helper.readConfigString(node.config, 'source');
+    const itemId = this.helper.readConfigString(node.config, 'itemId');
+    const itemCategory =
+      source === 'brand-references' && defaultCategory === 'video'
+        ? 'video'
+        : (this.helper.readConfigString(node.config, 'itemCategory') ??
+          defaultCategory);
+
+    if (
+      source !== 'url' &&
+      (source !== 'brand-references' || defaultCategory === 'video') &&
+      itemId &&
+      (itemCategory === 'image' || itemCategory === 'video')
+    ) {
+      return resolveIngredientProcessingUrl(
+        {
+          authorizedMediaUrls: this.authorizedMediaUrls,
+          configService: this.configService,
+        },
+        organizationId,
+        itemId,
+        itemCategory === 'video' ? 'videos' : 'images',
+      );
+    }
+
+    return this.helper.resolveConfiguredMediaInput(node, defaultCategory);
   }
 
   private registerAvatarVideoExecutor(engine: WorkflowEngine): void {
