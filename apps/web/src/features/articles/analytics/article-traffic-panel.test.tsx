@@ -108,7 +108,10 @@ it('aborts the old range and ignores its result after switching periods', async 
     .mockResolvedValueOnce({ ...available, totalViews: 7 });
   render(<ArticleTrafficPanel article={article} />);
   await screen.findByRole('status', { name: 'Loading website traffic…' });
-  await userEvent.click(screen.getByRole('radio', { name: '7 days' }));
+  await userEvent.click(
+    screen.getByRole('combobox', { name: 'Traffic period' }),
+  );
+  await userEvent.click(screen.getByRole('option', { name: '7 days' }));
   await screen.findByText('7');
   expect(getWebsiteTraffic.mock.calls[0][2].aborted).toBe(true);
   expect(getWebsiteTraffic.mock.calls[1][1]).toBe('7d');

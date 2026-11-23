@@ -13,7 +13,7 @@ import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import TableRowSummary from '@ui/display/table/TableRowSummary';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
-import { SegmentedControl } from '@ui/primitives/segmented-control';
+import { OptionSelect } from '@ui/primitives/option-select';
 import dynamic from 'next/dynamic';
 import { useLocale, useTranslations } from 'next-intl';
 import { useState } from 'react';
@@ -93,10 +93,9 @@ export default function ArticleTrafficPanel({
         openLabel={openLabel}
       >
         <h3 className="text-sm font-semibold">{translate('title')}</h3>
-        <SegmentedControl
-          appearance="chip"
+        <OptionSelect
           ariaLabel={translate('periodLabel')}
-          onValueChange={setPeriod}
+          onValueChange={(next) => setPeriod(next as ArticleTrafficPeriod)}
           options={PERIODS.map((option) => ({
             label: translate(`period.${option}`),
             value: option,

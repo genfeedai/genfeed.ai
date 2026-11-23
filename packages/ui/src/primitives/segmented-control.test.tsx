@@ -125,7 +125,6 @@ describe('SegmentedControl', () => {
   it('keeps the selected state on tooltipped options in multiple mode', () => {
     render(
       <SegmentedControl
-        appearance="chip"
         ariaLabel="Platforms"
         onValueChange={vi.fn()}
         options={[
