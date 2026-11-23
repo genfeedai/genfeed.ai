@@ -66,12 +66,12 @@ describe('check-raw-fetch-org-header', () => {
     writeFixture(
       'packages/hooks/data/use-report.ts',
       `
-        import { getRequestOrganizationHeaders } from '@genfeedai/services/core/interceptor.service';
+        import { whenRequestOrganizationSettled } from '@genfeedai/services/core/interceptor.service';
 
         export async function loadReport(token: string) {
           return fetch('/v1/reports', {
             headers: {
-              ...getRequestOrganizationHeaders(),
+              ...(await whenRequestOrganizationSettled()),
               Authorization: \`Bearer \${token}\`,
             },
           });
@@ -86,9 +86,9 @@ describe('check-raw-fetch-org-header', () => {
     writeFixture(
       'packages/agent/src/api.ts',
       `
-        export function headers(token?: string) {
+        export async function headers(token?: string) {
           return {
-            ...getRequestOrganizationHeaders(),
+            ...(await whenRequestOrganizationSettled()),
             ...(token ? { Authorization: \`Bearer \${token}\` } : {}),
           };
         }
@@ -115,8 +115,8 @@ describe('check-raw-fetch-org-header', () => {
     writeFixture(
       'packages/agent/src/api.ts',
       `
-        export function send(token: string) {
-          const organization = { ...getRequestOrganizationHeaders() };
+        export async function send(token: string) {
+          const organization = { ...(await whenRequestOrganizationSettled()) };
           return fetch('/v1/x', { headers: { Authorization: token } });
         }
       `,
@@ -130,10 +130,10 @@ describe('check-raw-fetch-org-header', () => {
       'packages/services/management/keys.service.ts',
       `
         export class KeysService extends HTTPBaseService {
-          verify() {
+          async verify() {
             return fetch('/v1/keys/verify', {
               headers: {
-                ...this.requestOrganizationHeaders(),
+                ...(await this.requestOrganizationHeaders()),
                 Authorization: \`Bearer \${this.token}\`,
               },
             });
@@ -145,12 +145,78 @@ describe('check-raw-fetch-org-header', () => {
     expect(violationsOf()).toEqual([]);
   });
 
+  it('accepts a const assigned from the awaited helper, spread into the headers', () => {
+    writeFixture(
+      'packages/hooks/data/use-report.ts',
+      `
+        export async function loadReport(token: string) {
+          const organizationHeaders = await whenRequestOrganizationSettled();
+          return fetch('/v1/reports', {
+            headers: { ...organizationHeaders, Authorization: \`Bearer \${token}\` },
+          });
+        }
+      `,
+    );
+
+    expect(violationsOf()).toEqual([]);
+  });
+
+  it('fails a helper spread that is not awaited', () => {
+    writeFixture(
+      'packages/hooks/data/use-report.ts',
+      `
+        export async function loadReport(token: string) {
+          return fetch('/v1/reports', {
+            headers: {
+              ...whenRequestOrganizationSettled(),
+              Authorization: \`Bearer \${token}\`,
+            },
+          });
+        }
+      `,
+    );
+
+    expect(violationsOf().map(({ line }) => line)).toEqual([5, 6]);
+  });
+
+  it('fails the synchronous helper, which does not wait for the organization', () => {
+    writeFixture(
+      'packages/hooks/data/use-report.ts',
+      `
+        export async function loadReport(token: string) {
+          return fetch('/v1/reports', {
+            headers: {
+              ...getRequestOrganizationHeaders(),
+              Authorization: \`Bearer \${token}\`,
+            },
+          });
+        }
+      `,
+    );
+
+    expect(violationsOf().map(({ file, line }) => `${file}:${line}`)).toEqual([
+      'packages/hooks/data/use-report.ts:5',
+      'packages/hooks/data/use-report.ts:6',
+    ]);
+  });
+
+  it('fails the synchronous helper in a file that sends no bearer header', () => {
+    writeFixture(
+      'packages/hooks/data/use-scope.ts',
+      `
+        export const scope = JSON.stringify(getRequestOrganizationHeaders());
+      `,
+    );
+
+    expect(violationsOf()).toHaveLength(1);
+  });
+
   it('checks imperative header writes against their enclosing function', () => {
     writeFixture(
       'packages/agent/src/covered.ts',
       `
-        export function build(token: string) {
-          const headers: Record<string, string> = { ...getRequestOrganizationHeaders() };
+        export async function build(token: string) {
+          const headers: Record<string, string> = { ...(await whenRequestOrganizationSettled()) };
           headers.Authorization = \`Bearer \${token}\`;
           return headers;
         }

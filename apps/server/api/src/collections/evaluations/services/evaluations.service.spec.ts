@@ -1,9 +1,13 @@
 import { EvaluationsService } from '@api/collections/evaluations/services/evaluations.service';
 import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
+import {
+  BusinessLogicException,
+  InsufficientCreditsException,
+} from '@api/exceptions/business-logic.exception';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
-import { ByokProvider, Status } from '@genfeedai/contracts';
+import { ByokProvider, IngredientCategory, Status } from '@genfeedai/contracts';
 import { BadRequestException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -63,6 +67,11 @@ function createMocks() {
       deductCreditsFromOrganization: vi.fn(),
       getOrganizationCreditsBalance: vi.fn(),
       refundOrganizationCredits: vi.fn(),
+      releaseReservation: vi.fn().mockResolvedValue(undefined),
+      reserveCredits: vi
+        .fn()
+        .mockResolvedValue({ amount: 1, id: 'reservation-1' }),
+      settleReservation: vi.fn().mockResolvedValue(undefined),
     },
     emitted,
     evaluator,
@@ -406,10 +415,85 @@ describe('EvaluationsService review and comparison workflow', () => {
       });
     });
 
-    it('keeps the credit floor without an org key', async () => {
-      mocks.creditsUtilsService.checkOrganizationCreditsAvailable.mockResolvedValue(
-        true,
+    it('holds the minimum credits without an org key and settles the hold when the evaluation ends', async () => {
+      await service.evaluateContent(
+        'post',
+        'post-1',
+        'pre_publication' as never,
+        organizationId,
+        reviewerId,
+        'brand-1',
       );
+
+      expect(mocks.creditsUtilsService.reserveCredits).toHaveBeenCalledWith(
+        expect.objectContaining({ amount: 1, organizationId }),
+      );
+      await vi.waitFor(() => {
+        expect(mocks.evaluator.requests).toEqual([
+          expect.objectContaining({
+            byok: undefined,
+            kind: 'post',
+            organizationId,
+          }),
+        ]);
+      });
+    });
+
+    it('refuses before the judge runs when the hold is refused', async () => {
+      mocks.creditsUtilsService.reserveCredits.mockRejectedValueOnce(
+        new BusinessLogicException(
+          'Insufficient organization credits',
+          {},
+          'INSUFFICIENT_CREDITS',
+        ),
+      );
+      mocks.creditsUtilsService.getOrganizationCreditsBalance.mockResolvedValueOnce(
+        0.5,
+      );
+
+      await expect(
+        service.evaluateContent(
+          'post',
+          'post-1',
+          'pre_publication' as never,
+          organizationId,
+          reviewerId,
+          'brand-1',
+        ),
+      ).rejects.toBeInstanceOf(InsufficientCreditsException);
+
+      expect(mocks.evaluator.requests).toEqual([]);
+      expect(mocks.prisma.evaluation.create).not.toHaveBeenCalled();
+    });
+
+    it('releases the hold when the evaluation cannot start', async () => {
+      // Validation finds the video, then it is gone by the time it is judged.
+      mocks.videosService.findOne
+        .mockResolvedValueOnce({
+          id: 'video-1',
+          metadata: {},
+          s3Key: 'ingredients/videos/video-1.mp4',
+        })
+        .mockResolvedValueOnce(null);
+
+      await expect(
+        service.evaluateContent(
+          IngredientCategory.VIDEO,
+          'video-1',
+          'pre_publication' as never,
+          organizationId,
+          reviewerId,
+          'brand-1',
+        ),
+      ).rejects.toBeInstanceOf(NotFoundException);
+
+      expect(mocks.creditsUtilsService.releaseReservation).toHaveBeenCalledWith(
+        { organizationId, reservationId: 'reservation-1' },
+      );
+    });
+
+    it('releases the hold when the provider fails, and settles it when the judge answers', async () => {
+      mocks.evaluator.outcomes.post = new Error('provider unavailable');
 
       await service.evaluateContent(
         'post',
@@ -420,18 +504,17 @@ describe('EvaluationsService review and comparison workflow', () => {
         'brand-1',
       );
 
-      expect(
-        mocks.creditsUtilsService.checkOrganizationCreditsAvailable,
-      ).toHaveBeenCalledWith(organizationId, 1);
       await vi.waitFor(() => {
-        expect(mocks.evaluator.requests).toEqual([
-          expect.objectContaining({
-            byok: undefined,
-            kind: 'post',
-            organizationId,
-          }),
-        ]);
+        expect(
+          mocks.creditsUtilsService.releaseReservation,
+        ).toHaveBeenCalledWith({
+          organizationId,
+          reservationId: 'reservation-1',
+        });
       });
+      expect(
+        mocks.creditsUtilsService.settleReservation,
+      ).not.toHaveBeenCalled();
     });
   });
 

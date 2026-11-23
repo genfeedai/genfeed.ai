@@ -5,7 +5,7 @@ vi.mock('@services/core/environment.service', () => ({
 }));
 
 vi.mock('@services/core/interceptor.service', () => ({
-  getRequestOrganizationHeaders: () => ({}),
+  whenRequestOrganizationSettled: async () => ({}),
 }));
 
 vi.mock('@services/core/logger.service', () => ({

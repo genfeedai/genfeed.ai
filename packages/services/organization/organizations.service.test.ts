@@ -139,7 +139,10 @@ describe('OrganizationsService', () => {
 
       const result = await service.getMyOrganizations();
 
-      expect(get).toHaveBeenCalledWith('', { params: { mine: true } });
+      expect(get).toHaveBeenCalledWith('', {
+        exemptFromOrganizationGate: true,
+        params: { mine: true },
+      });
       expect(result.map((org) => org.id)).toEqual(['org_1', 'org_2']);
     });
 
@@ -218,7 +221,9 @@ describe('OrganizationsService', () => {
       await service.switchOrganization('org_2');
       const next = service.getMyOrganizations();
 
-      expect(patch).toHaveBeenCalledWith('/org_2/activate');
+      expect(patch).toHaveBeenCalledWith('/org_2/activate', undefined, {
+        exemptFromOrganizationGate: true,
+      });
       expect(get).toHaveBeenCalledTimes(2);
       expect(next).not.toBe(stale);
 

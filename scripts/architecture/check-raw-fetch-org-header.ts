@@ -1,20 +1,30 @@
 /**
  * Guard: a client that sends its own `Authorization` header must also send the
- * routed-organization header (#5393).
+ * routed-organization header (#5393), and must wait for the organization to be
+ * confirmed before it does (#10982).
  *
  * `CombinedAuthGuard` rejects organization drift only when the request carries
  * `x-genfeed-organization-id`. The axios interceptor adds it for every
  * `HTTPBaseService`; a raw `fetch`, raw axios call or socket handshake that
  * builds its own bearer header skips that interceptor and silently loses the
  * check. Every such site must take the header from the single rule in
- * `packages/services/core/interceptor.service.ts`:
+ * `packages/services/core/interceptor.service.ts`, and await it. While the page
+ * is drawn from a saved copy the organization is provisional: the awaited
+ * helpers hold the request until the membership check answers, and the
+ * synchronous `getRequestOrganizationHeaders()` throws, so a site that was
+ * missed fails closed.
  *
  * - an object literal with an `Authorization` key spreads
- *   `getRequestOrganizationHeaders(...)` or `this.requestOrganizationHeaders()`
- *   in the same literal (or in the literal it is conditionally spread into);
+ *   `await whenRequestOrganizationSettled()` or
+ *   `await this.requestOrganizationHeaders()` in the same literal (or in the
+ *   literal it is conditionally spread into), directly or through a `const`
+ *   assigned from the awaited call in the same function;
  * - an imperative write (`headers.Authorization = …`,
  *   `headers.set('authorization', …)`, a `[['Authorization', …]]` header
- *   tuple) sits in a function that calls one of those helpers.
+ *   tuple) sits in a function that awaits one of those helpers;
+ * - the helpers are always awaited, and the synchronous
+ *   `getRequestOrganizationHeaders()` is not called outside
+ *   `interceptor.service.ts`.
  *
  * A key computed from a non-literal expression cannot be resolved statically
  * and is not checked.
@@ -32,7 +42,8 @@ import { parseSourceFile, scriptKindFor } from './parse-source-file';
 
 const AUTHORIZATION_WORD_PATTERN = /authorization/i;
 
-const FREE_HELPER = 'getRequestOrganizationHeaders';
+const FREE_HELPER = 'whenRequestOrganizationSettled';
+const SYNC_HELPER = 'getRequestOrganizationHeaders';
 const METHOD_HELPER = 'requestOrganizationHeaders';
 const AUTHORIZATION = /^authorization$/i;
 
@@ -91,6 +102,11 @@ export const RAW_FETCH_ORG_HEADER_EXEMPTIONS: readonly RawFetchOrgHeaderExemptio
       glob: 'apps/web/app/(public)/**',
       reason:
         'Public OAuth consent, CLI and agent-claim pages run outside the organization shell; the grant is user-level.',
+    },
+    {
+      glob: 'packages/services/core/interceptor.service.ts',
+      reason:
+        'The rule itself: the axios interceptor holds a request while the organization is provisional and sets the header on every request it sends.',
     },
     {
       glob: 'packages/services/core/socket.service.ts',
@@ -197,11 +213,52 @@ function isHelperCall(node: ts.Node): boolean {
   );
 }
 
-function spreadsHelper(literal: ts.ObjectLiteralExpression): boolean {
-  return literal.properties.some(
-    (property) =>
-      ts.isSpreadAssignment(property) && isHelperCall(property.expression),
+function stripParentheses(expression: ts.Expression): ts.Expression {
+  let current = expression;
+  while (ts.isParenthesizedExpression(current)) {
+    current = current.expression;
+  }
+  return current;
+}
+
+/** `await helper()`, with any parentheses around either part. */
+function isAwaitedHelperCall(expression: ts.Expression): boolean {
+  const stripped = stripParentheses(expression);
+  return (
+    ts.isAwaitExpression(stripped) &&
+    isHelperCall(stripParentheses(stripped.expression))
   );
+}
+
+/** Names bound by `const name = await helper()` inside `owner`. */
+function awaitedHelperNames(owner: ts.Node | null): Set<string> {
+  const names = new Set<string>();
+  if (!owner) return names;
+  const visit = (node: ts.Node): void => {
+    if (
+      ts.isVariableDeclaration(node) &&
+      ts.isIdentifier(node.name) &&
+      node.initializer &&
+      isAwaitedHelperCall(node.initializer)
+    ) {
+      names.add(node.name.text);
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(owner);
+  return names;
+}
+
+function spreadsHelper(literal: ts.ObjectLiteralExpression): boolean {
+  const names = awaitedHelperNames(enclosingFunction(literal));
+  return literal.properties.some((property) => {
+    if (!ts.isSpreadAssignment(property)) return false;
+    const expression = stripParentheses(property.expression);
+    return (
+      isAwaitedHelperCall(expression) ||
+      (ts.isIdentifier(expression) && names.has(expression.text))
+    );
+  });
 }
 
 /**
@@ -251,11 +308,11 @@ function enclosingFunction(node: ts.Node): ts.FunctionLikeDeclaration | null {
   return null;
 }
 
-function containsHelperCall(root: ts.Node): boolean {
+function containsAwaitedHelperCall(root: ts.Node): boolean {
   let found = false;
   const visit = (node: ts.Node): void => {
     if (found) return;
-    if (isHelperCall(node)) {
+    if (ts.isAwaitExpression(node) && isAwaitedHelperCall(node)) {
       found = true;
       return;
     }
@@ -315,6 +372,14 @@ function isImperativeAuthorizationWrite(node: ts.Node): boolean {
   return false;
 }
 
+function isAwaited(call: ts.CallExpression): boolean {
+  let node: ts.Node = call;
+  while (ts.isParenthesizedExpression(node.parent)) {
+    node = node.parent;
+  }
+  return ts.isAwaitExpression(node.parent);
+}
+
 function lineOf(sourceFile: ts.SourceFile, node: ts.Node): number {
   return (
     sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile)).line + 1
@@ -326,7 +391,12 @@ function inspectFile(
   rootDir: string,
 ): { siteCount: number; violations: RawFetchOrgHeaderViolation[] } {
   const sourceText = readFileSync(filePath, 'utf8');
-  if (!AUTHORIZATION_WORD_PATTERN.test(sourceText)) {
+  if (
+    !AUTHORIZATION_WORD_PATTERN.test(sourceText) &&
+    !sourceText.includes(SYNC_HELPER) &&
+    !sourceText.includes(FREE_HELPER) &&
+    !sourceText.includes(METHOD_HELPER)
+  ) {
     return { siteCount: 0, violations: [] };
   }
 
@@ -341,6 +411,25 @@ function inspectFile(
   let siteCount = 0;
 
   const visit = (node: ts.Node): void => {
+    if (ts.isCallExpression(node)) {
+      if (
+        ts.isIdentifier(node.expression) &&
+        node.expression.text === SYNC_HELPER
+      ) {
+        violations.push({
+          file,
+          line: lineOf(sourceFile, node),
+          message: `${SYNC_HELPER}() does not wait for the organization to be confirmed and throws while it is provisional. Use await ${FREE_HELPER}() (or await this.${METHOD_HELPER}() in an HTTPBaseService).`,
+        });
+      } else if (isHelperCall(node) && !isAwaited(node)) {
+        violations.push({
+          file,
+          line: lineOf(sourceFile, node),
+          message: `${FREE_HELPER}() and ${METHOD_HELPER}() return a promise that holds the request while the organization is provisional. Await it.`,
+        });
+      }
+    }
+
     if (
       (ts.isPropertyAssignment(node) ||
         ts.isShorthandPropertyAssignment(node)) &&
@@ -352,17 +441,17 @@ function inspectFile(
         violations.push({
           file,
           line: lineOf(sourceFile, node),
-          message: `Authorization header without the routed-organization header. Spread ...${FREE_HELPER}() (or ...this.${METHOD_HELPER}() in an HTTPBaseService) into the same headers object.`,
+          message: `Authorization header without the routed-organization header. Spread ...(await ${FREE_HELPER}()) (or ...(await this.${METHOD_HELPER}()) in an HTTPBaseService) into the same headers object.`,
         });
       }
     } else if (isImperativeAuthorizationWrite(node)) {
       siteCount += 1;
       const owner = enclosingFunction(node);
-      if (!owner || !containsHelperCall(owner)) {
+      if (!owner || !containsAwaitedHelperCall(owner)) {
         violations.push({
           file,
           line: lineOf(sourceFile, node),
-          message: `Authorization header written without the routed-organization header. Merge ${FREE_HELPER}() (or this.${METHOD_HELPER}()) into the same headers in this function.`,
+          message: `Authorization header written without the routed-organization header. Merge await ${FREE_HELPER}() (or await this.${METHOD_HELPER}()) into the same headers in this function.`,
         });
       }
     }

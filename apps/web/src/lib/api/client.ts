@@ -2,7 +2,7 @@ import {
   type AuthTokenGetter,
   resolveAuthToken,
 } from '@helpers/auth/auth.helper';
-import { getRequestOrganizationHeaders } from '@services/core/interceptor.service';
+import { whenRequestOrganizationSettled } from '@services/core/interceptor.service';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/v1';
 
@@ -98,14 +98,15 @@ async function buildHeaders(
   }
 
   if (authTokenGetter && isSecureApiOrigin(url)) {
+    // Wait for the organization first: no token is minted for a request the
+    // gate will not release.
+    const organizationHeaders = await whenRequestOrganizationSettled();
     const token = await resolveAuthToken(authTokenGetter);
 
     if (token) {
       merged.set('authorization', ['Authorization', `Bearer ${token}`]);
 
-      for (const [name, value] of Object.entries(
-        getRequestOrganizationHeaders(),
-      )) {
+      for (const [name, value] of Object.entries(organizationHeaders)) {
         merged.set(name.toLowerCase(), [name, value]);
       }
     }

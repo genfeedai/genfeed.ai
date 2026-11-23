@@ -1,10 +1,11 @@
+import { requestOrganizationGate } from '@genfeedai/services/core/interceptor.service';
 import {
   resolveAuthToken,
   resolveRequiredAuthToken,
 } from '@helpers/auth/auth.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { renderHook } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockUseAuthIdentity = vi.fn();
 
@@ -38,6 +39,43 @@ describe('useAuthedService', () => {
     );
     mockUseAuthIdentity.mockReturnValue({
       getToken: getTokenMock,
+    });
+  });
+
+  describe('while the organization is provisional', () => {
+    afterEach(() => requestOrganizationGate.setUnscoped());
+
+    it('mints no token and builds no service until the same organization is confirmed', async () => {
+      const mockService = vi.fn(() => 'service');
+      getTokenMock.mockResolvedValue('jwt-token');
+      requestOrganizationGate.setProvisional('org-a', 'user-1');
+      const { result } = renderHook(() => useAuthedService(mockService));
+
+      const service = result.current();
+      await new Promise((resolve) => setImmediate(resolve));
+      expect(getTokenMock).not.toHaveBeenCalled();
+
+      requestOrganizationGate.setConfirmed('org-a');
+
+      await expect(service).resolves.toBe('service');
+      expect(getTokenMock).toHaveBeenCalledTimes(1);
+      expect(mockService).toHaveBeenCalledWith('jwt-token');
+    });
+
+    it('mints no token and builds no service when another organization is confirmed', async () => {
+      const mockService = vi.fn();
+      requestOrganizationGate.setProvisional('org-a', 'user-1');
+      const { result } = renderHook(() => useAuthedService(mockService));
+
+      const service = result.current();
+      requestOrganizationGate.setConfirmed('org-b');
+
+      await expect(service).rejects.toMatchObject({
+        isCancelled: true,
+        silent: true,
+      });
+      expect(getTokenMock).not.toHaveBeenCalled();
+      expect(mockService).not.toHaveBeenCalled();
     });
   });
 
