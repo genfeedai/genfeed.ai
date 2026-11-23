@@ -30,6 +30,10 @@ export interface OptionSelectProps {
   ariaLabel: string;
   /** Layout only: width, margin. */
   className?: string;
+  /** What the control is about (a clock for a duration). Shown in the closed control when the chosen option has no icon of its own. */
+  icon?: ReactNode;
+  /** Closed control shows the icon alone; the name stays on the control for screen readers. */
+  isIconOnly?: boolean;
   isDisabled?: boolean;
   /** `true` always, `false` never; by default a list longer than a glance. */
   isSearchable?: boolean;
@@ -54,7 +58,9 @@ const SEARCH_THRESHOLD = 8;
 export function OptionSelect({
   ariaLabel,
   className,
+  icon,
   isDisabled,
+  isIconOnly = false,
   isSearchable,
   noMatchLabel = 'No matches',
   onValueChange,
@@ -67,6 +73,7 @@ export function OptionSelect({
   // The list mounts when it opens, so the closed control draws the icon itself.
   const chosen = options.find((option) => option.value === value);
   const hasSearch = isSearchable ?? options.length > SEARCH_THRESHOLD;
+  const leadingIcon = chosen?.icon ?? icon;
 
   return (
     <Select disabled={isDisabled} onValueChange={onValueChange} value={value}>
@@ -74,12 +81,13 @@ export function OptionSelect({
         aria-label={ariaLabel}
         className={cn('w-auto', className)}
         data-testid={testId}
+        hideIndicator={isIconOnly}
       >
         <span className="flex min-w-0 items-center gap-2">
-          {chosen?.icon ? (
-            <span className="flex shrink-0 items-center">{chosen.icon}</span>
+          {leadingIcon ? (
+            <span className="flex shrink-0 items-center">{leadingIcon}</span>
           ) : null}
-          <SelectValue placeholder={placeholder} />
+          {isIconOnly ? null : <SelectValue placeholder={placeholder} />}
         </span>
       </SelectTrigger>
       <SelectContent>
