@@ -15,7 +15,7 @@ import { useRouter } from 'next/navigation';
 
 // The menu brings the dropdown menu and its positioning code (about 38 kB of
 // first-load JS), which every profile route would pay for although only the
-// Wall tab shows a filter. It loads after the page is interactive; until then
+// Posts tab shows a filter. It loads after the page is interactive; until then
 // the trigger is a disabled ghost button.
 const FilterMenu = dynamic(
   () => import('@ui/navigation/filter-menu/FilterMenu'),
@@ -35,13 +35,13 @@ const FilterMenu = dynamic(
 );
 
 /**
- * Narrows the wall to one platform with the shared Filters menu, the same
+ * Narrows the posts to one platform with the shared Filters menu, the same
  * control every list in the app uses. The choice lives in the URL as
- * `?platform=`, so a filtered wall can be linked and the page stays rendered
+ * `?platform=`, so a filtered list can be linked and the page stays rendered
  * on the server.
  *
  * The menu loads after the page is interactive, so the server HTML also holds
- * a link for the whole wall and for each platform. They keep every filtered
+ * a link for every post and for each platform. They keep every filtered
  * view reachable and crawlable without script, and a screen reader finds them
  * before the menu is ready; the menu is what a sighted visitor uses.
  */
@@ -60,7 +60,7 @@ export default function CreatorWallFilter({
 
   return (
     <div className="flex justify-end">
-      <nav aria-label="Filter the wall by platform" className="sr-only">
+      <nav aria-label="Filter posts by platform" className="sr-only">
         <ul>
           <li>
             <Link aria-current={active ? undefined : 'page'} href={base}>
