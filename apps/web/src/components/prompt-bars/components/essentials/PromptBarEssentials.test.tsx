@@ -12,6 +12,12 @@ import { describe, expect, it, vi } from 'vitest';
 import PromptBarEssentials from '@/components/prompt-bars/components/essentials/PromptBarEssentials';
 import type { PromptBarEssentialsProps } from '@/props/prompt-bars/prompt-bar-tiers.props';
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+
+  return { useTranslations: translateFromCatalog };
+});
+
 const promptEditorProps: { extraExtensions?: unknown } = {};
 
 vi.mock('@ui/prompt-editor/PromptEditor', () => ({
@@ -35,18 +41,6 @@ vi.mock('@ui/prompt-editor/PromptEditor', () => ({
 
 vi.mock('@ui/primitives/checkbox', () => ({
   default: ({ label }: { label: string }) => <div>{label}</div>,
-}));
-
-vi.mock('@ui/primitives/dropdown-field', () => ({
-  default: ({
-    name,
-    placeholder,
-    label,
-  }: {
-    name?: string;
-    placeholder?: string;
-    label?: string;
-  }) => <div>{label ?? placeholder ?? name ?? 'dropdown'}</div>,
 }));
 
 vi.mock(

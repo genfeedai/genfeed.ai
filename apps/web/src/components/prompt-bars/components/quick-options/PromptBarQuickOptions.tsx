@@ -10,15 +10,16 @@ import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { getVideoResolutionsByModel } from '@genfeedai/helpers/media/video-resolution/video-resolution.helper';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
-import FormDropdown from '@ui/primitives/dropdown-field';
+import { OptionSelect } from '@ui/primitives/option-select';
 import { ChevronDown, ChevronUp, Tv } from 'lucide-react';
-import { type ChangeEvent, memo, useContext, useState } from 'react';
+import { useTranslations } from 'next-intl';
+import { memo, useContext, useState } from 'react';
 import PromptBarFrameControls from '@/components/prompt-bars/components/frame-controls/PromptBarFrameControls';
 import type { PromptBarQuickOptionsProps } from '@/props/prompt-bars/prompt-bar-tiers.props';
 
 function buildResolutionOptions(
   normalizedWatchedModels: string[],
-): Array<{ key: string; label: string }> {
+): Array<{ label: string; value: string }> {
   const resolutionMap = new Map<string, { value: string; label: string }>();
 
   for (const modelKey of normalizedWatchedModels) {
@@ -30,8 +31,8 @@ function buildResolutionOptions(
   }
 
   return Array.from(resolutionMap.values()).map((res) => ({
-    key: res.value,
     label: res.label,
+    value: res.value,
   }));
 }
 
@@ -75,6 +76,7 @@ const PromptBarQuickOptions = memo(function PromptBarQuickOptions({
   showToggle = true,
   inlineContent,
 }: PromptBarQuickOptionsWrapperProps) {
+  const translate = useTranslations('ui.promptBarControls');
   const context = useContext(PromptBarInternalContext);
   const selected =
     context?.models.filter((model) =>
@@ -86,7 +88,7 @@ const PromptBarQuickOptions = memo(function PromptBarQuickOptions({
       : undefined;
   const reviewedResolutions = inputControls?.fields.resolution?.enum
     ?.filter((value): value is string => typeof value === 'string')
-    .map((key) => ({ key, label: key }));
+    .map((value) => ({ label: value, value }));
   const [localExpanded, setLocalExpanded] = useState(false);
   const expanded = isExpanded ?? localExpanded;
 
@@ -141,27 +143,23 @@ const PromptBarQuickOptions = memo(function PromptBarQuickOptions({
                 ((categoryType === IngredientCategory.VIDEO &&
                   hasAnyResolutionOptionsValue) ||
                   Boolean(inputControls)) && (
-                  <FormDropdown
+                  <OptionSelect
                     key="resolution"
-                    name="resolution"
-                    icon={<Tv />}
-                    label="Resolution"
-                    value={form.getValues('resolution')}
-                    isDisabled={isDisabledState}
-                    isNoneEnabled={false}
-                    isFullWidth={false}
+                    ariaLabel={translate('resolution')}
                     className={controlClass}
-                    dropdownDirection="up"
-                    options={
-                      reviewedResolutions ??
-                      buildResolutionOptions(normalizedWatchedModels)
-                    }
-                    onChange={(e: ChangeEvent<HTMLSelectElement>) => {
-                      form.setValue('resolution', e.target.value, {
+                    icon={<Tv className="size-4" />}
+                    isDisabled={isDisabledState}
+                    onValueChange={(value) => {
+                      form.setValue('resolution', value, {
                         shouldValidate: true,
                       });
                       triggerConfigChange();
                     }}
+                    options={
+                      reviewedResolutions ??
+                      buildResolutionOptions(normalizedWatchedModels)
+                    }
+                    value={form.getValues('resolution') ?? ''}
                   />
                 )}
 

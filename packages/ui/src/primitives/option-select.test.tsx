@@ -38,6 +38,24 @@ function Harness({
   );
 }
 
+function NoneHarness() {
+  const [value, setValue] = useState('a');
+  return (
+    <>
+      <OptionSelect
+        ariaLabel="Folder"
+        onValueChange={setValue}
+        options={[
+          { label: 'No folder', value: '' },
+          { label: 'Archive', value: 'a' },
+        ]}
+        value={value}
+      />
+      <output aria-label="Chosen">{value === '' ? 'empty' : value}</output>
+    </>
+  );
+}
+
 describe('OptionSelect', () => {
   it('shows the chosen option icon and name in the closed control', () => {
     render(<Harness />);
@@ -90,5 +108,59 @@ describe('OptionSelect', () => {
     expect(
       screen.queryByRole('combobox', { name: 'Search platforms' }),
     ).not.toBeInTheDocument();
+  });
+  it('shows the control icon when the chosen option has none of its own', () => {
+    render(
+      <OptionSelect
+        ariaLabel="Duration"
+        icon={<svg data-testid="icon-clock" />}
+        onValueChange={() => {}}
+        options={[{ label: '5s', value: '5' }]}
+        value="5"
+      />,
+    );
+
+    const trigger = screen.getByRole('combobox', { name: 'Duration' });
+    expect(trigger).toHaveTextContent('5s');
+    expect(trigger.querySelector('[data-testid="icon-clock"]')).not.toBeNull();
+  });
+
+  it('shows only the icon in the closed control when asked, and still lists the options', async () => {
+    const user = userEvent.setup();
+    render(
+      <OptionSelect
+        ariaLabel="Quality"
+        icon={<svg data-testid="icon-sparkles" />}
+        isIconOnly
+        onValueChange={() => {}}
+        options={[
+          { label: 'High', value: 'high' },
+          { label: 'Draft', value: 'draft' },
+        ]}
+        value="high"
+      />,
+    );
+
+    const trigger = screen.getByRole('combobox', { name: 'Quality' });
+    expect(trigger).not.toHaveTextContent('High');
+    expect(
+      trigger.querySelector('[data-testid="icon-sparkles"]'),
+    ).not.toBeNull();
+
+    await user.click(trigger);
+
+    expect(screen.getByRole('option', { name: 'Draft' })).toBeVisible();
+  });
+
+  it('chooses the empty value as a none option', async () => {
+    const user = userEvent.setup();
+    render(<NoneHarness />);
+
+    await user.click(screen.getByRole('combobox', { name: 'Folder' }));
+    await user.click(screen.getByRole('option', { name: 'No folder' }));
+
+    expect(screen.getByRole('status', { name: 'Chosen' })).toHaveTextContent(
+      'empty',
+    );
   });
 });

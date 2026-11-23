@@ -6,10 +6,17 @@ import '@testing-library/jest-dom/vitest';
 import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
 import { IngredientCategory, IngredientFormat } from '@genfeedai/contracts';
 import { fireEvent, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import type { ComponentProps } from 'react';
 import type { UseFormReturn } from 'react-hook-form';
 import { describe, expect, it, vi } from 'vitest';
 import PromptBarQuickOptions from '@/components/prompt-bars/components/quick-options/PromptBarQuickOptions';
+
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+
+  return { useTranslations: translateFromCatalog };
+});
 
 function makeForm(
   values: Partial<PromptTextareaSchema> = {},
@@ -108,7 +115,7 @@ describe('PromptBarQuickOptions', () => {
 });
 
 describe('reviewed Crun quick resolution options', () => {
-  it('shows only reviewed image resolutions and preserves the exact selected value', () => {
+  it('shows only reviewed image resolutions and preserves the exact selected value', async () => {
     const key = 'crun/bytedance/seedream-4-5';
     const context = {
       models: [
@@ -131,10 +138,16 @@ describe('reviewed Crun quick resolution options', () => {
         />
       </PromptBarInternalContext.Provider>,
     );
-    fireEvent.click(screen.getByRole('button', { name: '2K' }));
-    expect(screen.getByText('4K')).toBeInTheDocument();
-    expect(screen.queryByText('720p')).not.toBeInTheDocument();
-    expect(screen.queryByText('1080p')).not.toBeInTheDocument();
+    const trigger = screen.getByRole('combobox', { name: 'Resolution' });
+    expect(trigger).toHaveTextContent('2K');
+    await userEvent.setup().click(trigger);
+    expect(screen.getByRole('option', { name: '4K' })).toBeInTheDocument();
+    expect(
+      screen.queryByRole('option', { name: '720p' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('option', { name: '1080p' }),
+    ).not.toBeInTheDocument();
   });
 });
 

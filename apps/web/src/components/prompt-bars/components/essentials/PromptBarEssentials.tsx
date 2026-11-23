@@ -4,7 +4,7 @@ import { ButtonVariant, IngredientCategory } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { PromptBarSuggestionItem } from '@genfeedai/props/prompt-bars/prompt-bar-suggestion-item.props';
 import { Button } from '@ui/primitives/button';
-import FormDropdown from '@ui/primitives/dropdown-field';
+import { OptionSelect } from '@ui/primitives/option-select';
 import PromptBarSuggestions from '@ui/prompt-bars/components/suggestions/PromptBarSuggestions';
 import PromptBarSendButton from '@ui/prompt-bars/components/toolbar/PromptBarSendButton';
 import PromptEditor from '@ui/prompt-editor/PromptEditor';
@@ -16,11 +16,13 @@ import {
   PanelLeft,
   Square,
 } from 'lucide-react';
-import { type ChangeEvent, memo, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
+import { memo, useCallback } from 'react';
 import PromptBarDivider from '@/components/prompt-bars/components/divider/PromptBarDivider';
 import PromptBarFormatControls from '@/components/prompt-bars/components/format-controls/PromptBarFormatControls';
 import PromptBarGenerationMeter from '@/components/prompt-bars/components/generation-meter/PromptBarGenerationMeter';
 import PromptBarModelControls from '@/components/prompt-bars/components/model-controls/PromptBarModelControls';
+import { toOptionSelectOptions } from '@/components/prompt-bars/components/option-select-options';
 import PromptBarQualityControls from '@/components/prompt-bars/components/quality-controls/PromptBarQualityControls';
 import PromptBarReferenceThumbnail from '@/components/prompt-bars/components/reference-thumbnail/PromptBarReferenceThumbnail';
 import { getVoiceTooltip } from '@/components/prompt-bars/components/voice-tooltip';
@@ -132,6 +134,9 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
   extraExtensions,
   onDocumentChange,
 }: PromptBarEssentialsProps) {
+  const translate = useTranslations('ui.promptBarControls');
+  const getDefaultLabel = (label: string) =>
+    translate('defaultOption', { label });
   const isCollapsible = features.collapsible ?? true;
   // Simple mode (Advanced Mode off) strips the bar to its essentials: type,
   // speak, generate. Model, quality, format, and output choices are
@@ -273,39 +278,37 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
 
             {categoryType === IngredientCategory.AVATAR &&
               avatars.length > 0 && (
-                <FormDropdown
-                  name="avatarId"
-                  options={avatars}
-                  value={form.watch('avatarId') || ''}
-                  onChange={(e: ChangeEvent<HTMLSelectElement>) => {
-                    form.setValue('avatarId', e.target.value, {
+                <OptionSelect
+                  ariaLabel={translate('avatar')}
+                  className={controlClass}
+                  isDisabled={isDisabledState}
+                  onValueChange={(value) => {
+                    form.setValue('avatarId', value, {
                       shouldValidate: true,
                     });
                     triggerConfigChange();
                   }}
-                  className={controlClass}
-                  isDisabled={isDisabledState}
-                  isFullWidth={false}
-                  placeholder="Select Avatar"
+                  options={toOptionSelectOptions(avatars, getDefaultLabel)}
+                  placeholder={translate('selectAvatar')}
+                  value={form.watch('avatarId') || ''}
                 />
               )}
 
             {categoryType === IngredientCategory.AVATAR &&
               voices.length > 0 && (
-                <FormDropdown
-                  name="voiceId"
-                  options={voices}
-                  value={form.watch('voiceId') || ''}
-                  onChange={(e: ChangeEvent<HTMLSelectElement>) => {
-                    form.setValue('voiceId', e.target.value, {
+                <OptionSelect
+                  ariaLabel={translate('voice')}
+                  className={controlClass}
+                  isDisabled={isDisabledState}
+                  onValueChange={(value) => {
+                    form.setValue('voiceId', value, {
                       shouldValidate: true,
                     });
                     triggerConfigChange();
                   }}
-                  className={controlClass}
-                  isDisabled={isDisabledState}
-                  isFullWidth={false}
-                  placeholder="Select Voice"
+                  options={toOptionSelectOptions(voices, getDefaultLabel)}
+                  placeholder={translate('selectVoice')}
+                  value={form.watch('voiceId') || ''}
                 />
               )}
 
@@ -313,31 +316,26 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
               (categoryType === IngredientCategory.VIDEO ||
                 categoryType === IngredientCategory.MUSIC) &&
               videoDurations.length > 0 && (
-                <FormDropdown
+                <OptionSelect
                   key="duration"
-                  name="duration"
-                  icon={<Clock />}
-                  label="Duration"
-                  value={form.getValues('duration')?.toString()}
-                  isNoneEnabled={false}
-                  isFullWidth={false}
+                  ariaLabel={translate('duration')}
                   className={controlClass}
-                  dropdownDirection="up"
-                  options={videoDurations.map((duration) => ({
-                    key: duration.toString(),
-                    label: `${duration}s`,
-                  }))}
-                  onChange={(e: ChangeEvent<HTMLSelectElement>) => {
-                    const value = e.target.value;
+                  icon={<Clock className="size-4" />}
+                  isDisabled={
+                    isDisabledState || hasModelWithoutDurationEditingValue
+                  }
+                  onValueChange={(value) => {
                     form.setValue('duration', parseInt(value, 10), {
                       shouldDirty: false,
                       shouldValidate: false,
                     });
                     triggerConfigChange();
                   }}
-                  isDisabled={
-                    isDisabledState || hasModelWithoutDurationEditingValue
-                  }
+                  options={videoDurations.map((duration) => ({
+                    label: `${duration}s`,
+                    value: duration.toString(),
+                  }))}
+                  value={form.getValues('duration')?.toString() ?? ''}
                 />
               )}
 

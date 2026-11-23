@@ -12,9 +12,10 @@ import {
 } from '@genfeedai/helpers';
 import { openModal } from '@genfeedai/helpers/ui/modal/modal.helper';
 import type { PromptBarQualityControlsProps } from '@genfeedai/props/studio/prompt-bar.props';
-import FormDropdown from '@ui/primitives/dropdown-field';
+import { OptionSelect } from '@ui/primitives/option-select';
 import { Lock, Sparkles } from 'lucide-react';
-import { type ChangeEvent, memo, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
+import { memo, useCallback } from 'react';
 
 type FormWithSetValue = {
   setValue: (
@@ -24,20 +25,23 @@ type FormWithSetValue = {
   ) => void;
 };
 
-function buildQualityOptions(subscriptionTier?: SubscriptionTier) {
+function buildQualityOptions(
+  translate: (key: 'qualityNeedsPlan', values: { label: string }) => string,
+  subscriptionTier?: SubscriptionTier,
+) {
   return QUALITY_TIER_OPTIONS.map((option) => {
     const isLocked =
       subscriptionTier && !hasQualityAccess(subscriptionTier, option.value);
 
     return {
-      badge: isLocked ? 'Upgrade' : undefined,
-      badgeVariant: isLocked ? ('warning' as const) : undefined,
-      description: isLocked ? 'Requires a higher plan' : option.description,
+      ariaLabel: isLocked
+        ? translate('qualityNeedsPlan', { label: option.label })
+        : undefined,
       icon: isLocked ? (
         <Lock className="size-4 text-muted-foreground" />
       ) : undefined,
-      key: option.value,
       label: option.label,
+      value: option.value,
     };
   });
 }
@@ -50,11 +54,12 @@ const PromptBarQualityControls = memo(function PromptBarQualityControls({
   triggerConfigChange,
   subscriptionTier,
 }: PromptBarQualityControlsProps): React.ReactElement {
-  const qualityOptions = buildQualityOptions(subscriptionTier);
+  const translate = useTranslations('ui.promptBarControls');
+  const qualityOptions = buildQualityOptions(translate, subscriptionTier);
 
   const updatePromptBarQualityControls = useCallback(
-    (event: ChangeEvent<HTMLSelectElement>) => {
-      const value = event.target.value as QualityTier;
+    (nextValue: string) => {
+      const value = nextValue as QualityTier;
 
       // If user clicks a locked tier, open upgrade modal instead
       if (subscriptionTier && !hasQualityAccess(subscriptionTier, value)) {
@@ -72,19 +77,15 @@ const PromptBarQualityControls = memo(function PromptBarQualityControls({
   );
 
   return (
-    <FormDropdown
-      name="quality"
-      icon={<Sparkles className="size-4" />}
-      label="Quality"
-      triggerDisplay="icon-only"
-      value={watchedQuality ?? DEFAULT_QUALITY_TIER}
-      isNoneEnabled={false}
-      isFullWidth={false}
+    <OptionSelect
+      ariaLabel={translate('quality')}
       className={controlClass}
-      dropdownDirection="up"
-      options={qualityOptions}
-      onChange={updatePromptBarQualityControls}
+      icon={<Sparkles className="size-4" />}
       isDisabled={isDisabled}
+      isIconOnly
+      onValueChange={updatePromptBarQualityControls}
+      options={qualityOptions}
+      value={watchedQuality ?? DEFAULT_QUALITY_TIER}
     />
   );
 });
