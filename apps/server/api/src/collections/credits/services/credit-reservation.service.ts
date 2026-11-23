@@ -1,3 +1,4 @@
+import { isLiveStoryboardHold } from '@api/collections/content-runs/services/storyboard-live-hold.util';
 import { CreditBalanceService } from '@api/collections/credits/services/credit-balance.service';
 import { isCreditTransactionConflict } from '@api/collections/credits/services/credit-transaction-conflict';
 import { CreditTransactionsService } from '@api/collections/credits/services/credit-transactions.service';
@@ -632,28 +633,50 @@ export class CreditReservationService {
     organizationId: string,
     now: Date,
   ): Promise<number> {
-    const due = await this.prisma.creditReservation.findMany({
-      where: {
-        organizationId,
-        expiresAt: { lte: now },
-        OR: [
-          { workloadType: null },
-          {
-            workloadType: {
-              notIn: [
-                MEDIA_GENERATION_WORKLOAD_TYPE,
-                MEDIA_GENERATION_GROUP_WORKLOAD_TYPE,
-                WORKFLOW_GENERATION_WORKLOAD_TYPE,
-              ],
+    let expired = 0;
+    let cursor: string | undefined;
+    for (;;) {
+      const due = await this.prisma.creditReservation.findMany({
+        orderBy: { id: 'asc' },
+        where: {
+          organizationId,
+          expiresAt: { lte: now },
+          OR: [
+            { workloadType: null },
+            {
+              workloadType: {
+                notIn: [
+                  MEDIA_GENERATION_WORKLOAD_TYPE,
+                  MEDIA_GENERATION_GROUP_WORKLOAD_TYPE,
+                  WORKFLOW_GENERATION_WORKLOAD_TYPE,
+                ],
+              },
             },
-          },
-        ],
-        isDeleted: false,
-        status: CreditReservationStatus.RESERVED,
-      },
-      take: 100,
-    });
+          ],
+          isDeleted: false,
+          status: CreditReservationStatus.RESERVED,
+          ...(cursor ? { id: { gt: cursor } } : {}),
+        },
+        take: 100,
+      });
+      expired += await this.expireDueBatch(due, now);
+      // A page of held-back reservations must not starve the ones behind it.
+      if (due.length < 100) return expired;
+      cursor = due[due.length - 1].id;
+    }
+  }
 
+  private async expireDueBatch(
+    due: Array<{
+      actorUserId: string | null;
+      amount: number;
+      id: string;
+      organizationId: string;
+      workloadId: string | null;
+      workloadType: string | null;
+    }>,
+    now: Date,
+  ): Promise<number> {
     let expired = 0;
     for (const reservation of due) {
       try {
@@ -666,6 +689,9 @@ export class CreditReservationService {
           ].includes(reservation.workloadType ?? '')
         )
           continue;
+        // A paid storyboard operation with no provider verdict yet is settled
+        // or released by its journal reconciler, never by the clock (#10449).
+        if (await isLiveStoryboardHold(this.prisma, reservation, now)) continue;
         if (reservation.workloadType === 'interpolation') {
           if (!(await this.reconcileInterpolation(reservation, now))) continue;
         } else if (reservation.workloadType === LIVE_SESSION_WORKLOAD_TYPE) {

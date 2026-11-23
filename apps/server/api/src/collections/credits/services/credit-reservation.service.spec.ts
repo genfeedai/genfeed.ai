@@ -24,6 +24,7 @@ describe('CreditReservationService', () => {
       findFirst: vi.fn().mockResolvedValue(null),
       findMany: vi.fn().mockResolvedValue([]),
     },
+    contentRun: { findFirst: vi.fn() },
     organization: { findMany: vi.fn() },
     creditReservation: {
       create: vi.fn(),
@@ -78,6 +79,7 @@ describe('CreditReservationService', () => {
     prisma.organization.findMany
       .mockReset()
       .mockResolvedValue([{ id: 'org_1' }, { id: 'org_2' }]);
+    prisma.contentRun.findFirst.mockReset().mockResolvedValue(null);
     prisma.creditReservation.create.mockReset();
     prisma.creditReservation.findFirst.mockReset();
     prisma.creditReservation.findMany.mockReset();
@@ -776,6 +778,105 @@ describe('CreditReservationService', () => {
     ).toEqual(['org_1', 'org_2']);
     for (const [args] of prisma.creditReservation.findMany.mock.calls)
       expect(args.where.isDeleted).toBe(false);
+  });
+
+  describe('storyboard journal holds', () => {
+    const runId = 'run_1';
+    const operationId = '11111111-2222-4333-8444-555555555555';
+    const storyboardHold = {
+      id: 'hold',
+      organizationId: 'org_1',
+      workloadId: `storyboard-render-${runId}-${operationId}`,
+      workloadType: 'generation',
+    };
+
+    it('keeps the hold of a live journal operation past its expiry', async () => {
+      mockDueReservations([storyboardHold]);
+      prisma.contentRun.findFirst.mockResolvedValue({ id: runId });
+      const release = vi.spyOn(service, 'release');
+      await expect(service.expireDue()).resolves.toBe(0);
+      expect(release).not.toHaveBeenCalled();
+      expect(prisma.contentRun.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            id: runId,
+            organizationId: 'org_1',
+            isDeleted: false,
+            OR: [
+              {
+                config: {
+                  path: ['shotRenderOperations'],
+                  array_contains: [{ operationId, state: 'pending' }],
+                },
+              },
+              {
+                config: {
+                  path: ['shotRenderOperations'],
+                  array_contains: [{ operationId, state: 'submitted' }],
+                },
+              },
+            ],
+          }),
+        }),
+      );
+    });
+
+    it('releases the hold once its operation has a verdict or its run is gone', async () => {
+      mockDueReservations([storyboardHold]);
+      prisma.contentRun.findFirst.mockResolvedValue(null);
+      const release = vi
+        .spyOn(service, 'release')
+        .mockResolvedValue({} as never);
+      await expect(service.expireDue()).resolves.toBe(1);
+      expect(release).toHaveBeenCalledExactlyOnceWith({
+        organizationId: 'org_1',
+        reason: 'expiry',
+        reservationId: 'hold',
+      });
+    });
+
+    it('does not look up a run for an ordinary hold', async () => {
+      mockDueReservations([
+        { id: 'ordinary', organizationId: 'org_1', workloadId: 'abc' },
+      ]);
+      vi.spyOn(service, 'release').mockResolvedValue({} as never);
+      await expect(service.expireDue()).resolves.toBe(1);
+      expect(prisma.contentRun.findFirst).not.toHaveBeenCalled();
+    });
+
+    it('reaches reservations behind a full page of held-back holds', async () => {
+      const held = Array.from({ length: 100 }, (_, index) => ({
+        id: `held_${String(index).padStart(3, '0')}`,
+        organizationId: 'org_1',
+        workloadId: `storyboard-render-${runId}-${operationId}`,
+        workloadType: 'generation',
+      }));
+      const ordinary = {
+        id: 'held_999',
+        organizationId: 'org_1',
+        workloadId: 'abc',
+        workloadType: null,
+      };
+      prisma.organization.findMany
+        .mockReset()
+        .mockResolvedValue([{ id: 'org_1' }]);
+      prisma.creditReservation.findMany.mockImplementation(async (args) => {
+        const after = args.where.id?.gt as string | undefined;
+        return [...held, ordinary]
+          .filter((row) => !after || row.id > after)
+          .slice(0, args.take);
+      });
+      prisma.contentRun.findFirst.mockImplementation(async () => ({
+        id: runId,
+      }));
+      const release = vi
+        .spyOn(service, 'release')
+        .mockResolvedValue({} as never);
+      await expect(service.expireDue()).resolves.toBe(1);
+      expect(release).toHaveBeenCalledExactlyOnceWith(
+        expect.objectContaining({ reservationId: 'held_999' }),
+      );
+    });
   });
 
   it('settles accepted interpolation at its held quote without releasing it', async () => {
