@@ -12,6 +12,7 @@ import { IngredientGenerationCancellationService } from '@api/collections/ingred
 import { IngredientReviewStateService } from '@api/collections/ingredients/services/ingredient-review-state.service';
 import { IngredientStackService } from '@api/collections/ingredients/services/ingredient-stack.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import { patchIngredientWithStatusEdge } from '@api/collections/ingredients/utils/ingredient-status-transition.util';
 import {
   libraryBrandWhere,
   libraryCacheIdentity,
@@ -456,9 +457,13 @@ export class IngredientsController {
       );
     }
 
-    await this.ingredientsService.patch(
-      ingredientId,
-      processedDto as unknown as UpdateIngredientDto,
+    // A status is an edge of INGREDIENT_STATE_MACHINE, written as a
+    // compare-and-set; every other field is a plain write (#10404).
+    await patchIngredientWithStatusEdge(
+      this.ingredientsService,
+      ingredient,
+      processedDto,
+      user.organizationId,
     );
 
     // Fetch the updated document with populated fields

@@ -115,10 +115,11 @@ export function canApplyContentCampaignLifecycle(
  * from the statuses `CONTENT_CAMPAIGN_LIFECYCLE_ALLOWED_FROM` allows (a no-op
  * when it is already there); archive moves any campaign to ARCHIVED, and
  * restore brings an archived one back (to DRAFT unless the caller names a
- * status). Nothing writes SCHEDULED yet except an explicit update.
+ * status). Nothing writes SCHEDULED yet.
  *
- * Archive, restore and `PATCH /campaigns/:id` do not compare the current
- * status yet.
+ * `PATCH /campaigns/:id` does not take a status; every status change goes
+ * through the lifecycle endpoints. Archive and restore do not compare the
+ * current status yet.
  */
 export const CONTENT_CAMPAIGN_STATE_MACHINE =
   defineStateMachine<ContentCampaignStatus>({
