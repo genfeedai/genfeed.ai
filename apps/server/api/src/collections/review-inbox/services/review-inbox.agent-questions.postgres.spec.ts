@@ -302,17 +302,56 @@ describe.skipIf(!connectionString)(
       expect(await pendingAt()).toBeNull();
     });
 
-    it('lists one row per pending question of a thread', async () => {
+    it('lists the newest question and leaves out one it superseded', async () => {
       const thread = await createThread(owner, brandA);
       await ask(thread.id, 'req-tone');
       await ask(thread.id, 'req-length');
 
       const items = await listFor(owner);
 
-      expect(items.map((item) => item.question?.requestId).sort()).toEqual([
+      expect(items.map((item) => item.question?.requestId)).toEqual([
         'req-length',
-        'req-tone',
       ]);
+      // Every listed question can be answered through the thread's route.
+      await expect(
+        engine().resolveInputRequest({
+          answer: 'Short',
+          organizationId,
+          requestId: 'req-length',
+          threadId: thread.id,
+          userId: owner,
+        }),
+      ).resolves.toBeDefined();
+      await expect(
+        engine().resolveInputRequest({
+          answer: 'Playful',
+          organizationId,
+          requestId: 'req-tone',
+          threadId: thread.id,
+          userId: owner,
+        }),
+      ).rejects.toThrow();
+    });
+
+    it('keeps the marker with the pending list when a profile snapshot is written', async () => {
+      const thread = await createThread(owner, brandA);
+      await ask(thread.id);
+      const row = () =>
+        database().agentThreadSnapshot.findFirst({
+          where: { organizationId, threadId: thread.id },
+        });
+      const before = (await row())?.pendingInputAt;
+
+      await engine().recordProfileSnapshot(thread.id, organizationId, owner, {
+        label: 'Launch agent',
+      });
+
+      const after = await row();
+      expect(before).toBeInstanceOf(Date);
+      expect(after?.pendingInputAt).toBeInstanceOf(Date);
+      const data = (after?.data ?? {}) as { pendingInputRequests?: unknown[] };
+      expect(data.pendingInputRequests).toHaveLength(1);
+      expect(await listFor(owner)).toHaveLength(1);
     });
 
     it('shows a question only to members who can open the thread', async () => {

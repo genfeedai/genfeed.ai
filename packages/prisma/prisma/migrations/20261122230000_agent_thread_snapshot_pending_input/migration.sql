@@ -3,6 +3,16 @@
 -- snapshots hold one, so the inbox reads an index instead of scanning JSON.
 ALTER TABLE "agent_thread_snapshots" ADD COLUMN "pendingInputAt" TIMESTAMP(3);
 
+-- A request's createdAt is free JSON, so a value such as 2026-13-22T10:00:00Z
+-- must read as "no time" instead of aborting the migration.
+CREATE FUNCTION pg_temp.pending_input_time(value text) RETURNS timestamp AS $$
+BEGIN
+  RETURN value::timestamptz AT TIME ZONE 'UTC';
+EXCEPTION WHEN others THEN
+  RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
 -- Existing waiting threads: the oldest pending question's time, falling back to
 -- the snapshot's last update when a request carries no valid createdAt.
 UPDATE "agent_thread_snapshots" AS snapshot
@@ -11,7 +21,7 @@ SET "pendingInputAt" = COALESCE(
     SELECT MIN(
       CASE
         WHEN request ->> 'createdAt' ~ '^\d{4}-\d{2}-\d{2}T'
-          THEN (request ->> 'createdAt')::timestamptz AT TIME ZONE 'UTC'
+          THEN pg_temp.pending_input_time(request ->> 'createdAt')
       END
     )
     FROM jsonb_array_elements(snapshot."data" -> 'pendingInputRequests') AS request

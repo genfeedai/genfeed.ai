@@ -566,16 +566,39 @@ export class ReviewInboxService {
     const threadIds = threads.map((thread) => thread.id);
     // Only the pending requests leave the database, never the whole snapshot.
     // sql-risk-audit: ignore raw-sql-review -- Bound to organizationId and isDeleted = false, read by the unique (organizationId, threadId) index for at most REVIEW_INBOX_QUESTION_THREAD_LIMIT thread ids, and selects one JSON path instead of the snapshot.
+    // A newer question supersedes an older pending one, and the thread's answer
+    // route refuses a superseded request, so those ids are read too and left out.
     const rows = await this.prisma.$queryRaw<
-      { requests: unknown; threadId: string }[]
+      { requests: unknown; superseded: unknown; threadId: string }[]
     >(Prisma.sql`
-      SELECT "threadId", "data" -> 'pendingInputRequests' AS "requests"
+      SELECT "threadId",
+        "data" -> 'pendingInputRequests' AS "requests",
+        (
+          SELECT COALESCE(jsonb_agg(entry ->> 'requestId'), '[]'::jsonb)
+          FROM jsonb_array_elements(
+            CASE WHEN jsonb_typeof("data" -> 'inputRequests') = 'array'
+              THEN "data" -> 'inputRequests' ELSE '[]'::jsonb END
+          ) AS entry
+          WHERE entry ->> 'status' = 'superseded'
+        ) AS "superseded"
       FROM "agent_thread_snapshots"
       WHERE "organizationId" = ${organizationId}
         AND "isDeleted" = false
         AND "threadId" IN (${Prisma.join(threadIds)})`);
     const requestsByThread = new Map(
       rows.map((row) => [row.threadId, row.requests]),
+    );
+    const supersededByThread = new Map(
+      rows.map((row) => [
+        row.threadId,
+        new Set(
+          Array.isArray(row.superseded)
+            ? row.superseded.filter(
+                (id): id is string => typeof id === 'string',
+              )
+            : [],
+        ),
+      ]),
     );
 
     return threads.flatMap((thread): IReviewInboxItem[] => {
@@ -586,6 +609,9 @@ export class ReviewInboxService {
         (request): IReviewInboxItem[] => {
           const question = readAgentQuestion(thread.id, request);
           if (!question || !isRecord(request)) return [];
+          if (supersededByThread.get(thread.id)?.has(question.requestId)) {
+            return [];
+          }
           const title = readString(request.title) ?? 'Agent question';
           return [
             {

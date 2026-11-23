@@ -1,6 +1,7 @@
 import { scopedWhere } from '@api/index';
 import type { AgentSessionBindingDocument } from '@api/services/agent-threading/schemas/agent-session-binding.schema';
 import { AgentSessionBindingStatus } from '@api/services/agent-threading/types/agent-thread.types';
+import { oldestPendingInputAt } from '@api/services/agent-threading/utils/oldest-pending-input-at.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -104,7 +105,15 @@ export class AgentRuntimeSessionService {
 
       snapshot = (await this.prisma.agentThreadSnapshot.update({
         where: scopedWhere(params.organizationId, { id: existing.id }),
-        data: { data: this.toJsonValue(updatedData), updatedAt: new Date() },
+        data: {
+          data: this.toJsonValue(updatedData),
+          // The write replaces `data`, so the marker is derived from the list
+          // it carries and the two never disagree.
+          pendingInputAt: oldestPendingInputAt(
+            existingData.pendingInputRequests,
+          ),
+          updatedAt: new Date(),
+        },
       })) as unknown as Record<string, unknown>;
     } else {
       snapshot = (await this.prisma.agentThreadSnapshot.create({

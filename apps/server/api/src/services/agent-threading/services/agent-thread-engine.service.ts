@@ -609,6 +609,11 @@ export class AgentThreadEngineService {
       const updated = await this.prisma.agentThreadSnapshot.update({
         where: scopedWhere(organizationId, { id: existing.id }),
         data: {
+          // The write replaces `data`, so the marker is derived from the list
+          // it carries and the two never disagree.
+          pendingInputAt: oldestPendingInputAt(
+            existingData.pendingInputRequests,
+          ),
           data: {
             ...existingData,
             profileSnapshot: {
@@ -834,6 +839,9 @@ export class AgentThreadEngineService {
               ...snapshotData,
               inputRequests,
             }),
+            pendingInputAt: oldestPendingInputAt(
+              snapshotData.pendingInputRequests,
+            ),
             updatedAt: new Date(),
           },
         });
