@@ -195,6 +195,7 @@ const SYNC_PLATFORM_LABELS: Record<string, string> = {
   facebook: 'Facebook',
   instagram: 'Instagram',
   linkedin: 'LinkedIn',
+  threads: 'Threads',
   twitter: 'X',
   youtube: 'YouTube',
 };
@@ -323,3 +324,24 @@ export function getDirectMessageReconnectAccounts(
         : credential.label || credential.externalName || 'X',
     }));
 }
+
+/** Platforms whose connected accounts can appear in the Messages account filter. */
+export const MESSAGE_CREDENTIAL_PLATFORMS = new Set([
+  Platform.FACEBOOK,
+  Platform.INSTAGRAM,
+  Platform.LINKEDIN,
+  Platform.THREADS,
+  Platform.TIKTOK,
+  Platform.TWITTER,
+  Platform.UNIPILE,
+  Platform.YOUTUBE,
+]);
+/** Platforms Messages can sync. */
+export const SYNCABLE_MESSAGE_CREDENTIAL_PLATFORMS = new Set([
+  Platform.FACEBOOK,
+  Platform.INSTAGRAM,
+  Platform.LINKEDIN,
+  Platform.THREADS,
+  Platform.TWITTER,
+  Platform.YOUTUBE,
+]);

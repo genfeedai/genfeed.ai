@@ -2,6 +2,7 @@ import { PlatformSettingsModule } from '@api/collections/platform-settings/platf
 import { FacebookWebhookController } from '@api/collections/social-inbox/controllers/facebook-webhook.controller';
 import { InstagramWebhookController } from '@api/collections/social-inbox/controllers/instagram-webhook.controller';
 import { SocialInboxController } from '@api/collections/social-inbox/controllers/social-inbox.controller';
+import { SocialInboxSyncController } from '@api/collections/social-inbox/controllers/social-inbox-sync.controller';
 import { SocialReplyCampaignController } from '@api/collections/social-inbox/controllers/social-reply-campaign.controller';
 import { SuggestedReplyCreditsGuard } from '@api/collections/social-inbox/guards/suggested-reply-credits.guard';
 import { FacebookWebhookService } from '@api/collections/social-inbox/services/facebook-webhook.service';
@@ -16,6 +17,7 @@ import { SocialInboxReadStateService } from '@api/collections/social-inbox/servi
 import { SocialInboxRealtimeService } from '@api/collections/social-inbox/services/social-inbox-realtime.service';
 import { SocialInboxSuggestedReplyService } from '@api/collections/social-inbox/services/social-inbox-suggested-reply.service';
 import { SocialInboxSyncWorkflowService } from '@api/collections/social-inbox/services/social-inbox-sync-workflow.service';
+import { SocialInboxThreadsIngestionService } from '@api/collections/social-inbox/services/social-inbox-threads-ingestion.service';
 import { SocialReplyCampaignService } from '@api/collections/social-inbox/services/social-reply-campaign.service';
 import { SocialReplyCampaignDispatchService } from '@api/collections/social-inbox/services/social-reply-campaign-dispatch.service';
 import { WorkflowsCoreModule } from '@api/collections/workflows/workflows-core.module';
@@ -23,6 +25,7 @@ import { QueuesModule } from '@api/queues/core/queues.module';
 import { FacebookModule } from '@api/services/integrations/facebook/facebook.module';
 import { InstagramModule } from '@api/services/integrations/instagram/instagram.module';
 import { LinkedInModule } from '@api/services/integrations/linkedin/linkedin.module';
+import { ThreadsModule } from '@api/services/integrations/threads/threads.module';
 import { TwitterModule } from '@api/services/integrations/twitter/twitter.module';
 import { YoutubeModule } from '@api/services/integrations/youtube/youtube.module';
 import { NotificationsModule } from '@api/services/notifications/notifications.module';
@@ -35,6 +38,7 @@ import { Module } from '@nestjs/common';
     FacebookWebhookController,
     InstagramWebhookController,
     SocialInboxController,
+    SocialInboxSyncController,
     SocialReplyCampaignController,
   ],
   exports: [SocialInboxService, SocialReplyCampaignDispatchService],
@@ -44,6 +48,7 @@ import { Module } from '@nestjs/common';
     FacebookModule,
     InstagramModule,
     LinkedInModule,
+    ThreadsModule,
     NotificationsModule,
     NotificationsPublisherModule,
     QueuesModule,
@@ -62,6 +67,7 @@ import { Module } from '@nestjs/common';
     SocialInboxIngestionService,
     SocialInboxQueryService,
     SocialInboxReadStateService,
+    SocialInboxThreadsIngestionService,
     SocialInboxRealtimeService,
     SocialInboxService,
     SocialInboxSyncWorkflowService,

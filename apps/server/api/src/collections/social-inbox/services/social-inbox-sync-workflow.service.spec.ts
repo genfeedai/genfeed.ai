@@ -13,6 +13,7 @@ import { describe, expect, it, vi } from 'vitest';
 const SURFACES = [
   [Platform.YOUTUBE, SocialConversationType.COMMENT],
   [Platform.FACEBOOK, SocialConversationType.COMMENT],
+  [Platform.THREADS, SocialConversationType.COMMENT],
   [Platform.INSTAGRAM, SocialConversationType.COMMENT],
   [Platform.INSTAGRAM, SocialConversationType.DM],
   [Platform.TWITTER, SocialConversationType.COMMENT],
@@ -50,6 +51,7 @@ function createService(realtime?: {
   const socialInboxService = {
     ingestFacebookInbox: vi.fn(),
     ingestInstagramComments: vi.fn(),
+    ingestThreadsReplies: vi.fn(),
     ingestInstagramDms: vi.fn(),
     ingestLinkedInComments: vi.fn(),
     ingestLinkedInDms: vi.fn(),

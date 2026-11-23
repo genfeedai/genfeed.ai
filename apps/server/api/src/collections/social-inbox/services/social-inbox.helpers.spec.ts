@@ -40,6 +40,25 @@ describe('social inbox helpers', () => {
 });
 
 describe('getAvailability', () => {
+  it('lets a Threads reply be answered, and never messaged', () => {
+    expect(
+      getAvailability({
+        conversationType: SocialConversationType.COMMENT,
+        externalParentId: 'reply-1',
+        platform: Platform.THREADS,
+      }),
+    ).toMatchObject({ canPostReply: true, canSendDm: false });
+    expect(
+      getAvailability({
+        conversationType: SocialConversationType.COMMENT,
+        platform: Platform.THREADS,
+      }),
+    ).toMatchObject({
+      canPostReply: false,
+      postReplyReason: 'Threads reply requires a reply id',
+    });
+  });
+
   it('disables post replies on a DM thread and explains why', () => {
     const availability = getAvailability({
       conversationType: SocialConversationType.DM,

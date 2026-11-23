@@ -19,6 +19,7 @@ const SUPPORTED_PLATFORMS = new Set([
   'facebook',
   'instagram',
   'linkedin',
+  'threads',
   'tiktok',
   'twitter',
   'youtube',
@@ -36,6 +37,8 @@ const DM_POST_REPLY_REASON =
 // someone who wrote to it first, so a commenter cannot be messaged from here.
 const FACEBOOK_COMMENT_DM_REASON =
   'A Facebook comment cannot start a Messenger conversation';
+// Threads has no direct messages: its inbox is the replies on a post.
+const THREADS_DM_REASON = 'Threads has no direct messages';
 // Meta accepts a Messenger reply only within 24 hours of the person's last
 // message, so the composer says why a stale thread cannot be answered.
 export const FACEBOOK_DM_WINDOW_REASON =
@@ -201,6 +204,17 @@ export function getAvailability(params: {
         ? undefined
         : 'Facebook reply requires a comment id',
       sendDmReason: FACEBOOK_COMMENT_DM_REASON,
+    };
+  }
+
+  if (params.platform === Platform.THREADS) {
+    return {
+      canPostReply: Boolean(params.externalParentId),
+      canSendDm: false,
+      postReplyReason: params.externalParentId
+        ? undefined
+        : 'Threads reply requires a reply id',
+      sendDmReason: THREADS_DM_REASON,
     };
   }
 

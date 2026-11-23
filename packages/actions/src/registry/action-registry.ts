@@ -2120,6 +2120,11 @@ const INTERNAL_ACTIONS: readonly GenfeedActionDefinition[] = [
     'Ingests tenant-scoped LinkedIn direct messages into the social inbox.',
   ),
   internalAction(
+    'social.inbox.sync.threads-replies',
+    'Sync Threads Replies',
+    'Ingests tenant-scoped Threads replies into the social inbox.',
+  ),
+  internalAction(
     'scheduled-post.claim',
     'Claim Scheduled Post',
     'Claims the immutable approval and validates the scheduled post scope.',
