@@ -1,9 +1,9 @@
+import { CredentialPlatform, TargetExecutionState } from '@genfeedai/contracts';
 import {
   explore,
   type Scenario,
   type Simulation,
-} from '@api-test/model-checking/interleaving-explorer';
-import { CredentialPlatform, TargetExecutionState } from '@genfeedai/contracts';
+} from '@genfeedai/utils/model-checking/interleaving-explorer';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { RedisService } from '@libs/redis/redis.service';
 import { ScheduledPostSweepLockService } from '@workers/services/scheduled-post-sweep-lock.service';

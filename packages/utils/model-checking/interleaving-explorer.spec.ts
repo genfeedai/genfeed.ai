@@ -1,8 +1,5 @@
-import {
-  explore,
-  type Simulation,
-} from '@api-test/model-checking/interleaving-explorer';
 import { describe, expect, it } from 'vitest';
+import { explore, type Simulation } from './interleaving-explorer';
 
 function counter(sim: Simulation) {
   const state = { value: 0 };

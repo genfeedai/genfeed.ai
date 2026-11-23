@@ -13,12 +13,12 @@ import {
   OAUTH_VERIFY_CLAIM_WAIT_MS,
   verifiedOAuthState,
 } from '@api/collections/credentials/utils/oauth-verify-claim.util';
+import { CredentialPlatform } from '@genfeedai/contracts';
 import {
   explore,
   type Scenario,
   type Simulation,
-} from '@api-test/model-checking/interleaving-explorer';
-import { CredentialPlatform } from '@genfeedai/contracts';
+} from '@genfeedai/utils/model-checking/interleaving-explorer';
 import type { ConfigService } from '@libs/config/config.service';
 import type { EventEmitter2 } from '@nestjs/event-emitter';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
