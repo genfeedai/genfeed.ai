@@ -136,37 +136,40 @@ export const settleSharedIngredientGeneration = traced(
  * still PROCESSING (#10404). An edge the table does not allow, or a status that
  * changed since the read, throws a 409. Every other field is a plain write.
  */
-export async function patchIngredientWithStatusEdge(
-  ingredients: Pick<IngredientsService, 'patch' | 'patchAll'>,
-  ingredient: { id: string; status: string },
-  body: Record<string, unknown>,
-  organizationId: string,
-): Promise<void> {
-  const { status: requested, ...fields } = body;
-  if (requested !== undefined && requested !== ingredient.status) {
-    const from = ingredient.status as IngredientStatus;
-    const to = requested as IngredientStatus;
-    if (!INGREDIENT_STATE_MACHINE.can(from, to)) {
-      throw new ConflictException(
-        `Ingredient cannot move from ${from} to ${to}`,
+export const patchIngredientWithStatusEdge = traced(
+  'patchIngredientWithStatusEdge',
+  async (
+    ingredients: Pick<IngredientsService, 'patch' | 'patchAll'>,
+    ingredient: { id: string; status: string },
+    body: Record<string, unknown>,
+    organizationId: string,
+  ): Promise<void> => {
+    const { status: requested, ...fields } = body;
+    if (requested !== undefined && requested !== ingredient.status) {
+      const from = ingredient.status as IngredientStatus;
+      const to = requested as IngredientStatus;
+      if (!INGREDIENT_STATE_MACHINE.can(from, to)) {
+        throw new ConflictException(
+          `Ingredient cannot move from ${from} to ${to}`,
+        );
+      }
+      const moved = await transitionIngredientStatus(ingredients, {
+        from,
+        id: ingredient.id,
+        organizationId,
+        to,
+      });
+      if (!moved) {
+        throw new ConflictException(
+          `Ingredient status changed while it was being updated; it is no longer ${from}`,
+        );
+      }
+    }
+    if (Object.keys(fields).length > 0) {
+      await ingredients.patch(
+        ingredient.id,
+        fields as unknown as UpdateIngredientDto,
       );
     }
-    const moved = await transitionIngredientStatus(ingredients, {
-      from,
-      id: ingredient.id,
-      organizationId,
-      to,
-    });
-    if (!moved) {
-      throw new ConflictException(
-        `Ingredient status changed while it was being updated; it is no longer ${from}`,
-      );
-    }
-  }
-  if (Object.keys(fields).length > 0) {
-    await ingredients.patch(
-      ingredient.id,
-      fields as unknown as UpdateIngredientDto,
-    );
-  }
-}
+  },
+);
