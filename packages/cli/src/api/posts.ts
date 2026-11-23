@@ -1,4 +1,4 @@
-import { get } from './client';
+import { get, post } from './client';
 import { flattenCollection, type JsonApiDocument } from './json-api';
 
 export interface Post {
@@ -25,4 +25,28 @@ export async function listPosts(params?: {
   const path = qs ? `/posts?${qs}` : '/posts';
   const response = await get<JsonApiDocument>(path);
   return flattenCollection<Post>(response);
+}
+
+export interface PostRemoval {
+  /** Always false: Genfeed never deletes the copy on the social network. */
+  deletedOnPlatform: false;
+  media: {
+    deleted: string[];
+    kept: { id: string; reason: 'not-editable' | 'used-by-another-post' }[];
+  };
+  platform: string | null;
+  postId: string;
+  previousStatus: string;
+  publishedUrl: string | null;
+  verified: { mediaGone: boolean; postGone: boolean };
+}
+
+/** Deletes a post, and with `includeMedia` the Library media only it uses. */
+export async function deletePost(
+  id: string,
+  options: { includeMedia?: boolean } = {}
+): Promise<PostRemoval> {
+  return await post<PostRemoval>(`/posts/${encodeURIComponent(id)}/deletions`, {
+    includeMedia: options.includeMedia === true,
+  });
 }

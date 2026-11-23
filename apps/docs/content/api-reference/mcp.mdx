@@ -479,6 +479,18 @@ the agent shows the person what will go out, and repeats the same call with
 `confirmed: true` only after they agree. Release drafts, `cancel` and `pause`
 need no confirmation.
 
+Deleting works the same way. `control_release(action=remove_post)` deletes a
+post from Genfeed, a published one included, and with `deleteMedia: true` the
+Library media only that post uses; `control_release(action=remove_asset)` deletes one
+Library asset. Both return `confirmation_required` until the person agrees and
+the agent repeats the call with `confirmed: true`. They delete in Genfeed only:
+a post that went out stays live on its social network until its owner deletes it
+there, and the result says so (`deletedOnPlatform: false`). The result also
+reads the post and media back, and the agent confirms with `get_content` and
+`get_assets`. The Claude connector at `/mcp/claude` does not list them. The CLI
+has `genfeed posts delete <id> [--with-media]` and `genfeed asset delete <id>`,
+each asking for confirmation unless `--force` is given.
+
 ## Tools
 
 Each call uses the permissions on the authorized token or key.
@@ -514,7 +526,7 @@ listed.
 | `get_generation_catalog` | `options`, `presets`, `preset`, `storyboard_capabilities`, `visual_code_catalog`, `visual_code_quote` |
 | `get_content` | `posts`, `release`, `articles`, `article_preview` |
 | `save_post` | `post`, `article`, `article_update`, `campaign`, `track_link` |
-| `schedule_release`, `control_release` | `create`, `update`; `control`, `publish` |
+| `schedule_release`, `control_release` | `create`, `update`; `control`, `publish`, `remove_post`, `remove_asset` |
 | `check_channel` | `capabilities`, `validate`, `readiness`, `connection_status`, `linkedin_connection` |
 | `upload_media` | `request`, `complete` |
 | `get_insights` | `overview`, `content`, `video`, `linkedin`, `performance`, `trends` |

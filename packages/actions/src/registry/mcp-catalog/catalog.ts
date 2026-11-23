@@ -36,7 +36,7 @@ export const MCP_CATALOG_TOOLS = [
   {
     name: 'upload_media',
     description:
-      'Upload existing media for the selected brand. request reserves a pending asset and returns uploadUrl, assetId, method and constraints. PUT sends bytes with returned headers; POST_JSON sends localUpload with base64 bytes in localUpload.source.data. Then complete finalizes the upload and returns assetId and any hosted URL. Does not publish or attach media.',
+      'Upload existing media for the selected brand. request reserves a pending asset and returns uploadUrl, assetId, method and constraints. PUT sends bytes with returned headers; POST_JSON sends localUpload with base64 bytes in localUpload.source.data. Then complete finalizes the upload and returns assetId and any hosted URL. Does not publish or attach media. To delete Library media use control_release(action=remove_asset).',
     operations: [
       { action: 'request', executes: 'request_media_upload' },
       { action: 'complete', executes: 'complete_media_upload' },
@@ -328,11 +328,13 @@ export const MCP_CATALOG_TOOLS = [
   {
     name: 'control_release',
     description:
-      'Control a release. control requests cancel, pause, resume or publish-now of a scheduled release; publish publishes an owned, reviewed article publicly. Review first with get_content, and check_channel(action=validate) before publish-now. publish-now, resume and publish change nothing on the first call: show the person what returns, and after they agree in this conversation repeat it with confirmed true in the input. cancel and pause need no confirmation.',
+      'Control a release. control requests cancel, pause, resume or publish-now of a scheduled release; publish publishes an owned, reviewed article publicly; remove_post deletes a post from Genfeed, a published one included, and with deleteMedia the Library media only it uses (the social network copy is not touched); remove_asset deletes one Library asset by assetId from every post that uses it. Review first with get_content, and check_channel(action=validate) before publish-now. publish-now, resume, publish, remove_post and remove_asset change nothing on the first call: show the person what returns, and after they agree in this conversation repeat it with confirmed true in the input. cancel and pause need no confirmation. After a delete read back with get_content(action=posts) and get_assets.',
     claudeActions: ['control', 'publish'],
     operations: [
       { action: 'control', executes: 'control_scheduled_release' },
       { action: 'publish', executes: 'publish_article' },
+      { action: 'remove_post', executes: 'delete_post' },
+      { action: 'remove_asset', executes: 'delete_asset' },
     ],
   },
   {

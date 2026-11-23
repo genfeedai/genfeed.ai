@@ -58,6 +58,7 @@ export {
   getVisualGenerationReviewType,
   isMcpAgentConfirmedTool,
   isMcpApprovalSkippable,
+  isMcpRemovalTool,
   resolveEffectiveMutationPolicy,
 } from './registry/agent-action-class';
 export {

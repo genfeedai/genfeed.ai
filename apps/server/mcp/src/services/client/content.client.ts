@@ -21,6 +21,10 @@ import type {
   ArticleSearchResult,
 } from '@mcp/shared/interfaces/article.interface';
 import type {
+  AssetRemovalResponse,
+  PostRemovalResponse,
+} from '@mcp/shared/interfaces/content-removal.interface';
+import type {
   PostListParams,
   PostResponse,
   PublishContentParams,
@@ -146,6 +150,46 @@ export class ContentClient {
         status === 404
           ? 'Article not found. Check the articleId and brandId.'
           : 'Failed to get article preview',
+    );
+  }
+
+  /** Soft-deletes a post and, on request, the Library media only it uses. */
+  deletePost(params: {
+    brandId?: string;
+    deleteMedia?: boolean;
+    postId: string;
+  }): Promise<PostRemovalResponse> {
+    return this.base.request(
+      'deleting post',
+      async (http) => {
+        const response = await http.post<PostRemovalResponse>(
+          `/posts/${encodeURIComponent(params.postId)}/deletions`,
+          {
+            ...(params.brandId ? { brandId: params.brandId } : {}),
+            includeMedia: params.deleteMedia === true,
+          },
+        );
+        return response.data;
+      },
+      this.base.failWithDetail('Failed to delete post'),
+    );
+  }
+
+  /** Soft-deletes one Library asset, then reads it back. */
+  deleteAsset(assetId: string): Promise<AssetRemovalResponse> {
+    return this.base.request(
+      'deleting Library asset',
+      async (http) => {
+        const id = encodeURIComponent(assetId);
+        await http.delete(`/ingredients/${id}`);
+        const readBack = await http.get<ApiResponse<unknown[]>>(
+          '/ingredients/batch',
+          { params: { ids: assetId } },
+        );
+        const stillThere = readBack.data.data ?? [];
+        return { assetId, verified: stillThere.length === 0 };
+      },
+      this.base.failWithDetail('Failed to delete asset'),
     );
   }
 

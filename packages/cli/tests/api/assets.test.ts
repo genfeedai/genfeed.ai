@@ -1,6 +1,6 @@
 import { IngredientStatus } from '@genfeedai/contracts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { getAsset, listAssets } from '../../src/api/assets';
+import { deleteAsset, getAsset, listAssets } from '../../src/api/assets';
 
 const mockFetch = vi.fn();
 
@@ -44,5 +44,22 @@ describe('api/assets', () => {
   it('rejects a missing asset', async () => {
     mockFetch.mockResolvedValue({ data: [] });
     await expect(getAsset('missing')).rejects.toThrow('Asset missing was not found');
+  });
+
+  it('deletes an asset and reports whether the read-back still finds it', async () => {
+    const requests: string[] = [];
+    let remaining: unknown[] = [];
+    mockFetch.mockImplementation(async (path: string, init: { method: string }) => {
+      requests.push(`${init.method} ${path}`);
+      return init.method === 'GET' ? { data: remaining } : {};
+    });
+
+    await expect(deleteAsset('asset-1')).resolves.toBe(true);
+    remaining = [{ attributes: {}, id: 'asset-1', type: 'ingredient' }];
+    await expect(deleteAsset('asset-1')).resolves.toBe(false);
+    expect(requests.slice(0, 2)).toEqual([
+      'DELETE /ingredients/asset-1',
+      'GET /ingredients/batch?ids=asset-1',
+    ]);
   });
 });

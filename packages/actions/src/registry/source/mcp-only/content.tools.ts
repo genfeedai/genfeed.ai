@@ -12,6 +12,12 @@ const CONFIRMED_PROPERTY = {
   type: 'boolean',
 } as const;
 
+const REMOVAL_CONFIRMED_PROPERTY = {
+  description:
+    'Set true only after the person has explicitly agreed, in this conversation, to this exact deletion. Without it nothing is deleted and the call returns what to confirm.',
+  type: 'boolean',
+} as const;
+
 const ARTICLE_IMAGE_URL_NOTE =
   'Use the hosted https url of a Library asset or of a finished media upload.';
 
@@ -161,6 +167,58 @@ export const MCP_CONTENT_TOOLS: SourceTool[] = [
         },
         brandId: ARTICLE_BRAND_ID_PROPERTY,
         confirmed: CONFIRMED_PROPERTY,
+      },
+    },
+  },
+  {
+    creditCost: 0,
+    description:
+      'Delete a post from Genfeed, a published one included, and with deleteMedia the Library media only that post uses. Genfeed only: nothing is removed from the social network, so a published post stays live there until the owner deletes it on the platform; the result says so (deletedOnPlatform false). The post disappears from get_content(action=posts) and its public page stops serving it. Media that another post still uses is kept and reported. Confirm with the person first: the first call deletes nothing, and after they agree in this conversation, with the post and media named, you repeat it with confirmed true. Afterwards read back with get_content(action=posts, postId) and get_assets to confirm both are gone.',
+    mcpDescription:
+      'Delete a post from Genfeed (published ones too) and, with deleteMedia, the Library media only it uses. Genfeed only: the social network copy is untouched (deletedOnPlatform false). First call deletes nothing; after the person agrees in this conversation, repeat with confirmed true, then read back with get_content(posts) and get_assets.',
+    name: 'delete_post',
+    requiredRole: 'user',
+    parameters: {
+      type: 'object',
+      required: ['postId'],
+      properties: {
+        postId: {
+          type: 'string',
+          minLength: 1,
+          description: 'Post to delete',
+        },
+        brandId: {
+          description:
+            'Brand the post belongs to. Optional; a post of another brand is then not found.',
+          type: 'string',
+        },
+        deleteMedia: {
+          description:
+            'Also delete the Library media attached to this post that no other post uses. Default false.',
+          type: 'boolean',
+        },
+        confirmed: REMOVAL_CONFIRMED_PROPERTY,
+      },
+    },
+  },
+  {
+    creditCost: 0,
+    description:
+      'Delete a Library asset (image, video, audio) by assetId, whatever it is attached to: posts that use it lose that media. Prefer deleting the post with its media when the media belongs to one post. Confirm with the person first: the first call deletes nothing, and after they agree in this conversation, with the asset named, you repeat it with confirmed true. Afterwards read back with get_assets to confirm it is gone.',
+    mcpDescription:
+      'Delete a Library asset by assetId. First call deletes nothing; after the person agrees in this conversation, repeat with confirmed true, then read back with get_assets.',
+    name: 'delete_asset',
+    requiredRole: 'user',
+    parameters: {
+      type: 'object',
+      required: ['assetId'],
+      properties: {
+        assetId: {
+          type: 'string',
+          minLength: 1,
+          description: 'Library asset (ingredient) id from get_assets',
+        },
+        confirmed: REMOVAL_CONFIRMED_PROPERTY,
       },
     },
   },

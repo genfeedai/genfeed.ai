@@ -62,6 +62,18 @@ function build() {
     executeAgentTool: vi
       .fn()
       .mockResolvedValue({ success: true, creditsUsed: 0, data: fixture }),
+    deleteAsset: vi
+      .fn()
+      .mockResolvedValue({ assetId: 'input-private', verified: true }),
+    deletePost: vi.fn().mockResolvedValue({
+      deletedOnPlatform: false,
+      media: { deleted: [], kept: [] },
+      platform: null,
+      postId: 'input-private',
+      previousStatus: 'draft',
+      publishedUrl: null,
+      verified: { mediaGone: true, postGone: true },
+    }),
     evaluateMcpToolResult: vi.fn().mockResolvedValue({ outcome: 'allowed' }),
     isApprovalRequired: vi.fn().mockResolvedValue(true),
     createApproval: vi.fn(async (toolName, args) => {

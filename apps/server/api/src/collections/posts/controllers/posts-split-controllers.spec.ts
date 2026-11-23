@@ -3,6 +3,7 @@ import { ContentMentionsController } from '@api/collections/posts/controllers/co
 import { PostsAccountGenerationRetryController } from '@api/collections/posts/controllers/operations/posts-account-generation-retry.controller';
 import { PostsGenerationController } from '@api/collections/posts/controllers/operations/posts-generation.controller';
 import { PostsOperationsController } from '@api/collections/posts/controllers/operations/posts-operations.controller';
+import { PostsRemovalController } from '@api/collections/posts/controllers/operations/posts-removal.controller';
 import { PostsRetryController } from '@api/collections/posts/controllers/operations/posts-retry.controller';
 import { PostsThreadDraftController } from '@api/collections/posts/controllers/operations/posts-thread-draft.controller';
 import { PostsController } from '@api/collections/posts/controllers/posts.controller';
@@ -44,6 +45,7 @@ describe('Posts split controllers', () => {
   it.each([
     PostsAccountGenerationRetryController,
     PostsOperationsController,
+    PostsRemovalController,
     PostsRetryController,
     PostsThreadDraftController,
   ])('preserves the shared posts role guard on %s', (controllerClass) => {
@@ -62,6 +64,7 @@ describe('Posts split controllers', () => {
       PostsAccountGenerationRetryController,
       PostsThreadDraftController,
       PostsOperationsController,
+      PostsRemovalController,
       PostsRetryController,
       PostsController,
     ]);

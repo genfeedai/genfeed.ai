@@ -8,9 +8,9 @@ import { isRecord } from '@genfeedai/utils/data/extract.util';
 import type { ClientService } from '@mcp/services/client.service';
 
 /**
- * Whether a tool call is approval-gated by its declaration alone. Only posting and media
- * generation can be (`requiresMcpApproval`), minus release drafts that cannot dispatch
- * publishing. The API still validates their arguments, actor, brand and key permissions.
+ * Whether a tool call is approval-gated by its declaration alone. Only posting, media
+ * generation and deletion can be (`requiresMcpApproval`), minus release drafts that cannot
+ * dispatch publishing. The API still validates their arguments, actor, brand and key permissions.
  */
 export function isMcpApprovalGated(
   name: string,
@@ -29,9 +29,9 @@ export function isMcpApprovalGated(
 }
 
 /**
- * Whether this call publishes and so needs the person's yes in the conversation: a
- * dated release, a change to one, publish-now or resume, or an article publication.
- * Undated drafts, cancel and pause run without it.
+ * Whether this call publishes or deletes and so needs the person's yes in the conversation:
+ * a dated release, a change to one, publish-now or resume, an article publication, or the
+ * deletion of a post or Library asset. Undated drafts, cancel and pause run without it.
  */
 export function requiresMcpAgentConfirmation(
   name: string,
