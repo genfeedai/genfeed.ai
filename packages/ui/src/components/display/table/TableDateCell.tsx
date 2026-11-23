@@ -1,68 +1,29 @@
 'use client';
 
-import { useViewerTimeZone } from '@genfeedai/hooks/ui/use-viewer-time-zone/use-viewer-time-zone';
 import type { TableDateCellProps } from '@genfeedai/props/ui/display/table-date-cell.props';
-import { SimpleTooltip } from '@ui/primitives/tooltip';
+import DateText from '@ui/time/DateText';
 
+/** An empty cell is a dash, the table convention; a column can say more. */
 const EMPTY_CELL = '-';
 
-function toDate(value: Date | string | number): Date | null {
-  const date = value instanceof Date ? value : new Date(value);
-  return Number.isNaN(date.getTime()) ? null : date;
-}
-
-function getYear(date: Date, timeZone: string): string {
-  return new Intl.DateTimeFormat('en-US', { timeZone, year: 'numeric' }).format(
-    date,
-  );
-}
-
 /**
- * A date in a table cell, on one line. The current year is left out ("Oct 25,
- * 10:41 PM"), an older one replaces the time ("Oct 25, 2025"), and the full
- * date and time sit in the tooltip. The cell never wraps: a date broken over
- * two lines is unreadable and makes rows uneven.
+ * A date in a table cell: `DateText` in the table's small muted type. The
+ * cell never wraps, because a date broken over two lines is unreadable and
+ * makes rows uneven.
  */
 export default function TableDateCell({
-  value,
-  timeZone: timeZoneOverride,
+  emptyLabel = EMPTY_CELL,
   hasTime = true,
+  timeZone,
+  value,
 }: TableDateCellProps) {
-  const viewerTimeZone = useViewerTimeZone();
-  const timeZone = timeZoneOverride ?? viewerTimeZone;
-  const date = value || value === 0 ? toDate(value) : null;
-
-  if (!date) {
-    return <span className="text-xs text-muted-foreground">{EMPTY_CELL}</span>;
-  }
-
-  const isCurrentYear =
-    getYear(date, timeZone) === getYear(new Date(), timeZone);
-  const label = new Intl.DateTimeFormat('en-US', {
-    day: 'numeric',
-    month: 'short',
-    timeZone,
-    ...(isCurrentYear
-      ? hasTime
-        ? { hour: 'numeric', minute: '2-digit' }
-        : {}
-      : { year: 'numeric' }),
-  }).format(date);
-  const fullLabel = new Intl.DateTimeFormat('en-US', {
-    dateStyle: 'full',
-    timeZone,
-    ...(hasTime ? { timeStyle: 'short' } : {}),
-  }).format(date);
-
   return (
-    <SimpleTooltip label={fullLabel}>
-      <time
-        className="whitespace-nowrap text-xs tabular-nums text-muted-foreground"
-        dateTime={date.toISOString()}
-        suppressHydrationWarning
-      >
-        {label}
-      </time>
-    </SimpleTooltip>
+    <DateText
+      className="text-xs text-muted-foreground"
+      emptyLabel={emptyLabel}
+      hasTime={hasTime}
+      timeZone={timeZone}
+      value={value}
+    />
   );
 }

@@ -67,7 +67,6 @@ export interface InspectorSectionProps {
 export interface PostSidebarDestinationProps {
   post: IPost;
   credential: ICredential | undefined;
-  browserTimezone: string;
   isPublished: boolean;
 }
 
@@ -89,5 +88,4 @@ export interface PostSidebarWhenDockProps {
 
 export interface PostSidebarLineageProps {
   reviewSummary: PostReviewSummary;
-  browserTimezone: string;
 }

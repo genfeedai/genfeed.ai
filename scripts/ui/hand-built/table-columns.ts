@@ -9,9 +9,9 @@
  *   - `.toLocaleDateString(...)`, `.toLocaleTimeString(...)`
  *   - `new Date(...).toLocaleString(...)`
  *   - date-fns `format(...)` in a file that imports it from `date-fns`
- *   - `<ClientFormattedDate>` without `format="relative"`
+ *   - `<DateText>` (it is `TableDateCell` without the table's type)
  *
- * Relative times ("3 hours ago") are not dates in this sense and stay allowed.
+ * There is no relative form ("3 hours ago"): a date is the short date.
  *
  * Rule `action`: a column's `render` never holds a control that acts on the
  * row (`<Button onClick>`, `<Button asChild>`, `<ButtonDropdown>`,
@@ -92,17 +92,6 @@ function importsDateFnsFormat(sourceFile: ts.SourceFile): boolean {
   );
 }
 
-function hasRelativeFormat(element: ts.JsxOpeningLikeElement): boolean {
-  return element.attributes.properties.some(
-    (attribute) =>
-      ts.isJsxAttribute(attribute) &&
-      attribute.name.getText() === 'format' &&
-      attribute.initializer !== undefined &&
-      ts.isStringLiteral(attribute.initializer) &&
-      attribute.initializer.text === 'relative',
-  );
-}
-
 function describeDateFormatting(
   node: ts.Node,
   hasDateFnsFormat: boolean,
@@ -132,10 +121,9 @@ function describeDateFormatting(
   }
   if (
     (ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node)) &&
-    node.tagName.getText() === 'ClientFormattedDate' &&
-    !hasRelativeFormat(node)
+    node.tagName.getText() === 'DateText'
   ) {
-    return '<ClientFormattedDate>';
+    return '<DateText>';
   }
   return null;
 }

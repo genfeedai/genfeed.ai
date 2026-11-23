@@ -7,9 +7,9 @@ import { Pre } from '@genfeedai/ui';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
+import DateText from '@ui/time/DateText';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import { getStatusBorderColor } from '@/features/workflows/utils/status-helpers';
 
 type NodeResult = {
@@ -134,14 +134,14 @@ export default function ExecutionNodeResultItem({
               <span className="text-muted-foreground">
                 {translate('accounting.started')}
               </span>{' '}
-              <ClientFormattedDate value={result.startedAt} />
+              <DateText value={result.startedAt} />
             </div>
             {result.completedAt && (
               <div>
                 <span className="text-muted-foreground">
                   {translate('accounting.completed')}
                 </span>{' '}
-                <ClientFormattedDate value={result.completedAt} />
+                <DateText value={result.completedAt} />
               </div>
             )}
           </div>

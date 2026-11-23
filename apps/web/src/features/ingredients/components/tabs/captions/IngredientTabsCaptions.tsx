@@ -15,12 +15,12 @@ import { NotificationsService } from '@genfeedai/services/core/notifications.ser
 import { VideosService } from '@genfeedai/services/ingredients/videos.service';
 import { useQuery } from '@tanstack/react-query';
 import Card from '@ui/card/Card';
-import ClientDateTime from '@ui/components/time/ClientDateTime';
 import Loading from '@ui/loading/default/Loading';
 import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { OptionTile, OptionTileGroup } from '@ui/primitives/option-tile';
 import { SelectField } from '@ui/primitives/select';
+import DateText from '@ui/time/DateText';
 import { Download, Plus, Sparkles } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -45,6 +45,7 @@ export default function IngredientTabsCaptions({
   ingredient,
 }: IngredientTabsCaptionsProps) {
   const selectionLabels = useTranslations('ui.selectionGroups');
+  const translate = useTranslations('ui.ingredientCaptions');
   const { isSignedIn } = useAuthIdentity();
   const { push } = useRouter();
   const { href } = useOrgUrl();
@@ -229,11 +230,10 @@ export default function IngredientTabsCaptions({
               <div className="flex items-center gap-2" key={caption.id}>
                 <OptionTile
                   description={
-                    <ClientDateTime
-                      value={caption.createdAt}
-                      prefix="Created "
-                      format={(date) => date.toLocaleDateString()}
-                    />
+                    <>
+                      {translate('createdPrefix')}
+                      <DateText hasTime={false} value={caption.createdAt} />
+                    </>
                   }
                   title={`${caption.language?.toUpperCase()} - ${
                     caption.format?.toUpperCase() || 'SRT'

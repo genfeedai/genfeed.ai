@@ -225,19 +225,9 @@ export const IMPLICIT_LOCALE_ALLOWANCES: ImplicitLocaleAllowance[] = [
     1,
   ),
   legacyUiAllowance(
-    'apps/web/src/features/ingredients/components/tabs/captions/IngredientTabsCaptions.tsx',
-    'to-locale-date-string',
-    1,
-  ),
-  legacyUiAllowance(
     'apps/web/src/features/ingredients/components/tabs/metadata/IngredientTabsMetadata.tsx',
     'to-locale-string',
     2,
-  ),
-  legacyUiAllowance(
-    'packages/ui/src/components/time/ClientDateTime.tsx',
-    'to-locale-string',
-    1,
   ),
   legacyUiAllowance(
     'packages/workflows/src/ui/panels/DebugPanel.tsx',

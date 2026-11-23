@@ -76,6 +76,8 @@ describe('buildAgentDetailFacts', () => {
     const nextRun = facts.find((fact) => fact.id === 'nextRun')?.value;
     render(nextRun);
 
-    expect(screen.getByText(/ago|in/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/^[A-Z][a-z]{2} \d{1,2}, \d{1,2}:\d{2} [AP]M$/),
+    ).toBeInTheDocument();
   });
 });

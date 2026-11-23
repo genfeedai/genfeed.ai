@@ -1,9 +1,9 @@
 'use client';
 
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import DateText from '@ui/time/DateText';
 import { CalendarClock } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import { describeCadence } from '@/features/workflows/components/schedule/schedule-cadence';
 import type { WorkflowFactLineProps } from './workflow-library.types';
 
@@ -35,11 +35,7 @@ export default function WorkflowFactLine({
             <>
               <span aria-hidden="true">{FACT_SEPARATOR}</span>
               <span>
-                {translate('nextRun')}{' '}
-                <ClientFormattedDate
-                  format="relative"
-                  value={workflow.nextRunAt}
-                />
+                {translate('nextRun')} <DateText value={workflow.nextRunAt} />
               </span>
             </>
           ) : workflow.isScheduleEnabled ? null : (
@@ -52,8 +48,7 @@ export default function WorkflowFactLine({
         </>
       ) : null}
       <span>
-        {translate('updated')}{' '}
-        <ClientFormattedDate format="relative" value={workflow.updatedAt} />
+        {translate('updated')} <DateText value={workflow.updatedAt} />
       </span>
     </span>
   );

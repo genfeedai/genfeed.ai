@@ -7,9 +7,9 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@ui/primitives/collapsible';
+import DateText from '@ui/time/DateText';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
-import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import type { GenerationDetailPanelProps } from '@/features/admin/props/generations.props';
 import GenerationStatusBadge from './generation-status-badge';
 import GenerationThumbnail from './generation-thumbnail';
@@ -98,7 +98,7 @@ export default function GenerationDetailPanel({
       >
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
           <GenerationStatusBadge status={generation.status} />
-          <ClientFormattedDate value={generation.createdAt} />
+          <DateText value={generation.createdAt} />
           {generation.credits !== null ? (
             <span className="tabular-nums">
               {t('credits', { count: generation.credits })}
