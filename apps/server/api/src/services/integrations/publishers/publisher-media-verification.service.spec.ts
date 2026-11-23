@@ -283,22 +283,27 @@ describe('Facebook publisher verification', () => {
     ).toBe('video-9');
   });
 
-  it('reads the page chosen in the channel settings', async () => {
+  it('reads the feed of the Page the credential is bound to', async () => {
     http.get.mockImplementation((url: string) =>
       of({
         data: url.endsWith('/feed')
           ? { data: [post] }
-          : { data: [{ access_token: 'other-token', id: 'other-page' }] },
+          : {
+              data: [
+                { access_token: 'other-token', id: 'other-page' },
+                { access_token: 'page-token', id: 'account' },
+              ],
+            },
       }),
     );
-    await publisher.verifyPublished(
-      contextFor({ settings: { pageId: 'other-page' } }),
-      startedAt,
-    );
+    await publisher.verifyPublished(contextFor(), startedAt);
     const feedCall = http.get.mock.calls.find(([url]) =>
       String(url).endsWith('/feed'),
     );
-    expect(String(feedCall?.[0])).toContain('/other-page/feed');
+    expect(String(feedCall?.[0])).toContain('/account/feed');
+    expect(feedCall?.[1]).toMatchObject({
+      params: { access_token: 'page-token' },
+    });
   });
 
   it('releases the post for a retry when the feed has no such post', async () => {

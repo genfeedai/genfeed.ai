@@ -823,7 +823,7 @@ it('uses dedicated social previews with account identity, every attachment and d
     posts: [
       {
         id: 'p1',
-        platform: 'facebook',
+        platform: 'instagram',
         status: 'draft',
         description: 'Launch',
         author: { name: 'Genfeed', handle: 'genfeed' },
@@ -836,7 +836,7 @@ it('uses dedicated social previews with account identity, every attachment and d
   });
   const post = document.querySelector('article.post');
   expect(
-    post?.querySelector('[aria-label="Facebook platform preview"]'),
+    post?.querySelector('[aria-label="Instagram platform preview"]'),
   ).not.toBeNull();
   expect(post?.textContent).toContain('Genfeed');
   expect(post?.textContent).toContain('@genfeed');

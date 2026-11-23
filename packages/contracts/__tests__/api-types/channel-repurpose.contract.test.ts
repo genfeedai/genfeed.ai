@@ -305,7 +305,7 @@ describe('repurposePostContent platform gating', () => {
   test('rejects hidden channels with the catalog status message', () => {
     const outcome = repurposePostContent({
       caption: 'Page update',
-      targetPlatform: CredentialPlatform.FACEBOOK,
+      targetPlatform: CredentialPlatform.PINTEREST,
     });
 
     expect(outcome.ok).toBe(false);
