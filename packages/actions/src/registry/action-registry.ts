@@ -2085,6 +2085,11 @@ const INTERNAL_ACTIONS: readonly GenfeedActionDefinition[] = [
     'Ingests tenant-scoped YouTube comments into the social inbox.',
   ),
   internalAction(
+    'social.inbox.sync.facebook-inbox',
+    'Sync Facebook Inbox',
+    'Ingests tenant-scoped Facebook Page comments into the social inbox.',
+  ),
+  internalAction(
     'social.inbox.sync.instagram-comments',
     'Sync Instagram Comments',
     'Ingests tenant-scoped Instagram comments into the social inbox.',

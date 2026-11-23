@@ -130,6 +130,23 @@ export class SocialInboxController {
     );
   }
 
+  @Post('facebook/sync')
+  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.CREATOR)
+  @ApiOperation({
+    summary: 'Enqueue a background sync of recent Facebook Page comments',
+  })
+  async syncFacebookComments(
+    @CurrentUser() user: User,
+    @Body() body: SocialInboxIngestDto,
+  ): Promise<{ jobId: string | undefined; status: string }> {
+    return this.enqueueSync(
+      user,
+      body,
+      Platform.FACEBOOK,
+      SocialConversationType.COMMENT,
+    );
+  }
+
   @Post('instagram/sync')
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.CREATOR)
   @ApiOperation({

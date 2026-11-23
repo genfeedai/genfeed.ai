@@ -81,6 +81,7 @@ import { useMessagesConversations } from './use-messages-conversations';
 import { useMessagesInboxFilters } from './use-messages-inbox-filters';
 
 const MESSAGE_CREDENTIAL_PLATFORMS = new Set([
+  Platform.FACEBOOK,
   Platform.INSTAGRAM,
   Platform.LINKEDIN,
   Platform.TIKTOK,
@@ -89,6 +90,7 @@ const MESSAGE_CREDENTIAL_PLATFORMS = new Set([
   Platform.YOUTUBE,
 ]);
 const SYNCABLE_MESSAGE_CREDENTIAL_PLATFORMS = new Set([
+  Platform.FACEBOOK,
   Platform.INSTAGRAM,
   Platform.LINKEDIN,
   Platform.TWITTER,
