@@ -91,6 +91,9 @@ vi.mock(
     useConfirmModal: vi.fn(() => ({
       openConfirm: vi.fn(),
     })),
+    useGalleryModal: vi.fn(() => ({
+      openGallery: vi.fn(),
+    })),
   }),
 );
 
