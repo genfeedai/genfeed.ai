@@ -128,6 +128,28 @@ describe('useAgentChatStream', () => {
     ).not.toThrow();
   });
 
+  it('keeps its handlers across renders so streamed tokens do not re-render the chat', () => {
+    const apiService = createApiService({});
+    const { result, rerender } = renderHook(() =>
+      useAgentChatStream({ apiService }),
+    );
+    const first = result.current;
+
+    rerender();
+    act(() => {
+      useAgentChatStore.getState().setError('token arrived');
+    });
+    rerender();
+
+    expect(result.current.sendMessage).toBe(first.sendMessage);
+    expect(result.current.beginRunHandoff).toBe(first.beginRunHandoff);
+    expect(result.current.adoptRun).toBe(first.adoptRun);
+    expect(result.current.cancelRunHandoff).toBe(first.cancelRunHandoff);
+    expect(result.current.abandonRun).toBe(first.abandonRun);
+    expect(result.current.resumeRunWatch).toBe(first.resumeRunWatch);
+    expect(result.current.clearChat).toBe(first.clearChat);
+  });
+
   it('buffers early socket events until the stream response provides the thread id', async () => {
     const startedAt = '2026-03-09T10:00:00.000Z';
     const apiService = createApiService({
