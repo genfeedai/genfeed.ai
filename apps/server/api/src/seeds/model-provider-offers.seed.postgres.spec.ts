@@ -81,7 +81,7 @@ describe.skipIf(!connectionString)(
       ]);
     }
 
-    it('registers Kie and its Kling, H3 and Wan models once, with the provider off', async () => {
+    it('registers Kie and its Kling, H3, Wan and Seedance models once, with the provider off', async () => {
       const result = await inRolledBackDatabase(async (db, seed) => ({
         first: await seedProviderOfferRegistrations(seed),
         second: await seedProviderOfferRegistrations(seed),
@@ -89,7 +89,7 @@ describe.skipIf(!connectionString)(
       }));
 
       expect(result).toEqual({
-        first: 5,
+        first: 6,
         second: 0,
         state: [
           { isActive: false },
@@ -126,9 +126,9 @@ describe.skipIf(!connectionString)(
         };
       });
 
-      // The H3 and Wan rows are new; the operator's Kling and Kie switches survive.
+      // The H3, Wan and Seedance rows are new; the operator's Kling and Kie switches survive.
       expect(result).toEqual({
-        written: 3,
+        written: 4,
         state: [
           { isActive: true },
           {
