@@ -15,6 +15,7 @@ import SectionTopbar from '@ui/layout/section-topbar/SectionTopbar';
 import { Button } from '@ui/primitives/button';
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogHeader,
   DialogTitle,
@@ -295,23 +296,25 @@ export default function PostDetailHeader({
         <DialogHeader>
           <DialogTitle>{translate('threadLengthPrompt')}</DialogTitle>
         </DialogHeader>
-        <div className="flex flex-col gap-1">
-          {THREAD_LENGTH_OPTIONS.map((count) => (
-            <Button
-              className="w-full justify-start text-left"
-              isDisabled={isExpandingToThread}
-              key={count}
-              onClick={() => {
-                setIsThreadDialogOpen(false);
-                onExpandToThread?.(count);
-              }}
-              variant={ButtonVariant.SECONDARY}
-              withWrapper={false}
-            >
-              {translate('threadLengthOption', { count })}
-            </Button>
-          ))}
-        </div>
+        <DialogBody className="flex flex-col gap-4">
+          <div className="flex flex-col gap-1">
+            {THREAD_LENGTH_OPTIONS.map((count) => (
+              <Button
+                className="w-full justify-start text-left"
+                isDisabled={isExpandingToThread}
+                key={count}
+                onClick={() => {
+                  setIsThreadDialogOpen(false);
+                  onExpandToThread?.(count);
+                }}
+                variant={ButtonVariant.SECONDARY}
+                withWrapper={false}
+              >
+                {translate('threadLengthOption', { count })}
+              </Button>
+            ))}
+          </div>
+        </DialogBody>
       </DialogContent>
     </Dialog>
   ) : null;

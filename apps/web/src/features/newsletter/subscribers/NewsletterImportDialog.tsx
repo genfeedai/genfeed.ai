@@ -8,6 +8,7 @@ import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -123,30 +124,33 @@ export default function NewsletterImportDialog({
           </DialogDescription>
         </DialogHeader>
         <Form
+          className="min-h-0 flex-1"
           onSubmit={(event) => {
             event.preventDefault();
             void confirm();
           }}
         >
-          <Field label={translate('file')} htmlFor="newsletter-import-file">
-            <Input
-              accept=".csv,text/csv"
-              id="newsletter-import-file"
-              type="file"
-              onChange={(event) => void handleFile(event)}
+          <DialogBody className="flex flex-col gap-4">
+            <Field label={translate('file')} htmlFor="newsletter-import-file">
+              <Input
+                accept=".csv,text/csv"
+                id="newsletter-import-file"
+                type="file"
+                onChange={(event) => void handleFile(event)}
+              />
+            </Field>
+            {preview ? <NewsletterImportSummary summary={preview} /> : null}
+            <Checkbox
+              isChecked={hasConsent}
+              label={translate('consentImport')}
+              onCheckedChange={(checked) => setHasConsent(checked === true)}
             />
-          </Field>
-          {preview ? <NewsletterImportSummary summary={preview} /> : null}
-          <Checkbox
-            isChecked={hasConsent}
-            label={translate('consentImport')}
-            onCheckedChange={(checked) => setHasConsent(checked === true)}
-          />
-          {error ? (
-            <p role="alert" className="text-sm text-destructive">
-              {error}
-            </p>
-          ) : null}
+            {error ? (
+              <p role="alert" className="text-sm text-destructive">
+                {error}
+              </p>
+            ) : null}
+          </DialogBody>
           <DialogFooter>
             <Button
               isDisabled={isWorking}

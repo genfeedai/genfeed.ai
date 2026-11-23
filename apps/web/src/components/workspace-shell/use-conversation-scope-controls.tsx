@@ -29,6 +29,7 @@ import SwitcherDropdown from '@ui/menus/switcher-dropdown/SwitcherDropdown';
 import { Button } from '@ui/primitives/button';
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -657,6 +658,8 @@ export function useConversationScopeControls({
                   ? 'Start a clean organization thread?'
                   : 'Change the thread brand?'}
             </DialogTitle>
+          </DialogHeader>
+          <DialogBody>
             <DialogDescription>
               {isActiveWork
                 ? 'The current run must be stopped from the prompt bar before its organization or brand can change.'
@@ -664,7 +667,7 @@ export function useConversationScopeControls({
                   ? 'The unsent draft, attachments, transcript, artifact references, and open organization surfaces will not carry to the new thread.'
                   : 'Your unsent text will remain. Attachments and structured references are cleared so resources from the previous brand cannot execute in the new scope.'}
             </DialogDescription>
-          </DialogHeader>
+          </DialogBody>
           <DialogFooter>
             <Button
               onClick={() => setPendingChange(null)}

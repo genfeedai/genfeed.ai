@@ -11,6 +11,7 @@ import { Badge } from '@genfeedai/ui/primitives/badge';
 import { Button } from '@genfeedai/ui/primitives/button';
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogTitle,
 } from '@genfeedai/ui/primitives/dialog';
@@ -582,7 +583,7 @@ export function NodeDetailModal() {
         />
 
         {/* Content */}
-        <div className="flex-1 overflow-hidden">
+        <DialogBody scrollable={false} className="overflow-hidden">
           <PreviewSurface
             currentIndex={currentIndex}
             displayUrl={displayUrl}
@@ -601,7 +602,7 @@ export function NodeDetailModal() {
             panOffset={panOffset}
             zoomLevel={zoomLevel}
           />
-        </div>
+        </DialogBody>
       </DialogContent>
     </Dialog>
   );

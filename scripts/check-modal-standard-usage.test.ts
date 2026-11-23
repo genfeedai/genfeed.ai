@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { findOverlayViolations } from './check-modal-standard-usage';
+import {
+  findDialogBodyViolations,
+  findOverlayViolations,
+} from './check-modal-standard-usage';
 
 const WEB_FILE = '/repo/apps/web/src/Thing.tsx';
 
@@ -66,5 +69,67 @@ describe('findOverlayViolations', () => {
     );
 
     expect(violation?.line).toBe(2);
+  });
+});
+
+describe('findDialogBodyViolations', () => {
+  it('flags a dialog whose content has no body', () => {
+    const source = [
+      '<DialogContent>',
+      '  <DialogHeader />',
+      '  <form>fields</form>',
+      '  <DialogFooter />',
+      '</DialogContent>',
+    ].join('\n');
+
+    expect(findDialogBodyViolations(WEB_FILE, source)).toEqual([
+      expect.objectContaining({ line: 1 }),
+    ]);
+  });
+
+  it('flags the dialog without a body when another dialog in the file has one', () => {
+    const source = [
+      '<DialogContent><DialogBody>ok</DialogBody></DialogContent>',
+      '<DialogContent>',
+      '  <DialogFooter />',
+      '</DialogContent>',
+    ].join('\n');
+
+    expect(findDialogBodyViolations(WEB_FILE, source)).toEqual([
+      expect.objectContaining({ line: 2 }),
+    ]);
+  });
+
+  it('allows a body, a scroll opt-out and an allow comment with a reason', () => {
+    expect(
+      findDialogBodyViolations(
+        WEB_FILE,
+        '<DialogContent><DialogBody scrollable={false}>x</DialogBody></DialogContent>',
+      ),
+    ).toEqual([]);
+    expect(
+      findDialogBodyViolations(
+        WEB_FILE,
+        '// ui-guard-allow:dialog-body -- renders its own body\n<DialogContent>{children}</DialogContent>',
+      ),
+    ).toEqual([]);
+  });
+
+  it('rejects an allow comment without a reason', () => {
+    expect(
+      findDialogBodyViolations(
+        WEB_FILE,
+        '// ui-guard-allow:dialog-body\n<DialogContent>{children}</DialogContent>',
+      ),
+    ).toHaveLength(1);
+  });
+
+  it('leaves the primitive itself alone', () => {
+    expect(
+      findDialogBodyViolations(
+        '/repo/packages/ui/src/primitives/dialog.tsx',
+        '<DialogContent>{children}</DialogContent>',
+      ),
+    ).toEqual([]);
   });
 });

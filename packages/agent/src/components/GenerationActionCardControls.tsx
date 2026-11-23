@@ -21,6 +21,7 @@ import { useModelFavorites } from '@ui/dropdowns/model-selector/useModelFavorite
 import { Button } from '@ui/primitives/button';
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogDescription,
   DialogHeader,
@@ -203,14 +204,14 @@ export function GenerationActionCardControls({
               'bg-black/60 backdrop-blur-[1px]' /* design-system-allow-content-color */
             }
           />
-          <DialogContent className="max-h-[90dvh] max-w-2xl overflow-hidden border-border-strong bg-popover p-0">
+          <DialogContent className="max-w-2xl overflow-hidden border-border-strong bg-popover p-0">
             <DialogHeader className="border-b border-border px-5 py-4">
               <DialogTitle>{translate('previewTitle')}</DialogTitle>
               <DialogDescription>
                 {translate('previewDescription')}
               </DialogDescription>
             </DialogHeader>
-            <div className="p-5">
+            <DialogBody className="p-5">
               <Textarea
                 aria-label={translate('previewEditorAria')}
                 className="min-h-[20rem] w-full resize-y overflow-y-auto text-sm leading-6"
@@ -222,7 +223,7 @@ export function GenerationActionCardControls({
                 rows={16}
                 value={prompt}
               />
-            </div>
+            </DialogBody>
           </DialogContent>
         </DialogPortal>
       </Dialog>

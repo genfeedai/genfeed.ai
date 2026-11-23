@@ -10,6 +10,7 @@ import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -283,54 +284,58 @@ export default function BrandMoveDialog({
           <DialogDescription>{translate('description')}</DialogDescription>
         </DialogHeader>
 
-        <SelectField
-          label={translate('destinationLabel')}
-          name="destinationOrganizationId"
-          placeholder={translate('destinationPlaceholder')}
-          value={destinationId}
-          onChange={handleDestinationChange}
-          isDisabled={isBusy || phase === 'done'}
-        >
-          {availableDestinations.map((destination) => (
-            <option key={destination.id} value={destination.id}>
-              {destination.label}
-            </option>
-          ))}
-        </SelectField>
-
-        {phase !== 'choose' ? (
-          <ul
-            aria-live="polite"
-            className="flex flex-col gap-3"
-            data-testid="brand-move-list"
+        <DialogBody className="flex flex-col gap-4">
+          <SelectField
+            label={translate('destinationLabel')}
+            name="destinationOrganizationId"
+            placeholder={translate('destinationPlaceholder')}
+            value={destinationId}
+            onChange={handleDestinationChange}
+            isDisabled={isBusy || phase === 'done'}
           >
-            {entries.map((entry) => {
-              const detail =
-                entry.status === 'ready' && entry.preview
-                  ? describePreview(entry.preview, translate)
-                  : entry.status === 'moved' && entry.membersSevered
-                    ? translate('membersLost', { count: entry.membersSevered })
-                    : entry.reason;
-              return (
-                <li
-                  className="flex flex-col gap-1"
-                  data-testid={`brand-move-${entry.brand.id}`}
-                  key={entry.brand.id}
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="font-medium">{entry.brand.label}</span>
-                    <Badge variant={STATUS_BADGE_VARIANTS[entry.status]}>
-                      {translate(`status.${entry.status}`)}
-                    </Badge>
-                  </div>
-                  {detail ? (
-                    <p className="text-sm text-muted-foreground">{detail}</p>
-                  ) : null}
-                </li>
-              );
-            })}
-          </ul>
-        ) : null}
+            {availableDestinations.map((destination) => (
+              <option key={destination.id} value={destination.id}>
+                {destination.label}
+              </option>
+            ))}
+          </SelectField>
+
+          {phase !== 'choose' ? (
+            <ul
+              aria-live="polite"
+              className="flex flex-col gap-3"
+              data-testid="brand-move-list"
+            >
+              {entries.map((entry) => {
+                const detail =
+                  entry.status === 'ready' && entry.preview
+                    ? describePreview(entry.preview, translate)
+                    : entry.status === 'moved' && entry.membersSevered
+                      ? translate('membersLost', {
+                          count: entry.membersSevered,
+                        })
+                      : entry.reason;
+                return (
+                  <li
+                    className="flex flex-col gap-1"
+                    data-testid={`brand-move-${entry.brand.id}`}
+                    key={entry.brand.id}
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="font-medium">{entry.brand.label}</span>
+                      <Badge variant={STATUS_BADGE_VARIANTS[entry.status]}>
+                        {translate(`status.${entry.status}`)}
+                      </Badge>
+                    </div>
+                    {detail ? (
+                      <p className="text-sm text-muted-foreground">{detail}</p>
+                    ) : null}
+                  </li>
+                );
+              })}
+            </ul>
+          ) : null}
+        </DialogBody>
 
         <DialogFooter>
           <Button

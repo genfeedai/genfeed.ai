@@ -11,6 +11,7 @@ import { Kbd } from '@genfeedai/ui';
 import { Button } from '@genfeedai/ui/primitives/button';
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogHeader,
   DialogTitle,
@@ -135,82 +136,86 @@ export function NodeSearch() {
           </DialogTitle>
         </DialogHeader>
 
-        <div role="listbox" tabIndex={0} onKeyDown={handleKeyDown}>
-          <FormSearchbar
-            ariaLabel="Search nodes"
-            className="mb-3"
-            inputClassName="bg-muted border-border outline-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-            inputRef={inputRef}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search nodes by name, type, or comment..."
-            size={ComponentSize.MD}
-            value={search}
-          />
+        <DialogBody scrollable={false}>
+          <div role="listbox" tabIndex={0} onKeyDown={handleKeyDown}>
+            <FormSearchbar
+              ariaLabel="Search nodes"
+              className="mb-3"
+              inputClassName="bg-muted border-border outline-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              inputRef={inputRef}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search nodes by name, type, or comment..."
+              size={ComponentSize.MD}
+              value={search}
+            />
 
-          <div
-            role="presentation"
-            ref={listRef}
-            className="max-h-[300px] overflow-y-auto space-y-1"
-          >
-            {filteredNodes.length === 0 ? (
-              <EmptyState
-                size={CardEmptySize.SM}
-                title={
-                  search
-                    ? `No nodes found for "${search}"`
-                    : 'No nodes in workflow'
-                }
-              />
-            ) : (
-              filteredNodes.map((node, index) => {
-                const nodeDef =
-                  NODE_DEFINITIONS[node.type as keyof typeof NODE_DEFINITIONS];
-                const comment = (node.data as { comment?: string }).comment;
+            <div
+              role="presentation"
+              ref={listRef}
+              className="max-h-[300px] overflow-y-auto space-y-1"
+            >
+              {filteredNodes.length === 0 ? (
+                <EmptyState
+                  size={CardEmptySize.SM}
+                  title={
+                    search
+                      ? `No nodes found for "${search}"`
+                      : 'No nodes in workflow'
+                  }
+                />
+              ) : (
+                filteredNodes.map((node, index) => {
+                  const nodeDef =
+                    NODE_DEFINITIONS[
+                      node.type as keyof typeof NODE_DEFINITIONS
+                    ];
+                  const comment = (node.data as { comment?: string }).comment;
 
-                return (
-                  <Button
-                    withWrapper={false}
-                    key={node.id}
-                    variant={ButtonVariant.GHOST}
-                    onClick={() => handleSelectNode(node)}
-                    className={`w-full flex items-center gap-3 p-2 rounded text-left h-auto justify-start ${
-                      index === selectedIndex
-                        ? 'bg-primary/10 border border-primary/20'
-                        : 'hover:bg-muted/50 border border-transparent'
-                    }`}
-                  >
-                    <div className="flex-shrink-0 size-8 rounded bg-muted flex items-center justify-center text-xs font-medium">
-                      {nodeDef?.label?.charAt(0) || '?'}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="font-medium truncate text-sm">
-                        {node.data.label}
+                  return (
+                    <Button
+                      withWrapper={false}
+                      key={node.id}
+                      variant={ButtonVariant.GHOST}
+                      onClick={() => handleSelectNode(node)}
+                      className={`w-full flex items-center gap-3 p-2 rounded text-left h-auto justify-start ${
+                        index === selectedIndex
+                          ? 'bg-primary/10 border border-primary/20'
+                          : 'hover:bg-muted/50 border border-transparent'
+                      }`}
+                    >
+                      <div className="flex-shrink-0 size-8 rounded bg-muted flex items-center justify-center text-xs font-medium">
+                        {nodeDef?.label?.charAt(0) || '?'}
                       </div>
-                      <div className="text-xs text-muted-foreground truncate">
-                        {nodeDef?.label || node.type}
-                        {comment && ` · ${comment}`}
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium truncate text-sm">
+                          {node.data.label}
+                        </div>
+                        <div className="text-xs text-muted-foreground truncate">
+                          {nodeDef?.label || node.type}
+                          {comment && ` · ${comment}`}
+                        </div>
                       </div>
-                    </div>
-                  </Button>
-                );
-              })
+                    </Button>
+                  );
+                })
+              )}
+            </div>
+
+            {filteredNodes.length > 0 && (
+              <div className="mt-3 pt-3 border-t border-border text-xs text-muted-foreground flex gap-4">
+                <span>
+                  <Kbd variant="muted">up/down</Kbd> Navigate
+                </span>
+                <span>
+                  <Kbd variant="muted">Enter</Kbd> Select
+                </span>
+                <span>
+                  <Kbd variant="muted">Esc</Kbd> Close
+                </span>
+              </div>
             )}
           </div>
-
-          {filteredNodes.length > 0 && (
-            <div className="mt-3 pt-3 border-t border-border text-xs text-muted-foreground flex gap-4">
-              <span>
-                <Kbd variant="muted">up/down</Kbd> Navigate
-              </span>
-              <span>
-                <Kbd variant="muted">Enter</Kbd> Select
-              </span>
-              <span>
-                <Kbd variant="muted">Esc</Kbd> Close
-              </span>
-            </div>
-          )}
-        </div>
+        </DialogBody>
       </DialogContent>
     </Dialog>
   );

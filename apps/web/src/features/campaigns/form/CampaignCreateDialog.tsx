@@ -15,6 +15,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@ui/primitives/button';
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogFooter,
   DialogHeader,
@@ -102,7 +103,7 @@ export default function CampaignCreateDialog({
       <DialogContent
         aria-describedby={undefined}
         showCloseButton={!isGenerating}
-        className="max-h-[90dvh] overflow-y-auto sm:max-w-xl"
+        className="sm:max-w-xl"
         onEscapeKeyDown={(event) => {
           if (isGenerating) event.preventDefault();
         }}
@@ -114,85 +115,88 @@ export default function CampaignCreateDialog({
           <DialogTitle>{t('newCampaign')}</DialogTitle>
         </DialogHeader>
         <Form
+          className="min-h-0 flex-1"
           onSubmit={(event) => {
             event.preventDefault();
             void generate();
           }}
         >
-          {scope.pageScope === 'org' && brands.length !== 1 ? (
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="campaign-brand">{t('columns.brand')}</Label>
-              <Select
-                value={brandId}
-                onValueChange={setSelectedBrandId}
-                disabled={isGenerating}
-              >
-                <SelectTrigger id="campaign-brand">
-                  <SelectValue placeholder={t('selectBrand')} />
-                </SelectTrigger>
-                <SelectContent>
-                  {brands.map((brand) => (
-                    <SelectItem
-                      className="normal-case"
-                      key={brand.id}
-                      value={brand.id}
-                    >
-                      {brand.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          ) : null}
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="campaign-idea">{t('setup.idea')}</Label>
-            <Input
-              autoFocus
-              id="campaign-idea"
-              value={name}
-              maxLength={200}
-              disabled={isGenerating}
-              placeholder={t('setup.placeholder')}
-              onChange={(event) => setName(event.target.value)}
-            />
-            <p className="text-sm text-muted-foreground">
-              {t('setup.brandContext', {
-                brand:
-                  brands.find((brand) => brand.id === brandId)?.label ??
-                  t('setup.selectedBrand'),
-              })}
-            </p>
-          </div>
-          <div className="flex flex-col gap-2">
-            <p className="text-sm font-medium">{t('setup.examples')}</p>
-            <div className="grid gap-2 sm:grid-cols-2">
-              {EXAMPLES.map((example) => (
-                <Button
-                  key={example}
-                  type="button"
-                  variant={ButtonVariant.SECONDARY}
-                  isDisabled={isGenerating}
-                  className="h-auto min-w-0 justify-start whitespace-normal p-3 text-left"
-                  onClick={() =>
-                    setName(t(`setup.examplesList.${example}.idea`))
-                  }
+          <DialogBody className="flex flex-col gap-4">
+            {scope.pageScope === 'org' && brands.length !== 1 ? (
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="campaign-brand">{t('columns.brand')}</Label>
+                <Select
+                  value={brandId}
+                  onValueChange={setSelectedBrandId}
+                  disabled={isGenerating}
                 >
-                  <span className="flex flex-col gap-1">
-                    <span>{t(`setup.examplesList.${example}.title`)}</span>
-                    <span className="text-xs font-normal text-muted-foreground">
-                      {t(`setup.examplesList.${example}.description`)}
-                    </span>
-                  </span>
-                </Button>
-              ))}
+                  <SelectTrigger id="campaign-brand">
+                    <SelectValue placeholder={t('selectBrand')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {brands.map((brand) => (
+                      <SelectItem
+                        className="normal-case"
+                        key={brand.id}
+                        value={brand.id}
+                      >
+                        {brand.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : null}
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="campaign-idea">{t('setup.idea')}</Label>
+              <Input
+                autoFocus
+                id="campaign-idea"
+                value={name}
+                maxLength={200}
+                disabled={isGenerating}
+                placeholder={t('setup.placeholder')}
+                onChange={(event) => setName(event.target.value)}
+              />
+              <p className="text-sm text-muted-foreground">
+                {t('setup.brandContext', {
+                  brand:
+                    brands.find((brand) => brand.id === brandId)?.label ??
+                    t('setup.selectedBrand'),
+                })}
+              </p>
             </div>
-          </div>
-          {error ? (
-            <p role="alert" className="text-sm text-destructive">
-              {error}
-            </p>
-          ) : null}
-          <p className="text-sm text-muted-foreground">{t('setup.next')}</p>
+            <div className="flex flex-col gap-2">
+              <p className="text-sm font-medium">{t('setup.examples')}</p>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {EXAMPLES.map((example) => (
+                  <Button
+                    key={example}
+                    type="button"
+                    variant={ButtonVariant.SECONDARY}
+                    isDisabled={isGenerating}
+                    className="h-auto min-w-0 justify-start whitespace-normal p-3 text-left"
+                    onClick={() =>
+                      setName(t(`setup.examplesList.${example}.idea`))
+                    }
+                  >
+                    <span className="flex flex-col gap-1">
+                      <span>{t(`setup.examplesList.${example}.title`)}</span>
+                      <span className="text-xs font-normal text-muted-foreground">
+                        {t(`setup.examplesList.${example}.description`)}
+                      </span>
+                    </span>
+                  </Button>
+                ))}
+              </div>
+            </div>
+            {error ? (
+              <p role="alert" className="text-sm text-destructive">
+                {error}
+              </p>
+            ) : null}
+            <p className="text-sm text-muted-foreground">{t('setup.next')}</p>
+          </DialogBody>
           <DialogFooter>
             <Button
               type="button"
