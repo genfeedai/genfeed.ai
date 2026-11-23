@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import type { BrandAgentConfig } from '@api/collections/brands/schemas/brand.schema';
 import { BrandDataMapper } from '@api/collections/brands/services/brand-data.mapper';
 import { BrandPersistenceService } from '@api/collections/brands/services/brand-persistence.service';
@@ -10,6 +11,7 @@ import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.s
 import { BRAND_SOCIAL_HOSTS } from '@api/services/brand-scraper/brand-social-hosts.constant';
 import { BrandWebsiteParserService } from '@api/services/brand-scraper/brand-website-parser.service';
 import { publicXHandle } from '@api/services/brand-scraper/public-x-handle.util';
+import { CacheService } from '@api/services/cache/cache.service';
 import {
   isFallbackBrandVoice,
   MasterPromptGeneratorService,
@@ -98,6 +100,8 @@ export interface SignupPrefillState {
 const PLACEHOLDER_BRAND_LABELS = new Set(['Default Organization']);
 
 const PREFILL_MARKER_KEY = 'signupPrefill';
+/** Longer than the 45 second scan deadline, so a crashed holder frees the claim on its own. */
+const SCAN_CLAIM_TTL_SECONDS = 60;
 
 /**
  * SignupPrefillService
@@ -119,6 +123,7 @@ const PREFILL_MARKER_KEY = 'signupPrefill';
 @Traced()
 @Injectable()
 export class SignupPrefillService {
+  /** This process's scans: answers the common repeat click without a Redis call. */
   private readonly inFlightScans = new Set<string>();
   private readonly context = { service: SignupPrefillService.name };
 
@@ -130,6 +135,7 @@ export class SignupPrefillService {
     private readonly brandPersistenceService: BrandPersistenceService,
     private readonly masterPromptGeneratorService: MasterPromptGeneratorService,
     private readonly harnessProfilesService: HarnessProfilesService,
+    private readonly cacheService: CacheService,
   ) {}
 
   /** Run the existing stages with an explicit source URL, never the signup marker shortcut. */
@@ -141,6 +147,22 @@ export class SignupPrefillService {
     const scanKey = `${request.organizationId}:${request.brandId}`;
     if (this.inFlightScans.has(scanKey))
       throw new ConflictException('scan_in_progress');
+    // A scan spends AI credits, and two API tasks run side by side at every
+    // deploy, so the process-local set alone lets both run the same scan. The
+    // claim is shared; a cache outage proceeds without it.
+    const claimKey = `signup-prefill-scan:${scanKey}`;
+    const claimToken = randomUUID();
+    const claim = await this.cacheService.acquireOwnedClaim(
+      claimKey,
+      claimToken,
+      SCAN_CLAIM_TTL_SECONDS,
+    );
+    if (claim === 'duplicate') throw new ConflictException('scan_in_progress');
+    const releaseScan = async () => {
+      this.inFlightScans.delete(scanKey);
+      if (claim === 'claimed')
+        await this.cacheService.releaseOwnedClaim(claimKey, claimToken);
+    };
     this.inFlightScans.add(scanKey);
     let workSettled = false;
     let callerSettled = false;
@@ -211,7 +233,7 @@ export class SignupPrefillService {
         })
         .finally(() => {
           workSettled = true;
-          if (callerSettled) this.inFlightScans.delete(scanKey);
+          if (callerSettled) void releaseScan();
         });
       return await Promise.race([
         work,
@@ -228,7 +250,7 @@ export class SignupPrefillService {
       throw error;
     } finally {
       callerSettled = true;
-      if (!work || workSettled) this.inFlightScans.delete(scanKey);
+      if (!work || workSettled) await releaseScan();
       if (timer) clearTimeout(timer);
     }
   }
