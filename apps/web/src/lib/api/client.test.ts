@@ -1,6 +1,7 @@
 import { ORGANIZATION_CONTEXT_HEADER } from '@genfeedai/contracts/constants';
 import {
   clearRequestOrganizationId,
+  requestOrganizationGate,
   setRequestOrganizationId,
 } from '@services/core/interceptor.service';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -205,6 +206,38 @@ describe('authorization', () => {
       },
       method: 'GET',
     });
+  });
+
+  it('sends nothing and mints no token while the organization is provisional, then sends once with the header', async () => {
+    const getToken = vi.fn(async () => 'session-token');
+    registerApiAuthTokenGetter(getToken);
+    requestOrganizationGate.setProvisional('org-a', 'user-1');
+    fetchMock.mockResolvedValueOnce(createJsonResponse({}));
+
+    const request = apiClient.get('/workflows');
+    await new Promise((resolve) => setImmediate(resolve));
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(getToken).not.toHaveBeenCalled();
+
+    requestOrganizationGate.setConfirmed('org-a');
+    await request;
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock.mock.calls[0]?.[1]?.headers).toMatchObject({
+      Authorization: 'Bearer session-token',
+      [ORGANIZATION_CONTEXT_HEADER]: 'org-a',
+    });
+  });
+
+  it('never sends a request made for an organization the check did not confirm', async () => {
+    registerApiAuthTokenGetter(async () => 'session-token');
+    requestOrganizationGate.setProvisional('org-a', 'user-1');
+
+    const request = apiClient.get('/workflows');
+    requestOrganizationGate.setConfirmed('org-b');
+
+    await expect(request).rejects.toMatchObject({ isCancelled: true });
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('attaches the session bearer token once a resolver is registered', async () => {

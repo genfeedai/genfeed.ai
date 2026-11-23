@@ -314,20 +314,22 @@ describe('SkillsService canonical fork and scoped acquisition', () => {
       expect.anything(),
     );
   });
-  it('creates fresh instances and rejects a previously bound organization after A to B to A', () => {
+  it('creates fresh instances and rejects a previously bound organization after A to B to A', async () => {
     setRequestOrganizationId('org-a');
     try {
       const service = SkillsService.forOrganization('scope-fixture', 'org-a');
       const headers = service as unknown as {
-        requestOrganizationHeaders: () => Record<string, string>;
+        requestOrganizationHeaders: () => Promise<Record<string, string>>;
       };
-      expect(headers.requestOrganizationHeaders()).toBeTruthy();
+      await expect(headers.requestOrganizationHeaders()).resolves.toEqual({
+        'x-genfeed-organization-id': 'org-a',
+      });
       expect(SkillsService.forOrganization('scope-fixture', 'org-a')).not.toBe(
         service,
       );
       setRequestOrganizationId('org-b');
       setRequestOrganizationId('org-a');
-      expect(() => headers.requestOrganizationHeaders()).toThrow(
+      await expect(headers.requestOrganizationHeaders()).rejects.toThrow(
         'no longer confirmed',
       );
     } finally {

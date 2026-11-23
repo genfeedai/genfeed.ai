@@ -1,6 +1,5 @@
 import { ModalEnum } from '@genfeedai/contracts';
 import {
-  ORGANIZATION_CONTEXT_HEADER,
   UNATTRIBUTED_FORWARDED_HEADER,
   UNATTRIBUTED_FORWARDED_VALUE,
 } from '@genfeedai/contracts/constants';
@@ -20,13 +19,16 @@ import {
   getPersistedVideoIngredientIds,
 } from '@services/core/json-api-error-message';
 import {
+  createOrganizationNotConfirmedError,
+  RequestOrganizationGate,
+} from '@services/core/request-organization-gate';
+import {
   buildInstanceKey,
   ServiceInstanceManager,
 } from '@services/core/service-instance-manager';
 import axios, {
   type AxiosError,
   type AxiosInstance,
-  CanceledError,
   type InternalAxiosRequestConfig,
 } from 'axios';
 
@@ -56,14 +58,20 @@ export const HTTP_REQUEST_TIMEOUT_MS = 30_000;
 const INSUFFICIENT_CREDITS_ERROR_CODE = 'INSUFFICIENT_CREDITS';
 
 const httpServiceInstances = new ServiceInstanceManager<HTTPBaseService>();
-let requestOrganizationId: string | null = null;
-let requestOrganizationRevision = 0;
+
+/**
+ * The organization every API request of this tab acts for. The axios
+ * interceptor, the direct `fetch` clients and the socket all read it; a
+ * request made while it is provisional is held (see `RequestOrganizationGate`).
+ */
+export const requestOrganizationGate = new RequestOrganizationGate();
 
 export function setRequestOrganizationId(organizationId: string | null): void {
   const nextOrganizationId = organizationId?.trim() || null;
-  if (nextOrganizationId !== requestOrganizationId) {
-    requestOrganizationRevision += 1;
-    requestOrganizationId = nextOrganizationId;
+  if (nextOrganizationId) {
+    requestOrganizationGate.setConfirmed(nextOrganizationId);
+  } else {
+    requestOrganizationGate.setUnscoped();
   }
 }
 
@@ -72,14 +80,38 @@ export function clearRequestOrganizationId(): void {
 }
 
 /**
- * `ORGANIZATION_CONTEXT_HEADER` for raw-`fetch` tenant clients, set exactly
+ * `ORGANIZATION_CONTEXT_HEADER` for a caller that cannot wait, set exactly
  * when the axios interceptor would send it, so the API can fail closed on
- * organization drift. Empty while no routed organization is confirmed.
+ * organization drift. Empty while no routed organization is confirmed. Throws
+ * while the organization is provisional, so a caller that was missed fails
+ * closed instead of sending a request that the API would answer for another
+ * organization. A client that sends the request itself awaits
+ * {@link whenRequestOrganizationSettled} instead.
  */
 export function getRequestOrganizationHeaders(): Record<string, string> {
-  return requestOrganizationId
-    ? { [ORGANIZATION_CONTEXT_HEADER]: requestOrganizationId }
-    : {};
+  return requestOrganizationGate.getHeaders();
+}
+
+/**
+ * The confirmed organization, or null while none is (not routed, or still
+ * provisional). Never throws, so a render can compare it; a request builds its
+ * headers from {@link whenRequestOrganizationSettled}.
+ */
+export function getConfirmedRequestOrganizationId(): string | null {
+  return requestOrganizationGate.getConfirmedOrganizationId();
+}
+
+/**
+ * The headers a direct API request must carry, once it may leave: at once
+ * while the organization is confirmed or not routed, after the membership
+ * check answers while it is provisional. Rejects as cancelled when the check
+ * does not confirm the provisional organization, so such a request is never
+ * sent.
+ */
+export function whenRequestOrganizationSettled(): Promise<
+  Record<string, string>
+> {
+  return requestOrganizationGate.whenSettledHeaders();
 }
 
 /**
@@ -100,6 +132,22 @@ export function cancelAndClearAllServiceInstances(): void {
     service.cancelPendingRequests();
   });
   httpServiceInstances.clearAll();
+}
+
+function rejectWhenAborted<T>(
+  pending: Promise<T>,
+  signal: AbortSignal,
+): Promise<T> {
+  if (signal.aborted) {
+    return Promise.reject(createOrganizationNotConfirmedError());
+  }
+  return new Promise<T>((resolve, reject) => {
+    const abort = (): void => reject(createOrganizationNotConfirmedError());
+    signal.addEventListener('abort', abort, { once: true });
+    pending.then(resolve, reject).finally(() => {
+      signal.removeEventListener('abort', abort);
+    });
+  });
 }
 
 export abstract class HTTPBaseService {
@@ -234,7 +282,7 @@ export abstract class HTTPBaseService {
       throw new Error('Request organization is already bound');
     }
     this.boundOrganizationId = organizationId.trim();
-    this.boundOrganizationRevision = requestOrganizationRevision;
+    this.boundOrganizationRevision = requestOrganizationGate.getRevision();
   }
 
   private initializeRequestInterceptor = () => {
@@ -247,25 +295,94 @@ export abstract class HTTPBaseService {
 
   /**
    * Organization header for a subclass's raw `fetch` (one that must stay off
-   * the interceptor), under the interceptor's binding rule: a bound service
-   * whose organization is no longer confirmed throws `CanceledError` instead
-   * of sending the request. A binding that passes the check equals the
-   * routed organization, so the header is the routed one.
+   * the interceptor), under the interceptor's binding rule: it waits while
+   * the organization is provisional, and a bound service whose organization
+   * is not the confirmed one throws `CanceledError` instead of sending the
+   * request. A binding that passes the check equals the routed organization,
+   * so the header is the routed one.
    */
-  protected requestOrganizationHeaders(): Record<string, string> {
+  protected async requestOrganizationHeaders(): Promise<
+    Record<string, string>
+  > {
+    await requestOrganizationGate.whenSettled();
+    return this.confirmedOrganizationHeaders();
+  }
+
+  /**
+   * A service whose every request must leave without waiting for the
+   * organization to be confirmed (the public API, which has no organization).
+   */
+  protected isOrganizationGateExempt(): boolean {
+    return false;
+  }
+
+  private confirmedOrganizationHeaders(): Record<string, string> {
     if (
       this.boundOrganizationId !== undefined &&
       (!this.boundOrganizationId ||
-        this.boundOrganizationId !== requestOrganizationId ||
-        this.boundOrganizationRevision !== requestOrganizationRevision)
+        this.boundOrganizationId !==
+          requestOrganizationGate.getConfirmedOrganizationId() ||
+        this.boundOrganizationRevision !==
+          requestOrganizationGate.getRevision())
     ) {
-      throw new CanceledError('Request organization is no longer confirmed');
+      throw createOrganizationNotConfirmedError();
     }
-    return getRequestOrganizationHeaders();
+    return requestOrganizationGate.getHeaders();
   }
 
-  private handleRequest = (config: InternalAxiosRequestConfig) => {
-    const organizationHeaders = this.requestOrganizationHeaders();
+  private handleRequest = (
+    config: InternalAxiosRequestConfig & IHttpRequestOptions,
+  ): InternalAxiosRequestConfig | Promise<InternalAxiosRequestConfig> => {
+    if (
+      config.exemptFromOrganizationGate === true ||
+      this.isOrganizationGateExempt()
+    ) {
+      return this.prepareRequest(
+        config,
+        requestOrganizationGate.isProvisional()
+          ? {}
+          : this.confirmedOrganizationHeaders(),
+      );
+    }
+
+    if (requestOrganizationGate.isProvisional()) {
+      // A held request is still cancellable: cancelPendingRequests() and the
+      // caller's own signal end the wait, and the request is never sent.
+      return rejectWhenAborted(
+        this.requestOrganizationHeaders(),
+        this.requestSignal(config),
+      ).then((headers) => this.prepareRequest(config, headers));
+    }
+
+    return this.prepareRequest(config, this.confirmedOrganizationHeaders());
+  };
+
+  /**
+   * Compose the instance-level cancellation signal with any per-request
+   * signal (e.g. from findOne/findAll callers) so that either side can abort
+   * the request independently. Overwriting config.signal unconditionally
+   * would silently discard the caller's signal. The instance-level controller
+   * exists for manual cancellation via cancelPendingRequests().
+   * Axios types config.signal as GenericAbortSignal (a structural subset of
+   * AbortSignal); at runtime callers always pass a native AbortSignal, so the
+   * cast to AbortSignal is safe.
+   */
+  private requestSignal(config: InternalAxiosRequestConfig): AbortSignal {
+    if (!this.abortController) {
+      this.abortController = new AbortController();
+    }
+    return config.signal
+      ? AbortSignal.any([
+          this.abortController.signal,
+          config.signal as AbortSignal,
+        ])
+      : this.abortController.signal;
+  }
+
+  private prepareRequest(
+    config: InternalAxiosRequestConfig,
+    organizationHeaders: Record<string, string>,
+  ): InternalAxiosRequestConfig {
     config.headers.Authorization = `Bearer ${this.token}`;
     for (const [name, value] of Object.entries({
       ...getGenerationEntryHeaders(),
@@ -285,26 +402,10 @@ export abstract class HTTPBaseService {
     // Only cancel if explicitly called via cancelPendingRequests()
     // This prevents race conditions when multiple components load simultaneously
 
-    // Create abort controller for manual cancellation if needed
-    if (!this.abortController) {
-      this.abortController = new AbortController();
-    }
-    // Compose the instance-level cancellation signal with any per-request
-    // signal (e.g. from findOne/findAll callers) so that either side can abort
-    // the request independently.  Overwriting config.signal unconditionally
-    // would silently discard the caller's signal.
-    // Axios types config.signal as GenericAbortSignal (a structural subset of
-    // AbortSignal); at runtime callers always pass a native AbortSignal, so
-    // the cast to AbortSignal is safe.
-    config.signal = config.signal
-      ? AbortSignal.any([
-          this.abortController.signal,
-          config.signal as AbortSignal,
-        ])
-      : this.abortController.signal;
+    config.signal = this.requestSignal(config);
 
     return config;
-  };
+  }
 
   handleError = async (error: AxiosError) => {
     // Silently ignore cancelled/aborted requests - check FIRST before any logging
