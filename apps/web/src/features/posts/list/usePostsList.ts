@@ -3,7 +3,6 @@
 import { usePostsLayout } from '@contexts/posts/posts-layout-context';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
-  useConfirmDeleteModal,
   usePostRemixModal,
   usePostRepurposeModal,
 } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
@@ -38,7 +37,6 @@ import {
   normalizePostsPlatform,
 } from '@helpers/content/posts.helper';
 import { getBrowserTimezone } from '@helpers/formatting/timezone/timezone.helper';
-import { stripHtmlToPlainText } from '@helpers/security/strip-html.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { viewerKeyPart } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -61,6 +59,7 @@ import { WebSocketPaths } from '@utils/network/websocket.util';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useConfirmPostRemoval } from '@/features/posts/hooks/use-confirm-post-removal/use-confirm-post-removal';
 import { buildPostsCardActions } from '@/features/posts/list/components/PostsCardActions';
 import { buildPostsTableActions } from '@/features/posts/list/components/PostsTableActions';
 import { buildPostsTableColumns } from '@/features/posts/list/components/PostsTableColumns';
@@ -171,7 +170,7 @@ export function usePostsList({
   const adminBrand = parsedSearchParams.get('brand') || '';
 
   const { openIngredientSidebar } = useIngredientSidebar();
-  const { openConfirmDelete } = useConfirmDeleteModal();
+  const confirmPostRemoval = useConfirmPostRemoval();
   const { openPostRemixModal } = usePostRemixModal();
   const { openPostRepurposeModal } = usePostRepurposeModal();
 
@@ -423,30 +422,11 @@ export function usePostsList({
 
   const handleDelete = useCallback(
     (post: IPost) => {
-      openConfirmDelete({
-        entity: {
-          id: post.id,
-          label:
-            post.label || stripHtmlToPlainText(post.description) || 'this post',
-        },
-        entityName: 'post',
-        onConfirm: async () => {
-          try {
-            const postsService = await getPostsService();
-            await postsService.delete(post.id);
-            await findAllPosts();
-
-            logger.info('Post deleted successfully', { postId: post.id });
-          } catch (error) {
-            logger.error('Failed to delete post', error);
-            notificationsService.error(
-              'Failed to delete post. Please try again.',
-            );
-          }
-        },
+      confirmPostRemoval([post], async () => {
+        await findAllPosts();
       });
     },
-    [openConfirmDelete, getPostsService, findAllPosts, notificationsService],
+    [confirmPostRemoval, findAllPosts],
   );
 
   /**

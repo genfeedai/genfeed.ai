@@ -15,6 +15,7 @@ import type {
   IPostVariationResult,
   PostDraftGenerationInput,
   PostDraftGenerationResult,
+  PostRemovalResult,
   ScoreSeoRequest,
   SocialGenerationFormat,
 } from '@genfeedai/contracts/interfaces';
@@ -369,6 +370,22 @@ export class PostsService extends BaseService<
         count: number;
       };
     }>('/hook-generations', data);
+    return response.data;
+  }
+
+  /**
+   * Delete a post, a published one included, and on request the Library media
+   * only it uses. The copy on the social network is not touched. Reads the
+   * post back and says whether it is gone.
+   */
+  public async remove(
+    id: string,
+    options: { includeMedia?: boolean } = {},
+  ): Promise<PostRemovalResult> {
+    const response = await this.instance.post<PostRemovalResult>(
+      `/${id}/deletions`,
+      { includeMedia: options.includeMedia === true },
+    );
     return response.data;
   }
 

@@ -33,6 +33,7 @@ export * from './newsletter-module.interface';
 export * from './persona.interface';
 export * from './post.interface';
 export * from './post-quick-action.interface';
+export * from './post-removal.interface';
 export * from './posting-cadence.interface';
 export * from './prompt.interface';
 export * from './prompts-content.interface';

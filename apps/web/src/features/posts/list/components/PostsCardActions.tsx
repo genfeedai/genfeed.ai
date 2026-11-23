@@ -97,7 +97,6 @@ export function buildPostsCardActions({
           {
             destructive: true,
             icon: postCardIcons.delete,
-            isVisible: (post: IPost) => post.status !== PostStatus.PUBLIC,
             key: 'delete',
             label: 'Delete post',
             onClick: onDelete,

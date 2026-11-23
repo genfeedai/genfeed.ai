@@ -561,4 +561,36 @@ describe('PostsService', () => {
       expect(result).toBeInstanceOf(Post);
     });
   });
+
+  describe('remove', () => {
+    it('deletes through the deletions route and returns the read-back result', async () => {
+      const removal = {
+        deletedOnPlatform: false,
+        media: { deleted: ['asset-1'], kept: [] },
+        platform: 'instagram',
+        postId: 'post-123',
+        previousStatus: 'public',
+        publishedUrl: 'https://example.com/p/1',
+        verified: { mediaGone: true, postGone: true },
+      };
+      mockInstance.post.mockResolvedValue({ data: removal });
+
+      const result = await service.remove('post-123', { includeMedia: true });
+
+      expect(mockInstance.post).toHaveBeenCalledWith('/post-123/deletions', {
+        includeMedia: true,
+      });
+      expect(result).toEqual(removal);
+    });
+
+    it('keeps the media unless asked to delete it', async () => {
+      mockInstance.post.mockResolvedValue({ data: {} });
+
+      await service.remove('post-123');
+
+      expect(mockInstance.post).toHaveBeenCalledWith('/post-123/deletions', {
+        includeMedia: false,
+      });
+    });
+  });
 });

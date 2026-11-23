@@ -235,4 +235,35 @@ describe('shared post evaluation control', () => {
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
     expect(evaluateMock).not.toHaveBeenCalled();
   });
+
+  it('ticks a post for a bulk action without opening it', () => {
+    const onToggleSelect = vi.fn();
+    render(
+      <PostsGrid
+        posts={[basePost, { ...basePost, id: 'post-2' } as IPost]}
+        onPostEvaluated={vi.fn()}
+        onOpenPostDetail={openPostDetailMock}
+        onToggleSelect={onToggleSelect}
+        selectedIds={new Set(['post-2'])}
+      />,
+    );
+
+    const boxes = screen.getAllByRole('checkbox', { name: 'selectPost' });
+    expect(boxes).toHaveLength(2);
+    expect(boxes[0]).not.toBeChecked();
+    expect(boxes[1]).toBeChecked();
+
+    fireEvent.click(boxes[0]);
+
+    expect(onToggleSelect).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'post-1' }),
+    );
+    expect(openPostDetailMock).not.toHaveBeenCalled();
+  });
+
+  it('shows no checkboxes unless a bulk action is wired', () => {
+    render(<PostsGrid posts={[basePost]} onPostEvaluated={vi.fn()} />);
+
+    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+  });
 });

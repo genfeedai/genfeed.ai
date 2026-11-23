@@ -1,6 +1,5 @@
 'use client';
 
-import { useConfirmDeleteModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
 import { TargetExecutionState } from '@genfeedai/contracts';
 import type {
   IPost,
@@ -15,10 +14,10 @@ import { getJsonApiErrorMember } from '@genfeedai/services/core/json-api-error-m
 import { logger } from '@genfeedai/services/core/logger.service';
 import type { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import { isSafeDiagnosticText } from '@genfeedai/services/core/operation-error';
-import { stripHtmlToPlainText } from '@helpers/security/strip-html.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime';
 import { useCallback } from 'react';
+import { useConfirmPostRemoval } from '@/features/posts/hooks/use-confirm-post-removal/use-confirm-post-removal';
 import { requirePostId } from './require-post-id';
 import type { UsePostDetailDraftsReturn } from './use-post-detail-drafts';
 
@@ -141,7 +140,7 @@ export function usePostDetailActions({
   setEnhancingPostId,
   setEnhancingAction,
 }: UsePostDetailActionsOptions): UsePostDetailActionsReturn {
-  const { openConfirmDelete } = useConfirmDeleteModal();
+  const confirmPostRemoval = useConfirmPostRemoval();
   const { href } = useOrgUrl();
 
   // Content save handler
@@ -341,42 +340,18 @@ export function usePostDetailActions({
     setIsSavingSchedule,
   ]);
 
-  // Delete post handler
+  // Delete post handler: the shared confirm flow, published posts included
   const handleDeletePost = useCallback(() => {
     if (!post) {
       return;
     }
 
-    openConfirmDelete({
-      entity: {
-        id: requirePostId(post),
-        label:
-          post.label || stripHtmlToPlainText(post.description) || 'this post',
-      },
-      entityName: 'post',
-      onConfirm: async () => {
-        try {
-          const postId = requirePostId(post);
-          const service = await getPostsService();
-          await service.delete(postId);
-          settleAutoSave(autoSaveRefs, postId);
-          notificationsService.success('Post deleted successfully');
-          router.push(href('/publishing'));
-        } catch (err) {
-          logger.error('Failed to delete post', err);
-          notificationsService.error('Failed to delete post');
-        }
-      },
+    const postId = requirePostId(post);
+    confirmPostRemoval([post], async () => {
+      settleAutoSave(autoSaveRefs, postId);
+      router.push(href('/publishing'));
     });
-  }, [
-    post,
-    autoSaveRefs,
-    openConfirmDelete,
-    getPostsService,
-    notificationsService,
-    router,
-    href,
-  ]);
+  }, [post, autoSaveRefs, confirmPostRemoval, router, href]);
 
   // AI rewrites return a proposal; the caller decides whether to apply it.
   const requestRewriteDraft = useCallback(

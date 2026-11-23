@@ -225,12 +225,13 @@ describe('PostDetailHeader', () => {
     expect(deleteButton).toHaveAttribute('data-destructive', 'true');
   });
 
-  it('hides edit-only controls once the post is published', () => {
+  it('hides edit-only controls but keeps Delete once the post is published', () => {
     renderHeader({}, { isPublished: true });
 
     expect(
-      screen.queryByRole('button', { name: 'Delete' }),
+      screen.queryByRole('button', { name: 'Preview' }),
     ).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Delete' })).toBeInTheDocument();
   });
 
   it('toggles the view mode from the overflow menu', async () => {
