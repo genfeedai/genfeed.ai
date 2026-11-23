@@ -8,6 +8,7 @@ import type {
   IOnboardingDraftsReview,
   IOnboardingDraftsReviewRun,
 } from '@genfeedai/contracts/interfaces';
+import { runWithTenantContext } from '@libs/prisma/tenant-context';
 import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
@@ -65,17 +66,22 @@ export class OnboardingDraftsReviewService {
       rows.map(async (row): Promise<IOnboardingDraftsReviewRun> => {
         const run = row.contentRuns[0];
         const { drafts, hasMasterImage } = readOnboardingDrafts(run?.config);
+        // The operator's request carries the operator's own tenant, and the
+        // tenant guard refuses a read of another organization's ratings under
+        // it, so each organization's ratings are read inside its own tenant.
         const feedback = drafts.length
-          ? await this.prisma.brandedGenerationFeedback.findMany({
-              select: { rating: true, reasons: true, receiptId: true },
-              // One verdict per draft, from the single user of a new organization.
-              take: drafts.length * 4,
-              where: {
-                isDeleted: false,
-                organizationId: row.id,
-                receiptId: { in: drafts.map((draft) => draft.receiptId) },
-              },
-            })
+          ? await runWithTenantContext({ organizationId: row.id }, async () =>
+              this.prisma.brandedGenerationFeedback.findMany({
+                select: { rating: true, reasons: true, receiptId: true },
+                // One verdict per draft, from the single user of a new organization.
+                take: drafts.length * 4,
+                where: {
+                  isDeleted: false,
+                  organizationId: row.id,
+                  receiptId: { in: drafts.map((draft) => draft.receiptId) },
+                },
+              }),
+            )
           : [];
         return {
           brandName: row.brands[0]?.label ?? null,
