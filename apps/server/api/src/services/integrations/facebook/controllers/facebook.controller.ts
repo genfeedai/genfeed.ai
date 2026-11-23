@@ -14,9 +14,15 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
-import { serializeSingle } from '@api/helpers/utils/response/response.util';
+import {
+  serializeCollection,
+  serializeSingle,
+} from '@api/helpers/utils/response/response.util';
+import { SelectFacebookPagesDto } from '@api/services/integrations/facebook/dto/select-facebook-pages.dto';
 import { FacebookService } from '@api/services/integrations/facebook/services/facebook.service';
+import { FacebookPageConnectionService } from '@api/services/integrations/facebook/services/facebook-page-connection.service';
 import { CredentialPlatform } from '@genfeedai/contracts';
+import type { IFacebookPageCandidate } from '@genfeedai/contracts/interfaces/integrations/facebook.interface';
 import {
   buildGrantedScopesCredentialPatch,
   parseGrantedOAuthScopes,
@@ -50,6 +56,7 @@ export class FacebookController {
     private readonly credentialsService: CredentialsService,
     private readonly facebookService: FacebookService,
     private readonly loggerService: LoggerService,
+    private readonly pageConnection: FacebookPageConnectionService,
   ) {}
 
   @Post('connect')
@@ -169,6 +176,14 @@ export class FacebookController {
         }
       }
 
+      const pages = await this.pageConnection.listPagesOrExplain(accessToken);
+
+      // A connection that manages Pages is bound to one Page, because the Page
+      // is the channel posts and comments belong to. With several Pages the
+      // credential keeps its token and waits for `POST :credentialId/select-
+      // page`; the serialized credential then reports `needsAccountSelection`.
+      // A user with no Page keeps the user-level connection, which is all Meta
+      // Ads needs.
       let updatedCredential = await this.credentialsService.patch(
         credential.id,
         {
@@ -176,31 +191,75 @@ export class FacebookController {
           accessTokenExpiry: expiresIn
             ? new Date(Date.now() + expiresIn * 1000)
             : undefined,
-          isConnected: true,
+          isConnected: pages.length === 0,
           isDeleted: false,
           oauthState: verifiedOAuthState(body.state),
           ...buildGrantedScopesCredentialPatch(grantedScopes),
         },
       );
 
-      updatedCredential = await this.credentialsService.updateExternalProfile(
-        updatedCredential.id,
-        organizationId,
-        {
-          avatarUrl: profile.picture?.data?.url,
-          // A personal Facebook profile has no public @handle through Graph —
-          // only a name and (private) email. Never persist either as a handle.
-          handle: undefined,
-          id: credential.externalId || profile.id,
-          name: profile.name,
-        },
-      );
+      const [onlyPage] = pages;
+      if (pages.length === 0) {
+        updatedCredential = await this.credentialsService.updateExternalProfile(
+          updatedCredential.id,
+          organizationId,
+          {
+            avatarUrl: profile.picture?.data?.url,
+            // A personal Facebook profile has no public @handle through Graph —
+            // only a name and (private) email. Never persist either as a handle.
+            handle: undefined,
+            id: credential.externalId || profile.id,
+            name: profile.name,
+          },
+        );
+      } else if (pages.length === 1 && onlyPage) {
+        const [connected] = await this.pageConnection.connectPages(
+          updatedCredential,
+          [onlyPage],
+        );
+        updatedCredential = connected ?? updatedCredential;
+      }
 
       return serializeSingle(request, CredentialSerializer, updatedCredential);
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);
       throw error;
     }
+  }
+
+  /** The Pages a pending connection can still choose from. */
+  @TenantReadPolicy('owner')
+  @Get(':credentialId/pages')
+  async listPendingPages(
+    @CurrentUser() user: User,
+    @Param('credentialId') credentialId: string,
+  ): Promise<{ pages: IFacebookPageCandidate[] }> {
+    const pages = await this.pageConnection.listCandidates(
+      user.organizationId,
+      credentialId,
+    );
+    return { pages };
+  }
+
+  /**
+   * Settle a pending connection onto the chosen Pages. The first takes this
+   * credential and each further one becomes its own credential on the brand.
+   */
+  @Post(':credentialId/select-page')
+  async selectPages(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Param('credentialId') credentialId: string,
+    @Body() body: SelectFacebookPagesDto,
+  ) {
+    const connected = await this.pageConnection.connectChosen(
+      user.organizationId,
+      credentialId,
+      body.pageIds,
+    );
+    return serializeCollection(request, CredentialSerializer, {
+      docs: connected,
+    });
   }
 
   @TenantReadPolicy('selected')

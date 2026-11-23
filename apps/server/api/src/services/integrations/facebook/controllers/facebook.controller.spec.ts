@@ -4,9 +4,11 @@ import { CredentialsService } from '@api/collections/credentials/services/creden
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { FacebookController } from '@api/services/integrations/facebook/controllers/facebook.controller';
 import { FacebookService } from '@api/services/integrations/facebook/services/facebook.service';
+import { FacebookPageConnectionService } from '@api/services/integrations/facebook/services/facebook-page-connection.service';
 import { CredentialPlatform } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
+import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 
@@ -28,6 +30,7 @@ describe('FacebookController', () => {
     getGrantedPermissions: vi.fn(),
     getUserPages: vi.fn(),
     getUserProfile: vi.fn(),
+    listManagedPages: vi.fn().mockResolvedValue([]),
     schedulePost: vi.fn(),
     uploadImage: vi.fn(),
     uploadVideo: vi.fn(),
@@ -44,6 +47,9 @@ describe('FacebookController', () => {
       organizationId: 'test-object-id',
       platform: CredentialPlatform.FACEBOOK,
     }),
+    connectAccount: vi.fn(),
+    createPendingForBrand: vi.fn(),
+    findConnectedAccounts: vi.fn().mockResolvedValue([]),
     patch: vi.fn().mockResolvedValue({ id: 'cred-1' }),
     updateExternalProfile: vi.fn().mockResolvedValue({ id: 'cred-1' }),
     findOne: vi.fn().mockResolvedValue(null),
@@ -68,6 +74,7 @@ describe('FacebookController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [FacebookController],
       providers: [
+        FacebookPageConnectionService,
         {
           provide: BrandsService,
           useValue: mockBrandsService,
@@ -96,6 +103,7 @@ describe('FacebookController', () => {
 
   afterEach(() => {
     vi.clearAllMocks();
+    mockFacebookService.listManagedPages.mockResolvedValue([]);
   });
 
   it('should be defined', () => {
@@ -147,6 +155,116 @@ describe('FacebookController', () => {
         },
       );
       expect(result).toMatchObject({ data: { type: 'credential' } });
+    });
+
+    it('connects the only managed Page as the channel', async () => {
+      mockFacebookService.exchangeAuthCodeForAccessToken.mockResolvedValue({
+        accessToken: 'facebook-token',
+        expiresIn: 3600,
+      });
+      mockFacebookService.getUserProfile.mockResolvedValue({
+        id: 'fb-user-1',
+        name: 'Person',
+      });
+      mockFacebookService.getGrantedPermissions.mockResolvedValue([
+        'pages_manage_posts',
+      ]);
+      mockFacebookService.listManagedPages.mockResolvedValue([
+        {
+          id: '111',
+          name: 'Acme Page',
+          picture: 'https://facebook.example/page.jpg',
+        },
+      ]);
+      mockCredentialsService.patch.mockResolvedValueOnce({
+        id: 'cred-1',
+        organizationId: 'test-object-id',
+        platform: CredentialPlatform.FACEBOOK,
+      });
+      mockCredentialsService.connectAccount.mockResolvedValue({
+        externalId: '111',
+        id: 'cred-1',
+        isConnected: true,
+        platform: CredentialPlatform.FACEBOOK,
+      });
+
+      const result = await controller.verify({} as never, {
+        code: 'auth-code',
+        state: 'opaque-oauth-state',
+      });
+
+      expect(mockCredentialsService.connectAccount).toHaveBeenCalledWith(
+        'cred-1',
+        'test-object-id',
+        {
+          avatarUrl: 'https://facebook.example/page.jpg',
+          handle: undefined,
+          id: '111',
+          name: 'Acme Page',
+        },
+      );
+      expect(result).toMatchObject({
+        data: { attributes: { externalId: '111' } },
+      });
+    });
+
+    it('leaves the connection pending when several Pages are managed', async () => {
+      mockFacebookService.exchangeAuthCodeForAccessToken.mockResolvedValue({
+        accessToken: 'facebook-token',
+        expiresIn: 3600,
+      });
+      mockFacebookService.getUserProfile.mockResolvedValue({
+        id: 'fb-user-1',
+        name: 'Person',
+      });
+      mockFacebookService.getGrantedPermissions.mockResolvedValue([
+        'pages_manage_posts',
+      ]);
+      mockFacebookService.listManagedPages.mockResolvedValue([
+        { id: '111', name: 'Page One' },
+        { id: '222', name: 'Page Two' },
+      ]);
+      mockCredentialsService.patch.mockResolvedValueOnce({
+        accessToken: 'encrypted',
+        id: 'cred-1',
+        isConnected: false,
+        platform: CredentialPlatform.FACEBOOK,
+      });
+
+      const result = await controller.verify({} as never, {
+        code: 'auth-code',
+        state: 'opaque-oauth-state',
+      });
+
+      expect(mockCredentialsService.patch).toHaveBeenCalledWith(
+        'test-object-id',
+        expect.objectContaining({ isConnected: false }),
+      );
+      expect(result).toMatchObject({
+        data: { attributes: { needsAccountSelection: true } },
+      });
+    });
+
+    it('refuses the connection when Facebook cannot list the Pages', async () => {
+      mockFacebookService.exchangeAuthCodeForAccessToken.mockResolvedValue({
+        accessToken: 'facebook-token',
+        expiresIn: 3600,
+      });
+      mockFacebookService.getUserProfile.mockResolvedValue({
+        id: 'fb-user-1',
+        name: 'Person',
+      });
+      mockFacebookService.getGrantedPermissions.mockResolvedValue([]);
+      mockFacebookService.listManagedPages.mockRejectedValue(
+        new Error('Graph unavailable'),
+      );
+
+      await expect(
+        controller.verify({} as never, {
+          code: 'auth-code',
+          state: 'opaque-oauth-state',
+        }),
+      ).rejects.toThrow('Facebook could not list your Pages');
     });
 
     it('keeps the connection when permission capture is temporarily unavailable', async () => {
@@ -203,9 +321,6 @@ describe('FacebookController', () => {
       });
 
       expect(verified).toMatchObject({ data: { type: 'credential' } });
-      expect(mockFacebookService.getGrantedPermissions).toHaveBeenCalledWith(
-        'facebook-token',
-      );
       expect(mockCredentialsService.patch).toHaveBeenCalledWith(
         'test-object-id',
         expect.objectContaining({
@@ -232,6 +347,123 @@ describe('FacebookController', () => {
       await expect(
         controller.verify({} as never, { code: 'auth-code' }),
       ).rejects.toBeInstanceOf(HttpException);
+    });
+  });
+
+  describe('Page selection for a pending connection', () => {
+    const pendingCredential = {
+      accessToken: EncryptionUtil.encrypt('user-token'),
+      accessTokenExpiry: new Date('2026-12-01T00:00:00.000Z'),
+      brandId: 'brand-1',
+      grantedScopes: ['pages_manage_posts'],
+      grantedScopesCapturedAt: new Date('2026-11-23T00:00:00.000Z'),
+      id: 'cred-pending',
+      isConnected: false,
+      organizationId: 'test-object-id',
+      platform: CredentialPlatform.FACEBOOK,
+      userId: 'user-1',
+    };
+    const managedPages = [
+      {
+        id: '111',
+        name: 'Page One',
+        picture: 'https://facebook.example/1.jpg',
+      },
+      { id: '222', name: 'Page Two' },
+    ];
+
+    it('lists the managed Pages and flags those another credential holds', async () => {
+      mockCredentialsService.findOne.mockResolvedValue(pendingCredential);
+      mockFacebookService.listManagedPages.mockResolvedValue(managedPages);
+      mockCredentialsService.findConnectedAccounts.mockResolvedValue([
+        { externalId: '222', id: 'cred-other' },
+      ]);
+
+      const result = await controller.listPendingPages(
+        mockUser,
+        'cred-pending',
+      );
+
+      expect(mockFacebookService.listManagedPages).toHaveBeenCalledWith(
+        'user-token',
+      );
+      expect(result.pages).toEqual([
+        { ...managedPages[0], isAlreadyConnected: false },
+        { ...managedPages[1], isAlreadyConnected: true },
+      ]);
+    });
+
+    it('refuses to list Pages for a credential that already has one', async () => {
+      mockCredentialsService.findOne.mockResolvedValue({
+        ...pendingCredential,
+        externalId: '111',
+        isConnected: true,
+      });
+
+      await expect(
+        controller.listPendingPages(mockUser, 'cred-pending'),
+      ).rejects.toThrow('already connected to a Page');
+    });
+
+    it('connects the first Page to the credential and each further Page to its own credential', async () => {
+      mockCredentialsService.findOne.mockResolvedValue(pendingCredential);
+      mockFacebookService.listManagedPages.mockResolvedValue(managedPages);
+      mockCredentialsService.connectAccount
+        .mockResolvedValueOnce({
+          externalId: '111',
+          id: 'cred-pending',
+          isConnected: true,
+          platform: CredentialPlatform.FACEBOOK,
+        })
+        .mockResolvedValueOnce({
+          externalId: '222',
+          id: 'cred-sibling',
+          isConnected: true,
+          platform: CredentialPlatform.FACEBOOK,
+        });
+      mockCredentialsService.createPendingForBrand.mockResolvedValue({
+        id: 'cred-sibling',
+      });
+
+      const result = await controller.selectPages(
+        {} as never,
+        mockUser,
+        'cred-pending',
+        { pageIds: ['111', '222'] },
+      );
+
+      expect(
+        (result as { data: Array<{ attributes: { externalId: string } }> }).data
+          .map((credential) => credential.attributes.externalId)
+          .sort(),
+      ).toEqual(['111', '222']);
+      // The sibling carries a copy of the one Facebook grant, so it can be
+      // disconnected on its own.
+      expect(mockCredentialsService.connectAccount).toHaveBeenLastCalledWith(
+        'cred-sibling',
+        'test-object-id',
+        {
+          avatarUrl: undefined,
+          handle: undefined,
+          id: '222',
+          name: 'Page Two',
+        },
+        expect.objectContaining({
+          accessToken: 'user-token',
+          grantedScopes: ['pages_manage_posts'],
+        }),
+      );
+    });
+
+    it('rejects a Page the Facebook account does not manage', async () => {
+      mockCredentialsService.findOne.mockResolvedValue(pendingCredential);
+      mockFacebookService.listManagedPages.mockResolvedValue(managedPages);
+
+      await expect(
+        controller.selectPages({} as never, mockUser, 'cred-pending', {
+          pageIds: ['999'],
+        }),
+      ).rejects.toThrow('not available to this Facebook account');
     });
   });
 
