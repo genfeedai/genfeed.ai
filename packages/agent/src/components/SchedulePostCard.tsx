@@ -12,8 +12,8 @@ import {
 } from '@genfeedai/helpers/formatting/timezone/timezone.helper';
 import { usePostingSets } from '@hooks/data/content/use-posting-sets/use-posting-sets';
 import { usePostingSignatures } from '@hooks/data/content/use-posting-signatures/use-posting-signatures';
+import AccountPicker from '@ui/display/connected-account/AccountPicker';
 import ConnectedAccount from '@ui/display/connected-account/ConnectedAccount';
-import { getConnectedAccountText } from '@ui/display/connected-account/connected-account.util';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
@@ -25,7 +25,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
-import { Toggle } from '@ui/primitives/toggle';
 import PostingSetPicker from '@ui/publisher/PostingSetPicker';
 import PostingSignaturePicker from '@ui/publisher/PostingSignaturePicker';
 import { Calendar, Clock, DollarSign } from 'lucide-react';
@@ -445,12 +444,32 @@ export function SchedulePostCard({
           <span className="mb-1 block text-2xs font-medium uppercase tracking-label text-muted-foreground">
             {translate('channels')}
           </span>
+          <AccountPicker
+            ariaLabel={translate('channels')}
+            className="mb-3"
+            items={targetProposals.map((target) => ({
+              ...targetAccount(target),
+              id: target.id,
+              warning: isHealthyReferenceState(target.referenceState)
+                ? undefined
+                : postingSetsTranslate('disconnected'),
+            }))}
+            onValueChange={(nextIds) => {
+              for (const targetId of [
+                ...nextIds.filter((id) => !selectedTargetIdSet.has(id)),
+                ...[...selectedTargetIdSet].filter(
+                  (id) => !nextIds.includes(id),
+                ),
+              ]) {
+                toggleTarget(targetId);
+              }
+            }}
+            type="multiple"
+            value={[...selectedTargetIdSet]}
+          />
           <div className="space-y-3">
-            {targetProposals.map((target) => {
-              const isSelected = selectedTargetIdSet.has(target.id);
-              const blockers = isSelected
-                ? (targetBlockers[target.id] ?? [])
-                : [];
+            {selectedTargets.map((target) => {
+              const blockers = targetBlockers[target.id] ?? [];
               const account = targetAccount(target);
               const isUnhealthy = !isHealthyReferenceState(
                 target.referenceState,
@@ -458,61 +477,50 @@ export function SchedulePostCard({
               return (
                 <div key={target.id} className="border border-border p-3">
                   <div className="mb-2 flex items-center justify-between gap-2">
-                    <Toggle
-                      aria-label={getConnectedAccountText(account).primary}
-                      onPressedChange={() => toggleTarget(target.id)}
-                      pressed={isSelected}
-                      size="sm"
-                      variant="chip"
-                    >
-                      <ConnectedAccount account={account} size="xs" />
-                    </Toggle>
+                    <ConnectedAccount account={account} size="xs" />
                     {isUnhealthy ? (
                       <span className="text-xs text-muted-foreground">
                         {postingSetsTranslate('disconnected')}
                       </span>
                     ) : null}
                   </div>
-                  {isSelected ? (
-                    <>
-                      <Input
-                        className="mb-2"
-                        id={`schedule-post-target-${target.id}`}
-                        label={`${target.label} time`}
-                        onChange={(event) => {
-                          const nextValue = event.target.value;
-                          setScheduledAtByTarget((current) => ({
-                            ...current,
-                            [target.id]: nextValue,
-                          }));
-                        }}
-                        type="datetime-local"
-                        value={scheduledAtByTarget[target.id] ?? dateTime}
-                      />
-                      <PostingSignaturePicker
-                        onChange={(signatureIds) => {
-                          setSignatureIdsByTarget((current) => ({
-                            ...current,
-                            [target.id]: signatureIds,
-                          }));
-                        }}
-                        platform={target.platform}
-                        selectedIds={signatureIdsByTarget[target.id] ?? []}
-                        signatures={signatures}
-                      />
-                      {blockers.length > 0 ? (
-                        <Alert size="sm" variant="destructive">
-                          <AlertTitle>{translate('cannotSchedule')}</AlertTitle>
-                          {blockers.map((blocker) => (
-                            <AlertDescription
-                              key={`${blocker.code}:${blocker.field ?? ''}:${blocker.message}`}
-                            >
-                              {blocker.message}
-                            </AlertDescription>
-                          ))}
-                        </Alert>
-                      ) : null}
-                    </>
+
+                  <Input
+                    className="mb-2"
+                    id={`schedule-post-target-${target.id}`}
+                    label={`${target.label} time`}
+                    onChange={(event) => {
+                      const nextValue = event.target.value;
+                      setScheduledAtByTarget((current) => ({
+                        ...current,
+                        [target.id]: nextValue,
+                      }));
+                    }}
+                    type="datetime-local"
+                    value={scheduledAtByTarget[target.id] ?? dateTime}
+                  />
+                  <PostingSignaturePicker
+                    onChange={(signatureIds) => {
+                      setSignatureIdsByTarget((current) => ({
+                        ...current,
+                        [target.id]: signatureIds,
+                      }));
+                    }}
+                    platform={target.platform}
+                    selectedIds={signatureIdsByTarget[target.id] ?? []}
+                    signatures={signatures}
+                  />
+                  {blockers.length > 0 ? (
+                    <Alert size="sm" variant="destructive">
+                      <AlertTitle>{translate('cannotSchedule')}</AlertTitle>
+                      {blockers.map((blocker) => (
+                        <AlertDescription
+                          key={`${blocker.code}:${blocker.field ?? ''}:${blocker.message}`}
+                        >
+                          {blocker.message}
+                        </AlertDescription>
+                      ))}
+                    </Alert>
                   ) : null}
                 </div>
               );
@@ -524,28 +532,28 @@ export function SchedulePostCard({
           <div className="mb-1 text-2xs font-medium uppercase tracking-label text-muted-foreground">
             {translate('channels')}
           </div>
-          <div className="flex flex-wrap gap-2">
-            {availablePlatforms.map((platform) => (
-              <Label
-                key={platform}
-                htmlFor={`schedule-post-platform-${platform}`}
-                className={`flex cursor-pointer items-center gap-1.5 border px-2.5 py-1 text-xs font-normal leading-normal transition-colors ${
-                  selectedPlatforms.has(platform)
-                    ? 'border-primary bg-primary/5 text-foreground'
-                    : 'border-border text-muted-foreground hover:border-primary/50'
-                }`}
-              >
-                <Input
-                  className="sr-only"
-                  id={`schedule-post-platform-${platform}`}
-                  isChecked={selectedPlatforms.has(platform)}
-                  onChange={() => togglePlatform(platform)}
-                  type="checkbox"
-                />
-                {platform.charAt(0).toUpperCase() + platform.slice(1)}
-              </Label>
-            ))}
-          </div>
+          <AccountPicker
+            ariaLabel={translate('channels')}
+            items={availablePlatforms.map((platform) => ({
+              id: platform,
+              platform,
+            }))}
+            onValueChange={(next) => {
+              for (const platform of [
+                ...next.filter((entry) => !selectedPlatforms.has(entry)),
+                ...availablePlatforms.filter(
+                  (entry) =>
+                    selectedPlatforms.has(entry) && !next.includes(entry),
+                ),
+              ]) {
+                togglePlatform(platform);
+              }
+            }}
+            type="multiple"
+            value={availablePlatforms.filter((platform) =>
+              selectedPlatforms.has(platform),
+            )}
+          />
         </div>
       ) : (
         <p className="mb-3 text-xs text-muted-foreground">

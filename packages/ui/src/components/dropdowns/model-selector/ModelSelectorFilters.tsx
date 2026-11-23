@@ -3,34 +3,41 @@
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type {
   ModelSelectorFilter,
-  ModelSelectorFilterPillsProps,
+  ModelSelectorFiltersProps,
 } from '@genfeedai/props/ui/model-selector/model-selector.props';
-import { SegmentedControl } from '@ui/primitives/segmented-control';
+import { OptionTile, OptionTileGroup } from '@ui/primitives/option-tile';
+import { useTranslations } from 'next-intl';
 import { memo } from 'react';
 
-/** One row, two axes: one category plus an optional capability shortcut. */
-const ModelSelectorFilterPills = memo(function ModelSelectorFilterPills({
+/** One row of filters, two axes: one category plus an optional capability shortcut. */
+const ModelSelectorFilters = memo(function ModelSelectorFilters({
   categoryFilters,
   activeCategoryId,
   onCategorySelect,
   capabilityFilters,
   activeCapabilityFilterId,
   onCapabilityFilterSelect,
-}: ModelSelectorFilterPillsProps) {
+}: ModelSelectorFiltersProps) {
+  const translate = useTranslations('ui.modelSelectorFilters');
   if (categoryFilters.length < 2 && capabilityFilters.length === 0) {
     return null;
   }
 
-  const toOptions = (filters: ModelSelectorFilter[]) =>
+  const renderTiles = (filters: ModelSelectorFilter[]) =>
     filters.map((filter) => {
       const FilterIcon = filter.icon;
 
-      return {
-        ariaLabel: filter.label,
-        icon: FilterIcon ? <FilterIcon aria-hidden /> : undefined,
-        label: filter.label,
-        value: filter.id,
-      };
+      return (
+        <OptionTile
+          ariaLabel={filter.label}
+          className="w-auto"
+          icon={FilterIcon ? <FilterIcon aria-hidden /> : undefined}
+          key={filter.id}
+          size="sm"
+          title={filter.label}
+          value={filter.id}
+        />
+      );
     });
 
   return (
@@ -41,24 +48,22 @@ const ModelSelectorFilterPills = memo(function ModelSelectorFilterPills({
         '[scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
       )}
     >
-      <SegmentedControl
-        appearance="chip"
-        ariaLabel="Model categories"
+      <OptionTileGroup
+        ariaLabel={translate('categories')}
         className="shrink-0 flex-nowrap"
         onValueChange={onCategorySelect}
-        options={toOptions(categoryFilters)}
-        size="sm"
         value={activeCategoryId}
-      />
+      >
+        {renderTiles(categoryFilters)}
+      </OptionTileGroup>
 
       {capabilityFilters.length > 0 ? (
         <span className="mx-0.5 h-4 w-px shrink-0 bg-border" aria-hidden />
       ) : null}
 
       {capabilityFilters.length > 0 ? (
-        <SegmentedControl
-          appearance="chip"
-          ariaLabel="Model capabilities"
+        <OptionTileGroup
+          ariaLabel={translate('capabilities')}
           className="shrink-0 flex-nowrap"
           isDeselectable
           onValueChange={(filterId) => {
@@ -67,13 +72,13 @@ const ModelSelectorFilterPills = memo(function ModelSelectorFilterPills({
               onCapabilityFilterSelect(nextId);
             }
           }}
-          options={toOptions(capabilityFilters)}
-          size="sm"
           value={activeCapabilityFilterId ?? undefined}
-        />
+        >
+          {renderTiles(capabilityFilters)}
+        </OptionTileGroup>
       ) : null}
     </div>
   );
 });
 
-export default ModelSelectorFilterPills;
+export default ModelSelectorFilters;

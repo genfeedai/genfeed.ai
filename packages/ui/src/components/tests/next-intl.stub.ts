@@ -474,6 +474,10 @@ const UI_TEST_MESSAGES = {
     },
   },
   ui: {
+    modelSelectorFilters: {
+      capabilities: 'Model capabilities',
+      categories: 'Model categories',
+    },
     viewMenu: {
       label: 'View',
     },

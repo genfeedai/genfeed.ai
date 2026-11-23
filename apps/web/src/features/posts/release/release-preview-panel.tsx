@@ -1,12 +1,13 @@
 'use client';
 
 import { formatPlatformLabel } from '@genfeedai/contracts';
+import { toConnectedAccount } from '@genfeedai/helpers/publisher/connected-account.helper';
 import { stripHtmlToPlainText } from '@helpers/security/strip-html.helper';
+import AccountPicker from '@ui/display/connected-account/AccountPicker';
 import { MediaCarousel } from '@ui/posts/platform-preview/PlatformPreviewMedia';
 import { getPlatformPreviewIcon } from '@ui/posts/platform-preview/platform-preview-icons';
 import { Avatar } from '@ui/primitives/avatar';
 import { Badge } from '@ui/primitives/badge';
-import { SegmentedControl } from '@ui/primitives/segmented-control';
 import { Globe } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
@@ -124,30 +125,31 @@ export default function ReleasePreviewPanel({
   const targets = releaseTargets(release);
   const [selected, setSelected] = useState<string>(GLOBAL_VIEW);
   const activeTarget = targets.find((target) => target.id === selected);
-  const options = [
+  const items = [
     {
-      icon: <Globe className="size-3.5" />,
+      icon: <Globe />,
+      id: GLOBAL_VIEW,
       label: translate('preview.global'),
-      value: GLOBAL_VIEW,
+      platform: GLOBAL_VIEW,
     },
-    ...targets.map((target) => {
-      const Icon = getPlatformPreviewIcon(target.platform);
-      return {
-        icon: <Icon className="size-3.5" />,
-        label: formatPlatformLabel(target.platform) ?? target.platform,
-        value: target.id,
-      };
-    }),
+    ...targets.map((target) => ({
+      ...(target.credential
+        ? toConnectedAccount(target.credential)
+        : { platform: target.platform }),
+      id: target.id,
+    })),
   ];
 
   return (
     <div className="space-y-3 p-4" data-testid="release-preview-panel">
-      <SegmentedControl
-        appearance="chip"
+      <AccountPicker
         ariaLabel={translate('preview.channel')}
-        onValueChange={setSelected}
-        options={options}
-        size="sm"
+        items={items}
+        onValueChange={(next) => {
+          if (next) {
+            setSelected(next);
+          }
+        }}
         value={activeTarget ? activeTarget.id : GLOBAL_VIEW}
       />
       {activeTarget ? (

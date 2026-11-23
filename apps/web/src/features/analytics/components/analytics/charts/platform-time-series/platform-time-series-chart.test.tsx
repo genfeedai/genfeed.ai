@@ -153,10 +153,7 @@ type ChartPlatform = NonNullable<
 >[number];
 
 const getPlatformButton = (label: string): HTMLButtonElement => {
-  const button = screen.getByText(label).closest('button');
-  if (!button) {
-    throw new Error(`Expected ${label} button`);
-  }
+  const button = screen.getByRole('button', { name: label });
   if (!(button instanceof HTMLButtonElement)) {
     throw new Error(`Expected ${label} button element`);
   }
@@ -200,7 +197,7 @@ describe('PlatformTimeSeriesChart', () => {
       render(<PlatformTimeSeriesChart data={mockData} isLoading />);
       const buttons = screen.getAllByRole('button');
       buttons.forEach((button) => {
-        expect(button).toHaveAttribute('aria-disabled', 'true');
+        expect(button).toBeDisabled();
       });
     });
   });
@@ -255,18 +252,18 @@ describe('PlatformTimeSeriesChart', () => {
   describe('Platform Toggle Buttons', () => {
     it('renders default platform buttons', () => {
       render(<PlatformTimeSeriesChart data={mockData} />);
-      expect(screen.getByText('Instagram')).toBeInTheDocument();
-      expect(screen.getByText('TikTok')).toBeInTheDocument();
-      expect(screen.getByText('YouTube')).toBeInTheDocument();
-      expect(screen.getByText('X')).toBeInTheDocument();
+      expect(getPlatformButton('Instagram')).toBeInTheDocument();
+      expect(getPlatformButton('TikTok')).toBeInTheDocument();
+      expect(getPlatformButton('YouTube')).toBeInTheDocument();
+      expect(getPlatformButton('X')).toBeInTheDocument();
     });
 
     it('all default platforms are active initially', () => {
       render(<PlatformTimeSeriesChart data={mockData} />);
-      const instagramButton = screen.getByText('Instagram').closest('button');
-      const tiktokButton = screen.getByText('TikTok').closest('button');
-      const youtubeButton = screen.getByText('YouTube').closest('button');
-      const twitterButton = screen.getByText('X').closest('button');
+      const instagramButton = getPlatformButton('Instagram');
+      const tiktokButton = getPlatformButton('TikTok');
+      const youtubeButton = getPlatformButton('YouTube');
+      const twitterButton = getPlatformButton('X');
 
       expect(instagramButton).toHaveAttribute('aria-pressed', 'true');
       expect(tiktokButton).toHaveAttribute('aria-pressed', 'true');
@@ -281,18 +278,11 @@ describe('PlatformTimeSeriesChart', () => {
           platforms={[Platform.FACEBOOK, Platform.LINKEDIN]}
         />,
       );
-      expect(screen.getByText('Facebook')).toBeInTheDocument();
-      expect(screen.getByText('LinkedIn')).toBeInTheDocument();
-      expect(screen.queryByText('Instagram')).not.toBeInTheDocument();
-    });
-
-    it('renders color indicator for each platform', () => {
-      const { container } = render(<PlatformTimeSeriesChart data={mockData} />);
-      // Color indicators are small circles (size-3) inside buttons, one per platform
-      const colorIndicators = container.querySelectorAll(
-        '.size-3.rounded-full',
-      );
-      expect(colorIndicators.length).toBe(4);
+      expect(getPlatformButton('Facebook')).toBeInTheDocument();
+      expect(getPlatformButton('LinkedIn')).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', { name: 'Instagram' }),
+      ).not.toBeInTheDocument();
     });
   });
 
@@ -512,7 +502,7 @@ describe('PlatformTimeSeriesChart', () => {
   describe('Button Styling States', () => {
     it('applies active styling to selected platforms', () => {
       render(<PlatformTimeSeriesChart data={mockData} />);
-      const activeButton = screen.getByText('Instagram').closest('button');
+      const activeButton = getPlatformButton('Instagram');
       expect(activeButton).toHaveAttribute('aria-pressed', 'true');
     });
 
@@ -521,23 +511,15 @@ describe('PlatformTimeSeriesChart', () => {
 
       fireEvent.click(getPlatformButton('Instagram'));
 
-      const inactiveButton = screen.getByText('Instagram').closest('button');
+      const inactiveButton = getPlatformButton('Instagram');
       expect(inactiveButton).toHaveAttribute('aria-pressed', 'false');
     });
 
-    it('applies disabled styling when loading', () => {
+    it('disables the platform buttons when loading', () => {
       render(<PlatformTimeSeriesChart data={mockData} isLoading />);
       const buttons = screen.getAllByRole('button');
       buttons.forEach((button) => {
-        expect(button).toHaveAttribute('aria-disabled', 'true');
-      });
-    });
-
-    it('applies cursor-not-allowed when loading', () => {
-      render(<PlatformTimeSeriesChart data={mockData} isLoading />);
-      const buttons = screen.getAllByRole('button');
-      buttons.forEach((button) => {
-        expect(button).toHaveAttribute('aria-disabled', 'true');
+        expect(button).toBeDisabled();
       });
     });
   });
@@ -601,7 +583,7 @@ describe('PlatformTimeSeriesChart', () => {
         render(
           <PlatformTimeSeriesChart data={mockData} platforms={[platform]} />,
         );
-        expect(screen.getByText(label)).toBeInTheDocument();
+        expect(getPlatformButton(label)).toBeInTheDocument();
         const area = screen.getByTestId(`area-${platform}`);
         expect(area).toHaveAttribute('data-stroke', color);
       },

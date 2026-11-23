@@ -113,4 +113,30 @@ describe('AccountPicker', () => {
     expect(chosen.className).toContain('aria-pressed:ring-primary');
     expect(chosen.className).not.toContain('data-[state=on]');
   });
+
+  it('names a choice that is not an account by its label', () => {
+    const onChange = vi.fn();
+    render(
+      <AccountPicker
+        ariaLabel="Preview"
+        items={[
+          {
+            icon: <svg data-testid="all-icon" />,
+            id: 'all',
+            label: 'All channels',
+            platform: 'all',
+          },
+          ...items,
+        ]}
+        onValueChange={onChange}
+        value="all"
+      />,
+    );
+
+    expect(screen.getByRole('radio', { name: 'All channels' })).toBeChecked();
+    expect(screen.getByTestId('all-icon')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('radio', { name: '@genfeed.tt, TikTok' }));
+    expect(onChange).toHaveBeenLastCalledWith('b');
+  });
 });
