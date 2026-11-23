@@ -97,14 +97,12 @@ export function deriveInsights(
     );
   }
 
-  // Top hooks
   if (summary.topHooks.length > 0) {
     insights.push(
       `Your top-performing hooks start with: "${summary.topHooks[0]}..."`,
     );
   }
 
-  // Cycle stats
   if (cycle.cycleStats.totalContent > 0) {
     insights.push(
       `Analyzed ${cycle.cycleStats.totalContent} pieces of content with avg engagement ${cycle.cycleStats.avgEngagementRate.toFixed(2)}%.`,

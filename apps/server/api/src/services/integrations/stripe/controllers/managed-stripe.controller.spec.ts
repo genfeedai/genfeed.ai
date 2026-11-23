@@ -17,6 +17,10 @@ vi.mock('@api/helpers/utils/response/response.util', async (importOriginal) => {
 
 import { ManagedStripeController } from '@api/services/integrations/stripe/controllers/managed-stripe.controller';
 import { ManagedStripeCheckoutService } from '@api/services/integrations/stripe/services/managed-stripe-checkout.service';
+import {
+  RATE_LIMIT_KEY,
+  type RateLimitOptions,
+} from '@api/shared/decorators/rate-limit/rate-limit.decorator';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
@@ -92,5 +96,14 @@ describe('ManagedStripeController', () => {
     await expect(controller.getCheckoutResult('missing')).rejects.toThrow(
       new HttpException(expect.anything(), HttpStatus.NOT_FOUND),
     );
+  });
+
+  it('limits checkout creation to 5 requests a minute per IP through the shared guard', () => {
+    const options = Reflect.getMetadata(
+      RATE_LIMIT_KEY,
+      ManagedStripeController.prototype.createCheckout,
+    ) as RateLimitOptions;
+
+    expect(options).toEqual({ limit: 5, scope: 'ip', windowMs: 60_000 });
   });
 });

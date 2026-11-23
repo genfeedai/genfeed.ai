@@ -541,7 +541,7 @@ export function WorkspaceDashboard({
 }: DashboardProps) {
   const { href } = useOrgUrl();
   const scopedTrendsHref =
-    providedTrendsHref ?? href(APP_ROUTES.DISCOVERY.OVERVIEW);
+    providedTrendsHref ?? href(APP_ROUTES.DISCOVERY.FEED);
   // A brand with nothing in it used to render six empty bands stacked on top of
   // each other. Collapse the whole thing into one guided block instead.
   if (

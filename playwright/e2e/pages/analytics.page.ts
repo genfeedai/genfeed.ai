@@ -172,7 +172,7 @@ export class AnalyticsPage {
   async navigateToTrends(): Promise<void> {
     // Trends (Discovery) is a core rail app: land on it by route, then use its
     // sidebar for the client-side transition to Trends.
-    await this.page.goto(brandPath(APP_ROUTES.DISCOVERY.OVERVIEW));
+    await this.page.goto(brandPath(APP_ROUTES.DISCOVERY.FEED));
     await sidebarLocator(this.page)
       .getByRole('link', { name: 'Trends', exact: true })
       .click();

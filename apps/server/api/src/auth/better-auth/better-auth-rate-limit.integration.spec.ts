@@ -35,6 +35,7 @@ import type {
   IBetterAuthRateLimitRedisClient,
   IBetterAuthRateLimitStore,
 } from './better-auth.types';
+import { createFakeRateLimitRedis } from './better-auth-rate-limit.testing';
 import { buildRedisRateLimitStore } from './better-auth-rate-limit.util';
 
 const AUTH_BASE_URL = 'http://localhost:3000';
@@ -60,7 +61,7 @@ const HTTP_SERVER_ERROR_FLOOR = 500;
 
 interface IRecordingRateLimitStore extends IBetterAuthRateLimitStore {
   readonly entries: Map<string, string>;
-  readonly setCalls: Array<{ key: string; value: string; ttlSeconds: number }>;
+  readonly ttls: Map<string, number>;
 }
 
 interface ICreateRateLimitHarnessOptions {
@@ -83,19 +84,13 @@ interface ISignInAttemptOptions {
   password?: string;
 }
 
-/** In-memory stand-in for the Redis KV behind the rate-limit counters. */
+/** The production store over an in-memory Redis behind the counters. */
 function createRecordingRateLimitStore(): IRecordingRateLimitStore {
-  const entries = new Map<string, string>();
-  const setCalls: Array<{ key: string; value: string; ttlSeconds: number }> =
-    [];
+  const redis = createFakeRateLimitRedis();
   return {
-    entries,
-    get: async (key) => entries.get(key) ?? null,
-    set: async (key, value, ttlSeconds) => {
-      entries.set(key, value);
-      setCalls.push({ key, ttlSeconds, value });
-    },
-    setCalls,
+    ...buildRedisRateLimitStore({ instance: redis, isReady: true }),
+    entries: redis.entries,
+    ttls: redis.ttls,
   };
 }
 
@@ -216,10 +211,10 @@ describe('Better Auth `/auth/*` brute-force throttling (criterion 6)', () => {
 
     await attemptSignIn(harness, { clientIp: NOISY_CLIENT_IP });
 
-    expect(store.setCalls.length).toBeGreaterThan(0);
-    for (const call of store.setCalls) {
-      expect(call.ttlSeconds).toBe(RATE_LIMIT_TTL_SECONDS);
-      expect(call.key).toContain(RATE_LIMIT_KEY_PREFIX);
+    expect(store.ttls.size).toBeGreaterThan(0);
+    for (const [key, ttlSeconds] of store.ttls) {
+      expect(ttlSeconds).toBe(RATE_LIMIT_TTL_SECONDS);
+      expect(key).toContain(RATE_LIMIT_KEY_PREFIX);
     }
   });
 
@@ -354,10 +349,7 @@ describe('Better Auth rate-limit fail-open under a Redis outage (criterion 7)', 
   it('keeps authenticating when every Redis command throws', async () => {
     const throwingClient: IBetterAuthRateLimitRedisClient = {
       instance: {
-        get: async () => {
-          throw new Error('ECONNREFUSED');
-        },
-        set: async () => {
+        eval: async () => {
           throw new Error('ECONNREFUSED');
         },
       },
@@ -396,10 +388,7 @@ describe('Better Auth rate-limit fail-open under a Redis outage (criterion 7)', 
     // (a future caller, or a bug in the adapter): the storage Better Auth calls
     // must swallow the failure rather than let it escape as a 500 on sign-in.
     const explodingStore: IBetterAuthRateLimitStore = {
-      get: async () => {
-        throw new Error('rate-limit store unavailable');
-      },
-      set: async () => {
+      consume: async () => {
         throw new Error('rate-limit store unavailable');
       },
     };

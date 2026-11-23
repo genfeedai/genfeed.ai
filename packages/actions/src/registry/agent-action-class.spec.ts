@@ -3,6 +3,7 @@ import {
   AGENT_ACTION_CLASS,
   getAgentActionClass,
   getVisualGenerationReviewType,
+  isMcpAgentConfirmedTool,
   isMcpApprovalSkippable,
   resolveEffectiveMutationPolicy,
 } from './agent-action-class';
@@ -292,6 +293,25 @@ describe('isMcpApprovalSkippable', () => {
       'get_brands',
     ]) {
       expect(isMcpApprovalSkippable(toolName)).toBe(false);
+    }
+  });
+});
+
+describe('isMcpAgentConfirmedTool', () => {
+  it('names the publishing tools the agent confirms with the person', () => {
+    for (const toolName of [
+      'create_scheduled_release',
+      'update_scheduled_release',
+      'control_scheduled_release',
+      'publish_article',
+    ]) {
+      expect(isMcpAgentConfirmedTool(toolName)).toBe(true);
+    }
+  });
+
+  it('leaves credit spenders, messages and reads to the approvals queue', () => {
+    for (const toolName of ['generate', 'send_social_dm', 'get_brands']) {
+      expect(isMcpAgentConfirmedTool(toolName)).toBe(false);
     }
   });
 });

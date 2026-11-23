@@ -56,6 +56,7 @@ export {
   AGENT_ACTION_CLASS,
   getAgentActionClass,
   getVisualGenerationReviewType,
+  isMcpAgentConfirmedTool,
   isMcpApprovalSkippable,
   resolveEffectiveMutationPolicy,
 } from './registry/agent-action-class';
@@ -125,6 +126,7 @@ export {
   getMcpToolResultFamily,
   MCP_RESULT_SCHEMAS,
 } from './registry/mcp-output-schema';
+export { McpToolInputError } from './registry/mcp-tool-input-error';
 export {
   findInapplicableMediaGenerationParameters,
   getMediaGenerationCreditFloor,

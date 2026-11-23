@@ -102,6 +102,14 @@ export class ReviewInboxDecisionService {
     const userId = user.userId ?? user.id;
     const isApproved = request.decision === 'approve';
 
+    if (parsed.kind === 'agent_input_request') {
+      // A question is answered, not approved: the thread's own route records
+      // the answer and resumes the run.
+      throw new BadRequestException(
+        'Answer the agent question instead of approving or rejecting it.',
+      );
+    }
+
     if (parsed.kind === 'mcp_approval') {
       if (!access.canResolveMcpApprovals) {
         throw new ForbiddenException(

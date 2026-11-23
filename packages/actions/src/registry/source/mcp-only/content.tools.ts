@@ -6,6 +6,12 @@ const ARTICLE_BRAND_ID_PROPERTY = {
   type: 'string',
 } as const;
 
+const CONFIRMED_PROPERTY = {
+  description:
+    'Set true only after the person has explicitly agreed, in this conversation, to publish this article. Without it nothing is published.',
+  type: 'boolean',
+} as const;
+
 const ARTICLE_IMAGE_URL_NOTE =
   'Use the hosted https url of a Library asset or of a finished media upload.';
 
@@ -139,9 +145,9 @@ export const MCP_CONTENT_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      'Publish an owned reviewed article on the public website. Requires approval. Review the article before requesting publication. Changes publication status without regenerating the body or replacing an existing publication date.',
+      'Publish an owned reviewed article on the public website. Confirm with the person first: the first call publishes nothing, and after they agree in this conversation you repeat it with confirmed true. Review the article before requesting publication. Changes publication status without regenerating the body or replacing an existing publication date.',
     mcpDescription:
-      'Publish an owned reviewed article publicly after approval. Review before requesting publication. Changes status only; preserves body and existing publication date.',
+      'Publish an owned reviewed article publicly. First call publishes nothing; after the person agrees in this conversation, repeat with confirmed true. Review before requesting publication. Changes status only; preserves body and existing publication date.',
     name: 'publish_article',
     requiredRole: 'user',
     parameters: {
@@ -154,6 +160,7 @@ export const MCP_CONTENT_TOOLS: SourceTool[] = [
           description: 'Reviewed article ID to publish',
         },
         brandId: ARTICLE_BRAND_ID_PROPERTY,
+        confirmed: CONFIRMED_PROPERTY,
       },
     },
   },
@@ -186,7 +193,11 @@ export const MCP_CONTENT_TOOLS: SourceTool[] = [
           pattern: '\\S',
           type: 'string',
         },
-        brandId: ARTICLE_BRAND_ID_PROPERTY,
+        brandId: {
+          description:
+            'Only with articleId: the brand the article lives in (defaults to your active brand). Not allowed with query: a search covers the whole organization.',
+          type: 'string',
+        },
         query: {
           description: 'Search query over published articles.',
           minLength: 1,

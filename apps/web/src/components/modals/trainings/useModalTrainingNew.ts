@@ -1,7 +1,6 @@
 import { type TrainingSchema, trainingSchema } from '@genfeedai/client/schemas';
 import {
   IngredientCategory,
-  IngredientStatus,
   ModalEnum,
   TrainingCategory,
   UploadStatus,
@@ -11,13 +10,9 @@ import type {
   IUploadProgressData,
 } from '@genfeedai/contracts/interfaces';
 import type { FileUploadStatus } from '@genfeedai/contracts/interfaces/modals/file-upload-status.interface';
-import type {
-  ModalTrainingNewProps,
-  TrainingStatusUpdate,
-} from '@genfeedai/contracts/interfaces/training/modal-training-new.interface';
+import type { ModalTrainingNewProps } from '@genfeedai/contracts/interfaces/training/modal-training-new.interface';
 import { closeModal } from '@genfeedai/helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
-import { useSocketManager } from '@genfeedai/hooks/utils/use-socket-manager/use-socket-manager';
 import { TrainingsService } from '@genfeedai/services/ai/trainings.service';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import { logger } from '@genfeedai/services/core/logger.service';
@@ -26,7 +21,7 @@ import { SocketService } from '@genfeedai/services/core/socket.service';
 import { ImagesService } from '@genfeedai/services/ingredients/images.service';
 import { standardSchemaResolver } from '@hookform/resolvers/standard-schema';
 import type { RefObject } from 'react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { useForm } from 'react-hook-form';
 import { updateFileStatus } from '@/components/modals/ingredients/upload/upload.utils';
@@ -82,59 +77,23 @@ export function useModalTrainingNew({ onSuccess }: ModalTrainingNewProps) {
     Map<string, FileUploadStatus>
   >(new Map());
 
-  const currentTrainingIdRef = useRef<string | null>(null);
-  const { subscribe, isReady } = useSocketManager();
+  // Uploads that finished while this modal is open, keyed by file identity, so
+  // a retry resumes instead of uploading the same files again.
+  const uploadedImageIdsRef = useRef<Map<File, string>>(new Map());
+  // One key per create attempt chain: a retry after a lost response reuses it,
+  // so the server returns the training it already made instead of a second one.
+  const createKeyRef = useRef<string | null>(null);
+  const isSubmitInFlightRef = useRef(false);
 
   const closeModalTrainingNew = useCallback(() => {
     closeModal(ModalEnum.TRAINING_UPLOAD);
+    uploadedImageIdsRef.current = new Map();
+    createKeyRef.current = null;
     form.reset();
     setFiles([]);
     setFileStatuses(new Map());
     setError(null);
   }, [form]);
-
-  // use-effect-audit: ignore subscribes to training status events
-  useEffect(() => {
-    if (!isReady || !currentTrainingIdRef.current) {
-      return;
-    }
-
-    const trainingId = currentTrainingIdRef.current;
-
-    const handleTrainingStatus = (data: unknown) => {
-      logger.info('Training status update received', data);
-
-      const update = data as TrainingStatusUpdate;
-
-      if (update.trainingId !== trainingId) {
-        return;
-      }
-
-      if (update.status === IngredientStatus.GENERATED) {
-        notificationsService.success('Training completed successfully!');
-        closeModalTrainingNew();
-        onSuccess?.();
-      } else if (update.status === IngredientStatus.FAILED) {
-        const errorMessage =
-          update.metadata?.error || 'Training failed. Please try again.';
-        notificationsService.error(errorMessage);
-        setError(errorMessage);
-        currentTrainingIdRef.current = null;
-      }
-    };
-
-    const dispose = subscribe('training-status', handleTrainingStatus);
-
-    return () => {
-      dispose();
-    };
-  }, [
-    isReady,
-    subscribe,
-    notificationsService,
-    onSuccess,
-    closeModalTrainingNew,
-  ]);
 
   const getImagesService = useAuthedService((token: string) =>
     ImagesService.getInstance(token),
@@ -231,6 +190,20 @@ export function useModalTrainingNew({ onSuccess }: ModalTrainingNewProps) {
   });
 
   const handleSubmit = async () => {
+    if (isSubmitInFlightRef.current) {
+      return;
+    }
+
+    isSubmitInFlightRef.current = true;
+
+    try {
+      await submitTraining();
+    } finally {
+      isSubmitInFlightRef.current = false;
+    }
+  };
+
+  const submitTraining = async () => {
     if (files.length < 10) {
       return setError('Please upload at least 10 images for training');
     }
@@ -247,10 +220,22 @@ export function useModalTrainingNew({ onSuccess }: ModalTrainingNewProps) {
       const fileIds = Array.from(fileStatuses.keys());
       const uploadedImageIds: string[] = [];
       let hasFailures = false;
+      // Drop entries for files the user removed from the selection.
+      for (const uploadedFile of uploadedImageIdsRef.current.keys()) {
+        if (!files.includes(uploadedFile)) {
+          uploadedImageIdsRef.current.delete(uploadedFile);
+        }
+      }
 
       for (let i = 0; i < files.length; i++) {
         const selectedFile = files[i];
         const fileId = fileIds[i] || `${selectedFile.name}-${Date.now()}`;
+        const alreadyUploadedId = uploadedImageIdsRef.current.get(selectedFile);
+
+        if (alreadyUploadedId) {
+          uploadedImageIds.push(alreadyUploadedId);
+          continue;
+        }
 
         updateFileStatus(setFileStatuses, fileId, {
           progress: 0,
@@ -307,6 +292,7 @@ export function useModalTrainingNew({ onSuccess }: ModalTrainingNewProps) {
             throw new Error('Upload confirmation failed - no ID returned');
           }
 
+          uploadedImageIdsRef.current.set(selectedFile, uploaded.id);
           uploadedImageIds.push(uploaded.id);
 
           updateFileStatus(setFileStatuses, fileId, {
@@ -368,12 +354,14 @@ export function useModalTrainingNew({ onSuccess }: ModalTrainingNewProps) {
         trigger: formData.trigger,
       };
 
-      const training = await service.post(body);
+      createKeyRef.current ??= crypto.randomUUID();
+      const training = await service.createIdempotent(
+        body,
+        createKeyRef.current,
+      );
 
       if (training) {
         logger.info('Training created successfully', training);
-
-        currentTrainingIdRef.current = training.id;
 
         notificationsService.info(
           'Training is being processed. You will be notified when it completes.',

@@ -3,7 +3,10 @@
  * or MCP client is waiting on. Turbo run drafts keep their own batch model;
  * these rows cover the gates that live outside a batch.
  */
-export type ReviewInboxItemKind = 'workflow_review_gate' | 'mcp_approval';
+export type ReviewInboxItemKind =
+  | 'workflow_review_gate'
+  | 'mcp_approval'
+  | 'agent_input_request';
 
 /** Who is asking: an agent draft, a workflow run, or an MCP client. */
 export type ReviewInboxItemSource = 'agent' | 'workflow' | 'mcp_client';
@@ -22,6 +25,28 @@ export interface IReviewInboxItemReason {
 export interface IReviewInboxItemPreview {
   caption: string | null;
   mediaUrl: string | null;
+}
+
+/** One option of an agent question, as the thread offers it. */
+export interface IReviewInboxQuestionOption {
+  id: string;
+  label: string;
+  description: string | null;
+}
+
+/**
+ * The question an agent run is waiting on, for an `agent_input_request` row.
+ * It is answered through the thread's own route
+ * (`POST agent/threads/:threadId/input-requests/:requestId/responses`).
+ */
+export interface IReviewInboxQuestion {
+  threadId: string;
+  requestId: string;
+  prompt: string;
+  options: IReviewInboxQuestionOption[];
+  allowFreeText: boolean;
+  isMultiSelect: boolean;
+  maxSelections: number | null;
 }
 
 export interface IReviewInboxItem {
@@ -63,6 +88,8 @@ export interface IReviewInboxItem {
    * approve or reject on its row.
    */
   batchCount: number | null;
+  /** Set on an `agent_input_request` row only. */
+  question: IReviewInboxQuestion | null;
 }
 
 /** `GET /review-inbox` query: the brand the page shows, when it has one. */
@@ -113,12 +140,18 @@ export interface IReviewInboxBatchDecisionResult {
 
 export type ParsedReviewInboxItemId =
   | { kind: 'workflow_review_gate'; executionId: string; nodeId: string }
-  | { kind: 'mcp_approval'; approvalId: string };
+  | { kind: 'mcp_approval'; approvalId: string }
+  | { kind: 'agent_input_request'; threadId: string; requestId: string };
 
 export function buildReviewInboxItemId(item: ParsedReviewInboxItemId): string {
-  return item.kind === 'mcp_approval'
-    ? `mcp_approval:${item.approvalId}`
-    : `workflow_review_gate:${item.executionId}:${item.nodeId}`;
+  switch (item.kind) {
+    case 'mcp_approval':
+      return `mcp_approval:${item.approvalId}`;
+    case 'agent_input_request':
+      return `agent_input_request:${item.threadId}:${item.requestId}`;
+    default:
+      return `workflow_review_gate:${item.executionId}:${item.nodeId}`;
+  }
 }
 
 /** Returns null for anything that is not a well-formed inbox id. */
@@ -132,6 +165,16 @@ export function parseReviewInboxItemId(
   if (kind === 'mcp_approval') {
     return rest && !rest.includes(':')
       ? { approvalId: rest, kind: 'mcp_approval' }
+      : null;
+  }
+  if (kind === 'agent_input_request') {
+    const requestSeparator = rest.indexOf(':');
+    if (requestSeparator <= 0) return null;
+    const threadId = rest.slice(0, requestSeparator);
+    // A request id may itself hold colons (`input:<thread>:<sequence>`).
+    const requestId = rest.slice(requestSeparator + 1);
+    return requestId
+      ? { kind: 'agent_input_request', requestId, threadId }
       : null;
   }
   if (kind === 'workflow_review_gate') {

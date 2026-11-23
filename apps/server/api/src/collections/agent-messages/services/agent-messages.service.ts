@@ -22,7 +22,7 @@ import type {
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
-import { Injectable } from '@nestjs/common';
+import { ConflictException, Injectable } from '@nestjs/common';
 
 export interface AddMessageDto {
   /** Stable server identity for idempotent queue redelivery. */
@@ -133,15 +133,21 @@ export class AgentMessagesService extends BaseService<
     } as unknown as Partial<AgentMessageDocument>;
 
     if (dto.id) {
-      return (await this.prisma.agentMessage.upsert({
-        create: messageData as Prisma.AgentMessageUncheckedCreateInput,
-        update: {},
-        where: {
-          id: dto.id,
-          isDeleted: false,
-          organizationId: dto.organizationId,
-        },
-      })) as AgentMessageDocument;
+      // Insert-if-absent as one statement (ON CONFLICT DO NOTHING). An upsert
+      // keyed on `id` plus other filters is not a single statement: two
+      // writers of one id both miss the row, and the second insert fails.
+      await this.prisma.agentMessage.createMany({
+        data: [messageData as Prisma.AgentMessageCreateManyInput],
+        skipDuplicates: true,
+      });
+      const stored = await this.prisma.agentMessage.findFirst({
+        where: scopedWhere(dto.organizationId, { id: dto.id }),
+      });
+      if (!stored) {
+        // The id is taken by a deleted message or one of another organization.
+        throw new ConflictException('Agent message id is already in use');
+      }
+      return stored as AgentMessageDocument;
     }
 
     return this.create(messageData);

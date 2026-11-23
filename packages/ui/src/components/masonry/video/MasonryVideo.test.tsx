@@ -490,6 +490,32 @@ describe('MasonryVideo', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('replaces the player with an expiry notice once the retention sweep deleted the file', () => {
+    mockVideoPlayer.mockClear();
+
+    render(
+      <MasonryVideo
+        video={{ ...mockVideo, storageExpiredAt: '2026-11-21T12:00:00.000Z' }}
+      />,
+    );
+
+    expect(screen.getByTestId('video-expired-vid-123')).toHaveTextContent(
+      'Video expired',
+    );
+    expect(screen.getByTestId('video-expired-vid-123')).toHaveTextContent(
+      '7 days on pay-as-you-go and 30 days on a subscription',
+    );
+    expect(mockVideoPlayer).not.toHaveBeenCalled();
+    // The tile still opens and keeps its actions: only the file is gone.
+    expect(screen.getByTestId('quick-actions')).toBeInTheDocument();
+  });
+
+  it('shows no expiry notice for a video whose file exists', () => {
+    render(<MasonryVideo video={mockVideo} />);
+
+    expect(screen.queryByTestId('video-expired-vid-123')).toBeNull();
+  });
+
   // Public galleries and profiles mount none of the app's providers, and the
   // actions hook reads them. A read-only tile must not call it.
   it('never calls the actions hook when actions are disabled', () => {

@@ -73,6 +73,7 @@ import { AgentCadenceExecutionService } from '@api/services/agent-orchestrator/a
 import { AgentCadenceMediaGenerationService } from '@api/services/agent-orchestrator/agent-cadence-media-generation.service';
 import { AgentChatModelRegistryModule } from '@api/services/agent-orchestrator/agent-chat-model-registry.module';
 import { AgentCompletionCardBuilderService } from '@api/services/agent-orchestrator/agent-completion-card-builder.service';
+import { AgentEventContentGateBinderService } from '@api/services/agent-orchestrator/agent-event-content-gate-binder.service';
 import { AgentGenerationDecisionService } from '@api/services/agent-orchestrator/agent-generation-decision.service';
 import { AgentKnowledgeCitationService } from '@api/services/agent-orchestrator/agent-knowledge-citation.service';
 import { AgentOrchestratorController } from '@api/services/agent-orchestrator/agent-orchestrator.controller';
@@ -369,6 +370,7 @@ import { Module } from '@nestjs/common';
     AgentCadenceExecutionService,
     AgentCadenceMediaGenerationService,
     AgentUntrustedContentGateService,
+    AgentEventContentGateBinderService,
     {
       provide: 'AGENT_BRANDS_SERVICE',
       useExisting: BrandsService,

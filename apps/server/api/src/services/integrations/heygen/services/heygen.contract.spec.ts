@@ -138,18 +138,74 @@ describe('HeyGen v3 contracts', () => {
     },
   );
 
-  it('admits a selected look from its filtered page without exhausting the whole catalogue', async () => {
+  it('admits a public look inside its avatar group without paging the public catalogue', async () => {
+    http.get.mockImplementation((url: string) =>
+      url.endsWith('/avatars/looks/selected')
+        ? of({
+            status: 200,
+            data: { data: look({ id: 'selected', group_id: 'group-9' }) },
+          })
+        : page([look({ id: 'selected', group_id: 'group-9' })], 'more'),
+    );
+    const result = await service.resolveAvatarSelection(
+      { lookId: 'selected', ownership: 'public' },
+      'org-a',
+    );
+    expect(result.avatarRef).toMatchObject({
+      lookId: 'selected',
+      groupId: 'group-9',
+      ownership: 'public',
+    });
+    expect(http.get.mock.calls.map(([url]) => url)).toEqual([
+      'https://api.heygen.com/v3/avatars/looks/selected',
+      'https://api.heygen.com/v3/avatars/looks',
+    ]);
+    expect(http.get.mock.calls[1][1].params).toEqual({
+      ownership: 'public',
+      group_id: 'group-9',
+      limit: 50,
+    });
+  });
+
+  it('skips the group lookup when the saved selection already names its group', async () => {
     http.get.mockReturnValue(
-      page([look({ id: 'selected' })], 'more-than-gallery'),
+      page([look({ id: 'selected', group_id: 'group-9' })]),
+    );
+    await service.resolveAvatarSelection(
+      { lookId: 'selected', groupId: 'group-9', ownership: 'public' },
+      'org-a',
+    );
+    expect(http.get).toHaveBeenCalledTimes(1);
+    expect(http.get.mock.calls[0][1].params.group_id).toBe('group-9');
+  });
+
+  it('falls back to the unfiltered public listing when the group cannot be read', async () => {
+    http.get.mockImplementation((url: string) =>
+      url.endsWith('/avatars/looks/selected')
+        ? throwError(() => new Error('not found'))
+        : page([look({ id: 'selected' })]),
     );
     const result = await service.resolveAvatarSelection(
       { lookId: 'selected', ownership: 'public' },
       'org-a',
     );
     expect(result.avatarRef.lookId).toBe('selected');
-    expect(http.get).toHaveBeenCalledTimes(1);
-    expect(http.get.mock.calls[0][1].params.ownership).toBe('public');
-    expect(http.post).not.toHaveBeenCalled();
+    expect(http.get.mock.calls[1][1].params).toEqual({
+      ownership: 'public',
+      limit: 50,
+    });
+  });
+
+  it('rejects a look that is not in the claimed group instead of trusting the claim', async () => {
+    http.get.mockReturnValue(
+      page([look({ id: 'other', group_id: 'group-9' })]),
+    );
+    await expect(
+      service.resolveAvatarSelection(
+        { lookId: 'selected', groupId: 'group-9', ownership: 'public' },
+        'org-a',
+      ),
+    ).rejects.toThrow(BadRequestException);
   });
 
   it('submits a native avatar with its script, voice and callback correlation', async () => {

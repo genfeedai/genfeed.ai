@@ -106,6 +106,45 @@ describe('buildModelScanCard', () => {
     );
   });
 
+  it('does not claim an approved rate keeps charging when the run only found new drafts', () => {
+    const card = build({
+      ...emptyReport,
+      newDrafts: [draft('recraft-ai/recraft-v3')],
+    });
+
+    expect(card?.footer).toBe(
+      'New models stay inactive and unpriced until an operator reviews them. Nothing is charging.',
+    );
+  });
+
+  it('claims nothing about charging when the run only found a data error', () => {
+    const card = build({
+      ...emptyReport,
+      dataErrors: [
+        {
+          modelKey: 'fal-ai/runway-gen3',
+          reason: 'Stored under fal, but fal no longer serves it.',
+        },
+      ],
+    });
+
+    expect(card?.footer).toBe(
+      'The scan changes no rate. Check the row in the admin models page before acting.',
+    );
+  });
+
+  it('keeps the approved-rate footer when a price changed', () => {
+    const card = build({
+      ...emptyReport,
+      newDrafts: [draft('recraft-ai/recraft-v3')],
+      priceChanges: [priceChange('black-forest-labs/flux-3-image')],
+    });
+
+    expect(card?.footer).toBe(
+      'The approved rate keeps charging until an operator approves a change.',
+    );
+  });
+
   it('shows delisted models between price changes and removed ones', () => {
     const card = build({
       ...emptyReport,

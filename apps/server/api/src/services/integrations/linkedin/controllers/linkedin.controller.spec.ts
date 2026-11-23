@@ -49,7 +49,7 @@ describe('LinkedInController', () => {
   const mockCredentialsService = {
     beginOAuthForBrand: vi.fn(),
     findOne: vi.fn(),
-    findPendingOAuthCredential: vi.fn(),
+    claimPendingOAuthCredential: vi.fn(),
     patch: vi.fn(),
     updateExternalProfile: vi.fn(),
   };
@@ -242,7 +242,7 @@ describe('LinkedInController', () => {
         id: 'li-user-123',
         lastName: 'Doe',
       });
-      mockCredentialsService.findPendingOAuthCredential.mockResolvedValue({
+      mockCredentialsService.claimPendingOAuthCredential.mockResolvedValue({
         brandId,
         id: credId,
         organizationId: orgId,
@@ -264,7 +264,7 @@ describe('LinkedInController', () => {
 
       expect(result.data).toEqual({ id: credId, isConnected: true });
       expect(
-        mockCredentialsService.findPendingOAuthCredential,
+        mockCredentialsService.claimPendingOAuthCredential,
       ).toHaveBeenCalledWith('opaque-oauth-state', 'linkedin');
       expect(mockCredentialsService.patch).toHaveBeenCalledWith(
         credId,
@@ -272,7 +272,7 @@ describe('LinkedInController', () => {
           accessToken: 'linkedin-token',
           isConnected: true,
           isDeleted: false,
-          oauthState: null,
+          oauthState: 'verified:opaque-oauth-state',
           grantedScopes: ['openid', 'profile', 'w_member_social'],
           grantedScopesCapturedAt: expect.any(Date),
         }),
@@ -308,7 +308,9 @@ describe('LinkedInController', () => {
 
     it('should return not found when credential does not exist', async () => {
       const state = 'missing-or-expired-state';
-      mockCredentialsService.findPendingOAuthCredential.mockResolvedValue(null);
+      mockCredentialsService.claimPendingOAuthCredential.mockResolvedValue(
+        null,
+      );
 
       const result = await controller.verify(mockRequest, {
         code: 'code',
@@ -320,7 +322,7 @@ describe('LinkedInController', () => {
 
     it('should return internal error on unexpected failure', async () => {
       const state = 'opaque-oauth-state';
-      mockCredentialsService.findPendingOAuthCredential.mockResolvedValue({
+      mockCredentialsService.claimPendingOAuthCredential.mockResolvedValue({
         brandId,
         id: 'credential-id',
         organizationId: orgId,
@@ -346,7 +348,7 @@ describe('LinkedInController', () => {
 
     it('should rethrow HttpException from service', async () => {
       const state = 'opaque-oauth-state';
-      mockCredentialsService.findPendingOAuthCredential.mockResolvedValue({
+      mockCredentialsService.claimPendingOAuthCredential.mockResolvedValue({
         brandId,
         id: 'credential-id',
         organizationId: orgId,
@@ -363,7 +365,7 @@ describe('LinkedInController', () => {
 
     it('maps an expired authorization code to 400', async () => {
       const state = 'opaque-oauth-state';
-      mockCredentialsService.findPendingOAuthCredential.mockResolvedValue({
+      mockCredentialsService.claimPendingOAuthCredential.mockResolvedValue({
         brandId,
         id: 'credential-id',
         organizationId: orgId,
@@ -387,7 +389,7 @@ describe('LinkedInController', () => {
 
     it('maps a LinkedIn 401 on profile fetch to 401', async () => {
       const state = 'opaque-oauth-state';
-      mockCredentialsService.findPendingOAuthCredential.mockResolvedValue({
+      mockCredentialsService.claimPendingOAuthCredential.mockResolvedValue({
         brandId,
         id: 'credential-id',
         organizationId: orgId,
@@ -410,7 +412,7 @@ describe('LinkedInController', () => {
 
     it('maps a LinkedIn 5xx token exchange to 502', async () => {
       const state = 'opaque-oauth-state';
-      mockCredentialsService.findPendingOAuthCredential.mockResolvedValue({
+      mockCredentialsService.claimPendingOAuthCredential.mockResolvedValue({
         brandId,
         id: 'credential-id',
         organizationId: orgId,
@@ -428,7 +430,7 @@ describe('LinkedInController', () => {
 
     it('does not log authorization codes or provider payloads', async () => {
       const state = 'opaque-oauth-state';
-      mockCredentialsService.findPendingOAuthCredential.mockResolvedValue({
+      mockCredentialsService.claimPendingOAuthCredential.mockResolvedValue({
         brandId,
         id: 'credential-id',
         organizationId: orgId,

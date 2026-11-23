@@ -11,6 +11,8 @@ import {
   toCatalogAvatar,
   voiceSchema,
 } from '@api/services/integrations/heygen/helpers/heygen-catalog';
+import { readHeyGenLookGroupId } from '@api/services/integrations/heygen/helpers/heygen-look-group';
+import { getHeyGenLookUnusableReason } from '@api/services/integrations/heygen/helpers/heygen-look-readiness';
 import {
   buildHeyGenSpeechBody,
   countHeyGenSpeechCharacters,
@@ -56,7 +58,6 @@ import { PollUntilService } from '@api/shared/services/poll-until/poll-until.ser
 import { ApiKeyCategory, ByokProvider } from '@genfeedai/contracts';
 import {
   type AvatarVideoAspectRatio,
-  getEligibleHeyGenAvatarEngines,
   type HeyGenAvatar6Resolution,
   type HeyGenAvatarEngine,
 } from '@genfeedai/contracts/constants';
@@ -591,6 +592,7 @@ export class HeyGenService {
     ownership?: 'public' | 'private',
     pageItems?: Record<string, unknown>[],
     lookId?: string,
+    groupId?: string,
   ): Promise<HeyGenCatalogLook[]> {
     const partitions = ownership
       ? [ownership]
@@ -610,7 +612,7 @@ export class HeyGenService {
           '/avatars/looks',
           connection.apiKey,
           50,
-          { ownership: partition },
+          { ownership: partition, ...(groupId ? { group_id: groupId } : {}) },
           lookId,
         ));
       // Five look/group resolutions at a time; groups are deduplicated per request.
@@ -636,34 +638,12 @@ export class HeyGenService {
                   groupUnavailable = true;
                 }
               }
-              const reason =
-                !look.avatar_type ||
-                !['studio_avatar', 'digital_twin', 'photo_avatar'].includes(
-                  look.avatar_type,
-                )
-                  ? 'Avatar type could not be verified.'
-                  : getEligibleHeyGenAvatarEngines({
-                        avatarType: look.avatar_type,
-                        supportedEngines: look.supported_api_engines,
-                      }).length === 0
-                    ? 'This look supports no HeyGen avatar engine Genfeed can price.'
-                    : partition === 'private' && look.status !== 'completed'
-                      ? 'This look has not completed training.'
-                      : partition === 'private' &&
-                          (groupUnavailable ||
-                            (look.group_id &&
-                              (!group || group.id !== look.group_id)))
-                        ? 'Avatar group readiness could not be verified.'
-                        : partition === 'private' &&
-                            group &&
-                            group.status !== 'completed'
-                          ? 'This avatar group is not ready.'
-                          : partition === 'private' &&
-                              group &&
-                              group.consent_status !== null &&
-                              group.consent_status !== 'accepted'
-                            ? 'Avatar consent is pending or rejected.'
-                            : null;
+              const reason = getHeyGenLookUnusableReason({
+                group,
+                groupUnavailable,
+                look,
+                partition,
+              });
               const avatarRef: HeyGenAvatarRef = {
                 version: 1,
                 source: 'heygen-look',
@@ -727,11 +707,22 @@ export class HeyGenService {
         ? 'byok'
         : (candidate.connection?.kind ?? 'platform'),
     );
+    // A public look is found through its avatar group, not by paging thousands.
+    const groupId =
+      candidate.ownership === 'public'
+        ? (candidate.groupId ??
+          (await readHeyGenLookGroupId(
+            this.httpService,
+            `${this.endpoint}/avatars/looks/${encodeURIComponent(candidate.lookId)}`,
+            this.getHeaders(connection.apiKey),
+          )))
+        : null;
     const catalog = await this.readAvatarCatalog(
       connection,
       candidate.ownership,
       undefined,
       candidate.lookId,
+      groupId ?? undefined,
     );
     const avatarRef = catalog.find(
       ({ avatarRef: avatar }) => avatar.lookId === candidate.lookId,

@@ -5,6 +5,11 @@ import {
   CreateCredentialVerifyDto,
 } from '@api/collections/credentials/dto/create-credential.dto';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { oauthLogFlags } from '@api/collections/credentials/utils/oauth-callback-error.util';
+import {
+  claimOAuthVerifyCredential,
+  verifiedOAuthState,
+} from '@api/collections/credentials/utils/oauth-verify-claim.util';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
@@ -101,7 +106,7 @@ export class RedditController {
     @Body() createCredentialVerifyDto: Partial<CreateCredentialVerifyDto>,
   ) {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    this.loggerService.log(url, createCredentialVerifyDto);
+    this.loggerService.log(url, oauthLogFlags(createCredentialVerifyDto));
 
     const { code, state } = createCredentialVerifyDto;
 
@@ -113,11 +118,15 @@ export class RedditController {
         );
       }
 
-      const existingCredential =
-        await this.credentialsService.findPendingOAuthCredential(
-          state,
-          CredentialPlatform.REDDIT,
-        );
+      const claim = await claimOAuthVerifyCredential(
+        this.credentialsService,
+        state,
+        CredentialPlatform.REDDIT,
+      );
+      if (claim?.alreadyConnected) {
+        return serializeSingle(request, CredentialSerializer, claim.credential);
+      }
+      const existingCredential = claim?.credential;
 
       if (!existingCredential) {
         throw new HttpException(
@@ -173,7 +182,7 @@ export class RedditController {
             : undefined,
           isConnected: true,
           isDeleted: false,
-          oauthState: null,
+          oauthState: verifiedOAuthState(state),
           refreshToken: refresh_token,
         },
       );

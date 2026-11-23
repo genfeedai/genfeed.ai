@@ -12,9 +12,21 @@ type OAuthCallbackErrorDto = {
   state?: string;
 };
 
+/**
+ * Loggable summary of an OAuth callback. The `state` ties a pending connection
+ * to a user and the `code` is a single-use credential, so logs get presence
+ * flags, never the values.
+ */
+export function oauthLogFlags(dto: { code?: string; state?: string }): {
+  hasCode: boolean;
+  hasState: boolean;
+} {
+  return { hasCode: Boolean(dto.code), hasState: Boolean(dto.state) };
+}
+
 type OAuthCallbackCredentialStore = Pick<
   CredentialsService,
-  'findPendingOAuthCredential' | 'patch'
+  'findPendingOAuthCredential' | 'patchAll'
 >;
 
 /**
@@ -71,12 +83,17 @@ export async function throwIfOAuthCallbackError(
     );
   }
 
-  await credentialsService.patch(credential.id, {
-    oauthState:
-      outcome === 'denied'
-        ? EXTERNAL_CONNECTION_DENIED_STATE
-        : EXTERNAL_CONNECTION_FAILED_STATE,
-  });
+  // Conditional on the row still being pending: a request that connected this
+  // credential in the meantime must not be marked denied or failed.
+  await credentialsService.patchAll(
+    { id: credential.id, isConnected: false },
+    {
+      oauthState:
+        outcome === 'denied'
+          ? EXTERNAL_CONNECTION_DENIED_STATE
+          : EXTERNAL_CONNECTION_FAILED_STATE,
+    },
+  );
 
   throw new HttpException(
     {

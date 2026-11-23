@@ -24,7 +24,12 @@ export default function CreatorTabs({
   handle,
 }: CreatorTabsProps): React.ReactElement {
   const tabs = [
-    { count: null, href: creatorProfilePath(handle), key: null, label: 'All' },
+    {
+      count: null,
+      href: creatorProfilePath(handle),
+      key: null,
+      label: 'Overview',
+    },
     ...CREATOR_PROFILE_TABS.filter((tab) => counts[tab] > 0).map((tab) => ({
       count: counts[tab],
       href: creatorTabPath(handle, tab),

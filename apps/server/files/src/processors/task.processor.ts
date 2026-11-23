@@ -107,7 +107,7 @@ export class TaskProcessor extends WorkerHost {
       await this.s3Service.uploadFile(s3Key, outputPath, 'video/mp4');
 
       // Cleanup
-      void this.ffmpegService.cleanupTempFiles(assetId, 'transform');
+      void this.ffmpegService.removeTempDir('transform', assetId);
 
       await this.updateProgress(job, 100, 'Transform complete');
 
@@ -185,7 +185,7 @@ export class TaskProcessor extends WorkerHost {
       await this.s3Service.uploadFile(s3Key, outputPath, 'video/mp4');
 
       // Cleanup
-      void this.ffmpegService.cleanupTempFiles(assetId, 'upscale');
+      void this.ffmpegService.removeTempDir('upscale', assetId);
 
       await this.updateProgress(job, 100, 'Upscale complete');
 
@@ -262,7 +262,7 @@ export class TaskProcessor extends WorkerHost {
       await this.s3Service.uploadFile(s3Key, outputPath, 'video/mp4');
 
       // Cleanup
-      void this.ffmpegService.cleanupTempFiles(assetId, 'caption');
+      void this.ffmpegService.removeTempDir('caption', assetId);
 
       await this.updateProgress(job, 100, 'Caption complete');
 
@@ -332,7 +332,7 @@ export class TaskProcessor extends WorkerHost {
       await this.s3Service.uploadFile(s3Key, outputPath, 'video/mp4');
 
       // Cleanup
-      void this.ffmpegService.cleanupTempFiles(assetId, 'resize');
+      void this.ffmpegService.removeTempDir('resize', assetId);
 
       await this.updateProgress(job, 100, 'Resize complete');
 
@@ -441,7 +441,7 @@ export class TaskProcessor extends WorkerHost {
       }
 
       // Cleanup
-      void this.ffmpegService.cleanupTempFiles(assetId, 'clip');
+      void this.ffmpegService.removeTempDir('clip', assetId);
 
       await this.updateProgress(job, 100, 'Clip creation complete');
 

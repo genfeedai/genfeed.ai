@@ -15,7 +15,6 @@ import { Button } from '@ui/primitives/button';
 import Spinner from '@ui/primitives/spinner';
 import { CircleX } from 'lucide-react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import AnalyticsPublicRouteSync from '@/components/analytics/AnalyticsPublicRouteSync';
@@ -23,7 +22,7 @@ import GoogleBusinessLocationSelector from '@/features/auth/components/modals/br
 import InstagramAccountSelector from '@/features/auth/components/modals/brands/instagram/InstagramAccountSelector';
 import type { InstagramAccountSelectorProps } from '@/features/auth/props/instagram-account-selector.props';
 import type {
-  OAuthPlatformFormProps,
+  OAuthPlatformFormContentProps,
   VerifyResult,
 } from '@/features/auth/props/oauth-platform-form.props';
 import {
@@ -40,6 +39,7 @@ import {
   isReportableOAuthVerifyFailure,
   resolveOAuthPlatformVerifyFailure,
 } from './oauth-verify-error';
+import { useOAuthCallbackLocation } from './use-oauth-callback-location';
 
 const OAUTH1_PLATFORMS = ['x-ads'];
 
@@ -60,9 +60,11 @@ function AccountSelector({
 
 const INITIAL_STATE: VerifyResult = { status: 'loading' };
 
-function OAuthPlatformFormContent({ platform }: OAuthPlatformFormProps) {
+function OAuthPlatformFormContent({
+  platform,
+  searchParams,
+}: OAuthPlatformFormContentProps) {
   const translate = useTranslations('common.oauth.platformCallback');
-  const searchParams = useSearchParams();
   const code = searchParams.get('code');
   const providerError = searchParams.get('error');
   const oauthToken = searchParams.get('oauth_token');
@@ -411,15 +413,41 @@ function OAuthPlatformFormContent({ platform }: OAuthPlatformFormProps) {
   );
 }
 
-export default function OAuthPlatformForm(
-  props: Parameters<typeof OAuthPlatformFormContent>[0],
-) {
+function OAuthPlatformPending() {
+  const translate = useTranslations('common.oauth.platformCallback');
+
+  return (
+    <div className="flex min-h-screen items-center justify-center">
+      <div className="w-full max-w-md text-center">
+        <div className="space-y-4">
+          <div className="mx-auto size-16">
+            <Spinner className="size-16 text-primary" />
+          </div>
+          <p className="text-sm text-muted-foreground">
+            {translate('connectingAccount')}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function OAuthPlatformForm() {
+  const location = useOAuthCallbackLocation();
+
   return (
     <>
-      <AnalyticsPublicRouteSync />
       <Suspense fallback={null}>
-        <OAuthPlatformFormContent {...props} />
+        <AnalyticsPublicRouteSync />
       </Suspense>
+      {location ? (
+        <OAuthPlatformFormContent
+          platform={location.platform}
+          searchParams={location.searchParams}
+        />
+      ) : (
+        <OAuthPlatformPending />
+      )}
     </>
   );
 }

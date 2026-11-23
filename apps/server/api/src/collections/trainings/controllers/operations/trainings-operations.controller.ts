@@ -143,7 +143,6 @@ export class TrainingsOperationsController {
     @Query() query: ImagesQueryDto,
   ): Promise<JsonApiCollectionResponse> {
     try {
-      // Find the training
       const training = await this.trainingsService.findOne({
         id: trainingId,
         organizationId: resolveTenantReadScope(user).organizationId,

@@ -62,11 +62,11 @@ describe('Discovery filter menu', () => {
     const props = renderFilters();
     const user = await openFacet(/^Source/);
     await user.click(
-      await screen.findByRole('menuitemradio', { name: /My accounts/ }),
+      await screen.findByRole('menuitemradio', { name: /Imported/ }),
     );
-    expect(props.onSourceChange).toHaveBeenCalledWith('owned');
+    expect(props.onSourceChange).toHaveBeenCalledWith('imported');
     expect(
-      screen.queryByRole('menuitemradio', { name: /My accounts/ }),
+      screen.queryByRole('menuitemradio', { name: /Imported/ }),
     ).not.toBeInTheDocument();
   });
 

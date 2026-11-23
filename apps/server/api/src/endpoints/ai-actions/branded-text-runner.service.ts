@@ -1,6 +1,5 @@
 import { LearningDecisionService } from '@api/collections/content-learning/services/learning-decision.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
-import { DEFAULT_MINI_TEXT_MODEL } from '@api/constants/default-mini-text-model.constant';
 import type {
   BrandedTextRunOutcomeV1,
   BrandedTextRunSpecV1,
@@ -21,6 +20,7 @@ import {
   PostFormat,
   TargetExecutionState,
 } from '@genfeedai/contracts';
+import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 import type { TextReceiptState } from '@genfeedai/contracts/interfaces';
 import {
   joinReplyVariants,
@@ -71,9 +71,12 @@ export class BrandedTextRunnerService {
   ) {}
 
   async run(spec: BrandedTextRunSpecV1): Promise<BrandedTextRunOutcomeV1> {
+    // Branded posts, threads and rewrites are content writing, so they run on
+    // the content writing model. Asking the registry for its default instead
+    // would hand them whichever TEXT row Admin marked default, which is the
+    // agent chat model in production.
     const model = await this.modelRegistry.resolveModelKey(
-      undefined,
-      DEFAULT_MINI_TEXT_MODEL,
+      LLM_DEFAULTS.contentWriting,
     );
     const { actor, gate } = spec;
     const isThread = spec.contentType === 'thread';

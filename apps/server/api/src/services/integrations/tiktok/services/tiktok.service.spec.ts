@@ -12,7 +12,7 @@ import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Test, TestingModule } from '@nestjs/testing';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 import type { Mock } from 'vitest';
 
 vi.mock('@libs/utils/encryption/encryption.util', () => ({
@@ -700,6 +700,52 @@ describe('TiktokService', () => {
         refreshToken: 'nref',
         refreshTokenExpiry: expect.any(Date),
       });
+    });
+
+    it('disconnects the account when the provider refuses a refresh token nobody else replaced', async () => {
+      (credentialsMock.findOne as Mock).mockResolvedValue({
+        id: 'credential-id',
+        refreshToken: 'ref',
+      });
+      (httpService.post as Mock).mockReturnValue(
+        throwError(() =>
+          Object.assign(new Error('refused'), {
+            response: { data: { error: 'invalid_grant' }, status: 400 },
+          }),
+        ),
+      );
+
+      await expect(service.refreshToken('org-id', 'brand-id')).rejects.toThrow(
+        'refused',
+      );
+      expect(credentialsMock.patch).toHaveBeenCalledWith('credential-id', {
+        isConnected: false,
+      });
+    });
+
+    it('uses the tokens another refresh stored when its own was refused after the rotation', async () => {
+      (credentialsMock.findOne as Mock)
+        .mockResolvedValueOnce({ id: 'credential-id', refreshToken: 'ref' })
+        .mockResolvedValueOnce({
+          accessToken: 'fresh-access',
+          id: 'credential-id',
+          refreshToken: 'rotated-ref',
+        });
+      (httpService.post as Mock).mockReturnValue(
+        throwError(() =>
+          Object.assign(new Error('refused'), {
+            response: { data: { error: 'invalid_grant' }, status: 400 },
+          }),
+        ),
+      );
+
+      const result = await service.refreshToken('org-id', 'brand-id');
+
+      expect(result).toMatchObject({
+        accessToken: 'fresh-access',
+        id: 'credential-id',
+      });
+      expect(credentialsMock.patch).not.toHaveBeenCalled();
     });
 
     it('throws when no refresh token exists', async () => {

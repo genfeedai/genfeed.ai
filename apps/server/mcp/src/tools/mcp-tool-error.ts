@@ -1,4 +1,7 @@
-import { describeAvatarVideoPricing } from '@genfeedai/actions';
+import {
+  describeAvatarVideoPricing,
+  McpToolInputError,
+} from '@genfeedai/actions';
 import {
   APP_ROUTES,
   createBrandAppRoute,
@@ -35,6 +38,7 @@ const MCP_TOOL_ERROR_CODES = [
   'rate_limited',
   'validation_failed',
   'approval_pending',
+  'confirmation_required',
   'brand_required',
   'organization_required',
   'policy_check_unavailable',
@@ -153,6 +157,9 @@ function compactToolError(error: McpToolError): McpToolError {
   return {
     code: error.code,
     message: error.message,
+    ...(error.code === 'confirmation_required' && error.toolName
+      ? { toolName: error.toolName }
+      : {}),
     ...(error.approvalId
       ? {
           approvalId: error.approvalId,
@@ -269,6 +276,29 @@ export function generateApprovalCostEstimate(
         ? 'A model-specific credit quote is unavailable. Request fresh consent with a supported model and complete settings.'
         : undefined,
   };
+}
+
+/**
+ * A publishing call that has not been confirmed yet. Nothing ran and no approval was
+ * queued: the agent shows the person what will go out, and repeats the call with
+ * `confirmed: true` once they agree in the conversation.
+ */
+export function confirmationRequiredToolResult(
+  toolName: string,
+  invalidReleases?: IScheduledReleaseBatchItemError[],
+): McpToolErrorResult {
+  const left = invalidReleases?.length
+    ? ` ${invalidReleases.length} invalid ${invalidReleases.length === 1 ? 'release was' : 'releases were'} left out; see invalidReleases.`
+    : '';
+  return mcpToolErrorResult({
+    code: 'confirmation_required',
+    toolName,
+    ...(invalidReleases?.length ? { invalidReleases } : {}),
+    message:
+      'Nothing was published or changed. Show the person exactly what will go out (text, media, channels, account, time) and ask them to confirm in this conversation. ' +
+      'Only after they agree, repeat this same call with confirmed set to true. Never set confirmed on your own.' +
+      left,
+  });
 }
 
 export function approvalPendingToolResult(
@@ -470,6 +500,14 @@ function readMcpToolFailureSignals(error: unknown): McpToolFailureSignals {
       })),
     };
   }
+  if (error instanceof McpToolInputError) {
+    return {
+      domainCode: 'VALIDATION_FAILED',
+      message: error.message,
+      status: 400,
+      validationErrors: [{ field: error.field, message: error.message }],
+    };
+  }
   if (typeof error === 'string') {
     return { message: error };
   }
@@ -620,6 +658,21 @@ export function classifyMcpToolFailure(
   }
 
   return null;
+}
+
+/**
+ * True when the caller caused the failure and the server did not: the
+ * classifier names it (bad input, rate limit, plan), or the upstream API
+ * refused it with a 4xx. The caller is told; it is not a server fault.
+ */
+export function isMcpToolRefusal(error: unknown): boolean {
+  const signals = readMcpToolFailureSignals(error);
+  if (classifyMcpToolFailure(signals)) return true;
+  return (
+    signals.status !== undefined &&
+    signals.status >= 400 &&
+    signals.status < 500
+  );
 }
 
 export function toMcpToolErrorResult(

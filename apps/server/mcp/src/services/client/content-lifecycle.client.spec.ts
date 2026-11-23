@@ -67,6 +67,10 @@ describe('reviewed article lifecycle', () => {
         _operation: string,
         call: (client: typeof http) => Promise<unknown>,
       ) => call(http),
+      requestWithSafeFailure: async (
+        _operation: string,
+        call: (client: typeof http) => Promise<unknown>,
+      ) => call(http),
     } as unknown as BaseApiClient);
   });
 

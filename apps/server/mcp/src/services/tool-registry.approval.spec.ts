@@ -2,6 +2,7 @@ import { McpApprovalStatus } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ClientService } from '@mcp/services/client.service';
 import { createEndpointRegistries } from '@mcp/services/tool-registry.endpoints.testing';
+import { ToolRegistryService } from '@mcp/services/tool-registry.service';
 import type { McpApprovalResource } from '@mcp/shared/interfaces/approval.interface';
 
 /**
@@ -346,28 +347,28 @@ describe('ToolRegistryService — approval queue', () => {
       ],
     },
     { status: 'unknown' },
-  ])('queues a scheduler dispatch with %j', async (effects) => {
-    const { client, registry } = build();
+  ])(
+    'asks for confirmation instead of dispatching a release with %j',
+    async (effects) => {
+      const { client, registry } = build();
 
-    await registry.handleToolCall({
-      arguments: {
-        release: {
-          baseContent: 'Hello',
-          targets: [{ credentialId: 'credential-1', platform: 'linkedin' }],
-          timezone: 'Europe/Malta',
-          title: 'Launch',
-          ...effects,
+      await registry.handleToolCall({
+        arguments: {
+          release: {
+            baseContent: 'Hello',
+            targets: [{ credentialId: 'credential-1', platform: 'linkedin' }],
+            timezone: 'Europe/Malta',
+            title: 'Launch',
+            ...effects,
+          },
         },
-      },
-      name: 'create_scheduled_release',
-    });
+        name: 'create_scheduled_release',
+      });
 
-    expect(client.createApproval).toHaveBeenCalledWith(
-      'create_scheduled_release',
-      expect.objectContaining({ release: expect.any(Object) }),
-    );
-    expect(client.createScheduledRelease).not.toHaveBeenCalled();
-  });
+      expect(client.createApproval).not.toHaveBeenCalled();
+      expect(client.createScheduledRelease).not.toHaveBeenCalled();
+    },
+  );
 
   it.each([undefined, 'draft'])(
     'creates a release draft with status %s without an approval',
@@ -385,16 +386,40 @@ describe('ToolRegistryService — approval queue', () => {
         arguments: { release },
       });
       expect(client.createApproval).not.toHaveBeenCalled();
-      expect(client.createScheduledRelease).toHaveBeenCalledWith(
-        release,
-        undefined,
-      );
+      expect(client.createScheduledRelease.mock.calls).toEqual([
+        [release, expect.stringMatching(/^mcp-release:content:[0-9a-f]{64}$/)],
+      ]);
     },
   );
 
-  it('keeps a scheduled release in the queue even when the member opted out of approvals', async () => {
+  it('asks the agent to confirm a scheduled release and queues nothing on the web', async () => {
     const { client, registry } = build();
-    client.isApprovalRequired.mockResolvedValue(false);
+    client.isApprovalRequired.mockResolvedValue(true);
+    const extra = {};
+
+    const result = (await registry.handleToolCall({
+      arguments: {
+        release: {
+          baseContent: 'Hello',
+          scheduledDate: '2026-12-01T10:00:00.000Z',
+          targets: [{ credentialId: 'credential-1', platform: 'linkedin' }],
+          timezone: 'Europe/Malta',
+          title: 'Launch',
+        },
+        ...extra,
+      },
+      name: 'create_scheduled_release',
+    })) as { structuredContent?: { code?: string } };
+
+    expect(result.structuredContent?.code).toBe('confirmation_required');
+    expect(client.createApproval).not.toHaveBeenCalled();
+    expect(client.createScheduledRelease).not.toHaveBeenCalled();
+  });
+
+  it('schedules a release once the agent passes confirmed, with no approval row', async () => {
+    const { client, registry } = build();
+    client.isApprovalRequired.mockResolvedValue(true);
+    const extra = { confirmed: true };
 
     await registry.handleToolCall({
       arguments: {
@@ -405,13 +430,35 @@ describe('ToolRegistryService — approval queue', () => {
           timezone: 'Europe/Malta',
           title: 'Launch',
         },
+        ...extra,
       },
       name: 'create_scheduled_release',
     });
 
-    expect(client.isApprovalRequired).not.toHaveBeenCalled();
-    expect(client.createApproval).toHaveBeenCalledOnce();
-    expect(client.createScheduledRelease).not.toHaveBeenCalled();
+    expect(client.createApproval).not.toHaveBeenCalled();
+    expect(client.createScheduledRelease).toHaveBeenCalledOnce();
+    expect(client.createScheduledRelease.mock.calls[0][0]).not.toHaveProperty(
+      'confirmed',
+    );
+  });
+
+  it('saves an undated draft without asking for confirmation', async () => {
+    const { client, registry } = build();
+
+    await registry.handleToolCall({
+      arguments: {
+        release: {
+          baseContent: 'Hello',
+          targets: [{ credentialId: 'credential-1', platform: 'linkedin' }],
+          timezone: 'Europe/Malta',
+          title: 'Launch',
+        },
+      },
+      name: 'create_scheduled_release',
+    });
+
+    expect(client.createApproval).not.toHaveBeenCalled();
+    expect(client.createScheduledRelease).toHaveBeenCalledOnce();
   });
 
   it('declines an approval without executing the deferred tool', async () => {
@@ -973,5 +1020,123 @@ describe('ToolRegistryService — approval queue', () => {
 
     expect(result.isError).toBe(true);
     expect(result.content[0].text).toContain('approvalId and decision');
+  });
+});
+
+describe('ToolRegistryService — approval on a connection covering several organizations', () => {
+  function buildSwitchable() {
+    const { client } = build();
+    const seen: { activeOrganization: string | null }[] = [];
+    let activeOrganization: string | null = null;
+    const switchable = Object.assign(client, {
+      canSwitchOrganizations: vi.fn().mockResolvedValue(true),
+      createApproval: vi.fn(async () => {
+        seen.push({ activeOrganization });
+        return {
+          arguments: {
+            expectedRevision: 2,
+            quoteId: 'quote-1',
+            runId: 'run-1',
+          },
+          id: 'apr-1',
+          status: McpApprovalStatus.PENDING,
+          toolName: 'start_remix_generation',
+        };
+      }),
+      listOrganizations: vi.fn().mockResolvedValue([
+        { id: 'org-a', isActive: true, label: 'Acme', slug: 'acme' },
+        { id: 'org-b', isActive: false, label: 'Beta', slug: 'beta' },
+      ]),
+      resolveApproval: vi.fn(async () => {
+        seen.push({ activeOrganization });
+        return { id: 'apr-1', status: McpApprovalStatus.DECLINED };
+      }),
+      runInOrganization: vi.fn(
+        async (organizationId: string, work: () => Promise<unknown>) => {
+          activeOrganization = organizationId;
+          try {
+            return await work();
+          } finally {
+            activeOrganization = null;
+          }
+        },
+      ),
+    });
+    const logger = {
+      debug: vi.fn(),
+      error: vi.fn(),
+      log: vi.fn(),
+      warn: vi.fn(),
+    };
+    const registryFor = (accessMode: 'admin' | 'standard') =>
+      new ToolRegistryService(
+        switchable as unknown as ClientService,
+        logger as unknown as LoggerService,
+        'admin',
+        undefined,
+        accessMode,
+        true,
+      );
+    // Writes queue on the standard connection; resolve_approval is served by
+    // the admin connection.
+    return {
+      adminRegistry: registryFor('admin'),
+      client: switchable,
+      registry: registryFor('standard'),
+      seen,
+    };
+  }
+
+  it('hands the card the organization the approval was queued in, and declines there', async () => {
+    const { adminRegistry, client, registry, seen } = buildSwitchable();
+
+    const queued = (await registry.handleToolCall({
+      arguments: {
+        action: 'start',
+        input: { expectedRevision: 2, quoteId: 'quote-1', runId: 'run-1' },
+        organization: 'beta',
+      },
+      name: 'run_remix',
+    })) as {
+      structuredContent?: {
+        genfeedCards?: {
+          cards?: { id?: string; organization?: string }[];
+        };
+      };
+    };
+    const card = queued.structuredContent?.genfeedCards?.cards?.[0];
+
+    expect(card?.organization).toBe('org-b');
+    expect(card?.id).toBe('apr-1');
+    expect(seen).toEqual([{ activeOrganization: 'org-b' }]);
+
+    // The card's action carries that organization, so the decision runs in it.
+    await adminRegistry.handleToolCall({
+      arguments: {
+        approvalId: 'apr-1',
+        decision: 'decline',
+        organization: card?.organization,
+      },
+      name: 'resolve_approval',
+    });
+
+    expect(client.resolveApproval).toHaveBeenCalledWith('apr-1', 'decline');
+    expect(seen.at(-1)).toEqual({ activeOrganization: 'org-b' });
+  });
+
+  it('refuses a decision that names an organization the user cannot reach, without touching the approval', async () => {
+    const { adminRegistry, client } = buildSwitchable();
+
+    const result = (await adminRegistry.handleToolCall({
+      arguments: {
+        approvalId: 'apr-1',
+        decision: 'decline',
+        organization: 'someone-elses-org',
+      },
+      name: 'resolve_approval',
+    })) as { isError?: boolean };
+
+    expect(result.isError).toBe(true);
+    expect(client.resolveApproval).not.toHaveBeenCalled();
   });
 });

@@ -48,6 +48,10 @@ export const ELEVENLABS_SCHEMA_FIXTURES: Readonly<
     openapi: speechOpenapi('eleven_multilingual_v2', 10_000),
     schemaFamily: 'elevenlabs-speech-v1',
   },
+  'elevenlabs/eleven_v4_turbo': {
+    openapi: speechOpenapi('eleven_v4_turbo', 10_000),
+    schemaFamily: 'elevenlabs-speech-v1',
+  },
   'elevenlabs/eleven_v4': {
     openapi: speechOpenapi('eleven_v4', 10_000),
     schemaFamily: 'elevenlabs-speech-v1',

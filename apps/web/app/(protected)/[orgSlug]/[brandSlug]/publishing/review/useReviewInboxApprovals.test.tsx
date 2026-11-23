@@ -10,6 +10,7 @@ import {
 } from './useReviewInboxApprovals';
 
 const fixture = vi.hoisted(() => ({
+  answerQuestion: vi.fn(),
   decide: vi.fn(),
   decideMany: vi.fn(),
   getPendingItems: vi.fn(),
@@ -36,6 +37,7 @@ vi.mock(
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => async () => ({
+    answerQuestion: fixture.answerQuestion,
     decide: fixture.decide,
     decideMany: fixture.decideMany,
     getPendingItems: fixture.getPendingItems,
@@ -69,6 +71,7 @@ function item(overrides: Partial<IReviewInboxItem>): IReviewInboxItem {
     actionTitle: 'Publish post',
     approvalId: 'apr-1',
     batchCount: null,
+    question: null,
     brandId: null,
     brandLabel: null,
     brandLogoUrl: null,
@@ -249,6 +252,86 @@ describe('useReviewInboxApprovals', () => {
 
     expect(fixture.notificationError).toHaveBeenCalled();
     expect(fixture.getPendingItems).toHaveBeenCalledTimes(2);
+    expect(result.current.decidingItemId).toBeNull();
+  });
+
+  it('answers an agent question through its thread and drops the row it reloads', async () => {
+    const question = item({
+      id: 'agent_input_request:thread-1:req-tone',
+      kind: 'agent_input_request',
+      question: {
+        allowFreeText: false,
+        isMultiSelect: false,
+        maxSelections: null,
+        options: [{ description: null, id: 'playful', label: 'Playful' }],
+        prompt: 'Which tone?',
+        requestId: 'req-tone',
+        threadId: 'thread-1',
+      },
+      source: 'agent',
+    });
+    fixture.answerQuestion.mockResolvedValue(undefined);
+    fixture.getPendingItems
+      .mockResolvedValueOnce([gate, approval, question])
+      .mockResolvedValue([gate, approval]);
+    const { result } = renderHook(() => useReviewInboxApprovals(), {
+      wrapper,
+    });
+    await waitFor(() => expect(result.current.items).toHaveLength(3));
+
+    await act(() =>
+      result.current.onAnswer(question, {
+        answer: 'Playful',
+        optionIds: ['playful'],
+      }),
+    );
+
+    await waitFor(() => expect(result.current.items).toEqual([gate, approval]));
+    expect(fixture.answerQuestion.mock.calls).toEqual([
+      [
+        {
+          answer: 'Playful',
+          optionIds: ['playful'],
+          requestId: 'req-tone',
+          threadId: 'thread-1',
+        },
+      ],
+    ]);
+    expect(fixture.notificationSuccess.mock.calls).toEqual([
+      ['Answer sent. The agent continues.'],
+    ]);
+    expect(result.current.decidingItemId).toBeNull();
+  });
+
+  it('reports a failed answer and shows the server state again', async () => {
+    const question = item({
+      id: 'agent_input_request:thread-1:req-tone',
+      kind: 'agent_input_request',
+      question: {
+        allowFreeText: true,
+        isMultiSelect: false,
+        maxSelections: null,
+        options: [],
+        prompt: 'Which tone?',
+        requestId: 'req-tone',
+        threadId: 'thread-1',
+      },
+      source: 'agent',
+    });
+    fixture.answerQuestion.mockRejectedValue(new Error('already answered'));
+    fixture.getPendingItems
+      .mockResolvedValueOnce([gate, approval, question])
+      .mockResolvedValue([gate, approval]);
+    const { result } = renderHook(() => useReviewInboxApprovals(), {
+      wrapper,
+    });
+    await waitFor(() => expect(result.current.items).toHaveLength(3));
+
+    await act(() => result.current.onAnswer(question, { answer: 'Playful' }));
+
+    await waitFor(() => expect(result.current.items).toEqual([gate, approval]));
+    expect(fixture.notificationError.mock.calls).toHaveLength(1);
+    expect(fixture.notificationSuccess.mock.calls).toEqual([]);
     expect(result.current.decidingItemId).toBeNull();
   });
 

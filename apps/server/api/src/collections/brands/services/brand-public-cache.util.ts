@@ -16,13 +16,13 @@ const PUBLIC_VISIBILITY_FIELDS = [
  * being built before the change does not get stored afterwards.
  */
 export function dropPublicBrandResponses(
-  cacheService: Pick<CacheService, 'invalidateGuardedTags'> | undefined,
+  cacheService: Pick<CacheService, 'invalidateByTags'> | undefined,
   patch: Partial<Record<(typeof PUBLIC_VISIBILITY_FIELDS)[number], unknown>>,
 ): Promise<unknown> {
   const isVisibilityChange = PUBLIC_VISIBILITY_FIELDS.some(
     (field) => patch[field] !== undefined,
   );
   return isVisibilityChange && cacheService
-    ? cacheService.invalidateGuardedTags([CACHE_TAGS.PUBLIC_BRAND_CONTENT])
+    ? cacheService.invalidateByTags([CACHE_TAGS.PUBLIC_BRAND_CONTENT])
     : Promise.resolve();
 }

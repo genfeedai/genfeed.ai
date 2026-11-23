@@ -183,7 +183,6 @@ export class FFmpegStreamService {
 
     const ffmpegProcess = spawn(binaryPath, args);
 
-    // Pipe input stream to ffmpeg
     inputStream.pipe(ffmpegProcess.stdin);
 
     // Pipe ffmpeg output to output stream

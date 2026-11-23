@@ -190,7 +190,7 @@ jobs:
             args+=(--live)
           fi
           for arg in "${args[@]}"; do
-            override+=(--command-arg "${arg}")
+            override+=("--command-arg=${arg}")
           done
 
           mode=$([ "${LIVE}" = "true" ] && echo live || echo "dry run")

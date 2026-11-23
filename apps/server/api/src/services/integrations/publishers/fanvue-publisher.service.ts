@@ -72,7 +72,6 @@ export class FanvuePublisherService extends BasePublisherService {
       // Sanitize HTML to plain text
       const content = this.sanitizeDescription(post.description);
 
-      // Create the post
       const result = await this.fanvueService.createPost(
         organizationId,
         brandId,

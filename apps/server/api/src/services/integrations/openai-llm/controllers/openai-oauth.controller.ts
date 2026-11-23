@@ -80,7 +80,6 @@ export class OpenAiOAuthController {
         );
       }
 
-      // Build the BYOK entry and save it
       const byokEntry = this.openAiOAuthService.buildByokEntry(
         tokens,
         accountId,

@@ -20,6 +20,8 @@ export interface AccountStatusBadgeProps {
   health?: AccountHealthSummary;
 }
 
+export type AccountStatusIconsProps = AccountStatusBadgeProps;
+
 export type AccountSettingsSection = 'health' | 'import' | 'postingTimes';
 
 export interface AccountSettingsSectionsProps {

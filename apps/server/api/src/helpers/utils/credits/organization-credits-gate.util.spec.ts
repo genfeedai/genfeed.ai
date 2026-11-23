@@ -133,7 +133,7 @@ describe('resolveTextModelMinimumCredits', () => {
     ).resolves.toBe(25);
   });
 
-  it('returns 0 when a non-per-token model has no cost', async () => {
+  it('requires one whole credit when a non-per-token model has no cost', async () => {
     modelsService.findOne.mockResolvedValue({
       cost: null,
       minCost: 7,
@@ -142,7 +142,7 @@ describe('resolveTextModelMinimumCredits', () => {
 
     await expect(
       resolveTextModelMinimumCredits(modelsService, 'text-model'),
-    ).resolves.toBe(0);
+    ).resolves.toBe(1);
   });
 });
 

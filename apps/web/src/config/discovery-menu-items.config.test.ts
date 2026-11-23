@@ -2,48 +2,30 @@ import { describe, expect, it } from 'vitest';
 import { DISCOVERY_MENU_ITEMS } from './discovery-menu-items.config';
 
 describe('DISCOVERY_MENU_ITEMS', () => {
-  it('renders exactly Overview, Following, Trends, Trend Turnover, Ads', () => {
+  it('renders exactly Feed, Trends, Ads', () => {
     expect(DISCOVERY_MENU_ITEMS.map((item) => item.label)).toEqual([
-      'Overview',
-      'Following',
+      'Feed',
       'Trends',
-      'Trend Turnover',
       'Ads',
     ]);
   });
 
-  it('owns market trends at /discovery/trends and /discovery/trend-turnover', () => {
+  it('owns market trends at /discovery/trends', () => {
     const trends = DISCOVERY_MENU_ITEMS.find((item) => item.label === 'Trends');
-    const turnover = DISCOVERY_MENU_ITEMS.find(
-      (item) => item.label === 'Trend Turnover',
-    );
 
     expect(trends?.href).toBe('/discovery/trends');
     expect(trends?.matchPaths).toEqual(['/discovery/trends']);
-    expect(turnover?.href).toBe('/discovery/trend-turnover');
-    expect(turnover?.matchPaths).toEqual(['/discovery/trend-turnover']);
   });
 
-  it('uses /discovery/overview as the home href (not /discovery/discovery)', () => {
-    expect(DISCOVERY_MENU_ITEMS[0]?.href).toBe('/discovery/overview');
+  it('uses /discovery/feed as the home href (not /discovery/discovery)', () => {
+    expect(DISCOVERY_MENU_ITEMS[0]?.href).toBe('/discovery/feed');
   });
 
-  it('routes Following directly to its dedicated timeline surface', () => {
-    const following = DISCOVERY_MENU_ITEMS.find(
-      (item) => item.label === 'Following',
-    );
+  it('keeps Feed active whatever the source filter is', () => {
+    const feed = DISCOVERY_MENU_ITEMS.find((item) => item.label === 'Feed');
 
-    expect(following?.href).toBe('/discovery/following');
-    expect(following?.matchSearchParams).toBeUndefined();
-    expect(following?.matchPaths).toEqual(['/discovery/following']);
-  });
-
-  it('only marks Overview active when the source query param is absent', () => {
-    const overview = DISCOVERY_MENU_ITEMS.find(
-      (item) => item.label === 'Overview',
-    );
-
-    expect(overview?.matchSearchParams).toEqual({ source: null });
+    expect(feed?.matchSearchParams).toBeUndefined();
+    expect(feed?.matchPaths).toEqual(['/discovery', '/discovery/feed']);
   });
 
   it('has no Platforms group', () => {
@@ -70,6 +52,9 @@ describe('DISCOVERY_MENU_ITEMS', () => {
     expect(hrefs).not.toContain('/discovery/discovery');
     expect(hrefs).not.toContain('/discovery/twitter');
     expect(hrefs).not.toContain('/discovery/instagram');
+    expect(hrefs).not.toContain('/discovery/following');
+    expect(hrefs).not.toContain('/discovery/trend-turnover');
+    expect(hrefs).not.toContain('/discovery/overview');
   });
 
   it('has no duplicate hrefs', () => {

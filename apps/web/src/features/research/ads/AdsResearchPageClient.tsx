@@ -23,7 +23,7 @@ import {
   AdsResearchFilterMenu,
   AdsResearchTextFilters,
 } from './AdsResearchFilterMenu';
-import { AdsResearchWatchlistPanel } from './AdsResearchWatchlistPanel';
+import { AdsResearchWatchlistModal } from './AdsResearchWatchlistModal';
 import { useAdsResearchPageClient } from './useAdsResearchPageClient';
 import { useAdsResearchWatchlist } from './useAdsResearchWatchlist';
 import XAdsDsaNotice from './XAdsDsaNotice';
@@ -39,7 +39,6 @@ export default function AdsResearchPageClient() {
     credentialOptions,
     credentialsError,
     isConnectionStateReady,
-    isReady,
     detail,
     detailError,
     detailLoading,
@@ -93,7 +92,7 @@ export default function AdsResearchPageClient() {
   // Called after the research hook so the ads queries keep their identity;
   // the watchlist is an independent concern layered on the same page.
   const watchlist = useAdsResearchWatchlist(refetch);
-  const [showWatchlist, setShowWatchlist] = useState<boolean>();
+  const [isWatchlistOpen, setIsWatchlistOpen] = useState(false);
   const { pageItems, pagination } = useResearchPagination(allAds);
 
   const hasCredentials = credentialOptions.length > 0;
@@ -107,23 +106,13 @@ export default function AdsResearchPageClient() {
     !accountsError;
   const connectionError =
     source === 'my_accounts' && !hasCredentials ? credentialsError : null;
-  const isWatchlistVisible =
-    showWatchlist ??
-    (isReady &&
-      source !== 'saved' &&
-      source !== 'my_accounts' &&
-      !isLoading &&
-      !resultsError &&
-      results.summary.publicCount === 0);
   const headerRight = (
     <div className="flex items-center gap-2">
       <Button
-        variant={
-          isWatchlistVisible ? ButtonVariant.SECONDARY : ButtonVariant.GHOST
-        }
+        variant={ButtonVariant.GHOST}
         size={ButtonSize.SM}
         icon={<Eye className="size-4" />}
-        onClick={() => setShowWatchlist(!isWatchlistVisible)}
+        onClick={() => setIsWatchlistOpen(true)}
       >
         {translate('actions.watchCompetitors')}
       </Button>
@@ -247,20 +236,21 @@ export default function AdsResearchPageClient() {
         />
       ) : null}
 
-      {isWatchlistVisible ? (
-        <AdsResearchWatchlistPanel
-          advertisers={watchlist.advertisers}
-          isAdding={watchlist.isAdding}
-          isLoading={watchlist.isLoading}
-          readiness={watchlist.readiness}
-          onAdd={watchlist.addAdvertiser}
-          onPoll={watchlist.pollAdvertiser}
-          onRemove={watchlist.removeAdvertiser}
-          {...(watchlist.addError ? { addError: watchlist.addError } : {})}
-          {...(watchlist.busyId ? { busyId: watchlist.busyId } : {})}
-          {...(watchlist.loadError ? { loadError: watchlist.loadError } : {})}
-        />
-      ) : null}
+      <AdsResearchWatchlistModal
+        advertisers={watchlist.advertisers}
+        isAdding={watchlist.isAdding}
+        isLoading={watchlist.isLoading}
+        isOpen={isWatchlistOpen}
+        readiness={watchlist.readiness}
+        suggestions={watchlist.suggestions}
+        onAdd={watchlist.addAdvertiser}
+        onOpenChange={setIsWatchlistOpen}
+        onPoll={watchlist.pollAdvertiser}
+        onRemove={watchlist.removeAdvertiser}
+        {...(watchlist.addError ? { addError: watchlist.addError } : {})}
+        {...(watchlist.busyId ? { busyId: watchlist.busyId } : {})}
+        {...(watchlist.loadError ? { loadError: watchlist.loadError } : {})}
+      />
 
       {effectivePlatform === AdsPlatform.X ? <XAdsDsaNotice /> : null}
 

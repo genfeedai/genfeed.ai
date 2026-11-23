@@ -17,6 +17,7 @@ import {
   createReleaseMutationRunner,
   mutationErrorMessage,
 } from '@/features/posts/release/release-mutation-runner';
+import { useReleasePendingActions } from '@/features/posts/release/use-release-pending-actions';
 import {
   CALENDAR_MOVE_ACTION,
   CALENDAR_REPUBLISH_ACTION,
@@ -41,7 +42,8 @@ export function useCalendarReleaseActions({
   const [selectedReleaseId, setSelectedReleaseId] = useState<string | null>(
     null,
   );
-  const [pendingAction, setPendingAction] = useState<string | null>(null);
+  const { inFlightReleaseIds, pendingActions, setPendingAction } =
+    useReleasePendingActions();
   const [pendingDrop, setPendingDrop] = useState<PendingCalendarDrop | null>(
     null,
   );
@@ -56,7 +58,8 @@ export function useCalendarReleaseActions({
   /**
    * Every schedule mutation shares one path: apply the server's response, or
    * undo whatever the UI already showed and surface the failure. `revert` is the
-   * calendar's own undo for a drag; state mutations restore the prior list.
+   * calendar's own undo for a drag; a failed optimistic move puts back only
+   * that release's previous value.
    * The apply-or-revert path itself is shared with the rail list's drawer via
    * `createReleaseMutationRunner` — only `onSuccess` differs here.
    */
@@ -64,6 +67,7 @@ export function useCalendarReleaseActions({
     () =>
       createReleaseMutationRunner({
         getReleaseGroupsService,
+        inFlightReleaseIds,
         notificationsService,
         onSuccess: (updated) => {
           setReleases((current) => {
@@ -79,7 +83,13 @@ export function useCalendarReleaseActions({
         setDrawerError,
         setPendingAction,
       }),
-    [getReleaseGroupsService, notificationsService, setReleases],
+    [
+      getReleaseGroupsService,
+      inFlightReleaseIds,
+      notificationsService,
+      setPendingAction,
+      setReleases,
+    ],
   );
 
   const handleEventDrop = useCallback(
@@ -103,6 +113,11 @@ export function useCalendarReleaseActions({
       const { release } = change.item;
       const scheduledDate = change.start.toISOString();
 
+      if (inFlightReleaseIds.has(release.id)) {
+        change.revert();
+        return;
+      }
+
       if (isReleaseDragConfirmRequired(release)) {
         setPendingDrop({
           release,
@@ -112,7 +127,7 @@ export function useCalendarReleaseActions({
         return;
       }
 
-      const previous = releases;
+      const previousScheduledAt = release.scheduledAt;
 
       // Optimistic: the event is already in its new slot, so the list has to
       // agree before the request resolves or the drawer contradicts the grid.
@@ -126,20 +141,21 @@ export function useCalendarReleaseActions({
 
       void runMutation(
         RELEASE_RESCHEDULE_ACTION,
+        release.id,
         (service) => service.update(release.id, { scheduledDate }),
         () => {
           change.revert();
-          setReleases(previous);
+          setReleases((current) =>
+            current.map((entry) =>
+              entry.id === release.id
+                ? { ...entry, scheduledAt: previousScheduledAt }
+                : entry,
+            ),
+          );
         },
       );
     },
-    [
-      notificationsService,
-      releases,
-      runMutation, // Optimistic: the event is already in its new slot, so the list has to
-      // agree before the request resolves or the drawer contradicts the grid.
-      setReleases,
-    ],
+    [inFlightReleaseIds, notificationsService, runMutation, setReleases],
   );
 
   const clearPendingDrop = useCallback((shouldRevert: boolean) => {
@@ -161,20 +177,20 @@ export function useCalendarReleaseActions({
     }
 
     const { release, revert, scheduledDate } = pendingDrop;
-    const previous = releases;
+    if (inFlightReleaseIds.has(release.id)) {
+      return;
+    }
 
     void (async () => {
       await runMutation(
         CALENDAR_MOVE_ACTION,
+        release.id,
         (service) => service.moveCalendarPlacement(release.id, scheduledDate),
-        () => {
-          revert();
-          setReleases(previous);
-        },
+        revert,
       );
       setPendingDrop(null);
     })();
-  }, [pendingDrop, releases, runMutation, setReleases]);
+  }, [inFlightReleaseIds, pendingDrop, runMutation]);
 
   const handleRepublishDrop = useCallback(() => {
     if (!pendingDrop) {
@@ -182,20 +198,20 @@ export function useCalendarReleaseActions({
     }
 
     const { release, revert, scheduledDate } = pendingDrop;
-    const previous = releases;
+    if (inFlightReleaseIds.has(release.id)) {
+      return;
+    }
 
     void (async () => {
       await runMutation(
         CALENDAR_REPUBLISH_ACTION,
+        release.id,
         (service) => service.republishAt(release.id, scheduledDate),
-        () => {
-          revert();
-          setReleases(previous);
-        },
+        revert,
       );
       setPendingDrop(null);
     })();
-  }, [pendingDrop, releases, runMutation, setReleases]);
+  }, [inFlightReleaseIds, pendingDrop, runMutation]);
 
   const handleRescheduleRelease = useCallback(
     (scheduledDate: string) => {
@@ -203,8 +219,10 @@ export function useCalendarReleaseActions({
         return;
       }
 
-      void runMutation(RELEASE_RESCHEDULE_ACTION, (service) =>
-        service.update(selectedReleaseId, { scheduledDate }),
+      void runMutation(
+        RELEASE_RESCHEDULE_ACTION,
+        selectedReleaseId,
+        (service) => service.update(selectedReleaseId, { scheduledDate }),
       );
     },
     [runMutation, selectedReleaseId],
@@ -216,8 +234,11 @@ export function useCalendarReleaseActions({
         return;
       }
 
-      void runMutation(targetRescheduleAction(targetId), (service) =>
-        service.updateTarget(selectedReleaseId, targetId, { scheduledDate }),
+      void runMutation(
+        targetRescheduleAction(targetId),
+        selectedReleaseId,
+        (service) =>
+          service.updateTarget(selectedReleaseId, targetId, { scheduledDate }),
       );
     },
     [runMutation, selectedReleaseId],
@@ -304,10 +325,13 @@ export function useCalendarReleaseActions({
         return;
       }
 
-      void runMutation(targetRetryAction(targetId), (service) =>
-        service.updateTarget(selectedReleaseId, targetId, {
-          executionState: TargetExecutionState.SCHEDULED,
-        }),
+      void runMutation(
+        targetRetryAction(targetId),
+        selectedReleaseId,
+        (service) =>
+          service.updateTarget(selectedReleaseId, targetId, {
+            executionState: TargetExecutionState.SCHEDULED,
+          }),
       );
     },
     [runMutation, selectedReleaseId],
@@ -317,15 +341,25 @@ export function useCalendarReleaseActions({
     if (!selectedReleaseId) {
       return;
     }
-    void runMutation('release:resume', (service) =>
+    void runMutation('release:resume', selectedReleaseId, (service) =>
       service.resume(selectedReleaseId),
     );
   }, [runMutation, selectedReleaseId]);
+
+  // The drawer shows the selected release's own action; the republish dialog
+  // shows the dropped release's. Another release's request is neither.
+  const pendingAction = selectedReleaseId
+    ? (pendingActions.get(selectedReleaseId) ?? null)
+    : null;
+  const pendingDropAction = pendingDrop
+    ? (pendingActions.get(pendingDrop.release.id) ?? null)
+    : null;
 
   return {
     selectedRelease,
     setSelectedReleaseId,
     pendingAction,
+    pendingDropAction,
     pendingDrop,
     drawerError,
     setDrawerError,

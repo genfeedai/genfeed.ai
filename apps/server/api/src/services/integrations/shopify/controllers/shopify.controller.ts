@@ -2,6 +2,7 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CreateCredentialVerifyDto } from '@api/collections/credentials/dto/create-credential.dto';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { claimOAuthVerifyCredential } from '@api/collections/credentials/utils/oauth-verify-claim.util';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
@@ -86,10 +87,15 @@ export class ShopifyController {
       );
     }
 
-    const credential = await this.credentialsService.findPendingOAuthCredential(
+    const claim = await claimOAuthVerifyCredential(
+      this.credentialsService,
       body.state,
       CredentialPlatform.SHOPIFY,
     );
+    if (claim?.alreadyConnected) {
+      return serializeSingle(request, CredentialSerializer, claim.credential);
+    }
+    const credential = claim?.credential;
 
     if (!credential?.externalHandle) {
       throw new HttpException(

@@ -150,7 +150,6 @@ export class VideoThumbnailService {
       );
       const totalDuration = Date.now() - thumbnailStartTime;
 
-      // Cleanup temp files
       this.ffmpegService.cleanupTempFiles(
         videoPath,
         thumbnailPath,

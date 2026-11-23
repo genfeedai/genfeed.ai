@@ -1,15 +1,5 @@
 import type { PublicMediaKind } from '@data/public-media';
-import type {
-  IImage,
-  IPublicBrandSocial,
-  IVideo,
-} from '@genfeedai/contracts/interfaces';
-
-export interface ProfileSocialLinksProps {
-  /** The creator's Genfeed handle, carried as the UTM source. */
-  handle: string;
-  socials?: IPublicBrandSocial[];
-}
+import type { IImage, IVideo } from '@genfeedai/contracts/interfaces';
 
 export interface ProfileVideosProps {
   /**

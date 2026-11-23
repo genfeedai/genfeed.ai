@@ -3,6 +3,7 @@ import {
   approvalReleases,
   buildBatchPending,
   prepareScheduledBatch,
+  prepareToolBatch,
   recordedBatchOutcome,
   withOmittedReleases,
 } from '@mcp/services/mcp-scheduled-batch.util';
@@ -186,5 +187,41 @@ describe('withOmittedReleases', () => {
     const result = { content: [{ text: 'done', type: 'text' }] };
 
     expect(withOmittedReleases(result, [])).toBe(result);
+  });
+});
+
+describe('prepareToolBatch', () => {
+  const client = {
+    scheduler: { validateScheduledReleaseBatch: async () => [] },
+  };
+
+  it.each([
+    [{}],
+    [{ organization: 'acme' }],
+    [{ title: 'Launch', baseContent: 'Hi', timezone: 'UTC', targets: [] }],
+  ])(
+    'queues no approval for a release call naming no release: %j',
+    async (args) => {
+      const prepared = await prepareToolBatch(
+        client,
+        'create_scheduled_release',
+        args,
+      );
+
+      expect(prepared.kind).toBe('rejected');
+      if (prepared.kind !== 'rejected') return;
+      expect(prepared.result.structuredContent.code).toBe('validation_failed');
+      expect(prepared.result.content[0].text).toContain(
+        'release: Pass release (one release) or releases (a batch)',
+      );
+    },
+  );
+
+  it('passes a single release through untouched', async () => {
+    const args = { release: { title: 'Launch' } };
+
+    expect(
+      await prepareToolBatch(client, 'create_scheduled_release', args),
+    ).toEqual({ args, invalid: [], kind: 'ready' });
   });
 });

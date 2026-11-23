@@ -121,7 +121,6 @@ export abstract class BaseBotManager<TBotInstance = unknown>
           break;
 
         case REDIS_EVENTS.INTEGRATION_DELETED:
-          // Remove the integration
           await this.removeIntegration(data.integrationId);
           break;
 

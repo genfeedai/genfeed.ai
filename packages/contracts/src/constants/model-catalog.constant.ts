@@ -199,24 +199,6 @@ const LEGACY_MEDIA_KEYS: ReadonlySet<string> = new Set([
 ]);
 
 /**
- * Category defaults the catalog replaced (2026-11-20 model audit). Production
- * default flags are operator-owned, so the sync leaves a pin alone; but a pin
- * on one of these keys is the old seeded default, not an operator's choice, and
- * the sync hands it to the catalog default. Delete an entry once the deploy
- * that moved production has run, or an operator who pins it again on purpose
- * would be overridden on every sync.
- */
-const SUPERSEDED_MEDIA_DEFAULT_KEYS: ReadonlySet<string> = new Set([
-  MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA_2_LITE,
-  MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_4_5,
-  MODEL_KEYS.HEYGEN_AVATAR_IV,
-]);
-
-export function isSupersededMediaDefault(key: string): boolean {
-  return SUPERSEDED_MEDIA_DEFAULT_KEYS.has(key);
-}
-
-/**
  * Models the provider no longer serves: Replicate returns 404, or, for text
  * keys that complete through OpenRouter, OpenRouter lists no endpoint (checked
  * 2026-10-15). A retired row is never offered or priced, and an explicit

@@ -94,7 +94,7 @@ vi.mock('@genfeedai/contexts/ui/sidebar-navigation-context', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
-  usePathname: () => '/org-1/brand-1/discovery/overview',
+  usePathname: () => '/org-1/brand-1/discovery/feed',
   useRouter: () => ({
     back: vi.fn(),
     push: vi.fn(),
@@ -134,20 +134,23 @@ vi.mock('@/features/trends/desk/use-discovery-desk-items', () => ({
 
 vi.mock('@/features/trends/desk/desk-empty-states', () => ({
   DeskEmptyState: ({
-    followingHref,
+    onFollowCreators,
     publishingHref,
     sourceHealthHref,
   }: {
-    followingHref: string;
+    onFollowCreators: () => void;
     publishingHref: string;
     sourceHealthHref: string;
   }) => (
     <div
       data-testid="desk-empty-state"
-      data-following-href={followingHref}
       data-publishing-href={publishingHref}
       data-source-health-href={sourceHealthHref}
-    />
+    >
+      <button onClick={onFollowCreators} type="button">
+        follow-creators
+      </button>
+    </div>
   ),
   DiscoveryReadinessCards: () => (
     <div data-testid="discovery-readiness-cards" />
@@ -163,7 +166,7 @@ vi.mock('@/features/trends/desk/desk-filter-rail', () => ({
     source: string;
   }) => (
     <div data-source={source} data-testid="desk-filter-rail">
-      {['all', 'trends', 'owned'].map((value) => (
+      {['all', 'trends', 'imported'].map((value) => (
         <button key={value} onClick={() => onSourceChange(value)} type="button">
           {`source ${value}`}
         </button>
@@ -177,7 +180,8 @@ vi.mock('@/features/trends/desk/desk-sources-menu', () => ({
 }));
 
 vi.mock('@/features/trends/following/FollowSourceModal', () => ({
-  default: () => null,
+  default: ({ open }: { open: boolean }) =>
+    open ? <div data-testid="follow-source-modal" /> : null,
 }));
 
 interface MockViewProps {
@@ -262,10 +266,6 @@ describe('DiscoveryDesk', () => {
     });
     render(<DiscoveryDesk />);
     expect(screen.getByTestId('desk-empty-state')).toHaveAttribute(
-      'data-following-href',
-      '/org-1/brand-1/discovery/following',
-    );
-    expect(screen.getByTestId('desk-empty-state')).toHaveAttribute(
       'data-source-health-href',
       '/org-1/brand-1/discovery/trends',
     );
@@ -344,9 +344,9 @@ describe('DiscoveryDesk', () => {
     expect(screen.getByText('Workflow demo clip')).toBeInTheDocument();
     expect(screen.queryByText('Creator collab teaser')).not.toBeInTheDocument();
 
-    selectSource('owned');
+    selectSource('imported');
 
-    expect(mocks.setParamState).toHaveBeenCalledWith('source', 'owned');
+    expect(mocks.setParamState).toHaveBeenCalledWith('source', 'imported');
     expect(screen.getByTestId('desk-empty-state')).toBeInTheDocument();
     expect(screen.queryByText('Workflow demo clip')).not.toBeInTheDocument();
 
@@ -384,7 +384,7 @@ describe('DiscoveryDesk', () => {
     );
   });
 
-  it('keeps search on the left of the Following topbar', () => {
+  it('keeps search on the left of the topbar when filtered to following', () => {
     mocks.paramState.source = 'following';
 
     render(<DiscoveryDesk />);
@@ -450,7 +450,7 @@ describe('DiscoveryDesk', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('renders the Following deck with one column per platform when ?source=following', () => {
+  it('shows followed creators in the one feed when the source is following', () => {
     const trendsItem = buildItem({
       key: 'trend:public',
       source: 'trends',
@@ -461,72 +461,32 @@ describe('DiscoveryDesk', () => {
       source: 'following',
       title: 'Followed creator signal',
     });
-    const linkedinItem = buildItem({
-      key: 'trend:linkedin',
-      platform: 'linkedin',
-      source: 'following',
-      title: 'LinkedIn creator signal',
-    });
     mocks.useDiscoveryDeskItems.mockReturnValue({
-      error: null,
-      isLoading: false,
-      isRefreshing: false,
-      items: [trendsItem, followingItem, linkedinItem],
-      refresh: vi.fn().mockResolvedValue(undefined),
-      sources: [],
-      summary: {
-        connectedPlatforms: ['twitter'],
-        lockedPlatforms: [],
-        totalItems: 3,
-        totalTrends: 3,
-      },
+      ...mocks.useDiscoveryDeskItems(),
+      items: [trendsItem, followingItem],
     });
     mocks.paramState.source = 'following';
 
     render(<DiscoveryDesk />);
 
-    expect(screen.getByTestId('following-deck')).toBeInTheDocument();
-    expect(screen.queryByTestId('desk-table-view')).not.toBeInTheDocument();
     expect(screen.getByText('Followed creator signal')).toBeInTheDocument();
-    expect(screen.getByText('LinkedIn creator signal')).toBeInTheDocument();
     expect(screen.queryByText('Public trend signal')).not.toBeInTheDocument();
-    // Trend corpus health is about public trends, not followed creators.
-    expect(screen.queryByText('Source health')).not.toBeInTheDocument();
-
-    const columns = screen.getAllByTestId('following-deck-column');
-    expect(columns.map((column) => column.getAttribute('aria-label'))).toEqual([
-      'X',
-      'LinkedIn',
-    ]);
-    for (const column of columns) {
-      expect(column).toHaveClass('flex-1');
-      expect(column).toHaveClass('min-w-80');
-      expect(column).not.toHaveClass('w-80');
-    }
-    const addColumn = screen.getByRole('button', { name: /Add a column/ });
-    expect(addColumn).toBeInTheDocument();
-    expect(addColumn).toHaveClass('shrink-0');
-    expect(screen.getByTestId('following-deck').firstElementChild).toHaveClass(
-      'w-full',
-    );
   });
 
-  it('shows the follow-creators empty state on the Following deck without sources', () => {
+  it('opens the follow dialog from the empty state', () => {
     mocks.useDiscoveryDeskItems.mockReturnValue({
       ...mocks.useDiscoveryDeskItems(),
       items: [],
       sources: [],
     });
-    mocks.paramState.source = 'following';
 
     render(<DiscoveryDesk />);
 
-    expect(
-      screen.getByText('Follow creators to build your deck'),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByTestId('discovery-readiness-cards'),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByTestId('follow-source-modal')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'follow-creators' }));
+
+    expect(screen.getByTestId('follow-source-modal')).toBeInTheDocument();
   });
 
   it('shows the selection bar after selecting a row and batch-remixes sequentially', async () => {

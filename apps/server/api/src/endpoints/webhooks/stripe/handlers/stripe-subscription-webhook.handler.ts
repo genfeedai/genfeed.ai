@@ -234,7 +234,6 @@ export class StripeSubscriptionWebhookHandler {
   ): Promise<void> {
     if (subscription.metadata?.billing_scope === 'service') return;
     try {
-      // Find existing subscription
       const existingSubscription = await this.subscriptionsService.findOne({
         stripeSubscriptionId: subscription.id,
       });
@@ -270,7 +269,6 @@ export class StripeSubscriptionWebhookHandler {
         return;
       }
 
-      // Sync subscription state to DB
       await this.subscriptionsService.syncSubscriptionState(
         updatedSubscription,
         subscription.id,
@@ -351,7 +349,6 @@ export class StripeSubscriptionWebhookHandler {
         return;
       }
 
-      // Sync subscription state to DB
       await this.subscriptionsService.syncSubscriptionState(
         updatedSubscription,
         subscription.id,

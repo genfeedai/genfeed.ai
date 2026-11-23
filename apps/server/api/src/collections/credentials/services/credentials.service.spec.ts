@@ -110,10 +110,9 @@ describe('CredentialsService', () => {
       tokenEncryptionKey: KEY,
     } as unknown as ConfigService);
     filesClient = {
-      uploadToS3: vi.fn().mockResolvedValue({
-        publicUrl:
-          'https://cdn.genfeed.ai/ingredients/social-avatars/existing-id',
-      }),
+      uploadToS3: vi.fn(async (key: string) => ({
+        publicUrl: `https://cdn.genfeed.ai/ingredients/social-avatars/${key}`,
+      })),
     };
 
     eventEmitter = { emit: vi.fn() };
@@ -387,7 +386,14 @@ describe('CredentialsService', () => {
       await service.remove('existing-id');
 
       expect(prisma.credential.update).toHaveBeenCalledWith(
-        expect.objectContaining({ data: { isDeleted: true } }),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            accessToken: null,
+            isConnected: false,
+            isDeleted: true,
+            refreshToken: null,
+          }),
+        }),
       );
       expect(
         accessBootstrapCache.invalidateForOrganization,
@@ -1328,6 +1334,81 @@ describe('CredentialsService', () => {
       );
     });
 
+    it.each(['verified:opaque-state', 'claimed:opaque-state'])(
+      'keeps the %s marker on the connected row so a late second verify still finds it',
+      async (marker) => {
+        useStoredRows([
+          {
+            ...pendingCredential,
+            isDeleted: false,
+            oauthState: marker,
+          },
+        ]);
+
+        await service.updateExternalProfile('pending-1', orgId, {
+          handle: 'second_account',
+          id: 'account-2',
+        });
+
+        expect(prisma.credential.update).toHaveBeenCalledWith(
+          expect.objectContaining({
+            data: expect.objectContaining({
+              isConnected: true,
+              oauthState: marker,
+            }),
+          }),
+        );
+      },
+    );
+
+    it('keeps the request-token hash with the marker so a late OAuth 1.0a verify finds the account', async () => {
+      useStoredRows([
+        {
+          ...pendingCredential,
+          isDeleted: false,
+          oauthState: 'claimed:opaque-state',
+          oauthTokenHash: 'request-token-hash',
+        },
+      ]);
+
+      await service.updateExternalProfile('pending-1', orgId, {
+        handle: 'second_account',
+        id: 'account-2',
+      });
+
+      expect(prisma.credential.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            oauthToken: null,
+            oauthTokenHash: 'request-token-hash',
+            oauthTokenSecret: null,
+          }),
+        }),
+      );
+    });
+
+    it('clears the request-token hash when the row carries no marker', async () => {
+      useStoredRows([
+        {
+          ...pendingCredential,
+          isDeleted: false,
+          oauthState: null,
+          oauthTokenHash: 'request-token-hash',
+        },
+      ]);
+
+      await service.updateExternalProfile('pending-1', orgId, {
+        handle: 'second_account',
+        id: 'account-2',
+      });
+
+      expect(prisma.credential.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ oauthTokenHash: null }),
+        }),
+      );
+    });
+
     it('rejects the losing writer of a concurrent claim on the same pending row', async () => {
       // Two concurrent select-account requests choosing *different*
       // accounts never collide on the externalId unique constraint (only
@@ -1680,7 +1761,7 @@ describe('CredentialsService', () => {
       expect(prisma.credential.findFirst).not.toHaveBeenCalled();
     });
 
-    it('resolves an OAuth 1.0a request token by hash inside the caller scope', async () => {
+    it('resolves an OAuth 1.0a request token by hash inside the caller scope, in any verify state', async () => {
       prisma.credential.findFirst.mockResolvedValueOnce({
         brandId,
         id: 'credential-1',
@@ -1688,7 +1769,7 @@ describe('CredentialsService', () => {
         userId: 'u1',
       });
 
-      const credential = await service.findPendingOAuth1Credential(
+      const credential = await service.findOAuth1VerifyCredential(
         'request-token',
         'x-ads' as never,
         { organizationId: orgId, userId: 'u1' },
@@ -1696,7 +1777,6 @@ describe('CredentialsService', () => {
 
       expect(prisma.credential.findFirst).toHaveBeenCalledWith({
         where: {
-          isConnected: false,
           isDeleted: false,
           oauthTokenHash:
             '3dc30238bf4b801c0cb801511cfdda3a9a9d767f737068df3f5f76c3a32a8eac',
@@ -1860,32 +1940,57 @@ describe('CredentialsService', () => {
     });
 
     it('uploads a provider avatar to S3 and persists public identity', async () => {
-      await service.updateExternalProfile('existing-id', orgId, {
-        avatarUrl: 'https://platform.example/avatar.jpg',
-        handle: 'acme',
-        id: 'provider-1',
-        name: 'Acme Studio',
-      });
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-11-21T09:57:50Z'));
 
-      expect(filesClient.uploadToS3).toHaveBeenCalledWith(
-        'existing-id',
-        'social-avatars',
-        {
-          type: 'url',
-          url: 'https://platform.example/avatar.jpg',
-        },
-      );
+      try {
+        await service.updateExternalProfile('existing-id', orgId, {
+          avatarUrl: 'https://platform.example/avatar.jpg',
+          handle: 'acme',
+          id: 'provider-1',
+          name: 'Acme Studio',
+        });
+      } finally {
+        vi.useRealTimers();
+      }
+
       expect(prisma.credential.update).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
-            externalAvatar:
-              'https://cdn.genfeed.ai/ingredients/social-avatars/existing-id',
+            externalAvatar: `https://cdn.genfeed.ai/ingredients/social-avatars/existing-id-${Date.parse('2026-11-21T09:57:50Z')}`,
             externalHandle: 'acme',
             externalId: 'provider-1',
             externalName: 'Acme Studio',
           }),
         }),
       );
+    });
+
+    it('stores a reconnect avatar under a new URL so the CDN cannot serve the old photo', async () => {
+      vi.useFakeTimers();
+
+      try {
+        vi.setSystemTime(new Date('2026-11-21T09:50:00Z'));
+        await service.updateExternalProfile('existing-id', orgId, {
+          avatarUrl: 'https://platform.example/old.jpg',
+          id: 'provider-1',
+        });
+        vi.setSystemTime(new Date('2026-11-21T09:57:50Z'));
+        await service.updateExternalProfile('existing-id', orgId, {
+          avatarUrl: 'https://platform.example/new.jpg',
+          id: 'provider-1',
+        });
+      } finally {
+        vi.useRealTimers();
+      }
+
+      const savedAvatars = prisma.credential.update.mock.calls.map(
+        (call) => call[0]?.data?.externalAvatar,
+      );
+      expect(savedAvatars).toEqual([
+        `https://cdn.genfeed.ai/ingredients/social-avatars/existing-id-${Date.parse('2026-11-21T09:50:00Z')}`,
+        `https://cdn.genfeed.ai/ingredients/social-avatars/existing-id-${Date.parse('2026-11-21T09:57:50Z')}`,
+      ]);
     });
 
     it('clears a stale handle when a provider explicitly reports none', async () => {

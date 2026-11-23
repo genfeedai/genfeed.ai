@@ -283,7 +283,6 @@ export function useIngredientsLayout({
     };
   }, [ingredientCategory, scope, brands]);
 
-  // Context value
   const contextValue: IIngredientsContextValue = useMemo(
     () => ({
       filters,

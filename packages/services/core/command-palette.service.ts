@@ -215,7 +215,6 @@ class CommandPaletteServiceClass {
       throw new Error(`Command not found: ${commandId}`);
     }
 
-    // Check condition
     if (command.condition && !command.condition()) {
       return logger.error('Command condition not met', { commandId });
     }

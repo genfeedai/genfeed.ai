@@ -14,7 +14,7 @@ import {
 /**
  * Deep interaction E2E coverage for the Discovery surface.
  *
- * Exercises the Signal Desk (`/discovery/overview`: search, refresh, source
+ * Exercises the Signal Desk (`/discovery/feed`: search, refresh, source
  * tabs) and the Ads page (`/discovery/ads`: search, refresh, platform filter).
  *
  * Every navigated route goes through `assertRouteRenders`, which fails on an
@@ -57,7 +57,7 @@ test.describe('Discovery — deep interactions', () => {
   }) => {
     await mockDiscoveryDeskFollowingFeed(authenticatedPage);
 
-    await assertRouteRenders(authenticatedPage, `${BASE}/overview`);
+    await assertRouteRenders(authenticatedPage, `${BASE}/feed`);
 
     await expect(
       authenticatedPage.getByText('Workflow demo clip'),
@@ -94,7 +94,7 @@ test.describe('Discovery — deep interactions', () => {
     await refreshButton.click();
     await refetched;
 
-    await assertNoErrorBoundaryFallback(authenticatedPage, `${BASE}/overview`);
+    await assertNoErrorBoundaryFallback(authenticatedPage, `${BASE}/feed`);
   });
 
   test('Desk Source filter narrows visible rows and updates the URL', async ({
@@ -102,7 +102,7 @@ test.describe('Discovery — deep interactions', () => {
   }) => {
     await mockDiscoveryDeskFollowingFeed(authenticatedPage);
 
-    await assertRouteRenders(authenticatedPage, `${BASE}/overview`);
+    await assertRouteRenders(authenticatedPage, `${BASE}/feed`);
 
     await expect(
       authenticatedPage.getByText('Workflow demo clip'),
@@ -126,8 +126,8 @@ test.describe('Discovery — deep interactions', () => {
       authenticatedPage.getByText('Creator collab teaser'),
     ).toBeHidden();
 
-    await chooseSource(/^My accounts/);
-    await expect(authenticatedPage).toHaveURL(/source=owned/);
+    await chooseSource(/^Imported/);
+    await expect(authenticatedPage).toHaveURL(/source=imported/);
     await expect(
       authenticatedPage.getByText('Workflow demo clip'),
     ).toBeHidden();
@@ -146,7 +146,7 @@ test.describe('Discovery — deep interactions', () => {
       authenticatedPage.getByText('Creator collab teaser'),
     ).toBeVisible();
 
-    await assertNoErrorBoundaryFallback(authenticatedPage, `${BASE}/overview`);
+    await assertNoErrorBoundaryFallback(authenticatedPage, `${BASE}/feed`);
   });
 
   test('accessibility: the Desk Source filter is keyboard operable', async ({
@@ -154,7 +154,7 @@ test.describe('Discovery — deep interactions', () => {
   }) => {
     await mockDiscoveryDeskFollowingFeed(authenticatedPage);
 
-    await assertRouteRenders(authenticatedPage, `${BASE}/overview`);
+    await assertRouteRenders(authenticatedPage, `${BASE}/feed`);
 
     const filters = authenticatedPage.getByRole('button', { name: /^Filters/ });
     await filters.focus();
@@ -256,25 +256,25 @@ test.describe('Discovery — deep interactions', () => {
     await assertNoErrorBoundaryFallback(authenticatedPage, `${BASE}/ads`);
   });
 
-  test('bare Discovery path redirects to the overview Desk', async ({
+  test('bare Discovery path redirects to the Feed', async ({
     authenticatedPage,
   }) => {
     await assertRouteRenders(authenticatedPage, BASE);
 
     await expect(authenticatedPage).not.toHaveURL(/login|sign-in/);
-    await expect(authenticatedPage).toHaveURL(/discovery\/overview/);
+    await expect(authenticatedPage).toHaveURL(/discovery\/feed/);
   });
 
   test('browser back navigation between Discovery pages works', async ({
     authenticatedPage,
   }) => {
-    await assertRouteRenders(authenticatedPage, `${BASE}/overview`);
+    await assertRouteRenders(authenticatedPage, `${BASE}/feed`);
 
     await assertRouteRenders(authenticatedPage, `${BASE}/ads`);
     await expect(authenticatedPage).toHaveURL(/discovery\/ads/);
 
     await authenticatedPage.goBack();
-    await expect(authenticatedPage).toHaveURL(/discovery\/overview/);
-    await assertNoErrorBoundaryFallback(authenticatedPage, `${BASE}/overview`);
+    await expect(authenticatedPage).toHaveURL(/discovery\/feed/);
+    await assertNoErrorBoundaryFallback(authenticatedPage, `${BASE}/feed`);
   });
 });

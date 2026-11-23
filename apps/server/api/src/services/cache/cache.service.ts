@@ -5,6 +5,8 @@ import {
   SET_OWNED_CLAIM_VALUE_SCRIPT,
 } from '@api/services/cache/cache-claim-scripts';
 import { CacheClientService } from '@api/services/cache/cache-client.service';
+import { CacheLocks } from '@api/services/cache/cache-locks';
+import { tagEpochKey } from '@api/services/cache/cache-tag-epoch';
 import { CacheTagsService } from '@api/services/cache/cache-tags.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
@@ -26,11 +28,6 @@ export type CounterReservationReconciliationResult =
   | 'settled'
   | 'duplicate'
   | 'unavailable';
-
-/** Lifetime of a tag epoch: longer than any response fill it has to outlive. */
-const TAG_EPOCH_TTL_SECONDS = 24 * 60 * 60;
-
-const tagEpochKey = (tag: string): string => `tag-epoch:${tag}`;
 
 /**
  * Stores a cache entry and registers its tags only while every tag still has
@@ -191,12 +188,15 @@ export type ResearchReservationNote = 'duplicate' | 'noted' | 'unavailable';
 export class CacheService {
   private readonly defaultTtl = 300; // 5 minutes default
   private readonly constructorName = this.constructor.name;
+  private readonly locks: CacheLocks;
 
   constructor(
     private readonly cacheClientService: CacheClientService,
     private readonly cacheTagsService: CacheTagsService,
     private readonly logger: LoggerService,
-  ) {}
+  ) {
+    this.locks = new CacheLocks(cacheClientService, logger);
+  }
 
   private get client(): Redis {
     return this.cacheClientService.instance;
@@ -566,34 +566,14 @@ export class CacheService {
     }
   }
 
+  /**
+   * Delete every entry stored with one of `tags` and mark the tags as changed
+   * for fills computing a value right now (`readTagEpochs`,
+   * `setUnlessTagsInvalidated`).
+   */
   invalidateByTags(tags: string[]): Promise<number> {
     if (!this.isAvailable) {
       return Promise.resolve(0);
-    }
-
-    return this.cacheTagsService.invalidateByTags(tags);
-  }
-
-  /**
-   * Invalidate `tags` and mark them as changed for responses that are being
-   * computed right now. Pair it with `readTagEpochs` and
-   * `setUnlessTagsInvalidated`: a fill that started before this call no longer
-   * stores its value afterwards, even when no entry existed to delete yet.
-   */
-  async invalidateGuardedTags(tags: string[]): Promise<number> {
-    if (!this.isAvailable) {
-      return 0;
-    }
-
-    try {
-      const pipeline = this.client.multi();
-      for (const tag of tags) {
-        pipeline.incr(tagEpochKey(tag));
-        pipeline.expire(tagEpochKey(tag), TAG_EPOCH_TTL_SECONDS);
-      }
-      await pipeline.exec();
-    } catch (error: unknown) {
-      this.logOperationError('invalidateGuardedTags', { error, tags });
     }
 
     return this.cacheTagsService.invalidateByTags(tags);
@@ -666,8 +646,21 @@ export class CacheService {
         return cached;
       }
 
+      // Read before the factory runs: an invalidation of one of the tags that
+      // lands while it reads must stop its result from being stored.
+      const tags = options.tags ?? [];
+      const epochs = await this.readTagEpochs(tags);
       const value = await factory();
-      await this.set(key, value, options);
+      if (tags.length === 0) {
+        await this.set(key, value, options);
+      } else if (epochs) {
+        await this.setUnlessTagsInvalidated(
+          key,
+          value,
+          { tags, ttl: options.ttl },
+          epochs,
+        );
+      }
       return value;
     } catch (error: unknown) {
       this.logOperationError('getOrSet', {
@@ -755,28 +748,7 @@ export class CacheService {
     lockKey: string,
     ttlSeconds: number = 300,
   ): Promise<boolean> {
-    if (!this.isAvailable) {
-      return false;
-    }
-
-    try {
-      const key = `lock:${lockKey}`;
-      // SET NX (only set if not exists) with EX (expiration in seconds)
-      const result = await this.client.set(
-        key,
-        Date.now().toString(),
-        'EX',
-        ttlSeconds,
-        'NX',
-      );
-      return result === 'OK';
-    } catch (error: unknown) {
-      this.logOperationError('acquireLock', {
-        error,
-        lockKey,
-      });
-      return false;
-    }
+    return this.locks.acquire(lockKey, ttlSeconds);
   }
 
   async acquireOwnedClaim(
@@ -925,30 +897,19 @@ export class CacheService {
   }
 
   /**
-   * Release a distributed lock.
+   * Release a distributed lock this process holds. A lock that expired and
+   * now belongs to another holder is left alone and reported as not released.
    *
    * @param lockKey - The lock identifier to release
    */
   async releaseLock(lockKey: string): Promise<boolean> {
-    if (!this.isAvailable) {
-      return false;
-    }
-
-    try {
-      const key = `lock:${lockKey}`;
-      return (await this.client.del(key)) > 0;
-    } catch (error: unknown) {
-      this.logOperationError('releaseLock', {
-        error,
-        lockKey,
-      });
-      return false;
-    }
+    return this.locks.release(lockKey);
   }
 
   /**
    * Execute a function while holding a distributed lock.
-   * Automatically acquires lock before execution and releases after.
+   * Automatically acquires lock before execution and releases after, and
+   * extends it while `fn` runs so work longer than the TTL keeps its lock.
    * If lock cannot be acquired, returns null without executing the function.
    *
    * @param lockKey - Unique identifier for the lock
@@ -960,18 +921,6 @@ export class CacheService {
     fn: () => Promise<T>,
     ttlSeconds: number = 300,
   ): Promise<T | null> {
-    const acquired = await this.acquireLock(lockKey, ttlSeconds);
-    if (!acquired) {
-      this.logger.debug(
-        `${this.constructorName} withLock: lock not acquired for ${lockKey}`,
-      );
-      return null;
-    }
-
-    try {
-      return await fn();
-    } finally {
-      await this.releaseLock(lockKey);
-    }
+    return this.locks.run(lockKey, fn, ttlSeconds);
   }
 }

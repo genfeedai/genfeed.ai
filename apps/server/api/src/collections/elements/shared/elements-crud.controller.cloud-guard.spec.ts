@@ -139,7 +139,9 @@ function setup() {
   const cache = {
     get: vi.fn().mockResolvedValue(null),
     invalidateByTags: vi.fn().mockResolvedValue(0),
+    readTagEpochs: vi.fn(async (tags: string[]) => tags.map(() => '0')),
     set: vi.fn().mockResolvedValue(undefined),
+    setUnlessTagsInvalidated: vi.fn().mockResolvedValue(true),
   };
   const service = new ElementsStylesService(
     buildPrisma(rows),

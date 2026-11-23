@@ -5,6 +5,10 @@ import {
   CreateCredentialVerifyDto,
 } from '@api/collections/credentials/dto/create-credential.dto';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import {
+  claimOAuthVerifyCredential,
+  verifiedOAuthState,
+} from '@api/collections/credentials/utils/oauth-verify-claim.util';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
@@ -87,10 +91,15 @@ export class PinterestController {
       );
     }
 
-    const credential = await this.credentialsService.findPendingOAuthCredential(
+    const claim = await claimOAuthVerifyCredential(
+      this.credentialsService,
       body.state,
       CredentialPlatform.PINTEREST,
     );
+    if (claim?.alreadyConnected) {
+      return serializeSingle(request, CredentialSerializer, claim.credential);
+    }
+    const credential = claim?.credential;
 
     if (!credential) {
       throw new HttpException(
@@ -124,7 +133,7 @@ export class PinterestController {
           : undefined,
         isConnected: true,
         isDeleted: false,
-        oauthState: null,
+        oauthState: verifiedOAuthState(body.state),
         refreshToken: tokens.refreshToken,
       },
     );

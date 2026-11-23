@@ -133,10 +133,8 @@ export class TelegramBotService implements OnModuleInit, OnModuleDestroy {
       );
     }
 
-    // Load workflows
     await this.loadWorkflows();
 
-    // Create bot
     this.bot = new Bot(String(token));
     this.messageHandler.setBotToken(String(token));
     this.setupHandlers();

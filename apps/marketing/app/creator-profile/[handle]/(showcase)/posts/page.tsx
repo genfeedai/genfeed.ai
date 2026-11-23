@@ -15,8 +15,16 @@ export default async function CreatorPostsPage({
   params,
   searchParams,
 }: CreatorTabRouteProps) {
-  const [{ handle }, { page }] = await Promise.all([params, searchParams]);
+  const [{ handle }, { page, platform }] = await Promise.all([
+    params,
+    searchParams,
+  ]);
   return (
-    <CreatorTab handle={handle} page={resolveCreatorPage(page)} tab="posts" />
+    <CreatorTab
+      handle={handle}
+      page={resolveCreatorPage(page)}
+      platform={platform}
+      tab="posts"
+    />
   );
 }

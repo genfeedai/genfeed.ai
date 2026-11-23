@@ -141,7 +141,6 @@ export class CampaignDiscoveryService {
         uniqueTargets,
       );
 
-      // Sort by relevance score
       newTargets.sort((a, b) => b.relevanceScore - a.relevanceScore);
 
       // Limit results

@@ -531,6 +531,40 @@ describe('ModalPost', () => {
         );
       });
 
+      it('saves Reel placement with an Instagram video draft', async () => {
+        const user = userEvent.setup();
+        render(
+          <ModalPost
+            isComposer
+            credentials={[
+              {
+                id: 'cred-ig',
+                label: 'Acme on Instagram',
+                platform: 'instagram',
+              } as ICredential,
+            ]}
+            modalId={ModalEnum.POST_COMPOSE}
+          />,
+        );
+        await user.click(
+          screen.getByRole('button', { name: 'Acme on Instagram' }),
+        );
+        await goToContent(user);
+        await pickLibraryVideo(user);
+        await writeCaption(user, 'Instagram test');
+        await user.click(screen.getByRole('button', { name: 'Save draft' }));
+
+        await waitFor(() =>
+          expect(mocks.post).toHaveBeenCalledWith(
+            expect.objectContaining({
+              credentialId: 'cred-ig',
+              ingredients: ['video-1'],
+              targetSettings: { placement: 'reel' },
+            }),
+          ),
+        );
+      });
+
       it('removes a picked video so it is not saved', async () => {
         const user = userEvent.setup();
         renderComposer();

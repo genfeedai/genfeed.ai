@@ -107,7 +107,7 @@ describe.skipIf(!hasRedisServer)('guarded cache store on a real Redis', () => {
   it('refuses a value read before an invalidation, even when no entry existed yet', async () => {
     const epochs = await cache.readTagEpochs(TAGS);
 
-    await cache.invalidateGuardedTags(['public-brand-content']);
+    await cache.invalidateByTags(['public-brand-content']);
     const isStored = await cache.setUnlessTagsInvalidated(
       'public:brand:1',
       { name: 'Acme' },
@@ -129,14 +129,14 @@ describe.skipIf(!hasRedisServer)('guarded cache store on a real Redis', () => {
     );
     await cache.set('public:models', ['m1'], { tags: ['models'], ttl: 60 });
 
-    await cache.invalidateGuardedTags(['public-brand-content']);
+    await cache.invalidateByTags(['public-brand-content']);
 
     expect(await cache.get('public:brand:1')).toBeNull();
     expect(await cache.get('public:models')).toEqual(['m1']);
   });
 
   it('accepts a value read after the invalidation', async () => {
-    await cache.invalidateGuardedTags(['public-brand-content']);
+    await cache.invalidateByTags(['public-brand-content']);
     const epochs = await cache.readTagEpochs(TAGS);
 
     const isStored = await cache.setUnlessTagsInvalidated(

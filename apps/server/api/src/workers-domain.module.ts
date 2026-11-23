@@ -108,6 +108,7 @@ import {
   WORKFLOW_EXECUTOR,
 } from '@api/collections/workflows/workflows.tokens';
 import { OrganizationPaidAccessService } from '@api/common/subscriptions/organization-paid-access.service';
+import { DEFAULT_HTTP_TIMEOUT_MS } from '@api/constants/http-timeout.constant';
 import { AccountAnalyticsSnapshotService } from '@api/endpoints/analytics/account-analytics-snapshot.service';
 import { ManagedInferenceClientService } from '@api/endpoints/v1/managed-inference/managed-inference-client.service';
 import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
@@ -228,7 +229,6 @@ import { TurboRunReconcileService } from '@api/services/turbo-run/turbo-run-reco
 import { TurboRunStreamService } from '@api/services/turbo-run/turbo-run-stream.service';
 import { GenerationEventWebhookService } from '@api/services/webhook-client/generation-event-webhook.service';
 import { PublishEventWebhookService } from '@api/services/webhook-client/publish-event-webhook.service';
-import { WebhookClientService } from '@api/services/webhook-client/webhook-client.service';
 import { WebhookDispatchService } from '@api/services/webhook-client/webhook-dispatch.service';
 import { WorkflowEventWebhookService } from '@api/services/webhook-client/workflow-event-webhook.service';
 import { WhisperService } from '@api/services/whisper/whisper.service';
@@ -437,7 +437,6 @@ const WORKER_DOMAIN_SERVICES = [
   VideoGenerationLineageService,
   VoiceGenerationService,
   VoicesService,
-  WebhookClientService,
   WebhookDispatchService,
   WebhooksService,
   WhatsappPublisherService,
@@ -485,7 +484,7 @@ const WORKER_DOMAIN_SERVICES = [
     OutliersCoreModule,
     CacheModule,
     ConfigModule,
-    HttpModule,
+    HttpModule.register({ timeout: DEFAULT_HTTP_TIMEOUT_MS }),
     LoggerModule,
     MediaUrlsModule,
     PrismaModule,

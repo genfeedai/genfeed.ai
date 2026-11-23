@@ -438,3 +438,46 @@ describe('isReportableTokenExchangeFailure', () => {
     },
   );
 });
+
+describe('toTokenExchangeLogContext', () => {
+  it.each([
+    [
+      'a rate-limited exchange',
+      { attempt: 1, isFinal: true, reason: 'http', status: 429 },
+      ['better-auth-token-exchange', 'http', '429'],
+      { auth_token_cause: '429', auth_token_reason: 'http' },
+    ],
+    [
+      'a reset connection',
+      {
+        attempt: 2,
+        code: 'ECONNRESET',
+        error: 'fetch failed',
+        isFinal: true,
+        reason: 'network',
+      },
+      ['better-auth-token-exchange', 'network', 'ECONNRESET'],
+      { auth_token_cause: 'ECONNRESET', auth_token_reason: 'network' },
+    ],
+    [
+      'a failure with neither status nor code',
+      { attempt: 2, error: 'timed out', isFinal: true, reason: 'network' },
+      ['better-auth-token-exchange', 'network', 'none'],
+      { auth_token_cause: 'none', auth_token_reason: 'network' },
+    ],
+  ] as const)(
+    'splits %s into its own Sentry issue',
+    async (_case, failure, fingerprint, tags) => {
+      const { toTokenExchangeLogContext } = await import(
+        './protected-bootstrap.server'
+      );
+
+      const context = toTokenExchangeLogContext(failure);
+
+      expect({ fingerprint: context.fingerprint, tags: context.tags }).toEqual({
+        fingerprint,
+        tags,
+      });
+    },
+  );
+});

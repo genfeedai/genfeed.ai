@@ -1,6 +1,7 @@
 import type { ActionContractSchemas } from './action-contract.interface';
 import { getAdsActionContract } from './ads-action-contracts';
 import { getAgentCampaignActionContract } from './agent-campaign-action-contracts';
+import { getAgentEventRunActionContract } from './agent-event-run-action-contracts';
 import { getAgentTurnActionContract } from './agent-turn-action-contracts';
 import { getAiInfluencerActionContract } from './ai-influencer-action-contracts';
 import { getAnalyticsActionContract } from './analytics-action-contracts';
@@ -54,6 +55,7 @@ const CONTRACT_RESOLVERS = [
   getCampaignOutreachActionContract,
   getClipActionContract,
   getAgentCampaignActionContract,
+  getAgentEventRunActionContract,
   getAgentTurnActionContract,
   getAnalyticsActionContract,
   getContentLearningActionContract,

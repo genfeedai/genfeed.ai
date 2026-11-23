@@ -216,6 +216,16 @@ describe('MCP catalog presentation through the public registry', () => {
         name,
         arguments: args,
       })) as McpAppResult;
+      // Publishing holds until the agent confirms with the person.
+      if (result.structuredContent?.code === 'confirmation_required') {
+        const confirmed = isRecord(args.input)
+          ? { ...args, input: { ...args.input, confirmed: true } }
+          : { ...args, confirmed: true };
+        result = (await registry.handleToolCall({
+          name,
+          arguments: confirmed,
+        })) as McpAppResult;
+      }
       if (result.structuredContent?.code === 'approval_pending') {
         expect(result.structuredContent.approvalId).toBe('approval-private');
         expect(result.content).toEqual([

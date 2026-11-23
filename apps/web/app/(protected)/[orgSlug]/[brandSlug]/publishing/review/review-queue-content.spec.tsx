@@ -23,6 +23,7 @@ const mocks = vi.hoisted(() => ({
     isLoading: false,
     items: [],
     onDecide: vi.fn(),
+    onAnswer: vi.fn(),
     onDecideMany: vi.fn(),
     onSourceFilterChange: vi.fn(),
     refresh: vi.fn(),
@@ -60,6 +61,16 @@ type ConfirmConfig = {
 vi.mock('./useReviewInboxApprovals', async (importOriginal) => ({
   ...(await importOriginal<typeof import('./useReviewInboxApprovals')>()),
   useReviewInboxApprovals: () => mocks.approvals,
+}));
+
+vi.mock('@hooks/navigation/use-collection-scope/use-collection-scope', () => ({
+  isCollectionFetchReady: () => true,
+  useCollectionScope: () => ({
+    brandId: 'brand-1',
+    isReady: true,
+    organizationId: 'org-1',
+    pageScope: 'brand',
+  }),
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
@@ -1173,6 +1184,7 @@ describe('ReviewQueueContent', () => {
       actionTitle: 'Continue Weekly posts with the output waiting',
       approvalId: null,
       batchCount: null,
+      question: null,
       brandId: 'brand-1',
       brandLabel: 'Acme',
       brandLogoUrl: null,

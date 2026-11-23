@@ -1,8 +1,4 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
-import type {
-  TrendTimelineEntry,
-  TrendTurnoverResponse,
-} from '@api/collections/trends/interfaces/trend-turnover.interface';
 import { TrendsService } from '@api/collections/trends/services/trends.service';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
@@ -198,74 +194,6 @@ export class TrendsAnalyticsController {
     };
   }
 
-  @Get('turnover')
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  @ApiOperation({
-    operationId: 'TrendsController.getTurnoverStats',
-    summary: 'getTurnoverStats',
-  })
-  async getTurnoverStats(
-    @Query('days') daysParam?: string,
-  ): Promise<TrendTurnoverResponse> {
-    const days = this.parseTurnoverDays(daysParam);
-    const [byPlatform, timeline] = await Promise.all([
-      this.trendsService.getTurnoverStats(days),
-      this.trendsService.getTrendTimeline(days),
-    ]);
-
-    const totalAppeared = byPlatform.reduce(
-      (sum, platform) => sum + platform.appeared,
-      0,
-    );
-    const totalDied = byPlatform.reduce(
-      (sum, platform) => sum + platform.died,
-      0,
-    );
-    const totalAlive = byPlatform.reduce(
-      (sum, platform) => sum + platform.alive,
-      0,
-    );
-    const avgLifespanDays =
-      byPlatform.length > 0
-        ? Math.round(
-            (byPlatform.reduce(
-              (sum, platform) => sum + platform.avgLifespanDays,
-              0,
-            ) /
-              byPlatform.length) *
-              10,
-          ) / 10
-        : 0;
-
-    return {
-      byPlatform,
-      days,
-      timeline,
-      totals: {
-        alive: totalAlive,
-        appeared: totalAppeared,
-        avgLifespanDays,
-        died: totalDied,
-        turnoverRate:
-          totalAppeared > 0 ? Math.round((totalDied / totalAppeared) * 100) : 0,
-      },
-    };
-  }
-
-  @Get('turnover/timeline')
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  @ApiOperation({
-    operationId: 'TrendsController.getTurnoverTimeline',
-    summary: 'getTurnoverTimeline',
-  })
-  getTurnoverTimeline(
-    @Query('days') daysParam?: string,
-  ): Promise<TrendTimelineEntry[]> {
-    return this.trendsService.getTrendTimeline(
-      this.parseTurnoverDays(daysParam),
-    );
-  }
-
   private resolveBrandScope(query: GetViralVideosDto, user: AuthenticatedUser) {
     const readScope = resolveTenantReadScope(user);
     const brandId = query.brandId || readScope.brandId;
@@ -279,11 +207,6 @@ export class TrendsAnalyticsController {
       );
     }
     return { organizationId: readScope.organizationId, brandId };
-  }
-
-  private parseTurnoverDays(daysParam?: string): 7 | 30 | 90 {
-    const parsed = Number.parseInt(daysParam ?? '30', 10);
-    return ([7, 30, 90].includes(parsed) ? parsed : 30) as 7 | 30 | 90;
   }
 
   private toSafeNumber(value: unknown): number {

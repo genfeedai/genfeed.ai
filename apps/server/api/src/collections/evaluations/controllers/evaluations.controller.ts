@@ -288,7 +288,6 @@ export class EvaluationsController extends BaseCRUDController<
     @Param('evaluationId') evaluationId: string,
     @CurrentUser() user: User,
   ) {
-    // Use CollectionFilterUtil for ownership filtering
     const ownershipFilter = CollectionFilterUtil.buildOwnershipFilter(user, {
       includeOrganization: true,
       includeUser: true,

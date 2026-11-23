@@ -17,6 +17,12 @@ run-name: Seed hosted SaaS | ${{ inputs.seed }} | ${{ inputs.live && 'live' || '
 #   reference-data-sync  Model catalog, rates, skills, presets, elements, fonts.
 #                        The dry run only validates that the catalogs load, since
 #                        the sync has no diff mode. Live is idempotent.
+#   model-registry-retirement
+#                        Switches off the model rows the catalog retired (and
+#                        unpriced rows it seeds inactive): isActive, isPublic and
+#                        isHighlighted go false. The dry run lists each row it
+#                        would change and writes nothing; live applies it. A row
+#                        holding a category default is listed and left.
 #   backfill-report      Read-only: prints the newest data_backfills rows (the
 #                        report each batched backfill migration writes).
 #   webhook-id-report    Read-only: counts live workflows whose webhook id lacks
@@ -32,9 +38,6 @@ run-name: Seed hosted SaaS | ${{ inputs.seed }} | ${{ inputs.live && 'live' || '
 #                        (ready) but whose hold was released, so the render was
 #                        never charged (#10419), per organization, journal and
 #                        reservation status.
-#   reserved-slug-report
-#                        Read-only: organizations and brands whose slug equals a
-#                        reserved app root segment (#8117).
 #   linkedin-credential-report
 #                        Read-only: scoped trend credential counts per platform
 #                        and every live LinkedIn credential row (#9023).
@@ -44,6 +47,11 @@ run-name: Seed hosted SaaS | ${{ inputs.seed }} | ${{ inputs.live && 'live' || '
 #                        skipped workflow.status emails older than 30 days (#10382,
 #                        #10384), scheduled-post.publish runs per day (#10392) and
 #                        overdue scheduled or publishing posts per platform.
+#
+#   approvals-page-report
+#                        Read-only: per organization (largest five, no ids) the
+#                        stored size of Turbo runs, Turbo run items and pending
+#                        MCP approval arguments, behind the approvals page crash.
 #
 # The *-report entries run a fixed query from READ_ONLY_REPORT_SCRIPT in a READ
 # ONLY transaction in the migrate task; `live` is ignored and they never write.
@@ -64,13 +72,14 @@ on:
         options:
           - articles
           - reference-data-sync
+          - model-registry-retirement
           - backfill-report
           - webhook-id-report
           - instagram-reconnect-report
           - storyboard-unbilled-report
-          - reserved-slug-report
           - linkedin-credential-report
           - release-health-report
+          - approvals-page-report
       live:
         description: "apply the seed; unchecked is a dry run"
         required: false
@@ -205,16 +214,14 @@ jobs:
           READ_ONLY_REPORT_SCRIPT: |
             const { readFileSync, existsSync } = require('node:fs');
             const { Client } = require('pg');
-            // Snapshot of RESERVED_APP_ROOT_SEGMENTS (packages/contracts, routes.constant.ts).
-            const RESERVED_APP_ROOT_SEGMENTS = ['admin', 'agent', 'agent-auth', 'analytics', 'api', 'automation', 'clipper', 'connectors', 'desktop', 'discovery', 'edit', 'editor', 'forgot-password', 'ingest', 'library', 'login', 'logout', 'managed-credits', 'messages', 'monitoring', 'motion', 'oauth', 'onboarding', 'overview', 'platforms', 'playground', 'publishing', 'request-access', 'reset-password', 'serwist', 'settings', 'sign-in', 'sign-up', 'storyboard', 'support', 'trpc', 'turbo', 'v1', 'workspace'];
-            const REPORT_PARAMS = { 'reserved-slug-report': [RESERVED_APP_ROOT_SEGMENTS] };
+            const REPORT_PARAMS = {};
             const REPORTS = {
               'backfill-report': 'SELECT id, "completedAt", report FROM data_backfills ORDER BY "completedAt" DESC LIMIT 100',
               'instagram-reconnect-report': `SELECT count(*)::int AS "connected", count(DISTINCT c."brandId")::int AS "brands", count(DISTINCT COALESCE(c."organizationId", b."organizationId"))::int AS "organizations" FROM credentials c LEFT JOIN brands b ON b.id = c."brandId" WHERE c."platform" = 'INSTAGRAM' AND c."isConnected" = true AND c."isDeleted" = false`,
               'webhook-id-report': `SELECT count(*) FILTER (WHERE config->>'webhookId' IS NOT NULL)::int AS "withWebhookId", count(*) FILTER (WHERE config->>'webhookId' IS NOT NULL AND config->>'webhookId' NOT LIKE 'wh\\_%')::int AS "withoutPrefix" FROM workflows WHERE "isDeleted" = false`,
               'storyboard-unbilled-report': `WITH ops AS (SELECT r."organizationId" AS org, j.kind, op FROM content_runs r CROSS JOIN (VALUES ('still', 'stillOperations'), ('shotRender', 'shotRenderOperations'), ('asset', 'assetOperations')) AS j(kind, key) CROSS JOIN LATERAL jsonb_array_elements(CASE WHEN jsonb_typeof(r.config -> j.key) = 'array' THEN r.config -> j.key ELSE '[]'::jsonb END) AS op WHERE r."contract" = 'storyboard-run' AND r."isDeleted" = false AND op ->> 'state' = 'ready' AND op ->> 'billing' = 'released' AND op ->> 'billingMode' = 'platform') SELECT o.org AS "organizationId", o.kind, COALESCE(cr.status::text, 'none') AS "reservationStatus", count(*)::int AS "operations", COALESCE(sum((o.op ->> 'credits')::numeric), 0)::float AS "credits", min(left(o.op ->> 'updatedAt', 10)) AS "firstDate", max(left(o.op ->> 'updatedAt', 10)) AS "lastDate" FROM ops o LEFT JOIN credit_reservations cr ON cr.id = o.op ->> 'reservationId' GROUP BY o.org, o.kind, COALESCE(cr.status::text, 'none') ORDER BY "credits" DESC, o.org, o.kind LIMIT 200`,
-              'reserved-slug-report': `SELECT 'organization' AS kind, id, slug, "isDeleted", NULL::text AS "organizationId" FROM organizations WHERE lower(trim(slug)) = ANY($1) UNION ALL SELECT 'brand', id, slug, "isDeleted", "organizationId" FROM brands WHERE lower(trim(slug)) = ANY($1) ORDER BY kind, slug, id LIMIT 200`,
               'linkedin-credential-report': `SELECT * FROM (SELECT 'summary' AS kind, c."platform"::text AS platform, NULL::text AS "organizationId", NULL::text AS "brandId", c."isConnected", c."isDeleted", (c."brandId" IS NOT NULL) AS "hasBrand", (c."organizationId" IS NOT NULL) AS "hasOrganization", NULL::boolean AS "brandDeleted", NULL::boolean AS "hasTrendPreferences", count(*)::int AS credentials, count(DISTINCT c."brandId")::int AS brands, max(left(c."updatedAt"::text, 10)) AS "lastUpdated" FROM credentials c WHERE c."platform" IN ('INSTAGRAM', 'LINKEDIN', 'PINTEREST', 'REDDIT', 'TIKTOK', 'TWITTER', 'YOUTUBE') GROUP BY c."platform", c."isConnected", c."isDeleted", (c."brandId" IS NOT NULL), (c."organizationId" IS NOT NULL) UNION ALL SELECT 'linkedin', 'LINKEDIN', c."organizationId", c."brandId", c."isConnected", c."isDeleted", (c."brandId" IS NOT NULL), (c."organizationId" IS NOT NULL), b."isDeleted", EXISTS (SELECT 1 FROM trend_preferences p WHERE p."brandId" = c."brandId" AND p."isDeleted" = false), 1, 1, left(c."updatedAt"::text, 10) FROM credentials c LEFT JOIN brands b ON b.id = c."brandId" WHERE c."platform" = 'LINKEDIN' AND c."isDeleted" = false) q ORDER BY kind DESC, platform, "isConnected" DESC, "organizationId", "brandId" LIMIT 200`,
+              'approvals-page-report': `SELECT * FROM ((SELECT 'turboRuns' AS kind, count(*)::int AS a, COALESCE(sum(jsonb_array_length(CASE WHEN jsonb_typeof(t.items) = 'array' THEN t.items ELSE '[]'::jsonb END)), 0)::int AS b, COALESCE(max(pg_column_size(t.*)), 0)::int AS c, COALESCE(sum(pg_column_size(t.*)), 0)::int AS d FROM turbo_runs t WHERE t."isDeleted" = false GROUP BY t."organizationId" ORDER BY d DESC LIMIT 5) UNION ALL (SELECT 'turboRunItems', count(*)::int, 0, COALESCE(max(pg_column_size(i.*)), 0)::int, COALESCE(sum(pg_column_size(i.*)), 0)::int FROM turbo_run_items i WHERE i."isDeleted" = false GROUP BY i."organizationId" ORDER BY 5 DESC LIMIT 5) UNION ALL (SELECT 'pendingMcp', count(*)::int, 0, COALESCE(max(pg_column_size(m.arguments)), 0)::int, COALESCE(sum(pg_column_size(m.arguments)), 0)::int FROM mcp_approvals m WHERE m.status::text = 'PENDING' AND m."isDeleted" = false GROUP BY m."organizationId" ORDER BY 2 DESC LIMIT 5)) q LIMIT 20`,
               'release-health-report': `SELECT metric, value FROM (SELECT 'abandonedRuns' AS metric, count(*) AS value FROM workflow_executions WHERE status IN ('PENDING', 'RUNNING') AND "updatedAt" < (now() AT TIME ZONE 'UTC') - interval '7 days' UNION ALL SELECT 'duePurgeRuns', count(*) FROM workflow_executions WHERE "purgeAt" <= (now() AT TIME ZONE 'UTC') AND status IN ('COMPLETED', 'FAILED', 'CANCELLED') UNION ALL SELECT 'skippedEmailsOver30d', count(*) FROM notification_deliveries WHERE topic = 'workflow.status' AND channel = 'email' AND status = 'skipped' AND "createdAt" < (now() AT TIME ZONE 'UTC') - interval '30 days' UNION ALL SELECT 'publishRuns ' || to_char("createdAt", 'MM-DD'), count(*) FROM workflow_executions WHERE "canonicalId" = 'scheduled-post.publish' AND "createdAt" > (now() AT TIME ZONE 'UTC') - interval '4 days' GROUP BY 1 UNION ALL SELECT 'overduePosts ' || coalesce(platform, '-') || ' ' || "targetExecutionState", count(*) FROM posts WHERE "isDeleted" = false AND "targetExecutionState" IN ('scheduled', 'publishing') AND "scheduledDate" < (now() AT TIME ZONE 'UTC') - interval '1 hour' GROUP BY 1 UNION ALL SELECT 'postsDue ' || to_char("scheduledDate", 'MM-DD'), count(*) FROM posts WHERE "isDeleted" = false AND "scheduledDate" > (now() AT TIME ZONE 'UTC') - interval '4 days' AND "scheduledDate" <= (now() AT TIME ZONE 'UTC') GROUP BY 1) m ORDER BY metric LIMIT 100`,
             };
             const name = process.argv[1];
@@ -284,7 +291,22 @@ jobs:
                 done
               fi
               ;;
-            backfill-report | webhook-id-report | instagram-reconnect-report | storyboard-unbilled-report | reserved-slug-report | linkedin-credential-report | release-health-report)
+            model-registry-retirement)
+              TASK_DEFINITION=$(tofu output -raw reference_data_sync_task_definition_arn)
+              CONTAINER=reference-data-sync
+              LOG_GROUP="/ecs/${PROJECT}-production/reference-data-sync"
+              # The definition's own command is the full sync, so both modes
+              # override it. --retire-models alone is a dry run.
+              override=(--container-name "${CONTAINER}")
+              retire_args=(apps/server/dist/apps/api-reference-data-sync/main --retire-models)
+              if [ "${LIVE}" = "true" ]; then
+                retire_args+=(--live)
+              fi
+              for arg in "${node_prefix[@]}" "${retire_args[@]}"; do
+                override+=(--command-arg "${arg}")
+              done
+              ;;
+            backfill-report | webhook-id-report | instagram-reconnect-report | storyboard-unbilled-report | linkedin-credential-report | release-health-report | approvals-page-report)
               TASK_DEFINITION=$(tofu output -raw migrate_task_definition_arn)
               CONTAINER=migrate
               LOG_GROUP="/ecs/${PROJECT}-production/migrate"

@@ -1,5 +1,8 @@
 import { FontFamilySeedService } from '@api/seeds/font-family-seed.service';
-import { ModelCatalogSeedService } from '@api/seeds/model-catalog-seed.service';
+import {
+  ModelCatalogSeedService,
+  type ModelRetirementReport,
+} from '@api/seeds/model-catalog-seed.service';
 import {
   seedProviderOfferAssociations,
   seedProviderOfferRegistrations,
@@ -38,6 +41,11 @@ export class ReferenceDataSyncService {
     private readonly studioElements: StudioElementSeedService,
     private readonly studioPresets: StudioPresetSeedService,
   ) {}
+
+  /** Switch off model rows the catalog retired; `isLive` false only reports. */
+  retireInactiveModels(isLive: boolean): Promise<ModelRetirementReport> {
+    return this.models.retireInactiveCatalogRows(isLive);
+  }
 
   async reconcile(): Promise<ReferenceDataSyncReport> {
     const domains: ReferenceDataDomainSummary[] = [];

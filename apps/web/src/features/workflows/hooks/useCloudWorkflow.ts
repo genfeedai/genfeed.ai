@@ -147,10 +147,23 @@ export function useCloudWorkflow({
     mountedRef.current = true;
     abortRef.current = new AbortController();
     hasRequestedBrandsRef.current = false;
-    useCloudWorkflowStore.getState().resetCloudState();
+    const { signal } = abortRef.current;
 
-    // Clear any stale workflow state before the async load completes.
-    useWorkflowStore.getState().clearWorkflow();
+    // Handoff from /workflows/new: the shared store already holds this
+    // workflow, including edits the route change interrupted. Keep it and let
+    // autosave persist it instead of clearing the canvas and re-reading a
+    // server copy that may predate those edits.
+    const isHandoff =
+      Boolean(workflowId) &&
+      useWorkflowStore.getState().workflowId === workflowId &&
+      useCloudWorkflowStore.getState().workflowId === workflowId;
+
+    if (!isHandoff) {
+      useCloudWorkflowStore.getState().resetCloudState();
+
+      // Clear any stale workflow state before the async load completes.
+      useWorkflowStore.getState().clearWorkflow();
+    }
 
     const initialize = async () => {
       try {
@@ -163,10 +176,10 @@ export function useCloudWorkflow({
         }
 
         // Load existing workflow if ID provided
-        if (workflowId) {
+        if (workflowId && !isHandoff) {
           await useCloudWorkflowStore
             .getState()
-            .loadFromCloud(workflowId, service);
+            .loadFromCloud(workflowId, service, signal);
         } else if (templateId) {
           useCloudWorkflowStore.getState().setPendingTemplateCreate(templateId);
         }
@@ -189,7 +202,15 @@ export function useCloudWorkflow({
     return () => {
       mountedRef.current = false;
       abortRef.current?.abort();
-      useCloudWorkflowStore.getState().resetCloudState();
+      useCloudWorkflowStore.getState().cancelAutoSave();
+
+      // Unsaved or in-flight work stays in the stores so the next editor mount
+      // can adopt it (see isHandoff); that mount resets the session otherwise.
+      const { isDirty: hasUnsavedWork, isSaving: isSavingNow } =
+        useWorkflowStore.getState();
+      if (!hasUnsavedWork && !isSavingNow) {
+        useCloudWorkflowStore.getState().resetCloudState();
+      }
     };
   }, [workflowId, templateId, getService, bindSharedWorkflowApi]);
 

@@ -120,4 +120,33 @@ describe('official X timeline prospective exposure metadata', () => {
       'captureBreakoutEvidence',
     );
   });
+
+  it('carries the timeline media onto the collected post so signal cards can show it', async () => {
+    const h = fixture();
+    h.timeline.mockResolvedValueOnce([
+      {
+        authorAvatarUrl: 'https://pbs.twimg.com/profile_images/1/a.jpg',
+        authorId: 'author-a',
+        contentType: 'video',
+        id: 'tweet-v',
+        inReplyToId: null,
+        isRetweet: false,
+        mediaUrls: ['https://video.twimg.com/high.mp4'],
+        text: 'A clip',
+        thumbnailUrl: 'https://pbs.twimg.com/poster.jpg',
+      },
+    ]);
+    const { captureBreakoutEvidence: _capture, ...ordinary } = context;
+    const result = await h.oauth.collectTimeline(
+      SocialSourcePlatform.TWITTER,
+      'author',
+      ordinary,
+    );
+    expect(result.posts[0]).toMatchObject({
+      authorAvatarUrl: 'https://pbs.twimg.com/profile_images/1/a.jpg',
+      contentType: 'video',
+      mediaUrls: ['https://video.twimg.com/high.mp4'],
+      thumbnailUrl: 'https://pbs.twimg.com/poster.jpg',
+    });
+  });
 });

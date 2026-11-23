@@ -1,3 +1,4 @@
+import { DEFAULT_HTTP_TIMEOUT_MS } from '@api/constants/http-timeout.constant';
 import { ManagedInferenceModule } from '@api/endpoints/v1/managed-inference/managed-inference.module';
 import { ApiKeyHelperModule } from '@api/services/api-key/api-key-helper.module';
 import { AvatarVideoService } from '@api/services/avatar-video/avatar-video.service';
@@ -26,7 +27,7 @@ import { Module } from '@nestjs/common';
     ArgilModule,
     HeyGenModule,
     ByokModule,
-    HttpModule,
+    HttpModule.register({ timeout: DEFAULT_HTTP_TIMEOUT_MS }),
     LoggerModule,
     ApiKeyHelperModule,
     ConfigModule,

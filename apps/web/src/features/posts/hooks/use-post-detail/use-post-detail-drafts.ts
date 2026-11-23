@@ -4,6 +4,7 @@ import { PageScope } from '@genfeedai/contracts';
 import type { IIngredient, IPost } from '@genfeedai/contracts/interfaces';
 import type { PostsService } from '@genfeedai/services/content/posts.service';
 import { logger } from '@genfeedai/services/core/logger.service';
+import { isServiceOperationError } from '@genfeedai/services/core/operation-error';
 import { useResetOnChange } from '@hooks/utils/use-reset-on-change/use-reset-on-change';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
@@ -322,6 +323,23 @@ export function usePostDetailDrafts({
           }
         }
       } catch (err) {
+        // The post was deleted (here, in another tab, or by the agent) after
+        // the edit and before the timer fired. There is nothing left to save,
+        // so settle the drafts as saved and stay quiet: Sentry is for failures.
+        if (isServiceOperationError(err) && err.status === 404) {
+          const pendingTimeout = autoSaveTimeoutsRef.current.get(postIdToSave);
+          if (pendingTimeout) {
+            clearTimeout(pendingTimeout);
+            autoSaveTimeoutsRef.current.delete(postIdToSave);
+          }
+          lastSavedDescriptionsRef.current.set(
+            postIdToSave,
+            currentDescription,
+          );
+          lastSavedLabelsRef.current.set(postIdToSave, currentLabel);
+          logger.info(`Auto-save skipped, post ${postIdToSave} is gone`);
+          return;
+        }
         logger.error('Auto-save failed', err);
       }
     },

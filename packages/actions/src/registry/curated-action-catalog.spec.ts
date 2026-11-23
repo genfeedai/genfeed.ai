@@ -515,7 +515,8 @@ describe('curated action catalog policy fields', () => {
       (entry: CuratedActionCatalogEntry) =>
         (entry.actionClass !== undefined ||
           entry.mcpApproval !== undefined ||
-          entry.isMcpApprovalNeverSkipped === true) &&
+          entry.isMcpApprovalNeverSkipped === true ||
+          entry.isMcpAgentConfirmed === true) &&
         !('mutationPolicy' in entry),
     ).map((entry) => entry.name);
 

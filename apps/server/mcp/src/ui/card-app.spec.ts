@@ -1239,4 +1239,36 @@ describe('approval card', () => {
     expect(document.body.textContent).toContain('Declined');
     expect(buttonNamed('Approve')).toBeUndefined();
   });
+
+  it('declines in the organization the approval was queued in', async () => {
+    const view = withApprovalCard(approval).structuredContent?.genfeedCards;
+    message('ui/notifications/tool-result', {
+      ...approval,
+      structuredContent: {
+        ...approval.structuredContent,
+        genfeedCards: {
+          ...view,
+          cards: view?.cards.map((card) => ({
+            ...card,
+            organization: 'org-b',
+          })),
+        },
+      },
+    });
+    buttonNamed('Decline')?.click();
+    await vi.advanceTimersByTimeAsync(0);
+
+    const call = vi
+      .mocked(window.parent.postMessage)
+      .mock.calls.map(([data]) => data as { method?: string; params?: unknown })
+      .find((data) => data.method === 'tools/call');
+    expect(call?.params).toEqual({
+      arguments: {
+        approvalId: 'apr-1',
+        decision: 'decline',
+        organization: 'org-b',
+      },
+      name: 'resolve_approval',
+    });
+  });
 });

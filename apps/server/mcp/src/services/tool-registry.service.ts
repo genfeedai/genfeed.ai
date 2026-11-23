@@ -43,6 +43,7 @@ import {
 } from '@mcp/services/mcp-approval-answer.util';
 import {
   isMcpApprovalRedeemable,
+  requiresMcpAgentConfirmation,
   requiresMcpToolApproval,
 } from '@mcp/services/mcp-approval-gate.util';
 import {
@@ -99,6 +100,8 @@ import { CONTENT_TOOL_NAMES, handleContentTool } from '@mcp/tools/content.tool';
 import { EDITOR_TOOL_NAMES, handleEditorTool } from '@mcp/tools/editor.tool';
 import { handleGoogleAdsTool } from '@mcp/tools/google-ads.tool';
 import {
+  confirmationRequiredToolResult,
+  isMcpToolRefusal,
   mcpToolErrorResult,
   toMcpToolErrorResult,
 } from '@mcp/tools/mcp-tool-error';
@@ -456,6 +459,16 @@ export class ToolRegistryService implements OnModuleInit {
       if (prepared.kind === 'rejected') return prepared.result;
       args = prepared.args;
 
+      // Publishing is confirmed with the person in the conversation, never queued on
+      // the web: without `confirmed: true` nothing runs and the agent is told to ask.
+      if (requiresMcpAgentConfirmation(name, args)) {
+        if (args?.confirmed !== true) {
+          return confirmationRequiredToolResult(name, prepared.invalid);
+        }
+        const { confirmed: _confirmed, ...confirmedArgs } = args;
+        args = confirmedArgs;
+      }
+
       if (await requiresMcpToolApproval(this.clientService, name, args)) {
         const approval = await this.clientService.createApproval(
           name,
@@ -475,8 +488,9 @@ export class ToolRegistryService implements OnModuleInit {
       return withOmittedReleases(done, prepared.invalid);
     } catch (error: unknown) {
       // A failure the classifier names (publishing held, rate limited, bad
-      // input) is a handled refusal the caller is told about, not a fault.
-      if (toMcpToolErrorResult(error)) {
+      // input) or the API refused with a 4xx is a handled refusal the caller
+      // is told about, not a fault.
+      if (isMcpToolRefusal(error)) {
         this.logger.warn(`Tool call ${name} was refused:`, error);
       } else {
         this.logger.error(`Error handling tool call ${name}:`, error);

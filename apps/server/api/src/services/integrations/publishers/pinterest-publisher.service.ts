@@ -70,7 +70,6 @@ export class PinterestPublisherService extends BasePublisherService {
     const { post, credential } = context;
     const mediaInfo = this.extractMediaInfo(post);
 
-    // Log the attempt
     this.logPublishAttempt(context, mediaInfo);
 
     // Validate

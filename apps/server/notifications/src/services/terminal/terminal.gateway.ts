@@ -35,6 +35,9 @@ const LOCAL_ORIGIN_HOSTS = new Set([
 ]);
 const PORTLESS_LOCALHOST_SUFFIX = '.genfeed.localhost';
 
+/** The cookie-to-token exchange runs while a socket waits to connect. */
+const TOKEN_MINT_TIMEOUT_MS = 10_000;
+
 /** Slim auth record stored per connected socket after successful handshake. */
 interface SocketAuthRecord {
   userId: string;
@@ -354,6 +357,7 @@ export class TerminalGateway
             cookie,
             [UNATTRIBUTED_FORWARDED_HEADER]: UNATTRIBUTED_FORWARDED_VALUE,
           },
+          signal: AbortSignal.timeout(TOKEN_MINT_TIMEOUT_MS),
         },
       );
 

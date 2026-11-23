@@ -123,7 +123,6 @@ export class FileQueueService {
         ),
       );
 
-      // Decrypt refresh token
       const decryptedRefreshToken = EncryptionUtil.decrypt(
         credential.refreshToken,
       );

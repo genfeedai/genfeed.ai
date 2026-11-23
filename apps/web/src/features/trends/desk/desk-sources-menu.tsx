@@ -148,8 +148,12 @@ export default function DeskSourcesMenu({
   onSourcesChanged: () => Promise<void>;
   sources: ISocialSource[];
 }) {
+  // Connected timelines are managed under Following and the brand's own
+  // accounts under its connected accounts; neither is a discovery source.
   const sources = suppliedSources.filter(
-    (source) => source.sourceType !== SocialSourceType.TIMELINE,
+    (source) =>
+      source.sourceType !== SocialSourceType.TIMELINE &&
+      source.sourceType !== SocialSourceType.OWN_ACCOUNT,
   );
   const translateDesk = useTranslations('common.trends.desk');
   const notifications = useMemo(() => NotificationsService.getInstance(), []);

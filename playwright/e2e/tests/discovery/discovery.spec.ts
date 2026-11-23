@@ -19,8 +19,8 @@ async function chooseAdsPlatform(page: Page, name: RegExp): Promise<void> {
 /**
  * E2E tests for the Discovery section.
  *
- * Tests verify /discovery (redirects to /discovery/overview),
- * /discovery/overview (the Signal Desk), and /discovery/ads, including its
+ * Tests verify /discovery (redirects to /discovery/feed),
+ * /discovery/feed (the Signal Desk), and /discovery/ads, including its
  * per-platform tab filter. All API calls are mocked - no real backend
  * requests occur.
  *
@@ -40,8 +40,8 @@ test.describe('Discovery section', () => {
     await mockAnalyticsData(authenticatedPage);
   });
 
-  test.describe('Overview Page', () => {
-    test('should redirect /discovery to /discovery/overview', async ({
+  test.describe('Feed Page', () => {
+    test('should redirect /discovery to /discovery/feed', async ({
       authenticatedPage,
     }) => {
       const discoveryPage = new DiscoveryPage(authenticatedPage);
@@ -49,54 +49,54 @@ test.describe('Discovery section', () => {
       await discoveryPage.goto(APP_ROUTES.DISCOVERY.ROOT);
       await expect(authenticatedPage).not.toHaveURL(/login|sign-in/);
 
-      await expect(authenticatedPage).toHaveURL(/discovery\/overview/);
+      await expect(authenticatedPage).toHaveURL(/discovery\/feed/);
       await assertNoErrorBoundaryFallback(
         authenticatedPage,
-        APP_ROUTES.DISCOVERY.OVERVIEW,
+        APP_ROUTES.DISCOVERY.FEED,
       );
     });
 
-    test('should display /discovery/overview with main content', async ({
+    test('should display /discovery/feed with main content', async ({
       authenticatedPage,
     }) => {
       const discoveryPage = new DiscoveryPage(authenticatedPage);
 
-      await discoveryPage.gotoSection('overview');
+      await discoveryPage.gotoSection('feed');
       await expect(authenticatedPage).not.toHaveURL(/login|sign-in/);
 
-      await expect(authenticatedPage).toHaveURL(/discovery\/overview/);
+      await expect(authenticatedPage).toHaveURL(/discovery\/feed/);
       await assertNoErrorBoundaryFallback(
         authenticatedPage,
-        APP_ROUTES.DISCOVERY.OVERVIEW,
+        APP_ROUTES.DISCOVERY.FEED,
       );
       await expect(discoveryPage.mainContent).toBeVisible();
     });
 
-    test('should have proper page title for overview', async ({
+    test('should have proper page title for feed', async ({
       authenticatedPage,
     }) => {
       const discoveryPage = new DiscoveryPage(authenticatedPage);
 
-      await discoveryPage.gotoSection('overview');
+      await discoveryPage.gotoSection('feed');
       await expect(authenticatedPage).not.toHaveURL(/login|sign-in/);
       await assertNoErrorBoundaryFallback(
         authenticatedPage,
-        APP_ROUTES.DISCOVERY.OVERVIEW,
+        APP_ROUTES.DISCOVERY.FEED,
       );
 
       await expect(authenticatedPage).toHaveTitle(/Discovery|Genfeed/i);
     });
 
-    test('should display sidebar on overview page', async ({
+    test('should display sidebar on feed page', async ({
       authenticatedPage,
     }) => {
       const discoveryPage = new DiscoveryPage(authenticatedPage);
 
-      await discoveryPage.gotoSection('overview');
+      await discoveryPage.gotoSection('feed');
       await expect(authenticatedPage).not.toHaveURL(/login|sign-in/);
       await assertNoErrorBoundaryFallback(
         authenticatedPage,
-        APP_ROUTES.DISCOVERY.OVERVIEW,
+        APP_ROUTES.DISCOVERY.FEED,
       );
 
       await expect(discoveryPage.sidebar).toBeVisible();
@@ -214,7 +214,7 @@ test.describe('Discovery section', () => {
   });
 
   test.describe('Navigation', () => {
-    test('should maintain state after page refresh on discovery overview', async ({
+    test('should maintain state after page refresh on discovery feed', async ({
       authenticatedPage,
     }) => {
       const discoveryPage = new DiscoveryPage(authenticatedPage);
@@ -226,11 +226,11 @@ test.describe('Discovery section', () => {
       // would still keep `source=trends` in the URL but would show both.
       await mockDiscoveryDeskFollowingFeed(authenticatedPage);
 
-      await discoveryPage.gotoSection('overview');
+      await discoveryPage.gotoSection('feed');
       await expect(authenticatedPage).not.toHaveURL(/login|sign-in/);
       await assertNoErrorBoundaryFallback(
         authenticatedPage,
-        APP_ROUTES.DISCOVERY.OVERVIEW,
+        APP_ROUTES.DISCOVERY.FEED,
       );
 
       // The Desk's source filter is URL-backed (`?source=`) — select a
@@ -249,10 +249,10 @@ test.describe('Discovery section', () => {
       await discoveryPage.waitForPageLoad();
       await assertNoErrorBoundaryFallback(
         authenticatedPage,
-        APP_ROUTES.DISCOVERY.OVERVIEW,
+        APP_ROUTES.DISCOVERY.FEED,
       );
 
-      await expect(authenticatedPage).toHaveURL(/discovery\/overview/);
+      await expect(authenticatedPage).toHaveURL(/discovery\/feed/);
       await expect(authenticatedPage).toHaveURL(/source=trends/);
       await expect(discoveryPage.mainContent).toBeVisible();
 
@@ -269,22 +269,22 @@ test.describe('Discovery section', () => {
       ).toBeHidden();
     });
 
-    test('should handle browser back from ads to discovery overview', async ({
+    test('should handle browser back from ads to discovery feed', async ({
       authenticatedPage,
     }) => {
       const discoveryPage = new DiscoveryPage(authenticatedPage);
 
-      await discoveryPage.gotoSection('overview');
+      await discoveryPage.gotoSection('feed');
       await expect(authenticatedPage).not.toHaveURL(/login|sign-in/);
 
       await discoveryPage.gotoSection('ads');
       await expect(authenticatedPage).toHaveURL(/discovery\/ads/);
 
       await authenticatedPage.goBack();
-      await expect(authenticatedPage).toHaveURL(/discovery\/overview/);
+      await expect(authenticatedPage).toHaveURL(/discovery\/feed/);
       await assertNoErrorBoundaryFallback(
         authenticatedPage,
-        APP_ROUTES.DISCOVERY.OVERVIEW,
+        APP_ROUTES.DISCOVERY.FEED,
       );
     });
   });
@@ -303,10 +303,10 @@ test.describe('Discovery — unauthenticated access', () => {
     await assertNoErrorBoundaryFallback(unauthenticatedPage, '/login');
   });
 
-  test('should redirect unauthenticated user from /discovery/overview to login', async ({
+  test('should redirect unauthenticated user from /discovery/feed to login', async ({
     unauthenticatedPage,
   }) => {
-    await unauthenticatedPage.goto(APP_ROUTES.DISCOVERY.OVERVIEW);
+    await unauthenticatedPage.goto(APP_ROUTES.DISCOVERY.FEED);
     await unauthenticatedPage.waitForLoadState('domcontentloaded');
 
     await expect(unauthenticatedPage).toHaveURL(/login|sign-in/, {

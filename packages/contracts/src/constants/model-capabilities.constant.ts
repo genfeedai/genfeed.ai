@@ -1271,6 +1271,12 @@ export const MODEL_OUTPUT_CAPABILITIES: Record<string, ModelOutputCapability> =
       maxOutputs: 1,
       maxReferences: 0,
     },
+    [MODEL_KEYS.ELEVENLABS_V4_TURBO]: {
+      category: ModelCategory.VOICE,
+      isBatchSupported: false,
+      maxOutputs: 1,
+      maxReferences: 0,
+    },
     [MODEL_KEYS.ELEVENLABS_MULTILINGUAL_V2]: {
       category: ModelCategory.VOICE,
       isBatchSupported: false,
@@ -1591,6 +1597,17 @@ export const MODEL_OUTPUT_CAPABILITIES: Record<string, ModelOutputCapability> =
       isBatchSupported: false,
       maxOutputs: 4,
       maxReferences: 14,
+    },
+    // Seedream 5.5 text-to-image on fal (prompt only; edits are a separate
+    // fal endpoint). Output is capped at six per request, four here like the
+    // other Seedream rows.
+    [MODEL_KEYS.FAL_SEEDREAM_5_5]: {
+      aspectRatios: ASPECT_RATIOS.SEEDREAM,
+      category: ModelCategory.IMAGE,
+      defaultAspectRatio: '1:1',
+      isBatchSupported: false,
+      maxOutputs: 4,
+      maxReferences: 0,
     },
     [MODEL_KEYS.FAL_FLUX_2_PRO]: {
       aspectRatios: ASPECT_RATIOS.FLUX_V2,

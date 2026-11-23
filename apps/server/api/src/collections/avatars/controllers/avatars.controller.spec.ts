@@ -31,7 +31,6 @@ const mockLoggerService = {
 } as unknown as LoggerService;
 
 const mockHeygenService = {
-  getAvatars: vi.fn(),
   getVoices: vi.fn(),
 } as unknown as HeyGenService;
 
@@ -93,34 +92,6 @@ describe('AvatarsController', () => {
       );
 
       await expect(controller.getHeygenVoices(makeUser())).rejects.toThrow();
-    });
-  });
-
-  describe('getHeygenAvatars', () => {
-    it('should return HeyGen avatars wrapped in JSON:API', async () => {
-      const controller = buildController();
-      const mockAvatars = [{ avatar_id: 'a1', avatar_name: 'Test' }];
-      vi.mocked(mockHeygenService.getAvatars).mockResolvedValue(
-        mockAvatars as never,
-      );
-
-      const result = await controller.getHeygenAvatars(makeUser());
-      expect(result).toMatchObject({
-        data: {
-          attributes: { avatars: mockAvatars, provider: 'heygen' },
-          id: 'heygen',
-          type: 'avatar-provider',
-        },
-      });
-    });
-
-    it('should throw HttpException on failure', async () => {
-      const controller = buildController();
-      vi.mocked(mockHeygenService.getAvatars).mockRejectedValue(
-        new Error('fail'),
-      );
-
-      await expect(controller.getHeygenAvatars(makeUser())).rejects.toThrow();
     });
   });
 

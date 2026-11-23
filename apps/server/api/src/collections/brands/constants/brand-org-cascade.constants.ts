@@ -926,6 +926,14 @@ export const SECOND_ORDER_TARGETS: readonly SecondOrderCascadeTarget[] = [
     'post_publish_finalizations',
     POST_PARENT,
   ),
+  // An event-started run carries its strategy's organization; the row has no
+  // brand key, so it follows its strategy and a moved brand keeps its daily
+  // cap and replay guard.
+  secondOrderChild('agentEventRun', 'agent_event_runs', {
+    fkField: 'strategyId',
+    parentBrandField: 'brandId',
+    parentDelegate: 'agentStrategy',
+  }),
   // A post's ordered media links carry the post's organization; the link has
   // no brand key of its own, so it follows the post.
   secondOrderChild('postIngredient', 'post_ingredients', POST_PARENT),

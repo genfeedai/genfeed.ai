@@ -286,4 +286,36 @@ describe('AdsResearchWatchlistPanel', () => {
       screen.getByText('Request failed with status 500'),
     ).toBeInTheDocument();
   });
+
+  it('offers the competitors the brand already names, one click each', () => {
+    const { onAdd } = renderPanel({ suggestions: ['Arcads', 'Argil'] });
+
+    expect(screen.getByText('Suggested from your brand')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Watch Argil' }));
+
+    expect(onAdd).toHaveBeenCalledWith({
+      advertiserHandle: 'Argil',
+      platform: 'meta',
+    });
+  });
+
+  it('watches every suggestion at once on the picked platform', () => {
+    const { onAdd } = renderPanel({ suggestions: ['Arcads', 'Argil'] });
+
+    fireEvent.click(screen.getByText('Choose YouTube'));
+    fireEvent.click(screen.getByRole('button', { name: 'Watch all' }));
+
+    expect(onAdd.mock.calls.map(([input]) => input)).toEqual([
+      { advertiserHandle: 'Arcads', platform: 'youtube' },
+      { advertiserHandle: 'Argil', platform: 'youtube' },
+    ]);
+  });
+
+  it('shows no suggestion block when the brand names no competitor', () => {
+    renderPanel({ suggestions: [] });
+
+    expect(
+      screen.queryByTestId('watchlist-suggestions'),
+    ).not.toBeInTheDocument();
+  });
 });

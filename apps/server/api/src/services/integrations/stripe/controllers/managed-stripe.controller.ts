@@ -21,40 +21,6 @@ import {
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 
-const managedCheckoutRateLimiter = new Map<
-  string,
-  { count: number; resetAt: number }
->();
-const MANAGED_CHECKOUT_RATE_LIMIT = 5;
-const MANAGED_CHECKOUT_RATE_WINDOW_MS = 60_000;
-
-function checkManagedCheckoutRate(key: string): boolean {
-  const now = Date.now();
-
-  for (const [entryKey, value] of managedCheckoutRateLimiter) {
-    if (now >= value.resetAt) {
-      managedCheckoutRateLimiter.delete(entryKey);
-    }
-  }
-
-  const entry = managedCheckoutRateLimiter.get(key);
-
-  if (!entry || now >= entry.resetAt) {
-    managedCheckoutRateLimiter.set(key, {
-      count: 1,
-      resetAt: now + MANAGED_CHECKOUT_RATE_WINDOW_MS,
-    });
-    return true;
-  }
-
-  if (entry.count >= MANAGED_CHECKOUT_RATE_LIMIT) {
-    return false;
-  }
-
-  entry.count++;
-  return true;
-}
-
 @AutoSwagger('Managed Stripe')
 @ApiTags('Managed Stripe')
 @Public()
@@ -65,6 +31,8 @@ export class ManagedStripeController {
   ) {}
 
   @Post('checkout')
+  // Shared across API instances through the Redis-backed rate limit guard.
+  @RateLimit({ limit: 5, scope: 'ip', windowMs: 60_000 })
   @ApiOperation({
     summary: 'Create a managed Genfeed checkout session for hosted credits',
   })
@@ -72,15 +40,6 @@ export class ManagedStripeController {
     @Body() dto: CreateManagedCheckoutDto,
     @Req() request: Request,
   ) {
-    const clientIp = request.ip || 'unknown';
-
-    if (!checkManagedCheckoutRate(clientIp)) {
-      throw new HttpException(
-        'Too many checkout requests. Please try again later.',
-        HttpStatus.TOO_MANY_REQUESTS,
-      );
-    }
-
     const result =
       await this.managedStripeCheckoutService.createCheckoutSession(dto);
 

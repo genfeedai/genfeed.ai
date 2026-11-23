@@ -1,3 +1,4 @@
+import { DEFAULT_HTTP_TIMEOUT_MS } from '@api/constants/http-timeout.constant';
 import { ByokModule } from '@api/services/byok/byok.module';
 import { ArgilController } from '@api/services/integrations/argil/controllers/argil.controller';
 import { ArgilService } from '@api/services/integrations/argil/services/argil.service';
@@ -8,7 +9,10 @@ import { Module } from '@nestjs/common';
 
 const BaseModule = createServiceModule(ArgilService, {
   additionalExports: [ArgilWebhookTokenService],
-  additionalImports: [HttpModule, ByokModule],
+  additionalImports: [
+    HttpModule.register({ timeout: DEFAULT_HTTP_TIMEOUT_MS }),
+    ByokModule,
+  ],
   additionalProviders: [ArgilWebhookTokenService],
 });
 

@@ -8,6 +8,7 @@ import {
   parseAgentUntrustedContentOrigin,
   USER_UPLOAD_TOOLS,
   WEB_FETCH_TOOLS,
+  WORKFLOW_TRIGGER_EVENT_CONTENT_NAME,
 } from '@genfeedai/contracts/interfaces';
 import { describe, expect, it } from 'vitest';
 
@@ -58,6 +59,12 @@ describe('readAgentUntrustedContentSource', () => {
     expect(isAgentUntrustedContentSource('connector')).toBe(true);
     expect(isAgentUntrustedContentSource('user_upload')).toBe(true);
   });
+});
+
+it('classifies a workflow trigger event as connector content', () => {
+  expect(
+    readAgentUntrustedContentSource(WORKFLOW_TRIGGER_EVENT_CONTENT_NAME),
+  ).toBe('connector');
 });
 
 it('retains registry validity for every shared mapped name', () => {

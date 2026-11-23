@@ -18,6 +18,7 @@ import { useMemo } from 'react';
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import type { ReviewInboxApprovalsTableProps } from '@/props/publishing/review-inbox-approvals.props';
 import ReviewInboxPreview from './ReviewInboxPreview';
+import ReviewInboxQuestionAnswer from './ReviewInboxQuestionAnswer';
 import { REVIEW_INBOX_SOURCE_MESSAGE_KEYS } from './review-inbox.helpers';
 
 const SOURCE_BADGE_VARIANTS: Record<
@@ -42,6 +43,7 @@ export default function ReviewInboxApprovalsTable({
   isBulkDeciding,
   selectedIds,
   onSelectionChange,
+  onAnswer,
   onDecide,
 }: ReviewInboxApprovalsTableProps) {
   const translate = useTranslations('pages.publishing.review.inbox');
@@ -87,7 +89,13 @@ export default function ReviewInboxApprovalsTable({
                 {item.actionDetails}
               </span>
             ) : null}
-            {item.isResolvable ? null : (
+            {item.kind === 'agent_input_request' ? (
+              <ReviewInboxQuestionAnswer
+                isDisabled={isDeciding}
+                item={item}
+                onAnswer={onAnswer}
+              />
+            ) : item.isResolvable ? null : (
               <span className="break-words text-xs text-muted-foreground">
                 {translate('notResolvable')}
               </span>
@@ -147,7 +155,7 @@ export default function ReviewInboxApprovalsTable({
         ),
       },
     ],
-    [translate],
+    [isDeciding, onAnswer, translate],
   );
 
   const actions = useMemo<TableAction<IReviewInboxItem>[]>(
@@ -167,10 +175,24 @@ export default function ReviewInboxApprovalsTable({
         tooltip: (item) =>
           translate('reviewBatch', { count: item.batchCount ?? 0 }),
       },
+      // A question is answered in its row; the thread holds the whole chat.
+      {
+        icon: <ArrowRight />,
+        isVisible: (item) => item.question !== null,
+        onClick: (item) => {
+          if (item.question) {
+            push(href(`/agent/${item.question.threadId}`));
+          }
+        },
+        tooltip: () => translate('openThread'),
+      },
       {
         icon: <Check />,
         isDisabled: () => isDeciding,
-        isVisible: (item) => item.isResolvable && item.batchCount === null,
+        isVisible: (item) =>
+          item.isResolvable &&
+          item.batchCount === null &&
+          item.kind !== 'agent_input_request',
         onClick: (item) => {
           void onDecide(item, 'approve');
         },
@@ -180,7 +202,8 @@ export default function ReviewInboxApprovalsTable({
       {
         icon: <X />,
         isDisabled: () => isDeciding,
-        isVisible: (item) => item.isResolvable,
+        isVisible: (item) =>
+          item.isResolvable && item.kind !== 'agent_input_request',
         onClick: (item) => {
           void onDecide(item, 'reject');
         },

@@ -171,16 +171,27 @@ describe('FailedGenerationService', () => {
   it('emits the failed status after the delay by default', async () => {
     vi.useFakeTimers();
 
-    await service.handleFailedGeneration(world(), {
-      delay: 500,
-      ingredientId,
-      organizationId,
-      websocketUrl,
-    });
+    let isDone = false;
+    const handled = service
+      .handleFailedGeneration(world(), {
+        delay: 500,
+        ingredientId,
+        organizationId,
+        websocketUrl,
+      })
+      .then(() => {
+        isDone = true;
+      });
+    await vi.advanceTimersByTimeAsync(499);
     const beforeDelay = [...emitted];
-    vi.advanceTimersByTime(500);
+    const isDoneBeforeDelay = isDone;
+    await vi.advanceTimersByTimeAsync(1);
+    await handled;
 
+    // The handler holds the job until the status is out, so a stop right
+    // after it returns cannot lose the announcement.
     expect(beforeDelay).toEqual([]);
+    expect(isDoneBeforeDelay).toBe(false);
     expect(emitted).toEqual([
       {
         payload: { result: null, status: IngredientStatus.FAILED },

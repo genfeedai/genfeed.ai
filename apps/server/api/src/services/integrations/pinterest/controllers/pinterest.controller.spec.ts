@@ -26,7 +26,7 @@ describe('PinterestController', () => {
       credential: { id: 'credential-id' },
       state: 'opaque-oauth-state',
     }),
-    findPendingOAuthCredential: vi.fn().mockResolvedValue({
+    claimPendingOAuthCredential: vi.fn().mockResolvedValue({
       brandId: 'brand-id',
       id: 'credential-id',
       organizationId: 'organization-id',
@@ -89,7 +89,7 @@ describe('PinterestController', () => {
       'credential-id',
       expect.objectContaining({
         accessToken: 'pinterest-token',
-        oauthState: null,
+        oauthState: 'verified:opaque-oauth-state',
         refreshToken: 'pinterest-refresh-token',
       }),
     );

@@ -1,8 +1,5 @@
 import { resolveAuthContinuation } from '@genfeedai/auth-client/callback';
-import {
-  getBetterAuthServerToken,
-  isBetterAuthEnabled,
-} from '@genfeedai/auth-client/server';
+import { isBetterAuthEnabled } from '@genfeedai/auth-client/server';
 import {
   hasSingleStepOnboarding,
   isDesktopClient,
@@ -28,41 +25,22 @@ import {
   isSeededWorkspaceEntrypoint,
   ORG_SCOPED_PREFIXES,
 } from '@/lib/navigation/protected-path-scope';
+import {
+  type BootstrapRead,
+  type BootstrapResponse,
+  getApiBaseUrl,
+  getBetterAuthBearerToken,
+  type OrganizationMineResponseItem,
+} from '@/lib/navigation/proxy-api';
+import { createSlugCache } from '@/lib/navigation/slug-cache';
 
 const SEMVER_PATTERN =
   /^(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?(?:\+[0-9A-Za-z.-]+)?$/;
-const TRAILING_SLASH_PATTERN = /\/$/;
 const PLUS_SIGNS_PATTERN = /\+/g;
 const SLASHES_PATTERN = /\//g;
 const BASE64_PADDING_PATTERN = /=+$/;
 const HYPHENS_PATTERN = /-/g;
 const UNDERSCORES_PATTERN = /_/g;
-
-type BootstrapBrandSummary = {
-  id: string;
-  organization?: {
-    accountType?: string | null;
-    slug?: string;
-  };
-  slug?: string;
-};
-
-type BootstrapResponse = {
-  access?: {
-    brandId?: string;
-    isOnboardingCompleted?: boolean;
-  };
-  brands?: BootstrapBrandSummary[];
-  currentUser?: {
-    isOnboardingCompleted?: boolean;
-    onboardingStepsCompleted?: unknown;
-  } | null;
-};
-
-type OrganizationMineResponseItem = {
-  isActive: boolean;
-  slug?: string;
-};
 
 const ONBOARDING_PATH = APP_ROUTES.ONBOARDING.ROOT;
 const SEEDED_WORKSPACE_PATH = createBrandAppRoute(
@@ -156,29 +134,9 @@ const FLAT_PATH_REDIRECTS = new Map<string, string>([
   [APP_ROUTES.ANALYTICS.ROOT, APP_ROUTES.ANALYTICS.OVERVIEW],
   [APP_ROUTES.AUTOMATION.ROOT, APP_ROUTES.AUTOMATION.OVERVIEW],
   [APP_ROUTES.LIBRARY.ROOT, APP_ROUTES.LIBRARY.OVERVIEW],
-  [APP_ROUTES.DISCOVERY.ROOT, APP_ROUTES.DISCOVERY.OVERVIEW],
+  [APP_ROUTES.DISCOVERY.ROOT, APP_ROUTES.DISCOVERY.FEED],
   [APP_ROUTES.WORKSPACE.ROOT, APP_ROUTES.WORKSPACE.OVERVIEW],
 ]);
-
-function getApiBaseUrl(): string {
-  const rawBaseUrl = (
-    process.env.API_URL ||
-    process.env.NEXT_PUBLIC_API_ENDPOINT ||
-    'http://localhost:3010/v1'
-  ).replace(TRAILING_SLASH_PATTERN, '');
-
-  try {
-    const url = new URL(rawBaseUrl);
-    if (url.pathname === '' || url.pathname === '/') {
-      url.pathname = '/v1';
-      return url.toString().replace(TRAILING_SLASH_PATTERN, '');
-    }
-  } catch {
-    // Relative paths such as /v1 are already valid API bases for fetch.
-  }
-
-  return rawBaseUrl;
-}
 
 function canonicalizeFlatProtectedPath(pathname: string): string {
   return FLAT_PATH_REDIRECTS.get(pathname) ?? pathname;
@@ -270,13 +228,12 @@ type WorkspaceSlugs = {
 const WORKSPACE_SLUG_CACHE_TTL_MS = 300_000;
 const WORKSPACE_SLUG_COOKIE_NAME = 'gf_ws';
 const WORKSPACE_SLUG_COOKIE_MAX_AGE_S = 300;
-const workspaceSlugCache = new Map<
-  string,
-  {
-    expiresAt: number;
-    slugs: WorkspaceSlugs;
-  }
->();
+const WORKSPACE_SLUG_CACHE_MAX_ENTRIES = 1_000;
+const workspaceSlugCache = createSlugCache<WorkspaceSlugs>({
+  isValid: (slugs) => isValidWorkspaceOrgSlug(slugs.orgSlug),
+  maxEntries: WORKSPACE_SLUG_CACHE_MAX_ENTRIES,
+  ttlMs: WORKSPACE_SLUG_CACHE_TTL_MS,
+});
 
 async function getCookieSecret(): Promise<CryptoKey | null> {
   const secret = process.env.COOKIE_SECRET;
@@ -375,43 +332,25 @@ function deleteSlugCookie(response: NextResponse): void {
   response.cookies.delete(WORKSPACE_SLUG_COOKIE_NAME);
 }
 
-function readWorkspaceSlugCache(
+async function readWorkspaceSlugCache(
   cacheKey?: string | null,
-): WorkspaceSlugs | null {
+): Promise<WorkspaceSlugs | null> {
   if (!cacheKey || process.env.NODE_ENV === 'test') {
     return null;
   }
 
-  const entry = workspaceSlugCache.get(cacheKey);
-  if (!entry) {
-    return null;
-  }
-
-  if (entry.expiresAt <= Date.now()) {
-    workspaceSlugCache.delete(cacheKey);
-    return null;
-  }
-
-  if (!isValidWorkspaceOrgSlug(entry.slugs.orgSlug)) {
-    workspaceSlugCache.delete(cacheKey);
-    return null;
-  }
-
-  return entry.slugs;
+  return workspaceSlugCache.read(cacheKey);
 }
 
-function writeWorkspaceSlugCache(
+async function writeWorkspaceSlugCache(
   cacheKey: string | null | undefined,
   slugs: WorkspaceSlugs,
-) {
+): Promise<void> {
   if (!cacheKey || process.env.NODE_ENV === 'test') {
     return;
   }
 
-  workspaceSlugCache.set(cacheKey, {
-    expiresAt: Date.now() + WORKSPACE_SLUG_CACHE_TTL_MS,
-    slugs,
-  });
+  await workspaceSlugCache.write(cacheKey, slugs);
 }
 
 type SlugResolution = {
@@ -499,7 +438,7 @@ async function continueWithCurrentWorkspace(
     return NextResponse.next();
   }
 
-  writeWorkspaceSlugCache(cacheKey, slugs);
+  await writeWorkspaceSlugCache(cacheKey, slugs);
   const cookieValue = await encodeSlugCookie(slugs);
   const response = NextResponse.next();
   if (cookieValue) {
@@ -508,16 +447,65 @@ async function continueWithCurrentWorkspace(
   return response;
 }
 
-/**
- * Either a bootstrap payload or the fact that the API did not give us one.
- * Kept distinct so a successful response with a null body still falls through
- * to the organizations lookup, as an unmemoised fetch did.
- */
-type BootstrapRead =
-  | { bootstrap: BootstrapResponse | null; isAvailable: true }
-  | { isAvailable: false };
-
 const UNAVAILABLE_BOOTSTRAP: BootstrapRead = { isAvailable: false };
+
+/**
+ * Longest the proxy waits on one API read. Every protected navigation waits on
+ * these, so a slow API must degrade to "unavailable" long before the platform
+ * kills the request.
+ */
+const PROXY_API_TIMEOUT_MS = 3_000;
+
+async function fetchBootstrap(token: string): Promise<BootstrapRead> {
+  try {
+    const response = await fetch(`${getApiBaseUrl()}/auth/bootstrap`, {
+      cache: 'no-store',
+      headers: {
+        Accept: 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      signal: AbortSignal.timeout(PROXY_API_TIMEOUT_MS),
+    });
+
+    if (!response.ok) {
+      return UNAVAILABLE_BOOTSTRAP;
+    }
+
+    return {
+      bootstrap: (await response.json()) as BootstrapResponse | null,
+      isAvailable: true,
+    };
+  } catch {
+    return UNAVAILABLE_BOOTSTRAP;
+  }
+}
+
+/**
+ * The caller's organizations, or null when the API did not answer in time,
+ * refused, or failed.
+ */
+async function fetchMineOrganizations(
+  token: string,
+): Promise<OrganizationMineResponseItem[] | null> {
+  try {
+    const response = await fetch(`${getApiBaseUrl()}/organizations?mine=true`, {
+      cache: 'no-store',
+      headers: {
+        Accept: 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      signal: AbortSignal.timeout(PROXY_API_TIMEOUT_MS),
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    return (await response.json()) as OrganizationMineResponseItem[] | null;
+  } catch {
+    return null;
+  }
+}
 
 /**
  * One `/auth/bootstrap` read per proxy invocation.
@@ -533,29 +521,6 @@ const bootstrapByRequest = new WeakMap<
   NextRequest,
   Map<string, Promise<BootstrapRead>>
 >();
-
-async function fetchBootstrap(token: string): Promise<BootstrapRead> {
-  try {
-    const response = await fetch(`${getApiBaseUrl()}/auth/bootstrap`, {
-      cache: 'no-store',
-      headers: {
-        Accept: 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    if (!response.ok) {
-      return UNAVAILABLE_BOOTSTRAP;
-    }
-
-    return {
-      bootstrap: (await response.json()) as BootstrapResponse | null,
-      isAvailable: true,
-    };
-  } catch {
-    return UNAVAILABLE_BOOTSTRAP;
-  }
-}
 
 function readBootstrap(
   token: string,
@@ -623,30 +588,10 @@ async function readBootstrapWorkspaceSlugs(
       ?.slug;
 
   if (!orgSlug) {
-    let organizationsResponse: Response;
-
-    try {
-      organizationsResponse = await fetch(
-        `${getApiBaseUrl()}/organizations?mine=true`,
-        {
-          cache: 'no-store',
-          headers: {
-            Accept: 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-        },
-      );
-    } catch {
+    const organizations = await fetchMineOrganizations(token);
+    if (!organizations) {
       return null;
     }
-
-    if (!organizationsResponse.ok) {
-      return null;
-    }
-
-    const organizations = (await organizationsResponse.json()) as
-      | OrganizationMineResponseItem[]
-      | null;
     orgSlug =
       organizations?.find((organization) => organization.isActive)?.slug ??
       organizations?.[0]?.slug;
@@ -694,7 +639,7 @@ async function resolveActiveWorkspaceSlugs(
     return { cookieValue, slugs: fromReferer };
   }
 
-  const cached = skipSlugCookie ? null : readWorkspaceSlugCache(cacheKey);
+  const cached = skipSlugCookie ? null : await readWorkspaceSlugCache(cacheKey);
   if (mayReuseCurrentWorkspace && cached) {
     return { cookieValue: null, slugs: cached };
   }
@@ -704,7 +649,7 @@ async function resolveActiveWorkspaceSlugs(
     if (cookieRaw) {
       const fromCookie = await decodeSlugCookie(cookieRaw);
       if (fromCookie) {
-        writeWorkspaceSlugCache(cacheKey, fromCookie);
+        await writeWorkspaceSlugCache(cacheKey, fromCookie);
         return { cookieValue: null, slugs: fromCookie };
       }
     }
@@ -726,7 +671,7 @@ async function resolveActiveWorkspaceSlugs(
     return null;
   }
 
-  writeWorkspaceSlugCache(cacheKey, slugs);
+  await writeWorkspaceSlugCache(cacheKey, slugs);
   const cookieValue = await encodeSlugCookie(slugs);
   return { cookieValue, slugs };
 }
@@ -946,21 +891,6 @@ function getBetterAuthSessionCookie(req: NextRequest): string | null {
   );
 }
 
-async function getBetterAuthBearerToken(
-  req: NextRequest,
-): Promise<string | null> {
-  const cookieHeader = req.headers.get('cookie');
-  if (!cookieHeader) {
-    return null;
-  }
-
-  // Every navigation and RSC prefetch passes through here. The shared helper
-  // reuses one token per session, since `/token` is rate limited per client.
-  return getBetterAuthServerToken(cookieHeader, {
-    tokenUrl: `${getApiBaseUrl()}/auth/token`,
-  });
-}
-
 /**
  * Product continuation from `callbackUrl` / `return_to` / `redirect_url`.
  * Absolute web URLs, runtime paths, and auth-loop routes are rejected by the
@@ -1165,7 +1095,8 @@ async function routeBetterAuthRequest(
   if (isBetterAuthPublicRoute(pathname)) {
     if (hasSession && pathname.startsWith('/login')) {
       const token =
-        options.preferredBearerToken ?? (await getBetterAuthBearerToken(req));
+        options.preferredBearerToken ??
+        (await getBetterAuthBearerToken(req)).token;
       let response = token
         ? await redirectSignedInUserToDefaultRoute(
             req,
@@ -1176,7 +1107,7 @@ async function routeBetterAuthRequest(
         : null;
 
       if (!response && options.preferredBearerToken) {
-        const fallbackToken = await getBetterAuthBearerToken(req);
+        const fallbackToken = (await getBetterAuthBearerToken(req)).token;
         response = fallbackToken
           ? await redirectSignedInUserToDefaultRoute(
               req,
@@ -1211,11 +1142,21 @@ async function routeBetterAuthRequest(
     return continueWithCurrentWorkspace(req, sessionCookie);
   }
 
-  const token =
-    options.preferredBearerToken ?? (await getBetterAuthBearerToken(req));
-  if (!token) {
-    return redirectToLoginPreservingDestination(req);
+  let resolvedToken = options.preferredBearerToken ?? null;
+  if (!resolvedToken) {
+    const tokenResult = await getBetterAuthBearerToken(req);
+    resolvedToken = tokenResult.token;
+    if (!resolvedToken) {
+      // A blip in the API must not sign the user out. The proxy only routes:
+      // the token picks the workspace and gates onboarding, and the API still
+      // authorises every data request, so continuing on the current path
+      // grants nothing. Only a rejected session goes to login.
+      return tokenResult.hasTransientFailure
+        ? continueWithCurrentWorkspace(req, sessionCookie)
+        : redirectToLoginPreservingDestination(req);
+    }
   }
+  const token: string = resolvedToken;
 
   // Better Auth always returns browser sign-ins to `/`. A validated product
   // continuation is carried as data on that fixed callback and consumed only
@@ -1254,7 +1195,7 @@ async function routeBetterAuthRequest(
       return resolved;
     }
 
-    const fallbackToken = await getBetterAuthBearerToken(req);
+    const fallbackToken = (await getBetterAuthBearerToken(req)).token;
     return fallbackToken
       ? resolveCanonicalProtectedPath(
           canonicalPathname,

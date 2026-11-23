@@ -6,6 +6,7 @@ import { AdOptimizationRecommendationsModule } from '@api/collections/ad-optimiz
 import { AdPerformanceModule } from '@api/collections/ad-performance/ad-performance.module';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { AdBulkUploadWorkflowService } from '@api/collections/workflows/services/ad-bulk-upload-workflow.service';
+import { DEFAULT_HTTP_TIMEOUT_MS } from '@api/constants/http-timeout.constant';
 import { QueuesModule } from '@api/queues/core/queues.module';
 import { SERVER_TOKENS } from '@api/server.dependencies';
 import { MetaAdsController } from '@api/services/integrations/meta-ads/controllers/meta-ads.controller';
@@ -26,7 +27,7 @@ import { Module } from '@nestjs/common';
   ],
   exports: [AdBulkUploadWorkflowService, MetaAdsService],
   imports: [
-    HttpModule,
+    HttpModule.register({ timeout: DEFAULT_HTTP_TIMEOUT_MS }),
     LoggerModule,
     AdBulkUploadJobsModule,
     CredentialsCoreModule,

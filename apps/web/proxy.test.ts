@@ -1415,6 +1415,173 @@ describe('proxy', () => {
     expect(response.status).toBe(200);
   });
 
+  describe('API timeouts and transient token failures', () => {
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    /** Runs the retry pause on fake time until the request settles. */
+    async function settle<T>(pending: Promise<T>): Promise<T> {
+      let isSettled = false;
+      const watched = pending.finally(() => {
+        isSettled = true;
+      });
+      while (!isSettled) {
+        await vi.advanceTimersByTimeAsync(300);
+        await new Promise((resolve) => setImmediate(resolve));
+      }
+      return watched;
+    }
+
+    function callsTo(suffix: string): Array<[string, RequestInit]> {
+      return (
+        fetchMock.mock.calls as unknown as Array<[string, RequestInit]>
+      ).filter(([url]) => String(url).endsWith(suffix));
+    }
+
+    it('gives the token, bootstrap and organizations fetches a timeout signal', async () => {
+      fetchMock.mockImplementation(async (input: string | URL) => {
+        const url = String(input);
+        if (url.endsWith('/auth/token')) {
+          return new Response(JSON.stringify({ token: BEARER_TOKEN }));
+        }
+        if (url.endsWith('/auth/bootstrap')) {
+          return new Response(JSON.stringify({ access: {}, brands: [] }));
+        }
+        return new Response(JSON.stringify([{ isActive: true, slug: 'acme' }]));
+      });
+      const { default: proxy } = await import('./proxy');
+
+      await proxy(makeSignedInRequest('/'));
+
+      for (const suffix of [
+        '/auth/token',
+        '/auth/bootstrap',
+        '/organizations?mine=true',
+      ]) {
+        const [call] = callsTo(suffix);
+        expect(call?.[1].signal).toBeInstanceOf(AbortSignal);
+      }
+    });
+
+    it.each([
+      ['a timeout', () => new DOMException('timed out', 'TimeoutError')],
+      ['a network error', () => new TypeError('fetch failed')],
+    ])(
+      'continues without redirecting to login after %s on the token exchange',
+      async (_name, makeError) => {
+        fetchMock.mockImplementation(async () => {
+          throw makeError();
+        });
+        const { default: proxy } = await import('./proxy');
+        vi.useFakeTimers({ toFake: ['setTimeout'] });
+
+        const pending = proxy(makeSignedInRequest('/acme/default/workspace'));
+        const response = await settle(pending);
+
+        expect(response.headers.get('location')).toBeNull();
+        expect(response.headers.get('x-middleware-next')).toBe('1');
+      },
+    );
+
+    it('continues after a 5xx on the token exchange', async () => {
+      fetchMock.mockImplementation(
+        async () => new Response(null, { status: 503 }),
+      );
+      const { default: proxy } = await import('./proxy');
+      vi.useFakeTimers({ toFake: ['setTimeout'] });
+
+      const pending = proxy(makeSignedInRequest('/acme/default/workspace'));
+      const response = await settle(pending);
+
+      expect(response.headers.get('location')).toBeNull();
+      expect(response.headers.get('x-middleware-next')).toBe('1');
+    });
+
+    it.each([401, 403])(
+      'still redirects to login when the token exchange answers %i',
+      async (status) => {
+        fetchMock.mockImplementation(
+          async () => new Response(null, { status }),
+        );
+        const { default: proxy } = await import('./proxy');
+
+        const response = await proxy(
+          makeSignedInRequest('/acme/default/workspace'),
+        );
+
+        expect(response.status).toBe(307);
+        expect(new URL(response.headers.get('location') ?? '').pathname).toBe(
+          '/login',
+        );
+      },
+    );
+
+    it('asks for the token again on the next request after a transient failure', async () => {
+      let isDown = true;
+      fetchMock.mockImplementation(async (input: string | URL) => {
+        const url = String(input);
+        if (url.endsWith('/auth/token')) {
+          if (isDown) {
+            throw new TypeError('fetch failed');
+          }
+          return new Response(JSON.stringify({ token: BEARER_TOKEN }));
+        }
+        if (url.endsWith('/auth/bootstrap')) {
+          return new Response(
+            JSON.stringify({
+              access: { brandId: 'brand_1' },
+              brands: [{ id: 'brand_1', slug: 'moonrise-studio' }],
+            }),
+          );
+        }
+        return new Response(JSON.stringify([{ isActive: true, slug: 'acme' }]));
+      });
+      const { default: proxy } = await import('./proxy');
+      vi.useFakeTimers({ toFake: ['setTimeout'] });
+
+      const first = proxy(makeSignedInRequest('/'));
+      await settle(first);
+      isDown = false;
+      const second = await proxy(makeSignedInRequest('/'));
+
+      expect(second.status).toBe(307);
+      expect(second.headers.get('location')).toContain('/acme/');
+    });
+
+    it('treats a bootstrap timeout like its existing error branch', async () => {
+      fetchMock.mockImplementation(async (input: string | URL) => {
+        if (String(input).endsWith('/auth/token')) {
+          return new Response(JSON.stringify({ token: BEARER_TOKEN }));
+        }
+        throw new DOMException('timed out', 'TimeoutError');
+      });
+      const { default: proxy } = await import('./proxy');
+
+      const response = await proxy(makeSignedInRequest('/'));
+
+      expect(response.status).toBe(200);
+    });
+
+    it('treats an organizations timeout like its existing error branch', async () => {
+      fetchMock.mockImplementation(async (input: string | URL) => {
+        const url = String(input);
+        if (url.endsWith('/auth/token')) {
+          return new Response(JSON.stringify({ token: BEARER_TOKEN }));
+        }
+        if (url.endsWith('/auth/bootstrap')) {
+          return new Response(JSON.stringify({ access: {}, brands: [] }));
+        }
+        throw new DOMException('timed out', 'TimeoutError');
+      });
+      const { default: proxy } = await import('./proxy');
+
+      const response = await proxy(makeSignedInRequest('/'));
+
+      expect(response.status).toBe(200);
+    });
+  });
+
   it('redirects unauthenticated root to login without a redundant callbackUrl', async () => {
     // Root `/` is already the login flow's default callback, so the bounce
     // must not append a noisy `callbackUrl=/` param (Finding #25 guard).

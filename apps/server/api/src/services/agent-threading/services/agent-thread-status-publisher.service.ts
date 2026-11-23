@@ -1,6 +1,7 @@
 import { AgentThreadAudienceService } from '@api/collections/agent-threads/services/agent-thread-audience.service';
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import type { AgentThreadSnapshotDocument } from '@api/services/agent-threading/schemas/agent-thread-snapshot.schema';
+import { AgentInputAlertService } from '@api/services/agent-threading/services/agent-input-alert.service';
 import { AgentThreadStatus } from '@genfeedai/contracts';
 import {
   AGENT_CHAT_CHANNEL,
@@ -72,6 +73,8 @@ export class AgentThreadStatusPublisherService {
     private readonly loggerService: LoggerService,
     @Optional()
     private readonly audienceService?: AgentThreadAudienceService,
+    @Optional()
+    private readonly inputAlerts?: AgentInputAlertService,
   ) {}
 
   /**
@@ -83,6 +86,9 @@ export class AgentThreadStatusPublisherService {
   async publishIfChanged(
     params: PublishAgentThreadStatusParams,
   ): Promise<boolean> {
+    // A run that starts waiting on a question is told to its owner once,
+    // whether or not the thread's derived status moves below.
+    await this.inputAlerts?.recordNewQuestions(params);
     try {
       if (statusInputKey(params.before) === statusInputKey(params.after)) {
         return false;

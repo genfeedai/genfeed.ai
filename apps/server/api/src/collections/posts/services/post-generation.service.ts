@@ -31,6 +31,7 @@ import {
   PromptTemplateKey,
   SystemPromptKey,
 } from '@genfeedai/contracts';
+import { measurePlatformText } from '@genfeedai/contracts/api-types/contracts/platform-text-length.contract';
 import type {
   PostDraftGenerationInput,
   PostDraftGenerationResult,
@@ -38,7 +39,6 @@ import type {
 import {
   describePlatformTextLimit,
   getPlatformTextLimit,
-  measurePlatformText,
 } from '@genfeedai/helpers/content/platform-text-length.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';

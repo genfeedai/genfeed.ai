@@ -3,6 +3,7 @@ import type {
   WorkflowInputVariable,
   WorkflowVisualNode,
 } from '@api/collections/workflows/schemas/workflow.schema';
+import { WorkflowAgentEventExecutorRegistrarService } from '@api/collections/workflows/services/workflow-agent-event-executor-registrar.service';
 import { WorkflowAutomationExecutorRegistrarService } from '@api/collections/workflows/services/workflow-automation-executor-registrar.service';
 import { WorkflowContentExecutorRegistrarService } from '@api/collections/workflows/services/workflow-content-executor-registrar.service';
 import { WorkflowCoreExecutorRegistrarService } from '@api/collections/workflows/services/workflow-core-executor-registrar.service';
@@ -160,6 +161,7 @@ function createWorkflowEngineAdapterForTest(
     automation,
     trendPublish,
     lipSync,
+    new WorkflowAgentEventExecutorRegistrarService(dependency(1)),
   );
   return new WorkflowEngineAdapterService(
     dependency(1),
@@ -1878,19 +1880,82 @@ describe('WorkflowEngineAdapterService', () => {
   });
 
   describe('applyScheduledDigestCharge', () => {
-    const CACHE_INDEX = 25; // 0-based position of cacheService
     const CREDITS_INDEX = 27; // 0-based position of creditsUtilsService
 
-    const makeChargeAdapter = (
-      cacheService: unknown,
-      creditsUtilsService: unknown,
-    ) => {
+    const makeChargeAdapter = (creditsUtilsService: unknown) => {
       const args = new Array(28).fill(undefined);
       args[0] = { cdnUrl: 'https://cdn.example.com' };
       args[1] = loggerService;
-      args[CACHE_INDEX] = cacheService;
       args[CREDITS_INDEX] = creditsUtilsService;
       return createWorkflowEngineAdapterForTest(...args);
+    };
+
+    /**
+     * A ledger that keeps the two guarantees the charge relies on: a
+     * reservation is found again by its idempotency key, and a settlement is
+     * applied once per reservation.
+     */
+    const makeLedger = (
+      options: { failSettlements?: number } = {},
+    ): {
+      charges: Array<{ amount: number; organizationId: string }>;
+      credits: {
+        reserveCredits: ReturnType<typeof vi.fn>;
+        settleReservation: ReturnType<typeof vi.fn>;
+      };
+    } => {
+      const charges: Array<{ amount: number; organizationId: string }> = [];
+      const reservations = new Map<
+        string,
+        { id: string; isSettled: boolean; organizationId: string }
+      >();
+      let failuresLeft = options.failSettlements ?? 0;
+      return {
+        charges,
+        credits: {
+          reserveCredits: vi.fn(
+            async (input: {
+              idempotencyKey: string;
+              organizationId: string;
+            }) => {
+              const existing = reservations.get(input.idempotencyKey);
+              if (existing) {
+                return existing;
+              }
+              const created = {
+                id: `reservation-${reservations.size + 1}`,
+                isSettled: false,
+                organizationId: input.organizationId,
+              };
+              reservations.set(input.idempotencyKey, created);
+              return created;
+            },
+          ),
+          settleReservation: vi.fn(
+            async (input: {
+              actualAmount: number;
+              organizationId: string;
+              reservationId: string;
+            }) => {
+              if (failuresLeft > 0) {
+                failuresLeft -= 1;
+                throw new Error('transient credits failure');
+              }
+              const reservation = [...reservations.values()].find(
+                (candidate) => candidate.id === input.reservationId,
+              );
+              if (!reservation || reservation.isSettled) {
+                return;
+              }
+              reservation.isSettled = true;
+              charges.push({
+                amount: input.actualAmount,
+                organizationId: input.organizationId,
+              });
+            },
+          ),
+        },
+      };
     };
 
     const readySummaries = (sent = true) => [
@@ -1906,35 +1971,19 @@ describe('WorkflowEngineAdapterService', () => {
       { nodeType: 'sendEmail', output: { sent } },
     ];
 
-    it('deducts exactly once on a confirmed send', async () => {
-      const acquireLock = vi.fn().mockResolvedValue(true);
-      const deduct = vi.fn().mockResolvedValue(undefined);
-      const adapter = makeChargeAdapter(
-        { acquireLock },
-        { deductCreditsFromOrganization: deduct },
-      );
+    it('charges the digest once on a confirmed send, however often it runs', async () => {
+      const ledger = makeLedger();
+      const adapter = makeChargeAdapter(ledger.credits);
 
       await adapter.applyScheduledDigestCharge('wf-1', readySummaries());
+      await adapter.applyScheduledDigestCharge('wf-1', readySummaries());
 
-      expect(acquireLock).toHaveBeenCalledTimes(1);
-      expect(acquireLock.mock.calls[0][0]).toMatch(
-        /^workflow-digest-charged:wf-1:\d{4}-\d{2}-\d{2}$/,
-      );
-      expect(deduct).toHaveBeenCalledWith(
-        'org-1',
-        'user-1',
-        5,
-        'Daily trends digest',
-        'trend-scan',
-      );
+      expect(ledger.charges).toEqual([{ amount: 5, organizationId: 'org-1' }]);
     });
 
     it('does not charge when the digest was skipped', async () => {
-      const deduct = vi.fn();
-      const adapter = makeChargeAdapter(
-        { acquireLock: vi.fn().mockResolvedValue(true) },
-        { deductCreditsFromOrganization: deduct },
-      );
+      const ledger = makeLedger();
+      const adapter = makeChargeAdapter(ledger.credits);
 
       await adapter.applyScheduledDigestCharge('wf-1', [
         {
@@ -1944,40 +1993,21 @@ describe('WorkflowEngineAdapterService', () => {
         { nodeType: 'sendEmail', output: { sent: false } },
       ]);
 
-      expect(deduct).not.toHaveBeenCalled();
+      expect(ledger.charges).toEqual([]);
     });
 
     it('does not charge when the email was not sent', async () => {
-      const deduct = vi.fn();
-      const adapter = makeChargeAdapter(
-        { acquireLock: vi.fn().mockResolvedValue(true) },
-        { deductCreditsFromOrganization: deduct },
-      );
+      const ledger = makeLedger();
+      const adapter = makeChargeAdapter(ledger.credits);
 
       await adapter.applyScheduledDigestCharge('wf-1', readySummaries(false));
 
-      expect(deduct).not.toHaveBeenCalled();
+      expect(ledger.charges).toEqual([]);
     });
 
-    it('does not double-charge when the daily marker is already held', async () => {
-      const deduct = vi.fn();
-      const adapter = makeChargeAdapter(
-        { acquireLock: vi.fn().mockResolvedValue(false) },
-        { deductCreditsFromOrganization: deduct },
-      );
-
-      await adapter.applyScheduledDigestCharge('wf-1', readySummaries());
-
-      expect(deduct).not.toHaveBeenCalled();
-    });
-
-    it('warns and skips (no charge, no lock) when the owner userId is missing after delivery', async () => {
-      const acquireLock = vi.fn().mockResolvedValue(true);
-      const deduct = vi.fn();
-      const adapter = makeChargeAdapter(
-        { acquireLock },
-        { deductCreditsFromOrganization: deduct },
-      );
+    it('warns and skips the charge when the owner userId is missing after delivery', async () => {
+      const ledger = makeLedger();
+      const adapter = makeChargeAdapter(ledger.credits);
 
       await adapter.applyScheduledDigestCharge('wf-1', [
         {
@@ -1987,32 +2017,31 @@ describe('WorkflowEngineAdapterService', () => {
         { nodeType: 'sendEmail', output: { sent: true } },
       ]);
 
-      expect(deduct).not.toHaveBeenCalled();
-      expect(acquireLock).not.toHaveBeenCalled();
+      expect(ledger.charges).toEqual([]);
       expect(loggerService.warn).toHaveBeenCalledWith(
         expect.stringContaining('charge skipped'),
         expect.objectContaining({ orgId: 'org-1', ownerUserId: null }),
       );
     });
 
-    it('releases the marker so a transient deduction failure can retry', async () => {
-      const acquireLock = vi.fn().mockResolvedValue(true);
-      const releaseLock = vi.fn().mockResolvedValue(true);
-      const deduct = vi
-        .fn()
-        .mockRejectedValue(new Error('transient credits failure'));
-      const adapter = makeChargeAdapter(
-        { acquireLock, releaseLock },
-        { deductCreditsFromOrganization: deduct },
-      );
+    it('finishes the charge on the next run after a failed settlement, with no marker in the way', async () => {
+      const ledger = makeLedger({ failSettlements: 1 });
+      const adapter = makeChargeAdapter(ledger.credits);
+
+      await adapter.applyScheduledDigestCharge('wf-1', readySummaries());
+      expect(ledger.charges).toEqual([]);
+
+      await adapter.applyScheduledDigestCharge('wf-1', readySummaries());
+      expect(ledger.charges).toEqual([{ amount: 5, organizationId: 'org-1' }]);
+    });
+
+    it('charges without any cache service', async () => {
+      const ledger = makeLedger();
+      const adapter = makeChargeAdapter(ledger.credits);
 
       await adapter.applyScheduledDigestCharge('wf-1', readySummaries());
 
-      expect(deduct).toHaveBeenCalledTimes(1);
-      expect(releaseLock).toHaveBeenCalledTimes(1);
-      expect(releaseLock.mock.calls[0][0]).toMatch(
-        /^workflow-digest-charged:wf-1:\d{4}-\d{2}-\d{2}$/,
-      );
+      expect(ledger.charges).toHaveLength(1);
     });
   });
 

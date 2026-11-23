@@ -81,6 +81,25 @@ describe('PostSidebarWhenDock', () => {
     expect(onScheduleSave).toHaveBeenCalledTimes(1);
   });
 
+  it('disables Publish now while a blocking save runs', () => {
+    render(<PostSidebarWhenDock {...baseProps} isPublishBlocked />);
+
+    expect(screen.getByRole('button', { name: 'Publish now' })).toBeDisabled();
+  });
+
+  it('disables Schedule while a blocking save runs', () => {
+    render(
+      <PostSidebarWhenDock
+        {...baseProps}
+        isPublishBlocked
+        isScheduleDirty
+        scheduleDraft="2026-10-20T10:00:00.000Z"
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: 'Schedule' })).toBeDisabled();
+  });
+
   it('opens in Schedule mode when a schedule already exists', () => {
     render(
       <PostSidebarWhenDock

@@ -157,6 +157,75 @@ describe('ModalPostBatch', () => {
     expect(screen.queryByText('Reconnect Accounts')).not.toBeInTheDocument();
   });
 
+  it('accepts a connected Instagram system-user token with no expiry', async () => {
+    render(
+      <ModalPostBatch
+        {...defaultProps}
+        ingredient={createIngredientFixture({ id: 'meta-video' })}
+        credentials={[
+          {
+            accessTokenExpiry: null,
+            id: 'meta-account',
+            isConnected: true,
+            platform: CredentialPlatform.INSTAGRAM,
+          } as ICredential,
+        ]}
+      />,
+    );
+
+    expect(
+      await screen.findByText('Shared title, caption and time'),
+    ).toBeVisible();
+    expect(
+      screen.queryByRole('button', { name: 'Reconnect Account' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it.each([
+    ['unknown Instagram expiry', CredentialPlatform.INSTAGRAM, undefined, true],
+    ['invalid Instagram expiry', CredentialPlatform.INSTAGRAM, 'invalid', true],
+    [
+      'expired Instagram token',
+      CredentialPlatform.INSTAGRAM,
+      '2000-01-01T00:00:00Z',
+      true,
+    ],
+    [
+      'disconnected Instagram account',
+      CredentialPlatform.INSTAGRAM,
+      null,
+      false,
+    ],
+    ['missing TikTok expiry', CredentialPlatform.TIKTOK, null, true],
+  ])(
+    'requires reconnection for %s',
+    async (_label, platform, accessTokenExpiry, isConnected) => {
+      render(
+        <ModalPostBatch
+          {...defaultProps}
+          ingredient={createIngredientFixture({ id: 'invalid-video' })}
+          credentials={[
+            {
+              accessTokenExpiry,
+              id: 'invalid-account',
+              isConnected,
+              platform,
+            } as ICredential,
+          ]}
+        />,
+      );
+
+      expect(
+        await screen.findByRole('button', {
+          name: /Connect Account|Reconnect Account/,
+        }),
+      ).toBeVisible();
+      expect(
+        screen.queryByText('Shared title, caption and time'),
+      ).not.toBeInTheDocument();
+    },
+  );
+
   it('shows the asset, its details and its channels on one screen', async () => {
     const ingredient = {
       category: IngredientCategory.VIDEO,

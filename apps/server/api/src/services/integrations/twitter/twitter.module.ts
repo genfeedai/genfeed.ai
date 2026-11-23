@@ -3,6 +3,7 @@ import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { SocialSourceHistoryImportModule } from '@api/collections/social-sources/social-source-history-import.module';
 import { SocialWarmupEnrollmentsModule } from '@api/collections/social-warmup-enrollments/social-warmup-enrollments.module';
+import { DEFAULT_HTTP_TIMEOUT_MS } from '@api/constants/http-timeout.constant';
 import { TwitterController } from '@api/services/integrations/twitter/controllers/twitter.controller';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import { TwitterAuthorizedSignalsService } from '@api/services/integrations/twitter/services/twitter-authorized-signals.service';
@@ -14,7 +15,7 @@ import { Module } from '@nestjs/common';
 const BaseModule = createServiceModule(TwitterService, {
   additionalProviders: [TwitterResponseMapper],
   additionalImports: [
-    HttpModule,
+    HttpModule.register({ timeout: DEFAULT_HTTP_TIMEOUT_MS }),
     BrandsCoreModule,
     CredentialsCoreModule,
     ActivitiesModule,

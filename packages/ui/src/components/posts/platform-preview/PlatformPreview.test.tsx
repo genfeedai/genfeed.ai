@@ -1,6 +1,7 @@
 import { CredentialPlatform, IngredientCategory } from '@genfeedai/contracts';
 import {
   type ChannelCapability,
+  getCaptionCeiling,
   getChannelCapability,
 } from '@genfeedai/contracts/api-types/contracts';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
@@ -208,7 +209,7 @@ describe('PlatformPreview', () => {
     );
   });
 
-  it('uses the capability caption limit for X truncation and validation', () => {
+  it('counts an X caption past 280 characters without cutting or blocking it', () => {
     const capability = requireCapability(CredentialPlatform.TWITTER);
     const caption = 'x'.repeat(capability.caption.maxLength + 5);
 
@@ -225,17 +226,84 @@ describe('PlatformPreview', () => {
 
     expect(
       screen.getByText(
-        `${countPreviewCharacters(caption)}/${capability.caption.maxLength}`,
+        `${countPreviewCharacters(caption, CredentialPlatform.TWITTER)}/${capability.caption.maxLength}`,
       ),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/Truncated after/)).not.toBeInTheDocument();
+    expect(
+      screen.getByText(/need an account with long posts enabled/),
+    ).toBeInTheDocument();
+  });
+
+  it('counts a long link as 23 characters on X', () => {
+    const capability = requireCapability(CredentialPlatform.TWITTER);
+    const caption = `Read https://example.com/${'a'.repeat(400)}`;
+
+    render(
+      <PlatformPreview
+        target={{
+          author: { handle: 'genfeed', name: 'Genfeed' },
+          capability,
+          caption,
+          platform: CredentialPlatform.TWITTER,
+        }}
+      />,
+    );
+
+    expect(screen.getByText('28/280')).toBeInTheDocument();
+    expect(
+      screen.queryByText(/need an account with long posts enabled/),
+    ).not.toBeInTheDocument();
+  });
+
+  it('cuts an X caption by weighted length, so CJK stops at half the ceiling', () => {
+    const capability = requireCapability(CredentialPlatform.TWITTER);
+    const ceiling = getCaptionCeiling(capability.caption);
+    const caption = '日'.repeat(ceiling / 2 + 1);
+
+    render(
+      <PlatformPreview
+        target={{
+          author: { handle: 'genfeed', name: 'Genfeed' },
+          capability,
+          caption,
+          platform: CredentialPlatform.TWITTER,
+        }}
+      />,
+    );
+
+    expect(
+      screen.getByText(`Truncated after ${ceiling} characters.`),
     ).toBeInTheDocument();
     expect(
       screen.getByText(
-        `Truncated after ${capability.caption.maxLength} characters.`,
+        `${capability.label} captions must be ${ceiling} characters or fewer.`,
       ),
+    ).toBeInTheDocument();
+  });
+
+  it('cuts an X caption past the long-post ceiling and reports it', () => {
+    const capability = requireCapability(CredentialPlatform.TWITTER);
+    const ceiling = getCaptionCeiling(capability.caption);
+    const caption = 'x'.repeat(ceiling + 5);
+
+    render(
+      <PlatformPreview
+        target={{
+          author: { handle: 'genfeed', name: 'Genfeed' },
+          capability,
+          caption,
+          platform: CredentialPlatform.TWITTER,
+        }}
+      />,
+    );
+
+    expect(
+      screen.getByText(`Truncated after ${ceiling} characters.`),
     ).toBeInTheDocument();
     expect(
       screen.getByText(
-        `${capability.label} captions must be ${capability.caption.maxLength} characters or fewer.`,
+        `${capability.label} captions must be ${ceiling} characters or fewer.`,
       ),
     ).toBeInTheDocument();
   });

@@ -1,8 +1,12 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
+import { AgentThreadAccessService } from '@api/collections/agent-threads/services/agent-thread-access.service';
 import { resolveBrandLogoCdnUrls } from '@api/collections/brands/utils/brand-logo-urls.util';
 import { approvalGenerationQuote } from '@api/collections/mcp-approvals/schemas/mcp-approval-pricing.schema';
-import { expireStaleMcpApprovals } from '@api/collections/mcp-approvals/utils/mcp-approval-expiry.util';
+import {
+  expireLateSchedulingApprovals,
+  expireStaleMcpApprovals,
+} from '@api/collections/mcp-approvals/utils/mcp-approval-expiry.util';
 import {
   describeMcpApprovalAction,
   MCP_APPROVAL_CAPTION_ARGUMENT_KEYS,
@@ -20,11 +24,18 @@ import type { ITenantReadScope } from '@api/helpers/interceptors/tenant-context/
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import { estimateToolCreditCost, getToolByName } from '@genfeedai/actions';
-import { MemberRole } from '@genfeedai/contracts';
+import {
+  AgentThreadAccessLevel,
+  AgentThreadOwnerFilter,
+  AgentThreadStatus,
+  MemberRole,
+} from '@genfeedai/contracts';
 import {
   buildReviewInboxItemId,
   type IReviewInboxItem,
   type IReviewInboxItemPreview,
+  type IReviewInboxQuestion,
+  type IReviewInboxQuestionOption,
   readScheduledReleaseBatch,
 } from '@genfeedai/contracts/interfaces';
 import {
@@ -44,6 +55,11 @@ const HTTP_PROTOCOL_PREFIX_PATTERN = /^https?:\/\//i;
 
 /** Each source is capped so one noisy producer cannot flood the inbox. */
 const REVIEW_INBOX_SOURCE_LIMIT = 200;
+/**
+ * Threads waiting on an answer. Lower than the other sources because each one
+ * also reads its pending questions out of the snapshot.
+ */
+const REVIEW_INBOX_QUESTION_THREAD_LIMIT = 50;
 const PREVIEW_MAX_LENGTH = 280;
 /** Who may decide a workflow review gate, as the workflow approve route allows. */
 const REVIEW_GATE_ROLES: MemberRole[] = [
@@ -80,6 +96,45 @@ function batchBrandIds(
   });
 }
 
+function readValidTimestamp(value: unknown): string | null {
+  const text = readString(value);
+  if (!text) return null;
+  const time = Date.parse(text);
+  return Number.isFinite(time) ? new Date(time).toISOString() : null;
+}
+
+function readQuestionOptions(value: unknown): IReviewInboxQuestionOption[] {
+  return (Array.isArray(value) ? value : []).flatMap((option) => {
+    if (!isRecord(option)) return [];
+    const id = readString(option.id);
+    const label = readString(option.label);
+    return id && label
+      ? [{ description: readString(option.description), id, label }]
+      : [];
+  });
+}
+
+/** A pending request of a thread snapshot as the inbox shows it, or null. */
+function readAgentQuestion(
+  threadId: string,
+  request: unknown,
+): IReviewInboxQuestion | null {
+  if (!isRecord(request)) return null;
+  const requestId = readString(request.requestId);
+  const prompt = readString(request.prompt);
+  if (!requestId || !prompt) return null;
+  return {
+    allowFreeText: request.allowFreeText === true,
+    isMultiSelect: request.isMultiSelect === true,
+    maxSelections:
+      typeof request.maxSelections === 'number' ? request.maxSelections : null,
+    options: readQuestionOptions(request.options),
+    prompt,
+    requestId,
+    threadId,
+  };
+}
+
 function excerpt(value: string | null): string | null {
   if (!value) return null;
   const text = value.trim();
@@ -94,9 +149,9 @@ function readHttpUrl(value: unknown): string | null {
 }
 
 /**
- * Read side of the publishing review inbox (#7340): the workflow review gates
- * and MCP approvals waiting on a human, projected into one row model. Turbo
- * run drafts stay on the Turbo run endpoints.
+ * Read side of the publishing review inbox (#7340): the workflow review gates,
+ * MCP approvals and agent questions waiting on a human, projected into one row
+ * model. Turbo run drafts stay on the Turbo run endpoints.
  */
 @Traced()
 @Injectable()
@@ -106,6 +161,7 @@ export class ReviewInboxService {
     private readonly brandAccess: BrandAccessService,
     private readonly rolesGuard: RolesGuard,
     private readonly configService: ConfigService,
+    private readonly threadAccess: AgentThreadAccessService,
   ) {}
 
   /** The viewer's roles and brand reach, resolved the way the guards do. */
@@ -132,6 +188,15 @@ export class ReviewInboxService {
             }),
       ]);
     return {
+      actor: scope.isOrganizationOverride
+        ? undefined
+        : {
+            apiKeyId: user.apiKeyId,
+            isApiKey: user.isApiKey,
+            organizationId: scope.organizationId,
+            scopes: user.scopes,
+            userId: user.userId ?? user.id,
+          },
       brandIds: brandScope.brandIds,
       canResolveMcpApprovals,
       canResolveWorkflowGates,
@@ -172,7 +237,7 @@ export class ReviewInboxService {
       input.brandId ?? null,
       access.brandIds,
     );
-    const [gates, approvals] = await Promise.all([
+    const [gates, approvals, questions] = await Promise.all([
       this.listWorkflowReviewGates(
         input.organizationId,
         allowedBrandIds,
@@ -181,8 +246,9 @@ export class ReviewInboxService {
       access.canResolveMcpApprovals
         ? this.listMcpApprovals(input.organizationId, allowedBrandIds)
         : Promise.resolve([]),
+      this.listAgentQuestions(input.organizationId, allowedBrandIds, access),
     ]);
-    const items = [...gates, ...approvals];
+    const items = [...gates, ...approvals, ...questions];
     const brands = await this.loadBrands(
       input.organizationId,
       items.flatMap((item) => (item.brandId ? [item.brandId] : [])),
@@ -298,6 +364,7 @@ export class ReviewInboxService {
           kind: 'workflow_review_gate',
           nodeId,
           preview,
+          question: null,
           reasons: [],
           requestedAt,
           requestedByLabel: null,
@@ -317,7 +384,7 @@ export class ReviewInboxService {
     allowedBrandIds: string[] | undefined,
   ): Promise<IReviewInboxItem[]> {
     await expireStaleMcpApprovals(this.prisma.mcpApproval, organizationId);
-    const approvals = await this.prisma.mcpApproval.findMany({
+    const pending = await this.prisma.mcpApproval.findMany({
       orderBy: { createdAt: 'asc' },
       select: {
         arguments: true,
@@ -332,6 +399,17 @@ export class ReviewInboxService {
         status: McpApprovalStatus.PENDING,
       }),
     });
+
+    // A scheduling request whose publish times have all passed can no longer be
+    // acted on, so it closes itself instead of waiting in the inbox.
+    const lateIds = new Set(
+      await expireLateSchedulingApprovals(
+        this.prisma.mcpApproval,
+        organizationId,
+        pending,
+      ),
+    );
+    const approvals = pending.filter((approval) => !lateIds.has(approval.id));
 
     const accountBrandIds = allowedBrandIds
       ? await this.loadBatchAccountBrandIds(organizationId, approvals)
@@ -416,6 +494,7 @@ export class ReviewInboxService {
             caption: excerpt(caption ?? null),
             mediaUrl: mediaUrl ?? null,
           },
+          question: null,
           reasons: [],
           requestedAt: approval.createdAt.toISOString(),
           requestedByLabel:
@@ -427,6 +506,152 @@ export class ReviewInboxService {
           workflowId: null,
         },
       ];
+    });
+  }
+
+  /**
+   * The questions agent runs are waiting on, one row per pending request. The
+   * threads come from the indexed `pendingInputAt` column; only their pending
+   * requests are then read out of the snapshot. A member sees the questions of
+   * the threads they can open (their own, or a live share) and may answer where
+   * they can collaborate; brand-limited members never see another brand's.
+   */
+  private async listAgentQuestions(
+    organizationId: string,
+    allowedBrandIds: string[] | undefined,
+    access: ReviewInboxViewerAccess,
+  ): Promise<IReviewInboxItem[]> {
+    const actor = access.actor;
+    if (!actor) return [];
+
+    const listScope = await this.threadAccess.resolveListScope(actor);
+    const ownerWhere = this.threadAccess.buildOwnerWhere(
+      actor.userId,
+      listScope,
+      AgentThreadOwnerFilter.ALL,
+    );
+    const snapshots = await this.prisma.agentThreadSnapshot.findMany({
+      orderBy: { pendingInputAt: 'asc' },
+      select: {
+        thread: {
+          select: { brandId: true, id: true, title: true, userId: true },
+        },
+        threadId: true,
+      },
+      take: REVIEW_INBOX_QUESTION_THREAD_LIMIT,
+      where: scopedWhere(organizationId, {
+        pendingInputAt: { not: null },
+        thread: {
+          is: {
+            AND: [ownerWhere],
+            isDeleted: false,
+            status: AgentThreadStatus.ACTIVE,
+            ...(allowedBrandIds
+              ? {
+                  OR: [{ brandId: { in: allowedBrandIds } }, { brandId: null }],
+                }
+              : {}),
+          },
+        },
+      }),
+    });
+    if (snapshots.length === 0) return [];
+
+    const threads = snapshots.map((snapshot) => snapshot.thread);
+    const levels = await this.threadAccess.resolveAccessLevels(
+      actor.userId,
+      listScope,
+      threads,
+    );
+    const threadIds = threads.map((thread) => thread.id);
+    // Only the pending requests leave the database, never the whole snapshot.
+    // sql-risk-audit: ignore raw-sql-review -- Bound to organizationId and isDeleted = false, read by the unique (organizationId, threadId) index for at most REVIEW_INBOX_QUESTION_THREAD_LIMIT thread ids, and selects one JSON path instead of the snapshot.
+    // A newer question supersedes an older pending one, and the thread's answer
+    // route refuses a superseded request, so those ids are read too and left out.
+    const rows = await this.prisma.$queryRaw<
+      { requests: unknown; superseded: unknown; threadId: string }[]
+    >(Prisma.sql`
+      SELECT "threadId",
+        "data" -> 'pendingInputRequests' AS "requests",
+        (
+          SELECT COALESCE(jsonb_agg(entry ->> 'requestId'), '[]'::jsonb)
+          FROM jsonb_array_elements(
+            CASE WHEN jsonb_typeof("data" -> 'inputRequests') = 'array'
+              THEN "data" -> 'inputRequests' ELSE '[]'::jsonb END
+          ) AS entry
+          WHERE entry ->> 'status' = 'superseded'
+        ) AS "superseded"
+      FROM "agent_thread_snapshots"
+      WHERE "organizationId" = ${organizationId}
+        AND "isDeleted" = false
+        AND "threadId" IN (${Prisma.join(threadIds)})`);
+    const requestsByThread = new Map(
+      rows.map((row) => [row.threadId, row.requests]),
+    );
+    const supersededByThread = new Map(
+      rows.map((row) => [
+        row.threadId,
+        new Set(
+          Array.isArray(row.superseded)
+            ? row.superseded.filter(
+                (id): id is string => typeof id === 'string',
+              )
+            : [],
+        ),
+      ]),
+    );
+
+    return threads.flatMap((thread): IReviewInboxItem[] => {
+      const level = levels.get(thread.id);
+      if (!level) return [];
+      const requests = requestsByThread.get(thread.id);
+      return (Array.isArray(requests) ? requests : []).flatMap(
+        (request): IReviewInboxItem[] => {
+          const question = readAgentQuestion(thread.id, request);
+          if (!question || !isRecord(request)) return [];
+          if (supersededByThread.get(thread.id)?.has(question.requestId)) {
+            return [];
+          }
+          const title = readString(request.title) ?? 'Agent question';
+          return [
+            {
+              actionDetails: null,
+              actionSummary: title,
+              actionTitle: title,
+              approvalId: null,
+              batchCount: null,
+              brandId: thread.brandId ?? null,
+              brandLabel: null,
+              brandLogoUrl: null,
+              estimatedCredits: null,
+              executionId: null,
+              expiresAt: null,
+              id: buildReviewInboxItemId({
+                kind: 'agent_input_request',
+                requestId: question.requestId,
+                threadId: thread.id,
+              }),
+              isResolvable:
+                level === AgentThreadAccessLevel.OWNER ||
+                level === AgentThreadAccessLevel.COLLABORATE,
+              kind: 'agent_input_request',
+              nodeId: null,
+              preview: { caption: excerpt(question.prompt), mediaUrl: null },
+              question,
+              reasons: [],
+              requestedAt:
+                readValidTimestamp(request.createdAt) ??
+                new Date(0).toISOString(),
+              requestedByLabel: null,
+              source: 'agent',
+              sourceLabel: readString(thread.title) ?? 'Agent',
+              status: 'pending',
+              toolName: null,
+              workflowId: null,
+            },
+          ];
+        },
+      );
     });
   }
 

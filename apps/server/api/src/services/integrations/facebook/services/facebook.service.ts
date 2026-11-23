@@ -1,3 +1,4 @@
+import { UPLOAD_HTTP_TIMEOUT_MS } from '@api/constants/http-timeout.constant';
 import {
   SERVER_TOKENS,
   type ServerCredentialStore,
@@ -311,7 +312,6 @@ export class FacebookService {
         throw new Error('Facebook credential not found');
       }
 
-      // Decrypt the access token
       const decryptedAccessToken = EncryptionUtil.decrypt(
         this.requireString(credential.accessToken, 'Facebook access token'),
       );
@@ -460,6 +460,7 @@ export class FacebookService {
               file_url: videoUrl,
               title,
             },
+            timeout: UPLOAD_HTTP_TIMEOUT_MS,
           },
         ),
       );

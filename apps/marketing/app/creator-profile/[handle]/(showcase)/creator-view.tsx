@@ -13,9 +13,10 @@ import { getPublicModels } from '@public/models/models-loader';
 import { EnvironmentService } from '@services/core/environment.service';
 import Pagination from '@ui/navigation/pagination/Pagination';
 import CreatorArticleGrid from '@web-components/creator/CreatorArticleGrid';
-import CreatorPostGrid from '@web-components/creator/CreatorPostGrid';
 import CreatorProfileLayout from '@web-components/creator/CreatorProfileLayout';
 import CreatorSection from '@web-components/creator/CreatorSection';
+import CreatorWall from '@web-components/creator/CreatorWall';
+import CreatorWallFilter from '@web-components/creator/CreatorWallFilter';
 import ProfileEmptyState from '@web-components/profile/ProfileEmptyState';
 import ProfileImages from '@web-components/profile/ProfileImages';
 import ProfileVideos from '@web-components/profile/ProfileVideos';
@@ -26,7 +27,9 @@ import {
   CREATOR_TAB_PAGE_SIZE,
   type CreatorProfileData,
   type CreatorShowcase,
+  getCreatorPlatformPosts,
   getCreatorProfileData,
+  resolveCreatorPlatform,
 } from './creator-loader';
 
 const TAB_TOTAL_LABELS: Record<CreatorProfileTab, string> = {
@@ -117,6 +120,17 @@ export async function CreatorOverview({
         ) : (
           <div className="space-y-12">
             <CreatorSection
+              href={creatorTabPath(canonicalHandle, 'posts')}
+              title="Posts"
+              total={counts.posts}
+            >
+              <CreatorWall
+                brand={brand}
+                handle={canonicalHandle}
+                posts={showcase.posts.items}
+              />
+            </CreatorSection>
+            <CreatorSection
               href={creatorTabPath(canonicalHandle, 'articles')}
               title="Articles"
               total={counts.articles}
@@ -146,16 +160,6 @@ export async function CreatorOverview({
                 modelCredits={modelCredits}
               />
             </CreatorSection>
-            <CreatorSection
-              href={creatorTabPath(canonicalHandle, 'posts')}
-              title="Posts"
-              total={counts.posts}
-            >
-              <CreatorPostGrid
-                handle={canonicalHandle}
-                posts={showcase.posts.items}
-              />
-            </CreatorSection>
           </div>
         )}
       </CreatorProfileLayout>
@@ -167,10 +171,13 @@ export async function CreatorOverview({
 export async function CreatorTab({
   handle,
   page,
+  platform,
   tab,
 }: {
   handle: string;
   page: number;
+  /** The raw `?platform=`; only the posts tab reads it. */
+  platform?: string;
   tab: CreatorProfileTab;
 }): Promise<React.ReactElement> {
   const data = await getCreatorProfileData(handle, CREATOR_TAB_PAGE_SIZE, page);
@@ -183,7 +190,17 @@ export async function CreatorTab({
   const canonicalHandle = brand.slug || handle;
   const counts = countShowcase(showcase);
   const modelCredits = await loadModelCredits(showcase);
-  const tabPage = showcase[tab];
+  const activePlatform =
+    tab === 'posts' ? resolveCreatorPlatform(platform, brand) : null;
+  const postsPage = activePlatform
+    ? await getCreatorPlatformPosts(
+        brand.id,
+        CREATOR_TAB_PAGE_SIZE,
+        page,
+        activePlatform,
+      )
+    : showcase.posts;
+  const tabPage = tab === 'posts' ? postsPage : showcase[tab];
 
   return (
     <CreatorProfileLayout
@@ -193,7 +210,7 @@ export async function CreatorTab({
       handle={canonicalHandle}
       referralCode={referralCode}
     >
-      {tabPage.total === 0 ? (
+      {tabPage.total === 0 && !activePlatform ? (
         <ProfileEmptyState handle={canonicalHandle} />
       ) : (
         <>
@@ -216,13 +233,28 @@ export async function CreatorTab({
             />
           ) : null}
           {tab === 'posts' ? (
-            <CreatorPostGrid
-              handle={canonicalHandle}
-              posts={showcase.posts.items}
-            />
+            <div className="space-y-5">
+              <CreatorWallFilter
+                active={activePlatform}
+                handle={canonicalHandle}
+                platforms={[
+                  ...new Set(
+                    (brand.socials ?? []).map((social) => social.platform),
+                  ),
+                ]}
+              />
+              <CreatorWall
+                brand={brand}
+                handle={canonicalHandle}
+                posts={postsPage.items}
+              />
+            </div>
           ) : null}
           <Pagination
             currentPage={tabPage.page}
+            hrefParams={
+              activePlatform ? { platform: activePlatform } : undefined
+            }
             totalItems={tabPage.total}
             totalLabel={TAB_TOTAL_LABELS[tab]}
             totalPages={tabPage.totalPages}

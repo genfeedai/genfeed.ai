@@ -20,7 +20,7 @@ import {
  *
  * Analytics is the single home for measuring the brand's own content — the
  * Publishing module no longer carries its own analytics page. Market trends
- * (Trends, Trend Turnover) are research, so they live in Discovery.
+ * (Trends) are research, so they live in Discovery.
  *
  * Shell already labels the module Analytics. What-happened destinations sit
  * ungrouped under that header (Overview, Posts, Accounts, Newsletter,

@@ -8,13 +8,14 @@ import PromptBarComposer from '@ui/prompt-bars/components/shell/PromptBarCompose
 import PromptBarSendButton from '@ui/prompt-bars/components/toolbar/PromptBarSendButton';
 import PromptBarToolbar from '@ui/prompt-bars/components/toolbar/PromptBarToolbar';
 import PromptEditor from '@ui/prompt-editor/PromptEditor';
-import { Sparkles } from 'lucide-react';
+import { Mail, Save, Sparkles } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { MessagesReplyComposerProps } from '@/features/messages/props/messages-reply-composer.props';
 
 /**
  * Reply / DM composer for the selected conversation, built from the shared
- * prompt-bar pieces. Context, status and failures all live inside the bar.
+ * prompt-bar pieces. Status and failures live inside the bar; the actions are
+ * icon-only with a tooltip.
  */
 export default function MessagesReplyComposer({
   availability,
@@ -25,7 +26,6 @@ export default function MessagesReplyComposer({
   onAction,
   onDraftChange,
   onSuggestedReply,
-  participantLabel,
 }: MessagesReplyComposerProps) {
   const translate = useTranslations('common.messages');
   const isBusy = Boolean(busyAction);
@@ -61,28 +61,12 @@ export default function MessagesReplyComposer({
 
   return (
     <PromptBarContainer
-      className="shrink-0 border-t border-border p-4"
+      className="shrink-0 p-4"
       layoutMode="inflow"
       maxWidth="full"
     >
       <PromptBarComposer
         banner={banner}
-        beforeBody={
-          <div className="flex flex-col gap-0.5 px-3.5 pt-2.5">
-            <p className="flex items-center gap-1.5 text-2xs font-medium text-foreground/60">
-              <span>{translate('replyComposer.title')}</span>
-              <span className="rounded bg-tertiary px-1.5 py-0.5 text-foreground/80">
-                {participantLabel}
-              </span>
-            </p>
-            <p className="text-2xs text-muted-foreground">
-              {translate('replyComposer.description')}{' '}
-              {availability.canSendDm
-                ? 'DM is available for this thread.'
-                : availability.sendDmReason}
-            </p>
-          </div>
-        }
         data-testid="messages-reply-composer"
         density="compact"
       >
@@ -97,37 +81,41 @@ export default function MessagesReplyComposer({
         <PromptBarToolbar
           leading={
             <Button
+              ariaLabel={translate('actions.draftReply')}
               icon={<Sparkles className="size-4" />}
               isDisabled={isBusy}
               isLoading={busyAction === 'suggested-reply'}
               onClick={onSuggestedReply}
-              size={ButtonSize.SM}
+              size={ButtonSize.ICON}
+              tooltip={translate('actions.draftReply')}
               variant={ButtonVariant.GHOST}
-            >
-              {translate('actions.draftReply')}
-            </Button>
+              withWrapper={false}
+            />
           }
           trailing={
             <>
               <Button
+                ariaLabel={translate('actions.saveDraft')}
+                icon={<Save className="size-4" />}
                 isDisabled={isBusy || !hasDraft}
                 isLoading={busyAction === 'draft'}
                 onClick={() => onAction('draft')}
-                size={ButtonSize.SM}
+                size={ButtonSize.ICON}
+                tooltip={translate('actions.saveDraft')}
                 variant={ButtonVariant.GHOST}
-              >
-                {translate('actions.saveDraft')}
-              </Button>
+                withWrapper={false}
+              />
               <Button
+                ariaLabel={translate('actions.dm')}
+                icon={<Mail className="size-4" />}
                 isDisabled={!canDm}
                 isLoading={busyAction === 'dm'}
                 onClick={() => onAction('dm')}
-                size={ButtonSize.SM}
-                title={availability.sendDmReason}
+                size={ButtonSize.ICON}
+                tooltip={availability.sendDmReason ?? translate('actions.dm')}
                 variant={ButtonVariant.GHOST}
-              >
-                {translate('actions.dm')}
-              </Button>
+                withWrapper={false}
+              />
               <PromptBarSendButton
                 ariaLabel={translate('actions.reply')}
                 isDisabled={!canReply}

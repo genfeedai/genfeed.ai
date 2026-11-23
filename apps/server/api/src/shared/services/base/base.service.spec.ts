@@ -85,6 +85,8 @@ describe('BaseService', () => {
     get: ReturnType<typeof vi.fn>;
     set: ReturnType<typeof vi.fn>;
     invalidateByTags: ReturnType<typeof vi.fn>;
+    readTagEpochs: ReturnType<typeof vi.fn>;
+    setUnlessTagsInvalidated: ReturnType<typeof vi.fn>;
   };
 
   beforeEach(() => {
@@ -100,7 +102,9 @@ describe('BaseService', () => {
     cacheService = {
       get: vi.fn().mockResolvedValue(null),
       invalidateByTags: vi.fn(),
+      readTagEpochs: vi.fn(async (tags: string[]) => tags.map(() => '0')),
       set: vi.fn(),
+      setUnlessTagsInvalidated: vi.fn(),
     };
 
     delegate = {
@@ -265,7 +269,7 @@ describe('BaseService', () => {
       // every per-write invalidation) plus the reserved global tag (used only
       // by the deliberate system-wide flush helper) — never a bare
       // collection-agnostic 'query:paginated' tag.
-      expect(cacheService.set).toHaveBeenCalledWith(
+      expect(cacheService.setUnlessTagsInvalidated).toHaveBeenCalledWith(
         expect.any(String),
         result,
         expect.objectContaining({
@@ -277,7 +281,21 @@ describe('BaseService', () => {
           ],
           ttl: 300,
         }),
+        ['0', '0', '0', '0'],
       );
+    });
+
+    it('does not store a page that was read before a write invalidated its tags', async () => {
+      delegate.findMany.mockResolvedValue([{ id: '1' }]);
+      delegate.count.mockResolvedValue(1);
+      // The epochs the read started from are no longer current by the time
+      // the guarded store runs, so the store refuses the value.
+      cacheService.setUnlessTagsInvalidated.mockResolvedValue(false);
+
+      const result = await service.findAll({}, { limit: 10, page: 1 });
+
+      expect(result.docs).toHaveLength(1);
+      expect(cacheService.set).not.toHaveBeenCalled();
     });
 
     it('returns all docs without pagination when pagination: false', async () => {

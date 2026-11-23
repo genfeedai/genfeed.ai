@@ -214,4 +214,20 @@ describe('ReviewInboxService', () => {
       );
     });
   });
+
+  it('answers an agent question through the thread input route', async () => {
+    mockPost.mockResolvedValue({ data: {} });
+
+    await service.answerQuestion({
+      answer: 'Playful',
+      optionIds: ['playful'],
+      requestId: 'req-tone',
+      threadId: 'thread-1',
+    });
+
+    expect(mockPost).toHaveBeenCalledWith(
+      'https://api.genfeed.ai/v1/agent/threads/thread-1/input-requests/req-tone/responses',
+      { answer: 'Playful', optionIds: ['playful'] },
+    );
+  });
 });

@@ -154,7 +154,7 @@ test.describe('Connect account modal', () => {
     });
     await expect(
       authenticatedPage.getByText(
-        'Import queued. Posts appear in Discovery when it finishes.',
+        'Import queued. It will finish in the background.',
       ),
     ).toBeVisible();
     await expect(

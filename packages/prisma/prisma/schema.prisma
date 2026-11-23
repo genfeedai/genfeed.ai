@@ -844,6 +844,7 @@ contentLearningOperations ContentLearningOperation[]
 }
 
 model Organization {
+  agentEventRuns AgentEventRun[]
   contextEmbeddingJobs ContextEmbeddingJob[]
   knowledgeEmbeddingManifests KnowledgeEmbeddingManifest[]
   brandRelocations BrandRelocation[] @relation("brand_relocation_source")
@@ -2623,6 +2624,10 @@ model Ingredient {
   // reused by the pre-publish media readiness gate.
   mediaProbe            Json?
   mediaProbedAt         DateTime?
+  /// Set when the retention sweep deleted this video's file from storage. The
+  /// row stays so the Library, posts and receipts still resolve; the media
+  /// itself is gone. Never cleared: a regenerated video is a new ingredient.
+  storageExpiredAt      DateTime?
   postedTo              String[]                 @default([])
   qualityScore          Float?
   qualityFeedback       String[]                 @default([])
@@ -5603,6 +5608,7 @@ model AgentStrategy {
   // Typed list only: [{ "key": string, "value": string | number | boolean }]
   workflowInputOverrides      Json    @default("[]")
 
+  eventRuns     AgentEventRun[]
   ingredients   Ingredient[]               @relation("ingredient_agent_strategy")
   posts         Post[]                     @relation("post_agent_strategy")
   opportunities AgentStrategyOpportunity[]
@@ -5846,6 +5852,12 @@ model AgentThreadSnapshot {
   threadId       String
   thread         AgentThread  @relation(fields: [threadId], references: [id])
   data           Json         @default("{}")
+  /// When the oldest question the thread is waiting on was asked; null when
+  /// none is pending. Maintained with `data.pendingInputRequests` by the thread
+  /// engine so the review inbox finds waiting threads without reading `data`.
+  /// The partial index `agent_thread_snapshots_pending_input_idx` lives in the
+  /// migration SQL (Prisma cannot declare a partial index).
+  pendingInputAt DateTime?
   isDeleted      Boolean      @default(false)
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
@@ -10626,4 +10638,41 @@ model ProviderRoutingSetting {
   isActive Boolean @default(true)
   updatedAt DateTime @updatedAt
   @@map("provider_routing_settings")
+}
+
+/// An event delivered to a workflow's "run content agent" step, and the agent
+/// run it started. The unique key makes a replayed event start nothing, and the
+/// rows of the last 24 hours are the agent's cap on event-started runs. A claim
+/// that never reached STARTED is retaken after its lease runs out. Removing the
+/// step deletes this table and nothing else.
+model AgentEventRun {
+  id                  String              @id @default(cuid())
+  organizationId      String
+  organization        Organization        @relation(fields: [organizationId], references: [id])
+  strategyId          String
+  strategy            AgentStrategy       @relation(fields: [strategyId], references: [id])
+  /// Hex SHA-256 of the event's identity (its own id, or its text for an event
+  /// that has none). Never the event text itself.
+  eventKey            String
+  status              AgentEventRunStatus @default(CLAIMED)
+  workflowId          String?
+  /// The execution of the workflow holding the step, for the run history.
+  workflowExecutionId String?
+  /// The execution that runs the agent turn.
+  agentExecutionId    String?
+  threadId            String?
+  claimedAt           DateTime            @default(now())
+  isDeleted           Boolean             @default(false)
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+
+  @@unique([organizationId, strategyId, eventKey], map: "agent_event_runs_org_strategy_event_key")
+  @@index([organizationId, strategyId, createdAt(sort: Desc)], map: "agent_event_runs_org_strategy_created_idx")
+  @@map("agent_event_runs")
+}
+
+enum AgentEventRunStatus {
+  CLAIMED
+  STARTED
+  FAILED
 }

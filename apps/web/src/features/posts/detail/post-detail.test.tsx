@@ -42,8 +42,20 @@ vi.mock('next/navigation', () => ({
 }));
 
 vi.mock('@/features/posts/detail/components/PostDetailHeader', () => ({
-  default: ({ headingLevel }: { headingLevel?: 1 | 2 }) => (
-    <div data-testid="post-header" data-heading-level={headingLevel} />
+  default: ({
+    headingLevel,
+    isPublishBlocked,
+    onPublishNow,
+  }: {
+    headingLevel?: 1 | 2;
+    isPublishBlocked?: boolean;
+    onPublishNow?: () => void;
+  }) => (
+    <div data-testid="post-header" data-heading-level={headingLevel}>
+      <button disabled={isPublishBlocked} onClick={onPublishNow} type="button">
+        Publish now
+      </button>
+    </div>
   ),
 }));
 
@@ -440,6 +452,45 @@ describe('PostDetail', () => {
     render(<PostDetail postId="post-1" scope={PageScope.PUBLISHING} />);
 
     expect(screen.getByTestId('target-preview')).toBeInTheDocument();
+  });
+});
+
+describe('PostDetail publish', () => {
+  it('sends one publish for two clicks while the description save is pending', async () => {
+    const user = userEvent.setup();
+    let finishSave: () => void = () => {};
+    const handleContentSave = vi.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          finishSave = resolve;
+        }),
+    );
+    const handlePublishNow = vi.fn().mockResolvedValue(undefined);
+    mockUsePostDetail.mockReturnValue(
+      buildHookData({ handleContentSave, handlePublishNow }),
+    );
+    render(<PostDetail postId="post-1" scope={PageScope.PUBLISHING} />);
+
+    await user.click(screen.getByRole('button', { name: 'Publish now' }));
+    await user.click(screen.getByRole('button', { name: 'Publish now' }));
+    finishSave();
+    await vi.waitFor(() => expect(handlePublishNow.mock.calls).toHaveLength(1));
+
+    expect(handleContentSave.mock.calls).toHaveLength(1);
+
+    await user.click(screen.getByRole('button', { name: 'Publish now' }));
+    await vi.waitFor(() =>
+      expect(handleContentSave.mock.calls).toHaveLength(2),
+    );
+  });
+
+  it('hands the publish-blocked state to the header', () => {
+    mockUsePostDetail.mockReturnValue(
+      buildHookData({ isPublishBlocked: true }),
+    );
+    render(<PostDetail postId="post-1" scope={PageScope.PUBLISHING} />);
+
+    expect(screen.getByRole('button', { name: 'Publish now' })).toBeDisabled();
   });
 });
 

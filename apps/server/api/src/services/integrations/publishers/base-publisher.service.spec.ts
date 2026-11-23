@@ -392,27 +392,35 @@ describe('BasePublisherService', () => {
 
   describe('validateCaptionLength() via validatePost()', () => {
     // TestPublisher is TWITTER; the catalog caption limit for X is 280.
-    it('should pass a caption exactly at the catalog limit', () => {
+    it('should pass a caption exactly at the standard length', () => {
       const post = makePost({ description: 'a'.repeat(280) });
       const media = publisher.testExtractMediaInfo(post);
       expect(publisher.validatePost(makeContext(post), media).valid).toBe(true);
     });
 
-    it('should fail an over-limit caption with a structured caption_too_long error', () => {
+    it('should pass a caption past the standard length and leave the decision to the provider', () => {
       const post = makePost({ description: 'a'.repeat(281) });
+      const media = publisher.testExtractMediaInfo(post);
+      expect(publisher.validatePost(makeContext(post), media).valid).toBe(true);
+    });
+
+    it('should fail a caption over the ceiling with a structured caption_too_long error', () => {
+      const post = makePost({ description: 'a'.repeat(25_001) });
       const media = publisher.testExtractMediaInfo(post);
       const result = publisher.validatePost(makeContext(post), media);
       expect(result.valid).toBe(false);
       expect(result.errorCode).toBe('caption_too_long');
       expect(result.error).toContain('X (Twitter)');
-      expect(result.error).toContain('281');
-      expect(result.error).toContain('280');
+      expect(result.error).toContain('25001');
+      expect(result.error).toContain('25000');
     });
 
-    it('should count X weighted length, matching account fan-out', () => {
-      // 270 + a 23-weight link fits; the raw URL alone is over 280 code points.
+    it('should count X weighted length against the ceiling, matching account fan-out', () => {
+      // A link weighs 23 however long it is, so this lands exactly on 25,000.
       const longLink = `https://example.com/${'p'.repeat(300)}`;
-      const fits = makePost({ description: `${'a'.repeat(256)} ${longLink}` });
+      const fits = makePost({
+        description: `${'a'.repeat(24_976)} ${longLink}`,
+      });
       expect(
         publisher.validatePost(
           makeContext(fits),
@@ -420,14 +428,14 @@ describe('BasePublisherService', () => {
         ).valid,
       ).toBe(true);
 
-      // 141 CJK characters weigh 282 on X even though they are 141 code points.
-      const cjk = makePost({ description: '日'.repeat(141) });
+      // 12,501 CJK characters weigh 25,002 on X even though they are fewer code points.
+      const cjk = makePost({ description: '日'.repeat(12_501) });
       const result = publisher.validatePost(
         makeContext(cjk),
         publisher.testExtractMediaInfo(cjk),
       );
       expect(result.valid).toBe(false);
-      expect(result.error).toContain('282');
+      expect(result.error).toContain('25002');
     });
 
     it('should count the sanitized text, not the raw HTML markup', () => {

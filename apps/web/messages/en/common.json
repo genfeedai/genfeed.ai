@@ -101,6 +101,7 @@
       "unverified": "Could not confirm this post"
     },
     "agent": {
+      "input_requested": "Agent is waiting on your answer",
       "review_changed": "Agent review updated",
       "review_expired": "Agent review expired"
     },
@@ -236,6 +237,7 @@
         "title": "Sign in required"
       },
       "connecting": "Connecting your {platform} account…",
+      "connectingAccount": "Connecting your account…",
       "error": {
         "denied": "Authorization was denied. You can try connecting again.",
         "description": "Failed to verify your account. Please try again.",
@@ -1043,7 +1045,7 @@
       "mcpApproval": {
         "cardTitle": "MCP approvals",
         "label": "Require approval for MCP requests",
-        "switchDescription": "On: image, video and other credit-spending MCP requests wait for approval. Off: they run straight away. Credit checks and quotes still apply. Publishing, scheduling and other outbound actions always wait.",
+        "switchDescription": "On: image, video and other credit-spending MCP requests wait for approval. Off: they run straight away. Credit checks and quotes still apply. Publishing and scheduling never wait here: your agent asks you to confirm in the conversation. Sending messages and replies always waits.",
         "organizationRequired": "Your organization requires approval, so this stays on. An owner or admin can change that in organization settings.",
         "confirm": "Lets your own credit-spending MCP requests run without approval",
         "saveError": "Could not save your MCP approval setting."
@@ -1243,7 +1245,7 @@
     "organizationMcpApproval": {
       "title": "MCP approvals",
       "label": "Require approval for MCP requests",
-      "switchDescription": "On: image, video and other credit-spending MCP requests wait for approval. Off: members who also turn it off for themselves run them straight away. Credit checks and quotes still apply. Publishing, scheduling and other outbound actions always wait.",
+      "switchDescription": "On: image, video and other credit-spending MCP requests wait for approval. Off: members who also turn it off for themselves run them straight away. Credit checks and quotes still apply. Publishing and scheduling never wait here: your agent asks you to confirm in the conversation. Sending messages and replies always waits.",
       "risk": "Members who also turn this off for themselves can spend your organization's credits from an MCP client without anyone approving first.",
       "confirm": "Changes whether members' credit-spending MCP requests wait for approval",
       "adminOnly": "Only owners and admins can change this setting.",
@@ -2322,7 +2324,6 @@
       "askConversation": "Ask Agent about this",
       "askMessage": "Ask Agent",
       "attachMessage": "Attach message to the agent",
-      "attached": "Attached",
       "removeMessage": "Remove message from the agent"
     },
     "actions": {
@@ -2359,8 +2360,6 @@
       "messagePage": "Messages page {page} of {pages}"
     },
     "replyComposer": {
-      "description": "Review every draft before it is sent or published.",
-      "title": "Reply composer",
       "ariaLabel": "Social reply or direct message",
       "placeholder": "Write a reply or DM"
     },
@@ -2437,6 +2436,10 @@
     "loading": "Loading… {count} so far",
     "noPreview": "No preview",
     "videoBadge": "Video"
+  },
+  "videoRetention": {
+    "title": "Video expired",
+    "description": "Videos that were never posted are removed after {payg} days on pay-as-you-go and {subscriber} days on a subscription."
   },
   "libraryRetry": {
     "genericFailureReason": "Generation failed.",
@@ -2666,7 +2669,6 @@
       "sourceTabs": {
         "all": "All",
         "trends": "Public trends",
-        "owned": "My accounts",
         "imported": "Imported"
       }
     }

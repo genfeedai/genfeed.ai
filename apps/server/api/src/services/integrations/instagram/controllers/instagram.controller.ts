@@ -9,6 +9,10 @@ import {
   extractReconnectCredentialIdFromWarmupSignals,
 } from '@api/collections/credentials/services/credentials.service';
 import { throwIfOAuthCallbackError } from '@api/collections/credentials/utils/oauth-callback-error.util';
+import {
+  claimOAuthVerifyCredential,
+  verifiedOAuthState,
+} from '@api/collections/credentials/utils/oauth-verify-claim.util';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import {
@@ -54,12 +58,10 @@ import type { Request } from 'express';
 @Controller('services/instagram')
 export class InstagramController {
   private readonly constructorName: string = String(this.constructor.name);
-
   private readonly redirectUri: string;
 
   constructor(
     private readonly configService: ConfigService,
-
     private readonly brandsService: BrandsService,
     private readonly credentialsService: CredentialsService,
     private readonly instagramService: InstagramService,
@@ -81,14 +83,12 @@ export class InstagramController {
     @Body() createCredentialDto: ConnectCredentialDto,
   ) {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-
     this.loggerService.log(url, createCredentialDto);
 
     const brand = await this.brandsService.findOne({
       id: createCredentialDto.brandId,
       organizationId: user.organizationId,
     });
-
     if (!brand) {
       return returnBadRequest({
         detail: 'You do not have access to this brand',
@@ -120,7 +120,6 @@ export class InstagramController {
 
     const appId = this.configService.get('INSTAGRAM_APP_ID');
     const configId = this.configService.get('INSTAGRAM_CONFIG_ID');
-
     const redirectUri =
       this.configService.get('INSTAGRAM_REDIRECT_URI') ?? this.redirectUri;
     if (
@@ -210,11 +209,15 @@ export class InstagramController {
       }
 
       failureStage = 'credential_lookup';
-      const existingCredential =
-        await this.credentialsService.findPendingOAuthCredential(
-          state,
-          CredentialPlatform.INSTAGRAM,
-        );
+      const claim = await claimOAuthVerifyCredential(
+        this.credentialsService,
+        state,
+        CredentialPlatform.INSTAGRAM,
+      );
+      if (claim?.alreadyConnected) {
+        return serializeSingle(request, CredentialSerializer, claim.credential);
+      }
+      const existingCredential = claim?.credential;
 
       if (!existingCredential) {
         return returnNotFound(
@@ -253,10 +256,9 @@ export class InstagramController {
         },
       });
 
-      // Persist the exchanged token now that at least one eligible account
-      // is known to exist. Identity may still be ambiguous — decided below
-      // — so the row stays unconnected until it is resolved. Reactivate a
-      // previously soft-deleted row when reconnecting.
+      // Persist the exchanged token now that an eligible account exists. The
+      // row stays unconnected until identity is resolved below. Reactivate a
+      // soft-deleted row when reconnecting.
       failureStage = 'credential_persist';
       let credential = await this.credentialsService.patch(
         existingCredential.id,
@@ -268,7 +270,7 @@ export class InstagramController {
           externalBusinessId: businessId,
           isConnected: false,
           isDeleted: false,
-          oauthState: null,
+          oauthState: verifiedOAuthState(state),
           refreshToken: undefined,
           refreshTokenExpiry: undefined,
           // Unknown scopes must not inherit a previous token's grant.
@@ -294,12 +296,10 @@ export class InstagramController {
       credential = resolution.credential;
 
       if (resolution.needsSelection) {
-        // Token saved, identity ambiguous. `needsAccountSelection` on the
-        // serialized credential (computed in the serializer, not inferred
-        // by the caller) tells the callback page to fetch this credential's
-        // Instagram pages and let the operator pick — see
-        // `CredentialsController.findAllInstagramPages` and
-        // `InstagramController.selectAccount`.
+        // Token saved, identity ambiguous: `needsAccountSelection` on the
+        // serialized credential tells the callback page to fetch this
+        // credential's Instagram pages and let the operator pick — see
+        // `CredentialsController.findAllInstagramPages` / `selectAccount`.
         return serializeSingle(request, CredentialSerializer, credential);
       }
 
