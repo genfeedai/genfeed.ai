@@ -19,7 +19,7 @@ function createMediaServices(token: string) {
 }
 
 /** Saved Library IDs are reauthorized; stored preview URLs can have expired. */
-export function useWorkflowMediaUrl(
+export function useWorkflowMediaPreviewUrl(
   kind: WorkflowMediaKind,
   config: WorkflowMediaConfig,
 ): string | undefined {

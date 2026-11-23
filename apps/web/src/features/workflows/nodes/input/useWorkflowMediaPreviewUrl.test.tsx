@@ -6,7 +6,7 @@ import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import { renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { getWorkflowMediaConfig } from './media-picker';
-import { useWorkflowMediaUrl } from './useWorkflowMediaUrl';
+import { useWorkflowMediaPreviewUrl } from './useWorkflowMediaPreviewUrl';
 
 const mocks = vi.hoisted(() => ({
   brandId: 'brand',
@@ -69,7 +69,7 @@ const currentVideo = {
 function renderPreview() {
   const client = createTestQueryClient();
   return {
-    ...renderHook(() => useWorkflowMediaUrl('video', savedVideo), {
+    ...renderHook(() => useWorkflowMediaPreviewUrl('video', savedVideo), {
       wrapper: queryClientWrapper(client),
     }),
     client,
@@ -125,7 +125,7 @@ describe('workflow Library media previews', () => {
       { config: { source: 'url', url: 'https://owned.test/video.mp4' } },
       'video',
     );
-    const { result } = renderHook(() => useWorkflowMediaUrl('video', config), {
+    const { result } = renderHook(() => useWorkflowMediaPreviewUrl('video', config), {
       wrapper: queryClientWrapper(createTestQueryClient()),
     });
     expect(result.current).toBe('https://owned.test/video.mp4');

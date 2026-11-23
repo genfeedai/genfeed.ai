@@ -43,8 +43,8 @@ vi.mock('@genfeedai/workflows/ui/stores', () => ({
   ) => selector({ updateNodeData: mocks.updateNodeData }),
 }));
 
-vi.mock('@/features/workflows/nodes/input/useWorkflowMediaUrl', () => ({
-  useWorkflowMediaUrl: (
+vi.mock('@/features/workflows/nodes/input/useWorkflowMediaPreviewUrl', () => ({
+  useWorkflowMediaPreviewUrl: (
     _kind: string,
     config: { resolvedUrl: string | null },
   ) => config.resolvedUrl ?? undefined,

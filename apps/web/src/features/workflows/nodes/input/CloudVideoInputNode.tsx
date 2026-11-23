@@ -22,7 +22,7 @@ import {
 } from '@/features/workflows/nodes/input/media-picker';
 import { UrlInputSection } from '@/features/workflows/nodes/input/UrlInputSection';
 import { useWorkflowMediaPicker } from '@/features/workflows/nodes/input/useWorkflowMediaPicker';
-import { useWorkflowMediaUrl } from '@/features/workflows/nodes/input/useWorkflowMediaUrl';
+import { useWorkflowMediaPreviewUrl } from '@/features/workflows/nodes/input/useWorkflowMediaPreviewUrl';
 import { VideoIcon } from '@/features/workflows/nodes/input/VideoIcon';
 
 const VIDEO_SOURCE_OPTIONS: Array<{
@@ -43,7 +43,7 @@ function CloudVideoInputNodeComponent(props: NodeProps): React.JSX.Element {
     [data],
   );
 
-  const previewUrl = useWorkflowMediaUrl('video', mediaConfig);
+  const previewUrl = useWorkflowMediaPreviewUrl('video', mediaConfig);
 
   const applyConfig = useCallback(
     (nextConfig: ReturnType<typeof getWorkflowMediaConfig>) => {

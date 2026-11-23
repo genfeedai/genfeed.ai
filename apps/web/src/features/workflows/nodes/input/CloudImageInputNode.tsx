@@ -24,7 +24,7 @@ import {
   type WorkflowMediaSource,
 } from '@/features/workflows/nodes/input/media-picker';
 import { useWorkflowMediaPicker } from '@/features/workflows/nodes/input/useWorkflowMediaPicker';
-import { useWorkflowMediaUrl } from '@/features/workflows/nodes/input/useWorkflowMediaUrl';
+import { useWorkflowMediaPreviewUrl } from '@/features/workflows/nodes/input/useWorkflowMediaPreviewUrl';
 
 const IMAGE_SOURCE_OPTIONS: Array<{
   value: WorkflowMediaSource;
@@ -65,7 +65,7 @@ function CloudImageInputNodeComponent(props: NodeProps): React.JSX.Element {
   );
   const [urlValue, setUrlValue] = useState(mediaConfig.url ?? '');
 
-  const previewUrl = useWorkflowMediaUrl('image', mediaConfig);
+  const previewUrl = useWorkflowMediaPreviewUrl('image', mediaConfig);
 
   const applyConfig = useCallback(
     (nextConfig: ReturnType<typeof getWorkflowMediaConfig>) => {

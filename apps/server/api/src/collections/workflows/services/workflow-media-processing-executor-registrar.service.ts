@@ -157,6 +157,7 @@ export class WorkflowMediaProcessingExecutorRegistrarService {
           defaultCategory);
 
     if (
+      this.configService.isAuthorizedMediaDeliveryEnabled &&
       source !== 'url' &&
       (source !== 'brand-references' || defaultCategory === 'video') &&
       itemId &&
