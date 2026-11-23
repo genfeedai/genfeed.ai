@@ -13,3 +13,4 @@ export * from './integration.interface';
 export * from './mcp-resource.interface';
 export * from './news.interface';
 export * from './social-api.interface';
+export * from './threads.interface';

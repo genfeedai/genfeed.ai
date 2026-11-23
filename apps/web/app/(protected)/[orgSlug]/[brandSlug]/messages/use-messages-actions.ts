@@ -305,6 +305,12 @@ export function useMessagesActions({
               run: () => service.syncFacebook(25, credential.id),
             });
             break;
+          case 'threads':
+            commentJobs.push({
+              platform: 'Threads',
+              run: () => service.syncThreads(25, credential.id),
+            });
+            break;
           case 'instagram':
             commentJobs.push({
               platform: 'Instagram',

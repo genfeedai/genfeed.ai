@@ -1,4 +1,5 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { buildSocialInboxScope } from '@api/collections/social-inbox/controllers/social-inbox-scope.util';
 import {
   SocialConversationReadDto,
   SocialConversationUpdateDto,
@@ -7,7 +8,6 @@ import {
   SocialDraftUpdateDto,
   SocialReplyDto,
 } from '@api/collections/social-inbox/dto/social-inbox-action.dto';
-import { SocialInboxIngestDto } from '@api/collections/social-inbox/dto/social-inbox-ingest.dto';
 import {
   SocialInboxQueryDto,
   SocialInboxUnreadCountQueryDto,
@@ -20,11 +20,6 @@ import {
   SocialInboxService,
 } from '@api/collections/social-inbox/services/social-inbox.service';
 import { SocialInboxSuggestedReplyService } from '@api/collections/social-inbox/services/social-inbox-suggested-reply.service';
-import { SocialInboxSyncWorkflowService } from '@api/collections/social-inbox/services/social-inbox-sync-workflow.service';
-import type {
-  SocialInboxSyncConversationType,
-  SocialInboxSyncPlatform,
-} from '@api/collections/social-inbox/services/social-inbox-sync-workflow-definition';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
@@ -34,17 +29,11 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import type { ITenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.types';
-import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import {
-  ApiKeyScope,
-  MemberRole,
-  Platform,
-  SocialConversationType,
-} from '@genfeedai/contracts';
+import { ApiKeyScope, MemberRole } from '@genfeedai/contracts';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
@@ -65,7 +54,6 @@ import {
   Post,
   Query,
   Req,
-  UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
@@ -80,7 +68,6 @@ import type { Request } from 'express';
 export class SocialInboxController {
   constructor(
     private readonly socialInboxService: SocialInboxService,
-    private readonly syncWorkflowService: SocialInboxSyncWorkflowService,
     private readonly suggestedReplyService: SocialInboxSuggestedReplyService,
   ) {}
 
@@ -111,143 +98,6 @@ export class SocialInboxController {
       query,
     );
     return serializeSingle(request, SocialInboxUnreadCountSerializer, data);
-  }
-
-  @Post('youtube/sync')
-  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.CREATOR)
-  @ApiOperation({
-    summary: 'Enqueue a background sync of recent YouTube comments',
-  })
-  async syncYoutubeComments(
-    @CurrentUser() user: User,
-    @Body() body: SocialInboxIngestDto,
-  ): Promise<{ jobId: string | undefined; status: string }> {
-    return this.enqueueSync(
-      user,
-      body,
-      Platform.YOUTUBE,
-      SocialConversationType.COMMENT,
-    );
-  }
-
-  @Post('facebook/sync')
-  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.CREATOR)
-  @ApiOperation({
-    summary: 'Enqueue a background sync of recent Facebook Page comments',
-  })
-  async syncFacebookComments(
-    @CurrentUser() user: User,
-    @Body() body: SocialInboxIngestDto,
-  ): Promise<{ jobId: string | undefined; status: string }> {
-    return this.enqueueSync(
-      user,
-      body,
-      Platform.FACEBOOK,
-      SocialConversationType.COMMENT,
-    );
-  }
-
-  @Post('instagram/sync')
-  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.CREATOR)
-  @ApiOperation({
-    summary: 'Enqueue a background sync of recent Instagram comments',
-  })
-  async syncInstagramComments(
-    @CurrentUser() user: User,
-    @Body() body: SocialInboxIngestDto,
-  ): Promise<{ jobId: string | undefined; status: string }> {
-    return this.enqueueSync(
-      user,
-      body,
-      Platform.INSTAGRAM,
-      SocialConversationType.COMMENT,
-    );
-  }
-
-  @Post('instagram/dms/sync')
-  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.CREATOR)
-  @ApiOperation({
-    summary: 'Enqueue a background sync of recent Instagram direct messages',
-  })
-  async syncInstagramDms(
-    @CurrentUser() user: User,
-    @Body() body: SocialInboxIngestDto,
-  ): Promise<{ jobId: string | undefined; status: string }> {
-    return this.enqueueSync(
-      user,
-      body,
-      Platform.INSTAGRAM,
-      SocialConversationType.DM,
-    );
-  }
-
-  @Post('x/sync')
-  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.CREATOR)
-  @ApiOperation({
-    summary: 'Enqueue a background sync of recent X mentions and replies',
-  })
-  async syncXComments(
-    @CurrentUser() user: User,
-    @Body() body: SocialInboxIngestDto,
-  ): Promise<{ jobId: string | undefined; status: string }> {
-    return this.enqueueSync(
-      user,
-      body,
-      Platform.TWITTER,
-      SocialConversationType.COMMENT,
-    );
-  }
-
-  @Post('x/dms/sync')
-  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.CREATOR)
-  @ApiOperation({
-    summary: 'Enqueue a background sync of recent X direct messages',
-  })
-  async syncXDms(
-    @CurrentUser() user: User,
-    @Body() body: SocialInboxIngestDto,
-  ): Promise<{ jobId: string | undefined; status: string }> {
-    return this.enqueueSync(
-      user,
-      body,
-      Platform.TWITTER,
-      SocialConversationType.DM,
-    );
-  }
-
-  @Post('linkedin/sync')
-  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.CREATOR)
-  @ApiOperation({
-    summary: 'Enqueue a background sync of recent LinkedIn comments',
-  })
-  async syncLinkedInComments(
-    @CurrentUser() user: User,
-    @Body() body: SocialInboxIngestDto,
-  ): Promise<{ jobId: string | undefined; status: string }> {
-    return this.enqueueSync(
-      user,
-      body,
-      Platform.LINKEDIN,
-      SocialConversationType.COMMENT,
-    );
-  }
-
-  @Post('linkedin/dms/sync')
-  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.CREATOR)
-  @ApiOperation({
-    summary:
-      'Enqueue a background sync of LinkedIn DMs when the connected account permits it',
-  })
-  async syncLinkedInDms(
-    @CurrentUser() user: User,
-    @Body() body: SocialInboxIngestDto,
-  ): Promise<{ jobId: string | undefined; status: string }> {
-    return this.enqueueSync(
-      user,
-      body,
-      Platform.LINKEDIN,
-      SocialConversationType.DM,
-    );
   }
 
   @TenantReadPolicy('selected')
@@ -441,59 +291,12 @@ export class SocialInboxController {
     return serializeSingle(request, SocialConversationSerializer, data);
   }
 
-  /**
-   * Ingestion is a triple-nested sweep (credentials x posts x comments) that
-   * can blow past the request timeout, so every sync route hands the work to
-   * the background worker instead of running it on the request thread. The
-   * platform and surface travel on the job rather than the body, so the route
-   * stays the only place that names them.
-   */
-  private async enqueueSync(
-    user: User,
-    body: SocialInboxIngestDto,
-    platform: SocialInboxSyncPlatform,
-    conversationType: SocialInboxSyncConversationType,
-  ): Promise<{ jobId: string | undefined; status: string }> {
-    const scope = this.buildScope(user);
-    const jobId = await this.syncWorkflowService.enqueue({
-      brandId: scope.brandId,
-      conversationType,
-      credentialId: body.credentialId,
-      limit: body.limit,
-      organizationId: scope.organizationId,
-      platform,
-      userId: scope.userId,
-    });
-
-    return { jobId, status: 'queued' };
-  }
-
   private buildScope(
     user: User,
     query: Pick<SocialInboxQueryDto, 'organizationId' | 'brandId'> = {},
     request?: Request,
     readScope?: ITenantReadScope,
   ): SocialInboxScope {
-    const tenant = CollectionFilterUtil.resolveListOrganizationId(
-      query,
-      user,
-      request,
-    );
-    if (!user.organizationId) {
-      throw new UnauthorizedException(
-        'Invalid organization context. Please sign in again.',
-      );
-    }
-
-    return {
-      brandId: readScope
-        ? readScope.brandId
-        : (tenant.brandId ??
-          (tenant.isOrganizationOverride ? undefined : user.brandId)),
-      organizationId: readScope
-        ? readScope.organizationId
-        : tenant.organizationId,
-      userId: user.userId ?? user.id,
-    };
+    return buildSocialInboxScope(user, query, request, readScope);
   }
 }

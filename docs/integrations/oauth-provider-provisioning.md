@@ -235,6 +235,12 @@ and [Share on LinkedIn](https://learn.microsoft.com/en-us/linkedin/consumer/inte
    required Threads review before production use.
 6. Set `THREADS_CLIENT_ID`, `THREADS_CLIENT_SECRET`, `THREADS_REDIRECT_URI`,
    `THREADS_API_VERSION`, and `THREADS_GRAPH_URL=https://graph.threads.net`.
+7. Replies reach Messages through a sync (`POST messages/threads/sync`, the
+   Sync button): the account's recent posts are read with their replies
+   (`threads_read_replies`), and an answer from Messages is published with
+   `reply_to_id` (`threads_manage_replies`). Threads has no webhook wired here,
+   so replies arrive on sync. An account connected before the reply scopes were
+   requested is asked to reconnect when Threads refuses the call.
 
 Reference: [Threads API getting started](https://developers.facebook.com/docs/threads/get-started).
 

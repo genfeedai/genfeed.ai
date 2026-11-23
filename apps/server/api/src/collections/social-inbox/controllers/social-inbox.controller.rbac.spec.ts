@@ -1,4 +1,5 @@
 import { SocialInboxController } from '@api/collections/social-inbox/controllers/social-inbox.controller';
+import { SocialInboxSyncController } from '@api/collections/social-inbox/controllers/social-inbox-sync.controller';
 import { API_KEY_SCOPES_KEY } from '@api/helpers/guards/api-key/api-key.guard';
 import { ApiKeyScope } from '@genfeedai/contracts';
 
@@ -6,7 +7,7 @@ describe('SocialInboxController RBAC', () => {
   it('should require owner, admin, or creator role for syncYoutubeComments', () => {
     const metadata = Reflect.getMetadata(
       'roles',
-      SocialInboxController.prototype.syncYoutubeComments,
+      SocialInboxSyncController.prototype.syncYoutubeComments,
     );
     expect(metadata).toEqual(['owner', 'admin', 'creator']);
   });
@@ -15,13 +16,13 @@ describe('SocialInboxController RBAC', () => {
     expect(
       Reflect.getMetadata(
         'roles',
-        SocialInboxController.prototype.syncInstagramComments,
+        SocialInboxSyncController.prototype.syncInstagramComments,
       ),
     ).toEqual(['owner', 'admin', 'creator']);
     expect(
       Reflect.getMetadata(
         'roles',
-        SocialInboxController.prototype.syncInstagramDms,
+        SocialInboxSyncController.prototype.syncInstagramDms,
       ),
     ).toEqual(['owner', 'admin', 'creator']);
   });
@@ -30,22 +31,40 @@ describe('SocialInboxController RBAC', () => {
     expect(
       Reflect.getMetadata(
         'roles',
-        SocialInboxController.prototype.syncXComments,
-      ),
-    ).toEqual(['owner', 'admin', 'creator']);
-    expect(
-      Reflect.getMetadata('roles', SocialInboxController.prototype.syncXDms),
-    ).toEqual(['owner', 'admin', 'creator']);
-    expect(
-      Reflect.getMetadata(
-        'roles',
-        SocialInboxController.prototype.syncLinkedInComments,
+        SocialInboxSyncController.prototype.syncXComments,
       ),
     ).toEqual(['owner', 'admin', 'creator']);
     expect(
       Reflect.getMetadata(
         'roles',
-        SocialInboxController.prototype.syncLinkedInDms,
+        SocialInboxSyncController.prototype.syncXDms,
+      ),
+    ).toEqual(['owner', 'admin', 'creator']);
+    expect(
+      Reflect.getMetadata(
+        'roles',
+        SocialInboxSyncController.prototype.syncLinkedInComments,
+      ),
+    ).toEqual(['owner', 'admin', 'creator']);
+    expect(
+      Reflect.getMetadata(
+        'roles',
+        SocialInboxSyncController.prototype.syncLinkedInDms,
+      ),
+    ).toEqual(['owner', 'admin', 'creator']);
+  });
+
+  it('should require owner, admin, or creator role for the Facebook and Threads sync routes', () => {
+    expect(
+      Reflect.getMetadata(
+        'roles',
+        SocialInboxSyncController.prototype.syncFacebookComments,
+      ),
+    ).toEqual(['owner', 'admin', 'creator']);
+    expect(
+      Reflect.getMetadata(
+        'roles',
+        SocialInboxSyncController.prototype.syncThreadsReplies,
       ),
     ).toEqual(['owner', 'admin', 'creator']);
   });

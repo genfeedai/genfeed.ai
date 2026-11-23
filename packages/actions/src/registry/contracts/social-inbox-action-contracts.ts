@@ -128,6 +128,7 @@ const SYNC_INPUT = closedObjectSchema(
       'facebook',
       'instagram',
       'linkedin',
+      'threads',
       'twitter',
       'youtube',
     ] as const),
@@ -146,6 +147,7 @@ const VALIDATED_SYNC = closedObjectSchema(
       'facebook',
       'instagram',
       'linkedin',
+      'threads',
       'twitter',
       'youtube',
     ] as const),
@@ -174,7 +176,13 @@ const SYNC_RESULT = closedObjectSchema(
   ['conversationsCreated', 'messagesCreated'],
 );
 const syncContract = (
-  platform: 'facebook' | 'instagram' | 'linkedin' | 'twitter' | 'youtube',
+  platform:
+    | 'facebook'
+    | 'instagram'
+    | 'linkedin'
+    | 'threads'
+    | 'twitter'
+    | 'youtube',
   conversationType: 'comment' | 'dm',
 ): ActionContractSchemas => ({
   inputSchema: closedObjectSchema(
@@ -272,6 +280,7 @@ const CONTRACTS: Readonly<Record<string, ActionContractSchemas>> = {
   'social.inbox.sync.instagram-dms': syncContract('instagram', 'dm'),
   'social.inbox.sync.linkedin-comments': syncContract('linkedin', 'comment'),
   'social.inbox.sync.linkedin-dms': syncContract('linkedin', 'dm'),
+  'social.inbox.sync.threads-replies': syncContract('threads', 'comment'),
   'social.inbox.sync.validate': {
     inputSchema: closedObjectSchema({ request: SYNC_INPUT }, ['request']),
     outputSchema: VALIDATED_SYNC,

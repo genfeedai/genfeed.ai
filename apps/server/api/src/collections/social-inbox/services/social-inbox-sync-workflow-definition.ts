@@ -9,6 +9,7 @@ export type SocialInboxSyncPlatform =
   | Platform.FACEBOOK
   | Platform.INSTAGRAM
   | Platform.LINKEDIN
+  | Platform.THREADS
   | Platform.TWITTER
   | Platform.YOUTUBE;
 
@@ -44,6 +45,7 @@ export const SOCIAL_INBOX_SYNC_ACTION_IDS = {
   INSTAGRAM_COMMENTS: 'social.inbox.sync.instagram-comments',
   INSTAGRAM_DMS: 'social.inbox.sync.instagram-dms',
   LINKEDIN_COMMENTS: 'social.inbox.sync.linkedin-comments',
+  THREADS_REPLIES: 'social.inbox.sync.threads-replies',
   LINKEDIN_DMS: 'social.inbox.sync.linkedin-dms',
   VALIDATE: 'social.inbox.sync.validate',
   X_COMMENTS: 'social.inbox.sync.x-comments',
@@ -56,6 +58,7 @@ export const SOCIAL_INBOX_SYNC_WORKFLOW_IDS = {
   INSTAGRAM_COMMENTS: 'social.inbox.sync.instagram-comments',
   INSTAGRAM_DMS: 'social.inbox.sync.instagram-dms',
   LINKEDIN_COMMENTS: 'social.inbox.sync.linkedin-comments',
+  THREADS_REPLIES: 'social.inbox.sync.threads-replies',
   LINKEDIN_DMS: 'social.inbox.sync.linkedin-dms',
   X_COMMENTS: 'social.inbox.sync.x-comments',
   X_DMS: 'social.inbox.sync.x-dms',
@@ -117,6 +120,13 @@ function resolveSyncSurface(
       actionId: SOCIAL_INBOX_SYNC_ACTION_IDS.FACEBOOK_INBOX,
       label: 'Sync Facebook Inbox',
       workflowId: SOCIAL_INBOX_SYNC_WORKFLOW_IDS.FACEBOOK_INBOX,
+    };
+  }
+  if (platform === Platform.THREADS) {
+    return {
+      actionId: SOCIAL_INBOX_SYNC_ACTION_IDS.THREADS_REPLIES,
+      label: 'Sync Threads Replies',
+      workflowId: SOCIAL_INBOX_SYNC_WORKFLOW_IDS.THREADS_REPLIES,
     };
   }
   if (platform === Platform.INSTAGRAM) {
