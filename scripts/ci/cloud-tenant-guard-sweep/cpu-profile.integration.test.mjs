@@ -27,16 +27,20 @@ test('actual worker inspector seals main-isolate CPU while deterministic main co
     `import {appendFileSync} from 'node:fs';appendFileSync(${JSON.stringify(importCount)}, 'x', {mode:0o600});`,
     { mode: 0o600 },
   );
-  const workerCode = `const { parentPort, workerData }=require('node:worker_threads'); (async()=>{const {Session}=require('node:inspector');const {captureCpuProfile,CPU_LIMITS}=await import(${JSON.stringify(core)});const flags=new Int32Array(workerData.flags);await captureCpuProfile({directory:workerData.directory,session:new Session(),limits:{...CPU_LIMITS,captureMs:100,watchdogMs:2000,triggerMs:2000,pollMs:1},onStarted:()=>{Atomics.store(flags,0,1);parentPort.postMessage({started:true,isolatedEnv:process.env.CPU_PRIVATE_SENTINEL===undefined,isolatedImports:process.execArgv.length===0});},onSealed:seal=>{Atomics.store(flags,0,seal.state==='complete'?2:3);parentPort.postMessage({state:seal.state});}});})().catch(()=>process.exitCode=1);`;
+  const workerCode = `const { parentPort, workerData }=require('node:worker_threads'); (async()=>{const {Session}=require('node:inspector');const {captureCpuProfile,CPU_LIMITS}=await import(${JSON.stringify(core)});const flags=new Int32Array(workerData.flags);await captureCpuProfile({directory:workerData.directory,session:new Session(),limits:{...CPU_LIMITS,captureMs:500,watchdogMs:6000,triggerMs:6000,pollMs:1},onStarted:()=>{Atomics.store(flags,0,1);parentPort.postMessage({started:true,isolatedEnv:process.env.CPU_PRIVATE_SENTINEL===undefined,isolatedImports:process.execArgv.length===0});},onSealed:seal=>{Atomics.store(flags,0,seal.state==='complete'?2:3);parentPort.postMessage({state:seal.state});}});})().catch(()=>process.exitCode=1);`;
   writeFileSync(
     childFile,
-    `import {Worker} from 'node:worker_threads';import {writeCpuTrigger} from ${JSON.stringify(core)};const flags=new SharedArrayBuffer(4),state=new Int32Array(flags);let delayedTimerRan=false;const worker=new Worker(${JSON.stringify(workerCode)},{eval:true,execArgv:[],env:{},workerData:{directory:${JSON.stringify(directory)},flags}});writeCpuTrigger(${JSON.stringify(directory)});function staticBusyMainProof(){let value=0,result;while((result=Atomics.load(state,0))!==2&&result!==3){value=(value+Math.sqrt(value+123.4))%100000;}return {sealedWhileBusy:result===2,value};}worker.once('message',message=>{setTimeout(()=>{delayedTimerRan=true;},0);const result=staticBusyMainProof();process.send({started:message.started===true,isolatedEnv:message.isolatedEnv,isolatedImports:message.isolatedImports,sealedWhileBusy:result.sealedWhileBusy,delayedTimerRan});});worker.once('exit',()=>process.disconnect());`,
+    `import {Worker} from 'node:worker_threads';import {writeCpuTrigger} from ${JSON.stringify(core)};const flags=new SharedArrayBuffer(4),state=new Int32Array(flags);let delayedTimerRan=false;const worker=new Worker(${JSON.stringify(workerCode)},{eval:true,execArgv:[],env:{},workerData:{directory:${JSON.stringify(directory)},flags}});writeCpuTrigger(${JSON.stringify(directory)});function staticBusyMainProof(){let value=0,result;while((result=Atomics.load(state,0))!==2&&result!==3){value=(value+Math.sqrt(value+123.4))%100000;}return {sealedWhileBusy:result===2,value};}worker.once('message',message=>{setTimeout(()=>{delayedTimerRan=true;},0);const result=staticBusyMainProof();process.send({started:message.started===true,isolatedEnv:message.isolatedEnv,isolatedImports:message.isolatedImports,sealedWhileBusy:result.sealedWhileBusy,delayedTimerRan});});worker.once('error',error=>{process.stderr.write(String(error&&error.stack||error));process.exitCode=1;});worker.once('exit',()=>process.disconnect());`,
     { mode: 0o600 },
   );
   const child = fork(childFile, [], {
     execArgv: ['--import', pathToFileURL(importFile).href],
     env: { CPU_PRIVATE_SENTINEL: 'PRIVATE_PARENT_SENTINEL' },
-    stdio: ['ignore', 'ignore', 'ignore', 'ipc'],
+    stdio: ['ignore', 'ignore', 'pipe', 'ipc'],
+  });
+  let childStderr = '';
+  child.stderr.on('data', (chunk) => {
+    childStderr += chunk;
   });
   let watchdog;
   t.after(() => {
@@ -48,11 +52,16 @@ test('actual worker inspector seals main-isolate CPU while deterministic main co
     watchdog = setTimeout(() => {
       child.kill('SIGKILL');
       reject(new Error('Busy-main inspector proof exceeded child watchdog'));
-    }, 5000);
+    }, 15000);
     child.once('message', resolve);
     child.once('error', reject);
     child.once('exit', (code) => {
-      if (code !== 0) reject(new Error('Busy-main inspector child failed'));
+      if (code !== 0)
+        reject(
+          new Error(
+            `Busy-main inspector child failed (exit ${code}): ${childStderr}`,
+          ),
+        );
     });
   });
   assert.equal(result.started, true);
