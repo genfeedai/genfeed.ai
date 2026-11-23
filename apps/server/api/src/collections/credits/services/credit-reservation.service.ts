@@ -638,8 +638,7 @@ export class CreditReservationService {
     for (;;) {
       const due = await this.prisma.creditReservation.findMany({
         orderBy: { id: 'asc' },
-        where: {
-          organizationId,
+        where: scopedWhere(organizationId, {
           expiresAt: { lte: now },
           OR: [
             { workloadType: null },
@@ -653,10 +652,9 @@ export class CreditReservationService {
               },
             },
           ],
-          isDeleted: false,
           status: CreditReservationStatus.RESERVED,
           ...(cursor ? { id: { gt: cursor } } : {}),
-        },
+        }),
         take: 100,
       });
       expired += await this.expireDueBatch(due, now);
