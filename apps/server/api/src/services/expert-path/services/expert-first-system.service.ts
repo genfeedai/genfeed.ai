@@ -8,8 +8,17 @@ import { CreditsUtilsService } from '@api/collections/credits/services/credits.u
 import { HarnessProfilesService } from '@api/collections/harness-profiles/services/harness-profiles.service';
 import { AUTOMATION_WORKFLOW_IDS } from '@api/collections/workflows/services/automation-workflow-definitions';
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
-import { InsufficientCreditsException } from '@api/exceptions/business-logic.exception';
+import {
+  BusinessLogicException,
+  InsufficientCreditsException,
+} from '@api/exceptions/business-logic.exception';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import {
+  releaseTextCredits,
+  reserveTextCredits,
+  settleTextCredits,
+  type TextCreditHold,
+} from '@api/helpers/utils/credits/text-credit-hold.util';
 import { scopedWhere } from '@api/index';
 import { ContentPlannerService } from '@api/services/content-engine/content-planner.service';
 import { ExpertCorpusService } from '@api/services/expert-path/services/expert-corpus.service';
@@ -230,34 +239,22 @@ export class ExpertFirstSystemService {
       });
     }
 
-    const hasCredits =
-      await this.creditsUtilsService.checkOrganizationCreditsAvailable(
-        organizationId,
-        EXPERT_FIRST_SYSTEM_CREDIT_COST,
-      );
-    if (!hasCredits) {
-      const balance =
-        await this.creditsUtilsService.getOrganizationCreditsBalance(
-          organizationId,
-        );
-      throw new InsufficientCreditsException(
-        EXPERT_FIRST_SYSTEM_CREDIT_COST,
-        balance,
-      );
-    }
+    // The plan's price is held before the model runs, so concurrent requests
+    // from an organization that can pay for one cannot all generate.
+    const hold = await this.holdCredits(organizationId, userId, brandId);
 
     try {
       const result = await this.buildPlan(params, readiness);
 
       // Charge only for a plan that exists; a failed generation costs nothing.
-      await this.creditsUtilsService.deductCreditsFromOrganization(
+      await settleTextCredits(this.creditsUtilsService, hold, {
+        actualCredits: EXPERT_FIRST_SYSTEM_CREDIT_COST,
+        brandId,
+        description: 'Expert Path first content system',
         organizationId,
+        source: ActivitySource.EXPERT_FIRST_SYSTEM,
         userId,
-        EXPERT_FIRST_SYSTEM_CREDIT_COST,
-        'Expert Path first content system',
-        ActivitySource.EXPERT_FIRST_SYSTEM,
-        { brandId },
-      );
+      });
       await this.writeRecord(organizationId, brandId, {
         planId: String(result.plan.id),
         status: 'generated',
@@ -265,6 +262,7 @@ export class ExpertFirstSystemService {
 
       return result;
     } catch (error: unknown) {
+      await releaseTextCredits(this.creditsUtilsService, hold, organizationId);
       const message =
         error instanceof Error ? error.message : 'First system failed';
       this.logger.error('Expert first content system generation failed', {
@@ -276,6 +274,37 @@ export class ExpertFirstSystemService {
         error: message,
         status: 'failed',
       });
+      throw error;
+    }
+  }
+
+  private async holdCredits(
+    organizationId: string,
+    userId: string,
+    brandId: string,
+  ): Promise<TextCreditHold> {
+    try {
+      return await reserveTextCredits(this.creditsUtilsService, {
+        brandId,
+        description: 'Expert Path first content system',
+        holdCredits: EXPERT_FIRST_SYSTEM_CREDIT_COST,
+        organizationId,
+        source: ActivitySource.EXPERT_FIRST_SYSTEM,
+        userId,
+        workloadType: 'expert-first-system',
+      });
+    } catch (error: unknown) {
+      if (
+        error instanceof BusinessLogicException &&
+        error.errorCode === 'INSUFFICIENT_CREDITS'
+      ) {
+        throw new InsufficientCreditsException(
+          EXPERT_FIRST_SYSTEM_CREDIT_COST,
+          await this.creditsUtilsService.getOrganizationCreditsBalance(
+            organizationId,
+          ),
+        );
+      }
       throw error;
     }
   }

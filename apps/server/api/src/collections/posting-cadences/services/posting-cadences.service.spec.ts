@@ -1,3 +1,4 @@
+import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
 import { BRAND_CONTEXT_CHARACTER_BUDGET } from '@api/services/agent-context-assembly/brand-context-budget.util';
 import {
   ApiKeyScope,
@@ -148,6 +149,9 @@ describe('PostingCadencesService', () => {
     checkOrganizationCreditsAvailable: vi.fn(),
     deductCreditsFromOrganization: vi.fn(),
     getOrganizationCreditsBalance: vi.fn(),
+    releaseReservation: vi.fn(),
+    reserveCredits: vi.fn(),
+    settleReservation: vi.fn(),
   };
   const modelsService = { findOne: vi.fn() };
   const harnessGenerationService = {
@@ -252,6 +256,12 @@ describe('PostingCadencesService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    creditsUtilsService.reserveCredits.mockResolvedValue({
+      amount: 1,
+      id: 'hold-1',
+    });
+    creditsUtilsService.settleReservation.mockResolvedValue(undefined);
+    creditsUtilsService.releaseReservation.mockResolvedValue(undefined);
     prisma.credential.findFirst.mockResolvedValue({
       id: CREDENTIAL_ID,
       platform: 'INSTAGRAM',
@@ -460,9 +470,7 @@ describe('PostingCadencesService', () => {
     const result = await service.write(ORG_ID, USER_ID, IDENTITY_KEY);
 
     expect(llmDispatcherService.chatCompletion).not.toHaveBeenCalled();
-    expect(
-      creditsUtilsService.deductCreditsFromOrganization,
-    ).not.toHaveBeenCalled();
+    expect(creditsUtilsService.settleReservation).not.toHaveBeenCalled();
     expect(postGroupsService.create).toHaveBeenCalledWith(
       ORG_ID,
       USER_ID,
@@ -545,9 +553,7 @@ describe('PostingCadencesService', () => {
       { source: 'calendar-slot' },
       undefined,
     );
-    expect(
-      creditsUtilsService.deductCreditsFromOrganization,
-    ).toHaveBeenCalled();
+    expect(creditsUtilsService.settleReservation).toHaveBeenCalled();
     expect(result.releaseId).toBe('release-2');
     expect(harnessGenerationService.resolveBrief).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -581,13 +587,9 @@ describe('PostingCadencesService', () => {
       ).rejects.toBeInstanceOf(ServiceUnavailableException);
 
       expect(modelsService.findOne).not.toHaveBeenCalled();
-      expect(
-        creditsUtilsService.checkOrganizationCreditsAvailable,
-      ).not.toHaveBeenCalled();
+      expect(creditsUtilsService.reserveCredits).not.toHaveBeenCalled();
       expect(llmDispatcherService.chatCompletion).not.toHaveBeenCalled();
-      expect(
-        creditsUtilsService.deductCreditsFromOrganization,
-      ).not.toHaveBeenCalled();
+      expect(creditsUtilsService.settleReservation).not.toHaveBeenCalled();
       expect(postGroupsService.create).not.toHaveBeenCalled();
     },
   );
@@ -605,9 +607,7 @@ describe('PostingCadencesService', () => {
     ).rejects.toBeInstanceOf(ForbiddenException);
 
     expect(llmDispatcherService.chatCompletion).not.toHaveBeenCalled();
-    expect(
-      creditsUtilsService.deductCreditsFromOrganization,
-    ).not.toHaveBeenCalled();
+    expect(creditsUtilsService.settleReservation).not.toHaveBeenCalled();
   });
 
   it('persists skip and omits the skipped identity from listSlots', async () => {
@@ -796,9 +796,7 @@ describe('PostingCadencesService', () => {
     const result = await service.write(ORG_ID, USER_ID, ARTICLE_IDENTITY_KEY);
 
     expect(llmDispatcherService.chatCompletion).not.toHaveBeenCalled();
-    expect(
-      creditsUtilsService.deductCreditsFromOrganization,
-    ).not.toHaveBeenCalled();
+    expect(creditsUtilsService.settleReservation).not.toHaveBeenCalled();
     expect(postGroupsService.create).not.toHaveBeenCalled();
     expect(articlesService.createArticle).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -945,9 +943,7 @@ describe('PostingCadencesService', () => {
     ).rejects.toBeInstanceOf(ForbiddenException);
     expect(llmDispatcherService.chatCompletion).not.toHaveBeenCalled();
     expect(postGroupsService.create).not.toHaveBeenCalled();
-    expect(
-      creditsUtilsService.deductCreditsFromOrganization,
-    ).not.toHaveBeenCalled();
+    expect(creditsUtilsService.settleReservation).not.toHaveBeenCalled();
     expect(slotReservation.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({ state: 'generate-failed' }),
@@ -1104,9 +1100,15 @@ describe('PostingCadencesService', () => {
       text: null,
     });
     modelsService.findOne.mockResolvedValue({ minCost: 1 });
-    creditsUtilsService.checkOrganizationCreditsAvailable
-      .mockResolvedValueOnce(true)
-      .mockResolvedValueOnce(false);
+    creditsUtilsService.reserveCredits
+      .mockResolvedValueOnce({ amount: 1, id: 'hold-1' })
+      .mockRejectedValueOnce(
+        new BusinessLogicException(
+          'Insufficient organization credits',
+          {},
+          'INSUFFICIENT_CREDITS',
+        ),
+      );
     creditsUtilsService.getOrganizationCreditsBalance.mockResolvedValue(0);
     llmDispatcherService.chatCompletion.mockResolvedValue({
       choices: [{ message: { content: 'Hook: first slot filled.' } }],

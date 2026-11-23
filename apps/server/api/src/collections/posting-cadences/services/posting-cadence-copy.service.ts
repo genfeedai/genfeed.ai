@@ -1,8 +1,17 @@
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { baseModelKey } from '@api/collections/models/utils/model-key.util';
-import { InsufficientCreditsException } from '@api/exceptions/business-logic.exception';
+import {
+  BusinessLogicException,
+  InsufficientCreditsException,
+} from '@api/exceptions/business-logic.exception';
 import type { ApiKeyPublishingContext } from '@api/helpers/utils/auth/api-key-publishing-scope.util';
+import {
+  releaseTextCredits,
+  reserveTextCredits,
+  settleTextCredits,
+  type TextCreditHold,
+} from '@api/helpers/utils/credits/text-credit-hold.util';
 import { SecurityUtil } from '@api/helpers/utils/security/security.util';
 import {
   calculateEstimatedTextCredits,
@@ -52,8 +61,6 @@ const SLOT_BRAND_CONTEXT_UNAVAILABLE =
 @Traced()
 @Injectable()
 export class PostingCadenceCopyService {
-  private static readonly TEXT_MAX_OVERDRAFT_CREDITS = 5;
-
   constructor(
     private readonly prisma: PrismaService,
     private readonly llmDispatcherService: LlmDispatcherService,
@@ -81,8 +88,55 @@ export class PostingCadenceCopyService {
     );
     const modelKey = this.resolveGenerateModelKey();
     const pricedModel = await this.getPricedGenerateModel(modelKey);
-    await this.assertGenerateCreditsAvailable(organizationId, pricedModel);
+    const hold = await this.holdGenerateCredits(
+      organizationId,
+      userId,
+      pricedModel,
+      slot.brandId,
+    );
 
+    try {
+      return await this.generateHeldCopy({
+        apiKeyContext,
+        cadence,
+        harnessBrief,
+        hold,
+        modelKey,
+        organizationId,
+        overrideBrief,
+        pricedModel,
+        slot,
+        userId,
+      });
+    } catch (error: unknown) {
+      await releaseTextCredits(this.creditsUtilsService, hold, organizationId);
+      throw error;
+    }
+  }
+
+  private async generateHeldCopy(params: {
+    apiKeyContext?: ApiKeyPublishingContext;
+    cadence: CadenceRecord | null;
+    harnessBrief: string;
+    hold: TextCreditHold | undefined;
+    modelKey: string;
+    organizationId: string;
+    overrideBrief: string | undefined;
+    pricedModel: TextPricedModel;
+    slot: ICalendarSlot;
+    userId: string;
+  }): Promise<string> {
+    const {
+      cadence,
+      harnessBrief,
+      hold,
+      modelKey,
+      organizationId,
+      overrideBrief,
+      pricedModel,
+      slot,
+      userId,
+    } = params;
     const brandLabel = await this.loadBrandLabel(organizationId, slot.brandId);
     const scheduledItems = await this.loadScheduledCampaignItems(
       organizationId,
@@ -124,6 +178,7 @@ export class PostingCadenceCopyService {
     }
 
     await this.settleGenerateCredits(
+      hold,
       organizationId,
       userId,
       pricedModel,
@@ -292,32 +347,49 @@ export class PostingCadenceCopyService {
     };
   }
 
-  private async assertGenerateCreditsAvailable(
+  /**
+   * Holds the model's minimum credits before it runs, so concurrent slots from
+   * an organization that can pay for one cannot all pass one balance read.
+   */
+  private async holdGenerateCredits(
     organizationId: string,
+    userId: string,
     model: TextPricedModel,
-  ): Promise<void> {
+    brandId?: string | null,
+  ): Promise<TextCreditHold | undefined> {
     const requiredCredits = getMinimumTextCredits(model);
     if (requiredCredits <= 0) {
-      return;
+      return undefined;
     }
 
-    const hasCredits =
-      await this.creditsUtilsService.checkOrganizationCreditsAvailable(
+    try {
+      return await reserveTextCredits(this.creditsUtilsService, {
+        brandId,
+        description: 'Calendar campaign generate',
+        holdCredits: requiredCredits,
         organizationId,
-        requiredCredits,
-      );
-    if (hasCredits) {
-      return;
+        source: ActivitySource.POST_GENERATION,
+        userId,
+        workloadType: 'posting-cadence-copy',
+      });
+    } catch (error: unknown) {
+      if (
+        error instanceof BusinessLogicException &&
+        error.errorCode === 'INSUFFICIENT_CREDITS'
+      ) {
+        throw new InsufficientCreditsException(
+          requiredCredits,
+          await this.creditsUtilsService.getOrganizationCreditsBalance(
+            organizationId,
+          ),
+        );
+      }
+      throw error;
     }
-
-    const currentBalance =
-      await this.creditsUtilsService.getOrganizationCreditsBalance(
-        organizationId,
-      );
-    throw new InsufficientCreditsException(requiredCredits, currentBalance);
   }
 
   private async settleGenerateCredits(
+    hold: TextCreditHold | undefined,
     organizationId: string,
     userId: string,
     model: TextPricedModel,
@@ -325,23 +397,17 @@ export class PostingCadenceCopyService {
     output: string,
     brandId?: string | null,
   ): Promise<void> {
-    const amount = calculateEstimatedTextCredits(model, input, output);
-    if (amount <= 0) {
+    if (!hold) {
       return;
     }
-
-    await this.creditsUtilsService.deductCreditsFromOrganization(
+    await settleTextCredits(this.creditsUtilsService, hold, {
+      actualCredits: calculateEstimatedTextCredits(model, input, output),
+      brandId,
+      description: 'Calendar campaign generate',
       organizationId,
+      source: ActivitySource.POST_GENERATION,
       userId,
-      amount,
-      'Calendar campaign generate',
-      ActivitySource.POST_GENERATION,
-      {
-        brandId,
-        maxOverdraftCredits:
-          PostingCadenceCopyService.TEXT_MAX_OVERDRAFT_CREDITS,
-      },
-    );
+    });
   }
 
   private sanitizePromptText(
