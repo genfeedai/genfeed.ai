@@ -22,8 +22,8 @@ import { useQuery } from '@tanstack/react-query';
 import Card from '@ui/card/Card';
 import SearchField from '@ui/content/search-field/SearchField';
 import { ErrorFallback } from '@ui/error/ErrorFallback';
-import LoadingState from '@ui/feedback/LoadingState';
 import Container from '@ui/layout/container/Container';
+import Loading from '@ui/loading/default/Loading';
 import FilterMenu from '@ui/navigation/filter-menu/FilterMenu';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Badge } from '@ui/primitives/badge';
@@ -186,7 +186,7 @@ export default function ContentRunListPage() {
 
       {isInitialFetch ? (
         <div className="min-h-64">
-          <LoadingState isFullSize />
+          <Loading />
         </div>
       ) : null}
 

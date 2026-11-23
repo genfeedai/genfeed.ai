@@ -80,7 +80,7 @@ vi.mock('@ui/primitives/badge', () => ({
   Badge: ({ children }: { children: ReactNode }) => <span>{children}</span>,
 }));
 
-vi.mock('@ui/feedback/LoadingState', () => ({
+vi.mock('@ui/loading/default/Loading', () => ({
   default: () => <div>loading</div>,
 }));
 
