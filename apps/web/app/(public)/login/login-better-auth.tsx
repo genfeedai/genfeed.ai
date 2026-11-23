@@ -17,6 +17,7 @@ import { useTranslations } from 'next-intl';
 import {
   type ChangeEvent,
   type FormEvent,
+  type MouseEvent,
   useEffect,
   useReducer,
   useRef,
@@ -123,7 +124,9 @@ export type { LoginBetterAuthProps };
 export default function LoginBetterAuth({
   callbackURL: requestedCallbackURL,
   description = LOGIN_DESCRIPTION,
+  isActionsDisabled = false,
   mode = 'chooser',
+  notice,
   title = LOGIN_TITLE,
 }: LoginBetterAuthProps) {
   const translate = useTranslations('common');
@@ -175,6 +178,16 @@ export default function LoginBetterAuth({
   const forgotPasswordHref = getAuthFlowHref('/forgot-password', callbackURL);
   const signUpHref = getAuthFlowHref('/sign-up', callbackURL);
   const invitationNotice = getInvitationNotice(searchParams.get('invitation'));
+  // A locked link stays where it is: out of the tab order, inert to a click.
+  const lockedLinkProps = isActionsDisabled
+    ? {
+        'aria-disabled': true,
+        className: 'pointer-events-none opacity-50',
+        onClick: (event: MouseEvent<HTMLAnchorElement>) =>
+          event.preventDefault(),
+        tabIndex: -1,
+      }
+    : {};
 
   // use-effect-audit: ignore abortable request
   useEffect(() => {
@@ -746,6 +759,7 @@ export default function LoginBetterAuth({
             {invitationNotice.message}
           </Alert>
         ) : null}
+        {notice}
         <AuthActionSurface
           actions={
             <>
@@ -758,6 +772,7 @@ export default function LoginBetterAuth({
                     <GoogleColorIcon className="size-4" aria-hidden="true" />
                   }
                   isLoading={isSocialSubmitting}
+                  isDisabled={isActionsDisabled}
                   className={AUTH_SECONDARY_BUTTON_CLASS_NAME}
                   withWrapper={false}
                 >
@@ -772,7 +787,7 @@ export default function LoginBetterAuth({
                   className={AUTH_SECONDARY_BUTTON_CLASS_NAME}
                   withWrapper={false}
                 >
-                  <Link href={magicLinkHref}>
+                  <Link href={magicLinkHref} {...lockedLinkProps}>
                     <Sparkles className="size-4" aria-hidden="true" />
                     <span>{translate('loginForm.magicLink')}</span>
                   </Link>
@@ -785,7 +800,7 @@ export default function LoginBetterAuth({
                 className={AUTH_SECONDARY_BUTTON_CLASS_NAME}
                 withWrapper={false}
               >
-                <Link href={passwordHref}>
+                <Link href={passwordHref} {...lockedLinkProps}>
                   <KeyRound className="size-4" aria-hidden="true" />
                   <span>{translate('loginForm.emailPassword')}</span>
                 </Link>
@@ -796,7 +811,15 @@ export default function LoginBetterAuth({
           footer={
             <AuthFooterPrompt>
               {translate('loginForm.noAccount')}{' '}
-              <Link href={signUpHref} className={AUTH_LINK_CLASS_NAME}>
+              <Link
+                href={signUpHref}
+                {...lockedLinkProps}
+                className={
+                  isActionsDisabled
+                    ? `${AUTH_LINK_CLASS_NAME} ${lockedLinkProps.className}`
+                    : AUTH_LINK_CLASS_NAME
+                }
+              >
                 {translate('loginForm.signUp')}
               </Link>
             </AuthFooterPrompt>
