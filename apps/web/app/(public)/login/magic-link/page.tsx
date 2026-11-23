@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
+import AuthPageFallback from '@/components/layouts/auth/AuthPageFallback';
 import LoginBetterAuth from '../login-better-auth';
 
 export const metadata: Metadata = {
@@ -12,7 +13,7 @@ export const metadata: Metadata = {
 
 export default function MagicLinkLoginPage() {
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<AuthPageFallback variant="login-magic" />}>
       <LoginBetterAuth mode="magic-link" />
     </Suspense>
   );

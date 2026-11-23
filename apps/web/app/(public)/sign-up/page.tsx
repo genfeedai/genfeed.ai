@@ -1,4 +1,6 @@
 import type { Metadata } from 'next';
+import { Suspense } from 'react';
+import AuthPageFallback from '@/components/layouts/auth/AuthPageFallback';
 import SignUpForm from './sign-up-form';
 
 /** Indexable for the same reason as `/login` — see that file for the rationale. */
@@ -12,5 +14,9 @@ export const metadata: Metadata = {
 };
 
 export default function AppSignUpPage() {
-  return <SignUpForm />;
+  return (
+    <Suspense fallback={<AuthPageFallback variant="sign-up" />}>
+      <SignUpForm />
+    </Suspense>
+  );
 }
