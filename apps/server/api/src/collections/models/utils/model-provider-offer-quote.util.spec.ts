@@ -2,6 +2,7 @@ import { findModelProviderOfferQuote } from '@api/collections/models/utils/model
 import {
   KIE_MINIMAX_H3_IMAGE_INPUT_SCHEMA,
   KIE_MINIMAX_H3_TEXT_INPUT_SCHEMA,
+  KIE_WAN_3_INPUT_SCHEMA,
 } from '@api/seeds/model-provider-offers.seed';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
@@ -386,6 +387,110 @@ describe('MiniMax H3 routing to kie', () => {
 
   it('keeps every request on Replicate while kie is switched off', async () => {
     const quote = await h3Fixture(false)({ ...BASE, ratio: '16:9' });
+
+    expect(quote?.provider).toBe('replicate');
+  });
+});
+
+describe('Wan 3.0 routing to kie', () => {
+  const WAN = 'wan/3-0-video';
+
+  /** A registration priced from its real rate-sheet entry. */
+  function reviewed(id: string, provider: string, endpoint: string) {
+    const offer = registration(id, provider, 0);
+    const entry = findReviewedRateSheetEntry(provider, endpoint);
+    if (!entry) throw new Error(`missing ${provider} rate for ${endpoint}`);
+    offer.key = endpoint;
+    offer.endpoint = endpoint;
+    offer.providerContracts[0] = {
+      ...offer.providerContracts[0],
+      endpoint,
+      pricing: {
+        ...offer.providerContracts[0].pricing,
+        rates:
+          entry.rates as (typeof offer.providerContracts)[0]['pricing']['rates'],
+      },
+    };
+    return offer;
+  }
+
+  function wanFixture() {
+    const replicate = reviewed('replicate-wan', 'replicate', 'alibaba/wan-3');
+    replicate.providerInputSchema = {
+      type: 'object',
+      properties: {
+        aspect_ratio: { type: 'string' },
+        duration: { type: 'integer' },
+        negative_prompt: { type: 'string' },
+        prompt: { type: 'string' },
+        resolution: { type: 'string' },
+      },
+      required: ['prompt'],
+      additionalProperties: false,
+    } as typeof replicate.providerInputSchema;
+    const kie = {
+      ...reviewed('kie-wan', 'kie', WAN),
+      providerInputSchema: KIE_WAN_3_INPUT_SCHEMA,
+    };
+    const offers = [replicate, kie].map((executionModel, priority) => ({
+      id: executionModel.id,
+      executionModel,
+      isActive: true,
+      priority,
+    }));
+    const prisma = {
+      model: {
+        findFirst: vi.fn().mockResolvedValue({
+          ...replicate,
+          pinnedProvider: null,
+          providerOffers: offers,
+        }),
+      },
+      providerRoutingSetting: { findMany: vi.fn().mockResolvedValue([]) },
+    } as unknown as PrismaService;
+    return (providerInput: Record<string, unknown>) =>
+      findModelProviderOfferQuote(prisma, replicate.key, 'org-1', {
+        duration: 5,
+        providerInput,
+      });
+  }
+
+  it.each([
+    ['480p', 0.25],
+    ['720p', 0.5],
+    ['1080p', 1],
+  ])(
+    'sends a %s request to kie with Replicate (which costs $%s for 5 s) as the fallback',
+    async (resolution, replicateCost) => {
+      const quote = await wanFixture()({
+        aspect_ratio: '16:9',
+        duration: 5,
+        prompt: 'Sunrise',
+        resolution,
+      });
+
+      expect(quote?.routedDispatch).toMatchObject({
+        endpoint: WAN,
+        fallback: {
+          endpoint: 'alibaba/wan-3',
+          provider: 'replicate',
+          providerCostUsd: replicateCost,
+        },
+        provider: 'kie',
+      });
+      expect(quote?.preparedProviderInput).toMatchObject({
+        resolution: resolution.toUpperCase(),
+      });
+    },
+  );
+
+  it('keeps a request with a negative prompt on Replicate', async () => {
+    const quote = await wanFixture()({
+      duration: 5,
+      negative_prompt: 'blur',
+      prompt: 'Sunrise',
+      resolution: '720p',
+    });
 
     expect(quote?.provider).toBe('replicate');
   });
