@@ -211,5 +211,8 @@
     "search": "Search prompts",
     "searchLabel": "Search prompts",
     "title": "Recent prompts"
+  },
+  "mediaInput": {
+    "loadingPreview": "Loading preview…"
   }
 }

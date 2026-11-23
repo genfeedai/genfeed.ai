@@ -9,6 +9,16 @@ const mocks = vi.hoisted(() => ({
   updateNodeData: vi.fn(),
 }));
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import(
+    '../../../../../tests/next-intl.stub'
+  );
+
+  return {
+    useTranslations: () => translateFromCatalog('pages.workflows.mediaInput'),
+  };
+});
+
 vi.mock('@genfeedai/workflows/ui/nodes', () => ({
   BaseNode: ({
     children,
@@ -41,6 +51,11 @@ vi.mock('next/image', () => ({
       <img alt={props.alt ?? ''} {...props} />
     </picture>
   ),
+}));
+
+vi.mock('@/features/workflows/nodes/input/useWorkflowMediaPreviewUrl', () => ({
+  useWorkflowMediaPreviewUrl: (config: { resolvedUrl: string | null }) =>
+    config.resolvedUrl,
 }));
 
 vi.mock('@/features/workflows/nodes/input/useWorkflowMediaPicker', () => ({
