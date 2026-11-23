@@ -25,6 +25,8 @@
     "signInCode": "Sign-in code",
     "signInCodePlaceholder": "Paste the code from the browser",
     "signInWithGenfeed": "Sign in with Genfeed",
+    "signOutFailed": "We could not end your session. It may still be active on this device.",
+    "signOutRetry": "Try again",
     "signUp": "Sign up",
     "waitingForBrowser": "Waiting for the browser…"
   },

@@ -37,8 +37,10 @@ interface PersistedQueryCacheGateProps extends LayoutProps {
  * shown. Until the read finishes the tree is held (a few milliseconds), so a
  * query with a stored value is mounted with it and paints it at once.
  *
- * While an organization switch is under way nothing is confirmed, the scope is
- * empty, and the tree stays mounted untouched.
+ * The tree is held only for the first restore of the page load. After that the
+ * shell is mounted for good: an organization switch confirms a new scope, which
+ * is restored behind the mounted shell, never by replacing it with the
+ * fallback (the rail and top bar stay the same nodes across a switch).
  */
 export default function PersistedQueryCacheGate({
   children,
@@ -60,7 +62,11 @@ export default function PersistedQueryCacheGate({
   const scopeUserId = scope?.userId ?? null;
   const scopeOrganizationId = scope?.organizationId ?? null;
   const [restoredKey, setRestoredKey] = useState<string | null>(null);
-  const isRestored = scopeKey === null || restoredKey === scopeKey;
+  // Once the tree has mounted it stays: a later scope (an organization switch)
+  // is restored behind it. Queries that mount first fetch, and a stored value
+  // only fills a query that holds nothing fresher.
+  const isRestored =
+    scopeKey === null || restoredKey !== null || restoredKey === scopeKey;
 
   // use-effect-audit: ignore reads the device store once per scope; a stale result is dropped on cleanup
   useEffect(() => {

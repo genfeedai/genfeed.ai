@@ -1,4 +1,5 @@
 import type { AlertProps } from '@ui/primitives/alert';
+import type { ReactNode } from 'react';
 
 type LoginMode = 'chooser' | 'magic-link' | 'password';
 
@@ -17,6 +18,13 @@ export interface LoginBetterAuthProps {
   /** Chooser heading overrides for an embedding page. */
   title?: string;
   description?: string;
+  /**
+   * Locks every sign-in action while the old session is still being removed,
+   * so a new sign-in never races the sign-out request (#10933).
+   */
+  isActionsDisabled?: boolean;
+  /** Shown above the actions, for what the host page has to tell the user. */
+  notice?: ReactNode;
 }
 
 /** A sign-in attempt that is in flight (#9742). */

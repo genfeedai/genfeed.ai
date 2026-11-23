@@ -1,48 +1,39 @@
 'use client';
 
-import { signOut } from '@genfeedai/auth-client';
-import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
-import { resetAnalytics } from '@/lib/analytics';
-import { clearBootRecord } from '@/lib/boot-record/boot-record';
-import { clearPersistedQueryCache } from '@/lib/query-cache/persisted-query-cache';
+import LoginBetterAuth from '@app/(public)/login/login-better-auth';
+import { ButtonVariant } from '@genfeedai/contracts';
+import { Alert } from '@ui/primitives/alert';
+import { Button } from '@ui/primitives/button';
+import { useTranslations } from 'next-intl';
+import { useSignOut } from './use-sign-out';
 
+/**
+ * `/logout` shows the sign-in page at once; the sign-out request runs behind
+ * it and the actions unlock when it has answered.
+ */
 export default function LogoutPage() {
-  const { push } = useRouter();
-
-  // use-effect-audit: ignore abortable request
-  useEffect(() => {
-    const abortController = new AbortController();
-
-    async function performSignOut() {
-      resetAnalytics();
-      // Nothing of the session stays on a shared device.
-      clearBootRecord();
-      await clearPersistedQueryCache();
-      try {
-        await signOut();
-      } catch {
-        // Sign-out is best-effort from the client's perspective. Even if the
-        // request rejects (e.g. the API is unreachable) we must still navigate
-        // to /login rather than stranding the user on the "Signing out…" screen
-        // with an unhandled promise rejection.
-      }
-      if (!abortController.signal.aborted) {
-        push(APP_ROUTES.LOGIN);
-      }
-    }
-
-    void performSignOut();
-
-    return () => {
-      abortController.abort();
-    };
-  }, [push]);
+  const translate = useTranslations('common');
+  const { phase, retry } = useSignOut();
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <p className="text-muted-foreground">Signing out…</p>
-    </div>
+    <LoginBetterAuth
+      isActionsDisabled={phase !== 'done'}
+      mode="chooser"
+      notice={
+        phase === 'failed' ? (
+          <Alert variant="destructive">
+            <p>{translate('loginForm.signOutFailed')}</p>
+            <Button
+              type="button"
+              variant={ButtonVariant.SECONDARY}
+              onClick={retry}
+              withWrapper={false}
+            >
+              {translate('loginForm.signOutRetry')}
+            </Button>
+          </Alert>
+        ) : null
+      }
+    />
   );
 }
