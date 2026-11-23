@@ -346,7 +346,9 @@ describe('hosted SaaS on-demand seed contract', () => {
     expect(reader).toContain("op ->> 'billing' = 'released'");
     expect(reader).toContain('pg_column_size(t.*)');
     expect(reader).toContain(`c."platform" = 'LINKEDIN'`);
-    expect(reader).toContain('LEFT JOIN post_ingredients l ON l."postId" = p.id');
+    expect(reader).toContain(
+      'LEFT JOIN post_ingredients l ON l."postId" = p.id',
+    );
     expect(reader).toContain(`"canonicalId" = 'scheduled-post.publish'`);
     expect(reader).toContain(`"purgeAt" <= (now() AT TIME ZONE 'UTC')`);
     expect(reader).not.toMatch(
