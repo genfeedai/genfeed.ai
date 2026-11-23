@@ -44,7 +44,7 @@ describe('CreatorWallFilter', () => {
     push.mockClear();
   });
 
-  it('narrows the wall to the chosen platform', async () => {
+  it('narrows the posts to the chosen platform', async () => {
     render(
       <CreatorWallFilter
         active={null}
@@ -79,7 +79,7 @@ describe('CreatorWallFilter', () => {
     ).toBe('true');
   });
 
-  it('clears back to the whole wall', async () => {
+  it('clears back to the every post', async () => {
     render(
       <CreatorWallFilter
         active="instagram"
@@ -94,7 +94,7 @@ describe('CreatorWallFilter', () => {
     expect(push).toHaveBeenCalledWith('/@shayla/posts');
   });
 
-  it('puts a link for the whole wall and each platform in the server HTML', () => {
+  it('puts a link for the every post and each platform in the server HTML', () => {
     const html = renderToString(
       <CreatorWallFilter
         active="tiktok"
@@ -114,7 +114,7 @@ describe('CreatorWallFilter', () => {
     expect(html).toMatch(/aria-current="page"[^>]*>TikTok</);
   });
 
-  it('links to the whole wall as the current view when no platform is chosen', () => {
+  it('links to the every post as the current view when no platform is chosen', () => {
     const html = renderToString(
       <CreatorWallFilter
         active={null}
