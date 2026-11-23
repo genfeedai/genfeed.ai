@@ -39,10 +39,127 @@ function emptyOrganic(totalPostCount: number): ICampaignOrganicTotals {
     comments: empty,
     conversions: empty,
     engagements: empty,
+    impressions: empty,
     likes: empty,
     saves: empty,
     shares: empty,
     views: empty,
+  };
+}
+
+interface PostTotals {
+  comments: number;
+  impressions: number | null;
+  likes: number;
+  saves: number;
+  shares: number;
+  views: number;
+}
+
+interface AnalyticsRow {
+  impressions?: number | null;
+  postId: string;
+  totalComments: number;
+  totalLikes: number;
+  totalSaves: number;
+  totalShares: number;
+  totalViews: number;
+}
+
+function sumAnalyticsByPost(rows: AnalyticsRow[]): Map<string, PostTotals> {
+  const totalsByPost = new Map<string, PostTotals>();
+  for (const row of rows) {
+    const current = totalsByPost.get(row.postId) ?? {
+      comments: 0,
+      impressions: null,
+      likes: 0,
+      saves: 0,
+      shares: 0,
+      views: 0,
+    };
+    current.comments += row.totalComments;
+    // Impressions are separate from views and may be missing for a day, so a
+    // post with no reported impressions stays unavailable, not zero.
+    if (typeof row.impressions === 'number') {
+      current.impressions = (current.impressions ?? 0) + row.impressions;
+    }
+    current.likes += row.totalLikes;
+    current.saves += row.totalSaves;
+    current.shares += row.totalShares;
+    current.views += row.totalViews;
+    totalsByPost.set(row.postId, current);
+  }
+  return totalsByPost;
+}
+
+function buildPostRows(
+  posts: Array<{
+    id: string;
+    platform: string | null;
+    targetExecutionState: string;
+  }>,
+  totalsByPost: Map<string, PostTotals>,
+): ICampaignPerformancePost[] {
+  return posts.map((post) => {
+    const totals = totalsByPost.get(post.id);
+    return {
+      comments: totals ? totals.comments : null,
+      engagementRate: null,
+      id: post.id,
+      impressions: totals ? totals.impressions : null,
+      likes: totals ? totals.likes : null,
+      platform: post.platform,
+      saves: totals ? totals.saves : null,
+      shares: totals ? totals.shares : null,
+      status: post.targetExecutionState,
+      views: totals ? totals.views : null,
+    };
+  });
+}
+
+function buildOrganicTotals(
+  postRows: ICampaignPerformancePost[],
+  totalPostCount: number,
+): ICampaignOrganicTotals {
+  const available = postRows.filter((post) => post.views !== null);
+  return {
+    ...emptyOrganic(totalPostCount),
+    comments: rollupCampaignMetric(
+      totalPostCount,
+      available.map((post) => post.comments ?? 0),
+    ),
+    engagements: rollupCampaignMetric(
+      totalPostCount,
+      available.map(
+        (post) =>
+          (post.likes ?? 0) +
+          (post.comments ?? 0) +
+          (post.shares ?? 0) +
+          (post.saves ?? 0),
+      ),
+    ),
+    impressions: rollupCampaignMetric(
+      totalPostCount,
+      available.flatMap((post) =>
+        post.impressions === null ? [] : [post.impressions],
+      ),
+    ),
+    likes: rollupCampaignMetric(
+      totalPostCount,
+      available.map((post) => post.likes ?? 0),
+    ),
+    saves: rollupCampaignMetric(
+      totalPostCount,
+      available.map((post) => post.saves ?? 0),
+    ),
+    shares: rollupCampaignMetric(
+      totalPostCount,
+      available.map((post) => post.shares ?? 0),
+    ),
+    views: rollupCampaignMetric(
+      totalPostCount,
+      available.map((post) => post.views ?? 0),
+    ),
   };
 }
 
@@ -90,82 +207,10 @@ export class CampaignPerformanceService {
             }),
           });
 
-    const totalsByPost = new Map<
-      string,
-      {
-        comments: number;
-        likes: number;
-        saves: number;
-        shares: number;
-        views: number;
-      }
-    >();
-    for (const row of analytics) {
-      const current = totalsByPost.get(row.postId) ?? {
-        comments: 0,
-        likes: 0,
-        saves: 0,
-        shares: 0,
-        views: 0,
-      };
-      current.comments += row.totalComments;
-      current.likes += row.totalLikes;
-      current.saves += row.totalSaves;
-      current.shares += row.totalShares;
-      current.views += row.totalViews;
-      totalsByPost.set(row.postId, current);
-    }
-
+    const totalsByPost = sumAnalyticsByPost(analytics);
     const totalPostCount = posts.length;
-    const postRows: ICampaignPerformancePost[] = posts.map((post) => {
-      const totals = totalsByPost.get(post.id);
-      return {
-        comments: totals ? totals.comments : null,
-        engagementRate: null,
-        id: post.id,
-        likes: totals ? totals.likes : null,
-        platform: post.platform,
-        saves: totals ? totals.saves : null,
-        shares: totals ? totals.shares : null,
-        status: post.targetExecutionState,
-        views: totals ? totals.views : null,
-      };
-    });
-
-    const available = postRows.filter((post) => post.views !== null);
-    const organic: ICampaignOrganicTotals = {
-      ...emptyOrganic(totalPostCount),
-      comments: rollupCampaignMetric(
-        totalPostCount,
-        available.map((post) => post.comments ?? 0),
-      ),
-      engagements: rollupCampaignMetric(
-        totalPostCount,
-        available.map(
-          (post) =>
-            (post.likes ?? 0) +
-            (post.comments ?? 0) +
-            (post.shares ?? 0) +
-            (post.saves ?? 0),
-        ),
-      ),
-      likes: rollupCampaignMetric(
-        totalPostCount,
-        available.map((post) => post.likes ?? 0),
-      ),
-      saves: rollupCampaignMetric(
-        totalPostCount,
-        available.map((post) => post.saves ?? 0),
-      ),
-      shares: rollupCampaignMetric(
-        totalPostCount,
-        available.map((post) => post.shares ?? 0),
-      ),
-      views: rollupCampaignMetric(
-        totalPostCount,
-        available.map((post) => post.views ?? 0),
-      ),
-    };
+    const postRows = buildPostRows(posts, totalsByPost);
+    const organic = buildOrganicTotals(postRows, totalPostCount);
 
     const postCounts: Record<string, number> = {};
     for (const post of posts) {
@@ -232,6 +277,12 @@ export class CampaignPerformanceService {
             (post.comments ?? 0) +
             (post.shares ?? 0) +
             (post.saves ?? 0),
+        ),
+      ),
+      impressions: rollupCampaignMetric(
+        totalPostCount,
+        platformPosts.flatMap((post) =>
+          post.impressions === null ? [] : [post.impressions],
         ),
       ),
       likes: rollupCampaignMetric(

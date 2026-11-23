@@ -43,7 +43,11 @@ export default function CampaignDetailPerformance({
 
   return (
     <div className="grid gap-6 p-5 sm:p-6">
-      <MetricCardGrid columns={4}>
+      <MetricCardGrid columns={5}>
+        <MetricCard
+          label={translate('performanceImpressions')}
+          value={formatMetric(performance.organic.impressions)}
+        />
         <MetricCard
           label={translate('performanceViews')}
           value={formatMetric(performance.organic.views)}

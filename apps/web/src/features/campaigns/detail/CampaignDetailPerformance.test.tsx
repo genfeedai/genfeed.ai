@@ -65,6 +65,11 @@ describe('CampaignDetailPerformance', () => {
             value: null,
           },
           engagements: { availablePostCount: 1, totalPostCount: 2, value: 7 },
+          impressions: {
+            availablePostCount: 1,
+            totalPostCount: 2,
+            value: 1200,
+          },
           views: { availablePostCount: 1, totalPostCount: 2, value: 50 },
         },
         postCounts: { published: 1, draft: 1 },
@@ -91,6 +96,7 @@ describe('CampaignDetailPerformance', () => {
     render(<CampaignDetailPerformance campaignId="cmp-1" />);
 
     expect(screen.getByText('50')).toBeInTheDocument();
+    expect(screen.getByText('1,200')).toBeInTheDocument();
     expect(screen.getAllByText('—').length).toBeGreaterThan(0);
     expect(screen.getByText('published')).toBeInTheDocument();
   });
