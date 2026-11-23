@@ -88,7 +88,7 @@ function LibraryTile({
           ))}
         {isVideoKind(item.kind) ? (
           <span className="pointer-events-none absolute right-2 bottom-2 flex size-6 items-center justify-center rounded-full bg-background/90 text-foreground shadow-border">
-            <Play aria-hidden="true" className="size-3 fill-current" />
+            <Play aria-hidden="true" className="size-3.5 fill-current" />
           </span>
         ) : null}
         {isSelected ? (

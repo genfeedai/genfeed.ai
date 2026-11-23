@@ -31,6 +31,7 @@ export default function LibraryPicker({
   isLoading = false,
   isOpen,
   items,
+  loadingLabel,
   query,
   searchLabel,
   searchPlaceholder,
@@ -71,7 +72,7 @@ export default function LibraryPicker({
           >
             {isLoading ? (
               <div className="flex justify-center py-8">
-                <Spinner ariaLabel="Loading library" />
+                <Spinner ariaLabel={loadingLabel} />
               </div>
             ) : items.length === 0 ? (
               <EmptyState size={CardEmptySize.SM} title={emptyLabel} />

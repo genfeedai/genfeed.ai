@@ -106,6 +106,7 @@ describe('LibraryPicker', () => {
     gridLabel: 'Library content',
     isOpen: true,
     items: ITEMS,
+    loadingLabel: 'Loading library',
     onOpenChange: vi.fn(),
     onQueryChange: vi.fn(),
     onSelect: vi.fn(),

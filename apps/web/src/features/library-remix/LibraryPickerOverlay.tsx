@@ -21,6 +21,7 @@ import { Skeleton } from '@ui/primitives/skeleton';
 import { Tabs } from '@ui/primitives/tabs';
 import { ArrowRight, FolderOpen } from 'lucide-react';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
 
 import LibrarySourcePreview, {
@@ -81,6 +82,7 @@ function toGridItem(ingredient: IIngredient): LibraryGridItem {
 export default function LibraryPickerOverlay({
   onSelect,
 }: LibraryPickerOverlayProps) {
+  const translate = useTranslations('ui.libraryPicker');
   const { href } = useOrgUrl();
   const {
     category,
@@ -162,7 +164,7 @@ export default function LibraryPickerOverlay({
               {state.total} Library sources available
             </p>
             <LibraryGrid
-              ariaLabel="Library sources"
+              ariaLabel={translate('sources')}
               getItemAriaLabel={(item) =>
                 isValidatingId === item.id
                   ? `Verifying ${item.title}`

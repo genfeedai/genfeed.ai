@@ -9,6 +9,11 @@ const mocks = vi.hoisted(() => ({
   result: null as UseLibraryPickerResult | null,
 }));
 
+vi.mock('next-intl', () => ({
+  useTranslations: () => (key: string) =>
+    key === 'sources' ? 'Library sources' : key,
+}));
+
 vi.mock('@hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({ href: (path: string) => `/acme/moonrise${path}` }),
 }));

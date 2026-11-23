@@ -42,6 +42,8 @@ export interface LibraryPickerProps
   description: string;
   /** What the grid is called to assistive technology. */
   gridLabel: string;
+  /** What the spinner is called while `isLoading`. */
+  loadingLabel: string;
   searchLabel: string;
   searchPlaceholder: string;
   query: string;

@@ -82,6 +82,7 @@ export function ContentLibraryPicker({
       isOpen={isOpen}
       isSelectedLocked
       items={gridItems}
+      loadingLabel="Loading library"
       onOpenChange={onOpenChange}
       onQueryChange={
         search.searchMode === 'remote' ? search.onSearchQueryChange : setQuery

@@ -417,7 +417,6 @@
     "packages/agent/src/components/ClipperWorkflowStatusFooter.tsx": 6,
     "packages/agent/src/components/ClipperWorkflowStepsList.tsx": 1,
     "packages/agent/src/components/ContentCalendarCard.tsx": 2,
-    "packages/agent/src/components/ContentLibraryPicker.tsx": 3,
     "packages/agent/src/components/CredentialMentionList.tsx": 1,
     "packages/agent/src/components/CreditsBalanceCard.tsx": 2,
     "packages/agent/src/components/EngagementOpportunityCard.tsx": 5,
