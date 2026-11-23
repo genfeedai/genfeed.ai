@@ -336,7 +336,7 @@ describe('ModalPost', () => {
 
     it('lists connected accounts and the article and newsletter destinations', () => {
       renderComposer();
-      expect(screen.getByRole('button', { name: 'Acme on X' })).toHaveAttribute(
+      expect(screen.getByRole('button', { name: '@acme_x' })).toHaveAttribute(
         'aria-pressed',
         'false',
       );
@@ -372,7 +372,7 @@ describe('ModalPost', () => {
       expect(
         screen.getByRole('button', { name: 'Genfeed profile' }),
       ).toHaveAttribute('aria-pressed', 'true');
-      expect(screen.getByRole('button', { name: 'Acme on X' })).toHaveAttribute(
+      expect(screen.getByRole('button', { name: '@acme_x' })).toHaveAttribute(
         'aria-pressed',
         'false',
       );
@@ -392,7 +392,7 @@ describe('ModalPost', () => {
         />,
       );
       expect(
-        screen.getByRole('button', { name: 'Acme on X' }),
+        screen.getByRole('button', { name: '@acme_x' }),
       ).toBeInTheDocument();
       expect(
         screen.queryByRole('button', { name: 'Acme Restream' }),
@@ -419,7 +419,7 @@ describe('ModalPost', () => {
         />,
       );
       expect(
-        screen.getByRole('button', { name: 'Acme on X' }),
+        screen.getByRole('button', { name: '@acme_x' }),
       ).toBeInTheDocument();
       expect(
         screen.queryByRole('button', { name: label }),
@@ -455,7 +455,7 @@ describe('ModalPost', () => {
       it('scrolls only the fields so the steps and actions stay in reach', async () => {
         const user = userEvent.setup();
         renderComposer();
-        await user.click(screen.getByRole('button', { name: 'Acme on X' }));
+        await user.click(screen.getByRole('button', { name: '@acme_x' }));
         await goToContent(user);
 
         // The modal body does not scroll; the fields do, on their own.
@@ -485,7 +485,7 @@ describe('ModalPost', () => {
         expect(
           screen.queryByRole('textbox', { name: 'Post content' }),
         ).not.toBeInTheDocument();
-        await user.click(screen.getByRole('button', { name: 'Acme on X' }));
+        await user.click(screen.getByRole('button', { name: '@acme_x' }));
         await goToContent(user);
 
         expect(screen.getByRole('list', { name: 'Post to' })).toHaveTextContent(
@@ -500,14 +500,14 @@ describe('ModalPost', () => {
 
         await user.click(screen.getByRole('button', { name: 'Edit' }));
         expect(
-          screen.getByRole('button', { name: 'Acme on X' }),
+          screen.getByRole('button', { name: '@acme_x' }),
         ).toHaveAttribute('aria-pressed', 'true');
       });
 
       it('previews a picked Library video and saves its identity in the draft', async () => {
         const user = userEvent.setup();
         renderComposer();
-        await user.click(screen.getByRole('button', { name: 'Acme on X' }));
+        await user.click(screen.getByRole('button', { name: '@acme_x' }));
         await goToContent(user);
         await pickLibraryVideo(user);
 
@@ -652,7 +652,7 @@ describe('ModalPost', () => {
     it('creates one post per selected account', async () => {
       const user = userEvent.setup();
       renderComposer();
-      await user.click(screen.getByRole('button', { name: 'Acme on X' }));
+      await user.click(screen.getByRole('button', { name: '@acme_x' }));
       await user.click(
         screen.getByRole('button', { name: 'Acme on LinkedIn' }),
       );
@@ -724,7 +724,7 @@ describe('ModalPost', () => {
     it('offers draft, publish now and schedule instead of date and lifecycle fields', async () => {
       const user = userEvent.setup();
       renderComposer();
-      await user.click(screen.getByRole('button', { name: 'Acme on X' }));
+      await user.click(screen.getByRole('button', { name: '@acme_x' }));
       await goToContent(user);
 
       expect(screen.queryByText(/Scheduled Date/)).not.toBeInTheDocument();
@@ -756,7 +756,7 @@ describe('ModalPost', () => {
     it('saves a draft and publishes it right away', async () => {
       const user = userEvent.setup();
       renderComposer();
-      await user.click(screen.getByRole('button', { name: 'Acme on X' }));
+      await user.click(screen.getByRole('button', { name: '@acme_x' }));
       await goToContent(user);
       await writeCaption(user, 'Ship it');
       await user.click(screen.getByRole('button', { name: 'Publish now' }));
@@ -776,7 +776,7 @@ describe('ModalPost', () => {
     it('never publishes when saving a draft', async () => {
       const user = userEvent.setup();
       renderComposer();
-      await user.click(screen.getByRole('button', { name: 'Acme on X' }));
+      await user.click(screen.getByRole('button', { name: '@acme_x' }));
       await goToContent(user);
       await writeCaption(user, 'Just a draft');
       await user.click(screen.getByRole('button', { name: 'Save draft' }));
@@ -791,7 +791,7 @@ describe('ModalPost', () => {
     it('asks for a date before scheduling', async () => {
       const user = userEvent.setup();
       renderComposer();
-      await user.click(screen.getByRole('button', { name: 'Acme on X' }));
+      await user.click(screen.getByRole('button', { name: '@acme_x' }));
       await goToContent(user);
       await writeCaption(user, 'Later');
       await user.click(screen.getByRole('button', { name: 'Schedule' }));
@@ -806,7 +806,7 @@ describe('ModalPost', () => {
     it('derives a long post for X from the length of the text', async () => {
       const user = userEvent.setup();
       renderComposer();
-      await user.click(screen.getByRole('button', { name: 'Acme on X' }));
+      await user.click(screen.getByRole('button', { name: '@acme_x' }));
       await goToContent(user);
       await writeCaption(user, 'a'.repeat(400));
       await user.click(screen.getByRole('button', { name: 'Save draft' }));
@@ -825,7 +825,7 @@ describe('ModalPost', () => {
     it('keeps the 25k limit on X long posts', async () => {
       const user = userEvent.setup();
       renderComposer();
-      await user.click(screen.getByRole('button', { name: 'Acme on X' }));
+      await user.click(screen.getByRole('button', { name: '@acme_x' }));
       await goToContent(user);
       await writeCaption(user, 'a'.repeat(25_001));
 
@@ -836,7 +836,7 @@ describe('ModalPost', () => {
     it('splits the text into a thread through the existing thread path', async () => {
       const user = userEvent.setup();
       renderComposer();
-      await user.click(screen.getByRole('button', { name: 'Acme on X' }));
+      await user.click(screen.getByRole('button', { name: '@acme_x' }));
       await goToContent(user);
       await writeCaption(user, `${'word '.repeat(70).trim()}.`);
       await user.click(
@@ -867,7 +867,7 @@ describe('ModalPost', () => {
         screen.queryByRole('switch', { name: 'Split into thread' }),
       ).not.toBeInTheDocument();
       await user.click(screen.getByRole('button', { name: 'Back' }));
-      await user.click(screen.getByRole('button', { name: 'Acme on X' }));
+      await user.click(screen.getByRole('button', { name: '@acme_x' }));
       await goToContent(user);
       expect(
         screen.getByRole('switch', { name: 'Split into thread' }),
@@ -877,10 +877,10 @@ describe('ModalPost', () => {
     it('hands off to the article editor and drops selected accounts', async () => {
       const user = userEvent.setup();
       renderComposer();
-      await user.click(screen.getByRole('button', { name: 'Acme on X' }));
+      await user.click(screen.getByRole('button', { name: '@acme_x' }));
       await user.click(screen.getByRole('radio', { name: 'Article' }));
 
-      expect(screen.getByRole('button', { name: 'Acme on X' })).toHaveAttribute(
+      expect(screen.getByRole('button', { name: '@acme_x' })).toHaveAttribute(
         'aria-pressed',
         'false',
       );
@@ -907,7 +907,7 @@ describe('ModalPost', () => {
       const user = userEvent.setup();
       renderComposer();
       await user.click(screen.getByRole('radio', { name: 'Article' }));
-      await user.click(screen.getByRole('button', { name: 'Acme on X' }));
+      await user.click(screen.getByRole('button', { name: '@acme_x' }));
       expect(screen.getByRole('radio', { name: 'Article' })).toHaveAttribute(
         'aria-checked',
         'false',
