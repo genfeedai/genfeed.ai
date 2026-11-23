@@ -170,6 +170,28 @@ describe('useSubscription', () => {
       expect(mockSubscriptionsService.getCreditsBreakdown).toHaveBeenCalled();
     });
 
+    it('reads the credit breakdown once, under the real key, while the organization is still unknown', async () => {
+      mockUseBrand.mockReturnValue({ organizationId: '' });
+      const { rerender, result } = renderHook(() => useSubscription(), {
+        wrapper: createQueryWrapper(),
+      });
+      await act(async () => undefined);
+
+      expect(
+        mockSubscriptionsService.getCreditsBreakdown,
+      ).not.toHaveBeenCalled();
+
+      mockUseBrand.mockReturnValue({ organizationId: 'org-123' });
+      rerender();
+
+      await waitFor(() => {
+        expect(result.current.creditsBreakdown).not.toBeNull();
+      });
+      expect(
+        mockSubscriptionsService.getCreditsBreakdown,
+      ).toHaveBeenCalledTimes(1);
+    });
+
     it('keeps concurrent community wallet consumers from requesting local subscription credits', async () => {
       mockHasOrganizationBillingHint.mockReturnValue(false);
       const { result } = renderHook(

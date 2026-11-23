@@ -199,4 +199,13 @@ test.describe('Output-first onboarding', () => {
     await page.goto(APP_ROUTES.ONBOARDING.ROOT);
     await expect(page).toHaveURL(new RegExp(`${APP_ROUTES.ONBOARDING.BRAND}$`));
   });
+
+  // The proxy sends no API request before a scoped page, so the redirect for a
+  // user who has not finished onboarding comes from the page's own guard.
+  test('sends an incomplete user from a scoped deep link to onboarding', async ({
+    onboardingPage: page,
+  }) => {
+    await page.goto('/test-org/brand-1/publishing/posts');
+    await expect(page).toHaveURL(new RegExp(`${APP_ROUTES.ONBOARDING.BRAND}$`));
+  });
 });

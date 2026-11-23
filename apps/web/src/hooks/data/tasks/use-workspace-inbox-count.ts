@@ -14,9 +14,11 @@ import { useQuery } from '@tanstack/react-query';
 export function useWorkspaceInboxCount(): number {
   const { getToken, orgId, userId } = useAuthIdentity();
   const { organizationId: workspaceOrganizationId } = useBrand();
-  const scopeId = orgId || workspaceOrganizationId || 'session';
+  const scopeId = orgId || workspaceOrganizationId;
   const state = useQuery({
-    enabled: Boolean(userId),
+    // The key carries the scope, so a read made before it is known would be
+    // made again under the real key a moment later.
+    enabled: Boolean(userId) && Boolean(scopeId),
     queryFn: async ({ signal }) => {
       const token = await resolveAuthToken(getToken);
       if (!token) throw new Error('Authentication required');

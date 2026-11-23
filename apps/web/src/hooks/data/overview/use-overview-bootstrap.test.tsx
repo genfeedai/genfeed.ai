@@ -2,7 +2,7 @@
 'use client';
 
 import { createQueryWrapper } from '@hooks/tests/query-wrapper';
-import { renderHook, waitFor } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useOverviewBootstrap } from '@/hooks/data/overview/use-overview-bootstrap';
 
@@ -49,6 +49,28 @@ describe('useOverviewBootstrap', () => {
     mockGetAuthService.mockResolvedValue({
       getOverviewBootstrap: mockGetOverviewBootstrap,
     });
+  });
+
+  it('reads once when a second consumer mounts after the first has been answered', async () => {
+    const wrapper = createQueryWrapper();
+    const { result } = renderHook(
+      () => [
+        useOverviewBootstrap({ brandId: 'brand-1' }),
+        useOverviewBootstrap({ brandId: 'brand-1' }),
+      ],
+      { wrapper },
+    );
+    await waitFor(() => {
+      expect(result.current[0].isLoading).toBe(false);
+    });
+
+    // The rail preview mounts after the page has read it.
+    renderHook(() => useOverviewBootstrap({ brandId: 'brand-1' }), {
+      wrapper,
+    });
+    await act(async () => undefined);
+
+    expect(mockGetOverviewBootstrap).toHaveBeenCalledTimes(1);
   });
 
   it('does not fetch when auth is not yet loaded', () => {

@@ -20,8 +20,9 @@ import ElementsProvider from '@providers/elements/elements.provider';
 import PromptBarProvider from '@providers/promptbar/promptbar.provider';
 import ThemePreferenceSync from '@providers/theme-sync/theme-preference-sync';
 import type { ReactNode } from 'react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useIsDesktopClient } from '@/hooks/ui/use-is-desktop-client/use-is-desktop-client';
+import { redirectToLoginWithoutSession } from '@/lib/auth/redirect-without-session';
 import type { ProtectedAuthGateProps } from '@/props/providers/protected-auth-gate.props';
 import { GlobalModalsProvider } from '@/providers/global-modals/global-modals.provider';
 
@@ -73,6 +74,7 @@ export function ProtectedAuthGate({
   const [hasJwtToken, setHasJwtToken] = useState(false);
   const [hasTokenTimedOut, setHasTokenTimedOut] = useState(false);
   const [retryNonce, setRetryNonce] = useState(0);
+  const hasBeenSignedInRef = useRef(false);
   const retryTokenWait = useCallback(() => {
     setRetryNonce((current) => current + 1);
   }, []);
@@ -88,9 +90,23 @@ export function ProtectedAuthGate({
   useEffect(() => {
     void sessionKey;
     void retryNonce;
+    if (effectiveIsSignedIn) {
+      hasBeenSignedInRef.current = true;
+    }
     if (!effectiveIsAuthLoaded || !effectiveIsSignedIn) {
       setHasJwtToken(false);
       setHasTokenTimedOut(false);
+      // A visitor who arrives with a session cookie the API does not accept
+      // (expired, revoked) has no page-load redirect any more: the proxy no
+      // longer asks the API before it sends a scoped page. One who was signed
+      // in here and signed out is already sent away by `SignedOutRedirect`.
+      if (effectiveIsAuthLoaded && !hasBeenSignedInRef.current) {
+        const signedOutAbort = new AbortController();
+        void redirectToLoginWithoutSession(signedOutAbort.signal).catch(
+          () => undefined,
+        );
+        return () => signedOutAbort.abort();
+      }
       return;
     }
 

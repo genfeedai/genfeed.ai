@@ -274,6 +274,9 @@ export function useAgentDockThreads(
       .then((master) => {
         if (
           controller.signal.aborted ||
+          // A master with no id has nothing to open: selecting it would read
+          // the messages and transfers of thread `undefined`.
+          !master?.id ||
           hasStartedFreshThread.current ||
           useAgentChatStore.getState().activeThreadId
         ) {
