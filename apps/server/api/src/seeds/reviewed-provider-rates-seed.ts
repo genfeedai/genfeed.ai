@@ -6,7 +6,11 @@ import { ELEVENLABS_SCHEMA_FIXTURES } from '@api/seeds/fixtures/elevenlabs-rate-
 import { FAL_REALTIME_SCHEMA_FIXTURES } from '@api/seeds/fixtures/fal-realtime-rate-schemas';
 import { HEYGEN_SCHEMA_FIXTURES } from '@api/seeds/fixtures/heygen-rate-schemas';
 import { TRELLIS_SCHEMA_FIXTURES } from '@api/seeds/fixtures/trellis-rate-schemas';
-import { KIE_KLING_INPUT_SCHEMA } from '@api/seeds/model-provider-offers.seed';
+import {
+  KIE_KLING_INPUT_SCHEMA,
+  KIE_MINIMAX_H3_IMAGE_INPUT_SCHEMA,
+  KIE_MINIMAX_H3_TEXT_INPUT_SCHEMA,
+} from '@api/seeds/model-provider-offers.seed';
 import type { SchemaFixture } from '@api/seeds/reviewed-provider-rates-seed.types';
 import flux3Openapi from '@api/services/prompt-builder/builders/replicate/fixtures/flux-3-image.schema.json';
 import ideogramOpenapi from '@api/services/prompt-builder/builders/replicate/fixtures/ideogram-4-5.schema.json';
@@ -39,6 +43,28 @@ export interface RateSeedOptions {
   reviewedBy?: string;
 }
 
+/** kie returns the generated files as `resultUrls` for every model. */
+const KIE_VIDEO_OUTPUT = {
+  type: 'object',
+  properties: {
+    resultUrls: { type: 'array', items: { type: 'string', format: 'uri' } },
+  },
+  required: ['resultUrls'],
+};
+
+function kieFixture(
+  schemaFamily: string,
+  input: Prisma.InputJsonObject,
+): SchemaFixture {
+  return {
+    schemaFamily,
+    openapi: {
+      openapi: '3.0.0',
+      components: { schemas: { Input: input, Output: KIE_VIDEO_OUTPUT } },
+    },
+  };
+}
+
 /** Input schemas the pre-sheet seeds shipped, for rows that have none yet. */
 const SCHEMA_FIXTURES: Readonly<Record<string, SchemaFixture>> = {
   'kling-3.0/video': {
@@ -63,6 +89,14 @@ const SCHEMA_FIXTURES: Readonly<Record<string, SchemaFixture>> = {
     },
   },
 
+  'minimax-h3/text-to-video': kieFixture(
+    'kie-minimax-h3-text',
+    KIE_MINIMAX_H3_TEXT_INPUT_SCHEMA,
+  ),
+  'minimax-h3/image-to-video': kieFixture(
+    'kie-minimax-h3-image',
+    KIE_MINIMAX_H3_IMAGE_INPUT_SCHEMA,
+  ),
   'black-forest-labs/flux-3-image': {
     openapi: flux3Openapi,
     schemaFamily: 'flux-3-image-v1',
