@@ -4,7 +4,8 @@ import type { IPreset } from '@genfeedai/contracts/interfaces';
 import '@testing-library/jest-dom/vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import type { UseFormReturn } from 'react-hook-form';
+import { useState } from 'react';
+import { useForm } from 'react-hook-form';
 import { describe, expect, it, vi } from 'vitest';
 import PromptBarMetadataSelectors from '@/components/prompt-bars/components/metadata-selectors/PromptBarMetadataSelectors';
 import type { PromptBarMetadataSelectorsProps } from '@/props/prompt-bars/prompt-bar-metadata-selectors.props';
@@ -15,84 +16,83 @@ vi.mock('next-intl', async () => {
   return { useTranslations: translateFromCatalog };
 });
 
-describe('PromptBarMetadataSelectors', () => {
-  const mockForm: UseFormReturn<PromptTextareaSchema> = {
-    getValues: vi.fn().mockReturnValue(''),
-    setValue: vi.fn(),
-  } as unknown as UseFormReturn<PromptTextareaSchema>;
+const preset: IPreset = {
+  category: ModelCategory.IMAGE,
+  createdAt: '2024-01-01',
+  description: 'Preset description',
+  id: 'preset-1',
+  isActive: true,
+  isDeleted: false,
+  key: 'preset-1',
+  label: 'Preset 1',
+  updatedAt: '2024-01-01',
+};
 
-  const preset: IPreset = {
-    category: ModelCategory.IMAGE,
-    createdAt: '2024-01-01',
-    description: 'Preset description',
-    id: 'preset-1',
-    isActive: true,
-    isDeleted: false,
-    key: 'preset-1',
-    label: 'Preset 1',
-    updatedAt: '2024-01-01',
-  };
+const emptyLists = {
+  filteredCameraMovements: [],
+  filteredCameras: [],
+  filteredFontFamilies: [],
+  filteredLenses: [],
+  filteredLightings: [],
+  filteredMoods: [],
+  filteredPresets: [],
+  filteredScenes: [],
+  filteredStyles: [],
+  profiles: [],
+};
 
-  const baseProps: PromptBarMetadataSelectorsProps = {
-    controlClass: 'control-class',
-    currentConfig: { buttons: { presets: true } },
-    filteredCameraMovements: [],
-    filteredCameras: [],
-    filteredFontFamilies: [],
-    filteredLenses: [],
-    filteredLightings: [],
-    filteredMoods: [],
-    filteredPresets: [preset],
-    filteredScenes: [],
-    filteredStyles: [],
-    form: mockForm,
-    isDisabledState: false,
-    profiles: [],
-    refocusTextarea: vi.fn(),
-    selectedPreset: '',
-    selectedProfile: '',
-    setSelectedPreset: vi.fn(),
-    setSelectedProfile: vi.fn(),
-  };
+function Harness(overrides: Partial<PromptBarMetadataSelectorsProps>) {
+  const form = useForm<PromptTextareaSchema>({
+    defaultValues: { style: 'cinematic', text: '' },
+  });
+  const [selectedPreset, setSelectedPreset] = useState('');
+  const [selectedProfile, setSelectedProfile] = useState('');
 
-  it('shows no picker for a list that is not there', () => {
-    render(
+  return (
+    <>
       <PromptBarMetadataSelectors
-        {...baseProps}
-        currentConfig={{ buttons: {} }}
-        filteredPresets={[]}
-      />,
-    );
+        controlClass=""
+        currentConfig={{ buttons: { presets: true, style: true } }}
+        {...emptyLists}
+        form={form}
+        isDisabledState={false}
+        refocusTextarea={() => {}}
+        selectedPreset={selectedPreset}
+        selectedProfile={selectedProfile}
+        setSelectedPreset={setSelectedPreset}
+        setSelectedProfile={setSelectedProfile}
+        {...overrides}
+      />
+      <output aria-label="Prompt text">{form.watch('text')}</output>
+      <output aria-label="Brand voice">{selectedProfile}</output>
+    </>
+  );
+}
+
+describe('PromptBarMetadataSelectors', () => {
+  it('shows no picker for a list that is not there', () => {
+    render(<Harness />);
 
     expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
   });
 
-  it('puts a chosen preset prompt into the form', async () => {
-    const setSelectedPreset = vi.fn();
-    render(
-      <PromptBarMetadataSelectors
-        {...baseProps}
-        setSelectedPreset={setSelectedPreset}
-      />,
-    );
+  it('puts the chosen preset prompt into the prompt text', async () => {
+    const user = userEvent.setup();
+    render(<Harness filteredPresets={[preset]} />);
 
-    await userEvent
-      .setup()
-      .click(screen.getByRole('combobox', { name: 'Preset' }));
-    await userEvent
-      .setup()
-      .click(screen.getByRole('option', { name: 'Preset 1' }));
+    await user.click(screen.getByRole('combobox', { name: 'Preset' }));
+    await user.click(screen.getByRole('option', { name: 'Preset 1' }));
 
-    expect(setSelectedPreset).toHaveBeenCalledWith('preset-1');
-    expect(mockForm.setValue).toHaveBeenCalledWith(
-      'text',
-      'Preset description',
-      { shouldValidate: true },
+    expect(
+      screen.getByRole('status', { name: 'Prompt text' }),
+    ).toHaveTextContent('Preset description');
+    expect(screen.getByRole('combobox', { name: 'Preset' })).toHaveTextContent(
+      'Preset 1',
     );
   });
 
   it('lists presets under their group heading', async () => {
-    render(<PromptBarMetadataSelectors {...baseProps} />);
+    render(<Harness filteredPresets={[preset]} />);
 
     await userEvent
       .setup()
@@ -104,57 +104,37 @@ describe('PromptBarMetadataSelectors', () => {
   });
 
   it('clears an element choice with the none row', async () => {
-    const form = {
-      getValues: vi.fn().mockReturnValue(''),
-      setValue: vi.fn(),
-      watch: vi.fn().mockReturnValue('cinematic'),
-    } as unknown as UseFormReturn<PromptTextareaSchema>;
-    const refocusTextarea = vi.fn();
+    const user = userEvent.setup();
     render(
-      <PromptBarMetadataSelectors
-        {...baseProps}
-        currentConfig={{ buttons: { style: true } }}
-        filteredPresets={[]}
-        filteredStyles={[
-          {
-            description: 'Film look',
-            key: 'cinematic',
-            label: 'Cinematic',
-          } as never,
-        ]}
-        form={form}
-        refocusTextarea={refocusTextarea}
+      <Harness
+        filteredStyles={
+          [
+            { description: 'Film look', key: 'cinematic', label: 'Cinematic' },
+          ] as never
+        }
       />,
     );
 
-    const user = userEvent.setup();
-    expect(screen.getByRole('combobox', { name: 'Style' })).toHaveTextContent(
-      'Cinematic',
-    );
-    await user.click(screen.getByRole('combobox', { name: 'Style' }));
+    const style = screen.getByRole('combobox', { name: 'Style' });
+    expect(style).toHaveTextContent('Cinematic');
+
+    await user.click(style);
     await user.click(screen.getByRole('option', { name: 'None' }));
 
-    expect(form.setValue).toHaveBeenCalledWith('style', '', {
-      shouldValidate: true,
-    });
+    expect(screen.getByRole('combobox', { name: 'Style' })).toHaveTextContent(
+      'None',
+    );
   });
 
   it('sets the brand voice', async () => {
-    const setSelectedProfile = vi.fn();
-    render(
-      <PromptBarMetadataSelectors
-        {...baseProps}
-        currentConfig={{ buttons: {} }}
-        filteredPresets={[]}
-        profiles={[{ id: 'voice-1', name: 'Playful' }]}
-        setSelectedProfile={setSelectedProfile}
-      />,
-    );
-
     const user = userEvent.setup();
+    render(<Harness profiles={[{ id: 'voice-1', name: 'Playful' }]} />);
+
     await user.click(screen.getByRole('combobox', { name: 'Brand Voice' }));
     await user.click(screen.getByRole('option', { name: 'Playful' }));
 
-    expect(setSelectedProfile).toHaveBeenCalledWith('voice-1');
+    expect(
+      screen.getByRole('status', { name: 'Brand voice' }),
+    ).toHaveTextContent('voice-1');
   });
 });
