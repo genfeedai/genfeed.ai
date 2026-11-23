@@ -17,8 +17,8 @@ import { CampaignsService } from '@services/content/campaigns.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { useQueryClient } from '@tanstack/react-query';
-import LoadingState from '@ui/feedback/LoadingState';
 import Container from '@ui/layout/container/Container';
+import Loading from '@ui/loading/default/Loading';
 import { Button } from '@ui/primitives/button';
 import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
@@ -128,7 +128,7 @@ export default function CampaignFormPage({
   if (isEdit && (isLoading || !campaign)) {
     return (
       <Container label={translate('editTitle')} titleVisibility="sr-only">
-        <LoadingState isFullSize />
+        <Loading />
       </Container>
     );
   }

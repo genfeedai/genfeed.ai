@@ -22,8 +22,8 @@ import Card from '@ui/card/Card';
 import ConnectedAccount from '@ui/display/connected-account/ConnectedAccount';
 import Table from '@ui/display/table/Table';
 import { ErrorFallback } from '@ui/error/ErrorFallback';
-import LoadingState from '@ui/feedback/LoadingState';
 import Container from '@ui/layout/container/Container';
+import Loading from '@ui/loading/default/Loading';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -95,7 +95,7 @@ export default function AnalyticsAccountDetail() {
   if (isLoading && !detail) {
     return (
       <Container label={title}>
-        <LoadingState />
+        <Loading isFullSize={false} />
       </Container>
     );
   }

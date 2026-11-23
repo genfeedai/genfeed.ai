@@ -7,7 +7,7 @@ import MetricCard from '@ui/cards/metric-card/MetricCard';
 import { MetricCardGrid } from '@ui/dashboard/MetricCardGrid';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import { ErrorFallback } from '@ui/error/ErrorFallback';
-import LoadingState from '@ui/feedback/LoadingState';
+import Loading from '@ui/loading/default/Loading';
 import { useTranslations } from 'next-intl';
 import { useCampaignPerformance } from '@/features/campaigns/hooks/use-campaign-performance';
 
@@ -38,7 +38,7 @@ export default function CampaignDetailPerformance({
   }
 
   if (isLoading || !performance) {
-    return <LoadingState isFullSize />;
+    return <Loading />;
   }
 
   return (
