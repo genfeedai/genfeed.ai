@@ -161,7 +161,6 @@
     "postCount": "{count, plural, one {# post} other {# posts}}",
     "rail": {
       "accounts": {
-        "ariaToggle": "Toggle {account}",
         "label": "Accounts",
         "needsReconnect": "Reconnect needed"
       },
