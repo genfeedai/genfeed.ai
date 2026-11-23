@@ -3,6 +3,7 @@ import { STORYBOARD_ASSET_SOURCE_ACTION_PREFIX } from '@genfeedai/contracts/api-
 import { STORYBOARD_RUN_CONTRACT } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
 import { STORYBOARD_SHOT_RENDER_SOURCE_ACTION_PREFIX } from '@genfeedai/contracts/api-types/contracts/storyboard-shot-render.contract';
 import { STORYBOARD_STILL_SOURCE_ACTION_PREFIX } from '@genfeedai/contracts/api-types/contracts/storyboard-still.contract';
+import { traced } from '@libs/tracing/traced';
 
 /**
  * Only runs touched in this window keep a live journal operation's hold. A paid
@@ -30,36 +31,39 @@ const JOURNAL_BY_PREFIX = [
  * A source action id is `<prefix><runId>-<operationId>`, and every hold the
  * image and video pipelines open for a journal operation is keyed by it.
  */
-export async function isLiveStoryboardHold(
-  prisma: Pick<PrismaService, 'contentRun'>,
-  reservation: { organizationId: string; workloadId: string | null },
-  now: Date = new Date(),
-): Promise<boolean> {
-  const workloadId = reservation.workloadId;
-  if (!workloadId) return false;
-  const match = JOURNAL_BY_PREFIX.find(([prefix]) =>
-    workloadId.startsWith(prefix),
-  );
-  if (!match) return false;
-  const [prefix, journal] = match;
-  const rest = workloadId.slice(prefix.length);
-  const runId = rest.slice(0, -(OPERATION_ID_LENGTH + 1));
-  const operationId = rest.slice(-OPERATION_ID_LENGTH);
-  if (!runId || rest.at(-(OPERATION_ID_LENGTH + 1)) !== '-') return false;
-  const run = await prisma.contentRun.findFirst({
-    select: { id: true },
-    where: {
-      id: runId,
-      organizationId: reservation.organizationId,
-      isDeleted: false,
-      contract: STORYBOARD_RUN_CONTRACT,
-      updatedAt: {
-        gte: new Date(now.getTime() - STORYBOARD_JOURNAL_LIVE_WINDOW_MS),
+export const isLiveStoryboardHold = traced(
+  'isLiveStoryboardHold',
+  async (
+    prisma: Pick<PrismaService, 'contentRun'>,
+    reservation: { organizationId: string; workloadId: string | null },
+    now: Date = new Date(),
+  ): Promise<boolean> => {
+    const workloadId = reservation.workloadId;
+    if (!workloadId) return false;
+    const match = JOURNAL_BY_PREFIX.find(([prefix]) =>
+      workloadId.startsWith(prefix),
+    );
+    if (!match) return false;
+    const [prefix, journal] = match;
+    const rest = workloadId.slice(prefix.length);
+    const runId = rest.slice(0, -(OPERATION_ID_LENGTH + 1));
+    const operationId = rest.slice(-OPERATION_ID_LENGTH);
+    if (!runId || rest.at(-(OPERATION_ID_LENGTH + 1)) !== '-') return false;
+    const run = await prisma.contentRun.findFirst({
+      select: { id: true },
+      where: {
+        id: runId,
+        organizationId: reservation.organizationId,
+        isDeleted: false,
+        contract: STORYBOARD_RUN_CONTRACT,
+        updatedAt: {
+          gte: new Date(now.getTime() - STORYBOARD_JOURNAL_LIVE_WINDOW_MS),
+        },
+        OR: (['pending', 'submitted'] as const).map((state) => ({
+          config: { path: [journal], array_contains: [{ operationId, state }] },
+        })),
       },
-      OR: (['pending', 'submitted'] as const).map((state) => ({
-        config: { path: [journal], array_contains: [{ operationId, state }] },
-      })),
-    },
-  });
-  return run !== null;
-}
+    });
+    return run !== null;
+  },
+);
