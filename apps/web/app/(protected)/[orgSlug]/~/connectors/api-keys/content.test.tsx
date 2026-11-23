@@ -710,9 +710,7 @@ describe('SettingsApiKeysPage', () => {
 
     await screen.findByText('MCP Key');
 
-    const presets = within(
-      screen.getByRole('radiogroup', { name: 'Scope preset' }),
-    );
+    const presets = within(screen.getByRole('group', { name: 'Scope preset' }));
     const mcp = presets.getByRole('radio', { name: 'MCP' });
     const read = presets.getByRole('radio', { name: 'Read' });
     const content = presets.getByRole('radio', { name: 'Content' });
@@ -733,9 +731,7 @@ describe('SettingsApiKeysPage', () => {
     renderPage();
 
     await screen.findByText('MCP Key');
-    const presets = within(
-      screen.getByRole('radiogroup', { name: 'Scope preset' }),
-    );
+    const presets = within(screen.getByRole('group', { name: 'Scope preset' }));
     fireEvent.click(presets.getByRole('radio', { name: 'Read' }));
 
     expect(
@@ -768,9 +764,7 @@ describe('SettingsApiKeysPage', () => {
     renderPage();
 
     await screen.findByText('MCP Key');
-    const presets = within(
-      screen.getByRole('radiogroup', { name: 'Scope preset' }),
-    );
+    const presets = within(screen.getByRole('group', { name: 'Scope preset' }));
     fireEvent.click(presets.getByRole('radio', { name: 'Read' }));
     fireEvent.click(
       within(screen.getByRole('group', { name: 'Videos' })).getByRole('radio', {

@@ -21,7 +21,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
-import { SegmentedControl } from '@ui/primitives/segmented-control';
+import { OptionTile, OptionTileGroup } from '@ui/primitives/option-tile';
 import { Textarea } from '@ui/primitives/textarea';
 import { Upload } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -279,16 +279,22 @@ export default function CorpusContent() {
       />
 
       <div className="max-w-2xl space-y-4">
-        <SegmentedControl
-          appearance="chip"
+        <OptionTileGroup
           ariaLabel={translate('corpus.title')}
+          columns={3}
           onValueChange={setMode}
-          options={MODES.map((option) => ({
-            label: translate(`corpus.modes.${option}`),
-            value: option,
-          }))}
           value={mode}
-        />
+        >
+          {MODES.map((option) => (
+            <OptionTile
+              key={option}
+              layout="stack"
+              size="sm"
+              title={translate(`corpus.modes.${option}`)}
+              value={option}
+            />
+          ))}
+        </OptionTileGroup>
 
         {mode === 'url' ? (
           <Input
