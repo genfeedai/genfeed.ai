@@ -18,8 +18,14 @@ import { ArrowRight, Plug, RefreshCw, ShieldCheck, Zap } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
+import {
+  type RememberedConnectLine,
+  readRememberedConnectLine,
+  rememberConnectLine,
+} from './connect-line-memory';
 import { resolveOperationalHomeScope } from './operational-home.helpers';
 import OperationalHomeSections from './operational-home-sections';
 import { useConnectCardDismissal } from './use-connect-card-dismissal';
@@ -29,15 +35,29 @@ import {
 } from './use-connect-genfeed-status';
 
 /**
- * The connection state is unknown until the query and the dismissal read
- * settle, so nothing is reserved for it up front. When it does have something
- * to show it grows in with a fade, instead of the page jumping. The bottom
+ * The connection state is unknown until the query settles, so nothing is
+ * reserved for it up front. A viewer whose state was remembered from the last
+ * visit has it on the first paint and nothing grows in; one with nothing
+ * remembered, or whose state changed, sees it grow in with a fade instead of
+ * the page jumping. The bottom
  * padding is the gap to the sections below and animates with the row, so no
  * space is left behind while it is hidden.
  */
-function ConnectionStatusReveal({ children }: { children: ReactNode }) {
+function ConnectionStatusReveal({
+  animate,
+  children,
+}: {
+  animate: boolean;
+  children: ReactNode;
+}) {
   return (
-    <div className="grid grid-rows-[1fr] opacity-100 transition-[grid-template-rows,opacity] duration-300 ease-out starting:grid-rows-[0fr] starting:opacity-0 motion-reduce:transition-none">
+    <div
+      className={
+        animate
+          ? 'grid grid-rows-[1fr] opacity-100 transition-[grid-template-rows,opacity] duration-300 ease-out starting:grid-rows-[0fr] starting:opacity-0 motion-reduce:transition-none'
+          : 'grid grid-rows-[1fr] opacity-100'
+      }
+    >
       <div className="min-h-0 overflow-hidden pb-5">{children}</div>
     </div>
   );
@@ -48,13 +68,31 @@ function ConnectionStatusLine({
   connection,
   isDismissed,
   onDismiss,
+  remembered,
 }: {
   connectHref: string;
   connection: UseConnectGenfeedStatusResult;
   isDismissed: boolean | null;
   onDismiss: () => void;
+  remembered: RememberedConnectLine | null;
 }) {
-  if (connection.status === 'loading') {
+  // Whether the line was already on screen at the first paint, from memory. It
+  // is read once: later changes of state must not turn the animation on or off.
+  const [isPaintedFromMemory] = useState(
+    () =>
+      remembered !== null &&
+      (remembered.status === 'configured' || isDismissed === false),
+  );
+  const status =
+    connection.status === 'loading' && remembered
+      ? remembered.status
+      : connection.status;
+  const verifiedAt =
+    connection.status === 'loading'
+      ? (remembered?.verifiedAt ?? null)
+      : connection.verifiedAt;
+
+  if (status === 'loading') {
     return (
       <span aria-live="polite" className="sr-only" role="status">
         Checking MCP connection state...
@@ -62,16 +100,18 @@ function ConnectionStatusLine({
     );
   }
 
-  if (connection.status === 'unconfigured' && isDismissed !== false) {
+  if (status === 'unconfigured' && isDismissed !== false) {
     return null;
   }
 
   return (
-    <ConnectionStatusReveal>
+    <ConnectionStatusReveal animate={!isPaintedFromMemory}>
       <ConnectionStatusBody
         connectHref={connectHref}
         connection={connection}
         onDismiss={onDismiss}
+        status={status}
+        verifiedAt={verifiedAt}
       />
     </ConnectionStatusReveal>
   );
@@ -81,14 +121,18 @@ function ConnectionStatusBody({
   connectHref,
   connection,
   onDismiss,
+  status,
+  verifiedAt,
 }: {
   connectHref: string;
   connection: UseConnectGenfeedStatusResult;
   onDismiss: () => void;
+  status: UseConnectGenfeedStatusResult['status'];
+  verifiedAt: string | null;
 }) {
   const translate = useTranslations('common');
 
-  if (connection.status === 'configured') {
+  if (status === 'configured') {
     return (
       <div
         className="flex items-center justify-end gap-2 text-xs text-foreground/60"
@@ -100,13 +144,13 @@ function ConnectionStatusBody({
         <ClientFormattedDate
           fallback="Verification time unavailable"
           format="relative"
-          value={connection.verifiedAt}
+          value={verifiedAt}
         />
       </div>
     );
   }
 
-  if (connection.status === 'error') {
+  if (status === 'error') {
     return (
       <div
         className="flex flex-wrap items-center gap-2 text-xs text-destructive"
@@ -176,6 +220,25 @@ export default function OperationalHomeContent() {
   });
   const connection = useConnectGenfeedStatus(resolvedOrganizationId);
   const connectCard = useConnectCardDismissal(resolvedOrganizationId);
+  const remembered = useMemo(
+    () => readRememberedConnectLine(resolvedOrganizationId),
+    [resolvedOrganizationId],
+  );
+  const connectionStatus = connection.status;
+  const connectionVerifiedAt = connection.verifiedAt;
+
+  // use-effect-audit: ignore writes to browser storage, an outside system
+  useEffect(() => {
+    if (
+      connectionStatus === 'configured' ||
+      connectionStatus === 'unconfigured'
+    ) {
+      rememberConnectLine(resolvedOrganizationId, {
+        status: connectionStatus,
+        verifiedAt: connectionVerifiedAt,
+      });
+    }
+  }, [connectionStatus, connectionVerifiedAt, resolvedOrganizationId]);
 
   if (!orgSlug) {
     return (
@@ -213,6 +276,7 @@ export default function OperationalHomeContent() {
         connection={connection}
         isDismissed={connectCard.isDismissed}
         onDismiss={connectCard.dismiss}
+        remembered={remembered}
       />
 
       <OperationalHomeSections brandSlug={brandSlug} orgSlug={orgSlug} />
