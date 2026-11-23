@@ -7,9 +7,13 @@ import {
   SelectTrigger as SelectButton,
   SelectValue as SelectCurrent,
   SelectSeparator as SelectDivider,
+  SelectEmpty,
   SelectGroup,
   SelectGroupLabel,
+  SelectInput,
+  SelectItemIcon,
   SelectItemIndicator,
+  SelectList,
   SelectItem as SelectOption,
   SelectContent as SelectPopup,
   Select as SelectRoot,
@@ -202,10 +206,13 @@ function SelectItem({
   ref,
   className,
   children,
+  icon,
   value,
   ...props
 }: Omit<ComponentPropsWithRef<typeof SelectOption>, 'children' | 'value'> & {
   children?: ReactNode;
+  /** Shown before the text, and in the closed trigger when the item is chosen. */
+  icon?: ReactNode;
   value: string;
 }) {
   return (
@@ -218,6 +225,11 @@ function SelectItem({
       value={toSelectItemValue(value)}
       {...props}
     >
+      {icon ? (
+        <SelectItemIcon className="mr-2 flex shrink-0 items-center">
+          {icon}
+        </SelectItemIcon>
+      ) : null}
       {children}
       <SelectItemIndicator className="absolute left-2 flex size-3.5 items-center justify-center">
         <Check className="size-4" aria-hidden="true" />
@@ -226,6 +238,41 @@ function SelectItem({
   );
 }
 SelectItem.displayName = 'SelectItem';
+
+/** A search field above the options; put the items in a `SelectOptions`. */
+function SelectSearch({
+  ref,
+  className,
+  ...props
+}: ComponentPropsWithRef<typeof SelectInput>) {
+  return (
+    <SelectInput
+      ref={ref}
+      className={cn(
+        'mb-1 h-control-sm w-full rounded-md border border-border bg-tertiary px-2 text-xs text-foreground outline-hidden placeholder:text-gray-800 focus-visible:border-border-strong',
+        className,
+      )}
+      {...props}
+    />
+  );
+}
+SelectSearch.displayName = 'SelectSearch';
+
+/** Shown in place of the options when the search matches none. */
+function SelectNoMatch({
+  ref,
+  className,
+  ...props
+}: ComponentPropsWithRef<typeof SelectEmpty>) {
+  return (
+    <SelectEmpty
+      ref={ref}
+      className={cn('px-2 py-1.5 text-sm text-muted-foreground', className)}
+      {...props}
+    />
+  );
+}
+SelectNoMatch.displayName = 'SelectNoMatch';
 
 function SelectSeparator({
   ref,
@@ -493,6 +540,9 @@ export {
   SelectGroup,
   SelectItem,
   SelectLabel,
+  SelectList as SelectOptions,
+  SelectNoMatch,
+  SelectSearch,
   SelectSeparator,
   SelectTrigger,
   SelectValue,
