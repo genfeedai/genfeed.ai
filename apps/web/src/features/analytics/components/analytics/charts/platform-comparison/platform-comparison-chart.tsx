@@ -9,7 +9,7 @@ import {
 import { ChartContainer, ChartTooltipContent } from '@ui/charts';
 import { ChartEmptyState } from '@ui/primitives/chart-empty-state';
 import LoadingOverlay from '@ui/primitives/loading-overlay';
-import { SegmentedControl } from '@ui/primitives/segmented-control';
+import { OptionTile, OptionTileGroup } from '@ui/primitives/option-tile';
 import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
@@ -81,8 +81,7 @@ export function PlatformComparisonChart({
 
   return (
     <div className={className}>
-      <SegmentedControl
-        appearance="chip"
+      <OptionTileGroup
         ariaLabel={selectionLabels('metrics')}
         className="mb-4"
         isDisabled={isLoading || isEmpty}
@@ -91,23 +90,27 @@ export function PlatformComparisonChart({
             setActiveMetrics(metrics);
           }
         }}
-        options={(
-          Object.keys(METRIC_COLORS) as PlatformComparisonMetricType[]
-        ).map((metric) => ({
-          label: (
-            <>
-              <span
-                className="inline-block size-3 rounded-full"
-                style={{ backgroundColor: METRIC_COLORS[metric] }}
-              />
-              <span className="capitalize">{metric}</span>
-            </>
-          ),
-          value: metric,
-        }))}
         type="multiple"
         value={activeMetrics}
-      />
+      >
+        {(Object.keys(METRIC_COLORS) as PlatformComparisonMetricType[]).map(
+          (metric) => (
+            <OptionTile
+              className="w-auto"
+              icon={
+                <span
+                  className="inline-block size-3 rounded-full"
+                  style={{ backgroundColor: METRIC_COLORS[metric] }}
+                />
+              }
+              key={metric}
+              size="sm"
+              title={<span className="capitalize">{metric}</span>}
+              value={metric}
+            />
+          ),
+        )}
+      </OptionTileGroup>
 
       {/* Chart */}
       <div className="relative" style={{ height }}>

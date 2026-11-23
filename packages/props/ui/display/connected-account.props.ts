@@ -64,6 +64,12 @@ export interface AccountPickerItem extends ConnectedAccountData {
   id: string;
   isDisabled?: boolean;
   /**
+   * For a choice that is not one account (an "All channels" view): replaces
+   * the avatar and names the item. `platform` is ignored for the picture.
+   */
+  icon?: ReactNode;
+  label?: string;
+  /**
    * Shown after the handle in the hover hint and read by assistive tech, such
    * as "Needs reconnect". A warning dot also sits on the avatar.
    */

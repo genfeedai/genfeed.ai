@@ -184,7 +184,7 @@ describe('BrandPerformanceChart', () => {
       render(<BrandPerformanceChart data={mockData} isLoading />);
       const buttons = screen.getAllByRole('radio');
       buttons.forEach((button) => {
-        expect(button).toHaveAttribute('aria-disabled', 'true');
+        expect(button).toBeDisabled();
       });
     });
   });
@@ -285,8 +285,8 @@ describe('BrandPerformanceChart', () => {
 
     it('renders color indicator for each metric', () => {
       const { container } = render(<BrandPerformanceChart data={mockData} />);
-      const roundedElements = container.querySelectorAll('.rounded-full');
-      expect(roundedElements.length).toBe(6);
+      const colorDots = container.querySelectorAll('.size-3.rounded-full');
+      expect(colorDots.length).toBe(3);
     });
   });
 

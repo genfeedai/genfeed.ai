@@ -147,7 +147,7 @@ describe('ModalPostPlatformsTab', () => {
     const preview = screen.getByLabelText('Platform preview');
     expect(within(preview).getByText('Instagram launch copy')).toBeVisible();
 
-    fireEvent.click(screen.getByRole('radio', { name: 'X (Twitter)' }));
+    fireEvent.click(screen.getByRole('radio', { name: '@genfeed-x, X' }));
 
     expect(
       screen.getByRole('article', { name: 'X (Twitter) platform preview' }),

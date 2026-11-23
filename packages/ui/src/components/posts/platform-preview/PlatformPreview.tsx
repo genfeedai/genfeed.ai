@@ -5,6 +5,7 @@ import type {
   PlatformPreviewProps,
   PlatformPreviewRenderer,
 } from '@genfeedai/props/components/platform-preview.props';
+import AccountPicker from '@ui/display/connected-account/AccountPicker';
 import { PreviewPresentation } from '@ui/posts/platform-preview/PlatformPreview.context';
 import {
   buildPostTargets,
@@ -28,9 +29,6 @@ import InstagramPreviewRenderer, {
   TikTokPreviewRenderer,
   YouTubePreviewRenderer,
 } from '@ui/posts/platform-preview/PlatformPreviewVisual';
-import { formatHandle } from '@ui/posts/platform-preview/platform-preview.helpers';
-import { getPlatformPreviewIcon } from '@ui/posts/platform-preview/platform-preview-icons';
-import { SegmentedControl } from '@ui/primitives/segmented-control';
 import { useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
 
@@ -165,12 +163,9 @@ export default function PlatformPreview({
       aria-label={translate('label')}
     >
       {resolvedTargets.length > 1 ? (
-        <SegmentedControl
-          appearance="chip"
+        <AccountPicker
           ariaLabel={translate('targetsLabel')}
-          onValueChange={setSelectedTargetId}
-          options={resolvedTargets.map((item) => {
-            const Icon = getPlatformPreviewIcon(item.platform);
+          items={resolvedTargets.map((item) => {
             const hasMultipleAccounts =
               resolvedTargets.filter(
                 (candidate) =>
@@ -179,25 +174,20 @@ export default function PlatformPreview({
               ).length > 1;
 
             return {
-              icon: <Icon />,
-              label: (
-                <>
-                  {item.platformLabel}
-                  {hasMultipleAccounts ? (
-                    <span className="text-muted-foreground">
-                      {item.author?.handle
-                        ? formatHandle(item.author.handle)
-                        : item.author?.name ||
-                          translate('account', {
-                            count: resolvedTargets.indexOf(item) + 1,
-                          })}
-                    </span>
-                  ) : null}
-                </>
-              ),
-              value: item.id,
+              avatarUrl: item.author?.avatarUrl,
+              handle: item.author?.handle,
+              id: item.id ?? '',
+              name:
+                item.author?.name ||
+                (hasMultipleAccounts
+                  ? translate('account', {
+                      count: resolvedTargets.indexOf(item) + 1,
+                    })
+                  : undefined),
+              platform: item.platform,
             };
           })}
+          onValueChange={setSelectedTargetId}
           value={activeTarget.id}
         />
       ) : null}
