@@ -200,7 +200,7 @@ export default defineConfig({
     },
     globals: true,
     hookTimeout: 30_000,
-    include: ['**/*.test.{ts,tsx}'],
+    include: ['**/*.test.{ts,tsx}', '**/*.model.spec.ts'],
     passWithNoTests: true,
     setupFiles: ['./tests/setup.ts'],
     testTimeout: 15_000,

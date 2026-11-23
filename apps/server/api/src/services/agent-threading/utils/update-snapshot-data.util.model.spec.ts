@@ -18,7 +18,7 @@ import {
   explore,
   type Scenario,
   type Simulation,
-} from '@api-test/model-checking/interleaving-explorer';
+} from '@genfeedai/utils/model-checking/interleaving-explorer';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
