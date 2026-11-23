@@ -4,6 +4,7 @@
  * control that started the mutation and to lock the rest.
  */
 export const RELEASE_RESCHEDULE_ACTION = 'release:reschedule';
+export const RELEASE_CAMPAIGN_ACTION = 'release:campaign';
 export const RELEASE_RESUME_ACTION = 'release:resume';
 
 export function targetRescheduleAction(targetId: string): string {
