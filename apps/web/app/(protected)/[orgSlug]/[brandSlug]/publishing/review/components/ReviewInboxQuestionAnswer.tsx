@@ -2,6 +2,7 @@
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { Button } from '@ui/primitives/button';
+import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
 import { useTranslations } from 'next-intl';
 import { type FormEvent, useState } from 'react';
@@ -73,7 +74,11 @@ export default function ReviewInboxQuestionAnswer({
         </span>
       ) : null}
       {takesText ? (
-        <form className="flex min-w-0 items-center gap-2" onSubmit={submitText}>
+        <Form
+          className="flex min-w-0 flex-row items-center gap-2"
+          onSubmit={submitText}
+          spacing="none"
+        >
           <Input
             aria-label={translate('questionAnswerLabel')}
             isDisabled={isDisabled}
@@ -88,7 +93,7 @@ export default function ReviewInboxQuestionAnswer({
             type="submit"
             variant={ButtonVariant.DEFAULT}
           />
-        </form>
+        </Form>
       ) : null}
     </span>
   );
