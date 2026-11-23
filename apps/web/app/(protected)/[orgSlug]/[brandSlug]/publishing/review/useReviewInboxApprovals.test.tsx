@@ -255,8 +255,7 @@ describe('useReviewInboxApprovals', () => {
     expect(result.current.decidingItemId).toBeNull();
   });
 
-  it('answers an agent question through its thread, reports it and reloads', async () => {
-    fixture.answerQuestion.mockResolvedValue(undefined);
+  it('answers an agent question through its thread and drops the row it reloads', async () => {
     const question = item({
       id: 'agent_input_request:thread-1:req-tone',
       kind: 'agent_input_request',
@@ -271,10 +270,14 @@ describe('useReviewInboxApprovals', () => {
       },
       source: 'agent',
     });
+    fixture.answerQuestion.mockResolvedValue(undefined);
+    fixture.getPendingItems
+      .mockResolvedValueOnce([gate, approval, question])
+      .mockResolvedValue([gate, approval]);
     const { result } = renderHook(() => useReviewInboxApprovals(), {
       wrapper,
     });
-    await waitFor(() => expect(result.current.items).toHaveLength(2));
+    await waitFor(() => expect(result.current.items).toHaveLength(3));
 
     await act(() =>
       result.current.onAnswer(question, {
@@ -283,21 +286,24 @@ describe('useReviewInboxApprovals', () => {
       }),
     );
 
-    expect(fixture.answerQuestion).toHaveBeenCalledWith({
-      answer: 'Playful',
-      optionIds: ['playful'],
-      requestId: 'req-tone',
-      threadId: 'thread-1',
-    });
-    expect(fixture.notificationSuccess).toHaveBeenCalledWith(
-      'Answer sent. The agent continues.',
-    );
-    expect(fixture.getPendingItems).toHaveBeenCalledTimes(2);
+    await waitFor(() => expect(result.current.items).toEqual([gate, approval]));
+    expect(fixture.answerQuestion.mock.calls).toEqual([
+      [
+        {
+          answer: 'Playful',
+          optionIds: ['playful'],
+          requestId: 'req-tone',
+          threadId: 'thread-1',
+        },
+      ],
+    ]);
+    expect(fixture.notificationSuccess.mock.calls).toEqual([
+      ['Answer sent. The agent continues.'],
+    ]);
     expect(result.current.decidingItemId).toBeNull();
   });
 
-  it('reports a failed answer and reloads the server state', async () => {
-    fixture.answerQuestion.mockRejectedValue(new Error('already answered'));
+  it('reports a failed answer and shows the server state again', async () => {
     const question = item({
       id: 'agent_input_request:thread-1:req-tone',
       kind: 'agent_input_request',
@@ -312,16 +318,21 @@ describe('useReviewInboxApprovals', () => {
       },
       source: 'agent',
     });
+    fixture.answerQuestion.mockRejectedValue(new Error('already answered'));
+    fixture.getPendingItems
+      .mockResolvedValueOnce([gate, approval, question])
+      .mockResolvedValue([gate, approval]);
     const { result } = renderHook(() => useReviewInboxApprovals(), {
       wrapper,
     });
-    await waitFor(() => expect(result.current.items).toHaveLength(2));
+    await waitFor(() => expect(result.current.items).toHaveLength(3));
 
     await act(() => result.current.onAnswer(question, { answer: 'Playful' }));
 
-    expect(fixture.notificationError).toHaveBeenCalled();
-    expect(fixture.notificationSuccess).not.toHaveBeenCalled();
-    expect(fixture.getPendingItems).toHaveBeenCalledTimes(2);
+    await waitFor(() => expect(result.current.items).toEqual([gate, approval]));
+    expect(fixture.notificationError.mock.calls).toHaveLength(1);
+    expect(fixture.notificationSuccess.mock.calls).toEqual([]);
+    expect(result.current.decidingItemId).toBeNull();
   });
 
   it('flags an approval deep link whose row is no longer pending', async () => {
