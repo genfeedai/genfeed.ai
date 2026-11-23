@@ -331,9 +331,8 @@ describe('hosted SaaS on-demand seed contract', () => {
     expect(seed).toContain('          - linkedin-credential-report');
     expect(seed).toContain('          - release-health-report');
     expect(seed).toContain('          - approvals-page-report');
-    expect(seed).toContain('          - post-media-report');
     expect(seed).toContain(
-      '            backfill-report | webhook-id-report | instagram-reconnect-report | storyboard-unbilled-report | linkedin-credential-report | release-health-report | approvals-page-report | post-media-report)',
+      '            backfill-report | webhook-id-report | instagram-reconnect-report | storyboard-unbilled-report | linkedin-credential-report | release-health-report | approvals-page-report)',
     );
     expect(seed).toContain('migrate_task_definition_arn');
     expect(reader).toContain("await client.query('BEGIN READ ONLY');");
@@ -346,9 +345,6 @@ describe('hosted SaaS on-demand seed contract', () => {
     expect(reader).toContain("op ->> 'billing' = 'released'");
     expect(reader).toContain('pg_column_size(t.*)');
     expect(reader).toContain(`c."platform" = 'LINKEDIN'`);
-    expect(reader).toContain(
-      'LEFT JOIN post_ingredients l ON l."postId" = p.id',
-    );
     expect(reader).toContain(`"canonicalId" = 'scheduled-post.publish'`);
     expect(reader).toContain(`"purgeAt" <= (now() AT TIME ZONE 'UTC')`);
     expect(reader).not.toMatch(
@@ -379,19 +375,19 @@ describe('hosted SaaS on-demand seed contract', () => {
       .slice(start, seed.indexOf('const name = process.argv[1];', start))
       .split('\n')
       .filter((line) =>
-        /^\s+'(storyboard-unbilled|linkedin-credential|release-health|approvals-page|post-media|backfill)-report': /.test(
+        /^\s+'(storyboard-unbilled|linkedin-credential|release-health|approvals-page|backfill)-report': /.test(
           line,
         ),
       );
 
-    expect(reports).toHaveLength(6);
+    expect(reports).toHaveLength(5);
     for (const line of reports) expect(line).toMatch(/LIMIT \d+[`'],?$/);
   });
 
   test('report seeds select the migrate task and override its command with the reader', async () => {
     const seed = await workflow('seed-hosted-saas.yml');
     const start = seed.indexOf(
-      '            backfill-report | webhook-id-report | instagram-reconnect-report | storyboard-unbilled-report | linkedin-credential-report | release-health-report | approvals-page-report | post-media-report)\n',
+      '            backfill-report | webhook-id-report | instagram-reconnect-report | storyboard-unbilled-report | linkedin-credential-report | release-health-report | approvals-page-report)\n',
     );
     const branch = seed.slice(start, seed.indexOf('              ;;', start));
 
