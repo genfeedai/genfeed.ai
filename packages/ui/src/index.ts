@@ -106,11 +106,9 @@ export const semanticColorRoleList: readonly SemanticColorRole[] =
 
 // Utilities
 export { cn } from '@genfeedai/helpers';
-// Shared UI components (Paperclip design system)
+// Shared dashboard, identity and issue-status components
 export { ActivityRow } from './dashboard/ActivityRow';
 export { Identity } from './identity/Identity';
-export { IssueRow } from './issues/IssueRow';
-export { PriorityIcon } from './issues/PriorityIcon';
 export { StatusIcon } from './issues/StatusIcon';
 export { useMounted } from './lib/hooks';
 // Primitives (Radix UI based)
@@ -121,8 +119,6 @@ export {
   ConversationSidebarSection,
   conversationSidebarRowClassName,
 } from './sidebar/ConversationSidebar';
-export { SidebarNavItem } from './sidebar/SidebarNavItem';
-export { SidebarSection } from './sidebar/SidebarSection';
 export type { StatusKey } from './tokens/status-colors';
 // Status & priority color tokens
 export {
