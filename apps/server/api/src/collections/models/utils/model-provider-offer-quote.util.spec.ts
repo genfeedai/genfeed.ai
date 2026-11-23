@@ -1,4 +1,8 @@
 import { findModelProviderOfferQuote } from '@api/collections/models/utils/model-provider-offer-quote.util';
+import {
+  KIE_MINIMAX_H3_IMAGE_INPUT_SCHEMA,
+  KIE_MINIMAX_H3_TEXT_INPUT_SCHEMA,
+} from '@api/seeds/model-provider-offers.seed';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   findReviewedRateSheetEntry,
@@ -249,5 +253,140 @@ describe('Kling v3 routing to fal', () => {
     expect(
       (await quote({ duration: 5, mode: '4k', prompt: 'Sunrise' }))?.provider,
     ).toBe('replicate');
+  });
+});
+
+describe('MiniMax H3 routing to kie', () => {
+  const TEXT = 'minimax-h3/text-to-video';
+  const IMAGE = 'minimax-h3/image-to-video';
+  const FRAME = 'https://example.com/first.png';
+
+  /** A registration priced from its real rate-sheet entry. */
+  function reviewed(id: string, provider: string, endpoint: string) {
+    const offer = registration(id, provider, 0);
+    const entry = findReviewedRateSheetEntry(provider, endpoint);
+    if (!entry) throw new Error(`missing ${provider} rate for ${endpoint}`);
+    offer.key = endpoint;
+    offer.endpoint = endpoint;
+    offer.providerContracts[0] = {
+      ...offer.providerContracts[0],
+      endpoint,
+      pricing: {
+        ...offer.providerContracts[0].pricing,
+        rates:
+          entry.rates as (typeof offer.providerContracts)[0]['pricing']['rates'],
+      },
+    };
+    return offer;
+  }
+
+  function h3Fixture(isKieActive = true) {
+    const replicate = reviewed('replicate-h3', 'replicate', 'minimax/h3');
+    replicate.providerInputSchema = {
+      type: 'object',
+      properties: {
+        duration: { type: 'integer' },
+        first_frame_image: { type: 'string' },
+        prompt: { type: 'string' },
+        ratio: { type: 'string' },
+        reference_image_urls: { type: 'array' },
+        resolution: { type: 'string' },
+      },
+      required: ['prompt'],
+      additionalProperties: false,
+    } as typeof replicate.providerInputSchema;
+    const kieText = {
+      ...reviewed('kie-text', 'kie', TEXT),
+      providerInputSchema: KIE_MINIMAX_H3_TEXT_INPUT_SCHEMA,
+    };
+    const kieImage = {
+      ...reviewed('kie-image', 'kie', IMAGE),
+      providerInputSchema: KIE_MINIMAX_H3_IMAGE_INPUT_SCHEMA,
+    };
+    const offers = [replicate, kieText, kieImage].map(
+      (executionModel, priority) => ({
+        id: executionModel.id,
+        executionModel,
+        isActive: true,
+        priority,
+      }),
+    );
+    const prisma = {
+      model: {
+        findFirst: vi.fn().mockResolvedValue({
+          ...replicate,
+          pinnedProvider: null,
+          providerOffers: offers,
+        }),
+      },
+      providerRoutingSetting: {
+        findMany: vi
+          .fn()
+          .mockResolvedValue(isKieActive ? [] : [{ provider: 'kie' }]),
+      },
+    } as unknown as PrismaService;
+    return (providerInput: Record<string, unknown>) =>
+      findModelProviderOfferQuote(prisma, replicate.key, 'org-1', {
+        duration: 5,
+        providerInput,
+      });
+  }
+
+  const BASE = {
+    duration: 5,
+    prompt: 'Sunrise',
+    reference_image_urls: [],
+    resolution: '2K',
+  };
+
+  it.each([
+    ['a text request at 2K', { ...BASE, ratio: '16:9' }, TEXT, 0.65],
+    [
+      'a text request at 768P',
+      { ...BASE, ratio: '9:16', resolution: '768P' },
+      TEXT,
+      0.4,
+    ],
+    [
+      'a first-frame request',
+      { ...BASE, first_frame_image: FRAME, ratio: 'adaptive' },
+      IMAGE,
+      0.65,
+    ],
+  ])(
+    'sends %s to kie, with Replicate (which costs twice as much) as the fallback',
+    async (_case, providerInput, endpoint, replicateCost) => {
+      const quote = await h3Fixture()(providerInput);
+
+      expect(quote?.routedDispatch).toMatchObject({
+        endpoint,
+        fallback: {
+          endpoint: 'minimax/h3',
+          provider: 'replicate',
+          providerCostUsd: replicateCost,
+        },
+        provider: 'kie',
+      });
+      expect(quote?.preparedProviderInput).toMatchObject({
+        duration: 5,
+        resolution: providerInput.resolution,
+      });
+    },
+  );
+
+  it('keeps reference images on Replicate', async () => {
+    const quote = await h3Fixture()({
+      ...BASE,
+      ratio: '16:9',
+      reference_image_urls: [FRAME],
+    });
+
+    expect(quote?.provider).toBe('replicate');
+  });
+
+  it('keeps every request on Replicate while kie is switched off', async () => {
+    const quote = await h3Fixture(false)({ ...BASE, ratio: '16:9' });
+
+    expect(quote?.provider).toBe('replicate');
   });
 });
