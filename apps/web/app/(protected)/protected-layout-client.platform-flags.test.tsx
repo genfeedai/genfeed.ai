@@ -76,6 +76,12 @@ vi.mock('./platform-module-route-gate', () => ({
     <section aria-label="Module route gate">{children}</section>
   ),
 }));
+vi.mock(
+  '@/components/providers/persisted-query-cache/PersistedQueryCacheGate',
+  () => ({
+    default: ({ children }: { children: ReactNode }) => children,
+  }),
+);
 vi.mock('@/components/layouts/protected/app-protected-layout', () => ({
   default: ({ children }: { children: ReactNode }) => children,
 }));
