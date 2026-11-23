@@ -17,6 +17,8 @@ const DEFAULT_MAX = 3;
 
 const OVERFLOW_CLASS =
   'flex size-8 shrink-0 items-center justify-center rounded-full bg-border text-2xs font-medium tabular-nums text-foreground/80 ring-2 ring-background';
+const STATIC_OVERFLOW_CLASS =
+  'flex h-6 min-w-6 shrink-0 items-center justify-center rounded-full bg-muted px-1.5 text-2xs font-medium tabular-nums text-foreground/80 ring-2 ring-card';
 
 /**
  * Connected accounts as overlapping avatars: the first `max` accounts with
@@ -27,8 +29,11 @@ const OVERFLOW_CLASS =
 export default function ConnectedAccountStack({
   className,
   emptyLabel = '-',
+  hasBadge = true,
+  isInteractive = true,
   items,
   max = DEFAULT_MAX,
+  size = 'md',
 }: ConnectedAccountStackProps) {
   if (items.length === 0) {
     return (
@@ -40,6 +45,29 @@ export default function ConnectedAccountStack({
 
   const visible = items.slice(0, max);
   const overflow = items.length - visible.length;
+
+  if (!isInteractive) {
+    return (
+      <span
+        aria-hidden="true"
+        className={cn('flex shrink-0 items-center -space-x-1.5', className)}
+      >
+        {visible.map((item) => (
+          <ConnectedAccountAvatar
+            account={item}
+            className="ring-2 ring-card"
+            hasBadge={hasBadge}
+            key={item.id}
+            size={size}
+          />
+        ))}
+        {overflow > 0 ? (
+          <span className={STATIC_OVERFLOW_CLASS}>+{overflow}</span>
+        ) : null}
+      </span>
+    );
+  }
+
   const summary = items
     .map((item) => getConnectedAccountText(item).primary)
     .join(', ');
@@ -61,8 +89,9 @@ export default function ConnectedAccountStack({
             <ConnectedAccountAvatar
               account={item}
               className="ring-2 ring-background"
+              hasBadge={hasBadge}
               key={item.id}
-              size="md"
+              size={size}
             />
           ))}
           {overflow > 0 ? (

@@ -35,4 +35,18 @@ describe('ConnectedAccountStack', () => {
     expect(screen.getByText('None')).toBeInTheDocument();
     expect(screen.queryByTestId('connected-account-stack')).toBeNull();
   });
+
+  it('draws the avatars without a button when it is not interactive', () => {
+    const { container } = render(
+      <ConnectedAccountStack
+        hasBadge={false}
+        isInteractive={false}
+        items={items}
+      />,
+    );
+
+    expect(screen.queryByTestId('connected-account-stack')).toBeNull();
+    expect(container.querySelector('button')).toBeNull();
+    expect(container).toHaveTextContent('+2');
+  });
 });
