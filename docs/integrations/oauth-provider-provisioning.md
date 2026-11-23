@@ -154,7 +154,11 @@ and [v26.0 migration changes](https://developers.facebook.com/docs/graph-api/cha
    `publish_video`. Facebook Page messaging is not part of the Genfeed inbox.
 4. Complete business verification and App Review for permissions that require
    them before enabling the connection for non-test users.
-5. Set `FACEBOOK_APP_ID`, `FACEBOOK_APP_SECRET`, `FACEBOOK_REDIRECT_URI`,
+5. A Facebook credential is one Page. When the connecting account manages one
+   Page it connects at once; with several, the callback page lists them and each
+   ticked Page becomes its own credential. A connection with no Page keeps the
+   user-level token (enough for Meta Ads) but cannot publish.
+6. Set `FACEBOOK_APP_ID`, `FACEBOOK_APP_SECRET`, `FACEBOOK_REDIRECT_URI`,
    `FACEBOOK_API_VERSION`, and
    `FACEBOOK_GRAPH_URL=https://graph.facebook.com`.
 

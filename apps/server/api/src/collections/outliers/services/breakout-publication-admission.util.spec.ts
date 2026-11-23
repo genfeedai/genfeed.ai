@@ -624,7 +624,7 @@ describe('fresh business evidence before native breakout publication', () => {
 
     it.each([
       ['image', Platform.YOUTUBE, 'format_unsupported_for_platform'],
-      ['video', Platform.FACEBOOK, 'platform_publishing_unavailable'],
+      ['video', Platform.PINTEREST, 'platform_publishing_unavailable'],
       ['short', Platform.LINKEDIN, 'format_unsupported_for_platform'],
     ] as const)(
       're-reads the channel catalog: a %s on %s is held as %s',

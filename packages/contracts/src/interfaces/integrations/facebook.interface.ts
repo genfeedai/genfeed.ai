@@ -45,3 +45,18 @@ export interface MetaPageListResponse {
   data?: FacebookPage[];
   paging?: { cursors?: { after?: string }; next?: string };
 }
+
+/** A Facebook Page the connected user manages. */
+export interface IFacebookManagedPage {
+  id: string;
+  name: string;
+  category?: string;
+  /** Page picture URL. */
+  picture?: string;
+}
+
+/** One Facebook Page a pending connection can choose. */
+export interface IFacebookPageCandidate extends IFacebookManagedPage {
+  /** Another live credential of the brand already holds this Page. */
+  isAlreadyConnected: boolean;
+}

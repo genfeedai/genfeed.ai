@@ -21,6 +21,8 @@ describe('breakout media format capability', () => {
     // Long-form blogs carry one featured image; Medium carries images inline only.
     ghost: ['image'],
     wordpress: ['image'],
+    // One photo or one video per Page post: no carousel.
+    facebook: ['image', 'video'],
     medium: [],
   };
 
@@ -45,14 +47,7 @@ describe('breakout media format capability', () => {
     },
   );
 
-  it.each([
-    'facebook',
-    'pinterest',
-    'reddit',
-    'mastodon',
-    'threads',
-    'not-a-platform',
-  ])(
+  it.each(['pinterest', 'reddit', 'mastodon', 'threads', 'not-a-platform'])(
     'holds %s as a platform the scheduler does not publish for',
     (platform) => {
       for (const format of FORMATS)

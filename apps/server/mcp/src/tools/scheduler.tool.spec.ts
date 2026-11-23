@@ -400,7 +400,7 @@ describe('handleSchedulerTool', () => {
   });
 
   it.each([
-    { providerKey: 'facebook', status: 'hidden' },
+    { providerKey: 'pinterest', status: 'hidden' },
     { providerKey: 'threads', status: 'planned' },
     { providerKey: 'twitter', status: 'supported' },
   ] as const)(
@@ -431,7 +431,7 @@ describe('handleSchedulerTool', () => {
                 isRetryable: false,
                 message:
                   status === 'hidden'
-                    ? 'Facebook scheduling is unavailable until live publishing is verified.'
+                    ? 'Pinterest scheduling is unavailable until live publishing is verified.'
                     : 'Threads scheduling is planned and is not available yet.',
                 scope: 'provider',
                 severity: 'error',

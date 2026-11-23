@@ -324,38 +324,19 @@ describe('FacebookPublisherService', () => {
       });
     });
 
-    describe('channel target settings', () => {
-      it('should publish to the page named by the setting', async () => {
-        // A brand can manage several pages on one credential, so the per-target
-        // setting picks the page and its access token, not the credential.
+    describe('connected Page', () => {
+      it('publishes to the Page the credential is connected to', async () => {
+        // A user can manage several Pages; the credential is bound to one, so
+        // its Page token is the one used.
         const otherPage = {
           accessToken: 'other-page-token',
           id: 'page-987654321',
           name: 'Other Page',
         };
         facebookService.getUserPages.mockResolvedValue([
-          mockPageResponse,
           otherPage,
+          mockPageResponse,
         ]);
-        facebookService.uploadImage.mockResolvedValue('fb-post-1');
-
-        const context = createPublishContext(mockImagePost, {
-          pageId: otherPage.id,
-        });
-
-        const result = await service.publish(context);
-
-        expect(result.success).toBe(true);
-        expect(facebookService.uploadImage).toHaveBeenCalledWith(
-          otherPage.id,
-          otherPage.accessToken,
-          expect.any(String),
-          expect.any(String),
-        );
-      });
-
-      it('should fall back to the credential page when unset', async () => {
-        // Releases scheduled before the setting existed carry no settings.
         facebookService.uploadImage.mockResolvedValue('fb-post-1');
 
         await service.publish(createPublishContext(mockImagePost));
@@ -368,17 +349,22 @@ describe('FacebookPublisherService', () => {
         );
       });
 
-      it('should fail when the selected page is not on the credential', async () => {
-        // A stale page selection must fail loudly instead of silently
-        // publishing to whichever page the credential happens to hold.
-        const context = createPublishContext(mockImagePost, {
-          pageId: 'page-not-managed',
-        });
+      it('fails when the credential is not bound to a managed Page', async () => {
+        // A connection made before Pages were chosen holds the user id, which
+        // is not a Page: the post must fail loudly instead of reaching another
+        // Page the user happens to manage.
+        facebookService.getUserPages.mockResolvedValue([mockPageResponse]);
+        const userLevelCredential = {
+          ...mockCredential,
+          externalId: 'user-profile-1',
+        } as CredentialDocument;
 
-        const result = await service.publish(context);
+        const result = await service.publish(
+          createPublishContext(mockImagePost, {}, userLevelCredential),
+        );
 
         expect(result.success).toBe(false);
-        expect(result.error).toContain('page access token not found');
+        expect(result.error).toContain('choose the Page to post to');
         expect(facebookService.uploadImage).not.toHaveBeenCalled();
       });
     });
@@ -504,7 +490,7 @@ describe('FacebookPublisherService', () => {
         const result = await service.publish(context);
 
         expect(result.success).toBe(false);
-        expect(result.error).toBe('Facebook page access token not found');
+        expect(result.error).toContain('Facebook page access token not found');
         expect(result.errorKind).toBe('channel_disconnected');
       });
     });

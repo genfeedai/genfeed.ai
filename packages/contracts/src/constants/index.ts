@@ -29,6 +29,7 @@ export * from './empty-states.constant';
 export * from './error-messages.constant';
 export * from './expert-path.constant';
 export * from './expert-positioning.constant';
+export * from './facebook.constant';
 export * from './feature-flags.constant';
 export * from './flux-3-image.constant';
 export * from './forwarded-request.constant';

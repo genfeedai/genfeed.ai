@@ -393,10 +393,10 @@ describe('CredentialPublishingReadinessService', () => {
 
       it.each([
         {
-          platform: CredentialPlatform.FACEBOOK,
+          platform: CredentialPlatform.PINTEREST,
           status: 'hidden',
           message:
-            'Facebook scheduling is unavailable until live publishing is verified.',
+            'Pinterest scheduling is unavailable until live publishing is verified.',
         },
         {
           platform: CredentialPlatform.THREADS,
@@ -467,9 +467,9 @@ describe('CredentialPublishingReadinessService', () => {
       });
 
       it('retains expired token and missing permission diagnostics alongside the channel restriction', async () => {
-        const readiness = await resolvePlatform(CredentialPlatform.FACEBOOK, {
+        const readiness = await resolvePlatform(CredentialPlatform.FANVUE, {
           accessTokenExpiry: new Date('2000-01-01T00:00:00.000Z'),
-          grantedScopes: ['pages_show_list'],
+          grantedScopes: ['read:self'],
           grantedScopesCapturedAt: new Date('2026-08-14T00:00:00.000Z'),
         });
 
@@ -498,14 +498,17 @@ describe('CredentialPublishingReadinessService', () => {
           classification: 'missing_permission_scope',
           correctiveAction: expect.any(String),
           details: {
-            grantedScopes: ['pages_show_list'],
-            missingScopes: ['pages_manage_posts'],
-            requiredScopes: ['pages_manage_posts'],
+            grantedScopes: ['read:self'],
+            missingScopes: ['write:media', 'write:post'],
+            requiredScopes: ['write:media', 'write:post'],
           },
         });
         expect(readiness?.diagnostics.at(-1)).toMatchObject({
           code: 'scheduler_channel_unavailable',
-          details: { capabilityStatus: 'hidden', credentialCanSchedule: false },
+          details: {
+            capabilityStatus: 'unsupported',
+            credentialCanSchedule: false,
+          },
         });
         expect(readiness?.requiredAction).toBe(
           'Choose a supported scheduling channel. Reconnecting this account does not enable scheduling.',
