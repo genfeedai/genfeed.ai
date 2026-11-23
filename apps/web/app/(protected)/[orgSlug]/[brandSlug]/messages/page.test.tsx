@@ -76,6 +76,7 @@ const mocks = vi.hoisted(() => ({
   suggestedReply: vi.fn(),
   replace: vi.fn(),
   syncFacebook: vi.fn(),
+  syncThreads: vi.fn(),
   syncInstagram: vi.fn(),
   syncInstagramDms: vi.fn(),
   syncLinkedIn: vi.fn(),
@@ -481,6 +482,7 @@ describe('SocialMessagesPage', () => {
       rejectDraft: vi.fn(),
       sendDm: vi.fn(),
       syncFacebook: mocks.syncFacebook,
+      syncThreads: mocks.syncThreads,
       syncInstagram: mocks.syncInstagram,
       syncInstagramDms: mocks.syncInstagramDms,
       syncLinkedIn: mocks.syncLinkedIn,
@@ -1195,6 +1197,26 @@ describe('SocialMessagesPage', () => {
       ),
     );
     expect(mocks.syncFacebook).toHaveBeenCalledTimes(1);
+  });
+
+  it('syncs a connected Threads account on the comments surface', async () => {
+    mocks.brandContext.brands[0].credentials = ['threads'].map((platform) => ({
+      id: `credential-${platform}`,
+      isConnected: true,
+      platform,
+    }));
+    render(<SocialMessagesPage />);
+
+    await screen.findByRole('button', { name: 'Sync inbox' });
+    await chooseFilter(userEvent.setup(), /^type/i, /^Comments/);
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Sync comments' }),
+    );
+
+    await waitFor(() =>
+      expect(mocks.syncThreads).toHaveBeenCalledWith(25, 'credential-threads'),
+    );
+    expect(mocks.syncThreads).toHaveBeenCalledTimes(1);
   });
 
   it('syncs the unified mailbox and keeps remaining platform enqueues after a partial failure', async () => {

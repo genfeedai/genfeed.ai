@@ -8,7 +8,7 @@ import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
-import { SegmentedControl } from '@ui/primitives/segmented-control';
+import { OptionTile, OptionTileGroup } from '@ui/primitives/option-tile';
 import { Textarea } from '@ui/primitives/textarea';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -91,16 +91,21 @@ function MotionProjectViewBody({
                 {current?.status} · {current?.progress ?? 0}%
               </span>
             </div>
-            <SegmentedControl
-              appearance="chip"
+            <OptionTileGroup
               ariaLabel={t('history')}
+              columns={2}
               onValueChange={selectRevision}
-              options={revisions.map((item) => ({
-                label: `${t('revision', { number: item.number })} · ${item.status}`,
-                value: item.id,
-              }))}
               value={revision?.id}
-            />
+            >
+              {revisions.map((item) => (
+                <OptionTile
+                  key={item.id}
+                  size="sm"
+                  title={`${t('revision', { number: item.number })} · ${item.status}`}
+                  value={item.id}
+                />
+              ))}
+            </OptionTileGroup>
             {(historyCursor === undefined
               ? project.nextRevisionCursor
               : historyCursor) != null && (

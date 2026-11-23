@@ -49,16 +49,6 @@ vi.mock('@/features/workflows/hooks/useNodeExecution', () => ({
   }),
 }));
 
-vi.mock('@/components/ui/client-formatted-date', () => ({
-  ClientFormattedDate: ({
-    fallback,
-    value,
-  }: {
-    fallback: string;
-    value?: string | null;
-  }) => <time>{value ?? fallback}</time>,
-}));
-
 vi.mock('@/features/workflows/components/ui/button', () => ({
   NodeButton: ({
     children,
@@ -421,7 +411,9 @@ describe('ReviewGateNode', () => {
 
     expect(screen.getByText('Approved')).toBeVisible();
     expect(screen.getByText(/Approved by Ada at/)).toBeVisible();
-    expect(screen.getByText('2026-05-20T07:00:00.000Z')).toBeVisible();
+    expect(
+      screen.getByText(/Approved by Ada at/).querySelector('time'),
+    ).toHaveAttribute('datetime', '2026-05-20T07:00:00.000Z');
 
     rerender(
       <ReviewGateNode

@@ -1,6 +1,6 @@
 import { Badge } from '@ui/primitives/badge';
+import DateText from '@ui/time/DateText';
 import { Text } from '@ui/typography/text';
-import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import type { TemplateSidebarProps as Props } from '@/features/admin/props/templates.props';
 import { DetailCard, MetadataRow } from './template-detail-helpers';
 
@@ -95,12 +95,12 @@ export default function TemplateSidebar({
         <div className="flex flex-col gap-2 text-sm">
           {createdAt && (
             <MetadataRow label="Created">
-              <ClientFormattedDate value={createdAt} />
+              <DateText value={createdAt} />
             </MetadataRow>
           )}
           {updatedAt && (
             <MetadataRow label="Updated">
-              <ClientFormattedDate value={updatedAt} />
+              <DateText value={updatedAt} />
             </MetadataRow>
           )}
         </div>

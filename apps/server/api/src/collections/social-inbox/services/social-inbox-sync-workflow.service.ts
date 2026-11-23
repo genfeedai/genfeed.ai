@@ -28,6 +28,7 @@ const SOCIAL_INBOX_SYNC_SURFACES: ReadonlyArray<
 > = [
   [Platform.YOUTUBE, SocialConversationType.COMMENT],
   [Platform.FACEBOOK, SocialConversationType.COMMENT],
+  [Platform.THREADS, SocialConversationType.COMMENT],
   [Platform.INSTAGRAM, SocialConversationType.COMMENT],
   [Platform.INSTAGRAM, SocialConversationType.DM],
   [Platform.TWITTER, SocialConversationType.COMMENT],
@@ -95,6 +96,12 @@ export class SocialInboxSyncWorkflowService implements OnModuleInit {
       [
         SOCIAL_INBOX_SYNC_ACTION_IDS.FACEBOOK_INBOX,
         this.socialInboxService.ingestFacebookInbox.bind(
+          this.socialInboxService,
+        ),
+      ],
+      [
+        SOCIAL_INBOX_SYNC_ACTION_IDS.THREADS_REPLIES,
+        this.socialInboxService.ingestThreadsReplies.bind(
           this.socialInboxService,
         ),
       ],

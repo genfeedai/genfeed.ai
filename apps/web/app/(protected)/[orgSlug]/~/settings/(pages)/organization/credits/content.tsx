@@ -15,12 +15,12 @@ import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { Progress } from '@ui/primitives/progress';
+import DateText from '@ui/time/DateText';
 import { Text } from '@ui/typography/text';
 import { Gift, TriangleAlert } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
-import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import { useSubscription } from '@/hooks/data/subscription/use-subscription/use-subscription';
 import { useDesktopRuntimeContext } from '@/hooks/ui/use-desktop-runtime-context/use-desktop-runtime-context';
 import AddCreditsCard from '../billing/add-credits-card';
@@ -180,12 +180,7 @@ function SettingsCreditsContent() {
               <>
                 {' '}
                 {translate('resets')}{' '}
-                <ClientFormattedDate
-                  format="date"
-                  locales="en-US"
-                  options={{ day: 'numeric', month: 'long' }}
-                  value={creditsBreakdown.cycleEndAt}
-                />
+                <DateText hasTime={false} value={creditsBreakdown.cycleEndAt} />
               </>
             ) : null}
           </Text>

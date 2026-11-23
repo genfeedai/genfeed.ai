@@ -14,10 +14,7 @@ describe('table dates guard', () => {
     ['formatDateInTimezone()', "formatDateInTimezone(row.at, 'UTC', 'short')"],
     ['toLocaleDateString()', 'row.at.toLocaleDateString()'],
     ['new Date().toLocaleString()', 'new Date(row.at).toLocaleString()'],
-    [
-      'ClientFormattedDate',
-      '<ClientFormattedDate format="date" value={row.at} />',
-    ],
+    ['DateText', '<DateText value={row.at} />'],
   ])('flags a column that formats with %s', (_name, body) => {
     expect(linesFlagged(body)).toEqual([3]);
   });
@@ -34,10 +31,6 @@ describe('table dates guard', () => {
 
   it.each([
     ['TableDateCell', '<TableDateCell value={row.createdAt} />'],
-    [
-      'a relative time',
-      '<ClientFormattedDate format="relative" value={row.at} />',
-    ],
     ['a number', "row.count.toLocaleString('en-US')"],
   ])('allows %s', (_name, body) => {
     expect(linesFlagged(body)).toEqual([]);

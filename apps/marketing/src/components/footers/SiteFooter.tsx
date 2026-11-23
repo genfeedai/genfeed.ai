@@ -9,7 +9,6 @@ import {
   YoutubeIcon,
 } from '@genfeedai/helpers/ui/icons/brands';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
-import CopyrightYear from '@web-components/footers/CopyrightYear';
 import NewsletterSubscribeForm from '@web-components/newsletter/NewsletterSubscribeForm';
 import { Mail } from 'lucide-react';
 import Image from 'next/image';
@@ -180,8 +179,7 @@ export default function SiteFooter({
         {/* Bottom Bar — on phones the legal links stack above the copyright */}
         <div className="flex flex-col-reverse items-start gap-4 border-t border-border py-6 text-xs text-muted-foreground md:flex-row md:items-center md:justify-between">
           <p>
-            &copy; <CopyrightYear fallback={String(new Date().getFullYear())} />{' '}
-            GENFEED.AI. ALL RIGHTS RESERVED.
+            &copy; {new Date().getFullYear()} GENFEED.AI. ALL RIGHTS RESERVED.
           </p>
 
           <div className="flex flex-col md:flex-row md:gap-6">

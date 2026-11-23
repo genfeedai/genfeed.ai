@@ -2,9 +2,9 @@
 
 import { CredentialPlatform, TargetExecutionState } from '@genfeedai/contracts';
 import { toConnectedAccount } from '@genfeedai/helpers/publisher/connected-account.helper';
-import ClientDateTime from '@ui/components/time/ClientDateTime';
 import ConnectedAccount from '@ui/display/connected-account/ConnectedAccount';
 import { Badge } from '@ui/primitives/badge';
+import DateText from '@ui/time/DateText';
 import { useTranslations } from 'next-intl';
 import { Fragment, type ReactNode } from 'react';
 import { isTikTokInboxDelivered } from '@/features/posts/detail/post-published.helper';
@@ -32,7 +32,6 @@ interface DestinationFact {
 export default function PostSidebarDestination({
   post,
   credential,
-  browserTimezone,
   isPublished,
 }: PostSidebarDestinationProps) {
   const translate = useTranslations('ui.postDetailInspector');
@@ -58,17 +57,12 @@ export default function PostSidebarDestination({
     facts.push({
       id: 'when',
       node: (
-        <ClientDateTime
-          value={whenValue}
-          prefix={
-            isPublished
-              ? translate('publishedPrefix')
-              : translate('scheduledPrefix')
-          }
-          format={(date) =>
-            date.toLocaleString('en-US', { timeZone: browserTimezone })
-          }
-        />
+        <>
+          {isPublished
+            ? translate('publishedPrefix')
+            : translate('scheduledPrefix')}
+          <DateText value={whenValue} />
+        </>
       ),
     });
   }

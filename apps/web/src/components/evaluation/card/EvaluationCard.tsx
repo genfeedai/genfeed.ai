@@ -10,12 +10,12 @@ import {
 } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import Card from '@ui/card/Card';
-import ClientDateTime from '@ui/components/time/ClientDateTime';
 import type { ProgressTone } from '@ui/primitives';
 import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { Progress } from '@ui/primitives/progress';
 import Spinner from '@ui/primitives/spinner';
+import DateText from '@ui/time/DateText';
 import { ArrowUp, ChevronDown, TriangleAlert } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
@@ -662,7 +662,8 @@ function EvaluationCardContent({
 
       {evaluation.updatedAt && (
         <div className="text-xs text-foreground/50 text-right">
-          <ClientDateTime value={evaluation.updatedAt} prefix="Evaluated " />
+          {translate('evaluatedPrefix')}
+          <DateText value={evaluation.updatedAt} />
         </div>
       )}
     </div>

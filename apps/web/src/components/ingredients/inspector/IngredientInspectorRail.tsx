@@ -346,7 +346,10 @@ export default function IngredientInspectorRail({
       </div>
 
       {isAgentAvailable && shelf !== LibraryShelf.FAILED ? (
-        <IngredientReviewPanel ingredient={ingredient} key={ingredient.id} />
+        <IngredientReviewPanel
+          ingredient={ingredient}
+          key={`review:${ingredient.id}`}
+        />
       ) : null}
 
       <dl className="flex flex-col divide-y divide-foreground/5">

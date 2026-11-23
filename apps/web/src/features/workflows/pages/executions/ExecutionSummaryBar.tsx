@@ -4,8 +4,8 @@ import { WorkflowExecutionStatus } from '@genfeedai/contracts';
 import { formatCreditCost } from '@genfeedai/contracts/constants';
 import type { WorkflowAccounting } from '@genfeedai/contracts/interfaces';
 import { Badge } from '@ui/primitives/badge';
+import DateText from '@ui/time/DateText';
 import { useTranslations } from 'next-intl';
-import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import type { ExecutionEtaDisplayState } from '@/features/workflows/utils/eta-display';
 
 type Props = {
@@ -49,7 +49,7 @@ export default function ExecutionSummaryBar({
             {translate('accounting.started')}
           </div>
           <div className="font-semibold">
-            <ClientFormattedDate value={startedAt} />
+            <DateText value={startedAt} />
           </div>
         </div>
         <div>

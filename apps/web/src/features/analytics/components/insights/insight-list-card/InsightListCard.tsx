@@ -2,12 +2,11 @@
 import { ButtonVariant, InsightImpact } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import Card from '@ui/card/Card';
-import ClientDateTime from '@ui/components/time/ClientDateTime';
 import { Badge, type BadgeProps } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { EmptyState } from '@ui/primitives/empty-state';
 import { Skeleton } from '@ui/primitives/skeleton';
-import { formatDistanceToNow } from 'date-fns';
+import DateText from '@ui/time/DateText';
 import { Lightbulb, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { memo } from 'react';
@@ -110,12 +109,7 @@ const InsightListCard = memo(function InsightListCard({
               )}
 
               <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
-                <ClientDateTime
-                  value={insight.createdAt}
-                  format={(date) =>
-                    formatDistanceToNow(date, { addSuffix: true })
-                  }
-                />
+                <DateText value={insight.createdAt} />
                 <span className="tabular-nums">
                   {translate('confidence', {
                     value: Math.round(insight.confidence),

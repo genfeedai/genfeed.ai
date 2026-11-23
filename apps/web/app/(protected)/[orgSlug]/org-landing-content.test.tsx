@@ -87,10 +87,6 @@ vi.mock('next/navigation', () => ({
   }),
 }));
 
-vi.mock('@/components/ui/client-formatted-date', () => ({
-  ClientFormattedDate: ({ value }: { value: string }) => <span>{value}</span>,
-}));
-
 const { default: OrgLandingContent } = await import('./org-landing-content');
 
 function createBrands(count: number) {
@@ -385,8 +381,10 @@ describe('OrgLandingContent', () => {
       'hover:shadow-border-strong',
     );
     expect(surface.className).not.toMatch(/hover:bg-/);
-    expect(moonrise).toHaveTextContent(
-      '@moonrise · 2 platforms · 2026-01-02T00:00:00.000Z',
+    expect(moonrise).toHaveTextContent('@moonrise · 2 platforms');
+    expect(moonrise.querySelector('time')).toHaveAttribute(
+      'datetime',
+      '2026-01-02T00:00:00.000Z',
     );
     expect(solar).toHaveTextContent('@solar');
     expect(solar).not.toHaveTextContent('platform');

@@ -9,7 +9,7 @@ import { cn } from '@helpers/formatting/cn/cn.util';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
-import { SegmentedControl } from '@ui/primitives/segmented-control';
+import { OptionTile, OptionTileGroup } from '@ui/primitives/option-tile';
 import { CreditCard } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
@@ -88,9 +88,9 @@ export default function CreditTopUpPanel({
         <div className="space-y-2">
           <p className="text-sm font-medium text-foreground">Amount</p>
           <div className="flex flex-wrap items-center gap-2">
-            <SegmentedControl
-              appearance="chip"
+            <OptionTileGroup
               ariaLabel={selectionLabels('creditAmount')}
+              columns="auto"
               onValueChange={(value) => {
                 if (value === CUSTOM_AMOUNT) {
                   setIsCustom(true);
@@ -99,27 +99,6 @@ export default function CreditTopUpPanel({
                 setIsCustom(false);
                 setSelectedUsd(Number(value));
               }}
-              options={[
-                ...PAYG_CREDIT_PACKS.map((pack) => ({
-                  ariaLabel: `Select ${pack.label} credit pack`,
-                  label: (
-                    <>
-                      <span className="font-semibold tabular-nums">
-                        {pack.label}
-                      </span>
-                      <span className="tabular-nums text-muted-foreground">
-                        {pack.credits.toLocaleString()} credits
-                      </span>
-                    </>
-                  ),
-                  value: String(pack.credits / PAYG_CREDITS_PER_USD),
-                })),
-                {
-                  ariaLabel: 'Select custom credit amount',
-                  label: <span className="font-semibold">Custom</span>,
-                  value: CUSTOM_AMOUNT,
-                },
-              ]}
               value={
                 isCustom
                   ? CUSTOM_AMOUNT
@@ -127,7 +106,28 @@ export default function CreditTopUpPanel({
                     ? undefined
                     : String(selectedUsd)
               }
-            />
+            >
+              {PAYG_CREDIT_PACKS.map((pack) => (
+                <OptionTile
+                  ariaLabel={`Select ${pack.label} credit pack`}
+                  className="w-auto"
+                  description={`${pack.credits.toLocaleString()} credits`}
+                  key={pack.label}
+                  layout="stack"
+                  size="sm"
+                  title={pack.label}
+                  value={String(pack.credits / PAYG_CREDITS_PER_USD)}
+                />
+              ))}
+              <OptionTile
+                ariaLabel="Select custom credit amount"
+                className="w-auto"
+                layout="stack"
+                size="sm"
+                title="Custom"
+                value={CUSTOM_AMOUNT}
+              />
+            </OptionTileGroup>
 
             {isCustom ? (
               <div
