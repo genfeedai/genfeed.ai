@@ -10,6 +10,7 @@ import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
+import { persistQueryMeta } from '@/lib/query-cache/persisted-query-cache';
 import type { PlatformTimeSeriesDataPoint } from '@/props/analytics/charts.props';
 
 const OVERVIEW_BOOTSTRAP_STALE_TIME_MS = 30_000;
@@ -99,6 +100,9 @@ export function useOverviewBootstrap(
     },
     enabled: shouldFetch,
     initialData,
+    // Kept on the device for the next reload; a review item's media link may be
+    // signed and short-lived, so it is left out of the copy.
+    meta: persistQueryMeta({ omitKeys: ['mediaUrl'] }),
     // The rail preview and the page read this under one key. A stale time of 0
     // made the second to mount refetch what the first had just read.
     staleTime: skipInitialFetch

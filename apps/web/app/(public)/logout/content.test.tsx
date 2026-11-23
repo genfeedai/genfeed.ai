@@ -5,6 +5,7 @@ import '@testing-library/jest-dom/vitest';
 
 const mocks = vi.hoisted(() => ({
   push: vi.fn(),
+  clearPersistedQueryCache: vi.fn().mockResolvedValue(undefined),
   resetAnalytics: vi.fn(),
   signOut: vi.fn().mockResolvedValue(undefined),
 }));
@@ -15,6 +16,10 @@ vi.mock('@genfeedai/auth-client', () => ({
 
 vi.mock('@/lib/analytics', () => ({
   resetAnalytics: mocks.resetAnalytics,
+}));
+
+vi.mock('@/lib/query-cache/persisted-query-cache', () => ({
+  clearPersistedQueryCache: mocks.clearPersistedQueryCache,
 }));
 
 vi.mock('next/navigation', () => ({
@@ -39,6 +44,7 @@ describe('LogoutPage', () => {
     await waitFor(() => {
       expect(mocks.push).toHaveBeenCalledWith('/login');
     });
+    expect(mocks.clearPersistedQueryCache).toHaveBeenCalledOnce();
     expect(mocks.resetAnalytics).toHaveBeenCalledOnce();
     expect(mocks.resetAnalytics.mock.invocationCallOrder[0]).toBeLessThan(
       mocks.signOut.mock.invocationCallOrder[0] as number,

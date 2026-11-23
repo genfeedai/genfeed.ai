@@ -5,6 +5,7 @@ import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { TasksService } from '@services/management/tasks.service';
 import { useQuery } from '@tanstack/react-query';
+import { persistQueryMeta } from '@/lib/query-cache/persisted-query-cache';
 
 /**
  * The rail and menu badge polls on every page and only needs the unread count,
@@ -26,6 +27,7 @@ export function useWorkspaceInboxCount(): number {
         countOnly: true,
       });
     },
+    meta: persistQueryMeta(),
     queryKey: ['workspace-inbox-read', userId, scopeId, 'count'],
     refetchInterval: 60_000,
   });

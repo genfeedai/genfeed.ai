@@ -10,6 +10,7 @@ import { useTranslations } from 'next-intl';
 import { useEffect } from 'react';
 import DesktopRuntimeKeepAlive from '@/components/desktop/DesktopRuntimeKeepAlive';
 import AppProtectedLayout from '@/components/layouts/protected/app-protected-layout';
+import PersistedQueryCacheGate from '@/components/providers/persisted-query-cache/PersistedQueryCacheGate';
 import WorkspaceFrameSkeleton from '@/components/shell/workspace-frame-skeleton/WorkspaceFrameSkeleton';
 import { useAuthUser } from '@/hooks/auth/use-auth-user';
 import { FeatureFlagProvider } from '@/hooks/feature-flags/provider';
@@ -64,11 +65,18 @@ export default function ProtectedLayoutClient({
       <RoutedOrganizationBoundary>
         {/* Outside the shell's error boundaries, which would swallow notFound(). */}
         <PlatformModuleRouteGate>
-          <AppProtectedLayout initialBootstrap={initialBootstrap}>
-            <RoutedOrganizationPageGate>
-              <ErrorBoundary presentation="inline">{children}</ErrorBoundary>
-            </RoutedOrganizationPageGate>
-          </AppProtectedLayout>
+          {/* Brings last visit's cached reads back before the shell mounts. */}
+          <PersistedQueryCacheGate
+            fallback={
+              <WorkspaceFrameSkeleton label={translatePending('loading')} />
+            }
+          >
+            <AppProtectedLayout initialBootstrap={initialBootstrap}>
+              <RoutedOrganizationPageGate>
+                <ErrorBoundary presentation="inline">{children}</ErrorBoundary>
+              </RoutedOrganizationPageGate>
+            </AppProtectedLayout>
+          </PersistedQueryCacheGate>
         </PlatformModuleRouteGate>
       </RoutedOrganizationBoundary>
     </FeatureFlagProvider>
