@@ -154,7 +154,11 @@ vi.mock('@ui/display/model-viewer/ModelViewer', () => ({
 }));
 
 vi.mock('@/features/library/review/ingredient-review-panel', () => ({
-  default: () => <div data-testid="review-panel" />,
+  default: ({ ingredient }: { ingredient: Pick<IIngredient, 'id'> }) => (
+    <section aria-label="Review" data-testid="review-panel">
+      {ingredient.id}
+    </section>
+  ),
 }));
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@ui/tests/next-intl.stub');
@@ -187,6 +191,43 @@ vi.mock('@/components/shell/use-available-rail-apps', () => ({
 describe('IngredientInspectorRail', () => {
   beforeEach(() => {
     useIngredientGenerationCost.mockReturnValue(null);
+  });
+
+  it('keeps one review section through inspector refreshes and asset changes', () => {
+    const { rerender } = render(
+      <IngredientInspectorRail
+        ingredient={{ ...ingredient, promptText: 'A red mug on a table' }}
+      />,
+    );
+    expect(screen.getAllByRole('region', { name: 'Review' })).toHaveLength(1);
+
+    rerender(
+      <IngredientInspectorRail
+        ingredient={{
+          ...ingredient,
+          metadataLabel: 'Updated apple',
+          promptText: 'A red mug on a table',
+        }}
+      />,
+    );
+    expect(screen.getAllByRole('region', { name: 'Review' })).toHaveLength(1);
+
+    rerender(
+      <IngredientInspectorRail
+        ingredient={{
+          ...ingredient,
+          id: 'asset-2',
+          promptText: 'A blue bowl on a table',
+        }}
+      />,
+    );
+    expect(screen.getAllByRole('region', { name: 'Review' })).toHaveLength(1);
+    expect(screen.getByRole('region', { name: 'Review' })).toHaveTextContent(
+      'asset-2',
+    );
+    expect(screen.getByRole('region', { name: 'Prompt' })).toHaveTextContent(
+      'A blue bowl on a table',
+    );
   });
 
   it('uses the refreshed authorized preview and keeps pending originals hidden', () => {
