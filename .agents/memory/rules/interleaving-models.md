@@ -5,7 +5,7 @@ type: feedback
 last_verified: 2026-11-22
 ---
 
-A claim, retry or promote protocol over Redis or Postgres gets a model beside the code, named `<file>.model.spec.ts`. It runs the real class against doubles whose every command is a step of `apps/server/api/test/model-checking/interleaving-explorer.ts`, so it tries every order of the steps, a crash before any step and a claim expiring at any moment.
+A claim, retry or promote protocol over Redis or Postgres gets a model beside the code, named `<file>.model.spec.ts`. It runs the real class against doubles whose every command is a step of `packages/utils/model-checking/interleaving-explorer.ts`, so it tries every order of the steps, a crash before any step and a claim expiring at any moment.
 
 **Why:** The #10791 audit and its fixes found the same mistake in about twenty places: a check followed by a write, a claim kept after a crash, an acknowledgement before the work finished. Each fix came with a test for the one order someone thought of. Two workers run side by side at every deploy, so the orders nobody thought of happen.
 
