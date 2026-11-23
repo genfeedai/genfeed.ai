@@ -27,6 +27,7 @@ type RegisteredAction = (request: RegisteredActionRequest) => Promise<unknown>;
 function createHarness() {
   const registeredActions = new Map<string, RegisteredAction>();
   const activitiesService = {
+    dispatch: vi.fn().mockResolvedValue(undefined),
     record: vi.fn().mockResolvedValue(undefined),
     findOne: vi.fn().mockResolvedValue(null),
   };
@@ -59,6 +60,12 @@ function createHarness() {
     notifyPublishUnverified: vi.fn().mockResolvedValue(undefined),
   };
   const prisma = {
+    brand: {
+      findFirst: vi.fn().mockResolvedValue({ label: 'Shayla' }),
+    },
+    organization: {
+      findFirst: vi.fn().mockResolvedValue({ label: 'Genfeed' }),
+    },
     post: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
     postProviderPublishReceipt: {
       findFirst: vi.fn().mockResolvedValue(null),
@@ -189,6 +196,61 @@ describe('ScheduledPostWorkflowService', () => {
       'ScheduledPostWorkflowService.finalize',
       { rethrowFailures: true },
     );
+  });
+
+  it('sends the operator one card per confirmed publish, naming the account', async () => {
+    const harness = createHarness();
+
+    await finalize(harness.registeredActions, TargetExecutionState.PUBLISHED, {
+      platform: 'instagram',
+      url: 'https://www.instagram.com/p/abc/',
+    });
+
+    expect(harness.activitiesService.dispatch).toHaveBeenCalledOnce();
+    const [input] = harness.activitiesService.dispatch.mock.calls[0] ?? [];
+    expect(input).toMatchObject({
+      deduplicationKey: 'message.post-published/post-1',
+      organizationId: 'org-1',
+      topic: 'operator.alerts',
+    });
+    expect(input.messages).toEqual([
+      {
+        destination: null,
+        message: {
+          action: 'post_published',
+          payload: {
+            brandLabel: 'Shayla',
+            caption: undefined,
+            organizationLabel: 'Genfeed',
+            platform: 'instagram',
+            postId: 'post-1',
+            url: 'https://www.instagram.com/p/abc/',
+          },
+          type: 'discord',
+        },
+      },
+    ]);
+  });
+
+  it('still repeats the post when the operator card cannot be recorded', async () => {
+    const harness = createHarness();
+    harness.activitiesService.dispatch.mockRejectedValue(new Error('db down'));
+
+    await finalize(harness.registeredActions, TargetExecutionState.PUBLISHED);
+
+    expect(harness.logger.error).toHaveBeenCalled();
+    expect(harness.repeatScheduler.scheduleNextRepeat).toHaveBeenCalled();
+  });
+
+  it('sends no operator card while a TikTok handoff is still publishing or for a provider draft', async () => {
+    const harness = createHarness();
+
+    await finalize(harness.registeredActions, TargetExecutionState.PUBLISHING);
+    await finalize(harness.registeredActions, TargetExecutionState.PUBLISHED, {
+      isProviderDraft: true,
+    });
+
+    expect(harness.activitiesService.dispatch).not.toHaveBeenCalled();
   });
 
   it('does not announce or repeat a published provider draft', async () => {

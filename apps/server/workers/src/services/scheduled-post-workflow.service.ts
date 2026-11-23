@@ -12,7 +12,11 @@ import {
   type SystemWorkflowActionRequest,
   SystemWorkflowRunnerService,
 } from '@api/collections/workflows/system-workflow-runner.service';
-import { PublishApprovalsService, type PublishResult } from '@api/index';
+import {
+  PublishApprovalsService,
+  type PublishResult,
+  scopedWhere,
+} from '@api/index';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import {
   ActivityEntityModel,
@@ -26,6 +30,7 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaService } from '@libs/prisma/prisma.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
+import * as Sentry from '@sentry/nestjs';
 import { PostRepeatSchedulerService } from '@workers/services/post-repeat-scheduler.service';
 import { SCHEDULED_POST_UNSETTLED_APPROVAL_MESSAGE } from '@workers/services/scheduled-post.constants';
 import { readPostString } from '@workers/services/scheduled-post.utils';
@@ -364,6 +369,71 @@ export class ScheduledPostWorkflowService implements OnModuleInit {
       if (!this.isUniqueConflict(error)) {
         throw error;
       }
+    }
+    await this.notifyOperatorOfPublish(post, result);
+  }
+
+  /**
+   * The operator's #posts card for a confirmed publish. Every publish path
+   * ends here (scheduler, MCP and web schedules, TikTok and YouTube status
+   * sweeps), so the card cannot depend on how the post was created. The
+   * deduplication key makes a replayed finalization send it once. Best effort:
+   * a failed card must never block the recurrence that follows.
+   */
+  private async notifyOperatorOfPublish(
+    post: PostEntity,
+    result: PublishResult,
+  ): Promise<void> {
+    const postId = post.id.toString();
+    try {
+      const organizationId = readPostString(post, ['organizationId']);
+      const brandId = readPostString(post, ['brandId']);
+      const [brand, organization] = await Promise.all([
+        organizationId && brandId
+          ? this.prisma.brand.findFirst({
+              select: { label: true },
+              where: scopedWhere(organizationId, { id: brandId }),
+            })
+          : null,
+        organizationId
+          ? this.prisma.organization.findFirst({
+              select: { label: true },
+              where: { id: organizationId, isDeleted: false },
+            })
+          : null,
+      ]);
+      await this.activityRecorder.dispatch({
+        deduplicationKey: `message.post-published/${postId}`,
+        messages: [
+          {
+            destination: null,
+            message: {
+              action: 'post_published',
+              payload: {
+                brandLabel: brand?.label,
+                caption: readPostString(post, ['description']),
+                organizationLabel: organization?.label,
+                platform: result.platform,
+                postId,
+                url: result.url || undefined,
+              },
+              type: 'discord',
+            },
+          },
+        ],
+        organizationId: organizationId ?? null,
+        source: { id: postId, type: 'post' },
+        topic: 'operator.alerts',
+      });
+    } catch (error: unknown) {
+      this.logger.error(
+        `${ScheduledPostWorkflowService.name} operator post card failed`,
+        {
+          error: getErrorMessage(error),
+          postId,
+        },
+      );
+      Sentry.captureException(error, { extra: { postId } });
     }
   }
 
