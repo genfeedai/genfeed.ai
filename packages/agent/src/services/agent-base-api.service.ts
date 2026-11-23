@@ -9,7 +9,7 @@ import {
   type JsonApiResponseDocument,
 } from '@helpers/data/json-api/json-api.helper';
 import { getGenerationEntryHeaders } from '@services/core/generation-entry-headers';
-import { getRequestOrganizationHeaders } from '@services/core/interceptor.service';
+import { whenRequestOrganizationSettled } from '@services/core/interceptor.service';
 
 export interface AgentApiConfig {
   baseUrl: string;
@@ -41,6 +41,9 @@ export class AgentBaseApiService {
   async headers(options?: {
     forceRefresh?: boolean;
   }): Promise<Record<string, string>> {
+    // Wait for the organization first: no token is minted for a request the
+    // gate will not release.
+    const organizationHeaders = await whenRequestOrganizationSettled();
     let token: string | null;
 
     try {
@@ -55,7 +58,7 @@ export class AgentBaseApiService {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       ...getGenerationEntryHeaders(),
-      ...getRequestOrganizationHeaders(),
+      ...organizationHeaders,
     };
 
     if (token) {

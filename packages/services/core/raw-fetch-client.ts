@@ -1,4 +1,4 @@
-import { getRequestOrganizationHeaders } from '@services/core/interceptor.service';
+import { whenRequestOrganizationSettled } from '@services/core/interceptor.service';
 import {
   deserializeCollection,
   deserializeResource,
@@ -28,7 +28,7 @@ export abstract class RawFetchClient {
     const response = await fetch(`${this.baseURL}${endpoint}`, {
       body: body ? JSON.stringify(body) : undefined,
       headers: {
-        ...getRequestOrganizationHeaders(),
+        ...(await whenRequestOrganizationSettled()),
         Authorization: `Bearer ${this.token}`,
         ...(body ? { 'Content-Type': 'application/json' } : {}),
       },

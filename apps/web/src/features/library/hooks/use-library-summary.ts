@@ -3,7 +3,7 @@
 import { LIBRARY_ASSETS_REFRESH_EVENT } from '@genfeedai/contracts/constants';
 import type { ILibrarySummary } from '@genfeedai/contracts/interfaces';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
-import { getRequestOrganizationHeaders } from '@genfeedai/services/core/interceptor.service';
+import { whenRequestOrganizationSettled } from '@genfeedai/services/core/interceptor.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
@@ -59,6 +59,7 @@ export function useLibrarySummary({
     enabled: isFetchReady && isEnabled,
     queryFn: async ({ signal }) => {
       try {
+        const organizationHeaders = await whenRequestOrganizationSettled();
         const token = await resolveAuthToken(getToken);
         const url = new URL(
           `${EnvironmentService.apiEndpoint}/ingredients/summary`,
@@ -72,7 +73,7 @@ export function useLibrarySummary({
         const response = await fetch(url.toString(), {
           headers: token
             ? {
-                ...getRequestOrganizationHeaders(),
+                ...organizationHeaders,
                 Authorization: `Bearer ${token}`,
               }
             : undefined,

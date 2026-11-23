@@ -1,9 +1,10 @@
+import { requestOrganizationGate } from '@genfeedai/services/core/interceptor.service';
 import type { PlaywrightAuthState } from '@helpers/auth/auth.helper';
 import {
   useSocketManager,
   useSocketSubscriptions,
 } from '@hooks/utils/use-socket-manager/use-socket-manager';
-import { renderHook, waitFor } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const getPlaywrightAuthStateMock = vi.hoisted(() =>
@@ -62,7 +63,39 @@ describe('useSocketManager', () => {
     });
   });
 
-  afterEach(() => vi.unstubAllEnvs());
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    requestOrganizationGate.setUnscoped();
+  });
+
+  it('opens no socket while the organization is provisional, and opens one once it is confirmed', async () => {
+    requestOrganizationGate.setProvisional('org-a', 'user-1');
+
+    const { result } = renderHook(() => useSocketManager());
+    await new Promise((resolve) => setImmediate(resolve));
+
+    expect(socketManagerGetInstanceMock).not.toHaveBeenCalled();
+    expect(result.current.isReady).toBe(false);
+    expect(result.current.connectionState).toBe('offline');
+
+    act(() => requestOrganizationGate.setConfirmed('org-a'));
+
+    await waitFor(() => expect(result.current.isReady).toBe(true));
+    expect(socketManagerGetInstanceMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('opens no socket when the provisional organization is refused', async () => {
+    requestOrganizationGate.setProvisional('org-a', 'user-1');
+    const { result } = renderHook(() => useSocketManager());
+
+    act(() => requestOrganizationGate.setUnscoped());
+    await waitFor(() =>
+      expect(socketManagerGetInstanceMock).toHaveBeenCalled(),
+    );
+
+    // A refusal ends the provisional state; the sign-in state decides from here.
+    expect(result.current.isReady).toBe(true);
+  });
 
   it('keeps sockets disabled for ordinary Playwright fixtures', async () => {
     vi.stubEnv('NEXT_PUBLIC_PLAYWRIGHT_TEST', 'true');
