@@ -11,8 +11,7 @@ import type { ICredential } from '@genfeedai/contracts/interfaces/organization/c
 import { toConnectedAccount } from '@genfeedai/helpers/publisher/connected-account.helper';
 import type { FilterMenuFacet } from '@genfeedai/props/ui/forms/filter-menu.props';
 import type { UnifiedAdAccountOption } from '@services/ads/ads-research.service';
-import ConnectedAccountAvatar from '@ui/display/connected-account/ConnectedAccountAvatar';
-import { getConnectedAccountText } from '@ui/display/connected-account/connected-account.util';
+import { accountFilterOption } from '@ui/display/connected-account/account-filter-option';
 import FilterMenu from '@ui/navigation/filter-menu/FilterMenu';
 import { Input } from '@ui/primitives/input';
 import { useTranslations } from 'next-intl';
@@ -289,21 +288,9 @@ export function AdsResearchFilterMenu({
         onCredentialChange(value === NONE_VALUE ? '' : value),
       options: [
         { label: translate('noCredential'), value: NONE_VALUE },
-        ...credentialOptions.map((credential) => {
-          const account = toConnectedAccount(credential);
-          return {
-            icon: (
-              <ConnectedAccountAvatar
-                account={account}
-                isDecorative
-                size="xs"
-              />
-            ),
-            isLiteral: true,
-            label: getConnectedAccountText(account).primary,
-            value: credential.id,
-          };
-        }),
+        ...credentialOptions.map((credential) =>
+          accountFilterOption(toConnectedAccount(credential), credential.id),
+        ),
       ],
       selection: 'single',
       value: credentialId || NONE_VALUE,
