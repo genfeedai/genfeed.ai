@@ -5,6 +5,7 @@ import {
 } from '@api/collections/credits/services/credit-usage.util';
 import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
+import { EmailMediaUrlService } from '@api/services/email-media/email-media-url.service';
 import { EmailPerformanceService } from '@api/services/email-performance/email-performance.service';
 import { LowCreditThresholdService } from '@api/services/low-credit-threshold/low-credit-threshold.service';
 import { NotificationPreferenceService } from '@api/services/notifications/workflow-notifications/notification-preference.service';
@@ -38,6 +39,7 @@ import {
   buildContentRecapEmailBody,
   buildCreditAlertEmailBody,
   buildPublishingConnectionEmailBody,
+  formatCredits,
 } from '@helpers/email/system-email-templates.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { Traced } from '@libs/tracing/traced';
@@ -89,6 +91,7 @@ export class LifecycleEmailMaintenanceService implements OnModuleInit {
     private readonly freeTrialEmails: FreeTrialEmailsService,
     private readonly lowCreditThreshold: LowCreditThresholdService,
     private readonly work: LifecycleEmailWorkService,
+    private readonly emailMedia: EmailMediaUrlService,
   ) {}
 
   onModuleInit(): void {
@@ -383,7 +386,12 @@ export class LifecycleEmailMaintenanceService implements OnModuleInit {
         .map(({ id }) => `article:${id}`),
     ]);
     for (const key of publishedIds) ready.delete(key);
-    const previews = this.recapPreviews(ingredients, articles, destinationUrl);
+    const previews = this.recapPreviews(
+      ingredients,
+      articles,
+      destinationUrl,
+      request.organizationId,
+    );
     const bodyHtml = buildContentRecapEmailBody({
       creditsUsed,
       generated,
@@ -405,7 +413,7 @@ export class LifecycleEmailMaintenanceService implements OnModuleInit {
       key: `${weekly ? 'week' : 'day'}:${userId}:${start.toISOString()}`,
       subject: `Your Genfeed ${periodLabel}: ${generated} pieces created`,
       bodyHtml,
-      preheader: `${generated} created, ${publishedIds.size} published, ${creditsUsed.toLocaleString('en-US')} credits used.`,
+      preheader: `${generated} created, ${publishedIds.size} published, ${formatCredits(creditsUsed)} credits used.`,
       destinationUrl,
       actionLabel: missingConnection
         ? 'Connect and publish'
@@ -472,11 +480,16 @@ export class LifecycleEmailMaintenanceService implements OnModuleInit {
     }>,
     articles: Array<{ label: string; generationCompletedAt: Date | null }>,
     destinationUrl: string,
+    organizationId: string,
   ): EmailThumbnail[] {
     return [
       ...ingredients.map((item) => ({
         completedAt: item.generationCompletedAt,
-        thumbnail: this.ingredientThumbnail(item, destinationUrl),
+        thumbnail: this.ingredientThumbnail(
+          item,
+          destinationUrl,
+          organizationId,
+        ),
       })),
       ...articles.map((article) => ({
         completedAt: article.generationCompletedAt,
@@ -688,7 +701,11 @@ export class LifecycleEmailMaintenanceService implements OnModuleInit {
         ]);
       const waitingCount = waitingIngredientCount + waitingArticleCount;
       const waiting = waitingIngredients.map((ingredient) =>
-        this.ingredientThumbnail(ingredient, destinationUrl),
+        this.ingredientThumbnail(
+          ingredient,
+          destinationUrl,
+          request.organizationId,
+        ),
       );
       const period = completedEmailPeriod(now, true).end.toISOString();
       await this.queueProductEmail({
@@ -813,7 +830,7 @@ export class LifecycleEmailMaintenanceService implements OnModuleInit {
         isExhausted: exhausted,
         spendable,
       }),
-      preheader: `You have ${Math.max(0, spendable).toLocaleString('en-US')} credits available.`,
+      preheader: `You have ${formatCredits(Math.max(0, spendable))} credits available.`,
       destinationUrl: `${this.appUrl()}${createOrganizationAppRoute(encodeURIComponent(organization.slug), APP_ROUTES.SETTINGS.CREDITS)}`,
       actionLabel: 'Add credits',
       goal: 'buy_credits',
@@ -876,32 +893,20 @@ export class LifecycleEmailMaintenanceService implements OnModuleInit {
   }
 
   /**
-   * Preview tile for a generated asset. Images and video stills come from the
-   * public ingredients CDN by id; audio has no still and shows as a text tile.
-   * Once authorized media delivery is on those ids are private, and an email is
-   * opened long after any signed grant would expire, so it shows text tiles.
+   * Preview tile for a generated asset. An image or a video still shows through
+   * the stable email media link (a signed CDN URL would be dead by the time the
+   * email is opened); audio has no still and draws as a waveform tile.
    */
   private ingredientThumbnail(
     item: { id: string; category: string },
     href: string,
+    organizationId: string,
   ): EmailThumbnail {
-    const endpoint = this.config.isAuthorizedMediaDeliveryEnabled
-      ? undefined
-      : this.config.ingredientsEndpoint;
-    if (item.category === IngredientCategory.VIDEO) {
-      return {
-        href,
-        imageUrl: endpoint ? `${endpoint}/thumbnails/${item.id}` : null,
-        kind: 'video',
-      };
-    }
-    if (item.category === IngredientCategory.IMAGE) {
-      return {
-        href,
-        imageUrl: endpoint ? `${endpoint}/images/${item.id}` : null,
-        kind: 'image',
-      };
-    }
+    const imageUrl = this.emailMedia.previewUrl(item, organizationId);
+    if (item.category === IngredientCategory.VIDEO)
+      return { href, imageUrl, kind: 'video' };
+    if (item.category === IngredientCategory.IMAGE)
+      return { href, imageUrl, kind: 'image' };
     return { href, kind: 'audio' };
   }
 

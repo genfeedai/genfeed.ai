@@ -1,4 +1,5 @@
 import { WorkflowsCoreModule } from '@api/collections/workflows/workflows-core.module';
+import { EmailMediaModule } from '@api/services/email-media/email-media.module';
 import { EmailProductSignalsModule } from '@api/services/email-product-signals/email-product-signals.module';
 import { LowCreditThresholdModule } from '@api/services/low-credit-threshold/low-credit-threshold.module';
 import { NotificationsModule } from '@api/services/notifications/notifications.module';
@@ -17,6 +18,7 @@ import { LifecycleEmailsController } from './lifecycle-emails.controller';
   exports: [FreeTrialEmailsService, LifecycleEmailService],
   imports: [
     ConfigModule,
+    EmailMediaModule,
     // The organization workflow runs the product-signal steps as nodes, and
     // every process that registers it must also register their executors.
     EmailProductSignalsModule,

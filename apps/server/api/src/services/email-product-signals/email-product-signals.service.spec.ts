@@ -55,6 +55,7 @@ function fixture() {
     emails as never,
     config as never,
     {} as never,
+    { previewUrl: vi.fn().mockReturnValue(null) } as never,
   );
   return { service, prisma, emails };
 }
