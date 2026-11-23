@@ -6,6 +6,7 @@ import type {
 } from '@api/collections/images/services/image-generation.types';
 import type { ImageGenerationProviderRegistryService } from '@api/collections/images/services/image-generation-provider-registry.service';
 import { persistImageProviderOutput } from '@api/collections/images/services/persist-image-provider-output.util';
+import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
 import type { MetadataService } from '@api/collections/metadata/services/metadata.service';
 
 type ImageProviderDocument = Pick<
@@ -59,6 +60,15 @@ export async function prepareImageGenerationProvider(
         documents
           ? documents.map(({ ingredientData }) => ingredientData.id)
           : [target?.ingredientData.id ?? context.ingredientData.id],
+      );
+    },
+    onProviderJobQueued: async (externalRef) => {
+      const target = dependencies.getActiveDocument(context) ?? {
+        metadataData: context.metadataData,
+      };
+      await dependencies.metadataService.patch(
+        target.metadataData.id,
+        new MetadataEntity({ externalId: externalRef }),
       );
     },
     onProviderOutput: async (output) => {

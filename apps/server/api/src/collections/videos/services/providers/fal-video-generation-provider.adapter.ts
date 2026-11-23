@@ -14,6 +14,7 @@ import {
   type FalJsonSchema,
   FalSchemaFamily,
 } from '@api/services/integrations/fal/services/fal-contract';
+import { falEnqueueArgs } from '@api/services/integrations/fal/services/fal-request-ref';
 import type { ModelProvider } from '@genfeedai/contracts';
 import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
@@ -226,6 +227,7 @@ export class FalVideoGenerationProviderAdapter
       dispatch.input,
       params.apiKeyOverride,
       params.onProviderSubmissionStarted,
+      ...falEnqueueArgs(params.onProviderJobQueued),
     );
     return {
       completion: 'remote-output',
