@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
+import AuthPageFallback from '@/components/layouts/auth/AuthPageFallback';
 import LoginPage from './content';
 
 /**
@@ -26,7 +27,7 @@ export const metadata: Metadata = {
 
 export default function AppLoginPage() {
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<AuthPageFallback variant="login" />}>
       <LoginPage />
     </Suspense>
   );

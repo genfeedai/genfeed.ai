@@ -11,7 +11,7 @@ describe('TableDateCell', () => {
     vi.useRealTimers();
   });
 
-  it('shows a current-year date with its time on one line', () => {
+  it('shows a current-year date with its time on one line, with the full date in its tooltip', () => {
     render(<TableDateCell timeZone="UTC" value="2026-10-25T22:41:00Z" />);
 
     const time = screen.getByText('Oct 25, 10:41 PM');
@@ -46,8 +46,23 @@ describe('TableDateCell', () => {
     expect(screen.getByText('Oct 25')).toBeInTheDocument();
   });
 
-  it.each([null, undefined, 'not a date'])('renders a dash for %s', (value) => {
-    render(<TableDateCell timeZone="UTC" value={value} />);
+  it.each([null, undefined, 'not a date'])(
+    'says what an empty date means for %s, never a dash',
+    (value) => {
+      render(
+        <TableDateCell
+          emptyLabel="Not scheduled"
+          timeZone="UTC"
+          value={value}
+        />,
+      );
+
+      expect(screen.getByText('Not scheduled')).toBeInTheDocument();
+    },
+  );
+
+  it('renders a dash for an empty value by default', () => {
+    render(<TableDateCell timeZone="UTC" value={null} />);
 
     expect(screen.getByText('-')).toBeInTheDocument();
   });

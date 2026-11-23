@@ -36,7 +36,7 @@ import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagina
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
-import { SegmentedControl } from '@ui/primitives/segmented-control';
+import { OptionTile, OptionTileGroup } from '@ui/primitives/option-tile';
 import { SelectField } from '@ui/primitives/select';
 import Spinner from '@ui/primitives/spinner';
 import {
@@ -610,9 +610,9 @@ function AuthorizedApiKeysContent({
               <span className="mb-1.5 block text-xs text-muted-foreground">
                 {translate('fields.scopePreset')}
               </span>
-              <SegmentedControl
-                appearance="chip"
+              <OptionTileGroup
                 ariaLabel={translate('fields.scopePreset')}
+                columns={3}
                 onValueChange={(labelKey) => {
                   const preset = PRODUCT_API_KEY_PRESETS.find(
                     (entry) => entry.labelKey === labelKey,
@@ -621,17 +621,22 @@ function AuthorizedApiKeysContent({
                     handlePresetSelect(preset.levels);
                   }
                 }}
-                options={PRODUCT_API_KEY_PRESETS.map((preset) => ({
-                  label: translate(preset.labelKey),
-                  value: preset.labelKey,
-                }))}
-                size="sm"
                 value={
                   PRODUCT_API_KEY_PRESETS.find((preset) =>
                     levelsMatch(productForm.permissionLevels, preset.levels),
                   )?.labelKey
                 }
-              />
+              >
+                {PRODUCT_API_KEY_PRESETS.map((preset) => (
+                  <OptionTile
+                    key={preset.labelKey}
+                    layout="stack"
+                    size="sm"
+                    title={translate(preset.labelKey)}
+                    value={preset.labelKey}
+                  />
+                ))}
+              </OptionTileGroup>
             </div>
             <ApiKeyPermissionEditor
               levels={productForm.permissionLevels}

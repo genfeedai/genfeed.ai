@@ -9,28 +9,74 @@ import {
   test,
 } from '../../fixtures/auth.fixture';
 
-async function openPendingLogout(page: Page): Promise<() => void> {
-  let resolveSignOut: (() => void) | undefined;
+const BOOT_RECORD_KEY = 'genfeed:boot:v2';
+
+interface SignOutControl {
+  fail: () => void;
+  release: () => void;
+  requests: () => number;
+}
+
+/** Holds the sign-out request until the test answers it. */
+async function holdSignOut(page: Page): Promise<SignOutControl> {
+  let requests = 0;
+  let answer: 'ok' | 'error' | undefined;
+  let waiting: Array<() => void> = [];
 
   await page.route('**/v1/auth/sign-out**', async (route) => {
-    await new Promise<void>((resolve) => {
-      resolveSignOut = resolve;
-    });
-    await route.fulfill({
-      body: JSON.stringify({ success: true }),
-      contentType: 'application/json',
-      status: 200,
-    });
+    requests += 1;
+    if (answer === undefined) {
+      await new Promise<void>((resolve) => {
+        waiting.push(resolve);
+      });
+    }
+    await route.fulfill(
+      answer === 'error'
+        ? { body: '{}', contentType: 'application/json', status: 503 }
+        : {
+            body: JSON.stringify({ success: true }),
+            contentType: 'application/json',
+            status: 200,
+          },
+    );
   });
 
-  await page.goto(APP_ROUTES.LOGOUT);
-  await expect.poll(() => resolveSignOut).toBeDefined();
+  const settle = (next: 'ok' | 'error') => {
+    answer = next;
+    for (const resolve of waiting) {
+      resolve();
+    }
+    waiting = [];
+  };
 
-  if (!resolveSignOut) {
-    throw new Error('Expected the sign-out request to remain pending');
-  }
+  return {
+    fail: () => settle('error'),
+    release: () => settle('ok'),
+    requests: () => requests,
+  };
+}
 
-  return resolveSignOut;
+async function readDeviceStores(
+  page: Page,
+): Promise<{ bootRecord: string | null; cachedQueries: number }> {
+  return await page.evaluate(async (bootKey) => {
+    const cachedQueries = await new Promise<number>((resolve) => {
+      const open = indexedDB.open('genfeed-query-cache', 1);
+      open.onupgradeneeded = () => {
+        open.result.createObjectStore('snapshots');
+      };
+      open.onerror = () => resolve(0);
+      open.onsuccess = () => {
+        const count = open.result
+          .transaction('snapshots', 'readonly')
+          .objectStore('snapshots')
+          .count();
+        count.onsuccess = () => resolve(count.result);
+        count.onerror = () => resolve(0);
+      };
+    });
+    return { bootRecord: localStorage.getItem(bootKey), cachedQueries };
+  }, BOOT_RECORD_KEY);
 }
 
 /**
@@ -43,32 +89,72 @@ async function openPendingLogout(page: Page): Promise<() => void> {
  */
 test.describe('Logout Flow', () => {
   test.describe('Logout Route', () => {
-    test('should render the logout page shell', async ({
+    test('shows the sign-in page at once and unlocks it when sign-out answers', async ({
       authenticatedPage,
     }) => {
-      const resolveSignOut = await openPendingLogout(authenticatedPage);
+      const signOut = await holdSignOut(authenticatedPage);
 
-      await expect(authenticatedPage.getByText(/Signing out/)).toBeVisible();
-      expect(new URL(authenticatedPage.url()).pathname).toBe(APP_ROUTES.LOGOUT);
+      await authenticatedPage.goto(APP_ROUTES.LOGOUT);
+      await expect.poll(() => signOut.requests()).toBeGreaterThan(0);
 
-      resolveSignOut();
-      await expect
-        .poll(() => new URL(authenticatedPage.url()).pathname)
-        .toBe(APP_ROUTES.LOGIN);
+      const passwordLink = authenticatedPage.getByRole('link', {
+        name: 'Email / Password',
+      });
+      await expect(
+        authenticatedPage.getByRole('heading', { name: 'Welcome back' }),
+      ).toBeVisible();
+      await expect(authenticatedPage.getByText(/Signing out/)).toHaveCount(0);
+      await expect(passwordLink).toHaveAttribute('aria-disabled', 'true');
+
+      signOut.release();
+
+      await expect(passwordLink).not.toHaveAttribute('aria-disabled', 'true');
     });
 
-    test('should keep the logout shell visible while sign-out runs', async ({
+    test('tells the user when the session may still be active, and retries', async ({
       authenticatedPage,
     }) => {
-      const resolveSignOut = await openPendingLogout(authenticatedPage);
+      const signOut = await holdSignOut(authenticatedPage);
 
-      await expect(authenticatedPage.getByText(/Signing out/)).toBeVisible();
-      expect(new URL(authenticatedPage.url()).pathname).toBe(APP_ROUTES.LOGOUT);
+      await authenticatedPage.goto(APP_ROUTES.LOGOUT);
+      await expect.poll(() => signOut.requests()).toBeGreaterThan(0);
+      signOut.fail();
 
-      resolveSignOut();
+      await expect(
+        authenticatedPage.getByText(/may still be active on this device/),
+      ).toBeVisible();
+      // The first request and its one retry.
+      expect(signOut.requests()).toBe(2);
+      await expect(
+        authenticatedPage.getByRole('link', { name: 'Email / Password' }),
+      ).toHaveAttribute('aria-disabled', 'true');
+
+      signOut.release();
+      await authenticatedPage
+        .getByRole('button', { name: 'Try again' })
+        .click();
+
+      await expect(
+        authenticatedPage.getByRole('link', { name: 'Email / Password' }),
+      ).not.toHaveAttribute('aria-disabled', 'true');
+    });
+
+    test('leaves nothing of the user on the device', async ({
+      authenticatedPage,
+    }) => {
+      await authenticatedPage.goto(APP_ROUTES.WORKSPACE.OVERVIEW);
+      await expect(
+        authenticatedPage.getByTestId('app-content-shell'),
+      ).toBeVisible();
+
+      const signOut = await holdSignOut(authenticatedPage);
+      await authenticatedPage.goto(APP_ROUTES.LOGOUT);
+      await expect.poll(() => signOut.requests()).toBeGreaterThan(0);
+
+      // Cleared while the request is still held, not after it answers.
       await expect
-        .poll(() => new URL(authenticatedPage.url()).pathname)
-        .toBe(APP_ROUTES.LOGIN);
+        .poll(() => readDeviceStores(authenticatedPage))
+        .toEqual({ bootRecord: null, cachedQueries: 0 });
     });
 
     test('should clear authentication state on logout', async ({
@@ -218,20 +304,6 @@ test.describe('Logout Flow', () => {
   });
 
   test.describe('Logout Feedback', () => {
-    test('should show loading state during logout', async ({
-      authenticatedPage,
-    }) => {
-      const resolveSignOut = await openPendingLogout(authenticatedPage);
-
-      await expect(authenticatedPage.getByText(/Signing out/)).toBeVisible();
-      expect(new URL(authenticatedPage.url()).pathname).toBe(APP_ROUTES.LOGOUT);
-
-      resolveSignOut();
-      await expect
-        .poll(() => new URL(authenticatedPage.url()).pathname)
-        .toBe(APP_ROUTES.LOGIN);
-    });
-
     test('should show confirmation message on successful logout', async ({
       authenticatedPage,
     }) => {

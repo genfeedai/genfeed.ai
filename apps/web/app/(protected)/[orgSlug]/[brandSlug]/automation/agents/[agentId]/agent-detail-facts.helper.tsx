@@ -1,6 +1,6 @@
 import type { RecordFact } from '@genfeedai/props/ui/record-detail/record-fact-line.props';
 import type { AgentStrategy } from '@services/automation/agent-strategies.service';
-import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
+import DateText from '@ui/time/DateText';
 import type { AgentDetailFactLabels } from '@/features/automation/props/agent-detail-fact-labels.props';
 
 /**
@@ -29,14 +29,14 @@ export function buildAgentDetailFacts(
       id: 'nextRun',
       label: labels.nextRun,
       value: strategy.nextRunAt ? (
-        <ClientFormattedDate format="relative" value={strategy.nextRunAt} />
+        <DateText value={strategy.nextRunAt} />
       ) : undefined,
     },
     {
       id: 'lastRun',
       label: labels.lastRun,
       value: strategy.lastRunAt ? (
-        <ClientFormattedDate format="relative" value={strategy.lastRunAt} />
+        <DateText value={strategy.lastRunAt} />
       ) : undefined,
     },
   ];

@@ -9,6 +9,7 @@ import {
 import type { INotificationInboxItem } from '@genfeedai/contracts/interfaces';
 import { classifyGenerationFailure } from '@genfeedai/utils/media/generation-failure.util';
 import { Button } from '@ui/primitives/button';
+import DateText from '@ui/time/DateText';
 import {
   CircleAlert,
   CircleCheck,
@@ -19,7 +20,6 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
 import { useNotificationInbox } from '@/components/shell/use-notification-inbox';
-import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import { useActivityMessageFormatter } from '@/hooks/i18n/useActivityMessageFormatter';
 
 function alertIcon(item: INotificationInboxItem): ReactNode {
@@ -205,11 +205,9 @@ export default function NotificationInboxPanel({
                     <span className="min-w-0 truncate font-medium leading-5 text-foreground">
                       {title}
                     </span>
-                    <ClientFormattedDate
-                      value={item.occurredAt}
-                      format="relative"
-                      fallback=""
+                    <DateText
                       className="shrink-0 text-xs text-muted-foreground"
+                      value={item.occurredAt}
                     />
                   </span>
                   <span className="line-clamp-2 text-xs leading-4 text-muted-foreground">

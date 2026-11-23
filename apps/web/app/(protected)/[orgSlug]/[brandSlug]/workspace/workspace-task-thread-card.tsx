@@ -1,5 +1,5 @@
 import Card from '@ui/card/Card';
-import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
+import DateText from '@ui/time/DateText';
 import type { WorkspaceTaskThreadCardProps } from '@/features/workspace/props/workspace-task-thread-card.props';
 import {
   formatWorkspaceEventLabel,
@@ -30,7 +30,7 @@ export function WorkspaceTaskThreadCard({
                     <p className="font-medium text-foreground">
                       {formatWorkspaceEventLabel(event)}
                     </p>
-                    <ClientFormattedDate
+                    <DateText
                       className="text-xs text-muted-foreground"
                       value={event.timestamp}
                     />

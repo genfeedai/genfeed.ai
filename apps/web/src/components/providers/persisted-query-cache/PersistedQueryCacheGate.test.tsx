@@ -133,4 +133,34 @@ describe('PersistedQueryCacheGate', () => {
     expect(queryClient.getQueryData(['inbox'])).toBeUndefined();
     expect(state.record).not.toBeNull();
   });
+
+  it('keeps the tree mounted when an organization switch confirms a new scope', async () => {
+    const { storage } = createStorage(await savedRecord());
+    const queryClient = new QueryClient();
+    const tree = (
+      <QueryClientProvider client={queryClient}>
+        <PersistedQueryCacheGate fallback={<p>frame</p>} storage={storage}>
+          <p>app</p>
+        </PersistedQueryCacheGate>
+      </QueryClientProvider>
+    );
+
+    const { rerender } = render(tree);
+    const app = await screen.findByText('app');
+
+    // The member's own switch: nothing confirmed, then the new organization.
+    identity.organization = {
+      confirmedOrganizationId: null,
+      isRouteConfirmed: false,
+    };
+    rerender(tree);
+    identity.organization = {
+      confirmedOrganizationId: 'org-2',
+      isRouteConfirmed: true,
+    };
+    rerender(tree);
+
+    expect(screen.queryByText('frame')).toBeNull();
+    expect(screen.getByText('app')).toBe(app);
+  });
 });

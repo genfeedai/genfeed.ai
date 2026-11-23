@@ -140,6 +140,20 @@ and [v26.0 migration changes](https://developers.facebook.com/docs/graph-api/cha
    "Configure webhooks" on the "API setup with Unified login" tab. Meta only delivers webhooks for people
    without an app role once the app is live and the messaging permissions are
    approved.
+7. Hashtag trends use Instagram's official hashtag search, which needs the
+   **Instagram Public Content Access** feature (App Review and business
+   verification; the review recording shows a hashtag searched on the Trends
+   page and its media shown). Genfeed reads the top media of the hashtags a
+   brand tracks in its trend preferences (then its keywords) through
+   `ig_hashtag_search` and `top_media`, and stores that media as the trend's
+   preview, so no scraper is asked for those hashtags. Meta lets one account
+   query 30 unique hashtags in any rolling 7 days: Genfeed counts them per
+   connected account and spends at most 5 a refresh, hashtags already queried
+   this week first. An app without the feature records `access_required`, and
+   a spent week records `budget_exhausted`, in trend refresh health; neither
+   counts as a healthy refresh. Instagram does not return `media_url` for
+   albums, video with licensed audio, or reels with downloads off, so those
+   items show their permalink only.
 
 ### Facebook and Meta Ads
 
@@ -221,6 +235,12 @@ and [Share on LinkedIn](https://learn.microsoft.com/en-us/linkedin/consumer/inte
    required Threads review before production use.
 6. Set `THREADS_CLIENT_ID`, `THREADS_CLIENT_SECRET`, `THREADS_REDIRECT_URI`,
    `THREADS_API_VERSION`, and `THREADS_GRAPH_URL=https://graph.threads.net`.
+7. Replies reach Messages through a sync (`POST messages/threads/sync`, the
+   Sync button): the account's recent posts are read with their replies
+   (`threads_read_replies`), and an answer from Messages is published with
+   `reply_to_id` (`threads_manage_replies`). Threads has no webhook wired here,
+   so replies arrive on sync. An account connected before the reply scopes were
+   requested is asked to reconnect when Threads refuses the call.
 
 Reference: [Threads API getting started](https://developers.facebook.com/docs/threads/get-started).
 

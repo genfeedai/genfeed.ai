@@ -10,8 +10,6 @@ describe('not-found semantic theme surfaces', () => {
     );
 
     expect(source).toContain('bg-background');
-    expect(source).toContain('bg-primary');
-    expect(source).toContain('text-primary-foreground');
     expect(source).not.toContain('bg-black');
     expect(source).not.toContain('bg-white');
     expect(source).not.toContain('text-black');

@@ -9,6 +9,7 @@ import { createBootRecord } from '@/lib/boot-record/boot-record.fixture';
 import { useBootRecord } from '@/lib/boot-record/use-boot-record';
 
 const identity = vi.hoisted(() => ({
+  hasSessionReadFailed: false,
   isLoaded: false,
   isSignedIn: false,
   userId: null as string | null,
@@ -31,6 +32,9 @@ function Probe({ slug }: { slug: string | undefined }) {
 describe('useBootRecord', () => {
   beforeEach(() => {
     window.localStorage.clear();
+    // The session the fixture record was written under.
+    document.cookie = 'genfeed_session_tag=tag-1; path=/';
+    identity.hasSessionReadFailed = false;
     identity.isLoaded = false;
     identity.isSignedIn = false;
     identity.userId = null;
@@ -38,6 +42,29 @@ describe('useBootRecord', () => {
   });
 
   it('offers the record for its organization before the session has answered', () => {
+    render(<Probe slug="acme" />);
+
+    expect(screen.getByTestId('probe')).toHaveTextContent('acme');
+  });
+
+  it('offers nothing when the record was written under another session, before the session answers', () => {
+    document.cookie = 'genfeed_session_tag=tag-2; path=/';
+    render(<Probe slug="acme" />);
+
+    expect(screen.getByTestId('probe')).toHaveTextContent('none');
+  });
+
+  it('offers nothing when the page carries no session tag', () => {
+    document.cookie = 'genfeed_session_tag=; path=/; max-age=0';
+    render(<Probe slug="acme" />);
+
+    expect(screen.getByTestId('probe')).toHaveTextContent('none');
+  });
+
+  it('keeps the record when the session read failed: a failed read is not signed out', () => {
+    identity.isLoaded = true;
+    identity.isSignedIn = false;
+    identity.hasSessionReadFailed = true;
     render(<Probe slug="acme" />);
 
     expect(screen.getByTestId('probe')).toHaveTextContent('acme');

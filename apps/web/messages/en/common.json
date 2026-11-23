@@ -25,6 +25,8 @@
     "signInCode": "Sign-in code",
     "signInCodePlaceholder": "Paste the code from the browser",
     "signInWithGenfeed": "Sign in with Genfeed",
+    "signOutFailed": "We could not end your session. It may still be active on this device.",
+    "signOutRetry": "Try again",
     "signUp": "Sign up",
     "waitingForBrowser": "Waiting for the browser…"
   },
@@ -55,6 +57,40 @@
       "city-courier": "Handheld street shot, one take",
       "neon-night-run": "Night orbit through neon rain",
       "rooftop-gym": "Golden-hour fitness ad, ready to post"
+    }
+  },
+  "authFallback": {
+    "forgot": {
+      "description": "Enter your account email and we'll send you a secure reset link.",
+      "title": "Reset your password"
+    },
+    "login": {
+      "description": "Sign in to Genfeed",
+      "title": "Welcome back"
+    },
+    "login-email": {
+      "description": "Use your Genfeed email and password.",
+      "title": "Sign in with password"
+    },
+    "login-magic": {
+      "description": "Enter your email and we'll send you a secure sign-in link.",
+      "title": "Sign in with a magic link"
+    },
+    "reset": {
+      "description": "Enter a new password for your Genfeed account.",
+      "title": "Choose a new password"
+    },
+    "sign-up": {
+      "description": "Start using Genfeed",
+      "title": "Create your account"
+    },
+    "sign-up-email": {
+      "description": "Enter your details to create an account with a password.",
+      "title": "Sign up with email"
+    },
+    "sign-up-magic": {
+      "description": "Enter your email and we'll send you a secure sign-up link.",
+      "title": "Sign up with a magic link"
     }
   },
   "actions": {
@@ -1669,7 +1705,8 @@
     "connect": {
       "action": "Connect Genfeed",
       "dismiss": "Dismiss connect card",
-      "title": "Connect Claude Code, Codex, or another AI client"
+      "title": "Connect Claude Code, Codex, or another AI client",
+      "verificationTimeUnavailable": "Verification time unavailable"
     },
     "credentials": {
       "addBrand": "Add a brand",
@@ -1702,7 +1739,8 @@
       "active": "Active",
       "failedToday": "Failed today",
       "needAttention": "Need attention"
-    }
+    },
+    "timeUnavailable": "Time unavailable"
   },
   "agent": {
     "composer": {
@@ -2300,6 +2338,7 @@
       "platforms": {
         "instagram": "Instagram",
         "linkedin": "LinkedIn",
+        "threads": "Threads",
         "tiktok": "TikTok",
         "twitter": "X",
         "youtube": "YouTube"

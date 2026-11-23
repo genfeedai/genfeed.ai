@@ -8,6 +8,7 @@ import { cn } from '@helpers/formatting/cn/cn.util';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { TableAction, TableColumn } from '@props/ui/display/table.props';
 import AppTable from '@ui/display/table/Table';
+import TableDateCell from '@ui/display/table/TableDateCell';
 import type { BadgeProps } from '@ui/primitives/badge';
 import { Badge } from '@ui/primitives/badge';
 import { BrandAvatar } from '@ui/primitives/brand-avatar';
@@ -15,7 +16,6 @@ import { ArrowRight, Check, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
-import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import type { ReviewInboxApprovalsTableProps } from '@/props/publishing/review-inbox-approvals.props';
 import ReviewInboxPreview from './ReviewInboxPreview';
 import ReviewInboxQuestionAnswer from './ReviewInboxQuestionAnswer';
@@ -146,11 +146,7 @@ export default function ReviewInboxApprovalsTable({
                 {translate('requestedBy', { name: item.requestedByLabel })}
               </span>
             ) : null}
-            <ClientFormattedDate
-              className="text-xs text-muted-foreground"
-              format="relative"
-              value={item.requestedAt}
-            />
+            <TableDateCell value={item.requestedAt} />
           </span>
         ),
       },

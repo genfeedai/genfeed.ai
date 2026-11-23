@@ -31,13 +31,13 @@ import { ListRow } from '@ui/lists/list-row/ListRow';
 import { BrandAvatar } from '@ui/primitives/brand-avatar';
 import { Button } from '@ui/primitives/button';
 import Spinner from '@ui/primitives/spinner';
+import DateText from '@ui/time/DateText';
 import { Building2, Plus } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Fragment, useCallback, useEffect } from 'react';
 import { useHomeApp } from '@/components/shell/use-home-app';
-import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import type {
   OrgLandingBrandFact,
   OrgLandingBrandFactsProps,
@@ -75,7 +75,7 @@ function BrandFacts({ brand, className }: OrgLandingBrandFactsProps) {
   if (brand.createdAt) {
     facts.push({
       id: 'created',
-      node: <ClientFormattedDate format="date" value={brand.createdAt} />,
+      node: <DateText hasTime={false} value={brand.createdAt} />,
     });
   }
 

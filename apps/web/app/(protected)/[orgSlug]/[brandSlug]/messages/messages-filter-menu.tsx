@@ -41,6 +41,7 @@ const PLATFORM_OPTIONS = [
   'tiktok',
   'twitter',
   'linkedin',
+  'threads',
 ] as const satisfies ReadonlyArray<SocialPlatform | 'all'>;
 
 /**

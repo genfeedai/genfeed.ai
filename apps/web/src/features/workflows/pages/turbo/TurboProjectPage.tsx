@@ -18,7 +18,7 @@ import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
 import Field from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
-import { SegmentedControl } from '@ui/primitives/segmented-control';
+import { OptionTile, OptionTileGroup } from '@ui/primitives/option-tile';
 import { RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -239,13 +239,22 @@ export default function TurboProjectPage({ projectId }: TurboProjectPageProps) {
         )}
         {notice && <p role="status">{notice}</p>}
         {isFreshIdeasDraft ? null : (
-          <SegmentedControl
-            appearance="chip"
+          <OptionTileGroup
             ariaLabel={t('stepsLabel')}
+            columns={4}
             onValueChange={(step) => void update({ step })}
-            options={steps.map((step) => ({ label: t(step), value: step }))}
             value={project.step}
-          />
+          >
+            {steps.map((step) => (
+              <OptionTile
+                key={step}
+                layout="stack"
+                size="sm"
+                title={t(step)}
+                value={step}
+              />
+            ))}
+          </OptionTileGroup>
         )}
         {ideas && !isIdeasEnabled && <p role="alert">{t('ideasDisabled')}</p>}
         {ideas && !readiness.ready && (

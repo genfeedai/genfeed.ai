@@ -128,10 +128,6 @@ vi.mock('@components/buttons/refresh/button-refresh/ButtonRefresh', () => ({
   default: () => null,
 }));
 
-vi.mock('@/components/ui/client-formatted-date', () => ({
-  ClientFormattedDate: () => <span>date</span>,
-}));
-
 const TENANT_WORKFLOW = {
   createdAt: '2026-09-01T00:00:00.000Z',
   id: 'wf-tenant',

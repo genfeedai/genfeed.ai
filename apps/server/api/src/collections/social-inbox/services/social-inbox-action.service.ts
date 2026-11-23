@@ -41,6 +41,7 @@ import {
 import { scopedWhere } from '@api/index';
 import { FacebookService } from '@api/services/integrations/facebook/services/facebook.service';
 import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
+import { ThreadsReplyService } from '@api/services/integrations/threads/services/threads-reply.service';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import { mapTwitterApiError } from '@api/services/integrations/twitter/utils/twitter-api-error.util';
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
@@ -68,6 +69,7 @@ export class SocialInboxActionService implements OnModuleInit {
     private readonly youtubeService: YoutubeService,
     private readonly instagramService: InstagramService,
     private readonly facebookService: FacebookService,
+    private readonly threadsReplyService: ThreadsReplyService,
     private readonly twitterService: TwitterService,
     private readonly queryService: SocialInboxQueryService,
     private readonly readStateService: SocialInboxReadStateService,
@@ -578,6 +580,24 @@ export class SocialInboxActionService implements OnModuleInit {
           ? { url: conversation.sourceContentUrl }
           : {}),
       };
+    }
+
+    if (conversation.platform === Platform.THREADS) {
+      const replyToId =
+        conversation.externalParentId ?? conversation.externalConversationId;
+      if (!replyToId) {
+        throw new BadRequestException('Threads reply requires a reply id');
+      }
+
+      const result = await this.threadsReplyService.replyTo(
+        conversation.organizationId,
+        conversation.brandId,
+        replyToId,
+        text,
+        conversation.credentialId ?? undefined,
+      );
+
+      return { messageId: result.replyId, inReplyToId: replyToId };
     }
 
     if (conversation.platform === Platform.TWITTER) {

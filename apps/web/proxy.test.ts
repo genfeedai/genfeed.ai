@@ -2134,6 +2134,63 @@ describe('proxy', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  describe('session tag', () => {
+    const TAG_COOKIE = 'genfeed_session_tag';
+
+    async function tagOf(sessionValue: string): Promise<string> {
+      const { computeSessionTag } = await import('@/lib/auth/session-tag');
+      return computeSessionTag(sessionValue);
+    }
+
+    it('sets a readable fingerprint of the session on a document load, never the token', async () => {
+      const { default: proxy } = await import('./proxy');
+
+      const response = await proxy(
+        makeSignedInRequest('/acme/moonrise-studio/overview'),
+      );
+
+      const cookie = response.cookies.get(TAG_COOKIE);
+      expect(cookie?.value).toBe(await tagOf(SESSION_TOKEN));
+      expect(cookie?.value).toMatch(/^[0-9a-f]{16}$/);
+      expect(cookie?.value).not.toContain(SESSION_TOKEN);
+      expect(response.headers.get('set-cookie')).not.toContain('HttpOnly');
+    });
+
+    it('does not set it again while it already matches the session', async () => {
+      const { default: proxy } = await import('./proxy');
+
+      const response = await proxy(
+        makeSignedInRequest('/acme/moonrise-studio/overview', {
+          extraCookies: { [TAG_COOKIE]: await tagOf(SESSION_TOKEN) },
+        }),
+      );
+
+      expect(response.cookies.get(TAG_COOKIE)).toBeUndefined();
+    });
+
+    it('replaces it when the session is another one', async () => {
+      const { default: proxy } = await import('./proxy');
+
+      const response = await proxy(
+        makeSignedInRequest('/acme/moonrise-studio/overview', {
+          extraCookies: { [TAG_COOKIE]: await tagOf('another-session') },
+        }),
+      );
+
+      expect(response.cookies.get(TAG_COOKIE)?.value).toBe(
+        await tagOf(SESSION_TOKEN),
+      );
+    });
+
+    it('does not tag an API read', async () => {
+      const { default: proxy } = await import('./proxy');
+
+      const response = await proxy(makeSignedInRequest('/v1/organizations'));
+
+      expect(response.cookies.get(TAG_COOKIE)).toBeUndefined();
+    });
+  });
+
   it('keeps the API round trips for a bare path, which needs the bootstrap to pick a workspace', async () => {
     const { default: proxy } = await import('./proxy');
 

@@ -236,6 +236,13 @@ export class SocialMessagesService extends BaseService<
     return this.enqueueSync('/facebook/sync', limit, credentialId);
   }
 
+  syncThreads(
+    limit = 25,
+    credentialId?: string,
+  ): Promise<SocialInboxSyncEnqueueResult> {
+    return this.enqueueSync('/threads/sync', limit, credentialId);
+  }
+
   syncInstagram(
     limit = 25,
     credentialId?: string,

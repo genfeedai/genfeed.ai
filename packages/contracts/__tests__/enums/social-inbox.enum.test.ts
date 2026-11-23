@@ -15,6 +15,7 @@ describe('social inbox enums', () => {
       'youtube',
       'facebook',
       'instagram',
+      'threads',
       'tiktok',
       'twitter',
       'linkedin',

@@ -19,6 +19,13 @@ import {
  */
 export interface AuthIdentity {
   getToken: (opts?: BetterAuthTokenRequestOptions) => Promise<string | null>;
+  /**
+   * The session read failed (network, 5xx) and no session is held. That is not
+   * "signed out": the server never said so. `isLoaded` is true and `isSignedIn`
+   * is false in this state, so a caller that must not act on a failed read
+   * checks this first.
+   */
+  hasSessionReadFailed: boolean;
   isLoaded: boolean;
   isSignedIn: boolean;
   orgId: string | null;
@@ -109,7 +116,7 @@ export async function getSignedInBetterAuthToken(
  * keys on `userId`, which is the value that matters here.
  */
 export function useBetterAuthIdentity(): AuthIdentity {
-  const { data, isPending } = authClient.useSession();
+  const { data, error, isPending } = authClient.useSession();
   const { organizationId, sessionId, userId } = toTokenContext(data);
   const tokenContextKey = getBetterAuthTokenContextKey({
     organizationId,
@@ -136,6 +143,7 @@ export function useBetterAuthIdentity(): AuthIdentity {
 
   return {
     getToken,
+    hasSessionReadFailed: !isPending && !data?.session && Boolean(error),
     isLoaded: !isPending,
     isSignedIn: Boolean(data?.session),
     orgId: organizationId,

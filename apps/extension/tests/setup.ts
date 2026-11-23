@@ -78,12 +78,12 @@ Object.defineProperty(window, 'matchMedia', {
   writable: true,
 });
 
-// Mock ResizeObserver
-global.ResizeObserver = vi.fn().mockImplementation(() => ({
-  disconnect: vi.fn(),
-  observe: vi.fn(),
-  unobserve: vi.fn(),
-}));
+// Mock ResizeObserver. A class, because the masonry grid calls it with `new`.
+global.ResizeObserver = class ResizeObserverStub {
+  disconnect = vi.fn();
+  observe = vi.fn();
+  unobserve = vi.fn();
+} as unknown as typeof ResizeObserver;
 
 // Mock IntersectionObserver
 global.IntersectionObserver = vi.fn().mockImplementation(() => ({

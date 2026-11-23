@@ -15,6 +15,7 @@ import { SocialInboxIngestionService } from '@api/collections/social-inbox/servi
 import { SocialInboxQueryService } from '@api/collections/social-inbox/services/social-inbox-query.service';
 import { SocialInboxReadStateService } from '@api/collections/social-inbox/services/social-inbox-read-state.service';
 import { SocialInboxRealtimeService } from '@api/collections/social-inbox/services/social-inbox-realtime.service';
+import { SocialInboxThreadsIngestionService } from '@api/collections/social-inbox/services/social-inbox-threads-ingestion.service';
 import { X_RATE_LIMIT_ERROR } from '@api/services/integrations/twitter/utils/twitter-api-error.util';
 import { expectCloudGuardPasses } from '@api/shared/testing/cloud-guard-assertions';
 import { createSystemWorkflowRunnerMock } from '@api/shared/testing/system-workflow-runner-mock';
@@ -151,6 +152,10 @@ type TestContext = {
   };
   facebookService: {
     postComment: ReturnType<typeof vi.fn>;
+  };
+  threadsReplyService: {
+    listReplies: ReturnType<typeof vi.fn>;
+    replyTo: ReturnType<typeof vi.fn>;
   };
   instagramService: {
     listConversations: ReturnType<typeof vi.fn>;
@@ -485,6 +490,10 @@ function createContext(): TestContext {
   const facebookService = {
     postComment: vi.fn().mockResolvedValue({ commentId: 'fb-reply-1' }),
   };
+  const threadsReplyService = {
+    listReplies: vi.fn().mockResolvedValue([]),
+    replyTo: vi.fn().mockResolvedValue({ replyId: 'th-reply-1' }),
+  };
   const facebookInboxService = {
     ensureWebhookSubscription: vi.fn().mockResolvedValue(undefined),
     listMessengerThreads: vi.fn().mockResolvedValue([]),
@@ -547,6 +556,7 @@ function createContext(): TestContext {
     youtubeService as never,
     instagramService as never,
     facebookService as never,
+    threadsReplyService as never,
     twitterService as never,
     queryService,
     readStateService,
@@ -580,8 +590,13 @@ function createContext(): TestContext {
         facebookInboxService as never,
         logger as never,
       ),
+      new SocialInboxThreadsIngestionService(
+        ingestionService,
+        threadsReplyService as never,
+      ),
     ),
     socialReplyNotifications,
+    threadsReplyService,
     twitterService,
     youtubeService,
   };
@@ -2671,6 +2686,162 @@ describe('SocialInboxService', () => {
         body: 'Thank you!',
         direction: 'outbound',
         externalMessageId: 'fb-reply-1',
+        status: 'sent',
+      });
+    });
+  });
+
+  describe('Threads replies', () => {
+    const scope = {
+      brandId: 'brand-1',
+      organizationId: 'org-1',
+      userId: 'user-1',
+    };
+
+    function seedAccount(context: TestContext): void {
+      context.prisma.credential.findMany.mockResolvedValue([
+        {
+          brandId: 'brand-1',
+          externalHandle: 'acme',
+          externalId: 'threads-user-1',
+          externalName: 'Acme',
+          id: 'th-credential-1',
+          label: 'Acme',
+          userId: 'user-1',
+          username: 'acme',
+        },
+      ]);
+      // A reply to the post, a second one nested under it, and the account's own answer.
+      context.threadsReplyService.listReplies.mockResolvedValue([
+        {
+          authorHandle: 'ada',
+          createdAt: new Date('2026-11-23T10:00:00.000Z'),
+          isOwn: false,
+          parentId: 'post-9',
+          postId: 'post-9',
+          postTitle: 'Launch day',
+          postUrl: 'https://threads.example/@acme/post/9',
+          replyId: 'reply-1',
+          text: 'Love this',
+          threadId: 'reply-1',
+        },
+        {
+          authorHandle: 'grace',
+          createdAt: new Date('2026-11-23T10:05:00.000Z'),
+          isOwn: false,
+          parentId: 'reply-1',
+          postId: 'post-9',
+          postTitle: 'Launch day',
+          postUrl: 'https://threads.example/@acme/post/9',
+          replyId: 'reply-2',
+          text: 'Same here',
+          threadId: 'reply-1',
+        },
+        {
+          authorHandle: 'acme',
+          createdAt: new Date('2026-11-23T10:10:00.000Z'),
+          isOwn: true,
+          parentId: 'reply-2',
+          postId: 'post-9',
+          replyId: 'reply-3',
+          text: 'Thanks both!',
+          threadId: 'reply-1',
+        },
+      ]);
+    }
+
+    it('stores replies from other people as one comment conversation under the post', async () => {
+      const context = createContext();
+      seedAccount(context);
+
+      const result = await context.service.ingestThreadsReplies(scope, {
+        limit: 50,
+      });
+
+      expect(result).toEqual({ conversationsCreated: 1, messagesCreated: 2 });
+      expect(context.conversations).toHaveLength(1);
+      expect(context.conversations[0]).toMatchObject({
+        brandId: 'brand-1',
+        conversationType: SocialConversationType.COMMENT,
+        credentialId: 'th-credential-1',
+        externalConversationId: 'reply-1',
+        organizationId: 'org-1',
+        platform: Platform.THREADS,
+        sourceContentId: 'post-9',
+        sourceContentTitle: 'Launch day',
+        sourceContentUrl: 'https://threads.example/@acme/post/9',
+      });
+      expect(
+        context.messages.map((message) => ({
+          body: message.body,
+          direction: message.direction,
+          externalMessageId: message.externalMessageId,
+          organizationId: message.organizationId,
+        })),
+      ).toEqual([
+        {
+          body: 'Love this',
+          direction: 'inbound',
+          externalMessageId: 'reply-1',
+          organizationId: 'org-1',
+        },
+        {
+          body: 'Same here',
+          direction: 'inbound',
+          externalMessageId: 'reply-2',
+          organizationId: 'org-1',
+        },
+      ]);
+    });
+
+    it('is idempotent: a second sync of the same replies creates nothing new', async () => {
+      const context = createContext();
+      seedAccount(context);
+
+      await context.service.ingestThreadsReplies(scope, { limit: 50 });
+      const second = await context.service.ingestThreadsReplies(scope, {
+        limit: 50,
+      });
+
+      expect(second).toEqual({ conversationsCreated: 0, messagesCreated: 0 });
+      expect(context.messages).toHaveLength(2);
+    });
+
+    it('stores nothing and asks the user to reconnect when the grant lacks reply access', async () => {
+      const context = createContext();
+      seedAccount(context);
+      context.threadsReplyService.listReplies.mockRejectedValue(
+        new BadRequestException('Reconnect Threads and grant reply access.'),
+      );
+
+      await expect(
+        context.service.ingestThreadsReplies(scope, { limit: 50 }),
+      ).rejects.toThrow('Reconnect Threads');
+      expect(context.messages).toHaveLength(0);
+    });
+
+    it('answers a reply with a reply to it from the connected account, and stores the sent reply', async () => {
+      const context = createContext();
+      seedAccount(context);
+      await context.service.ingestThreadsReplies(scope, { limit: 50 });
+      const conversationId = context.conversations[0]?.id as string;
+
+      const sent = await context.service.postReply(scope, conversationId, {
+        idempotencyKey: 'th-reply',
+        text: 'Thank you!',
+      });
+
+      expect(context.threadsReplyService.replyTo).toHaveBeenCalledWith(
+        'org-1',
+        'brand-1',
+        'reply-1',
+        'Thank you!',
+        'th-credential-1',
+      );
+      expect(sent).toMatchObject({
+        body: 'Thank you!',
+        direction: 'outbound',
+        externalMessageId: 'th-reply-1',
         status: 'sent',
       });
     });

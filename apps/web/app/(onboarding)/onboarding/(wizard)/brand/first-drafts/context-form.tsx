@@ -3,7 +3,7 @@ import { Button } from '@ui/primitives/button';
 import Field from '@ui/primitives/field';
 import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
-import { SegmentedControl } from '@ui/primitives/segmented-control';
+import { OptionTile, OptionTileGroup } from '@ui/primitives/option-tile';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import type { FirstDraftsContextFormProps } from '@/features/onboarding/props/first-drafts.props';
@@ -100,30 +100,40 @@ export default function ContextForm({
       <Suggestions values={offerSuggestions} onPick={setOffer} />
 
       <Field label={t('context.goals.label')}>
-        <SegmentedControl
-          appearance="chip"
+        <OptionTileGroup
           ariaLabel={t('context.goals.label')}
+          columns={2}
           onValueChange={(next) => setGoals(next.slice(0, MAX_GOALS))}
-          options={GOALS.map((goal) => ({
-            label: t(`context.goals.${goal}`),
-            value: goal,
-          }))}
           type="multiple"
           value={goals}
-        />
+        >
+          {GOALS.map((goal) => (
+            <OptionTile
+              key={goal}
+              size="sm"
+              title={t(`context.goals.${goal}`)}
+              value={goal}
+            />
+          ))}
+        </OptionTileGroup>
       </Field>
 
       <Field label={t('context.tone.label')}>
-        <SegmentedControl
-          appearance="chip"
+        <OptionTileGroup
           ariaLabel={t('context.tone.label')}
+          columns={2}
           onValueChange={setTone}
-          options={TONES.map((option) => ({
-            label: t(`context.tone.${option}`),
-            value: option,
-          }))}
           value={tone}
-        />
+        >
+          {TONES.map((option) => (
+            <OptionTile
+              key={option}
+              size="sm"
+              title={t(`context.tone.${option}`)}
+              value={option}
+            />
+          ))}
+        </OptionTileGroup>
       </Field>
 
       {hasError ? (

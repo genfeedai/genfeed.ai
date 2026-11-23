@@ -18,6 +18,7 @@ import { SocialInboxFacebookIngestionService } from '@api/collections/social-inb
 import { SocialInboxIngestionService } from '@api/collections/social-inbox/services/social-inbox-ingestion.service';
 import { SocialInboxQueryService } from '@api/collections/social-inbox/services/social-inbox-query.service';
 import { SocialInboxReadStateService } from '@api/collections/social-inbox/services/social-inbox-read-state.service';
+import { SocialInboxThreadsIngestionService } from '@api/collections/social-inbox/services/social-inbox-threads-ingestion.service';
 import type {
   SocialInboxAgentContextRecord,
   SocialInboxReference,
@@ -47,6 +48,7 @@ export class SocialInboxService {
     private readonly actionService: SocialInboxActionService,
     private readonly readStateService: SocialInboxReadStateService,
     private readonly facebookIngestionService: SocialInboxFacebookIngestionService,
+    private readonly threadsIngestionService: SocialInboxThreadsIngestionService,
   ) {}
 
   listConversations(
@@ -204,6 +206,13 @@ export class SocialInboxService {
     options: { credentialId?: string; limit?: number } = {},
   ): Promise<{ conversationsCreated: number; messagesCreated: number }> {
     return this.facebookIngestionService.ingestFacebookInbox(scope, options);
+  }
+
+  ingestThreadsReplies(
+    scope: SocialInboxScope,
+    options: { credentialId?: string; limit?: number } = {},
+  ): Promise<{ conversationsCreated: number; messagesCreated: number }> {
+    return this.threadsIngestionService.ingestThreadsReplies(scope, options);
   }
 
   ingestInstagramComments(

@@ -69,33 +69,18 @@ import {
   formatMessageTime,
   getDirectMessageReconnectAccounts,
   getMessageProvenanceSummary,
+  MESSAGE_CREDENTIAL_PLATFORMS,
   parseMessagesInboxView,
   parseMessagesSurface,
   STATUS_LABELS,
   STATUS_VARIANTS,
+  SYNCABLE_MESSAGE_CREDENTIAL_PLATFORMS,
 } from './messages-page.helpers';
 import MessagesReplyComposer from './messages-reply-composer';
 import { useMessagesSurfaceAdapter } from './messages-surface-adapter';
 import { useMessagesActions } from './use-messages-actions';
 import { useMessagesConversations } from './use-messages-conversations';
 import { useMessagesInboxFilters } from './use-messages-inbox-filters';
-
-const MESSAGE_CREDENTIAL_PLATFORMS = new Set([
-  Platform.FACEBOOK,
-  Platform.INSTAGRAM,
-  Platform.LINKEDIN,
-  Platform.TIKTOK,
-  Platform.TWITTER,
-  Platform.UNIPILE,
-  Platform.YOUTUBE,
-]);
-const SYNCABLE_MESSAGE_CREDENTIAL_PLATFORMS = new Set([
-  Platform.FACEBOOK,
-  Platform.INSTAGRAM,
-  Platform.LINKEDIN,
-  Platform.TWITTER,
-  Platform.YOUTUBE,
-]);
 
 function StatusPill({ status }: { status: string }) {
   return (

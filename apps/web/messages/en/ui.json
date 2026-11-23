@@ -477,7 +477,8 @@
     "runEvaluation": "Run evaluation",
     "toggleDetails": "Toggle evaluation details",
     "details": "Details",
-    "evaluationFailed": "Evaluation failed. Please try again."
+    "evaluationFailed": "Evaluation failed. Please try again.",
+    "evaluatedPrefix": "Evaluated "
   },
   "organizationSwitcher": {
     "switchFailed": "Could not switch organization. You are still in the previous one."
@@ -887,6 +888,9 @@
     "generate": "Generate",
     "generating": "Generating your illustration…"
   },
+  "libraryPicker": {
+    "sources": "Library sources"
+  },
   "filtersButton": {
     "menu": "Filters",
     "clear": "Clear filters",
@@ -1171,5 +1175,8 @@
     "close": "Close",
     "removeEffect": "Remove effect",
     "selected": "Selected"
+  },
+  "ingredientCaptions": {
+    "createdPrefix": "Created "
   }
 }

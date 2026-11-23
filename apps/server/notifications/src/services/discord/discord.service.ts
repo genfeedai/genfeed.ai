@@ -7,6 +7,7 @@ import type {
   IDiscordTransportStatus,
   IIngredientNotificationData,
   IOperatorCardInput,
+  IPostPublishedNotificationPayload,
   IRevenueNotificationPayload,
   IStoryboardNotificationContext,
   IUserCreatedPayload,
@@ -50,6 +51,17 @@ import {
   type WebhookClient,
   type WebhookMessageCreateOptions,
 } from 'discord.js';
+
+/** A provider URL the card can link to, or undefined when it is not http(s). */
+function readHttpUrl(value: string | undefined): string | undefined {
+  if (!value) return undefined;
+  try {
+    const { protocol } = new URL(value);
+    return protocol === 'https:' || protocol === 'http:' ? value : undefined;
+  } catch {
+    return undefined;
+  }
+}
 
 @Injectable()
 export class DiscordService {
@@ -439,6 +451,37 @@ export class DiscordService {
         await this.sendOperatorCard(webhookClient, card);
         this.loggerService.log(`${url} succeeded`, {
           provider: report.provider,
+        });
+      },
+    );
+  }
+
+  /** Operator card in #posts for a social post a provider confirmed live. */
+  async sendPostPublishedNotification(
+    post: IPostPublishedNotificationPayload,
+  ): Promise<boolean> {
+    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+    return this.withWebhook(
+      await this.discordBotService.getPostsWebhook(),
+      url,
+      async (webhookClient) => {
+        // Discord rejects the whole card over a link that is not http(s).
+        const postUrl = readHttpUrl(post.url);
+        await this.sendOperatorCard(webhookClient, {
+          action: postUrl ? { label: 'View Post', url: postUrl } : undefined,
+          color: 0x22c55e,
+          fields: [
+            { name: 'Platform', value: post.platform },
+            { name: 'Brand', value: post.brandLabel ?? '' },
+            { name: 'Organization', value: post.organizationLabel ?? '' },
+          ],
+          summary: post.caption?.substring(0, 300),
+          title: 'Post Published',
+        });
+
+        this.loggerService.log(`${url} succeeded`, {
+          platform: post.platform,
+          postId: post.postId,
         });
       },
     );

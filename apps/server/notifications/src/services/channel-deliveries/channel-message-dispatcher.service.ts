@@ -184,6 +184,11 @@ export class ChannelMessageDispatcherService {
           return this.discordService.sendArticleNotification(payload);
         }
         break;
+      case 'post_published':
+        if ('postId' in payload && 'platform' in payload) {
+          return this.discordService.sendPostPublishedNotification(payload);
+        }
+        break;
       case 'vercel_notification':
         if ('embed' in payload) {
           return this.discordService.sendVercelNotification(payload.embed);

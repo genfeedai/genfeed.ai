@@ -2,24 +2,22 @@ import { isDesktopClient } from '@genfeedai/config/deployment';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import type { IGenfeedDesktopBridge } from '@genfeedai/contracts/desktop';
 import type { ITrendVideo } from '@genfeedai/contracts/interfaces';
-import { createLocalStorageCache } from '@helpers/data/cache/cache.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
 import type { QueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useState } from 'react';
+import { createWorkspaceLocalStorageCache } from '@/lib/device-stores/device-store-scope';
 
 const revisions = new Map<string, number>();
 const memoryVideos = new Map<
   string,
   { revision: number; videos: ITrendVideo[] }
 >();
-const persistedVideos = createLocalStorageCache<{
+const persistedVideos = createWorkspaceLocalStorageCache<{
   revision: number;
   videos: ITrendVideo[];
-}>({
-  prefix: 'trends:evaluation-videos:',
-});
+}>('trends:evaluation-videos:');
 function persistKey(scopeKey: string): string {
   return encodeURIComponent(scopeKey);
 }

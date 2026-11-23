@@ -28,9 +28,11 @@ export function createBootRecord(
 ): BootRecord {
   return {
     buildId: 'development',
+    organizationId: 'org-1',
     organizationSlug: 'acme',
     rail: createBootRailSnapshot(),
     savedAt: Date.now(),
+    sessionTag: 'tag-1',
     userId: 'user-1',
     ...overrides,
   };

@@ -139,12 +139,12 @@ test.describe('Dashboard Analytics', () => {
       await assertNoErrorBoundaryFallback(authenticatedPage, dashboardPage.url);
 
       // Every seeded activity has a fixed past `createdAt`, rendered by
-      // `ClientFormattedDate` as a relative time — not its "Time
-      // unavailable" fallback.
+      // `DateText` as the short date ("Nov 23, 8:27 AM", or "Nov 23, 2025"
+      // for another year) — not its "Time unavailable" fallback.
       await expect(dashboardPage.activityItem).toHaveCount(3);
       for (const row of await dashboardPage.activityItem.all()) {
-        await expect(row).toContainText(
-          /\d+ (minute|hour|day|month|year)s? ago/,
+        await expect(row.locator('time')).toHaveText(
+          /^[A-Z][a-z]{2} \d{1,2}, (\d{1,2}:\d{2} [AP]M|\d{4})$/,
         );
       }
       await expect(dashboardPage.activitySection).not.toContainText(

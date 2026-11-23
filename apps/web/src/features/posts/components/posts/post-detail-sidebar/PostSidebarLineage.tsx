@@ -1,7 +1,7 @@
 'use client';
 
 import { ReviewDecision } from '@genfeedai/contracts';
-import ClientDateTime from '@ui/components/time/ClientDateTime';
+import DateText from '@ui/time/DateText';
 import { useTranslations } from 'next-intl';
 import type { PostSidebarLineageProps } from '@/props/components/post-detail-sidebar.props';
 
@@ -24,7 +24,6 @@ export function getReviewDecisionKey(
 /** Lineage and review state, rendered inside the Lineage inspector section. */
 export default function PostSidebarLineage({
   reviewSummary,
-  browserTimezone,
 }: PostSidebarLineageProps) {
   const translate = useTranslations('ui.postDetailInspector');
   const formatReviewDecision = (decision?: ReviewDecision) =>
@@ -100,14 +99,7 @@ export default function PostSidebarLineage({
             <span className="text-foreground/60">{translate('reviewed')}</span>
             <span className="text-right">
               {reviewSummary.reviewedAt ? (
-                <ClientDateTime
-                  value={reviewSummary.reviewedAt}
-                  format={(date) =>
-                    date.toLocaleString('en-US', {
-                      timeZone: browserTimezone,
-                    })
-                  }
-                />
+                <DateText value={reviewSummary.reviewedAt} />
               ) : (
                 translate('decisions.unset')
               )}
@@ -132,14 +124,7 @@ export default function PostSidebarLineage({
                     {formatReviewDecision(event.decision)}
                   </span>
                   <span className="text-right text-foreground/60">
-                    <ClientDateTime
-                      value={event.reviewedAt}
-                      format={(date) =>
-                        date.toLocaleString('en-US', {
-                          timeZone: browserTimezone,
-                        })
-                      }
-                    />
+                    <DateText value={event.reviewedAt} />
                   </span>
                 </div>
                 {event.feedback && (

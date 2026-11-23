@@ -165,7 +165,6 @@ export default function PostDetailSidebar({
         <PostSidebarDestination
           post={post}
           credential={credential}
-          browserTimezone={browserTimezone}
           isPublished={isPublished}
         />
 
@@ -240,10 +239,7 @@ export default function PostDetailSidebar({
             }
             testId="inspector-lineage"
           >
-            <PostSidebarLineage
-              reviewSummary={reviewSummary}
-              browserTimezone={browserTimezone}
-            />
+            <PostSidebarLineage reviewSummary={reviewSummary} />
           </InspectorSection>
         ) : null}
 

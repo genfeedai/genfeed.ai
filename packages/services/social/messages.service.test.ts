@@ -377,6 +377,19 @@ describe('SocialMessagesService', () => {
     expect(result).toEqual(payload);
   });
 
+  it('syncThreads enqueues a reply sweep for the chosen account', async () => {
+    const payload = { jobId: 'job-th', status: 'queued' };
+    http.post.mockResolvedValue(axiosResponse(payload));
+
+    const result = await service.syncThreads(25, 'connected-threads');
+
+    expect(http.post).toHaveBeenCalledWith('/threads/sync', {
+      credentialId: 'connected-threads',
+      limit: 25,
+    });
+    expect(result).toEqual(payload);
+  });
+
   it('syncInstagram enqueues a comment sweep on its own route', async () => {
     const payload = { jobId: 'job-2', status: 'queued' };
     http.post.mockResolvedValue(axiosResponse(payload));

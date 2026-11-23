@@ -4,6 +4,7 @@ import { useRoutedOrganization } from '@genfeedai/contexts/user/organization-con
 import { getPlaywrightAuthState } from '@genfeedai/helpers/auth/auth.helper';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { useEffect } from 'react';
+import { readSessionTag } from '@/lib/auth/session-tag';
 import { writeBootRecord } from '@/lib/boot-record/boot-record';
 import { BOOT_BUILD_ID } from '@/lib/boot-record/use-boot-record';
 import type { BootRailSnapshot } from '@/props/layout/boot-record.props';
@@ -20,7 +21,7 @@ export function useBootRecordWriter(
   organizationSlug: string | undefined,
   rail: BootRailSnapshot,
 ): void {
-  const { isRouteConfirmed } = useRoutedOrganization();
+  const { confirmedOrganizationId, isRouteConfirmed } = useRoutedOrganization();
   const { userId } = useAuthIdentity();
   const effectiveUserId = userId ?? getPlaywrightAuthState()?.userId ?? null;
   const isLoaded =
@@ -32,22 +33,29 @@ export function useBootRecordWriter(
 
   // use-effect-audit: ignore writes to browser storage, an outside system
   useEffect(() => {
+    // Without a session tag nothing could tie the record to this session.
+    const sessionTag = readSessionTag();
     if (
       !isRouteConfirmed ||
+      !confirmedOrganizationId ||
       !organizationSlug ||
       !effectiveUserId ||
+      !sessionTag ||
       !isLoaded
     ) {
       return;
     }
     writeBootRecord({
       buildId: BOOT_BUILD_ID,
+      organizationId: confirmedOrganizationId,
       organizationSlug,
       rail: JSON.parse(serialized) as BootRailSnapshot,
       savedAt: Date.now(),
+      sessionTag,
       userId: effectiveUserId,
     });
   }, [
+    confirmedOrganizationId,
     effectiveUserId,
     isLoaded,
     isRouteConfirmed,

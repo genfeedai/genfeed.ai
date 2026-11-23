@@ -412,6 +412,7 @@ const EXPECTED_SYSTEM_WORKFLOW_IDS: readonly string[] = [
   'social.inbox.sync.instagram-dms',
   'social.inbox.sync.linkedin-comments',
   'social.inbox.sync.linkedin-dms',
+  'social.inbox.sync.threads-replies',
   'social.inbox.sync.x-comments',
   'social.inbox.sync.x-dms',
   'social.inbox.sync.youtube-comments',
