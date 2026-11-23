@@ -401,6 +401,69 @@ describe('publishing content library federation', () => {
       isVideo: false,
     });
   });
+
+  it('shows the first image of a lone post the API projects as a release with no media', () => {
+    const items = createPublishingContentLibraryItems({
+      articles: [],
+      newsletters: [],
+      posts: [
+        {
+          createdAt: '2026-08-08T10:00:00.000Z',
+          description: 'Winter carousel',
+          id: 'post-1',
+          ingredients: [
+            { category: IngredientCategory.IMAGE, id: 'asset-1' },
+            { category: IngredientCategory.IMAGE, id: 'asset-2' },
+          ],
+          platform: Platform.INSTAGRAM,
+        },
+      ] as unknown as IPost[],
+      releases: [
+        {
+          createdAt: '2026-08-08T10:00:00.000Z',
+          id: 'post-1',
+          media: [],
+          status: 'published',
+          targets: [{ id: 'post-1', platform: Platform.INSTAGRAM }],
+          title: 'Winter carousel',
+        },
+      ] as unknown as IReleaseGroup[],
+    });
+
+    expect(items).toHaveLength(1);
+    expect(items[0]?.media).toEqual({
+      ingredient: { category: IngredientCategory.IMAGE, id: 'asset-1' },
+      isVideo: false,
+    });
+  });
+
+  it('skips a deleted ingredient when picking the first image', () => {
+    const items = createPublishingContentLibraryItems({
+      articles: [],
+      newsletters: [],
+      posts: [
+        {
+          createdAt: '2026-08-08T10:00:00.000Z',
+          description: 'Rooftop carousel',
+          id: 'post-1',
+          ingredients: [
+            { category: IngredientCategory.IMAGE, id: 'gone', isDeleted: true },
+            { category: IngredientCategory.IMAGE, id: 'live', isDeleted: false },
+          ],
+          platform: Platform.INSTAGRAM,
+        },
+      ] as unknown as IPost[],
+    });
+
+    expect(items[0]?.media).toEqual({
+      ingredient: {
+        category: IngredientCategory.IMAGE,
+        id: 'live',
+        isDeleted: false,
+      },
+      isVideo: false,
+    });
+  });
 });
 
 describe('createPublishingBoardColumns', () => {
