@@ -150,6 +150,58 @@ describe('getAvailability', () => {
     });
   });
 
+  it("lets a Page answer a Messenger DM only within 24 hours of the person's last message", () => {
+    const hoursAgo = (hours: number) =>
+      new Date(Date.now() - hours * 60 * 60 * 1000);
+    const dm = (lastInboundAt: Date | null) =>
+      getAvailability({
+        conversationType: SocialConversationType.DM,
+        lastInboundAt,
+        participantExternalId: 'psid-1',
+        platform: Platform.FACEBOOK,
+      });
+
+    expect(dm(hoursAgo(23))).toMatchObject({
+      canPostReply: false,
+      canSendDm: true,
+      sendDmReason: undefined,
+    });
+    expect(dm(hoursAgo(25))).toMatchObject({
+      canSendDm: false,
+      sendDmReason:
+        "Messenger allows a reply only within 24 hours of the person's last message",
+    });
+    expect(dm(null).canSendDm).toBe(false);
+  });
+
+  it('re-reads the Messenger window instead of trusting a stored flag', () => {
+    const conversation = {
+      availability: { canPostReply: false, canSendDm: true },
+      conversationType: SocialConversationType.DM,
+      lastInboundAt: new Date(Date.now() - 48 * 60 * 60 * 1000),
+      participantExternalId: 'psid-1',
+      platform: Platform.FACEBOOK,
+    } as unknown as SocialConversationDocument;
+
+    expect(readAvailability(conversation).canSendDm).toBe(false);
+  });
+
+  it('never offers a Messenger DM from a Facebook comment', () => {
+    expect(
+      getAvailability({
+        conversationType: SocialConversationType.COMMENT,
+        externalParentId: 'page-1_55',
+        lastInboundAt: new Date(),
+        participantExternalId: 'fb-author-1',
+        platform: Platform.FACEBOOK,
+      }),
+    ).toMatchObject({
+      canPostReply: true,
+      canSendDm: false,
+      sendDmReason: 'A Facebook comment cannot start a Messenger conversation',
+    });
+  });
+
   it('never offers a DM on YouTube, whatever the conversation type', () => {
     expect(
       getAvailability({

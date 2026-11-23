@@ -9,6 +9,7 @@ import {
 import { SocialInboxService } from '@api/collections/social-inbox/services/social-inbox.service';
 import { SocialInboxProviderError } from '@api/collections/social-inbox/services/social-inbox.types';
 import { SocialInboxActionService } from '@api/collections/social-inbox/services/social-inbox-action.service';
+import { SocialInboxDmSenderService } from '@api/collections/social-inbox/services/social-inbox-dm-sender.service';
 import { SocialInboxFacebookIngestionService } from '@api/collections/social-inbox/services/social-inbox-facebook-ingestion.service';
 import { SocialInboxIngestionService } from '@api/collections/social-inbox/services/social-inbox-ingestion.service';
 import { SocialInboxQueryService } from '@api/collections/social-inbox/services/social-inbox-query.service';
@@ -144,7 +145,9 @@ type TestContext = {
   };
   facebookInboxService: {
     ensureWebhookSubscription: ReturnType<typeof vi.fn>;
+    listMessengerThreads: ReturnType<typeof vi.fn>;
     listPageComments: ReturnType<typeof vi.fn>;
+    sendMessengerMessage: ReturnType<typeof vi.fn>;
   };
   facebookService: {
     postComment: ReturnType<typeof vi.fn>;
@@ -484,7 +487,9 @@ function createContext(): TestContext {
   };
   const facebookInboxService = {
     ensureWebhookSubscription: vi.fn().mockResolvedValue(undefined),
+    listMessengerThreads: vi.fn().mockResolvedValue([]),
     listPageComments: vi.fn(),
+    sendMessengerMessage: vi.fn().mockResolvedValue('m_sent_1'),
   };
   const twitterService = {
     buildTweetUrl: vi.fn(
@@ -547,6 +552,10 @@ function createContext(): TestContext {
     readStateService,
     realtimeService,
     systemWorkflowRunner as never,
+    new SocialInboxDmSenderService(
+      instagramService as never,
+      facebookInboxService as never,
+    ),
   );
   actionService.onModuleInit();
 
@@ -2664,6 +2673,168 @@ describe('SocialInboxService', () => {
         externalMessageId: 'fb-reply-1',
         status: 'sent',
       });
+    });
+  });
+
+  describe('Facebook Messenger', () => {
+    const scope = {
+      brandId: 'brand-1',
+      organizationId: 'org-1',
+      userId: 'user-1',
+    };
+    const HOUR_MS = 60 * 60 * 1000;
+
+    function seedMessenger(context: TestContext, ageMs: number): void {
+      context.prisma.credential.findMany.mockResolvedValue([
+        {
+          brandId: 'brand-1',
+          externalHandle: null,
+          externalId: 'page-1',
+          externalName: 'Acme Page',
+          id: 'fb-credential-1',
+          label: 'Acme Page',
+          userId: 'user-1',
+          username: null,
+        },
+      ]);
+      context.facebookInboxService.listPageComments.mockResolvedValue([]);
+      const sentAt = (offsetMs: number) =>
+        new Date(Date.now() - ageMs + offsetMs);
+      context.facebookInboxService.listMessengerThreads.mockResolvedValue([
+        {
+          conversationId: 't_100',
+          messages: [
+            {
+              createdAt: sentAt(60_000),
+              messageId: 'm_2',
+              senderExternalId: 'psid-1',
+              senderName: 'Taylor',
+              text: 'Following up',
+            },
+            {
+              createdAt: sentAt(0),
+              messageId: 'm_1',
+              senderExternalId: 'psid-1',
+              senderName: 'Taylor',
+              text: 'Do you ship to the EU?',
+            },
+          ],
+          participantExternalId: 'psid-1',
+          participantName: 'Taylor',
+        },
+      ]);
+    }
+
+    it("stores a person's Messenger messages as one DM thread keyed by the Graph conversation id", async () => {
+      const context = createContext();
+      seedMessenger(context, HOUR_MS);
+
+      const result = await context.service.ingestFacebookInbox(scope, {
+        limit: 25,
+      });
+
+      expect(result).toEqual({ conversationsCreated: 1, messagesCreated: 2 });
+      expect(context.conversations[0]).toMatchObject({
+        conversationType: SocialConversationType.DM,
+        externalConversationId: 't_100',
+        participantExternalId: 'psid-1',
+        platform: Platform.FACEBOOK,
+        sourceContentId: null,
+      });
+      expect(context.conversations[0]?.latestMessageText).toBe('Following up');
+      expect(context.messages.map((message) => message.direction)).toEqual([
+        'inbound',
+        'inbound',
+      ]);
+    });
+
+    it('is idempotent: a second sync of the same thread creates nothing new', async () => {
+      const context = createContext();
+      seedMessenger(context, HOUR_MS);
+
+      await context.service.ingestFacebookInbox(scope, { limit: 25 });
+      const second = await context.service.ingestFacebookInbox(scope, {
+        limit: 25,
+      });
+
+      expect(second).toEqual({ conversationsCreated: 0, messagesCreated: 0 });
+      expect(context.messages).toHaveLength(2);
+    });
+
+    it('answers a person inside the 24 hour window and stores the sent message', async () => {
+      const context = createContext();
+      seedMessenger(context, HOUR_MS);
+      await context.service.ingestFacebookInbox(scope, { limit: 25 });
+      const conversationId = context.conversations[0]?.id as string;
+      expect(context.conversations[0]?.availability).toMatchObject({
+        canSendDm: true,
+      });
+
+      const sent = await context.service.sendDm(scope, conversationId, {
+        idempotencyKey: 'messenger-reply',
+        text: 'Yes, we ship to the EU.',
+      });
+
+      expect(sent).toMatchObject({
+        body: 'Yes, we ship to the EU.',
+        direction: 'outbound',
+        externalMessageId: 'm_sent_1',
+        messageType: 'dm',
+        status: 'sent',
+      });
+      expect(
+        context.facebookInboxService.sendMessengerMessage,
+      ).toHaveBeenCalledWith(
+        'org-1',
+        'brand-1',
+        'fb-credential-1',
+        'psid-1',
+        'Yes, we ship to the EU.',
+      );
+    });
+
+    it('refuses a reply once 24 hours have passed since the person last wrote, and says why', async () => {
+      const context = createContext();
+      seedMessenger(context, 30 * HOUR_MS);
+      await context.service.ingestFacebookInbox(scope, { limit: 25 });
+      const conversationId = context.conversations[0]?.id as string;
+
+      await expect(
+        context.service.sendDm(scope, conversationId, {
+          idempotencyKey: 'messenger-stale',
+          text: 'Sorry for the wait',
+        }),
+      ).rejects.toThrow('within 24 hours');
+      expect(
+        context.facebookInboxService.sendMessengerMessage,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('stores the comments, then asks the user to reconnect when pages_messaging was not granted', async () => {
+      const context = createContext();
+      seedMessenger(context, HOUR_MS);
+      context.facebookInboxService.listPageComments.mockResolvedValue([
+        {
+          authorExternalId: 'fb-author-1',
+          authorName: 'Taylor',
+          commentId: 'page-1_55',
+          createdAt: new Date(),
+          isFromPage: false,
+          postId: 'page-1_9',
+          text: 'Love this',
+          threadId: 'page-1_55',
+        },
+      ]);
+      context.facebookInboxService.listMessengerThreads.mockRejectedValue(
+        new BadRequestException(
+          'Reconnect the Meta account and grant pages_messaging.',
+        ),
+      );
+
+      await expect(
+        context.service.ingestFacebookInbox(scope, { limit: 25 }),
+      ).rejects.toThrow('grant pages_messaging');
+      expect(context.messages).toHaveLength(1);
     });
   });
 

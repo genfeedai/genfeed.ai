@@ -203,7 +203,7 @@ export class SocialInboxService {
     scope: SocialInboxScope,
     options: { credentialId?: string; limit?: number } = {},
   ): Promise<{ conversationsCreated: number; messagesCreated: number }> {
-    return this.facebookIngestionService.ingestFacebookComments(scope, options);
+    return this.facebookIngestionService.ingestFacebookInbox(scope, options);
   }
 
   ingestInstagramComments(

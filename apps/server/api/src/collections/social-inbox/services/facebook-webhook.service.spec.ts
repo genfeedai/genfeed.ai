@@ -132,7 +132,7 @@ describe('FacebookWebhookService.receiveEvent', () => {
     ).rejects.toThrow(BadRequestException);
   });
 
-  it('queues a comment sync for the Page owner, pinned to the resolved tenant', async () => {
+  it('queues an inbox sync for the Page owner, pinned to the resolved tenant', async () => {
     const { enqueued, lookups, service } = createService({
       credentials: [CREDENTIAL],
     });
@@ -162,6 +162,35 @@ describe('FacebookWebhookService.receiveEvent', () => {
           platform: 'FACEBOOK',
         },
       },
+    ]);
+  });
+
+  it('queues the same sync for a Messenger message', async () => {
+    const body = Buffer.from(
+      JSON.stringify({
+        entry: [
+          {
+            id: '1010',
+            messaging: [
+              {
+                message: { mid: 'm_1', text: 'Hi' },
+                recipient: { id: '1010' },
+                sender: { id: '777' },
+              },
+            ],
+          },
+        ],
+        object: 'page',
+      }),
+    );
+    const { enqueued, service } = createService({ credentials: [CREDENTIAL] });
+
+    await expect(service.receiveEvent(body, sign(body))).resolves.toEqual({
+      enqueued: 1,
+      pages: 1,
+    });
+    expect(enqueued).toEqual([
+      expect.objectContaining({ credentialId: 'cred-1', platform: 'facebook' }),
     ]);
   });
 

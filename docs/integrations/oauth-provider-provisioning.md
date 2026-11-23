@@ -150,8 +150,8 @@ and [v26.0 migration changes](https://developers.facebook.com/docs/graph-api/cha
    `packages/integrations/src/constants.ts`): `ads_management`, `ads_read`,
    `public_profile`, `email`, `pages_show_list`, `pages_manage_posts`,
    `pages_read_engagement`, `pages_manage_metadata`,
-   `pages_manage_engagement`, `pages_read_user_content`, `read_insights`, and
-   `publish_video`. Facebook Page messaging is not part of the Genfeed inbox.
+   `pages_manage_engagement`, `pages_messaging`, `pages_read_user_content`,
+   `read_insights`, and `publish_video`.
 4. Complete business verification and App Review for permissions that require
    them before enabling the connection for non-test users.
 5. A Facebook credential is one Page. When the connecting account manages one
@@ -165,8 +165,8 @@ and [v26.0 migration changes](https://developers.facebook.com/docs/graph-api/cha
    Webhooks, choose the **Page** object, register
    `{API_ORIGIN}/v1/webhooks/facebook` as its callback with the same
    `INSTAGRAM_WEBHOOK_VERIFY_TOKEN` as the Instagram callback (the app keeps one
-   verify token for every webhook object), and subscribe the `feed` field.
-   Deliveries are checked against `FACEBOOK_APP_SECRET`. Genfeed subscribes each
+   verify token for every webhook object), and subscribe the `feed` and
+   `messages` fields. Deliveries are checked against `FACEBOOK_APP_SECRET`. Genfeed subscribes each
    Page to the app when it is connected; the Messages Sync button repeats the
    subscription, so Pages connected earlier pick it up on their next sync. The
    subscription needs `pages_manage_metadata`; without it Sync stores the
@@ -174,6 +174,14 @@ and [v26.0 migration changes](https://developers.facebook.com/docs/graph-api/cha
    has a new comment: the comment itself is read back from Graph, so it follows
    the same path as a manual sync. Replies from Messages post as the Page and
    need `pages_manage_engagement`.
+
+   Messenger messages arrive the same way: the `messages` webhook says which
+   Page was written to and the Sync reads its conversations from Graph, so a
+   message is stored once whichever path finds it. Reading and answering
+   Messenger needs `pages_messaging`; a Page connected without it still syncs
+   comments, then asks the user to reconnect. Genfeed answers as a `RESPONSE`,
+   which Meta allows only within 24 hours of the person's last message, so a
+   reply after that is refused with the reason instead of failing at Meta.
 
 ### LinkedIn
 
