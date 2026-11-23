@@ -2,6 +2,19 @@ import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { LoadingProps } from '@genfeedai/props/ui/feedback/loading.props';
 import BrandLoader from '@ui/feedback/brand-loader/BrandLoader';
 
+/**
+ * Centred loader for a region or a whole page: the brand mark, with an
+ * optional message. `isFullSize` (default) fills the viewport; pass
+ * `isFullSize={false}` for a region inside a page (it keeps 60vh).
+ *
+ * Which loading component:
+ * - `Spinner` (primitives): inline, inside a button or beside a label.
+ * - `Loading`: a region or page with nothing to show yet.
+ * - `LazyLoadingFallback`: the `Suspense` fallback of a lazy component.
+ * - `LoadingOverlay` (primitives): covers content that is already shown while it reloads.
+ * - `BrandLoader`: the bare brand mark; `Loading` already renders it.
+ * - `Skeleton` and its layouts: the shape of the content that is coming.
+ */
 export default function Loading({
   className = '',
   isFullSize = true,
