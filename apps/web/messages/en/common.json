@@ -2324,7 +2324,6 @@
       "askConversation": "Ask Agent about this",
       "askMessage": "Ask Agent",
       "attachMessage": "Attach message to the agent",
-      "attached": "Attached",
       "removeMessage": "Remove message from the agent"
     },
     "actions": {
@@ -2361,8 +2360,6 @@
       "messagePage": "Messages page {page} of {pages}"
     },
     "replyComposer": {
-      "description": "Review every draft before it is sent or published.",
-      "title": "Reply composer",
       "ariaLabel": "Social reply or direct message",
       "placeholder": "Write a reply or DM"
     },

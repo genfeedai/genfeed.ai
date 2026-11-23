@@ -271,65 +271,20 @@ function getStringValue(value: unknown): string | undefined {
   return typeof value === 'string' && value.trim() ? value.trim() : undefined;
 }
 
-export function getMessageProvenanceItems(message: SocialMessageModel): Array<{
-  label: string;
-  value: string;
-}> {
+export function getMessageProvenanceSummary(
+  message: SocialMessageModel,
+): string | null {
   const provenance: SocialActionProvenance = message.actionProvenance ?? {};
   const actionLabel = formatActionLabel(provenance.action);
   const actorType = getStringValue(provenance.actorType);
   const actorLabel = actorType
     ? (ACTOR_LABELS[actorType] ?? formatActionLabel(actorType))
     : null;
-  const status = getStringValue(provenance.status) ?? message.status;
-  const workflowRunId =
-    getStringValue(provenance.workflowRunId) ??
-    getStringValue(message.workflowRunId);
-  const userId =
-    getStringValue(provenance.userId) ?? getStringValue(message.userId);
-  const actedAt = getStringValue(provenance.actedAt);
-  const approvedBy = getStringValue(provenance.approvedBy);
-  const rejectedBy = getStringValue(provenance.rejectedBy);
-  const items: Array<{ label: string; value: string }> = [];
-  const hasActionProvenance = Boolean(
-    actionLabel ||
-      actorLabel ||
-      workflowRunId ||
-      actedAt ||
-      approvedBy ||
-      rejectedBy,
+  const parts = [actorLabel, actionLabel].filter(
+    (part): part is string => part !== null,
   );
 
-  if (!hasActionProvenance) {
-    return items;
-  }
-
-  if (actorLabel) {
-    items.push({ label: 'Actor', value: actorLabel });
-  }
-  if (actionLabel) {
-    items.push({ label: 'Action', value: actionLabel });
-  }
-  if (status) {
-    items.push({ label: 'Result', value: status });
-  }
-  if (workflowRunId) {
-    items.push({ label: 'Workflow', value: workflowRunId });
-  }
-  if (userId) {
-    items.push({ label: 'User', value: userId });
-  }
-  if (actedAt) {
-    items.push({ label: 'When', value: formatMessageTime(actedAt) });
-  }
-  if (approvedBy) {
-    items.push({ label: 'Approved by', value: approvedBy });
-  }
-  if (rejectedBy) {
-    items.push({ label: 'Rejected by', value: rejectedBy });
-  }
-
-  return items;
+  return parts.length > 0 ? parts.join(' · ') : null;
 }
 
 /**
