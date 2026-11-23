@@ -17,3 +17,24 @@ export function oldestPendingInputAt(pending: unknown): Date | null {
   });
   return new Date(times.length > 0 ? Math.min(...times) : Date.now());
 }
+
+/**
+ * The pending requests that can still be answered. A newer question marks the
+ * older pending one `superseded` in `inputRequests`, and the thread's answer
+ * route refuses it, so it must not stay in `pendingInputRequests`.
+ */
+export function dropSuperseded(
+  snapshotData: Record<string, unknown>,
+  inputRequests: ReadonlyArray<Record<string, unknown>>,
+): unknown[] {
+  const pending = snapshotData.pendingInputRequests;
+  const superseded = new Set(
+    inputRequests
+      .filter((request) => request.status === 'superseded')
+      .map((request) => request.requestId),
+  );
+  return (Array.isArray(pending) ? pending : []).filter(
+    (request) =>
+      !superseded.has((request as { requestId?: unknown } | null)?.requestId),
+  );
+}

@@ -17,7 +17,10 @@ import { AgentThreadProjectorService } from '@api/services/agent-threading/servi
 import { AgentThreadStatusPublisherService } from '@api/services/agent-threading/services/agent-thread-status-publisher.service';
 import { ThreadContextCompressorService } from '@api/services/agent-threading/services/thread-context-compressor.service';
 import { AgentThreadEventType } from '@api/services/agent-threading/types/agent-thread.types';
-import { oldestPendingInputAt } from '@api/services/agent-threading/utils/oldest-pending-input-at.util';
+import {
+  dropSuperseded,
+  oldestPendingInputAt,
+} from '@api/services/agent-threading/utils/oldest-pending-input-at.util';
 import { validateAgentInputAnswer } from '@api/services/agent-threading/utils/validate-agent-input-answer.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { ResolveAgentInputRequestParams } from '@genfeedai/contracts/interfaces/ai/agent-input-request.interface';
@@ -791,12 +794,10 @@ export class AgentThreadEngineService {
     const requestId =
       this.readString(payload, 'requestId') ??
       `input:${threadId}:${event.sequence}`;
-
     const snapshotRow = await this.prisma.agentThreadSnapshot.findFirst({
       where: scopedWhere(organizationId, { threadId }),
       select: { data: true, id: true },
     });
-
     if (snapshotRow) {
       const snapshotData = (snapshotRow.data as Record<string, unknown>) ?? {};
       const inputRequests = (
@@ -824,21 +825,20 @@ export class AgentThreadEngineService {
         title: this.readString(payload, 'title') ?? 'Input requested',
       });
 
+      const pendingInputRequests = dropSuperseded(snapshotData, inputRequests);
       await this.prisma.agentThreadSnapshot.update({
         where: scopedWhere(organizationId, { id: snapshotRow.id }),
         data: {
           data: toPrismaJson({
             ...snapshotData,
             inputRequests,
+            pendingInputRequests,
           }),
-          pendingInputAt: oldestPendingInputAt(
-            snapshotData.pendingInputRequests,
-          ),
+          pendingInputAt: oldestPendingInputAt(pendingInputRequests),
           updatedAt: new Date(),
         },
       });
     }
-
     await upsertRuntimeBinding(this.runtimeSessionService, {
       organizationId,
       runId: this.optionalString(event.runId),

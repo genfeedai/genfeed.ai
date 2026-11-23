@@ -331,6 +331,11 @@ describe.skipIf(!connectionString)(
           userId: owner,
         }),
       ).rejects.toThrow();
+      // Nothing is left to wait on, so the thread leaves the inbox's index.
+      const snapshot = await database().agentThreadSnapshot.findFirst({
+        where: { organizationId, threadId: thread.id },
+      });
+      expect(snapshot?.pendingInputAt).toBeNull();
     });
 
     it('keeps the marker with the pending list when a profile snapshot is written', async () => {

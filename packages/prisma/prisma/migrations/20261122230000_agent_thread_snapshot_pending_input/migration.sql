@@ -13,8 +13,27 @@ EXCEPTION WHEN others THEN
 END;
 $$ LANGUAGE plpgsql;
 
--- Existing waiting threads: the oldest pending question's time, falling back to
--- the snapshot's last update when a request carries no valid createdAt.
+-- A newer question supersedes an older pending one, and the answer route
+-- refuses a superseded request, so only the others count as waiting.
+CREATE FUNCTION pg_temp.answerable_requests(snapshot_data jsonb) RETURNS SETOF jsonb AS $$
+  SELECT request
+  FROM jsonb_array_elements(
+    CASE WHEN jsonb_typeof(snapshot_data -> 'pendingInputRequests') = 'array'
+      THEN snapshot_data -> 'pendingInputRequests' ELSE '[]'::jsonb END
+  ) AS request
+  WHERE NOT EXISTS (
+    SELECT 1
+    FROM jsonb_array_elements(
+      CASE WHEN jsonb_typeof(snapshot_data -> 'inputRequests') = 'array'
+        THEN snapshot_data -> 'inputRequests' ELSE '[]'::jsonb END
+    ) AS entry
+    WHERE entry ->> 'requestId' = request ->> 'requestId'
+      AND entry ->> 'status' = 'superseded'
+  );
+$$ LANGUAGE sql;
+
+-- Existing waiting threads: the oldest answerable question's time, falling back
+-- to the snapshot's last update when a request carries no valid createdAt.
 UPDATE "agent_thread_snapshots" AS snapshot
 SET "pendingInputAt" = COALESCE(
   (
@@ -24,13 +43,12 @@ SET "pendingInputAt" = COALESCE(
           THEN pg_temp.pending_input_time(request ->> 'createdAt')
       END
     )
-    FROM jsonb_array_elements(snapshot."data" -> 'pendingInputRequests') AS request
+    FROM pg_temp.answerable_requests(snapshot."data") AS request
   ),
   snapshot."updatedAt"
 )
-WHERE jsonb_typeof(snapshot."data" -> 'pendingInputRequests') = 'array'
-  AND jsonb_array_length(snapshot."data" -> 'pendingInputRequests') > 0
-  AND snapshot."isDeleted" = false;
+WHERE snapshot."isDeleted" = false
+  AND EXISTS (SELECT 1 FROM pg_temp.answerable_requests(snapshot."data"));
 
 CREATE INDEX "agent_thread_snapshots_pending_input_idx"
   ON "agent_thread_snapshots" ("organizationId", "pendingInputAt")
