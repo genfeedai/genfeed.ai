@@ -45,12 +45,20 @@ export function useConnectCardDismissal(
 ): UseConnectCardDismissalResult {
   // Tagged with the organization it was read for, so switching organizations
   // reports `null` until storage has been read again instead of the old value.
+  // Read on the first render: this card only mounts behind the signed-in
+  // gates, which the server never renders, so there is no server markup to
+  // match. Reading after mount instead made a remembered card appear one
+  // render late, and grow in.
   const [state, setState] = useState<{
     isDismissed: boolean;
     organizationId: string;
-  } | null>(null);
+  } | null>(() =>
+    typeof window === 'undefined'
+      ? null
+      : { isDismissed: readIsDismissed(organizationId), organizationId },
+  );
 
-  // use-effect-audit: ignore reads browser storage after mount so server and client markup match
+  // use-effect-audit: ignore reads browser storage when the organization changes
   useEffect(() => {
     setState({
       isDismissed: readIsDismissed(organizationId),
