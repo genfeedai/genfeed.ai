@@ -73,6 +73,34 @@ export const KIE_MINIMAX_H3_IMAGE_INPUT_SCHEMA = {
   required: ['prompt', 'duration'],
 };
 
+/**
+ * kie's Wan 3.0 video input (docs.kie.ai, read 2026-11-23), without the
+ * reference media fields: kie bills reference video seconds, which the reviewed
+ * rates do not model, so the offer never sends them.
+ */
+export const KIE_WAN_3_INPUT_SCHEMA = {
+  $id: 'kie-wan-3',
+  type: 'object',
+  additionalProperties: false,
+  properties: {
+    prompt: { type: 'string', minLength: 1, maxLength: 20000 },
+    first_frame_url: { type: 'string', format: 'uri' },
+    resolution: {
+      type: 'string',
+      enum: ['480P', '720P', '1080P'],
+      default: '1080P',
+    },
+    aspect_ratio: {
+      type: 'string',
+      enum: ['adaptive', '16:9', '4:3', '1:1', '3:4', '9:16'],
+      default: 'adaptive',
+    },
+    duration: { type: 'integer', minimum: 2, maximum: 30, default: 5 },
+    seed: { type: 'integer', minimum: 0, maximum: 2147483647 },
+  },
+  required: ['prompt'],
+};
+
 const KIE_VIDEO_REGISTRATIONS = [
   {
     key: 'kie/kling-3.0',
@@ -94,6 +122,13 @@ const KIE_VIDEO_REGISTRATIONS = [
     label: 'MiniMax H3 image to video · Kie.ai',
     schemaFamily: 'kie-minimax-h3-image',
     schema: KIE_MINIMAX_H3_IMAGE_INPUT_SCHEMA,
+  },
+  {
+    key: 'kie/wan-3-0-video',
+    endpoint: 'wan/3-0-video',
+    label: 'Wan 3.0 · Kie.ai',
+    schemaFamily: 'kie-wan-3',
+    schema: KIE_WAN_3_INPUT_SCHEMA,
   },
 ] as const;
 

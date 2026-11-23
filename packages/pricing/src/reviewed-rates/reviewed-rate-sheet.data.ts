@@ -96,6 +96,39 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
     ],
   },
   {
+    // kie model page (read 2026-11-23): "Wan3.0 Video is billed per second: 8
+    // credits per second at 480P ($0.04), 16 at 720P ($0.08) and 32 at 1080P
+    // ($0.16)", 20% under Alibaba Cloud's $0.05 / $0.10 / $0.20. Reference
+    // videos are billed extra, so the offer adapter never sends reference media.
+    provider: 'kie',
+    endpoint: 'wan/3-0-video',
+    sourceUrl: 'https://kie.ai/wan3.0-video',
+    verifiedAt: '2026-11-23',
+    rates: [
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.04,
+        when: { resolution: '480P' },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.08,
+        when: { resolution: '720P' },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.16,
+        when: { resolution: '1080P' },
+        isPerOutput: true,
+      },
+    ],
+  },
+  {
     // Higgsfield publishes no price page. These rates are the account's own
     // `POST /estimate/<endpoint>` answers (2026-11-15): per second of source
     // video, rounded up to a whole second, by output resolution.
