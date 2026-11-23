@@ -38,18 +38,34 @@ export default function CreatorHeader({
 
   return (
     <header className="space-y-5 px-1">
-      <div
-        className={cn('flex items-end gap-5', hasBanner && '-mt-12 sm:-mt-16')}
-      >
-        <div className="shrink-0 rounded-xl bg-background p-1">
-          <BrandAvatar
-            alt={`${label} logo`}
-            name={label}
-            size="xl"
-            src={brand.logoUrl}
-          />
+      <div className="flex items-start gap-5">
+        {/* Only the picture overlaps the banner. The banner is a positioned
+            box, so it paints over any static content pulled up under it: the
+            name used to sit in the pulled-up row and vanished behind it. */}
+        <div
+          className={cn(
+            'relative z-10 shrink-0 rounded-2xl bg-background p-1.5',
+            hasBanner && '-mt-12 sm:-mt-16',
+          )}
+        >
+          <span className="sm:hidden">
+            <BrandAvatar
+              alt={`${label} logo`}
+              name={label}
+              size="2xl"
+              src={brand.logoUrl}
+            />
+          </span>
+          <span className="hidden sm:block">
+            <BrandAvatar
+              alt={`${label} logo`}
+              name={label}
+              size="3xl"
+              src={brand.logoUrl}
+            />
+          </span>
         </div>
-        <div className="min-w-0 space-y-0.5 pb-1">
+        <div className="min-w-0 space-y-0.5 pt-1">
           <h1 className="truncate text-2xl font-semibold leading-tight text-foreground sm:text-3xl">
             {label}
           </h1>

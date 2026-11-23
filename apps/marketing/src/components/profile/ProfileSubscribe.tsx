@@ -26,6 +26,7 @@ export default function ProfileSubscribe({
   source,
   layout = 'bar',
   sourceRef,
+  variant = ButtonVariant.DEFAULT,
 }: ProfileSubscribeProps) {
   const [state, setState] = useState<SubscribeState>('idle');
   const isSubscribed = state === 'subscribed';
@@ -83,7 +84,7 @@ export default function ProfileSubscribe({
       }}
       trackingName="creator_subscribe_click"
       type="button"
-      variant={ButtonVariant.DEFAULT}
+      variant={variant}
       withWrapper={false}
     >
       <Icon aria-hidden="true" className="size-4" />
