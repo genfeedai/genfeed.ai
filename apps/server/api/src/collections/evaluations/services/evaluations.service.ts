@@ -6,6 +6,11 @@ import { EvaluationFiltersDto } from '@api/collections/evaluations/dto/evaluatio
 import { RecordEvaluationReviewDto } from '@api/collections/evaluations/dto/record-evaluation-review.dto';
 import type { EvaluationDocument } from '@api/collections/evaluations/schemas/evaluation.schema';
 import {
+  holdEvaluationCredits,
+  refundEvaluationCredits,
+  settleEvaluationCredits,
+} from '@api/collections/evaluations/services/evaluation-credits';
+import {
   buildArticleJudgeContext,
   buildImageJudgeContext,
   buildVideoJudgeContext,
@@ -26,8 +31,11 @@ import { ImagesService } from '@api/collections/images/services/images.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
-import { InsufficientCreditsException } from '@api/exceptions/business-logic.exception';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import {
+  releaseTextCredits,
+  type TextCreditHold,
+} from '@api/helpers/utils/credits/text-credit-hold.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { scopedWhere } from '@api/index';
 import type { TextByokDispatch } from '@api/services/byok/text-dispatch-byok.util';
@@ -42,7 +50,6 @@ import {
   type PopulateInput,
 } from '@api/shared/services/base/base.service';
 import {
-  ActivitySource,
   EvaluationType,
   IngredientCategory,
   Status,
@@ -70,10 +77,6 @@ const evaluationResultProjection = new EvaluationResultProjection();
 @Injectable()
 export class EvaluationsService extends BaseService<EvaluationDocument> {
   private readonly constructorName = this.constructor.name;
-
-  private static readonly EVALUATION_MINIMUM_CREDITS = 1;
-
-  private static readonly EVALUATION_MAX_OVERDRAFT_CREDITS = 5;
 
   constructor(
     public readonly prisma: PrismaService,
@@ -251,52 +254,67 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
       organizationId,
       [DEFAULT_TEXT_MODEL],
     );
-    if (!byok) {
-      await this.assertOrganizationCreditsAvailable(
-        organizationId,
-        EvaluationsService.EVALUATION_MINIMUM_CREDITS,
-      );
-    }
+    // Without an org key the evaluation holds its minimum credits before the
+    // judge model runs, so two concurrent evaluations cannot both start on a
+    // balance that pays for one.
+    const hold = byok
+      ? undefined
+      : await holdEvaluationCredits(
+          this.creditsUtilsService,
+          this.logger,
+          organizationId,
+          userId,
+          brandId,
+        );
 
-    switch (contentType) {
-      case IngredientCategory.VIDEO:
-        return this.evaluateVideo(
-          contentId,
-          evaluationType,
-          organizationId,
-          userId,
-          brandId,
-          byok,
-        );
-      case IngredientCategory.IMAGE:
-        return this.evaluateImage(
-          contentId,
-          evaluationType,
-          organizationId,
-          userId,
-          brandId,
-          byok,
-        );
-      case 'article':
-        return this.evaluateArticle(
-          contentId,
-          evaluationType,
-          organizationId,
-          userId,
-          brandId,
-          byok,
-        );
-      case 'post':
-        return this.evaluatePost(
-          contentId,
-          evaluationType,
-          organizationId,
-          userId,
-          brandId,
-          byok,
-        );
-      default:
-        throw new Error(`Unsupported content type: ${contentType}`);
+    try {
+      switch (contentType) {
+        case IngredientCategory.VIDEO:
+          return await this.evaluateVideo(
+            contentId,
+            evaluationType,
+            organizationId,
+            userId,
+            brandId,
+            byok,
+            hold,
+          );
+        case IngredientCategory.IMAGE:
+          return await this.evaluateImage(
+            contentId,
+            evaluationType,
+            organizationId,
+            userId,
+            brandId,
+            byok,
+            hold,
+          );
+        case 'article':
+          return await this.evaluateArticle(
+            contentId,
+            evaluationType,
+            organizationId,
+            userId,
+            brandId,
+            byok,
+            hold,
+          );
+        case 'post':
+          return await this.evaluatePost(
+            contentId,
+            evaluationType,
+            organizationId,
+            userId,
+            brandId,
+            byok,
+            hold,
+          );
+        default:
+          throw new Error(`Unsupported content type: ${contentType}`);
+      }
+    } catch (error: unknown) {
+      await releaseTextCredits(this.creditsUtilsService, hold, organizationId);
+      throw error;
     }
   }
 
@@ -307,6 +325,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
     userId: string,
     brandId: string,
     byok?: TextByokDispatch,
+    hold?: TextCreditHold,
   ): Promise<EvaluationDocument> {
     this.logger.log(`Evaluating video: ${videoId}`, this.constructorName);
 
@@ -368,12 +387,14 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
 
     await this.invalidateEvaluationReadCaches(evaluation);
 
-    await this.settleEvaluationCredits(
+    await settleEvaluationCredits(
+      this.creditsUtilsService,
       organizationId,
       userId,
       billedCredits,
       `Content evaluation: ${IngredientCategory.VIDEO}`,
       brandId,
+      hold,
     );
 
     return evaluation;
@@ -386,6 +407,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
     userId: string,
     brandId: string,
     byok?: TextByokDispatch,
+    hold?: TextCreditHold,
   ): Promise<EvaluationDocument> {
     this.logger.log(`Evaluating image: ${imageId}`, this.constructorName);
 
@@ -438,12 +460,14 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
 
     await this.invalidateEvaluationReadCaches(evaluation);
 
-    await this.settleEvaluationCredits(
+    await settleEvaluationCredits(
+      this.creditsUtilsService,
       organizationId,
       userId,
       billedCredits,
       `Content evaluation: ${IngredientCategory.IMAGE}`,
       brandId,
+      hold,
     );
 
     return evaluation;
@@ -456,6 +480,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
     userId: string,
     brandId: string,
     byok?: TextByokDispatch,
+    hold?: TextCreditHold,
   ): Promise<EvaluationDocument> {
     this.logger.log(`Evaluating article: ${articleId}`, this.constructorName);
 
@@ -503,12 +528,14 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
 
     await this.invalidateEvaluationReadCaches(evaluation);
 
-    await this.settleEvaluationCredits(
+    await settleEvaluationCredits(
+      this.creditsUtilsService,
       organizationId,
       userId,
       billedCredits,
       'Content evaluation: article',
       brandId,
+      hold,
     );
 
     return evaluation;
@@ -521,6 +548,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
     userId: string,
     brandId: string,
     byok?: TextByokDispatch,
+    hold?: TextCreditHold,
   ): Promise<EvaluationDocument> {
     this.logger.log(`Evaluating post: ${postId}`, this.constructorName);
 
@@ -557,6 +585,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
       userId,
       byok,
       brandId,
+      hold,
     ).catch((error) => {
       this.logger.error(
         `Async post evaluation failed: ${(error as Error).message}`,
@@ -578,6 +607,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
     userId: string,
     byok?: TextByokDispatch,
     brandId?: string,
+    hold?: TextCreditHold,
   ): Promise<void> {
     const postId = String(post.id);
     let billedCredits = 0;
@@ -620,12 +650,14 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
         byok,
       )) as EvaluationAiResult;
 
-      await this.settleEvaluationCredits(
+      await settleEvaluationCredits(
+        this.creditsUtilsService,
         organizationId,
         userId,
         billedCredits,
         'Content evaluation: post',
         brandId,
+        hold,
       );
       creditsSettled = true;
 
@@ -662,6 +694,16 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
     } catch (error: unknown) {
       this.logger.error(`Post evaluation failed: ${evaluationId}`, error);
 
+      // A hold the provider call never settled goes back first, so a failing
+      // status write below cannot leave it behind.
+      if (!creditsSettled) {
+        await releaseTextCredits(
+          this.creditsUtilsService,
+          hold,
+          organizationId,
+        );
+      }
+
       const existing = await this.prisma.evaluation.findFirst({
         where: scopedWhere(organizationId, { id: evaluationId }),
       });
@@ -683,7 +725,9 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
       // completion write threw after the AI charge). Return them so a failed
       // evaluation is never billed.
       if (creditsSettled) {
-        await this.refundEvaluationCredits(
+        await refundEvaluationCredits(
+          this.creditsUtilsService,
+          this.logger,
           organizationId,
           billedCredits,
           'Content evaluation failed: post',
@@ -906,83 +950,5 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
       evaluations,
       filters,
     );
-  }
-
-  private async assertOrganizationCreditsAvailable(
-    organizationId: string,
-    requiredCredits: number,
-  ): Promise<void> {
-    if (requiredCredits <= 0) return;
-
-    const hasCredits =
-      await this.creditsUtilsService.checkOrganizationCreditsAvailable(
-        organizationId,
-        requiredCredits,
-      );
-
-    if (hasCredits) return;
-
-    const currentBalance =
-      await this.creditsUtilsService.getOrganizationCreditsBalance(
-        organizationId,
-      );
-    this.logger.warn(
-      `Insufficient credits for evaluation: ${currentBalance} available, ${requiredCredits} required`,
-      this.constructorName,
-    );
-    throw new InsufficientCreditsException(requiredCredits, currentBalance);
-  }
-
-  private async settleEvaluationCredits(
-    organizationId: string,
-    userId: string,
-    amount: number,
-    description: string,
-    brandId?: string | null,
-  ): Promise<void> {
-    if (amount <= 0) return;
-
-    await this.creditsUtilsService.deductCreditsFromOrganization(
-      organizationId,
-      userId,
-      amount,
-      description,
-      ActivitySource.CONTENT_EVALUATION,
-      {
-        brandId,
-        maxOverdraftCredits:
-          EvaluationsService.EVALUATION_MAX_OVERDRAFT_CREDITS,
-      },
-    );
-  }
-
-  private async refundEvaluationCredits(
-    organizationId: string,
-    amount: number,
-    description: string,
-    brandId?: string | null,
-  ): Promise<void> {
-    if (amount <= 0) return;
-
-    try {
-      const refundExpiresAt = new Date();
-      refundExpiresAt.setFullYear(refundExpiresAt.getFullYear() + 1);
-
-      await this.creditsUtilsService.refundOrganizationCredits(
-        organizationId,
-        amount,
-        'content-evaluation-refund',
-        description,
-        refundExpiresAt,
-        { brandId },
-      );
-    } catch (error: unknown) {
-      // A failed refund must not mask the original evaluation failure — log and
-      // move on so the caller still surfaces the FAILED status.
-      this.logger.error(
-        `Failed to refund evaluation credits for organization ${organizationId}`,
-        error,
-      );
-    }
   }
 }
