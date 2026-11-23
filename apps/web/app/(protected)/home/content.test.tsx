@@ -437,7 +437,7 @@ describe('OperationalHomeContent', () => {
   it('remembers what the connection read settled on for the next visit', async () => {
     mocks.connectionState = {
       error: null,
-      key: { id: 'key_1' },
+      key: { label: 'key_1' },
       refresh: mocks.connectionRefresh,
       status: 'configured',
       verifiedAt: '2026-11-21T09:30:00.000Z',
@@ -463,7 +463,7 @@ describe('OperationalHomeContent', () => {
   it('grows the line in when nothing was remembered', () => {
     mocks.connectionState = {
       error: null,
-      key: { id: 'key_1' },
+      key: { label: 'key_1' },
       refresh: mocks.connectionRefresh,
       status: 'configured',
       verifiedAt: '2026-11-21T09:30:00.000Z',
