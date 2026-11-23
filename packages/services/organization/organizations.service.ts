@@ -51,6 +51,15 @@ import type { AxiosRequestConfig } from 'axios';
 const ORGANIZATION_LIST_PAGE_SIZE = 100;
 
 /**
+ * The membership read and the activation are the check that confirms the
+ * routed organization, so they leave while the page is still drawn from a
+ * saved copy and every other request waits.
+ */
+const MEMBERSHIP_CHECK_REQUEST: AxiosRequestConfig & IHttpRequestOptions = {
+  exemptFromOrganizationGate: true,
+};
+
+/**
  * Cross-org membership summary returned by `GET /organizations?mine=true`. A bespoke
  * projection (not a serialized Organization) consumed structurally by the org
  * switcher, post-signup routing, and scope controls.
@@ -436,7 +445,10 @@ export class OrganizationsService extends BaseService<Organization> {
     }
 
     const request = this.instance
-      .get<MyOrganizationSummary[]>('', { params: { mine: true } })
+      .get<MyOrganizationSummary[]>('', {
+        ...MEMBERSHIP_CHECK_REQUEST,
+        params: { mine: true },
+      })
       .then((res) =>
         // Defensive dedup by org id: a duplicate entry here renders twice in
         // the org switcher with the active checkmark on both rows (the
@@ -507,7 +519,7 @@ export class OrganizationsService extends BaseService<Organization> {
         .patch<{
           organization: { id: string; label: string };
           brand: { id: string; label: string };
-        }>(`/${orgId}/activate`)
+        }>(`/${orgId}/activate`, undefined, MEMBERSHIP_CHECK_REQUEST)
         .then((res) => res.data);
     } finally {
       this.myOrganizationsInFlight = null;

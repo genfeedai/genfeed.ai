@@ -5,7 +5,7 @@ import type {
   IPaginatedResponse,
 } from '@genfeedai/contracts/interfaces';
 import { EnvironmentService } from '@services/core/environment.service';
-import { getRequestOrganizationHeaders } from '@services/core/interceptor.service';
+import { whenRequestOrganizationSettled } from '@services/core/interceptor.service';
 import type { JsonApiResponseDocument } from '@services/core/json-api';
 import { toPaginatedResponse } from '@services/core/paginated-response';
 import type {
@@ -84,7 +84,7 @@ export class ClipperApiService implements ClipperApiClient {
     const headers: Record<string, string> = {
       Authorization: `Bearer ${token}`,
       ...((options.headers as Record<string, string>) ?? {}),
-      ...getRequestOrganizationHeaders(),
+      ...(await whenRequestOrganizationSettled()),
     };
 
     if (options.body) {

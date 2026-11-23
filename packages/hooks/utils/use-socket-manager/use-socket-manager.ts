@@ -5,6 +5,7 @@ import type {
   ISocketManagerConfig,
 } from '@genfeedai/contracts/interfaces';
 import type { UseSocketManagerOptions } from '@genfeedai/contracts/interfaces/hooks/hooks.interface';
+import { requestOrganizationGate } from '@genfeedai/services/core/interceptor.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { SocketManager } from '@genfeedai/services/core/socket-manager.service';
 import {
@@ -12,7 +13,13 @@ import {
   resolveAuthToken,
 } from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react';
 
 export interface SocketSubscription<T = unknown> {
   event: string;
@@ -24,6 +31,18 @@ export interface SocketSubscription<T = unknown> {
  */
 const EMPTY_SOCKET_MANAGER_OPTIONS: ISocketManagerConfig = {};
 
+function subscribeToOrganizationGate(onChange: () => void): () => void {
+  return requestOrganizationGate.subscribe(onChange);
+}
+
+function isOrganizationProvisional(): boolean {
+  return requestOrganizationGate.isProvisional();
+}
+
+function isNeverProvisionalOnServer(): boolean {
+  return false;
+}
+
 export function useSocketManager(
   options: ISocketManagerConfig = EMPTY_SOCKET_MANAGER_OPTIONS,
 ) {
@@ -32,6 +51,14 @@ export function useSocketManager(
   const effectiveIsAuthLoaded =
     isAuthLoaded || playwrightAuth?.isLoaded === true;
   const effectiveIsSignedIn = isSignedIn || playwrightAuth?.isSignedIn === true;
+  // The gateway joins `org-<id>` rooms from the organization the server
+  // resolves for the user. While the page is drawn from a saved copy that is
+  // not yet confirmed to be the organization on screen, so no socket opens.
+  const isOrganizationConfirmationPending = useSyncExternalStore(
+    subscribeToOrganizationGate,
+    isOrganizationProvisional,
+    isNeverProvisionalOnServer,
+  );
   const socketManagerRef = useRef<SocketManager | null>(null);
   const [isReady, setIsReady] = useState(false);
   const [connectionState, setConnectionState] = useState<
@@ -61,7 +88,11 @@ export function useSocketManager(
       };
     }
 
-    if (!effectiveIsAuthLoaded || !effectiveIsSignedIn) {
+    if (
+      !effectiveIsAuthLoaded ||
+      !effectiveIsSignedIn ||
+      isOrganizationConfirmationPending
+    ) {
       SocketManager.clearInstance();
       socketManagerRef.current = null;
       setConnectionState('offline');
@@ -121,6 +152,7 @@ export function useSocketManager(
     effectiveIsAuthLoaded,
     effectiveIsSignedIn,
     getToken,
+    isOrganizationConfirmationPending,
   ]);
 
   const subscribe = useCallback(
