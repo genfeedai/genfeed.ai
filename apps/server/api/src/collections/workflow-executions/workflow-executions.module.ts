@@ -6,6 +6,7 @@ import { AgentStrategiesCoreModule } from '@api/collections/agent-strategies/age
  */
 import { AgentThreadsModule } from '@api/collections/agent-threads/agent-threads.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
+import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
 import { UsersModule } from '@api/collections/users/users.module';
 import { AgentRunCancelController } from '@api/collections/workflow-executions/controllers/agent-run-cancel.controller';
 import { InternalWorkflowExecutionsController } from '@api/collections/workflow-executions/controllers/internal-workflow-executions.controller';
@@ -36,6 +37,7 @@ import { Module } from '@nestjs/common';
     AgentStrategiesCoreModule,
     CreditsModule,
     AgentThreadsModule,
+    IngredientsModule,
     WorkflowsCoreModule,
     UsersModule,
     WebhookClientModule,

@@ -23,9 +23,14 @@ describe('WorkflowExecutionsService', () => {
     warn: vi.fn(),
   };
 
-  const makeService = (generationBilling?: {
-    closeTerminal: ReturnType<typeof vi.fn>;
-  }) => {
+  const makeService = (
+    generationBilling?: {
+      closeTerminal: ReturnType<typeof vi.fn>;
+    },
+    generationCancellation?: {
+      cancelProcessingForExecution: ReturnType<typeof vi.fn>;
+    },
+  ) => {
     const workflowExecution = {
       aggregate: vi.fn().mockResolvedValue({ _avg: { durationMs: null } }),
       create: vi.fn().mockResolvedValue({ id: 'execution-1' }),
@@ -101,6 +106,7 @@ describe('WorkflowExecutionsService', () => {
         { recordRun: vi.fn() } as never,
         generationBilling as never,
         events as never,
+        generationCancellation as never,
       ),
       activityRecorder,
       events,
@@ -326,6 +332,53 @@ describe('WorkflowExecutionsService', () => {
         status: 'cancelled',
       }),
     ]);
+  });
+
+  it('cancels the generations a stopped run started, for the run owner', async () => {
+    const generationCancellation = {
+      cancelProcessingForExecution: vi.fn().mockResolvedValue(2),
+    };
+    const { service } = makeService(undefined, generationCancellation);
+
+    await service.cancelExecution('execution-1', 'org-1');
+
+    expect(
+      generationCancellation.cancelProcessingForExecution,
+    ).toHaveBeenCalledWith({
+      executionId: 'execution-1',
+      organizationId: 'org-1',
+      userId: 'actor-user-1',
+    });
+  });
+
+  it('still stops the run when its generations cannot be cancelled', async () => {
+    const generationCancellation = {
+      cancelProcessingForExecution: vi
+        .fn()
+        .mockRejectedValue(new Error('provider down')),
+    };
+    const { events, service } = makeService(undefined, generationCancellation);
+
+    await expect(
+      service.cancelExecution('execution-1', 'org-1'),
+    ).resolves.toBeDefined();
+    expect(events.emit.mock.calls.map(([, event]) => event)).toEqual([
+      expect.objectContaining({ status: 'cancelled' }),
+    ]);
+  });
+
+  it('leaves the generations of an already terminal run alone on cancel', async () => {
+    const generationCancellation = {
+      cancelProcessingForExecution: vi.fn().mockResolvedValue(0),
+    };
+    const { prisma, service } = makeService(undefined, generationCancellation);
+    prisma.workflowExecution.updateMany.mockResolvedValue({ count: 0 });
+
+    await service.cancelExecution('execution-1', 'org-1');
+
+    expect(
+      generationCancellation.cancelProcessingForExecution,
+    ).not.toHaveBeenCalled();
   });
 
   it('leaves an already terminal execution unchanged on cancel', async () => {
