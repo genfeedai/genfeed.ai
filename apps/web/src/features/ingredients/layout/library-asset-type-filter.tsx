@@ -2,18 +2,53 @@
 
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import ButtonDropdown from '@ui/buttons/dropdown/button-dropdown/ButtonDropdown';
+import { OptionSelect } from '@ui/primitives/option-select';
+import {
+  Captions,
+  Film,
+  Image,
+  Mic,
+  Music,
+  UserRound,
+  Video,
+} from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
+const ICON_CLASS_NAME = 'size-4';
+
 const LIBRARY_ASSET_TYPE_OPTIONS = [
-  { label: 'Videos', value: 'videos' },
-  { label: 'Images', value: 'images' },
-  { label: 'GIFs', value: 'gifs' },
-  { label: 'Avatars', value: 'avatars' },
-  { label: 'Voices', value: 'voices' },
-  { label: 'Music', value: 'music' },
-  { label: 'Captions', value: 'captions' },
-] as const;
+  {
+    icon: <Video className={ICON_CLASS_NAME} />,
+    label: 'Videos',
+    value: 'videos',
+  },
+  {
+    icon: <Image className={ICON_CLASS_NAME} />,
+    label: 'Images',
+    value: 'images',
+  },
+  { icon: <Film className={ICON_CLASS_NAME} />, label: 'GIFs', value: 'gifs' },
+  {
+    icon: <UserRound className={ICON_CLASS_NAME} />,
+    label: 'Avatars',
+    value: 'avatars',
+  },
+  {
+    icon: <Mic className={ICON_CLASS_NAME} />,
+    label: 'Voices',
+    value: 'voices',
+  },
+  {
+    icon: <Music className={ICON_CLASS_NAME} />,
+    label: 'Music',
+    value: 'music',
+  },
+  {
+    icon: <Captions className={ICON_CLASS_NAME} />,
+    label: 'Captions',
+    value: 'captions',
+  },
+];
 
 const LIBRARY_ROUTE_BY_TYPE = {
   avatars: APP_ROUTES.LIBRARY.AVATARS,
@@ -45,7 +80,7 @@ export default function LibraryAssetTypeFilter() {
   const { href } = useOrgUrl();
   const currentType = getCurrentType(pathname);
 
-  const handleTypeChange = (_name: string, nextType: string) => {
+  const handleTypeChange = (nextType: string) => {
     if (!(nextType in LIBRARY_ROUTE_BY_TYPE) || nextType === currentType) {
       return;
     }
@@ -71,12 +106,11 @@ export default function LibraryAssetTypeFilter() {
   };
 
   return (
-    <ButtonDropdown
-      name="assetType"
-      value={currentType}
+    <OptionSelect
+      ariaLabel="Filter by asset type"
+      onValueChange={handleTypeChange}
       options={LIBRARY_ASSET_TYPE_OPTIONS}
-      onChange={handleTypeChange}
-      tooltip="Filter by asset type"
+      value={currentType}
     />
   );
 }
