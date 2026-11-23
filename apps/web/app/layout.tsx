@@ -84,19 +84,24 @@ export default function RootLayout({ children }: LayoutProps) {
           It resolves the viewer's time zone itself instead of taking the
           server's zone (UTC on Vercel). */}
       <AppIntlProvider locale={DEFAULT_LOCALE}>
-        <Suspense fallback={null}>
-          <AppProviders
-            initialTheme={DEFAULT_THEME}
-            storageKey={THEME_STORAGE_KEY}
-          >
-            <AnalyticsAnonymousSessionSync />
+        <AppProviders
+          initialTheme={DEFAULT_THEME}
+          storageKey={THEME_STORAGE_KEY}
+        >
+          <AnalyticsAnonymousSessionSync />
+          {/* These two read the pathname, which is only known per request, and
+              render nothing. Their own boundary keeps the pages below from
+              being switched to client rendering, which a boundary around the
+              whole tree did (#10886). Each route group owns the boundary for
+              the readers inside it. */}
+          <Suspense fallback={null}>
             <AppContextSync />
             <DesktopDragStrip />
-            <DeploymentVersionWatcher />
-            <ServiceWorkerRegistrar />
-            {children}
-          </AppProviders>
-        </Suspense>
+          </Suspense>
+          <DeploymentVersionWatcher />
+          <ServiceWorkerRegistrar />
+          {children}
+        </AppProviders>
       </AppIntlProvider>
     </AppHtmlDocument>
   );
