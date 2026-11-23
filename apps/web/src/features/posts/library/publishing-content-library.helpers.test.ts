@@ -448,7 +448,11 @@ describe('publishing content library federation', () => {
           id: 'post-1',
           ingredients: [
             { category: IngredientCategory.IMAGE, id: 'gone', isDeleted: true },
-            { category: IngredientCategory.IMAGE, id: 'live', isDeleted: false },
+            {
+              category: IngredientCategory.IMAGE,
+              id: 'live',
+              isDeleted: false,
+            },
           ],
           platform: Platform.INSTAGRAM,
         },
