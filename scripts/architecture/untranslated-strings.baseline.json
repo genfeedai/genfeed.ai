@@ -256,7 +256,7 @@
     "apps/web/src/features/agents/campaigns/OutreachCampaignWizardStep3.tsx": 13,
     "apps/web/src/features/agents/campaigns/OutreachCampaignWizardStep4.tsx": 4,
     "apps/web/src/features/agents/library/LivestreamBotConfigCard.tsx": 15,
-    "apps/web/src/features/agents/library/LivestreamChatBotPage.tsx": 13,
+    "apps/web/src/features/agents/library/LivestreamChatBotPage.tsx": 11,
     "apps/web/src/features/agents/library/LivestreamPlatformTargets.tsx": 12,
     "apps/web/src/features/agents/library/LivestreamSessionPanels.tsx": 6,
     "apps/web/src/features/analytics/accounts/analytics-account-detail.tsx": 6,
