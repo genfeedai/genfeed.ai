@@ -1,4 +1,5 @@
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
+import { EmailMediaUrlService } from '@api/services/email-media/email-media-url.service';
 import { EmailPerformanceService } from '@api/services/email-performance/email-performance.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
@@ -52,6 +53,7 @@ export class EmailProductSignalsService implements OnModuleInit {
     private readonly emails: EmailPerformanceService,
     private readonly config: ConfigService,
     private readonly runner: SystemWorkflowRunnerService,
+    private readonly emailMedia: EmailMediaUrlService,
   ) {}
 
   onModuleInit(): void {
@@ -135,7 +137,7 @@ export class EmailProductSignalsService implements OnModuleInit {
             title: subject,
             bodyHtml: buildGenerationEmailBody({
               brandLabel: asset.brand.label,
-              imageUrl: this.generationPreviewUrl(asset),
+              imageUrl: this.emailMedia.previewUrl(asset, organizationId),
               isFailed,
               kind: generationKind(asset.category),
             }),
@@ -374,25 +376,6 @@ export class EmailProductSignalsService implements OnModuleInit {
       now,
     );
     return { count };
-  }
-
-  /**
-   * Public CDN still for an image or video; audio and others have none. None
-   * once authorized media delivery is on: ids are private then and an email
-   * outlives any signed grant.
-   */
-  private generationPreviewUrl(asset: {
-    id: string;
-    category: string;
-  }): string | null {
-    if (this.config.isAuthorizedMediaDeliveryEnabled) return null;
-    const endpoint = this.config.ingredientsEndpoint;
-    if (!endpoint) return null;
-    if (asset.category === IngredientCategory.IMAGE)
-      return `${endpoint}/images/${asset.id}`;
-    if (asset.category === IngredientCategory.VIDEO)
-      return `${endpoint}/thumbnails/${asset.id}`;
-    return null;
   }
 
   private async checkpoint(

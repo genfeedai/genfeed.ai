@@ -109,7 +109,7 @@ export function buildEmailStatRow(stats: readonly EmailStat[]): string {
             cellWidth +
             '" valign="top"><![endif]-->'
           : `<!--[if mso]></td><td width="${cellWidth}" valign="top"><![endif]-->`;
-    return `${msoBreak}<div style="display:inline-block;max-width:${cellWidth}px;vertical-align:top;width:100%;"><div style="padding:0 ${STAT_GAP_PX}px ${STAT_GAP_PX}px 0;"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:${tone.soft};border:1px solid ${EMAIL_BLOCK_COLORS.border};border-collapse:separate;border-radius:8px;width:100%;"><tr><td style="padding:14px 12px;"><div style="color:${tone.accent};font-size:28px;font-weight:700;letter-spacing:-0.02em;line-height:32px;">${esc(stat.value)}</div><div style="color:${EMAIL_BLOCK_COLORS.secondary};font-size:12px;line-height:18px;margin-top:4px;">${esc(stat.label)}</div>${hint}</td></tr></table></div></div>`;
+    return `${msoBreak}<div style="display:inline-block;max-width:${cellWidth}px;vertical-align:top;width:100%;"><div style="padding:0 ${STAT_GAP_PX}px ${STAT_GAP_PX}px 0;"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:${tone.soft};border:1px solid ${EMAIL_BLOCK_COLORS.border};border-collapse:separate;border-radius:8px;width:100%;"><tr><td style="padding:14px 10px;"><div style="color:${tone.accent};font-size:28px;font-weight:700;letter-spacing:-0.02em;line-height:32px;white-space:nowrap;">${esc(stat.value)}</div><div style="color:${EMAIL_BLOCK_COLORS.secondary};font-size:12px;line-height:18px;margin-top:4px;white-space:nowrap;">${esc(stat.label)}</div>${hint}</td></tr></table></div></div>`;
   });
   // font-size:0 drops the whitespace gap between inline blocks; the tiles'
   // bottom gap stands in for 8px of the block's 24px bottom margin.
@@ -136,7 +136,7 @@ export function buildEmailBigNumber(input: EmailBigNumberInput): string {
 export type EmailThumbnailKind = 'image' | 'video' | 'article' | 'audio';
 
 export interface EmailThumbnail {
-  /** Hosted raster image. Without one the tile shows the kind as text. */
+  /** Hosted raster image. Without one the tile draws a waveform, text lines or a frame by kind. */
   imageUrl?: string | null;
   kind: EmailThumbnailKind;
   /** Caption under the tile: the title or a short description. */
@@ -155,6 +155,35 @@ const KIND_LABELS: Record<EmailThumbnailKind, string> = {
   video: 'Video',
 };
 
+const AUDIO_WAVEFORM_HEIGHTS = [
+  10, 18, 28, 20, 34, 46, 30, 22, 38, 52, 36, 24, 42, 30, 18, 26, 14, 8,
+] as const;
+const ARTICLE_LINE_WIDTHS = [88, 100, 94, 100, 72] as const;
+
+/** Bars of different heights, drawn with table cells so every client shows them. */
+function audioTileHtml(size: number): string {
+  const bars = AUDIO_WAVEFORM_HEIGHTS.map(
+    (height) =>
+      `<td valign="middle" style="padding:0 1px;"><div style="background:${EMAIL_BLOCK_COLORS.warning};border-radius:2px;font-size:0;height:${height}px;line-height:0;width:3px;">&nbsp;</div></td>`,
+  ).join('');
+  return `<div style="aspect-ratio:1/1;background:${EMAIL_BLOCK_COLORS.panel};border:1px solid ${EMAIL_BLOCK_COLORS.border};border-radius:8px;box-sizing:border-box;max-width:${size}px;overflow:hidden;width:100%;"><table role="presentation" width="100%" height="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;height:100%;width:100%;"><tr><td align="center" valign="middle" style="padding:30px 8px;"><table role="presentation" cellspacing="0" cellpadding="0" style="border-collapse:collapse;"><tr>${bars}</tr></table></td></tr></table></div>`;
+}
+
+/** Grey lines of text on a page: an article has no still to show. */
+function articleTileHtml(size: number): string {
+  const lines = ARTICLE_LINE_WIDTHS.map(
+    (width) =>
+      `<div style="background:${EMAIL_BLOCK_COLORS.border};border-radius:2px;font-size:0;height:5px;line-height:0;margin:0 0 9px;width:${width}%;">&nbsp;</div>`,
+  ).join('');
+  return `<div style="aspect-ratio:1/1;background:${EMAIL_BLOCK_COLORS.panel};border:1px solid ${EMAIL_BLOCK_COLORS.border};border-radius:8px;box-sizing:border-box;max-width:${size}px;overflow:hidden;width:100%;"><table role="presentation" width="100%" height="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;height:100%;width:100%;"><tr><td valign="middle" style="padding:24px 22px;"><div style="background:${EMAIL_BLOCK_COLORS.secondary};border-radius:2px;font-size:0;height:7px;line-height:0;margin:0 0 14px;width:55%;">&nbsp;</div>${lines}</td></tr></table></div>`;
+}
+
+/** An image or video whose still is not available: a quiet frame, never a word. */
+function stillPlaceholderHtml(kind: EmailThumbnailKind, size: number): string {
+  const glyph = kind === 'video' ? '&#9654;' : '&#9632;';
+  return `<div style="aspect-ratio:1/1;background:${EMAIL_BLOCK_COLORS.panel};border:1px solid ${EMAIL_BLOCK_COLORS.border};border-radius:8px;box-sizing:border-box;max-width:${size}px;overflow:hidden;width:100%;"><table role="presentation" width="100%" height="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;height:100%;width:100%;"><tr><td align="center" valign="middle" style="color:${EMAIL_BLOCK_COLORS.border};font-size:28px;line-height:28px;padding:34px 0;">${glyph}</td></tr></table></div>`;
+}
+
 function thumbnailTile(
   item: EmailThumbnail,
   size: number,
@@ -165,7 +194,11 @@ function thumbnailTile(
   const kindLabel = KIND_LABELS[item.kind];
   const visual = src
     ? `<img src="${esc(src)}" alt="${esc(item.label ?? kindLabel)}" width="${size}" height="${size}" style="aspect-ratio:1/1;background:${EMAIL_BLOCK_COLORS.panel};border:0;border-radius:8px;display:block;height:auto;max-width:${size}px;object-fit:cover;width:100%;">`
-    : `<div style="aspect-ratio:1/1;background:${EMAIL_BLOCK_COLORS.panel};border:1px solid ${EMAIL_BLOCK_COLORS.border};border-radius:8px;box-sizing:border-box;max-width:${size}px;overflow:hidden;width:100%;"><table role="presentation" width="100%" height="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;height:100%;width:100%;"><tr><td align="center" valign="middle" style="color:${EMAIL_BLOCK_COLORS.muted};font-size:12px;letter-spacing:0.08em;padding:34px 0;text-transform:uppercase;">${esc(kindLabel)}</td></tr></table></div>`;
+    : item.kind === 'audio'
+      ? audioTileHtml(size)
+      : item.kind === 'article'
+        ? articleTileHtml(size)
+        : stillPlaceholderHtml(item.kind, size);
   const kindBadge =
     item.kind === 'video' && src
       ? `<span style="color:${EMAIL_BLOCK_COLORS.secondary};font-size:11px;">&#9654; Video</span>`
@@ -192,8 +225,9 @@ export interface EmailThumbnailGridOptions {
 }
 
 /**
- * A grid of content previews, three across. A tile without an image shows its
- * kind as text, so an article or audio piece still takes a place in the grid.
+ * A grid of content previews, three across. A tile without an image draws its
+ * kind (a waveform for audio, text lines for an article), so every piece still
+ * takes a place in the grid.
  * Tiles are 152px on desktop and shrink with their cell in narrow clients.
  * `moreCount` is what the caller left out; items past `maxItems` are added to it.
  */
@@ -241,6 +275,18 @@ export interface EmailHeroInput {
   meta?: string;
 }
 
+function heroPlaceholderInner(kind: EmailThumbnailKind): string {
+  if (kind === 'audio') {
+    const bars = AUDIO_WAVEFORM_HEIGHTS.map(
+      (height) =>
+        `<td valign="middle" style="padding:0 2px;"><div style="background:${EMAIL_BLOCK_COLORS.warning};border-radius:2px;font-size:0;height:${height}px;line-height:0;width:5px;">&nbsp;</div></td>`,
+    ).join('');
+    return `<table role="presentation" cellspacing="0" cellpadding="0" style="border-collapse:collapse;"><tr>${bars}</tr></table>`;
+  }
+  const glyph = kind === 'video' ? '&#9654;' : '&#9632;';
+  return `<span style="color:${EMAIL_BLOCK_COLORS.border};font-size:40px;line-height:40px;">${glyph}</span>`;
+}
+
 /** One large preview of the piece the email is about. */
 export function buildEmailHero(input: EmailHeroInput): string {
   const src = httpUrl(input.imageUrl);
@@ -248,7 +294,7 @@ export function buildEmailHero(input: EmailHeroInput): string {
   const kindLabel = KIND_LABELS[input.kind];
   const visual = src
     ? `<img src="${esc(src)}" alt="${esc(input.label ?? kindLabel)}" width="496" style="background:${EMAIL_BLOCK_COLORS.panel};border:0;border-radius:8px;display:block;height:auto;max-width:100%;width:100%;">`
-    : `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:${EMAIL_BLOCK_COLORS.panel};border:1px solid ${EMAIL_BLOCK_COLORS.border};border-collapse:separate;border-radius:8px;width:100%;"><tr><td align="center" style="color:${EMAIL_BLOCK_COLORS.muted};font-size:12px;height:140px;letter-spacing:0.08em;text-transform:uppercase;">${esc(kindLabel)}</td></tr></table>`;
+    : `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:${EMAIL_BLOCK_COLORS.panel};border:1px solid ${EMAIL_BLOCK_COLORS.border};border-collapse:separate;border-radius:8px;width:100%;"><tr><td align="center" valign="middle" style="height:160px;">${heroPlaceholderInner(input.kind)}</td></tr></table>`;
   const caption =
     input.label || input.meta
       ? `<p style="color:${EMAIL_BLOCK_COLORS.secondary};font-size:13px;line-height:20px;margin:8px 0 0;">${input.label ? `<span style="color:${EMAIL_BLOCK_COLORS.primary};font-weight:600;">${esc(input.label)}</span>` : ''}${input.label && input.meta ? ' &middot; ' : ''}${input.meta ? esc(input.meta) : ''}</p>`

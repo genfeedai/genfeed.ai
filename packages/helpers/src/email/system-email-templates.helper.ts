@@ -36,6 +36,11 @@ function formatCount(value: number): string {
   return value.toLocaleString('en-US');
 }
 
+/** Credits to at most two decimals: a metered total such as 67.206 reads 67.21. */
+export function formatCredits(value: number): string {
+  return value.toLocaleString('en-US', { maximumFractionDigits: 2 });
+}
+
 export interface ContentRecapEmailInput {
   period: 'day' | 'week';
   /** "2026-10-26 to 2026-11-01 (UTC)". */
@@ -74,7 +79,7 @@ export function buildContentRecapEmailBody(
       tone: ready > 0 ? 'warning' : 'neutral',
       value: formatCount(ready),
     },
-    { label: 'Credits used', value: formatCount(input.creditsUsed) },
+    { label: 'Credits used', value: formatCredits(input.creditsUsed) },
   ];
   const hasPerformance =
     input.published > 0 &&
@@ -194,7 +199,7 @@ export function buildCreditAlertEmailBody(
       caption: 'available after current generation reservations',
       label: 'Credits left',
       tone: input.isExhausted ? 'danger' : 'warning',
-      value: formatCount(Math.max(0, input.spendable)),
+      value: formatCredits(Math.max(0, input.spendable)),
     }),
     buildSystemEmailParagraph('Add credits to keep creating content.'),
   ].join('');
@@ -215,14 +220,14 @@ export function buildCreditPurchaseEmailBody(
       caption: 'added to your workspace',
       label: 'Credits added',
       tone: 'success',
-      value: `+${formatCount(input.amount)}`,
+      value: `+${formatCredits(input.amount)}`,
     }),
     input.balance === undefined
       ? ''
       : buildEmailKeyValueRows([
           {
             label: 'New balance',
-            value: `${formatCount(input.balance)} credits`,
+            value: `${formatCredits(input.balance)} credits`,
           },
         ]),
     buildSystemEmailParagraph('You can continue creating.'),

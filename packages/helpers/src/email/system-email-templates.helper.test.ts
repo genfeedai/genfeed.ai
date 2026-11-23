@@ -35,6 +35,20 @@ describe('content recap email', () => {
     expect(html).toContain('Ready to publish');
   });
 
+  it.each([
+    [67.206, '67.21'],
+    [67.2, '67.2'],
+    [1840, '1,840'],
+    [0.004, '0'],
+  ])(
+    'shows %f credits used as %s, two decimals at most',
+    (creditsUsed, shown) => {
+      expect(
+        buildContentRecapEmailBody({ ...baseRecap, creditsUsed }),
+      ).toContain(`>${shown}<`);
+    },
+  );
+
   it('shows the ready count it is given, never a negative one', () => {
     expect(buildContentRecapEmailBody({ ...baseRecap, ready: 3 })).toMatch(
       />3<\/div><div[^>]*>Ready to publish</,
