@@ -758,6 +758,25 @@
       "poor": "Poor"
     }
   },
+  "postRemoval": {
+    "titleOne": "Delete post",
+    "titleMany": "Delete {count} posts",
+    "messageOne": "Delete \"{label}\" from Genfeed? This cannot be undone.",
+    "messageMany": "Delete {count} posts from Genfeed? This cannot be undone.",
+    "publishedNotice": "A published post stays live on its social network. Genfeed deletes only its own copy, so remove the network copy there.",
+    "includeMedia": "Also delete the Library media these posts use. Media another post uses is kept.",
+    "confirm": "Delete",
+    "selectPost": "Select post",
+    "selectedCount": "{count} selected",
+    "clearSelection": "Clear selection",
+    "deleteSelection": "Delete selection",
+    "deletedOne": "Post deleted",
+    "deletedMany": "{count} posts deleted",
+    "mediaSummary": "Library media: {deleted} deleted, {kept} kept",
+    "notGone": "The delete did not finish: the post still exists.",
+    "failedOne": "Failed to delete the post. Please try again.",
+    "failedMany": "Failed to delete {count} posts. Please try again."
+  },
   "postCardFooter": {
     "addMedia": "Add media",
     "media": "Media ({count})",

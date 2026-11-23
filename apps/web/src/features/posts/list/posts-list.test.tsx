@@ -147,11 +147,13 @@ vi.mock(
 );
 
 vi.mock(
+  '@/features/posts/hooks/use-confirm-post-removal/use-confirm-post-removal',
+  () => ({ useConfirmPostRemoval: vi.fn(() => vi.fn()) }),
+);
+
+vi.mock(
   '@genfeedai/contexts/providers/global-modals/global-modals.hooks',
   () => ({
-    useConfirmDeleteModal: () => ({
-      openConfirmDelete: vi.fn(),
-    }),
     usePostRemixModal: () => ({
       openPostRemixModal: vi.fn(),
     }),

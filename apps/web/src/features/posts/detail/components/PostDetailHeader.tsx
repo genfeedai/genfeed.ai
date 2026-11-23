@@ -117,6 +117,7 @@ export default function PostDetailHeader({
   const translate = useTranslations('pages.posts.detail.header');
   const [isThreadDialogOpen, setIsThreadDialogOpen] = useState(false);
   const isEditable = scope === PageScope.PUBLISHING && !isPublished;
+  const canDelete = scope === PageScope.PUBLISHING;
   const canCreateRemix = post.status === PostStatus.PUBLIC;
 
   // - It's a Twitter/X post
@@ -252,7 +253,11 @@ export default function PostDetailHeader({
             onViewModeChange(viewMode === 'edit' ? 'preview' : 'edit'),
         });
       }
+    }
 
+    // A published post is deletable too: the confirm step says it stays live
+    // on its social network.
+    if (canDelete) {
       actions.push({
         icon: <Trash2 className="size-4" />,
         id: 'delete',
@@ -265,6 +270,7 @@ export default function PostDetailHeader({
     return actions;
   }, [
     canCreateRemix,
+    canDelete,
     canExpandToThread,
     isEditable,
     isExpandingToThread,

@@ -108,10 +108,6 @@ export function buildPostsTableActions({
     },
     {
       icon: () => <Trash2 />,
-      isVisible: (post: IPost) => {
-        // Show delete for draft posts (not published)
-        return post.status !== PostStatus.PUBLIC;
-      },
       onClick: (post: IPost) => onDelete(post),
       tooltip: 'Delete',
       tone: 'destructive',
