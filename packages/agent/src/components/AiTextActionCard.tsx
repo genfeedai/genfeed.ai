@@ -3,7 +3,7 @@ import type { AgentUiActionOf } from '@genfeedai/agent/models/agent-chat.model';
 import { ButtonVariant } from '@genfeedai/contracts';
 import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
-import { SegmentedControl } from '@ui/primitives/segmented-control';
+import { OptionTile, OptionTileGroup } from '@ui/primitives/option-tile';
 import { FileText } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { type ReactElement, useCallback, useState } from 'react';
@@ -87,17 +87,21 @@ export function AiTextActionCard({
         <p className="mb-1 block text-2xs font-medium uppercase tracking-label text-muted-foreground">
           Choose action
         </p>
-        <SegmentedControl
-          appearance="chip"
+        <OptionTileGroup
           ariaLabel={selectionLabels('chooseAction')}
+          columns={2}
           onValueChange={setSelectedAction}
-          options={availableActions.map((actionLabel) => ({
-            label: actionLabel,
-            value: actionLabel,
-          }))}
-          size="sm"
           value={selectedAction ?? undefined}
-        />
+        >
+          {availableActions.map((actionLabel) => (
+            <OptionTile
+              key={actionLabel}
+              size="sm"
+              title={actionLabel}
+              value={actionLabel}
+            />
+          ))}
+        </OptionTileGroup>
       </div>
 
       {/* Apply button */}

@@ -1,7 +1,7 @@
 'use client';
 
 import type { PostingSignaturePickerProps } from '@genfeedai/props/publisher/posting-set-picker.props';
-import { SegmentedControl } from '@ui/primitives/segmented-control';
+import { OptionTile, OptionTileGroup } from '@ui/primitives/option-tile';
 import { useTranslations } from 'next-intl';
 import { type ReactElement, useMemo } from 'react';
 
@@ -35,20 +35,24 @@ export default function PostingSignaturePicker({
       <span className="mb-1 block text-2xs font-medium uppercase tracking-label text-muted-foreground">
         {translate('signatures')}
       </span>
-      <SegmentedControl
-        appearance="chip"
+      <OptionTileGroup
         ariaLabel={translate('signatures')}
+        columns={2}
         onValueChange={onChange}
-        options={matchingSignatures.map((signature) => ({
-          label: signature.label,
-          value: signature.id,
-        }))}
-        size="sm"
         type="multiple"
         value={matchingSignatures
           .filter((signature) => selectedSet.has(signature.id))
           .map((signature) => signature.id)}
-      />
+      >
+        {matchingSignatures.map((signature) => (
+          <OptionTile
+            key={signature.id}
+            size="sm"
+            title={signature.label}
+            value={signature.id}
+          />
+        ))}
+      </OptionTileGroup>
     </div>
   );
 }

@@ -15,6 +15,7 @@ import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import { Input } from '@ui/primitives/input';
 import { Label } from '@ui/primitives/label';
+import { OptionTile, OptionTileGroup } from '@ui/primitives/option-tile';
 import { SegmentedControl } from '@ui/primitives/segmented-control';
 import {
   Select,
@@ -122,18 +123,22 @@ function PublishTargetSettingField(params: {
     const _selectedSet = new Set(selected);
 
     return (
-      <SegmentedControl
-        appearance="chip"
+      <OptionTileGroup
         ariaLabel={field.label}
+        columns={2}
         onValueChange={onChange}
-        options={field.options.map((option) => ({
-          label: option.label,
-          value: option.value,
-        }))}
-        size="sm"
         type="multiple"
         value={selected}
-      />
+      >
+        {field.options.map((option) => (
+          <OptionTile
+            key={option.value}
+            size="sm"
+            title={option.label}
+            value={option.value}
+          />
+        ))}
+      </OptionTileGroup>
     );
   }
 

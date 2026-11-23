@@ -18,7 +18,7 @@ import { getApiErrorMessage } from '@genfeedai/utils/error/error-handler.util';
 import Card from '@ui/card/Card';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
-import { SegmentedControl } from '@ui/primitives/segmented-control';
+import { OptionTile, OptionTileGroup } from '@ui/primitives/option-tile';
 import Spinner from '@ui/primitives/spinner';
 import { Textarea } from '@ui/primitives/textarea';
 import { FolderOpen, RefreshCw, Sparkles } from 'lucide-react';
@@ -287,9 +287,9 @@ export default function LocalDesktopContent() {
                   </div>
 
                   {bootstrap && bootstrap.workspaces.length > 1 ? (
-                    <SegmentedControl
-                      appearance="chip"
+                    <OptionTileGroup
                       ariaLabel={translate('workspace.title')}
+                      columns={2}
                       onValueChange={(workspaceId) => {
                         const workspace = bootstrap.workspaces.find(
                           (entry) => entry.id === workspaceId,
@@ -298,12 +298,17 @@ export default function LocalDesktopContent() {
                           void selectWorkspace(workspace);
                         }
                       }}
-                      options={bootstrap.workspaces.map((workspace) => ({
-                        label: workspace.name,
-                        value: workspace.id,
-                      }))}
                       value={activeWorkspace?.id}
-                    />
+                    >
+                      {bootstrap.workspaces.map((workspace) => (
+                        <OptionTile
+                          key={workspace.id}
+                          size="sm"
+                          title={workspace.name}
+                          value={workspace.id}
+                        />
+                      ))}
+                    </OptionTileGroup>
                   ) : null}
                 </Card>
 
