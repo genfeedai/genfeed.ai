@@ -101,6 +101,7 @@
       "unverified": "Could not confirm this post"
     },
     "agent": {
+      "input_requested": "Agent is waiting on your answer",
       "review_changed": "Agent review updated",
       "review_expired": "Agent review expired"
     },
