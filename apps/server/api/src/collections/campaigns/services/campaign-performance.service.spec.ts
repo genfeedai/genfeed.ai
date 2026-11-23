@@ -110,6 +110,60 @@ describe('CampaignPerformanceService', () => {
     expect(result.byPlatform[0]?.platform).toBe('instagram');
   });
 
+  it('sums X impressions per post and keeps posts without impressions unavailable', async () => {
+    asMock(prisma.campaign.findFirst).mockResolvedValue({
+      brandId: BRAND_ID,
+      id: CAMPAIGN_ID,
+    });
+    asMock(prisma.post.findMany).mockResolvedValue([
+      {
+        id: 'cpost00000001',
+        platform: 'twitter',
+        targetExecutionState: 'published',
+      },
+      {
+        id: 'cpost00000002',
+        platform: 'twitter',
+        targetExecutionState: 'published',
+      },
+      {
+        id: 'cpost00000003',
+        platform: 'twitter',
+        targetExecutionState: 'published',
+      },
+    ]);
+    const row = (postId: string, impressions: number | null) => ({
+      impressions,
+      platform: 'TWITTER',
+      postId,
+      totalComments: 0,
+      totalLikes: 1,
+      totalSaves: 0,
+      totalShares: 0,
+      totalViews: 0,
+    });
+    asMock(prisma.postAnalytics.findMany).mockResolvedValue([
+      row('cpost00000001', 400),
+      row('cpost00000001', 100),
+      row('cpost00000001', null),
+      row('cpost00000002', null),
+    ]);
+
+    const result = await service.getPerformance(ORG_ID, CAMPAIGN_ID);
+
+    expect(result.posts.map((post) => post.impressions)).toEqual([
+      500,
+      null,
+      null,
+    ]);
+    expect(result.organic.impressions).toEqual({
+      availablePostCount: 1,
+      totalPostCount: 3,
+      value: 500,
+    });
+    expect(result.byPlatform[0]?.impressions.value).toBe(500);
+  });
+
   it('rejects a missing campaign', async () => {
     asMock(prisma.campaign.findFirst).mockResolvedValue(null);
     await expect(

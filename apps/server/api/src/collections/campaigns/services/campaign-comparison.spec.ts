@@ -14,6 +14,7 @@ function emptyOrganic(value: number | null) {
     comments: metric,
     conversions: { availablePostCount: 0, totalPostCount: 1, value: null },
     engagements: metric,
+    impressions: metric,
     likes: metric,
     saves: metric,
     shares: metric,

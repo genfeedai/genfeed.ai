@@ -12,6 +12,7 @@ export interface ICampaignPerformancePost {
   comments: number | null;
   engagementRate: number | null;
   id: string;
+  impressions: number | null;
   likes: number | null;
   platform: string | null;
   saves: number | null;
@@ -23,6 +24,7 @@ export interface ICampaignPerformancePost {
 export interface ICampaignPerformancePlatform {
   comments: ICampaignMetricAvailability;
   engagements: ICampaignMetricAvailability;
+  impressions: ICampaignMetricAvailability;
   likes: ICampaignMetricAvailability;
   platform: string;
   saves: ICampaignMetricAvailability;
@@ -35,6 +37,7 @@ export interface ICampaignOrganicTotals {
   comments: ICampaignMetricAvailability;
   conversions: ICampaignMetricAvailability;
   engagements: ICampaignMetricAvailability;
+  impressions: ICampaignMetricAvailability;
   likes: ICampaignMetricAvailability;
   saves: ICampaignMetricAvailability;
   shares: ICampaignMetricAvailability;

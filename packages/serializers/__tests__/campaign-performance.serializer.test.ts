@@ -12,6 +12,7 @@ describe('CampaignPerformanceSerializer', () => {
         comments: { availablePostCount: 1, totalPostCount: 2, value: 4 },
         conversions: { availablePostCount: 0, totalPostCount: 2, value: null },
         engagements: { availablePostCount: 1, totalPostCount: 2, value: 10 },
+        impressions: { availablePostCount: 1, totalPostCount: 2, value: 900 },
         likes: { availablePostCount: 1, totalPostCount: 2, value: 6 },
         saves: { availablePostCount: 1, totalPostCount: 2, value: 0 },
         shares: { availablePostCount: 1, totalPostCount: 2, value: 0 },
@@ -29,6 +30,7 @@ describe('CampaignPerformanceSerializer', () => {
     expect(output.data.attributes.organic).toEqual(
       expect.objectContaining({
         clicks: expect.objectContaining({ value: null }),
+        impressions: expect.objectContaining({ value: 900 }),
         views: expect.objectContaining({ value: 100 }),
       }),
     );

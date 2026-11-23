@@ -65,6 +65,7 @@
     "performanceConversions": "Conversions",
     "performanceCounts": "Posts by status",
     "performanceEngagements": "Engagements",
+    "performanceImpressions": "Impressions",
     "performanceViews": "Views",
     "prepareActivation": "Prepare paused activation",
     "prepareActivationMessage": "This creates paused provider campaign, ad set, and ad resources from approved Campaign content. It does not start spend.",
