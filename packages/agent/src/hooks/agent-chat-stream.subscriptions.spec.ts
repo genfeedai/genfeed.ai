@@ -3,7 +3,10 @@ import {
   AgentWorkEventStatus,
   AgentWorkEventType,
 } from '@genfeedai/agent/models/agent-chat.model';
-import { PUBLISHING_CONTENT_REFRESH_EVENT } from '@genfeedai/contracts/constants';
+import {
+  LIBRARY_ASSETS_REFRESH_EVENT,
+  PUBLISHING_CONTENT_REFRESH_EVENT,
+} from '@genfeedai/contracts/constants';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { StreamSubscriptionDeps } from './agent-chat-stream.subscriptions';
 import { attachAgentStreamSubscriptions } from './agent-chat-stream.subscriptions';
@@ -138,6 +141,91 @@ describe('attachAgentStreamSubscriptions', () => {
 
     window.removeEventListener(PUBLISHING_CONTENT_REFRESH_EVENT, onRefresh);
     expect(onRefresh).toHaveBeenCalledTimes(2);
+  });
+
+  it('reloads the Library when star_asset completes, even if the run then fails', () => {
+    const { deps, emit } = makeDeps();
+    attachAgentStreamSubscriptions(deps);
+    const onRefresh = vi.fn();
+    window.addEventListener(LIBRARY_ASSETS_REFRESH_EVENT, onRefresh);
+
+    const toolComplete = {
+      creditsUsed: 0,
+      durationMs: 30,
+      runId: 'run-1',
+      status: 'completed',
+      threadId: 'thread-1',
+      timestamp: '2026-11-23T10:00:00.000Z',
+      toolCallId: 'call-1',
+      userId: 'user-1',
+    };
+    emit('agent:tool_complete', { ...toolComplete, toolName: 'get_assets' });
+    expect(onRefresh).not.toHaveBeenCalled();
+
+    emit('agent:tool_complete', { ...toolComplete, toolName: 'star_asset' });
+    expect(onRefresh).toHaveBeenCalledTimes(1);
+
+    // The model turn after the tool fails: no done, only an error.
+    emit('agent:error', {
+      error: 'Http Exception',
+      runId: 'run-1',
+      threadId: 'thread-1',
+      timestamp: '2026-11-23T10:00:01.000Z',
+      userId: 'user-1',
+    });
+    window.removeEventListener(LIBRARY_ASSETS_REFRESH_EVENT, onRefresh);
+    expect(onRefresh).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not reload the Library for a star_asset that failed, and not twice when done follows', () => {
+    const { deps, emit } = makeDeps();
+    attachAgentStreamSubscriptions(deps);
+    const onRefresh = vi.fn();
+    window.addEventListener(LIBRARY_ASSETS_REFRESH_EVENT, onRefresh);
+
+    const toolComplete = {
+      creditsUsed: 0,
+      durationMs: 30,
+      runId: 'run-2',
+      threadId: 'thread-1',
+      timestamp: '2026-11-23T10:00:00.000Z',
+      toolName: 'star_asset',
+      userId: 'user-1',
+    };
+    emit('agent:tool_complete', {
+      ...toolComplete,
+      status: 'failed',
+      toolCallId: 'call-1',
+    });
+    expect(onRefresh).not.toHaveBeenCalled();
+
+    emit('agent:tool_complete', {
+      ...toolComplete,
+      status: 'completed',
+      toolCallId: 'call-2',
+    });
+    emit('agent:done', {
+      creditsRemaining: 40,
+      creditsUsed: 0,
+      fullContent: 'Starred.',
+      metadata: {},
+      runId: 'run-2',
+      sequence: 2,
+      threadId: 'thread-1',
+      timestamp: '2026-11-23T10:00:02.000Z',
+      toolCalls: [
+        {
+          creditsUsed: 0,
+          durationMs: 30,
+          status: 'completed',
+          toolName: 'star_asset',
+        },
+      ],
+      userId: 'user-1',
+    });
+
+    window.removeEventListener(LIBRARY_ASSETS_REFRESH_EVENT, onRefresh);
+    expect(onRefresh).toHaveBeenCalledTimes(1);
   });
 
   it('settles a ui-action run from its done: source card in place, thread scope moved', () => {
