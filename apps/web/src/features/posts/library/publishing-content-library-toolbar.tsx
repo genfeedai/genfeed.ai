@@ -4,8 +4,7 @@ import { ComponentSize } from '@genfeedai/contracts';
 import type { FilterMenuFacet } from '@genfeedai/props/ui/forms/filter-menu.props';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
 import SearchField from '@ui/content/search-field/SearchField';
-import ConnectedAccountAvatar from '@ui/display/connected-account/ConnectedAccountAvatar';
-import { getConnectedAccountText } from '@ui/display/connected-account/connected-account.util';
+import { accountFilterOption } from '@ui/display/connected-account/account-filter-option';
 import FilterMenu from '@ui/navigation/filter-menu/FilterMenu';
 import { Globe, Mail, Share2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -146,17 +145,17 @@ export default function PublishingContentLibraryToolbar({
       onChange: onChannelChange,
       options: [
         { count: items.length, label: allLabel, value: FACET_ALL },
-        ...accountOptions.map((account) => ({
-          count: items.filter((item) =>
-            item.accounts?.some((candidate) => candidate.id === account.id),
-          ).length,
-          icon: (
-            <ConnectedAccountAvatar account={account} isDecorative size="xs" />
+        ...accountOptions.map((account) =>
+          accountFilterOption(
+            account,
+            `${CHANNEL_ACCOUNT_PREFIX}${account.id}`,
+            {
+              count: items.filter((item) =>
+                item.accounts?.some((candidate) => candidate.id === account.id),
+              ).length,
+            },
           ),
-          isLiteral: true,
-          label: getConnectedAccountText(account).primary,
-          value: `${CHANNEL_ACCOUNT_PREFIX}${account.id}`,
-        })),
+        ),
         ...channelOptions.map((channel) => ({
           count: items.filter((item) =>
             (item.channels ?? [item.channel]).includes(channel.value),

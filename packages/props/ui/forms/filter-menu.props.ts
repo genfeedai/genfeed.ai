@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 
-interface FilterMenuOption {
+export interface FilterMenuOption {
   /** Wire value reported back to the owner; never shown. */
   value: string;
   label: string;

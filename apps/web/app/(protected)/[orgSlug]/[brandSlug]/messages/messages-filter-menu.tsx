@@ -1,8 +1,7 @@
 import { SocialConversationType } from '@genfeedai/contracts';
 import type { SocialPlatform } from '@genfeedai/contracts/interfaces';
 import { toConnectedAccount } from '@genfeedai/helpers/publisher/connected-account.helper';
-import ConnectedAccountAvatar from '@ui/display/connected-account/ConnectedAccountAvatar';
-import { getConnectedAccountText } from '@ui/display/connected-account/connected-account.util';
+import { accountFilterOption } from '@ui/display/connected-account/account-filter-option';
 import FilterMenu from '@ui/navigation/filter-menu/FilterMenu';
 import { useTranslations } from 'next-intl';
 import type { MessagesFilterMenuProps } from '@/features/messages/props/messages-filter-menu.props';
@@ -151,21 +150,12 @@ export default function MessagesFilterMenu({
             onCredentialIdChange(value === 'all' ? '' : value),
           options: [
             { label: translate('sidebar.allAccounts'), value: 'all' },
-            ...accounts.map((credential) => {
-              const account = toConnectedAccount(credential);
-              return {
-                icon: (
-                  <ConnectedAccountAvatar
-                    account={account}
-                    isDecorative
-                    size="xs"
-                  />
-                ),
-                isLiteral: true,
-                label: getConnectedAccountText(account).primary,
-                value: credential.id,
-              };
-            }),
+            ...accounts.map((credential) =>
+              accountFilterOption(
+                toConnectedAccount(credential),
+                credential.id,
+              ),
+            ),
           ],
           searchPlaceholder: translate('sidebar.account'),
           selection: 'single',
