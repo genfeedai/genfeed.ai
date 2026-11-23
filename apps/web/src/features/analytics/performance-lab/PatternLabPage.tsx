@@ -6,6 +6,7 @@ import {
 import type { PatternType } from '@genfeedai/contracts/interfaces';
 import type { FilterMenuFacet } from '@genfeedai/props/ui/forms/filter-menu.props';
 import CollectionGrid from '@ui/collection/CollectionGrid';
+import FilterMenu from '@ui/navigation/filter-menu/FilterMenu';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Alert } from '@ui/primitives/alert';
 import { EmptyState } from '@ui/primitives/empty-state';
@@ -13,7 +14,6 @@ import { Skeleton } from '@ui/primitives/skeleton';
 import { FlaskConical } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useMemo, useState } from 'react';
-import FilterMenu from '@/components/content/filter-menu/FilterMenu';
 import PatternCard from '@/features/analytics/performance-lab/PatternCard';
 import { usePatternContext } from '@/hooks/data/analytics/use-pattern-context/use-pattern-context';
 import type {

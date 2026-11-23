@@ -16,14 +16,14 @@ import type { FilterMenuFacet } from '@genfeedai/props/ui/forms/filter-menu.prop
 import { stripHtmlToPlainText } from '@helpers/security/strip-html.helper';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
 import { useSyncedState } from '@hooks/utils/use-synced-state/use-synced-state';
+import SearchField from '@ui/content/search-field/SearchField';
+import FilterMenu from '@ui/navigation/filter-menu/FilterMenu';
 import Pagination from '@ui/navigation/pagination/Pagination';
 import { Button } from '@ui/primitives/button';
 import { LayoutGrid } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useRef, useState } from 'react';
-import FilterMenu from '@/components/content/filter-menu/FilterMenu';
-import SearchField from '@/components/content/search-field/SearchField';
 import { useWinnerPosts } from '@/features/analytics/hooks/use-winner-posts/use-winner-posts';
 import AnalyticsPostsGrid from '@/features/analytics/posts-list/analytics-posts-grid';
 import AnalyticsWinnersTable from '@/features/analytics/posts-list/analytics-winners-table';

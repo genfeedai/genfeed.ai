@@ -6,6 +6,7 @@ import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { ThreadListStatus } from '@genfeedai/props/ui/lists/thread-list.props';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
+import SearchField from '@ui/content/search-field/SearchField';
 import Container from '@ui/layout/container/Container';
 import { useCreativeProjectsPresence } from '@ui/layout/creative-app-workspace/CreativeAppWorkspace';
 import CreativeProjectsEmptyState from '@ui/layout/creative-app-workspace/CreativeProjectsEmptyState';
@@ -19,7 +20,6 @@ import { Button } from '@ui/primitives/button';
 import { SquarePlay } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { type ReactElement, useState } from 'react';
-import SearchField from '@/components/content/search-field/SearchField';
 import { useVisualProjects } from '@/hooks/data/content/use-visual-projects';
 
 /** A failed render waits on the creator; a finished one is done. */

@@ -6,6 +6,7 @@ import {
   type LibraryViewMode,
 } from '@genfeedai/contracts/constants';
 import type { CollectionOverflowAction } from '@genfeedai/props/ui/collection/collection.props';
+import SearchField from '@ui/content/search-field/SearchField';
 import SubbarOverflowMenu from '@ui/layout/subbar-overflow-menu/SubbarOverflowMenu';
 import ViewMenu from '@ui/navigation/view-menu/ViewMenu';
 import { SHELL_ICON_CLASS } from '@ui-constants/shell-chrome.constant';
@@ -19,7 +20,6 @@ import {
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useMemo, useRef, useState } from 'react';
-import SearchField from '@/components/content/search-field/SearchField';
 import LibraryTagManagerDialog from '@/features/library/components/tags/library-tag-picker/LibraryTagManagerDialog';
 import type {
   LibraryBrowserSearchProps,

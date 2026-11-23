@@ -7,9 +7,9 @@ import {
 } from '@genfeedai/contracts';
 import type { ModalGalleryLibraryProps } from '@genfeedai/props/modals/modal-gallery.props';
 import type { FilterMenuFacet } from '@genfeedai/props/ui/forms/filter-menu.props';
+import SearchField from '@ui/content/search-field/SearchField';
+import FilterMenu from '@ui/navigation/filter-menu/FilterMenu';
 import { useTranslations } from 'next-intl';
-import FilterMenu from '@/components/content/filter-menu/FilterMenu';
-import SearchField from '@/components/content/search-field/SearchField';
 import IngredientsMediaGrid from '@/components/ingredients/list/media-grid/IngredientsMediaGrid';
 import { GALLERY_LIBRARY_DEFAULT_SORT } from '@/components/modals/gallery/hooks/useGalleryLibrary';
 import InfiniteScroll from '@/features/ingredients/components/feedback/infinite-scroll/InfiniteScroll';

@@ -14,6 +14,7 @@ import { useFilteredData } from '@hooks/utils/use-filtered-data/use-filtered-dat
 import type { TableAction } from '@props/ui/display/table.props';
 import { logger } from '@services/core/logger.service';
 import { RolesService } from '@services/organization/roles.service';
+import SearchField from '@ui/content/search-field/SearchField';
 import { normalizeElementKey } from '@ui/display/element-scope-badge/element-row-sidebar';
 import { createSummaryRowSidebar } from '@ui/display/table/summary-row-sidebar';
 import AppTable from '@ui/display/table/Table';
@@ -25,7 +26,6 @@ import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback } from 'react';
 import { useAdminSearchParam } from '@/components/content/admin-filters/useAdminSearchParam';
-import SearchField from '@/components/content/search-field/SearchField';
 import { LazyModalRole } from '@/features/admin/lazy/lazy-modal.admin';
 import { useInlineRecordSave } from '@/hooks/ui/use-inline-record-save/use-inline-record-save';
 

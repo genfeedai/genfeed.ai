@@ -2,7 +2,7 @@ import '@testing-library/jest-dom/vitest';
 import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
-import SearchField from '@/components/content/search-field/SearchField';
+import SearchField from './SearchField';
 
 describe('SearchField', () => {
   it('is a persistent field, not a collapsed icon', () => {
