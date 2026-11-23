@@ -56,6 +56,7 @@ import {
 } from '@/features/brands/components/integrations/account-connection-status.util';
 import { getHealthBadgeVariant } from '@/features/brands/components/integrations/account-health-badge-variant';
 import ConnectAccountModal from '@/features/brands/components/integrations/ConnectAccountModal';
+import FacebookLiveDialog from '@/features/brands/components/integrations/FacebookLiveDialog';
 import BrandDetailConnectedAccount from '@/features/brands/components/sidebar/BrandDetailConnectedAccount';
 import SocialWarmupProgram from '@/features/brands/components/sidebar/social-warmup/SocialWarmupProgram';
 import {
@@ -137,6 +138,9 @@ export default function BrandDetailSocialMediaCard({
   const [apiKeyConnectTarget, setApiKeyConnectTarget] =
     useState<ApiKeyConnectTarget | null>(null);
   const [isApiKeyConnectOpen, setIsApiKeyConnectOpen] = useState(false);
+  // Kept after close so the dialog does not change while it animates out.
+  const [liveTarget, setLiveTarget] = useState<SocialConnection | null>(null);
+  const [isLiveOpen, setIsLiveOpen] = useState(false);
 
   const connectedConnections = connections;
   const hasVisibleConnections = connectedConnections.length > 0;
@@ -627,10 +631,20 @@ export default function BrandDetailSocialMediaCard({
           connections={connectedConnections}
           onConnectAccount={() => setIsConnectAccountModalOpen(true)}
           onDisconnect={setDisconnectTarget}
+          onGoLive={(connection) => {
+            setLiveTarget(connection);
+            setIsLiveOpen(true);
+          }}
           onOpenSettings={setSettingsTarget}
           onReconnect={handleReconnect}
           reconnectingCredentialId={reconnectingCredentialId}
           unavailablePlatforms={unavailablePlatforms}
+        />
+
+        <FacebookLiveDialog
+          connection={liveTarget}
+          onOpenChange={setIsLiveOpen}
+          open={isLiveOpen}
         />
 
         <ConnectAccountModal

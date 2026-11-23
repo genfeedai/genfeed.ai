@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { Suspense } from 'react';
 import LogoutPage from './content';
 
 export const metadata: Metadata = {
@@ -6,5 +7,9 @@ export const metadata: Metadata = {
 };
 
 export default function AppLogoutPage() {
-  return <LogoutPage />;
+  return (
+    <Suspense fallback={null}>
+      <LogoutPage />
+    </Suspense>
+  );
 }

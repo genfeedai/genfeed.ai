@@ -1,6 +1,7 @@
 import { creditUsageWhere } from '@api/collections/credits/services/credit-usage.util';
 import type { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import type { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
+import type { EmailMediaUrlService } from '@api/services/email-media/email-media-url.service';
 import type { EmailPerformanceService } from '@api/services/email-performance/email-performance.service';
 import type { LowCreditThresholdService } from '@api/services/low-credit-threshold/low-credit-threshold.service';
 import type { NotificationPreferenceService } from '@api/services/notifications/workflow-notifications/notification-preference.service';
@@ -82,6 +83,12 @@ function fixture(
     { sendDueTrialNotices } as unknown as FreeTrialEmailsService,
     { resolve: resolveLowCredit } as unknown as LowCreditThresholdService,
     {} as LifecycleEmailWorkService,
+    {
+      previewUrl: (asset: { id: string; category: string }) =>
+        asset.category === 'IMAGE'
+          ? `https://api.genfeed.ai/email-media/token-${asset.id}`
+          : null,
+    } as unknown as EmailMediaUrlService,
   );
   return { service, prisma, queueEmail, findForUser };
 }
@@ -135,21 +142,30 @@ describe('system recap policy', () => {
     expect(html).toContain('Created');
     expect(html).not.toContain('Performance of published pieces');
   });
-  it('previews the created images from the ingredients CDN', async () => {
+  it('previews the created images through the stable email media link', async () => {
     const { service, queueEmail } = fixture(5);
     await service.recaps(request);
     const { html } = queueEmail.mock.calls[0][0];
     expect(html).toContain(
-      'src="https://cdn.genfeed.ai/ingredients/images/asset-0"',
+      'src="https://api.genfeed.ai/email-media/token-asset-0"',
     );
-    expect(html).toContain('Created this week');
-  });
-  it('shows no CDN image once authorized media delivery is on', async () => {
-    const { service, queueEmail } = fixture(5, true, true);
-    await service.recaps(request);
-    const { html } = queueEmail.mock.calls[0][0];
     expect(html).not.toContain('cdn.genfeed.ai/ingredients');
     expect(html).toContain('Created this week');
+  });
+  it('shows credits used with two decimals at most', async () => {
+    const { service, prisma, queueEmail } = fixture(5);
+    prisma.creditTransaction.groupBy.mockImplementation(
+      ({ where }: { where: { amount: { lt?: number } } }) =>
+        Promise.resolve(
+          where.amount.lt === 0
+            ? []
+            : [{ _sum: { amount: 67.206 }, category: 'deduct' }],
+        ),
+    );
+    await service.recaps(request);
+    const { html } = queueEmail.mock.calls[0][0];
+    expect(html).toContain('>67.21<');
+    expect(html).not.toContain('67.206');
   });
   it.each([
     [false, 'studio/brand/settings/profile', 'connect_account'],
@@ -264,11 +280,11 @@ describe('system recap policy', () => {
     const { html } = queueEmail.mock.calls[0][0];
     // Articles 0-3 finished last, then assets 3 and 2; assets 1 and 0 are hidden.
     expect(html).toContain('Article 3');
-    expect(html).toContain('ingredients/images/asset-2');
-    expect(html).not.toContain('ingredients/images/asset-1');
-    expect(html).not.toContain('ingredients/images/asset-0');
+    expect(html).toContain('email-media/token-asset-2');
+    expect(html).not.toContain('email-media/token-asset-1');
+    expect(html).not.toContain('email-media/token-asset-0');
     expect(html.indexOf('Article 3')).toBeLessThan(
-      html.indexOf('ingredients/images/asset-3'),
+      html.indexOf('email-media/token-asset-3'),
     );
     expect(html).toContain('+ 2 more in your library');
   });
@@ -347,6 +363,7 @@ function creditsFixture(overrides: {
     { sendDueTrialNotices } as unknown as FreeTrialEmailsService,
     { resolve: resolveLowCredit } as unknown as LowCreditThresholdService,
     {} as LifecycleEmailWorkService,
+    {} as unknown as EmailMediaUrlService,
   );
   return { service, prisma, queueEmail };
 }
@@ -495,6 +512,7 @@ describe('hourly system email sweep', () => {
       {} as FreeTrialEmailsService,
       {} as LowCreditThresholdService,
       { findOrganizationIds } as unknown as LifecycleEmailWorkService,
+      {} as unknown as EmailMediaUrlService,
     );
     service.onModuleInit();
     const discover = registered.get('lifecycle-email.sweep.discover');

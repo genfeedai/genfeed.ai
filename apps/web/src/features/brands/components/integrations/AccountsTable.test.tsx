@@ -72,6 +72,7 @@ describe('AccountsTable', () => {
         ]}
         onConnectAccount={noop}
         onDisconnect={noop}
+        onGoLive={noop}
         onOpenSettings={noop}
         onReconnect={noop}
         reconnectingCredentialId={null}
@@ -93,6 +94,7 @@ describe('AccountsTable', () => {
         connections={[buildConnection({ isConnected: false })]}
         onConnectAccount={noop}
         onDisconnect={noop}
+        onGoLive={noop}
         onOpenSettings={noop}
         onReconnect={noop}
         reconnectingCredentialId={null}
@@ -115,6 +117,7 @@ describe('AccountsTable', () => {
         connections={[buildConnection({ externalId: undefined })]}
         onConnectAccount={noop}
         onDisconnect={noop}
+        onGoLive={noop}
         onOpenSettings={noop}
         onReconnect={noop}
         reconnectingCredentialId={null}
@@ -139,6 +142,7 @@ describe('AccountsTable', () => {
         ]}
         onConnectAccount={noop}
         onDisconnect={noop}
+        onGoLive={noop}
         onOpenSettings={noop}
         onReconnect={noop}
         reconnectingCredentialId={null}
@@ -164,6 +168,7 @@ describe('AccountsTable', () => {
         ]}
         onConnectAccount={noop}
         onDisconnect={noop}
+        onGoLive={noop}
         onOpenSettings={noop}
         onReconnect={noop}
         reconnectingCredentialId="c2"
@@ -186,6 +191,7 @@ describe('AccountsTable', () => {
         connections={[buildConnection()]}
         onConnectAccount={noop}
         onDisconnect={noop}
+        onGoLive={noop}
         onOpenSettings={noop}
         onReconnect={noop}
         reconnectingCredentialId={null}
@@ -203,6 +209,7 @@ describe('AccountsTable', () => {
         connections={[buildConnection({ name: 'Genfeed' })]}
         onConnectAccount={noop}
         onDisconnect={noop}
+        onGoLive={noop}
         onOpenSettings={noop}
         onReconnect={noop}
         reconnectingCredentialId={null}
@@ -227,6 +234,7 @@ describe('AccountsTable', () => {
         connections={[connection]}
         onConnectAccount={noop}
         onDisconnect={noop}
+        onGoLive={noop}
         onOpenSettings={noop}
         onReconnect={onReconnect}
         reconnectingCredentialId={null}
@@ -248,6 +256,43 @@ describe('AccountsTable', () => {
     expect(reconnectButtons).toHaveLength(1);
     fireEvent.click(reconnectButtons[0]);
     expect(onReconnect).toHaveBeenCalledWith(connection);
+  });
+
+  it('offers Go live on a connected Facebook Page only', () => {
+    const onGoLive = vi.fn();
+    const facebook = buildConnection({
+      credentialId: 'fb',
+      name: 'Page',
+      platform: CredentialPlatform.FACEBOOK,
+    });
+
+    render(
+      <AccountsTable
+        accountHealth={[]}
+        connections={[
+          facebook,
+          buildConnection({ credentialId: 'x', name: 'Other' }),
+          buildConnection({
+            credentialId: 'stale',
+            isConnected: false,
+            name: 'Stale Page',
+            platform: CredentialPlatform.FACEBOOK,
+          }),
+        ]}
+        onConnectAccount={noop}
+        onDisconnect={noop}
+        onGoLive={onGoLive}
+        onOpenSettings={noop}
+        onReconnect={noop}
+        reconnectingCredentialId={null}
+        unavailablePlatforms={new Set()}
+      />,
+    );
+
+    const goLive = screen.getAllByRole('button', { name: 'Go live' });
+    expect(goLive).toHaveLength(1);
+    fireEvent.click(goLive[0]);
+    expect(onGoLive).toHaveBeenCalledWith(facebook);
   });
 
   it('disables the warning action while that account reconnects or its platform is unavailable', () => {
@@ -277,6 +322,7 @@ describe('AccountsTable', () => {
         connections={connections}
         onConnectAccount={noop}
         onDisconnect={noop}
+        onGoLive={noop}
         onOpenSettings={noop}
         onReconnect={noop}
         reconnectingCredentialId="c-busy"
@@ -309,6 +355,7 @@ describe('AccountsTable', () => {
         connections={[connection]}
         onConnectAccount={noop}
         onDisconnect={noop}
+        onGoLive={noop}
         onOpenSettings={noop}
         onReconnect={onReconnect}
         reconnectingCredentialId={null}
@@ -339,6 +386,7 @@ describe('AccountsTable', () => {
         ]}
         onConnectAccount={noop}
         onDisconnect={noop}
+        onGoLive={noop}
         onOpenSettings={noop}
         onReconnect={noop}
         reconnectingCredentialId={null}
@@ -375,6 +423,7 @@ describe('AccountsTable', () => {
         ]}
         onConnectAccount={noop}
         onDisconnect={noop}
+        onGoLive={noop}
         onOpenSettings={noop}
         onReconnect={noop}
         reconnectingCredentialId={null}
@@ -397,6 +446,7 @@ describe('AccountsTable', () => {
         connections={[]}
         onConnectAccount={onConnectAccount}
         onDisconnect={noop}
+        onGoLive={noop}
         onOpenSettings={noop}
         onReconnect={noop}
         reconnectingCredentialId={null}
@@ -428,6 +478,7 @@ describe('AccountsTable', () => {
         ]}
         onConnectAccount={noop}
         onDisconnect={noop}
+        onGoLive={noop}
         onOpenSettings={noop}
         onReconnect={noop}
         reconnectingCredentialId="c-twitter"
@@ -463,6 +514,7 @@ describe('AccountsTable', () => {
         ]}
         onConnectAccount={noop}
         onDisconnect={noop}
+        onGoLive={noop}
         onOpenSettings={noop}
         onReconnect={noop}
         reconnectingCredentialId="c-twitter-1"
@@ -503,6 +555,7 @@ describe('AccountsTable', () => {
           connections={[connection]}
           onConnectAccount={noop}
           onDisconnect={noop}
+          onGoLive={noop}
           onOpenSettings={noop}
           onReconnect={onReconnect}
           reconnectingCredentialId={null}

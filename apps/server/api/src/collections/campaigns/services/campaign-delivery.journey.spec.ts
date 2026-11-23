@@ -45,6 +45,11 @@ describe('Campaign delivery journey', () => {
               totalPostCount: 1,
               value: null,
             },
+            impressions: {
+              availablePostCount: 0,
+              totalPostCount: 1,
+              value: null,
+            },
             likes: { availablePostCount: 0, totalPostCount: 1, value: null },
             saves: { availablePostCount: 0, totalPostCount: 1, value: null },
             shares: { availablePostCount: 0, totalPostCount: 1, value: null },
@@ -74,6 +79,11 @@ describe('Campaign delivery journey', () => {
               value: null,
             },
             engagements: { availablePostCount: 1, totalPostCount: 1, value: 1 },
+            impressions: {
+              availablePostCount: 1,
+              totalPostCount: 1,
+              value: 40,
+            },
             likes: { availablePostCount: 1, totalPostCount: 1, value: 1 },
             saves: { availablePostCount: 1, totalPostCount: 1, value: 0 },
             shares: { availablePostCount: 1, totalPostCount: 1, value: 0 },

@@ -183,6 +183,15 @@ and [v26.0 migration changes](https://developers.facebook.com/docs/graph-api/cha
    which Meta allows only within 24 hours of the person's last message, so a
    reply after that is refused with the reason instead of failing at Meta.
 
+8. Live video: an account row on the brand's Accounts page has a **Go live**
+   action for a connected Facebook Page. It creates a live video on the Page
+   (`POST /{page}/live_videos`, which needs `publish_video`) and shows the
+   stream address and key once, to paste into an encoder. **End live video**
+   stops the broadcast. The video is stored as a published post (its
+   `externalId` is the live video id) and its final state and end time are kept
+   in the post's target settings. The stream key is never stored or logged. A
+   Page connected without `publish_video` is asked to reconnect before any call.
+
 ### LinkedIn
 
 1. Create an app in the [LinkedIn Developer Portal](https://www.linkedin.com/developers/apps).

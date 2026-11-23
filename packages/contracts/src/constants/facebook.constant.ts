@@ -20,3 +20,9 @@ export const FACEBOOK_MESSENGER_SCOPE = 'pages_messaging';
  * @see https://developers.facebook.com/docs/messenger-platform/send-messages#messaging_types
  */
 export const FACEBOOK_MESSENGER_REPLY_WINDOW_MS = 24 * 60 * 60 * 1000;
+
+/** The permission Meta requires to create and end a live video on a Page. */
+export const FACEBOOK_LIVE_VIDEO_SCOPE = 'publish_video';
+
+/** Where a Facebook live video stands on its post. */
+export const FACEBOOK_LIVE_STATES = ['live', 'ended'] as const;

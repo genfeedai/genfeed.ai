@@ -275,6 +275,20 @@ describe('LoginPage', () => {
     expect(desktopRuntimeMocks.getDesktopBridge).not.toHaveBeenCalled();
   });
 
+  it('locks every chooser action while the old session is being removed (#10933)', async () => {
+    render(<LoginBetterAuth isActionsDisabled mode="chooser" />);
+
+    expect(screen.getByRole('button', { name: 'Google' })).toBeDisabled();
+    for (const name of ['Magic Link', 'Email / Password', 'Sign up']) {
+      const link = screen.getByRole('link', { name });
+      expect(link).toHaveAttribute('aria-disabled', 'true');
+      expect(link).toHaveAttribute('tabindex', '-1');
+    }
+
+    fireEvent.click(screen.getByRole('button', { name: 'Google' }));
+    expect(authClientMocks.social).not.toHaveBeenCalled();
+  });
+
   it.each([
     ['accepted', 'Invitation accepted. Sign in to continue'],
     ['already-accepted', 'This invitation was already accepted'],

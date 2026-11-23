@@ -126,3 +126,28 @@ export interface IFacebookGraphConversation {
   participants?: { data?: Array<{ id?: string; name?: string }> };
   updated_time?: string;
 }
+
+/** Where a Facebook live video stands on its post. */
+export type FacebookLiveState = 'live' | 'ended';
+
+/**
+ * A live video created on a connected Facebook Page. The stream key is returned
+ * once, to the user who started the video, and is never stored or logged.
+ */
+export interface IFacebookLiveVideo {
+  endedAt?: string;
+  liveVideoId: string;
+  permalinkUrl?: string;
+  postId: string;
+  state: FacebookLiveState;
+  streamKey?: string;
+  streamUrl?: string;
+}
+
+/** A Graph live video node as the Page's `live_videos` edge returns it. */
+export interface IFacebookGraphLiveVideo {
+  id?: string;
+  permalink_url?: string;
+  secure_stream_url?: string;
+  status?: string;
+}

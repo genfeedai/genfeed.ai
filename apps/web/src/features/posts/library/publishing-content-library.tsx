@@ -775,6 +775,12 @@ export default function PublishingContentLibrary() {
         error={drawerError}
         pendingAction={pendingAction}
         reconnectHref={activeHref(APP_ROUTES.SETTINGS.PROFILE)}
+        onChangeCampaign={(campaignId) => {
+          if (selectedRelease)
+            void mutateRelease('release:campaign', (service) =>
+              service.update(selectedRelease.id, { campaignId }),
+            );
+        }}
         onClose={() => replaceQueryParam('release', '')}
         onRescheduleRelease={(scheduledDate) => {
           if (selectedRelease)

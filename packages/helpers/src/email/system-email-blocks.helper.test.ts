@@ -56,11 +56,27 @@ describe('system email blocks', () => {
     );
   });
 
-  it('shows a text tile for content without a still', () => {
-    const html = buildEmailThumbnailGrid([{ kind: 'audio' }]);
+  it('draws a waveform for audio and text lines for an article, never a word', () => {
+    const audio = buildEmailThumbnailGrid([{ kind: 'audio' }]);
+    const article = buildEmailThumbnailGrid([{ kind: 'article' }]);
+    const image = buildEmailThumbnailGrid([{ kind: 'image' }]);
 
-    expect(html).not.toContain('<img');
-    expect(html).toContain('Audio');
+    for (const html of [audio, article, image]) {
+      expect(html).not.toContain('<img');
+      expect(html).not.toMatch(/>(Audio|Article|Image|Video)</i);
+    }
+    // 18 waveform bars, each a 3px-wide cell.
+    expect(audio.match(/width:3px/g)).toHaveLength(18);
+    expect(article.match(/height:5px/g)).toHaveLength(5);
+  });
+
+  it('keeps a stat label on one line so Ready to publish never wraps', () => {
+    const html = buildEmailStatRow([
+      { label: 'Ready to publish', value: '7' },
+      { label: 'Created', value: '7' },
+    ]);
+
+    expect(html.match(/white-space:nowrap/g)?.length).toBeGreaterThanOrEqual(2);
   });
 
   it.each([

@@ -2,6 +2,7 @@ import type {
   ApiKeyConnectPayload,
   ICredential,
   ICredentialOAuth,
+  IFacebookLiveVideo,
   IFacebookPageCandidate,
   IGoogleBusinessLocation,
 } from '@genfeedai/contracts/interfaces';
@@ -167,6 +168,26 @@ export class ServicesService extends BaseService<CredentialOAuth | Credential> {
           (item) => new Credential(item),
         ),
       );
+  }
+
+  /** Start a live video on the Page. The stream key comes back in this response only. */
+  public async postStartFacebookLive(
+    credentialId: string,
+    body: { description?: string; title: string },
+  ): Promise<IFacebookLiveVideo> {
+    return await this.instance
+      .post<IFacebookLiveVideo>(`${credentialId}/live`, body)
+      .then((res) => res.data);
+  }
+
+  /** End a live video started from Genfeed. */
+  public async postEndFacebookLive(
+    credentialId: string,
+    postId: string,
+  ): Promise<IFacebookLiveVideo> {
+    return await this.instance
+      .post<IFacebookLiveVideo>(`${credentialId}/live/${postId}/end`)
+      .then((res) => res.data);
   }
 
   /** The Google Business locations a pending connection can still choose. */
