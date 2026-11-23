@@ -19,10 +19,10 @@ import {
 import { EmptyState } from '@ui/primitives/empty-state';
 import { Progress } from '@ui/primitives/progress';
 import { SegmentedControl } from '@ui/primitives/segmented-control';
+import DateText from '@ui/time/DateText';
 import { Check, TriangleAlert } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useCallback, useMemo, useState } from 'react';
-import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import type { ScheduledReleaseBatchReviewState } from '../hooks/use-scheduled-release-batch-review';
 import {
   formatBatchPostTime,
@@ -220,10 +220,7 @@ export default function ScheduledReleaseBatchReview({
             <div>
               <DefinitionTerm>{translate('factExpires')}</DefinitionTerm>
               <DefinitionDetail>
-                <ClientFormattedDate
-                  format="relative"
-                  value={review.expiresAt}
-                />
+                <DateText value={review.expiresAt} />
               </DefinitionDetail>
             </div>
           ) : null}

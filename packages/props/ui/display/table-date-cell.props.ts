@@ -1,5 +1,7 @@
 export interface TableDateCellProps {
-  /** The instant to show; `null` or `undefined` renders the empty-cell dash. */
+  /** What an empty date means in this column, such as "Not scheduled". */
+  emptyLabel?: string;
+  /** The instant to show; `null` or `undefined` renders `emptyLabel`. */
   value: Date | string | number | null | undefined;
   /**
    * IANA zone to show the instant in. Defaults to the viewer's zone, read

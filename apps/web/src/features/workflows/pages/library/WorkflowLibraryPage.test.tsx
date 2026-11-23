@@ -269,10 +269,6 @@ vi.mock('next/link', () => ({
   ),
 }));
 
-vi.mock('@/components/ui/client-formatted-date', () => ({
-  ClientFormattedDate: ({ value }: { value: string }) => <span>{value}</span>,
-}));
-
 vi.mock('@/features/workflows/services/workflow-api', () => ({
   isCanonicalSystemWorkflow: () => mocks.isSystemWorkflow,
 }));

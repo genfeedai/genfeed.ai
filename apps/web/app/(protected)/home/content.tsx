@@ -15,13 +15,12 @@ import {
   AlertTitle,
 } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
+import DateText from '@ui/time/DateText';
 import { ArrowRight, Plug, RefreshCw, ShieldCheck, Zap } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
 import { useEffect, useMemo, useState } from 'react';
-
-import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import {
   readRememberedConnectLine,
   rememberConnectLine,
@@ -141,9 +140,8 @@ function ConnectionStatusBody({
         <ShieldCheck aria-hidden="true" className="size-3.5 text-success" />
         <span>MCP verified</span>
         <span aria-hidden="true">·</span>
-        <ClientFormattedDate
-          fallback="Verification time unavailable"
-          format="relative"
+        <DateText
+          emptyLabel={translate('home.connect.verificationTimeUnavailable')}
           value={verifiedAt}
         />
       </div>

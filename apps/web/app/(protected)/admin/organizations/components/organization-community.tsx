@@ -22,12 +22,12 @@ import { Alert, AlertActions, AlertDescription } from '@ui/primitives/alert';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { EmptyState } from '@ui/primitives/empty-state';
+import DateText from '@ui/time/DateText';
 import { ImageIcon } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
-import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import type {
   OrganizationCommunityAction,
   OrganizationCommunityMediaPreviewProps,
@@ -188,7 +188,7 @@ export default function OrganizationCommunity({
             {creator.isFeatured ? (
               <Badge variant="info">{translate('featuredBadge')}</Badge>
             ) : null}
-            <ClientFormattedDate value={creator.createdAt} />
+            <DateText value={creator.createdAt} />
           </span>
         }
         trailing={renderActions('creators', creator, creator.label)}
@@ -212,7 +212,7 @@ export default function OrganizationCommunity({
             {media.isFeatured ? (
               <Badge variant="info">{translate('featuredBadge')}</Badge>
             ) : null}
-            <ClientFormattedDate value={media.createdAt} />
+            <DateText value={media.createdAt} />
           </span>
         }
         trailing={renderActions('media', media, name)}

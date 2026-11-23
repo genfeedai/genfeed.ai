@@ -10,6 +10,7 @@ import type { Task } from '@services/management/tasks.service';
 import Card from '@ui/card/Card';
 import AppTable from '@ui/display/table/Table';
 import { Button } from '@ui/primitives/button';
+import DateText from '@ui/time/DateText';
 import {
   AlertTriangle,
   CircleCheck,
@@ -20,7 +21,6 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { isAppRailPathEnabled } from '@/components/shell/app-rail/app-rail.registry';
 import { useIsHrefAvailable } from '@/components/shell/use-available-rail-apps';
-import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import { getStudioAppForPath } from '@/config/studio-menu-items.config';
 import type { WorkspaceOverviewSidebarProps } from '@/features/workspace/props/workspace-overview-sidebar.props';
 import { useFeatureFlagContext } from '@/hooks/feature-flags/provider';
@@ -163,7 +163,7 @@ export function WorkspaceOverviewSidebar({
                       {item.platform ? ` on ${item.platform}` : ''}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      <ClientFormattedDate value={item.createdAt} />
+                      <DateText value={item.createdAt} />
                     </p>
                     {item.continuityQa ? (
                       <div

@@ -19,10 +19,10 @@ import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
+import DateText from '@ui/time/DateText';
 import { Text } from '@ui/typography/text';
 import { ExternalLink } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import { useBillingAccount } from '@/features/settings/hooks/use-billing-account/use-billing-account';
 import type { SubscriptionStatCellProps } from '@/features/settings/props/subscription-page.props';
 import { useSubscription } from '@/hooks/data/subscription/use-subscription/use-subscription';
@@ -204,14 +204,8 @@ function SettingsSubscriptionContent() {
               <Text as="p" size="sm" color="muted">
                 Current period ends{' '}
                 <span className="font-medium text-foreground">
-                  <ClientFormattedDate
-                    format="date"
-                    locales="en-US"
-                    options={{
-                      day: 'numeric',
-                      month: 'long',
-                      year: 'numeric',
-                    }}
+                  <DateText
+                    hasTime={false}
                     value={subscription.currentPeriodEnd}
                   />
                 </span>

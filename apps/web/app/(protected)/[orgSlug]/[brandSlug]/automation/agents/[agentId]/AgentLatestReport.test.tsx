@@ -19,10 +19,6 @@ vi.mock('./use-agent-performance', () => ({
   useAgentPerformance: () => mocks.performance,
 }));
 
-vi.mock('@/components/ui/client-formatted-date', () => ({
-  ClientFormattedDate: ({ value }: { value: string }) => <span>{value}</span>,
-}));
-
 vi.mock('next-intl', () => ({
   useTranslations: () => (key: string, values?: Record<string, unknown>) =>
     ({

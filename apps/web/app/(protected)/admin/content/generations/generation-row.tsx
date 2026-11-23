@@ -3,8 +3,8 @@
 import { ButtonVariant, CardPadding } from '@genfeedai/contracts';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
+import DateText from '@ui/time/DateText';
 import { useTranslations } from 'next-intl';
-import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import type { GenerationRowProps } from '@/features/admin/props/generations.props';
 import GenerationStatusBadge from './generation-status-badge';
 import GenerationThumbnail from './generation-thumbnail';
@@ -49,7 +49,7 @@ export default function GenerationRow({
         </div>
         <div className="col-span-full flex flex-row flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground sm:col-span-1 sm:flex-col sm:items-end sm:text-right">
           {owner ? <span className="truncate">{owner}</span> : null}
-          <ClientFormattedDate value={generation.createdAt} />
+          <DateText value={generation.createdAt} />
           {generation.credits !== null ? (
             <span className="tabular-nums">
               {t('credits', { count: generation.credits })}

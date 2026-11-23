@@ -3,8 +3,8 @@
 import { CardGap, CardPadding } from '@genfeedai/contracts';
 import Card from '@ui/card/Card';
 import CollectionSection from '@ui/collection/CollectionSection';
+import DateText from '@ui/time/DateText';
 import { useTranslations } from 'next-intl';
-import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import type { AgentLatestReportProps } from '@/features/automation/props/agent-latest-report.props';
 import { useAgentPerformance } from './use-agent-performance';
 
@@ -44,7 +44,7 @@ export default function AgentLatestReport({ agentId }: AgentLatestReportProps) {
                 : 'activityWeeklyReport',
             )}
             {' · '}
-            <ClientFormattedDate format="relative" value={report.periodEnd} />
+            <DateText value={report.periodEnd} />
           </p>
           {report.summary ? (
             <p className="text-foreground">{report.summary}</p>

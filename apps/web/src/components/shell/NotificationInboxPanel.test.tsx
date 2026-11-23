@@ -138,7 +138,7 @@ describe('NotificationInboxPanel', () => {
     expect(row).toContainElement(
       screen.getByRole('button', { name: 'Mark read' }),
     );
-    expect(row).toHaveTextContent(/ago/);
+    expect(row.querySelector('time')).not.toBeNull();
   });
 
   it('exposes unread state, source link, read actions, and older pages', async () => {

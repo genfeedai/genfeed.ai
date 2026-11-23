@@ -6,10 +6,10 @@ import CollectionList from '@ui/collection/CollectionList';
 import CollectionSection from '@ui/collection/CollectionSection';
 import { ListRow } from '@ui/lists/list-row/ListRow';
 import FilterMenu from '@ui/navigation/filter-menu/FilterMenu';
+import DateText from '@ui/time/DateText';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
-import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import type { AgentActivitySectionProps } from '@/features/automation/props/agent-activity-section.props';
 import type { AgentActivityFilter } from '@/features/automation/props/agent-activity-timeline.props';
 import {
@@ -180,12 +180,7 @@ export default function AgentActivitySection({
               <ListRow
                 description={entry.description}
                 key={entry.id}
-                meta={
-                  <ClientFormattedDate
-                    format="relative"
-                    value={entry.timestamp}
-                  />
-                }
+                meta={<DateText value={entry.timestamp} />}
                 title={entry.title}
                 trailing={
                   entry.href ? (

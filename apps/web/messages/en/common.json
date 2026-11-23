@@ -1671,7 +1671,8 @@
     "connect": {
       "action": "Connect Genfeed",
       "dismiss": "Dismiss connect card",
-      "title": "Connect Claude Code, Codex, or another AI client"
+      "title": "Connect Claude Code, Codex, or another AI client",
+      "verificationTimeUnavailable": "Verification time unavailable"
     },
     "credentials": {
       "addBrand": "Add a brand",
@@ -1704,7 +1705,8 @@
       "active": "Active",
       "failedToday": "Failed today",
       "needAttention": "Need attention"
-    }
+    },
+    "timeUnavailable": "Time unavailable"
   },
   "agent": {
     "composer": {

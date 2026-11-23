@@ -14,10 +14,10 @@ import Card from '@ui/card/Card';
 import { Alert } from '@ui/primitives/alert';
 import { Badge } from '@ui/primitives/badge';
 import { SegmentedControl } from '@ui/primitives/segmented-control';
+import DateText from '@ui/time/DateText';
 import type { NodeProps } from '@xyflow/react';
 import { useTranslations } from 'next-intl';
 import { memo, useCallback } from 'react';
-import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import { NodeButton } from '@/features/workflows/components/ui/button';
 import {
   NodeDescription,
@@ -350,8 +350,13 @@ function ReviewGateNodeComponent(props: NodeProps): React.JSX.Element {
 
       {data.approvalStatus === ReviewGateStatus.APPROVED && data.approvedBy && (
         <div className="text-xs text-muted-foreground">
-          Approved by {data.approvedBy} at{' '}
-          <ClientFormattedDate fallback="-" value={data.approvedAt} />
+          Approved by {data.approvedBy}
+          {data.approvedAt ? (
+            <>
+              {' '}
+              at <DateText value={data.approvedAt} />
+            </>
+          ) : null}
         </div>
       )}
 

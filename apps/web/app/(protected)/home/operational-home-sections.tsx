@@ -44,13 +44,13 @@ import {
 } from '@ui/modals/brands/brand/ModalBrand.types';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
+import DateText from '@ui/time/DateText';
 import { ArrowRight, Check, RefreshCw, TriangleAlert } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { type ReactNode, useCallback, useMemo, useState } from 'react';
 import { WorkspaceSurface } from '@/components/overview/WorkspaceSurface';
-import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import {
   getActivityDescription,
   getActivityDestinationPath,
@@ -424,9 +424,8 @@ function NeedsYouSurface({
                   }
                   key={needsYouItem.key}
                   meta={
-                    <ClientFormattedDate
-                      fallback="Time unavailable"
-                      format="relative"
+                    <DateText
+                      emptyLabel={translate('home.timeUnavailable')}
                       value={getExecutionTimestamp(execution)}
                     />
                   }
@@ -684,9 +683,8 @@ function PublishingSurface({
                       />
                     }
                     meta={
-                      <ClientFormattedDate
-                        fallback="Time unavailable"
-                        format="relative"
+                      <DateText
+                        emptyLabel={translate('home.timeUnavailable')}
                         value={publication.updatedAt ?? publication.createdAt}
                       />
                     }
@@ -873,9 +871,8 @@ function ActivitySurface({
                 }
                 description={detail || undefined}
                 meta={
-                  <ClientFormattedDate
-                    fallback="Time unavailable"
-                    format="relative"
+                  <DateText
+                    emptyLabel={translate('home.timeUnavailable')}
                     value={activity.createdAt}
                   />
                 }

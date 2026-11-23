@@ -255,12 +255,6 @@ vi.mock('./use-home-publications', () => ({
   }),
 }));
 
-vi.mock('@/components/ui/client-formatted-date', () => ({
-  ClientFormattedDate: ({ value }: { value?: string | null }) => (
-    <span>{value ?? 'unknown'}</span>
-  ),
-}));
-
 vi.mock('./use-connect-genfeed-status', () => ({
   useConnectGenfeedStatus: (organizationId: string) => {
     mocks.connectionOrganizationId = organizationId;

@@ -8,12 +8,12 @@ import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import { PanelTabs } from '@ui/primitives/tabs';
+import DateText from '@ui/time/DateText';
 import { AlertTriangle, Clock } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { useIsAppAvailable } from '@/components/shell/use-available-rail-apps';
-import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import type { WorkspaceTaskInspectorBodyProps } from '@/features/workspace/props/workspace-task-inspector-body.props';
 import type { WorkspaceTranslate } from '@/props/workspace/workspace-task.props';
 import { useWorkspaceTaskHref } from './use-workspace-task-href';
@@ -92,13 +92,13 @@ export function WorkspaceTaskInspectorBody({
           {task.createdAt ? (
             <p>
               {translate('inspector.created')}{' '}
-              <ClientFormattedDate value={task.createdAt} />
+              <DateText value={task.createdAt} />
             </p>
           ) : null}
           {task.completedAt ? (
             <p>
               {translate('inspector.completed')}{' '}
-              <ClientFormattedDate value={task.completedAt} />
+              <DateText value={task.completedAt} />
             </p>
           ) : null}
         </div>

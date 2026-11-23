@@ -1,9 +1,9 @@
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import ConnectedAccountAvatar from '@ui/display/connected-account/ConnectedAccountAvatar';
 import { ListRow } from '@ui/lists/list-row/ListRow';
+import DateText from '@ui/time/DateText';
 import { useTranslations } from 'next-intl';
 import { WorkspaceSurface } from '@/components/overview/WorkspaceSurface';
-import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import type { PublishingOverviewQueueSectionProps } from '@/features/posts/props/publishing-overview.props';
 
 import PublishingOverviewAsyncSection from './PublishingOverviewAsyncSection';
@@ -57,10 +57,8 @@ export default function Next24hQueueSection({
                         title={item.title}
                         meta={item.accountLabel}
                         trailing={
-                          <ClientFormattedDate
+                          <DateText
                             className="text-xs text-muted-foreground"
-                            format="dateTime"
-                            options={{ hour: '2-digit', minute: '2-digit' }}
                             value={item.scheduledAt}
                           />
                         }
