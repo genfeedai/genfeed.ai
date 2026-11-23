@@ -92,6 +92,7 @@ vi.mock(
       openConfirm: vi.fn(),
     })),
     useGalleryModal: vi.fn(() => ({
+      closeGallery: vi.fn(),
       openGallery: vi.fn(),
     })),
   }),

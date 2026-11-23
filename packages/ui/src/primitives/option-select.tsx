@@ -5,7 +5,9 @@ import type { ReactNode } from 'react';
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectNoMatch,
   SelectOptions,
   SelectSearch,
@@ -18,6 +20,8 @@ export interface OptionSelectOption {
   ariaLabel?: string;
   /** A platform logo, an account avatar, a brand mark: shown in the list and in the closed control. */
   icon?: ReactNode;
+  /** Heading the option is listed under; options with the same heading sit together, in order of first appearance. */
+  group?: string;
   isDisabled?: boolean;
   /** Plain text: it is what the search matches and what the closed control shows. */
   label: string;
@@ -44,6 +48,19 @@ export interface OptionSelectProps {
   searchLabel?: string;
   testId?: string;
   value: string;
+}
+
+function groupOptions(options: readonly OptionSelectOption[]) {
+  const groups = new Map<string | undefined, OptionSelectOption[]>();
+  for (const option of options) {
+    const members = groups.get(option.group);
+    if (members) {
+      members.push(option);
+    } else {
+      groups.set(option.group, [option]);
+    }
+  }
+  return [...groups];
 }
 
 /** A search box earns its place once a list is longer than a glance. */
@@ -101,19 +118,30 @@ export function OptionSelect({
           </>
         ) : null}
         <SelectOptions>
-          {options.map((option) => (
-            <SelectItem
-              aria-label={option.ariaLabel}
-              className={option.isLiteral ? 'normal-case' : undefined}
-              disabled={option.isDisabled}
-              icon={option.icon}
-              key={option.value}
-              label={option.label}
-              value={option.value}
-            >
-              {option.label}
-            </SelectItem>
-          ))}
+          {groupOptions(options).map(([heading, members]) => {
+            const items = members.map((option) => (
+              <SelectItem
+                aria-label={option.ariaLabel}
+                className={option.isLiteral ? 'normal-case' : undefined}
+                disabled={option.isDisabled}
+                icon={option.icon}
+                key={option.value}
+                label={option.label}
+                value={option.value}
+              >
+                {option.label}
+              </SelectItem>
+            ));
+
+            return heading === undefined ? (
+              items
+            ) : (
+              <SelectGroup key={heading}>
+                <SelectLabel>{heading}</SelectLabel>
+                {items}
+              </SelectGroup>
+            );
+          })}
         </SelectOptions>
       </SelectContent>
     </Select>
