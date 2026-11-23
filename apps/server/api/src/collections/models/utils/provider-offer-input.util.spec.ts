@@ -2,6 +2,7 @@ import {
   KIE_KLING_INPUT_SCHEMA,
   KIE_MINIMAX_H3_IMAGE_INPUT_SCHEMA,
   KIE_MINIMAX_H3_TEXT_INPUT_SCHEMA,
+  KIE_WAN_3_INPUT_SCHEMA,
 } from '@api/seeds/model-provider-offers.seed';
 import { describe, expect, it } from 'vitest';
 import falKlingSchemas from './fixtures/fal-kling-v3-input-schemas.json';
@@ -333,5 +334,82 @@ describe('kie MiniMax H3 offers', () => {
         { endpoint: TEXT },
       ),
     ).toBeNull();
+  });
+});
+
+describe('kie Wan 3.0 offer', () => {
+  const ENDPOINT = 'wan/3-0-video';
+  const IMAGE = 'https://example.com/first.png';
+
+  function map(providerInput: Record<string, unknown>) {
+    return mapProviderOfferInput(
+      KIE_WAN_3_INPUT_SCHEMA,
+      { providerInput },
+      { endpoint: ENDPOINT },
+    );
+  }
+
+  it('upper-cases the resolution and keeps the ratio, duration and seed', () => {
+    expect(
+      map({
+        aspect_ratio: '9:16',
+        duration: 8,
+        prompt: 'Sunrise',
+        resolution: '720p',
+        seed: 7,
+      }),
+    ).toEqual({
+      aspect_ratio: '9:16',
+      duration: 8,
+      prompt: 'Sunrise',
+      resolution: '720P',
+      seed: 7,
+    });
+  });
+
+  it('applies the defaults both providers share', () => {
+    expect(map({ prompt: 'Sunrise' })).toEqual({
+      aspect_ratio: 'adaptive',
+      duration: 5,
+      prompt: 'Sunrise',
+      resolution: '1080P',
+    });
+  });
+
+  it('sends an image as the first frame and drops the ratio Replicate ignores', () => {
+    expect(
+      map({
+        aspect_ratio: '16:9',
+        duration: 5,
+        image: IMAGE,
+        prompt: 'Sunrise',
+        resolution: '480p',
+      }),
+    ).toEqual({
+      aspect_ratio: 'adaptive',
+      duration: 5,
+      first_frame_url: IMAGE,
+      prompt: 'Sunrise',
+      resolution: '480P',
+    });
+  });
+
+  it('ignores an empty negative prompt and an enabled prompt expansion', () => {
+    expect(
+      map({
+        enable_prompt_expansion: true,
+        negative_prompt: '',
+        prompt: 'Sunrise',
+      }),
+    ).toMatchObject({ prompt: 'Sunrise' });
+  });
+
+  it.each([
+    ['a negative prompt', { negative_prompt: 'blur' }],
+    ['prompt expansion turned off', { enable_prompt_expansion: false }],
+    ['a ratio kie lacks', { aspect_ratio: '21:9' }],
+    ['a resolution kie lacks', { resolution: '4k' }],
+  ])('leaves a request with %s on Replicate', (_name, extra) => {
+    expect(map({ prompt: 'Sunrise', ...extra })).toBeNull();
   });
 });
