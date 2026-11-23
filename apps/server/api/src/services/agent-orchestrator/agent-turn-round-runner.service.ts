@@ -639,7 +639,10 @@ export class AgentTurnRoundRunnerService {
     // ran (side effects done). Cancelled streams must still charge
     // orchestrator-billed tools and leave an audit trail.
     const isOrchestratorBilled =
-      result.success && creditCost > 0 && !result.isBillingDelegated;
+      result.success &&
+      !isApprovalPendingResult(result) &&
+      creditCost > 0 &&
+      !result.isBillingDelegated;
     const delegatedCredits = result.isBillingDelegated
       ? Math.max(0, result.creditsUsed ?? 0)
       : 0;
