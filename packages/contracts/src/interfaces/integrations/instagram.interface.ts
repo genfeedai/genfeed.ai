@@ -159,3 +159,22 @@ export interface InstagramTrendingHashtag {
 }
 
 export type InstagramMessageRecipient = { id: string } | { comment_id: string };
+
+/** One post the official hashtag search returned for a hashtag. */
+export interface InstagramHashtagMediaItem {
+  caption?: string;
+  commentsCount: number;
+  id: string;
+  likeCount: number;
+  mediaType?: string;
+  /** Omitted by Instagram for albums, licensed audio and reels with downloads off. */
+  mediaUrl?: string;
+  permalink: string;
+  timestamp?: string;
+}
+
+/** The top media for one hashtag read through the official hashtag search. */
+export interface InstagramHashtagMedia {
+  hashtag: string;
+  items: InstagramHashtagMediaItem[];
+}
