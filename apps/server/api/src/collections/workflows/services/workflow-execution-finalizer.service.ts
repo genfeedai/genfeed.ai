@@ -5,6 +5,7 @@ import {
 import { WorkflowExecutionsService } from '@api/collections/workflow-executions/services/workflow-executions.service';
 import type { WorkflowArtifactLifecycleService } from '@api/collections/workflows/services/workflow-artifact-lifecycle.service';
 import { WorkflowExecutionGraphService } from '@api/collections/workflows/services/workflow-execution-graph.service';
+import { settleWorkflowStatus } from '@api/collections/workflows/utils/settle-workflow-status.util';
 import { scopedWhere } from '@api/index';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -87,12 +88,14 @@ export class WorkflowExecutionFinalizerService {
     // stamping terminal state on it would let concurrent tenant runs overwrite
     // each other's status on a definition none of them owns.
     if (!input.skipWorkflowStatusUpdate) {
-      await this.prisma.workflow.update({
+      await settleWorkflowStatus(this.prisma, {
         data: {
           completedAt: input.completedAt,
           status: input.workflowStatus,
         },
-        where: scopedWhere(input.organizationId, { id: input.workflowId }),
+        executionId: input.executionId,
+        organizationId: input.organizationId,
+        workflowId: input.workflowId,
       });
     }
 

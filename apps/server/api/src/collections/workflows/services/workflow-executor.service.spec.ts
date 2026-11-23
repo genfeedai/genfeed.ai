@@ -69,6 +69,7 @@ function pinnedVersion(input: {
 
 describe('WorkflowExecutorService', () => {
   const prisma = {
+    $transaction: vi.fn(),
     member: {
       findFirst: vi.fn(),
     },
@@ -84,6 +85,7 @@ describe('WorkflowExecutorService', () => {
       findFirst: vi.fn(),
       updateMany: vi.fn(),
     },
+    workflowExecution: { count: vi.fn() },
   };
   const logger = {
     debug: vi.fn(),
@@ -121,6 +123,10 @@ describe('WorkflowExecutorService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    prisma.$transaction.mockImplementation(
+      async (work: (tx: typeof prisma) => Promise<unknown>) => work(prisma),
+    );
+    prisma.workflowExecution.count.mockResolvedValue(0);
     prisma.member.findFirst.mockResolvedValue({ id: 'member-1' });
     prisma.workflowNodeClaim.create.mockResolvedValue({ id: 'claim-1' });
     prisma.workflowNodeClaim.findFirst.mockResolvedValue(null);
