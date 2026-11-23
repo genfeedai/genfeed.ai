@@ -242,6 +242,19 @@
       "research": "Research"
     }
   },
+  "promptBarControls": {
+    "avatar": "Avatar",
+    "defaultOption": "{label} (default)",
+    "duration": "Duration",
+    "folder": "Folder",
+    "noFolder": "No folder",
+    "quality": "Quality",
+    "qualityNeedsPlan": "{label}, requires a higher plan",
+    "resolution": "Resolution",
+    "selectAvatar": "Select Avatar",
+    "selectVoice": "Select Voice",
+    "voice": "Voice"
+  },
   "promptBarAssets": {
     "editingTarget": "Editing target",
     "editingSource": "Editing source",

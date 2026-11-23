@@ -1,9 +1,10 @@
 'use client';
 
 import type { PromptBarFolderSelectorProps } from '@genfeedai/props/studio/prompt-bar.props';
-import FormDropdown from '@ui/primitives/dropdown-field';
+import { OptionSelect } from '@ui/primitives/option-select';
 import { Folder } from 'lucide-react';
-import { type ChangeEvent, memo } from 'react';
+import { useTranslations } from 'next-intl';
+import { memo } from 'react';
 
 const PromptBarFolderSelector = memo(function PromptBarFolderSelector({
   folders,
@@ -12,34 +13,35 @@ const PromptBarFolderSelector = memo(function PromptBarFolderSelector({
   isDisabled,
   triggerDisplay = 'default',
 }: PromptBarFolderSelectorProps) {
+  const translate = useTranslations('ui.promptBarControls');
+
   if (!folders?.length) {
     return null;
   }
 
   return (
-    <FormDropdown
-      key="folder"
-      name="folder"
-      icon={<Folder />}
-      label="Folder"
-      triggerDisplay={triggerDisplay}
-      value={form.watch('folder') || ''}
-      isSearchEnabled
-      isFullWidth={false}
-      isNoneEnabled
-      dropdownDirection="up"
+    <OptionSelect
+      ariaLabel={translate('folder')}
       className={controlClass}
-      options={folders.map((folder) => ({
-        description: folder.description,
-        key: folder.id || '',
-        label: folder.label || '',
-      }))}
-      onChange={(e: ChangeEvent<HTMLSelectElement>) => {
-        form.setValue('folder', e.target.value || undefined, {
+      icon={<Folder className="size-4" />}
+      isDisabled={isDisabled}
+      isIconOnly={triggerDisplay === 'icon-only'}
+      isSearchable
+      onValueChange={(value) => {
+        form.setValue('folder', value || undefined, {
           shouldValidate: true,
         });
       }}
-      isDisabled={isDisabled}
+      options={[
+        { isLiteral: true, label: translate('noFolder'), value: '' },
+        ...folders.map((folder) => ({
+          isLiteral: true,
+          label: folder.label || '',
+          value: folder.id || '',
+        })),
+      ]}
+      placeholder={translate('folder')}
+      value={form.watch('folder') || ''}
     />
   );
 });
