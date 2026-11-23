@@ -1,5 +1,9 @@
 import { OnboardingDraftsReviewService } from '@api/endpoints/admin/onboarding-funnel/onboarding-drafts-review.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import {
+  getTenantContext,
+  runWithTenantContext,
+} from '@libs/prisma/tenant-context';
 import { Test } from '@nestjs/testing';
 import { vi } from 'vitest';
 
@@ -118,6 +122,40 @@ describe('OnboardingDraftsReviewService', () => {
       organizationId: 'org_1',
       receiptId: { in: ['r1'] },
     });
+  });
+
+  it('reads each organization ratings inside that organization tenant, not the operator one', async () => {
+    const draft = (receiptId: string) => ({
+      config: {
+        result: { drafts: [{ platform: 'twitter', receiptId, text: 'A' }] },
+      },
+      createdAt: new Date('2026-11-12T10:00:00.000Z'),
+    });
+    organizationFindMany.mockResolvedValue([
+      {
+        brands: [],
+        contentRuns: [draft('r1')],
+        id: 'org_1',
+        user: { email: 'a@acme.co' },
+      },
+      {
+        brands: [],
+        contentRuns: [draft('r2')],
+        id: 'org_2',
+        user: { email: 'b@acme.co' },
+      },
+    ]);
+    const tenantsSeen: Array<string | undefined> = [];
+    feedbackFindMany.mockImplementation(async () => {
+      tenantsSeen.push(getTenantContext()?.organizationId);
+      return [];
+    });
+
+    await runWithTenantContext({ organizationId: 'operator_org' }, () =>
+      service.getReview(),
+    );
+
+    expect(tenantsSeen.sort()).toEqual(['org_1', 'org_2']);
   });
 
   it('returns no runs when no organization has onboarded in the window', async () => {
