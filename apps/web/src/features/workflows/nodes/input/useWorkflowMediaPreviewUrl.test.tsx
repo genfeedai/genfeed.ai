@@ -1,114 +1,137 @@
-import { renderHook } from '@testing-library/react';
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
+import type { IIngredient } from '@genfeedai/contracts/interfaces';
+import { renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { WorkflowMediaConfig } from '@/features/workflows/nodes/input/media-picker';
+import { getWorkflowMediaConfig } from './media-picker';
 import { useWorkflowMediaPreviewUrl } from './useWorkflowMediaPreviewUrl';
 
 const mocks = vi.hoisted(() => ({
+  brandId: 'brand',
   findOne: vi.fn(),
-  query: { data: undefined as string | null | undefined, isError: false },
-  useAuthedQuery: vi.fn(),
+  resolvers: new Map<string, () => Promise<unknown>>(),
 }));
 
-vi.mock('@hooks/auth/use-authed-query/use-authed-query', () => ({
-  useAuthedQuery: mocks.useAuthedQuery,
+vi.mock('@contexts/user/brand-context/brand-context', () => ({
+  useBrand: () => ({ brandId: mocks.brandId }),
+}));
+vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
+  useAuthedService: (factory: (token: string) => unknown) => {
+    const key = factory.toString();
+    const existing = mocks.resolvers.get(key);
+    if (existing) return existing;
+    const resolver = async () => factory('token');
+    mocks.resolvers.set(key, resolver);
+    return resolver;
+  },
+}));
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
+}));
+vi.mock('@services/ingredients/images.service', () => ({
+  ImagesService: { getInstance: () => ({ findOne: mocks.findOne }) },
+}));
+vi.mock('@services/ingredients/videos.service', () => ({
+  VideosService: { getInstance: () => ({ findOne: mocks.findOne }) },
+}));
+vi.mock('@hooks/media/use-authorized-media-preview', () => ({
+  useAuthorizedMediaPreview: (ingredient: IIngredient | null) =>
+    ingredient?.mediaDelivery ?? null,
 }));
 
-vi.mock('@services/content/ingredients.service', () => ({
-  IngredientsService: { getInstance: vi.fn() },
-}));
+const savedVideo = getWorkflowMediaConfig(
+  {
+    config: {
+      itemCategory: 'video',
+      itemId: 'private-video',
+      resolvedUrl: 'https://cdn.test/ingredients/videos/private-video',
+      source: 'library',
+    },
+  },
+  'video',
+);
+const currentVideo = {
+  id: 'private-video',
+  brandId: 'brand',
+  isDeleted: false,
+  mediaDelivery: {
+    expiresAt: null,
+    id: 'private-video',
+    purpose: 'preview',
+    state: 'READY',
+    url: 'https://signed.test/current.mp4?Signature=issued',
+  },
+};
 
-const savedUrl = 'https://cdn.example/ingredients/videos/video-1';
-
-function buildConfig(
-  overrides: Partial<WorkflowMediaConfig> = {},
-): WorkflowMediaConfig {
+function renderPreview() {
+  const client = createTestQueryClient();
   return {
-    dimensions: null,
-    duration: null,
-    itemCategory: 'video',
-    itemId: 'video-1',
-    label: null,
-    mimeType: null,
-    resolvedUrl: savedUrl,
-    selectedResolvedUrl: savedUrl,
-    source: 'library',
-    thumbnailUrl: null,
-    url: null,
-    ...overrides,
+    ...renderHook(() => useWorkflowMediaPreviewUrl('video', savedVideo), {
+      wrapper: queryClientWrapper(client),
+    }),
+    client,
   };
 }
 
-describe('useWorkflowMediaPreviewUrl', () => {
+describe('workflow Library media previews', () => {
   beforeEach(() => {
-    mocks.query.data = undefined;
-    mocks.query.isError = false;
-    mocks.useAuthedQuery.mockImplementation(() => mocks.query);
+    vi.clearAllMocks();
+    mocks.resolvers.clear();
+    mocks.brandId = 'brand';
   });
 
-  it('previews a Library video from the grant the API returns, not the saved URL', () => {
-    mocks.query.data = 'https://grant.example/video-1?sig=1';
-
-    const { result } = renderHook(() =>
-      useWorkflowMediaPreviewUrl(buildConfig()),
+  it('reauthorizes a saved Library ID rather than playing its stored unsigned URL', async () => {
+    mocks.findOne.mockResolvedValue(currentVideo);
+    const { result } = renderPreview();
+    expect(result.current).toBeUndefined();
+    await waitFor(() =>
+      expect(result.current).toBe(
+        'https://signed.test/current.mp4?Signature=issued',
+      ),
     );
-
-    expect(result.current).toBe('https://grant.example/video-1?sig=1');
-  });
-
-  it('shows nothing while the grant loads, so the saved URL is never requested', () => {
-    const { result } = renderHook(() =>
-      useWorkflowMediaPreviewUrl(buildConfig()),
-    );
-
-    expect(result.current).toBeNull();
-  });
-
-  it('falls back to the saved URL when the read fails', () => {
-    mocks.query.isError = true;
-
-    const { result } = renderHook(() =>
-      useWorkflowMediaPreviewUrl(buildConfig()),
-    );
-
-    expect(result.current).toBe(savedUrl);
-  });
-
-  it('reads the ingredient through the service with its id', async () => {
-    mocks.findOne.mockResolvedValue({
-      ingredientUrl: 'https://grant.example/x',
-    });
-    renderHook(() => useWorkflowMediaPreviewUrl(buildConfig()));
-
-    const options = mocks.useAuthedQuery.mock.calls[0][0] as {
-      enabled: boolean;
-      queryFn: (
-        service: { findOne: typeof mocks.findOne },
-        signal: AbortSignal,
-      ) => Promise<string | null>;
-    };
-    const url = await options.queryFn(
-      { findOne: mocks.findOne },
-      new AbortController().signal,
-    );
-
-    expect(options.enabled).toBe(true);
-    expect(url).toBe('https://grant.example/x');
     expect(mocks.findOne).toHaveBeenCalledWith(
-      'video-1',
-      {},
+      'private-video',
+      { brandId: 'brand', isDeleted: false },
       expect.any(AbortSignal),
     );
   });
 
   it.each([
-    ['a pasted URL', buildConfig({ source: 'url', itemId: null })],
-    ['a brand reference', buildConfig({ itemCategory: 'reference' })],
-  ])('previews %s from the saved URL', (_name, config) => {
-    const { result } = renderHook(() => useWorkflowMediaPreviewUrl(config));
+    ['another brand', { ...currentVideo, brandId: 'other' }],
+    ['a deleted asset', { ...currentVideo, isDeleted: true }],
+    ['another asset', { ...currentVideo, id: 'other' }],
+  ])('does not preview %s', async (_label, response) => {
+    mocks.findOne.mockResolvedValue(response);
+    const { result, client } = renderPreview();
+    await waitFor(() => expect(client.isFetching()).toBe(0));
+    expect(result.current).toBeUndefined();
+  });
 
-    expect(result.current).toBe(savedUrl);
-    expect(
-      (mocks.useAuthedQuery.mock.calls[0][0] as { enabled: boolean }).enabled,
-    ).toBe(false);
+  it('clears the former brand preview while the new brand read is pending', async () => {
+    mocks.findOne.mockResolvedValueOnce(currentVideo);
+    const { result, rerender } = renderPreview();
+    await waitFor(() => expect(result.current).toContain('signed.test'));
+    mocks.findOne.mockReturnValue(new Promise(() => {}));
+    mocks.brandId = 'other-brand';
+    rerender();
+    expect(result.current).toBeUndefined();
+  });
+
+  it('leaves explicitly supplied video URLs unchanged without an ingredient read', () => {
+    const config = getWorkflowMediaConfig(
+      { config: { source: 'url', url: 'https://owned.test/video.mp4' } },
+      'video',
+    );
+    const { result } = renderHook(
+      () => useWorkflowMediaPreviewUrl('video', config),
+      {
+        wrapper: queryClientWrapper(createTestQueryClient()),
+      },
+    );
+    expect(result.current).toBe('https://owned.test/video.mp4');
+    expect(mocks.findOne).not.toHaveBeenCalled();
   });
 });

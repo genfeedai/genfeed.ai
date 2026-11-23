@@ -17,16 +17,6 @@ vi.mock('@ui/display/video-player/VideoPlayer', () => ({
   ),
 }));
 
-vi.mock('next-intl', async () => {
-  const { translateFromCatalog } = await import(
-    '../../../../../tests/next-intl.stub'
-  );
-
-  return {
-    useTranslations: () => translateFromCatalog('pages.workflows.mediaInput'),
-  };
-});
-
 vi.mock('@genfeedai/workflows/ui/nodes', () => ({
   BaseNode: ({
     children,
@@ -54,8 +44,10 @@ vi.mock('@genfeedai/workflows/ui/stores', () => ({
 }));
 
 vi.mock('@/features/workflows/nodes/input/useWorkflowMediaPreviewUrl', () => ({
-  useWorkflowMediaPreviewUrl: (config: { resolvedUrl: string | null }) =>
-    config.resolvedUrl,
+  useWorkflowMediaPreviewUrl: (
+    _kind: string,
+    config: { resolvedUrl: string | null },
+  ) => config.resolvedUrl ?? undefined,
 }));
 
 vi.mock('@/features/workflows/nodes/input/useWorkflowMediaPicker', () => ({

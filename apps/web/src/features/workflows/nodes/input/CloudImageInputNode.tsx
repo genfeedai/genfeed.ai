@@ -7,7 +7,6 @@ import {
 } from '@genfeedai/workflows/ui/stores';
 import type { NodeProps } from '@xyflow/react';
 import Image from 'next/image';
-import { useTranslations } from 'next-intl';
 import { memo, useCallback, useMemo, useState } from 'react';
 import { NodeButton } from '@/features/workflows/components/ui/button';
 import {
@@ -58,15 +57,15 @@ function ImageIcon({
 
 function CloudImageInputNodeComponent(props: NodeProps): React.JSX.Element {
   const { data, id } = props;
-  const translate = useTranslations('pages.workflows.mediaInput');
   const updateNodeData = useWorkflowStore(selectUpdateNodeData);
   const openPicker = useWorkflowMediaPicker('image');
   const mediaConfig = useMemo(
     () => getWorkflowMediaConfig(data, 'image'),
     [data],
   );
-  const previewUrl = useWorkflowMediaPreviewUrl(mediaConfig);
   const [urlValue, setUrlValue] = useState(mediaConfig.url ?? '');
+
+  const previewUrl = useWorkflowMediaPreviewUrl('image', mediaConfig);
 
   const applyConfig = useCallback(
     (nextConfig: ReturnType<typeof getWorkflowMediaConfig>) => {
@@ -197,25 +196,21 @@ function CloudImageInputNodeComponent(props: NodeProps): React.JSX.Element {
           </div>
         )}
 
-        {mediaConfig.resolvedUrl ? (
+        {previewUrl ? (
           <div className="space-y-2">
             <div
               className={
                 'overflow-hidden rounded bg-black/20' // design-system-allow-content-color
               }
             >
-              {previewUrl ? (
-                <Image
-                  unoptimized
-                  src={previewUrl}
-                  alt={mediaConfig.label ?? 'Selected image'}
-                  className="h-28 w-full object-contain outline-media"
-                  width={800}
-                  height={600}
-                />
-              ) : (
-                <HelpText>{translate('loadingPreview')}</HelpText>
-              )}
+              <Image
+                unoptimized
+                src={previewUrl}
+                alt={mediaConfig.label ?? 'Selected image'}
+                className="h-28 w-full object-contain outline-media"
+                width={800}
+                height={600}
+              />
             </div>
             <div className="space-y-1 text-2xs text-muted-foreground">
               {mediaConfig.label && <p>{mediaConfig.label}</p>}

@@ -335,9 +335,20 @@ export function toWorkflowMediaSelection(
   }
 
   const itemCategory: WorkflowMediaItemCategory =
-    source === 'brand-references' ? 'reference' : kind;
+    source === 'brand-references' && kind === 'image' ? 'reference' : kind;
+
+  const mediaDelivery = isObjectLike(item.mediaDelivery)
+    ? item.mediaDelivery
+    : null;
+  const authorizedUrl = mediaDelivery
+    ? readNonBlankField(mediaDelivery, 'url')
+    : null;
+  if (mediaDelivery && (mediaDelivery.state !== 'READY' || !authorizedUrl)) {
+    return null;
+  }
 
   const resolvedUrl =
+    authorizedUrl ??
     mediaItem.url ??
     (itemCategory === 'image'
       ? buildImageUrl(id)
