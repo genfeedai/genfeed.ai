@@ -36,6 +36,7 @@ import { PostAccountFanoutModule } from '@api/collections/posts/post-account-fan
 import { PostGenerationModule } from '@api/collections/posts/post-generation.module';
 import { PostLifecycleModule } from '@api/collections/posts/post-lifecycle.module';
 import { PostsCoreModule } from '@api/collections/posts/posts-core.module';
+import { PostPlatformDeletionService } from '@api/collections/posts/services/post-platform-deletion.service';
 import { PostRemovalService } from '@api/collections/posts/services/post-removal.service';
 import { PostRepurposeService } from '@api/collections/posts/services/post-repurpose.service';
 import { PostRetryService } from '@api/collections/posts/services/post-retry.service';
@@ -50,6 +51,7 @@ import { QueuesModule } from '@api/queues/core/queues.module';
 import { AgentContextAssemblyModule } from '@api/services/agent-context-assembly/agent-context-assembly.module';
 import { AgentChatModelRegistryModule } from '@api/services/agent-orchestrator/agent-chat-model-registry.module';
 import { ByokModule } from '@api/services/byok/byok.module';
+import { MastodonModule } from '@api/services/integrations/mastodon/mastodon.module';
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
 import { NotificationsPublisherModule } from '@api/services/notifications/publisher/notifications-publisher.module';
 import { PromptBuilderModule } from '@api/services/prompt-builder/prompt-builder.module';
@@ -84,6 +86,7 @@ import { Module } from '@nestjs/common';
     ReviewablePostsService,
   ],
   imports: [
+    MastodonModule,
     TwitterModule,
     YoutubeModule,
     MediaUrlsModule,
@@ -123,6 +126,7 @@ import { Module } from '@nestjs/common';
     PostLinkTrackingService,
     CreditsGuard,
     CreditsInterceptor,
+    PostPlatformDeletionService,
     PostRemovalService,
     PostRetryService,
     PostRepurposeService,

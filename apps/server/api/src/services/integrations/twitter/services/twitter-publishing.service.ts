@@ -204,4 +204,39 @@ export class TwitterPublishingService {
       throw error;
     }
   }
+
+  /**
+   * Delete one of the account's own posts on X (DELETE /2/tweets/:id).
+   * X answers `deleted: false` when the post was already gone or is not the
+   * account's, so the caller reads the flag instead of assuming success.
+   */
+  @Traced()
+  async deleteTweet(
+    organizationId: string,
+    brandId: string,
+    tweetId: string,
+    credentialId?: string,
+  ): Promise<{ deleted: boolean; tweetId: string }> {
+    const url = `TwitterService ${CallerUtil.getCallerName()}`;
+
+    try {
+      const credential = await this.resolveCredential(
+        organizationId,
+        brandId,
+        credentialId,
+      );
+      const accessToken = EncryptionUtil.decrypt(
+        requireAccessToken(credential.accessToken),
+      );
+      const result = await new TwitterApi(accessToken).v2.deleteTweet(tweetId);
+      this.loggerService.log(`${url} success`, {
+        deleted: result.data.deleted,
+        tweetId,
+      });
+      return { deleted: result.data.deleted === true, tweetId };
+    } catch (error: unknown) {
+      this.loggerService.error(`${url} failed`, error);
+      throw error;
+    }
+  }
 }

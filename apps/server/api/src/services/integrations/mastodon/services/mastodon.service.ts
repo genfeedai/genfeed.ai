@@ -501,6 +501,50 @@ export class MastodonService {
   }
 
   /**
+   * Delete one of the account's own statuses (DELETE /api/v1/statuses/:id,
+   * scope write:statuses). Mastodon answers 404 for a status that is already
+   * gone, which counts as deleted.
+   */
+  public async deleteStatus(
+    instanceUrl: string,
+    accessToken: string,
+    statusId: string,
+  ): Promise<void> {
+    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+    const normalizedUrl = this.normalizeInstanceUrl(instanceUrl);
+    const httpsAgent = await createSafeWebhookHttpsAgent(normalizedUrl);
+
+    try {
+      await firstValueFrom(
+        this.httpService.delete(
+          `${normalizedUrl}/api/v1/statuses/${encodeURIComponent(statusId)}`,
+          {
+            headers: { Authorization: `Bearer ${accessToken}` },
+            httpsAgent,
+            maxRedirects: 0,
+            timeout: MASTODON_REQUEST_TIMEOUT_MS,
+          },
+        ),
+      );
+      this.loggerService.log(`${url} success`, { statusId });
+    } catch (error: unknown) {
+      if (
+        typeof error === 'object' &&
+        error !== null &&
+        'response' in error &&
+        (error as { response?: { status?: number } }).response?.status === 404
+      ) {
+        this.loggerService.log(`${url} status already gone`, { statusId });
+        return;
+      }
+      this.loggerService.error(`${url} failed`, error);
+      throw error;
+    } finally {
+      httpsAgent.destroy();
+    }
+  }
+
+  /**
    * Upload media to a Mastodon instance
    */
   public async uploadMedia(

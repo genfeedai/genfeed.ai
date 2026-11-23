@@ -763,7 +763,9 @@
     "titleMany": "Delete {count} posts",
     "messageOne": "Delete \"{label}\" from Genfeed? This cannot be undone.",
     "messageMany": "Delete {count} posts from Genfeed? This cannot be undone.",
-    "publishedNotice": "A published post stays live on its social network. Genfeed deletes only its own copy, so remove the network copy there.",
+    "publishedNotice": "A published post stays live on its social network unless you also delete it there.",
+    "deleteOnPlatform": "Also delete it on its social network. Works on X and Mastodon; on any other network the post stays live and you remove it there.",
+    "platformSummary": "Also deleted on the network: {count}.",
     "includeMedia": "Also delete the Library media these posts use. Media another post uses is kept.",
     "confirm": "Delete",
     "selectPost": "Select post",
@@ -774,8 +776,8 @@
     "deletedMany": "{count} posts deleted",
     "mediaSummary": "Library media: {deleted} deleted, {kept} kept",
     "notGone": "The delete did not finish: the post still exists.",
-    "failedOne": "Failed to delete the post. Please try again.",
-    "failedMany": "Failed to delete {count} posts. Please try again."
+    "failedOne": "Failed to delete the post. If you chose to delete it on its network too, the network refused and nothing was deleted.",
+    "failedMany": "Failed to delete {count} posts. Where you chose to delete on the network too, the network refused and nothing was deleted."
   },
   "postCardFooter": {
     "addMedia": "Add media",

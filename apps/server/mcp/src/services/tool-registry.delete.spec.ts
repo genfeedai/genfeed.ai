@@ -21,6 +21,7 @@ function build(mode: 'standard' | 'claude' = 'standard') {
         kept: [{ id: 'asset-3', reason: 'used-by-another-post' }],
       },
       platform: 'instagram',
+      platformDeletion: 'not-requested',
       postId: 'post-1',
       previousStatus: 'public',
       publishedUrl: 'https://www.instagram.com/p/abc/',
@@ -61,9 +62,7 @@ describe('delete_post and delete_asset', () => {
         },
       });
       expect(JSON.stringify(result)).toContain('Nothing was deleted');
-      expect(JSON.stringify(result)).toContain(
-        'stays live on the social network',
-      );
+      expect(JSON.stringify(result)).toContain('stays live there');
       expect(client.createApproval).not.toHaveBeenCalled();
       expect(client.deletePost).not.toHaveBeenCalled();
       expect(client.deleteAsset).not.toHaveBeenCalled();
@@ -98,12 +97,53 @@ describe('delete_post and delete_asset', () => {
     });
   });
 
+  it('deletes on the social network too when asked, and says so', async () => {
+    const { client, registry } = build();
+    client.deletePost.mockResolvedValueOnce({
+      deletedOnPlatform: true,
+      media: { deleted: [], kept: [] },
+      platform: 'twitter',
+      platformDeletion: 'deleted',
+      postId: 'post-1',
+      previousStatus: 'public',
+      publishedUrl: 'https://x.com/a/status/1',
+      verified: { mediaGone: true, postGone: true },
+    });
+
+    const result = (await registry.handleToolCall({
+      arguments: { confirmed: true, deleteOnPlatform: true, postId: 'post-1' },
+      name: 'delete_post',
+    })) as { content: { text: string }[] };
+
+    expect(client.deletePost).toHaveBeenCalledWith({
+      deleteOnPlatform: true,
+      postId: 'post-1',
+    });
+    expect(result.content[0].text).toContain('also deleted on twitter');
+    expect(result.content[0].text).not.toContain('was not deleted on');
+  });
+
+  it('refuses deleteOnPlatform that is not a boolean', async () => {
+    const { client, registry } = build();
+
+    const result = await registry.handleToolCall({
+      arguments: { confirmed: true, deleteOnPlatform: 'yes', postId: 'post-1' },
+      name: 'delete_post',
+    });
+
+    expect(JSON.stringify(result)).toContain(
+      'deleteOnPlatform must be true or false',
+    );
+    expect(client.deletePost).not.toHaveBeenCalled();
+  });
+
   it('does not report a post deleted when the read-back still finds it', async () => {
     const { client, registry } = build();
     client.deletePost.mockResolvedValueOnce({
       deletedOnPlatform: false,
       media: { deleted: [], kept: [] },
       platform: null,
+      platformDeletion: 'not-requested',
       postId: 'post-1',
       previousStatus: 'draft',
       publishedUrl: null,

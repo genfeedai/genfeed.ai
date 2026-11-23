@@ -374,17 +374,21 @@ export class PostsService extends BaseService<
   }
 
   /**
-   * Delete a post, a published one included, and on request the Library media
-   * only it uses. The copy on the social network is not touched. Reads the
+   * Delete a post, a published one included, on request the Library media only
+   * it uses, and on request the post on its social network first (X and
+   * Mastodon; the API refuses other platforms and deletes nothing). Reads the
    * post back and says whether it is gone.
    */
   public async remove(
     id: string,
-    options: { includeMedia?: boolean } = {},
+    options: { deleteOnPlatform?: boolean; includeMedia?: boolean } = {},
   ): Promise<PostRemovalResult> {
     const response = await this.instance.post<PostRemovalResult>(
       `/${id}/deletions`,
-      { includeMedia: options.includeMedia === true },
+      {
+        deleteOnPlatform: options.deleteOnPlatform === true,
+        includeMedia: options.includeMedia === true,
+      },
     );
     return response.data;
   }

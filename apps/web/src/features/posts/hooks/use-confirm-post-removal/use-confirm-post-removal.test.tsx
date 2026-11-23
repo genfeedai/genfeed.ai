@@ -16,6 +16,7 @@ type ConfirmConfig = {
 };
 
 type Removal = {
+  deletedOnPlatform?: boolean;
   media?: { deleted: string[]; kept: { id: string; reason: string }[] };
   postGone?: boolean;
 };
@@ -26,7 +27,11 @@ const world = vi.hoisted(() => ({
   errors: [] as string[],
   failing: new Set<string>(),
   outcomes: new Map<string, unknown>(),
-  removals: [] as { id: string; includeMedia: boolean | undefined }[],
+  removals: [] as {
+    deleteOnPlatform: boolean | undefined;
+    id: string;
+    includeMedia: boolean | undefined;
+  }[],
   successes: [] as string[],
 }));
 
@@ -49,8 +54,15 @@ vi.mock(
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => async () => ({
-    remove: async (id: string, options: { includeMedia?: boolean }) => {
-      world.removals.push({ id, includeMedia: options.includeMedia });
+    remove: async (
+      id: string,
+      options: { deleteOnPlatform?: boolean; includeMedia?: boolean },
+    ) => {
+      world.removals.push({
+        deleteOnPlatform: options.deleteOnPlatform,
+        id,
+        includeMedia: options.includeMedia,
+      });
       if (world.failing.has(id)) {
         throw new Error('boom');
       }
@@ -76,9 +88,12 @@ vi.mock('@services/core/notifications.service', () => ({
   },
 }));
 
-function stubRemoval(id: string, { media, postGone = true }: Removal = {}) {
+function stubRemoval(
+  id: string,
+  { deletedOnPlatform = false, media, postGone = true }: Removal = {},
+) {
   world.outcomes.set(id, {
-    deletedOnPlatform: false,
+    deletedOnPlatform,
     media: media ?? { deleted: [], kept: [] },
     platform: null,
     postId: id,
@@ -143,7 +158,9 @@ describe('useConfirmPostRemoval', () => {
       await confirmation().onConfirm();
     });
 
-    expect(world.removals).toEqual([{ id: 'post-1', includeMedia: false }]);
+    expect(world.removals).toEqual([
+      { deleteOnPlatform: false, id: 'post-1', includeMedia: false },
+    ]);
     expect(removedBatches).toEqual([['post-1']]);
     expect(world.successes).toEqual(['deletedOne.']);
     expect(world.errors).toEqual([]);
@@ -165,10 +182,54 @@ describe('useConfirmPostRemoval', () => {
       await confirmation().onConfirm();
     });
 
-    expect(world.removals).toEqual([{ id: 'post-1', includeMedia: true }]);
+    expect(world.removals).toEqual([
+      { deleteOnPlatform: false, id: 'post-1', includeMedia: true },
+    ]);
     expect(world.successes).toEqual([
       'deletedOne. mediaSummary {"deleted":2,"kept":1}',
     ]);
+  });
+
+  it('deletes on the network too, only for published posts on a supported platform', async () => {
+    stubRemoval('x-post', { deletedOnPlatform: true });
+    stubRemoval('ig-post');
+    stubRemoval('x-draft');
+    const user = userEvent.setup();
+    start([
+      post({ id: 'x-post', platform: 'twitter' as IPost['platform'] }),
+      post({ id: 'ig-post', platform: 'instagram' as IPost['platform'] }),
+      post({
+        id: 'x-draft',
+        platform: 'twitter' as IPost['platform'],
+        status: PostStatus.DRAFT,
+      }),
+    ]);
+    render(<>{confirmation().children}</>);
+
+    await user.click(
+      screen.getByRole('checkbox', { name: 'deleteOnPlatform' }),
+    );
+    await act(async () => {
+      await confirmation().onConfirm();
+    });
+
+    expect(world.removals).toEqual([
+      { deleteOnPlatform: true, id: 'x-post', includeMedia: false },
+      { deleteOnPlatform: false, id: 'ig-post', includeMedia: false },
+      { deleteOnPlatform: false, id: 'x-draft', includeMedia: false },
+    ]);
+    expect(world.successes).toEqual([
+      'deletedMany {"count":3}. platformSummary {"count":1}',
+    ]);
+  });
+
+  it('offers no network option when no post is published on a supported platform', () => {
+    start([post({ platform: 'instagram' as IPost['platform'] })]);
+    render(<>{confirmation().children}</>);
+
+    expect(
+      screen.queryByRole('checkbox', { name: 'deleteOnPlatform' }),
+    ).not.toBeInTheDocument();
   });
 
   it('offers no media option for a post without media', () => {

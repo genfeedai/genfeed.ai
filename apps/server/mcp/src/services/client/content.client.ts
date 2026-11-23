@@ -157,6 +157,7 @@ export class ContentClient {
   deletePost(params: {
     brandId?: string;
     deleteMedia?: boolean;
+    deleteOnPlatform?: boolean;
     postId: string;
   }): Promise<PostRemovalResponse> {
     return this.base.request(
@@ -166,6 +167,7 @@ export class ContentClient {
           `/posts/${encodeURIComponent(params.postId)}/deletions`,
           {
             ...(params.brandId ? { brandId: params.brandId } : {}),
+            deleteOnPlatform: params.deleteOnPlatform === true,
             includeMedia: params.deleteMedia === true,
           },
         );

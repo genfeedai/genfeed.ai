@@ -853,6 +853,23 @@ export class TwitterService {
   }
 
   /**
+   * Delete one of the connected account's own posts on X.
+   */
+  public async deleteTweet(
+    organizationId: string,
+    brandId: string,
+    tweetId: string,
+    credentialId?: string,
+  ): Promise<{ deleted: boolean; tweetId: string }> {
+    return this.publishingService.deleteTweet(
+      organizationId,
+      brandId,
+      tweetId,
+      credentialId,
+    );
+  }
+
+  /**
    * Get analytics for any Twitter media (tweets with text, images, or videos)
    * @param tweetId The ID of the tweet
    * @param accessToken Decrypted OAuth2 user access token; enables the

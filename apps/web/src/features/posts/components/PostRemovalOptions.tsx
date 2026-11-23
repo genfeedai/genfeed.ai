@@ -7,17 +7,21 @@ import type { PostRemovalOptionsProps } from '@/features/posts/props/post-remova
 
 /**
  * What the delete confirmation adds to its message: the plain statement that
- * a published post stays on the social network, and the choice to delete the
- * Library media the posts use. The choice is written to `includeMediaRef`,
- * which the confirm handler reads when the person confirms.
+ * a published post stays on the social network unless deleted there too, the
+ * choice to delete it on the network (X and Mastodon), and the choice to delete
+ * the Library media the posts use. The choices are written to the refs, which
+ * the confirm handler reads when the person confirms.
  */
 export default function PostRemovalOptions({
+  deleteOnPlatformRef,
   hasMedia,
+  hasPlatformDeletable,
   hasPublished,
   includeMediaRef,
 }: PostRemovalOptionsProps) {
   const translate = useTranslations('ui.postRemoval');
   const [includeMedia, setIncludeMedia] = useState(false);
+  const [deleteOnPlatform, setDeleteOnPlatform] = useState(false);
 
   return (
     <div className="flex flex-col gap-3">
@@ -25,6 +29,18 @@ export default function PostRemovalOptions({
         <p className="text-sm text-muted-foreground">
           {translate('publishedNotice')}
         </p>
+      ) : null}
+      {hasPlatformDeletable ? (
+        <Checkbox
+          isChecked={deleteOnPlatform}
+          label={translate('deleteOnPlatform')}
+          name="deleteOnPlatform"
+          onCheckedChange={(checked) => {
+            const next = checked === true;
+            deleteOnPlatformRef.current = next;
+            setDeleteOnPlatform(next);
+          }}
+        />
       ) : null}
       {hasMedia ? (
         <Checkbox

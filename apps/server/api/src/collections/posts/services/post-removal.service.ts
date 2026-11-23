@@ -1,8 +1,10 @@
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import { PostPlatformDeletionService } from '@api/collections/posts/services/post-platform-deletion.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { CacheService } from '@api/services/cache/cache.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
+import type { PostPlatformDeletionStatus } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
@@ -13,6 +15,11 @@ const MAX_THREAD_REPLIES = 500;
 export interface PostRemovalParams {
   /** When set, a post of another brand is not found. */
   brandId?: string;
+  /**
+   * Also delete the post on its social network first. When the network refuses
+   * (or the platform is not supported) nothing is deleted at all.
+   */
+  deleteOnPlatform?: boolean;
   /** The caller, for the Library edit rule on each asset. */
   editor: { brandId: string; userId: string };
   /** Also delete the media that only this post (and its thread replies) uses. */
@@ -22,8 +29,9 @@ export interface PostRemovalParams {
 }
 
 export interface PostRemovalResult {
-  /** Genfeed never deletes the copy on the social network; the owner does. */
-  deletedOnPlatform: false;
+  /** True only when the provider confirmed the network copy is gone. */
+  deletedOnPlatform: boolean;
+  platformDeletion: PostPlatformDeletionStatus;
   media: {
     /** Soft-deleted Library assets. */
     deleted: string[];
@@ -42,8 +50,8 @@ export interface PostRemovalResult {
 
 /**
  * Deletes a post, published ones included, and optionally the Library media
- * only it uses. Soft deletes only (`isDeleted`): nothing is removed on the
- * social network, so the result states `deletedOnPlatform: false`.
+ * only it uses, and on request the post on its social network. Genfeed's own
+ * delete is a soft delete (`isDeleted`).
  */
 @Traced()
 @Injectable()
@@ -52,6 +60,7 @@ export class PostRemovalService {
     private readonly prisma: PrismaService,
     private readonly postsService: PostsService,
     private readonly ingredientsService: IngredientsService,
+    private readonly platformDeletion: PostPlatformDeletionService,
     private readonly logger: LoggerService,
     @Optional() private readonly cacheService?: CacheService,
   ) {}
@@ -60,11 +69,21 @@ export class PostRemovalService {
   async removePost(
     params: PostRemovalParams,
   ): Promise<PostRemovalResult | null> {
-    const { brandId, editor, includeMedia, organizationId, postId } = params;
+    const {
+      brandId,
+      deleteOnPlatform = false,
+      editor,
+      includeMedia,
+      organizationId,
+      postId,
+    } = params;
 
     const post = await this.prisma.post.findFirst({
       select: {
+        brandId: true,
+        credentialId: true,
         entityIngredientId: true,
+        externalId: true,
         id: true,
         ingredientLinks: {
           select: { ingredientId: true },
@@ -111,6 +130,12 @@ export class PostRemovalService {
       removedPostIds,
     );
 
+    // The network copy goes first: when the provider refuses, this throws and
+    // nothing has been deleted, in Genfeed or on the network.
+    const platformDeletion: PostPlatformDeletionStatus = deleteOnPlatform
+      ? await this.platformDeletion.deleteOnPlatform(organizationId, post)
+      : 'not-requested';
+
     const removed = await this.postsService.remove(post.id);
     if (!removed) return null;
 
@@ -132,18 +157,20 @@ export class PostRemovalService {
     if (deleted.length > 0) await this.invalidateLibraryCache();
 
     const verified = await this.readBack(organizationId, post.id, deleted);
-    this.logger.log('Post removed through the MCP/CLI action', {
+    this.logger.log('Post removed', {
       deletedMedia: deleted.length,
       keptMedia: kept.length,
       organizationId,
+      platformDeletion,
       postId: post.id,
       verified,
     });
 
     return {
-      deletedOnPlatform: false,
+      deletedOnPlatform: platformDeletion === 'deleted',
       media: { deleted, kept },
       platform: post.platform,
+      platformDeletion,
       postId: post.id,
       previousStatus: post.status,
       publishedUrl: post.url,

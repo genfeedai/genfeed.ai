@@ -568,6 +568,7 @@ describe('PostsService', () => {
         deletedOnPlatform: false,
         media: { deleted: ['asset-1'], kept: [] },
         platform: 'instagram',
+        platformDeletion: 'not-requested',
         postId: 'post-123',
         previousStatus: 'public',
         publishedUrl: 'https://example.com/p/1',
@@ -575,9 +576,13 @@ describe('PostsService', () => {
       };
       mockInstance.post.mockResolvedValue({ data: removal });
 
-      const result = await service.remove('post-123', { includeMedia: true });
+      const result = await service.remove('post-123', {
+        deleteOnPlatform: true,
+        includeMedia: true,
+      });
 
       expect(mockInstance.post).toHaveBeenCalledWith('/post-123/deletions', {
+        deleteOnPlatform: true,
         includeMedia: true,
       });
       expect(result).toEqual(removal);
@@ -589,6 +594,7 @@ describe('PostsService', () => {
       await service.remove('post-123');
 
       expect(mockInstance.post).toHaveBeenCalledWith('/post-123/deletions', {
+        deleteOnPlatform: false,
         includeMedia: false,
       });
     });

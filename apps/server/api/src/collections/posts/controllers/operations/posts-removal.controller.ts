@@ -29,10 +29,11 @@ export class PostsRemovalController {
   constructor(private readonly postRemovalService: PostRemovalService) {}
 
   /**
-   * Delete a post from Genfeed, published ones included, and with
-   * `includeMedia` the Library media only it uses. Soft delete: the copy on the
-   * social network is not touched, which the response states. The web app, the
-   * MCP actions and the CLI all call this route.
+   * Delete a post from Genfeed, published ones included, with `includeMedia`
+   * the Library media only it uses, and with `deleteOnPlatform` the post on its
+   * social network first (X and Mastodon; refused elsewhere). The response says
+   * what was deleted and reads it back. The web app, the MCP actions and the
+   * CLI all call this route.
    */
   @Post(':postId/deletions')
   @RequiredScopes(ApiKeyScope.POSTS_SCHEDULE)
@@ -44,6 +45,7 @@ export class PostsRemovalController {
   ): Promise<PostRemovalResult> {
     const result = await this.postRemovalService.removePost({
       brandId: dto.brandId,
+      deleteOnPlatform: dto.deleteOnPlatform === true,
       editor: { brandId: user.brandId, userId: user.userId },
       includeMedia: dto.includeMedia === true,
       organizationId: user.organizationId.toString(),
