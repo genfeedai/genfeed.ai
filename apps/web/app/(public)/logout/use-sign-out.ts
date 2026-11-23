@@ -3,8 +3,7 @@
 import { signOut } from '@genfeedai/auth-client';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { resetAnalytics } from '@/lib/analytics';
-import { clearBootRecord } from '@/lib/boot-record/boot-record';
-import { clearPersistedQueryCache } from '@/lib/query-cache/persisted-query-cache';
+import { wipeDeviceStores } from '@/lib/device-stores/device-stores';
 
 export type SignOutPhase = 'running' | 'done' | 'failed';
 
@@ -55,8 +54,7 @@ export function useSignOut(): { phase: SignOutPhase; retry: () => void } {
     // Nothing of the session stays on a shared device, whatever the request
     // does next.
     resetAnalytics();
-    clearBootRecord();
-    void clearPersistedQueryCache();
+    void wipeDeviceStores();
     void run();
 
     return () => {

@@ -1,4 +1,6 @@
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
+import { Suspense } from 'react';
+import AuthPageFallback from '@/components/layouts/auth/AuthPageFallback';
 import SignUpBetterAuth from '../sign-up-better-auth';
 
 export const generateMetadata = createPageMetadata(
@@ -7,5 +9,9 @@ export const generateMetadata = createPageMetadata(
 );
 
 export default function SignUpPasswordPage() {
-  return <SignUpBetterAuth mode="password" />;
+  return (
+    <Suspense fallback={<AuthPageFallback variant="sign-up-email" />}>
+      <SignUpBetterAuth mode="password" />
+    </Suspense>
+  );
 }

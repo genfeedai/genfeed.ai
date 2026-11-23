@@ -96,6 +96,14 @@ describe('boot record', () => {
 
     expect(
       Object.keys(JSON.parse(readBootRecordText() ?? '{}')).sort(),
-    ).toEqual(['buildId', 'organizationSlug', 'rail', 'savedAt', 'userId']);
+    ).toEqual([
+      'buildId',
+      'organizationId',
+      'organizationSlug',
+      'rail',
+      'savedAt',
+      'sessionTag',
+      'userId',
+    ]);
   });
 });

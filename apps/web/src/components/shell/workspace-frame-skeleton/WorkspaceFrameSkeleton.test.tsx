@@ -29,6 +29,8 @@ function storeRecord(organizationSlug: string): void {
 describe('WorkspaceFrameSkeleton', () => {
   beforeEach(() => {
     window.localStorage.clear();
+    // The session this record was written under (the fixture's tag).
+    document.cookie = 'genfeed_session_tag=tag-1; path=/';
   });
 
   it('announces the load once, as one status with the given label', () => {

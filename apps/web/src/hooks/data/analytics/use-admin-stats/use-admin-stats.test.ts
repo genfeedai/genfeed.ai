@@ -161,6 +161,7 @@ beforeEach(() => {
   fixture.apiEndpoint = 'https://api-a.example.test/v1';
   fixture.factoryTokens.length = 0;
   fixture.identity = {
+    hasSessionReadFailed: false,
     isLoaded: true,
     isSignedIn: true,
     orgId: 'org-a',
@@ -383,6 +384,7 @@ describe('useAdminStats', () => {
 
   it('preserves the existing canonical Playwright auth fallback', async () => {
     fixture.identity = {
+      hasSessionReadFailed: false,
       isLoaded: false,
       isSignedIn: false,
       orgId: null,

@@ -6,10 +6,7 @@ import {
   createAdminIngredientRoute,
 } from '@genfeedai/contracts/constants';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
-import {
-  createCacheKey,
-  createLocalStorageCache,
-} from '@helpers/data/cache/cache.helper';
+import { createCacheKey } from '@helpers/data/cache/cache.helper';
 import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useIngredientServices } from '@hooks/data/ingredients/use-ingredient-services/use-ingredient-services';
@@ -24,6 +21,7 @@ import { format } from 'date-fns';
 import { usePathname, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useIngredientSidebar } from '@/hooks/ui/ingredient/use-ingredient-sidebar/use-ingredient-sidebar';
+import { createWorkspaceLocalStorageCache } from '@/lib/device-stores/device-store-scope';
 import type { IngredientDetailProps } from '@/props/content/ingredient.props';
 
 const INGREDIENT_CACHE_TTL_MS = 15 * 60 * 1000;
@@ -73,18 +71,14 @@ export function useIngredientDetail({ type, id }: IngredientDetailProps) {
     if (typeof window === 'undefined') {
       return null;
     }
-    return createLocalStorageCache<IIngredient>({
-      prefix: 'ingredients:detail:',
-    });
+    return createWorkspaceLocalStorageCache<IIngredient>('ingredients:detail:');
   }, []);
 
   const ingredientCacheMeta = useMemo(() => {
     if (typeof window === 'undefined') {
       return null;
     }
-    return createLocalStorageCache<string>({
-      prefix: 'ingredients:detail:meta:',
-    });
+    return createWorkspaceLocalStorageCache<string>('ingredients:detail:meta:');
   }, []);
 
   // The ingredient and its children read through React Query, so reopening

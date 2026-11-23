@@ -28,10 +28,7 @@ import {
   isServiceOperationError,
   normalizeOperationError,
 } from '@genfeedai/services/core/operation-error';
-import {
-  createCacheKey,
-  createLocalStorageCache,
-} from '@helpers/data/cache/cache.helper';
+import { createCacheKey } from '@helpers/data/cache/cache.helper';
 import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useResetOnChange } from '@hooks/utils/use-reset-on-change/use-reset-on-change';
@@ -45,6 +42,7 @@ import {
   useState,
 } from 'react';
 import { libraryAssetsRefreshIncludesList } from '@/features/ingredients/hooks/library-assets-refresh';
+import { createWorkspaceLocalStorageCache } from '@/lib/device-stores/device-store-scope';
 
 const INGREDIENTS_CACHE_TTL_MS = 15 * 60 * 1000;
 const EMPTY_INGREDIENTS: IIngredient[] = [];
@@ -373,18 +371,14 @@ export function useIngredientsLoading({
     if (typeof window === 'undefined') {
       return null;
     }
-    return createLocalStorageCache<IIngredient[]>({
-      prefix: 'ingredients:list:',
-    });
+    return createWorkspaceLocalStorageCache<IIngredient[]>('ingredients:list:');
   }, []);
 
   const ingredientsCacheMeta = useMemo(() => {
     if (typeof window === 'undefined') {
       return null;
     }
-    return createLocalStorageCache<string>({
-      prefix: 'ingredients:list:meta:',
-    });
+    return createWorkspaceLocalStorageCache<string>('ingredients:list:meta:');
   }, []);
 
   // Every first-page read starts a new list, so a "load more" page still in

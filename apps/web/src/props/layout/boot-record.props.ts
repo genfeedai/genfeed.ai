@@ -27,9 +27,17 @@ export interface BootRailSnapshot
 
 export interface BootRecord {
   buildId: string;
+  /** The organization the server confirmed, by id (the slug can be renamed). */
+  organizationId: string;
   organizationSlug: string;
   rail: BootRailSnapshot;
   /** Milliseconds since the epoch, when the server last confirmed this. */
   savedAt: number;
+  /**
+   * The session this was written under: the fingerprint of the session cookie
+   * (see `session-tag.ts`). The record is drawn only while the cookie still
+   * carries it.
+   */
+  sessionTag: string;
   userId: string;
 }

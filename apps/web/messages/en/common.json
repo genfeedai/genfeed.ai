@@ -59,6 +59,40 @@
       "rooftop-gym": "Golden-hour fitness ad, ready to post"
     }
   },
+  "authFallback": {
+    "forgot": {
+      "description": "Enter your account email and we'll send you a secure reset link.",
+      "title": "Reset your password"
+    },
+    "login": {
+      "description": "Sign in to Genfeed",
+      "title": "Welcome back"
+    },
+    "login-email": {
+      "description": "Use your Genfeed email and password.",
+      "title": "Sign in with password"
+    },
+    "login-magic": {
+      "description": "Enter your email and we'll send you a secure sign-in link.",
+      "title": "Sign in with a magic link"
+    },
+    "reset": {
+      "description": "Enter a new password for your Genfeed account.",
+      "title": "Choose a new password"
+    },
+    "sign-up": {
+      "description": "Start using Genfeed",
+      "title": "Create your account"
+    },
+    "sign-up-email": {
+      "description": "Enter your details to create an account with a password.",
+      "title": "Sign up with email"
+    },
+    "sign-up-magic": {
+      "description": "Enter your email and we'll send you a secure sign-up link.",
+      "title": "Sign up with a magic link"
+    }
+  },
   "actions": {
     "cancel": "Cancel",
     "clearFilters": "Clear Filters",

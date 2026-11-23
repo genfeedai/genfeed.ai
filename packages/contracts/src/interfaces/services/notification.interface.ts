@@ -11,6 +11,7 @@ export type INotificationPayloadTypes =
   | IEmailPayload
   | IDiscordCardPayload
   | IArticleNotificationPayload
+  | IPostPublishedNotificationPayload
   | IVercelNotificationPayload
   | IUserCreatedPayload
   | IIngredientNotificationPayload
@@ -157,6 +158,19 @@ export interface IArticleNotificationPayload {
   summary?: string;
   category?: string;
   publicUrl?: string;
+}
+
+/** Operator alert for a social post a provider confirmed live. */
+export interface IPostPublishedNotificationPayload {
+  postId: string;
+  /** `CredentialPlatform` value, e.g. `instagram`. */
+  platform: string;
+  /** Caption, cut to a preview. */
+  caption?: string;
+  brandLabel?: string;
+  organizationLabel?: string;
+  /** The live post on the platform; the card links to it. */
+  url?: string;
 }
 
 export interface IVercelNotificationPayload {

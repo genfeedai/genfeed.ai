@@ -15,6 +15,7 @@ function makeDispatcher() {
     sendIngredientNotification: vi.fn().mockResolvedValue(true),
     sendLowCreditsAlert: vi.fn().mockResolvedValue(true),
     sendModelScanNotification: vi.fn().mockResolvedValue(true),
+    sendPostPublishedNotification: vi.fn().mockResolvedValue(true),
     sendRevenueNotification: vi.fn().mockResolvedValue(true),
     sendStreakNotification: vi.fn().mockResolvedValue(true),
     sendUserCreatedNotification: vi.fn().mockResolvedValue(true),
@@ -58,6 +59,38 @@ describe('ChannelMessageDispatcherService', () => {
       ),
     ).resolves.toEqual({ messageId: 'delivery/key', status: 'delivered' });
     expect(discord.sendStreakNotification).toHaveBeenCalledWith(card);
+  });
+
+  it('delivers a published-post card to the posts channel service', async () => {
+    const { discord, dispatcher } = makeDispatcher();
+    const payload = {
+      brandLabel: 'Shayla',
+      caption: 'Studio day',
+      platform: 'instagram',
+      postId: 'post-1',
+      url: 'https://www.instagram.com/p/abc/',
+    };
+
+    await expect(
+      dispatcher.dispatch(
+        request({ action: 'post_published', payload, type: 'discord' }),
+      ),
+    ).resolves.toEqual({ messageId: 'delivery/key', status: 'delivered' });
+    expect(discord.sendPostPublishedNotification).toHaveBeenCalledWith(payload);
+  });
+
+  it('rejects a published-post card without its post', async () => {
+    const { dispatcher } = makeDispatcher();
+
+    await expect(
+      dispatcher.dispatch(
+        request({
+          action: 'post_published',
+          payload: { caption: 'x' } as never,
+          type: 'discord',
+        }),
+      ),
+    ).rejects.toBeInstanceOf(InvalidChannelMessageError);
   });
 
   it('sends operator Discord alerts and reports delivery', async () => {

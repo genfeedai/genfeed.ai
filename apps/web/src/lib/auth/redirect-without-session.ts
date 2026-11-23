@@ -1,8 +1,7 @@
 import { getSession } from '@genfeedai/auth-client';
 import { resolveAuthContinuation } from '@genfeedai/auth-client/callback';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import { clearBootRecord } from '@/lib/boot-record/boot-record';
-import { clearPersistedQueryCache } from '@/lib/query-cache/persisted-query-cache';
+import { wipeDeviceStores } from '@/lib/device-stores/device-stores';
 
 /**
  * Where a visitor with no session goes from `destination`: the sign-in page,
@@ -38,8 +37,7 @@ export async function redirectToLoginWithoutSession(
   }
 
   // A session that ended elsewhere leaves nothing of it on this device.
-  clearBootRecord();
-  await clearPersistedQueryCache();
+  await wipeDeviceStores();
   window.location.replace(
     buildLoginRedirectHref(
       `${window.location.pathname}${window.location.search}`,

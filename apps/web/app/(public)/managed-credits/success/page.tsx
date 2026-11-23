@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { Suspense } from 'react';
 import ManagedCreditsSuccessContent from './success-content';
 
 export const metadata: Metadata = {
@@ -6,5 +7,9 @@ export const metadata: Metadata = {
 };
 
 export default function ManagedCreditsSuccessPage() {
-  return <ManagedCreditsSuccessContent />;
+  return (
+    <Suspense fallback={null}>
+      <ManagedCreditsSuccessContent />
+    </Suspense>
+  );
 }

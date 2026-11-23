@@ -861,6 +861,59 @@ describe('DiscordService', () => {
     });
   });
 
+  describe('sendPostPublishedNotification', () => {
+    it('skips when the posts webhook is unavailable', async () => {
+      mockDiscordBotService.getPostsWebhook.mockResolvedValue(null);
+      const { service } = await createService();
+
+      await service.sendPostPublishedNotification({
+        platform: 'instagram',
+        postId: 'post-1',
+      });
+
+      expect(mockSend).not.toHaveBeenCalled();
+    });
+
+    it('posts the account, platform and caption with a link to the live post', async () => {
+      const { service } = await createService();
+
+      await service.sendPostPublishedNotification({
+        brandLabel: 'Shayla',
+        caption: 'Studio day',
+        organizationLabel: 'Genfeed',
+        platform: 'instagram',
+        postId: 'post-1',
+        url: 'https://www.instagram.com/p/abc/',
+      });
+
+      const payload = lastSendPayload();
+      expect(payload.components).toHaveLength(1);
+      const embed = payload.embeds?.[0] as IDiscordEmbed;
+      expect(embed.title).toBe('Post Published');
+      expect(embed.url).toBe('https://www.instagram.com/p/abc/');
+      expect(embed.description).toBe('Studio day');
+      expect(embed.fields).toEqual([
+        { inline: true, name: 'Platform', value: 'instagram' },
+        { inline: true, name: 'Brand', value: 'Shayla' },
+        { inline: true, name: 'Organization', value: 'Genfeed' },
+      ]);
+    });
+
+    it('sends no link when the provider url is not http(s)', async () => {
+      const { service } = await createService();
+
+      await service.sendPostPublishedNotification({
+        platform: 'instagram',
+        postId: 'post-1',
+        url: 'not a url',
+      });
+
+      const payload = lastSendPayload();
+      expect(payload.components ?? []).toHaveLength(0);
+      expect(payload.embeds?.[0]).not.toHaveProperty('url');
+    });
+  });
+
   describe('sendLowCreditsAlert', () => {
     function lastCard(): IDiscordEmbed {
       return lastSendPayload().embeds?.[0] as IDiscordEmbed;

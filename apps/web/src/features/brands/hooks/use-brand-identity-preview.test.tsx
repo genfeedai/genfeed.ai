@@ -15,6 +15,7 @@ const mocks = vi.hoisted(() => {
   const getToken = vi.fn<() => Promise<string | null>>();
   const auth: AuthIdentity = {
     getToken,
+    hasSessionReadFailed: false,
     userId: 'user',
     sessionId: 'session',
     orgId: 'org',
