@@ -1,4 +1,8 @@
-import { KIE_KLING_INPUT_SCHEMA } from '@api/seeds/model-provider-offers.seed';
+import {
+  KIE_KLING_INPUT_SCHEMA,
+  KIE_MINIMAX_H3_IMAGE_INPUT_SCHEMA,
+  KIE_MINIMAX_H3_TEXT_INPUT_SCHEMA,
+} from '@api/seeds/model-provider-offers.seed';
 import { describe, expect, it } from 'vitest';
 import falKlingSchemas from './fixtures/fal-kling-v3-input-schemas.json';
 import { mapProviderOfferInput } from './provider-offer-input.util';
@@ -221,6 +225,112 @@ describe('fal Kling v3 offers', () => {
         falKlingSchemas[PRO_TEXT],
         { duration: 5 },
         { endpoint: PRO_TEXT },
+      ),
+    ).toBeNull();
+  });
+});
+
+describe('kie MiniMax H3 offers', () => {
+  const TEXT = 'minimax-h3/text-to-video';
+  const IMAGE = 'minimax-h3/image-to-video';
+  const FIRST = 'https://example.com/first.png';
+  const LAST = 'https://example.com/last.png';
+  /** What the Replicate builder always sends, empty reference lists included. */
+  const REPLICATE_BASE = {
+    duration: 6,
+    prompt: 'Sunrise',
+    reference_audio_urls: [],
+    reference_image_urls: [],
+    reference_video_urls: [],
+    resolution: '2K',
+  };
+
+  function map(endpoint: string, providerInput: Record<string, unknown>) {
+    return mapProviderOfferInput(
+      endpoint === TEXT
+        ? KIE_MINIMAX_H3_TEXT_INPUT_SCHEMA
+        : KIE_MINIMAX_H3_IMAGE_INPUT_SCHEMA,
+      { providerInput },
+      { endpoint },
+    );
+  }
+
+  it('sends a text request to the text endpoint with kie field names', () => {
+    expect(map(TEXT, { ...REPLICATE_BASE, ratio: '9:16' })).toEqual({
+      aspect_ratio: '9:16',
+      duration: 6,
+      prompt: 'Sunrise',
+      resolution: '2K',
+    });
+  });
+
+  it('keeps a 768P request at 768P', () => {
+    expect(
+      map(TEXT, { ...REPLICATE_BASE, ratio: '16:9', resolution: '768P' }),
+    ).toMatchObject({ resolution: '768P' });
+  });
+
+  it('sends first and last frames to the image endpoint and drops the ratio', () => {
+    expect(
+      map(IMAGE, {
+        ...REPLICATE_BASE,
+        first_frame_image: FIRST,
+        last_frame_image: LAST,
+        ratio: 'adaptive',
+      }),
+    ).toEqual({
+      duration: 6,
+      first_frame_url: FIRST,
+      last_frame_url: LAST,
+      prompt: 'Sunrise',
+      resolution: '2K',
+    });
+  });
+
+  it('accepts a last frame alone, as Replicate does', () => {
+    expect(
+      map(IMAGE, { ...REPLICATE_BASE, last_frame_image: LAST, ratio: '16:9' }),
+    ).toMatchObject({ last_frame_url: LAST });
+  });
+
+  it('refuses the endpoint that does not match the start', () => {
+    expect(
+      map(TEXT, { ...REPLICATE_BASE, first_frame_image: FIRST }),
+    ).toBeNull();
+    expect(map(IMAGE, { ...REPLICATE_BASE, ratio: '16:9' })).toBeNull();
+  });
+
+  it.each([
+    ['reference images', { reference_image_urls: [FIRST] }],
+    [
+      'reference videos',
+      { reference_video_urls: ['https://example.com/a.mp4'] },
+    ],
+    [
+      'reference audio',
+      { reference_audio_urls: ['https://example.com/a.mp3'] },
+    ],
+  ])('leaves a request with %s on Replicate', (_name, extra) => {
+    expect(
+      map(TEXT, { ...REPLICATE_BASE, ratio: '16:9', ...extra }),
+    ).toBeNull();
+    expect(
+      map(IMAGE, { ...REPLICATE_BASE, first_frame_image: FIRST, ...extra }),
+    ).toBeNull();
+  });
+
+  it('refuses adaptive on the text endpoint and a missing duration', () => {
+    expect(map(TEXT, { ...REPLICATE_BASE, ratio: 'adaptive' })).toBeNull();
+    const { duration: _duration, ...withoutDuration } = REPLICATE_BASE;
+    expect(map(TEXT, { ...withoutDuration, ratio: '16:9' })).toBeNull();
+  });
+
+  it('refuses a request with no native input', () => {
+    expect(
+      mapProviderOfferInput(
+        KIE_MINIMAX_H3_TEXT_INPUT_SCHEMA,
+        {},
+        { endpoint: TEXT },
       ),
     ).toBeNull();
   });

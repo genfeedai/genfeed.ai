@@ -44,6 +44,58 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
     ],
   },
   {
+    // kie model page (read 2026-11-23): "MiniMax H3 API is billed per second:
+    // 8 credits ($0.04) per second at 768P and 13 credits ($0.065) per second
+    // at 2K", 50% of the official price. Reference videos and images past the
+    // fifth are billed extra, so the offer adapter refuses reference input.
+    provider: 'kie',
+    endpoint: 'minimax-h3/text-to-video',
+    sourceUrl: 'https://kie.ai/minimax-h3',
+    verifiedAt: '2026-11-23',
+    rates: [
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.04,
+        when: { resolution: '768P' },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.065,
+        when: { resolution: '2K' },
+        isPerOutput: true,
+      },
+    ],
+  },
+  {
+    // kie model page (read 2026-11-23): "MiniMax H3 API is billed per second:
+    // 8 credits ($0.04) per second at 768P and 13 credits ($0.065) per second
+    // at 2K", 50% of the official price. Reference videos and images past the
+    // fifth are billed extra, so the offer adapter refuses reference input.
+    provider: 'kie',
+    endpoint: 'minimax-h3/image-to-video',
+    sourceUrl: 'https://kie.ai/minimax-h3',
+    verifiedAt: '2026-11-23',
+    rates: [
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.04,
+        when: { resolution: '768P' },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.065,
+        when: { resolution: '2K' },
+        isPerOutput: true,
+      },
+    ],
+  },
+  {
     // Higgsfield publishes no price page. These rates are the account's own
     // `POST /estimate/<endpoint>` answers (2026-11-15): per second of source
     // video, rounded up to a whole second, by output resolution.
