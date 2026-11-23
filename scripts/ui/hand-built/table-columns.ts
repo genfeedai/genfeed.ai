@@ -14,7 +14,7 @@
  * There is no relative form ("3 hours ago"): a date is the short date.
  *
  * Rule `action`: a column's `render` never holds a control that acts on the
- * row (`<Button onClick>`, `<Button asChild>`, `<ButtonDropdown>`,
+ * row (`<Button onClick>`, `<Button asChild>`,
  * `<DropdownMenu>`). An unstyled button (a clickable name or thumbnail) is
  * content and stays allowed. Row actions go in the table's `actions` (or
  * `renderRowActions`): ghost icons over the row's end, revealed on hover or
@@ -52,7 +52,7 @@ const ALLOW_PATTERNS: Record<TableColumnRule, RegExp> = {
   date: /ui-guard-allow:table-date\s+--\s+\S/,
 };
 const ACTION_ATTRIBUTES = new Set(['asChild', 'href', 'onClick']);
-const MENU_TAGS = new Set(['ButtonDropdown', 'DropdownMenu']);
+const MENU_TAGS = new Set(['DropdownMenu']);
 const FILE_IGNORE = [
   '**/*.test.*',
   '**/*.spec.*',
