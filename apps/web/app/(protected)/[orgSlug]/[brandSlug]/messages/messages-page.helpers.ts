@@ -192,6 +192,7 @@ export function getMessagesSyncFeedback(params: {
 }
 
 const SYNC_PLATFORM_LABELS: Record<string, string> = {
+  facebook: 'Facebook',
   instagram: 'Instagram',
   linkedin: 'LinkedIn',
   twitter: 'X',

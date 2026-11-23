@@ -8,7 +8,7 @@ import { PlatformRole } from '@genfeedai/contracts';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Suspense, useCallback } from 'react';
+import { Suspense, useCallback, useMemo } from 'react';
 import { AppRail } from '@/components/shell/app-rail/AppRail';
 import RailAccount from '@/components/shell/app-rail/RailAccount';
 import { useRailPreferencesContext } from '@/components/shell/rail-preferences.provider';
@@ -16,17 +16,20 @@ import { resolveShellScope } from '@/components/shell/shell-scope';
 import { useAvailableRailApps } from '@/components/shell/use-available-rail-apps';
 import { useMessagesUnreadCount } from '@/components/shell/use-messages-unread-count';
 import { useWorkspaceInboxCount } from '@/hooks/data/tasks/use-workspace-inbox-count';
+import { useFeatureFlagContext } from '@/hooks/feature-flags/provider';
 import { useIsDesktopClient } from '@/hooks/ui/use-is-desktop-client/use-is-desktop-client';
 import {
   captureAppRailNavigation,
   captureAppRailReorder,
 } from '@/lib/analytics/app-rail-analytics';
+import { useBootRecordWriter } from '@/lib/boot-record/use-boot-record-writer';
 import { getDesktopBridge } from '@/lib/desktop/runtime';
 import {
   appendSearchParamsToHref,
   pickOperatorTaskContextSearchParams,
 } from '@/lib/navigation/operator-shell';
 import { resolveWorkspaceSurfaceLaunch } from '@/lib/workspace-shell/workspace-surface-launcher';
+import type { BootRailSnapshot } from '@/props/layout/boot-record.props';
 import type { AppProtectedRailProps } from '@/props/ui/app-rail.props';
 
 function AppProtectedRailContent({
@@ -119,6 +122,44 @@ function AppProtectedRailContent({
     [currentHref, searchParams],
   );
 
+  const { flags: platformFlags } = useFeatureFlagContext();
+  const showAdmin = isAdminChrome || isSuperAdmin || isAdminInBrowser;
+  // The admin rail is a different surface; only the app rail is remembered.
+  const bootRailSnapshot = useMemo<BootRailSnapshot>(
+    () => ({
+      brandAwareSlug: brandAwareAppSlug,
+      brandSlug: effectiveBrandSlug,
+      flags: platformFlags,
+      hiddenAppIds: [...hiddenAppIds],
+      installedAppIds: installedAppIds ? [...installedAppIds] : undefined,
+      isAssetGateLocked,
+      moduleAccess,
+      modulePreferences,
+      pinnedAppIds: [...pinnedAppIds],
+      railAppOrder: [...railAppOrder],
+      releaseVisibility,
+      showAdmin,
+    }),
+    [
+      brandAwareAppSlug,
+      effectiveBrandSlug,
+      hiddenAppIds,
+      installedAppIds,
+      isAssetGateLocked,
+      moduleAccess,
+      modulePreferences,
+      pinnedAppIds,
+      platformFlags,
+      railAppOrder,
+      releaseVisibility,
+      showAdmin,
+    ],
+  );
+  useBootRecordWriter(
+    isAdminChrome ? undefined : effectiveOrgSlug,
+    bootRailSnapshot,
+  );
+
   const openAdminInBrowser = useCallback((href: string) => {
     void getDesktopBridge()?.app.openExternalPath(href);
   }, []);
@@ -165,7 +206,7 @@ function AppProtectedRailContent({
       railAppOrder={railAppOrder}
       preservedSearch={preservedTaskSearch || undefined}
       resolveNavigation={resolveRailNavigation}
-      showAdmin={isAdminChrome || isSuperAdmin || isAdminInBrowser}
+      showAdmin={showAdmin}
     />
   );
 }

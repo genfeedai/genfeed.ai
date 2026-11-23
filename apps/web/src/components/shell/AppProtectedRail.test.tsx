@@ -2,6 +2,9 @@ const badgeCounts = vi.hoisted(() => ({ workspace: 0 }));
 vi.mock('@/hooks/data/tasks/use-workspace-inbox-count', () => ({
   useWorkspaceInboxCount: () => badgeCounts.workspace,
 }));
+vi.mock('@/lib/boot-record/use-boot-record-writer', () => ({
+  useBootRecordWriter: vi.fn(),
+}));
 vi.mock('@/lib/analytics/app-rail-analytics', () => ({
   captureAppRailNavigation: vi.fn(),
   captureAppRailReorder: vi.fn(),

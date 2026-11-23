@@ -273,6 +273,7 @@ export const PRODUCTIZED_SCHEDULER_PLATFORMS = [
   CredentialPlatform.TWITTER,
   CredentialPlatform.LINKEDIN,
   CredentialPlatform.BEEHIIV,
+  CredentialPlatform.FACEBOOK,
 ] as const;
 
 export type ProductizedSchedulerPlatform =
@@ -669,38 +670,33 @@ const channelCapabilities = [
     status: 'supported',
   },
   {
+    // Graph accepts up to 63,206 characters in a Page post message
+    // (https://developers.facebook.com/docs/graph-api/reference/page/feed/).
+    // The publisher sends one photo or one video with the caption; it does
+    // not publish text-only, link or multi-photo posts, so the catalog does
+    // not offer them.
     caption: { maxLength: 63_206, required: false },
     description:
-      'Backend integration stub for Facebook pages; hidden until scheduler publishing is productized.',
+      'One photo or one video on the Facebook Page the account is connected to.',
     helpers: [
       {
-        key: 'facebook.pages',
-        kind: 'page',
-        label: 'Facebook page',
-        lookupPath: '/services/facebook/pages',
+        key: 'facebook.credential',
+        kind: 'credential',
+        label: 'Facebook Page',
         required: true,
       },
     ],
     label: 'Facebook',
     media: {
       animated: { supported: true },
-      kinds: ['image', 'video', 'link'],
-      maxItems: 10,
-      minItems: 0,
+      kinds: ['image', 'video'],
+      maxItems: 1,
+      minItems: 1,
     },
     platform: CredentialPlatform.FACEBOOK,
     publishModes: ['draft', 'publish_now', 'scheduled'],
-    settings: [
-      {
-        description:
-          'Defaults to the page stored on the credential when left blank.',
-        helper: 'facebook.pages',
-        key: 'pageId',
-        label: 'Facebook page ID',
-        type: 'string',
-      },
-    ],
-    status: 'hidden',
+    settings: [],
+    status: 'supported',
   },
   {
     caption: { maxLength: 500, required: false },

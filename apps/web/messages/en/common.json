@@ -292,6 +292,24 @@
         "partial": "Connected {connected} of {selected} locations. Not connected: {missing}. Run connect again to add them.",
         "retry": "Try again",
         "title": "Choose locations"
+      },
+      "selectPage": {
+        "alreadyConnected": "Already connected",
+        "back": "Go back",
+        "cancel": "Cancel",
+        "confirm": "{count, plural, =0 {Connect Pages} one {Connect # Page} other {Connect # Pages}}",
+        "confirmError": "Failed to connect these Pages. Please try again.",
+        "confirming": "Connecting…",
+        "continue": "Continue",
+        "description": "Facebook shared more than one Page with Genfeed. Tick every Page this brand should post to. Each one connects as its own channel.",
+        "empty": "No Pages were found.",
+        "error": "Failed to load Pages. Please try again.",
+        "limit": "Connect up to {max} Pages at a time.",
+        "limitReached": "{max} Pages selected, the most one connect can add. Untick one to choose another.",
+        "loading": "Loading Pages…",
+        "partial": "Connected {connected} of {selected} Pages. Not connected: {missing}. Run connect again to add them.",
+        "retry": "Try again",
+        "title": "Choose Pages"
       }
     },
     "consent": {
@@ -2376,6 +2394,7 @@
       "platform": "Platform",
       "platforms": {
         "all": "All platforms",
+        "facebook": "Facebook",
         "instagram": "Instagram",
         "linkedin": "LinkedIn",
         "tiktok": "TikTok",

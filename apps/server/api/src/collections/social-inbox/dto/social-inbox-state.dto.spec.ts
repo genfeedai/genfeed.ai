@@ -38,7 +38,7 @@ describe('social inbox state DTOs', () => {
     const query = Object.assign(new SocialInboxQueryDto(), {
       automationState: 'invented',
       conversationType: 'thread',
-      platform: 'facebook',
+      platform: 'pinterest',
       status: 'deleted',
     });
     const update = Object.assign(new SocialConversationUpdateDto(), {

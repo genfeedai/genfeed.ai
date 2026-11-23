@@ -14,6 +14,7 @@ import type {
   YoutubeCommentIngestResult,
 } from '@api/collections/social-inbox/services/social-inbox.types';
 import { SocialInboxActionService } from '@api/collections/social-inbox/services/social-inbox-action.service';
+import { SocialInboxFacebookIngestionService } from '@api/collections/social-inbox/services/social-inbox-facebook-ingestion.service';
 import { SocialInboxIngestionService } from '@api/collections/social-inbox/services/social-inbox-ingestion.service';
 import { SocialInboxQueryService } from '@api/collections/social-inbox/services/social-inbox-query.service';
 import { SocialInboxReadStateService } from '@api/collections/social-inbox/services/social-inbox-read-state.service';
@@ -45,6 +46,7 @@ export class SocialInboxService {
     private readonly ingestionService: SocialInboxIngestionService,
     private readonly actionService: SocialInboxActionService,
     private readonly readStateService: SocialInboxReadStateService,
+    private readonly facebookIngestionService: SocialInboxFacebookIngestionService,
   ) {}
 
   listConversations(
@@ -195,6 +197,13 @@ export class SocialInboxService {
     options: { credentialId?: string; limit?: number } = {},
   ): Promise<YoutubeCommentIngestResult> {
     return this.ingestionService.ingestYoutubeComments(scope, options);
+  }
+
+  ingestFacebookInbox(
+    scope: SocialInboxScope,
+    options: { credentialId?: string; limit?: number } = {},
+  ): Promise<{ conversationsCreated: number; messagesCreated: number }> {
+    return this.facebookIngestionService.ingestFacebookComments(scope, options);
   }
 
   ingestInstagramComments(

@@ -32,6 +32,7 @@ describe('channel capability catalog', () => {
       CredentialPlatform.TWITTER,
       CredentialPlatform.LINKEDIN,
       CredentialPlatform.BEEHIIV,
+      CredentialPlatform.FACEBOOK,
     ]);
 
     expect(
@@ -45,6 +46,7 @@ describe('channel capability catalog', () => {
       CredentialPlatform.BEEHIIV,
       CredentialPlatform.GHOST,
       CredentialPlatform.WORDPRESS,
+      CredentialPlatform.FACEBOOK,
       CredentialPlatform.BLUESKY,
       CredentialPlatform.MEDIUM,
       CredentialPlatform.DEV_TO,

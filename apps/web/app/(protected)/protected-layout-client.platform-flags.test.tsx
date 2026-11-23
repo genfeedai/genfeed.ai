@@ -76,6 +76,13 @@ vi.mock('./platform-module-route-gate', () => ({
     <section aria-label="Module route gate">{children}</section>
   ),
 }));
+vi.mock('@/lib/boot-record/use-boot-record', () => ({
+  BOOT_BUILD_ID: 'test',
+  useBootRecord: () => null,
+}));
+vi.mock('@/components/providers/boot-record/BootRecordGuard', () => ({
+  default: () => null,
+}));
 vi.mock(
   '@/components/providers/persisted-query-cache/PersistedQueryCacheGate',
   () => ({

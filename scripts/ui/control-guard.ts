@@ -107,8 +107,6 @@ export const ALLOWLIST = {
     'apps/marketing/app/(public)/agencies/agencies-content.tsx',
     'apps/marketing/app/(public)/articles/[slug]/article-detail.tsx',
     'apps/marketing/app/(public)/influencers/ai-influencers-content.tsx',
-    'apps/marketing/src/components/NotFoundContent.tsx',
-    'apps/marketing/src/components/content/post-card/PostCard.tsx',
     'apps/marketing/src/components/home/_marketplace-cta.tsx',
     'apps/web/src/features/analytics/overview/analytics-overview.tsx',
     'apps/web/src/features/brands/components/latest-articles/BrandDetailLatestArticles.tsx',

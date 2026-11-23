@@ -38,6 +38,7 @@ import {
   SystemWorkflowRunnerService,
 } from '@api/collections/workflows/system-workflow-runner.service';
 import { scopedWhere } from '@api/index';
+import { FacebookService } from '@api/services/integrations/facebook/services/facebook.service';
 import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import { mapTwitterApiError } from '@api/services/integrations/twitter/utils/twitter-api-error.util';
@@ -65,6 +66,7 @@ export class SocialInboxActionService implements OnModuleInit {
     private readonly prisma: PrismaService,
     private readonly youtubeService: YoutubeService,
     private readonly instagramService: InstagramService,
+    private readonly facebookService: FacebookService,
     private readonly twitterService: TwitterService,
     private readonly queryService: SocialInboxQueryService,
     private readonly readStateService: SocialInboxReadStateService,
@@ -542,14 +544,25 @@ export class SocialInboxActionService implements OnModuleInit {
       };
     }
 
-    if (conversation.platform === Platform.INSTAGRAM) {
+    if (
+      conversation.platform === Platform.FACEBOOK ||
+      conversation.platform === Platform.INSTAGRAM
+    ) {
+      const isFacebook = conversation.platform === Platform.FACEBOOK;
       const parentCommentId =
         conversation.externalParentId ?? conversation.externalConversationId;
       if (!parentCommentId) {
-        throw new BadRequestException('Instagram reply requires a comment id');
+        throw new BadRequestException(
+          `${isFacebook ? 'Facebook' : 'Instagram'} reply requires a comment id`,
+        );
       }
 
-      const result = await this.instagramService.replyToComment(
+      // Both answer a comment with a comment on it, posted as the connected
+      // Page or professional account.
+      const reply = isFacebook
+        ? this.facebookService.postComment.bind(this.facebookService)
+        : this.instagramService.replyToComment.bind(this.instagramService);
+      const result = await reply(
         conversation.organizationId,
         conversation.brandId,
         parentCommentId,

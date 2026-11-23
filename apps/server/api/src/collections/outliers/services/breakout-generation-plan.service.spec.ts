@@ -488,7 +488,7 @@ describe('actual pricing and native-admitted breakout planning', () => {
       ['image', Platform.YOUTUBE, 'format_unsupported_for_platform'],
       ['image', Platform.TIKTOK, 'format_unsupported_for_platform'],
       ['short', Platform.LINKEDIN, 'format_unsupported_for_platform'],
-      ['video', Platform.FACEBOOK, 'platform_publishing_unavailable'],
+      ['video', Platform.PINTEREST, 'platform_publishing_unavailable'],
     ] as const)(
       'holds a %s original on %s with the precise reason %s and plans nothing',
       async (format, platform, reason) => {

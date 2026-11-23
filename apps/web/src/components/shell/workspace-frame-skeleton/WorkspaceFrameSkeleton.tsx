@@ -1,12 +1,15 @@
 'use client';
 
+import { parseScopedAppPath } from '@genfeedai/contracts/constants';
 import BrandMark from '@ui/primitives/brand-mark';
 import { Skeleton } from '@ui/primitives/skeleton';
 import { usePathname } from 'next/navigation';
 import type { CSSProperties } from 'react';
 import { SIDEBAR_DEFAULT_WIDTH } from '@/components/layouts/app/app-layout.utils';
 import { APP_RAIL_WIDTH } from '@/components/layouts/app/useAppLayout';
+import BootRecordRail from '@/components/shell/workspace-frame-skeleton/BootRecordRail';
 import { hasWorkspaceSkeletonSidebar } from '@/components/shell/workspace-frame-skeleton/workspace-frame-skeleton.utils';
+import { useBootRecord } from '@/lib/boot-record/use-boot-record';
 import type { WorkspaceFrameSkeletonProps } from '@/props/layout/workspace-frame-skeleton.props';
 
 const RAIL_ITEM_SLOTS = ['agent', 'library', 'posts', 'studio', 'analytics'];
@@ -32,6 +35,7 @@ export default function WorkspaceFrameSkeleton({
 }: WorkspaceFrameSkeletonProps) {
   const pathname = usePathname() ?? '';
   const hasSidebar = hasWorkspaceSkeletonSidebar(pathname);
+  const bootRecord = useBootRecord(parseScopedAppPath(pathname).orgSlug);
 
   return (
     <div
@@ -43,7 +47,7 @@ export default function WorkspaceFrameSkeleton({
       style={FRAME_STYLE}
     >
       <div
-        aria-hidden="true"
+        aria-hidden={bootRecord ? undefined : 'true'}
         className="hidden w-[var(--desktop-rail-width)] shrink-0 flex-col items-center md:flex"
         data-testid="workspace-frame-skeleton-rail"
       >
@@ -55,11 +59,15 @@ export default function WorkspaceFrameSkeleton({
             <BrandMark isCompact />
           </span>
         </div>
-        <div className="flex flex-col items-center gap-1 p-2">
-          {RAIL_ITEM_SLOTS.map((slot) => (
-            <Skeleton key={slot} className="size-8 rounded-md" />
-          ))}
-        </div>
+        {bootRecord ? (
+          <BootRecordRail record={bootRecord} />
+        ) : (
+          <div className="flex flex-col items-center gap-1 p-2">
+            {RAIL_ITEM_SLOTS.map((slot) => (
+              <Skeleton key={slot} className="size-8 rounded-md" />
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="flex min-w-0 flex-1 flex-col">

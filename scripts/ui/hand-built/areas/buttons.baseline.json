@@ -49,12 +49,6 @@
     "apps/marketing/src/components/topbars/public/TopbarPublicMobileMenu.tsx": {
       "unstyled-look": 1
     },
-    "apps/marketing/src/ui/workflow-builder/nodes/RssInputNode.tsx": {
-      "unstyled-look": 6
-    },
-    "apps/marketing/src/ui/workflow-builder/nodes/TweetInputNode.tsx": {
-      "unstyled-look": 3
-    },
     "apps/web/app/(onboarding)/onboarding/(wizard)/providers/providers-action-bar.tsx": {
       "button-restyle": 2
     },
@@ -392,9 +386,6 @@
     "apps/web/src/features/ingredients/components/tags/manager/TagsList.tsx": {
       "unstyled-look": 1
     },
-    "apps/web/src/features/ingredients/components/topbars/shared/TopbarShared.tsx": {
-      "unstyled-look": 1
-    },
     "apps/web/src/features/ingredients/detail/ingredient-detail-not-found.tsx": {
       "unstyled-look": 1
     },
@@ -555,16 +546,10 @@
     "packages/agent/src/components/AgentThreadListRow.tsx": {
       "button-restyle": 1
     },
-    "packages/agent/src/components/AgentUiActionCard.tsx": {
-      "button-restyle": 1
-    },
     "packages/agent/src/components/AiTextActionCard.tsx": {
       "button-restyle": 1
     },
     "packages/agent/src/components/AnalyticsSnapshotCard.tsx": {
-      "unstyled-look": 1
-    },
-    "packages/agent/src/components/BrandMentionList.tsx": {
       "unstyled-look": 1
     },
     "packages/agent/src/components/CampaignCard.tsx": {

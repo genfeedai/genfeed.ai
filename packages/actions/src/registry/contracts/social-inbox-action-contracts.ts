@@ -125,6 +125,7 @@ const SYNC_INPUT = closedObjectSchema(
     limit: NUMBER_SCHEMA,
     organizationId: STRING_SCHEMA,
     platform: enumSchema([
+      'facebook',
       'instagram',
       'linkedin',
       'twitter',
@@ -142,6 +143,7 @@ const VALIDATED_SYNC = closedObjectSchema(
     limit: NUMBER_SCHEMA,
     organizationId: STRING_SCHEMA,
     platform: enumSchema([
+      'facebook',
       'instagram',
       'linkedin',
       'twitter',
@@ -172,7 +174,7 @@ const SYNC_RESULT = closedObjectSchema(
   ['conversationsCreated', 'messagesCreated'],
 );
 const syncContract = (
-  platform: 'instagram' | 'linkedin' | 'twitter' | 'youtube',
+  platform: 'facebook' | 'instagram' | 'linkedin' | 'twitter' | 'youtube',
   conversationType: 'comment' | 'dm',
 ): ActionContractSchemas => ({
   inputSchema: closedObjectSchema(
@@ -265,6 +267,7 @@ const CONTRACTS: Readonly<Record<string, ActionContractSchemas>> = {
     },
     outputSchema: OUTBOUND_STATE,
   },
+  'social.inbox.sync.facebook-inbox': syncContract('facebook', 'comment'),
   'social.inbox.sync.instagram-comments': syncContract('instagram', 'comment'),
   'social.inbox.sync.instagram-dms': syncContract('instagram', 'dm'),
   'social.inbox.sync.linkedin-comments': syncContract('linkedin', 'comment'),

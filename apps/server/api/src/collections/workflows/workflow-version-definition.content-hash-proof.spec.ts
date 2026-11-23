@@ -407,6 +407,7 @@ const EXPECTED_SYSTEM_WORKFLOW_IDS: readonly string[] = [
   'social-source.own-account-resync.item',
   'social.inbox.outbound.post-reply',
   'social.inbox.outbound.send-dm',
+  'social.inbox.sync.facebook-inbox',
   'social.inbox.sync.instagram-comments',
   'social.inbox.sync.instagram-dms',
   'social.inbox.sync.linkedin-comments',

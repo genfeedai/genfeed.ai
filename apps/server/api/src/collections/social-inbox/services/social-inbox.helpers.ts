@@ -15,6 +15,7 @@ import { BadRequestException } from '@nestjs/common';
 const WHITESPACE_RUNS_PATTERN = /\s+/g;
 
 const SUPPORTED_PLATFORMS = new Set([
+  'facebook',
   'instagram',
   'linkedin',
   'tiktok',
@@ -30,6 +31,10 @@ const MAX_PAGE_SIZE = 100;
 // action time.
 const DM_POST_REPLY_REASON =
   'Direct message threads have no post or comment to reply on';
+// A Page can answer a comment publicly. Messenger only lets a Page message
+// someone who wrote to it first, so a commenter cannot be messaged from here.
+const FACEBOOK_COMMENT_DM_REASON =
+  'A Facebook comment cannot start a Messenger conversation';
 const TIKTOK_READ_ONLY_REASON = 'TikTok conversations are read-only in Genfeed';
 const YOUTUBE_DM_REASON = 'YouTube Data API does not support channel DMs';
 // X OAuth requests tweet/users/media scopes only (no `dm.write`), and the
@@ -140,6 +145,17 @@ export function getAvailability(params: {
         ? undefined
         : 'YouTube reply requires a parent comment id',
       sendDmReason: YOUTUBE_DM_REASON,
+    };
+  }
+
+  if (params.platform === Platform.FACEBOOK) {
+    return {
+      canPostReply: Boolean(params.externalParentId),
+      canSendDm: false,
+      postReplyReason: params.externalParentId
+        ? undefined
+        : 'Facebook reply requires a comment id',
+      sendDmReason: FACEBOOK_COMMENT_DM_REASON,
     };
   }
 

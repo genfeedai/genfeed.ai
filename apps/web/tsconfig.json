@@ -73,7 +73,6 @@
       "@genfeedai/workflows/*": ["../../packages/workflows/src/*"],
       "fullcalendar": ["./node_modules/fullcalendar/index.d.ts"],
       "fullcalendar/*": ["./node_modules/fullcalendar/*"],
-      "@ui/primitives/card": ["./src/components/ui/card.tsx"],
       "@config/*": ["../../packages/config/src/*"],
       "@configs/*": ["../../packages/next-config/*"],
       "@contexts/*": ["../../packages/contexts/*"],
