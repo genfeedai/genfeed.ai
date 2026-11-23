@@ -17,8 +17,8 @@ import {
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { useQueryClient } from '@tanstack/react-query';
-import LoadingState from '@ui/feedback/LoadingState';
 import Container from '@ui/layout/container/Container';
+import Loading from '@ui/loading/default/Loading';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Flag, Sparkles } from 'lucide-react';
@@ -79,7 +79,7 @@ export default function CampaignDetailShell({
         titleVisibility="sr-only"
         moduleChrome
       >
-        <LoadingState isFullSize />
+        <Loading />
       </Container>
     );
   }

@@ -6,10 +6,6 @@ export {
   resolvePlatformConnectionBrand,
 } from '@ui/feedback/connection-success/connection-brand';
 export {
-  default as LoadingState,
-  type LoadingStateProps,
-} from '@ui/feedback/LoadingState';
-export {
   default as NotFoundState,
   type NotFoundStateProps,
 } from '@ui/feedback/NotFoundState';

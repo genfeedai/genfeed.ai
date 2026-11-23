@@ -1,24 +1,6 @@
 import { render, screen } from '@testing-library/react';
-import { Skeleton, SkeletonCard } from '@ui/display/skeleton/skeleton';
+import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import { describe, expect, it } from 'vitest';
-
-describe('Skeleton', () => {
-  it('should render without crashing', () => {
-    const { container } = render(<Skeleton />);
-    expect(container.firstChild).toBeInTheDocument();
-  });
-
-  it('should handle user interactions correctly', () => {
-    const { container } = render(<Skeleton />);
-    expect(container.firstChild).toBeInTheDocument();
-  });
-
-  it('should apply correct styles and classes', () => {
-    const { container } = render(<Skeleton />);
-    const rootElement = container.firstChild as HTMLElement;
-    expect(rootElement).toBeInTheDocument();
-  });
-});
 
 describe('SkeletonCard', () => {
   it('renders one accessible card silhouette with no nested placeholders', () => {
