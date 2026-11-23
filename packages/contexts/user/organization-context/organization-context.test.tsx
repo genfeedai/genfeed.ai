@@ -65,6 +65,7 @@ vi.mock(
 
 vi.mock('@genfeedai/services/core/interceptor.service', () => ({
   cancelAndClearAllServiceInstances: cancelAndClearServicesMock,
+  setProvisionalRequestOrganization: vi.fn(),
   setRequestOrganizationId: setRequestOrganizationIdMock,
 }));
 

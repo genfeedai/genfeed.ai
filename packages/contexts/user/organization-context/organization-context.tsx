@@ -7,9 +7,9 @@ import {
 } from '@genfeedai/contracts/constants';
 import { getPlaywrightAuthState } from '@genfeedai/helpers/auth/auth.helper';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
-import type { LayoutProps } from '@genfeedai/props/layout/layout.props';
 import {
   cancelAndClearAllServiceInstances,
+  setProvisionalRequestOrganization,
   setRequestOrganizationId,
 } from '@genfeedai/services/core/interceptor.service';
 import { OrganizationsService } from '@genfeedai/services/organization/organizations.service';
@@ -33,6 +33,7 @@ import {
   type RoutedOrganizationState,
 } from './organization-controller';
 import { emitSanitizedMismatch } from './organization-mismatch-report';
+import type { RoutedOrganizationProviderProps } from './organization-provider.props';
 
 export {
   ROUTE_CONFIRMATION_TIMEOUT_MS,
@@ -66,7 +67,13 @@ function broadcastOrganizationChange(): void {
   }
 }
 
-export function RoutedOrganizationProvider({ children }: LayoutProps) {
+export function RoutedOrganizationProvider({
+  children,
+  provisional = null,
+  wipeDeviceStores,
+}: RoutedOrganizationProviderProps) {
+  const provisionalOrganizationId = provisional?.organizationId ?? null;
+  const provisionalUserId = provisional?.userId ?? null;
   const pathname = usePathname() ?? '';
   const { replace } = useRouter();
   const routeOrganizationSlug = parseScopedAppPath(pathname).orgSlug;
@@ -98,7 +105,11 @@ export function RoutedOrganizationProvider({ children }: LayoutProps) {
         },
         navigate: (href) => replace(href),
         reportMismatch: emitSanitizedMismatch,
+        setProvisionalOrganization: setProvisionalRequestOrganization,
         setRequestOrganizationId,
+        wipeDeviceStores: async () => {
+          await wipeDeviceStores?.();
+        },
       } satisfies OrganizationControllerPorts),
   );
   const state = useSyncExternalStore(
@@ -122,6 +133,13 @@ export function RoutedOrganizationProvider({ children }: LayoutProps) {
       getMembershipService: getOrganizationsService,
       isLoaded: effectiveIsLoaded,
       isSignedIn: effectiveIsSignedIn,
+      provisional:
+        provisionalOrganizationId && provisionalUserId
+          ? {
+              organizationId: provisionalOrganizationId,
+              userId: provisionalUserId,
+            }
+          : null,
       routeSlug: routeOrganizationSlug,
       sessionKey: `${effectiveUserId}:${effectiveSessionId}`,
     }),
@@ -132,6 +150,8 @@ export function RoutedOrganizationProvider({ children }: LayoutProps) {
       effectiveSessionId,
       effectiveUserId,
       getOrganizationsService,
+      provisionalOrganizationId,
+      provisionalUserId,
       routeOrganizationSlug,
     ],
   );
