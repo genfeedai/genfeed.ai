@@ -50,11 +50,6 @@ vi.mock('@ui/primitives/input', () => ({
   default: () => <input data-testid="form-input" />,
 }));
 
-vi.mock('@ui/primitives/dropdown-field', () => ({
-  __esModule: true,
-  default: () => <select data-testid="form-dropdown" />,
-}));
-
 vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
   __esModule: true,
   default: () => () =>
