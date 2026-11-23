@@ -1,9 +1,9 @@
 'use client';
 
 import type { AnalyticsStat } from '@genfeedai/contracts/interfaces/analytics/analytics-ui.interface';
-import { Checkbox } from '@ui/primitives/checkbox';
 import { useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
+import SettingSwitch from '@/components/ui/setting-switch';
 import PostDetailAnalytics from '@/features/posts/detail/components/PostDetailAnalytics';
 
 export interface PostDetailPublishedProps {
@@ -50,20 +50,14 @@ export default function PostDetailPublished({
       >
         {thread}
       </section>
-      <section
-        aria-label={translate('profileVisibility.ariaLabel')}
-        className="grid gap-1"
-      >
-        <Checkbox
-          name="hide-from-profile"
-          label={translate('profileVisibility.label')}
+      <section aria-label={translate('profileVisibility.ariaLabel')}>
+        <SettingSwitch
+          description={translate('profileVisibility.hint')}
           isChecked={isHiddenFromProfile}
           isDisabled={isUpdatingProfileVisibility}
-          onChange={(event) => onHiddenFromProfileChange(event.target.checked)}
+          label={translate('profileVisibility.label')}
+          onCheckedChange={onHiddenFromProfileChange}
         />
-        <p className="text-xs text-muted-foreground">
-          {translate('profileVisibility.hint')}
-        </p>
       </section>
     </div>
   );

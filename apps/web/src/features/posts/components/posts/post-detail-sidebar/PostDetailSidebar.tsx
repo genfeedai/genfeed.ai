@@ -13,6 +13,7 @@ import {
   isImageIngredient,
   isVideoIngredient,
 } from '@genfeedai/utils/media/ingredient-type.util';
+import MediaLightbox from '@ui/layouts/lightbox/MediaLightbox';
 import {
   LazyMasonryImage,
   LazyMasonryVideo,
@@ -62,6 +63,14 @@ export default function PostDetailSidebar({
   const contentId = post?.id ?? '';
   const [activeTab, setActiveTab] = useState<InspectorTab>('details');
   const [isTikTokReady, setIsTikTokReady] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const viewableIngredients = useMemo(
+    () =>
+      (post?.ingredients ?? []).filter(
+        (ing) => isImageIngredient(ing) || isVideoIngredient(ing),
+      ),
+    [post?.ingredients],
+  );
 
   const {
     evaluation: newEvaluation,
@@ -275,34 +284,34 @@ export default function PostDetailSidebar({
             testId="inspector-ingredients"
           >
             <div className="grid grid-cols-2 gap-4">
-              {post.ingredients.map((ing) => {
-                if (isImageIngredient(ing)) {
-                  return (
-                    <div key={ing.id}>
-                      <LazyMasonryImage
-                        image={ing as IImage}
-                        isActionsEnabled={false}
-                        isContainerHovered={true}
-                      />
-                    </div>
-                  );
-                }
-
-                if (isVideoIngredient(ing)) {
-                  return (
-                    <div key={ing.id}>
-                      <LazyMasonryVideo
-                        video={ing as IVideo}
-                        isActionsEnabled={false}
-                        isContainerHovered={true}
-                      />
-                    </div>
-                  );
-                }
-
-                return null;
-              })}
+              {viewableIngredients.map((ing, index) =>
+                isImageIngredient(ing) ? (
+                  <div key={ing.id}>
+                    <LazyMasonryImage
+                      image={ing as IImage}
+                      isActionsEnabled={false}
+                      isContainerHovered={true}
+                      onClickIngredient={() => setLightboxIndex(index)}
+                    />
+                  </div>
+                ) : (
+                  <div key={ing.id}>
+                    <LazyMasonryVideo
+                      video={ing as IVideo}
+                      isActionsEnabled={false}
+                      isContainerHovered={true}
+                      onClickIngredient={() => setLightboxIndex(index)}
+                    />
+                  </div>
+                ),
+              )}
             </div>
+            <MediaLightbox
+              items={viewableIngredients}
+              startIndex={lightboxIndex ?? 0}
+              open={lightboxIndex !== null}
+              onClose={() => setLightboxIndex(null)}
+            />
           </InspectorSection>
         ) : null}
       </div>
