@@ -2,7 +2,10 @@ import type { AgentScopeContextService } from '@api/agent-context/agent-scope-co
 import type { PostGroupsService } from '@api/collections/post-groups/services/post-groups.service';
 import { parseExtensionPublicationCaptureInput } from '@api/collections/posts/services/post-publication-capture.util';
 import type { PostsService } from '@api/collections/posts/services/posts.service';
-import { authorizeExternalPublicationBrand } from '@api/services/agent-orchestrator/tools/agent-publish-scope.util';
+import {
+  assertContextBrandMatches,
+  authorizeExternalPublicationBrand,
+} from '@api/services/agent-orchestrator/tools/agent-publish-scope.util';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { TargetExecutionState } from '@genfeedai/contracts';
 import { isEntityId } from '@genfeedai/contracts/api-types/helpers/entity-id';
@@ -11,11 +14,7 @@ import type {
   AgentToolResult,
   ScheduleCanonicalPostInput,
 } from '@genfeedai/contracts/interfaces';
-import {
-  BadRequestException,
-  ConflictException,
-  ForbiddenException,
-} from '@nestjs/common';
+import { BadRequestException, ConflictException } from '@nestjs/common';
 import { z } from 'zod';
 
 export async function recordExternalPublicationAction(
@@ -25,11 +24,11 @@ export async function recordExternalPublicationAction(
   agentScopeContextService: AgentScopeContextService | undefined,
 ): Promise<AgentToolResult> {
   const input = parseExtensionPublicationCaptureInput(params);
-  if (!ctx.brandId || ctx.brandId !== input.brandId) {
-    throw new ForbiddenException(
-      'Reported publication must match the authenticated brand context',
-    );
-  }
+  assertContextBrandMatches(
+    ctx,
+    input.brandId,
+    'Reported publication must match the authenticated brand context',
+  );
   await authorizeExternalPublicationBrand(
     agentScopeContextService,
     input.brandId,
@@ -110,10 +109,11 @@ export async function linkExternalPublicationCredentialAction(
   const parsed = linkPublicationSchema.safeParse(params);
   if (!parsed.success)
     throw new BadRequestException('Invalid publication account linking input');
-  if (!ctx.brandId || ctx.brandId !== parsed.data.brandId)
-    throw new ForbiddenException(
-      'Publication linking must match the authenticated brand context',
-    );
+  assertContextBrandMatches(
+    ctx,
+    parsed.data.brandId,
+    'Publication linking must match the authenticated brand context',
+  );
   await authorizeExternalPublicationBrand(
     agentScopeContextService,
     parsed.data.brandId,
