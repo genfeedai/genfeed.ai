@@ -96,6 +96,65 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
     ],
   },
   {
+    // kie model page (read 2026-11-23): "Wan3.0 Video is billed per second: 8
+    // credits per second at 480P ($0.04), 16 at 720P ($0.08) and 32 at 1080P
+    // ($0.16)", 20% under Alibaba Cloud's $0.05 / $0.10 / $0.20. Reference
+    // videos are billed extra, so the offer adapter never sends reference media.
+    provider: 'kie',
+    endpoint: 'wan/3-0-video',
+    sourceUrl: 'https://kie.ai/wan3.0-video',
+    verifiedAt: '2026-11-23',
+    rates: [
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.04,
+        when: { resolution: '480P' },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.08,
+        when: { resolution: '720P' },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.16,
+        when: { resolution: '1080P' },
+        isPerOutput: true,
+      },
+    ],
+  },
+  {
+    // kie model page (read 2026-11-23): "Seedance 2.0 Fast costs 11.7 credits
+    // ($0.059) per second at 480p and 24.8 credits ($0.124) at 720p" without
+    // video input; kie marks Seedance 2.0 prices as beta. Reference video is
+    // billed on input plus output seconds, so the offer adapter refuses it.
+    provider: 'kie',
+    endpoint: 'bytedance/seedance-2-fast',
+    sourceUrl: 'https://kie.ai/seedance-2-0',
+    verifiedAt: '2026-11-23',
+    rates: [
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.059,
+        when: { resolution: '480p' },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.124,
+        when: { resolution: '720p' },
+        isPerOutput: true,
+      },
+    ],
+  },
+  {
     // Higgsfield publishes no price page. These rates are the account's own
     // `POST /estimate/<endpoint>` answers (2026-11-15): per second of source
     // video, rounded up to a whole second, by output resolution.

@@ -1,5 +1,7 @@
 import { adaptFalKlingV3Request } from '@api/collections/models/utils/fal-kling-v3-offer.util';
 import { adaptKieMinimaxH3Request } from '@api/collections/models/utils/kie-minimax-h3-offer.util';
+import { adaptKieSeedanceFastRequest } from '@api/collections/models/utils/kie-seedance-fast-offer.util';
+import { adaptKieWan3Request } from '@api/collections/models/utils/kie-wan-3-offer.util';
 import type { ModelCreditQuoteInput } from '@api/helpers/utils/credits/model-credit-quote.util';
 import { isRecord } from '@genfeedai/utils/data/extract.util';
 import { z } from 'zod';
@@ -31,6 +33,12 @@ export function mapProviderOfferInput(
   const kieH3 = adaptKieMinimaxH3Request(offer?.endpoint, request);
   if (kieH3 === null) return null;
   if (kieH3) request = kieH3;
+  const kieWan = adaptKieWan3Request(offer?.endpoint, request);
+  if (kieWan === null) return null;
+  if (kieWan) request = kieWan;
+  const kieSeedance = adaptKieSeedanceFastRequest(offer?.endpoint, request);
+  if (kieSeedance === null) return null;
+  if (kieSeedance) request = kieSeedance;
   if (schema.$id === 'kie-kling-3.0' && request.providerInput) {
     const native = { ...request.providerInput };
     if (native.mode === 'standard') native.mode = 'std';
