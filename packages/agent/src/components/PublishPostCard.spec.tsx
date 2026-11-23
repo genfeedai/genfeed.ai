@@ -89,7 +89,7 @@ describe('PublishPostCard', () => {
     fireEvent.change(screen.getByPlaceholderText('Optional caption override'), {
       target: { value: 'Updated caption' },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'twitter' }));
+    fireEvent.click(screen.getByRole('button', { name: 'X' }));
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'Confirm publish' }));
     });
@@ -118,7 +118,7 @@ describe('PublishPostCard', () => {
 
     render(<PublishPostCard action={action} />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'linkedin' }));
+    fireEvent.click(screen.getByRole('button', { name: 'LinkedIn' }));
 
     expect(
       screen.getByRole('button', { name: 'Confirm publish' }),
@@ -374,10 +374,10 @@ describe('PublishPostCard', () => {
     render(<PublishPostCard action={action} />);
 
     expect(
-      screen.getByRole('button', { name: '@studio-a' }),
+      screen.getByRole('button', { name: '@studio-a, LinkedIn' }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: '@studio-b' }),
+      screen.getByRole('button', { name: '@studio-b, LinkedIn' }),
     ).toBeInTheDocument();
   });
 });
