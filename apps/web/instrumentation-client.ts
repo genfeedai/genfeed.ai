@@ -8,6 +8,7 @@ import {
   toNavigationType,
 } from '@/lib/navigation/navigation-events';
 import { dropUnhandledJsonApiObjectRejection } from '@/lib/sentry/drop-json-api-object-rejection';
+import { startHeapWatchdog } from '@/lib/sentry/heap-watchdog';
 import { recordHydrationEntryContext } from '@/lib/sentry/hydration-entry-context';
 import { tagHydrationErrorDetail } from '@/lib/sentry/tag-hydration-error-detail';
 
@@ -60,6 +61,7 @@ Sentry.init({
 });
 
 recordHydrationEntryContext();
+startHeapWatchdog();
 
 const REPLAY_IDLE_TIMEOUT_MS = 5000;
 const REPLAY_IDLE_FALLBACK_MS = 2000;
