@@ -2,6 +2,10 @@ import { CreditsUtilsService } from '@api/collections/credits/services/credits.u
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { TemplatesService } from '@api/collections/templates/services/templates.service';
 import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
+import {
+  BusinessLogicException,
+  InsufficientCreditsException,
+} from '@api/exceptions/business-logic.exception';
 import { TextGenerationCreditsService } from '@api/services/byok/text-generation-credits.service';
 import { HarnessGenerationService } from '@api/services/harness/harness-generation.service';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
@@ -43,6 +47,9 @@ describe('ReplyGenerationService', () => {
     checkOrganizationCreditsAvailable: vi.fn().mockResolvedValue(true),
     deductCreditsFromOrganization: vi.fn().mockResolvedValue(undefined),
     getOrganizationCreditsBalance: vi.fn().mockResolvedValue(0),
+    releaseReservation: vi.fn().mockResolvedValue(undefined),
+    reserveCredits: vi.fn().mockResolvedValue({ amount: 1, id: 'hold-1' }),
+    settleReservation: vi.fn().mockResolvedValue(undefined),
   };
 
   const mockModelsService = {
@@ -135,15 +142,12 @@ describe('ReplyGenerationService', () => {
         'org-1',
       );
       expect(mockTemplatesService.getRenderedPrompt).not.toHaveBeenCalled();
-      expect(
-        mockCreditsUtilsService.deductCreditsFromOrganization,
-      ).toHaveBeenCalledWith(
-        'org-1',
-        'user-1',
-        expect.any(Number),
-        expect.any(String),
-        expect.any(String),
-        expect.any(Object),
+      expect(mockCreditsUtilsService.settleReservation).toHaveBeenCalledWith(
+        expect.objectContaining({
+          actorUserId: 'user-1',
+          organizationId: 'org-1',
+          reservationId: 'hold-1',
+        }),
       );
     },
   );
@@ -251,9 +255,45 @@ describe('ReplyGenerationService', () => {
       expect(
         mockCreditsUtilsService.checkOrganizationCreditsAvailable,
       ).not.toHaveBeenCalled();
+      expect(mockCreditsUtilsService.reserveCredits).not.toHaveBeenCalled();
+      expect(mockCreditsUtilsService.settleReservation).not.toHaveBeenCalled();
+    });
+
+    it('holds the credits before the model runs, so nothing runs when the hold is refused', async () => {
+      mockCreditsUtilsService.reserveCredits.mockRejectedValueOnce(
+        new BusinessLogicException(
+          'Insufficient organization credits',
+          {},
+          'INSUFFICIENT_CREDITS',
+        ),
+      );
+      mockCreditsUtilsService.getOrganizationCreditsBalance.mockResolvedValueOnce(
+        0.4,
+      );
+
+      await expect(service.generateReply(baseOptions)).rejects.toBeInstanceOf(
+        InsufficientCreditsException,
+      );
+
       expect(
-        mockCreditsUtilsService.deductCreditsFromOrganization,
+        mockReplicateService.generateTextCompletionSync,
       ).not.toHaveBeenCalled();
+    });
+
+    it('gives the hold back when generation fails', async () => {
+      mockTemplatesService.getRenderedPrompt.mockRejectedValue(
+        new Error('AI error'),
+      );
+
+      await expect(service.generateReply(baseOptions)).rejects.toThrow(
+        ServiceUnavailableException,
+      );
+
+      expect(mockCreditsUtilsService.releaseReservation).toHaveBeenCalledWith({
+        organizationId: 'org-123',
+        reservationId: 'hold-1',
+      });
+      expect(mockCreditsUtilsService.settleReservation).not.toHaveBeenCalled();
     });
 
     it('should pass custom instructions and context when provided', async () => {
