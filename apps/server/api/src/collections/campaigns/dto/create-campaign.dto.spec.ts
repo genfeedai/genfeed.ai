@@ -77,4 +77,14 @@ describe('Campaign DTO validation', () => {
 
     expect('idempotencyKey' in dto).toBe(false);
   });
+
+  it('does not accept a status on updates; lifecycle endpoints own it (#10403)', async () => {
+    const pipe = new ValidationPipe({ transform: true, whitelist: true });
+    const dto = await pipe.transform(
+      { name: 'Launch', status: 'ARCHIVED' },
+      { metatype: UpdateCampaignDto, type: 'body' },
+    );
+
+    expect('status' in dto).toBe(false);
+  });
 });

@@ -12,6 +12,7 @@ import { IngredientGenerationCancellationService } from '@api/collections/ingred
 import { IngredientReviewStateService } from '@api/collections/ingredients/services/ingredient-review-state.service';
 import { IngredientStackService } from '@api/collections/ingredients/services/ingredient-stack.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import { transitionIngredientStatus } from '@api/collections/ingredients/utils/ingredient-status-transition.util';
 import {
   libraryBrandWhere,
   libraryCacheIdentity,
@@ -44,6 +45,10 @@ import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { scopedWhere } from '@api/index';
 import { MediaUrlService } from '@api/services/media-urls/media-url.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
+import {
+  INGREDIENT_STATE_MACHINE,
+  type IngredientStatus,
+} from '@genfeedai/contracts';
 import type {
   ILibrarySummary,
   JsonApiSingleResponse,
@@ -55,6 +60,7 @@ import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
 import {
   BadRequestException,
   Body,
+  ConflictException,
   Controller,
   ForbiddenException,
   Get,
@@ -399,6 +405,30 @@ export class IngredientsController {
     });
   }
 
+  private async transitionStatus(
+    id: string,
+    from: IngredientStatus,
+    to: IngredientStatus,
+    organizationId: string,
+  ): Promise<void> {
+    if (!INGREDIENT_STATE_MACHINE.can(from, to)) {
+      throw new ConflictException(
+        `Ingredient cannot move from ${from} to ${to}`,
+      );
+    }
+    const moved = await transitionIngredientStatus(this.ingredientsService, {
+      from,
+      id,
+      organizationId,
+      to,
+    });
+    if (!moved) {
+      throw new ConflictException(
+        `Ingredient status changed while it was being updated; it is no longer ${from}`,
+      );
+    }
+  }
+
   @Patch(':ingredientId')
   @UseGuards(AssetAccessGuard)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
@@ -456,10 +486,28 @@ export class IngredientsController {
       );
     }
 
-    await this.ingredientsService.patch(
-      ingredientId,
-      processedDto as unknown as UpdateIngredientDto,
-    );
+    // A status is an edge of INGREDIENT_STATE_MACHINE, written as a
+    // compare-and-set so a review on a stale tab cannot settle a generation
+    // that is still PROCESSING (#10404). Every other field is a plain write.
+    const { status: requestedStatus, ...fieldUpdates } = processedDto;
+    if (
+      requestedStatus !== undefined &&
+      requestedStatus !== ingredient.status
+    ) {
+      await this.transitionStatus(
+        ingredient.id,
+        ingredient.status as IngredientStatus,
+        requestedStatus as IngredientStatus,
+        user.organizationId,
+      );
+    }
+
+    if (Object.keys(fieldUpdates).length > 0) {
+      await this.ingredientsService.patch(
+        ingredientId,
+        fieldUpdates as unknown as UpdateIngredientDto,
+      );
+    }
 
     // Fetch the updated document with populated fields
     // Only populate metadata fully and brand minimally (id, label, handle)
