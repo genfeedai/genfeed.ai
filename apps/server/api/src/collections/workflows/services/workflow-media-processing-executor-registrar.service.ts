@@ -142,6 +142,7 @@ export class WorkflowMediaProcessingExecutorRegistrarService {
    * A Library image or video is fetched through a fresh grant for its
    * ingredient, never through the URL saved in the node: that URL is the
    * unsigned CDN path (403 for a private asset) or a grant that has expired.
+   * Without authorized delivery the saved URL is used as before.
    */
   private async resolveDirectMediaInput(
     node: ExecutableNode,
@@ -155,6 +156,7 @@ export class WorkflowMediaProcessingExecutorRegistrarService {
       defaultCategory;
 
     if (
+      this.configService.isAuthorizedMediaDeliveryEnabled &&
       source !== 'url' &&
       source !== 'brand-references' &&
       itemId &&

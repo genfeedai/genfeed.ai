@@ -748,20 +748,21 @@ describe('WorkflowMediaProcessingExecutorRegistrarService direct media inputs', 
     expect(issuer.issueServerPublish).not.toHaveBeenCalled();
   });
 
-  it('uses the public ingredients path when authorized delivery is off', async () => {
+  it('keeps the saved URL when authorized delivery is off', async () => {
     const { engine, issuer } = createInputHarness(false);
 
     const result = await engine.getExecutor('input-video')?.(
       inputNode({
         itemCategory: 'video',
         itemId: 'video-1',
+        resolvedUrl: storedUrl,
         source: 'library',
       }),
       new Map(),
       context,
     );
 
-    expect(result).toBe('https://cdn.example/ingredients/videos/video-1');
+    expect(result).toBe(storedUrl);
     expect(issuer.issueServerPublish).not.toHaveBeenCalled();
   });
 });
