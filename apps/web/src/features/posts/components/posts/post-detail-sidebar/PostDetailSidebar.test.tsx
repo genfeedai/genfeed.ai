@@ -1,5 +1,6 @@
 import {
   CredentialPlatform,
+  IngredientCategory,
   PostCategory,
   PostStatus,
   ReviewDecision,
@@ -60,6 +61,36 @@ vi.mock('next/link', () => ({
 
 vi.mock('@/components/evaluation/card/EvaluationCard', () => ({
   default: () => <div data-testid="evaluation-row">Evaluation row</div>,
+}));
+
+vi.mock('@ui/lazy/masonry/LazyMasonry', () => ({
+  LazyMasonryImage: ({
+    image,
+    onClickIngredient,
+  }: {
+    image: { id: string };
+    onClickIngredient?: (ingredient: { id: string }) => void;
+  }) => (
+    <button type="button" onClick={() => onClickIngredient?.(image)}>
+      {`Tile ${image.id}`}
+    </button>
+  ),
+  LazyMasonryVideo: () => null,
+}));
+
+vi.mock('@ui/layouts/lightbox/MediaLightbox', () => ({
+  default: ({
+    items,
+    open,
+    startIndex,
+  }: {
+    items: { id: string }[];
+    open: boolean;
+    startIndex: number;
+  }) =>
+    open ? (
+      <div data-testid="lightbox">{`${items.length} items, opened at ${startIndex}`}</div>
+    ) : null,
 }));
 
 const { tiktokState } = vi.hoisted(() => ({
@@ -166,8 +197,8 @@ describe('PostDetailSidebar', () => {
     expect(destination).toHaveTextContent('SEO 76');
     expect(destination).toHaveTextContent('Scheduled');
     expect(
-      screen.getByRole('link', { name: 'Open on platform' }),
-    ).toHaveAttribute('href', 'https://example.com/post');
+      screen.queryByRole('link', { name: 'Open on platform' }),
+    ).not.toBeInTheDocument();
   });
 
   it('shows a confirmed TikTok Inbox receipt as an unpublished handoff', () => {
@@ -548,5 +579,34 @@ describe('PostDetailSidebar', () => {
         name: 'More TikTok publishing options',
       }),
     ).not.toBeInTheDocument();
+  });
+
+  it('opens a published ingredient in the lightbox when its tile is clicked', async () => {
+    render(
+      <PostDetailSidebar
+        {...baseProps}
+        post={
+          {
+            id: 'post-1',
+            ingredients: [
+              { category: IngredientCategory.IMAGE, id: 'image-1' },
+              { category: IngredientCategory.IMAGE, id: 'image-2' },
+            ],
+            platform: CredentialPlatform.INSTAGRAM,
+            status: PostStatus.PUBLIC,
+            targetExecutionState: TargetExecutionState.PUBLISHED,
+          } as never
+        }
+      />,
+    );
+
+    expect(screen.queryByTestId('lightbox')).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: /Ingredients/ }));
+    await userEvent.click(screen.getByRole('button', { name: 'Tile image-2' }));
+
+    expect(screen.getByTestId('lightbox')).toHaveTextContent(
+      '2 items, opened at 1',
+    );
   });
 });

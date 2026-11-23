@@ -66,7 +66,7 @@ describe('PostDetailPublished', () => {
     ).toHaveTextContent('clip');
   });
 
-  it('hides the post from the profile when the switch is ticked', async () => {
+  it('hides the post from the profile when the switch is turned on', async () => {
     const onHiddenFromProfileChange = vi.fn();
     render(
       <PostDetailPublished
@@ -77,7 +77,7 @@ describe('PostDetailPublished', () => {
     );
 
     await userEvent.click(
-      screen.getByRole('checkbox', {
+      screen.getByRole('switch', {
         name: 'Hide from my public Genfeed profile',
       }),
     );
@@ -85,7 +85,7 @@ describe('PostDetailPublished', () => {
     expect(onHiddenFromProfileChange).toHaveBeenCalledWith(true);
   });
 
-  it('shows a hidden post as ticked and offers to show it again', async () => {
+  it('shows a hidden post as on and offers to show it again', async () => {
     const onHiddenFromProfileChange = vi.fn();
     render(
       <PostDetailPublished
@@ -96,12 +96,12 @@ describe('PostDetailPublished', () => {
       />,
     );
 
-    const checkbox = screen.getByRole('checkbox', {
+    const toggle = screen.getByRole('switch', {
       name: 'Hide from my public Genfeed profile',
     });
-    expect(checkbox).toBeChecked();
+    expect(toggle).toHaveAttribute('aria-checked', 'true');
 
-    await userEvent.click(checkbox);
+    await userEvent.click(toggle);
 
     expect(onHiddenFromProfileChange).toHaveBeenCalledWith(false);
   });

@@ -5,8 +5,6 @@ import { toConnectedAccount } from '@genfeedai/helpers/publisher/connected-accou
 import ClientDateTime from '@ui/components/time/ClientDateTime';
 import ConnectedAccount from '@ui/display/connected-account/ConnectedAccount';
 import { Badge } from '@ui/primitives/badge';
-import { ExternalLink } from 'lucide-react';
-import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { Fragment, type ReactNode } from 'react';
 import { isTikTokInboxDelivered } from '@/features/posts/detail/post-published.helper';
@@ -125,18 +123,6 @@ export default function PostSidebarDestination({
             </Fragment>
           ))}
         </p>
-      ) : null}
-
-      {post.url ? (
-        <Link
-          href={post.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex w-fit items-center gap-1 text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
-        >
-          <ExternalLink className="size-3.5" />
-          <span>{translate('openOnPlatform')}</span>
-        </Link>
       ) : null}
     </div>
   );

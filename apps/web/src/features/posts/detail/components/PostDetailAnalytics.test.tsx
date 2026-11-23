@@ -20,6 +20,27 @@ describe('PostDetailAnalytics', () => {
     expect(screen.getByText('87')).toBeInTheDocument();
   });
 
+  it('lays five stats out on one row from a medium container up', () => {
+    const fiveStats = [
+      'Views',
+      'Likes',
+      'Comments',
+      'Shares',
+      'Engagement',
+    ].map((label) => ({
+      accent: 'text-info',
+      icon: Eye,
+      label,
+      value: '0',
+    })) as unknown as AnalyticsStat[];
+
+    render(<PostDetailAnalytics stats={fiveStats} />);
+
+    expect(screen.getByTestId('metric-card-grid').className).toContain(
+      '@[36rem]:grid-cols-5',
+    );
+  });
+
   it('renders labels with a colon in the inline variant', () => {
     render(<PostDetailAnalytics stats={stats} variant="inline" />);
 
