@@ -21,6 +21,7 @@ import {
   dropSuperseded,
   oldestPendingInputAt,
 } from '@api/services/agent-threading/utils/oldest-pending-input-at.util';
+import { updateSnapshotData } from '@api/services/agent-threading/utils/update-snapshot-data.util';
 import { validateAgentInputAnswer } from '@api/services/agent-threading/utils/validate-agent-input-answer.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { ResolveAgentInputRequestParams } from '@genfeedai/contracts/interfaces/ai/agent-input-request.interface';
@@ -598,62 +599,29 @@ export class AgentThreadEngineService {
   ): Promise<AgentProfileSnapshotDocument | null> {
     await this.ensureThreadAccess(threadId, organizationId, userId);
 
-    const existing = await this.prisma.agentThreadSnapshot.findFirst({
-      where: scopedWhere(organizationId, { threadId }),
-      select: { data: true, id: true },
-    });
-
     const profileData = profileSnapshot as Record<string, unknown>;
-
-    if (existing) {
-      const existingData = (existing.data as Record<string, unknown>) ?? {};
-      const updated = await this.prisma.agentThreadSnapshot.update({
-        where: scopedWhere(organizationId, { id: existing.id }),
-        data: {
-          pendingInputAt: oldestPendingInputAt(
-            existingData.pendingInputRequests,
-          ),
-          data: {
-            ...existingData,
-            profileSnapshot: {
-              ...((existingData.profileSnapshot as Record<string, unknown>) ??
-                {}),
-              ...profileData,
-              organizationId,
-              threadId,
-            },
-          },
-          updatedAt: new Date(),
-        },
-      });
-
-      const data = (updated.data as Record<string, unknown>) ?? {};
-      const ps = data.profileSnapshot as Record<string, unknown>;
-      return {
-        ...ps,
-        id: updated.id,
-        organizationId,
-        threadId,
-        isDeleted: false,
-      } as unknown as AgentProfileSnapshotDocument;
-    }
-
-    const created = await this.prisma.agentThreadSnapshot.create({
-      data: {
-        organizationId,
-        threadId,
-        isDeleted: false,
-        data: {
-          profileSnapshot: { ...profileData, organizationId, threadId },
-        },
-      },
+    const toProfileSnapshot = (data: Record<string, unknown>) => ({
+      ...((data.profileSnapshot as Record<string, unknown>) ?? {}),
+      ...profileData,
+      organizationId,
+      threadId,
     });
 
-    const data = (created.data as Record<string, unknown>) ?? {};
+    const stored = await updateSnapshotData(this.prisma, {
+      change: (data) => ({ ...data, profileSnapshot: toProfileSnapshot(data) }),
+      createWith: {
+        profileSnapshot: { ...profileData, organizationId, threadId },
+      },
+      organizationId,
+      threadId,
+    });
+    if (!stored) return null;
+
+    const data = (stored.data as Record<string, unknown>) ?? {};
     const ps = data.profileSnapshot as Record<string, unknown>;
     return {
       ...ps,
-      id: created.id,
+      id: stored.id,
       organizationId,
       threadId,
       isDeleted: false,
@@ -794,51 +762,42 @@ export class AgentThreadEngineService {
     const requestId =
       this.readString(payload, 'requestId') ??
       `input:${threadId}:${event.sequence}`;
-    const snapshotRow = await this.prisma.agentThreadSnapshot.findFirst({
-      where: scopedWhere(organizationId, { threadId }),
-      select: { data: true, id: true },
+    await updateSnapshotData(this.prisma, {
+      change: (snapshotData) => {
+        const inputRequests = (
+          (snapshotData.inputRequests as Array<Record<string, unknown>>) ?? []
+        )
+          .filter((r) => r.requestId !== requestId)
+          .map((request) =>
+            request.status === 'pending'
+              ? { ...request, status: 'superseded' }
+              : request,
+          );
+
+        inputRequests.push({
+          allowFreeText: this.readBoolean(payload, 'allowFreeText'),
+          isMultiSelect: this.readBoolean(payload, 'isMultiSelect'),
+          maxSelections: this.readNumber(payload, 'maxSelections'),
+          fieldId: this.readString(payload, 'fieldId'),
+          metadata: this.readRecord(payload, 'metadata'),
+          options: this.readArray(payload, 'options') ?? [],
+          prompt: this.readString(payload, 'prompt') ?? '',
+          recommendedOptionId: this.readString(payload, 'recommendedOptionId'),
+          requestId,
+          runId: event.runId,
+          status: 'pending',
+          title: this.readString(payload, 'title') ?? 'Input requested',
+        });
+
+        return {
+          ...snapshotData,
+          inputRequests,
+          pendingInputRequests: dropSuperseded(snapshotData, inputRequests),
+        };
+      },
+      organizationId,
+      threadId,
     });
-    if (snapshotRow) {
-      const snapshotData = (snapshotRow.data as Record<string, unknown>) ?? {};
-      const inputRequests = (
-        (snapshotData.inputRequests as Array<Record<string, unknown>>) ?? []
-      )
-        .filter((r) => r.requestId !== requestId)
-        .map((request) =>
-          request.status === 'pending'
-            ? { ...request, status: 'superseded' }
-            : request,
-        );
-
-      inputRequests.push({
-        allowFreeText: this.readBoolean(payload, 'allowFreeText'),
-        isMultiSelect: this.readBoolean(payload, 'isMultiSelect'),
-        maxSelections: this.readNumber(payload, 'maxSelections'),
-        fieldId: this.readString(payload, 'fieldId'),
-        metadata: this.readRecord(payload, 'metadata'),
-        options: this.readArray(payload, 'options') ?? [],
-        prompt: this.readString(payload, 'prompt') ?? '',
-        recommendedOptionId: this.readString(payload, 'recommendedOptionId'),
-        requestId,
-        runId: event.runId,
-        status: 'pending',
-        title: this.readString(payload, 'title') ?? 'Input requested',
-      });
-
-      const pendingInputRequests = dropSuperseded(snapshotData, inputRequests);
-      await this.prisma.agentThreadSnapshot.update({
-        where: scopedWhere(organizationId, { id: snapshotRow.id }),
-        data: {
-          data: toPrismaJson({
-            ...snapshotData,
-            inputRequests,
-            pendingInputRequests,
-          }),
-          pendingInputAt: oldestPendingInputAt(pendingInputRequests),
-          updatedAt: new Date(),
-        },
-      });
-    }
     await upsertRuntimeBinding(this.runtimeSessionService, {
       organizationId,
       runId: this.optionalString(event.runId),

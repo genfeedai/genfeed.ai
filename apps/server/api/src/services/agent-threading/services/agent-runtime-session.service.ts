@@ -1,9 +1,8 @@
 import { scopedWhere } from '@api/index';
 import type { AgentSessionBindingDocument } from '@api/services/agent-threading/schemas/agent-session-binding.schema';
 import { AgentSessionBindingStatus } from '@api/services/agent-threading/types/agent-thread.types';
-import { oldestPendingInputAt } from '@api/services/agent-threading/utils/oldest-pending-input-at.util';
+import { updateSnapshotData } from '@api/services/agent-threading/utils/update-snapshot-data.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
@@ -54,10 +53,6 @@ export class AgentRuntimeSessionService {
     private readonly loggerService: LoggerService,
   ) {}
 
-  private toJsonValue(value: unknown): Prisma.InputJsonValue {
-    return JSON.parse(JSON.stringify(value ?? null)) as Prisma.InputJsonValue;
-  }
-
   async upsertBinding(
     params: UpsertRuntimeSessionBindingParams,
   ): Promise<AgentSessionBindingDocument | null> {
@@ -84,47 +79,18 @@ export class AgentRuntimeSessionService {
       sessionBindingPatch.runId = params.runId;
     }
 
-    const existing = await this.prisma.agentThreadSnapshot.findFirst({
-      where: scopedWhere(params.organizationId, {
-        threadId: params.threadId,
-      }),
-      select: { data: true, id: true },
-    });
-
-    let snapshot: Record<string, unknown> | null = null;
-
-    if (existing) {
-      const existingData = (existing.data as Record<string, unknown>) ?? {};
-      const updatedData = {
-        ...existingData,
+    const snapshot = (await updateSnapshotData(this.prisma, {
+      change: (data) => ({
+        ...data,
         sessionBinding: {
-          ...((existingData.sessionBinding as Record<string, unknown>) ?? {}),
+          ...((data.sessionBinding as Record<string, unknown>) ?? {}),
           ...sessionBindingPatch,
         },
-      };
-
-      snapshot = (await this.prisma.agentThreadSnapshot.update({
-        where: scopedWhere(params.organizationId, { id: existing.id }),
-        data: {
-          data: this.toJsonValue(updatedData),
-          // The write replaces `data`, so the marker is derived from the list
-          // it carries and the two never disagree.
-          pendingInputAt: oldestPendingInputAt(
-            existingData.pendingInputRequests,
-          ),
-          updatedAt: new Date(),
-        },
-      })) as unknown as Record<string, unknown>;
-    } else {
-      snapshot = (await this.prisma.agentThreadSnapshot.create({
-        data: {
-          data: this.toJsonValue({ sessionBinding: sessionBindingPatch }),
-          isDeleted: false,
-          organizationId: params.organizationId,
-          threadId: params.threadId,
-        },
-      })) as unknown as Record<string, unknown>;
-    }
+      }),
+      createWith: { sessionBinding: sessionBindingPatch },
+      organizationId: params.organizationId,
+      threadId: params.threadId,
+    })) as unknown as Record<string, unknown> | null;
 
     return toSessionBindingDocument(snapshot);
   }

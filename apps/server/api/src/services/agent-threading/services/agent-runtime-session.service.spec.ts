@@ -44,6 +44,7 @@ describe('AgentRuntimeSessionService', () => {
   };
 
   const mockPrisma = {
+    $transaction: vi.fn(),
     agentThreadSnapshot: {
       create: vi.fn(),
       findFirst: vi.fn(),
@@ -60,6 +61,10 @@ describe('AgentRuntimeSessionService', () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    mockPrisma.$transaction.mockImplementation(
+      async (work: (tx: typeof mockPrisma) => Promise<unknown>) =>
+        work(mockPrisma),
+    );
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
