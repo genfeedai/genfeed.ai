@@ -6,6 +6,7 @@ import {
   screen,
   waitFor,
 } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { useParams } from 'next/navigation';
 import type { ReactElement } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -193,7 +194,8 @@ describe('ArticleDetail', () => {
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
   });
 
-  it('labels the category selector and forwards category changes', () => {
+  it('labels the category selector and forwards category changes', async () => {
+    const user = userEvent.setup();
     const state = savedArticleState('draft');
     useArticleDetailMock.mockReturnValue({
       ...state,
@@ -202,20 +204,16 @@ describe('ArticleDetail', () => {
 
     render(<ArticleDetail articleId="article-1" />);
 
-    const trigger = screen.getByRole('button', {
-      name: 'Tutorial',
-    });
-    expect(trigger).toHaveTextContent('Category:');
-    expect(trigger).not.toHaveTextContent('articleCategory:');
+    const trigger = screen.getByRole('combobox', { name: 'Category' });
+    expect(trigger).toHaveTextContent('Tutorial');
 
-    fireEvent.click(trigger);
-    fireEvent.click(screen.getByRole('button', { name: 'Guide' }));
+    await user.click(trigger);
+    await user.click(screen.getByRole('option', { name: 'Guide' }));
 
     expect(state.setFormField).toHaveBeenCalledWith(
       'category',
       ArticleCategory.GUIDE,
     );
-    expect(trigger).toHaveAttribute('aria-expanded', 'false');
   });
 
   it('tells customer organizations their article is not hosted on genfeed.ai', () => {

@@ -1,8 +1,8 @@
 import { ArticleCategory, CardGap } from '@genfeedai/contracts';
 import Card from '@ui/card/Card';
-import FormDropdown from '@ui/primitives/dropdown-field';
 import FormControl from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
+import { OptionSelect } from '@ui/primitives/option-select';
 import { useTranslations } from 'next-intl';
 import type { ChangeEvent } from 'react';
 import LazyRichTextEditor from '@/components/editors/LazyRichTextEditor';
@@ -13,11 +13,11 @@ const SEPARATOR_CHAR_PATTERN = /[-_]/;
 const ARTICLE_CATEGORY_OPTIONS = Object.values(ArticleCategory)
   .filter((value) => value !== ArticleCategory.X_ARTICLE)
   .map((value) => ({
-    key: value,
     label: value
       .split(SEPARATOR_CHAR_PATTERN)
       .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
       .join(' '),
+    value,
   }));
 
 export default function ArticleEditForm({
@@ -52,14 +52,14 @@ export default function ArticleEditForm({
 
         <div className="grid gap-4 sm:grid-cols-2">
           <FormControl label={translate('category')}>
-            <FormDropdown
-              name="articleCategory"
-              label="Category"
-              value={form.category}
-              options={ARTICLE_CATEGORY_OPTIONS}
-              onChange={(e: ChangeEvent<HTMLSelectElement>) =>
-                setFormField('category', e.target.value as ArticleCategory)
+            <OptionSelect
+              ariaLabel={translate('category')}
+              className="w-full"
+              onValueChange={(value) =>
+                setFormField('category', value as ArticleCategory)
               }
+              options={ARTICLE_CATEGORY_OPTIONS}
+              value={form.category}
             />
           </FormControl>
 
