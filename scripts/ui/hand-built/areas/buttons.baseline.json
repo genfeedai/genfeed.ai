@@ -386,9 +386,6 @@
     "apps/web/src/features/ingredients/components/tags/manager/TagsList.tsx": {
       "unstyled-look": 1
     },
-    "apps/web/src/features/ingredients/detail/ingredient-detail-not-found.tsx": {
-      "unstyled-look": 1
-    },
     "apps/web/src/features/library-remix/LibraryPickerOverlay.tsx": {
       "unstyled-look": 1
     },

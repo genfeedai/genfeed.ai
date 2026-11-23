@@ -1,6 +1,4 @@
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import { Button } from '@ui/primitives/button';
-import Link from 'next/link';
+import NotFoundState from '@ui/feedback/NotFoundState';
 import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
 
@@ -20,29 +18,13 @@ export function AgentThreadNotFound({
   const translate = useTranslations('agent.fullPage.threadNotFound');
 
   return (
-    <div
-      className="flex min-h-0 flex-1 flex-col items-center justify-center gap-4 p-6 text-center"
+    <NotFoundState
+      backLinkHref={newChatHref}
+      backLinkLabel={translate('startNewChat')}
       data-testid="agent-thread-not-found"
+      message={translate('description')}
       role="alert"
-    >
-      <div className="space-y-1">
-        <h2 className="text-lg font-semibold text-foreground">
-          {translate('title')}
-        </h2>
-        <p className="text-sm text-muted-foreground">
-          {translate('description')}
-        </p>
-      </div>
-      {newChatHref ? (
-        <Button
-          asChild
-          size={ButtonSize.SM}
-          variant={ButtonVariant.SECONDARY}
-          withWrapper={false}
-        >
-          <Link href={newChatHref}>{translate('startNewChat')}</Link>
-        </Button>
-      ) : null}
-    </div>
+      title={translate('title')}
+    />
   );
 }
