@@ -14,6 +14,7 @@ describe('workflow presentation node registry', () => {
       'talkingHeadScript',
       'ai-enhance',
       'ai-generate-image',
+      'agentEventRun',
       'ai-generate-newsletter',
       'ai-generate-post',
       'source-corpus',

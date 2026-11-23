@@ -1,5 +1,6 @@
 import { getNodeDefinition } from '@api/collections/workflows/registry/node-registry-adapter';
 import { DailyPublishingService } from '@api/collections/workflows/services/daily-publishing.service';
+import { WorkflowAgentEventExecutorRegistrarService } from '@api/collections/workflows/services/workflow-agent-event-executor-registrar.service';
 import { WorkflowAutomationExecutorRegistrarService } from '@api/collections/workflows/services/workflow-automation-executor-registrar.service';
 import { WorkflowContentExecutorRegistrarService } from '@api/collections/workflows/services/workflow-content-executor-registrar.service';
 import { WorkflowCoreExecutorRegistrarService } from '@api/collections/workflows/services/workflow-core-executor-registrar.service';
@@ -214,6 +215,7 @@ function createProductionEngine(): WorkflowEngine {
       presentDependency(),
       presentDependency(),
     ),
+    new WorkflowAgentEventExecutorRegistrarService(presentDependency()),
   ).register(engine);
 
   const engineAdapter: Pick<

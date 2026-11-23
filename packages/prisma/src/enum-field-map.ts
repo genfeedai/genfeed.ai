@@ -343,6 +343,33 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       user: 'userId',
     },
   },
+  AgentEventRun: {
+    allFields: [
+      'agentExecutionId',
+      'claimedAt',
+      'createdAt',
+      'eventKey',
+      'id',
+      'isDeleted',
+      'organization',
+      'organizationId',
+      'status',
+      'strategy',
+      'strategyId',
+      'threadId',
+      'updatedAt',
+      'workflowExecutionId',
+      'workflowId',
+    ],
+    listFields: [],
+    enumFields: {
+      status: { enumType: 'AgentEventRunStatus', isRequired: true },
+    },
+    relationIdFields: {
+      organization: 'organizationId',
+      strategy: 'strategyId',
+    },
+  },
   AgentGoal: {
     allFields: [
       'brand',
@@ -554,6 +581,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     listFields: [
       'campaignLeads',
       'campaigns',
+      'eventRuns',
       'executionReadScopes',
       'ingredients',
       'opportunities',
@@ -5917,6 +5945,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'adPerformances',
       'adWatchedAdvertisers',
       'agentCampaigns',
+      'agentEventRuns',
       'agentGoals',
       'agentMemories',
       'agentMemoryRevisions',

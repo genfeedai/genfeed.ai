@@ -1,3 +1,4 @@
+import { WorkflowAgentEventExecutorRegistrarService } from '@api/collections/workflows/services/workflow-agent-event-executor-registrar.service';
 import { WorkflowAutomationExecutorRegistrarService } from '@api/collections/workflows/services/workflow-automation-executor-registrar.service';
 import { WorkflowContentExecutorRegistrarService } from '@api/collections/workflows/services/workflow-content-executor-registrar.service';
 import { WorkflowCoreExecutorRegistrarService } from '@api/collections/workflows/services/workflow-core-executor-registrar.service';
@@ -20,6 +21,7 @@ export class WorkflowEngineExecutorRegistryService {
     private readonly automation: WorkflowAutomationExecutorRegistrarService,
     private readonly trendPublish: WorkflowTrendPublishExecutorRegistrarService,
     private readonly lipSync: WorkflowLipSyncExecutorRegistrarService,
+    private readonly agentEvent: WorkflowAgentEventExecutorRegistrarService,
   ) {}
 
   register(engine: WorkflowEngine): void {
@@ -31,5 +33,6 @@ export class WorkflowEngineExecutorRegistryService {
     this.content.register(engine);
     this.automation.register(engine);
     this.trendPublish.register(engine);
+    this.agentEvent.register(engine);
   }
 }
