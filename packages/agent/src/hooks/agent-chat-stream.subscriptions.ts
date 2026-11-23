@@ -204,6 +204,9 @@ export function attachAgentStreamSubscriptions(
 
   const unsubscribers: Array<() => void> = [];
   const completedRuns = new Set<string | null>();
+  // Tools whose completion already reloaded the open page, so the run's done
+  // does not reload it a second time.
+  const announcedTools = new Set<string>();
 
   // A ui-action run queued on this thread settles its card whichever run the
   // stream is following; only that followed run drives the conversation.
@@ -337,6 +340,13 @@ export function attachAgentStreamSubscriptions(
         const payload = data as AgentStreamToolCompletePayload;
         deps.touchCompletionWatchdog();
         deps.markThreadRunning(payload.threadId);
+        // The tool changed data the moment it completed, even when the run
+        // fails afterwards (a model turn that errors never sends a done with
+        // the tool list), so the open page reloads now.
+        announcedTools.add(`${payload.runId ?? ''}:${payload.toolName}`);
+        dispatchAgentToolEffects([
+          { status: payload.status, toolName: payload.toolName },
+        ]);
         if (deps.isThreadVisible(payload.threadId)) {
           deps.updateActiveToolCall(payload.toolCallId, {
             debug: payload.debug,
@@ -370,7 +380,14 @@ export function attachAgentStreamSubscriptions(
           completedRuns.add(completedRun);
           // The run's tools already changed data, however the thread's reply
           // is applied below; the open page reloads what they touched.
-          dispatchAgentToolEffects(payload.toolCalls);
+          dispatchAgentToolEffects(
+            payload.toolCalls.filter(
+              (toolCall) =>
+                !announcedTools.has(
+                  `${payload.runId ?? ''}:${toolCall.toolName}`,
+                ),
+            ),
+          );
 
           deps.pendingCompletionRef.current = null;
           deps.clearCompletionWatchdog();
