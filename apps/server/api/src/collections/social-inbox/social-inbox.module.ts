@@ -8,6 +8,7 @@ import { FacebookWebhookService } from '@api/collections/social-inbox/services/f
 import { InstagramWebhookService } from '@api/collections/social-inbox/services/instagram-webhook.service';
 import { SocialInboxService } from '@api/collections/social-inbox/services/social-inbox.service';
 import { SocialInboxActionService } from '@api/collections/social-inbox/services/social-inbox-action.service';
+import { SocialInboxDmSenderService } from '@api/collections/social-inbox/services/social-inbox-dm-sender.service';
 import { SocialInboxFacebookIngestionService } from '@api/collections/social-inbox/services/social-inbox-facebook-ingestion.service';
 import { SocialInboxIngestionService } from '@api/collections/social-inbox/services/social-inbox-ingestion.service';
 import { SocialInboxQueryService } from '@api/collections/social-inbox/services/social-inbox-query.service';
@@ -56,6 +57,7 @@ import { Module } from '@nestjs/common';
     SocialInboxSuggestedReplyService,
     SuggestedReplyCreditsGuard,
     SocialInboxActionService,
+    SocialInboxDmSenderService,
     SocialInboxFacebookIngestionService,
     SocialInboxIngestionService,
     SocialInboxQueryService,

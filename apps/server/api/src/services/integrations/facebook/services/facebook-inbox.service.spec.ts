@@ -4,6 +4,7 @@ import { of } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
 
 interface GraphRequest {
+  body?: unknown;
   method: 'GET' | 'POST';
   params: Record<string, unknown>;
   url: string;
@@ -13,6 +14,7 @@ function createService(options: {
   credential?: Record<string, unknown> | null;
   graphData?: unknown;
   pages?: Array<{ accessToken?: string; id: string }>;
+  postData?: unknown;
 }) {
   const requests: GraphRequest[] = [];
   const credential =
@@ -37,11 +39,11 @@ function createService(options: {
       },
       post: (
         url: string,
-        _body: unknown,
+        body: unknown,
         config: { params: Record<string, unknown> },
       ) => {
-        requests.push({ method: 'POST', params: config.params, url });
-        return of({ data: { success: true } });
+        requests.push({ body, method: 'POST', params: config.params, url });
+        return of({ data: options.postData ?? { success: true } });
       },
     } as never,
     { log: vi.fn(), warn: vi.fn() } as never,
@@ -154,5 +156,158 @@ describe('FacebookInboxService.ensureWebhookSubscription', () => {
     await expect(attempt).rejects.toThrow(BadRequestException);
     await expect(attempt).rejects.toThrow('grant pages_manage_metadata');
     expect(requests).toEqual([]);
+  });
+});
+
+describe('FacebookInboxService subscription fields', () => {
+  it('also subscribes the Page to messages when pages_messaging was granted', async () => {
+    const { requests, service } = createService({
+      credential: {
+        externalId: 'page-1',
+        grantedScopes: ['pages_manage_metadata', 'pages_messaging'],
+        id: 'cred-1',
+      },
+    });
+
+    await service.ensureWebhookSubscription('org-1', 'brand-1', 'cred-1');
+
+    expect(requests[0]?.params.subscribed_fields).toBe('feed,messages');
+  });
+});
+
+describe('FacebookInboxService.listMessengerThreads', () => {
+  const messengerCredential = {
+    externalId: 'page-1',
+    grantedScopes: ['pages_messaging'],
+    id: 'cred-1',
+  };
+
+  it("returns the person's messages from the Page's Messenger conversations", async () => {
+    const { requests, service } = createService({
+      credential: messengerCredential,
+      graphData: {
+        data: [
+          {
+            id: 't_100',
+            messages: {
+              data: [
+                {
+                  created_time: '2026-11-23T10:00:00+0000',
+                  from: { id: 'psid-1', name: 'Taylor' },
+                  id: 'm_1',
+                  message: 'Do you ship to the EU?',
+                },
+                {
+                  created_time: '2026-11-23T10:01:00+0000',
+                  from: { id: 'page-1', name: 'Acme Page' },
+                  id: 'm_2',
+                  message: 'Yes',
+                },
+              ],
+            },
+            participants: {
+              data: [
+                { id: 'psid-1', name: 'Taylor' },
+                { id: 'page-1', name: 'Acme Page' },
+              ],
+            },
+          },
+        ],
+      },
+    });
+
+    const threads = await service.listMessengerThreads(
+      'org-1',
+      'brand-1',
+      'cred-1',
+      30,
+    );
+
+    expect(threads).toEqual([
+      {
+        conversationId: 't_100',
+        messages: [
+          {
+            createdAt: new Date('2026-11-23T10:00:00.000Z'),
+            messageId: 'm_1',
+            senderExternalId: 'psid-1',
+            senderName: 'Taylor',
+            text: 'Do you ship to the EU?',
+          },
+        ],
+        participantExternalId: 'psid-1',
+        participantName: 'Taylor',
+      },
+    ]);
+    expect(requests[0]?.url).toMatch(/\/page-1\/conversations$/);
+    expect(requests[0]?.params).toMatchObject({
+      access_token: 'page-token',
+      limit: 30,
+      platform: 'messenger',
+    });
+  });
+
+  it('asks the user to reconnect, without calling Meta, when pages_messaging was not granted', async () => {
+    const { requests, service } = createService({
+      credential: {
+        externalId: 'page-1',
+        grantedScopes: ['pages_manage_metadata'],
+        id: 'cred-1',
+      },
+    });
+
+    await expect(
+      service.listMessengerThreads('org-1', 'brand-1', 'cred-1'),
+    ).rejects.toThrow('grant pages_messaging');
+    expect(requests).toEqual([]);
+  });
+});
+
+describe('FacebookInboxService.sendMessengerMessage', () => {
+  const messengerCredential = {
+    externalId: 'page-1',
+    grantedScopes: ['pages_messaging'],
+    id: 'cred-1',
+  };
+
+  it('sends a RESPONSE to the person as the Page and returns the message id', async () => {
+    const { requests, service } = createService({
+      credential: messengerCredential,
+      postData: { message_id: 'm_sent', recipient_id: 'psid-1' },
+    });
+
+    await expect(
+      service.sendMessengerMessage(
+        'org-1',
+        'brand-1',
+        'cred-1',
+        'psid-1',
+        'Yes, we ship to the EU.',
+      ),
+    ).resolves.toBe('m_sent');
+    expect(requests[0]?.url).toMatch(/\/page-1\/messages$/);
+    expect(requests[0]?.params.access_token).toBe('page-token');
+    expect(requests[0]?.body).toEqual({
+      message: { text: 'Yes, we ship to the EU.' },
+      messaging_type: 'RESPONSE',
+      recipient: { id: 'psid-1' },
+    });
+  });
+
+  it('fails when Meta accepts the call but returns no message id', async () => {
+    const { service } = createService({
+      credential: messengerCredential,
+      postData: {},
+    });
+
+    await expect(
+      service.sendMessengerMessage(
+        'org-1',
+        'brand-1',
+        'cred-1',
+        'psid-1',
+        'Hi',
+      ),
+    ).rejects.toThrow('did not return the sent message id');
   });
 });

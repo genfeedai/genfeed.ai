@@ -26,6 +26,7 @@ import {
   toOutboundScope,
   toSocialActionInput,
 } from '@api/collections/social-inbox/services/social-inbox-action-state.util';
+import { SocialInboxDmSenderService } from '@api/collections/social-inbox/services/social-inbox-dm-sender.service';
 import {
   buildSocialInboxOutboundWorkflowDefinition,
   SOCIAL_INBOX_OUTBOUND_ACTION_IDS,
@@ -72,6 +73,7 @@ export class SocialInboxActionService implements OnModuleInit {
     private readonly readStateService: SocialInboxReadStateService,
     private readonly realtimeService: SocialInboxRealtimeService,
     private readonly systemWorkflowRunner: SystemWorkflowRunnerService,
+    private readonly dmSender: SocialInboxDmSenderService,
   ) {}
 
   onModuleInit(): void {
@@ -643,40 +645,14 @@ export class SocialInboxActionService implements OnModuleInit {
   private async executeProviderDmAction(
     input: SocialInboxOutboundWorkflowState,
   ): Promise<{ messageId: string }> {
-    const organizationId = input.organizationId;
     const conversation = await this.queryService.getConversation(
-      { organizationId },
+      { organizationId: input.organizationId },
       input.conversationId,
     );
 
-    if (!conversation.brandId) {
-      throw new BadRequestException('A brand is required to send DMs');
-    }
-
-    if (conversation.platform !== 'instagram') {
-      throw new BadRequestException(
-        `${conversation.platform} DMs are not supported`,
-      );
-    }
-
-    const recipientId =
-      (typeof input.recipientId === 'string' ? input.recipientId : undefined) ??
-      conversation.participantExternalId;
-    if (!recipientId) {
-      throw new BadRequestException('Instagram DM requires a recipient id');
-    }
-
-    const messageId = await this.instagramService.sendDirectMessage(
-      conversation.organizationId,
-      conversation.brandId,
-      recipientId,
-      input.body,
-      conversation.credentialId ?? undefined,
-    );
-
-    if (!messageId) throw new Error('Instagram did not return a message_id.');
-    return { messageId };
+    return this.dmSender.send(conversation, input.body, input.recipientId);
   }
+
   private async completeOutboundAction(
     state: SocialInboxOutboundWorkflowState,
     conversation: SocialConversationDocument,

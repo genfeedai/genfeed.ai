@@ -1,4 +1,4 @@
-import { extractFacebookCommentPageIds } from '@api/collections/social-inbox/services/facebook-webhook.util';
+import { extractFacebookInboxPageIds } from '@api/collections/social-inbox/services/facebook-webhook.util';
 import {
   safeEqualStrings,
   verifyMetaWebhookSignature,
@@ -20,8 +20,8 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 
-/** Coalesces a burst of comments on one Page into a single inbox sync. */
-const COMMENT_SYNC_DEBOUNCE_SECONDS = 3;
+/** Coalesces a burst of comments and messages on one Page into a single inbox sync. */
+const INBOX_SYNC_DEBOUNCE_SECONDS = 3;
 
 export interface FacebookWebhookResult {
   enqueued: number;
@@ -29,10 +29,10 @@ export interface FacebookWebhookResult {
 }
 
 /**
- * Real-time intake for comments on a connected Facebook Page. Meta says a Page
- * received a comment; the Graph comment sync then fetches it, so a webhook and
- * a manual Sync share one ingest path, one conversation id and one set of
- * dedupe keys.
+ * Real-time intake for comments and Messenger messages on a connected Facebook
+ * Page. Meta says a Page received one; the Graph sync then fetches it, so a
+ * webhook and a manual Sync share one ingest path, one conversation id and one
+ * set of dedupe keys.
  */
 @Traced()
 @Injectable()
@@ -102,17 +102,17 @@ export class FacebookWebhookService {
       throw new BadRequestException('Webhook body is not valid JSON');
     }
 
-    const pageIds = extractFacebookCommentPageIds(payload);
+    const pageIds = extractFacebookInboxPageIds(payload);
     let enqueued = 0;
 
     for (const pageId of pageIds) {
-      enqueued += await this.enqueueCommentSync(pageId);
+      enqueued += await this.enqueueInboxSync(pageId);
     }
 
     return { enqueued, pages: pageIds.length };
   }
 
-  private async enqueueCommentSync(pageId: string): Promise<number> {
+  private async enqueueInboxSync(pageId: string): Promise<number> {
     // tenant-scope-ignore: Meta supplies only the Page id in a signature-verified delivery, so this cross-tenant routing lookup returns the owning organizationId and every sync below is pinned to that resolved tenant
     const credentials = await this.prisma.credential.findMany({
       select: { brandId: true, id: true, organizationId: true, userId: true },
@@ -150,14 +150,11 @@ export class FacebookWebhookService {
       } catch (error: unknown) {
         // Answer 200 anyway: a non-2xx makes Meta retry and, after an hour of
         // failures, unsubscribe the Page. The next webhook or a manual Sync
-        // fetches the comment.
-        this.logger.error(
-          `${this.constructorName} comment sync enqueue failed`,
-          {
-            credentialId: credential.id,
-            error: error instanceof Error ? error.message : 'unknown',
-          },
-        );
+        // fetches it.
+        this.logger.error(`${this.constructorName} inbox sync enqueue failed`, {
+          credentialId: credential.id,
+          error: error instanceof Error ? error.message : 'unknown',
+        });
       }
     }
 
@@ -171,10 +168,10 @@ export class FacebookWebhookService {
     }
 
     const acquired = await publisher.set(
-      `facebook:webhook:comment-sync:${credentialId}`,
+      `facebook:webhook:inbox-sync:${credentialId}`,
       new Date().toISOString(),
       'EX',
-      COMMENT_SYNC_DEBOUNCE_SECONDS,
+      INBOX_SYNC_DEBOUNCE_SECONDS,
       'NX',
     );
 

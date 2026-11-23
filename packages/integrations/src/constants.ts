@@ -58,6 +58,7 @@ export const FACEBOOK_OAUTH_SCOPES = [
   'pages_read_engagement',
   'pages_manage_metadata',
   'pages_manage_engagement',
+  'pages_messaging',
   'pages_read_user_content',
   'read_insights',
   'publish_video',

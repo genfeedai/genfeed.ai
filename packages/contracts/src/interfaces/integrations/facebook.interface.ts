@@ -93,3 +93,36 @@ export interface IFacebookGraphPost {
   message?: string;
   permalink_url?: string;
 }
+
+/** One message in a Messenger conversation with a connected Facebook Page. */
+export interface IFacebookMessengerMessage {
+  createdAt: Date;
+  messageId: string;
+  senderExternalId?: string;
+  senderName?: string;
+  text: string;
+}
+
+/** A Messenger conversation, with the messages the person sent the Page. */
+export interface IFacebookMessengerThread {
+  conversationId: string;
+  /** Only the person's messages: the Page's own sends are stored when sent. */
+  messages: IFacebookMessengerMessage[];
+  participantExternalId?: string;
+  participantName?: string;
+}
+
+/** A Graph conversation node as the Page's `conversations` edge returns it. */
+export interface IFacebookGraphConversation {
+  id?: string;
+  messages?: {
+    data?: Array<{
+      created_time?: string;
+      from?: { id?: string; name?: string };
+      id?: string;
+      message?: string;
+    }>;
+  };
+  participants?: { data?: Array<{ id?: string; name?: string }> };
+  updated_time?: string;
+}
