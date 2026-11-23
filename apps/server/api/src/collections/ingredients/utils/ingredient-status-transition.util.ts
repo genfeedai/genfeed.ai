@@ -1,10 +1,12 @@
 import { INGREDIENT_PROCESSING_TIMEOUT_ERROR } from '@api/collections/ingredients/constants/processing-timeout.constants';
+import type { UpdateIngredientDto } from '@api/collections/ingredients/dto/update-ingredient.dto';
 import type { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import {
   INGREDIENT_STATE_MACHINE,
   IngredientStatus,
 } from '@genfeedai/contracts';
 import { traced } from '@libs/tracing/traced';
+import { ConflictException } from '@nestjs/common';
 
 export interface IngredientStatusTransition {
   id: string;
@@ -126,3 +128,45 @@ export const settleSharedIngredientGeneration = traced(
     return modifiedCount === 1;
   },
 );
+
+/**
+ * Applies a PATCH body to an ingredient. A `status` that differs from the
+ * stored one is an edge of `INGREDIENT_STATE_MACHINE`, written as a
+ * compare-and-set so a review on a stale tab cannot settle a generation that is
+ * still PROCESSING (#10404). An edge the table does not allow, or a status that
+ * changed since the read, throws a 409. Every other field is a plain write.
+ */
+export async function patchIngredientWithStatusEdge(
+  ingredients: Pick<IngredientsService, 'patch' | 'patchAll'>,
+  ingredient: { id: string; status: string },
+  body: Record<string, unknown>,
+  organizationId: string,
+): Promise<void> {
+  const { status: requested, ...fields } = body;
+  if (requested !== undefined && requested !== ingredient.status) {
+    const from = ingredient.status as IngredientStatus;
+    const to = requested as IngredientStatus;
+    if (!INGREDIENT_STATE_MACHINE.can(from, to)) {
+      throw new ConflictException(
+        `Ingredient cannot move from ${from} to ${to}`,
+      );
+    }
+    const moved = await transitionIngredientStatus(ingredients, {
+      from,
+      id: ingredient.id,
+      organizationId,
+      to,
+    });
+    if (!moved) {
+      throw new ConflictException(
+        `Ingredient status changed while it was being updated; it is no longer ${from}`,
+      );
+    }
+  }
+  if (Object.keys(fields).length > 0) {
+    await ingredients.patch(
+      ingredient.id,
+      fields as unknown as UpdateIngredientDto,
+    );
+  }
+}
