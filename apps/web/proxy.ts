@@ -19,6 +19,10 @@ import {
 import { DESKTOP_HTTP_HEADERS } from '@genfeedai/contracts/desktop';
 import { type NextRequest, NextResponse } from 'next/server';
 import {
+  computeSessionTag,
+  SESSION_TAG_COOKIE_NAME,
+} from '@/lib/auth/session-tag';
+import {
   getApiNamespacePoisonedProtectedPath,
   getTopLevelSegment,
   isBareProtectedPath,
@@ -1307,7 +1311,7 @@ function routePlaywrightBypassRequest(req: NextRequest): Promise<NextResponse> {
   );
 }
 
-export async function proxy(req: NextRequest) {
+async function routeRequest(req: NextRequest): Promise<NextResponse> {
   // These same-origin API routes must reach their route/rewrite without
   // entering app-page auth or workspace slug routing.
   if (
@@ -1367,6 +1371,58 @@ export async function proxy(req: NextRequest) {
   }
 
   return NextResponse.next();
+}
+
+/**
+ * Tells the page which session its document was served for, as a short
+ * fingerprint in a readable cookie (see `session-tag.ts`). It is set only when
+ * it changes and removed when the request carries no session, so most
+ * responses are untouched. No part of the token is in it.
+ */
+async function applySessionTag(
+  req: NextRequest,
+  response: NextResponse,
+): Promise<NextResponse> {
+  const { pathname } = req.nextUrl;
+  if (
+    req.method !== 'GET' ||
+    pathname === '/v1' ||
+    pathname.startsWith('/v1/') ||
+    pathname.startsWith('/api/')
+  ) {
+    return response;
+  }
+
+  const sessionValue =
+    getBetterAuthSessionCookie(req) ??
+    // The Playwright build has no Better Auth cookie; its mock session is the
+    // `__session` cookie.
+    (isPlaywrightBypassRequest(req)
+      ? (req.cookies.get('__session')?.value ?? null)
+      : null);
+  const currentTag = req.cookies.get(SESSION_TAG_COOKIE_NAME)?.value ?? null;
+
+  if (!sessionValue) {
+    if (currentTag !== null) {
+      response.cookies.delete(SESSION_TAG_COOKIE_NAME);
+    }
+    return response;
+  }
+
+  const tag = await computeSessionTag(sessionValue);
+  if (tag !== currentTag) {
+    response.cookies.set(SESSION_TAG_COOKIE_NAME, tag, {
+      httpOnly: false,
+      path: '/',
+      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production',
+    });
+  }
+  return response;
+}
+
+export async function proxy(req: NextRequest): Promise<NextResponse> {
+  return applySessionTag(req, await routeRequest(req));
 }
 
 export default proxy;

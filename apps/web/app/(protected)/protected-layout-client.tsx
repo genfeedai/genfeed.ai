@@ -11,6 +11,7 @@ import { useEffect } from 'react';
 import DesktopRuntimeKeepAlive from '@/components/desktop/DesktopRuntimeKeepAlive';
 import AppProtectedLayout from '@/components/layouts/protected/app-protected-layout';
 import BootRecordGuard from '@/components/providers/boot-record/BootRecordGuard';
+import DeviceStoreScope from '@/components/providers/device-stores/DeviceStoreScope';
 import PersistedQueryCacheGate from '@/components/providers/persisted-query-cache/PersistedQueryCacheGate';
 import WorkspaceFrameSkeleton from '@/components/shell/workspace-frame-skeleton/WorkspaceFrameSkeleton';
 import { useAuthUser } from '@/hooks/auth/use-auth-user';
@@ -117,6 +118,7 @@ export default function ProtectedLayoutClient({
       */}
       <RoutedOrganizationProvider>
         <BootRecordGuard />
+        <DeviceStoreScope />
         {flagGatedShell}
       </RoutedOrganizationProvider>
     </>

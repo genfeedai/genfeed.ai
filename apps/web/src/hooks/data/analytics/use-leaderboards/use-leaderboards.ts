@@ -9,42 +9,40 @@ import {
   type IOrgLeaderboardItem,
 } from '@genfeedai/services/analytics/analytics.service';
 import { logger } from '@genfeedai/services/core/logger.service';
-import {
-  createCacheKey,
-  createLocalStorageCache,
-} from '@helpers/data/cache/cache.helper';
+import { createCacheKey } from '@helpers/data/cache/cache.helper';
 import { getDateRangeKeys } from '@helpers/utils/date-range.util';
 import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useCallback, useMemo } from 'react';
+import { createWorkspaceLocalStorageCache } from '@/lib/device-stores/device-store-scope';
 
 const LEADERBOARD_CACHE_TTL_MS = 15 * 60 * 1000;
 
 const ORGS_LEADERBOARD_CACHE =
   typeof window !== 'undefined'
-    ? createLocalStorageCache<IOrgLeaderboardItem[]>({
-        prefix: 'analytics:leaderboards:orgs:',
-      })
+    ? createWorkspaceLocalStorageCache<IOrgLeaderboardItem[]>(
+        'analytics:leaderboards:orgs:',
+      )
     : null;
 
 const ORGS_LEADERBOARD_CACHE_META =
   typeof window !== 'undefined'
-    ? createLocalStorageCache<string>({
-        prefix: 'analytics:leaderboards:orgs:meta:',
-      })
+    ? createWorkspaceLocalStorageCache<string>(
+        'analytics:leaderboards:orgs:meta:',
+      )
     : null;
 
 const BRANDS_LEADERBOARD_CACHE =
   typeof window !== 'undefined'
-    ? createLocalStorageCache<IBrandWithStats[]>({
-        prefix: 'analytics:leaderboards:brands:',
-      })
+    ? createWorkspaceLocalStorageCache<IBrandWithStats[]>(
+        'analytics:leaderboards:brands:',
+      )
     : null;
 
 const BRANDS_LEADERBOARD_CACHE_META =
   typeof window !== 'undefined'
-    ? createLocalStorageCache<string>({
-        prefix: 'analytics:leaderboards:brands:meta:',
-      })
+    ? createWorkspaceLocalStorageCache<string>(
+        'analytics:leaderboards:brands:meta:',
+      )
     : null;
 
 const NO_ORGS: IOrgLeaderboardItem[] = [];

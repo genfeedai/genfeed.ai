@@ -1,13 +1,11 @@
 import { useAnalyticsContext } from '@genfeedai/contexts/analytics/analytics-context';
 import { AnalyticsMetric, type PostVisibility } from '@genfeedai/contracts';
 import { AnalyticsService } from '@genfeedai/services/analytics/analytics.service';
-import {
-  createCacheKey,
-  createLocalStorageCache,
-} from '@helpers/data/cache/cache.helper';
+import { createCacheKey } from '@helpers/data/cache/cache.helper';
 import { getDateRangeKeys } from '@helpers/utils/date-range.util';
 import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useCallback, useMemo } from 'react';
+import { createWorkspaceLocalStorageCache } from '@/lib/device-stores/device-store-scope';
 
 export interface TopPostData {
   postId: string;
@@ -48,12 +46,12 @@ const TOP_POSTS_CACHE_TTL_MS = 15 * 60 * 1000;
 
 const TOP_POSTS_CACHE =
   typeof window !== 'undefined'
-    ? createLocalStorageCache<TopPostData[]>({ prefix: 'analytics:top-posts:' })
+    ? createWorkspaceLocalStorageCache<TopPostData[]>('analytics:top-posts:')
     : null;
 
 const TOP_POSTS_CACHE_META =
   typeof window !== 'undefined'
-    ? createLocalStorageCache<string>({ prefix: 'analytics:top-posts:meta:' })
+    ? createWorkspaceLocalStorageCache<string>('analytics:top-posts:meta:')
     : null;
 
 const NO_POSTS: TopPostData[] = [];

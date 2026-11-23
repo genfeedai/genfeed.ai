@@ -10,6 +10,7 @@ import { createBootRecord } from '@/lib/boot-record/boot-record.fixture';
 
 const state = vi.hoisted(() => ({
   identity: {
+    hasSessionReadFailed: false,
     isLoaded: true,
     isSignedIn: true,
     userId: 'user-1' as string | null,
@@ -40,7 +41,12 @@ describe('BootRecordGuard', () => {
   beforeEach(() => {
     window.localStorage.clear();
     clearQueryCache.mockClear();
-    state.identity = { isLoaded: true, isSignedIn: true, userId: 'user-1' };
+    state.identity = {
+      hasSessionReadFailed: false,
+      isLoaded: true,
+      isSignedIn: true,
+      userId: 'user-1',
+    };
     state.status = 'matched';
     store('user-1');
   });
@@ -71,7 +77,12 @@ describe('BootRecordGuard', () => {
   });
 
   it('wipes them when the session has ended', () => {
-    state.identity = { isLoaded: true, isSignedIn: false, userId: null };
+    state.identity = {
+      hasSessionReadFailed: false,
+      isLoaded: true,
+      isSignedIn: false,
+      userId: null,
+    };
     render(<BootRecordGuard />);
 
     expect(readBootRecordUserId()).toBeNull();
@@ -79,10 +90,54 @@ describe('BootRecordGuard', () => {
   });
 
   it("wipes them when the session is another user's", () => {
-    state.identity = { isLoaded: true, isSignedIn: true, userId: 'user-2' };
+    state.identity = {
+      hasSessionReadFailed: false,
+      isLoaded: true,
+      isSignedIn: true,
+      userId: 'user-2',
+    };
     render(<BootRecordGuard />);
 
     expect(readBootRecordUserId()).toBeNull();
     expect(clearQueryCache).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps everything when the session read failed: a failed read is not signed out', () => {
+    window.localStorage.setItem('analytics:top-posts:user-1:org-1:x', '{}');
+    state.identity = {
+      hasSessionReadFailed: true,
+      isLoaded: true,
+      isSignedIn: false,
+      userId: null,
+    };
+    render(<BootRecordGuard />);
+
+    expect(readBootRecordUserId()).toBe('user-1');
+    expect(
+      window.localStorage.getItem('analytics:top-posts:user-1:org-1:x'),
+    ).not.toBeNull();
+    expect(clearQueryCache).not.toHaveBeenCalled();
+  });
+
+  it('wipes the other device stores too when the session has ended', () => {
+    window.localStorage.setItem('analytics:top-posts:user-1:org-1:x', '{}');
+    window.sessionStorage.setItem('genfeed:storyboard-draft:v1:{}', '{}');
+    window.localStorage.setItem('genfeed:sidebar:width', '280');
+    state.identity = {
+      hasSessionReadFailed: false,
+      isLoaded: true,
+      isSignedIn: false,
+      userId: null,
+    };
+    render(<BootRecordGuard />);
+
+    expect(
+      window.localStorage.getItem('analytics:top-posts:user-1:org-1:x'),
+    ).toBeNull();
+    expect(
+      window.sessionStorage.getItem('genfeed:storyboard-draft:v1:{}'),
+    ).toBeNull();
+    // A layout preference is not workspace data.
+    expect(window.localStorage.getItem('genfeed:sidebar:width')).toBe('280');
   });
 });

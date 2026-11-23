@@ -11,7 +11,7 @@ import {
   holdRequests,
 } from '../../utils/block-skeleton-helpers';
 
-const BOOT_RECORD_KEY = 'genfeed:boot:v1';
+const BOOT_RECORD_KEY = 'genfeed:boot:v2';
 const MEMBERSHIP = createPlaywrightApiRoutePattern('organizations');
 
 const isApiRead = (url: URL): boolean => url.pathname.startsWith('/v1/');
@@ -153,5 +153,49 @@ test.describe('Workspace frame — boot record', () => {
     ).toHaveCount(0);
     await expect.poll(() => storedBootRecord(page)).toBeNull();
     held.release();
+  });
+
+  test('never draws a rail written under another session', async ({
+    authenticatedPage: page,
+  }) => {
+    const dashboardPage = new DashboardPage(page);
+    await mockActiveSubscription(page, { credits: 1000, plan: 'pro' });
+    await mockAnalyticsData(page);
+    await dashboardPage.goto();
+    await expect(page.getByTestId('app-content-shell')).toBeVisible();
+    await expect.poll(() => storedBootRecord(page)).not.toBeNull();
+    const sessionTag = await page.evaluate(
+      () => document.cookie.match(/genfeed_session_tag=([0-9a-f]+)/)?.[1],
+    );
+    expect(sessionTag).toMatch(/^[0-9a-f]{16}$/);
+
+    // The same user, but the session cookie changed without this app's code
+    // running (a shared cookie domain, another sign-in): the tag differs.
+    await page.evaluate((key) => {
+      const record = JSON.parse(window.localStorage.getItem(key) ?? '{}');
+      window.localStorage.setItem(
+        key,
+        JSON.stringify({ ...record, sessionTag: 'another-session' }),
+      );
+    }, BOOT_RECORD_KEY);
+
+    const held = await holdRequests(page, isApiRead);
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await held.whenHeld;
+
+    await expect(page.getByTestId('workspace-frame-skeleton')).toBeVisible();
+    await expect(
+      page.getByTestId('workspace-frame-skeleton-rail').getByTestId('app-rail'),
+    ).toHaveCount(0);
+    held.release();
+
+    // The confirmed workspace writes the record again, under this session.
+    await expect(page.getByTestId('app-content-shell')).toBeVisible();
+    await expect
+      .poll(
+        async () =>
+          JSON.parse((await storedBootRecord(page)) ?? '{}').sessionTag,
+      )
+      .toBe(sessionTag);
   });
 });
