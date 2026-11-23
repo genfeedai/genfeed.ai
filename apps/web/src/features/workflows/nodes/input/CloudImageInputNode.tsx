@@ -7,6 +7,7 @@ import {
 } from '@genfeedai/workflows/ui/stores';
 import type { NodeProps } from '@xyflow/react';
 import Image from 'next/image';
+import { useTranslations } from 'next-intl';
 import { memo, useCallback, useMemo, useState } from 'react';
 import { NodeButton } from '@/features/workflows/components/ui/button';
 import {
@@ -57,6 +58,7 @@ function ImageIcon({
 
 function CloudImageInputNodeComponent(props: NodeProps): React.JSX.Element {
   const { data, id } = props;
+  const translate = useTranslations('pages.workflows.mediaInput');
   const updateNodeData = useWorkflowStore(selectUpdateNodeData);
   const openPicker = useWorkflowMediaPicker('image');
   const mediaConfig = useMemo(
@@ -212,7 +214,7 @@ function CloudImageInputNodeComponent(props: NodeProps): React.JSX.Element {
                   height={600}
                 />
               ) : (
-                <HelpText>Loading preview…</HelpText>
+                <HelpText>{translate('loadingPreview')}</HelpText>
               )}
             </div>
             <div className="space-y-1 text-2xs text-muted-foreground">
