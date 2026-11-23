@@ -201,6 +201,34 @@ describe('browser storage caches', () => {
     expect(storage.getItem('other:two')).toBe('2');
   });
 
+  it('never returns a saved copy to another scope, and holds still while the scope is unknown', () => {
+    const storage = createStorage();
+    setBrowserStorage('localStorage', storage);
+    let scope: string | null = 'user_a:org_1';
+    const cache = createLocalStorageCache<string>({
+      prefix: 'scoped:',
+      scope: () => scope,
+    });
+
+    cache.set('top', 'a-data');
+    expect(storage.getItem('scoped:user_a:org_1:top')).not.toBeNull();
+    expect(cache.get('top')).toBe('a-data');
+
+    scope = 'user_b:org_1';
+    expect(cache.get('top')).toBeNull();
+    scope = 'user_a:org_2';
+    expect(cache.get('top')).toBeNull();
+
+    scope = null;
+    cache.set('top', 'unscoped');
+    cache.remove('top');
+    expect(cache.get('top')).toBeNull();
+    expect(storage.length).toBe(1);
+
+    cache.clear();
+    expect(storage.length).toBe(0);
+  });
+
   // Regression: createLocalStorageCache/createSessionStorageCache are sometimes
   // invoked at module scope (e.g. useDiscoveryTrends.ts), which runs during
   // Next.js SSR/prerender where `localStorage` is not defined. The factory must

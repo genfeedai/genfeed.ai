@@ -7,10 +7,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { AnalyticsService } from '@genfeedai/services/analytics/analytics.service';
 import { logger } from '@genfeedai/services/core/logger.service';
-import {
-  createCacheKey,
-  createLocalStorageCache,
-} from '@helpers/data/cache/cache.helper';
+import { createCacheKey } from '@helpers/data/cache/cache.helper';
 import {
   getDateRangeKeys,
   getDateRangeWithDefaults,
@@ -18,22 +15,21 @@ import {
 import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useCallback, useMemo } from 'react';
+import { createWorkspaceLocalStorageCache } from '@/lib/device-stores/device-store-scope';
 import type { PlatformTimeSeriesDataPoint } from '@/props/analytics/charts.props';
 
 const TIMESERIES_CACHE_TTL_MS = 15 * 60 * 1000;
 
 const TIMESERIES_CACHE =
   typeof window !== 'undefined'
-    ? createLocalStorageCache<PlatformTimeSeriesDataPoint[]>({
-        prefix: 'analytics:timeseries:',
-      })
+    ? createWorkspaceLocalStorageCache<PlatformTimeSeriesDataPoint[]>(
+        'analytics:timeseries:',
+      )
     : null;
 
 const TIMESERIES_CACHE_META =
   typeof window !== 'undefined'
-    ? createLocalStorageCache<string>({
-        prefix: 'analytics:timeseries:meta:',
-      })
+    ? createWorkspaceLocalStorageCache<string>('analytics:timeseries:meta:')
     : null;
 
 const NO_POINTS: PlatformTimeSeriesDataPoint[] = [];

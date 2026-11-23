@@ -12,6 +12,13 @@ export interface CacheStats {
 
 export interface CacheConfig {
   prefix?: string;
+  /**
+   * Who and what a saved copy belongs to, read on every call. Keys carry it
+   * after the prefix, so a copy saved for one user and organization is never
+   * returned for another. While it returns null (the scope is not known yet)
+   * nothing is read and nothing is written.
+   */
+  scope?: () => string | null;
   maxSize?: number;
   onSet?: (key: string, value: unknown) => void;
   onGet?: (key: string, value: unknown) => void;
@@ -143,6 +150,14 @@ function createBrowserStorageCache<T = unknown>(
   clearDefaultPrefix = false,
 ): BrowserStorageCache<T> {
   const prefix = config?.prefix || 'cache:';
+  // The storage key of an entry, or null when its scope is not known yet.
+  const storageKeyFor = (key: string): string | null => {
+    if (!config?.scope) {
+      return `${prefix}${key}`;
+    }
+    const scope = config.scope();
+    return scope === null ? null : `${prefix}${scope}:${key}`;
+  };
 
   return {
     clear: () => {
@@ -157,7 +172,11 @@ function createBrowserStorageCache<T = unknown>(
     get: (key: string) => {
       try {
         const storage = getStorage();
-        const stored = storage.getItem(`${prefix}${key}`);
+        const storageKey = storageKeyFor(key);
+        if (storageKey === null) {
+          return null;
+        }
+        const stored = storage.getItem(storageKey);
         if (!stored) {
           config?.onGet?.(key, null);
           return null;
@@ -166,7 +185,7 @@ function createBrowserStorageCache<T = unknown>(
         const entry: CacheEntry<T> = JSON.parse(stored);
 
         if (isCacheExpired(entry.expires)) {
-          storage.removeItem(`${prefix}${key}`);
+          storage.removeItem(storageKey);
           return null;
         }
 
@@ -177,18 +196,25 @@ function createBrowserStorageCache<T = unknown>(
       }
     },
     remove: (key: string) => {
-      const storage = getStorage();
-      storage.removeItem(`${prefix}${key}`);
+      const storageKey = storageKeyFor(key);
+      if (storageKey === null) {
+        return;
+      }
+      getStorage().removeItem(storageKey);
       config?.onRemove?.(key);
     },
     set: (key: string, value: T, ttlMs: number = 300000) => {
       try {
         const storage = getStorage();
+        const storageKey = storageKeyFor(key);
+        if (storageKey === null) {
+          return;
+        }
         const entry: CacheEntry<T> = {
           data: value,
           expires: Date.now() + ttlMs,
         };
-        storage.setItem(`${prefix}${key}`, JSON.stringify(entry));
+        storage.setItem(storageKey, JSON.stringify(entry));
         config?.onSet?.(key, value);
       } catch {
         // Silently fail if browser storage is unavailable or quota exceeded.

@@ -1,6 +1,6 @@
 import type { BootRecord } from '@/props/layout/boot-record.props';
 
-export const BOOT_RECORD_STORAGE_KEY = 'genfeed:boot:v1';
+export const BOOT_RECORD_STORAGE_KEY = 'genfeed:boot:v2';
 
 /** The same window as the device query cache; a longer one needs a decision. */
 export const BOOT_RECORD_MAX_AGE_MS = 30 * 60_000;
@@ -64,7 +64,9 @@ export function parseBootRecord(
     const rail = record.rail;
     if (
       record.buildId !== options.buildId ||
+      typeof record.organizationId !== 'string' ||
       typeof record.organizationSlug !== 'string' ||
+      typeof record.sessionTag !== 'string' ||
       typeof record.userId !== 'string' ||
       typeof record.savedAt !== 'number' ||
       options.now - record.savedAt > BOOT_RECORD_MAX_AGE_MS ||

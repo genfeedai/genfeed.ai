@@ -83,6 +83,9 @@ vi.mock('@/lib/boot-record/use-boot-record', () => ({
 vi.mock('@/components/providers/boot-record/BootRecordGuard', () => ({
   default: () => null,
 }));
+vi.mock('@/components/providers/device-stores/DeviceStoreScope', () => ({
+  default: () => null,
+}));
 vi.mock(
   '@/components/providers/persisted-query-cache/PersistedQueryCacheGate',
   () => ({

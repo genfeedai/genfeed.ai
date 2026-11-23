@@ -9,14 +9,12 @@ import type {
 import { AnalyticsService } from '@genfeedai/services/analytics/analytics.service';
 import { OrganizationsService } from '@genfeedai/services/organization/organizations.service';
 import { BrandsService } from '@genfeedai/services/social/brands.service';
-import {
-  createCacheKey,
-  createLocalStorageCache,
-} from '@helpers/data/cache/cache.helper';
+import { createCacheKey } from '@helpers/data/cache/cache.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useQuery } from '@tanstack/react-query';
 import { useCallback, useMemo, useState } from 'react';
+import { createWorkspaceLocalStorageCache } from '@/lib/device-stores/device-store-scope';
 
 const ANALYTICS_CACHE_TTL_MS = 15 * 60 * 1000;
 
@@ -130,9 +128,9 @@ export function useAnalytics({
     if (typeof window === 'undefined') {
       return null;
     }
-    return createLocalStorageCache<AnalyticsCacheEntry>({
-      prefix: 'analytics:scoped:',
-    });
+    return createWorkspaceLocalStorageCache<AnalyticsCacheEntry>(
+      'analytics:scoped:',
+    );
   }, []);
 
   const {

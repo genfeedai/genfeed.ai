@@ -9,7 +9,7 @@ import {
   test,
 } from '../../fixtures/auth.fixture';
 
-const BOOT_RECORD_KEY = 'genfeed:boot:v1';
+const BOOT_RECORD_KEY = 'genfeed:boot:v2';
 
 interface SignOutControl {
   fail: () => void;

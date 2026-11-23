@@ -3,6 +3,7 @@
 import { getPlaywrightAuthState } from '@genfeedai/helpers/auth/auth.helper';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { useMemo, useSyncExternalStore } from 'react';
+import { readSessionTag } from '@/lib/auth/session-tag';
 import {
   parseBootRecord,
   readBootRecordText,
@@ -18,9 +19,13 @@ const readNothing = (): null => null;
  * The record that can paint the rail for `organizationSlug` right now, or
  * null. It is null on the server and during hydration (so the first paint
  * matches the server's HTML), when nothing is stored, when the stored record
- * is for another organization, or when the session has answered and belongs to
- * another user. The membership check still decides what stays: this only
- * chooses what is drawn while it runs.
+ * is for another organization, when it was written under another session than
+ * the one the page was served for (the session tag in the cookie), or when the
+ * session has answered and belongs to another user. The tag decides before the
+ * session answers: a record is never drawn on the strength of "nobody has said
+ * otherwise yet". A failed session read changes nothing: the tag still decides.
+ * The membership check still decides what stays: this only chooses what is
+ * drawn while it runs.
  */
 export function useBootRecord(
   organizationSlug: string | undefined,
@@ -30,13 +35,15 @@ export function useBootRecord(
     readBootRecordText,
     readNothing,
   );
-  const { isLoaded, isSignedIn, userId } = useAuthIdentity();
+  const { hasSessionReadFailed, isLoaded, isSignedIn, userId } =
+    useAuthIdentity();
   const playwrightAuth = getPlaywrightAuthState();
   const effectiveUserId = userId ?? playwrightAuth?.userId ?? null;
-  const isIdentityKnown =
-    isLoaded || playwrightAuth?.isLoaded === true || effectiveUserId !== null;
   const isSignedOut =
-    isLoaded && !isSignedIn && playwrightAuth?.isSignedIn !== true;
+    isLoaded &&
+    !isSignedIn &&
+    !hasSessionReadFailed &&
+    playwrightAuth?.isSignedIn !== true;
 
   return useMemo(() => {
     if (!organizationSlug || isSignedOut) {
@@ -48,11 +55,14 @@ export function useBootRecord(
     });
     if (
       !record ||
+      record.sessionTag !== readSessionTag() ||
       record.organizationSlug !== organizationSlug ||
-      (isIdentityKnown && record.userId !== effectiveUserId)
+      // Whoever the session names must be the user the record was kept for.
+      // With no user named (not answered, or the read failed) the tag decides.
+      (effectiveUserId !== null && record.userId !== effectiveUserId)
     ) {
       return null;
     }
     return record;
-  }, [effectiveUserId, isIdentityKnown, isSignedOut, organizationSlug, text]);
+  }, [effectiveUserId, isSignedOut, organizationSlug, text]);
 }
