@@ -226,7 +226,6 @@
     "apps/web/src/components/prompt-bars/components/expanded-view/PromptBarExpandedView.tsx": 1,
     "apps/web/src/components/prompt-bars/components/format-controls/PromptBarFormatControls.tsx": 1,
     "apps/web/src/components/prompt-bars/components/frame-controls/PromptBarFrameControls.tsx": 3,
-    "apps/web/src/components/prompt-bars/components/metadata-selectors/PromptBarMetadataSelectors.tsx": 13,
     "apps/web/src/components/prompt-bars/components/model-controls/PromptBarModelControls.tsx": 1,
     "apps/web/src/components/prompt-bars/components/quick-options/PromptBarQuickOptions.tsx": 3,
     "apps/web/src/components/prompt-bars/components/speech-input/PromptBarSpeechInput.tsx": 1,

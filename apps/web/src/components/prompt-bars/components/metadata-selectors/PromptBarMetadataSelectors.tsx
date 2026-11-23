@@ -1,18 +1,12 @@
 'use client';
 
 import { ModelCategory, Platform } from '@genfeedai/contracts';
-import type {
-  IElementCamera,
-  IElementCameraMovement,
-  IElementLens,
-  IElementLighting,
-  IElementMood,
-  IElementScene,
-  IElementStyle,
-  IFontFamily,
-  IPreset,
-} from '@genfeedai/contracts/interfaces';
-import FormDropdown from '@ui/primitives/dropdown-field';
+import type { IPreset } from '@genfeedai/contracts/interfaces';
+import { Avatar } from '@ui/primitives/avatar';
+import {
+  OptionSelect,
+  type OptionSelectOption,
+} from '@ui/primitives/option-select';
 import {
   ArrowLeftRight,
   Bookmark,
@@ -25,15 +19,9 @@ import {
   Scan,
   Smile,
 } from 'lucide-react';
-import type { ChangeEvent } from 'react';
+import { useTranslations } from 'next-intl';
 import { memo } from 'react';
 import type { PromptBarMetadataSelectorsProps } from '@/props/prompt-bars/prompt-bar-metadata-selectors.props';
-
-const presetTabs = [
-  { id: 'all', label: 'All' },
-  { id: 'generate-assets', label: 'Assets' },
-  { id: 'socials', label: 'Socials' },
-];
 
 const SOCIAL_PLATFORMS = [
   Platform.YOUTUBE,
@@ -53,7 +41,7 @@ type PresetWithLegacyBlacklist = IPreset & {
   blacklist?: Array<string | undefined>;
 };
 
-function getPresetGroup(preset: IPreset): string {
+function getPresetGroup(preset: IPreset): keyof typeof PRESET_GROUP_LABELS {
   if (preset.platform && SOCIAL_PLATFORMS.includes(preset.platform)) {
     return 'socials';
   }
@@ -63,6 +51,32 @@ function getPresetGroup(preset: IPreset): string {
   }
 
   return 'other';
+}
+
+const PRESET_GROUP_LABELS = {
+  'generate-assets': 'presetGroupAssets',
+  other: 'presetGroupOther',
+  socials: 'presetGroupSocials',
+} as const;
+
+interface ElementChoice {
+  key: string;
+  label: string;
+}
+
+/** Element lists (scene, style, camera, ...) are optional: the first row clears the choice. */
+function withNone(
+  choices: readonly ElementChoice[],
+  noneLabel: string,
+): OptionSelectOption[] {
+  return [
+    { label: noneLabel, value: '' },
+    ...choices.map((choice) => ({
+      isLiteral: true,
+      label: choice.label,
+      value: choice.key,
+    })),
+  ];
 }
 
 const PromptBarMetadataSelectors = memo(function PromptBarMetadataSelectors({
@@ -90,325 +104,267 @@ const PromptBarMetadataSelectors = memo(function PromptBarMetadataSelectors({
   triggerConfigChange,
   onModelSelect,
 }: PromptBarMetadataSelectorsProps) {
+  const translate = useTranslations('ui.promptBarControls');
+
+  const handlePresetChange = (value: string) => {
+    const preset = filteredPresets?.find((p) => p.key === value);
+
+    if (preset) {
+      setSelectedPreset(preset.key);
+
+      const textToInject = preset.prompt || preset.description;
+      form.setValue('text', textToInject, {
+        shouldValidate: true,
+      });
+      form.setValue('prompt_template', preset.key, {
+        shouldValidate: true,
+      });
+
+      onTextChange?.(textToInject);
+
+      if (preset.model && onModelSelect) {
+        onModelSelect(preset.model);
+      }
+
+      if (preset.style) {
+        form.setValue('style', preset.style, { shouldValidate: true });
+      }
+
+      if (preset.camera) {
+        form.setValue('camera', preset.camera, {
+          shouldValidate: true,
+        });
+      }
+
+      if (preset.scene) {
+        form.setValue('scene', preset.scene, { shouldValidate: true });
+      }
+
+      if (preset.mood) {
+        form.setValue('mood', preset.mood, { shouldValidate: true });
+      }
+
+      const presetBlacklist =
+        preset.blacklists || (preset as PresetWithLegacyBlacklist).blacklist;
+      if (presetBlacklist?.length) {
+        const blacklist = [...presetBlacklist].filter(
+          (key): key is string => key !== undefined,
+        );
+
+        form.setValue('blacklist', blacklist, {
+          shouldValidate: true,
+        });
+      }
+
+      triggerConfigChange?.();
+
+      refocusTextarea();
+    } else {
+      setSelectedPreset('');
+      form.setValue('prompt_template', undefined, {
+        shouldValidate: true,
+      });
+    }
+  };
+
   return (
     <>
       {currentConfig.buttons?.presets && filteredPresets?.length > 0 && (
-        <FormDropdown
+        <OptionSelect
           key="preset"
-          name="preset"
-          icon={<Bookmark />}
-          label="Preset"
-          triggerDisplay={triggerDisplay}
-          value={selectedPreset}
-          isSearchEnabled={true}
-          isFullWidth={false}
-          dropdownDirection="up"
+          ariaLabel={translate('preset')}
           className={controlClass}
+          icon={<Bookmark className="size-4" />}
           isDisabled={isDisabledState}
-          tabs={presetTabs}
+          isIconOnly={triggerDisplay === 'icon-only'}
+          isSearchable
+          onValueChange={handlePresetChange}
           options={filteredPresets.map((preset: IPreset) => ({
-            description: preset.description,
-            group: getPresetGroup(preset),
-            key: preset.key,
+            group: translate(PRESET_GROUP_LABELS[getPresetGroup(preset)]),
+            icon: preset.thumbnailUrl ? (
+              <Avatar
+                name={preset.label}
+                shape="square"
+                size="xs"
+                src={preset.thumbnailUrl}
+              />
+            ) : undefined,
+            isLiteral: true,
             label: preset.label,
-            thumbnailUrl: preset.thumbnailUrl,
+            value: preset.key,
           }))}
-          onChange={(e: ChangeEvent<HTMLSelectElement>) => {
-            const value = e.target.value;
-            const preset = filteredPresets?.find((p) => p.key === value);
-
-            if (preset) {
-              setSelectedPreset(preset.key);
-
-              const textToInject = preset.prompt || preset.description;
-              form.setValue('text', textToInject, {
-                shouldValidate: true,
-              });
-              form.setValue('prompt_template', preset.key, {
-                shouldValidate: true,
-              });
-
-              onTextChange?.(textToInject);
-
-              if (preset.model && onModelSelect) {
-                onModelSelect(preset.model);
-              }
-
-              if (preset.style) {
-                form.setValue('style', preset.style, { shouldValidate: true });
-              }
-
-              if (preset.camera) {
-                form.setValue('camera', preset.camera, {
-                  shouldValidate: true,
-                });
-              }
-
-              if (preset.scene) {
-                form.setValue('scene', preset.scene, { shouldValidate: true });
-              }
-
-              if (preset.mood) {
-                form.setValue('mood', preset.mood, { shouldValidate: true });
-              }
-
-              const presetBlacklist =
-                preset.blacklists ||
-                (preset as PresetWithLegacyBlacklist).blacklist;
-              if (presetBlacklist?.length) {
-                const blacklist = [...presetBlacklist].filter(
-                  (key): key is string => key !== undefined,
-                );
-
-                form.setValue('blacklist', blacklist, {
-                  shouldValidate: true,
-                });
-              }
-
-              triggerConfigChange?.();
-
-              refocusTextarea();
-            } else {
-              setSelectedPreset('');
-              form.setValue('prompt_template', undefined, {
-                shouldValidate: true,
-              });
-            }
-          }}
+          placeholder={translate('preset')}
+          value={selectedPreset}
         />
       )}
 
       {profiles?.length > 0 && (
-        <FormDropdown
+        <OptionSelect
           key="profile"
-          name="profile"
-          icon={<CircleUser />}
-          label="Brand Voice"
-          triggerDisplay={triggerDisplay}
-          value={selectedProfile}
-          isSearchEnabled={true}
-          isFullWidth={false}
-          dropdownDirection="up"
+          ariaLabel={translate('brandVoice')}
           className={controlClass}
+          icon={<CircleUser className="size-4" />}
           isDisabled={isDisabledState}
+          isIconOnly={triggerDisplay === 'icon-only'}
+          isSearchable
+          onValueChange={setSelectedProfile}
           options={profiles.map((profile) => ({
-            key: profile.id,
+            isLiteral: true,
             label: profile.name,
+            value: profile.id,
           }))}
-          onChange={(e: ChangeEvent<HTMLSelectElement>) => {
-            const value = e.target.value;
-            setSelectedProfile(value);
-          }}
+          placeholder={translate('brandVoice')}
+          value={selectedProfile}
         />
       )}
 
       {currentConfig.buttons?.scene && filteredScenes.length > 0 && (
-        <FormDropdown
+        <OptionSelect
           key="scene"
-          name="scene"
-          icon={<Globe />}
-          label="Scene"
-          triggerDisplay={triggerDisplay}
-          value={form.watch('scene')}
-          isSearchEnabled={true}
-          isDisabled={isDisabledState}
-          isFullWidth={false}
-          isNoneEnabled={true}
-          dropdownDirection="up"
+          ariaLabel={translate('scene')}
           className={controlClass}
-          options={filteredScenes.map((scene: IElementScene) => ({
-            description: scene.description,
-            key: scene.key,
-            label: scene.label,
-          }))}
-          onChange={(e: ChangeEvent<HTMLSelectElement>) => {
-            form.setValue('scene', e.target.value, { shouldValidate: true });
+          icon={<Globe className="size-4" />}
+          isDisabled={isDisabledState}
+          isIconOnly={triggerDisplay === 'icon-only'}
+          isSearchable
+          onValueChange={(next) => {
+            form.setValue('scene', next, { shouldValidate: true });
           }}
+          options={withNone(filteredScenes, translate('none'))}
+          placeholder={translate('scene')}
+          value={form.watch('scene') ?? ''}
         />
       )}
 
       {currentConfig.buttons?.fontFamily &&
         filteredFontFamilies?.length > 0 && (
-          <FormDropdown
+          <OptionSelect
             key="fontFamily"
-            name="fontFamily"
-            icon={<Languages />}
-            label="Font"
-            triggerDisplay={triggerDisplay}
-            value={form.getValues('fontFamily')}
-            isDisabled={isDisabledState}
-            isNoneEnabled={true}
-            isFullWidth={false}
-            dropdownDirection="up"
+            ariaLabel={translate('font')}
             className={controlClass}
-            options={filteredFontFamilies.map((fontFamily: IFontFamily) => ({
-              key: fontFamily.key,
-              label: fontFamily.label,
-            }))}
-            onChange={(e: ChangeEvent<HTMLSelectElement>) => {
-              form.setValue('fontFamily', e.target.value, {
-                shouldValidate: true,
-              });
+            icon={<Languages className="size-4" />}
+            isDisabled={isDisabledState}
+            isIconOnly={triggerDisplay === 'icon-only'}
+            isSearchable
+            onValueChange={(next) => {
+              form.setValue('fontFamily', next, { shouldValidate: true });
             }}
+            options={withNone(filteredFontFamilies, translate('none'))}
+            placeholder={translate('font')}
+            value={form.watch('fontFamily') ?? ''}
           />
         )}
 
       {currentConfig.buttons?.style && filteredStyles.length > 0 && (
-        <FormDropdown
+        <OptionSelect
           key="style"
-          name="style"
-          icon={<Palette />}
-          label="Style"
-          triggerDisplay={triggerDisplay}
-          value={form.watch('style')}
-          isDisabled={isDisabledState}
-          isFullWidth={false}
-          isNoneEnabled={true}
-          isSearchEnabled={true}
+          ariaLabel={translate('style')}
           className={controlClass}
-          dropdownDirection="up"
-          options={filteredStyles.map((style: IElementStyle) => ({
-            description: style.description,
-            key: style.key,
-            label: style.label,
-          }))}
-          onChange={(e: ChangeEvent<HTMLSelectElement>) => {
-            form.setValue('style', e.target.value, { shouldValidate: true });
+          icon={<Palette className="size-4" />}
+          isDisabled={isDisabledState}
+          isIconOnly={triggerDisplay === 'icon-only'}
+          isSearchable
+          onValueChange={(next) => {
+            form.setValue('style', next, { shouldValidate: true });
           }}
+          options={withNone(filteredStyles, translate('none'))}
+          placeholder={translate('style')}
+          value={form.watch('style') ?? ''}
         />
       )}
 
       {currentConfig.buttons?.camera && filteredCameras.length > 0 && (
-        <FormDropdown
+        <OptionSelect
           key="camera"
-          name="camera"
-          icon={<Camera />}
-          label="Camera"
-          triggerDisplay={triggerDisplay}
-          value={form.watch('camera')}
-          isSearchEnabled={true}
-          isFullWidth={false}
-          isNoneEnabled={true}
+          ariaLabel={translate('camera')}
           className={controlClass}
-          dropdownDirection="up"
-          options={filteredCameras.map((camera: IElementCamera) => ({
-            description: camera.description,
-            key: camera.key,
-            label: camera.label,
-          }))}
-          onChange={(e: ChangeEvent<HTMLSelectElement>) => {
-            form.setValue('camera', e.target.value, { shouldValidate: true });
+          icon={<Camera className="size-4" />}
+          isDisabled={isDisabledState}
+          isIconOnly={triggerDisplay === 'icon-only'}
+          isSearchable
+          onValueChange={(next) => {
+            form.setValue('camera', next, { shouldValidate: true });
             refocusTextarea();
           }}
-          isDisabled={isDisabledState}
+          options={withNone(filteredCameras, translate('none'))}
+          placeholder={translate('camera')}
+          value={form.watch('camera') ?? ''}
         />
       )}
 
       {filteredLightings.length > 0 && (
-        <FormDropdown
+        <OptionSelect
           key="lighting"
-          name="lighting"
-          icon={<Lightbulb />}
-          label="Lighting"
-          triggerDisplay={triggerDisplay}
-          value={form.watch('lighting')}
-          isSearchEnabled={true}
-          isFullWidth={false}
-          isNoneEnabled={true}
+          ariaLabel={translate('lighting')}
           className={controlClass}
-          dropdownDirection="up"
-          options={filteredLightings.map((lighting: IElementLighting) => ({
-            description: lighting.description,
-            key: lighting.key,
-            label: lighting.label,
-          }))}
-          onChange={(e: ChangeEvent<HTMLSelectElement>) => {
-            form.setValue('lighting', e.target.value, { shouldValidate: true });
+          icon={<Lightbulb className="size-4" />}
+          isDisabled={isDisabledState}
+          isIconOnly={triggerDisplay === 'icon-only'}
+          isSearchable
+          onValueChange={(next) => {
+            form.setValue('lighting', next, { shouldValidate: true });
             refocusTextarea();
           }}
-          isDisabled={isDisabledState}
+          options={withNone(filteredLightings, translate('none'))}
+          placeholder={translate('lighting')}
+          value={form.watch('lighting') ?? ''}
         />
       )}
 
       {filteredLenses.length > 0 && (
-        <FormDropdown
+        <OptionSelect
           key="lens"
-          name="lens"
-          icon={<Scan />}
-          label="Lens"
-          triggerDisplay={triggerDisplay}
-          value={form.watch('lens')}
-          isSearchEnabled={true}
-          isFullWidth={false}
-          isNoneEnabled={true}
+          ariaLabel={translate('lens')}
           className={controlClass}
-          dropdownDirection="up"
-          options={filteredLenses.map((lens: IElementLens) => ({
-            description: lens.description,
-            key: lens.key,
-            label: lens.label,
-          }))}
-          onChange={(e: ChangeEvent<HTMLSelectElement>) => {
-            form.setValue('lens', e.target.value, { shouldValidate: true });
+          icon={<Scan className="size-4" />}
+          isDisabled={isDisabledState}
+          isIconOnly={triggerDisplay === 'icon-only'}
+          isSearchable
+          onValueChange={(next) => {
+            form.setValue('lens', next, { shouldValidate: true });
             refocusTextarea();
           }}
-          isDisabled={isDisabledState}
+          options={withNone(filteredLenses, translate('none'))}
+          placeholder={translate('lens')}
+          value={form.watch('lens') ?? ''}
         />
       )}
 
       {filteredCameraMovements.length > 0 && (
-        <FormDropdown
+        <OptionSelect
           key="cameraMovement"
-          name="cameraMovement"
-          icon={<ArrowLeftRight />}
-          label="Movement"
-          triggerDisplay={triggerDisplay}
-          value={form.watch('cameraMovement')}
-          isSearchEnabled={true}
-          isFullWidth={false}
-          isNoneEnabled={true}
+          ariaLabel={translate('movement')}
           className={controlClass}
-          dropdownDirection="up"
-          options={filteredCameraMovements.map(
-            (movement: IElementCameraMovement) => ({
-              description: movement.description,
-              key: movement.key,
-              label: movement.label,
-            }),
-          )}
-          onChange={(e: ChangeEvent<HTMLSelectElement>) => {
-            form.setValue('cameraMovement', e.target.value, {
-              shouldValidate: true,
-            });
+          icon={<ArrowLeftRight className="size-4" />}
+          isDisabled={isDisabledState}
+          isIconOnly={triggerDisplay === 'icon-only'}
+          isSearchable
+          onValueChange={(next) => {
+            form.setValue('cameraMovement', next, { shouldValidate: true });
             refocusTextarea();
           }}
-          isDisabled={isDisabledState}
+          options={withNone(filteredCameraMovements, translate('none'))}
+          placeholder={translate('movement')}
+          value={form.watch('cameraMovement') ?? ''}
         />
       )}
 
       {currentConfig.buttons?.mood && filteredMoods.length > 0 && (
-        <FormDropdown
+        <OptionSelect
           key="mood"
-          name="mood"
-          icon={<Smile />}
-          label="Mood"
-          triggerDisplay={triggerDisplay}
-          value={form.watch('mood')}
-          isSearchEnabled={true}
-          isDisabled={isDisabledState}
-          isFullWidth={false}
-          isNoneEnabled={true}
+          ariaLabel={translate('mood')}
           className={controlClass}
-          dropdownDirection="up"
-          options={filteredMoods.map((mood: IElementMood) => ({
-            description: mood.description,
-            key: mood.key,
-            label: mood.label,
-          }))}
-          onChange={(e: ChangeEvent<HTMLSelectElement>) => {
-            form.setValue('mood', e.target.value, { shouldValidate: true });
+          icon={<Smile className="size-4" />}
+          isDisabled={isDisabledState}
+          isIconOnly={triggerDisplay === 'icon-only'}
+          isSearchable
+          onValueChange={(next) => {
+            form.setValue('mood', next, { shouldValidate: true });
             refocusTextarea();
           }}
+          options={withNone(filteredMoods, translate('none'))}
+          placeholder={translate('mood')}
+          value={form.watch('mood') ?? ''}
         />
       )}
     </>
