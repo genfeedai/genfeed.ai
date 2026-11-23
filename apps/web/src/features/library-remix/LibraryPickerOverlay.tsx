@@ -1,13 +1,19 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import {
+  ButtonSize,
+  ButtonVariant,
+  formatEnumLabel,
+} from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type {
   AgentArtifactReference,
   IIngredient,
 } from '@genfeedai/contracts/interfaces';
+import type { LibraryGridItem } from '@genfeedai/props/ui/content/library-picker.props';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import CollectionGrid from '@ui/collection/CollectionGrid';
+import LibraryGrid from '@ui/content/library-picker/LibraryGrid';
+import OrderedMasonry from '@ui/display/masonry/OrderedMasonry';
 import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { EmptyState } from '@ui/primitives/empty-state';
@@ -15,6 +21,8 @@ import { Skeleton } from '@ui/primitives/skeleton';
 import { Tabs } from '@ui/primitives/tabs';
 import { ArrowRight, FolderOpen } from 'lucide-react';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
+import { useMemo } from 'react';
 
 import LibrarySourcePreview, {
   getLibrarySourceLabel,
@@ -32,13 +40,13 @@ type LibraryPickerOverlayProps = {
 function LibraryPickerSkeleton() {
   return (
     <div aria-label="Loading Library sources" role="status">
-      <CollectionGrid maxColumns={3}>
+      <OrderedMasonry maxColumns={3} minColumnWidth={150}>
         {Array.from({ length: 12 }, (_, index) => `source-${index + 1}`).map(
           (key) => (
             <Skeleton key={key} className="aspect-[4/3] w-full" />
           ),
         )}
-      </CollectionGrid>
+      </OrderedMasonry>
     </div>
   );
 }
@@ -62,37 +70,19 @@ function SelectionFailure({
   return <Alert variant="warning">{message}</Alert>;
 }
 
-function LibrarySourceButton({
-  ingredient,
-  isValidating,
-  onSelect,
-}: {
-  readonly ingredient: IIngredient;
-  readonly isValidating: boolean;
-  readonly onSelect: () => void;
-}) {
-  const label = getLibrarySourceLabel(ingredient);
-
-  return (
-    <Button
-      ariaLabel={`Select ${label}`}
-      className="group min-w-0 overflow-hidden text-left focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-      isDisabled={isValidating}
-      onClick={onSelect}
-      variant={ButtonVariant.UNSTYLED}
-      withWrapper={false}
-    >
-      <LibrarySourcePreview record={ingredient} />
-      <span className="block truncate border-t border-border px-2.5 py-2 text-xs font-medium text-foreground">
-        {isValidating ? 'Verifying source…' : label}
-      </span>
-    </Button>
-  );
+function toGridItem(ingredient: IIngredient): LibraryGridItem {
+  return {
+    aspectRatio: 4 / 3,
+    id: ingredient.id,
+    kind: formatEnumLabel(ingredient.category) ?? 'Asset',
+    title: getLibrarySourceLabel(ingredient),
+  };
 }
 
 export default function LibraryPickerOverlay({
   onSelect,
 }: LibraryPickerOverlayProps) {
+  const translate = useTranslations('ui.libraryPicker');
   const { href } = useOrgUrl();
   const {
     category,
@@ -106,6 +96,10 @@ export default function LibraryPickerOverlay({
     state,
   } = useLibraryPicker({ onSelect });
   const managementHref = href(APP_ROUTES.LIBRARY.ROOT);
+  const gridItems = useMemo(
+    () => (state.status === 'ready' ? state.items.map(toGridItem) : []),
+    [state],
+  );
 
   return (
     <div className="flex min-h-0 flex-col">
@@ -169,16 +163,30 @@ export default function LibraryPickerOverlay({
             <p className="sr-only" role="status">
               {state.total} Library sources available
             </p>
-            <CollectionGrid maxColumns={3}>
-              {state.items.map((ingredient) => (
-                <LibrarySourceButton
-                  ingredient={ingredient}
-                  isValidating={isValidatingId === ingredient.id}
-                  key={ingredient.id}
-                  onSelect={() => void select(ingredient)}
-                />
-              ))}
-            </CollectionGrid>
+            <LibraryGrid
+              ariaLabel={translate('sources')}
+              getItemAriaLabel={(item) =>
+                isValidatingId === item.id
+                  ? `Verifying ${item.title}`
+                  : `Select ${item.title}`
+              }
+              items={gridItems}
+              onSelect={(item) => {
+                const ingredient = state.items.find((i) => i.id === item.id);
+                if (ingredient && isValidatingId === null) {
+                  void select(ingredient);
+                }
+              }}
+              renderPreview={(item) => {
+                const ingredient = state.items.find((i) => i.id === item.id);
+                return ingredient ? (
+                  <LibrarySourcePreview
+                    className="size-full"
+                    record={ingredient}
+                  />
+                ) : null;
+              }}
+            />
             {state.hasMore ? (
               <div className="flex justify-center pt-5">
                 <Button

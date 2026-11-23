@@ -401,8 +401,8 @@ describe('IngredientPickerCard', () => {
     render(<IngredientPickerCard action={makeAction()} />);
 
     expect(screen.getByText('Choose an ingredient')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Sunset' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Waves' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Sunset' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Waves' })).toBeInTheDocument();
     expect(
       screen.queryByRole('button', { name: /use this ingredient/i }),
     ).not.toBeInTheDocument();
@@ -412,7 +412,7 @@ describe('IngredientPickerCard', () => {
     const onSelect = vi.fn();
     render(<IngredientPickerCard action={makeAction()} onSelect={onSelect} />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Sunset' }));
+    fireEvent.click(screen.getByRole('option', { name: 'Sunset' }));
     fireEvent.click(
       screen.getByRole('button', { name: /use this ingredient/i }),
     );
@@ -421,7 +421,7 @@ describe('IngredientPickerCard', () => {
     expect(screen.getByText('Sunset')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: /change/i }));
-    expect(screen.getByRole('button', { name: 'Sunset' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Sunset' })).toBeInTheDocument();
   });
 
   it('renders an empty state without ingredients', () => {
