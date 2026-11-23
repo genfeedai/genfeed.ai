@@ -43,6 +43,13 @@ vi.mock('@genfeedai/workflows/ui/stores', () => ({
   ) => selector({ updateNodeData: mocks.updateNodeData }),
 }));
 
+vi.mock('@/features/workflows/nodes/input/useWorkflowMediaUrl', () => ({
+  useWorkflowMediaUrl: (
+    _kind: string,
+    config: { resolvedUrl: string | null },
+  ) => config.resolvedUrl ?? undefined,
+}));
+
 vi.mock('@/features/workflows/nodes/input/useWorkflowMediaPicker', () => ({
   useWorkflowMediaPicker: () => mocks.openPicker,
 }));
