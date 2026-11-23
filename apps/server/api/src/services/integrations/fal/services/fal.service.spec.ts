@@ -7,9 +7,14 @@ import { of } from 'rxjs';
 
 const falConfig = vi.fn();
 const falSubscribe = vi.fn();
+const falCancel = vi.fn();
 
 vi.mock('@fal-ai/client', () => ({
-  fal: { config: falConfig, subscribe: falSubscribe },
+  fal: {
+    config: falConfig,
+    queue: { cancel: falCancel },
+    subscribe: falSubscribe,
+  },
 }));
 
 const { FalService } = await import('./fal.service');
@@ -429,5 +434,100 @@ describe('FalService', () => {
         service.generateVideo('fal-ai/kling', {}, 'byok-key'),
       ).resolves.toMatchObject({ url: 'https://x/a.mp4' });
     });
+  });
+});
+
+describe('FalService request tracking and cancel', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('stores the request reference before the output replaces it', async () => {
+    const { service } = createHarness();
+    const stored: string[] = [];
+    falSubscribe.mockImplementation(
+      async (_model: string, options: { onEnqueue?: (id: string) => void }) => {
+        options.onEnqueue?.('req-1');
+        return { data: { images: [{ url: 'https://fal.media/out.png' }] } };
+      },
+    );
+
+    const result = await service.generateImage(
+      'fal-ai/flux/dev',
+      { prompt: 'a cat' },
+      undefined,
+      undefined,
+      async (ref) => {
+        await Promise.resolve();
+        stored.push(`${ref.endpoint}#${ref.requestId}`);
+      },
+    );
+
+    expect(stored).toEqual(['fal-ai/flux/dev#req-1']);
+    expect(result.url).toBe('https://fal.media/out.png');
+  });
+
+  it('still returns the output when storing the reference fails', async () => {
+    const { loggerService, service } = createHarness();
+    falSubscribe.mockImplementation(
+      async (_model: string, options: { onEnqueue?: (id: string) => void }) => {
+        options.onEnqueue?.('req-1');
+        return { data: { video: { url: 'https://fal.media/out.mp4' } } };
+      },
+    );
+
+    await expect(
+      service.generateVideo('fal-ai/kling', {}, undefined, undefined, () => {
+        throw new Error('database down');
+      }),
+    ).resolves.toMatchObject({ url: 'https://fal.media/out.mp4' });
+    expect(loggerService.warn).toHaveBeenCalledWith(
+      expect.stringContaining('could not store the fal request id'),
+      expect.objectContaining({ requestId: 'req-1' }),
+    );
+  });
+
+  it('does not track a request run on the organization key', async () => {
+    const { post, service } = createHarness();
+    const onEnqueued = vi.fn();
+    post.mockReturnValue(of({ data: { images: [{ url: 'u' }] } }));
+
+    await service.generateImage(
+      'fal-ai/flux',
+      {},
+      'org-key',
+      undefined,
+      onEnqueued,
+    );
+
+    expect(onEnqueued).not.toHaveBeenCalled();
+    expect(falSubscribe).not.toHaveBeenCalled();
+  });
+
+  it('confirms a cancel only when fal accepts it', async () => {
+    const { service } = createHarness();
+    falCancel.mockResolvedValueOnce(undefined);
+
+    await expect(
+      service.cancelRequest({ endpoint: 'fal-ai/flux', requestId: 'req-1' }),
+    ).resolves.toBe(true);
+    expect(falCancel).toHaveBeenCalledWith('fal-ai/flux', {
+      requestId: 'req-1',
+    });
+  });
+
+  it('does not claim a cancel fal refused or that never reached it', async () => {
+    const { loggerService, service } = createHarness();
+    falCancel.mockRejectedValueOnce(new Error('request already completed'));
+
+    await expect(
+      service.cancelRequest({ endpoint: 'fal-ai/flux', requestId: 'req-1' }),
+    ).resolves.toBe(false);
+    expect(loggerService.warn).toHaveBeenCalled();
+
+    const { service: unconfigured } = createHarness(null);
+    await expect(
+      unconfigured.cancelRequest({ endpoint: 'fal-ai/flux', requestId: 'r' }),
+    ).resolves.toBe(false);
   });
 });

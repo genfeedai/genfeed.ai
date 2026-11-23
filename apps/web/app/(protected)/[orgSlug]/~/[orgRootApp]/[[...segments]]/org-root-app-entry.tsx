@@ -1,5 +1,5 @@
 import { type ReactNode, Suspense } from 'react';
-import WorkspaceContentSkeleton from '@/components/shell/workspace-frame-skeleton/WorkspaceContentSkeleton';
+import WorkspacePagePending from '@/components/shell/workspace-frame-skeleton/WorkspacePagePending';
 
 /**
  * The frame of one organization-level app that has its own static route
@@ -12,7 +12,5 @@ import WorkspaceContentSkeleton from '@/components/shell/workspace-frame-skeleto
  * which keeps one app's features out of the other routes' client manifests.
  */
 export default function OrgRootAppEntry({ children }: { children: ReactNode }) {
-  return (
-    <Suspense fallback={<WorkspaceContentSkeleton />}>{children}</Suspense>
-  );
+  return <Suspense fallback={<WorkspacePagePending />}>{children}</Suspense>;
 }

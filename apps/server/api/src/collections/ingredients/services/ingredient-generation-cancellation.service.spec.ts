@@ -2,6 +2,7 @@ import { GENERATION_CANCELLED_BY_USER } from '@api/collections/ingredients/const
 import { IngredientGenerationCancellationService } from '@api/collections/ingredients/services/ingredient-generation-cancellation.service';
 import type { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import type { FalService } from '@api/services/integrations/fal/services/fal.service';
 import type { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import type { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
 import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
@@ -40,6 +41,8 @@ describe('IngredientGenerationCancellationService', () => {
   let rows: Map<string, Ingredient>;
   let predictions: Map<string, string>;
   let isReplicateDown: boolean;
+  let falCancels: Array<{ endpoint: string; requestId: string }>;
+  let isFalCancelAccepted: boolean;
   let completesDuringCancel: string | undefined;
   let notifications: Record<string, unknown>[];
   let warnings: string[];
@@ -68,6 +71,8 @@ describe('IngredientGenerationCancellationService', () => {
     rows = new Map();
     predictions = new Map();
     isReplicateDown = false;
+    falCancels = [];
+    isFalCancelAccepted = true;
     completesDuringCancel = undefined;
     notifications = [];
     warnings = [];
@@ -119,6 +124,13 @@ describe('IngredientGenerationCancellationService', () => {
       },
       getPrediction: async (id: string) => ({ status: predictions.get(id) }),
     } as unknown as ReplicateService;
+    // fal: confirms a cancel only while it accepts one.
+    const fal = {
+      cancelRequest: async (ref: { endpoint: string; requestId: string }) => {
+        falCancels.push(ref);
+        return isFalCancelAccepted;
+      },
+    } as unknown as FalService;
     const failedGeneration = {
       notifyFailedGeneration: async (payload: Record<string, unknown>) => {
         notifications.push(payload);
@@ -132,6 +144,7 @@ describe('IngredientGenerationCancellationService', () => {
 
     service = new IngredientGenerationCancellationService(
       failedGeneration,
+      fal,
       ingredientsService,
       logger,
       replicate,
@@ -286,5 +299,76 @@ describe('IngredientGenerationCancellationService', () => {
     await settle();
 
     expect(rows.get('ing-1')?.status).toBe(IngredientStatus.FAILED);
+  });
+  describe('a generation running on fal', () => {
+    const FAL_REF = 'fal-request:fal-ai/flux/dev:req-123';
+    const onFal = (fields: Partial<Ingredient> = {}) =>
+      processing('ing-1', {
+        metadata: { externalId: FAL_REF, externalProvider: 'fal' },
+        ...fields,
+      });
+
+    it('asks fal to cancel the request and fails the placeholder', async () => {
+      onFal();
+
+      await expect(cancel()).resolves.toMatchObject({
+        generationError: GENERATION_CANCELLED_BY_USER,
+        status: IngredientStatus.FAILED,
+      });
+      expect(falCancels).toEqual([
+        { endpoint: 'fal-ai/flux/dev', requestId: 'req-123' },
+      ]);
+      expect(notifications).toHaveLength(1);
+    });
+
+    it('fails a funded output once fal accepts the cancel', async () => {
+      onFal({ generationBilling: QUOTE_GROUP });
+
+      await expect(cancel()).resolves.toMatchObject({
+        isGenerationFailureConfirmed: true,
+        status: IngredientStatus.FAILED,
+      });
+    });
+
+    it('keeps a funded output processing when fal does not confirm the cancel', async () => {
+      onFal({ generationBilling: QUOTE_GROUP });
+      isFalCancelAccepted = false;
+
+      await expect(cancel()).resolves.toMatchObject({
+        status: IngredientStatus.PROCESSING,
+      });
+      expect(notifications).toEqual([]);
+      expect(warnings).toContain(
+        'fal did not confirm the cancel; the job may still run at the provider',
+      );
+    });
+
+    it('says so, and still fails an unfunded placeholder, when fal does not confirm', async () => {
+      onFal();
+      isFalCancelAccepted = false;
+
+      await expect(cancel()).resolves.toMatchObject({
+        status: IngredientStatus.FAILED,
+      });
+      expect(warnings).toContain(
+        'fal did not confirm the cancel; the job may still run at the provider',
+      );
+    });
+
+    it('sends no cancel once the job has finished and holds its output URL', async () => {
+      onFal({
+        metadata: {
+          externalId: 'https://v3.fal.media/files/out.png',
+          externalProvider: 'fal',
+        },
+      });
+
+      await cancel();
+
+      expect(falCancels).toEqual([]);
+      expect(warnings).toContain(
+        'Provider has no cancel call here; the job keeps running at the provider',
+      );
+    });
   });
 });

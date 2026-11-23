@@ -10,6 +10,7 @@ import {
   type FalJsonSchema,
   type FalSchemaFamily,
 } from '@api/services/integrations/fal/services/fal-contract';
+import { falEnqueueArgs } from '@api/services/integrations/fal/services/fal-request-ref';
 import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
@@ -67,6 +68,7 @@ export class FalImageGenerationProviderAdapter
           input,
           request.apiKeyOverride,
           request.onProviderSubmissionStarted,
+          ...falEnqueueArgs(request.onProviderJobQueued),
         );
         return {
           ...(request.isRoutedOffer ? { outputUrls: [result.url] } : {}),

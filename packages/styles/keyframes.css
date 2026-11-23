@@ -53,6 +53,19 @@
    Tailwind generates the utility and its keyframes. */
 @theme {
   --animate-skeleton: skeleton-sweep 1.6s ease-in-out infinite;
+  /* A wait shorter than 350 ms shows nothing: the block holds its space, stays
+     transparent for that long, then fades in. `both` keeps it transparent
+     during the delay. */
+  --animate-skeleton-appear: skeleton-appear 200ms ease-out 350ms both;
+
+  @keyframes skeleton-appear {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
 
   @keyframes skeleton-sweep {
     0% {

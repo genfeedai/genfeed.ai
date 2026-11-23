@@ -22,6 +22,12 @@ describe('Skeleton primitive', () => {
     expect(skeleton).not.toHaveClass('animate-pulse');
   });
 
+  it('stays transparent for the first 350 ms of a wait', () => {
+    render(<Skeleton />);
+
+    expect(screen.getByRole('status')).toHaveClass('animate-skeleton-appear');
+  });
+
   it.each([
     ['circular', 'rounded-full'],
     ['text', 'rounded'],

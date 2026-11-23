@@ -838,6 +838,7 @@ describe('ImageGenerationService', () => {
         expect.any(Object),
         undefined,
         expect.any(Function),
+        expect.any(Function),
       );
       expect(replicateService.generateTextToImage).not.toHaveBeenCalled();
     });

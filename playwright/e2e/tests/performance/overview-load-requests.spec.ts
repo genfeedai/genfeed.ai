@@ -1,7 +1,5 @@
 import { expect, test } from '../../fixtures/auth.fixture';
 
-const OVERVIEW_ROUTE = '/test-org/brand-1/workspace/overview';
-
 /**
  * One load of the workspace Overview sent 32 API calls, some of them twice, and
  * two of them for a thread called `undefined` (epic #10926, #10929). A read two

@@ -796,6 +796,7 @@ describe('VideoGenerationService', () => {
         expect.any(Object),
         undefined,
         expect.any(Function),
+        expect.any(Function),
       );
       expect(replicateService.generateTextToVideo).not.toHaveBeenCalled();
     });

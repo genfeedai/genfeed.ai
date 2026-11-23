@@ -21,6 +21,11 @@ export interface DispatchVideoGenerationParams {
   preparedFalDispatch?: PreparedFalVideoDispatch;
   onProviderSubmissionStarted?: () => void;
   /**
+   * The provider queued the job but has not finished it. Stores a reference a
+   * later cancel can use, without marking the output accepted.
+   */
+  onProviderJobQueued?: (externalRef: string) => Promise<void>;
+  /**
    * Stable identity of this logical generation. A provider that supports
    * idempotent submission reuses it, so retrying the same generation cannot
    * start a second paid job.

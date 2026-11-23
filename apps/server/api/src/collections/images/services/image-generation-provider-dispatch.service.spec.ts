@@ -650,6 +650,7 @@ describe('ImageGenerationProviderDispatchService', () => {
       },
       undefined,
       expect.any(Function),
+      expect.any(Function),
     );
     expect(context.pendingIngredientIds).toEqual([
       'ingredient-1',
@@ -699,6 +700,7 @@ describe('ImageGenerationProviderDispatchService', () => {
       'google/nano-banana-2-lite',
       expect.objectContaining({ prompt: 'A cinematic sunrise' }),
       undefined,
+      expect.any(Function),
       expect.any(Function),
     );
     expect(replicateService.generateTextToImage).not.toHaveBeenCalled();

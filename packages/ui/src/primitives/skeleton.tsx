@@ -5,6 +5,9 @@ import type { ComponentPropsWithoutRef } from 'react';
 const skeletonVariants = cva(
   [
     'relative block overflow-hidden bg-foreground/5',
+    // Not shown for the first 350 ms of a wait: the space stays empty, so a
+    // read that answers quickly never flashes a placeholder.
+    'animate-skeleton-appear',
     // One sweep of light across the block. It animates `transform`, so it
     // never repaints the page, and it is hidden under reduced motion,
     // leaving the static placeholder.
