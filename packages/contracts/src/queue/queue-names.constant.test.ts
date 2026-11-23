@@ -17,6 +17,7 @@ import {
   REPLICATE_POLL_QUEUE,
   SCHEDULED_PUBLISH_QUEUE,
   TURBO_REWRITE_QUEUE,
+  VIDEO_COMPLETION_QUEUE,
   WORKFLOW_BACKGROUND_QUEUE,
   WORKFLOW_EXECUTION_QUEUE,
 } from './queue-names.constant';
@@ -41,6 +42,7 @@ describe('queue-names.constant', () => {
     expect(MEDIA_MODERATION_QUEUE).toBe('media-moderation');
     expect(BRAND_VISION_QUEUE).toBe('brand-vision');
     expect(TURBO_REWRITE_QUEUE).toBe('turbo-rewrite');
+    expect(VIDEO_COMPLETION_QUEUE).toBe('video-completion');
   });
 
   it('preserves the platform schedule queue and price sync task names', () => {

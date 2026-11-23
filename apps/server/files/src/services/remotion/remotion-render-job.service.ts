@@ -10,6 +10,7 @@ import {
   RemotionRendererService,
 } from '@files/services/remotion/remotion-renderer.service';
 import { S3Service } from '@files/services/s3/s3.service';
+import { VideoCompletionPublisherService } from '@files/services/video-completion/video-completion-publisher.service';
 import { WebSocketService } from '@files/services/websocket/websocket.service';
 import type {
   JobResult,
@@ -22,7 +23,6 @@ import {
   type IEditorRenderOutputMetadata,
 } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
-import { RedisService } from '@libs/redis/redis.service';
 import { Injectable } from '@nestjs/common';
 import { type Job, UnrecoverableError } from 'bullmq';
 
@@ -41,7 +41,7 @@ export class RemotionRenderJobService {
     private readonly remotionRendererService: RemotionRendererService,
     private readonly s3Service: S3Service,
     private readonly webSocketService: WebSocketService,
-    private readonly redisService: RedisService,
+    private readonly videoCompletionPublisher: VideoCompletionPublisherService,
     private readonly logger: LoggerService,
   ) {}
 
@@ -139,22 +139,16 @@ export class RemotionRenderJobService {
         userId,
         room,
       );
-      await this.redisService
-        .publish('video-processing-complete', {
-          editorRender: params.editorRender,
-          ingredientId,
-          organizationId,
-          result,
-          status: 'completed',
-          timestamp: new Date().toISOString(),
-          userId,
-        })
-        .catch((error: unknown) => {
-          this.logger.warn('Failed to publish editor render completion event', {
-            jobId: String(job.id),
-            reason: error instanceof Error ? error.name : 'unknown',
-          });
-        });
+      // Not caught: a render whose event was not stored fails and runs again.
+      await this.videoCompletionPublisher.publish({
+        editorRender: params.editorRender,
+        ingredientId,
+        organizationId,
+        result,
+        status: 'completed',
+        timestamp: new Date().toISOString(),
+        userId,
+      });
       this.logger.log('Completed editor render', {
         jobId: String(job.id),
         projectId: params.editorRender.projectId,
@@ -204,8 +198,8 @@ export class RemotionRenderJobService {
         userId,
         room,
       );
-      await this.redisService
-        .publish('video-processing-complete', {
+      await this.videoCompletionPublisher
+        .publish({
           editorRender: params.editorRender,
           error: classified.publicMessage,
           ingredientId,

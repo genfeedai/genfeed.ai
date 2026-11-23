@@ -15,6 +15,7 @@ import type { HookRemixJobData } from '@files/services/hook-remix/hook-remix.int
 import { HookRemixService } from '@files/services/hook-remix/hook-remix.service';
 import { RemotionRenderJobService } from '@files/services/remotion/remotion-render-job.service';
 import { S3Service } from '@files/services/s3/s3.service';
+import { VideoCompletionPublisherService } from '@files/services/video-completion/video-completion-publisher.service';
 import { VideoMergeJobService } from '@files/services/video-merge/video-merge-job.service';
 import { WebSocketService } from '@files/services/websocket/websocket.service';
 import { YtDlpService } from '@files/services/ytdlp/ytdlp.service';
@@ -32,7 +33,6 @@ import {
 } from '@genfeedai/contracts/queue';
 import { withLongJobWorkerOptions } from '@libs/jobs/bullmq-worker-lock.options';
 import { LoggerService } from '@libs/logger/logger.service';
-import { RedisService } from '@libs/redis/redis.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Inject } from '@nestjs/common';
@@ -46,7 +46,7 @@ export class VideoProcessor extends WorkerHost {
     private readonly videoMergeJobService: VideoMergeJobService,
     @Inject(S3Service) private s3Service: S3Service,
     @Inject(WebSocketService) private webSocketService: WebSocketService,
-    private redisService: RedisService,
+    private readonly videoCompletionPublisher: VideoCompletionPublisherService,
     private readonly logger: LoggerService,
     private readonly remotionRenderJobService: RemotionRenderJobService,
     private readonly clipperReferenceFrameExtractionService: ClipperReferenceFrameExtractionService,
@@ -135,7 +135,7 @@ export class VideoProcessor extends WorkerHost {
     error?: string,
   ): Promise<void> {
     try {
-      await this.redisService.publish('video-processing-complete', {
+      await this.videoCompletionPublisher.publish({
         error,
         ingredientId,
         organizationId,
@@ -144,10 +144,16 @@ export class VideoProcessor extends WorkerHost {
         timestamp: new Date().toISOString(),
         userId,
       });
-      this.logger.log(`Published video completion event for ${ingredientId}`);
+      this.logger.log(`Queued video completion event for ${ingredientId}`);
     } catch (publishError: unknown) {
+      // A finished job whose event was not stored must fail and run again: the
+      // event is the only record that it finished. A failure report is made
+      // from a job already failing, so it only logs.
+      if (status === 'completed') {
+        throw publishError;
+      }
       this.logger.error(
-        `Failed to publish video completion event: ${publishError}`,
+        `Failed to queue video completion event: ${publishError}`,
       );
     }
   }

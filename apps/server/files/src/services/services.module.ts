@@ -13,10 +13,14 @@ import { RemotionRendererService } from '@files/services/remotion/remotion-rende
 import { S3Service } from '@files/services/s3/s3.service';
 import { ThumbnailsModule } from '@files/services/thumbnails/thumbnails.module';
 import { UploadModule } from '@files/services/upload/upload.module';
+import { VideoCompletionPublisherService } from '@files/services/video-completion/video-completion-publisher.service';
 import { VideoMergeJobService } from '@files/services/video-merge/video-merge-job.service';
 import { WebSocketService } from '@files/services/websocket/websocket.service';
 import { YtDlpModule } from '@files/services/ytdlp/ytdlp.module';
-import { FILE_QUEUE_NAMES as QUEUE_NAMES } from '@genfeedai/contracts/queue';
+import {
+  FILE_QUEUE_NAMES as QUEUE_NAMES,
+  VIDEO_COMPLETION_QUEUE,
+} from '@genfeedai/contracts/queue';
 import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
 
@@ -36,6 +40,7 @@ import { Module } from '@nestjs/common';
     S3Service,
     ThumbnailsModule,
     UploadModule,
+    VideoCompletionPublisherService,
     VideoMergeJobService,
     WebSocketService,
     YtDlpModule,
@@ -55,12 +60,14 @@ import { Module } from '@nestjs/common';
       { name: QUEUE_NAMES.VIDEO_PROCESSING },
       { name: QUEUE_NAMES.IMAGE_PROCESSING },
       { name: QUEUE_NAMES.FILE_PROCESSING },
+      { name: VIDEO_COMPLETION_QUEUE },
     ),
   ],
   providers: [
     AudioOverlayService,
     SpeechAssemblyService,
     S3Service,
+    VideoCompletionPublisherService,
     VideoMergeJobService,
     WebSocketService,
     JobLifecyclePublisherService,

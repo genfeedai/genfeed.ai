@@ -69,6 +69,7 @@ import { SkillWorkflowModule } from '@api/services/skill-executor/skill-executor
 import { TaskOrchestrationModule } from '@api/services/task-orchestration/task-orchestration.module';
 import { TurboContentModule } from '@api/services/turbo-content/turbo-content.module';
 import { TurboRunModule } from '@api/services/turbo-run/turbo-run.module';
+import { VideoCompletionCoreModule } from '@api/services/video-completion/video-completion-core.module';
 import { WebhookClientModule } from '@api/services/webhook-client/webhook-client.module';
 import { WhisperModule } from '@api/services/whisper/whisper.module';
 import { ConfigModule } from '@libs/config/config.module';
@@ -92,6 +93,7 @@ import { NotificationDeliveryProcessor } from '@workers/processors/api/queues/no
 import { NotificationDeliveryRecoveryModule } from '@workers/processors/api/queues/notification-delivery/notification-delivery-recovery.module';
 import { ReplicatePollProcessor } from '@workers/processors/api/queues/replicate-poll/replicate-poll.processor';
 import { TurboRewriteProcessor } from '@workers/processors/api/queues/turbo-rewrite/turbo-rewrite.processor';
+import { VideoCompletionProcessor } from '@workers/processors/api/queues/video-completion/video-completion.processor';
 import { WebhookClientProcessor } from '@workers/processors/api/services/webhook-client/webhook-client.processor';
 import { WorkersQueuesModule } from '@workers/queues/queues.module';
 import { AdsServicesModule } from '@workers/services/ads-services.module';
@@ -166,6 +168,7 @@ import { SocialIntegrationsModule } from '@workers/services/social-integrations.
     forwardRef(() => HeygenPollModule),
     HiggsFieldPollModule,
     ReplicatePollModule,
+    VideoCompletionCoreModule,
     // The GLB build step of a 3D render chains off the replicate poll worker.
     FilesClientModule,
     MetadataModule,
@@ -189,6 +192,7 @@ import { SocialIntegrationsModule } from '@workers/services/social-integrations.
     MediaDeliveryProcessor,
     MediaModerationProcessor,
     BrandVisionProcessor,
+    VideoCompletionProcessor,
 
     WebhookClientProcessor,
 
