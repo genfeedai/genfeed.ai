@@ -27,7 +27,7 @@ const ALLOWED_FILES = new Set([
   // Acceptance fixture standing in for the media endpoints, which settle their own holds.
   'breakout-acceptance.media.fixture.ts',
   'credits.utils.service.ts',
-  'evaluations.service.ts',
+  'evaluation-credits.ts',
   'generation-quote-group.service.ts',
   'knowledge-transcript-ingest.service.ts',
   'live-session-credits.service.ts',
