@@ -6,6 +6,7 @@ import type { CollectionOverflowAction } from '@genfeedai/props/ui/collection/co
 import CollectionList from '@ui/collection/CollectionList';
 import CollectionSection from '@ui/collection/CollectionSection';
 import CollectionView from '@ui/collection/CollectionView';
+import SearchField from '@ui/content/search-field/SearchField';
 import Container from '@ui/layout/container/Container';
 import SelectionToolbar from '@ui/lists/selection-toolbar/SelectionToolbar';
 import PaginationStepper from '@ui/navigation/pagination/PaginationStepper';
@@ -23,7 +24,6 @@ import {
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
-import SearchField from '@/components/content/search-field/SearchField';
 import { WorkflowScheduleDialog } from '@/features/workflows/components/schedule/WorkflowScheduleDialog';
 import {
   isCanonicalSystemWorkflow,

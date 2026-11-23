@@ -14,6 +14,7 @@ import type { TableColumn } from '@props/ui/display/table.props';
 import { BotsService } from '@services/automation/bots.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
+import SearchField from '@ui/content/search-field/SearchField';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import AppTable from '@ui/display/table/Table';
 import TableDateCell from '@ui/display/table/TableDateCell';
@@ -27,7 +28,6 @@ import { useMemo } from 'react';
 import { useAdminOrgBrandParams } from '@/components/content/admin-filters/AdminOrgBrandUrlFilter';
 import AdminScopeFilter from '@/components/content/admin-filters/AdminScopeFilter';
 import { useAdminSearchParam } from '@/components/content/admin-filters/useAdminSearchParam';
-import SearchField from '@/components/content/search-field/SearchField';
 import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
 import { useNotifyOnLoadError } from '@/hooks/utils/use-notify-on-load-error/use-notify-on-load-error';
 

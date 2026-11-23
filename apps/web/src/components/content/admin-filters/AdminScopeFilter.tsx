@@ -1,6 +1,6 @@
 'use client';
 
-import FilterMenu from '@/components/content/filter-menu/FilterMenu';
+import ScopedFilterMenu from '@/components/content/admin-filters/ScopedFilterMenu';
 import type { AdminScopeFilterProps } from '@/props/ui/forms/admin-org-brand-filter.props';
 
 /** Nothing of its own to clear: the scope facets clear themselves. */
@@ -15,7 +15,7 @@ export default function AdminScopeFilter({
   isAttached = false,
 }: AdminScopeFilterProps) {
   return (
-    <FilterMenu
+    <ScopedFilterMenu
       facets={[]}
       hasAdminScope
       isAttached={isAttached}

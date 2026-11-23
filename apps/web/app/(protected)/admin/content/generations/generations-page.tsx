@@ -12,6 +12,7 @@ import { IngredientsService } from '@services/content/ingredients.service';
 import { PromptsService } from '@services/content/prompts.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
+import SearchField from '@ui/content/search-field/SearchField';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import SubbarOverflowMenu from '@ui/layout/subbar-overflow-menu/SubbarOverflowMenu';
@@ -22,8 +23,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Suspense, useCallback, useMemo, useState } from 'react';
 import { useAdminOrgBrandParams } from '@/components/content/admin-filters/AdminOrgBrandUrlFilter';
-import FilterMenu from '@/components/content/filter-menu/FilterMenu';
-import SearchField from '@/components/content/search-field/SearchField';
+import ScopedFilterMenu from '@/components/content/admin-filters/ScopedFilterMenu';
 import type {
   GenerationStatusOption,
   GenerationView,
@@ -242,7 +242,7 @@ function GenerationsPageContent() {
           placeholder={t('search')}
           value={search}
         >
-          <FilterMenu
+          <ScopedFilterMenu
             facets={[
               ...(isPromptOnly
                 ? []

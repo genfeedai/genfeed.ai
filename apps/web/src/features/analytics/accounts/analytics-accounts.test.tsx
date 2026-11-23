@@ -127,7 +127,7 @@ vi.mock('next/navigation', () => ({
   useSearchParams: () => new URLSearchParams('page=1'),
 }));
 
-vi.mock('@/components/content/filter-menu/FilterMenu', () => ({
+vi.mock('@ui/navigation/filter-menu/FilterMenu', () => ({
   default: ({
     facets,
   }: {

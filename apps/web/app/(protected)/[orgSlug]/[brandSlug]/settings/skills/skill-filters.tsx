@@ -1,11 +1,11 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { FilterMenuFacet } from '@genfeedai/props/ui/forms/filter-menu.props';
+import SearchField from '@ui/content/search-field/SearchField';
+import FilterMenu from '@ui/navigation/filter-menu/FilterMenu';
 import { Button } from '@ui/primitives/button';
 import { Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import FilterMenu from '@/components/content/filter-menu/FilterMenu';
-import SearchField from '@/components/content/search-field/SearchField';
 import { useIsAppAvailable } from '@/components/shell/use-available-rail-apps';
 import type {
   SkillAgentActionProps,

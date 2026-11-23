@@ -1,7 +1,7 @@
 'use client';
 
 import Card from '@ui/card/Card';
-import LoadingState from '@ui/feedback/LoadingState';
+import Loading from '@ui/loading/default/Loading';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCampaign } from '@/features/campaigns/hooks/use-campaign';
@@ -13,7 +13,7 @@ function CampaignCompareColumn({ campaignId }: { campaignId: string }) {
   const { performance } = useCampaignPerformance(campaignId);
 
   if (isLoading || !campaign) {
-    return <LoadingState />;
+    return <Loading isFullSize={false} />;
   }
 
   return (

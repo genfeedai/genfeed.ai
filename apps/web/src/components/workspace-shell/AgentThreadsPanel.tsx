@@ -17,6 +17,7 @@ import {
 } from '@genfeedai/contracts';
 import type { CollectionOverflowAction } from '@genfeedai/props/ui/collection/collection.props';
 import type { ThreadListStatus } from '@genfeedai/props/ui/lists/thread-list.props';
+import SearchField from '@ui/content/search-field/SearchField';
 import { formatThreadTime } from '@ui/lists/thread-list/group-by-recency';
 import {
   ThreadListRow,
@@ -24,12 +25,11 @@ import {
   ThreadListSubtitle,
   useLocalDayClock,
 } from '@ui/lists/thread-list/ThreadList';
+import FilterMenu from '@ui/navigation/filter-menu/FilterMenu';
 import { Avatar } from '@ui/primitives/avatar';
 import { Button } from '@ui/primitives/button';
-import Searchbar from '@ui/primitives/searchbar';
 import { useLocale, useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
-import FilterMenu from '@/components/content/filter-menu/FilterMenu';
 import type { AgentThreadsPanelProps } from '@/components/workspace-shell/props/agent-threads-panel.props';
 import { useAgentThreadMembers } from '@/components/workspace-shell/use-agent-thread-members';
 import { useAgentThreadOwnerFilter } from '@/components/workspace-shell/use-agent-thread-owner-filter';
@@ -283,43 +283,44 @@ export default function AgentThreadsPanel({
       className="flex min-h-0 flex-1 flex-col"
       data-testid="agent-threads-panel"
     >
-      <div className="flex items-center gap-2 p-3 pb-1">
-        <Searchbar
+      <div className="p-3 pb-1">
+        <SearchField
           ariaLabel={translate('search')}
-          className="min-w-0 flex-1"
+          className="w-full"
           onChange={(event) => setSearchQuery(event.target.value)}
-          onClear={() => setSearchQuery('')}
           placeholder={translate('search')}
           value={searchQuery}
-        />
-        <FilterMenu
-          facets={[
-            {
-              defaultValue: AgentThreadOwnerFilter.ALL,
-              key: 'owner',
-              label: translate('filters.owner'),
-              onChange: (value) =>
-                setOwnerFilter(value as AgentThreadOwnerFilter),
-              options: [
-                {
-                  label: translate('filters.ownerAll'),
-                  value: AgentThreadOwnerFilter.ALL,
-                },
-                {
-                  label: translate('filters.ownerMine'),
-                  value: AgentThreadOwnerFilter.MINE,
-                },
-                {
-                  label: translate('filters.ownerShared'),
-                  value: AgentThreadOwnerFilter.SHARED,
-                },
-              ],
-              selection: 'single',
-              value: ownerFilter,
-            },
-          ]}
-          onClear={() => setOwnerFilter(AgentThreadOwnerFilter.ALL)}
-        />
+        >
+          <FilterMenu
+            isAttached
+            facets={[
+              {
+                defaultValue: AgentThreadOwnerFilter.ALL,
+                key: 'owner',
+                label: translate('filters.owner'),
+                onChange: (value) =>
+                  setOwnerFilter(value as AgentThreadOwnerFilter),
+                options: [
+                  {
+                    label: translate('filters.ownerAll'),
+                    value: AgentThreadOwnerFilter.ALL,
+                  },
+                  {
+                    label: translate('filters.ownerMine'),
+                    value: AgentThreadOwnerFilter.MINE,
+                  },
+                  {
+                    label: translate('filters.ownerShared'),
+                    value: AgentThreadOwnerFilter.SHARED,
+                  },
+                ],
+                selection: 'single',
+                value: ownerFilter,
+              },
+            ]}
+            onClear={() => setOwnerFilter(AgentThreadOwnerFilter.ALL)}
+          />
+        </SearchField>
       </div>
 
       <div className="min-h-0 flex-1 space-y-1 overflow-y-auto px-2 pb-3 pt-1">

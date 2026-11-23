@@ -14,6 +14,7 @@ import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import Card from '@ui/card/Card';
+import SearchField from '@ui/content/search-field/SearchField';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import {
@@ -34,7 +35,6 @@ import { Mail } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback } from 'react';
 import { useAdminSearchParam } from '@/components/content/admin-filters/useAdminSearchParam';
-import SearchField from '@/components/content/search-field/SearchField';
 import { WorkspaceSurface } from '@/components/overview/WorkspaceSurface';
 import { useNotifyOnLoadError } from '@/hooks/utils/use-notify-on-load-error/use-notify-on-load-error';
 

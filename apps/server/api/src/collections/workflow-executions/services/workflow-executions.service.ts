@@ -1,5 +1,6 @@
 import { AgentStrategiesService } from '@api/collections/agent-strategies/services/agent-strategies.service';
 import { WorkflowGenerationBillingService } from '@api/collections/credits/services/workflow-generation-billing.service';
+import { IngredientGenerationCancellationService } from '@api/collections/ingredients/services/ingredient-generation-cancellation.service';
 import type { WorkflowExecutionQueryDto } from '@api/collections/workflow-executions/dto/create-workflow-execution.dto';
 import {
   CreateWorkflowExecutionDto,
@@ -163,6 +164,8 @@ export class WorkflowExecutionsService extends BaseService<
     @Optional()
     private readonly generationBilling?: WorkflowGenerationBillingService,
     @Optional() private readonly events?: EventEmitter2,
+    @Optional()
+    private readonly generationCancellation?: IngredientGenerationCancellationService,
   ) {
     super(prisma, 'workflowExecution', logger);
   }
@@ -671,10 +674,36 @@ export class WorkflowExecutionsService extends BaseService<
       status: 'cancelled',
     });
     await this.generationBilling?.closeTerminal(executionId, organizationId);
+    await this.cancelStartedGenerations(existing, executionId, organizationId);
     const updated = await this.prisma.workflowExecution.findFirst({
       where: scopedWhere(organizationId, { id: executionId }),
     });
     return this.normalizeDocument(updated);
+  }
+
+  /**
+   * A stopped run must not leave its generations running at the provider.
+   * Best effort: the run is already cancelled, so a failure here is logged and
+   * never fails the stop.
+   */
+  private async cancelStartedGenerations(
+    execution: { userId?: string | null },
+    executionId: string,
+    organizationId: string,
+  ): Promise<void> {
+    if (!this.generationCancellation) return;
+    try {
+      await this.generationCancellation.cancelProcessingForExecution({
+        executionId,
+        organizationId,
+        userId: execution.userId ?? undefined,
+      });
+    } catch (error: unknown) {
+      this.logger.warn('Stopping a run could not cancel its generations', {
+        error: (error as Error)?.message,
+        executionId,
+      });
+    }
   }
 
   @HandleErrors('update node result', 'workflow-executions')

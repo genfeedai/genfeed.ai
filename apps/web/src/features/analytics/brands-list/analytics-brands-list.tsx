@@ -27,15 +27,15 @@ import {
 } from '@services/analytics/analytics.service';
 import { logger } from '@services/core/logger.service';
 import { AnalyticsMetricLabel } from '@ui/analytics/metric-definition/AnalyticsMetricInfo';
+import SearchField from '@ui/content/search-field/SearchField';
 import Table from '@ui/display/table/Table';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
+import FilterMenu from '@ui/navigation/filter-menu/FilterMenu';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { BrandAvatar } from '@ui/primitives/brand-avatar';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useEffect, useMemo } from 'react';
-import FilterMenu from '@/components/content/filter-menu/FilterMenu';
-import SearchField from '@/components/content/search-field/SearchField';
 import AnalyticsBrandSummary from '@/features/analytics/brands-list/analytics-brand-summary';
 import { useDebounce } from '@/hooks/utils/use-debounce/use-debounce';
 
