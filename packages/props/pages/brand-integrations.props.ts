@@ -49,6 +49,7 @@ export interface AccountsTableProps {
   connections: BrandDetailSocialConnection[];
   onConnectAccount: () => void;
   onDisconnect: (connection: BrandDetailSocialConnection) => void;
+  onGoLive: (connection: BrandDetailSocialConnection) => void;
   onOpenSettings: (connection: BrandDetailSocialConnection) => void;
   onReconnect: (connection: BrandDetailSocialConnection) => void;
   /** Which specific credential's Reconnect flow is in flight — disables only that row, not every account on the same platform. */
@@ -147,4 +148,11 @@ export interface ApiKeyConnectDialogProps {
   open: boolean;
   /** Kept after close so the form does not change while it animates out. */
   target: ApiKeyConnectTarget | null;
+}
+
+export interface FacebookLiveDialogProps {
+  /** Kept after close so the dialog does not change while it animates out. */
+  connection: BrandDetailSocialConnection | null;
+  onOpenChange: (open: boolean) => void;
+  open: boolean;
 }

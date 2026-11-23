@@ -11,6 +11,7 @@ import { BeehiivModule } from '@api/services/integrations/beehiiv/beehiiv.module
 import { BlueskyModule } from '@api/services/integrations/bluesky/bluesky.module';
 import { DevtoModule } from '@api/services/integrations/devto/devto.module';
 import { DiscordModule } from '@api/services/integrations/discord/discord.module';
+import { FacebookLiveModule } from '@api/services/integrations/facebook/facebook-live.module';
 import { GhostModule } from '@api/services/integrations/ghost/ghost.module';
 import { GoogleBusinessModule } from '@api/services/integrations/google-business/google-business.module';
 import { GoogleSearchConsoleModule } from '@api/services/integrations/google-search-console/google-search-console.module';
@@ -60,6 +61,7 @@ import { Module } from '@nestjs/common';
     HedraModule,
     ArgilModule,
     HeyGenModule,
+    FacebookLiveModule,
     InstagramModule,
     IntegrationsModule,
     LinkedInModule,

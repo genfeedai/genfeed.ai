@@ -2,6 +2,7 @@
 import {
   ButtonSize,
   ButtonVariant,
+  CredentialPlatform,
   formatPlatformLabel,
 } from '@genfeedai/contracts';
 import type { AccountHealthSummary } from '@genfeedai/contracts/interfaces';
@@ -17,6 +18,7 @@ import {
   Link2,
   MessageSquareWarning,
   Plus,
+  Radio,
   RefreshCw,
   Settings,
   TriangleAlert,
@@ -70,6 +72,7 @@ export default function AccountsTable({
   connections,
   onConnectAccount,
   onDisconnect,
+  onGoLive,
   onOpenSettings,
   onReconnect,
   reconnectingCredentialId,
@@ -163,6 +166,16 @@ export default function AccountsTable({
         },
       },
       {
+        // Live video needs `publish_video`, which only a Facebook Page
+        // connection requests. The dialog explains a refused grant.
+        icon: <Radio aria-hidden="true" />,
+        isVisible: (connection) =>
+          connection.platform === CredentialPlatform.FACEBOOK &&
+          getAccountConnectionStatus(connection) !== 'needsReconnect',
+        onClick: onGoLive,
+        tooltip: translate('goLive'),
+      },
+      {
         icon: <Settings aria-hidden="true" />,
         onClick: onOpenSettings,
         tooltip: translate('settings'),
@@ -176,6 +189,7 @@ export default function AccountsTable({
     ],
     [
       onDisconnect,
+      onGoLive,
       onOpenSettings,
       onReconnect,
       reconnectingCredentialId,

@@ -2,13 +2,15 @@ import {
   SERVER_TOKENS,
   type ServerCredentialStore,
 } from '@api/server.dependencies';
-import { requireMetaScopes } from '@api/services/integrations/_shared/meta-page-access.util';
 import { FacebookService } from '@api/services/integrations/facebook/services/facebook.service';
 import {
   toMessengerThreads,
   toPageComments,
 } from '@api/services/integrations/facebook/utils/facebook-inbox.util';
-import { CredentialPlatform } from '@genfeedai/contracts';
+import {
+  type FacebookPageAccess,
+  resolveFacebookPageAccess,
+} from '@api/services/integrations/facebook/utils/facebook-page-access.util';
 import {
   FACEBOOK_FEED_WEBHOOK_FIELD,
   FACEBOOK_MESSENGER_SCOPE,
@@ -29,22 +31,11 @@ import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
 import { HttpService } from '@nestjs/axios';
-import {
-  BadGatewayException,
-  BadRequestException,
-  Inject,
-  Injectable,
-} from '@nestjs/common';
+import { BadGatewayException, Inject, Injectable } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
 
 /** Posts read per sync. Each carries its comments, so this bounds the call. */
 const PAGE_POSTS_PER_SYNC = 10;
-
-interface FacebookPageAccess {
-  grantedScopes: readonly string[] | undefined;
-  pageId: string;
-  pageToken: string;
-}
 
 /**
  * What the Messages inbox needs from a connected Facebook Page: the webhook
@@ -229,43 +220,19 @@ export class FacebookInboxService {
     return messageId;
   }
 
-  private async resolvePageAccess(
+  private resolvePageAccess(
     organizationId: string,
     brandId: string,
     credentialId: string,
     requiredScopes: readonly string[] = [],
   ): Promise<FacebookPageAccess> {
-    const credential = await this.credentialsService.resolveBrandAccount({
-      brandId,
-      credentialId,
-      organizationId,
-      platform: CredentialPlatform.FACEBOOK,
-    });
-    if (!credential?.externalId) {
-      throw new BadRequestException(
-        'This Facebook connection is not bound to a Page. Reconnect it and choose a Page.',
-      );
-    }
-    requireMetaScopes(credential.grantedScopes, requiredScopes);
-
-    const pages = await this.facebookService.getUserPages(
-      organizationId,
-      brandId,
-      credential.id,
+    return resolveFacebookPageAccess(
+      {
+        credentialsService: this.credentialsService,
+        facebookService: this.facebookService,
+      },
+      { brandId, credentialId, organizationId },
+      requiredScopes,
     );
-    const pageToken = pages.find(
-      (page) => page.id === credential.externalId,
-    )?.accessToken;
-    if (!pageToken) {
-      throw new BadRequestException(
-        'Facebook no longer lets this account manage the connected Page. Reconnect it.',
-      );
-    }
-
-    return {
-      grantedScopes: credential.grantedScopes,
-      pageId: credential.externalId,
-      pageToken,
-    };
   }
 }
