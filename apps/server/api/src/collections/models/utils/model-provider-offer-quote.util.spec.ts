@@ -2,6 +2,7 @@ import { findModelProviderOfferQuote } from '@api/collections/models/utils/model
 import {
   KIE_MINIMAX_H3_IMAGE_INPUT_SCHEMA,
   KIE_MINIMAX_H3_TEXT_INPUT_SCHEMA,
+  KIE_SEEDANCE_FAST_INPUT_SCHEMA,
   KIE_WAN_3_INPUT_SCHEMA,
 } from '@api/seeds/model-provider-offers.seed';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -490,6 +491,118 @@ describe('Wan 3.0 routing to kie', () => {
       negative_prompt: 'blur',
       prompt: 'Sunrise',
       resolution: '720p',
+    });
+
+    expect(quote?.provider).toBe('replicate');
+  });
+});
+
+describe('Seedance 2.0 Fast routing to kie', () => {
+  const FAST = 'bytedance/seedance-2-fast';
+
+  /** A registration priced from its real rate-sheet entry. */
+  function reviewed(id: string, provider: string, endpoint: string) {
+    const offer = registration(id, provider, 0);
+    const entry = findReviewedRateSheetEntry(provider, endpoint);
+    if (!entry) throw new Error(`missing ${provider} rate for ${endpoint}`);
+    offer.key = endpoint;
+    offer.endpoint = endpoint;
+    offer.providerContracts[0] = {
+      ...offer.providerContracts[0],
+      endpoint,
+      pricing: {
+        ...offer.providerContracts[0].pricing,
+        rates:
+          entry.rates as (typeof offer.providerContracts)[0]['pricing']['rates'],
+        ...(entry.variantRules ? { variantRules: entry.variantRules } : {}),
+      },
+    };
+    // Neither provider prices by audio, as the rate seed records for a schema
+    // with an audio toggle the sheet does not price.
+    Object.assign(offer.providerContracts[0].pricing, {
+      invariantSelectors: ['generate_audio'],
+    });
+    return offer;
+  }
+
+  function fastFixture() {
+    // Replicate prices Seedance by whether the request carries video input.
+    const replicate = reviewed(
+      'replicate-fast',
+      'replicate',
+      'bytedance/seedance-2.0-fast',
+    );
+    replicate.providerInputSchema = {
+      type: 'object',
+      properties: {
+        aspect_ratio: { type: 'string' },
+        duration: { type: 'integer' },
+        generate_audio: { type: 'boolean' },
+        prompt: { type: 'string' },
+        reference_videos: { type: 'array' },
+        resolution: { type: 'string' },
+        seed: { type: 'integer' },
+      },
+      required: ['prompt'],
+      additionalProperties: false,
+    } as typeof replicate.providerInputSchema;
+    const kie = {
+      ...reviewed('kie-fast', 'kie', FAST),
+      providerInputSchema: KIE_SEEDANCE_FAST_INPUT_SCHEMA,
+    };
+    const offers = [replicate, kie].map((executionModel, priority) => ({
+      id: executionModel.id,
+      executionModel,
+      isActive: true,
+      priority,
+    }));
+    const prisma = {
+      model: {
+        findFirst: vi.fn().mockResolvedValue({
+          ...replicate,
+          pinnedProvider: null,
+          providerOffers: offers,
+        }),
+      },
+      providerRoutingSetting: { findMany: vi.fn().mockResolvedValue([]) },
+    } as unknown as PrismaService;
+    return (providerInput: Record<string, unknown>) =>
+      findModelProviderOfferQuote(prisma, replicate.key, 'org-1', {
+        duration: 5,
+        providerInput,
+      });
+  }
+
+  it.each([
+    ['480p', 0.35],
+    ['720p', 0.75],
+  ])(
+    'sends a %s request to kie with Replicate ($%s for 5 s) as the fallback',
+    async (resolution, replicateCost) => {
+      const quote = await fastFixture()({
+        aspect_ratio: '16:9',
+        duration: 5,
+        generate_audio: true,
+        prompt: 'Sunrise',
+        resolution,
+      });
+
+      expect(quote?.routedDispatch).toMatchObject({
+        endpoint: FAST,
+        fallback: { provider: 'replicate', providerCostUsd: replicateCost },
+        provider: 'kie',
+      });
+    },
+  );
+
+  it('keeps a seeded request on Replicate', async () => {
+    const quote = await fastFixture()({
+      aspect_ratio: '16:9',
+      duration: 5,
+      generate_audio: true,
+      prompt: 'Sunrise',
+      resolution: '720p',
+      seed: 7,
     });
 
     expect(quote?.provider).toBe('replicate');

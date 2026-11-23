@@ -101,6 +101,31 @@ export const KIE_WAN_3_INPUT_SCHEMA = {
   required: ['prompt'],
 };
 
+/**
+ * kie's Seedance 2.0 Fast input (docs.kie.ai, read 2026-11-23), without the
+ * reference media, web search and seed fields the offer never sends. Duration
+ * is 4 to 15 s (kie also takes -1, which Replicate's builder never sends).
+ */
+export const KIE_SEEDANCE_FAST_INPUT_SCHEMA = {
+  $id: 'kie-seedance-2-fast',
+  type: 'object',
+  additionalProperties: false,
+  properties: {
+    prompt: { type: 'string', minLength: 3, maxLength: 20000 },
+    first_frame_url: { type: 'string', minLength: 1 },
+    last_frame_url: { type: 'string', minLength: 1 },
+    generate_audio: { type: 'boolean', default: true },
+    resolution: { type: 'string', enum: ['480p', '720p'], default: '720p' },
+    aspect_ratio: {
+      type: 'string',
+      enum: ['1:1', '4:3', '3:4', '16:9', '9:16'],
+      default: '16:9',
+    },
+    duration: { type: 'integer', minimum: 4, maximum: 15, default: 5 },
+  },
+  required: ['prompt'],
+};
+
 const KIE_VIDEO_REGISTRATIONS = [
   {
     key: 'kie/kling-3.0',
@@ -129,6 +154,13 @@ const KIE_VIDEO_REGISTRATIONS = [
     label: 'Wan 3.0 · Kie.ai',
     schemaFamily: 'kie-wan-3',
     schema: KIE_WAN_3_INPUT_SCHEMA,
+  },
+  {
+    key: 'kie/seedance-2-fast',
+    endpoint: 'bytedance/seedance-2-fast',
+    label: 'Seedance 2.0 Fast · Kie.ai',
+    schemaFamily: 'kie-seedance-2-fast',
+    schema: KIE_SEEDANCE_FAST_INPUT_SCHEMA,
   },
 ] as const;
 

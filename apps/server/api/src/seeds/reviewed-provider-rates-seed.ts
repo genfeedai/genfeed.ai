@@ -10,6 +10,7 @@ import {
   KIE_KLING_INPUT_SCHEMA,
   KIE_MINIMAX_H3_IMAGE_INPUT_SCHEMA,
   KIE_MINIMAX_H3_TEXT_INPUT_SCHEMA,
+  KIE_SEEDANCE_FAST_INPUT_SCHEMA,
   KIE_WAN_3_INPUT_SCHEMA,
 } from '@api/seeds/model-provider-offers.seed';
 import type { SchemaFixture } from '@api/seeds/reviewed-provider-rates-seed.types';
@@ -99,6 +100,10 @@ const SCHEMA_FIXTURES: Readonly<Record<string, SchemaFixture>> = {
     KIE_MINIMAX_H3_IMAGE_INPUT_SCHEMA,
   ),
   'wan/3-0-video': kieFixture('kie-wan-3', KIE_WAN_3_INPUT_SCHEMA),
+  'bytedance/seedance-2-fast': kieFixture(
+    'kie-seedance-2-fast',
+    KIE_SEEDANCE_FAST_INPUT_SCHEMA,
+  ),
   'black-forest-labs/flux-3-image': {
     openapi: flux3Openapi,
     schemaFamily: 'flux-3-image-v1',
