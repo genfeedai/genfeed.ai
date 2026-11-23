@@ -5,9 +5,9 @@ import {
   formatCompactNumberIntl,
 } from '@genfeedai/helpers/formatting/format/format.helper';
 import { ChartContainer, ChartTooltipContent } from '@ui/charts';
+import AccountPicker from '@ui/display/connected-account/AccountPicker';
 import { ChartEmptyState } from '@ui/primitives/chart-empty-state';
 import LoadingOverlay from '@ui/primitives/loading-overlay';
-import { SegmentedControl } from '@ui/primitives/segmented-control';
 import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
@@ -107,11 +107,14 @@ export function PlatformTimeSeriesChart({
   return (
     <div className={className}>
       {!isEmpty ? (
-        <SegmentedControl
-          appearance="chip"
+        <AccountPicker
           ariaLabel={selectionLabels('platforms')}
           className="mb-4"
           isDisabled={isLoading || isEmpty}
+          items={platforms.map((platform) => ({
+            id: platform,
+            platform,
+          }))}
           onValueChange={(nextActive) => {
             if (nextActive.length > 0) {
               setSelectionOverride({
@@ -122,18 +125,6 @@ export function PlatformTimeSeriesChart({
               });
             }
           }}
-          options={platforms.map((platform) => ({
-            label: (
-              <>
-                <span
-                  className="inline-block size-3 rounded-full"
-                  style={{ backgroundColor: chartPlatformColor(platform) }}
-                />
-                {chartPlatformLabel(platform)}
-              </>
-            ),
-            value: platform,
-          }))}
           type="multiple"
           value={activePlatforms}
         />

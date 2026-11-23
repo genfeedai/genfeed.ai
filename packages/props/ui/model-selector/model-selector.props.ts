@@ -86,7 +86,7 @@ export interface ModelSelectorPopoverProps {
   onContextChange?: (value: string) => void;
 }
 
-export interface ModelSelectorFilterPillsProps {
+export interface ModelSelectorFiltersProps {
   categoryFilters: ModelSelectorFilter[];
   activeCategoryId: string;
   onCategorySelect: (filterId: string) => void;

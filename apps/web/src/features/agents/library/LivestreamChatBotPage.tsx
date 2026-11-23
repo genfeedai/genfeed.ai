@@ -4,11 +4,11 @@ import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { ButtonVariant, CardPadding, Platform } from '@genfeedai/contracts';
 import { logger } from '@services/core/logger.service';
 import Card from '@ui/card/Card';
+import AccountPicker from '@ui/display/connected-account/AccountPicker';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Label } from '@ui/primitives/label';
-import { SegmentedControl } from '@ui/primitives/segmented-control';
 import { Textarea } from '@ui/primitives/textarea';
 import { useTranslations } from 'next-intl';
 import { useCallback, useState } from 'react';
@@ -190,14 +190,17 @@ export default function LivestreamChatBotPage({
 
             <div className="space-y-4">
               <h3 className="font-medium">{translate('sendOneOffMessage')}</h3>
-              <SegmentedControl
-                appearance="chip"
+              <AccountPicker
                 ariaLabel={translate('sendOneOffMessage')}
-                onValueChange={setSelectedPlatform}
-                options={[
-                  { label: 'YouTube', value: Platform.YOUTUBE },
-                  { label: 'Twitch', value: Platform.TWITCH },
+                items={[
+                  { id: Platform.YOUTUBE, platform: Platform.YOUTUBE },
+                  { id: Platform.TWITCH, platform: Platform.TWITCH },
                 ]}
+                onValueChange={(next) => {
+                  if (next) {
+                    setSelectedPlatform(next as typeof selectedPlatform);
+                  }
+                }}
                 value={selectedPlatform}
               />
               <div className="space-y-1.5">

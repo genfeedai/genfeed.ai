@@ -15,7 +15,7 @@ import type {
   ModelSelectorOption,
   ModelSelectorPopoverProps,
 } from '@genfeedai/props/ui/model-selector/model-selector.props';
-import ModelSelectorFilterPills from '@ui/dropdowns/model-selector/ModelSelectorFilterPills';
+import ModelSelectorFilters from '@ui/dropdowns/model-selector/ModelSelectorFilters';
 import ModelSelectorModelItem from '@ui/dropdowns/model-selector/ModelSelectorModelItem';
 import ModelSelectorTrigger from '@ui/dropdowns/model-selector/ModelSelectorTrigger';
 import {
@@ -639,7 +639,7 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
               )}
 
               {shouldShowManualCatalog ? (
-                <ModelSelectorFilterPills
+                <ModelSelectorFilters
                   categoryFilters={categoryFilters}
                   activeCategoryId={effectiveCategoryId}
                   onCategorySelect={(categoryId) => {

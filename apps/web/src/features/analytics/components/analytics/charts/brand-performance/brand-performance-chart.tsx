@@ -8,7 +8,7 @@ import Card from '@ui/card/Card';
 import { ChartContainer, ChartTooltipContent } from '@ui/charts';
 import { ChartEmptyState } from '@ui/primitives/chart-empty-state';
 import LoadingOverlay from '@ui/primitives/loading-overlay';
-import { SegmentedControl } from '@ui/primitives/segmented-control';
+import { OptionTile, OptionTileGroup } from '@ui/primitives/option-tile';
 import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
@@ -109,28 +109,31 @@ export function BrandPerformanceChart({
     <WorkspaceSurface density="compact" framed={false} title={title}>
       <Card className={className}>
         {!isEmpty ? (
-          <SegmentedControl
-            appearance="chip"
+          <OptionTileGroup
             ariaLabel={title ?? 'Metric'}
             className="mb-4"
             isDisabled={isLoading}
             onValueChange={setActiveMetric}
-            options={(Object.keys(METRIC_LABELS) as BrandMetricKey[]).map(
-              (metricKey) => ({
-                label: (
-                  <>
+            value={activeMetric}
+          >
+            {(Object.keys(METRIC_LABELS) as BrandMetricKey[]).map(
+              (metricKey) => (
+                <OptionTile
+                  className="w-auto"
+                  icon={
                     <span
                       className="inline-block size-3 rounded-full"
                       style={{ backgroundColor: METRIC_COLORS[metricKey] }}
                     />
-                    {METRIC_LABELS[metricKey]}
-                  </>
-                ),
-                value: metricKey,
-              }),
+                  }
+                  key={metricKey}
+                  size="sm"
+                  title={METRIC_LABELS[metricKey]}
+                  value={metricKey}
+                />
+              ),
             )}
-            value={activeMetric}
-          />
+          </OptionTileGroup>
         ) : null}
 
         <div className="relative" style={{ height }}>
