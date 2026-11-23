@@ -22,7 +22,7 @@ function readStrings(value: unknown): string[] {
  * hashtags: the niche, in the order the brand set it. The search service
  * decides how many the week's budget affords.
  */
-export const readTrackedInstagramHashtags = traced(
+const readTrackedInstagramHashtags = traced(
   'readTrackedInstagramHashtags',
   async (
     prisma: PrismaService,
@@ -46,7 +46,7 @@ export const readTrackedInstagramHashtags = traced(
 );
 
 /** One trend per hashtag; its media is the stored source preview, so no scraper is asked for it. */
-export function toInstagramHashtagTrends(
+function toInstagramHashtagTrends(
   results: InstagramHashtagMedia[],
 ): TrendData[] {
   const cachedAt = new Date().toISOString();
