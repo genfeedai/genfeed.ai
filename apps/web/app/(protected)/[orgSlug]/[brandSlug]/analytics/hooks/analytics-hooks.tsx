@@ -18,12 +18,12 @@ import { logger } from '@services/core/logger.service';
 import { AnalyticsMetricLabel } from '@ui/analytics/metric-definition/AnalyticsMetricInfo';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import Table from '@ui/display/table/Table';
+import FilterMenu from '@ui/navigation/filter-menu/FilterMenu';
 import Pagination from '@ui/navigation/pagination/Pagination';
 import { format } from 'date-fns';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
-import FilterMenu from '@/components/content/filter-menu/FilterMenu';
 import type { AnalyticsHooksProps } from '@/features/analytics/props/analytics-hooks.props';
 import { useClientPagination } from '@/hooks/data/pagination/use-client-pagination/use-client-pagination';
 

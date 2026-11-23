@@ -7,6 +7,7 @@ import type {
 } from '@genfeedai/props/ui/context-inspector.props';
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogDescription,
   DialogHeader,
@@ -65,9 +66,7 @@ export default function ContextInspector({
           </div>
         </div>
 
-        <div className={cn('min-h-0 flex-1 overflow-y-auto', bodyClassName)}>
-          {children}
-        </div>
+        <DialogBody className={bodyClassName}>{children}</DialogBody>
 
         {footer ? (
           <div className="shrink-0 border-t border-border bg-background/90">

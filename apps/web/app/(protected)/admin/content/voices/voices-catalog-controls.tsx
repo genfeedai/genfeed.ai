@@ -1,4 +1,6 @@
 import { ButtonSize, ButtonVariant, VoiceProvider } from '@genfeedai/contracts';
+import SearchField from '@ui/content/search-field/SearchField';
+import FilterMenu from '@ui/navigation/filter-menu/FilterMenu';
 import { Button } from '@ui/primitives/button';
 import {
   DropdownMenu,
@@ -8,8 +10,6 @@ import {
 } from '@ui/primitives/dropdown-menu';
 import { ChevronDown, RefreshCw } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import FilterMenu from '@/components/content/filter-menu/FilterMenu';
-import SearchField from '@/components/content/search-field/SearchField';
 import type {
   ProviderFilter,
   VoicesCatalogSearchProps,

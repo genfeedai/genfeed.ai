@@ -4,6 +4,7 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type {
   FilterMenuFacet,
+  FilterMenuProps,
   SharedFilterMenuProps,
 } from '@genfeedai/props/ui/forms/filter-menu.props';
 import { Badge } from '@ui/primitives/badge';
@@ -25,6 +26,7 @@ import {
 import { Input } from '@ui/primitives/input';
 import { SHELL_ICON_CLASS } from '@ui-constants/shell-chrome.constant';
 import { ListFilter } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { type KeyboardEvent, useRef, useState } from 'react';
 
 /** A search box earns its place once a list is longer than a glance. */
@@ -213,11 +215,10 @@ function FilterMenuFacetItem({
  * toolbar stays one line however many facets a page has. Owners keep the state
  * and the URL/query mapping; this component only renders and reports changes.
  *
- * It carries no translations, so any app can render it: the caller passes the
- * trigger, "All", clear and active-count text. The product app wraps it with
- * its own messages and the admin scope facets.
+ * The view takes every text as given; `FilterMenu` below fills the missing
+ * ones from the app's messages.
  */
-export default function FilterMenu({
+function FilterMenuView({
   align = 'end',
   allLabel,
   className,
@@ -281,4 +282,57 @@ export default function FilterMenu({
       </DropdownMenuContent>
     </DropdownMenu>
   );
+}
+
+/** The menu with the product app's messages filled in where a text is not given. */
+function TranslatedFilterMenu({
+  allLabel,
+  clearLabel,
+  getActiveCountLabel,
+  label,
+  ...props
+}: FilterMenuProps) {
+  const translate = useTranslations('ui.filtersButton');
+
+  return (
+    <FilterMenuView
+      {...props}
+      allLabel={allLabel ?? translate('all')}
+      clearLabel={clearLabel ?? translate('clear')}
+      getActiveCountLabel={
+        getActiveCountLabel ??
+        ((count: number) => translate('activeCount', { count }))
+      }
+      label={label ?? translate('menu')}
+    />
+  );
+}
+
+/**
+ * The Filters menu of a page. Every filter axis of the page is a facet of this
+ * one menu. The four texts default to the app's `ui.filtersButton` messages; a
+ * caller without an intl provider (the marketing site) passes all four, and the
+ * messages are never read.
+ */
+export default function FilterMenu(props: FilterMenuProps) {
+  const { allLabel, clearLabel, getActiveCountLabel, label } = props;
+
+  if (
+    allLabel !== undefined &&
+    clearLabel !== undefined &&
+    getActiveCountLabel !== undefined &&
+    label !== undefined
+  ) {
+    return (
+      <FilterMenuView
+        {...props}
+        allLabel={allLabel}
+        clearLabel={clearLabel}
+        getActiveCountLabel={getActiveCountLabel}
+        label={label}
+      />
+    );
+  }
+
+  return <TranslatedFilterMenu {...props} />;
 }

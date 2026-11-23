@@ -5,6 +5,7 @@ import { CardEmptySize, ComponentSize } from '@genfeedai/contracts';
 import { Kbd } from '@genfeedai/ui';
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogHeader,
   DialogTitle,
@@ -147,50 +148,52 @@ export function ShortcutHelpModal() {
           </DialogTitle>
         </DialogHeader>
 
-        <div>
-          <FormSearchbar
-            ariaLabel="Search shortcuts"
-            className="mb-4"
-            inputClassName="bg-muted border-border outline-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search shortcuts..."
-            size={ComponentSize.MD}
-            value={searchQuery}
-          />
+        <DialogBody className="flex flex-col gap-4">
+          <div>
+            <FormSearchbar
+              ariaLabel="Search shortcuts"
+              className="mb-4"
+              inputClassName="bg-muted border-border outline-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search shortcuts..."
+              size={ComponentSize.MD}
+              value={searchQuery}
+            />
 
-          <div className="max-h-[60vh] overflow-y-auto space-y-6 pr-2">
-            {Object.entries(groupedShortcuts).map(([category, shortcuts]) => (
-              <div key={category}>
-                <h3 className="text-sm font-semibold text-muted-foreground mb-2">
-                  {category}
-                </h3>
-                <div className="space-y-1">
-                  {shortcuts.map((shortcut) => (
-                    <div
-                      key={shortcut.keys}
-                      className="flex items-center justify-between py-1.5 px-2 rounded hover:bg-muted/50"
-                    >
-                      <span className="text-sm">{shortcut.description}</span>
-                      <Kbd
-                        variant="muted"
-                        className="px-2 py-1 border border-border"
+            <div className="space-y-6">
+              {Object.entries(groupedShortcuts).map(([category, shortcuts]) => (
+                <div key={category}>
+                  <h3 className="text-sm font-semibold text-muted-foreground mb-2">
+                    {category}
+                  </h3>
+                  <div className="space-y-1">
+                    {shortcuts.map((shortcut) => (
+                      <div
+                        key={shortcut.keys}
+                        className="flex items-center justify-between py-1.5 px-2 rounded hover:bg-muted/50"
                       >
-                        {shortcut.keys}
-                      </Kbd>
-                    </div>
-                  ))}
+                        <span className="text-sm">{shortcut.description}</span>
+                        <Kbd
+                          variant="muted"
+                          className="px-2 py-1 border border-border"
+                        >
+                          {shortcut.keys}
+                        </Kbd>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
 
-            {filteredShortcuts.length === 0 && (
-              <EmptyState
-                size={CardEmptySize.SM}
-                title={`No shortcuts found for "${searchQuery}"`}
-              />
-            )}
+              {filteredShortcuts.length === 0 && (
+                <EmptyState
+                  size={CardEmptySize.SM}
+                  title={`No shortcuts found for "${searchQuery}"`}
+                />
+              )}
+            </div>
           </div>
-        </div>
+        </DialogBody>
       </DialogContent>
     </Dialog>
   );

@@ -7,8 +7,8 @@ import {
 import type { FilterMenuFacet } from '@genfeedai/props/ui/forms/filter-menu.props';
 import { getPlatformIconComponent } from '@helpers/ui/platform-icon/platform-icon.helper';
 import ConnectedAccountAvatar from '@ui/display/connected-account/ConnectedAccountAvatar';
+import FilterMenu from '@ui/navigation/filter-menu/FilterMenu';
 import { useTranslations } from 'next-intl';
-import FilterMenu from '@/components/content/filter-menu/FilterMenu';
 import type {
   ReleaseCalendarFilters as CalendarFilters,
   ReleaseCalendarFilterOption,

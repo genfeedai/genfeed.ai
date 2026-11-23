@@ -8,6 +8,7 @@ import {
 import { Button } from '@ui/primitives/button';
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -43,19 +44,24 @@ export default function BrandDeleteBlockedDialog({
             {translate('description', { brand: brandLabel })}
           </DialogDescription>
         </DialogHeader>
-        <ul className="flex flex-col gap-1 text-sm" data-testid="blocked-list">
-          {characters.map((character) => (
-            <li key={character.id}>
-              {character.label}
-              {character.handle ? (
-                <span className="text-muted-foreground">
-                  {' '}
-                  @{character.handle}
-                </span>
-              ) : null}
-            </li>
-          ))}
-        </ul>
+        <DialogBody className="flex flex-col gap-4">
+          <ul
+            className="flex flex-col gap-1 text-sm"
+            data-testid="blocked-list"
+          >
+            {characters.map((character) => (
+              <li key={character.id}>
+                {character.label}
+                {character.handle ? (
+                  <span className="text-muted-foreground">
+                    {' '}
+                    @{character.handle}
+                  </span>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        </DialogBody>
         <DialogFooter>
           <Button
             data-testid="blocked-close"

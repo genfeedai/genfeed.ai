@@ -16,6 +16,7 @@ import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -102,66 +103,65 @@ export default function CampaignGenerateDialog({
         if (!open && !isGenerating) onClose();
       }}
     >
-      <DialogContent
-        showCloseButton={!isGenerating}
-        className="max-h-[90dvh] overflow-y-auto sm:max-w-xl"
-      >
+      <DialogContent showCloseButton={!isGenerating} className="sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>{t('generate')}</DialogTitle>
           <DialogDescription>
             {t('accounts.generateDescription')}
           </DialogDescription>
         </DialogHeader>
-        {isPending ? (
-          <p role="status">{t('accounts.loading')}</p>
-        ) : isError ? (
-          <div role="alert">
-            <p>{t('accounts.failed')}</p>
-            <Button onClick={() => void refetch()}>
-              {t('accounts.retry')}
-            </Button>
-          </div>
-        ) : eligibleAccounts.length ? (
-          <div className="flex flex-col gap-3">
-            {eligibleAccounts.map((account) => (
-              <Checkbox
-                key={account.id}
-                isDisabled={isGenerating}
-                isChecked={selectedIds.includes(account.id)}
-                label={
-                  <ConnectedAccount
-                    account={toConnectedAccount(account)}
-                    size="sm"
-                  />
-                }
-                onCheckedChange={(checked) =>
-                  setSelectedIds((current) =>
-                    checked === true
-                      ? [...current, account.id]
-                      : current.filter((id) => id !== account.id),
-                  )
-                }
-              />
-            ))}
-          </div>
-        ) : (
-          <p>{t('accounts.empty')}</p>
-        )}
-        <Button asChild variant={ButtonVariant.LINK}>
-          <Link href={activeHref(APP_ROUTES.SETTINGS.PROFILE)}>
-            {t('accounts.manage')}
-          </Link>
-        </Button>
-        {error ? (
-          <p role="alert" className="text-sm text-destructive">
-            {error}
-          </p>
-        ) : null}
-        {resultMessage ? (
-          <p role="status" className="text-sm">
-            {resultMessage}
-          </p>
-        ) : null}
+        <DialogBody className="flex flex-col gap-4">
+          {isPending ? (
+            <p role="status">{t('accounts.loading')}</p>
+          ) : isError ? (
+            <div role="alert">
+              <p>{t('accounts.failed')}</p>
+              <Button onClick={() => void refetch()}>
+                {t('accounts.retry')}
+              </Button>
+            </div>
+          ) : eligibleAccounts.length ? (
+            <div className="flex flex-col gap-3">
+              {eligibleAccounts.map((account) => (
+                <Checkbox
+                  key={account.id}
+                  isDisabled={isGenerating}
+                  isChecked={selectedIds.includes(account.id)}
+                  label={
+                    <ConnectedAccount
+                      account={toConnectedAccount(account)}
+                      size="sm"
+                    />
+                  }
+                  onCheckedChange={(checked) =>
+                    setSelectedIds((current) =>
+                      checked === true
+                        ? [...current, account.id]
+                        : current.filter((id) => id !== account.id),
+                    )
+                  }
+                />
+              ))}
+            </div>
+          ) : (
+            <p>{t('accounts.empty')}</p>
+          )}
+          <Button asChild variant={ButtonVariant.LINK}>
+            <Link href={activeHref(APP_ROUTES.SETTINGS.PROFILE)}>
+              {t('accounts.manage')}
+            </Link>
+          </Button>
+          {error ? (
+            <p role="alert" className="text-sm text-destructive">
+              {error}
+            </p>
+          ) : null}
+          {resultMessage ? (
+            <p role="status" className="text-sm">
+              {resultMessage}
+            </p>
+          ) : null}
+        </DialogBody>
         <DialogFooter>
           <Button
             variant={ButtonVariant.GHOST}

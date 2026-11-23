@@ -2,6 +2,7 @@
 
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogDescription,
   DialogHeader,
@@ -36,9 +37,11 @@ export function AdsResearchWatchlistModal({
           <DialogTitle>{translate('title')}</DialogTitle>
           <DialogDescription>{translate('description')}</DialogDescription>
         </DialogHeader>
-        <div className="max-h-[60vh] overflow-y-auto">
-          <AdsResearchWatchlistPanel {...panelProps} />
-        </div>
+        <DialogBody className="flex flex-col gap-4">
+          <div>
+            <AdsResearchWatchlistPanel {...panelProps} />
+          </div>
+        </DialogBody>
       </DialogContent>
     </Dialog>
   );

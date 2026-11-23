@@ -57,6 +57,7 @@ import {
 } from '@ui/primitives/definition-list';
 import {
   Dialog,
+  DialogBody,
   DialogClose,
   DialogContent,
   DialogTitle,
@@ -1519,23 +1520,25 @@ function Preview({ result, notice, bridge }: PreviewProps) {
           }}
         >
           <DialogTitle>{image?.title || 'Generated image'}</DialogTitle>
-          {image?.content ? (
-            <Text
-              as="p"
-              size="sm"
-              className="max-h-[75vh] overflow-auto whitespace-pre-wrap break-words leading-relaxed"
-            >
-              {image.content}
-            </Text>
-          ) : image?.src ? (
-            <Image
-              src={image.src}
-              alt={image.title}
-              width={0}
-              height={0}
-              className="h-auto max-h-[75vh] w-auto max-w-full object-contain"
-            />
-          ) : null}
+          <DialogBody>
+            {image?.content ? (
+              <Text
+                as="p"
+                size="sm"
+                className="whitespace-pre-wrap break-words leading-relaxed"
+              >
+                {image.content}
+              </Text>
+            ) : image?.src ? (
+              <Image
+                src={image.src}
+                alt={image.title}
+                width={0}
+                height={0}
+                className="h-auto max-h-[75vh] w-auto max-w-full object-contain"
+              />
+            ) : null}
+          </DialogBody>
           <DialogClose asChild>
             <Button
               ref={closeButton}

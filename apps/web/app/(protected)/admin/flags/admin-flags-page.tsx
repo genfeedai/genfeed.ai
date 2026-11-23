@@ -21,6 +21,7 @@ import { getJsonApiErrorMessage } from '@services/core/json-api-error-message';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { useQueryClient } from '@tanstack/react-query';
+import SearchField from '@ui/content/search-field/SearchField';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
@@ -33,7 +34,6 @@ import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
 import { useCallback, useState } from 'react';
 import { useAdminSearchParam } from '@/components/content/admin-filters/useAdminSearchParam';
-import SearchField from '@/components/content/search-field/SearchField';
 import { notifyPlatformFlagsChanged } from '@/lib/platform-flags/platform-flags-sync';
 import AdminFlagCard from './admin-flag-card';
 

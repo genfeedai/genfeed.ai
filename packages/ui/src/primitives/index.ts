@@ -85,6 +85,7 @@ export {
 export { ddVariants, dlVariants, dtVariants } from './definition-list.variants';
 export {
   Dialog,
+  DialogBody,
   DialogClose,
   DialogContent,
   DialogDescription,

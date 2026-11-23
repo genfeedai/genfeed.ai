@@ -7,6 +7,7 @@ import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -79,42 +80,45 @@ export default function NewsletterAddSubscribersDialog({
           <DialogDescription>{translate('addDescription')}</DialogDescription>
         </DialogHeader>
         <Form
+          className="min-h-0 flex-1"
           onSubmit={(event) => {
             event.preventDefault();
             void submit();
           }}
         >
-          <Field label={translate('emails')} htmlFor="newsletter-add-emails">
-            <Textarea
-              autoFocus
-              id="newsletter-add-emails"
-              placeholder={translate('emailsPlaceholder')}
-              rows={6}
-              value={emails}
-              onChange={(event) => setEmails(event.target.value)}
+          <DialogBody className="flex flex-col gap-4">
+            <Field label={translate('emails')} htmlFor="newsletter-add-emails">
+              <Textarea
+                autoFocus
+                id="newsletter-add-emails"
+                placeholder={translate('emailsPlaceholder')}
+                rows={6}
+                value={emails}
+                onChange={(event) => setEmails(event.target.value)}
+              />
+            </Field>
+            <Field
+              helpText={translate('tagsHelp')}
+              htmlFor="newsletter-add-tags"
+              label={translate('tags')}
+            >
+              <Input
+                id="newsletter-add-tags"
+                value={tags}
+                onChange={(event) => setTags(event.target.value)}
+              />
+            </Field>
+            <Checkbox
+              isChecked={hasConsent}
+              label={translate('consentManual')}
+              onCheckedChange={(checked) => setHasConsent(checked === true)}
             />
-          </Field>
-          <Field
-            helpText={translate('tagsHelp')}
-            htmlFor="newsletter-add-tags"
-            label={translate('tags')}
-          >
-            <Input
-              id="newsletter-add-tags"
-              value={tags}
-              onChange={(event) => setTags(event.target.value)}
-            />
-          </Field>
-          <Checkbox
-            isChecked={hasConsent}
-            label={translate('consentManual')}
-            onCheckedChange={(checked) => setHasConsent(checked === true)}
-          />
-          {error ? (
-            <p role="alert" className="text-sm text-destructive">
-              {error}
-            </p>
-          ) : null}
+            {error ? (
+              <p role="alert" className="text-sm text-destructive">
+                {error}
+              </p>
+            ) : null}
+          </DialogBody>
           <DialogFooter>
             <Button
               isDisabled={isSaving}

@@ -53,10 +53,10 @@ type DialogPlacement = 'center' | 'right' | 'left' | 'top';
 
 const DIALOG_PLACEMENT_CLASSES: Record<DialogPlacement, string> = {
   center:
-    'top-1/2 left-1/2 max-h-[90dvh] w-full -translate-x-1/2 -translate-y-1/2 gap-4 overflow-y-auto overscroll-contain rounded-xl p-6 duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%]',
+    'top-1/2 left-1/2 max-h-[90dvh] w-full -translate-x-1/2 -translate-y-1/2 gap-4 rounded-xl p-6 duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%]',
   left: 'gen-dialog-panel-left inset-y-0 left-0 h-full w-full',
   right: 'gen-dialog-panel-right inset-y-0 right-0 h-full w-full',
-  top: 'gen-dialog-panel-top inset-x-0 top-0 max-h-dvh w-full overflow-y-auto overscroll-contain',
+  top: 'gen-dialog-panel-top inset-x-0 top-0 max-h-dvh w-full',
 };
 
 interface DialogContentProps

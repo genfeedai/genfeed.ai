@@ -5,6 +5,7 @@ import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -247,7 +248,7 @@ export default function AgentWorkflowRunDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Workflow className="size-4" />
@@ -260,183 +261,184 @@ export default function AgentWorkflowRunDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <Form onSubmit={handleSubmit}>
-          <Alert size="sm" variant="note">
-            {isLoadingBinding ? (
-              <span>{translate('loading')}</span>
-            ) : (
-              <>
-                <span className="font-medium text-foreground">
-                  {workflowLabel}
-                </span>
-                {binding?.templateDescription ? (
-                  <p className="mt-1 text-foreground/50">
-                    {binding.templateDescription}
-                  </p>
-                ) : null}
-                {unfilledRequired.length > 0 ? (
-                  <p className="mt-1 text-warning">
-                    {translate('requiredMissing', {
-                      slots: unfilledRequired.join(', '),
-                    })}
-                  </p>
-                ) : missing.length > 0 ? (
-                  <p className="mt-1 text-foreground/50">
-                    {translate('bindingPreview', {
-                      slots: missing.join(', '),
-                    })}
-                  </p>
-                ) : (
-                  <p className="mt-1 text-success">
-                    {translate('requiredReady')}
-                  </p>
-                )}
-              </>
-            )}
-          </Alert>
-
-          <div className="space-y-1.5">
-            <span className="text-sm font-medium text-foreground">
-              {translate('fields.topic')}
-            </span>
-            <Input
-              id="agent-workflow-topic"
-              value={topic}
-              onChange={(event) => setTopic(event.target.value)}
-              placeholder="What should this run be about?"
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <span className="text-sm font-medium text-foreground">
-              {translate('fields.prompt')}
-            </span>
-            <Textarea
-              id="agent-workflow-prompt"
-              value={prompt}
-              onChange={(event) => setPrompt(event.target.value)}
-              placeholder="Optional: override voice, angle, or full script"
-              rows={4}
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <span className="text-sm font-medium text-foreground">
-              {translate('fields.referenceLibrary')}
-            </span>
-            <Select
-              value={selectedIngredientId}
-              onValueChange={handleSelectIngredient}
-            >
-              <SelectTrigger aria-label="Library image for workflow reference">
-                <SelectValue
-                  placeholder={
-                    isLoadingLibrary
-                      ? 'Loading library…'
-                      : 'Pick a brand library image'
-                  }
-                />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={NONE_INGREDIENT}>
-                  {translate('fields.noLibraryImage')}
-                </SelectItem>
-                {libraryImages.map((image) => (
-                  <SelectItem key={image.id} value={image.id}>
-                    {image.label || image.id}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {libraryImages.length === 0 && !isLoadingLibrary ? (
-              <p className="text-xs text-foreground/50">
-                {translate('fields.noImages')}
-              </p>
-            ) : null}
-          </div>
-
-          <div className="space-y-1.5">
-            <span className="text-sm font-medium text-foreground">
-              {translate('fields.referenceUrl')}
-            </span>
-            <Input
-              id="agent-workflow-asset"
-              value={referenceImage}
-              onChange={(event) => setReferenceImage(event.target.value)}
-              placeholder="https://… if not using a library image"
-              disabled={selectedIngredientId !== NONE_INGREDIENT}
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <span className="text-sm font-medium text-foreground">
-              {translate('fields.cta')}
-            </span>
-            <Input
-              id="agent-workflow-cta"
-              value={cta}
-              onChange={(event) => setCta(event.target.value)}
-              placeholder="Follow for more"
-            />
-          </div>
-
-          {extraSlots.length > 0 ? (
-            <div className="space-y-3 rounded border border-foreground/10 p-3">
-              <p className="text-sm font-medium text-foreground">
-                {translate('fields.additionalSlots')}
-              </p>
-              {extraSlots.map((slot) => (
-                <div key={slot.key} className="space-y-1">
-                  <span className="text-xs font-medium text-foreground/80">
-                    {slot.label || slot.key}
-                    {slot.required ? ' *' : ''}
+        <Form className="min-h-0 flex-1" onSubmit={handleSubmit}>
+          <DialogBody className="flex flex-col gap-4">
+            <Alert size="sm" variant="note">
+              {isLoadingBinding ? (
+                <span>{translate('loading')}</span>
+              ) : (
+                <>
+                  <span className="font-medium text-foreground">
+                    {workflowLabel}
                   </span>
-                  {slot.description ? (
-                    <p className="text-xs text-muted-foreground">
-                      {slot.description}
+                  {binding?.templateDescription ? (
+                    <p className="mt-1 text-foreground/50">
+                      {binding.templateDescription}
                     </p>
                   ) : null}
-                  <Input
-                    id={`agent-workflow-slot-${slot.key}`}
-                    value={extraInputs[slot.key] ?? ''}
-                    onChange={(event) =>
-                      setExtraInputs((prev) => ({
-                        ...prev,
-                        [slot.key]: event.target.value,
-                      }))
+                  {unfilledRequired.length > 0 ? (
+                    <p className="mt-1 text-warning">
+                      {translate('requiredMissing', {
+                        slots: unfilledRequired.join(', '),
+                      })}
+                    </p>
+                  ) : missing.length > 0 ? (
+                    <p className="mt-1 text-foreground/50">
+                      {translate('bindingPreview', {
+                        slots: missing.join(', '),
+                      })}
+                    </p>
+                  ) : (
+                    <p className="mt-1 text-success">
+                      {translate('requiredReady')}
+                    </p>
+                  )}
+                </>
+              )}
+            </Alert>
+
+            <div className="space-y-1.5">
+              <span className="text-sm font-medium text-foreground">
+                {translate('fields.topic')}
+              </span>
+              <Input
+                id="agent-workflow-topic"
+                value={topic}
+                onChange={(event) => setTopic(event.target.value)}
+                placeholder="What should this run be about?"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <span className="text-sm font-medium text-foreground">
+                {translate('fields.prompt')}
+              </span>
+              <Textarea
+                id="agent-workflow-prompt"
+                value={prompt}
+                onChange={(event) => setPrompt(event.target.value)}
+                placeholder="Optional: override voice, angle, or full script"
+                rows={4}
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <span className="text-sm font-medium text-foreground">
+                {translate('fields.referenceLibrary')}
+              </span>
+              <Select
+                value={selectedIngredientId}
+                onValueChange={handleSelectIngredient}
+              >
+                <SelectTrigger aria-label="Library image for workflow reference">
+                  <SelectValue
+                    placeholder={
+                      isLoadingLibrary
+                        ? 'Loading library…'
+                        : 'Pick a brand library image'
                     }
-                    placeholder={slot.key}
-                    aria-label={slot.label || slot.key}
                   />
-                </div>
-              ))}
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NONE_INGREDIENT}>
+                    {translate('fields.noLibraryImage')}
+                  </SelectItem>
+                  {libraryImages.map((image) => (
+                    <SelectItem key={image.id} value={image.id}>
+                      {image.label || image.id}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {libraryImages.length === 0 && !isLoadingLibrary ? (
+                <p className="text-xs text-foreground/50">
+                  {translate('fields.noImages')}
+                </p>
+              ) : null}
             </div>
-          ) : null}
 
-          {binding && binding.inputs.length > 0 ? (
-            <div className="max-h-28 overflow-y-auto rounded border border-foreground/10 p-2 text-xs text-foreground/60">
-              <p className="mb-1 font-medium text-foreground/80">
-                {translate('fields.slotPreview')}
-              </p>
-              <ul className="space-y-1">
-                {binding.inputs.map((input) => (
-                  <li key={input.key} className="flex justify-between gap-2">
-                    <span>
-                      {input.label}
-                      {input.required ? ' *' : ''}
+            <div className="space-y-1.5">
+              <span className="text-sm font-medium text-foreground">
+                {translate('fields.referenceUrl')}
+              </span>
+              <Input
+                id="agent-workflow-asset"
+                value={referenceImage}
+                onChange={(event) => setReferenceImage(event.target.value)}
+                placeholder="https://… if not using a library image"
+                disabled={selectedIngredientId !== NONE_INGREDIENT}
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <span className="text-sm font-medium text-foreground">
+                {translate('fields.cta')}
+              </span>
+              <Input
+                id="agent-workflow-cta"
+                value={cta}
+                onChange={(event) => setCta(event.target.value)}
+                placeholder="Follow for more"
+              />
+            </div>
+
+            {extraSlots.length > 0 ? (
+              <div className="space-y-3 rounded border border-foreground/10 p-3">
+                <p className="text-sm font-medium text-foreground">
+                  {translate('fields.additionalSlots')}
+                </p>
+                {extraSlots.map((slot) => (
+                  <div key={slot.key} className="space-y-1">
+                    <span className="text-xs font-medium text-foreground/80">
+                      {slot.label || slot.key}
+                      {slot.required ? ' *' : ''}
                     </span>
-                    <span className="truncate text-muted-foreground">
-                      {extraInputs[input.key]?.trim() ||
-                        (input.filledValue != null && input.filledValue !== ''
-                          ? String(input.filledValue)
-                          : '—')}
-                    </span>
-                  </li>
+                    {slot.description ? (
+                      <p className="text-xs text-muted-foreground">
+                        {slot.description}
+                      </p>
+                    ) : null}
+                    <Input
+                      id={`agent-workflow-slot-${slot.key}`}
+                      value={extraInputs[slot.key] ?? ''}
+                      onChange={(event) =>
+                        setExtraInputs((prev) => ({
+                          ...prev,
+                          [slot.key]: event.target.value,
+                        }))
+                      }
+                      placeholder={slot.key}
+                      aria-label={slot.label || slot.key}
+                    />
+                  </div>
                 ))}
-              </ul>
-            </div>
-          ) : null}
+              </div>
+            ) : null}
 
+            {binding && binding.inputs.length > 0 ? (
+              <div className="max-h-28 overflow-y-auto rounded border border-foreground/10 p-2 text-xs text-foreground/60">
+                <p className="mb-1 font-medium text-foreground/80">
+                  {translate('fields.slotPreview')}
+                </p>
+                <ul className="space-y-1">
+                  {binding.inputs.map((input) => (
+                    <li key={input.key} className="flex justify-between gap-2">
+                      <span>
+                        {input.label}
+                        {input.required ? ' *' : ''}
+                      </span>
+                      <span className="truncate text-muted-foreground">
+                        {extraInputs[input.key]?.trim() ||
+                          (input.filledValue != null && input.filledValue !== ''
+                            ? String(input.filledValue)
+                            : '—')}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+          </DialogBody>
           <DialogFooter>
             <Button
               label="Cancel"

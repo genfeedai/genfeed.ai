@@ -2087,7 +2087,7 @@ const INTERNAL_ACTIONS: readonly GenfeedActionDefinition[] = [
   internalAction(
     'social.inbox.sync.facebook-inbox',
     'Sync Facebook Inbox',
-    'Ingests tenant-scoped Facebook Page comments into the social inbox.',
+    'Ingests tenant-scoped Facebook Page comments and Messenger messages into the social inbox.',
   ),
   internalAction(
     'social.inbox.sync.instagram-comments',

@@ -5,6 +5,7 @@ import { Badge } from '@ui/primitives/badge';
 import { Button, Button as PrimitiveButton } from '@ui/primitives/button';
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogFooter,
   DialogHeader,
@@ -194,50 +195,52 @@ export default function ByokProviderCard({
             </div>
           </DialogHeader>
 
-          <div className="space-y-3">
-            <div>
-              <span className="mb-1 block text-xs text-muted-foreground">
-                API Key
-              </span>
-              <Input
-                type="password"
-                autoComplete="off"
-                value={apiKeyValue}
-                onChange={(e) => onApiKeyChange(e.target.value)}
-                placeholder="Enter API key..."
-                className="w-full"
-                autoFocus
-              />
-            </div>
-            {providerStatus.requiresSecret ? (
+          <DialogBody className="flex flex-col gap-4">
+            <div className="space-y-3">
               <div>
                 <span className="mb-1 block text-xs text-muted-foreground">
-                  API Secret
+                  API Key
                 </span>
                 <Input
                   type="password"
                   autoComplete="off"
-                  value={apiSecretValue}
-                  onChange={(e) => onApiSecretChange(e.target.value)}
-                  placeholder="Enter API secret..."
+                  value={apiKeyValue}
+                  onChange={(e) => onApiKeyChange(e.target.value)}
+                  placeholder="Enter API key..."
                   className="w-full"
+                  autoFocus
                 />
               </div>
-            ) : null}
-            <PrimitiveButton
-              asChild
-              size={ButtonSize.INLINE}
-              variant={ButtonVariant.LINK}
-            >
-              <a
-                href={providerStatus.docsUrl}
-                target="_blank"
-                rel="noopener noreferrer"
+              {providerStatus.requiresSecret ? (
+                <div>
+                  <span className="mb-1 block text-xs text-muted-foreground">
+                    API Secret
+                  </span>
+                  <Input
+                    type="password"
+                    autoComplete="off"
+                    value={apiSecretValue}
+                    onChange={(e) => onApiSecretChange(e.target.value)}
+                    placeholder="Enter API secret..."
+                    className="w-full"
+                  />
+                </div>
+              ) : null}
+              <PrimitiveButton
+                asChild
+                size={ButtonSize.INLINE}
+                variant={ButtonVariant.LINK}
               >
-                Get API key
-              </a>
-            </PrimitiveButton>
-          </div>
+                <a
+                  href={providerStatus.docsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Get API key
+                </a>
+              </PrimitiveButton>
+            </div>
+          </DialogBody>
 
           <DialogFooter>
             <Button

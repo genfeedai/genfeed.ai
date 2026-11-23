@@ -1,4 +1,7 @@
-import { toPageComments } from '@api/services/integrations/facebook/utils/facebook-inbox.util';
+import {
+  toMessengerThreads,
+  toPageComments,
+} from '@api/services/integrations/facebook/utils/facebook-inbox.util';
 import { describe, expect, it } from 'vitest';
 
 const PAGE_ID = '1010';
@@ -104,5 +107,64 @@ describe('toPageComments', () => {
         PAGE_ID,
       ),
     ).toEqual([]);
+  });
+});
+
+describe('toMessengerThreads', () => {
+  it("keeps only the person's text messages and names the person from the participants", () => {
+    const threads = toMessengerThreads(
+      [
+        {
+          id: 't_1',
+          messages: {
+            data: [
+              {
+                created_time: '2026-11-23T10:00:00+0000',
+                from: { id: '777', name: 'Taylor' },
+                id: 'm_1',
+                message: '  Hello  ',
+              },
+              {
+                created_time: '2026-11-23T10:01:00+0000',
+                from: { id: PAGE_ID, name: 'Acme' },
+                id: 'm_2',
+                message: 'Hi Taylor',
+              },
+              {
+                created_time: '2026-11-23T10:02:00+0000',
+                from: { id: '777' },
+                id: 'm_3',
+              },
+              { from: { id: '777' }, id: 'm_4', message: 'no time' },
+            ],
+          },
+          participants: {
+            data: [
+              { id: PAGE_ID, name: 'Acme' },
+              { id: '777', name: 'Taylor' },
+            ],
+          },
+        },
+        { messages: { data: [] } },
+      ],
+      PAGE_ID,
+    );
+
+    expect(threads).toEqual([
+      {
+        conversationId: 't_1',
+        messages: [
+          {
+            createdAt: new Date('2026-11-23T10:00:00.000Z'),
+            messageId: 'm_1',
+            senderExternalId: '777',
+            senderName: 'Taylor',
+            text: 'Hello',
+          },
+        ],
+        participantExternalId: '777',
+        participantName: 'Taylor',
+      },
+    ]);
   });
 });

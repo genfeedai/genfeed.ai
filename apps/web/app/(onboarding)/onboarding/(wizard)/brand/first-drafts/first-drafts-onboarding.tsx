@@ -15,6 +15,7 @@ import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -459,8 +460,10 @@ export default function FirstDraftsOnboarding() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{t('skip.title')}</DialogTitle>
-            <DialogDescription>{t('skip.description')}</DialogDescription>
           </DialogHeader>
+          <DialogBody>
+            <DialogDescription>{t('skip.description')}</DialogDescription>
+          </DialogBody>
           <DialogFooter>
             <Button
               variant={ButtonVariant.SECONDARY}

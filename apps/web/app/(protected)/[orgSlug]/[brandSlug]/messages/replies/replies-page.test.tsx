@@ -48,7 +48,7 @@ vi.mock('@/components/content/admin-filters/useAdminSearchParam', () => ({
   useAdminSearchParam: () => ({ search: '', setSearch: vi.fn() }),
 }));
 
-vi.mock('@/components/content/search-field/SearchField', () => ({
+vi.mock('@ui/content/search-field/SearchField', () => ({
   default: () => null,
 }));
 

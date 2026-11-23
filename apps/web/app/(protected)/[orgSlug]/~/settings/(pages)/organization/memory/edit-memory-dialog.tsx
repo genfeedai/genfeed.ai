@@ -13,6 +13,7 @@ import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -240,31 +241,36 @@ export default function EditMemoryDialog({
 
   return (
     <Dialog open={entry !== null} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] max-w-2xl overflow-y-auto overscroll-contain">
+      <DialogContent className="w-[calc(100vw-2rem)] max-w-2xl">
         <DialogHeader>
           <DialogTitle>{translate('edit.title')}</DialogTitle>
           <DialogDescription>{translate('edit.description')}</DialogDescription>
         </DialogHeader>
 
-        <Form onSubmit={(event) => void handleSubmit(event)}>
-          <Field label={translate('edit.contentLabel')}>
-            <Textarea
-              isDisabled={isSaving}
-              maxLength={20000}
-              onChange={(event) => setContent(event.target.value)}
-              rows={6}
-              value={content}
-            />
-          </Field>
-          <Field label={translate('edit.reasonLabel')}>
-            <Input
-              isDisabled={isSaving}
-              maxLength={2000}
-              onChange={(event) => setReason(event.target.value)}
-              placeholder={translate('edit.reasonPlaceholder')}
-              value={reason}
-            />
-          </Field>
+        <Form
+          className="min-h-0 flex-1"
+          onSubmit={(event) => void handleSubmit(event)}
+        >
+          <DialogBody className="flex flex-col gap-4">
+            <Field label={translate('edit.contentLabel')}>
+              <Textarea
+                isDisabled={isSaving}
+                maxLength={20000}
+                onChange={(event) => setContent(event.target.value)}
+                rows={6}
+                value={content}
+              />
+            </Field>
+            <Field label={translate('edit.reasonLabel')}>
+              <Input
+                isDisabled={isSaving}
+                maxLength={2000}
+                onChange={(event) => setReason(event.target.value)}
+                placeholder={translate('edit.reasonPlaceholder')}
+                value={reason}
+              />
+            </Field>
+          </DialogBody>
           <DialogFooter>
             <Button
               isDisabled={isSaving}

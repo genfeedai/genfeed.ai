@@ -16,6 +16,7 @@ import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -268,157 +269,159 @@ export function WorkflowScheduleDialog({
           </DialogDescription>
         </DialogHeader>
 
-        {isLoading ? (
-          <p className="flex items-center gap-2 py-4 text-sm text-muted-foreground">
-            <Spinner aria-hidden="true" size={ComponentSize.SM} />
-            {translate('loading')}
-          </p>
-        ) : (
-          <div className="space-y-4">
-            {error ? (
-              <Alert size="sm" variant="destructive">
-                {error}
-              </Alert>
-            ) : null}
+        <DialogBody className="flex flex-col gap-4">
+          {isLoading ? (
+            <p className="flex items-center gap-2 py-4 text-sm text-muted-foreground">
+              <Spinner aria-hidden="true" size={ComponentSize.SM} />
+              {translate('loading')}
+            </p>
+          ) : (
+            <div className="space-y-4">
+              {error ? (
+                <Alert size="sm" variant="destructive">
+                  {error}
+                </Alert>
+              ) : null}
 
-            <Card
-              padding={CardPadding.SM}
-              gap={CardGap.LG}
-              bodyClassName="flex-row items-start justify-between"
-            >
-              <div className="min-w-0 space-y-1">
-                <p className="text-sm font-medium text-foreground">
-                  {translate('recurring.title')}
-                </p>
-                <p className="text-xs leading-5 text-muted-foreground">
-                  {translate('recurring.description')}
-                </p>
-              </div>
-              <Switch
-                aria-label={translate('recurring.title')}
-                className="mt-0.5 shrink-0"
-                checked={isEnabled}
-                onCheckedChange={(checked) =>
-                  updateForm({ isEnabled: checked })
-                }
-              />
-            </Card>
+              <Card
+                padding={CardPadding.SM}
+                gap={CardGap.LG}
+                bodyClassName="flex-row items-start justify-between"
+              >
+                <div className="min-w-0 space-y-1">
+                  <p className="text-sm font-medium text-foreground">
+                    {translate('recurring.title')}
+                  </p>
+                  <p className="text-xs leading-5 text-muted-foreground">
+                    {translate('recurring.description')}
+                  </p>
+                </div>
+                <Switch
+                  aria-label={translate('recurring.title')}
+                  className="mt-0.5 shrink-0"
+                  checked={isEnabled}
+                  onCheckedChange={(checked) =>
+                    updateForm({ isEnabled: checked })
+                  }
+                />
+              </Card>
 
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-1.5">
-                <Label
-                  className="text-foreground"
-                  htmlFor="workflow-schedule-cadence"
-                >
-                  {translate('cadence.label')}
-                </Label>
-                <Select
-                  disabled={isSaving}
-                  value={cadenceSelectValue}
-                  onValueChange={(value) => {
-                    if (value === CUSTOM_CADENCE_VALUE) {
-                      updateForm(
-                        cronExpression.trim()
-                          ? { isCustomCadence: true }
-                          : {
-                              cronExpression: DEFAULT_CUSTOM_CRON,
-                              isCustomCadence: true,
-                            },
-                      );
-                      return;
-                    }
-                    updateForm({
-                      cronExpression: value,
-                      isCustomCadence: false,
-                    });
-                  }}
-                >
-                  <SelectTrigger
-                    aria-label={translate('cadence.label')}
-                    id="workflow-schedule-cadence"
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label
+                    className="text-foreground"
+                    htmlFor="workflow-schedule-cadence"
                   >
-                    <SelectValue
-                      placeholder={translate('cadence.placeholder')}
-                    />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {WORKFLOW_SCHEDULE_PRESETS.map((preset) => (
-                      <SelectItem key={preset.cron} value={preset.cron}>
-                        {preset.label}
-                      </SelectItem>
-                    ))}
-                    <SelectItem value={CUSTOM_CADENCE_VALUE}>
-                      {translate('cadence.custom')}
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-                {isCustomCadence ? (
-                  <div className="space-y-1.5 pt-2">
-                    <Label
-                      className="text-xs text-muted-foreground"
-                      htmlFor="workflow-schedule-custom-cron"
-                    >
-                      {translate('custom.title')}
-                    </Label>
-                    <Input
-                      aria-label={translate('custom.title')}
-                      disabled={isSaving}
-                      id="workflow-schedule-custom-cron"
-                      placeholder={translate('custom.placeholder')}
-                      value={cronExpression}
-                      onChange={(event) =>
-                        updateForm({ cronExpression: event.target.value })
+                    {translate('cadence.label')}
+                  </Label>
+                  <Select
+                    disabled={isSaving}
+                    value={cadenceSelectValue}
+                    onValueChange={(value) => {
+                      if (value === CUSTOM_CADENCE_VALUE) {
+                        updateForm(
+                          cronExpression.trim()
+                            ? { isCustomCadence: true }
+                            : {
+                                cronExpression: DEFAULT_CUSTOM_CRON,
+                                isCustomCadence: true,
+                              },
+                        );
+                        return;
                       }
-                    />
-                    <p className="text-xs leading-5 text-muted-foreground">
-                      {translate('custom.description')}
-                    </p>
-                  </div>
-                ) : null}
-              </div>
-
-              <div className="space-y-1.5">
-                <Label
-                  className="text-foreground"
-                  htmlFor="workflow-schedule-timezone"
-                >
-                  {translate('timezone.label')}
-                </Label>
-                <Select
-                  disabled={isSaving}
-                  value={timezone || 'UTC'}
-                  onValueChange={(value) => updateForm({ timezone: value })}
-                >
-                  <SelectTrigger
-                    aria-label={translate('timezone.label')}
-                    id="workflow-schedule-timezone"
+                      updateForm({
+                        cronExpression: value,
+                        isCustomCadence: false,
+                      });
+                    }}
                   >
-                    <SelectValue
-                      placeholder={translate('timezone.placeholder')}
-                    />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {timezoneOptions.map((entry) => (
-                      <SelectItem key={entry.value} value={entry.value}>
-                        {entry.label}
+                    <SelectTrigger
+                      aria-label={translate('cadence.label')}
+                      id="workflow-schedule-cadence"
+                    >
+                      <SelectValue
+                        placeholder={translate('cadence.placeholder')}
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {WORKFLOW_SCHEDULE_PRESETS.map((preset) => (
+                        <SelectItem key={preset.cron} value={preset.cron}>
+                          {preset.label}
+                        </SelectItem>
+                      ))}
+                      <SelectItem value={CUSTOM_CADENCE_VALUE}>
+                        {translate('cadence.custom')}
                       </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+                    </SelectContent>
+                  </Select>
+                  {isCustomCadence ? (
+                    <div className="space-y-1.5 pt-2">
+                      <Label
+                        className="text-xs text-muted-foreground"
+                        htmlFor="workflow-schedule-custom-cron"
+                      >
+                        {translate('custom.title')}
+                      </Label>
+                      <Input
+                        aria-label={translate('custom.title')}
+                        disabled={isSaving}
+                        id="workflow-schedule-custom-cron"
+                        placeholder={translate('custom.placeholder')}
+                        value={cronExpression}
+                        onChange={(event) =>
+                          updateForm({ cronExpression: event.target.value })
+                        }
+                      />
+                      <p className="text-xs leading-5 text-muted-foreground">
+                        {translate('custom.description')}
+                      </p>
+                    </div>
+                  ) : null}
+                </div>
 
-            {cadenceSummary ? (
-              <p className="text-xs text-muted-foreground">
-                {isEnabled ? translate('runs') : translate('paused')} ·{' '}
-                {cadenceSummary} · {timezone || 'UTC'}
-                {nextRunLabel
-                  ? ` · ${translate('nextRun', { nextRun: nextRunLabel })}`
-                  : ''}
-              </p>
-            ) : null}
-          </div>
-        )}
+                <div className="space-y-1.5">
+                  <Label
+                    className="text-foreground"
+                    htmlFor="workflow-schedule-timezone"
+                  >
+                    {translate('timezone.label')}
+                  </Label>
+                  <Select
+                    disabled={isSaving}
+                    value={timezone || 'UTC'}
+                    onValueChange={(value) => updateForm({ timezone: value })}
+                  >
+                    <SelectTrigger
+                      aria-label={translate('timezone.label')}
+                      id="workflow-schedule-timezone"
+                    >
+                      <SelectValue
+                        placeholder={translate('timezone.placeholder')}
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {timezoneOptions.map((entry) => (
+                        <SelectItem key={entry.value} value={entry.value}>
+                          {entry.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {cadenceSummary ? (
+                <p className="text-xs text-muted-foreground">
+                  {isEnabled ? translate('runs') : translate('paused')} ·{' '}
+                  {cadenceSummary} · {timezone || 'UTC'}
+                  {nextRunLabel
+                    ? ` · ${translate('nextRun', { nextRun: nextRunLabel })}`
+                    : ''}
+                </p>
+              ) : null}
+            </div>
+          )}
+        </DialogBody>
 
         <DialogFooter className="sm:justify-between">
           {hasStoredSchedule ? (

@@ -11,6 +11,7 @@ import AppTable from '@ui/display/table/Table';
 import TableGroupHeading from '@ui/display/table/TableGroupHeading';
 import Container from '@ui/layout/container/Container';
 import SubbarOverflowMenu from '@ui/layout/subbar-overflow-menu/SubbarOverflowMenu';
+import FilterMenu from '@ui/navigation/filter-menu/FilterMenu';
 import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { EmptyState } from '@ui/primitives/empty-state';
@@ -25,7 +26,6 @@ import {
   useMemo,
   useState,
 } from 'react';
-import FilterMenu from '@/components/content/filter-menu/FilterMenu';
 import { WorkspaceSurface } from '@/components/overview/WorkspaceSurface';
 import { useWorkspaceSurfaceSelection } from '@/components/workspace-shell/WorkspaceSurfaceAdapterContext';
 import { useTrends } from '@/features/trends/hooks/use-trends/use-trends';

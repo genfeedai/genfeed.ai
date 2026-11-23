@@ -10,6 +10,7 @@ import { NotificationsService } from '@genfeedai/services/core/notifications.ser
 import { Button } from '@ui/primitives/button';
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogDescription,
   DialogHeader,
@@ -242,76 +243,78 @@ export default function LibraryTagManagerDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex items-center gap-2">
-          <Input
-            aria-label={translate('newTagLabel')}
-            className="min-w-0 flex-1"
-            maxLength={80}
-            onChange={(event) => setNewLabel(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter') {
-                void handleCreate();
+        <DialogBody className="flex flex-col gap-4">
+          <div className="flex items-center gap-2">
+            <Input
+              aria-label={translate('newTagLabel')}
+              className="min-w-0 flex-1"
+              maxLength={80}
+              onChange={(event) => setNewLabel(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') {
+                  void handleCreate();
+                }
+              }}
+              placeholder={translate('newTagPlaceholder')}
+              value={newLabel}
+            />
+            <Select
+              onValueChange={(value) =>
+                setNewScope(
+                  value === TagScope.ORGANIZATION
+                    ? TagScope.ORGANIZATION
+                    : TagScope.BRAND,
+                )
               }
-            }}
-            placeholder={translate('newTagPlaceholder')}
-            value={newLabel}
-          />
-          <Select
-            onValueChange={(value) =>
-              setNewScope(
-                value === TagScope.ORGANIZATION
-                  ? TagScope.ORGANIZATION
-                  : TagScope.BRAND,
-              )
-            }
-            value={newScope}
-          >
-            <SelectTrigger
-              aria-label={translate('newTagScope')}
-              className="w-36"
+              value={newScope}
             >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={TagScope.BRAND}>
-                {translate('scopeThisBrand')}
-              </SelectItem>
-              <SelectItem value={TagScope.ORGANIZATION}>
-                {translate('scopeOrganization')}
-              </SelectItem>
-            </SelectContent>
-          </Select>
-          <Button
-            isDisabled={!newLabel.trim()}
-            isLoading={isCreating}
-            label={translate('createButton')}
-            onClick={() => {
-              void handleCreate();
-            }}
-            variant={ButtonVariant.DEFAULT}
-          />
-        </div>
+              <SelectTrigger
+                aria-label={translate('newTagScope')}
+                className="w-36"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={TagScope.BRAND}>
+                  {translate('scopeThisBrand')}
+                </SelectItem>
+                <SelectItem value={TagScope.ORGANIZATION}>
+                  {translate('scopeOrganization')}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+            <Button
+              isDisabled={!newLabel.trim()}
+              isLoading={isCreating}
+              label={translate('createButton')}
+              onClick={() => {
+                void handleCreate();
+              }}
+              variant={ButtonVariant.DEFAULT}
+            />
+          </div>
 
-        {isLoading ? (
-          <p className="text-sm text-foreground/60" role="status">
-            {translate('loading')}
-          </p>
-        ) : tags.length === 0 ? (
-          <p className="text-sm text-foreground/60">
-            {translate('emptyGuidance')}
-          </p>
-        ) : (
-          <ul className="max-h-80 divide-y divide-foreground/5 overflow-y-auto">
-            {tags.map((tag) => (
-              <TagManagerRow
-                key={tag.id}
-                onDelete={handleDelete}
-                onUpdate={handleUpdate}
-                tag={tag}
-              />
-            ))}
-          </ul>
-        )}
+          {isLoading ? (
+            <p className="text-sm text-foreground/60" role="status">
+              {translate('loading')}
+            </p>
+          ) : tags.length === 0 ? (
+            <p className="text-sm text-foreground/60">
+              {translate('emptyGuidance')}
+            </p>
+          ) : (
+            <ul className="divide-y divide-foreground/5">
+              {tags.map((tag) => (
+                <TagManagerRow
+                  key={tag.id}
+                  onDelete={handleDelete}
+                  onUpdate={handleUpdate}
+                  tag={tag}
+                />
+              ))}
+            </ul>
+          )}
+        </DialogBody>
       </DialogContent>
     </Dialog>
   );

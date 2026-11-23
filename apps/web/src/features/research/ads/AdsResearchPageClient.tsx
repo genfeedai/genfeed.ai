@@ -5,6 +5,7 @@ import { ButtonSize, ButtonVariant, ViewType } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { AdsChannel, AdsPlatform } from '@genfeedai/contracts/interfaces';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
+import SearchField from '@ui/content/search-field/SearchField';
 import Container from '@ui/layout/container/Container';
 import ViewMenu from '@ui/navigation/view-menu/ViewMenu';
 import { Alert } from '@ui/primitives/alert';
@@ -13,7 +14,6 @@ import { Columns2, Eye, Megaphone, Table } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
-import SearchField from '@/components/content/search-field/SearchField';
 import { useResearchPagination } from '@/features/research/work-surface/ResearchWorkSurfaceProvider';
 
 import AdsPublicDiscoveryPanel from './AdsPublicDiscoveryPanel';

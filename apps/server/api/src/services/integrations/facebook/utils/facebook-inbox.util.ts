@@ -1,5 +1,7 @@
 import type {
+  IFacebookGraphConversation,
   IFacebookGraphPost,
+  IFacebookMessengerThread,
   IFacebookPageComment,
 } from '@genfeedai/contracts/interfaces/integrations/facebook.interface';
 
@@ -40,4 +42,58 @@ export function toPageComments(
       ];
     }),
   );
+}
+
+/**
+ * Messenger conversations of a Page as inbox threads. Only the person's
+ * messages are kept: a message the Page sent is stored when Genfeed sends it,
+ * and one typed in Meta's own inbox has no outbound row to attach to, so
+ * reading either back would show the Page's words as the person's.
+ */
+export function toMessengerThreads(
+  conversations: readonly IFacebookGraphConversation[],
+  pageId: string,
+): IFacebookMessengerThread[] {
+  return conversations.flatMap((conversation) => {
+    if (!conversation.id) {
+      return [];
+    }
+
+    const participant = (conversation.participants?.data ?? []).find(
+      (entry) => entry.id && entry.id !== pageId,
+    );
+
+    const messages = (conversation.messages?.data ?? []).flatMap((message) => {
+      const createdAt = new Date(message.created_time ?? Number.NaN);
+      const text = message.message?.trim();
+      // An attachment-only message has no text the inbox can show.
+      if (
+        !message.id ||
+        !text ||
+        Number.isNaN(createdAt.getTime()) ||
+        message.from?.id === pageId
+      ) {
+        return [];
+      }
+
+      return [
+        {
+          createdAt,
+          messageId: message.id,
+          senderExternalId: message.from?.id,
+          senderName: message.from?.name,
+          text,
+        },
+      ];
+    });
+
+    return [
+      {
+        conversationId: conversation.id,
+        messages,
+        participantExternalId: participant?.id,
+        participantName: participant?.name,
+      },
+    ];
+  });
 }

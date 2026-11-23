@@ -9,6 +9,7 @@ import {
 } from '@api/services/integrations/linkedin/services/linkedin-inbox.constants';
 import { replaceMarkup } from '@api/shared/utils/string/strip-markup.util';
 import { Platform, SocialConversationType } from '@genfeedai/contracts';
+import { FACEBOOK_MESSENGER_REPLY_WINDOW_MS } from '@genfeedai/contracts/constants';
 import { readRecord } from '@genfeedai/utils/data/extract.util';
 import { BadRequestException } from '@nestjs/common';
 
@@ -35,6 +36,12 @@ const DM_POST_REPLY_REASON =
 // someone who wrote to it first, so a commenter cannot be messaged from here.
 const FACEBOOK_COMMENT_DM_REASON =
   'A Facebook comment cannot start a Messenger conversation';
+// Meta accepts a Messenger reply only within 24 hours of the person's last
+// message, so the composer says why a stale thread cannot be answered.
+export const FACEBOOK_DM_WINDOW_REASON =
+  "Messenger allows a reply only within 24 hours of the person's last message";
+const FACEBOOK_DM_RECIPIENT_REASON =
+  'Messenger reply requires the participant recipient id';
 const TIKTOK_READ_ONLY_REASON = 'TikTok conversations are read-only in Genfeed';
 const YOUTUBE_DM_REASON = 'YouTube Data API does not support channel DMs';
 // X OAuth requests tweet/users/media scopes only (no `dm.write`), and the
@@ -101,9 +108,37 @@ export function toPage<T>(
   };
 }
 
+/** Whether Meta still accepts a Messenger reply to a person's last message. */
+export function isWithinFacebookReplyWindow(
+  lastInboundAt: Date | string | null | undefined,
+  now: Date = new Date(),
+): boolean {
+  if (!lastInboundAt) {
+    return false;
+  }
+  const last = new Date(lastInboundAt).getTime();
+  return (
+    !Number.isNaN(last) &&
+    now.getTime() - last <= FACEBOOK_MESSENGER_REPLY_WINDOW_MS
+  );
+}
+
+function getFacebookDmReason(params: {
+  lastInboundAt?: Date | string | null;
+  participantExternalId?: string | null;
+}): string | undefined {
+  if (!params.participantExternalId) {
+    return FACEBOOK_DM_RECIPIENT_REASON;
+  }
+  return isWithinFacebookReplyWindow(params.lastInboundAt)
+    ? undefined
+    : FACEBOOK_DM_WINDOW_REASON;
+}
+
 export function getAvailability(params: {
   platform: string;
   conversationType?: string | null;
+  lastInboundAt?: Date | string | null;
   sourceContentId?: string | null;
   externalParentId?: string | null;
   participantExternalId?: string | null;
@@ -149,6 +184,16 @@ export function getAvailability(params: {
   }
 
   if (params.platform === Platform.FACEBOOK) {
+    if (isDirectMessage) {
+      const sendDmReason = getFacebookDmReason(params);
+      return {
+        canPostReply: false,
+        canSendDm: sendDmReason === undefined,
+        postReplyReason: DM_POST_REPLY_REASON,
+        sendDmReason,
+      };
+    }
+
     return {
       canPostReply: Boolean(params.externalParentId),
       canSendDm: false,
@@ -237,8 +282,11 @@ export function readAvailability(
   }
 
   // X DMs are unsupported by policy; rows ingested before that policy stored
-  // `canSendDm: true` and must not re-enable the send path.
-  const isDmPolicyAuthoritative = platform === Platform.TWITTER;
+  // `canSendDm: true` and must not re-enable the send path. A Messenger reply
+  // depends on the time of the person's last message, so a stored answer goes
+  // stale; the policy is read again each time.
+  const isDmPolicyAuthoritative =
+    platform === Platform.TWITTER || platform === Platform.FACEBOOK;
 
   return {
     canPostReply:

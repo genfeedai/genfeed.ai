@@ -34,6 +34,7 @@ import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogHeader,
   DialogTitle,
@@ -396,14 +397,16 @@ export default function NewsletterSendCard({
             <DialogHeader>
               <DialogTitle>{preview.subject}</DialogTitle>
             </DialogHeader>
-            <iframe
-              className={
-                'h-[70dvh] w-full rounded-md border border-border bg-white' /* design-system-allow-content-color -- emails render on a white page */
-              }
-              sandbox=""
-              srcDoc={preview.html}
-              title={translate('previewTitle')}
-            />
+            <DialogBody className="flex flex-col gap-4">
+              <iframe
+                className={
+                  'h-[70dvh] w-full rounded-md border border-border bg-white' /* design-system-allow-content-color -- emails render on a white page */
+                }
+                sandbox=""
+                srcDoc={preview.html}
+                title={translate('previewTitle')}
+              />
+            </DialogBody>
           </DialogContent>
         </Dialog>
       ) : null}
