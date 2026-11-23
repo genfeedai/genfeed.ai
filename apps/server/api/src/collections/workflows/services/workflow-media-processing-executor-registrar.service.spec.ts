@@ -651,3 +651,118 @@ describe('WorkflowMediaProcessingExecutorRegistrarService', () => {
     });
   });
 });
+
+describe('WorkflowMediaProcessingExecutorRegistrarService direct media inputs', () => {
+  const context = {
+    organizationId: 'org-1',
+    runId: 'run-1',
+    userId: 'user-1',
+    workflowId: 'workflow-1',
+    workflowVersionId: 'version-1',
+  };
+  const storedUrl = 'https://cdn.example/ingredients/videos/video-1';
+
+  function createInputHarness(isAuthorizedDeliveryEnabled: boolean) {
+    const helper = {
+      readConfigString: (
+        config: Record<string, unknown> | undefined,
+        key: string,
+      ) => (typeof config?.[key] === 'string' ? config[key] : undefined),
+      resolveConfiguredMediaInput: vi.fn(() => storedUrl),
+    } as unknown as WorkflowEngineExecutorHelperService;
+    const issuer = {
+      issueServerPublish: vi.fn(
+        async (_organizationId: string, ids: string[]) =>
+          new Map(ids.map((id) => [id, `https://grant.example/${id}?sig=1`])),
+      ),
+    };
+    const engine = new WorkflowEngine();
+    new WorkflowMediaProcessingExecutorRegistrarService(
+      helper,
+      {
+        ingredientsEndpoint: 'https://cdn.example/ingredients',
+        isAuthorizedMediaDeliveryEnabled: isAuthorizedDeliveryEnabled,
+      } as never,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      issuer as never,
+    ).register(engine);
+
+    return { engine, issuer };
+  }
+
+  function inputNode(config: Record<string, unknown>) {
+    return {
+      config,
+      id: 'input-1',
+      inputs: [],
+      label: 'Video',
+      type: 'input-video',
+    };
+  }
+
+  it('hands a selected Library video to the workflow through a fresh grant, not the URL saved in the node', async () => {
+    const { engine, issuer } = createInputHarness(true);
+
+    const result = await engine.getExecutor('input-video')?.(
+      inputNode({
+        itemCategory: 'video',
+        itemId: 'video-1',
+        resolvedUrl: storedUrl,
+        selectedResolvedUrl: storedUrl,
+        source: 'library',
+      }),
+      new Map(),
+      context,
+    );
+
+    expect(result).toBe('https://grant.example/video-1?sig=1');
+    expect(issuer.issueServerPublish).toHaveBeenCalledWith('org-1', [
+      'video-1',
+    ]);
+  });
+
+  it('keeps a pasted URL as it is', async () => {
+    const { engine, issuer } = createInputHarness(true);
+
+    const result = await engine.getExecutor('input-video')?.(
+      inputNode({
+        resolvedUrl: 'https://example.com/clip.mp4',
+        source: 'url',
+        url: 'https://example.com/clip.mp4',
+      }),
+      new Map(),
+      context,
+    );
+
+    expect(result).toBe(storedUrl);
+    expect(issuer.issueServerPublish).not.toHaveBeenCalled();
+  });
+
+  it('keeps the saved URL when authorized delivery is off', async () => {
+    const { engine, issuer } = createInputHarness(false);
+
+    const result = await engine.getExecutor('input-video')?.(
+      inputNode({
+        itemCategory: 'video',
+        itemId: 'video-1',
+        resolvedUrl: storedUrl,
+        source: 'library',
+      }),
+      new Map(),
+      context,
+    );
+
+    expect(result).toBe(storedUrl);
+    expect(issuer.issueServerPublish).not.toHaveBeenCalled();
+  });
+});
