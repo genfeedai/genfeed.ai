@@ -149,6 +149,12 @@ export interface ImageGenerationProviderRequest {
   width: number;
   abortSignal?: AbortSignal;
   onExternalJobCreated?: (externalId: string) => Promise<void>;
+  /**
+   * The provider queued the job but has not finished it. Stores a reference a
+   * later cancel can use, without marking the output accepted: acceptance
+   * still waits for the finished output.
+   */
+  onProviderJobQueued?: (externalRef: string) => Promise<void>;
   onProviderOutput?: (output: unknown) => Promise<void>;
   onProviderSubmissionStarted?: () => void;
 }
