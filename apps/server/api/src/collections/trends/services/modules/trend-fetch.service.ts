@@ -6,6 +6,7 @@ import type {
 } from '@api/collections/trends/interfaces/trend.interfaces';
 import { TrendRefreshHealthService } from '@api/collections/trends/services/modules/trend-refresh-health.service';
 import { getRejectedGrokTrendReason } from '@api/collections/trends/utils/grok-trend-rejection.util';
+import { fetchInstagramHashtagTrends } from '@api/collections/trends/utils/trend-instagram-hashtag.util';
 import { logTrendProviderFailure } from '@api/collections/trends/utils/trend-provider-failure-log.util';
 import {
   captureTrendRefreshEvidence,
@@ -19,6 +20,7 @@ import {
 import { CacheService } from '@api/services/cache/cache.service';
 import { ApifyService } from '@api/services/integrations/apify/services/apify.service';
 import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
+import { InstagramHashtagSearchService } from '@api/services/integrations/instagram/services/instagram-hashtag-search.service';
 import { LinkedInService } from '@api/services/integrations/linkedin/services/linkedin.service';
 import { PinterestService } from '@api/services/integrations/pinterest/services/pinterest.service';
 import { RedditService } from '@api/services/integrations/reddit/services/reddit.service';
@@ -87,6 +89,7 @@ export class TrendFetchService {
     private readonly pinterestService: PinterestService,
     private readonly tiktokService: TiktokService,
     private readonly refreshHealth: TrendRefreshHealthService,
+    private readonly instagramHashtagSearch: InstagramHashtagSearchService,
   ) {}
 
   /**
@@ -608,7 +611,16 @@ export class TrendFetchService {
 
     return this.fetchNativeFirst(
       'instagram',
+      // The official hashtag search comes first, for the hashtags the brand
+      // tracks; its refusals (no Public Content Access, a spent week) propagate
+      // so refresh health records the reason.
       async () =>
+        (await fetchInstagramHashtagTrends(
+          this.prisma,
+          this.instagramHashtagSearch,
+          organizationId,
+          brandId,
+        )) ??
         (await this.instagramService.getTrends(organizationId, brandId)).map(
           (trend) => ({
             growthRate: trend.growthRate,
