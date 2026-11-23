@@ -311,7 +311,9 @@ describe('OrganizationsService HTTP methods', () => {
 
       const result = await service.switchOrganization(orgId);
 
-      expect(http.patch).toHaveBeenCalledWith(`/${orgId}/activate`);
+      expect(http.patch).toHaveBeenCalledWith(`/${orgId}/activate`, undefined, {
+        exemptFromOrganizationGate: true,
+      });
       expect(http.post).not.toHaveBeenCalledWith(`/switch/${orgId}`);
       expect(result).toEqual(payload);
     });

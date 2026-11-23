@@ -5,8 +5,7 @@ import type {
   ComposerDestination,
   ModalPostDestinationsProps,
 } from '@genfeedai/props/modals/modal.props';
-import ConnectedAccount from '@ui/display/connected-account/ConnectedAccount';
-import { getConnectedAccountText } from '@ui/display/connected-account/connected-account.util';
+import AccountPicker from '@ui/display/connected-account/AccountPicker';
 import FormControl from '@ui/primitives/field';
 import { OptionTile, OptionTileGroup } from '@ui/primitives/option-tile';
 import { Separator } from '@ui/primitives/separator';
@@ -21,10 +20,9 @@ const DESTINATION_ICONS = {
 const DESTINATIONS: ComposerDestination[] = ['article', 'newsletter'];
 
 /**
- * Destination picker for the unified composer: connected accounts as avatars
- * with a platform badge in an equal-width grid (multi-select), then Article and
- * Newsletter in their own row; those are exclusive with accounts because they
- * hand off to their own editors.
+ * Destination picker for the unified composer: connected accounts as an avatar
+ * row (multi-select), then Article and Newsletter in their own row; those are
+ * exclusive with accounts because they hand off to their own editors.
  */
 export default function ModalPostDestinations({
   credentials,
@@ -43,11 +41,13 @@ export default function ModalPostDestinations({
     >
       <div className="space-y-4">
         {credentials.length > 0 ? (
-          <OptionTileGroup
+          <AccountPicker
             ariaLabel={translate('destinations')}
-            className="sm:grid-cols-3"
-            columns={2}
             isDisabled={isDisabled}
+            items={credentials.map((credential) => ({
+              ...toConnectedAccount(credential),
+              id: credential.id,
+            }))}
             onValueChange={(nextIds) => {
               const changed = [
                 ...nextIds.filter((id) => !selectedCredentialIds.includes(id)),
@@ -57,29 +57,10 @@ export default function ModalPostDestinations({
                 onToggleCredential(credentialId);
               }
             }}
+            size="lg"
             type="multiple"
             value={selectedCredentialIds}
-          >
-            {credentials.map((credential) => {
-              const account = toConnectedAccount(credential);
-              const text = getConnectedAccountText(account);
-
-              return (
-                <OptionTile
-                  ariaLabel={text.name ?? text.primary}
-                  key={credential.id}
-                  value={credential.id}
-                >
-                  <ConnectedAccount
-                    account={account}
-                    className="flex-1"
-                    layout="stacked"
-                    size="lg"
-                  />
-                </OptionTile>
-              );
-            })}
-          </OptionTileGroup>
+          />
         ) : null}
 
         <Separator />

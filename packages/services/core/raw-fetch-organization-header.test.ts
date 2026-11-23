@@ -13,6 +13,7 @@ import { SmartSchedulerService } from '@services/automation/schedules.service';
 import { WorkflowExecutionsService } from '@services/automation/workflow-executions.service';
 import {
   clearRequestOrganizationId,
+  requestOrganizationGate,
   setRequestOrganizationId,
 } from '@services/core/interceptor.service';
 import { ElementsService } from '@services/elements/elements.service';
@@ -111,6 +112,62 @@ describe('raw-fetch tenant clients send the routed organization header', () => {
       expect(init.headers).not.toHaveProperty(ORGANIZATION_CONTEXT_HEADER);
     },
   );
+
+  it.each(rawFetchClients)(
+    '$name sends nothing while the organization is provisional, then once with the header',
+    async ({ payload, send }) => {
+      fetchMock.mockResolvedValue(fetchResponse(payload));
+      requestOrganizationGate.setProvisional('org-a', 'user-1');
+
+      const request = send();
+      await new Promise((resolve) => setImmediate(resolve));
+      expect(fetchMock).not.toHaveBeenCalled();
+
+      requestOrganizationGate.setConfirmed('org-a');
+      await request;
+
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      const init = fetchMock.mock.calls[0]?.[1] as RequestInit;
+      expect(
+        (init.headers as Record<string, string>)[ORGANIZATION_CONTEXT_HEADER],
+      ).toBe('org-a');
+    },
+  );
+
+  it.each(rawFetchClients)(
+    '$name never sends when the check does not confirm the provisional organization',
+    async ({ payload, send }) => {
+      fetchMock.mockResolvedValue(fetchResponse(payload));
+      requestOrganizationGate.setProvisional('org-a', 'user-1');
+
+      const request = send();
+      const settled = request.then(
+        () => 'sent',
+        () => 'cancelled',
+      );
+      requestOrganizationGate.setConfirmed('org-b');
+
+      expect(await settled).toBe('cancelled');
+      expect(fetchMock).not.toHaveBeenCalled();
+    },
+  );
+
+  it('ElementsService sends nothing while the organization is provisional', async () => {
+    const get = vi
+      .spyOn(axios, 'get')
+      .mockResolvedValue({ data: { data: {} } });
+    requestOrganizationGate.setProvisional('org-a', 'user-1');
+
+    const request = ElementsService.findAllElements(token).catch(() => null);
+    await new Promise((resolve) => setImmediate(resolve));
+    expect(get).not.toHaveBeenCalled();
+
+    requestOrganizationGate.setConfirmed('org-a');
+    await request;
+
+    const headers = get.mock.calls[0]?.[1]?.headers as Record<string, string>;
+    expect(headers[ORGANIZATION_CONTEXT_HEADER]).toBe('org-a');
+  });
 
   it('ElementsService', async () => {
     const collections = Object.fromEntries(

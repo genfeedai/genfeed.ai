@@ -4,11 +4,12 @@ import { ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers';
 import type { BrandDetailSocialConnection } from '@props/pages/brand-detail.props';
 import type { ConnectAccountPlatform } from '@props/pages/brand-integrations.props';
+import ConnectedAccountStack from '@ui/display/connected-account/ConnectedAccountStack';
 import { Button } from '@ui/primitives/button';
 import Spinner from '@ui/primitives/spinner';
 import { Plus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import ConnectedAvatars from './ConnectedAvatars';
+import { toConnectionAccount } from '../account-connection-status.util';
 import {
   getConnectReasonKey,
   getConnectTileStatus,
@@ -49,7 +50,15 @@ export default function ConnectTile({
 
   const trailing =
     status === 'connected' ? (
-      <ConnectedAvatars connections={connections} />
+      <ConnectedAccountStack
+        hasBadge={false}
+        isInteractive={false}
+        items={connections.map((connection) => ({
+          ...toConnectionAccount(connection),
+          id: connection.credentialId,
+        }))}
+        size="sm"
+      />
     ) : status === 'connecting' ? (
       <Spinner
         ariaLabel={caption}

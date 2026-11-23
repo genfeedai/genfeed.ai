@@ -11,7 +11,7 @@ import type {
   ISound,
 } from '@genfeedai/contracts/interfaces';
 import { EnvironmentService } from '@services/core/environment.service';
-import { getRequestOrganizationHeaders } from '@services/core/interceptor.service';
+import { whenRequestOrganizationSettled } from '@services/core/interceptor.service';
 import {
   deserializeCollection,
   type JsonApiResponseDocument,
@@ -42,7 +42,7 @@ export class ElementsService {
     return await axios
       .get(`${EnvironmentService.apiEndpoint}${API_ENDPOINTS.ELEMENTS}`, {
         headers: {
-          ...getRequestOrganizationHeaders(),
+          ...(await whenRequestOrganizationSettled()),
           Authorization: `Bearer ${token}`,
         },
         signal,

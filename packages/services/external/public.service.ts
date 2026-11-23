@@ -53,6 +53,11 @@ export class PublicService extends HTTPBaseService {
     super(`${EnvironmentService.apiEndpoint}/public`, '');
   }
 
+  /** The public API has no organization: it never waits for one. */
+  protected override isOrganizationGateExempt(): boolean {
+    return true;
+  }
+
   public static getInstance(): PublicService {
     if (!PublicService.classInstance) {
       PublicService.classInstance = new PublicService();

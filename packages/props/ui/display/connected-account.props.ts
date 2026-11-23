@@ -48,4 +48,53 @@ export interface ConnectedAccountStackProps {
   /** Shown when there is nothing connected. Defaults to "-". */
   emptyLabel?: string;
   className?: string;
+  /** Leaves the platform badge off, where the platform is already shown beside the stack. */
+  hasBadge?: boolean;
+  /**
+   * `false` draws the avatars only: no hover list, no button. For a stack that
+   * sits inside a clickable tile, where a button would nest in a button and the
+   * tile already says how many are connected.
+   */
+  isInteractive?: boolean;
+  size?: ConnectedAccountSize;
 }
+
+/** One account in an `AccountPicker`. */
+export interface AccountPickerItem extends ConnectedAccountData {
+  id: string;
+  isDisabled?: boolean;
+  /**
+   * Shown after the handle in the hover hint and read by assistive tech, such
+   * as "Needs reconnect". A warning dot also sits on the avatar.
+   */
+  warning?: string;
+}
+
+interface AccountPickerBaseProps {
+  /** Names the row for assistive tech ("Accounts"). */
+  ariaLabel: string;
+  items: readonly AccountPickerItem[];
+  /** Layout only: width, margin, alignment. */
+  className?: string;
+  isDisabled?: boolean;
+  size?: 'sm' | 'md' | 'lg';
+  testId?: string;
+}
+
+interface AccountPickerSingleProps {
+  /** Pressing the chosen account again clears the choice. */
+  isDeselectable?: boolean;
+  onValueChange: (id: string | undefined) => void;
+  type?: 'single';
+  value: string | undefined;
+}
+
+interface AccountPickerMultipleProps {
+  isDeselectable?: never;
+  onValueChange: (ids: string[]) => void;
+  type: 'multiple';
+  value: readonly string[];
+}
+
+export type AccountPickerProps = AccountPickerBaseProps &
+  (AccountPickerSingleProps | AccountPickerMultipleProps);

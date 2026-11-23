@@ -2,7 +2,7 @@ import {
   describeRecordedAudio,
   pickAudioRecordingFormat,
 } from '@genfeedai/helpers/media/audio-recording/audio-recording-format.helper';
-import { getRequestOrganizationHeaders } from '@services/core/interceptor.service';
+import { whenRequestOrganizationSettled } from '@services/core/interceptor.service';
 import { useCallback, useRef, useState, useSyncExternalStore } from 'react';
 
 interface UseMicrophoneInputOptions {
@@ -101,7 +101,7 @@ export function useMicrophoneInput({
             {
               body: formData,
               headers: {
-                ...getRequestOrganizationHeaders(),
+                ...(await whenRequestOrganizationSettled()),
                 ...(token ? { Authorization: `Bearer ${token}` } : {}),
               },
               method: 'POST',

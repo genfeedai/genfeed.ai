@@ -1,7 +1,7 @@
 import { isThreadGoneError } from '@genfeedai/agent/components/agent-thread-list.helpers';
 import type { AgentThread } from '@genfeedai/agent/models/agent-chat.model';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
-import { getRequestOrganizationHeaders } from '@services/core/interceptor.service';
+import { getConfirmedRequestOrganizationId } from '@services/core/interceptor.service';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 export type AgentThreadUpdateFailure = 'missing-thread' | 'failed';
@@ -16,7 +16,7 @@ export function useAgentThreadUpdate() {
   const activeThreadId = useAgentChatStore((state) => state.activeThreadId);
   const [failure, setFailure] = useState<AgentThreadUpdateFailure | null>(null);
   const pending = useRef(new Map<string, AbortController>());
-  const organizationKey = JSON.stringify(getRequestOrganizationHeaders());
+  const organizationKey = getConfirmedRequestOrganizationId();
   const scopeKey = JSON.stringify([activeThreadId, organizationKey]);
   const scopeRef = useRef(scopeKey);
 
@@ -44,12 +44,12 @@ export function useAgentThreadUpdate() {
       const requestSignal = options?.signal
         ? AbortSignal.any([options.signal, controller.signal])
         : controller.signal;
-      const organization = JSON.stringify(getRequestOrganizationHeaders());
+      const organization = getConfirmedRequestOrganizationId();
       const selectedThread = useAgentChatStore.getState().activeThreadId;
       const isCurrent = () =>
         !requestSignal.aborted &&
         useAgentChatStore.getState().activeThreadId === selectedThread &&
-        JSON.stringify(getRequestOrganizationHeaders()) === organization;
+        getConfirmedRequestOrganizationId() === organization;
       setFailure(null);
       try {
         const updated = await request(requestSignal);

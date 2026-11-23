@@ -1,5 +1,6 @@
 'use client';
 
+import { whenRequestOrganizationSettled } from '@genfeedai/services/core/interceptor.service';
 import { resolveRequiredAuthToken } from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useCallback, useEffect, useRef } from 'react';
@@ -50,6 +51,9 @@ export function useAuthedService<T>(
   // biome-ignore lint/correctness/useExhaustiveDependencies: identityKey intentionally refreshes consumers after auth scope changes
   return useCallback(
     async (options?: { forceRefresh?: boolean }) => {
+      // No token is minted for a request the gate will not release: while the
+      // page is drawn from a saved copy, the organization is not confirmed.
+      await whenRequestOrganizationSettled();
       const tokenOptions =
         template || options?.forceRefresh
           ? { forceRefresh: options?.forceRefresh, template }

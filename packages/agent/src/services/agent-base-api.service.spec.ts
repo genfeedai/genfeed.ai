@@ -8,6 +8,7 @@ vi.mock('@services/core/generation-entry-headers', () => ({
 import { ORGANIZATION_CONTEXT_HEADER } from '@genfeedai/contracts/constants';
 import {
   clearRequestOrganizationId,
+  requestOrganizationGate,
   setRequestOrganizationId,
 } from '@genfeedai/services/core/interceptor.service';
 import type {
@@ -120,6 +121,35 @@ describe('AgentBaseApiService', () => {
       const headers = await service.headers();
 
       expect(headers[ORGANIZATION_CONTEXT_HEADER]).toBe('org_alpha');
+    });
+
+    it('should mint no token while the organization is provisional, then send the confirmed one', async () => {
+      const getToken = vi.fn().mockResolvedValue('fresh-token');
+      const service = new AgentBaseApiService({ ...baseConfig, getToken });
+      requestOrganizationGate.setProvisional('org_alpha', 'user-1');
+
+      const pending = service.headers();
+      await new Promise((resolve) => setImmediate(resolve));
+      expect(getToken).not.toHaveBeenCalled();
+
+      requestOrganizationGate.setConfirmed('org_alpha');
+      const headers = await pending;
+
+      expect(headers[ORGANIZATION_CONTEXT_HEADER]).toBe('org_alpha');
+      expect(headers.Authorization).toBe('Bearer fresh-token');
+    });
+
+    it('should send no request when the check confirms another organization', async () => {
+      const getToken = vi.fn().mockResolvedValue('fresh-token');
+      const service = new AgentBaseApiService({ ...baseConfig, getToken });
+      requestOrganizationGate.setProvisional('org_alpha', 'user-1');
+
+      const pending = service.fetchJson('https://api.genfeed.ai/test');
+      requestOrganizationGate.setConfirmed('org_beta');
+
+      await expect(pending).rejects.toMatchObject({ isCancelled: true });
+      expect(mockFetch).not.toHaveBeenCalled();
+      expect(getToken).not.toHaveBeenCalled();
     });
 
     it('should omit the organization header while no organization is confirmed', async () => {

@@ -85,15 +85,17 @@ describe('ReleaseRailAccounts', () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('renders one chip per account and toggles selection', async () => {
+  it('renders one avatar per account and toggles selection', async () => {
     api.accounts = [
       buildAccount(),
       buildAccount({ credentialId: 'credential-2', handle: '@other' }),
     ];
     render(<RailHarness brandId="brand-1" />);
 
-    const chip = (await screen.findByText('@brand')).closest('button');
-    const other = screen.getByText('@other').closest('button');
+    const chip = await screen.findByRole('button', {
+      name: '@brand, Instagram',
+    });
+    const other = screen.getByRole('button', { name: '@other, Instagram' });
     expect(chip).toHaveAttribute('aria-pressed', 'false');
 
     fireEvent.click(chip as HTMLElement);
@@ -104,7 +106,7 @@ describe('ReleaseRailAccounts', () => {
     expect(chip).toHaveAttribute('aria-pressed', 'false');
   });
 
-  it('marks an account needing reconnect with a warning tone', async () => {
+  it('names the reconnect warning on an account that needs it', async () => {
     api.accounts = [
       buildAccount({
         reconnect: {
@@ -116,8 +118,11 @@ describe('ReleaseRailAccounts', () => {
     ];
     render(<RailHarness brandId="brand-1" />);
 
-    await screen.findByText('@brand');
-    expect(screen.getByText('!')).toBeInTheDocument();
+    expect(
+      await screen.findByRole('button', {
+        name: '@brand, Instagram, Reconnect needed',
+      }),
+    ).toBeInTheDocument();
   });
 
   it('does not fetch account health without a brand in scope', async () => {
