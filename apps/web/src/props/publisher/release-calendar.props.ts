@@ -111,6 +111,8 @@ export interface ReleaseDetailDrawerProps {
   error: string | null;
   /** Opens the repurpose flow to add a draft target for another channel. */
   onAddChannel?: () => void;
+  /** Moves the release, and every post in it, into a campaign or out of one. */
+  onChangeCampaign?: (campaignId: string | null) => void;
   onClose: () => void;
   /**
    * Closes a quote the person posted by hand. `postUrl` is the link they

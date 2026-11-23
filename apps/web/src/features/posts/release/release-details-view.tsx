@@ -28,6 +28,7 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { resolveTargetCaption } from '@/components/previews/preview.helpers';
 import type { ReleaseDetailsViewProps } from '@/features/posts/props/release-drawer.props';
+import ReleaseCampaignField from '@/features/posts/release/release-campaign-field';
 import ReleaseEngagementRules from '@/features/posts/release/release-engagement-rules';
 import ReleaseManualPostCard from '@/features/posts/release/release-manual-post-card';
 import ReleaseRescheduleField from '@/features/posts/release/release-reschedule-field';
@@ -66,6 +67,7 @@ const LIVE_STATUSES = new Set<ReleaseStatus>([
 export default function ReleaseDetailsView({
   accountHealth,
   onAddChannel,
+  onChangeCampaign,
   onCompleteManualPost,
   onRescheduleRelease,
   onRescheduleTarget,
@@ -130,6 +132,20 @@ export default function ReleaseDetailsView({
               {translate('rescheduleLocked')}
             </p>
           ) : null}
+        </section>
+      ) : null}
+
+      {onChangeCampaign ? (
+        <section className="space-y-3">
+          <h3 className="font-medium text-foreground">
+            {translate('campaign.title')}
+          </h3>
+          <ReleaseCampaignField
+            campaignId={release.campaignId}
+            isDisabled={isPending}
+            key={release.id}
+            onChange={onChangeCampaign}
+          />
         </section>
       ) : null}
 

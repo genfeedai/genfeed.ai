@@ -276,6 +276,12 @@
       "target": "Target",
       "title": "Analytics"
     },
+    "campaign": {
+      "label": "Campaign",
+      "none": "No campaign",
+      "title": "Campaign",
+      "unavailable": "Another campaign"
+    },
     "openEditor": "Open editor",
     "pausedHold": "This post is paused, so the publisher will not send it at the scheduled time.",
     "resume": "Resume post",

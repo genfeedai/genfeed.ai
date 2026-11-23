@@ -62,6 +62,20 @@ vi.mock('next-intl', async () => {
   return { useTranslations: translateFromCatalog };
 });
 
+vi.mock('./release-campaign-field', () => ({
+  default: ({
+    campaignId,
+    onChange,
+  }: {
+    campaignId: string | null | undefined;
+    onChange: (campaignId: string | null) => void;
+  }) => (
+    <button onClick={() => onChange('campaign-9')} type="button">
+      Campaign {campaignId ?? 'none'}
+    </button>
+  ),
+}));
+
 vi.mock('./release-engagement-rules', () => ({
   default: () => <div>Automation</div>,
 }));
@@ -239,6 +253,36 @@ describe('ReleaseDetailDrawer', () => {
     expect(onRescheduleRelease).toHaveBeenCalledWith(
       '2026-08-03T14:30:00.000Z',
     );
+  });
+
+  it('moves the release into a campaign through its own handler', () => {
+    const onChangeCampaign = vi.fn();
+    renderInSidebar(
+      <ReleaseDetailDrawer
+        brandId="brand-1"
+        error={null}
+        onChangeCampaign={onChangeCampaign}
+        onClose={vi.fn()}
+        onRescheduleRelease={vi.fn()}
+        onRescheduleTarget={vi.fn()}
+        onRetryTarget={vi.fn()}
+        pendingAction={null}
+        reconnectHref="/acme-org/~/settings/profile"
+        release={release({ campaignId: 'campaign-1' })}
+      />,
+    );
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Campaign campaign-1' }),
+    );
+
+    expect(onChangeCampaign).toHaveBeenCalledWith('campaign-9');
+  });
+
+  it('hides the campaign field when the caller cannot change campaigns', () => {
+    renderDrawer();
+
+    expect(screen.queryByText('Campaign none')).not.toBeInTheDocument();
   });
 
   it('reschedules a single target through its own handler', () => {

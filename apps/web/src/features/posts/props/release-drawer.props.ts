@@ -27,6 +27,7 @@ export interface ReleaseDetailsViewProps
   extends Pick<
     ReleaseDetailDrawerProps,
     | 'onAddChannel'
+    | 'onChangeCampaign'
     | 'onCompleteManualPost'
     | 'onRescheduleRelease'
     | 'onRescheduleTarget'
@@ -42,4 +43,12 @@ export interface ReleaseDetailsViewProps
 export interface ReleaseGlobalPreviewProps {
   release: IReleaseGroup;
   targets: IChannelTarget[];
+}
+
+export interface ReleaseCampaignFieldProps {
+  /** Campaign the release belongs to, or `null` when it is in none. */
+  campaignId: string | null | undefined;
+  isDisabled: boolean;
+  /** `null` takes the release out of its campaign. */
+  onChange: (campaignId: string | null) => void;
 }

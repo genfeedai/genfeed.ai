@@ -44,6 +44,7 @@ export default function ReleaseDetailDrawer({
   brandId,
   error,
   onAddChannel,
+  onChangeCampaign,
   onClose,
   onCompleteManualPost,
   onRescheduleRelease,
@@ -210,6 +211,7 @@ export default function ReleaseDetailDrawer({
           <ReleaseDetailsView
             accountHealth={accountHealth}
             onAddChannel={onAddChannel}
+            onChangeCampaign={onChangeCampaign}
             onCompleteManualPost={onCompleteManualPost}
             onRescheduleRelease={onRescheduleRelease}
             onRescheduleTarget={onRescheduleTarget}

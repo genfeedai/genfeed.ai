@@ -53,6 +53,7 @@ import {
   visibleTargets,
 } from '@/features/posts/rail/release-rail-row.helpers';
 import {
+  RELEASE_CAMPAIGN_ACTION,
   RELEASE_RESCHEDULE_ACTION,
   targetManualPostAction,
   targetRescheduleAction,
@@ -313,6 +314,18 @@ export default function ReleasePostsList({
       }
       void runMutation(RELEASE_RESCHEDULE_ACTION, (service) =>
         service.update(selectedReleaseId, { scheduledDate }),
+      );
+    },
+    [runMutation, selectedReleaseId],
+  );
+
+  const handleChangeCampaign = useCallback(
+    (campaignId: string | null) => {
+      if (!selectedReleaseId) {
+        return;
+      }
+      void runMutation(RELEASE_CAMPAIGN_ACTION, (service) =>
+        service.update(selectedReleaseId, { campaignId }),
       );
     },
     [runMutation, selectedReleaseId],
@@ -734,6 +747,7 @@ export default function ReleasePostsList({
       <ReleaseDetailDrawer
         brandId={brandId}
         error={drawerError}
+        onChangeCampaign={handleChangeCampaign}
         onClose={closeDrawer}
         onCompleteManualPost={handleCompleteManualPost}
         onRescheduleRelease={handleRescheduleRelease}
