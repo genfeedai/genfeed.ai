@@ -55,6 +55,22 @@ interface TimedOutPredictionDoc {
   organizationId?: string | null;
 }
 
+/** What the alert needs to tell a lost webhook from a stall or a crash. */
+interface TimedOutIngredientDoc {
+  category?: string | null;
+  generationStage?: string | null;
+  id: unknown;
+  metadata?: {
+    externalId?: string | null;
+    externalProvider?: string | null;
+    model?: string | null;
+  } | null;
+  modelUsed?: string | null;
+}
+
+const UNKNOWN_CAUSE_TAG = 'unknown';
+const MAX_REPORTED_IDS = 10;
+
 /**
  * Cron service for handling ingredient processing timeouts
  * Checks for ingredients stuck in PROCESSING status for more than 30 minutes
@@ -179,7 +195,7 @@ export class CronIngredientsService {
       );
 
       this.reportTimedOutIngredients(
-        stuckIngredients.docs,
+        stuckIngredients.docs as unknown as TimedOutIngredientDoc[],
         result.modifiedCount,
         context,
       );
@@ -264,6 +280,7 @@ export class CronIngredientsService {
   private findStuckIngredients() {
     return this.ingredientsService.findAll(
       {
+        include: { metadata: true },
         where: {
           NOT: CINEMA_STUDIO_REQUEST_FILTER,
           createdAt: { lt: new Date(Date.now() - 30 * 60 * 1000) },
@@ -381,7 +398,7 @@ export class CronIngredientsService {
    * because the provider may still have produced output.
    */
   private reportTimedOutIngredients(
-    docs: { id: unknown }[],
+    docs: TimedOutIngredientDoc[],
     modifiedCount: number,
     context: string,
   ): void {
@@ -389,18 +406,62 @@ export class CronIngredientsService {
       return;
     }
 
+    // One event per provider and model, so the cause (a provider that stalls,
+    // a webhook that never arrived, a job that never left the worker) reads
+    // from the tags. Ids and prompts stay out of the tags.
+    const groups = new Map<string, TimedOutIngredientDoc[]>();
+    for (const ingredient of docs) {
+      const provider = ingredient.metadata?.externalProvider;
+      const model = ingredient.modelUsed ?? ingredient.metadata?.model;
+      const key = `${provider ?? UNKNOWN_CAUSE_TAG}\u0000${model ?? UNKNOWN_CAUSE_TAG}\u0000${ingredient.category ?? UNKNOWN_CAUSE_TAG}`;
+      const group = groups.get(key);
+      if (group) {
+        group.push(ingredient);
+      } else {
+        groups.set(key, [ingredient]);
+      }
+    }
+
+    for (const group of groups.values()) {
+      const [first] = group;
+      const ingredientIds = group
+        .slice(0, MAX_REPORTED_IDS)
+        .map((ingredient) => String(ingredient.id));
+
+      Sentry.captureMessage('Studio generations timed out while processing', {
+        extra: {
+          count: group.length,
+          // No provider id means the job never reached the provider (dispatch
+          // or worker fault); one means a lost callback or a provider stall.
+          dispatchedToProvider: group.filter(
+            (ingredient) => ingredient.metadata?.externalId,
+          ).length,
+          ingredientIds,
+          lastStages: [
+            ...new Set(
+              group.map(
+                (ingredient) => ingredient.generationStage ?? UNKNOWN_CAUSE_TAG,
+              ),
+            ),
+          ],
+          modifiedCount,
+        },
+        level: 'error',
+        tags: {
+          category: first.category ?? UNKNOWN_CAUSE_TAG,
+          cron: 'ingredient-processing-timeout',
+          model: first.modelUsed ?? first.metadata?.model ?? UNKNOWN_CAUSE_TAG,
+          provider: first.metadata?.externalProvider ?? UNKNOWN_CAUSE_TAG,
+        },
+      });
+    }
+
     const ingredientIds = docs
-      .slice(0, 10)
+      .slice(0, MAX_REPORTED_IDS)
       .map((ingredient) => String(ingredient.id));
 
-    Sentry.captureMessage('Studio generations timed out while processing', {
-      extra: { count: modifiedCount, ingredientIds },
-      level: 'error',
-      tags: { cron: 'ingredient-processing-timeout' },
-    });
-
     this.logger.debug(
-      `Marked ingredients as FAILED: ${ingredientIds.join(', ')}${docs.length > 10 ? '...' : ''}`,
+      `Marked ingredients as FAILED: ${ingredientIds.join(', ')}${docs.length > MAX_REPORTED_IDS ? '...' : ''}`,
       context,
     );
   }

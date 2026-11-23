@@ -279,24 +279,81 @@ describe('CronIngredientsService', () => {
       });
     });
 
-    it('reports timed-out generations to Sentry', async () => {
-      ingredientsService.findAll.mockResolvedValue(
-        mockStuckIngredients as unknown as AggregatePaginateResult<IngredientEntity>,
-      );
+    it('reports timed-out generations to Sentry with the provider and model', async () => {
+      ingredientsService.findAll.mockResolvedValue({
+        docs: [
+          {
+            category: IngredientCategory.VIDEO,
+            generationStage: 'queued',
+            id: 'ingredient-id-1',
+            metadata: {
+              externalId: 'pred-1',
+              externalProvider: 'replicate',
+              model: 'bytedance/seedance-2.5',
+            },
+            modelUsed: 'bytedance/seedance-2.5',
+            status: IngredientStatus.PROCESSING,
+          },
+          {
+            category: IngredientCategory.VIDEO,
+            generationStage: 'queued',
+            id: 'ingredient-id-2',
+            metadata: {
+              externalId: null,
+              externalProvider: 'replicate',
+              model: 'bytedance/seedance-2.5',
+            },
+            modelUsed: 'bytedance/seedance-2.5',
+            status: IngredientStatus.PROCESSING,
+          },
+          {
+            category: IngredientCategory.IMAGE,
+            id: 'ingredient-id-3',
+            metadata: null,
+            status: IngredientStatus.PROCESSING,
+          },
+        ],
+      } as unknown as AggregatePaginateResult<IngredientEntity>);
       ingredientsService.patchAll.mockResolvedValue({
-        modifiedCount: 2,
+        modifiedCount: 3,
       } as unknown as { modifiedCount: number });
 
       await service.checkStuckProcessingIngredients();
 
+      expect(Sentry.captureMessage).toHaveBeenCalledTimes(2);
+      expect(Sentry.captureMessage).toHaveBeenCalledWith(
+        'Studio generations timed out while processing',
+        {
+          extra: {
+            count: 2,
+            dispatchedToProvider: 1,
+            ingredientIds: ['ingredient-id-1', 'ingredient-id-2'],
+            lastStages: ['queued'],
+            modifiedCount: 3,
+          },
+          level: 'error',
+          tags: {
+            category: IngredientCategory.VIDEO,
+            cron: 'ingredient-processing-timeout',
+            model: 'bytedance/seedance-2.5',
+            provider: 'replicate',
+          },
+        },
+      );
       expect(Sentry.captureMessage).toHaveBeenCalledWith(
         'Studio generations timed out while processing',
         expect.objectContaining({
-          extra: {
-            count: 2,
-            ingredientIds: ['ingredient-id-1', 'ingredient-id-2'],
+          extra: expect.objectContaining({
+            count: 1,
+            dispatchedToProvider: 0,
+            ingredientIds: ['ingredient-id-3'],
+          }),
+          tags: {
+            category: IngredientCategory.IMAGE,
+            cron: 'ingredient-processing-timeout',
+            model: 'unknown',
+            provider: 'unknown',
           },
-          level: 'error',
         }),
       );
     });
