@@ -190,8 +190,6 @@
     "noPersuasionAnalysis": "No persuasion analysis",
     "noWrittenPersuasionExplanation": "Layer scores are available; no written explanation was saved.",
     "retryEvaluationRead": "Retry",
-    "median": "Median",
-    "ratio": "Ratio",
     "whyItWorks": "Why it works",
     "notEvaluated": "Not evaluated"
   },

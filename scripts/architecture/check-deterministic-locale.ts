@@ -158,11 +158,6 @@ export const IMPLICIT_LOCALE_ALLOWANCES: ImplicitLocaleAllowance[] = [
     1,
   ),
   legacyUiAllowance(
-    'apps/marketing/src/ui/workflow-builder/nodes/RssInputNode.tsx',
-    'to-locale-date-string',
-    1,
-  ),
-  legacyUiAllowance(
     'packages/agent/src/components/AgentStrategyStatus.tsx',
     'to-locale-date-string',
     1,
