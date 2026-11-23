@@ -346,6 +346,7 @@ describe('PublicPostsController', () => {
         ],
         brand: { is: { isDeleted: false, scope: 'PUBLIC' } },
         isDeleted: false,
+        isHiddenFromProfile: false,
       });
       expect(callArgs.where.scope).toBeUndefined();
     });
@@ -483,6 +484,7 @@ describe('PublicPostsController', () => {
           ],
           brand: { is: { isDeleted: false, scope: 'PUBLIC' } },
           id: postId,
+          isHiddenFromProfile: false,
         },
         ['ingredients', 'brand'],
       );
@@ -495,6 +497,18 @@ describe('PublicPostsController', () => {
           visibility: PostVisibility.PUBLIC,
         },
       });
+    });
+
+    it('answers 404 for a post its owner hid from the profile', async () => {
+      const postId = testId('post');
+      postsService.findOne.mockResolvedValue(null);
+
+      await controller.getPostMetadata(mockRequest, postId);
+
+      expect(postsService.findOne).toHaveBeenCalledWith(
+        expect.objectContaining({ id: postId, isHiddenFromProfile: false }),
+        ['ingredients', 'brand'],
+      );
     });
 
     it('scopes the read to the brand a creator page names', async () => {
@@ -570,6 +584,7 @@ describe('PublicPostsController', () => {
           ],
           brand: { is: { isDeleted: false, scope: 'PUBLIC' } },
           id: postId,
+          isHiddenFromProfile: false,
         },
         ['ingredients', 'brand'],
       );

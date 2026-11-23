@@ -24,10 +24,12 @@ class ReferenceDataSyncCliModule {}
 
 function parseArgs(argv: string[]): {
   isLive: boolean;
+  retireModels: boolean;
   validateRuntime: boolean;
 } {
   return {
     isLive: argv.includes('--live'),
+    retireModels: argv.includes('--retire-models'),
     validateRuntime: argv.includes('--validate-runtime'),
   };
 }
@@ -49,9 +51,9 @@ async function main(): Promise<void> {
     validateRuntimeCatalogs();
     return;
   }
-  if (!args.isLive) {
+  if (!args.isLive && !args.retireModels) {
     process.stderr.write(
-      'Reference-data sync requires --live to write, or --validate-runtime to load catalogs without a database.\n',
+      'Reference-data sync requires --live to write, --retire-models for a dry run of the model retirement, or --validate-runtime to load catalogs without a database.\n',
     );
     process.exitCode = 1;
     return;
@@ -64,6 +66,23 @@ async function main(): Promise<void> {
   const logger = app.get(LoggerService);
 
   try {
+    if (args.retireModels) {
+      const report = await app
+        .get(ReferenceDataSyncService)
+        .retireInactiveModels(args.isLive);
+      for (const row of report.retired) {
+        process.stdout.write(
+          `model-retirement ${report.applied ? 'retired' : 'would retire'} ${JSON.stringify(row)}\n`,
+        );
+      }
+      for (const key of report.skippedDefaults) {
+        process.stdout.write(`model-retirement default left ${key}\n`);
+      }
+      process.stdout.write(
+        `model-retirement rows=${report.retired.length} defaultsLeft=${report.skippedDefaults.length} applied=${report.applied}\n`,
+      );
+      return;
+    }
     logger.log('Starting reference-data sync');
     const report = await app.get(ReferenceDataSyncService).reconcile();
     if (report.failedDomains.length > 0) {

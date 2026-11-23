@@ -13,16 +13,16 @@ import {
 
 describe('computeLlmVendorCostMicros', () => {
   it('converts catalogue list prices into micro-USD', () => {
-    // DeepSeek: $0.05/M prompt + $0.16/M completion
-    // 1_000 prompt + 500 completion → 50 + 80 = 130 micros
+    // DeepSeek: $0.15/M prompt + $0.60/M completion
+    // 1_000 prompt + 500 completion → 150 + 300 = 450 micros
     expect(
       computeLlmVendorCostMicros({
         completionTokens: 500,
         isByok: false,
-        model: AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_FLASH,
+        model: AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_1_FLASH,
         promptTokens: 1_000,
       }),
-    ).toBe(130);
+    ).toBe(450);
   });
 
   it('returns 0 for BYOK even when the model has a list price', () => {
@@ -30,7 +30,7 @@ describe('computeLlmVendorCostMicros', () => {
       computeLlmVendorCostMicros({
         completionTokens: 500,
         isByok: true,
-        model: AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_FLASH,
+        model: AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_1_FLASH,
         promptTokens: 1_000,
       }),
     ).toBe(0);
@@ -69,11 +69,11 @@ describe('token USD splits', () => {
     const input = {
       completionTokens: 500,
       isByok: false,
-      model: AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_FLASH,
+      model: AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_1_FLASH,
       promptTokens: 1_000,
     };
 
-    expect(computeLlmPromptCostUsd(input)).toBeCloseTo(0.00009);
-    expect(computeLlmCompletionCostUsd(input)).toBeCloseTo(0.00009);
+    expect(computeLlmPromptCostUsd(input)).toBeCloseTo(0.00015, 8);
+    expect(computeLlmCompletionCostUsd(input)).toBeCloseTo(0.0003, 8);
   });
 });

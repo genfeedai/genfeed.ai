@@ -129,16 +129,16 @@ describe('MCP server e2e', () => {
     });
   });
 
-  describe('4. onboard_brand on the admin endpoint', () => {
+  describe('4. setup_brand onboarding on the admin endpoint', () => {
     const createFromUrl = {
-      action: 'create_from_url',
-      url: 'https://example.com',
+      action: 'onboard',
+      input: { action: 'create_from_url', url: 'https://example.com' },
     };
 
     it('creates the brand at once for an owner key with the admin scope', async () => {
       const { body } = await mcp.callAdminTool(
         E2E_TOKENS.adminEndpointOwner,
-        'onboard_brand',
+        'setup_brand',
         createFromUrl,
       );
 
@@ -168,7 +168,7 @@ describe('MCP server e2e', () => {
       async (_label, token) => {
         const { body } = await mcp.callTool(
           token,
-          'onboard_brand',
+          'setup_brand',
           createFromUrl,
         );
 
@@ -183,12 +183,15 @@ describe('MCP server e2e', () => {
     );
   });
 
-  describe('5. generate dry path', () => {
+  describe('5. generate_media dry path', () => {
     it('asks for a brand and lists the choices when none is given', async () => {
       const { body } = await mcp.callTool(
         E2E_TOKENS.ownerWithAdminScope,
-        'generate',
-        { prompt: 'a lighthouse at dusk', type: 'image' },
+        'generate_media',
+        {
+          action: 'media',
+          input: { prompt: 'a lighthouse at dusk', type: 'image' },
+        },
       );
 
       const payload = JSON.stringify(body.result);
@@ -200,11 +203,14 @@ describe('MCP server e2e', () => {
     it('queues the generation for approval without spending credits', async () => {
       const { body } = await mcp.callTool(
         E2E_TOKENS.ownerWithAdminScope,
-        'generate',
+        'generate_media',
         {
-          brandId: 'brand_studio_main',
-          prompt: 'a lighthouse at dusk',
-          type: 'image',
+          action: 'media',
+          input: {
+            brandId: 'brand_studio_main',
+            prompt: 'a lighthouse at dusk',
+            type: 'image',
+          },
         },
       );
 
@@ -219,6 +225,55 @@ describe('MCP server e2e', () => {
       expect(upstreamPaths()).not.toContain(
         'POST /v1/agent-tools/generate/execute',
       );
+    });
+  });
+
+  it('advertises and creates a free private draft without queueing approval', async () => {
+    const token = E2E_TOKENS.ownerWithAdminScope;
+    const { body: discovery } = await mcp.callTool(token, 'find_tools', {
+      query: 'post',
+    });
+    expect(discovery.result?.structuredContent?.tools).toContainEqual(
+      expect.objectContaining({ name: 'save_post' }),
+    );
+
+    const { body: draft } = await mcp.callTool(token, 'create_post', {
+      brandId: 'brand_studio_main',
+      content: 'A caption for review',
+      mediaUrls: ['https://example.test/library-image.png'],
+      visibility: 'private',
+    });
+
+    expect(draft.result?.isError).not.toBe(true);
+    expect(draft.result?.structuredContent).toMatchObject({
+      creditsDebited: 0,
+      data: {
+        executionState: 'draft',
+        id: 'post_draft',
+        visibility: 'private',
+      },
+    });
+    expect(upstreamPaths()).not.toContain('POST /v1/mcp-approvals');
+  });
+
+  it('directs clients to attach media to the draft returned by generate_text', async () => {
+    const token = E2E_TOKENS.ownerWithAdminScope;
+    const { body: session } = await mcp.initialize(token);
+    const { body: savePost } = await mcp.callTool(token, 'find_tools', {
+      name: 'save_post',
+    });
+    const { body: generateContent } = await mcp.callTool(token, 'find_tools', {
+      name: 'generate_text',
+    });
+
+    expect(session.result?.instructions).toContain(
+      'save_post(action=post) with its postId',
+    );
+    expect(JSON.stringify(savePost.result?.structuredContent?.tool)).toContain(
+      '"postId"',
+    );
+    expect(generateContent.result?.structuredContent?.tool).toMatchObject({
+      description: expect.stringContaining('Saved drafts are never published'),
     });
   });
 

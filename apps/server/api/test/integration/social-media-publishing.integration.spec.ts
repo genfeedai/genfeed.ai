@@ -738,7 +738,7 @@ integrationDescribe('Social Media Publishing Integration Tests', () => {
   });
 
   describe('Error Recovery and Retry Logic', () => {
-    it('should retry failed publications with exponential backoff', async () => {
+    it('should retry failed publications until one succeeds', async () => {
       let attempts = 0;
 
       instagramService.postReel.mockImplementation(() => {
@@ -756,7 +756,6 @@ integrationDescribe('Social Media Publishing Integration Tests', () => {
             return await instagramService.postReel('video.mp4', 'caption');
           } catch (error: unknown) {
             lastError = error;
-            await new Promise((resolve) => setTimeout(resolve, 2 ** i * 1000));
           }
         }
         throw lastError;

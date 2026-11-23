@@ -20,8 +20,9 @@ import ElementsProvider from '@providers/elements/elements.provider';
 import PromptBarProvider from '@providers/promptbar/promptbar.provider';
 import ThemePreferenceSync from '@providers/theme-sync/theme-preference-sync';
 import type { ReactNode } from 'react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useIsDesktopClient } from '@/hooks/ui/use-is-desktop-client/use-is-desktop-client';
+import { redirectToLoginWithoutSession } from '@/lib/auth/redirect-without-session';
 import type { ProtectedAuthGateProps } from '@/props/providers/protected-auth-gate.props';
 import { GlobalModalsProvider } from '@/providers/global-modals/global-modals.provider';
 
@@ -36,10 +37,25 @@ export interface ProtectedProvidersProps extends LayoutProps {
   additionalProviders?: (children: ReactNode) => ReactNode;
   /** Rendered by the auth gate while the session token resolves. */
   authPendingFallback?: ReactNode;
+  /**
+   * Rendered once the token has not arrived within `TOKEN_WAIT_TIMEOUT_MS`,
+   * with a callback that starts the wait again. Without it the gate keeps
+   * showing `authPendingFallback`.
+   */
+  authFailureFallback?: ProtectedAuthGateProps['failureFallback'];
 }
+
+/**
+ * How long the auth gate waits for the session token before it shows the
+ * failure fallback. The wait itself keeps retrying behind that message.
+ */
+export const TOKEN_WAIT_TIMEOUT_MS = 20_000;
+const TOKEN_RETRY_MIN_MS = 150;
+const TOKEN_RETRY_MAX_MS = 2_000;
 
 export function ProtectedAuthGate({
   children,
+  failureFallback,
   fallback = null,
 }: ProtectedAuthGateProps): ReactNode {
   const {
@@ -56,6 +72,12 @@ export function ProtectedAuthGate({
   const effectiveIsSignedIn = isSignedIn || playwrightAuth?.isSignedIn === true;
   const effectiveUserId = userId ?? playwrightAuth?.userId ?? null;
   const [hasJwtToken, setHasJwtToken] = useState(false);
+  const [hasTokenTimedOut, setHasTokenTimedOut] = useState(false);
+  const [retryNonce, setRetryNonce] = useState(0);
+  const hasBeenSignedInRef = useRef(false);
+  const retryTokenWait = useCallback(() => {
+    setRetryNonce((current) => current + 1);
+  }, []);
 
   const sessionKey = [
     sessionId ?? 'no-session',
@@ -64,10 +86,27 @@ export function ProtectedAuthGate({
     effectiveIsSignedIn ? 'in' : 'out',
   ].join(':');
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: sessionKey as a change trigger for auth token refresh
+  // use-effect-audit: ignore refreshes the auth token on a session change and retries on a timer, aborting on cleanup
   useEffect(() => {
+    void sessionKey;
+    void retryNonce;
+    if (effectiveIsSignedIn) {
+      hasBeenSignedInRef.current = true;
+    }
     if (!effectiveIsAuthLoaded || !effectiveIsSignedIn) {
       setHasJwtToken(false);
+      setHasTokenTimedOut(false);
+      // A visitor who arrives with a session cookie the API does not accept
+      // (expired, revoked) has no page-load redirect any more: the proxy no
+      // longer asks the API before it sends a scoped page. One who was signed
+      // in here and signed out is already sent away by `SignedOutRedirect`.
+      if (effectiveIsAuthLoaded && !hasBeenSignedInRef.current) {
+        const signedOutAbort = new AbortController();
+        void redirectToLoginWithoutSession(signedOutAbort.signal).catch(
+          () => undefined,
+        );
+        return () => signedOutAbort.abort();
+      }
       return;
     }
 
@@ -78,6 +117,13 @@ export function ProtectedAuthGate({
 
     const abortController = new AbortController();
     let retryTimeout: ReturnType<typeof setTimeout> | null = null;
+    let retryDelayMs = TOKEN_RETRY_MIN_MS;
+    // A token that never comes (the exchange answers with an error, or never
+    // answers) must end in a message, not in the loading frame for good.
+    const timeoutTimer = setTimeout(
+      () => setHasTokenTimedOut(true),
+      TOKEN_WAIT_TIMEOUT_MS,
+    );
 
     const ensureToken = async (): Promise<void> => {
       try {
@@ -88,6 +134,8 @@ export function ProtectedAuthGate({
         }
 
         if (token) {
+          clearTimeout(timeoutTimer);
+          setHasTokenTimedOut(false);
           setHasJwtToken(true);
           return;
         }
@@ -99,14 +147,17 @@ export function ProtectedAuthGate({
 
       retryTimeout = setTimeout(() => {
         void ensureToken();
-      }, 150);
+      }, retryDelayMs);
+      retryDelayMs = Math.min(retryDelayMs * 2, TOKEN_RETRY_MAX_MS);
     };
 
     setHasJwtToken(false);
+    setHasTokenTimedOut(false);
     void ensureToken();
 
     return () => {
       abortController.abort();
+      clearTimeout(timeoutTimer);
       if (retryTimeout) {
         clearTimeout(retryTimeout);
       }
@@ -116,10 +167,19 @@ export function ProtectedAuthGate({
     effectiveIsSignedIn,
     getToken,
     playwrightAuth?.isSignedIn,
+    retryNonce,
     sessionKey,
   ]);
 
   if (!effectiveIsAuthLoaded || !effectiveIsSignedIn || !hasJwtToken) {
+    if (
+      hasTokenTimedOut &&
+      effectiveIsAuthLoaded &&
+      effectiveIsSignedIn &&
+      failureFallback
+    ) {
+      return failureFallback(retryTokenWait);
+    }
     return fallback;
   }
 
@@ -136,6 +196,7 @@ export default function ProtectedProviders({
   initialBootstrap,
   additionalProviders,
   authPendingFallback,
+  authFailureFallback,
   renderModal,
 }: ProtectedProvidersProps): ReactNode {
   const isDesktop = useIsDesktopClient();
@@ -221,7 +282,10 @@ export default function ProtectedProviders({
   }
 
   return (
-    <ProtectedAuthGate fallback={authPendingFallback}>
+    <ProtectedAuthGate
+      failureFallback={authFailureFallback}
+      fallback={authPendingFallback}
+    >
       {content}
     </ProtectedAuthGate>
   );

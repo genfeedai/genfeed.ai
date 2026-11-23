@@ -20,13 +20,16 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { type Task, TasksService } from '@services/management/tasks.service';
 import { useQueryClient } from '@tanstack/react-query';
+import SearchField from '@ui/content/search-field/SearchField';
 import { SkeletonTable } from '@ui/display/skeleton/skeleton';
 import Table from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
+import FilterMenu from '@ui/navigation/filter-menu/FilterMenu';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import ViewMenu from '@ui/navigation/view-menu/ViewMenu';
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogFooter,
   DialogHeader,
@@ -49,8 +52,6 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useReducer, useState } from 'react';
 import { useAdminSearchParam } from '@/components/content/admin-filters/useAdminSearchParam';
-import FilterMenu from '@/components/content/filter-menu/FilterMenu';
-import SearchField from '@/components/content/search-field/SearchField';
 import type {
   IssuesListAction,
   IssuesListState,
@@ -366,6 +367,7 @@ export default function IssuesList() {
   ]);
 
   // The inspector saves through the shared selection; refetch so rows match.
+  // use-effect-audit: ignore refetches after the shared inspector store reports a save
   useEffect(() => {
     if (selectionRevision > 0) void reloadIssues();
   }, [selectionRevision, reloadIssues]);
@@ -621,66 +623,68 @@ export default function IssuesList() {
           <DialogHeader>
             <DialogTitle>{translate('createTaskTitle')}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <span className="mb-1 block text-xs font-medium text-muted-foreground">
-                {translate('titleLabel')}
-              </span>
-              <Input
-                type="text"
-                placeholder={translate('taskTitlePlaceholder')}
-                value={createTitle}
-                onChange={(e) =>
-                  dispatch({
-                    type: 'SET_CREATE_TITLE',
-                    payload: e.target.value,
-                  })
-                }
-              />
+          <DialogBody className="flex flex-col gap-4">
+            <div className="space-y-4">
+              <div>
+                <span className="mb-1 block text-xs font-medium text-muted-foreground">
+                  {translate('titleLabel')}
+                </span>
+                <Input
+                  type="text"
+                  placeholder={translate('taskTitlePlaceholder')}
+                  value={createTitle}
+                  onChange={(e) =>
+                    dispatch({
+                      type: 'SET_CREATE_TITLE',
+                      payload: e.target.value,
+                    })
+                  }
+                />
+              </div>
+              <div>
+                <span className="mb-1 block text-xs font-medium text-muted-foreground">
+                  {translate('descriptionLabel')}
+                </span>
+                <Textarea
+                  className="w-full rounded border border-border bg-muted/50 px-3 py-2 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-border-strong"
+                  placeholder={translate('descriptionPlaceholder')}
+                  rows={4}
+                  value={createDescription}
+                  onChange={(e) =>
+                    dispatch({
+                      type: 'SET_CREATE_DESCRIPTION',
+                      payload: e.target.value,
+                    })
+                  }
+                />
+              </div>
+              <div>
+                <span className="mb-1 block text-xs font-medium text-muted-foreground">
+                  {translate('priorityColumn')}
+                </span>
+                <Select
+                  value={createPriority}
+                  onValueChange={(value) =>
+                    dispatch({
+                      type: 'SET_CREATE_PRIORITY',
+                      payload: value as TaskPriority,
+                    })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PRIORITY_ORDER.map((priority) => (
+                      <SelectItem key={priority} value={priority}>
+                        {priorityLabels[priority]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-            <div>
-              <span className="mb-1 block text-xs font-medium text-muted-foreground">
-                {translate('descriptionLabel')}
-              </span>
-              <Textarea
-                className="w-full rounded border border-border bg-muted/50 px-3 py-2 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-border-strong"
-                placeholder={translate('descriptionPlaceholder')}
-                rows={4}
-                value={createDescription}
-                onChange={(e) =>
-                  dispatch({
-                    type: 'SET_CREATE_DESCRIPTION',
-                    payload: e.target.value,
-                  })
-                }
-              />
-            </div>
-            <div>
-              <span className="mb-1 block text-xs font-medium text-muted-foreground">
-                {translate('priorityColumn')}
-              </span>
-              <Select
-                value={createPriority}
-                onValueChange={(value) =>
-                  dispatch({
-                    type: 'SET_CREATE_PRIORITY',
-                    payload: value as TaskPriority,
-                  })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {PRIORITY_ORDER.map((priority) => (
-                    <SelectItem key={priority} value={priority}>
-                      {priorityLabels[priority]}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+          </DialogBody>
           <DialogFooter>
             <Button
               variant={ButtonVariant.GHOST}

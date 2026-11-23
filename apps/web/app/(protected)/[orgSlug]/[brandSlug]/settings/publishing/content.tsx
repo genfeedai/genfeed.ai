@@ -5,7 +5,6 @@ import {
   CardGap,
   CardPadding,
   CardVariant,
-  ComponentSize,
 } from '@genfeedai/contracts';
 import { isPublishApprovalRequired } from '@genfeedai/contracts/constants';
 import type {
@@ -15,7 +14,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { redactSensitiveString } from '@genfeedai/helpers';
 import { TIMEZONES } from '@helpers/formatting/timezone/timezone.helper';
-import { getCredentialLabel } from '@helpers/publisher/credential-label.helper';
+import { toConnectedAccount } from '@helpers/publisher/connected-account.helper';
 import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { ClipboardService } from '@services/core/clipboard.service';
@@ -24,7 +23,7 @@ import { NotificationsService } from '@services/core/notifications.service';
 import { CredentialsService } from '@services/organization/credentials.service';
 import { BrandsService } from '@services/social/brands.service';
 import Card from '@ui/card/Card';
-import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
+import ConnectedAccount from '@ui/display/connected-account/ConnectedAccount';
 import Loading from '@ui/loading/default/Loading';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Badge } from '@ui/primitives/badge';
@@ -59,8 +58,6 @@ import { useBrandDetail } from '@/hooks/pages/use-brand-detail/use-brand-detail'
 import PublishingPostingSetsSection from './publishing-posting-sets-section';
 import PublishingRssSourcesSection from './publishing-rss-sources-section';
 
-const LEADING_AT_SIGN_PATTERN = /^@/;
-
 const CUSTOM_SCHEDULE_VALUE = 'custom';
 
 /** Human cadence presets — still stored as cron on the brand config. */
@@ -81,12 +78,15 @@ function resolveSchedulePresetValue(cronExpression: string): string {
 }
 
 function SettingsToggleRow({
+  agentConfirm,
   description,
   isChecked,
   isDisabled,
   label,
   onCheckedChange,
 }: {
+  /** Marks the switch as one the agent never flips: a sentence on what it does. */
+  agentConfirm?: string;
   description: string;
   isChecked: boolean;
   isDisabled?: boolean;
@@ -106,6 +106,7 @@ function SettingsToggleRow({
       <Switch
         aria-label={label}
         className="mt-0.5 shrink-0"
+        data-agent-confirm={agentConfirm}
         isChecked={isChecked}
         isDisabled={isDisabled}
         onChange={(event: ChangeEvent<HTMLInputElement>) => {
@@ -561,6 +562,7 @@ export default function BrandSettingsPublishingPage() {
           </div>
 
           <SettingsToggleRow
+            agentConfirm="Lets approved posts publish without your review"
             description="Publish approved outputs automatically when confidence clears the threshold."
             isChecked={isAutoPublishEnabled}
             isDisabled={isSaving}
@@ -651,15 +653,10 @@ export default function BrandSettingsPublishingPage() {
                 return (
                   <Card variant={CardVariant.INSET} key={credential.id}>
                     <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div>
-                        <p className="text-sm font-medium">
-                          {getCredentialLabel(credential)}
-                        </p>
-                        <PlatformBadge
-                          platform={credential.platform}
-                          size={ComponentSize.SM}
-                        />
-                      </div>
+                      <ConnectedAccount
+                        account={toConnectedAccount(credential)}
+                        layout="stacked"
+                      />
                       <Badge variant={hasFailed ? 'destructive' : 'outline'}>
                         {hasFailed
                           ? 'Unavailable'
@@ -681,20 +678,15 @@ export default function BrandSettingsPublishingPage() {
               return (
                 <Card variant={CardVariant.INSET} key={credential.id}>
                   <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-medium">
-                        {context.account.label}
-                      </p>
-                      <p className="flex items-center gap-1 text-xs text-muted-foreground">
-                        <PlatformBadge
-                          platform={context.account.platform}
-                          size={ComponentSize.SM}
-                        />
-                        {context.account.handle
-                          ? ` · @${context.account.handle.replace(LEADING_AT_SIGN_PATTERN, '')}`
-                          : ''}
-                      </p>
-                    </div>
+                    <ConnectedAccount
+                      account={{
+                        ...toConnectedAccount(credential),
+                        name:
+                          context.account.label ||
+                          toConnectedAccount(credential).name,
+                      }}
+                      layout="stacked"
+                    />
                     <Badge
                       variant={getReadinessBadgeVariant(
                         context.readiness.state,

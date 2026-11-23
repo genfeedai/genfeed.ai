@@ -14,6 +14,8 @@ import { verifyMediaPublish } from '@api/services/integrations/publishers/publis
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
 import { htmlToText } from '@api/shared/utils/html-to-text/html-to-text.util';
 import { CredentialPlatform, PublishErrorKind } from '@genfeedai/contracts';
+import { readChannelSettingString } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
+import { resolveYouTubeUploadVisibility } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
@@ -142,7 +144,6 @@ export class YouTubePublisherService extends BasePublisherService {
     const { post, credential, organizationId, brandId } = context;
     const mediaInfo = this.extractMediaInfo(post);
 
-    // Log the attempt
     this.logPublishAttempt(context, mediaInfo);
 
     // Validate
@@ -178,7 +179,15 @@ export class YouTubePublisherService extends BasePublisherService {
       this.logger.log(`${url} YouTube video uploaded with ID: ${externalId}`);
 
       const postUrl = this.buildPostUrl(externalId, credential);
-      return this.createSuccessResult(externalId, this.platform, postUrl);
+      return {
+        ...this.createSuccessResult(externalId, this.platform, postUrl),
+        // The upload narrows the post's audience by the channel's privacy
+        // setting; the post must record the audience YouTube applied.
+        visibility: resolveYouTubeUploadVisibility(
+          post.visibility,
+          readChannelSettingString(context.settings, 'privacyStatus'),
+        ),
+      };
     } catch (error: unknown) {
       this.logger.error(`${url} failed to publish`, {
         error: (error as Error)?.message,

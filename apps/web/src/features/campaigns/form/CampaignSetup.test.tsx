@@ -58,6 +58,7 @@ vi.mock('@ui/primitives/dialog', () => ({
   Dialog: ({ children }: { children: ReactNode }) => (
     <div role="dialog">{children}</div>
   ),
+  DialogBody: ({ children }: { children: ReactNode }) => <div>{children}</div>,
   DialogContent: ({ children }: { children: ReactNode }) => (
     <div>{children}</div>
   ),

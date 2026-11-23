@@ -13,11 +13,11 @@ import { WORKFLOW_CONTROL_TOOLS } from './workflow-control.tools';
 
 export const OVERLAP_TOOLS: SourceTool[] = [
   {
-    creditCost: 1,
+    creditCost: 0,
     description:
-      'Create a post draft from supplied text for review. On MCP this never publishes or schedules: confirmed and existing-content publishing are rejected, and scheduledAt is ignored. Use create_scheduled_release for release drafts or approval-gated scheduling. Existing-content publishing is available only in the Genfeed app.',
+      'Create a post draft from supplied text for review. On MCP this never publishes or schedules: confirmed and existing-content publishing are rejected, and scheduledAt is ignored. Use create_scheduled_release for release drafts or confirmed scheduling. Existing-content publishing is available only in the Genfeed app.',
     mcpDescription:
-      'Create a reviewable post draft from supplied text; never publishes or schedules. Publishing/scheduling requires a scheduled release and approval.',
+      'Save a reviewable draft from text or media. To attach Library media to a generated draft, pass its postId, the same brandId, and mediaUrls. This replaces the ordered media and keeps the draft’s text and generation receipt. This tool never publishes or schedules.',
     mcpHiddenParameters: [
       'caption',
       'confirmed',
@@ -51,7 +51,7 @@ export const OVERLAP_TOOLS: SourceTool[] = [
         },
         confirmed: {
           description:
-            'Genfeed app publishing only. Rejected on MCP; use create_scheduled_release for approval-gated scheduling.',
+            'Genfeed app publishing only. Rejected on MCP; use create_scheduled_release for confirmed scheduling.',
           type: 'boolean',
         },
         content: {
@@ -69,7 +69,7 @@ export const OVERLAP_TOOLS: SourceTool[] = [
         },
         mediaUrls: {
           description:
-            'Library media URLs for a standalone draft post (the hosted url of an uploaded or generated asset), in slide order. A URL that is not a Library asset fails the call.',
+            'Hosted Library asset URLs in slide order. Required when passing postId; the list becomes that draft’s media.',
           items: { type: 'string' },
           type: 'array',
         },
@@ -83,6 +83,12 @@ export const OVERLAP_TOOLS: SourceTool[] = [
             type: 'string',
           },
           type: 'array',
+        },
+        postId: {
+          description:
+            'MCP only. The postId returned when social copy was generated. Pass the same brandId and mediaUrls. The draft keeps its text, title, and visibility. An unavailable draft fails the call.',
+          minLength: 1,
+          type: 'string',
         },
         postingSetId: {
           type: 'string',
@@ -113,7 +119,8 @@ export const OVERLAP_TOOLS: SourceTool[] = [
           type: 'string',
         },
         visibility: {
-          description: 'Audience visibility, independent of publish lifecycle.',
+          description:
+            'Desired audience visibility. A draft can save this preference before a channel is chosen; the eventual channel must support it.',
           enum: ['public', 'private', 'unlisted'],
           type: 'string',
         },

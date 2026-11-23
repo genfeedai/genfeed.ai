@@ -557,7 +557,7 @@ Broad: [tag14], [tag15], [tag16]
 
 If you have access to Genfeed tools, use them for enhanced results:
 
-- Use `create_post` to draft directly into the platform
+- Use `save_post` (`action: post`) to draft directly into the platform
 - Assess content quality with this skill’s rubric; do not assume a rating tool is available.
 - Use brand context from the conversation for voice consistency
 - Reference the user's content patterns and top-performing posts when available

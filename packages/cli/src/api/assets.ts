@@ -1,5 +1,5 @@
 import type { IngredientStatus } from '@genfeedai/contracts';
-import { get } from './client';
+import { del, get } from './client';
 import { flattenCollection, type JsonApiDocument } from './json-api';
 
 export interface Asset {
@@ -35,4 +35,11 @@ export async function getAsset(id: string): Promise<Asset> {
   const asset = flattenCollection<Asset>(response)[0];
   if (!asset) throw new Error(`Asset ${id} was not found`);
   return asset;
+}
+
+/** Deletes one Library asset, then reads it back; true when it no longer resolves. */
+export async function deleteAsset(id: string): Promise<boolean> {
+  await del(`/ingredients/${encodeURIComponent(id)}`);
+  const response = await get<JsonApiDocument>(`/ingredients/batch?ids=${encodeURIComponent(id)}`);
+  return flattenCollection<Asset>(response).length === 0;
 }

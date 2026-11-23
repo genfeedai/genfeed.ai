@@ -209,8 +209,9 @@ export function useStudioPlaygroundDraft({
 
   // Restore once per brand. Autosave stays disarmed until the server's draft
   // is known, so a failed or half-applied load is never written back.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: loadAttempt re-runs the load after a failure.
+  // use-effect-audit: ignore restores the server draft once per brand and retries after a failure
   useEffect(() => {
+    void loadAttempt;
     if (!brandId || !canRestore || loadedBrandId === brandId) {
       return;
     }
@@ -332,8 +333,9 @@ export function useStudioPlaygroundDraft({
     return studioPlaygroundDraftOutbox.subscribe(brandId, setSaveStatus);
   }, [brandId, isArmed]);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: payloadKey is the change signal; flush() reads the latest payload through a ref.
+  // use-effect-audit: ignore autosaves the draft to the server after a quiet period
   useEffect(() => {
+    void payloadKey;
     if (!isArmed || !isAutosaveEnabled) {
       return;
     }
@@ -368,8 +370,9 @@ export function useStudioPlaygroundDraft({
   // Leaving the brand — a brand switch or an in-app navigation away from
   // Generate — queues what was typed under that brand; the outbox finishes
   // it even if a write was still in flight and this workspace is gone.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: brandId is the departure trigger.
+  // use-effect-audit: ignore flushes the draft to the outbox when leaving the brand
   useEffect(() => {
+    void brandId;
     return () => {
       flush({ isKeepalive: true });
       armedBrandRef.current = null;

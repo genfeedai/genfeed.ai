@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-15T09:45:43.000Z",
+  "generatedAt": "2026-11-20T14:42:37.000Z",
   "skills": [
     {
       "description": "Create paid ad copy for Meta, Google, LinkedIn, TikTok, and X using direct-response frameworks, platform limits, variants, and test plans. Triggers on ad headlines, ad creative, paid social ads, Google ads, and ad variants.",
@@ -32,7 +32,7 @@
       "slug": "cinematic-prompting"
     },
     {
-      "description": "Edit a finished clip directly from the agent. Read the clip and its transcript, propose an exact new window, then re-cut it with edit_clip once the user agrees. Triggers on \"edit this clip\", \"cut the intro\", \"make this clip shorter\", \"this clip ends mid-sentence\", \"change where this clip starts\", \"retitle this clip\".",
+      "description": "Edit a finished clip directly from the agent. Read the clip and its transcript, propose an exact new window, then re-cut it once the user agrees. Triggers on \"edit this clip\", \"cut the intro\", \"make this clip shorter\", \"this clip ends mid-sentence\", \"change where this clip starts\", \"retitle this clip\".",
       "path": "skills/app/clip-editor/SKILL.md",
       "slug": "clip-editor"
     },

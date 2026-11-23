@@ -1,6 +1,5 @@
 'use client';
 
-import { useConfirmDeleteModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
 import { TargetExecutionState } from '@genfeedai/contracts';
 import type {
   IPost,
@@ -15,11 +14,12 @@ import { getJsonApiErrorMember } from '@genfeedai/services/core/json-api-error-m
 import { logger } from '@genfeedai/services/core/logger.service';
 import type { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import { isSafeDiagnosticText } from '@genfeedai/services/core/operation-error';
-import { stripHtmlToPlainText } from '@helpers/security/strip-html.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime';
 import { useCallback } from 'react';
+import { useConfirmPostRemoval } from '@/features/posts/hooks/use-confirm-post-removal/use-confirm-post-removal';
 import { requirePostId } from './require-post-id';
+import type { UsePostDetailDraftsReturn } from './use-post-detail-drafts';
 
 const REWRITE_LIMIT_REASON_PATTERN =
   /^The rewrite does not fit the [1-9]\d{0,5}-character limit for [a-z][a-z_]{0,30}\. Shorten the instruction or the draft and try again\.$/;
@@ -36,6 +36,8 @@ export interface UsePostDetailActionsOptions {
     successMessage?: string,
     silent?: boolean,
   ) => Promise<IPost | null>;
+  /** Auto-save bookkeeping; a deleted post must not fire a pending save. */
+  autoSaveRefs: UsePostDetailDraftsReturn['autoSaveRefs'];
 
   // Draft accessors
   descriptionDraft: string;
@@ -75,6 +77,29 @@ export interface UsePostDetailActionsReturn {
   ) => Promise<string[] | null>;
 }
 
+/**
+ * The post is gone, so whatever was typed into it cannot be saved. Cancel its
+ * pending timer and mark the drafts saved so no later timer patches it.
+ */
+function settleAutoSave(
+  refs: UsePostDetailDraftsReturn['autoSaveRefs'],
+  postId: string,
+): void {
+  const pendingTimeout = refs.timeouts.current.get(postId);
+  if (pendingTimeout) {
+    clearTimeout(pendingTimeout);
+    refs.timeouts.current.delete(postId);
+  }
+  refs.lastSavedDescriptions.current.set(
+    postId,
+    refs.currentDescriptions.current.get(postId) ?? '',
+  );
+  refs.lastSavedLabels.current.set(
+    postId,
+    refs.currentLabels.current.get(postId) ?? '',
+  );
+}
+
 function getSafeRewriteReason(error: unknown): string | undefined {
   const member = getJsonApiErrorMember(error);
   const detail = member?.detail?.trim();
@@ -102,6 +127,7 @@ export function usePostDetailActions({
   router,
   fetchPost,
   updateActivePost,
+  autoSaveRefs,
   descriptionDraft,
   labelDraft,
   scheduleDraft,
@@ -114,7 +140,7 @@ export function usePostDetailActions({
   setEnhancingPostId,
   setEnhancingAction,
 }: UsePostDetailActionsOptions): UsePostDetailActionsReturn {
-  const { openConfirmDelete } = useConfirmDeleteModal();
+  const confirmPostRemoval = useConfirmPostRemoval();
   const { href } = useOrgUrl();
 
   // Content save handler
@@ -297,10 +323,8 @@ export function usePostDetailActions({
       const releases = await getReleaseGroupsService();
       const groupId = await resolveReleaseGroupId();
       await releases.publishTargetViaTikTokApp(groupId, requirePostId(post));
+      notificationsService.info('TikTok Inbox upload queued');
       await fetchPost();
-      notificationsService.success(
-        'Sent to TikTok. Open your TikTok Inbox to add music or final edits, then publish.',
-      );
     } catch (err) {
       logger.error('Failed to send video to TikTok app', err);
       notificationsService.error('Failed to send video to TikTok app');
@@ -316,39 +340,18 @@ export function usePostDetailActions({
     setIsSavingSchedule,
   ]);
 
-  // Delete post handler
+  // Delete post handler: the shared confirm flow, published posts included
   const handleDeletePost = useCallback(() => {
     if (!post) {
       return;
     }
 
-    openConfirmDelete({
-      entity: {
-        id: requirePostId(post),
-        label:
-          post.label || stripHtmlToPlainText(post.description) || 'this post',
-      },
-      entityName: 'post',
-      onConfirm: async () => {
-        try {
-          const service = await getPostsService();
-          await service.delete(requirePostId(post));
-          notificationsService.success('Post deleted successfully');
-          router.push(href('/publishing'));
-        } catch (err) {
-          logger.error('Failed to delete post', err);
-          notificationsService.error('Failed to delete post');
-        }
-      },
+    const postId = requirePostId(post);
+    confirmPostRemoval([post], async () => {
+      settleAutoSave(autoSaveRefs, postId);
+      router.push(href('/publishing'));
     });
-  }, [
-    post,
-    openConfirmDelete,
-    getPostsService,
-    notificationsService,
-    router,
-    href,
-  ]);
+  }, [post, autoSaveRefs, confirmPostRemoval, router, href]);
 
   // AI rewrites return a proposal; the caller decides whether to apply it.
   const requestRewriteDraft = useCallback(

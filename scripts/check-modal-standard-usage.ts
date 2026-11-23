@@ -109,6 +109,51 @@ export function findOverlayViolations(
   return violations;
 }
 
+const DIALOG_CONTENT_OPEN_PATTERN = /<DialogContent\b/g;
+const DIALOG_BODY_ALLOW_PATTERN = /ui-guard-allow:dialog-body\s+--\s+\S/;
+
+/**
+ * Every `<DialogContent>` renders a `<DialogBody>` inside it, so the header
+ * and the footer stay put while the body scrolls. `DialogContent` itself does
+ * not scroll, so a dialog without a body cannot scroll at all.
+ * Escape hatch: `// ui-guard-allow:dialog-body -- reason` above the tag.
+ */
+export function findDialogBodyViolations(
+  filePath: string,
+  content: string,
+): Violation[] {
+  if (filePath.replaceAll('\\', '/').endsWith('/primitives/dialog.tsx')) {
+    return [];
+  }
+
+  const lines = content.split('\n');
+  const violations: Violation[] = [];
+
+  for (const match of content.matchAll(DIALOG_CONTENT_OPEN_PATTERN)) {
+    const start = match.index ?? 0;
+    const line = content.slice(0, start).split('\n').length;
+    const isAllowed =
+      DIALOG_BODY_ALLOW_PATTERN.test(lines[line - 1] ?? '') ||
+      DIALOG_BODY_ALLOW_PATTERN.test(lines[line - 2] ?? '');
+    if (isAllowed) {
+      continue;
+    }
+
+    const end = content.indexOf('</DialogContent>', start);
+    const block = end === -1 ? content.slice(start) : content.slice(start, end);
+    if (!block.includes('<DialogBody')) {
+      violations.push({
+        file: path.relative(ROOT, filePath),
+        line,
+        reason:
+          'A `DialogContent` renders a `DialogBody` around its content, so the header and footer stay put and only the body scrolls. Use `DialogBody` (or `scrollable={false}` when the content owns its scrolling).',
+      });
+    }
+  }
+
+  return violations;
+}
+
 function isAllowedDialogImportFile(filePath: string): boolean {
   const normalized = filePath.replaceAll('\\', '/');
   return ALLOWED_DIALOG_IMPORT_PATH_SEGMENTS.some((segment) =>
@@ -152,6 +197,7 @@ export function findViolations(
   }
 
   violations.push(...findOverlayViolations(filePath, content));
+  violations.push(...findDialogBodyViolations(filePath, content));
 
   return violations;
 }

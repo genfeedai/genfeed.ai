@@ -58,7 +58,13 @@
     "empty": "No competitors watched yet. Add one above to start collecting their live ads.",
     "loading": "Loading watched competitors…",
     "title": "Watched competitors",
-    "watchCompetitor": "Watch competitor"
+    "watchCompetitor": "Watch competitor",
+    "suggestions": {
+      "description": "Named in your brand strategy. Watch them to start collecting their live ads.",
+      "title": "Suggested from your brand",
+      "watch": "Watch {name}",
+      "watchAll": "Watch all"
+    }
   },
   "discovery": {
     "savedFreshness": "Saved observation",

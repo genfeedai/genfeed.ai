@@ -143,6 +143,9 @@ export class SocialSourcesService {
         page: 1,
       }),
       this.sourcePostsService.listByBrand(context, {
+        // The brand's own posts are analytics and voice input, not signals to
+        // discover; they must not fill the page ahead of followed accounts.
+        excludeSourceTypes: [SocialSourceType.OWN_ACCOUNT],
         limit: query.postsLimit ?? 25,
         page: query.page,
         platform: query.platform,

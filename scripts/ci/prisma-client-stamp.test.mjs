@@ -379,10 +379,26 @@ function setupStep(job) {
   );
 }
 
+for (const jobId of ['plan', 'static-checks', 'source-contracts']) {
+  test(`the ${jobId} validation job reuses the generated client`, () => {
+    assert.deepEqual(setupStep(validationJobs[jobId]).with, {
+      'cache-prisma-client': 'true',
+    });
+  });
+}
+
+// These jobs install through the start action, which keeps the same cache.
+const startActionSteps = parse(
+  repositoryFile('.github/actions/start-test-leg/action.yml'),
+).runs.steps;
+
+test('the start action reuses the generated client', () => {
+  assert.deepEqual(setupStep({ steps: startActionSteps }).with, {
+    'cache-prisma-client': 'true',
+  });
+});
+
 for (const jobId of [
-  'plan',
-  'static-checks',
-  'source-contracts',
   'spec-typecheck',
   'test-workspaces',
   'test-app',
@@ -391,10 +407,14 @@ for (const jobId of [
   'build',
   'mcp-auth-runtime',
 ]) {
-  test(`the ${jobId} validation job reuses the generated client`, () => {
-    assert.deepEqual(setupStep(validationJobs[jobId]).with, {
-      'cache-prisma-client': 'true',
-    });
+  test(`the ${jobId} validation job installs through the start action`, () => {
+    const job = validationJobs[jobId];
+    assert.equal(setupStep(job), undefined);
+    assert.ok(
+      job.steps.some(
+        (step) => step.uses === './.github/actions/start-test-leg',
+      ),
+    );
   });
 }
 

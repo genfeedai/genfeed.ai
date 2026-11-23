@@ -248,6 +248,38 @@ describe('hosted SaaS rollback contract', () => {
     expect(core).toContain('--mcp-url "https://mcp.${DOMAIN}/mcp"');
   });
 
+  test('signs in as the canary account after every deploy, with no identity in the repo', async () => {
+    const core = await workflow('_deploy-hosted-saas-core.yml');
+    const smokeJob = core.slice(
+      core.indexOf('  post-deploy-smoke:'),
+      core.indexOf('  report-post-deploy-smoke-failure:'),
+    );
+
+    expect(smokeJob).toContain('environment: production');
+    expect(smokeJob).toContain('hosted-saas/signed-in-smoke.mjs');
+    expect(smokeJob).toContain(
+      'CANARY_EMAIL: ${{ secrets.POST_DEPLOY_CANARY_EMAIL }}',
+    );
+    expect(smokeJob).toContain(
+      'CANARY_PASSWORD: ${{ secrets.POST_DEPLOY_CANARY_PASSWORD }}',
+    );
+    // A failure of the journey fails the job the failure reporter watches.
+    expect(smokeJob).not.toContain('continue-on-error');
+    expect(smokeJob).toContain('exit "${status}"');
+  });
+
+  test('keeps the signed-in journey read-only', async () => {
+    const script = await Bun.file('./signed-in-smoke.mjs').text();
+    const methods = [...script.matchAll(/method:\s*'([A-Z]+)'/g)].map(
+      (match) => match[1],
+    );
+
+    // The sign-in call is the only request the journey is allowed to POST.
+    expect(methods).toEqual(['POST']);
+    expect(script).toContain('pathname === SIGN_IN_PATH');
+    expect(script).toContain("method === 'GET' || isSignIn");
+  });
+
   test('points a failed post-deploy smoke at the rollback workflow', async () => {
     const core = await workflow('_deploy-hosted-saas-core.yml');
 
@@ -277,6 +309,16 @@ describe('hosted SaaS on-demand seed contract', () => {
     expect(seed).toContain('A seed needs a reason.');
   });
 
+  test('model retirement runs the sync task with --retire-models, live only when asked', async () => {
+    const seed = await workflow('seed-hosted-saas.yml');
+
+    expect(seed).toContain('          - model-registry-retirement');
+    expect(seed).toContain('--retire-models');
+    expect(seed).toMatch(
+      /model-registry-retirement\)[\s\S]*reference_data_sync_task_definition_arn[\s\S]*if \[ "\$\{LIVE\}" = "true" \]; then\n\s+retire_args\+=\(--live\)/,
+    );
+  });
+
   test('report seeds run fixed queries in a read-only transaction', async () => {
     const seed = await workflow('seed-hosted-saas.yml');
     const start = seed.indexOf('READ_ONLY_REPORT_SCRIPT: |');
@@ -286,11 +328,11 @@ describe('hosted SaaS on-demand seed contract', () => {
     expect(seed).toContain('          - webhook-id-report');
     expect(seed).toContain('          - instagram-reconnect-report');
     expect(seed).toContain('          - storyboard-unbilled-report');
-    expect(seed).toContain('          - reserved-slug-report');
     expect(seed).toContain('          - linkedin-credential-report');
     expect(seed).toContain('          - release-health-report');
+    expect(seed).toContain('          - approvals-page-report');
     expect(seed).toContain(
-      '            backfill-report | webhook-id-report | instagram-reconnect-report | storyboard-unbilled-report | reserved-slug-report | linkedin-credential-report | release-health-report)',
+      '            backfill-report | webhook-id-report | instagram-reconnect-report | storyboard-unbilled-report | linkedin-credential-report | release-health-report | approvals-page-report)',
     );
     expect(seed).toContain('migrate_task_definition_arn');
     expect(reader).toContain("await client.query('BEGIN READ ONLY');");
@@ -301,7 +343,7 @@ describe('hosted SaaS on-demand seed contract', () => {
     );
     expect(reader).toContain("op ->> 'state' = 'ready'");
     expect(reader).toContain("op ->> 'billing' = 'released'");
-    expect(reader).toContain('lower(trim(slug)) = ANY($1)');
+    expect(reader).toContain('pg_column_size(t.*)');
     expect(reader).toContain(`c."platform" = 'LINKEDIN'`);
     expect(reader).toContain(`"canonicalId" = 'scheduled-post.publish'`);
     expect(reader).toContain(`"purgeAt" <= (now() AT TIME ZONE 'UTC')`);
@@ -333,7 +375,7 @@ describe('hosted SaaS on-demand seed contract', () => {
       .slice(start, seed.indexOf('const name = process.argv[1];', start))
       .split('\n')
       .filter((line) =>
-        /^\s+'(storyboard-unbilled|reserved-slug|linkedin-credential|release-health|backfill)-report': /.test(
+        /^\s+'(storyboard-unbilled|linkedin-credential|release-health|approvals-page|backfill)-report': /.test(
           line,
         ),
       );
@@ -345,7 +387,7 @@ describe('hosted SaaS on-demand seed contract', () => {
   test('report seeds select the migrate task and override its command with the reader', async () => {
     const seed = await workflow('seed-hosted-saas.yml');
     const start = seed.indexOf(
-      '            backfill-report | webhook-id-report | instagram-reconnect-report | storyboard-unbilled-report | reserved-slug-report | linkedin-credential-report | release-health-report)\n',
+      '            backfill-report | webhook-id-report | instagram-reconnect-report | storyboard-unbilled-report | linkedin-credential-report | release-health-report | approvals-page-report)\n',
     );
     const branch = seed.slice(start, seed.indexOf('              ;;', start));
 

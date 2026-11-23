@@ -4,6 +4,7 @@ import {
   type CuratedActionCatalogEntry,
   type CuratedActionSurface,
 } from './curated-actions.catalog';
+import { MCP_CATALOG_TOOLS } from './mcp-catalog/catalog';
 
 export {
   CURATED_ACTION_CATALOG,
@@ -58,5 +59,13 @@ export function isPublishingApprovalRequired(
 
 /** The card the MCP app renders a tool's result as, or undefined when it has none. */
 export function getMcpCardKind(name: string): ToolMcpCardKind | undefined {
-  return CURATED_ACTIONS_BY_NAME.get(name)?.mcpCardKind;
+  const own = CURATED_ACTIONS_BY_NAME.get(name)?.mcpCardKind;
+  if (own) return own;
+  // A merged tool shows the card of the first of its actions that has one.
+  return MCP_CATALOG_TOOLS.find((tool) => tool.name === name)
+    ?.operations.map(
+      (operation) =>
+        CURATED_ACTIONS_BY_NAME.get(operation.executes)?.mcpCardKind,
+    )
+    .find((kind) => kind !== undefined);
 }

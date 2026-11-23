@@ -1,7 +1,10 @@
 import { BaseEntity } from '@api/entities/base.entity';
 import { type User } from '@genfeedai/prisma';
 
-export class UserEntity extends BaseEntity implements User {
+export class UserEntity
+  extends BaseEntity
+  implements Omit<User, 'signupIpAddress'>
+{
   declare readonly id: string;
   declare readonly isDefault: boolean;
   declare readonly handle: string;

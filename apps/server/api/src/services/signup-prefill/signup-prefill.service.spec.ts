@@ -4,6 +4,7 @@ import type { BrandsService } from '@api/collections/brands/services/brands.serv
 import type { HarnessProfilesService } from '@api/collections/harness-profiles/services/harness-profiles.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import type { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
+import type { CacheService } from '@api/services/cache/cache.service';
 import type { MasterPromptGeneratorService } from '@api/services/knowledge-base/master-prompt-generator.service';
 import {
   SignupPrefillService,
@@ -36,7 +37,25 @@ const provenance = {
   workflowVersionId: 'v1',
 };
 
-function createHarness() {
+/** Redis as every API task sees it: one claim table shared by all of them. */
+function createSharedClaims() {
+  const claims = new Map<string, string>();
+  return {
+    claims,
+    acquireOwnedClaim: vi.fn(async (key: string, token: string) => {
+      if (claims.has(key)) return 'duplicate' as const;
+      claims.set(key, token);
+      return 'claimed' as const;
+    }),
+    releaseOwnedClaim: vi.fn(async (key: string, token: string) => {
+      if (claims.get(key) !== token) return false;
+      claims.delete(key);
+      return true;
+    }),
+  };
+}
+
+function createHarness(cache = createSharedClaims()) {
   const scrapedData = {
     companyName: 'Acme',
     description: 'Brand details',
@@ -50,7 +69,9 @@ function createHarness() {
   };
   const scraper = {
     scrapeWebsite: vi.fn().mockResolvedValue(scrapedData),
-    scrapeWebsiteWithEvidence: vi.fn().mockResolvedValue({ data: scrapedData }),
+    scrapeSetupSourceWithEvidence: vi
+      .fn()
+      .mockResolvedValue({ data: scrapedData }),
   };
   const generator = { analyzeBrandVoice: vi.fn().mockResolvedValue(undefined) };
   const brands = {
@@ -94,6 +115,7 @@ function createHarness() {
     persistence as unknown as BrandPersistenceService,
     generator as unknown as MasterPromptGeneratorService,
     harness as unknown as HarnessProfilesService,
+    cache as unknown as CacheService,
   );
   const state: SignupPrefillState = {
     brandDomain: 'acme.example',
@@ -104,6 +126,7 @@ function createHarness() {
     websiteUrl: 'https://acme.example/',
   };
   return {
+    cache,
     service,
     logger,
     state,
@@ -206,7 +229,7 @@ describe('SignupPrefillService explicit URL scan', () => {
     'uses profile identity for %s with company %s',
     async (url, companyName, expected) => {
       const h = createHarness();
-      h.scraper.scrapeWebsiteWithEvidence.mockResolvedValue({
+      h.scraper.scrapeSetupSourceWithEvidence.mockResolvedValue({
         data: { ...h.scrapedData, companyName },
       });
       const state = await h.service.scanBrandUrl(h.state.request, url);
@@ -243,7 +266,7 @@ describe('SignupPrefillService explicit URL scan', () => {
   it('rejects concurrent same-brand scans but releases the guard after completion', async () => {
     const h = createHarness();
     let complete: ((value: { data: typeof h.scrapedData }) => void) | undefined;
-    h.scraper.scrapeWebsiteWithEvidence.mockImplementationOnce(
+    h.scraper.scrapeSetupSourceWithEvidence.mockImplementationOnce(
       () =>
         new Promise((resolve) => {
           complete = resolve;
@@ -260,6 +283,64 @@ describe('SignupPrefillService explicit URL scan', () => {
     expect(complete).toBeDefined();
     complete?.({ data: h.scrapedData });
     await scan;
+    expect(
+      (await h.service.scanBrandUrl(h.state.request, 'https://acme.example'))
+        .status,
+    ).toBe('completed');
+  });
+
+  it('rejects a same-brand scan that another API task is running, and frees the claim after', async () => {
+    const cache = createSharedClaims();
+    const first = createHarness(cache);
+    const second = createHarness(cache);
+    let complete:
+      | ((value: { data: typeof first.scrapedData }) => void)
+      | undefined;
+    first.scraper.scrapeSetupSourceWithEvidence.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          complete = resolve;
+        }),
+    );
+    const scan = first.service.scanBrandUrl(
+      first.state.request,
+      'https://acme.example',
+    );
+    for (let i = 0; i < 20 && !complete; i++) await Promise.resolve();
+
+    await expect(
+      second.service.scanBrandUrl(second.state.request, 'https://acme.example'),
+    ).rejects.toBeInstanceOf(ConflictException);
+    expect(second.scraper.scrapeSetupSourceWithEvidence).not.toHaveBeenCalled();
+
+    complete?.({ data: first.scrapedData });
+    await scan;
+    expect(cache.claims.size).toBe(0);
+    expect(
+      (
+        await second.service.scanBrandUrl(
+          second.state.request,
+          'https://acme.example',
+        )
+      ).status,
+    ).toBe('completed');
+  });
+
+  it('frees the claim when the scan fails', async () => {
+    const h = createHarness();
+    h.persistence.updateBrandWithScrapedData.mockRejectedValueOnce(
+      new Error('write failed'),
+    );
+    await expect(
+      h.service.scanBrandUrl(h.state.request, 'https://acme.example'),
+    ).rejects.toThrow('write failed');
+    expect(h.cache.claims.size).toBe(0);
+  });
+
+  it('still scans when the cache cannot grant a claim', async () => {
+    const cache = createSharedClaims();
+    cache.acquireOwnedClaim.mockResolvedValue('unavailable' as never);
+    const h = createHarness(cache);
     expect(
       (await h.service.scanBrandUrl(h.state.request, 'https://acme.example'))
         .status,
@@ -297,7 +378,7 @@ describe('SignupPrefillService explicit URL scan', () => {
 
   it('preserves answers saved after prepare across defaults and final marker writes', async () => {
     const h = createHarness();
-    h.scraper.scrapeWebsiteWithEvidence.mockImplementation(async () => {
+    h.scraper.scrapeSetupSourceWithEvidence.mockImplementation(async () => {
       h.brands.findOne.mockResolvedValue({
         agentConfig: {
           strategy: { goals: ['Sales'], platforms: ['linkedin'] },
@@ -385,7 +466,7 @@ describe('SignupPrefillService explicit URL scan', () => {
       websiteUrl: 'https://acme.example/products',
       summary: { name: 'Acme', description: 'Owner summary' },
     });
-    expect(h.scraper.scrapeWebsiteWithEvidence).toHaveBeenCalledWith(
+    expect(h.scraper.scrapeSetupSourceWithEvidence).toHaveBeenCalledWith(
       'https://acme.example/products',
       expect.objectContaining({ deadlineAt: expect.any(Number) }),
     );
@@ -584,7 +665,7 @@ describe('SignupPrefillService explicit URL scan', () => {
       );
       expect(scan.brandLabel).toBe('Acme');
       expect(scan.scrapeStatus).toBe('scraped');
-      expect(h.scraper.scrapeWebsiteWithEvidence).toHaveBeenCalledTimes(1);
+      expect(h.scraper.scrapeSetupSourceWithEvidence).toHaveBeenCalledTimes(1);
     },
   );
 
@@ -607,7 +688,7 @@ describe('SignupPrefillService explicit URL scan', () => {
       description: '',
       text: '',
     });
-    h.scraper.scrapeWebsiteWithEvidence.mockResolvedValue({
+    h.scraper.scrapeSetupSourceWithEvidence.mockResolvedValue({
       data: { ...h.scrapedData, companyName: '' },
     });
     const state = await h.service.scanBrandUrl(
@@ -624,7 +705,7 @@ describe('SignupPrefillService explicit URL scan', () => {
 
   it('reports scrape failure and does not analyze or persist fabricated data', async () => {
     const h = createHarness();
-    h.scraper.scrapeWebsiteWithEvidence.mockRejectedValue(
+    h.scraper.scrapeSetupSourceWithEvidence.mockRejectedValue(
       new Error('secret scraper error'),
     );
     const state = await h.service.scanBrandUrl(
@@ -704,7 +785,7 @@ describe('SignupPrefillService explicit URL scan', () => {
         { id: 'brand-1', organizationId: 'org-1', isDeleted: false },
         'none',
       );
-      expect(h.scraper.scrapeWebsiteWithEvidence).not.toHaveBeenCalled();
+      expect(h.scraper.scrapeSetupSourceWithEvidence).not.toHaveBeenCalled();
       expect(h.brands.updateAgentConfig).not.toHaveBeenCalled();
     },
   );
@@ -731,7 +812,7 @@ describe('SignupPrefillService explicit URL scan', () => {
           signupPrefill: expect.objectContaining({ status: 'failed' }),
         }),
       );
-      expect(h.scraper.scrapeWebsiteWithEvidence).not.toHaveBeenCalled();
+      expect(h.scraper.scrapeSetupSourceWithEvidence).not.toHaveBeenCalled();
     },
   );
 
@@ -743,7 +824,7 @@ describe('SignupPrefillService explicit URL scan', () => {
     await expect(
       h.service.scanBrandUrl(h.state.request, 'https://acme.example'),
     ).rejects.toBeInstanceOf(BadRequestException);
-    expect(h.scraper.scrapeWebsiteWithEvidence).not.toHaveBeenCalled();
+    expect(h.scraper.scrapeSetupSourceWithEvidence).not.toHaveBeenCalled();
     expect(h.brands.updateAgentConfig).toHaveBeenLastCalledWith(
       'brand-1',
       'org-1',
@@ -759,7 +840,7 @@ describe('SignupPrefillService explicit URL scan', () => {
     let resolveScrape:
       | ((value: { data: typeof h.scrapedData }) => void)
       | undefined;
-    h.scraper.scrapeWebsiteWithEvidence.mockImplementation(
+    h.scraper.scrapeSetupSourceWithEvidence.mockImplementation(
       () =>
         new Promise((resolve) => {
           resolveScrape = resolve;

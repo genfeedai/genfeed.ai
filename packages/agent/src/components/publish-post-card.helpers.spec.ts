@@ -4,7 +4,7 @@ import {
   readPublishTargetProposals,
   resolveEffectiveCaption,
   resolveLiveTargetBlockers,
-  targetAccountSuffix,
+  targetAccount,
 } from './publish-post-card.helpers';
 
 describe('publish-post-card.helpers', () => {
@@ -36,33 +36,26 @@ describe('publish-post-card.helpers', () => {
     );
   });
 
-  it('disambiguates toggle names only when two targets share a platform', () => {
-    const linkedin = {
-      blockers: [],
-      credentialId: 'cred-linkedin',
-      id: 'publish-target-cred-linkedin',
-      label: 'LinkedIn',
-      platform: 'linkedin',
-      settings: {},
-      visibility: PostVisibility.PUBLIC,
-    };
-    const twitterA = {
-      ...linkedin,
-      credentialId: 'cred-twitter-a',
-      id: 'publish-target-cred-twitter-a',
-      label: 'X (Twitter)',
+  it('maps a target onto the connected account the post goes to', () => {
+    expect(
+      targetAccount({
+        avatarUrl: 'https://cdn.example/avatar.png',
+        blockers: [],
+        credentialId: 'cred-twitter',
+        handle: 'genfeedai',
+        id: 'publish-target-cred-twitter',
+        label: 'X (Twitter)',
+        name: 'Genfeed',
+        platform: 'twitter',
+        settings: {},
+        visibility: PostVisibility.PUBLIC,
+      }),
+    ).toEqual({
+      avatarUrl: 'https://cdn.example/avatar.png',
+      handle: 'genfeedai',
+      name: 'Genfeed',
       platform: 'twitter',
-    };
-    const twitterB = {
-      ...twitterA,
-      credentialId: 'cred-twitter-b',
-      id: 'publish-target-cred-twitter-b',
-    };
-
-    expect(targetAccountSuffix(linkedin, [linkedin, twitterA])).toBeNull();
-    expect(targetAccountSuffix(twitterA, [twitterA, twitterB])).toBe(
-      'cred-twitter-a',
-    );
+    });
   });
 
   it('reads structured target proposals from the UI action contract', () => {
@@ -85,13 +78,17 @@ describe('publish-post-card.helpers', () => {
         platform: 'youtube',
         settings: { privacyStatus: 'private' },
         visibility: 'public',
+        handle: 'genfeedtv',
+        avatarUrl: 'https://cdn.example/yt.png',
       },
     ]);
 
     expect(target).toEqual(
       expect.objectContaining({
         credentialId: 'cred-youtube',
+        handle: 'genfeedtv',
         isSelected: true,
+        avatarUrl: 'https://cdn.example/yt.png',
         platform: 'youtube',
         visibility: PostVisibility.PUBLIC,
       }),

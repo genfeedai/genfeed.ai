@@ -2,16 +2,8 @@ import type { CredentialPlatform } from '@genfeedai/contracts';
 import type { AccountHealthSummary } from '@genfeedai/contracts/interfaces';
 import type { IconComponent } from '@genfeedai/contracts/types/icon';
 import type { BrandDetailSocialConnection } from '@genfeedai/props/pages/brand-detail.props';
-import type { SocialWarmupOverrideRequest } from '@genfeedai/props/social/social-warmup-program.props';
 
 export type AccountConnectionStatus = 'connected' | 'needsReconnect';
-
-export type AccountAvatarSize = 'sm' | 'md';
-
-export interface AccountAvatarProps {
-  connection: BrandDetailSocialConnection;
-  size?: AccountAvatarSize;
-}
 
 export interface AccountCellProps {
   connection: BrandDetailSocialConnection;
@@ -28,13 +20,14 @@ export interface AccountStatusBadgeProps {
   health?: AccountHealthSummary;
 }
 
+export type AccountStatusIconsProps = AccountStatusBadgeProps;
+
 export type AccountSettingsSection = 'health' | 'import' | 'postingTimes';
 
 export interface AccountSettingsSectionsProps {
   brandId: string;
   connection: BrandDetailSocialConnection;
   health?: AccountHealthSummary;
-  onOverrideRequest: (request: SocialWarmupOverrideRequest) => void;
   onReconnect: (connection: BrandDetailSocialConnection) => void;
 }
 

@@ -21,6 +21,8 @@ export default function SupportCreatorButton({
   articleId,
   className,
   handle,
+  label = `Support @${handle}`,
+  logoUrl,
 }: SupportCreatorButtonProps): React.ReactElement {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -38,12 +40,13 @@ export default function SupportCreatorButton({
         }}
       >
         <Coins className="size-4" aria-hidden="true" />
-        Support @{handle}
+        {label}
       </ButtonTracked>
       {isOpen ? (
         <SupportCreatorModal
           articleId={articleId}
           handle={handle}
+          logoUrl={logoUrl}
           onOpenChange={setIsOpen}
         />
       ) : null}

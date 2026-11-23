@@ -6,6 +6,43 @@ export const MODEL_PROVIDER_ASSOCIATIONS = [
     provider: 'kie',
     endpoint: 'kling-3.0/video',
   },
+  // MiniMax H3 on kie, reviewed against kie's OpenAPI for both endpoints
+  // (2026-11-23). kie splits H3 by start: text-to-video needs an aspect ratio,
+  // image-to-video takes first and last frames and has none. The input adapter
+  // refuses reference images, videos and audio (kie bills reference seconds
+  // and images past the fifth), so those requests stay on Replicate.
+  {
+    modelKey: 'minimax/h3',
+    executionModelKey: 'kie/minimax-h3-text-to-video',
+    provider: 'kie',
+    endpoint: 'minimax-h3/text-to-video',
+  },
+  {
+    modelKey: 'minimax/h3',
+    executionModelKey: 'kie/minimax-h3-image-to-video',
+    provider: 'kie',
+    endpoint: 'minimax-h3/image-to-video',
+  },
+  // Wan 3.0 on kie, reviewed against kie's OpenAPI (2026-11-23): one endpoint
+  // that picks its mode from the media given. The input adapter refuses a
+  // negative prompt and turned-off prompt expansion, which kie has no field
+  // for, so those requests stay on Replicate.
+  {
+    modelKey: 'alibaba/wan-3',
+    executionModelKey: 'kie/wan-3-0-video',
+    provider: 'kie',
+    endpoint: 'wan/3-0-video',
+  },
+  // Seedance 2.0 Fast on kie, reviewed against kie's OpenAPI (2026-11-23). The
+  // input adapter refuses reference media (kie bills reference video seconds)
+  // and a seed (kie has none), so those requests stay on Replicate. Seedance
+  // 2.0 and 2.5 are dearer on kie than on Replicate and get no offer.
+  {
+    modelKey: 'bytedance/seedance-2.0-fast',
+    executionModelKey: 'kie/seedance-2-fast',
+    provider: 'kie',
+    endpoint: 'bytedance/seedance-2-fast',
+  },
   // Kling 3.0 on fal: one endpoint per tier (Replicate's `mode`) and per text
   // or image start, reviewed against fal's OpenAPI and Replicate's schema
   // (2026-11-04). The input adapter refuses an offer whose tier or start does

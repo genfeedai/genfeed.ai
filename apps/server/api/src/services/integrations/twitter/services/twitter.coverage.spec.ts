@@ -255,6 +255,51 @@ describe('TwitterService (coverage)', () => {
       expect(result).toEqual(updated);
     });
 
+    it('never writes isDeleted, so a credential deleted mid-refresh stays deleted', async () => {
+      credentialsService.findOne.mockResolvedValue(
+        makeCredential({ refreshToken: 'enc-rt' }),
+      );
+      mockRefreshOAuth2Token.mockResolvedValue({
+        accessToken: 'new-access',
+        expiresIn: 7200,
+        refreshToken: 'new-refresh',
+      });
+      credentialsService.patch.mockResolvedValue(makeCredential());
+
+      await service.refreshToken('org', 'brand');
+
+      expect(credentialsService.patch.mock.calls[0][1]).not.toHaveProperty(
+        'isDeleted',
+      );
+    });
+
+    it('propagates a failed write without sending another refresh request', async () => {
+      const cred = makeCredential({ refreshToken: 'enc-rt' });
+      credentialsService.findOne.mockResolvedValue(cred);
+      mockRefreshOAuth2Token.mockResolvedValue({
+        accessToken: 'new-access',
+        expiresIn: 7200,
+        refreshToken: 'new-refresh',
+      });
+      const error = Object.assign(
+        new Error('Unable to start a transaction in the given time.'),
+        { code: 'P2028' },
+      );
+      credentialsService.patch.mockRejectedValue(error);
+
+      await expect(service.refreshToken('org', 'brand')).rejects.toBe(error);
+
+      expect(mockRefreshOAuth2Token).toHaveBeenCalledTimes(1);
+      expect(credentialsService.patch).toHaveBeenCalledExactlyOnceWith(
+        cred.id,
+        expect.objectContaining({
+          accessToken: 'new-access',
+          refreshToken: 'new-refresh',
+        }),
+      );
+      expect(activitiesService.record).not.toHaveBeenCalled();
+    });
+
     it('disconnects and throws when credential has no refreshToken (OAuth 1.0a)', async () => {
       const cred = makeCredential({ refreshToken: null });
       credentialsService.findOne.mockResolvedValue(cred);
@@ -361,12 +406,43 @@ describe('TwitterService (coverage)', () => {
   });
 
   describe('refreshToken errors', () => {
+    it('reports an unrelated HTTP 400 safely and keeps the credential connected', async () => {
+      credentialsService.findOne.mockResolvedValue(
+        makeCredential({ refreshToken: 'enc-rt' }),
+      );
+      mockRefreshOAuth2Token.mockRejectedValue(
+        Object.assign(new Error('Sensitive provider error'), {
+          code: 400,
+          data: {
+            error: 'invalid_request',
+            error_description: 'Invalid parameter',
+          },
+        }),
+      );
+
+      await expect(service.refreshToken('org', 'brand')).rejects.toThrow(
+        'X rejected the token refresh request (HTTP 400)',
+      );
+      expect(credentialsService.patch).not.toHaveBeenCalled();
+      expect(activitiesService.record).not.toHaveBeenCalled();
+    });
+
     it.each([
       {
         name: 'invalid_grant',
         error: Object.assign(new Error('Request failed with code 400'), {
           code: 400,
           data: { error: 'invalid_grant', error_description: 'Token revoked' },
+        }),
+      },
+      {
+        name: 'invalid_request for an invalid token',
+        error: Object.assign(new Error('Request failed with code 400'), {
+          code: 400,
+          data: {
+            error: 'invalid_request',
+            error_description: 'Value passed for the token was invalid.',
+          },
         }),
       },
       {
@@ -382,7 +458,9 @@ describe('TwitterService (coverage)', () => {
         credentialsService.findOne.mockResolvedValue(cred);
         mockRefreshOAuth2Token.mockRejectedValue(error);
 
-        await expect(service.refreshToken('org', 'brand')).rejects.toBe(error);
+        await expect(service.refreshToken('org', 'brand')).rejects.toThrow(
+          'X refused the refresh token. Please reconnect your X account.',
+        );
 
         expect(credentialsService.patch).toHaveBeenCalledWith(cred.id, {
           isConnected: false,
@@ -471,7 +549,7 @@ describe('TwitterService (coverage)', () => {
                 kind: 'alert_email',
                 label: '@vincentshipsit',
                 summary:
-                  'X refused to renew the connection (Request failed with code 400). Posts scheduled on this account will fail until you reconnect it.',
+                  'X refused to renew the connection (The OAuth refresh token is no longer valid). Posts scheduled on this account will fail until you reconnect it.',
                 version: 1,
               },
             },
@@ -488,7 +566,7 @@ describe('TwitterService (coverage)', () => {
 
         await expect(
           service.refreshToken('org', 'brand', 'cred-id'),
-        ).rejects.toBe(error);
+        ).rejects.toThrow('Please reconnect your X account.');
 
         expect(credentialsService.patch).toHaveBeenCalledWith('cred-id', {
           isConnected: false,
@@ -506,7 +584,7 @@ describe('TwitterService (coverage)', () => {
 
         await expect(
           service.refreshToken('org', 'brand', 'cred-id'),
-        ).rejects.toBe(error);
+        ).rejects.toThrow('Please reconnect your X account.');
 
         expect(credentialsService.patch).not.toHaveBeenCalled();
         expect(activitiesService.record).not.toHaveBeenCalled();
@@ -763,7 +841,7 @@ describe('TwitterService (coverage)', () => {
         'users/uid-1/tweets',
         expect.objectContaining({
           expansions: 'author_id,attachments.media_keys',
-          'media.fields': 'type',
+          'media.fields': 'type,url,preview_image_url,variants',
           'tweet.fields': expect.stringContaining('organic_metrics'),
         }),
       );
@@ -803,13 +881,88 @@ describe('TwitterService (coverage)', () => {
         2,
         'users/uid-1/tweets',
         expect.objectContaining({
-          expansions: 'author_id',
+          expansions: 'author_id,attachments.media_keys',
+          'media.fields': 'type,url,preview_image_url,variants',
           'tweet.fields':
-            'created_at,public_metrics,author_id,referenced_tweets,in_reply_to_user_id',
+            'created_at,public_metrics,author_id,referenced_tweets,in_reply_to_user_id,attachments',
         }),
       );
       expect(tweets[0]).not.toHaveProperty('breakoutExposures');
       expect(tweets[0]).not.toHaveProperty('nativeAuthorVerified');
+    });
+
+    it('maps photo and video attachments onto the signal media fields', async () => {
+      mockV2Get
+        .mockResolvedValueOnce({ data: { id: 'uid-1', username: 'creator' } })
+        .mockResolvedValueOnce({
+          data: [
+            { id: 'text', author_id: 'uid-1', text: 'Text' },
+            {
+              attachments: { media_keys: ['photo-1'] },
+              author_id: 'uid-1',
+              id: 'photo',
+              text: 'Photo',
+            },
+            {
+              attachments: { media_keys: ['video-1'] },
+              author_id: 'uid-1',
+              id: 'video',
+              text: 'Video',
+            },
+          ],
+          includes: {
+            media: [
+              {
+                media_key: 'photo-1',
+                type: 'photo',
+                url: 'https://pbs.twimg.com/media/photo.jpg',
+              },
+              {
+                media_key: 'video-1',
+                preview_image_url: 'https://pbs.twimg.com/poster.jpg',
+                type: 'video',
+                variants: [
+                  {
+                    bit_rate: 256000,
+                    content_type: 'video/mp4',
+                    url: 'https://video.twimg.com/low.mp4',
+                  },
+                  {
+                    content_type: 'application/x-mpegURL',
+                    url: 'https://video.twimg.com/stream.m3u8',
+                  },
+                  {
+                    bit_rate: 2176000,
+                    content_type: 'video/mp4',
+                    url: 'https://video.twimg.com/high.mp4',
+                  },
+                ],
+              },
+            ],
+          },
+        });
+
+      const tweets = await service.getUserTimelineByUsername('creator');
+
+      expect(
+        tweets.map(({ contentType, mediaUrls, thumbnailUrl }) => ({
+          contentType,
+          mediaUrls,
+          thumbnailUrl,
+        })),
+      ).toEqual([
+        { contentType: 'tweet', mediaUrls: [], thumbnailUrl: undefined },
+        {
+          contentType: 'image',
+          mediaUrls: ['https://pbs.twimg.com/media/photo.jpg'],
+          thumbnailUrl: 'https://pbs.twimg.com/media/photo.jpg',
+        },
+        {
+          contentType: 'video',
+          mediaUrls: ['https://video.twimg.com/high.mp4'],
+          thumbnailUrl: 'https://pbs.twimg.com/poster.jpg',
+        },
+      ]);
     });
 
     it('requests and maps the profile image onto each tweet', async () => {
@@ -1908,7 +2061,7 @@ describe('TwitterService (coverage)', () => {
       expect(mockV2Get).not.toHaveBeenCalled();
     });
 
-    it('preserves disconnect/activity and the original rejected refresh', async () => {
+    it('preserves disconnect activity and gives reconnect guidance after rejection', async () => {
       storeCredential({ accessTokenExpiry: null });
       const error = Object.assign(new Error('refresh failed'), {
         code: 400,
@@ -1916,7 +2069,9 @@ describe('TwitterService (coverage)', () => {
       });
       mockRefreshOAuth2Token.mockRejectedValue(error);
 
-      await expect(readPage()).rejects.toBe(error);
+      await expect(readPage()).rejects.toThrow(
+        'Please reconnect your X account.',
+      );
 
       expect(credentialsService.patch).toHaveBeenCalledWith('cred-id', {
         isConnected: false,

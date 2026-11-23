@@ -33,8 +33,12 @@ export type SeedArticle = {
 const CLEAR_FRAMEWORK = `
 <p>Most bad AI output is not a model problem. It is a brief problem. The model
 answered exactly the question you asked; the question was just vaguer than you
-realised. This tutorial gives you a repeatable structure for writing prompts
+realized. This tutorial gives you a repeatable structure for writing prompts
 that produce usable text on the first or second attempt instead of the sixth.</p>
+
+<h2>TL;DR</h2>
+
+<p>Bad AI output is usually a brief problem, not a model problem. Write each prompt with the CLEAR structure, fix the four common failures (vague, overloaded, conflicting, missing context), change one variable per iteration, and save every prompt that works.</p>
 
 <h2>The CLEAR framework</h2>
 
@@ -42,14 +46,14 @@ that produce usable text on the first or second attempt instead of the sixth.</p
 the habit is automatic.</p>
 
 <ul>
-  <li><strong>Context</strong> — the background the model cannot infer: the
-  product, the campaign, what already happened.</li>
-  <li><strong>Length</strong> — a number, not an adjective. "Short" means
+  <li><strong>Context</strong>: the background the model cannot infer (the
+  product, the campaign, what already happened).</li>
+  <li><strong>Length</strong>: a number, not an adjective. "Short" means
   nothing; "90 words" means something.</li>
-  <li><strong>Expectations</strong> — the quality bar and style rules the output
+  <li><strong>Expectations</strong>: the quality bar and style rules the output
   has to satisfy.</li>
-  <li><strong>Audience</strong> — who reads it, and what they already know.</li>
-  <li><strong>Role</strong> — the expertise the model should write from.</li>
+  <li><strong>Audience</strong>: who reads it, and what they already know.</li>
+  <li><strong>Role</strong>: the expertise the model should write from.</li>
 </ul>
 
 <p>A prompt missing Context and Audience produces generic copy. A prompt missing
@@ -159,7 +163,7 @@ Include: Personalization, clear value, single CTA</code></pre>
 
 <ol>
   <li><strong>Too vague.</strong> "Write something good" gives the model nothing
-  to optimise against.</li>
+  to optimize against.</li>
   <li><strong>Information overload.</strong> Twenty requirements in one prompt
   means the model quietly drops some. Keep it to three to five that matter.</li>
   <li><strong>Conflicting instructions.</strong> "Be brief but comprehensive and
@@ -182,38 +186,61 @@ improvement.</p>
 </ul>
 
 <p>Judge each result on four axes: does it match your intent, is it clean, does
-it cover every requirement, and can you ship it with light editing. When the
+it cover every requirement, and can you ship it with light editing? When the
 answer to all four is yes, save the prompt. A personal prompt library compounds
 faster than any single clever trick.</p>
+
+<h2>Give this to your agent</h2>
+
+<p>Paste this into Claude, Codex, or any agent that works on your content. It carries the guidance above, so the agent follows the same steps and stops at the same review points.</p>
+
+<pre><code>Act as my prompt editor. I will paste a draft prompt. Rewrite it using the CLEAR structure, then explain what you changed.
+
+Steps:
+1. Ask me for the goal, the audience and the format if my draft does not say.
+2. Check the draft for four failures: too vague, too many requirements, conflicting instructions, missing context.
+3. Rewrite it with the CLEAR structure, keeping to three to five requirements that matter.
+4. Give me the rewrite and a one-line reason for each change.
+5. When I report the result, suggest one single change for the next iteration.
+
+Rules:
+- Change one variable per iteration so we learn what helped.
+- Do not invent facts about my product, audience or numbers. Ask instead.
+- Judge each result on four axes: it matches my intent, it is clean, it covers every requirement, and I can ship it with light editing.
+- When all four are yes, tell me to save the prompt to my library.</code></pre>
 
 <h2>Next</h2>
 
 <ul>
   <li><a href="/@genfeedai/articles/how-to-prompt-ai-images-videos-and-audio">How to prompt
-  AI images, videos, and audio</a> — the same discipline applied to visual and
+  AI images, videos, and audio</a>: the same discipline applied to visual and
   audio generation.</li>
   <li><a href="/@genfeedai/articles/ai-image-prompt-templates">12 AI image prompt briefs to
-  hand your agent</a> — describe the job, let the agent write the prompt.</li>
+  hand your agent</a>: describe the job, let the agent write the prompt.</li>
 </ul>
 `;
 
 const ASSET_PROMPTING = `
-<p>Text prompting rewards clarity. Asset prompting rewards <em>structure</em> —
+<p>Text prompting rewards clarity. Asset prompting rewards <em>structure</em>:
 a visual model needs to know the subject, the treatment, the setting, the light,
 and the framing, and it will invent whichever of those you leave out. This
 tutorial covers images, video, and audio, with the prompt skeleton for each.</p>
+
+<h2>TL;DR</h2>
+
+<p>Asset prompts need structure: name the subject, treatment, setting, light and framing, because the model invents whatever you leave out. Use one skeleton each for image, video and audio, change one element per iteration, and compare more than one model.</p>
 
 <h2>Images</h2>
 
 <h3>The six-part image prompt</h3>
 
 <ol>
-  <li><strong>Subject</strong> — what or who is the focus.</li>
-  <li><strong>Style or medium</strong> — the rendering approach.</li>
-  <li><strong>Environment</strong> — where the scene takes place.</li>
-  <li><strong>Lighting and mood</strong> — atmosphere and emotional tone.</li>
-  <li><strong>Composition</strong> — camera angle and framing.</li>
-  <li><strong>Details</strong> — the specifics that make it yours.</li>
+  <li><strong>Subject</strong>: what or who is the focus.</li>
+  <li><strong>Style or medium</strong>: the rendering approach.</li>
+  <li><strong>Environment</strong>: where the scene takes place.</li>
+  <li><strong>Lighting and mood</strong>: atmosphere and emotional tone.</li>
+  <li><strong>Composition</strong>: camera angle and framing.</li>
+  <li><strong>Details</strong>: the specifics that make it yours.</li>
 </ol>
 
 <h3>Portrait</h3>
@@ -259,7 +286,7 @@ lights."</p>
 <h3>Match the prompt to the model</h3>
 
 <ul>
-  <li><strong>Artistic and stylised models</strong> reward style references and
+  <li><strong>Artistic and stylized models</strong> reward style references and
   rich texture adjectives. Name the aesthetic explicitly.</li>
   <li><strong>Photorealistic models</strong> reward real-world camera language:
   "shot with 85mm lens, f/1.4, golden hour". Best choice for product and
@@ -268,7 +295,7 @@ lights."</p>
   well, and are the ones to reach for when the image needs legible text.</li>
 </ul>
 
-<p>Using a stylised model for a photoreal headshot and then blaming the prompt
+<p>Using a stylized model for a photoreal headshot and then blaming the prompt
 is the most common self-inflicted failure in the whole workflow.</p>
 
 <h2>Video</h2>
@@ -276,12 +303,12 @@ is the most common self-inflicted failure in the whole workflow.</p>
 <h3>The six-part video prompt</h3>
 
 <ol>
-  <li><strong>Scene</strong> — the environment and setting.</li>
-  <li><strong>Camera</strong> — static, panning, zooming, tracking.</li>
-  <li><strong>Action</strong> — what actually moves.</li>
-  <li><strong>Style</strong> — realistic, stylised, cinematic.</li>
-  <li><strong>Duration</strong> — length and pacing.</li>
-  <li><strong>Transition</strong> — how the shot resolves.</li>
+  <li><strong>Scene</strong>: the environment and setting.</li>
+  <li><strong>Camera</strong>: static, panning, zooming, tracking.</li>
+  <li><strong>Action</strong>: what actually moves.</li>
+  <li><strong>Style</strong>: realistic, stylized, cinematic.</li>
+  <li><strong>Duration</strong>: length and pacing.</li>
+  <li><strong>Transition</strong>: how the shot resolves.</li>
 </ol>
 
 <pre><code>Scene: [environment and setting]
@@ -321,7 +348,7 @@ each principle before you add it to a prompt.</p>
 
 <h3>Film grain</h3>
 
-<p>Film grain is fine luminance and colour variation inherited from photosensitive
+<p>Film grain is fine luminance and color variation inherited from photosensitive
 film stock. In generated video it can soften a clinically digital image and
 help separate a memory, period setting, or documentary texture from the rest of
 a sequence. Ask for the stock character and restraint: <code>fine 35mm grain,
@@ -333,7 +360,7 @@ like compression damage rather than film.</p>
 <p>A vignette gradually darkens the frame toward its edges. It guides attention
 without changing the composition, but only while the viewer does not notice
 the mechanism. Prompt for a <code>restrained natural vignette with preserved
-edge detail</code>; avoid it when information at the edge of frame matters.</p>
+edge detail</code>; avoid it when information at the edge of the frame matters.</p>
 
 <h3>Rack focus</h3>
 
@@ -360,9 +387,9 @@ with matched direction. Include the launch direction, landing subject, and
 speed curve: <code>fast left-to-right whip pan, clean acceleration, settle on
 the product in a stable final frame</code>.</p>
 
-<h3>Colour grade</h3>
+<h3>Color grade</h3>
 
-<p>Colour grading shapes contrast and colour after capture. Describe a
+<p>Color grading shapes contrast and color after capture. Describe a
 relationship rather than one global tint: <code>warm amber highlights, slightly
 cool shadows, natural skin tones, neutral whites</code>. That gives the model a
 palette while preserving believable materials.</p>
@@ -457,7 +484,7 @@ nouns do not.</p>
   premium.</li>
   <li><strong>Lighting</strong>: dramatic, soft, natural, studio, golden hour.</li>
   <li><strong>Mood</strong>: cinematic, ethereal, vibrant, moody, energetic.</li>
-  <li><strong>Style</strong>: photorealistic, stylised, artistic, minimalist,
+  <li><strong>Style</strong>: photorealistic, stylized, artistic, minimalist,
   abstract.</li>
   <li><strong>Composition</strong>: rule of thirds, symmetrical, dynamic,
   centered.</li>
@@ -466,14 +493,33 @@ nouns do not.</p>
 <p>Change one element per iteration, compare outputs from more than one model,
 and save every prompt that works. The library is the asset, not any individual
 image.</p>
+
+<h2>Give this to your agent</h2>
+
+<p>Paste this into Claude, Codex, or any agent that works on your content. It carries the guidance above, so the agent follows the same steps and stops at the same review points.</p>
+
+<pre><code>Act as my prompt writer for images, video and audio. I will describe the asset I want. You write the prompt.
+
+Steps:
+1. Ask which kind of asset this is (image, video or audio) and where it will be used.
+2. Fill the skeleton for that kind. For images: subject, treatment, setting, light, framing. For video: add camera movement and what changes over time. For audio: add mood, pacing and instruments.
+3. Return one finished prompt, with every specific already chosen, and list the choices you made on my behalf.
+4. After I run it, suggest one change for the next version.
+
+Rules:
+- Five to seven descriptors that reinforce each other. No contradictions.
+- Do not name real people or copyrighted characters unless I confirm I have the rights.
+- Change one element per iteration, and suggest running a second model to compare.
+- Tell me which prompts are worth saving to my library.</code></pre>
+
 `;
 
 const IMAGE_PROMPT_TEMPLATES = `
 <p>Fill-in-the-blank prompt templates have a failure mode nobody admits to:
 almost nobody fills them in. The brackets survive into the generator, and
 <code>[YOUR_PRODUCT]</code> comes back rendered as literal text on a shopping
-bag. Even when someone does replace them, they replace them badly — the
-template asks for a lighting type and gets "good lighting".</p>
+bag. Even when someone does replace them, they replace them badly: the
+template asks for a lighting type and gets "good lighting."</p>
 
 <p>So these twelve are not templates. They are <strong>briefs you hand to an
 agent</strong>. Each one states the job, hands the creative decisions to
@@ -481,14 +527,18 @@ whatever already knows your brand, and pins the two or three constraints that
 actually break the image if they slip. The agent writes the prompt. You run the
 prompt.</p>
 
+<h2>TL;DR</h2>
+
+<p>Do not fill in brackets. Hand an agent the job, let it use your brand context to write the image prompt, then review the prompt before you run it. Take back anything legally load-bearing, any look you have already validated, and any face you reuse.</p>
+
 <h2>How to run a brief</h2>
 
 <ol>
   <li>Paste the brief into your Genfeed agent, or any agent holding your brand
-  context — palette, product photography, audience, tone.</li>
+  context: palette, product photography, audience, tone.</li>
   <li>The agent returns a finished image prompt with every specific already
   chosen.</li>
-  <li>Read it. Change anything you disagree with — you are reviewing a draft,
+  <li>Read it. Change anything you disagree with. You are reviewing a draft,
   not accepting an oracle.</li>
   <li>Run it in your image model.</li>
 </ol>
@@ -498,8 +548,8 @@ is warm neutrals, that your audience skews B2B, that your last six product shots
 used hard side light. A bracket cannot know any of that, which is why the brief
 outperforms the template even when the template is filled in honestly.</p>
 
-<p>If you want the reasoning underneath — why lighting, style, and composition
-have to be named at all — start with
+<p>If you want the reasoning underneath (why lighting, style, and composition
+have to be named at all), start with
 <a href="/@genfeedai/articles/how-to-prompt-ai-images-videos-and-audio">how to prompt AI
 images, videos, and audio</a>.</p>
 
@@ -528,7 +578,7 @@ product stays unobstructed and recognisable at thumbnail size.
 
 Return the prompt only.</code></pre>
 
-<h2>3. Colourways</h2>
+<h2>3. Colorways</h2>
 
 <pre><code>Write one image-generation prompt rendering our product in a new colourway
 drawn from our brand palette.
@@ -610,8 +660,8 @@ Return the prompt only.</code></pre>
 
 <h2>10. Character consistency</h2>
 
-<p>The one brief that returns two artefacts. The identity block is the asset —
-the scene prompt is disposable.</p>
+<p>The one brief that returns two artifacts. The identity block is the asset.
+The scene prompt is disposable.</p>
 
 <pre><code>Write two things for our recurring character: a reusable identity block,
 and one scene prompt that uses it.
@@ -662,43 +712,66 @@ worth taking back by hand:</p>
 </ul>
 
 <p>Everything else is better delegated. An agent that has read your last fifty
-posts has a sharper sense of your visual language than a bracket does — and,
+posts has a sharper sense of your visual language than a bracket does, and
 unlike a bracket, it never ships to the generator unfilled.</p>
+
+<h2>Give this to your agent</h2>
+
+<p>Paste this into Claude, Codex, or any agent that works on your content. It carries the guidance above, so the agent follows the same steps and stops at the same review points.</p>
+
+<pre><code>You are my image prompt agent. I will give you a brief for one image job (for example a product shot, a colorway, a hero banner or a seasonal variant).
+
+Steps:
+1. Read my brand context (palette, product photos, audience, tone). If any of it is missing, ask me before you continue.
+2. Write one finished image prompt with every specific chosen: lighting, style, composition, setting and palette.
+3. List the choices you made so I can overrule any of them.
+4. Wait for my edits, then give me the final prompt to run.
+
+Rules:
+- Never leave brackets or placeholders in the prompt.
+- Do not invent claims, certifications or pack copy. Leave those for me to type.
+- If I name a shot that already converted, pin its lighting and framing instead of changing them.
+- Reuse the saved identity block for any recurring character. Do not improvise a face.</code></pre>
+
 `;
 
 const INSTAGRAM_GROWTH = `
 <p>AI generation solves the supply problem: you can produce a month of visuals
 in an afternoon. It does not solve the distribution problem. This is the second
-half — what to post, when, and how Instagram decides who sees it.</p>
+half: what to post, when, and how Instagram decides who sees it.</p>
 
 <p>For connecting the account itself, the OAuth requirements and media
 specifications are in the
 <a href="https://docs.genfeed.ai/guides/publishing/social-media/instagram">Instagram
 connector reference</a>.</p>
 
+<h2>TL;DR</h2>
+
+<p>AI makes the supply of visuals cheap, but distribution is the real work. Optimize for reach and saves, not likes: one locked visual style, hooks and payoffs in the caption, two proven posting slots, and eight weeks of consistent data before you judge anything.</p>
+
 <h2>How ranking actually works</h2>
 
-<p>Instagram ranks each post per viewer, against six signals:</p>
+<p>Instagram ranks each post per viewer against six signals:</p>
 
 <ol>
-  <li><strong>Relationship</strong> — the viewer's past interactions with you.</li>
-  <li><strong>Interest</strong> — their predicted likelihood of engaging.</li>
-  <li><strong>Timeliness</strong> — how recent the post is.</li>
-  <li><strong>Frequency</strong> — how often they open the app.</li>
-  <li><strong>Following</strong> — how many accounts compete for their feed.</li>
-  <li><strong>Usage</strong> — how long their sessions run.</li>
+  <li><strong>Relationship</strong>: the viewer's past interactions with you.</li>
+  <li><strong>Interest</strong>: their predicted likelihood of engaging.</li>
+  <li><strong>Timeliness</strong>: how recent the post is.</li>
+  <li><strong>Frequency</strong>: how often they open the app.</li>
+  <li><strong>Following</strong>: how many accounts compete for their feed.</li>
+  <li><strong>Usage</strong>: how long their sessions run.</li>
 </ol>
 
 <p>Four of the six are properties of the viewer, not of you. That is the whole
-strategic point: you cannot out-post the algorithm, you can only make the two
-signals you control — relationship and interest — as strong as possible for a
+strategic point: you cannot out-post the algorithm; you can only make the two
+signals you control (relationship and interest) as strong as possible for a
 specific audience.</p>
 
 <h2>When to post</h2>
 
 <ul>
-  <li><strong>Weekdays</strong>: 11am–1pm and 5pm–7pm.</li>
-  <li><strong>Weekends</strong>: 10am–11am.</li>
+  <li><strong>Weekdays</strong>: 11am-1pm and 5pm-7pm.</li>
+  <li><strong>Weekends</strong>: 10am-11am.</li>
   <li><strong>Time zones</strong>: publish when <em>your</em> audience is
   online, which your account insights will tell you directly.</li>
   <li><strong>Consistency</strong> beats optimality. The same slot every day
@@ -709,7 +782,7 @@ specific audience.</p>
 
 <ul>
   <li>Thirty is the cap. Treating the cap as a target is not a strategy.</li>
-  <li>Mix broad tags with niche ones — the niche tags are where a small account
+  <li>Mix broad tags with niche ones. The niche tags are where a small account
   can actually rank.</li>
   <li>Caption or first comment both work. Pick one and stay consistent.</li>
   <li>Research with Instagram's own search before committing to a set.</li>
@@ -720,9 +793,9 @@ specific audience.</p>
 <h2>Content that earns distribution</h2>
 
 <ol>
-  <li><strong>Visual consistency.</strong> A recognisable palette and treatment
-  makes your posts identifiable mid-scroll. This is where AI generation is
-  strongest — lock a style prompt and reuse it.</li>
+  <li><strong>Visual consistency.</strong> A recognizable palette and treatment
+  make your posts identifiable mid-scroll. This is where AI generation is
+  strongest: lock a style prompt and reuse it.</li>
   <li><strong>Longer captions.</strong> Captions over 1,000 characters routinely
   outperform one-liners, because dwell time is a signal.</li>
   <li><strong>Ask for saves and shares</strong>, not likes. Saves are the
@@ -739,15 +812,15 @@ specific audience.</p>
 <ul>
   <li>Publish when your audience is most active, not when you happen to
   finish.</li>
-  <li>Optimise for meaningful interaction — comments and DMs — over vanity
+  <li>Optimize for meaningful interaction (comments and DMs) over vanity
   metrics.</li>
   <li>Use every format. Posts, Reels, and Stories reach different slices of your
-  audience and Instagram rewards accounts that use all three.</li>
+  audience, and Instagram rewards accounts that use all three.</li>
   <li>Reply fast. The first hour of comment activity disproportionately affects
   reach.</li>
   <li>Collaborate with adjacent accounts rather than competing ones.</li>
   <li>Build episodic series so viewers have a reason to return.</li>
-  <li>Go live regularly — real-time engagement is weighted heavily.</li>
+  <li>Go live regularly. Real-time engagement is weighted heavily.</li>
 </ul>
 
 <h2>A workable weekly loop</h2>
@@ -758,34 +831,59 @@ specific audience.</p>
   call-to-action.</li>
   <li>Schedule into your two best-performing slots.</li>
   <li>Block twenty minutes after each post goes live for replies.</li>
-  <li>At the end of the week, read reach and saves — not likes — and drop the
+  <li>At the end of the week, read reach and saves (not likes) and drop the
   format that underperformed.</li>
 </ol>
 
 <p>Repeat that loop for eight weeks before you conclude anything. Instagram
 growth data is extremely noisy at low volume, and most "the algorithm changed"
 diagnoses are variance.</p>
+
+<h2>Give this to your agent</h2>
+
+<p>Paste this into Claude, Codex, or any agent that works on your content. It carries the guidance above, so the agent follows the same steps and stops at the same review points.</p>
+
+<pre><code>Act as my Instagram content planner. Help me run the weekly loop.
+
+Before you start, ask me for my niche, my audience, my brand style prompt and my two best-performing posting slots.
+
+Each week:
+1. Draft a batch of visuals from one locked style prompt.
+2. Write each caption with an explicit hook, a payoff and a save-oriented call to action.
+3. Propose a schedule using my two best slots.
+4. Remind me to block twenty minutes after each post to reply to comments.
+5. At the end of the week, ask me for reach and saves, and tell me which format to drop.
+
+Rules:
+- Judge by reach and saves, not likes.
+- Do not make claims about how the algorithm changed. Treat low-volume data as noisy and wait eight weeks before concluding anything.
+- Do not post or schedule anything without my approval.</code></pre>
+
 `;
 
 const TIKTOK_GROWTH = `
-<p>TikTok is the platform where a first post can outrun a hundred-thousand
-follower account, because distribution is decided per-video rather than
-per-account. That makes it the highest-leverage surface for AI-generated video —
+<p>TikTok is the platform where a first post can outrun a hundred-thousand-follower
+account, because distribution is decided per-video rather than
+per-account. That makes it the highest-leverage surface for AI-generated video,
 and the least forgiving of a weak first three seconds.</p>
 
 <p>Account connection, video specifications, and troubleshooting live in the
 <a href="https://docs.genfeed.ai/guides/publishing/social-media/tiktok">TikTok
 connector reference</a>.</p>
 
+<h2>TL;DR</h2>
+
+<p>TikTok decides distribution per video, so attempts are the input that matters. Win the first three seconds, niche down until you can describe the account in six words, post daily for sixty days, and A/B test hooks by posting the same video with two openings.</p>
+
 <h2>What the algorithm weighs</h2>
 
 <ol>
-  <li><strong>Completion rate</strong> — the share of viewers who reach the
+  <li><strong>Completion rate</strong>: the share of viewers who reach the
   end.</li>
-  <li><strong>Engagement</strong> — likes, comments, shares.</li>
-  <li><strong>Re-watches</strong> — multiple views from one viewer.</li>
+  <li><strong>Engagement</strong>: likes, comments, shares.</li>
+  <li><strong>Re-watches</strong>: multiple views from one viewer.</li>
   <li><strong>Total time spent</strong> on the video.</li>
-  <li><strong>Creator consistency</strong> — how regularly you publish.</li>
+  <li><strong>Creator consistency</strong>: how regularly you publish.</li>
 </ol>
 
 <p>Completion rate dominates, and it is the reason short videos win: a 15-second
@@ -795,7 +893,7 @@ though the long one accumulated more watch seconds per viewer.</p>
 <h2>Earning the For You page</h2>
 
 <ul>
-  <li>Hook in the first three seconds. Not "hello and welcome" — state the
+  <li>Hook in the first three seconds. Not "hello and welcome": state the
   payoff immediately.</li>
   <li>Use trending sounds and effects while they are still ascending.</li>
   <li>Post at peak hours for your audience.</li>
@@ -808,9 +906,9 @@ though the long one accumulated more watch seconds per viewer.</p>
 <ul>
   <li><strong>Frequency</strong>: one to four posts daily. This is a volume
   platform, which is precisely why generated video changes the economics.</li>
-  <li><strong>Timing</strong>: 6–9am, 12–3pm, and 7–11pm are the standard
+  <li><strong>Timing</strong>: 6-9am, 12-3pm, and 7-11pm are the standard
   windows.</li>
-  <li><strong>Length</strong>: 15–30 seconds performs best for most niches.</li>
+  <li><strong>Length</strong>: 15-30 seconds performs best for most niches.</li>
   <li><strong>Series</strong>: episodic content converts a single viewer into a
   repeat viewer.</li>
   <li><strong>Trends</strong>: joining early is worth far more than joining
@@ -823,19 +921,19 @@ though the long one accumulated more watch seconds per viewer.</p>
   <li>Three to five, not thirty.</li>
   <li>Mix one trending, two niche, one branded.</li>
   <li>Put them in the description, not the comments.</li>
-  <li>Check view counts before committing — a tag with 40 billion views is not
-  a distribution channel, it is a lottery.</li>
+  <li>Check view counts before committing. A tag with 40 billion views is not
+  a distribution channel; it is a lottery.</li>
 </ul>
 
 <h2>Formats that work</h2>
 
 <ol>
-  <li><strong>Educational</strong> — one fact or one technique, delivered
+  <li><strong>Educational</strong>: one fact or one technique, delivered
   fast.</li>
-  <li><strong>Entertainment</strong> — comedy and timing-driven formats.</li>
-  <li><strong>Process</strong> — showing how something is made.</li>
-  <li><strong>Challenges</strong> — join one or start one.</li>
-  <li><strong>Transitions</strong> — the format most improved by generated
+  <li><strong>Entertainment</strong>: comedy and timing-driven formats.</li>
+  <li><strong>Process</strong>: showing how something is made.</li>
+  <li><strong>Challenges</strong>: join one or start one.</li>
+  <li><strong>Transitions</strong>: the format most improved by generated
   assets, since you can produce matching frames on demand.</li>
 </ol>
 
@@ -846,7 +944,7 @@ though the long one accumulated more watch seconds per viewer.</p>
   <li>Clean audio. Bad audio kills completion rate faster than bad video.</li>
   <li>Stable framing.</li>
   <li>Vertical, always. 9:16 or it does not exist.</li>
-  <li>Native effects and captions — the platform surfaces what looks native to
+  <li>Native effects and captions. The platform surfaces what looks native to
   it.</li>
 </ul>
 
@@ -857,7 +955,7 @@ though the long one accumulated more watch seconds per viewer.</p>
   built-in hook.</li>
   <li>Go live once you have the follower threshold for it.</li>
   <li>Make content that invites duets and stitches.</li>
-  <li>Ask a real question in the video, not "let me know in the comments".</li>
+  <li>Ask a real question in the video, not "let me know in the comments."</li>
 </ul>
 
 <h2>Growth plan</h2>
@@ -867,7 +965,7 @@ though the long one accumulated more watch seconds per viewer.</p>
   words.</li>
   <li><strong>Post daily</strong> for sixty days before evaluating.</li>
   <li><strong>Cross-promote</strong> your best performers to Reels and
-  Shorts — the same vertical asset works on all three.</li>
+  Shorts. The same vertical asset works on all three.</li>
   <li><strong>Study your analytics</strong> for your real peak windows rather
   than published averages.</li>
   <li><strong>A/B test hooks</strong> specifically. Same video, two openings,
@@ -877,26 +975,51 @@ though the long one accumulated more watch seconds per viewer.</p>
 <p>The compounding advantage of generated video here is not that any single
 video is better. It is that you can afford sixty attempts instead of six, and on
 a per-video distribution model, attempts are the input that matters.</p>
+
+<h2>Give this to your agent</h2>
+
+<p>Paste this into Claude, Codex, or any agent that works on your content. It carries the guidance above, so the agent follows the same steps and stops at the same review points.</p>
+
+<pre><code>Act as my TikTok content planner for the next sixty days.
+
+Before you start, ask me for my niche (I should be able to describe it in six words), my audience and what footage or assets I already have.
+
+Steps:
+1. Propose ten video ideas, each with a hook for the first three seconds.
+2. For my five best ideas, write two different openings of the same video so I can test hooks a week apart.
+3. Draft the caption and hashtags for each video.
+4. Plan a daily posting rhythm, and suggest cross-posting my best vertical videos to Reels and Shorts.
+5. Every week, ask me for my analytics and find my real peak posting windows.
+
+Rules:
+- Do not copy trends I do not understand.
+- Do not post or schedule anything without my approval.
+- Do not draw conclusions before sixty days of data.</code></pre>
+
 `;
 
 const LINKEDIN_GROWTH = `
 <p>LinkedIn rewards a narrower band of content than any other major platform: it
 wants specific, credible, professionally useful writing, and it punishes anything
-that reads like an advert. That constraint is good news — it means the bar is
+that reads like an advert. That constraint is good news. It means the bar is
 clarity, not production budget.</p>
 
 <p>Connection, account types, media specifications, and analytics are in the
 <a href="https://docs.genfeed.ai/guides/publishing/social-media/linkedin">LinkedIn
 connector reference</a>.</p>
 
+<h2>TL;DR</h2>
+
+<p>LinkedIn rewards specific, credible, professionally useful writing and punishes anything that reads like an advert. Generate the skeleton, then write the specifics yourself, comment on other people's posts daily, and keep a fixed schedule of two considered posts a week.</p>
+
 <h2>What the algorithm weighs</h2>
 
 <ol>
-  <li><strong>Dwell time</strong> — how long people actually read.</li>
-  <li><strong>Early engagement</strong> — the first hour is decisive.</li>
+  <li><strong>Dwell time</strong>: how long people actually read.</li>
+  <li><strong>Early engagement</strong>: the first hour is decisive.</li>
   <li><strong>Comments</strong>, valued well above likes.</li>
   <li><strong>Creator authority</strong> in the topic you are posting about.</li>
-  <li><strong>Originality</strong> — recycled insight travels poorly.</li>
+  <li><strong>Originality</strong>: recycled insight travels poorly.</li>
 </ol>
 
 <p>Dwell time being the top signal explains most of LinkedIn's stylistic
@@ -907,9 +1030,9 @@ makes the "see more" click worth it.</p>
 
 <ul>
   <li><strong>Best days</strong>: Tuesday through Thursday.</li>
-  <li><strong>Morning</strong>: 7:30–9:00am.</li>
-  <li><strong>Midday</strong>: 12:00–1:00pm.</li>
-  <li><strong>Evening</strong>: 5:00–6:00pm.</li>
+  <li><strong>Morning</strong>: 7:30-9:00am.</li>
+  <li><strong>Midday</strong>: 12:00-1:00pm.</li>
+  <li><strong>Evening</strong>: 5:00-6:00pm.</li>
   <li>Weight toward whichever time zone holds most of your network.</li>
 </ul>
 
@@ -919,7 +1042,7 @@ makes the "see more" click worth it.</p>
   <li><strong>Value first.</strong> Share the insight, not the announcement.
   Promotion works only as a footnote to something useful.</li>
   <li><strong>Tell a specific story.</strong> First-person experience with real
-  detail outperforms generalised advice by a wide margin.</li>
+  detail outperforms generalized advice by a wide margin.</li>
   <li><strong>Comment on industry news</strong> while it is still news, with a
   take rather than a summary.</li>
   <li><strong>Ask real questions.</strong> Comments are the highest-weight
@@ -932,7 +1055,7 @@ makes the "see more" click worth it.</p>
 
 <ul>
   <li>Sparing emoji.</li>
-  <li>Correct grammar — the audience notices.</li>
+  <li>Correct grammar: the audience notices.</li>
   <li>Credible sources, linked.</li>
   <li>Authenticity over polish. This is the one place where AI-written copy is
   most obviously AI-written, so edit hard.</li>
@@ -943,8 +1066,8 @@ makes the "see more" click worth it.</p>
 
 <ul>
   <li>Answer every comment in the first hour.</li>
-  <li>Tag people sparingly and only when genuinely relevant — over-tagging is
-  penalised.</li>
+  <li>Tag people sparingly and only when genuinely relevant. Over-tagging is
+  penalized.</li>
   <li>Upload video natively rather than linking out.</li>
   <li>Open with a line that earns the click on "see more".</li>
 </ul>
@@ -979,6 +1102,26 @@ process behind the output.</p>
 <p>Generated drafts are useful here as a starting structure, but LinkedIn is the
 platform where the last 20% of human editing carries most of the value. Generate
 the skeleton; write the specifics yourself.</p>
+
+<h2>Give this to your agent</h2>
+
+<p>Paste this into Claude, Codex, or any agent that works on your content. It carries the guidance above, so the agent follows the same steps and stops at the same review points.</p>
+
+<pre><code>Act as my LinkedIn writing coach. You write skeletons and I write the specifics.
+
+Before you start, ask me for my role, my audience, three things I learned recently, and the tone I want.
+
+Steps:
+1. Propose two post angles a week, each answering a question my audience actually has.
+2. For each angle, write a skeleton: a first line that earns the click, the structure of the story, and a closing question.
+3. Mark every place where I must add a real detail, number or example from my own work.
+4. Each day, suggest two posts from other people that I should comment on, with a thoughtful comment angle for each.
+
+Rules:
+- No hype, no engagement bait, no invented numbers or stories.
+- Keep the tone professional and plain.
+- Do not post or comment on my behalf. I approve and publish everything.</code></pre>
+
 `;
 
 const YOUTUBE_GROWTH = `
@@ -991,10 +1134,14 @@ recommendation engine ever shows the video again.</p>
 the <a href="https://docs.genfeed.ai/guides/publishing/social-media/youtube">YouTube
 connector reference</a>.</p>
 
+<h2>TL;DR</h2>
+
+<p>YouTube is a search engine with a recommendation layer. Titles are queries, thumbnails are the click decision, and the first fifteen seconds decide whether the video is shown again. Research keywords before you script, publish at least twenty videos, and fix whichever of click-through rate or view duration the data points at.</p>
+
 <h2>Titles</h2>
 
 <ul>
-  <li>Put the main keyword in the first 60 characters — that is what survives
+  <li>Put the main keyword in the first 60 characters: that is what survives
   truncation across surfaces.</li>
   <li>Write the title as something a person would actually type or ask.</li>
   <li>Curiosity works; misleading does not. Retention punishes the gap between
@@ -1007,7 +1154,7 @@ connector reference</a>.</p>
   <li>High contrast, and legible at 320px wide.</li>
   <li>A clear face with a readable expression, or a single dramatic focal
   point.</li>
-  <li>Minimal text — three or four words at most.</li>
+  <li>Minimal text: three or four words at most.</li>
   <li>Thumbnail and title should complement each other rather than repeat the
   same information.</li>
 </ul>
@@ -1019,7 +1166,7 @@ instead of committing to your first idea.</p>
 <h2>Descriptions and tags</h2>
 
 <ul>
-  <li>The first 125 characters carry the weight — they appear in search
+  <li>The first 125 characters carry the weight: they appear in search
   results.</li>
   <li>Add timestamped chapters. They improve both retention and search
   surfacing.</li>
@@ -1032,7 +1179,7 @@ instead of committing to your first idea.</p>
 <ul>
   <li><strong>Consistency</strong>: same day and time each week, so subscribers
   form a habit.</li>
-  <li><strong>Timing</strong>: 2–4pm on weekdays is the common sweet spot.</li>
+  <li><strong>Timing</strong>: 2 to 4pm on weekdays is the common sweet spot.</li>
   <li><strong>Frequency</strong>: one to three videos a week suits most
   channels. More than that usually costs you retention.</li>
   <li><strong>Playlists</strong>: group related videos into series so a single
@@ -1058,7 +1205,7 @@ instead of committing to your first idea.</p>
   <li>Ask a question specific enough to answer in one line.</li>
   <li>Post community updates between uploads to stay in the subscription
   feed.</li>
-  <li>Use cards and end screens to route viewers into a second video — session
+  <li>Use cards and end screens to route viewers into a second video. Session
   length is a ranking input.</li>
   <li>Reply to early comments; the first hour matters here too.</li>
 </ul>
@@ -1081,28 +1228,55 @@ recommendation engine will not.</p>
   comment is a real person.</li>
   <li><strong>Collaborate</strong> with channels serving an adjacent
   audience.</li>
-  <li><strong>Read the analytics</strong> — click-through rate tells you about
-  the thumbnail, average view duration tells you about the video. Fix the one
-  the data points at.</li>
+  <li><strong>Read the analytics</strong>: click-through rate tells you about
+  the thumbnail, and average view duration tells you about the video. Fix the
+  one the data points at.</li>
 </ol>
 
-<p>Almost every channel that stalls is optimising the wrong half: making better
+<p>Almost every channel that stalls is optimizing the wrong half: making better
 videos when the click-through rate is 2%, or making better thumbnails when
 viewers leave at 0:20. Let the two numbers tell you which problem you
 have.</p>
+
+<h2>Give this to your agent</h2>
+
+<p>Paste this into Claude, Codex, or any agent that works on your content. It carries the guidance above, so the agent follows the same steps and stops at the same review points.</p>
+
+<pre><code>Act as my YouTube content planner. Help me plan, package and review videos.
+
+Before you start, ask me for my channel topic, my audience and my last ten videos with their click-through rate and average view duration.
+
+For each new video:
+1. Suggest keywords to research before scripting, and three title options that match a real query.
+2. Describe three thumbnail concepts at phone size, with one idea each.
+3. Write a hook for the first fifteen seconds.
+4. Draft the description and tags.
+
+Review step:
+- If click-through rate is low, work on the title and thumbnail. If viewers leave early, work on the hook and pacing. Tell me which problem the data shows.
+
+Rules:
+- Do not invent numbers or claim a result I have not measured.
+- Judge only after at least twenty videos.
+- Do not upload or publish anything without my approval.</code></pre>
+
 `;
 
 const OSS_LAUNCH_PLAYBOOK = `
 <p>Launching an open-source product is not one launch. It is two, staged a week
 or two apart, aimed at audiences that want opposite things: Hacker News wants
-the architecture and the honest caveats, Product Hunt wants the outcome and the
-screenshots. This is the operating playbook — gates, timing, copy structure, and
+the architecture and the honest caveats; Product Hunt wants the outcome and the
+screenshots. This is the operating playbook: gates, timing, copy structure, and
 what to measure.</p>
+
+<h2>TL;DR</h2>
+
+<p>Launching an open-source product means two launches, a week or two apart. Hacker News wants the architecture and the honest caveats, and Product Hunt wants the outcome and the screenshots. Close the readiness gate first, prepare the copy, and measure against a baseline.</p>
 
 <h2>Do not launch until the gate closes</h2>
 
 <p>Pick one end-to-end walkthrough that represents the product actually working
-— install, first meaningful action, visible result — and make passing it the
+(install, first meaningful action, visible result) and make passing it the
 precondition for scheduling anything. A launch that sends traffic to a broken
 quick start converts curiosity into a permanent negative impression, and you
 only get the attention once.</p>
@@ -1112,7 +1286,7 @@ only get the attention once.</p>
 <ol>
   <li>Schedule Show HN for the first Tuesday, Wednesday, or Thursday morning in
   your primary audience's time zone.</li>
-  <li>Schedule Product Hunt 8–14 days later, starting at 12:01am Pacific.</li>
+  <li>Schedule Product Hunt 8 to 14 days later, starting at 12:01am Pacific.</li>
   <li>Freeze copy and gallery assets 48 hours before each submission.</li>
   <li>Keep a human online for the first two hours after each.</li>
 </ol>
@@ -1180,7 +1354,7 @@ quick-start page views, image pulls, and issues opened by new visitors.</p>
 <h3>The submission</h3>
 
 <p>Link the public repository or public docs. Never a staging URL. Keep the
-title plain and descriptive — Hacker News titles that try to sell get flagged,
+title plain and descriptive: Hacker News titles that try to sell get flagged,
 and titles that just say what the thing is do fine.</p>
 
 <pre><code>Show HN: [Product] - [what it is in five words]</code></pre>
@@ -1191,10 +1365,10 @@ and titles that just say what the thing is do fine.</p>
 
 <ol>
   <li><strong>What you built and why</strong>, in two sentences.</li>
-  <li><strong>What is actually in the repo</strong> — concrete capabilities, not
+  <li><strong>What is actually in the repo</strong>: concrete capabilities, not
   adjectives.</li>
   <li><strong>How it runs</strong>: the self-hosting path, the dependencies, and
-  where any commercial boundary sits. Be explicit about the licence split;
+  where any commercial boundary sits. Be explicit about the license split;
   ambiguity here is the fastest route to a hostile thread.</li>
   <li><strong>What feedback you want.</strong> Naming a specific question gets
   you specific answers.</li>
@@ -1203,9 +1377,9 @@ and titles that just say what the thing is do fine.</p>
 <h3>Prepared answers</h3>
 
 <p>Have short, factual replies ready for: can I self-host it, do I need a cloud
-account, what is the licence, how do I contribute, and how does it compare to
-the obvious incumbent. Answer the comparison question honestly — including where
-you lose — because the thread will find out either way and being first is worth
+account, what is the license, how do I contribute, and how does it compare to
+the obvious incumbent. Answer the comparison question honestly, including where
+you lose, because the thread will find out either way and being first is worth
 more than being flattering.</p>
 
 <h2>Product Hunt</h2>
@@ -1281,9 +1455,9 @@ feedback from the specific kind of user you want.</p>
 <h2>Measure against a baseline</h2>
 
 <p>Record stars, forks, signups, activated users, image pulls, and quick-start
-views <em>before</em> the first submission. Without a baseline every post-launch
-number is unreadable. Define activation concretely — a launch-cohort user who
-completes the product's first real action — and treat it as the only number that
+views <em>before</em> the first submission. Without a baseline, every post-launch
+number is unreadable. Define activation concretely (a launch-cohort user who
+completes the product's first real action) and treat it as the only number that
 predicts anything about week four.</p>
 
 <h2>Final pre-submit checklist</h2>
@@ -1300,9 +1474,30 @@ predicts anything about week four.</p>
   <li>Baseline metrics are recorded.</li>
 </ul>
 
-<p>The playbook is deliberately boring. Launches fail on unglamorous things — a
-broken install command, an unanswered licence question, no attribution on the
-one day traffic actually arrives — far more often than on positioning.</p>
+<p>The playbook is deliberately boring. Launches fail on unglamorous things (a
+broken install command, an unanswered license question, no attribution on the
+one day traffic actually arrives) far more often than on positioning.</p>
+
+<h2>Give this to your agent</h2>
+
+<p>Paste this into Claude, Codex, or any agent that works on your content. It carries the guidance above, so the agent follows the same steps and stops at the same review points.</p>
+
+<pre><code>Act as my launch editor for an open-source product launch on Show HN and Product Hunt.
+
+Before you start, ask me for the repo link, the one-sentence description, the end-to-end walkthrough, and the baseline metrics I have recorded.
+
+Steps:
+1. Check the readiness list: a green end-to-end walkthrough, a README and screenshots, architecture docs, CONTRIBUTING and issue templates, and a clean-clone install transcript. Tell me what is missing and stop if the gate is not closed.
+2. Draft the Show HN title and first comment, with the architecture and the honest caveats.
+3. Draft the Product Hunt tagline, maker comment and gallery plan, with the outcome and screenshots.
+4. Draft the launch-day schedule and a launch-week content calendar.
+5. Set up UTM links and a baseline measurement plan.
+
+Rules:
+- Do not exaggerate. Mark every claim I must verify.
+- Do not post or submit anything without my approval.
+- Do not launch before the gate closes.</code></pre>
+
 `;
 
 const ORIGINAL_LAUNCH_BATCH_PUBLISHED_AT = '2026-08-13T01:38:45.528Z';

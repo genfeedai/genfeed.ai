@@ -90,7 +90,7 @@ function RailLink({
  * Bottom of the app rail, Codex-style: Connectors, Settings, Help and the
  * signed-in avatar. Connectors is where everything an organization connects
  * lives (agents, channels, AI providers, API keys, webhooks). The avatar opens
- * the account menu; name and email live in that menu, not beside the avatar.
+ * the account menu.
  */
 export default function RailAccount() {
   const translate = useTranslations('common.appRail');
@@ -135,7 +135,6 @@ export default function RailAccount() {
           <UserDropdown
             imageUrl={user.imageUrl}
             side="right"
-            userEmail={emailAddress}
             userName={resolveDisplayName(
               user.fullName,
               user.firstName,

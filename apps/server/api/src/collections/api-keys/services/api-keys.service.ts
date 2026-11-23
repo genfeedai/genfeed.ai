@@ -3,6 +3,7 @@ import { isTrustedMcpOriginProof } from '@api/action-origin/mcp-origin-proof.uti
 import { CreateApiKeyDto } from '@api/collections/api-keys/dto/create-api-key.dto';
 import { UpdateApiKeyDto } from '@api/collections/api-keys/dto/update-api-key.dto';
 import type { ApiKeyDocument } from '@api/collections/api-keys/schemas/api-key.schema';
+import { assertBrandKitWriteGrant } from '@api/collections/api-keys/utils/brand-kit-write-grant.util';
 import {
   CACHE_PATTERNS,
   CACHE_TAGS,
@@ -46,12 +47,10 @@ import {
 import * as bcrypt from 'bcrypt';
 
 /**
- * Every scope the platform recognizes. Any scope outside this set — including
- * the wildcard "*" — is rejected at key creation/rotation, so a leaked or
- * over-scoped key can never satisfy checks for permissions the platform does
- * not define. The public create endpoint is further restricted to the
- * self-service preset union (see CreateApiKeyDto); this set is the broader
- * server-side floor that also covers managed/system keys minted internally.
+ * Every scope the platform recognizes. Any other scope, including the wildcard
+ * "*", is rejected at key creation and rotation. The public create endpoint is
+ * further restricted to the self-service presets (see CreateApiKeyDto); this
+ * set is the floor that also covers managed keys minted internally.
  */
 const KNOWN_API_KEY_SCOPES: ReadonlySet<string> = new Set(
   Object.values(ApiKeyScope),
@@ -309,7 +308,9 @@ export class ApiKeysService extends BaseService<
   }
 
   /**
-   * Create a new API key with hashing
+   * Create a new API key with hashing. With `transaction` the row is written
+   * inside it; rotateWithKey then leaves cache invalidation to the caller
+   * (invalidateRotationCaches, after commit).
    */
   async createWithKey(
     createApiKeyDto: CreateApiKeyDto & {
@@ -317,10 +318,15 @@ export class ApiKeysService extends BaseService<
       organizationId: string;
     },
     trustedOrigin?: ActionOrigin.CLI | ActionOrigin.MCP | ActionOrigin.UI,
+    transaction?: Prisma.TransactionClient,
   ): Promise<{ apiKey: ApiKeyDocument; plainKey: string }> {
     const { allowedBrandIds, ...keyFields } = createApiKeyDto;
     const scopes = keyFields.scopes ?? [...DEFAULT_API_KEY_SCOPES];
     this.assertValidScopes(scopes);
+    assertBrandKitWriteGrant(
+      { ...keyFields, allowedBrandIds, scopes },
+      trustedOrigin,
+    );
     await this.assertValidDefaultBrandId(
       keyFields.organizationId,
       keyFields.defaultBrandId,
@@ -350,7 +356,15 @@ export class ApiKeysService extends BaseService<
       usageCount: 0,
     };
 
-    const apiKey = await this.create(apiKeyData);
+    const apiKey = transaction
+      ? this.normalizeDocument(
+          await transaction.apiKey.create({
+            data: this.normalizeData(
+              apiKeyData,
+            ) as Prisma.ApiKeyUncheckedCreateInput,
+          }),
+        )
+      : await this.create(apiKeyData);
 
     // Return both the document and the plain key (only shown once)
     return { apiKey: apiKey, plainKey };
@@ -363,17 +377,26 @@ export class ApiKeysService extends BaseService<
       organizationId: string;
     },
     trustedOrigin?: ActionOrigin.CLI | ActionOrigin.MCP | ActionOrigin.UI,
+    transaction?: Prisma.TransactionClient,
   ): Promise<{ apiKey: ApiKeyDocument; plainKey: string }> {
-    const replacement = trustedOrigin
-      ? await this.createWithKey(createApiKeyDto, trustedOrigin)
-      : await this.createWithKey(createApiKeyDto);
+    const replacement = await this.createWithKey(
+      createApiKeyDto,
+      trustedOrigin,
+      transaction,
+    );
+
+    if (transaction) {
+      await transaction.apiKey.updateMany({
+        data: { isRevoked: true, revokedAt: new Date() },
+        where: { id: keyId, organizationId: createApiKeyDto.organizationId },
+      });
+      return replacement;
+    }
 
     try {
       await this.revoke(keyId);
     } catch (error) {
-      // The original key could not be retired — roll back the replacement so we
-      // don't leave two active keys for the same logical credential, then
-      // surface the failure to the caller.
+      // Roll the replacement back so the credential never has two active keys.
       try {
         await this.revoke(replacement.apiKey.id);
       } catch (cleanupError) {
@@ -387,10 +410,8 @@ export class ApiKeysService extends BaseService<
       throw error;
     }
 
-    // Rotation has logically succeeded: the original key is revoked and the new
-    // key has already been issued to the caller. Cache invalidation is
-    // best-effort — a Redis failure here must never revoke the freshly issued
-    // replacement and leave the user with zero valid keys.
+    // Cache invalidation is best-effort: a Redis failure must never revoke the
+    // freshly issued replacement.
     try {
       await this.invalidateRotationCaches(
         createApiKeyDto.organizationId,
@@ -408,7 +429,7 @@ export class ApiKeysService extends BaseService<
     return replacement;
   }
 
-  private async invalidateRotationCaches(
+  async invalidateRotationCaches(
     organizationId: string,
     originalKeyId: string,
     replacementKeyId: string,
@@ -495,6 +516,20 @@ export class ApiKeysService extends BaseService<
       },
     });
 
+    return (matches[0] as ApiKeyDocument | undefined) ?? null;
+  }
+
+  /**
+   * Re-read a key by id for the OAuth refresh flow only, ignoring `expiresAt`.
+   * A refresh token outlives the access key it renews, so the key may already
+   * be expired when it is exchanged. Revoked keys are still excluded, and the
+   * result must never be used to authenticate a request.
+   */
+  async findUnrevokedById(id: string): Promise<ApiKeyDocument | null> {
+    const matches = await this.delegate.findMany({
+      take: 1,
+      where: { id, isRevoked: false },
+    });
     return (matches[0] as ApiKeyDocument | undefined) ?? null;
   }
 
@@ -793,9 +828,7 @@ export class ApiKeysService extends BaseService<
       .digest('base64url');
   }
 
-  /**
-   * Revoke an API key
-   */
+  /** Revoke an API key */
   revoke(keyId: string): Promise<ApiKeyDocument | null> {
     return this.patch(keyId, {
       isRevoked: true,
@@ -803,11 +836,7 @@ export class ApiKeysService extends BaseService<
     } as unknown as Partial<UpdateApiKeyDto>);
   }
 
-  /**
-   * Reject scopes the platform does not define, including the wildcard "*".
-   * Enforced for every key (self-service and managed) before persistence so an
-   * over-scoped or wildcard key can never be created or carried across rotation.
-   */
+  /** Reject scopes the platform does not define, including the wildcard "*". */
   assertValidScopes(scopes: readonly string[]): void {
     const invalid = scopes.filter((scope) => !KNOWN_API_KEY_SCOPES.has(scope));
     if (invalid.length > 0) {

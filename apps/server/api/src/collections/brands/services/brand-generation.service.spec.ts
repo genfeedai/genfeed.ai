@@ -25,6 +25,8 @@ describe('BrandGenerationService', () => {
   let brandScraperService: {
     scrapeWebsite: ReturnType<typeof vi.fn>;
     validateUrl: ReturnType<typeof vi.fn>;
+    readPublicXVoiceSamples: ReturnType<typeof vi.fn>;
+    scrapeSetupSourceWithEvidence: ReturnType<typeof vi.fn>;
   };
   let brandVoiceCorpusService: { buildCorpus: ReturnType<typeof vi.fn> };
   let findBrand: Mock<BrandFinder>;
@@ -59,6 +61,8 @@ describe('BrandGenerationService', () => {
   beforeEach(() => {
     brandScraperService = {
       scrapeWebsite: vi.fn(),
+      readPublicXVoiceSamples: vi.fn(),
+      scrapeSetupSourceWithEvidence: vi.fn(),
       validateUrl: vi.fn().mockReturnValue({ isValid: true }),
     };
     brandVoiceCorpusService = {
@@ -110,11 +114,20 @@ describe('BrandGenerationService', () => {
     expect((error as BrandVoiceGenerationException).code).toBe(
       BrandVoiceFailureCode.BRAND_NOT_FOUND,
     );
-    expect(findBrand).toHaveBeenCalledWith({
-      id: 'brand-1',
-      isDeleted: false,
-      organizationId,
-    });
+    expect(findBrand).toHaveBeenCalledWith(
+      {
+        id: 'brand-1',
+        isDeleted: false,
+        organizationId,
+      },
+      [
+        {
+          path: 'links',
+          where: { isDeleted: false },
+          select: ['url', 'category'],
+        },
+      ],
+    );
   });
 
   it('requires either a URL or a stored brand', async () => {
@@ -289,7 +302,7 @@ describe('BrandGenerationService', () => {
 
       // The only brand access on this path is the org-scoped read.
       expect(findBrand).toHaveBeenCalledTimes(1);
-      expect(findBrand).toHaveBeenCalledWith({
+      expect(findBrand.mock.calls[0]?.[0]).toEqual({
         id: 'brand-1',
         isDeleted: false,
         organizationId,
@@ -327,6 +340,65 @@ describe('BrandGenerationService', () => {
       tone: 'blunt',
       topics: ['shipping'],
     };
+
+    it('uses saved samples without a paid X read, even with an explicit X URL', async () => {
+      brandVoiceCorpusService.buildCorpus.mockResolvedValue(
+        buildVoiceCorpus(toPastedCandidates(['Our existing writing.'])),
+      );
+      stubProviderOutput(JSON.stringify(validProfile));
+      await service.generateBrandVoice(
+        { brandId: 'brand-1', url: 'https://x.com/acme' },
+        organizationId,
+        findBrand,
+      );
+      expect(
+        brandScraperService.scrapeSetupSourceWithEvidence,
+      ).not.toHaveBeenCalled();
+      expect(
+        brandScraperService.readPublicXVoiceSamples,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('uses the approved brand kit example before looking up X', async () => {
+      findBrand.mockResolvedValue({
+        ...storedBrand,
+        agentConfig: { voice: { sampleOutput: 'We make this by hand.' } },
+      } as BrandDocument);
+      stubProviderOutput(JSON.stringify(validProfile));
+      const result = await service.generateBrandVoice(
+        { brandId: 'brand-1', url: 'https://x.com/acme' },
+        organizationId,
+        findBrand,
+      );
+      expect(result.corpus.originCounts['brand-kit']).toBe(1);
+      expect(promptSent()).toContain('We make this by hand.');
+      expect(
+        brandScraperService.readPublicXVoiceSamples,
+      ).not.toHaveBeenCalled();
+      expect(
+        brandScraperService.scrapeSetupSourceWithEvidence,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('uses the saved public X link when voice has no stored writing', async () => {
+      findBrand.mockResolvedValue({
+        ...storedBrand,
+        links: [{ category: 'TWITTER', url: 'https://x.com/acme' }],
+      } as BrandDocument);
+      brandScraperService.readPublicXVoiceSamples.mockResolvedValue([
+        { id: '123', text: 'We ship on Friday.', publishedAt: null },
+      ]);
+      stubProviderOutput(JSON.stringify(validProfile));
+      const result = await service.generateBrandVoice(
+        { brandId: 'brand-1' },
+        organizationId,
+        findBrand,
+      );
+      expect(brandScraperService.readPublicXVoiceSamples).toHaveBeenCalledWith(
+        'acme',
+      );
+      expect(result.corpus.originCounts['public-profile']).toBe(1);
+    });
 
     function ownCandidate(
       id: string,

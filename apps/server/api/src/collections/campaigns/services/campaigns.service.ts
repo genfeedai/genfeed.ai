@@ -238,7 +238,6 @@ export class CampaignsService {
         ...(dto.startDate !== undefined
           ? { startDate: dto.startDate ? new Date(dto.startDate) : null }
           : {}),
-        ...(dto.status !== undefined ? { status: dto.status } : {}),
       },
       where: scopedWhere(organizationId, {
         id,

@@ -24,6 +24,7 @@ import {
   type WorkflowMediaSource,
 } from '@/features/workflows/nodes/input/media-picker';
 import { useWorkflowMediaPicker } from '@/features/workflows/nodes/input/useWorkflowMediaPicker';
+import { useWorkflowMediaPreviewUrl } from '@/features/workflows/nodes/input/useWorkflowMediaPreviewUrl';
 
 const IMAGE_SOURCE_OPTIONS: Array<{
   value: WorkflowMediaSource;
@@ -63,6 +64,8 @@ function CloudImageInputNodeComponent(props: NodeProps): React.JSX.Element {
     [data],
   );
   const [urlValue, setUrlValue] = useState(mediaConfig.url ?? '');
+
+  const previewUrl = useWorkflowMediaPreviewUrl('image', mediaConfig);
 
   const applyConfig = useCallback(
     (nextConfig: ReturnType<typeof getWorkflowMediaConfig>) => {
@@ -193,7 +196,7 @@ function CloudImageInputNodeComponent(props: NodeProps): React.JSX.Element {
           </div>
         )}
 
-        {mediaConfig.resolvedUrl ? (
+        {previewUrl ? (
           <div className="space-y-2">
             <div
               className={
@@ -202,7 +205,7 @@ function CloudImageInputNodeComponent(props: NodeProps): React.JSX.Element {
             >
               <Image
                 unoptimized
-                src={mediaConfig.resolvedUrl}
+                src={previewUrl}
                 alt={mediaConfig.label ?? 'Selected image'}
                 className="h-28 w-full object-contain outline-media"
                 width={800}

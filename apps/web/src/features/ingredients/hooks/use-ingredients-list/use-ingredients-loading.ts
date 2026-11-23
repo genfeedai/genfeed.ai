@@ -496,18 +496,35 @@ export function useIngredientsLoading({
 
   // A failed background refresh keeps the rows on screen and is only
   // reported; a failed first read with nothing to show also tells the user.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: listErrorUpdatedAt marks each new failed read.
+  // Each failed read is reported once, by the time it failed.
+  const reportedErrorAtRef = useRef(0);
+  // use-effect-audit: ignore reports a failed load to the logger or a notification
   useEffect(() => {
-    if (!isListError || isIgnoredLibraryFailure(listError)) {
+    if (
+      !isListError ||
+      isIgnoredLibraryFailure(listError) ||
+      reportedErrorAtRef.current === listErrorUpdatedAt
+    ) {
       return;
     }
     if (hasListData) {
+      reportedErrorAtRef.current = listErrorUpdatedAt;
       reportLibraryOperationFailure(url, listError);
     } else if (hasLoadFailed) {
+      reportedErrorAtRef.current = listErrorUpdatedAt;
       reportLibraryOperationFailure(url, listError);
       notificationsService.error(`Failed to load ${type}`);
     }
-  }, [isListError, listErrorUpdatedAt]);
+  }, [
+    hasListData,
+    hasLoadFailed,
+    isListError,
+    listError,
+    listErrorUpdatedAt,
+    notificationsService,
+    type,
+    url,
+  ]);
 
   const isUsingCache = activeFallback !== null;
   const cachedAt = activeFallback?.cachedAt ?? null;
@@ -688,12 +705,13 @@ export function useIngredientsLoading({
   const isLoadingFolders =
     loadFolders && (shouldLoadData ? isFoldersPending : !isScopeReady);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: foldersErrorUpdatedAt marks each new failed read.
+  // use-effect-audit: ignore reports a failed load to the logger or a notification
   useEffect(() => {
+    void foldersErrorUpdatedAt;
     if (isFoldersError && !isIgnoredLibraryFailure(foldersError)) {
       reportLibraryOperationFailure('GET /folders', foldersError);
     }
-  }, [foldersErrorUpdatedAt, isFoldersError]);
+  }, [foldersError, foldersErrorUpdatedAt, isFoldersError]);
 
   const findAllFolders = useCallback(async () => {
     if (shouldLoadFolders) {

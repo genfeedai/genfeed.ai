@@ -101,7 +101,65 @@ export const MCP_WORKSPACE_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      'List what is waiting for review in the workspace inbox: workflow review gates and queued MCP approvals. Read-only; decisions are made in the app.',
+      'Manage an existing workspace task. Use update to change title, description, priority, status, or assigneeUserId, comment to add a Markdown body, or complete to mark the task done through its normal status transition. Task review decisions remain in the app.',
+    name: 'manage_task',
+    parameters: {
+      additionalProperties: false,
+      properties: {
+        action: { type: 'string', enum: ['update', 'comment', 'complete'] },
+        input: {
+          additionalProperties: false,
+          properties: {
+            taskId: {
+              description: 'Existing task ID',
+              minLength: 1,
+              type: 'string',
+            },
+            title: {
+              description: 'Update only. Task title',
+              minLength: 1,
+              maxLength: 500,
+              type: 'string',
+            },
+            description: {
+              description: 'Update only. Task description',
+              maxLength: 10000,
+              type: 'string',
+            },
+            priority: {
+              description: 'Update only. Task priority',
+              enum: [...TASK_PRIORITIES],
+              type: 'string',
+            },
+            status: {
+              description: 'Update only. Task status',
+              enum: [...TASK_STATUSES],
+              type: 'string',
+            },
+            assigneeUserId: {
+              description:
+                'Update only. Canonical workspace teammate user ID, or null to unassign',
+              type: ['string', 'null'],
+            },
+            body: {
+              description: 'Comment only. Required Markdown comment body',
+              minLength: 1,
+              type: 'string',
+            },
+          },
+          required: ['taskId'],
+          type: 'object',
+        },
+      },
+      required: ['action', 'input'],
+      type: 'object',
+    },
+    requiredRole: 'user',
+  },
+  {
+    creditCost: 0,
+    description:
+      'List what is waiting for review in the workspace inbox: workflow review gates, queued MCP approvals and questions an agent run waits on. Read-only; decisions and answers are made in the app.',
     name: 'get_inbox',
     parameters: {
       additionalProperties: false,

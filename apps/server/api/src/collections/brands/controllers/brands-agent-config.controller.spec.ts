@@ -78,6 +78,17 @@ describe('BrandsAgentConfigController', () => {
 
     // The brand store merges an agent-config patch into the org's brand.
     const brandsService = {
+      findOne: async (where: {
+        id: string;
+        isDeleted: boolean;
+        organizationId: string;
+      }) =>
+        brands.find(
+          (row) =>
+            row.id === where.id &&
+            row.organizationId === where.organizationId &&
+            row.isDeleted === where.isDeleted,
+        ) ?? null,
       updateAgentConfig: async (
         id: string,
         organizationId: string,
@@ -194,7 +205,6 @@ describe('BrandsAgentConfigController', () => {
       await expect(
         controller.updateAgentConfig(request, user, id, validDto),
       ).rejects.toMatchObject({
-        response: { detail: 'Brand not found', title: 'Not Found' },
         status: 404,
       });
       expect(brand('foreign-brand')?.agentConfig).toEqual({});

@@ -6,7 +6,9 @@ import {
   CardPadding,
   LivestreamTranscriptSource,
 } from '@genfeedai/contracts';
+import type { ConnectedAccountStackItem } from '@genfeedai/props/ui/display/connected-account.props';
 import Card from '@ui/card/Card';
+import ConnectedAccount from '@ui/display/connected-account/ConnectedAccount';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import { Input } from '@ui/primitives/input';
@@ -42,10 +44,7 @@ type LivestreamFormState = {
   youtubeLiveChatId: string;
 };
 
-type RestreamCredentialOption = {
-  id: string;
-  label: string;
-};
+type RestreamCredentialOption = ConnectedAccountStackItem;
 
 type Props = {
   form: LivestreamFormState;
@@ -180,7 +179,7 @@ export default function LivestreamBotConfigCard({
                     key={credential.id}
                     value={credential.id}
                   >
-                    {credential.label}
+                    <ConnectedAccount account={credential} size="xs" />
                   </SelectItem>
                 ))}
               </SelectContent>

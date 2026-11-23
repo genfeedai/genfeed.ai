@@ -40,6 +40,10 @@ const BASE_CRUD_CREATE = '__BASE_CRUD_CREATE__';
  * inherit their collection routes from `BaseCRUDController`.
  */
 const API_CONTROLLERS: Record<string, { file: string; prefix: string }> = {
+  brandKitEdits: {
+    file: 'collections/brands/controllers/brand-kit-edits.controller.ts',
+    prefix: 'brands/:id/brand-kit',
+  },
   campaigns: {
     file: 'collections/campaigns/controllers/campaigns.controller.ts',
     prefix: 'campaigns',
@@ -104,6 +108,14 @@ const API_CONTROLLERS: Record<string, { file: string; prefix: string }> = {
     file: 'collections/ingredients/controllers/ingredients-relationships.controller.ts',
     prefix: 'ingredients',
   },
+  ingredientsOperations: {
+    file: 'collections/ingredients/controllers/ingredients-operations.controller.ts',
+    prefix: 'ingredients',
+  },
+  postsRemoval: {
+    file: 'collections/posts/controllers/operations/posts-removal.controller.ts',
+    prefix: 'posts',
+  },
   workflowCrud: {
     file: 'collections/workflows/controllers/workflow-crud.controller.ts',
     prefix: 'workflows',
@@ -136,6 +148,10 @@ const API_CONTROLLERS: Record<string, { file: string; prefix: string }> = {
     file: 'collections/tasks/controllers/tasks.controller.ts',
     prefix: 'tasks',
   },
+  taskComments: {
+    file: 'collections/task-comments/controllers/task-comments.controller.ts',
+    prefix: 'tasks/:taskId/comments',
+  },
   activities: {
     file: 'collections/activities/controllers/activities.controller.ts',
     prefix: 'activities',
@@ -143,6 +159,10 @@ const API_CONTROLLERS: Record<string, { file: string; prefix: string }> = {
   reviewInbox: {
     file: 'collections/review-inbox/controllers/review-inbox.controller.ts',
     prefix: 'review-inbox',
+  },
+  turboRuns: {
+    file: 'services/turbo-run/turbo-run.controller.ts',
+    prefix: 'turbo-runs',
   },
   clipperProjectGeneration: {
     file: 'collections/clipper-projects/clipper-project-generation.controller.ts',
@@ -442,7 +462,7 @@ const ROUTE_CONTRACT: ContractRoute[] = [
     method: 'Patch',
     sub: ':articleId',
     controller: 'articles',
-    tools: ['publish_article'],
+    tools: ['publish_article', 'update_article_draft'],
   },
 
   // ── Analytics → content-performance (video/content analytics) ──
@@ -481,16 +501,24 @@ const ROUTE_CONTRACT: ContractRoute[] = [
     tools: ['get_orgs'],
   },
   {
-    method: 'Post',
-    sub: 'switch-organization',
-    controller: 'authSwitchOrganization',
-    tools: ['switch_org'],
-  },
-  {
     method: 'Get',
     sub: ':ingredientId/metadata',
     controller: 'ingredients',
     tools: ['get_job_status'],
+  },
+
+  // ── Deleting a post (with its media) and a Library asset ──
+  {
+    method: 'Post',
+    sub: ':postId/deletions',
+    controller: 'postsRemoval',
+    tools: ['delete_post'],
+  },
+  {
+    method: 'Delete',
+    sub: ':ingredientId',
+    controller: 'ingredientsOperations',
+    tools: ['delete_asset'],
   },
 
   // ── Workflows (control + status) ──
@@ -656,11 +684,48 @@ const ROUTE_CONTRACT: ContractRoute[] = [
   },
   { method: 'Get', sub: ':id', controller: 'tasks', tools: ['get_task'] },
   { method: 'Post', sub: '', controller: 'tasks', tools: ['create_task'] },
+  { method: 'Patch', sub: ':id', controller: 'tasks', tools: ['manage_task'] },
+  {
+    method: 'Patch',
+    sub: 'visual-identity',
+    controller: 'brandKitEdits',
+    tools: ['manage_brand_kit'],
+  },
+  {
+    method: 'Patch',
+    sub: 'writing-voice',
+    controller: 'brandKitEdits',
+    tools: ['manage_brand_kit'],
+  },
+  {
+    method: 'Patch',
+    sub: 'strategy',
+    controller: 'brandKitEdits',
+    tools: ['manage_brand_kit'],
+  },
+  {
+    method: 'Post',
+    sub: '',
+    controller: 'taskComments',
+    tools: ['manage_task'],
+  },
+  {
+    method: 'Get',
+    sub: '',
+    controller: 'turboRuns',
+    tools: ['get_review_queue'],
+  },
+  {
+    method: 'Get',
+    sub: ':id',
+    controller: 'turboRuns',
+    tools: ['get_review_queue'],
+  },
   {
     method: 'Get',
     sub: '',
     controller: 'reviewInbox',
-    tools: ['get_inbox'],
+    tools: ['get_inbox', 'get_review_queue'],
   },
   {
     method: 'Get',

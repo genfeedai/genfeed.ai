@@ -16,7 +16,8 @@ topics: [routing, settings, multitenancy, app-router]
 - Settings is a shell with nested pages, same pattern as Workspace → Overview.
 - Personal settings home: `/settings/personal`. Bare `/settings` redirects there.
 - Personal nested pages stay unscoped: `/settings/notifications`, `/settings/chat`, `/settings/progress`, `/settings/help`. Do not rewrite these onto `/:orgSlug/~/settings/*`.
-- Organization settings home: `/:orgSlug/~/settings/general`. Bare `/:orgSlug/~/settings` redirects there.
+- Organization settings home: `/:orgSlug/~/settings/general` (identity, language, avatar/voice, generation and publishing defaults; there is no separate Preferences page). Bare `/:orgSlug/~/settings` redirects there.
+- Agent/automation governance (reply style, policy, credit caps, breakout opt-ins, MCP approval) lives on `/settings/agents`.
 - Org subpages append under org settings, e.g. `/:orgSlug/~/settings/api-keys`, `/:orgSlug/~/settings/billing`, `/:orgSlug/~/settings/members`
 - Brand settings: `/:orgSlug/:brandSlug/settings`
 - Brand subpages append under brand settings, e.g. `/:orgSlug/:brandSlug/settings/voice`, `/:orgSlug/:brandSlug/settings/publishing`, `/:orgSlug/:brandSlug/settings/agent-defaults`

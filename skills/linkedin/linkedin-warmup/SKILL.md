@@ -475,7 +475,7 @@ LinkedIn promotional signals that should be introduced one at a time, in order:
 
 If you have access to Genfeed tools, use them throughout the warmup:
 
-### `get_trends` (with category for niche)
+### `get_insights` with `action: trends` (with category for niche)
 
 Use this during Phase 1 (Days 1-3) to identify:
 
@@ -485,9 +485,9 @@ Use this during Phase 1 (Days 1-3) to identify:
 
 Filter results by the `category` parameter matching the user's niche. Pass the category explicitly (e.g., `category: "b2b_saas"`, `category: "hr_tech"`) to get niche-specific trends rather than generic content. Prioritize conversations that are 12-24 hours old — recent enough to still be actively commented on, but past the initial noise burst.
 
-### `create_post` (platform: linkedin)
+### `save_post` (`action: post`) (platform: linkedin)
 
-Use this during Phase 3 (Days 8-10) to draft the warmup story post brief directly into the Genfeed platform. When using `create_post` for LinkedIn warmup content:
+Use this during Phase 3 (Days 8-10) to draft the warmup story post brief directly into the Genfeed platform. When using `save_post` (`action: post`) for LinkedIn warmup content:
 
 - Set `platform` to `linkedin`
 - Mark the post as draft until the user confirms the story structure and hook
@@ -497,7 +497,7 @@ Use this during Phase 3 (Days 8-10) to draft the warmup story post brief directl
 
 ### Publishing through Genfeed (with gating conditions)
 
-Resolve the chosen brand with `get_brands` and its connected channel with `get_brand_publishing_readiness`. Call `check_channel` with `action: capabilities`, then `action: validate` and the proposed target in `input` before creating a release with `create_scheduled_release`. Use `control_scheduled_release` for an approved publish-now request. A pending approval is not a completed publication; hand the user its review link and wait for their decision.
+Resolve the chosen brand with `get_context` (`action: brands`) and its connected channel with `check_channel` (`action: readiness`). Call `check_channel` with `action: capabilities`, then `action: validate` and the proposed target in `input` before creating a release with `schedule_release` (`action: create`). Use `control_release` (`action: control`) for an approved publish-now request. A pending approval is not a completed publication; hand the user its review link and wait for their decision.
 
 Only request scheduling or publishing after the user confirms ALL of the following:
 

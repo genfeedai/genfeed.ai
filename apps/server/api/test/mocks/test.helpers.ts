@@ -27,12 +27,6 @@ export const testErrors = {
 };
 
 /**
- * Test utilities
- */
-export const waitFor = (ms: number) =>
-  new Promise((resolve) => setTimeout(resolve, ms));
-
-/**
  * Clean up helpers
  */
 export const clearAllMocks = () => {

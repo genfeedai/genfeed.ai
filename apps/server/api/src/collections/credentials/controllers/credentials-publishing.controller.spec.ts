@@ -52,9 +52,6 @@ describe('CredentialsPublishingController', () => {
       assessCredentialHealth: async (input: Record<string, unknown>) => ({
         assessed: input,
       }),
-      confirmManualOverride: async (input: Record<string, unknown>) => ({
-        overridden: input,
-      }),
       listBrandHealth: async (organization: string, brand: string) => [
         { credentialId, scope: `${organization}/${brand}` },
       ],
@@ -226,12 +223,8 @@ describe('CredentialsPublishingController', () => {
     });
   });
 
-  it('assesses and overrides with brand and canonical user context', async () => {
+  it('assesses account health with brand context', async () => {
     const assessment = { thresholds: { minPublishedPosts: 1 } };
-    const override = {
-      confirm: true,
-      reason: 'operator reviewed guidance',
-    } as const;
 
     await expect(
       controller.assessAccountHealth(credentialId, assessment, user),
@@ -241,16 +234,6 @@ describe('CredentialsPublishingController', () => {
         credentialId,
         organizationId,
         request: assessment,
-      },
-    });
-    await expect(
-      controller.overrideAccountHealth(credentialId, override, user),
-    ).resolves.toEqual({
-      overridden: {
-        credentialId,
-        organizationId,
-        request: override,
-        userId,
       },
     });
   });

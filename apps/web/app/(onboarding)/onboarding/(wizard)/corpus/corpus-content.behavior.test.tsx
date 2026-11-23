@@ -1,6 +1,10 @@
 // @vitest-environment jsdom
 
 import '@testing-library/jest-dom/vitest';
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import CorpusContent from './corpus-content';
@@ -26,6 +30,7 @@ type StoredVersion = {
 const world = vi.hoisted(() => ({
   analytics: [] as { event: string; properties: unknown }[],
   completedSteps: [] as string[],
+  isLoadFailing: false,
   skippedSteps: [] as string[],
   sources: [] as StoredSource[],
   versions: {} as Record<string, StoredVersion[]>,
@@ -64,6 +69,11 @@ vi.mock('@contexts/onboarding/onboarding-context', () => ({
     saving: false,
     steps: ['brand', 'positioning', 'corpus'],
   }),
+}));
+
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
 }));
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
@@ -111,8 +121,10 @@ vi.mock('@services/content/knowledge-sources.service', () => ({
         ];
         return { source };
       },
-      findForBrand: async ({ brandId }: { brandId: string }) =>
-        world.sources.filter((source) => source.brandId === brandId),
+      findForBrand: async ({ brandId }: { brandId: string }) => {
+        if (world.isLoadFailing) throw new Error('list failed');
+        return world.sources.filter((source) => source.brandId === brandId);
+      },
       findVersions: async (sourceId: string) => world.versions[sourceId] ?? [],
       retry: async (sourceId: string) => {
         const versions = world.versions[sourceId] ?? [];
@@ -158,13 +170,16 @@ describe('CorpusContent behavior', () => {
   beforeEach(() => {
     world.analytics = [];
     world.completedSteps = [];
+    world.isLoadFailing = false;
     world.skippedSteps = [];
     world.sources = [];
     world.versions = {};
   });
 
   it('captures a URL as authoritative brand knowledge with a stable idempotency key', async () => {
-    render(<CorpusContent />);
+    render(<CorpusContent />, {
+      wrapper: queryClientWrapper(createTestQueryClient()),
+    });
 
     fireEvent.change(await screen.findByLabelText('Public URL'), {
       target: { value: 'yoursite.com/talk' },
@@ -200,7 +215,9 @@ describe('CorpusContent behavior', () => {
   it('blocks Continue until a source is ready and allows skipping', async () => {
     seedSource('Keynote', 'QUEUED');
 
-    render(<CorpusContent />);
+    render(<CorpusContent />, {
+      wrapper: queryClientWrapper(createTestQueryClient()),
+    });
 
     await screen.findByText('Keynote');
     expect(screen.getByRole('button', { name: /Continue/ })).toBeDisabled();
@@ -217,7 +234,9 @@ describe('CorpusContent behavior', () => {
   it('continues once a source is ready', async () => {
     seedSource('Newsletter', 'READY');
 
-    render(<CorpusContent />);
+    render(<CorpusContent />, {
+      wrapper: queryClientWrapper(createTestQueryClient()),
+    });
 
     const continueButton = await screen.findByRole('button', {
       name: /Continue/,
@@ -231,7 +250,9 @@ describe('CorpusContent behavior', () => {
   it('retries a failed source without creating a duplicate', async () => {
     seedSource('Call notes', 'FAILED');
 
-    render(<CorpusContent />);
+    render(<CorpusContent />, {
+      wrapper: queryClientWrapper(createTestQueryClient()),
+    });
 
     fireEvent.click(await screen.findByRole('button', { name: 'Retry' }));
 
@@ -241,5 +262,18 @@ describe('CorpusContent behavior', () => {
       expect.objectContaining({ isCurrent: false, processingState: 'FAILED' }),
       expect.objectContaining({ isCurrent: true, processingState: 'QUEUED' }),
     ]);
+  });
+
+  it('says the sources could not be loaded', async () => {
+    world.isLoadFailing = true;
+
+    render(<CorpusContent />, {
+      wrapper: queryClientWrapper(createTestQueryClient()),
+    });
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      "We couldn't load your sources.",
+    );
+    expect(screen.queryByTestId('state-badge')).toBeNull();
   });
 });

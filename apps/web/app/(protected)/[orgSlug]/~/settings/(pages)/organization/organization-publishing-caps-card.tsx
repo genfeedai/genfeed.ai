@@ -1,22 +1,18 @@
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { PUBLISHING_QUOTA_MAX } from '@genfeedai/contracts/constants';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useResetOnChange } from '@hooks/utils/use-reset-on-change/use-reset-on-change';
-import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
-import { OrganizationsService } from '@services/organization/organizations.service';
 import Card from '@ui/card/Card';
-import { Button } from '@ui/primitives/button';
 import Field from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
 import { useTranslations } from 'next-intl';
-import { useCallback, useState } from 'react';
+import { useRef, useState } from 'react';
 import type {
   PublishingCapField,
   PublishingCapKey,
   PublishingCapsFormState,
 } from '@/features/settings/props/organization-publishing-caps-card.props';
 import { useOrganization } from '@/hooks/data/organization/use-organization/use-organization';
+import { useSaveQueue } from '@/hooks/utils/use-save-queue/use-save-queue';
 
 const PUBLISHING_CAP_FIELDS: PublishingCapField[] = [
   { id: 'org-quota-twitter', key: 'quotaTwitter', labelKey: 'twitter' },
@@ -43,138 +39,99 @@ function parseCap(value: string): number | null {
 }
 
 export default function OrganizationPublishingCapsCard() {
+  const { organizationId } = useBrand();
+  return <PublishingCapsForm key={organizationId} />;
+}
+
+function PublishingCapsForm() {
   const translate = useTranslations('common.settings.publishingCaps');
   const notifications = NotificationsService.getInstance();
-  const { organizationId } = useBrand();
-  const { refresh, settings } = useOrganization();
-  const getOrganizationsService = useAuthedService((token: string) =>
-    OrganizationsService.getInstance(token),
-  );
+  const { settings, updateSettings } = useOrganization();
+  const { enqueueSave, isSaving } = useSaveQueue();
+  const [drafts, setDrafts] = useState<Partial<PublishingCapsFormState>>({});
+  const pendingCaps = useRef(new Map<PublishingCapKey, { value: number }>());
 
-  const getCapsFromSettings = (): PublishingCapsFormState => ({
-    quotaInstagram: toFormValue(settings?.quotaInstagram),
-    quotaTiktok: toFormValue(settings?.quotaTiktok),
-    quotaTwitter: toFormValue(settings?.quotaTwitter),
-    quotaYoutube: toFormValue(settings?.quotaYoutube),
-  });
-  const [caps, setCaps] =
-    useState<PublishingCapsFormState>(getCapsFromSettings);
-  const [isSaving, setIsSaving] = useState(false);
-
-  useResetOnChange(
-    [
-      settings?.quotaInstagram,
-      settings?.quotaTiktok,
-      settings?.quotaTwitter,
-      settings?.quotaYoutube,
-    ],
-    () => {
-      setCaps(getCapsFromSettings());
-    },
-  );
-
-  const handleCapChange = useCallback(
-    (key: PublishingCapKey, value: string) => {
-      setCaps((current) => ({ ...current, [key]: value }));
-    },
-    [],
-  );
-
-  const handleSave = useCallback(async () => {
-    if (!organizationId) {
-      notifications.error('Organization context is unavailable');
+  const saveCap = (key: PublishingCapKey, rawValue: string) => {
+    if (drafts[key] === undefined) {
       return;
     }
 
-    const quotaInstagram = parseCap(caps.quotaInstagram);
-    const quotaTiktok = parseCap(caps.quotaTiktok);
-    const quotaTwitter = parseCap(caps.quotaTwitter);
-    const quotaYoutube = parseCap(caps.quotaYoutube);
-
-    if (
-      quotaInstagram === null ||
-      quotaTiktok === null ||
-      quotaTwitter === null ||
-      quotaYoutube === null
-    ) {
+    const value = parseCap(rawValue);
+    if (value === null) {
       notifications.error(translate('invalid', { max: PUBLISHING_QUOTA_MAX }));
       return;
     }
 
-    setIsSaving(true);
-
-    try {
-      const service = await getOrganizationsService();
-      await service.patchSettings(organizationId, {
-        quotaInstagram,
-        quotaTiktok,
-        quotaTwitter,
-        quotaYoutube,
-      });
-      await refresh();
-      notifications.success(translate('saved'));
-    } catch (error) {
-      logger.error('Failed to save organization publishing caps', error);
-      notifications.error(translate('saveFailed'));
-    } finally {
-      setIsSaving(false);
+    const pending = pendingCaps.current.get(key);
+    if (value === pending?.value) {
+      return;
     }
-  }, [
-    caps,
-    getOrganizationsService,
-    notifications,
-    organizationId,
-    refresh,
-    translate,
-  ]);
+
+    if (!pending && value === settings?.[key]) {
+      setDrafts((current) => ({ ...current, [key]: undefined }));
+      return;
+    }
+
+    const save = { value };
+    pendingCaps.current.set(key, save);
+    void enqueueSave(async () => {
+      try {
+        await updateSettings(key, value);
+        if (pendingCaps.current.get(key) === save) {
+          setDrafts((current) =>
+            current[key] === rawValue
+              ? { ...current, [key]: undefined }
+              : current,
+          );
+        }
+        notifications.success(translate('saved'));
+      } catch {
+        notifications.error(translate('saveFailed'));
+      } finally {
+        if (pendingCaps.current.get(key) === save) {
+          pendingCaps.current.delete(key);
+        }
+      }
+    });
+  };
 
   return (
-    <Card label={translate('cardLabel')}>
-      <div className="space-y-4">
-        <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4">
-          {PUBLISHING_CAP_FIELDS.map((field) => (
-            <Field
-              key={field.key}
-              label={translate(`platforms.${field.labelKey}`)}
-              htmlFor={field.id}
-            >
-              <Input
-                id={field.id}
-                type="number"
-                inputMode="numeric"
-                min={0}
-                max={PUBLISHING_QUOTA_MAX}
-                step={1}
-                value={caps[field.key]}
-                isDisabled={isSaving}
-                onChange={(event) =>
-                  handleCapChange(field.key, event.target.value)
-                }
-              />
-            </Field>
-          ))}
-        </div>
-
-        <p className="text-xs text-muted-foreground">{translate('helpText')}</p>
-
-        <div className="flex flex-wrap gap-2">
-          <Button
-            type="button"
-            onClick={() => {
-              handleSave().catch((error) => {
-                logger.error(
-                  'Failed to save organization publishing caps',
-                  error,
-                );
-              });
-            }}
-            isDisabled={isSaving}
-            withWrapper={false}
+    <Card label={translate('cardLabel')} description={translate('helpText')}>
+      <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4">
+        {PUBLISHING_CAP_FIELDS.map((field) => (
+          <Field
+            key={field.key}
+            label={translate(`platforms.${field.labelKey}`)}
+            htmlFor={field.id}
           >
-            {isSaving ? translate('saving') : translate('save')}
-          </Button>
-        </div>
+            <Input
+              id={field.id}
+              type="number"
+              inputMode="numeric"
+              min={0}
+              max={PUBLISHING_QUOTA_MAX}
+              step={1}
+              value={drafts[field.key] ?? toFormValue(settings?.[field.key])}
+              onChange={(event) => {
+                const value = event.currentTarget.value;
+                setDrafts((current) => ({ ...current, [field.key]: value }));
+              }}
+              onBlur={(event) => saveCap(field.key, event.currentTarget.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
+                  event.preventDefault();
+                  event.currentTarget.blur();
+                }
+              }}
+            />
+          </Field>
+        ))}
       </div>
+      {isSaving ? (
+        <p role="status" className="mt-4 text-xs text-muted-foreground">
+          {translate('saving')}
+        </p>
+      ) : null}
     </Card>
   );
 }

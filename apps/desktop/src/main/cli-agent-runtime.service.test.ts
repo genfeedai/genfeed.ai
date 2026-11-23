@@ -45,7 +45,7 @@ class FakeChild extends EventEmitter {
     this.exitCode = code;
     this.stdout.end();
     this.stderr.end();
-    setTimeout(() => this.emit('close', code, null), 5);
+    setImmediate(() => this.emit('close', code, null));
   }
 }
 
@@ -72,7 +72,7 @@ async function waitFor(predicate: () => boolean): Promise<void> {
     if (Date.now() - startedAt > 2_000) {
       throw new Error('Timed out waiting for condition');
     }
-    await new Promise((resolve) => setTimeout(resolve, 5));
+    await new Promise((resolve) => setImmediate(resolve));
   }
 }
 
@@ -160,14 +160,12 @@ describe('DesktopCliAgentRuntimeService', () => {
     expect(spawnCalls[0]?.args.join(' ')).not.toContain(TOKEN);
     expect(spawnCalls[0]?.options.env?.GENFEED_API_KEY).toBeUndefined();
     expect(mcpFileDuringRun).toContain(TOKEN);
-    expect(mcpFileDuringRun).toContain(
-      '"url":"https://mcp.genfeed.ai/mcp?profile=full"',
-    );
+    expect(mcpFileDuringRun).toContain('"url":"https://mcp.genfeed.ai/mcp"');
     const systemPrompt =
       spawnCalls[0]?.args[
         (spawnCalls[0]?.args.indexOf('--append-system-prompt') ?? 0) + 1
       ];
-    expect(systemPrompt).toContain('get_brand_context');
+    expect(systemPrompt).toContain('get_context');
     expect(systemPrompt).toContain('brand-1');
 
     child.emitLines([

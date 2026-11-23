@@ -28,6 +28,7 @@ import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -115,7 +116,7 @@ function isCandidateSelectable(candidate: {
 }
 
 const CHECKBOX_CLASS_NAME =
-  'mt-1 size-4 shrink-0 !border-foreground/50 data-[state=checked]:!border-foreground data-[state=checked]:!bg-foreground data-[state=checked]:!text-background';
+  'mt-1 size-4 shrink-0 !border-foreground/50 data-checked:!border-foreground data-checked:!bg-foreground data-checked:!text-background';
 
 export default function FollowSourceModal({
   brandId,
@@ -416,270 +417,271 @@ export default function FollowSourceModal({
           <DialogDescription>{translate('description')}</DialogDescription>
         </DialogHeader>
 
-        <Form onSubmit={handleSubmitSearch}>
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-            <div className="min-w-0 flex-1">
-              <FormSearchbar
-                value={query}
-                onChange={(event: ChangeEvent<HTMLInputElement>) =>
-                  setQuery(event.target.value)
-                }
-                onClear={() => {
-                  setQuery('');
-                  setCandidates([]);
-                  setHasSearched(false);
-                  setSelectedKeys([]);
-                }}
-                placeholder="Handle or post URL (e.g. x.com/…/status/…)"
-              />
-            </div>
-            {!postReference ? (
-              <Button
-                icon={
-                  isSearching ? (
-                    <Spinner className="size-4" />
-                  ) : (
-                    <Search className="size-4" />
-                  )
-                }
-                isLoading={isSearching}
-                label="Search"
-                type="submit"
-                variant={ButtonVariant.SECONDARY}
-              />
-            ) : null}
-          </div>
-        </Form>
-
-        <div className="min-h-40 space-y-3">
-          {postReference ? (
-            <Card variant={CardVariant.DEFAULT}>
-              <div className="flex flex-wrap items-center gap-2 text-sm text-foreground">
-                {getPlatformIcon(postReference.platform, 'h-4 w-4')}
-                <span className="font-medium">
-                  {translate('postLabel', {
-                    platform:
-                      formatPlatformLabel(postReference.platform) ??
-                      postReference.platform,
-                  })}
-                </span>
-                {postReference.authorHandle ? (
-                  <span className="text-foreground/60">
-                    {translate('byAuthor', {
-                      author: postReference.authorHandle,
-                    })}
-                  </span>
-                ) : null}
+        <DialogBody className="flex flex-col gap-4">
+          <Form onSubmit={handleSubmitSearch}>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <div className="min-w-0 flex-1">
+                <FormSearchbar
+                  value={query}
+                  onChange={(event: ChangeEvent<HTMLInputElement>) =>
+                    setQuery(event.target.value)
+                  }
+                  onClear={() => {
+                    setQuery('');
+                    setCandidates([]);
+                    setHasSearched(false);
+                    setSelectedKeys([]);
+                  }}
+                  placeholder="Handle or post URL (e.g. x.com/…/status/…)"
+                />
               </div>
-              <p className="text-xs leading-5 text-foreground/60">
-                {translate('postChoice')}
-              </p>
-              <div className="flex flex-wrap gap-2">
+              {!postReference ? (
                 <Button
                   icon={
-                    isImporting ? (
+                    isSearching ? (
                       <Spinner className="size-4" />
                     ) : (
-                      <Download className="size-4" />
+                      <Search className="size-4" />
                     )
                   }
-                  isLoading={isImporting}
-                  label="Import post"
-                  onClick={() => {
-                    importPost().catch(() => undefined);
-                  }}
-                  size={ButtonSize.SM}
-                  type="button"
-                  variant={ButtonVariant.DEFAULT}
+                  isLoading={isSearching}
+                  label="Search"
+                  type="submit"
+                  variant={ButtonVariant.SECONDARY}
                 />
-                {postReference.authorHandle ? (
+              ) : null}
+            </div>
+          </Form>
+
+          <div className="min-h-40 space-y-3">
+            {postReference ? (
+              <Card variant={CardVariant.DEFAULT}>
+                <div className="flex flex-wrap items-center gap-2 text-sm text-foreground">
+                  {getPlatformIcon(postReference.platform, 'h-4 w-4')}
+                  <span className="font-medium">
+                    {translate('postLabel', {
+                      platform:
+                        formatPlatformLabel(postReference.platform) ??
+                        postReference.platform,
+                    })}
+                  </span>
+                  {postReference.authorHandle ? (
+                    <span className="text-foreground/60">
+                      {translate('byAuthor', {
+                        author: postReference.authorHandle,
+                      })}
+                    </span>
+                  ) : null}
+                </div>
+                <p className="text-xs leading-5 text-foreground/60">
+                  {translate('postChoice')}
+                </p>
+                <div className="flex flex-wrap gap-2">
                   <Button
-                    icon={<UserPlus className="size-4" />}
-                    isDisabled={isImporting}
-                    label={`Follow @${postReference.authorHandle} instead`}
-                    onClick={followAuthorInstead}
+                    icon={
+                      isImporting ? (
+                        <Spinner className="size-4" />
+                      ) : (
+                        <Download className="size-4" />
+                      )
+                    }
+                    isLoading={isImporting}
+                    label="Import post"
+                    onClick={() => {
+                      importPost().catch(() => undefined);
+                    }}
                     size={ButtonSize.SM}
                     type="button"
-                    variant={ButtonVariant.SECONDARY}
+                    variant={ButtonVariant.DEFAULT}
                   />
-                ) : null}
+                  {postReference.authorHandle ? (
+                    <Button
+                      icon={<UserPlus className="size-4" />}
+                      isDisabled={isImporting}
+                      label={`Follow @${postReference.authorHandle} instead`}
+                      onClick={followAuthorInstead}
+                      size={ButtonSize.SM}
+                      type="button"
+                      variant={ButtonVariant.SECONDARY}
+                    />
+                  ) : null}
+                </div>
+              </Card>
+            ) : null}
+
+            {isSearching ? (
+              <div className="flex items-center justify-center gap-2 py-10 text-sm text-foreground/60">
+                <Spinner className="size-4" />
+                {translate('lookingUp')}
               </div>
-            </Card>
-          ) : null}
+            ) : null}
 
-          {isSearching ? (
-            <div className="flex items-center justify-center gap-2 py-10 text-sm text-foreground/60">
-              <Spinner className="size-4" />
-              {translate('lookingUp')}
-            </div>
-          ) : null}
+            {!isSearching &&
+            !postReference &&
+            hasSearched &&
+            !candidates.length ? (
+              <EmptyState title={translate('noAccounts')} />
+            ) : null}
 
-          {!isSearching &&
-          !postReference &&
-          hasSearched &&
-          !candidates.length ? (
-            <EmptyState title={translate('noAccounts')} />
-          ) : null}
-
-          {!isSearching && !postReference && candidates.length > 0 ? (
-            <>
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <p className="text-xs text-foreground/60">
-                  {selectableCandidates.length
-                    ? `${selectableCandidates.length} account${selectableCandidates.length === 1 ? '' : 's'} available`
-                    : 'No new accounts to follow'}
-                </p>
-                {selectableCandidates.length > 0 ? (
-                  <div className="flex gap-1">
-                    {selectableCandidates.length > 1 ? (
+            {!isSearching && !postReference && candidates.length > 0 ? (
+              <>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-xs text-foreground/60">
+                    {selectableCandidates.length
+                      ? `${selectableCandidates.length} account${selectableCandidates.length === 1 ? '' : 's'} available`
+                      : 'No new accounts to follow'}
+                  </p>
+                  {selectableCandidates.length > 0 ? (
+                    <div className="flex gap-1">
+                      {selectableCandidates.length > 1 ? (
+                        <Button
+                          label="Select all"
+                          onClick={selectAllSelectable}
+                          size={ButtonSize.SM}
+                          type="button"
+                          variant={ButtonVariant.GHOST}
+                        />
+                      ) : null}
                       <Button
-                        label="Select all"
-                        onClick={selectAllSelectable}
+                        label="Clear"
+                        onClick={clearSelection}
                         size={ButtonSize.SM}
                         type="button"
                         variant={ButtonVariant.GHOST}
                       />
-                    ) : null}
-                    <Button
-                      label="Clear"
-                      onClick={clearSelection}
-                      size={ButtonSize.SM}
-                      type="button"
-                      variant={ButtonVariant.GHOST}
-                    />
-                  </div>
-                ) : null}
-              </div>
+                    </div>
+                  ) : null}
+                </div>
 
-              <ul
-                aria-label="Source search results"
-                className="max-h-[42vh] space-y-2 overflow-y-auto pr-0.5"
-              >
-                {candidates.map((candidate) => {
-                  const platformOption = PLATFORM_OPTIONS.find(
-                    (option) => option.value === candidate.platform,
-                  );
-                  const platformLabel = platformOption
-                    ? translate(platformOption.labelKey)
-                    : candidate.platform;
-                  const canSelect = isCandidateSelectable(candidate);
-                  const isChecked = selectedKeySet.has(candidate.key);
-                  const selectLabel = `Select ${platformLabel} @${candidate.handle}`;
-                  const avatarUrl = getSafeExternalUrl(candidate.avatarUrl);
+                <ul aria-label="Source search results" className="space-y-2">
+                  {candidates.map((candidate) => {
+                    const platformOption = PLATFORM_OPTIONS.find(
+                      (option) => option.value === candidate.platform,
+                    );
+                    const platformLabel = platformOption
+                      ? translate(platformOption.labelKey)
+                      : candidate.platform;
+                    const canSelect = isCandidateSelectable(candidate);
+                    const isChecked = selectedKeySet.has(candidate.key);
+                    const selectLabel = `Select ${platformLabel} @${candidate.handle}`;
+                    const avatarUrl = getSafeExternalUrl(candidate.avatarUrl);
 
-                  const rowBody = (
-                    <>
-                      {canSelect ? (
-                        // pointer-events-none: row owns the toggle (avoids double-toggle
-                        // from nested checkbox button + row click). Matches MultiSelect.
-                        <div className="pointer-events-none">
-                          <Checkbox
-                            aria-hidden
-                            className={CHECKBOX_CLASS_NAME}
-                            isChecked={isChecked}
-                            name={`follow-source-${candidate.key}`}
-                            onChange={() => {
-                              // Selection is owned by the row click/keyboard handler.
-                            }}
-                            tabIndex={-1}
-                          />
-                        </div>
-                      ) : (
-                        <div className="mt-1 size-4 shrink-0" />
-                      )}
+                    const rowBody = (
+                      <>
+                        {canSelect ? (
+                          // pointer-events-none: row owns the toggle (avoids double-toggle
+                          // from nested checkbox button + row click). Matches MultiSelect.
+                          <div className="pointer-events-none">
+                            <Checkbox
+                              aria-hidden
+                              className={CHECKBOX_CLASS_NAME}
+                              isChecked={isChecked}
+                              name={`follow-source-${candidate.key}`}
+                              onChange={() => {
+                                // Selection is owned by the row click/keyboard handler.
+                              }}
+                              tabIndex={-1}
+                            />
+                          </div>
+                        ) : (
+                          <div className="mt-1 size-4 shrink-0" />
+                        )}
 
-                      {avatarUrl ? (
-                        <Avatar
-                          alt={candidate.displayName || `@${candidate.handle}`}
-                          name={candidate.displayName || candidate.handle}
-                          size="lg"
-                          src={avatarUrl}
-                        />
-                      ) : null}
-
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="text-sm font-medium text-foreground">
-                            @{candidate.handle}
-                          </span>
-                          <PlatformBadge
-                            platform={candidate.platform}
-                            size={ComponentSize.SM}
-                          />
-                          {candidate.isAlreadyFollowed ? (
-                            <Badge variant="secondary">
-                              {translate('following')}
-                            </Badge>
-                          ) : null}
-                          {!candidate.isValid ? (
-                            <Badge variant="secondary">
-                              {translate('notFound')}
-                            </Badge>
-                          ) : null}
-                        </div>
-                        {candidate.displayName ? (
-                          <p className="mt-0.5 truncate text-xs text-foreground/60">
-                            {candidate.displayName}
-                            {typeof candidate.followersCount === 'number'
-                              ? ` · ${formatCompactNumber(candidate.followersCount)} followers`
-                              : ''}
-                          </p>
-                        ) : null}
-                        {!candidate.isValid && candidate.error ? (
-                          <p className="mt-1 text-xs text-foreground/50">
-                            {candidate.error}
-                          </p>
-                        ) : null}
-                      </div>
-                    </>
-                  );
-
-                  return (
-                    <li key={candidate.key}>
-                      {canSelect ? (
-                        <div
-                          aria-checked={isChecked}
-                          aria-label={selectLabel}
-                          className={`flex w-full items-start gap-3 rounded-card border px-3 py-3 text-left transition-colors ${
-                            isChecked
-                              ? 'cursor-pointer border-foreground/40 bg-foreground/5'
-                              : 'cursor-pointer border-border bg-card hover:bg-hover/40'
-                          }`}
-                          onClick={() => {
-                            toggleCandidate(candidate.key);
-                          }}
-                          onKeyDown={(event) => {
-                            if (event.key === 'Enter' || event.key === ' ') {
-                              event.preventDefault();
-                              toggleCandidate(candidate.key);
+                        {avatarUrl ? (
+                          <Avatar
+                            alt={
+                              candidate.displayName || `@${candidate.handle}`
                             }
-                          }}
-                          role="checkbox"
-                          tabIndex={0}
-                        >
-                          {rowBody}
-                        </div>
-                      ) : (
-                        <Card
-                          variant={CardVariant.BORDERED}
-                          padding={CardPadding.SM}
-                          className="opacity-80"
-                          bodyClassName="flex-row items-start"
-                        >
-                          {rowBody}
-                        </Card>
-                      )}
-                    </li>
-                  );
-                })}
-              </ul>
-            </>
-          ) : null}
+                            name={candidate.displayName || candidate.handle}
+                            size="lg"
+                            src={avatarUrl}
+                          />
+                        ) : null}
 
-          {!isSearching && !postReference && !hasSearched ? (
-            <EmptyState title={translate('emptyHint')} />
-          ) : null}
-        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="text-sm font-medium text-foreground">
+                              @{candidate.handle}
+                            </span>
+                            <PlatformBadge
+                              platform={candidate.platform}
+                              size={ComponentSize.SM}
+                            />
+                            {candidate.isAlreadyFollowed ? (
+                              <Badge variant="secondary">
+                                {translate('following')}
+                              </Badge>
+                            ) : null}
+                            {!candidate.isValid ? (
+                              <Badge variant="secondary">
+                                {translate('notFound')}
+                              </Badge>
+                            ) : null}
+                          </div>
+                          {candidate.displayName ? (
+                            <p className="mt-0.5 truncate text-xs text-foreground/60">
+                              {candidate.displayName}
+                              {typeof candidate.followersCount === 'number'
+                                ? ` · ${formatCompactNumber(candidate.followersCount)} followers`
+                                : ''}
+                            </p>
+                          ) : null}
+                          {!candidate.isValid && candidate.error ? (
+                            <p className="mt-1 text-xs text-foreground/50">
+                              {candidate.error}
+                            </p>
+                          ) : null}
+                        </div>
+                      </>
+                    );
+
+                    return (
+                      <li key={candidate.key}>
+                        {canSelect ? (
+                          <div
+                            aria-checked={isChecked}
+                            aria-label={selectLabel}
+                            className={`flex w-full items-start gap-3 rounded-card border px-3 py-3 text-left transition-colors ${
+                              isChecked
+                                ? 'cursor-pointer border-foreground/40 bg-foreground/5'
+                                : 'cursor-pointer border-border bg-card hover:bg-hover/40'
+                            }`}
+                            onClick={() => {
+                              toggleCandidate(candidate.key);
+                            }}
+                            onKeyDown={(event) => {
+                              if (event.key === 'Enter' || event.key === ' ') {
+                                event.preventDefault();
+                                toggleCandidate(candidate.key);
+                              }
+                            }}
+                            role="checkbox"
+                            tabIndex={0}
+                          >
+                            {rowBody}
+                          </div>
+                        ) : (
+                          <Card
+                            variant={CardVariant.BORDERED}
+                            padding={CardPadding.SM}
+                            className="opacity-80"
+                            bodyClassName="flex-row items-start"
+                          >
+                            {rowBody}
+                          </Card>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+              </>
+            ) : null}
+
+            {!isSearching && !postReference && !hasSearched ? (
+              <EmptyState title={translate('emptyHint')} />
+            ) : null}
+          </div>
+        </DialogBody>
 
         <DialogFooter>
           <Button

@@ -5,7 +5,7 @@ import type { IFilters } from '@genfeedai/contracts/interfaces/utils/filters.int
 import type { FilterMenuFacet } from '@genfeedai/props/ui/forms/filter-menu.props';
 import { useTranslations } from 'next-intl';
 import { useCallback } from 'react';
-import FilterMenu from '@/components/content/filter-menu/FilterMenu';
+import ScopedFilterMenu from '@/components/content/admin-filters/ScopedFilterMenu';
 import type { FiltersBarProps } from '@/props/ui/forms/filters.props';
 
 import {
@@ -126,7 +126,7 @@ export default function FiltersButton({
   return (
     <div className={`flex items-center gap-2 ${className}`}>
       {facets.length > 0 || hasAdminScope ? (
-        <FilterMenu
+        <ScopedFilterMenu
           facets={facets}
           hasAdminScope={hasAdminScope}
           isAttached={isAttached}

@@ -51,9 +51,9 @@ export enum IngredientStatus {
  *   archives failed media.
  *
  * In the API, `transitionIngredientStatus` checks an edge against this table
- * and writes it as a compare-and-set. `PATCH /ingredients` does not compare
- * the current status yet, so it can write any edge; this table is what the
- * product intends.
+ * and writes it as a compare-and-set. `PATCH /ingredients` takes the same path
+ * for a `status` in the body and answers 409 for an edge this table does not
+ * allow or a status that changed since it was read.
  */
 export const INGREDIENT_STATE_MACHINE = defineStateMachine<IngredientStatus>({
   terminal: [

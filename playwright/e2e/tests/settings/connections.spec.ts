@@ -219,7 +219,7 @@ test.describe('Settings Connections & Sub-Pages', () => {
 
       const canvas = settingsPage.canvas;
       await canvas
-        .getByRole('group', { name: 'Scope preset' })
+        .getByRole('radiogroup', { name: 'Scope preset' })
         .getByRole('radio', { name: 'Read' })
         .click();
       await canvas
@@ -476,7 +476,7 @@ test.describe('Settings Connections & Sub-Pages', () => {
     test('shows the brand voice settings', async ({ authenticatedPage }) => {
       const settingsPage = new SettingsPage(authenticatedPage);
 
-      await settingsPage.open(brandPath('/settings/brand-kit/voice'));
+      await settingsPage.open(brandPath('/settings/brand-kit#voice'));
 
       await expect(
         settingsPage.canvas.getByRole('heading', {
@@ -556,18 +556,7 @@ test.describe('Organization Settings', () => {
     await expect(
       settingsPage.canvas.getByText('@test-org', { exact: true }),
     ).toBeVisible();
-    // General is profile and language only; identity defaults moved to
-    // Preferences (#6693).
-    await expect(settingsPage.orgIdentityCard).toHaveCount(0);
-  });
-
-  test('shows organization preferences with the identity defaults', async ({
-    authenticatedPage,
-  }) => {
-    const settingsPage = new SettingsPage(authenticatedPage);
-
-    await settingsPage.goToOrganizationPreferences();
-
+    // Identity defaults share the page with profile and language.
     await expect(settingsPage.orgIdentityCard).toBeVisible();
   });
 

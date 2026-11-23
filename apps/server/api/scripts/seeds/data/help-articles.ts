@@ -525,9 +525,9 @@ to a brand, so each brand can publish to its own accounts.</p>
   <li>Approve access on the platform's own sign-in screen. You return to
   Genfeed when it finishes.</li>
 </ol>
-<p>For Twitter, Instagram, TikTok, YouTube and LinkedIn, Genfeed first asks
-<strong>Import existing posts?</strong> Choose <strong>Import posts</strong> to
-bring in the account's recent post history, or <strong>Skip</strong>.</p>
+<p>After Genfeed verifies a Twitter, Instagram, TikTok, YouTube or LinkedIn
+account, you can choose <strong>Import posts</strong> to bring in its recent
+post history. You can skip it and import later from the account's settings.</p>
 
 <h2>Platforms you can connect</h2>
 <p>The connect dialog offers: Twitter, Instagram, Facebook, LinkedIn, Threads,
@@ -743,14 +743,12 @@ it from <strong>Settings &rarr; API Keys</strong>.</p>
   manages brands, drafts, scheduling and analytics. Image, video and audio
   creation stay in <a href="${articleUrl(SLUGS.studio)}">Studio</a>.</li>
   <li><code>https://mcp.genfeed.ai/mcp</code> is the standard endpoint that
-  Cursor uses. Its default tool set covers account and brand lookups, content,
-  generation and scheduling.</li>
+  Cursor uses. It covers account and brand lookups, content, generation and
+  scheduling.</li>
 </ul>
-<p>You can narrow the standard endpoint to specific tool sets with a
-<code>toolsets</code> query parameter, for example
-<code>https://mcp.genfeed.ai/mcp?toolsets=content,generation,analytics,brand,scheduler</code>.
-The core tools are always included.</p>
-<!-- TODO(help): the MCP docs say the default profile is capped at 26 tools while toolset-profiles.ts sets BARE_MCP_URL_TOOL_CAP = 27. No count is stated here. Reconcile and update api-reference/mcp.mdx. -->
+<p>Every connection lists every tool it is allowed to use, so there is nothing
+to select in the URL. If your client cannot find a capability, ask it to call
+<code>find_tools</code>.</p>
 
 <h2>Review and credits</h2>
 <p>Genfeed holds drafts for review before anything publishes; publishing tools

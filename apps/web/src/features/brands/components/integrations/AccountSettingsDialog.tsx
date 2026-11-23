@@ -7,6 +7,7 @@ import type {
 } from '@props/pages/brand-integrations.props';
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogHeader,
   DialogTitle,
@@ -27,7 +28,6 @@ function AccountSettingsSections({
   brandId,
   connection,
   health,
-  onOverrideRequest,
   onReconnect,
 }: AccountSettingsSectionsProps) {
   const translate = useTranslations('pages.brandSocialMedia');
@@ -75,7 +75,6 @@ function AccountSettingsSections({
           <SocialWarmupProgram
             connection={connection}
             health={health}
-            onOverrideRequest={onOverrideRequest}
             onReconnect={() => onReconnect(connection)}
           />
         ) : null}
@@ -98,7 +97,7 @@ export default function AccountSettingsDialog({
 
   return (
     <Dialog open={Boolean(connection)} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90dvh] max-w-2xl overflow-hidden">
+      <DialogContent className="max-w-2xl">
         <DialogHeader className="shrink-0">
           <DialogTitle>
             {connection
@@ -109,13 +108,15 @@ export default function AccountSettingsDialog({
           </DialogTitle>
         </DialogHeader>
 
-        {connection ? (
-          <AccountSettingsSections
-            key={connection.credentialId}
-            connection={connection}
-            {...sectionProps}
-          />
-        ) : null}
+        <DialogBody className="flex flex-col gap-4">
+          {connection ? (
+            <AccountSettingsSections
+              key={connection.credentialId}
+              connection={connection}
+              {...sectionProps}
+            />
+          ) : null}
+        </DialogBody>
       </DialogContent>
     </Dialog>
   );

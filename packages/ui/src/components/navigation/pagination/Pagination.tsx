@@ -9,8 +9,11 @@ import {
   Pagination as PaginationPrimitive,
 } from '@ui/primitives/pagination';
 
-function createPageHref(page: number): string {
-  return `?page=${page}`;
+function createPageHref(
+  page: number,
+  hrefParams?: Record<string, string>,
+): string {
+  return `?${new URLSearchParams({ ...hrefParams, page: String(page) })}`;
 }
 
 export default function Pagination({
@@ -19,6 +22,7 @@ export default function Pagination({
   onPageChange,
   totalItems,
   totalLabel = 'results',
+  hrefParams,
 }: PaginationProps) {
   if (totalPages <= 1 && totalItems === undefined) {
     return null;
@@ -80,7 +84,10 @@ export default function Pagination({
             <PaginationItem>
               {onPageChange ? (
                 <PaginationPrevious
-                  href={createPageHref(Math.max(clampedPage - 1, 1))}
+                  href={createPageHref(
+                    Math.max(clampedPage - 1, 1),
+                    hrefParams,
+                  )}
                   onClick={(event) => {
                     event.preventDefault();
                     handlePageChange(clampedPage - 1);
@@ -92,7 +99,10 @@ export default function Pagination({
                 />
               ) : (
                 <PaginationPrevious
-                  href={createPageHref(Math.max(clampedPage - 1, 1))}
+                  href={createPageHref(
+                    Math.max(clampedPage - 1, 1),
+                    hrefParams,
+                  )}
                   aria-disabled={clampedPage === 1}
                   className={
                     clampedPage === 1 ? 'pointer-events-none opacity-50' : ''
@@ -114,7 +124,7 @@ export default function Pagination({
                 return (
                   <PaginationItem key={item}>
                     <PaginationLink
-                      href={createPageHref(item)}
+                      href={createPageHref(item, hrefParams)}
                       isActive={item === clampedPage}
                       onClick={(event) => {
                         event.preventDefault();
@@ -132,7 +142,7 @@ export default function Pagination({
                   {/* No handler, so a server component can render this
                       branch: the current page is simply not clickable. */}
                   <PaginationLink
-                    href={createPageHref(item)}
+                    href={createPageHref(item, hrefParams)}
                     isActive={item === clampedPage}
                     className={
                       item === clampedPage ? 'pointer-events-none' : undefined
@@ -147,7 +157,10 @@ export default function Pagination({
             <PaginationItem>
               {onPageChange ? (
                 <PaginationNext
-                  href={createPageHref(Math.min(clampedPage + 1, totalPages))}
+                  href={createPageHref(
+                    Math.min(clampedPage + 1, totalPages),
+                    hrefParams,
+                  )}
                   onClick={(event) => {
                     event.preventDefault();
                     handlePageChange(clampedPage + 1);
@@ -161,7 +174,10 @@ export default function Pagination({
                 />
               ) : (
                 <PaginationNext
-                  href={createPageHref(Math.min(clampedPage + 1, totalPages))}
+                  href={createPageHref(
+                    Math.min(clampedPage + 1, totalPages),
+                    hrefParams,
+                  )}
                   aria-disabled={clampedPage === totalPages}
                   className={
                     clampedPage === totalPages

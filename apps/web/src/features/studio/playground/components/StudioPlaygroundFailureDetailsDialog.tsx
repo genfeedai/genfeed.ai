@@ -7,6 +7,7 @@ import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -52,10 +53,7 @@ export default function StudioPlaygroundFailureDetailsDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent
-        className="max-h-[calc(100dvh-2rem)] max-w-xl overflow-y-auto"
-        data-testid="studio-failure-details"
-      >
+      <DialogContent className="max-w-xl" data-testid="studio-failure-details">
         <DialogHeader className="text-left">
           <DialogTitle>{translate('failure.dialog.title')}</DialogTitle>
           <div className="flex flex-wrap items-center gap-2">
@@ -64,38 +62,40 @@ export default function StudioPlaygroundFailureDetailsDialog({
           </div>
         </DialogHeader>
 
-        <div className="flex flex-col gap-1.5">
-          <h3 className="text-2xs font-medium uppercase tracking-label text-muted-foreground">
-            {translate('failure.dialog.reason')}
-          </h3>
-          <p className="text-sm text-foreground">
-            {translate(`failure.reasons.${reason}`)}
-          </p>
-        </div>
-
-        <div className="flex flex-col gap-1.5">
-          <h3 className="text-2xs font-medium uppercase tracking-label text-muted-foreground">
-            {translate('failure.dialog.prompt')}
-          </h3>
-          <p className="break-words text-sm leading-relaxed text-foreground">
-            {prompt}
-          </p>
-        </div>
-
-        {detail ? (
+        <DialogBody className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
             <h3 className="text-2xs font-medium uppercase tracking-label text-muted-foreground">
-              {translate('failure.detailsLabel')}
+              {translate('failure.dialog.reason')}
             </h3>
-            <Pre
-              aria-label={translate('failure.detailsLabel')}
-              className="max-h-72 w-full select-text overflow-auto text-left [overflow-wrap:anywhere]"
-              size="sm"
-            >
-              {detail}
-            </Pre>
+            <p className="text-sm text-foreground">
+              {translate(`failure.reasons.${reason}`)}
+            </p>
           </div>
-        ) : null}
+
+          <div className="flex flex-col gap-1.5">
+            <h3 className="text-2xs font-medium uppercase tracking-label text-muted-foreground">
+              {translate('failure.dialog.prompt')}
+            </h3>
+            <p className="break-words text-sm leading-relaxed text-foreground">
+              {prompt}
+            </p>
+          </div>
+
+          {detail ? (
+            <div className="flex flex-col gap-1.5">
+              <h3 className="text-2xs font-medium uppercase tracking-label text-muted-foreground">
+                {translate('failure.detailsLabel')}
+              </h3>
+              <Pre
+                aria-label={translate('failure.detailsLabel')}
+                className="max-h-72 w-full select-text overflow-auto text-left [overflow-wrap:anywhere]"
+                size="sm"
+              >
+                {detail}
+              </Pre>
+            </div>
+          ) : null}
+        </DialogBody>
 
         <DialogFooter>
           {detail ? (

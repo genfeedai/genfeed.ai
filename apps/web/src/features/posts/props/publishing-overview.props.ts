@@ -3,11 +3,13 @@ import type {
   IReleaseGroup,
 } from '@genfeedai/contracts/interfaces';
 import type { BrandDetailSocialConnection } from '@genfeedai/props/pages/brand-detail.props';
+import type { ConnectedAccountData } from '@genfeedai/props/ui/display/connected-account.props';
 import type { ReactNode } from 'react';
 import type { AsyncState } from '@/props/shared/async-state.types';
 
 /** One SCHEDULED channel target due within the next 24 hours. */
 interface PublishingOverviewQueueItem {
+  account: ConnectedAccountData;
   accountLabel: string;
   href: string;
   platform: string;
@@ -47,7 +49,6 @@ interface PublishingOverviewCadenceGap {
   credentialId: string;
   gapDays: number | null;
   hasUpcoming: boolean;
-  holdPublishing: boolean;
   lastPublishedAt: string | null;
   needsReconnect: boolean;
   platform: AccountHealthSummary['platform'];
@@ -64,8 +65,6 @@ export interface PublishingOverviewHealthRow {
   accountLabel: string;
   connectedDays: number;
   credentialId: string;
-  holdPublishing: boolean;
-  holdReason?: string;
   needsReconnect: boolean;
   platform: AccountHealthSummary['platform'];
   publishedPosts: number;

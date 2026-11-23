@@ -1,3 +1,4 @@
+import { traced } from '@libs/tracing/traced';
 import type { Job } from 'bullmq';
 
 /**
@@ -17,7 +18,12 @@ const ACTIVE_JOB_STATES = new Set<string>([
   'waiting',
   'delayed',
   'prioritized',
+  'waiting-children',
 ]);
+
+type JobLookupQueue = {
+  getJob(jobId: string): Promise<Pick<Job, 'getState' | 'remove'> | undefined>;
+};
 
 export type IdempotentJobReservation =
   | { alreadyQueued: true; state: string }
@@ -30,18 +36,18 @@ export type IdempotentJobReservation =
  * (active/waiting/delayed) the reservation is refused so the caller can skip the
  * enqueue; if it exists in any terminal/stale state it is removed so the caller
  * can re-add under the same id. Returns whether the caller should proceed to
- * enqueue.
+ * enqueue. The lookup, the state read and the removal are separate Redis
+ * calls, so a concurrent enqueue can reclaim the id in between; the removal
+ * failing on a job that is live again counts as "already queued", and the
+ * caller's `queue.add` under one job id is itself atomic (a second add of a
+ * live id is a no-op).
  *
  * Extracted from the byte-identical precheck that was copied across every
  * deterministic-id queue service. Callers keep their own `queue.add(...)`
  * options, log messages, and return values — this owns only the precheck.
  */
 export async function reserveIdempotentJob(
-  queue: {
-    getJob(
-      jobId: string,
-    ): Promise<Pick<Job, 'getState' | 'remove'> | undefined>;
-  },
+  queue: JobLookupQueue,
   jobId: string,
 ): Promise<IdempotentJobReservation> {
   const existingJob = await queue.getJob(jobId);
@@ -54,6 +60,34 @@ export async function reserveIdempotentJob(
     return { alreadyQueued: true, state };
   }
 
-  await existingJob.remove();
+  try {
+    await existingJob.remove();
+  } catch (error: unknown) {
+    // Between reading the state and removing, a concurrent enqueue may have
+    // reclaimed the id and a worker locked the new job; BullMQ refuses to
+    // remove a locked job. That job is the live one now, not an error.
+    const current = await queue.getJob(jobId);
+    const currentState = current ? await current.getState() : undefined;
+    if (currentState && ACTIVE_JOB_STATES.has(currentState)) {
+      return { alreadyQueued: true, state: currentState };
+    }
+    throw error;
+  }
   return { alreadyQueued: false };
 }
+
+/**
+ * True only when a job with this id exists and is still in flight. BullMQ's
+ * `getJob` resolves to `undefined` for a missing id, and a completed or failed
+ * job retained under the id does not count as a running job.
+ */
+export const hasLiveJob = traced(
+  'hasLiveJob',
+  async (queue: JobLookupQueue, jobId: string): Promise<boolean> => {
+    const job = await queue.getJob(jobId);
+    if (!job) {
+      return false;
+    }
+    return ACTIVE_JOB_STATES.has(await job.getState());
+  },
+);

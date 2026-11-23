@@ -23,12 +23,12 @@ describe('value-swap iconography contract', () => {
     expect(source).not.toContain('ChevronDown');
   });
 
-  it('uses the value-swap glyph on Select while keeping directional scroll glyphs', () => {
+  it('uses the value-swap glyph on Select', () => {
     const source = readUiSource('primitives/select.tsx');
 
     expect(source).toContain('<ChevronsUpDown');
-    expect(source).toContain('<ChevronUp');
-    expect(source).toContain('<ChevronDown');
+    expect(source).not.toContain('<ChevronUp');
+    expect(source).not.toContain('<ChevronDown');
   });
 
   it('uses one stable value-swap glyph on the model picker', () => {

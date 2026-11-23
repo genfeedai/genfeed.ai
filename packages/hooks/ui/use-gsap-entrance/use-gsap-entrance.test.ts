@@ -158,7 +158,7 @@ describe('useGsapEntrance batch reveals', () => {
     );
     unmount();
 
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    await new Promise((resolve) => setImmediate(resolve));
     expect(gsapMock.context).not.toHaveBeenCalled();
     expect(gsapMock.set).not.toHaveBeenCalled();
   });
@@ -211,7 +211,7 @@ describe('useGsapEntrance batch reveals', () => {
       }),
     );
 
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    await new Promise((resolve) => setImmediate(resolve));
     expect(gsapMock.context).not.toHaveBeenCalled();
     expect(gsapMock.set).not.toHaveBeenCalled();
   });
@@ -252,7 +252,7 @@ describe('useGsapTimeline', () => {
     const { unmount } = render(createElement(TimelineHost));
     unmount();
 
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    await new Promise((resolve) => setImmediate(resolve));
     expect(gsapMock.context).not.toHaveBeenCalled();
     expect(timelineFromTo).not.toHaveBeenCalled();
   });

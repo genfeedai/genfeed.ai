@@ -467,6 +467,11 @@ export class WebhooksService {
       return;
     }
 
+    const generationError =
+      !errorMessage?.trim() ||
+      errorMessage === INGREDIENT_PROCESSING_TIMEOUT_ERROR
+        ? 'Generation failed'
+        : errorMessage;
     if (ingredient.status !== IngredientStatus.PROCESSING) {
       if (ingredient.status === IngredientStatus.FAILED) {
         await this.generationSettlement.releaseOutput(
@@ -487,18 +492,14 @@ export class WebhooksService {
               status: IngredientStatus.FAILED,
             },
             {
-              generationError:
-                !errorMessage ||
-                errorMessage === INGREDIENT_PROCESSING_TIMEOUT_ERROR
-                  ? 'Generation failed'
-                  : errorMessage,
+              generationError,
             },
           );
       }
       return;
     }
     const claimed = await transitionIngredientStatus(this.ingredientsService, {
-      data: { isGenerationFailureConfirmed: true },
+      data: { generationError, isGenerationFailureConfirmed: true },
       from: IngredientStatus.PROCESSING,
       id: ingredient.id.toString(),
       organizationId: ingredient.organizationId,
@@ -521,7 +522,7 @@ export class WebhooksService {
       const metadataId = ingredient.metadataId;
       if (metadataId) {
         await this.metadataService.patch(metadataId, {
-          error: errorMessage,
+          error: generationError,
         });
       }
     }
@@ -533,7 +534,7 @@ export class WebhooksService {
 
     this.postProcessingOrchestrator.notifyBotGatewayFailureIfNeeded(
       ingredient.id.toString(),
-      errorMessage || 'Generation failed',
+      generationError,
     );
 
     const { dbUserId, userId, userRoom } = extractUserIds(ingredient.userId);
@@ -544,7 +545,7 @@ export class WebhooksService {
         brandId: ingredient.brandId ?? undefined,
         category: ingredient.category as IngredientCategory | string,
         dbUserId,
-        errorMessage,
+        errorMessage: generationError,
         ingredientId: ingredient.id.toString(),
         organizationId: ingredient.organizationId ?? undefined,
         userId,
@@ -558,14 +559,14 @@ export class WebhooksService {
     if (userId) {
       await this.websocketService.publishMediaFailed(
         websocketUrl,
-        errorMessage || 'Generation failed',
+        generationError,
         userId,
         userRoom,
       );
     }
 
     this.loggerService.log(`${logContext} marked as failed`, {
-      error: errorMessage,
+      error: generationError,
       ingredientId: ingredient.id,
     });
 

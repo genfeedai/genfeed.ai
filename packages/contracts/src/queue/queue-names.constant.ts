@@ -82,6 +82,15 @@ export const BRAND_VISION_QUEUE = 'brand-vision';
  * request path, with per-item credit settlement and progress. */
 export const TURBO_REWRITE_QUEUE = 'turbo-rewrite';
 
+/**
+ * Terminal events of files-service video jobs (#10881). The files service
+ * enqueues one when a job completes or fails for good, and a worker settles
+ * the ingredient. Redis pub/sub kept no message, so an event published while no
+ * API task was subscribed (every deploy rolls tasks) left the ingredient
+ * waiting for the stuck-job cron; a queued event waits until a consumer takes it.
+ */
+export const VIDEO_COMPLETION_QUEUE = 'video-completion';
+
 export const ALL_QUEUE_NAMES = [
   CONTEXT_EMBEDDING_QUEUE,
   ACCOUNT_GENERATION_QUEUE,
@@ -101,6 +110,7 @@ export const ALL_QUEUE_NAMES = [
   MEDIA_MODERATION_QUEUE,
   BRAND_VISION_QUEUE,
   TURBO_REWRITE_QUEUE,
+  VIDEO_COMPLETION_QUEUE,
 ] as const;
 
 export type QueueName = (typeof ALL_QUEUE_NAMES)[number];

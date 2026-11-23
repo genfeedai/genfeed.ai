@@ -36,6 +36,7 @@ describe('context embedding worker', () => {
       let next = 0;
       let searchable = false;
       const delay = (ms: number) =>
+        // biome-ignore lint/style/noRestrictedGlobals: the test runs a fake-timer timeline of provider and database latencies
         new Promise<void>((resolve) => setTimeout(resolve, ms));
       const service = {
         process: vi.fn(async () => {

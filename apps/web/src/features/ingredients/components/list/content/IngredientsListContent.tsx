@@ -919,6 +919,7 @@ export default function IngredientsListContent({
 
   // Refresh the inspected record after edits without coupling the rail to
   // checkbox selection. Closing the rail leaves the bulk selection intact.
+  // use-effect-audit: ignore mirrors edits into the shared selection store
   useEffect(() => {
     if (!publishedIngredient) {
       return;
@@ -934,6 +935,7 @@ export default function IngredientsListContent({
   // The sidebar preview asks for the lightbox by bumping a counter; a request
   // that predates this grid's mount is not ours to honor.
   const handledLightboxRequestRef = useRef(lightboxRequestCount);
+  // use-effect-audit: ignore opens the lightbox on the sidebar's request counter
   useEffect(() => {
     if (lightboxRequestCount === handledLightboxRequestRef.current) {
       return;

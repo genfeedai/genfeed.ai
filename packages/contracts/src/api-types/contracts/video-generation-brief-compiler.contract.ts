@@ -237,6 +237,7 @@ export const SEEDANCE_VIDEO_COMPILER_ID = 'seedance-video-compiler';
 export const HAILUO_VIDEO_COMPILER_ID = 'hailuo-video-compiler';
 export const VIDU_VIDEO_COMPILER_ID = 'vidu-video-compiler';
 export const PIXVERSE_VIDEO_COMPILER_ID = 'pixverse-video-compiler';
+export const PRUNAAI_P_VIDEO_2_COMPILER_ID = 'prunaai-p-video-2-compiler';
 export const GROK_IMAGINE_VIDEO_COMPILER_ID = 'grok-imagine-video-compiler';
 export const RUNWAY_VIDEO_COMPILER_ID = 'runway-video-compiler';
 export const LUMA_VIDEO_COMPILER_ID = 'luma-video-compiler';

@@ -1,4 +1,5 @@
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
+import type { ConnectedAccountData } from '@genfeedai/props/ui/display/connected-account.props';
 import type { ReactNode } from 'react';
 import type { PublishingContentLibraryItem } from '@/features/posts/library/publishing-content-library.helpers';
 
@@ -30,11 +31,8 @@ export type PublishingContentFormat =
   | 'newsletter';
 
 /** One target account of a row, rendered as an avatar with a platform badge. */
-export interface PublishingContentAccount {
-  avatarUrl?: string | null;
+export interface PublishingContentAccount extends ConnectedAccountData {
   id: string;
-  label: string;
-  platform: string;
 }
 
 export interface PublishingContentChannelsProps {

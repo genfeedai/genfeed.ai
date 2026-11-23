@@ -47,6 +47,7 @@ const SYNC_ITEM = closedObjectSchema(
     creativeVersion: STRING_SCHEMA,
     externalPostId: STRING_SCHEMA,
     generationId: STRING_SCHEMA,
+    hookUsed: STRING_SCHEMA,
     hookVersion: STRING_SCHEMA,
     likes: NUMBER_SCHEMA,
     measuredAt: STRING_SCHEMA,
@@ -54,6 +55,7 @@ const SYNC_ITEM = closedObjectSchema(
     personaId: STRING_SCHEMA,
     platform: STRING_SCHEMA,
     postId: STRING_SCHEMA,
+    promptUsed: STRING_SCHEMA,
     publishIntent: STRING_SCHEMA,
     saves: NUMBER_SCHEMA,
     scheduleSlot: STRING_SCHEMA,
@@ -66,7 +68,6 @@ const SYNC_ITEM = closedObjectSchema(
   },
   [
     'brandId',
-    'clicks',
     'comments',
     'contentType',
     'likes',

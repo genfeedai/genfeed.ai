@@ -10,6 +10,7 @@ import {
 import {
   AGENT_CHAT_MODEL_KEYS,
   DEFAULT_AGENT_CHAT_MODEL_KEY,
+  LLM_DEFAULTS,
   RETIRED_AGENT_CHAT_MODEL_KEYS,
   SELECTABLE_AGENT_CHAT_MODELS,
 } from './agent-chat-models.constant';
@@ -95,6 +96,26 @@ describe('UNIFIED_MODEL_CATALOG', () => {
     });
     // The composer shows this figure for AI Rewrite, so it must be the row's cost.
     expect(row?.cost).toBe(POST_ENHANCEMENT_CREDITS);
+    expect(row?.capabilities ?? []).not.toContain(AGENT_CHAT_CAPABILITY);
+    expect(agentRows.some((entry) => entry.key === row?.key)).toBe(false);
+  });
+
+  it('prices the content writing model without offering it as agent chat', () => {
+    const row = UNIFIED_MODEL_CATALOG.find(
+      (entry) => entry.key === LLM_DEFAULTS.contentWriting,
+    );
+
+    expect(LLM_DEFAULTS.contentWriting).toBe('google/gemini-4-neon');
+    expect(row).toMatchObject({
+      category: ModelCategory.TEXT,
+      inputCostPerMillionTokens: 3,
+      isActive: true,
+      isDefault: false,
+      isPublic: false,
+      lifecycle: ModelLifecycle.AVAILABLE,
+      outputCostPerMillionTokens: 15,
+      provider: ModelProvider.OPENROUTER,
+    });
     expect(row?.capabilities ?? []).not.toContain(AGENT_CHAT_CAPABILITY);
     expect(agentRows.some((entry) => entry.key === row?.key)).toBe(false);
   });
@@ -295,7 +316,6 @@ describe('UNIFIED_MODEL_CATALOG', () => {
 
     expect(recommendedUltra.map((entry) => entry.key).sort()).toEqual(
       [
-        AGENT_CHAT_MODEL_KEYS.GPT_5_6_SOL,
         MODEL_KEYS.ELEVENLABS_V4,
         MODEL_KEYS.FAL_GPT_IMAGE_2_6_SUNBURST,
         MODEL_KEYS.FAL_LYRIA3_PRO,
@@ -303,7 +323,6 @@ describe('UNIFIED_MODEL_CATALOG', () => {
         MODEL_KEYS.HEYGEN_AVATAR_V,
         MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5,
         MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_4_5,
-        MODEL_KEYS.REPLICATE_OPENAI_GPT_IMAGE_2_5_SUNBURST,
       ].sort(),
     );
   });
@@ -341,16 +360,16 @@ describe('UNIFIED_MODEL_CATALOG', () => {
     expect(elevenMusic?.lifecycle).not.toBe(ModelLifecycle.RECOMMENDED);
   });
 
-  it('seeds Nano Banana 2 Lite as the cloud image default', () => {
+  it('seeds Nano Banana 2.1 as the cloud image default', () => {
     const imageDefaults = UNIFIED_MODEL_CATALOG.filter(
       (entry) => entry.category === ModelCategory.IMAGE && entry.isDefault,
     );
 
     expect(imageDefaults).toHaveLength(1);
-    expect(imageDefaults[0]?.key).toBe('google/nano-banana-2-lite');
+    expect(imageDefaults[0]?.key).toBe('google/nano-banana-2.1');
     expect(imageDefaults[0]?.isActive).toBe(true);
     expect(imageDefaults[0]?.provider).toBe(ModelProvider.REPLICATE);
-    expect(imageDefaults[0]?.providerCostUsd).toBe(0.034);
+    expect(imageDefaults[0]?.providerCostUsd).toBe(0.0336);
   });
 
   it('seeds MiniMax H3 as the cloud video default with provider USD for live margin', () => {
@@ -403,7 +422,7 @@ describe('UNIFIED_MODEL_CATALOG', () => {
     expect(flux3Edit).toMatchObject({
       category: ModelCategory.IMAGE_EDIT,
       isActive: true,
-      isDefault: false,
+      isDefault: true,
       isPublic: true,
       label: 'FLUX.3 Edit',
       providerCostUsd: 0.024,
@@ -411,13 +430,13 @@ describe('UNIFIED_MODEL_CATALOG', () => {
     expect(ideogram).toMatchObject({
       category: ModelCategory.IMAGE_EDIT,
       isActive: true,
-      isDefault: true,
+      isDefault: false,
       isPublic: true,
       label: 'Ideogram 4.5',
       providerCostUsd: 0.06,
     });
     expect(imageEditDefaults.map((entry) => entry.key)).toEqual([
-      MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_4_5,
+      MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE_EDIT,
     ]);
     expect(klein).toMatchObject({
       category: ModelCategory.IMAGE,

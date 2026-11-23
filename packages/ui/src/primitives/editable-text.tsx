@@ -71,6 +71,7 @@ function EditableText({
 
   // Every value is handled once, including the one present on mount.
   const handledEditRequestRef = useRef(0);
+  // use-effect-audit: ignore opens the editor when the parent requests an edit
   useEffect(() => {
     if (editRequest === 0 || editRequest === handledEditRequestRef.current) {
       return;

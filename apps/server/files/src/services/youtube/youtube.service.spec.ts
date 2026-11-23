@@ -106,7 +106,7 @@ describe('YoutubeService', () => {
     (fs.createWriteStream as Mock).mockReturnValue({
       on: vi.fn().mockImplementation((event, callback) => {
         if (event === 'finish') {
-          setTimeout(callback, 0);
+          setImmediate(callback);
         }
         return this;
       }),
@@ -176,7 +176,7 @@ describe('YoutubeService', () => {
       mockWriter.on.mockImplementation(
         (event: string, callback: () => void) => {
           if (event === 'finish') {
-            setTimeout(callback, 0);
+            setImmediate(callback);
           }
           return mockWriter;
         },
@@ -189,6 +189,56 @@ describe('YoutubeService', () => {
       (axios.get as Mock).mockResolvedValue({
         data: mockDataStream,
       });
+    });
+
+    it('uploads each concurrent video with its own account client', async () => {
+      const uploads: Array<[string, string | null | undefined]> = [];
+      vi.mocked(google.auth.OAuth2).mockImplementation(function oauth2Mock() {
+        const client: {
+          on: Mock;
+          setCredentials: Mock;
+          token?: string | null;
+        } = {
+          on: vi.fn(),
+          setCredentials: vi.fn((tokens: { access_token?: string | null }) => {
+            client.token = tokens.access_token;
+          }),
+        };
+        return client;
+      });
+      (google.youtube as Mock).mockImplementation(
+        ({ auth }: { auth: { token?: string | null } }) => ({
+          videos: {
+            insert: vi.fn(
+              async (params: {
+                requestBody: { snippet: { title: string } };
+              }) => {
+                uploads.push([params.requestBody.snippet.title, auth.token]);
+                return { data: { id: `id-${auth.token}` } };
+              },
+            ),
+          },
+        }),
+      );
+
+      const ids = await Promise.all([
+        service.uploadVideo({
+          ...mockUploadParams,
+          credential: { ...mockCredential, accessToken: 'token-a' },
+          title: 'video-a',
+        }),
+        service.uploadVideo({
+          ...mockUploadParams,
+          credential: { ...mockCredential, accessToken: 'token-b' },
+          title: 'video-b',
+        }),
+      ]);
+
+      expect(ids).toEqual(['id-token-a', 'id-token-b']);
+      expect(uploads.sort()).toEqual([
+        ['video-a', 'token-a'],
+        ['video-b', 'token-b'],
+      ]);
     });
 
     it('should initialize OAuth2 client with credentials', async () => {

@@ -24,6 +24,7 @@ import Card from '@ui/card/Card';
 import { Badge } from '@ui/primitives/badge';
 import { Button, Button as PrimitiveButton } from '@ui/primitives/button';
 import { buttonVariants } from '@ui/primitives/button.variants';
+import { Checkbox } from '@ui/primitives/checkbox';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -35,6 +36,7 @@ import { SimpleTooltip } from '@ui/primitives/tooltip';
 import { Copy, Ellipsis, ExternalLink } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
 import { memo, useMemo } from 'react';
 import EvalCell from './EvalCell';
@@ -149,6 +151,9 @@ interface PostsGridProps {
   primaryAction?: PostCardAction;
   onOpenPostDetail?: (post: IPost) => void;
   secondaryActions?: PostCardAction[];
+  /** With `onToggleSelect`, each card carries a checkbox for bulk actions. */
+  selectedIds?: ReadonlySet<string>;
+  onToggleSelect?: (post: IPost) => void;
 }
 
 const PostsGrid = memo(
@@ -159,7 +164,10 @@ const PostsGrid = memo(
     primaryAction,
     onOpenPostDetail,
     secondaryActions = [],
+    selectedIds,
+    onToggleSelect,
   }: PostsGridProps) {
+    const translate = useTranslations('ui.postRemoval');
     const { href } = useOrgUrl();
     const browserTimezone = useMemo(() => getBrowserTimezone(), []);
 
@@ -251,24 +259,35 @@ const PostsGrid = memo(
                 }
               >
                 <div className="flex min-w-0 flex-1 items-start justify-between gap-3">
-                  {onOpenPostDetail ? (
-                    <Button
-                      className="flex min-w-0 items-start gap-3 text-left"
-                      onClick={() => onOpenPostDetail(post)}
-                      type="button"
-                      variant={ButtonVariant.UNSTYLED}
-                      withWrapper={false}
-                    >
-                      {heading}
-                    </Button>
-                  ) : (
-                    <Link
-                      className="flex min-w-0 items-start gap-3 text-left"
-                      href={href(getPublishingPostHref(post.id))}
-                    >
-                      {heading}
-                    </Link>
-                  )}
+                  <div className="flex min-w-0 items-start gap-3">
+                    {onToggleSelect ? (
+                      <Checkbox
+                        aria-label={translate('selectPost')}
+                        className="mt-3"
+                        isChecked={selectedIds?.has(post.id) ?? false}
+                        name={`select-${post.id}`}
+                        onCheckedChange={() => onToggleSelect(post)}
+                      />
+                    ) : null}
+                    {onOpenPostDetail ? (
+                      <Button
+                        className="flex min-w-0 items-start gap-3 text-left"
+                        onClick={() => onOpenPostDetail(post)}
+                        type="button"
+                        variant={ButtonVariant.UNSTYLED}
+                        withWrapper={false}
+                      >
+                        {heading}
+                      </Button>
+                    ) : (
+                      <Link
+                        className="flex min-w-0 items-start gap-3 text-left"
+                        href={href(getPublishingPostHref(post.id))}
+                      >
+                        {heading}
+                      </Link>
+                    )}
+                  </div>
 
                   {
                     <DropdownMenu>

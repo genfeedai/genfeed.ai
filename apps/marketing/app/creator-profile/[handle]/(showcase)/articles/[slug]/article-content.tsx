@@ -4,6 +4,8 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { ArticleContentProps } from '@props/content/public-article.props';
 import { Button } from '@ui/primitives/button';
 import { copyText } from '@web-components/creator/copy-text';
+import { WEBSITE_ANALYTICS_EVENTS } from '@website-src/analytics/analytics-events';
+import { captureWebsiteAnalyticsEvent } from '@website-src/analytics/posthog-client';
 import {
   ArrowUpRight,
   Check,
@@ -16,8 +18,6 @@ import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { WEBSITE_ANALYTICS_EVENTS } from '../../../../../../src/analytics/analytics-events';
-import { captureWebsiteAnalyticsEvent } from '../../../../../../src/analytics/posthog-client';
 import ArticleCompareSlider from './article-compare-slider';
 import { hasArticleExperience } from './article-experience-slugs';
 import ArticleGenerationBlock from './article-generation-block';

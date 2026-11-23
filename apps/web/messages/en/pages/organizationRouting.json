@@ -7,6 +7,10 @@
     "loading": "Loading your workspace",
     "switching": "Switching organization"
   },
+  "sessionFailure": {
+    "description": "Your session could not be loaded, so no workspace data was requested. Try again.",
+    "title": "Your session could not be loaded"
+  },
   "unavailable": {
     "chooseOrganization": "Choose an organization you can access",
     "currentWorkspace": "Current workspace",

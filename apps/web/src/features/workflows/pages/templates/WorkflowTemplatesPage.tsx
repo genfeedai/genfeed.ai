@@ -10,13 +10,13 @@ import CollectionCarouselSection from '@ui/collection/CollectionCarouselSection'
 import CollectionGrid from '@ui/collection/CollectionGrid';
 import CollectionSection from '@ui/collection/CollectionSection';
 import CollectionView from '@ui/collection/CollectionView';
+import SearchField from '@ui/content/search-field/SearchField';
 import Container from '@ui/layout/container/Container';
+import FilterMenu from '@ui/navigation/filter-menu/FilterMenu';
 import { Button } from '@ui/primitives/button';
 import { EmptyState } from '@ui/primitives/empty-state';
 import { useTranslations } from 'next-intl';
 import { Suspense, useMemo } from 'react';
-import FilterMenu from '@/components/content/filter-menu/FilterMenu';
-import SearchField from '@/components/content/search-field/SearchField';
 import type { DataSource } from '@/features/workflows/props/workflow-templates-page.props';
 import { workflowCollectionHeaderTabs } from '../workflow-library-tabs';
 import { useWorkflowTemplateItems } from './useWorkflowTemplateItems';

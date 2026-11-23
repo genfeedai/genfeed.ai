@@ -63,18 +63,22 @@ describe('useWorkflowActionDefaults', () => {
 });
 
 describe('useWorkflowActionScope', () => {
-  it('falls back through externalHandle, externalName, then label for connected accounts', () => {
+  it('carries the handle and name of each connected account', () => {
     const { result } = renderHook(() => useWorkflowActionScope());
 
     expect(result.current.credentials).toEqual([
       {
+        avatarUrl: null,
+        handle: 'VincentShipsIt',
         id: 'cred-x',
-        label: 'VincentShipsIt',
+        name: null,
         platform: Platform.TWITTER,
       },
       {
+        avatarUrl: null,
+        handle: null,
         id: 'cred-li',
-        label: 'Vincent Ships It',
+        name: 'Vincent Ships It',
         platform: Platform.LINKEDIN,
       },
     ]);

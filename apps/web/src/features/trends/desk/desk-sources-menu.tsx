@@ -16,6 +16,7 @@ import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -148,8 +149,12 @@ export default function DeskSourcesMenu({
   onSourcesChanged: () => Promise<void>;
   sources: ISocialSource[];
 }) {
+  // Connected timelines are managed under Following and the brand's own
+  // accounts under its connected accounts; neither is a discovery source.
   const sources = suppliedSources.filter(
-    (source) => source.sourceType !== SocialSourceType.TIMELINE,
+    (source) =>
+      source.sourceType !== SocialSourceType.TIMELINE &&
+      source.sourceType !== SocialSourceType.OWN_ACCOUNT,
   );
   const translateDesk = useTranslations('common.trends.desk');
   const notifications = useMemo(() => NotificationsService.getInstance(), []);
@@ -296,23 +301,25 @@ export default function DeskSourcesMenu({
               })}
             </DialogDescription>
           </DialogHeader>
-          <div className="max-h-[50vh] divide-y divide-border overflow-y-auto rounded-card border border-border">
-            {sources.length ? (
-              sources.map((source) => (
-                <SourceRow
-                  key={source.id}
-                  busyId={busyId}
-                  source={source}
-                  onRemove={removeSource}
-                  onSync={syncSource}
-                />
-              ))
-            ) : (
-              <div className="p-5 text-sm text-foreground/70">
-                {translateDesk('sourcesMenu.noSourcesFollowed')}
-              </div>
-            )}
-          </div>
+          <DialogBody className="flex flex-col gap-4">
+            <div className="divide-y divide-border rounded-card border border-border">
+              {sources.length ? (
+                sources.map((source) => (
+                  <SourceRow
+                    key={source.id}
+                    busyId={busyId}
+                    source={source}
+                    onRemove={removeSource}
+                    onSync={syncSource}
+                  />
+                ))
+              ) : (
+                <div className="p-5 text-sm text-foreground/70">
+                  {translateDesk('sourcesMenu.noSourcesFollowed')}
+                </div>
+              )}
+            </div>
+          </DialogBody>
           <DialogFooter>
             <Button
               icon={<Plus className="size-4" />}

@@ -85,7 +85,6 @@ export class FFmpegBeatSyncService {
       },
     );
 
-    // Get video durations
     const videoDurations = await this.getVideoDurations(validatedVideoPaths);
 
     // Calculate clip segments based on beat timestamps and cut strategy
@@ -133,7 +132,6 @@ export class FFmpegBeatSyncService {
         onProgress,
       );
 
-      // Add music overlay
       await this.addMusicOverlay(
         mergedVideoPath,
         validatedMusicUrl,
@@ -151,7 +149,6 @@ export class FFmpegBeatSyncService {
         totalDuration,
       };
     } finally {
-      // Cleanup temp files
       await this.core.cleanupTempFiles(...segmentPaths);
       const mergedPath = path.join(tempDir, 'merged_video.mp4');
       await this.core.cleanupTempFiles(mergedPath);

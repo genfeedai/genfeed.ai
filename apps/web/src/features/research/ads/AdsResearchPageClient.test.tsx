@@ -403,7 +403,7 @@ vi.mock('@ui/primitives/input', () => ({
 
 // The real menu is covered by FilterMenu's own tests; here every option is a
 // plain button named "<facet>: <option>" so page wiring can be asserted.
-vi.mock('@/components/content/filter-menu/FilterMenu', () => ({
+vi.mock('@ui/navigation/filter-menu/FilterMenu', () => ({
   default: ({
     facets,
     onClear,
@@ -1146,15 +1146,18 @@ describe('AdsResearchPageClient', () => {
     expect(
       screen.getByRole('button', { name: 'Competitors' }),
     ).toBeInTheDocument();
-    expect(screen.getByText('Watched competitors')).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: 'Watch competitor' }),
-    ).toBeInTheDocument();
+    // The watchlist is a modal the operator opens, not a panel in the page.
+    expect(screen.queryByText('Watched competitors')).not.toBeInTheDocument();
     expect(
       screen.queryByRole('link', { name: 'Manage ad connections' }),
     ).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Competitors' }));
+    expect(screen.getByRole('dialog')).toHaveTextContent('Watched competitors');
+    expect(
+      screen.getByRole('button', { name: 'Watch competitor' }),
+    ).toBeInTheDocument();
+    fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' });
     expect(screen.queryByText('Watched competitors')).not.toBeInTheDocument();
     fireEvent.click(
       within(getSourceSelect()).getByRole('button', { name: 'Source: Public' }),

@@ -17,6 +17,7 @@ const BOT_PROBE_PATTERNS = [
 ];
 
 const env =
+  // biome-ignore lint/style/noProcessEnv: runs before the Nest container exists, so no ConfigService yet
   process.env.SENTRY_ENVIRONMENT || process.env.NODE_ENV || 'development';
 
 const config = getSentryConfig({ serviceName: 'api' });

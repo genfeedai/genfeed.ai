@@ -16,6 +16,7 @@ import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogDescription,
   DialogHeader,
@@ -105,8 +106,12 @@ export default function ElevenLabsAccountVoicesDialog({
   // cancels it so stale voices and cursors never land in the new list.
   const loadMoreControllerRef = useRef<AbortController | null>(null);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: a new search cancels the later page of the one before it.
-  useEffect(() => () => loadMoreControllerRef.current?.abort(), [search]);
+  // A new search cancels the later page of the one before it.
+  // use-effect-audit: ignore aborts an in-flight request when the search changes or the dialog unmounts
+  useEffect(() => {
+    void search;
+    return () => loadMoreControllerRef.current?.abort();
+  }, [search]);
 
   const loadMore = useCallback(async () => {
     if (!nextPageToken) return;
@@ -207,134 +212,133 @@ export default function ElevenLabsAccountVoicesDialog({
           <DialogDescription>{translate('description')}</DialogDescription>
         </DialogHeader>
 
-        {status === 'disconnected' || status === 'invalid' ? (
-          <div className="space-y-3" role="status">
-            <p className="font-medium">{translate(`${status}.title`)}</p>
-            <p className="text-sm text-muted-foreground">
-              {translate(`${status}.body`)}
-            </p>
-            <Button
-              asChild
-              variant={ButtonVariant.SECONDARY}
-              withWrapper={false}
-            >
-              <Link href={connectHref}>{translate('openIntegrations')}</Link>
-            </Button>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            <Input
-              aria-label={translate('searchLabel')}
-              placeholder={translate('searchLabel')}
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-            />
-
-            {isLoading ? (
-              <p className="text-sm text-muted-foreground" role="status">
-                {translate('loading')}
-              </p>
-            ) : null}
-
-            {hasError && !isLoading ? (
-              <div className="space-y-3" role="alert">
-                <p className="text-sm">{translate('loadError')}</p>
-                <Button
-                  label={translate('retry')}
-                  variant={ButtonVariant.SECONDARY}
-                  onClick={() => {
-                    void refetchVoices();
-                  }}
-                />
-              </div>
-            ) : null}
-
-            {isConnected && !isLoading && !hasError && voices.length === 0 ? (
+        <DialogBody className="flex flex-col gap-4">
+          {status === 'disconnected' || status === 'invalid' ? (
+            <div className="space-y-3" role="status">
+              <p className="font-medium">{translate(`${status}.title`)}</p>
               <p className="text-sm text-muted-foreground">
-                {translate('empty')}
+                {translate(`${status}.body`)}
               </p>
-            ) : null}
-
-            {isConnected && !isLoading && voices.length > 0 ? (
-              <ul
-                aria-label={translate('listLabel')}
-                className="max-h-[min(480px,60vh)] space-y-2 overflow-y-auto"
-              >
-                {voices.map((voice) => {
-                  const isSaved = voice.savedVoiceId !== null;
-                  const isAvailable = voice.availability === 'available';
-
-                  return (
-                    <li
-                      key={voice.externalVoiceId}
-                      className="space-y-2 rounded-md border border-border p-3"
-                    >
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div className="min-w-0 space-y-1">
-                          <p className="truncate font-medium">{voice.name}</p>
-                          <div className="flex flex-wrap gap-1">
-                            {voice.category ? (
-                              <Badge variant="secondary">
-                                {voice.category}
-                              </Badge>
-                            ) : null}
-                            {isAvailable ? null : (
-                              <Badge variant="warning">
-                                {translate(
-                                  `availability.${voice.availability}`,
-                                )}
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-                        <Button
-                          ariaLabel={translate('importVoice', {
-                            name: voice.name,
-                          })}
-                          isDisabled={!isAvailable || isSaved}
-                          isLoading={importingId === voice.externalVoiceId}
-                          label={translate(isSaved ? 'imported' : 'import')}
-                          onClick={() => {
-                            void importVoice(voice);
-                          }}
-                          size={ButtonSize.SM}
-                          variant={
-                            isSaved
-                              ? ButtonVariant.GHOST
-                              : ButtonVariant.SECONDARY
-                          }
-                        />
-                      </div>
-                      {voice.restriction ? (
-                        <p className="text-xs text-warning">
-                          {voice.restriction}
-                        </p>
-                      ) : null}
-                      {voice.preview ? (
-                        <MediaPlayer
-                          src={voice.preview}
-                          label={voice.name}
-                          stopOnUnmount
-                        />
-                      ) : null}
-                    </li>
-                  );
-                })}
-              </ul>
-            ) : null}
-
-            {isConnected && nextPageToken && !isLoading ? (
               <Button
-                isLoading={isLoadingMore}
-                label={translate('loadMore')}
-                onClick={() => {
-                  void loadMore();
-                }}
-                variant={ButtonVariant.GHOST}
+                asChild
+                variant={ButtonVariant.SECONDARY}
+                withWrapper={false}
+              >
+                <Link href={connectHref}>{translate('openIntegrations')}</Link>
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <Input
+                aria-label={translate('searchLabel')}
+                placeholder={translate('searchLabel')}
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
               />
-            ) : null}
-          </div>
-        )}
+
+              {isLoading ? (
+                <p className="text-sm text-muted-foreground" role="status">
+                  {translate('loading')}
+                </p>
+              ) : null}
+
+              {hasError && !isLoading ? (
+                <div className="space-y-3" role="alert">
+                  <p className="text-sm">{translate('loadError')}</p>
+                  <Button
+                    label={translate('retry')}
+                    variant={ButtonVariant.SECONDARY}
+                    onClick={() => {
+                      void refetchVoices();
+                    }}
+                  />
+                </div>
+              ) : null}
+
+              {isConnected && !isLoading && !hasError && voices.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  {translate('empty')}
+                </p>
+              ) : null}
+
+              {isConnected && !isLoading && voices.length > 0 ? (
+                <ul aria-label={translate('listLabel')} className="space-y-2">
+                  {voices.map((voice) => {
+                    const isSaved = voice.savedVoiceId !== null;
+                    const isAvailable = voice.availability === 'available';
+
+                    return (
+                      <li
+                        key={voice.externalVoiceId}
+                        className="space-y-2 rounded-md border border-border p-3"
+                      >
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div className="min-w-0 space-y-1">
+                            <p className="truncate font-medium">{voice.name}</p>
+                            <div className="flex flex-wrap gap-1">
+                              {voice.category ? (
+                                <Badge variant="secondary">
+                                  {voice.category}
+                                </Badge>
+                              ) : null}
+                              {isAvailable ? null : (
+                                <Badge variant="warning">
+                                  {translate(
+                                    `availability.${voice.availability}`,
+                                  )}
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                          <Button
+                            ariaLabel={translate('importVoice', {
+                              name: voice.name,
+                            })}
+                            isDisabled={!isAvailable || isSaved}
+                            isLoading={importingId === voice.externalVoiceId}
+                            label={translate(isSaved ? 'imported' : 'import')}
+                            onClick={() => {
+                              void importVoice(voice);
+                            }}
+                            size={ButtonSize.SM}
+                            variant={
+                              isSaved
+                                ? ButtonVariant.GHOST
+                                : ButtonVariant.SECONDARY
+                            }
+                          />
+                        </div>
+                        {voice.restriction ? (
+                          <p className="text-xs text-warning">
+                            {voice.restriction}
+                          </p>
+                        ) : null}
+                        {voice.preview ? (
+                          <MediaPlayer
+                            src={voice.preview}
+                            label={voice.name}
+                            stopOnUnmount
+                          />
+                        ) : null}
+                      </li>
+                    );
+                  })}
+                </ul>
+              ) : null}
+
+              {isConnected && nextPageToken && !isLoading ? (
+                <Button
+                  isLoading={isLoadingMore}
+                  label={translate('loadMore')}
+                  onClick={() => {
+                    void loadMore();
+                  }}
+                  variant={ButtonVariant.GHOST}
+                />
+              ) : null}
+            </div>
+          )}
+        </DialogBody>
       </DialogContent>
     </Dialog>
   );

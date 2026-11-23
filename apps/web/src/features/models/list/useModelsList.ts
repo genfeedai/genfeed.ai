@@ -355,7 +355,6 @@ export function useModelsList({
         return true;
       }
 
-      // Normalize modelId to string and trim
       const normalizedModelId = String(modelId || '').trim();
       if (!normalizedModelId) {
         return false;

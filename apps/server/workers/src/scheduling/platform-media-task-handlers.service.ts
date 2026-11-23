@@ -8,6 +8,7 @@ import { CronModelDeprecationService } from '@workers/crons/model-deprecation/cr
 import { CronModelWatcherService } from '@workers/crons/model-watcher/cron.model-watcher.service';
 import { CronTranscriptPurgeService } from '@workers/crons/transcript-purge/cron.transcript-purge.service';
 import { CronTurboRunReconcileService } from '@workers/crons/turbo-run/cron.turbo-run-reconcile.service';
+import { CronVideoRetentionService } from '@workers/crons/video-retention/cron.video-retention.service';
 import { CronWorkflowArtifactsService } from '@workers/crons/workflow-artifacts/cron.workflow-artifacts.service';
 import { PlatformMediaSchedulesService } from '@workers/scheduling/platform-media-schedules.service';
 import {
@@ -27,6 +28,7 @@ export class PlatformMediaTaskHandlers {
     private readonly modelDeprecation: CronModelDeprecationService,
     private readonly modelWatcher: CronModelWatcherService,
     private readonly transcriptPurge: CronTranscriptPurgeService,
+    private readonly videoRetention: CronVideoRetentionService,
     private readonly workflowArtifacts: CronWorkflowArtifactsService,
     private readonly externalVoiceCatalog: CronExternalVoiceCatalogService,
     private readonly mediaSchedules: PlatformMediaSchedulesService,
@@ -64,6 +66,8 @@ export class PlatformMediaTaskHandlers {
         this.modelWatcher.discoverNewModels(),
       [PLATFORM_SCHEDULED_TASKS.TRANSCRIPT_PURGE]: () =>
         this.transcriptPurge.purgeExpiredTranscripts(),
+      [PLATFORM_SCHEDULED_TASKS.VIDEO_RETENTION]: () =>
+        this.videoRetention.expireUnpostedVideos(),
       [PLATFORM_SCHEDULED_TASKS.WORKFLOW_ARTIFACT_CLEANUP]: () =>
         this.workflowArtifacts.queueExpiredArtifactCleanup(),
       [PLATFORM_SCHEDULED_TASKS.WORKFLOW_EXECUTION_PURGE]: () =>

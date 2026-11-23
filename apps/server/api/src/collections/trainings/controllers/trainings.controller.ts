@@ -6,6 +6,10 @@ import type { TrainingEntity } from '@api/collections/trainings/entities/trainin
 import type { TrainingDocument } from '@api/collections/trainings/schemas/training.schema';
 import type { TrainingSourceImage } from '@api/collections/trainings/services/trainings.service';
 import { TrainingsService } from '@api/collections/trainings/services/trainings.service';
+import {
+  claimTrainingCreate,
+  readTrainingIdempotencyKey,
+} from '@api/collections/trainings/utils/training-create-claim.util';
 import { buildTrainingOrderBy } from '@api/collections/trainings/utils/training-list-order.util';
 import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
@@ -19,6 +23,7 @@ import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.in
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
+import { finalizeOutputCredits } from '@api/helpers/utils/credits/finalize-deferred-credits.util';
 import { customLabels } from '@api/helpers/utils/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import {
@@ -27,6 +32,7 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { buildSearchWhere } from '@api/helpers/utils/search-where/search-where.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
+import { CacheService } from '@api/services/cache/cache.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
@@ -46,6 +52,7 @@ import {
   Body,
   Controller,
   Get,
+  Headers,
   HttpException,
   HttpStatus,
   Param,
@@ -74,6 +81,7 @@ export class TrainingsController extends BaseCRUDController<
     public readonly trainingsService: TrainingsService,
     public readonly loggerService: LoggerService,
     private readonly websocketService: NotificationsPublisherService,
+    private readonly cacheService: CacheService,
   ) {
     super(loggerService, trainingsService, TrainingSerializer, 'Training');
   }
@@ -254,10 +262,26 @@ export class TrainingsController extends BaseCRUDController<
     @Req() request: Request,
     @CurrentUser() user: User,
     @Body() createDto: CreateTrainingDto,
+    @Headers('idempotency-key') idempotencyKeyHeader?: string,
   ): Promise<JsonApiSingleResponse> {
+    const idempotencyKey = readTrainingIdempotencyKey(idempotencyKeyHeader);
+    const claim = idempotencyKey
+      ? await claimTrainingCreate(
+          this.cacheService,
+          user,
+          createDto,
+          idempotencyKey,
+        )
+      : undefined;
+
+    if (claim?.outcome === 'replay') {
+      return await this.replayTraining(request, user, claim.trainingId);
+    }
+
     try {
       const { sourceImages, training } =
         await this.trainingsService.createTrainingWithSources(createDto, user);
+      await claim?.commit(training.id as string);
 
       // Return training immediately to avoid timeout
       const response = serializeSingle(request, TrainingSerializer, training);
@@ -277,6 +301,7 @@ export class TrainingsController extends BaseCRUDController<
 
       return response;
     } catch (error: unknown) {
+      await claim?.abandon();
       throw new HttpException(
         {
           detail: (error as Error)?.message ?? 'Unknown error occurred',
@@ -285,6 +310,36 @@ export class TrainingsController extends BaseCRUDController<
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
+  }
+
+  /**
+   * A retry of a request that already created its training answers with that
+   * training and charges nothing: the first request was charged.
+   */
+  private async replayTraining(
+    request: Request,
+    user: User,
+    trainingId: string,
+  ): Promise<JsonApiSingleResponse> {
+    const training = await this.trainingsService.findOne({
+      id: trainingId,
+      isDeleted: false,
+      organizationId: user.organizationId,
+    });
+
+    if (!training) {
+      throw new HttpException(
+        {
+          detail:
+            'The training created for this request no longer exists. Retry with a new Idempotency-Key.',
+          title: 'Conflict',
+        },
+        HttpStatus.CONFLICT,
+      );
+    }
+
+    finalizeOutputCredits(request, 0);
+    return serializeSingle(request, TrainingSerializer, training);
   }
 
   /**

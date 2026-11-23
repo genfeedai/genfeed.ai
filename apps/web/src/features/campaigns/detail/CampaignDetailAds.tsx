@@ -8,7 +8,7 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import Card from '@ui/card/Card';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
-import LoadingState from '@ui/feedback/LoadingState';
+import Loading from '@ui/loading/default/Loading';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Label } from '@ui/primitives/label';
@@ -65,7 +65,7 @@ export default function CampaignDetailAds({
   }
 
   if (isLoading) {
-    return <LoadingState isFullSize />;
+    return <Loading />;
   }
 
   return (

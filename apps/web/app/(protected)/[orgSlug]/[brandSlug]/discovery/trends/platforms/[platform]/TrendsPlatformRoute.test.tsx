@@ -16,7 +16,7 @@ vi.mock('next/navigation', () => ({
   },
 }));
 vi.mock(
-  '@/components/shell/workspace-frame-skeleton/WorkspaceContentSkeleton',
+  '@/components/shell/workspace-frame-skeleton/WorkspacePagePending',
   () => ({
     default: () => <p>Loading trends</p>,
   }),

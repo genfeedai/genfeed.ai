@@ -3,6 +3,7 @@ import { MCP_ADMIN_TOOLS } from './admin.tools';
 import { MCP_ADS_TOOLS } from './ads.tools';
 import { MCP_AGENT_CONTROL_TOOLS } from './agent-control.tools';
 import { MCP_ANALYTICS_TOOLS } from './analytics.tools';
+import { MCP_BRAND_KIT_TOOLS } from './brand-kit.tools';
 import { MCP_CAMPAIGN_TOOLS } from './campaign.tools';
 import { MCP_CLIP_TOOLS } from './clipper.tools';
 import { MCP_CONTENT_TOOLS } from './content.tools';
@@ -26,6 +27,7 @@ import { MCP_WORKSPACE_TOOLS } from './workspace.tools';
 export const MCP_ONLY_TOOLS: SourceTool[] = [
   ...MCP_GENERATION_TOOLS,
   ...MCP_ANALYTICS_TOOLS,
+  ...MCP_BRAND_KIT_TOOLS,
   ...MCP_CONTENT_TOOLS,
   ...MCP_CONTENT_CAMPAIGN_TOOLS,
   ...MCP_DISCOVERY_TOOLS,

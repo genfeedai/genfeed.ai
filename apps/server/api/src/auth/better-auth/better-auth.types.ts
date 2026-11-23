@@ -114,26 +114,43 @@ export interface IBetterAuthResetPasswordParams {
   };
 }
 
-/**
- * Minimal shared KV (Redis) used to back Better Auth's rate-limit counters
- * across stateless API instances. Implementations must fail open — a Redis
- * outage must degrade rate limiting, never break authentication. The factory
- * adapts this into Better Auth's `rateLimit.customStorage` shape.
- */
-export interface IBetterAuthRateLimitStore {
-  get: (key: string) => Promise<string | null>;
-  set: (key: string, value: string, ttlSeconds: number) => Promise<void>;
+/** One rate-limit decision, in the shape Better Auth's `consume` expects. */
+export interface IBetterAuthRateLimitDecision {
+  allowed: boolean;
+  retryAfter: number | null;
 }
 
-/** The two Redis commands the rate-limit store issues, as ioredis spells them. */
-export interface IBetterAuthRateLimitRedisCommands {
-  get(key: string): Promise<string | null>;
-  set(key: string, value: string): Promise<unknown>;
-  set(
+/** Inputs of one atomic counter step. Times are epoch milliseconds. */
+interface IBetterAuthRateLimitConsumeInput {
+  /** Unprefixed counter key stored inside the value. */
+  identity: string;
+  max: number;
+  now: number;
+  ttlSeconds: number;
+  windowMs: number;
+}
+
+/**
+ * Shared Redis counter used to back Better Auth's rate limits across stateless
+ * API instances. `consume` records one request and returns the decision in a
+ * single atomic step; it returns `null` when the counter is unavailable.
+ * Implementations must fail open — a Redis outage must degrade rate limiting,
+ * never break authentication. The factory adapts this into Better Auth's
+ * `rateLimit.customStorage` shape.
+ */
+export interface IBetterAuthRateLimitStore {
+  consume: (
     key: string,
-    value: string,
-    expiryMode: 'EX',
-    ttlSeconds: number,
+    input: IBetterAuthRateLimitConsumeInput,
+  ) => Promise<IBetterAuthRateLimitDecision | null>;
+}
+
+/** The one Redis command the rate-limit store issues, as ioredis spells it. */
+export interface IBetterAuthRateLimitRedisCommands {
+  eval(
+    script: string,
+    numKeys: number,
+    ...args: Array<string | number>
   ): Promise<unknown>;
 }
 
@@ -147,17 +164,17 @@ export interface IBetterAuthRateLimitStorage {
   consume: (
     key: string,
     rule: { max: number; window: number },
-  ) => Promise<{ allowed: boolean; retryAfter: number | null }>;
+  ) => Promise<IBetterAuthRateLimitDecision>;
 }
 
 /** Which Redis command the rate-limit store was running when it degraded. */
-export type BetterAuthRateLimitOperation = 'get' | 'set';
+export type BetterAuthRateLimitOperation = 'consume';
 
 /** Why a rate-limit operation failed open instead of consulting Redis. */
 export type BetterAuthRateLimitDegradationReason =
   /** The client reported `isReady === false`, so no command was issued. */
   | 'client-unavailable'
-  /** A command was issued and threw. */
+  /** A command was issued and threw, or returned an unusable reply. */
   | 'command-failed';
 
 /** Emitted (throttled) whenever the store fails open instead of enforcing. */

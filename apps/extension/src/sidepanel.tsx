@@ -2,7 +2,13 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { LibraryAsset } from '@genfeedai/contracts/interfaces';
 import { Button } from '@ui/primitives/button';
 import { Plus } from 'lucide-react';
-import { type ReactElement, useEffect, useReducer, useRef } from 'react';
+import {
+  type ReactElement,
+  useEffect,
+  useReducer,
+  useRef,
+  useState,
+} from 'react';
 import { ChatContainer } from '~components/chat/ChatContainer';
 import { CreatePanel } from '~components/create/CreatePanel';
 import { ThreadList } from '~components/history/ThreadList';
@@ -221,16 +227,15 @@ function SidePanelContent() {
     workspace.status === 'ready' || workspace.status === 'refreshing'
       ? workspace.snapshot.revision
       : null;
-  const panelRevision = useRef<number | null>(null);
-  useEffect(() => {
-    if (scopeRevision !== null && panelRevision.current !== scopeRevision) {
-      panelRevision.current = scopeRevision;
-      dispatchPanel({ type: 'resetScope' });
-    }
-  }, [scopeRevision]);
+  const [panelRevision, setPanelRevision] = useState<number | null>(null);
+  if (scopeRevision !== null && panelRevision !== scopeRevision) {
+    setPanelRevision(scopeRevision);
+    dispatchPanel({ type: 'resetScope' });
+  }
 
   // A component inside the panel asked for another tab (for example Provider settings).
   const requestedTab = usePanelNavigationStore((s) => s.requestedTab);
+  // use-effect-audit: ignore consumes a tab request from the panel navigation store
   useEffect(() => {
     if (!requestedTab) return;
     dispatchPanel({ activeTab: requestedTab, type: 'setActiveTab' });

@@ -106,7 +106,12 @@ describe.skipIf(!connectionString)(
         logger as never,
       );
     const comments = () =>
-      new TaskCommentsService(asPrisma(), logger as never, mentions());
+      new TaskCommentsService(
+        asPrisma(),
+        logger as never,
+        mentions(),
+        brandAccess(),
+      );
 
     let suffix: string;
     let organizationId: string;

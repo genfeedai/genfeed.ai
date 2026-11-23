@@ -1,4 +1,5 @@
 import type { PublicViewTarget } from '@data/public-views';
+import type { ButtonVariant } from '@genfeedai/contracts';
 import type {
   BrandSubscriberPublicSource,
   CreatorProfileTab,
@@ -30,7 +31,7 @@ export interface CreatorRouteProps {
 }
 
 export interface CreatorTabRouteProps extends CreatorRouteProps {
-  searchParams: Promise<{ page?: string }>;
+  searchParams: Promise<{ page?: string; platform?: string }>;
 }
 
 export interface CreatorPostRouteProps {
@@ -44,12 +45,19 @@ export interface CreatorTabCounts {
   videos: number;
 }
 
-export interface CreatorRailProps {
+export interface CreatorHeaderProps {
   brand: Brand;
   counts: CreatorTabCounts;
   handle: string;
+  /** The banner sits above the header, so the avatar overlaps its lower edge. */
+  hasBanner: boolean;
   profileUrl: string;
   referralCode: string | null;
+}
+
+export interface CreatorAccountsProps {
+  brand: Brand;
+  handle: string;
 }
 
 export interface ViewTrackerProps {
@@ -121,9 +129,25 @@ export interface CreatorPostMediaProps {
   media: CreatorPostMediaItem[];
 }
 
-export interface CreatorPostGridProps {
+export interface CreatorWallProps {
+  /** The creator's picture, worn by text-only tiles as the account's avatar. */
+  brand: Brand;
   handle: string;
   posts: Post[];
+}
+
+export interface CreatorWallTileProps {
+  brand: Brand;
+  handle: string;
+  post: Post;
+}
+
+export interface CreatorWallFilterProps {
+  /** The platform the wall is narrowed to, or null for every post. */
+  active: string | null;
+  handle: string;
+  /** Platforms the creator has connected, one chip each. */
+  platforms: string[];
 }
 
 export interface ProfileSubscribeProps {
@@ -131,6 +155,13 @@ export interface ProfileSubscribeProps {
   handle: string;
   source: Extract<BrandSubscriberPublicSource, 'profile' | 'article' | 'post'>;
   sourceRef?: string;
+  /**
+   * `bar` is the joined Newsletter + Subscribe group that spans a rail.
+   * `compact` is one button that sits in a row of actions.
+   */
+  layout?: 'bar' | 'compact';
+  /** The button's look; a row with a primary action asks for `secondary`. */
+  variant?: ButtonVariant;
 }
 
 export interface CommunityCreatorCardProps {
@@ -140,6 +171,11 @@ export interface CommunityCreatorCardProps {
 export interface MakeYourOwnBannerProps {
   /** The creator whose page the reader is on, for tracking. */
   handle: string;
+  /**
+   * `inline` is the end-of-article band; `rail` is the same offer stacked into
+   * the outline column, so it can sit beside the body while it is read.
+   */
+  layout?: 'inline' | 'rail';
   /** The creator's referral code, carried into sign-up. */
   referralCode?: string | null;
 }
@@ -155,15 +191,21 @@ export interface SupportCreatorModalProps {
   /** The article the reader is on, when sent from an article page. */
   articleId?: string;
   handle: string;
+  /** The creator's logo, shown beside their name in the modal. */
+  logoUrl?: string;
   onOpenChange: (isOpen: boolean) => void;
 }
 
 export interface SupportCreatorButtonProps {
+  /** The button's wording; defaults to `Support @handle`. */
+  label?: string;
   /** The article the reader is on, when sent from an article page. */
   articleId?: string;
   /** Layout only (width, alignment); the button owns its look. */
   className?: string;
   handle: string;
+  /** The creator's logo, shown beside their name in the modal. */
+  logoUrl?: string;
 }
 
 /** A section of the community gallery, one per sub-nav link. */

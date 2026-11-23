@@ -89,7 +89,10 @@ jobs:
 
   core:
     name: Core Validation
+    # `actions: read` lets the test jobs read the Plan job's artifact and the
+    # verdict list the run's jobs.
     permissions:
+      actions: read
       contents: read
       pull-requests: read
     concurrency:

@@ -67,6 +67,8 @@ export interface WideEventServiceIdentity {
   version?: string;
   environment?: string;
   deployment_id?: string;
+  /** The task or host this process runs on, to tell one bad task from all. */
+  instance_id?: string;
   region?: string;
 }
 

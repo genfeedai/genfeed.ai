@@ -3,6 +3,7 @@ import {
   getMcpCatalogOperations,
   getRetiredMcpCatalogTool,
   getToolByName,
+  isMcpCatalogToolName,
   isToolAllowedInMcpAccessMode,
   type McpAccessMode,
   type ResolvedMcpCatalogCall,
@@ -37,7 +38,12 @@ export function resolveAuthorizedMcpCatalogCall(
       McpAuthGuard.checkToolRole(role, descriptor.requiredRole);
     }
   }
-  return resolveMcpCatalogCall(name, args);
+  return resolveMcpCatalogCall(
+    name,
+    args,
+    (executionName) =>
+      (getToolByName(executionName)?.parameters.required?.length ?? 0) > 0,
+  );
 }
 
 export function validateMcpCatalogDispatchCoverage(
@@ -48,6 +54,9 @@ export function validateMcpCatalogDispatchCoverage(
   const unroutable = ALL_TOOLS.filter((tool) => tool.surfaces.mcp)
     .map((tool) => tool.name)
     .filter((name) => !preDispatchNames.has(name))
+    // A merged tool is resolved to the tool each action runs, and
+    // `validateMcpCatalogBindings` has already checked every one of those.
+    .filter((name) => !isMcpCatalogToolName(name))
     .filter((name) => classify(name) === 'unknown');
   if (unroutable.length > 0) {
     throw new Error(

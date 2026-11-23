@@ -101,6 +101,7 @@ export type ActivityMessageId =
   | 'activity.post.unverified'
   | 'activity.agent.review_changed'
   | 'activity.agent.review_expired'
+  | 'activity.agent.input_requested'
   | 'activity.social.replies'
   | 'activity.credits.low'
   | 'activity.review.requested'
@@ -216,6 +217,7 @@ export const ACTIVITY_MESSAGE_ID_BY_KEY = {
   [ActivityKey.AGENT_RUN_COMPLETED]: 'activity.lifecycle.completed',
   [ActivityKey.AGENT_RUN_FAILED]: 'activity.lifecycle.failed',
   [ActivityKey.AGENT_RUN_DELIVERY_FAILED]: 'activity.lifecycle.failed',
+  [ActivityKey.AGENT_INPUT_REQUESTED]: 'activity.agent.input_requested',
   [ActivityKey.AGENT_REVIEW_CHANGED]: 'activity.agent.review_changed',
   [ActivityKey.AGENT_REVIEW_EXPIRED]: 'activity.agent.review_expired',
   [ActivityKey.SOCIAL_REPLIES_RECEIVED]: 'activity.social.replies',
@@ -939,6 +941,9 @@ export function formatActivityMessage(
 
     case 'activity.post.ready':
       return 'Content is ready for review';
+
+    case 'activity.agent.input_requested':
+      return 'Agent is waiting on your answer';
 
     case 'activity.agent.review_changed':
       return 'Agent review updated';

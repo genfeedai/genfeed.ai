@@ -39,7 +39,11 @@ export const DASHBOARD_APP_IDS = [
 
 export type DashboardAppId = (typeof DASHBOARD_APP_IDS)[number];
 
-export const CORE_APP_IDS = [...DASHBOARD_APP_IDS, 'agent'] as const;
+export const CORE_APP_IDS = [
+  ...DASHBOARD_APP_IDS,
+  'agent',
+  'playground',
+] as const;
 
 export type CoreAppId = (typeof CORE_APP_IDS)[number];
 
@@ -55,12 +59,6 @@ export const NATIVE_APP_CONTEXTUAL_ENTRIES = [
 ] as const satisfies readonly NativeAppContextualEntry[];
 
 export const NATIVE_SECONDARY_APPS = {
-  playground: {
-    label: 'Playground',
-    organizationModuleId: 'playground',
-    purpose: 'Generate and iterate on images, video, avatars, music and voice.',
-    contextualEntries: [],
-  },
   storyboard: {
     label: 'Storyboard',
     organizationModuleId: 'storyboard',

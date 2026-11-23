@@ -18,6 +18,7 @@ export type BrandOverviewPanelProps = {
   activeBrand: BrandOverlayRecord;
   connectedPlatformsCount: number;
   error: string | null;
+  profileHref?: string;
   socialConnections: BrandDetailSocialConnection[];
   onCopy: (text?: string) => Promise<void>;
   onGenerateBanner: () => void;
@@ -37,6 +38,7 @@ export default function BrandOverviewPanel({
   activeBrand,
   connectedPlatformsCount,
   error,
+  profileHref,
   socialConnections,
   onCopy,
   onGenerateBanner,
@@ -91,6 +93,7 @@ export default function BrandOverviewPanel({
         brandId={activeBrand.id}
         connectedPlatformsCount={connectedPlatformsCount}
         connections={socialConnections}
+        historyImportReturnTo={profileHref}
         onRefresh={onRefreshBrand}
       />
 

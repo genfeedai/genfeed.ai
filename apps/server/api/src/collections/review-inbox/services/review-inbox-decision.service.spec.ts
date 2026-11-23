@@ -72,6 +72,15 @@ describe('ReviewInboxDecisionService', () => {
     ).rejects.toThrow(BadRequestException);
   });
 
+  it('refuses to approve or reject an agent question', async () => {
+    await expect(
+      service.decide(user, fullAccess, {
+        decision: 'approve',
+        itemId: 'agent_input_request:thread-1:req-1',
+      }),
+    ).rejects.toThrow('Answer the agent question');
+  });
+
   it('resolves an MCP approval through the approvals service', async () => {
     const result = await service.decide(user, fullAccess, {
       decision: 'reject',

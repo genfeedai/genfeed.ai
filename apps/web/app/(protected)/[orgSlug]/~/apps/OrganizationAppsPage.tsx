@@ -16,6 +16,7 @@ import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import CollectionGrid from '@ui/collection/CollectionGrid';
 import CollectionSection from '@ui/collection/CollectionSection';
 import CollectionView from '@ui/collection/CollectionView';
+import SearchField from '@ui/content/search-field/SearchField';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import { Button } from '@ui/primitives/button';
 import { Puzzle } from 'lucide-react';
@@ -28,7 +29,6 @@ import AppCatalogCard from '@/components/app-catalog/AppCatalogCard';
 import AppCatalogDetailsPanel from '@/components/app-catalog/AppCatalogDetailsPanel';
 import { APP_CATALOG } from '@/components/app-catalog/app-catalog';
 import { isAppCatalogOpenable } from '@/components/app-catalog/app-catalog-state';
-import SearchField from '@/components/content/search-field/SearchField';
 import {
   APP_RAIL_REGISTRY,
   getAppRailHref,

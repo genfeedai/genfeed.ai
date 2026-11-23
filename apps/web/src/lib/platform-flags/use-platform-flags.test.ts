@@ -149,6 +149,49 @@ describe('usePlatformFlags (#5468)', () => {
     expect(result.current.flags.studio).toBe(false);
   });
 
+  it('keeps the unavailable message while a background retry is pending', async () => {
+    vi.useFakeTimers();
+    publicService.getPlatformFlags
+      .mockRejectedValueOnce(new Error('offline'))
+      .mockImplementation(() => new Promise(() => undefined));
+    const { result } = renderHook(() => usePlatformFlags());
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(result.current.isUnavailable).toBe(true);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(PLATFORM_FLAGS_REFRESH_INTERVAL_MS);
+    });
+
+    expect(publicService.getPlatformFlags).toHaveBeenCalledTimes(2);
+    expect(result.current).toMatchObject({
+      isReady: false,
+      isUnavailable: true,
+    });
+  });
+
+  it('shows the loading state again when the person presses Try again', async () => {
+    vi.useFakeTimers();
+    publicService.getPlatformFlags
+      .mockRejectedValueOnce(new Error('offline'))
+      .mockImplementation(() => new Promise(() => undefined));
+    const { result } = renderHook(() => usePlatformFlags());
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(result.current.isUnavailable).toBe(true);
+
+    act(() => notifyPlatformFlagsChanged());
+
+    expect(result.current).toMatchObject({
+      isReady: false,
+      isUnavailable: false,
+    });
+  });
+
   it('re-reads the flags at once after an Admin save', async () => {
     publicService.getPlatformFlags.mockResolvedValue(STUDIO_OFF);
     const { result } = renderHook(() =>

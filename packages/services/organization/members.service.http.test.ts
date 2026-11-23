@@ -113,7 +113,9 @@ describe('MembersService app installation HTTP methods (#5502)', () => {
   it('reads the caller installations and drops unknown ids', async () => {
     const controller = new AbortController();
     http.get.mockResolvedValue(
-      axiosResponse({ installedAppIds: ['turbo', 'retired', 'clipper'] }),
+      axiosResponse({
+        installedAppIds: ['turbo', 'retired', 'playground', 'clipper'],
+      }),
     );
 
     await expect(service.findMyApps(controller.signal)).resolves.toEqual([
@@ -127,18 +129,18 @@ describe('MembersService app installation HTTP methods (#5502)', () => {
 
   it('installs and uninstalls one app at a time', async () => {
     http.put.mockResolvedValue(
-      axiosResponse({ installedAppIds: ['playground', 'turbo'] }),
+      axiosResponse({ installedAppIds: ['storyboard', 'turbo'] }),
     );
     http.delete.mockResolvedValue(
-      axiosResponse({ installedAppIds: ['playground'] }),
+      axiosResponse({ installedAppIds: ['storyboard'] }),
     );
 
     await expect(service.installApp('turbo')).resolves.toEqual([
-      'playground',
+      'storyboard',
       'turbo',
     ]);
     await expect(service.uninstallApp('turbo')).resolves.toEqual([
-      'playground',
+      'storyboard',
     ]);
     expect(http.put).toHaveBeenCalledWith('/me/apps/turbo');
     expect(http.delete).toHaveBeenCalledWith('/me/apps/turbo');

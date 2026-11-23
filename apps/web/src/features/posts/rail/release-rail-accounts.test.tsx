@@ -44,9 +44,7 @@ function buildAccount(overrides: Record<string, unknown> = {}) {
   return {
     credentialId: 'credential-1',
     handle: '@brand',
-    holdPublishing: false,
     label: 'Brand Account',
-    override: { isActive: false },
     platform: CredentialPlatform.INSTAGRAM,
     riskLevel: 'low',
     score: 90,
@@ -109,7 +107,6 @@ describe('ReleaseRailAccounts', () => {
   it('marks an account needing reconnect with a warning tone', async () => {
     api.accounts = [
       buildAccount({
-        holdPublishing: true,
         reconnect: {
           credentialId: 'credential-1',
           isAvailable: true,
@@ -126,7 +123,7 @@ describe('ReleaseRailAccounts', () => {
   it('does not fetch account health without a brand in scope', async () => {
     api.accounts = [buildAccount()];
     const { container } = render(<RailHarness />);
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    await new Promise((resolve) => setImmediate(resolve));
     expect(api.requestedBrands).toEqual([]);
     expect(container).toBeEmptyDOMElement();
   });

@@ -109,8 +109,8 @@ export class StoryboardPlanDraftService {
     const harnessBrief = await this.resolveHarnessBrief(request);
     try {
       const response = await this.openrouter.chatCompletion({
-        // First-party OpenRouter calls send `zdr: true`; the background
-        // default (gemini-2.5-flash-lite) has no ZDR endpoint and 404s.
+        // First-party OpenRouter calls send `zdr: true`, so only a model with
+        // a zero-data-retention endpoint can serve them.
         // This model reasons by default, so leave headroom in max_tokens.
         model: LLM_DEFAULTS.productTextFallback,
         max_tokens: 8192,

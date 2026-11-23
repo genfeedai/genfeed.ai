@@ -137,10 +137,22 @@ describe('ArticleDetail', () => {
       />,
     );
 
-    const href = screen
-      .getByRole('link', { name: 'Start creating' })
-      .getAttribute('href');
-    expect(new URL(href ?? '').searchParams.get('ref')).toBe('frend2345xyz');
+    expect(
+      screen.getByRole('heading', { name: 'Run content from your own agent' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getAllByText(
+        'Video, images, posts and articles, made on your brand.',
+      ),
+    ).toHaveLength(2);
+    // One offer in the outline rail, one at the end of the article.
+    const links = screen.getAllByRole('link', { name: 'Start creating' });
+    expect(links).toHaveLength(2);
+    for (const link of links) {
+      expect(
+        new URL(link.getAttribute('href') ?? '').searchParams.get('ref'),
+      ).toBe('frend2345xyz');
+    }
   });
 
   it('keeps the view count and the invitation out of previews', async () => {

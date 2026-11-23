@@ -1,3 +1,4 @@
+import { assertHealthy, settle } from '@e2e/utils/interaction-helpers';
 import {
   generateMockPost,
   mockNewslettersList,
@@ -5,7 +6,6 @@ import {
 } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { filtersTrigger } from '../../utils/filter-menu';
-import { assertHealthy, settle } from '../../utils/interaction-helpers';
 import { tryClick } from '../../utils/route-assertions';
 
 /**

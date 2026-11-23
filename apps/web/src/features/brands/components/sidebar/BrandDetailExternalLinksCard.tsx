@@ -1,5 +1,10 @@
 'use client';
-import { ButtonSize, ButtonVariant, LinkCategory } from '@genfeedai/contracts';
+import {
+  ButtonSize,
+  ButtonVariant,
+  CardEmptySize,
+  LinkCategory,
+} from '@genfeedai/contracts';
 import type { BrandDetailExternalLinksCardProps } from '@props/pages/brand-detail.props';
 import Card from '@ui/card/Card';
 import CollectionSection from '@ui/collection/CollectionSection';
@@ -55,7 +60,11 @@ export default function BrandDetailExternalLinksCard({
       title={t('websiteLinksTitle')}
     >
       {manualLinks.length === 0 ? (
-        <EmptyState title={t('noWebsiteLinks')} />
+        <EmptyState
+          size={CardEmptySize.SM}
+          surface="card"
+          title={t('noWebsiteLinks')}
+        />
       ) : (
         <Card>
           <ul className="flex flex-col divide-y divide-border">

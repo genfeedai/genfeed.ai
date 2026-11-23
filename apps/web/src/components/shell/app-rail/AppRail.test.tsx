@@ -218,7 +218,6 @@ function moduleAccessFor(settings: OrganizationModulePreferenceInput) {
 // Launcher apps are reached from the Store, so the rail only renders the ones
 // a member has pinned. Pinning every id exercises each app's visibility rules.
 const LAUNCHER_APP_IDS = [
-  'playground',
   'storyboard',
   'turbo',
   'motion',
@@ -235,6 +234,7 @@ const CORE_APP_IDS = [
   'publishing',
   'analytics',
   'agent',
+  'playground',
 ];
 
 // The launcher apps that rendered as rail items, in rail order.
@@ -312,7 +312,7 @@ describe('AppRail', () => {
     ]);
     expect(registered[2].shortcut).toEqual(['G', '3']);
     expect(registered[5].shortcut).toEqual(['G', '6']);
-    expect(registered[6].shortcut).toBeUndefined();
+    expect(registered[6].shortcut).toEqual(['G', '7']);
     act(() => {
       registered[2].action();
     });
@@ -588,14 +588,14 @@ describe('AppRail', () => {
     render(<AppRail orgSlug="acme" brandSlug="my-brand" />);
 
     expect(
-      screen.queryByRole('link', { name: 'Playground' }),
+      screen.queryByRole('link', { name: 'Storyboard' }),
     ).not.toBeInTheDocument();
     await vi.advanceTimersByTimeAsync(2_000);
 
     expect(router.prefetch.mock.calls.map(([href]) => href)).toEqual(
       expect.arrayContaining([
         '/acme/my-brand/analytics/overview',
-        '/acme/my-brand/playground',
+        '/acme/my-brand/storyboard',
       ]),
     );
   });
@@ -613,6 +613,7 @@ describe('AppRail', () => {
       'Publishing',
       'Analytics',
       'Agent',
+      'Playground',
     ];
     expect(
       screen
@@ -643,7 +644,7 @@ describe('AppRail', () => {
   });
 
   it('keeps pinned apps after the core loop', () => {
-    render(<AppRail orgSlug="acme" pinnedAppIds={['playground']} />);
+    render(<AppRail orgSlug="acme" pinnedAppIds={['storyboard']} />);
 
     expect(
       screen
@@ -657,24 +658,25 @@ describe('AppRail', () => {
       'app-rail-item-analytics',
       'app-rail-item-agent',
       'app-rail-item-playground',
+      'app-rail-item-storyboard',
     ]);
   });
   it('pins only installed, available apps (#5502)', () => {
     render(
       <AppRail
         orgSlug="acme"
-        installedAppIds={['playground', 'clipper', 'discovery', 'automation']}
+        installedAppIds={['clipper', 'discovery', 'automation']}
         moduleAccess={{
           automation: { isAllowed: false, reason: 'unreleased' },
           clipper: { isAllowed: false, reason: 'unreleased' },
           discovery: { isAllowed: false, reason: 'subscription-required' },
           playground: { isAllowed: true, reason: null },
         }}
-        pinnedAppIds={['clipper', 'discovery', 'storyboard', 'playground']}
+        pinnedAppIds={['clipper', 'discovery', 'storyboard']}
       />,
     );
-    // Clips and Automation are unreleased and Storyboard is not installed: only
-    // Playground can be pinned or launched. Trends needs a plan, so the
+    // Clips and Automation are unreleased and Storyboard is not installed.
+    // Playground is built in. Trends needs a plan, so the
     // dashboard shows it only once the organization has one.
     expect(
       screen
@@ -814,7 +816,7 @@ describe('AppRail', () => {
       .map((link) => link.getAttribute('aria-label'));
 
     expect(labels.at(-1)).toBe('Admin');
-    expect(labels.at(-2)).toBe('Agent');
+    expect(labels.at(-2)).toBe('Playground');
   });
 
   it('locks gated apps behind the first asset but keeps their own route for the teaser', () => {
@@ -1016,7 +1018,6 @@ describe('AppRail', () => {
         .map((item) => item.dataset.testid),
     ).toEqual([
       ...CORE_APP_IDS.map((appId) => `app-rail-item-${appId}`),
-      'app-rail-item-playground',
       'app-rail-item-storyboard',
       'app-rail-item-turbo',
     ]);
@@ -1790,7 +1791,7 @@ describe('AppRail', () => {
         ['Turbo', '/acme/~/turbo'],
         ['Editor', '/acme/~/editor'],
         ['Library', '/acme/~/library/assets'],
-        ['Trends', '/acme/~/discovery/overview'],
+        ['Trends', '/acme/~/discovery/feed'],
         ['Publishing', '/acme/~/publishing/overview'],
         ['Analytics', '/acme/~/analytics/overview'],
         ['Automation', '/acme/~/automation/overview'],
@@ -1807,7 +1808,7 @@ describe('AppRail', () => {
       render(<AppRail orgSlug="acme" pinnedAppIds={LAUNCHER_APP_IDS} />);
       expect(screen.getByRole('link', { name: 'Trends' })).toHaveAttribute(
         'href',
-        '/acme/~/discovery/overview',
+        '/acme/~/discovery/feed',
       );
     });
 
@@ -1821,7 +1822,7 @@ describe('AppRail', () => {
       );
       expect(screen.getByRole('link', { name: 'Trends' })).toHaveAttribute(
         'href',
-        '/acme/my-brand/discovery/overview',
+        '/acme/my-brand/discovery/feed',
       );
     });
 
@@ -1854,7 +1855,7 @@ describe('AppRail', () => {
 
       expect(screen.getByRole('link', { name: 'Trends' })).toHaveAttribute(
         'href',
-        '/acme/my-brand/discovery/overview',
+        '/acme/my-brand/discovery/feed',
       );
       expect(screen.getByRole('link', { name: 'Publishing' })).toHaveAttribute(
         'href',
@@ -1871,7 +1872,7 @@ describe('AppRail', () => {
 
       expect(screen.getByRole('link', { name: 'Trends' })).toHaveAttribute(
         'href',
-        '/acme/~/discovery/overview',
+        '/acme/~/discovery/feed',
       );
       expect(
         screen.queryByRole('link', { name: 'Remix' }),
@@ -2028,6 +2029,7 @@ describe('AppRail', () => {
         'library',
         'publishing',
         'agent',
+        'playground',
       ]);
     });
 
@@ -2049,9 +2051,10 @@ describe('AppRail', () => {
         'library',
         'analytics',
         'agent',
+        'playground',
       ]);
       expect(screen.getByRole('status')).toHaveTextContent(
-        'Library moved to position 4 of 6.',
+        'Library moved to position 4 of 7.',
       );
     });
 
@@ -2098,6 +2101,7 @@ describe('AppRail', () => {
         'publishing',
         'analytics',
         'agent',
+        'playground',
       ]);
       expect(screen.queryByTestId('app-rail-item-menu')).toBeNull();
 
@@ -2132,7 +2136,7 @@ describe('AppRail', () => {
         key: 'Escape',
       });
 
-      fireEvent.contextMenu(screen.getByTestId('app-rail-slot-agent'));
+      fireEvent.contextMenu(screen.getByTestId('app-rail-slot-playground'));
       expect(
         screen.getByTestId('app-rail-item-menu-move-down'),
       ).toHaveAttribute('data-disabled');

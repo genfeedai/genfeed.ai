@@ -305,7 +305,10 @@ export default function SettingsWebhooksPage() {
             <SkeletonCard showImage={false} />
           </div>
         ) : (
-          <div className="grid gap-4">
+          <div
+            className="grid gap-4"
+            data-agent-confirm="Changes where publish events are sent and how they are signed"
+          >
             <Switch
               isChecked={form.isWebhookEnabled}
               label="Enable endpoint"

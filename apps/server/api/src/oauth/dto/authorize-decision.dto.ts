@@ -67,6 +67,11 @@ export class OAuthAuthorizeDecisionDto {
   @IsBoolean()
   allowOrganizationSwitching?: boolean;
 
+  /** Opt in to Brand Kit edits for the explicitly selected brand. */
+  @IsOptional()
+  @IsBoolean()
+  allowBrandKitEdits?: boolean;
+
   @IsBoolean()
   approved!: boolean;
 }

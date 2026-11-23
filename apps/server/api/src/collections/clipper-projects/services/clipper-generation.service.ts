@@ -12,6 +12,7 @@ import {
 import { AvatarVideoService } from '@api/services/avatar-video/avatar-video.service';
 import { WorkflowExecutionStatus } from '@genfeedai/contracts';
 import { videoGenerationBriefSchema } from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
+import type { AvatarRenderQuality } from '@genfeedai/contracts/constants';
 import type {
   ClipperGenerationReference,
   ClipperReferenceProvenance,
@@ -73,6 +74,8 @@ export interface ClipperGenerationInput {
   avatarRef?: HeyGenAvatarRef;
   voiceRef?: NonNullable<IBrandAgentConfig['defaultVoiceRef']>;
   avatarId?: string;
+  /** Quality tier for the avatar render; see `AVATAR_RENDER_QUALITY_PLANS`. */
+  avatarQuality?: AvatarRenderQuality;
   voiceId?: string;
   provider?: SupportedAvatarVideoProviderName;
   referenceImageUrl?: string;
@@ -307,6 +310,7 @@ export class ClipperGenerationService implements OnModuleInit {
             providerMetadataPersisted = true;
           },
           organizationId: orgId,
+          ...(input.avatarQuality ? { quality: input.avatarQuality } : {}),
           ...(effectiveReferenceImageUrl
             ? { referenceImageUrl: effectiveReferenceImageUrl }
             : {}),

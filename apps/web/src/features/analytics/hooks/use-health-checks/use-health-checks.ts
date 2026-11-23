@@ -2,7 +2,8 @@
 
 import { ServiceHealthStatus } from '@genfeedai/contracts';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useCallback, useMemo } from 'react';
 
 const HEALTH_TIMEOUT_MS = 4000;
 
@@ -15,70 +16,82 @@ export interface UseHealthChecksReturn {
   runHealthChecks: () => Promise<void>;
 }
 
+interface HealthSnapshot {
+  apiStatus: ServiceHealthStatus;
+  checkedAt: string;
+  notificationsStatus: ServiceHealthStatus;
+}
+
+async function fetchHealthStatus(
+  url: string,
+  parentSignal: AbortSignal,
+): Promise<ServiceHealthStatus> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), HEALTH_TIMEOUT_MS);
+  const abortWithParent = () => controller.abort();
+  parentSignal.addEventListener('abort', abortWithParent);
+
+  try {
+    const response = await fetch(url, {
+      cache: 'no-store',
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      return ServiceHealthStatus.UNHEALTHY;
+    }
+
+    const payload = await response.json().catch(() => null);
+    const statusValue =
+      typeof payload === 'object' && payload !== null && 'status' in payload
+        ? String((payload as Record<string, unknown>).status)
+        : null;
+
+    if (statusValue === ServiceHealthStatus.DEGRADED) {
+      return ServiceHealthStatus.DEGRADED;
+    }
+
+    return ServiceHealthStatus.HEALTHY;
+  } catch (_error) {
+    return ServiceHealthStatus.UNHEALTHY;
+  } finally {
+    clearTimeout(timeoutId);
+    parentSignal.removeEventListener('abort', abortWithParent);
+  }
+}
+
 export function useHealthChecks(): UseHealthChecksReturn {
-  const [apiStatus, setApiStatus] = useState<ServiceHealthStatus>(
-    ServiceHealthStatus.HEALTHY,
-  );
-  const [notificationsStatus, setNotificationsStatus] =
-    useState<ServiceHealthStatus>(ServiceHealthStatus.HEALTHY);
-  const [healthCheckedAt, setHealthCheckedAt] = useState<string | null>(null);
+  // Every observer checks on mount, and the cache expires with the last one.
+  const { data, isFetchedAfterMount, refetch } = useQuery<HealthSnapshot>({
+    gcTime: 0,
+    // A browser that reports itself offline still records the failed check.
+    networkMode: 'always',
+    queryFn: async ({ signal }) => {
+      const [apiStatus, notificationsStatus] = await Promise.all([
+        fetchHealthStatus(`${EnvironmentService.apiEndpoint}/health`, signal),
+        fetchHealthStatus(`${EnvironmentService.wsEndpoint}/v1/health`, signal),
+      ]);
 
-  const fetchHealthStatus = useCallback(
-    async (url: string): Promise<ServiceHealthStatus> => {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), HEALTH_TIMEOUT_MS);
-
-      try {
-        const response = await fetch(url, {
-          cache: 'no-store',
-          signal: controller.signal,
-        });
-
-        if (!response.ok) {
-          return ServiceHealthStatus.UNHEALTHY;
-        }
-
-        const payload = await response.json().catch(() => null);
-        const statusValue =
-          typeof payload === 'object' && payload !== null && 'status' in payload
-            ? String((payload as Record<string, unknown>).status)
-            : null;
-
-        if (statusValue === ServiceHealthStatus.HEALTHY) {
-          return ServiceHealthStatus.HEALTHY;
-        }
-
-        if (statusValue === ServiceHealthStatus.DEGRADED) {
-          return ServiceHealthStatus.DEGRADED;
-        }
-
-        return ServiceHealthStatus.HEALTHY;
-      } catch (_error) {
-        return ServiceHealthStatus.UNHEALTHY;
-      } finally {
-        clearTimeout(timeoutId);
-      }
+      return {
+        apiStatus,
+        checkedAt: new Date().toISOString(),
+        notificationsStatus,
+      };
     },
-    [],
-  );
+    queryKey: ['service-health'],
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: false,
+    retry: false,
+  });
+  const snapshot = isFetchedAfterMount ? data : undefined;
+  const apiStatus = snapshot?.apiStatus ?? ServiceHealthStatus.HEALTHY;
+  const notificationsStatus =
+    snapshot?.notificationsStatus ?? ServiceHealthStatus.HEALTHY;
+  const healthCheckedAt = snapshot?.checkedAt ?? null;
 
   const runHealthChecks = useCallback(async (): Promise<void> => {
-    const apiUrl = `${EnvironmentService.apiEndpoint}/health`;
-    const notificationsUrl = `${EnvironmentService.wsEndpoint}/v1/health`;
-
-    const [apiResult, notificationsResult] = await Promise.all([
-      fetchHealthStatus(apiUrl),
-      fetchHealthStatus(notificationsUrl),
-    ]);
-
-    setApiStatus(apiResult);
-    setNotificationsStatus(notificationsResult);
-    setHealthCheckedAt(new Date().toISOString());
-  }, [fetchHealthStatus]);
-
-  useEffect(() => {
-    runHealthChecks();
-  }, [runHealthChecks]);
+    await refetch();
+  }, [refetch]);
 
   const isHealthDegraded =
     apiStatus !== ServiceHealthStatus.HEALTHY ||

@@ -17,6 +17,7 @@ import {
   type ISavedAd,
   type SaveAdInput,
 } from '@genfeedai/contracts/interfaces';
+import type { ICredential } from '@genfeedai/contracts/interfaces/organization/credential.interface';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import {
@@ -63,14 +64,6 @@ type SelectedAdRef = {
   source: 'public' | 'my_accounts';
   savedAdId?: string;
   sourceId?: string;
-};
-
-type CredentialOption = {
-  id: string;
-  externalHandle?: string;
-  externalId?: string;
-  externalName?: string;
-  platform?: string;
 };
 
 export type AdSortKey = 'score' | 'ctr' | 'roas' | 'longevity';
@@ -297,12 +290,14 @@ export function useAdsResearchPageClient() {
   const effectivePlatform = platform;
   const showChannelFilter = effectivePlatform === AdsPlatform.GOOGLE;
 
+  // use-effect-audit: ignore keeps the channel URL param consistent with the platform
   useEffect(() => {
     if (!showChannelFilter && channel !== AdsChannel.ALL) {
       setChannel(AdsChannel.ALL);
     }
   }, [channel, setChannel, showChannelFilter]);
 
+  // use-effect-audit: ignore clears the account URL param when the credential param changes
   useEffect(() => {
     if (!credentialId) {
       setAdAccountId('');
@@ -314,14 +309,14 @@ export function useAdsResearchPageClient() {
 
   const credentialOptions = useMemo(
     () =>
-      credentials.reduce<CredentialOption[]>((options, credential) => {
+      credentials.reduce<ICredential[]>((options, credential) => {
         if (!credential.isConnected || credential.isDeleted) return options;
 
         const value = String(credential.platform || '').toLowerCase();
 
         if (effectivePlatform === AdsPlatform.META) {
           if (value === 'facebook' || value === AdsPlatform.META) {
-            options.push(credential as CredentialOption);
+            options.push(credential);
           }
           return options;
         }
@@ -332,21 +327,21 @@ export function useAdsResearchPageClient() {
             value === 'google-ads' ||
             value === AdsPlatform.GOOGLE
           ) {
-            options.push(credential as CredentialOption);
+            options.push(credential);
           }
           return options;
         }
 
         if (effectivePlatform === AdsPlatform.TIKTOK) {
           if (value === AdsPlatform.TIKTOK || value === 'tiktok_ads') {
-            options.push(credential as CredentialOption);
+            options.push(credential);
           }
           return options;
         }
 
         if (effectivePlatform === AdsPlatform.X) {
           if (value === AdsPlatform.X || value === 'x_ads') {
-            options.push(credential as CredentialOption);
+            options.push(credential);
           }
           return options;
         }
@@ -362,7 +357,7 @@ export function useAdsResearchPageClient() {
           value === AdsPlatform.X ||
           value === 'x_ads'
         ) {
-          options.push(credential as CredentialOption);
+          options.push(credential);
         }
         return options;
       }, []),
@@ -372,6 +367,7 @@ export function useAdsResearchPageClient() {
   const isConnectionStateReady =
     isReady && isBrandScopeResolved && !credentialsLoading && !credentialsError;
 
+  // use-effect-audit: ignore drops URL params that point at a credential this brand no longer has
   useEffect(() => {
     if (
       isConnectionStateReady &&
@@ -604,6 +600,7 @@ export function useAdsResearchPageClient() {
 
   useRestoreResearchFinding(findings, isLoading);
 
+  // use-effect-audit: ignore opens the ad that the URL reference points at once ads load
   useEffect(() => {
     if (!requestedReference) {
       setSelectedAd(null);

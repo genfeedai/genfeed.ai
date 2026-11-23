@@ -1,9 +1,15 @@
 import type {
   ICredential,
+  ITurboProject,
   ITurboProjectIdeaSettings,
   ITurboProjectItem,
   ITurboProjectScheduleTarget,
 } from '@genfeedai/contracts/interfaces';
+/** One fetched page of the brand's Turbo projects. */
+export interface TurboProjectsPage {
+  hasMore: boolean;
+  items: ITurboProject[];
+}
 export interface TurboProjectPageProps {
   projectId: string;
 }

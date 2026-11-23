@@ -148,6 +148,7 @@ export function usePublicationInsights() {
       }),
     [execute, snapshot, lookup, page, update, detail],
   );
+  // use-effect-audit: ignore aborts the in-flight insights request when the page or key changes
   useEffect(() => {
     controller.current?.abort();
     generation.current++;

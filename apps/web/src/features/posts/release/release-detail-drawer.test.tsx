@@ -117,9 +117,7 @@ function buildAccount(overrides: Record<string, unknown> = {}) {
   return {
     credentialId: 'credential-1',
     handle: '@brand',
-    holdPublishing: false,
     label: 'Brand Account',
-    override: { isActive: false },
     platform: CredentialPlatform.INSTAGRAM,
     riskLevel: 'low',
     score: 90,

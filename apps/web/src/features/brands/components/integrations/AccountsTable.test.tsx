@@ -32,9 +32,7 @@ function buildHealth(
 ): AccountHealthSummary {
   return {
     credentialId: 'cred-1',
-    holdPublishing: false,
     label: 'Account',
-    override: { isActive: false },
     platform: CredentialPlatform.TWITTER,
     riskLevel: 'low',
     score: 80,
@@ -103,8 +101,11 @@ describe('AccountsTable', () => {
     );
 
     expect(
-      screen.getByText('Reconnect', { selector: 'span' }),
+      screen.getByRole('img', { name: 'Needs reconnect' }),
     ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('img', { name: 'Connected' }),
+    ).not.toBeInTheDocument();
   });
 
   it('derives Needs reconnect from a connected credential missing its externalId identity', () => {
@@ -122,8 +123,11 @@ describe('AccountsTable', () => {
     );
 
     expect(
-      screen.getByText('Reconnect', { selector: 'span' }),
+      screen.getByRole('img', { name: 'Needs reconnect' }),
     ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('img', { name: 'Connected' }),
+    ).not.toBeInTheDocument();
   });
 
   it('derives Needs reconnect from an expired access token', () => {
@@ -143,8 +147,11 @@ describe('AccountsTable', () => {
     );
 
     expect(
-      screen.getByText('Reconnect', { selector: 'span' }),
+      screen.getByRole('img', { name: 'Needs reconnect' }),
     ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('img', { name: 'Connected' }),
+    ).not.toBeInTheDocument();
   });
 
   it('spins only the Reconnect icon of the account that is reconnecting', () => {
@@ -186,7 +193,136 @@ describe('AccountsTable', () => {
       />,
     );
 
-    expect(screen.getByText('Connected')).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'Connected' })).toBeInTheDocument();
+  });
+
+  it('shows status as icons with no long labels, so a connected row has no text status', () => {
+    render(
+      <AccountsTable
+        accountHealth={[]}
+        connections={[buildConnection({ name: 'Genfeed' })]}
+        onConnectAccount={noop}
+        onDisconnect={noop}
+        onOpenSettings={noop}
+        onReconnect={noop}
+        reconnectingCredentialId={null}
+        unavailablePlatforms={new Set()}
+      />,
+    );
+
+    const row = screen.getAllByRole('row')[1];
+    expect(within(row).queryByText('Connected')).not.toBeInTheDocument();
+    expect(
+      within(row).getByRole('img', { name: 'Connected' }),
+    ).toBeInTheDocument();
+  });
+
+  it('reconnects from the warning action that replaces the status icon on hover', () => {
+    const onReconnect = vi.fn();
+    const connection = buildConnection({ isConnected: false, name: 'Stale' });
+
+    render(
+      <AccountsTable
+        accountHealth={[]}
+        connections={[connection]}
+        onConnectAccount={noop}
+        onDisconnect={noop}
+        onOpenSettings={noop}
+        onReconnect={onReconnect}
+        reconnectingCredentialId={null}
+        unavailablePlatforms={new Set()}
+      />,
+    );
+
+    // The status icon only shows state; the actions hold the one control.
+    expect(
+      screen.getByRole('img', { name: 'Needs reconnect' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Needs reconnect' }),
+    ).not.toBeInTheDocument();
+
+    const reconnectButtons = screen.getAllByRole('button', {
+      name: 'Reconnect',
+    });
+    expect(reconnectButtons).toHaveLength(1);
+    fireEvent.click(reconnectButtons[0]);
+    expect(onReconnect).toHaveBeenCalledWith(connection);
+  });
+
+  it('disables the warning action while that account reconnects or its platform is unavailable', () => {
+    const connections = [
+      buildConnection({
+        credentialId: 'c-busy',
+        isConnected: false,
+        name: 'Busy',
+      }),
+      buildConnection({
+        credentialId: 'c-down',
+        isConnected: false,
+        name: 'Down',
+        platform: CredentialPlatform.TIKTOK,
+      }),
+      buildConnection({
+        credentialId: 'c-ok',
+        isConnected: false,
+        name: 'Fine',
+        platform: CredentialPlatform.YOUTUBE,
+      }),
+    ];
+
+    render(
+      <AccountsTable
+        accountHealth={[]}
+        connections={connections}
+        onConnectAccount={noop}
+        onDisconnect={noop}
+        onOpenSettings={noop}
+        onReconnect={noop}
+        reconnectingCredentialId="c-busy"
+        unavailablePlatforms={new Set([CredentialPlatform.TIKTOK])}
+      />,
+    );
+
+    const [, ...dataRows] = screen.getAllByRole('row');
+    const buttonFor = (name: string) =>
+      within(
+        dataRows.find((row) => row.textContent?.includes(name)) as HTMLElement,
+      ).getByRole('button', { name: 'Reconnect' });
+
+    expect(buttonFor('Busy')).toBeDisabled();
+    expect(buttonFor('Down')).toBeDisabled();
+    expect(buttonFor('Fine')).toBeEnabled();
+  });
+
+  it('flags an X account without DM access with a status icon and an action that reconnects', () => {
+    const onReconnect = vi.fn();
+    const connection = buildConnection({
+      directMessageCapability: 'reconnect',
+      name: 'No DMs',
+      platform: CredentialPlatform.TWITTER,
+    });
+
+    render(
+      <AccountsTable
+        accountHealth={[]}
+        connections={[connection]}
+        onConnectAccount={noop}
+        onDisconnect={noop}
+        onOpenSettings={noop}
+        onReconnect={onReconnect}
+        reconnectingCredentialId={null}
+        unavailablePlatforms={new Set()}
+      />,
+    );
+
+    // Still connected: the DM icon sits next to the check, not instead of it.
+    expect(screen.getByRole('img', { name: 'Connected' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('img', { name: 'DMs need reconnect' }),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'DMs need reconnect' }));
+    expect(onReconnect).toHaveBeenCalledWith(connection);
   });
 
   it('renders the live-fetched accountHealth passed down, not just connection.accountHealth', () => {
@@ -212,8 +348,8 @@ describe('AccountsTable', () => {
 
     // Twitter runs the warmup blueprint, so the live health's "warming"
     // state shows next to "Connected" once it's wired through.
-    expect(screen.getByText('Warming')).toBeInTheDocument();
-    expect(screen.getByText('Connected')).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'Warming' })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'Connected' })).toBeInTheDocument();
   });
 
   it('sorts rows by platform then name', () => {

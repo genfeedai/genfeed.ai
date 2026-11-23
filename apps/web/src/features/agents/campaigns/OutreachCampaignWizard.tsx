@@ -2,6 +2,7 @@
 
 import { ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import { toConnectedAccount } from '@helpers/publisher/connected-account.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
@@ -59,9 +60,8 @@ export default function OutreachCampaignWizard() {
             credential={formData.credential}
             description={formData.description}
             filteredCredentials={filteredCredentials.map((credential) => ({
-              externalHandle: credential.externalHandle ?? '',
+              ...toConnectedAccount(credential),
               id: credential.id,
-              platform: credential.platform,
             }))}
             hashtags={formData.hashtags}
             keywords={formData.keywords}

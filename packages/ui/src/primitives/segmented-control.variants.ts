@@ -39,10 +39,10 @@ export const segmentedListVariants = cva('max-w-full', {
 
 /** The selected-chip look, shared with the single `Toggle` chip variant. */
 export const chipItemClassName =
-  'rounded-full border border-border bg-transparent text-foreground/70 hover:bg-hover hover:text-foreground data-[state=active]:border-primary data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=on]:border-primary data-[state=on]:bg-primary/10 data-[state=on]:text-primary';
+  'rounded-full border border-border bg-transparent text-foreground/70 hover:bg-hover hover:text-foreground data-[state=active]:border-primary data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=on]:border-primary data-[state=on]:bg-primary/10 data-[state=on]:text-primary data-checked:border-primary data-checked:bg-primary/10 data-checked:text-primary data-pressed:border-primary data-pressed:bg-primary/10 data-pressed:text-primary';
 
 export const segmentedItemVariants = cva(
-  'inline-flex shrink-0 items-center justify-center gap-1.5 whitespace-nowrap font-medium transition-colors duration-200 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0',
+  'inline-flex shrink-0 items-center justify-center gap-1.5 whitespace-nowrap font-medium transition-colors duration-200 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 data-disabled:pointer-events-none data-disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0',
   {
     defaultVariants: {
       appearance: 'segmented',
@@ -56,7 +56,7 @@ export const segmentedItemVariants = cva(
         // in a scrolling bar that would clip an outer ring, so theirs is inset.
         chip: `${chipItemClassName} focus-visible:ring-offset-2 focus-visible:ring-offset-background`,
         segmented:
-          'focus-visible:ring-inset forced-colors:focus-visible:-outline-offset-2 h-full min-w-8 rounded-md border-0 bg-transparent text-foreground/70 shadow-none hover:bg-accent hover:text-accent-foreground data-[state=active]:bg-background data-[state=active]:text-accent-foreground data-[state=active]:shadow-sm data-[state=on]:bg-background data-[state=on]:text-accent-foreground data-[state=on]:shadow-sm',
+          'focus-visible:ring-inset forced-colors:focus-visible:-outline-offset-2 h-full min-w-8 rounded-md border-0 bg-transparent text-foreground/70 shadow-none hover:bg-accent hover:text-accent-foreground data-[state=active]:bg-background data-[state=active]:text-accent-foreground data-[state=active]:shadow-sm data-[state=on]:bg-background data-[state=on]:text-accent-foreground data-[state=on]:shadow-sm data-checked:bg-background data-checked:text-accent-foreground data-checked:shadow-sm data-pressed:bg-background data-pressed:text-accent-foreground data-pressed:shadow-sm',
       },
       size: {
         default: 'text-xs [&_svg]:size-4',

@@ -1,8 +1,10 @@
 import '@testing-library/jest-dom/vitest';
+import { readPageControls } from '@genfeedai/agent/utils/page-controls.bridge';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import '@/components/agent/page-controls-bridge';
 import SettingsMcpApprovalCard from './settings-mcp-approval-card';
 
 const mocks = vi.hoisted(() => ({
@@ -45,6 +47,21 @@ describe('SettingsMcpApprovalCard', () => {
     expect(toggle()).toBeChecked();
     await userEvent.click(toggle());
     expect(onChange).toHaveBeenCalledWith(false);
+  });
+
+  it('tells the page agent the switch waits for the person', () => {
+    render(
+      <SettingsMcpApprovalCard
+        isRequired
+        isSaving={false}
+        onChange={vi.fn()}
+      />,
+    );
+    expect(readPageControls()?.[0]).toMatchObject({
+      confirm:
+        'Lets your own credit-spending MCP requests run without approval',
+      label: 'Require approval for MCP requests',
+    });
   });
 
   it('shows the stored choice when the organization allows skipping', () => {

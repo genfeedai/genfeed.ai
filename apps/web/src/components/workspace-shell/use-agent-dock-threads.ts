@@ -225,6 +225,7 @@ export function useAgentDockThreads(
 
   // The first message on a record's fresh conversation creates its thread;
   // remember it so the record reopens it next time.
+  // use-effect-audit: ignore persists the opened thread id to browser storage
   useEffect(() => {
     // Read the store, not this render: opening the record above may have
     // switched the thread in the same commit.
@@ -273,6 +274,9 @@ export function useAgentDockThreads(
       .then((master) => {
         if (
           controller.signal.aborted ||
+          // A master with no id has nothing to open: selecting it would read
+          // the messages and transfers of thread `undefined`.
+          !master?.id ||
           hasStartedFreshThread.current ||
           useAgentChatStore.getState().activeThreadId
         ) {

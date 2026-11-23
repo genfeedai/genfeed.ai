@@ -1,8 +1,10 @@
 import { SocialConversationType } from '@genfeedai/contracts';
-import { PLATFORM_CONFIG } from '@genfeedai/contracts/constants';
 import type { SocialPlatform } from '@genfeedai/contracts/interfaces';
+import { toConnectedAccount } from '@genfeedai/helpers/publisher/connected-account.helper';
+import ConnectedAccountAvatar from '@ui/display/connected-account/ConnectedAccountAvatar';
+import { getConnectedAccountText } from '@ui/display/connected-account/connected-account.util';
+import FilterMenu from '@ui/navigation/filter-menu/FilterMenu';
 import { useTranslations } from 'next-intl';
-import FilterMenu from '@/components/content/filter-menu/FilterMenu';
 import type { MessagesFilterMenuProps } from '@/features/messages/props/messages-filter-menu.props';
 import type {
   MessagesInboxView,
@@ -34,6 +36,7 @@ const SURFACE_OPTIONS = [
 const PLATFORM_OPTIONS = [
   'all',
   'youtube',
+  'facebook',
   'instagram',
   'tiktok',
   'twitter',
@@ -148,16 +151,17 @@ export default function MessagesFilterMenu({
           options: [
             { label: translate('sidebar.allAccounts'), value: 'all' },
             ...accounts.map((credential) => {
-              const platformLabel =
-                PLATFORM_CONFIG[String(credential.platform).toLowerCase()]
-                  ?.label ?? String(credential.platform);
-              const handle =
-                credential.externalHandle ||
-                credential.externalName ||
-                credential.label;
+              const account = toConnectedAccount(credential);
               return {
+                icon: (
+                  <ConnectedAccountAvatar
+                    account={account}
+                    isDecorative
+                    size="xs"
+                  />
+                ),
                 isLiteral: true,
-                label: handle ? `${platformLabel} · ${handle}` : platformLabel,
+                label: getConnectedAccountText(account).primary,
                 value: credential.id,
               };
             }),

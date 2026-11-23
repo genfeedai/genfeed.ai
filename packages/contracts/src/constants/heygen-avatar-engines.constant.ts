@@ -23,10 +23,23 @@ export const HEYGEN_AVATAR_IV_PRICED_TYPES: readonly string[] = [
 export const HEYGEN_AVATAR_V_PRICED_TYPES: readonly string[] = ['digital_twin'];
 
 /**
- * Avatar 6 renders at 1080p, HeyGen's default. `720p` is rejected for it, and
- * `2k` is a separate reviewed rate Genfeed does not offer yet.
+ * The output resolutions HeyGen accepts for Avatar 6 and Turbo; `720p` and `4k`
+ * are rejected (https://developers.heygen.com/docs/models/avatar-6). Each has
+ * its own reviewed per-second rate.
  */
-export const HEYGEN_AVATAR_6_RENDER_RESOLUTION = '1080p';
+export const HEYGEN_AVATAR_6_RESOLUTIONS = ['1080p', '2k'] as const;
+export type HeyGenAvatar6Resolution =
+  (typeof HEYGEN_AVATAR_6_RESOLUTIONS)[number];
+
+/** The `engine.motion_expressiveness` values HeyGen accepts for Avatar 6. */
+export const HEYGEN_AVATAR_MOTION_EXPRESSIVENESS = ['default', 'less'] as const;
+
+/** `motion_prompt` is capped at 1,200 characters on HeyGen's Model API. */
+export const HEYGEN_AVATAR_MOTION_PROMPT_MAX_LENGTH = 1200;
+
+/** HeyGen's default for Avatar 6, and what a render without a choice uses. */
+export const HEYGEN_AVATAR_6_DEFAULT_RESOLUTION: HeyGenAvatar6Resolution =
+  '1080p';
 
 export const HEYGEN_AVATAR_ENGINE_MODEL_KEYS: Readonly<
   Record<HeyGenAvatarEngine, string>
@@ -95,4 +108,71 @@ export function getEligibleHeyGenAvatarModelKeys(
   return getEligibleHeyGenAvatarEngines(look).map(
     (engine) => HEYGEN_AVATAR_ENGINE_MODEL_KEYS[engine],
   );
+}
+
+/**
+ * The quality picker for a trained-look avatar render. `draft` is Avatar IV,
+ * which only looks listing it support; the other three are Avatar 6 and its
+ * Turbo variant at a resolution HeyGen accepts. Each plan names one engine and one reviewed
+ * rate, so the price shown, the hold and the request cannot diverge.
+ */
+export const AVATAR_RENDER_QUALITIES = [
+  'draft',
+  'low',
+  'medium',
+  'high',
+] as const;
+export type AvatarRenderQuality = (typeof AVATAR_RENDER_QUALITIES)[number];
+
+export interface AvatarRenderPlan {
+  engine: HeyGenAvatarEngine;
+  /**
+   * Avatar 6 and Turbo take this resolution. Avatar IV takes none from the
+   * plan, so the native request uses its aspect-ratio default.
+   */
+  resolution?: HeyGenAvatar6Resolution;
+}
+
+export const AVATAR_RENDER_QUALITY_PLANS: Readonly<
+  Record<AvatarRenderQuality, AvatarRenderPlan>
+> = {
+  draft: { engine: 'avatar_iv' },
+  low: { engine: 'heygen-avatar-6-turbo', resolution: '1080p' },
+  medium: { engine: 'heygen-avatar-6', resolution: '1080p' },
+  high: { engine: 'heygen-avatar-6', resolution: '2k' },
+};
+
+const AUTO_QUALITY_ORDER: readonly AvatarRenderQuality[] = [
+  'low',
+  'medium',
+  'draft',
+];
+
+/**
+ * The plan a quality picks for a look, or the reason the look cannot render it.
+ * Without a choice the render takes the first plan the look supports: `low`
+ * (Avatar 6 Turbo, cheaper than Avatar IV on a trained look), then `medium`,
+ * then `draft`.
+ */
+export function resolveAvatarRenderPlan(
+  look: Pick<HeyGenAvatarRef, 'avatarType' | 'supportedEngines'>,
+  quality?: AvatarRenderQuality,
+): { plan: AvatarRenderPlan } | { reason: string } {
+  const eligible = getEligibleHeyGenAvatarEngines(look);
+  const supported = AVATAR_RENDER_QUALITIES.filter((tier) =>
+    eligible.includes(AVATAR_RENDER_QUALITY_PLANS[tier].engine),
+  );
+  const chosen =
+    quality ?? AUTO_QUALITY_ORDER.find((tier) => supported.includes(tier));
+  if (chosen && supported.includes(chosen))
+    return { plan: AVATAR_RENDER_QUALITY_PLANS[chosen] };
+  const hint =
+    supported.length > 0
+      ? `Choose ${supported.join(', ')}.`
+      : 'Choose a different look.';
+  return {
+    reason: quality
+      ? `This look cannot render at ${quality} quality. ${hint}`
+      : `This look supports none of the avatar quality tiers. ${hint}`,
+  };
 }

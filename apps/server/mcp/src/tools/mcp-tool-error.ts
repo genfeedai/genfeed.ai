@@ -1,4 +1,8 @@
-import { describeAvatarVideoPricing } from '@genfeedai/actions';
+import {
+  describeAvatarVideoPricing,
+  isMcpRemovalTool,
+  McpToolInputError,
+} from '@genfeedai/actions';
 import {
   APP_ROUTES,
   createBrandAppRoute,
@@ -20,6 +24,8 @@ import { ZodError } from 'zod';
 const DIGITS_ONLY_PATTERN = /^\d+$/;
 const VALIDATION_FAILED_ERROR_PATTERN = /validation failed/i;
 
+export const MCP_ORGANIZATION_BOUND = 'mcp_organization_bound';
+
 /**
  * One contract for MCP gating failures. Transport rejections (auth and the
  * RateLimitService window) put the same object on JSON-RPC `error.data`.
@@ -33,7 +39,9 @@ const MCP_TOOL_ERROR_CODES = [
   'rate_limited',
   'validation_failed',
   'approval_pending',
+  'confirmation_required',
   'brand_required',
+  'organization_required',
   'policy_check_unavailable',
   'publishing_held',
 ] as const;
@@ -50,9 +58,18 @@ interface McpToolBrandOption {
   label: string;
 }
 
+interface McpToolOrganizationOption {
+  brands: McpToolBrandOption[];
+  id: string;
+  label: string;
+  slug: string;
+}
+
 export interface McpToolError {
   code: McpToolErrorCode;
   message: string;
+  /** The caller's organizations, listed when a call on an all-organizations connection names none. */
+  organizations?: McpToolOrganizationOption[];
   /** The caller's brands, listed when a generation call omits `brandId`. */
   brands?: McpToolBrandOption[];
   retryAfterSeconds?: number;
@@ -141,6 +158,9 @@ function compactToolError(error: McpToolError): McpToolError {
   return {
     code: error.code,
     message: error.message,
+    ...(error.code === 'confirmation_required' && error.toolName
+      ? { toolName: error.toolName }
+      : {}),
     ...(error.approvalId
       ? {
           approvalId: error.approvalId,
@@ -150,6 +170,7 @@ function compactToolError(error: McpToolError): McpToolError {
         }
       : {}),
     ...(error.brands ? { brands: error.brands } : {}),
+    ...(error.organizations ? { organizations: error.organizations } : {}),
     ...(error.batch ? { batch: error.batch } : {}),
     ...(error.invalidReleases?.length
       ? { invalidReleases: error.invalidReleases }
@@ -256,6 +277,38 @@ export function generateApprovalCostEstimate(
         ? 'A model-specific credit quote is unavailable. Request fresh consent with a supported model and complete settings.'
         : undefined,
   };
+}
+
+/**
+ * A publishing call that has not been confirmed yet. Nothing ran and no approval was
+ * queued: the agent shows the person what will go out, and repeats the call with
+ * `confirmed: true` once they agree in the conversation.
+ */
+export function confirmationRequiredToolResult(
+  toolName: string,
+  invalidReleases?: IScheduledReleaseBatchItemError[],
+): McpToolErrorResult {
+  if (isMcpRemovalTool(toolName)) {
+    return mcpToolErrorResult({
+      code: 'confirmation_required',
+      toolName,
+      message:
+        'Nothing was deleted. Tell the person exactly what will be deleted (the post and its channel and state, and the media) and whether it is also deleted on the social network (deleteOnPlatform) or stays live there, then ask them to confirm in this conversation. ' +
+        'Only after they agree, repeat this same call with confirmed set to true. Never set confirmed on your own.',
+    });
+  }
+  const left = invalidReleases?.length
+    ? ` ${invalidReleases.length} invalid ${invalidReleases.length === 1 ? 'release was' : 'releases were'} left out; see invalidReleases.`
+    : '';
+  return mcpToolErrorResult({
+    code: 'confirmation_required',
+    toolName,
+    ...(invalidReleases?.length ? { invalidReleases } : {}),
+    message:
+      'Nothing was published or changed. Show the person exactly what will go out (text, media, channels, account, time) and ask them to confirm in this conversation. ' +
+      'Only after they agree, repeat this same call with confirmed set to true. Never set confirmed on your own.' +
+      left,
+  });
 }
 
 export function approvalPendingToolResult(
@@ -457,6 +510,14 @@ function readMcpToolFailureSignals(error: unknown): McpToolFailureSignals {
       })),
     };
   }
+  if (error instanceof McpToolInputError) {
+    return {
+      domainCode: 'VALIDATION_FAILED',
+      message: error.message,
+      status: 400,
+      validationErrors: [{ field: error.field, message: error.message }],
+    };
+  }
   if (typeof error === 'string') {
     return { message: error };
   }
@@ -581,7 +642,11 @@ export function classifyMcpToolFailure(
     });
   }
 
-  if (status === 401 || AUTH_MESSAGE.test(text)) {
+  if (
+    domainCode === MCP_ORGANIZATION_BOUND ||
+    status === 401 ||
+    AUTH_MESSAGE.test(text)
+  ) {
     return compactToolError({
       code: 'unauthorized',
       message: message || 'Authorization required.',
@@ -603,6 +668,21 @@ export function classifyMcpToolFailure(
   }
 
   return null;
+}
+
+/**
+ * True when the caller caused the failure and the server did not: the
+ * classifier names it (bad input, rate limit, plan), or the upstream API
+ * refused it with a 4xx. The caller is told; it is not a server fault.
+ */
+export function isMcpToolRefusal(error: unknown): boolean {
+  const signals = readMcpToolFailureSignals(error);
+  if (classifyMcpToolFailure(signals)) return true;
+  return (
+    signals.status !== undefined &&
+    signals.status >= 400 &&
+    signals.status < 500
+  );
 }
 
 export function toMcpToolErrorResult(

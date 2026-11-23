@@ -3,6 +3,7 @@
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { CreativeAppAgentContext } from '@genfeedai/contracts/interfaces';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import SearchField from '@ui/content/search-field/SearchField';
 import Container from '@ui/layout/container/Container';
 import { useCreativeProjectsPresence } from '@ui/layout/creative-app-workspace/CreativeAppWorkspace';
 import CreativeProjectsEmptyState from '@ui/layout/creative-app-workspace/CreativeProjectsEmptyState';
@@ -18,7 +19,6 @@ import { Button } from '@ui/primitives/button';
 import { Clapperboard } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { Fragment, type ReactElement, useMemo, useState } from 'react';
-import SearchField from '@/components/content/search-field/SearchField';
 import type { StoryboardListRun } from '@/features/studio/props/storyboard.props';
 import { useStoryboardRuns } from '@/features/studio/storyboard/hooks/use-storyboard-runs';
 import { isStoryboardRunNeedingAttention } from '@/features/studio/storyboard/utils/storyboard-run-summary';

@@ -79,6 +79,12 @@
     "composerLabel": "Post composer",
     "performance": "Performance",
     "publishedThread": "Published thread",
+    "tiktokInboxDraftThread": "TikTok Inbox draft",
+    "profileVisibility": {
+      "ariaLabel": "Public profile",
+      "label": "Hide from my public Genfeed profile",
+      "hint": "The post stays live on the social network. Only the Genfeed profile page stops listing it."
+    },
     "contentLabel": "Content",
     "choosePlatform": "Choose a platform to preview this post.",
     "threadFooter": {
@@ -294,7 +300,6 @@
     "expiredToken": "This account needs to be reconnected. Scheduled targets on it will fail.",
     "failed": "Failed",
     "gapLabel": "Empty slot",
-    "hold": "On hold",
     "queued": "{count, plural, one {# queued} other {# queued}}",
     "reconnect": "Reconnect",
     "review": "Review",

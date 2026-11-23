@@ -142,6 +142,19 @@ const MCP_APPROVAL_NEVER_SKIPPED_TOOL_NAMES = curatedActionNames(
 );
 
 /**
+ * Publishing and scheduling tools an MCP agent confirms with the person in the
+ * conversation. They never wait in the web approvals queue.
+ */
+const MCP_AGENT_CONFIRMED_TOOL_NAMES = curatedActionNames(
+  (entry) => entry.isMcpAgentConfirmed === true,
+);
+
+/** Whether an MCP call to this tool is confirmed in the agent, not queued on the web. */
+export function isMcpAgentConfirmedTool(toolName: string): boolean {
+  return MCP_AGENT_CONFIRMED_TOOL_NAMES.has(toolName);
+}
+
+/**
  * Publishing tools the OUTBOUND class does not list: they put content in front
  * of an audience, so an MCP call waits for a reviewer.
  */
@@ -158,6 +171,19 @@ const MCP_APPROVAL_GENERATION_TOOL_NAMES = curatedActionNames(
 );
 
 /**
+ * Tools that delete a person's content. An MCP call never runs until the agent
+ * has confirmed this exact deletion with the person in the conversation.
+ */
+const MCP_APPROVAL_REMOVAL_TOOL_NAMES = curatedActionNames(
+  (entry) => entry.mcpApproval === 'removal',
+);
+
+/** Whether this tool deletes content, so its confirmation text says what is deleted. */
+export function isMcpRemovalTool(toolName: string): boolean {
+  return MCP_APPROVAL_REMOVAL_TOOL_NAMES.has(toolName);
+}
+
+/**
  * Whether an MCP call to this tool can ever wait in the approvals queue. Only
  * posting and media generation do. Reads, drafts, brand setup and everything
  * else run at once, whatever their credit cost; the API still checks the
@@ -169,6 +195,7 @@ export function isMcpApprovalScopeTool(toolName: string): boolean {
     actionClass === AGENT_ACTION_CLASS.OUTBOUND ||
     actionClass === AGENT_ACTION_CLASS.CREDIT_SPENDING ||
     MCP_APPROVAL_POSTING_TOOL_NAMES.has(toolName) ||
+    MCP_APPROVAL_REMOVAL_TOOL_NAMES.has(toolName) ||
     MCP_APPROVAL_GENERATION_TOOL_NAMES.has(toolName)
   );
 }

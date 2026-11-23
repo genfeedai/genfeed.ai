@@ -1,12 +1,8 @@
-import { BrandMentionList } from '@genfeedai/agent/components/BrandMentionList';
 import { CharacterMentionList } from '@genfeedai/agent/components/CharacterMentionList';
 import { CredentialMentionList } from '@genfeedai/agent/components/CredentialMentionList';
 import { TeamMentionList } from '@genfeedai/agent/components/TeamMentionList';
 import type { CredentialMentionItem } from '@genfeedai/agent/services/agent-api.service';
-import type {
-  BrandMentionItem,
-  TeamMentionItem,
-} from '@genfeedai/agent/types/mention.types';
+import type { TeamMentionItem } from '@genfeedai/agent/types/mention.types';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { createRef } from 'react';
 import { describe, expect, it, vi } from 'vitest';
@@ -29,41 +25,6 @@ function pressKey(ref: React.RefObject<MentionListHandle | null>, key: string) {
   });
   return handled;
 }
-
-const brands: BrandMentionItem[] = [
-  { brandName: 'Acme', brandSlug: 'acme', id: 'brand-1' },
-  { brandName: 'Globex', brandSlug: 'globex', id: 'brand-2' },
-];
-
-describe('BrandMentionList', () => {
-  it('renders an empty state without items', () => {
-    render(<BrandMentionList command={vi.fn()} items={[]} />);
-
-    expect(screen.getByText('No brands found')).toBeInTheDocument();
-  });
-
-  it('renders brand names and invokes command on click', () => {
-    const command = vi.fn();
-    render(<BrandMentionList command={command} items={brands} />);
-
-    fireEvent.click(screen.getByText('Globex'));
-
-    expect(command).toHaveBeenCalledWith(brands[1]);
-  });
-
-  it('supports keyboard navigation and selection via the imperative handle', () => {
-    const command = vi.fn();
-    const ref = createRef<MentionListHandle>();
-    render(<BrandMentionList command={command} items={brands} ref={ref} />);
-
-    expect(pressKey(ref, 'ArrowDown')).toBe(true);
-    expect(pressKey(ref, 'Enter')).toBe(true);
-    expect(command).toHaveBeenCalledWith(brands[1]);
-
-    expect(pressKey(ref, 'ArrowUp')).toBe(true);
-    expect(pressKey(ref, 'Escape')).toBe(false);
-  });
-});
 
 const credentials: CredentialMentionItem[] = [
   {

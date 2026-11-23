@@ -1,3 +1,4 @@
+import { queryClientWrapper } from '@app-tests/query-client.harness';
 import { FontFamily, MemberRole } from '@genfeedai/contracts';
 import type {
   IBrandKitDraft,
@@ -9,9 +10,10 @@ import type { BrandIdentityPreviewResult } from '@services/ai/branded-generation
 import {
   act,
   fireEvent,
-  render,
+  render as renderWithTestingLibrary,
   screen,
   waitFor,
+  within,
 } from '@testing-library/react';
 import { Button } from '@ui/primitives/button';
 import type {
@@ -20,9 +22,13 @@ import type {
   TextareaHTMLAttributes,
 } from 'react';
 import { Children, isValidElement } from 'react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { BrandOsGuideReadiness } from '@/features/brands/props/brand-os-settings.props';
 import BrandOsSettingsCard from './BrandOsSettingsCard';
+
+function render(element: Parameters<typeof renderWithTestingLibrary>[0]) {
+  return renderWithTestingLibrary(element, { wrapper: queryClientWrapper() });
+}
 
 const mocks = vi.hoisted(() => ({
   role: 'owner' as string | null | undefined,
@@ -450,7 +456,7 @@ describe('Brand OS revision settings', () => {
     ).toBeInTheDocument();
   });
 
-  it('shows the saved value for a rejected compact field and persists include as accept', async () => {
+  it('shows the saved value with the scan suggestion beside it and persists it once applied', async () => {
     const content = draft();
     const description = content.fields.description;
     if (!description) throw new Error('Missing description fixture');
@@ -475,12 +481,11 @@ describe('Brand OS revision settings', () => {
     render(
       <BrandOsSettingsCard
         brandId="brand-1"
-        fieldGroups={['profile']}
         onRefreshBrand={mocks.refresh}
         onRevisionSaved={mocks.saved}
         renderWorkspace={(workspace) => (
           <>
-            {workspace.editor}
+            {workspace.renderFields(['profile'])}
             <Button
               label="Save draft"
               onClick={workspace.onSave}
@@ -490,19 +495,20 @@ describe('Brand OS revision settings', () => {
         )}
       />,
     );
-    expect(await openRevisionField('Description')).toHaveValue(
+    expect(await screen.findByLabelText('Description')).toHaveValue(
       'Saved description',
     );
     expect(
       screen.queryByDisplayValue('Proposed description'),
     ).not.toBeInTheDocument();
-    const include = screen.getByRole('checkbox', {
-      name: 'Include Description in approval',
-    });
-    expect(include).not.toBeChecked();
-    fireEvent.click(include);
-    expect(include).toBeChecked();
-    expect(await openRevisionField('Description')).toHaveValue(
+    expect(
+      screen.getByText('Found in scan: Proposed description'),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('checkbox', { name: /Include/ }),
+    ).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Use' }));
+    expect(screen.getByLabelText('Description')).toHaveValue(
       'Proposed description',
     );
     fireEvent.click(screen.getByRole('button', { name: 'Save draft' }));
@@ -523,6 +529,79 @@ describe('Brand OS revision settings', () => {
         }),
       ),
     );
+  });
+
+  it('reverts an edited inline field to the approved value', async () => {
+    const content = draft();
+    const description = content.fields.description;
+    if (!description) throw new Error('Missing description fixture');
+    content.fields.description = {
+      ...description,
+      applyActionDefault: 'accept',
+      currentValue: 'Saved description',
+      proposedValue: 'Edited description',
+    };
+    mocks.listBrandOsRevisions.mockResolvedValue([revision({ content })]);
+    render(
+      <BrandOsSettingsCard
+        brandId="brand-1"
+        onRefreshBrand={mocks.refresh}
+        onRevisionSaved={mocks.saved}
+        renderWorkspace={(workspace) => workspace.renderFields(['profile'])}
+      />,
+    );
+    expect(await screen.findByLabelText('Description')).toHaveValue(
+      'Edited description',
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Revert Description' }));
+    expect(screen.getByLabelText('Description')).toHaveValue(
+      'Saved description',
+    );
+    expect(
+      screen.queryByRole('button', { name: 'Revert Description' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('splits the revision into approval, history, share and policy slots', async () => {
+    mocks.listBrandOsRevisions.mockResolvedValue([revision()]);
+    render(
+      <BrandOsSettingsCard
+        brandId="brand-1"
+        onRefreshBrand={mocks.refresh}
+        onRevisionSaved={mocks.saved}
+        renderWorkspace={(workspace) => (
+          <>
+            <section aria-label="approval">{workspace.review}</section>
+            <section aria-label="history">{workspace.history}</section>
+            <section aria-label="policy">{workspace.policy}</section>
+          </>
+        )}
+      />,
+    );
+    const approval = within(
+      await screen.findByRole('region', { name: 'approval' }),
+    );
+    expect(
+      await approval.findByRole('button', { name: 'Approve revision' }),
+    ).toBeInTheDocument();
+    expect(
+      approval.queryByRole('combobox', { name: 'Revision history' }),
+    ).not.toBeInTheDocument();
+    expect(
+      approval.queryByRole('button', { name: 'Refresh history' }),
+    ).not.toBeInTheDocument();
+    const history = within(screen.getByRole('region', { name: 'history' }));
+    expect(
+      history.getByRole('combobox', { name: 'Revision history' }),
+    ).toBeInTheDocument();
+    expect(
+      history.getByRole('button', { name: 'Refresh history' }),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByRole('region', { name: 'policy' })).getByRole(
+        'heading',
+      ),
+    ).toBeInTheDocument();
   });
 
   it('forks an approved revision and retains the approved history', async () => {
@@ -1758,6 +1837,12 @@ describe('mounted current approved identity preview', () => {
 });
 
 describe('opt-in auto-save and guide readiness', () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
   async function renderAutoSaving(
     onReadinessChange: (readiness: BrandOsGuideReadiness) => void = vi.fn(),
   ) {
@@ -1773,7 +1858,9 @@ describe('opt-in auto-save and guide readiness', () => {
     await openRevisionField('Description');
   }
   function settle(ms = 1800) {
-    return act(() => new Promise<void>((resolve) => setTimeout(resolve, ms)));
+    return act(async () => {
+      await vi.advanceTimersByTimeAsync(ms);
+    });
   }
 
   it('saves settled edits once through the expected-updatedAt save and never approves', async () => {

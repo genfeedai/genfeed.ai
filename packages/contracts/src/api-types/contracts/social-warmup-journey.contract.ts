@@ -14,15 +14,12 @@ import type {
 } from './social-warmup-blueprint.contract';
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
-const MAX_HOLD_CHECK_TITLES = 3;
 
 export const SOCIAL_WARMUP_TELEMETRY_EVENT = {
   checkCompleted: 'social_warmup.check_completed',
   checkReopened: 'social_warmup.check_reopened',
   enrolled: 'social_warmup.enrolled',
   graduated: 'social_warmup.graduated',
-  override: 'social_warmup.override',
-  publishingHold: 'social_warmup.publishing_hold',
   readinessTransition: 'social_warmup.readiness_transition',
   signalsRefreshed: 'social_warmup.signals_refreshed',
 } as const;
@@ -59,7 +56,6 @@ export interface SocialWarmupJourneyEnrollment {
 export interface SocialWarmupJourneyEvaluation {
   blockingChecks: SocialWarmupJourneyCheck[];
   elapsedDays: number;
-  holdReason: string | undefined;
   isGraduated: boolean;
   isReadyToGraduate: boolean;
 }
@@ -173,23 +169,6 @@ export function listBlockingSocialWarmupChecks(
   );
 }
 
-export function buildSocialWarmupRequiredCheckHoldReason(
-  platform: string,
-  blockingChecks: readonly Pick<SocialWarmupJourneyCheck, 'title'>[],
-): string {
-  const titles = blockingChecks
-    .slice(0, MAX_HOLD_CHECK_TITLES)
-    .map((check) => check.title);
-  const remaining = blockingChecks.length - titles.length;
-  const listed = titles.join('; ');
-  const extra =
-    remaining > 0
-      ? `; and ${remaining} more required check${remaining === 1 ? '' : 's'}`
-      : '';
-
-  return `${platform} publishing is held because required warm-up checks are incomplete: ${listed}${extra}. Complete the checks or confirm an expiring override after review. This does not guarantee reach or safety.`;
-}
-
 export function evaluateSocialWarmupJourney(input: {
   blueprint: SocialWarmupBlueprint;
   enrollment: SocialWarmupJourneyEnrollment;
@@ -211,16 +190,10 @@ export function evaluateSocialWarmupJourney(input: {
     input.enrollment.isCredentialConnected !== false;
   const isDisconnected = input.enrollment.state === 'DISCONNECTED';
   const isGraduated = isReadyToGraduate && !isDisconnected;
-  const platform = input.platform ?? input.blueprint.platform;
-  const holdReason =
-    blockingChecks.length > 0
-      ? buildSocialWarmupRequiredCheckHoldReason(platform, blockingChecks)
-      : undefined;
 
   return {
     blockingChecks,
     elapsedDays,
-    holdReason,
     isGraduated,
     isReadyToGraduate,
   };

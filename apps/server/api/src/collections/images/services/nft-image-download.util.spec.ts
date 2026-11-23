@@ -190,14 +190,20 @@ describe('downloadNftImage', () => {
   it('keeps the same 30-second deadline across headers and a stalled body', async () => {
     const cancel = vi.fn().mockRejectedValue(new Error('cleanup failed'));
     const body = new ReadableStream<Uint8Array>({ cancel });
+    let sendHeaders: () => void = () => undefined;
+    const headersArrived = new Promise<void>((resolve) => {
+      sendHeaders = resolve;
+    });
     vi.mocked(safeFetch).mockImplementation(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 20_000));
+      await headersArrived;
       return imageResponse(body);
     });
     const outcome = downloadNftImage('https://public.example/image', 3).catch(
       (error: unknown) => error,
     );
-    await vi.advanceTimersByTimeAsync(29_999);
+    await vi.advanceTimersByTimeAsync(20_000);
+    sendHeaders();
+    await vi.advanceTimersByTimeAsync(9_999);
     expect(cancel).not.toHaveBeenCalled();
     await vi.advanceTimersByTimeAsync(1);
     expect(await outcome).toMatchObject({

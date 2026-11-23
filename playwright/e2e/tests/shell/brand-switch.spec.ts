@@ -3,6 +3,7 @@ import {
   buildProtectedAppBootstrapPayload,
   generateMockBrand,
 } from '@e2e/utils/api-interceptor';
+import { waitRealTime } from '@e2e/utils/real-time';
 import type { Page } from '@playwright/test';
 
 const API_LATENCY_MS = 200;
@@ -48,7 +49,7 @@ async function mockTwoBrands(page: Page): Promise<void> {
 /** Adds latency to every API call, as the audit did, without changing the answers. */
 async function delayEveryApiCall(page: Page): Promise<void> {
   await page.route('**/v1/**', async (route) => {
-    await new Promise((resolve) => setTimeout(resolve, API_LATENCY_MS));
+    await waitRealTime(API_LATENCY_MS);
     await route.fallback();
   });
 }
@@ -63,7 +64,7 @@ test.describe('Brand switch', () => {
     await page.route('**/v1/users/me/brands/*', async (route) => {
       if (route.request().method() === 'PATCH') {
         saveRequests.push(new URL(route.request().url()).pathname);
-        await new Promise((resolve) => setTimeout(resolve, API_LATENCY_MS));
+        await waitRealTime(API_LATENCY_MS);
         await route.fulfill({
           body: JSON.stringify({ data: { id: 'brand-2', type: 'brand' } }),
           contentType: 'application/vnd.api+json',
@@ -130,7 +131,7 @@ test.describe('Brand switch', () => {
     );
 
     await expect(page).toHaveURL(/\/test-org\/brand-2\//);
-    await page.waitForTimeout(API_LATENCY_MS * 3);
+    await waitRealTime(API_LATENCY_MS * 3);
     expect(saveRequests).toEqual(['/v1/users/me/brands/brand-2']);
   });
 });

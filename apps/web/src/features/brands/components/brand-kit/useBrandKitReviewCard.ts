@@ -158,6 +158,7 @@ export function useBrandKitReviewCard({
 
   // Report each claimed draft the review shows once.
   const reportedHandoffRef = useRef<IBrandOsDraftHandoff | null>(null);
+  // use-effect-audit: ignore reports the claimed draft to the host once
   useEffect(() => {
     if (!appliedHandoff || reportedHandoffRef.current === appliedHandoff) {
       return;

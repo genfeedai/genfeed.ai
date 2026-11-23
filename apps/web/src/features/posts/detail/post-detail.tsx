@@ -30,7 +30,7 @@ import { ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { type ReactNode, useCallback, useMemo, useState } from 'react';
+import { type ReactNode, useCallback, useMemo, useRef, useState } from 'react';
 import TargetPreview from '@/components/previews/TargetPreview';
 import RecordFactLine from '@/components/record-detail/RecordFactLine';
 import EngagementPreview from '@/features/posts/components/posts/engagement-preview/EngagementPreview';
@@ -41,6 +41,7 @@ import PostDetailNeedsYou from '@/features/posts/detail/components/PostDetailNee
 import PostDetailPublished from '@/features/posts/detail/components/PostDetailPublished';
 import { buildPostDetailFacts } from '@/features/posts/detail/post-detail-facts.helper';
 import { buildPostTargetPreview } from '@/features/posts/detail/post-detail-preview.helpers';
+import { isTikTokInboxDelivered } from '@/features/posts/detail/post-published.helper';
 import { usePostAgent } from '@/features/posts/hooks/use-post-agent/use-post-agent';
 import { usePostDetail } from '@/features/posts/hooks/use-post-detail/use-post-detail';
 import type { PostReviewSummary } from '@/props/components/post-detail-sidebar.props';
@@ -97,6 +98,7 @@ export default function PostDetail({
     childDescriptions,
     scheduleDraft,
     selectedIngredients,
+    isPublishBlocked,
     isSavingDescription,
     isSavingSchedule,
     isSavingIngredients,
@@ -177,9 +179,16 @@ export default function PostDetail({
   });
   const [isScoringSeo, setIsScoringSeo] = useState(false);
   const [isTikTokPublishingReady, setIsTikTokPublishingReady] = useState(false);
+  // Set synchronously at entry: the description save below is awaited, and a
+  // second click before the disabled state renders must not start a second
+  // save-then-publish.
+  const isPublishInFlightRef = useRef(false);
   const guardTikTokPublish = useCallback(
     (action: () => Promise<void>) => {
       return async () => {
+        if (isPublishInFlightRef.current) {
+          return;
+        }
         if (
           post?.platform === CredentialPlatform.TIKTOK &&
           !isTikTokPublishingReady
@@ -189,8 +198,13 @@ export default function PostDetail({
           );
           return;
         }
-        await handleContentSave();
-        await action();
+        isPublishInFlightRef.current = true;
+        try {
+          await handleContentSave();
+          await action();
+        } finally {
+          isPublishInFlightRef.current = false;
+        }
       };
     },
     [
@@ -306,6 +320,40 @@ export default function PostDetail({
     }
   }, [post, getPostsService, notificationsService, router, href]);
 
+  const [isUpdatingProfileVisibility, setIsUpdatingProfileVisibility] =
+    useState(false);
+  const handleHiddenFromProfileChange = useCallback(
+    async (isHidden: boolean) => {
+      if (!post || isUpdatingProfileVisibility) {
+        return;
+      }
+
+      setIsUpdatingProfileVisibility(true);
+
+      try {
+        const service = await getPostsService();
+        await service.patch(post.id, { isHiddenFromProfile: isHidden });
+        await refreshPost();
+        notificationsService.success(
+          isHidden
+            ? 'Post hidden from your public profile'
+            : 'Post shown on your public profile',
+        );
+      } catch {
+        notificationsService.error('Failed to update profile visibility');
+      } finally {
+        setIsUpdatingProfileVisibility(false);
+      }
+    },
+    [
+      post,
+      isUpdatingProfileVisibility,
+      getPostsService,
+      refreshPost,
+      notificationsService,
+    ],
+  );
+
   const handleScoreSeo = useCallback(async () => {
     if (!post || isScoringSeo || isContentDirty) {
       return;
@@ -413,6 +461,7 @@ export default function PostDetail({
           post={post}
           credential={credential}
           scheduleDraft={scheduleDraft}
+          isPublishBlocked={isPublishBlocked}
           isSavingSchedule={isSavingSchedule}
           isScheduleDirty={isScheduleDirty}
           isScoringSeo={isScoringSeo}
@@ -450,6 +499,7 @@ export default function PostDetail({
     saveSchedule,
     isContentDirty,
     isPublished,
+    isPublishBlocked,
     isSavingSchedule,
     isScheduleDirty,
     isScoringSeo,
@@ -560,6 +610,7 @@ export default function PostDetail({
         headingLevel: isPagePresentation ? (1 as const) : (2 as const),
         isExpandingToThread,
         isPublished,
+        isPublishBlocked,
         isSavingSchedule,
         isScheduleDirty: isScheduleDirty && scheduleDraft !== '',
         onCreateRemix: isSourcePostVariationPlatform(post.platform)
@@ -651,6 +702,12 @@ export default function PostDetail({
               <div className="flex min-w-0 flex-1 flex-col">
                 {isStandalonePage && isPublished ? (
                   <PostDetailPublished
+                    isHiddenFromProfile={post.isHiddenFromProfile}
+                    isTikTokInboxDelivered={isTikTokInboxDelivered(post)}
+                    isUpdatingProfileVisibility={isUpdatingProfileVisibility}
+                    onHiddenFromProfileChange={(isHidden) =>
+                      void handleHiddenFromProfileChange(isHidden)
+                    }
                     stats={analyticsStats}
                     thread={threadPreview}
                   />

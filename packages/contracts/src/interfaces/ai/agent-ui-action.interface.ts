@@ -397,15 +397,21 @@ export interface AgentPublishSettingField {
  * per-channel override, capability-driven settings, and validation blockers.
  */
 export interface AgentPublishTargetProposal {
+  /** The connected account's profile picture, when it has one. */
+  avatarUrl?: string;
   blockers: AgentPublishValidationIssue[];
   caption?: string;
   captionMaxLength?: number;
   credentialId: string;
+  /** The connected account's handle, with or without the leading `@`. */
+  handle?: string;
   id: string;
   isCaptionRequired?: boolean;
   isSelected?: boolean;
   label: string;
   media?: AgentPublishTargetMedia[];
+  /** The connected account's own name or operator label. */
+  name?: string;
   platform: string;
   referenceState?: string;
   scheduledAt?: string;
@@ -860,6 +866,28 @@ export interface AgentAiTextActionCardAction
   textContent?: string;
 }
 
+/** One change the agent proposes to a control on the page the person is on. */
+export interface AgentPageControlChangeStep {
+  action: 'setChecked' | 'setValue';
+  /** The control's accessible name, as the page reported it. */
+  label: string;
+  /** Set when the page reported a ref; the card re-checks the label first. */
+  ref?: string;
+  value: boolean | number | string;
+}
+
+/**
+ * Proposed changes to controls on the current page. Nothing changes until the
+ * person approves the card; the page then applies each step through the
+ * control's own change callback.
+ */
+export interface AgentPageControlChangeCardAction
+  extends AgentUiActionBase<'page_control_change_card'> {
+  /** The page the controls are on, so the card waits for it. */
+  route?: string;
+  steps: AgentPageControlChangeStep[];
+}
+
 export interface AgentAdsSearchResultsCardAction
   extends AgentUiActionBase<'ads_search_results_card'> {
   items: AgentUiActionItem[];
@@ -947,6 +975,7 @@ export type AgentUiAction =
   | AgentVoiceCloneCardAction
   | AgentBrandVoiceProfileCardAction
   | AgentAiTextActionCardAction
+  | AgentPageControlChangeCardAction
   | AgentAdsSearchResultsCardAction
   | AgentAdDetailSummaryCardAction
   | AgentCampaignLaunchPrepCardAction

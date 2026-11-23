@@ -508,7 +508,7 @@ export class AgentChatModelRegistryService
       );
     }
     if (resolved === AGENT_CHAT_MODEL_KEYS.OPENROUTER_FREE) {
-      return this.getRoundCredits(AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_FLASH);
+      return this.getRoundCredits(AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_1_FLASH);
     }
     return this.getRoundCredits(resolved);
   }

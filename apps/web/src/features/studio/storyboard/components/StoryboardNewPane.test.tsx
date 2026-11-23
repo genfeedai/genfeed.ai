@@ -130,7 +130,7 @@ describe('StoryboardNewPane', () => {
     mocks.push.mockReset();
     mocks.proposals = [];
   });
-  it('prefills the brief, format and runtime from a preset without submitting', () => {
+  it('prefills the brief, format and runtime from a preset without submitting', async () => {
     render(<StoryboardNewPane />);
     fireEvent.click(
       screen.getByRole('button', { name: 'Product launch teaser' }),
@@ -138,20 +138,24 @@ describe('StoryboardNewPane', () => {
     expect(
       (screen.getByLabelText('Brief') as HTMLTextAreaElement).value,
     ).toContain('product launch teaser');
-    expect(screen.getByLabelText('Runtime budget (seconds)')).toHaveTextContent(
-      '15s',
+    await waitFor(() =>
+      expect(
+        screen.getByLabelText('Runtime budget (seconds)'),
+      ).toHaveTextContent('15s'),
     );
     expect(mocks.create).not.toHaveBeenCalled();
   });
-  it('fills the brief, shot plan and runtime from an agent brief without submitting', () => {
+  it('fills the brief, shot plan and runtime from an agent brief without submitting', async () => {
     mocks.proposals = [AGENT_PROPOSAL];
     render(<StoryboardNewPane />);
     fireEvent.click(screen.getByRole('button', { name: 'Lab to shelf' }));
     expect((screen.getByLabelText('Brief') as HTMLTextAreaElement).value).toBe(
       'A founder shows the serum going from lab to shelf.\n\nShots:\n1. (5s) Lab bench close-up\n2. (7s) Bottle on the shelf',
     );
-    expect(screen.getByLabelText('Runtime budget (seconds)')).toHaveTextContent(
-      '12s',
+    await waitFor(() =>
+      expect(
+        screen.getByLabelText('Runtime budget (seconds)'),
+      ).toHaveTextContent('12s'),
     );
     expect(mocks.create).not.toHaveBeenCalled();
   });

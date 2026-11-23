@@ -1,9 +1,9 @@
+import type { PostsListSearchParams } from '@app/(protected)/[orgSlug]/[brandSlug]/publishing/publishing-list-page';
+import { renderPostsListPage } from '@app/(protected)/[orgSlug]/[brandSlug]/publishing/publishing-list-page';
 import { PageScope } from '@genfeedai/contracts';
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
 import { Suspense } from 'react';
 import { CampaignDetailShell } from '@/features/campaigns';
-import type { PostsListSearchParams } from '../../../publishing-list-page';
-import { renderPostsListPage } from '../../../publishing-list-page';
 
 export const generateMetadata = createPageMetadata('Campaign Content');
 

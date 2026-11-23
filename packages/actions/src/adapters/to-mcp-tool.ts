@@ -10,8 +10,13 @@ import {
   MCP_BRAND_REQUIRED_WHEN_MULTIPLE_NOTE,
   withRequiredMcpBrandId,
 } from '../registry/mcp-brand-required';
-import { isMcpListedToolName } from '../registry/mcp-catalog-calls';
+import { rewriteSchemaDescriptions } from '../registry/mcp-catalog/references';
+import {
+  isMcpListedToolName,
+  rewriteRetiredMcpReferences,
+} from '../registry/mcp-catalog-calls';
 import { compactMcpInputDocumentation } from '../registry/mcp-input-documentation';
+import { withMcpOrganizationArgument } from '../registry/mcp-organization';
 import { getMcpToolOutputSchema } from '../registry/mcp-output-schema';
 import { deriveMcpToolPresentation } from '../registry/source/tool-annotations';
 import {
@@ -50,7 +55,6 @@ export const MCP_TOOL_OUTPUT_SCHEMA = {
     message: { type: 'string' },
     tool: { type: 'object' },
     tools: { type: 'array' },
-    toolsets: { type: 'array' },
   },
   type: 'object',
 } as const satisfies ToolParameterSchema;
@@ -88,49 +92,61 @@ function withoutHiddenParameters(
   };
 }
 
+/** The tools a connection lists: MCP-surfaced and not an unlisted execution tool. */
 export function toMcpTools(tools: CanonicalToolDefinition[]): McpToolOutput[] {
   return tools
     .filter((tool) => tool.surfaces.mcp && isMcpListedToolName(tool.name))
-    .map((tool) => {
-      const presentation =
-        tool.title && tool.annotations
-          ? { annotations: tool.annotations, title: tool.title }
-          : deriveMcpToolPresentation(tool.name, tool.mutationPolicy);
-      const creditPricing =
-        tool.creditPricing ?? fixedCreditPricing(tool.creditCost);
-      const requiresBrand = isMcpBrandRequiredTool(tool.name);
-      const brandNote = requiresBrand
-        ? MCP_BRAND_REQUIRED_NOTE
-        : isMcpBrandRequiredWhenMultipleTool(tool.name)
-          ? MCP_BRAND_REQUIRED_WHEN_MULTIPLE_NOTE
-          : undefined;
-      const projected = withoutHiddenParameters(
-        tool.parameters,
-        tool.mcpHiddenParameters,
-      );
-      const parameters = requiresBrand
-        ? withRequiredMcpBrandId(projected)
-        : projected;
-      const description = tool.mcpDescription ?? tool.description;
-      return {
-        _meta: {
-          [MCP_CREDIT_COST_META_KEY]: tool.creditCost,
-          [MCP_CREDIT_PRICING_META_KEY]: creditPricing,
-          [MCP_TOOLSET_META_KEY]: tool.toolset,
-          ...(tool.mutationPolicy
-            ? { [MCP_MUTATION_POLICY_META_KEY]: tool.mutationPolicy }
-            : {}),
-        },
-        annotations: presentation.annotations,
-        description: appendCreditPricingDescription(
-          brandNote ? `${description} ${brandNote}` : description,
-          creditPricing,
-        ),
-        inputSchema: compactMcpInputDocumentation(parameters),
-        name: tool.name,
-        outputSchema: getMcpToolOutputSchema(tool),
-        requiredRole: tool.requiredRole,
-        title: presentation.title,
-      };
-    });
+    .map(toMcpTool);
+}
+
+/** Projects one tool, listed or not (a merged tool's execution tool is not). */
+export function toMcpTool(tool: CanonicalToolDefinition): McpToolOutput {
+  const presentation =
+    tool.title && tool.annotations
+      ? { annotations: tool.annotations, title: tool.title }
+      : deriveMcpToolPresentation(tool.name, tool.mutationPolicy);
+  const creditPricing =
+    tool.creditPricing ?? fixedCreditPricing(tool.creditCost);
+  // The shared policy still protects publishing through the in-app tool.
+  const mutationPolicy =
+    tool.name === 'create_post' ? 'direct' : tool.mutationPolicy;
+  const requiresBrand = isMcpBrandRequiredTool(tool.name);
+  const brandNote = requiresBrand
+    ? MCP_BRAND_REQUIRED_NOTE
+    : isMcpBrandRequiredWhenMultipleTool(tool.name)
+      ? MCP_BRAND_REQUIRED_WHEN_MULTIPLE_NOTE
+      : undefined;
+  const projected = withoutHiddenParameters(
+    tool.parameters,
+    tool.mcpHiddenParameters,
+  );
+  const parameters = withMcpOrganizationArgument(
+    requiresBrand ? withRequiredMcpBrandId(projected) : projected,
+  );
+  const description = tool.mcpDescription ?? tool.description;
+  return {
+    _meta: {
+      [MCP_CREDIT_COST_META_KEY]: tool.creditCost,
+      [MCP_CREDIT_PRICING_META_KEY]: creditPricing,
+      [MCP_TOOLSET_META_KEY]: tool.toolset,
+      ...(mutationPolicy
+        ? { [MCP_MUTATION_POLICY_META_KEY]: mutationPolicy }
+        : {}),
+    },
+    annotations: presentation.annotations,
+    description: rewriteRetiredMcpReferences(
+      appendCreditPricingDescription(
+        brandNote ? `${description} ${brandNote}` : description,
+        creditPricing,
+      ),
+    ),
+    inputSchema: rewriteSchemaDescriptions(
+      compactMcpInputDocumentation(parameters),
+      rewriteRetiredMcpReferences,
+    ),
+    name: tool.name,
+    outputSchema: getMcpToolOutputSchema(tool),
+    requiredRole: tool.requiredRole,
+    title: presentation.title,
+  };
 }

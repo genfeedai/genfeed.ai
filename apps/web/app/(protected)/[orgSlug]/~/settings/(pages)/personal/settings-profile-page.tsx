@@ -275,7 +275,7 @@ export default function SettingsProfilePage() {
       </Card>
 
       <SettingsMcpApprovalCard
-        isRequired={currentUser?.settings?.isMcpApprovalRequired !== false}
+        isRequired={currentUser?.settings?.isMcpApprovalRequired === true}
         isSaving={isSaving}
         onChange={(isRequired) => {
           void patchSettings({ isMcpApprovalRequired: isRequired }).then(

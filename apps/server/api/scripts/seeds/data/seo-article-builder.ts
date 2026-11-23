@@ -100,6 +100,35 @@ function renderSources(sources: readonly Source[]): string {
     .join('')}</ul>`;
 }
 
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+/**
+ * A copy-paste prompt that turns the guide's workflow into instructions for
+ * Claude, Codex, or any other agent, so the article is usable by machines as
+ * well as people.
+ */
+function renderAgentPrompt(brief: SeoArticleBrief): string {
+  const steps = brief.workflow
+    .map(({ action, detail }, index) => `${index + 1}. ${action} ${detail}`)
+    .join('\n');
+  const prompt = [
+    `I am following a guide called "${brief.label}". Work through it with me.`,
+    `The short answer: ${brief.answer}`,
+    `Follow these steps in order. Keep each hand-off visible, and stop for my approval wherever a step publishes something, makes a claim, or uses someone's likeness.\n${steps}`,
+    `Track these measures:\n${brief.metrics.map((metric) => `- ${metric}`).join('\n')}`,
+    `Avoid these mistakes:\n${brief.mistakes.map((mistake) => `- ${mistake}`).join('\n')}`,
+    'When you finish a step, say what you did, what you assumed, and what I still need to approve.',
+  ].join('\n\n');
+
+  return `<p>Paste this into Claude, Codex, or any agent that works on your content. It turns the workflow above into instructions, so the agent follows the same steps and stops at the same review points.</p>
+<pre><code>${escapeHtml(prompt)}</code></pre>`;
+}
+
 /**
  * Turns an editorial brief into sanitized, long-form HTML. The prose and
  * recommendations remain article-specific; this helper standardizes the parts
@@ -111,7 +140,7 @@ export function buildSeoArticle(brief: SeoArticleBrief): SeedArticle {
 <p>${brief.intro[0]}</p>
 <p>${brief.intro[1]}</p>
 
-<h2>The short answer</h2>
+<h2>TL;DR</h2>
 <p>${brief.answer}</p>
 
 <h2>Choose the workflow before the tool</h2>
@@ -129,6 +158,9 @@ should remove a proven bottleneck, not hide an undefined process. Each step
 below needs an owner, an input, an output, and a clear reason to stop for human
 review.</p>
 ${renderWorkflow(brief.workflow)}
+
+<h2>Give this to your agent</h2>
+${renderAgentPrompt(brief)}
 
 <h2>How this fits into Genfeed</h2>
 <p>Genfeed is designed as a content operating system rather than a single

@@ -304,8 +304,8 @@ describe('PricingContent', () => {
 
     expect(AVATAR_CREDIT_COSTS.avatar4s).toEqual({ maxCredits, minCredits });
     expect(row).toHaveTextContent(`${minCredits}–${maxCredits} credits`);
-    // Photo animation to Avatar V: 52–160 credits, not the old 400.
-    expect(row).toHaveTextContent('52–160 credits');
+    // Photo animation to Avatar 6 at 2K: 52–183 credits, not the old 400.
+    expect(row).toHaveTextContent('52–183 credits');
     expect(row).not.toHaveTextContent('400 credits');
   });
 
@@ -320,5 +320,23 @@ describe('PricingContent', () => {
     expect(range).toHaveTextContent('8–17 credits');
     expect(fourK).toHaveTextContent('102 credits');
     expect(screen.queryByText(/^50 credits/)).not.toBeInTheDocument();
+  });
+  it('states how long unposted videos are stored on each plan', () => {
+    render(<PricingContent />);
+    const cells = within(
+      screen.getByRole('rowheader', { name: 'Unposted video storage' })
+        .parentElement as HTMLElement,
+    ).getAllByRole('cell');
+
+    // Pay-as-you-go, Pro, Scale, Enterprise.
+    expect(cells.map((cell) => cell.textContent)).toEqual([
+      '7 days',
+      '30 days',
+      '30 days',
+      '30 days',
+    ]);
+    expect(
+      screen.getByText(/Videos you have not posted are kept for 7 days/),
+    ).toBeInTheDocument();
   });
 });

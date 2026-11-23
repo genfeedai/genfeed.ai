@@ -7087,34 +7087,40 @@ export async function failureSummary(identity, outcome, env = {}) {
   const code = first?.code ?? 'UNKNOWN';
   let found;
   let exit;
+  let commandStage = stage;
   let logLines = [];
   try {
+    const commands = outcome.commands ?? [];
+    const failedCommand = (command) =>
+      command.exitCode !== 0 ||
+      command.signal ||
+      command.timedOut ||
+      command.outputLimit ||
+      command.spawnError ||
+      command.streamError ||
+      command.cleanupError;
+    // A stage can run several commands under their own names (the agent
+    // stage also runs the publisher contracts), so when no command carries the
+    // failing stage's name the last failed command is the one that failed it.
+    let index = commands.findLastIndex(
+      (command) => command.stage === stage && failedCommand(command),
+    );
+    if (index < 0) index = commands.findLastIndex(failedCommand);
+    const command = index >= 0 ? commands[index] : undefined;
+    commandStage = command?.stage ?? stage;
     const reports = [
-      `raw/${stage}.report.json`,
+      `raw/${commandStage}.report.json`,
       ...identity.evidence.filter(
         (relative) =>
           relative.endsWith('.report.json') &&
-          relative !== `raw/${stage}.report.json`,
+          relative !== `raw/${commandStage}.report.json`,
       ),
     ];
     for (const relative of reports) {
       found = firstFailedCase(await readOptionalJson(identity, relative));
       if (found) break;
     }
-    const commands = outcome.commands ?? [];
-    const index = commands.findLastIndex(
-      (command) =>
-        command.stage === stage &&
-        (command.exitCode !== 0 ||
-          command.signal ||
-          command.timedOut ||
-          command.outputLimit ||
-          command.spawnError ||
-          command.streamError ||
-          command.cleanupError),
-    );
-    if (index >= 0) {
-      const command = commands[index];
+    if (command) {
       exit =
         command.signal ??
         (command.timedOut ? 'timeout' : (command.exitCode ?? 'unknown'));
@@ -7122,7 +7128,10 @@ export async function failureSummary(identity, outcome, env = {}) {
         for (const stream of ['stderr', 'stdout']) {
           try {
             const text = (
-              await safeFile(identity.state, `raw/${stage}-${index}.${stream}`)
+              await safeFile(
+                identity.state,
+                `raw/${commandStage}-${index}.${stream}`,
+              )
             ).toString('utf8');
             if (text.trim()) {
               logLines = clipSummaryLines(text, { tail: true });
@@ -7136,6 +7145,7 @@ export async function failureSummary(identity, outcome, env = {}) {
     `runtime-acceptance failed ${identity.candidateSHA}`,
     `stage=${stage}`,
     `code=${code}`,
+    ...(commandStage === stage ? [] : [`command=${commandStage}`]),
     ...(exit === undefined ? [] : [`exit=${exit}`]),
     ...(found?.title ? [`case=${found.title}`] : []),
   ].join(' ');

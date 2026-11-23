@@ -332,7 +332,7 @@ describe('MembersService installed apps (#5502)', () => {
 
   it('reads the caller membership in its organization and drops unknown ids', async () => {
     prisma.member.findFirst.mockResolvedValue({
-      installedAppIds: ['turbo', 'retired', 'turbo', 'clipper'],
+      installedAppIds: ['turbo', 'retired', 'playground', 'turbo', 'clipper'],
     });
 
     await expect(
@@ -360,11 +360,11 @@ describe('MembersService installed apps (#5502)', () => {
 
   it('appends an installation to the locked membership row', async () => {
     tx.$queryRaw.mockResolvedValue([{ id: 'member-1' }]);
-    tx.member.findFirst.mockResolvedValue({ installedAppIds: ['playground'] });
+    tx.member.findFirst.mockResolvedValue({ installedAppIds: ['storyboard'] });
 
     await expect(
       service.setAppInstalled('org-1', 'user-1', 'turbo', true),
-    ).resolves.toEqual(['playground', 'turbo']);
+    ).resolves.toEqual(['storyboard', 'turbo']);
 
     const [lockQuery] = tx.$queryRaw.mock.calls[0] as [
       { sql: string; values: unknown[] },
@@ -376,7 +376,7 @@ describe('MembersService installed apps (#5502)', () => {
       where: { id: 'member-1', isDeleted: false, organizationId: 'org-1' },
     });
     expect(tx.member.update).toHaveBeenCalledWith({
-      data: { installedAppIds: ['playground', 'turbo'] },
+      data: { installedAppIds: ['storyboard', 'turbo'] },
       where: { id: 'member-1', isDeleted: false, organizationId: 'org-1' },
     });
   });
@@ -384,14 +384,14 @@ describe('MembersService installed apps (#5502)', () => {
   it('removes only the uninstalled app', async () => {
     tx.$queryRaw.mockResolvedValue([{ id: 'member-1' }]);
     tx.member.findFirst.mockResolvedValue({
-      installedAppIds: ['playground', 'turbo', 'motion'],
+      installedAppIds: ['storyboard', 'turbo', 'motion'],
     });
 
     await expect(
       service.setAppInstalled('org-1', 'user-1', 'turbo', false),
-    ).resolves.toEqual(['playground', 'motion']);
+    ).resolves.toEqual(['storyboard', 'motion']);
     expect(tx.member.update).toHaveBeenCalledWith({
-      data: { installedAppIds: ['playground', 'motion'] },
+      data: { installedAppIds: ['storyboard', 'motion'] },
       where: { id: 'member-1', isDeleted: false, organizationId: 'org-1' },
     });
   });

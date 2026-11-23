@@ -28,6 +28,13 @@ describe('text-pricing.util', () => {
     expect(getMinimumTextCredits({ cost: 4 })).toBe(4);
   });
 
+  it('never admits a call on less than one credit, whatever the model costs', () => {
+    expect(getMinimumTextCredits({ cost: 0 })).toBe(1);
+    expect(getMinimumTextCredits({})).toBe(1);
+    expect(getMinimumTextCredits({ cost: 0.4 })).toBe(1);
+    expect(getMinimumTextCredits({ cost: 4, minCost: 0.5 })).toBe(1);
+  });
+
   it('rounds up to two decimals and never bills a used call as free', () => {
     expect(roundUpTextCredits(0)).toBe(0);
     expect(roundUpTextCredits(Number.NaN)).toBe(0);

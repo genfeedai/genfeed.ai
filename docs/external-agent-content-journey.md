@@ -35,7 +35,7 @@ and a quoted, approved budget for paid media generation. Record client version,
 deployed SHA, observed behavior, and cost evidence in the authorized run. The
 read-only run established only the observations listed in the matrix above.
 
-Expected client behavior remains explicit brand selection (`get_brands` then
+Expected client behavior remains explicit brand selection (`get_context(action=brands)` then
 `brandId`, or `gf brand` / `--brand`) and transient context (`selectedContext` or
 `--context`). Image delivery may use a resource link, structured artifact, and
 text fallback; video uses a file or open link and never claims inline playback.
@@ -45,26 +45,23 @@ observed in the client.
 ## Available action journey
 
 The curated MCP catalog exposes the actions below. This is source availability,
-not a live pass. Use
-`https://mcp.genfeed.ai/mcp?toolsets=content,generation,analytics,brand,scheduler`
-or `?profile=full` to advertise the exposed content loop; `core` is always
-included. Add `inspiration` to the selection for the import and saved-concept
-actions. The default profile advertises `core`, `generation`, `content`, and `scheduler`.
-Tools may require explicit discovery selection, permissions, mutation approval,
-or approved spending. Selecting a profile does not authorize writes or costs.
+not a live pass. Connect to `https://mcp.genfeed.ai/mcp`: every connection lists every tool its
+role may call, so nothing needs selecting. Tools may require permissions,
+mutation approval, or approved spending; listing a tool does not authorize
+writes or costs.
 
 | Stage | Existing curated MCP actions | Availability / acceptance boundary |
 | --- | --- | --- |
-| Discover tools and select a brand | `find_tools`, `get_brands` | Exposed; explicit brand lookup still needs the deployed #5017 retest. |
-| Research | `get_articles`, `fetch_x_posts`, `get_trends` | Exposed through content and analytics; does not establish generic URL import. |
+| Discover tools and select a brand | `find_tools`, `get_context(action=brands)` | Exposed; explicit brand lookup still needs the deployed #5017 retest. |
+| Research | `get_content(action=articles)`, `find_inspiration(action=x_posts)`, `get_insights(action=trends)` | Exposed through content and analytics; does not establish generic URL import. |
 | Upload local media | `upload_media(action=request\|complete)` | Exposed; reservation and completion are writes. Upload the bytes using the returned instructions between these calls. |
-| Import a post | `import_source_post` | Exposed through inspiration for public X, Instagram, and TikTok post URLs only; approval required. Arbitrary URL or media fetch stays unavailable. Fixture coverage only, not a live pass. |
-| Save, edit, and quote concepts | `create_remix_concept`, `get_remix_run`, `update_remix_concept`, `attach_remix_analysis_source`, `quote_remix_generation`, `start_remix_generation`, `control_remix_generation` | Exposed through inspiration and generation; see [Imported remix handoff](#imported-remix-handoff). Fixture coverage only, not a live pass. |
-| Generate media | `generate` (`type: image`, `video`, `voice` or `music`) | Exposed through generation; requires owner consent and a quoted, approved paid budget for live acceptance. |
-| Inspect progress | `get_job_status` | Exposed; live wait/reconnect recovery remains unverified. |
-| Retrieve output | `get_assets`, `get_posts` | Exposed; verify the actual client artifact or supported fallback. |
-| Prepare and schedule | `check_channel(action=capabilities\|validate)`, `get_brand_publishing_readiness`, `create_scheduled_release` | Exposed; readiness must agree with scheduler support. Creating a release is a write and retains approval checks. |
-| Inspect analytics | `get_analytics`, `get_content_analytics`, `get_video_analytics` | Exposed through analytics; requires scoped account data and live verification. |
+| Import a post | `save_remix(action=import_source)` | Exposed through inspiration for public X, Instagram, and TikTok post URLs only; approval required. Arbitrary URL or media fetch stays unavailable. Fixture coverage only, not a live pass. |
+| Save, edit, and quote concepts | `save_remix(action=concept)`, `run_remix(action=status)`, `save_remix(action=concept_update)`, `save_remix(action=attach_source)`, `run_remix(action=quote)`, `run_remix(action=start)`, `run_remix(action=control)` | Exposed through inspiration and generation; see [Imported remix handoff](#imported-remix-handoff). Fixture coverage only, not a live pass. |
+| Generate media | `generate_media(action=media)` (`type: image`, `video`, `voice` or `music`) | Exposed through generation; requires owner consent and a quoted, approved paid budget for live acceptance. |
+| Inspect progress | `check_job(action=job)` | Exposed; live wait/reconnect recovery remains unverified. |
+| Retrieve output | `get_assets`, `get_content(action=posts)` | Exposed; verify the actual client artifact or supported fallback. |
+| Prepare and schedule | `check_channel(action=capabilities\|validate)`, `check_channel(action=readiness)`, `schedule_release(action=create)` | Exposed; readiness must agree with scheduler support. Creating a release is a write and retains approval checks. |
+| Inspect analytics | `get_insights(action=overview)`, `get_insights(action=content)`, `get_insights(action=video)` | Exposed through analytics; requires scoped account data and live verification. |
 
 This document adds no actions or schemas and does not change the independently
 packaged public agent distribution. Private activation evidence remains separate
@@ -80,11 +77,11 @@ from public client and directory acceptance.
   `oauth-callback-error.util.spec.ts`
 - Explicit brand selection and unauthorized knowledge sources:
   `agent-generation-scope.service.spec.ts`
-- MCP `get_brands` no longer returns the first of two brands:
+- MCP `get_context(action=brands)` no longer returns the first of two brands:
   `account-management.tool.spec.ts`
 - MCP media `resource_link` + structured artifact + text fallback:
   `packages/helpers/src/media/media-artifact.helper.test.ts`
-- Completed MCP images: native base64 image content through `get_job_status`,
+- Completed MCP images: native base64 image content through `check_job(action=job)`,
   SDK result validation and card wrapping:
   `apps/server/mcp/src/services/mcp-media-result.util.spec.ts`
 - CLI media wait catch-up: `packages/cli/tests/commands/media-wait-recovery.test.ts`
@@ -119,18 +116,11 @@ as an activated external pack. Every brief records `appliedPacks`, the packs
 that actually contributed. `HarnessGenerationService` logs them as an
 operator-only receipt without pack contents.
 
-Hosted deployment can install a compiled CommonJS bundle into a private ECR
-image layered on the exact public server digest. Configure production secrets
-`CONTENT_HARNESS_BUNDLE_URI` (a private S3 object) and
-`CONTENT_HARNESS_BUNDLE_SHA256` (its lowercase SHA-256), together. The deploy role
-needs read access to that object. The bundle must be self-contained, at most
-5 MiB, and export `CONTENT_HARNESS_PACK` or a default `ContentHarnessPack`.
-It must contain no credentials or source maps. The pipeline validates the
-checksum before building, removes its temporary copy, and never publishes the
-module to GHCR or a shared cache. API boot smoke validates pack activation
-before services roll. With neither secret configured, the public base image is
-used and existing runtime package configuration is preserved. Without any
-external runtime configuration, only built-in packs load.
+Hosted deployment never bakes private packs into the server image: the hosted
+image is the public server digest, copied as is. Private packs reach hosted
+Genfeed as org-scoped harness profiles, seeded from the SSM parameters under
+`HARNESS_SEED_SSM_PATH` by the `harness-profile-seed` task. Without any external
+runtime configuration, only built-in packs load.
 
 Activation is not proven by merging this code. Record the deployed image digest,
 successful boot smoke, and sanitized loaded pack IDs/versions from the target
@@ -151,22 +141,22 @@ clients. A brand can inherit that default or override it. Resetting removes the
 saved override; the system default is on. Reopen the control to see changes made
 through another client.
 
-The MCP generation toolset exposes:
+MCP exposes:
 
-- `get_generation_options`: returns `models` on every call, the account's
-  callable catalog keys. Pass an image, video, or music key as `generate.model`,
-  and an image-edit key as `transform_media.model`. Voice rows are not a
-  `generate.model` value; voice generation uses `voiceId`. Optionally supply
+- `get_generation_catalog(action=options)`: returns `models` on every call, the account's
+  callable catalog keys. Pass an image, video, or music key as `model` on `generate_media(action=media)`,
+  and an image-edit key as `model` on `generate_media(action=transform)`. Voice rows are not a
+  `model` value; voice generation uses `voiceId`. Optionally supply
   `brandId` to inspect the effective setting and its source. Add `type` to limit
   `models` to that type and also read the credit estimate and balance.
-- `set_generation_settings`: pass `scope` (`organization` or `brand`), `isEnabled`
+- `setup_brand(action=generation_settings)`: pass `scope` (`organization` or `brand`), `isEnabled`
   (`true`, `false`, or `null` to reset), and `brandId` for a brand override.
-- `enhance_prompt`: pass `prompt`, `contentType` (`image` or `video`), selected
+- `generate_text(action=enhance)`: pass `prompt`, `contentType` (`image` or `video`), selected
   `brandId`, and optionally `model` and `harness`. This previews the shared
   enhancement without creating media. Generate the returned prompt with
   `harness: false` to submit that reviewed text unchanged.
 
-For example, ask a connected agent to discover `set_generation_settings` and
+For example, ask a connected agent to discover `setup_brand(action=generation_settings)` and
 turn prompt enhancement on for a selected brand. Pass `harness: false` with an
 individual generation to override saved preferences. Organization identity comes
 from authentication, never from caller-supplied tool arguments. In an Agent
@@ -217,26 +207,20 @@ through an exact quote before any generation. This does not close a live client
 row above. Fixture tests stand in until an authenticated client run is recorded.
 No fixture run fetches paid media, publishes, or writes brand Knowledge.
 
-Discover the actions with:
-
-```text
-?toolsets=inspiration,content,generation,analytics,brand,scheduler
-```
-
-The bare MCP URL keeps its existing default profile and tool cap. `core` remains
-implicit. Downstream scheduling and analytics tools stay on `scheduler` and
-`analytics`; this handoff does not replace them.
+The actions are `save_remix` and `run_remix`, listed on every connection.
+Downstream scheduling and analytics tools are separate; this handoff does not
+replace them.
 
 | Step | Action | Effect |
 | --- | --- | --- |
-| Import | `import_source_post` | Canonical scoped import for an explicit `brandId`. Approval required. X, Instagram, and TikTok only. |
-| Save | `create_remix_concept` | Create or reuse the brand-owned saved concept from `sourcePostId`. No generation. |
-| Edit | `update_remix_concept` | Compare-and-swap at `expectedRevision`. Stale, cross-tenant, and invalid source input fail closed. |
-| Attach | `attach_remix_analysis_source` | Optional same-brand Library video for scene analysis, or `null` to clear. Free of generation spend. Imported URL remains provenance. |
-| Quote | `quote_remix_generation` | Persist one exact quote. Does not dispatch. |
-| Approve | `start_remix_generation` | Explicit approval of that `quoteId` and revision, then one canonical execution. |
-| Reconnect | `get_remix_run` | Status, receipts, and artifacts. Does not start or charge another run. |
-| Control | `control_remix_generation` | `cancel` or `resume` only when a video or avatar scene pipeline already exists. |
+| Import | `save_remix(action=import_source)` | Canonical scoped import for an explicit `brandId`. Approval required. X, Instagram, and TikTok only. |
+| Save | `save_remix(action=concept)` | Create or reuse the brand-owned saved concept from `sourcePostId`. No generation. |
+| Edit | `save_remix(action=concept_update)` | Compare-and-swap at `expectedRevision`. Stale, cross-tenant, and invalid source input fail closed. |
+| Attach | `save_remix(action=attach_source)` | Optional same-brand Library video for scene analysis, or `null` to clear. Free of generation spend. Imported URL remains provenance. |
+| Quote | `run_remix(action=quote)` | Persist one exact quote. Does not dispatch. |
+| Approve | `run_remix(action=start)` | Explicit approval of that `quoteId` and revision, then one canonical execution. |
+| Reconnect | `run_remix(action=status)` | Status, receipts, and artifacts. Does not start or charge another run. |
+| Control | `run_remix(action=control)` | `cancel` or `resume` only when a video or avatar scene pipeline already exists. |
 
 Image and copy use the generic generation quote. Image requires an explicit
 registered image model. Copy uses the canonical background model and one credit
@@ -267,4 +251,4 @@ create/reuse, edit, Library attach, quote, approval, single execution, replay,
 scene routing, and fail-closed cases with no Knowledge, publishing, or direct
 generation calls). It does not record a passed live client row.
 
-The four former MCP call names are removed and immediately return canonical action/input replacement guidance. External integrations must update. Agent and CLI identities remain unchanged. The mixed default has at most 28 tools, directory 22, and Claude 30; the full canonical MCP catalog has 143. The separate read-only profile and broader catalog targets remain future work.
+Retired MCP call names are removed and immediately return the tool and action that replace them. External integrations must update. Agent and CLI identities remain unchanged. Every connection lists the same tools, at most 30 for an ordinary user; toolsets and profiles no longer exist. On a connection covering several organizations, every call names its `organization`.

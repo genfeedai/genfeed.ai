@@ -172,6 +172,8 @@ export class VideoCompletionService {
         `Failed to handle video completion for ${data.ingredientId}:`,
         error,
       );
+      // The queue retries it: every step is a compare-and-set or an idempotent write.
+      throw error;
     }
   }
 

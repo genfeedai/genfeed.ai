@@ -35,6 +35,7 @@ export function usePromptBarContext(): PromptBarContextValue {
     );
   }
   const { requestLoad } = context;
+  // use-effect-audit: ignore triggers the lazy catalog load on first use
   useEffect(() => {
     requestLoad?.();
   }, [requestLoad]);

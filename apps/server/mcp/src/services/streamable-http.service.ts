@@ -1,4 +1,3 @@
-import type { ToolsetName } from '@genfeedai/actions';
 import {
   getMcpToolOutputSchema,
   getToolByName,
@@ -28,6 +27,7 @@ import type {
   McpAuthContext,
   McpRequest,
 } from '@mcp/shared/interfaces/mcp-request.interface';
+import { filterBrandKitTools } from '@mcp/tools/brand-kit.tool';
 import {
   CallToolResultSchema,
   ListToolsResultSchema,
@@ -48,6 +48,9 @@ interface StatelessMcpRequest extends McpRequest {
 }
 
 /** Serves modern MCP requests and legacy stateless clients from one scoped factory. */
+/** Prefix of the SDK's report for a request it rejected with a 400. */
+const REJECTED_INBOUND_REQUEST_PREFIX = 'Rejected inbound request (';
+
 @Injectable()
 export class StreamableHttpService {
   /**
@@ -91,6 +94,23 @@ export class StreamableHttpService {
   }
 
   /**
+   * The SDK reports a request it turned away with a 400 (a body and headers
+   * that disagree, a missing Mcp-Method header) through the same callback as
+   * a handler fault. The client is told and fixes its request, so only the
+   * rest are errors.
+   */
+  private logHandlerError(message: string, error: unknown): void {
+    if (
+      error instanceof Error &&
+      error.message.startsWith(REJECTED_INBOUND_REQUEST_PREFIX)
+    ) {
+      this.logger.warn(message, error.message);
+      return;
+    }
+    this.logger.error(message, error);
+  }
+
+  /**
    * Handle a single MCP request with a throwaway server + transport. The SDK's
    * `handleRequest` performs method-appropriate handling (JSON-RPC over POST;
    * 405 for GET/DELETE in stateless mode), so all HTTP verbs route here.
@@ -98,16 +118,13 @@ export class StreamableHttpService {
   private async processRequest(req: Request, res: Response): Promise<void> {
     const request = req as StatelessMcpRequest;
     const authContext = request.authContext;
-    // Parsed by `toolsetsQueryMiddleware` before authentication runs, so this
-    // is populated for unauthenticated public `tools/list` requests too.
-    const toolsets = request.toolsets ?? [];
     const handler = createMcpHandler(
-      () => this.buildServer(authContext, toolsets, request.routeAccessMode),
+      () => this.buildServer(authContext, request.routeAccessMode),
       {
         legacy: 'stateless',
         responseMode: 'auto',
         maxRequestBodySize: 1024 * 1024,
-        onerror: (error) => this.logger.error('MCP handler failed', error),
+        onerror: (error) => this.logHandlerError('MCP handler failed', error),
       },
     );
     const handleRequest = toNodeHandler(handler, {
@@ -137,18 +154,13 @@ export class StreamableHttpService {
 
   private buildServer(
     authContext?: McpAuthContext,
-    toolsets: readonly ToolsetName[] = [],
     routeAccessMode: McpAccessMode = 'standard',
   ): Server {
     const accessMode = mostRestrictiveMcpAccessMode(
       routeAccessMode,
       authContext?.accessMode,
     );
-    const toolRegistry = this.createToolRegistry(
-      authContext,
-      toolsets,
-      routeAccessMode,
-    );
+    const toolRegistry = this.createToolRegistry(authContext, routeAccessMode);
 
     const serverInfo = getMcpServerInfo(
       getPublicMcpUrl(),
@@ -168,7 +180,12 @@ export class StreamableHttpService {
     });
 
     server.setRequestHandler('tools/list', () =>
-      ListToolsResultSchema.parse({ tools: toolRegistry.getTools() }),
+      ListToolsResultSchema.parse({
+        tools: filterBrandKitTools(
+          toolRegistry.getTools(),
+          authContext?.hasBrandKitEditAccess,
+        ),
+      }),
     );
 
     server.setRequestHandler('tools/call', async (request, ctx) => {
@@ -223,16 +240,15 @@ export class StreamableHttpService {
    */
   createToolRegistry(
     authContext?: McpAuthContext,
-    toolsets: readonly ToolsetName[] = [],
     routeAccessMode: McpAccessMode = 'standard',
   ): ToolRegistryService {
     return new ToolRegistryService(
       this.createClientService(authContext?.token),
       this.logger,
       authContext?.role ?? 'user',
-      toolsets,
       this.configService,
       mostRestrictiveMcpAccessMode(routeAccessMode, authContext?.accessMode),
+      authContext?.canSwitchOrganizations === true,
     );
   }
 

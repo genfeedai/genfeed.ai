@@ -4,7 +4,7 @@ import type {
   IOrganizationSetting,
 } from '@genfeedai/contracts/interfaces';
 import { act, renderHook, waitFor } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockAnalyzeVideo = vi.fn();
 const mockGetHighlights = vi.fn();
@@ -288,7 +288,12 @@ describe('draft projects', () => {
     mockGetHookApproval.mockResolvedValue(null);
   });
 
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it('restores the saved source and settings on reload without re-saving them', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
     mockGetProject.mockResolvedValue(draftProject);
 
     const { result } = renderHook(() =>
@@ -312,9 +317,9 @@ describe('draft projects', () => {
     });
     expect(mockGetHighlights).not.toHaveBeenCalled();
 
-    await new Promise((resolve) =>
-      setTimeout(resolve, CLIPPER_DRAFT_AUTOSAVE_DELAY_MS + 200),
-    );
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(CLIPPER_DRAFT_AUTOSAVE_DELAY_MS + 200);
+    });
     expect(mockSaveDraft).not.toHaveBeenCalled();
   });
 

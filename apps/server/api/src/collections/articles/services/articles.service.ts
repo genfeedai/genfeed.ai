@@ -71,9 +71,9 @@ import { OrganizationSettingsService } from '@api/collections/organization-setti
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
+import { toWorkflowInputDocument } from '@api/collections/workflows/utils/workflow-input-document.util';
 import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
 import { DEFAULT_MINI_TEXT_MODEL } from '@api/constants/default-mini-text-model.constant';
-import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { ArticleFilterUtil } from '@api/helpers/utils/article-filter/article-filter.util';
@@ -84,7 +84,6 @@ import {
 } from '@api/helpers/utils/public-brand/public-brand-filter.util';
 import { scopedWhere } from '@api/index';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
-import { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/agent-chat-model-registry.service';
 import type { TextByokDispatch } from '@api/services/byok/text-dispatch-byok.util';
 import { CacheService } from '@api/services/cache/cache.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -96,6 +95,7 @@ import {
   paginatedQueryCacheTag,
 } from '@api/shared/utils/query-cache/query-cache.util';
 import { ArticleScope, WorkflowExecutionTrigger } from '@genfeedai/contracts';
+import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 import type { Prisma } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -161,8 +161,6 @@ export class ArticlesService
     @Optional()
     private readonly cacheInvalidationService?: CacheInvalidationService,
     @Optional() private readonly moduleRef?: ModuleRef,
-    @Optional()
-    private readonly agentChatModelRegistry?: AgentChatModelRegistryService,
   ) {
     super(prisma, 'article', logger, undefined, cacheService);
   }
@@ -664,7 +662,7 @@ export class ArticlesService
         {
           actionType: ARTICLE_GENERATION_TOOL_ID,
           canonicalId: ARTICLE_GENERATION_WORKFLOW_ID,
-          inputValues: { brandId, dto: generateDto },
+          inputValues: { brandId, dto: toWorkflowInputDocument(generateDto) },
           metadata: { brandId, origin: 'api' },
           organizationId,
           runtimeContext: articleWorkflowRuntime(byok),
@@ -791,13 +789,10 @@ export class ArticlesService
     organizationId: string,
     generationModelOverride?: string,
   ): Promise<ArticleCycleModelConfig> {
-    // The Admin default TEXT model (#5161) replaces the seed constant as the
-    // system default; explicit and org-configured models still win.
-    const systemDefault =
-      (await this.agentChatModelRegistry?.resolveModelKey(
-        undefined,
-        DEFAULT_TEXT_MODEL,
-      )) ?? DEFAULT_TEXT_MODEL;
+    // Articles are prose people read, so the system default is the content
+    // writing model, not the Admin default TEXT model (which serves agent chat
+    // and cheap background text). Explicit and org-configured models still win.
+    const systemDefault = LLM_DEFAULTS.contentWriting;
     const settings = await this.organizationSettingsService?.findOneSelect(
       scopedWhere(organizationId, {}),
       {
@@ -873,7 +868,6 @@ export class ArticlesService
       throw new Error('ArticlesContentService not available');
     }
 
-    // Get article
     const article = await this.findOne({
       id: articleId,
       OR: [{ userId }, { organizationId }],

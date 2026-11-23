@@ -1,11 +1,13 @@
 'use client';
 
 import { CampaignPlatform, CampaignType } from '@genfeedai/contracts';
+import type { ConnectedAccountData } from '@genfeedai/props/ui/display/connected-account.props';
 import {
   fromDateTimeLocalInput,
   TIMEZONES,
   toDateTimeLocalInput,
 } from '@helpers/formatting/timezone/timezone.helper';
+import ConnectedAccount from '@ui/display/connected-account/ConnectedAccount';
 import DateTimePicker from '@ui/primitives/date-time-picker';
 import { Input } from '@ui/primitives/input';
 import { Label } from '@ui/primitives/label';
@@ -19,10 +21,8 @@ import {
 import { Textarea } from '@ui/primitives/textarea';
 import { useTranslations } from 'next-intl';
 
-interface Credential {
+interface Credential extends ConnectedAccountData {
   id: string;
-  externalHandle: string;
-  platform: string;
 }
 
 interface OutreachCampaignWizardStep2Props {
@@ -115,7 +115,7 @@ export default function OutreachCampaignWizardStep2({
           <SelectContent>
             {filteredCredentials.map((cred) => (
               <SelectItem key={cred.id} value={cred.id}>
-                @{cred.externalHandle}
+                <ConnectedAccount account={cred} size="xs" />
               </SelectItem>
             ))}
           </SelectContent>

@@ -194,7 +194,6 @@ export class FileProcessor extends WorkerHost {
         }
       }
 
-      // Download voices
       this.logger.log('Downloading voices');
       for (let i = 0; i < voices.length; i++) {
         const filePath = await this.downloadIngredientFile(
@@ -262,7 +261,7 @@ export class FileProcessor extends WorkerHost {
       }
 
       for (const dir of tempDirs) {
-        await this.ffmpegService.cleanupTempFiles(ingredientId, dir);
+        await this.ffmpegService.removeTempDir(dir, ingredientId);
       }
 
       this.logger.log(`Cleaned up temp files for ingredient ${ingredientId}`);

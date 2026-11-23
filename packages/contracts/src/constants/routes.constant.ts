@@ -164,15 +164,13 @@ export const APP_ROUTES = {
     WORKFLOWS_NEW: '/automation/workflows/new',
   },
   DISCOVERY: {
-    FOLLOWING: '/discovery/following',
     ADS: '/discovery/ads',
     /**
-     * Canonical Discovery home. Bare ROOT permanently redirects here so Overview
-     * is a complete path (same pattern as workspace/overview).
+     * Canonical Discovery home: one feed of outside signals. Bare ROOT
+     * permanently redirects here so Feed is a complete path.
      */
-    OVERVIEW: '/discovery/overview',
+    FEED: '/discovery/feed',
     ROOT: '/discovery',
-    TREND_TURNOVER: '/discovery/trend-turnover',
     /** Market trends: topics, viral videos, hashtags, sounds, source health. */
     TRENDS: '/discovery/trends',
   },
@@ -316,10 +314,8 @@ export const APP_ROUTES = {
     AGENT_LEARNING: '/settings/agent/learning',
     AGENT_RECEIPTS: '/settings/agent/receipts',
     BRAND_KIT: '/settings/brand-kit',
-    BRAND_KIT_STRATEGY: '/settings/brand-kit/strategy',
-    BRAND_KIT_VIDEO: '/settings/brand-kit/video',
-    BRAND_KIT_VISUAL: '/settings/brand-kit/visual',
-    BRAND_KIT_VOICE: '/settings/brand-kit/voice',
+    BRAND_KIT_STRATEGY: '/settings/brand-kit#strategy',
+    BRAND_KIT_VOICE: '/settings/brand-kit#voice',
     BRANDS: '/settings/brands',
     CREDITS: '/settings/credits',
     /** What creators earned from readers, and what the organization paid. */
@@ -338,8 +334,6 @@ export const APP_ROUTES = {
     MEMBERS: '/settings/members',
     /** Which tools the organization can use; the Store links turned-off apps here. */
     MODULES: '/settings/modules',
-    /** Organization-wide preferences (avatar, voice, models, publishing caps). */
-    PREFERENCES: '/settings/preferences',
     /** Personal email and future in-app notification preferences. */
     NOTIFICATIONS: '/settings/notifications',
     /** Creation heatmap, streaks, and setup checklist. */

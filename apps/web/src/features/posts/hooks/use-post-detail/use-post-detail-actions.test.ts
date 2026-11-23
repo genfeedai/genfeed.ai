@@ -3,16 +3,14 @@ import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { usePostDetailActions } from '@/features/posts/hooks/use-post-detail/use-post-detail-actions';
 
-const { mockOpenConfirmDelete } = vi.hoisted(() => ({
-  mockOpenConfirmDelete: vi.fn(),
+const { mockConfirmPostRemoval } = vi.hoisted(() => ({
+  mockConfirmPostRemoval: vi.fn(),
 }));
 
 vi.mock(
-  '@genfeedai/contexts/providers/global-modals/global-modals.hooks',
+  '@/features/posts/hooks/use-confirm-post-removal/use-confirm-post-removal',
   () => ({
-    useConfirmDeleteModal: vi.fn(() => ({
-      openConfirmDelete: mockOpenConfirmDelete,
-    })),
+    useConfirmPostRemoval: vi.fn(() => mockConfirmPostRemoval),
   }),
 );
 
@@ -42,7 +40,6 @@ const POST = {
 } as unknown as IPost;
 
 describe('usePostDetailActions', () => {
-  const mockServiceDelete = vi.fn();
   const mockServiceRetry = vi.fn();
   const mockServiceEnhance = vi.fn();
   const mockServiceDraftThread = vi.fn();
@@ -54,6 +51,7 @@ describe('usePostDetailActions', () => {
   const mockGetReleaseGroupsService = vi.fn();
   const mockNotificationsService = {
     error: vi.fn(),
+    info: vi.fn(),
     success: vi.fn(),
   };
   const mockRouter = { push: vi.fn(), replace: vi.fn() };
@@ -64,7 +62,16 @@ describe('usePostDetailActions', () => {
   const mockSetEnhancingPostId = vi.fn();
   const mockSetEnhancingAction = vi.fn();
 
+  const makeAutoSaveRefs = () => ({
+    currentDescriptions: { current: new Map<string, string>() },
+    currentLabels: { current: new Map<string, string>() },
+    lastSavedDescriptions: { current: new Map<string, string>() },
+    lastSavedLabels: { current: new Map<string, string>() },
+    timeouts: { current: new Map<string, NodeJS.Timeout>() },
+  });
+
   const baseProps = {
+    autoSaveRefs: makeAutoSaveRefs(),
     descriptionDraft: 'Draft description',
     fetchPost: mockFetchPost,
     getPostsService: mockGetPostsService,
@@ -89,7 +96,6 @@ describe('usePostDetailActions', () => {
     vi.clearAllMocks();
     mockFetchPost.mockResolvedValue(undefined);
     mockUpdateActivePost.mockResolvedValue(POST);
-    mockServiceDelete.mockResolvedValue(undefined);
     mockServiceEnhance.mockResolvedValue({
       description: 'Enhanced text',
       id: 'post-1',
@@ -97,7 +103,6 @@ describe('usePostDetailActions', () => {
     mockServiceRetry.mockResolvedValue({ id: 'post-1' });
     mockGetPostsService.mockResolvedValue({
       retry: mockServiceRetry,
-      delete: mockServiceDelete,
       draftThread: mockServiceDraftThread,
       enhance: mockServiceEnhance,
     });
@@ -240,7 +245,7 @@ describe('usePostDetailActions', () => {
       );
     });
 
-    it('hands a TikTok video to the native app for music and final edits', async () => {
+    it('reports the queued TikTok Inbox upload before the provider confirms delivery', async () => {
       const { result } = renderHook(() =>
         usePostDetailActions({
           ...baseProps,
@@ -255,9 +260,10 @@ describe('usePostDetailActions', () => {
       expect(mockEnsureFromPost).toHaveBeenCalledWith('post-1');
       expect(mockPublishViaTikTokApp).toHaveBeenCalledWith('group-1', 'post-1');
       expect(mockPublishNow).not.toHaveBeenCalled();
-      expect(mockNotificationsService.success).toHaveBeenCalledWith(
-        'Sent to TikTok. Open your TikTok Inbox to add music or final edits, then publish.',
+      expect(mockNotificationsService.info).toHaveBeenCalledWith(
+        'TikTok Inbox upload queued',
       );
+      expect(mockNotificationsService.success).not.toHaveBeenCalled();
     });
 
     it('clears the schedule when the draft is empty', async () => {
@@ -305,52 +311,67 @@ describe('usePostDetailActions', () => {
         result.current.handleDeletePost();
       });
 
-      expect(mockOpenConfirmDelete).not.toHaveBeenCalled();
+      expect(mockConfirmPostRemoval).not.toHaveBeenCalled();
     });
 
-    it('deletes the post after confirmation and navigates away', async () => {
+    it('asks to delete this post and navigates away once it is removed', async () => {
       const { result } = renderHook(() => usePostDetailActions(baseProps));
 
       act(() => {
         result.current.handleDeletePost();
       });
 
-      const confirm = mockOpenConfirmDelete.mock.calls[0][0] as {
-        entity: { id: string; label: string };
-        entityName: string;
-        onConfirm: () => Promise<void>;
-      };
-      expect(confirm.entity).toEqual({ id: 'post-1', label: 'Parent' });
-      expect(confirm.entityName).toBe('post');
+      const [posts, onRemoved] = mockConfirmPostRemoval.mock.calls[0] as [
+        IPost[],
+        (removedIds: string[]) => Promise<void>,
+      ];
+      expect(posts.map((post) => post.id)).toEqual(['post-1']);
+      expect(mockRouter.push).not.toHaveBeenCalled();
 
       await act(async () => {
-        await confirm.onConfirm();
+        await onRemoved(['post-1']);
       });
 
-      expect(mockServiceDelete).toHaveBeenCalledWith('post-1');
-      expect(mockNotificationsService.success).toHaveBeenCalledWith(
-        'Post deleted successfully',
-      );
       expect(mockRouter.push).toHaveBeenCalledWith('/acme/publishing');
     });
 
-    it('notifies when the delete fails', async () => {
-      mockServiceDelete.mockRejectedValue(new Error('boom'));
-      const { result } = renderHook(() => usePostDetailActions(baseProps));
+    it('settles unsaved edits of a deleted post so no auto-save patches it', async () => {
+      const autoSaveRefs = makeAutoSaveRefs();
+      autoSaveRefs.currentDescriptions.current.set('post-1', 'Typed text');
+      autoSaveRefs.timeouts.current.set('post-1', {} as NodeJS.Timeout);
+      const { result } = renderHook(() =>
+        usePostDetailActions({ ...baseProps, autoSaveRefs }),
+      );
+
+      act(() => {
+        result.current.handleDeletePost();
+      });
+      const onRemoved = mockConfirmPostRemoval.mock.calls[0][1] as (
+        removedIds: string[],
+      ) => Promise<void>;
+      await act(async () => {
+        await onRemoved(['post-1']);
+      });
+
+      expect(autoSaveRefs.timeouts.current.size).toBe(0);
+      expect(autoSaveRefs.lastSavedDescriptions.current.get('post-1')).toBe(
+        'Typed text',
+      );
+    });
+
+    it('keeps unsaved edits pending until the post is removed', () => {
+      const autoSaveRefs = makeAutoSaveRefs();
+      autoSaveRefs.currentDescriptions.current.set('post-1', 'Typed text');
+      const { result } = renderHook(() =>
+        usePostDetailActions({ ...baseProps, autoSaveRefs }),
+      );
 
       act(() => {
         result.current.handleDeletePost();
       });
 
-      const confirm = mockOpenConfirmDelete.mock.calls[0][0] as {
-        onConfirm: () => Promise<void>;
-      };
-      await act(async () => {
-        await confirm.onConfirm();
-      });
-
-      expect(mockNotificationsService.error).toHaveBeenCalledWith(
-        'Failed to delete post',
+      expect(autoSaveRefs.lastSavedDescriptions.current.has('post-1')).toBe(
+        false,
       );
     });
   });

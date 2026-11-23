@@ -132,6 +132,7 @@ export function useBrandProviderState({
       })
     : undefined;
 
+  // use-effect-audit: ignore adopts the bootstrap and auth organization and brand into provider state
   useEffect(() => {
     const resolvedOrganizationId = hasInitialBootstrap
       ? initialOrganizationId
@@ -473,6 +474,7 @@ export function useBrandProviderState({
     }
   }, [effectiveIsAuthLoaded, effectiveIsSignedIn]);
 
+  // use-effect-audit: ignore moves provider state to the scoped brand and organization once the scope is ready
   useEffect(() => {
     if (!isScopeReady) {
       return;

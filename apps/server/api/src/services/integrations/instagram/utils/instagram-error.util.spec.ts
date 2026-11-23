@@ -5,6 +5,7 @@ import {
   isInstagramProfessionalAccountError,
   isInstagramRateLimitError,
   isInstagramScopeError,
+  isUserRecoverableInstagramFailure,
 } from '@api/services/integrations/instagram/utils/instagram-error.util';
 
 function graphError(
@@ -61,5 +62,30 @@ describe('Instagram error utilities', () => {
 
     expect(isInstagramRateLimitError(error)).toBe(true);
     expect(getInstagramRetryAfterMs(error, 1_000, 5_000)).toBe(5_000);
+  });
+
+  it.each([
+    ['a rejected grant', { category: 'authorization' as const }, false],
+    ['a redirect mismatch', { category: 'redirect_mismatch' as const }, false],
+    [
+      'a 400 refusal',
+      { category: 'http_exception' as const, httpStatus: 400 },
+      true,
+    ],
+    [
+      'a 503 refusal',
+      { category: 'http_exception' as const, httpStatus: 503 },
+      false,
+    ],
+    [
+      'a refusal without a status',
+      { category: 'http_exception' as const },
+      false,
+    ],
+    ['a provider failure', { category: 'provider_failure' as const }, false],
+    ['a configuration error', { category: 'configuration' as const }, false],
+    ['an unknown error', { category: 'unknown' as const }, false],
+  ])('reports %s as user recoverable: %s', (_name, log, expected) => {
+    expect(isUserRecoverableInstagramFailure(log)).toBe(expected);
   });
 });

@@ -383,10 +383,20 @@ export abstract class BaseService<
             )
           : null;
 
+      const cacheTags = [
+        `collection:${this.collectionName}`,
+        `query:${this.collectionName}`,
+        paginatedQueryCacheTag(this.collectionName),
+        GLOBAL_PAGINATED_QUERY_CACHE_TAG,
+      ];
+      let tagEpochs: string[] | null = null;
       if (cacheKey && this.cacheService) {
         const cached =
           await this.cacheService.get<AggregatePaginateResult<T>>(cacheKey);
         if (cached !== null) return cached;
+        // Read before the query runs: a write that invalidates these tags
+        // while the query reads must stop its result from being stored.
+        tagEpochs = await this.cacheService.readTagEpochs(cacheTags);
       }
 
       const isPaginated = options.pagination !== false;
@@ -445,16 +455,13 @@ export abstract class BaseService<
         totalPages,
       };
 
-      if (cacheKey && this.cacheService) {
-        await this.cacheService.set(cacheKey, result, {
-          tags: [
-            `collection:${this.collectionName}`,
-            `query:${this.collectionName}`,
-            paginatedQueryCacheTag(this.collectionName),
-            GLOBAL_PAGINATED_QUERY_CACHE_TAG,
-          ],
-          ttl: 300,
-        });
+      if (cacheKey && this.cacheService && tagEpochs) {
+        await this.cacheService.setUnlessTagsInvalidated(
+          cacheKey,
+          result,
+          { tags: cacheTags, ttl: 300 },
+          tagEpochs,
+        );
       }
 
       this.logger?.debug('Documents found successfully', {

@@ -1,9 +1,5 @@
 import process from 'node:process';
-import {
-  getToolsForRole,
-  type McpAccessMode,
-  TOOLSETS,
-} from '@genfeedai/actions';
+import type { McpAccessMode } from '@genfeedai/actions';
 import {
   API_KEY_SCOPE_PRESETS,
   MCP_CLAUDE_SCOPE_CEILING,
@@ -14,12 +10,12 @@ import {
   buildConnectGenfeedChatPrompt,
   buildConnectGenfeedInstructions,
   buildGenfeedAgentSetupPrompt,
-  GENFEED_CODEX_MCP_PROFILE,
   GENFEED_SKILLS_INSTALL_COMMAND,
   toDefaultStandardEndpoint,
 } from '@genfeedai/helpers/integrations/connect-genfeed.helper';
 import {
   deriveMcpResourceIdentifierForMode,
+  getMcpSupportedScopes,
   OAUTH_PROTECTED_RESOURCE_WELL_KNOWN_PATH,
   resolveMcpResourceIdentifier,
 } from '@genfeedai/helpers/integrations/mcp-resource.helper';
@@ -38,10 +34,7 @@ import {
 import { renderCommandBlock } from './setup-page-command-block';
 
 const TRAILING_SLASHES_PATTERN = /\/+$/;
-const LESS_THAN_SIGNS_PATTERN = /</g;
 const TRAILING_SLASH_PATTERN = /\/$/;
-const LINE_SEPARATORS_PATTERN = /\u2028/g;
-const PARAGRAPH_SEPARATORS_PATTERN = /\u2029/g;
 const POSTHOG_PROJECT_KEY_PATTERN = /^phc_[A-Za-z0-9]+$/;
 
 const DEFAULT_APP_URL = 'https://app.genfeed.ai';
@@ -134,32 +127,6 @@ export function resolveSetupPageTab(pathname: string): SetupTabId | null {
 
 function trimTrailingSlash(value: string): string {
   return value.replace(TRAILING_SLASH_PATTERN, '');
-}
-
-/**
- * Safe JS string-literal encoding for a value embedded directly in an inline
- * `<script>` block (the toolset picker below needs the endpoint as data the
- * client can recompute from). `JSON.stringify` does not escape `/`, so a
- * value containing a literal `</script>` would otherwise close the
- * surrounding script element early. Escaping every `<` neutralizes that
- * regardless of what follows it. U+2028 (LINE SEPARATOR) and U+2029
- * (PARAGRAPH SEPARATOR) are also escaped: `JSON.stringify` leaves them as
- * literal characters, but they terminate a JS string/statement outside a
- * string literal per the ECMAScript grammar, so an unescaped one in the
- * source text would break the surrounding script (or, depending on where it
- * lands, silently truncate the string value).
- *
- * The endpoint comes from `deriveMcpResourceIdentifier`, whose WHATWG URL
- * parse percent-encodes `<`, `>` and every non-ASCII code point in the path,
- * so no accepted configuration can currently reach these branches. The
- * escaping stays as defence in depth; it is exported so its contract is
- * unit-tested directly rather than through an environment override.
- */
-export function toInlineScriptStringLiteral(value: string): string {
-  return JSON.stringify(value)
-    .replace(LESS_THAN_SIGNS_PATTERN, '\\u003C')
-    .replace(LINE_SEPARATORS_PATTERN, '\\u2028')
-    .replace(PARAGRAPH_SEPARATORS_PATTERN, '\\u2029');
 }
 
 function readEnv(name: string): string | undefined {
@@ -289,59 +256,11 @@ export function getMcpProtectedResourceMetadata(
     resource_name: 'Genfeed',
     resource_policy_uri: `${getPublicWebsiteUrl()}/privacy`,
     resource_tos_uri: `${getPublicWebsiteUrl()}/terms`,
-    scopes_supported: [
-      ...(mode === 'claude'
-        ? MCP_CLAUDE_SCOPE_CEILING
-        : API_KEY_SCOPE_PRESETS.mcp),
-    ],
+    // Discovery includes optional permissions. The challenge above requests
+    // the default scopes so a Brand Kit grant still requires a brand choice
+    // and explicit consent.
+    scopes_supported: getMcpSupportedScopes(mode),
   };
-}
-
-/**
- * `getMcpServerCard()` is unauthenticated and publicly fetchable, so its
- * `toolCount` per toolset must reflect what an anonymous/plain `user` caller
- * would actually see from `tools/list` — not the unfiltered catalog count,
- * which would advertise admin- and superadmin-gated tools (e.g.
- * `resolve_approval`) the caller cannot invoke.
- */
-function getUserVisibleToolsetSummaries(): Array<{
-  description: string;
-  isAlwaysOn: boolean;
-  name: string;
-  toolCount: number;
-}> {
-  const userVisibleTools = getToolsForRole('mcp', 'user');
-
-  const toolCountByToolset = new Map<string, number>();
-  for (const tool of userVisibleTools) {
-    toolCountByToolset.set(
-      tool.toolset,
-      (toolCountByToolset.get(tool.toolset) ?? 0) + 1,
-    );
-  }
-
-  return TOOLSETS.filter((definition) =>
-    toolCountByToolset.has(definition.name),
-  ).map((definition) => ({
-    description: definition.description,
-    isAlwaysOn: definition.isAlwaysOn,
-    name: definition.name,
-    toolCount: toolCountByToolset.get(definition.name) ?? 0,
-  }));
-}
-
-/**
- * Same user-visible counts as `getUserVisibleToolsetSummaries`, trimmed to
- * the server-card schema's `toolsets` shape (no `isAlwaysOn`).
- */
-function getUserVisibleToolsetCards(): Array<{
-  description: string;
-  name: string;
-  toolCount: number;
-}> {
-  return getUserVisibleToolsetSummaries().map(
-    ({ description, name, toolCount }) => ({ description, name, toolCount }),
-  );
 }
 
 export function getMcpServerCard() {
@@ -364,7 +283,6 @@ export function getMcpServerCard() {
     name: MCP_SERVER_NAME,
     protocolVersion: '2026-07-28',
     serverInfo,
-    toolsets: getUserVisibleToolsetCards(),
     transport: {
       endpoint: getPublicMcpUrl(),
       type: 'streamable-http',
@@ -456,21 +374,6 @@ export function renderSetupPage(
   const agentSetupPromptSafe = escapeHtml(
     buildAgentSetupPrompt({ apiKeysUrl: connectUrl, mcpUrl }),
   );
-  const mcpUrlInlineScriptLiteral = toInlineScriptStringLiteral(mcpUrl);
-
-  const toolsetOptions = getUserVisibleToolsetSummaries()
-    .map((toolset) => {
-      const nameSafe = escapeHtml(toolset.name);
-      const descriptionSafe = escapeHtml(toolset.description);
-      const toolCountLabel = `${toolset.toolCount} tool${toolset.toolCount === 1 ? '' : 's'}`;
-      return `<label class="toolset-option">
-          <input type="checkbox" data-toolset-checkbox data-toolset="${nameSafe}" ${toolset.isAlwaysOn ? 'checked disabled' : ''} />
-          <span class="toolset-name">${nameSafe}${toolset.isAlwaysOn ? ' <span class="toolset-always-on">(always on)</span>' : ''}</span>
-          <span class="toolset-count">${toolCountLabel}</span>
-          <span class="toolset-desc">${descriptionSafe}</span>
-        </label>`;
-    })
-    .join('\n');
 
   return `<!doctype html>
 <html lang="en" class="${ui.root}">
@@ -790,70 +693,6 @@ code, pre {
   overflow: auto;
   white-space: pre-wrap;
 }
-.toolsets-section {
-  padding: 44px 0;
-}
-.toolsets summary {
-  cursor: pointer;
-  color: var(--gf-text-primary);
-  font-size: 13px;
-  font-weight: 750;
-  list-style: none;
-}
-.toolsets summary::-webkit-details-marker { display: none; }
-.toolsets summary::before {
-  display: inline-block;
-  margin-right: 8px;
-  color: var(--gf-text-faint);
-  content: "▸";
-  transition: transform 150ms ease-out;
-}
-.toolsets[open] summary::before {
-  transform: rotate(90deg);
-}
-.toolsets .section-copy {
-  margin: 14px 0 20px;
-}
-.toolset-picker {
-  display: grid;
-  gap: 4px;
-}
-.toolset-option {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  column-gap: 12px;
-  row-gap: 4px;
-  align-items: baseline;
-  border-bottom: 1px solid var(--gf-divider-subtle);
-  padding: 10px 0;
-  cursor: pointer;
-}
-.toolset-option:last-child { border-bottom: 0; }
-.toolset-option input[type="checkbox"] {
-  align-self: center;
-}
-.toolset-name {
-  color: var(--gf-text-primary);
-  font-size: 12px;
-  font-weight: 750;
-}
-.toolset-always-on {
-  color: var(--gf-text-faint);
-  font-weight: 600;
-}
-.toolset-count {
-  color: var(--gf-text-faint);
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-.toolset-desc {
-  grid-column: 2 / -1;
-  margin: 0;
-  color: var(--gf-text-muted);
-  font-size: 12px;
-}
 .site-footer {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -897,7 +736,6 @@ code, pre {
   .hero h1 { font-size: 36px; }
   .hero-endpoint { gap: 8px; }
   .section { padding: 56px 0; }
-  .toolsets-section { padding: 36px 0; }
   .section-title { font-size: 34px; }
   .tabpanel { padding: 0 16px 4px; }
   .tablist { flex-wrap: wrap; }
@@ -997,16 +835,13 @@ ${postHogSnippet}
       </section>
 
       <section class="${panelClass('codex')}" id="panel-codex" role="tabpanel" aria-labelledby="tab-codex" data-panel="codex">
-        <div class="setup-title-row">
-          <h3 class="instruction-title">Codex setup</h3>
-          <span class="${ui.badge}">CLI and IDE config</span>
-        </div>
+        <h3 class="instruction-title">Codex setup</h3>
         <ol class="steps">
           <li class="step">
             <span class="step-number">01</span>
             <div>
               <p class="step-title">Add the MCP server</p>
-              <p class="step-copy">The CLI and IDE share <code class="${ui.inlineCode}">~/.codex/config.toml</code>. No bearer-token variable needed. The command selects the <code class="${ui.inlineCode}">studio</code> profile: generation, content, scheduling, brand and analytics tools. Pick toolsets above to replace it.</p>
+              <p class="step-copy">The CLI and IDE share <code class="${ui.inlineCode}">~/.codex/config.toml</code>. No bearer-token variable needed.</p>
               ${renderCommandBlock({ id: 'codex-command', label: 'Copy Codex command', textSafe: codexCommandSafe, ui })}
             </div>
           </li>
@@ -1014,8 +849,11 @@ ${postHogSnippet}
             <span class="step-number">02</span>
             <div>
               <p class="step-title">Authorize and verify</p>
-              <p class="step-copy">If browser authorization did not open during setup, run this. Approve access, then ask Codex to list your Genfeed brands.</p>
+              <p class="step-copy">Sign in and approve access in your browser. If the browser did not open during setup, run this command to start authorization.</p>
               ${renderCommandBlock({ id: 'codex-login-command', label: 'Copy Codex login command', textSafe: 'codex mcp login genfeed', ui })}
+              <p class="step-copy">After approval, expect a Codex tab at <code class="${ui.inlineCode}">127.0.0.1</code> (localhost).
+                You can close that tab. Return to Codex and ask it to list your Genfeed brands.
+              </p>
             </div>
           </li>
         </ol>
@@ -1095,18 +933,6 @@ ${postHogSnippet}
         </ol>
       </section>
     </div>
-  </section>
-
-  <section class="section toolsets-section" aria-label="Advanced toolset configuration">
-    <details class="toolsets">
-      <summary>Advanced: limit which toolsets load</summary>
-      <p class="section-copy">For the standard connector only; Claude has a fixed catalog and does not accept these selectors. Narrow <code class="${ui.inlineCode}">tools/list</code> to just the toolsets your agent needs. Leave everything unchecked for the default profile on the bare URL, or add <code class="${ui.inlineCode}">?profile=full</code> for every tool.</p>
-      <div class="${ui.card}">
-        <div class="toolset-picker" role="group" aria-label="Toolsets to include">
-          ${toolsetOptions}
-        </div>
-      </div>
-    </details>
   </section>
 
   <footer class="site-footer">
@@ -1205,149 +1031,6 @@ ${postHogSnippet}
       });
     });
   });
-
-  // Toolset picker: rewrites every rendered snippet that embeds the MCP
-  // endpoint when the caller narrows (or widens) the selected toolsets.
-  // Nothing selected (besides the always-on, disabled "core" box) means the
-  // plain URL. The server treats that as the default profile, not the full
-  // catalog. ?profile=full is the explicit full-catalog URL.
-  (function () {
-    var baseMcpUrl = ${mcpUrlInlineScriptLiteral};
-
-    function shellQuote(url) {
-      return /^[A-Za-z0-9:/._-]+$/.test(url)
-        ? url
-        : "'" + url.replace(/'/g, "'\\\\''") + "'";
-    }
-
-    // Pure URL builder. The base is the protected-resource identifier, which
-    // never carries a query string or fragment (the shared resolver rejects
-    // them), so "?toolsets=" is always the first and only query parameter.
-    function joinToolsetsUrl(baseUrl, selected) {
-      if (selected.length === 0) return baseUrl;
-      return baseUrl + '?toolsets=' + selected.join(',');
-    }
-
-    // Codex installs default to the studio profile (generation included) when
-    // no toolsets are picked; an explicit pick replaces it, like every client.
-    function codexUrlFor(url) {
-      return url === baseMcpUrl ? url + '?profile=${GENFEED_CODEX_MCP_PROFILE}' : url;
-    }
-
-    var currentUrl = baseMcpUrl;
-    var currentShellUrl = shellQuote(baseMcpUrl);
-
-    function computeUrl() {
-      var selected = Array.prototype.slice
-        .call(document.querySelectorAll('[data-toolset-checkbox]:checked'))
-        .map(function (el) { return el.getAttribute('data-toolset'); })
-        .filter(function (name) { return name && name !== 'core'; });
-      return joinToolsetsUrl(baseMcpUrl, selected);
-    }
-
-    function replaceAll(text, needle, replacement) {
-      return needle ? text.split(needle).join(replacement) : text;
-    }
-
-    // The AI setup prompt embeds the endpoint twice: plainly (the "Endpoint:"
-    // line, and inside JSON/TOML config blocks, where quoting is unaffected
-    // by shell rules) and inside the Claude Code / Codex shell commands it
-    // quotes for. Rewriting it must match: the shell-command occurrences need
-    // the shell-quoted URL, exactly like the dedicated command snippets get,
-    // while every other occurrence stays plain. nextUrl is always baseMcpUrl
-    // plus an appended query string, so it has currentUrl as a literal
-    // prefix — swapping the shell-quoted occurrences in first and THEN doing
-    // the plain replace would let the plain pass re-match (and re-append to)
-    // the currentUrl prefix it just inserted. A placeholder shields the
-    // already-rewritten shell occurrences from that second pass; it is
-    // substituted back for the real shell-quoted URL last.
-    //
-    // The Codex command and TOML url carry their own URL (codexUrlFor), so
-    // they are shielded and restored separately from the standard endpoint.
-    function rewriteAgentPrompt(text, currentUrl, currentShellUrl, nextUrl, nextShellUrl, currentCodexUrl, nextCodexUrl) {
-      currentCodexUrl = currentCodexUrl || currentUrl;
-      nextCodexUrl = nextCodexUrl || nextUrl;
-      var placeholder = '__GENFEED_TOOLSET_URL_PLACEHOLDER__';
-      var codexShellPlaceholder = '__GENFEED_CODEX_SHELL_PLACEHOLDER__';
-      var codexTomlPlaceholder = '__GENFEED_CODEX_TOML_PLACEHOLDER__';
-      text = replaceAll(
-        text,
-        '--url ' + shellQuote(currentCodexUrl),
-        '--url ' + codexShellPlaceholder,
-      );
-      text = replaceAll(
-        text,
-        'url = "' + currentCodexUrl + '"',
-        'url = ' + codexTomlPlaceholder,
-      );
-      var claudeUrl = currentUrl.split('?')[0] + '/claude';
-      var claudePlaceholder = '__GENFEED_CLAUDE_URL_PLACEHOLDER__';
-      text = replaceAll(text, claudeUrl, claudePlaceholder);
-      var next = replaceAll(
-        text,
-        '--scope user ' + currentShellUrl,
-        '--scope user ' + placeholder,
-      );
-      next = replaceAll(next, currentUrl, nextUrl);
-      next = replaceAll(next, placeholder, nextShellUrl);
-      next = replaceAll(next, codexShellPlaceholder, shellQuote(nextCodexUrl));
-      next = replaceAll(next, codexTomlPlaceholder, '"' + nextCodexUrl + '"');
-      return replaceAll(next, claudePlaceholder, claudeUrl);
-    }
-
-    function applyUrl(nextUrl) {
-      var nextShellUrl = shellQuote(nextUrl);
-      var currentCodexUrl = codexUrlFor(currentUrl);
-      var nextCodexUrl = codexUrlFor(nextUrl);
-
-      // Blocks that only ever embed the endpoint as plain text (never inside
-      // a shell-quoted command): the endpoint display, the chat-agent prompt
-      // (Muse/Grok Bot), and the generic client JSON config.
-      ['mcp-url', 'chat-agent-prompt', 'generic-client-config'].forEach(function (id) {
-        var el = document.getElementById(id);
-        if (!el) return;
-        el.textContent = replaceAll(el.textContent || '', currentUrl, nextUrl);
-      });
-
-      var promptEl = document.getElementById('agent-setup-prompt');
-      if (promptEl) {
-        promptEl.textContent = rewriteAgentPrompt(
-          promptEl.textContent || '',
-          currentUrl,
-          currentShellUrl,
-          nextUrl,
-          nextShellUrl,
-          currentCodexUrl,
-          nextCodexUrl,
-        );
-      }
-
-      ['codex-command'].forEach(function (id) {
-        var el = document.getElementById(id);
-        if (!el) return;
-        el.textContent = replaceAll(
-          el.textContent || '',
-          shellQuote(currentCodexUrl),
-          shellQuote(nextCodexUrl),
-        );
-      });
-
-      var copyButton = document.getElementById('mcp-url-copy');
-      if (copyButton) {
-        var current = copyButton.getAttribute('data-copy') || '';
-        copyButton.setAttribute('data-copy', replaceAll(current, currentUrl, nextUrl));
-      }
-
-      currentUrl = nextUrl;
-      currentShellUrl = nextShellUrl;
-    }
-
-    document.querySelectorAll('[data-toolset-checkbox]').forEach(function (checkbox) {
-      checkbox.addEventListener('change', function () {
-        applyUrl(computeUrl());
-      });
-    });
-  })();
 </script>
 </body>
 </html>`;

@@ -11,6 +11,7 @@ import { Badge } from '@genfeedai/ui/primitives/badge';
 import { Button } from '@genfeedai/ui/primitives/button';
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogTitle,
 } from '@genfeedai/ui/primitives/dialog';
@@ -30,6 +31,7 @@ import {
   useEffectEvent,
   useMemo,
   useReducer,
+  useState,
 } from 'react';
 import { getMediaFromNode } from '../lib/mediaExtraction';
 import { usePromptEditorStore } from '../stores/promptEditorStore';
@@ -422,6 +424,7 @@ export function NodeDetailModal() {
   }, [nodeDetailNodeId, getNodeById]);
 
   // Redirect prompt-type nodes to the prompt editor
+  // use-effect-audit: ignore redirects between modals through the modal store
   useEffect(() => {
     if (activeModal !== 'nodeDetail' || !node) return;
 
@@ -462,13 +465,23 @@ export function NodeDetailModal() {
     dispatchPreview({ maxIndex: imageUrls.length - 1, type: 'goNext' });
   }, [imageUrls.length]);
 
-  useEffect(() => {
-    if (!nodeDetailNodeId) {
-      return;
+  // Opening another node, or another start image, restarts the preview.
+  const [seenPreviewTarget, setSeenPreviewTarget] = useState<{
+    nodeId: string | null;
+    startIndex: number;
+  }>({ nodeId: null, startIndex: 0 });
+  if (
+    seenPreviewTarget.nodeId !== nodeDetailNodeId ||
+    seenPreviewTarget.startIndex !== nodeDetailStartIndex
+  ) {
+    setSeenPreviewTarget({
+      nodeId: nodeDetailNodeId,
+      startIndex: nodeDetailStartIndex,
+    });
+    if (nodeDetailNodeId) {
+      dispatchPreview({ currentIndex: nodeDetailStartIndex, type: 'reset' });
     }
-
-    dispatchPreview({ currentIndex: nodeDetailStartIndex, type: 'reset' });
-  }, [nodeDetailNodeId, nodeDetailStartIndex]);
+  }
 
   // Keyboard shortcuts
   const handleModalKeyDown = useEffectEvent((e: KeyboardEvent) => {
@@ -570,7 +583,7 @@ export function NodeDetailModal() {
         />
 
         {/* Content */}
-        <div className="flex-1 overflow-hidden">
+        <DialogBody scrollable={false} className="overflow-hidden">
           <PreviewSurface
             currentIndex={currentIndex}
             displayUrl={displayUrl}
@@ -589,7 +602,7 @@ export function NodeDetailModal() {
             panOffset={panOffset}
             zoomLevel={zoomLevel}
           />
-        </div>
+        </DialogBody>
       </DialogContent>
     </Dialog>
   );

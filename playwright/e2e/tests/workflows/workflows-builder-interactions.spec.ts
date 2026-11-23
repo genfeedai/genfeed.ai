@@ -1,3 +1,4 @@
+import { settle } from '@e2e/utils/interaction-helpers';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import {
   mockActiveSubscription,
@@ -95,7 +96,7 @@ test.describe('Workflows builder & canvas interactions', () => {
       .locator(`a[href*="/automation/workflows/${testWorkflows[0].id}"]`)
       .first();
     await workflowLink.click().catch(() => {});
-    await authenticatedPage.waitForTimeout(600);
+    await settle(authenticatedPage);
 
     expect(authenticatedPage.url()).toContain('/automation/workflows');
     await expect(authenticatedPage.locator('body')).toBeVisible();
@@ -285,7 +286,6 @@ test.describe('Workflows builder & canvas interactions', () => {
     const hasNode = await node.isVisible().catch(() => false);
     if (hasNode) {
       await node.click({ timeout: 5_000 }).catch(() => {});
-      await authenticatedPage.waitForTimeout(300);
       await node.hover().catch(() => {});
     }
 
@@ -353,11 +353,8 @@ test.describe('Workflows builder & canvas interactions', () => {
 
     // React Flow renders <Controls /> with zoom-in / zoom-out / fit buttons.
     await tryClick(authenticatedPage, '.react-flow__controls-zoomin');
-    await authenticatedPage.waitForTimeout(150);
     await tryClick(authenticatedPage, '.react-flow__controls-zoomout');
-    await authenticatedPage.waitForTimeout(150);
     await tryClick(authenticatedPage, '.react-flow__controls-fitview');
-    await authenticatedPage.waitForTimeout(150);
 
     await expect(authenticatedPage.locator('body')).toBeVisible();
     await expectNoErrorOverlay(authenticatedPage);
@@ -381,7 +378,6 @@ test.describe('Workflows builder & canvas interactions', () => {
     const hasTitle = await titleButton.isVisible().catch(() => false);
     if (hasTitle) {
       await titleButton.click().catch(() => {});
-      await authenticatedPage.waitForTimeout(200);
       // If an inline editor appears, type into it then commit with Escape.
       const renameInput = authenticatedPage.locator('input').first();
       const hasInput = await renameInput.isVisible().catch(() => false);

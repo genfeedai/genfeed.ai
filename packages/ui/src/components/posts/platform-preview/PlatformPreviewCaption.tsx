@@ -1,7 +1,10 @@
 'use client';
 
 import { CardGap, CardPadding, CardVariant } from '@genfeedai/contracts';
-import type { ChannelValidationIssue } from '@genfeedai/contracts/api-types/contracts';
+import {
+  type ChannelValidationIssue,
+  getCaptionCeiling,
+} from '@genfeedai/contracts/api-types/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type {
   PlatformPreviewCaptionProps,
@@ -93,9 +96,9 @@ export function ValidationIssues({ target }: PlatformPreviewRendererProps) {
       role={target.validation.errors.length > 0 ? 'alert' : 'status'}
     >
       <ul className="grid gap-1 text-xs text-foreground/70">
-        {target.captionState.isOverLimit && target.captionState.maxLength ? (
+        {target.captionState.isOverLimit && target.captionState.ceiling ? (
           <li className="text-destructive">
-            {translate('truncated', { count: target.captionState.maxLength })}
+            {translate('truncated', { count: target.captionState.ceiling })}
           </li>
         ) : null}
         {issues.map((issue) => (
@@ -172,7 +175,11 @@ export function ThreadSegments({ target }: PlatformPreviewRendererProps) {
       {target.threadSegments.map((segment, index) => {
         const state = getCaptionPreviewState(
           segment.caption,
+          target.platform,
           target.capability?.caption.maxLength,
+          target.capability
+            ? getCaptionCeiling(target.capability.caption)
+            : undefined,
         );
 
         return (

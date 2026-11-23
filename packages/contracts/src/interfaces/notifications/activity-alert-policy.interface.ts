@@ -176,6 +176,14 @@ export const ACTIVITY_ALERT_POLICIES = {
     severity: 'critical',
     topic: 'agent.status',
   },
+  // The run is paused until someone answers, so this is the bell only: the
+  // question itself waits in the review inbox. Honours the `agent.status`
+  // preference like the other agent alerts.
+  [ActivityKey.AGENT_INPUT_REQUESTED]: {
+    recipients: [{ channels: ['in_app'], recipient: 'actor' }],
+    severity: 'warning',
+    topic: 'agent.status',
+  },
   [ActivityKey.AGENT_REVIEW_CHANGED]: {
     recipients: [{ channels: ['in_app', 'email'], recipient: 'actor' }],
     severity: 'info',

@@ -1,0 +1,228 @@
+name: Publish articles
+run-name: Publish articles | ${{ inputs.brand_slug }} | ${{ inputs.live && 'live' || 'dry run' }}
+
+# One-off publish of the SEO, launch and help articles that are bundled in the
+# server image. These articles are about Genfeed itself, so the default seed
+# never writes them (it only creates missing help articles). This workflow is
+# the operator's way to create or refresh exactly the slugs they name, when they
+# choose to, for example to refresh the SEO copy next year.
+#
+# It starts the one-off articles-seed ECS task with `--slugs=<list>`, inside the
+# VPC, using the deploy role over OIDC. Named articles are overwritten, matched
+# on (organization, slug); every other article is left alone, so edits made in
+# the app to articles that are not named here survive.
+#
+# The task runs the server image of the last deploy, and the article content is
+# bundled in that image. A copy edited after that deploy reaches production only
+# after the next deploy rolls the image out.
+#
+# Run logs of this public repository are public. The seed prints slugs and
+# counts only, never article bodies or credentials.
+#
+# Dispatch from master.
+on:
+  workflow_dispatch:
+    inputs:
+      slugs:
+        description: "comma-separated article slugs to create or refresh, e.g. best-ai-video-generators,ai-content-agent"
+        required: true
+        type: string
+      brand_slug:
+        description: "brand the articles belong to"
+        required: true
+        default: genfeedai
+        type: choice
+        options:
+          - genfeedai
+          - vincentshipsit
+      live:
+        description: "apply the publish; unchecked is a dry run"
+        required: false
+        default: false
+        type: boolean
+      reason:
+        description: "why the articles are being published (kept in the run summary)"
+        required: true
+        type: string
+
+# Share the deploy lock so a publish never overlaps a rollout.
+concurrency:
+  group: hosted-saas-core-production
+  cancel-in-progress: false
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: ${{ vars.AWS_REGION }}
+  TF_DIR: infra/tofu/hosted-saas
+  TF_STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
+  TF_STATE_KEY: ${{ vars.TF_STATE_KEY }}
+
+jobs:
+  publish:
+    name: Publish articles
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment: production
+    steps:
+      - name: Require master
+        run: |
+          if [ "${GITHUB_REF}" != "refs/heads/master" ]; then
+            echo "::error::Articles must be published from refs/heads/master (got ${GITHUB_REF})"
+            exit 1
+          fi
+
+      - name: Require publish variables
+        env:
+          AWS_DEPLOY_ROLE_ARN: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          PROJECT: ${{ vars.PROJECT }}
+          HOSTED_OWNER_EMAIL: ${{ vars.HOSTED_OWNER_EMAIL }}
+          HOSTED_ORGANIZATION_LABEL: ${{ vars.HOSTED_ORGANIZATION_LABEL }}
+          REASON: ${{ inputs.reason }}
+          SLUGS: ${{ inputs.slugs }}
+          BRAND_SLUG: ${{ inputs.brand_slug }}
+        run: |
+          set -euo pipefail
+          missing=0
+          # Slugs travel as one ECS container-override argument, capped by AWS
+          # at 8192 characters of JSON for the whole override.
+          if [ -z "${SLUGS// }" ]; then
+            echo "::error::Name at least one article slug."
+            missing=1
+          elif [ "${#SLUGS}" -gt 2000 ]; then
+            echo "::error::The slug list is longer than 2000 characters."
+            missing=1
+          elif ! printf '%s' "${SLUGS}" | grep -Eq '^[a-z0-9][a-z0-9._-]*(,[a-z0-9][a-z0-9._-]*)*$'; then
+            echo "::error::slugs must be lowercase letters, digits, '.', '_' and '-', separated by commas with no spaces."
+            missing=1
+          fi
+          if ! printf '%s' "${BRAND_SLUG}" | grep -Eq '^[A-Za-z0-9._-]{1,64}$'; then
+            echo "::error::brand_slug may only contain letters, digits, '.', '_' and '-'."
+            missing=1
+          fi
+          for name in \
+            AWS_REGION AWS_DEPLOY_ROLE_ARN PROJECT TF_STATE_BUCKET TF_STATE_KEY \
+            HOSTED_OWNER_EMAIL HOSTED_ORGANIZATION_LABEL
+          do
+            eval "value=\${$name-}"
+            if [ -z "${value}" ]; then
+              echo "::error::Missing required hosted SaaS variable: ${name}"
+              missing=1
+            fi
+          done
+          if [ -z "${REASON// }" ]; then
+            echo "::error::A publish needs a reason."
+            missing=1
+          fi
+          exit "${missing}"
+
+      - name: Checkout public deploy engine
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: ops
+          persist-credentials: false
+
+      - name: Setup Bun (ECS poll script)
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: ops/.bun-version
+
+      - name: Install ECS poll script deps (isolated)
+        working-directory: ops/scripts/deploy/hosted-saas
+        run: bun install --frozen-lockfile
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - uses: opentofu/setup-opentofu@a1320f892987e89d278cc92dc5adc984fb93aca4 # v2.0.2
+        with:
+          tofu_version: "1.12.2"
+          tofu_wrapper: false
+
+      - name: Tofu init (read-only, outputs only)
+        working-directory: ops/${{ env.TF_DIR }}
+        run: |
+          tofu init -input=false \
+            -backend-config="bucket=${TF_STATE_BUCKET}" \
+            -backend-config="key=${TF_STATE_KEY}" \
+            -backend-config="region=${AWS_REGION}"
+
+      - name: Run publish task
+        id: publish
+        working-directory: ops/${{ env.TF_DIR }}
+        env:
+          SLUGS: ${{ inputs.slugs }}
+          LIVE: ${{ inputs.live }}
+          BRAND_SLUG: ${{ inputs.brand_slug }}
+          REASON: ${{ inputs.reason }}
+          PROJECT: ${{ vars.PROJECT }}
+          HOSTED_OWNER_EMAIL: ${{ vars.HOSTED_OWNER_EMAIL }}
+          HOSTED_ORGANIZATION_LABEL: ${{ vars.HOSTED_ORGANIZATION_LABEL }}
+        run: |
+          set -euo pipefail
+          CLUSTER=$(tofu output -raw cluster_name)
+          SUBNETS=$(tofu output -json task_subnets | jq -r 'join(",")')
+          SG=$(tofu output -raw task_security_group)
+          TASK_DEFINITION=$(tofu output -raw articles_seed_task_definition_arn)
+          CONTAINER=articles-seed
+          LOG_GROUP="/ecs/${PROJECT}-production/articles-seed"
+
+          # The task definition's own command is the default seed (help articles,
+          # create-only), so a publish always overrides it. A command override
+          # replaces the whole command, so it repeats the node prefix the
+          # definition uses.
+          override=(--container-name "${CONTAINER}")
+          args=(
+            node --max-old-space-size=8192 --expose-gc -r tsconfig-paths/register
+            apps/server/dist/apps/api-articles-seed/main
+            --env=production
+            "--ownerEmail=${HOSTED_OWNER_EMAIL}"
+            "--organizationLabel=${HOSTED_ORGANIZATION_LABEL}"
+            "--brandSlug=${BRAND_SLUG}"
+            "--slugs=${SLUGS}"
+          )
+          if [ "${LIVE}" = "true" ]; then
+            args+=(--live)
+          fi
+          for arg in "${args[@]}"; do
+            override+=("--command-arg=${arg}")
+          done
+
+          mode=$([ "${LIVE}" = "true" ] && echo live || echo "dry run")
+          {
+            echo "## Publish articles"
+            echo ""
+            echo "- Mode: ${mode}"
+            echo "- Brand: \`${BRAND_SLUG}\`"
+            echo "- Slugs: \`${SLUGS}\`"
+            echo "- Task definition: \`${TASK_DEFINITION}\`"
+            echo "- Reason: ${REASON}"
+            echo "- Runs the image of the last deploy; article copy changed since then needs a deploy first."
+          } >>"${GITHUB_STEP_SUMMARY}"
+          echo "log_group=${LOG_GROUP}" >>"${GITHUB_OUTPUT}"
+          echo "started_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >>"${GITHUB_OUTPUT}"
+
+          bun "${GITHUB_WORKSPACE}/ops/scripts/deploy/hosted-saas/ecs-run-task-and-wait.ts" \
+            --phase "publish-articles" \
+            --cluster "$CLUSTER" \
+            --task-definition "$TASK_DEFINITION" \
+            --subnets "$SUBNETS" \
+            --security-groups "$SG" \
+            --timeout-seconds 1800 \
+            --stop-on-timeout \
+            "${override[@]}"
+
+      - name: Print publish task logs
+        if: ${{ always() && steps.publish.outputs.log_group != '' }}
+        env:
+          LOG_GROUP: ${{ steps.publish.outputs.log_group }}
+          STARTED_AT: ${{ steps.publish.outputs.started_at }}
+        run: |
+          echo "::group::CloudWatch logs — ${LOG_GROUP}"
+          aws logs tail "${LOG_GROUP}" --since "${STARTED_AT:-45m}" --format short | tail -n 400 || true
+          echo "::endgroup::"

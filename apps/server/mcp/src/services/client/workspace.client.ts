@@ -58,16 +58,29 @@ export class WorkspaceClient {
   listOrganizations(): Promise<OrganizationOption[]> {
     this.base.logger.debug('Listing organizations');
 
-    return this.base.request(
+    return this.base.requestWithSafeFailure(
       'listing organizations',
       async (http) => {
         const response = await http.get('/organizations', {
           params: { mine: true },
         });
         const data = response.data?.data ?? response.data;
-        return Array.isArray(data) ? (data as OrganizationOption[]) : [];
+        if (!Array.isArray(data))
+          throw new Error('Expected an organization list');
+        return data as OrganizationOption[];
       },
-      this.base.failWith('Failed to list organizations'),
+      (status) => {
+        switch (status) {
+          case 401:
+            return 'Reconnect Genfeed to load your organizations.';
+          case 403:
+            return 'This connection cannot list organizations. Reconnect Genfeed and check your organization access.';
+          case 429:
+            return 'Organization lookup rate limit reached.';
+          default:
+            return 'Could not load your organizations. Try get_context(action=organizations) again before retrying the tool.';
+        }
+      },
     );
   }
 
@@ -80,18 +93,6 @@ export class WorkspaceClient {
         return response.data?.data?.canSwitchOrganizations === true;
       },
       this.base.failWith('Failed to read the connection'),
-    );
-  }
-
-  switchOrganization(organizationId: string): Promise<void> {
-    this.base.logger.debug('Switching organization', { organizationId });
-
-    return this.base.request(
-      'switching organization',
-      async (http) => {
-        await http.post('/auth/switch-organization', { organizationId });
-      },
-      this.base.failWithDetail('Failed to switch organization'),
     );
   }
 

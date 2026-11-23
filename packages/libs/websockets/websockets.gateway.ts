@@ -353,6 +353,20 @@ export class WebSocketGateway
     }
   }
 
+  /**
+   * Emits to this instance's own sockets only. Every handler fed by a Redis
+   * pub/sub channel runs on every notifications instance, so a cluster-wide
+   * `server.to(...)` would be relayed by the Socket.IO Redis adapter to the
+   * other instances and each client would get the event once per instance.
+   */
+  private emitLocal(
+    target: string | string[],
+    event: string,
+    payload: unknown,
+  ): void {
+    this.server.local.to(target).emit(event, payload);
+  }
+
   private handleRedisMessage(channel: string, data: unknown) {
     switch (channel) {
       case 'agent-chat':
@@ -467,7 +481,7 @@ export class WebSocketGateway
       return;
     }
 
-    this.server.to(getUserRoomName(data.userId)).emit(type, data);
+    this.emitLocal(getUserRoomName(data.userId), type, data);
 
     this.logger.debug(
       `Sent ${type} to ${getUserRoomName(data.userId)} for thread ${data.threadId}`,
@@ -507,7 +521,7 @@ export class WebSocketGateway
       return [];
     }
     const rooms = this.resolveMemberRooms(organizationId, userIds);
-    this.server.to(rooms).emit(type, payload);
+    this.emitLocal(rooms, type, payload);
     this.logger.debug(
       `Sent ${type} to ${userIds.length} member(s) for thread ${threadId}`,
     );
@@ -532,14 +546,16 @@ export class WebSocketGateway
     }
 
     this.revokedThreadAccess.deny(organizationId, threadId, userId);
-    this.server
-      .to(this.resolveMemberRooms(organizationId, [userId]))
-      .emit(AGENT_THREAD_ACCESS_REVOKED_EVENT_TYPE, {
+    this.emitLocal(
+      this.resolveMemberRooms(organizationId, [userId]),
+      AGENT_THREAD_ACCESS_REVOKED_EVENT_TYPE,
+      {
         organizationId,
         threadId,
         timestamp: data.timestamp,
         userId,
-      });
+      },
+    );
     this.logger.debug(`Sent thread access revoke for thread ${threadId}`);
   }
 
@@ -591,14 +607,14 @@ export class WebSocketGateway
     const { path, progress, userId, room } = data;
     const targetRoom = this.getTargetRoom(userId, room);
 
-    this.server.to(targetRoom).emit(path, {
+    this.emitLocal(targetRoom, path, {
       progress,
       status: 'processing',
       timestamp: new Date().toISOString(),
     });
 
     // Also emit with channel name for activities dropdown subscribers
-    this.server.to(targetRoom).emit('video-progress', {
+    this.emitLocal(targetRoom, 'video-progress', {
       progress,
       status: 'processing',
       timestamp: new Date().toISOString(),
@@ -630,14 +646,14 @@ export class WebSocketGateway
       userId,
     });
 
-    this.server.to(targetRoom).emit(path, {
+    this.emitLocal(targetRoom, path, {
       result,
       status: 'completed',
       timestamp: new Date().toISOString(),
     });
 
     // Also emit with channel name for activities dropdown subscribers
-    this.server.to(targetRoom).emit('video-complete', {
+    this.emitLocal(targetRoom, 'video-complete', {
       result,
       status: 'completed',
       timestamp: new Date().toISOString(),
@@ -648,27 +664,30 @@ export class WebSocketGateway
 
   private handleMediaFailed(data: MediaFailedEvent): void {
     if (!this.isServerOperational()) {
-      this.warnServerNotReady('media-failed', data);
+      this.warnServerNotReady('media-failed');
       return;
     }
 
     const { path, error, userId, room } = data;
     const targetRoom = this.getTargetRoom(userId, room);
-
-    this.server.to(targetRoom).emit(path, {
+    const payload = {
       error,
       status: 'failed',
       timestamp: new Date().toISOString(),
-    });
+    };
 
-    // Also emit with channel name for activities dropdown subscribers
-    this.server.to(targetRoom).emit('media-failed', {
-      error,
-      status: 'failed',
-      timestamp: new Date().toISOString(),
-    });
-
-    this.logger.error(`Sent media failed to ${targetRoom}: ${path}`, error);
+    try {
+      const destination = this.server.local.to(targetRoom);
+      destination.emit(path, payload);
+      // Keep the channel event for activities dropdown subscribers.
+      destination.emit('media-failed', payload);
+    } catch {
+      this.logger.error(
+        'WebSocket media failure notification dispatch failed',
+        undefined,
+        this.context,
+      );
+    }
   }
 
   private handleNotificationInboxUpdate(
@@ -681,9 +700,9 @@ export class WebSocketGateway
 
     // The payload only names the organization; clients re-read their inbox.
     for (const userId of data.userIds ?? []) {
-      this.server
-        .to(getUserRoomName(userId))
-        .emit('notification-inbox', { organizationId: data.organizationId });
+      this.emitLocal(getUserRoomName(userId), 'notification-inbox', {
+        organizationId: data.organizationId,
+      });
     }
   }
 
@@ -696,7 +715,7 @@ export class WebSocketGateway
     const { ingredientId, status, userId, metadata } = data;
     const path = `/ingredients/${ingredientId}/status`;
 
-    this.server.to(getUserRoomName(userId)).emit(path, {
+    this.emitLocal(getUserRoomName(userId), path, {
       ingredientId,
       metadata,
       status,
@@ -717,7 +736,7 @@ export class WebSocketGateway
     const { postId, status, userId, metadata } = data;
     const path = `/posts/${postId}/status`;
 
-    this.server.to(getUserRoomName(userId)).emit(path, {
+    this.emitLocal(getUserRoomName(userId), path, {
       metadata,
       postId,
       status,
@@ -736,7 +755,7 @@ export class WebSocketGateway
     const { trainingId, status, userId, progress } = data;
     const path = `/trainings/${trainingId}/status`;
 
-    this.server.to(getUserRoomName(userId)).emit(path, {
+    this.emitLocal(getUserRoomName(userId), path, {
       progress,
       status,
       timestamp: new Date().toISOString(),
@@ -757,7 +776,7 @@ export class WebSocketGateway
     const { jobId, type, status, progress, userId, ingredientId } = data;
     const path = `/files/${ingredientId}/${type}`;
 
-    this.server.to(getUserRoomName(userId)).emit(path, {
+    this.emitLocal(getUserRoomName(userId), path, {
       ingredientId,
       jobId,
       progress,
@@ -779,7 +798,7 @@ export class WebSocketGateway
 
     const { assetId, status, userId, metadata } = data;
 
-    this.server.to(getUserRoomName(userId)).emit('asset-status', {
+    this.emitLocal(getUserRoomName(userId), 'asset-status', {
       assetId,
       metadata,
       status,
@@ -804,7 +823,7 @@ export class WebSocketGateway
 
     const { articleId, status, userId, metadata } = data;
 
-    this.server.to(getUserRoomName(userId)).emit('article-status', {
+    this.emitLocal(getUserRoomName(userId), 'article-status', {
       articleId,
       metadata,
       status,
@@ -825,7 +844,7 @@ export class WebSocketGateway
     const { userId, room } = data;
     const targetRoom = this.getTargetRoom(userId, room);
 
-    this.server.to(targetRoom).emit('background-task-update', data);
+    this.emitLocal(targetRoom, 'background-task-update', data);
 
     this.logger.debug(
       `Sent background-task-update to ${targetRoom}: ${data.status}`,
@@ -849,13 +868,13 @@ export class WebSocketGateway
     const payload = { ...eventDataObj, timestamp: new Date().toISOString() };
 
     if (room) {
-      this.server.to(room).emit(path, payload);
+      this.emitLocal(room, path, payload);
       this.logger.debug(`Sent generic event to room ${room}: ${path}`);
     } else if (userId) {
-      this.server.to(getUserRoomName(userId)).emit(path, payload);
+      this.emitLocal(getUserRoomName(userId), path, payload);
       this.logger.debug(`Sent generic event to user ${userId}: ${path}`);
     } else {
-      this.server.emit(path, payload);
+      this.server.local.emit(path, payload);
       this.logger.warn(`Broadcast generic event to all clients: ${path}`);
     }
   }

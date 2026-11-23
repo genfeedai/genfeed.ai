@@ -10,9 +10,9 @@ import type {
   IPostPlatformConfig,
 } from '@genfeedai/contracts/interfaces';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import { toConnectedAccount } from '@genfeedai/helpers/publisher/connected-account.helper';
 import type { ModalPostChannelListProps } from '@genfeedai/props/modals/modal.props';
-import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
-import { Avatar } from '@ui/primitives/avatar';
+import ConnectedAccountAvatar from '@ui/display/connected-account/ConnectedAccountAvatar';
 import { Button } from '@ui/primitives/button';
 import { Plus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -190,17 +190,17 @@ export default function ModalPostChannelList({
                   variant={ButtonVariant.UNSTYLED}
                   withWrapper={false}
                 >
-                  <Avatar
-                    badge={
-                      <PlatformBadge
-                        platform={config.platform}
-                        showLabel={false}
-                        variant="solid"
-                      />
+                  <ConnectedAccountAvatar
+                    account={
+                      credential
+                        ? toConnectedAccount(credential)
+                        : {
+                            handle: config.handle,
+                            name,
+                            platform: config.platform,
+                          }
                     }
-                    name={name}
                     size="xl"
-                    src={credential?.externalAvatar}
                   />
                 </Button>
               </div>

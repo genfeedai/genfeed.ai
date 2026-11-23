@@ -31,6 +31,7 @@ import type {
   ReleaseBoardProps,
 } from '@/features/posts/props/release-board.props';
 import ReleaseRailRow from '@/features/posts/rail/release-rail-row';
+import { useReleasePendingActions } from '@/features/posts/release/use-release-pending-actions';
 import CalendarRepublishDialog, {
   CALENDAR_MOVE_ACTION,
   CALENDAR_REPUBLISH_ACTION,
@@ -110,7 +111,8 @@ export default function ReleaseBoard({
   );
   const [items, setItems] = useState<IReleaseGroup[]>(releases);
   const [draggingId, setDraggingId] = useState<string | null>(null);
-  const [pendingAction, setPendingAction] = useState<string | null>(null);
+  const { inFlightReleaseIds, pendingActions, setPendingAction } =
+    useReleasePendingActions();
   const [pendingDrop, setPendingDrop] = useState<PendingCalendarDrop | null>(
     null,
   );
@@ -141,7 +143,11 @@ export default function ReleaseBoard({
       mutation: (service: ReleaseGroupsService) => Promise<IReleaseGroup>,
       onFailure?: () => void,
     ): Promise<void> => {
-      setPendingAction(action);
+      if (inFlightReleaseIds.has(releaseId)) {
+        return;
+      }
+      inFlightReleaseIds.add(releaseId);
+      setPendingAction(releaseId, action);
       try {
         const service = await getReleaseGroupsService();
         const updated = await mutation(service);
@@ -156,10 +162,16 @@ export default function ReleaseBoard({
         );
         notificationsService.error(mutationErrorMessage(error));
       } finally {
-        setPendingAction(null);
+        inFlightReleaseIds.delete(releaseId);
+        setPendingAction(releaseId, null);
       }
     },
-    [getReleaseGroupsService, notificationsService],
+    [
+      getReleaseGroupsService,
+      inFlightReleaseIds,
+      notificationsService,
+      setPendingAction,
+    ],
   );
 
   const handleDrop = useCallback(
@@ -220,26 +232,32 @@ export default function ReleaseBoard({
       return;
     }
     const { release, scheduledDate } = pendingDrop;
+    if (inFlightReleaseIds.has(release.id)) {
+      return;
+    }
     void (async () => {
       await runMutation(CALENDAR_MOVE_ACTION, release.id, (service) =>
         service.moveCalendarPlacement(release.id, scheduledDate),
       );
       setPendingDrop(null);
     })();
-  }, [pendingDrop, runMutation]);
+  }, [inFlightReleaseIds, pendingDrop, runMutation]);
 
   const handleRepublishDrop = useCallback(() => {
     if (!pendingDrop) {
       return;
     }
     const { release, scheduledDate } = pendingDrop;
+    if (inFlightReleaseIds.has(release.id)) {
+      return;
+    }
     void (async () => {
       await runMutation(CALENDAR_REPUBLISH_ACTION, release.id, (service) =>
         service.republishAt(release.id, scheduledDate),
       );
       setPendingDrop(null);
     })();
-  }, [pendingDrop, runMutation]);
+  }, [inFlightReleaseIds, pendingDrop, runMutation]);
 
   const toggleSelected = useCallback((releaseId: string) => {
     setSelectedIds((current) => {
@@ -253,14 +271,22 @@ export default function ReleaseBoard({
     });
   }, []);
 
+  const dropPendingAction = pendingDrop
+    ? (pendingActions.get(pendingDrop.release.id) ?? null)
+    : null;
+
   const clearSelection = useCallback(() => setSelectedIds(new Set()), []);
 
   const handleScheduleNextSlot = useCallback(() => {
-    const selected = syncedItems.filter((release) =>
-      selectedIds.has(release.id),
+    const selected = syncedItems.filter(
+      (release) =>
+        selectedIds.has(release.id) && !inFlightReleaseIds.has(release.id),
     );
+    for (const release of selected) {
+      inFlightReleaseIds.add(release.id);
+      setPendingAction(release.id, SCHEDULE_NEXT_SLOT_ACTION);
+    }
     void (async () => {
-      setPendingAction(SCHEDULE_NEXT_SLOT_ACTION);
       try {
         const [credentialsService, releaseGroupsService] = await Promise.all([
           getCredentialsService(),
@@ -293,6 +319,9 @@ export default function ReleaseBoard({
           } catch (error) {
             logger.error('Failed to schedule release at next slot', error);
             notificationsService.error(mutationErrorMessage(error));
+          } finally {
+            inFlightReleaseIds.delete(release.id);
+            setPendingAction(release.id, null);
           }
         }
         clearSelection();
@@ -300,25 +329,34 @@ export default function ReleaseBoard({
         logger.error('Failed to acquire services for bulk scheduling', error);
         notificationsService.error(mutationErrorMessage(error));
       } finally {
-        setPendingAction(null);
+        for (const release of selected) {
+          inFlightReleaseIds.delete(release.id);
+          setPendingAction(release.id, null);
+        }
       }
     })();
   }, [
     clearSelection,
     getCredentialsService,
     getReleaseGroupsService,
+    inFlightReleaseIds,
     notificationsService,
     selectedIds,
+    setPendingAction,
     syncedItems,
     translate,
   ]);
 
   const handleBulkDelete = useCallback(() => {
-    const selected = syncedItems.filter((release) =>
-      selectedIds.has(release.id),
+    const selected = syncedItems.filter(
+      (release) =>
+        selectedIds.has(release.id) && !inFlightReleaseIds.has(release.id),
     );
+    for (const release of selected) {
+      inFlightReleaseIds.add(release.id);
+      setPendingAction(release.id, CANCEL_ACTION);
+    }
     void (async () => {
-      setPendingAction(CANCEL_ACTION);
       try {
         const service = await getReleaseGroupsService();
         for (const release of selected) {
@@ -341,14 +379,19 @@ export default function ReleaseBoard({
         logger.error('Failed to acquire service for bulk cancellation', error);
         notificationsService.error(mutationErrorMessage(error));
       } finally {
-        setPendingAction(null);
+        for (const release of selected) {
+          inFlightReleaseIds.delete(release.id);
+          setPendingAction(release.id, null);
+        }
       }
     })();
   }, [
     clearSelection,
     getReleaseGroupsService,
+    inFlightReleaseIds,
     notificationsService,
     selectedIds,
+    setPendingAction,
     syncedItems,
   ]);
 
@@ -392,7 +435,7 @@ export default function ReleaseBoard({
         clearLabel={translate('bulk.clearSelection')}
       >
         <Button
-          isDisabled={Boolean(pendingAction)}
+          isDisabled={pendingActions.size > 0}
           onClick={handleScheduleNextSlot}
           size={ButtonSize.SM}
           variant={ButtonVariant.SECONDARY}
@@ -400,7 +443,7 @@ export default function ReleaseBoard({
           {translate('bulk.scheduleNextSlot')}
         </Button>
         <Button
-          isDisabled={Boolean(pendingAction)}
+          isDisabled={pendingActions.size > 0}
           onClick={handleBulkDelete}
           size={ButtonSize.SM}
           variant={ButtonVariant.DESTRUCTIVE}
@@ -497,9 +540,9 @@ export default function ReleaseBoard({
         onChooseCardOnly={handleCardOnlyDrop}
         onChooseRepublish={handleRepublishDrop}
         pendingAction={
-          pendingAction === CALENDAR_MOVE_ACTION ||
-          pendingAction === CALENDAR_REPUBLISH_ACTION
-            ? pendingAction
+          dropPendingAction === CALENDAR_MOVE_ACTION ||
+          dropPendingAction === CALENDAR_REPUBLISH_ACTION
+            ? dropPendingAction
             : null
         }
       />

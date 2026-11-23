@@ -1,3 +1,4 @@
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import {
   LogDebug,
   LogErrors,
@@ -5,7 +6,12 @@ import {
   LogPerformance,
   LogVerbose,
 } from '@api/helpers/decorators/log/log-method.decorator';
-import { RequestMethod } from '@nestjs/common';
+import {
+  BadRequestException,
+  HttpException,
+  InternalServerErrorException,
+  RequestMethod,
+} from '@nestjs/common';
 import { METHOD_METADATA, PATH_METADATA } from '@nestjs/common/constants';
 
 describe('LogMethod Decorator', () => {
@@ -132,6 +138,41 @@ describe('LogMethod Decorator', () => {
           service: 'TestClass',
         }),
       );
+    });
+
+    it.each([
+      ['a 404', () => new NotFoundException('Article'), 'warn'],
+      ['a 400', () => new BadRequestException('Bad input'), 'warn'],
+      [
+        'a 500 HttpException',
+        () => new InternalServerErrorException(),
+        'error',
+      ],
+      [
+        'a 502 HttpException',
+        () => new HttpException('Upstream', 502),
+        'error',
+      ],
+      ['a plain Error', () => new Error('boom'), 'error'],
+    ])('logs %s at the %s level', async (_name, makeError, expectedLevel) => {
+      const levels: string[] = [];
+      class TestClass {
+        logger = {
+          error: () => levels.push('error'),
+          log: () => levels.push('log'),
+          warn: () => levels.push('warn'),
+        };
+
+        @LogMethod({ logStart: false })
+        async testMethod() {
+          await Promise.resolve();
+          throw makeError();
+        }
+      }
+
+      await expect(new TestClass().testMethod()).rejects.toThrow();
+
+      expect(levels).toEqual([expectedLevel]);
     });
 
     it('should use debug level when specified', async () => {
@@ -412,7 +453,7 @@ describe('LogMethod Decorator', () => {
 
         @LogPerformance()
         async testMethod() {
-          await new Promise((resolve) => setTimeout(resolve, 10));
+          await Promise.resolve();
           return 'done';
         }
       }

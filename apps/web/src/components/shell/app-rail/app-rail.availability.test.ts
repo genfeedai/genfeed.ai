@@ -58,6 +58,38 @@ describe('resolveAvailableRailApps dashboard order', () => {
     ]);
   });
 
+  it.each([
+    ['released with access', { isAllowed: true, reason: null }, true, {}, true],
+    ['not released', { isAllowed: true, reason: null }, false, {}, false],
+    [
+      'organization disabled it',
+      { isAllowed: false, reason: 'disabled' },
+      true,
+      {},
+      false,
+    ],
+    ['access is unresolved', null, true, {}, false],
+    [
+      'Studio is off',
+      { isAllowed: true, reason: null },
+      true,
+      { studio: false },
+      false,
+    ],
+  ] as const)(
+    'handles Playground without an installation when %s',
+    (_label, access, released, flags, expected) => {
+      const ids = resolveAvailableRailApps({
+        flags,
+        installedAppIds: [],
+        moduleAccess: access ? { playground: access } : null,
+        releaseVisibility: { playground: released },
+      }).map((app) => app.id);
+
+      expect(ids.includes('playground')).toBe(expected);
+    },
+  );
+
   it('hides Trends for an organization without the paid plan it needs', () => {
     const ids = resolveAvailableRailApps({
       flags: {},

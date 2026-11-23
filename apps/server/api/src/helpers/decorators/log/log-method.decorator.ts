@@ -1,4 +1,5 @@
 import { LoggerService } from '@libs/logger/logger.service';
+import { HttpException } from '@nestjs/common';
 
 export interface LogMethodOptions {
   logStart?: boolean;
@@ -92,9 +93,14 @@ function createLoggedWrapper(
     } catch (error: unknown) {
       const executionTime = Date.now() - startTime;
 
-      // Log method failure
-      if (opts.logError && typeof logger.error === 'function') {
-        logger.error(`${methodName} failed`, {
+      // Log method failure. A 4xx HttpException is the caller's refusal (a
+      // missing id, bad input) and the response already carries it: log it as a
+      // warning so it stays out of Sentry. Anything else is a server fault.
+      const isClientError =
+        error instanceof HttpException && error.getStatus() < 500;
+      const logFailure = isClientError ? logger.warn : logger.error;
+      if (opts.logError && typeof logFailure === 'function') {
+        logFailure.call(logger, `${methodName} failed`, {
           ...baseContext,
           error:
             error instanceof Error
@@ -125,6 +131,7 @@ export function LogMethod(options: LogMethodOptions = {}): MethodDecorator {
 
   // In production, automatically disable logStart and logEnd, but keep error logging
   // Only apply defaults if not explicitly configured (respect explicit decorator settings)
+  // biome-ignore lint/style/noProcessEnv: decorator factory runs at class-definition time, before DI
   const isProduction = process.env.NODE_ENV === 'production';
   if (isProduction) {
     if (options.logStart === undefined) {

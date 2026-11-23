@@ -21,6 +21,12 @@ vi.mock('@ui/primitives/dialog', () => ({
         </button>
       </div>
     ) : null,
+  DialogBody: ({
+    children,
+    className,
+  }: PropsWithChildren<{ className?: string }>) => (
+    <div className={className}>{children}</div>
+  ),
   DialogContent: ({
     children,
     className,

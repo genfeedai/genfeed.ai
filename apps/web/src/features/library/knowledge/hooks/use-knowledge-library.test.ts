@@ -149,7 +149,7 @@ describe('useKnowledgeLibrary', () => {
     const firstSignal = mocks.findForBrand.mock.calls[0]?.[1] as AbortSignal;
     expect(firstSignal.aborted).toBe(true);
     resolveFirst([{ id: 's1', title: 'Brand A source' }]);
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    await new Promise((resolve) => setImmediate(resolve));
     expect(result.current.rows.map((row) => row.source.id)).toEqual(['s2']);
   });
 

@@ -182,6 +182,7 @@ describe('activity.enum', () => {
         'AGENT_RUN_COMPLETED',
         'AGENT_RUN_FAILED',
         'AGENT_RUN_DELIVERY_FAILED',
+        'AGENT_INPUT_REQUESTED',
         'AGENT_REVIEW_CHANGED',
         'AGENT_REVIEW_EXPIRED',
         'SOCIAL_REPLIES_RECEIVED',

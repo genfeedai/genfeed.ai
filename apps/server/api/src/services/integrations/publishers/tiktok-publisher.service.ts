@@ -16,6 +16,7 @@ import {
   TargetExecutionState,
   TikTokPublishStatus,
 } from '@genfeedai/contracts';
+import { tikTokAppliedVisibility } from '@genfeedai/contracts/api-types/contracts/tiktok-publishing.contract';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
@@ -106,7 +107,6 @@ export class TikTokPublisherService extends BasePublisherService {
     const shouldHandoffToTikTokApp =
       context.settings[TIKTOK_APP_HANDOFF_SETTING] === true;
 
-    // Log the attempt
     this.logPublishAttempt(context, mediaInfo);
 
     // Validate
@@ -190,6 +190,7 @@ export class TikTokPublisherService extends BasePublisherService {
           platform: this.platform,
           success: true,
           url: '',
+          visibility: tikTokAppliedVisibility(context.settings),
         };
       }
 
@@ -222,7 +223,10 @@ export class TikTokPublisherService extends BasePublisherService {
 
       // Immediate success - post_id available
       const postUrl = this.buildPostUrl(postId, credential);
-      return this.createSuccessResult(postId, this.platform, postUrl);
+      return {
+        ...this.createSuccessResult(postId, this.platform, postUrl),
+        visibility: tikTokAppliedVisibility(context.settings),
+      };
     } catch (error: unknown) {
       this.logger.error(`${url} failed to publish`, {
         error: (error as Error)?.message,

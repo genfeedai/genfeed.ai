@@ -13,6 +13,7 @@ import {
   parseGeneratedBrandProfile,
 } from '@api/collections/brands/utils/brand-profile-generation.util';
 import {
+  buildVoiceCorpus,
   buildVoiceEvidencePrompt,
   pickPromptSamples,
 } from '@api/collections/brands/utils/brand-voice-corpus.util';
@@ -23,7 +24,9 @@ import {
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { scopedWhere } from '@api/index';
 import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
+import { publicXHandle } from '@api/services/brand-scraper/public-x-handle.util';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
+import type { PopulateInput } from '@api/shared/services/base/base.service';
 import { LinkCategory } from '@genfeedai/contracts';
 import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 import {
@@ -37,8 +40,22 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
+function storedXHandle(brand: BrandDocument | null) {
+  const links = (
+    brand as {
+      links?: Array<{ category?: string; url?: string; isDeleted?: boolean }>;
+    } | null
+  )?.links;
+  return publicXHandle(
+    links?.find(
+      (link) => !link.isDeleted && link.category === LinkCategory.TWITTER,
+    )?.url,
+  );
+}
+
 export type BrandFinder = (
   criteria: Record<string, unknown>,
+  populate?: PopulateInput,
 ) => Promise<BrandDocument | null>;
 
 /** One LLM reply stays well inside its token budget at this many ideas. */
@@ -85,17 +102,60 @@ export class BrandGenerationService {
       url: dto.url,
     });
 
-    const contextText = await this.resolveBrandContext(
-      dto,
-      organizationId,
-      findBrand,
-    );
-
-    const corpus = await this.brandVoiceCorpusService.buildCorpus({
+    const brand = dto.brandId
+      ? await findBrand(scopedWhere(organizationId, { id: dto.brandId }), [
+          {
+            path: 'links',
+            where: { isDeleted: false },
+            select: ['url', 'category'],
+          },
+        ])
+      : null;
+    let corpus = await this.brandVoiceCorpusService.buildCorpus({
       brandId: dto.brandId,
       organizationId,
       pastedSamples: dto.samples,
     });
+    if (!corpus.samples.length && brand) {
+      const text = buildPromptBrandingFromBrand(brand)?.sampleOutput;
+      if (text)
+        corpus = buildVoiceCorpus([
+          {
+            id: 'brand-kit-sample',
+            kind: 'original',
+            origin: 'brand-kit',
+            text,
+            platform: null,
+            publishedAt: null,
+            engagement: null,
+          },
+        ]);
+    }
+    const { contextText, xHandle } = await this.resolveBrandContext(
+      dto,
+      organizationId,
+      brand,
+      corpus.samples.length > 0,
+    );
+    if (!corpus.samples.length && xHandle) {
+      try {
+        const posts =
+          await this.brandScraperService.readPublicXVoiceSamples(xHandle);
+        corpus = buildVoiceCorpus(
+          posts.map((post) => ({
+            ...post,
+            origin: 'public-profile',
+            kind: 'original',
+            platform: 'twitter',
+            engagement: null,
+          })),
+        );
+      } catch {
+        this.logger.warn('Public X voice samples unavailable', {
+          brandId: dto.brandId,
+        });
+      }
+    }
     const promptSamples = pickPromptSamples(corpus.samples);
     const voiceEvidence = buildVoiceEvidencePrompt(corpus, promptSamples);
 
@@ -134,8 +194,10 @@ export class BrandGenerationService {
   private async resolveBrandContext(
     dto: GenerateBrandVoiceDto,
     organizationId: string,
-    findBrand: BrandFinder,
-  ): Promise<string> {
+    brand: BrandDocument | null,
+    hasSamples: boolean,
+  ): Promise<{ contextText: string; xHandle?: string }> {
+    let xHandle = publicXHandle(dto.url);
     let contextText = '';
 
     if (dto.url) {
@@ -151,7 +213,27 @@ export class BrandGenerationService {
         });
       }
 
-      const scraped = await this.brandScraperService.scrapeWebsite(dto.url);
+      if (xHandle && hasSamples) {
+        return {
+          contextText: [
+            brand?.label,
+            brand?.description,
+            `X profile: ${dto.url}`,
+          ]
+            .filter(Boolean)
+            .join('\n'),
+          xHandle,
+        };
+      }
+      const scraped = xHandle
+        ? (
+            await this.brandScraperService.scrapeSetupSourceWithEvidence(
+              dto.url,
+            )
+          ).data
+        : await this.brandScraperService.scrapeWebsite(dto.url);
+      xHandle ??= storedXHandle(brand);
+      xHandle ??= publicXHandle(scraped.socialLinks?.twitter);
       const parts = [
         scraped.companyName && `Company: ${scraped.companyName}`,
         scraped.description && `Description: ${scraped.description}`,
@@ -162,9 +244,6 @@ export class BrandGenerationService {
       ].filter(Boolean);
       contextText = parts.join('\n');
     } else if (dto.brandId) {
-      const brand = await findBrand(
-        scopedWhere(organizationId, { id: dto.brandId }),
-      );
       if (!brand) {
         this.failBrandVoice({
           brandId: dto.brandId,
@@ -176,11 +255,12 @@ export class BrandGenerationService {
       // Prefer a live website scrape when we can resolve a URL (client may pass
       // `url`; otherwise try websiteUrl alias or a website link on the brand).
       const brandWithLinks = brand as BrandDocument & {
-        links?: Array<{ category?: string; url?: string }>;
+        links?: Array<{ category?: string; url?: string; isDeleted?: boolean }>;
         website?: string;
         websiteUrl?: string;
       };
-      const websiteFromLinks = brandWithLinks.links?.find(
+      const links = brandWithLinks.links?.filter((link) => !link.isDeleted);
+      const websiteFromLinks = links?.find(
         (link) =>
           link.category === LinkCategory.WEBSITE ||
           link.category === LinkCategory.OTHER,
@@ -193,12 +273,20 @@ export class BrandGenerationService {
         websiteFromLinks ||
         ''
       ).trim();
-      if (websiteUrl) {
+      const websiteXHandle = publicXHandle(websiteUrl);
+      xHandle = websiteXHandle ?? storedXHandle(brand);
+      if (websiteUrl && !(websiteXHandle && hasSamples)) {
         const validation = this.brandScraperService.validateUrl(websiteUrl);
         if (validation.isValid) {
           try {
-            const scraped =
-              await this.brandScraperService.scrapeWebsite(websiteUrl);
+            const scraped = websiteXHandle
+              ? (
+                  await this.brandScraperService.scrapeSetupSourceWithEvidence(
+                    websiteUrl,
+                  )
+                ).data
+              : await this.brandScraperService.scrapeWebsite(websiteUrl);
+            xHandle ??= publicXHandle(scraped.socialLinks?.twitter);
             const scrapedParts = [
               scraped.companyName && `Company: ${scraped.companyName}`,
               scraped.description && `Description: ${scraped.description}`,
@@ -251,7 +339,7 @@ export class BrandGenerationService {
       });
     }
 
-    return contextText;
+    return { contextText, xHandle };
   }
 
   /** The optional steering the caller added to the request, if any. */

@@ -101,8 +101,7 @@ export function ChatInput({
     setDebouncedQuery('');
     setIsDebouncing(false);
   }, [scopeKey, workspaceState.status === 'loading']);
-  // A reference handed over from a saved source joins the attached assets once,
-  // and only for the brand it was prepared in.
+  // use-effect-audit: ignore a reference handed over from a saved source joins the attached assets once, for its own brand
   useEffect(() => {
     if (!initialAssets?.length || !brandId) return;
     setAssets((current) => {

@@ -216,4 +216,25 @@ describe('credential learning mutation fence scope (#6158)', () => {
     );
     expect(lookups).toContain('cred');
   });
+
+  it('a disconnect clears the provider tokens with the soft delete', async () => {
+    const { tx } = fixture('org');
+    await removeCredentialWithLearning(
+      tx as never,
+      context,
+      'cred',
+      'organization',
+    );
+    const [{ data }] = tx.credential.update.mock.calls[0] as [
+      { data: Record<string, unknown> },
+    ];
+    expect(data).toMatchObject({
+      accessToken: null,
+      accessTokenSecret: null,
+      isConnected: false,
+      isDeleted: true,
+      oauthToken: null,
+      refreshToken: null,
+    });
+  });
 });

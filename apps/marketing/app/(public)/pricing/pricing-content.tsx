@@ -1,6 +1,7 @@
 import { getAppSignUpUrl } from '@data/app-links';
 import { BOOKING_HREF } from '@data/booking.data';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { videoRetentionDays } from '@genfeedai/contracts/constants';
 import { ONBOARDING_STARTER_CREDITS } from '@genfeedai/contracts/types';
 import type { PlanTier } from '@genfeedai/pricing';
 import {
@@ -88,6 +89,10 @@ const FAQ_ITEMS_BEFORE_LAUNCH = [
 ];
 
 const FAQ_ITEMS_AFTER_LAUNCH = [
+  {
+    answer: `Videos you have not posted are kept for ${videoRetentionDays(false)} days on pay-as-you-go and ${videoRetentionDays(true)} days on a subscription. A video attached to a post you scheduled or published is kept, and images are not affected. Download a video before it expires to keep it.`,
+    question: 'How long are my videos stored?',
+  },
   {
     answer:
       'You can choose a model in the app, let your agent pick one, or leave it to automatic routing where supported.',

@@ -50,6 +50,12 @@ export function readDomainPlatform(
   return fromPrismaCredentialPlatform(value) ?? parsePlatform(value);
 }
 
+function readAccountText(value: unknown): string | undefined {
+  return typeof value === 'string' && value.trim().length > 0
+    ? value.trim()
+    : undefined;
+}
+
 export function readCredentialId(value: unknown): string | undefined {
   return typeof value === 'string' && value.trim().length > 0
     ? value.trim()
@@ -224,6 +230,7 @@ function validatePublishTarget(params: {
 function buildAgentPublishTargetProposal(params: {
   caption?: string;
   credentialId: string;
+  account?: { avatarUrl?: string; handle?: string; name?: string };
   isSelected: boolean;
   media: AgentPublishTargetMedia[];
   platform: CredentialPlatform;
@@ -243,15 +250,18 @@ function buildAgentPublishTargetProposal(params: {
   });
 
   return {
+    avatarUrl: params.account?.avatarUrl,
     blockers: validation.blockers,
     caption: params.caption,
     captionMaxLength: capability?.caption.maxLength,
     credentialId: params.credentialId,
+    handle: params.account?.handle,
     id: `publish-target-${params.credentialId}`,
     isCaptionRequired: capability?.caption.required,
     isSelected: params.isSelected,
     label: capability?.label ?? params.platform,
     media: params.media,
+    name: params.account?.name,
     platform: params.platform,
     settingFields: toSettingFields(params.platform),
     settings,
@@ -262,7 +272,14 @@ function buildAgentPublishTargetProposal(params: {
 
 export function buildAgentPublishTargetProposals(params: {
   caption?: string;
-  credentials: Array<{ id?: unknown; platform?: unknown }>;
+  credentials: Array<{
+    externalAvatar?: unknown;
+    externalHandle?: unknown;
+    externalName?: unknown;
+    id?: unknown;
+    label?: unknown;
+    platform?: unknown;
+  }>;
   defaultPlatforms: string[];
   media: AgentPublishTargetMedia[];
   publishMode: ChannelPublishMode;
@@ -282,6 +299,13 @@ export function buildAgentPublishTargetProposals(params: {
     seenCredentialIds.add(credentialId);
     proposals.push(
       buildAgentPublishTargetProposal({
+        account: {
+          avatarUrl: readAccountText(credential.externalAvatar),
+          handle: readAccountText(credential.externalHandle),
+          name:
+            readAccountText(credential.label) ??
+            readAccountText(credential.externalName),
+        },
         caption: params.caption,
         credentialId,
         isSelected:

@@ -1,13 +1,25 @@
 'use client';
 
 import { cn } from '@genfeedai/helpers';
-import * as SelectPrimitive from '@radix-ui/react-select';
+import { DismissableLayer } from '@radix-ui/react-dismissable-layer';
+import { renderElement } from '@ui-sdk/react/primitive';
+import {
+  SelectTrigger as SelectButton,
+  SelectValue as SelectCurrent,
+  SelectSeparator as SelectDivider,
+  SelectGroup,
+  SelectGroupLabel,
+  SelectItemIndicator,
+  SelectItem as SelectOption,
+  SelectContent as SelectPopup,
+  Select as SelectRoot,
+  type SelectProps as SelectRootProps,
+} from '@ui-sdk/react/select';
 import { cva } from 'class-variance-authority';
-import { Check, ChevronDown, ChevronsUpDown, ChevronUp } from 'lucide-react';
+import { Check, ChevronsUpDown } from 'lucide-react';
 import {
   type ChangeEvent,
   Children,
-  type ComponentProps,
   type ComponentPropsWithRef,
   isValidElement,
   type ReactElement,
@@ -22,7 +34,11 @@ import {
 } from './field-control';
 import { Label } from './label';
 
-/** Radix reserves the empty string for clearing a selection. */
+/**
+ * An item with an empty value stands for "none" in a form. ui-sdk reports a
+ * cleared choice as null, so the empty string travels as a sentinel and the
+ * callers keep reading and writing ''.
+ */
 export const EMPTY_SELECT_ITEM_VALUE = '__genfeed_empty_select_item__';
 
 function toSelectItemValue(value: string): string {
@@ -33,29 +49,59 @@ function fromSelectItemValue(value: string): string {
   return value === EMPTY_SELECT_ITEM_VALUE ? '' : value;
 }
 
-function Select({
-  defaultValue,
-  onValueChange,
-  value,
-  ...props
-}: ComponentProps<typeof SelectPrimitive.Root>) {
+export interface SelectProps
+  extends Omit<
+    SelectRootProps<string, false>,
+    'defaultValue' | 'multiple' | 'onValueChange' | 'value'
+  > {
+  defaultValue?: string;
+  onValueChange?: (value: string) => void;
+  value?: string;
+}
+
+function Select({ defaultValue, onValueChange, value, ...props }: SelectProps) {
   return (
-    <SelectPrimitive.Root
+    <SelectRoot
       {...props}
       defaultValue={
         defaultValue == null ? defaultValue : toSelectItemValue(defaultValue)
       }
       value={value == null ? value : toSelectItemValue(value)}
-      onValueChange={(nextValue) =>
-        onValueChange?.(fromSelectItemValue(nextValue))
-      }
+      onValueChange={(nextValue) => {
+        // ui-sdk reports null when nothing is chosen; the owner of the value
+        // already knows.
+        if (nextValue !== null) {
+          onValueChange?.(fromSelectItemValue(nextValue));
+        }
+      }}
     />
   );
 }
 
-const SelectGroup: typeof SelectPrimitive.Group = SelectPrimitive.Group;
+/**
+ * What the trigger shows: the chosen option's text, or the placeholder while
+ * nothing is chosen. An empty value is the sentinel, which ui-sdk would show as
+ * text when no option has it, so that reads as nothing chosen too.
+ */
+function SelectValue({
+  children,
+  placeholder,
+  ...props
+}: ComponentPropsWithRef<typeof SelectCurrent>) {
+  return (
+    <SelectCurrent {...props} placeholder={placeholder}>
+      {children ??
+        ((state) => {
+          if (state.placeholder || state.label === EMPTY_SELECT_ITEM_VALUE) {
+            return placeholder;
+          }
 
-const SelectValue: typeof SelectPrimitive.Value = SelectPrimitive.Value;
+          return state.label;
+        })}
+    </SelectCurrent>
+  );
+}
+SelectValue.displayName = 'SelectValue';
 
 const selectFieldVariants = cva('', {
   defaultVariants: {
@@ -75,12 +121,13 @@ function SelectTrigger({
   children,
   hideIndicator = false,
   ...props
-}: ComponentPropsWithRef<typeof SelectPrimitive.Trigger> & {
+}: Omit<ComponentPropsWithRef<typeof SelectButton>, 'children'> & {
+  children?: ReactNode;
   /** Drop the chevron when the trigger is itself a pill or badge. */
   hideIndicator?: boolean;
 }) {
   return (
-    <SelectPrimitive.Trigger
+    <SelectButton
       ref={ref}
       className={cn(
         fieldControlClassName,
@@ -92,103 +139,54 @@ function SelectTrigger({
     >
       {children}
       {hideIndicator ? null : (
-        <SelectPrimitive.Icon asChild>
-          <ChevronsUpDown
-            className="size-4 text-muted-foreground"
-            aria-hidden="true"
-          />
-        </SelectPrimitive.Icon>
+        <ChevronsUpDown
+          className="size-4 text-muted-foreground"
+          aria-hidden="true"
+        />
       )}
-    </SelectPrimitive.Trigger>
+    </SelectButton>
   );
 }
-SelectTrigger.displayName = SelectPrimitive.Trigger.displayName;
-
-function SelectScrollUpButton({
-  ref,
-  className,
-  ...props
-}: ComponentPropsWithRef<typeof SelectPrimitive.ScrollUpButton>) {
-  return (
-    <SelectPrimitive.ScrollUpButton
-      ref={ref}
-      className={cn(
-        'flex cursor-default items-center justify-center py-1',
-        className,
-      )}
-      {...props}
-    >
-      <ChevronUp className="size-4" aria-hidden="true" />
-    </SelectPrimitive.ScrollUpButton>
-  );
-}
-SelectScrollUpButton.displayName = SelectPrimitive.ScrollUpButton.displayName;
-
-function SelectScrollDownButton({
-  ref,
-  className,
-  ...props
-}: ComponentPropsWithRef<typeof SelectPrimitive.ScrollDownButton>) {
-  return (
-    <SelectPrimitive.ScrollDownButton
-      ref={ref}
-      className={cn(
-        'flex cursor-default items-center justify-center py-1',
-        className,
-      )}
-      {...props}
-    >
-      <ChevronDown className="size-4" aria-hidden="true" />
-    </SelectPrimitive.ScrollDownButton>
-  );
-}
-SelectScrollDownButton.displayName =
-  SelectPrimitive.ScrollDownButton.displayName;
+SelectTrigger.displayName = 'SelectTrigger';
 
 function SelectContent({
   ref,
   className,
   children,
-  position = 'popper',
+  render,
   ...props
-}: ComponentPropsWithRef<typeof SelectPrimitive.Content>) {
+}: ComponentPropsWithRef<typeof SelectPopup>) {
   return (
-    <SelectPrimitive.Portal>
-      <SelectPrimitive.Content
-        ref={ref}
-        className={cn(
-          'relative max-h-96 min-w-[8rem] overflow-hidden',
-          position === 'popper' && 'translate-y-1',
-          fieldControlPopoverClassName,
-          className,
-        )}
-        position={position}
-        {...props}
-      >
-        <SelectScrollUpButton />
-        <SelectPrimitive.Viewport
-          className={cn(
-            'p-1',
-            position === 'popper' &&
-              'h-[var(--radix-select-trigger-height)] w-full min-w-[var(--radix-select-trigger-width)]',
-          )}
-        >
-          {children}
-        </SelectPrimitive.Viewport>
-        <SelectScrollDownButton />
-      </SelectPrimitive.Content>
-    </SelectPrimitive.Portal>
+    <SelectPopup
+      ref={ref}
+      className={cn(
+        'max-h-[min(24rem,var(--available-height))] min-w-[max(8rem,var(--anchor-width))] overflow-y-auto border-0 p-1',
+        fieldControlPopoverClassName,
+        className,
+      )}
+      render={(partProps, state) => (
+        <>
+          {renderElement('div', partProps, render, state)}
+          {/* Yield the outer Radix overlay's Escape handler to the open Select. */}
+          {state.open ? <DismissableLayer hidden /> : null}
+        </>
+      )}
+      {...props}
+    >
+      {children}
+    </SelectPopup>
   );
 }
-SelectContent.displayName = SelectPrimitive.Content.displayName;
+SelectContent.displayName = 'SelectContent';
 
+/** The heading of a group of items. */
 function SelectLabel({
   ref,
   className,
   ...props
-}: ComponentPropsWithRef<typeof SelectPrimitive.Label>) {
+}: ComponentPropsWithRef<typeof SelectGroupLabel>) {
   return (
-    <SelectPrimitive.Label
+    <SelectGroupLabel
       ref={ref}
       className={cn(
         'px-2 py-1.5 font-semibold text-2xs text-muted-foreground uppercase tracking-label',
@@ -198,7 +196,7 @@ function SelectLabel({
     />
   );
 }
-SelectLabel.displayName = SelectPrimitive.Label.displayName;
+SelectLabel.displayName = 'SelectLabel';
 
 function SelectItem({
   ref,
@@ -206,42 +204,43 @@ function SelectItem({
   children,
   value,
   ...props
-}: ComponentPropsWithRef<typeof SelectPrimitive.Item>) {
+}: Omit<ComponentPropsWithRef<typeof SelectOption>, 'children' | 'value'> & {
+  children?: ReactNode;
+  value: string;
+}) {
   return (
-    <SelectPrimitive.Item
+    <SelectOption
       ref={ref}
       className={cn(
-        'dropdown-case relative flex w-full cursor-pointer select-none items-center rounded-sm py-1.5 pr-2 pl-8 text-sm text-foreground outline-none focus:bg-hover focus:text-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
+        'dropdown-case relative flex w-full cursor-pointer select-none items-center rounded-sm py-1.5 pr-2 pl-8 text-sm text-foreground outline-none data-highlighted:bg-hover data-highlighted:text-foreground data-disabled:pointer-events-none data-disabled:opacity-50',
         className,
       )}
       value={toSelectItemValue(value)}
       {...props}
     >
-      <span className="absolute left-2 flex size-3.5 items-center justify-center">
-        <SelectPrimitive.ItemIndicator>
-          <Check className="size-4" aria-hidden="true" />
-        </SelectPrimitive.ItemIndicator>
-      </span>
-      <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>
-    </SelectPrimitive.Item>
+      {children}
+      <SelectItemIndicator className="absolute left-2 flex size-3.5 items-center justify-center">
+        <Check className="size-4" aria-hidden="true" />
+      </SelectItemIndicator>
+    </SelectOption>
   );
 }
-SelectItem.displayName = SelectPrimitive.Item.displayName;
+SelectItem.displayName = 'SelectItem';
 
 function SelectSeparator({
   ref,
   className,
   ...props
-}: ComponentPropsWithRef<typeof SelectPrimitive.Separator>) {
+}: ComponentPropsWithRef<typeof SelectDivider>) {
   return (
-    <SelectPrimitive.Separator
+    <SelectDivider
       ref={ref}
       className={cn('-mx-1 my-1 h-px bg-border', className)}
       {...props}
     />
   );
 }
-SelectSeparator.displayName = SelectPrimitive.Separator.displayName;
+SelectSeparator.displayName = 'SelectSeparator';
 
 interface SelectFieldOption {
   children: ReactNode;
@@ -393,7 +392,6 @@ function SelectFieldInner<T extends FieldValues = FieldValues>({
 
       <Select
         disabled={isDisabled}
-        name={fieldName || name}
         value={selectValue}
         onValueChange={handleValueChange}
       >
@@ -410,6 +408,7 @@ function SelectFieldInner<T extends FieldValues = FieldValues>({
 
         <SelectTrigger
           aria-invalid={error ? 'true' : undefined}
+          aria-label={label ?? name}
           className={cn(
             selectFieldVariants({ variant: error ? 'error' : 'default' }),
             isFullWidth ? 'w-full' : '',
@@ -427,6 +426,11 @@ function SelectFieldInner<T extends FieldValues = FieldValues>({
                 key={`${groupLabel}-${option.value}`}
                 className={isTextCaseKept ? 'normal-case' : undefined}
                 disabled={option.disabled}
+                label={
+                  typeof option.children === 'string'
+                    ? option.children
+                    : undefined
+                }
                 value={option.value}
               >
                 {option.children}
@@ -489,8 +493,6 @@ export {
   SelectGroup,
   SelectItem,
   SelectLabel,
-  SelectScrollDownButton,
-  SelectScrollUpButton,
   SelectSeparator,
   SelectTrigger,
   SelectValue,

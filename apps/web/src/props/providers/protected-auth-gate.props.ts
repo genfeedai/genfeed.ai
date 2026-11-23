@@ -7,4 +7,9 @@ export interface ProtectedAuthGateProps extends LayoutProps {
    * the app shell passes its loading frame so the screen never goes blank.
    */
   fallback?: ReactNode;
+  /**
+   * Shown instead of `fallback` once the token has not arrived in time. The
+   * callback starts the wait again. Defaults to keeping `fallback`.
+   */
+  failureFallback?: (retry: () => void) => ReactNode;
 }

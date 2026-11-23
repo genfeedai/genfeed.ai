@@ -23,8 +23,14 @@ const ADA = {
   label: 'Ada',
 };
 
-async function openModal(articleId?: string) {
-  render(<SupportCreatorButton articleId={articleId} handle="ada" />);
+async function openModal(articleId?: string, logoUrl?: string) {
+  render(
+    <SupportCreatorButton
+      articleId={articleId}
+      handle="ada"
+      logoUrl={logoUrl}
+    />,
+  );
   fireEvent.click(screen.getByRole('button', { name: 'Support @ada' }));
   return screen.findByRole('dialog', {}, { timeout: 5000 });
 }
@@ -36,6 +42,33 @@ beforeEach(() => {
 });
 
 describe('SupportCreatorButton', () => {
+  it("shows the creator's logo in the modal", async () => {
+    // jsdom never loads images, so let the avatar's preload succeed.
+    vi.stubGlobal(
+      'Image',
+      class {
+        private listeners: Record<string, () => void> = {};
+        addEventListener(type: string, listener: () => void) {
+          this.listeners[type] = listener;
+        }
+        removeEventListener() {}
+        set src(_value: string) {
+          queueMicrotask(() => this.listeners.load?.());
+        }
+      },
+    );
+    getSignedInBetterAuthToken.mockResolvedValue('jwt');
+    getTipTarget.mockResolvedValue(ADA);
+
+    await openModal(undefined, 'https://cdn.genfeed.ai/logos/ada.jpg');
+
+    expect(await screen.findByRole('img', { name: 'Ada' })).toHaveAttribute(
+      'src',
+      'https://cdn.genfeed.ai/logos/ada.jpg',
+    );
+    vi.unstubAllGlobals();
+  });
+
   it('opens a modal instead of leaving the page', async () => {
     getSignedInBetterAuthToken.mockResolvedValue('jwt');
     getTipTarget.mockResolvedValue(ADA);

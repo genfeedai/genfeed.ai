@@ -9,11 +9,11 @@ import {
   useCollectionScope,
 } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
+import SearchField from '@ui/content/search-field/SearchField';
 import { ErrorFallback } from '@ui/error/ErrorFallback';
 import Container from '@ui/layout/container/Container';
 import { useSearchParams } from 'next/navigation';
 import { useMemo, useState } from 'react';
-import SearchField from '@/components/content/search-field/SearchField';
 import { useWorkflowExecutions } from '@/hooks/data/workflow-executions/use-workflow-executions';
 import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
 import ActiveRunsPanel from './ActiveRunsPanel';

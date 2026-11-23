@@ -20,7 +20,7 @@ import type {
 
 /**
  * Product apps on the rail, in rail order: the dashboard (Workspace, Trends,
- * Library, Publishing, Analytics), then Agent, then the apps a member opens
+ * Library, Publishing, Analytics), then Agent and Playground, then the apps a member opens
  * from the launcher.
  */
 export const ROUTE_MANIFEST_APPS: readonly RouteManifestApp[] = [
@@ -36,7 +36,7 @@ export const ROUTE_MANIFEST_APPS: readonly RouteManifestApp[] = [
     rootPath: '/discovery',
     flag: 'discovery',
     group: 'daily',
-    homePath: '/discovery/overview',
+    homePath: '/discovery/feed',
     id: 'discovery',
     organizationModule: 'discovery',
   },
@@ -80,11 +80,12 @@ export const ROUTE_MANIFEST_APPS: readonly RouteManifestApp[] = [
   {
     rootPath: '/playground',
     flag: 'studio',
-    group: 'app',
+    group: 'daily',
     homePath: '/playground',
     id: 'playground',
     isBrandAware: true,
     organizationModule: 'playground',
+    releaseItemId: 'playground',
   },
   {
     rootPath: '/storyboard',
@@ -868,14 +869,12 @@ export const ROUTE_MANIFEST_GROUPS: readonly RouteManifestGroup[] = [
     mode: 'canvas',
     productClass: 'visual-data',
     telemetryClass: 'product',
-    fallback: '/discovery/overview',
+    fallback: '/discovery/feed',
     switcherItems: ['discovery'],
     adapterStatus: 'embedded',
     pages: [
-      { path: '/discovery/overview', help: 'discoveryOverview' },
-      '/discovery/following',
+      { path: '/discovery/feed', help: 'discoveryFeed' },
       { path: '/discovery/trends', help: 'discoveryTrends' },
-      { path: '/discovery/trend-turnover', help: 'discoveryTrendTurnover' },
       { path: '/discovery/ads', help: 'discoveryAds' },
       {
         path: '/discovery/trends/detail/:id',
@@ -929,7 +928,6 @@ export const ROUTE_MANIFEST_GROUPS: readonly RouteManifestGroup[] = [
       '/settings/progress',
       '/settings/members',
       { path: '/settings/modules', help: 'settingsModules' },
-      '/settings/preferences',
       '/settings/credits',
       '/settings/subscription',
       { path: '/settings/referrals', title: 'Affiliates' },
@@ -1163,7 +1161,7 @@ export const ROUTE_MANIFEST_GROUPS: readonly RouteManifestGroup[] = [
     mode: 'canvas',
     productClass: 'contextual-action',
     telemetryClass: 'product',
-    fallback: '/discovery/overview',
+    fallback: '/discovery/feed',
     switcherItems: ['discovery', 'publishing'],
     pages: [{ path: '/publishing/remix', help: 'publishingRemix' }],
   },
@@ -1243,7 +1241,6 @@ export const ROUTE_MANIFEST_GROUPS: readonly RouteManifestGroup[] = [
       '/settings/agent/receipts',
       '/settings/brand-kit/rules',
       '/settings/brand-kit/setup',
-      '/settings/brand-kit/:tab',
       '/settings/agent/context',
       '/settings/agent/learning',
       '/settings/publishing',

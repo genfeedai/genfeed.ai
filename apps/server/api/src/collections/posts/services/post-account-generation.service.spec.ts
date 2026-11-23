@@ -1045,7 +1045,7 @@ describe('PostAccountGenerationService', () => {
 
       await service.retry(String(posts[1].id), requestKey, identity);
       await vi.waitFor(() => expect(seam.generate).toHaveBeenCalled());
-      await new Promise((resolve) => setTimeout(resolve, 0));
+      await new Promise((resolve) => setImmediate(resolve));
 
       expect(billing.releaseRun).not.toHaveBeenCalled();
       expect(store.get(String(posts[1].id))).toMatchObject({

@@ -23,9 +23,13 @@ export const IMAGE_EDIT_MODEL_KEYS: readonly string[] = [
 /**
  * The registry default for instruction-based editing (#5808). Studio selects it
  * explicitly; Auto is a separate, deliberate choice that routes between the
- * editing models by prompt and priority.
+ * editing models by prompt and priority. FLUX.3 Edit takes up to ten sources;
+ * Ideogram 4.5 stays for mask editing and seeded, multi-output runs.
  */
 export const DEFAULT_IMAGE_EDIT_MODEL_KEY: string =
+  MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE_EDIT;
+/** The editing model that takes a mask, a seed, several outputs or a fixed size. */
+export const IMAGE_EDIT_CONTROLS_MODEL_KEY: string =
   MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_4_5;
 export const IMAGE_EDIT_MAX_SOURCES = 5;
 export const IMAGE_EDIT_MAX_OUTPUTS = 8;
@@ -116,4 +120,31 @@ export function readImageEditingRecipe(
     ...(typeof row.maskId === 'string' ? { maskId: row.maskId } : {}),
     ...(typeof row.seed === 'number' ? { seed: row.seed } : {}),
   };
+}
+
+/**
+ * The editor an edit request that names no model runs on. FLUX.3 Edit rejects a
+ * mask, a seed, several outputs and a fixed size, so a request that sets one of
+ * them goes to the model that accepts it instead of failing on the default.
+ */
+export function resolveDefaultImageEditModel(
+  registryDefaultKey: string,
+  controls: {
+    maskId?: string;
+    outputs?: number;
+    seed?: number;
+    size?: string;
+  },
+): string {
+  const isFluxEditDefault =
+    registryDefaultKey ===
+    MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE_EDIT;
+  const usesIdeogramControls =
+    controls.maskId !== undefined ||
+    controls.seed !== undefined ||
+    controls.size !== undefined ||
+    (controls.outputs ?? 1) > 1;
+  return isFluxEditDefault && usesIdeogramControls
+    ? IMAGE_EDIT_CONTROLS_MODEL_KEY
+    : registryDefaultKey;
 }

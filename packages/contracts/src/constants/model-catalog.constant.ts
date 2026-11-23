@@ -23,7 +23,6 @@ import {
   SpeedTier,
 } from '..';
 import {
-  AGENT_CHAT_MODEL_KEYS,
   AGENT_CHAT_MODELS,
   AGENT_FALLBACK_ROUND_CREDITS,
   calculateAgentRoundCredits,
@@ -194,6 +193,9 @@ const LEGACY_MEDIA_KEYS: ReadonlySet<string> = new Set([
   MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V2_1_MASTER,
   MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V2_5_TURBO_PRO,
   MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3_FAST,
+  // GPT Image 2.6 Flare (fal) is the current OpenAI image model.
+  MODEL_KEYS.REPLICATE_OPENAI_GPT_IMAGE_2_5_FLARE,
+  MODEL_KEYS.REPLICATE_OPENAI_GPT_IMAGE_2_5_SUNBURST,
 ]);
 
 /**
@@ -422,9 +424,7 @@ function buildAgentCatalogEntries(): ModelCatalogSeedEntry[] {
       isDefault,
       isHighlighted: isDefault,
       lifecycle:
-        isDefault ||
-        model.key === HIGHLIGHTED_AGENT_CHAT_MODEL_KEY ||
-        model.key === AGENT_CHAT_MODEL_KEYS.GPT_5_6_SOL
+        isDefault || model.key === HIGHLIGHTED_AGENT_CHAT_MODEL_KEY
           ? ModelLifecycle.RECOMMENDED
           : ModelLifecycle.AVAILABLE,
       isPublic: !isSelfHosted,
@@ -444,26 +444,45 @@ function buildAgentCatalogEntries(): ModelCatalogSeedEntry[] {
 /**
  * Gemini 3.8 Flash list price on OpenRouter (Google paid tier), read
  * 2026-10-14. Prompt $0.75 / completion $3.75 per 1M through 2026-12-31;
- * paid rates double on 2027-01-01. `cost` is one agent-round hold at the
- * 2.0 chat margin (`calculateAgentRoundCredits`), not a per-token bill.
- * The token columns stay USD per million for readers. Post enhancement
- * quotes the flat `cost` — marking this `per-token` would treat those USD
- * figures as credits per million and hold 1 credit.
+ * paid rates double on 2027-01-01. Since Gemini 4 Hydrogen took over product
+ * text this is no longer a model's price: it is the basis of the flat product
+ * text price below, kept so the customer price did not move with the model.
  */
-const PRODUCT_TEXT_GEMINI_3_8_FLASH_PRICING = {
+const PRODUCT_TEXT_PRICE_BASIS = {
   completionPerMillion: 3.75,
   promptPerMillion: 0.75,
 } as const;
 
 /**
+ * Gemini 4 Hydrogen list price on OpenRouter (Google AI Studio and Vertex),
+ * read 2026-11-20. Prompt $1.50 / completion $7.50 per 1M. Billed at the flat
+ * product text price, not per token, so the real cost per rewrite is read from
+ * the ledger and the price revisited with data.
+ */
+const PRODUCT_TEXT_GEMINI_4_HYDROGEN_PRICING = {
+  completionPerMillion: 7.5,
+  promptPerMillion: 1.5,
+} as const;
+
+/**
  * Credits one post enhancement (AI Rewrite) is quoted and charged: the flat
- * `cost` of the Gemini 3.8 Flash row, which `POST /posts/:postId/enhancements`
+ * `cost` of the product text rows, which `POST /posts/:postId/enhancements`
  * admits against. The composer prompt bar shows this figure, so the label
  * cannot drift from the hold.
  */
 export const POST_ENHANCEMENT_CREDITS = calculateAgentRoundCredits(
-  PRODUCT_TEXT_GEMINI_3_8_FLASH_PRICING,
+  PRODUCT_TEXT_PRICE_BASIS,
 );
+
+/**
+ * Gemini 4 Neon list price on OpenRouter (Google AI Studio and Vertex), read
+ * 2026-11-20. Prompt $3 / completion $15 per 1M. The Vertex global endpoint
+ * (ZDR-eligible) bills the same list price.
+ */
+const PRODUCT_TEXT_GEMINI_4_NEON_PRICING = {
+  completionPerMillion: 15,
+  promptPerMillion: 3,
+} as const;
 
 /** Grok 4.3 list price on OpenRouter, read 2026-10-15. */
 const PRODUCT_TEXT_GROK_4_3_PRICING = {
@@ -480,7 +499,7 @@ const PRODUCT_TEXT_GROK_4_3_PRICING = {
  * lists, and off the category default.
  */
 function buildProductTextCatalogEntries(): ModelCatalogSeedEntry[] {
-  const pricing = PRODUCT_TEXT_GEMINI_3_8_FLASH_PRICING;
+  const pricing = PRODUCT_TEXT_PRICE_BASIS;
 
   return [
     {
@@ -488,7 +507,29 @@ function buildProductTextCatalogEntries(): ModelCatalogSeedEntry[] {
       cost: POST_ENHANCEMENT_CREDITS,
       costTier: CostTier.MEDIUM,
       description:
-        'Gemini 3.8 Flash — seed fallback for drafts and prompt enhancement when no Admin default text model is set. Not offered in the agent chat picker.',
+        'Gemini 4 Hydrogen — product text for posts, captions, drafts, prompt enhancement and article review (`LLM_DEFAULTS.productTextFallback`). Not offered in the agent chat picker.',
+      inputCostPerMillionTokens:
+        PRODUCT_TEXT_GEMINI_4_HYDROGEN_PRICING.promptPerMillion,
+      isActive: true,
+      isDefault: false,
+      isHighlighted: false,
+      isPublic: false,
+      key: MODEL_KEYS.OPENROUTER_GOOGLE_GEMINI_4_HYDROGEN,
+      label: 'Gemini 4 Hydrogen',
+      lifecycle: ModelLifecycle.AVAILABLE,
+      outputCostPerMillionTokens:
+        PRODUCT_TEXT_GEMINI_4_HYDROGEN_PRICING.completionPerMillion,
+      pricingType: PricingType.FLAT,
+      provider: ModelProvider.OPENROUTER,
+      qualityTier: QualityTier.HIGH,
+      speedTier: SpeedTier.FAST,
+    },
+    {
+      category: ModelCategory.TEXT,
+      cost: POST_ENHANCEMENT_CREDITS,
+      costTier: CostTier.MEDIUM,
+      description:
+        'Gemini 3.8 Flash — the previous product text model. Not offered in the agent chat picker.',
       inputCostPerMillionTokens: pricing.promptPerMillion,
       isActive: true,
       isDefault: false,
@@ -498,6 +539,28 @@ function buildProductTextCatalogEntries(): ModelCatalogSeedEntry[] {
       label: 'Gemini 3.8 Flash',
       lifecycle: ModelLifecycle.AVAILABLE,
       outputCostPerMillionTokens: pricing.completionPerMillion,
+      pricingType: PricingType.FLAT,
+      provider: ModelProvider.OPENROUTER,
+      qualityTier: QualityTier.HIGH,
+      speedTier: SpeedTier.FAST,
+    },
+    {
+      category: ModelCategory.TEXT,
+      cost: calculateAgentRoundCredits(PRODUCT_TEXT_GEMINI_4_NEON_PRICING),
+      costTier: CostTier.MEDIUM,
+      description:
+        'Gemini 4 Neon — the content writing model for articles, newsletters, captions, scripts and rewrites (`LLM_DEFAULTS.contentWriting`). Not offered in the agent chat picker.',
+      inputCostPerMillionTokens:
+        PRODUCT_TEXT_GEMINI_4_NEON_PRICING.promptPerMillion,
+      isActive: true,
+      isDefault: false,
+      isHighlighted: false,
+      isPublic: false,
+      key: MODEL_KEYS.OPENROUTER_GOOGLE_GEMINI_4_NEON,
+      label: 'Gemini 4 Neon',
+      lifecycle: ModelLifecycle.AVAILABLE,
+      outputCostPerMillionTokens:
+        PRODUCT_TEXT_GEMINI_4_NEON_PRICING.completionPerMillion,
       pricingType: PricingType.FLAT,
       provider: ModelProvider.OPENROUTER,
       qualityTier: QualityTier.HIGH,

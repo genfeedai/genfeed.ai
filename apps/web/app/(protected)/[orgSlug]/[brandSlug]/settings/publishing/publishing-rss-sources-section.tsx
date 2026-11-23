@@ -2,16 +2,15 @@ import {
   ButtonSize,
   ButtonVariant,
   CardVariant,
-  ComponentSize,
   RssApprovalMode,
   RssImportPolicy,
 } from '@genfeedai/contracts';
 import type { IRssSource } from '@genfeedai/contracts/interfaces';
-import { getCredentialLabel } from '@helpers/publisher/credential-label.helper';
+import { toConnectedAccount } from '@helpers/publisher/connected-account.helper';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import Card from '@ui/card/Card';
-import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
+import ConnectedAccount from '@ui/display/connected-account/ConnectedAccount';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import { Input } from '@ui/primitives/input';
@@ -314,10 +313,9 @@ export default function PublishingRssSourcesSection({
                     isChecked={selectedCredentialIds.includes(credential.id)}
                     onChange={() => toggleChannel(credential.id)}
                   />
-                  <span>{getCredentialLabel(credential)}</span>
-                  <PlatformBadge
-                    platform={credential.platform}
-                    size={ComponentSize.SM}
+                  <ConnectedAccount
+                    account={toConnectedAccount(credential)}
+                    size="xs"
                   />
                 </Label>
               ))}

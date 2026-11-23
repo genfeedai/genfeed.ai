@@ -25,8 +25,15 @@ import {
   requireCredentialRelationId,
 } from '@api/collections/credentials/utils/credential-persistence.util';
 import { emitCredentialProfileSynced } from '@api/collections/credentials/utils/credential-profile-event.util';
+import {
+  buildPendingOAuthFilter,
+  claimedPendingOAuthFilter,
+  claimPendingOAuthRow,
+  toPendingOAuthCredential,
+} from '@api/collections/credentials/utils/oauth-verify-claim.util';
 import { isMirrorableAvatarUrl } from '@api/collections/credentials/utils/provider-placeholder-image.util';
 import type { CreateTagDto } from '@api/collections/tags/dto/create-tag.dto';
+import { retryTransactionStart } from '@api/collections/workflows/utils/serializable-retry.util';
 import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { ValidationException } from '@api/exceptions/validation.exception';
@@ -45,11 +52,8 @@ import {
   fromPrismaCredentialPlatform,
   toPrismaCredentialPlatform,
 } from '@genfeedai/contracts';
-import { isReservedExternalConnectionOAuthState } from '@genfeedai/helpers/integrations/external-connection-request.helper';
-import type { Prisma } from '@genfeedai/prisma';
-import { TagCategory as PrismaTagCategory } from '@genfeedai/prisma';
+import { type Prisma, TagCategory } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getTenantContext } from '@libs/prisma/tenant-context';
 import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
@@ -248,14 +252,16 @@ export class CredentialsService
     const include = this.populateToInclude(populate) as
       | Prisma.CredentialInclude
       | undefined;
-    const updated = await runFencedLearningMutation(this.prisma, (tx, scope) =>
-      patchCredentialWithLearning(
-        tx,
-        this.learningMutationContext(),
-        id,
-        data as Prisma.CredentialUncheckedUpdateInput,
-        scope,
-        include,
+    const updated = await retryTransactionStart(() =>
+      runFencedLearningMutation(this.prisma, (tx, scope) =>
+        patchCredentialWithLearning(
+          tx,
+          this.learningMutationContext(),
+          id,
+          data as Prisma.CredentialUncheckedUpdateInput,
+          scope,
+          include,
+        ),
       ),
     );
     await this.invalidateCredentialMutationCache();
@@ -688,66 +694,49 @@ export class CredentialsService
     platform: CredentialPlatform,
     scope?: Partial<OAuthCredentialScope>,
   ): Promise<PendingOAuthCredential | null> {
-    if (
-      typeof state !== 'string' ||
-      !state.trim() ||
-      isReservedExternalConnectionOAuthState(state)
-    ) {
-      return null;
-    }
+    const filter = buildPendingOAuthFilter(state, platform, scope);
 
-    // Callers that omit `scope` (the provider-error callback util) still run
-    // inside the authenticated request, so default to its tenant.
-    const scopedOrganizationId =
-      scope?.organizationId ?? getTenantContext()?.organizationId;
-
-    const credential = await this.findOne({
-      isConnected: false,
-      oauthState: state,
-      platform,
-      updatedAt: { gte: new Date(Date.now() - OAUTH_STATE_TTL_MS) },
-      ...(scopedOrganizationId
-        ? {
-            organizationId: requireCredentialRelationId(
-              scopedOrganizationId,
-              'organizationId',
-            ),
-          }
-        : {}),
-      ...(scope?.userId
-        ? {
-            userId: requireCredentialRelationId(scope.userId, 'userId'),
-          }
-        : {}),
-    });
-
-    if (
-      !credential?.brandId ||
-      !credential.organizationId ||
-      !credential.userId
-    ) {
-      return null;
-    }
-
-    return credential as PendingOAuthCredential;
+    return filter ? toPendingOAuthCredential(await this.findOne(filter)) : null;
   }
 
   /**
-   * Resolve an OAuth 1.0a callback through its provider-issued request token.
-   * The lookup remains TTL-bound and tenant/user scoped, preventing a token
-   * copied from another session from attaching credentials across accounts.
+   * Take ownership of a pending OAuth connection: one conditional write moves
+   * the row from its state to a claim marker, so of two verify requests for
+   * the same state only one gets the row and may spend the single-use code.
    */
-  async findPendingOAuth1Credential(
+  async claimPendingOAuthCredential(
+    state: string,
+    platform: CredentialPlatform,
+    scope?: Partial<OAuthCredentialScope>,
+  ): Promise<PendingOAuthCredential | null> {
+    const filter = buildPendingOAuthFilter(state, platform, scope);
+
+    if (!filter || !(await claimPendingOAuthRow(this.prisma, filter))) {
+      return null;
+    }
+
+    return toPendingOAuthCredential(
+      await this.findOne(claimedPendingOAuthFilter(filter)),
+    );
+  }
+
+  /**
+   * Resolve an OAuth 1.0a callback through its provider-issued request token,
+   * in whatever state its verify is: pending, claimed by a verify that is
+   * still talking to the provider, or already settled. The lookup remains
+   * TTL-bound and tenant/user scoped, preventing a token copied from another
+   * session from attaching credentials across accounts.
+   */
+  async findOAuth1VerifyCredential(
     oauthToken: string,
     platform: CredentialPlatform,
     scope: OAuthCredentialScope,
-  ): Promise<PendingOAuthCredential | null> {
+  ): Promise<CredentialDocument | null> {
     if (typeof oauthToken !== 'string' || !oauthToken.trim()) {
       return null;
     }
 
-    const credential = await this.findOne({
-      isConnected: false,
+    return this.findOne({
       oauthTokenHash: hashOAuthRequestToken(oauthToken),
       organizationId: requireCredentialRelationId(
         scope.organizationId,
@@ -757,16 +746,6 @@ export class CredentialsService
       updatedAt: { gte: new Date(Date.now() - OAUTH_STATE_TTL_MS) },
       userId: requireCredentialRelationId(scope.userId, 'userId'),
     });
-
-    if (
-      !credential?.brandId ||
-      !credential.organizationId ||
-      !credential.userId
-    ) {
-      return null;
-    }
-
-    return credential as PendingOAuthCredential;
   }
 
   /**
@@ -800,7 +779,7 @@ export class CredentialsService
             backgroundColor: createTagDto.backgroundColor,
           }),
           brandId: credential.brandId,
-          category: PrismaTagCategory.CREDENTIAL,
+          category: TagCategory.CREDENTIAL,
           ...(createTagDto.description !== undefined && {
             description: createTagDto.description,
           }),
@@ -910,7 +889,7 @@ export class CredentialsService
         }
         assertUrlNotPrivate(profile.avatarUrl);
         const metadata = await this.filesClientService.uploadToS3(
-          credentialId,
+          `${credentialId}-${Date.now()}`,
           'social-avatars',
           {
             type: FileInputType.URL,

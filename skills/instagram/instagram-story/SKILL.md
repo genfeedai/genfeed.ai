@@ -97,7 +97,7 @@ Follow-up: [how to answer replies and DMs]
 
 ## Genfeed integration
 
-If Genfeed tools are available, `generate_content` can draft the on-frame copy and `upload_media` can store frames. Whether a Story can be drafted or scheduled through Genfeed depends on the account and channel; check `check_channel` with `{action: "capabilities", input: {platform: "instagram"}}` and say so if Stories are not supported. Publishing goes through `social-poster`, only on explicit confirmation.
+If Genfeed tools are available, `generate_text` (`action: content`) can draft the on-frame copy and `upload_media` can store frames. Whether a Story can be drafted or scheduled through Genfeed depends on the account and channel; check `check_channel` with `{action: "capabilities", input: {platform: "instagram"}}` and say so if Stories are not supported. Publishing goes through `social-poster`, only on explicit confirmation.
 
 The skill works fully without Genfeed.
 

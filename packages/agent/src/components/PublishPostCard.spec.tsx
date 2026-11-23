@@ -357,10 +357,12 @@ describe('PublishPostCard', () => {
       targets: [
         makeTarget({
           credentialId: 'cred-linkedin-a',
+          handle: 'studio-a',
           id: 'publish-target-cred-linkedin-a',
         }),
         makeTarget({
           credentialId: 'cred-linkedin-b',
+          handle: 'studio-b',
           id: 'publish-target-cred-linkedin-b',
         }),
       ],
@@ -372,10 +374,10 @@ describe('PublishPostCard', () => {
     render(<PublishPostCard action={action} />);
 
     expect(
-      screen.getByRole('button', { name: 'LinkedIn cred-linkedin-a' }),
+      screen.getByRole('button', { name: '@studio-a' }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: 'LinkedIn cred-linkedin-b' }),
+      screen.getByRole('button', { name: '@studio-b' }),
     ).toBeInTheDocument();
   });
 });

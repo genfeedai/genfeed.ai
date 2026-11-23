@@ -136,6 +136,24 @@ describe('SocialSourcesService', () => {
     );
   });
 
+  it("leaves the brand's own account out of the feed posts", async () => {
+    socialSource.findMany.mockResolvedValue([]);
+    socialSource.count.mockResolvedValue(0);
+    sourcePostsService.listByBrand.mockResolvedValue({ docs: [], total: 0 });
+
+    await service.getFeed(
+      { brandId: 'brand-1', organizationId: 'org-1' },
+      tenantReadQuery(SocialSourcesQueryDto, {}),
+    );
+
+    expect(sourcePostsService.listByBrand).toHaveBeenCalledWith(
+      { brandId: 'brand-1', organizationId: 'org-1' },
+      expect.objectContaining({
+        excludeSourceTypes: [SocialSourceType.OWN_ACCOUNT],
+      }),
+    );
+  });
+
   it('rejects profile URLs outside the selected platform', async () => {
     brand.findFirst.mockResolvedValue({ id: 'brand-1' });
 

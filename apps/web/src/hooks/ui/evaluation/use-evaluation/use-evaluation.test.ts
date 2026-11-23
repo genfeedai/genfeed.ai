@@ -153,8 +153,10 @@ describe('useEvaluation', () => {
         }),
       );
 
-      // Wait a bit to ensure no fetch is triggered
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      // Let any fetch the hook would start run before asserting it did not.
+      await act(async () => {
+        await new Promise((resolve) => setImmediate(resolve));
+      });
 
       expect(mockGetImageEvaluations).not.toHaveBeenCalled();
     });
@@ -168,7 +170,9 @@ describe('useEvaluation', () => {
         }),
       );
 
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await act(async () => {
+        await new Promise((resolve) => setImmediate(resolve));
+      });
 
       expect(mockGetImageEvaluations).not.toHaveBeenCalled();
     });

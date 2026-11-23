@@ -409,6 +409,74 @@ describe('OperationalHomeContent', () => {
     ).toBeInTheDocument();
   });
 
+  it('paints the remembered verified line while the connection read is loading', () => {
+    window.localStorage.setItem(
+      'genfeed:connect-line:v1:org_1',
+      JSON.stringify({
+        status: 'configured',
+        verifiedAt: '2026-11-20T10:00:00.000Z',
+      }),
+    );
+    mocks.connectionState = {
+      error: null,
+      key: null,
+      refresh: mocks.connectionRefresh,
+      status: 'loading',
+      verifiedAt: null,
+    };
+
+    render(<OperationalHomeContent />);
+
+    expect(screen.getByTestId('operational-home-connected')).toBeVisible();
+    expect(
+      screen.getByTestId('operational-home-connected').parentElement
+        ?.parentElement,
+    ).not.toHaveClass('starting:grid-rows-[0fr]');
+  });
+
+  it('remembers what the connection read settled on for the next visit', async () => {
+    mocks.connectionState = {
+      error: null,
+      key: { label: 'key_1' },
+      refresh: mocks.connectionRefresh,
+      status: 'configured',
+      verifiedAt: '2026-11-21T09:30:00.000Z',
+    };
+
+    render(<OperationalHomeContent />);
+
+    await waitFor(() =>
+      expect(
+        JSON.parse(
+          window.localStorage.getItem('genfeed:connect-line:v1:org_1') ?? '{}',
+        ),
+      ).toEqual({
+        status: 'configured',
+        verifiedAt: '2026-11-21T09:30:00.000Z',
+      }),
+    );
+    expect(
+      window.localStorage.getItem('genfeed:connect-line:v1:org_1'),
+    ).not.toContain('key_1');
+  });
+
+  it('grows the line in when nothing was remembered', () => {
+    mocks.connectionState = {
+      error: null,
+      key: { label: 'key_1' },
+      refresh: mocks.connectionRefresh,
+      status: 'configured',
+      verifiedAt: '2026-11-21T09:30:00.000Z',
+    };
+
+    render(<OperationalHomeContent />);
+
+    expect(
+      screen.getByTestId('operational-home-connected').parentElement
+        ?.parentElement,
+    ).toHaveClass('starting:grid-rows-[0fr]');
+  });
+
   it('renders missing-organization recovery inside the existing shell landmark', () => {
     mocks.accessState = null;
     mocks.brandState.brands = [];
@@ -685,7 +753,7 @@ describe('OperationalHomeContent', () => {
     expect(
       within(publishing).getByRole('link', { name: /Launch announcement/ }),
     ).toHaveAttribute('href', '/acme/moonrise/publishing/posts/post_1');
-    expect(within(publishing).getByTitle('acme_x')).toBeInTheDocument();
+    expect(within(publishing).getByTitle('@acme_x')).toBeInTheDocument();
   });
 
   it('opens publication details from a publishing row without targets', () => {

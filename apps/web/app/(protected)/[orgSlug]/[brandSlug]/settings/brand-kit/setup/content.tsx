@@ -468,7 +468,7 @@ export default function BrandGuidedSetupPage() {
   // navigable?" check kept the view pinned on the just-answered question
   // instead of advancing — see #5391.
   const lastFrontierFieldKeyRef = useRef<string | null>(null);
-
+  // use-effect-audit: ignore moves the selected question forward when the interview frontier advances
   useEffect(() => {
     if (!frontierFieldKey) {
       return;
@@ -514,7 +514,7 @@ export default function BrandGuidedSetupPage() {
     (state) => state.clearBrand,
   );
 
-  // Seed drafts from server answers when opening a past step with an empty draft.
+  // use-effect-audit: ignore seeds the draft store from server answers when opening a past step with an empty draft
   useEffect(() => {
     if (!brandId || !fieldKey) {
       return;
@@ -551,6 +551,7 @@ export default function BrandGuidedSetupPage() {
     void handleRefreshBrand();
   }, [brandId, clearBrandDrafts, handleRefreshBrand, queryClient]);
 
+  // use-effect-audit: ignore runs the interview completion handler once the status turns complete
   useEffect(() => {
     if (status === 'complete') {
       handleInterviewComplete();

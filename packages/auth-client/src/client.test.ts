@@ -237,6 +237,75 @@ describe('getBetterAuthToken', () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
+  it('starts a new exchange for a forced refresh during an in-flight one', async () => {
+    const oldExchange = createDeferred<{ token: string }>();
+    const newExchange = createDeferred<{ token: string }>();
+    fetchMock
+      .mockReturnValueOnce(oldExchange.promise)
+      .mockReturnValueOnce(newExchange.promise);
+
+    const plain = getBetterAuthToken('session-1:user-1:org-1');
+    const forced = getBetterAuthToken('session-1:user-1:org-1', {
+      forceRefresh: true,
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    oldExchange.resolve({ token: 'old' });
+    await expect(plain).resolves.toBe('old');
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+
+    newExchange.resolve({ token: 'new' });
+    await expect(forced).resolves.toBe('new');
+    await expect(getBetterAuthToken('session-1:user-1:org-1')).resolves.toBe(
+      'new',
+    );
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('shares one new exchange between forced refreshes during an in-flight one', async () => {
+    const oldExchange = createDeferred<{ token: string }>();
+    const newExchange = createDeferred<{ token: string }>();
+    fetchMock
+      .mockReturnValueOnce(oldExchange.promise)
+      .mockReturnValueOnce(newExchange.promise);
+
+    void getBetterAuthToken('session-1:user-1:org-1');
+    const first = getBetterAuthToken('session-1:user-1:org-1', {
+      forceRefresh: true,
+    });
+    const second = getBetterAuthToken('session-1:user-1:org-1', {
+      forceRefresh: true,
+    });
+
+    oldExchange.resolve({ token: 'old' });
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+    newExchange.resolve({ token: 'new' });
+
+    await expect(Promise.all([first, second])).resolves.toEqual(['new', 'new']);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not reject a forced refresh when the in-flight exchange fails', async () => {
+    const oldExchange = createDeferred<{ token: string }>();
+    fetchMock
+      .mockReturnValueOnce(
+        oldExchange.promise.then(() => {
+          throw new Error('rate limited');
+        }),
+      )
+      .mockResolvedValueOnce({ token: 'new' });
+
+    const plain = getBetterAuthToken('session-1:user-1:org-1');
+    const forced = getBetterAuthToken('session-1:user-1:org-1', {
+      forceRefresh: true,
+    });
+
+    oldExchange.resolve({ token: 'unused' });
+    await expect(plain).rejects.toThrow('rate limited');
+    await expect(forced).resolves.toBe('new');
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
   it('does not let one consumer cancellation abort the shared exchange', async () => {
     const deferred = createDeferred<{ token: string }>();
     const controller = new AbortController();
@@ -279,7 +348,8 @@ describe('signOut across tabs', () => {
   });
 
   async function settleBroadcast(): Promise<void> {
-    await new Promise((resolve) => setTimeout(resolve, 20));
+    await new Promise((resolve) => setImmediate(resolve));
+    await new Promise((resolve) => setImmediate(resolve));
   }
 
   it('tells the other tabs once the server ended the session', async () => {
@@ -289,8 +359,9 @@ describe('signOut across tabs', () => {
     });
 
     await signOut();
-    await settleBroadcast();
 
+    await vi.waitFor(() => expect(signedOutMessages).toBe(1));
+    await settleBroadcast();
     expect(signedOutMessages).toBe(1);
   });
 

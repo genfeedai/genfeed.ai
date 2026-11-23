@@ -12,6 +12,7 @@ import type { TableColumn } from '@props/ui/display/table.props';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { ScenesService } from '@services/elements/scenes.service';
+import SearchField from '@ui/content/search-field/SearchField';
 import { useElementRowSidebar } from '@ui/display/element-scope-badge/element-row-sidebar';
 import AppTable from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
@@ -20,7 +21,6 @@ import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Suspense, useEffect } from 'react';
 import { useAdminSearchParam } from '@/components/content/admin-filters/useAdminSearchParam';
-import SearchField from '@/components/content/search-field/SearchField';
 import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
 
 const EMPTY_SCENES: ElementScene[] = [];

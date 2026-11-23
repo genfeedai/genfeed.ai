@@ -8,6 +8,7 @@ import Card from '@ui/card/Card';
 import Container from '@ui/layout/container/Container';
 import SectionTopbar from '@ui/layout/section-topbar/SectionTopbar';
 import SubbarControls from '@ui/layout/subbar-controls/SubbarControls';
+import FilterMenu from '@ui/navigation/filter-menu/FilterMenu';
 import { Flame } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import {
@@ -15,7 +16,6 @@ import {
   TrendingSounds,
 } from '@/components/analytics/trends';
 import TrendVideoGallery from '@/components/analytics/trends/trend-video-gallery';
-import FilterMenu from '@/components/content/filter-menu/FilterMenu';
 import HookRemixModal from '@/features/trends/list/components/HookRemixModal';
 import { SocialsNavigation } from '@/features/trends/shared/socials-navigation';
 

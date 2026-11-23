@@ -1,28 +1,44 @@
-import { getToolByName, toMcpTools } from '@genfeedai/actions';
+import { getToolByName, toMcpTool, toMcpTools } from '@genfeedai/actions';
 import type { ClientService } from '@mcp/services/client.service';
 import { handleContentTool } from '@mcp/tools/content.tool';
 
 describe('get_articles schema contract (#6597)', () => {
-  it('advertises exactly one selector on the connected MCP schema', () => {
+  const selectorSchema = {
+    oneOf: [
+      {
+        properties: { articleId: { type: 'string' } },
+        required: ['articleId'],
+      },
+      { properties: { query: { type: 'string' } }, required: ['query'] },
+    ],
+    properties: {
+      articleId: { minLength: 1, pattern: '\\S', type: 'string' },
+      query: { minLength: 1, pattern: '\\S', type: 'string' },
+    },
+  };
+
+  it('advertises exactly one selector on the schema of the articles action', () => {
     const definition = getToolByName('get_articles');
     expect(definition).toBeDefined();
-    const tool = toMcpTools(definition ? [definition] : [])[0];
-    expect(tool.inputSchema).toMatchObject({
-      oneOf: [
-        {
-          properties: { articleId: { type: 'string' } },
-          required: ['articleId'],
-        },
-        { properties: { query: { type: 'string' } }, required: ['query'] },
-      ],
-      properties: {
-        articleId: { minLength: 1, pattern: '\\S', type: 'string' },
-        query: { minLength: 1, pattern: '\\S', type: 'string' },
-      },
+    if (!definition) return;
+    expect(toMcpTool(definition).inputSchema).toMatchObject(selectorSchema);
+    const listed = toMcpTools(
+      [getToolByName('get_content')].flatMap((tool) => (tool ? [tool] : [])),
+    )[0];
+    const input = listed.inputSchema.properties.input as {
+      anyOf: unknown[];
+    };
+    expect(
+      input.anyOf.find(
+        (schema) =>
+          typeof schema === 'object' && schema !== null && 'oneOf' in schema,
+      ),
+    ).toMatchObject(selectorSchema);
+    expect(listed.inputSchema.properties.action).toMatchObject({
+      description: expect.stringContaining(
+        'pass exactly one of articleId or query',
+      ),
     });
-    expect(tool.description).toContain(
-      'Pass exactly one of articleId or query',
-    );
   });
 });
 

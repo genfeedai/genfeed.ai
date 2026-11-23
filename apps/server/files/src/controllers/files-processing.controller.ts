@@ -213,7 +213,6 @@ export class FilesProcessingController {
         this.configService,
       );
 
-      // Split the image
       const splitResults = await this.imagesSplitService.splitImage(
         imageBuffer,
         gridRows,

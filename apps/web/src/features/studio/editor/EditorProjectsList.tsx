@@ -16,6 +16,7 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { EditorProjectsService } from '@services/editor/editor-projects.service';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
+import SearchField from '@ui/content/search-field/SearchField';
 import { ErrorFallback } from '@ui/error/ErrorFallback';
 import Container from '@ui/layout/container/Container';
 import { useCreativeProjectsPresence } from '@ui/layout/creative-app-workspace/CreativeAppWorkspace';
@@ -31,6 +32,7 @@ import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagina
 import { Button } from '@ui/primitives/button';
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -51,7 +53,6 @@ import {
   useState,
 } from 'react';
 import { useAdminSearchParam } from '@/components/content/admin-filters/useAdminSearchParam';
-import SearchField from '@/components/content/search-field/SearchField';
 import { useCreativeAppAgentContext } from '@/hooks/agent/use-creative-app-agent-context/use-creative-app-agent-context';
 
 /**
@@ -338,16 +339,21 @@ export default function EditorProjectsList() {
               {translate('renameDescription')}
             </DialogDescription>
           </DialogHeader>
-          <Form onSubmit={(event) => void handleRename(event)}>
-            <Field label={translate('projectName')}>
-              <Input
-                aria-label={translate('projectName')}
-                disabled={isRenaming}
-                maxLength={120}
-                onChange={(event) => setRenameValue(event.target.value)}
-                value={renameValue}
-              />
-            </Field>
+          <Form
+            className="min-h-0 flex-1"
+            onSubmit={(event) => void handleRename(event)}
+          >
+            <DialogBody className="flex flex-col gap-4">
+              <Field label={translate('projectName')}>
+                <Input
+                  aria-label={translate('projectName')}
+                  disabled={isRenaming}
+                  maxLength={120}
+                  onChange={(event) => setRenameValue(event.target.value)}
+                  value={renameValue}
+                />
+              </Field>
+            </DialogBody>
             <DialogFooter>
               <Button
                 isDisabled={isRenaming}

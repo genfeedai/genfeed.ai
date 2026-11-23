@@ -20,7 +20,7 @@ import { expectNoErrorOverlay } from '../../utils/route-assertions';
 // #7674 / #7675 / #7676 / #7494: the money path of a Studio generation.
 // Generate quotes the price first, so an unpriceable quote spends nothing; an
 // Auto submit pins the quoted model, names it in a toast and moves the topbar
-// wallet without a reload; edit mode opens on Ideogram 4.5 and offers the edit
+// wallet without a reload; edit mode opens on FLUX.3 Edit and offers the edit
 // instructions behind `/`. Every paid write is mocked and recorded.
 
 const imageModel = MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE;
@@ -422,7 +422,7 @@ test.describe('Studio generation spend', () => {
     // The quote asks about the priced amount for the pinned model.
     expect(previewBodies.at(-1)).toMatchObject({
       credits: 8,
-      modelKey: editModel,
+      modelKey: fluxEditModel,
       prompt: 'Make the sky a deeper blue',
     });
     // Quoting a refund never spends anything.
@@ -436,7 +436,7 @@ test.describe('Studio edit mode', () => {
     await page.setViewportSize({ width: 1440, height: 1000 });
   });
 
-  test('opens on Ideogram 4.5, not Auto', async ({
+  test('opens on FLUX.3 Edit, not Auto', async ({
     authenticatedPage: page,
   }) => {
     test.setTimeout(90_000);
@@ -453,7 +453,7 @@ test.describe('Studio edit mode', () => {
       page
         .getByTestId('generation-setup-section-chips')
         .getByRole('button', { name: 'Configure Model', exact: true }),
-    ).toHaveAttribute('title', 'Model: Ideogram 4.5');
+    ).toHaveAttribute('title', 'Model: FLUX.3 Edit');
     await expectNoErrorOverlay(page);
   });
 

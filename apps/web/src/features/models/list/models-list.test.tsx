@@ -17,8 +17,8 @@ import {
   waitFor,
   within,
 } from '@testing-library/react';
-import FilterMenu from '@/components/content/filter-menu/FilterMenu';
-import SearchField from '@/components/content/search-field/SearchField';
+import SearchField from '@ui/content/search-field/SearchField';
+import FilterMenu from '@ui/navigation/filter-menu/FilterMenu';
 import ModelsList from '@/features/models/list/models-list';
 import type { ModelsListProps } from '@/features/models/props/models.props';
 import '@testing-library/jest-dom/vitest';

@@ -1,5 +1,6 @@
 import { CredentialPublishingReadinessService } from '@api/collections/credentials/services/credential-publishing-readiness.service';
 import { PostGroupContractService } from '@api/collections/post-groups/services/post-group-contract.service';
+import { PostGroupIdempotencyService } from '@api/collections/post-groups/services/post-group-idempotency.service';
 import { PostGroupPersistenceService } from '@api/collections/post-groups/services/post-group-persistence.service';
 import { PostGroupReadinessService } from '@api/collections/post-groups/services/post-group-readiness.service';
 import { PostGroupsService } from '@api/collections/post-groups/services/post-groups.service';
@@ -321,6 +322,7 @@ export async function createIsolatedPublishHarness(): Promise<IsolatedPublishHar
     controllers: [],
     providers: [
       PostGroupContractService,
+      PostGroupIdempotencyService,
       PostGroupPersistenceService,
       PostGroupReadinessService,
       PostGroupsService,

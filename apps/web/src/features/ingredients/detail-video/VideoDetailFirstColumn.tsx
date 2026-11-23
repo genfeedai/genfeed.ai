@@ -12,6 +12,7 @@ import type { IIngredient, IVideo } from '@genfeedai/contracts/interfaces';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
+import ExpiredVideoNotice from '@ui/masonry/shared/ExpiredVideoNotice';
 import { Button } from '@ui/primitives/button';
 import LoadingOverlay from '@ui/primitives/loading-overlay';
 import IngredientQuickActions from '@ui/quick-actions/actions/IngredientQuickActions';
@@ -108,11 +109,20 @@ export default function VideoDetailFirstColumn({
           isPortrait ? 'max-w-2xl' : 'max-w-4xl',
         )}
       >
-        <VideoPlayer
-          videoRef={videoRef}
-          src={currentVideo.ingredientUrl}
-          thumbnail={currentVideo.thumbnailUrl}
-        />
+        {currentVideo.storageExpiredAt ? (
+          <div className="relative flex min-h-48 min-w-64 items-center justify-center bg-tertiary p-6">
+            <ExpiredVideoNotice
+              className="static"
+              ingredientId={currentVideo.id}
+            />
+          </div>
+        ) : (
+          <VideoPlayer
+            videoRef={videoRef}
+            src={currentVideo.ingredientUrl}
+            thumbnail={currentVideo.thumbnailUrl}
+          />
+        )}
 
         {currentVideo.status === IngredientStatus.PROCESSING && (
           <LoadingOverlay message="Processing video…" />

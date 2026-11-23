@@ -1,9 +1,9 @@
+import { settle } from '@e2e/utils/interaction-helpers';
 import {
   mockNetworkError,
   mockServerError,
 } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
-import { settle } from '../../utils/interaction-helpers';
 import { expectNoErrorOverlay } from '../../utils/route-assertions';
 
 /**
@@ -134,11 +134,11 @@ test.describe('App surfaces — fetch error states', () => {
     await assertHealthy(authenticatedPage, route);
   });
 
-  test('Discovery overview survives a server error', async ({
+  test('Discovery feed survives a server error', async ({
     authenticatedPage,
   }) => {
     await mockServerError(authenticatedPage, '**/discovery**');
-    const route = `${ORG_BRAND}/discovery/overview`;
+    const route = `${ORG_BRAND}/discovery/feed`;
     await authenticatedPage.goto(route, { waitUntil: 'domcontentloaded' });
     await settle(authenticatedPage);
     await assertHealthy(authenticatedPage, route);

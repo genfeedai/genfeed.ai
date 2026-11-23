@@ -44,7 +44,7 @@ export const AGENT_OTHER_TOOLS: SourceTool[] = [
       properties: {
         connectionId: {
           description:
-            'Durable connection request id from connect_social_account.',
+            'Durable connection request id returned when the connection was started.',
           type: 'string',
         },
         platform: {
@@ -109,21 +109,29 @@ export const AGENT_OTHER_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      'List content waiting for review. turboRunId is optional — omit it for the whole brand/workspace. Only pass a real Turbo run id from the operator or a prior result; never invent one.',
+      'List content waiting for review. In MCP, the queue matches Publishing Approvals for the selected brand, including Turbo items, workflow gates and MCP approvals. Pass a real turboRunId to inspect another batch. Review decisions require a person in Genfeed.',
     name: 'get_review_queue',
     parameters: {
       properties: {
+        brandId: {
+          description:
+            'Optional canonical brand ID for the MCP review view. Omit to use the credential’s selected brand.',
+          type: 'string',
+        },
         turboRunId: {
           description:
             'Optional real Turbo run id. Omit for the full review inbox. Do not pass placeholders like "pending", "all", or "null".',
           type: 'string',
         },
         limit: {
-          description: 'Maximum number of items to return (default 20)',
+          description:
+            'Maximum items per list. Omit for the full MCP view or the default agent chat limit.',
+          minimum: 1,
+          maximum: 100,
           type: 'number',
         },
         status: {
-          description: 'Filter by item status (run-scoped listings only)',
+          description: 'Filter by item status when a Turbo run ID is supplied',
           enum: ['pending', 'completed', 'failed'],
           type: 'string',
         },

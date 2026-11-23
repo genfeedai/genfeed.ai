@@ -1,5 +1,6 @@
 'use client';
 import ArticleEditorContent from '@app/(protected)/[orgSlug]/[brandSlug]/edit/article/[id]/content';
+import ArtifactEditorShell from '@app/(protected)/[orgSlug]/[brandSlug]/edit/artifact-editor-shell';
 import NewsletterEditorContent from '@app/(protected)/[orgSlug]/[brandSlug]/edit/newsletter/[id]/content';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { PageScope } from '@genfeedai/contracts';
@@ -15,7 +16,6 @@ import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
 import PostDetail from '@/features/posts/detail/post-detail';
 import type { PublishingContentEditorPageProps } from '@/features/posts/props/publishing-content-editor-page.props';
-import ArtifactEditorShell from '../../../edit/artifact-editor-shell';
 import {
   type PublishingContentKind,
   resolvePublishingContentKindFromId,

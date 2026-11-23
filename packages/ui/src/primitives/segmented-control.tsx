@@ -1,9 +1,13 @@
 'use client';
 
 import { cn } from '@genfeedai/helpers';
-import * as ToggleGroupPrimitive from '@radix-ui/react-toggle-group';
+import {
+  SegmentedControlItem,
+  SegmentedControl as SegmentedRadioGroup,
+} from '@ui-sdk/react/segmented-control';
+import { Toggle, ToggleGroup } from '@ui-sdk/react/toggle';
 import type { VariantProps } from 'class-variance-authority';
-import type { ReactNode } from 'react';
+import type { ReactElement, ReactNode } from 'react';
 import ButtonTooltip from './button-tooltip';
 import {
   segmentedItemVariants,
@@ -82,28 +86,20 @@ function SegmentedControl<TValue extends string = string>(
     testId,
   } = props;
 
-  const items = options.map((option) => {
-    const isSelected =
-      props.type === 'multiple'
-        ? props.value.includes(option.value)
-        : props.value === option.value;
-    const item = (
-      <ToggleGroupPrimitive.Item
-        aria-label={option.ariaLabel}
-        className={segmentedItemVariants({ appearance, isFullWidth, size })}
-        // The tooltip trigger writes its own open/closed `data-state` onto this
-        // element; the selected styles key on `on`/`off`, so state it here.
-        data-state={isSelected ? 'on' : 'off'}
-        data-testid={option.testId}
-        disabled={option.isDisabled}
-        key={option.value}
-        value={option.value}
-      >
-        {option.icon}
-        {option.label}
-      </ToggleGroupPrimitive.Item>
-    );
-    return option.tooltip ? (
+  const itemClassName = segmentedItemVariants({
+    appearance,
+    isFullWidth,
+    size,
+  });
+  const listClassName = cn(
+    segmentedListVariants({ appearance, isFullWidth, size }),
+    className,
+  );
+  const withTooltip = (
+    option: SegmentedControlOption<TValue>,
+    item: ReactElement,
+  ) =>
+    option.tooltip ? (
       <ButtonTooltip
         key={option.value}
         label={option.tooltip}
@@ -114,51 +110,95 @@ function SegmentedControl<TValue extends string = string>(
     ) : (
       item
     );
-  });
 
-  const listClassName = cn(
-    segmentedListVariants({ appearance, isFullWidth, size }),
-    className,
-  );
-
-  if (props.type === 'multiple') {
-    const { onValueChange, value } = props;
+  // Single choice that always keeps one option: a radio group, so each option
+  // reads as a radio and the arrow keys move the choice.
+  if (props.type !== 'multiple' && !props.isDeselectable) {
+    const { onValueChange } = props;
     return (
-      <ToggleGroupPrimitive.Root
+      <SegmentedRadioGroup
         aria-label={ariaLabel}
         className={listClassName}
         data-testid={testId}
         disabled={isDisabled}
-        onValueChange={(next) => onValueChange(next as TValue[])}
-        type="multiple"
-        value={[...value]}
+        onValueChange={(next) => {
+          // ui-sdk reports null when code clears the group; the owner of the
+          // value already knows.
+          if (next !== null) {
+            onValueChange(next);
+          }
+        }}
+        value={props.value ?? null}
       >
-        {items}
-      </ToggleGroupPrimitive.Root>
+        {options.map((option) =>
+          withTooltip(
+            option,
+            <SegmentedControlItem
+              aria-label={option.ariaLabel}
+              className={itemClassName}
+              data-testid={option.testId}
+              disabled={option.isDisabled}
+              key={option.value}
+              value={option.value}
+            >
+              {option.icon}
+              {option.label}
+            </SegmentedControlItem>,
+          ),
+        )}
+      </SegmentedRadioGroup>
     );
   }
 
+  // Several options at once, or one that can be pressed again to clear: toggle
+  // buttons that each report whether they are pressed.
+  const isMultiple = props.type === 'multiple';
+  const pressed = isMultiple
+    ? [...props.value]
+    : props.value === undefined
+      ? []
+      : [props.value];
   return (
-    <ToggleGroupPrimitive.Root
+    <ToggleGroup
       aria-label={ariaLabel}
       className={listClassName}
       data-testid={testId}
+      deselectable={isMultiple ? undefined : true}
       disabled={isDisabled}
+      multiple={isMultiple}
       onValueChange={(next) => {
-        if (props.isDeselectable) {
-          props.onValueChange((next || undefined) as TValue | undefined);
+        if (props.type === 'multiple') {
+          // ui-sdk reports the pressed values in option order. Callers read the
+          // order as the order the person chose in (export columns, say), so
+          // keep the kept values where they were and append the new ones.
+          const kept = props.value.filter((entry) => next.includes(entry));
+          const added = next.filter((entry) => !props.value.includes(entry));
+          props.onValueChange([...kept, ...added]);
           return;
         }
-        // Radix reports '' when the active item is pressed again.
-        if (next) {
-          props.onValueChange(next as TValue);
+        if (props.isDeselectable) {
+          props.onValueChange(next[0]);
         }
       }}
-      type="single"
-      value={props.value ?? ''}
+      value={pressed}
     >
-      {items}
-    </ToggleGroupPrimitive.Root>
+      {options.map((option) =>
+        withTooltip(
+          option,
+          <Toggle
+            aria-label={option.ariaLabel}
+            className={itemClassName}
+            data-testid={option.testId}
+            disabled={option.isDisabled}
+            key={option.value}
+            value={option.value}
+          >
+            {option.icon}
+            {option.label}
+          </Toggle>,
+        ),
+      )}
+    </ToggleGroup>
   );
 }
 

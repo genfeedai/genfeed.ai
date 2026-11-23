@@ -6,6 +6,7 @@ import { SystemWorkflowRetention } from '@api/collections/workflows/workflow-exe
 import { Platform, SocialConversationType } from '@genfeedai/contracts';
 
 export type SocialInboxSyncPlatform =
+  | Platform.FACEBOOK
   | Platform.INSTAGRAM
   | Platform.LINKEDIN
   | Platform.TWITTER
@@ -39,6 +40,7 @@ export interface SocialInboxSyncResult {
 }
 
 export const SOCIAL_INBOX_SYNC_ACTION_IDS = {
+  FACEBOOK_INBOX: 'social.inbox.sync.facebook-inbox',
   INSTAGRAM_COMMENTS: 'social.inbox.sync.instagram-comments',
   INSTAGRAM_DMS: 'social.inbox.sync.instagram-dms',
   LINKEDIN_COMMENTS: 'social.inbox.sync.linkedin-comments',
@@ -50,6 +52,7 @@ export const SOCIAL_INBOX_SYNC_ACTION_IDS = {
 } as const;
 
 export const SOCIAL_INBOX_SYNC_WORKFLOW_IDS = {
+  FACEBOOK_INBOX: 'social.inbox.sync.facebook-inbox',
   INSTAGRAM_COMMENTS: 'social.inbox.sync.instagram-comments',
   INSTAGRAM_DMS: 'social.inbox.sync.instagram-dms',
   LINKEDIN_COMMENTS: 'social.inbox.sync.linkedin-comments',
@@ -109,6 +112,13 @@ function resolveSyncSurface(
   label: string;
   workflowId: (typeof SOCIAL_INBOX_SYNC_WORKFLOW_IDS)[keyof typeof SOCIAL_INBOX_SYNC_WORKFLOW_IDS];
 } {
+  if (platform === Platform.FACEBOOK) {
+    return {
+      actionId: SOCIAL_INBOX_SYNC_ACTION_IDS.FACEBOOK_INBOX,
+      label: 'Sync Facebook Inbox',
+      workflowId: SOCIAL_INBOX_SYNC_WORKFLOW_IDS.FACEBOOK_INBOX,
+    };
+  }
   if (platform === Platform.INSTAGRAM) {
     return conversationType === SocialConversationType.DM
       ? {

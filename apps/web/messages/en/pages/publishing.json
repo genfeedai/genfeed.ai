@@ -137,7 +137,6 @@
       "loading": "Loading social accounts…",
       "failed": "Social accounts could not be loaded.",
       "retry": "Try again",
-      "unnamed": "Connected account",
       "available": "Available for AI drafts",
       "unsupported": "AI text drafts unavailable",
       "empty": "Connect an X, LinkedIn, Instagram, or TikTok account to this brand to generate campaign drafts.",
@@ -229,7 +228,6 @@
     "cadenceDescription": "Days since each connected account last published, and whether anything is queued.",
     "cadenceEmpty": "No connected accounts yet.",
     "cadenceGapDays": "{count, plural, one {# day since last publish} other {# days since last publish}}",
-    "cadenceHold": "On hold",
     "cadenceNeverPublished": "Never published",
     "cadenceReconnect": "Needs reconnect",
     "cadenceReconnectAction": "Reconnect",
@@ -237,7 +235,6 @@
     "cadenceTitle": "Cadence",
     "healthDescription": "Warmup state, risk, and reconnect for every connected account.",
     "healthEmpty": "No connected accounts yet.",
-    "healthHold": "On hold",
     "healthReconnect": "Needs reconnect",
     "healthReconnectAction": "Reconnect",
     "healthRisk": {
@@ -285,7 +282,6 @@
     "openEditor": "Open editor",
     "pausedHold": "This post is paused, so the publisher will not send it at the scheduled time.",
     "resume": "Resume post",
-    "warmupHold": "Publishing is held for this account: {reason}",
     "engagement": {
       "approval": "Approval",
       "auto": "Auto",
@@ -440,7 +436,15 @@
       "bulkRejected": "{count, plural, one {Rejected # request} other {Rejected # requests}}",
       "bulkPartial": "Decided {count}, {failed} could not be saved",
       "sourceLabel": "Source",
-      "reviewBatch": "Review {count}"
+      "reviewBatch": "Review {count}",
+      "openThread": "Open the thread",
+      "questionAnswerLabel": "Your answer",
+      "questionAnswerPlaceholder": "Type your answer",
+      "questionSend": "Send",
+      "questionAnswered": "Answer sent. The agent continues.",
+      "questionAnswerFailed": "Could not send this answer.",
+      "questionNotAnswerable": "You can view this question. Only the thread owner or a collaborator can answer.",
+      "questionMultiSelect": "This question takes several answers. Open the thread to answer it."
     },
     "assignment": {
       "unavailable": "Unavailable member",

@@ -6,6 +6,7 @@ import {
   safeEqual,
   toBase64Url,
 } from '@api/auth/shared/pkce.util';
+import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
 import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
 import { buildMcpOAuthSessionMetadata } from '@api/oauth/mcp-oauth-session-metadata.util';
 import {
@@ -24,9 +25,12 @@ import {
 import { MCP_ADMIN_EMAIL_DOMAIN } from '@genfeedai/contracts/constants';
 import { resolveMcpAccessModeForResource } from '@genfeedai/helpers/integrations/mcp-resource.helper';
 import { ConfigService } from '@libs/config/config.service';
+import { LoggerService } from '@libs/logger/logger.service';
+import { runWithTenantContext } from '@libs/prisma/tenant-context';
 import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -101,6 +105,8 @@ export class OAuthAuthorizeService {
     private readonly configService: ConfigService,
     private readonly prisma: PrismaService,
     private readonly refreshTokenService: OAuthRefreshTokenService,
+    private readonly brandAccessService: BrandAccessService,
+    private readonly logger: LoggerService,
   ) {}
 
   async buildAuthorizeRedirect(dto: OAuthAuthorizeRequestDto): Promise<string> {
@@ -192,21 +198,23 @@ export class OAuthAuthorizeService {
         'A connection limited to one brand stays in that brand’s organization',
       );
     }
-    if (dto.brandId) {
-      const brand = await this.prisma.brand.findFirst({
-        select: { id: true },
-        where: { id: dto.brandId, isDeleted: false, organizationId },
-      });
-      if (!brand) {
-        throw oauthError(
-          'invalid_request',
-          'Choose a brand that belongs to the selected organization',
-        );
-      }
+    const accessMode = resolveMcpAccessModeForResource(resource);
+    const isAdminResource = accessMode === 'admin';
+    const hasBrandKitConsent = dto.allowBrandKitEdits === true;
+    if (hasBrandKitConsent && (accessMode !== 'standard' || !dto.brandId)) {
+      throw oauthError(
+        'invalid_scope',
+        'Brand Kit editing requires one selected brand on a standard MCP connection',
+      );
     }
-
-    const isAdminResource =
-      resolveMcpAccessModeForResource(resource) === 'admin';
+    if (dto.brandId) {
+      await this.assertBrandChoice(
+        organizationId,
+        userId,
+        dto.brandId,
+        hasBrandKitConsent,
+      );
+    }
     if (isAdminResource) {
       await this.assertAdminEndpointEligible(
         userId,
@@ -221,6 +229,9 @@ export class OAuthAuthorizeService {
     const scopes = isAdminResource
       ? [...clampedScopes, ApiKeyScope.ADMIN]
       : clampedScopes;
+    if (hasBrandKitConsent) {
+      scopes.push(ApiKeyScope.BRAND_KIT_WRITE);
+    }
     // "All organizations": the connection may name any organization the user
     // belongs to on each call. Only meaningful with a second organization to
     // name. The Claude connector gets it too: its access mode stays `claude`
@@ -270,6 +281,39 @@ export class OAuthAuthorizeService {
     };
   }
 
+  private assertBrandChoice(
+    organizationId: string,
+    userId: string,
+    brandId: string,
+    hasBrandKitConsent: boolean,
+  ): Promise<void> {
+    // The consent organization is already proven by the live membership read.
+    return runWithTenantContext({ organizationId }, async () => {
+      if (hasBrandKitConsent) {
+        try {
+          await this.brandAccessService.assert(
+            { organizationId, userId },
+            brandId,
+          );
+        } catch (error) {
+          if (!(error instanceof ForbiddenException)) throw error;
+          throw oauthError('access_denied', 'You cannot edit this brand');
+        }
+        return;
+      }
+      const brand = await this.prisma.brand.findFirst({
+        select: { id: true },
+        where: { id: brandId, isDeleted: false, organizationId },
+      });
+      if (!brand) {
+        throw oauthError(
+          'invalid_request',
+          'Choose a brand that belongs to the selected organization',
+        );
+      }
+    });
+  }
+
   async exchangeToken(dto: OAuthAuthorizationCodeGrant) {
     const client = await this.clientService.requireClient(dto.client_id);
     const resource = this.assertResource(dto.resource);
@@ -294,63 +338,80 @@ export class OAuthAuthorizeService {
       throw oauthError('invalid_grant', 'Invalid authorization grant');
     }
 
-    const consumeResult = await this.prisma.mcpOAuthAuthCode.updateMany({
-      data: { usedAt: new Date() },
-      where: {
-        clientId: record.clientId,
-        id: record.id,
-        organizationId: record.organizationId,
-        usedAt: null,
-        userId: record.userId,
-      },
-    });
-    if (consumeResult.count !== 1) {
-      throw oauthError('invalid_grant', 'Invalid authorization grant');
-    }
-
+    // Claim, key and refresh token commit together. A failure after the claim
+    // rolls it back, so a transient error leaves the client a code it can still
+    // present, not one burned with no tokens behind it.
     const expiresAt = new Date(Date.now() + MCP_OAUTH_SESSION_TTL_MS);
-    const { apiKey, plainKey } = await this.apiKeysService.createWithKey(
-      {
-        // The brand picked at consent is the only brand this connection
-        // reaches, and its default; no pick reaches every brand.
-        ...(record.defaultBrandId
-          ? { allowedBrandIds: [record.defaultBrandId] }
-          : {}),
-        category: ApiKeyCategory.GENFEEDAI,
-        defaultBrandId: record.defaultBrandId ?? undefined,
-        description: 'OAuth session for a remote MCP client',
-        expiresAt: expiresAt.toISOString(),
-        label: 'MCP OAuth',
-        metadata: buildMcpOAuthSessionMetadata(record.resource, {
-          canSwitchOrganizations: record.canSwitchOrganizations,
-          clientName: client.clientName,
-          grantId: record.id,
-        }),
-        organizationId: record.organizationId,
-        rateLimit: 120,
-        scopes: record.scopes,
-        userId: record.userId,
+    const { apiKey, plainKey, refreshToken } = await this.prisma.$transaction(
+      async (transaction) => {
+        const consumeResult = await transaction.mcpOAuthAuthCode.updateMany({
+          data: { usedAt: new Date() },
+          where: {
+            clientId: record.clientId,
+            id: record.id,
+            organizationId: record.organizationId,
+            usedAt: null,
+            userId: record.userId,
+          },
+        });
+        if (consumeResult.count !== 1) {
+          throw oauthError('invalid_grant', 'Invalid authorization grant');
+        }
+
+        const created = await this.apiKeysService.createWithKey(
+          {
+            // The brand picked at consent is the only brand this connection
+            // reaches, and its default; no pick reaches every brand.
+            ...(record.defaultBrandId
+              ? { allowedBrandIds: [record.defaultBrandId] }
+              : {}),
+            category: ApiKeyCategory.GENFEEDAI,
+            defaultBrandId: record.defaultBrandId ?? undefined,
+            description: 'OAuth session for a remote MCP client',
+            expiresAt: expiresAt.toISOString(),
+            label: 'MCP OAuth',
+            metadata: buildMcpOAuthSessionMetadata(record.resource, {
+              canSwitchOrganizations: record.canSwitchOrganizations,
+              clientName: client.clientName,
+              grantId: record.id,
+            }),
+            organizationId: record.organizationId,
+            rateLimit: 120,
+            scopes: record.scopes,
+            userId: record.userId,
+          },
+          ActionOrigin.MCP,
+          transaction,
+        );
+        const issued = await this.refreshTokenService.issue(
+          {
+            apiKeyId: created.apiKey.id,
+            clientId: record.clientId,
+            organizationId: record.organizationId,
+            resource: record.resource,
+            scopes: record.scopes,
+            userId: record.userId,
+          },
+          transaction,
+        );
+        return { ...created, refreshToken: issued.refreshToken };
       },
-      ActionOrigin.MCP,
     );
     const persistedExpiry = apiKey.expiresAt ?? expiresAt;
 
-    // The authorization code is already consumed, so a failure here would
-    // strand a live key the client can never renew and cannot re-obtain
-    // without a second consent. Revoke it instead of returning it.
-    let refreshToken: string;
     try {
-      ({ refreshToken } = await this.refreshTokenService.issue({
-        apiKeyId: apiKey.id,
-        clientId: record.clientId,
-        organizationId: record.organizationId,
-        resource: record.resource,
-        scopes: record.scopes,
-        userId: record.userId,
-      }));
+      await this.apiKeysService.invalidateRotationCaches(
+        record.organizationId,
+        apiKey.id,
+        apiKey.id,
+      );
     } catch (error) {
-      await this.refreshTokenService.revokeIssuedApiKey(apiKey.id);
-      throw error;
+      // Best effort: the session committed, and a cache failure must not turn
+      // it into an error the client retries with a code that is now spent.
+      this.logger.error('Failed to invalidate API key caches after exchange', {
+        apiKeyId: apiKey.id,
+        error,
+      });
     }
 
     return {

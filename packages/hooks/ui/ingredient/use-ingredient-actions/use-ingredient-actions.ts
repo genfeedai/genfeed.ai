@@ -44,6 +44,7 @@ import {
   executeWithActionState,
   withServiceOperation,
 } from '@hooks/utils/service-operation/service-operation.util';
+import { useResetOnChange } from '@hooks/utils/use-reset-on-change/use-reset-on-change';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
@@ -231,7 +232,7 @@ export function useIngredientActions({
   // AbortControllers for request cancellation
   const abortControllersRef = useRef<Map<string, AbortController>>(new Map());
 
-  // Cleanup on unmount
+  // use-effect-audit: ignore releases timers, requests or subscriptions on unmount
   useEffect(() => {
     extendOwner.current.isMounted = true;
     return () => {
@@ -291,13 +292,10 @@ export function useIngredientActions({
     ],
   );
 
-  const lastCommittedScope = useRef(transformScopeKey);
-  useEffect(() => {
-    if (lastCommittedScope.current === transformScopeKey) return;
-    lastCommittedScope.current = transformScopeKey;
+  useResetOnChange([transformScopeKey], () => {
     activeExtendConfirmation.current = null;
     setExtendConfirmData(null);
-  }, [transformScopeKey]);
+  });
 
   const getExtendAvailability = useCallback(
     (ingredient: IIngredient) => {
@@ -412,7 +410,7 @@ export function useIngredientActions({
     [extendConfirmData, getVideosService, notificationsService, onRefresh],
   );
 
-  // Listen for asset status updates via websocket (for set as logo/banner)
+  // use-effect-audit: ignore subscribes to the asset-status websocket (set as logo/banner)
   useEffect(() => {
     if (!pendingAssetId || !pendingAssetCategory) {
       return;

@@ -125,6 +125,28 @@ describe('useAgentDockThreads history and lifecycle', () => {
       expect(getMessages).toHaveBeenCalledWith('master-1', { limit: 100 });
     });
 
+    it('reads nothing for a master that came back without an id', async () => {
+      const idless = vi.fn(async () => ({}) as AgentThread);
+      const getMessagesForIdless = vi.fn(async () => []);
+
+      const apiWithIdlessMaster = {
+        getMasterThread: idless,
+        getMessages: getMessagesForIdless,
+        getThreads,
+      };
+
+      const { result } = renderHook(() =>
+        useAgentDockThreads(apiWithIdlessMaster, true),
+      );
+
+      await waitFor(() => expect(idless).toHaveBeenCalledTimes(1));
+      await act(async () => undefined);
+      expect(getMessagesForIdless).not.toHaveBeenCalled();
+      expect(result.current.activeThreadId).toBeNull();
+      // Nothing changed, so nothing is asked for a second time either.
+      expect(idless).toHaveBeenCalledTimes(1);
+    });
+
     it('keeps a thread that is already open', async () => {
       useAgentChatStore.getState().setActiveThread('thread-1');
 

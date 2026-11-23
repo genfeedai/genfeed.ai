@@ -21,21 +21,26 @@ describe('generation harness catalog', () => {
   it.each(['agent', 'mcp'] as const)(
     'exposes the implemented preview on %s',
     (surface) => {
+      // MCP lists prompt enhancement as an action of the merged generate_text.
+      const name = surface === 'mcp' ? 'generate_text' : 'enhance_prompt';
       expect(
-        getToolsForSurface(surface).find(
-          (tool) => tool.name === 'enhance_prompt',
-        ),
-      ).toMatchObject({ creditCost: 1, mutationPolicy: 'direct' });
+        getToolsForSurface(surface).find((tool) => tool.name === name),
+      ).toBeDefined();
+      expect(getToolByName('enhance_prompt')).toMatchObject({
+        creditCost: 1,
+        mutationPolicy: 'direct',
+      });
     },
   );
   it.each(['agent', 'mcp'] as const)(
     'exposes settings on %s without credit charges',
     (surface) => {
       const tools = getToolsForSurface(surface);
-      for (const name of [
-        'get_generation_options',
-        'set_generation_settings',
-      ]) {
+      // MCP lists the options reader as the merged get_generation_catalog.
+      // Settings are an action of the merged setup_brand.
+      for (const name of surface === 'mcp'
+        ? ['get_generation_catalog', 'setup_brand']
+        : ['get_generation_options', 'set_generation_settings']) {
         expect(tools.find((tool) => tool.name === name)).toMatchObject({
           creditCost: 0,
         });

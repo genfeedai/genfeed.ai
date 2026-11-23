@@ -5,7 +5,10 @@ import { MetadataService } from '@api/collections/metadata/services/metadata.ser
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { WorkflowNodeContinuationService } from '@api/collections/workflows/services/workflow-node-continuation.service';
 import { WorkflowNodeContinuationCoordinatorService } from '@api/collections/workflows/services/workflow-node-continuation-coordinator.service';
-import { isAllowedReplicateOutputUrl } from '@api/endpoints/webhooks/replicate/webhooks.replicate.constants';
+import {
+  describeRejectedReplicateOutputHost,
+  isAllowedReplicateOutputUrl,
+} from '@api/endpoints/webhooks/replicate/webhooks.replicate.constants';
 import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
 import { ReplicateStatus } from '@api/services/integrations/replicate/helpers/replicate.enum';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
@@ -16,6 +19,9 @@ import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 const DIGITS_ONLY_PATTERN = /^\d+$/;
+
+const REJECTED_OUTPUT_ERROR =
+  'Provider output was not served from a trusted media host';
 
 /**
  * Handles the non-training branches of the Replicate webhook: asset
@@ -149,6 +155,7 @@ export class ReplicateGenerationWebhookHandler {
         'Replicate webhook: asset output URL rejected by host allowlist',
         {
           assetId: asset.id,
+          outputHost: describeRejectedReplicateOutputHost(imageUrl),
           predictionId: payload.id,
           status: payload.status,
         },
@@ -363,14 +370,22 @@ export class ReplicateGenerationWebhookHandler {
         payload.id,
         singleOutput,
       );
-    } else if (typeof singleOutput === 'string') {
-      this.loggerService.error(
-        'Replicate webhook: output URL rejected by host allowlist',
-        { model: payload.model, predictionId: payload.id },
-      );
+    } else {
+      // The callback was answered and the job has a durable outcome: the
+      // ingredient fails now instead of sitting in PROCESSING until the
+      // timeout cron reports it. The signed callback itself was valid, so this
+      // is a rejected delivery, not a server fault.
       this.loggerService.warn(
-        'Replicate webhook: output array contained no URLs',
-        { predictionId: payload.id },
+        'Replicate webhook: output URL rejected by host allowlist',
+        {
+          model: payload.model,
+          outputHost: describeRejectedReplicateOutputHost(singleOutput ?? ''),
+          predictionId: payload.id,
+        },
+      );
+      await this.webhooksService.handleFailedGeneration(
+        payload.id,
+        REJECTED_OUTPUT_ERROR,
       );
     }
   }

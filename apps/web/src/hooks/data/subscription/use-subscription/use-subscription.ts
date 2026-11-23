@@ -19,6 +19,7 @@ import { getApiErrorMessage } from '@genfeedai/utils/error/error-handler.util';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useQuery } from '@tanstack/react-query';
+import { openInNewTab } from '@/lib/navigation/open-in-new-tab';
 
 const SUBSCRIPTION_CACHE_TTL_MS = 60_000;
 const CREDITS_CACHE_TTL_MS = 30_000;
@@ -72,9 +73,12 @@ export function useSubscription(): UseSubscriptionReturn {
     subscription?.status === SubscriptionStatus.ACTIVE;
   // Billing-enabled free/trial orgs still have a wallet. Community credits
   // navigation offers Cloud purchases, but its local subscription API is absent.
+  // The key carries the organization, so a read made before it is known would
+  // be made again under the real key a moment later.
   const shouldLoadCredits = Boolean(
     hasOrganizationBillingHint() &&
       userId &&
+      organizationId &&
       (hasActiveSubscription || shouldShowCreditsNav()),
   );
 
@@ -107,17 +111,22 @@ export function useSubscription(): UseSubscriptionReturn {
 
   const openBillingPortal = async () => {
     try {
-      const service = await getStripeService();
-      // Stripe returns the customer to wherever they left the app; the server
-      // only knows the origin, so the current path travels with the request.
-      const returnPath =
-        typeof window === 'undefined'
-          ? undefined
-          : `${window.location.pathname}${window.location.search}`;
-      const response: IBillingPortalResponse =
-        await service.getPortalUrl(returnPath);
+      // The tab opens inside the click, before any request, so a popup
+      // blocker allows it.
+      await openInNewTab(async () => {
+        const service = await getStripeService();
+        // Stripe returns the customer to wherever they left the app; the
+        // server only knows the origin, so the current path travels with the
+        // request.
+        const returnPath =
+          typeof window === 'undefined'
+            ? undefined
+            : `${window.location.pathname}${window.location.search}`;
+        const response: IBillingPortalResponse =
+          await service.getPortalUrl(returnPath);
 
-      window.open(response.url, '_blank');
+        return response.url;
+      });
     } catch (err) {
       logger.error('Failed to open billing portal:', err);
       notificationsService.error('Failed to open billing portal');

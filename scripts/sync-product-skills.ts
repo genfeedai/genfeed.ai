@@ -68,11 +68,11 @@ const MODULES_FILE = 'scripts/modules.json';
  * (`<module>/<slug>/SKILL.md`). The module list lives in the source's own
  * `scripts/modules.json`, so a new module needs no change here.
  */
-function sourceModules(source: string): string[] {
-  const tracked = git(source, 'ls-files', '-z', '--', MODULES_FILE)
-    .split('\0')
-    .filter(Boolean);
-  if (tracked.length !== 1)
+function sourceModules(
+  source: string,
+  trackedFiles: readonly string[],
+): string[] {
+  if (!trackedFiles.includes(MODULES_FILE))
     throw new Error(`Source is missing ${MODULES_FILE}`);
   const parsed = JSON.parse(
     readFileSync(join(source, MODULES_FILE), 'utf8'),
@@ -85,11 +85,22 @@ function sourceModules(source: string): string[] {
   return modules;
 }
 
+function listTrackedSourceFiles(source: string): string[] {
+  return execFileSync('git', ['-C', source, 'ls-files', '-z'], {
+    encoding: 'utf8',
+  })
+    .split('\0')
+    .filter(Boolean);
+}
+
 /** `<module>/<slug>` of every skill the pinned source publishes, by slug. */
-export function sourceSkillPaths(source: string): string[] {
-  const modules = new Set(sourceModules(source));
+function sourceSkillPaths(
+  source: string,
+  trackedFiles: readonly string[],
+): string[] {
+  const modules = new Set(sourceModules(source, trackedFiles));
   const bySlug = new Map<string, string>();
-  for (const path of git(source, 'ls-files', '-z').split('\0')) {
+  for (const path of trackedFiles) {
     const match = SKILL_SOURCE_PATH_PATTERN.exec(path);
     if (!match || !modules.has(match[1])) continue;
     const slug = match[2];
@@ -104,10 +115,13 @@ export function sourceSkillPaths(source: string): string[] {
     basename(a) < basename(b) ? -1 : basename(a) > basename(b) ? 1 : 0,
   );
 }
-function sourcePackages(source: string) {
+function sourcePackages(
+  source: string,
+  paths: readonly string[],
+  trackedFiles: readonly string[],
+) {
   if (lstatSync(source).isSymbolicLink())
     throw new Error('Source symlink rejected');
-  const paths = sourceSkillPaths(source);
   return UPSTREAM_SLUGS.map((slug) => {
     const path = paths.find((candidate) => basename(candidate) === slug);
     if (!path) throw new Error(`Missing source slug: ${slug}`);
@@ -117,10 +131,10 @@ function sourcePackages(source: string) {
     const files = inventory(directory, true, (path) =>
       isLocalToolingPath(slug, path),
     );
-    const tracked = git(source, 'ls-files', '-z', '--', path)
-      .split('\0')
-      .filter(Boolean)
-      .map((file) => file.slice(path.length + 1))
+    const prefix = `${path}/`;
+    const tracked = trackedFiles
+      .filter((file) => file.startsWith(prefix))
+      .map((file) => file.slice(prefix.length))
       .filter((file) => !isLocalToolingPath(slug, file))
       .sort();
     if (
@@ -163,12 +177,17 @@ export function syncProductSkills(
       const timestamp = validateSource(options.sourceDir, lock.sourceCommit);
       if (timestamp !== lock.sourceCommittedAt)
         throw new Error('Source date mismatch');
+      const trackedFiles = listTrackedSourceFiles(options.sourceDir);
+      const publishedPaths = sourceSkillPaths(options.sourceDir, trackedFiles);
       if (
-        JSON.stringify(sourceSkillPaths(options.sourceDir)) !==
-        JSON.stringify(lock.sourceSkillPaths)
+        JSON.stringify(publishedPaths) !== JSON.stringify(lock.sourceSkillPaths)
       )
         throw new Error('Source skill inventory mismatch');
-      for (const pkg of sourcePackages(options.sourceDir)) {
+      for (const pkg of sourcePackages(
+        options.sourceDir,
+        publishedPaths,
+        trackedFiles,
+      )) {
         const entry = lock.skills.find((skill) => skill.slug === pkg.slug);
         if (
           pkg.path !== entry?.sourcePath ||
@@ -182,8 +201,13 @@ export function syncProductSkills(
   if (!options.sourceDir || !options.commit)
     throw new Error('--source-dir and --commit are required for --write');
   const committedAt = validateSource(options.sourceDir, options.commit);
-  const publishedPaths = sourceSkillPaths(options.sourceDir);
-  const packages = sourcePackages(options.sourceDir);
+  const trackedFiles = listTrackedSourceFiles(options.sourceDir);
+  const publishedPaths = sourceSkillPaths(options.sourceDir, trackedFiles);
+  const packages = sourcePackages(
+    options.sourceDir,
+    publishedPaths,
+    trackedFiles,
+  );
   const initialImport = !existsSync(join(directory, 'catalog.lock.json'));
   const existing = catalogSkillDirectories(directory);
   // Validate every existing destination and every incoming package before the first write.

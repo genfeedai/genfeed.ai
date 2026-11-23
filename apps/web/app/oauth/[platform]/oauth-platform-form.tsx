@@ -3,6 +3,7 @@
 import { clearClientProtectedBootstrapCache } from '@contexts/providers/protected-bootstrap/client-protected-bootstrap';
 import { ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import type { ICredential } from '@genfeedai/contracts/interfaces';
 import type { ConnectionAccount } from '@genfeedai/props/ui/feedback/connection-success.props';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -14,19 +15,20 @@ import { Button } from '@ui/primitives/button';
 import Spinner from '@ui/primitives/spinner';
 import { CircleX } from 'lucide-react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import AnalyticsPublicRouteSync from '@/components/analytics/AnalyticsPublicRouteSync';
+import FacebookPageSelector from '@/features/auth/components/modals/brands/facebook/FacebookPageSelector';
 import GoogleBusinessLocationSelector from '@/features/auth/components/modals/brands/google-business/GoogleBusinessLocationSelector';
 import InstagramAccountSelector from '@/features/auth/components/modals/brands/instagram/InstagramAccountSelector';
 import type { InstagramAccountSelectorProps } from '@/features/auth/props/instagram-account-selector.props';
 import type {
-  OAuthPlatformFormProps,
+  OAuthPlatformFormContentProps,
   VerifyResult,
 } from '@/features/auth/props/oauth-platform-form.props';
 import {
   clearOAuthConnectContext,
+  HISTORY_IMPORT_CREDENTIAL_QUERY_PARAM,
   OAUTH_RETURN_TO_STORAGE_KEY,
   readOAuthConnectContext,
   redirectToOAuthAuthorization,
@@ -38,6 +40,7 @@ import {
   isReportableOAuthVerifyFailure,
   resolveOAuthPlatformVerifyFailure,
 } from './oauth-verify-error';
+import { useOAuthCallbackLocation } from './use-oauth-callback-location';
 
 const OAUTH1_PLATFORMS = ['x-ads'];
 
@@ -49,18 +52,22 @@ function AccountSelector({
   platform,
   ...props
 }: InstagramAccountSelectorProps & { platform: string }) {
-  return platform === 'google-business' ? (
-    <GoogleBusinessLocationSelector {...props} />
-  ) : (
-    <InstagramAccountSelector {...props} />
-  );
+  if (platform === 'google-business') {
+    return <GoogleBusinessLocationSelector {...props} />;
+  }
+  if (platform === 'facebook') {
+    return <FacebookPageSelector {...props} />;
+  }
+  return <InstagramAccountSelector {...props} />;
 }
 
 const INITIAL_STATE: VerifyResult = { status: 'loading' };
 
-function OAuthPlatformFormContent({ platform }: OAuthPlatformFormProps) {
+function OAuthPlatformFormContent({
+  platform,
+  searchParams,
+}: OAuthPlatformFormContentProps) {
   const translate = useTranslations('common.oauth.platformCallback');
-  const searchParams = useSearchParams();
   const code = searchParams.get('code');
   const providerError = searchParams.get('error');
   const oauthToken = searchParams.get('oauth_token');
@@ -116,13 +123,38 @@ function OAuthPlatformFormContent({ platform }: OAuthPlatformFormProps) {
   }, [clearStoredReturnTo, resolveReturnTo]);
 
   const completeSuccess = useCallback(
-    (account?: ConnectionAccount | null) => {
+    (
+      account?: ConnectionAccount | null,
+      credentials: readonly ICredential[] = [],
+    ) => {
       // Resolve before clearing: providers drop query params on redirect, so
       // the stored path is the only return channel, and the delayed navigation below
       // reads it after this frame. Clearing first always fell back to default.
-      const returnTo = resolveReturnTo();
+      let returnTo = resolveReturnTo();
+      const context = readOAuthConnectContext();
+      if (context?.shouldOfferHistoryImport) {
+        const returnUrl = new URL(returnTo, window.location.origin);
+        returnUrl.searchParams.delete(HISTORY_IMPORT_CREDENTIAL_QUERY_PARAM);
+        for (const credential of credentials) {
+          if (
+            credential.isConnected &&
+            credential.brandId === context.brandId &&
+            credential.id
+          ) {
+            returnUrl.searchParams.append(
+              HISTORY_IMPORT_CREDENTIAL_QUERY_PARAM,
+              credential.id,
+            );
+          }
+        }
+        returnTo = resolveSameOriginReturnTo(
+          `${returnUrl.pathname}${returnUrl.search}${returnUrl.hash}`,
+          DEFAULT_RETURN_PATH,
+        );
+      }
       setResult({ account, status: 'success' });
       clearStoredReturnTo();
+      clearOAuthConnectContext();
       // Every connect entry point (integrations page, agent setup panel, chat
       // connect cards) lands here. Brand context embeds credentials in the
       // protected bootstrap, so the page we return to must not reuse a client
@@ -184,10 +216,13 @@ function OAuthPlatformFormContent({ platform }: OAuthPlatformFormProps) {
         }
 
         logger.info(`${url} success`);
-        completeSuccess({
-          avatarUrl: credential?.externalAvatar,
-          name: credential?.externalName || credential?.externalHandle,
-        });
+        completeSuccess(
+          {
+            avatarUrl: credential?.externalAvatar,
+            name: credential?.externalName || credential?.externalHandle,
+          },
+          credential ? [credential] : [],
+        );
       } catch (error) {
         logger.error(`${url} failed`, {
           error,
@@ -222,6 +257,7 @@ function OAuthPlatformFormContent({ platform }: OAuthPlatformFormProps) {
     ],
   );
 
+  // use-effect-audit: ignore completes the single-use OAuth handshake once the session is signed in
   useEffect(() => {
     if (!isLoaded || !isSignedIn) {
       return;
@@ -257,6 +293,9 @@ function OAuthPlatformFormContent({ platform }: OAuthPlatformFormProps) {
       const credential = await service.postConnect({
         brandId: context.brandId,
         ...(context.credentialId ? { credentialId: context.credentialId } : {}),
+        ...(context.shouldOfferHistoryImport
+          ? { isHistoryImportRequested: false }
+          : {}),
       });
       if (!isHttpsAuthorizationUrl(credential.url)) {
         throw new Error('Authorization URL missing');
@@ -267,6 +306,7 @@ function OAuthPlatformFormContent({ platform }: OAuthPlatformFormProps) {
         brandId: context.brandId,
         credentialId: credential.id || context.credentialId,
         returnTo: resolveReturnTo(),
+        shouldOfferHistoryImport: context.shouldOfferHistoryImport,
       });
       if (!opened) {
         isRestarting.current = false;
@@ -376,15 +416,41 @@ function OAuthPlatformFormContent({ platform }: OAuthPlatformFormProps) {
   );
 }
 
-export default function OAuthPlatformForm(
-  props: Parameters<typeof OAuthPlatformFormContent>[0],
-) {
+function OAuthPlatformPending() {
+  const translate = useTranslations('common.oauth.platformCallback');
+
+  return (
+    <div className="flex min-h-screen items-center justify-center">
+      <div className="w-full max-w-md text-center">
+        <div className="space-y-4">
+          <div className="mx-auto size-16">
+            <Spinner className="size-16 text-primary" />
+          </div>
+          <p className="text-sm text-muted-foreground">
+            {translate('connectingAccount')}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function OAuthPlatformForm() {
+  const location = useOAuthCallbackLocation();
+
   return (
     <>
-      <AnalyticsPublicRouteSync />
       <Suspense fallback={null}>
-        <OAuthPlatformFormContent {...props} />
+        <AnalyticsPublicRouteSync />
       </Suspense>
+      {location ? (
+        <OAuthPlatformFormContent
+          platform={location.platform}
+          searchParams={location.searchParams}
+        />
+      ) : (
+        <OAuthPlatformPending />
+      )}
     </>
   );
 }

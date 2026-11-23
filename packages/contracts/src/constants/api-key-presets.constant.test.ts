@@ -32,6 +32,13 @@ describe('API key scope presets', () => {
     }
   });
 
+  it('reserves Brand Kit editing for explicit OAuth consent', () => {
+    expect(Object.values(API_KEY_SCOPE_PRESETS).flat()).not.toContain(
+      'brand-kit:write',
+    );
+    expect(SELF_SERVICE_API_KEY_SCOPES).not.toContain('brand-kit:write');
+  });
+
   it('defaults MCP publishing to approval-first capabilities', () => {
     expect(API_KEY_SCOPE_PRESETS.mcp).toContain('posts:draft');
     expect(API_KEY_SCOPE_PRESETS.mcp).toContain('posts:schedule');

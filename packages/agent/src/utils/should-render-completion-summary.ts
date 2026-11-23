@@ -45,6 +45,7 @@ export const PRODUCT_RESULT_CARD_TYPES = new Set<AgentUiAction['type']>([
   'review_gate_card',
   'studio_handoff_card',
   'ai_text_action_card',
+  'page_control_change_card',
   'workflow_created_card',
   'workflow_execute_card',
   'workflow_trigger_card',

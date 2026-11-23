@@ -59,7 +59,7 @@ describe('resolveTargetCaption', () => {
 
 describe('getCaptionPreviewState', () => {
   it('does not truncate captions within the platform limit', () => {
-    const state = getCaptionPreviewState('short caption', 280);
+    const state = getCaptionPreviewState('short caption', 'linkedin', 280);
 
     expect(state.isOverLimit).toBe(false);
     expect(state.previewText).toBe('short caption');
@@ -68,16 +68,30 @@ describe('getCaptionPreviewState', () => {
 
   it('truncates at the platform limit and appends an ellipsis', () => {
     const caption = 'x'.repeat(300);
-    const state = getCaptionPreviewState(caption, 280);
+    const state = getCaptionPreviewState(caption, 'linkedin', 280);
 
     expect(state.isOverLimit).toBe(true);
     expect(state.maxLength).toBe(280);
     expect(state.previewText).toBe(`${'x'.repeat(280)}...`);
   });
 
+  it('counts and truncates X captions by weight, so a link is 23 and CJK is 2', () => {
+    const link = getCaptionPreviewState(
+      `Read https://example.com/${'a'.repeat(400)}`,
+      'twitter',
+      280,
+    );
+    const cjk = getCaptionPreviewState('日'.repeat(10), 'twitter', 8);
+
+    expect(link.count).toBe(28);
+    expect(link.isOverLimit).toBe(false);
+    expect(cjk.count).toBe(20);
+    expect(cjk.previewText).toBe(`${'日'.repeat(4)}...`);
+  });
+
   it('is unicode-safe when counting and truncating', () => {
     const caption = '🎉'.repeat(10);
-    const state = getCaptionPreviewState(caption, 5);
+    const state = getCaptionPreviewState(caption, 'linkedin', 5);
 
     expect(state.count).toBe(10);
     expect(state.previewText).toBe(`${'🎉'.repeat(5)}...`);

@@ -536,39 +536,12 @@ function toolCard(row: Record<string, unknown>): McpCard {
 }
 
 /**
- * `find_tools`: its structured result has no `data` envelope. A listing shows
- * the toolsets, a search the matching tools, and a lookup the one tool with
- * whether this connection lists it.
+ * `find_tools`: its structured result has no `data` envelope. A listing or a
+ * search shows the matching tools, and a lookup the one tool.
  */
 export function buildToolDiscoveryView(
   content: Record<string, unknown>,
 ): McpCardView | undefined {
-  if (Array.isArray(content.toolsets)) {
-    const toolsets = rows(content.toolsets);
-    return {
-      cards: toolsets.map((row) =>
-        summaryCard(
-          words(text(row, 'name')),
-          [
-            ...metric('Tools', row.toolCount).map((item) => ({
-              label: 'Tools',
-              value: item.value,
-            })),
-            ...(row.isAlwaysOn === true
-              ? [{ label: 'Loaded', status: 'active', value: 'Always on' }]
-              : []),
-          ],
-          {
-            description: text(row, 'description'),
-            id: text(row, 'name'),
-          },
-        ),
-      ),
-      layout: 'cards',
-      title: 'Toolsets',
-      total: toolsets.length,
-    };
-  }
   if (Array.isArray(content.tools)) {
     const tools = rows(content.tools);
     return {

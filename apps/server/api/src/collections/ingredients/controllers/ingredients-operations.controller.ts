@@ -322,7 +322,6 @@ export class IngredientsOperationsController {
         });
       }
 
-      // Update the metadata
       await this.metadataService.patch(ingredient.metadataId, updateData);
       await this.invalidateIngredientListCache();
 

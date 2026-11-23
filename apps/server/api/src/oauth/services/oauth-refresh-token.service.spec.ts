@@ -15,7 +15,10 @@ import type {
   OAuthClientRecord,
   OAuthClientService,
 } from './oauth-client.service';
-import { OAuthRefreshTokenService } from './oauth-refresh-token.service';
+import {
+  MCP_OAUTH_REFRESH_GRACE_MS,
+  OAuthRefreshTokenService,
+} from './oauth-refresh-token.service';
 
 const clientId = 'oauth_client_123';
 const otherClientId = 'oauth_client_456';
@@ -126,11 +129,16 @@ function buildHarness() {
   }
 
   const apiKeysService = {
+    invalidateRotationCaches: vi.fn().mockResolvedValue(undefined),
     findActiveById: vi.fn(async (id: string) => {
       const row = apiKeys.get(id);
       if (!row || row.isRevoked) return null;
       if (row.expiresAt && row.expiresAt <= new Date()) return null;
       return row;
+    }),
+    findUnrevokedById: vi.fn(async (id: string) => {
+      const row = apiKeys.get(id);
+      return row && !row.isRevoked ? row : null;
     }),
     findByKey: vi.fn(async (plainKey: string) => {
       const match = plainKey.match(/^gf_test_(key-\d+)$/);
@@ -187,10 +195,40 @@ function buildHarness() {
   } as unknown as OAuthClientService;
   const logger = {
     error: vi.fn(),
+    log: vi.fn(),
     warn: vi.fn(),
   } as unknown as LoggerService;
 
+  // A transaction that commits what its callback wrote, or restores every row
+  // to its state at the start when the callback throws.
+  async function runTransaction<R>(
+    run: (transaction: typeof prisma) => Promise<R>,
+  ): Promise<R> {
+    const snapshot = <Row extends { id: string }>(rows: Map<string, Row>) =>
+      new Map(Array.from(rows, ([key, row]) => [key, { ...row }]));
+    const restore = <Row extends { id: string }>(
+      rows: Map<string, Row>,
+      saved: Map<string, Row>,
+    ) => {
+      for (const key of Array.from(rows.keys())) {
+        const before = saved.get(key);
+        if (before) Object.assign(rows.get(key) as Row, before);
+        else rows.delete(key);
+      }
+    };
+    const savedTokens = snapshot(refreshTokens);
+    const savedKeys = snapshot(apiKeys);
+    try {
+      return await run(prisma);
+    } catch (error) {
+      restore(refreshTokens, savedTokens);
+      restore(apiKeys, savedKeys);
+      throw error;
+    }
+  }
+
   const prisma = {
+    $transaction: vi.fn(runTransaction),
     mcpOAuthRefreshToken: {
       create: vi.fn(async ({ data }: { data: Record<string, unknown> }) => {
         if (hooks.failNextCreate) {
@@ -347,6 +385,7 @@ describe('OAuthRefreshTokenService', () => {
         userId: 'user-1',
       }),
       'mcp',
+      expect.anything(),
     );
     expect(apiKeys.get(original.id)?.isRevoked).toBe(true);
     expect(row.consumedAt).toBeInstanceOf(Date);
@@ -362,6 +401,7 @@ describe('OAuthRefreshTokenService', () => {
         metadata: expect.objectContaining({ grantId: original.id }),
       }),
       'mcp',
+      expect.anything(),
     );
   });
 
@@ -394,6 +434,7 @@ describe('OAuthRefreshTokenService', () => {
         organizationId: 'org-1',
       }),
       'mcp',
+      expect.anything(),
     );
   });
 
@@ -411,6 +452,7 @@ describe('OAuthRefreshTokenService', () => {
       original.id,
       expect.objectContaining({ defaultBrandId: 'brand-1' }),
       'mcp',
+      expect.anything(),
     );
   });
 
@@ -460,6 +502,43 @@ describe('OAuthRefreshTokenService', () => {
     expect(apiKeysService.rotateWithKey).not.toHaveBeenCalled();
   });
 
+  it('refreshes after the linked access key has expired', async () => {
+    const { apiKeys, seedApiKey, seedRefreshToken, service } = buildHarness();
+    const expired = seedApiKey({
+      expiresAt: new Date(Date.now() - 24 * 60 * 60 * 1000),
+    });
+    seedRefreshToken('refresh-plain-token-after-expiry', {
+      apiKeyId: expired.id,
+    });
+
+    const response = await service.refresh(
+      refreshGrant('refresh-plain-token-after-expiry'),
+    );
+
+    expect(response.access_token).not.toBe(`gf_test_${expired.id}`);
+    expect(response.access_token).toMatch(/^gf_test_key-\d+$/);
+    expect(response.refresh_token).not.toBe('refresh-plain-token-after-expiry');
+    expect(response.expires_in).toBeGreaterThan(29 * 24 * 60 * 60);
+    expect(apiKeys.get(expired.id)?.isRevoked).toBe(true);
+  });
+
+  it('rejects a refresh when the linked access key is revoked', async () => {
+    const { apiKeysService, seedApiKey, seedRefreshToken, service } =
+      buildHarness();
+    const revoked = seedApiKey({
+      expiresAt: new Date(Date.now() - 1000),
+      isRevoked: true,
+    });
+    seedRefreshToken('refresh-plain-token-key-revoked', {
+      apiKeyId: revoked.id,
+    });
+
+    await expect(
+      service.refresh(refreshGrant('refresh-plain-token-key-revoked')),
+    ).rejects.toMatchObject(invalidGrant);
+    expect(apiKeysService.rotateWithKey).not.toHaveBeenCalled();
+  });
+
   it('rejects a revoked refresh token', async () => {
     const { apiKeysService, seedApiKey, seedRefreshToken, service } =
       buildHarness();
@@ -484,13 +563,17 @@ describe('OAuthRefreshTokenService', () => {
       service,
     } = buildHarness();
     const original = seedApiKey();
-    seedRefreshToken('refresh-plain-token-first', { apiKeyId: original.id });
+    const first = seedRefreshToken('refresh-plain-token-first', {
+      apiKeyId: original.id,
+    });
 
     const rotated = await service.refresh(
       refreshGrant('refresh-plain-token-first'),
     );
     const replacementKeyId = 'key-2';
     expect(apiKeys.get(replacementKeyId)?.isRevoked).toBe(false);
+    // Past the grace window a second presentation is reuse, not a retry.
+    first.consumedAt = new Date(Date.now() - MCP_OAUTH_REFRESH_GRACE_MS - 1);
 
     await expect(
       service.refresh(refreshGrant('refresh-plain-token-first')),
@@ -592,11 +675,19 @@ describe('OAuthRefreshTokenService', () => {
     expect(apiKeys.get('key-2')?.isRevoked).toBe(true);
   });
 
-  it('revokes the rotated key when the replacement token cannot be stored', async () => {
-    const { apiKeys, hooks, seedApiKey, seedRefreshToken, service } =
-      buildHarness();
+  it('rolls the whole rotation back when the replacement token cannot be stored, so a retry succeeds', async () => {
+    const {
+      apiKeys,
+      hooks,
+      refreshTokens,
+      seedApiKey,
+      seedRefreshToken,
+      service,
+    } = buildHarness();
     const original = seedApiKey();
-    seedRefreshToken('refresh-plain-token-storage', { apiKeyId: original.id });
+    const row = seedRefreshToken('refresh-plain-token-storage', {
+      apiKeyId: original.id,
+    });
 
     hooks.failNextCreate = new Error('persistence unavailable');
 
@@ -604,10 +695,94 @@ describe('OAuthRefreshTokenService', () => {
       service.refresh(refreshGrant('refresh-plain-token-storage')),
     ).rejects.toThrow('persistence unavailable');
 
-    // The previous key was already revoked by the rotation, so the new one
-    // must not survive as a credential the client can never renew.
+    // Nothing was committed: the old key is live, the new one never existed
+    // and the token is not consumed, so it is not mistaken for reuse.
+    expect(apiKeys.get(original.id)?.isRevoked).toBe(false);
+    expect(apiKeys.has('key-2')).toBe(false);
+    expect(row.consumedAt).toBeNull();
+    expect(refreshTokens.size).toBe(1);
+
+    const retried = await service.refresh(
+      refreshGrant('refresh-plain-token-storage'),
+    );
+    expect(retried.access_token).toBe('gf_test_key-3');
     expect(apiKeys.get(original.id)?.isRevoked).toBe(true);
+    expect(row.compromisedAt).toBeNull();
+  });
+
+  it('answers a retry within the grace window with a pair rotated from the live successor', async () => {
+    const { apiKeys, refreshTokens, seedApiKey, seedRefreshToken, service } =
+      buildHarness();
+    const original = seedApiKey();
+    const first = seedRefreshToken('refresh-plain-token-lost', {
+      apiKeyId: original.id,
+    });
+
+    // The first response never reached the client.
+    const lost = await service.refresh(
+      refreshGrant('refresh-plain-token-lost'),
+    );
+    const retried = await service.refresh(
+      refreshGrant('refresh-plain-token-lost'),
+    );
+
+    expect(retried.access_token).toBe('gf_test_key-3');
+    expect(retried.refresh_token).not.toBe(lost.refresh_token);
+    expect(first.compromisedAt).toBeNull();
+    // The pair the client never saw is retired; only the newest is live.
     expect(apiKeys.get('key-2')?.isRevoked).toBe(true);
+    expect(apiKeys.get('key-3')?.isRevoked).toBe(false);
+    expect(
+      refreshTokens.get(hashToken(lost.refresh_token))?.consumedAt,
+    ).toBeInstanceOf(Date);
+    await expect(
+      service.refresh(refreshGrant(retried.refresh_token)),
+    ).resolves.toMatchObject({ access_token: 'gf_test_key-4' });
+  });
+
+  it('treats a third presentation inside the grace window as reuse', async () => {
+    const { apiKeys, seedApiKey, seedRefreshToken, service } = buildHarness();
+    const original = seedApiKey();
+    const first = seedRefreshToken('refresh-plain-token-thrice', {
+      apiKeyId: original.id,
+    });
+
+    await service.refresh(refreshGrant('refresh-plain-token-thrice'));
+    await service.refresh(refreshGrant('refresh-plain-token-thrice'));
+
+    // The successor was consumed by the retry, so nothing live is left to
+    // answer a third presentation with.
+    await expect(
+      service.refresh(refreshGrant('refresh-plain-token-thrice')),
+    ).rejects.toMatchObject(invalidGrant);
+    expect(first.compromisedAt).toBeInstanceOf(Date);
+    expect(apiKeys.get('key-3')?.isRevoked).toBe(true);
+  });
+
+  it('treats a retry as reuse when the successor was revoked', async () => {
+    const {
+      apiKeysService,
+      refreshTokens,
+      seedApiKey,
+      seedRefreshToken,
+      service,
+    } = buildHarness();
+    const original = seedApiKey();
+    const first = seedRefreshToken('refresh-plain-token-revoked', {
+      apiKeyId: original.id,
+    });
+
+    const issued = await service.refresh(
+      refreshGrant('refresh-plain-token-revoked'),
+    );
+    const successor = refreshTokens.get(hashToken(issued.refresh_token));
+    if (successor) successor.revokedAt = new Date();
+
+    await expect(
+      service.refresh(refreshGrant('refresh-plain-token-revoked')),
+    ).rejects.toMatchObject(invalidGrant);
+    expect(first.compromisedAt).toBeInstanceOf(Date);
+    expect(apiKeysService.rotateWithKey).toHaveBeenCalledTimes(1);
   });
 
   it('rejects a refresh token presented by a different client', async () => {
@@ -682,6 +857,7 @@ describe('OAuthRefreshTokenService', () => {
       'key-1',
       expect.objectContaining({ scopes: ['videos:read'] }),
       'mcp',
+      expect.anything(),
     );
   });
 
@@ -713,6 +889,21 @@ describe('OAuthRefreshTokenService', () => {
     ).rejects.toMatchObject({
       response: expect.objectContaining({ error: 'invalid_target' }),
     });
+  });
+
+  it('lets refresh and revoke use the persisted client when its metadata host is down', async () => {
+    const { clientService, service } = buildHarness();
+    vi.mocked(clientService.requireClient).mockClear();
+
+    await service.revoke({ client_id: clientId, token: 'unknown-token-value' });
+    await expect(
+      service.refresh(refreshGrant('unknown-token-value')),
+    ).rejects.toMatchObject(invalidGrant);
+
+    expect(vi.mocked(clientService.requireClient).mock.calls).toEqual([
+      [clientId, undefined, { allowPersistedFallback: true }],
+      [clientId, undefined, { allowPersistedFallback: true }],
+    ]);
   });
 
   it('revokes a refresh token and its access key, and is idempotent for unknown tokens', async () => {
@@ -935,6 +1126,7 @@ describe('Claude refresh restriction', () => {
           }),
         }),
         'mcp',
+        expect.anything(),
       );
     },
   );
@@ -973,6 +1165,7 @@ describe('Admin scope on refresh', () => {
       key.id,
       expect.objectContaining({ scopes: ['posts:draft'] }),
       'mcp',
+      expect.anything(),
     );
   });
 
@@ -992,6 +1185,7 @@ describe('Admin scope on refresh', () => {
         scopes: ['posts:draft', 'admin'],
       }),
       'mcp',
+      expect.anything(),
     );
   });
 

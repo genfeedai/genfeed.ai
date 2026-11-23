@@ -22,6 +22,7 @@ import {
   requireRecordedWorkflowActor,
   WorkflowActorMembershipVerifier,
 } from '@api/collections/workflows/services/workflow-resume-actor.util';
+import { settleWorkflowStatus } from '@api/collections/workflows/utils/settle-workflow-status.util';
 import type { WorkflowGenerationSelection } from '@api/collections/workflows/workflow-generation-admission.interface';
 import { AgentScopeContextService, scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -588,15 +589,15 @@ export class WorkflowExecutionRunnerService {
       // Bookkeeping must never replace the failure the caller is about to see:
       // a throw here would surface as the run's error and hide the real cause.
       try {
-        await this.prisma.workflow.update({
+        await settleWorkflowStatus(this.prisma, {
           data: {
             status: prepared.keepsWorkflowActive
               ? WorkflowStatus.ACTIVE
               : WorkflowStatus.FAILED,
           },
-          where: scopedWhere(prepared.organizationId, {
-            id: prepared.workflowId,
-          }),
+          executionId: prepared.executionId,
+          organizationId: prepared.organizationId,
+          workflowId: prepared.workflowId,
         });
       } catch (bookkeepingError: unknown) {
         this.logger.error(
@@ -785,9 +786,11 @@ export class WorkflowExecutionRunnerService {
       organizationId: input.organizationId,
       workflowId: input.workflowId,
     });
-    await this.prisma.workflow.update({
+    await settleWorkflowStatus(this.prisma, {
       data: { status: WorkflowStatus.FAILED },
-      where: scopedWhere(input.organizationId, { id: input.workflowId }),
+      executionId: input.executionId,
+      organizationId: input.organizationId,
+      workflowId: input.workflowId,
     });
     if (input.emitSharedEvents !== false) {
       await this.progressService.emitEvent(input.workflowId, 'error', {

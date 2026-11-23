@@ -1,8 +1,10 @@
 import {
   CredentialPlatform,
+  IngredientCategory,
   PostCategory,
   PostStatus,
   ReviewDecision,
+  TargetExecutionState,
 } from '@genfeedai/contracts';
 import type { IPost } from '@genfeedai/contracts/interfaces';
 import { fireEvent, render, screen, within } from '@testing-library/react';
@@ -14,7 +16,7 @@ import PostDetailSidebar from '@/features/posts/components/posts/post-detail-sid
 import type { PostDetailSidebarProps } from '@/props/components/post-detail-sidebar.props';
 
 vi.mock('next-intl', async () => {
-  const { translateFromCatalog } = await import('@ui/tests/next-intl.stub');
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
 
   return { useTranslations: translateFromCatalog };
 });
@@ -59,6 +61,36 @@ vi.mock('next/link', () => ({
 
 vi.mock('@/components/evaluation/card/EvaluationCard', () => ({
   default: () => <div data-testid="evaluation-row">Evaluation row</div>,
+}));
+
+vi.mock('@ui/lazy/masonry/LazyMasonry', () => ({
+  LazyMasonryImage: ({
+    image,
+    onClickIngredient,
+  }: {
+    image: { id: string };
+    onClickIngredient?: (ingredient: { id: string }) => void;
+  }) => (
+    <button type="button" onClick={() => onClickIngredient?.(image)}>
+      {`Tile ${image.id}`}
+    </button>
+  ),
+  LazyMasonryVideo: () => null,
+}));
+
+vi.mock('@ui/layouts/lightbox/MediaLightbox', () => ({
+  default: ({
+    items,
+    open,
+    startIndex,
+  }: {
+    items: { id: string }[];
+    open: boolean;
+    startIndex: number;
+  }) =>
+    open ? (
+      <div data-testid="lightbox">{`${items.length} items, opened at ${startIndex}`}</div>
+    ) : null,
 }));
 
 const { tiktokState } = vi.hoisted(() => ({
@@ -158,18 +190,70 @@ describe('PostDetailSidebar', () => {
     );
 
     const destination = screen.getByTestId('post-destination');
-    expect(
-      within(destination).getByRole('img', { name: 'Instagram' }),
-    ).toBeInTheDocument();
-    expect(screen.queryByText('Instagram')).not.toBeInTheDocument();
+    expect(within(destination).getAllByText('Instagram')).toHaveLength(1);
     expect(screen.getAllByText(/@genfeed/)).toHaveLength(1);
     expect(destination).toHaveTextContent('Main account');
     expect(destination).toHaveTextContent(PostStatus.SCHEDULED);
     expect(destination).toHaveTextContent('SEO 76');
     expect(destination).toHaveTextContent('Scheduled');
     expect(
-      screen.getByRole('link', { name: 'Open on platform' }),
-    ).toHaveAttribute('href', 'https://example.com/post');
+      screen.queryByRole('link', { name: 'Open on platform' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows a confirmed TikTok Inbox receipt as an unpublished handoff', () => {
+    render(
+      <PostDetailSidebar
+        {...baseProps}
+        post={
+          {
+            category: PostCategory.VIDEO,
+            externalId: 'provider-receipt',
+            id: 'post-1',
+            ingredients: [],
+            platform: CredentialPlatform.TIKTOK,
+            status: PostStatus.PUBLIC,
+            targetExecutionState: TargetExecutionState.PUBLISHED,
+          } as Partial<IPost> as IPost
+        }
+      />,
+    );
+
+    expect(screen.getByText('Delivered to TikTok Inbox')).toBeVisible();
+    expect(
+      screen.getByText('Open your TikTok Inbox to finish editing and publish.'),
+    ).toBeVisible();
+    expect(
+      screen.queryByRole('heading', { name: 'Published' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: 'Open on platform' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('keeps a confirmed direct TikTok publication distinct from an Inbox receipt', () => {
+    render(
+      <PostDetailSidebar
+        {...baseProps}
+        post={
+          {
+            category: PostCategory.VIDEO,
+            externalId: 'provider-receipt',
+            id: 'post-1',
+            ingredients: [],
+            platform: CredentialPlatform.TIKTOK,
+            publicationDate: '2026-11-19T18:30:00.000Z',
+            status: PostStatus.PUBLIC,
+            targetExecutionState: TargetExecutionState.PUBLISHED,
+          } as Partial<IPost> as IPost
+        }
+      />,
+    );
+
+    expect(screen.getByRole('heading', { name: 'Published' })).toBeVisible();
+    expect(
+      screen.queryByText('Delivered to TikTok Inbox'),
+    ).not.toBeInTheDocument();
   });
 
   it('only shows Details | Preview tabs when a preview is provided', async () => {
@@ -495,5 +579,34 @@ describe('PostDetailSidebar', () => {
         name: 'More TikTok publishing options',
       }),
     ).not.toBeInTheDocument();
+  });
+
+  it('opens a published ingredient in the lightbox when its tile is clicked', async () => {
+    render(
+      <PostDetailSidebar
+        {...baseProps}
+        post={
+          {
+            id: 'post-1',
+            ingredients: [
+              { category: IngredientCategory.IMAGE, id: 'image-1' },
+              { category: IngredientCategory.IMAGE, id: 'image-2' },
+            ],
+            platform: CredentialPlatform.INSTAGRAM,
+            status: PostStatus.PUBLIC,
+            targetExecutionState: TargetExecutionState.PUBLISHED,
+          } as never
+        }
+      />,
+    );
+
+    expect(screen.queryByTestId('lightbox')).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: /Ingredients/ }));
+    await userEvent.click(screen.getByRole('button', { name: 'Tile image-2' }));
+
+    expect(screen.getByTestId('lightbox')).toHaveTextContent(
+      '2 items, opened at 1',
+    );
   });
 });

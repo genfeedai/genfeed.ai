@@ -1,4 +1,5 @@
 import { cn } from '@genfeedai/helpers';
+import { Textarea as TextareaControl } from '@ui-sdk/react/textarea';
 import {
   type ChangeEvent,
   type FocusEvent,
@@ -12,26 +13,25 @@ import {
   useMemo,
   useRef,
 } from 'react';
-import type {
-  Control,
-  FieldValues,
-  Path,
-  UseFormRegisterReturn,
-} from 'react-hook-form';
+import type { Control, FieldValues, Path } from 'react-hook-form';
 import { useController } from 'react-hook-form';
 
 export interface TextareaProps<T extends FieldValues = FieldValues>
   extends Omit<
     TextareaHTMLAttributes<HTMLTextAreaElement>,
+    | 'defaultValue'
     | 'disabled'
     | 'name'
     | 'onBlur'
     | 'onChange'
+    | 'onSubmit'
     | 'readOnly'
     | 'required'
     | 'rows'
+    | 'value'
   > {
   control?: Control<T>;
+  defaultValue?: string | number | readonly string[];
   disabled?: boolean;
   hasError?: boolean;
   isDisabled?: boolean;
@@ -44,16 +44,21 @@ export interface TextareaProps<T extends FieldValues = FieldValues>
   onFocus?: (event: FocusEvent<HTMLTextAreaElement>) => void;
   onKeyDown?: (event: KeyboardEvent<HTMLTextAreaElement>) => void;
   ref?: Ref<HTMLTextAreaElement>;
-  register?: UseFormRegisterReturn<Path<T>>;
   required?: boolean;
   rows?: number;
   textareaRef?: RefObject<HTMLTextAreaElement | null>;
+  value?: string | number | readonly string[];
 }
 
 interface TextareaBaseProps<T extends FieldValues = FieldValues>
-  extends Omit<TextareaProps<T>, 'control' | 'register' | 'textareaRef'> {
+  extends Omit<
+    TextareaProps<T>,
+    'control' | 'defaultValue' | 'textareaRef' | 'value'
+  > {
+  defaultValue?: string;
   externalRef?: Ref<HTMLTextAreaElement>;
   textareaRef?: RefObject<HTMLTextAreaElement | null>;
+  value?: string;
 }
 
 interface ControlledTextareaInnerProps<T extends FieldValues = FieldValues>
@@ -65,11 +70,15 @@ interface ControlledTextareaInnerProps<T extends FieldValues = FieldValues>
   value?: string;
 }
 
-interface RegisteredTextareaInnerProps<T extends FieldValues = FieldValues>
-  extends Omit<TextareaProps<T>, 'control' | 'register' | 'textareaRef'> {
-  externalRef?: Ref<HTMLTextAreaElement>;
-  register: UseFormRegisterReturn<Path<T>>;
-  textareaRef?: RefObject<HTMLTextAreaElement | null>;
+/** ui-sdk keeps the text as a string; a number or a list reads as its text. */
+function toText(
+  value: string | number | readonly string[] | undefined,
+): string | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  return typeof value === 'object' ? value.join(',') : String(value);
 }
 
 const textareaClassName =
@@ -153,7 +162,7 @@ function PlainTextareaInner<T extends FieldValues = FieldValues>({
   }, [adjustHeight]);
 
   return (
-    <textarea
+    <TextareaControl
       {...props}
       className={cn(
         textareaClassName,
@@ -260,7 +269,7 @@ function ControlledTextareaInner<T extends FieldValues = FieldValues>({
   }, [adjustHeight, currentValue, stableTextareaRef]);
 
   return (
-    <textarea
+    <TextareaControl
       {...props}
       className={cn(
         textareaClassName,
@@ -297,83 +306,14 @@ function ControlledTextareaInner<T extends FieldValues = FieldValues>({
   );
 }
 
-function RegisteredTextareaInner<T extends FieldValues = FieldValues>({
-  className,
-  disabled,
-  externalRef,
-  hasError = false,
-  isDisabled,
-  isReadOnly,
-  isRequired,
-  maxHeight = 256,
-  onBlur,
-  onChange,
-  onFocus,
-  onKeyDown,
-  register,
-  required,
-  rows = 1,
-  textareaRef,
-  ...props
-}: RegisteredTextareaInnerProps<T>) {
-  const internalRef = useRef<HTMLTextAreaElement | null>(null);
-  const stableTextareaRef = useMemo(
-    () => textareaRef || internalRef,
-    [textareaRef],
-  );
-  const adjustHeight = useTextareaSizing(stableTextareaRef, maxHeight);
-  const registerOnChangeRef = useRef(register.onChange);
-
-  // use-effect-audit: ignore keeps refs to the latest callbacks and values
-  useEffect(() => {
-    registerOnChangeRef.current = register.onChange;
-  }, [register]);
-
-  // use-effect-audit: ignore drives a DOM element or browser API
-  useEffect(() => {
-    adjustHeight();
-  }, [adjustHeight]);
-
-  const { ref: registerRef, ...registerProps } = register;
-
-  return (
-    <textarea
-      {...registerProps}
-      {...props}
-      className={cn(
-        textareaClassName,
-        hasError && 'border-destructive focus-visible:border-destructive',
-        className,
-      )}
-      disabled={isDisabled ?? disabled}
-      name={props.name}
-      onChange={(event) => {
-        registerOnChangeRef.current?.(event);
-        onChange?.(event);
-        adjustHeight();
-      }}
-      onFocus={onFocus}
-      onBlur={onBlur}
-      onKeyDown={onKeyDown}
-      readOnly={isReadOnly}
-      ref={(element) => {
-        assignRef(externalRef, element);
-        assignRef(stableTextareaRef, element);
-        registerRef(element);
-      }}
-      required={isRequired ?? required}
-      rows={rows}
-    />
-  );
-}
-
 function HookedControlledTextareaInner<T extends FieldValues = FieldValues>({
   control,
   externalRef,
   textareaRef,
   ...props
-}: Omit<TextareaProps<T>, 'register'> & {
+}: Omit<TextareaProps<T>, 'defaultValue'> & {
   control: Control<T>;
+  defaultValue?: string;
   externalRef?: Ref<HTMLTextAreaElement>;
   textareaRef?: RefObject<HTMLTextAreaElement | null>;
 }) {
@@ -399,26 +339,19 @@ function HookedControlledTextareaInner<T extends FieldValues = FieldValues>({
 function Textarea<T extends FieldValues = FieldValues>({
   ref,
   control,
-  register,
+  defaultValue,
   textareaRef,
+  value,
   ...props
 }: TextareaProps<T>): ReactElement {
-  if (register) {
-    return (
-      <RegisteredTextareaInner
-        {...props}
-        externalRef={ref}
-        register={register}
-        textareaRef={textareaRef}
-      />
-    );
-  }
+  const initialText = toText(defaultValue);
 
   if (control && props.name) {
     return (
       <HookedControlledTextareaInner
         {...props}
         control={control}
+        defaultValue={initialText}
         externalRef={ref}
         textareaRef={textareaRef}
       />
@@ -428,9 +361,10 @@ function Textarea<T extends FieldValues = FieldValues>({
   return (
     <PlainTextareaInner
       {...props}
+      defaultValue={initialText}
       externalRef={ref}
       textareaRef={textareaRef}
-      value={props.value as string | undefined}
+      value={toText(value)}
     />
   );
 }

@@ -18,6 +18,19 @@ export type ModelCatalogSeedResult = {
   written: number;
 };
 
+type ModelRetirementRow = {
+  isActive: boolean;
+  isHighlighted: boolean;
+  isPublic: boolean;
+  key: string;
+};
+
+export type ModelRetirementReport = {
+  applied: boolean;
+  retired: ModelRetirementRow[];
+  skippedDefaults: string[];
+};
+
 type ModelUpsertOutcome = 'created' | 'unchanged' | 'written';
 
 type ExistingModelRow = {
@@ -192,6 +205,89 @@ export class ModelCatalogSeedService {
     return { unchanged, written };
   }
 
+  /**
+   * Switch off the registry rows the catalog no longer offers. The sync never
+   * touches `isActive`, `isPublic` or `isHighlighted` on an existing row, so a
+   * row seeded live before the catalog retired it stays live. Two kinds are
+   * reconciled:
+   * - a catalog RETIRED row, always;
+   * - any other catalog row seeded inactive, only while the stored row is
+   *   unpriced (cost 0), so a model an operator priced and switched on by hand
+   *   stays.
+   * A row holding a category default is reported and left, because clearing it
+   * would leave the category with no default. `isLive` false only reports.
+   */
+  async retireInactiveCatalogRows(
+    isLive: boolean,
+    catalog: readonly ModelCatalogSeedEntry[] = this.resolveSeedCatalog(),
+  ): Promise<ModelRetirementReport> {
+    const retiredKeys = new Set<string>();
+    const unpricedKeys = new Set<string>();
+    for (const entry of catalog) {
+      if (entry.lifecycle === ModelLifecycle.RETIRED) {
+        retiredKeys.add(entry.key);
+      } else if (!entry.isActive) {
+        unpricedKeys.add(entry.key);
+      }
+    }
+
+    // tenant-scope-ignore: platform registry rows only (organizationId null)
+    // sql-risk-audit: ignore unbounded-read -- Bounded by the retired and unpriced key sets and the platform-row filter; one-off operator seed, not a request path.
+    const rows = await this.prisma.model.findMany({
+      orderBy: { key: 'asc' },
+      select: {
+        cost: true,
+        isActive: true,
+        isDefault: true,
+        isHighlighted: true,
+        isPublic: true,
+        key: true,
+      },
+      where: {
+        isDeleted: false,
+        key: { in: [...retiredKeys, ...unpricedKeys] },
+        organizationId: null,
+        OR: [{ isActive: true }, { isHighlighted: true }, { isPublic: true }],
+      },
+    });
+
+    const retired: ModelRetirementRow[] = [];
+    const skippedDefaults: string[] = [];
+    for (const row of rows) {
+      const isUnpricedOnly = !retiredKeys.has(row.key);
+      if (isUnpricedOnly && asNumber(row.cost) !== 0) continue;
+      if (row.isDefault) {
+        skippedDefaults.push(row.key);
+        continue;
+      }
+      retired.push({
+        isActive: row.isActive,
+        isHighlighted: row.isHighlighted,
+        isPublic: row.isPublic,
+        key: row.key,
+      });
+    }
+
+    if (isLive && retired.length > 0) {
+      // tenant-scope-ignore: platform registry rows only (organizationId null)
+      await this.prisma.model.updateMany({
+        data: { isActive: false, isHighlighted: false, isPublic: false },
+        where: {
+          isDeleted: false,
+          key: { in: retired.map((row) => row.key) },
+          organizationId: null,
+        },
+      });
+    }
+
+    this.logger.log(
+      `Model registry retirement ${isLive ? 'applied' : 'dry run'}: ${retired.length} row(s), ${skippedDefaults.length} default(s) left`,
+      this.context,
+    );
+
+    return { applied: isLive, retired, skippedDefaults };
+  }
+
   /** A new row the catalog ships live to customers, not a hidden or retired one. */
   private isOfferedToOrganizations(entry: ModelCatalogSeedEntry): boolean {
     return (
@@ -354,7 +450,9 @@ export class ModelCatalogSeedService {
    * When the catalog does name this key as the default, the seed still only
    * self-heals: it reclaims the pin when the category has no usable
    * (active, non-deleted, non-legacy) default at all, and otherwise leaves
-   * whatever already holds the pin — this row or another — untouched.
+   * whatever already holds the pin — this row or another — untouched. A pin
+   * held by a retired agent-chat key is the old seeded default, not an
+   * operator's choice, so the catalog default takes it.
    */
   private async resolveUpdateIsDefault(
     entry: ModelCatalogSeedEntry,

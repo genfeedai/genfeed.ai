@@ -14,7 +14,7 @@ vi.mock('next-intl', () => ({
   useTranslations: () => (key: string) => key,
 }));
 
-vi.mock('@ui/feedback/LoadingState', () => ({
+vi.mock('@ui/loading/default/Loading', () => ({
   default: () => <div>loading</div>,
 }));
 

@@ -181,7 +181,9 @@ describe('handleEditorTool', () => {
       status: 'rendering',
     });
     expect(result.content[0]?.text).toContain('Render queued');
-    expect(result.content[0]?.text).toContain('get_editor_project');
+    expect(result.content[0]?.text).toContain(
+      'get_video_projects(action=editor_project)',
+    );
   });
 
   it('requires a projectId to start a render', async () => {

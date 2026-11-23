@@ -4,6 +4,11 @@ import {
   SERVER_TOKENS,
   type ServerCredentialStore,
 } from '@api/server.dependencies';
+import {
+  isRedditTokenResponseReadable,
+  RedditAppCredentialsRejectedError,
+  redditCredentialsHoldUntil,
+} from '@api/services/integrations/reddit/utils/reddit-app-credentials.util';
 import { throwIfRedditSubmitRejected } from '@api/services/integrations/reddit/utils/reddit-submit-error.util';
 import { CredentialPlatform, OAuthGrantType } from '@genfeedai/contracts';
 import {
@@ -64,6 +69,7 @@ export class RedditService {
   private readonly tokenUrl = 'https://www.reddit.com/api/v1/access_token';
   private readonly apiUrl = 'https://oauth.reddit.com';
   private appAccessToken: { expiresAt: number; value: string } | null = null;
+  private credentialsRejectedUntil = 0;
 
   constructor(
     private readonly configService: ConfigService,
@@ -134,6 +140,12 @@ export class RedditService {
       return this.appAccessToken.value;
     }
 
+    if (now < this.credentialsRejectedUntil) {
+      throw new RedditAppCredentialsRejectedError(
+        this.credentialsRejectedUntil,
+      );
+    }
+
     const clientId = this.requireConfigValue('REDDIT_CLIENT_ID');
     const clientSecret = this.requireConfigValue('REDDIT_CLIENT_SECRET');
     const auth = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
@@ -145,8 +157,15 @@ export class RedditService {
           'Content-Type': 'application/x-www-form-urlencoded',
           'User-Agent': this.getUserAgent(),
         },
+        validateStatus: isRedditTokenResponseReadable,
       }),
     );
+    if (response.status === 401) {
+      this.credentialsRejectedUntil = redditCredentialsHoldUntil(now);
+      throw new RedditAppCredentialsRejectedError(
+        this.credentialsRejectedUntil,
+      );
+    }
     const token = response.data as RedditAccessTokenResponse;
 
     if (!token.access_token) {

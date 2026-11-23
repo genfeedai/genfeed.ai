@@ -1,4 +1,3 @@
-import { getToolsets } from '@genfeedai/actions';
 import { API_KEY_SCOPE_PRESETS } from '@genfeedai/contracts/constants';
 import { McpResourceConfigurationError } from '@genfeedai/helpers/integrations/mcp-resource.helper';
 import { CLIENT_LOGO_SVGS, resolveClientLogo } from '@mcp/mcp/client-logos';
@@ -11,57 +10,8 @@ import {
   renderSetupPage,
   resolvePublicMcpResource,
   resolveSetupPageTab,
-  toInlineScriptStringLiteral,
 } from '@mcp/mcp/setup-page';
 import { JSDOM } from 'jsdom';
-
-/**
- * Extracts a `function <name>(...) { ... }` declaration's exact source text
- * out of the rendered HTML's inline `<script>` block, by brace-matching from
- * the first `{` after the signature. Used to unit-test the picker's client
- * JS logic directly (the vitest environment is node) rather than asserting
- * on the JS source text as a string.
- */
-function extractFunctionSource(html: string, name: string): string {
-  const start = html.indexOf(`function ${name}(`);
-  if (start === -1) {
-    throw new Error(`function ${name} not found in rendered HTML`);
-  }
-  const braceStart = html.indexOf('{', start);
-  let depth = 0;
-  let end = -1;
-  for (let i = braceStart; i < html.length; i += 1) {
-    if (html[i] === '{') depth += 1;
-    else if (html[i] === '}') {
-      depth -= 1;
-      if (depth === 0) {
-        end = i;
-        break;
-      }
-    }
-  }
-  if (end === -1) {
-    throw new Error(`unbalanced braces for function ${name}`);
-  }
-  return html.slice(start, end + 1);
-}
-
-/**
- * Loads one or more extracted function declarations into a fresh function
- * scope (so a target function can call sibling helpers it depends on, e.g.
- * `rewriteAgentPrompt` calling `replaceAll`) and returns the last-named one,
- * callable exactly as the browser would call it.
- */
-function loadPickerFunction<T extends (...args: never[]) => unknown>(
-  html: string,
-  ...names: string[]
-): T {
-  const sources = names.map((name) => extractFunctionSource(html, name));
-  const targetName = names[names.length - 1];
-  // Extracting real client-side source for a direct behavioral test; no
-  // jsdom is configured for this package's vitest environment.
-  return new Function(`${sources.join('\n')}\nreturn ${targetName};`)() as T;
-}
 
 describe('MCP setup page', () => {
   beforeEach(() => {
@@ -94,40 +44,8 @@ describe('MCP setup page', () => {
     });
   });
 
-  it('lists the mcp-surfaced toolsets on the server card, core included', () => {
-    const card = getMcpServerCard();
-
-    expect(Array.isArray(card.toolsets)).toBe(true);
-    expect(card.toolsets.length).toBeGreaterThan(0);
-    expect(card.toolsets).toContainEqual(
-      expect.objectContaining({ name: 'core' }),
-    );
-    for (const toolset of card.toolsets) {
-      expect(toolset).toEqual(
-        expect.objectContaining({
-          description: expect.any(String),
-          name: expect.any(String),
-          toolCount: expect.any(Number),
-        }),
-      );
-    }
-  });
-
-  it('counts only user-visible tools per toolset on the public server card', () => {
-    // The card is unauthenticated/public, so `core`'s count must exclude the
-    // superadmin-gated `resolve_approval` tool — a plain user never sees it.
-    // Comparing against the unfiltered catalog count (rather than a magic
-    // number) proves the role filter is actually doing something, without
-    // hard-coding the current size of the core toolset.
-    const unfilteredCoreCount = getToolsets('mcp').find(
-      (toolset) => toolset.name === 'core',
-    )?.toolCount;
-    const card = getMcpServerCard();
-    const core = card.toolsets.find((toolset) => toolset.name === 'core');
-
-    expect(core).toBeDefined();
-    expect(unfilteredCoreCount).toBeDefined();
-    expect(core?.toolCount).toBeLessThan(unfilteredCoreCount as number);
+  it('does not advertise toolsets: every connection lists every tool', () => {
+    expect(getMcpServerCard()).not.toHaveProperty('toolsets');
   });
 
   it('uses the production MCP endpoint by default', () => {
@@ -152,7 +70,6 @@ describe('MCP setup page', () => {
     expect(html).not.toContain('http://localhost:3014');
     expect(html).toContain('Muse &amp; Grok Bot');
     expect(html).toContain('Other clients');
-    expect(html).toContain('Advanced: limit which toolsets load');
   });
 
   it('advertises the shared Genfeed social share card', () => {
@@ -275,10 +192,7 @@ describe('MCP setup page', () => {
         expect(html).toContain(
           `claude mcp add --transport http genfeed --scope user ${identifier}`,
         );
-        expect(html).toContain(
-          `codex mcp add genfeed --url &#39;${identifier}?profile=studio&#39;`,
-        );
-        expect(html).toContain(`var baseMcpUrl = "${identifier}";`);
+        expect(html).toContain(`codex mcp add genfeed --url ${identifier}`);
         expect(html).not.toContain(`${identifier}/mcp`);
         expect(html).toContain(`${identifier}/claude`);
       },
@@ -298,7 +212,7 @@ describe('MCP setup page', () => {
       ['a malformed value', 'not a url %%'],
       // Concatenated so biome does not misread the scheme token.
       ['a non-http scheme', ['java', 'script:alert(1)'].join('')],
-      ['a query string', 'https://mcp.genfeed.ai/mcp?toolsets=content'],
+      ['a query string', 'https://mcp.genfeed.ai/mcp?x=1'],
       ['a fragment', 'https://mcp.genfeed.ai/mcp#x'],
     ])(
       'refuses %s in GENFEEDAI_MCP_PUBLIC_URL, naming the variable',
@@ -345,10 +259,10 @@ describe('MCP setup page', () => {
       'claude mcp add --transport http genfeed --scope user https://mcp.genfeed.ai/mcp',
     );
     expect(promptHtml).toContain(
-      'codex mcp add genfeed --url &#39;https://mcp.genfeed.ai/mcp?profile=studio&#39;',
+      'codex mcp add genfeed --url https://mcp.genfeed.ai/mcp',
     );
     expect(promptHtml).toContain(
-      'url = &quot;https://mcp.genfeed.ai/mcp?profile=studio&quot;',
+      'url = &quot;https://mcp.genfeed.ai/mcp&quot;',
     );
     expect(promptHtml).toContain('~/.codex/config.toml');
     expect(promptHtml).not.toContain('gf_live_');
@@ -415,77 +329,8 @@ describe('MCP setup page', () => {
     expect(html).not.toContain('data-copy="https://preview-mcp.genfeed.ai/o\'');
   });
 
-  describe('toInlineScriptStringLiteral', () => {
-    // The resolver percent-encodes `<` and non-ASCII code points in the
-    // path, so no accepted configuration reaches these branches any more;
-    // the escaper is kept as defence in depth and tested directly.
-    it('escapes every "<" so a "</script>" sequence cannot close the script element', () => {
-      expect(
-        toInlineScriptStringLiteral(
-          'https://x.test/mcp?x=</script><script>alert(1)</script>',
-        ),
-      ).toBe(
-        '"https://x.test/mcp?x=\\u003C/script>\\u003Cscript>alert(1)\\u003C/script>"',
-      );
-    });
-
-    it('escapes U+2028/U+2029 line/paragraph separators', () => {
-      // A raw one left in script source is a line terminator to some
-      // tooling or older engines.
-      expect(toInlineScriptStringLiteral('a\u2028b\u2029c')).toBe(
-        '"a\\u2028b\\u2029c"',
-      );
-    });
-
-    it('is otherwise a JSON string literal', () => {
-      expect(toInlineScriptStringLiteral('https://mcp.genfeed.ai/mcp')).toBe(
-        '"https://mcp.genfeed.ai/mcp"',
-      );
-      expect(toInlineScriptStringLiteral('a"b\\c')).toBe('"a\\"b\\\\c"');
-    });
-  });
-
-  describe('toolset picker', () => {
-    it('renders a checkbox per mcp-surfaced toolset, core checked and disabled', () => {
-      const html = renderSetupPage();
-
-      expect(html).toContain(
-        'data-toolset-checkbox data-toolset="core" checked disabled',
-      );
-      expect(html).toContain('toolset-picker');
-      // A second, non-core toolset must be selectable (not disabled).
-      expect(html).toMatch(
-        /data-toolset-checkbox data-toolset="(?!core")[a-z-]+"(?! checked disabled)/,
-      );
-    });
-
-    it('shows the same user-visible core tool count as the JSON server card, not the unfiltered catalog count', () => {
-      // The picker and the server card must agree: both are public/unauthenticated
-      // surfaces, so `core`'s displayed count excludes role-gated tools like
-      // `resolve_approval` on both, rather than the picker showing the raw
-      // catalog count while the card shows the role-filtered one.
-      const html = renderSetupPage();
-      const unfilteredCoreCount = getToolsets('mcp').find(
-        (toolset) => toolset.name === 'core',
-      )?.toolCount;
-      const cardCoreCount = getMcpServerCard().toolsets.find(
-        (toolset) => toolset.name === 'core',
-      )?.toolCount;
-
-      const coreOptionMatch = html.match(
-        /data-toolset-checkbox data-toolset="core" checked disabled[\s\S]*?toolset-count">(\d+) tools?</,
-      );
-
-      expect(unfilteredCoreCount).toBeDefined();
-      expect(cardCoreCount).toBeDefined();
-      expect(coreOptionMatch).not.toBeNull();
-
-      const pickerCoreCount = Number(coreOptionMatch?.[1]);
-      expect(pickerCoreCount).toBe(cardCoreCount);
-      expect(pickerCoreCount).toBeLessThan(unfilteredCoreCount as number);
-    });
-
-    it('gives the endpoint display, copy button, and command snippets stable ids for the picker script', () => {
+  describe('endpoint blocks', () => {
+    it('gives the endpoint display, copy button, and command snippets stable ids', () => {
       const html = renderSetupPage();
 
       expect(html).toContain('id="mcp-url"');
@@ -497,148 +342,15 @@ describe('MCP setup page', () => {
       expect(html).toContain('id="generic-client-config"');
     });
 
-    it('rewrites every endpoint-bearing block when toolsets are selected and cleared', () => {
-      // Parse only, then run the page's inline script against that document:
-      // jsdom's own script runner needs a vm Bun does not provide.
-      const dom = new JSDOM(renderSetupPage());
-      const { document, Event } = dom.window;
-      const pageScript = Array.from(document.querySelectorAll('script'))
-        .map((script) => script.textContent ?? '')
-        .find((source) => source.includes('function applyUrl('));
-      if (!pageScript) {
-        throw new Error('expected the picker script');
-      }
-      new Function('document', 'navigator', pageScript)(document, {});
-      const text = (id: string): string =>
-        document.getElementById(id)?.textContent ?? '';
-      const checkbox = Array.from(
-        document.querySelectorAll<HTMLInputElement>('[data-toolset-checkbox]'),
-      ).find((input) => !input.disabled);
-      if (!checkbox) {
-        throw new Error('expected a selectable toolset');
-      }
-      const toolset = checkbox.getAttribute('data-toolset');
-      const selectedUrl = `https://mcp.genfeed.ai/mcp?toolsets=${toolset}`;
-      const toggle = (isChecked: boolean): void => {
-        checkbox.checked = isChecked;
-        checkbox.dispatchEvent(new Event('change'));
-      };
-
-      toggle(true);
-
-      expect(text('mcp-url')).toBe(selectedUrl);
-      expect(
-        document.getElementById('mcp-url-copy')?.getAttribute('data-copy'),
-      ).toBe(selectedUrl);
-      expect(text('chat-agent-prompt')).toContain(
-        `MCP server URL: ${selectedUrl}\n`,
-      );
-      expect(JSON.parse(text('generic-client-config')).url).toBe(selectedUrl);
-      expect(text('claude-code-command')).toContain(
-        'https://mcp.genfeed.ai/mcp/claude',
-      );
-      expect(text('agent-setup-prompt')).toContain(
-        'Claude endpoint: https://mcp.genfeed.ai/mcp/claude',
-      );
-      expect(text('codex-command')).toContain(`--url '${selectedUrl}'`);
-      expect(text('agent-setup-prompt')).toContain(`Endpoint: ${selectedUrl}`);
-      expect(text('agent-setup-prompt')).toContain(
-        `codex mcp add genfeed --url '${selectedUrl}'`,
-      );
-      expect(text('agent-setup-prompt')).toContain(`url = "${selectedUrl}"`);
-
-      toggle(false);
-
-      expect(text('codex-command')).toContain(
-        "--url 'https://mcp.genfeed.ai/mcp?profile=studio'",
-      );
-      expect(text('agent-setup-prompt')).toContain(
-        "codex mcp add genfeed --url 'https://mcp.genfeed.ai/mcp?profile=studio'",
-      );
-      expect(text('agent-setup-prompt')).toContain(
-        'url = "https://mcp.genfeed.ai/mcp?profile=studio"',
-      );
-      expect(text('agent-setup-prompt')).toContain(
-        'Endpoint: https://mcp.genfeed.ai/mcp\n',
-      );
-
-      expect(text('mcp-url')).toBe('https://mcp.genfeed.ai/mcp');
-      expect(JSON.parse(text('generic-client-config')).url).toBe(
-        'https://mcp.genfeed.ai/mcp',
-      );
-      expect(text('chat-agent-prompt')).not.toContain('?toolsets=');
-      expect(text('claude-code-command')).not.toContain('?toolsets=');
-      dom.window.close();
-    });
-
-    it('appends the toolsets query with "?" (and leaves the URL alone for an empty selection)', () => {
-      // The base is always the resolved identifier, which the shared
-      // resolver guarantees carries no query string, so "?" is the only
-      // separator the picker ever needs.
+    it('has no toolset picker, profile or toolsets query anywhere on the page', () => {
       const html = renderSetupPage();
-      const joinToolsetsUrl = loadPickerFunction<
-        (baseUrl: string, selected: string[]) => string
-      >(html, 'joinToolsetsUrl');
 
-      expect(joinToolsetsUrl('https://mcp.genfeed.ai/mcp', ['content'])).toBe(
-        'https://mcp.genfeed.ai/mcp?toolsets=content',
-      );
-      expect(
-        joinToolsetsUrl('https://mcp.genfeed.ai/mcp', [
-          'content',
-          'generation',
-        ]),
-      ).toBe('https://mcp.genfeed.ai/mcp?toolsets=content,generation');
-      expect(joinToolsetsUrl('https://mcp.genfeed.ai/mcp', [])).toBe(
-        'https://mcp.genfeed.ai/mcp',
-      );
+      expect(html).not.toContain('toolset');
+      expect(html).not.toContain('?profile=');
+      expect(html).not.toContain('?toolsets=');
     });
 
-    it('rewrites the AI setup prompt shell commands with the shell-quoted URL, leaving plain text plain', () => {
-      const html = renderSetupPage();
-      const rewriteAgentPrompt = loadPickerFunction<
-        (
-          text: string,
-          currentUrl: string,
-          currentShellUrl: string,
-          nextUrl: string,
-          nextShellUrl: string,
-        ) => string
-      >(html, 'shellQuote', 'replaceAll', 'rewriteAgentPrompt');
-
-      const currentUrl = 'https://mcp.genfeed.ai/mcp';
-      const nextUrl = 'https://mcp.genfeed.ai/mcp?toolsets=content';
-      const nextShellUrl = "'https://mcp.genfeed.ai/mcp?toolsets=content'";
-      const promptFixture = [
-        `Endpoint: ${currentUrl}`,
-        `   - Claude Code: claude mcp add --transport http genfeed --scope user ${currentUrl}`,
-        `   - Codex: codex mcp add genfeed --url ${currentUrl}`,
-        `url = "${currentUrl}"`,
-      ].join('\n');
-
-      const rewritten = rewriteAgentPrompt(
-        promptFixture,
-        currentUrl,
-        // Unquoted — shellQuote's own regex allows this URL through as-is
-        // when there is no query string yet.
-        currentUrl,
-        nextUrl,
-        nextShellUrl,
-      );
-
-      expect(rewritten).toContain(`Endpoint: ${nextUrl}`);
-      expect(rewritten).toContain(`url = "${nextUrl}"`);
-      expect(rewritten).toContain(`--scope user ${nextShellUrl}`);
-      expect(rewritten).toContain(`--url ${nextShellUrl}`);
-      // The plain (unquoted) URL must not appear where a quoted one belongs.
-      expect(rewritten).not.toContain(`--scope user ${nextUrl}`);
-      expect(rewritten).not.toContain(`--url ${nextUrl}`);
-    });
-
-    it('keeps a malicious endpoint override from breaking out of the inline toolset script', () => {
-      // A query string is rejected outright by the resolver; the closest an
-      // accepted value can get is a hostile path segment, which the WHATWG
-      // parse percent-encodes before it reaches any renderer.
+    it('keeps a hostile endpoint path from closing a script element', () => {
       vi.stubEnv(
         'GENFEEDAI_MCP_PUBLIC_URL',
         'https://preview-mcp.genfeed.ai/</script><script>alert(1)</script>/mcp',
@@ -647,14 +359,8 @@ describe('MCP setup page', () => {
       expect(getPublicMcpUrl()).toBe(
         'https://preview-mcp.genfeed.ai/%3C/script%3E%3Cscript%3Ealert(1)%3C/script%3E/mcp',
       );
-
-      const html = renderSetupPage();
-
-      // The page has other legitimate `</script>` closing tags, so only the
-      // exact injected sequence is asserted, not every occurrence of the tag.
-      expect(html).not.toContain('</script><script>alert(1)</script>');
-      expect(html).toContain(
-        'var baseMcpUrl = "https://preview-mcp.genfeed.ai/%3C/script%3E%3Cscript%3Ealert(1)%3C/script%3E/mcp";',
+      expect(renderSetupPage()).not.toContain(
+        '</script><script>alert(1)</script>',
       );
     });
   });
@@ -689,22 +395,8 @@ describe('MCP setup page', () => {
         'Add this endpoint as a remote Streamable HTTP server in your client, choose OAuth',
       );
     });
-
-    it('collapses the toolset picker into an "Advanced" disclosure below setup', () => {
-      const html = renderSetupPage();
-
-      const setupIndex = html.indexOf('id="setup-title"');
-      const toolsetsIndex = html.indexOf('<details class="toolsets">');
-      const pickerIndex = html.indexOf('class="toolset-picker"');
-
-      expect(setupIndex).toBeGreaterThan(-1);
-      expect(toolsetsIndex).toBeGreaterThan(setupIndex);
-      expect(pickerIndex).toBeGreaterThan(toolsetsIndex);
-      expect(html).toContain(
-        '<summary>Advanced: limit which toolsets load</summary>',
-      );
-    });
   });
+
   describe('per-client routes', () => {
     it.each([
       ['/', 'claude-code'],
@@ -781,6 +473,11 @@ describe('MCP setup page', () => {
           (panel) => panel.getAttribute('id'),
         ),
       ).toEqual(['panel-codex']);
+      const panel = document.getElementById('panel-codex');
+      expect(panel?.textContent).toContain('127.0.0.1 (localhost)');
+      expect(panel?.textContent).toContain(
+        'Return to Codex and ask it to list your Genfeed brands.',
+      );
       expect(document.title).toBe('Codex setup — Genfeed MCP Server');
       expect(html).toContain(
         '<meta property="og:url" content="https://mcp.genfeed.ai/codex" />',

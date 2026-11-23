@@ -1,6 +1,10 @@
+import { MCP_CATALOG_TOOL_NAMES } from '@genfeedai/actions';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ClientService } from '@mcp/services/client.service';
-import { createEndpointRegistries } from '@mcp/services/tool-registry.endpoints.testing';
+import {
+  asMergedToolCall,
+  createEndpointRegistries,
+} from '@mcp/services/tool-registry.endpoints.testing';
 import type { ToolRegistryService } from '@mcp/services/tool-registry.service';
 
 /**
@@ -13,6 +17,7 @@ import type { ToolRegistryService } from '@mcp/services/tool-registry.service';
 const CATALOG_REST_NAMES = [
   'get_video_analytics',
   'create_article_draft',
+  'update_article_draft',
   'get_article_preview',
   'publish_article',
   'get_articles',
@@ -58,6 +63,7 @@ const MOCK_TOOLS = new Map(
     'create_brand_from_url',
     'get_brand_scan_status',
     'resolve_approval',
+    ...MCP_CATALOG_TOOL_NAMES,
   ].map((name) => [
     name,
     {
@@ -65,6 +71,7 @@ const MOCK_TOOLS = new Map(
         ? ('approval-required' as const)
         : undefined,
       name,
+      parameters: { properties: {}, required: [], type: 'object' },
       surfaces: { mcp: true },
     },
   ]),
@@ -99,6 +106,11 @@ function build() {
       .mockImplementation((toolName: string) =>
         Promise.resolve({ id: 'apr-1', status: 'PENDING', toolName }),
       ),
+    updateArticle: vi.fn().mockResolvedValue({
+      id: 'article-2',
+      status: 'DRAFT',
+      title: 'Renamed guide',
+    }),
     createArticleDraft: vi.fn().mockResolvedValue({
       id: 'article-2',
       status: 'DRAFT',
@@ -183,10 +195,9 @@ async function callTool(
   name: string,
   args: Record<string, unknown> = {},
 ): Promise<ToolResult> {
-  return (await registry.handleToolCall({
-    arguments: args,
-    name,
-  })) as ToolResult;
+  return (await registry.handleToolCall(
+    asMergedToolCall({ arguments: args, name }),
+  )) as ToolResult;
 }
 
 describe('ToolRegistryService — boot-time drift guard', () => {
@@ -232,7 +243,7 @@ describe('catalog REST handlers — video', () => {
 });
 
 describe('catalog REST handlers — articles', () => {
-  it('saves an article draft at once and queues publishing', async () => {
+  it('saves an article draft at once and publishes only once the agent confirms', async () => {
     const { client, registry } = build();
     const draft = {
       label: 'Reviewed guide',
@@ -247,12 +258,63 @@ describe('catalog REST handlers — articles', () => {
     const result = await callTool(registry, 'publish_article', {
       articleId: 'article-2',
     });
-    expect(client.createApproval).toHaveBeenCalledWith('publish_article', {
+    expect(client.createApproval).not.toHaveBeenCalled();
+    expect(client.publishArticle).not.toHaveBeenCalled();
+    expect(result.content[0].text).toContain('Nothing was published');
+
+    await callTool(registry, 'publish_article', {
       articleId: 'article-2',
+      confirmed: true,
+    });
+    expect(client.createApproval).not.toHaveBeenCalled();
+    expect(client.publishArticle).toHaveBeenCalledWith('article-2', undefined);
+  });
+
+  it('creates an article in the brand it names', async () => {
+    const { client, registry } = build();
+    const draft = {
+      brandId: 'brand-2',
+      content: '<p>Full content</p>',
+      coverImageUrl: 'https://cdn.genfeed.ai/assets/cover.jpg',
+      label: 'Reviewed guide',
+      slug: 'reviewed-guide',
+      summary: 'Verified',
+    };
+    await callTool(registry, 'create_article_draft', draft);
+    expect(client.createArticleDraft).toHaveBeenCalledWith(draft);
+  });
+
+  it('updates only the article fields it is given, including the cover and inline images', async () => {
+    const { client, registry } = build();
+    const result = await callTool(registry, 'update_article_draft', {
+      articleId: 'article-2',
+      brandId: 'brand-2',
+      content: '<p>Hi</p><img src="https://cdn.genfeed.ai/assets/inline.jpg">',
+      coverImageUrl: 'https://cdn.genfeed.ai/assets/cover.jpg',
+    });
+    expect(client.updateArticle).toHaveBeenCalledWith({
+      articleId: 'article-2',
+      brandId: 'brand-2',
+      content: '<p>Hi</p><img src="https://cdn.genfeed.ai/assets/inline.jpg">',
+      coverImageUrl: 'https://cdn.genfeed.ai/assets/cover.jpg',
     });
     expect(client.publishArticle).not.toHaveBeenCalled();
-    expect(result.content[0].text).toContain('requires approval');
+    expect(result.content[0].text).toContain('was not published');
   });
+
+  it.each([
+    { articleId: 'article-2' },
+    { articleId: 'article-2', coverImageUrl: 'http://cdn.genfeed.ai/c.jpg' },
+    { articleId: 'article-2', slug: 'Not A Slug' },
+  ])(
+    'refuses an article update that changes nothing valid: %j',
+    async (args) => {
+      const { client, registry } = build();
+      const result = await callTool(registry, 'update_article_draft', args);
+      expect(client.updateArticle).not.toHaveBeenCalled();
+      expect(result.isError).toBe(true);
+    },
+  );
 
   it('saves full reviewed HTML when draft creation is approved', async () => {
     const { client, registry } = build();
@@ -289,7 +351,7 @@ describe('catalog REST handlers — articles', () => {
       approvalId: 'apr-1',
       decision: 'approve',
     });
-    expect(client.publishArticle).toHaveBeenCalledWith('article-2');
+    expect(client.publishArticle).toHaveBeenCalledWith('article-2', undefined);
     expect(result.content[0].text).toContain('PUBLISHED');
   });
 
@@ -298,7 +360,10 @@ describe('catalog REST handlers — articles', () => {
     const result = await callTool(registry, 'get_article_preview', {
       articleId: 'article-2',
     });
-    expect(client.getArticlePreview).toHaveBeenCalledWith('article-2');
+    expect(client.getArticlePreview).toHaveBeenCalledWith(
+      'article-2',
+      undefined,
+    );
     expect(client.createApproval).not.toHaveBeenCalled();
     expect(result.structuredContent?.data).toMatchObject({
       expiresInSeconds: 3600,
@@ -365,7 +430,7 @@ describe('catalog REST handlers — articles', () => {
       articleId: 'article-1',
     });
 
-    expect(client.getArticle).toHaveBeenCalledWith('article-1');
+    expect(client.getArticle).toHaveBeenCalledWith('article-1', undefined);
     expect(client.searchArticles).not.toHaveBeenCalled();
     expect(result.content[0].text).toContain('Article: AI News');
     expect(result.content[0].text).toContain('Long form body');
@@ -698,25 +763,25 @@ describe('Brand URL tools', () => {
   it('lists brand creation on the admin endpoint and the scan status on the standard one', () => {
     const { registry } = build();
     const adminNames = registry.admin
-      .getToolsForRoleAndToolsets('admin', ['brand'])
+      .getToolsForRole('admin')
       .map((tool) => tool.name);
     expect(adminNames.sort()).toEqual([
       'create_brand_from_url',
       'resolve_approval',
     ]);
     const standardNames = registry.standard
-      .getToolsForRoleAndToolsets('admin', ['brand'])
+      .getToolsForRole('admin')
       .map((tool) => tool.name);
-    expect(standardNames).toContain('get_brand_scan_status');
+    expect(standardNames).toContain('get_context');
     expect(standardNames).not.toContain('create_brand_from_url');
   });
 
   it('does not advertise brand creation to user-tier callers', () => {
     const { registry } = build();
     const names = registry.standard
-      .getToolsForRoleAndToolsets('user', ['brand'])
+      .getToolsForRole('user')
       .map((tool) => tool.name);
     expect(names).not.toContain('create_brand_from_url');
-    expect(names).toContain('get_brand_scan_status');
+    expect(names).toContain('get_context');
   });
 });

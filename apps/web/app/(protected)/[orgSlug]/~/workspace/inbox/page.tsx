@@ -1,4 +1,4 @@
 export {
   default,
   generateMetadata,
-} from '../../../[brandSlug]/workspace/inbox/page';
+} from '@app/(protected)/[orgSlug]/[brandSlug]/workspace/inbox/page';

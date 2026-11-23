@@ -15,7 +15,7 @@ import {
 } from '@genfeedai/contracts';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { BadRequestException } from '@nestjs/common';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('VideoMergeOrchestrationService', () => {
   const user = {
@@ -37,6 +37,12 @@ describe('VideoMergeOrchestrationService', () => {
   let fixture: VideoStitchFixture;
   let ingredientsService: { findOne: ReturnType<typeof vi.fn> };
   let service: VideoMergeOrchestrationService;
+
+  afterEach(() => {
+    // The code under test tracks its merge job in the background; without a job
+    // to find, that tracker stops instead of polling into the next spec file.
+    fixture.dropAllJobs();
+  });
 
   beforeEach(() => {
     fixture = new VideoStitchFixture();

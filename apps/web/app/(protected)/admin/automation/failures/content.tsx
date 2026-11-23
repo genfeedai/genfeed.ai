@@ -13,10 +13,12 @@ import { WorkflowExecutionsService } from '@services/automation/workflow-executi
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { useQueryClient } from '@tanstack/react-query';
+import SearchField from '@ui/content/search-field/SearchField';
 import Table from '@ui/display/table/Table';
 import TableDateCell from '@ui/display/table/TableDateCell';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
+import FilterMenu from '@ui/navigation/filter-menu/FilterMenu';
 import { Alert, AlertDescription } from '@ui/primitives/alert';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
@@ -31,8 +33,6 @@ import {
 import { useTranslations } from 'next-intl';
 import { useCallback, useState } from 'react';
 import { useAdminSearchParam } from '@/components/content/admin-filters/useAdminSearchParam';
-import FilterMenu from '@/components/content/filter-menu/FilterMenu';
-import SearchField from '@/components/content/search-field/SearchField';
 import { WorkspaceSurface } from '@/components/overview/WorkspaceSurface';
 import {
   buildFailureClipboardText,

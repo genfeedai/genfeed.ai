@@ -168,19 +168,27 @@ describe('ReplicatePollProcessor', () => {
     );
   });
 
-  it('marks terminal failures through the shared webhook lifecycle', async () => {
-    replicate.getPrediction.mockResolvedValue({
-      error: 'provider failed',
-      status: 'failed',
-    });
+  it.each(['failed', 'canceled', 'cancelled'])(
+    'settles a %s prediction with a warning that omits provider details',
+    async (status) => {
+      replicate.getPrediction.mockResolvedValue({
+        error: 'provider failed',
+        status,
+      });
 
-    await processor.process(buildJob());
+      await processor.process(buildJob());
 
-    expect(webhooks.handleFailedGenerationForIngredient).toHaveBeenCalledWith(
-      'ingredient-1',
-      'provider failed',
-    );
-  });
+      expect(webhooks.handleFailedGenerationForIngredient).toHaveBeenCalledWith(
+        'ingredient-1',
+        'provider failed',
+      );
+      expect(logger.warn).toHaveBeenCalledWith(
+        'ReplicatePollProcessor: prediction ended without a result',
+        { providerStatus: status },
+      );
+      expect(logger.error).not.toHaveBeenCalled();
+    },
+  );
 
   it('logs what a succeeded prediction returned when no output is allowed, without the URL', async () => {
     replicate.getPrediction.mockResolvedValue({
@@ -192,18 +200,36 @@ describe('ReplicatePollProcessor', () => {
 
     expect(webhooks.handleFailedGenerationForIngredient).toHaveBeenCalledWith(
       'ingredient-1',
-      'Replicate prediction prediction-1 ended with status succeeded without an allowed output',
+      'Replicate completed without an allowed media output',
     );
     expect(logger.error).toHaveBeenCalledWith(
-      expect.stringContaining('generation failed'),
-      expect.objectContaining({
+      'ReplicatePollProcessor: completed prediction has no allowed output',
+      {
+        providerStatus: 'succeeded',
         outputShape: {
           hostnames: ['cdn.example.test'],
           outputType: 'array(1) of string',
         },
-      }),
+      },
     );
     expect(JSON.stringify(logger.error.mock.calls)).not.toContain('secret');
+  });
+
+  it('reports an unexpected prediction status without exposing the raw value', async () => {
+    replicate.getPrediction.mockResolvedValue({
+      status: 'private-provider-data',
+    });
+
+    await processor.process(buildJob());
+
+    expect(webhooks.handleFailedGenerationForIngredient).toHaveBeenCalledWith(
+      'ingredient-1',
+      'Replicate generation did not complete',
+    );
+    expect(logger.error).toHaveBeenCalledWith(
+      'ReplicatePollProcessor: unexpected prediction status',
+      { providerStatus: 'unknown' },
+    );
   });
 
   it('marks a prediction failed after the polling ceiling', async () => {

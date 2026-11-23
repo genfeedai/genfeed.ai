@@ -27,7 +27,7 @@ describe('TiktokController', () => {
   let credentialsService: {
     beginOAuthForBrand: ReturnType<typeof vi.fn>;
     findOne: ReturnType<typeof vi.fn>;
-    findPendingOAuthCredential: ReturnType<typeof vi.fn>;
+    claimPendingOAuthCredential: ReturnType<typeof vi.fn>;
     patch: ReturnType<typeof vi.fn>;
     updateExternalProfile: ReturnType<typeof vi.fn>;
   };
@@ -75,7 +75,7 @@ describe('TiktokController', () => {
         organizationId: orgId,
         platform: 'tiktok',
       }),
-      findPendingOAuthCredential: vi.fn().mockResolvedValue({
+      claimPendingOAuthCredential: vi.fn().mockResolvedValue({
         brandId,
         id: credentialId,
         organizationId: orgId,
@@ -236,7 +236,7 @@ describe('TiktokController', () => {
           accessToken: 'tt_access',
           isConnected: true,
           isDeleted: false,
-          oauthState: null,
+          oauthState: 'verified:opaque-oauth-state',
           refreshToken: 'tt_refresh',
           grantedScopes: [
             'user.info.basic',
@@ -302,7 +302,9 @@ describe('TiktokController', () => {
     });
 
     it('should throw NOT_FOUND when no pending credential found', async () => {
-      credentialsService.findPendingOAuthCredential.mockResolvedValueOnce(null);
+      credentialsService.claimPendingOAuthCredential.mockResolvedValueOnce(
+        null,
+      );
       await expect(controller.verify(mockRequest, dto)).rejects.toThrow(
         HttpException,
       );

@@ -1,3 +1,4 @@
+import { UPLOAD_HTTP_TIMEOUT_MS } from '@api/constants/http-timeout.constant';
 import {
   SERVER_TOKENS,
   type ServerCredentialStore,
@@ -15,6 +16,7 @@ import {
 import type { ProviderVerificationPage } from '@api/services/integrations/publishers/interfaces/publish-verification.interface';
 import { isUnconfiguredSecret } from '@genfeedai/config';
 import { CredentialPlatform, OAuthGrantType } from '@genfeedai/contracts';
+import type { IFacebookManagedPage } from '@genfeedai/contracts/interfaces/integrations/facebook.interface';
 import {
   buildGrantedScopesCredentialPatch,
   readOAuthTokenScopeField,
@@ -311,7 +313,6 @@ export class FacebookService {
         throw new Error('Facebook credential not found');
       }
 
-      // Decrypt the access token
       const decryptedAccessToken = EncryptionUtil.decrypt(
         this.requireString(credential.accessToken, 'Facebook access token'),
       );
@@ -327,6 +328,34 @@ export class FacebookService {
         category: page.category,
         id: page.id,
         name: page.name,
+        picture: page.picture?.data?.url,
+      }));
+    } catch (error: unknown) {
+      this.loggerService.error(`${url} failed`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * The Pages a user token manages, without their Page tokens. Used by the
+   * connect flow before any credential holds a Page identity.
+   */
+  public async listManagedPages(
+    userAccessToken: string,
+  ): Promise<IFacebookManagedPage[]> {
+    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+
+    try {
+      const pages = await readMetaPages(
+        this.httpService,
+        `${this.graphUrl}/${this.apiVersion}`,
+        userAccessToken,
+      );
+
+      return pages.map((page) => ({
+        category: page.category,
+        id: page.id,
+        name: page.name ?? page.id,
         picture: page.picture?.data?.url,
       }));
     } catch (error: unknown) {
@@ -460,6 +489,7 @@ export class FacebookService {
               file_url: videoUrl,
               title,
             },
+            timeout: UPLOAD_HTTP_TIMEOUT_MS,
           },
         ),
       );

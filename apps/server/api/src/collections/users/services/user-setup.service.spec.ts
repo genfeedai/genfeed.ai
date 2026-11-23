@@ -8,6 +8,7 @@ import { OrganizationsService } from '@api/collections/organizations/services/or
 import { RolesService } from '@api/collections/roles/services/roles.service';
 import { SettingsService } from '@api/collections/settings/services/settings.service';
 import { UserSetupService } from '@api/collections/users/services/user-setup.service';
+import { CacheService } from '@api/services/cache/cache.service';
 import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import { OrganizationCategory } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -81,6 +82,11 @@ describe('UserSetupService', () => {
     getOrganizationCreditsWithExpiration: vi.fn(),
   };
 
+  const mockCacheService = {
+    acquireOwnedClaim: vi.fn().mockResolvedValue('claimed'),
+    releaseOwnedClaim: vi.fn().mockResolvedValue(true),
+  };
+
   const mockLogger = {
     debug: vi.fn(),
     error: vi.fn(),
@@ -99,6 +105,7 @@ describe('UserSetupService', () => {
       mockBillingAccountsService as unknown as BillingAccountsService,
       mockCreditBalanceService as unknown as CreditBalanceService,
       mockOnboardingCreditGrantsService as unknown as OnboardingCreditGrantsService,
+      mockCacheService as unknown as CacheService,
       mockLogger as unknown as LoggerService,
     );
   });

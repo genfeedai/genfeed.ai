@@ -69,6 +69,7 @@ export class ReplicateVideoBuilder extends BaseReplicateBuilder {
       MODEL_KEYS.REPLICATE_WAN_VIDEO_WAN_2_2_I2V_FAST,
       // PrunaAI
       MODEL_KEYS.REPLICATE_PRUNAAI_P_VIDEO,
+      MODEL_KEYS.REPLICATE_PRUNAAI_P_VIDEO_2,
       MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V2_1,
       MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V2_1_MASTER,
       MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V2_5_TURBO_PRO,
@@ -135,6 +136,7 @@ export class ReplicateVideoBuilder extends BaseReplicateBuilder {
         return this.buildWanVideoPrompt(model, params, promptText);
 
       case MODEL_KEYS.REPLICATE_PRUNAAI_P_VIDEO:
+      case MODEL_KEYS.REPLICATE_PRUNAAI_P_VIDEO_2:
         return this.buildPVideoPrompt(model, params, promptText);
 
       case MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V2_1:
@@ -363,7 +365,12 @@ export class ReplicateVideoBuilder extends BaseReplicateBuilder {
 
     const input: Veo31Input = {
       aspect_ratio: aspectRatio,
-      duration: params.duration ?? 8,
+      duration:
+        normalizeProviderVideoDuration(
+          MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1,
+          params.duration,
+          normalizedResolution,
+        ) ?? 8,
       generate_audio: params.isAudioEnabled ?? true,
       negative_prompt: negativePrompt,
       prompt: promptText,
@@ -406,7 +413,12 @@ export class ReplicateVideoBuilder extends BaseReplicateBuilder {
 
     const input: Veo31FastInput = {
       aspect_ratio: aspectRatio,
-      duration: params.duration ?? 8,
+      duration:
+        normalizeProviderVideoDuration(
+          MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1_FAST,
+          params.duration,
+          normalizedResolution,
+        ) ?? 8,
       generate_audio: params.isAudioEnabled ?? true,
       negative_prompt: negativePrompt,
       prompt: promptText,

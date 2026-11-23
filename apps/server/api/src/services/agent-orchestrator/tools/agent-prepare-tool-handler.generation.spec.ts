@@ -33,6 +33,20 @@ function createHandler(
 }
 
 describe('AgentPrepareToolHandler.prepareGeneration', () => {
+  it('marks a generation review card pending without a generation charge', async () => {
+    const result = await createHandler().prepareGeneration(
+      { generationType: 'video', prompt: 'A synthetic blue cube' },
+      ctx,
+    );
+    expect(result).toMatchObject({
+      approvalStatus: 'pending',
+      creditsUsed: 0,
+      isBillingDelegated: true,
+      requiresConfirmation: true,
+      success: true,
+    });
+  });
+
   it('preserves normalized selections and enhancement override on the review card', async () => {
     const result = await createHandler().prepareGeneration(
       {

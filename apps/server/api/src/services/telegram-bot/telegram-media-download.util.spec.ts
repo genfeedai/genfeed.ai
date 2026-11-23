@@ -272,18 +272,30 @@ describe('downloadTelegramMedia', () => {
     const body = new ReadableStream<Uint8Array>({
       cancel: vi.fn().mockRejectedValue(new Error('cleanup failed')),
     });
+    let sendMetadata: () => void = () => undefined;
+    const metadataArrived = new Promise<void>((resolve) => {
+      sendMetadata = resolve;
+    });
+    let sendHeaders: () => void = () => undefined;
+    const headersArrived = new Promise<void>((resolve) => {
+      sendHeaders = resolve;
+    });
     const getFile = async () => {
-      await new Promise((resolve) => setTimeout(resolve, 80_000));
+      await metadataArrived;
       return { file_path: filePath };
     };
     vi.mocked(safeFetch).mockImplementation(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 20_000));
+      await headersArrived;
       return new Response(body);
     });
     const outcome = downloadTelegramMedia(token, getFile).catch(
       (error: unknown) => error,
     );
-    await vi.advanceTimersByTimeAsync(100_000);
+    await vi.advanceTimersByTimeAsync(80_000);
+    sendMetadata();
+    await vi.advanceTimersByTimeAsync(20_000);
+    sendHeaders();
+    await vi.advanceTimersByTimeAsync(0);
     expect(body.locked).toBe(true);
     await vi.advanceTimersByTimeAsync(20_000);
     expect(await outcome).toMatchObject({ kind: 'timeout' });

@@ -1,3 +1,4 @@
+import { hostname } from 'node:os';
 import {
   continueTrace,
   init,
@@ -6,6 +7,7 @@ import {
 } from '@sentry/nestjs';
 import { beforeAll, describe, expect, it } from 'vitest';
 import {
+  resolveInstanceId,
   resolveRequestId,
   resolveServiceIdentity,
   resolveTraceContext,
@@ -128,15 +130,34 @@ describe('resolveServiceIdentity', () => {
       resolveServiceIdentity('api', {
         AWS_REGION: 'eu-west-1',
         DEPLOYMENT_ID: 'd-42',
+        ECS_CONTAINER_METADATA_URI_V4:
+          'http://169.254.170.2/v4/3f2a9c0b1d4e4f6a8b7c5d6e7f809102-2531912345',
         NODE_ENV: 'production',
         npm_package_version: '1.2.3',
       }),
     ).toEqual({
       deployment_id: 'd-42',
       environment: 'production',
+      instance_id: '3f2a9c0b1d4e4f6a8b7c5d6e7f809102',
       region: 'eu-west-1',
       service: 'api',
       version: '1.2.3',
     });
+  });
+});
+
+describe('resolveInstanceId', () => {
+  it('names the ECS task, without the container suffix', () => {
+    expect(
+      resolveInstanceId({
+        ECS_CONTAINER_METADATA_URI_V4:
+          'http://169.254.170.2/v4/aa11bb22cc33dd44ee55ff6600778899-1234567890',
+        NODE_ENV: 'production',
+      }),
+    ).toBe('aa11bb22cc33dd44ee55ff6600778899');
+  });
+
+  it('falls back to the host name outside ECS', () => {
+    expect(resolveInstanceId({ NODE_ENV: 'production' })).toBe(hostname());
   });
 });

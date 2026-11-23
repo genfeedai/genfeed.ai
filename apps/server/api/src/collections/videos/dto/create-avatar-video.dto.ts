@@ -1,9 +1,12 @@
+import { AvatarMotionDto } from '@api/collections/videos/dto/avatar-motion.dto';
 import { DefaultAvatarRefDto } from '@api/shared/default-avatar-ref/default-avatar-ref.dto';
 import { DefaultVoiceRefDto } from '@api/shared/default-voice-ref/default-voice-ref.dto';
 import { RouterPriority } from '@genfeedai/contracts';
 import {
   AVATAR_VIDEO_ASPECT_RATIOS,
   type AvatarVideoAspectRatio,
+  HEYGEN_AVATAR_6_RESOLUTIONS,
+  type HeyGenAvatar6Resolution,
 } from '@genfeedai/contracts/constants';
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
@@ -125,6 +128,27 @@ export class CreateAvatarVideoDto {
     required: false,
   })
   readonly aspectRatio?: AvatarVideoAspectRatio;
+
+  @IsIn(HEYGEN_AVATAR_6_RESOLUTIONS)
+  @IsOptional()
+  @ApiProperty({
+    description:
+      'Output resolution for Avatar 6 and Avatar 6 Turbo. `2k` is priced at its own higher rate and needs one of those engines; omitted renders at 1080p.',
+    enum: HEYGEN_AVATAR_6_RESOLUTIONS,
+    required: false,
+  })
+  readonly resolution?: HeyGenAvatar6Resolution;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => AvatarMotionDto)
+  @ApiProperty({
+    description:
+      'Motion direction for Avatar 6 and Avatar 6 Turbo. Routing is limited to those engines when set.',
+    required: false,
+    type: () => AvatarMotionDto,
+  })
+  readonly motion?: AvatarMotionDto;
 
   @IsString()
   @IsOptional()

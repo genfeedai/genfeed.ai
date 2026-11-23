@@ -1,10 +1,14 @@
 import type { CredentialDocument } from '@api/collections/credentials/credential.types';
+import { CredentialRefreshRejectedException } from '@api/collections/credentials/credential-refresh-rejected.exception';
 import {
   SERVER_TOKENS,
   type ServerCredentialStore,
 } from '@api/server.dependencies';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
-import { isTwitterRefreshTokenRejectedError } from '@api/services/integrations/twitter/utils/twitter-api-error.util';
+import {
+  isTwitterRefreshTokenRejectedError,
+  readTwitterHttpStatus,
+} from '@api/services/integrations/twitter/utils/twitter-api-error.util';
 import type { AlertEmailNotificationPayload } from '@api/services/notifications/workflow-notifications/workflow-notification.constants';
 import { ActivityKey, ActivitySource } from '@genfeedai/contracts';
 import { buildGrantedScopesCredentialPatch } from '@genfeedai/helpers';
@@ -12,7 +16,7 @@ import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
-import { Inject } from '@nestjs/common';
+import { BadGatewayException, Inject } from '@nestjs/common';
 import { TwitterApi } from 'twitter-api-v2';
 
 const TWITTER_TOKEN_REFRESH_BUFFER_MS = 15 * 60 * 1000;
@@ -103,14 +107,14 @@ export class TwitterTokenRefreshService {
   ): Promise<CredentialDocument> {
     if (!credentials.refreshToken) {
       // OAuth 1.0a credential — requires reconnection via OAuth 2.0
-      const error = new Error(
+      const error = new CredentialRefreshRejectedException(
         'Twitter credential requires reconnection. Please reconnect your X account.',
       );
       await this.markRefreshDisconnected(
         credentials,
         organizationId,
         brandId,
-        error,
+        error.message,
       );
       throw error;
     }
@@ -138,14 +142,13 @@ export class TwitterTokenRefreshService {
         accessTokenExpiry: expiresIn
           ? new Date(Date.now() + expiresIn * 1000)
           : undefined,
+        // A refresh that succeeds reconnects a disconnected channel, but never
+        // restores one deleted while the provider call was in flight.
         isConnected: true,
-        isDeleted: false,
         refreshToken: newRefreshToken,
         ...buildGrantedScopesCredentialPatch(scope),
       });
     } catch (error: unknown) {
-      this.loggerService.error('Refresh token failed', error);
-
       // Only a definitive rejection of the grant disconnects the credential.
       // Network errors and 5xx keep it connected so the next run can retry.
       if (isTwitterRefreshTokenRejectedError(error)) {
@@ -166,14 +169,24 @@ export class TwitterTokenRefreshService {
         }
 
         // A refresh in another process may already have disconnected it.
+        const rejection = new CredentialRefreshRejectedException(
+          'X refused the refresh token. Please reconnect your X account.',
+        );
         if (stored?.isConnected !== false) {
           await this.markRefreshDisconnected(
             credentials,
             organizationId,
             brandId,
-            error,
+            'The OAuth refresh token is no longer valid',
           );
         }
+        throw rejection;
+      }
+
+      if (readTwitterHttpStatus(error) === 400) {
+        throw new BadGatewayException(
+          'X rejected the token refresh request (HTTP 400)',
+        );
       }
 
       throw error;
@@ -223,7 +236,7 @@ export class TwitterTokenRefreshService {
     credentials: CredentialDocument,
     organizationId: string,
     brandId: string,
-    error: unknown,
+    reason: string,
   ): Promise<void> {
     // The channel is already disconnected and its activity already recorded:
     // every later refresh of it would otherwise add another one.
@@ -235,7 +248,6 @@ export class TwitterTokenRefreshService {
       isConnected: false,
     });
 
-    const reason = (error as Error)?.message ?? 'Token refresh failed';
     const handle =
       credentials.externalHandle ?? credentials.externalName ?? 'X account';
     const alertPayload: AlertEmailNotificationPayload = {

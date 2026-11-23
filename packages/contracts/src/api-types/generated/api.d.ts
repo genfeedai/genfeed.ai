@@ -17,6 +17,7 @@ export interface components {
       groupId?: string;
       ingredients: string[];
       isAnalyticsEnabled?: boolean;
+      isHiddenFromProfile?: boolean;
       isRepeat?: boolean;
       isShareToFeedSelected?: boolean;
       label: string;
@@ -54,6 +55,7 @@ export interface components {
       groupId?: string;
       ingredients?: string[];
       isAnalyticsEnabled?: boolean;
+      isHiddenFromProfile?: boolean;
       isRepeat?: boolean;
       isShareToFeedSelected?: boolean;
       label?: string;

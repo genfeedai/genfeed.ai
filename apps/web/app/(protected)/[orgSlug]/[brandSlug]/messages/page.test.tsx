@@ -10,7 +10,8 @@ import {
   within,
 } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import type { ChangeEvent, ReactNode } from 'react';
+import type { ChangeEvent, ReactElement, ReactNode } from 'react';
+import { cloneElement, isValidElement } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import SocialMessagesPage from './page';
 
@@ -74,6 +75,7 @@ const mocks = vi.hoisted(() => ({
   postReply: vi.fn(),
   suggestedReply: vi.fn(),
   replace: vi.fn(),
+  syncFacebook: vi.fn(),
   syncInstagram: vi.fn(),
   syncInstagramDms: vi.fn(),
   syncLinkedIn: vi.fn(),
@@ -230,7 +232,13 @@ vi.mock('@ui/primitives/button', () => ({
     );
 
     return asChild ? (
-      (children ?? null)
+      isValidElement(children) ? (
+        cloneElement(children as ReactElement<Record<string, unknown>>, {
+          'aria-label': ariaLabel,
+        })
+      ) : (
+        (children ?? null)
+      )
     ) : (
       <button
         aria-label={ariaLabel}
@@ -322,8 +330,17 @@ vi.mock('@ui/primitives/select', async () => {
 });
 
 vi.mock('next/link', () => ({
-  default: ({ children, href }: { children: ReactNode; href: string }) => (
-    <a href={href}>{children}</a>
+  default: ({
+    children,
+    href,
+    ...props
+  }: {
+    children: ReactNode;
+    href: string;
+  }) => (
+    <a href={href} {...props}>
+      {children}
+    </a>
   ),
 }));
 
@@ -463,6 +480,7 @@ describe('SocialMessagesPage', () => {
       suggestedReply: mocks.suggestedReply,
       rejectDraft: vi.fn(),
       sendDm: vi.fn(),
+      syncFacebook: mocks.syncFacebook,
       syncInstagram: mocks.syncInstagram,
       syncInstagramDms: mocks.syncInstagramDms,
       syncLinkedIn: mocks.syncLinkedIn,
@@ -614,12 +632,15 @@ describe('SocialMessagesPage', () => {
     expect(
       await screen.findByText('Here is a drafted answer.'),
     ).toBeInTheDocument();
-    expect(screen.getByText('workflow-run-1')).toBeInTheDocument();
-    expect(screen.getByText('user-1')).toBeInTheDocument();
-    expect(screen.getByText('Draft')).toBeInTheDocument();
+    // Provenance names the actor and the action, never the raw ids.
+    expect(screen.getByText('Workflow · Draft')).toBeInTheDocument();
+    expect(screen.queryByText('workflow-run-1')).toBeNull();
+    expect(screen.queryByText('user-1')).toBeNull();
     expect(screen.getAllByText('Comment').length).toBeGreaterThan(0);
     expect(screen.getAllByText('YouTube').length).toBeGreaterThan(0);
-    expect(screen.getByText('Reply composer')).toBeInTheDocument();
+    expect(screen.queryByText('Reply composer')).toBeNull();
+    expect(screen.queryByText(/Review every draft/)).toBeNull();
+    expect(screen.queryByText(/DM is available/)).toBeNull();
     const conversationButton = screen.getByRole('button', {
       name: 'Open social conversation with Taylor',
     });
@@ -683,6 +704,30 @@ describe('SocialMessagesPage', () => {
     expect(mocks.refreshInboxIndicators.mock.calls.length).toBeGreaterThan(
       indicatorRefreshesBeforeReply,
     );
+  });
+
+  it('renders the thread and composer actions as icon-only buttons', async () => {
+    render(<SocialMessagesPage />);
+
+    const composer = await screen.findByTestId('messages-reply-composer');
+    const names = [
+      'Resolve',
+      'Needs Review',
+      'Draft reply',
+      'Save Draft',
+      'DM',
+    ];
+    for (const name of names) {
+      const button = await screen.findByRole('button', { name });
+      expect(button).toHaveTextContent('');
+    }
+    const automation = screen.getByRole('link', { name: 'Automation' });
+    expect(automation).toHaveTextContent('');
+    expect(
+      within(composer).getByRole('button', { name: 'Reply' }),
+    ).toHaveTextContent('');
+    // The thread has no stray rule above the composer.
+    expect(composer.closest('.border-t')).toBeNull();
   });
 
   it('keeps the reply status inside the shared prompt bar and sends on Enter', async () => {
@@ -785,7 +830,7 @@ describe('SocialMessagesPage', () => {
     await waitFor(() =>
       expect(mocks.refreshInboxIndicators).toHaveBeenCalled(),
     );
-    await new Promise((resolve) => setTimeout(resolve, 50));
+    await new Promise((resolve) => setImmediate(resolve));
 
     expect(mocks.markRead).not.toHaveBeenCalledWith(
       'conversation-1',
@@ -938,11 +983,7 @@ describe('SocialMessagesPage', () => {
     );
     render(<SocialMessagesPage />);
     await screen.findByRole('button', { name: 'Sync inbox' });
-    await chooseFilter(
-      userEvent.setup(),
-      /^account/i,
-      /Instagram · instagram account/,
-    );
+    await chooseFilter(userEvent.setup(), /^account/i, /instagram account/);
     await waitFor(() =>
       expect(mocks.listPage).toHaveBeenLastCalledWith(
         expect.objectContaining({ credentialId: 'credential-instagram' }),
@@ -1131,6 +1172,29 @@ describe('SocialMessagesPage', () => {
     expect(mocks.syncLinkedIn).toHaveBeenCalledTimes(1);
     expect(mocks.syncInstagramDms).not.toHaveBeenCalled();
     expect(mocks.syncXDms).not.toHaveBeenCalled();
+  });
+
+  it('syncs a connected Facebook Page on the comments surface and not on the DM surface', async () => {
+    mocks.brandContext.brands[0].credentials = ['facebook'].map((platform) => ({
+      id: `credential-${platform}`,
+      isConnected: true,
+      platform,
+    }));
+    render(<SocialMessagesPage />);
+
+    await screen.findByRole('button', { name: 'Sync inbox' });
+    await chooseFilter(userEvent.setup(), /^type/i, /^Comments/);
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Sync comments' }),
+    );
+
+    await waitFor(() =>
+      expect(mocks.syncFacebook).toHaveBeenCalledWith(
+        25,
+        'credential-facebook',
+      ),
+    );
+    expect(mocks.syncFacebook).toHaveBeenCalledTimes(1);
   });
 
   it('syncs the unified mailbox and keeps remaining platform enqueues after a partial failure', async () => {

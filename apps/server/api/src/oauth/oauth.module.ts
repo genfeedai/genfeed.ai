@@ -1,4 +1,5 @@
 import { BetterAuthModule } from '@api/auth/better-auth/better-auth.module';
+import { BrandAccessModule } from '@api/authorization/brand-access/brand-access.module';
 import { ApiKeysModule } from '@api/collections/api-keys/api-keys.module';
 import { Module } from '@nestjs/common';
 import { OAuthAuthorizeController } from './controllers/oauth-authorize.controller';
@@ -19,7 +20,7 @@ import { OAuthRefreshTokenService } from './services/oauth-refresh-token.service
     OAuthTokenController,
     OAuthRevokeController,
   ],
-  imports: [BetterAuthModule, ApiKeysModule],
+  imports: [BetterAuthModule, ApiKeysModule, BrandAccessModule],
   providers: [
     EnterpriseAssertionVerifier,
     EnterpriseIssuerKeysService,

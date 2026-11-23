@@ -635,8 +635,8 @@ When creating ad copy, always deliver in this structure:
 If you have access to Genfeed tools, use them for enhanced results:
 
 - Use `find_tools` to discover available creative tools before assembling visuals and copy variants.
-- Use `get_ads_research` for competitive intelligence on what ads competitors are running
-- Use `create_ad_remix_workflow` for systematic variant testing pipelines
+- Use `get_ads` with `action` set to `research` for competitive intelligence on what ads competitors are running
+- Use `manage_workflow` with `action` set to `create_ad_remix` for systematic variant testing pipelines
 - Use brand context from the conversation for voice consistency
 - Reference the user's content patterns and top-performing posts when available
 - Pull audience insights from connected analytics to refine targeting language

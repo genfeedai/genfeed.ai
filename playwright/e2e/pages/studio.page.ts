@@ -276,30 +276,33 @@ export class StudioPage {
    * Wait for generation to complete
    */
   async waitForGenerationComplete(timeout = 60000): Promise<void> {
-    // Wait for loading to start
-    await this.page.waitForTimeout(500);
+    // Give loading a moment to start; it may already be over.
+    await this.loadingSpinner
+      .first()
+      .waitFor({ state: 'visible', timeout: 2_000 })
+      .catch(() => {});
 
-    // Wait for loading to finish
-    const startTime = Date.now();
-    while (Date.now() - startTime < timeout) {
-      const isLoading = await this.loadingSpinner
-        .isVisible()
-        .catch(() => false);
-      const hasProgress = await this.progressBar.isVisible().catch(() => false);
-
-      if (!isLoading && !hasProgress) {
-        // Check if result appeared
-        const hasResult = await this.resultCard
-          .first()
-          .isVisible()
-          .catch(() => false);
-        if (hasResult) {
-          return;
-        }
-      }
-
-      await this.page.waitForTimeout(500);
-    }
+    // Wait for loading to finish and a result to appear. Like before, running
+    // out of time does not fail the call; the caller asserts on the result.
+    await expect
+      .poll(
+        async () => {
+          const isLoading = await this.loadingSpinner
+            .isVisible()
+            .catch(() => false);
+          const hasProgress = await this.progressBar
+            .isVisible()
+            .catch(() => false);
+          if (isLoading || hasProgress) return false;
+          return this.resultCard
+            .first()
+            .isVisible()
+            .catch(() => false);
+        },
+        { intervals: [250, 500], timeout },
+      )
+      .toBe(true)
+      .catch(() => {});
   }
 
   /**

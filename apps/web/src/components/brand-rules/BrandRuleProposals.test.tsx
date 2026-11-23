@@ -1,6 +1,6 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import BrandRuleProposals from '@/components/brand-rules/BrandRuleProposals';
 
 const mocks = vi.hoisted(() => ({
@@ -31,6 +31,10 @@ vi.mock('next-intl', async () => {
 const SLOW = { timeout: 3000 };
 
 describe('BrandRuleProposals', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.proposeRules.mockResolvedValue(['Never use "truly".']);
@@ -98,14 +102,18 @@ describe('BrandRuleProposals', () => {
   });
 
   it('suggests nothing for a blank reason', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
     render(<BrandRuleProposals reason="   " />);
 
-    await new Promise((resolve) => setTimeout(resolve, 1300));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1300);
+    });
 
     expect(mocks.proposeRules).not.toHaveBeenCalled();
   });
 
   it('suggests nothing while the text is as the model wrote it', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
     render(
       <BrandRuleProposals
         original="The editor is truly live."
@@ -113,16 +121,21 @@ describe('BrandRuleProposals', () => {
       />,
     );
 
-    await new Promise((resolve) => setTimeout(resolve, 1300));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1300);
+    });
 
     expect(screen.queryByRole('button', { name: 'Save rule' })).toBeNull();
     expect(mocks.proposeRules).not.toHaveBeenCalled();
   });
 
   it('suggests nothing for a post that was not generated here', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
     render(<BrandRuleProposals original={null} edited="Typed by hand." />);
 
-    await new Promise((resolve) => setTimeout(resolve, 1300));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1300);
+    });
 
     expect(screen.queryByRole('button', { name: 'Save rule' })).toBeNull();
     expect(mocks.proposeRules).not.toHaveBeenCalled();

@@ -15,6 +15,7 @@ import type {
   IPostVariationResult,
   PostDraftGenerationInput,
   PostDraftGenerationResult,
+  PostRemovalResult,
   ScoreSeoRequest,
   SocialGenerationFormat,
 } from '@genfeedai/contracts/interfaces';
@@ -369,6 +370,26 @@ export class PostsService extends BaseService<
         count: number;
       };
     }>('/hook-generations', data);
+    return response.data;
+  }
+
+  /**
+   * Delete a post, a published one included, on request the Library media only
+   * it uses, and on request the post on its social network first (X and
+   * Mastodon; the API refuses other platforms and deletes nothing). Reads the
+   * post back and says whether it is gone.
+   */
+  public async remove(
+    id: string,
+    options: { deleteOnPlatform?: boolean; includeMedia?: boolean } = {},
+  ): Promise<PostRemovalResult> {
+    const response = await this.instance.post<PostRemovalResult>(
+      `/${id}/deletions`,
+      {
+        deleteOnPlatform: options.deleteOnPlatform === true,
+        includeMedia: options.includeMedia === true,
+      },
+    );
     return response.data;
   }
 

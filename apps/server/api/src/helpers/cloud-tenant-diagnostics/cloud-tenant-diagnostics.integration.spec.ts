@@ -304,7 +304,8 @@ describe('real miniature Nest request lifecycle', () => {
         guardRelease = undefined;
         expect(handlerCalls).toBe(7);
         await send('/pending', 'after');
-        await new Promise((resolveWait) => setTimeout(resolveWait, 60));
+        while (!nativeCloses.has(sequence))
+          await new Promise<void>((resolveWait) => setImmediate(resolveWait));
         guardMode = 'before';
         await send('/before', 'before');
         while (!nativeCloses.has(sequence))

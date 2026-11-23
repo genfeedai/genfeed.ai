@@ -20,10 +20,12 @@ describe('Meta API contract defaults', () => {
     expect(META_GRAPH_API_VERSION).toBe('v26.0');
     expect(THREADS_API_VERSION).toBe('v1.0');
   });
-  it('requests the Facebook Page grants required by comments and insights', () => {
+  it('requests the Facebook Page grants required by comments, Messenger and insights', () => {
     expect(FACEBOOK_OAUTH_SCOPES).toEqual(
       expect.arrayContaining([
         'pages_manage_engagement',
+        'pages_messaging',
+        'pages_read_user_content',
         'read_insights',
         'pages_show_list',
       ]),

@@ -7,6 +7,8 @@ export interface PaginationProps {
   totalItems?: number;
   totalLabel?: string;
   onPageChange?: (page: number) => void;
+  /** Query parameters every page link keeps, such as an active filter. */
+  hrefParams?: Record<string, string>;
 }
 
 export interface AutoPaginationProps {

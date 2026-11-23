@@ -16,6 +16,8 @@ import { WORKFLOW_EXECUTION_QUEUE } from '@genfeedai/contracts/queue';
 import { withLongJobWorkerOptions } from '@libs/jobs/bullmq-worker-lock.options';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
+import { isAgentTurnInsufficientCredits } from '@workers/processors/api/collections/workflows/services/insufficient-credits-failure.util';
+import { isLostPublishClaim } from '@workers/processors/api/collections/workflows/services/lost-publish-claim.util';
 import {
   type ModuleAccessDenial,
   readModuleAccessDenial,
@@ -370,6 +372,51 @@ export class WorkflowExecutionProcessor extends WorkerHost {
       // would report a failure that did not happen.
       this.logger.warn(
         `${this.logContext} skipped system workflow whose recorded actor lost organization access`,
+        {
+          canonicalId: systemRun.input.canonicalId,
+          executionId: result.provenance.executionId,
+          jobId: job.id,
+          organizationId: systemRun.input.organizationId,
+        },
+      );
+      return {
+        executionId: result.provenance.executionId,
+        status: result.execution.status,
+        workflowId: result.provenance.workflowId,
+      };
+    }
+    if (
+      result.execution.status === WorkflowExecutionStatus.FAILED &&
+      isAgentTurnInsufficientCredits(
+        systemRun.input.canonicalId,
+        result.execution.error,
+      )
+    ) {
+      // The turn's fail node already told the thread. Retrying cannot add
+      // credits, so the job completes instead of reporting a handled state.
+      this.logger.warn(
+        `${this.logContext} agent turn stopped for insufficient credits`,
+        {
+          canonicalId: systemRun.input.canonicalId,
+          executionId: result.provenance.executionId,
+          jobId: job.id,
+          organizationId: systemRun.input.organizationId,
+        },
+      );
+      return {
+        executionId: result.provenance.executionId,
+        status: result.execution.status,
+        workflowId: result.provenance.workflowId,
+      };
+    }
+    if (
+      result.execution.status === WorkflowExecutionStatus.FAILED &&
+      isLostPublishClaim(systemRun.input.canonicalId, result.execution.error)
+    ) {
+      // Another run holds this approval's lease and publishes the post. Failing
+      // here would run the compensation against a post that run still owns.
+      this.logger.warn(
+        `${this.logContext} skipped scheduled publish claimed by another run`,
         {
           canonicalId: systemRun.input.canonicalId,
           executionId: result.provenance.executionId,

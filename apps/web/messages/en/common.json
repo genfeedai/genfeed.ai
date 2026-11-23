@@ -101,6 +101,7 @@
       "unverified": "Could not confirm this post"
     },
     "agent": {
+      "input_requested": "Agent is waiting on your answer",
       "review_changed": "Agent review updated",
       "review_expired": "Agent review expired"
     },
@@ -236,11 +237,14 @@
         "title": "Sign in required"
       },
       "connecting": "Connecting your {platform} account…",
+      "connectingAccount": "Connecting your account…",
       "error": {
         "denied": "Authorization was denied. You can try connecting again.",
         "description": "Failed to verify your account. Please try again.",
         "failed": "The provider rejected this authorization. Please try again.",
         "googleBusinessNotReadyTitle": "Google Business is not ready",
+        "instagramMissingScopes": "Meta did not grant access to your Instagram professional account. Restart authorization and allow access to the account you want to connect.",
+        "instagramMissingScopesTitle": "Instagram permission missing",
         "restartFailed": "Could not restart the connection. Go back and connect again.",
         "title": "Connection Failed",
         "youtubeAuthorizationFailed": "YouTube could not finish this connection. Restart authorization and try again.",
@@ -288,12 +292,31 @@
         "partial": "Connected {connected} of {selected} locations. Not connected: {missing}. Run connect again to add them.",
         "retry": "Try again",
         "title": "Choose locations"
+      },
+      "selectPage": {
+        "alreadyConnected": "Already connected",
+        "back": "Go back",
+        "cancel": "Cancel",
+        "confirm": "{count, plural, =0 {Connect Pages} one {Connect # Page} other {Connect # Pages}}",
+        "confirmError": "Failed to connect these Pages. Please try again.",
+        "confirming": "Connecting…",
+        "continue": "Continue",
+        "description": "Facebook shared more than one Page with Genfeed. Tick every Page this brand should post to. Each one connects as its own channel.",
+        "empty": "No Pages were found.",
+        "error": "Failed to load Pages. Please try again.",
+        "limit": "Connect up to {max} Pages at a time.",
+        "limitReached": "{max} Pages selected, the most one connect can add. Untick one to choose another.",
+        "loading": "Loading Pages…",
+        "partial": "Connected {connected} of {selected} Pages. Not connected: {missing}. Run connect again to add them.",
+        "retry": "Try again",
+        "title": "Choose Pages"
       }
     },
     "consent": {
       "brand": {
         "allBrands": "All brands",
         "allBrandsDescription": "{organization}, all brands",
+        "allowKitEdits": "Allow Brand Kit edits for {brand}",
         "label": "Brand",
         "onlyBrandDescription": "{organization}, {brand} only"
       },
@@ -331,6 +354,7 @@
           "deny": "Deny"
         },
         "clientLabel": "Requesting client",
+        "codexHandoff": "After you authorize, expect a localhost tab at {host}. Return to Codex and ask it to list your Genfeed brands to verify the connection.",
         "returnsTo": "Returns to {host}",
         "adminNotice": "This is the Genfeed staff admin connection. This client can also perform administrative actions in this organization and approve its own queued actions.",
         "scopesLabel": "{clientName} can",
@@ -1039,8 +1063,9 @@
       "mcpApproval": {
         "cardTitle": "MCP approvals",
         "label": "Require approval for MCP requests",
-        "switchDescription": "On: image, video and other credit-spending MCP requests wait for approval. Off: they run straight away. Credit checks and quotes still apply. Publishing, scheduling and other outbound actions always wait.",
+        "switchDescription": "On: image, video and other credit-spending MCP requests wait for approval. Off: they run straight away. Credit checks and quotes still apply. Publishing and scheduling never wait here: your agent asks you to confirm in the conversation. Sending messages and replies always waits.",
         "organizationRequired": "Your organization requires approval, so this stays on. An owner or admin can change that in organization settings.",
+        "confirm": "Lets your own credit-spending MCP requests run without approval",
         "saveError": "Could not save your MCP approval setting."
       },
       "agentMode": {
@@ -1219,24 +1244,28 @@
       "saveFailed": "Could not save the setting. Try again.",
       "breakoutResponses": {
         "label": "Breakout responses",
-        "description": "When one of your posts takes off, draft responses while it is still hot. Spends credits within your strategy budgets. Drafts wait for review."
+        "description": "When one of your posts takes off, draft responses while it is still hot. Spends credits within your strategy budgets. Drafts wait for review.",
+        "confirm": "Spends credits to draft responses when a post takes off"
       },
       "breakoutAutoPublish": {
         "label": "Breakout auto-publish",
         "description": "Let a response that passes every check schedule itself. That includes your brand rules, the quality gate and the fact check. Off keeps every response as a draft for review.",
+        "confirm": "Lets a response schedule itself without your review",
         "requiresResponses": "Turn on breakout responses first."
       },
       "brandVision": {
         "label": "Brand vision checks",
         "description": "Read your images and videos for required text, logos and products before they can be approved.",
+        "confirm": "Spends credits on every image and video check",
         "cost": "Costs about $0.005 per image, charged in credits."
       }
     },
     "organizationMcpApproval": {
       "title": "MCP approvals",
       "label": "Require approval for MCP requests",
-      "switchDescription": "On: image, video and other credit-spending MCP requests wait for approval. Off: members who also turn it off for themselves run them straight away. Credit checks and quotes still apply. Publishing, scheduling and other outbound actions always wait.",
+      "switchDescription": "On: image, video and other credit-spending MCP requests wait for approval. Off: members who also turn it off for themselves run them straight away. Credit checks and quotes still apply. Publishing and scheduling never wait here: your agent asks you to confirm in the conversation. Sending messages and replies always waits.",
       "risk": "Members who also turn this off for themselves can spend your organization's credits from an MCP client without anyone approving first.",
+      "confirm": "Changes whether members' credit-spending MCP requests wait for approval",
       "adminOnly": "Only owners and admins can change this setting.",
       "loading": "Loading settings…",
       "saving": "Saving…",
@@ -1832,6 +1861,7 @@
       "publishing": {
         "title": "Earned auto-publish",
         "enable": "Earn auto-publish per platform",
+        "confirm": "Lets this agent publish on a platform without your review once it earns it",
         "threshold": "Approvals to graduate",
         "progressTitle": "Platform progress",
         "choosePlatform": "Add a platform to this agent to track its progress.",
@@ -2312,7 +2342,6 @@
       "askConversation": "Ask Agent about this",
       "askMessage": "Ask Agent",
       "attachMessage": "Attach message to the agent",
-      "attached": "Attached",
       "removeMessage": "Remove message from the agent"
     },
     "actions": {
@@ -2349,8 +2378,6 @@
       "messagePage": "Messages page {page} of {pages}"
     },
     "replyComposer": {
-      "description": "Review every draft before it is sent or published.",
-      "title": "Reply composer",
       "ariaLabel": "Social reply or direct message",
       "placeholder": "Write a reply or DM"
     },
@@ -2367,6 +2394,7 @@
       "platform": "Platform",
       "platforms": {
         "all": "All platforms",
+        "facebook": "Facebook",
         "instagram": "Instagram",
         "linkedin": "LinkedIn",
         "tiktok": "TikTok",
@@ -2427,6 +2455,10 @@
     "loading": "Loading… {count} so far",
     "noPreview": "No preview",
     "videoBadge": "Video"
+  },
+  "videoRetention": {
+    "title": "Video expired",
+    "description": "Videos that were never posted are removed after {payg} days on pay-as-you-go and {subscriber} days on a subscription."
   },
   "libraryRetry": {
     "genericFailureReason": "Generation failed.",
@@ -2656,7 +2688,6 @@
       "sourceTabs": {
         "all": "All",
         "trends": "Public trends",
-        "owned": "My accounts",
         "imported": "Imported"
       }
     }

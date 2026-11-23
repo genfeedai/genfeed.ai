@@ -83,22 +83,6 @@ describe('toDeskItemFromTrend', () => {
     expect(result.matchedTrends).toEqual(['#AIAgents']);
   });
 
-  it('marks owned-brand-reference items as source "owned"', () => {
-    const result = toDeskItemFromTrend(
-      makeTrendItem({
-        sourceClassification: {
-          capturedAt: '2026-08-01T00:00:00.000Z',
-          confidence: 'high',
-          freshnessWindowDays: 30,
-          intendedUse: 'evergreen_prompt_context',
-          sourceKind: 'owned_brand_reference',
-        },
-      }),
-    );
-
-    expect(result.source).toBe('owned');
-  });
-
   it('opens the prefilled remix for a durable-reference item on a prefilled platform', () => {
     const result = toDeskItemFromTrend(
       makeTrendItem({
@@ -172,10 +156,9 @@ describe('toDeskItemFromSourcePost', () => {
     expect(result.matchedTrends).toEqual([]);
   });
 
-  it('labels a URL import as imported, not following or owned', () => {
+  it('labels a URL import as imported, not following', () => {
     const result = toDeskItemFromSourcePost(makeSourcePost(), {
       isImportedPost: true,
-      isOwnAccount: true,
     });
 
     expect(result.source).toBe('imported');
@@ -187,13 +170,18 @@ describe('toDeskItemFromSourcePost', () => {
     });
   });
 
-  it('sources own-account posts under "owned" so they read as imported, not generated', () => {
-    const result = toDeskItemFromSourcePost(makeSourcePost(), {
-      isOwnAccount: true,
-    });
+  it('carries the author avatar and name so the card can show who posted', () => {
+    const result = toDeskItemFromSourcePost(
+      makeSourcePost({
+        authorAvatarUrl: 'https://pbs.twimg.com/profile_images/1/a.jpg',
+        authorDisplayName: 'Builder',
+      }),
+    );
 
-    expect(result.source).toBe('owned');
-    expect(result.kind).toBe('source_post');
+    expect(result.authorAvatarUrl).toBe(
+      'https://pbs.twimg.com/profile_images/1/a.jpg',
+    );
+    expect(result.authorName).toBe('Builder');
   });
 
   it('opens the prefilled remix on a prefilled platform', () => {
@@ -314,6 +302,20 @@ describe('isObservedTrendContent', () => {
       ).toBe(true);
     },
   );
+  it("drops the brand's own posts: they are not signals", () => {
+    expect(
+      isObservedTrendContent(
+        makeTrendItem({
+          ...seed,
+          sourceClassification: {
+            ...classification,
+            sourceKind: 'owned_brand_reference' as const,
+          },
+        }),
+      ),
+    ).toBe(false);
+  });
+
   it.each([
     { sourceUrl: 'https://www.linkedin.com/posts/observed' },
     { sourceUrl: 'https://example.com/company/openai/' },
@@ -324,12 +326,6 @@ describe('isObservedTrendContent', () => {
       sourceClassification: {
         ...classification,
         confidence: 'medium' as const,
-      },
-    },
-    {
-      sourceClassification: {
-        ...classification,
-        sourceKind: 'owned_brand_reference' as const,
       },
     },
     {

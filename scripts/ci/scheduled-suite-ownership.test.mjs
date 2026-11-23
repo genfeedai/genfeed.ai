@@ -45,6 +45,7 @@ const SUITE_FAMILY_OWNERS = {
   'vulnerability-scan': { workflow: 'security-scan.yml', job: 'trivy-fs' },
   'dependency-audit': { workflow: 'dependency-review.yml', job: 'audit' },
   'flake-ledger': { workflow: 'flake-ledger.yml', job: 'ledger' },
+  'stale-branches': { workflow: 'stale-branches.yml', job: 'report' },
 };
 
 const LEARNING_SPECS = [

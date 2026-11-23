@@ -3,7 +3,7 @@
 import { useRouteParams } from '@genfeedai/hooks/navigation/use-route-params';
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
-import WorkspaceContentSkeleton from '@/components/shell/workspace-frame-skeleton/WorkspaceContentSkeleton';
+import WorkspacePagePending from '@/components/shell/workspace-frame-skeleton/WorkspacePagePending';
 import TwitterReplyBot from '@/features/workflows/components/bots/TwitterReplyBot';
 import { readRouteParam } from '@/lib/route-params';
 import TwitchChatBot from './TwitchChatBot';
@@ -26,7 +26,7 @@ export default function AutomationLibraryTypeRoute() {
   const type = readRouteParam(params.type);
 
   if (!type) {
-    return <WorkspaceContentSkeleton />;
+    return <WorkspacePagePending />;
   }
 
   if (!Object.hasOwn(TYPE_COMPONENTS, type)) {

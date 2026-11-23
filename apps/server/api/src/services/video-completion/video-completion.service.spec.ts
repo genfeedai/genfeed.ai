@@ -6,8 +6,10 @@ import { MetadataService } from '@api/collections/metadata/services/metadata.ser
 import { CacheService } from '@api/services/cache/cache.service';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
-import { VideoCompletionService } from '@api/services/video-completion/video-completion.service';
-import { VideoCompletionSubscriberService } from '@api/services/video-completion/video-completion-subscriber.service';
+import {
+  type VideoCompletionEvent,
+  VideoCompletionService,
+} from '@api/services/video-completion/video-completion.service';
 import { GenerationEventWebhookService } from '@api/services/webhook-client/generation-event-webhook.service';
 import { createIngredientDocumentFixture } from '@api-test/fixtures/ingredient-document.fixture';
 import { ingredientRowWorld } from '@api-test/fixtures/ingredient-row.world';
@@ -16,14 +18,11 @@ import { IngredientStatus, Status } from '@genfeedai/contracts';
 import { EDITOR_RENDERER_VERSION } from '@genfeedai/contracts/interfaces';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
-import { RedisService } from '@libs/redis/redis.service';
 import { ConflictException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 
 describe('VideoCompletionService', () => {
   let service: VideoCompletionService;
-  let subscriberService: VideoCompletionSubscriberService;
-  let redisService: vi.Mocked<RedisService>;
   let ingredientsService: vi.Mocked<IngredientsService>;
   let metadataService: vi.Mocked<MetadataService>;
   let editorProjectsService: {
@@ -65,10 +64,6 @@ describe('VideoCompletionService', () => {
   };
   let ingredientRow: Record<string, unknown>;
 
-  async function waitForAsyncHandler(): Promise<void> {
-    await new Promise<void>((resolve) => setTimeout(resolve, 0));
-  }
-
   beforeEach(async () => {
     ingredientRow = {
       ...ingredientIdentity,
@@ -109,7 +104,6 @@ describe('VideoCompletionService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         VideoCompletionService,
-        VideoCompletionSubscriberService,
         {
           provide: EditorProjectsService,
           useValue: editorProjectsService,
@@ -121,13 +115,6 @@ describe('VideoCompletionService', () => {
         {
           provide: GenerationEventWebhookService,
           useValue: generationEventWebhookService,
-        },
-        {
-          provide: RedisService,
-          useValue: {
-            publish: vi.fn(),
-            subscribe: vi.fn(),
-          },
         },
         {
           provide: IngredientsService,
@@ -169,10 +156,6 @@ describe('VideoCompletionService', () => {
     }).compile();
 
     service = module.get<VideoCompletionService>(VideoCompletionService);
-    subscriberService = module.get<VideoCompletionSubscriberService>(
-      VideoCompletionSubscriberService,
-    );
-    redisService = module.get(RedisService);
     ingredientsService = module.get(IngredientsService);
     metadataService = module.get(MetadataService);
 
@@ -181,42 +164,6 @@ describe('VideoCompletionService', () => {
 
   it('should be defined', () => {
     expect(service).toBeDefined();
-  });
-
-  describe('completion subscription', () => {
-    it('should subscribe to video completion channel', async () => {
-      await subscriberService.onModuleInit();
-
-      expect(redisService.subscribe).toHaveBeenCalledWith(
-        'video-processing-complete',
-        expect.any(Function),
-      );
-    });
-
-    it.each([
-      null,
-      {},
-      {
-        ingredientId: mockIngredientId,
-        organizationId: mockOrganizationId,
-        status: 'pending',
-        timestamp: new Date().toISOString(),
-      },
-      {
-        ingredientId: mockIngredientId,
-        status: Status.COMPLETED,
-        timestamp: new Date().toISOString(),
-      },
-    ])('ignores an invalid completion payload: %j', async (payload) => {
-      const handleVideoCompletion = vi.spyOn(service, 'handleVideoCompletion');
-      await subscriberService.onModuleInit();
-      const subscribeCallback = (redisService.subscribe as vi.Mock).mock
-        .calls[0][1];
-
-      await subscribeCallback(payload);
-
-      expect(handleVideoCompletion).not.toHaveBeenCalled();
-    });
   });
 
   describe('handleVideoCompletion', () => {
@@ -241,15 +188,12 @@ describe('VideoCompletionService', () => {
         width: 1920,
       };
 
-      await subscriberService.onModuleInit();
-      const subscribeCallback = (redisService.subscribe as vi.Mock).mock
-        .calls[0][1];
-      await subscribeCallback({
+      await service.handleVideoCompletion({
         editorRender,
         ingredientId: mockIngredientId,
         organizationId: mockOrganizationId,
         result: output,
-        status: 'completed',
+        status: Status.COMPLETED,
         timestamp: new Date().toISOString(),
       });
 
@@ -269,7 +213,7 @@ describe('VideoCompletionService', () => {
       expect(notificationsPublisher.publishVideoComplete).toHaveBeenCalled();
     });
 
-    it('marks a late output failed when cancellation wins the project CAS', async () => {
+    it('marks a late output failed when cancellation wins the project CAS, and reports the lost race', async () => {
       const editorRender = {
         userId: 'auth-user',
         ingredientId: mockIngredientId,
@@ -282,27 +226,26 @@ describe('VideoCompletionService', () => {
         new ConflictException('Render job no longer owns this project'),
       );
 
-      await subscriberService.onModuleInit();
-      const subscribeCallback = (redisService.subscribe as vi.Mock).mock
-        .calls[0][1];
-      await subscribeCallback({
-        editorRender,
-        ingredientId: mockIngredientId,
-        organizationId: mockOrganizationId,
-        result: {
-          durationFrames: 300,
-          durationSeconds: 10,
-          fps: 30,
-          height: 1080,
-          rendererVersion: EDITOR_RENDERER_VERSION,
-          s3Key: 'videos/output.mp4',
-          size: 4096,
-          url: 'https://cdn.example.com/videos/output.mp4',
-          width: 1920,
-        },
-        status: 'completed',
-        timestamp: new Date().toISOString(),
-      });
+      await expect(
+        service.handleVideoCompletion({
+          editorRender,
+          ingredientId: mockIngredientId,
+          organizationId: mockOrganizationId,
+          result: {
+            durationFrames: 300,
+            durationSeconds: 10,
+            fps: 30,
+            height: 1080,
+            rendererVersion: EDITOR_RENDERER_VERSION,
+            s3Key: 'videos/output.mp4',
+            size: 4096,
+            url: 'https://cdn.example.com/videos/output.mp4',
+            width: 1920,
+          },
+          status: Status.COMPLETED,
+          timestamp: new Date().toISOString(),
+        }),
+      ).rejects.toBeInstanceOf(ConflictException);
 
       expect(ingredientsService.patch).toHaveBeenLastCalledWith(
         mockIngredientId,
@@ -313,7 +256,7 @@ describe('VideoCompletionService', () => {
       ).not.toHaveBeenCalled();
     });
 
-    it('keeps generated output retryable when completion persistence fails transiently', async () => {
+    it('rejects when completion persistence fails transiently, so the queue retries without failing the output', async () => {
       const editorRender = {
         userId: 'auth-user',
         ingredientId: mockIngredientId,
@@ -326,27 +269,26 @@ describe('VideoCompletionService', () => {
         new Error('database unavailable'),
       );
 
-      await subscriberService.onModuleInit();
-      const subscribeCallback = (redisService.subscribe as vi.Mock).mock
-        .calls[0][1];
-      await subscribeCallback({
-        editorRender,
-        ingredientId: mockIngredientId,
-        organizationId: mockOrganizationId,
-        result: {
-          durationFrames: 300,
-          durationSeconds: 10,
-          fps: 30,
-          height: 1080,
-          rendererVersion: EDITOR_RENDERER_VERSION,
-          s3Key: 'videos/output.mp4',
-          size: 4096,
-          url: 'https://cdn.example.com/videos/output.mp4',
-          width: 1920,
-        },
-        status: 'completed',
-        timestamp: new Date().toISOString(),
-      });
+      await expect(
+        service.handleVideoCompletion({
+          editorRender,
+          ingredientId: mockIngredientId,
+          organizationId: mockOrganizationId,
+          result: {
+            durationFrames: 300,
+            durationSeconds: 10,
+            fps: 30,
+            height: 1080,
+            rendererVersion: EDITOR_RENDERER_VERSION,
+            s3Key: 'videos/output.mp4',
+            size: 4096,
+            url: 'https://cdn.example.com/videos/output.mp4',
+            width: 1920,
+          },
+          status: Status.COMPLETED,
+          timestamp: new Date().toISOString(),
+        }),
+      ).rejects.toThrow('database unavailable');
 
       expect(ingredientsService.patch).not.toHaveBeenCalledWith(
         mockIngredientId,
@@ -357,46 +299,44 @@ describe('VideoCompletionService', () => {
       ).not.toHaveBeenCalled();
     });
 
-    it('does not duplicate terminal side effects after another writer wins', async () => {
+    it('does not duplicate terminal side effects after another writer wins, and reports the lost race', async () => {
       editorProjectsService.markAsFailed.mockRejectedValueOnce(
         new ConflictException('Render job no longer owns this project'),
       );
 
-      await subscriberService.onModuleInit();
-      const subscribeCallback = (redisService.subscribe as vi.Mock).mock
-        .calls[0][1];
-      await subscribeCallback({
-        editorRender: {
-          userId: 'auth-user',
+      await expect(
+        service.handleVideoCompletion({
+          editorRender: {
+            userId: 'auth-user',
+            ingredientId: mockIngredientId,
+            jobId: 'job-123',
+            metadataId: 'metadata-123',
+            projectId: 'project-123',
+            room: 'user-auth-user',
+          },
           ingredientId: mockIngredientId,
-          jobId: 'job-123',
-          metadataId: 'metadata-123',
-          projectId: 'project-123',
-          room: 'user-auth-user',
-        },
-        ingredientId: mockIngredientId,
-        organizationId: mockOrganizationId,
-        status: 'failed',
-        terminalReason: 'renderer_failed',
-        timestamp: new Date().toISOString(),
-      });
+          organizationId: mockOrganizationId,
+          status: Status.FAILED,
+          terminalReason: 'renderer_failed',
+          timestamp: new Date().toISOString(),
+        }),
+      ).rejects.toBeInstanceOf(ConflictException);
 
       expect(ingredientsService.patch).not.toHaveBeenCalled();
       expect(notificationsPublisher.publishMediaFailed).not.toHaveBeenCalled();
     });
 
-    async function deliver(event: Record<string, unknown>): Promise<void> {
-      await subscriberService.onModuleInit();
-      const subscribeCallback = (redisService.subscribe as vi.Mock).mock
-        .calls[0][1];
-      await subscribeCallback({
+    async function deliver(
+      event: Pick<VideoCompletionEvent, 'status'> &
+        Partial<VideoCompletionEvent>,
+    ): Promise<void> {
+      await service.handleVideoCompletion({
         ingredientId: mockIngredientId.toString(),
         organizationId: mockOrganizationId.toString(),
         timestamp: new Date().toISOString(),
         userId: mockUserId.toString(),
         ...event,
       });
-      await waitForAsyncHandler();
     }
 
     const s3Key = 'ingredients/videos/resized.mp4';
@@ -440,7 +380,7 @@ describe('VideoCompletionService', () => {
       async (_label, before, after, isCompletionReported) => {
         Object.assign(ingredientRow, before);
 
-        await deliver({ result: { s3Key }, status: 'completed' });
+        await deliver({ result: { s3Key }, status: Status.COMPLETED });
 
         expect(ingredientRow).toEqual({ ...ingredientIdentity, ...after });
         expect(
@@ -480,7 +420,7 @@ describe('VideoCompletionService', () => {
       async (_label, before, after, failureReports) => {
         ingredientRow.status = before;
 
-        await deliver({ error: 'Invalid format', status: 'failed' });
+        await deliver({ error: 'Invalid format', status: Status.FAILED });
 
         expect(ingredientRow.status).toBe(after);
         expect(
@@ -490,7 +430,7 @@ describe('VideoCompletionService', () => {
     );
 
     it('reports the failure reason for a failed resize', async () => {
-      await deliver({ error: 'Invalid format', status: 'failed' });
+      await deliver({ error: 'Invalid format', status: Status.FAILED });
 
       expect(
         generationEventWebhookService.emitGenerationFailed,
@@ -503,7 +443,7 @@ describe('VideoCompletionService', () => {
     });
 
     it('marks a completed resize generated without an output key', async () => {
-      await deliver({ status: 'completed' });
+      await deliver({ status: Status.COMPLETED });
 
       expect(ingredientRow).toEqual({
         ...ingredientIdentity,
@@ -534,7 +474,7 @@ describe('VideoCompletionService', () => {
           }),
         );
 
-        await deliver({ result, status: 'completed' });
+        await deliver({ result, status: Status.COMPLETED });
 
         expect(metadataService.patch).toHaveBeenCalledWith(
           mockMetadataId,
@@ -544,22 +484,24 @@ describe('VideoCompletionService', () => {
     );
 
     it('does not persist metadata when the result carries none', async () => {
-      await deliver({ result: { s3Key }, status: 'completed' });
+      await deliver({ result: { s3Key }, status: Status.COMPLETED });
 
       expect(metadataService.patch).not.toHaveBeenCalled();
     });
 
-    it('swallows a failed ingredient write', async () => {
+    it('rejects a failed ingredient write so the queue retries it', async () => {
       ingredientsService.patchAll.mockRejectedValue(
         new Error('Database update failed'),
       );
 
-      await expect(deliver({ status: 'completed' })).resolves.toBeUndefined();
+      await expect(deliver({ status: Status.COMPLETED })).rejects.toThrow(
+        'Database update failed',
+      );
       expect(ingredientRow.status).toBe(IngredientStatus.PROCESSING);
     });
   });
 
-  it('reconciles a completed editor render after a missed Redis event', async () => {
+  it('reconciles a completed editor render after a missed completion event', async () => {
     const editorRender = {
       ingredientId: mockIngredientId,
       jobId: 'job-123',
@@ -604,21 +546,18 @@ describe('VideoCompletionService', () => {
 
   it('routes raw-cut events without treating clip results as ingredients', async () => {
     rawCutClipCompletionService.handleCompletion.mockResolvedValue(true);
-    await subscriberService.onModuleInit();
-    const subscribeCallback = (redisService.subscribe as vi.Mock).mock
-      .calls[0][1];
-    const event = {
+    const event: VideoCompletionEvent = {
       ingredientId: 'clipper-result-1',
       organizationId: mockOrganizationId,
       result: {
         jobId: 'raw-cut-trim-clipper-result-1',
         jobType: 'clip-trim',
       },
-      status: 'completed',
+      status: Status.COMPLETED,
       timestamp: new Date().toISOString(),
     };
 
-    await subscribeCallback(event);
+    await service.handleVideoCompletion(event);
 
     expect(rawCutClipCompletionService.handleCompletion).toHaveBeenCalledWith(
       event,
@@ -629,10 +568,7 @@ describe('VideoCompletionService', () => {
   it('never falls through raw-cut events to ingredient persistence', async () => {
     rawCutClipCompletionService.handleCompletion.mockResolvedValue(false);
 
-    await subscriberService.onModuleInit();
-    const subscribeCallback = (redisService.subscribe as vi.Mock).mock
-      .calls[0][1];
-    await subscribeCallback({
+    await service.handleVideoCompletion({
       ingredientId: 'clipper-result-1',
       organizationId: mockOrganizationId.toString(),
       result: {

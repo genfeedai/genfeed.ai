@@ -16,6 +16,7 @@ import {
   TikTokPublishStatus,
   WorkflowExecutionTrigger,
 } from '@genfeedai/contracts';
+import { tikTokAppliedVisibility } from '@genfeedai/contracts/api-types/contracts/tiktok-publishing.contract';
 import type { IChannelTargetError } from '@genfeedai/contracts/interfaces';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -402,7 +403,7 @@ export class CronTiktokStatusService implements OnModuleInit {
       provenance,
     );
     if (transitioned) {
-      void this.publishEventWebhookService.emitPostPublished({
+      await this.publishEventWebhookService.emitPostPublished({
         externalProviderId: postId,
         occurredAt: now,
         platform: CredentialPlatform.TIKTOK,
@@ -410,6 +411,11 @@ export class CronTiktokStatusService implements OnModuleInit {
         url: postUrl,
       });
     }
+
+    // Keep notification delivery independent of retryable activity and recurrence work.
+    await this.scheduledPostWorkflowService.processPendingPublishedFinalization(
+      post,
+    );
 
     this.logger.log(`${url} post ${post.id} verified and published`, {
       postId,
@@ -514,7 +520,7 @@ export class CronTiktokStatusService implements OnModuleInit {
     transitionInput: Record<string, unknown>,
     provenance: SystemWorkflowProvenance,
   ): Promise<boolean> {
-    const transitioned = await this.persistStatusTransition(
+    return this.persistStatusTransition(
       {
         detail,
         organizationId: post.organizationId,
@@ -526,14 +532,6 @@ export class CronTiktokStatusService implements OnModuleInit {
       provenance,
       post,
     );
-
-    if (outcome === 'published') {
-      await this.scheduledPostWorkflowService.processPendingPublishedFinalization(
-        post,
-      );
-    }
-
-    return transitioned;
   }
 
   private async executeStatusReconciliation(
@@ -643,7 +641,10 @@ export class CronTiktokStatusService implements OnModuleInit {
             publicationDate: publishedAt,
             publishedAt,
             url: String(input.postUrl ?? ''),
-            visibility: post.visibility ?? PostVisibility.PUBLIC,
+            visibility:
+              tikTokAppliedVisibility(post.targetSettings) ??
+              post.visibility ??
+              PostVisibility.PUBLIC,
             workflowExecutionId: provenance.executionId,
           }
         : {

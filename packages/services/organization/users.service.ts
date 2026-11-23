@@ -10,6 +10,7 @@ import type {
   ISetting,
   ISignupAttribution,
   IUser,
+  IUserSignupNetwork,
   ProductEmailTopic,
 } from '@genfeedai/contracts/interfaces';
 import type { IHttpRequestOptions } from '@genfeedai/contracts/interfaces/utils/http-request-options.interface';
@@ -32,6 +33,17 @@ export class UsersService extends BaseService<User> {
 
   public static getInstance(token: string): UsersService {
     return BaseService.getDataServiceInstance(UsersService, token);
+  }
+
+  public async findSignupNetwork(
+    userId: string,
+    signal: AbortSignal,
+  ): Promise<IUserSignupNetwork> {
+    const response = await this.instance.get<JsonApiResponseDocument>(
+      `${encodeURIComponent(userId)}/signup-network`,
+      { signal },
+    );
+    return this.extractResource<IUserSignupNetwork>(response.data);
   }
 
   private async findMeBrandsPage(

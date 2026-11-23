@@ -86,7 +86,7 @@ async function resolveBrandId(
   const brands = await deps.listBrands();
   if (!brands) {
     throw new Error(
-      'Your brands could not be loaded. Retry, or read genfeed://brands/context?brandId=<id> with an id from get_brands.',
+      'Your brands could not be loaded. Retry, or read genfeed://brands/context?brandId=<id> with an id from get_context(action=brands).',
     );
   }
   if (brands.length === 0) {

@@ -14,8 +14,10 @@ vi.mock(
 
 describe('WorkflowExecutionRunnerService.resumeAfterDelay — never strands a running execution (#4307)', () => {
   const prisma = {
+    $transaction: vi.fn(),
     member: { findFirst: vi.fn() },
     workflow: { update: vi.fn() },
+    workflowExecution: { count: vi.fn() },
   };
   const logger = {
     debug: vi.fn(),
@@ -72,6 +74,10 @@ describe('WorkflowExecutionRunnerService.resumeAfterDelay — never strands a ru
 
   beforeEach(() => {
     vi.clearAllMocks();
+    prisma.$transaction.mockImplementation(
+      async (work: (tx: typeof prisma) => Promise<unknown>) => work(prisma),
+    );
+    prisma.workflowExecution.count.mockResolvedValue(0);
     prisma.member.findFirst.mockResolvedValue({ id: 'member-1' });
     executionsService.findOne.mockResolvedValue({
       startedAt: new Date('2026-01-01T00:00:00.000Z'),

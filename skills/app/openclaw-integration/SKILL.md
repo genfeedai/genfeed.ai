@@ -62,35 +62,26 @@ Authorization: Bearer gf_live_xxx
 ## Available Tools
 
 Use `find_tools` to inspect this connection's available tools and full input schemas.
-Call `get_account` and `get_brands` to verify access without generating or publishing.
+Call `get_context` with `action` set to `account`, then `brands`, to verify access without generating or publishing.
 Resolve a brand before generation; never invent an identifier or select the first brand implicitly.
 
 | Tool | Description | Required Params | Optional Params |
 |------|-------------|-----------------|-----------------|
 | `find_tools` | Discover capabilities or inspect one schema | | `query`, `name`, `toolset` |
-| `get_account` | Read profile, credits, and usage | | `include` |
-| `get_brands` | List brands or read one | | `brand` |
-| `get_generation_options` | List models, settings, and credit estimates | | `type`, `modelKey`, `brandId` |
-| `generate` | Generate image, video, voice, or music | `type`, `prompt`, `brandId` | Type-specific settings from discovery |
-| `get_job_status` | Read a generation's progress and result | `jobId` | |
+| `get_context` | Read the account (profile, credits, usage), brands, organizations and brand context | `action` (`account`, `brands`, `organizations`, `brand_context`, `brand_completeness` or `brand_scan_status`) | `input` holds the original parameters, such as `include` or `brand` |
+| `get_generation_catalog` | List models, settings and credit estimates, presets and the visual-code catalog | `action` (`options`, `presets`, `preset`, `storyboard_capabilities`, `visual_code_catalog` or `visual_code_quote`) | `input` holds the original parameters, such as `type`, `modelKey` and `brandId` for `options` |
+| `generate_media` | Generate image, video, voice, or music, or transform media | `action` (`media` or `transform`) | `input` holds the original parameters, such as `type`, `prompt` and `brandId` for `media` |
+| `check_job` | Read the progress and result of a generation, 3D model, visual project or workflow run | `action` (`job`, `model3d`, `visual_code_project`, `workflow_run` or `workflow_status`) | `input` holds the original parameters, such as `jobId` for `job` |
 | `get_assets` | List media or characters | `type` | `brandId`, `limit`, `offset`, `origin` |
-| `generate_content` | Generate article drafts or social copy | `topic`, `type`, `brandId` | `tone`, `length`, `platform`, `keywords` |
-| `get_articles` | Search articles or retrieve one | `query` or `articleId` | `category`, `limit` (search only) |
-| `get_trends` | Find current topic ideas | | `category`, `timeframe` |
-| `get_video_analytics` | Read video performance | `videoId` | `timeRange` |
-| `get_content_analytics` | Read content performance | `contentId`, `contentType` | `timeRange` |
-| `create_post` | Save a text draft | | Discover the accepted draft fields |
-| `get_posts` | Read posts or the calendar | | `postId`, `executionState`, `limit`, `days` |
-| `get_brand_publishing_readiness` | Read connected channels and credentials | `brandId` | |
-| `check_channel` | Read constraints or validate a proposed target | `action` (`capabilities` or `validate`) | `input` contains original channel parameters; `input.platform` is required for validate |
-| `create_scheduled_release` | Create a draft or scheduled release | `release` with title, baseContent, timezone, targets | `idempotencyKey` |
-| `get_scheduled_release` | Inspect release state | `releaseId` | |
-| `control_scheduled_release` | Pause, resume, cancel, or publish now | `releaseId`, `action` | |
-| `create_workflow` | Create an automation workflow | `label` | Discover current workflow fields |
-| `execute_workflow` | Run a saved workflow | `workflowId` | `variables`, `nodeIds`, `respectLocks` |
-| `get_workflow_status` | Read saved workflow status | `workflowId` | |
-| `get_workflows` | List saved workflows | | `status`, `limit` |
-| `get_workflow_templates` | List available templates | | |
+| `generate_text` | Generate article drafts or social copy | `action` (`content`) | `input` holds the original parameters, such as `topic`, `type`, `brandId`, `tone`, `length`, `platform` and `keywords` |
+| `get_insights` | Read trends, content and video performance, LinkedIn analytics and performance analysis | `action` (`overview`, `content`, `video`, `linkedin`, `performance` or `trends`) | `input` holds the original parameters, such as `videoId` and `timeRange` |
+| `save_post` | Save a text draft, an article draft or a campaign, or link a tracked post | `action` (`post`, `article`, `campaign` or `track_link`) | `input` holds the original parameters; discover the accepted draft fields |
+| `get_content` | Read posts and the calendar, scheduled releases, articles and article previews | `action` (`posts`, `release`, `articles` or `article_preview`) | `input` holds the original parameters, such as `postId`, `executionState`, `limit`, `days`, `releaseId`, `articleId` or `query` |
+| `check_channel` | Read channel constraints, validate a proposed target, read a brand's connected channels and their health, or check an account connection | `action` (`capabilities`, `validate`, `readiness`, `connection_status` or `linkedin_connection`) | `input` contains original channel parameters; `input.platform` is required for validate and `input.brandId` for readiness |
+| `schedule_release` | Create or update a draft or scheduled release | `action` (`create` or `update`) | `input` holds `release` with title, baseContent, timezone and targets, and `idempotencyKey` |
+| `control_release` | Pause, resume, cancel or publish a release now, or publish an article | `action` (`control` or `publish`) | `input` holds `releaseId` and its own `action` |
+| `manage_workflow` | Create, duplicate, install, schedule or run a workflow, or build an ad or Instagram remix workflow | `action` (`create`, `duplicate`, `install`, `schedule`, `execute`, `create_ad_remix` or `create_instagram_remix`) | `input` holds the original parameters, such as `label`, `workflowId`, `variables`, `nodeIds` and `respectLocks`; `execute` spends credits |
+| `find_workflows` | List saved workflows, templates, the system catalog, runs and one workflow | `action` (`list`, `templates`, `catalog`, `runs` or `inspect`) | `input` holds the original parameters, such as `status` and `limit` |
 
 Tool text is readable display content. Use `structuredContent.data` for identifiers
 and follow-up inputs. Errors and pending approvals keep their code and references
@@ -108,24 +99,24 @@ its documented commands. CLI commands and MCP tool names are separate interfaces
 1. Read the account and brands; ask the user to select a brand when needed.
 2. Read generation options for the requested type and resolve a supported model.
 3. Obtain an estimate with the chosen model and settings, and confirm the intended spend.
-4. Call `generate` with `type: "image"` or `type: "video"`, the prompt, and resolved `brandId`.
+4. Call `generate_media` with `action` set to `media` and `input` holding `type: "image"` or `type: "video"`, the prompt, and resolved `brandId`.
 5. If approval is pending, show the review link and wait for the user's decision.
-6. After execution, use the returned job identifier with `get_job_status`; render the returned media.
+6. After execution, use the returned job identifier with `check_job` (`action` set to `job`); render the returned media.
 
 ### Content Pipeline
 
-1. Call `get_trends` for topic evidence when available.
-2. Draft reviewed copy with `generate_content`, using the resolved brand and requested content type.
+1. Call `get_insights` with `action` set to `trends` for topic evidence when available.
+2. Draft reviewed copy with `generate_text` (`action` set to `content`), using the resolved brand and requested content type.
 3. Generate a supporting visual only when the user requested and approved that generation.
 4. Save a draft or continue through the publishing workflow after explicit confirmation.
 
 ### Publish to Social
 
-1. Resolve the brand and connected credential with `get_brands` and `get_brand_publishing_readiness`.
+1. Resolve the brand and connected credential with `get_context` (`action: brands`) and `check_channel` (`action: readiness`).
 2. Call `check_channel` with `action: capabilities`, then `action: validate` with the exact platform, caption, media, and channel settings in `input`.
 3. Confirm the exact content, destination, and time with the user.
-4. Call `create_scheduled_release` with a release containing `title`, `baseContent`, `timezone`, and `targets` with the verified `credentialId` and `platform`.
-5. Inspect its state with `get_scheduled_release`. For a confirmed immediate publication, use `control_scheduled_release` with `action: "publish-now"`.
+4. Call `schedule_release` with `action: create` and, in `input`, a release containing `title`, `baseContent`, `timezone`, and `targets` with the verified `credentialId` and `platform`.
+5. Inspect its state with `get_content` (`action: release`). For a confirmed immediate publication, use `control_release` with `action: control` and `input.action: "publish-now"`.
 6. If approval is pending, show its review link and wait. Never claim a queued approval published anything.
 
 ## Error Handling
@@ -141,7 +132,7 @@ its documented commands. CLI commands and MCP tool names are separate interfaces
 }
 ```
 
-**Resolution:** Check balance with `get_account` with `include: ["credits"]`, then top up at [app.genfeed.ai/settings/billing](https://app.genfeed.ai/settings/billing).
+**Resolution:** Check balance with `get_context` with `action: "account"` and `input: { include: ["credits"] }`, then top up at [app.genfeed.ai/settings/billing](https://app.genfeed.ai/settings/billing).
 
 ### Rate Limits
 
@@ -184,6 +175,6 @@ When helping users connect to Genfeed:
 
 1. **Check their MCP client** -- Ensure it supports Streamable HTTP transport
 2. **Provide the config** -- Give them the JSON config block with their API key placeholder
-3. **Verify connection** -- Suggest calling `get_account` as a read-only connection check
+3. **Verify connection** -- Suggest calling `get_context` with `action` set to `account` as a read-only connection check
 4. **Guide tool usage** -- Start with read-only discovery and a requested image generation before complex workflows
 5. **Handle errors** -- Reference the error handling section for common issues

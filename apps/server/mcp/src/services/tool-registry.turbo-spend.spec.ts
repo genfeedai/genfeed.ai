@@ -1,5 +1,6 @@
 import { LoggerService } from '@libs/logger/logger.service';
 import { ClientService } from '@mcp/services/client.service';
+import { withMergedToolCalls } from '@mcp/services/tool-registry.endpoints.testing';
 import { ToolRegistryService } from '@mcp/services/tool-registry.service';
 
 /**
@@ -22,10 +23,12 @@ function build() {
     log: vi.fn(),
     warn: vi.fn(),
   };
-  const registry = new ToolRegistryService(
-    client as unknown as ClientService,
-    logger as unknown as LoggerService,
-    'user',
+  const registry = withMergedToolCalls(
+    new ToolRegistryService(
+      client as unknown as ClientService,
+      logger as unknown as LoggerService,
+      'user',
+    ),
   );
   return { client, registry };
 }
@@ -98,9 +101,10 @@ describe('generate_turbo_content spend confirmation (#7180)', () => {
     const { registry } = build();
     const tool = registry
       .getAllTools()
-      .find((candidate) => candidate.name === 'generate_turbo_content');
+      .find((candidate) => candidate.name === 'generate_text');
 
-    expect(tool?.description).toMatch(/requires approval/i);
-    expect(tool?.description).toMatch(/estimate/i);
+    // The merged tool says what each action does, so the confirmation is named before the first call.
+    expect(tool?.description).toMatch(/turbo runs a batch and needs approval/i);
+    expect(tool?.description).toMatch(/Variable cost: 0–\d+ credits per call/);
   });
 });

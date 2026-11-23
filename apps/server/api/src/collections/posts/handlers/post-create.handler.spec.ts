@@ -56,9 +56,6 @@ describe('createPost draft boundary', () => {
     quotaChecks = [];
 
     dependencies = {
-      accountHealthService: {
-        evaluateScheduledPublishGate: async () => undefined,
-      },
       activityRecorder: {
         record: async (activity: Row) => {
           activities.push(activity);

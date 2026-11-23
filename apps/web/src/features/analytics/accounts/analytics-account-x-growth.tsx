@@ -13,7 +13,7 @@ import { AnalyticsService } from '@services/analytics/analytics.service';
 import { logger } from '@services/core/logger.service';
 import Card from '@ui/card/Card';
 import Table from '@ui/display/table/Table';
-import LoadingState from '@ui/feedback/LoadingState';
+import Loading from '@ui/loading/default/Loading';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
 
@@ -150,7 +150,7 @@ export default function AnalyticsAccountXGrowth({
   );
 
   if (isLoading) {
-    return <LoadingState />;
+    return <Loading isFullSize={false} />;
   }
 
   if (isFailed || !report) {

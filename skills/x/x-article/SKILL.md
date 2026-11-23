@@ -105,8 +105,8 @@ Sources and gaps: [list of claims that need a source]
 
 If Genfeed tools are available:
 
-- Genfeed Cloud has an X Article category. Use `get_articles` to read existing articles for tone and to avoid repeating topics.
-- `create_post` saves the promo post as a draft with `platforms: ["twitter"]`. It does not publish.
+- Genfeed Cloud has an X Article category. Use `get_content` with `action` set to `articles` to read existing articles for tone and to avoid repeating topics.
+- `save_post` (`action: post`) saves the promo post as a draft with `platforms: ["twitter"]`. It does not publish.
 - Publishing goes through `social-poster`, only on explicit confirmation.
 - Run `content-reviewer` before handoff.
 

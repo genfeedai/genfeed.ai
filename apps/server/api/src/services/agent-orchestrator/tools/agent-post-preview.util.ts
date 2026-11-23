@@ -1,5 +1,9 @@
+import type { PostDocument } from '@api/collections/posts/post.schema';
+import { readPostGenerationReceipts } from '@api/collections/posts/services/post-generation-receipts.read';
 import { orderedPostIngredientLinks } from '@api/collections/posts/services/post-ingredient-links.util';
 import type { PopulateOption } from '@genfeedai/contracts/interfaces';
+import { serializeAgentPost } from '@genfeedai/serializers';
+import { traced } from '@libs/tracing/traced';
 
 const INGREDIENT_FIELDS = [
   'id',
@@ -52,3 +56,19 @@ export function agentPostPreviewPopulate(
     },
   ];
 }
+
+export const serializeAgentPostPreviews = traced(
+  'serializeAgentPostPreviews',
+  async (
+    prisma: Parameters<typeof readPostGenerationReceipts>[0],
+    organizationId: string,
+    posts: PostDocument[],
+  ) => {
+    const receipts = await readPostGenerationReceipts(
+      prisma,
+      organizationId,
+      posts,
+    );
+    return posts.map((post) => serializeAgentPost(post, receipts.get(post.id)));
+  },
+);

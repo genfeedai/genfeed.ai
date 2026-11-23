@@ -1,8 +1,8 @@
 'use client';
 
 import type { BrandDetailSocialConnection } from '@props/pages/brand-detail.props';
-import { Avatar } from '@ui/primitives/avatar';
-import { getConnectionLabel } from '../account-connection-status.util';
+import ConnectedAccountAvatar from '@ui/display/connected-account/ConnectedAccountAvatar';
+import { toConnectionAccount } from '../account-connection-status.util';
 
 const MAX_VISIBLE = 3;
 
@@ -24,12 +24,11 @@ export default function ConnectedAvatars({
   return (
     <span className="flex shrink-0 items-center -space-x-1.5">
       {visible.map((connection) => (
-        <Avatar
+        <ConnectedAccountAvatar
+          account={toConnectionAccount(connection)}
+          hasBadge={false}
           key={connection.credentialId}
-          name={getConnectionLabel(connection)}
-          referrerPolicy="no-referrer"
           size="sm"
-          src={connection.avatarUrl}
         />
       ))}
       {overflow > 0 ? (

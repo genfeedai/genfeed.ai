@@ -2,22 +2,9 @@ import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type {
   SkeletonCardProps,
   SkeletonListProps,
-  SkeletonProps,
   SkeletonTableProps,
 } from '@genfeedai/props/ui/feedback/skeleton.props';
-import {
-  formatDimension,
-  Skeleton as ShadcnSkeleton,
-} from '@ui/primitives/skeleton';
-
-type SkeletonVariant = 'circular' | 'rectangular' | 'rounded' | 'text';
-
-const VARIANT_CLASSES: Record<SkeletonVariant, string> = {
-  circular: 'rounded-full',
-  rectangular: '',
-  rounded: '',
-  text: 'rounded',
-};
+import { Skeleton } from '@ui/primitives/skeleton';
 
 interface SkeletonRenderItem {
   id: string;
@@ -47,30 +34,8 @@ function SkeletonListItem({ id }: SkeletonRenderItem): React.ReactNode {
   );
 }
 
-/**
- * Enhanced Skeleton component with variant support
- * Uses shadcn Skeleton as base
- */
-export function Skeleton({
-  className,
-  variant = 'rectangular',
-  width,
-  height,
-}: SkeletonProps): React.ReactElement {
-  const style = {
-    height: formatDimension(height),
-    width: formatDimension(width),
-  };
-
-  return (
-    <ShadcnSkeleton
-      className={cn(VARIANT_CLASSES[variant as SkeletonVariant], className)}
-      style={style}
-    />
-  );
-}
-
-// Composite skeleton components for common patterns
+// Placeholder layouts built from the `Skeleton` primitive. The primitive is the
+// only component named Skeleton; these are the card, list and table silhouettes.
 export function SkeletonCard({
   className,
   label = 'Loading card',
@@ -92,7 +57,7 @@ export function SkeletonCard({
     Math.max(0, sections - 1) * 12;
 
   return (
-    <ShadcnSkeleton
+    <Skeleton
       aria-label={label}
       className={cn('block w-full rounded-card', className)}
       data-testid={dataTestId}

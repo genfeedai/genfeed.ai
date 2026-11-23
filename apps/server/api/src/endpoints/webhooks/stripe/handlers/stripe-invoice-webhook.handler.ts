@@ -105,7 +105,6 @@ export class StripeInvoiceWebhookHandler {
         stripeSubscriptionId: identity.stripeSubscriptionId,
       });
 
-      // Sync subscription state to DB
       await this.subscriptionsService.syncSubscriptionState(
         updatedSubscription,
       );

@@ -12,6 +12,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 const SURFACES = [
   [Platform.YOUTUBE, SocialConversationType.COMMENT],
+  [Platform.FACEBOOK, SocialConversationType.COMMENT],
   [Platform.INSTAGRAM, SocialConversationType.COMMENT],
   [Platform.INSTAGRAM, SocialConversationType.DM],
   [Platform.TWITTER, SocialConversationType.COMMENT],
@@ -47,6 +48,7 @@ function createService(realtime?: {
     queueSystemWorkflow: vi.fn().mockResolvedValue('job-1'),
   };
   const socialInboxService = {
+    ingestFacebookInbox: vi.fn(),
     ingestInstagramComments: vi.fn(),
     ingestInstagramDms: vi.fn(),
     ingestLinkedInComments: vi.fn(),

@@ -124,6 +124,7 @@ function publicPublishedWhere(brandId: string): PrismaWhereQuery {
     ],
     brandId,
     isDeleted: false,
+    isHiddenFromProfile: false,
     parentId: null,
   };
 }
@@ -144,7 +145,6 @@ export class PublicPostsController {
   @Get()
   @Cache({
     keyGenerator: (req) => `public:posts:${JSON.stringify(req.query)}`,
-    isInvalidationGuarded: true,
     tags: ['posts', 'public', CACHE_TAGS.PUBLIC_BRAND_CONTENT],
     ttl: 600, // 10 minutes
   })
@@ -170,6 +170,7 @@ export class PublicPostsController {
         postVisibilityReadFilter(PostVisibility.PUBLIC),
       ],
       isDeleted: false,
+      isHiddenFromProfile: false,
       ...PUBLIC_BRAND_FILTER,
     };
 
@@ -222,7 +223,6 @@ export class PublicPostsController {
   @Cache({
     keyGenerator: (req) =>
       `public:posts:ingredients:${JSON.stringify(req.query)}`,
-    isInvalidationGuarded: true,
     tags: ['ingredients', 'posts', 'public', CACHE_TAGS.PUBLIC_BRAND_CONTENT],
     ttl: 600, // 10 minutes
   })
@@ -289,7 +289,6 @@ export class PublicPostsController {
   @Cache({
     keyGenerator: (req) =>
       `public:post:${req.params?.postId ?? 'unknown'}:brand:${req.query?.brand ?? ''}`,
-    isInvalidationGuarded: true,
     tags: ['posts', CACHE_TAGS.PUBLIC_BRAND_CONTENT],
     ttl: 1800, // 30 minutes
   })
@@ -314,6 +313,7 @@ export class PublicPostsController {
           postVisibilityReadFilter(PostVisibility.PUBLIC),
         ],
         id: postId,
+        isHiddenFromProfile: false,
         ...PUBLIC_BRAND_FILTER,
         // A creator page names its brand, so another creator's post id
         // answers 404 under the wrong handle.

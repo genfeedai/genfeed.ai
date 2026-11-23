@@ -120,6 +120,7 @@ export async function ingestInboundSocialMessage(
   const availability = getAvailability({
     conversationType: input.conversationType,
     externalParentId: input.externalParentId,
+    lastInboundAt: messageCreatedAt,
     participantExternalId: input.participantExternalId,
     platform,
     sourceContentId: input.sourceContentId,

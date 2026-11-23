@@ -2,19 +2,20 @@
 
 import type { AccountHealthSummary } from '@genfeedai/contracts/interfaces';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
-import { getPlatformIconComponent } from '@helpers/ui/platform-icon/platform-icon.helper';
+import { accountHealthToConnectedAccount } from '@helpers/publisher/connected-account.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { logger } from '@services/core/logger.service';
 import { CredentialsService } from '@services/organization/credentials.service';
+import ConnectedAccountAvatar from '@ui/display/connected-account/ConnectedAccountAvatar';
+import { getConnectedAccountText } from '@ui/display/connected-account/connected-account.util';
 import { Badge } from '@ui/primitives/badge';
 import { SegmentedControl } from '@ui/primitives/segmented-control';
-import { ExternalLink } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 import type { ReleaseRailAccountsProps } from '@/features/posts/props/release-rail.props';
 
 function isAccountAtRisk(account: AccountHealthSummary): boolean {
-  return account.holdPublishing || Boolean(account.reconnect?.isAvailable);
+  return Boolean(account.reconnect?.isAvailable);
 }
 
 export default function ReleaseRailAccounts({
@@ -65,13 +66,18 @@ export default function ReleaseRailAccounts({
   }
 
   const options = accounts.map((account) => {
-    const PlatformIcon =
-      getPlatformIconComponent(account.platform) ?? ExternalLink;
-    const label = account.handle || account.label;
+    const connectedAccount = accountHealthToConnectedAccount(account);
+    const label = getConnectedAccountText(connectedAccount).primary;
 
     return {
       ariaLabel: translate('accounts.ariaToggle', { account: label }),
-      icon: <PlatformIcon className="size-3.5 shrink-0" />,
+      icon: (
+        <ConnectedAccountAvatar
+          account={connectedAccount}
+          isDecorative
+          size="xs"
+        />
+      ),
       label: (
         <>
           <span className="max-w-32 truncate">{label}</span>

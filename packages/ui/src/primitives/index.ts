@@ -85,6 +85,7 @@ export {
 export { ddVariants, dlVariants, dtVariants } from './definition-list.variants';
 export {
   Dialog,
+  DialogBody,
   DialogClose,
   DialogContent,
   DialogDescription,
@@ -159,10 +160,6 @@ export {
   PaginationPrevious,
 } from './pagination';
 export {
-  default as PlatformSelector,
-  type PlatformSelectorProps,
-} from './platform-selector';
-export {
   Popover,
   PopoverAnchor,
   PopoverContent,
@@ -191,8 +188,6 @@ export {
   SelectGroup,
   SelectItem,
   SelectLabel,
-  SelectScrollDownButton,
-  SelectScrollUpButton,
   SelectSeparator,
   SelectTrigger,
   SelectValue,

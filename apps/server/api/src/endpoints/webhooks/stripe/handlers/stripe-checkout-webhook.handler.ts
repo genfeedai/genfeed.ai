@@ -362,7 +362,7 @@ export class StripeCheckoutWebhookHandler {
       );
 
     if (provisioned === null) {
-      this.managedStripeCheckoutService.logProvisioningContention(sessionId);
+      this.loggerService.log(`${url} managed checkout already provisioned`);
       return;
     }
 
@@ -810,7 +810,6 @@ export class StripeCheckoutWebhookHandler {
         return;
       }
 
-      // Find user
       const dbUser = await this.usersService.findOne({
         id: userId,
       });

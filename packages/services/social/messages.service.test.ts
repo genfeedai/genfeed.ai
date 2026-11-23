@@ -364,6 +364,19 @@ describe('SocialMessagesService', () => {
     expect(result).toEqual(payload);
   });
 
+  it('syncFacebook enqueues a Page comment sweep for the chosen account', async () => {
+    const payload = { jobId: 'job-fb', status: 'queued' };
+    http.post.mockResolvedValue(axiosResponse(payload));
+
+    const result = await service.syncFacebook(25, 'connected-page');
+
+    expect(http.post).toHaveBeenCalledWith('/facebook/sync', {
+      credentialId: 'connected-page',
+      limit: 25,
+    });
+    expect(result).toEqual(payload);
+  });
+
   it('syncInstagram enqueues a comment sweep on its own route', async () => {
     const payload = { jobId: 'job-2', status: 'queued' };
     http.post.mockResolvedValue(axiosResponse(payload));

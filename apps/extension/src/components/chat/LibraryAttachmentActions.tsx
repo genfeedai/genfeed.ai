@@ -13,6 +13,7 @@ export function LibraryAttachmentActions({
   const [statuses, setStatuses] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState<ReadonlySet<string>>(new Set());
   const controllers = useRef(new Map<string, AbortController>());
+  // use-effect-audit: ignore aborts in-flight attachment requests for assets that left the list
   useEffect(() => {
     const ids = new Set(assets.map((asset) => asset.id));
     for (const [id, controller] of controllers.current) {

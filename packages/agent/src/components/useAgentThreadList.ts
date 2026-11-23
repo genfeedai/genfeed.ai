@@ -273,6 +273,7 @@ export function useAgentThreadList({
   // same full reset the main chat uses (setActiveThread(null) +
   // resetActiveConversationState) — clearing threads alone would leave stale
   // messages, preset, run and stream state rendering under the new brand.
+  // use-effect-audit: ignore resets the conversation stores when the brand changes
   useEffect(() => {
     if (!isActive || previousBrandIdRef.current === brandId) {
       return;
@@ -353,6 +354,7 @@ export function useAgentThreadList({
   }, [isActive, loadThreads]);
 
   const prevActiveIdRef = useRef(activeThreadId);
+  // use-effect-audit: ignore reloads the thread list from the API when the active thread is missing
   useEffect(() => {
     if (
       isActive &&

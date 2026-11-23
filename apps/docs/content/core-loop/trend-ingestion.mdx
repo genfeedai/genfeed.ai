@@ -10,15 +10,15 @@ Trends are the first step of the loop: public signals from each platform, stored
 
 Discovery separates account-curated feeds from public trend observations:
 
-- **Following** lives at `/<organization>/<brand>/discovery/following`.
-  Existing `discovery/overview?source=following` links redirect there. Connected
+- **Following** is the `Following` source of the Feed at
+  `/<organization>/<brand>/discovery/feed?source=following`. Connected
   accounts appear automatically; users do not need to enter their follows again.
   Refresh collects X's reverse-chronological home timeline and recent videos from
   YouTube subscriptions. YouTube collection is bounded to 200 subscriptions and
   five recent uploads per channel. Other networks show their current API
   limitations and a link to the native feed.
 - **Trends** defaults to public market observations. The brand relevance filter
-  is an explicit option; Overview keeps its brand relevance behavior. Video
+  is an explicit option; the Feed keeps its brand relevance behavior. Video
   cards and topic examples have click-to-play controls. Sound cards retain
   available audio metadata and example videos using that sound. Missing or
   expired media keeps a source link instead of a pretend play control.

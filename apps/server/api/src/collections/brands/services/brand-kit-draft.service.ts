@@ -10,6 +10,7 @@ import type {
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { scopedWhere } from '@api/index';
 import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
+import { publicXHandle } from '@api/services/brand-scraper/public-x-handle.util';
 import { FontFamily } from '@genfeedai/contracts';
 import {
   brandFontRolesSchema,
@@ -160,7 +161,13 @@ export class BrandKitDraftService {
     }
 
     try {
-      const scraped = await this.brandScraperService.scrapeWebsite(dto.url);
+      const scraped = publicXHandle(dto.url)
+        ? (
+            await this.brandScraperService.scrapeSetupSourceWithEvidence(
+              dto.url,
+            )
+          ).data
+        : await this.brandScraperService.scrapeWebsite(dto.url);
       const diagnostics = this.readSocialUrlDiagnostics(dto.socialUrls);
       const enrichedScrape = this.mergeSocialUrlsIntoScrape(
         scraped,

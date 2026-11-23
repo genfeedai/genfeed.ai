@@ -789,7 +789,7 @@ export class SocialInboxIngestionService {
    * already exist keyed by external id so the caller can both count net-new
    * ingests and skip the per-item lookups for known items entirely.
    */
-  private async findExistingExternalIds(
+  async findExistingExternalIds(
     organizationId: string,
     platform: string,
     threadIds: string[],
@@ -850,7 +850,7 @@ export class SocialInboxIngestionService {
    * proved they exist) but still run the workflow trigger claim, which is a
    * deliberate retry path for triggers that previously failed to enqueue.
    */
-  private async ingestSyncedMessage(
+  async ingestSyncedMessage(
     input: InboundSocialMessageInput,
     knownMessage: SocialMessageDocument | undefined,
     knownConversation: SocialConversationDocument | undefined,
@@ -967,7 +967,7 @@ export class SocialInboxIngestionService {
     });
   }
 
-  private async findConnectedCredentials(
+  async findConnectedCredentials(
     scope: SocialInboxScope,
     platform: PrismaCredentialPlatform,
     credentialId?: string,

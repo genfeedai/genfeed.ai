@@ -1,6 +1,7 @@
 import { StoryboardAssetBibleService } from '@api/collections/content-runs/services/storyboard-asset-bible.service';
 import { isLiveAssetOperation } from '@api/collections/content-runs/services/storyboard-asset-bible-state';
 import { storyboardStoredRunConfigSchema } from '@api/collections/content-runs/services/storyboard-imported-run-state.schema';
+import { STORYBOARD_JOURNAL_LIVE_WINDOW_MS } from '@api/collections/content-runs/services/storyboard-live-hold.util';
 import { isLiveShotRenderOperation } from '@api/collections/content-runs/services/storyboard-shot-render-state';
 import { StoryboardShotRendersService } from '@api/collections/content-runs/services/storyboard-shot-renders.service';
 import { isLiveStillOperation } from '@api/collections/content-runs/services/storyboard-still-state';
@@ -19,11 +20,10 @@ const STORYBOARD_JOURNAL_SWEEP_LIMIT = 25;
 const STORYBOARD_JOURNAL_SWEEP_MAX_PAGES = 4;
 
 /**
- * Only runs touched in this window are swept. A paid hold lives two hours, so
- * a journal operation still live after three days belongs to a run nobody
- * will reopen and the next page open reconciles it.
+ * Only runs touched in this window are swept: the same window in which the
+ * generic expiry leaves a live journal operation's hold alone.
  */
-const STORYBOARD_JOURNAL_SWEEP_WINDOW_MS = 3 * 24 * 60 * 60 * 1000;
+const STORYBOARD_JOURNAL_SWEEP_WINDOW_MS = STORYBOARD_JOURNAL_LIVE_WINDOW_MS;
 
 type JournalKey =
   | 'stillOperations'

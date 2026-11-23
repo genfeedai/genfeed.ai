@@ -15,6 +15,7 @@ import type {
   KnowledgeSourceUpdateRequest,
 } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useResetOnChange } from '@hooks/utils/use-reset-on-change/use-reset-on-change';
 import type {
   KnowledgeSourceRow,
   KnowledgeSourcesListProps,
@@ -26,19 +27,26 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { isServiceOperationError } from '@services/core/operation-error';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
+import SearchField from '@ui/content/search-field/SearchField';
 import AppTable from '@ui/display/table/Table';
 import TableDateCell from '@ui/display/table/TableDateCell';
 import Container from '@ui/layout/container/Container';
 import SubbarControls from '@ui/layout/subbar-controls/SubbarControls';
 import SubbarOverflowMenu from '@ui/layout/subbar-overflow-menu/SubbarOverflowMenu';
+import FilterMenu from '@ui/navigation/filter-menu/FilterMenu';
 import { Alert, AlertActions, AlertDescription } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { Globe, Plus, RotateCcw } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import FilterMenu from '@/components/content/filter-menu/FilterMenu';
-import SearchField from '@/components/content/search-field/SearchField';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { useKnowledgeLibrary } from '@/features/library/knowledge/hooks/use-knowledge-library';
 import KnowledgeAddSourceSheet from './knowledge-add-source-sheet';
 import KnowledgeSourceDetailPanel from './knowledge-source-detail-panel';
@@ -85,6 +93,7 @@ export default function KnowledgeSourcesList({
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const router = useRouter();
+  const search = searchParams.toString();
   const currentPage = Number(searchParams.get('page')) || 1;
   const sourceIds = searchParams.getAll('sourceId');
   const isInvalidSelection =
@@ -94,22 +103,13 @@ export default function KnowledgeSourcesList({
       sourceIds[0].length > 128 ||
       UNSAFE_ID_CHAR_PATTERN.test(sourceIds[0]));
   const routeSourceId = isInvalidSelection ? null : (sourceIds[0] ?? null);
-  const [localSelectedSourceId, setSelectedSourceId] = useState<string | null>(
+  const [selectedSourceId, setSelectedSourceId] = useState<string | null>(
     routeSourceId,
   );
-  const appliedRouteRef = useRef(routeSourceId);
-  const selectedSourceId =
-    appliedRouteRef.current === routeSourceId
-      ? localSelectedSourceId
-      : routeSourceId;
+  // Only incoming navigation changes selection; polling/rerenders cannot reopen a closed panel.
+  useResetOnChange([routeSourceId], () => setSelectedSourceId(routeSourceId));
   const selectionRef = useRef(selectedSourceId);
-  selectionRef.current = selectedSourceId;
-  const navigationRef = useRef({
-    pathname,
-    router,
-    search: searchParams.toString(),
-  });
-  navigationRef.current = { pathname, router, search: searchParams.toString() };
+  const navigationRef = useRef({ pathname, router, search });
   const changeSelection = useCallback(
     (sourceId: string | null, archivedId?: string) => {
       selectionRef.current = sourceId;
@@ -132,12 +132,6 @@ export default function KnowledgeSourcesList({
     },
     [],
   );
-  // Only incoming navigation changes selection; polling/rerenders cannot reopen a closed panel.
-  useEffect(() => {
-    appliedRouteRef.current = routeSourceId;
-    selectionRef.current = routeSourceId;
-    setSelectedSourceId(routeSourceId);
-  }, [routeSourceId]);
   const {
     error,
     isLoading,
@@ -162,7 +156,6 @@ export default function KnowledgeSourcesList({
     [brandId, getSourcesService, getSpacesService, pathname],
   );
   const actionScopeRef = useRef(actionScope);
-  actionScopeRef.current = actionScope;
   const isMountedRef = useRef(true);
   // use-effect-audit: ignore releases timers, requests or subscriptions on unmount
   useEffect(() => {
@@ -178,10 +171,7 @@ export default function KnowledgeSourcesList({
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const refreshRef = useRef(refresh);
-  refreshRef.current = refresh;
-  useEffect(() => {
-    if (actionScopeRef.current === actionScope) setIsSubmitting(false);
-  }, [actionScope]);
+  useResetOnChange([actionScope], () => setIsSubmitting(false));
 
   // A space that is not in this brand's list reads as no space filter, the
   // same as the Space facet shows it.
@@ -206,16 +196,33 @@ export default function KnowledgeSourcesList({
         : (rows.find((row) => row.source.id === selectedSourceId) ?? null)
       : null;
 
-  const actionableRef = useRef({
-    isLoading,
-    rowIds: new Set(rows.map((row) => row.source.id)),
-    selectedId: selectedRow?.source.id,
-  });
-  actionableRef.current = {
-    isLoading,
-    rowIds: new Set(rows.map((row) => row.source.id)),
-    selectedId: selectedRow?.source.id,
-  };
+  const displayedSourceId = selectedRow?.source.id;
+  const actionable = useMemo(
+    () => ({
+      isLoading,
+      rowIds: new Set(rows.map((row) => row.source.id)),
+      selectedId: displayedSourceId,
+    }),
+    [displayedSourceId, isLoading, rows],
+  );
+  const actionableRef = useRef(actionable);
+  // In-flight actions read only snapshots from a committed render.
+  useLayoutEffect(() => {
+    selectionRef.current = selectedSourceId;
+    navigationRef.current = { pathname, router, search };
+    actionScopeRef.current = actionScope;
+    actionableRef.current = actionable;
+    refreshRef.current = refresh;
+  }, [
+    actionable,
+    actionScope,
+    pathname,
+    refresh,
+    router,
+    search,
+    selectedSourceId,
+  ]);
+
   const isActionableSource = useCallback((sourceId: string) => {
     const current = actionableRef.current;
     return (

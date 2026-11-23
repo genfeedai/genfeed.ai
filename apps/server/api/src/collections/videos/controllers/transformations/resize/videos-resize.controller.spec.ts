@@ -367,7 +367,7 @@ describe('VideosResizeController', () => {
       resizeParams,
     );
     expect(result).toMatchObject({ data: { type: 'ingredient' } });
-    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+    await new Promise<void>((resolve) => setImmediate(resolve));
 
     expect(ingredientRow).toEqual({
       generationError: 'Cancelled by user',

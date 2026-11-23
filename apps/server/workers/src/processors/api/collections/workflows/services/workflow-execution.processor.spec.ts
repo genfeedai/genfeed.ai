@@ -971,6 +971,166 @@ describe('WorkflowExecutionProcessor', () => {
       });
     });
 
+    describe('agent turn that ran out of credits', () => {
+      const INSUFFICIENT =
+        'Nodes failed: infer-turn: Insufficient credits. You need at least 1 credits for a-model.';
+      const turnInput = {
+        actionType: 'agent.turn.execute',
+        canonicalId: 'agent.turn.execute',
+        organizationId: 'org-1',
+        source: 'agent-turn',
+        userId: 'user-1',
+      };
+
+      function mockFailedRun(error: string) {
+        mockSystemWorkflowRunner.startWorkflow.mockResolvedValueOnce({
+          execution: {
+            error,
+            executionId: 'exec-failed',
+            nodeResults: [],
+            startedAt: new Date(),
+            status: WorkflowExecutionStatus.FAILED,
+            totalCreditsUsed: 0,
+            workflowId: 'wf-1',
+          },
+          provenance: {
+            executionId: 'exec-failed',
+            workflowId: 'wf-1',
+            workflowLabel: 'Agent turn',
+          },
+          userId: 'user-1',
+        });
+      }
+
+      const turnJob = (canonicalId = 'agent.turn.execute') =>
+        createMockJob(
+          {
+            systemRun: { input: { ...turnInput, canonicalId } },
+            type: 'system-run',
+          },
+          { attemptsMade: 0, opts: { attempts: 3 } },
+        );
+
+      it('completes the job with a warning instead of reporting an error', async () => {
+        mockFailedRun(INSUFFICIENT);
+
+        await expect(processor.process(turnJob() as never)).resolves.toEqual({
+          executionId: 'exec-failed',
+          status: WorkflowExecutionStatus.FAILED,
+          workflowId: 'wf-1',
+        });
+        expect(mockLogger.warn).toHaveBeenCalledWith(
+          expect.stringContaining('insufficient credits'),
+          expect.objectContaining({ organizationId: 'org-1' }),
+        );
+        expect(mockLogger.error).not.toHaveBeenCalled();
+      });
+
+      it('still fails a turn whose node failed for another reason', async () => {
+        mockFailedRun(
+          'Nodes failed: infer-turn: provider rejected the request',
+        );
+
+        await expect(
+          processor.process(turnJob() as never),
+        ).rejects.toBeInstanceOf(UnrecoverableError);
+      });
+
+      it('still fails a turn where another node failed besides the credit check', async () => {
+        mockFailedRun(`${INSUFFICIENT}, fail-turn: thread missing`);
+
+        await expect(
+          processor.process(turnJob() as never),
+        ).rejects.toBeInstanceOf(UnrecoverableError);
+      });
+
+      it('still fails any other workflow with the same message', async () => {
+        mockFailedRun(INSUFFICIENT);
+
+        await expect(
+          processor.process(turnJob('agent.autopilot.proactive') as never),
+        ).rejects.toBeInstanceOf(UnrecoverableError);
+      });
+    });
+
+    describe('scheduled publish that lost its claim to another run', () => {
+      const CLAIMED =
+        'Nodes failed: claim-publish: Publish approval is already claimed by another run.';
+      const NOT_QUEUED =
+        'Nodes failed: claim-publish: Publish approval is not queued.';
+
+      function mockFailedRun(error: string) {
+        mockSystemWorkflowRunner.startWorkflow.mockResolvedValueOnce({
+          execution: {
+            error,
+            executionId: 'exec-lost',
+            nodeResults: [],
+            startedAt: new Date(),
+            status: WorkflowExecutionStatus.FAILED,
+            totalCreditsUsed: 0,
+            workflowId: 'wf-1',
+          },
+          provenance: {
+            executionId: 'exec-lost',
+            workflowId: 'wf-1',
+            workflowLabel: 'Scheduled post',
+          },
+          userId: 'user-1',
+        });
+      }
+
+      const publishJob = (canonicalId = 'scheduled-post.publish') =>
+        createMockJob(
+          {
+            systemRun: {
+              input: {
+                actionType: canonicalId,
+                canonicalId,
+                organizationId: 'org-1',
+                source: 'scheduled-post',
+                userId: 'user-1',
+              },
+            },
+            type: 'system-run',
+          },
+          { attemptsMade: 0, opts: { attempts: 3 } },
+        );
+
+      it('completes the job with a warning and no failure compensation', async () => {
+        mockFailedRun(CLAIMED);
+
+        await expect(processor.process(publishJob() as never)).resolves.toEqual(
+          {
+            executionId: 'exec-lost',
+            status: WorkflowExecutionStatus.FAILED,
+            workflowId: 'wf-1',
+          },
+        );
+        expect(mockLogger.warn).toHaveBeenCalledWith(
+          expect.stringContaining('claimed by another run'),
+          expect.objectContaining({ organizationId: 'org-1' }),
+        );
+        expect(mockLogger.error).not.toHaveBeenCalled();
+        expect(mockSystemWorkflowRunner.runWorkflow).not.toHaveBeenCalled();
+      });
+
+      it('still fails a publish whose approval is not queued', async () => {
+        mockFailedRun(NOT_QUEUED);
+
+        await expect(
+          processor.process(publishJob() as never),
+        ).rejects.toBeInstanceOf(UnrecoverableError);
+      });
+
+      it('still fails any other workflow with the same message', async () => {
+        mockFailedRun(CLAIMED);
+
+        await expect(
+          processor.process(publishJob('agent.autopilot.proactive') as never),
+        ).rejects.toBeInstanceOf(UnrecoverableError);
+      });
+    });
+
     describe('deterministic contract failures are terminal (#5622)', () => {
       const CONTRACT_ERROR =
         'Nodes failed: finalize: Action contract input validation failed [action=agent.autopilot.finalize workflow=wf version=v run=r node=finalize] /batch: must be array';

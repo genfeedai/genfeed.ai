@@ -1,11 +1,20 @@
 import { IngredientStatus } from '@genfeedai/contracts';
+import { confirm } from '@inquirer/prompts';
 import chalk from 'chalk';
 import { Command } from 'commander';
 import ora from 'ora';
+import { deleteAsset } from '@/api/assets';
 import { requireAuth } from '@/api/client';
 import { downloadGeneratedFile } from '@/commands/generate/helpers';
 import { readAsset, readAssets } from '@/operations/assets';
-import { formatHeader, formatLabel, print, printJson } from '@/ui/theme';
+import {
+  formatHeader,
+  formatLabel,
+  formatSuccess,
+  formatWarning,
+  print,
+  printJson,
+} from '@/ui/theme';
 import { GenfeedError, handleError } from '@/utils/errors';
 import { parsePositiveInteger, wantsJson } from '@/utils/options';
 
@@ -117,6 +126,36 @@ libraryCommand.addCommand(
           throw new GenfeedError(`Asset ${id} is not downloadable yet`);
         }
         await downloadGeneratedFile('asset', options.output, asset.cdnUrl);
+      } catch (error) {
+        handleError(error);
+      }
+    })
+);
+
+libraryCommand.addCommand(
+  new Command('delete')
+    .description('Delete a Library asset; posts that use it lose that media')
+    .argument('<id>', 'Asset ID')
+    .option('-f, --force', 'Skip confirmation')
+    .option('--json', 'Output as JSON')
+    .action(async (id: string, options: { force?: boolean; json?: boolean }) => {
+      try {
+        await requireAuth();
+        if (!options.force) {
+          const confirmed = await confirm({
+            default: false,
+            message: `Delete Library asset ${id}? Posts that use it lose that media.`,
+          });
+          if (!confirmed) {
+            print(formatWarning('Delete cancelled'));
+            return;
+          }
+        }
+        const gone = await deleteAsset(id);
+        if (options.json) return printJson({ assetId: id, deleted: true, verified: gone });
+        print(formatSuccess('Asset deleted'));
+        print(formatLabel('ID', id));
+        if (!gone) print(formatWarning('Read-back failed: the asset still resolves'));
       } catch (error) {
         handleError(error);
       }

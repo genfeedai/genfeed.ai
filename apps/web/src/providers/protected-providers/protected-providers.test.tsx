@@ -2,14 +2,28 @@
 'use client';
 
 import type { GlobalModalsProviderProps } from '@genfeedai/props/modals/global-modals.props';
-import { render, screen, waitFor } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import ProtectedProviders from '@/providers/protected-providers/protected-providers';
+import ProtectedProviders, {
+  TOKEN_WAIT_TIMEOUT_MS,
+} from '@/providers/protected-providers/protected-providers';
 
 const globalModalRendererMock = vi.fn();
 const useAuthMock = vi.fn();
 const getPlaywrightAuthStateMock = vi.fn();
 const hasPlaywrightJwtTokenMock = vi.fn();
+const redirectToLoginWithoutSessionMock = vi.fn();
+
+vi.mock('@/lib/auth/redirect-without-session', () => ({
+  redirectToLoginWithoutSession: (signal: AbortSignal) =>
+    redirectToLoginWithoutSessionMock(signal),
+}));
 
 vi.mock('@genfeedai/hooks/auth/use-auth-identity/use-auth-identity', () => ({
   useAuthIdentity: () => useAuthMock(),
@@ -108,6 +122,7 @@ describe('ProtectedProviders', () => {
     vi.clearAllMocks();
     getPlaywrightAuthStateMock.mockReturnValue(null);
     hasPlaywrightJwtTokenMock.mockReturnValue(false);
+    redirectToLoginWithoutSessionMock.mockResolvedValue(false);
     useAuthMock.mockReturnValue({
       getToken: vi.fn().mockResolvedValue('jwt-token'),
       isLoaded: true,
@@ -225,6 +240,49 @@ describe('ProtectedProviders', () => {
     });
   });
 
+  it('asks for the sign-in redirect when the session read finds nobody and this visit never had one', async () => {
+    useAuthMock.mockReturnValue({
+      getToken: vi.fn().mockResolvedValue(null),
+      isLoaded: true,
+      isSignedIn: false,
+      orgId: null,
+      sessionId: null,
+      userId: null,
+    });
+
+    render(
+      <ProtectedProviders authPendingFallback={<span data-testid="pending" />}>
+        <span data-testid="child">hidden</span>
+      </ProtectedProviders>,
+    );
+
+    await waitFor(() => {
+      expect(redirectToLoginWithoutSessionMock).toHaveBeenCalledTimes(1);
+    });
+    expect(screen.getByTestId('pending')).toBeInTheDocument();
+    expect(screen.queryByTestId('child')).not.toBeInTheDocument();
+  });
+
+  it('does not ask while the session read is still pending', async () => {
+    useAuthMock.mockReturnValue({
+      getToken: vi.fn().mockResolvedValue(null),
+      isLoaded: false,
+      isSignedIn: false,
+      orgId: null,
+      sessionId: null,
+      userId: null,
+    });
+
+    render(
+      <ProtectedProviders authPendingFallback={<span data-testid="pending" />}>
+        <span data-testid="child">hidden</span>
+      </ProtectedProviders>,
+    );
+
+    expect(screen.getByTestId('pending')).toBeInTheDocument();
+    expect(redirectToLoginWithoutSessionMock).not.toHaveBeenCalled();
+  });
+
   it('acquires a fresh token when the authenticated session changes', async () => {
     const firstGetToken = vi.fn().mockResolvedValue('session-1-token');
     const secondGetToken = vi.fn().mockResolvedValue('session-2-token');
@@ -261,5 +319,100 @@ describe('ProtectedProviders', () => {
 
     await waitFor(() => expect(secondGetToken).toHaveBeenCalledTimes(1));
     expect(firstGetToken).toHaveBeenCalledTimes(1);
+  });
+
+  describe('when the session token never arrives', () => {
+    function renderWithFailureFallback(): void {
+      render(
+        <ProtectedProviders
+          authPendingFallback={<span>loading frame</span>}
+          authFailureFallback={(retry) => (
+            <button type="button" onClick={retry}>
+              Try again
+            </button>
+          )}
+        >
+          <span data-testid="child">workspace</span>
+        </ProtectedProviders>,
+      );
+    }
+
+    it('shows the loading frame first, then the failure fallback after the wait limit', async () => {
+      vi.useFakeTimers();
+      try {
+        useAuthMock.mockReturnValue({
+          getToken: vi.fn().mockResolvedValue(null),
+          isLoaded: true,
+          isSignedIn: true,
+          orgId: null,
+          sessionId: 'session-1',
+          userId: 'user-1',
+        });
+        renderWithFailureFallback();
+
+        await act(() => vi.advanceTimersByTimeAsync(TOKEN_WAIT_TIMEOUT_MS - 1));
+        expect(screen.getByText('loading frame')).toBeInTheDocument();
+        expect(
+          screen.queryByRole('button', { name: 'Try again' }),
+        ).not.toBeInTheDocument();
+
+        await act(() => vi.advanceTimersByTimeAsync(2));
+        expect(
+          screen.getByRole('button', { name: 'Try again' }),
+        ).toBeInTheDocument();
+        expect(screen.queryByTestId('child')).not.toBeInTheDocument();
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('asks for the token again after Try again and opens the workspace once it comes', async () => {
+      vi.useFakeTimers();
+      try {
+        const getToken = vi.fn().mockResolvedValue(null);
+        useAuthMock.mockReturnValue({
+          getToken,
+          isLoaded: true,
+          isSignedIn: true,
+          orgId: null,
+          sessionId: 'session-1',
+          userId: 'user-1',
+        });
+        renderWithFailureFallback();
+        await act(() => vi.advanceTimersByTimeAsync(TOKEN_WAIT_TIMEOUT_MS + 1));
+
+        getToken.mockResolvedValue('jwt-token');
+        fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+        await act(() => vi.advanceTimersByTimeAsync(10));
+
+        expect(screen.getByTestId('child')).toHaveTextContent('workspace');
+        expect(
+          screen.queryByRole('button', { name: 'Try again' }),
+        ).not.toBeInTheDocument();
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('backs off instead of polling every 150 ms for the whole wait', async () => {
+      vi.useFakeTimers();
+      try {
+        const getToken = vi.fn().mockResolvedValue(null);
+        useAuthMock.mockReturnValue({
+          getToken,
+          isLoaded: true,
+          isSignedIn: true,
+          orgId: null,
+          sessionId: 'session-1',
+          userId: 'user-1',
+        });
+        renderWithFailureFallback();
+        await act(() => vi.advanceTimersByTimeAsync(TOKEN_WAIT_TIMEOUT_MS));
+
+        expect(getToken.mock.calls.length).toBeLessThan(20);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
   });
 });

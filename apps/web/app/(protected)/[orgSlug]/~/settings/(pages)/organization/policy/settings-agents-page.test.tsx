@@ -686,14 +686,14 @@ describe('SettingsAgentsPage', () => {
     mocks.modelAccess = {
       isLocked: true,
       lockedModelKey: 'deepseek/deepseek-v4-flash-0731',
-      lockedModelLabel: 'DeepSeek V4 Flash',
+      lockedModelLabel: 'DeepSeek V4.1 Flash',
       reason: 'free_tier',
     };
     renderPage();
 
     const notice = await screen.findByTestId('agent-model-lock-notice');
     expect(notice).toHaveTextContent(
-      'Free plans run every agent on DeepSeek V4 Flash. Upgrade to choose any model.',
+      'Free plans run every agent on DeepSeek V4.1 Flash. Upgrade to choose any model.',
     );
     expect(screen.getByRole('link', { name: 'Upgrade' })).toHaveAttribute(
       'href',

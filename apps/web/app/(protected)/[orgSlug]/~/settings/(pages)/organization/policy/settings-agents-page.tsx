@@ -247,6 +247,7 @@ export default function SettingsAgentsPage() {
     queryKey: ['settings-agent-model-catalog', organizationId],
   });
 
+  // use-effect-audit: ignore seeds the policy form from the loaded settings
   useEffect(() => {
     // Wait for the real settings — initialPolicyFormState's empty defaults
     // (allowAdvancedOverrides: false, blank caps) are a placeholder, never a

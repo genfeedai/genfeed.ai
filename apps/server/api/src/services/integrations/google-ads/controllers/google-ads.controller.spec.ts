@@ -52,7 +52,7 @@ describe('GoogleAdsController', () => {
       | 'connectAccount'
       | 'findOne'
       | 'findOneSelect'
-      | 'findPendingOAuthCredential'
+      | 'claimPendingOAuthCredential'
       | 'patch'
     >
   >;
@@ -92,7 +92,7 @@ describe('GoogleAdsController', () => {
       connectAccount: vi.fn().mockResolvedValue({ id: 'cred-1' }),
       findOne: vi.fn().mockResolvedValue(MOCK_CREDENTIAL),
       findOneSelect: delegateFindOneSelect(),
-      findPendingOAuthCredential: vi.fn().mockResolvedValue(MOCK_CREDENTIAL),
+      claimPendingOAuthCredential: vi.fn().mockResolvedValue(MOCK_CREDENTIAL),
       patch: vi.fn().mockResolvedValue({ id: 'cred-1' }),
     };
     googleAdsService = {
@@ -168,7 +168,7 @@ describe('GoogleAdsController', () => {
       });
 
       expect(
-        credentialsService.findPendingOAuthCredential,
+        credentialsService.claimPendingOAuthCredential,
       ).toHaveBeenCalledWith(
         'opaque-oauth-state',
         CredentialPlatform.GOOGLE_ADS,
@@ -196,7 +196,10 @@ describe('GoogleAdsController', () => {
     });
 
     it('rejects a state that is not pending in the caller scope', async () => {
-      credentialsService.findPendingOAuthCredential.mockResolvedValueOnce(null);
+      credentialsService.claimPendingOAuthCredential.mockResolvedValueOnce(
+        null,
+      );
+      credentialsService.findOne.mockResolvedValueOnce(null);
 
       await expect(
         controller.verify({} as never, mockUser, {

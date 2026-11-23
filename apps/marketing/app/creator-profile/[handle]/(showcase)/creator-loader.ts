@@ -105,6 +105,30 @@ export const getCreatorShowcase = cache(
   },
 );
 
+/**
+ * One page of the creator's posts from a single platform. The wall's platform
+ * chips link here; the unfiltered showcase keeps the counts every tab shows.
+ */
+export const getCreatorPlatformPosts = cache(
+  async (
+    brandId: string,
+    pageSize: number,
+    page: number,
+    platform: string,
+  ): Promise<IPaginatedResponse<Post>> => {
+    try {
+      return await PublicService.getInstance().findPublicPostsPage({
+        brand: brandId,
+        limit: pageSize,
+        page,
+        platform,
+      });
+    } catch {
+      return emptyPage(pageSize);
+    }
+  },
+);
+
 /** The brand, its referral code and one page of each kind of content. */
 export const getCreatorProfileData = cache(
   async (
@@ -126,6 +150,20 @@ export const getCreatorProfileData = cache(
     return { brand, referralCode, showcase };
   },
 );
+
+/**
+ * The platform a wall is narrowed to: `?platform=` counts only when the
+ * creator has connected that platform, so a stray value shows every post.
+ */
+export function resolveCreatorPlatform(
+  rawPlatform: string | undefined,
+  brand: Brand,
+): string | null {
+  const platform = brand.socials?.find(
+    (social) => social.platform === rawPlatform,
+  )?.platform;
+  return platform ?? null;
+}
 
 /** Turns `?page=` into a positive page number. */
 export function resolveCreatorPage(rawPage: string | undefined): number {

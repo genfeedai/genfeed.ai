@@ -524,7 +524,7 @@ export class BrandsService extends BaseService<
     return updatedBrand;
   }
 
-  private async invalidateBrandContextCaches(
+  async invalidateBrandContextCaches(
     brandId: string,
     organizationId: string,
   ): Promise<void> {
@@ -915,7 +915,7 @@ export class BrandsService extends BaseService<
     return this.brandGenerationService.generateBrandVoice(
       dto,
       organizationId,
-      (criteria) => this.findOne(criteria),
+      this.findOne.bind(this),
     );
   }
 

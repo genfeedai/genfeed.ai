@@ -1,5 +1,10 @@
+import { UPLOAD_HTTP_TIMEOUT_MS } from '@api/constants/http-timeout.constant';
 import { ByokProviderFactoryService } from '@api/services/byok/byok-provider-factory.service';
 import { ApifyBaseService } from '@api/services/integrations/apify/services/modules/apify-base.service';
+import {
+  ApifyActorRunTimeoutException,
+  ApifyActorUnavailableException,
+} from '@api/services/integrations/apify/utils/apify-actor-availability.util';
 import { runWithApifyCaller } from '@api/services/integrations/apify/utils/apify-caller.context';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -165,6 +170,7 @@ describe('ApifyBaseService', () => {
           Authorization: 'Bearer test-token',
           'Content-Type': 'application/json',
         },
+        validateStatus: expect.any(Function),
       },
     );
     expect(httpService.get).toHaveBeenNthCalledWith(
@@ -185,6 +191,7 @@ describe('ApifyBaseService', () => {
           Authorization: 'Bearer test-token',
           'Content-Type': 'application/json',
         },
+        timeout: UPLOAD_HTTP_TIMEOUT_MS,
       },
     );
   });
@@ -276,6 +283,7 @@ describe('ApifyBaseService', () => {
           Authorization: 'Bearer byok-key',
           'Content-Type': 'application/json',
         },
+        validateStatus: expect.any(Function),
       },
     );
   });
@@ -529,6 +537,81 @@ describe('ApifyBaseService', () => {
       expect(httpService.post).toHaveBeenCalledTimes(2);
     });
 
+    describe('actor-start 404', () => {
+      const NOT_FOUND_RESPONSE = {
+        data: {
+          error: { message: 'Actor was not found', type: 'record-not-found' },
+        },
+        status: 404,
+      };
+
+      it('reports a safe unavailable-actor failure without an error-level log', async () => {
+        httpService.post.mockReturnValue(of(NOT_FOUND_RESPONSE));
+
+        const execution = service.runActor('test/actor', {});
+
+        await expect(execution).rejects.toThrow(
+          /^Apify actor for an unregistered actor is unavailable/,
+        );
+        await expect(execution).rejects.toBeInstanceOf(
+          ServiceUnavailableException,
+        );
+        expect(loggerService.error).not.toHaveBeenCalled();
+        expect(loggerService.warn).toHaveBeenCalledTimes(1);
+      });
+
+      it('lets only success and 404 through the shared interceptor', async () => {
+        httpService.post.mockReturnValue(of(NOT_FOUND_RESPONSE));
+        await expect(service.runActor('test/actor', {})).rejects.toBeDefined();
+
+        const config = httpService.post.mock.calls[0][2] as {
+          validateStatus: (status: number) => boolean;
+        };
+        expect(
+          [200, 201, 404, 401, 429, 500].map(config.validateStatus),
+        ).toEqual([true, true, true, false, false, false]);
+      });
+
+      it('does not call the same unavailable actor again until the hold ends', async () => {
+        httpService.post.mockReturnValue(of(NOT_FOUND_RESPONSE));
+
+        await expect(service.runActor('test/actor', {})).rejects.toBeDefined();
+        await expect(service.runActor('test/actor', {})).rejects.toBeDefined();
+        expect(httpService.post).toHaveBeenCalledTimes(1);
+
+        now += 60 * 60 * 1000 + 1;
+
+        await expect(service.runActor('test/actor', {})).rejects.toBeDefined();
+        expect(httpService.post).toHaveBeenCalledTimes(2);
+      });
+
+      it('keeps other actors callable', async () => {
+        httpService.post.mockReturnValueOnce(of(NOT_FOUND_RESPONSE));
+        await expect(service.runActor('test/actor', {})).rejects.toBeDefined();
+
+        httpService.post.mockReturnValue(
+          of({
+            data: {
+              data: {
+                defaultDatasetId: 'ds-1',
+                id: 'run-1',
+                status: 'RUNNING',
+              },
+            },
+          }),
+        );
+        httpService.get
+          .mockReturnValueOnce(
+            of({ data: { data: { id: 'run-1', status: 'SUCCEEDED' } } }),
+          )
+          .mockReturnValueOnce(of({ data: [{ title: 'ok' }] }));
+
+        await expect(service.runActor('other/actor', {})).resolves.toEqual([
+          { title: 'ok' },
+        ]);
+      });
+    });
+
     it('scopes a byok account limit to that organization only', async () => {
       byokFactory.resolveProvider.mockResolvedValue({
         apiKey: 'byok-key',
@@ -735,6 +818,95 @@ describe('ApifyBaseService', () => {
         /Apify/i,
       );
       expect(httpService.post).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('actor run overruns the wait budget', () => {
+    const STARTED = of({
+      data: {
+        data: { defaultDatasetId: 'ds-1', id: 'run-1', status: 'RUNNING' },
+      },
+    });
+    let nowSpy: ReturnType<typeof vi.spyOn>;
+    let now: number;
+
+    beforeEach(() => {
+      now = 1_700_000_000_000;
+      nowSpy = vi.spyOn(Date, 'now').mockImplementation(() => now);
+      vi.useFakeTimers({ toFake: ['setTimeout'] });
+      httpService.post.mockImplementation((url: string) =>
+        url.endsWith('/abort') ? of({ data: {}, status: 200 }) : STARTED,
+      );
+      // Every status poll reports a run that is still going, two minutes later.
+      httpService.get.mockImplementation(() => {
+        now += 130_000;
+        return of({ data: { data: { id: 'run-1', status: 'RUNNING' } } });
+      });
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+      nowSpy.mockRestore();
+    });
+
+    const runToTimeout = async () => {
+      const execution = service.runActor('test/actor', {});
+      const settled = execution.catch((error: unknown) => error);
+      await vi.advanceTimersByTimeAsync(5000);
+      return settled;
+    };
+
+    it('aborts the run and reports a warning, not an error', async () => {
+      const error = await runToTimeout();
+
+      expect(error).toBeInstanceOf(ApifyActorRunTimeoutException);
+      expect((error as Error).message).toBe(
+        'Actor run run-1 timed out after 120000ms',
+      );
+      expect(httpService.post.mock.calls.map(([url]) => url)).toEqual([
+        'https://api.apify.com/v2/acts/test~actor/runs',
+        'https://api.apify.com/v2/actor-runs/run-1/abort',
+      ]);
+      expect(loggerService.error).not.toHaveBeenCalled();
+      expect(loggerService.warn).toHaveBeenCalledTimes(1);
+    });
+
+    it('leaves the actor alone for the hold, then tries it again', async () => {
+      await runToTimeout();
+
+      const held = await service.runActor('test/actor', {}).catch((e) => e);
+      expect(held).toBeInstanceOf(ApifyActorUnavailableException);
+      expect(httpService.post).toHaveBeenCalledTimes(2);
+
+      now += 15 * 60 * 1000 + 1;
+      const retried = await runToTimeout();
+      expect(retried).toBeInstanceOf(ApifyActorRunTimeoutException);
+      expect(httpService.post).toHaveBeenCalledTimes(4);
+    });
+
+    it('still reports the timeout when the abort call fails', async () => {
+      httpService.post.mockImplementation((url: string) =>
+        url.endsWith('/abort')
+          ? throwError(() => new Error('apify down'))
+          : STARTED,
+      );
+
+      expect(await runToTimeout()).toBeInstanceOf(
+        ApifyActorRunTimeoutException,
+      );
+      expect(loggerService.error).not.toHaveBeenCalled();
+    });
+
+    it('lets callers log the timeout as a warning', () => {
+      service.logFailure(
+        'caller failed',
+        new ApifyActorRunTimeoutException('run-1', 120000),
+      );
+
+      expect(loggerService.error).not.toHaveBeenCalled();
+      expect(loggerService.warn).toHaveBeenCalledWith(
+        'caller failed skipped: Actor run run-1 timed out after 120000ms',
+      );
     });
   });
 

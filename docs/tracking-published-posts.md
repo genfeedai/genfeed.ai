@@ -22,7 +22,7 @@ displayed as measured zeroes. Importing a link again opens the existing post.
 
 The authenticated endpoint is `POST /posts/track-link`, with
 `{ brandId, url, title?, publishedAt? }`. The agent and MCP action is
-`track_post_link` in the analytics toolset. Both use the same importer.
+`save_post` with `action: track_link`. Both use the same importer.
 
 This flow imports individual links. Full account-history import and manual
 LinkedIn metrics are outside this flow.

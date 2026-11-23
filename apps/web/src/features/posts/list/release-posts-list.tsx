@@ -36,7 +36,7 @@ import Pagination from '@ui/navigation/pagination/Pagination';
 import { EmptyState } from '@ui/primitives/empty-state';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ReleaseBoard from '@/features/posts/board/release-board';
 import AccountGrid from '@/features/posts/grid/account-grid';
 import { usePublishingPostsViewPreference } from '@/features/posts/hooks/use-publishing-posts-view-preference/use-publishing-posts-view-preference';
@@ -61,6 +61,7 @@ import {
 } from '@/features/posts/release/release-actions';
 import ReleaseDetailDrawer from '@/features/posts/release/release-detail-drawer';
 import { createReleaseMutationRunner } from '@/features/posts/release/release-mutation-runner';
+import { useReleasePendingActions } from '@/features/posts/release/use-release-pending-actions';
 import CapturedPostsList from './captured-posts-list';
 import {
   CAPTURED_POSTS_SORT_OPTIONS,
@@ -152,7 +153,8 @@ export default function ReleasePostsList({
     () => NotificationsService.getInstance(),
     [],
   );
-  const [pendingAction, setPendingAction] = useState<string | null>(null);
+  const { inFlightReleaseIds, pendingActions, setPendingAction } =
+    useReleasePendingActions();
   const [drawerError, setDrawerError] = useState<string | null>(null);
   const queryKey = buildReleasePostsListQueryKey({
     brandId,
@@ -247,6 +249,7 @@ export default function ReleasePostsList({
     () =>
       createReleaseMutationRunner({
         getReleaseGroupsService,
+        inFlightReleaseIds,
         notificationsService,
         onSuccess: (updated) => {
           queryClient.setQueryData(queryKey, (current: typeof data) => {
@@ -267,7 +270,14 @@ export default function ReleasePostsList({
         setDrawerError,
         setPendingAction,
       }),
-    [getReleaseGroupsService, notificationsService, queryClient, queryKey],
+    [
+      getReleaseGroupsService,
+      inFlightReleaseIds,
+      notificationsService,
+      queryClient,
+      queryKey,
+      setPendingAction,
+    ],
   );
 
   // The name opens the primary target's post page; a release without targets
@@ -291,6 +301,10 @@ export default function ReleasePostsList({
     [data.releases, selectedReleaseId],
   );
 
+  const pendingAction = selectedReleaseId
+    ? (pendingActions.get(selectedReleaseId) ?? null)
+    : null;
+
   const selectRelease = useCallback(
     (releaseId: string) => {
       replaceSearchParams((params) => {
@@ -312,8 +326,10 @@ export default function ReleasePostsList({
       if (!selectedReleaseId) {
         return;
       }
-      void runMutation(RELEASE_RESCHEDULE_ACTION, (service) =>
-        service.update(selectedReleaseId, { scheduledDate }),
+      void runMutation(
+        RELEASE_RESCHEDULE_ACTION,
+        selectedReleaseId,
+        (service) => service.update(selectedReleaseId, { scheduledDate }),
       );
     },
     [runMutation, selectedReleaseId],
@@ -336,8 +352,11 @@ export default function ReleasePostsList({
       if (!selectedReleaseId) {
         return;
       }
-      void runMutation(targetRescheduleAction(targetId), (service) =>
-        service.updateTarget(selectedReleaseId, targetId, { scheduledDate }),
+      void runMutation(
+        targetRescheduleAction(targetId),
+        selectedReleaseId,
+        (service) =>
+          service.updateTarget(selectedReleaseId, targetId, { scheduledDate }),
       );
     },
     [runMutation, selectedReleaseId],
@@ -353,10 +372,13 @@ export default function ReleasePostsList({
       if (!selectedReleaseId) {
         return;
       }
-      void runMutation(targetRetryAction(targetId), (service) =>
-        service.updateTarget(selectedReleaseId, targetId, {
-          executionState: TargetState.SCHEDULED,
-        }),
+      void runMutation(
+        targetRetryAction(targetId),
+        selectedReleaseId,
+        (service) =>
+          service.updateTarget(selectedReleaseId, targetId, {
+            executionState: TargetState.SCHEDULED,
+          }),
       );
     },
     [runMutation, selectedReleaseId],
@@ -367,8 +389,11 @@ export default function ReleasePostsList({
       if (!selectedReleaseId) {
         return;
       }
-      void runMutation(targetManualPostAction(targetId), (service) =>
-        service.completeManualPost(selectedReleaseId, targetId, postUrl),
+      void runMutation(
+        targetManualPostAction(targetId),
+        selectedReleaseId,
+        (service) =>
+          service.completeManualPost(selectedReleaseId, targetId, postUrl),
       );
     },
     [runMutation, selectedReleaseId],
@@ -379,8 +404,10 @@ export default function ReleasePostsList({
       if (!selectedReleaseId) {
         return;
       }
-      void runMutation(targetManualPostAction(targetId), (service) =>
-        service.skipManualPost(selectedReleaseId, targetId),
+      void runMutation(
+        targetManualPostAction(targetId),
+        selectedReleaseId,
+        (service) => service.skipManualPost(selectedReleaseId, targetId),
       );
     },
     [runMutation, selectedReleaseId],
@@ -421,8 +448,15 @@ export default function ReleasePostsList({
     [replaceSearchParams, storeView],
   );
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: runs once per mount to seed the URL from the brand's last choice; the toggle and handleViewModeChange own every change after that.
+  // Seeds the URL once per mount from the brand's last choice; the toggle and
+  // handleViewModeChange own every change after that.
+  const hasSeededViewRef = useRef(false);
+  // use-effect-audit: ignore seeds the URL from the brand's last view choice
   useEffect(() => {
+    if (hasSeededViewRef.current) {
+      return;
+    }
+    hasSeededViewRef.current = true;
     if (searchParams?.has(PUBLISHING_POSTS_QUERY_KEYS.VIEW)) {
       return;
     }
@@ -433,7 +467,7 @@ export default function ReleasePostsList({
     replaceSearchParams((params) => {
       params.set(PUBLISHING_POSTS_QUERY_KEYS.VIEW, storedView);
     });
-  }, []);
+  }, [getStoredView, replaceSearchParams, searchParams]);
 
   const handleSearchChange = useCallback(
     (value: string) => {

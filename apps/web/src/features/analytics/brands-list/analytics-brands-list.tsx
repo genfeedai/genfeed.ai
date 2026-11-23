@@ -27,15 +27,15 @@ import {
 } from '@services/analytics/analytics.service';
 import { logger } from '@services/core/logger.service';
 import { AnalyticsMetricLabel } from '@ui/analytics/metric-definition/AnalyticsMetricInfo';
+import SearchField from '@ui/content/search-field/SearchField';
 import Table from '@ui/display/table/Table';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
+import FilterMenu from '@ui/navigation/filter-menu/FilterMenu';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { BrandAvatar } from '@ui/primitives/brand-avatar';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useEffect, useMemo } from 'react';
-import FilterMenu from '@/components/content/filter-menu/FilterMenu';
-import SearchField from '@/components/content/search-field/SearchField';
 import AnalyticsBrandSummary from '@/features/analytics/brands-list/analytics-brand-summary';
 import { useDebounce } from '@/hooks/utils/use-debounce/use-debounce';
 
@@ -150,9 +150,8 @@ export default function AnalyticsBrandsList({
   const resolvedTotalPages = brandsResponse?.pagination?.totalPages;
 
   // A new search, sort or date range can leave the URL page past the last
-  // page of the new result set: start over at page 1. `searchParams`,
-  // `pathname` and `replace` are read only to build that URL.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: see above
+  // page of the new result set: start over at page 1.
+  // use-effect-audit: ignore moves the URL back to the last page that exists
   useEffect(() => {
     if (
       isShowingPreviousPage ||
@@ -167,7 +166,14 @@ export default function AnalyticsBrandsList({
     replace(query ? `${pathname}?${query}` : pathname, {
       scroll: false,
     });
-  }, [currentPage, isShowingPreviousPage, resolvedTotalPages]);
+  }, [
+    currentPage,
+    isShowingPreviousPage,
+    pathname,
+    replace,
+    resolvedTotalPages,
+    searchParams,
+  ]);
 
   const filterMenu = useMemo(() => {
     const facets: FilterMenuFacet[] = [

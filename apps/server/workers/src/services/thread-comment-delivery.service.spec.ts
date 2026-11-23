@@ -28,16 +28,25 @@ function createMocks() {
       },
     },
     publisherFactory: { getPublisher: vi.fn() },
+    sweepLease: {
+      extend: vi.fn().mockResolvedValue(true),
+      release: vi.fn().mockResolvedValue(undefined),
+    },
+    sweepLock: { acquire: vi.fn() },
   };
 }
 
 function createService(mocks: Mocks): ThreadCommentDeliveryService {
+  if (!mocks.sweepLock.acquire.getMockImplementation()) {
+    mocks.sweepLock.acquire.mockResolvedValue(mocks.sweepLease);
+  }
   return new ThreadCommentDeliveryService(
     mocks.logger as never,
     mocks.prisma as never,
     mocks.organizationsService as never,
     mocks.credentialsService as never,
     mocks.publisherFactory as never,
+    mocks.sweepLock as never,
   );
 }
 
@@ -230,5 +239,55 @@ describe('ThreadCommentDeliveryService', () => {
       ([args]) => args.data.targetExecutionState,
     );
     expect(states).toContain(TargetExecutionState.FAILED);
+  });
+
+  describe('claiming a comment', () => {
+    it('does not send a comment whose claim matched nothing, nor the later ones of its thread', async () => {
+      mocks.prisma.post.findMany.mockResolvedValue([
+        createChild({ id: 'child-1', order: 1 }),
+        createChild({ id: 'child-2', order: 2 }),
+      ]);
+      mocks.prisma.post.findFirst.mockResolvedValueOnce(createParent());
+      mocks.prisma.post.updateMany.mockResolvedValue({ count: 0 });
+
+      await createService(mocks).publishDueThreadComments();
+
+      expect(publishThreadChildren).not.toHaveBeenCalled();
+      expect(mocks.prisma.post.updateMany).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('sweep lock', () => {
+    it('does nothing while another run holds the lock', async () => {
+      mocks.sweepLock.acquire.mockResolvedValue(null);
+
+      await createService(mocks).publishDueThreadComments();
+
+      expect(mocks.prisma.post.findMany).not.toHaveBeenCalled();
+      expect(publishThreadChildren).not.toHaveBeenCalled();
+      expect(mocks.sweepLease.release).not.toHaveBeenCalled();
+    });
+
+    it('releases its own lock when the sweep is done, even after a failure', async () => {
+      mocks.prisma.post.findMany.mockRejectedValue(new Error('db down'));
+
+      await createService(mocks).publishDueThreadComments();
+
+      expect(mocks.sweepLock.acquire).toHaveBeenCalledWith(
+        'genfeed:lock:thread-comment-sweep',
+      );
+      expect(mocks.sweepLease.release).toHaveBeenCalledOnce();
+    });
+
+    it('stops sending when the lock was lost', async () => {
+      mocks.prisma.post.findMany.mockResolvedValue([createChild()]);
+      mocks.prisma.post.findFirst.mockResolvedValueOnce(createParent());
+      mocks.sweepLease.extend.mockResolvedValue(false);
+
+      await createService(mocks).publishDueThreadComments();
+
+      expect(publishThreadChildren).not.toHaveBeenCalled();
+      expect(mocks.sweepLease.release).toHaveBeenCalledOnce();
+    });
   });
 });

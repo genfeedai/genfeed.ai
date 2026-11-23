@@ -127,7 +127,9 @@ export function listPresetSummaries(
 
 export class PresetNotFoundError extends Error {
   constructor(key: string) {
-    super(`No preset with key "${key}". Call get_presets to list the keys.`);
+    super(
+      `No preset with key "${key}". Call get_generation_catalog(action=presets) to list the keys.`,
+    );
     this.name = 'PresetNotFoundError';
   }
 }

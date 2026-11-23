@@ -1,6 +1,8 @@
 import * as matchers from '@testing-library/jest-dom/matchers';
 import { cleanup } from '@testing-library/react';
 import { afterEach, beforeEach } from 'vitest';
+import './tests/get-animations.stub';
+import './tests/popover.stub';
 
 let matchersRegistered = false;
 

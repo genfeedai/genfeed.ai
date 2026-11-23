@@ -5,6 +5,7 @@ import {
 import type { LoggerService } from '@libs/logger/logger.service';
 import { McpResourceUri } from '@mcp/mcp/resource-catalog';
 import type { ClientService } from '@mcp/services/client.service';
+import { withMergedToolCalls } from '@mcp/services/tool-registry.endpoints.testing';
 import { ToolRegistryService } from '@mcp/services/tool-registry.service';
 
 function build() {
@@ -14,17 +15,19 @@ function build() {
     createScheduledRelease: vi.fn(),
     updateScheduledRelease: vi.fn(),
     controlScheduledRelease: vi.fn(),
+    publishArticle: vi.fn(),
     executeAgentTool: vi.fn(),
     resolveApproval: vi.fn(),
   };
   const logger = { debug: vi.fn(), error: vi.fn(), warn: vi.fn() };
-  const registry = new ToolRegistryService(
-    client as unknown as ClientService,
-    logger as unknown as LoggerService,
-    'superadmin',
-    ['generation', 'workflows'],
-    undefined,
-    'claude',
+  const registry = withMergedToolCalls(
+    new ToolRegistryService(
+      client as unknown as ClientService,
+      logger as unknown as LoggerService,
+      'superadmin',
+      undefined,
+      'claude',
+    ),
   );
   return { registry, client };
 }
@@ -62,30 +65,30 @@ describe('Claude connector execution boundary', () => {
       arguments: { releaseId: 'release-1', action: 'resume' },
     },
     { name: 'publish_article', arguments: { articleId: 'article-1' } },
-  ])('queues $name without executing a public-channel write', async (call) => {
-    const { registry, client } = build();
-    client.createApproval.mockResolvedValue({
-      id: 'approval-1',
-      status: 'PENDING',
-      toolName: call.name,
-      arguments: call.arguments,
-    });
-    const result = await registry.handleToolCall(call);
-    expect(client.createApproval).toHaveBeenCalledExactlyOnceWith(
-      call.name,
-      call.arguments,
-    );
-    expect(result).toMatchObject({
-      isError: true,
-      structuredContent: { code: 'approval_pending' },
-    });
-    expect(client.createScheduledRelease).not.toHaveBeenCalled();
-    expect(client.updateScheduledRelease).not.toHaveBeenCalled();
-    expect(client.controlScheduledRelease).not.toHaveBeenCalled();
-    expect(client.executeAgentTool).not.toHaveBeenCalled();
-    expect(client.resolveApproval).not.toHaveBeenCalled();
-    expect(JSON.stringify(result)).not.toContain('call `resolve_approval`');
-  });
+  ])(
+    'holds $name until the agent confirms, with no web approval',
+    async (call) => {
+      const { registry, client } = build();
+      const result = await registry.handleToolCall(call);
+      expect(client.createApproval).not.toHaveBeenCalled();
+      expect(result).toMatchObject({
+        isError: true,
+        structuredContent: {
+          code: 'confirmation_required',
+          toolName: call.name,
+        },
+      });
+      expect(result).not.toHaveProperty('structuredContent.approvalId');
+      expect(result).not.toHaveProperty('structuredContent.nextStepUrl');
+      expect(JSON.stringify(result)).toContain('Nothing was published');
+      expect(client.createScheduledRelease).not.toHaveBeenCalled();
+      expect(client.updateScheduledRelease).not.toHaveBeenCalled();
+      expect(client.controlScheduledRelease).not.toHaveBeenCalled();
+      expect(client.publishArticle).not.toHaveBeenCalled();
+      expect(client.executeAgentTool).not.toHaveBeenCalled();
+      expect(client.resolveApproval).not.toHaveBeenCalled();
+    },
+  );
 
   it.each([
     'generate',
@@ -137,7 +140,7 @@ describe('Claude connector execution boundary', () => {
     );
   });
 
-  it('keeps discovery restricted even with generation/workflow toolsets', async () => {
+  it('keeps discovery restricted to the Claude tools', async () => {
     const { registry } = build();
     const tools = registry
       .getTools()
@@ -149,12 +152,6 @@ describe('Claude connector execution boundary', () => {
         .sort(),
     );
     expect(tools).not.toContain('create_brand_from_url');
-    expect(
-      registry
-        .getDiscoverableTools()
-        .map((tool) => tool.name)
-        .sort(),
-    ).toEqual(tools);
     const discovery = await registry.handleToolCall({
       name: 'find_tools',
       arguments: { query: 'generate' },

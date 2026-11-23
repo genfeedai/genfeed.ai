@@ -42,7 +42,7 @@ describe('RemotionRenderJobService', () => {
     emitProgress: vi.fn(),
     emitSuccess: vi.fn(),
   };
-  const redisService = { publish: vi.fn().mockResolvedValue(1) };
+  const completionPublisher = { publish: vi.fn().mockResolvedValue(undefined) };
   const logger = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
   const configService = { ingredientsEndpoint: 'https://cdn.example.com' };
 
@@ -94,7 +94,7 @@ describe('RemotionRenderJobService', () => {
       remotionRendererService as never,
       s3Service as never,
       webSocketService as never,
-      redisService as never,
+      completionPublisher as never,
       logger as never,
     );
 
@@ -167,6 +167,29 @@ describe('RemotionRenderJobService', () => {
     });
   });
 
+  it('queues the completed event with the render result', async () => {
+    await makeService().process(makeJob());
+
+    expect(completionPublisher.publish).toHaveBeenCalledWith(
+      expect.objectContaining({
+        result: expect.objectContaining({
+          s3Key: 'videos/output-123.mp4',
+        }),
+        status: 'completed',
+      }),
+    );
+  });
+
+  it('fails a finished render whose event was not stored, so it runs again', async () => {
+    completionPublisher.publish.mockRejectedValueOnce(
+      new Error('Redis is down'),
+    );
+
+    await expect(makeService().process(makeJob(0))).rejects.toThrow(
+      'Redis is down',
+    );
+  });
+
   it('publishes a failed terminal event and removes temporary output', async () => {
     remotionRendererService.render.mockRejectedValueOnce(
       new Error('renderer failed'),
@@ -177,8 +200,7 @@ describe('RemotionRenderJobService', () => {
     );
 
     expect(webSocketService.emitError).toHaveBeenCalled();
-    expect(redisService.publish).toHaveBeenCalledWith(
-      'video-processing-complete',
+    expect(completionPublisher.publish).toHaveBeenCalledWith(
       expect.objectContaining({ status: 'failed' }),
     );
     expect(rm).toHaveBeenCalledWith('/tmp/editor-render-output', {
@@ -197,8 +219,7 @@ describe('RemotionRenderJobService', () => {
     );
 
     expect(webSocketService.emitError).not.toHaveBeenCalled();
-    expect(redisService.publish).not.toHaveBeenCalledWith(
-      'video-processing-complete',
+    expect(completionPublisher.publish).not.toHaveBeenCalledWith(
       expect.objectContaining({ status: 'failed' }),
     );
   });
@@ -211,8 +232,7 @@ describe('RemotionRenderJobService', () => {
     await expect(makeService().process(makeJob(0))).rejects.toMatchObject({
       name: 'UnrecoverableError',
     });
-    expect(redisService.publish).toHaveBeenCalledWith(
-      'video-processing-complete',
+    expect(completionPublisher.publish).toHaveBeenCalledWith(
       expect.objectContaining({
         status: 'failed',
         terminalReason: 'cancelled',
@@ -235,8 +255,7 @@ describe('RemotionRenderJobService', () => {
       name: 'UnrecoverableError',
     });
     expect(remotionRendererService.render).not.toHaveBeenCalled();
-    expect(redisService.publish).toHaveBeenCalledWith(
-      'video-processing-complete',
+    expect(completionPublisher.publish).toHaveBeenCalledWith(
       expect.objectContaining({
         status: 'failed',
         terminalReason: 'asset_unavailable',

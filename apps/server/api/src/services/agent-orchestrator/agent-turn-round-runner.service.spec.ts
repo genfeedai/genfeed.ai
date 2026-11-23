@@ -659,6 +659,7 @@ describe('capped autonomous credit preflight', () => {
 describe('AgentTurnRoundRunnerService generate recovery', () => {
   const loggerService = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
   const executeTool = vi.fn();
+  const deductCredits = vi.fn();
   const cacheService = { get: vi.fn().mockResolvedValue(null) };
   const untrustedContentGateService = {
     evaluateToolResult: vi.fn(async ({ content }: { content: string }) => ({
@@ -679,7 +680,7 @@ describe('AgentTurnRoundRunnerService generate recovery', () => {
       loggerService as never,
       {
         checkOrganizationCreditsAvailable: vi.fn().mockResolvedValue(true),
-        deductCreditsFromOrganization: vi.fn(),
+        deductCreditsFromOrganization: deductCredits,
       } as never,
       { executeTool } as never,
       new AgentToolConfirmationService(
@@ -695,6 +696,7 @@ describe('AgentTurnRoundRunnerService generate recovery', () => {
     args: Record<string, unknown>;
     generationMode?: AgentGenerationMode;
     name: string;
+    state?: AgentToolRoundState;
   }) {
     return runner.executeToolRound({
       allowedToolNames: new Set(params.allowed),
@@ -710,7 +712,7 @@ describe('AgentTurnRoundRunnerService generate recovery', () => {
       messages: [{ content: 'Make it', role: 'user' }],
       model: 'test-model',
       policy: { organizationId: 'org-1' } as never,
-      state: createState(),
+      state: params.state ?? createState(),
       threadId: 'thread-1',
       toolCalls: [
         {
@@ -853,6 +855,82 @@ describe('AgentTurnRoundRunnerService generate recovery', () => {
 
     expect(voice).not.toHaveProperty('terminalToolName');
     expect(music).not.toHaveProperty('terminalToolName');
+  });
+
+  it('does not bill the catalog floor for a pending generation approval', async () => {
+    executeTool.mockResolvedValueOnce({
+      approvalStatus: 'pending',
+      creditsUsed: 0,
+      nextActions: [{ id: 'card', type: 'generation_action_card' }],
+      requiresConfirmation: true,
+      success: true,
+    });
+    const state = createState();
+    await round({
+      allowed: ['generate'],
+      args: { prompt: 'A synthetic blue cube', type: 'video' },
+      name: 'generate',
+      state,
+    });
+    expect(state).toMatchObject({
+      reviewRequired: true,
+      totalCreditsUsed: 0,
+      toolCalls: [{ creditsUsed: 0 }],
+    });
+    expect(deductCredits).not.toHaveBeenCalled();
+  });
+
+  it('does not charge a generic pending approval as completed paid work', async () => {
+    executeTool.mockResolvedValueOnce({
+      approvalId: 'approval-1',
+      approvalStatus: 'pending',
+      creditsUsed: 0,
+      nextActions: [{ id: 'approval-1', type: 'mutation_approval_card' }],
+      requiresConfirmation: true,
+      success: true,
+    });
+    const state = createState();
+    await round({
+      allowed: ['generate_turbo_content'],
+      args: { count: 14 },
+      name: 'generate_turbo_content',
+      state,
+    });
+    expect(state.totalCreditsUsed).toBe(0);
+    expect(state.toolCalls[0]?.creditsUsed).toBe(0);
+    expect(deductCredits).not.toHaveBeenCalled();
+  });
+
+  it('retains the actual delegated charge after completed generation', async () => {
+    executeTool.mockResolvedValueOnce({
+      creditsUsed: 17,
+      isBillingDelegated: true,
+      success: true,
+    });
+    const state = createState();
+    await round({
+      allowed: ['generate'],
+      args: { prompt: 'A synthetic blue cube', type: 'video' },
+      name: 'generate',
+      state,
+    });
+    expect(state.totalCreditsUsed).toBe(17);
+    expect(state.toolCalls[0]?.creditsUsed).toBe(17);
+    expect(deductCredits).not.toHaveBeenCalled();
+  });
+
+  it('still settles completed catalog-billed work exactly once', async () => {
+    executeTool.mockResolvedValueOnce({ success: true });
+    const state = createState();
+    await round({
+      allowed: ['generate'],
+      args: { prompt: 'A synthetic blue cube', type: 'video' },
+      name: 'generate',
+      state,
+    });
+    expect(deductCredits).toHaveBeenCalledTimes(1);
+    expect(deductCredits.mock.calls[0]?.[2]).toBe(300);
+    expect(state.totalCreditsUsed).toBe(300);
   });
 
   it('ends the turn when a mutation is waiting for approval', async () => {

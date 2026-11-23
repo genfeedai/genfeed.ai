@@ -162,25 +162,28 @@ test('Brand OS settings downloads privately, publishes, explicitly updates a new
   });
 
   await adminPage.goto('/test-org/brand-1/settings/brand-kit');
-  // Revision review, export and publication live in the Review changes panel.
-  await adminPage
-    .getByRole('button', { name: 'Review changes', exact: true })
-    .click();
-  const settings = adminPage
-    .getByRole('dialog')
-    .getByTestId('brand-os-settings');
+  const openFromActions = async (name: string) => {
+    await adminPage
+      .getByRole('button', { name: 'Brand Kit actions', exact: true })
+      .click();
+    await adminPage.getByRole('menuitem', { name, exact: true }).click();
+    return adminPage.getByRole('dialog');
+  };
+
+  // Export and publication live in the Share & export dialog.
+  const share = await openFromActions('Share & export');
   await expect(
-    settings.getByRole('heading', { name: 'design.md · private' }),
+    share.getByRole('heading', { name: 'design.md · private' }),
   ).toBeVisible();
   const downloadEvent = adminPage.waitForEvent('download');
-  await settings
+  await share
     .getByRole('button', { name: 'Download design.md', exact: true })
     .click();
   expect((await downloadEvent).suggestedFilename()).toBe('design.md');
-  await settings
+  await share
     .getByRole('button', { name: 'Publish design.md', exact: true })
     .click();
-  const publicLink = settings.getByRole('link', {
+  const publicLink = share.getByRole('link', {
     name: 'Open public design.md',
   });
   await expect(publicLink).toHaveAttribute(
@@ -188,42 +191,60 @@ test('Brand OS settings downloads privately, publishes, explicitly updates a new
     'https://api.genfeed.ai/public/brand-os/test-token/design.md',
   );
   expect(publications).toEqual(['revision-1']);
+  await adminPage.keyboard.press('Escape');
 
-  await settings
-    .getByRole('button', { name: 'Review identity fields', exact: true })
-    .click();
-  // Each revision field is a collapsed row until its label is opened (#7084).
-  await settings
-    .getByRole('button', { name: 'Description', exact: true })
-    .click();
-  await settings
+  // Fields are inline rows on the page; saving forks the approved revision.
+  await adminPage
     .getByRole('textbox', { name: 'Description', exact: true })
     .fill('New approved brand voice');
-  await settings.getByRole('button', { name: 'Save as new draft' }).click();
+  await adminPage
+    .getByRole('button', { name: 'Save draft', exact: true })
+    .click();
+  await adminPage
+    .getByRole('button', { name: 'Review changes', exact: true })
+    .first()
+    .click();
+  const approval = adminPage.getByRole('dialog');
   await expect(
-    settings.getByRole('button', { name: 'Approve revision' }),
+    approval.getByRole('button', { name: 'Approve revision' }),
   ).toBeEnabled();
-  await settings.getByRole('button', { name: 'Approve revision' }).click();
-  await expect(
-    settings.getByRole('button', { name: 'Update publication' }),
-  ).toBeVisible();
-  expect(approvals).toEqual(['revision-2']);
+  await approval.getByRole('button', { name: 'Approve revision' }).click();
+  await expect.poll(() => approvals).toEqual(['revision-2']);
+  await adminPage.keyboard.press('Escape');
+
+  const historyDialog = await openFromActions('Version history');
+  const history = historyDialog.getByRole('combobox', {
+    name: 'Revision history',
+  });
+  await expect(history).toContainText('Revision 2');
+  await history.click();
+  await adminPage.getByRole('option', { name: /Revision 1/ }).click();
+  await expect(history).toContainText('Revision 1');
+  await historyDialog.getByRole('button', { name: 'Refresh history' }).click();
+  await expect(history).toContainText('Revision 2');
+  await adminPage.keyboard.press('Escape');
+
+  const publish = await openFromActions('Share & export');
   expect(publications).toEqual(['revision-1']);
-  await settings.getByRole('button', { name: 'Update publication' }).click();
+  await publish.getByRole('button', { name: 'Update publication' }).click();
   await expect(
-    settings.getByRole('button', { name: 'Update publication' }),
+    publish.getByRole('button', { name: 'Update publication' }),
   ).toHaveCount(0);
   expect(publications).toEqual(['revision-1', 'revision-2']);
-  await expect(publicLink).toHaveAttribute(
+  await expect(
+    publish.getByRole('link', { name: 'Open public design.md' }),
+  ).toHaveAttribute(
     'href',
     'https://api.genfeed.ai/public/brand-os/test-token/design.md',
   );
-  await settings.getByRole('button', { name: 'Revoke public access' }).click();
+  await publish.getByRole('button', { name: 'Revoke public access' }).click();
   await expect(
-    settings.getByRole('heading', { name: 'design.md · revoked' }),
+    publish.getByRole('heading', { name: 'design.md · revoked' }),
   ).toBeVisible();
-  await expect(publicLink).toHaveCount(0);
   await expect(
-    settings.getByRole('button', { name: 'Download design.md', exact: true }),
+    publish.getByRole('link', { name: 'Open public design.md' }),
+  ).toHaveCount(0);
+  await expect(
+    publish.getByRole('button', { name: 'Download design.md', exact: true }),
   ).toBeEnabled();
 });

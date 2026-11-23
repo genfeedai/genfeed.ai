@@ -23,6 +23,7 @@ import AppTable from '@ui/display/table/Table';
 import TableDateCell from '@ui/display/table/TableDateCell';
 import Container from '@ui/layout/container/Container';
 import SubbarControls from '@ui/layout/subbar-controls/SubbarControls';
+import FilterMenu from '@ui/navigation/filter-menu/FilterMenu';
 import Pagination from '@ui/navigation/pagination/Pagination';
 import { Button } from '@ui/primitives/button';
 import { ChartEmptyState } from '@ui/primitives/chart-empty-state';
@@ -31,7 +32,6 @@ import { Download } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useState } from 'react';
-import FilterMenu from '@/components/content/filter-menu/FilterMenu';
 import {
   buildUsageRowsCsv,
   usageDailySeries,

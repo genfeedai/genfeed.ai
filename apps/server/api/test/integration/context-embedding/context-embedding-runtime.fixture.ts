@@ -86,6 +86,7 @@ export async function waitFor(
   while (!(await check())) {
     if (performance.now() >= deadline)
       throw new Error('Disposable embedding runtime condition timed out');
+    // biome-ignore lint/style/noRestrictedGlobals: polls a real out-of-process runtime; there is no event to wait on
     await new Promise((resolve) => setTimeout(resolve, 20));
   }
 }
@@ -148,6 +149,7 @@ export class LoopbackEmbeddings {
       }
       const behavior = this.behaviors.get(body.input) ?? {};
       if (behavior.delayMs)
+        // biome-ignore lint/style/noRestrictedGlobals: the fixture server simulates a slow embedding runtime
         await new Promise((resolve) => setTimeout(resolve, behavior.delayMs));
       await behavior.beforeResponse?.();
       this.respond(response, behavior);

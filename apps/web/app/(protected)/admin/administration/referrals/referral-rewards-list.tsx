@@ -10,6 +10,7 @@ import { usePagedAuthedQuery } from '@hooks/auth/use-paged-authed-query/use-page
 import type { TableColumn } from '@props/ui/display/table.props';
 import { ReferralsService } from '@services/billing/referrals.service';
 import { logger } from '@services/core/logger.service';
+import SearchField from '@ui/content/search-field/SearchField';
 import { createSummaryRowSidebar } from '@ui/display/table/summary-row-sidebar';
 import AppTable from '@ui/display/table/Table';
 import TableDateCell from '@ui/display/table/TableDateCell';
@@ -22,7 +23,6 @@ import { Gift, TriangleAlert } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useAdminSearchParam } from '@/components/content/admin-filters/useAdminSearchParam';
-import SearchField from '@/components/content/search-field/SearchField';
 import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
 
 const REFERRAL_REWARD_STATUS_LABELS: Record<ReferralRewardStatus, string> = {

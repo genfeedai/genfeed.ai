@@ -12,6 +12,7 @@ import {
   EMPTY_PAGE_TOTALS,
 } from '@genfeedai/contracts/constants';
 import type { IQueryParams } from '@genfeedai/contracts/interfaces';
+import { toConnectedAccount } from '@helpers/publisher/connected-account.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useResetOnChange } from '@hooks/utils/use-reset-on-change/use-reset-on-change';
@@ -25,7 +26,7 @@ import { NotificationsService } from '@services/core/notifications.service';
 import { BrandsService } from '@services/social/brands.service';
 import { useQuery } from '@tanstack/react-query';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
-import PlatformAvatarStack from '@ui/display/platform-avatar-stack/PlatformAvatarStack';
+import ConnectedAccountStack from '@ui/display/connected-account/ConnectedAccountStack';
 import AppTable from '@ui/display/table/Table';
 import TableDateCell from '@ui/display/table/TableDateCell';
 import Container from '@ui/layout/container/Container';
@@ -258,13 +259,11 @@ function BrandsListContent() {
         header: 'Platforms',
         key: 'credentials',
         render: (brand: Brand) => (
-          <PlatformAvatarStack
+          <ConnectedAccountStack
             emptyLabel="None"
             items={(brand.credentials ?? []).map((credential) => ({
+              ...toConnectedAccount(credential),
               id: credential.id,
-              label: credential.label,
-              platform: credential.platform,
-              username: credential.externalHandle,
             }))}
           />
         ),

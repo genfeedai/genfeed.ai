@@ -585,6 +585,24 @@ describe('ReplicateVideoBuilder', () => {
     });
   });
 
+  it.each([
+    [MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1, 5, 4],
+    [MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1_FAST, 5, 4],
+    [MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1_FAST, 6, 6],
+    [MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1_FAST, 10, 8],
+  ])(
+    'uses a provider-supported duration for %s at %i seconds',
+    (model, duration, expected) => {
+      const result = builder.buildPrompt(
+        model,
+        { duration, modelCategory: ModelCategory.VIDEO, prompt: 'test' },
+        'test',
+      );
+
+      expect(result).toHaveProperty('duration', expected);
+    },
+  );
+
   describe('buildPrompt - Seedance (#4652)', () => {
     const baseParams: PromptBuilderParams = {
       height: 1080,

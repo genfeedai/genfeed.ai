@@ -133,7 +133,8 @@ describe('watchSignedOut', () => {
 
     source.emit(SIGNED_OUT);
     broadcastSignedOut();
-    await new Promise((resolve) => setTimeout(resolve, 20));
+    await vi.waitFor(() => expect(watched.signedOutCount).toBe(1));
+    await new Promise((resolve) => setImmediate(resolve));
 
     expect(watched.signedOutCount).toBe(1);
   });

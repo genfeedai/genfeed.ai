@@ -17,10 +17,11 @@ import {
   TargetExecutionState,
 } from '@genfeedai/contracts';
 import {
+  getCaptionCeiling,
   getChannelCapability,
   getChannelThreadChildCapability,
 } from '@genfeedai/contracts/api-types/contracts';
-import { measurePlatformText } from '@genfeedai/helpers/content/platform-text-length.helper';
+import { measurePlatformText } from '@genfeedai/contracts/api-types/contracts/platform-text-length.contract';
 import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 
@@ -205,7 +206,6 @@ export abstract class BasePublisherService implements IPublisher {
       }
     }
 
-    // Check image support
     if (mediaInfo.isImagePost && !this.supportsImages) {
       return {
         error: `${this.platform} does not support image posts`,
@@ -225,7 +225,6 @@ export abstract class BasePublisherService implements IPublisher {
       };
     }
 
-    // Check carousel support
     if (mediaInfo.isCarousel && !this.supportsCarousel) {
       return {
         error: `${this.platform} does not support carousel posts`,
@@ -290,21 +289,34 @@ export abstract class BasePublisherService implements IPublisher {
     const caption = this.sanitizeDescription(context.post.description);
     const captionLength = measurePlatformText(caption, this.platform);
     const { maxLength } = capability.caption;
+    const ceiling = getCaptionCeiling(capability.caption);
 
     if (captionLength <= maxLength) {
       return { valid: true };
     }
 
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+    if (captionLength <= ceiling) {
+      // Past the standard length but within what the channel can take for an
+      // account with long posts (X Premium). The provider has the last word.
+      this.logger.log(`${url} caption exceeds the standard length`, {
+        captionLength,
+        maxLength,
+        platform: this.platform,
+        postId: context.postId,
+      });
+      return { valid: true };
+    }
+
     this.logger.warn(`${url} caption exceeds platform limit`, {
       captionLength,
-      maxLength,
+      maxLength: ceiling,
       platform: this.platform,
       postId: context.postId,
     });
 
     return {
-      error: `${capability.label} caption is ${captionLength} characters; the limit is ${maxLength} characters.`,
+      error: `${capability.label} caption is ${captionLength} characters; the limit is ${ceiling} characters.`,
       errorCode: 'caption_too_long',
       valid: false,
     };

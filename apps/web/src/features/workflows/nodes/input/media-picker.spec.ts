@@ -12,10 +12,43 @@ import {
 vi.mock('@services/core/environment.service', () => ({
   EnvironmentService: {
     cdnUrl: 'https://cdn.example.com',
+    ingredientsEndpoint: 'https://cdn.example.com/ingredients',
   },
 }));
 
 describe('workflow media picker helpers', () => {
+  it('uses the authorized playback grant when a private Library video is selected', () => {
+    const selection = toWorkflowMediaSelection(
+      {
+        id: 'private-video',
+        mediaDelivery: {
+          state: 'READY',
+          url: 'https://cdn.example.com/private/video.mp4?Signature=issued',
+        },
+      },
+      'video',
+      'library',
+    );
+
+    expect(selection?.resolvedUrl).toBe(
+      'https://cdn.example.com/private/video.mp4?Signature=issued',
+    );
+  });
+
+  it('does not invent an unsigned playback URL for an unavailable media grant', () => {
+    expect(
+      toWorkflowMediaSelection(
+        {
+          id: 'private-video',
+          url: 'https://cdn.example.com/ingredients/videos/private-video',
+          mediaDelivery: { state: 'FAILED', url: null },
+        },
+        'video',
+        'library',
+      ),
+    ).toBeNull();
+  });
+
   it('builds image picker selections from gallery items', () => {
     const selection = toWorkflowMediaSelection(
       {
@@ -38,6 +71,17 @@ describe('workflow media picker helpers', () => {
       resolvedUrl: 'https://cdn.example.com/bedroom.png',
       thumbnailUrl: null,
     });
+  });
+
+  it('keeps a brand video selection as an ingredient rather than a reference asset', () => {
+    const selection = toWorkflowMediaSelection(
+      { id: 'brand-video', url: 'https://signed.test/brand-video.mp4' },
+      'video',
+      'brand-references',
+    );
+
+    expect(selection?.itemCategory).toBe('video');
+    expect(selection?.resolvedUrl).toBe('https://signed.test/brand-video.mp4');
   });
 
   it('builds reference selections from brand assets', () => {

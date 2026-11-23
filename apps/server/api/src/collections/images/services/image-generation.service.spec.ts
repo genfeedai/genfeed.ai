@@ -838,6 +838,7 @@ describe('ImageGenerationService', () => {
         expect.any(Object),
         undefined,
         expect.any(Function),
+        expect.any(Function),
       );
       expect(replicateService.generateTextToImage).not.toHaveBeenCalled();
     });
@@ -1875,6 +1876,50 @@ describe('editing retry output lineage', () => {
 });
 
 describe('FLUX.3 editing default and exact alias dispatch', () => {
+  it('sends an edit with a seed and several outputs to the editor that accepts them', async () => {
+    const {
+      service,
+      routerService,
+      imagesService,
+      sharedService,
+      replicateService,
+    } = createService();
+    const sourceId = testId('seededsource');
+    routerService.resolveModelKey.mockResolvedValue({
+      key: MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE_EDIT,
+      source: 'registry-default',
+    });
+    imagesService.findOne.mockImplementation(async (query: { id?: string }) =>
+      query.id === sourceId
+        ? {
+            id: sourceId,
+            status: IngredientStatus.GENERATED,
+            s3Key: 'images/source.png',
+            metadata: { width: 1024, height: 768 },
+          }
+        : null,
+    );
+
+    await service.editImage(
+      buildUser(),
+      sourceId,
+      {
+        prompt: 'Change only the sign to OPEN',
+        brandId: RESOLVED_BRAND,
+        outputs: 2,
+        seed: 0,
+      },
+      buildRequest({ creditsConfig: { deferred: true, amount: 0 } }),
+    );
+
+    await vi.waitFor(() =>
+      expect(replicateService.generateTextToImage).toHaveBeenCalledTimes(1),
+    );
+    expect(sharedService.createMediaDocuments.mock.calls[0][1]).toMatchObject({
+      model: MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_4_5,
+      providerData: { imageEdit: { outputs: 2, seed: 0 } },
+    });
+  });
   it('resolves the editing model before admission and dispatches one URI output to the real endpoint', async () => {
     const {
       service,

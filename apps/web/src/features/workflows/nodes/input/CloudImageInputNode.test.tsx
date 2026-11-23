@@ -43,6 +43,13 @@ vi.mock('next/image', () => ({
   ),
 }));
 
+vi.mock('@/features/workflows/nodes/input/useWorkflowMediaPreviewUrl', () => ({
+  useWorkflowMediaPreviewUrl: (
+    _kind: string,
+    config: { resolvedUrl: string | null },
+  ) => config.resolvedUrl ?? undefined,
+}));
+
 vi.mock('@/features/workflows/nodes/input/useWorkflowMediaPicker', () => ({
   useWorkflowMediaPicker: () => mocks.openPicker,
 }));

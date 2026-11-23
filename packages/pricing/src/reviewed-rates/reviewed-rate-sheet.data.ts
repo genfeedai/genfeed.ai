@@ -44,6 +44,117 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
     ],
   },
   {
+    // kie model page (read 2026-11-23): "MiniMax H3 API is billed per second:
+    // 8 credits ($0.04) per second at 768P and 13 credits ($0.065) per second
+    // at 2K", 50% of the official price. Reference videos and images past the
+    // fifth are billed extra, so the offer adapter refuses reference input.
+    provider: 'kie',
+    endpoint: 'minimax-h3/text-to-video',
+    sourceUrl: 'https://kie.ai/minimax-h3',
+    verifiedAt: '2026-11-23',
+    rates: [
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.04,
+        when: { resolution: '768P' },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.065,
+        when: { resolution: '2K' },
+        isPerOutput: true,
+      },
+    ],
+  },
+  {
+    // kie model page (read 2026-11-23): "MiniMax H3 API is billed per second:
+    // 8 credits ($0.04) per second at 768P and 13 credits ($0.065) per second
+    // at 2K", 50% of the official price. Reference videos and images past the
+    // fifth are billed extra, so the offer adapter refuses reference input.
+    provider: 'kie',
+    endpoint: 'minimax-h3/image-to-video',
+    sourceUrl: 'https://kie.ai/minimax-h3',
+    verifiedAt: '2026-11-23',
+    rates: [
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.04,
+        when: { resolution: '768P' },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.065,
+        when: { resolution: '2K' },
+        isPerOutput: true,
+      },
+    ],
+  },
+  {
+    // kie model page (read 2026-11-23): "Wan3.0 Video is billed per second: 8
+    // credits per second at 480P ($0.04), 16 at 720P ($0.08) and 32 at 1080P
+    // ($0.16)", 20% under Alibaba Cloud's $0.05 / $0.10 / $0.20. Reference
+    // videos are billed extra, so the offer adapter never sends reference media.
+    provider: 'kie',
+    endpoint: 'wan/3-0-video',
+    sourceUrl: 'https://kie.ai/wan3.0-video',
+    verifiedAt: '2026-11-23',
+    rates: [
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.04,
+        when: { resolution: '480P' },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.08,
+        when: { resolution: '720P' },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.16,
+        when: { resolution: '1080P' },
+        isPerOutput: true,
+      },
+    ],
+  },
+  {
+    // kie model page (read 2026-11-23): "Seedance 2.0 Fast costs 11.7 credits
+    // ($0.059) per second at 480p and 24.8 credits ($0.124) at 720p" without
+    // video input; kie marks Seedance 2.0 prices as beta. Reference video is
+    // billed on input plus output seconds, so the offer adapter refuses it.
+    provider: 'kie',
+    endpoint: 'bytedance/seedance-2-fast',
+    sourceUrl: 'https://kie.ai/seedance-2-0',
+    verifiedAt: '2026-11-23',
+    rates: [
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.059,
+        when: { resolution: '480p' },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.124,
+        when: { resolution: '720p' },
+        isPerOutput: true,
+      },
+    ],
+  },
+  {
     // Higgsfield publishes no price page. These rates are the account's own
     // `POST /estimate/<endpoint>` answers (2026-11-15): per second of source
     // video, rounded up to a whole second, by output resolution.
@@ -759,6 +870,36 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
     verifiedAt: '2026-10-14T09:00:00.000Z',
   },
   {
+    endpoint: 'elevenlabs/eleven_v4_turbo',
+    provider: 'elevenlabs',
+    rates: [
+      {
+        component: 'output',
+        unit: 'character',
+        unitPriceUsd: 0.00004,
+        when: {},
+      },
+    ],
+    sourceUrl: 'https://elevenlabs.io/pricing/api',
+    verifiedAt: '2026-11-21T09:00:00.000Z',
+  },
+  {
+    // fal bills $0.03 per image up to 2,610,000 pixels and $0.0405 above. One
+    // rate at the upper band, so a 1K request is quoted slightly high, never low.
+    endpoint: 'bytedance/seedream/v5.5/text-to-image',
+    provider: 'fal',
+    rates: [
+      {
+        component: 'output',
+        unit: 'output',
+        unitPriceUsd: 0.0405,
+        when: {},
+      },
+    ],
+    sourceUrl: 'https://fal.ai/models/bytedance/seedream/v5.5/text-to-image',
+    verifiedAt: '2026-11-21T09:00:00.000Z',
+  },
+  {
     endpoint: 'fal-ai/elevenlabs/music',
     provider: 'fal',
     rates: [
@@ -1256,9 +1397,7 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
     verifiedAt: '2026-10-10T07:18:30.000Z',
   },
   {
-    // Priced by output resolution alone, not by look type. Genfeed renders
-    // Avatar 6 at 1080p, so the 2K rates ($0.145 and $0.0875 per second) are
-    // left out until a 2K option exists.
+    // Priced by output resolution alone, not by look type.
     endpoint: 'heygen/heygen-avatar-6',
     provider: 'heygen',
     rates: [
@@ -1268,6 +1407,15 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
         unitPriceUsd: 0.1,
         when: {
           resolution: '1080p',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.145,
+        when: {
+          resolution: '2k',
         },
         isPerOutput: true,
       },
@@ -1285,6 +1433,15 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
         unitPriceUsd: 0.05,
         when: {
           resolution: '1080p',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.0875,
+        when: {
+          resolution: '2k',
         },
         isPerOutput: true,
       },

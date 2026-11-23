@@ -12,6 +12,7 @@ import { AGENT_LIBRARY_TOOLS } from './library.tools';
 import { AGENT_ONBOARDING_TOOLS } from './onboarding.tools';
 import { AGENT_OPERATOR_TOOLS } from './operator.tools';
 import { AGENT_OTHER_TOOLS } from './other.tools';
+import { AGENT_PAGE_CONTROL_TOOLS } from './page-controls.tools';
 import { AGENT_PROACTIVE_TOOLS } from './proactive.tools';
 import { AGENT_SOCIAL_TOOLS } from './social.tools';
 import { AGENT_THREAD_TOOLS } from './thread.tools';
@@ -33,6 +34,7 @@ export const AGENT_ONLY_TOOLS: SourceTool[] = [
   ...AGENT_IDENTITY_TOOLS,
   ...AGENT_WORK_OBJECT_TOOLS,
   ...AGENT_UI_TOOLS,
+  ...AGENT_PAGE_CONTROL_TOOLS,
   ...AGENT_LIBRARY_TOOLS,
   ...AGENT_DASHBOARD_LAYOUT_TOOLS,
   ...AGENT_AGENT_CONTROL_TOOLS,

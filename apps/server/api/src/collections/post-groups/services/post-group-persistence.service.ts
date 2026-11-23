@@ -472,6 +472,23 @@ export class PostGroupPersistenceService {
   }
 
   /**
+   * How many groups hold `idempotencyKey` or `<idempotencyKey>:<n>`. Deleted
+   * groups count: they still occupy their unique-index entry.
+   */
+  countByIdempotencyKeyPrefix(
+    organizationId: string,
+    idempotencyKey: string,
+  ): Promise<number> {
+    // tenant-scope-ignore: counts holders of the [organizationId, idempotencyKey] unique index; a soft-deleted group still holds its key, so it must be counted.
+    return this.prisma.postGroup.count({
+      where: {
+        idempotencyKey: { startsWith: idempotencyKey },
+        organizationId,
+      },
+    });
+  }
+
+  /**
    * One page of the release list.
    *
    * A release's status, provenance and effective schedule are derived from its
@@ -798,11 +815,16 @@ export class PostGroupPersistenceService {
       where: scopedWhere(organizationId, { groupId, id: targetId }),
     })) as Parameters<typeof flattenPostIngredients>[0] | null;
 
-    if (!target) {
+    // A post in the group without a credential or platform (a thread child, a
+    // legacy row) is not a channel target. getTargets drops the same rows.
+    const flattened = target
+      ? (flattenPostIngredients(target) as unknown as SchedulerPostTargetRow)
+      : null;
+    if (!flattened || !isSchedulerPostTarget(flattened)) {
       throw new NotFoundException('ChannelTarget', targetId);
     }
 
-    return flattenPostIngredients(target) as unknown as SchedulerPostTarget;
+    return flattened;
   }
 
   async getTargets(

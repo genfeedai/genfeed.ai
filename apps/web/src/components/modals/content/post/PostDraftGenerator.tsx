@@ -6,6 +6,7 @@ import { PostsService } from '@genfeedai/services/content/posts.service';
 import { getJsonApiErrorMember } from '@genfeedai/services/core/json-api-error-message';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
+import { useResetOnChange } from '@hooks/utils/use-reset-on-change/use-reset-on-change';
 import GenerationFeedback from '@ui/generation-receipts/GenerationFeedback';
 import PromptBarComposer from '@ui/prompt-bars/components/shell/PromptBarComposer';
 import PromptBarSendButton from '@ui/prompt-bars/components/toolbar/PromptBarSendButton';
@@ -53,9 +54,10 @@ export default function PostDraftGenerator({
   const getService = useAuthedService(
     useCallback((token: string) => PostsService.getInstance(token), []),
   );
-  // biome-ignore lint/correctness/useExhaustiveDependencies: a brand switch invalidates in-flight generation.
+  useResetOnChange([brandId], () => setIsGenerating(false));
+  // use-effect-audit: ignore a brand switch invalidates in-flight generation
   useEffect(() => {
-    setIsGenerating(false);
+    void brandId;
     return () => {
       requestVersion.current += 1;
     };

@@ -6,6 +6,8 @@ import { ArrowRight } from 'lucide-react';
 
 interface ProfileSignupCtaProps {
   handle: string;
+  /** Replaces the default wording, for a spot too narrow for the referral line. */
+  label?: string;
   referralCode?: string | null;
 }
 
@@ -26,12 +28,15 @@ export function getProfileSignupHref(referralCode?: string | null): string {
  */
 export default function ProfileSignupCta({
   handle,
+  label: labelOverride,
   referralCode,
 }: ProfileSignupCtaProps) {
   const isReferral = Boolean(normalizeSignupReferralCode(referralCode));
-  const label = isReferral
-    ? `Join Genfeed with @${handle}'s referral`
-    : 'Sign up to Genfeed';
+  const label =
+    labelOverride ??
+    (isReferral
+      ? `Join Genfeed with @${handle}'s referral`
+      : 'Sign up to Genfeed');
 
   return (
     <ButtonTracked

@@ -214,7 +214,7 @@ describe('selectVisibleItems', () => {
       key: 'trend:3',
       platform: 'instagram',
       publishedAt: undefined,
-      source: 'owned',
+      source: 'imported',
       title: 'Brand carousel',
       velocity: 5,
       virality: 30,
@@ -249,7 +249,7 @@ describe('selectVisibleItems', () => {
   it('filters by source', () => {
     const state: DiscoveryDeskState = {
       ...createInitialDeskState(),
-      filters: { ...createInitialDeskState().filters, source: 'owned' },
+      filters: { ...createInitialDeskState().filters, source: 'imported' },
     };
 
     expect(selectVisibleItems(items, state).map((item) => item.key)).toEqual([

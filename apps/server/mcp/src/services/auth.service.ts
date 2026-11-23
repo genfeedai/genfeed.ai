@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { type McpAccessMode, parseMcpAccessMode } from '@genfeedai/actions';
 import {
+  ApiKeyScope,
   hasExplicitApiKeyAdminScope,
   MCP_ACTION_ORIGIN_PROOF_HEADER,
 } from '@genfeedai/contracts';
@@ -26,6 +27,9 @@ export interface AuthResult {
   organizationId?: string;
   role?: McpRole;
   isApiKey?: boolean;
+  hasBrandKitEditAccess?: boolean;
+  /** The user let this connection act in all of their organizations. */
+  canSwitchOrganizations?: boolean;
   error?: string;
   /**
    * The identity check itself failed (timeout, network, upstream 5xx), so the
@@ -142,15 +146,17 @@ export class AuthService {
         }
 
         const isApiKey = data.isApiKey === true || isUserIssuedApiKey;
+        const scopes: string[] = Array.isArray(data.scopes) ? data.scopes : [];
         const result: AuthResult = {
           accessMode: parseMcpAccessMode(data.mcpAccessMode),
+          canSwitchOrganizations: data.canSwitchOrganizations === true,
           isApiKey,
           organizationId,
-          role: this.resolveRole(
-            data.role,
-            isApiKey,
-            Array.isArray(data.scopes) ? data.scopes : [],
-          ),
+          hasBrandKitEditAccess:
+            !isApiKey ||
+            scopes.includes(ApiKeyScope.BRAND_KIT_WRITE) ||
+            scopes.includes(ApiKeyScope.BRANDS_WRITE),
+          role: this.resolveRole(data.role, isApiKey, scopes),
           userId,
           valid: true,
         };

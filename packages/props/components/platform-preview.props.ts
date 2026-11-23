@@ -76,7 +76,10 @@ export type PlatformPreviewProps = {
 
 export type CaptionPreviewState = {
   count: number;
+  /** Standard length the counter shows. */
   maxLength?: number;
+  /** Longest caption the channel accepts; `isOverLimit` and the cut apply past it. */
+  ceiling?: number;
   isOverLimit: boolean;
   previewText: string;
 };

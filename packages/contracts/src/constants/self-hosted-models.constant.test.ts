@@ -59,7 +59,7 @@ describe('SELF_HOSTED_MODELS', () => {
     expect(voice?.cost).toBe(10);
   });
 
-  it('carries Avatar IV as the default avatar engine and Avatar V as the ultra option', () => {
+  it('carries Avatar IV as the lower-cost avatar engine and Avatar V as the ultra option', () => {
     const avatarIv = SELF_HOSTED_MODELS.find(
       (model) => model.key === MODEL_KEYS.HEYGEN_AVATAR_IV,
     );
@@ -69,7 +69,7 @@ describe('SELF_HOSTED_MODELS', () => {
 
     expect(avatarIv).toMatchObject({
       category: ModelCategory.AVATAR,
-      isDefault: true,
+      isDefault: false,
       lifecycle: ModelLifecycle.RECOMMENDED,
       pricingType: PricingType.PER_SECOND,
       provider: ModelProvider.HEYGEN,
@@ -112,7 +112,7 @@ describe('SELF_HOSTED_MODELS', () => {
       category: ModelCategory.AVATAR,
       cost: 85,
       costPerUnit: 17,
-      isDefault: false,
+      isDefault: true,
       lifecycle: ModelLifecycle.RECOMMENDED,
       pricingType: PricingType.PER_SECOND,
       provider: ModelProvider.HEYGEN,
@@ -145,6 +145,7 @@ describe('SELF_HOSTED_MODELS', () => {
     [MODEL_KEYS.ELEVENLABS_MULTILINGUAL_V2, 0.08, 27, false],
     // $0.04 per 1,000 characters at 3.33x is 13.32, ceiled to 14 credits.
     [MODEL_KEYS.ELEVENLABS_FLASH_V2_5, 0.04, 14, false],
+    [MODEL_KEYS.ELEVENLABS_V4_TURBO, 0.04, 14, false],
   ])(
     'carries %s as a Recommended ElevenLabs voice row priced per 1,000 characters',
     (key, providerCostUsd, cost, isDefault) => {

@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
+import { waitRealTime } from '@e2e/utils/real-time';
 import {
   EditorProjectStatus,
   EditorTrackType,
@@ -1037,7 +1038,7 @@ test('requires decoded still responses and permits a loaded shot while a 404, 40
     await animatic.getByRole('button', { name: 'Pause', exact: true }).click();
     const clock = animatic.getByText(/\d\d:\d\d \/ \d\d:\d\d/);
     const paused = await clock.textContent();
-    await page.waitForTimeout(250);
+    await waitRealTime(250);
     await expect(clock).toHaveText(paused ?? '');
     failure = undefined;
     await animatic

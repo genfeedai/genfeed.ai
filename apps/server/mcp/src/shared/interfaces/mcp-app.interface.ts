@@ -76,6 +76,8 @@ interface McpResolveApprovalAction {
   approvalId: string;
   decision: 'approve' | 'decline';
   label: string;
+  /** The organization the approval was queued in; the view names it on the call. */
+  organization?: string;
 }
 
 /** A button on a card; the view runs it through the host. */
@@ -87,6 +89,8 @@ export interface McpCard {
   description: string;
   /** An article's full text, for the reader. */
   body?: string;
+  /** The organization a job card was created in, so polling reads it from there. */
+  organization?: string;
   kind: McpCardKind;
   status: string;
   platform: string;

@@ -8,7 +8,8 @@ import type {
 import { ButtonVariant, PostVisibility } from '@genfeedai/contracts';
 import { usePostingSets } from '@hooks/data/content/use-posting-sets/use-posting-sets';
 import { usePostingSignatures } from '@hooks/data/content/use-posting-signatures/use-posting-signatures';
-import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
+import ConnectedAccount from '@ui/display/connected-account/ConnectedAccount';
+import { getConnectedAccountText } from '@ui/display/connected-account/connected-account.util';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
@@ -40,7 +41,7 @@ import {
   readPublishTargetProposals,
   resolveEffectiveCaption,
   resolveLiveTargetBlockers,
-  targetAccountSuffix,
+  targetAccount,
   VISIBILITY_VALUES,
 } from './publish-post-card.helpers';
 import {
@@ -563,36 +564,21 @@ export function PublishPostCard({
                 ? (targetBlockers[target.id] ?? [])
                 : [];
               const warnings = target.warnings ?? [];
-              const accountSuffix = targetAccountSuffix(
-                target,
-                targetProposals,
-              );
+              const account = targetAccount(target);
               const settingFields = target.settingFields ?? [];
 
               return (
                 <div key={target.id} className="border border-border p-3">
                   <div className="mb-2 flex items-center justify-between gap-2">
                     <Toggle
-                      aria-label={
-                        accountSuffix
-                          ? `${target.label} ${accountSuffix}`
-                          : undefined
-                      }
+                      aria-label={getConnectedAccountText(account).primary}
                       onPressedChange={() => toggleTarget(target.id)}
                       pressed={isSelected}
                       size="sm"
                       variant="chip"
                     >
-                      <PlatformBadge
-                        className="bg-transparent p-0"
-                        platform={target.platform}
-                      />
+                      <ConnectedAccount account={account} size="xs" />
                     </Toggle>
-                    {accountSuffix ? (
-                      <span className="text-xs text-muted-foreground">
-                        {accountSuffix}
-                      </span>
-                    ) : null}
                   </div>
 
                   {isSelected ? (

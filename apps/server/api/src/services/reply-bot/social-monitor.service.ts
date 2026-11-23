@@ -268,7 +268,6 @@ export class SocialMonitorService {
     }
 
     return content.filter((item) => {
-      // Keyword include filter
       if (filters.keywords?.include && filters.keywords.include.length > 0) {
         const hasIncludeKeyword = filters.keywords.include.some(
           (keyword: string) =>
@@ -279,7 +278,6 @@ export class SocialMonitorService {
         }
       }
 
-      // Keyword exclude filter
       if (filters.keywords?.exclude && filters.keywords.exclude.length > 0) {
         const hasExcludeKeyword = filters.keywords.exclude.some(
           (keyword: string) =>
@@ -290,7 +288,6 @@ export class SocialMonitorService {
         }
       }
 
-      // Hashtag include filter
       if (filters.hashtags?.include && filters.hashtags.include.length > 0) {
         const hasIncludeHashtag = filters.hashtags.include.some(
           (hashtag: string) =>
@@ -301,7 +298,6 @@ export class SocialMonitorService {
         }
       }
 
-      // Hashtag exclude filter
       if (filters.hashtags?.exclude && filters.hashtags.exclude.length > 0) {
         const hasExcludeHashtag = filters.hashtags.exclude.some(
           (hashtag: string) =>

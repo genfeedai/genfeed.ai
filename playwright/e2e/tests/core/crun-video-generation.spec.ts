@@ -5,7 +5,7 @@ import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { ISetting } from '@genfeedai/contracts/interfaces';
 import type { CrunVideoQuoteRequest } from '@genfeedai/contracts/interfaces/billing/crun-generation-quote.interface';
 import type { CrunInputControls } from '@genfeedai/contracts/interfaces/content/crun-contract.interface';
-import type { Page } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
 import { createPlaywrightMockApiRoutePattern } from '../../config/environment';
 import { mockActiveSubscription } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
@@ -466,36 +466,55 @@ async function expectSubmitTooltip(page: Page, statusName: string) {
   await generate.press('Escape');
   await expect(tooltip).toHaveCount(0);
 }
-async function selectValue(page: Page, label: string, value: string) {
-  await page.getByRole('combobox', { name: label, exact: true }).click();
+async function selectValue(page: Page, control: Locator, value: string) {
+  await control.click();
   await page.getByRole('option', { name: value, exact: true }).click();
 }
 
-async function expectPlayableOwnedVideo(
+async function openAndPlayOwnedVideo(
   page: Page,
   ownedId: string,
   ownedUrl: string,
 ) {
   await page.reload();
-  const card = page.getByTestId(`studio-asset-${ownedId}`);
-  await expect(card).toBeVisible();
+  const card = page
+    .getByTestId('studio-playground-results')
+    .getByTestId(`studio-asset-${ownedId}`);
+  await expect(
+    card,
+    `Owned result ${ownedId} should appear after reload`,
+  ).toBeVisible();
   await card.click();
+  await expect(card).toHaveAttribute('data-selected', 'true');
   const video = page
     .getByTestId('studio-playground-inspector')
     .locator('video');
-  await expect(video).toHaveAttribute('src', ownedUrl);
+  await expect(
+    video,
+    `Inspector should render the MP4 for ${ownedId}`,
+  ).toHaveAttribute('src', ownedUrl);
   await expect
-    .poll(() =>
-      video.evaluate(
-        (element) =>
-          element instanceof HTMLVideoElement &&
-          element.readyState >= HTMLMediaElement.HAVE_METADATA &&
-          Number.isFinite(element.duration) &&
-          element.duration > 0 &&
-          element.currentSrc,
-      ),
+    .poll(
+      () =>
+        video.evaluate((element) => {
+          if (!(element instanceof HTMLVideoElement))
+            throw new Error('Expected video');
+          return {
+            currentSrc: element.currentSrc,
+            hasMetadata: element.readyState >= HTMLMediaElement.HAVE_METADATA,
+            hasDuration:
+              Number.isFinite(element.duration) && element.duration > 0,
+            mediaError: element.error?.code ?? null,
+          };
+        }),
+      { message: `Owned MP4 ${ownedId} should load its media metadata` },
     )
-    .toBe(ownedUrl);
+    .toEqual({
+      currentSrc: ownedUrl,
+      hasMetadata: true,
+      hasDuration: true,
+      mediaError: null,
+    });
   await video.evaluate(async (element) => {
     if (!(element instanceof HTMLVideoElement))
       throw new Error('Expected video');
@@ -503,17 +522,14 @@ async function expectPlayableOwnedVideo(
     await element.play();
   });
   await expect
-    .poll(() =>
-      video.evaluate(
-        (element) =>
-          element instanceof HTMLVideoElement && element.currentTime > 0,
-      ),
+    .poll(
+      () =>
+        video.evaluate((element) =>
+          element instanceof HTMLVideoElement ? element.currentTime : 0,
+        ),
+      { message: `Owned MP4 ${ownedId} should advance its playback time` },
     )
-    .toBe(true);
-  await page.reload();
-  await expect(card).toBeVisible();
-  await card.click();
-  await expect(video).toHaveAttribute('src', ownedUrl);
+    .toBeGreaterThan(0);
 }
 for (const key of [klingKey, veoKey]) {
   test(`${key} quotes exact controls and reopens playable owned MP4 without another consume`, async ({
@@ -521,13 +537,17 @@ for (const key of [klingKey, veoKey]) {
   }) => {
     const fixture = await installFixture(page, key);
     await openOutputControls(page);
-    const durationControl = page.getByRole('combobox', {
+    const outputMenu = page.getByRole('menu', {
+      name: 'Configure Output',
+      exact: true,
+    });
+    const durationControl = outputMenu.getByRole('combobox', {
       name: 'Duration',
       exact: true,
     });
     await expect(durationControl).toHaveCount(1);
     if (key === klingKey) {
-      await selectValue(page, 'Duration', '10s');
+      await selectValue(page, durationControl, '10s');
       await page
         .getByRole('textbox', { name: 'Negative prompt', exact: true })
         .fill(' blur ');
@@ -539,7 +559,21 @@ for (const key of [klingKey, veoKey]) {
       await expect(page.getByRole('option', { name: /4s/ })).toBeDisabled();
       await expect(page.getByRole('option', { name: /6s/ })).toBeDisabled();
       await page.keyboard.press('Escape');
-      await selectValue(page, 'Resolution', '4k');
+      await expect(
+        outputMenu,
+        'Output menu should remain open after Escape closes the Veo Duration list',
+      ).toBeVisible();
+      await expect(durationControl).toHaveAttribute('aria-expanded', 'false');
+      await expect(durationControl).toBeFocused();
+      const resolutionControl = outputMenu.getByRole('combobox', {
+        name: 'Resolution',
+        exact: true,
+      });
+      await expect(
+        resolutionControl,
+        'Veo Resolution should be enabled inside the open Output menu',
+      ).toBeEnabled();
+      await selectValue(page, resolutionControl, '4k');
       await page
         .getByRole('checkbox', { name: 'Translate prompt', exact: true })
         .uncheck();
@@ -550,7 +584,11 @@ for (const key of [klingKey, veoKey]) {
         }),
       ).toHaveCount(0);
     }
-    await selectValue(page, 'Aspect ratio', '9:16');
+    await selectValue(
+      page,
+      outputMenu.getByRole('combobox', { name: 'Aspect ratio', exact: true }),
+      '9:16',
+    );
     await closeGenerationSetup(page);
     await expectSubmitTooltip(page, '3 credits');
     const generate = fixture.composer.getByRole('button', {
@@ -582,7 +620,10 @@ for (const key of [klingKey, veoKey]) {
       'isAudioEnabled',
     ])
       expect(fixture.consumes[0]).not.toHaveProperty(field);
-    await expectPlayableOwnedVideo(page, fixture.ownedId, fixture.ownedUrl);
+    await test.step('Open and play the generated result', () =>
+      openAndPlayOwnedVideo(page, fixture.ownedId, fixture.ownedUrl));
+    await test.step('Reopen and play the same owned result after reload', () =>
+      openAndPlayOwnedVideo(page, fixture.ownedId, fixture.ownedUrl));
     expect(fixture.consumes).toHaveLength(1);
     await expectNoErrorOverlay(page);
     await assertNoErrorBoundaryFallback(page, page.url());

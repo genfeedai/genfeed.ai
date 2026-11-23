@@ -22,6 +22,7 @@ import {
 } from '@/features/workflows/nodes/input/media-picker';
 import { UrlInputSection } from '@/features/workflows/nodes/input/UrlInputSection';
 import { useWorkflowMediaPicker } from '@/features/workflows/nodes/input/useWorkflowMediaPicker';
+import { useWorkflowMediaPreviewUrl } from '@/features/workflows/nodes/input/useWorkflowMediaPreviewUrl';
 import { VideoIcon } from '@/features/workflows/nodes/input/VideoIcon';
 
 const VIDEO_SOURCE_OPTIONS: Array<{
@@ -41,6 +42,8 @@ function CloudVideoInputNodeComponent(props: NodeProps): React.JSX.Element {
     () => getWorkflowMediaConfig(data, 'video'),
     [data],
   );
+
+  const previewUrl = useWorkflowMediaPreviewUrl('video', mediaConfig);
 
   const applyConfig = useCallback(
     (nextConfig: ReturnType<typeof getWorkflowMediaConfig>) => {
@@ -143,7 +146,7 @@ function CloudVideoInputNodeComponent(props: NodeProps): React.JSX.Element {
           </div>
         )}
 
-        {mediaConfig.resolvedUrl ? (
+        {previewUrl ? (
           <div className="space-y-2">
             <div
               className={
@@ -152,7 +155,7 @@ function CloudVideoInputNodeComponent(props: NodeProps): React.JSX.Element {
             >
               <VideoPlayer
                 ariaLabel="Cloud video preview"
-                src={mediaConfig.resolvedUrl}
+                src={previewUrl}
                 className="h-28 w-full"
                 config={{
                   preload: 'metadata',

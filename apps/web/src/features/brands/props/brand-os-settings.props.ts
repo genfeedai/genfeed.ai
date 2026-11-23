@@ -6,6 +6,7 @@ import type {
   IBrandKitDraft,
   IBrandKitDraftField,
   IBrandKitFieldOwner,
+  IBrandOsExportState,
   IBrandOsRevision,
   IBrandPublishPolicy,
 } from '@genfeedai/contracts/interfaces';
@@ -33,7 +34,6 @@ export interface BrandOsGuideReadiness {
 export interface BrandOsSettingsCardProps {
   brandId: string;
   refreshKey?: number;
-  fieldGroups?: readonly BrandKitFieldGroup[];
   renderWorkspace?: (workspace: BrandKitRevisionWorkspace) => ReactNode;
   isAutoSaveEnabled?: boolean;
   onRevisionSaved?: (revision: IBrandOsRevision) => void;
@@ -46,7 +46,8 @@ export interface BrandOsSettingsCardProps {
 export interface BrandOsRevisionFieldsProps {
   content: IBrandKitDraft;
   groups?: readonly BrandKitFieldGroup[];
-  showDecisions?: boolean;
+  /** `decisions` lists every field with an Include checkbox; `inline` shows each field as an editable row. */
+  variant?: 'decisions' | 'inline';
   isDisabled: boolean;
   onFieldChange: (
     key: BrandKitFieldKey,
@@ -93,8 +94,16 @@ export interface BrandOsPolicyListFieldProps {
 export interface BrandKitRevisionWorkspace {
   content: IBrandKitDraft | null;
   approvedContent: IBrandKitDraft | null;
-  editor: ReactNode;
+  /** The revision's fields for the given groups, as editable rows. */
+  renderFields: (groups: readonly BrandKitFieldGroup[]) => ReactNode;
+  /** Approval: what changed, the saved rules to acknowledge, save and approve. */
   review: ReactNode;
+  /** Revision picker, reload, and the current approved identity preview. */
+  history: ReactNode;
+  /** The design.md download, public link, publish and revoke. */
+  share: ReactNode;
+  /** Publishing policy for the brand's agent; null until a revision is loaded. */
+  policy: ReactNode;
   isDirty: boolean;
   isLoading: boolean;
   isSaveDisabled: boolean;
@@ -104,4 +113,20 @@ export interface BrandKitRevisionWorkspace {
   onSave: () => void;
   onVideoChange: (video: BrandVideoRulesV1) => void;
   onFinishingChange: (finishing: BrandVideoFinishingV1) => void;
+}
+
+export interface BrandOsExportPanelProps {
+  exportState: IBrandOsExportState | null;
+  exportError: string | null;
+  /** Version of the approved revision the export was built from. */
+  currentVersion: number | undefined;
+  isPublicationOutdated: boolean;
+  canManage: boolean;
+  isBusy: boolean;
+  isLoading: boolean;
+  isDirty: boolean;
+  onRetry: () => void;
+  onDownload: () => void;
+  onPublish: (revisionId: string) => void;
+  onRevoke: () => void;
 }

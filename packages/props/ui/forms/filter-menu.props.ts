@@ -62,10 +62,16 @@ export interface FilterMenuProps {
   className?: string;
   /** Sits inside a `SearchField`'s trailing edge: a compact trigger. */
   isAttached?: boolean;
-  /**
-   * Adds the admin organization and brand facets (kept in the URL as
-   * `organization` and `brand`) after the page's own facets. Set it on the one
-   * Filters menu of a platform-wide admin list.
-   */
-  hasAdminScope?: boolean;
+}
+
+/** `FilterMenuProps` with every text filled in; what the menu renders. */
+export interface SharedFilterMenuProps
+  extends Omit<
+    FilterMenuProps,
+    'allLabel' | 'clearLabel' | 'getActiveCountLabel' | 'label'
+  > {
+  allLabel: string;
+  clearLabel: string;
+  getActiveCountLabel: (count: number) => string;
+  label: string;
 }

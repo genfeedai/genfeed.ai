@@ -1,14 +1,10 @@
 import { randomUUID } from 'node:crypto';
+import { isIP } from 'node:net';
 import { isDisposableEmail } from '@api/auth/shared/signup-email-policy.util';
 import { type DashOptions, dash } from '@better-auth/infra';
 import { PlatformRole } from '@genfeedai/contracts';
 import type { IBetterAuthJwtUserPayloadSource } from '@genfeedai/contracts/interfaces';
-import {
-  APIError,
-  type BetterAuthOptions,
-  betterAuth,
-  type RateLimit,
-} from 'better-auth';
+import { APIError, type BetterAuthOptions, betterAuth } from 'better-auth';
 import { prismaAdapter } from 'better-auth/adapters/prisma';
 import { createAuthMiddleware } from 'better-auth/api';
 import {
@@ -29,6 +25,7 @@ import type {
   ICreateBetterAuthOptions,
 } from './better-auth.types';
 import { isPlatformSuperAdmin } from './better-auth-access.util';
+import { betterAuthUserAdditionalFields } from './better-auth-user-fields';
 import { desktopSession } from './plugins/desktop-session.plugin';
 
 const NON_ALPHANUMERIC_RUNS_PATTERN = /[^a-z0-9]+/g;
@@ -161,105 +158,40 @@ export function buildBetterAuthAdvancedOptions({
   };
 }
 
-/**
- * A parsed counter is only usable if both numeric fields survived the round
- * trip. Better Auth's `decideConsume` does raw arithmetic on them
- * (`now - lastRequest > windowMs`, `count >= max`), and `undefined`/string
- * operands poison that arithmetic with `NaN` in both directions: the
- * window-expiry reset can never fire (permanent 429 for the key's whole TTL),
- * or `count` becomes `NaN` and never reaches `max` (throttling silently off).
- */
-function isStoredRateLimit(value: unknown): value is RateLimit {
-  if (typeof value !== 'object' || value === null) {
-    return false;
-  }
-  const candidate = value as Partial<Record<keyof RateLimit, unknown>>;
-  return (
-    Number.isFinite(candidate.count) && Number.isFinite(candidate.lastRequest)
-  );
-}
+const RATE_LIMIT_FAIL_OPEN = { allowed: true, retryAfter: null } as const;
 
 /**
- * Adapt the shared Redis KV into Better Auth's `rateLimit.customStorage` shape
- * so all API instances share one counter window (per-process memory would let
- * the effective limit scale with instance count). Reads/writes are JSON.
+ * Adapt the shared Redis counter into Better Auth's `rateLimit.customStorage`
+ * shape so all API instances share one counter window (per-process memory would
+ * let the effective limit scale with instance count).
  *
  * Better Auth 1.7 asks custom storage for one `consume` step per request: record
- * the request and report whether it is allowed. The step here is read, decide,
- * write over the shared KV, so it is no more atomic than the get/set pair it
- * replaces (see the follow-up for a Redis `INCR` store).
+ * the request and report whether it is allowed. The store runs that step as one
+ * atomic script, so concurrent requests are each counted.
  *
  * This layer fails open independently of the injected store (#738, criterion 7).
  * `buildRedisRateLimitStore` already swallows Redis errors, but Better Auth
  * awaits `customStorage` directly on the `/auth/*` hot path, so *any* rejection
- * here — a corrupt value, a foreign store implementation, a serialization
- * failure — would surface as a 500 on sign-in. An unavailable counter must cost
+ * here would surface as a 500 on sign-in. An unavailable counter must cost
  * rate limiting, never authentication.
  */
 export function buildRateLimitStorage(
   store: IBetterAuthRateLimitStore,
 ): IBetterAuthRateLimitStorage {
-  async function read(key: string): Promise<RateLimit | null> {
-    let raw: string | null;
-    try {
-      raw = await store.get(`${RATE_LIMIT_KEY_PREFIX}${key}`);
-    } catch {
-      return null;
-    }
-    if (!raw) {
-      return null;
-    }
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(raw);
-    } catch {
-      // Corrupt or foreign value at this key (e.g. another app sharing the
-      // Redis instance). Fail open — treat it as no existing window rather
-      // than letting a SyntaxError surface from the rate limiter as a 500.
-      return null;
-    }
-    // Parseable but not a counter — same threat, one step further in. Discard
-    // it so the next write rebuilds a clean window and throttling resumes.
-    return isStoredRateLimit(parsed) ? parsed : null;
-  }
-
-  async function write(key: string, value: RateLimit): Promise<void> {
-    try {
-      await store.set(
-        `${RATE_LIMIT_KEY_PREFIX}${key}`,
-        JSON.stringify(value),
-        RATE_LIMIT_TTL_SECONDS,
-      );
-    } catch {
-      // Dropping the write loses the window, which lets the next request
-      // through. That is the correct trade: a 500 here would block sign-in.
-    }
-  }
-
   return {
     consume: async (key, rule) => {
-      const now = Date.now();
-      const windowMs = rule.window * 1_000;
-      const current = await read(key);
-
-      if (!current || now - current.lastRequest >= windowMs) {
-        await write(key, { count: 1, key, lastRequest: now });
-        return { allowed: true, retryAfter: null };
+      try {
+        const decision = await store.consume(`${RATE_LIMIT_KEY_PREFIX}${key}`, {
+          identity: key,
+          max: rule.max,
+          now: Date.now(),
+          ttlSeconds: RATE_LIMIT_TTL_SECONDS,
+          windowMs: rule.window * 1_000,
+        });
+        return decision ?? RATE_LIMIT_FAIL_OPEN;
+      } catch {
+        return RATE_LIMIT_FAIL_OPEN;
       }
-
-      if (current.count >= rule.max) {
-        return {
-          allowed: false,
-          retryAfter: Math.ceil((current.lastRequest + windowMs - now) / 1_000),
-        };
-      }
-
-      await write(key, {
-        ...current,
-        count: current.count + 1,
-        lastRequest: now,
-      });
-      return { allowed: true, retryAfter: null };
     },
   };
 }
@@ -607,16 +539,19 @@ export function buildBetterAuthUserDatabaseHooks(
               message: DISPOSABLE_EMAIL_MESSAGE,
             });
           }
-          if (typed.handle) {
-            return { data: user };
-          }
+          // The Express auth mount pins this header to its trusted client address.
+          const ipAddress = context?.request?.headers.get('x-forwarded-for');
           return {
             data: {
               ...user,
-              handle: generateHandle({
-                email: typed.email,
-                name: typed.name,
-              }),
+              handle: typed.handle || generateHandle(typed),
+              ...(context?.path !== ADMIN_CREATE_USER_PATH &&
+              ipAddress &&
+              ipAddress.length <= 45 &&
+              !ipAddress.includes('%') &&
+              isIP(ipAddress)
+                ? { signupIpAddress: ipAddress }
+                : {}),
             },
           };
         },
@@ -926,18 +861,7 @@ export function createBetterAuthInstance(options: ICreateBetterAuthOptions) {
     user: {
       // Better Auth's `image` field maps onto the existing `User.avatar` column.
       fields: { image: 'avatar' },
-      // `handle` is a required + unique column that Better Auth does not know
-      // about, so it strips the value injected by the `create.before` hook
-      // below before the adapter write — every first-time sign-up then fails
-      // with `Argument 'handle' is missing`. Declaring it as a known
-      // (non-input) field preserves the hook-supplied value through to Prisma.
-      additionalFields: {
-        handle: {
-          input: false,
-          required: false,
-          type: 'string',
-        },
-      },
+      additionalFields: betterAuthUserAdditionalFields,
     },
     databaseHooks: buildBetterAuthUserDatabaseHooks(
       onUserCreated,
@@ -953,6 +877,7 @@ export function createBetterAuthInstance(options: ICreateBetterAuthOptions) {
           sendMagicLink,
           signupGate,
           storeToken:
+            // biome-ignore lint/style/noProcessEnv: factory builds the auth plugin set at import time, outside DI
             process.env.NODE_ENV === 'development' ? 'plain' : 'hashed',
         }),
       ),

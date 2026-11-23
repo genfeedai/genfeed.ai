@@ -13,6 +13,7 @@ describe('social inbox enums', () => {
   it('defines the shipped wire values for every state family', () => {
     expect(Object.values(SocialInboxPlatform)).toEqual([
       'youtube',
+      'facebook',
       'instagram',
       'tiktok',
       'twitter',

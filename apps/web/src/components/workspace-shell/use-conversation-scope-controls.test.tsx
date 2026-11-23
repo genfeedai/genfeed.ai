@@ -117,6 +117,7 @@ vi.mock('@ui/primitives/button', () => ({
 vi.mock('@ui/primitives/dialog', () => ({
   Dialog: ({ children, open }: { children: ReactNode; open: boolean }) =>
     open ? <div>{children}</div> : null,
+  DialogBody: ({ children }: { children: ReactNode }) => <div>{children}</div>,
   DialogContent: ({ children }: { children: ReactNode }) => (
     <div>{children}</div>
   ),

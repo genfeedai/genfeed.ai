@@ -951,12 +951,9 @@ describe('useAgentThreadList', () => {
       window.dispatchEvent(new Event('agent:threads:refresh'));
     });
 
-    await act(
-      () =>
-        new Promise((resolve) => {
-          setTimeout(resolve, 200);
-        }),
-    );
+    await act(async () => {
+      await new Promise((resolve) => setImmediate(resolve));
+    });
     expect(getThreads).toHaveBeenCalledTimes(1);
 
     await act(async () => {

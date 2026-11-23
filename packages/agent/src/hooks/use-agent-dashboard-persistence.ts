@@ -58,6 +58,7 @@ export function useAgentDashboardPersistence({
   const lastPersistedSnapshotRef = useRef<string | null>(null);
   const usedLocalFallbackRef = useRef(false);
 
+  // use-effect-audit: ignore hydrates the dashboard store from local storage
   useEffect(() => {
     if (disabled || hasResolvedPersistenceRef.current || currentUser) {
       return;
@@ -73,6 +74,7 @@ export function useAgentDashboardPersistence({
 
   // Hydrates store from user prefs / localStorage — parent owns fetch; this
   // bridge mirrors external store into zustand once per mount.
+  // use-effect-audit: ignore hydrates the dashboard store from user preferences
   useEffect(() => {
     if (disabled || hasResolvedPersistenceRef.current || !currentUser) {
       return;

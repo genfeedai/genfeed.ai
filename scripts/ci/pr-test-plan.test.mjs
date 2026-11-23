@@ -15,6 +15,7 @@ import {
   parseVitestList,
   readChangedFiles,
   selectShardCount,
+  TARGET_SHARD_SECONDS,
 } from './pr-test-plan.mjs';
 import { selectShardArguments } from './test-shard-selection.mjs';
 import { allPackageTestTasks } from './workspace-test-matrix.mjs';
@@ -135,6 +136,16 @@ test('selects bounded adaptive shard counts', () => {
   assert.equal(selectShardCount(737), 4);
   // The affected tier never exceeds four shards, however many files change.
   assert.equal(selectShardCount(5000), 4);
+});
+
+test('sizes shards to the recorded seconds when they are known', () => {
+  assert.equal(selectShardCount(0, 500), 0);
+  assert.equal(selectShardCount(300, 0), 1);
+  assert.equal(selectShardCount(300, TARGET_SHARD_SECONDS), 1);
+  assert.equal(selectShardCount(10, TARGET_SHARD_SECONDS + 1), 2);
+  assert.equal(selectShardCount(10, 2 * TARGET_SHARD_SECONDS), 2);
+  assert.equal(selectShardCount(10, 2 * TARGET_SHARD_SECONDS + 1), 4);
+  assert.equal(selectShardCount(10, 50 * TARGET_SHARD_SECONDS), 4);
 });
 
 test('a full-suite escalation shards the app suite four ways and the API suite eight ways', () => {
@@ -264,6 +275,81 @@ test('gives every planned file to exactly one shard', () => {
   assert.deepEqual(assignShardFiles([], 0), []);
 });
 
+test('fills the lightest shard with the heaviest file left', () => {
+  const weights = new Map([
+    ['a.test.ts', 100],
+    ['b.test.ts', 60],
+    ['c.test.ts', 50],
+    ['d.test.ts', 40],
+    ['e.test.ts', 30],
+    ['f.test.ts', 20],
+  ]);
+  // a: 100|0, b: 100|60, c: 100|110, d: 140|110, e: 140|140, f: 160|140
+  assert.deepEqual(
+    assignShardFiles([...weights.keys()].reverse(), 2, weights),
+    [
+      ['a.test.ts', 'd.test.ts', 'f.test.ts'],
+      ['b.test.ts', 'c.test.ts', 'e.test.ts'],
+    ],
+  );
+});
+
+test('deals files of equal weight the way an even split would', () => {
+  assert.deepEqual(
+    assignShardFiles(
+      ['e.test.ts', 'a.test.ts', 'c.test.ts', 'b.test.ts', 'd.test.ts'],
+      2,
+      new Map(),
+    ),
+    assignShardFiles(
+      ['e.test.ts', 'a.test.ts', 'c.test.ts', 'b.test.ts', 'd.test.ts'],
+      2,
+    ),
+  );
+});
+
+for (const [fileCount, shardCount] of [
+  [1, 1],
+  [7, 2],
+  [60, 4],
+  [401, 4],
+  [3, 4],
+]) {
+  test(`${fileCount} weighted files over ${shardCount} shards run once each`, () => {
+    // Weights from a fixed spread: a few slow files among many quick ones.
+    const files = Array.from(
+      { length: fileCount },
+      (_, index) => `apps/web/src/f-${String(index).padStart(3, '0')}.test.ts`,
+    );
+    const weights = new Map(
+      files.map((file, index) => [file, 0.2 + ((index * 37) % 11) ** 2]),
+    );
+    const shards = assignShardFiles(files, shardCount, weights);
+
+    assert.equal(shards.length, shardCount);
+    assert.deepEqual(shards.flat().sort(), files);
+  });
+}
+
+test('weighted shards end within one file of each other', () => {
+  const files = Array.from(
+    { length: 401 },
+    (_, index) => `apps/web/src/f-${String(index).padStart(3, '0')}.test.ts`,
+  );
+  const weights = new Map(
+    files.map((file, index) => [file, 0.2 + ((index * 37) % 11) ** 2]),
+  );
+  const heaviest = Math.max(...weights.values());
+  const loads = assignShardFiles(files, 4, weights).map((shard) =>
+    shard.reduce((sum, file) => sum + weights.get(file), 0),
+  );
+
+  assert.ok(
+    Math.max(...loads) - Math.min(...loads) <= heaviest,
+    `loads ${loads.join(', ')} differ by more than ${heaviest}`,
+  );
+});
+
 test('writes shard file lists relative to the suite root', () => {
   assert.deepEqual(
     createShardFileMatrix(
@@ -350,6 +436,79 @@ test('an affected plan gives each app and API shard its own files', () => {
       },
     ],
   });
+});
+
+test('a plan with recorded timings sizes and fills its shards by them', () => {
+  const appTests = Array.from(
+    { length: 6 },
+    (_, index) => `apps/web/src/app-${index}.test.tsx`,
+  );
+  const timings = {
+    app: new Map(
+      appTests.map((file, index) => [file, [200, 100, 50, 50, 40, 30][index]]),
+    ),
+  };
+  const plan = createPrTestPlan({
+    base: 'base-sha',
+    changedFiles: ['packages/contracts/src/interfaces/index.ts'],
+    appTests,
+    timings,
+  });
+
+  // 470 s of tests at 180 s a shard is three shards, rounded up to four.
+  assert.equal(plan.appTests.shards, 4);
+  assert.deepEqual(plan.appTests.timing, {
+    isTimed: true,
+    estimatedSeconds: 470,
+    shardSeconds: [200, 100, 90, 80],
+  });
+  assert.deepEqual(
+    plan.appTests.matrix.include.map(({ files }) => files),
+    [
+      'src/app-0.test.tsx',
+      'src/app-1.test.tsx',
+      'src/app-2.test.tsx\nsrc/app-4.test.tsx',
+      'src/app-3.test.tsx\nsrc/app-5.test.tsx',
+    ],
+  );
+});
+
+test('a plan without usable timings splits evenly by file count', () => {
+  const appTests = Array.from(
+    { length: 76 },
+    (_, index) => `apps/web/src/app-${String(index).padStart(2, '0')}.test.tsx`,
+  );
+  const plan = createPrTestPlan({
+    base: 'base-sha',
+    changedFiles: ['packages/contracts/src/interfaces/index.ts'],
+    appTests,
+    // Records of other files cover too little of the plan to weigh it.
+    timings: { app: new Map([['apps/web/src/other.test.tsx', 900]]) },
+  });
+
+  assert.equal(plan.appTests.shards, 2);
+  assert.deepEqual(plan.appTests.timing, {
+    isTimed: false,
+    estimatedSeconds: 0,
+    shardSeconds: [],
+  });
+  assert.deepEqual(
+    plan.appTests.matrix.include.map(({ count }) => count),
+    [38, 38],
+  );
+});
+
+test('a full-suite escalation ignores recorded timings', () => {
+  const plan = createPrTestPlan({
+    base: 'base-sha',
+    changedFiles: ['bun.lock'],
+    appTests: ['apps/web/src/a.test.tsx'],
+    timings: { app: new Map([['apps/web/src/a.test.tsx', 900]]) },
+  });
+
+  assert.equal(plan.appTests.shards, 4);
+  assert.deepEqual(plan.appTests.matrix, createShardMatrix(4));
+  assert.equal(plan.appTests.timing.isTimed, false);
 });
 
 test('a shard resolves its planned list back to the planned files', () => {
@@ -563,14 +722,10 @@ test('keeps the workflow wired to the planner matrices and outputs', () => {
     /pr-test-plan\.mjs --event "\$\{\{ github\.event_name \}\}" --base "\$CI_BASE_SHA"/,
     'the planner must diff against CI_BASE_SHA',
   );
-  assert.match(
-    workflow,
-    /matrix: \$\{\{ fromJSON\(needs\.plan\.outputs\.app_matrix\) \}\}/,
-  );
-  assert.match(
-    workflow,
-    /matrix: \$\{\{ fromJSON\(needs\.plan\.outputs\.api_matrix\) \}\}/,
-  );
+  // The shard jobs start before the plan exists, so their matrices are the
+  // widest the planner can produce, and shard N runs the plan's Nth entry.
+  assert.match(workflow, /kind: app\n\s+slot: \$\{\{ matrix\.shard \}\}/);
+  assert.match(workflow, /kind: api\n\s+slot: \$\{\{ matrix\.shard \}\}/);
   // Each shard takes its selection from the plan: the files the plan gave it
   // on the affected tier, the whole suite split by Vitest on the full tier.
   const shardSelections = workflow.match(
@@ -584,11 +739,15 @@ test('keeps the workflow wired to the planner matrices and outputs', () => {
   assert.match(workflow, /SHARD_ROOT: apps\/web\n/);
   assert.match(workflow, /SHARD_ROOT: apps\/server\/api\n/);
   assert.equal(
-    workflow.match(/SHARD_FILES: \$\{\{ matrix\.files \}\}/g)?.length,
+    workflow.match(
+      /SHARD_FILES: \$\{\{ fromJSON\(steps\.start\.outputs\.leg\)\.files \}\}/g,
+    )?.length,
     2,
   );
   assert.equal(
-    workflow.match(/SHARD_FILE_COUNT: \$\{\{ matrix\.count \}\}/g)?.length,
+    workflow.match(
+      /SHARD_FILE_COUNT: \$\{\{ fromJSON\(steps\.start\.outputs\.leg\)\.count \}\}/g,
+    )?.length,
     2,
   );
   // No shard resolves the changed graph or the Vitest shard inline any more.
@@ -598,25 +757,25 @@ test('keeps the workflow wired to the planner matrices and outputs', () => {
     workflow,
     /name: Upload pull-request test plan[\s\S]*?actions\/upload-artifact@[0-9a-f]{40} # v7\.\d+\.\d+/,
   );
-  // The planner owns workspace filters; the job gates on its output alone.
-  assert.match(workflow, /if: needs\.plan\.outputs\.workspace_tests == 'true'/);
+  // The planner owns workspace filters; the job takes them from the plan leg
+  // its slot names.
+  assert.match(workflow, /kind: workspaces\n\s+slot: \$\{\{ matrix\.slot \}\}/);
+  assert.match(workflow, /name: Test Workspaces \(\$\{\{ matrix\.name \}\}\)/);
   assert.match(
     workflow,
-    /matrix: \$\{\{ fromJSON\(needs\.plan\.outputs\.workspace_matrix\) \}\}/,
+    /WORKSPACE_FILTERS: \$\{\{ fromJSON\(steps\.start\.outputs\.leg\)\.filters \}\}/,
   );
-  assert.match(workflow, /name: Test Workspaces \(\$\{\{ matrix\.name \}\}\)/);
-  assert.match(workflow, /WORKSPACE_FILTERS: \$\{\{ matrix\.filters \}\}/);
   // The diff base is the merge commit's first parent, resolved once by Plan;
   // the payload's `pull_request.base.sha` can be stale and over-escalate.
   assert.match(workflow, /base="\$\(git rev-parse HEAD\^1\)"/);
   assert.doesNotMatch(workflow, /github\.event\.pull_request\.base\.sha/);
   const baseConsumers = workflow.match(
-    /^ {6}CI_BASE_SHA: \$\{\{ needs\.plan\.outputs\.base \}\}$/gm,
+    /^ {10}CI_BASE_SHA: \$\{\{ fromJSON\(steps\.start\.outputs\.plan\)\.base \}\}$/gm,
   );
   assert.equal(
     baseConsumers?.length,
-    4,
-    'workspace, app, API, and build jobs read the planned base; static checks resolve the same base themselves',
+    6,
+    'the workspace tests, cron and MCP e2e specs, and the app, API and build jobs read the planned base; static checks resolve the same base themselves',
   );
   assert.match(
     readFileSync(
@@ -705,14 +864,17 @@ test('the browser extension runs in full while every other filter retains affect
     workflow.indexOf('      - name: Run workspace tests'),
     workflow.indexOf('      - name: Run UI shard'),
   );
-  assert.match(workspaceStep, /WORKSPACE_FILTERS: \$\{\{ matrix\.filters \}\}/);
+  assert.match(
+    workspaceStep,
+    /WORKSPACE_FILTERS: \$\{\{ fromJSON\(steps\.start\.outputs\.leg\)\.filters \}\}/,
+  );
   assert.match(
     workspaceStep,
     /if \[ "\$\{FORCE_FULL\}" = "true" \] \|\| \[ -z "\$\{CI_BASE_SHA\}" \]; then\n {12}bunx turbo run test --continue --concurrency=1 \$\{WORKSPACE_FILTERS\}\n {10}else\n {12}TURBO_SCM_BASE="\$\{CI_BASE_SHA\}" bunx turbo run test --continue --concurrency=1 --affected \$\{WORKSPACE_FILTERS\}\n {10}fi/,
   );
   assert.match(
     workspaceStep,
-    /- name: Run browser extension tests\n {8}if: \$\{\{ !cancelled\(\) && matrix\.extension == 'true' \}\}\n {8}run: bunx turbo run test --continue --concurrency=1 --filter=@genfeedai\/extension\n/,
+    /- name: Run browser extension tests\n {8}if: \$\{\{ !cancelled\(\) && steps\.start\.outputs\.run == 'true' && fromJSON\(steps\.start\.outputs\.leg\)\.extension == 'true' \}\}\n {8}run: bunx turbo run test --continue --concurrency=1 --filter=@genfeedai\/extension\n/,
   );
   assert.doesNotMatch(
     workspaceStep.slice(workspaceStep.indexOf('Run browser extension tests')),
@@ -731,7 +893,7 @@ test('server workspace leg runs the workers cron specs with affected selection',
   );
   assert.match(
     cronStep,
-    /if: \$\{\{ !cancelled\(\) && matrix\.group == 'server' \}\}/,
+    /if: \$\{\{ !cancelled\(\) && steps\.start\.outputs\.run == 'true' && fromJSON\(steps\.start\.outputs\.leg\)\.group == 'server' \}\}/,
   );
   assert.match(
     cronStep,
@@ -750,7 +912,7 @@ test('server workspace leg runs the MCP e2e specs with affected selection', () =
   );
   assert.match(
     e2eStep,
-    /if: \$\{\{ !cancelled\(\) && matrix\.group == 'server' \}\}/,
+    /if: \$\{\{ !cancelled\(\) && steps\.start\.outputs\.run == 'true' && fromJSON\(steps\.start\.outputs\.leg\)\.group == 'server' \}\}/,
   );
   assert.match(
     e2eStep,

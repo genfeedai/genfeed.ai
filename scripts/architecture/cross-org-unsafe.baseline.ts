@@ -19,7 +19,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // #7552: superadmin all-organizations library listing; gated by the allOrganizations superadmin check in the controller.
     {
       file: 'apps/server/api/src/collections/ingredients/controllers/ingredients.controller.ts',
-      line: 253,
+      line: 254,
     },
     // Superadmin failure resolution; the write itself is scoped to the execution row's own tenant.
     {
@@ -95,7 +95,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // the platform-admin role and reads only the ids the client already holds.
     {
       file: 'apps/server/api/src/collections/ingredients/controllers/ingredients.controller.ts',
-      line: 362,
+      line: 363,
     },
     // Public brand pictures: the anonymous public profile (/u/<handle>) has no
     // organization to scope by. projectPublicBrandAssets reads only LOGO and
@@ -233,7 +233,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // receipt.
     {
       file: 'apps/server/api/src/skills-pro/services/skill-download.service.ts',
-      line: 382,
+      line: 383,
     },
     // #6120: superadmin platform billing-account migration; each write targets
     // that organization's own rows.
@@ -483,7 +483,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // createPreviewLink).
     {
       file: 'apps/server/api/src/collections/articles/controllers/articles.controller.ts',
-      line: 149,
+      line: 172,
     },
     // #6120: published public article slugs are unique across all
     // organizations.

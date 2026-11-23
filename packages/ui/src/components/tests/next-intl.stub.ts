@@ -262,6 +262,28 @@ const UI_TEST_MESSAGES = {
           retry: 'Try again',
           title: 'Choose locations',
         },
+        selectPage: {
+          alreadyConnected: 'Already connected',
+          back: 'Go back',
+          cancel: 'Cancel',
+          confirm:
+            '{count, plural, =0 {Connect Pages} one {Connect # Page} other {Connect # Pages}}',
+          confirmError: 'Failed to connect these Pages. Please try again.',
+          confirming: 'Connecting…',
+          continue: 'Continue',
+          description:
+            'Facebook shared more than one Page with Genfeed. Tick every Page this brand should post to. Each one connects as its own channel.',
+          empty: 'No Pages were found.',
+          error: 'Failed to load Pages. Please try again.',
+          limit: 'Connect up to {max} Pages at a time.',
+          limitReached:
+            '{max} Pages selected, the most one connect can add. Untick one to choose another.',
+          loading: 'Loading Pages…',
+          partial:
+            'Connected {connected} of {selected} Pages. Not connected: {missing}. Run connect again to add them.',
+          retry: 'Try again',
+          title: 'Choose Pages',
+        },
       },
     },
     libraryCanvas: {
@@ -275,6 +297,11 @@ const UI_TEST_MESSAGES = {
       count: '{count} selected',
       download: 'Download',
       merge: 'Merge',
+    },
+    videoRetention: {
+      title: 'Video expired',
+      description:
+        'Videos that were never posted are removed after {payg} days on pay-as-you-go and {subscriber} days on a subscription.',
     },
     libraryRetry: {
       genericFailureReason: 'Generation failed.',
@@ -549,7 +576,6 @@ const UI_TEST_MESSAGES = {
       moreMedia: '+{count} more not shown',
       platformLabel: '{platform} platform preview',
       firstComment: 'First comment',
-      avatarAlt: '{name} profile picture',
       threadPost: 'Post {count}',
       public: 'Public',
       feedPost: 'Feed post',
@@ -714,7 +740,6 @@ const UI_TEST_MESSAGES = {
       postLabel: 'post',
       openOnPlatform: 'Open on platform',
       unknownPlatform: 'Unknown',
-      avatarAlt: '{name} profile picture',
       publishedPrefix: 'Published ',
       scheduledPrefix: 'Scheduled ',
       workflowLineage: 'Workflow lineage',

@@ -4,6 +4,7 @@ import {
 } from '@e2e/fixtures/api-mocks.fixture';
 import { expect, test } from '@e2e/fixtures/auth.fixture';
 import { expectCommitWithinBudget } from '@e2e/utils/navigation-budget';
+import { waitRealTime } from '@e2e/utils/real-time';
 import {
   APP_ROUTES,
   createBrandAppRoute,
@@ -100,7 +101,7 @@ async function delayServerRenders(page: Page): Promise<void> {
       url.searchParams.has('_rsc') || url.pathname.startsWith('/_next/data'),
     async (route) => {
       if (!isPrefetchRequest(route.request())) {
-        await new Promise((resolve) => setTimeout(resolve, SERVER_LATENCY_MS));
+        await waitRealTime(SERVER_LATENCY_MS);
       }
       await route.fallback();
     },
@@ -264,7 +265,7 @@ test('a More menu destination paints without waiting for a server render', async
   const href = createBrandAppRoute(
     'test-org',
     'brand-1',
-    APP_ROUTES.STUDIO.PLAYGROUND,
+    APP_ROUTES.STUDIO.STORYBOARD,
   );
 
   await expectCommitWithinBudget({
@@ -288,7 +289,7 @@ test('a More menu destination paints without waiting for a server render', async
       await delayServerRenders(page);
 
       await page.getByTestId('app-rail-more').click();
-      const target = page.getByTestId('app-rail-more-item-playground');
+      const target = page.getByTestId('app-rail-more-item-storyboard');
       await expect(target).toHaveAttribute('href', href);
       await recordNavigationTiming(page);
 
@@ -347,7 +348,7 @@ test('a slow navigation shows progress until the destination commits', async ({
   await page.route(
     (url) => url.searchParams.has('_rsc'),
     async (route) => {
-      await new Promise((resolve) => setTimeout(resolve, SLOW_RENDER_MS));
+      await waitRealTime(SLOW_RENDER_MS);
       await route.fallback();
     },
   );
@@ -475,7 +476,7 @@ test('a sidebar click after minutes on one page paints without waiting for a ser
           async () => {
             const settled = seen === requested.length;
             seen = requested.length;
-            await page.waitForTimeout(PREFETCH_QUIET_MS);
+            await waitRealTime(PREFETCH_QUIET_MS);
             return settled;
           },
           { timeout: PREFETCH_TIMEOUT_MS },
@@ -484,7 +485,7 @@ test('a sidebar click after minutes on one page paints without waiting for a ser
       await page.clock.runFor(STALE_AFTER_MS);
       // The shell refreshes what expired while the browser is idle. Give that
       // work time to finish, as a person reaching for the sidebar would.
-      await page.waitForTimeout(REFRESH_SETTLE_MS);
+      await waitRealTime(REFRESH_SETTLE_MS);
       await delayServerRenders(page);
       await recordNavigationTiming(page);
 
@@ -515,7 +516,7 @@ test('a sidebar click right after the shell appears paints without waiting for a
       );
       const { href, link } = await pickSidebarDestination(page);
       const pathname = href.split('?')[0];
-      await page.waitForTimeout(EARLY_CLICK_DELAY_MS);
+      await waitRealTime(EARLY_CLICK_DELAY_MS);
       await recordNavigationTiming(page);
 
       await link.click();

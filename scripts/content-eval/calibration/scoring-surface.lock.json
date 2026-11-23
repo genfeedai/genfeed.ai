@@ -1,6 +1,6 @@
 {
   "text": {
-    "digest": "sha256:c13648f68adbcb536718ffa640b0a4aeae338857952801bcab264f55395ded69",
+    "digest": "sha256:33072fb2edb8e77562c6b4bbf88902a6ad097c321f073dff708a7724c80d3a4b",
     "files": [
       {
         "digest": "sha256:d59ac21b872f21f23d3d53700b3616fd55a782827e2e99d6b97c609bab72ec6f",
@@ -36,19 +36,19 @@
       }
     ],
     "values": {
-      "contentQualityModel": "google/gemini-2.5-flash-lite",
+      "contentQualityModel": "anthropic/claude-haiku-5.5",
       "evaluationTemplates": {
         "article": "prompt.evaluation.article",
         "post": "prompt.evaluation.post",
         "system": "system.evaluation"
       },
-      "evaluationsModel": "anthropic/claude-sonnet-5",
+      "evaluationsModel": "anthropic/claude-sonnet-5.5",
       "scoringSchema": "content_quality_scoring"
     }
   },
   "version": "scoring-surface-v1",
   "vision": {
-    "digest": "sha256:e96676efb184cc7acdefb5587d6fac1f6c0551d9bad03b764e11f8f902bbfb02",
+    "digest": "sha256:2f85882c3d6d7b6e75a64e6fe6d1dd76b1ab682bb515792379852b09fe31b5fa",
     "files": [
       {
         "digest": "sha256:a5af9537056bedb46d3ecf35e7e5eda90c6dbfb393ede0462b0a46180e9b1637",
@@ -57,7 +57,7 @@
     ],
     "values": {
       "mediaRubricVersion": "media-panel-v1",
-      "scorerVisionModel": "openai/gpt-5.6-luna",
+      "scorerVisionModel": "openai/gpt-6-luna",
       "visionTemplates": {
         "image": "prompt.evaluation.image",
         "video": "prompt.evaluation.video"

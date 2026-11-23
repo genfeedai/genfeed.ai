@@ -88,13 +88,13 @@ describe('withMcpStructuredContent', () => {
   });
 
   it('validates the requested tool family as well as standard envelope fields', () => {
-    const account = getToolByName('get_account');
+    const account = getToolByName('generate');
     const discovery = getToolByName('find_tools');
     expect(account).toBeDefined();
     expect(discovery).toBeDefined();
     expect(() =>
       withMcpStructuredContent(
-        { content: [], structuredContent: { data: [] } },
+        { content: [], structuredContent: { artifact: [] } },
         account,
       ),
     ).toThrow();

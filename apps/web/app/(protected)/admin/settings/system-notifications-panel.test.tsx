@@ -267,7 +267,7 @@ describe('admin notification destinations', () => {
     await act(async () => {
       answerRefresh(overview);
       // React Query tells the panel on the next tick.
-      await new Promise((resolve) => setTimeout(resolve, 0));
+      await new Promise((resolve) => setImmediate(resolve));
     });
 
     expect(screen.getByText('Renamed alerts · discord')).toBeInTheDocument();

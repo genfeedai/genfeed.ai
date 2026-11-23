@@ -191,11 +191,14 @@ export function useTopbarBalances(): UseTopbarBalancesReturn {
     }
   }, []);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: cancel reconciliation whenever wallet scope or readiness changes
-  useEffect(
-    () => clearReconcileTimeout,
-    [clearReconcileTimeout, queryKey, isEnabled],
-  );
+  // Cancels the pending reconciliation whenever wallet scope or readiness
+  // changes.
+  // use-effect-audit: ignore releases the reconciliation timer when the wallet changes or unmounts
+  useEffect(() => {
+    void queryKey;
+    void isEnabled;
+    return clearReconcileTimeout;
+  }, [clearReconcileTimeout, queryKey, isEnabled]);
 
   // use-effect-audit: ignore releases timers, requests or subscriptions on unmount
   useEffect(

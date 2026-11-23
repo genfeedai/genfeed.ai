@@ -1,3 +1,4 @@
+import { AssetScope } from '@genfeedai/contracts';
 import {
   mockActiveSubscription,
   mockBrandWithMedia,
@@ -14,12 +15,12 @@ test.describe('Brand logo and banner frames', () => {
       credits: 1000,
       plan: 'pro',
     });
-    await mockBrandWithMedia(authenticatedPage);
   });
 
   test('the brand page shows the banner at 3:1 and the logo as a square tile', async ({
     authenticatedPage,
   }) => {
+    await mockBrandWithMedia(authenticatedPage);
     const route = brandPath('/settings/profile');
     await authenticatedPage.goto(route, {
       timeout: 60000,
@@ -44,9 +45,56 @@ test.describe('Brand logo and banner frames', () => {
     expect(logoTile?.width).toBe(logoTile?.height);
   });
 
+  test('keeps the profile picture visible while switching public and private', async ({
+    authenticatedPage,
+  }) => {
+    const publicSave = Promise.withResolvers<void>();
+    const privateSave = Promise.withResolvers<void>();
+    await mockBrandWithMedia(authenticatedPage, (scope) =>
+      scope === AssetScope.PUBLIC ? publicSave.promise : privateSave.promise,
+    );
+
+    const route = brandPath('/settings/profile');
+    await authenticatedPage.goto(route, { waitUntil: 'domcontentloaded' });
+    await assertNoErrorBoundaryFallback(authenticatedPage, route);
+
+    const toggle = authenticatedPage.getByRole('switch', {
+      name: 'Public Profile',
+    });
+    const logo = authenticatedPage.getByRole('img', { name: 'Brand 1 logo' });
+    await expect(logo).toBeVisible();
+    await expect(toggle).not.toBeChecked();
+
+    try {
+      await toggle.click();
+      await expect(toggle).toBeChecked();
+      await expect(toggle).toBeDisabled();
+      await expect(logo).toBeVisible({ timeout: 3000 });
+
+      publicSave.resolve();
+      await expect(toggle).toBeEnabled();
+      await expect(toggle).toBeChecked();
+      await expect(logo).toBeVisible();
+
+      await toggle.click();
+      await expect(toggle).not.toBeChecked();
+      await expect(toggle).toBeDisabled();
+      await expect(logo).toBeVisible({ timeout: 3000 });
+
+      privateSave.resolve();
+      await expect(toggle).toBeEnabled();
+      await expect(toggle).not.toBeChecked();
+      await expect(logo).toBeVisible();
+    } finally {
+      publicSave.resolve();
+      privateSave.resolve();
+    }
+  });
+
   test('the brand switcher draws the same tile for a logo as for initials', async ({
     authenticatedPage,
   }) => {
+    await mockBrandWithMedia(authenticatedPage);
     const route = brandPath('/settings/profile');
     await authenticatedPage.goto(route, {
       timeout: 60000,

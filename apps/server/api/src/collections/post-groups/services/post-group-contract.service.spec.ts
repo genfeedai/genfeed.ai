@@ -467,7 +467,7 @@ describe('PostGroupContractService', () => {
 
   it('uses a per-target caption override for channel validation', () => {
     const shared = service.validateTarget(
-      { baseContent: 'x'.repeat(300), media: [] },
+      { baseContent: 'x'.repeat(25_001), media: [] },
       {
         credentialId: 'credential-twitter',
         platform: CredentialPlatform.TWITTER,
@@ -476,7 +476,7 @@ describe('PostGroupContractService', () => {
       'publish_now',
     );
     const overridden = service.validateTarget(
-      { baseContent: 'x'.repeat(300), media: [] },
+      { baseContent: 'x'.repeat(25_001), media: [] },
       {
         caption: 'Short X caption',
         credentialId: 'credential-twitter',

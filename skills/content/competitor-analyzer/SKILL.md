@@ -460,7 +460,7 @@ After completing the analysis, translate findings into a differentiation strateg
 
 If you have access to Genfeed tools, use them for enhanced results:
 
-- Use `get_ads_research` to see competitors' active ad creatives and spending patterns
+- Use `get_ads` with `action` set to `research` to see competitors' active ad creatives and spending patterns
 - Cross-reference competitor content themes with your own top-performing ingredients
 - Feed gap analysis findings into the `content-strategist` skill for strategy updates
 - Use brand context to ensure differentiation recommendations align with your voice

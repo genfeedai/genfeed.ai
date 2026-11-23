@@ -6,6 +6,8 @@ import { AssetCategory, AssetScope } from '@genfeedai/contracts';
 import { BRAND_HANDLE_FORMAT_MESSAGE } from '@genfeedai/contracts/constants';
 import type { IBrand } from '@genfeedai/contracts/interfaces';
 import { createBrand } from '@genfeedai/helpers/testing/entity-fixtures';
+import { Asset } from '@genfeedai/models/ingredients/asset.model';
+import { Brand } from '@genfeedai/models/organization/brand.model';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useBrandDetail } from '@/hooks/pages/use-brand-detail/use-brand-detail';
@@ -381,34 +383,43 @@ describe('useBrandDetail', () => {
       return result;
     }
 
-    it('flips the scope optimistically before the patch resolves', async () => {
-      let resolvePatch: ((brand: IBrand) => void) | undefined;
-      mockPatch.mockImplementationOnce(
-        () =>
-          new Promise<IBrand>((resolve) => {
-            resolvePatch = resolve;
-          }),
-      );
+    it.each([
+      [AssetScope.BRAND, AssetScope.PUBLIC],
+      [AssetScope.PUBLIC, AssetScope.BRAND],
+    ])(
+      'keeps the logo and banner visible while changing %s to %s',
+      async (from, to) => {
+        const logoUrl = 'https://example.test/brand-logo.png';
+        const bannerUrl = 'https://example.test/brand-banner.png';
+        const brand = new Brand({
+          ...createBrand({ id: 'brand-1', scope: from }),
+          banner: new Asset({ cdnUrl: bannerUrl, id: 'banner-1' }),
+          logo: new Asset({ cdnUrl: logoUrl, id: 'logo-1' }),
+        });
+        const { promise, resolve } = Promise.withResolvers<IBrand>();
+        mockFindOne.mockResolvedValueOnce(brand);
+        mockPatch.mockReturnValueOnce(promise);
 
-      const result = await renderLoadedBrand();
+        const result = await renderLoadedBrand();
 
-      act(() => {
-        void result.current.handleUpdateAccount('scope', AssetScope.PUBLIC);
-      });
+        act(() => {
+          void result.current.handleUpdateAccount('scope', to);
+        });
 
-      await waitFor(() => {
-        expect(result.current.brand?.scope).toBe(AssetScope.PUBLIC);
-      });
-      expect(result.current.isUpdating).toBe(true);
+        await waitFor(() => {
+          expect(result.current.brand?.scope).toBe(to);
+        });
+        expect(result.current.isUpdating).toBe(true);
+        expect(result.current.brand?.logoUrl).toBe(logoUrl);
+        expect(result.current.brand?.bannerUrl).toBe(bannerUrl);
 
-      await act(async () => {
-        resolvePatch?.(
-          createBrand({ id: 'brand-1', scope: AssetScope.PUBLIC }),
-        );
-      });
+        await act(async () => {
+          resolve(new Brand({ ...brand, scope: to }));
+        });
 
-      expect(result.current.isUpdating).toBe(false);
-    });
+        expect(result.current.isUpdating).toBe(false);
+      },
+    );
 
     it('persists the public scope when the toggle is switched on', async () => {
       const result = await renderLoadedBrand();

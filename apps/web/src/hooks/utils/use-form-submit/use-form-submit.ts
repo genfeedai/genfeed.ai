@@ -32,6 +32,9 @@ export function useFormSubmitWithState(handler: () => void | Promise<void>) {
 
   const onSubmit = async (e: { preventDefault: () => void }) => {
     e.preventDefault();
+    if (isSubmittingRef.current) {
+      return;
+    }
     setSubmittingState(true);
 
     prevPathRef.current = pathname;

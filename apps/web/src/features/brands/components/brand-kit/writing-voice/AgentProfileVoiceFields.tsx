@@ -11,6 +11,8 @@ import {
   SelectValue,
 } from '@ui/primitives/select';
 
+const CANONICAL_SOURCES = ['brand', 'founder', 'hybrid'] as const;
+
 export default function AgentProfileVoiceFields({
   isDisabled,
   onCanonicalSourceChange,
@@ -38,9 +40,13 @@ export default function AgentProfileVoiceFields({
           <Select
             disabled={isDisabled}
             value={voiceCanonicalSource}
-            onValueChange={(value: 'brand' | 'founder' | 'hybrid') =>
-              onCanonicalSourceChange(value)
-            }
+            onValueChange={(value) => {
+              const source = CANONICAL_SOURCES.find((entry) => entry === value);
+
+              if (source) {
+                onCanonicalSourceChange(source);
+              }
+            }}
           >
             <SelectTrigger id="brand-agent-canonical-source" className="w-full">
               <SelectValue />

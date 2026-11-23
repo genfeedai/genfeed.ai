@@ -13,6 +13,7 @@ describe('createWideEventMiddleware', () => {
   let server: Server;
   let baseUrl: string;
   let events: WideEventRecord[];
+  let isSlowReaderEntered = false;
 
   /** Resolves once the response has been sent and the event had its chance to emit. */
   async function request(
@@ -21,7 +22,8 @@ describe('createWideEventMiddleware', () => {
   ): Promise<{ response: Response; body: string }> {
     const response = await fetch(`${baseUrl}${path}`, init);
     const body = await response.text();
-    await new Promise((resolve) => setTimeout(resolve, 20));
+    await new Promise((resolve) => setImmediate(resolve));
+    await new Promise((resolve) => setImmediate(resolve));
     return { body, response };
   }
 
@@ -29,6 +31,7 @@ describe('createWideEventMiddleware', () => {
     // Pin the baseline sample so ordinary successes are kept.
     vi.spyOn(Math, 'random').mockReturnValue(0);
     events = [];
+    isSlowReaderEntered = false;
     const app = express();
     app.use(
       createWideEventMiddleware({
@@ -58,9 +61,9 @@ describe('createWideEventMiddleware', () => {
       recordWideEventError(new Error('database unavailable'), { status: 500 });
       res.status(500).json({ error: 'boom' });
     });
-    app.get('/v1/slow-reader', async (_req, res) => {
-      await new Promise((resolve) => setTimeout(resolve, 200));
-      res.json({ ok: true });
+    // Never answers: the client hangs up first.
+    app.get('/v1/slow-reader', () => {
+      isSlowReaderEntered = true;
     });
 
     server = await new Promise<Server>((resolve) => {
@@ -161,11 +164,10 @@ describe('createWideEventMiddleware', () => {
     const pending = fetch(`${baseUrl}/v1/slow-reader`, {
       signal: controller.signal,
     }).catch(() => undefined);
-    await new Promise((resolve) => setTimeout(resolve, 50));
+    await vi.waitFor(() => expect(isSlowReaderEntered).toBe(true));
     controller.abort();
     await pending;
-    await new Promise((resolve) => setTimeout(resolve, 300));
-
+    await vi.waitFor(() => expect(events).toHaveLength(1));
     expect(events).toHaveLength(1);
     expect(events[0]).toMatchObject({
       client_aborted: true,

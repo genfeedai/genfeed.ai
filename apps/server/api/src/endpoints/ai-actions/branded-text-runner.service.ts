@@ -1,6 +1,5 @@
 import { LearningDecisionService } from '@api/collections/content-learning/services/learning-decision.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
-import { DEFAULT_MINI_TEXT_MODEL } from '@api/constants/default-mini-text-model.constant';
 import type {
   BrandedTextRunOutcomeV1,
   BrandedTextRunSpecV1,
@@ -21,6 +20,7 @@ import {
   PostFormat,
   TargetExecutionState,
 } from '@genfeedai/contracts';
+import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 import type { TextReceiptState } from '@genfeedai/contracts/interfaces';
 import {
   joinReplyVariants,
@@ -35,6 +35,13 @@ const FAILURE_MESSAGES: Readonly<Record<string, string>> = {
   provider_attempt_ref_unavailable:
     'The text provider did not accept the request. Try again.',
   provider_output_empty: 'The text provider returned nothing. Try again.',
+};
+
+const BRAND_KIT_REPAIR_MESSAGES: Readonly<Partial<Record<string, string>>> = {
+  integrity_content_scope_mismatch:
+    'This Brand Kit revision does not match the selected brand. Open Settings → Brand Kit for this brand, scan its website or create a new draft, and have a workspace owner or admin approve the revision before trying again.',
+  integrity_snapshot_schema_invalid:
+    'This Brand Kit has saved fields that generation cannot read. Open Settings → Brand Kit, correct the saved fields, and have a workspace owner or admin approve the revision before trying again.',
 };
 
 /** A completed seam outcome is `ready`, `needs_review` or still `checking`; anything else reads as review. */
@@ -64,9 +71,12 @@ export class BrandedTextRunnerService {
   ) {}
 
   async run(spec: BrandedTextRunSpecV1): Promise<BrandedTextRunOutcomeV1> {
+    // Branded posts, threads and rewrites are content writing, so they run on
+    // the content writing model. Asking the registry for its default instead
+    // would hand them whichever TEXT row Admin marked default, which is the
+    // agent chat model in production.
     const model = await this.modelRegistry.resolveModelKey(
-      undefined,
-      DEFAULT_MINI_TEXT_MODEL,
+      LLM_DEFAULTS.contentWriting,
     );
     const { actor, gate } = spec;
     const isThread = spec.contentType === 'thread';
@@ -156,7 +166,9 @@ export class BrandedTextRunnerService {
         : {
             kind: 'failed',
             code: 'blocked',
-            message: `Your brand voice could not be applied (${outcome.reasonCode}). Nothing was written.`,
+            message:
+              BRAND_KIT_REPAIR_MESSAGES[outcome.reasonCode] ??
+              `Your brand voice could not be applied (${outcome.reasonCode}). Nothing was written.`,
             hasNewDispatch: outcome.hasNewDispatch,
             reasonCode: outcome.reasonCode,
             receiptId,

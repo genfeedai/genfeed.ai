@@ -47,6 +47,7 @@ import {
   generateMockSubscription,
   generateMockUser,
 } from '../utils/api-interceptor';
+import { waitRealTime } from '../utils/real-time';
 
 /**
  * API Mock Fixtures for Playwright E2E Tests
@@ -425,7 +426,7 @@ export async function mockVideoGenerationSuccess(
 
     if (method === 'POST') {
       if (delay > 0) {
-        await new Promise((resolve) => setTimeout(resolve, delay));
+        await waitRealTime(delay);
       }
 
       await route.fulfill({
@@ -589,7 +590,7 @@ export async function mockImageGenerationSuccess(
 
     if (method === 'POST') {
       if (delay > 0) {
-        await new Promise((resolve) => setTimeout(resolve, delay));
+        await waitRealTime(delay);
       }
 
       await route.fulfill({
@@ -678,7 +679,7 @@ export async function mockMusicGenerationSuccess(
 
     if (method === 'POST') {
       if (delay > 0) {
-        await new Promise((resolve) => setTimeout(resolve, delay));
+        await waitRealTime(delay);
       }
 
       await route.fulfill({
@@ -723,7 +724,7 @@ export async function mockAvatarGenerationSuccess(
 
     if (method === 'POST') {
       if (delay > 0) {
-        await new Promise((resolve) => setTimeout(resolve, delay));
+        await waitRealTime(delay);
       }
 
       await route.fulfill({
@@ -3598,7 +3599,10 @@ const MOCK_BRAND_BANNER_DATA_URL =
   'data:image/svg+xml;utf8,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%221500%22 height=%22500%22%3E%3Crect width=%221500%22 height=%22500%22 fill=%22%23345%22/%3E%3C/svg%3E';
 
 /** The mocked brand, with a logo and a banner, on every endpoint the brand page reads. */
-export async function mockBrandWithMedia(page: Page): Promise<void> {
+export async function mockBrandWithMedia(
+  page: Page,
+  waitForScopeSave?: (scope: string) => Promise<void>,
+): Promise<void> {
   const brand = {
     banner: {
       category: 'BANNER',
@@ -3620,10 +3624,6 @@ export async function mockBrandWithMedia(page: Page): Promise<void> {
     slug: 'brand-1',
     updatedAt: new Date().toISOString(),
   };
-  const single = JSON.stringify({
-    data: { attributes: brand, id: brand.id, type: 'brand' },
-  });
-
   await routeUsersPattern(page, '/me/brands**', async (route) => {
     await route.fulfill({
       body: JSON.stringify({
@@ -3636,9 +3636,16 @@ export async function mockBrandWithMedia(page: Page): Promise<void> {
   });
   for (const pattern of ['/brands/brand-1', '/brands/slug**']) {
     await routeApiPattern(page, pattern, async (route) => {
+      if (route.request().method() === 'PATCH') {
+        const { scope } = extractRequestPayload(route);
+        if (typeof scope === 'string') {
+          await waitForScopeSave?.(scope);
+          brand.scope = scope;
+        }
+      }
+
       await route.fulfill({
-        body: single,
-        contentType: 'application/json',
+        json: { data: { attributes: brand, id: brand.id, type: 'brand' } },
         status: 200,
       });
     });
@@ -4280,7 +4287,7 @@ export async function mockPostsList(
 
   const fulfillPosts = async (route: Route) => {
     if (delay > 0) {
-      await new Promise((r) => setTimeout(r, delay));
+      await waitRealTime(delay);
     }
     const url = route.request().url();
     const urlObj = new URL(url);
@@ -4784,7 +4791,7 @@ export async function mockPostPublishing(
 
   await routeApiPattern(page, '/post-groups/from-post', async (route) => {
     if (delay > 0) {
-      await new Promise((r) => setTimeout(r, delay));
+      await waitRealTime(delay);
     }
     const body = route.request().postDataJSON() as
       | { postId?: string }
@@ -4816,7 +4823,7 @@ export async function mockPostPublishing(
 
   await routeApiPattern(page, '/post-groups/*/targets/*', async (route) => {
     if (delay > 0) {
-      await new Promise((r) => setTimeout(r, delay));
+      await waitRealTime(delay);
     }
     const body = route.request().postDataJSON() as
       | { action?: string; scheduledDate?: string }
@@ -4864,7 +4871,7 @@ export async function mockPostPublishing(
         return;
       }
       if (delay > 0) {
-        await new Promise((r) => setTimeout(r, delay));
+        await waitRealTime(delay);
       }
       const payload = buildPostAttributes({
         ...post,
@@ -4883,7 +4890,7 @@ export async function mockPostPublishing(
   // Mock tweet generation
   await routeApiPattern(page, '/posts/generate**', async (route) => {
     if (delay > 0) {
-      await new Promise((r) => setTimeout(r, delay));
+      await waitRealTime(delay);
     }
     await route.fulfill({
       body: JSON.stringify([

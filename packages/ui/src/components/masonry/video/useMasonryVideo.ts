@@ -60,6 +60,8 @@ export function useMasonryVideo({
   const isProcessing = video.status === IngredientStatus.PROCESSING;
   const isFailed = video.status === IngredientStatus.FAILED;
   const isUnavailable = isProcessing || isFailed;
+  // The file is gone but the row stays: the tile keeps its poster and actions.
+  const isExpired = Boolean(video.storageExpiredAt);
   const isFleetNsfwSensitive =
     selectedBrand?.isFleetEnabled &&
     !!video.personaSlug &&
@@ -261,6 +263,7 @@ export function useMasonryVideo({
     isProcessing,
     isFailed,
     isUnavailable,
+    isExpired,
     isFleetNsfwLocked,
     isInteractionBlocked,
     hasPosterThumbnail,

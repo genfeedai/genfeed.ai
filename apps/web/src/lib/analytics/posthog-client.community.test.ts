@@ -31,7 +31,7 @@ describe('Community analytics boundary', () => {
     expect(isAnalyticsEnabled()).toBe(false);
     captureAnalyticsEvent(ANALYTICS_EVENTS.ONBOARDING_COMPLETED, {});
     initAnalytics();
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    await new Promise((resolve) => setImmediate(resolve));
     expect(mocks.posthogImport).not.toHaveBeenCalled();
     expect(mocks.posthogCapture).not.toHaveBeenCalled();
   });

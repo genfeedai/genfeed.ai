@@ -286,6 +286,11 @@ describe('TwitterSocialAdapter', () => {
   });
 
   describe('trigger checkers', () => {
+    beforeEach(() => {
+      // Use the in-process analyzer. Shared teardown clears env stubs after each test.
+      vi.stubEnv('RECHECK_SYNC_BACKEND', 'pure');
+    });
+
     it('createFollowerChecker should return newest follower', async () => {
       mockCredentialsService.findOne.mockResolvedValue({
         externalHandle: 'brand_handle',

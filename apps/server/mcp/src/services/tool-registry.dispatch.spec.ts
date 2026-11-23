@@ -43,9 +43,12 @@ describe('ToolRegistryService.classify', () => {
   it.each([
     // Tool discovery meta tools are handled entirely in-process (no API
     // call); they classify first so nothing else can shadow them.
-    ['check_channel', 'scheduler'],
     ['manage_campaign', 'content'],
-    ['upload_media', 'agent-executor'],
+    ['get_review_queue', 'workspace-app'],
+    ['manage_task', 'workspace-app'],
+    ['manage_brand_kit', 'brand-kit'],
+    ['request_media_upload', 'agent-executor'],
+    ['complete_media_upload', 'agent-executor'],
     ['find_tools', 'tool-discovery'],
     ['send_chat_message', 'agent-chat'],
     // inspect_workflow is BOTH an CuratedActionName and a workflow-control tool;
@@ -80,7 +83,6 @@ describe('ToolRegistryService.classify', () => {
     ['set_generation_settings', 'agent-executor'],
     ['get_job_status', 'account-management'],
     ['get_orgs', 'account-management'],
-    ['switch_org', 'account-management'],
     // Removed in favour of get_job_status: no executor claims it any more.
     ['get_video_status', 'unknown'],
     ['get_assets', 'agent-executor'],
@@ -158,6 +160,10 @@ describe('ToolRegistryService.classify', () => {
     ['brands__create', 'unknown'],
     ['content_plans__find_all', 'unknown'],
     ['a_tool_that_does_not_exist', 'unknown'],
+    // A merged tool is resolved to the tool each action runs; it has no
+    // executor of its own.
+    ['check_channel', 'unknown'],
+    ['upload_media', 'unknown'],
     // The fleet/training/GPU fleet tools were dropped from the OSS MCP
     // surface in PR 5/6 (superadmin+IP-gated fleet API — a gf_ key can't reach
     // it); they no longer classify to an executor.
@@ -175,13 +181,8 @@ describe('ToolRegistryService.classify', () => {
 describe('ToolRegistryService.validateDispatchCoverage', () => {
   it('passes when every surfaced tool routes (resolve_approval excepted)', () => {
     mockState.tools = [
-      { name: 'generate' },
       { name: 'create_brand_from_url' },
-      { name: 'get_brand_scan_status' },
-      { name: 'get_job_status' },
-      { name: 'get_meta_campaigns' },
       { name: 'resolve_approval' },
-      { name: 'create_post' },
       { name: 'find_tools' },
     ];
     expect(() => ToolRegistryService.validateDispatchCoverage()).not.toThrow();
@@ -189,9 +190,7 @@ describe('ToolRegistryService.validateDispatchCoverage', () => {
 
   it('throws when a surfaced tool has no executor', () => {
     mockState.tools = [
-      { name: 'generate' },
       { name: 'create_brand_from_url' },
-      { name: 'get_brand_scan_status' },
       { name: 'totally_unrouted_tool' },
     ];
     expect(() => ToolRegistryService.validateDispatchCoverage()).toThrow(

@@ -91,7 +91,7 @@ describe('resolveOAuthPlatformVerifyFailure for Google Business', () => {
   });
 
   it('leaves other platforms on their own copy', () => {
-    expect(resolve(failure('400', 'Some wording'), 'instagram')).toEqual({
+    expect(resolve(failure('400', 'Some wording'), 'twitter')).toEqual({
       canRestart: false,
       canRetry: false,
       messageKey: 'error.description',

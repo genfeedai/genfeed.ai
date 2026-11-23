@@ -13,6 +13,7 @@ import type { AgentMediaGenerationToolHandler } from '@api/services/agent-orches
 import type { AgentMemoryGoalsToolHandler } from '@api/services/agent-orchestrator/tools/agent-memory-goals-tool-handler.service';
 import type { AgentOnboardingBrandSetupToolHandler } from '@api/services/agent-orchestrator/tools/agent-onboarding-brand-setup-tool-handler.service';
 import type { AgentOnboardingToolHandler } from '@api/services/agent-orchestrator/tools/agent-onboarding-tool-handler.service';
+import { proposePageChanges } from '@api/services/agent-orchestrator/tools/agent-page-control-change.util';
 import type { AgentPrepBriefToolHandler } from '@api/services/agent-orchestrator/tools/agent-prep-brief-tool-handler.service';
 import type { AgentPrepareToolHandler } from '@api/services/agent-orchestrator/tools/agent-prepare-tool-handler.service';
 import type { AgentProactiveToolHandler } from '@api/services/agent-orchestrator/tools/agent-proactive-tool-handler.service';
@@ -147,6 +148,8 @@ function dispatchWorkspaceFamily(
       return handlers.workspaceHandler.completeMediaUpload(params, ctx);
     case 'open_studio_handoff':
       return handlers.workspaceHandler.openStudioHandoff(params);
+    case 'propose_page_changes':
+      return proposePageChanges(params);
     case 'link_external_publication_credential':
       return handlers.publishHandler.linkExternalPublicationCredential(
         params,

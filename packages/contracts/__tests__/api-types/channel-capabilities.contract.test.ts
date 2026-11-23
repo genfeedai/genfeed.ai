@@ -32,6 +32,7 @@ describe('channel capability catalog', () => {
       CredentialPlatform.TWITTER,
       CredentialPlatform.LINKEDIN,
       CredentialPlatform.BEEHIIV,
+      CredentialPlatform.FACEBOOK,
     ]);
 
     expect(
@@ -45,6 +46,7 @@ describe('channel capability catalog', () => {
       CredentialPlatform.BEEHIIV,
       CredentialPlatform.GHOST,
       CredentialPlatform.WORDPRESS,
+      CredentialPlatform.FACEBOOK,
       CredentialPlatform.BLUESKY,
       CredentialPlatform.MEDIUM,
       CredentialPlatform.DEV_TO,
@@ -384,7 +386,7 @@ describe('validateChannelTargetSettings', () => {
 
   test('enforces text limits and media compatibility', () => {
     const result = validateChannelTargetSettings({
-      caption: 'x'.repeat(281),
+      caption: 'x'.repeat(25_001),
       media: [
         { id: 'asset_1', kind: 'image' },
         { id: 'asset_2', kind: 'image' },
@@ -401,6 +403,88 @@ describe('validateChannelTargetSettings', () => {
         expect.objectContaining({ code: 'channel_target.caption_too_long' }),
         expect.objectContaining({
           code: 'channel_target.too_many_media_items',
+        }),
+      ]),
+    );
+  });
+
+  test('lets an X caption past 280 characters through with a warning', () => {
+    const result = validateChannelTargetSettings({
+      caption: 'x'.repeat(1_200),
+      platform: CredentialPlatform.TWITTER,
+      publishMode: 'scheduled',
+    });
+
+    expect(result.valid).toBe(true);
+    expect(result.errors).toEqual([]);
+    expect(result.warnings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: 'channel_target.caption_over_standard_length',
+        }),
+      ]),
+    );
+  });
+
+  test('counts a long link as 23 on X, so a short post with one does not warn', () => {
+    const result = validateChannelTargetSettings({
+      caption: `Read this ${'https://example.com/'}${'a'.repeat(400)}`,
+      platform: CredentialPlatform.TWITTER,
+      publishMode: 'scheduled',
+    });
+
+    expect(result.warnings).toEqual([]);
+    expect(result.errors).toEqual([]);
+  });
+
+  test('counts CJK as two on X, so 150 characters already pass 280', () => {
+    const result = validateChannelTargetSettings({
+      caption: '日'.repeat(150),
+      platform: CredentialPlatform.TWITTER,
+      publishMode: 'scheduled',
+    });
+
+    expect(result.valid).toBe(true);
+    expect(result.warnings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: 'channel_target.caption_over_standard_length',
+        }),
+      ]),
+    );
+  });
+
+  test('holds X captions to the weighted publish ceiling of 25000', () => {
+    const atCeiling = validateChannelTargetSettings({
+      caption: '日'.repeat(12_500),
+      platform: CredentialPlatform.TWITTER,
+      publishMode: 'scheduled',
+    });
+    const pastCeiling = validateChannelTargetSettings({
+      caption: '日'.repeat(12_501),
+      platform: CredentialPlatform.TWITTER,
+      publishMode: 'scheduled',
+    });
+
+    expect(atCeiling.errors).toEqual([]);
+    expect(pastCeiling.errors).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: 'channel_target.caption_too_long' }),
+      ]),
+    );
+  });
+
+  test('does not warn for an X caption within 280 characters', () => {
+    const result = validateChannelTargetSettings({
+      caption: 'x'.repeat(280),
+      platform: CredentialPlatform.TWITTER,
+      publishMode: 'scheduled',
+    });
+
+    expect(result.warnings).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: 'channel_target.caption_over_standard_length',
         }),
       ]),
     );

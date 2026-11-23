@@ -4,7 +4,10 @@ import type { CacheOptions } from '@api/shared/interfaces/cache/cache.interfaces
 import type { CallHandler, ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Test, type TestingModule } from '@nestjs/testing';
-import { of, throwError } from 'rxjs';
+import { firstValueFrom, of, throwError } from 'rxjs';
+
+const drainPromises = () =>
+  new Promise<void>((resolve) => setImmediate(resolve));
 
 vi.mock('ioredis', () => {
   const createMultiMock = () => ({
@@ -54,7 +57,11 @@ describe('RedisCacheInterceptor', () => {
             del: vi.fn(),
             get: vi.fn(),
             invalidateByTags: vi.fn(),
+            readTagEpochs: vi.fn(async (tags: string[]) =>
+              tags.length ? tags.map(() => '0') : null,
+            ),
             set: vi.fn(),
+            setUnlessTagsInvalidated: vi.fn(),
           },
         },
         {
@@ -169,15 +176,13 @@ describe('RedisCacheInterceptor', () => {
       expect(cacheService.get).toHaveBeenCalled();
       expect(mockCallHandler.handle).toHaveBeenCalled();
 
-      await new Promise<void>((resolve) => {
-        setTimeout(() => {
-          expect(cacheService.set).toHaveBeenCalledWith(
-            expect.any(String),
-            handlerResult,
-            { tags: ['test'], ttl: 300 },
-          );
-          resolve();
-        }, 0);
+      await vi.waitFor(() => {
+        expect(cacheService.setUnlessTagsInvalidated).toHaveBeenCalledWith(
+          expect.any(String),
+          handlerResult,
+          { tags: ['test'], ttl: 300 },
+          ['0'],
+        );
       });
     });
 
@@ -320,15 +325,11 @@ describe('RedisCacheInterceptor', () => {
         mockCallHandler,
       );
 
-      await new Promise<void>((resolve) => {
-        result$.subscribe((value) => {
-          expect(value).toBeNull();
-          setTimeout(() => {
-            expect(cacheService.set).not.toHaveBeenCalled();
-            resolve();
-          }, 0);
-        });
-      });
+      const value = await firstValueFrom(result$);
+      await drainPromises();
+
+      expect(value).toBeNull();
+      expect(cacheService.set).not.toHaveBeenCalled();
     });
 
     it('should cache null values when cacheNullValues is true', async () => {
@@ -345,17 +346,14 @@ describe('RedisCacheInterceptor', () => {
         mockCallHandler,
       );
 
-      await new Promise<void>((resolve) => {
-        result$.subscribe(() => {
-          setTimeout(() => {
-            expect(cacheService.set).toHaveBeenCalledWith(
-              expect.any(String),
-              null,
-              expect.any(Object),
-            );
-            resolve();
-          }, 0);
-        });
+      await firstValueFrom(result$);
+
+      await vi.waitFor(() => {
+        expect(cacheService.set).toHaveBeenCalledWith(
+          expect.any(String),
+          null,
+          expect.any(Object),
+        );
       });
     });
 
@@ -376,13 +374,10 @@ describe('RedisCacheInterceptor', () => {
         mockCallHandler,
       );
 
-      await new Promise<void>((resolve) => {
-        result$.subscribe(() => {
-          setTimeout(() => {
-            expect(cacheService.set).toHaveBeenCalled();
-            resolve();
-          }, 0);
-        });
+      await firstValueFrom(result$);
+
+      await vi.waitFor(() => {
+        expect(cacheService.set).toHaveBeenCalled();
       });
     });
 
@@ -403,15 +398,11 @@ describe('RedisCacheInterceptor', () => {
         mockCallHandler,
       );
 
-      await new Promise<void>((resolve) => {
-        result$.subscribe((value) => {
-          expect(value).toEqual(resultWithoutCache);
-          setTimeout(() => {
-            expect(cacheService.set).not.toHaveBeenCalled();
-            resolve();
-          }, 0);
-        });
-      });
+      const value = await firstValueFrom(result$);
+      await drainPromises();
+
+      expect(value).toEqual(resultWithoutCache);
+      expect(cacheService.set).not.toHaveBeenCalled();
     });
   });
 
@@ -424,18 +415,93 @@ describe('RedisCacheInterceptor', () => {
       const error = new Error('Handler error');
       mockCallHandler.handle = vi.fn().mockReturnValue(throwError(() => error));
 
+      await expect(
+        interceptor.intercept(mockExecutionContext, mockCallHandler),
+      ).rejects.toBe(error);
+      expect(cacheService.set).not.toHaveBeenCalled();
+    });
+
+    it('runs a throwing handler once and surfaces its exact error', async () => {
+      reflector.get.mockReturnValue({ ttl: 300 } satisfies CacheOptions);
+      cacheService.get.mockResolvedValue(null);
+
+      let calls = 0;
+      mockCallHandler.handle = () => {
+        calls += 1;
+        return throwError(() => new Error(`Handler error run ${calls}`));
+      };
+
+      const failure = await interceptor
+        .intercept(mockExecutionContext, mockCallHandler)
+        .then((result$) => firstValueFrom(result$))
+        .then(
+          () => null,
+          (thrown: unknown) => thrown,
+        );
+
+      expect(calls).toBe(1);
+      expect(failure).toBeInstanceOf(Error);
+      expect((failure as Error).message).toBe('Handler error run 1');
+      expect(cacheService.set).not.toHaveBeenCalled();
+    });
+
+    it('runs the handler once and returns its result when the cache read throws', async () => {
+      reflector.get.mockReturnValue({ ttl: 300 } satisfies CacheOptions);
+      cacheService.get.mockRejectedValue(new Error('Cache read error'));
+
+      let calls = 0;
+      mockCallHandler.handle = () => {
+        calls += 1;
+        return of({ run: calls });
+      };
+
       const result$ = await interceptor.intercept(
         mockExecutionContext,
         mockCallHandler,
       );
 
-      result$.subscribe({
-        error: (err) => {
-          expect(err).toBe(error);
-          expect(cacheService.set).not.toHaveBeenCalled();
-        },
-        next: () => undefined,
-      });
+      expect(await firstValueFrom(result$)).toEqual({ run: 1 });
+      expect(calls).toBe(1);
+    });
+
+    it('returns the handler result when the cache write throws', async () => {
+      reflector.get.mockReturnValue({ ttl: 300 } satisfies CacheOptions);
+      cacheService.get.mockResolvedValue(null);
+      cacheService.set.mockRejectedValue(new Error('Cache write error'));
+
+      let calls = 0;
+      mockCallHandler.handle = () => {
+        calls += 1;
+        return of({ run: calls });
+      };
+
+      const result$ = await interceptor.intercept(
+        mockExecutionContext,
+        mockCallHandler,
+      );
+
+      expect(await firstValueFrom(result$)).toEqual({ run: 1 });
+      await drainPromises();
+      expect(calls).toBe(1);
+    });
+
+    it('does not call the handler on a cache hit', async () => {
+      reflector.get.mockReturnValue({ ttl: 300 } satisfies CacheOptions);
+      cacheService.get.mockResolvedValue({ cached: true });
+
+      let calls = 0;
+      mockCallHandler.handle = () => {
+        calls += 1;
+        return of({ run: calls });
+      };
+
+      const result$ = await interceptor.intercept(
+        mockExecutionContext,
+        mockCallHandler,
+      );
+
+      expect(await firstValueFrom(result$)).toEqual({ cached: true });
+      expect(calls).toBe(0);
     });
 
     it('should return a missed result without waiting for the cache write', async () => {

@@ -1,14 +1,13 @@
 'use client';
 
+import { CredentialPlatform, TargetExecutionState } from '@genfeedai/contracts';
+import { toConnectedAccount } from '@genfeedai/helpers/publisher/connected-account.helper';
 import ClientDateTime from '@ui/components/time/ClientDateTime';
-import AccountIdentity from '@ui/posts/account-identity/AccountIdentity';
-import { formatHandle } from '@ui/posts/platform-preview/platform-preview.helpers';
-import { getPlatformPreviewIcon } from '@ui/posts/platform-preview/platform-preview-icons';
+import ConnectedAccount from '@ui/display/connected-account/ConnectedAccount';
 import { Badge } from '@ui/primitives/badge';
-import { ExternalLink } from 'lucide-react';
-import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { Fragment, type ReactNode } from 'react';
+import { isTikTokInboxDelivered } from '@/features/posts/detail/post-published.helper';
 import type { PostSidebarDestinationProps } from '@/props/components/post-detail-sidebar.props';
 
 export function getPlatformLabel(
@@ -41,13 +40,10 @@ export default function PostSidebarDestination({
     post.platform,
     translate('unknownPlatform'),
   );
-  const accountName =
-    credential?.externalName?.trim() ||
-    credential?.label?.trim() ||
-    credential?.externalHandle?.trim() ||
-    platformLabel;
-  const accountHandle = formatHandle(credential?.externalHandle ?? undefined);
   const whenValue = isPublished ? post.publicationDate : post.scheduledDate;
+  const isTikTokProcessing =
+    post.platform === CredentialPlatform.TIKTOK &&
+    post.targetExecutionState === TargetExecutionState.PUBLISHING;
 
   const facts: DestinationFact[] = [];
 
@@ -90,20 +86,32 @@ export default function PostSidebarDestination({
       data-testid="post-destination"
     >
       <div className="flex items-center justify-between gap-3">
-        <AccountIdentity
-          avatarAlt={translate('avatarAlt', { name: accountName })}
-          avatarUrl={credential?.externalAvatar}
-          handle={accountHandle}
-          name={accountName}
-          PlatformIcon={
-            post.platform ? getPlatformPreviewIcon(post.platform) : undefined
+        <ConnectedAccount
+          account={
+            credential
+              ? {
+                  ...toConnectedAccount(credential),
+                  platform: post.platform ?? credential.platform,
+                }
+              : { name: platformLabel, platform: post.platform ?? '' }
           }
-          platformLabel={platformLabel}
+          layout="stacked"
+          size="lg"
         />
 
-        <Badge status={post.status} className="shrink-0">
-          {post.status}
-        </Badge>
+        {isTikTokInboxDelivered(post) ? (
+          <Badge variant="info" className="shrink-0">
+            {translate('tiktokInboxDelivered')}
+          </Badge>
+        ) : isTikTokProcessing ? (
+          <Badge variant="info" className="shrink-0">
+            {translate('tiktokProcessing')}
+          </Badge>
+        ) : (
+          <Badge status={post.status} className="shrink-0">
+            {post.status}
+          </Badge>
+        )}
       </div>
 
       {facts.length > 0 ? (
@@ -115,18 +123,6 @@ export default function PostSidebarDestination({
             </Fragment>
           ))}
         </p>
-      ) : null}
-
-      {post.url ? (
-        <Link
-          href={post.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex w-fit items-center gap-1 text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
-        >
-          <ExternalLink className="size-3.5" />
-          <span>{translate('openOnPlatform')}</span>
-        </Link>
       ) : null}
     </div>
   );

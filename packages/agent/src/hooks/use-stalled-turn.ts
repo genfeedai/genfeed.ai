@@ -34,8 +34,10 @@ export function useStalledTurn({
   const [restartNonce, setRestartNonce] = useState(0);
 
   // `progressKey` and `restartNonce` are restart triggers, not inputs.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: restart triggers
+  // use-effect-audit: ignore arms a timeout outside React
   useEffect(() => {
+    void progressKey;
+    void restartNonce;
     setIsClockStalled(false);
     if (!isActive) {
       return;

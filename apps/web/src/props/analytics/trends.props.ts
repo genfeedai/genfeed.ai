@@ -5,7 +5,7 @@ import type {
   ITrendVideo,
 } from '@genfeedai/contracts/interfaces';
 
-export interface ViralVideoLeaderboardProps {
+interface ViralVideoLeaderboardProps {
   videos: ITrendVideo[];
   isLoading?: boolean;
   timeframe?: Timeframe.H24 | Timeframe.H72 | Timeframe.D7;

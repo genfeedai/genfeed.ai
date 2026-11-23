@@ -249,6 +249,7 @@ export function useAgentChatContainer({
       apiService.uploadAttachment(file, onProgress),
   });
   const previousDraftScopeKeyRef = useRef(draftScopeKey);
+  // use-effect-audit: ignore clears composer attachments when the thread scope changes within one thread
   useEffect(() => {
     const previousDraftScopeKey = previousDraftScopeKeyRef.current;
     if (previousDraftScopeKey === draftScopeKey) {
@@ -265,7 +266,6 @@ export function useAgentChatContainer({
       nextVersionSeparator >= 0 &&
       previousDraftScopeKey?.slice(0, previousVersionSeparator) ===
         draftScopeKey?.slice(0, nextVersionSeparator);
-
     if (isSameThreadScope) {
       clearAllAttachments();
     }
@@ -333,6 +333,8 @@ export function useAgentChatContainer({
 
   activeThreadIdRef.current = activeThreadId;
   messagesCursorRef.current = messagesCursor;
+  const messagesRef = useRef(messages);
+  messagesRef.current = messages;
 
   const canAutoDispatchFollowUps = !isBusy && !error;
 
@@ -560,6 +562,7 @@ export function useAgentChatContainer({
     threadId: activeThreadId,
   });
 
+  const { enqueue: enqueueFollowUp } = followUpQueue;
   const setAgentMode = useAgentModePersistence(apiService);
 
   const handleSend = useCallback(
@@ -602,7 +605,7 @@ export function useAgentChatContainer({
       }
 
       if (shouldQueueFollowUp) {
-        const enqueued = followUpQueue.enqueue(content, {
+        const enqueued = enqueueFollowUp(content, {
           attachments,
           mentions,
           options: {
@@ -615,10 +618,7 @@ export function useAgentChatContainer({
             agentMode: options?.agentMode ?? sendAgentMode,
           },
         });
-        if (!enqueued.accepted) {
-          return false;
-        }
-        return true;
+        return enqueued.accepted;
       }
       followLatestTurn('smooth');
       void sendMessage(content, {
@@ -636,8 +636,8 @@ export function useAgentChatContainer({
     [
       sendAgentMode,
       desktopCliBlockedReason,
+      enqueueFollowUp,
       followLatestTurn,
-      followUpQueue,
       isReadOnly,
       isStreaming,
       sendMessage,
@@ -692,7 +692,7 @@ export function useAgentChatContainer({
           return;
         }
 
-        const retryPrompt = resolveRetryPrompt(messages, message.id);
+        const retryPrompt = resolveRetryPrompt(messagesRef.current, message.id);
         if (!retryPrompt) {
           setError('Unable to retry: no previous user prompt found.');
           return;
@@ -703,7 +703,7 @@ export function useAgentChatContainer({
         setError('Failed to retry this message.');
       }
     },
-    [followLatestTurn, handleSend, isBusy, messages, onRegenerate, setError],
+    [followLatestTurn, handleSend, isBusy, onRegenerate, setError],
   );
 
   const clearRunStalledFlag = useCallback(() => {
@@ -724,8 +724,8 @@ export function useAgentChatContainer({
     restartStallClock();
   }, [activeThreadId, clearRunStalledFlag, restartStallClock, resumeRunWatch]);
 
-  // Output on a run the runtime marked stalled means it is alive after all.
   const stalledProgressKeyRef = useRef<string | null>(null);
+  // use-effect-audit: ignore output on a run the runtime marked stalled means it is alive after all
   useEffect(() => {
     if (!streamState.isRunStalled) {
       stalledProgressKeyRef.current = null;

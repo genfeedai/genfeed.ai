@@ -40,6 +40,13 @@ export function blockMcpCreatePost(
   params: Record<string, unknown>,
 ): AgentToolResult | undefined {
   if (!isMcpActionOrigin()) {
+    if (Object.hasOwn(params, 'postId')) {
+      return {
+        creditsUsed: 0,
+        error: 'create_post postId is supported on MCP.',
+        success: false,
+      };
+    }
     return undefined;
   }
   if (params.confirmed === true || readPublishContentId(params)) {
@@ -82,6 +89,45 @@ export const authorizeAgentTextDraft = traced(
       );
     }
     await agentScopeContextService.assertBrandAuthorized(brandId, {
+      userId: ctx.userId,
+      organizationId: ctx.organizationId,
+      ...ctx.apiKeyContext,
+    });
+  },
+);
+
+/**
+ * Authorizes a call that saves a new draft derived from an existing post, such
+ * as `repurpose_post`. A thread turn keeps the publishing-scope assertion. An
+ * MCP call has no thread, so no validated scope: the server proves that the
+ * source post's brand belongs to the caller. The source post itself was
+ * already read inside the caller's organization.
+ */
+export const authorizeSourceDraft = traced(
+  'authorizeSourceDraft',
+  async (
+    agentScopeContextService: AgentScopeContextService | undefined,
+    ctx: ToolExecutionContext,
+    sourceBrandId: string | undefined,
+  ): Promise<void> => {
+    if (!isMcpActionOrigin() || ctx.validatedScope) {
+      await assertAgentPublishingScope(
+        agentScopeContextService,
+        ctx,
+        sourceBrandId,
+        'source post',
+      );
+      return;
+    }
+    if (!sourceBrandId) {
+      return;
+    }
+    if (!agentScopeContextService) {
+      throw new Error(
+        'Agent scope validation is required before saving a post draft.',
+      );
+    }
+    await agentScopeContextService.assertBrandAuthorized(sourceBrandId, {
       userId: ctx.userId,
       organizationId: ctx.organizationId,
       ...ctx.apiKeyContext,

@@ -8,7 +8,6 @@ import type {
   ICredentialPostingTimes,
   INextPostingSlot,
   IPublishingProviderReadiness,
-  ManualAccountHealthOverrideRequest,
 } from '@genfeedai/contracts/interfaces';
 import type { QuotaStatus } from '@genfeedai/contracts/interfaces/organization/quota-status.interface';
 import {
@@ -97,17 +96,6 @@ export class CredentialsService extends BaseService<Credential> {
   ): Promise<AccountHealthSummary> {
     const response = await this.instance.post<AccountHealthSummary>(
       `/${credentialId}/account-health/assess`,
-      data,
-    );
-    return response.data;
-  }
-
-  public async overrideAccountHealth(
-    credentialId: string,
-    data: ManualAccountHealthOverrideRequest,
-  ): Promise<AccountHealthSummary> {
-    const response = await this.instance.patch<AccountHealthSummary>(
-      `/${credentialId}/account-health/override`,
       data,
     );
     return response.data;

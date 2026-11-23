@@ -14,7 +14,6 @@ import {
 import { verifyMediaPublish } from '@api/services/integrations/publishers/publisher-media-verification.util';
 import { mapMetaFailure } from '@api/services/integrations/publishers/social-publish-error.mappers';
 import { CredentialPlatform, PublishErrorKind } from '@genfeedai/contracts';
-import { readChannelSettingString } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
@@ -45,16 +44,14 @@ export class FacebookPublisherService extends BasePublisherService {
    *
    * Matches the exact caption and media kind (photo or video) among the Page's
    * published feed items created since the attempt began. The Page is the one
-   * the publish targets: the explicit page setting, else the credential's page.
+   * the credential is connected to.
    */
   async verifyPublished(
     context: PublishContext,
     attemptStartedAt: Date,
   ): Promise<PublishResult | null> {
     const mediaInfo = this.extractMediaInfo(context.post);
-    const pageId =
-      readChannelSettingString(context.settings, 'pageId') ??
-      context.credential.externalId;
+    const pageId = context.credential.externalId;
     if (!pageId || mediaInfo.isCarousel) {
       throw new Error(
         'Provider verification lacks exact Facebook page/media proof',
@@ -94,7 +91,6 @@ export class FacebookPublisherService extends BasePublisherService {
     const { post, credential, organizationId, brandId } = context;
     const mediaInfo = this.extractMediaInfo(post);
 
-    // Log the attempt
     this.logPublishAttempt(context, mediaInfo);
 
     // Validate
@@ -113,11 +109,9 @@ export class FacebookPublisherService extends BasePublisherService {
       // post to a sibling account the moment the brand connects a second one.
       const fbCredential = credential;
 
-      // The explicit page setting wins; the credential's page is the fallback
-      // for releases scheduled before the setting existed.
-      const pageId =
-        readChannelSettingString(context.settings, 'pageId') ??
-        fbCredential?.externalId;
+      // A Facebook credential is connected to one Page; that Page is the
+      // channel the post belongs to.
+      const pageId = fbCredential?.externalId;
 
       if (!fbCredential?.accessToken || !pageId) {
         this.logger.error(`${url} Facebook credential or page ID not found`, {
@@ -147,7 +141,7 @@ export class FacebookPublisherService extends BasePublisherService {
         return withErrorKind(
           this.createFailedResult(
             this.platform,
-            'Facebook page access token not found',
+            'Facebook page access token not found. Reconnect Facebook and choose the Page to post to.',
           ),
           PublishErrorKind.CHANNEL_DISCONNECTED,
         );

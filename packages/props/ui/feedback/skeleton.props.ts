@@ -17,10 +17,3 @@ export interface SkeletonCardProps {
 export interface SkeletonListProps {
   count?: number;
 }
-
-export interface SkeletonProps {
-  className?: string;
-  width?: string | number;
-  height?: string | number;
-  variant?: 'text' | 'circular' | 'rectangular' | 'rounded';
-}

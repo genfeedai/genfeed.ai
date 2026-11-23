@@ -1,3 +1,4 @@
+import { queryClientWrapper } from '@app-tests/query-client.harness';
 import { CredentialPlatform } from '@genfeedai/contracts';
 import { resolveOAuthConnectPlatformCatalog } from '@genfeedai/helpers/oauth/oauth-connect-platforms';
 import {
@@ -14,6 +15,16 @@ import BrandDetailSocialMediaCard from '@/features/brands/components/sidebar/Bra
 const warmupConnection = vi.hoisted(() => ({ isConnected: true }));
 const useOAuthConnectPlatforms = vi.hoisted(() => vi.fn());
 const refreshBrands = vi.hoisted(() => vi.fn(async () => undefined));
+const scheduleHistoryImport = vi.fn();
+
+vi.mock('next/navigation', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('next/navigation')>()),
+  useSearchParams: () => new URLSearchParams(window.location.search),
+}));
+
+vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
+  useAuthedService: () => async () => ({ scheduleHistoryImport }),
+}));
 
 vi.mock(
   '@contexts/user/brand-context/brand-context',
@@ -42,10 +53,7 @@ const servicesPlatform = vi.fn();
 const warmingAccountHealth = {
   assessedAt: '2026-06-30T10:00:00.000Z',
   credentialId: 'credential-1',
-  holdPublishing: true,
-  holdReason: 'twitter publishing is held because account warmup is warming.',
   label: 'X Account',
-  override: { isActive: false },
   platform: CredentialPlatform.TWITTER,
   riskLevel: 'medium' as const,
   score: 56,
@@ -64,30 +72,6 @@ const warmingAccountHealth = {
   },
 };
 const listBrandAccountHealth = vi.fn(async () => [warmingAccountHealth]);
-const overrideAccountHealth = vi.fn(async () => ({
-  assessedAt: '2026-06-30T10:00:00.000Z',
-  credentialId: 'credential-1',
-  holdPublishing: false,
-  label: 'X Account',
-  override: { isActive: true },
-  platform: CredentialPlatform.TWITTER,
-  riskLevel: 'medium',
-  score: 56,
-  signals: {
-    connectedDays: 1,
-    profileSignals: 2,
-    publishedPosts: 0,
-    recentFailures: 0,
-  },
-  state: 'warming',
-  thresholds: {
-    maxRecentFailures: 0,
-    minConnectedDays: 10,
-    minProfileSignals: 2,
-    minPublishedPosts: 4,
-  },
-}));
-
 vi.mock('@genfeedai/auth-client/react', () => ({
   useAuth: () => ({
     getToken,
@@ -124,7 +108,6 @@ vi.mock('@services/organization/credentials.service', () => ({
       delete: deleteCredential,
       listBrandAccountHealth,
       listPostingTimes: vi.fn(async () => []),
-      overrideAccountHealth,
     }),
   },
 }));
@@ -224,6 +207,8 @@ describe('BrandDetailSocialMediaCard', () => {
   beforeEach(() => {
     warmupConnection.isConnected = true;
     vi.clearAllMocks();
+    window.history.replaceState(null, '', '/');
+    scheduleHistoryImport.mockResolvedValue({ status: 'scheduled' });
     useOAuthConnectPlatforms.mockReturnValue(
       resolveOAuthConnectPlatformCatalog({ threads: 'available' }),
     );
@@ -397,10 +382,16 @@ describe('BrandDetailSocialMediaCard', () => {
       />,
     );
 
-    expect(screen.getByText('Connected')).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'Connected' })).toBeInTheDocument();
+    // The broken account's warning icon is a Reconnect button.
+    const brokenRow = screen
+      .getAllByRole('row')
+      .find((row) => row.textContent?.includes('Broken TikTok'));
     expect(
-      screen.getByText('Reconnect', { selector: 'span' }),
-    ).toBeInTheDocument();
+      within(brokenRow as HTMLElement).getByRole('button', {
+        name: 'Reconnect',
+      }),
+    ).toBeEnabled();
   });
 
   it('passes fetched account health down to the accounts table on the page variant', async () => {
@@ -423,8 +414,10 @@ describe('BrandDetailSocialMediaCard', () => {
     // `listBrandAccountHealth` (mocked above) returns a "warming" summary
     // for credential-1 — the accounts table must show that live health next
     // to the account's "Connected" badge.
-    expect(await screen.findByText('Warming')).toBeInTheDocument();
-    expect(screen.getByText('Connected')).toBeInTheDocument();
+    expect(
+      await screen.findByRole('img', { name: 'Warming' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'Connected' })).toBeInTheDocument();
   });
 
   it('still fetches account health when the only connection is connected but needs reconnecting', async () => {
@@ -569,7 +562,7 @@ describe('BrandDetailSocialMediaCard', () => {
     expect(screen.queryByRole('tab', { name: 'Import' })).toBeNull();
   });
 
-  it('opens the Connect account modal and starts oauth for a chosen platform', async () => {
+  it('starts authorization as soon as a platform is chosen', async () => {
     render(
       <BrandDetailSocialMediaCard
         brandId="brand-1"
@@ -584,19 +577,64 @@ describe('BrandDetailSocialMediaCard', () => {
     );
     fireEvent.click(screen.getByText('Instagram'));
 
-    expect(postConnect).not.toHaveBeenCalled();
     expect(
-      screen.getByRole('heading', { name: 'Import existing posts?' }),
-    ).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Import posts' }));
+      screen.queryByText('Import existing posts?'),
+    ).not.toBeInTheDocument();
 
     await waitFor(() => {
       expect(postConnect).toHaveBeenCalledWith({
         brandId: 'brand-1',
-        isHistoryImportRequested: true,
+        isHistoryImportRequested: false,
       });
+      expect(openSpy).toHaveBeenCalledWith(
+        'https://oauth.example/connect',
+        '_self',
+      );
     });
   });
+
+  it.each([
+    {
+      choice: 'Import posts',
+      scheduledImports: [['verified-account', 'brand-1']],
+    },
+    { choice: 'Skip', scheduledImports: [] },
+  ])(
+    'allows $choice from the verified account page without blocking account settings',
+    async ({ choice, scheduledImports }) => {
+      window.history.replaceState(
+        null,
+        '',
+        '/?historyImportCredentialId=verified-account',
+      );
+      render(
+        <BrandDetailSocialMediaCard
+          brandId="brand-1"
+          connections={[
+            {
+              credentialId: 'verified-account',
+              externalId: 'channel-1',
+              isConnected: true,
+              name: 'Genfeed Studio',
+              platform: CredentialPlatform.YOUTUBE,
+            },
+          ]}
+          connectedPlatformsCount={1}
+          variant="page"
+        />,
+        { wrapper: queryClientWrapper() },
+      );
+
+      expect(screen.getByText(/posts from Genfeed Studio/)).toBeVisible();
+      expect(screen.getByRole('button', { name: 'Settings' })).toBeEnabled();
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      expect(scheduleHistoryImport).not.toHaveBeenCalled();
+      fireEvent.click(screen.getByRole('button', { name: choice }));
+
+      await waitFor(() => expect(window.location.search).toBe(''));
+      expect(scheduleHistoryImport.mock.calls).toEqual(scheduledImports);
+    },
+  );
 
   it('lets the page header own the Connect account modal', () => {
     const onConnectAccountModalOpenChange = vi.fn();
@@ -752,18 +790,18 @@ describe('BrandDetailSocialMediaCard', () => {
     ).toHaveAttribute('href', 'https://x.com/genfeedlabs');
   });
 
-  it('starts oauth directly from the social card', async () => {
+  it('starts oauth directly from the sidebar and returns to the brand profile', async () => {
     render(
       <BrandDetailSocialMediaCard
         brandId="brand-1"
         connections={[]}
         connectedPlatformsCount={0}
+        historyImportReturnTo="/org/brand/settings/profile"
       />,
     );
 
     fireEvent.click(screen.getByRole('button', { name: /connect/i }));
     fireEvent.click(screen.getByRole('button', { name: /instagram/i }));
-    fireEvent.click(screen.getByRole('button', { name: 'Skip' }));
 
     await waitFor(() => {
       expect(getToken).toHaveBeenCalled();
@@ -774,6 +812,9 @@ describe('BrandDetailSocialMediaCard', () => {
       expect(openSpy).toHaveBeenCalledWith(
         'https://oauth.example/connect',
         '_self',
+      );
+      expect(window.sessionStorage.getItem('oauth_return_to')).toBe(
+        '/org/brand/settings/profile',
       );
     });
   });
@@ -842,7 +883,7 @@ describe('BrandDetailSocialMediaCard', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders account health and confirms a manual override', async () => {
+  it('renders account health without offering a publishing override', async () => {
     render(
       <BrandDetailSocialMediaCard
         brandId="brand-1"
@@ -865,18 +906,10 @@ describe('BrandDetailSocialMediaCard', () => {
     expect(await screen.findByText('Warming')).toBeInTheDocument();
     expect(await screen.findByText(/score 56/i)).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: /override 24h/i }));
-    fireEvent.click(screen.getByRole('button', { name: /confirm override/i }));
-
-    await waitFor(() => {
-      expect(overrideAccountHealth).toHaveBeenCalledWith(
-        'credential-1',
-        expect.objectContaining({
-          confirm: true,
-          reason: 'Manual override confirmed from brand social dashboard.',
-        }),
-      );
-    });
+    expect(
+      screen.queryByRole('button', { name: /override/i }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText(/on hold/i)).not.toBeInTheDocument();
   });
 
   it('disconnects a single account and leaves its platform siblings alone', async () => {

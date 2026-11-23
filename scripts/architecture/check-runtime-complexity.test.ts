@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   discoverChangedRuntimeFiles,
   evaluateRuntimeComplexityRatchet,
+  lowerableRuntimeComplexityCeilings,
   type RuntimeComplexityViolation,
   runRuntimeComplexityCheck,
   runtimeComplexityBaselineFromViolations,
@@ -401,7 +402,7 @@ describe('check-runtime-complexity', () => {
     ]);
   });
 
-  it('requires the baseline to shrink when debt improves or disappears', () => {
+  it('passes when debt shrinks or disappears, and lists the ceilings a sweep can lower', () => {
     const baseline = [
       {
         actual: 10,
@@ -416,21 +417,24 @@ describe('check-runtime-complexity', () => {
         symbol: 'apps/server/api/src/gone/gone.service.ts',
       },
     ];
+    const current = [violation({ actual: 8 })];
 
-    expect(
-      evaluateRuntimeComplexityRatchet(baseline, [violation({ actual: 8 })]),
-    ).toEqual([
-      expect.objectContaining({
+    expect(evaluateRuntimeComplexityRatchet(baseline, current)).toEqual([]);
+    expect(lowerableRuntimeComplexityCeilings(baseline, current)).toEqual([
+      {
         actual: 8,
         baseline: 10,
-        type: 'stale-baseline',
-      }),
-      expect.objectContaining({
+        file: 'apps/server/api/src/demo/demo.service.ts',
+        metric: 'file-lines',
+        symbol: 'apps/server/api/src/demo/demo.service.ts',
+      },
+      {
         actual: 0,
         baseline: 7,
         file: 'apps/server/api/src/gone/gone.service.ts',
-        type: 'stale-baseline',
-      }),
+        metric: 'file-lines',
+        symbol: 'apps/server/api/src/gone/gone.service.ts',
+      },
     ]);
   });
 

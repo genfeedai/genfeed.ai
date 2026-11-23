@@ -25,7 +25,6 @@ import type {
 } from '@genfeedai/contracts/interfaces/ai/agent-external-turn.interface';
 import {
   buildClaudeCliArgs,
-  buildCliAgentMcpUrl,
   buildCodexCliArgs,
   type ClaudeMcpConfigFile,
   removeStaleClaudeMcpConfigs,
@@ -400,7 +399,7 @@ export class DesktopCliAgentRuntimeService {
     token: string;
   }): void {
     const { request, runtime } = params;
-    const mcpEndpoint = buildCliAgentMcpUrl(this.options.getMcpEndpoint());
+    const mcpEndpoint = this.options.getMcpEndpoint();
     fs.mkdirSync(this.workspaceDir, { mode: 0o700, recursive: true });
 
     const environment: NodeJS.ProcessEnv = {

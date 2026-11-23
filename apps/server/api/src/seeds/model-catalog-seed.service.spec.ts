@@ -1046,7 +1046,7 @@ describe('ModelCatalogSeedService', () => {
       const defaultEntry = UNIFIED_MODEL_CATALOG.find(
         (entry) =>
           entry.category === 'text' &&
-          entry.key === AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_FLASH,
+          entry.key === AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_1_FLASH,
       );
       expect(defaultEntry?.isDefault).toBe(true);
 

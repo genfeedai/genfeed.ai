@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getToolByName } from './tool-registry';
-import { getToolsForToolsets } from './toolsets';
+import { getToolByName, getToolsForSurface } from './tool-registry';
 
 describe('generate_content as the single content generation tool', () => {
   const tool = getToolByName('generate_content');
@@ -75,19 +74,14 @@ describe('get_generation_options', () => {
   });
 });
 
-describe('default MCP profile after the write-tool merges', () => {
-  it('loads transform_media and get_generation_options by default', () => {
+describe('MCP listing after the write-tool merges', () => {
+  it('lists generate_media and get_generation_catalog', () => {
     const names = new Set<string>(
-      getToolsForToolsets('mcp', [
-        'core',
-        'generation',
-        'content',
-        'scheduler',
-      ]).map((tool) => tool.name),
+      getToolsForSurface('mcp').map((tool) => tool.name),
     );
-    expect(names.has('transform_media')).toBe(true);
-    expect(names.has('get_generation_options')).toBe(true);
-    expect(names.has('generate_content')).toBe(true);
+    expect(names.has('generate_media')).toBe(true);
+    expect(names.has('get_generation_catalog')).toBe(true);
+    expect(names.has('generate_text')).toBe(true);
     for (const removed of [
       'edit_image',
       'reframe_image',

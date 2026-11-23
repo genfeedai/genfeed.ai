@@ -6,8 +6,9 @@ import {
 } from '@genfeedai/contracts';
 import type { FilterMenuFacet } from '@genfeedai/props/ui/forms/filter-menu.props';
 import { getPlatformIconComponent } from '@helpers/ui/platform-icon/platform-icon.helper';
+import ConnectedAccountAvatar from '@ui/display/connected-account/ConnectedAccountAvatar';
+import FilterMenu from '@ui/navigation/filter-menu/FilterMenu';
 import { useTranslations } from 'next-intl';
-import FilterMenu from '@/components/content/filter-menu/FilterMenu';
 import type {
   ReleaseCalendarFilters as CalendarFilters,
   ReleaseCalendarFilterOption,
@@ -95,9 +96,12 @@ export default function ReleaseCalendarFilters({
       const PlatformIcon = option.platform
         ? getPlatformIconComponent(option.platform)
         : undefined;
+      const { account, ...rest } = option;
       return {
-        ...option,
-        icon: PlatformIcon ? (
+        ...rest,
+        icon: account ? (
+          <ConnectedAccountAvatar account={account} isDecorative size="xs" />
+        ) : PlatformIcon ? (
           <PlatformIcon aria-hidden="true" className="size-4" />
         ) : undefined,
       };

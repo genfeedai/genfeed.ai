@@ -227,6 +227,55 @@ export const GENERATION_NODE_DEFINITIONS: Record<string, NodeDefinition> = {
     },
   },
 
+  // Starts one run of a hired content agent with the trigger event as its
+  // brief (#10897). The event text is only ever quoted to the agent.
+  agentEventRun: {
+    category: 'ai',
+    configSchema: {
+      dailyCap: {
+        default: 10,
+        description:
+          'Most runs this agent may start from events in any 24 hours; further events are skipped',
+        label: 'Daily run cap',
+        max: 100,
+        min: 1,
+        type: 'number',
+      },
+      instruction: {
+        description:
+          'What the agent should do with the event, for example "Draft a reply post about this mention"',
+        label: 'Instruction',
+        required: true,
+        type: 'string',
+      },
+      strategyId: {
+        description: 'ID of the hired content agent to run',
+        label: 'Agent ID',
+        required: true,
+        type: 'string',
+      },
+    },
+    description:
+      'Run a hired content agent with the trigger event as its brief. The draft lands in review.',
+    icon: 'Bot',
+    inputs: {
+      eventId: {
+        label: 'Event ID',
+        required: false,
+        type: 'text',
+      },
+      eventText: {
+        label: 'Event Text',
+        required: false,
+        type: 'text',
+      },
+    },
+    label: 'Run Content Agent',
+    outputs: {
+      result: { label: 'Run Result', type: 'any' },
+    },
+  },
+
   'ai-generate-newsletter': {
     category: 'ai',
     configSchema: {

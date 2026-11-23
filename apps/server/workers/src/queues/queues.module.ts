@@ -28,6 +28,7 @@ import {
   REPLICATE_POLL_QUEUE,
   SCHEDULED_PUBLISH_QUEUE,
   TURBO_REWRITE_QUEUE,
+  VIDEO_COMPLETION_QUEUE,
   WEBHOOK_CLIENT_QUEUE,
   WORKFLOW_BACKGROUND_QUEUE,
   WORKFLOW_EXECUTION_QUEUE,
@@ -240,6 +241,7 @@ import { ConfigService } from '@workers/config/config.service';
         },
         name: TURBO_REWRITE_QUEUE,
       },
+      { name: VIDEO_COMPLETION_QUEUE },
     ),
   ],
   providers: [

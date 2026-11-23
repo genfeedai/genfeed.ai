@@ -51,11 +51,13 @@ import {
   isAgentStoryboardTool,
 } from '@api/services/agent-orchestrator/tools/agent-storyboard-tool-handler.service';
 import { AgentThreadToolHandler } from '@api/services/agent-orchestrator/tools/agent-thread-tool-handler.service';
+import { moveUndeclaredBrandArgument } from '@api/services/agent-orchestrator/tools/agent-tool-brand-argument.util';
 import { AgentToolCatalogHandler } from '@api/services/agent-orchestrator/tools/agent-tool-catalog-handler.service';
 import { dispatchRegisteredAgentTool } from '@api/services/agent-orchestrator/tools/agent-tool-dispatch.routes';
 import {
   describeToolFailure,
   describeToolFailureForLog,
+  isDeliberateToolRejection,
 } from '@api/services/agent-orchestrator/tools/agent-tool-failure.util';
 import { AgentToolMutationAuthorizationService } from '@api/services/agent-orchestrator/tools/agent-tool-mutation-authorization.service';
 import { readOptionalString } from '@api/services/agent-orchestrator/tools/agent-tool-parameter-readers';
@@ -531,6 +533,10 @@ export class AgentToolExecutorService implements OnModuleInit {
       }
     }
     assertScope(context.apiKeyContext ?? {}, toolName, parameters);
+    ({ context, parameters } = moveUndeclaredBrandArgument(toolName, {
+      context,
+      parameters,
+    }));
     try {
       // The runner persists an execution before dispatching its tool node.
       // Reject inaccessible brands before that write, then recheck at dispatch.
@@ -566,9 +572,9 @@ export class AgentToolExecutorService implements OnModuleInit {
         },
       );
     } catch (error: unknown) {
-      this.loggerService.error(
+      this.logToolFailure(
+        error,
         `Tool ${toolName} workflow failed: ${describeToolFailureForLog(error)}`,
-        this.constructorName,
       );
       return {
         creditsUsed: 0,
@@ -725,9 +731,9 @@ export class AgentToolExecutorService implements OnModuleInit {
     } catch (error: unknown) {
       executionFailed = true;
       const durationMs = Date.now() - startTime;
-      this.loggerService.error(
+      this.logToolFailure(
+        error,
         `Tool ${toolName} failed after ${durationMs}ms: ${describeToolFailureForLog(error)}`,
-        this.constructorName,
       );
 
       executionResult = {
@@ -751,6 +757,15 @@ export class AgentToolExecutorService implements OnModuleInit {
       );
     }
     return toPlainJson(executionResult);
+  }
+
+  /** A guard rejection is a handled outcome (warn); anything else is a fault (error, reported). */
+  private logToolFailure(error: unknown, message: string): void {
+    if (isDeliberateToolRejection(error)) {
+      this.loggerService.warn(message, this.constructorName);
+      return;
+    }
+    this.loggerService.error(message, this.constructorName);
   }
 
   /** Routes a tool to the handler that owns it, else the registered dispatch table. */

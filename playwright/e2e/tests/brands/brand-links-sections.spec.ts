@@ -8,7 +8,7 @@ import { assertNoErrorBoundaryFallback } from '../../utils/route-assertions';
 
 // The Profile page owns the brand's social accounts (a Connect account button
 // in the page header) and its website links. Both sit in the right sidebar,
-// accounts under the website links. Like every other section, the website
+// accounts above the website links. Like every other section, the website
 // links title and action sit above the card.
 test.describe('Brand accounts and website links', () => {
   test.beforeEach(async ({ authenticatedPage }) => {
@@ -43,10 +43,16 @@ test.describe('Brand accounts and website links', () => {
     await expect(
       heading.locator('xpath=ancestor::*[contains(@class,"rounded-card")]'),
     ).toHaveCount(0);
+    const linksSection = authenticatedPage.getByRole('region', {
+      name: 'Website links',
+    });
     await expect(
-      heading
-        .locator('xpath=ancestor::section[1]')
-        .getByRole('button', { name: 'Add link' }),
+      linksSection.getByRole('button', { name: 'Add link' }),
+    ).toBeVisible();
+    await expect(
+      linksSection
+        .locator('.rounded-card')
+        .getByRole('heading', { name: 'No website links yet.' }),
     ).toBeVisible();
 
     await expect(
@@ -54,7 +60,7 @@ test.describe('Brand accounts and website links', () => {
     ).toHaveCount(0);
   });
 
-  test('lists the connected accounts in the sidebar, under the website links', async ({
+  test('lists the connected accounts above the website links in the sidebar', async ({
     authenticatedPage,
   }) => {
     const route = brandPath('/settings/profile');
@@ -79,8 +85,7 @@ test.describe('Brand accounts and website links', () => {
     const accountsBox = await accountsHeading.boundingBox();
     expect(linksBox).not.toBeNull();
     expect(accountsBox).not.toBeNull();
-    // Same column as the website links, below them.
     expect(accountsBox?.x).toBeCloseTo(linksBox?.x ?? 0, 0);
-    expect(accountsBox?.y ?? 0).toBeGreaterThan(linksBox?.y ?? 0);
+    expect(accountsBox?.y ?? 0).toBeLessThan(linksBox?.y ?? 0);
   });
 });

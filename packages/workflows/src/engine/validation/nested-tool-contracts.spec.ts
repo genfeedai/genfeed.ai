@@ -3,6 +3,7 @@ import {
   ALL_TOOLS,
   getActionDefinition,
   toAgentTools,
+  toMcpTool,
   toMcpTools,
 } from '@genfeedai/actions';
 import Ajv from 'ajv';
@@ -113,11 +114,17 @@ const fixtures = [
   {
     id: 'save_brand_voice_profile',
     input: {
+      brandId: 'brand-1',
       voiceProfile: {
         tone: 'Warm',
         audience: ['Founders'],
         style: 'Direct',
-        strategy: { goals: ['Growth'], topics: ['AI'] },
+        strategy: {
+          competitors: ['Example Studio'],
+          goals: ['Growth'],
+          offers: ['Weekly reports'],
+          topics: ['AI'],
+        },
         prompting: {
           seeds: [
             {
@@ -319,9 +326,16 @@ describe('nested tool input contracts', () => {
       const legacyScheduler = id === 'validate_scheduler_target';
       const publishedName = legacyScheduler ? 'check_channel' : id;
       const tools = ALL_TOOLS.filter((tool) => tool.name === publishedName);
+      // An MCP original that is an unlisted action of a merged tool still
+      // publishes its own input contract through that action.
+      const mcpSchemas = legacyScheduler
+        ? toMcpTools(tools).map((tool) => tool.inputSchema)
+        : tools
+            .filter((tool) => tool.surfaces.mcp)
+            .map((tool) => toMcpTool(tool).inputSchema);
       const schemas = [
         ...toAgentTools(tools).map((tool) => tool.parameters),
-        ...toMcpTools(tools).map((tool) => tool.inputSchema),
+        ...mcpSchemas,
       ];
       if (legacyScheduler) {
         expect(getActionDefinition(id)).toBeDefined();

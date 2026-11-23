@@ -69,6 +69,7 @@ export class IngredientEntity extends BaseEntity implements Ingredient {
 
   declare readonly isDraftRender: boolean;
   declare readonly isFavorite: boolean;
+  declare readonly storageExpiredAt: Ingredient['storageExpiredAt'];
   declare readonly isHighlighted: boolean;
   declare readonly isDefault: boolean;
   declare readonly isPublic: boolean; // For public gallery visibility (getshareable.app)

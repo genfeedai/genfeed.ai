@@ -46,7 +46,8 @@ export type ControlGuardCategory =
   | 'raw-select'
   | 'raw-button'
   | 'styled-anchor'
-  | 'tabs-bypass';
+  | 'tabs-bypass'
+  | 'value-control-bypass';
 
 export type ControlGuardSeverity = 'required' | 'advisory';
 
@@ -106,11 +107,8 @@ export const ALLOWLIST = {
     'apps/marketing/app/(public)/agencies/agencies-content.tsx',
     'apps/marketing/app/(public)/articles/[slug]/article-detail.tsx',
     'apps/marketing/app/(public)/influencers/ai-influencers-content.tsx',
-    'apps/marketing/src/components/NotFoundContent.tsx',
-    'apps/marketing/src/components/content/post-card/PostCard.tsx',
     'apps/marketing/src/components/home/_marketplace-cta.tsx',
     'apps/web/src/features/analytics/overview/analytics-overview.tsx',
-    'apps/web/src/features/analytics/trend-turnover/analytics-trend-turnover.tsx',
     'apps/web/src/features/brands/components/latest-articles/BrandDetailLatestArticles.tsx',
     'apps/web/src/features/brands/components/latest-images/BrandDetailLatestImages.tsx',
     'apps/web/src/features/brands/components/latest-videos/BrandDetailLatestVideos.tsx',
@@ -244,6 +242,15 @@ const BANNED_IMPORT_PATTERNS = [
 const TABS_BYPASS_PATTERNS = [
   /@radix-ui\/react-tabs/g,
   /role\s*=\s*(?:["']tab(?:list)?["']|\{["']tab(?:list)?["']\})/g,
+];
+
+// The value controls (switch, checkbox, radio group, slider, select) are built
+// on ui-sdk, so the page agent can read and set them. A copy-pasted shadcn
+// snippet imports the Radix or Base UI part instead and the agent cannot see it.
+const VALUE_CONTROL_BYPASS_PATTERNS = [
+  /@radix-ui\/react-(?:switch|checkbox|radio-group|slider|select)\b/g,
+  /@base-ui(?:-components)?\/react\/(?:switch|checkbox|checkbox-group|radio|radio-group|slider|select)\b/g,
+  /from\s+["']radix-ui["']/g,
 ];
 
 function isButtonLikeClassName(className: string): boolean {
@@ -619,6 +626,15 @@ const RULES: readonly Rule[] = [
           ),
   },
   {
+    category: 'value-control-bypass',
+    severity: 'required',
+    scope: { prefixes: PRODUCT_UI_PREFIXES, exts: JSX_EXTS },
+    detect: (_rel, content) =>
+      VALUE_CONTROL_BYPASS_PATTERNS.flatMap((pattern) =>
+        matchLines(content, pattern),
+      ),
+  },
+  {
     category: 'banned-import',
     severity: 'required',
     scope: {
@@ -723,6 +739,9 @@ function repoWideGitGrepFilter(): string {
     '@/features/workflows/components/ui/inputs/textarea/Textarea',
     '@/features/workflows/components/ui/inputs/select/Select',
     '@radix-ui/react-tabs',
+    '@radix-ui/react-(switch|checkbox|radio-group|slider|select)',
+    '@base-ui',
+    'radix-ui',
     'role=',
   ].join('|');
   return `<(${elements})|<(${formSpacingTags})|${imports}`;
@@ -788,6 +807,7 @@ const CATEGORY_ORDER: readonly ControlGuardCategory[] = [
   'raw-input',
   'raw-select',
   'tabs-bypass',
+  'value-control-bypass',
   'raw-button',
   'styled-anchor',
 ];
@@ -804,6 +824,8 @@ const CATEGORY_HINTS: Record<ControlGuardCategory, string> = {
   'raw-select': 'Use the shared Select primitive.',
   'tabs-bypass':
     'Use Tabs from @ui/primitives/tabs instead of @radix-ui/react-tabs or hand-rolled tab semantics.',
+  'value-control-bypass':
+    'Use Switch, Checkbox, RadioGroup, Slider or Select from @ui/primitives/*: they are built on ui-sdk, so the page agent can read and set them. Do not import the Radix or Base UI part.',
   'raw-button': 'Use the shared Button primitive.',
   'styled-anchor': 'Use Button/AppLink instead of a button-styled anchor.',
 };

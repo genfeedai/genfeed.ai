@@ -126,7 +126,6 @@ export abstract class BaseWebhookController {
       // Log receipt
       this.loggerService.log(`${url} received`, payload);
 
-      // Validate signature
       const validationResult = await this.validateSignature<T>(
         request,
         payload,

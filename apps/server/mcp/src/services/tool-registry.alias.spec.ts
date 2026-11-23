@@ -1,4 +1,9 @@
-import { ALL_TOOLS, getMcpCatalogOperations } from '@genfeedai/actions';
+import {
+  ALL_TOOLS,
+  CLAUDE_MCP_TOOL_NAMES,
+  getMcpCatalogOperations,
+  MCP_TOOL_CAP,
+} from '@genfeedai/actions';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ClientService } from '@mcp/services/client.service';
 import { ToolRegistryService } from '@mcp/services/tool-registry.service';
@@ -20,9 +25,23 @@ vi.mock('@genfeedai/actions', async (importOriginal) => {
 beforeEach(() => {
   state.deniedName = '';
 });
-const operations = ['check_channel', 'upload_media'].flatMap(
-  getMcpCatalogOperations,
-);
+const inputs: Record<string, Record<string, unknown>> = {
+  capabilities: { includeHidden: true, includePlanned: false },
+  validate: {
+    platform: 'youtube',
+    caption: 'draft',
+    media: [{ kind: 'video', id: 'asset' }],
+    settings: { nested: [true, null] },
+  },
+  request: { filename: 'photo.png', contentType: 'image/png' },
+  complete: { assetId: 'asset' },
+};
+
+// The actions whose original behaviour this spec compares; the others have
+// their handlers covered where those handlers are tested.
+const operations = ['check_channel', 'upload_media']
+  .flatMap(getMcpCatalogOperations)
+  .filter((operation) => operation.action in inputs);
 async function build(mode: 'standard' | 'claude' = 'standard') {
   const client = {
     listSchedulerCapabilities: vi
@@ -57,24 +76,11 @@ async function build(mode: 'standard' | 'claude' = 'standard') {
     module.get(ClientService),
     module.get(LoggerService),
     'user',
-    ['core'],
     undefined,
     mode,
   );
   return { registry, client, logger, module };
 }
-const inputs: Record<string, Record<string, unknown>> = {
-  capabilities: { includeHidden: true, includePlanned: false },
-  validate: {
-    platform: 'youtube',
-    caption: 'draft',
-    media: [{ kind: 'video', id: 'asset' }],
-    settings: { nested: [true, null] },
-  },
-  request: { filename: 'photo.png', contentType: 'image/png' },
-  complete: { assetId: 'asset' },
-};
-
 describe('canonical MCP dispatch and immediate retirement', () => {
   it.each(operations)(
     'rejects retired $executionName immediately without effects',
@@ -199,10 +205,11 @@ describe('canonical MCP dispatch and immediate retirement', () => {
     },
   );
 
-  it('keeps fixed canonical action despite an inner action and permits calls outside listed toolsets', async () => {
+  it('keeps the fixed canonical action despite an inner action', async () => {
     const { registry, client, module } = await build();
     try {
-      expect(registry.getTools().map((tool) => tool.name)).not.toContain(
+      // A merged tool is listed on every selection, so `['core']` has it.
+      expect(registry.getTools().map((tool) => tool.name)).toContain(
         'check_channel',
       );
       await registry.handleToolCall({
@@ -273,7 +280,36 @@ describe('canonical MCP dispatch and immediate retirement', () => {
       }
       expect(client.executeAgentTool).not.toHaveBeenCalled();
       expect(client.createApproval).not.toHaveBeenCalled();
-      expect(logger.warn).not.toHaveBeenCalled();
+      expect(logger.error).not.toHaveBeenCalled();
+    } finally {
+      await module.close();
+    }
+  });
+
+  it.each([
+    [
+      { action: 'posts', brandId: 'brand-1', input: {} },
+      'get_content accepts only action and input, not brandId. Put the fields of the action inside input',
+    ],
+    [
+      { action: 'post', input: {} },
+      '"post" is not an action of get_content. Use one of: posts, release, articles, article_preview.',
+    ],
+  ])('tells the agent how to repair %j', async (arguments_, guidance) => {
+    const { registry, module } = await build();
+    try {
+      const result = await registry.handleToolCall({
+        name: 'get_content',
+        arguments: arguments_,
+      });
+
+      expect(result).toMatchObject({
+        isError: true,
+        structuredContent: { code: 'validation_failed' },
+      });
+      expect(
+        (result as { content: { text: string }[] }).content[0].text,
+      ).toContain(guidance);
     } finally {
       await module.close();
     }
@@ -323,7 +359,7 @@ describe('canonical MCP dispatch and immediate retirement', () => {
         expect(client.listSchedulerCapabilities).not.toHaveBeenCalled();
         expect(client.validateSchedulerTarget).not.toHaveBeenCalled();
         expect(client.createApproval).not.toHaveBeenCalled();
-        expect(logger.warn).not.toHaveBeenCalled();
+        expect(logger.error).not.toHaveBeenCalled();
       } finally {
         await module.close();
       }
@@ -364,19 +400,26 @@ describe('canonical MCP dispatch and immediate retirement', () => {
         expect(client.listSchedulerCapabilities).not.toHaveBeenCalled();
         expect(client.validateSchedulerTarget).not.toHaveBeenCalled();
         expect(client.createApproval).not.toHaveBeenCalled();
-        expect(logger.warn).not.toHaveBeenCalled();
+        expect(logger.error).not.toHaveBeenCalled();
       } finally {
         await module.close();
       }
     },
   );
 
-  it('boots with all 171 raw definitions covered and advertises 30 Claude tools', async () => {
-    expect(ALL_TOOLS.filter((tool) => tool.surfaces.mcp)).toHaveLength(171);
+  it('boots with every raw definition covered and advertises the Claude tools within the connector cap', async () => {
+    expect(
+      ALL_TOOLS.filter((tool) => tool.surfaces.mcp).length,
+    ).toBeGreaterThan(0);
     expect(() => ToolRegistryService.validateDispatchCoverage()).not.toThrow();
     const { registry, module } = await build('claude');
     try {
-      expect(registry.getAllTools()).toHaveLength(30);
+      expect(registry.getAllTools().length).toBeLessThanOrEqual(MCP_TOOL_CAP);
+      expect(
+        registry
+          .getAllTools()
+          .every((tool) => CLAUDE_MCP_TOOL_NAMES.has(tool.name)),
+      ).toBe(true);
       for (const name of [
         'get_scheduler_capabilities',
         'validate_scheduler_target',

@@ -499,7 +499,7 @@ export async function assertRouteLoads(
       // finishes redirecting under V8 coverage instrumentation. Retry only this
       // browser-level abort once; HTTP, timeout, and assertion failures remain
       // hard failures.
-      await page.waitForTimeout(250);
+      await page.waitForLoadState('domcontentloaded').catch(() => {});
     }
   }
 

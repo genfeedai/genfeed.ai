@@ -30,7 +30,7 @@
     "symbol": "BillingAccountMigrationService.run"
   },
   {
-    "actual": 166,
+    "actual": 156,
     "file": "apps/server/api/src/collections/clipper-projects/services/clipper-generation-dispatch.service.ts",
     "metric": "method-lines",
     "symbol": "ClipperGenerationDispatchService.retryFailedClips"
@@ -72,7 +72,7 @@
     "symbol": "apps/server/api/src/collections/skills/services/skills.service.ts"
   },
   {
-    "actual": 1221,
+    "actual": 1199,
     "file": "apps/server/api/src/collections/workflows/services/automation-workflow-definitions.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/collections/workflows/services/automation-workflow-definitions.ts"
@@ -138,7 +138,7 @@
     "symbol": "AgentAnalyticsToolHandler.getAnalytics"
   },
   {
-    "actual": 1074,
+    "actual": 1072,
     "file": "apps/server/api/src/services/agent-orchestrator/tools/agent-publish-tool-handler.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/services/agent-orchestrator/tools/agent-publish-tool-handler.service.ts"
@@ -166,12 +166,6 @@
     "file": "apps/server/api/src/services/integrations/stripe/services/stripe.service.ts",
     "metric": "method-lines",
     "symbol": "StripeService.createPaymentSession"
-  },
-  {
-    "actual": 152,
-    "file": "apps/server/api/src/services/integrations/youtube/services/modules/youtube-auth.service.ts",
-    "metric": "method-lines",
-    "symbol": "YoutubeAuthService.refreshToken"
   },
   {
     "actual": 184,
@@ -216,13 +210,13 @@
     "symbol": "apps/server/files/src/processors/video.processor.ts"
   },
   {
-    "actual": 1354,
+    "actual": 1037,
     "file": "apps/server/mcp/src/mcp/setup-page.ts",
     "metric": "file-lines",
     "symbol": "apps/server/mcp/src/mcp/setup-page.ts"
   },
   {
-    "actual": 1746,
+    "actual": 1744,
     "file": "apps/server/mcp/src/ui/preview-client.tsx",
     "metric": "file-lines",
     "symbol": "apps/server/mcp/src/ui/preview-client.tsx"
@@ -246,7 +240,7 @@
     "symbol": "apps/server/workers/src/services/scheduled-post-delivery.service.ts"
   },
   {
-    "actual": 1377,
+    "actual": 1373,
     "file": "apps/web/app/(protected)/[orgSlug]/[brandSlug]/clipper/useStudioClipperPage.ts",
     "metric": "file-lines",
     "symbol": "apps/web/app/(protected)/[orgSlug]/[brandSlug]/clipper/useStudioClipperPage.ts"
@@ -282,7 +276,7 @@
     "symbol": "apps/web/src/components/workspace-shell/UniversalWorkspaceShell.tsx"
   },
   {
-    "actual": 1091,
+    "actual": 1090,
     "file": "apps/web/src/features/research/remix/RemixBriefInspector.tsx",
     "metric": "file-lines",
     "symbol": "apps/web/src/features/research/remix/RemixBriefInspector.tsx"
@@ -318,7 +312,7 @@
     "symbol": "packages/agent/src/components/useAgentChatInput.ts"
   },
   {
-    "actual": 1252,
+    "actual": 1244,
     "file": "packages/agent/src/components/useGenerationActionCard.ts",
     "metric": "file-lines",
     "symbol": "packages/agent/src/components/useGenerationActionCard.ts"
@@ -372,7 +366,7 @@
     "symbol": "packages/contracts/src/api-types/contracts/generation-capability-profile.contract.ts"
   },
   {
-    "actual": 2490,
+    "actual": 2489,
     "file": "packages/contracts/src/api-types/contracts/social-warmup-blueprint.contract.ts",
     "metric": "file-lines",
     "symbol": "packages/contracts/src/api-types/contracts/social-warmup-blueprint.contract.ts"
@@ -390,7 +384,7 @@
     "symbol": "packages/helpers/src/brand-kit-contract.helper.ts"
   },
   {
-    "actual": 1227,
+    "actual": 1225,
     "file": "packages/hooks/ui/ingredient/use-ingredient-actions/use-ingredient-actions.ts",
     "metric": "file-lines",
     "symbol": "packages/hooks/ui/ingredient/use-ingredient-actions/use-ingredient-actions.ts"

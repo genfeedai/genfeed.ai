@@ -52,6 +52,28 @@ export default function PostDetailAnalytics({
     );
   }
 
+  // Five stats (views, likes, comments, shares, engagement) sit on one row
+  // instead of wrapping as three and two.
+  if (stats.length === 5) {
+    return (
+      <div className={cn('@container', className)}>
+        <div
+          className="grid grid-cols-2 gap-3 @[36rem]:grid-cols-5"
+          data-testid="metric-card-grid"
+        >
+          {stats.map((stat) => (
+            <MetricCard
+              key={stat.label}
+              icon={stat.icon}
+              label={stat.label}
+              value={stat.value}
+            />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <MetricCardGrid className={className} columns={3}>
       {stats.map((stat) => (

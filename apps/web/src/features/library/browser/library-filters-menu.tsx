@@ -20,7 +20,7 @@ import { Avatar } from '@ui/primitives/avatar';
 import { UserRound } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
-import FilterMenu from '@/components/content/filter-menu/FilterMenu';
+import ScopedFilterMenu from '@/components/content/admin-filters/ScopedFilterMenu';
 import type {
   LibraryCharacterOption,
   LibraryFiltersMenuProps,
@@ -224,7 +224,7 @@ export default function LibraryFiltersMenu({
   });
 
   return (
-    <FilterMenu
+    <ScopedFilterMenu
       clearLabel={translate('clearAllFilters')}
       facets={facets}
       getActiveCountLabel={(count) => translate('activeFilterCount', { count })}

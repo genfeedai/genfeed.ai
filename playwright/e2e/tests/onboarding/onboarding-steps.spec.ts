@@ -52,4 +52,14 @@ test.describe('Onboarding Steps', () => {
     await tryClick(authenticatedPage, '[role="button"]');
     await expect(authenticatedPage.locator('body')).toBeVisible();
   });
+
+  test('a completed user opens a scoped deep link without seeing onboarding', async ({
+    authenticatedPage,
+  }) => {
+    await authenticatedPage.goto('/test-org/brand-1/workspace/overview');
+    await expect(
+      authenticatedPage.getByTestId('app-content-shell'),
+    ).toBeVisible();
+    await expect(authenticatedPage).not.toHaveURL(/\/onboarding(\/|$)/);
+  });
 });

@@ -7,6 +7,8 @@ import { generationQuoteGroupReceiptSchema } from '@api/helpers/utils/credits/ge
 import { persistQuoteGroupFailure } from '@api/helpers/utils/credits/persist-quote-group-failure.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { scopedWhere } from '@api/index';
+import { FalService } from '@api/services/integrations/fal/services/fal.service';
+import { parseFalRequestRef } from '@api/services/integrations/fal/services/fal-request-ref';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
@@ -23,6 +25,15 @@ export interface CancelProcessingIngredientInput {
   userId?: string;
 }
 
+export interface CancelExecutionGenerationsInput {
+  executionId: string;
+  organizationId: string;
+  userId?: string;
+}
+
+/** One cancel sweep covers at most this many generations of a run. */
+const EXECUTION_CANCEL_LIMIT = 100;
+
 /**
  * Stops an in-flight studio generation: best-effort provider cancel, then
  * mark the placeholder FAILED so waitForCompletion unblocks and webhooks
@@ -33,6 +44,7 @@ export interface CancelProcessingIngredientInput {
 export class IngredientGenerationCancellationService {
   constructor(
     private readonly failedGenerationService: FailedGenerationService,
+    private readonly falService: FalService,
     private readonly ingredientsService: IngredientsService,
     private readonly loggerService: LoggerService,
     private readonly replicateService: ReplicateService,
@@ -116,6 +128,47 @@ export class IngredientGenerationCancellationService {
     );
   }
 
+  /**
+   * Stopping an agent run stops the generations it already started, the same
+   * way a direct cancel does. One generation that cannot be cancelled never
+   * keeps the others running. Returns how many placeholders it cancelled.
+   */
+  async cancelProcessingForExecution(
+    input: CancelExecutionGenerationsInput,
+  ): Promise<number> {
+    const rows = await this.ingredientsService.prisma.ingredient.findMany({
+      orderBy: { id: 'asc' },
+      select: { id: true },
+      take: EXECUTION_CANCEL_LIMIT,
+      where: scopedWhere(input.organizationId, {
+        status: IngredientStatus.PROCESSING,
+        workflowExecutionId: input.executionId,
+      }),
+    });
+
+    let cancelledCount = 0;
+    for (const row of rows) {
+      try {
+        const cancelled = await this.cancelProcessingIngredient({
+          id: row.id,
+          organizationId: input.organizationId,
+          userId: input.userId,
+        });
+        if (cancelled.status === IngredientStatus.FAILED) cancelledCount += 1;
+      } catch (error: unknown) {
+        this.loggerService.warn(
+          'Stopping a run could not cancel one of its generations',
+          {
+            error: (error as Error)?.message,
+            executionId: input.executionId,
+            ingredientId: row.id,
+          },
+        );
+      }
+    }
+    return cancelledCount;
+  }
+
   private async cancelProviderJob(
     ingredient: IngredientDocument,
     requireConfirmation: boolean,
@@ -132,11 +185,29 @@ export class IngredientGenerationCancellationService {
       return false;
     }
 
+    // A fal job still running holds a request reference, not an output URL.
+    // fal confirms a cancel it accepted; anything else leaves the job running.
+    const falRequest =
+      externalProvider === 'fal' ? parseFalRequestRef(externalId) : null;
+    if (falRequest) {
+      const isConfirmed = await this.falService.cancelRequest(falRequest);
+      if (!isConfirmed)
+        this.loggerService.warn(
+          'fal did not confirm the cancel; the job may still run at the provider',
+          { externalId, ingredientId: ingredient.id },
+        );
+      return isConfirmed;
+    }
+
     const isReplicateJob =
       externalProvider === 'replicate' ||
       (!externalProvider && !externalId.includes('://'));
 
     if (!isReplicateJob) {
+      this.loggerService.warn(
+        'Provider has no cancel call here; the job keeps running at the provider',
+        { externalProvider, ingredientId: ingredient.id },
+      );
       return false;
     }
 

@@ -35,6 +35,26 @@ function toDispatchedStatus(
   return result.queuedClipCount > 0 ? 'generating' : 'failed';
 }
 
+type FailedClipperResult = Awaited<
+  ReturnType<ClipperResultsService['findByProject']>
+>[number];
+
+/** Maps failed results to the highlights a retry regenerates; ranges are validated by the caller. */
+function toRetryHighlights(failedResults: FailedClipperResult[]) {
+  return failedResults.map((result) => ({
+    clip_type: readNonEmptyStringOrNull(result.clipType) ?? 'highlight',
+    end_time: result.endTime as number,
+    start_time: result.startTime as number,
+    summary: readNonEmptyStringOrNull(result.summary) ?? '',
+    tags: Array.isArray(result.tags)
+      ? result.tags.filter((tag): tag is string => typeof tag === 'string')
+      : [],
+    title: readNonEmptyStringOrNull(result.title) ?? 'Clip',
+    virality_score:
+      typeof result.viralityScore === 'number' ? result.viralityScore : 0,
+  }));
+}
+
 @Traced()
 @Injectable()
 export class ClipperGenerationDispatchService {
@@ -79,6 +99,7 @@ export class ClipperGenerationDispatchService {
           ...project.settings,
           ...clipperGenerationIdentity(identity),
           avatarProvider: dto.avatarProvider ?? 'heygen',
+          avatarQuality: dto.avatarQuality,
           flow: 'review',
           mode,
           voiceId: identity?.voiceId,
@@ -91,6 +112,7 @@ export class ClipperGenerationDispatchService {
 
     const result = await this.clipperGenerationService.generateClips({
       ...clipperGenerationIdentity(identity),
+      avatarQuality: dto.avatarQuality,
       highlights: selectedEditedHighlights,
       hookApprovalRequired,
       mode,
@@ -207,18 +229,7 @@ export class ClipperGenerationDispatchService {
         `Failed clip result ${String(invalidRange.id)} has an invalid source time range.`,
       );
     }
-    const highlights = failedResults.map((result) => ({
-      clip_type: readNonEmptyStringOrNull(result.clipType) ?? 'highlight',
-      end_time: result.endTime as number,
-      start_time: result.startTime as number,
-      summary: readNonEmptyStringOrNull(result.summary) ?? '',
-      tags: Array.isArray(result.tags)
-        ? result.tags.filter((tag): tag is string => typeof tag === 'string')
-        : [],
-      title: readNonEmptyStringOrNull(result.title) ?? 'Clip',
-      virality_score:
-        typeof result.viralityScore === 'number' ? result.viralityScore : 0,
-    }));
+    const highlights = toRetryHighlights(failedResults);
 
     const claimed = await this.clipperProjectsService.claimFailedResultRetry(
       projectId,
@@ -235,6 +246,7 @@ export class ClipperGenerationDispatchService {
     try {
       generated = await this.clipperGenerationService.generateClips({
         ...clipperGenerationIdentity(identity),
+        avatarQuality: project.settings?.avatarQuality,
         highlights,
         hookApprovalRequired: false,
         mode,

@@ -36,7 +36,7 @@ if [[ -z "${1:-}" ]] && [[ "${CI:-}" == "true" || "${GITHUB_ACTIONS:-}" == "true
 fi
 
 # Curated dev/build skills to sync from shipshitdev.
-# Keep repo-specific skills such as nestjs-expert, issue-prd-writing, and
+# Keep repo-specific skills such as issue-prd-writing and
 # prd-quality-gate out of this list so syncs do not overwrite Genfeed rules.
 SYNC_SKILLS=(
   accessibility
@@ -47,7 +47,6 @@ SYNC_SKILLS=(
   bun-validator
   component-library
   design-consistency-auditor
-  docker-expert
   error-handling-expert
   git-safety
   llm-structured-output
@@ -63,21 +62,14 @@ SYNC_SKILLS=(
   production-audit
   qa-reviewer
   react-component-performance
-  react-hook-form
-  react-patterns
   react-testing-library
   refactor-code
   scaffold
   security-expert
-  shadcn
   spec-first
   systematic-debugging
   table-filters
-  tailwind
   tailwind-validator
-  testing-expert
-  turborepo
-  typescript-expert
   verification-before-completion
 )
 

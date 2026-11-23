@@ -12,7 +12,7 @@ import { useOrganization } from '@/hooks/data/organization/use-organization/use-
 
 /**
  * The organization half of "Require approval for MCP requests". The organization owns the
- * credit pool, so approvals stay on until an owner or admin turns them off, and a member's
+ * credit pool, so approvals stay off until an owner or admin turns them on, and a member's
  * own setting can only relax the organization's choice. The API enforces the same role on
  * the settings PATCH; this card only mirrors it.
  */
@@ -27,7 +27,7 @@ export default function OrganizationMcpApprovalCard() {
   const [notice, setNotice] = useState<string | null>(null);
 
   const isAvailable = Boolean(organizationId && settings && !isLoading);
-  const isRequired = settings?.isMcpApprovalRequired !== false;
+  const isRequired = settings?.isMcpApprovalRequired === true;
 
   async function change(isEnabled: boolean) {
     if (!canManage || !isAvailable || isPending) return;
@@ -54,6 +54,7 @@ export default function OrganizationMcpApprovalCard() {
       ) : null}
       <Switch
         aria-label={translate('label')}
+        data-agent-confirm={translate('confirm')}
         description={translate('switchDescription')}
         isChecked={isRequired}
         isDisabled={!canManage || !isAvailable || isPending}

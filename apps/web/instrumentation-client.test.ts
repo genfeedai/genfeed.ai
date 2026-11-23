@@ -37,6 +37,10 @@ vi.mock('@/lib/sentry/hydration-entry-context', () => ({
   },
 }));
 
+vi.mock('@/lib/sentry/heap-watchdog', () => ({
+  startHeapWatchdog: vi.fn(() => () => undefined),
+}));
+
 vi.mock('@/lib/sentry/drop-json-api-object-rejection', () => ({
   dropUnhandledJsonApiObjectRejection: vi.fn((event: unknown) => event),
 }));

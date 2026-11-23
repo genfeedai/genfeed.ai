@@ -1,3 +1,4 @@
+import { McpToolInputError } from '@genfeedai/actions';
 import type { ClientService } from '@mcp/services/client.service';
 import { formatListResult } from '@mcp/shared/utils/format-list-result.util';
 import {
@@ -10,9 +11,12 @@ const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 export const CONTENT_TOOL_NAMES: ReadonlySet<string> = new Set<string>([
   ...CONTENT_CAMPAIGN_TOOL_NAMES,
   'create_article_draft',
+  'update_article_draft',
   'get_article_preview',
   'publish_article',
   'get_articles',
+  'delete_post',
+  'delete_asset',
 ]);
 
 function requireArticleString(
@@ -22,9 +26,39 @@ function requireArticleString(
 ): string {
   const value = args[key];
   if (typeof value !== 'string' || !value.trim() || value.length > maxLength)
-    throw new Error(
+    throw new McpToolInputError(
       `${key} must be a nonempty string of at most ${maxLength} characters`,
+      key,
     );
+  return value;
+}
+
+function invalidSlug(): McpToolInputError {
+  return new McpToolInputError(
+    'slug must be lowercase letters and digits separated by single hyphens, for example my-article',
+    'slug',
+  );
+}
+
+function readOptionalBrandId(
+  args: Record<string, unknown>,
+): string | undefined {
+  return args.brandId === undefined
+    ? undefined
+    : requireArticleString(args, 'brandId', 160);
+}
+
+function readHttpsUrl(args: Record<string, unknown>, key: string) {
+  const value = requireArticleString(args, key, 2048);
+  let protocol: string;
+  try {
+    protocol = new URL(value).protocol;
+  } catch {
+    throw new McpToolInputError(`${key} must be an absolute HTTPS URL`, key);
+  }
+  if (protocol !== 'https:') {
+    throw new McpToolInputError(`${key} must use HTTPS`, key);
+  }
   return value;
 }
 
@@ -39,21 +73,21 @@ export async function handleContentTool(
     case 'create_article_draft': {
       const label = requireArticleString(args, 'label', 200);
       const slug = requireArticleString(args, 'slug', 160);
-      if (!SLUG_PATTERN.test(slug)) throw new Error('Invalid article slug');
+      if (!SLUG_PATTERN.test(slug)) throw invalidSlug();
       const summary = requireArticleString(args, 'summary', 500);
       const content = requireArticleString(args, 'content', 250000);
       const coverImageUrl =
         args.coverImageUrl === undefined
           ? undefined
-          : requireArticleString(args, 'coverImageUrl', 2048);
-      if (coverImageUrl && new URL(coverImageUrl).protocol !== 'https:')
-        throw new Error('Cover image must use HTTPS');
+          : readHttpsUrl(args, 'coverImageUrl');
+      const brandId = readOptionalBrandId(args);
       const article = await client.createArticleDraft({
         label,
         slug,
         summary,
         content,
         ...(coverImageUrl ? { coverImageUrl } : {}),
+        ...(brandId ? { brandId } : {}),
       });
       return {
         structuredContent: { data: article },
@@ -65,9 +99,67 @@ export async function handleContentTool(
         ],
       };
     }
+    case 'update_article_draft': {
+      const articleId = requireArticleString(args, 'articleId', 160);
+      const brandId = readOptionalBrandId(args);
+      const label =
+        args.label === undefined
+          ? undefined
+          : requireArticleString(args, 'label', 200);
+      const slug =
+        args.slug === undefined
+          ? undefined
+          : requireArticleString(args, 'slug', 160);
+      if (slug !== undefined && !SLUG_PATTERN.test(slug)) throw invalidSlug();
+      const summary =
+        args.summary === undefined
+          ? undefined
+          : requireArticleString(args, 'summary', 500);
+      const content =
+        args.content === undefined
+          ? undefined
+          : requireArticleString(args, 'content', 250000);
+      const coverImageUrl =
+        args.coverImageUrl === undefined
+          ? undefined
+          : readHttpsUrl(args, 'coverImageUrl');
+      if (
+        label === undefined &&
+        slug === undefined &&
+        summary === undefined &&
+        content === undefined &&
+        coverImageUrl === undefined
+      ) {
+        throw new McpToolInputError(
+          'Pass at least one of label, slug, summary, content or coverImageUrl to change',
+          'label',
+        );
+      }
+      const article = await client.updateArticle({
+        articleId,
+        ...(brandId ? { brandId } : {}),
+        ...(label === undefined ? {} : { label }),
+        ...(slug === undefined ? {} : { slug }),
+        ...(summary === undefined ? {} : { summary }),
+        ...(content === undefined ? {} : { content }),
+        ...(coverImageUrl === undefined ? {} : { coverImageUrl }),
+      });
+      return {
+        structuredContent: { data: article },
+        content: [
+          {
+            type: 'text' as const,
+            text: `Article updated (status ${article.status}). It was not published; get a preview before requesting publication.`,
+          },
+        ],
+      };
+    }
     case 'get_article_preview': {
       const articleId = requireArticleString(args, 'articleId', 160);
-      const preview = await client.getArticlePreview(articleId);
+      const preview = await client.getArticlePreview(
+        articleId,
+        readOptionalBrandId(args),
+      );
       return {
         structuredContent: { data: preview },
         content: [
@@ -80,13 +172,74 @@ export async function handleContentTool(
     }
     case 'publish_article': {
       const articleId = requireArticleString(args, 'articleId', 160);
-      const article = await client.publishArticle(articleId);
+      const article = await client.publishArticle(
+        articleId,
+        readOptionalBrandId(args),
+      );
       return {
         structuredContent: { data: article },
         content: [
           {
             type: 'text' as const,
             text: `Article publication status: ${article.status}.`,
+          },
+        ],
+      };
+    }
+    case 'delete_post': {
+      const postId = requireArticleString(args, 'postId', 160);
+      const brandId = readOptionalBrandId(args);
+      for (const flag of ['deleteMedia', 'deleteOnPlatform']) {
+        if (args[flag] !== undefined && typeof args[flag] !== 'boolean') {
+          throw new McpToolInputError(`${flag} must be true or false`, flag);
+        }
+      }
+      const removal = await client.deletePost({
+        ...(brandId ? { brandId } : {}),
+        ...(args.deleteMedia === true ? { deleteMedia: true } : {}),
+        ...(args.deleteOnPlatform === true ? { deleteOnPlatform: true } : {}),
+        postId,
+      });
+      const media = removal.media;
+      const mediaLine =
+        media.deleted.length > 0 || media.kept.length > 0
+          ? ` Library media deleted: ${media.deleted.length}; kept: ${media.kept.length}${
+              media.kept.length > 0
+                ? ` (${media.kept.map((kept) => `${kept.id}: ${kept.reason}`).join(', ')})`
+                : ''
+            }.`
+          : '';
+      return {
+        structuredContent: { data: removal },
+        content: [
+          {
+            type: 'text' as const,
+            text:
+              `Post ${removal.postId} (was ${removal.previousStatus}) is deleted from Genfeed.` +
+              mediaLine +
+              (removal.deletedOnPlatform
+                ? ` It is also deleted on ${removal.platform ?? 'the social network'}.`
+                : removal.previousStatus === 'public' || removal.publishedUrl
+                  ? ' It was not deleted on the social network: the owner removes that copy there, or repeat with deleteOnPlatform true where the platform supports it (X, Mastodon).'
+                  : '') +
+              (removal.verified.postGone && removal.verified.mediaGone
+                ? ' Read back: the post and its deleted media are gone.'
+                : ' Read back FAILED: the post or its media still resolves. Do not report it deleted; check with get_content(action=posts) and get_assets.'),
+          },
+        ],
+      };
+    }
+    case 'delete_asset': {
+      const assetId = requireArticleString(args, 'assetId', 160);
+      const removal = await client.deleteAsset(assetId);
+      return {
+        structuredContent: { data: removal },
+        content: [
+          {
+            type: 'text' as const,
+            text: removal.verified
+              ? `Library asset ${assetId} is deleted. Read back: it no longer resolves.`
+              : `Library asset ${assetId} was deleted but still resolves on read-back. Do not report it deleted; check with get_assets.`,
           },
         ],
       };
@@ -102,13 +255,22 @@ export async function handleContentTool(
         (hasArticleId && !articleId) ||
         (hasQuery && !query)
       ) {
-        throw new Error('Pass exactly one of articleId or query');
+        throw new McpToolInputError(
+          'Pass exactly one of articleId or query: articleId reads one article, query searches published articles',
+          hasArticleId ? 'articleId' : 'query',
+        );
       }
       if (articleId) {
         if (args.category !== undefined || args.limit !== undefined) {
-          throw new Error('category and limit apply only to a query search');
+          throw new McpToolInputError(
+            'category and limit apply only to a query search; drop them when reading one article by articleId',
+            args.category !== undefined ? 'category' : 'limit',
+          );
         }
-        const article = await client.getArticle(articleId);
+        const article = await client.getArticle(
+          articleId,
+          readOptionalBrandId(args),
+        );
         return {
           structuredContent: { data: article },
           content: [
@@ -118,6 +280,12 @@ export async function handleContentTool(
             },
           ],
         };
+      }
+      if (args.brandId !== undefined) {
+        throw new McpToolInputError(
+          'brandId applies only when reading one article by articleId. A query search covers the whole organization: drop brandId.',
+          'brandId',
+        );
       }
       const articles = await client.searchArticles({
         category: args.category as string | undefined,

@@ -44,6 +44,7 @@ export interface UsePostDetailReturn {
 
   // Status flags
   isUpdating: boolean;
+  isPublishBlocked: boolean;
   isSavingDescription: boolean;
   isSavingSchedule: boolean;
   isSavingIngredients: boolean;
@@ -195,6 +196,7 @@ export function usePostDetail({
 
   // 4. CRUD actions (save, delete, enhance)
   const actions = usePostDetailActions({
+    autoSaveRefs: drafts.autoSaveRefs,
     descriptionDraft: drafts.descriptionDraft,
     fetchPost: state.fetchPost,
     getPostsService: state.getPostsService,
@@ -276,6 +278,7 @@ export function usePostDetail({
     isLastChildGrokTweet: state.isLastChildGrokTweet,
     isLoading: state.isLoading,
     isPublished: state.isPublished,
+    isPublishBlocked: state.isPublishBlocked,
     isSavingDescription: state.isSavingDescription,
     isSavingIngredients: state.isSavingIngredients,
     isSavingSchedule: state.isSavingSchedule,

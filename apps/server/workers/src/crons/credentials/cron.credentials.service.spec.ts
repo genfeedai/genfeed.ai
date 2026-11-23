@@ -1,3 +1,4 @@
+import { CredentialRefreshRejectedException } from '@api/collections/credentials/credential-refresh-rejected.exception';
 import type { ServerCredentialStore } from '@api/index';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { CronCredentialsService } from '@workers/crons/credentials/cron.credentials.service';
@@ -22,7 +23,9 @@ const inDays = (days: number) => inMinutes(days * 24 * 60);
 describe('CronCredentialsService.refreshExpiringTokens', () => {
   let credentials: CredentialRow[];
   let refreshed: Array<{ args: unknown[]; refresher: string }>;
-  let failingCredentialIds: Set<string>;
+  let refreshFailures: Map<string, Error>;
+  let reportedErrors: unknown[];
+  let warnings: string[];
   let summaries: unknown[];
   let service: CronCredentialsService;
 
@@ -42,9 +45,8 @@ describe('CronCredentialsService.refreshExpiringTokens', () => {
 
   const refresher = (name: string) => ({
     refreshToken: async (...args: unknown[]) => {
-      if (failingCredentialIds.has(String(args[2]))) {
-        throw new Error('refresh token revoked');
-      }
+      const error = refreshFailures.get(String(args[2]));
+      if (error) throw error;
       refreshed.push({ args, refresher: name });
       return {};
     },
@@ -54,17 +56,20 @@ describe('CronCredentialsService.refreshExpiringTokens', () => {
     vi.useFakeTimers({ now });
     credentials = [];
     refreshed = [];
-    failingCredentialIds = new Set();
+    refreshFailures = new Map();
+    reportedErrors = [];
+    warnings = [];
     summaries = [];
 
     service = new CronCredentialsService(
       ...([
         {
-          error: () => {},
+          error: (_message: string, error: unknown) =>
+            reportedErrors.push(error),
           log: (message: string, context?: unknown) => {
             if (message.endsWith('completed')) summaries.push(context);
           },
-          warn: () => {},
+          warn: (message: string) => warnings.push(message),
         } as unknown as LoggerService,
         {
           findAll: async ({
@@ -170,7 +175,7 @@ describe('CronCredentialsService.refreshExpiringTokens', () => {
       credential('cred-bad'),
       credential('cred-yt', { platform: 'YOUTUBE' }),
     ];
-    failingCredentialIds.add('cred-bad');
+    refreshFailures.set('cred-bad', new Error('Refresh unavailable'));
 
     await service.refreshExpiringTokens();
 
@@ -178,6 +183,22 @@ describe('CronCredentialsService.refreshExpiringTokens', () => {
       { args: ['org-1', 'brand-1', 'cred-yt'], refresher: 'youtube' },
     ]);
     expect(summaries).toEqual([{ failures: 1, successes: 1, total: 2 }]);
+  });
+
+  it('counts a rejected grant and logs reconnect guidance at warning level', async () => {
+    credentials = [credential('cred-rejected')];
+    refreshFailures.set(
+      'cred-rejected',
+      new CredentialRefreshRejectedException('Please reconnect your account'),
+    );
+
+    await service.refreshExpiringTokens();
+
+    expect(summaries).toEqual([{ failures: 1, successes: 0, total: 1 }]);
+    expect(warnings).toEqual([
+      expect.stringContaining('requires channel reconnection'),
+    ]);
+    expect(reportedErrors).toEqual([]);
   });
 
   it('refreshes a Threads token days before it expires, so a failed run can be retried', async () => {

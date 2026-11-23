@@ -1,3 +1,4 @@
+import { UPLOAD_HTTP_TIMEOUT_MS } from '@api/constants/http-timeout.constant';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { ByokProviderFactoryService } from '@api/services/byok/byok-provider-factory.service';
 import { CacheService } from '@api/services/cache/cache.service';
@@ -6,6 +7,15 @@ import {
   ApifyActorRun,
   ApifyActorRunResponse,
 } from '@api/services/integrations/apify/interfaces/apify.interfaces';
+import {
+  APIFY_ACTOR_NOT_FOUND_STATUS,
+  APIFY_ACTOR_RUN_TIMEOUT_HOLD_MS,
+  ApifyActorAvailabilityTracker,
+  ApifyActorRunTimeoutException,
+  ApifyActorUnavailableException,
+  isApifyActorDeferral,
+  isApifyStartAccepted,
+} from '@api/services/integrations/apify/utils/apify-actor-availability.util';
 import { currentApifyCaller } from '@api/services/integrations/apify/utils/apify-caller.context';
 import {
   ApifyAccountSuspendedException,
@@ -152,6 +162,8 @@ export class ApifyBaseService {
    * Usage-limit suspensions keyed by token scope, so one organization's
    * exhausted BYOK account never blocks the hosted token or another org.
    */
+  private readonly actorAvailability = new ApifyActorAvailabilityTracker();
+
   private readonly accountLimitSuspensions = new Map<
     string,
     ApifyAccountLimitSuspension
@@ -328,6 +340,12 @@ export class ApifyBaseService {
     // account-limit suspension below stops calls once Apify reports it.
     await this.assertCollectionAdmission(scope);
 
+    const capability = registration?.capability ?? 'an unregistered actor';
+    const holdUntil = this.actorAvailability.getHoldUntil(scope, actorId);
+    if (holdUntil !== null) {
+      throw new ApifyActorUnavailableException(capability, holdUntil);
+    }
+
     const url = this.buildActorRunUrl(actorId);
 
     const caller = currentApifyCaller();
@@ -343,11 +361,22 @@ export class ApifyBaseService {
     );
 
     try {
+      // The shared axios interceptor reports every rejected status as an
+      // error, so a 404 start is read as a response and classified here.
       const runResponse = await firstValueFrom(
         this.httpService.post<ApifyActorRunResponse>(url, input, {
           headers: this.buildAuthHeaders(token),
+          validateStatus: isApifyStartAccepted,
         }),
       );
+      if (runResponse.status === APIFY_ACTOR_NOT_FOUND_STATUS) {
+        const until = this.actorAvailability.markUnavailable(scope, actorId);
+        this.loggerService.warn(
+          `${this.constructorName} Apify rejected the start of the ${capability} actor with 404; not retrying until ${new Date(until).toISOString()}`,
+          { actorId, caller, scope },
+        );
+        throw new ApifyActorUnavailableException(capability, until);
+      }
 
       const runId = runResponse.data.data.id;
       const datasetId = runResponse.data.data.defaultDatasetId;
@@ -368,11 +397,33 @@ export class ApifyBaseService {
       const datasetResponse = await firstValueFrom(
         this.httpService.get<T[]>(datasetUrl, {
           headers: this.buildAuthHeaders(token),
+          timeout: UPLOAD_HTTP_TIMEOUT_MS,
         }),
       );
 
       return datasetResponse.data;
     } catch (error: unknown) {
+      if (error instanceof ApifyActorUnavailableException) {
+        throw error;
+      }
+
+      if (error instanceof ApifyActorRunTimeoutException) {
+        // Apify is slow for this actor: stop the run it is still billing,
+        // leave the actor alone for a while, and let the caller degrade.
+        await this.abortRun(error.runId, token);
+        const until = this.actorAvailability.markUnavailable(
+          scope,
+          actorId,
+          Date.now(),
+          APIFY_ACTOR_RUN_TIMEOUT_HOLD_MS,
+        );
+        this.loggerService.warn(
+          `${this.constructorName} Apify run for the ${capability} actor did not finish in ${error.maxWaitMs}ms; aborted, not retrying until ${new Date(until).toISOString()}`,
+          { actorId, caller, runId: error.runId, scope },
+        );
+        throw error;
+      }
+
       if (isApifyAccountLimitError(error)) {
         this.recordAccountLimit(scope, actorId, error);
         throw error;
@@ -391,6 +442,11 @@ export class ApifyBaseService {
   logFailure(label: string, error: unknown): void {
     if (error instanceof ApifyAccountSuspendedException) {
       this.loggerService.debug(`${label} skipped: ${error.message}`);
+      return;
+    }
+
+    if (isApifyActorDeferral(error)) {
+      this.loggerService.warn(`${label} skipped: ${(error as Error).message}`);
       return;
     }
 
@@ -583,7 +639,32 @@ export class ApifyBaseService {
       await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
     }
 
-    throw new Error(`Actor run ${runId} timed out after ${maxWaitMs}ms`);
+    throw new ApifyActorRunTimeoutException(runId, maxWaitMs);
+  }
+
+  /**
+   * Ask Apify to stop a run that overran the wait budget. Best effort: a run
+   * that already finished answers 4xx, and any failure only means it stops on
+   * its own limits.
+   */
+  private async abortRun(runId: string, token: string): Promise<void> {
+    try {
+      await firstValueFrom(
+        this.httpService.post(
+          `${this.apiUrl}/actor-runs/${runId}/abort`,
+          {},
+          {
+            headers: this.buildAuthHeaders(token),
+            validateStatus: (status: number) => status < 500,
+          },
+        ),
+      );
+    } catch (error: unknown) {
+      this.loggerService.warn(
+        `${this.constructorName} could not abort Apify run ${runId}`,
+        { error: describeApifyError(error) },
+      );
+    }
   }
 
   buildActorRunUrl(actorId: string): string {

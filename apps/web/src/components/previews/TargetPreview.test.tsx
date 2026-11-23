@@ -25,13 +25,26 @@ describe('TargetPreview', () => {
     render(
       <TargetPreview
         credential={makeCredential({ platform: CredentialPlatform.TWITTER })}
+        release={makeRelease({ baseContent: 'x'.repeat(25_001) })}
+        target={makeTarget({ platform: CredentialPlatform.TWITTER })}
+      />,
+    );
+
+    // X truncates only past its long-post ceiling — proof the dedicated
+    // XPreview rendered.
+    expect(screen.getByText(`${'x'.repeat(25_000)}...`)).toBeInTheDocument();
+  });
+
+  it('shows a long X post in full instead of cutting it at 280 characters', () => {
+    render(
+      <TargetPreview
+        credential={makeCredential({ platform: CredentialPlatform.TWITTER })}
         release={makeRelease({ baseContent: 'x'.repeat(300) })}
         target={makeTarget({ platform: CredentialPlatform.TWITTER })}
       />,
     );
 
-    // X truncates at 280 chars — proof the dedicated XPreview rendered.
-    expect(screen.getByText(`${'x'.repeat(280)}...`)).toBeInTheDocument();
+    expect(screen.getByText('x'.repeat(300))).toBeInTheDocument();
   });
 
   it('shows the recorded publication outcome for a historical Instagram target', () => {

@@ -1,3 +1,4 @@
+import { waitRealTime } from '@e2e/utils/real-time';
 import type { Page, Request, Route } from '@playwright/test';
 import {
   createAuthenticatedPage,
@@ -116,7 +117,7 @@ async function mockOrganizationContext(
     if (isMembershipRead || isActivation) {
       options.requestLog?.push(`${request.method()} ${url.pathname}`);
       if (options.apiDelayMs) {
-        await new Promise((resolve) => setTimeout(resolve, options.apiDelayMs));
+        await waitRealTime(options.apiDelayMs);
       }
     }
 

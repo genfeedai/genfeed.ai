@@ -1,9 +1,7 @@
 import {
-  completedItemIdsFromEvents,
   hasPartialSocialWarmupScopes,
   reconnectForCredential,
   resolveSocialWarmupAccountAge,
-  socialWarmupEventRecordFromStorage,
   socialWarmupSignalRecordFromStorage,
 } from '@api/collections/social-warmup-enrollments/services/social-warmup-enrollment.helpers';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
@@ -16,15 +14,11 @@ import {
   TargetExecutionState,
 } from '@genfeedai/contracts';
 import { postExecutionStateReadFilter } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
-import { resolveSocialWarmupBlueprint } from '@genfeedai/contracts/api-types/contracts/social-warmup-blueprint.contract';
 import {
-  evaluateSocialWarmupJourney,
   SOCIAL_WARMUP_TELEMETRY_EVENT,
-  type SocialWarmupJourneyEvaluation,
   sanitizeSocialWarmupTelemetry,
 } from '@genfeedai/contracts/api-types/contracts/social-warmup-journey.contract';
 import type {
-  AccountHealthOverride,
   AccountHealthReconnect,
   AccountHealthRiskLevel,
   AccountHealthSignals,
@@ -32,7 +26,6 @@ import type {
   AccountHealthThresholds,
   AccountWarmupState,
   AssessAccountHealthRequest,
-  ManualAccountHealthOverrideRequest,
 } from '@genfeedai/contracts/interfaces';
 import { type Credential, type Prisma } from '@genfeedai/prisma';
 import { readString } from '@genfeedai/utils/data/extract.util';
@@ -47,19 +40,6 @@ export interface AssessAccountHealthParams {
   credentialId: string;
   organizationId: string;
   request?: AssessAccountHealthRequest;
-}
-
-export interface ManualOverrideParams {
-  credentialId: string;
-  organizationId: string;
-  request: ManualAccountHealthOverrideRequest;
-  userId: string;
-}
-
-export interface ScheduledPublishGate {
-  holdPublishing: boolean;
-  reason?: string;
-  summary: AccountHealthSummary;
 }
 
 type AccountHealthEnrollment = Prisma.SocialWarmupEnrollmentGetPayload<{
@@ -133,17 +113,6 @@ function readNumber(value: unknown, fallback: number): number {
   return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
 }
 
-function readDateIso(
-  value: Date | string | null | undefined,
-): string | undefined {
-  if (!value) {
-    return undefined;
-  }
-
-  const date = value instanceof Date ? value : new Date(value);
-  return Number.isNaN(date.getTime()) ? undefined : date.toISOString();
-}
-
 function requireDomainCredentialPlatform(
   platform: string | null | undefined,
 ): CredentialPlatform {
@@ -154,19 +123,6 @@ function requireDomainCredentialPlatform(
     );
   }
   return mapped;
-}
-
-function isOverrideActive(
-  credential: Pick<Credential, 'warmupManualOverride' | 'warmupOverrideUntil'>,
-  now: Date,
-): boolean {
-  if (!credential.warmupManualOverride) {
-    return false;
-  }
-
-  return (
-    !credential.warmupOverrideUntil || credential.warmupOverrideUntil > now
-  );
 }
 
 @Traced()
@@ -282,14 +238,7 @@ export class AccountHealthService {
       evidence,
       params.request?.signals,
     );
-    const { enrollment } = evidence;
-    const journey = this.evaluateJourney(credential, enrollment);
-    const summary = this.createSummary(
-      credential,
-      thresholds,
-      signals,
-      journey,
-    );
+    const summary = this.createSummary(credential, thresholds, signals);
     if (credential.warmupState !== summary.state) {
       this.emitTelemetry(SOCIAL_WARMUP_TELEMETRY_EVENT.readinessTransition, {
         credentialId: credential.id,
@@ -310,7 +259,6 @@ export class AccountHealthService {
     await this.prisma.$executeRaw`
       UPDATE "credentials"
       SET "warmupAssessedAt" = ${assessedAt},
-          "warmupHoldReason" = ${summary.holdReason ?? null},
           "warmupRiskLevel" = ${summary.riskLevel},
           "warmupScore" = ${summary.score},
           "warmupSignals" = COALESCE("warmupSignals", '{}'::jsonb) || ${JSON.stringify(summary.signals)}::jsonb,
@@ -323,77 +271,6 @@ export class AccountHealthService {
     `;
 
     return summary;
-  }
-
-  async confirmManualOverride(
-    params: ManualOverrideParams,
-  ): Promise<AccountHealthSummary> {
-    if (params.request.confirm !== true) {
-      throw new BadRequestException(
-        'Manual account-health override requires explicit confirmation',
-      );
-    }
-
-    const reason = params.request.reason.trim();
-    if (!reason) {
-      throw new BadRequestException(
-        'Manual account-health override requires a reason',
-      );
-    }
-
-    const expiresAt = params.request.expiresAt
-      ? new Date(params.request.expiresAt)
-      : null;
-    if (expiresAt && Number.isNaN(expiresAt.getTime())) {
-      throw new BadRequestException('Override expiry must be a valid date');
-    }
-
-    const credential = await this.findCredential(params);
-    await this.prisma.credential.update({
-      data: {
-        warmupManualOverride: true,
-        warmupOverrideConfirmedAt: new Date(),
-        warmupOverrideConfirmedByUserId: params.userId,
-        warmupOverrideReason: reason,
-        warmupOverrideUntil: expiresAt,
-      },
-      where: scopedWhere(params.organizationId, { id: credential.id }),
-    });
-
-    this.emitTelemetry(SOCIAL_WARMUP_TELEMETRY_EVENT.override, {
-      credentialId: credential.id,
-      expiresAt: expiresAt?.toISOString() ?? null,
-      organizationId: params.organizationId,
-      reason,
-      userId: params.userId,
-    });
-
-    return this.assessCredentialHealth({
-      credentialId: credential.id,
-      organizationId: params.organizationId,
-    });
-  }
-
-  async evaluateScheduledPublishGate(params: {
-    brandId: string;
-    credentialId: string;
-    organizationId: string;
-  }): Promise<ScheduledPublishGate> {
-    const summary = await this.assessCredentialHealth(params);
-    if (summary.holdPublishing) {
-      this.emitTelemetry(SOCIAL_WARMUP_TELEMETRY_EVENT.publishingHold, {
-        credentialId: params.credentialId,
-        holdReason: summary.holdReason,
-        organizationId: params.organizationId,
-        state: summary.state,
-      });
-    }
-
-    return {
-      holdPublishing: summary.holdPublishing,
-      reason: summary.holdReason,
-      summary,
-    };
   }
 
   private async findCredential(params: {
@@ -540,50 +417,6 @@ export class AccountHealthService {
     };
   }
 
-  private evaluateJourney(
-    credential: Credential,
-    enrollment: AccountHealthEnrollment | null,
-  ): SocialWarmupJourneyEvaluation | undefined {
-    if (!enrollment?.blueprintId || !enrollment.blueprintVersion) {
-      return undefined;
-    }
-
-    try {
-      const blueprint = resolveSocialWarmupBlueprint({
-        id: enrollment.blueprintId,
-        version: enrollment.blueprintVersion,
-      });
-      const events = (enrollment.events ?? []).map((event) =>
-        socialWarmupEventRecordFromStorage(event),
-      );
-
-      return evaluateSocialWarmupJourney({
-        blueprint,
-        enrollment: {
-          completedItemIds: completedItemIdsFromEvents(events),
-          hasPartialScopes: hasPartialSocialWarmupScopes(
-            credential.warmupSignals,
-          ),
-          isCredentialConnected: credential.isConnected,
-          reconnect: reconnectForCredential({
-            credentialId: credential.id,
-            hasPartialScopes: hasPartialSocialWarmupScopes(
-              credential.warmupSignals,
-            ),
-            isConnected: credential.isConnected,
-            platform: credential.platform,
-          }),
-          signals: enrollment.signals.map(socialWarmupSignalRecordFromStorage),
-          startedAt: enrollment.startedAt,
-          state: enrollment.state,
-        },
-        platform: requireDomainCredentialPlatform(credential.platform),
-      });
-    } catch {
-      return undefined;
-    }
-  }
-
   private emitTelemetry(event: string, payload: Record<string, unknown>): void {
     this.logger?.log(event, sanitizeSocialWarmupTelemetry(payload));
   }
@@ -592,7 +425,6 @@ export class AccountHealthService {
     credential: Credential,
     thresholds: AccountHealthThresholds,
     signals: AccountHealthSignals,
-    journey?: SocialWarmupJourneyEvaluation,
   ): AccountHealthSummary {
     const now = new Date();
     const platform = requireDomainCredentialPlatform(credential.platform);
@@ -602,10 +434,9 @@ export class AccountHealthService {
       return {
         assessedAt: now.toISOString(),
         credentialId: credential.id,
+        avatarUrl: readString(credential.externalAvatar),
         handle: readString(credential.externalHandle),
-        holdPublishing: false,
         label: this.getCredentialLabel(credential),
-        override: this.buildOverride(credential, now),
         platform,
         riskLevel: 'low',
         score: 100,
@@ -633,28 +464,14 @@ export class AccountHealthService {
     );
     const state = this.resolveState(credential, signals, thresholds, score);
     const riskLevel = this.resolveRiskLevel(state, score);
-    const override = this.buildOverride(credential, now);
     const reconnect = this.buildReconnect(credential);
-    const scoreHold =
-      state === 'not_started' || state === 'warming' || state === 'risky';
-    const requiredCheckHold = Boolean(journey?.holdReason);
-    const holdPublishing =
-      !override.isActive && (requiredCheckHold || scoreHold);
-    const holdReason = override.isActive
-      ? undefined
-      : (journey?.holdReason ??
-        (scoreHold
-          ? this.getHoldReason(platform, state, riskLevel)
-          : undefined));
 
     return {
       assessedAt: now.toISOString(),
       credentialId: credential.id,
+      avatarUrl: readString(credential.externalAvatar),
       handle: readString(credential.externalHandle),
-      holdPublishing,
-      holdReason,
       label: this.getCredentialLabel(credential),
-      override,
       platform,
       reconnect,
       riskLevel,
@@ -701,26 +518,6 @@ export class AccountHealthService {
     return 'medium';
   }
 
-  private buildOverride(
-    credential: Pick<
-      Credential,
-      | 'warmupManualOverride'
-      | 'warmupOverrideConfirmedAt'
-      | 'warmupOverrideConfirmedByUserId'
-      | 'warmupOverrideReason'
-      | 'warmupOverrideUntil'
-    >,
-    now: Date,
-  ): AccountHealthOverride {
-    return {
-      confirmedAt: readDateIso(credential.warmupOverrideConfirmedAt),
-      confirmedByUserId: readString(credential.warmupOverrideConfirmedByUserId),
-      expiresAt: readDateIso(credential.warmupOverrideUntil),
-      isActive: isOverrideActive(credential, now),
-      reason: readString(credential.warmupOverrideReason),
-    };
-  }
-
   private buildReconnect(
     credential: Pick<
       Credential,
@@ -749,13 +546,5 @@ export class AccountHealthService {
     return handle
       ? `${platform} @${handle.replace(LEADING_AT_SIGN_PATTERN, '')}`
       : platform;
-  }
-
-  private getHoldReason(
-    platform: CredentialPlatform,
-    state: AccountWarmupState,
-    riskLevel: AccountHealthRiskLevel,
-  ): string {
-    return `${platform} publishing is held because account warmup is ${state} (${riskLevel} risk). Confirm a manual override only after reviewing platform-specific guidance.`;
   }
 }

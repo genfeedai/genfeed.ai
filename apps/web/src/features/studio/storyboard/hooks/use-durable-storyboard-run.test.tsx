@@ -368,10 +368,9 @@ describe('brand-scoped durable storyboard loading', () => {
     });
     await act(async () => {
       landOlderRead(run);
-      await new Promise((done) => setTimeout(done, 0));
     });
 
-    expect(result.current.run?.config.revision).toBe(2);
+    await waitFor(() => expect(result.current.run?.config.revision).toBe(2));
   });
   it('keeps a newer saved revision over an older background read', async () => {
     const run = persistedRun();

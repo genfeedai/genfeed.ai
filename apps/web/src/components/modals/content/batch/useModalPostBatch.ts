@@ -106,6 +106,14 @@ export function useModalPostBatch(props: ModalPostBatchProps) {
       }
 
       const expiryValue = credential.accessTokenExpiry;
+      // Meta system-user tokens can explicitly have no expiry. Missing or
+      // malformed expiry metadata on other connections still needs recovery.
+      if (
+        credential.platform === CredentialPlatform.INSTAGRAM &&
+        expiryValue === null
+      ) {
+        return true;
+      }
       if (!expiryValue) {
         return false;
       }
@@ -471,6 +479,7 @@ export function useModalPostBatch(props: ModalPostBatchProps) {
 
   const { isSubmitting, onSubmit } = useFormSubmitWithState(submitHandler);
 
+  // use-effect-audit: ignore resets the scheduled date when the minimum schedulable time moves
   useEffect(() => {
     if (!hasInitializedDate.current || hasUserEditedSchedule.current) {
       return;
@@ -481,6 +490,7 @@ export function useModalPostBatch(props: ModalPostBatchProps) {
 
   // Initialize platform configs once per ingredient set. Credential refreshes
   // update validity without rebuilding audience or enabled choices.
+  // use-effect-audit: ignore initializes platform configs once per ingredient set from loaded credentials
   useEffect(() => {
     if (!activeIngredients || activeIngredients.length === 0) {
       platformInitKeyRef.current = null;

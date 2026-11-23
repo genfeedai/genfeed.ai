@@ -157,7 +157,6 @@ export function useDropdownTags({
   // Create a Set of selected tag IDs for faster lookups and proper re-rendering
   const selectedTagIds = useMemo(() => new Set(selectedTags), [selectedTags]);
 
-  // Get selected tag objects
   const selectedTagObjects = useMemo(() => {
     return allTags.filter((tag) => tag.id && selectedTagIds.has(tag.id));
   }, [allTags, selectedTagIds]);

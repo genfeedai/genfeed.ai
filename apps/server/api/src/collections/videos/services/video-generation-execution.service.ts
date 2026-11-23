@@ -500,6 +500,8 @@ export class VideoGenerationExecutionService {
                 : undefined,
             onProviderSubmissionStarted: () =>
               this.beginSubmission(context, ingredientIds),
+            onProviderJobQueued: (externalRef) =>
+              this.storeQueuedJobRef(metadataId, externalRef),
           });
           if (!result.externalId) throw this.generationStartError(output);
           context.modelProvider = result.provider;
@@ -544,11 +546,27 @@ export class VideoGenerationExecutionService {
       idempotencyKey: this.idempotencyKey(ingredientIds),
       onProviderSubmissionStarted: () =>
         this.beginSubmission(context, ingredientIds),
+      onProviderJobQueued: (externalRef) =>
+        this.storeQueuedJobRef(metadataId, externalRef),
     });
     if (!result.externalId) {
       throw this.generationStartError(output);
     }
     return { ...result, externalId: result.externalId };
+  }
+
+  /**
+   * Keeps what a cancel needs while the provider still works on the job. The
+   * output is not accepted until the finished job's URL replaces it.
+   */
+  private async storeQueuedJobRef(
+    metadataId: string,
+    externalRef: string,
+  ): Promise<void> {
+    await this.metadataService.patch(
+      metadataId,
+      new MetadataEntity({ externalId: externalRef }),
+    );
   }
 
   private async completeOrScheduleOutput(

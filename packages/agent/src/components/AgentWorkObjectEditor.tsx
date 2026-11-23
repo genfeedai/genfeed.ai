@@ -4,6 +4,7 @@ import type { AgentWorkObjectEditorProps } from '@genfeedai/agent/components/age
 import { useAgentWorkObjectGateStore } from '@genfeedai/agent/stores/agent-work-object-gate.store';
 import { ButtonVariant, CardPadding, CardVariant } from '@genfeedai/contracts';
 import type { AgentWorkObjectActionPayload } from '@genfeedai/contracts/interfaces';
+import { useResetOnChange } from '@hooks/utils/use-reset-on-change/use-reset-on-change';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
@@ -39,10 +40,6 @@ export function AgentWorkObjectEditor({
   actionRef.current = onAction;
   const viewingRef = useRef(false);
   const requestRef = useRef(false);
-  const loadedRevisionRef = useRef({
-    id: object.id,
-    revision: object.revision,
-  });
   const dirty =
     body !== (object.body ?? '') ||
     JSON.stringify(rows) !== JSON.stringify(object.rows ?? []);
@@ -60,18 +57,13 @@ export function AgentWorkObjectEditor({
   const ready =
     object.reviewStatus === 'passed' || object.reviewStatus === 'skipped';
 
-  useEffect(() => {
-    if (
-      loadedRevisionRef.current.id === object.id &&
-      loadedRevisionRef.current.revision === object.revision
-    )
-      return;
-    loadedRevisionRef.current = { id: object.id, revision: object.revision };
+  // A new object or revision replaces the local draft.
+  useResetOnChange([object.id, object.revision], () => {
     setBody(object.body ?? '');
     setRows(object.rows ?? []);
     setError(null);
     viewingRef.current = false;
-  }, [object.id, object.revision, object.body, object.rows]);
+  });
 
   // use-effect-audit: ignore IntersectionObserver that marks the object viewed
   useEffect(() => {

@@ -15,6 +15,7 @@ import SectionTopbar from '@ui/layout/section-topbar/SectionTopbar';
 import { Button } from '@ui/primitives/button';
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogHeader,
   DialogTitle,
@@ -70,6 +71,7 @@ export interface PostDetailHeaderProps {
   /** Commits the schedule draft — the primary action once a date is picked. */
   onScheduleSave?: () => void;
   isScheduleDirty?: boolean;
+  isPublishBlocked?: boolean;
   isSavingSchedule?: boolean;
 }
 
@@ -109,12 +111,14 @@ export default function PostDetailHeader({
   onPublishNow,
   onScheduleSave,
   isScheduleDirty = false,
+  isPublishBlocked = false,
   isSavingSchedule = false,
 }: PostDetailHeaderProps) {
   const Heading = headingLevel === 1 ? 'h1' : 'h2';
   const translate = useTranslations('pages.posts.detail.header');
   const [isThreadDialogOpen, setIsThreadDialogOpen] = useState(false);
   const isEditable = scope === PageScope.PUBLISHING && !isPublished;
+  const canDelete = scope === PageScope.PUBLISHING;
   const canCreateRemix = post.status === PostStatus.PUBLIC;
 
   // - It's a Twitter/X post
@@ -138,7 +142,7 @@ export default function PostDetailHeader({
       return (
         <Button
           icon={<CalendarClock className="size-4" />}
-          isDisabled={isSavingSchedule}
+          isDisabled={isSavingSchedule || isPublishBlocked}
           isLoading={isSavingSchedule}
           label={
             isSavingSchedule ? translate('scheduling') : translate('schedule')
@@ -152,7 +156,7 @@ export default function PostDetailHeader({
       return (
         <Button
           icon={<Send className="size-4" />}
-          isDisabled={isSavingSchedule}
+          isDisabled={isSavingSchedule || isPublishBlocked}
           isLoading={isSavingSchedule}
           label={
             isSavingSchedule ? translate('publishing') : translate('publishNow')
@@ -165,6 +169,7 @@ export default function PostDetailHeader({
     return undefined;
   }, [
     isPublished,
+    isPublishBlocked,
     isSavingSchedule,
     isScheduleDirty,
     onPublishNow,
@@ -249,7 +254,11 @@ export default function PostDetailHeader({
             onViewModeChange(viewMode === 'edit' ? 'preview' : 'edit'),
         });
       }
+    }
 
+    // A published post is deletable too: the confirm step says it stays live
+    // on its social network.
+    if (canDelete) {
       actions.push({
         icon: <Trash2 className="size-4" />,
         id: 'delete',
@@ -262,6 +271,7 @@ export default function PostDetailHeader({
     return actions;
   }, [
     canCreateRemix,
+    canDelete,
     canExpandToThread,
     isEditable,
     isExpandingToThread,
@@ -286,23 +296,25 @@ export default function PostDetailHeader({
         <DialogHeader>
           <DialogTitle>{translate('threadLengthPrompt')}</DialogTitle>
         </DialogHeader>
-        <div className="flex flex-col gap-1">
-          {THREAD_LENGTH_OPTIONS.map((count) => (
-            <Button
-              className="w-full justify-start text-left"
-              isDisabled={isExpandingToThread}
-              key={count}
-              onClick={() => {
-                setIsThreadDialogOpen(false);
-                onExpandToThread?.(count);
-              }}
-              variant={ButtonVariant.SECONDARY}
-              withWrapper={false}
-            >
-              {translate('threadLengthOption', { count })}
-            </Button>
-          ))}
-        </div>
+        <DialogBody className="flex flex-col gap-4">
+          <div className="flex flex-col gap-1">
+            {THREAD_LENGTH_OPTIONS.map((count) => (
+              <Button
+                className="w-full justify-start text-left"
+                isDisabled={isExpandingToThread}
+                key={count}
+                onClick={() => {
+                  setIsThreadDialogOpen(false);
+                  onExpandToThread?.(count);
+                }}
+                variant={ButtonVariant.SECONDARY}
+                withWrapper={false}
+              >
+                {translate('threadLengthOption', { count })}
+              </Button>
+            ))}
+          </div>
+        </DialogBody>
       </DialogContent>
     </Dialog>
   ) : null;

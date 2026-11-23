@@ -11,7 +11,6 @@ type McpCallResult = ReturnType<typeof CallToolResultSchema.parse>;
 const outputValidator = z.fromJSONSchema(MCP_TOOL_OUTPUT_SCHEMA);
 const familyValidators = {
   data: z.fromJSONSchema(MCP_RESULT_SCHEMAS.data),
-  object: z.fromJSONSchema(MCP_RESULT_SCHEMAS.object),
   media: z.fromJSONSchema(MCP_RESULT_SCHEMAS.media),
   discovery: z.fromJSONSchema(MCP_RESULT_SCHEMAS.discovery),
 };

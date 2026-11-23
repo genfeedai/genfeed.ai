@@ -12,6 +12,7 @@ import type {
 import type {
   ArticleDraftInput,
   ArticlePreviewLink,
+  ArticleUpdateInput,
 } from '@genfeedai/contracts/interfaces/content/article-publishing.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ConfigService } from '@mcp/config/config.service';
@@ -19,6 +20,7 @@ import { AdsClient } from '@mcp/services/client/ads.client';
 import { AgentClient } from '@mcp/services/client/agent.client';
 import { AnalyticsClient } from '@mcp/services/client/analytics.client';
 import { BaseApiClient } from '@mcp/services/client/base-api-client';
+import { BrandKitClient } from '@mcp/services/client/brand-kit.client';
 import { CampaignClient } from '@mcp/services/client/campaign.client';
 import type {
   AdsGatewayInsightsParams,
@@ -63,12 +65,7 @@ import {
 import { parseStoryboardRun } from '@mcp/services/client/storyboard.client';
 import { WorkflowClient } from '@mcp/services/client/workflow.client';
 import { WorkspaceClient } from '@mcp/services/client/workspace.client';
-import {
-  type CreateWorkspaceTaskParams,
-  type ListWorkspaceActivityParams,
-  type ListWorkspaceTasksParams,
-  WorkspaceAppClient,
-} from '@mcp/services/client/workspace-app.client';
+import { WorkspaceAppClient } from '@mcp/services/client/workspace-app.client';
 import type {
   Analytics,
   OrganizationAnalytics,
@@ -82,6 +79,10 @@ import type {
   ArticleSearchParams,
   ArticleSearchResult,
 } from '@mcp/shared/interfaces/article.interface';
+import type {
+  AssetRemovalResponse,
+  PostRemovalResponse,
+} from '@mcp/shared/interfaces/content-removal.interface';
 import type {
   ImageCreationParams,
   ImageResponse,
@@ -142,7 +143,8 @@ export class ClientService {
   private readonly content: ContentClient;
   private readonly clipper: ClipperClient;
   private readonly editor: EditorClient;
-  private readonly workspaceApp: WorkspaceAppClient;
+  readonly workspaceApp: WorkspaceAppClient;
+  readonly brandKit: BrandKitClient;
   /** The scheduler proxy; release batches (#10134) call it directly. */
   readonly scheduler: SchedulerClient;
   private readonly campaigns: CampaignClient;
@@ -171,6 +173,7 @@ export class ClientService {
     this.clipper = new ClipperClient(this.base);
     this.editor = new EditorClient(this.base);
     this.workspaceApp = new WorkspaceAppClient(this.base);
+    this.brandKit = new BrandKitClient(this.base);
     this.scheduler = new SchedulerClient(this.base);
     this.campaigns = new CampaignClient(this.base);
     this.presets = new PresetsClient(this.base);
@@ -338,20 +341,42 @@ export class ClientService {
     return this.content.createArticleDraft(params);
   }
 
-  getArticlePreview(articleId: string): Promise<ArticlePreviewLink> {
-    return this.content.getArticlePreview(articleId);
+  updateArticle(params: ArticleUpdateInput): Promise<ArticleResponse> {
+    return this.content.updateArticle(params);
   }
 
-  publishArticle(articleId: string): Promise<ArticleResponse> {
-    return this.content.publishArticle(articleId);
+  getArticlePreview(
+    articleId: string,
+    brandId?: string,
+  ): Promise<ArticlePreviewLink> {
+    return this.content.getArticlePreview(articleId, brandId);
+  }
+
+  publishArticle(
+    articleId: string,
+    brandId?: string,
+  ): Promise<ArticleResponse> {
+    return this.content.publishArticle(articleId, brandId);
+  }
+
+  deletePost(params: {
+    brandId?: string;
+    deleteMedia?: boolean;
+    postId: string;
+  }): Promise<PostRemovalResponse> {
+    return this.content.deletePost(params);
+  }
+
+  deleteAsset(assetId: string): Promise<AssetRemovalResponse> {
+    return this.content.deleteAsset(assetId);
   }
 
   searchArticles(params: ArticleSearchParams): Promise<ArticleSearchResult[]> {
     return this.content.searchArticles(params);
   }
 
-  getArticle(articleId: string): Promise<ArticleResponse> {
-    return this.content.getArticle(articleId);
+  getArticle(articleId: string, brandId?: string): Promise<ArticleResponse> {
+    return this.content.getArticle(articleId, brandId);
   }
 
   publishContent(params: PublishContentParams): Promise<PostResponse[]> {
@@ -416,32 +441,6 @@ export class ClientService {
 
   startEditorRender(projectId: string): Promise<Record<string, unknown>> {
     return this.editor.startEditorRender(projectId);
-  }
-
-  listTasks(
-    params: ListWorkspaceTasksParams = {},
-  ): Promise<Array<Record<string, unknown>>> {
-    return this.workspaceApp.listTasks(params);
-  }
-
-  getTask(taskId: string): Promise<Record<string, unknown>> {
-    return this.workspaceApp.getTask(taskId);
-  }
-
-  createTask(
-    params: CreateWorkspaceTaskParams,
-  ): Promise<Record<string, unknown>> {
-    return this.workspaceApp.createTask(params);
-  }
-
-  listInbox(): Promise<Array<Record<string, unknown>>> {
-    return this.workspaceApp.listInbox();
-  }
-
-  listActivity(
-    params: ListWorkspaceActivityParams = {},
-  ): Promise<Array<Record<string, unknown>>> {
-    return this.workspaceApp.listActivity(params);
   }
 
   listPresets() {
@@ -600,10 +599,6 @@ export class ClientService {
 
   canSwitchOrganizations(): Promise<boolean> {
     return this.workspace.canSwitchOrganizations();
-  }
-
-  switchOrganization(organizationId: string): Promise<void> {
-    return this.workspace.switchOrganization(organizationId);
   }
 
   listBrands(): Promise<OrganizationOptionBrand[]> {

@@ -1,8 +1,8 @@
 'use client';
 
+import SearchField from '@ui/content/search-field/SearchField';
 import { useTranslations } from 'next-intl';
 import FiltersButton from '@/components/content/filters-button/FiltersButton';
-import SearchField from '@/components/content/search-field/SearchField';
 import type { FiltersBarProps } from '@/props/ui/forms/filters.props';
 
 /**

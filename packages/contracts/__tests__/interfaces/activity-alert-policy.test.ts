@@ -165,6 +165,11 @@ describe('activity alert policy map (#5197)', () => {
     ).toBe("Couldn't deliver the agent run update");
     expect(
       formatActivityMessage(
+        getActivityMessageDescriptor(ActivityKey.AGENT_INPUT_REQUESTED),
+      ),
+    ).toBe('Agent is waiting on your answer');
+    expect(
+      formatActivityMessage(
         getActivityMessageDescriptor(ActivityKey.AGENT_REVIEW_EXPIRED),
       ),
     ).toBe('Agent review expired');

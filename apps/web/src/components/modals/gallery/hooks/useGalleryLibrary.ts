@@ -17,6 +17,7 @@ import { logger } from '@genfeedai/services/core/logger.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useResetOnChange } from '@hooks/utils/use-reset-on-change/use-reset-on-change';
 import { useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
@@ -128,11 +129,14 @@ export function useGalleryLibrary({
 
   // Another filter or brand never receives a "load more" still in flight.
   const queryHash = JSON.stringify(query);
-  // biome-ignore lint/correctness/useExhaustiveDependencies: queryHash marks a new list to load more of
+  useResetOnChange([queryHash], () => setIsLoadingMore(false));
+  // use-effect-audit: ignore aborts the in-flight "load more" request when the list changes or unmounts
   useEffect(() => {
-    loadMoreControllerRef.current?.abort();
-    loadMoreControllerRef.current = null;
-    setIsLoadingMore(false);
+    void queryHash;
+    return () => {
+      loadMoreControllerRef.current?.abort();
+      loadMoreControllerRef.current = null;
+    };
   }, [queryHash]);
 
   // Appended pages belong to the first page they followed: a refreshed or
@@ -243,12 +247,14 @@ export function useGalleryLibrary({
   }, [queryClient]);
 
   // A reopened picker starts from the whole Library again.
-  useEffect(() => {
+  const [wasOpen, setWasOpen] = useState(isOpen);
+  if (isOpen !== wasOpen) {
+    setWasOpen(isOpen);
     if (!isOpen) {
       setSearch('');
       onClearFilters();
     }
-  }, [isOpen, onClearFilters]);
+  }
 
   return {
     // The previous filter's tiles stay only until the new ones land; they are

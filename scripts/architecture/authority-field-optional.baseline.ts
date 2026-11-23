@@ -39,10 +39,6 @@ export const AUTHORITY_FIELD_OPTIONAL_BASELINE: readonly AuthorityFieldOptionalB
       property: 'expiresAt',
     },
     {
-      file: 'apps/server/api/src/collections/credentials/dto/manual-account-health-override.dto.ts',
-      property: 'expiresAt',
-    },
-    {
       file: 'apps/server/api/src/collections/customer-instances/dto/create-customer-instance.dto.ts',
       property: 'role',
     },

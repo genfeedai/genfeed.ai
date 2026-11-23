@@ -21,24 +21,22 @@ function freePort(): Promise<number> {
   });
 }
 
-function waitForPort(port: number): Promise<void> {
-  const attempt = (remaining: number): Promise<void> =>
-    new Promise((resolve, reject) => {
-      const socket = connect({ host: '127.0.0.1', port });
-      socket.once('connect', () => {
-        socket.destroy();
-        resolve();
-      });
-      socket.once('error', () => {
-        socket.destroy();
-        if (remaining <= 0) {
-          reject(new Error('redis-server did not start'));
-          return;
-        }
-        setTimeout(() => attempt(remaining - 1).then(resolve, reject), 50);
-      });
-    });
-  return attempt(100);
+async function waitForPort(port: number): Promise<void> {
+  await vi.waitFor(
+    () =>
+      new Promise<void>((resolve, reject) => {
+        const socket = connect({ host: '127.0.0.1', port });
+        socket.once('connect', () => {
+          socket.destroy();
+          resolve();
+        });
+        socket.once('error', (error) => {
+          socket.destroy();
+          reject(error);
+        });
+      }),
+    { interval: 50, timeout: 5_000 },
+  );
 }
 
 /**
@@ -109,7 +107,7 @@ describe.skipIf(!hasRedisServer)('guarded cache store on a real Redis', () => {
   it('refuses a value read before an invalidation, even when no entry existed yet', async () => {
     const epochs = await cache.readTagEpochs(TAGS);
 
-    await cache.invalidateGuardedTags(['public-brand-content']);
+    await cache.invalidateByTags(['public-brand-content']);
     const isStored = await cache.setUnlessTagsInvalidated(
       'public:brand:1',
       { name: 'Acme' },
@@ -131,14 +129,14 @@ describe.skipIf(!hasRedisServer)('guarded cache store on a real Redis', () => {
     );
     await cache.set('public:models', ['m1'], { tags: ['models'], ttl: 60 });
 
-    await cache.invalidateGuardedTags(['public-brand-content']);
+    await cache.invalidateByTags(['public-brand-content']);
 
     expect(await cache.get('public:brand:1')).toBeNull();
     expect(await cache.get('public:models')).toEqual(['m1']);
   });
 
   it('accepts a value read after the invalidation', async () => {
-    await cache.invalidateGuardedTags(['public-brand-content']);
+    await cache.invalidateByTags(['public-brand-content']);
     const epochs = await cache.readTagEpochs(TAGS);
 
     const isStored = await cache.setUnlessTagsInvalidated(

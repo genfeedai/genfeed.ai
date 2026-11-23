@@ -7,11 +7,15 @@ import {
   type AdsResearchPlatform,
   type AdsResearchTimeframe,
 } from '@genfeedai/contracts/interfaces';
+import type { ICredential } from '@genfeedai/contracts/interfaces/organization/credential.interface';
+import { toConnectedAccount } from '@genfeedai/helpers/publisher/connected-account.helper';
 import type { FilterMenuFacet } from '@genfeedai/props/ui/forms/filter-menu.props';
 import type { UnifiedAdAccountOption } from '@services/ads/ads-research.service';
+import ConnectedAccountAvatar from '@ui/display/connected-account/ConnectedAccountAvatar';
+import { getConnectedAccountText } from '@ui/display/connected-account/connected-account.util';
+import FilterMenu from '@ui/navigation/filter-menu/FilterMenu';
 import { Input } from '@ui/primitives/input';
 import { useTranslations } from 'next-intl';
-import FilterMenu from '@/components/content/filter-menu/FilterMenu';
 import type {
   AdSortKey,
   AdsResearchViewSource,
@@ -89,31 +93,13 @@ const TIMEFRAME_OPTIONS: Array<{
   { messageKey: 'allTime', value: 'all_time' },
 ];
 
-type CredentialOption = {
-  id: string;
-  externalHandle?: string;
-  externalId?: string;
-  externalName?: string;
-  platform?: string;
-};
-
-function getCredentialLabel(credential: CredentialOption) {
-  return (
-    credential.externalHandle ||
-    credential.externalName ||
-    credential.externalId ||
-    credential.platform ||
-    credential.id
-  );
-}
-
 type AdsResearchFilterMenuProps = {
   adAccountId: string;
   adAccounts: UnifiedAdAccountOption[];
   channel: AdsChannel;
   connectedCount: number;
   credentialId: string;
-  credentialOptions: CredentialOption[];
+  credentialOptions: ICredential[];
   isAttached?: boolean;
   metric: AdsResearchMetric;
   platform: AdsResearchPlatform | 'all';
@@ -303,11 +289,21 @@ export function AdsResearchFilterMenu({
         onCredentialChange(value === NONE_VALUE ? '' : value),
       options: [
         { label: translate('noCredential'), value: NONE_VALUE },
-        ...credentialOptions.map((credential) => ({
-          isLiteral: true,
-          label: getCredentialLabel(credential),
-          value: credential.id,
-        })),
+        ...credentialOptions.map((credential) => {
+          const account = toConnectedAccount(credential);
+          return {
+            icon: (
+              <ConnectedAccountAvatar
+                account={account}
+                isDecorative
+                size="xs"
+              />
+            ),
+            isLiteral: true,
+            label: getConnectedAccountText(account).primary,
+            value: credential.id,
+          };
+        }),
       ],
       selection: 'single',
       value: credentialId || NONE_VALUE,

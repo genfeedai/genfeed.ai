@@ -2,6 +2,7 @@ import {
   asYoutubeRequestAuth,
   type YoutubeRequestAuth,
 } from '@api/services/integrations/youtube/services/modules/youtube-api-auth.util';
+import { isYoutubeVideoMissingError } from '@api/services/integrations/youtube/services/modules/youtube-api-failure.util';
 import { YoutubeAuthService } from '@api/services/integrations/youtube/services/modules/youtube-auth.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
@@ -319,7 +320,15 @@ export class YoutubeCommentsService {
         ];
       });
     } catch (error: unknown) {
-      this.loggerService.error(`${url} failed`, error);
+      // A deleted or private video is an owned post gone from YouTube. The
+      // inbox sync skips it, so it is not a fault to report on every sweep.
+      if (isYoutubeVideoMissingError(error)) {
+        this.loggerService.warn(`${url} skipped: video no longer exists`, {
+          videoId,
+        });
+      } else {
+        this.loggerService.error(`${url} failed`, error);
+      }
       throw error;
     }
   }

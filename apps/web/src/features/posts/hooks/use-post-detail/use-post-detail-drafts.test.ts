@@ -3,6 +3,14 @@ import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { usePostDetailDrafts } from '@/features/posts/hooks/use-post-detail/use-post-detail-drafts';
 
+const { mockLogger } = vi.hoisted(() => ({
+  mockLogger: { debug: vi.fn(), error: vi.fn(), info: vi.fn(), warn: vi.fn() },
+}));
+
+vi.mock('@genfeedai/services/core/logger.service', () => ({
+  logger: mockLogger,
+}));
+
 vi.mock('@genfeedai/services/content/posts.service', () => ({
   PostsService: {
     getInstance: vi.fn(),
@@ -261,6 +269,54 @@ describe('usePostDetailDrafts', () => {
           result.current.performAutoSaveForPost('post-1'),
         ).resolves.toBeUndefined();
       });
+    });
+
+    it('stops saving a post the API no longer has, without reporting an error', async () => {
+      const gone = Object.assign(new Error('Post does not exist'), {
+        name: 'ServiceOperationError',
+        status: 404,
+      });
+      const patch = vi.fn().mockRejectedValue(gone);
+      mockGetPostsService.mockResolvedValue({ patch });
+
+      const { result } = renderLoaded();
+
+      await act(async () => {
+        result.current.autoSaveRefs.currentDescriptions.current.set(
+          'post-1',
+          'Edited description',
+        );
+        await result.current.performAutoSaveForPost('post-1');
+        await result.current.performAutoSaveForPost('post-1');
+      });
+
+      expect(patch).toHaveBeenCalledTimes(1);
+      expect(mockLogger.error).not.toHaveBeenCalled();
+    });
+
+    it('still reports an auto-save that fails for another reason', async () => {
+      const failure = Object.assign(new Error('Internal server error'), {
+        name: 'ServiceOperationError',
+        status: 500,
+      });
+      mockGetPostsService.mockResolvedValue({
+        patch: vi.fn().mockRejectedValue(failure),
+      });
+
+      const { result } = renderLoaded();
+
+      await act(async () => {
+        result.current.autoSaveRefs.currentDescriptions.current.set(
+          'post-1',
+          'Edited description',
+        );
+        await result.current.performAutoSaveForPost('post-1');
+      });
+
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        'Auto-save failed',
+        failure,
+      );
     });
 
     it('debounces auto-save in publisher scope', async () => {

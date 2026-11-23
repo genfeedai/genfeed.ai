@@ -3053,7 +3053,7 @@ describe('ScheduledPostDeliveryService', () => {
       const result = await service.failTerminalValidation(post as never, error);
 
       expect(result.error).toBe(expectedMessage);
-      expect(mocks.logger.error).toHaveBeenCalledWith(
+      expect(mocks.logger.warn).toHaveBeenCalledWith(
         'Durable validation rejected queued publishing',
         expect.objectContaining({ error: expectedMessage }),
       );
@@ -3325,6 +3325,40 @@ describe('publication finalization delivery', () => {
       );
     },
   );
+
+  it('stores the narrower audience a provider applied and skips public finalization', async () => {
+    const mocks = createDeliveryMocks();
+    createDeliveryService(mocks);
+    mocks.credentialsService.findOne.mockResolvedValue({
+      id: 'cred-1',
+      platform: CredentialPlatform.YOUTUBE,
+    });
+    mocks.publisherFactory.getPublisher.mockReturnValue({
+      publish: vi.fn().mockResolvedValue({
+        success: true,
+        externalId: 'provider-1',
+        executionState: TargetExecutionState.PUBLISHED,
+        platform: CredentialPlatform.YOUTUBE,
+        url: 'https://example.com/provider-1',
+        visibility: PostVisibility.PRIVATE,
+      }),
+    });
+    await executeDelivery(
+      mocks,
+      createScheduledPost({
+        visibility: PostVisibility.PUBLIC,
+        platform: CredentialPlatform.YOUTUBE,
+        ingredients: [{ category: IngredientCategory.VIDEO, id: 'video-1' }],
+      }),
+      'publish_now',
+    );
+    const terminal =
+      mocks.schedulerPublishStateService.transitionPost.mock.calls.find(
+        (call) => call[1].executionState === TargetExecutionState.PUBLISHED,
+      );
+    expect(terminal?.[1].visibility).toBe(PostVisibility.PRIVATE);
+    expect(terminal?.[4]).toBeUndefined();
+  });
 
   it('keeps genuine provider success when the after-commit refresh queue fails', async () => {
     const mocks = createDeliveryMocks();

@@ -10,9 +10,29 @@ const IDENTITY_PREFIX = 'ba-identity';
 // switches invalidate eagerly via invalidateForUser.
 const IDENTITY_TTL_SECONDS = 120;
 
+// Outlives any resolve that could be in flight when an invalidation lands.
+const EPOCH_TTL_SECONDS = 24 * 60 * 60;
+
 function buildIdentityKey(userId: string): string {
   return `${IDENTITY_PREFIX}:${userId}`;
 }
+
+function buildEpochKey(userId: string): string {
+  return `${IDENTITY_PREFIX}-epoch:${userId}`;
+}
+
+/**
+ * Stores the identity only while the user's invalidation epoch is still the one
+ * the caller read before resolving. Check and write are one atomic step.
+ * KEYS: identity key, epoch key. ARGV: expected epoch, ttl, serialized identity.
+ */
+const SET_IF_EPOCH_UNCHANGED_SCRIPT = `
+local current = redis.call('GET', KEYS[2])
+if not current then current = '0' end
+if current ~= ARGV[1] then return 0 end
+redis.call('SETEX', KEYS[1], ARGV[2], ARGV[3])
+return 1
+`;
 
 /**
  * Redis cache for the resolved Better Auth identity (org + brand + super-admin),
@@ -55,19 +75,51 @@ export class BetterAuthIdentityCacheService {
     }
   }
 
-  async set(
-    userId: string,
-    identity: IBetterAuthResolvedIdentity,
-  ): Promise<void> {
+  /**
+   * The user's current invalidation epoch, or `null` when Redis cannot answer.
+   * Read it BEFORE resolving the identity and pass it to `setIfUnchanged`.
+   */
+  async readEpoch(userId: string): Promise<string | null> {
     const publisher = this.redisService.getPublisher();
     if (!publisher) {
+      return null;
+    }
+
+    try {
+      return (await publisher.get(buildEpochKey(userId))) ?? '0';
+    } catch (error: unknown) {
+      this.logger.error(
+        `Failed to read identity cache epoch for user ${userId}`,
+        error,
+        this.context,
+      );
+      return null;
+    }
+  }
+
+  /**
+   * Caches the identity unless `invalidateForUser` ran after `epoch` was read,
+   * so a resolve that started before an organization switch cannot write the
+   * pre-switch identity back.
+   */
+  async setIfUnchanged(
+    userId: string,
+    identity: IBetterAuthResolvedIdentity,
+    epoch: string | null,
+  ): Promise<void> {
+    const publisher = this.redisService.getPublisher();
+    if (!publisher || epoch === null) {
       return;
     }
 
     try {
-      await publisher.setex(
+      await publisher.eval(
+        SET_IF_EPOCH_UNCHANGED_SCRIPT,
+        2,
         buildIdentityKey(userId),
-        IDENTITY_TTL_SECONDS,
+        buildEpochKey(userId),
+        epoch,
+        String(IDENTITY_TTL_SECONDS),
         JSON.stringify(identity),
       );
     } catch (error: unknown) {
@@ -86,7 +138,12 @@ export class BetterAuthIdentityCacheService {
     }
 
     try {
-      await publisher.unlink(buildIdentityKey(userId));
+      await publisher
+        .multi()
+        .incr(buildEpochKey(userId))
+        .expire(buildEpochKey(userId), EPOCH_TTL_SECONDS)
+        .unlink(buildIdentityKey(userId))
+        .exec();
     } catch (error: unknown) {
       this.logger.error(
         `Failed to invalidate identity cache for user ${userId}`,

@@ -2,15 +2,15 @@
 
 import { ViewType } from '@genfeedai/contracts';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
+import SearchField from '@ui/content/search-field/SearchField';
 import SectionTopbar from '@ui/layout/section-topbar/SectionTopbar';
 import SubbarControls from '@ui/layout/subbar-controls/SubbarControls';
+import FilterMenu from '@ui/navigation/filter-menu/FilterMenu';
 import ViewMenu from '@ui/navigation/view-menu/ViewMenu';
 import { SHELL_ICON_CLASS } from '@ui-constants/shell-chrome.constant';
 import { LayoutGrid, Rows3 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
-import FilterMenu from '@/components/content/filter-menu/FilterMenu';
-import SearchField from '@/components/content/search-field/SearchField';
 import type { UseStudioResultsFiltersReturn } from '@/features/studio/playground/hooks/useStudioResultsFilters';
 import {
   isStudioPlaygroundType,

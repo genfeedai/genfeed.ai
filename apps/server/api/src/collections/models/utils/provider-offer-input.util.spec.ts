@@ -1,4 +1,10 @@
-import { KIE_KLING_INPUT_SCHEMA } from '@api/seeds/model-provider-offers.seed';
+import {
+  KIE_KLING_INPUT_SCHEMA,
+  KIE_MINIMAX_H3_IMAGE_INPUT_SCHEMA,
+  KIE_MINIMAX_H3_TEXT_INPUT_SCHEMA,
+  KIE_SEEDANCE_FAST_INPUT_SCHEMA,
+  KIE_WAN_3_INPUT_SCHEMA,
+} from '@api/seeds/model-provider-offers.seed';
 import { describe, expect, it } from 'vitest';
 import falKlingSchemas from './fixtures/fal-kling-v3-input-schemas.json';
 import { mapProviderOfferInput } from './provider-offer-input.util';
@@ -223,5 +229,244 @@ describe('fal Kling v3 offers', () => {
         { endpoint: PRO_TEXT },
       ),
     ).toBeNull();
+  });
+});
+
+describe('kie MiniMax H3 offers', () => {
+  const TEXT = 'minimax-h3/text-to-video';
+  const IMAGE = 'minimax-h3/image-to-video';
+  const FIRST = 'https://example.com/first.png';
+  const LAST = 'https://example.com/last.png';
+  /** What the Replicate builder always sends, empty reference lists included. */
+  const REPLICATE_BASE = {
+    duration: 6,
+    prompt: 'Sunrise',
+    reference_audio_urls: [],
+    reference_image_urls: [],
+    reference_video_urls: [],
+    resolution: '2K',
+  };
+
+  function map(endpoint: string, providerInput: Record<string, unknown>) {
+    return mapProviderOfferInput(
+      endpoint === TEXT
+        ? KIE_MINIMAX_H3_TEXT_INPUT_SCHEMA
+        : KIE_MINIMAX_H3_IMAGE_INPUT_SCHEMA,
+      { providerInput },
+      { endpoint },
+    );
+  }
+
+  it('sends a text request to the text endpoint with kie field names', () => {
+    expect(map(TEXT, { ...REPLICATE_BASE, ratio: '9:16' })).toEqual({
+      aspect_ratio: '9:16',
+      duration: 6,
+      prompt: 'Sunrise',
+      resolution: '2K',
+    });
+  });
+
+  it('keeps a 768P request at 768P', () => {
+    expect(
+      map(TEXT, { ...REPLICATE_BASE, ratio: '16:9', resolution: '768P' }),
+    ).toMatchObject({ resolution: '768P' });
+  });
+
+  it('sends first and last frames to the image endpoint and drops the ratio', () => {
+    expect(
+      map(IMAGE, {
+        ...REPLICATE_BASE,
+        first_frame_image: FIRST,
+        last_frame_image: LAST,
+        ratio: 'adaptive',
+      }),
+    ).toEqual({
+      duration: 6,
+      first_frame_url: FIRST,
+      last_frame_url: LAST,
+      prompt: 'Sunrise',
+      resolution: '2K',
+    });
+  });
+
+  it('accepts a last frame alone, as Replicate does', () => {
+    expect(
+      map(IMAGE, { ...REPLICATE_BASE, last_frame_image: LAST, ratio: '16:9' }),
+    ).toMatchObject({ last_frame_url: LAST });
+  });
+
+  it('refuses the endpoint that does not match the start', () => {
+    expect(
+      map(TEXT, { ...REPLICATE_BASE, first_frame_image: FIRST }),
+    ).toBeNull();
+    expect(map(IMAGE, { ...REPLICATE_BASE, ratio: '16:9' })).toBeNull();
+  });
+
+  it.each([
+    ['reference images', { reference_image_urls: [FIRST] }],
+    [
+      'reference videos',
+      { reference_video_urls: ['https://example.com/a.mp4'] },
+    ],
+    [
+      'reference audio',
+      { reference_audio_urls: ['https://example.com/a.mp3'] },
+    ],
+  ])('leaves a request with %s on Replicate', (_name, extra) => {
+    expect(
+      map(TEXT, { ...REPLICATE_BASE, ratio: '16:9', ...extra }),
+    ).toBeNull();
+    expect(
+      map(IMAGE, { ...REPLICATE_BASE, first_frame_image: FIRST, ...extra }),
+    ).toBeNull();
+  });
+
+  it('refuses adaptive on the text endpoint and a missing duration', () => {
+    expect(map(TEXT, { ...REPLICATE_BASE, ratio: 'adaptive' })).toBeNull();
+    const { duration: _duration, ...withoutDuration } = REPLICATE_BASE;
+    expect(map(TEXT, { ...withoutDuration, ratio: '16:9' })).toBeNull();
+  });
+
+  it('refuses a request with no native input', () => {
+    expect(
+      mapProviderOfferInput(
+        KIE_MINIMAX_H3_TEXT_INPUT_SCHEMA,
+        {},
+        { endpoint: TEXT },
+      ),
+    ).toBeNull();
+  });
+});
+
+describe('kie Wan 3.0 offer', () => {
+  const ENDPOINT = 'wan/3-0-video';
+  const IMAGE = 'https://example.com/first.png';
+
+  function map(providerInput: Record<string, unknown>) {
+    return mapProviderOfferInput(
+      KIE_WAN_3_INPUT_SCHEMA,
+      { providerInput },
+      { endpoint: ENDPOINT },
+    );
+  }
+
+  it('upper-cases the resolution and keeps the ratio, duration and seed', () => {
+    expect(
+      map({
+        aspect_ratio: '9:16',
+        duration: 8,
+        prompt: 'Sunrise',
+        resolution: '720p',
+        seed: 7,
+      }),
+    ).toEqual({
+      aspect_ratio: '9:16',
+      duration: 8,
+      prompt: 'Sunrise',
+      resolution: '720P',
+      seed: 7,
+    });
+  });
+
+  it('applies the defaults both providers share', () => {
+    expect(map({ prompt: 'Sunrise' })).toEqual({
+      aspect_ratio: 'adaptive',
+      duration: 5,
+      prompt: 'Sunrise',
+      resolution: '1080P',
+    });
+  });
+
+  it('sends an image as the first frame and drops the ratio Replicate ignores', () => {
+    expect(
+      map({
+        aspect_ratio: '16:9',
+        duration: 5,
+        image: IMAGE,
+        prompt: 'Sunrise',
+        resolution: '480p',
+      }),
+    ).toEqual({
+      aspect_ratio: 'adaptive',
+      duration: 5,
+      first_frame_url: IMAGE,
+      prompt: 'Sunrise',
+      resolution: '480P',
+    });
+  });
+
+  it('ignores an empty negative prompt and an enabled prompt expansion', () => {
+    expect(
+      map({
+        enable_prompt_expansion: true,
+        negative_prompt: '',
+        prompt: 'Sunrise',
+      }),
+    ).toMatchObject({ prompt: 'Sunrise' });
+  });
+
+  it.each([
+    ['a negative prompt', { negative_prompt: 'blur' }],
+    ['prompt expansion turned off', { enable_prompt_expansion: false }],
+    ['a ratio kie lacks', { aspect_ratio: '21:9' }],
+    ['a resolution kie lacks', { resolution: '4k' }],
+  ])('leaves a request with %s on Replicate', (_name, extra) => {
+    expect(map({ prompt: 'Sunrise', ...extra })).toBeNull();
+  });
+});
+
+describe('kie Seedance 2.0 Fast offer', () => {
+  const ENDPOINT = 'bytedance/seedance-2-fast';
+  const FIRST = 'https://example.com/first.png';
+  const LAST = 'https://example.com/last.png';
+  /** What the Replicate builder sends for a plain text request. */
+  const TEXT = {
+    aspect_ratio: '9:16',
+    duration: 6,
+    generate_audio: false,
+    prompt: 'Sunrise',
+    resolution: '480p',
+  };
+
+  function map(providerInput: Record<string, unknown>) {
+    return mapProviderOfferInput(
+      KIE_SEEDANCE_FAST_INPUT_SCHEMA,
+      { providerInput },
+      { endpoint: ENDPOINT },
+    );
+  }
+
+  it('keeps a text request as it is', () => {
+    expect(map(TEXT)).toEqual(TEXT);
+  });
+
+  it('sends the start and end frames under kie names', () => {
+    expect(map({ ...TEXT, image: FIRST, last_frame: LAST })).toEqual({
+      ...TEXT,
+      first_frame_url: FIRST,
+      last_frame_url: LAST,
+    });
+    expect(
+      map({ ...TEXT, image: FIRST, last_frame_image: LAST }),
+    ).toMatchObject({ last_frame_url: LAST });
+  });
+
+  it('ignores empty reference lists', () => {
+    expect(
+      map({ ...TEXT, reference_audios: [], reference_images: [] }),
+    ).toEqual(TEXT);
+  });
+
+  it.each([
+    ['reference images', { reference_images: [FIRST] }],
+    ['reference videos', { reference_videos: ['https://example.com/a.mp4'] }],
+    ['reference audio', { reference_audios: ['https://example.com/a.mp3'] }],
+    ['a seed', { seed: 7 }],
+    ['an end frame without a start frame', { last_frame: LAST }],
+    ['a ratio kie lacks', { aspect_ratio: '21:9' }],
+    ['a resolution kie lacks', { resolution: '1080p' }],
+    ['a duration kie lacks', { duration: 20 }],
+  ])('leaves a request with %s on Replicate', (_name, extra) => {
+    expect(map({ ...TEXT, ...extra })).toBeNull();
   });
 });

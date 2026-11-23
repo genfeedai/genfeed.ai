@@ -3,6 +3,10 @@ import { TurboRunStatus } from '@genfeedai/contracts';
 import { parsePublishingApprovalsPath } from '@genfeedai/contracts/constants';
 import type { ITurboRunSummary } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import {
+  isCollectionFetchReady,
+  useCollectionScope,
+} from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { TurboRunsService } from '@services/turbo/turbo-runs.service';
@@ -65,6 +69,12 @@ export function useReviewQueueContent(search = '') {
   const { openConfirm } = useConfirmModal();
   const notifications = useMemo(() => NotificationsService.getInstance(), []);
   const queryClient = useQueryClient();
+  const collectionScope = useCollectionScope();
+  const { brandId, organizationId } = collectionScope;
+  const reviewBatchesKey = useMemo(
+    () => ['review-batches', organizationId, brandId] as const,
+    [brandId, organizationId],
+  );
   const getTurboRunsService = useAuthedService((token: string) =>
     TurboRunsService.getInstance(token),
   );
@@ -108,10 +118,11 @@ export function useReviewQueueContent(search = '') {
     isLoading: isTurboRunsLoading,
     refetch: refetchTurboRuns,
   } = useQuery({
-    queryKey: ['review-batches'],
+    queryKey: reviewBatchesKey,
+    enabled: isCollectionFetchReady(collectionScope),
     queryFn: async () => {
       const service = await getTurboRunsService();
-      return service.getTurboRuns();
+      return service.getTurboRuns({ brandId });
     },
   });
 
@@ -240,6 +251,7 @@ export function useReviewQueueContent(search = '') {
   }
 
   // External URL changes only (back/forward / pasted link). Skip our own writes.
+  // use-effect-audit: ignore adopts review state from route changes made outside this hook
   useEffect(() => {
     if (currentHref === lastWrittenHrefRef.current) {
       return;
@@ -267,8 +279,7 @@ export function useReviewQueueContent(search = '') {
     });
   }, [currentHref, filterParam, requestedTurboRunId, requestedItemId]);
 
-  // Ensure the active row is always inside the current filter window (local only).
-  // URL writes happen once below when local + URL actually disagree.
+  // use-effect-audit: ignore keeps the active row inside the current filter window (local only; URL writes happen below)
   useEffect(() => {
     if (visibleItems.length === 0) {
       setActiveItemId((current) => (current === null ? current : null));
@@ -316,7 +327,7 @@ export function useReviewQueueContent(search = '') {
     syncReviewLocation,
   ]);
 
-  // Default ready-only view is empty but the batch has other work — open all.
+  // use-effect-audit: ignore opens all filters when the default ready-only view is empty but the batch has other work
   useEffect(() => {
     const shouldAutoBroaden =
       activeTurboRun &&
@@ -450,14 +461,14 @@ export function useReviewQueueContent(search = '') {
     (turboRun: ITurboRunSummary) => {
       queryClient.setQueryData(['review-batch', turboRun.id], turboRun);
       queryClient.setQueryData<ITurboRunSummary[]>(
-        ['review-batches'],
+        reviewBatchesKey,
         (currentTurboRuns) =>
           currentTurboRuns?.map((currentTurboRun) =>
             currentTurboRun.id === turboRun.id ? turboRun : currentTurboRun,
           ) ?? [turboRun],
       );
     },
-    [queryClient],
+    [queryClient, reviewBatchesKey],
   );
 
   const executeDiscardTurboRun = useCallback(

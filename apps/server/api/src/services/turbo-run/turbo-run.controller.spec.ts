@@ -5,7 +5,7 @@ import { TurboRunController } from '@api/services/turbo-run/turbo-run.controller
 import { TurboRunService } from '@api/services/turbo-run/turbo-run.service';
 import { TurboRunRewriteService } from '@api/services/turbo-run/turbo-run-rewrite.service';
 import { TurboRunWorkflowService } from '@api/services/turbo-run/turbo-run-workflow.service';
-import { ActivitySource } from '@genfeedai/contracts';
+import { ActivitySource, MemberRole } from '@genfeedai/contracts';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -19,6 +19,7 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 describe('TurboRunController', () => {
   let controller: TurboRunController;
   let service: vi.Mocked<TurboRunService>;
+  let brandAccess: vi.Mocked<BrandAccessService>;
   let workflowService: { queueTurboRun: ReturnType<typeof vi.fn> };
   const rewriteService = {
     cancel: vi.fn(),
@@ -33,6 +34,12 @@ describe('TurboRunController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [TurboRunController],
       providers: [
+        {
+          provide: BrandAccessService,
+          useValue: {
+            resolve: vi.fn().mockResolvedValue({ brandIds: ['brand-1'] }),
+          },
+        },
         {
           provide: TurboRunRewriteService,
           useValue: rewriteService,
@@ -83,6 +90,7 @@ describe('TurboRunController', () => {
 
     controller = module.get<TurboRunController>(TurboRunController);
     service = module.get(TurboRunService);
+    brandAccess = module.get(BrandAccessService);
     workflowService = module.get(TurboRunWorkflowService);
   });
 
@@ -143,7 +151,7 @@ describe('TurboRunController', () => {
         organizationId: 'org',
         userId: 'usr',
       } as never;
-      const result = await controller.getTurboRuns(mockReq, {} as never, user);
+      const result = await controller.getTurboRuns(mockReq, user);
       expect(service.getTurboRuns).toHaveBeenCalled();
       expect(result).toBeDefined();
     });
@@ -168,7 +176,7 @@ describe('TurboRunController', () => {
 
       expect(service.getTurboRuns).toHaveBeenCalledWith(
         expect.any(String),
-        expect.objectContaining({ brandId: 'brand-1' }),
+        expect.objectContaining({ brandIds: ['brand-1'] }),
       );
     });
   });
@@ -186,6 +194,39 @@ describe('TurboRunController', () => {
       expect(service.getTurboRun).toHaveBeenCalled();
       expect(result).toBeDefined();
     });
+
+    it.each([
+      { brandId: undefined, allowed: ['brand-1', 'brand-2'] },
+      { brandId: 'brand-2', allowed: ['brand-2'] },
+      { brandId: 'brand-3', allowed: [] },
+    ])(
+      'fences by-ID reads to reachable brands for brand=$brandId',
+      async ({ brandId, allowed }) => {
+        const run = { id: 'run-2', brandId: 'brand-2' };
+        const user = {
+          id: 'user-123',
+          organizationId: 'org',
+          brandId: 'brand-1',
+        } as never;
+        brandAccess.resolve.mockResolvedValue({
+          brandIds: ['brand-1', 'brand-2'],
+          brandKitGrantBrandId: undefined,
+          membershipRole: MemberRole.CREATOR,
+          role: MemberRole.CREATOR,
+          where: { organizationId: 'org', isDeleted: false },
+        });
+        service.getTurboRun.mockResolvedValue(run as never);
+
+        await expect(
+          controller.getTurboRun(mockReq, 'run-2', user, brandId),
+        ).resolves.toEqual(run);
+        expect(service.getTurboRun).toHaveBeenCalledWith(
+          'run-2',
+          'org',
+          allowed,
+        );
+      },
+    );
   });
 
   describe('processTurboRun', () => {
@@ -445,3 +486,5 @@ describe('TurboRunController', () => {
     });
   });
 });
+
+import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';

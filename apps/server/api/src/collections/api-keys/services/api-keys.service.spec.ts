@@ -175,7 +175,11 @@ describe('ApiKeysService', () => {
         replacement,
       );
 
-      expect(service.createWithKey).toHaveBeenCalledWith(rotatePayload);
+      expect(service.createWithKey).toHaveBeenCalledWith(
+        rotatePayload,
+        undefined,
+        undefined,
+      );
       expect(service.revoke).toHaveBeenCalledWith('key-1');
       expect(cacheInvalidationService.invalidate).toHaveBeenCalledWith(
         'apiKeys:list:org-1',
@@ -185,6 +189,34 @@ describe('ApiKeysService', () => {
       expect(cacheInvalidationService.invalidateByTags).toHaveBeenCalledWith([
         'apiKeys',
       ]);
+    });
+
+    it('retires the original key inside the caller transaction and leaves caches to the caller', async () => {
+      const { cacheInvalidationService, service } = createHarness();
+      const replacement = {
+        apiKey: { id: 'key-2' } as ApiKeyDocument,
+        plainKey: 'gf_test_rotated',
+      };
+      const transaction = {
+        apiKey: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
+      };
+      service.createWithKey.mockResolvedValue(replacement);
+
+      await expect(
+        service.rotateWithKey(
+          'key-1',
+          rotatePayload,
+          undefined,
+          transaction as never,
+        ),
+      ).resolves.toBe(replacement);
+
+      expect(transaction.apiKey.updateMany).toHaveBeenCalledWith({
+        data: { isRevoked: true, revokedAt: expect.any(Date) },
+        where: { id: 'key-1', organizationId: rotatePayload.organizationId },
+      });
+      expect(service.revoke).not.toHaveBeenCalled();
+      expect(cacheInvalidationService.invalidate).not.toHaveBeenCalled();
     });
 
     it('revokes the replacement key when revoking the original fails', async () => {
@@ -437,6 +469,75 @@ describe('ApiKeysService', () => {
         }),
       );
       expect(service.verifyApiKey).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('expired keys', () => {
+    function serviceWith(findMany: MockFn) {
+      const service = Object.create(
+        ApiKeysService.prototype,
+      ) as ApiKeysService & { delegate: { findMany: MockFn } };
+      Object.defineProperty(service, 'delegate', {
+        configurable: true,
+        value: { findMany },
+      });
+      return service;
+    }
+
+    // Emulates the database filter on the one field that matters here.
+    function expiredKeyDelegate() {
+      const expired = {
+        expiresAt: new Date(Date.now() - 1000),
+        id: 'key-1',
+        isRevoked: false,
+      };
+      return vi.fn(
+        async ({
+          where,
+        }: {
+          where: { OR?: Array<{ expiresAt?: unknown }> };
+        }) => (where.OR ? [] : [expired]),
+      );
+    }
+
+    it('findByKey (request authentication) filters out expired keys', async () => {
+      const findMany = vi.fn().mockResolvedValue([]);
+      const service = serviceWith(findMany);
+      service.computeFingerprint = ApiKeysService.prototype.computeFingerprint;
+
+      await expect(service.findByKey('gf_test_plain')).resolves.toBeNull();
+      for (const [query] of findMany.mock.calls) {
+        expect(query.where.OR).toEqual([
+          { expiresAt: null },
+          { expiresAt: { gt: expect.any(Date) } },
+        ]);
+      }
+    });
+
+    it('findActiveById still rejects an expired key', async () => {
+      const service = serviceWith(expiredKeyDelegate());
+
+      await expect(service.findActiveById('key-1')).resolves.toBeNull();
+    });
+
+    it('findUnrevokedById returns an expired key', async () => {
+      const service = serviceWith(expiredKeyDelegate());
+
+      await expect(service.findUnrevokedById('key-1')).resolves.toMatchObject({
+        id: 'key-1',
+      });
+    });
+
+    it('findUnrevokedById excludes revoked keys', async () => {
+      const findMany = vi.fn().mockResolvedValue([]);
+      const service = serviceWith(findMany);
+
+      await expect(service.findUnrevokedById('key-1')).resolves.toBeNull();
+      expect(findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'key-1', isRevoked: false },
+        }),
+      );
     });
   });
 

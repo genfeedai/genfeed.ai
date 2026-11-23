@@ -147,6 +147,7 @@ export function useArticleDetail({
   formRef.current = form;
   const articleUpdatedAt = articleQuery.dataUpdatedAt;
 
+  // use-effect-audit: ignore seeds the form from a fresh article read without overwriting edits
   useEffect(() => {
     if (!article || !resolvedId) {
       return;

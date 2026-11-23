@@ -1,4 +1,8 @@
 import EditorDetailSurface from '@app/(protected)/[orgSlug]/[brandSlug]/editor/[id]/editor-detail-surface';
+import OutreachSequenceNewRoute from '@app/(protected)/[orgSlug]/[brandSlug]/messages/outreach/new/page';
+import OutreachSequencesRoute from '@app/(protected)/[orgSlug]/[brandSlug]/messages/outreach/page';
+import RepliesRoute from '@app/(protected)/[orgSlug]/[brandSlug]/messages/replies/page';
+import ReplyDripRoute from '@app/(protected)/[orgSlug]/[brandSlug]/messages/reply-drip/page';
 import {
   getBrandEntityId,
   getBrandOrganizationSlug,
@@ -13,10 +17,6 @@ import { notFound, redirect } from 'next/navigation';
 import EditorWorkspace from '@/features/studio/editor/EditorWorkspace';
 import type { OrgRootAppPageProps } from '@/props/layout/org-root-app-page.props';
 import { loadProtectedBootstrap } from '@/server/protected-bootstrap.server';
-import OutreachSequenceNewRoute from '../../../[brandSlug]/messages/outreach/new/page';
-import OutreachSequencesRoute from '../../../[brandSlug]/messages/outreach/page';
-import RepliesRoute from '../../../[brandSlug]/messages/replies/page';
-import ReplyDripRoute from '../../../[brandSlug]/messages/reply-drip/page';
 import OrganizationAutomationBrandEmptyState from '../../automation/OrganizationAutomationBrandEmptyState';
 
 /** Org entries of the brand-scoped former Studio apps, by route segment. */

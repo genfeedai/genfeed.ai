@@ -33,8 +33,26 @@ describe('review inbox item ids', () => {
     });
   });
 
+  it('round-trips an agent question, keeping colons in the request id', () => {
+    const id = buildReviewInboxItemId({
+      kind: 'agent_input_request',
+      requestId: 'input:thread-1:7',
+      threadId: 'thread-1',
+    });
+
+    expect(id).toBe('agent_input_request:thread-1:input:thread-1:7');
+    expect(parseReviewInboxItemId(id)).toEqual({
+      kind: 'agent_input_request',
+      requestId: 'input:thread-1:7',
+      threadId: 'thread-1',
+    });
+  });
+
   it.each([
     '',
+    'agent_input_request:thread-1',
+    'agent_input_request::req-1',
+    'agent_input_request:thread-1:',
     'apr-1',
     ':apr-1',
     'mcp_approval:',

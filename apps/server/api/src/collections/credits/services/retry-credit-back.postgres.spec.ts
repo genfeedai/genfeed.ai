@@ -46,15 +46,12 @@ const connectionString = process.env.BILLING_ACCOUNT_SCOPE_TEST_DATABASE_URL;
 const PROMPT = 'A red fox running through fresh snow at dawn';
 const MODEL = 'google/imagen-4';
 const HOUR_MS = 60 * 60 * 1000;
-/** How long one preliminary cap read waits for the others before the test fails. */
-const READ_BARRIER_TIMEOUT_MS = 5000;
 
 type CapRead = (args: unknown) => Promise<{ _sum: { amount: number | null } }>;
 
 /**
- * Resolves once `parties` callers have arrived, and rejects any caller that is
- * still waiting after the bounded wait, so calls that never overlap fail the
- * test instead of passing it by serializing.
+ * Resolves once `parties` callers have arrived. Calls that never overlap block
+ * here and fail on the test timeout instead of passing by serializing.
  */
 function createReadBarrier(parties: number) {
   let arrived = 0;
@@ -65,18 +62,7 @@ function createReadBarrier(parties: number) {
   return async () => {
     arrived += 1;
     if (arrived >= parties) releaseAll();
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    const timedOut = new Promise<never>((_, reject) => {
-      timer = setTimeout(
-        () => reject(new Error(`only ${arrived} of ${parties} reads arrived`)),
-        READ_BARRIER_TIMEOUT_MS,
-      );
-    });
-    try {
-      await Promise.race([allArrived, timedOut]);
-    } finally {
-      clearTimeout(timer);
-    }
+    await allArrived;
   };
 }
 

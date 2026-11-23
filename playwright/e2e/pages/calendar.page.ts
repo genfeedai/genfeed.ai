@@ -1,3 +1,4 @@
+import { settle } from '@e2e/utils/interaction-helpers';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { Locator, Page } from '@playwright/test';
 import { expect } from '@playwright/test';
@@ -171,17 +172,17 @@ export class CalendarPage {
 
   async goToPreviousPeriod(): Promise<void> {
     await this.prevButton.first().click();
-    await this.page.waitForTimeout(500);
+    await settle(this.page);
   }
 
   async goToNextPeriod(): Promise<void> {
     await this.nextButton.first().click();
-    await this.page.waitForTimeout(500);
+    await settle(this.page);
   }
 
   async goToToday(): Promise<void> {
     await this.todayButton.first().click();
-    await this.page.waitForTimeout(500);
+    await settle(this.page);
   }
 
   async getCalendarTitle(): Promise<string> {

@@ -1,3 +1,4 @@
+import type { AvatarRenderQuality } from '@genfeedai/contracts/constants';
 import type {
   HeyGenAvatarRef,
   IBrandAgentConfig,
@@ -53,6 +54,7 @@ export interface ClipperProjectSettings {
   voiceRef?: NonNullable<IBrandAgentConfig['defaultVoiceRef']>;
   avatarId?: string;
   avatarProvider?: SupportedAvatarVideoProviderName;
+  avatarQuality?: AvatarRenderQuality;
   language?: string;
   minViralityScore?: number;
   voiceId?: string;

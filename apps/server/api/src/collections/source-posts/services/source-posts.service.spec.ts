@@ -588,6 +588,29 @@ describe('SourcePostsService', () => {
     });
   });
 
+  it('keeps excluded source types out of the page before take and skip', async () => {
+    sourcePost.findMany.mockResolvedValue([]);
+    sourcePost.count.mockResolvedValue(0);
+
+    await service.listByBrand(
+      { brandId: 'brand-1', organizationId: 'org-1' },
+      { excludeSourceTypes: [SocialSourceType.OWN_ACCOUNT] },
+    );
+
+    const expectedWhere = expect.objectContaining({
+      source: {
+        brandId: 'brand-1',
+        isDeleted: false,
+        organizationId: 'org-1',
+        sourceType: { notIn: [SocialSourceType.OWN_ACCOUNT] },
+      },
+    });
+    expect(sourcePost.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: expectedWhere }),
+    );
+    expect(sourcePost.count).toHaveBeenCalledWith({ where: expectedWhere });
+  });
+
   it('filters source posts by the canonical sourceId without loading relations', async () => {
     sourcePost.findMany.mockResolvedValue([]);
     sourcePost.count.mockResolvedValue(0);

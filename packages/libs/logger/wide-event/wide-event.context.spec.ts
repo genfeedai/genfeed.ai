@@ -57,7 +57,7 @@ describe('enrichWideEvent', () => {
     const event = createEvent();
 
     await runWithWideEvent(event, async () => {
-      await new Promise((resolve) => setTimeout(resolve, 1));
+      await new Promise((resolve) => setImmediate(resolve));
       enrichWideEvent({ generation: { model: 'veo-3.1' } });
     });
 
@@ -70,7 +70,7 @@ describe('enrichWideEvent', () => {
 
     await Promise.all([
       runWithWideEvent(first, async () => {
-        await new Promise((resolve) => setTimeout(resolve, 5));
+        await new Promise((resolve) => setImmediate(resolve));
         enrichWideEvent({ who: { id: 'first' } });
       }),
       runWithWideEvent(second, async () => {

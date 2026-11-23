@@ -31,6 +31,18 @@ vi.mock('./organization-identity-card', () => ({
   ),
 }));
 
+vi.mock('./organization-identity-defaults-card', () => ({
+  default: () => <div>Organization identity defaults</div>,
+}));
+
+vi.mock('./organization-generation-defaults-card', () => ({
+  default: () => <div>Organization generation defaults</div>,
+}));
+
+vi.mock('./organization-publishing-caps-card', () => ({
+  default: () => <div>Organization publishing caps</div>,
+}));
+
 vi.mock('@tanstack/react-query', () => ({
   useQuery: vi.fn(() => ({
     data: null,
@@ -74,6 +86,14 @@ describe('SettingsOrganizationPage', () => {
     ).toBeInTheDocument();
     expect(screen.queryByText('Organization ID')).not.toBeInTheDocument();
     expect(screen.queryByText('Current Brand')).not.toBeInTheDocument();
+  });
+
+  it('shows identity, generation and publishing defaults on the same page', () => {
+    render(<SettingsOrganizationPage />);
+
+    expect(screen.getByText('Organization identity defaults')).toBeVisible();
+    expect(screen.getByText('Organization generation defaults')).toBeVisible();
+    expect(screen.getByText('Organization publishing caps')).toBeVisible();
   });
 
   it('offers an organization default language', () => {

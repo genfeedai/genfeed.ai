@@ -1,6 +1,7 @@
 import { CredentialPlatform, IngredientCategory } from '@genfeedai/contracts';
 import {
   type ChannelCapability,
+  getCaptionCeiling,
   getChannelCapability,
 } from '@genfeedai/contracts/api-types/contracts';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
@@ -208,7 +209,7 @@ describe('PlatformPreview', () => {
     );
   });
 
-  it('uses the capability caption limit for X truncation and validation', () => {
+  it('counts an X caption past 280 characters without cutting or blocking it', () => {
     const capability = requireCapability(CredentialPlatform.TWITTER);
     const caption = 'x'.repeat(capability.caption.maxLength + 5);
 
@@ -225,17 +226,84 @@ describe('PlatformPreview', () => {
 
     expect(
       screen.getByText(
-        `${countPreviewCharacters(caption)}/${capability.caption.maxLength}`,
+        `${countPreviewCharacters(caption, CredentialPlatform.TWITTER)}/${capability.caption.maxLength}`,
       ),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/Truncated after/)).not.toBeInTheDocument();
+    expect(
+      screen.getByText(/need an account with long posts enabled/),
+    ).toBeInTheDocument();
+  });
+
+  it('counts a long link as 23 characters on X', () => {
+    const capability = requireCapability(CredentialPlatform.TWITTER);
+    const caption = `Read https://example.com/${'a'.repeat(400)}`;
+
+    render(
+      <PlatformPreview
+        target={{
+          author: { handle: 'genfeed', name: 'Genfeed' },
+          capability,
+          caption,
+          platform: CredentialPlatform.TWITTER,
+        }}
+      />,
+    );
+
+    expect(screen.getByText('28/280')).toBeInTheDocument();
+    expect(
+      screen.queryByText(/need an account with long posts enabled/),
+    ).not.toBeInTheDocument();
+  });
+
+  it('cuts an X caption by weighted length, so CJK stops at half the ceiling', () => {
+    const capability = requireCapability(CredentialPlatform.TWITTER);
+    const ceiling = getCaptionCeiling(capability.caption);
+    const caption = '日'.repeat(ceiling / 2 + 1);
+
+    render(
+      <PlatformPreview
+        target={{
+          author: { handle: 'genfeed', name: 'Genfeed' },
+          capability,
+          caption,
+          platform: CredentialPlatform.TWITTER,
+        }}
+      />,
+    );
+
+    expect(
+      screen.getByText(`Truncated after ${ceiling} characters.`),
     ).toBeInTheDocument();
     expect(
       screen.getByText(
-        `Truncated after ${capability.caption.maxLength} characters.`,
+        `${capability.label} captions must be ${ceiling} characters or fewer.`,
       ),
+    ).toBeInTheDocument();
+  });
+
+  it('cuts an X caption past the long-post ceiling and reports it', () => {
+    const capability = requireCapability(CredentialPlatform.TWITTER);
+    const ceiling = getCaptionCeiling(capability.caption);
+    const caption = 'x'.repeat(ceiling + 5);
+
+    render(
+      <PlatformPreview
+        target={{
+          author: { handle: 'genfeed', name: 'Genfeed' },
+          capability,
+          caption,
+          platform: CredentialPlatform.TWITTER,
+        }}
+      />,
+    );
+
+    expect(
+      screen.getByText(`Truncated after ${ceiling} characters.`),
     ).toBeInTheDocument();
     expect(
       screen.getByText(
-        `${capability.label} captions must be ${capability.caption.maxLength} characters or fewer.`,
+        `${capability.label} captions must be ${ceiling} characters or fewer.`,
       ),
     ).toBeInTheDocument();
   });
@@ -295,7 +363,7 @@ describe('PlatformPreview', () => {
       />,
     );
 
-    expect(screen.getByRole('img', { name: 'Reddit' })).toBeInTheDocument();
+    expect(screen.getAllByText('Reddit').length).toBeGreaterThan(0);
     expect(
       screen.getByText('Reddit is hidden from scheduler publishing.'),
     ).toBeInTheDocument();
@@ -457,7 +525,7 @@ describe('unified completed post previews', () => {
     CredentialPlatform.FACEBOOK,
     CredentialPlatform.PINTEREST,
   ])('renders the supplied author avatar on %s', (platform) => {
-    render(
+    const { container } = render(
       <PlatformPreview
         target={{
           platform,
@@ -469,10 +537,9 @@ describe('unified completed post previews', () => {
         }}
       />,
     );
-    expect(screen.getByAltText('Vincent profile picture')).toHaveAttribute(
-      'src',
-      'https://example.com/vincent.jpg',
-    );
+    expect(
+      container.querySelector('img[src="https://example.com/vincent.jpg"]'),
+    ).not.toBeNull();
   });
   it('renders Threads as a dedicated feed with every thread segment and first comment', () => {
     render(
@@ -574,7 +641,6 @@ it('shows the account with the platform logo in its corner and no platform heade
   const header = screen.getByTestId('preview-account-header');
   expect(header).toHaveTextContent('Shayla Monroe');
   expect(header).toHaveTextContent('@itsshaylamonroe');
-  expect(within(header).getByRole('img', { name: 'Instagram' })).toBeVisible();
+  expect(within(header).getAllByText('Instagram')).toHaveLength(1);
   expect(screen.queryByRole('heading')).not.toBeInTheDocument();
-  expect(screen.queryByText('Instagram')).not.toBeInTheDocument();
 });

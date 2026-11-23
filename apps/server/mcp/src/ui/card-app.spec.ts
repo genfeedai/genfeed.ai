@@ -89,6 +89,19 @@ it('initializes the standard bridge and accepts host theme', async () => {
   );
 });
 
+it('pairs the Genfeed readiness logo with its theme-aware badge background', async () => {
+  result('get_brand_publishing_readiness', [
+    { canSchedule: true, providerKey: 'genfeed', state: 'publish_capable' },
+  ]);
+
+  await vi.runAllTimersAsync();
+
+  const icon = document.querySelector(
+    '[data-testid="preview-card"] .bg-primary svg[fill="currentColor"]',
+  );
+  expect(icon?.classList.contains('text-primary-foreground')).toBe(true);
+});
+
 it('renders post content as text and ignores messages from other windows', () => {
   const payload = {
     structuredContent: {
@@ -464,9 +477,7 @@ it('renders posts as a social preview with platform, status and media', () => {
 
   const post = document.querySelector('article.post');
   expect(post?.textContent).toContain('Your Account');
-  expect(
-    post?.querySelector('[role="img"][aria-label="LinkedIn"]'),
-  ).not.toBeNull();
+  expect(post?.textContent).toContain('LinkedIn');
   expect(post?.querySelector('.status')?.textContent).toBe('scheduled');
   expect(post?.querySelector('.description')?.textContent).toBe('Hello world');
 });
@@ -549,6 +560,33 @@ it('polls a pending job through the host and swaps in the finished video', async
   expect(video?.poster).toBe('https://cdn.genfeed.ai/poster.jpg');
   expect(video?.preload).toBe('metadata');
   expect(document.querySelector('[role="progressbar"]')).toBeNull();
+});
+
+it('polls a pending job in the organization its card was created in', async () => {
+  const view = buildCardView('generate', {
+    category: 'VIDEO',
+    id: 'job-1',
+    progress: 40,
+    status: 'PROCESSING',
+  });
+  message('ui/notifications/tool-result', {
+    structuredContent: {
+      genfeedCards: {
+        ...view,
+        cards: view?.cards.map((card) => ({ ...card, organization: 'org-b' })),
+      },
+    },
+  });
+
+  await vi.advanceTimersByTimeAsync(5000);
+  const call = vi
+    .mocked(window.parent.postMessage)
+    .mock.calls.map(([data]) => data as { method?: string; params?: unknown })
+    .find((data) => data.method === 'tools/call');
+  expect(call?.params).toEqual({
+    arguments: { jobId: 'job-1', organization: 'org-b' },
+    name: 'get_job_status',
+  });
 });
 
 it('declares inline and fullscreen display modes at initialization', () => {
@@ -785,7 +823,7 @@ it('uses dedicated social previews with account identity, every attachment and d
     posts: [
       {
         id: 'p1',
-        platform: 'facebook',
+        platform: 'instagram',
         status: 'draft',
         description: 'Launch',
         author: { name: 'Genfeed', handle: 'genfeed' },
@@ -798,7 +836,7 @@ it('uses dedicated social previews with account identity, every attachment and d
   });
   const post = document.querySelector('article.post');
   expect(
-    post?.querySelector('[aria-label="Facebook platform preview"]'),
+    post?.querySelector('[aria-label="Instagram platform preview"]'),
   ).not.toBeNull();
   expect(post?.textContent).toContain('Genfeed');
   expect(post?.textContent).toContain('@genfeed');
@@ -915,8 +953,8 @@ describe('organization switcher', () => {
       )
       .find((data) => data.method === 'tools/call');
     expect(call?.params).toEqual({
-      arguments: { organization: 'org-b' },
-      name: 'switch_org',
+      arguments: { action: 'organizations', organization: 'org-b' },
+      name: 'get_context',
     });
 
     window.dispatchEvent(
@@ -927,7 +965,7 @@ describe('organization switcher', () => {
           id: call?.id,
           result: {
             structuredContent: {
-              genfeedCards: buildCardView('switch_org', {
+              genfeedCards: buildCardView('get_orgs', {
                 activeOrganizationId: 'org-b',
                 brands: [{ id: 'brand-9', label: 'Beta Studio' }],
                 canSwitchOrganizations: true,
@@ -1200,5 +1238,37 @@ describe('approval card', () => {
 
     expect(document.body.textContent).toContain('Declined');
     expect(buttonNamed('Approve')).toBeUndefined();
+  });
+
+  it('declines in the organization the approval was queued in', async () => {
+    const view = withApprovalCard(approval).structuredContent?.genfeedCards;
+    message('ui/notifications/tool-result', {
+      ...approval,
+      structuredContent: {
+        ...approval.structuredContent,
+        genfeedCards: {
+          ...view,
+          cards: view?.cards.map((card) => ({
+            ...card,
+            organization: 'org-b',
+          })),
+        },
+      },
+    });
+    buttonNamed('Decline')?.click();
+    await vi.advanceTimersByTimeAsync(0);
+
+    const call = vi
+      .mocked(window.parent.postMessage)
+      .mock.calls.map(([data]) => data as { method?: string; params?: unknown })
+      .find((data) => data.method === 'tools/call');
+    expect(call?.params).toEqual({
+      arguments: {
+        approvalId: 'apr-1',
+        decision: 'decline',
+        organization: 'org-b',
+      },
+      name: 'resolve_approval',
+    });
   });
 });

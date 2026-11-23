@@ -5,6 +5,7 @@ import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { TasksService } from '@services/management/tasks.service';
 import { useQuery } from '@tanstack/react-query';
+import { persistQueryMeta } from '@/lib/query-cache/persisted-query-cache';
 
 /**
  * The rail and menu badge polls on every page and only needs the unread count,
@@ -14,9 +15,11 @@ import { useQuery } from '@tanstack/react-query';
 export function useWorkspaceInboxCount(): number {
   const { getToken, orgId, userId } = useAuthIdentity();
   const { organizationId: workspaceOrganizationId } = useBrand();
-  const scopeId = orgId || workspaceOrganizationId || 'session';
+  const scopeId = orgId || workspaceOrganizationId;
   const state = useQuery({
-    enabled: Boolean(userId),
+    // The key carries the scope, so a read made before it is known would be
+    // made again under the real key a moment later.
+    enabled: Boolean(userId) && Boolean(scopeId),
     queryFn: async ({ signal }) => {
       const token = await resolveAuthToken(getToken);
       if (!token) throw new Error('Authentication required');
@@ -24,6 +27,7 @@ export function useWorkspaceInboxCount(): number {
         countOnly: true,
       });
     },
+    meta: persistQueryMeta(),
     queryKey: ['workspace-inbox-read', userId, scopeId, 'count'],
     refetchInterval: 60_000,
   });

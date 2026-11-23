@@ -1,4 +1,5 @@
 import { assertHostNotPrivate } from '@api/helpers/utils/ssrf/ssrf.util';
+import { isExpectedBrandScrapeFailure } from '@api/services/brand-scraper/brand-scrape-error.util';
 import {
   BrandScraperHttp,
   MAX_CSS_BYTES,
@@ -9,6 +10,7 @@ import {
   expandTcoLinks,
   replaceTcoLinks,
 } from '@api/services/brand-scraper/brand-short-link.util';
+import { reportSocialScrapeFailure } from '@api/services/brand-scraper/brand-social-scrape-failure.util';
 import { addSupportingPages } from '@api/services/brand-scraper/brand-supporting-pages.util';
 import { BrandWebsiteParserService } from '@api/services/brand-scraper/brand-website-parser.service';
 import type {
@@ -24,6 +26,13 @@ import type {
   WebsiteStylesheetEvidence,
   XProfileScrapedData,
 } from '@api/services/brand-scraper/interfaces/brand-scraper.interfaces';
+import { PublicXBrandSourceService } from '@api/services/brand-scraper/public-x-brand-source.service';
+import { publicXHandle } from '@api/services/brand-scraper/public-x-handle.util';
+import {
+  parsePublicXProfileHtml,
+  toXProfileScrapedData,
+  toXSetupEvidence,
+} from '@api/services/brand-scraper/x-brand-data.util';
 import type {
   IBrandKitDiagnostic,
   IExtractedBrandData,
@@ -40,9 +49,6 @@ import { buildLogoDevLogoUrl } from './logo-dev-logo.util';
 
 const EMPLOYEE_COUNT_PATTERN = /\d+.*employee/;
 const WHITESPACE_RUNS_PATTERN = /\s+/g;
-const X_PROFILE_HANDLE_PATTERN = /(?:twitter\.com|x\.com)\/([^/?#]+)/;
-const EMOJI_PATTERN =
-  /[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}]/u;
 const CSS_CONTENT_TYPE_PATTERN = /^text\/css(?:\s*;|\s*$)/i;
 const STYLESHEET_LIMIT_ERROR_PATTERN =
   /^stylesheet_(content_type|size_limit|total_limit)$/;
@@ -90,6 +96,7 @@ export class BrandScraperService {
     private readonly loggerService: LoggerService,
     private readonly brandWebsiteParser: BrandWebsiteParserService,
     private readonly configService: ConfigService,
+    private readonly publicX: PublicXBrandSourceService,
   ) {
     this.http = new BrandScraperHttp({
       logger: this.loggerService,
@@ -104,6 +111,21 @@ export class BrandScraperService {
    */
   async scrapeWebsite(url: string): Promise<IScrapedBrandData> {
     return (await this.scrapeWebsiteWithEvidence(url)).data;
+  }
+
+  async readPublicXVoiceSamples(handle: string) {
+    return this.publicX.voiceSamples(handle);
+  }
+
+  async scrapeSetupSourceWithEvidence(
+    url: string,
+    budget?: WebsiteFetchBudget,
+  ): Promise<WebsiteBrandScrapeEvidence> {
+    if (!publicXHandle(url)) return this.scrapeWebsiteWithEvidence(url, budget);
+    if (budget && !(budget.deadlineAt > performance.now()))
+      throw new Error('deadline_exceeded');
+    const profile = await this.scrapeXProfile(url, budget);
+    return toXSetupEvidence(profile, url);
   }
 
   async scrapeWebsiteWithEvidence(
@@ -227,7 +249,11 @@ export class BrandScraperService {
           fontCandidates: [],
         };
       } catch (fallbackError: unknown) {
-        this.loggerService.error(
+        // A site that refuses or never answers the scraper is an expected
+        // outcome that the scan already reports to the user.
+        this.loggerService[
+          isExpectedBrandScrapeFailure(fallbackError) ? 'warn' : 'error'
+        ](
           `${caller} meta tag fallback also failed`,
           fallbackError instanceof Error
             ? fallbackError.name
@@ -322,7 +348,7 @@ export class BrandScraperService {
 
       return result;
     } catch (error: unknown) {
-      this.loggerService.error(`${caller} failed`, error, { url });
+      reportSocialScrapeFailure(this.loggerService, caller, error, { url });
       throw error;
     }
   }
@@ -330,77 +356,41 @@ export class BrandScraperService {
   /**
    * Scrape a public X/Twitter profile for brand information
    */
-  async scrapeXProfile(url: string): Promise<XProfileScrapedData> {
+  async scrapeXProfile(
+    url: string,
+    budget?: WebsiteFetchBudget,
+  ): Promise<XProfileScrapedData> {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(`${caller} starting`, { url });
 
     try {
       const normalizedUrl = this.normalizeUrl(url);
 
-      const html = await this.fetchSocialHtml(normalizedUrl, 'X profile');
-      const $ = cheerio.load(html);
-
-      // Extract handle from URL
-      const handleMatch = normalizedUrl.match(X_PROFILE_HANDLE_PATTERN);
-      const handle = handleMatch?.[1];
-
-      const result: XProfileScrapedData = {
-        bannerImageUrl: undefined,
-        bio:
-          $('meta[name="description"]').attr('content')?.trim() ||
-          $('meta[property="og:description"]').attr('content')?.trim(),
-        contentStyle: {
-          contentTypes: [],
-          usesEmojis: false,
-          usesHashtags: false,
-        },
-        displayName:
-          $('meta[property="og:title"]').attr('content')?.trim() ||
-          $('title').first().text().trim(),
-        handle,
-        pinnedTweet: undefined,
-        profileImageUrl: $('meta[property="og:image"]').attr('content')?.trim(),
-        recentTweets: [],
-        scrapedAt: new Date(),
-        sourceUrl: normalizedUrl,
-      };
-
-      // Extract tweets from structured data or article elements
-      $('article [data-testid="tweetText"], [class*="tweet-text"]').each(
-        (_i, el) => {
-          const text = $(el).text().trim();
-          if (text.length > 5) {
-            result.recentTweets.push(text);
-          }
-        },
-      );
-      result.recentTweets = result.recentTweets.slice(0, 10);
-
-      // Analyze content style from scraped tweets
-      if (result.recentTweets.length > 0) {
-        const allText = result.recentTweets.join(' ');
-        result.contentStyle.usesHashtags = allText.includes('#');
-        result.contentStyle.usesEmojis = EMOJI_PATTERN.test(allText);
-        result.contentStyle.avgTweetLength = Math.round(
-          result.recentTweets.reduce((sum, t) => sum + t.length, 0) /
-            result.recentTweets.length,
-        );
-      }
-
-      // Parse bio for content style hints
-      if (result.bio) {
-        if (result.bio.includes('#')) {
-          result.contentStyle.usesHashtags = true;
+      const publicHandle = publicXHandle(normalizedUrl);
+      if (publicHandle) {
+        try {
+          const snapshot = await this.publicX.profile(
+            publicHandle,
+            budget ? budget.deadlineAt - performance.now() : undefined,
+          );
+          if (snapshot) return toXProfileScrapedData(snapshot);
+        } catch (error) {
+          reportSocialScrapeFailure(this.loggerService, caller, error);
         }
       }
-
+      const html = await this.fetchSocialHtml(
+        normalizedUrl,
+        'X profile',
+        budget,
+      );
+      const result = parsePublicXProfileHtml(html, normalizedUrl);
       this.loggerService.log(`${caller} completed`, {
         handle: result.handle,
       });
 
       return result;
     } catch (error: unknown) {
-      this.loggerService.error(`${caller} failed`, error);
+      reportSocialScrapeFailure(this.loggerService, caller, error);
       throw error;
     }
   }
@@ -499,11 +489,16 @@ export class BrandScraperService {
       fontFamily: websiteData?.fontFamily,
       heroText: websiteData?.heroText,
       industry: linkedinData?.industry,
-      logoUrl: websiteData?.logoUrl || linkedinData?.logoUrl,
+      logoUrl:
+        websiteData?.logoUrl || linkedinData?.logoUrl || xData?.profileImageUrl,
+      bannerUrl: websiteData?.bannerUrl || xData?.bannerImageUrl,
       primaryColor: websiteData?.primaryColor,
       scrapedAt: new Date(),
       secondaryColor: websiteData?.secondaryColor,
-      socialLinks: websiteData?.socialLinks ?? {},
+      socialLinks: {
+        ...websiteData?.socialLinks,
+        ...(xData && { twitter: xData.sourceUrl }),
+      },
       sourceUrls,
       tagline: websiteData?.tagline,
       valuePropositions: websiteData?.valuePropositions ?? [],
@@ -520,10 +515,10 @@ export class BrandScraperService {
   private async fetchSocialHtml(
     url: string,
     label: 'LinkedIn page' | 'X profile',
-  ): Promise<string> {
-    const budget: WebsiteFetchBudget = {
+    budget: WebsiteFetchBudget = {
       deadlineAt: performance.now() + WEBSITE_TIMEOUT_MS,
-    };
+    },
+  ): Promise<string> {
     const response = await this.fetchWithRetry(
       url,
       {

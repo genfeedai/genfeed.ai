@@ -979,8 +979,8 @@ test.describe('Discovery prefilled remix handoff', () => {
         });
       },
     );
-    // publicCount: 0 above makes AdsResearchPageClient auto-show
-    // AdsResearchWatchlistPanel, which reads this endpoint. Left unmocked, it
+    // AdsResearchPageClient reads this endpoint for the Competitors modal even
+    // while it is closed. Left unmocked, it
     // falls through to the generic catch-all in api-interceptor.ts (a
     // JSON:API collection object, not the array the real controller always
     // returns), and readiness.filter(...) throws. Mock it like the real

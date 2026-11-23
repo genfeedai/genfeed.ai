@@ -44,6 +44,32 @@ describe('agent-publish-target.util', () => {
     );
   });
 
+  it('carries the account avatar, handle and name so a card shows who it posts to', () => {
+    const [proposal] = buildAgentPublishTargetProposals({
+      caption: 'Ship this now',
+      credentials: [
+        {
+          externalAvatar: 'https://cdn.example/avatar.png',
+          externalHandle: 'genfeedai',
+          externalName: 'Genfeed',
+          id: 'cred-twitter',
+          label: ' ',
+          platform: 'twitter',
+        },
+      ],
+      defaultPlatforms: ['twitter'],
+      media: [],
+      publishMode: 'publish_now',
+      visibility: PostVisibility.PUBLIC,
+    });
+
+    expect(proposal).toMatchObject({
+      avatarUrl: 'https://cdn.example/avatar.png',
+      handle: 'genfeedai',
+      name: 'Genfeed',
+    });
+  });
+
   it('records a target-specific blocker when media is unsupported', () => {
     const proposals = buildAgentPublishTargetProposals({
       caption: 'Launch video',
@@ -108,12 +134,12 @@ describe('agent-publish-target.util', () => {
 
   it('blocks confirmation with an actionable target-specific reason', () => {
     const invalid = collectInvalidTargetBlockers({
-      caption: 'x'.repeat(300),
+      caption: 'x'.repeat(25_001),
       media: [{ id: 'ingredient-1', kind: 'image' }],
       publishMode: 'publish_now',
       targets: [
         {
-          caption: 'x'.repeat(300),
+          caption: 'x'.repeat(25_001),
           credentialId: 'cred-twitter',
           platform: CredentialPlatform.TWITTER,
         },
@@ -129,11 +155,11 @@ describe('agent-publish-target.util', () => {
     expect(invalid).toEqual([
       {
         label: 'X (Twitter)',
-        messages: ['X (Twitter) captions must be 280 characters or fewer.'],
+        messages: ['X (Twitter) captions must be 25000 characters or fewer.'],
       },
     ]);
     expect(formatTargetBlockersError(invalid)).toContain(
-      'X (Twitter): X (Twitter) captions must be 280 characters or fewer.',
+      'X (Twitter): X (Twitter) captions must be 25000 characters or fewer.',
     );
   });
 

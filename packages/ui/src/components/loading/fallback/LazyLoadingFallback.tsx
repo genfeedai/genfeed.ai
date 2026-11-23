@@ -7,6 +7,11 @@ import Loading from '@ui/loading/default/Loading';
 import { Skeleton } from '@ui/primitives/skeleton';
 import Spinner from '@ui/primitives/spinner';
 
+/**
+ * The `Suspense` fallback of a lazy component. `full` and `minimal` render
+ * `Loading`; `skeleton` and `grid` render placeholder shapes. For a loading
+ * state that is not a `Suspense` boundary use `Loading` or `Skeleton` directly.
+ */
 export default function LazyLoadingFallback({
   variant = 'skeleton',
   aspectRatio = IngredientFormat.SQUARE,

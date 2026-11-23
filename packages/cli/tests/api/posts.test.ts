@@ -1,10 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockGet = vi.fn();
+const mockPost = vi.fn();
 const mockFlattenCollection = vi.fn();
 
 vi.mock('../../src/api/client', () => ({
   get: (...args: unknown[]) => mockGet(...args),
+  post: (...args: unknown[]) => mockPost(...args),
 }));
 
 vi.mock('../../src/api/json-api', () => ({
@@ -41,5 +43,22 @@ describe('api/posts', () => {
     expect(mockGet).toHaveBeenCalledWith(
       '/posts?platform=instagram&executionState=published&limit=10'
     );
+  });
+
+  it('deletes a post through the deletions route and asks for media and the network copy only on request', async () => {
+    mockPost.mockImplementation(async (path: string, body: unknown) => ({ body, path }));
+
+    const { deletePost } = await import('../../src/api/posts');
+
+    await expect(deletePost('post-1')).resolves.toEqual({
+      body: { deleteOnPlatform: false, includeMedia: false },
+      path: '/posts/post-1/deletions',
+    });
+    await expect(
+      deletePost('post-1', { deleteOnPlatform: true, includeMedia: true })
+    ).resolves.toEqual({
+      body: { deleteOnPlatform: true, includeMedia: true },
+      path: '/posts/post-1/deletions',
+    });
   });
 });

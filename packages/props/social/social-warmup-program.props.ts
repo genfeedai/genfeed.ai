@@ -117,20 +117,13 @@ export interface SocialWarmupCheckItemProps {
   isPending?: boolean;
   onComplete: (itemId: string) => void;
   onFocusCheck?: (itemId: string) => void;
-  onReconnect?: () => void;
-  onRefreshSignals?: () => void;
   onReopen: (itemId: string) => void;
-}
-
-export interface SocialWarmupOverrideRequest {
-  credentialId: string;
-  unresolvedChecks: readonly Pick<SocialWarmupResolvedCheck, 'id' | 'title'>[];
+  platformLabel: string;
 }
 
 export interface SocialWarmupProgramProps {
   connection: BrandDetailSocialConnection;
   health?: AccountHealthSummary;
   onHealthUpdated?: (summary: AccountHealthSummary) => void;
-  onOverrideRequest?: (request: SocialWarmupOverrideRequest) => void;
   onReconnect?: (platform: CredentialPlatform | string) => void;
 }

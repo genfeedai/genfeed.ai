@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { toMcpTools } from '../adapters/to-mcp-tool';
+import { toMcpTool, toMcpTools } from '../adapters/to-mcp-tool';
 import type { ToolParameterSchema } from '../interfaces/tool-definition.interface';
 import { compactMcpInputDocumentation } from './mcp-input-documentation';
 import { getToolByName, getToolsForSurface } from './tool-registry';
@@ -154,54 +154,71 @@ describe('MCP input documentation', () => {
     expect(toMcpTools(canonical)).toEqual(compact);
   });
 
-  it('retains standalone generation consent, pricing, receipts and brand guidance', () => {
+  it('retains generation consent, pricing, receipts and brand guidance', () => {
     const tools = toMcpTools(getToolsForSurface('mcp'));
     const tool = (name: string) => {
       const match = tools.find((entry) => entry.name === name);
       if (!match) throw new Error(`Missing tool: ${name}`);
       return match;
     };
-    expect(tool('generate').description).toMatch(
+    const original = (name: string) => {
+      const match = getToolByName(name);
+      if (!match) throw new Error(`Missing tool: ${name}`);
+      return toMcpTool(match);
+    };
+    expect(original('generate').description).toMatch(
       /resolved model-specific quote and confirmation/,
     );
-    expect(tool('generate').description).toMatch(
+    expect(original('generate').description).toMatch(
       /Unresolved quotes never mean free/,
     );
-    expect(tool('generate').description).toMatch(
+    expect(original('generate').description).toMatch(
       /generationHarness exact submitted prompt/,
     );
-    expect(tool('generate').description).toMatch(
+    expect(original('generate').description).toMatch(
       /Variable cost: .* credits per generation/,
     );
-    expect(tool('generate').description).toContain(
-      'brandId is required: call get_brands',
+    expect(original('generate').description).toContain(
+      'brandId is required: call get_context(action=brands)',
     );
-    expect(tool('generate').inputSchema.properties.brandMode).toMatchObject({
-      description: expect.stringContaining(
-        'Only after explicit user choice; never as fallback',
-      ),
-    });
-    expect(tool('generate_turbo_content').description).toContain(
+    expect(original('generate').inputSchema.properties.brandMode).toMatchObject(
+      {
+        description: expect.stringContaining(
+          'Only after explicit user choice; never as fallback',
+        ),
+      },
+    );
+    expect(original('generate_turbo_content').description).toContain(
       'spends only after approval',
     );
-    expect(tool('transform_media').description).toContain(
+    expect(original('transform_media').description).toContain(
       'Never enhance/rewrite instructions',
     );
-    expect(tool('transform_media').description).toContain('FLUX.3: one output');
-    expect(tool('transform_media').description).toContain(
+    expect(original('transform_media').description).toContain(
+      'FLUX.3: one output',
+    );
+    expect(original('transform_media').description).toContain(
       'local merge is free',
     );
-    expect(tool('get_generation_options').description).toContain(
-      'never charges, reprices or authorizes',
-    );
-    expect(tool('get_generation_options').description).toContain(
-      'balance null; 0 means empty',
-    );
+    expect(
+      tool('get_generation_catalog').inputSchema.properties.action,
+    ).toMatchObject({
+      description: expect.stringContaining(
+        'never charges or authorizes generation',
+      ),
+    });
+    expect(
+      tool('get_generation_catalog').inputSchema.properties.action,
+    ).toMatchObject({
+      description: expect.stringContaining(
+        'balance null = unreadable wallet, 0 = empty',
+      ),
+    });
     expect(tool('resolve_approval').description).toContain('Owners/admins');
-    expect(tool('control_scheduled_release').description).toContain(
-      'All actions require server-enforced approval',
+    expect(original('control_scheduled_release').description).toContain(
+      'publish-now and resume: first call changes nothing',
     );
-    expect(tool('update_scheduled_release').description).toContain(
+    expect(original('update_scheduled_release').description).toContain(
       'Live-content changes may update public posts',
     );
   });
@@ -214,7 +231,7 @@ it.each([
 ])('shows the shorter scheduler guidance for %s on MCP', (name) => {
   const tool = getToolByName(name);
   if (!tool) throw new Error('Missing scheduler tool');
-  const [mcp] = toMcpTools([tool]);
+  const mcp = toMcpTool(tool);
   expect(mcp.description).toContain('check_channel(action=validate)');
   expect(mcp.description).not.toContain('validate_scheduler_target');
   expect(mcp.description.length).toBeLessThan(tool.description.length);

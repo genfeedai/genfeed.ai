@@ -1,7 +1,7 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/contracts';
-import { InstagramIcon } from '@genfeedai/helpers/ui/icons/brands';
+import { ButtonVariant, CredentialPlatform } from '@genfeedai/contracts';
+import type { ICredential } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import type { CredentialInstagram } from '@genfeedai/models/auth/credential.model';
 import type { ConnectionAccount } from '@genfeedai/props/ui/feedback/connection-success.props';
@@ -9,7 +9,7 @@ import { logger } from '@genfeedai/services/core/logger.service';
 import { ServicesService } from '@genfeedai/services/external/services.service';
 import { CredentialsService } from '@genfeedai/services/organization/credentials.service';
 import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
-import { Avatar } from '@ui/primitives/avatar';
+import ConnectedAccountAvatar from '@ui/display/connected-account/ConnectedAccountAvatar';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { OptionTile, OptionTileGroup } from '@ui/primitives/option-tile';
@@ -54,6 +54,7 @@ export default function InstagramAccountSelector({
   // before moving on, since the rest need another connect.
   const [partialResult, setPartialResult] = useState<{
     account: ConnectionAccount;
+    credentials: readonly ICredential[];
     notice: string;
   } | null>(null);
 
@@ -151,6 +152,7 @@ export default function InstagramAccountSelector({
           .join(', ');
         setPartialResult({
           account,
+          credentials: connected,
           notice: translate('partial', {
             connected: connected.length,
             missing: missingNames,
@@ -160,7 +162,7 @@ export default function InstagramAccountSelector({
         return;
       }
 
-      onConnected(account);
+      onConnected(account, connected);
     } catch (confirmError) {
       logger.error(`${url} failed`, confirmError);
       const message = translate('confirmError');
@@ -191,7 +193,9 @@ export default function InstagramAccountSelector({
           </p>
           <Button
             label={translate('continue')}
-            onClick={() => onConnected(partialResult.account)}
+            onClick={() =>
+              onConnected(partialResult.account, partialResult.credentials)
+            }
           />
         </div>
       )}
@@ -250,12 +254,14 @@ export default function InstagramAccountSelector({
           {availableAccounts.map((account) => (
             <OptionTile
               icon={
-                <Avatar
-                  alt={account.label}
-                  fallback={<InstagramIcon className="size-5" />}
-                  name={account.label}
+                <ConnectedAccountAvatar
+                  account={{
+                    avatarUrl: account.image,
+                    handle: account.username,
+                    name: account.label,
+                    platform: CredentialPlatform.INSTAGRAM,
+                  }}
                   size="lg"
-                  src={account.image}
                 />
               }
               key={account.id}

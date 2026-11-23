@@ -14,12 +14,7 @@ import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useResetOnChange } from '@hooks/utils/use-reset-on-change/use-reset-on-change';
 import { logger } from '@services/core/logger.service';
 import { CredentialsService } from '@services/organization/credentials.service';
-import {
-  Alert,
-  AlertActions,
-  AlertDescription,
-  AlertTitle,
-} from '@ui/primitives/alert';
+import { Alert, AlertActions, AlertTitle } from '@ui/primitives/alert';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { useTranslations } from 'next-intl';
@@ -115,11 +110,6 @@ export default function ReleaseDetailDrawer({
   const statusBadge = release ? releaseStatusBadge(release) : null;
   const timeline = release ? releaseTimeline(release) : null;
   const isPaused = release?.status === ReleaseStatus.PAUSED;
-  const holdReason = targets
-    .map((target) =>
-      accountHealth.find((row) => row.credentialId === target.credentialId),
-    )
-    .find((row) => row?.holdPublishing)?.holdReason;
   const previewTitle =
     stripHtmlToPlainText(release?.title) || translate('untitledPost');
   const editorHref = release
@@ -183,11 +173,6 @@ export default function ReleaseDetailDrawer({
             {isPaused ? (
               <Alert role="status" variant="warning">
                 <AlertTitle>{translate('pausedHold')}</AlertTitle>
-                {holdReason ? (
-                  <AlertDescription>
-                    {translate('warmupHold', { reason: holdReason })}
-                  </AlertDescription>
-                ) : null}
                 {onResumeRelease ? (
                   <AlertActions>
                     <Button

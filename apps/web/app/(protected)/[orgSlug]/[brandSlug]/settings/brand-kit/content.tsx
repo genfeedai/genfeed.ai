@@ -1,14 +1,8 @@
 'use client';
 
 import { AssetCategory, ButtonVariant, MemberRole } from '@genfeedai/contracts';
-import {
-  APP_ROUTES,
-  BRAND_KIT_LOGO_SLOTS,
-} from '@genfeedai/contracts/constants';
-import type {
-  BrandKitFieldGroup,
-  IBrandKitDraft,
-} from '@genfeedai/contracts/interfaces';
+import { BRAND_KIT_LOGO_SLOTS } from '@genfeedai/contracts/constants';
+import type { IBrandKitDraft } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { BrandsService } from '@services/social/brands.service';
@@ -28,9 +22,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@ui/primitives/dialog';
-import { usePathname, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useOptimistic, useState, useTransition } from 'react';
+import { useState } from 'react';
 import BrandFontsCard from '@/features/brands/components/brand-kit/BrandFontsCard';
 import {
   BrandKitReviewActionsProvider,
@@ -48,15 +41,6 @@ import BrandDetailReferencesCard from '@/features/brands/components/sidebar/Bran
 import { useUserRole } from '@/hooks/auth/use-user-role/use-user-role';
 import { useBrandDetail } from '@/hooks/pages/use-brand-detail/use-brand-detail';
 import { captureBrandOsFunnelStage } from '@/lib/analytics';
-import { BRAND_KIT_TAB_PATHS, isBrandKitPathTab } from './brand-kit-tabs';
-
-const FIELD_GROUPS: Record<string, readonly BrandKitFieldGroup[]> = {
-  overview: ['profile', 'links'],
-  visual: ['visual'],
-  voice: ['voice'],
-  strategy: ['strategy'],
-  video: [],
-};
 
 export default function BrandKitPage() {
   const t = useTranslations('pages.brandKitSettings');
@@ -64,14 +48,6 @@ export default function BrandKitPage() {
   const canManage = role === MemberRole.OWNER || role === MemberRole.ADMIN;
   const [refreshKey, setRefreshKey] = useState(0);
   const [workflow, setWorkflow] = useState<'scan' | 'manual' | null>(null);
-  const router = useRouter();
-  const pathname = usePathname();
-  const requestedTab = pathname?.split('/').filter(Boolean).at(-1) ?? '';
-  const routedTab = isBrandKitPathTab(requestedTab) ? requestedTab : 'overview';
-  // A tab's route is not prefetched, so the first click waits on the server.
-  // Show the chosen tab right away and let the route catch up.
-  const [tab, setOptimisticTab] = useOptimistic(routedTab);
-  const [, startTabTransition] = useTransition();
   const { href } = useOrgUrl();
   const getBrandsService = useAuthedService((token: string) =>
     BrandsService.getInstance(token),
@@ -130,36 +106,20 @@ export default function BrandKitPage() {
         key={brandId}
         brandId={brandId}
         refreshKey={refreshKey}
-        fieldGroups={FIELD_GROUPS[tab]}
         finishingBaseline={finishingFromBrand(brand)}
         onRefreshBrand={() => handleRefreshBrand()}
         renderWorkspace={(workspace) => (
           <BrandKitWorkspace
             {...workspace}
             brand={brand}
-            tab={tab}
-            onTabChange={(next) => {
-              startTabTransition(() => {
-                setOptimisticTab(isBrandKitPathTab(next) ? next : 'overview');
-                router.push(
-                  href(
-                    isBrandKitPathTab(next)
-                      ? BRAND_KIT_TAB_PATHS[next]
-                      : APP_ROUTES.SETTINGS.BRAND_KIT,
-                  ),
-                  { scroll: false },
-                );
-              });
-            }}
             onScan={() => setWorkflow('scan')}
             onManualImport={() => setWorkflow('manual')}
             onRefreshBrand={() => handleRefreshBrand()}
             guidedSetupHref={href('/settings/brand-kit/setup')}
             contentRulesHref={href('/settings/brand-kit/rules')}
             overview={
-              <>
+              <div className="space-y-3">
                 <BrandCompletenessCard brand={brand} />
-                {workspace.editor}
                 <div className="flex flex-wrap gap-2">
                   <Button
                     variant={ButtonVariant.SECONDARY}
@@ -180,13 +140,21 @@ export default function BrandKitPage() {
                     </div>
                   </CollapsibleContent>
                 </Collapsible>
-              </>
+              </div>
             }
-            writingEditor={
+            voiceEditor={
               <BrandWritingVoiceEditor
                 brand={brand}
                 brandId={brandId}
-                section={tab === 'strategy' ? 'strategy' : 'voice'}
+                section="voice"
+                onRefreshBrand={() => handleRefreshBrand()}
+              />
+            }
+            strategyEditor={
+              <BrandWritingVoiceEditor
+                brand={brand}
+                brandId={brandId}
+                section="strategy"
                 onRefreshBrand={() => handleRefreshBrand()}
               />
             }

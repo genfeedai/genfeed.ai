@@ -95,13 +95,14 @@ describe('AgentSourceDownloadService', () => {
 
   it('keeps a valid body streaming after the headers deadline has elapsed', async () => {
     vi.useFakeTimers();
+    let sendBody: () => void = () => undefined;
     const response = new Response(
       new ReadableStream({
         start(controller) {
-          setTimeout(() => {
+          sendBody = () => {
             controller.enqueue(new Uint8Array([1]));
             controller.close();
-          }, 64_000);
+          };
         },
       }),
       { headers: { 'content-type': 'video/mp4' } },
@@ -117,6 +118,7 @@ describe('AgentSourceDownloadService', () => {
     await vi.advanceTimersByTimeAsync(61_000);
     expect(security.safeFetch.mock.calls[0]?.[1].signal.aborted).toBe(false);
     await vi.advanceTimersByTimeAsync(3_000);
+    sendBody();
     await completed;
     expect(vi.getTimerCount()).toBe(0);
   });

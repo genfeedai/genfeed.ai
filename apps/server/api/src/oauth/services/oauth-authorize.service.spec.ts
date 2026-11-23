@@ -3,6 +3,7 @@ import 'reflect-metadata';
 import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { buildCodeChallenge } from '@api/auth/shared/pkce.util';
+import type { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
 import type { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
 import { TenantContextInterceptor } from '@api/helpers/interceptors/tenant-context/tenant-context.interceptor';
 import { ValidationPipe } from '@api/helpers/pipes/validation.pipe';
@@ -15,7 +16,11 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { tenantModelsFromMetadata } from '@libs/prisma/discover-tenant-models';
 import { getTenantContext } from '@libs/prisma/tenant-context';
 import { assertTenantScopedQuery } from '@libs/prisma/tenant-guard';
-import { type ExecutionContext, type INestApplication } from '@nestjs/common';
+import {
+  type ExecutionContext,
+  ForbiddenException,
+  type INestApplication,
+} from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
@@ -72,14 +77,24 @@ const membershipSelect = {
 function buildHarness() {
   const records = new Map<string, Record<string, unknown>>();
   const membershipContexts: Array<string | undefined> = [];
+  const mintedKeyIds = new Set<string>();
   const apiKeysService = {
-    createWithKey: vi.fn().mockResolvedValue({
-      apiKey: {
-        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-      },
-      plainKey: 'gf_live_oauth',
+    createWithKey: vi.fn(async () => {
+      const id = `key-${mintedKeyIds.size + 1}`;
+      mintedKeyIds.add(id);
+      return {
+        apiKey: {
+          expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+          id,
+        },
+        plainKey: 'gf_live_oauth',
+      };
     }),
+    invalidateRotationCaches: vi.fn().mockResolvedValue(undefined),
   } as unknown as ApiKeysService;
+  const logger = {
+    error: vi.fn(),
+  } as unknown as LoggerService;
   const client: OAuthClientRecord = {
     clientId,
     clientName: 'Claude',
@@ -111,7 +126,31 @@ function buildHarness() {
     },
   ];
   const brands = [{ id: 'brand-1', organizationId: 'org-1' }];
+  // A transaction that keeps what its callback wrote, or puts every code and
+  // minted key back as they were when the callback throws.
+  const runTransaction = async <R>(
+    run: (transaction: PrismaService) => Promise<R>,
+  ): Promise<R> => {
+    const savedCodes = new Map(
+      Array.from(records, ([key, row]) => [key, { ...row }]),
+    );
+    const savedKeys = new Set(mintedKeyIds);
+    try {
+      return await run(prisma);
+    } catch (error) {
+      for (const [key, row] of records) {
+        const before = savedCodes.get(key);
+        if (before) Object.assign(row, before);
+        else records.delete(key);
+      }
+      for (const id of Array.from(mintedKeyIds)) {
+        if (!savedKeys.has(id)) mintedKeyIds.delete(id);
+      }
+      throw error;
+    }
+  };
   const prisma = {
+    $transaction: vi.fn(runTransaction),
     brand: {
       findFirst: vi.fn(
         async ({
@@ -233,10 +272,14 @@ function buildHarness() {
       .fn()
       .mockResolvedValue({ id: 'refresh-1', refreshToken: 'refresh-plain' }),
   } as unknown as OAuthRefreshTokenService;
+  const brandAccessService = { assert: vi.fn().mockResolvedValue(undefined) };
 
   return {
     apiKeysService,
+    brandAccessService,
+    logger,
     membershipContexts,
+    mintedKeyIds,
     organizations,
     prisma,
     refreshTokenService,
@@ -247,6 +290,8 @@ function buildHarness() {
       configService,
       prisma,
       refreshTokenService,
+      brandAccessService as unknown as BrandAccessService,
+      logger,
     ),
   };
 }
@@ -339,9 +384,11 @@ describe('OAuthAuthorizeService', () => {
     expect(apiKeysService.createWithKey).toHaveBeenCalledWith(
       expect.objectContaining({ organizationId: 'org-2', userId: 'user-1' }),
       'mcp',
+      expect.anything(),
     );
     expect(refreshTokenService.issue).toHaveBeenCalledWith(
       expect.objectContaining({ organizationId: 'org-2', userId: 'user-1' }),
+      expect.anything(),
     );
   });
 
@@ -349,7 +396,7 @@ describe('OAuthAuthorizeService', () => {
     const { apiKeysService, prisma, service } = buildHarness();
     const authorization = await service.decideAuthorization(
       makeUser(),
-      decision({ brandId: 'brand-1' }),
+      decision({ brandId: 'brand-1', scope: 'brands:read brand-kit:write' }),
     );
     expect(prisma.mcpOAuthAuthCode.create).toHaveBeenCalledWith({
       data: expect.objectContaining({ defaultBrandId: 'brand-1' }),
@@ -369,6 +416,60 @@ describe('OAuthAuthorizeService', () => {
       allowedBrandIds: ['brand-1'],
       defaultBrandId: 'brand-1',
     });
+    expect(keyInput.scopes).toEqual(['brands:read']);
+  });
+
+  it('mints only the explicitly consented Brand Kit permission for the selected brand', async () => {
+    const { service } = buildHarness();
+    const authorization = await service.decideAuthorization(
+      makeUser(),
+      decision({
+        allowBrandKitEdits: true,
+        brandId: 'brand-1',
+        scope: 'brands:read',
+      }),
+    );
+
+    const exchange = {
+      client_id: clientId,
+      code: new URL(authorization.redirectUrl).searchParams.get('code') ?? '',
+      code_verifier: verifier,
+      grant_type: 'authorization_code',
+      redirect_uri: redirectUri,
+      resource,
+    } as const;
+    await expect(
+      service.exchangeToken({ ...exchange, resource: `${resource}/claude` }),
+    ).rejects.toMatchObject({
+      response: { error: 'invalid_grant' },
+    });
+    const grant = await service.exchangeToken(exchange);
+
+    expect(grant.scope).toBe('brands:read brand-kit:write');
+  });
+
+  it('refuses Brand Kit consent without a selected brand', async () => {
+    const { service } = buildHarness();
+    await expect(
+      service.decideAuthorization(
+        makeUser(),
+        decision({ allowBrandKitEdits: true }),
+      ),
+    ).rejects.toMatchObject({ response: { error: 'invalid_scope' } });
+  });
+
+  it('refuses Brand Kit consent for a brand the member cannot reach', async () => {
+    const { brandAccessService, service } = buildHarness();
+    brandAccessService.assert.mockRejectedValue(new ForbiddenException());
+    await expect(
+      service.decideAuthorization(
+        makeUser(),
+        decision({
+          allowBrandKitEdits: true,
+          brandId: 'brand-1',
+        }),
+      ),
+    ).rejects.toMatchObject({ response: { error: 'access_denied' } });
   });
 
   it('reaches every brand when no brand is picked at consent', async () => {
@@ -543,6 +644,7 @@ describe('OAuthAuthorizeService', () => {
         userId: 'user-1',
       }),
       'mcp',
+      expect.anything(),
     );
 
     await expect(
@@ -556,6 +658,80 @@ describe('OAuthAuthorizeService', () => {
       }),
     ).rejects.toMatchObject({
       response: expect.objectContaining({ error: 'invalid_grant' }),
+    });
+  });
+
+  describe('exchange failures after the code is claimed', () => {
+    async function authorizedExchange(
+      harness: ReturnType<typeof buildHarness>,
+    ) {
+      const authorization = await harness.service.decideAuthorization(
+        makeUser(),
+        decision(),
+      );
+      const code = new URL(authorization.redirectUrl).searchParams.get('code');
+      return {
+        client_id: clientId,
+        code: code as string,
+        code_verifier: verifier,
+        grant_type: 'authorization_code' as const,
+        redirect_uri: redirectUri,
+        resource,
+      };
+    }
+
+    it('keeps the code usable and mints no key when the refresh token cannot be issued', async () => {
+      const harness = buildHarness();
+      const exchange = await authorizedExchange(harness);
+      vi.mocked(harness.refreshTokenService.issue).mockRejectedValueOnce(
+        new Error('database blip'),
+      );
+
+      await expect(harness.service.exchangeToken(exchange)).rejects.toThrow(
+        'database blip',
+      );
+      expect(harness.mintedKeyIds.size).toBe(0);
+
+      await expect(
+        harness.service.exchangeToken(exchange),
+      ).resolves.toMatchObject({
+        access_token: 'gf_live_oauth',
+        refresh_token: 'refresh-plain',
+      });
+      expect(harness.mintedKeyIds.size).toBe(1);
+    });
+
+    it('keeps the code usable when the key cannot be created', async () => {
+      const harness = buildHarness();
+      const exchange = await authorizedExchange(harness);
+      vi.mocked(harness.apiKeysService.createWithKey).mockRejectedValueOnce(
+        new Error('database blip'),
+      );
+
+      await expect(harness.service.exchangeToken(exchange)).rejects.toThrow(
+        'database blip',
+      );
+      await expect(
+        harness.service.exchangeToken(exchange),
+      ).resolves.toMatchObject({ token_type: 'Bearer' });
+    });
+
+    it('still answers with the tokens when the cache cannot be invalidated after commit', async () => {
+      const harness = buildHarness();
+      const exchange = await authorizedExchange(harness);
+      vi.mocked(
+        harness.apiKeysService.invalidateRotationCaches,
+      ).mockRejectedValueOnce(new Error('redis down'));
+
+      await expect(
+        harness.service.exchangeToken(exchange),
+      ).resolves.toMatchObject({ refresh_token: 'refresh-plain' });
+      expect(harness.logger.error).toHaveBeenCalled();
+      await expect(
+        harness.service.exchangeToken(exchange),
+      ).rejects.toMatchObject({
+        response: expect.objectContaining({ error: 'invalid_grant' }),
+      });
     });
   });
 
@@ -586,6 +762,7 @@ describe('OAuthAuthorizeService', () => {
         metadata: expect.objectContaining({ resource }),
       }),
       'mcp',
+      expect.anything(),
     );
   });
 
@@ -855,7 +1032,6 @@ describe('OAuthAuthorizeService', () => {
     });
   });
 });
-
 describe('Admin endpoint grant', () => {
   const adminResource = `${resource}/admin`;
 
@@ -1042,6 +1218,7 @@ describe('Claude resource grant', () => {
         scopes: ['posts:draft'],
       }),
       'mcp',
+      expect.anything(),
     );
   });
 });
@@ -1086,6 +1263,7 @@ describe('Organization switching grant', () => {
         metadata: expect.objectContaining({ canSwitchOrganizations: true }),
       }),
       'mcp',
+      expect.anything(),
     );
   });
 
@@ -1120,6 +1298,7 @@ describe('Organization switching grant', () => {
         }),
       }),
       'mcp',
+      expect.anything(),
     );
   });
 
@@ -1142,6 +1321,7 @@ describe('Organization switching grant', () => {
         }),
       }),
       'mcp',
+      expect.anything(),
     );
   });
 });
@@ -1205,7 +1385,37 @@ describe('OAuth consent HTTP tenant context', () => {
     expect(harness.apiKeysService.createWithKey).toHaveBeenCalledWith(
       expect.objectContaining({ organizationId: 'org-2' }),
       'mcp',
+      expect.anything(),
     );
+  });
+
+  it('checks Brand Kit consent inside the selected workspace tenant', async () => {
+    const brandCheckContexts: (string | undefined)[] = [];
+    harness.brandAccessService.assert.mockImplementation(async () => {
+      brandCheckContexts.push(getTenantContext()?.organizationId);
+    });
+
+    await request(app.getHttpServer())
+      .post('/v1/oauth/authorize/decision')
+      .send(
+        decision({
+          allowBrandKitEdits: true,
+          brandId: 'brand-2',
+          organizationId: 'org-2',
+          scope: 'brands:read',
+        }),
+      )
+      .expect(201);
+
+    expect(harness.membershipContexts).toEqual(['org-1']);
+    expect(brandCheckContexts).toEqual(['org-2']);
+    expect(harness.prisma.mcpOAuthAuthCode.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        defaultBrandId: 'brand-2',
+        organizationId: 'org-2',
+        scopes: ['brands:read', 'brand-kit:write'],
+      }),
+    });
   });
 
   it.each([undefined, 'foreign-org', ''])(

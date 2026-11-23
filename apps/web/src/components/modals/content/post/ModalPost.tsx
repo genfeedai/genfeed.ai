@@ -59,6 +59,7 @@ import {
   getUnmetPostMediaRequirements,
   isPostMediaRequirementMet,
   mergePostMedia,
+  targetsForMedia,
 } from './post-media.helper';
 import {
   isXPlatform,
@@ -139,9 +140,9 @@ export default function ModalPost({
   );
   const selectedCredentialsRef = useRef(selectedCredentials);
   selectedCredentialsRef.current = selectedCredentials;
-  // A new post starts on the brand's Genfeed profile once per opening.
-  const defaultChannelsOpenVersionRef = useRef<number | null>(null);
   const brandScope = selectedBrand?.scope;
+  const defaultChannelsOpenVersionRef = useRef<number | null>(null);
+  // use-effect-audit: ignore a new post starts on the brand's Genfeed profile once per opening
   useEffect(() => {
     if (
       !isDestinationComposer ||
@@ -372,6 +373,7 @@ export default function ModalPost({
 
             return postsService.post({
               ...shared,
+              ...targetsForMedia(platform, selectedMediaRef.current),
               ...slackTargets.getTargetSettings(target),
               ...(category ? { category } : {}),
               description: caption,
@@ -477,6 +479,7 @@ export default function ModalPost({
               label: formData.label?.trim() || '',
               parentId: formData.parentId || undefined,
               platform: formData.platform,
+              ...targetsForMedia(formData.platform, selectedMediaRef.current),
               ...(formData.scheduledDate
                 ? { scheduledDate: formData.scheduledDate }
                 : {}),
@@ -599,18 +602,6 @@ export default function ModalPost({
       return onSubmit(event);
     },
     [onSubmit],
-  );
-  const handleSaveDraft = useCallback(
-    () => submitWithIntent('draft'),
-    [submitWithIntent],
-  );
-  const handlePublishNow = useCallback(
-    () => submitWithIntent('publish'),
-    [submitWithIntent],
-  );
-  const handleSchedule = useCallback(
-    () => submitWithIntent('schedule'),
-    [submitWithIntent],
   );
 
   // Called by Modal's onClose after modal is closed - just cleanup, don't re-close
@@ -859,7 +850,6 @@ export default function ModalPost({
     );
   }, [composerTranslate, mediaTargetPlatforms, selectedMedia]);
 
-  // YouTube requires a title
   const isTitleRequired = selectedPlatform === Platform.YOUTUBE;
   const titleValue = form.watch('label');
   const isTitleError =
@@ -899,8 +889,14 @@ export default function ModalPost({
       accessibleTitle={modalTitle}
       modalBoxClassName="max-w-4xl"
       onClose={handleModalClosed}
+      isBodyScrollable={false}
     >
-      <Form spacing="section" ref={formRef} onSubmit={handleFormSubmit}>
+      <Form
+        className="min-h-0 flex-1"
+        spacing="section"
+        ref={formRef}
+        onSubmit={handleFormSubmit}
+      >
         {isDestinationComposer ? (
           <ModalPostComposerStepper
             step={composerStep}
@@ -983,9 +979,9 @@ export default function ModalPost({
               shouldValidate: true,
             })
           }
-          onSaveDraft={handleSaveDraft}
-          onPublishNow={handlePublishNow}
-          onSchedule={handleSchedule}
+          onSaveDraft={() => submitWithIntent('draft')}
+          onPublishNow={() => submitWithIntent('publish')}
+          onSchedule={() => submitWithIntent('schedule')}
           onContinue={handleContinue}
           composerStep={isDestinationComposer ? composerStep : undefined}
           onComposerStepChange={setComposerStep}

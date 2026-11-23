@@ -636,19 +636,23 @@ describe('KnowledgeRefreshService remote source failures', () => {
         sourceId: 'source-1',
         organizationId: 'org-1',
         isDeleted: false,
+        leaseToken: expect.any(String),
+        status: KnowledgeRefreshRunStatus.PROCESSING,
       },
       data: expect.objectContaining({
         status: KnowledgeRefreshRunStatus.FAILED,
         error: safeDetail,
-        nextAttemptAt: expect.any(Date),
       }),
+    });
+    expect(prisma.knowledgeSource.updateMany).toHaveBeenCalledWith({
+      where: { id: 'source-1', organizationId: 'org-1', isDeleted: false },
+      data: { consecutiveFailures: { increment: 1 } },
     });
     expect(prisma.knowledgeSource.updateMany).toHaveBeenLastCalledWith({
       where: { id: 'source-1', organizationId: 'org-1', isDeleted: false },
       data: expect.objectContaining({
         lastSyncError: safeDetail,
         syncState: 'FAILED',
-        consecutiveFailures: 1,
       }),
     });
     expect(records.createCandidateVersion).not.toHaveBeenCalled();

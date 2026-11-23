@@ -361,6 +361,7 @@ describe('VoiceGenerationService', () => {
         category: ModelCategory.VOICE,
         eligibleModelKeys: [
           MODEL_KEYS.ELEVENLABS_V4,
+          MODEL_KEYS.ELEVENLABS_V4_TURBO,
           MODEL_KEYS.ELEVENLABS_MULTILINGUAL_V2,
           MODEL_KEYS.ELEVENLABS_FLASH_V2_5,
         ],

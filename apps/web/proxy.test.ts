@@ -977,9 +977,7 @@ describe('proxy', () => {
       mockIncompleteUser();
 
       const { default: proxy } = await import('./proxy');
-      const response = await proxy(
-        makeSignedInRequest('/acme/default/workspace'),
-      );
+      const response = await proxy(makeSignedInRequest('/workspace'));
 
       expect(response.status).toBe(307);
       expect(response.headers.get('location')).toBe(
@@ -991,9 +989,7 @@ describe('proxy', () => {
       mockIncompleteUser();
 
       const { default: proxy } = await import('./proxy');
-      const response = await proxy(
-        makeSignedInRequest('/acme/default/workspace'),
-      );
+      const response = await proxy(makeSignedInRequest('/workspace'));
 
       expect(response.status).toBe(307);
       expect(response.headers.get('location')).toBe(
@@ -1005,9 +1001,7 @@ describe('proxy', () => {
       mockIncompleteUser([], ['brand']);
 
       const { default: proxy } = await import('./proxy');
-      const response = await proxy(
-        makeSignedInRequest('/acme/default/workspace'),
-      );
+      const response = await proxy(makeSignedInRequest('/workspace'));
 
       expect(response.headers.get('location')).not.toContain('agent');
     });
@@ -1118,9 +1112,7 @@ describe('proxy', () => {
       mockIncompleteUser();
 
       const { default: proxy } = await import('./proxy');
-      const response = await proxy(
-        makeSignedInRequest('/acme/default/workspace'),
-      );
+      const response = await proxy(makeSignedInRequest('/workspace'));
 
       expect(response.headers.get('location')).toBe(
         'http://localhost:3000/onboarding',
@@ -1413,6 +1405,171 @@ describe('proxy', () => {
     const response = await proxy(makeSignedInRequest('/'));
 
     expect(response.status).toBe(200);
+  });
+
+  describe('API timeouts and transient token failures', () => {
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    /** Runs the retry pause on fake time until the request settles. */
+    async function settle<T>(pending: Promise<T>): Promise<T> {
+      let isSettled = false;
+      const watched = pending.finally(() => {
+        isSettled = true;
+      });
+      while (!isSettled) {
+        await vi.advanceTimersByTimeAsync(300);
+        await new Promise((resolve) => setImmediate(resolve));
+      }
+      return watched;
+    }
+
+    function callsTo(suffix: string): Array<[string, RequestInit]> {
+      return (
+        fetchMock.mock.calls as unknown as Array<[string, RequestInit]>
+      ).filter(([url]) => String(url).endsWith(suffix));
+    }
+
+    it('gives the token, bootstrap and organizations fetches a timeout signal', async () => {
+      fetchMock.mockImplementation(async (input: string | URL) => {
+        const url = String(input);
+        if (url.endsWith('/auth/token')) {
+          return new Response(JSON.stringify({ token: BEARER_TOKEN }));
+        }
+        if (url.endsWith('/auth/bootstrap')) {
+          return new Response(JSON.stringify({ access: {}, brands: [] }));
+        }
+        return new Response(JSON.stringify([{ isActive: true, slug: 'acme' }]));
+      });
+      const { default: proxy } = await import('./proxy');
+
+      await proxy(makeSignedInRequest('/'));
+
+      for (const suffix of [
+        '/auth/token',
+        '/auth/bootstrap',
+        '/organizations?mine=true',
+      ]) {
+        const [call] = callsTo(suffix);
+        expect(call?.[1].signal).toBeInstanceOf(AbortSignal);
+      }
+    });
+
+    it.each([
+      ['a timeout', () => new DOMException('timed out', 'TimeoutError')],
+      ['a network error', () => new TypeError('fetch failed')],
+    ])(
+      'continues without redirecting to login after %s on the token exchange',
+      async (_name, makeError) => {
+        fetchMock.mockImplementation(async () => {
+          throw makeError();
+        });
+        const { default: proxy } = await import('./proxy');
+        vi.useFakeTimers({ toFake: ['setTimeout'] });
+
+        const pending = proxy(makeSignedInRequest('/workspace'));
+        const response = await settle(pending);
+
+        expect(response.headers.get('location')).toBeNull();
+        expect(response.headers.get('x-middleware-next')).toBe('1');
+      },
+    );
+
+    it('continues after a 5xx on the token exchange', async () => {
+      fetchMock.mockImplementation(
+        async () => new Response(null, { status: 503 }),
+      );
+      const { default: proxy } = await import('./proxy');
+      vi.useFakeTimers({ toFake: ['setTimeout'] });
+
+      const pending = proxy(makeSignedInRequest('/workspace'));
+      const response = await settle(pending);
+
+      expect(response.headers.get('location')).toBeNull();
+      expect(response.headers.get('x-middleware-next')).toBe('1');
+    });
+
+    it.each([401, 403])(
+      'still redirects to login when the token exchange answers %i',
+      async (status) => {
+        fetchMock.mockImplementation(
+          async () => new Response(null, { status }),
+        );
+        const { default: proxy } = await import('./proxy');
+
+        const response = await proxy(makeSignedInRequest('/workspace'));
+
+        expect(response.status).toBe(307);
+        expect(new URL(response.headers.get('location') ?? '').pathname).toBe(
+          '/login',
+        );
+      },
+    );
+
+    it('asks for the token again on the next request after a transient failure', async () => {
+      let isDown = true;
+      fetchMock.mockImplementation(async (input: string | URL) => {
+        const url = String(input);
+        if (url.endsWith('/auth/token')) {
+          if (isDown) {
+            throw new TypeError('fetch failed');
+          }
+          return new Response(JSON.stringify({ token: BEARER_TOKEN }));
+        }
+        if (url.endsWith('/auth/bootstrap')) {
+          return new Response(
+            JSON.stringify({
+              access: { brandId: 'brand_1' },
+              brands: [{ id: 'brand_1', slug: 'moonrise-studio' }],
+            }),
+          );
+        }
+        return new Response(JSON.stringify([{ isActive: true, slug: 'acme' }]));
+      });
+      const { default: proxy } = await import('./proxy');
+      vi.useFakeTimers({ toFake: ['setTimeout'] });
+
+      const first = proxy(makeSignedInRequest('/'));
+      await settle(first);
+      isDown = false;
+      const second = await proxy(makeSignedInRequest('/'));
+
+      expect(second.status).toBe(307);
+      expect(second.headers.get('location')).toContain('/acme/');
+    });
+
+    it('treats a bootstrap timeout like its existing error branch', async () => {
+      fetchMock.mockImplementation(async (input: string | URL) => {
+        if (String(input).endsWith('/auth/token')) {
+          return new Response(JSON.stringify({ token: BEARER_TOKEN }));
+        }
+        throw new DOMException('timed out', 'TimeoutError');
+      });
+      const { default: proxy } = await import('./proxy');
+
+      const response = await proxy(makeSignedInRequest('/'));
+
+      expect(response.status).toBe(200);
+    });
+
+    it('treats an organizations timeout like its existing error branch', async () => {
+      fetchMock.mockImplementation(async (input: string | URL) => {
+        const url = String(input);
+        if (url.endsWith('/auth/token')) {
+          return new Response(JSON.stringify({ token: BEARER_TOKEN }));
+        }
+        if (url.endsWith('/auth/bootstrap')) {
+          return new Response(JSON.stringify({ access: {}, brands: [] }));
+        }
+        throw new DOMException('timed out', 'TimeoutError');
+      });
+      const { default: proxy } = await import('./proxy');
+
+      const response = await proxy(makeSignedInRequest('/'));
+
+      expect(response.status).toBe(200);
+    });
   });
 
   it('redirects unauthenticated root to login without a redundant callbackUrl', async () => {
@@ -1710,7 +1867,7 @@ describe('proxy', () => {
     );
   });
 
-  it('redirects scoped app routes to onboarding when no projects exist', async () => {
+  it('redirects bare module routes to onboarding when no projects exist', async () => {
     fetchMock.mockImplementation(async (input: string | URL) => {
       const url = String(input);
 
@@ -1742,9 +1899,7 @@ describe('proxy', () => {
 
     const { default: proxy } = await import('./proxy');
 
-    const response = await proxy(
-      makeSignedInRequest('/acme/~/workspace/overview'),
-    );
+    const response = await proxy(makeSignedInRequest('/workspace/overview'));
 
     expect(response.status).toBe(307);
     expect(response.headers.get('location')).toBe(
@@ -1752,7 +1907,7 @@ describe('proxy', () => {
     );
   });
 
-  it('redirects brand-scoped routes to onboarding while onboarding is incomplete', async () => {
+  it('redirects bare routes to onboarding while onboarding is incomplete', async () => {
     fetchMock.mockImplementation(async (input: string | URL) => {
       const url = String(input);
 
@@ -1789,9 +1944,7 @@ describe('proxy', () => {
 
     const { default: proxy } = await import('./proxy');
 
-    const response = await proxy(
-      makeSignedInRequest('/acme/moonrise-studio/publishing'),
-    );
+    const response = await proxy(makeSignedInRequest('/publishing'));
 
     expect(response.status).toBe(307);
     expect(response.headers.get('location')).toBe(
@@ -1927,37 +2080,65 @@ describe('proxy', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it('rejects an absolute next-url as proof of a mounted app shell', async () => {
-    const { default: proxy } = await import('./proxy');
-
-    await proxy(
-      makeSignedInRequest('/acme/moonrise-studio/agent/next-thread', {
+  it.each([
+    ['a document load', {}],
+    ['a document load with an incomplete onboarding session', {}],
+    ['an RSC fetch with no mounted shell', { rsc: true }],
+    [
+      'an RSC fetch naming an absolute next-url',
+      {
         nextUrl: 'https://attacker.example/acme/moonrise-studio/agent/thread-1',
         rsc: true,
-      }),
-    );
+      },
+    ],
+  ])(
+    'sends no API request before the scoped page for %s',
+    async (_name, opts) => {
+      const { default: proxy } = await import('./proxy');
 
-    expect(fetchMock.mock.calls.map(([input]) => String(input))).toContain(
-      'http://localhost:3010/v1/auth/token',
-    );
-    expect(fetchMock.mock.calls.map(([input]) => String(input))).toContain(
-      'http://localhost:3010/v1/auth/bootstrap',
-    );
-  });
+      const response = await proxy(
+        makeSignedInRequest('/acme/moonrise-studio/agent/next-thread', opts),
+      );
 
-  it('keeps strict auth bootstrap for a scoped RSC request without a mounted scoped shell', async () => {
+      expect(response.status).toBe(200);
+      expect(response.headers.get('location')).toBeNull();
+      expect(fetchMock).not.toHaveBeenCalled();
+    },
+  );
+
+  it('does not read onboarding state for a scoped document load', async () => {
+    fetchMock.mockImplementation(async (input: string | URL) => {
+      const url = String(input);
+      if (url.endsWith('/auth/token')) {
+        return new Response(JSON.stringify({ token: BEARER_TOKEN }));
+      }
+      if (url.endsWith('/auth/bootstrap')) {
+        return new Response(
+          JSON.stringify({
+            access: { brandId: 'brand_1', isOnboardingCompleted: false },
+            brands: [{ id: 'brand_1', slug: 'moonrise-studio' }],
+            currentUser: { id: 'user_1', isOnboardingCompleted: false },
+          }),
+        );
+      }
+      return new Response('not found', { status: 404 });
+    });
     const { default: proxy } = await import('./proxy');
 
     const response = await proxy(
-      makeSignedInRequest('/acme/moonrise-studio/agent/next-thread', {
-        rsc: true,
-      }),
+      makeSignedInRequest('/acme/moonrise-studio/publishing'),
     );
 
-    expect(response.status).toBe(200);
-    expect(fetchMock.mock.calls.map(([input]) => String(input))).toContain(
-      'http://localhost:3010/v1/auth/token',
-    );
+    // The browser's OnboardingGuard owns this redirect now.
+    expect(response.headers.get('location')).toBeNull();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('keeps the API round trips for a bare path, which needs the bootstrap to pick a workspace', async () => {
+    const { default: proxy } = await import('./proxy');
+
+    await proxy(makeSignedInRequest('/publishing'));
+
     expect(fetchMock.mock.calls.map(([input]) => String(input))).toContain(
       'http://localhost:3010/v1/auth/bootstrap',
     );

@@ -181,8 +181,10 @@ export class AgentPrepareToolHandler {
       generationType === 'video' ? 'Generate Video' : 'Generate Image';
 
     return {
+      approvalStatus: 'pending',
       creditsUsed: 0,
       data: { generationType, prompt },
+      isBillingDelegated: true,
       nextActions: [
         {
           description: `Review and adjust parameters before generating`,
@@ -206,6 +208,7 @@ export class AgentPrepareToolHandler {
           type: 'generation_action_card' as const,
         },
       ],
+      requiresConfirmation: true,
       success: true,
     };
   }

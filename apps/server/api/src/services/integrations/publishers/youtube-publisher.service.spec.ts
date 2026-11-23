@@ -392,6 +392,27 @@ describe('YouTubePublisherService', () => {
         );
       });
 
+      it.each([
+        ['public', undefined, 'public'],
+        ['public', 'private', 'private'],
+        ['public', 'unlisted', 'unlisted'],
+        ['private', 'public', 'private'],
+        [null, 'private', 'private'],
+      ])(
+        'reports the audience YouTube applied for post %s and channel privacy %s',
+        async (postVisibility, privacyStatus, expected) => {
+          const context = createPublishContext(
+            { ...mockVideoPost, visibility: postVisibility } as PostEntity,
+            privacyStatus ? ({ privacyStatus } as ChannelTargetSettings) : {},
+          );
+          youtubeService.uploadVideo.mockResolvedValue('dQw4w9WgXcQ');
+
+          const result = await service.publish(context);
+
+          expect(result.visibility).toBe(expected);
+        },
+      );
+
       it('should fail when scheduled date is missing', async () => {
         const context = createPublishContext(mockVideoPostNoSchedule);
 

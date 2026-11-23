@@ -19,7 +19,15 @@ import {
   waitFor,
 } from '@testing-library/react';
 import type { ReactElement, ReactNode } from 'react';
-import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  type Mock,
+  vi,
+} from 'vitest';
 
 const { copyToClipboard } = vi.hoisted(() => ({
   copyToClipboard: vi.fn().mockResolvedValue(undefined),
@@ -664,6 +672,10 @@ describe('GenerationActionCard', () => {
     expect(screen.queryByText('Model')).not.toBeInTheDocument();
     expect(screen.queryByText('Aspect Ratio')).not.toBeInTheDocument();
     expect(screen.queryByText('Outputs')).not.toBeInTheDocument();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   beforeEach(() => {
@@ -1846,6 +1858,7 @@ describe('GenerationActionCard', () => {
       generationType: 'image' as const,
       generationParams: { prompt: 'Portrait', model: model.key },
     };
+    vi.useFakeTimers({ shouldAdvanceTime: true });
     const view = renderGenerationActionCard(
       <GenerationActionCard action={action} apiService={apiService} />,
     );
@@ -1864,7 +1877,7 @@ describe('GenerationActionCard', () => {
       ).toBeDisabled(),
     );
     await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 450));
+      await vi.advanceTimersByTimeAsync(450);
     });
     expect(
       estimateGenerationCredits.mock.calls.every(

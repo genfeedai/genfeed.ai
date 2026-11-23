@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import '@testing-library/jest-dom/vitest';
+import { queryClientWrapper } from '@app-tests/query-client.harness';
 import OnboardingProvider from '@contexts/onboarding/onboarding-context';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type {
@@ -74,7 +75,11 @@ vi.mock('@/hooks/feature-flags/use-feature-flag/use-feature-flag', () => ({
   useFeatureFlag: () => true,
 }));
 vi.mock('@genfeedai/hooks/auth/use-auth-identity/use-auth-identity', () => ({
-  useAuthIdentity: () => ({ getToken: mocks.getToken }),
+  useAuthIdentity: () => ({
+    getToken: mocks.getToken,
+    orgId: mocks.scope.organizationId,
+    userId: mocks.user.id,
+  }),
 }));
 vi.mock('@helpers/auth/auth.helper', () => ({
   resolveAuthToken: async (getToken: () => Promise<string | null>) =>
@@ -283,8 +288,11 @@ function tree() {
     </OnboardingProvider>
   );
 }
+function renderGuide() {
+  return render(tree(), { wrapper: queryClientWrapper() });
+}
 async function show() {
-  const view = render(tree());
+  const view = renderGuide();
   await screen.findByRole('button', { name: /^Description$/ });
   return view;
 }
@@ -553,7 +561,7 @@ describe('membership-scoped saved guide wizard', () => {
       mocks.scope.selectedBrand = brand('brand-1', 'org-1', true);
       mocks.scope.brands = [mocks.scope.selectedBrand];
     }
-    render(tree());
+    renderGuide();
     await act(async () => {
       await Promise.resolve();
     });
@@ -583,7 +591,7 @@ describe('membership-scoped saved guide wizard', () => {
         mocks.scope.selectedBrand = brand('brand-1', 'org-1', true);
         mocks.scope.brands = [mocks.scope.selectedBrand];
       }
-      render(tree());
+      renderGuide();
       fireEvent.click(await screen.findByRole('button', { name: 'Skip' }));
       await waitFor(() =>
         expect(mocks.push).toHaveBeenCalledExactlyOnceWith('/'),
@@ -618,7 +626,7 @@ describe('membership-scoped saved guide wizard', () => {
     async (missing) => {
       if (missing === 'token') mocks.getToken.mockResolvedValue(null);
       if (missing === 'current user id') mocks.user.id = '';
-      render(tree());
+      renderGuide();
       fireEvent.click(await screen.findByRole('button', { name: 'Skip' }));
       expect(await screen.findByRole('alert')).toHaveTextContent(
         "We couldn't skip onboarding",
@@ -735,7 +743,7 @@ describe('membership-scoped saved guide wizard', () => {
   }, 10000);
   it('shows a loading status instead of a blank step while scope resolves', async () => {
     mocks.scope.isBrandScopeResolved = false;
-    render(tree());
+    renderGuide();
     expect(
       await screen.findByRole('status', { name: 'Setting up your workspace' }),
     ).toBeInTheDocument();
@@ -842,7 +850,7 @@ describe('membership-scoped saved guide wizard', () => {
     mocks.desktop = true;
     mocks.getToken.mockResolvedValue(null);
     mocks.scope.brands = [];
-    render(tree());
+    renderGuide();
     fireEvent.click(await screen.findByRole('button', { name: 'Skip' }));
     await waitFor(() => expect(mocks.push).toHaveBeenCalledTimes(1));
     expect(mocks.push).toHaveBeenCalledExactlyOnceWith(APP_ROUTES.LOGIN);

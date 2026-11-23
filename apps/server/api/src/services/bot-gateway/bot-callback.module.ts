@@ -1,3 +1,4 @@
+import { DEFAULT_HTTP_TIMEOUT_MS } from '@api/constants/http-timeout.constant';
 import { DiscordBotAdapter } from '@api/services/bot-gateway/adapters/discord-bot.adapter';
 import { SlackBotAdapter } from '@api/services/bot-gateway/adapters/slack-bot.adapter';
 import { TelegramBotAdapter } from '@api/services/bot-gateway/adapters/telegram-bot.adapter';
@@ -24,7 +25,10 @@ import { Module } from '@nestjs/common';
     SlackBotAdapter,
     TelegramBotAdapter,
   ],
-  imports: [ConfigModule, HttpModule],
+  imports: [
+    ConfigModule,
+    HttpModule.register({ timeout: DEFAULT_HTTP_TIMEOUT_MS }),
+  ],
   providers: [
     BotCallbackContextService,
     BotCallbackResponderService,

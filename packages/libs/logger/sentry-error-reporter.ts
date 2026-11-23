@@ -37,15 +37,29 @@ export function normalizeErrorMessageForFingerprint(message: string): string {
     .slice(0, 200);
 }
 
-function readHttpStatus(trace: unknown): number | null {
+function readHttpExceptionStatus(value: unknown): number | null {
   if (
-    trace &&
-    typeof trace === 'object' &&
-    'getStatus' in trace &&
-    typeof (trace as { getStatus: unknown }).getStatus === 'function'
+    value &&
+    typeof value === 'object' &&
+    'getStatus' in value &&
+    typeof (value as { getStatus: unknown }).getStatus === 'function'
   ) {
-    const status = (trace as { getStatus: () => unknown }).getStatus();
+    const status = (value as { getStatus: () => unknown }).getStatus();
     return typeof status === 'number' ? status : null;
+  }
+  return null;
+}
+
+/**
+ * Callers pass the caught exception either as the trace or, far more often, as
+ * the `error` field of a context object (`logger.error(msg, { error, id })`).
+ * Both carry the same HTTP status.
+ */
+function readHttpStatus(trace: unknown): number | null {
+  const direct = readHttpExceptionStatus(trace);
+  if (direct !== null) return direct;
+  if (trace && typeof trace === 'object' && 'error' in trace) {
+    return readHttpExceptionStatus((trace as { error: unknown }).error);
   }
   return null;
 }

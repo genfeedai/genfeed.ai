@@ -22,6 +22,10 @@ export default defineConfig({
       { find: '@', replacement: path.resolve(serviceDir, './src') },
       { find: '@api', replacement: path.resolve(serviceDir, '../api/src') },
       {
+        find: '@api-test',
+        replacement: path.resolve(serviceDir, '../api/test'),
+      },
+      {
         // Subpaths resolve to the source directory; only the bare specifier is
         // the barrel. Must precede the bare entry.
         find: /^@genfeedai\/contracts\/constants\/(.*)$/,

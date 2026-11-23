@@ -9,7 +9,6 @@ import {
   formatPlatformLabel,
 } from '@genfeedai/contracts';
 import type {
-  McpCalendarDay,
   McpCard,
   McpCardAction,
   McpCardMedia,
@@ -31,6 +30,11 @@ import type {
 } from '@mcp/shared/interfaces/mcp-preview.interface';
 import { isAccountAvatarOrigin } from '@mcp/ui/avatar-origins';
 import { CardBoundary } from '@mcp/ui/card-boundary';
+import {
+  localCalendarDays,
+  localDayKey,
+  parseDay,
+} from '@mcp/ui/card-calendar';
 import { FactValue, MetricList, StatusBadge } from '@mcp/ui/card-parts';
 import uiMessages from '@preview-messages/ui';
 import Card from '@ui/card/Card';
@@ -53,6 +57,7 @@ import {
 } from '@ui/primitives/definition-list';
 import {
   Dialog,
+  DialogBody,
   DialogClose,
   DialogContent,
   DialogTitle,
@@ -79,7 +84,6 @@ import { flushSync } from 'react-dom';
 import { createRoot } from 'react-dom/client';
 
 const LEADING_AT_SIGN_PATTERN = /^@/;
-
 function record(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value)
     ? (value as Record<string, unknown>)
@@ -139,6 +143,7 @@ function card(value: unknown): McpCard | undefined {
     title: text(row.title),
     description: text(row.description),
     body: text(row.body) || undefined,
+    organization: text(row.organization) || undefined,
     kind: row.kind as McpCard['kind'],
     status: text(row.status),
     platform: text(row.platform),
@@ -169,6 +174,7 @@ function card(value: unknown): McpCard | undefined {
                 approvalId: text(item.approvalId),
                 decision: item.decision,
                 label: text(item.label) || 'Approve',
+                organization: text(row.organization) || undefined,
               },
             ];
           return [];
@@ -497,6 +503,7 @@ function Description({ content, bridge }: DescriptionProps) {
 function usePendingCard(item: McpCard, bridge: PreviewBridge) {
   const [current, setCurrent] = useState(item);
   const [exhausted, setExhausted] = useState(false);
+  // use-effect-audit: ignore polls the job status through the host bridge, aborting and clearing the timer on cleanup
   useEffect(() => {
     const abortController = new AbortController();
     let timer: ReturnType<typeof setTimeout> | undefined;
@@ -512,23 +519,20 @@ function usePendingCard(item: McpCard, bridge: PreviewBridge) {
         bridge
           .request('tools/call', {
             name: 'get_job_status',
-            arguments: { jobId: next.id },
+            arguments: { jobId: next.id, organization: item.organization },
           })
           .then((result) => {
             if (abortController.signal.aborted) return;
             const fresh = readView(result)?.cards[0];
-            if (!fresh) {
-              poll(next, attempt + 1);
-              return;
-            }
+            if (!fresh) return poll(next, attempt + 1);
             const updated = { ...fresh, id: fresh.id || next.id };
             flushSync(() => setCurrent(updated));
             bridge.resize();
             poll(updated, attempt + 1);
           })
-          .catch(() => {
-            if (!abortController.signal.aborted) poll(next, attempt + 1);
-          });
+          .catch(
+            () => abortController.signal.aborted || poll(next, attempt + 1),
+          );
       }, 5000);
     }
     poll(item, 0);
@@ -772,9 +776,9 @@ function CardPreview({
   onAction,
 }: CardPreviewProps) {
   const { current, exhausted } = usePendingCard(item, bridge);
-  const [failed, setFailed] = useState(false);
-  // biome-ignore lint/correctness/useExhaustiveDependencies: A new tool result resets the media error state.
-  useEffect(() => setFailed(false), [item]);
+  // The media error belongs to the tool result that raised it.
+  const [failedItem, setFailedItem] = useState<McpCard | null>(null);
+  const failed = failedItem === item;
   const isJobFailed = ['failed', 'error', 'cancelled', 'canceled'].includes(
     current.status.toLowerCase(),
   );
@@ -794,7 +798,7 @@ function CardPreview({
     timeStyle: 'short',
   });
   const onMediaError = () => {
-    setFailed(true);
+    setFailedItem(item);
     bridge.resize();
   };
   const failedNotice = failed && (
@@ -1092,36 +1096,6 @@ function CardPreview({
     </article>
   );
 }
-function localDayKey(date: Date) {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-}
-function parseDay(value: string) {
-  const [year, month, day] = value.split('-').map(Number);
-  return new Date(year, month - 1, day, 12);
-}
-function localCalendarDays(days: McpCalendarDay[]) {
-  const keys = new Set<string>();
-  const posts = new Map<string, McpCard[]>();
-  const first = parseDay(days[0]?.date || '');
-  if (!Number.isNaN(first.getTime()))
-    for (let offset = 0; offset < days.length; offset++) {
-      const date = new Date(first);
-      date.setDate(first.getDate() + offset);
-      keys.add(localDayKey(date));
-    }
-  for (const day of days)
-    for (const post of day.posts) {
-      const date = new Date(post.date);
-      if (Number.isNaN(date.getTime())) continue;
-      const key = localDayKey(date);
-      keys.add(key);
-      posts.set(key, [...(posts.get(key) || []), post]);
-    }
-  return [...keys].sort().map((date) => ({
-    date,
-    posts: (posts.get(date) || []).sort((a, b) => a.date.localeCompare(b.date)),
-  }));
-}
 function OrganizationSwitcher({
   error,
   isSwitching,
@@ -1228,8 +1202,8 @@ function Preview({ result, notice, bridge }: PreviewProps) {
     setSwitchError('');
     bridge
       .request('tools/call', {
-        name: 'switch_org',
-        arguments: { organization: organizationId },
+        name: 'get_context',
+        arguments: { action: 'organizations', organization: organizationId },
       })
       .then((next) => {
         const fresh = readView(next);
@@ -1260,6 +1234,7 @@ function Preview({ result, notice, bridge }: PreviewProps) {
         arguments: {
           approvalId: action.approvalId,
           decision: action.decision,
+          organization: action.organization,
         },
       })
       .then((outcome) => {
@@ -1545,23 +1520,25 @@ function Preview({ result, notice, bridge }: PreviewProps) {
           }}
         >
           <DialogTitle>{image?.title || 'Generated image'}</DialogTitle>
-          {image?.content ? (
-            <Text
-              as="p"
-              size="sm"
-              className="max-h-[75vh] overflow-auto whitespace-pre-wrap break-words leading-relaxed"
-            >
-              {image.content}
-            </Text>
-          ) : image?.src ? (
-            <Image
-              src={image.src}
-              alt={image.title}
-              width={0}
-              height={0}
-              className="h-auto max-h-[75vh] w-auto max-w-full object-contain"
-            />
-          ) : null}
+          <DialogBody>
+            {image?.content ? (
+              <Text
+                as="p"
+                size="sm"
+                className="whitespace-pre-wrap break-words leading-relaxed"
+              >
+                {image.content}
+              </Text>
+            ) : image?.src ? (
+              <Image
+                src={image.src}
+                alt={image.title}
+                width={0}
+                height={0}
+                className="h-auto max-h-[75vh] w-auto max-w-full object-contain"
+              />
+            ) : null}
+          </DialogBody>
           <DialogClose asChild>
             <Button
               ref={closeButton}

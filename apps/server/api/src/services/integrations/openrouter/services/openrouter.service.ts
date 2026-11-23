@@ -1,4 +1,6 @@
+import { UPLOAD_HTTP_TIMEOUT_MS } from '@api/constants/http-timeout.constant';
 import { MissingProviderKeyException } from '@api/helpers/exceptions/missing-provider-key/missing-provider-key.exception';
+import { modelAcceptsTemperature } from '@api/services/integrations/llm/model-sampling.util';
 import {
   OPENROUTER_FIRST_PARTY_PROVIDER_POLICY,
   type OpenRouterChatCompletionEvidence,
@@ -11,6 +13,7 @@ import {
   type OpenRouterStreamTokenHandler,
   type OpenRouterToolCallResponse,
 } from '@api/services/integrations/openrouter/dto/openrouter.dto';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
@@ -19,6 +22,28 @@ import { Injectable } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
 
 const REASONING_MANDATORY_ERROR_PATTERN = /reasoning is mandatory/i;
+
+/**
+ * Models that cannot turn reasoning off and think at medium effort by
+ * default. Their thinking tokens count against `max_tokens`. Callers that
+ * want a short answer ask for `reasoning.enabled: false`; these models reject
+ * that with a 400, and the usual retry at `minimal` fails too because they
+ * list no such effort, so the request is sent without the flag instead.
+ */
+const MANDATORY_REASONING_MODELS: ReadonlySet<string> = new Set([
+  MODEL_KEYS.OPENROUTER_GOOGLE_GEMINI_4_HYDROGEN,
+  MODEL_KEYS.OPENROUTER_GOOGLE_GEMINI_4_NEON,
+]);
+
+/**
+ * Mandatory-reasoning models that get the lowest effort when the caller sets
+ * no preference. Writing prompts are short and prescriptive, so Neon does not
+ * need to think at medium. Hydrogen stays at its default medium effort, which
+ * is where its quality gain over the previous product text model comes from.
+ */
+const LOW_EFFORT_REASONING_MODELS: ReadonlySet<string> = new Set([
+  MODEL_KEYS.OPENROUTER_GOOGLE_GEMINI_4_NEON,
+]);
 
 interface OpenRouterErrorDetails {
   message: string;
@@ -98,12 +123,34 @@ export class OpenRouterService {
   private withRetentionPolicy(
     params: OpenRouterChatCompletionParams,
   ): OpenRouterChatCompletionParams {
+    const { reasoning: requestedReasoning, temperature, ...rest } = params;
+    const reasoning =
+      requestedReasoning?.enabled === false &&
+      MANDATORY_REASONING_MODELS.has(params.model)
+        ? undefined
+        : requestedReasoning;
+
     return {
-      ...params,
+      ...rest,
+      ...(reasoning === undefined ? {} : { reasoning }),
+      // Claude and the reasoning-era OpenAI models do not list `temperature`.
+      // With `require_parameters` set, sending it leaves no provider to route to.
+      ...(temperature !== undefined && modelAcceptsTemperature(params.model)
+        ? { temperature }
+        : {}),
+      ...(reasoning === undefined &&
+      LOW_EFFORT_REASONING_MODELS.has(params.model)
+        ? { reasoning: { effort: 'low' } }
+        : {}),
       provider: {
         ...params.provider,
         ...OPENROUTER_FIRST_PARTY_PROVIDER_POLICY,
-        ...(params.tools?.length ? { require_parameters: true } : {}),
+        // A schema needs a provider that enforces it. Claude on Bedrock private
+        // endpoints has no structured outputs, so without this OpenRouter may
+        // pick one and the response comes back unconstrained.
+        ...(params.tools?.length || params.response_format
+          ? { require_parameters: true }
+          : {}),
       },
     };
   }
@@ -164,6 +211,7 @@ export class OpenRouterService {
               'HTTP-Referer': 'https://genfeed.ai',
               'X-Title': 'Genfeed AI',
             },
+            timeout: UPLOAD_HTTP_TIMEOUT_MS,
           },
         ),
       );
@@ -272,9 +320,7 @@ export class OpenRouterService {
           },
           {
             ...(transport?.signal ? { signal: transport.signal } : {}),
-            ...(transport?.timeout !== undefined
-              ? { timeout: transport.timeout }
-              : {}),
+            timeout: transport?.timeout ?? UPLOAD_HTTP_TIMEOUT_MS,
             headers: {
               Authorization: `Bearer ${apiKey}`,
               'Content-Type': 'application/json',
@@ -313,6 +359,7 @@ export class OpenRouterService {
               'X-Title': 'Genfeed AI',
             },
             responseType: 'stream',
+            timeout: UPLOAD_HTTP_TIMEOUT_MS,
           },
         ),
       );
@@ -516,6 +563,7 @@ export class OpenRouterService {
             'X-Title': 'Genfeed AI',
           },
           responseType: 'stream',
+          timeout: UPLOAD_HTTP_TIMEOUT_MS,
         },
       ),
     );

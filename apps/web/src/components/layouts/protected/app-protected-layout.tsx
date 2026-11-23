@@ -20,10 +20,12 @@ import type { ProtectedBootstrapData } from '@props/layout/protected-bootstrap.p
 import type { TopbarProps } from '@props/navigation/topbar.props';
 import { logger } from '@services/core/logger.service';
 import { ErrorBoundary } from '@ui/display/error-boundary/ErrorBoundary';
+import { ErrorFallback } from '@ui/error/ErrorFallback';
 import dynamic from 'next/dynamic';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Suspense, useEffect, useMemo, useRef } from 'react';
+import '@/components/agent/page-controls-bridge';
 import AnalyticsOrganizationSync from '@/components/analytics/AnalyticsOrganizationSync';
 import ProductionDataBanner from '@/components/banners/production-data/ProductionDataBanner';
 import { CommandPaletteInitializer } from '@/components/command-palette/command-palette-initializer/CommandPaletteInitializer';
@@ -34,8 +36,8 @@ import AppProtectedRail from '@/components/shell/AppProtectedRail';
 import AppProtectedTopbar from '@/components/shell/AppProtectedTopbar';
 import { InstalledAppsProvider } from '@/components/shell/installed-apps.provider';
 import { RailPreferencesProvider } from '@/components/shell/rail-preferences.provider';
-import WorkspaceContentSkeleton from '@/components/shell/workspace-frame-skeleton/WorkspaceContentSkeleton';
 import WorkspaceFrameSkeleton from '@/components/shell/workspace-frame-skeleton/WorkspaceFrameSkeleton';
+import WorkspacePagePending from '@/components/shell/workspace-frame-skeleton/WorkspacePagePending';
 import {
   WorkspaceNavPanelProvider,
   WorkspaceNavPanelTarget,
@@ -71,7 +73,7 @@ const TRAILING_SLASH_PATTERN = /\/$/;
 const LazyUniversalWorkspaceShell = dynamic(
   () => import('@/components/workspace-shell/UniversalWorkspaceShell'),
   {
-    loading: () => <WorkspaceContentSkeleton />,
+    loading: () => <WorkspacePagePending />,
   },
 );
 
@@ -585,6 +587,9 @@ function AppProtectedLayoutContent({
   const isEditorCanvasRoute = isProtectedEditorCanvasRoute(pathname);
   const isWorkspaceRoute = isProtectedWorkspaceRoute(pathname);
   const translatePending = useTranslations('pages.organizationRouting.pending');
+  const translateSessionFailure = useTranslations(
+    'pages.organizationRouting.sessionFailure',
+  );
 
   return (
     <WorkspaceNavPanelProvider>
@@ -592,6 +597,16 @@ function AppProtectedLayoutContent({
         authPendingFallback={
           <WorkspaceFrameSkeleton label={translatePending('loading')} />
         }
+        authFailureFallback={(retry) => (
+          <main className="flex min-h-dvh w-full items-center justify-center bg-background px-4 py-10 sm:px-6">
+            <ErrorFallback
+              title={translateSessionFailure('title')}
+              description={translateSessionFailure('description')}
+              resetErrorBoundary={retry}
+              data-testid="session-token-failure"
+            />
+          </main>
+        )}
         renderModal={renderAppGlobalModal}
         includeAssetSelectionProvider={!isEditorCanvasRoute}
         includeApiStatusCheck={false}

@@ -9,10 +9,6 @@ export const MCP_RESULT_SCHEMAS = {
     type: 'object',
     properties: { data: {}, message: { type: 'string' } },
   },
-  object: {
-    type: 'object',
-    properties: { data: { type: 'object' }, message: { type: 'string' } },
-  },
   media: {
     type: 'object',
     properties: {
@@ -37,11 +33,9 @@ export function getMcpToolResultFamily(
   tool: Pick<CanonicalToolDefinition, 'name' | 'category'>,
 ) {
   if (tool.name === 'find_tools') return 'discovery';
-  if (['get_account', 'get_orgs', 'switch_org'].includes(tool.name))
-    return 'object';
   if (
     tool.category === 'generation' ||
-    tool.name === 'get_job_status' ||
+    tool.name === 'check_job' ||
     tool.name === 'resolve_approval'
   )
     return 'media';

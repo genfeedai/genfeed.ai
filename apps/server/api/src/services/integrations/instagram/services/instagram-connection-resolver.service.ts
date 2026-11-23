@@ -11,7 +11,10 @@ import {
   INSTAGRAM_BASIC_SCOPE,
   toInstagramTokenGrant,
 } from '@api/services/integrations/instagram/utils/instagram-token-grant.util';
-import { CredentialPlatform } from '@genfeedai/contracts';
+import {
+  CredentialPlatform,
+  InstagramOAuthVerifyErrorCode,
+} from '@genfeedai/contracts';
 import type {
   InstagramDebugTokenResponse,
   InstagramPageResponse,
@@ -113,6 +116,7 @@ export class InstagramConnectionResolverService {
               code,
               redirect_uri: this.redirectUri,
             },
+            timeout: 10_000,
           },
         ),
       );
@@ -131,14 +135,25 @@ export class InstagramConnectionResolverService {
       });
     }
 
+    // `/me` and `debug_token` both take only the fresh token, so they run side
+    // by side: serial, the two 10 s timeouts stacked toward the client's 30 s
+    // ceiling. `readTokenGrant` never rejects, so only `/me` can fail here.
     markStage('business_identity');
-    const identityRes: AxiosResponse<InstagramBusinessIdentityResponse> =
-      await firstValueFrom(
-        this.httpService.get(`${this.graphUrl}/${this.apiVersion}/me`, {
-          params: { access_token, fields: 'client_business_id' },
-          timeout: 10_000,
-        }),
-      );
+    const readsGrant = tokenRes.data.scope === undefined;
+    const [identityRes, readGrant] = await Promise.all([
+      firstValueFrom(
+        this.httpService.get<InstagramBusinessIdentityResponse>(
+          `${this.graphUrl}/${this.apiVersion}/me`,
+          {
+            params: { access_token, fields: 'client_business_id' },
+            timeout: 10_000,
+          },
+        ),
+      ),
+      readsGrant
+        ? this.readTokenGrant(access_token, appId, appSecret)
+        : Promise.resolve(undefined),
+    ]);
     const businessId = identityRes.data?.client_business_id;
     if (!businessId) {
       // `externalBusinessId` is what marks a credential as Unified Login;
@@ -156,12 +171,7 @@ export class InstagramConnectionResolverService {
     // Meta does not say, the grant stays "unknown" and each call is checked by
     // Meta itself rather than guessed here.
     markStage('permission_check');
-    let grant: InstagramTokenGrant | undefined;
-    let hasReadGrant = false;
-    if (tokenRes.data.scope === undefined) {
-      grant = await this.readTokenGrant(access_token, appId, appSecret);
-      hasReadGrant = true;
-    }
+    let grant: InstagramTokenGrant | undefined = readGrant;
     const scope = tokenRes.data.scope ?? grant?.scopes?.join(',');
     if (
       scope !== undefined &&
@@ -180,6 +190,7 @@ export class InstagramConnectionResolverService {
       );
       throw new HttpException(
         {
+          code: InstagramOAuthVerifyErrorCode.MISSING_SCOPES,
           detail:
             'Instagram needs permission to see your professional account. Please reconnect and approve that permission.',
           title: 'Missing permission',
@@ -197,7 +208,7 @@ export class InstagramConnectionResolverService {
       );
 
     if (accounts.length === 0) {
-      if (!hasReadGrant) {
+      if (!readsGrant) {
         grant = await this.readTokenGrant(access_token, appId, appSecret);
       }
       this.loggerService.warn(

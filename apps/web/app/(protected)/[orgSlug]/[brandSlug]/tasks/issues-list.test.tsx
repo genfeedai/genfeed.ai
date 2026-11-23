@@ -226,7 +226,11 @@ it('keeps failed tasks visible in the shared table and opens their details', asy
       name: 'Priority for Recover the failed publish',
     }),
   ).toBeVisible();
-  expect(screen.getAllByText('Failed')).toHaveLength(1);
+  expect(
+    screen.getByRole('combobox', {
+      name: 'Status for Recover the failed publish',
+    }),
+  ).toHaveTextContent('Failed');
   fireEvent.click(title);
   expect(mocks.replace).not.toHaveBeenCalled();
   fireEvent.click(

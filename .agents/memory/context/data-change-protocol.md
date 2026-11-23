@@ -80,14 +80,21 @@ The sync is a compiled Nest one-off app (`api-reference-data-sync`). It is not i
 
 The deploy is not the only trigger. The `Seed hosted SaaS` workflow (`.github/workflows/seed-hosted-saas.yml`, dispatch from `master`, behind the `production` environment) starts the same one-off ECS tasks on demand for `articles` and `reference-data-sync`. It defaults to a dry run; the articles dry run is the task's own dry-run command, and the sync's dry run only validates that the catalogs load (it has no diff mode). It shares the deploy lock, so a seed never overlaps a rollout, and it runs the image of the last deploy: a seed changed since then needs a deploy first.
 
-Articles stay operator-triggered only; no deploy runs them. The owner can also run the articles seed from a local checkout against production. Export `DATABASE_URL` for the production database in the shell (a shell variable wins over `.env.production`) and run it from `apps/server/api`:
+Articles stay operator-triggered only; no deploy runs them. The default articles seed (no `--slugs`) writes the help articles only, and only creates the ones that are missing, so it never overwrites an edit made in the app. The SEO and launch articles are about Genfeed itself, so the default seed never writes them. The `Publish articles` workflow (`.github/workflows/publish-articles.yml`, dispatch from `master`, behind the `production` environment) is the one-off way to create or refresh exactly the slugs the operator names, under the `genfeedai` or `vincentshipsit` brand. It defaults to a dry run, shares the deploy lock, and overwrites only the named slugs (matched on organization and slug). Every other article is left alone. Its log prints slugs and counts, never article bodies.
+
+Both articles workflows start the ECS task of the last deployed image, and the article copy is bundled in that image. Copy edited in the repo reaches production only after the next deploy rolls the image out; an edit made in the app is not affected by either workflow unless its slug is named in a publish.
+
+The owner can also run the articles seed from a local checkout against production. Export `DATABASE_URL` for the production database in the shell (a shell variable wins over `.env.production`) and run it from `apps/server/api`:
 
 ```bash
-bun run seed:articles:prod:dry -- --ownerEmail=<owner email>
-bun run seed:articles:prod -- --ownerEmail=<owner email> --brandSlug=genfeedai
+bun run seed:articles:prod:dry -- --ownerEmail=<owner email> --brandSlug=genfeedai --slugs=<slug,slug>
 ```
 
-The first command is the dry run. The second writes. The script refuses a live run without an owner and a brand, and refuses one whose `DATABASE_URL` is a local database. The production database is private, so the machine needs a network path to it; agents never fetch or copy production credentials for this.
+```bash
+bun run seed:articles:prod -- --ownerEmail=<owner email> --brandSlug=genfeedai --slugs=<slug,slug>
+```
+
+The first command is the dry run. The second writes. Without `--slugs` the same commands run the default help-article seed. The script refuses a live run without an owner and a brand, refuses an unknown slug, and refuses one whose `DATABASE_URL` is a local database. The production database is private, so the machine needs a network path to it; agents never fetch or copy production credentials for this. The super-admin `POST /admin/seeds/articles` endpoint takes no slugs, so it only ever runs the default help-article seed.
 
 ## Trust and failure
 

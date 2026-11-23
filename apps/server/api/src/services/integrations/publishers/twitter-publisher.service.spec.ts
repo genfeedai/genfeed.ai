@@ -316,7 +316,7 @@ describe('TwitterPublisherService', () => {
       mediaUrls: [],
     };
 
-    it('should pass a caption exactly at the 280-character X limit', () => {
+    it('should pass a caption exactly at the 280-character standard length', () => {
       const context = createPublishContext({
         ...mockTextPost,
         description: 'a'.repeat(280),
@@ -325,17 +325,26 @@ describe('TwitterPublisherService', () => {
       expect(result.valid).toBe(true);
     });
 
-    it('should fail an over-limit caption with a structured caption_too_long error', () => {
+    it('should pass a long caption past 280 and leave the decision to X', () => {
       const context = createPublishContext({
         ...mockTextPost,
-        description: 'a'.repeat(281),
+        description: 'a'.repeat(1_200),
+      } as unknown as PostEntity);
+      const result = service.validatePost(context, emptyMediaInfo);
+      expect(result.valid).toBe(true);
+    });
+
+    it('should fail a caption over the long-post ceiling with a structured caption_too_long error', () => {
+      const context = createPublishContext({
+        ...mockTextPost,
+        description: 'a'.repeat(25_001),
       } as unknown as PostEntity);
       const result = service.validatePost(context, emptyMediaInfo);
       expect(result.valid).toBe(false);
       expect(result.errorCode).toBe('caption_too_long');
       expect(result.error).toContain('X (Twitter)');
-      expect(result.error).toContain('281');
-      expect(result.error).toContain('280');
+      expect(result.error).toContain('25001');
+      expect(result.error).toContain('25000');
     });
   });
 

@@ -3,8 +3,10 @@ import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import CreatorProfileLayout from './CreatorProfileLayout';
 
-vi.mock('./CreatorRail', () => ({
-  default: () => <div data-testid="rail" />,
+vi.mock('./CreatorHeader', () => ({
+  default: ({ hasBanner }: { hasBanner: boolean }) => (
+    <header data-has-banner={String(hasBanner)} data-testid="header" />
+  ),
 }));
 vi.mock('./CreatorTabs', () => ({
   default: () => <nav aria-label="Profile sections" />,
@@ -32,27 +34,28 @@ function renderLayout(overrides: Partial<CreatorProfileLayoutProps> = {}) {
 }
 
 describe('CreatorProfileLayout', () => {
-  it('puts the banner over the feed, next to the rail instead of above it', () => {
+  it('runs the banner across the top, then the header, then the tabs', () => {
     renderLayout();
 
     const banner = screen.getByRole('img', { name: 'Acme banner' });
-    const rail = screen.getByTestId('rail');
+    const header = screen.getByTestId('header');
     const tabs = screen.getByRole('navigation', { name: 'Profile sections' });
 
-    expect(rail.compareDocumentPosition(banner)).toBe(
+    expect(banner.compareDocumentPosition(header)).toBe(
       Node.DOCUMENT_POSITION_FOLLOWING,
     );
-    expect(banner.compareDocumentPosition(tabs)).toBe(
+    expect(header.compareDocumentPosition(tabs)).toBe(
       Node.DOCUMENT_POSITION_FOLLOWING,
     );
+    expect(header.getAttribute('data-has-banner')).toBe('true');
   });
 
-  it('opens the feed with the tabs when the creator has no banner', () => {
+  it('opens with the header when the creator has no banner', () => {
     renderLayout({ brand: { ...brand, bannerUrl: null } });
 
     expect(screen.queryByRole('img')).toBeNull();
-    expect(
-      screen.getByRole('navigation', { name: 'Profile sections' }),
-    ).toBeTruthy();
+    expect(screen.getByTestId('header').getAttribute('data-has-banner')).toBe(
+      'false',
+    );
   });
 });

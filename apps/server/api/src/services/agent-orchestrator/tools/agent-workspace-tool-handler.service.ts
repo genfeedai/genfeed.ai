@@ -9,32 +9,38 @@ import {
   resolveCharacterFilter,
 } from '@api/collections/ingredients/services/ingredient-character-filter.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import { OrganizationLogoService } from '@api/collections/organizations/services/organization-logo.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { UsersService } from '@api/collections/users/services/users.service';
-import { resolveApiKeyEffectiveMemberRole } from '@api/helpers/utils/auth/api-key-role.util';
 import { IngredientFilterUtil } from '@api/helpers/utils/ingredient-filter/ingredient-filter.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
-import { readAccountIdentity } from '@api/services/agent-orchestrator/tools/agent-account-identity.util';
+import {
+  readAccountIdentity,
+  readOrganizationLogoUrl,
+} from '@api/services/agent-orchestrator/tools/agent-account-identity.util';
 import { starLibraryAsset } from '@api/services/agent-orchestrator/tools/agent-asset-star.util';
 import { brandListData } from '@api/services/agent-orchestrator/tools/agent-brand-access.util';
 import { readAgentLibraryFilters } from '@api/services/agent-orchestrator/tools/agent-library-filters.util';
 import {
+  type AgentMembersServiceLike,
+  resolveOrganizationRole,
+} from '@api/services/agent-orchestrator/tools/agent-organization-role.util';
+import {
   agentPostPreviewInclude,
   agentPostPreviewPopulate,
+  serializeAgentPostPreviews,
 } from '@api/services/agent-orchestrator/tools/agent-post-preview.util';
 import { resolvePublishValidationMedia } from '@api/services/agent-orchestrator/tools/agent-publish-target.util';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { brandReadScope } from '@api/services/agent-orchestrator/utils/agent-brand-read-scope.util';
 
 import { PresignedUploadService } from '@api/services/uploads/presigned-upload.service';
-import { PopulateBuilder } from '@api/shared/utils/populate/populate.util';
 import { isCloudDeployment } from '@genfeedai/config';
 import {
   categoryToPlural,
   IngredientCategory,
-  MemberRole,
   TargetExecutionState,
 } from '@genfeedai/contracts';
 import { postExecutionStateReadFilter } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
@@ -44,7 +50,6 @@ import {
   type AgentBrandSerializedData,
   serializeAgentBrand,
   serializeAgentBrands,
-  serializeAgentPost,
 } from '@genfeedai/serializers';
 import { readIngredientMediaUrlWithFallback } from '@libs/media/media-url.util';
 import { Traced } from '@libs/tracing/traced';
@@ -64,22 +69,6 @@ type AgentBrandsServiceLike = {
     query: Record<string, unknown>,
   ) => Promise<Record<string, unknown> | null>;
 };
-
-type AgentMembersServiceLike = {
-  findOne: (
-    query: Record<string, unknown>,
-    populate?: unknown[],
-  ) => Promise<{
-    currentBrandId?: unknown;
-    role?: { key?: unknown } | null;
-  } | null>;
-};
-
-const MEMBER_ROLES: ReadonlySet<string> = new Set(Object.values(MemberRole));
-
-function isMemberRole(value: string): value is MemberRole {
-  return MEMBER_ROLES.has(value);
-}
 
 /**
  * Workspace read tools: credits, brands, posts list, studio handoff.
@@ -142,6 +131,8 @@ export class AgentWorkspaceToolHandler {
     private readonly usersService?: UsersService,
     @Optional()
     private readonly organizationsService?: OrganizationsService,
+    @Optional()
+    private readonly organizationLogoService?: OrganizationLogoService,
   ) {}
 
   /**
@@ -161,7 +152,9 @@ export class AgentWorkspaceToolHandler {
 
     const data: Record<string, unknown> = {};
     if (sections.has('profile')) {
-      data.profile = await this.readAccountProfile(ctx);
+      data.profile = await this.readAccountProfile(ctx, {
+        hasLogos: params.includeLogo === true,
+      });
     }
     if (sections.has('credits')) {
       data.credits = {
@@ -189,23 +182,32 @@ export class AgentWorkspaceToolHandler {
 
   private async readAccountProfile(
     ctx: ToolExecutionContext,
+    options: { hasLogos?: boolean } = {},
   ): Promise<Record<string, unknown>> {
     const brandId = ctx.brandId ?? ctx.validatedScope?.brandId;
     const identity = await readAccountIdentity(
       {
         brandCounter: this.brandsService,
-        listBrands: (context) => this.listAccessibleBrands(context),
+        listBrands: (context) => this.listAccessibleBrands(context, options),
         organizationsService: this.organizationsService,
         usersService: this.usersService,
       },
       ctx,
       brandId,
     );
+    const organizationLogoUrl = options.hasLogos
+      ? await readOrganizationLogoUrl(
+          this.organizationLogoService,
+          ctx,
+          identity,
+        )
+      : undefined;
     return {
       ...identity,
       ...(brandId ? { brandId } : {}),
+      ...(organizationLogoUrl ? { organizationLogoUrl } : {}),
       organizationId: ctx.organizationId,
-      role: await this.resolveOrganizationRole(ctx),
+      role: await resolveOrganizationRole(this.membersService, ctx),
       userId: ctx.userId,
     };
   }
@@ -238,33 +240,6 @@ export class AgentWorkspaceToolHandler {
           )
         : docs;
     return serializeAgentBrands(decorated);
-  }
-
-  /**
-   * The caller's organization role key from their active membership. Fails
-   * closed to `''` so an unresolved membership is never shown as a role.
-   */
-  private async resolveOrganizationRole(
-    ctx: ToolExecutionContext,
-  ): Promise<string> {
-    try {
-      const member = await this.membersService.findOne(
-        {
-          isActive: true,
-          organizationId: ctx.organizationId,
-          userId: ctx.userId,
-        },
-        [PopulateBuilder.withFields('role', ['id', 'key', 'label'])],
-      );
-      const key = typeof member?.role?.key === 'string' ? member.role.key : '';
-      // An API key never inherits its issuer's org-admin role without an
-      // explicit admin scope — the same cap `/auth/whoami` applies.
-      return ctx.apiKeyContext && isMemberRole(key)
-        ? resolveApiKeyEffectiveMemberRole(ctx.apiKeyContext, key)
-        : key;
-    } catch {
-      return '';
-    }
   }
 
   /**
@@ -508,12 +483,8 @@ export class AgentWorkspaceToolHandler {
     const matchStage: Record<string, unknown> = {
       isDeleted: false,
       organizationId: ctx.organizationId,
+      ...(await brandReadScope(this.brandAccessService, ctx)),
     };
-
-    Object.assign(
-      matchStage,
-      await brandReadScope(this.brandAccessService, ctx),
-    );
     const brandId = readRequiredString(params.brandId);
     if (brandId) matchStage.brandId = brandId;
     const executionState = params.executionState;
@@ -542,10 +513,11 @@ export class AgentWorkspaceToolHandler {
       creditsUsed: 0,
       data: {
         count: posts.docs?.length ?? 0,
-        posts:
-          posts.docs?.map((post) =>
-            serializeAgentPost(post as unknown as Record<string, unknown>),
-          ) ?? [],
+        posts: await serializeAgentPostPreviews(
+          this.postsService.prisma,
+          ctx.organizationId,
+          posts.docs ?? [],
+        ),
       },
       success: true,
     };
@@ -573,11 +545,14 @@ export class AgentWorkspaceToolHandler {
       return toolFailure(`Post ${postId} was not found.`);
     }
 
+    const [preview] = await serializeAgentPostPreviews(
+      this.postsService.prisma,
+      ctx.organizationId,
+      [post],
+    );
     return {
       creditsUsed: 0,
-      data: {
-        post: serializeAgentPost(post as unknown as Record<string, unknown>),
-      },
+      data: { post: preview },
       success: true,
     };
   }

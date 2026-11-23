@@ -325,8 +325,8 @@ vi.mock('@/config/studio-menu-items.config', async (importOriginal) => {
 
 vi.mock('@/config/discovery-menu-items.config', () => ({
   DISCOVERY_MENU_ITEMS: [
-    { href: '/discovery/overview', label: 'Overview' },
-    { href: '/discovery/overview?source=following', label: 'Following' },
+    { href: '/discovery/feed', label: 'Overview' },
+    { href: '/discovery/feed?source=following', label: 'Following' },
     { href: '/discovery/ads', label: 'Ads' },
   ],
 }));
@@ -1056,7 +1056,7 @@ describe('AppProtectedLayout', () => {
     ['/workspace', 'Workspace'],
     ['/storyboard', 'Storyboard'],
     ['/library/images', 'Assets'],
-    ['/discovery/overview', 'Overview'],
+    ['/discovery/feed', 'Overview'],
     ['/analytics', 'Overview'],
     ['/automation/runs', 'Runs'],
     ['/admin', 'Overview'],
@@ -1835,7 +1835,7 @@ describe('AppProtectedLayout', () => {
   });
 
   it('renders a dedicated discovery sidebar on discovery routes', () => {
-    mockPathname.value = '/discovery/overview';
+    mockPathname.value = '/discovery/feed';
 
     render(
       <AppProtectedLayout>
@@ -1847,8 +1847,8 @@ describe('AppProtectedLayout', () => {
       expect.objectContaining({
         currentApp: 'discovery',
         items: [
-          { href: '/discovery/overview', label: 'Overview' },
-          { href: '/discovery/overview?source=following', label: 'Following' },
+          { href: '/discovery/feed', label: 'Overview' },
+          { href: '/discovery/feed?source=following', label: 'Following' },
           { href: '/discovery/ads', label: 'Ads' },
         ],
         sectionLabel: 'Discovery',

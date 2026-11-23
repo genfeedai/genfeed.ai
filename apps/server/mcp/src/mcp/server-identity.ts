@@ -16,12 +16,13 @@ export const MCP_SERVER_DESCRIPTION =
 /** Returned once per session in `initialize`; clients add it to the model context. */
 export const MCP_SERVER_INSTRUCTIONS = [
   'Genfeed is an AI content OS for brands.',
-  'Call get_account first: if profile.isOnboardingCompleted is false, the user just signed up, so run onboard_brand with them before generating anything.',
-  'Call get_brands and work inside the brand the user means.',
-  "When get_orgs lists several organizations with ids, the user connected all of them: pass organization (name, slug or id) with that organization's brandId on a call to act in it. A connection that lists one organization stays in it.",
-  'Use generate_content for post copy and generate for images, video and audio; media generation is asynchronous, so poll get_job_status until the job finishes.',
-  'Before generate.model or transform_media.model, call get_generation_options and pass a returned models key. Omit generate.model to let the router choose. Do not invent model aliases.',
-  'create_post saves a draft for review. Never publish or schedule a post unless the user explicitly asks for it.',
+  'Call get_context(action=account) first: if profile.isOnboardingCompleted is false, the user just signed up, so run setup_brand(action=onboard) with them before generating anything.',
+  'Call get_context(action=brands) and work inside the brand the user means.',
+  "When get_context(action=organizations) lists several organizations with ids, the user connected all of them: every other tool call must pass organization (name, slug or id) with that organization's brandId, and a call that names none is refused with the list. A connection that lists one organization stays in it.",
+  'Use generate_text(action=content) for post copy. It saves a social draft and returns postId and receiptId. To add Library media, call save_post(action=post) with its postId, the same brandId, and mediaUrls. Use get_content(action=posts) to read back the draft.',
+  'Use get_assets to find Library media or generate_media(action=media) for images, video and audio. Media generation is asynchronous, so poll check_job(action=job) until the job finishes.',
+  'Before setting model on generate_media (actions media and transform), call get_generation_catalog(action=options) and pass a returned models key. Omit model to let the router choose. Do not invent model aliases.',
+  'Use save_post(action=post) without postId to save a new draft from supplied text or media. Never publish or schedule a post unless the user explicitly asks for it.',
   'Call find_tools when a request needs a capability that is not in the current tool list.',
   'Discovery does not load tools into the client. If a tool is listed by the connection but missing in the client, refresh its MCP tool list or reconnect to the same server URL. Do not reinstall or broaden permissions to repair a stale tool list.',
 ].join(' ');
@@ -47,11 +48,11 @@ function buildAdminMcpServerInstructions(): string {
 export function buildClaudeMcpServerInstructions(): string {
   return [
     'Genfeed connects Claude to brands, drafts, scheduling and analytics.',
-    'Call get_account and get_brands first; use onboard_brand when onboarding is incomplete.',
-    'Write copy yourself, then use create_post or create_article_draft to save it for review.',
+    'Call get_context(action=account) and get_context(action=brands) first; use setup_brand(action=onboard) when onboarding is incomplete.',
+    'Write copy yourself, then use save_post(action=post or article) to save it for review.',
     'Never schedule anything unless the user explicitly asks. Use existing assets from get_assets.',
     'Image, video and audio generation, workflows, batches and remix are unavailable through this connector.',
-    'Use find_tools to discover supported content operations. Toolset changes cannot enable generation.',
+    'Use find_tools to discover supported content operations.',
   ].join(' ');
 }
 

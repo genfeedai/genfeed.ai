@@ -15,6 +15,7 @@ import type { HookRemixJobData } from '@files/services/hook-remix/hook-remix.int
 import { HookRemixService } from '@files/services/hook-remix/hook-remix.service';
 import { RemotionRenderJobService } from '@files/services/remotion/remotion-render-job.service';
 import { S3Service } from '@files/services/s3/s3.service';
+import { VideoCompletionPublisherService } from '@files/services/video-completion/video-completion-publisher.service';
 import { VideoMergeJobService } from '@files/services/video-merge/video-merge-job.service';
 import { WebSocketService } from '@files/services/websocket/websocket.service';
 import { YtDlpService } from '@files/services/ytdlp/ytdlp.service';
@@ -32,7 +33,6 @@ import {
 } from '@genfeedai/contracts/queue';
 import { withLongJobWorkerOptions } from '@libs/jobs/bullmq-worker-lock.options';
 import { LoggerService } from '@libs/logger/logger.service';
-import { RedisService } from '@libs/redis/redis.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Inject } from '@nestjs/common';
@@ -46,7 +46,7 @@ export class VideoProcessor extends WorkerHost {
     private readonly videoMergeJobService: VideoMergeJobService,
     @Inject(S3Service) private s3Service: S3Service,
     @Inject(WebSocketService) private webSocketService: WebSocketService,
-    private redisService: RedisService,
+    private readonly videoCompletionPublisher: VideoCompletionPublisherService,
     private readonly logger: LoggerService,
     private readonly remotionRenderJobService: RemotionRenderJobService,
     private readonly clipperReferenceFrameExtractionService: ClipperReferenceFrameExtractionService,
@@ -107,6 +107,25 @@ export class VideoProcessor extends WorkerHost {
     };
   }
 
+  /** Reports the failure only when no retry is left; an earlier attempt may still succeed. */
+  private async publishFinalFailure(
+    job: Job<VideoJobData>,
+    message: string,
+  ): Promise<void> {
+    if (!isFinalAttempt(job)) {
+      return;
+    }
+    const { ingredientId, organizationId, userId } = job.data;
+    await this.publishVideoCompletion(
+      ingredientId,
+      userId,
+      organizationId,
+      'failed',
+      null,
+      message,
+    );
+  }
+
   private async publishVideoCompletion(
     ingredientId: string,
     userId: string,
@@ -116,7 +135,7 @@ export class VideoProcessor extends WorkerHost {
     error?: string,
   ): Promise<void> {
     try {
-      await this.redisService.publish('video-processing-complete', {
+      await this.videoCompletionPublisher.publish({
         error,
         ingredientId,
         organizationId,
@@ -125,10 +144,16 @@ export class VideoProcessor extends WorkerHost {
         timestamp: new Date().toISOString(),
         userId,
       });
-      this.logger.log(`Published video completion event for ${ingredientId}`);
+      this.logger.log(`Queued video completion event for ${ingredientId}`);
     } catch (publishError: unknown) {
+      // A finished job whose event was not stored must fail and run again: the
+      // event is the only record that it finished. A failure report is made
+      // from a job already failing, so it only logs.
+      if (status === 'completed') {
+        throw publishError;
+      }
       this.logger.error(
-        `Failed to publish video completion event: ${publishError}`,
+        `Failed to queue video completion event: ${publishError}`,
       );
     }
   }
@@ -212,7 +237,7 @@ export class VideoProcessor extends WorkerHost {
         room,
       );
 
-      this.ffmpegService.cleanupTempFiles(ingredientId, 'resize');
+      this.ffmpegService.removeTempDir('resize', ingredientId);
 
       await this.publishVideoCompletion(
         ingredientId,
@@ -237,14 +262,7 @@ export class VideoProcessor extends WorkerHost {
         userId,
         room,
       );
-      await this.publishVideoCompletion(
-        ingredientId,
-        userId,
-        organizationId,
-        'failed',
-        null,
-        message,
-      );
+      await this.publishFinalFailure(job, message);
       throw error;
     }
   }
@@ -286,7 +304,7 @@ export class VideoProcessor extends WorkerHost {
         room,
       );
 
-      this.ffmpegService.cleanupTempFiles(ingredientId, 'captions');
+      this.ffmpegService.removeTempDir('captions', ingredientId);
       const result = {
         jobId: String(job.id),
         jobType: JOB_TYPES.ADD_CAPTIONS,
@@ -366,7 +384,7 @@ export class VideoProcessor extends WorkerHost {
         room,
       );
 
-      this.ffmpegService.cleanupTempFiles(ingredientId, 'gif');
+      this.ffmpegService.removeTempDir('gif', ingredientId);
       return { outputPath, s3Key, success: true };
     } catch (error: unknown) {
       const message = getErrorMessage(error);
@@ -408,7 +426,7 @@ export class VideoProcessor extends WorkerHost {
         room,
       );
 
-      this.ffmpegService.cleanupTempFiles(ingredientId, 'reverse');
+      this.ffmpegService.removeTempDir('reverse', ingredientId);
       return { outputPath, s3Key, success: true };
     } catch (error: unknown) {
       const message = getErrorMessage(error);
@@ -450,7 +468,7 @@ export class VideoProcessor extends WorkerHost {
         room,
       );
 
-      this.ffmpegService.cleanupTempFiles(ingredientId, 'mirror');
+      this.ffmpegService.removeTempDir('mirror', ingredientId);
       return { outputPath, s3Key, success: true };
     } catch (error: unknown) {
       const message = getErrorMessage(error);
@@ -495,7 +513,7 @@ export class VideoProcessor extends WorkerHost {
 
       const s3Key = this.s3Service.generateS3Key('videos', ingredientId);
       await this.s3Service.uploadFile(s3Key, outputPath, 'video/mp4');
-      this.ffmpegService.cleanupTempFiles(ingredientId, 'trim');
+      this.ffmpegService.removeTempDir('trim', ingredientId);
 
       await this.publishVideoCompletion(
         ingredientId,
@@ -561,7 +579,7 @@ export class VideoProcessor extends WorkerHost {
       const s3Key = this.s3Service.generateS3Key('videos', ingredientId);
       await this.s3Service.uploadFile(s3Key, outputPath, 'video/mp4');
       const url = this.s3Service.getPublicUrl(s3Key);
-      this.ffmpegService.cleanupTempFiles(ingredientId, 'clip-trim');
+      this.ffmpegService.removeTempDir('clip-trim', ingredientId);
 
       await this.publishVideoCompletion(
         ingredientId,
@@ -649,7 +667,7 @@ export class VideoProcessor extends WorkerHost {
         room,
       );
 
-      this.ffmpegService.cleanupTempFiles(ingredientId, 'overlay');
+      this.ffmpegService.removeTempDir('overlay', ingredientId);
       return { outputPath, s3Key, success: true };
     } catch (error: unknown) {
       const message = getErrorMessage(error);
@@ -693,7 +711,7 @@ export class VideoProcessor extends WorkerHost {
         room,
       );
 
-      this.ffmpegService.cleanupTempFiles(ingredientId, 'portrait');
+      this.ffmpegService.removeTempDir('portrait', ingredientId);
       const result = {
         jobId: String(job.id),
         jobType: JOB_TYPES.CONVERT_TO_PORTRAIT,
@@ -844,7 +862,7 @@ export class VideoProcessor extends WorkerHost {
       );
       throw error;
     } finally {
-      await this.ffmpegService.cleanupTempFiles(inputPath, outputPath);
+      await this.ffmpegService.removeTempDir('audio', ingredientId);
     }
   }
 
@@ -899,14 +917,7 @@ export class VideoProcessor extends WorkerHost {
     } catch (error: unknown) {
       this.logger.error(`Extract frames failed for job ${job.id}:`, error);
       const message = getErrorMessage(error);
-      await this.publishVideoCompletion(
-        ingredientId,
-        job.data.userId,
-        job.data.organizationId,
-        'failed',
-        null,
-        message,
-      );
+      await this.publishFinalFailure(job, message);
       throw error;
     }
   }
@@ -947,14 +958,7 @@ export class VideoProcessor extends WorkerHost {
     } catch (error: unknown) {
       this.logger.error(`Get video metadata failed for job ${job.id}:`, error);
       const message = getErrorMessage(error);
-      await this.publishVideoCompletion(
-        ingredientId,
-        job.data.userId,
-        job.data.organizationId,
-        'failed',
-        null,
-        message,
-      );
+      await this.publishFinalFailure(job, message);
       throw error;
     }
   }
@@ -992,14 +996,7 @@ export class VideoProcessor extends WorkerHost {
     } catch (error: unknown) {
       const message = getErrorMessage(error);
       this.logger.error(`Hook remix job ${job.id} failed: ${message}`);
-      await this.publishVideoCompletion(
-        job.data.ingredientId,
-        job.data.userId,
-        job.data.organizationId,
-        'failed',
-        null,
-        message,
-      );
+      await this.publishFinalFailure(job, message);
       throw error;
     }
   }

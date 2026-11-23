@@ -4,6 +4,8 @@ import { PageScope } from '@genfeedai/contracts';
 import type { IIngredient, IPost } from '@genfeedai/contracts/interfaces';
 import type { PostsService } from '@genfeedai/services/content/posts.service';
 import { logger } from '@genfeedai/services/core/logger.service';
+import { isServiceOperationError } from '@genfeedai/services/core/operation-error';
+import { useResetOnChange } from '@hooks/utils/use-reset-on-change/use-reset-on-change';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 export interface UsePostDetailDraftsOptions {
@@ -46,6 +48,13 @@ export interface UsePostDetailDraftsReturn {
   performAutoSaveForPost: (postId: string) => Promise<void>;
 }
 
+function toScheduleDraft(post: IPost): string {
+  if (!post.scheduledDate) return '';
+  return typeof post.scheduledDate === 'string'
+    ? post.scheduledDate
+    : new Date(post.scheduledDate).toISOString();
+}
+
 export function usePostDetailDrafts({
   postId,
   scope,
@@ -61,18 +70,29 @@ export function usePostDetailDrafts({
   const [childDescriptions, setChildDescriptions] = useState<
     Map<string, string>
   >(new Map());
-  const [scheduleDraft, setScheduleDraft] = useState('');
+  const scheduleSource = post ? toScheduleDraft(post) : null;
+  const [scheduleDraft, setScheduleDraft] = useState(scheduleSource ?? '');
   const [selectedIngredients, setSelectedIngredients] = useState<IIngredient[]>(
-    [],
+    post?.ingredients || [],
   );
+  const ingredientsSource = post
+    ? (post.ingredients || []).map((ingredient) => ingredient.id).join('\u0001')
+    : null;
+  // The saved schedule and slide order replace the drafts when they change
+  // (another post, or the server's copy), during render so no frame shows the
+  // stale draft. Slide order is part of the selection: a reorder resyncs too.
+  useResetOnChange([post?.id, scheduleSource], () => {
+    if (scheduleSource !== null) setScheduleDraft(scheduleSource);
+  });
+  useResetOnChange([post?.id, ingredientsSource], () => {
+    if (post) setSelectedIngredients(post.ingredients || []);
+  });
 
   // Refs for reading current draft values without effect dependencies
   const descriptionDraftRef = useRef(descriptionDraft);
   descriptionDraftRef.current = descriptionDraft;
   const labelDraftRef = useRef(labelDraft);
   labelDraftRef.current = labelDraft;
-  const selectedIngredientsRef = useRef(selectedIngredients);
-  selectedIngredientsRef.current = selectedIngredients;
 
   // Auto-save refs
   const autoSaveTimeoutsRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
@@ -96,7 +116,7 @@ export function usePostDetailDrafts({
     post && scheduleDraft !== (post.scheduledDate ?? '')
   );
 
-  // Initialize post data when post ID changes
+  // use-effect-audit: ignore seeds the saved-value refs and drafts when a different post loads
   useEffect(() => {
     if (!post) {
       return;
@@ -131,7 +151,7 @@ export function usePostDetailDrafts({
     setChildDescriptions(childDescriptionsMap);
   }, [post?.id, updateDescriptionRefs, updateLabelRefs, post]);
 
-  // Update refs when post data changes (for existing posts)
+  // use-effect-audit: ignore refreshes the saved-value refs when the loaded post changes
   useEffect(() => {
     if (!post || lastPostIdRef.current !== post.id) {
       return;
@@ -158,7 +178,7 @@ export function usePostDetailDrafts({
     });
   }, [post?.id, post?.description, post?.label, post?.children, post]);
 
-  // Sync parent post description and label drafts (only if not dirty)
+  // use-effect-audit: ignore resyncs the parent drafts from the saved post only when they are not dirty
   useEffect(() => {
     if (!post) {
       return;
@@ -184,7 +204,7 @@ export function usePostDetailDrafts({
     }
   }, [post?.id, post?.description, post?.label, post]);
 
-  // Sync child descriptions (only if not dirty)
+  // use-effect-audit: ignore resyncs the child drafts from the saved children only when they are not dirty
   useEffect(() => {
     if (!post) {
       return;
@@ -228,43 +248,6 @@ export function usePostDetailDrafts({
       return hasChanges ? updated : prev;
     });
   }, [post?.id, post?.children, childDescriptions.size, post]);
-
-  // Sync schedule draft
-  useEffect(() => {
-    if (!post) {
-      return;
-    }
-
-    const scheduledDateStr = post.scheduledDate
-      ? typeof post.scheduledDate === 'string'
-        ? post.scheduledDate
-        : new Date(post.scheduledDate).toISOString()
-      : '';
-
-    setScheduleDraft((current) =>
-      current === scheduledDateStr ? current : scheduledDateStr,
-    );
-  }, [post?.id, post?.scheduledDate, post]);
-
-  // Sync selected ingredients
-  useEffect(() => {
-    if (!post) {
-      return;
-    }
-
-    const ingredients = post.ingredients || [];
-    const current = selectedIngredientsRef.current;
-
-    // Slide order is part of the selection: a pure reorder must resync too.
-    if (
-      ingredients.length !== current.length ||
-      ingredients.some(
-        (ingredient, index) => ingredient.id !== current[index]?.id,
-      )
-    ) {
-      setSelectedIngredients(ingredients);
-    }
-  }, [post?.id, post?.ingredients, post]);
 
   const performAutoSaveForPost = useCallback(
     async (postIdToSave: string) => {
@@ -340,6 +323,23 @@ export function usePostDetailDrafts({
           }
         }
       } catch (err) {
+        // The post was deleted (here, in another tab, or by the agent) after
+        // the edit and before the timer fired. There is nothing left to save,
+        // so settle the drafts as saved and stay quiet: Sentry is for failures.
+        if (isServiceOperationError(err) && err.status === 404) {
+          const pendingTimeout = autoSaveTimeoutsRef.current.get(postIdToSave);
+          if (pendingTimeout) {
+            clearTimeout(pendingTimeout);
+            autoSaveTimeoutsRef.current.delete(postIdToSave);
+          }
+          lastSavedDescriptionsRef.current.set(
+            postIdToSave,
+            currentDescription,
+          );
+          lastSavedLabelsRef.current.set(postIdToSave, currentLabel);
+          logger.info(`Auto-save skipped, post ${postIdToSave} is gone`);
+          return;
+        }
         logger.error('Auto-save failed', err);
       }
     },

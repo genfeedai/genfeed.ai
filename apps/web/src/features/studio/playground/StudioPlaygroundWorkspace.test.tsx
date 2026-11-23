@@ -2646,7 +2646,7 @@ describe('StudioPlaygroundWorkspace', () => {
     };
     mocks.settings.mockReturnValue({
       resetSettings: vi.fn(),
-      settings: { modelKey: DEFAULT_IMAGE_EDIT_MODEL_KEY },
+      settings: { modelKey: MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_4_5 },
       setType: mocks.setType,
       type: 'image-edit',
       updateSettings: vi.fn(),
@@ -2861,7 +2861,7 @@ describe('StudioPlaygroundWorkspace', () => {
     expect(screen.queryByText('Should never appear')).not.toBeInTheDocument();
 
     // Give the (mis-gated, pre-fix) model/param effect every chance to fire.
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    await new Promise((resolve) => setImmediate(resolve));
     expect(mocks.updateSettings).not.toHaveBeenCalled();
     expect(notifications().getAllByRole('listitem')).toHaveLength(1);
   });

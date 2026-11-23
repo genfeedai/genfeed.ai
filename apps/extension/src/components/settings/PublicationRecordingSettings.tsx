@@ -6,7 +6,13 @@ import type {
 import type { PublicationCaptureEntryProps } from '@genfeedai/props/extension/extension-publication-observer.props';
 import { Button } from '@ui/primitives/button';
 import { Switch } from '@ui/primitives/switch';
-import { type ReactElement, useEffect, useRef, useState } from 'react';
+import {
+  type ReactElement,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 import { useSettingsStore } from '~store/use-settings-store';
 import { useWorkspaceStore } from '~store/use-workspace-store';
 
@@ -62,7 +68,7 @@ export function PublicationRecordingSettings(): ReactElement {
   const [entries, setEntries] = useState<PublicationCaptureView[]>([]);
   const [message, setMessage] = useState('');
   const [listEnabled, setListEnabled] = useState(false);
-  async function refresh() {
+  const refresh = useCallback(async () => {
     const requestVersion = ++version.current;
     const requestKey = scope.current;
     if (!requestKey) return;
@@ -80,9 +86,11 @@ export function PublicationRecordingSettings(): ReactElement {
       if (requestVersion === version.current && requestKey === scope.current)
         setMessage('Could not load publication recordings. Retry in a moment.');
     }
-  }
-  // biome-ignore lint/correctness/useExhaustiveDependencies: Snapshot revision and preference fence every list response.
+  }, []);
+  // use-effect-audit: ignore subscribes to chrome.storage changes and fences stale list responses
   useEffect(() => {
+    void key;
+    void enabled;
     version.current++;
     setEntries([]);
     setMessage('');
@@ -96,7 +104,7 @@ export function PublicationRecordingSettings(): ReactElement {
       version.current++;
       chrome.storage.onChanged.removeListener(changed);
     };
-  }, [key, enabled]);
+  }, [key, enabled, refresh]);
   async function mutate(
     id: string,
     event: 'publicationCaptureRetry' | 'publicationCaptureDismiss',

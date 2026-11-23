@@ -294,6 +294,13 @@ export const PLATFORM_SCHEDULE_HANDLER_ALLOWLIST: CronBoundaryEntry[] = [
       'Platform schedule handler for the #3030 daily wipe of soft-deleted agent transcripts.',
   },
   {
+    file: 'apps/server/workers/src/crons/video-retention/cron.video-retention.service.ts',
+    id: 'video-retention',
+    methodName: 'expireUnpostedVideos',
+    reason:
+      'Platform schedule handler for the hourly delete of expired, never-posted video files (7 days pay-as-you-go, 30 days subscribers).',
+  },
+  {
     file: 'apps/server/workers/src/crons/youtube/cron.youtube-status.service.ts',
     id: 'youtube-status',
     methodName: 'checkScheduledYoutubeVideos',

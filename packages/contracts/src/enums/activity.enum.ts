@@ -136,6 +136,8 @@ export enum ActivityKey {
   AGENT_RUN_FAILED = 'agent-run-failed',
   /** The live chat stream could not deliver an agent failure to the client. */
   AGENT_RUN_DELIVERY_FAILED = 'agent-run-delivery-failed',
+  /** An agent run is waiting on a person's answer to its question. */
+  AGENT_INPUT_REQUESTED = 'agent-input-requested',
   AGENT_REVIEW_CHANGED = 'agent-review-changed',
   AGENT_REVIEW_EXPIRED = 'agent-review-expired',
   /** New replies to recently published posts landed in the social inbox. */

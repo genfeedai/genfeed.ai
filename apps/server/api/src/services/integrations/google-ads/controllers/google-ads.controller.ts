@@ -5,6 +5,7 @@ import {
   CreateCredentialVerifyDto,
 } from '@api/collections/credentials/dto/create-credential.dto';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { claimOAuthVerifyCredential } from '@api/collections/credentials/utils/oauth-verify-claim.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -112,7 +113,8 @@ export class GoogleAdsController {
       );
     }
 
-    const credential = await this.credentialsService.findPendingOAuthCredential(
+    const claim = await claimOAuthVerifyCredential(
+      this.credentialsService,
       body.state,
       CredentialPlatform.GOOGLE_ADS,
       {
@@ -120,6 +122,10 @@ export class GoogleAdsController {
         userId: user.userId ?? user.id,
       },
     );
+    if (claim?.alreadyConnected) {
+      return serializeSingle(request, CredentialSerializer, claim.credential);
+    }
+    const credential = claim?.credential;
 
     if (!credential) {
       throw new HttpException(

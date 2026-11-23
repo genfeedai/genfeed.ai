@@ -108,6 +108,33 @@ export class ReviewInboxService extends HTTPBaseService {
   }
 
   /**
+   * Answers an agent question listed in the inbox. The answer goes through
+   * the thread's own route, the one the chat uses, so there is a single
+   * answer path and the thread's access rules apply.
+   */
+  async answerQuestion(request: {
+    answer: string;
+    optionIds?: string[];
+    requestId: string;
+    threadId: string;
+  }): Promise<void> {
+    try {
+      await this.instance.post(
+        `${EnvironmentService.apiEndpoint}/agent/threads/${encodeURIComponent(
+          request.threadId,
+        )}/input-requests/${encodeURIComponent(request.requestId)}/responses`,
+        {
+          answer: request.answer,
+          ...(request.optionIds ? { optionIds: request.optionIds } : {}),
+        },
+      );
+    } catch (error) {
+      logger.error('POST agent input request response failed', error);
+      throw error;
+    }
+  }
+
+  /**
    * Decides many items with one request per {@link REVIEW_INBOX_BATCH_DECISION_MAX_ITEMS}
    * ids. A request that fails outright reports its ids as failed, so earlier
    * chunks still count.

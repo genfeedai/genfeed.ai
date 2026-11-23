@@ -48,6 +48,14 @@ describe('POST /api/csp-report', () => {
     ]);
   });
 
+  it('titles the warning with the directive and the blocked host', async () => {
+    await POST(post(report('https://titled.test/x.png?sig=1')));
+
+    expect(vi.mocked(Sentry.captureMessage).mock.calls[0]?.[0]).toBe(
+      'CSP violation: img-src blocked titled.test',
+    );
+  });
+
   it('answers only after Sentry has sent the warning', async () => {
     let finishFlush: (isFlushed: boolean) => void = () => {};
     vi.mocked(Sentry.flush).mockReturnValueOnce(
@@ -63,7 +71,7 @@ describe('POST /api/csp-report', () => {
       },
     );
 
-    await new Promise((resolve) => setTimeout(resolve, 10));
+    await new Promise((resolve) => setImmediate(resolve));
     expect(isAnswered).toBe(false);
 
     finishFlush(true);

@@ -1,18 +1,26 @@
 'use client';
 
 import { usePostsLayout } from '@contexts/posts/posts-layout-context';
-import { PageScope, type Platform, PostStatus } from '@genfeedai/contracts';
+import {
+  ButtonVariant,
+  PageScope,
+  type Platform,
+  PostStatus,
+} from '@genfeedai/contracts';
 import type { IPost, IPreset } from '@genfeedai/contracts/interfaces';
 import type { ContentProps } from '@props/layout/content.props';
 import CollectionSection from '@ui/collection/CollectionSection';
 import { ErrorFallback } from '@ui/error/ErrorFallback';
+import SelectionToolbar from '@ui/lists/selection-toolbar/SelectionToolbar';
 import Loading from '@ui/loading/default/Loading';
 import Pagination from '@ui/navigation/pagination/Pagination';
 import ViewMenu from '@ui/navigation/view-menu/ViewMenu';
-import { LayoutGrid, Table } from 'lucide-react';
+import { Button } from '@ui/primitives/button';
+import { LayoutGrid, Table, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef } from 'react';
 import PostDetailPanel from '@/features/posts/detail/PostDetailPanel';
+import { useConfirmPostRemoval } from '@/features/posts/hooks/use-confirm-post-removal/use-confirm-post-removal';
 import AdminPostsTable from '@/features/posts/list/components/AdminPostsTable';
 import PostsGrid from '@/features/posts/list/components/PostsGrid';
 import PostsListToolbar, {
@@ -24,6 +32,7 @@ import type {
   PostsPublicationState,
   PublishingPostsView,
 } from '@/features/posts/list/posts-list-query';
+import { usePostsSelection } from '@/features/posts/list/use-posts-selection';
 import {
   getDefaultSort,
   usePostsList,
@@ -55,6 +64,7 @@ export default function PostsList({
   onSuggestScheduleWithAgent,
 }: PostsListProps) {
   const translate = useTranslations('pages.posts.list.collection');
+  const translateRemoval = useTranslations('ui.postRemoval');
   const { setLeadingNode } = usePostsLayout();
   const {
     currentPage,
@@ -95,6 +105,20 @@ export default function PostsList({
     onRewriteWithAgent,
     onSuggestScheduleWithAgent,
   });
+  const confirmPostRemoval = useConfirmPostRemoval();
+  const {
+    clearSelection,
+    dropFromSelection,
+    selectedIds,
+    selectedPosts,
+    toggleSelect,
+  } = usePostsSelection(posts);
+  const handleDeleteSelected = useCallback(() => {
+    confirmPostRemoval(selectedPosts, async (removedIds) => {
+      dropFromSelection(removedIds);
+      await findAllPosts();
+    });
+  }, [confirmPostRemoval, dropFromSelection, findAllPosts, selectedPosts]);
   const publishingView: PublishingPostsView | undefined =
     statusProp === PostStatus.FAILED ||
     statusProp === PostStatus.PENDING ||
@@ -223,6 +247,22 @@ export default function PostsList({
             />
           ) : (
             <>
+              <SelectionToolbar
+                clearLabel={translateRemoval('clearSelection')}
+                count={selectedPosts.length}
+                label={translateRemoval('selectedCount', {
+                  count: selectedPosts.length,
+                })}
+                onClear={clearSelection}
+              >
+                <Button
+                  ariaLabel={translateRemoval('deleteSelection')}
+                  label={<Trash2 />}
+                  onClick={handleDeleteSelected}
+                  tooltip={translateRemoval('deleteSelection')}
+                  variant={ButtonVariant.DESTRUCTIVE}
+                />
+              </SelectionToolbar>
               <CollectionSection
                 title={translate('needsYou')}
                 itemCount={
@@ -241,6 +281,8 @@ export default function PostsList({
                   onOpenPostDetail={handleOpenPostDetail}
                   primaryAction={primaryCardAction}
                   secondaryActions={secondaryCardActions}
+                  selectedIds={selectedIds}
+                  onToggleSelect={toggleSelect}
                 />
               </CollectionSection>
               <CollectionSection isLoading={isLoading}>
@@ -251,6 +293,8 @@ export default function PostsList({
                   onOpenPostDetail={handleOpenPostDetail}
                   primaryAction={primaryCardAction}
                   secondaryActions={secondaryCardActions}
+                  selectedIds={selectedIds}
+                  onToggleSelect={toggleSelect}
                 />
               </CollectionSection>
             </>

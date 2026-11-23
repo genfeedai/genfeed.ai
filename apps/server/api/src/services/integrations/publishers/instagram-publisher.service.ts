@@ -129,7 +129,6 @@ export class InstagramPublisherService extends BasePublisherService {
     const { post, credential, organizationId, brandId } = context;
     const mediaInfo = this.extractMediaInfo(post);
 
-    // Log the attempt
     this.logPublishAttempt(context, mediaInfo);
 
     // Validate

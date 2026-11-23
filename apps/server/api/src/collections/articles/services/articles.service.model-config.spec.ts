@@ -12,6 +12,7 @@ vi.mock('@genfeedai/prisma', async () => {
   return canonicalPrismaMock();
 });
 
+import { GenerateArticlesDto } from '@api/collections/articles/dto/generate-articles.dto';
 import { ArticleInsightsService } from '@api/collections/articles/services/article-insights.service';
 import { ArticleRemixService } from '@api/collections/articles/services/article-remix.service';
 import { ArticleVersionService } from '@api/collections/articles/services/article-version.service';
@@ -19,10 +20,11 @@ import { ArticlesService } from '@api/collections/articles/services/articles.ser
 import type { ArticlesContentService } from '@api/collections/articles/services/articles-content.service';
 import type { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { DEFAULT_MINI_TEXT_MODEL } from '@api/constants/default-mini-text-model.constant';
-import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
-import { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/agent-chat-model-registry.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { MODEL_KEYS } from '@genfeedai/contracts/constants';
+import { getActionDefinition } from '@genfeedai/actions';
+import { LLM_DEFAULTS, MODEL_KEYS } from '@genfeedai/contracts/constants';
+import { isRecord } from '@genfeedai/contracts/constants/type-guards.constant';
+import { compileActionContract } from '@genfeedai/workflows/engine';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import type { ModuleRef } from '@nestjs/core';
@@ -51,13 +53,12 @@ describe('ArticlesService article cycle model config', () => {
     } | null,
     {
       hasSettingsService = true,
-      agentChatModelRegistry,
+      runWorkflow,
     }: {
       hasSettingsService?: boolean;
-      agentChatModelRegistry?: Pick<
-        AgentChatModelRegistryService,
-        'resolveModelKey'
-      >;
+      runWorkflow?: (request: { inputValues: Record<string, unknown> }) => {
+        result: unknown;
+      };
     } = {},
   ) {
     const prisma = {
@@ -98,6 +99,7 @@ describe('ArticlesService article cycle model config', () => {
           actions.set(id, action);
         },
         registerWorkflow: vi.fn(),
+        runWorkflow,
       }),
     } as unknown as ModuleRef;
 
@@ -116,7 +118,6 @@ describe('ArticlesService article cycle model config', () => {
       undefined, // organizationsService
       undefined, // cacheInvalidationService
       moduleRef,
-      agentChatModelRegistry as AgentChatModelRegistryService | undefined,
     );
 
     return {
@@ -165,35 +166,7 @@ describe('ArticlesService article cycle model config', () => {
 
     const config = await service.resolveArticleCycleModelConfig(organizationId);
 
-    expect(config.generationModel).toBe(DEFAULT_TEXT_MODEL);
-  });
-
-  it('uses the Admin default TEXT model over the seed fallback when no explicit or org model is set', async () => {
-    const adminDefaultModel = MODEL_KEYS.REPLICATE_GOOGLE_GEMINI_3_PRO;
-    const resolveModelKey = vi.fn().mockResolvedValue(adminDefaultModel);
-    const { service } = buildService(null, {
-      agentChatModelRegistry: { resolveModelKey },
-    });
-
-    const config = await service.resolveArticleCycleModelConfig(organizationId);
-
-    expect(resolveModelKey).toHaveBeenCalledWith(undefined, DEFAULT_TEXT_MODEL);
-    expect(config.generationModel).toBe(adminDefaultModel);
-  });
-
-  it('falls back to DEFAULT_TEXT_MODEL when the registry resolves nothing new', async () => {
-    const resolveModelKey = vi
-      .fn()
-      .mockImplementation(
-        (_key: string | undefined, fallbackKey: string) => fallbackKey,
-      );
-    const { service } = buildService(null, {
-      agentChatModelRegistry: { resolveModelKey },
-    });
-
-    const config = await service.resolveArticleCycleModelConfig(organizationId);
-
-    expect(config.generationModel).toBe(DEFAULT_TEXT_MODEL);
+    expect(config.generationModel).toBe(LLM_DEFAULTS.contentWriting);
   });
 
   it('applies the override when the org has no settings', async () => {
@@ -222,6 +195,49 @@ describe('ArticlesService article cycle model config', () => {
       reviewModel: DEFAULT_MINI_TEXT_MODEL,
       updateModel: DEFAULT_MINI_TEXT_MODEL,
     });
+  });
+
+  it('passes a validated article request with omitted fields to the workflow', async () => {
+    const action = getActionDefinition(ARTICLE_LOAD_GENERATION_ACTION_ID);
+    if (!isRecord(action?.inputSchema) || !isRecord(action?.outputSchema)) {
+      throw new Error('The article load-context action must have a contract');
+    }
+    const contract = compileActionContract(ARTICLE_LOAD_GENERATION_ACTION_ID, {
+      inputSchema: action.inputSchema,
+      outputSchema: action.outputSchema,
+    });
+    const expected = { articles: [{ id: 'draft_1' }], billedCredits: 0 };
+    const { service } = buildService(null, {
+      runWorkflow: ({ inputValues }) => {
+        contract.validateInput(inputValues, {
+          nodeId: 'load-context',
+          runId: 'run_1',
+          workflowId: 'article.generation',
+          workflowVersionId: 'version_1',
+        });
+        expect(inputValues).toEqual({
+          brandId: 'brand_1',
+          dto: {
+            count: 1,
+            generateHeaderImage: false,
+            keywords: ['AI'],
+            prompt: 'AI infrastructure trends',
+          },
+        });
+        return { result: expected };
+      },
+    });
+    const dto = Object.assign(new GenerateArticlesDto(), {
+      count: 1,
+      generateHeaderImage: false,
+      keywords: ['AI'],
+      prompt: 'AI infrastructure trends',
+      tone: undefined,
+    });
+
+    await expect(
+      service.generateArticles(dto, 'user_1', organizationId, 'brand_1'),
+    ).resolves.toEqual(expected);
   });
 
   it('hands the per-request model to the content service', async () => {
