@@ -12,7 +12,7 @@ import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Label } from '@ui/primitives/label';
-import { SegmentedControl } from '@ui/primitives/segmented-control';
+import { OptionTile, OptionTileGroup } from '@ui/primitives/option-tile';
 import Spinner from '@ui/primitives/spinner';
 import { Textarea } from '@ui/primitives/textarea';
 import { type ReactElement, useEffect, useReducer } from 'react';
@@ -513,20 +513,25 @@ export function ReplyPage({
         <legend className="mb-2 text-xs font-medium text-muted-foreground">
           Tone
         </legend>
-        <SegmentedControl
-          appearance="chip"
+        <OptionTileGroup
           ariaLabel="Tone"
+          columns={2}
           onValueChange={(value) =>
             dispatch({ payload: value, type: 'SET_TONE' })
           }
-          options={TONES.map((t) => ({
-            label: t.label,
-            tooltip: t.description,
-            value: t.value,
-          }))}
-          size="sm"
           value={tone}
-        />
+        >
+          {TONES.map((t) => (
+            <OptionTile
+              description={t.description}
+              key={t.value}
+              layout="stack"
+              size="sm"
+              title={t.label}
+              value={t.value}
+            />
+          ))}
+        </OptionTileGroup>
       </fieldset>
 
       <Button

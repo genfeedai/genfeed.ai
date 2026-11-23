@@ -20,7 +20,7 @@ import {
 } from '@ui/primitives/collapsible';
 import Field from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
-import { SegmentedControl } from '@ui/primitives/segmented-control';
+import { OptionTile, OptionTileGroup } from '@ui/primitives/option-tile';
 import ButtonTracked from '@web-components/buttons/tracked/ButtonTracked';
 import {
   ArrowRight,
@@ -93,31 +93,47 @@ export default function AiModelSelectorContent({
       <div className="grid gap-5 lg:grid-cols-2">
         <fieldset className="space-y-2">
           <legend className="text-sm font-medium">Create</legend>
-          <SegmentedControl
-            appearance="chip"
+          <OptionTileGroup
             ariaLabel="Create"
+            columns="auto"
             onValueChange={(value) => {
               setFormat(value);
               setCopyStatus('');
             }}
-            options={MODEL_FORMATS}
-            size="touch"
             value={format}
-          />
+          >
+            {MODEL_FORMATS.map((option) => (
+              <OptionTile
+                className="w-auto"
+                key={option.value}
+                layout="stack"
+                title={option.label}
+                value={option.value}
+              />
+            ))}
+          </OptionTileGroup>
         </fieldset>
         <fieldset className="space-y-2">
           <legend className="text-sm font-medium">Prioritize</legend>
-          <SegmentedControl
-            appearance="chip"
+          <OptionTileGroup
             ariaLabel="Prioritize"
+            columns="auto"
             onValueChange={(value) => {
               setPriority(value);
               setCopyStatus('');
             }}
-            options={MODEL_PRIORITIES}
-            size="touch"
             value={priority}
-          />
+          >
+            {MODEL_PRIORITIES.map((option) => (
+              <OptionTile
+                className="w-auto"
+                key={option.value}
+                layout="stack"
+                title={option.label}
+                value={option.value}
+              />
+            ))}
+          </OptionTileGroup>
         </fieldset>
       </div>
       <Collapsible className="border-b border-border">
@@ -142,17 +158,25 @@ export default function AiModelSelectorContent({
             {hasVisualOutput ? (
               <fieldset className="space-y-2">
                 <legend className="text-sm font-medium">Aspect ratio</legend>
-                <SegmentedControl
-                  appearance="chip"
+                <OptionTileGroup
                   ariaLabel="Aspect ratio"
+                  columns="auto"
                   onValueChange={(value) => {
                     setOrientation(value);
                     setCopyStatus('');
                   }}
-                  options={ORIENTATIONS}
-                  size="touch"
                   value={orientation}
-                />
+                >
+                  {ORIENTATIONS.map((option) => (
+                    <OptionTile
+                      className="w-auto"
+                      key={option.value}
+                      layout="stack"
+                      title={option.label}
+                      value={option.value}
+                    />
+                  ))}
+                </OptionTileGroup>
               </fieldset>
             ) : null}
           </div>
