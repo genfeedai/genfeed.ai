@@ -54,6 +54,14 @@ const FEED_ERROR_PATTERN = /feed/i;
 const SIZE_ERROR_PATTERN = /size|byte/i;
 
 const LEASE_MS = 5 * 60 * 1000;
+
+/**
+ * A run this caller must execute, with the lease token that proves it still
+ * owns the run when it writes the outcome, or a run someone else holds.
+ */
+type ClaimedRun =
+  | { existingJobId: string; runId: string }
+  | { existingJobId?: undefined; leaseToken: string; runId: string };
 const BACKOFF_MINUTES = [15, 30, 60, 120];
 const SAFE_ERRORS = {
   missing: 'Source origin is gone',
@@ -248,17 +256,29 @@ export class KnowledgeRefreshService {
       return this.skipRun(actor, sourceId, tickKey);
     }
     const claimed = await this.claimRun(actor, source, tickKey);
-    if (claimed.existingJobId) {
+    if (claimed.existingJobId !== undefined) {
       return {
         jobId: claimed.existingJobId,
         refreshRunId: claimed.runId,
         sourceId,
       };
     }
+    const leaseToken = claimed.leaseToken;
     try {
-      return await this.executeClaimedRun(actor, sourceId, claimed.runId);
+      return await this.executeClaimedRun(
+        actor,
+        sourceId,
+        claimed.runId,
+        leaseToken,
+      );
     } catch (error: unknown) {
-      await this.failRun(claimed.runId, actor.organizationId, sourceId, error);
+      await this.failRun(
+        claimed.runId,
+        actor.organizationId,
+        sourceId,
+        leaseToken,
+        error,
+      );
       if (error instanceof KnowledgeSourceUnavailableException) {
         this.logger.warn('Knowledge refresh source unavailable', {
           networkCode: error.networkCode,
@@ -275,6 +295,7 @@ export class KnowledgeRefreshService {
     actor: KnowledgeActor,
     sourceId: string,
     runId: string,
+    leaseToken: string,
   ): Promise<KnowledgeRefreshResult> {
     const [source, current] = await Promise.all([
       this.records.getSource(actor, sourceId),
@@ -300,7 +321,12 @@ export class KnowledgeRefreshService {
       referenceUrl: origin,
     });
     if (extracted.notModified) {
-      await this.completeUnchanged(runId, actor.organizationId, sourceId);
+      await this.completeUnchanged(
+        runId,
+        actor.organizationId,
+        sourceId,
+        leaseToken,
+      );
       return { refreshRunId: runId, sourceId };
     }
     const fingerprint = createHash('sha256')
@@ -308,10 +334,13 @@ export class KnowledgeRefreshService {
       .digest('hex');
     const priorFingerprint = this.readFingerprint(current.payload);
     if (priorFingerprint && priorFingerprint === fingerprint) {
-      await this.completeUnchanged(runId, actor.organizationId, sourceId, {
-        etag: extracted.etag,
-        lastModified: extracted.lastModified,
-      });
+      await this.completeUnchanged(
+        runId,
+        actor.organizationId,
+        sourceId,
+        leaseToken,
+        { etag: extracted.etag, lastModified: extracted.lastModified },
+      );
       return { refreshRunId: runId, sourceId };
     }
     const candidate = await this.records.createCandidateVersion(
@@ -415,10 +444,14 @@ export class KnowledgeRefreshService {
         exceptVersionId: input.versionId,
         sourceId: input.sourceId,
       });
-      await tx.knowledgeSourceRefreshRun.updateMany({
+      // Only a run that is still PROCESSING completes. One that a later
+      // caller took over and failed stays FAILED, and the source keeps the
+      // failure and backoff that caller recorded (#10401).
+      const completed = await tx.knowledgeSourceRefreshRun.updateMany({
         where: scopedWhere(input.organizationId, {
           id: run.id,
           sourceId: input.sourceId,
+          status: KnowledgeRefreshRunStatus.PROCESSING,
         }),
         data: {
           completedAt: now,
@@ -426,6 +459,7 @@ export class KnowledgeRefreshService {
           status: KnowledgeRefreshRunStatus.COMPLETED,
         },
       });
+      if (completed.count !== 1) return;
       const source = await tx.knowledgeSource.findFirst({
         where: scopedWhere(input.organizationId, { id: input.sourceId }),
       });
@@ -471,7 +505,7 @@ export class KnowledgeRefreshService {
     actor: KnowledgeActor,
     source: { id: string; organizationId: string },
     tickKey: string,
-  ): Promise<{ existingJobId?: string; runId: string }> {
+  ): Promise<ClaimedRun> {
     const existing = await this.prisma.knowledgeSourceRefreshRun.findFirst({
       where: scopedWhere(actor.organizationId, {
         sourceId: source.id,
@@ -487,12 +521,14 @@ export class KnowledgeRefreshService {
       // A failed run for this tick is retried; a live or completed one is
       // reported as-is. The claim is compare-and-set, so only one caller
       // re-executes a given run.
-      if (
-        await this.takeOverRun(actor.organizationId, source.id, existing.id, {
-          isFailedReclaimable: true,
-        })
-      ) {
-        return { runId: existing.id };
+      const reclaimedToken = await this.takeOverRun(
+        actor.organizationId,
+        source.id,
+        existing.id,
+        { isFailedReclaimable: true },
+      );
+      if (reclaimedToken) {
+        return { leaseToken: reclaimedToken, runId: existing.id };
       }
       return {
         existingJobId: existing.candidateVersionId ?? existing.id,
@@ -516,15 +552,18 @@ export class KnowledgeRefreshService {
           existingJobId: unfinished.candidateVersionId ?? unfinished.id,
           runId: unfinished.id,
         };
-      if (
-        await this.takeOverRun(actor.organizationId, source.id, unfinished.id, {
-          isFailedReclaimable: false,
-        })
-      ) {
+      const expiredToken = await this.takeOverRun(
+        actor.organizationId,
+        source.id,
+        unfinished.id,
+        { isFailedReclaimable: false },
+      );
+      if (expiredToken) {
         await this.failRun(
           unfinished.id,
           actor.organizationId,
           source.id,
+          expiredToken,
           new Error('Refresh lease expired'),
         );
       } else {
@@ -549,11 +588,12 @@ export class KnowledgeRefreshService {
         };
       }
     }
+    const leaseToken = randomUUID();
     const created = await this.prisma.knowledgeSourceRefreshRun.create({
       data: {
         attemptCount: 1,
         leaseExpiresAt: new Date(Date.now() + LEASE_MS),
-        leaseToken: randomUUID(),
+        leaseToken,
         organizationId: actor.organizationId,
         sourceId: source.id,
         startedAt: new Date(),
@@ -565,29 +605,42 @@ export class KnowledgeRefreshService {
       where: scopedWhere(actor.organizationId, { id: source.id }),
       data: { syncState: KnowledgeSourceSyncState.CHECKING },
     });
-    return { runId: created.id };
+    return { leaseToken, runId: created.id };
   }
 
+  /**
+   * Settles a run as unchanged. The run write matches only the run this caller
+   * still owns (`PROCESSING` with its `leaseToken`); a worker that outlived its
+   * lease finds the run taken over and failed, writes nothing, and leaves the
+   * source's sync state and failure count alone (#10401).
+   */
   private async completeUnchanged(
     runId: string,
     organizationId: string,
     sourceId: string,
+    leaseToken: string,
     validators?: { etag?: string; lastModified?: string },
   ): Promise<void> {
     const now = new Date();
     const source = await this.prisma.knowledgeSource.findFirst({
       where: scopedWhere(organizationId, { id: sourceId }),
     });
-    await this.prisma.$transaction([
-      this.prisma.knowledgeSourceRefreshRun.updateMany({
-        where: scopedWhere(organizationId, { id: runId, sourceId }),
+    const isSettled = await this.prisma.$transaction(async (tx) => {
+      const run = await tx.knowledgeSourceRefreshRun.updateMany({
+        where: scopedWhere(organizationId, {
+          id: runId,
+          leaseToken,
+          sourceId,
+          status: KnowledgeRefreshRunStatus.PROCESSING,
+        }),
         data: {
           completedAt: now,
           outcome: KnowledgeRefreshRunOutcome.UNCHANGED,
           status: KnowledgeRefreshRunStatus.COMPLETED,
         },
-      }),
-      this.prisma.knowledgeSource.updateMany({
+      });
+      if (run.count !== 1) return false;
+      await tx.knowledgeSource.updateMany({
         where: scopedWhere(organizationId, { id: sourceId }),
         data: {
           consecutiveFailures: 0,
@@ -601,8 +654,17 @@ export class KnowledgeRefreshService {
           staleAt: null,
           syncState: KnowledgeSourceSyncState.CURRENT,
         },
-      }),
-    ]);
+      });
+      return true;
+    });
+    if (!isSettled) {
+      this.logger.warn('Knowledge refresh lost its lease before completing', {
+        organizationId,
+        runId,
+        sourceId,
+      });
+      return;
+    }
     this.logger.log('Knowledge refresh unchanged', {
       organizationId,
       runId,
@@ -610,40 +672,59 @@ export class KnowledgeRefreshService {
     });
   }
 
+  /**
+   * Fails a run this caller owns (`PROCESSING` with its `leaseToken`). The
+   * source's failure count is an atomic increment, read back inside the same
+   * transaction to derive the backoff and staleness, so two writers cannot
+   * lose a count. A caller that no longer owns the run writes nothing (#10401).
+   */
   private async failRun(
     runId: string,
     organizationId: string,
     sourceId: string,
+    leaseToken: string,
     error: unknown,
   ): Promise<void> {
     const message = this.toSafeError(error);
-    const source = await this.prisma.knowledgeSource.findFirst({
-      where: scopedWhere(organizationId, { id: sourceId }),
-    });
-    const consecutiveFailures = (source?.consecutiveFailures ?? 0) + 1;
-    const firstFailureAt = source?.firstFailureAt ?? new Date();
-    const graceMinutes = source?.gracePeriodMinutes ?? 10_080;
-    const isStale =
-      consecutiveFailures >= 2 &&
-      Date.now() - firstFailureAt.getTime() >= graceMinutes * 60_000;
-    const backoff =
-      BACKOFF_MINUTES[
-        Math.min(consecutiveFailures - 1, BACKOFF_MINUTES.length - 1)
-      ] ?? 120;
-    await this.prisma.$transaction([
-      this.prisma.knowledgeSourceRefreshRun.updateMany({
-        where: scopedWhere(organizationId, { id: runId, sourceId }),
+    await this.prisma.$transaction(async (tx) => {
+      const run = await tx.knowledgeSourceRefreshRun.updateMany({
+        where: scopedWhere(organizationId, {
+          id: runId,
+          leaseToken,
+          sourceId,
+          status: KnowledgeRefreshRunStatus.PROCESSING,
+        }),
         data: {
           completedAt: new Date(),
           error: message,
-          nextAttemptAt: new Date(Date.now() + backoff * 60_000),
           status: KnowledgeRefreshRunStatus.FAILED,
         },
-      }),
-      this.prisma.knowledgeSource.updateMany({
+      });
+      if (run.count !== 1) return;
+      await tx.knowledgeSource.updateMany({
+        where: scopedWhere(organizationId, { id: sourceId }),
+        data: { consecutiveFailures: { increment: 1 } },
+      });
+      const source = await tx.knowledgeSource.findFirst({
+        where: scopedWhere(organizationId, { id: sourceId }),
+      });
+      const consecutiveFailures = source?.consecutiveFailures ?? 1;
+      const firstFailureAt = source?.firstFailureAt ?? new Date();
+      const graceMinutes = source?.gracePeriodMinutes ?? 10_080;
+      const isStale =
+        consecutiveFailures >= 2 &&
+        Date.now() - firstFailureAt.getTime() >= graceMinutes * 60_000;
+      const backoff =
+        BACKOFF_MINUTES[
+          Math.min(consecutiveFailures - 1, BACKOFF_MINUTES.length - 1)
+        ] ?? 120;
+      await tx.knowledgeSourceRefreshRun.updateMany({
+        where: scopedWhere(organizationId, { id: runId, sourceId }),
+        data: { nextAttemptAt: new Date(Date.now() + backoff * 60_000) },
+      });
+      await tx.knowledgeSource.updateMany({
         where: scopedWhere(organizationId, { id: sourceId }),
         data: {
-          consecutiveFailures,
           firstFailureAt,
           lastCheckedAt: new Date(),
           lastSyncError: message,
@@ -653,8 +734,8 @@ export class KnowledgeRefreshService {
             ? KnowledgeSourceSyncState.STALE
             : KnowledgeSourceSyncState.FAILED,
         },
-      }),
-    ]);
+      });
+    });
   }
 
   private async skipRun(
@@ -671,15 +752,17 @@ export class KnowledgeRefreshService {
 
   /**
    * Atomically take over a run whose lease has expired (or, when allowed, a
-   * FAILED run). Returns false when another caller holds or already took it.
+   * FAILED run). Returns the new lease token, or null when another caller
+   * holds or already took it.
    */
   private async takeOverRun(
     organizationId: string,
     sourceId: string,
     runId: string,
     options: { isFailedReclaimable: boolean },
-  ): Promise<boolean> {
+  ): Promise<string | null> {
     const now = new Date();
+    const leaseToken = randomUUID();
     const expiredLease = {
       status: {
         in: [
@@ -704,12 +787,12 @@ export class KnowledgeRefreshService {
         completedAt: null,
         error: null,
         leaseExpiresAt: new Date(now.getTime() + LEASE_MS),
-        leaseToken: randomUUID(),
+        leaseToken,
         startedAt: now,
         status: KnowledgeRefreshRunStatus.PROCESSING,
       },
     });
-    return taken.count === 1;
+    return taken.count === 1 ? leaseToken : null;
   }
 
   private nextCheckAtFrom(
