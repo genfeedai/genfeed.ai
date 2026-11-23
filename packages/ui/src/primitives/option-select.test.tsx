@@ -163,4 +163,40 @@ describe('OptionSelect', () => {
       'empty',
     );
   });
+
+  it('lists options under their group heading and searches across groups', async () => {
+    const user = userEvent.setup();
+    render(
+      <OptionSelect
+        ariaLabel="Preset"
+        isSearchable
+        onValueChange={() => {}}
+        options={[
+          { group: 'Assets', label: 'Product shot', value: 'shot' },
+          { group: 'Socials', label: 'Launch post', value: 'post' },
+          { group: 'Assets', label: 'Banner', value: 'banner' },
+        ]}
+        searchLabel="Search presets"
+        value=""
+      />,
+    );
+
+    await user.click(screen.getByRole('combobox', { name: 'Preset' }));
+
+    expect(screen.getByRole('group', { name: 'Assets' })).toContainElement(
+      screen.getByRole('option', { name: 'Banner' }),
+    );
+    expect(screen.getByRole('group', { name: 'Socials' })).toContainElement(
+      screen.getByRole('option', { name: 'Launch post' }),
+    );
+
+    await user.type(
+      screen.getByRole('combobox', { name: 'Search presets' }),
+      'launch',
+    );
+
+    expect(
+      screen.queryByRole('option', { name: 'Banner' }),
+    ).not.toBeInTheDocument();
+  });
 });
