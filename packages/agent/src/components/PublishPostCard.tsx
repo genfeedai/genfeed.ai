@@ -8,15 +8,14 @@ import type {
 import { ButtonVariant, PostVisibility } from '@genfeedai/contracts';
 import { usePostingSets } from '@hooks/data/content/use-posting-sets/use-posting-sets';
 import { usePostingSignatures } from '@hooks/data/content/use-posting-signatures/use-posting-signatures';
+import AccountPicker from '@ui/display/connected-account/AccountPicker';
 import ConnectedAccount from '@ui/display/connected-account/ConnectedAccount';
-import { getConnectedAccountText } from '@ui/display/connected-account/connected-account.util';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import { Input } from '@ui/primitives/input';
 import { Label } from '@ui/primitives/label';
 import { OptionTile, OptionTileGroup } from '@ui/primitives/option-tile';
-import { SegmentedControl } from '@ui/primitives/segmented-control';
 import {
   Select,
   SelectContent,
@@ -25,7 +24,6 @@ import {
   SelectValue,
 } from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
-import { Toggle } from '@ui/primitives/toggle';
 import PostingSetPicker from '@ui/publisher/PostingSetPicker';
 import PostingSignaturePicker from '@ui/publisher/PostingSignaturePicker';
 import { Calendar, CircleCheck, Send } from 'lucide-react';
@@ -558,16 +556,33 @@ export function PublishPostCard({
           <span className="mb-1 block text-2xs font-medium uppercase tracking-label text-muted-foreground">
             {translate('channels')}
           </span>
+          <AccountPicker
+            ariaLabel={translate('channels')}
+            className="mb-3"
+            items={targetProposals.map((target) => ({
+              ...targetAccount(target),
+              id: target.id,
+            }))}
+            onValueChange={(nextIds) => {
+              for (const targetId of [
+                ...nextIds.filter((id) => !selectedTargetIdSet.has(id)),
+                ...[...selectedTargetIdSet].filter(
+                  (id) => !nextIds.includes(id),
+                ),
+              ]) {
+                toggleTarget(targetId);
+              }
+            }}
+            type="multiple"
+            value={[...selectedTargetIdSet]}
+          />
           <div className="space-y-3">
-            {targetProposals.map((target) => {
-              const isSelected = selectedTargetIdSet.has(target.id);
+            {selectedTargets.map((target) => {
               const effectiveCaption = resolveEffectiveCaption(
                 caption,
                 captionOverrides[target.id],
               );
-              const blockers = isSelected
-                ? (targetBlockers[target.id] ?? [])
-                : [];
+              const blockers = targetBlockers[target.id] ?? [];
               const warnings = target.warnings ?? [];
               const account = targetAccount(target);
               const settingFields = target.settingFields ?? [];
@@ -575,159 +590,143 @@ export function PublishPostCard({
               return (
                 <div key={target.id} className="border border-border p-3">
                   <div className="mb-2 flex items-center justify-between gap-2">
-                    <Toggle
-                      aria-label={getConnectedAccountText(account).primary}
-                      onPressedChange={() => toggleTarget(target.id)}
-                      pressed={isSelected}
-                      size="sm"
-                      variant="chip"
-                    >
-                      <ConnectedAccount account={account} size="xs" />
-                    </Toggle>
+                    <ConnectedAccount account={account} size="xs" />
                   </div>
 
-                  {isSelected ? (
-                    <>
-                      <div className="flex flex-col gap-1.5 mb-2">
-                        <Label
-                          htmlFor={`publish-caption-${target.id}`}
-                          className="text-2xs uppercase tracking-label text-muted-foreground"
-                        >
-                          {translate('channelCaption', {
-                            platform: target.label,
-                          })}
-                        </Label>
-                        <Textarea
-                          id={`publish-caption-${target.id}`}
-                          value={captionOverrides[target.id] ?? ''}
-                          onChange={(event) => {
-                            const nextValue = event.target.value;
-                            setCaptionOverrides((current) => ({
-                              ...current,
-                              [target.id]: nextValue,
-                            }));
-                          }}
-                          rows={3}
-                          placeholder={
-                            effectiveCaption ||
-                            translate('channelCaptionPlaceholder')
-                          }
+                  <div className="flex flex-col gap-1.5 mb-2">
+                    <Label
+                      htmlFor={`publish-caption-${target.id}`}
+                      className="text-2xs uppercase tracking-label text-muted-foreground"
+                    >
+                      {translate('channelCaption', {
+                        platform: target.label,
+                      })}
+                    </Label>
+                    <Textarea
+                      id={`publish-caption-${target.id}`}
+                      value={captionOverrides[target.id] ?? ''}
+                      onChange={(event) => {
+                        const nextValue = event.target.value;
+                        setCaptionOverrides((current) => ({
+                          ...current,
+                          [target.id]: nextValue,
+                        }));
+                      }}
+                      rows={3}
+                      placeholder={
+                        effectiveCaption ||
+                        translate('channelCaptionPlaceholder')
+                      }
+                    />
+                  </div>
+
+                  <div className="mb-2">
+                    <span className="mb-1 block text-2xs font-medium uppercase tracking-label text-muted-foreground">
+                      {translate('visibility')}
+                    </span>
+                    <Select
+                      value={visibilityByTarget[target.id] ?? target.visibility}
+                      onValueChange={(value) => {
+                        setVisibilityByTarget((current) => ({
+                          ...current,
+                          [target.id]: readPostVisibilityValue(value),
+                        }));
+                      }}
+                    >
+                      <SelectTrigger
+                        aria-label={`${target.label} ${translate('visibilityAria')}`}
+                      >
+                        <SelectValue
+                          placeholder={translate('visibilityPlaceholder')}
                         />
-                      </div>
+                      </SelectTrigger>
+                      <SelectContent>
+                        {VISIBILITY_VALUES.map((value) => (
+                          <SelectItem key={value} value={value}>
+                            {translate(VISIBILITY_MESSAGE_KEYS[value])}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-                      <div className="mb-2">
-                        <span className="mb-1 block text-2xs font-medium uppercase tracking-label text-muted-foreground">
-                          {translate('visibility')}
-                        </span>
-                        <Select
-                          value={
-                            visibilityByTarget[target.id] ?? target.visibility
-                          }
-                          onValueChange={(value) => {
-                            setVisibilityByTarget((current) => ({
-                              ...current,
-                              [target.id]: readPostVisibilityValue(value),
-                            }));
-                          }}
-                        >
-                          <SelectTrigger
-                            aria-label={`${target.label} ${translate('visibilityAria')}`}
+                  <PostingSignaturePicker
+                    onChange={(signatureIds) => {
+                      setSignatureIdsByTarget((current) => ({
+                        ...current,
+                        [target.id]: signatureIds,
+                      }));
+                    }}
+                    platform={target.platform}
+                    selectedIds={signatureIdsByTarget[target.id] ?? []}
+                    signatures={signatures}
+                  />
+
+                  {settingFields.length > 0 ? (
+                    <div className="mb-2 space-y-2">
+                      <span className="block text-2xs font-medium uppercase tracking-label text-muted-foreground">
+                        {translate('channelSettings')}
+                      </span>
+                      {settingFields.map((field) => {
+                        const fieldId = `${target.id}-${field.key}`;
+                        return (
+                          <div
+                            className="flex flex-col gap-1.5"
+                            key={field.key}
                           >
-                            <SelectValue
-                              placeholder={translate('visibilityPlaceholder')}
-                            />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {VISIBILITY_VALUES.map((value) => (
-                              <SelectItem key={value} value={value}>
-                                {translate(VISIBILITY_MESSAGE_KEYS[value])}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <PostingSignaturePicker
-                        onChange={(signatureIds) => {
-                          setSignatureIdsByTarget((current) => ({
-                            ...current,
-                            [target.id]: signatureIds,
-                          }));
-                        }}
-                        platform={target.platform}
-                        selectedIds={signatureIdsByTarget[target.id] ?? []}
-                        signatures={signatures}
-                      />
-
-                      {settingFields.length > 0 ? (
-                        <div className="mb-2 space-y-2">
-                          <span className="block text-2xs font-medium uppercase tracking-label text-muted-foreground">
-                            {translate('channelSettings')}
-                          </span>
-                          {settingFields.map((field) => {
-                            const fieldId = `${target.id}-${field.key}`;
-                            return (
-                              <div
-                                className="flex flex-col gap-1.5"
-                                key={field.key}
+                            {field.type === 'boolean' ? null : (
+                              <Label
+                                htmlFor={fieldId}
+                                className="text-2xs uppercase tracking-label text-muted-foreground"
                               >
-                                {field.type === 'boolean' ? null : (
-                                  <Label
-                                    htmlFor={fieldId}
-                                    className="text-2xs uppercase tracking-label text-muted-foreground"
-                                  >
-                                    {field.label}
-                                    {field.required ? ' *' : ''}
-                                  </Label>
-                                )}
-                                <PublishTargetSettingField
-                                  field={field}
-                                  fieldId={fieldId}
-                                  value={
-                                    settingsByTarget[target.id]?.[field.key]
-                                  }
-                                  onChange={(nextValue) => {
-                                    setSettingsByTarget((current) => ({
-                                      ...current,
-                                      [target.id]: {
-                                        ...(current[target.id] ?? {}),
-                                        [field.key]: nextValue,
-                                      },
-                                    }));
-                                  }}
-                                />
-                              </div>
-                            );
-                          })}
-                        </div>
-                      ) : null}
+                                {field.label}
+                                {field.required ? ' *' : ''}
+                              </Label>
+                            )}
+                            <PublishTargetSettingField
+                              field={field}
+                              fieldId={fieldId}
+                              value={settingsByTarget[target.id]?.[field.key]}
+                              onChange={(nextValue) => {
+                                setSettingsByTarget((current) => ({
+                                  ...current,
+                                  [target.id]: {
+                                    ...(current[target.id] ?? {}),
+                                    [field.key]: nextValue,
+                                  },
+                                }));
+                              }}
+                            />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : null}
 
-                      {blockers.length > 0 ? (
-                        <Alert className="mb-2" size="sm" variant="destructive">
-                          <AlertTitle>{translate('cannotPublish')}</AlertTitle>
-                          {blockers.map((blocker) => (
-                            <AlertDescription
-                              key={`${blocker.code}:${blocker.field ?? ''}:${blocker.message}`}
-                            >
-                              {blocker.message}
-                            </AlertDescription>
-                          ))}
-                        </Alert>
-                      ) : null}
+                  {blockers.length > 0 ? (
+                    <Alert className="mb-2" size="sm" variant="destructive">
+                      <AlertTitle>{translate('cannotPublish')}</AlertTitle>
+                      {blockers.map((blocker) => (
+                        <AlertDescription
+                          key={`${blocker.code}:${blocker.field ?? ''}:${blocker.message}`}
+                        >
+                          {blocker.message}
+                        </AlertDescription>
+                      ))}
+                    </Alert>
+                  ) : null}
 
-                      {warnings.length > 0 ? (
-                        <Alert size="sm" variant="warning">
-                          <AlertTitle>{translate('reviewWarnings')}</AlertTitle>
-                          {warnings.map((warning) => (
-                            <AlertDescription
-                              key={`${warning.code}:${warning.field ?? ''}:${warning.message}`}
-                            >
-                              {warning.message}
-                            </AlertDescription>
-                          ))}
-                        </Alert>
-                      ) : null}
-                    </>
+                  {warnings.length > 0 ? (
+                    <Alert size="sm" variant="warning">
+                      <AlertTitle>{translate('reviewWarnings')}</AlertTitle>
+                      {warnings.map((warning) => (
+                        <AlertDescription
+                          key={`${warning.code}:${warning.field ?? ''}:${warning.message}`}
+                        >
+                          {warning.message}
+                        </AlertDescription>
+                      ))}
+                    </Alert>
                   ) : null}
                 </div>
               );
@@ -739,9 +738,12 @@ export function PublishPostCard({
           <span className="mb-1 block text-2xs font-medium uppercase tracking-label text-muted-foreground">
             {translate('platforms')}
           </span>
-          <SegmentedControl
-            appearance="chip"
+          <AccountPicker
             ariaLabel={translate('platforms')}
+            items={availablePlatforms.map((platform) => ({
+              id: platform,
+              platform,
+            }))}
             onValueChange={(next) => {
               const changed = [
                 ...next.filter(
@@ -757,11 +759,6 @@ export function PublishPostCard({
                 togglePlatform(platform);
               }
             }}
-            options={availablePlatforms.map((platform) => ({
-              label: platform,
-              value: platform,
-            }))}
-            size="sm"
             type="multiple"
             value={availablePlatforms.filter((platform) =>
               selectedPlatformSet.has(platform),
