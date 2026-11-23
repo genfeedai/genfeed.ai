@@ -5,11 +5,12 @@
  */
 export const GENFEED_BRAND_HANDLE = 'genfeedai';
 
+/** In the order the profile's menu shows them. */
 export const CREATOR_PROFILE_TABS = [
-  'articles',
   'posts',
-  'videos',
   'images',
+  'videos',
+  'articles',
 ] as const;
 
 export type CreatorProfileTab = (typeof CREATOR_PROFILE_TABS)[number];

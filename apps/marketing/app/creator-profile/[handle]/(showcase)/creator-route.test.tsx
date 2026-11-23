@@ -143,7 +143,7 @@ describe('getCreatorProfileData', () => {
   });
 });
 
-describe('the wall platform filter', () => {
+describe('the posts platform filter', () => {
   const socials = [
     {
       handle: 'acme',
@@ -153,7 +153,7 @@ describe('the wall platform filter', () => {
     { handle: 'acme', platform: 'tiktok', url: 'https://tiktok.com/@acme' },
   ] as Brand['socials'];
 
-  it('narrows the wall only to a platform the creator connected', () => {
+  it('narrows the posts only to a platform the creator connected', () => {
     const connected = brand({ socials });
 
     expect(resolveCreatorPlatform('instagram', connected)).toBe('instagram');
@@ -253,10 +253,9 @@ describe('CreatorOverview', () => {
       screen.getByRole('heading', { level: 1, name: 'Acme Studio' }),
     ).toBeVisible();
     const tabs = screen.getByRole('navigation', { name: 'Profile sections' });
-    expect(within(tabs).getByRole('link', { name: 'All' })).toHaveAttribute(
-      'aria-current',
-      'page',
-    );
+    expect(
+      within(tabs).getByRole('link', { name: 'Overview' }),
+    ).toHaveAttribute('aria-current', 'page');
     expect(
       within(tabs).getByRole('link', { name: 'Articles 12' }),
     ).toHaveAttribute('href', '/@acme/articles');

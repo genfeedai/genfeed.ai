@@ -10,7 +10,8 @@ import {
   within,
 } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import type { ChangeEvent, ReactNode } from 'react';
+import type { ChangeEvent, ReactElement, ReactNode } from 'react';
+import { cloneElement, isValidElement } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import SocialMessagesPage from './page';
 
@@ -230,7 +231,13 @@ vi.mock('@ui/primitives/button', () => ({
     );
 
     return asChild ? (
-      (children ?? null)
+      isValidElement(children) ? (
+        cloneElement(children as ReactElement<Record<string, unknown>>, {
+          'aria-label': ariaLabel,
+        })
+      ) : (
+        (children ?? null)
+      )
     ) : (
       <button
         aria-label={ariaLabel}
@@ -322,8 +329,17 @@ vi.mock('@ui/primitives/select', async () => {
 });
 
 vi.mock('next/link', () => ({
-  default: ({ children, href }: { children: ReactNode; href: string }) => (
-    <a href={href}>{children}</a>
+  default: ({
+    children,
+    href,
+    ...props
+  }: {
+    children: ReactNode;
+    href: string;
+  }) => (
+    <a href={href} {...props}>
+      {children}
+    </a>
   ),
 }));
 
@@ -614,12 +630,15 @@ describe('SocialMessagesPage', () => {
     expect(
       await screen.findByText('Here is a drafted answer.'),
     ).toBeInTheDocument();
-    expect(screen.getByText('workflow-run-1')).toBeInTheDocument();
-    expect(screen.getByText('user-1')).toBeInTheDocument();
-    expect(screen.getByText('Draft')).toBeInTheDocument();
+    // Provenance names the actor and the action, never the raw ids.
+    expect(screen.getByText('Workflow · Draft')).toBeInTheDocument();
+    expect(screen.queryByText('workflow-run-1')).toBeNull();
+    expect(screen.queryByText('user-1')).toBeNull();
     expect(screen.getAllByText('Comment').length).toBeGreaterThan(0);
     expect(screen.getAllByText('YouTube').length).toBeGreaterThan(0);
-    expect(screen.getByText('Reply composer')).toBeInTheDocument();
+    expect(screen.queryByText('Reply composer')).toBeNull();
+    expect(screen.queryByText(/Review every draft/)).toBeNull();
+    expect(screen.queryByText(/DM is available/)).toBeNull();
     const conversationButton = screen.getByRole('button', {
       name: 'Open social conversation with Taylor',
     });
@@ -683,6 +702,30 @@ describe('SocialMessagesPage', () => {
     expect(mocks.refreshInboxIndicators.mock.calls.length).toBeGreaterThan(
       indicatorRefreshesBeforeReply,
     );
+  });
+
+  it('renders the thread and composer actions as icon-only buttons', async () => {
+    render(<SocialMessagesPage />);
+
+    const composer = await screen.findByTestId('messages-reply-composer');
+    const names = [
+      'Resolve',
+      'Needs Review',
+      'Draft reply',
+      'Save Draft',
+      'DM',
+    ];
+    for (const name of names) {
+      const button = await screen.findByRole('button', { name });
+      expect(button).toHaveTextContent('');
+    }
+    const automation = screen.getByRole('link', { name: 'Automation' });
+    expect(automation).toHaveTextContent('');
+    expect(
+      within(composer).getByRole('button', { name: 'Reply' }),
+    ).toHaveTextContent('');
+    // The thread has no stray rule above the composer.
+    expect(composer.closest('.border-t')).toBeNull();
   });
 
   it('keeps the reply status inside the shared prompt bar and sends on Enter', async () => {

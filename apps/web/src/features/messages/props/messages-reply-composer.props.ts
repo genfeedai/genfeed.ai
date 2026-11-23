@@ -14,5 +14,4 @@ export interface MessagesReplyComposerProps {
   readonly onAction: (action: MessagesReplyComposerAction) => void;
   readonly onDraftChange: (value: string) => void;
   readonly onSuggestedReply: () => void;
-  readonly participantLabel: string;
 }

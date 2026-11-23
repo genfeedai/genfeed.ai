@@ -1,4 +1,5 @@
 import type { PublicViewTarget } from '@data/public-views';
+import type { ButtonVariant } from '@genfeedai/contracts';
 import type {
   BrandSubscriberPublicSource,
   CreatorProfileTab,
@@ -159,6 +160,8 @@ export interface ProfileSubscribeProps {
    * `compact` is one button that sits in a row of actions.
    */
   layout?: 'bar' | 'compact';
+  /** The button's look; a row with a primary action asks for `secondary`. */
+  variant?: ButtonVariant;
 }
 
 export interface CommunityCreatorCardProps {
@@ -194,6 +197,8 @@ export interface SupportCreatorModalProps {
 }
 
 export interface SupportCreatorButtonProps {
+  /** The button's wording; defaults to `Support @handle`. */
+  label?: string;
   /** The article the reader is on, when sent from an article page. */
   articleId?: string;
   /** Layout only (width, alignment); the button owns its look. */
