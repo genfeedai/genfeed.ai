@@ -278,6 +278,10 @@ async function main() {
       '/v1/webhooks/instagram',
       express.raw({ limit: '1mb', type: 'application/json' }),
     );
+    app.use(
+      '/v1/webhooks/facebook',
+      express.raw({ limit: '1mb', type: 'application/json' }),
+    );
 
     // Better Auth parses its own request bodies, so its handler must be mounted
     // BEFORE express.json().

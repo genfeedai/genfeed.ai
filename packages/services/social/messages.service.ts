@@ -229,6 +229,13 @@ export class SocialMessagesService extends BaseService<
     return this.enqueueSync('/youtube/sync', limit, credentialId);
   }
 
+  syncFacebook(
+    limit = 25,
+    credentialId?: string,
+  ): Promise<SocialInboxSyncEnqueueResult> {
+    return this.enqueueSync('/facebook/sync', limit, credentialId);
+  }
+
   syncInstagram(
     limit = 25,
     credentialId?: string,

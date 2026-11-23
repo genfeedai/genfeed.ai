@@ -1,5 +1,6 @@
 export enum SocialInboxPlatform {
   YOUTUBE = 'youtube',
+  FACEBOOK = 'facebook',
   INSTAGRAM = 'instagram',
   TIKTOK = 'tiktok',
   TWITTER = 'twitter',

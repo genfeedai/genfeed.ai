@@ -2394,6 +2394,7 @@
       "platform": "Platform",
       "platforms": {
         "all": "All platforms",
+        "facebook": "Facebook",
         "instagram": "Instagram",
         "linkedin": "LinkedIn",
         "tiktok": "TikTok",

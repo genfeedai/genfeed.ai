@@ -299,6 +299,12 @@ export function useMessagesActions({
               run: () => service.syncYoutube(25, credential.id),
             });
             break;
+          case 'facebook':
+            commentJobs.push({
+              platform: 'Facebook',
+              run: () => service.syncFacebook(25, credential.id),
+            });
+            break;
           case 'instagram':
             commentJobs.push({
               platform: 'Instagram',

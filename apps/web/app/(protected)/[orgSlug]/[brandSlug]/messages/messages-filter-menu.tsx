@@ -36,6 +36,7 @@ const SURFACE_OPTIONS = [
 const PLATFORM_OPTIONS = [
   'all',
   'youtube',
+  'facebook',
   'instagram',
   'tiktok',
   'twitter',

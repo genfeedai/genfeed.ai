@@ -4,6 +4,7 @@ import { CredentialsService } from '@api/collections/credentials/services/creden
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { FacebookController } from '@api/services/integrations/facebook/controllers/facebook.controller';
 import { FacebookService } from '@api/services/integrations/facebook/services/facebook.service';
+import { FacebookInboxService } from '@api/services/integrations/facebook/services/facebook-inbox.service';
 import { FacebookPageConnectionService } from '@api/services/integrations/facebook/services/facebook-page-connection.service';
 import { CredentialPlatform } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
@@ -55,6 +56,10 @@ describe('FacebookController', () => {
     findOne: vi.fn().mockResolvedValue(null),
   };
 
+  const mockFacebookInboxService = {
+    ensureWebhookSubscription: vi.fn().mockResolvedValue(undefined),
+  };
+
   const mockBrandsService = {
     findOne: vi.fn().mockResolvedValue({
       id: 'test-object-id',
@@ -75,6 +80,10 @@ describe('FacebookController', () => {
       controllers: [FacebookController],
       providers: [
         FacebookPageConnectionService,
+        {
+          provide: FacebookInboxService,
+          useValue: mockFacebookInboxService,
+        },
         {
           provide: BrandsService,
           useValue: mockBrandsService,
@@ -206,6 +215,54 @@ describe('FacebookController', () => {
       expect(result).toMatchObject({
         data: { attributes: { externalId: '111' } },
       });
+    });
+
+    it('keeps the connected Page when its webhook subscription fails', async () => {
+      mockFacebookService.exchangeAuthCodeForAccessToken.mockResolvedValue({
+        accessToken: 'facebook-token',
+        expiresIn: 3600,
+      });
+      mockFacebookService.getUserProfile.mockResolvedValue({
+        id: 'fb-user-1',
+        name: 'Person',
+      });
+      mockFacebookService.getGrantedPermissions.mockResolvedValue([
+        'pages_manage_posts',
+      ]);
+      mockFacebookService.listManagedPages.mockResolvedValue([
+        { id: '111', name: 'Acme Page' },
+      ]);
+      mockCredentialsService.patch.mockResolvedValueOnce({
+        brandId: 'brand-1',
+        id: 'cred-1',
+        organizationId: 'test-object-id',
+        platform: CredentialPlatform.FACEBOOK,
+      });
+      mockCredentialsService.connectAccount.mockResolvedValue({
+        brandId: 'brand-1',
+        externalId: '111',
+        id: 'cred-1',
+        isConnected: true,
+        organizationId: 'test-object-id',
+        platform: CredentialPlatform.FACEBOOK,
+      });
+      mockFacebookInboxService.ensureWebhookSubscription.mockRejectedValueOnce(
+        new Error(
+          'Reconnect the Meta account and grant pages_manage_metadata.',
+        ),
+      );
+
+      const result = await controller.verify({} as never, {
+        code: 'auth-code',
+        state: 'opaque-oauth-state',
+      });
+
+      expect(result).toMatchObject({
+        data: { attributes: { externalId: '111', isConnected: true } },
+      });
+      expect(
+        mockFacebookInboxService.ensureWebhookSubscription,
+      ).toHaveBeenCalledWith('test-object-id', 'brand-1', 'cred-1');
     });
 
     it('leaves the connection pending when several Pages are managed', async () => {

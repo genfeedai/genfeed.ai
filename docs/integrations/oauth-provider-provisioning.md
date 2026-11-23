@@ -161,6 +161,19 @@ and [v26.0 migration changes](https://developers.facebook.com/docs/graph-api/cha
 6. Set `FACEBOOK_APP_ID`, `FACEBOOK_APP_SECRET`, `FACEBOOK_REDIRECT_URI`,
    `FACEBOOK_API_VERSION`, and
    `FACEBOOK_GRAPH_URL=https://graph.facebook.com`.
+7. Page comments reach Messages by webhook. In the Meta app dashboard, under
+   Webhooks, choose the **Page** object, register
+   `{API_ORIGIN}/v1/webhooks/facebook` as its callback with the same
+   `INSTAGRAM_WEBHOOK_VERIFY_TOKEN` as the Instagram callback (the app keeps one
+   verify token for every webhook object), and subscribe the `feed` field.
+   Deliveries are checked against `FACEBOOK_APP_SECRET`. Genfeed subscribes each
+   Page to the app when it is connected; the Messages Sync button repeats the
+   subscription, so Pages connected earlier pick it up on their next sync. The
+   subscription needs `pages_manage_metadata`; without it Sync stores the
+   comments and asks the user to reconnect. The webhook only says which Page
+   has a new comment: the comment itself is read back from Graph, so it follows
+   the same path as a manual sync. Replies from Messages post as the Page and
+   need `pages_manage_engagement`.
 
 ### LinkedIn
 

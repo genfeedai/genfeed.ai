@@ -2,6 +2,7 @@ import type { CredentialDocument } from '@api/collections/credentials/schemas/cr
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { FacebookService } from '@api/services/integrations/facebook/services/facebook.service';
+import { FacebookInboxService } from '@api/services/integrations/facebook/services/facebook-inbox.service';
 import { CredentialPlatform } from '@genfeedai/contracts';
 import type {
   IFacebookManagedPage,
@@ -27,6 +28,7 @@ export class FacebookPageConnectionService {
   constructor(
     private readonly credentialsService: CredentialsService,
     private readonly facebookService: FacebookService,
+    private readonly facebookInboxService: FacebookInboxService,
     private readonly loggerService: LoggerService,
   ) {}
 
@@ -172,6 +174,8 @@ export class FacebookPageConnectionService {
       ),
     ];
 
+    await this.subscribeToPageWebhooks(connected);
+
     if (!brandId || !userId) {
       return connected;
     }
@@ -215,7 +219,36 @@ export class FacebookPageConnectionService {
       }
     }
 
+    await this.subscribeToPageWebhooks(connected.slice(1));
+
     return connected;
+  }
+
+  /**
+   * Subscribe each connected Page to the feed webhook. A failure never undoes
+   * the connection: the Messages sync repeats the subscription, and a grant
+   * without `pages_manage_metadata` is told to reconnect there.
+   */
+  private async subscribeToPageWebhooks(
+    credentials: readonly CredentialDocument[],
+  ): Promise<void> {
+    for (const credential of credentials) {
+      if (!credential.organizationId || !credential.brandId) {
+        continue;
+      }
+      try {
+        await this.facebookInboxService.ensureWebhookSubscription(
+          credential.organizationId,
+          credential.brandId,
+          credential.id,
+        );
+      } catch (error: unknown) {
+        this.loggerService.warn('Facebook Page webhook subscription failed', {
+          credentialId: credential.id,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
   }
 }
 

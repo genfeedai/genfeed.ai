@@ -75,6 +75,7 @@ const mocks = vi.hoisted(() => ({
   postReply: vi.fn(),
   suggestedReply: vi.fn(),
   replace: vi.fn(),
+  syncFacebook: vi.fn(),
   syncInstagram: vi.fn(),
   syncInstagramDms: vi.fn(),
   syncLinkedIn: vi.fn(),
@@ -479,6 +480,7 @@ describe('SocialMessagesPage', () => {
       suggestedReply: mocks.suggestedReply,
       rejectDraft: vi.fn(),
       sendDm: vi.fn(),
+      syncFacebook: mocks.syncFacebook,
       syncInstagram: mocks.syncInstagram,
       syncInstagramDms: mocks.syncInstagramDms,
       syncLinkedIn: mocks.syncLinkedIn,
@@ -1170,6 +1172,29 @@ describe('SocialMessagesPage', () => {
     expect(mocks.syncLinkedIn).toHaveBeenCalledTimes(1);
     expect(mocks.syncInstagramDms).not.toHaveBeenCalled();
     expect(mocks.syncXDms).not.toHaveBeenCalled();
+  });
+
+  it('syncs a connected Facebook Page on the comments surface and not on the DM surface', async () => {
+    mocks.brandContext.brands[0].credentials = ['facebook'].map((platform) => ({
+      id: `credential-${platform}`,
+      isConnected: true,
+      platform,
+    }));
+    render(<SocialMessagesPage />);
+
+    await screen.findByRole('button', { name: 'Sync inbox' });
+    await chooseFilter(userEvent.setup(), /^type/i, /^Comments/);
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Sync comments' }),
+    );
+
+    await waitFor(() =>
+      expect(mocks.syncFacebook).toHaveBeenCalledWith(
+        25,
+        'credential-facebook',
+      ),
+    );
+    expect(mocks.syncFacebook).toHaveBeenCalledTimes(1);
   });
 
   it('syncs the unified mailbox and keeps remaining platform enqueues after a partial failure', async () => {
