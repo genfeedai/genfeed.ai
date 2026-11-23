@@ -363,6 +363,7 @@ function creditsFixture(overrides: {
     { sendDueTrialNotices } as unknown as FreeTrialEmailsService,
     { resolve: resolveLowCredit } as unknown as LowCreditThresholdService,
     {} as LifecycleEmailWorkService,
+    {} as unknown as EmailMediaUrlService,
   );
   return { service, prisma, queueEmail };
 }
@@ -511,6 +512,7 @@ describe('hourly system email sweep', () => {
       {} as FreeTrialEmailsService,
       {} as LowCreditThresholdService,
       { findOrganizationIds } as unknown as LifecycleEmailWorkService,
+      {} as unknown as EmailMediaUrlService,
     );
     service.onModuleInit();
     const discover = registered.get('lifecycle-email.sweep.discover');

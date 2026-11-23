@@ -7,6 +7,7 @@ import { scopedWhere } from '@api/tenancy/scoped-where';
 import { IngredientCategory } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { runWithTenantContext } from '@libs/prisma/tenant-context';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 /** An email is read for weeks; the link keeps working that long. */
@@ -35,6 +36,7 @@ interface EmailMediaClaim {
  * that organization and redirects to a freshly signed CDN URL. The claim opens
  * one still (an image, or a video's thumbnail), nothing else, and expires.
  */
+@Traced()
 @Injectable()
 export class EmailMediaUrlService {
   constructor(
