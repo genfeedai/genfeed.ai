@@ -149,9 +149,11 @@ function realTab(world: World, sim: Simulation, options: Options): Tab {
       world.routeTarget = href.split('/').filter(Boolean)[0] ?? null;
     },
     reportMismatch: () => undefined,
+    setProvisionalOrganization: () => undefined,
     setRequestOrganizationId: (id) => {
       world.requestOrganizationId = id;
     },
+    wipeDeviceStores: async () => undefined,
   });
   const latest = () =>
     controller.setLatest({
@@ -169,6 +171,7 @@ function realTab(world: World, sim: Simulation, options: Options): Tab {
         getMembershipService: async () => service,
         isLoaded: true,
         isSignedIn: restart.isSignedIn ?? true,
+        provisional: null,
         routeSlug,
         sessionKey: 'user:session',
       });

@@ -75,6 +75,18 @@ export function setRequestOrganizationId(organizationId: string | null): void {
   }
 }
 
+/**
+ * The page was drawn from this device's last confirmed copy for this
+ * organization and user: requests are held until the membership check names
+ * the organization, and are sent only if it is this one.
+ */
+export function setProvisionalRequestOrganization(
+  organizationId: string,
+  userId: string,
+): void {
+  requestOrganizationGate.setProvisional(organizationId, userId);
+}
+
 export function clearRequestOrganizationId(): void {
   setRequestOrganizationId(null);
 }

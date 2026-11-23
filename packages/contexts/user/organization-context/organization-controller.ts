@@ -45,6 +45,12 @@ export interface RoutedOrganizationState {
    * own list the moment it is chosen. Null outside such a switch.
    */
   pendingOrganizationId: string | null;
+  /**
+   * The organization the page was drawn for from the device's last confirmed
+   * copy while the membership check runs. Not a status: `isRouteConfirmed`
+   * keeps its meaning. Null once the check has answered.
+   */
+  provisionalOrganizationId: string | null;
   status: RoutedOrganizationStatus;
   /**
    * Set when the API refused a switch and the previous organization is back.
@@ -58,6 +64,7 @@ const INITIAL_ORGANIZATION_STATE: RoutedOrganizationState = {
   confirmedOrganizationSlug: null,
   organizations: [],
   pendingOrganizationId: null,
+  provisionalOrganizationId: null,
   status: 'loading',
   switchFailure: null,
 };
@@ -169,15 +176,32 @@ export interface OrganizationControllerPorts {
   ): void;
   /** The organization every API request acts for (the request gate). */
   setRequestOrganizationId(organizationId: string | null): void;
+  /**
+   * The page was drawn from this device's last confirmed copy and the
+   * membership check has not answered: requests are held, not sent.
+   */
+  setProvisionalOrganization(organizationId: string, userId: string): void;
+  /** Removes what this device kept of a workspace (every store). */
+  wipeDeviceStores(): Promise<void>;
 }
 
 /** What starts a reconciliation: a change in any of these restarts it. */
+type ControllerStateInput = Omit<
+  RoutedOrganizationState,
+  'provisionalOrganizationId'
+>;
+
 export interface OrganizationReconciliationInputs {
   /** Only a keyless self-hosted deployment has nothing to reconcile. */
   bypass: boolean;
   getMembershipService: GetMembershipService;
   isLoaded: boolean;
   isSignedIn: boolean;
+  /**
+   * The device's last confirmed copy for the route's organization, when one is
+   * valid for this build, session and user. Only a hard load acts on it.
+   */
+  provisional: { organizationId: string; userId: string } | null;
   /** The organization in the URL, if any. */
   routeSlug: string | undefined;
   /** Who the reconciliation is for: another user or session restarts it. */
@@ -257,6 +281,19 @@ export class OrganizationController {
   private routeSlug: string | undefined;
   private getMembershipService: GetMembershipService | null = null;
   private lastInputs: OrganizationReconciliationInputs | null = null;
+  // The device copy this page was drawn from while the check runs. Held
+  // requests wait on it; every way out of it goes through exitProvisional.
+  private provisional: {
+    organizationId: string;
+    slug: string;
+    userId: string;
+  } | null = null;
+  // A hard load ends when the first check settles: a device copy is only ever
+  // drawn on a hard load.
+  private hasSettled = false;
+  // A device copy is drawn once per hard load: after it ends, by whatever
+  // way, the page waits for the check like any other.
+  private hasDrawnFromCopy = false;
   // Set by an explicit switch once it has confirmed the organization, so the
   // route change that follows does not read the list again.
   private switchConfirmation: { organizationId: string; slug: string } | null =
@@ -295,7 +332,7 @@ export class OrganizationController {
 
   /** The browser listener of the provider is going away. */
   public release(): void {
-    this.ports.setRequestOrganizationId(null);
+    this.releaseRequestOrganization();
   }
 
   public retry(): void {
@@ -304,11 +341,87 @@ export class OrganizationController {
 
   private setState(
     next:
-      | RoutedOrganizationState
-      | ((current: RoutedOrganizationState) => RoutedOrganizationState),
+      | ControllerStateInput
+      | ((current: RoutedOrganizationState) => ControllerStateInput),
   ): void {
-    this.state = typeof next === 'function' ? next(this.state) : next;
+    const value = typeof next === 'function' ? next(this.state) : next;
+    if (value.status !== 'loading' && value.status !== 'switching') {
+      this.hasSettled = true;
+    }
+    this.state = {
+      ...value,
+      provisionalOrganizationId: this.provisional?.organizationId ?? null,
+    };
     for (const listener of [...this.listeners]) listener();
+  }
+
+  /** The request organization is none: held requests are rejected. */
+  private releaseRequestOrganization(): void {
+    this.provisional = null;
+    this.ports.setRequestOrganizationId(null);
+  }
+
+  /** The check named this organization: held requests for it are sent. */
+  private confirmRequestOrganization(organizationId: string): void {
+    this.provisional = null;
+    this.ports.setRequestOrganizationId(organizationId);
+  }
+
+  /**
+   * Ends the provisional window. Held requests are rejected and never sent;
+   * the device stores are wiped only when the check refused the copy (another
+   * user, another organization behind the slug, a refusal), never on a
+   * failure or a navigation.
+   */
+  private exitProvisional(options: { wipe: boolean }): void {
+    if (!this.provisional) return;
+    this.releaseRequestOrganization();
+    if (options.wipe) {
+      // Whatever the copy restored leaves the screen with the stores.
+      void this.ports.clearTenantCaches();
+      void this.ports.wipeDeviceStores();
+    }
+  }
+
+  /**
+   * Decides whether this restart is, or stays, provisional. Entry needs a
+   * hard load, a device copy valid for this route and session, and no
+   * contradiction from the session; the window continues only while those
+   * still hold.
+   */
+  private reconcileProvisional(inputs: OrganizationReconciliationInputs): void {
+    const { provisional, routeSlug } = inputs;
+    const current = this.provisional;
+    if (current) {
+      const stays =
+        !inputs.bypass &&
+        provisional !== null &&
+        current.slug === routeSlug &&
+        current.organizationId === provisional.organizationId &&
+        current.userId === provisional.userId;
+      if (!stays) {
+        // Another route is ordinary navigation; the same route with a copy
+        // that no longer holds (signed out, another user) is a refusal.
+        this.exitProvisional({ wipe: current.slug === routeSlug });
+      }
+      return;
+    }
+    if (
+      this.hasSettled ||
+      this.hasDrawnFromCopy ||
+      inputs.bypass ||
+      !routeSlug ||
+      !provisional ||
+      (inputs.isLoaded && !inputs.isSignedIn)
+    ) {
+      return;
+    }
+    this.provisional = { ...provisional, slug: routeSlug };
+    this.hasDrawnFromCopy = true;
+    this.ports.setProvisionalOrganization(
+      provisional.organizationId,
+      provisional.userId,
+    );
   }
 
   private isCurrentGeneration(generation: number, expectedSlug: string) {
@@ -326,7 +439,10 @@ export class OrganizationController {
   }
 
   private async invalidateTenantState(): Promise<void> {
-    this.ports.setRequestOrganizationId(null);
+    // While the device copy is drawn nothing of another tenant was fetched,
+    // and what it restored is what a same-organization confirmation keeps.
+    if (this.provisional) return;
+    this.releaseRequestOrganization();
     await this.ports.clearTenantCaches();
   }
 
@@ -343,6 +459,7 @@ export class OrganizationController {
     this.routeSlug = inputs.routeSlug;
     this.getMembershipService = inputs.getMembershipService;
     const { getMembershipService, routeSlug } = inputs;
+    this.reconcileProvisional(inputs);
 
     if (
       inputs.bypass ||
@@ -350,7 +467,7 @@ export class OrganizationController {
       (inputs.isLoaded && !inputs.isSignedIn)
     ) {
       this.generation += 1;
-      this.ports.setRequestOrganizationId(null);
+      this.releaseRequestOrganization();
       this.setState((current) => ({
         ...current,
         confirmedOrganizationId: null,
@@ -362,7 +479,9 @@ export class OrganizationController {
 
     if (!inputs.isLoaded || !inputs.isSignedIn) {
       this.generation += 1;
-      this.ports.setRequestOrganizationId(null);
+      // A device copy keeps the page drawn, and its requests held, while the
+      // session answers.
+      if (!this.provisional) this.releaseRequestOrganization();
       this.setState((current) => ({
         ...current,
         confirmedOrganizationId: null,
@@ -379,7 +498,7 @@ export class OrganizationController {
       // caught up, so there is nothing left to read.
       this.clearSwitchConfirmation();
       this.generation += 1;
-      this.ports.setRequestOrganizationId(switched.organizationId);
+      this.confirmRequestOrganization(switched.organizationId);
       this.setState((current) => ({
         ...current,
         confirmedOrganizationId: switched.organizationId,
@@ -393,7 +512,7 @@ export class OrganizationController {
 
     const generation = this.generation + 1;
     this.generation = generation;
-    this.ports.setRequestOrganizationId(null);
+    if (!this.provisional) this.releaseRequestOrganization();
     this.setState((current) => ({
       ...current,
       confirmedOrganizationId: null,
@@ -440,6 +559,9 @@ export class OrganizationController {
 
     if (!target) {
       if (this.isCurrentGeneration(generation, routeSlug)) {
+        // The organization is gone or the member was removed: the copy of it
+        // on this device goes too, and nothing held for it is ever sent.
+        this.exitProvisional({ wipe: true });
         this.ports.reportMismatch('route-unauthorized');
         this.setState({
           confirmedOrganizationId: null,
@@ -451,6 +573,17 @@ export class OrganizationController {
         });
       }
       return;
+    }
+
+    if (
+      this.provisional &&
+      this.provisional.organizationId !== target.id &&
+      this.isCurrentGeneration(generation, routeSlug)
+    ) {
+      // The slug now names another organization than the copy was kept for:
+      // nothing of the copy may stay, and the shell remounts for this one.
+      this.exitProvisional({ wipe: true });
+      await this.invalidateTenantState();
     }
 
     const activeOrganization = organizations.find(
@@ -502,7 +635,7 @@ export class OrganizationController {
       if (hasSwitchedOrganization) {
         this.ports.broadcastChange();
       }
-      this.ports.setRequestOrganizationId(confirmedOrganization.id);
+      this.confirmRequestOrganization(confirmedOrganization.id);
       this.setState({
         confirmedOrganizationId: confirmedOrganization.id,
         confirmedOrganizationSlug: confirmedOrganization.slug,
@@ -520,7 +653,7 @@ export class OrganizationController {
     error: unknown,
   ): void {
     if (this.isCurrentGeneration(generation, routeSlug)) {
-      this.ports.setRequestOrganizationId(null);
+      this.releaseRequestOrganization();
       if (!isCancelledMembershipRead(error)) {
         this.ports.reportMismatch('switch-failed', error);
       }
@@ -580,7 +713,7 @@ export class OrganizationController {
     const generation = this.generation + 1;
     this.generation = generation;
     this.clearSwitchConfirmation();
-    this.ports.setRequestOrganizationId(null);
+    this.releaseRequestOrganization();
     this.setState((current) => ({
       ...current,
       confirmedOrganizationId: null,
@@ -673,7 +806,7 @@ export class OrganizationController {
       }
       this.switchConfirmation = null;
       this.generation += 1;
-      this.ports.setRequestOrganizationId(null);
+      this.releaseRequestOrganization();
       this.setState((current) => ({
         ...current,
         confirmedOrganizationId: null,
@@ -710,7 +843,7 @@ export class OrganizationController {
     // the error. A server error can follow a committed write, so it
     // ends in the failed state instead.
     if (!progress.isActivated && previous && isClientErrorStatus(error)) {
-      this.ports.setRequestOrganizationId(previous.id);
+      this.confirmRequestOrganization(previous.id);
       this.setState({
         confirmedOrganizationId: previous.id,
         confirmedOrganizationSlug: previous.slug,
@@ -721,7 +854,7 @@ export class OrganizationController {
       });
       return;
     }
-    this.ports.setRequestOrganizationId(null);
+    this.releaseRequestOrganization();
     this.setState((current) => ({
       ...current,
       confirmedOrganizationId: null,
@@ -750,7 +883,7 @@ export class OrganizationController {
     const generation = this.generation + 1;
     this.generation = generation;
     this.clearSwitchConfirmation();
-    this.ports.setRequestOrganizationId(null);
+    this.releaseRequestOrganization();
     this.setState((current) => ({
       ...current,
       confirmedOrganizationId: null,
@@ -795,7 +928,7 @@ export class OrganizationController {
       throw new Error('Active organization context is unavailable');
     }
     if (activeOrganization.slug === this.routeSlug) {
-      this.ports.setRequestOrganizationId(activeOrganization.id);
+      this.confirmRequestOrganization(activeOrganization.id);
       this.setState({
         confirmedOrganizationId: activeOrganization.id,
         confirmedOrganizationSlug: activeOrganization.slug,
@@ -819,7 +952,7 @@ export class OrganizationController {
       await withConfirmationBound(this.synchronizeOnce(generation));
     } catch (error) {
       if (this.generation === generation) {
-        this.ports.setRequestOrganizationId(null);
+        this.releaseRequestOrganization();
         this.ports.reportMismatch('cross-tab-sync-failed');
         this.setState((current) => ({
           ...current,
