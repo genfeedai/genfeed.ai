@@ -69,6 +69,7 @@ function build() {
       deletedOnPlatform: false,
       media: { deleted: [], kept: [] },
       platform: null,
+      platformDeletion: 'not-requested',
       postId: 'input-private',
       previousStatus: 'draft',
       publishedUrl: null,

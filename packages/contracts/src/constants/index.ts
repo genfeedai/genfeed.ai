@@ -73,6 +73,7 @@ export * from './platform-direct-message-scopes.constant';
 export * from './platform-feature-settings.constant';
 export * from './platform-limits.constant';
 export * from './platform-media-specs.constant';
+export * from './platform-post-deletion.constant';
 export * from './platform-publish-scopes.constant';
 export * from './platform-settings.constant';
 export * from './platforms.constant';

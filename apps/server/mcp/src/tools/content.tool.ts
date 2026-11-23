@@ -189,18 +189,15 @@ export async function handleContentTool(
     case 'delete_post': {
       const postId = requireArticleString(args, 'postId', 160);
       const brandId = readOptionalBrandId(args);
-      if (
-        args.deleteMedia !== undefined &&
-        typeof args.deleteMedia !== 'boolean'
-      ) {
-        throw new McpToolInputError(
-          'deleteMedia must be true or false',
-          'deleteMedia',
-        );
+      for (const flag of ['deleteMedia', 'deleteOnPlatform']) {
+        if (args[flag] !== undefined && typeof args[flag] !== 'boolean') {
+          throw new McpToolInputError(`${flag} must be true or false`, flag);
+        }
       }
       const removal = await client.deletePost({
         ...(brandId ? { brandId } : {}),
         ...(args.deleteMedia === true ? { deleteMedia: true } : {}),
+        ...(args.deleteOnPlatform === true ? { deleteOnPlatform: true } : {}),
         postId,
       });
       const media = removal.media;
@@ -220,9 +217,11 @@ export async function handleContentTool(
             text:
               `Post ${removal.postId} (was ${removal.previousStatus}) is deleted from Genfeed.` +
               mediaLine +
-              (removal.previousStatus === 'public' || removal.publishedUrl
-                ? ' It was not deleted on the social network: the owner removes that copy there.'
-                : '') +
+              (removal.deletedOnPlatform
+                ? ` It is also deleted on ${removal.platform ?? 'the social network'}.`
+                : removal.previousStatus === 'public' || removal.publishedUrl
+                  ? ' It was not deleted on the social network: the owner removes that copy there, or repeat with deleteOnPlatform true where the platform supports it (X, Mastodon).'
+                  : '') +
               (removal.verified.postGone && removal.verified.mediaGone
                 ? ' Read back: the post and its deleted media are gone.'
                 : ' Read back FAILED: the post or its media still resolves. Do not report it deleted; check with get_content(action=posts) and get_assets.'),

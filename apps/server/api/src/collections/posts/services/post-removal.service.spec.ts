@@ -1,4 +1,5 @@
 import type { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import type { PostPlatformDeletionService } from '@api/collections/posts/services/post-platform-deletion.service';
 import { PostRemovalService } from '@api/collections/posts/services/post-removal.service';
 import type { PostsService } from '@api/collections/posts/services/posts.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -7,7 +8,9 @@ import { describe, expect, it, vi } from 'vitest';
 
 interface PostRow {
   brandId: string;
+  credentialId?: string | null;
   entityIngredientId?: string | null;
+  externalId?: string | null;
   id: string;
   isDeleted: boolean;
   media: string[];
@@ -24,6 +27,8 @@ interface PostRow {
  */
 function build(options: {
   assets: Record<string, { editable: boolean }>;
+  /** The network refuses every delete. */
+  networkRefuses?: boolean;
   posts: PostRow[];
 }) {
   const posts = options.posts.map((post) => ({ ...post }));
@@ -121,14 +126,30 @@ function build(options: {
       return { id };
     }),
   };
+  /** Post ids still live on the network. */
+  const network = new Set(
+    options.posts.flatMap((row) => (row.externalId ? [row.externalId] : [])),
+  );
+  const platformDeletion = {
+    deleteOnPlatform: async (
+      _organizationId: string,
+      row: { externalId: string | null },
+    ) => {
+      if (!row.externalId) return 'not-published' as const;
+      if (options.networkRefuses) throw new Error('network refused');
+      network.delete(row.externalId);
+      return 'deleted' as const;
+    },
+  };
   const logger = { log: vi.fn(), warn: vi.fn() };
   const service = new PostRemovalService(
     prisma as unknown as PrismaService,
     postsService as unknown as PostsService,
     ingredientsService as unknown as IngredientsService,
+    platformDeletion as unknown as PostPlatformDeletionService,
     logger as unknown as LoggerService,
   );
-  return { assets, posts, service };
+  return { assets, network, posts, service };
 }
 
 const params = {
@@ -176,6 +197,7 @@ describe('PostRemovalService', () => {
         kept: [{ id: 'shared', reason: 'used-by-another-post' }],
       },
       platform: 'instagram',
+      platformDeletion: 'not-requested',
       postId: 'p1',
       previousStatus: 'public',
       publishedUrl: 'https://www.instagram.com/p/abc/',
@@ -274,5 +296,92 @@ describe('PostRemovalService', () => {
     await expect(
       service.removePost({ ...params, includeMedia: false, postId: 'p1' }),
     ).resolves.toBeNull();
+  });
+
+  it('deletes the post on its network first when asked, then in Genfeed', async () => {
+    const { network, posts, service } = build({
+      assets: {},
+      posts: [
+        post({
+          externalId: 'tweet-1',
+          id: 'p1',
+          platform: 'twitter',
+        }),
+      ],
+    });
+
+    const result = await service.removePost({
+      ...params,
+      deleteOnPlatform: true,
+      includeMedia: false,
+      postId: 'p1',
+    });
+
+    expect(result?.deletedOnPlatform).toBe(true);
+    expect(result?.platformDeletion).toBe('deleted');
+    expect([...network]).toEqual([]);
+    expect(posts[0].isDeleted).toBe(true);
+  });
+
+  it('leaves the network copy alone unless asked', async () => {
+    const { network, service } = build({
+      assets: {},
+      posts: [post({ externalId: 'tweet-1', id: 'p1', platform: 'twitter' })],
+    });
+
+    const result = await service.removePost({
+      ...params,
+      includeMedia: false,
+      postId: 'p1',
+    });
+
+    expect(result?.deletedOnPlatform).toBe(false);
+    expect(result?.platformDeletion).toBe('not-requested');
+    expect([...network]).toEqual(['tweet-1']);
+  });
+
+  it('deletes nothing in Genfeed or its media when the network refuses', async () => {
+    const { assets, network, posts, service } = build({
+      assets: { a1: { editable: true } },
+      networkRefuses: true,
+      posts: [
+        post({
+          externalId: 'tweet-1',
+          id: 'p1',
+          media: ['a1'],
+          platform: 'twitter',
+        }),
+      ],
+    });
+
+    await expect(
+      service.removePost({
+        ...params,
+        deleteOnPlatform: true,
+        includeMedia: true,
+        postId: 'p1',
+      }),
+    ).rejects.toThrow('network refused');
+
+    expect(posts[0].isDeleted).toBe(false);
+    expect(assets.get('a1')?.isDeleted).toBe(false);
+    expect([...network]).toEqual(['tweet-1']);
+  });
+
+  it('reports a post that never reached a network as not published', async () => {
+    const { service } = build({
+      assets: {},
+      posts: [post({ id: 'p1', platform: 'twitter', status: 'draft' })],
+    });
+
+    const result = await service.removePost({
+      ...params,
+      deleteOnPlatform: true,
+      includeMedia: false,
+      postId: 'p1',
+    });
+
+    expect(result?.deletedOnPlatform).toBe(false);
+    expect(result?.platformDeletion).toBe('not-published');
   });
 });

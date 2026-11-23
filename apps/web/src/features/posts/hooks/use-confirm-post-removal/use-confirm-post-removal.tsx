@@ -2,6 +2,7 @@
 
 import { useConfirmModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
 import { PostStatus } from '@genfeedai/contracts';
+import { supportsPostDeletionOnPlatform } from '@genfeedai/contracts/constants';
 import type { IPost } from '@genfeedai/contracts/interfaces';
 import { stripHtmlToPlainText } from '@helpers/security/strip-html.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -39,6 +40,12 @@ export function useConfirmPostRemoval() {
       }
 
       const includeMediaRef = { current: false };
+      const deleteOnPlatformRef = { current: false };
+      // Deleting on the network applies to a published post on a platform
+      // Genfeed can delete on; every other post is deleted in Genfeed only.
+      const canDeleteOnPlatform = (post: IPost) =>
+        post.status === PostStatus.PUBLIC &&
+        supportsPostDeletionOnPlatform(post.platform);
       const isOne = posts.length === 1;
       const label =
         posts[0].label?.trim() ||
@@ -48,6 +55,8 @@ export function useConfirmPostRemoval() {
       openConfirm({
         children: (
           <PostRemovalOptions
+            deleteOnPlatformRef={deleteOnPlatformRef}
+            hasPlatformDeletable={posts.some(canDeleteOnPlatform)}
             hasMedia={posts.some((post) => (post.ingredients?.length ?? 0) > 0)}
             hasPublished={posts.some(
               (post) => post.status === PostStatus.PUBLIC,
@@ -65,6 +74,7 @@ export function useConfirmPostRemoval() {
           : translate('messageMany', { count: posts.length }),
         onConfirm: async () => {
           const removedIds: string[] = [];
+          let platformDeleted = 0;
           let mediaDeleted = 0;
           let mediaKept = 0;
           let failed = 0;
@@ -75,8 +85,13 @@ export function useConfirmPostRemoval() {
             for (const post of posts) {
               try {
                 const result = await service.remove(post.id, {
+                  deleteOnPlatform:
+                    deleteOnPlatformRef.current && canDeleteOnPlatform(post),
                   includeMedia: includeMediaRef.current,
                 });
+                if (result.deletedOnPlatform) {
+                  platformDeleted += 1;
+                }
                 if (result.verified.postGone) {
                   removedIds.push(post.id);
                 } else {
@@ -95,10 +110,14 @@ export function useConfirmPostRemoval() {
           }
 
           if (removedIds.length > 0) {
-            const summary =
+            const summary = [
+              platformDeleted > 0
+                ? ` ${translate('platformSummary', { count: platformDeleted })}`
+                : '',
               mediaDeleted + mediaKept > 0
                 ? ` ${translate('mediaSummary', { deleted: mediaDeleted, kept: mediaKept })}`
-                : '';
+                : '',
+            ].join('');
             notificationsService.success(
               `${
                 removedIds.length === 1

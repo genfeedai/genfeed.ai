@@ -84,10 +84,14 @@ postsCommand
 postsCommand
   .command('delete')
   .description(
-    'Delete a post from Genfeed, published ones included. The copy on the social network is not touched'
+    'Delete a post from Genfeed, published ones included. The copy on the social network stays unless --on-platform is given'
   )
   .argument('<id>', 'Post ID')
   .option('--with-media', 'Also delete the Library media only this post uses')
+  .option(
+    '--on-platform',
+    'Also delete the post on its social network first (X and Mastodon; refused on other platforms)'
+  )
   .option('-f, --force', 'Skip confirmation')
   .option('--json', 'Output as JSON')
   .action(async (id: string, options) => {
@@ -97,9 +101,11 @@ postsCommand
       if (!options.force) {
         const confirmed = await confirm({
           default: false,
-          message: options.withMedia
-            ? `Delete post ${id} and the Library media only it uses? A published post stays live on its network.`
-            : `Delete post ${id}? A published post stays live on its network.`,
+          message: `Delete post ${id}${options.withMedia ? ' and the Library media only it uses' : ''}? ${
+            options.onPlatform
+              ? 'It is also deleted on its social network.'
+              : 'A published post stays live on its network.'
+          }`,
         });
         if (!confirmed) {
           print(formatWarning('Delete cancelled'));
@@ -109,7 +115,10 @@ postsCommand
 
       const spinner = options.json ? undefined : ora('Deleting post...').start();
       try {
-        const removal = await deletePost(id, { includeMedia: options.withMedia === true });
+        const removal = await deletePost(id, {
+          deleteOnPlatform: options.onPlatform === true,
+          includeMedia: options.withMedia === true,
+        });
         spinner?.stop();
 
         if (options.json) {
@@ -124,7 +133,9 @@ postsCommand
         for (const kept of removal.media.kept) {
           print(formatLabel('Media kept', `${kept.id} (${kept.reason})`));
         }
-        if (removal.publishedUrl) {
+        if (removal.deletedOnPlatform) {
+          print(formatLabel('Deleted on', removal.platform ?? 'its network'));
+        } else if (removal.publishedUrl) {
           print(
             formatWarning(
               `Still live on ${removal.platform ?? 'its network'}: ${removal.publishedUrl}`

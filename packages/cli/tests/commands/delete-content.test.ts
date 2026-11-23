@@ -8,13 +8,19 @@ const state = vi.hoisted(() => ({
   confirmAsked: [] as string[],
   json: [] as unknown[],
   lines: [] as unknown[],
-  postDeletes: [] as { id: string; includeMedia: boolean | undefined }[],
+  postDeletes: [] as {
+    deleteOnPlatform: boolean | undefined;
+    id: string;
+    includeMedia: boolean | undefined;
+  }[],
+  removalAnswer: undefined as unknown,
 }));
 
 const removal = vi.hoisted(() => ({
   deletedOnPlatform: false,
   media: { deleted: ['asset-1'], kept: [{ id: 'asset-2', reason: 'used-by-another-post' }] },
   platform: 'instagram',
+  platformDeletion: 'not-requested',
   postId: 'post-1',
   previousStatus: 'public',
   publishedUrl: 'https://www.instagram.com/p/abc/',
@@ -32,9 +38,16 @@ vi.mock('ora', () => {
 });
 vi.mock('../../src/api/client', () => ({ requireAuth: vi.fn().mockResolvedValue('gf_test') }));
 vi.mock('../../src/api/posts', () => ({
-  deletePost: async (id: string, options?: { includeMedia?: boolean }) => {
-    state.postDeletes.push({ id, includeMedia: options?.includeMedia });
-    return removal;
+  deletePost: async (
+    id: string,
+    options?: { deleteOnPlatform?: boolean; includeMedia?: boolean }
+  ) => {
+    state.postDeletes.push({
+      deleteOnPlatform: options?.deleteOnPlatform,
+      id,
+      includeMedia: options?.includeMedia,
+    });
+    return state.removalAnswer ?? removal;
   },
   listPosts: vi.fn(),
 }));
@@ -71,6 +84,7 @@ describe('delete commands', () => {
     state.json.length = 0;
     state.lines.length = 0;
     state.postDeletes.length = 0;
+    state.removalAnswer = undefined;
   });
 
   it('deletes nothing when the person declines the post confirmation', async () => {
@@ -89,7 +103,9 @@ describe('delete commands', () => {
     });
 
     expect(state.confirmAsked).toEqual([]);
-    expect(state.postDeletes).toEqual([{ id: 'post-1', includeMedia: true }]);
+    expect(state.postDeletes).toEqual([
+      { deleteOnPlatform: false, id: 'post-1', includeMedia: true },
+    ]);
     expect(state.lines).toEqual([
       'Post deleted from Genfeed',
       'ID: post-1',
@@ -98,6 +114,25 @@ describe('delete commands', () => {
       'Media kept: asset-2 (used-by-another-post)',
       'Still live on instagram: https://www.instagram.com/p/abc/',
     ]);
+  });
+
+  it('deletes on the social network too with --on-platform and says so', async () => {
+    state.removalAnswer = {
+      ...removal,
+      deletedOnPlatform: true,
+      platform: 'twitter',
+      platformDeletion: 'deleted',
+      publishedUrl: 'https://x.com/a/status/1',
+    };
+
+    await postsCommand.parseAsync(['delete', 'post-1', '--on-platform'], { from: 'user' });
+
+    expect(state.confirmAsked[0]).toContain('also deleted on its social network');
+    expect(state.postDeletes).toEqual([
+      { deleteOnPlatform: true, id: 'post-1', includeMedia: false },
+    ]);
+    expect(state.lines).toContain('Deleted on: twitter');
+    expect(state.lines.join('\n')).not.toContain('Still live');
   });
 
   it('prints the removal as JSON', async () => {

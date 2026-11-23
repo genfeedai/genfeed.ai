@@ -17,6 +17,7 @@ const removal: PostRemovalResult = {
   deletedOnPlatform: false,
   media: { deleted: [], kept: [] },
   platform: null,
+  platformDeletion: 'not-requested',
   postId: 'post-1',
   previousStatus: 'draft',
   publishedUrl: null,
@@ -41,12 +42,14 @@ describe('PostsRemovalController', () => {
     await expect(
       controller.deletePost(user, 'post-1', {
         brandId: 'brand-1',
+        deleteOnPlatform: true,
         includeMedia: true,
       }),
     ).resolves.toBe(removal);
     expect(received).toEqual([
       {
         brandId: 'brand-1',
+        deleteOnPlatform: true,
         editor: { brandId: 'brand-1', userId: 'user-1' },
         includeMedia: true,
         organizationId: 'org-1',
@@ -55,12 +58,13 @@ describe('PostsRemovalController', () => {
     ]);
   });
 
-  it('keeps the media unless asked, and is a 404 when the post is not found', async () => {
+  it('keeps the media and the network copy unless asked, and is a 404 when the post is not found', async () => {
     const { controller, received } = controllerFor(null);
 
     await expect(
       controller.deletePost(user, 'post-1', {}),
     ).rejects.toMatchObject({ status: 404 });
     expect(received[0].includeMedia).toBe(false);
+    expect(received[0].deleteOnPlatform).toBe(false);
   });
 });

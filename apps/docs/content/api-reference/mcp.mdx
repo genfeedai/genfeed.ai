@@ -483,12 +483,15 @@ Deleting works the same way. `control_release(action=remove_post)` deletes a
 post from Genfeed, a published one included, and with `deleteMedia: true` the
 Library media only that post uses; `control_release(action=remove_asset)` deletes one
 Library asset. Both return `confirmation_required` until the person agrees and
-the agent repeats the call with `confirmed: true`. They delete in Genfeed only:
-a post that went out stays live on its social network until its owner deletes it
-there, and the result says so (`deletedOnPlatform: false`). The result also
+the agent repeats the call with `confirmed: true`. By default they delete in
+Genfeed only: a post that went out stays live on its social network until its
+owner deletes it there, and the result says so (`deletedOnPlatform: false`).
+With `deleteOnPlatform: true` `remove_post` deletes the post on its network
+first, on X and Mastodon; any other platform is refused, and when the network
+refuses nothing is deleted at all. The result also
 reads the post and media back, and the agent confirms with `get_content` and
 `get_assets`. The Claude connector at `/mcp/claude` does not list them. The CLI
-has `genfeed posts delete <id> [--with-media]` and `genfeed asset delete <id>`,
+has `genfeed posts delete <id> [--with-media] [--on-platform]` and `genfeed asset delete <id>`,
 each asking for confirmation unless `--force` is given.
 
 ## Tools

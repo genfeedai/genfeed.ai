@@ -173,9 +173,9 @@ export const MCP_CONTENT_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      'Delete a post from Genfeed, a published one included, and with deleteMedia the Library media only that post uses. Genfeed only: nothing is removed from the social network, so a published post stays live there until the owner deletes it on the platform; the result says so (deletedOnPlatform false). The post disappears from get_content(action=posts) and its public page stops serving it. Media that another post still uses is kept and reported. Confirm with the person first: the first call deletes nothing, and after they agree in this conversation, with the post and media named, you repeat it with confirmed true. Afterwards read back with get_content(action=posts, postId) and get_assets to confirm both are gone.',
+      'Delete a post from Genfeed, a published one included, with deleteMedia the Library media only that post uses, and with deleteOnPlatform the post on its social network first (X and Mastodon only; any other platform is refused and nothing is deleted, and so is the whole call when the network refuses). Without deleteOnPlatform the network copy stays live until the owner deletes it there, and the result says so (deletedOnPlatform false). The post disappears from get_content(action=posts) and its public page stops serving it. Media that another post still uses is kept and reported. Confirm with the person first: the first call deletes nothing, and after they agree in this conversation, with the post and media named, you repeat it with confirmed true. Afterwards read back with get_content(action=posts, postId) and get_assets to confirm both are gone.',
     mcpDescription:
-      'Delete a post from Genfeed (published ones too) and, with deleteMedia, the Library media only it uses. Genfeed only: the social network copy is untouched (deletedOnPlatform false). First call deletes nothing; after the person agrees in this conversation, repeat with confirmed true, then read back with get_content(posts) and get_assets.',
+      'Delete a post from Genfeed (published ones too), with deleteMedia the Library media only it uses, and with deleteOnPlatform the post on its network (X and Mastodon only; refused elsewhere). Without deleteOnPlatform the network copy stays (deletedOnPlatform false). First call deletes nothing; after the person agrees in this conversation, repeat with confirmed true, then read back with get_content(posts) and get_assets.',
     name: 'delete_post',
     requiredRole: 'user',
     parameters: {
@@ -195,6 +195,11 @@ export const MCP_CONTENT_TOOLS: SourceTool[] = [
         deleteMedia: {
           description:
             'Also delete the Library media attached to this post that no other post uses. Default false.',
+          type: 'boolean',
+        },
+        deleteOnPlatform: {
+          description:
+            'Also delete the post on its social network first. Supported on X and Mastodon; any other platform is refused and nothing is deleted. Default false: the network copy stays.',
           type: 'boolean',
         },
         confirmed: REMOVAL_CONFIRMED_PROPERTY,

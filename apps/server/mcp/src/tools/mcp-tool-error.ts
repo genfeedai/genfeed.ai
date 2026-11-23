@@ -293,7 +293,7 @@ export function confirmationRequiredToolResult(
       code: 'confirmation_required',
       toolName,
       message:
-        'Nothing was deleted. Tell the person exactly what will be deleted (the post and its channel and state, and the media) and that a published post stays live on the social network, then ask them to confirm in this conversation. ' +
+        'Nothing was deleted. Tell the person exactly what will be deleted (the post and its channel and state, and the media) and whether it is also deleted on the social network (deleteOnPlatform) or stays live there, then ask them to confirm in this conversation. ' +
         'Only after they agree, repeat this same call with confirmed set to true. Never set confirmed on your own.',
     });
   }

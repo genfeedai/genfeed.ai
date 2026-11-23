@@ -1,12 +1,13 @@
 /** What the API reports after deleting a post, and with it the media only it used. */
 export interface PostRemovalResponse {
-  /** Always false: Genfeed never deletes the copy on the social network. */
-  deletedOnPlatform: false;
+  /** True only when the provider confirmed the network copy is gone. */
+  deletedOnPlatform: boolean;
   media: {
     deleted: string[];
     kept: { id: string; reason: 'not-editable' | 'used-by-another-post' }[];
   };
   platform: string | null;
+  platformDeletion: 'deleted' | 'not-published' | 'not-requested';
   postId: string;
   previousStatus: string;
   publishedUrl: string | null;

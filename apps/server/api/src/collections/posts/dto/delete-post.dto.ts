@@ -21,4 +21,14 @@ export class DeletePostDto {
     required: false,
   })
   readonly includeMedia?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  @ApiProperty({
+    default: false,
+    description:
+      'Also delete the post on its social network first. Supported on X and Mastodon; any other platform is refused, and nothing is deleted when the network refuses.',
+    required: false,
+  })
+  readonly deleteOnPlatform?: boolean;
 }
