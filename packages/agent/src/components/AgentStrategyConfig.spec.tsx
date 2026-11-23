@@ -133,17 +133,19 @@ describe('AgentStrategyConfig', () => {
   it('toggles a platform on and off', async () => {
     await renderConfig(makeApi());
 
-    const twitter = screen.getByRole('button', { name: 'twitter' });
+    const twitter = screen.getByRole('button', { name: 'X' });
 
-    expect(twitter.className).toContain('border-border');
+    expect(twitter).toHaveAttribute('aria-pressed', 'false');
     fireEvent.click(twitter);
-    expect(screen.getByRole('button', { name: 'twitter' }).className).toContain(
-      'border-primary',
+    expect(screen.getByRole('button', { name: 'X' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'twitter' }));
-    expect(screen.getByRole('button', { name: 'twitter' }).className).toContain(
-      'border-border',
+    fireEvent.click(screen.getByRole('button', { name: 'X' }));
+    expect(screen.getByRole('button', { name: 'X' })).toHaveAttribute(
+      'aria-pressed',
+      'false',
     );
   });
 
