@@ -28,7 +28,7 @@ interface HeapSample {
   readonly secondsSinceStart: number;
 }
 
-export interface HeapReport {
+interface HeapReport {
   readonly domNodes: number;
   readonly heapLimitMiB: number;
   readonly heapMiB: number;
