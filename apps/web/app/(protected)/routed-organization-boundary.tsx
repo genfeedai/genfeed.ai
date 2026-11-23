@@ -8,8 +8,8 @@ import { Building2, TriangleAlert } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import WorkspaceContentSkeleton from '@/components/shell/workspace-frame-skeleton/WorkspaceContentSkeleton';
 import WorkspaceFrameSkeleton from '@/components/shell/workspace-frame-skeleton/WorkspaceFrameSkeleton';
+import WorkspacePagePending from '@/components/shell/workspace-frame-skeleton/WorkspacePagePending';
 
 function OrganizationRoutePending() {
   const { status } = useRoutedOrganization();
@@ -109,7 +109,7 @@ export function RoutedOrganizationPageGate({ children }: LayoutProps) {
   }
 
   return (
-    <WorkspaceContentSkeleton
+    <WorkspacePagePending
       label={
         status === 'switching' ? translate('switching') : translate('loading')
       }

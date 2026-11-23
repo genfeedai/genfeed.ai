@@ -4,7 +4,7 @@ import { parsePlatform } from '@genfeedai/contracts';
 import { useRouteParams } from '@genfeedai/hooks/navigation/use-route-params';
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
-import WorkspaceContentSkeleton from '@/components/shell/workspace-frame-skeleton/WorkspaceContentSkeleton';
+import WorkspacePagePending from '@/components/shell/workspace-frame-skeleton/WorkspacePagePending';
 import { readRouteParam } from '@/lib/route-params';
 import PlatformHomePage from './content';
 
@@ -19,7 +19,7 @@ export default function PlatformHomeRoute() {
   const segment = readRouteParam(params.platform);
 
   if (!segment) {
-    return <WorkspaceContentSkeleton />;
+    return <WorkspacePagePending />;
   }
 
   const platform = parsePlatform(segment);

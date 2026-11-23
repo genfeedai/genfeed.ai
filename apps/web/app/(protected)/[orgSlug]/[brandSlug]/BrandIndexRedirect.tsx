@@ -7,7 +7,7 @@ import {
 import { useRouteParams } from '@genfeedai/hooks/navigation/use-route-params';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
-import WorkspaceContentSkeleton from '@/components/shell/workspace-frame-skeleton/WorkspaceContentSkeleton';
+import WorkspacePagePending from '@/components/shell/workspace-frame-skeleton/WorkspacePagePending';
 import { readRouteParam } from '@/lib/route-params';
 
 /**
@@ -37,5 +37,5 @@ export default function BrandIndexRedirect() {
     );
   }, [brandSlug, orgSlug, replace]);
 
-  return <WorkspaceContentSkeleton />;
+  return <WorkspacePagePending />;
 }

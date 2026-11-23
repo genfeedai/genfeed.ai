@@ -3,7 +3,7 @@
 import { useRouteParams } from '@genfeedai/hooks/navigation/use-route-params';
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
-import WorkspaceContentSkeleton from '@/components/shell/workspace-frame-skeleton/WorkspaceContentSkeleton';
+import WorkspacePagePending from '@/components/shell/workspace-frame-skeleton/WorkspacePagePending';
 import TrendsPlatformDetail from '@/features/trends/platform-detail/trends-platform-detail';
 import { isTrendPlatform } from '@/features/trends/shared/trends-platforms';
 import { readRouteParam } from '@/lib/route-params';
@@ -19,7 +19,7 @@ export default function TrendsPlatformRoute() {
   const platform = readRouteParam(params.platform);
 
   if (!platform) {
-    return <WorkspaceContentSkeleton />;
+    return <WorkspacePagePending />;
   }
 
   if (!isTrendPlatform(platform)) {

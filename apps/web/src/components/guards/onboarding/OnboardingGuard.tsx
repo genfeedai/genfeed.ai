@@ -3,7 +3,7 @@
 import { usePathname, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useEffect } from 'react';
-import WorkspaceContentSkeleton from '@/components/shell/workspace-frame-skeleton/WorkspaceContentSkeleton';
+import WorkspacePagePending from '@/components/shell/workspace-frame-skeleton/WorkspacePagePending';
 import { useOnboardingRouteAccess } from '@/hooks/navigation/use-onboarding-route-access/use-onboarding-route-access';
 import { useIsDesktopClient } from '@/hooks/ui/use-is-desktop-client/use-is-desktop-client';
 import type { OnboardingGuardProps } from '@/props/guards/onboarding-guard.props';
@@ -24,7 +24,7 @@ function OnboardingGuardInner({ children }: OnboardingGuardProps) {
   // The shell is already on screen; hold the page body as a placeholder
   // rather than a centered spinner while access state loads.
   if (!canRender) {
-    return <WorkspaceContentSkeleton label={translatePending('loading')} />;
+    return <WorkspacePagePending label={translatePending('loading')} />;
   }
 
   return <>{children}</>;
