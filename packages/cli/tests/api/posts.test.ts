@@ -45,17 +45,19 @@ describe('api/posts', () => {
     );
   });
 
-  it('deletes a post through the deletions route and asks for its media only on request', async () => {
+  it('deletes a post through the deletions route and asks for media and the network copy only on request', async () => {
     mockPost.mockImplementation(async (path: string, body: unknown) => ({ body, path }));
 
     const { deletePost } = await import('../../src/api/posts');
 
     await expect(deletePost('post-1')).resolves.toEqual({
-      body: { includeMedia: false },
+      body: { deleteOnPlatform: false, includeMedia: false },
       path: '/posts/post-1/deletions',
     });
-    await expect(deletePost('post-1', { includeMedia: true })).resolves.toEqual({
-      body: { includeMedia: true },
+    await expect(
+      deletePost('post-1', { deleteOnPlatform: true, includeMedia: true })
+    ).resolves.toEqual({
+      body: { deleteOnPlatform: true, includeMedia: true },
       path: '/posts/post-1/deletions',
     });
   });
