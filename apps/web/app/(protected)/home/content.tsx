@@ -6,6 +6,7 @@ import {
   APP_ROUTES,
   createOrganizationAppRoute,
 } from '@genfeedai/contracts/constants';
+import type { RememberedConnectLine } from '@genfeedai/props/pages/remembered-connect-line.props';
 import { useAccessState } from '@providers/access-state/access-state.provider';
 import {
   Alert,
@@ -22,7 +23,6 @@ import { useEffect, useMemo, useState } from 'react';
 
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import {
-  type RememberedConnectLine,
   readRememberedConnectLine,
   rememberConnectLine,
 } from './connect-line-memory';

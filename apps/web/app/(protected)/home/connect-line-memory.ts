@@ -1,10 +1,6 @@
-const STORAGE_KEY_PREFIX = 'genfeed:connect-line:v1';
+import type { RememberedConnectLine } from '@genfeedai/props/pages/remembered-connect-line.props';
 
-export interface RememberedConnectLine {
-  status: 'configured' | 'unconfigured';
-  /** When the connection was last verified; the time only, never a key. */
-  verifiedAt: string | null;
-}
+const STORAGE_KEY_PREFIX = 'genfeed:connect-line:v1';
 
 function storageKey(organizationId: string): string {
   return `${STORAGE_KEY_PREFIX}:${organizationId}`;
