@@ -34,6 +34,7 @@ const approval: IReviewInboxItem = {
   actionTitle: 'Publish post',
   approvalId: 'apr-1',
   batchCount: null,
+  question: null,
   brandId: 'brand-1',
   brandLabel: 'Acme',
   brandLogoUrl: null,

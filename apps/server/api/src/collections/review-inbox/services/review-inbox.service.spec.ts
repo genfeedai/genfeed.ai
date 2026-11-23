@@ -1,5 +1,6 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import type { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
+import type { AgentThreadAccessService } from '@api/collections/agent-threads/services/agent-thread-access.service';
 import { ReviewInboxService } from '@api/collections/review-inbox/services/review-inbox.service';
 import type {
   RolesGuard,
@@ -78,6 +79,7 @@ describe('ReviewInboxService', () => {
       brandAccess as unknown as BrandAccessService,
       rolesGuard as unknown as RolesGuard,
       { cdnUrl: 'https://cdn.example.com/' } as unknown as ConfigService,
+      {} as unknown as AgentThreadAccessService,
     );
   });
 
@@ -103,6 +105,13 @@ describe('ReviewInboxService', () => {
           ownScope,
         ),
       ).resolves.toEqual({
+        actor: {
+          apiKeyId: undefined,
+          isApiKey: undefined,
+          organizationId: 'org-1',
+          scopes: undefined,
+          userId: 'user-1',
+        },
         brandIds: ['brand-1'],
         canResolveMcpApprovals: false,
         canResolveWorkflowGates: true,
@@ -125,6 +134,9 @@ describe('ReviewInboxService', () => {
           },
         ),
       ).resolves.toEqual({
+        // A platform override has no member in the organization, so it has no
+        // personal rows (agent questions) either.
+        actor: undefined,
         brandIds: undefined,
         canResolveMcpApprovals: true,
         canResolveWorkflowGates: true,

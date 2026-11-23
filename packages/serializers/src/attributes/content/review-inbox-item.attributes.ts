@@ -1,5 +1,6 @@
-// Inbox rows are projections over workflow executions and MCP approvals:
-// approval arguments, raw node outputs and results never leave the server.
+// Inbox rows are projections over workflow executions, MCP approvals and agent
+// questions: approval arguments, raw node outputs and results never leave the
+// server. A question carries only what answering it needs.
 export const reviewInboxItemAttributes = [
   'kind',
   'source',
@@ -24,4 +25,5 @@ export const reviewInboxItemAttributes = [
   'toolName',
   'estimatedCredits',
   'batchCount',
+  'question',
 ];

@@ -5850,6 +5850,12 @@ model AgentThreadSnapshot {
   threadId       String
   thread         AgentThread  @relation(fields: [threadId], references: [id])
   data           Json         @default("{}")
+  /// When the oldest question the thread is waiting on was asked; null when
+  /// none is pending. Maintained with `data.pendingInputRequests` by the thread
+  /// engine so the review inbox finds waiting threads without reading `data`.
+  /// The partial index `agent_thread_snapshots_pending_input_idx` lives in the
+  /// migration SQL (Prisma cannot declare a partial index).
+  pendingInputAt DateTime?
   isDeleted      Boolean      @default(false)
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt

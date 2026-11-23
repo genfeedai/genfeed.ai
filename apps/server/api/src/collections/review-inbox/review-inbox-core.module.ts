@@ -1,4 +1,5 @@
 import { BrandAccessModule } from '@api/authorization/brand-access/brand-access.module';
+import { AgentThreadAccessService } from '@api/collections/agent-threads/services/agent-thread-access.service';
 import { ReviewInboxService } from '@api/collections/review-inbox/services/review-inbox.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { PrismaModule } from '@api/shared/modules/prisma/prisma.module';
@@ -8,6 +9,6 @@ import { Module } from '@nestjs/common';
 @Module({
   exports: [ReviewInboxService],
   imports: [BrandAccessModule, PrismaModule],
-  providers: [ReviewInboxService, RolesGuard],
+  providers: [AgentThreadAccessService, ReviewInboxService, RolesGuard],
 })
 export class ReviewInboxCoreModule {}

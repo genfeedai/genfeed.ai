@@ -27,6 +27,7 @@ const item: IReviewInboxItem = {
   actionTitle: 'Continue Weekly posts',
   approvalId: null,
   batchCount: null,
+  question: null,
   brandId: 'brand-1',
   brandLabel: 'Acme',
   brandLogoUrl: null,

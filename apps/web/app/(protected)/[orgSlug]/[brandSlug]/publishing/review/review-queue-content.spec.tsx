@@ -1183,6 +1183,7 @@ describe('ReviewQueueContent', () => {
       actionTitle: 'Continue Weekly posts with the output waiting',
       approvalId: null,
       batchCount: null,
+      question: null,
       brandId: 'brand-1',
       brandLabel: 'Acme',
       brandLogoUrl: null,

@@ -17,6 +17,10 @@ import { AgentThreadProjectorService } from '@api/services/agent-threading/servi
 import { AgentThreadStatusPublisherService } from '@api/services/agent-threading/services/agent-thread-status-publisher.service';
 import { ThreadContextCompressorService } from '@api/services/agent-threading/services/thread-context-compressor.service';
 import { AgentThreadEventType } from '@api/services/agent-threading/types/agent-thread.types';
+import {
+  dropSuperseded,
+  oldestPendingInputAt,
+} from '@api/services/agent-threading/utils/oldest-pending-input-at.util';
 import { validateAgentInputAnswer } from '@api/services/agent-threading/utils/validate-agent-input-answer.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { ResolveAgentInputRequestParams } from '@genfeedai/contracts/interfaces/ai/agent-input-request.interface';
@@ -356,6 +360,7 @@ export class AgentThreadEngineService {
       where: scopedWhere(params.organizationId, { id: snapshotRow.id }),
       data: {
         data: toPrismaJson(nextSnapshotData),
+        pendingInputAt: oldestPendingInputAt(projected.pendingInputRequests),
         updatedAt: new Date(),
       },
     });
@@ -605,6 +610,9 @@ export class AgentThreadEngineService {
       const updated = await this.prisma.agentThreadSnapshot.update({
         where: scopedWhere(organizationId, { id: existing.id }),
         data: {
+          pendingInputAt: oldestPendingInputAt(
+            existingData.pendingInputRequests,
+          ),
           data: {
             ...existingData,
             profileSnapshot: {
@@ -776,72 +784,76 @@ export class AgentThreadEngineService {
     };
   }
 
+  /** Stores the request in `snapshot.data.inputRequests` and marks the run waiting. */
+  private async recordInputRequested(
+    event: AgentThreadEventDocument,
+    organizationId: string,
+    threadId: string,
+  ): Promise<void> {
+    const { payload } = event;
+    const requestId =
+      this.readString(payload, 'requestId') ??
+      `input:${threadId}:${event.sequence}`;
+    const snapshotRow = await this.prisma.agentThreadSnapshot.findFirst({
+      where: scopedWhere(organizationId, { threadId }),
+      select: { data: true, id: true },
+    });
+    if (snapshotRow) {
+      const snapshotData = (snapshotRow.data as Record<string, unknown>) ?? {};
+      const inputRequests = (
+        (snapshotData.inputRequests as Array<Record<string, unknown>>) ?? []
+      )
+        .filter((r) => r.requestId !== requestId)
+        .map((request) =>
+          request.status === 'pending'
+            ? { ...request, status: 'superseded' }
+            : request,
+        );
+
+      inputRequests.push({
+        allowFreeText: this.readBoolean(payload, 'allowFreeText'),
+        isMultiSelect: this.readBoolean(payload, 'isMultiSelect'),
+        maxSelections: this.readNumber(payload, 'maxSelections'),
+        fieldId: this.readString(payload, 'fieldId'),
+        metadata: this.readRecord(payload, 'metadata'),
+        options: this.readArray(payload, 'options') ?? [],
+        prompt: this.readString(payload, 'prompt') ?? '',
+        recommendedOptionId: this.readString(payload, 'recommendedOptionId'),
+        requestId,
+        runId: event.runId,
+        status: 'pending',
+        title: this.readString(payload, 'title') ?? 'Input requested',
+      });
+
+      const pendingInputRequests = dropSuperseded(snapshotData, inputRequests);
+      await this.prisma.agentThreadSnapshot.update({
+        where: scopedWhere(organizationId, { id: snapshotRow.id }),
+        data: {
+          data: toPrismaJson({
+            ...snapshotData,
+            inputRequests,
+            pendingInputRequests,
+          }),
+          pendingInputAt: oldestPendingInputAt(pendingInputRequests),
+          updatedAt: new Date(),
+        },
+      });
+    }
+    await upsertRuntimeBinding(this.runtimeSessionService, {
+      organizationId,
+      runId: this.optionalString(event.runId),
+      status: 'waiting_input',
+      threadId,
+    });
+  }
+
   private async syncSideEffects(
     event: AgentThreadEventDocument,
     organizationId: string,
     threadId: string,
   ): Promise<void> {
     if (event.type === 'input.requested') {
-      const requestId =
-        this.readString(event.payload, 'requestId') ??
-        `input:${threadId}:${event.sequence}`;
-
-      // Store the input request inside snapshot.data.inputRequests[]
-      const snapshotRow = await this.prisma.agentThreadSnapshot.findFirst({
-        where: scopedWhere(organizationId, { threadId }),
-        select: { data: true, id: true },
-      });
-
-      if (snapshotRow) {
-        const snapshotData =
-          (snapshotRow.data as Record<string, unknown>) ?? {};
-        const inputRequests = (
-          (snapshotData.inputRequests as Array<Record<string, unknown>>) ?? []
-        )
-          .filter((r) => r.requestId !== requestId)
-          .map((request) =>
-            request.status === 'pending'
-              ? { ...request, status: 'superseded' }
-              : request,
-          );
-
-        inputRequests.push({
-          allowFreeText: this.readBoolean(event.payload, 'allowFreeText'),
-          isMultiSelect: this.readBoolean(event.payload, 'isMultiSelect'),
-          maxSelections: this.readNumber(event.payload, 'maxSelections'),
-          fieldId: this.readString(event.payload, 'fieldId'),
-          metadata: this.readRecord(event.payload, 'metadata'),
-          options: this.readArray(event.payload, 'options') ?? [],
-          prompt: this.readString(event.payload, 'prompt') ?? '',
-          recommendedOptionId: this.readString(
-            event.payload,
-            'recommendedOptionId',
-          ),
-          requestId,
-          runId: event.runId,
-          status: 'pending',
-          title: this.readString(event.payload, 'title') ?? 'Input requested',
-        });
-
-        await this.prisma.agentThreadSnapshot.update({
-          where: scopedWhere(organizationId, { id: snapshotRow.id }),
-          data: {
-            data: toPrismaJson({
-              ...snapshotData,
-              inputRequests,
-            }),
-            updatedAt: new Date(),
-          },
-        });
-      }
-
-      await upsertRuntimeBinding(this.runtimeSessionService, {
-        organizationId,
-        runId: this.optionalString(event.runId),
-        status: 'waiting_input',
-        threadId,
-      });
-
+      await this.recordInputRequested(event, organizationId, threadId);
       return;
     }
 
