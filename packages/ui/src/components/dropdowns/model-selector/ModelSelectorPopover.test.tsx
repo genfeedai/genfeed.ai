@@ -10,6 +10,11 @@ import userEvent from '@testing-library/user-event';
 import ModelSelectorPopover from '@ui/dropdowns/model-selector/ModelSelectorPopover';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@ui/tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
 vi.mock('@ui/primitives/command', async () => {
   const React = await import('react');
 
@@ -517,10 +522,10 @@ describe('ModelSelectorPopover', () => {
       name: 'Model capabilities',
     });
     expect(
-      within(filterGroup).getByRole('button', { name: 'Audio' }),
+      within(filterGroup).getByRole('radio', { name: 'Audio' }),
     ).toBeInTheDocument();
     expect(
-      within(filterGroup).queryByRole('button', { name: 'Fast' }),
+      within(filterGroup).queryByRole('radio', { name: 'Fast' }),
     ).not.toBeInTheDocument();
   });
 
@@ -549,15 +554,13 @@ describe('ModelSelectorPopover', () => {
     const filterGroup = screen.getByRole('group', {
       name: 'Model capabilities',
     });
-    await user.click(
-      within(filterGroup).getByRole('button', { name: 'Audio' }),
-    );
+    await user.click(within(filterGroup).getByRole('radio', { name: 'Audio' }));
 
     expect(screen.getByText('Veo 3')).toBeInTheDocument();
     expect(screen.queryByText('Nano Banana')).not.toBeInTheDocument();
     expect(
-      within(filterGroup).getByRole('button', { name: 'Audio' }),
-    ).toHaveAttribute('aria-pressed', 'true');
+      within(filterGroup).getByRole('radio', { name: 'Audio' }),
+    ).toHaveAttribute('aria-checked', 'true');
     // Capability views are catalog subsets — routing is not one of them.
     expect(screen.queryByText('Best Quality')).not.toBeInTheDocument();
   });
@@ -598,7 +601,7 @@ describe('ModelSelectorPopover', () => {
 
     await openPicker(user);
 
-    const filterGroup = screen.getByRole('radiogroup', {
+    const filterGroup = screen.getByRole('group', {
       name: 'Model categories',
     });
     expect(
@@ -668,7 +671,7 @@ describe('ModelSelectorPopover', () => {
 
     await openPicker(user);
 
-    const categories = screen.getByRole('radiogroup', {
+    const categories = screen.getByRole('group', {
       name: 'Model categories',
     });
     const capabilities = screen.getByRole('group', {
@@ -679,15 +682,15 @@ describe('ModelSelectorPopover', () => {
       within(categories).getByRole('radio', { name: 'Catalog' }),
     );
     await user.click(
-      within(capabilities).getByRole('button', { name: 'Audio' }),
+      within(capabilities).getByRole('radio', { name: 'Audio' }),
     );
 
     expect(
       within(categories).getByRole('radio', { name: 'Catalog' }),
     ).toHaveAttribute('aria-checked', 'true');
     expect(
-      within(capabilities).getByRole('button', { name: 'Audio' }),
-    ).toHaveAttribute('aria-pressed', 'true');
+      within(capabilities).getByRole('radio', { name: 'Audio' }),
+    ).toHaveAttribute('aria-checked', 'true');
     expect(screen.getByText('Veo 3')).toBeInTheDocument();
     expect(screen.queryByText('Nano Banana')).not.toBeInTheDocument();
     expect(screen.queryByText('Brand Video')).not.toBeInTheDocument();
@@ -885,7 +888,7 @@ describe('ModelSelectorPopover', () => {
       name: 'Model capabilities',
     });
     await user.click(
-      within(filterGroup).getByRole('button', { name: 'Legacy' }),
+      within(filterGroup).getByRole('radio', { name: 'Legacy' }),
     );
 
     expect(screen.getByText('Legacy Alpha')).toBeInTheDocument();

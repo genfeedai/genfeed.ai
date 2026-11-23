@@ -1178,5 +1178,9 @@
   },
   "ingredientCaptions": {
     "createdPrefix": "Created "
+  },
+  "modelSelectorFilters": {
+    "capabilities": "Model capabilities",
+    "categories": "Model categories"
   }
 }

@@ -3,12 +3,12 @@ vi.mock('@api/shared/modules/prisma/prisma.service', () => ({
 }));
 
 import { WorkflowExecutionFinalizerService } from '@api/collections/workflows/services/workflow-execution-finalizer.service';
+import { WorkflowExecutionStatus, WorkflowStatus } from '@genfeedai/contracts';
 import {
   explore,
   type Scenario,
   type Simulation,
-} from '@api-test/model-checking/interleaving-explorer';
-import { WorkflowExecutionStatus, WorkflowStatus } from '@genfeedai/contracts';
+} from '@genfeedai/utils/model-checking/interleaving-explorer';
 import type { ExecutionRunResult } from '@genfeedai/workflows/engine';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 

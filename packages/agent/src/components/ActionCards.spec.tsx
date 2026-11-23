@@ -311,10 +311,10 @@ describe('SchedulePostCard', () => {
     );
 
     expect(
-      screen.getByRole('button', { name: '@studio-a' }),
+      screen.getByRole('button', { name: '@studio-a, LinkedIn' }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: '@studio-b' }),
+      screen.getByRole('button', { name: '@studio-b, LinkedIn' }),
     ).toBeInTheDocument();
   });
 });
@@ -362,7 +362,7 @@ describe('SchedulePostCard disconnected target', () => {
     );
 
     expect(
-      screen.getByRole('button', { name: '@studio-a' }),
+      screen.getByRole('button', { name: '@studio-a, LinkedIn, Disconnected' }),
     ).toBeInTheDocument();
     expect(screen.getAllByText('Disconnected')).toHaveLength(2);
     expect(screen.getByText('@studio-b')).toBeInTheDocument();

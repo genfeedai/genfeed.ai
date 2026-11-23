@@ -153,7 +153,7 @@ describe('PlatformComparisonChart', () => {
       render(<PlatformComparisonChart data={mockData} isLoading />);
       const buttons = screen.getAllByRole('button');
       buttons.forEach((button) => {
-        expect(button).toHaveAttribute('aria-disabled', 'true');
+        expect(button).toBeDisabled();
       });
     });
   });
@@ -185,7 +185,7 @@ describe('PlatformComparisonChart', () => {
       render(<PlatformComparisonChart data={[]} />);
       const buttons = screen.getAllByRole('button');
       buttons.forEach((button) => {
-        expect(button).toHaveAttribute('aria-disabled', 'true');
+        expect(button).toBeDisabled();
       });
     });
 
@@ -411,7 +411,7 @@ describe('PlatformComparisonChart', () => {
       render(<PlatformComparisonChart data={mockData} isLoading />);
       const buttons = screen.getAllByRole('button');
       buttons.forEach((button) => {
-        expect(button).toHaveAttribute('aria-disabled', 'true');
+        expect(button).toBeDisabled();
       });
     });
 
@@ -419,7 +419,7 @@ describe('PlatformComparisonChart', () => {
       render(<PlatformComparisonChart data={mockData} isLoading />);
       const buttons = screen.getAllByRole('button');
       buttons.forEach((button) => {
-        expect(button).toHaveAttribute('aria-disabled', 'true');
+        expect(button).toBeDisabled();
       });
     });
   });

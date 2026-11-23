@@ -4,13 +4,13 @@ import { AgentEventRunService } from '@api/services/agent-event-run/agent-event-
 import type { AgentEventClaim } from '@api/services/agent-event-run/agent-event-run.types';
 import type { AgentRuntimeService } from '@api/services/agent-runtime/agent-runtime.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import type { IAgentRuntimeStartTurnInput } from '@genfeedai/contracts/interfaces';
+import { AgentEventRunStatus } from '@genfeedai/prisma';
 import {
   explore,
   type Scenario,
   type Simulation,
-} from '@api-test/model-checking/interleaving-explorer';
-import type { IAgentRuntimeStartTurnInput } from '@genfeedai/contracts/interfaces';
-import { AgentEventRunStatus } from '@genfeedai/prisma';
+} from '@genfeedai/utils/model-checking/interleaving-explorer';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.unmock('@genfeedai/prisma');

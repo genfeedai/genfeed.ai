@@ -7,12 +7,12 @@ vi.mock('@genfeedai/prisma', async () => {
 
 import type { PostEntity } from '@api/collections/posts/entities/post.entity';
 import type { PublishResult } from '@api/index';
+import { TargetExecutionState } from '@genfeedai/contracts';
 import {
   explore,
   type Scenario,
   type Simulation,
-} from '@api-test/model-checking/interleaving-explorer';
-import { TargetExecutionState } from '@genfeedai/contracts';
+} from '@genfeedai/utils/model-checking/interleaving-explorer';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { PrismaService } from '@libs/prisma/prisma.service';
 import type { PreparedPostDelivery } from '@workers/services/scheduled-post-delivery.types';
