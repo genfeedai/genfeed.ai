@@ -168,6 +168,7 @@ describe('TrendsService', () => {
               pinterestService,
               tiktokService,
               { record: vi.fn().mockResolvedValue(undefined) } as never,
+              { readTopMedia: vi.fn().mockResolvedValue([]) } as never,
             ),
         },
         TrendFilteringService,

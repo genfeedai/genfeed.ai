@@ -3,7 +3,10 @@ import type {
   TrendSourceClassification,
   TrendSourceItem,
 } from '@api/collections/trends/interfaces/trend.interfaces';
-import { TREND_SOURCE_PREVIEW_LIMIT } from '@api/collections/trends/services/modules/trend-source.constants';
+import {
+  INSTAGRAM_HASHTAG_SEARCH_PROVIDER,
+  TREND_SOURCE_PREVIEW_LIMIT,
+} from '@api/collections/trends/services/modules/trend-source.constants';
 import { normalizeTrendSourceClassification } from '@api/collections/trends/utils/trend-source-classification.util';
 import { CacheService } from '@api/services/cache/cache.service';
 import type {
@@ -87,6 +90,12 @@ export class TrendSourceItemsService {
     trend: TrendEntity,
     limit: number,
   ): Promise<TrendSourceItem[]> {
+    // Its media came from the official hashtag search and is stored with the
+    // trend: a scraper is not asked for the same hashtag.
+    if (trend.metadata?.provider === INSTAGRAM_HASHTAG_SEARCH_PROVIDER) {
+      return this.getStoredTrendSourcePreview(trend, limit);
+    }
+
     const searchTerm = this.getTrendSearchTerm(trend);
     if (!searchTerm) {
       return [];

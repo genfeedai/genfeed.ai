@@ -63,6 +63,29 @@ describe('TrendSourceItemsService', () => {
   });
 
   describe('fetchTrendSourceItems', () => {
+    it('serves the stored official hashtag media and never asks Apify for the same hashtag', async () => {
+      const stored = {
+        contentType: 'image',
+        id: 'media-1',
+        platform: 'instagram',
+        sourceUrl: 'https://www.instagram.com/p/abc/',
+      };
+      const trend = makeTrend({
+        metadata: {
+          hashtags: ['#coffee'],
+          provider: 'instagram-hashtag-search',
+          sourcePreviewCache: [stored],
+          sourcePreviewState: 'live',
+        },
+        topic: '#coffee',
+      });
+
+      const result = await service.fetchTrendSourceItems(trend, 5);
+
+      expect(result).toEqual([stored]);
+      expect(apify.searchInstagramByHashtag).not.toHaveBeenCalled();
+    });
+
     it('returns [] without calling Apify when no search term is resolvable', async () => {
       const trend = makeTrend({ metadata: { hashtags: [] }, topic: '' });
 

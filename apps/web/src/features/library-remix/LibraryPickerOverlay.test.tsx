@@ -9,6 +9,11 @@ const mocks = vi.hoisted(() => ({
   result: null as UseLibraryPickerResult | null,
 }));
 
+vi.mock('next-intl', () => ({
+  useTranslations: () => (key: string) =>
+    key === 'sources' ? 'Library sources' : key,
+}));
+
 vi.mock('@hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({ href: (path: string) => `/acme/moonrise${path}` }),
 }));
@@ -121,7 +126,7 @@ describe('LibraryPickerOverlay', () => {
     ).toHaveAttribute('href', '/acme/moonrise/library');
 
     fireEvent.click(
-      screen.getByRole('button', { name: 'Select Source image-1' }),
+      screen.getByRole('option', { name: 'Select Source image-1' }),
     );
     fireEvent.click(screen.getByRole('button', { name: 'Load more' }));
 

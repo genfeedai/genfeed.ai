@@ -33,6 +33,7 @@ import { ApifyModule } from '@api/services/integrations/apify/apify.module';
 import { ApifyService } from '@api/services/integrations/apify/services/apify.service';
 import { InstagramModule } from '@api/services/integrations/instagram/instagram.module';
 import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
+import { InstagramHashtagSearchService } from '@api/services/integrations/instagram/services/instagram-hashtag-search.service';
 import { LinkedInModule } from '@api/services/integrations/linkedin/linkedin.module';
 import { LinkedInService } from '@api/services/integrations/linkedin/services/linkedin.service';
 import { PinterestModule } from '@api/services/integrations/pinterest/pinterest.module';
@@ -107,6 +108,7 @@ import { Module } from '@nestjs/common';
         PinterestService,
         TiktokService,
         TrendRefreshHealthService,
+        InstagramHashtagSearchService,
       ],
       provide: TrendFetchService,
       useFactory: (
@@ -123,6 +125,7 @@ import { Module } from '@nestjs/common';
         pinterestService: PinterestService,
         tiktokService: TiktokService,
         refreshHealth: TrendRefreshHealthService,
+        instagramHashtagSearch: InstagramHashtagSearchService,
       ) =>
         new TrendFetchService(
           prisma,
@@ -138,6 +141,7 @@ import { Module } from '@nestjs/common';
           pinterestService,
           tiktokService,
           refreshHealth,
+          instagramHashtagSearch,
         ),
     },
     TrendFilteringService,

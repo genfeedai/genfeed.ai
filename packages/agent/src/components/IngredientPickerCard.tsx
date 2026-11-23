@@ -3,16 +3,11 @@ import type {
   AgentUiActionOf,
 } from '@genfeedai/agent/models/agent-chat.model';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import { Metadata } from '@genfeedai/models/content/metadata.model';
-import { Image as IngredientImage } from '@genfeedai/models/ingredients/image.model';
-import { Video } from '@genfeedai/models/ingredients/video.model';
-import {
-  LazyMasonryImage,
-  LazyMasonryVideo,
-} from '@ui/lazy/masonry/LazyMasonry';
+import type { LibraryGridItem } from '@genfeedai/props/ui/content/library-picker.props';
+import LibraryGrid from '@ui/content/library-picker/LibraryGrid';
 import { Button } from '@ui/primitives/button';
 import { Check, Image } from 'lucide-react';
-import { type ReactElement, useCallback, useState } from 'react';
+import { type ReactElement, useCallback, useMemo, useState } from 'react';
 
 type Ingredient = AgentIngredientItem;
 
@@ -21,49 +16,15 @@ interface IngredientPickerCardProps {
   onSelect?: (ingredient: { id: string; title?: string }) => void;
 }
 
-function IngredientThumbnail({
-  ingredient,
-  isSelected,
-  onPick,
-}: {
-  ingredient: Ingredient;
-  isSelected: boolean;
-  onPick: (ingredient: Ingredient) => void;
-}): ReactElement {
-  const media = {
+function toGridItem(ingredient: Ingredient): LibraryGridItem {
+  return {
     id: ingredient.id,
-    cdnUrl: ingredient.url,
-    metadata: new Metadata({
-      label: ingredient.title ?? 'Select ingredient',
-      width: 1,
-      height: 1,
-    }),
+    kind: ingredient.type,
+    thumbnailUrl:
+      ingredient.thumbnailUrl ??
+      (ingredient.type === 'video' ? null : ingredient.url),
+    title: ingredient.title ?? 'Select ingredient',
   };
-  const sharedProps = {
-    isActionsEnabled: false,
-    isContainerHovered: true,
-    isDragEnabled: false,
-    isSelected,
-    onClickIngredient: () => onPick(ingredient),
-  };
-
-  return (
-    <div className="min-w-0">
-      {ingredient.type === 'video' ? (
-        <LazyMasonryVideo {...sharedProps} video={new Video(media)} />
-      ) : (
-        <LazyMasonryImage
-          {...sharedProps}
-          image={
-            new IngredientImage({
-              ...media,
-              cdnUrl: ingredient.thumbnailUrl ?? ingredient.url,
-            })
-          }
-        />
-      )}
-    </div>
-  );
 }
 
 export function IngredientPickerCard({
@@ -75,6 +36,11 @@ export function IngredientPickerCard({
   const [confirmed, setConfirmed] = useState(false);
 
   const selectedIngredient = ingredients.find((i) => i.id === selectedId);
+  const gridItems = useMemo(() => ingredients.map(toGridItem), [ingredients]);
+  const selectedIds = useMemo(
+    () => new Set(selectedId ? [selectedId] : []),
+    [selectedId],
+  );
 
   const handlePick = useCallback(
     (ingredient: Ingredient) => {
@@ -139,16 +105,17 @@ export function IngredientPickerCard({
             No ingredients available
           </p>
         ) : (
-          <div className="grid grid-cols-3 gap-1.5">
-            {ingredients.map((ingredient) => (
-              <IngredientThumbnail
-                key={ingredient.id}
-                ingredient={ingredient}
-                isSelected={selectedId === ingredient.id}
-                onPick={handlePick}
-              />
-            ))}
-          </div>
+          <LibraryGrid
+            ariaLabel={action.title}
+            items={gridItems}
+            onSelect={(item) => {
+              const ingredient = ingredients.find((i) => i.id === item.id);
+              if (ingredient) {
+                handlePick(ingredient);
+              }
+            }}
+            selectedIds={selectedIds}
+          />
         )}
       </div>
 

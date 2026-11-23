@@ -389,9 +389,6 @@
     "apps/web/src/features/ingredients/detail/ingredient-detail-not-found.tsx": {
       "unstyled-look": 1
     },
-    "apps/web/src/features/library-remix/LibraryPickerOverlay.tsx": {
-      "unstyled-look": 1
-    },
     "apps/web/src/features/library/components/tags/library-tag-picker/LibraryTagManagerDialog.tsx": {
       "unstyled-look": 1
     },
@@ -562,9 +559,6 @@
       "button-restyle": 2
     },
     "packages/agent/src/components/ContentCalendarCard.tsx": {
-      "unstyled-look": 1
-    },
-    "packages/agent/src/components/ContentLibraryPicker.tsx": {
       "unstyled-look": 1
     },
     "packages/agent/src/components/CredentialMentionList.tsx": {

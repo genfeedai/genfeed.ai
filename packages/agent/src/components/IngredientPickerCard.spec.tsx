@@ -1,7 +1,6 @@
-import '@agent-tests/media-preview-mocks';
 import { IngredientPickerCard } from '@genfeedai/agent/components/IngredientPickerCard';
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 const action: AgentUiAction = {
@@ -26,26 +25,31 @@ const action: AgentUiAction = {
 };
 
 describe('IngredientPickerCard', () => {
-  it('uses shared media tiles and keeps video sources separate from image posters', () => {
-    const { container } = render(<IngredientPickerCard action={action} />);
+  it('lays the ingredients out in the shared Library grid, with video posters as images', () => {
+    render(<IngredientPickerCard action={action} />);
 
-    expect(screen.getByTestId('masonry-video')).toHaveAttribute(
-      'data-url',
-      'https://cdn.test/apple.mp4',
-    );
-    expect(screen.getByTestId('masonry-image')).toHaveAttribute(
-      'data-url',
-      'https://cdn.test/apple.jpg',
-    );
-    expect(container.querySelector('button button')).toBeNull();
+    const grid = screen.getByRole('listbox', { name: 'Choose an ingredient' });
+    expect(
+      within(grid).getByRole('option', { name: 'Apple video' }),
+    ).toBeInTheDocument();
+    expect(
+      within(grid).getByRole('option', { name: 'Apple image' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Use this ingredient' }),
+    ).not.toBeInTheDocument();
   });
 
   it('selects through the shared tile, confirms once, and allows changing the selection', () => {
     const onSelect = vi.fn();
     render(<IngredientPickerCard action={action} onSelect={onSelect} />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Apple video' }));
+    fireEvent.click(screen.getByRole('option', { name: 'Apple video' }));
     expect(onSelect).not.toHaveBeenCalled();
+    expect(screen.getByRole('option', { name: 'Apple video' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
     fireEvent.click(
       screen.getByRole('button', { name: 'Use this ingredient' }),
     );
@@ -53,9 +57,9 @@ describe('IngredientPickerCard', () => {
       id: 'video-1',
       title: 'Apple video',
     });
-    expect(screen.queryByTestId('masonry-video')).not.toBeInTheDocument();
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Change' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Apple image' }));
+    fireEvent.click(screen.getByRole('option', { name: 'Apple image' }));
     fireEvent.click(
       screen.getByRole('button', { name: 'Use this ingredient' }),
     );

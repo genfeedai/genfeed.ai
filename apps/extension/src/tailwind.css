@@ -15,6 +15,7 @@
 @source "../../../packages/ui/src/components/prompt-bars/components";
 @source "../../../packages/ui/src/components/menus";
 @source "../../../packages/agent/src/components/ContentLibraryPicker.tsx";
+@source "../../../packages/ui/src/components/content";
 
 /* Tailwind v4 does not consume tailwind.config.ts automatically. Register the
    shared HSL variables so semantic classes compile in the extension bundle. */
