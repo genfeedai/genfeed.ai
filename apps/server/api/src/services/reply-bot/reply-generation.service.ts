@@ -3,7 +3,16 @@ import { ModelsService } from '@api/collections/models/services/models.service';
 import { baseModelKey } from '@api/collections/models/utils/model-key.util';
 import { TemplatesService } from '@api/collections/templates/services/templates.service';
 import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
-import { InsufficientCreditsException } from '@api/exceptions/business-logic.exception';
+import {
+  BusinessLogicException,
+  InsufficientCreditsException,
+} from '@api/exceptions/business-logic.exception';
+import {
+  releaseTextCredits,
+  reserveTextCredits,
+  settleTextCredits,
+  type TextCreditHold,
+} from '@api/helpers/utils/credits/text-credit-hold.util';
 import { resolveOptionalProvider } from '@api/helpers/utils/module-ref/resolve-optional-provider.util';
 import {
   calculateEstimatedTextCredits,
@@ -71,11 +80,17 @@ export interface DmGenerationOptions {
   userId: string;
 }
 
+/** How one reply or DM is paid for: the org's own key, or a hold on credits. */
+interface TextAdmission {
+  byok?: TextByokDispatch;
+  hold?: TextCreditHold;
+}
+
 @Traced()
 @Injectable()
 export class ReplyGenerationService {
   private readonly constructorName: string = String(this.constructor.name);
-  private static readonly TEXT_MAX_OVERDRAFT_CREDITS = 5;
+  private static readonly TEXT_HOLD_WORKLOAD_TYPE = 'reply-text-generation';
 
   constructor(
     private readonly creditsUtilsService: CreditsUtilsService,
@@ -99,7 +114,13 @@ export class ReplyGenerationService {
     if (!options.userId) {
       throw new Error('Reply generation billing user is required');
     }
-    const byok = await this.admitCredits(options.organizationId);
+    const admission = await this.admitCredits(
+      options.organizationId,
+      options.userId,
+      'Reply bot text generation',
+      options.brandId,
+    );
+    const byok = admission.byok;
 
     try {
       const harnessBlock = await this.resolveHarnessContext(options);
@@ -181,7 +202,7 @@ Body: ${escapeConversationData(options.tweetContent.slice(0, CONVERSATION_MESSAG
         input,
         replyText,
         'Reply bot text generation',
-        byok,
+        admission,
         options.brandId,
       );
 
@@ -193,6 +214,11 @@ Body: ${escapeConversationData(options.tweetContent.slice(0, CONVERSATION_MESSAG
 
       return replyText;
     } catch (error: unknown) {
+      await releaseTextCredits(
+        this.creditsUtilsService,
+        admission.hold,
+        options.organizationId,
+      );
       if (error instanceof InsufficientCreditsException) {
         throw error;
       }
@@ -215,7 +241,12 @@ Body: ${escapeConversationData(options.tweetContent.slice(0, CONVERSATION_MESSAG
     if (!options.userId) {
       throw new Error('DM generation billing user is required');
     }
-    const byok = await this.admitCredits(options.organizationId);
+    const admission = await this.admitCredits(
+      options.organizationId,
+      options.userId,
+      'Reply bot DM generation',
+    );
+    const byok = admission.byok;
 
     try {
       // Build a DM-specific prompt
@@ -270,7 +301,7 @@ DM text:`;
         input,
         dmText,
         'Reply bot DM generation',
-        byok,
+        admission,
       );
 
       this.loggerService.log(`${url} success`, {
@@ -279,6 +310,11 @@ DM text:`;
 
       return dmText;
     } catch (error: unknown) {
+      await releaseTextCredits(
+        this.creditsUtilsService,
+        admission.hold,
+        options.organizationId,
+      );
       if (error instanceof InsufficientCreditsException) {
         throw error;
       }
@@ -352,49 +388,86 @@ DM text:`;
 
   /**
    * Admission preflight for callers that gate before generating (e.g.
-   * SuggestedReplyCreditsGuard). A BYOK org is admitted without the credit
-   * floor; generateReply/generateDm still make their own single decision.
+   * SuggestedReplyCreditsGuard). It only reads the balance and takes no hold;
+   * a BYOK org is admitted without the credit floor, and generateReply /
+   * generateDm make their own single decision with a hold.
    */
   async assertCreditsAvailable(organizationId: string): Promise<void> {
-    await this.admitCredits(organizationId);
-  }
-
-  /**
-   * The single BYOK decision for a reply/DM (#5380): an org whose own key
-   * pays for DEFAULT_TEXT_MODEL's dispatch is neither floor-checked nor
-   * charged; everyone else must hold the minimum text credits.
-   */
-  private async admitCredits(
-    organizationId: string,
-  ): Promise<TextByokDispatch | undefined> {
-    const byok = await this.textGenerationCreditsService.resolveDispatch(
-      organizationId,
-      [DEFAULT_TEXT_MODEL],
+    if (await this.resolveByok(organizationId)) return;
+    const requiredCredits = getMinimumTextCredits(
+      await this.getDefaultTextModel(),
     );
-    if (byok) {
-      return byok;
-    }
-    const model = await this.getDefaultTextModel();
-    const requiredCredits = getMinimumTextCredits(model);
-    if (requiredCredits <= 0) {
-      return undefined;
-    }
+    if (requiredCredits <= 0) return;
 
     const hasCredits =
       await this.creditsUtilsService.checkOrganizationCreditsAvailable(
         organizationId,
         requiredCredits,
       );
+    if (hasCredits) return;
 
-    if (hasCredits) {
-      return undefined;
-    }
-
-    const currentBalance =
+    throw new InsufficientCreditsException(
+      requiredCredits,
       await this.creditsUtilsService.getOrganizationCreditsBalance(
         organizationId,
-      );
-    throw new InsufficientCreditsException(requiredCredits, currentBalance);
+      ),
+    );
+  }
+
+  private resolveByok(organizationId: string) {
+    return this.textGenerationCreditsService.resolveDispatch(organizationId, [
+      DEFAULT_TEXT_MODEL,
+    ]);
+  }
+
+  /**
+   * The single BYOK decision for a reply/DM (#5380): an org whose own key
+   * pays for DEFAULT_TEXT_MODEL's dispatch is neither held nor charged;
+   * everyone else holds the minimum text credits before the model runs, so
+   * concurrent calls cannot all pass one balance read.
+   */
+  private async admitCredits(
+    organizationId: string,
+    userId: string,
+    description: string,
+    brandId?: string | null,
+  ): Promise<TextAdmission> {
+    const byok = await this.resolveByok(organizationId);
+    if (byok) {
+      return { byok };
+    }
+    const requiredCredits = getMinimumTextCredits(
+      await this.getDefaultTextModel(),
+    );
+    if (requiredCredits <= 0) {
+      return {};
+    }
+
+    try {
+      const hold = await reserveTextCredits(this.creditsUtilsService, {
+        brandId,
+        description,
+        holdCredits: requiredCredits,
+        organizationId,
+        source: ActivitySource.SCRIPT,
+        userId,
+        workloadType: ReplyGenerationService.TEXT_HOLD_WORKLOAD_TYPE,
+      });
+      return { hold };
+    } catch (error: unknown) {
+      if (
+        error instanceof BusinessLogicException &&
+        error.errorCode === 'INSUFFICIENT_CREDITS'
+      ) {
+        throw new InsufficientCreditsException(
+          requiredCredits,
+          await this.creditsUtilsService.getOrganizationCreditsBalance(
+            organizationId,
+          ),
+        );
+      }
+      throw error;
+    }
   }
 
   private async settleCredits(
@@ -403,29 +476,24 @@ DM text:`;
     input: Record<string, unknown>,
     output: string,
     description: string,
-    byok: TextByokDispatch | undefined,
+    admission: TextAdmission,
     brandId?: string | null,
   ): Promise<void> {
-    if (byok) {
+    if (!admission.hold) {
       return;
     }
-    const model = await this.getDefaultTextModel();
-    const amount = calculateEstimatedTextCredits(model, input, output);
-    if (amount <= 0) {
-      return;
-    }
-
-    await this.creditsUtilsService.deductCreditsFromOrganization(
-      organizationId,
-      userId,
-      amount,
+    await settleTextCredits(this.creditsUtilsService, admission.hold, {
+      actualCredits: calculateEstimatedTextCredits(
+        await this.getDefaultTextModel(),
+        input,
+        output,
+      ),
+      brandId,
       description,
-      ActivitySource.SCRIPT,
-      {
-        brandId,
-        maxOverdraftCredits: ReplyGenerationService.TEXT_MAX_OVERDRAFT_CREDITS,
-      },
-    );
+      organizationId,
+      source: ActivitySource.SCRIPT,
+      userId,
+    });
   }
 
   private async getDefaultTextModel() {
