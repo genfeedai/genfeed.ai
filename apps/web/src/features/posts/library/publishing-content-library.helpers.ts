@@ -132,21 +132,36 @@ function toPostMedia(
     : null;
 }
 
+/** A deleted ingredient keeps its link to the post but its file is gone. */
+function firstLiveIngredient(
+  ingredients: readonly IIngredient[] | undefined,
+): IIngredient | undefined {
+  return ingredients?.find((ingredient) => ingredient.isDeleted !== true);
+}
+
 /**
  * A release stores its media as asset ids only (no URL), so the first item is
  * resolved from the loaded posts, which carry the hydrated ingredients. A
  * release whose first asset is in none of them still shows a URL when the
- * response carried one.
+ * response carried one. A release with no media at all takes the first image
+ * of its target posts.
  */
 function toReleaseMedia(
   media: IReleaseGroup['media'] | undefined,
   ingredientsByAssetId: ReadonlyMap<string, IIngredient>,
+  targetPosts: readonly IPost[],
 ): PublishingContentMedia | null {
   const first = [...(Array.isArray(media) ? media : [])].sort(
     (left, right) => (left.order ?? 0) - (right.order ?? 0),
   )[0];
   if (!first) {
-    return null;
+    // The API projects a lone post as a release with no media of its own, so
+    // the post carries the images.
+    return toPostMedia(
+      targetPosts
+        .map((post) => firstLiveIngredient(post.ingredients))
+        .find((ingredient) => ingredient !== undefined),
+    );
   }
   const ingredient = ingredientsByAssetId.get(first.assetId);
   if (ingredient) {
@@ -217,6 +232,7 @@ export function createPublishingContentLibraryItems({
     ),
   );
   const releaseIds = new Set(releases.map((release) => release.id));
+  const postsById = new Map(posts.map((post) => [post.id, post]));
   const ingredientsByAssetId = new Map<string, IIngredient>(
     posts.flatMap((post) =>
       (post.ingredients ?? []).map((ingredient): [string, IIngredient] => [
@@ -238,7 +254,13 @@ export function createPublishingContentLibraryItems({
       ),
       createdAt: release.createdAt,
       id: release.id,
-      media: toReleaseMedia(release.media, ingredientsByAssetId),
+      media: toReleaseMedia(
+        release.media,
+        ingredientsByAssetId,
+        (Array.isArray(release.targets) ? release.targets : []).flatMap(
+          (target) => postsById.get(target.id) ?? [],
+        ),
+      ),
       publishedAt: release.publishedAt ?? null,
       release,
       scheduledAt: release.scheduledAt,
@@ -263,7 +285,7 @@ export function createPublishingContentLibraryItems({
       createdAt: post.createdAt,
       format: resolvePostFormat(post),
       id: post.id,
-      media: toPostMedia(post.ingredients?.[0]),
+      media: toPostMedia(firstLiveIngredient(post.ingredients)),
       publishedAt: post.publishedAt
         ? new Date(post.publishedAt).toISOString()
         : null,
