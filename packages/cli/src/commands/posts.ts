@@ -1,9 +1,17 @@
+import { confirm } from '@inquirer/prompts';
 import chalk from 'chalk';
 import { Command } from 'commander';
 import ora from 'ora';
 import { requireAuth } from '@/api/client';
-import { listPosts } from '@/api/posts';
-import { formatHeader, print, printJson } from '@/ui/theme';
+import { deletePost, listPosts } from '@/api/posts';
+import {
+  formatHeader,
+  formatLabel,
+  formatSuccess,
+  formatWarning,
+  print,
+  printJson,
+} from '@/ui/theme';
 import { handleError } from '@/utils/errors';
 import { parsePositiveInteger } from '@/utils/options';
 
@@ -67,6 +75,68 @@ postsCommand
         }
         print(`    ${chalk.dim(post.id)}`);
         print();
+      }
+    } catch (error) {
+      handleError(error);
+    }
+  });
+
+postsCommand
+  .command('delete')
+  .description(
+    'Delete a post from Genfeed, published ones included. The copy on the social network is not touched'
+  )
+  .argument('<id>', 'Post ID')
+  .option('--with-media', 'Also delete the Library media only this post uses')
+  .option('-f, --force', 'Skip confirmation')
+  .option('--json', 'Output as JSON')
+  .action(async (id: string, options) => {
+    try {
+      await requireAuth();
+
+      if (!options.force) {
+        const confirmed = await confirm({
+          default: false,
+          message: options.withMedia
+            ? `Delete post ${id} and the Library media only it uses? A published post stays live on its network.`
+            : `Delete post ${id}? A published post stays live on its network.`,
+        });
+        if (!confirmed) {
+          print(formatWarning('Delete cancelled'));
+          return;
+        }
+      }
+
+      const spinner = options.json ? undefined : ora('Deleting post...').start();
+      try {
+        const removal = await deletePost(id, { includeMedia: options.withMedia === true });
+        spinner?.stop();
+
+        if (options.json) {
+          printJson(removal);
+          return;
+        }
+
+        print(formatSuccess('Post deleted from Genfeed'));
+        print(formatLabel('ID', removal.postId));
+        print(formatLabel('Was', removal.previousStatus));
+        print(formatLabel('Media deleted', String(removal.media.deleted.length)));
+        for (const kept of removal.media.kept) {
+          print(formatLabel('Media kept', `${kept.id} (${kept.reason})`));
+        }
+        if (removal.publishedUrl) {
+          print(
+            formatWarning(
+              `Still live on ${removal.platform ?? 'its network'}: ${removal.publishedUrl}`
+            )
+          );
+        }
+        if (!removal.verified.postGone || !removal.verified.mediaGone) {
+          print(formatWarning('Read-back failed: the post or its media still resolves'));
+        }
+      } catch (error) {
+        spinner?.fail('Failed to delete post');
+        throw error;
       }
     } catch (error) {
       handleError(error);

@@ -108,6 +108,14 @@ const API_CONTROLLERS: Record<string, { file: string; prefix: string }> = {
     file: 'collections/ingredients/controllers/ingredients-relationships.controller.ts',
     prefix: 'ingredients',
   },
+  ingredientsOperations: {
+    file: 'collections/ingredients/controllers/ingredients-operations.controller.ts',
+    prefix: 'ingredients',
+  },
+  postsRemoval: {
+    file: 'collections/posts/controllers/operations/posts-removal.controller.ts',
+    prefix: 'posts',
+  },
   workflowCrud: {
     file: 'collections/workflows/controllers/workflow-crud.controller.ts',
     prefix: 'workflows',
@@ -497,6 +505,20 @@ const ROUTE_CONTRACT: ContractRoute[] = [
     sub: ':ingredientId/metadata',
     controller: 'ingredients',
     tools: ['get_job_status'],
+  },
+
+  // ── Deleting a post (with its media) and a Library asset ──
+  {
+    method: 'Post',
+    sub: ':postId/deletions',
+    controller: 'postsRemoval',
+    tools: ['delete_post'],
+  },
+  {
+    method: 'Delete',
+    sub: ':ingredientId',
+    controller: 'ingredientsOperations',
+    tools: ['delete_asset'],
   },
 
   // ── Workflows (control + status) ──

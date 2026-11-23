@@ -10,12 +10,16 @@ function clientWith(isApprovalRequired: boolean) {
 }
 
 describe('isMcpApprovalGated', () => {
-  it.each(['generate', 'transform_media', 'publish_article', 'send_social_dm'])(
-    'gates %s: media generation and posting',
-    (name) => {
-      expect(isMcpApprovalGated(name)).toBe(true);
-    },
-  );
+  it.each([
+    'generate',
+    'transform_media',
+    'publish_article',
+    'send_social_dm',
+    'delete_post',
+    'delete_asset',
+  ])('gates %s: media generation, posting and deletion', (name) => {
+    expect(isMcpApprovalGated(name)).toBe(true);
+  });
 
   it.each([
     'create_post',
@@ -61,14 +65,16 @@ describe('requiresMcpToolApproval', () => {
     expect(client.isApprovalRequired).toHaveBeenCalledOnce();
   });
 
-  it.each(['control_scheduled_release', 'publish_article'])(
-    'never queues %s on the web and skips the policy lookup',
-    async (name) => {
-      const client = clientWith(true);
-      await expect(requiresMcpToolApproval(client, name)).resolves.toBe(false);
-      expect(client.isApprovalRequired).not.toHaveBeenCalled();
-    },
-  );
+  it.each([
+    'control_scheduled_release',
+    'publish_article',
+    'delete_post',
+    'delete_asset',
+  ])('never queues %s on the web and skips the policy lookup', async (name) => {
+    const client = clientWith(true);
+    await expect(requiresMcpToolApproval(client, name)).resolves.toBe(false);
+    expect(client.isApprovalRequired).not.toHaveBeenCalled();
+  });
 
   it('never queues a dated release on the web', async () => {
     const client = clientWith(true);
@@ -115,6 +121,8 @@ describe('requiresMcpAgentConfirmation', () => {
       }),
     ).toBe(true);
     expect(requiresMcpAgentConfirmation('publish_article', {})).toBe(true);
+    expect(requiresMcpAgentConfirmation('delete_post', {})).toBe(true);
+    expect(requiresMcpAgentConfirmation('delete_asset', {})).toBe(true);
   });
 
   it('lets drafts, cancel, pause and unrelated tools through', () => {

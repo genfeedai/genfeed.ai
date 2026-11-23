@@ -27,6 +27,7 @@ import { ContentMentionsController } from '@api/collections/posts/controllers/co
 import { PostsAccountGenerationRetryController } from '@api/collections/posts/controllers/operations/posts-account-generation-retry.controller';
 import { PostsGenerationController } from '@api/collections/posts/controllers/operations/posts-generation.controller';
 import { PostsOperationsController } from '@api/collections/posts/controllers/operations/posts-operations.controller';
+import { PostsRemovalController } from '@api/collections/posts/controllers/operations/posts-removal.controller';
 import { PostsRetryController } from '@api/collections/posts/controllers/operations/posts-retry.controller';
 import { PostsThreadDraftController } from '@api/collections/posts/controllers/operations/posts-thread-draft.controller';
 import { PostsController } from '@api/collections/posts/controllers/posts.controller';
@@ -35,6 +36,7 @@ import { PostAccountFanoutModule } from '@api/collections/posts/post-account-fan
 import { PostGenerationModule } from '@api/collections/posts/post-generation.module';
 import { PostLifecycleModule } from '@api/collections/posts/post-lifecycle.module';
 import { PostsCoreModule } from '@api/collections/posts/posts-core.module';
+import { PostRemovalService } from '@api/collections/posts/services/post-removal.service';
 import { PostRepurposeService } from '@api/collections/posts/services/post-repurpose.service';
 import { PostRetryService } from '@api/collections/posts/services/post-retry.service';
 import { PostVariationService } from '@api/collections/posts/services/post-variation.service';
@@ -68,6 +70,7 @@ import { Module } from '@nestjs/common';
     PostsAccountGenerationRetryController,
     PostsThreadDraftController,
     PostsOperationsController,
+    PostsRemovalController,
     PostsRetryController,
     PostsController,
   ],
@@ -120,6 +123,7 @@ import { Module } from '@nestjs/common';
     PostLinkTrackingService,
     CreditsGuard,
     CreditsInterceptor,
+    PostRemovalService,
     PostRetryService,
     PostRepurposeService,
     PostVariationService,

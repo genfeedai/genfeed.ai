@@ -1,5 +1,6 @@
 import {
   describeAvatarVideoPricing,
+  isMcpRemovalTool,
   McpToolInputError,
 } from '@genfeedai/actions';
 import {
@@ -287,6 +288,15 @@ export function confirmationRequiredToolResult(
   toolName: string,
   invalidReleases?: IScheduledReleaseBatchItemError[],
 ): McpToolErrorResult {
+  if (isMcpRemovalTool(toolName)) {
+    return mcpToolErrorResult({
+      code: 'confirmation_required',
+      toolName,
+      message:
+        'Nothing was deleted. Tell the person exactly what will be deleted (the post and its channel and state, and the media) and that a published post stays live on the social network, then ask them to confirm in this conversation. ' +
+        'Only after they agree, repeat this same call with confirmed set to true. Never set confirmed on your own.',
+    });
+  }
   const left = invalidReleases?.length
     ? ` ${invalidReleases.length} invalid ${invalidReleases.length === 1 ? 'release was' : 'releases were'} left out; see invalidReleases.`
     : '';

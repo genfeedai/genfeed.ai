@@ -15,6 +15,8 @@ export const CONTENT_TOOL_NAMES: ReadonlySet<string> = new Set<string>([
   'get_article_preview',
   'publish_article',
   'get_articles',
+  'delete_post',
+  'delete_asset',
 ]);
 
 function requireArticleString(
@@ -180,6 +182,65 @@ export async function handleContentTool(
           {
             type: 'text' as const,
             text: `Article publication status: ${article.status}.`,
+          },
+        ],
+      };
+    }
+    case 'delete_post': {
+      const postId = requireArticleString(args, 'postId', 160);
+      const brandId = readOptionalBrandId(args);
+      if (
+        args.deleteMedia !== undefined &&
+        typeof args.deleteMedia !== 'boolean'
+      ) {
+        throw new McpToolInputError(
+          'deleteMedia must be true or false',
+          'deleteMedia',
+        );
+      }
+      const removal = await client.deletePost({
+        ...(brandId ? { brandId } : {}),
+        ...(args.deleteMedia === true ? { deleteMedia: true } : {}),
+        postId,
+      });
+      const media = removal.media;
+      const mediaLine =
+        media.deleted.length > 0 || media.kept.length > 0
+          ? ` Library media deleted: ${media.deleted.length}; kept: ${media.kept.length}${
+              media.kept.length > 0
+                ? ` (${media.kept.map((kept) => `${kept.id}: ${kept.reason}`).join(', ')})`
+                : ''
+            }.`
+          : '';
+      return {
+        structuredContent: { data: removal },
+        content: [
+          {
+            type: 'text' as const,
+            text:
+              `Post ${removal.postId} (was ${removal.previousStatus}) is deleted from Genfeed.` +
+              mediaLine +
+              (removal.previousStatus === 'public' || removal.publishedUrl
+                ? ' It was not deleted on the social network: the owner removes that copy there.'
+                : '') +
+              (removal.verified.postGone && removal.verified.mediaGone
+                ? ' Read back: the post and its deleted media are gone.'
+                : ' Read back FAILED: the post or its media still resolves. Do not report it deleted; check with get_content(action=posts) and get_assets.'),
+          },
+        ],
+      };
+    }
+    case 'delete_asset': {
+      const assetId = requireArticleString(args, 'assetId', 160);
+      const removal = await client.deleteAsset(assetId);
+      return {
+        structuredContent: { data: removal },
+        content: [
+          {
+            type: 'text' as const,
+            text: removal.verified
+              ? `Library asset ${assetId} is deleted. Read back: it no longer resolves.`
+              : `Library asset ${assetId} was deleted but still resolves on read-back. Do not report it deleted; check with get_assets.`,
           },
         ],
       };

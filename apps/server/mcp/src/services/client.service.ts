@@ -80,6 +80,10 @@ import type {
   ArticleSearchResult,
 } from '@mcp/shared/interfaces/article.interface';
 import type {
+  AssetRemovalResponse,
+  PostRemovalResponse,
+} from '@mcp/shared/interfaces/content-removal.interface';
+import type {
   ImageCreationParams,
   ImageResponse,
 } from '@mcp/shared/interfaces/image.interface';
@@ -353,6 +357,18 @@ export class ClientService {
     brandId?: string,
   ): Promise<ArticleResponse> {
     return this.content.publishArticle(articleId, brandId);
+  }
+
+  deletePost(params: {
+    brandId?: string;
+    deleteMedia?: boolean;
+    postId: string;
+  }): Promise<PostRemovalResponse> {
+    return this.content.deletePost(params);
+  }
+
+  deleteAsset(assetId: string): Promise<AssetRemovalResponse> {
+    return this.content.deleteAsset(assetId);
   }
 
   searchArticles(params: ArticleSearchParams): Promise<ArticleSearchResult[]> {

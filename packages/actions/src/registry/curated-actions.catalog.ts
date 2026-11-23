@@ -55,8 +55,9 @@ export interface CuratedActionCatalogEntry {
    */
   isMcpApprovalNeverSkipped?: true;
   /**
-   * Publishing or scheduling tool the MCP agent confirms with the person in the
-   * conversation (`confirmed: true`) instead of queueing a web approval.
+   * Publishing, scheduling or deleting tool the MCP agent confirms with the
+   * person in the conversation (`confirmed: true`) instead of queueing a web
+   * approval.
    */
   isMcpAgentConfirmed?: true;
   /** Reaches a live third party or the open web beyond what the default rules detect. */
@@ -66,8 +67,11 @@ export interface CuratedActionCatalogEntry {
   isReadOnly?: true;
   /** Card the MCP app renders the tool's result as; absent means no card. */
   mcpCardKind?: ToolMcpCardKind;
-  /** Posting or media generation that always waits for a reviewer on MCP. */
-  mcpApproval?: 'generation' | 'posting';
+  /**
+   * Posting, media generation or deletion. Posting and generation always wait
+   * for a reviewer on MCP; a removal is confirmed in the conversation.
+   */
+  mcpApproval?: 'generation' | 'posting' | 'removal';
   /** MCP callers must pass `brandId` (#5786). */
   mcpBrandRequired?: true;
   /**
@@ -450,6 +454,26 @@ export const CURATED_ACTION_CATALOG = [
     name: 'create_workflow',
     surfaces: ['agent', 'mcp'],
     toolset: 'workflows',
+  },
+  {
+    annotationHint: 'destructive',
+    category: 'content',
+    isMcpAgentConfirmed: true,
+    mcpApproval: 'removal',
+    mutationPolicy: 'approval-required',
+    name: 'delete_asset',
+    surfaces: ['mcp'],
+    toolset: 'content',
+  },
+  {
+    annotationHint: 'destructive',
+    category: 'content',
+    isMcpAgentConfirmed: true,
+    mcpApproval: 'removal',
+    mutationPolicy: 'approval-required',
+    name: 'delete_post',
+    surfaces: ['mcp'],
+    toolset: 'content',
   },
   {
     category: 'proactive',
