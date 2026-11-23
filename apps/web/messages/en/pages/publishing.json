@@ -430,7 +430,15 @@
       "bulkRejected": "{count, plural, one {Rejected # request} other {Rejected # requests}}",
       "bulkPartial": "Decided {count}, {failed} could not be saved",
       "sourceLabel": "Source",
-      "reviewBatch": "Review {count}"
+      "reviewBatch": "Review {count}",
+      "openThread": "Open the thread",
+      "questionAnswerLabel": "Your answer",
+      "questionAnswerPlaceholder": "Type your answer",
+      "questionSend": "Send",
+      "questionAnswered": "Answer sent. The agent continues.",
+      "questionAnswerFailed": "Could not send this answer.",
+      "questionNotAnswerable": "You can view this question. Only the thread owner or a collaborator can answer.",
+      "questionMultiSelect": "This question takes several answers. Open the thread to answer it."
     },
     "assignment": {
       "unavailable": "Unavailable member",

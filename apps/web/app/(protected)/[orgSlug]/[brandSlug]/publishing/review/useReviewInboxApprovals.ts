@@ -17,7 +17,10 @@ import { useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useState } from 'react';
-import type { ReviewInboxApprovalsState } from '@/props/publishing/review-inbox-approvals.props';
+import type {
+  ReviewInboxApprovalsState,
+  ReviewInboxQuestionAnswer,
+} from '@/props/publishing/review-inbox-approvals.props';
 import { searchReviewInboxItems } from './components/review-inbox.helpers';
 
 /** Turbo run drafts are agent work, so they show for the Agent source. */
@@ -126,6 +129,42 @@ export function useReviewInboxApprovals(
     ],
   );
 
+  const onAnswer = useCallback(
+    async (item: IReviewInboxItem, answer: ReviewInboxQuestionAnswer) => {
+      if (decidingItemId || isBulkDeciding || !item.question) return;
+      setDecidingItemId(item.id);
+      try {
+        const service = await getReviewInboxService();
+        await service.answerQuestion({
+          ...answer,
+          requestId: item.question.requestId,
+          threadId: item.question.threadId,
+        });
+        notifications.success(translate('questionAnswered'));
+      } catch (answerError: unknown) {
+        logger.error('Review inbox answer failed', answerError);
+        notifications.error(
+          getJsonApiErrorMessage(
+            answerError,
+            translate('questionAnswerFailed'),
+          ),
+        );
+      } finally {
+        setDecidingItemId(null);
+        // Answered or raced elsewhere, the row's truth is the server's.
+        await refetch();
+      }
+    },
+    [
+      decidingItemId,
+      getReviewInboxService,
+      isBulkDeciding,
+      notifications,
+      refetch,
+      translate,
+    ],
+  );
+
   const onDecideMany = useCallback(
     async (
       selected: readonly IReviewInboxItem[],
@@ -189,6 +228,7 @@ export function useReviewInboxApprovals(
     isBulkDeciding,
     isLoading,
     items,
+    onAnswer,
     onDecide,
     onDecideMany,
     onSourceFilterChange: setSourceFilters,

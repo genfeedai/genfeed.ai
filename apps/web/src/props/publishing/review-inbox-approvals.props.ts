@@ -27,12 +27,32 @@ export interface ReviewInboxApprovalsState {
     item: IReviewInboxItem,
     decision: ReviewInboxDecision,
   ) => Promise<void>;
+  /** Answers an agent question through the thread's own answer route. */
+  onAnswer: (
+    item: IReviewInboxItem,
+    answer: ReviewInboxQuestionAnswer,
+  ) => Promise<void>;
   /** Decides the items in one batch request; one summary notification, one refetch. */
   onDecideMany: (
     items: readonly IReviewInboxItem[],
     decision: ReviewInboxDecision,
   ) => Promise<void>;
   refresh: () => Promise<void>;
+}
+
+/** What a member picked or typed for an agent question. */
+export interface ReviewInboxQuestionAnswer {
+  answer: string;
+  optionIds?: string[];
+}
+
+export interface ReviewInboxQuestionAnswerProps {
+  item: IReviewInboxItem;
+  isDisabled: boolean;
+  onAnswer: (
+    item: IReviewInboxItem,
+    answer: ReviewInboxQuestionAnswer,
+  ) => Promise<void>;
 }
 
 export interface ReviewInboxApprovalsTableProps {
@@ -45,6 +65,10 @@ export interface ReviewInboxApprovalsTableProps {
   onDecide: (
     item: IReviewInboxItem,
     decision: ReviewInboxDecision,
+  ) => Promise<void>;
+  onAnswer: (
+    item: IReviewInboxItem,
+    answer: ReviewInboxQuestionAnswer,
   ) => Promise<void>;
 }
 

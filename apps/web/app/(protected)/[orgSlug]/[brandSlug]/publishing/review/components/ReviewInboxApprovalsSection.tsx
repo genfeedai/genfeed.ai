@@ -159,6 +159,7 @@ export default function ReviewInboxApprovalsSection({
           highlightedItemId={highlightedItemId}
           isBulkDeciding={approvals.isBulkDeciding}
           items={visibleItems}
+          onAnswer={approvals.onAnswer}
           onDecide={approvals.onDecide}
           onSelectionChange={handleSelectionChange}
           selectedIds={selectedIds}
