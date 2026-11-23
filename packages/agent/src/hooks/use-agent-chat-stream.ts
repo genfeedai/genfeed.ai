@@ -17,7 +17,7 @@ import type {
 } from '@genfeedai/agent/hooks/agent-chat-stream.types';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import {
   restoreActiveThread,
   useAgentSharedThreadSync,
@@ -114,58 +114,65 @@ export function useAgentChatStream(
     if (entry) projectAgentStreamEntry(entry);
   }, [activeThreadId, controller, isReady, isStreaming]);
 
-  return {
-    isStreaming,
-    sendMessage: async (content, sendOptions) => {
-      if (sendOptions?.signal?.aborted) return;
-      if (sendOptions?.forceNewThread) {
-        useAgentChatStore.getState().setActiveThread(null);
-        useAgentChatStore.getState().resetActiveConversationState();
-      }
-      const threadId = sendOptions?.forceNewThread
-        ? null
-        : useAgentChatStore.getState().activeThreadId;
-      const entry = createAgentStreamEntry(
-        threadId,
-        sendOptions?.clientRequestId ?? requestId(),
-      );
-      await controller(entry).sendMessage(content, sendOptions);
-    },
-    beginRunHandoff: (threadId) => {
-      const entry =
-        findAgentStreamEntry(threadId) ??
-        createAgentStreamEntry(threadId, requestId());
-      return controller(entry).beginRunHandoff(threadId);
-    },
-    adoptRun: (handoff, runId, startedAt, adoptionOptions) => {
-      if (handoff.owner)
-        controller(handoff.owner).adoptRun(
-          handoff,
-          runId,
-          startedAt,
-          adoptionOptions,
+  // The handlers read only the stable controller, so they keep one identity
+  // across renders. Callers list them as hook dependencies; a fresh function
+  // per render re-rendered every chat message on each streamed token.
+  const handlers = useMemo<Omit<UseAgentChatStreamReturn, 'isStreaming'>>(
+    () => ({
+      sendMessage: async (content, sendOptions) => {
+        if (sendOptions?.signal?.aborted) return;
+        if (sendOptions?.forceNewThread) {
+          useAgentChatStore.getState().setActiveThread(null);
+          useAgentChatStore.getState().resetActiveConversationState();
+        }
+        const threadId = sendOptions?.forceNewThread
+          ? null
+          : useAgentChatStore.getState().activeThreadId;
+        const entry = createAgentStreamEntry(
+          threadId,
+          sendOptions?.clientRequestId ?? requestId(),
         );
-    },
-    cancelRunHandoff: (handoff, failedRequest) => {
-      if (handoff.owner)
-        controller(handoff.owner).cancelRunHandoff(handoff, failedRequest);
-    },
-    abandonRun: (threadId) => {
-      const entry = findAgentStreamEntry(threadId);
-      if (entry) controller(entry).abandonRun(threadId);
-    },
-    resumeRunWatch: (threadId) => {
-      const entry = findAgentStreamEntry(threadId);
-      if (entry) controller(entry).resumeRunWatch(threadId);
-    },
-    clearChat: () => {
-      const entry = findAgentStreamEntry(
-        useAgentChatStore.getState().activeThreadId,
-      );
-      if (entry) {
-        controller(entry).clearChat();
-        disposeAgentStreamEntry(entry);
-      } else useAgentChatStore.getState().clearMessages();
-    },
-  };
+        await controller(entry).sendMessage(content, sendOptions);
+      },
+      beginRunHandoff: (threadId) => {
+        const entry =
+          findAgentStreamEntry(threadId) ??
+          createAgentStreamEntry(threadId, requestId());
+        return controller(entry).beginRunHandoff(threadId);
+      },
+      adoptRun: (handoff, runId, startedAt, adoptionOptions) => {
+        if (handoff.owner)
+          controller(handoff.owner).adoptRun(
+            handoff,
+            runId,
+            startedAt,
+            adoptionOptions,
+          );
+      },
+      cancelRunHandoff: (handoff, failedRequest) => {
+        if (handoff.owner)
+          controller(handoff.owner).cancelRunHandoff(handoff, failedRequest);
+      },
+      abandonRun: (threadId) => {
+        const entry = findAgentStreamEntry(threadId);
+        if (entry) controller(entry).abandonRun(threadId);
+      },
+      resumeRunWatch: (threadId) => {
+        const entry = findAgentStreamEntry(threadId);
+        if (entry) controller(entry).resumeRunWatch(threadId);
+      },
+      clearChat: () => {
+        const entry = findAgentStreamEntry(
+          useAgentChatStore.getState().activeThreadId,
+        );
+        if (entry) {
+          controller(entry).clearChat();
+          disposeAgentStreamEntry(entry);
+        } else useAgentChatStore.getState().clearMessages();
+      },
+    }),
+    [controller],
+  );
+
+  return { isStreaming, ...handlers };
 }
