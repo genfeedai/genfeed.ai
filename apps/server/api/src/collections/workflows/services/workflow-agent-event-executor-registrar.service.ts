@@ -44,7 +44,7 @@ function readConfigText(
 }
 
 /** What the run history shows for the step: whether a run started, and why not. */
-export function describeAgentEventRunOutcome(outcome: AgentEventRunOutcome): {
+function describeAgentEventRunOutcome(outcome: AgentEventRunOutcome): {
   agentExecutionId: string | null;
   message: string;
   reason: AgentEventRunSkipReason | null;

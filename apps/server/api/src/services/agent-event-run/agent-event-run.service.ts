@@ -8,6 +8,7 @@ import { scopedWhere } from '@api/tenancy/scoped-where';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { AgentEventRunStatus } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import {
   AGENT_EVENT_RUN_CLAIM_LEASE_MS,
@@ -35,6 +36,7 @@ import {
  * what makes a replayed event start nothing, and the rows of the last day are
  * the agent's cap on event-started runs.
  */
+@Traced()
 @Injectable()
 export class AgentEventRunService {
   private contentGate: AgentEventContentGate | null = null;
@@ -191,7 +193,7 @@ export class AgentEventRunService {
       const run = existing
         ? await tx.agentEventRun.update({
             data: fields,
-            where: { id: existing.id },
+            where: scopedWhere(request.organizationId, { id: existing.id }),
           })
         : await tx.agentEventRun.create({
             data: {
