@@ -60,4 +60,10 @@ describe('TableDateCell', () => {
       expect(screen.getByText('Not scheduled')).toBeInTheDocument();
     },
   );
+
+  it('renders a dash for an empty value by default', () => {
+    render(<TableDateCell timeZone="UTC" value={null} />);
+
+    expect(screen.getByText('-')).toBeInTheDocument();
+  });
 });

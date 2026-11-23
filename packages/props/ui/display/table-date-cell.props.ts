@@ -1,5 +1,5 @@
 export interface TableDateCellProps {
-  /** What an empty date means in this column, such as "Not scheduled". */
+  /** What an empty date means in this column, such as "Not scheduled". Defaults to a dash. */
   emptyLabel?: string;
   /** The instant to show; `null` or `undefined` renders `emptyLabel`. */
   value: Date | string | number | null | undefined;
