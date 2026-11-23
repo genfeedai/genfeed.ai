@@ -12,6 +12,8 @@ import { useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import type { PlatformTimeSeriesDataPoint } from '@/props/analytics/charts.props';
 
+const OVERVIEW_BOOTSTRAP_STALE_TIME_MS = 30_000;
+
 export interface UseOverviewBootstrapOptions {
   /** Brand the page is scoped to; omit on org-level pages. */
   brandId?: string;
@@ -97,7 +99,13 @@ export function useOverviewBootstrap(
     },
     enabled: shouldFetch,
     initialData,
-    staleTime: skipInitialFetch ? Number.POSITIVE_INFINITY : 0,
+    // The rail preview and the page read this under one key. A stale time of 0
+    // made the second to mount refetch what the first had just read.
+    staleTime: skipInitialFetch
+      ? Number.POSITIVE_INFINITY
+      : options.revalidateOnMount === true
+        ? 0
+        : OVERVIEW_BOOTSTRAP_STALE_TIME_MS,
   });
 
   return useMemo(

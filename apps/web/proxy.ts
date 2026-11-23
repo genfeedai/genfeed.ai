@@ -404,31 +404,6 @@ function resolveRefererWorkspaceSlugs(
   }
 }
 
-function resolveAppRouterSourceWorkspaceSlugs(
-  req: NextRequest,
-): WorkspaceSlugs | null {
-  const refererSlugs = resolveRefererWorkspaceSlugs(req);
-  if (refererSlugs) {
-    return refererSlugs;
-  }
-
-  // Next's client router does not consistently expose the browser-generated
-  // Referer through Request.headers. It does send the mounted route as the
-  // relative `next-url` header on RSC fetches, which is the actual shell the
-  // transition originated from. Keep this deliberately relative: an absolute
-  // or protocol-relative value must not be treated as a trusted app route.
-  const nextUrl = req.headers.get('next-url');
-  if (!nextUrl?.startsWith('/') || nextUrl.startsWith('//')) {
-    return null;
-  }
-
-  try {
-    return slugsFromPathname(new URL(nextUrl, req.url).pathname);
-  } catch {
-    return null;
-  }
-}
-
 async function continueWithCurrentWorkspace(
   req: NextRequest,
   cacheKey?: string | null,
@@ -1042,19 +1017,25 @@ function isServiceWorkerRoute(pathname: string): boolean {
 }
 
 /**
- * Client App Router transitions already originate inside an authenticated,
- * scoped shell. Let Next serve their RSC payload without blocking on the
- * token -> bootstrap network waterfall. Full entries, bare-route
- * canonicalization, and mutations keep the strict validation path below.
- * Page data and actions remain authorized at their server/API boundaries.
+ * A read of a page that already names its workspace (`/:org/:brand/...`).
+ *
+ * The proxy gave these two API answers before the document left the server: the
+ * token exchange and the bootstrap. The only thing either decided was the
+ * onboarding redirect, and the client owns that already (`OnboardingGuard` holds
+ * the page body until the access state loads, then redirects), so every reload
+ * of a scoped page waited one to two API round trips on a blank screen for a
+ * decision the browser makes anyway. Nothing here authorizes anything: the page
+ * and its data are authorized at the API on every request, and the browser
+ * sends a visitor whose session the API refuses to sign-in.
+ *
+ * Bare paths (`/`, `/workspace`), mutations and server actions keep the strict
+ * path below, because they need the bootstrap to pick the workspace.
  */
-function isScopedAppRouterTransition(req: NextRequest): boolean {
+function isScopedPageRead(req: NextRequest): boolean {
   return (
-    req.method === 'GET' &&
-    req.headers.get('rsc') === '1' &&
+    (req.method === 'GET' || req.method === 'HEAD') &&
     req.headers.get('next-action') === null &&
-    slugsFromPathname(req.nextUrl.pathname) !== null &&
-    resolveAppRouterSourceWorkspaceSlugs(req) !== null
+    slugsFromPathname(req.nextUrl.pathname) !== null
   );
 }
 
@@ -1138,7 +1119,7 @@ async function routeBetterAuthRequest(
     return redirectToLoginPreservingDestination(req);
   }
 
-  if (isScopedAppRouterTransition(req)) {
+  if (isScopedPageRead(req)) {
     return continueWithCurrentWorkspace(req, sessionCookie);
   }
 

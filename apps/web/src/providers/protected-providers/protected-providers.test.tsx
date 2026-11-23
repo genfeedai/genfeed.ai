@@ -18,6 +18,12 @@ const globalModalRendererMock = vi.fn();
 const useAuthMock = vi.fn();
 const getPlaywrightAuthStateMock = vi.fn();
 const hasPlaywrightJwtTokenMock = vi.fn();
+const redirectToLoginWithoutSessionMock = vi.fn();
+
+vi.mock('@/lib/auth/redirect-without-session', () => ({
+  redirectToLoginWithoutSession: (signal: AbortSignal) =>
+    redirectToLoginWithoutSessionMock(signal),
+}));
 
 vi.mock('@genfeedai/hooks/auth/use-auth-identity/use-auth-identity', () => ({
   useAuthIdentity: () => useAuthMock(),
@@ -116,6 +122,7 @@ describe('ProtectedProviders', () => {
     vi.clearAllMocks();
     getPlaywrightAuthStateMock.mockReturnValue(null);
     hasPlaywrightJwtTokenMock.mockReturnValue(false);
+    redirectToLoginWithoutSessionMock.mockResolvedValue(false);
     useAuthMock.mockReturnValue({
       getToken: vi.fn().mockResolvedValue('jwt-token'),
       isLoaded: true,
@@ -231,6 +238,49 @@ describe('ProtectedProviders', () => {
     await waitFor(() => {
       expect(screen.getByTestId('child')).toHaveTextContent('playwright-auth');
     });
+  });
+
+  it('asks for the sign-in redirect when the session read finds nobody and this visit never had one', async () => {
+    useAuthMock.mockReturnValue({
+      getToken: vi.fn().mockResolvedValue(null),
+      isLoaded: true,
+      isSignedIn: false,
+      orgId: null,
+      sessionId: null,
+      userId: null,
+    });
+
+    render(
+      <ProtectedProviders authPendingFallback={<span data-testid="pending" />}>
+        <span data-testid="child">hidden</span>
+      </ProtectedProviders>,
+    );
+
+    await waitFor(() => {
+      expect(redirectToLoginWithoutSessionMock).toHaveBeenCalledTimes(1);
+    });
+    expect(screen.getByTestId('pending')).toBeInTheDocument();
+    expect(screen.queryByTestId('child')).not.toBeInTheDocument();
+  });
+
+  it('does not ask while the session read is still pending', async () => {
+    useAuthMock.mockReturnValue({
+      getToken: vi.fn().mockResolvedValue(null),
+      isLoaded: false,
+      isSignedIn: false,
+      orgId: null,
+      sessionId: null,
+      userId: null,
+    });
+
+    render(
+      <ProtectedProviders authPendingFallback={<span data-testid="pending" />}>
+        <span data-testid="child">hidden</span>
+      </ProtectedProviders>,
+    );
+
+    expect(screen.getByTestId('pending')).toBeInTheDocument();
+    expect(redirectToLoginWithoutSessionMock).not.toHaveBeenCalled();
   });
 
   it('acquires a fresh token when the authenticated session changes', async () => {

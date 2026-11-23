@@ -73,9 +73,12 @@ export function useSubscription(): UseSubscriptionReturn {
     subscription?.status === SubscriptionStatus.ACTIVE;
   // Billing-enabled free/trial orgs still have a wallet. Community credits
   // navigation offers Cloud purchases, but its local subscription API is absent.
+  // The key carries the organization, so a read made before it is known would
+  // be made again under the real key a moment later.
   const shouldLoadCredits = Boolean(
     hasOrganizationBillingHint() &&
       userId &&
+      organizationId &&
       (hasActiveSubscription || shouldShowCreditsNav()),
   );
 

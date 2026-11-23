@@ -977,9 +977,7 @@ describe('proxy', () => {
       mockIncompleteUser();
 
       const { default: proxy } = await import('./proxy');
-      const response = await proxy(
-        makeSignedInRequest('/acme/default/workspace'),
-      );
+      const response = await proxy(makeSignedInRequest('/workspace'));
 
       expect(response.status).toBe(307);
       expect(response.headers.get('location')).toBe(
@@ -991,9 +989,7 @@ describe('proxy', () => {
       mockIncompleteUser();
 
       const { default: proxy } = await import('./proxy');
-      const response = await proxy(
-        makeSignedInRequest('/acme/default/workspace'),
-      );
+      const response = await proxy(makeSignedInRequest('/workspace'));
 
       expect(response.status).toBe(307);
       expect(response.headers.get('location')).toBe(
@@ -1005,9 +1001,7 @@ describe('proxy', () => {
       mockIncompleteUser([], ['brand']);
 
       const { default: proxy } = await import('./proxy');
-      const response = await proxy(
-        makeSignedInRequest('/acme/default/workspace'),
-      );
+      const response = await proxy(makeSignedInRequest('/workspace'));
 
       expect(response.headers.get('location')).not.toContain('agent');
     });
@@ -1118,9 +1112,7 @@ describe('proxy', () => {
       mockIncompleteUser();
 
       const { default: proxy } = await import('./proxy');
-      const response = await proxy(
-        makeSignedInRequest('/acme/default/workspace'),
-      );
+      const response = await proxy(makeSignedInRequest('/workspace'));
 
       expect(response.headers.get('location')).toBe(
         'http://localhost:3000/onboarding',
@@ -1476,7 +1468,7 @@ describe('proxy', () => {
         const { default: proxy } = await import('./proxy');
         vi.useFakeTimers({ toFake: ['setTimeout'] });
 
-        const pending = proxy(makeSignedInRequest('/acme/default/workspace'));
+        const pending = proxy(makeSignedInRequest('/workspace'));
         const response = await settle(pending);
 
         expect(response.headers.get('location')).toBeNull();
@@ -1491,7 +1483,7 @@ describe('proxy', () => {
       const { default: proxy } = await import('./proxy');
       vi.useFakeTimers({ toFake: ['setTimeout'] });
 
-      const pending = proxy(makeSignedInRequest('/acme/default/workspace'));
+      const pending = proxy(makeSignedInRequest('/workspace'));
       const response = await settle(pending);
 
       expect(response.headers.get('location')).toBeNull();
@@ -1506,9 +1498,7 @@ describe('proxy', () => {
         );
         const { default: proxy } = await import('./proxy');
 
-        const response = await proxy(
-          makeSignedInRequest('/acme/default/workspace'),
-        );
+        const response = await proxy(makeSignedInRequest('/workspace'));
 
         expect(response.status).toBe(307);
         expect(new URL(response.headers.get('location') ?? '').pathname).toBe(
@@ -1877,7 +1867,7 @@ describe('proxy', () => {
     );
   });
 
-  it('redirects scoped app routes to onboarding when no projects exist', async () => {
+  it('redirects bare module routes to onboarding when no projects exist', async () => {
     fetchMock.mockImplementation(async (input: string | URL) => {
       const url = String(input);
 
@@ -1909,9 +1899,7 @@ describe('proxy', () => {
 
     const { default: proxy } = await import('./proxy');
 
-    const response = await proxy(
-      makeSignedInRequest('/acme/~/workspace/overview'),
-    );
+    const response = await proxy(makeSignedInRequest('/workspace/overview'));
 
     expect(response.status).toBe(307);
     expect(response.headers.get('location')).toBe(
@@ -1919,7 +1907,7 @@ describe('proxy', () => {
     );
   });
 
-  it('redirects brand-scoped routes to onboarding while onboarding is incomplete', async () => {
+  it('redirects bare routes to onboarding while onboarding is incomplete', async () => {
     fetchMock.mockImplementation(async (input: string | URL) => {
       const url = String(input);
 
@@ -1956,9 +1944,7 @@ describe('proxy', () => {
 
     const { default: proxy } = await import('./proxy');
 
-    const response = await proxy(
-      makeSignedInRequest('/acme/moonrise-studio/publishing'),
-    );
+    const response = await proxy(makeSignedInRequest('/publishing'));
 
     expect(response.status).toBe(307);
     expect(response.headers.get('location')).toBe(
@@ -2094,37 +2080,65 @@ describe('proxy', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it('rejects an absolute next-url as proof of a mounted app shell', async () => {
-    const { default: proxy } = await import('./proxy');
-
-    await proxy(
-      makeSignedInRequest('/acme/moonrise-studio/agent/next-thread', {
+  it.each([
+    ['a document load', {}],
+    ['a document load with an incomplete onboarding session', {}],
+    ['an RSC fetch with no mounted shell', { rsc: true }],
+    [
+      'an RSC fetch naming an absolute next-url',
+      {
         nextUrl: 'https://attacker.example/acme/moonrise-studio/agent/thread-1',
         rsc: true,
-      }),
-    );
+      },
+    ],
+  ])(
+    'sends no API request before the scoped page for %s',
+    async (_name, opts) => {
+      const { default: proxy } = await import('./proxy');
 
-    expect(fetchMock.mock.calls.map(([input]) => String(input))).toContain(
-      'http://localhost:3010/v1/auth/token',
-    );
-    expect(fetchMock.mock.calls.map(([input]) => String(input))).toContain(
-      'http://localhost:3010/v1/auth/bootstrap',
-    );
-  });
+      const response = await proxy(
+        makeSignedInRequest('/acme/moonrise-studio/agent/next-thread', opts),
+      );
 
-  it('keeps strict auth bootstrap for a scoped RSC request without a mounted scoped shell', async () => {
+      expect(response.status).toBe(200);
+      expect(response.headers.get('location')).toBeNull();
+      expect(fetchMock).not.toHaveBeenCalled();
+    },
+  );
+
+  it('does not read onboarding state for a scoped document load', async () => {
+    fetchMock.mockImplementation(async (input: string | URL) => {
+      const url = String(input);
+      if (url.endsWith('/auth/token')) {
+        return new Response(JSON.stringify({ token: BEARER_TOKEN }));
+      }
+      if (url.endsWith('/auth/bootstrap')) {
+        return new Response(
+          JSON.stringify({
+            access: { brandId: 'brand_1', isOnboardingCompleted: false },
+            brands: [{ id: 'brand_1', slug: 'moonrise-studio' }],
+            currentUser: { id: 'user_1', isOnboardingCompleted: false },
+          }),
+        );
+      }
+      return new Response('not found', { status: 404 });
+    });
     const { default: proxy } = await import('./proxy');
 
     const response = await proxy(
-      makeSignedInRequest('/acme/moonrise-studio/agent/next-thread', {
-        rsc: true,
-      }),
+      makeSignedInRequest('/acme/moonrise-studio/publishing'),
     );
 
-    expect(response.status).toBe(200);
-    expect(fetchMock.mock.calls.map(([input]) => String(input))).toContain(
-      'http://localhost:3010/v1/auth/token',
-    );
+    // The browser's OnboardingGuard owns this redirect now.
+    expect(response.headers.get('location')).toBeNull();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('keeps the API round trips for a bare path, which needs the bootstrap to pick a workspace', async () => {
+    const { default: proxy } = await import('./proxy');
+
+    await proxy(makeSignedInRequest('/publishing'));
+
     expect(fetchMock.mock.calls.map(([input]) => String(input))).toContain(
       'http://localhost:3010/v1/auth/bootstrap',
     );
