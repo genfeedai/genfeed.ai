@@ -1,3 +1,7 @@
+import type {
+  FalRequestEnqueued,
+  FalRequestRef,
+} from '@api/services/integrations/fal/services/fal-request-ref';
 import { PollTimeoutException } from '@api/shared/services/poll-until/poll-until.exception';
 import { PollUntilService } from '@api/shared/services/poll-until/poll-until.service';
 import { fal } from '@fal-ai/client';
@@ -90,6 +94,7 @@ export class FalService {
     input: Record<string, unknown>,
     apiKeyOverride?: string,
     onProviderSubmissionStarted?: () => void,
+    onRequestEnqueued?: FalRequestEnqueued,
   ): Promise<FalImageResult> {
     this.loggerService.log(`${this.logContext} generateImage started`, {
       modelId,
@@ -109,13 +114,16 @@ export class FalService {
       } else {
         this.ensureConfigured();
         onProviderSubmissionStarted?.();
+        const enqueued = this.trackEnqueue(modelId, onRequestEnqueued);
         const result = await this.withSubscribeTimeout(
           modelId,
           fal.subscribe(modelId, {
             input,
             logs: false,
+            ...(enqueued.onEnqueue ? { onEnqueue: enqueued.onEnqueue } : {}),
           }),
         );
+        await enqueued.settled();
         data = result.data as FalResponseData;
       }
 
@@ -160,6 +168,7 @@ export class FalService {
     input: Record<string, unknown>,
     apiKeyOverride?: string,
     onProviderSubmissionStarted?: () => void,
+    onRequestEnqueued?: FalRequestEnqueued,
   ): Promise<FalVideoResult> {
     this.loggerService.log(`${this.logContext} generateVideo started`, {
       modelId,
@@ -179,13 +188,16 @@ export class FalService {
       } else {
         this.ensureConfigured();
         onProviderSubmissionStarted?.();
+        const enqueued = this.trackEnqueue(modelId, onRequestEnqueued);
         const result = await this.withSubscribeTimeout(
           modelId,
           fal.subscribe(modelId, {
             input,
             logs: false,
+            ...(enqueued.onEnqueue ? { onEnqueue: enqueued.onEnqueue } : {}),
           }),
         );
+        await enqueued.settled();
         data = result.data as FalResponseData;
       }
 
@@ -247,6 +259,58 @@ export class FalService {
     );
 
     return result.data as Record<string, unknown>;
+  }
+
+  /**
+   * Asks fal to cancel a queued or running request. True only when fal
+   * accepted the cancel; a request that already finished, a missing key or a
+   * network error is false, so the caller never claims a job stopped when fal
+   * did not say so.
+   */
+  async cancelRequest(ref: FalRequestRef): Promise<boolean> {
+    if (!this.configured) return false;
+    try {
+      await fal.queue.cancel(ref.endpoint, { requestId: ref.requestId });
+      return true;
+    } catch (error: unknown) {
+      this.loggerService.warn(
+        `${this.logContext} cancelRequest not confirmed`,
+        {
+          endpoint: ref.endpoint,
+          error: (error as Error)?.message,
+          requestId: ref.requestId,
+        },
+      );
+      return false;
+    }
+  }
+
+  /**
+   * Hands `onEnqueue` to `fal.subscribe` and lets the caller wait for the
+   * reference to be stored before the output URL replaces it. A failed store
+   * only costs cancellability, never the generation.
+   */
+  private trackEnqueue(modelId: string, callback?: FalRequestEnqueued) {
+    const pending: Promise<void>[] = [];
+    return {
+      onEnqueue: callback
+        ? (requestId: string) => {
+            pending.push(
+              Promise.resolve()
+                .then(() => callback({ endpoint: modelId, requestId }))
+                .catch((error: unknown) => {
+                  this.loggerService.warn(
+                    `${this.logContext} could not store the fal request id`,
+                    { error: (error as Error)?.message, modelId, requestId },
+                  );
+                }),
+            );
+          }
+        : undefined,
+      settled: async () => {
+        await Promise.all(pending);
+      },
+    };
   }
 
   private async runWithOverride(

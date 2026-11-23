@@ -7,6 +7,7 @@ import {
 } from '@genfeedai/workflows/ui/stores';
 import type { NodeProps } from '@xyflow/react';
 import Image from 'next/image';
+import { useTranslations } from 'next-intl';
 import { memo, useCallback, useMemo, useState } from 'react';
 import { NodeButton } from '@/features/workflows/components/ui/button';
 import {
@@ -24,6 +25,7 @@ import {
   type WorkflowMediaSource,
 } from '@/features/workflows/nodes/input/media-picker';
 import { useWorkflowMediaPicker } from '@/features/workflows/nodes/input/useWorkflowMediaPicker';
+import { useWorkflowMediaPreviewUrl } from '@/features/workflows/nodes/input/useWorkflowMediaPreviewUrl';
 
 const IMAGE_SOURCE_OPTIONS: Array<{
   value: WorkflowMediaSource;
@@ -56,12 +58,14 @@ function ImageIcon({
 
 function CloudImageInputNodeComponent(props: NodeProps): React.JSX.Element {
   const { data, id } = props;
+  const translate = useTranslations('pages.workflows.mediaInput');
   const updateNodeData = useWorkflowStore(selectUpdateNodeData);
   const openPicker = useWorkflowMediaPicker('image');
   const mediaConfig = useMemo(
     () => getWorkflowMediaConfig(data, 'image'),
     [data],
   );
+  const previewUrl = useWorkflowMediaPreviewUrl(mediaConfig);
   const [urlValue, setUrlValue] = useState(mediaConfig.url ?? '');
 
   const applyConfig = useCallback(
@@ -200,14 +204,18 @@ function CloudImageInputNodeComponent(props: NodeProps): React.JSX.Element {
                 'overflow-hidden rounded bg-black/20' // design-system-allow-content-color
               }
             >
-              <Image
-                unoptimized
-                src={mediaConfig.resolvedUrl}
-                alt={mediaConfig.label ?? 'Selected image'}
-                className="h-28 w-full object-contain outline-media"
-                width={800}
-                height={600}
-              />
+              {previewUrl ? (
+                <Image
+                  unoptimized
+                  src={previewUrl}
+                  alt={mediaConfig.label ?? 'Selected image'}
+                  className="h-28 w-full object-contain outline-media"
+                  width={800}
+                  height={600}
+                />
+              ) : (
+                <HelpText>{translate('loadingPreview')}</HelpText>
+              )}
             </div>
             <div className="space-y-1 text-2xs text-muted-foreground">
               {mediaConfig.label && <p>{mediaConfig.label}</p>}

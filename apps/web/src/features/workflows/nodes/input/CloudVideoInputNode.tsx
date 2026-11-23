@@ -7,6 +7,7 @@ import {
 } from '@genfeedai/workflows/ui/stores';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import type { NodeProps } from '@xyflow/react';
+import { useTranslations } from 'next-intl';
 import { memo, useCallback, useMemo } from 'react';
 import { NodeButton } from '@/features/workflows/components/ui/button';
 import { NodeSelect } from '@/features/workflows/components/ui/inputs';
@@ -22,6 +23,7 @@ import {
 } from '@/features/workflows/nodes/input/media-picker';
 import { UrlInputSection } from '@/features/workflows/nodes/input/UrlInputSection';
 import { useWorkflowMediaPicker } from '@/features/workflows/nodes/input/useWorkflowMediaPicker';
+import { useWorkflowMediaPreviewUrl } from '@/features/workflows/nodes/input/useWorkflowMediaPreviewUrl';
 import { VideoIcon } from '@/features/workflows/nodes/input/VideoIcon';
 
 const VIDEO_SOURCE_OPTIONS: Array<{
@@ -35,12 +37,15 @@ const VIDEO_SOURCE_OPTIONS: Array<{
 
 function CloudVideoInputNodeComponent(props: NodeProps): React.JSX.Element {
   const { data, id } = props;
+  const translate = useTranslations('pages.workflows.mediaInput');
   const updateNodeData = useWorkflowStore(selectUpdateNodeData);
   const openPicker = useWorkflowMediaPicker('video');
   const mediaConfig = useMemo(
     () => getWorkflowMediaConfig(data, 'video'),
     [data],
   );
+
+  const previewUrl = useWorkflowMediaPreviewUrl(mediaConfig);
 
   const applyConfig = useCallback(
     (nextConfig: ReturnType<typeof getWorkflowMediaConfig>) => {
@@ -145,25 +150,29 @@ function CloudVideoInputNodeComponent(props: NodeProps): React.JSX.Element {
 
         {mediaConfig.resolvedUrl ? (
           <div className="space-y-2">
-            <div
-              className={
-                'overflow-hidden rounded bg-black/20' // design-system-allow-content-color
-              }
-            >
-              <VideoPlayer
-                ariaLabel="Cloud video preview"
-                src={mediaConfig.resolvedUrl}
-                className="h-28 w-full"
-                config={{
-                  preload: 'metadata',
-                  controls: true,
-                  autoPlay: false,
-                  loop: false,
-                  muted: true,
-                  playsInline: true,
-                }}
-              />
-            </div>
+            {previewUrl ? (
+              <div
+                className={
+                  'overflow-hidden rounded bg-black/20' // design-system-allow-content-color
+                }
+              >
+                <VideoPlayer
+                  ariaLabel="Cloud video preview"
+                  src={previewUrl}
+                  className="h-28 w-full"
+                  config={{
+                    preload: 'metadata',
+                    controls: true,
+                    autoPlay: false,
+                    loop: false,
+                    muted: true,
+                    playsInline: true,
+                  }}
+                />
+              </div>
+            ) : (
+              <HelpText>{translate('loadingPreview')}</HelpText>
+            )}
             <div className="space-y-1 text-2xs text-muted-foreground">
               {mediaConfig.label && <p>{mediaConfig.label}</p>}
               {mediaConfig.dimensions && (

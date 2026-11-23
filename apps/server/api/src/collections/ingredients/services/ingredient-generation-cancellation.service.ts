@@ -7,6 +7,8 @@ import { generationQuoteGroupReceiptSchema } from '@api/helpers/utils/credits/ge
 import { persistQuoteGroupFailure } from '@api/helpers/utils/credits/persist-quote-group-failure.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { scopedWhere } from '@api/index';
+import { FalService } from '@api/services/integrations/fal/services/fal.service';
+import { parseFalRequestRef } from '@api/services/integrations/fal/services/fal-request-ref';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
@@ -33,6 +35,7 @@ export interface CancelProcessingIngredientInput {
 export class IngredientGenerationCancellationService {
   constructor(
     private readonly failedGenerationService: FailedGenerationService,
+    private readonly falService: FalService,
     private readonly ingredientsService: IngredientsService,
     private readonly loggerService: LoggerService,
     private readonly replicateService: ReplicateService,
@@ -132,11 +135,29 @@ export class IngredientGenerationCancellationService {
       return false;
     }
 
+    // A fal job still running holds a request reference, not an output URL.
+    // fal confirms a cancel it accepted; anything else leaves the job running.
+    const falRequest =
+      externalProvider === 'fal' ? parseFalRequestRef(externalId) : null;
+    if (falRequest) {
+      const isConfirmed = await this.falService.cancelRequest(falRequest);
+      if (!isConfirmed)
+        this.loggerService.warn(
+          'fal did not confirm the cancel; the job may still run at the provider',
+          { externalId, ingredientId: ingredient.id },
+        );
+      return isConfirmed;
+    }
+
     const isReplicateJob =
       externalProvider === 'replicate' ||
       (!externalProvider && !externalId.includes('://'));
 
     if (!isReplicateJob) {
+      this.loggerService.warn(
+        'Provider has no cancel call here; the job keeps running at the provider',
+        { externalProvider, ingredientId: ingredient.id },
+      );
       return false;
     }
 
