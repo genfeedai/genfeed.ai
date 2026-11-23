@@ -35,11 +35,15 @@ import { Alert } from '@ui/primitives/alert';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import {
+  Check,
   CircleCheck,
+  Flag,
   LinkIcon,
   LockKeyhole,
   MessageSquare,
+  RotateCcw,
   Sparkles,
+  X,
   Zap,
 } from 'lucide-react';
 import Link from 'next/link';
@@ -64,7 +68,7 @@ import {
   ALL_BRANDS_FILTER,
   formatMessageTime,
   getDirectMessageReconnectAccounts,
-  getMessageProvenanceItems,
+  getMessageProvenanceSummary,
   parseMessagesInboxView,
   parseMessagesSurface,
   STATUS_LABELS,
@@ -122,7 +126,9 @@ function MessageBubble({
   const translate = useTranslations('common.messages');
   const isOutbound = message.direction === 'outbound';
   const isDraft = isOutbound && message.status === 'draft';
-  const provenanceItems = getMessageProvenanceItems(message);
+  const provenanceSummary = getMessageProvenanceSummary(message);
+  // A delivered message needs no status word; only a draft or a failure does.
+  const showStatus = message.status !== 'sent' && message.status !== 'received';
 
   return (
     <div className={cn('flex', isOutbound ? 'justify-end' : 'justify-start')}>
@@ -137,52 +143,44 @@ function MessageBubble({
         <div className="mb-1 flex items-center gap-2 text-2xs uppercase tracking-label text-muted-foreground">
           <span>{isOutbound ? 'Manager' : message.senderName || 'Sender'}</span>
           <span>{formatMessageTime(message.createdAt)}</span>
-          <span>{message.status}</span>
+          {showStatus ? <span>{message.status}</span> : null}
         </div>
         <p className="whitespace-pre-wrap text-sm leading-relaxed">
           {message.body}
         </p>
-        {provenanceItems.length > 0 ? (
-          <dl
-            aria-label="Message provenance"
-            className="mt-3 grid gap-1 border-t border-border pt-2 text-2xs text-muted-foreground"
-          >
-            {provenanceItems.map((item) => (
-              <div className="flex min-w-0 gap-2" key={item.label}>
-                <dt className="shrink-0 font-medium text-gray-800">
-                  {item.label}
-                </dt>
-                <dd className="min-w-0 truncate text-muted-foreground">
-                  {item.value}
-                </dd>
-              </div>
-            ))}
-          </dl>
+        {provenanceSummary ? (
+          <p className="mt-2 text-2xs text-muted-foreground">
+            {provenanceSummary}
+          </p>
         ) : null}
         {isDraft ? (
           <div className="mt-3 flex flex-wrap justify-end gap-2">
             <Button
-              variant={ButtonVariant.DEFAULT}
-              size={ButtonSize.SM}
+              ariaLabel={translate('actions.approve')}
+              icon={<Check className="size-4" />}
               isDisabled={!canWrite || Boolean(busyAction)}
               isLoading={busyAction === `approve:${message.id}`}
               onClick={() => onApproveDraft(message.id)}
-            >
-              {translate('actions.approve')}
-            </Button>
+              size={ButtonSize.ICON}
+              tooltip={translate('actions.approve')}
+              variant={ButtonVariant.DEFAULT}
+              withWrapper={false}
+            />
             <Button
-              variant={ButtonVariant.GHOST}
-              size={ButtonSize.SM}
+              ariaLabel={translate('actions.reject')}
+              icon={<X className="size-4" />}
               isDisabled={!canWrite || Boolean(busyAction)}
               isLoading={busyAction === `reject:${message.id}`}
               onClick={() => onRejectDraft(message.id)}
-            >
-              {translate('actions.reject')}
-            </Button>
+              size={ButtonSize.ICON}
+              tooltip={translate('actions.reject')}
+              variant={ButtonVariant.GHOST}
+              withWrapper={false}
+            />
           </div>
         ) : null}
         {onToggleReference ? (
-          <div className="mt-2 flex justify-end border-t border-border pt-2">
+          <div className="mt-2 flex justify-end">
             <Button
               ariaLabel={
                 isReferenced
@@ -192,14 +190,17 @@ function MessageBubble({
               icon={<LinkIcon className="size-3.5" />}
               isDisabled={!canAttachReference}
               onClick={() => onToggleReference(message)}
-              size={ButtonSize.SM}
-              variant={ButtonVariant.GHOST}
+              size={ButtonSize.ICON}
+              tooltip={
+                isReferenced
+                  ? translate('agent.removeMessage')
+                  : translate('agent.askMessage')
+              }
+              variant={
+                isReferenced ? ButtonVariant.SECONDARY : ButtonVariant.GHOST
+              }
               withWrapper={false}
-            >
-              {isReferenced
-                ? translate('agent.attached')
-                : translate('agent.askMessage')}
-            </Button>
+            />
           </div>
         ) : null}
       </div>
@@ -796,33 +797,36 @@ export default function MessagesPage() {
                       </p>
                     )}
                   </div>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-1">
                     {isAgentDockAvailable ? (
                       <Button
+                        ariaLabel={translate('agent.askConversation')}
                         data-testid="messages-ask-agent"
                         icon={<Sparkles className="size-4" />}
                         isDisabled={!canAttachReferences}
                         onClick={handleAskAgentAboutConversation}
-                        size={ButtonSize.SM}
+                        size={ButtonSize.ICON}
+                        tooltip={translate('agent.askConversation')}
                         variant={ButtonVariant.GHOST}
-                      >
-                        {translate('agent.askConversation')}
-                      </Button>
+                        withWrapper={false}
+                      />
                     ) : null}
                     <Button
+                      ariaLabel={translate('actions.automation')}
                       asChild
+                      size={ButtonSize.ICON}
+                      tooltip={translate('actions.automation')}
                       variant={ButtonVariant.GHOST}
-                      size={ButtonSize.SM}
+                      withWrapper={false}
                     >
                       <Link href={automationHref}>
                         <Zap className="size-4" />
-                        {translate('actions.automation')}
                       </Link>
                     </Button>
                     {selectedConversation.status === 'resolved' ? (
                       <Button
-                        variant={ButtonVariant.GHOST}
-                        size={ButtonSize.SM}
+                        ariaLabel={translate('actions.reopen')}
+                        icon={<RotateCcw className="size-4" />}
                         isDisabled={!canWrite || Boolean(busyAction)}
                         isLoading={busyAction === 'status'}
                         onClick={() =>
@@ -830,13 +834,14 @@ export default function MessagesPage() {
                             'open' satisfies SocialConversationStatus,
                           )
                         }
-                      >
-                        {translate('actions.reopen')}
-                      </Button>
+                        size={ButtonSize.ICON}
+                        tooltip={translate('actions.reopen')}
+                        variant={ButtonVariant.GHOST}
+                        withWrapper={false}
+                      />
                     ) : (
                       <Button
-                        variant={ButtonVariant.GHOST}
-                        size={ButtonSize.SM}
+                        ariaLabel={translate('actions.resolve')}
                         icon={<CircleCheck className="size-4" />}
                         isDisabled={!canWrite || Boolean(busyAction)}
                         isLoading={busyAction === 'status'}
@@ -845,14 +850,16 @@ export default function MessagesPage() {
                             'resolved' satisfies SocialConversationStatus,
                           )
                         }
-                      >
-                        {translate('actions.resolve')}
-                      </Button>
+                        size={ButtonSize.ICON}
+                        tooltip={translate('actions.resolve')}
+                        variant={ButtonVariant.GHOST}
+                        withWrapper={false}
+                      />
                     )}
                     {selectedConversation.status !== 'needs_review' ? (
                       <Button
-                        variant={ButtonVariant.GHOST}
-                        size={ButtonSize.SM}
+                        ariaLabel={translate('conversation.needsReview')}
+                        icon={<Flag className="size-4" />}
                         isDisabled={!canWrite || Boolean(busyAction)}
                         isLoading={busyAction === 'status'}
                         onClick={() =>
@@ -860,9 +867,11 @@ export default function MessagesPage() {
                             'needs_review' satisfies SocialConversationStatus,
                           )
                         }
-                      >
-                        {translate('conversation.needsReview')}
-                      </Button>
+                        size={ButtonSize.ICON}
+                        tooltip={translate('conversation.needsReview')}
+                        variant={ButtonVariant.GHOST}
+                        withWrapper={false}
+                      />
                     ) : null}
                   </div>
                 </div>
@@ -915,7 +924,7 @@ export default function MessagesPage() {
 
               {isReadOnly ? (
                 <div
-                  className="flex shrink-0 items-center gap-3 border-t border-border bg-card px-5 py-4"
+                  className="flex shrink-0 items-center gap-3 bg-card px-5 py-4"
                   data-testid="messages-read-only-notice"
                 >
                   <div className="flex size-9 shrink-0 items-center justify-center rounded-md bg-warning/10 text-warning ring-1 ring-inset ring-warning/20">
@@ -940,7 +949,6 @@ export default function MessagesPage() {
                   onAction={handleAction}
                   onDraftChange={handleDraftChange}
                   onSuggestedReply={handleSuggestedReply}
-                  participantLabel={getParticipantLabel(selectedConversation)}
                 />
               )}
             </>
@@ -959,11 +967,12 @@ export default function MessagesPage() {
                     ? 'Select a conversation'
                     : 'Connect accounts to start your inbox'}
                 </p>
-                <p className="max-w-sm text-xs leading-5 text-muted-foreground">
-                  {hasConnectedAccounts
-                    ? 'Review the thread, draft a response with the agent, then send or resolve it here.'
-                    : 'Comments and direct messages from your connected social channels will appear in the conversation list.'}
-                </p>
+                {hasConnectedAccounts ? null : (
+                  <p className="max-w-sm text-xs leading-5 text-muted-foreground">
+                    Comments and direct messages from your connected social
+                    channels will appear in the conversation list.
+                  </p>
+                )}
               </div>
               {!hasConnectedAccounts && availableOAuthConnect ? (
                 <AgentOAuthConnectMenu
