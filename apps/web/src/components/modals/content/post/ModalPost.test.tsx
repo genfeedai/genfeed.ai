@@ -499,9 +499,10 @@ describe('ModalPost', () => {
         ).toBeInTheDocument();
 
         await user.click(screen.getByRole('button', { name: 'Edit' }));
-        expect(
-          screen.getByRole('button', { name: '@acme_x' }),
-        ).toHaveAttribute('aria-pressed', 'true');
+        expect(screen.getByRole('button', { name: '@acme_x' })).toHaveAttribute(
+          'aria-pressed',
+          'true',
+        );
       });
 
       it('previews a picked Library video and saves its identity in the draft', async () => {
