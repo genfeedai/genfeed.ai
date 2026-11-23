@@ -13,7 +13,6 @@ import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
 import { Button } from '@ui/primitives/button';
 import { OptionTile, OptionTileGroup } from '@ui/primitives/option-tile';
-import { SegmentedControl } from '@ui/primitives/segmented-control';
 import { FileSpreadsheet, FileText } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
@@ -139,16 +138,23 @@ export default function ModalExport({
               {isEverySelected ? translate('clearAll') : translate('selectAll')}
             </Button>
           </div>
-          <SegmentedControl
-            appearance="chip"
+          <OptionTileGroup
             ariaLabel={translate('fieldsLabel')}
             className="max-h-64 overflow-y-auto"
+            columns={2}
             onValueChange={(fields) => updateFields(fields as ExportField[])}
-            options={availableFields}
-            size="sm"
             type="multiple"
             value={selectedFields}
-          />
+          >
+            {availableFields.map((field) => (
+              <OptionTile
+                key={field.value}
+                size="sm"
+                title={field.label}
+                value={field.value}
+              />
+            ))}
+          </OptionTileGroup>
         </div>
       </div>
 
