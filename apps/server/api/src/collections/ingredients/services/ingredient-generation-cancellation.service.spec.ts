@@ -19,6 +19,14 @@ interface Ingredient {
   metadata?: Record<string, unknown>;
   organizationId: string;
   status: IngredientStatus;
+  workflowExecutionId?: string;
+}
+
+interface ExecutionWhere {
+  isDeleted: boolean;
+  organizationId: string;
+  status: IngredientStatus;
+  workflowExecutionId: string;
 }
 
 interface IngredientWhere {
@@ -44,6 +52,7 @@ describe('IngredientGenerationCancellationService', () => {
   let falCancels: Array<{ endpoint: string; requestId: string }>;
   let isFalCancelAccepted: boolean;
   let completesDuringCancel: string | undefined;
+  let unreadableIds: Set<string>;
   let notifications: Record<string, unknown>[];
   let warnings: string[];
   let service: IngredientGenerationCancellationService;
@@ -74,6 +83,7 @@ describe('IngredientGenerationCancellationService', () => {
     falCancels = [];
     isFalCancelAccepted = true;
     completesDuringCancel = undefined;
+    unreadableIds = new Set();
     notifications = [];
     warnings = [];
 
@@ -83,6 +93,18 @@ describe('IngredientGenerationCancellationService', () => {
       row.isDeleted === where.isDeleted &&
       (where.status === undefined || row.status === where.status);
     const prisma = {
+      ingredient: {
+        findMany: async ({ where }: { where: ExecutionWhere }) =>
+          [...rows.values()]
+            .filter(
+              (row) =>
+                row.workflowExecutionId === where.workflowExecutionId &&
+                row.organizationId === where.organizationId &&
+                row.isDeleted === where.isDeleted &&
+                row.status === where.status,
+            )
+            .map((row) => ({ id: row.id })),
+      },
       $transaction: async (work: (tx: unknown) => Promise<void>) =>
         work({
           creditReservation: { findFirst: async () => null },
@@ -94,6 +116,7 @@ describe('IngredientGenerationCancellationService', () => {
     };
     const ingredientsService = {
       findOne: async (where: IngredientWhere) => {
+        if (unreadableIds.has(where.id)) throw new Error('database down');
         const row = [...rows.values()].find((r) => matches(r, where));
         return row ? { ...row } : null;
       },
@@ -369,6 +392,77 @@ describe('IngredientGenerationCancellationService', () => {
       expect(warnings).toContain(
         'Provider has no cancel call here; the job keeps running at the provider',
       );
+    });
+  });
+  describe('stopping an agent run', () => {
+    const stop = () =>
+      service.cancelProcessingForExecution({
+        executionId: 'run-1',
+        organizationId: 'org-1',
+        userId: 'user-1',
+      });
+    const inRun = (id: string, fields: Partial<Ingredient> = {}) =>
+      processing(id, { workflowExecutionId: 'run-1', ...fields });
+
+    it('cancels only the processing generations of that run, at the provider', async () => {
+      inRun('ing-1', {
+        metadata: { externalId: 'pred-a', externalProvider: 'replicate' },
+      });
+      inRun('ing-2', {
+        metadata: {
+          externalId: 'fal-request:fal-ai/flux/dev:req-9',
+          externalProvider: 'fal',
+        },
+      });
+      inRun('ing-done', { status: IngredientStatus.GENERATED });
+      processing('ing-other-run', { workflowExecutionId: 'run-2' });
+      inRun('ing-other-org', { organizationId: 'org-2' });
+      predictions.set('pred-a', 'processing');
+
+      await expect(stop()).resolves.toBe(2);
+
+      expect(rows.get('ing-1')?.status).toBe(IngredientStatus.FAILED);
+      expect(rows.get('ing-2')?.status).toBe(IngredientStatus.FAILED);
+      expect(predictions.get('pred-a')).toBe('canceled');
+      expect(falCancels).toEqual([
+        { endpoint: 'fal-ai/flux/dev', requestId: 'req-9' },
+      ]);
+      expect(rows.get('ing-done')?.status).toBe(IngredientStatus.GENERATED);
+      expect(rows.get('ing-other-run')?.status).toBe(
+        IngredientStatus.PROCESSING,
+      );
+      expect(rows.get('ing-other-org')?.status).toBe(
+        IngredientStatus.PROCESSING,
+      );
+    });
+
+    it('keeps cancelling the rest when one generation cannot be read', async () => {
+      inRun('ing-1');
+      inRun('ing-2');
+      unreadableIds.add('ing-1');
+
+      await expect(stop()).resolves.toBe(1);
+
+      expect(rows.get('ing-1')?.status).toBe(IngredientStatus.PROCESSING);
+      expect(rows.get('ing-2')?.status).toBe(IngredientStatus.FAILED);
+      expect(warnings).toEqual([
+        'Stopping a run could not cancel one of its generations',
+      ]);
+    });
+
+    it('keeps a funded generation running when the provider does not confirm', async () => {
+      inRun('ing-1', {
+        generationBilling: QUOTE_GROUP,
+        metadata: {
+          externalId: 'fal-request:fal-ai/flux/dev:req-9',
+          externalProvider: 'fal',
+        },
+      });
+      isFalCancelAccepted = false;
+
+      await expect(stop()).resolves.toBe(0);
+
+      expect(rows.get('ing-1')?.status).toBe(IngredientStatus.PROCESSING);
     });
   });
 });
