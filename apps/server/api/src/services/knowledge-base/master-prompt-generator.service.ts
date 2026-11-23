@@ -9,7 +9,16 @@ import { CreditsUtilsService } from '@api/collections/credits/services/credits.u
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { baseModelKey } from '@api/collections/models/utils/model-key.util';
 import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
-import { InsufficientCreditsException } from '@api/exceptions/business-logic.exception';
+import {
+  BusinessLogicException,
+  InsufficientCreditsException,
+} from '@api/exceptions/business-logic.exception';
+import {
+  releaseTextCredits,
+  reserveTextCredits,
+  settleTextCredits,
+  type TextCreditHold,
+} from '@api/helpers/utils/credits/text-credit-hold.util';
 import {
   calculateEstimatedTextCredits,
   getMinimumTextCredits,
@@ -98,7 +107,6 @@ type MasterPromptBillingContext = {
 @Injectable()
 export class MasterPromptGeneratorService {
   private readonly constructorName: string = String(this.constructor.name);
-  private static readonly TEXT_MAX_OVERDRAFT_CREDITS = 5;
 
   constructor(
     private readonly creditsUtilsService: CreditsUtilsService,
@@ -118,6 +126,7 @@ export class MasterPromptGeneratorService {
   ): Promise<IExtractedBrandData['brandVoice']> {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(`${caller} starting`);
+    let hold: TextCreditHold | undefined;
 
     try {
       this.assertAnalysisDeadline(options?.deadlineAt);
@@ -134,7 +143,11 @@ export class MasterPromptGeneratorService {
 
       const byok = await this.resolveByok(billingContext);
       if (!byok) {
-        await this.assertBrandProfileCreditsAvailable(billingContext);
+        hold = await this.holdCredits(
+          billingContext,
+          BRAND_PROFILE_GENERATION_CREDIT_COST,
+          'AI brand profile generation',
+        );
       }
 
       this.assertAnalysisDeadline(options?.deadlineAt);
@@ -151,7 +164,12 @@ export class MasterPromptGeneratorService {
       this.assertAnalysisDeadline(options?.deadlineAt);
       const analysis = parseGeneratedBrandProfile(content);
       if (!byok) {
-        await this.settleBrandProfileCredits(billingContext);
+        await this.settleHeldCredits(
+          billingContext,
+          hold,
+          BRAND_PROFILE_GENERATION_CREDIT_COST,
+          'AI brand profile generation',
+        );
         if (billingContext)
           options?.onCreditsSettled?.(BRAND_PROFILE_GENERATION_CREDIT_COST);
       }
@@ -176,6 +194,7 @@ export class MasterPromptGeneratorService {
         voice: analysis.style,
       };
     } catch (error: unknown) {
+      await this.releaseHeldCredits(billingContext, hold);
       // The model's reply did not satisfy the profile contract. The scan
       // continues on the placeholder voice below, so this is provider drift to
       // watch in the logs and not a fault to report.
@@ -213,6 +232,7 @@ export class MasterPromptGeneratorService {
   ): Promise<IMasterPrompt[]> {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(`${caller} starting`);
+    let hold: TextCreditHold | undefined;
 
     try {
       const brandContext = this.buildBrandContext(brandData);
@@ -229,8 +249,12 @@ export class MasterPromptGeneratorService {
       };
 
       const byok = await this.resolveByok(billingContext);
-      if (!byok) {
-        await this.assertCreditsAvailable(billingContext);
+      if (!byok && billingContext) {
+        hold = await this.holdCredits(
+          billingContext,
+          getMinimumTextCredits(await this.getDefaultTextModel()),
+          'Master prompt generation',
+        );
       }
 
       const content = await this.replicateService.generateTextCompletionSync(
@@ -244,7 +268,16 @@ export class MasterPromptGeneratorService {
       }
 
       if (!byok) {
-        await this.settleCredits(billingContext, input, content);
+        await this.settleHeldCredits(
+          billingContext,
+          hold,
+          calculateEstimatedTextCredits(
+            await this.getDefaultTextModel(),
+            input,
+            content,
+          ),
+          'Master prompt generation',
+        );
       }
 
       // Extract JSON from response (may contain markdown code blocks)
@@ -261,6 +294,7 @@ export class MasterPromptGeneratorService {
 
       return prompts;
     } catch (error: unknown) {
+      await this.releaseHeldCredits(billingContext, hold);
       this.loggerService.error(`${caller} failed`, error);
 
       if (error instanceof InsufficientCreditsException) {
@@ -399,106 +433,77 @@ export class MasterPromptGeneratorService {
     );
   }
 
-  private async assertCreditsAvailable(
-    billingContext?: MasterPromptBillingContext,
-  ): Promise<void> {
-    if (!billingContext) {
-      return;
-    }
-
-    const model = await this.getDefaultTextModel();
-    const requiredCredits = getMinimumTextCredits(model);
-    if (requiredCredits <= 0) {
-      return;
-    }
-
-    const hasCredits =
-      await this.creditsUtilsService.checkOrganizationCreditsAvailable(
-        billingContext.organizationId,
-        requiredCredits,
-      );
-
-    if (hasCredits) {
-      return;
-    }
-
-    const currentBalance =
-      await this.creditsUtilsService.getOrganizationCreditsBalance(
-        billingContext.organizationId,
-      );
-    throw new InsufficientCreditsException(requiredCredits, currentBalance);
-  }
-
-  private async assertBrandProfileCreditsAvailable(
-    billingContext?: MasterPromptBillingContext,
-  ): Promise<void> {
-    if (!billingContext) {
-      return;
-    }
-
-    const hasCredits =
-      await this.creditsUtilsService.checkOrganizationCreditsAvailable(
-        billingContext.organizationId,
-        BRAND_PROFILE_GENERATION_CREDIT_COST,
-      );
-
-    if (hasCredits) {
-      return;
-    }
-
-    const currentBalance =
-      await this.creditsUtilsService.getOrganizationCreditsBalance(
-        billingContext.organizationId,
-      );
-    throw new InsufficientCreditsException(
-      BRAND_PROFILE_GENERATION_CREDIT_COST,
-      currentBalance,
-    );
-  }
-
-  private async settleBrandProfileCredits(
-    billingContext?: MasterPromptBillingContext,
-  ): Promise<void> {
-    if (!billingContext) {
-      return;
-    }
-
-    await this.creditsUtilsService.deductCreditsFromOrganization(
-      billingContext.organizationId,
-      billingContext.userId,
-      BRAND_PROFILE_GENERATION_CREDIT_COST,
-      'AI brand profile generation',
-      ActivitySource.SCRIPT,
-      { brandId: billingContext.brandId },
-    );
-  }
-
-  private async settleCredits(
+  /**
+   * Holds the credits a generation needs before the model runs, so concurrent
+   * scans from an organization that can pay for one cannot all pass one
+   * balance read. Without a billing context nothing is billed or held.
+   */
+  private async holdCredits(
     billingContext: MasterPromptBillingContext | undefined,
-    input: Record<string, unknown>,
-    output: string,
+    requiredCredits: number,
+    description: string,
+  ): Promise<TextCreditHold | undefined> {
+    if (!billingContext || requiredCredits <= 0) {
+      return undefined;
+    }
+
+    try {
+      return await reserveTextCredits(this.creditsUtilsService, {
+        brandId: billingContext.brandId,
+        description,
+        holdCredits: requiredCredits,
+        organizationId: billingContext.organizationId,
+        source: ActivitySource.SCRIPT,
+        userId: billingContext.userId,
+        workloadType: 'brand-text-generation',
+      });
+    } catch (error: unknown) {
+      if (
+        error instanceof BusinessLogicException &&
+        error.errorCode === 'INSUFFICIENT_CREDITS'
+      ) {
+        throw new InsufficientCreditsException(
+          requiredCredits,
+          await this.creditsUtilsService.getOrganizationCreditsBalance(
+            billingContext.organizationId,
+          ),
+        );
+      }
+      throw error;
+    }
+  }
+
+  private async settleHeldCredits(
+    billingContext: MasterPromptBillingContext | undefined,
+    hold: TextCreditHold | undefined,
+    actualCredits: number,
+    description: string,
+  ): Promise<void> {
+    if (!billingContext || !hold) {
+      return;
+    }
+
+    await settleTextCredits(this.creditsUtilsService, hold, {
+      actualCredits,
+      brandId: billingContext.brandId,
+      description,
+      organizationId: billingContext.organizationId,
+      source: ActivitySource.SCRIPT,
+      userId: billingContext.userId,
+    });
+  }
+
+  private async releaseHeldCredits(
+    billingContext: MasterPromptBillingContext | undefined,
+    hold: TextCreditHold | undefined,
   ): Promise<void> {
     if (!billingContext) {
       return;
     }
-
-    const model = await this.getDefaultTextModel();
-    const amount = calculateEstimatedTextCredits(model, input, output);
-    if (amount <= 0) {
-      return;
-    }
-
-    await this.creditsUtilsService.deductCreditsFromOrganization(
+    await releaseTextCredits(
+      this.creditsUtilsService,
+      hold,
       billingContext.organizationId,
-      billingContext.userId,
-      amount,
-      'Master prompt generation',
-      ActivitySource.SCRIPT,
-      {
-        brandId: billingContext.brandId,
-        maxOverdraftCredits:
-          MasterPromptGeneratorService.TEXT_MAX_OVERDRAFT_CREDITS,
-      },
     );
   }
 

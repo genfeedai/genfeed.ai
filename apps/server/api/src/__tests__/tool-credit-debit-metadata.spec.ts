@@ -18,6 +18,8 @@ const ALLOWED_FILES = new Set([
   'agent-llm-round-reservation.util.ts',
   'agent-turn-round-runner.service.ts',
   'turbo-project-credits.service.ts',
+  // Holds, settles and releases the credits of one text call for the reply, first-system, brand profile, master prompt and calendar copy paths; not an agent tool, and its spec verifies that concurrent calls cannot spend past the balance.
+  'text-credit-hold.util.ts',
   // Server-owned breakout response generation: native admission, not an agent tool; specs verify the hold and settlement.
   'breakout-output-quality.service.ts',
   'breakout-text-output-generation.service.ts',
@@ -26,22 +28,18 @@ const ALLOWED_FILES = new Set([
   'breakout-acceptance.media.fixture.ts',
   'credits.utils.service.ts',
   'evaluations.service.ts',
-  'expert-first-system.service.ts',
   'generation-quote-group.service.ts',
   'knowledge-transcript-ingest.service.ts',
   'live-session-credits.service.ts',
   // Charges a marketplace purchase in credits and returns them if the marketplace cannot record it; a quoted route, not an agent tool, and its real-database spec verifies the charge, the return and the idempotent retry.
   'marketplace-credit-purchase.service.ts',
   'managed-inference.service.ts',
-  'master-prompt-generator.service.ts',
   'onboarding-preview.service.ts',
   'oss-credits-utils.service.ts',
-  'posting-cadence-copy.service.ts',
   // Account and thread generation runs: a quoted publishing route, not an agent tool; its spec verifies the single hold, per-dispatch settlement and release.
   'post-account-generation-billing.service.ts',
   // Reverses a granted affiliate reward after a refund or dispute; not an agent tool, and its spec verifies the idempotent reversal.
   'referral-reward-lifecycle.util.ts',
-  'reply-generation.service.ts',
   // Settles a caller-owned hold at the measured clip length. The caller quoted the work; this file is not an agent tool.
   'reservation-duration-settlement.ts',
   // Storyboard sketch stills: a quoted Studio route, not an agent tool; its spec verifies settle-on-render and release-on-failure.

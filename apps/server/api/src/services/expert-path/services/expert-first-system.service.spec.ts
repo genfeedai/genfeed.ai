@@ -5,7 +5,10 @@ import type { CreditsUtilsService } from '@api/collections/credits/services/cred
 import type { HarnessProfilesService } from '@api/collections/harness-profiles/services/harness-profiles.service';
 import { AUTOMATION_WORKFLOW_IDS } from '@api/collections/workflows/services/automation-workflow-definitions';
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
-import { InsufficientCreditsException } from '@api/exceptions/business-logic.exception';
+import {
+  BusinessLogicException,
+  InsufficientCreditsException,
+} from '@api/exceptions/business-logic.exception';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import type { ContentPlannerService } from '@api/services/content-engine/content-planner.service';
 import type { ExpertCorpusService } from '@api/services/expert-path/services/expert-corpus.service';
@@ -65,6 +68,9 @@ describe('ExpertFirstSystemService', () => {
     checkOrganizationCreditsAvailable: ReturnType<typeof vi.fn>;
     deductCreditsFromOrganization: ReturnType<typeof vi.fn>;
     getOrganizationCreditsBalance: ReturnType<typeof vi.fn>;
+    releaseReservation: ReturnType<typeof vi.fn>;
+    reserveCredits: ReturnType<typeof vi.fn>;
+    settleReservation: ReturnType<typeof vi.fn>;
   };
   let expertCorpusService: { summarize: ReturnType<typeof vi.fn> };
   let harnessGenerationService: { resolveBrief: ReturnType<typeof vi.fn> };
@@ -108,6 +114,9 @@ describe('ExpertFirstSystemService', () => {
       checkOrganizationCreditsAvailable: vi.fn().mockResolvedValue(true),
       deductCreditsFromOrganization: vi.fn().mockResolvedValue(undefined),
       getOrganizationCreditsBalance: vi.fn().mockResolvedValue(0),
+      releaseReservation: vi.fn().mockResolvedValue(undefined),
+      reserveCredits: vi.fn().mockResolvedValue({ amount: 10, id: 'hold-1' }),
+      settleReservation: vi.fn().mockResolvedValue(undefined),
     };
     expertCorpusService = {
       summarize: vi
@@ -241,9 +250,7 @@ describe('ExpertFirstSystemService', () => {
       expect(String(result.plan.id)).toBe('plan-1');
       expect(result.provenance.harnessProfileId).toBe('profile-1');
       expect(contentPlannerService.generatePlan).not.toHaveBeenCalled();
-      expect(
-        creditsUtilsService.deductCreditsFromOrganization,
-      ).not.toHaveBeenCalled();
+      expect(creditsUtilsService.reserveCredits).not.toHaveBeenCalled();
     });
 
     it('rejects with BadRequestException when the first system is not ready', async () => {
@@ -258,14 +265,16 @@ describe('ExpertFirstSystemService', () => {
       ).rejects.toBeInstanceOf(BadRequestException);
 
       expect(contentPlannerService.generatePlan).not.toHaveBeenCalled();
-      expect(
-        creditsUtilsService.checkOrganizationCreditsAvailable,
-      ).not.toHaveBeenCalled();
+      expect(creditsUtilsService.reserveCredits).not.toHaveBeenCalled();
     });
 
-    it('rejects with InsufficientCreditsException without calling the planner when credits are unavailable', async () => {
-      creditsUtilsService.checkOrganizationCreditsAvailable.mockResolvedValue(
-        false,
+    it('rejects with InsufficientCreditsException without calling the planner when the hold is refused', async () => {
+      creditsUtilsService.reserveCredits.mockRejectedValue(
+        new BusinessLogicException(
+          'Insufficient organization credits',
+          {},
+          'INSUFFICIENT_CREDITS',
+        ),
       );
       creditsUtilsService.getOrganizationCreditsBalance.mockResolvedValue(2);
 
@@ -278,9 +287,7 @@ describe('ExpertFirstSystemService', () => {
       ).rejects.toBeInstanceOf(InsufficientCreditsException);
 
       expect(contentPlannerService.generatePlan).not.toHaveBeenCalled();
-      expect(
-        creditsUtilsService.deductCreditsFromOrganization,
-      ).not.toHaveBeenCalled();
+      expect(creditsUtilsService.settleReservation).not.toHaveBeenCalled();
     });
 
     it('builds the brief with BRAND_TRUTH knowledge, plans 7 items, deducts credits after the plan exists, and records success', async () => {
@@ -325,22 +332,23 @@ describe('ExpertFirstSystemService', () => {
         }),
       );
 
-      // Credits are deducted only once the plan exists.
-      const deductOrder =
-        creditsUtilsService.deductCreditsFromOrganization.mock
-          .invocationCallOrder[0];
-      const generatePlanOrder =
-        contentPlannerService.generatePlan.mock.invocationCallOrder[0];
-      expect(deductOrder).toBeGreaterThan(generatePlanOrder);
+      // The plan's price is held first and settled only once the plan exists.
       expect(
-        creditsUtilsService.deductCreditsFromOrganization,
-      ).toHaveBeenCalledWith(
-        'org-1',
-        'user-1',
-        10,
-        'Expert Path first content system',
-        expect.any(String),
-        { brandId: 'brand-1' },
+        creditsUtilsService.reserveCredits.mock.invocationCallOrder[0],
+      ).toBeLessThan(
+        contentPlannerService.generatePlan.mock.invocationCallOrder[0],
+      );
+      expect(
+        creditsUtilsService.settleReservation.mock.invocationCallOrder[0],
+      ).toBeGreaterThan(
+        contentPlannerService.generatePlan.mock.invocationCallOrder[0],
+      );
+      expect(creditsUtilsService.settleReservation).toHaveBeenCalledWith(
+        expect.objectContaining({
+          actualAmount: 10,
+          organizationId: 'org-1',
+          reservationId: 'hold-1',
+        }),
       );
 
       expect(brandMemoryService.upsertTypedEntry).toHaveBeenCalledWith(
@@ -396,9 +404,11 @@ describe('ExpertFirstSystemService', () => {
         }),
       ).rejects.toThrow('planner unavailable');
 
-      expect(
-        creditsUtilsService.deductCreditsFromOrganization,
-      ).not.toHaveBeenCalled();
+      expect(creditsUtilsService.settleReservation).not.toHaveBeenCalled();
+      expect(creditsUtilsService.releaseReservation).toHaveBeenCalledWith({
+        organizationId: 'org-1',
+        reservationId: 'hold-1',
+      });
       expect(brandMemoryService.upsertTypedEntry).toHaveBeenCalledWith(
         'org-1',
         'brand-1',

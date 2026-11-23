@@ -66,6 +66,9 @@ describe('MasterPromptGeneratorService', () => {
     checkOrganizationCreditsAvailable: vi.fn().mockResolvedValue(true),
     deductCreditsFromOrganization: vi.fn().mockResolvedValue(undefined),
     getOrganizationCreditsBalance: vi.fn().mockResolvedValue(0),
+    releaseReservation: vi.fn().mockResolvedValue(undefined),
+    reserveCredits: vi.fn().mockResolvedValue({ amount: 1, id: 'hold-1' }),
+    settleReservation: vi.fn().mockResolvedValue(undefined),
   };
 
   const mockModelsService = {
@@ -233,9 +236,7 @@ describe('MasterPromptGeneratorService', () => {
       { onCreditsSettled },
     );
     expect(onCreditsSettled).not.toHaveBeenCalled();
-    expect(
-      mockCreditsUtilsService.deductCreditsFromOrganization,
-    ).not.toHaveBeenCalled();
+    expect(mockCreditsUtilsService.settleReservation).not.toHaveBeenCalled();
   });
 
   it('rethrows deadline expiry and does not settle late analysis credits', async () => {
@@ -253,9 +254,7 @@ describe('MasterPromptGeneratorService', () => {
         { deadlineAt },
       ),
     ).rejects.toBeInstanceOf(RequestTimeoutException);
-    expect(
-      mockCreditsUtilsService.deductCreditsFromOrganization,
-    ).not.toHaveBeenCalled();
+    expect(mockCreditsUtilsService.settleReservation).not.toHaveBeenCalled();
     vi.restoreAllMocks();
   });
 
@@ -286,18 +285,19 @@ describe('MasterPromptGeneratorService', () => {
     expect(
       mockReplicateService.generateTextCompletionSync,
     ).toHaveBeenCalledTimes(1);
-    expect(
-      mockCreditsUtilsService.checkOrganizationCreditsAvailable,
-    ).toHaveBeenCalledWith('org-1', 1);
-    expect(
-      mockCreditsUtilsService.deductCreditsFromOrganization,
-    ).toHaveBeenCalledWith(
-      'org-1',
-      'user-1',
-      1,
-      'AI brand profile generation',
-      expect.any(String),
-      { brandId: 'brand-1' },
+    expect(mockCreditsUtilsService.reserveCredits).toHaveBeenCalledWith(
+      expect.objectContaining({
+        amount: 1,
+        brandId: 'brand-1',
+        organizationId: 'org-1',
+      }),
+    );
+    expect(mockCreditsUtilsService.settleReservation).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actualAmount: 1,
+        organizationId: 'org-1',
+        reservationId: 'hold-1',
+      }),
     );
   });
 
@@ -324,12 +324,8 @@ describe('MasterPromptGeneratorService', () => {
       expect.any(Object),
       'org-or-key',
     );
-    expect(
-      mockCreditsUtilsService.checkOrganizationCreditsAvailable,
-    ).not.toHaveBeenCalled();
-    expect(
-      mockCreditsUtilsService.deductCreditsFromOrganization,
-    ).not.toHaveBeenCalled();
+    expect(mockCreditsUtilsService.reserveCredits).not.toHaveBeenCalled();
+    expect(mockCreditsUtilsService.settleReservation).not.toHaveBeenCalled();
   });
 
   it('never resolves a key for an unbilled onboarding generation', async () => {
@@ -357,9 +353,7 @@ describe('MasterPromptGeneratorService', () => {
       userId: 'user-1',
     });
 
-    expect(
-      mockCreditsUtilsService.deductCreditsFromOrganization,
-    ).not.toHaveBeenCalled();
+    expect(mockCreditsUtilsService.settleReservation).not.toHaveBeenCalled();
   });
 
   it('should parse master prompts from JSON array response', async () => {

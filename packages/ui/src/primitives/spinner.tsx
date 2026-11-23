@@ -13,6 +13,7 @@ export interface SpinnerProps
   ariaLabel?: string;
 }
 
+/** Inline spinner for a button or a label. A region or page uses `Loading`. */
 export default function Spinner({
   size = ComponentSize.MD,
   ariaLabel = 'Loading',

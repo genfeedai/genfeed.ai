@@ -6,6 +6,10 @@ export interface BrandLoaderProps {
   label?: string;
 }
 
+/**
+ * The animated brand mark with its live-region label. Use `Loading` for a
+ * region or page; use this only where the mark alone is wanted.
+ */
 export default function BrandLoader({
   className,
   label = 'Loading Genfeed',
