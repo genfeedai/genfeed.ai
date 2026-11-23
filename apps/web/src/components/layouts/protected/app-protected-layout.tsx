@@ -36,8 +36,8 @@ import AppProtectedRail from '@/components/shell/AppProtectedRail';
 import AppProtectedTopbar from '@/components/shell/AppProtectedTopbar';
 import { InstalledAppsProvider } from '@/components/shell/installed-apps.provider';
 import { RailPreferencesProvider } from '@/components/shell/rail-preferences.provider';
-import WorkspaceContentSkeleton from '@/components/shell/workspace-frame-skeleton/WorkspaceContentSkeleton';
 import WorkspaceFrameSkeleton from '@/components/shell/workspace-frame-skeleton/WorkspaceFrameSkeleton';
+import WorkspacePagePending from '@/components/shell/workspace-frame-skeleton/WorkspacePagePending';
 import {
   WorkspaceNavPanelProvider,
   WorkspaceNavPanelTarget,
@@ -73,7 +73,7 @@ const TRAILING_SLASH_PATTERN = /\/$/;
 const LazyUniversalWorkspaceShell = dynamic(
   () => import('@/components/workspace-shell/UniversalWorkspaceShell'),
   {
-    loading: () => <WorkspaceContentSkeleton />,
+    loading: () => <WorkspacePagePending />,
   },
 );
 

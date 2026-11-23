@@ -6,7 +6,7 @@ import OrgLibraryPage from './page';
 import '@testing-library/jest-dom/vitest';
 
 vi.mock(
-  '@/components/shell/workspace-frame-skeleton/WorkspaceContentSkeleton',
+  '@/components/shell/workspace-frame-skeleton/WorkspacePagePending',
   () => ({
     default: () => <p>Loading organization app</p>,
   }),

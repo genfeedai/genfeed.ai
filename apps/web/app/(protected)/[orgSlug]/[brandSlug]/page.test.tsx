@@ -17,7 +17,7 @@ vi.mock('next/navigation', () => ({
   useRouter: () => ({ replace: mocks.replace }),
 }));
 vi.mock(
-  '@/components/shell/workspace-frame-skeleton/WorkspaceContentSkeleton',
+  '@/components/shell/workspace-frame-skeleton/WorkspacePagePending',
   () => ({
     default: () => <p>Opening the workspace</p>,
   }),
