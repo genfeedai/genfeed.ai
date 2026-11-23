@@ -16,7 +16,7 @@ import {
 } from '@/lib/query-cache/persisted-query-cache';
 
 /** How long the cache must be quiet before a snapshot is written. */
-export const PERSISTED_QUERY_CACHE_WRITE_DELAY_MS = 500;
+const PERSISTED_QUERY_CACHE_WRITE_DELAY_MS = 500;
 
 const BUILD_ID = process.env.NEXT_PUBLIC_BUILD_ID ?? 'development';
 

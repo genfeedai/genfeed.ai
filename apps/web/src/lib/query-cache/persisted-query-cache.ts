@@ -75,7 +75,7 @@ function readPersistOption(
   return null;
 }
 
-export function isPersistableQuery(query: Query): boolean {
+function isPersistableQuery(query: Query): boolean {
   return (
     query.state.status === 'success' && readPersistOption(query.meta) !== null
   );
