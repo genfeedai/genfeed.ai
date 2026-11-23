@@ -125,9 +125,12 @@ describe('workflow Library media previews', () => {
       { config: { source: 'url', url: 'https://owned.test/video.mp4' } },
       'video',
     );
-    const { result } = renderHook(() => useWorkflowMediaPreviewUrl('video', config), {
-      wrapper: queryClientWrapper(createTestQueryClient()),
-    });
+    const { result } = renderHook(
+      () => useWorkflowMediaPreviewUrl('video', config),
+      {
+        wrapper: queryClientWrapper(createTestQueryClient()),
+      },
+    );
     expect(result.current).toBe('https://owned.test/video.mp4');
     expect(mocks.findOne).not.toHaveBeenCalled();
   });
