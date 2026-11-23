@@ -340,10 +340,8 @@ export default function ReleasePostsList({
       if (!selectedReleaseId) {
         return;
       }
-      void runMutation(
-        RELEASE_CAMPAIGN_ACTION,
-        selectedReleaseId,
-        (service) => service.update(selectedReleaseId, { campaignId }),
+      void runMutation(RELEASE_CAMPAIGN_ACTION, selectedReleaseId, (service) =>
+        service.update(selectedReleaseId, { campaignId }),
       );
     },
     [runMutation, selectedReleaseId],
