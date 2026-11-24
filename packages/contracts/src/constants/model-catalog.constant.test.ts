@@ -552,6 +552,26 @@ describe('UNIFIED_MODEL_CATALOG', () => {
     });
   });
 
+  it('lists HeyGen Video 1 on fal as an active, public draft tier at the fal list price', () => {
+    const row = UNIFIED_MODEL_CATALOG.find(
+      (entry) => entry.key === MODEL_KEYS.FAL_HEYGEN_VIDEO,
+    );
+
+    expect(row).toMatchObject({
+      cost: 34,
+      defaultDuration: 5,
+      endpoint: 'heygen/heygen-video/text-to-video',
+      hasResolutionOptions: true,
+      isActive: true,
+      isDefault: false,
+      isPublic: true,
+      label: 'HeyGen Video 1',
+      pricingType: 'per-second',
+      provider: ModelProvider.FAL,
+      providerCostUsd: 0.02,
+    });
+  });
+
   it('promotes lowest-cost image, video, and chat defaults off cloud production', () => {
     const catalog = getModelCatalogForDeployment(false);
     const imageDefaults = catalog.filter(

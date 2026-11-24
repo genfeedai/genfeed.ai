@@ -181,6 +181,7 @@ export function compileRemainingVideoGenerationBrief(
   const countsFirstFrame =
     modelKey === MODEL_KEYS.FAL_GOOGLE_GEMINI_OMNI_FLASH ||
     modelKey === MODEL_KEYS.HEYGEN_VIDEO ||
+    modelKey === MODEL_KEYS.FAL_HEYGEN_VIDEO ||
     modelKey === MODEL_KEYS.HIGGSFIELD_GENJUTSU;
   const imageReferenceCount = countsFirstFrame
     ? Number(firstFrameAssetId !== undefined) + extraReferenceAssetIds.length

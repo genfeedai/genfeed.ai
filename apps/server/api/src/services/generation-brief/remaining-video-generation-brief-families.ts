@@ -795,6 +795,20 @@ export const REMAINING_VIDEO_GENERATION_BRIEF_FAMILIES: readonly RemainingVideoG
           nativeFields: ['image', 'reference_images', 'reference_video_urls'],
           seedSupported: true,
         }),
+        // The same model through fal; fal takes 5-30 s, the catalog stops at 15.
+        profile('fal-heygen-video-capability', MODEL_KEYS.FAL_HEYGEN_VIDEO, {
+          aspectRatios: ASPECT_RATIOS.HEYGEN_VIDEO,
+          audioSupported: true,
+          defaultAspectRatio: '16:9',
+          defaultSeconds: 5,
+          maxCharacters: 5_000,
+          maxReferences: 9,
+          maxSeconds: 15,
+          maxVideoReferences: 3,
+          minSeconds: 5,
+          nativeFields: ['image', 'reference_images', 'reference_video_urls'],
+          seedSupported: true,
+        }),
       ],
       spec: {
         aspectRatioField: 'aspect_ratio',
