@@ -37,6 +37,10 @@ import {
   ScheduledPostSweepLockService,
   THREAD_COMMENT_SWEEP_LOCK_KEY,
 } from '@workers/services/scheduled-post-sweep-lock.service';
+import {
+  isXPlatform,
+  ScheduledPostXBilling,
+} from '@workers/services/scheduled-post-x-billing';
 
 type ThreadCommentParent = Post & {
   ingredients?: Array<{ id: string }>;
@@ -71,6 +75,7 @@ export class ThreadCommentDeliveryService {
     @Inject(SERVER_TOKENS.publisherFactory)
     private readonly publisherFactory: ServerPublisherFactory,
     private readonly sweepLock: ScheduledPostSweepLockService,
+    private readonly xBilling: ScheduledPostXBilling,
   ) {}
 
   async publishDueThreadComments(): Promise<void> {
@@ -312,6 +317,7 @@ export class ThreadCommentDeliveryService {
           [child as unknown as PostDocument],
           anchorExternalId,
         );
+        await this.chargeXComment(platform, parent, child);
       } catch (error: unknown) {
         const message = getErrorMessage(error, {
           fallback: () => 'Comment publish failed',
@@ -331,6 +337,23 @@ export class ThreadCommentDeliveryService {
         return;
       }
     }
+  }
+
+  /** X bills each comment it accepts; other channels cost nothing here. */
+  private async chargeXComment(
+    platform: string,
+    parent: ThreadCommentParent,
+    child: ThreadCommentChild,
+  ): Promise<void> {
+    if (!isXPlatform(platform)) {
+      return;
+    }
+    await this.xBilling.chargePublishedThreadChildren({
+      brandId: parent.brandId,
+      children: [{ description: child.description, id: child.id }],
+      organizationId: parent.organizationId,
+      userId: parent.userId,
+    });
   }
 
   /**

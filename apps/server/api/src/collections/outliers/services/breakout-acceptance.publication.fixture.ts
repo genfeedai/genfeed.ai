@@ -33,6 +33,8 @@ import type { PrismaService as LibsPrismaService } from '@libs/prisma/prisma.ser
 import { ScheduledPostChannelRecoveryService } from '@workers/services/scheduled-post-channel-recovery.service';
 import { ScheduledPostDeliveryService } from '@workers/services/scheduled-post-delivery.service';
 import { ScheduledPostFailureService } from '@workers/services/scheduled-post-failure.service';
+import { ScheduledPostPublishFollowUps } from '@workers/services/scheduled-post-publish-follow-ups';
+import { ScheduledPostXBilling } from '@workers/services/scheduled-post-x-billing';
 import { SchedulerPublishStateService } from '@workers/services/scheduler-publish-state.service';
 
 type Deps = ConstructorParameters<typeof ScheduledPostDeliveryService>;
@@ -146,13 +148,23 @@ export function buildDeliveryHarness(
   );
   const anything: unknown = new Proxy({}, { get: () => async () => undefined });
   const actions = new Map<string, RegisteredAction>();
+  const failureService = new ScheduledPostFailureService(
+    logger,
+    anything as ConstructorParameters<typeof ScheduledPostFailureService>[1],
+    scheduler,
+  );
+  const xBilling = new ScheduledPostXBilling(
+    logger,
+    { isSubscriptionGatedFresh: async () => false } as never,
+    {
+      checkOrganizationCreditsAvailable: async () => true,
+      deductCreditsFromOrganization: async () => undefined,
+    } as never,
+    libsPrisma,
+  );
   const service = new ScheduledPostDeliveryService(
     logger,
-    new ScheduledPostFailureService(
-      logger,
-      anything as ConstructorParameters<typeof ScheduledPostFailureService>[1],
-      scheduler,
-    ),
+    failureService,
     {
       findOne: async (query: { id: string; organizationId?: string }) =>
         db.credential.findFirst({
@@ -185,12 +197,25 @@ export function buildDeliveryHarness(
         actions.set(id, action);
       },
     } as unknown as Deps[6],
-    {
-      emitPostFailed: async () => undefined,
-      emitPostPublished: async () => undefined,
-    } as unknown as Deps[7],
+    new ScheduledPostPublishFollowUps(
+      logger,
+      libsPrisma,
+      failureService,
+      {
+        schedulePostWatch: async () => ({ scheduled: 0 }),
+      } as unknown as ConstructorParameters<
+        typeof ScheduledPostPublishFollowUps
+      >[3],
+      {
+        emitPostFailed: async () => undefined,
+        emitPostPublished: async () => undefined,
+      } as unknown as ConstructorParameters<
+        typeof ScheduledPostPublishFollowUps
+      >[4],
+      xBilling,
+    ),
     scheduler,
-    { schedulePostWatch: async () => ({ scheduled: 0 }) } as unknown as Deps[9],
+    xBilling,
     {
       resolveForCredentials: async (
         _client: unknown,
