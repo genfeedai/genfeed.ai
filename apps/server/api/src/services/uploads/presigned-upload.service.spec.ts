@@ -20,8 +20,11 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 
+const deployment = vi.hoisted(() => ({ isCloud: true }));
+
 vi.mock('@genfeedai/config', async (importOriginal) => ({
   ...(await importOriginal<Record<string, unknown>>()),
+  isCloudDeployment: () => deployment.isCloud,
   isSelfHostedDeployment: () => false,
 }));
 
@@ -94,6 +97,7 @@ describe('PresignedUploadService', () => {
         {
           provide: FilesClientService,
           useValue: {
+            copyInS3: vi.fn().mockResolvedValue(undefined),
             deleteStoredObject: vi.fn().mockResolvedValue(undefined),
             getPresignedDownloadUrlForObjectKey: vi.fn(),
             getPresignedUploadUrl: vi.fn(),
@@ -1014,6 +1018,262 @@ describe('PresignedUploadService', () => {
         mockMetadataId,
         expect.any(Object),
       );
+    });
+  });
+  describe('confirmPublicImageUpload', () => {
+    /** The public tree: destination key to the object copied there. */
+    let publicTree: Map<string, string>;
+
+    const pendingUpload = (partial: Partial<IngredientDocument> = {}) =>
+      createIngredientDocument({
+        category: IngredientCategory.IMAGE,
+        mimeType: 'image/png',
+        ...partial,
+      });
+
+    /** First bytes of the object in storage, as the range read sees them. */
+    const PNG_HEAD = Uint8Array.from([
+      0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0x0d,
+    ]);
+    const JPEG_HEAD = Uint8Array.from([0xff, 0xd8, 0xff, 0xe0, 0, 0x10]);
+    const SVG_HEAD = new TextEncoder().encode('<svg xmlns="http://www.w3');
+    let storedHead: Uint8Array;
+
+    const givenReadableUpload = (pending: IngredientDocument) => {
+      ingredientsService.findOne.mockResolvedValue(pending);
+      filesClientService.getPresignedDownloadUrlForObjectKey.mockResolvedValue(
+        'https://s3.amazonaws.com/bucket/images/test?signature=abc',
+      );
+      filesClientService.uploadToExistingObject.mockResolvedValue({
+        height: 900,
+        size: 232372,
+        width: 1600,
+      });
+      metadataService.patch.mockResolvedValue(createMetadataEntity());
+      ingredientsService.patch.mockResolvedValue(
+        createIngredientDocument({
+          ...pending,
+          status: IngredientStatus.UPLOADED,
+        }),
+      );
+    };
+
+    beforeEach(() => {
+      deployment.isCloud = true;
+      publicTree = new Map();
+      storedHead = PNG_HEAD;
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(
+          async () => new Response(Buffer.from(storedHead), { status: 206 }),
+        ),
+      );
+      filesClientService.copyInS3.mockImplementation(
+        async (sourceKey: string, destinationKey: string) => {
+          publicTree.set(destinationKey, sourceKey);
+          return `https://cdn.genfeed.ai/${destinationKey}`;
+        },
+      );
+    });
+
+    afterEach(() => {
+      vi.unstubAllGlobals();
+    });
+
+    it('copies a confirmed PNG to a permanent public path and returns its URL', async () => {
+      givenReadableUpload(pendingUpload());
+
+      const result = await service.confirmPublicImageUpload(
+        mockUser,
+        mockIngredientId.toString(),
+      );
+
+      const publicKey = `assets/articles/${mockOrganizationId}/${mockIngredientId}.png`;
+      expect(result.publicUrl).toBe(`https://cdn.genfeed.ai/${publicKey}`);
+      expect(result.ingredient.status).toBe(IngredientStatus.UPLOADED);
+      expect([...publicTree.entries()]).toEqual([
+        [publicKey, `ingredients/images/${mockIngredientId}`],
+      ]);
+    });
+
+    it('names a JPEG upload with the jpg extension', async () => {
+      storedHead = JPEG_HEAD;
+      givenReadableUpload(pendingUpload({ mimeType: 'image/jpeg' }));
+
+      const result = await service.confirmPublicImageUpload(
+        mockUser,
+        mockIngredientId.toString(),
+      );
+
+      expect(result.publicUrl).toMatch(/\.jpg$/);
+      expect(publicTree.size).toBe(1);
+    });
+
+    it('publishes nothing for a video upload and leaves it pending', async () => {
+      givenReadableUpload(
+        pendingUpload({
+          category: IngredientCategory.VIDEO,
+          mimeType: 'video/mp4',
+        }),
+      );
+
+      await expect(
+        service.confirmPublicImageUpload(mockUser, mockIngredientId.toString()),
+      ).rejects.toMatchObject({ status: HttpStatus.UNPROCESSABLE_ENTITY });
+
+      expect(publicTree.size).toBe(0);
+      expect(filesClientService.uploadToExistingObject).not.toHaveBeenCalled();
+      expect(ingredientsService.patch).not.toHaveBeenCalled();
+    });
+
+    it('publishes nothing for an image type outside the allowlist', async () => {
+      givenReadableUpload(pendingUpload({ mimeType: 'image/svg+xml' }));
+
+      await expect(
+        service.confirmPublicImageUpload(mockUser, mockIngredientId.toString()),
+      ).rejects.toMatchObject({ status: HttpStatus.UNPROCESSABLE_ENTITY });
+
+      expect(publicTree.size).toBe(0);
+    });
+
+    it('publishes nothing for an asset the caller has no pending upload for', async () => {
+      // Another organization's asset, an asset already in the Library and a
+      // private asset all fail the same scoped lookup.
+      ingredientsService.findOne.mockResolvedValue(null);
+
+      await expect(
+        service.confirmPublicImageUpload(mockUser, mockIngredientId.toString()),
+      ).rejects.toMatchObject({ status: HttpStatus.NOT_FOUND });
+
+      expect(publicTree.size).toBe(0);
+      expect(ingredientsService.findOne).toHaveBeenCalledWith(
+        expect.objectContaining({
+          isDeleted: false,
+          organizationId: mockOrganizationId,
+          status: IngredientStatus.PROCESSING,
+          userId: mockUserId,
+        }),
+        expect.anything(),
+      );
+    });
+
+    it('publishes nothing for a file whose bytes are not the declared image type', async () => {
+      storedHead = SVG_HEAD;
+      givenReadableUpload(pendingUpload({ mimeType: 'image/png' }));
+
+      await expect(
+        service.confirmPublicImageUpload(mockUser, mockIngredientId.toString()),
+      ).rejects.toMatchObject({ status: HttpStatus.UNPROCESSABLE_ENTITY });
+
+      expect(publicTree.size).toBe(0);
+      expect(ingredientsService.patch).toHaveBeenCalledWith(
+        mockIngredientId.toString(),
+        { status: IngredientStatus.FAILED },
+      );
+      expect(filesClientService.deleteStoredObject).toHaveBeenCalledWith(
+        `ingredients/images/${mockIngredientId}`,
+      );
+    });
+
+    it('publishes nothing for a JPEG declared as a PNG', async () => {
+      storedHead = JPEG_HEAD;
+      givenReadableUpload(pendingUpload({ mimeType: 'image/png' }));
+
+      await expect(
+        service.confirmPublicImageUpload(mockUser, mockIngredientId.toString()),
+      ).rejects.toMatchObject({ status: HttpStatus.UNPROCESSABLE_ENTITY });
+
+      expect(publicTree.size).toBe(0);
+    });
+
+    it('publishes nothing for an image above the public image cap', async () => {
+      givenReadableUpload(pendingUpload());
+      filesClientService.uploadToExistingObject.mockResolvedValue({
+        height: 900,
+        size: 6 * 1024 * 1024,
+        width: 1600,
+      });
+
+      await expect(
+        service.confirmPublicImageUpload(mockUser, mockIngredientId.toString()),
+      ).rejects.toMatchObject({ status: HttpStatus.PAYLOAD_TOO_LARGE });
+
+      expect(publicTree.size).toBe(0);
+    });
+
+    it('lets a failed copy be repeated instead of stranding the asset', async () => {
+      givenReadableUpload(pendingUpload());
+      filesClientService.copyInS3.mockRejectedValueOnce(
+        new Error('files service timeout'),
+      );
+
+      await expect(
+        service.confirmPublicImageUpload(mockUser, mockIngredientId.toString()),
+      ).rejects.toThrow('files service timeout');
+
+      expect(publicTree.size).toBe(0);
+      expect(ingredientsService.patch).toHaveBeenLastCalledWith(
+        mockIngredientId.toString(),
+        { status: IngredientStatus.PROCESSING },
+      );
+
+      // The asset is pending again, so the same call now succeeds.
+      ingredientsService.patch.mockResolvedValue(
+        createIngredientDocument({
+          ...pendingUpload(),
+          status: IngredientStatus.UPLOADED,
+        }),
+      );
+      const retried = await service.confirmPublicImageUpload(
+        mockUser,
+        mockIngredientId.toString(),
+      );
+      expect(retried.publicUrl).toBe(
+        `https://cdn.genfeed.ai/assets/articles/${mockOrganizationId}/${mockIngredientId}.png`,
+      );
+      expect(publicTree.size).toBe(1);
+    });
+
+    it('returns the URL the files service reports for its own CDN', async () => {
+      givenReadableUpload(pendingUpload());
+      filesClientService.copyInS3.mockImplementation(
+        async (sourceKey: string, destinationKey: string) => {
+          publicTree.set(destinationKey, sourceKey);
+          return `https://cdn.staging.example/${destinationKey}`;
+        },
+      );
+
+      const result = await service.confirmPublicImageUpload(
+        mockUser,
+        mockIngredientId.toString(),
+      );
+
+      expect(result.publicUrl).toMatch(/^https:\/\/cdn\.staging\.example\//);
+    });
+
+    it('publishes nothing when the upload cannot be read as an image', async () => {
+      givenReadableUpload(pendingUpload());
+      filesClientService.uploadToExistingObject.mockRejectedValue(
+        new Error('not an image'),
+      );
+
+      await expect(
+        service.confirmPublicImageUpload(mockUser, mockIngredientId.toString()),
+      ).rejects.toMatchObject({ status: HttpStatus.UNPROCESSABLE_ENTITY });
+
+      expect(publicTree.size).toBe(0);
+    });
+
+    it('refuses outside the cloud deployment', async () => {
+      deployment.isCloud = false;
+      givenReadableUpload(pendingUpload());
+
+      await expect(
+        service.confirmPublicImageUpload(mockUser, mockIngredientId.toString()),
+      ).rejects.toMatchObject({ status: HttpStatus.UNPROCESSABLE_ENTITY });
+
+      expect(publicTree.size).toBe(0);
+      expect(ingredientsService.findOne).not.toHaveBeenCalled();
     });
   });
 });

@@ -68,7 +68,6 @@
       "unstyled-look": 1
     },
     "apps/web/app/(protected)/[orgSlug]/[brandSlug]/settings/brand-kit/setup/content.tsx": {
-      "button-restyle": 3,
       "unstyled-look": 1
     },
     "apps/web/app/(protected)/[orgSlug]/[brandSlug]/tasks/[id]/sub-issue-row.tsx": {
@@ -180,20 +179,11 @@
     "apps/web/src/components/topbars/breadcrumbs/TopbarBreadcrumbs.tsx": {
       "unstyled-look": 1
     },
-    "apps/web/src/components/topbars/credits-bar/CreditsMenuSection.tsx": {
-      "button-restyle": 1
-    },
     "apps/web/src/components/workspace-shell/AgentDockHistory.tsx": {
       "button-restyle": 1
     },
     "apps/web/src/features/activities/components/ActivityThumbnailCell.tsx": {
       "unstyled-look": 2
-    },
-    "apps/web/src/features/analytics/brand-overview/BrandChartsGrid.tsx": {
-      "unstyled-look": 1
-    },
-    "apps/web/src/features/analytics/components/insights/insight-list-card/InsightListCard.tsx": {
-      "unstyled-look": 1
     },
     "apps/web/src/features/brands/components/brand-kit/BrandKitAssetTile.tsx": {
       "unstyled-look": 1
@@ -201,14 +191,8 @@
     "apps/web/src/features/brands/components/brand-kit/BrandKitReviewCard.tsx": {
       "button-restyle": 1
     },
-    "apps/web/src/features/brands/components/brand-kit/writing-voice/BrandWritingVoiceEditor.tsx": {
-      "button-restyle": 1
-    },
     "apps/web/src/features/brands/components/integrations/connect-account/ConnectTile.tsx": {
       "unstyled-look": 1
-    },
-    "apps/web/src/features/brands/components/sidebar/CredentialPostingTimesEditor.tsx": {
-      "button-restyle": 1
     },
     "apps/web/src/features/brands/components/sidebar/social-warmup/SocialWarmupProgram.tsx": {
       "button-restyle": 1
@@ -220,9 +204,6 @@
       "button-restyle": 1
     },
     "apps/web/src/features/ingredients/components/tabs/tags/IngredientTabsTags.tsx": {
-      "unstyled-look": 1
-    },
-    "apps/web/src/features/ingredients/components/tags/manager/TagsList.tsx": {
       "unstyled-look": 1
     },
     "apps/web/src/features/library/components/tags/library-tag-picker/LibraryTagManagerDialog.tsx": {
@@ -263,9 +244,6 @@
     "apps/web/src/features/studio/playground/components/StudioIdentityVoiceRow.tsx": {
       "button-restyle": 1
     },
-    "apps/web/src/features/studio/playground/components/StudioPlaygroundFailureNotice.tsx": {
-      "button-restyle": 1
-    },
     "apps/web/src/features/studio/playground/components/StudioPlaygroundFocusedPreview.tsx": {
       "button-restyle": 1
     },
@@ -286,9 +264,6 @@
     },
     "apps/web/src/features/workflows/components/editor/CloudWorkflowToolbar.tsx": {
       "unstyled-look": 1
-    },
-    "apps/web/src/features/workflows/components/editor/WorkflowModelField.tsx": {
-      "button-restyle": 1
     },
     "apps/web/src/features/workflows/components/editor/WorkflowPromptPicker.tsx": {
       "unstyled-look": 1

@@ -672,6 +672,16 @@ Every connection lists `upload_media` and `get_content(action=posts)`. Select a 
 Upload reservation creates a pending asset. Both upload actions are non-destructive
 writes; `get_content(action=posts)` is read-only. None of these tools publishes a post.
 
+### Images for articles
+
+Library URLs are signed and expire, and article HTML drops SVG and `data:` images, so an
+article cannot use them. To give an article its own cover or inline image, call
+`upload_media` with `action: complete` and `input: { assetId, publicImage: true }` on a PNG,
+JPEG, WebP or GIF you just uploaded. The result carries a permanent `publicUrl`; pass it as
+`coverImageUrl` or as `<img src>` in `save_post(action=article_update)`. This makes that one
+image world-readable. It works only for the upload you are completing, never for an asset
+already in the Library, and only on Genfeed Cloud.
+
 ## Interactive content cards
 
 MCP Apps hosts can render Genfeed content directly in the conversation:

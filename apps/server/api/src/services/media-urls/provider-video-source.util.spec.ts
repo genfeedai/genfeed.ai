@@ -14,6 +14,7 @@ function createStore(
         throw new Error(`missing source ${source}`);
       }
       objects.add(destination);
+      return undefined;
     },
     getPresignedDownloadUrlForObjectKey: async (key: string) => {
       if (!objects.has(key)) throw new Error(`missing object ${key}`);
