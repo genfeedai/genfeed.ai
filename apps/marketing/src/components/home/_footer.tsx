@@ -13,10 +13,10 @@ export const WEBSITE_SECTIONS: FooterSection[] = [
   {
     links: [
       { href: '/products', label: 'Products' },
-      { href: '/products/playground', label: 'Playground' },
       { href: '/products/publishing', label: 'Publishing' },
       { href: '/models', label: 'Models' },
       { href: '/integrations', label: 'Integrations' },
+      { href: '/tools', label: 'Free tools' },
     ],
     title: 'Product',
   },
@@ -38,7 +38,7 @@ export const WEBSITE_SECTIONS: FooterSection[] = [
       { href: '/agent', label: 'Connect Agent' },
       { href: '/self-hosted', label: 'Self-host' },
       { href: '/claude', label: 'Claude' },
-      { href: '/claude-code', label: 'Claude Code' },
+      { href: '/skills', label: 'Agent skills' },
       { href: '/codex', label: 'Codex' },
     ],
     title: 'Developers',
