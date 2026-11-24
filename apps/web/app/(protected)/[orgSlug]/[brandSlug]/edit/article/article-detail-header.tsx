@@ -116,13 +116,8 @@ export default function ArticleDetailHeader({
             )
           }
           label={isSaving ? 'Saving...' : isDirty ? 'Save' : 'Saved'}
-          variant={ButtonVariant.DEFAULT}
+          variant={isDirty ? ButtonVariant.WARNING : ButtonVariant.SUCCESS}
           size={ButtonSize.SM}
-          className={
-            isDirty
-              ? 'bg-warning text-warning-foreground hover:bg-warning/90'
-              : 'bg-success text-success-foreground hover:bg-success/90'
-          }
           isLoading={isSaving}
           isDisabled={!isDirty || isSaving}
           onClick={onSave}

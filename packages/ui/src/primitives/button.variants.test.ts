@@ -15,7 +15,9 @@ describe('button variants', () => {
       ButtonVariant.LINK,
       ButtonVariant.OVERLAY,
       ButtonVariant.SECONDARY,
+      ButtonVariant.SUCCESS,
       ButtonVariant.UNSTYLED,
+      ButtonVariant.WARNING,
     ]);
   });
 
@@ -84,6 +86,15 @@ describe('button variants', () => {
     expect(className).toContain('bg-black/50');
     expect(className).toContain('hover:bg-black/70');
     expect(className).toContain('text-white');
+  });
+
+  it('paints success solid and warning tonal from status tokens', () => {
+    expect(buttonVariants({ variant: ButtonVariant.SUCCESS })).toContain(
+      'bg-success text-success-foreground',
+    );
+    expect(buttonVariants({ variant: ButtonVariant.WARNING })).toContain(
+      'bg-warning/10 text-warning',
+    );
   });
 
   it.each(Object.values(ButtonSize))(
