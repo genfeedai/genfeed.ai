@@ -84,6 +84,9 @@ function reviewedArticleResponse(
       : {}),
     wordCount: countWords(content),
     createdAt: article.attributes.createdAt ?? new Date().toISOString(),
+    ...(article.attributes.publishedAt
+      ? { publishedAt: article.attributes.publishedAt }
+      : {}),
     updatedAt: article.attributes.updatedAt,
   };
 }

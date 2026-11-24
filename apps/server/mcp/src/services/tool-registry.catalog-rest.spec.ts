@@ -302,10 +302,24 @@ describe('catalog REST handlers — articles', () => {
     expect(result.content[0].text).toContain('was not published');
   });
 
+  it('moves an article to a Tuesday or Thursday publication date without publishing it', async () => {
+    const { client, registry } = build();
+    const result = await callTool(registry, 'update_article_draft', {
+      articleId: 'article-2',
+      publishedAt: '2026-11-17T08:00:00Z',
+    });
+    expect(client.updateArticle.mock.calls).toEqual([
+      [{ articleId: 'article-2', publishedAt: '2026-11-17T08:00:00.000Z' }],
+    ]);
+    expect(result.isError).toBeUndefined();
+  });
+
   it.each([
     { articleId: 'article-2' },
     { articleId: 'article-2', coverImageUrl: 'http://cdn.genfeed.ai/c.jpg' },
     { articleId: 'article-2', slug: 'Not A Slug' },
+    { articleId: 'article-2', publishedAt: '2026-11-20T08:00:00Z' },
+    { articleId: 'article-2', publishedAt: 'next tuesday' },
   ])(
     'refuses an article update that changes nothing valid: %j',
     async (args) => {

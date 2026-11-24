@@ -41,6 +41,7 @@ interface ArticleAttributes {
   createdAt?: string;
   id?: string;
   label?: string;
+  publishedAt?: string;
   status?: string;
   summary?: string;
   updatedAt?: string;
