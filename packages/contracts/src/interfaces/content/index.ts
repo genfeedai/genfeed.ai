@@ -39,6 +39,7 @@ export * from './prompt.interface';
 export * from './prompts-content.interface';
 export * from './public-youtube-clipper-tool.interface';
 export * from './public-youtube-long-form-tool.interface';
+export * from './public-youtube-outliers-tool.interface';
 export * from './review-inbox-item.interface';
 export * from './scheduled-release-batch.interface';
 export * from './seo-scorecard.interface';

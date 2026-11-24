@@ -30,6 +30,7 @@ import { PublicVideosController } from '@api/endpoints/public/controllers/videos
 import { PublicWaitlistController } from '@api/endpoints/public/controllers/waitlist/public.waitlist.controller';
 import { PublicYoutubeClipperController } from '@api/endpoints/public/controllers/youtube-clipper/public-youtube-clipper.controller';
 import { PublicYoutubeLongFormController } from '@api/endpoints/public/controllers/youtube-long-form/public-youtube-long-form.controller';
+import { PublicYoutubeOutliersController } from '@api/endpoints/public/controllers/youtube-outliers/public-youtube-outliers.controller';
 import { PublicCacheControlInterceptor } from '@api/endpoints/public/interceptors/public-cache-control.interceptor';
 import { PublicArticleGenerationsService } from '@api/endpoints/public/services/public-article-generations.service';
 import { PublicBrandReachService } from '@api/endpoints/public/services/public-brand-reach.service';
@@ -37,11 +38,13 @@ import { PublicBrandSocialsService } from '@api/endpoints/public/services/public
 import { PublicMediaService } from '@api/endpoints/public/services/public-media.service';
 import { PublicViewsService } from '@api/endpoints/public/services/public-views.service';
 import { PublicYoutubeClipperService } from '@api/endpoints/public/services/public-youtube-clipper.service';
+import { PublicYoutubeOutliersService } from '@api/endpoints/public/services/public-youtube-outliers.service';
 import { RssService } from '@api/endpoints/public/services/rss.service';
 import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
 import { FileQueueModule } from '@api/services/files-microservice/queue/file-queue.module';
 import { MediaUrlsModule } from '@api/services/media-urls/media-urls.module';
 import { PublicClipperToolStoreModule } from '@api/services/public-clipper-tool/public-clipper-tool-store.module';
+import { YoutubePublicProvider } from '@api/services/source-collector/providers/youtube-public.provider';
 import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
 import { APP_INTERCEPTOR } from '@nestjs/core';
@@ -64,6 +67,7 @@ import { APP_INTERCEPTOR } from '@nestjs/core';
     PublicWaitlistController,
     PublicYoutubeClipperController,
     PublicYoutubeLongFormController,
+    PublicYoutubeOutliersController,
   ],
   exports: [],
   imports: [
@@ -97,7 +101,9 @@ import { APP_INTERCEPTOR } from '@nestjs/core';
     PublicBrandSocialsService,
     PublicViewsService,
     PublicYoutubeClipperService,
+    PublicYoutubeOutliersService,
     RssService,
+    YoutubePublicProvider,
   ],
 })
 export class PublicModule {}

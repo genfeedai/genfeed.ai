@@ -56,6 +56,7 @@ export * from '@serializers/configs/content/posting-set.config';
 export * from '@serializers/configs/content/presigned-upload.config';
 export * from '@serializers/configs/content/public-youtube-clipper-tool.config';
 export * from '@serializers/configs/content/public-youtube-long-form-tool.config';
+export * from '@serializers/configs/content/public-youtube-outliers-tool.config';
 export * from '@serializers/configs/content/publish-approval.config';
 export * from '@serializers/configs/content/recurrence-rule.config';
 export * from '@serializers/configs/content/release-attachment.config';

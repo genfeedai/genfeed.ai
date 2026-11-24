@@ -176,6 +176,32 @@ describe('PublicService', () => {
     );
   });
 
+  it('finds the outlier videos of a public YouTube channel', async () => {
+    const found = {
+      baselineSampleSize: 20,
+      baselineViews: 1000,
+      breakoutThreshold: 10,
+      channelId: 'UCabcdefghijklmnopqrstuv',
+      outlierThreshold: 3,
+      outliers: [
+        { ratio: 12, tier: 'breakout', videoId: 'video1', views: 12000 },
+      ],
+      status: 'ready',
+      videosAnalyzed: 100,
+    };
+    http.post.mockResolvedValue(
+      axiosResponse(resourceDocument(found, { id: found.channelId })),
+    );
+
+    const result = await service.findPublicYoutubeOutliers('@somechannel');
+
+    expect(http.post).toHaveBeenCalledWith('youtube-outliers', {
+      channel: '@somechannel',
+    });
+    expect(result.outliers).toEqual(found.outliers);
+    expect(result.status).toBe('ready');
+  });
+
   it('findPublicAccountLinks maps links for the brand', async () => {
     http.get.mockResolvedValue(
       axiosResponse(collectionDocument([{ id: 'link_1', url: 'https://x' }])),

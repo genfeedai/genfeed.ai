@@ -75,6 +75,7 @@ export const SITE_DIRECTORY: readonly DirectorySection[] = [
       { href: '/best', label: 'Best AI content tools' },
       { href: '/tools', label: 'Free tools' },
       { href: '/tools/ai-model-selector', label: 'Free AI model selector' },
+      { href: '/tools/youtube-outliers', label: 'Free YouTube outlier finder' },
     ],
     title: 'Solutions and comparisons',
   },

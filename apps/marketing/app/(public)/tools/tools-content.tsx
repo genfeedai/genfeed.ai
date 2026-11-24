@@ -1,14 +1,14 @@
 import { CardGap, CardPadding } from '@genfeedai/contracts';
 import Card from '@ui/card/Card';
 import PageLayout from '@web-components/PageLayout';
-import { Cpu, FileText, Scissors } from 'lucide-react';
+import { Cpu, FileText, Scissors, TrendingUp } from 'lucide-react';
 import Link from 'next/link';
 
 export default function ToolsContent(): React.ReactElement {
   return (
     <PageLayout
       compact
-      description="Choose an AI model or turn a public YouTube video into useful content. Get a result before signup, then connect your agent to keep going in Genfeed."
+      description="Choose an AI model, find a channel's breakout videos, or turn a public YouTube video into useful content. Get a result before signup, then connect your agent to keep going in Genfeed."
       title="Free AI tools for models and content"
     >
       <section className="container mx-auto px-6 py-20">
@@ -77,6 +77,28 @@ export default function ToolsContent(): React.ReactElement {
             <Link
               className="text-sm font-semibold text-primary hover:underline"
               href="/tools/youtube-clipper"
+            >
+              Try the free tool &rarr;
+            </Link>
+          </Card>
+          <Card
+            gap={CardGap.LG}
+            padding={CardPadding.XL}
+            className="flex flex-col"
+          >
+            <div className="flex size-11 items-center justify-center bg-foreground/5">
+              <TrendingUp aria-hidden="true" className="size-5" />
+            </div>
+            <div>
+              <h2 className="text-xl font-semibold">YouTube outlier finder</h2>
+              <p className="mt-2 text-sm leading-6 text-foreground/70">
+                Paste a channel and see the videos that got 3x or more of its
+                usual views.
+              </p>
+            </div>
+            <Link
+              className="text-sm font-semibold text-primary hover:underline"
+              href="/tools/youtube-outliers"
             >
               Try the free tool &rarr;
             </Link>

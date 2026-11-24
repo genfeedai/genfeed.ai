@@ -61,6 +61,7 @@ export * from '@serializers/server/content/posting-set.serializer';
 export * from '@serializers/server/content/presigned-upload.serializer';
 export * from '@serializers/server/content/public-youtube-clipper-tool.serializer';
 export * from '@serializers/server/content/public-youtube-long-form-tool.serializer';
+export * from '@serializers/server/content/public-youtube-outliers-tool.serializer';
 export * from '@serializers/server/content/publish-approval.serializer';
 export * from '@serializers/server/content/recurrence-rule.serializer';
 export * from '@serializers/server/content/release-attachment.serializer';
