@@ -39,8 +39,6 @@ export interface MenuItemConfig {
   directNavigation?: boolean;
   /** When true on the first item of a group, the group renders as a single drill-down row with > chevron */
   drillDown?: boolean;
-  /** When true, this item shows a "Coming Soon" badge and is not clickable */
-  isComingSoon?: boolean;
   /**
    * Destination listed only once released to the organization
    * (`isReleaseItemVisible`): Admin → Flags `release_<id>`, or release preview.

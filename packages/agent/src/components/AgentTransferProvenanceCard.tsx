@@ -14,6 +14,7 @@ import type { AgentApiService } from '@genfeedai/agent/services/agent-api.servic
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { AgentTransferPresentation } from '@genfeedai/contracts/interfaces';
 import { formatShortDate } from '@genfeedai/helpers/formatting/date/short-date.helper';
+import { ClipboardService } from '@genfeedai/services/core/clipboard.service';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
@@ -133,7 +134,7 @@ export function AgentTransferProvenanceCard({
       await onCopy(content);
       return;
     }
-    await navigator.clipboard.writeText(content);
+    await ClipboardService.getInstance().copyToClipboard(content);
   };
 
   const retry = async () => {

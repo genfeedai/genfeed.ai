@@ -363,7 +363,6 @@ const UI_TEST_MESSAGES = {
       modeDraft: 'Draft',
       modeDraftCredits: '{credits, plural, one {# credit} other {# credits}}',
       modeEdit: 'Edit',
-      modeEditVideoSoon: 'Video editing is coming soon',
       resetToAgent: 'Reset {field}',
       setupModeSwitch: 'Setup mode: {mode}',
       moreSetup: 'More setup',

@@ -1,6 +1,8 @@
 'use client';
 
 import {
+  ButtonSize,
+  ButtonVariant,
   NotificationChannel,
   ReviewGateStatus,
   WorkflowNodeStatus,
@@ -13,12 +15,14 @@ import { logger } from '@services/core/logger.service';
 import Card from '@ui/card/Card';
 import { Alert } from '@ui/primitives/alert';
 import { Badge } from '@ui/primitives/badge';
+import { Button } from '@ui/primitives/button';
+import { Input } from '@ui/primitives/input';
 import { OptionTile, OptionTileGroup } from '@ui/primitives/option-tile';
+import { Switch } from '@ui/primitives/switch';
 import DateText from '@ui/time/DateText';
 import type { NodeProps } from '@xyflow/react';
 import { useTranslations } from 'next-intl';
 import { memo, useCallback } from 'react';
-import { NodeButton } from '@/features/workflows/components/ui/button';
 import {
   NodeDescription,
   NodeHeader,
@@ -32,10 +36,8 @@ import {
   WebhookIcon,
   XIcon,
 } from '@/features/workflows/components/ui/icons';
-import { NodeInput } from '@/features/workflows/components/ui/inputs';
 import { MediaPreview } from '@/features/workflows/components/ui/media';
 import { HelpText } from '@/features/workflows/components/ui/status';
-import Toggle from '@/features/workflows/components/ui/toggle/Toggle';
 import { useNodeExecution } from '@/features/workflows/hooks/useNodeExecution';
 import { coerceNodeData } from '@/features/workflows/nodes/node-data';
 import type { ReviewGateNodeData } from '@/features/workflows/nodes/types';
@@ -280,7 +282,7 @@ function ReviewGateNodeComponent(props: NodeProps): React.JSX.Element {
           </OptionTileGroup>
 
           {data.notifyChannels?.includes(NotificationChannel.EMAIL) && (
-            <NodeInput
+            <Input
               type="email"
               value={data.notifyEmail || ''}
               onChange={handleInputChange('notifyEmail')}
@@ -289,7 +291,7 @@ function ReviewGateNodeComponent(props: NodeProps): React.JSX.Element {
           )}
 
           {data.notifyChannels?.includes(NotificationChannel.WEBHOOK) && (
-            <NodeInput
+            <Input
               type="url"
               value={data.webhookUrl || ''}
               onChange={handleInputChange('webhookUrl')}
@@ -298,7 +300,7 @@ function ReviewGateNodeComponent(props: NodeProps): React.JSX.Element {
           )}
 
           {data.notifyChannels?.includes(NotificationChannel.SLACK) && (
-            <NodeInput
+            <Input
               type="text"
               value={data.slackChannel || ''}
               onChange={handleInputChange('slackChannel')}
@@ -312,20 +314,21 @@ function ReviewGateNodeComponent(props: NodeProps): React.JSX.Element {
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-sm">Timeout (hours)</span>
-            <NodeInput
+            <Input
               type="number"
               value={data.timeoutHours}
               onChange={handleTimeoutChange}
               min={1}
               max={168}
-              className="w-20 px-2 py-1 text-sm"
+              className="w-20"
             />
           </div>
           <div className="flex items-center justify-between">
             <span className="text-sm">Auto-approve on timeout</span>
-            <Toggle
+            <Switch
               checked={data.autoApproveIfNoResponse}
-              onChange={handleAutoApproveToggle}
+              onCheckedChange={handleAutoApproveToggle}
+              size="sm"
             />
           </div>
         </div>
@@ -333,22 +336,28 @@ function ReviewGateNodeComponent(props: NodeProps): React.JSX.Element {
 
       {showApprovalButtons && (
         <div className="flex gap-2">
-          <NodeButton
-            variant="success"
-            fullWidth
+          <Button
+            className="w-full"
+            size={ButtonSize.SM}
+            textTransform="none"
+            variant={ButtonVariant.SECONDARY}
+            withWrapper={false}
             onClick={handleApprove}
             icon={<CheckIcon className="size-4" />}
           >
             Approve
-          </NodeButton>
-          <NodeButton
-            variant="danger"
-            fullWidth
+          </Button>
+          <Button
+            className="w-full"
+            size={ButtonSize.SM}
+            textTransform="none"
+            variant={ButtonVariant.DESTRUCTIVE}
+            withWrapper={false}
             onClick={handleReject}
             icon={<XIcon className="size-4" />}
           >
             Reject
-          </NodeButton>
+          </Button>
         </div>
       )}
 

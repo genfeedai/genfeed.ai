@@ -12,4 +12,6 @@ export interface MediaDeliverySource {
   fileSize: number | null;
   mimeType: string | null;
   isPublic: boolean;
+  /** Set once the retention sweep deleted the stored file; the key stays on the row. */
+  storageExpiredAt?: Date | null;
 }

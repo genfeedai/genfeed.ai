@@ -3,6 +3,7 @@
 import { getClientSurface, getDeployment } from '@genfeedai/config/deployment';
 import { CardGap } from '@genfeedai/contracts';
 import type { ReleaseUpdateState } from '@genfeedai/contracts/interfaces/system/app-build.interface';
+import { ClipboardService } from '@services/core/clipboard.service';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
@@ -64,12 +65,10 @@ export default function AboutContent() {
         ? [translate('copyDesktop', { version: desktopVersion })]
         : []),
     ].join(' · ');
-    try {
-      await navigator.clipboard.writeText(line);
-      setCopyState('copied');
-    } catch {
-      setCopyState('error');
-    }
+    const didCopy = await ClipboardService.getInstance().copyToClipboard(line, {
+      isSilent: true,
+    });
+    setCopyState(didCopy ? 'copied' : 'error');
   }
 
   async function checkUpdates() {

@@ -26,6 +26,7 @@ import {
   useAuthedQuery,
 } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { ClipboardService } from '@services/core/clipboard.service';
 import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
@@ -369,16 +370,18 @@ export default function ConnectGenfeedFlow() {
   };
 
   const copyText = async (label: string, value: string) => {
-    try {
-      await navigator.clipboard.writeText(value);
+    const didCopy = await ClipboardService.getInstance().copyToClipboard(
+      value,
+      {
+        errorMessage: `Failed to copy ${label}`,
+        successMessage: `${label} copied`,
+      },
+    );
+
+    if (didCopy) {
       setCopiedItem(label);
-      trackStep('configuration_copied', 'success');
-      NotificationsService.getInstance().success(`${label} copied`);
-    } catch (error) {
-      logger.error('Failed to copy Connect Genfeed configuration', error);
-      trackStep('configuration_copied', 'failure');
-      NotificationsService.getInstance().error(`Failed to copy ${label}`);
     }
+    trackStep('configuration_copied', didCopy ? 'success' : 'failure');
   };
 
   const handleVerify = async () => {

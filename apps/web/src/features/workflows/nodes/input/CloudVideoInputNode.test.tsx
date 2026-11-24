@@ -54,53 +54,6 @@ vi.mock('@/features/workflows/nodes/input/useWorkflowMediaPicker', () => ({
   useWorkflowMediaPicker: () => mocks.openPicker,
 }));
 
-vi.mock('@/features/workflows/components/ui/button', () => ({
-  NodeButton: ({
-    children,
-    disabled,
-    onClick,
-  }: {
-    children?: ReactNode;
-    disabled?: boolean;
-    onClick?: () => void;
-  }) => (
-    <button disabled={disabled} type="button" onClick={onClick}>
-      {children}
-    </button>
-  ),
-}));
-
-vi.mock('@/features/workflows/components/ui/inputs', () => ({
-  NodeInput: ({
-    label,
-    onChange,
-    value,
-    ...props
-  }: React.InputHTMLAttributes<HTMLInputElement> & { label?: string }) => (
-    <label>
-      {label}
-      <input value={value ?? ''} onChange={onChange} {...props} />
-    </label>
-  ),
-  NodeSelect: ({
-    children,
-    label,
-    onChange,
-    value,
-    ...props
-  }: React.SelectHTMLAttributes<HTMLSelectElement> & {
-    children?: ReactNode;
-    label?: string;
-  }) => (
-    <label>
-      {label}
-      <select value={value} onChange={onChange} {...props}>
-        {children}
-      </select>
-    </label>
-  ),
-}));
-
 vi.mock('@/features/workflows/components/ui/status', () => ({
   HelpText: ({ children }: { children?: ReactNode }) => <p>{children}</p>,
 }));

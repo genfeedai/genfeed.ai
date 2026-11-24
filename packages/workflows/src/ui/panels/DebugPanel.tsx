@@ -1,6 +1,7 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { ClipboardService } from '@genfeedai/services/core/clipboard.service';
 import { Pre } from '@genfeedai/ui';
 import { Badge } from '@genfeedai/ui/primitives/badge';
 import { Button } from '@genfeedai/ui/primitives/button';
@@ -23,27 +24,13 @@ function PayloadCard({ payload }: PayloadCardProps) {
   const handleCopy = useCallback(
     async (e: React.MouseEvent) => {
       e.stopPropagation();
-      try {
-        await navigator.clipboard.writeText(
-          JSON.stringify(payload.input, null, 2),
-        );
-        setCopied(true);
+      const didCopy = await ClipboardService.getInstance().copyToClipboard(
+        JSON.stringify(payload.input, null, 2),
+        { isSilent: true },
+      );
+      setCopied(didCopy);
+      if (didCopy) {
         setTimeout(() => setCopied(false), 2000);
-      } catch {
-        // Clipboard access denied - fallback to execCommand
-        const textArea = document.createElement('textarea');
-        textArea.value = JSON.stringify(payload.input, null, 2);
-        textArea.style.cssText = 'position: fixed; left: -9999px;';
-        document.body.appendChild(textArea);
-        textArea.select();
-        try {
-          document.execCommand('copy');
-          setCopied(true);
-          setTimeout(() => setCopied(false), 2000);
-        } catch {
-          // Both methods failed
-        }
-        document.body.removeChild(textArea);
       }
     },
     [payload.input],

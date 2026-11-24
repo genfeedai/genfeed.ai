@@ -58,7 +58,7 @@ export default function ConnectAccountShell({
       (group) => group.platforms,
     );
     const [only] = matches;
-    if (matches.length === 1 && only?.isConnectAvailable) {
+    if (matches.length === 1 && only) {
       onConnect(only);
     }
   };

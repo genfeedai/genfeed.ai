@@ -532,8 +532,7 @@ post history. You can skip it and import later from the account's settings.</p>
 <h2>Platforms you can connect</h2>
 <p>The connect dialog offers: Twitter, Instagram, Facebook, LinkedIn, Threads,
 YouTube, TikTok, Restream and Fanvue, plus Meta Ads and Google Ads for
-advertising. Threads shows "Not available yet" until it is ready on the
-server.</p>
+advertising. Threads appears once it is ready on the server.</p>
 
 <h2>What you can schedule</h2>
 <p>Connecting an account and scheduling to it are separate. Scheduled

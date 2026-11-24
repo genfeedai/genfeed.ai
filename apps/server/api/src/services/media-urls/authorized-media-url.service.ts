@@ -88,11 +88,7 @@ export class AuthorizedMediaUrlService implements OnModuleInit {
     return sources
       .filter((source) => hasMediaRecordAccess(source, scope))
       .map((source) => ({
-        grant: this.safeGrant(
-          source,
-          () => requireStoredMediaKey(source),
-          'preview',
-        ),
+        grant: this.previewGrant(source),
         ingredientId: source.id,
         metadataId: source.metadataId,
       }));
@@ -756,6 +752,23 @@ export class AuthorizedMediaUrlService implements OnModuleInit {
     return true;
   }
 
+  /**
+   * The retention sweep deletes a video's file but keeps its key on the row, so
+   * a grant minted from that key points at a missing object and the CDN answers
+   * 403 (#9975). An expired file has no preview: the client shows its expired
+   * notice from `storageExpiredAt`.
+   */
+  private previewGrant(source: MediaDeliverySource): MediaDeliveryGrant {
+    if (source.storageExpiredAt) {
+      return this.unavailable(source.id, 'preview', 'FAILED');
+    }
+    return this.safeGrant(
+      source,
+      () => requireStoredMediaKey(source),
+      'preview',
+    );
+  }
+
   private unavailable(
     id: string,
     purpose: MediaDeliveryGrant['purpose'],
@@ -789,11 +802,7 @@ export class AuthorizedMediaUrlService implements OnModuleInit {
     return [
       ...own,
       ...foreign.map((source) => ({
-        grant: this.safeGrant(
-          source,
-          () => requireStoredMediaKey(source),
-          'preview',
-        ),
+        grant: this.previewGrant(source),
         ingredientId: source.id,
         metadataId: source.metadataId,
       })),

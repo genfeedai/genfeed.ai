@@ -2,7 +2,6 @@
 
 import { ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
-import ComingSoonBadge from '@ui/badges/ComingSoonBadge';
 import { useHoverAnimatedIcon } from '@ui/primitives/animated-icons/use-hover-animated-icon';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
@@ -27,7 +26,6 @@ export default function MenuItem({
   outline: OutlineIcon,
   solid: SolidIcon,
   isActive = false,
-  isComingSoon = false,
   onClick,
   variant = 'default',
   isCollapsed = false,
@@ -170,7 +168,6 @@ export default function MenuItem({
             ? 'relative w-full flex-row gap-3' // Horizontal layout; above the highlight
             : 'flex-col gap-2 text-center' // Vertical card layout
           : 'gap-3',
-        isComingSoon && 'opacity-50',
       )}
     >
       {iconNode}
@@ -191,48 +188,40 @@ export default function MenuItem({
           {badgeCount}
         </Badge>
       ) : null}
-      {isComingSoon && isHorizontalLayout && (
-        <div className="ml-auto">
-          <ComingSoonBadge />
-        </div>
-      )}
     </div>
   );
 
-  const content: ReactElement =
-    href && !isComingSoon ? (
-      <Link
-        href={href}
-        onClick={onClick}
-        onBlur={hoverProps.onBlur}
-        onFocus={(event) => {
-          hoverProps.onFocus(event);
-        }}
-        onMouseEnter={(event) => {
-          hoverProps.onMouseEnter(event);
-        }}
-        onMouseLeave={hoverProps.onMouseLeave}
-        className={contentClasses}
-        aria-label={accessibleLabel}
-      >
-        {isHorizontalLayout ? (
-          <SidebarRowHighlight isActive={isActive} />
-        ) : null}
-        {contentBody}
-      </Link>
-    ) : (
-      <Button
-        variant={ButtonVariant.UNSTYLED}
-        withWrapper={false}
-        onClick={onClick}
-        {...hoverProps}
-        className={cn(contentClasses, 'cursor-pointer')}
-        ariaLabel={accessibleLabel}
-      >
-        {isHorizontalLayout && isActive ? <SidebarActiveHighlight /> : null}
-        {contentBody}
-      </Button>
-    );
+  const content: ReactElement = href ? (
+    <Link
+      href={href}
+      onClick={onClick}
+      onBlur={hoverProps.onBlur}
+      onFocus={(event) => {
+        hoverProps.onFocus(event);
+      }}
+      onMouseEnter={(event) => {
+        hoverProps.onMouseEnter(event);
+      }}
+      onMouseLeave={hoverProps.onMouseLeave}
+      className={contentClasses}
+      aria-label={accessibleLabel}
+    >
+      {isHorizontalLayout ? <SidebarRowHighlight isActive={isActive} /> : null}
+      {contentBody}
+    </Link>
+  ) : (
+    <Button
+      variant={ButtonVariant.UNSTYLED}
+      withWrapper={false}
+      onClick={onClick}
+      {...hoverProps}
+      className={cn(contentClasses, 'cursor-pointer')}
+      ariaLabel={accessibleLabel}
+    >
+      {isHorizontalLayout && isActive ? <SidebarActiveHighlight /> : null}
+      {contentBody}
+    </Button>
+  );
 
   // Wrap with Tooltip when collapsed to render tooltip outside scroll container
   const wrappedContent =

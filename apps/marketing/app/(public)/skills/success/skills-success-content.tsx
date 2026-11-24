@@ -1,13 +1,12 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { Code } from '@genfeedai/ui';
+import { CopyButton } from '@ui/buttons/CopyButton';
 import { Button } from '@ui/primitives/button';
 import { CtaSection, WebSection } from '@web-components/content/NeuralGrid';
 import MarketingEntrance from '@web-components/MarketingEntrance';
 import PageLayout from '@web-components/PageLayout';
 import { Check, Terminal } from 'lucide-react';
 import Link from 'next/link';
-
-import CopyCommandButton from './copy-command-button';
 
 const INSTALL_COMMAND = 'npx @genfeedai/skills-pro install sk_rcpt_xxx';
 
@@ -51,7 +50,11 @@ export default function SkillsSuccessContent() {
                   <span className="text-foreground/60">$</span>
                   <span className="text-foreground/80">{INSTALL_COMMAND}</span>
                 </div>
-                <CopyCommandButton command={INSTALL_COMMAND} />
+                <CopyButton
+                  className="shrink-0 p-2 text-foreground/60 transition-colors"
+                  label="Copy install command"
+                  value={INSTALL_COMMAND}
+                />
               </div>
             </div>
           </div>

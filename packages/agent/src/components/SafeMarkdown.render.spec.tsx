@@ -74,7 +74,6 @@ describe('SafeMarkdown rendering', () => {
         content={'```ts\nconst x = 1;\n```'}
         codeBlockLabels={{
           copied: 'Copié',
-          copy: 'Copier',
           copyAria: 'Copier le bloc',
         }}
       />,

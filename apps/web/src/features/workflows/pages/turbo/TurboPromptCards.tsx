@@ -14,8 +14,10 @@ import { TURBO_PRESETS } from './turbo-presets';
  * The three Turbo starters, in the shared suggestion tiles. They are the
  * agent's ideas for this brand (an angle, formats and batch size written from
  * the brand kit and what has performed); a brand with no approved kit, or none
- * yet, gets the brand-neutral starters. A click fills the prompt, the format
- * and the idea count; it never creates anything.
+ * yet, gets the brand-neutral starters. The agent's ideas are an LLM call, so
+ * the brand-neutral starters paint at once and the ideas replace them when
+ * they arrive. A click fills the prompt, the format and the idea count; it
+ * never creates anything.
  */
 export default function TurboPromptCards({
   brandId,
@@ -23,19 +25,7 @@ export default function TurboPromptCards({
   onSelect,
 }: TurboPresetCardsProps): ReactElement | null {
   const translate = useTranslations('pages.turboProjects.presets');
-  const { isBrandApproved, isLoading, proposals } = useTurboBrandIdeas(brandId);
-
-  if (isLoading) {
-    return (
-      <p
-        aria-live="polite"
-        className="text-center text-sm text-muted-foreground"
-        role="status"
-      >
-        {translate('loading')}
-      </p>
-    );
-  }
+  const { isBrandApproved, proposals } = useTurboBrandIdeas(brandId);
 
   const hasIdeas = isBrandApproved && proposals.length > 0;
   const suggestions: PromptBarSuggestionItem[] = hasIdeas

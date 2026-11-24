@@ -80,14 +80,13 @@ describe('Desktop product landing', () => {
     expect(getBuild).toHaveBeenCalledOnce();
   });
 
-  it('keeps downloads unavailable when there is no published build', async () => {
+  it('shows no download and no coming-soon placeholder when there is no published build', async () => {
     render(await DesktopPage());
-    expect(
-      screen.getByRole('button', { name: 'macOS build coming soon' }),
-    ).toBeDisabled();
     expect(
       screen.queryByRole('link', { name: /Download/ }),
     ).not.toBeInTheDocument();
+    expect(screen.queryByText(/coming soon/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: 'Use it in the browser' }),
     ).toBeInTheDocument();
@@ -103,9 +102,8 @@ describe('Desktop product landing', () => {
         version={null}
       />,
     );
-    expect(
-      screen.getByRole('button', { name: 'Windows build coming soon' }),
-    ).toBeDisabled();
+    expect(screen.queryByText(/windows/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/coming soon/i)).not.toBeInTheDocument();
   });
 
   it('points canonical and sharing metadata at the product landing', async () => {

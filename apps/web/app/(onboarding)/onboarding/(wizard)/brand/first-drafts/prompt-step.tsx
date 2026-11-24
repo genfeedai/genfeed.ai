@@ -2,7 +2,7 @@
 import { ButtonSize, ButtonVariant, CardPadding } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useOrgUrl } from '@hooks/navigation/use-org-url/use-org-url';
-import { logger } from '@services/core/logger.service';
+import { ClipboardService } from '@services/core/clipboard.service';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import { Pre } from '@ui/primitives/pre';
@@ -30,14 +30,12 @@ export default function PromptStep({
   );
 
   async function copyPrompt() {
-    try {
-      await navigator.clipboard.writeText(prompt);
-      setIsCopied(true);
-      setHasCopyFailed(false);
-    } catch (error) {
-      logger.error('Failed to copy the first prompt', error);
-      setHasCopyFailed(true);
-    }
+    const didCopy = await ClipboardService.getInstance().copyToClipboard(
+      prompt,
+      { isSilent: true },
+    );
+    setIsCopied(didCopy);
+    setHasCopyFailed(!didCopy);
   }
 
   return (

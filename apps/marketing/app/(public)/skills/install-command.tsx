@@ -1,6 +1,7 @@
 'use client';
 
 import { ButtonVariant } from '@genfeedai/contracts';
+import { ClipboardService } from '@services/core/clipboard.service';
 import { Button } from '@ui/primitives/button';
 import { Check, Copy, Terminal } from 'lucide-react';
 import { useState } from 'react';
@@ -9,12 +10,13 @@ export default function InstallCommand(): React.ReactElement {
   const [copied, setCopied] = useState(false);
 
   async function handleCopy(): Promise<void> {
-    try {
-      await navigator.clipboard.writeText('bunx skills add genfeedai/skills');
-      setCopied(true);
+    const didCopy = await ClipboardService.getInstance().copyToClipboard(
+      'bunx skills add genfeedai/skills',
+      { isSilent: true },
+    );
+    setCopied(didCopy);
+    if (didCopy) {
       setTimeout(() => setCopied(false), 2000);
-    } catch {
-      // Clipboard write failed — don't show success checkmark
     }
   }
 

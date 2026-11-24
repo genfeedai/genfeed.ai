@@ -64,8 +64,10 @@ describe('cinematic enhancement', () => {
     expect(categories).toEqual(
       new Set([
         'camera-movement',
+        'color-grade',
         'editing-transitions',
         'framing-composition',
+        'lens-optics',
         'lighting',
         'stylistic-effects',
       ]),
@@ -122,6 +124,22 @@ describe('cinematic enhancement', () => {
     expect(imagePrompt).not.toContain('full-quality model');
     expect(videoPrompt).toContain('whip pan');
     expect(videoPrompt).toContain('Preserve the user subject');
+    expect(imagePrompt).toContain('Lens and optics');
+    expect(imagePrompt).toContain('telephoto compression');
+    expect(imagePrompt).toContain('Color and grade');
+    expect(imagePrompt).toContain('lifted blacks');
+    expect(imagePrompt).toContain('three-quarter light');
+  });
+
+  it('rewrites naive lens and color phrases into lexicon terms', () => {
+    expect(
+      translateNaiveCinematicLanguage(
+        'portrait of Mia with compressed background',
+      ),
+    ).toBe('portrait of Mia with telephoto compression');
+    expect(translateNaiveCinematicLanguage('Mia in muted colors')).toBe(
+      'Mia in desaturated palette',
+    );
   });
 
   it('omits lexicon guidance for text-only enhancement system prompts', () => {

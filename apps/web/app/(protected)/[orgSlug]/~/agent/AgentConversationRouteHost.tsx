@@ -1,10 +1,6 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import { Button } from '@ui/primitives/button';
-import { Minimize2 } from 'lucide-react';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { useTranslations } from 'next-intl';
 import { useCallback, useMemo } from 'react';
 import type { AgentConversationRouteHostProps } from '@/features/agents/props/agent-conversation-route-host.props';
 import {
@@ -12,8 +8,8 @@ import {
   normalizeProtectedPathname,
   resolveAgentConversationRoute,
 } from '@/lib/navigation/operator-shell';
+import AgentFullWorkspace from './AgentFullWorkspace';
 import AgentMasterWorkspace from './AgentMasterWorkspace';
-import { AgentWorkspacePageShell } from './AgentWorkspacePageShell';
 
 /**
  * Persistent host for the agent conversation.
@@ -32,8 +28,9 @@ import { AgentWorkspacePageShell } from './AgentWorkspacePageShell';
  * - `/agent`, `/agent/threads` and `/agent/[id]` are the master conversation
  *   on the left with the Threads list, or the thread named in the URL, on the
  *   right.
- * - `/agent/new` and `/agent/[id]?view=full` are one full-width conversation.
- *   A thread opened full size shows a button back to `/agent/[id]`.
+ * - `/agent/new` and `/agent/[id]?view=full` are the conversation at full
+ *   size: the thread list on the left, the conversation taking the larger
+ *   share. A thread opened full size shows a button back to `/agent/[id]`.
  *
  * Full view is a search param, not a route: entering and leaving it rewrites
  * the URL in place (`history.pushState`, which the App Router follows), so it
@@ -49,7 +46,6 @@ export default function AgentConversationRouteHost({
 }: AgentConversationRouteHostProps) {
   const rawPathname = usePathname();
   const searchParams = useSearchParams();
-  const translate = useTranslations('common.agentWorkspace');
   const route = useMemo(() => {
     // `usePathname()` is null during the first App Router paint. Treat that
     // as the unthreaded conversation so /agent/new keeps the shell mounted
@@ -82,30 +78,17 @@ export default function AgentConversationRouteHost({
     return children;
   }
 
-  const shell =
-    route.layout === 'master' ? (
-      <AgentMasterWorkspace openThreadId={route.threadId ?? null} />
-    ) : (
-      <AgentWorkspacePageShell threadId={route.threadId} />
-    );
-  const fullThreadId = route.layout === 'single' ? route.threadId : undefined;
-
   return (
     <>
       <div className="relative flex h-full min-h-0 flex-1 flex-col overflow-hidden">
-        {shell}
-        {fullThreadId ? (
-          <Button
-            ariaLabel={translate('exitFullPage')}
-            className="absolute right-3 top-2 z-10"
-            icon={<Minimize2 className="size-4" />}
-            onClick={exitFullView}
-            size={ButtonSize.ICON}
-            tooltip={translate('exitFullPage')}
-            variant={ButtonVariant.GHOST}
-            withWrapper={false}
+        {route.layout === 'master' ? (
+          <AgentMasterWorkspace openThreadId={route.threadId ?? null} />
+        ) : (
+          <AgentFullWorkspace
+            onExitFullView={exitFullView}
+            threadId={route.threadId}
           />
-        ) : null}
+        )}
       </div>
       {children}
     </>

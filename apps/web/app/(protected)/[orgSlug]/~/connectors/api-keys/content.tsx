@@ -27,6 +27,7 @@ import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { usePagedAuthedQuery } from '@hooks/auth/use-paged-authed-query/use-paged-authed-query';
 import { useRefreshScope } from '@hooks/auth/use-refresh-scope/use-refresh-scope';
+import { ClipboardService } from '@services/core/clipboard.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { isCancelledRequest } from '@services/core/operation-error';
@@ -406,15 +407,10 @@ function AuthorizedApiKeysContent({
   const handleCopyProductKey = async (key: string) => {
     const isCurrent = currentOperation();
     if (!isCurrent()) return;
-    try {
-      await navigator.clipboard.writeText(key);
-      if (!isCurrent()) return;
-      NotificationsService.getInstance().success(translate('success.copied'));
-    } catch (error) {
-      if (!isCurrent() || isCancelledRequest(error)) return;
-      logger.error('Failed to copy Genfeed API key', error);
-      NotificationsService.getInstance().error(translate('errors.copy'));
-    }
+    await ClipboardService.getInstance().copyToClipboard(key, {
+      errorMessage: translate('errors.copy'),
+      successMessage: translate('success.copied'),
+    });
   };
 
   const handleRotateProductKey = async (apiKey: ApiKey) => {
