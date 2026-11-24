@@ -1,5 +1,4 @@
 import { orgPath } from '@e2e/utils/app-chrome';
-import { AgentThreadMode } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { Page, Route } from '@playwright/test';
 import { expect, test } from '../../fixtures/auth.fixture';
@@ -82,69 +81,12 @@ type ProposedPlan = {
   updatedAt: string;
 };
 
-function buildAwaitingPlan(id: string): ProposedPlan {
-  return {
-    awaitingApproval: true,
-    content: '1. Add a plan mode toggle.\n2. Add approval controls.',
-    createdAt: '2026-03-26T10:00:00.000Z',
-    id,
-    status: 'awaiting_approval',
-    updatedAt: '2026-03-26T10:00:00.000Z',
-  };
-}
-
-// The mode control is part of the composer, which stays disabled until the
-// agent socket connects. Complete only the socket.io handshake.
-async function mockAgentSocketHandshake(page: Page): Promise<void> {
-  await page.addInitScript(() =>
-    Object.assign(window, { __playwright_socket_fixture: true }),
-  );
-  await page.routeWebSocket('**/socket.io/**', (connection) => {
-    connection.send(
-      `0${JSON.stringify({
-        maxPayload: 1000000,
-        pingInterval: 25000,
-        pingTimeout: 20000,
-        sid: 'plan-mode-switch',
-        upgrades: [],
-      })}`,
-    );
-    connection.onMessage((message) => {
-      if (typeof message === 'string' && message.startsWith('40')) {
-        connection.send('40{"sid":"plan-mode-switch"}');
-      }
-      if (message === '2') {
-        connection.send('3');
-      }
-    });
-  });
-}
-
-async function mockModeUpdate(
-  page: Page,
-  threadId: string,
-): Promise<Array<Record<string, unknown>>> {
-  const modeRequests: Array<Record<string, unknown>> = [];
-  await page.route('**/agent/threads/mode', async (route) => {
-    const body = route.request().postDataJSON() as Record<string, unknown>;
-    modeRequests.push(body);
-    await route.fulfill({
-      body: JSON.stringify({ mode: body.mode, threadId }),
-      contentType: 'application/json',
-      status: 200,
-    });
-  });
-  return modeRequests;
-}
-
 async function mockThreadView(
   page: Page,
   threadId: string,
   proposedPlan: ProposedPlan,
-  threadGate?: Promise<void>,
 ): Promise<void> {
   await page.route(`**/threads/${threadId}`, async (route) => {
-    await threadGate;
     await route.fulfill({
       body: JSON.stringify(
         wrapResourceInJsonApi(
@@ -153,7 +95,6 @@ async function mockThreadView(
             contextVersion: 1,
             createdAt: proposedPlan.createdAt,
             id: threadId,
-            mode: AgentThreadMode.PLAN,
             status: 'active',
             title: 'Plan mode thread',
             updatedAt: proposedPlan.updatedAt,
@@ -262,7 +203,6 @@ async function sendAndAwaitThreadRoute(
 ): Promise<string> {
   await agentPage.goto();
   await assertNoErrorBoundaryFallback(authenticatedPage, agentPage.url);
-  await agentPage.enablePlanMode();
   const expectedThreadUrl = orgPath(
     `${APP_ROUTES.AGENT.ROOT}/${threadId}?view=full`,
   );
@@ -371,7 +311,8 @@ test.describe('Agent Plan Mode', () => {
       'Add plan mode to the agent workspace',
     );
 
-    expect(turnAck.request?.agentMode).toBe(AgentThreadMode.PLAN);
+    // No picker: the thread's mode comes from the saved setting on the server.
+    expect(turnAck.request?.agentMode).toBeUndefined();
     expect(turnAck.request?.content).toContain(
       'Add plan mode to the agent workspace',
     );
@@ -418,84 +359,6 @@ test.describe('Agent Plan Mode', () => {
         planId: 'plan-e2e-1',
       },
     });
-  });
-
-  test('switches the agent mode while a plan awaits approval', async ({
-    authenticatedPage,
-  }) => {
-    const agentPage = new AgentPage(authenticatedPage);
-    const threadId = 'thread-plan-mode-switch-e2e';
-    const proposedPlan = buildAwaitingPlan('plan-e2e-switch');
-
-    await mockThreadView(authenticatedPage, threadId, proposedPlan);
-    await mockAgentSocketHandshake(authenticatedPage);
-    const modeRequests = await mockModeUpdate(authenticatedPage, threadId);
-
-    await authenticatedPage.goto(
-      orgPath(`${APP_ROUTES.AGENT.ROOT}/${threadId}?view=full`),
-      { waitUntil: 'domcontentloaded' },
-    );
-    await expect(agentPage.planDecision).toBeVisible();
-    await expect(agentPage.planModeButton).toHaveAccessibleName(
-      'Agent mode: Plan',
-    );
-
-    await agentPage.planModeButton.click();
-    await authenticatedPage
-      .getByRole('menuitemradio', { name: /^Auto/ })
-      .click();
-
-    await expect(agentPage.planModeButton).toHaveAccessibleName(
-      'Agent mode: Auto',
-    );
-    expect(modeRequests).toEqual([{ mode: 'auto', threadId }]);
-    await expect(agentPage.planDecision).toBeVisible();
-  });
-
-  test('keeps a mode picked before the thread response lands', async ({
-    authenticatedPage,
-  }) => {
-    const agentPage = new AgentPage(authenticatedPage);
-    const threadId = 'thread-plan-mode-pick-early-e2e';
-    const proposedPlan = buildAwaitingPlan('plan-e2e-pick-early');
-    let releaseThread = (): void => undefined;
-    const threadGate = new Promise<void>((resolve) => {
-      releaseThread = resolve;
-    });
-
-    // The plan decision renders from the snapshot, so the composer is usable
-    // while the (slower) thread response -- still carrying the mode the
-    // thread had before the pick -- is in flight.
-    await mockThreadView(authenticatedPage, threadId, proposedPlan, threadGate);
-    await mockAgentSocketHandshake(authenticatedPage);
-    const modeRequests = await mockModeUpdate(authenticatedPage, threadId);
-
-    await authenticatedPage.goto(
-      orgPath(`${APP_ROUTES.AGENT.ROOT}/${threadId}?view=full`),
-      { waitUntil: 'domcontentloaded' },
-    );
-    await expect(agentPage.planDecision).toBeVisible();
-
-    await agentPage.planModeButton.click();
-    await authenticatedPage
-      .getByRole('menuitemradio', { name: /^Auto/ })
-      .click();
-    await expect(agentPage.planModeButton).toHaveAccessibleName(
-      'Agent mode: Auto',
-    );
-    await expect.poll(() => modeRequests.length).toBe(1);
-
-    releaseThread();
-    await authenticatedPage.waitForResponse(
-      (response) =>
-        response.url().endsWith(`/threads/${threadId}`) &&
-        response.request().method() === 'GET',
-    );
-
-    await expect(agentPage.planModeButton).toHaveAccessibleName(
-      'Agent mode: Auto',
-    );
-    expect(modeRequests).toEqual([{ mode: 'auto', threadId }]);
   });
 
   test('proposes a plan and renders it live, without navigating', async ({

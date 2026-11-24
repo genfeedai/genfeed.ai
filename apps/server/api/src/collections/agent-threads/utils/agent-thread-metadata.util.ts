@@ -1,9 +1,6 @@
-import type { AgentThreadMode } from '@genfeedai/contracts';
-
 export interface AgentThreadMetadataBody {
   isPinned?: boolean;
   memoryEntryIds?: string[];
-  mode?: AgentThreadMode;
   requestedModel?: string;
   runtimeKey?: string;
   systemPrompt?: string;
@@ -23,7 +20,6 @@ export function pickAgentThreadMetadata(
   if (body.memoryEntryIds !== undefined) {
     picked.memoryEntryIds = body.memoryEntryIds;
   }
-  if (body.mode !== undefined) picked.mode = body.mode;
   if (body.requestedModel !== undefined) {
     picked.requestedModel = body.requestedModel;
   }

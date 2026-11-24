@@ -14,7 +14,6 @@ Page object: `playwright/e2e/pages/agent.page.ts` (`AgentPage`), URL from
 `orgPath(APP_ROUTES.AGENT.NEW)`. Selectors:
 - chat input: `[data-testid="agent-chat-input-shell"] [contenteditable="true"]`
 - heading: `/GenFeed Agent/i`
-- plan-mode button: name matching `/^Agent mode:/`
 - plan review: `agent-plan-review-card`
 
 Specs: `playwright/e2e/tests/chat/` (`chat-flows`, `chat-flow-interactions`, `chat-extra`,

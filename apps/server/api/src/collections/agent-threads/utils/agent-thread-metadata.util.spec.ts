@@ -26,11 +26,13 @@ describe('pickAgentThreadMetadata', () => {
     const body = {
       isDeleted: true,
       kind: 'thread',
+      // Approvals follow the saved setting, so a thread cannot switch itself to Auto.
+      mode: 'auto',
       parentThreadId: 'other',
       title: 'Kept',
       userId: 'someone-else',
     };
 
-    expect(pickAgentThreadMetadata(body)).toEqual({ title: 'Kept' });
+    expect(pickAgentThreadMetadata(body as never)).toEqual({ title: 'Kept' });
   });
 });

@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 
 export interface PromptBarToolbarProps {
   className?: string;
-  /** Left group, first: what the bar does (Agent mode, Studio type and Auto / Advanced). */
+  /** Left group, first: what the bar does (Studio type and Auto / Advanced). */
   mode?: ReactNode;
   /** Left group, after mode: the surface's own setup chips. */
   leading?: ReactNode;

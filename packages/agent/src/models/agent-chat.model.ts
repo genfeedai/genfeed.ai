@@ -219,7 +219,6 @@ export interface AgentThread {
   isPinned?: boolean;
   /** `master` for the user's org-level orchestrating thread (#8526). */
   kind?: AgentThreadKind;
-  mode?: AgentThreadMode;
   /** The thread that spawned this one, when it was spawned. */
   parentThreadId?: string | null;
   requestedModel?: string;
