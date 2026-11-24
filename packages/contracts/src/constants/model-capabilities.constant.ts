@@ -1261,8 +1261,9 @@ export const MODEL_OUTPUT_CAPABILITIES: Record<string, ModelOutputCapability> =
       maxReferences: 0,
     },
     /**
-     * ElevenLabs text-to-speech, called directly with the platform key and a
-     * voice from the Genfeed voice catalog. Per-request text limits live in
+     * ElevenLabs text-to-speech, called with the organization's own
+     * ElevenLabs key and a voice from its account or the voice catalog.
+     * Per-request text limits live in
      * `VOICE_SPEECH_MODELS`.
      */
     [MODEL_KEYS.ELEVENLABS_V4]: {

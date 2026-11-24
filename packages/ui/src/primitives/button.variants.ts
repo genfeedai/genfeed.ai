@@ -10,7 +10,9 @@ export type ButtonVariantConfig = {
     | 'destructive'
     | 'ghost'
     | 'link'
-    | 'overlay';
+    | 'overlay'
+    | 'success'
+    | 'warning';
 };
 
 export type CanonicalButtonVariant =
@@ -20,7 +22,9 @@ export type CanonicalButtonVariant =
   | ButtonVariant.LINK
   | ButtonVariant.OVERLAY
   | ButtonVariant.SECONDARY
-  | ButtonVariant.UNSTYLED;
+  | ButtonVariant.SUCCESS
+  | ButtonVariant.UNSTYLED
+  | ButtonVariant.WARNING;
 
 export const BUTTON_VARIANT_CONFIG: Record<
   CanonicalButtonVariant,
@@ -32,7 +36,9 @@ export const BUTTON_VARIANT_CONFIG: Record<
   [ButtonVariant.LINK]: { nativeVariant: 'link' },
   [ButtonVariant.OVERLAY]: { nativeVariant: 'overlay' },
   [ButtonVariant.SECONDARY]: { nativeVariant: 'secondary' },
+  [ButtonVariant.SUCCESS]: { nativeVariant: 'success' },
   [ButtonVariant.UNSTYLED]: { nativeVariant: 'default' },
+  [ButtonVariant.WARNING]: { nativeVariant: 'warning' },
 };
 
 export function resolveButtonVariant(
@@ -126,6 +132,10 @@ const nativeButtonVariants = cva(
           'justify-center rounded-md bg-black/50 text-white hover:bg-black/70', // design-system-allow-content-color -- media overlay control
         secondary:
           'justify-center rounded-md bg-tertiary text-foreground border border-border hover:bg-hover',
+        success:
+          'justify-center rounded-md bg-success text-success-foreground hover:bg-success/90',
+        warning:
+          'justify-center rounded-md bg-warning/10 text-warning border border-warning/20 hover:bg-warning/20',
       },
     },
     compoundVariants: [

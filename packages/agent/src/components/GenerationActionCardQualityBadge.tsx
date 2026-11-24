@@ -34,10 +34,9 @@ export function GenerationActionCardQualityBadge({
         )}
         {onRegenerate && (
           <Button
-            variant={ButtonVariant.SECONDARY}
+            variant={ButtonVariant.WARNING}
             size={ButtonSize.XS}
             onClick={onRegenerate}
-            className="border-warning/20 bg-warning/10 text-warning hover:bg-warning/10"
           >
             <RefreshCw className="size-3.5" />
             Regenerate

@@ -126,7 +126,6 @@ export function ReviewGateCard({
           size={ButtonSize.XS}
           onClick={selectAll}
           isDisabled={!isDecisionAvailable}
-          className="text-info hover:text-info/80"
         >
           {translate('selectAll')}
         </Button>
@@ -200,12 +199,11 @@ export function ReviewGateCard({
       {pendingItems.length > 0 && (
         <div className="flex gap-2 mt-3 pt-3 border-t border-border">
           <Button
-            variant={ButtonVariant.DEFAULT}
+            variant={ButtonVariant.SUCCESS}
             size={ButtonSize.SM}
             onClick={handleApprove}
             isDisabled={!isDecisionAvailable || selected.size === 0}
             isLoading={isSubmitting}
-            className="bg-success text-success-foreground hover:bg-success/90"
           >
             <Check className="size-3.5" />
             {translate('approve', { count: selected.size })}
@@ -215,7 +213,6 @@ export function ReviewGateCard({
             size={ButtonSize.SM}
             onClick={handleReject}
             isDisabled={!isDecisionAvailable || selected.size === 0}
-            className="bg-destructive/10 hover:bg-destructive/10"
           >
             <X className="size-3.5" />
             {translate('reject', { count: selected.size })}
