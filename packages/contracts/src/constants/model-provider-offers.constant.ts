@@ -26,7 +26,11 @@ export const MODEL_PROVIDER_ASSOCIATIONS = [
   // Wan 3.0 on kie, reviewed against kie's OpenAPI (2026-11-23): one endpoint
   // that picks its mode from the media given. The input adapter refuses a
   // negative prompt and turned-off prompt expansion, which kie has no field
-  // for, so those requests stay on Replicate.
+  // for, so those requests stay on Replicate. Since the Replicate rate fell to
+  // $0.035 / $0.07 / $0.14 (2026-11-24), kie's $0.04 / $0.08 / $0.16 is 14%
+  // dearer at every resolution, so the cheapest-offer rule keeps Wan 3.0 on
+  // Replicate even with the kie routing switch on. Turning kie on covers
+  // MiniMax H3, Seedance 2.0 Fast and Kling 3.0; it moves no Wan 3.0 traffic.
   {
     modelKey: 'alibaba/wan-3',
     executionModelKey: 'kie/wan-3-0-video',
