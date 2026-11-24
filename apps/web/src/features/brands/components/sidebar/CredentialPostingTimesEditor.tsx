@@ -120,14 +120,13 @@ export default function CredentialPostingTimesEditor({
                 </span>
                 <Button
                   aria-label={translate('removeAriaLabel', { label })}
-                  className="h-7 px-2 text-2xs"
                   isDisabled={isSaving}
                   onClick={() => {
                     void persistChange((service) =>
                       service.removePostingTime(credentialId, time),
                     );
                   }}
-                  size={ButtonSize.SM}
+                  size={ButtonSize.XS}
                   variant={ButtonVariant.GHOST}
                 >
                   {translate('remove')}
@@ -150,7 +149,6 @@ export default function CredentialPostingTimesEditor({
           value={draft}
         />
         <Button
-          className="h-8"
           isDisabled={isSaving || !parseClockTime(draft)}
           onClick={() => {
             const parsed = parseClockTime(draft);

@@ -186,7 +186,7 @@ export default function CreditsMenuSection({
             isCritical ? ButtonVariant.DESTRUCTIVE : ButtonVariant.DEFAULT
           }
           textTransform="none"
-          className="h-9 w-full justify-center gap-1.5"
+          className="w-full justify-center"
           data-testid="account-credits-buy"
         >
           <Link href={href}>
