@@ -553,6 +553,26 @@ describe('UNIFIED_MODEL_CATALOG', () => {
     });
   });
 
+  it('lists P-Video 2 Pro as an active, public Replicate row priced at the speed mode', () => {
+    const row = UNIFIED_MODEL_CATALOG.find(
+      (entry) => entry.key === MODEL_KEYS.REPLICATE_PRUNAAI_P_VIDEO_2_PRO,
+    );
+
+    expect(row).toMatchObject({
+      cost: 59,
+      defaultDuration: 5,
+      durations: [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+      hasResolutionOptions: true,
+      isActive: true,
+      isDefault: false,
+      isPublic: true,
+      label: 'P-Video 2 Pro',
+      pricingType: 'per-second',
+      provider: ModelProvider.REPLICATE,
+      providerCostUsd: 0.035,
+    });
+  });
+
   it('lists HeyGen Video 1 on fal as an active, public draft tier at the fal list price', () => {
     const row = UNIFIED_MODEL_CATALOG.find(
       (entry) => entry.key === MODEL_KEYS.FAL_HEYGEN_VIDEO,
