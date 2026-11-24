@@ -2,6 +2,7 @@ import { AgentOutputHostContext } from '@genfeedai/contexts/ui/agent-output-host
 import {
   ContextSidebarPanel,
   ContextSidebarProvider,
+  useContextSidebar,
 } from '@genfeedai/contexts/ui/context-sidebar-context';
 import type { AgentOutputHostValue } from '@genfeedai/props/ui/agent-output-shell.props';
 import { fireEvent, render, screen, within } from '@testing-library/react';
@@ -19,6 +20,11 @@ vi.mock('next-intl', async () => {
   );
   return { useTranslations: translateFromCatalog };
 });
+
+function SidebarState() {
+  const sidebar = useContextSidebar();
+  return <p>{sidebar?.isOpen ? 'open' : 'closed'}</p>;
+}
 
 function buildHost(
   overrides: Partial<AgentOutputHostValue> = {},
@@ -252,6 +258,41 @@ describe('AgentOutputShell', () => {
       view.rerender(tree(false));
 
       expect(host.onCloseContext).toHaveBeenCalledTimes(shouldClose ? 1 : 0);
+    },
+  );
+
+  it.each([
+    ['user', 'closed'],
+    ['automatic', 'open'],
+  ] as const)(
+    'when Context closes, a %s selection ends up %s',
+    (origin, expected) => {
+      const tree = (isContextOpen: boolean) => (
+        <ContextSidebarProvider>
+          <AgentOutputHostContext value={buildHost({ isContextOpen })}>
+            <AgentOutputShell>
+              <p>Board</p>
+            </AgentOutputShell>
+            <ContextSidebarPanel
+              selection={{
+                id: 'asset-1',
+                kind: 'asset',
+                origin,
+                title: 'Asset 1',
+              }}
+            >
+              <p>Asset detail</p>
+            </ContextSidebarPanel>
+            <SidebarState />
+          </AgentOutputHostContext>
+        </ContextSidebarProvider>
+      );
+      const view = render(tree(true));
+      expect(screen.getByText('open')).toBeInTheDocument();
+
+      view.rerender(tree(false));
+
+      expect(screen.getByText(expected)).toBeInTheDocument();
     },
   );
 

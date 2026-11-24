@@ -92,6 +92,20 @@ export default function AgentOutputShell({
     wasUserSelectionRef.current = selectionKey ? isUserSelection : false;
   }, [isUserSelection, onCloseContext, selectionKey]);
 
+  // Stepping back to the output from the topbar's Context icon deselects a
+  // record the operator picked, as closing the rail does; one the page
+  // selected on its own stays selected.
+  const isContextOpen = host?.isContextOpen ?? false;
+  const wasContextOpenRef = useRef(isContextOpen);
+  const closeSelection = contextSidebar?.close;
+  // use-effect-audit: ignore deselects the operator's record when Context closes
+  useEffect(() => {
+    if (wasContextOpenRef.current && !isContextOpen && isUserSelection) {
+      closeSelection?.();
+    }
+    wasContextOpenRef.current = isContextOpen;
+  }, [closeSelection, isContextOpen, isUserSelection]);
+
   if (!host) {
     return <>{children}</>;
   }
