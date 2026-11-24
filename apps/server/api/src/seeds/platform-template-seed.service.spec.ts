@@ -75,6 +75,8 @@ describe('PlatformTemplateSeedService', () => {
     expect(rendered).toContain('Category: post');
     expect(rendered).toContain('Keywords to work in naturally: AI & content');
     expect(rendered).toContain('Return exactly 2 item(s) in "articles".');
+    expect(rendered).toContain('Write reader copy only.');
+    expect(rendered).toContain('Never open with "my take on"');
   });
 
   it('seeds the X Article brief that X Article generation looks up', () => {

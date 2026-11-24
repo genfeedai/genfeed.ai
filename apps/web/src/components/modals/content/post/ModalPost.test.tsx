@@ -833,6 +833,23 @@ describe('ModalPost', () => {
       expect(screen.getByRole('button', { name: 'Save draft' })).toBeDisabled();
     });
 
+    it('warns that an X post with a link uses more credits', async () => {
+      const user = userEvent.setup();
+      renderComposer();
+      await user.click(screen.getByRole('button', { name: '@acme_x, X' }));
+      await goToContent(user);
+
+      await writeCaption(user, 'Plain post without a link');
+      expect(
+        screen.queryByText(/link in an X post uses more credits/i),
+      ).not.toBeInTheDocument();
+
+      await writeCaption(user, 'New drop https://genfeed.ai/drop');
+      expect(
+        screen.getByText(/link in an X post uses more credits/i),
+      ).toBeInTheDocument();
+    });
+
     it('splits the text into a thread through the existing thread path', async () => {
       const user = userEvent.setup();
       renderComposer();

@@ -40,6 +40,8 @@ import { ScheduledPostChannelRecoveryService } from '@workers/services/scheduled
 import { ScheduledPostDeliveryService } from '@workers/services/scheduled-post-delivery.service';
 import { ScheduledPostFailureService } from '@workers/services/scheduled-post-failure.service';
 import { PROVIDER_PUBLISH_LEASE_RENEWAL_MS } from '@workers/services/scheduled-post-provider-receipt.util';
+import { ScheduledPostPublishFollowUps } from '@workers/services/scheduled-post-publish-follow-ups';
+import { ScheduledPostXBilling } from '@workers/services/scheduled-post-x-billing';
 import { of } from 'rxjs';
 
 vi.mock('@sentry/nestjs', async (importOriginal) => ({
@@ -118,6 +120,10 @@ function createDeliveryMocks() {
   const registeredActions = new Map<string, RegisteredAction>();
   return {
     activitiesService: { record: vi.fn().mockResolvedValue(undefined) },
+    credits: {
+      checkOrganizationCreditsAvailable: vi.fn().mockResolvedValue(true),
+      deductCreditsFromOrganization: vi.fn().mockResolvedValue(undefined),
+    },
     credentialRefresher: {
       refreshCredential: vi.fn().mockResolvedValue({ success: true }),
     },
@@ -142,6 +148,7 @@ function createDeliveryMocks() {
     organizationsService: {
       findOne: vi.fn().mockResolvedValue({ id: 'org-1' }),
     },
+    paidAccess: { isSubscriptionGatedFresh: vi.fn().mockResolvedValue(false) },
     prisma: {
       credential: { findMany: vi.fn() },
       post: {
@@ -206,6 +213,20 @@ function createDeliveryService(mocks: DeliveryMocks) {
     mocks.activitiesService as never,
     mocks.schedulerPublishStateService as never,
   );
+  const xBilling = new ScheduledPostXBilling(
+    mocks.logger as never,
+    mocks.paidAccess as never,
+    mocks.credits as never,
+    mocks.prisma as never,
+  );
+  const followUps = new ScheduledPostPublishFollowUps(
+    mocks.logger as never,
+    mocks.prisma as never,
+    postFailureService,
+    mocks.replyInboundQueueService as never,
+    mocks.publishEventWebhookService as never,
+    xBilling,
+  );
   const service = new ScheduledPostDeliveryService(
     mocks.logger as never,
     postFailureService,
@@ -214,9 +235,9 @@ function createDeliveryService(mocks: DeliveryMocks) {
     mocks.quotaService as never,
     mocks.publisherFactory as never,
     mocks.systemWorkflowRunner as never,
-    mocks.publishEventWebhookService as never,
+    followUps,
     mocks.schedulerPublishStateService as never,
-    mocks.replyInboundQueueService as never,
+    xBilling,
     mocks.publishingReadinessService as never,
     mocks.prisma as never,
     mocks.mediaReadinessService as never,
@@ -505,6 +526,141 @@ describe('ScheduledPostDeliveryService', () => {
         }),
       }),
     );
+  });
+
+  describe('X posting cost', () => {
+    it('never calls X for an organization on the free plan', async () => {
+      const publish = mockSuccessfulPublisher(mocks);
+      mocks.paidAccess.isSubscriptionGatedFresh.mockResolvedValue(true);
+
+      const result = await executeDelivery(
+        mocks,
+        createScheduledPost(),
+        'scheduled_sweep',
+      );
+
+      expect(publish).not.toHaveBeenCalled();
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('paid plan');
+      expect(
+        mocks.credits.deductCreditsFromOrganization,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('never calls X when the organization cannot pay for the post', async () => {
+      const publish = mockSuccessfulPublisher(mocks);
+      mocks.credits.checkOrganizationCreditsAvailable.mockResolvedValue(false);
+
+      const result = await executeDelivery(
+        mocks,
+        createScheduledPost(),
+        'scheduled_sweep',
+      );
+
+      expect(publish).not.toHaveBeenCalled();
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Not enough credits');
+      expect(
+        mocks.credits.checkOrganizationCreditsAvailable,
+      ).toHaveBeenCalledWith('org-1', 3);
+    });
+
+    it('prices the credit check of a post with a link at the link cost', async () => {
+      mockSuccessfulPublisher(mocks);
+
+      await executeDelivery(
+        mocks,
+        createScheduledPost({
+          description: 'New drop https://genfeed.ai/drop',
+        }),
+        'scheduled_sweep',
+      );
+
+      expect(
+        mocks.credits.checkOrganizationCreditsAvailable,
+      ).toHaveBeenCalledWith('org-1', 30);
+    });
+
+    it('charges 3 credits once X accepted a post without a link', async () => {
+      mockSuccessfulPublisher(mocks);
+
+      await executeDelivery(mocks, createScheduledPost(), 'scheduled_sweep');
+
+      expect(mocks.credits.deductCreditsFromOrganization).toHaveBeenCalledTimes(
+        1,
+      );
+      expect(mocks.credits.deductCreditsFromOrganization).toHaveBeenCalledWith(
+        'org-1',
+        'user-1',
+        3,
+        'X post published',
+        expect.anything(),
+        expect.objectContaining({
+          brandId: 'brand-1',
+          idempotencyKey: 'x-post-publish:post-1',
+        }),
+      );
+    });
+
+    it('charges 30 credits for a post with a link', async () => {
+      mockSuccessfulPublisher(mocks);
+
+      await executeDelivery(
+        mocks,
+        createScheduledPost({
+          description: 'New drop https://genfeed.ai/drop',
+        }),
+        'scheduled_sweep',
+      );
+
+      expect(mocks.credits.deductCreditsFromOrganization).toHaveBeenCalledWith(
+        'org-1',
+        'user-1',
+        30,
+        'X post with a link published',
+        expect.anything(),
+        expect.objectContaining({ idempotencyKey: 'x-post-publish:post-1' }),
+      );
+    });
+
+    it('still reports the post as published when the charge fails', async () => {
+      mockSuccessfulPublisher(mocks);
+      mocks.credits.deductCreditsFromOrganization.mockRejectedValue(
+        new Error('ledger unavailable'),
+      );
+
+      const result = await executeDelivery(
+        mocks,
+        createScheduledPost(),
+        'scheduled_sweep',
+      );
+
+      expect(result.success).toBe(true);
+    });
+
+    it('charges nothing for a post on another platform', async () => {
+      mockSuccessfulPublisher(mocks, {
+        externalId: 'beehiiv-post-1',
+        platform: CredentialPlatform.BEEHIIV,
+      });
+      mocks.credentialsService.findOne.mockResolvedValue({
+        id: 'cred-1',
+        platform: CredentialPlatform.BEEHIIV,
+      });
+      mocks.paidAccess.isSubscriptionGatedFresh.mockResolvedValue(true);
+
+      const result = await executeDelivery(
+        mocks,
+        createScheduledPost({ platform: CredentialPlatform.BEEHIIV }),
+        'scheduled_sweep',
+      );
+
+      expect(result.success).toBe(true);
+      expect(
+        mocks.credits.deductCreditsFromOrganization,
+      ).not.toHaveBeenCalled();
+      expect(mocks.paidAccess.isSubscriptionGatedFresh).not.toHaveBeenCalled();
+    });
   });
 
   const acceptedTweet = {
