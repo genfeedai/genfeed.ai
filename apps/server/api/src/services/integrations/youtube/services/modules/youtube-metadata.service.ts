@@ -7,12 +7,12 @@ import {
 } from '@api/services/integrations/publishers/publisher-youtube-verification-pages.util';
 import { asYoutubeRequestAuth } from '@api/services/integrations/youtube/services/modules/youtube-api-auth.util';
 import { YoutubeAuthService } from '@api/services/integrations/youtube/services/modules/youtube-auth.service';
+import { youtube, type youtube_v3 } from '@googleapis/youtube';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
-import { google, type youtube_v3 } from 'googleapis';
 
 const ISO8601_DURATION_PATTERN = /PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/;
 
@@ -42,7 +42,7 @@ export class YoutubeMetadataService {
     private readonly youtubeAuthService: YoutubeAuthService,
     private readonly configService: ConfigService,
   ) {
-    this.youtubeAPI = google.youtube({ version: 'v3' });
+    this.youtubeAPI = youtube({ version: 'v3' });
 
     const apiKey = this.configService.get<string>('YOUTUBE_API_KEY');
     const auth =
@@ -50,7 +50,7 @@ export class YoutubeMetadataService {
         ? apiKey
         : undefined;
     this.isApiKeySet = auth !== undefined;
-    this.youtubeDataAPI = google.youtube({
+    this.youtubeDataAPI = youtube({
       auth,
       version: 'v3',
     });
