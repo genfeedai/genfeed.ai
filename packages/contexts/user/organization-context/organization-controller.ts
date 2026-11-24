@@ -298,6 +298,7 @@ export class OrganizationController {
   // cleared. A cleanup that failed stays owed, and the next reconciliation
   // pays it before anything is confirmed.
   private wipePending = false;
+  private wipeInFlight: Promise<void> | null = null;
   // Set by an explicit switch once it has confirmed the organization, so the
   // route change that follows does not read the list again.
   private switchConfirmation: { organizationId: string; slug: string } | null =
@@ -390,8 +391,16 @@ export class OrganizationController {
   }
 
   /** Whatever the copy restored leaves the screen with the stores. */
-  private async payPendingWipe(): Promise<void> {
-    if (!this.wipePending) return;
+  private payPendingWipe(): Promise<void> {
+    if (!this.wipePending) return Promise.resolve();
+    // One cleanup at a time: whoever asks while it runs waits for the same one.
+    this.wipeInFlight ??= this.runPendingWipe().finally(() => {
+      this.wipeInFlight = null;
+    });
+    return this.wipeInFlight;
+  }
+
+  private async runPendingWipe(): Promise<void> {
     await this.ports.clearTenantCaches();
     await this.ports.wipeDeviceStores();
     this.wipePending = false;
@@ -612,6 +621,10 @@ export class OrganizationController {
       // The slug now names another organization than the copy was kept for:
       // nothing of the copy may stay, and the shell remounts for this one.
       await this.exitProvisional({ wipe: true });
+      // A provider that unmounted during the wipe no longer owns the gate.
+      if (!this.isCurrentGeneration(generation, routeSlug)) {
+        return;
+      }
       await this.invalidateTenantState();
     }
 
@@ -928,6 +941,12 @@ export class OrganizationController {
 
   private async synchronizeOnce(generation: number): Promise<void> {
     const getMembershipService = this.membership();
+    // A copy this device was refused for must be gone before anything is
+    // confirmed again, whichever way the confirmation is reached.
+    await this.payPendingWipe();
+    if (this.generation !== generation) {
+      return;
+    }
     await this.invalidateTenantState();
     const service = await getMembershipService({ forceRefresh: true });
     const readMembership = membershipReader(service);
