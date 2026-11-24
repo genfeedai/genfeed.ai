@@ -345,6 +345,7 @@ describe('InstagramPublisherService', () => {
           expect.any(String),
           undefined,
           mockCredential.id,
+          false, // isAiGenerated
         );
       });
 
@@ -392,6 +393,7 @@ describe('InstagramPublisherService', () => {
           undefined, // hashtags
           true, // isShareToFeedSelected
           mockCredential.id,
+          false, // isAiGenerated
         );
       });
 
@@ -418,6 +420,7 @@ describe('InstagramPublisherService', () => {
           undefined,
           false,
           mockCredential.id,
+          false, // isAiGenerated
         );
       });
 
@@ -442,6 +445,7 @@ describe('InstagramPublisherService', () => {
           undefined,
           true,
           mockCredential.id,
+          false, // isAiGenerated
         );
       });
 
@@ -468,6 +472,7 @@ describe('InstagramPublisherService', () => {
           undefined,
           false,
           mockCredential.id,
+          false, // isAiGenerated
         );
       });
     });
@@ -495,7 +500,39 @@ describe('InstagramPublisherService', () => {
           expect.any(String),
           undefined,
           mockCredential.id,
+          false, // isAiGenerated
         );
+      });
+    });
+
+    describe('AI label', () => {
+      it('passes the AI label to the image, Reel and carousel upload when the setting is on', async () => {
+        instagramService.uploadImage.mockResolvedValue({
+          mediaId: 'm1',
+          shortcode: 'S1',
+        });
+        instagramService.uploadReel.mockResolvedValue({
+          mediaId: 'm2',
+          shortcode: 'S2',
+        });
+        instagramService.uploadCarousel.mockResolvedValue({
+          mediaId: 'm3',
+          shortcode: 'S3',
+        });
+
+        await service.publish(
+          createPublishContext(mockImagePost, { aiGenerated: true }),
+        );
+        await service.publish(
+          createPublishContext(mockVideoPost, { aiGenerated: true }),
+        );
+        await service.publish(
+          createPublishContext(mockCarouselPost, { aiGenerated: true }),
+        );
+
+        expect(instagramService.uploadImage.mock.calls[0].at(-1)).toBe(true);
+        expect(instagramService.uploadReel.mock.calls[0].at(-1)).toBe(true);
+        expect(instagramService.uploadCarousel.mock.calls[0].at(-1)).toBe(true);
       });
     });
 

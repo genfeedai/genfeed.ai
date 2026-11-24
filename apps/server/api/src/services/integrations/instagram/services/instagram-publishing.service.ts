@@ -27,6 +27,14 @@ function requireString(value: unknown, field: string): string {
   return value;
 }
 
+/**
+ * The AI label goes on the container that is published: the image, the Reel or
+ * the carousel itself, never on a carousel child.
+ */
+function aiGeneratedParam(isAiGenerated: boolean): { is_ai_generated?: true } {
+  return isAiGenerated ? { is_ai_generated: true } : {};
+}
+
 function formatCaption(caption: string, hashtags?: string[]): string {
   if (!hashtags?.length) {
     return caption;
@@ -185,6 +193,7 @@ export class InstagramPublishingService {
     caption: string,
     hashtags?: string[],
     credentialId?: string,
+    isAiGenerated = false,
   ): Promise<{ mediaId: string; shortcode: string }> {
     const url = `InstagramService ${CallerUtil.getCallerName()}`;
     const credential = await this.resolveCredential(
@@ -205,6 +214,7 @@ export class InstagramPublishingService {
               access_token: accessToken,
               caption: formatCaption(caption, hashtags),
               image_url: imageUrl,
+              ...aiGeneratedParam(isAiGenerated),
             },
           },
         ),
@@ -237,6 +247,7 @@ export class InstagramPublishingService {
     hashtags?: string[],
     isShareToFeedSelected = true,
     credentialId?: string,
+    isAiGenerated = false,
   ): Promise<{ mediaId: string; shortcode: string }> {
     const url = `InstagramService ${CallerUtil.getCallerName()}`;
     const credential = await this.resolveCredential(
@@ -254,6 +265,7 @@ export class InstagramPublishingService {
         media_type: InstagramMediaType.REELS,
         share_to_feed: isShareToFeedSelected,
         video_url: videoUrl,
+        ...aiGeneratedParam(isAiGenerated),
       };
       if (coverImageUrl) {
         params.cover_url = coverImageUrl;
@@ -294,6 +306,7 @@ export class InstagramPublishingService {
     caption: string,
     hashtags?: string[],
     credentialId?: string,
+    isAiGenerated = false,
   ): Promise<{ mediaId: string; shortcode: string }> {
     const url = `InstagramService ${CallerUtil.getCallerName()}`;
     const credential = await this.resolveCredential(
@@ -333,6 +346,7 @@ export class InstagramPublishingService {
               caption: formatCaption(caption, hashtags),
               children: containerIds.join(','),
               media_type: InstagramMediaType.CAROUSEL,
+              ...aiGeneratedParam(isAiGenerated),
             },
           },
         ),

@@ -17,7 +17,11 @@ import {
 import { verifyMediaPublish } from '@api/services/integrations/publishers/publisher-media-verification.util';
 import { mapMetaFailure } from '@api/services/integrations/publishers/social-publish-error.mappers';
 import { CredentialPlatform, PublishErrorKind } from '@genfeedai/contracts';
-import { readChannelSettingString } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
+import {
+  readChannelSettingBoolean,
+  readChannelSettingString,
+} from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
+import { INSTAGRAM_AI_GENERATED_SETTING_KEY } from '@genfeedai/contracts/api-types/contracts/instagram-publishing.contract';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
@@ -147,6 +151,11 @@ export class InstagramPublisherService extends BasePublisherService {
 
       // Sanitize HTML to plain text - Instagram doesn't support HTML markup
       const caption = this.sanitizeDescription(post.description);
+      const isAiGenerated =
+        readChannelSettingBoolean(
+          context.settings,
+          INSTAGRAM_AI_GENERATED_SETTING_KEY,
+        ) === true;
 
       if (mediaInfo.isCarousel && mediaInfo.isImagePost) {
         // Carousel of images (2-10 images)
@@ -157,6 +166,7 @@ export class InstagramPublisherService extends BasePublisherService {
           caption,
           undefined, // hashtags
           credential.id,
+          isAiGenerated,
         );
         externalId = carouselResult.mediaId;
         externalShortcode = carouselResult.shortcode;
@@ -169,6 +179,7 @@ export class InstagramPublisherService extends BasePublisherService {
           caption,
           undefined, // hashtags
           credential.id,
+          isAiGenerated,
         );
         externalId = imageResult.mediaId;
         externalShortcode = imageResult.shortcode;
@@ -192,6 +203,7 @@ export class InstagramPublisherService extends BasePublisherService {
           undefined, // hashtags
           shareToFeed,
           credential.id,
+          isAiGenerated,
         );
         externalId = reelResult.mediaId;
         externalShortcode = reelResult.shortcode;

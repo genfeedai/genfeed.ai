@@ -1099,3 +1099,24 @@ describe('X quoted post setting', () => {
     },
   );
 });
+
+describe('Instagram AI label setting', () => {
+  test('is on unless the target turns it off', () => {
+    expect(
+      resolveChannelTargetSettings(CredentialPlatform.INSTAGRAM, {}),
+    ).toMatchObject({ aiGenerated: true, placement: 'feed' });
+    expect(
+      resolveChannelTargetSettings(CredentialPlatform.INSTAGRAM, {
+        aiGenerated: false,
+      }),
+    ).toMatchObject({ aiGenerated: false });
+  });
+
+  test('rejects a value that is not a boolean', () => {
+    expect(
+      resolveChannelTargetSettings(CredentialPlatform.INSTAGRAM, {
+        aiGenerated: 'yes',
+      }),
+    ).toMatchObject({ aiGenerated: true });
+  });
+});
