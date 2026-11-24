@@ -181,7 +181,7 @@ export function parseInstagramGrantedScopes(value: unknown): string[] {
   return parseGrantedOAuthScopes(value);
 }
 
-function getInstagramGraphError(
+export function getInstagramGraphError(
   error: unknown,
 ): InstagramGraphErrorBody | undefined {
   const graphError = readInstagramErrorRecord(error);
@@ -236,6 +236,23 @@ export function isInstagramScopeError(error: unknown): boolean {
 export function isInstagramProfessionalAccountError(error: unknown): boolean {
   const message = getInstagramGraphError(error)?.message ?? '';
   return PROFESSIONAL_ACCOUNT_PATTERN.test(message);
+}
+
+/**
+ * Instagram answered the request with a client error (HTTP 400), the answer to
+ * a parameter it does not accept. Rate limits and authorization failures have
+ * their own checks and are not this.
+ */
+export function isInstagramRejectedRequestError(error: unknown): boolean {
+  const axiosError = error as
+    | AxiosError<InstagramErrorPayload>
+    | null
+    | undefined;
+  return (
+    axiosError?.response?.status === 400 &&
+    !isInstagramRateLimitError(error) &&
+    !isInstagramAuthorizationError(error)
+  );
 }
 
 export function isInstagramRateLimitError(error: unknown): boolean {

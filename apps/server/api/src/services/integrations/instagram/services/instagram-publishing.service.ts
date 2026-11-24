@@ -1,5 +1,9 @@
 import { requireMetaScopes } from '@api/services/integrations/_shared/meta-page-access.util';
 import { readInstagramVerificationPage } from '@api/services/integrations/instagram/services/instagram-verification-reader.util';
+import {
+  getInstagramGraphError,
+  isInstagramRejectedRequestError,
+} from '@api/services/integrations/instagram/utils/instagram-error.util';
 import type { ProviderVerificationPage } from '@api/services/integrations/publishers/interfaces/publish-verification.interface';
 import { InstagramMediaType } from '@genfeedai/contracts';
 import type {
@@ -25,14 +29,6 @@ function requireString(value: unknown, field: string): string {
   }
 
   return value;
-}
-
-/**
- * The AI label goes on the container that is published: the image, the Reel or
- * the carousel itself, never on a carousel child.
- */
-function aiGeneratedParam(isAiGenerated: boolean): { is_ai_generated?: true } {
-  return isAiGenerated ? { is_ai_generated: true } : {};
 }
 
 function formatCaption(caption: string, hashtags?: string[]): string {
@@ -205,19 +201,14 @@ export class InstagramPublishingService {
     const accessToken = EncryptionUtil.decrypt(credential.accessToken);
 
     try {
-      const createRes = await firstValueFrom(
-        this.httpService.post(
-          `${this.graphUrl}/${this.apiVersion}/${externalId}/media`,
-          null,
-          {
-            params: {
-              access_token: accessToken,
-              caption: formatCaption(caption, hashtags),
-              image_url: imageUrl,
-              ...aiGeneratedParam(isAiGenerated),
-            },
-          },
-        ),
+      const createRes = await this.createMediaContainer(
+        externalId,
+        {
+          access_token: accessToken,
+          caption: formatCaption(caption, hashtags),
+          image_url: imageUrl,
+        },
+        isAiGenerated,
       );
       const publishRes = await this.publishContainer(
         externalId,
@@ -265,18 +256,15 @@ export class InstagramPublishingService {
         media_type: InstagramMediaType.REELS,
         share_to_feed: isShareToFeedSelected,
         video_url: videoUrl,
-        ...aiGeneratedParam(isAiGenerated),
       };
       if (coverImageUrl) {
         params.cover_url = coverImageUrl;
       }
 
-      const createRes = await firstValueFrom(
-        this.httpService.post(
-          `${this.graphUrl}/${this.apiVersion}/${externalId}/media`,
-          null,
-          { params },
-        ),
+      const createRes = await this.createMediaContainer(
+        externalId,
+        params,
+        isAiGenerated,
       );
       const containerId = createRes.data.id;
       await this.waitForMediaProcessing(containerId, accessToken);
@@ -336,20 +324,15 @@ export class InstagramPublishingService {
         containerIds.push(response.data.id);
       }
 
-      const carouselRes = await firstValueFrom(
-        this.httpService.post(
-          `${this.graphUrl}/${this.apiVersion}/${externalId}/media`,
-          null,
-          {
-            params: {
-              access_token: accessToken,
-              caption: formatCaption(caption, hashtags),
-              children: containerIds.join(','),
-              media_type: InstagramMediaType.CAROUSEL,
-              ...aiGeneratedParam(isAiGenerated),
-            },
-          },
-        ),
+      const carouselRes = await this.createMediaContainer(
+        externalId,
+        {
+          access_token: accessToken,
+          caption: formatCaption(caption, hashtags),
+          children: containerIds.join(','),
+          media_type: InstagramMediaType.CAROUSEL,
+        },
+        isAiGenerated,
       );
       const publishRes = await this.publishContainer(
         externalId,
@@ -434,6 +417,46 @@ export class InstagramPublishingService {
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);
       throw error;
+    }
+  }
+
+  /**
+   * Creates the container that is published: the image, the Reel or the
+   * carousel itself, never a carousel child. The AI label rides on it. If
+   * Instagram refuses the request with a client error while the label is set,
+   * the same container is created once more without the label and the post
+   * goes out unlabelled, because a missed label costs less than a missed post.
+   * Nothing is published at this step, so the retry cannot post twice.
+   */
+  private async createMediaContainer(
+    externalId: string,
+    params: Record<string, string | boolean>,
+    isAiGenerated: boolean,
+  ) {
+    const create = (extra: Record<string, boolean>) =>
+      firstValueFrom(
+        this.httpService.post(
+          `${this.graphUrl}/${this.apiVersion}/${externalId}/media`,
+          null,
+          { params: { ...params, ...extra } },
+        ),
+      );
+
+    if (!isAiGenerated) {
+      return create({});
+    }
+
+    try {
+      return await create({ is_ai_generated: true });
+    } catch (error: unknown) {
+      if (!isInstagramRejectedRequestError(error)) {
+        throw error;
+      }
+      this.loggerService.warn(
+        'Instagram refused the container with the AI label; creating it again without the label',
+        { error: getInstagramGraphError(error)?.message },
+      );
+      return create({});
     }
   }
 

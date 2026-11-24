@@ -759,31 +759,6 @@ export class InstagramService {
   }
 
   /**
-   * Upload video as a reel (the default video upload method since VIDEO is deprecated)
-   * Alias to uploadReel.
-   */
-  public uploadVideo(
-    organizationId: string,
-    brandId: string,
-    videoUrl: string,
-    caption: string,
-    coverImageUrl?: string,
-    hashtags?: string[],
-    isShareToFeedSelected: boolean = true,
-  ): Promise<{ mediaId: string; shortcode: string }> {
-    // VIDEO media type is deprecated, so we use uploadReel instead
-    return this.uploadReel(
-      organizationId,
-      brandId,
-      videoUrl,
-      caption,
-      coverImageUrl,
-      hashtags,
-      isShareToFeedSelected,
-    );
-  }
-
-  /**
    * Post a comment on an Instagram media
    * @param organizationId The organization ID
    * @param brandId The brand ID
