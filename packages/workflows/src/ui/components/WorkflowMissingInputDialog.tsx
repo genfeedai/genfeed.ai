@@ -34,7 +34,7 @@ function MissingInputForm({ request }: { request: MissingInputRequest }) {
         label: input.label,
         required: true,
         type: input.type,
-        validation: input.validation,
+        validation: input.validation ? { ...input.validation } : undefined,
       })),
     [request],
   );
