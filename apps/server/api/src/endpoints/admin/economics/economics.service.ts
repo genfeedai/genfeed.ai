@@ -15,10 +15,12 @@ import {
   microsToUsd,
   minorToUsd,
   type NumericSqlValue,
+  percentOf,
   perUnitUsd,
   resolveEconomicsWindow,
   sumDailyAggregates,
   toNumber,
+  topCostSharePercent,
 } from '@api/endpoints/admin/economics/economics-report.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
@@ -49,6 +51,7 @@ const REPORTING_CURRENCY = 'usd';
 const LATEST_REVENUE_EVENTS_LIMIT = 50;
 const TOP_REVENUE_ORGANIZATIONS = 10;
 const COST_MODEL_ROW_LIMIT = 100;
+const TOP_MODELS_COUNT = 3;
 /** Workflow-attributed ledger rows count once they are settled. */
 const SETTLED_COST_EVIDENCE = ['observed', 'calculated', 'byok'];
 
@@ -56,6 +59,7 @@ interface DayRevenueRow {
   day: string;
   events: NumericSqlValue;
   revenueMinor: NumericSqlValue;
+  salesMinor: NumericSqlValue;
 }
 
 interface DayCostRow {
@@ -153,6 +157,11 @@ interface CreditSourceRow {
   source: string | null;
 }
 
+interface LlmCompletionRow {
+  costMicros: NumericSqlValue;
+  pricedCompletions: NumericSqlValue;
+}
+
 interface LlmSplitRow {
   chatCostMicros: NumericSqlValue;
   otherCostMicros: NumericSqlValue;
@@ -204,6 +213,7 @@ export class EconomicsService {
       const aggregate = dayFor(row.day);
       aggregate.revenueMinor += toNumber(row.revenueMinor);
       aggregate.revenueEvents += toNumber(row.events);
+      aggregate.salesMinor += toNumber(row.salesMinor);
     }
     for (const row of llm) {
       const aggregate = dayFor(row.day);
@@ -328,6 +338,16 @@ export class EconomicsService {
       (sum, row) => sum + toNumber(row.revenueMinor),
       0,
     );
+    // Adjustment rows are negative; the tiles show them as amounts taken out.
+    const adjustmentMinor = (...sources: string[]) =>
+      Math.abs(
+        bySource
+          .filter((row) => sources.includes(row.source))
+          .reduce((sum, row) => sum + toNumber(row.revenueMinor), 0),
+      );
+    const payingOrganizations = toNumber(
+      payingOrgs.find((row) => row.isCurrent)?.organizations,
+    );
 
     return {
       daily,
@@ -360,9 +380,20 @@ export class EconomicsService {
         averageRevenuePerEventUsd:
           events > 0 ? minorToUsd(salesMinor / events) : 0,
         events,
-        payingOrganizations: toNumber(
-          payingOrgs.find((row) => row.isCurrent)?.organizations,
+        payingOrganizations,
+        processingFeesUsd: minorToUsd(
+          adjustmentMinor(BillingRevenueSource.PROCESSING_FEE),
         ),
+        refundsAndDisputesUsd: minorToUsd(
+          adjustmentMinor(
+            BillingRevenueSource.REFUND,
+            BillingRevenueSource.DISPUTE,
+          ),
+        ),
+        revenuePerPayingOrganizationUsd:
+          payingOrganizations > 0
+            ? minorToUsd(revenueMinor / payingOrganizations)
+            : null,
         revenueUsd: minorToUsd(revenueMinor),
       },
     };
@@ -373,15 +404,23 @@ export class EconomicsService {
     const span = { from: window.from, toExclusive: window.toExclusive };
 
     // tenant-scope-ignore: superadmin cross-organization reporting
-    const [llmByDay, mediaByDay, models, flags, categories, creditsBySource] =
-      await Promise.all([
-        this.prisma.$queryRaw<DayCostRow[]>(this.llmByDaySql(span)),
-        this.prisma.$queryRaw<DayCostRow[]>(this.mediaByDaySql(span)),
-        this.prisma.$queryRaw<CostModelRow[]>(this.costModelsSql(span)),
-        this.prisma.$queryRaw<CostFlagsRow[]>(this.costFlagsSql(span)),
-        this.prisma.$queryRaw<MediaCategoryRow[]>(this.mediaCategorySql(span)),
-        this.prisma.$queryRaw<CreditSourceRow[]>(this.creditsBySourceSql(span)),
-      ]);
+    const [
+      llmByDay,
+      mediaByDay,
+      models,
+      flags,
+      categories,
+      creditsBySource,
+      completions,
+    ] = await Promise.all([
+      this.prisma.$queryRaw<DayCostRow[]>(this.llmByDaySql(span)),
+      this.prisma.$queryRaw<DayCostRow[]>(this.mediaByDaySql(span)),
+      this.prisma.$queryRaw<CostModelRow[]>(this.costModelsSql(span)),
+      this.prisma.$queryRaw<CostFlagsRow[]>(this.costFlagsSql(span)),
+      this.prisma.$queryRaw<MediaCategoryRow[]>(this.mediaCategorySql(span)),
+      this.prisma.$queryRaw<CreditSourceRow[]>(this.creditsBySourceSql(span)),
+      this.prisma.$queryRaw<LlmCompletionRow[]>(this.llmCompletionsSql(span)),
+    ]);
 
     const byDay = new Map<string, EconomicsDailyAggregate>();
     for (const row of llmByDay) {
@@ -419,6 +458,11 @@ export class EconomicsService {
         source: row.source,
       })),
     );
+
+    const providerCostUsd = Number((llmCostUsd + mediaCostUsd).toFixed(6));
+    const byokCalls = toNumber(flags[0]?.byokCalls);
+    const unpricedCalls = toNumber(flags[0]?.unpricedCalls);
+    const nonByokCalls = total.llmCalls + total.mediaGenerations - byokCalls;
 
     const daily: IEconomicsCostDailyPoint[] = enumerateWindowDays(window).map(
       (date) => {
@@ -463,10 +507,14 @@ export class EconomicsService {
       }),
       to: formatUtcDay(new Date(window.toExclusive.getTime() - 1)),
       totals: {
-        byokCalls: toNumber(flags[0]?.byokCalls),
+        byokCalls,
         costPerGenerationUsd: perUnitUsd(mediaCostUsd, mediaPricedGenerations),
         generationCreditValueUsd: generationCreditValue,
         llmCalls: total.llmCalls,
+        llmCostPerCompletionUsd: perUnitUsd(
+          microsToUsd(toNumber(completions[0]?.costMicros)),
+          toNumber(completions[0]?.pricedCompletions),
+        ),
         llmCostUsd,
         marginPerGenerationUsd: perUnitUsd(
           generationCreditValue - mediaCostUsd,
@@ -476,8 +524,15 @@ export class EconomicsService {
         mediaCostUsd,
         mediaGenerations: total.mediaGenerations,
         mediaPricedGenerations,
-        providerCostUsd: Number((llmCostUsd + mediaCostUsd).toFixed(6)),
-        unpricedCalls: toNumber(flags[0]?.unpricedCalls),
+        nonByokCalls,
+        providerCostUsd,
+        topModelsCostSharePercent: topCostSharePercent(
+          models.map((row) => microsToUsd(toNumber(row.costMicros))),
+          TOP_MODELS_COUNT,
+          providerCostUsd,
+        ),
+        unpricedCalls,
+        unpricedSharePercent: percentOf(unpricedCalls, nonByokCalls),
       },
     };
   }
@@ -588,6 +643,9 @@ export class EconomicsService {
       SELECT
         to_char("occurredAt", 'YYYY-MM-DD') AS "day",
         COALESCE(SUM("amountMinor"), 0)::bigint AS "revenueMinor",
+        COALESCE(SUM("amountMinor") FILTER (
+          WHERE "source" IN (${BillingRevenueSource.CREDIT_PURCHASE}, ${BillingRevenueSource.SUBSCRIPTION_INVOICE})
+        ), 0)::bigint AS "salesMinor",
         (COUNT(*) FILTER (WHERE "amountMinor" > 0))::bigint AS "events"
       FROM "billing_revenue_events"
       WHERE "isDeleted" = false
@@ -821,6 +879,26 @@ export class EconomicsService {
         ), 0)::bigint AS "otherCostMicros"
       FROM "llm_vendor_costs" l
       WHERE l."isDeleted" = false
+        AND ${this.settledCost('l')}
+        AND l."createdAt" >= ${span.from}
+        AND l."createdAt" < ${span.toExclusive}
+    `;
+  }
+
+  /**
+   * Agent-chat completions (rows carrying a thread) with a known price: not
+   * BYOK and not recorded at $0, so unpriced rows never pull the average down.
+   */
+  private llmCompletionsSql(span: Span): Prisma.Sql {
+    return Prisma.sql`
+      SELECT
+        COALESCE(SUM(l."vendorCostMicros"), 0)::bigint AS "costMicros",
+        COUNT(*)::bigint AS "pricedCompletions"
+      FROM "llm_vendor_costs" l
+      WHERE l."isDeleted" = false
+        AND l."isByok" = false
+        AND l."vendorCostMicros" > 0
+        AND l."threadId" IS NOT NULL
         AND ${this.settledCost('l')}
         AND l."createdAt" >= ${span.from}
         AND l."createdAt" < ${span.toExclusive}

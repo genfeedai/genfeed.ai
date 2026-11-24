@@ -76,6 +76,19 @@ export function perUnitUsd(costUsd: number, units: number): number | null {
   return units > 0 ? Number((costUsd / units).toFixed(6)) : null;
 }
 
+/** The cost of the `count` most expensive rows as a percent of `totalCostUsd`. */
+export function topCostSharePercent(
+  costsUsd: readonly number[],
+  count: number,
+  totalCostUsd: number,
+): number | null {
+  const top = [...costsUsd]
+    .sort((a, b) => b - a)
+    .slice(0, count)
+    .reduce((sum, cost) => sum + cost, 0);
+  return percentOf(top, totalCostUsd);
+}
+
 export function minorToUsd(minor: number): number {
   return Number((minor / MINOR_UNITS_PER_USD).toFixed(2));
 }
@@ -88,7 +101,7 @@ function roundUsd(value: number): number {
   return Number(value.toFixed(6));
 }
 
-function percentOf(part: number, whole: number): number | null {
+export function percentOf(part: number, whole: number): number | null {
   return whole > 0 ? Number(((part / whole) * 100).toFixed(2)) : null;
 }
 
@@ -101,6 +114,8 @@ export interface EconomicsDailyAggregate {
   mediaGenerations: number;
   revenueEvents: number;
   revenueMinor: number;
+  /** Credit pack and subscription payments only: what was sold. */
+  salesMinor: number;
 }
 
 export const EMPTY_ECONOMICS_DAILY_AGGREGATE: EconomicsDailyAggregate = {
@@ -111,6 +126,7 @@ export const EMPTY_ECONOMICS_DAILY_AGGREGATE: EconomicsDailyAggregate = {
   mediaGenerations: 0,
   revenueEvents: 0,
   revenueMinor: 0,
+  salesMinor: 0,
 };
 
 export function sumDailyAggregates(
@@ -125,6 +141,7 @@ export function sumDailyAggregates(
     total.mediaGenerations += aggregate.mediaGenerations;
     total.revenueEvents += aggregate.revenueEvents;
     total.revenueMinor += aggregate.revenueMinor;
+    total.salesMinor += aggregate.salesMinor;
   }
   return total;
 }
@@ -152,6 +169,10 @@ export function buildEconomicsTotals(
     activeOrganizations: organizations.active,
     creditsConsumed,
     creditValueUsd,
+    creditsPurchased:
+      aggregate.salesMinor > 0
+        ? Math.round(minorToUsd(aggregate.salesMinor) / AGENT_CREDIT_USD)
+        : null,
     grossMarginPercent: percentOf(grossMarginUsd, revenueUsd),
     grossMarginUsd,
     llmCalls: aggregate.llmCalls,

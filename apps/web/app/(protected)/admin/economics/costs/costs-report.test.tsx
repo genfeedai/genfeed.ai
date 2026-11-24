@@ -55,14 +55,18 @@ const report: IEconomicsCostReport = {
     costPerGenerationUsd: 0.25,
     generationCreditValueUsd: 1.5,
     llmCalls: 5,
+    llmCostPerCompletionUsd: 0.25,
     llmCostUsd: 1.5,
     marginPerGenerationUsd: 0.33,
     mediaChargedGenerations: 3,
     mediaCostUsd: 0.5,
     mediaGenerations: 4,
     mediaPricedGenerations: 2,
+    nonByokCalls: 6,
     providerCostUsd: 2,
+    topModelsCostSharePercent: 100,
     unpricedCalls: 2,
+    unpricedSharePercent: 33.3,
   },
 };
 
@@ -130,6 +134,26 @@ describe('EconomicsCostsReport', () => {
       .getByText('Margin per generation', { selector: 'p' })
       .closest('[data-testid="metric-card"]') as HTMLElement;
     expect(within(tile).getByText('$0.33')).toBeInTheDocument();
+  });
+
+  it('shows LLM cost per completion, the top model cost share and the unpriced share as tiles', () => {
+    render(<EconomicsCostsReport />);
+
+    const tileValue = (label: string) =>
+      within(
+        screen
+          .getByText(label, { selector: 'p' })
+          .closest('[data-testid="metric-card"]') as HTMLElement,
+      );
+    expect(
+      tileValue('LLM cost per completion').getByText('$0.25'),
+    ).toBeInTheDocument();
+    expect(
+      tileValue('Cost share of top 3 models').getByText('100.0%'),
+    ).toBeInTheDocument();
+    expect(
+      tileValue('Unpriced share of calls').getByText('33.3%'),
+    ).toBeInTheDocument();
   });
 
   it('counts unpriced calls on a tile that holds only a value and a label', () => {
