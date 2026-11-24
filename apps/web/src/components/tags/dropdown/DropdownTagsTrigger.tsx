@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
@@ -43,19 +43,14 @@ export default function DropdownTagsTrigger({
     <Button
       ref={buttonRef}
       withWrapper={false}
-      variant={ButtonVariant.UNSTYLED}
+      variant={ButtonVariant.GHOST}
+      size={ButtonSize.SM}
       onClick={onToggle}
       isDisabled={isDisabled}
       tooltip="Tags"
       tooltipPosition="top"
       ariaLabel="Manage tags"
-      className={cn(
-        'h-8 rounded-lg px-2 hover:bg-accent normal-case flex items-center gap-2 hover:bg-background',
-        hasSelectedTags ? 'text-foreground' : 'text-foreground/70',
-        className,
-        isDisabled && 'opacity-50 cursor-not-allowed',
-        !showLabel && hasSelectedTags && 'relative',
-      )}
+      className={cn(!showLabel && hasSelectedTags && 'relative', className)}
     >
       <Hash className="size-4" />
       {buttonContent}

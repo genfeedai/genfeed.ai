@@ -29,7 +29,6 @@ export default function PostSignupFallback({
             window.location.href = href;
           });
         }}
-        className="h-8 px-3"
       />
     </Card>
   );

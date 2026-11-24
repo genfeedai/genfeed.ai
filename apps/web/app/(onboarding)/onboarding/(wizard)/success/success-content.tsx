@@ -10,6 +10,7 @@ import { useGsapTimeline } from '@hooks/ui/use-gsap-entrance';
 import { logger } from '@services/core/logger.service';
 import { UsersService } from '@services/organization/users.service';
 import { Button } from '@ui/primitives/button';
+import { Toggle } from '@ui/primitives/toggle';
 import {
   CircleCheck,
   ImageIcon,
@@ -155,16 +156,11 @@ export default function SuccessContent() {
             const isSelected = selected.has(id);
 
             return (
-              <Button
+              <Toggle
                 key={id}
-                variant={ButtonVariant.UNSTYLED}
-                withWrapper={false}
-                onClick={() => toggleType(id)}
-                className={`inline-flex items-center gap-2 px-4 py-2 border text-sm transition-colors ${
-                  isSelected
-                    ? 'ring-1 ring-border-strong bg-hover text-foreground border-transparent'
-                    : 'border-border bg-tertiary text-muted-foreground hover:border-border-strong'
-                }`}
+                variant="outline"
+                pressed={isSelected}
+                onPressedChange={() => toggleType(id)}
               >
                 <Icon className="size-4" />
                 {title}
@@ -184,7 +180,7 @@ export default function SuccessContent() {
                     />
                   </svg>
                 )}
-              </Button>
+              </Toggle>
             );
           })}
         </div>

@@ -107,7 +107,9 @@ export default function ProvidersActionBar({
             {/* ui-guard-allow:selection-button -- primary call to action for the current surface, not a choice group */}
             <Button
               variant={
-                surface === 'saas' ? ButtonVariant.DEFAULT : ButtonVariant.GHOST
+                surface === 'saas'
+                  ? ButtonVariant.DEFAULT
+                  : ButtonVariant.SECONDARY
               }
               size={ButtonSize.SM}
               onClick={() => {
@@ -120,7 +122,7 @@ export default function ProvidersActionBar({
               }
               disabled={loading || pendingMode !== null}
               wrapperClassName="w-full md:w-auto"
-              className={`w-full rounded-full border border-border bg-tertiary text-foreground hover:border-border-strong hover:bg-hover md:w-auto ${
+              className={`w-full md:w-auto ${
                 selectedMode === 'cloud' ? CURRENT_RING : ''
               }`}
             />
@@ -130,12 +132,11 @@ export default function ProvidersActionBar({
 
       <div className="provider-card opacity-0 flex items-center justify-between gap-4 pt-2">
         <Button
-          variant={ButtonVariant.GHOST}
+          variant={ButtonVariant.SECONDARY}
           size={ButtonSize.SM}
           withWrapper={false}
           onClick={onBack}
           icon={<ArrowLeft className="size-4" />}
-          className="h-8 rounded-full border border-border bg-tertiary px-4 hover:border-border-strong hover:bg-hover"
         >
           Back
         </Button>

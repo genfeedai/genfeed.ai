@@ -193,7 +193,7 @@ describe('ClipperInputForm', () => {
   it('switches to a long-form upload and accepts an audio file', () => {
     const { props } = renderForm();
     fireEvent.click(
-      screen.getByRole('button', { name: /upload audio or video/i }),
+      screen.getByRole('radio', { name: /upload audio or video/i }),
     );
     expect(props.onSetSourceKind).toHaveBeenCalledWith('upload');
 
