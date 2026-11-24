@@ -1,4 +1,4 @@
-import { CredentialPlatform, TargetExecutionState } from '@genfeedai/contracts';
+import { TargetExecutionState } from '@genfeedai/contracts';
 import type { IPost } from '@genfeedai/contracts/interfaces';
 
 /**
@@ -12,27 +12,5 @@ export function isPostPublished(
   return (
     Boolean(post.publicationDate) ||
     post.targetExecutionState === TargetExecutionState.PUBLISHED
-  );
-}
-
-/** TikTok's Inbox receipt finishes the target without a public post. */
-export function isTikTokInboxDelivered(
-  post: Pick<
-    IPost,
-    | 'platform'
-    | 'targetExecutionState'
-    | 'externalId'
-    | 'publicationDate'
-    | 'publishedAt'
-    | 'url'
-  >,
-): boolean {
-  return (
-    post.platform === CredentialPlatform.TIKTOK &&
-    post.targetExecutionState === TargetExecutionState.PUBLISHED &&
-    Boolean(post.externalId) &&
-    !post.publicationDate &&
-    !post.publishedAt &&
-    !post.url
   );
 }

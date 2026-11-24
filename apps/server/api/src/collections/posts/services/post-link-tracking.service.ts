@@ -5,7 +5,10 @@ import {
 } from '@api/collections/posts/services/post-link-tracking.util';
 import { recordExternalPublicationWrite } from '@api/collections/posts/services/post-publication-capture.write';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
-import { YoutubeMetadataService } from '@api/services/integrations/youtube/services/modules/youtube-metadata.service';
+import {
+  YoutubeMetadataService,
+  type YoutubeVideoMetadata,
+} from '@api/services/integrations/youtube/services/modules/youtube-metadata.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type {
   ExtensionPublicationCaptureInput,
@@ -18,6 +21,7 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 
 const LINKEDIN_POST_URN_PATTERN = /urn:li:(?:share|ugcPost):\d+/;
@@ -119,10 +123,14 @@ export class PostLinkTrackingService {
     } else if (normalized.platform === 'youtube') {
       if (!normalized.externalId)
         throw new BadRequestException('Invalid YouTube video link');
-      const video = await this.youtube.getVideoMetadata(normalized.externalId);
-      if (!video?.channelId || !video.publishedAt)
+      const video = await this.readYoutubeVideo(
+        normalized.externalId,
+        scope.organizationId,
+        scope.brandId,
+      );
+      if (!video.channelId || !video.publishedAt)
         throw new BadRequestException(
-          "Couldn't read that YouTube video. It may be private, unavailable or not found.",
+          "Couldn't read that YouTube video's channel or publication date.",
         );
       capture.description = video.title || video.description || '';
       capture.publicationDate = video.publishedAt.toISOString();
@@ -144,5 +152,65 @@ export class PostLinkTrackingService {
     return recordExternalPublicationWrite(this.prisma, capture, scope, {
       origin: 'link',
     });
+  }
+
+  /**
+   * Reads a video with the server's API key when one is configured, then as the
+   * brand's connected YouTube channel, so an owned unlisted or private video
+   * resolves too. Each failure names its cause.
+   */
+  private async readYoutubeVideo(
+    videoId: string,
+    organizationId: string,
+    brandId: string,
+  ): Promise<YoutubeVideoMetadata> {
+    const hasApiKey = this.youtube.isApiKeyConfigured();
+    if (hasApiKey) {
+      const video = await this.youtube.getVideoMetadata(videoId);
+      if (video) return video;
+    }
+
+    const credentials = await this.prisma.credential.findMany({
+      where: {
+        organizationId,
+        brandId,
+        platform: CredentialPlatform.YOUTUBE,
+        isDeleted: false,
+        isConnected: true,
+      },
+      select: { id: true },
+      take: 5,
+    });
+    if (credentials.length === 0) {
+      if (!hasApiKey)
+        throw new ServiceUnavailableException(
+          "YouTube links can't be read yet: the server has no YOUTUBE_API_KEY and this brand has no connected YouTube channel. Connect the channel that owns the video, or ask an administrator to set YOUTUBE_API_KEY.",
+        );
+      throw new BadRequestException(
+        "Couldn't read that YouTube video. It may be private, unavailable or not found. To track a private or unlisted video, connect the YouTube channel that owns it.",
+      );
+    }
+
+    let isChannelUnreachable = false;
+    for (const credential of credentials) {
+      try {
+        const video = await this.youtube.getVideoMetadataAsChannel(
+          organizationId,
+          brandId,
+          videoId,
+          credential.id,
+        );
+        if (video) return video;
+      } catch {
+        isChannelUnreachable = true;
+      }
+    }
+    if (isChannelUnreachable)
+      throw new BadRequestException(
+        "Couldn't read that YouTube video with the connected channel. Reconnect the YouTube channel and try again.",
+      );
+    throw new BadRequestException(
+      "Couldn't read that YouTube video. It may be private, unavailable or not found.",
+    );
   }
 }

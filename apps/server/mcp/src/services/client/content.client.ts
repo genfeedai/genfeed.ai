@@ -51,6 +51,16 @@ function countWords(content: string): number {
   return trimmed ? trimmed.split(WHITESPACE_RUN_PATTERN).length : 0;
 }
 
+/**
+ * The API says when a `published` TikTok target is an Inbox receipt the creator
+ * still has to publish in TikTok. Carry it so no result reports a live post.
+ */
+function inboxDeliveryFlag(
+  attributes: PostResource['attributes'],
+): Pick<PostResponse, 'isInboxDelivery'> {
+  return attributes?.isInboxDelivery === true ? { isInboxDelivery: true } : {};
+}
+
 function reviewedArticleResponse(
   article: ArticleResource | undefined,
 ): ArticleResponse {
@@ -227,12 +237,16 @@ export class ContentClient {
     return this.base.request(
       'searching articles',
       async (http) => {
+        // The articles API reads flat `search`, `category`, `status`, `limit`
+        // and `page` keys; JSON:API `filter[...]`/`page[...]` keys are ignored.
+        const limit = params.limit || 10;
         const response = await http.get('/articles', {
           params: {
-            'filter[category]': params.category,
-            'filter[search]': params.query,
-            'page[limit]': params.limit || 10,
-            'page[offset]': params.offset || 0,
+            category: params.category,
+            limit,
+            page: Math.floor((params.offset || 0) / limit) + 1,
+            search: params.query,
+            status: ArticleStatus.PUBLISHED,
           },
         });
 
@@ -311,6 +325,7 @@ export class ContentClient {
                 post.attributes?.targetExecutionState ??
                   post.attributes?.executionState,
               ) ?? TargetExecutionState.PUBLISHING,
+            ...inboxDeliveryFlag(post.attributes),
             platform:
               toPlatform(post.attributes?.platform) ??
               params.platforms[index] ??
@@ -335,6 +350,7 @@ export class ContentClient {
                 posts?.attributes?.targetExecutionState ??
                   posts?.attributes?.executionState,
               ) ?? TargetExecutionState.PUBLISHING,
+            ...inboxDeliveryFlag(posts?.attributes),
             platform:
               toPlatform(posts?.attributes?.platform) ?? params.platforms[0],
             publishedAt: posts?.attributes?.publishedAt,
@@ -379,6 +395,7 @@ export class ContentClient {
                 post.attributes?.targetExecutionState ??
                   post.attributes?.executionState,
               ) ?? TargetExecutionState.DRAFT,
+            ...inboxDeliveryFlag(post.attributes),
             platform: toPlatform(post.attributes?.platform),
             publishedAt: post.attributes?.publishedAt,
             publishedUrl: post.attributes?.publishedUrl,

@@ -8,7 +8,7 @@ import { Button } from '@ui/primitives/button';
 import { hoverRevealClassName } from '@ui/styles/hover-reveal';
 import { Sparkles, Upload } from 'lucide-react';
 
-const ICON_BUTTON_CLASS = 'size-8 shrink-0 p-0 [&_svg]:size-3.5';
+const ICON_BUTTON_CLASS = 'shrink-0 [&_svg]:size-3.5';
 
 export default function BrandDetailBanner({
   brand,

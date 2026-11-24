@@ -1,6 +1,7 @@
 'use client';
 
 import { ButtonVariant, CredentialPlatform } from '@genfeedai/contracts';
+import { isTikTokInboxDelivered } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
 import { Button } from '@ui/primitives/button';
@@ -16,7 +17,6 @@ import { ChevronDown } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
-import { isTikTokInboxDelivered } from '@/features/posts/detail/post-published.helper';
 import type { PostSidebarWhenDockProps } from '@/props/components/post-detail-sidebar.props';
 
 import { getPlatformLabel } from './PostSidebarDestination';

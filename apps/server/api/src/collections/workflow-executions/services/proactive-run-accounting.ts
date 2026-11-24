@@ -1,4 +1,5 @@
 import type { AgentStrategiesService } from '@api/collections/agent-strategies/services/agent-strategies.service';
+import { PUBLISHED_AND_LIVE_WHERE } from '@api/collections/posts/services/post-inbox-delivery.filter';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import {
   AgentStrategyRunStatus,
@@ -198,7 +199,7 @@ export async function recordProactiveRunCompletion(
     where: scopedWhere(execution.organizationId, {
       workflowExecutionId: execution.id,
       agentStrategyId: proactive.strategyId,
-      targetExecutionState: TargetExecutionState.PUBLISHED,
+      ...PUBLISHED_AND_LIVE_WHERE,
     }),
   });
   const summary = `${contentGenerated} posts created; ${publishedCount} published; ${pendingReviewCount} waiting for review. ${creditsUsed} credits used.${outcome.failed ? ' The run failed; inspect its activity before retrying.' : ''}`;

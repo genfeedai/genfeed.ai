@@ -132,6 +132,16 @@ vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   }),
 }));
 
+const routedOrganizationState = vi.hoisted(() => ({
+  status: 'matched' as 'failed' | 'loading' | 'matched' | 'switching',
+}));
+vi.mock(
+  '@genfeedai/contexts/user/organization-context/organization-context',
+  () => ({
+    useRoutedOrganization: () => ({ status: routedOrganizationState.status }),
+  }),
+);
+
 vi.mock('@ui/primitives/button', () => ({
   Button: ({
     children,
@@ -237,6 +247,7 @@ describe('AppProtectedBrandSwitcher', () => {
   beforeEach(() => {
     mockSearchParams = new URLSearchParams();
     mockPathname.value = '/acme/brand/workspace';
+    routedOrganizationState.status = 'matched';
     brandSwitcherSpy.mockClear();
     brandContextState.brands = [
       {
@@ -268,6 +279,33 @@ describe('AppProtectedBrandSwitcher', () => {
     render(<AppProtectedBrandSwitcher orgSlug="acme" brandSlug="brand" />);
 
     expect(screen.getByTestId('brand-switcher')).toHaveTextContent('labeled');
+  });
+
+  it('withholds the previous organization brand while an organization switch is under way', () => {
+    const { rerender } = render(
+      <AppProtectedBrandSwitcher orgSlug="acme" brandSlug="brand" />,
+    );
+
+    expect(
+      screen.getByRole('button', { name: 'labeled:brand' }),
+    ).toBeInTheDocument();
+
+    routedOrganizationState.status = 'switching';
+    rerender(<AppProtectedBrandSwitcher orgSlug="acme" brandSlug="brand" />);
+
+    expect(
+      screen.queryByRole('button', { name: /labeled:/ }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Clear brand selection' }),
+    ).not.toBeInTheDocument();
+
+    routedOrganizationState.status = 'matched';
+    rerender(<AppProtectedBrandSwitcher orgSlug="acme" brandSlug="brand" />);
+
+    expect(
+      screen.getByRole('button', { name: 'labeled:brand' }),
+    ).toBeInTheDocument();
   });
 
   it('renders nothing in admin chrome', () => {

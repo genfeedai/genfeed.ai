@@ -4,6 +4,7 @@ import type {
   SystemWorkflowRunnerService,
   SystemWorkflowTerminalFailureHandler,
 } from '@api/collections/workflows/system-workflow-runner.service';
+import type { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import type { PublicClipperToolStoreService } from '@api/services/public-clipper-tool/public-clipper-tool-store.service';
 import type { WhisperService } from '@api/services/whisper/whisper.service';
 import type { ConfigService } from '@libs/config/config.service';
@@ -59,23 +60,28 @@ describe('ClipperAnalysisWorkflowService', () => {
     registerWorkflow: vi.fn(),
   };
   const highlightDetector = { detectHighlights: vi.fn() };
+  const filesClient = { getPresignedDownloadUrlForObjectKey: vi.fn() };
+  const config = {
+    get: vi.fn(),
+    isAuthorizedMediaDeliveryEnabled: false,
+    isDevelopment: true,
+  };
   const service = new ClipperAnalysisWorkflowService(
     { error: vi.fn(), warn: vi.fn() } as unknown as LoggerService,
     clipperProjects as unknown as ClipperProjectsService,
     whisper as unknown as WhisperService,
     http as unknown as HttpService,
-    {
-      get: vi.fn(),
-      isDevelopment: true,
-    } as unknown as ConfigService,
+    config as unknown as ConfigService,
     highlightDetector as unknown as ClipperHighlightDetector,
     {
       patchByWorkerProjectId: vi.fn(),
     } as unknown as PublicClipperToolStoreService,
     runner as unknown as SystemWorkflowRunnerService,
+    filesClient as unknown as FilesClientService,
   );
 
   beforeEach(() => {
+    config.isAuthorizedMediaDeliveryEnabled = false;
     actions.clear();
     vi.clearAllMocks();
     clipperProjects.findOne.mockReset();
@@ -333,6 +339,70 @@ describe('ClipperAnalysisWorkflowService', () => {
       expect(http.post).not.toHaveBeenCalled();
     }
   });
+  describe('extracted audio under authorized media delivery', () => {
+    const prepareUpload = () =>
+      actions.get('clipper.analysis.prepare-source')?.({
+        input: {
+          job: {
+            orgId: 'org-1',
+            projectId: 'project-1',
+            source: {
+              artifact: {
+                contentType: 'video/mp4',
+                mediaUrl: 'https://cdn.test/ingredients/videos/upload-1',
+                storageKey: 'videos/upload-1',
+              },
+              contentType: 'video/mp4',
+              ingredientId: 'upload-1',
+              kind: 'upload',
+            },
+            userId: 'user-1',
+            youtubeUrl: 'https://cdn.test/ingredients/videos/upload-1',
+          },
+        },
+      } as never);
+    const finishExtraction = () => {
+      http.post.mockReturnValue(of({ data: { jobId: 'audio-3' } }));
+      http.get.mockReturnValue(
+        of({
+          data: {
+            state: 'completed',
+            result: {
+              s3Key: 'audio/project-1.mp3',
+              url: 'https://cdn.test/audio/project-1.mp3',
+            },
+          },
+        }),
+      );
+    };
+
+    it('transcribes from a signed read of the extracted audio key', async () => {
+      config.isAuthorizedMediaDeliveryEnabled = true;
+      filesClient.getPresignedDownloadUrlForObjectKey.mockResolvedValue(
+        'https://storage.test/audio/project-1.mp3?signature=abc',
+      );
+      finishExtraction();
+
+      await expect(prepareUpload()).resolves.toMatchObject({
+        audioUrl: 'https://storage.test/audio/project-1.mp3?signature=abc',
+      });
+      expect(
+        filesClient.getPresignedDownloadUrlForObjectKey,
+      ).toHaveBeenCalledWith('audio/project-1.mp3');
+    });
+
+    it('keeps the CDN URL when media delivery is not authorized', async () => {
+      finishExtraction();
+
+      await expect(prepareUpload()).resolves.toMatchObject({
+        audioUrl: 'https://cdn.test/audio/project-1.mp3',
+      });
+      expect(
+        filesClient.getPresignedDownloadUrlForObjectKey,
+      ).not.toHaveBeenCalled();
+    });
+  });
+
   it('keeps the files service reason when audio extraction fails', async () => {
     http.post.mockReturnValue(of({ data: { jobId: 'job-7' } }));
     http.get.mockReturnValue(

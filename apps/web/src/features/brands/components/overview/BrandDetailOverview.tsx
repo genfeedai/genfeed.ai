@@ -17,7 +17,7 @@ import { Copy, Share2, Sparkles, Upload } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 
-const ICON_BUTTON_CLASS = 'size-8 shrink-0 p-0 [&_svg]:size-3.5';
+const ICON_BUTTON_CLASS = 'shrink-0 [&_svg]:size-3.5';
 
 export default function BrandDetailOverview({
   brand,

@@ -13,13 +13,17 @@ signup and billing continue, with no notification delivery calls. The start
 time prevents historical signup floods: events that occurred earlier are never
 recorded.
 
-Set `SYSTEM_NOTIFICATIONS_DISCORD_WEBHOOK_URL` on the notifications service to
-an incoming webhook owned by your deployment. Hosted SaaS allowlists that name
-on the notifications task, which is the process that posts to Discord.
-API/workers use the existing
+Add the destinations that should receive alerts through the admin API:
+`POST /v1/admin/system-notifications/destinations` creates one,
+`PATCH` and `DELETE` on `/destinations/:id` change or remove it, and
+`POST /destinations/:id/test` sends a test message. A Discord destination is an
+incoming webhook owned by your deployment; the secret URL is stored encrypted and
+is never returned. Discord channel alerts that go through the bot use the channel
+IDs saved in the Discord channels settings, and
+`POST /discord-channels/:channel/test` checks one. API and workers use the existing
 `GENFEEDAI_MICROSERVICES_NOTIFICATIONS_URL` and `GENFEEDAI_API_KEY` configuration,
 just as acknowledged email delivery does. No additional receiver endpoint,
-external account, bot token or event signing secret is required.
+external account or event signing secret is required.
 
 Apply the additive outbox/settings migrations before enabling recording.
 Notification settings, history and retry scheduling are available through

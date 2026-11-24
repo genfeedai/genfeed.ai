@@ -184,4 +184,34 @@ describe('buildPostTargetPreview', () => {
 
     expect(preview?.target.executionState).toBe(TargetExecutionState.PUBLISHED);
   });
+
+  it('shows a TikTok Inbox delivery as a draft, not as published', () => {
+    const preview = buildPostTargetPreview(
+      makePost({
+        externalId: 'v_inbox_url~receipt',
+        platform: Platform.TIKTOK,
+        publicationDate: undefined,
+        targetExecutionState: TargetExecutionState.PUBLISHED,
+      }),
+      'Inbox clip',
+      undefined,
+    );
+
+    expect(preview?.target.executionState).toBe(TargetExecutionState.DRAFT);
+  });
+
+  it('still shows a TikTok post with a public URL as published', () => {
+    const preview = buildPostTargetPreview(
+      makePost({
+        externalId: '7300000000000000000',
+        platform: Platform.TIKTOK,
+        targetExecutionState: TargetExecutionState.PUBLISHED,
+        url: 'https://www.tiktok.com/@brand/video/7300000000000000000',
+      }),
+      'Live clip',
+      undefined,
+    );
+
+    expect(preview?.target.executionState).toBe(TargetExecutionState.PUBLISHED);
+  });
 });

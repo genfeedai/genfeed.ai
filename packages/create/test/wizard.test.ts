@@ -46,3 +46,48 @@ describe('setup wizard --yes', () => {
     );
   });
 });
+
+describe('setup wizard interactive prompt', () => {
+  it('masks input before the hidden prompt is shown', async () => {
+    const events: string[] = [];
+    vi.resetModules();
+    vi.doMock('node:readline/promises', () => ({
+      createInterface: () => {
+        events.push('reader');
+        return {
+          once: () => undefined,
+          question: async () => 'sk-or-offline-fixture',
+          close: () => undefined,
+        };
+      },
+    }));
+    const { configureEnvironment: configure } = await import(
+      '../src/wizard.js'
+    );
+    vi.stubEnv('OPENROUTER_API_KEY', '');
+    vi.stubEnv('SELFHOSTED_DOMAIN', '');
+    const hadTty = Object.getOwnPropertyDescriptor(process.stdin, 'isTTY');
+    Object.defineProperty(process.stdin, 'isTTY', {
+      configurable: true,
+      value: true,
+    });
+    const output = vi
+      .spyOn(process.stdout, 'write')
+      .mockImplementation((chunk) => {
+        events.push(`write:${String(chunk).trim()}`);
+        return true;
+      });
+    try {
+      await configure('', false);
+    } finally {
+      output.mockRestore();
+      if (hadTty) Object.defineProperty(process.stdin, 'isTTY', hadTty);
+      else Reflect.deleteProperty(process.stdin, 'isTTY');
+      vi.doUnmock('node:readline/promises');
+    }
+    expect(events.indexOf('reader')).toBeGreaterThanOrEqual(0);
+    expect(events.indexOf('reader')).toBeLessThan(
+      events.indexOf('write:OpenRouter API key (hidden):'),
+    );
+  });
+});

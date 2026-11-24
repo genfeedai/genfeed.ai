@@ -1,6 +1,7 @@
 import { getActionOriginContext } from '@api/action-origin/action-origin.context';
 import { testMcpApprovalPricing } from '@api/collections/mcp-approvals/schemas/mcp-approval-pricing.fixture';
 import { approvalGenerationConstraint } from '@api/collections/mcp-approvals/schemas/mcp-approval-pricing.schema';
+import { postRollupExecutionStateFilter } from '@api/collections/posts/services/post-inbox-delivery.filter';
 import {
   agentPostPreviewInclude,
   agentPostPreviewPopulate,
@@ -2255,9 +2256,9 @@ describe('AgentToolExecutorService', () => {
         include: agentPostPreviewInclude(testId('org')),
         orderBy: { createdAt: -1 },
         where: {
+          AND: [postRollupExecutionStateFilter(TargetExecutionState.DRAFT)],
           isDeleted: false,
           organizationId: testId('org'),
-          targetExecutionState: TargetExecutionState.DRAFT,
         },
       },
       { limit: 10 },

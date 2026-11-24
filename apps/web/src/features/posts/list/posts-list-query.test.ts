@@ -9,6 +9,7 @@ import { fetchPosts } from '@/features/posts/list/components/posts-query.helpers
 import {
   buildPostsListQueryKey,
   getDefaultPostsSort,
+  hasLivePosts,
   parsePostsPublicationState,
   parsePostsStatus,
 } from '@/features/posts/list/posts-list-query';
@@ -185,5 +186,33 @@ describe('posts list query helpers', () => {
     expect(findOrganizationPostsPage.mock.calls[0]?.[1]).not.toHaveProperty(
       'status',
     );
+  });
+});
+
+describe('hasLivePosts', () => {
+  it('does not count a TikTok Inbox receipt as a live post', () => {
+    expect(
+      hasLivePosts([
+        {
+          isInboxDelivery: true,
+          targetExecutionState: TargetExecutionState.PUBLISHED,
+        },
+      ]),
+    ).toBe(false);
+  });
+
+  it('counts a published post that is not an Inbox receipt', () => {
+    expect(
+      hasLivePosts([
+        {
+          isInboxDelivery: true,
+          targetExecutionState: TargetExecutionState.PUBLISHED,
+        },
+        { targetExecutionState: TargetExecutionState.PUBLISHED },
+      ]),
+    ).toBe(true);
+    expect(
+      hasLivePosts([{ targetExecutionState: TargetExecutionState.DRAFT }]),
+    ).toBe(false);
   });
 });

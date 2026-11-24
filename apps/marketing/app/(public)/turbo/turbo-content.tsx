@@ -120,8 +120,8 @@ export default function TurboContent() {
             Nothing posts without you
           </Heading>
           <Text className="text-foreground/70">
-            Every draft waits for your approval. Reject one and tell us why; the
-            next batch learns from it.
+            Every draft waits for your approval. Reject one and tell us why; we
+            keep your reason with it.
           </Text>
         </section>
         <section className="gsap-section max-w-4xl mx-auto pb-16 px-6">
@@ -129,11 +129,11 @@ export default function TurboContent() {
             as="h2"
             className="text-2xl font-semibold mb-2 text-foreground"
           >
-            Gets sharper every batch
+            Learns from what you approve
           </Heading>
           <Text className="text-foreground/70">
-            Turbo learns from what you approve and what performs, so each batch
-            fits your brand better.
+            Drafts you approve become examples for your next batches, and once
+            you have published posts, the ones that perform guide them too.
           </Text>
         </section>
         <section className="max-w-4xl mx-auto pb-16 px-6">

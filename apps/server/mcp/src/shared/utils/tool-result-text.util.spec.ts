@@ -164,6 +164,22 @@ describe('MCP readable tool results', () => {
     ).toContain('25 more');
   });
 
+  it('reads a TikTok Inbox receipt as delivered, not published', () => {
+    const inbox = formatToolData({
+      isInboxDelivery: true,
+      label: 'Launch clip',
+      state: 'published',
+      status: 'public',
+    });
+    expect(inbox).toContain('State: Delivered to TikTok Inbox');
+    expect(inbox).toContain('Status: Delivered to TikTok Inbox');
+    expect(inbox).not.toMatch(/Published|Public/);
+
+    expect(
+      formatToolData({ label: 'Live clip', state: 'published' }),
+    ).toContain('State: Published');
+  });
+
   it('keeps validation and token health metrics visible, while omitting auth material', () => {
     const text = formatToolData({
       isValid: false,

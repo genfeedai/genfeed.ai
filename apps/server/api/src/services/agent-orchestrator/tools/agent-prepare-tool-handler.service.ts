@@ -198,6 +198,11 @@ export class AgentPrepareToolHandler {
               generationType === 'video'
                 ? duration || DEFAULT_AGENT_VIDEO_DURATION_SECONDS
                 : undefined,
+            // A video card starts as a draft; only an explicit full-render
+            // request skips it (#7727).
+            ...(generationType === 'video' && params.isDraft === false
+              ? { isDraft: false }
+              : {}),
             model,
             prompt,
             ...(useIdentity ? { useIdentity: true } : {}),

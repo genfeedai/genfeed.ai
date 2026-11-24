@@ -10,7 +10,6 @@ async function ask(
   cancellation: InstallationLifecycle,
 ): Promise<string> {
   cancellation.signal.throwIfAborted();
-  process.stdout.write(question);
   const output = secret
     ? new Writable({
         write(_chunk, _encoding, done) {
@@ -23,6 +22,9 @@ async function ask(
     output,
     terminal: true,
   });
+  // The reader puts the terminal in raw mode as it is created. Show the prompt
+  // only after that, or a key pasted the moment the prompt appears is echoed.
+  process.stdout.write(question);
   let isFinished = false;
   reader.once('SIGINT', () => cancellation.interrupt('SIGINT'));
   reader.once('close', () => {

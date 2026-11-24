@@ -36,6 +36,7 @@ import {
   isCredentialAtRisk,
   isManualPostTarget,
 } from '@/features/posts/release/release-target-actions.helpers';
+import ReleaseTargetStateBadge from '@/features/posts/shared/ReleaseTargetStateBadge';
 import {
   badgeVariantForTone,
   isReleaseReschedulable,
@@ -44,7 +45,6 @@ import {
   releaseStatusBadge,
   releaseTargets,
   releaseTimeline,
-  targetStateBadge,
   validationBadge,
 } from '@/features/posts/shared/release-status.helpers';
 import { formatInstant } from './format-instant';
@@ -172,7 +172,6 @@ export default function ReleaseDetailsView({
           </p>
         ) : (
           targets.map((target) => {
-            const stateBadge = targetStateBadge(target.executionState);
             const validation = validationBadge(target.validationState);
             const isPublished =
               target.executionState === TargetExecutionState.PUBLISHED;
@@ -200,9 +199,10 @@ export default function ReleaseDetailsView({
                   <span className="font-medium text-foreground">
                     {platform}
                   </span>
-                  <Badge variant={badgeVariantForTone(stateBadge.tone)}>
-                    {stateBadge.label}
-                  </Badge>
+                  <ReleaseTargetStateBadge
+                    executionState={target.executionState}
+                    isInboxDelivery={target.isInboxDelivery}
+                  />
                   <Badge variant={badgeVariantForTone(validation.tone)}>
                     {validation.label}
                   </Badge>

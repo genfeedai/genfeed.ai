@@ -4,7 +4,7 @@ import type { CacheOptions } from '@api/shared/interfaces/cache/cache.interfaces
 import type { CallHandler, ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Test, type TestingModule } from '@nestjs/testing';
-import { firstValueFrom, of, throwError } from 'rxjs';
+import { defer, firstValueFrom, mergeAll, of, throwError } from 'rxjs';
 
 const drainPromises = () =>
   new Promise<void>((resolve) => setImmediate(resolve));
@@ -403,6 +403,156 @@ describe('RedisCacheInterceptor', () => {
 
       expect(value).toEqual(resultWithoutCache);
       expect(cacheService.set).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('concurrent misses for one key', () => {
+    function deferred<T>() {
+      let resolve!: (value: T) => void;
+      let reject!: (reason: unknown) => void;
+      const promise = new Promise<T>((res, rej) => {
+        resolve = res;
+        reject = rej;
+      });
+      return { promise, reject, resolve };
+    }
+
+    // Each HTTP request is its own object; one context per request.
+    function contextForNewRequest(): ExecutionContext {
+      const request = { ...mockRequest };
+      return {
+        ...mockExecutionContext,
+        switchToHttp: vi.fn().mockReturnValue({
+          getRequest: vi.fn().mockReturnValue(request),
+        }),
+      } as ExecutionContext;
+    }
+
+    beforeEach(() => {
+      reflector.get.mockReturnValue({ ttl: 300 } satisfies CacheOptions);
+      cacheService.get.mockResolvedValue(null);
+    });
+
+    it('does not wait for itself when the same instance runs twice for one request', async () => {
+      let calls = 0;
+      const handler: CallHandler = {
+        handle: () => {
+          calls += 1;
+          return of({ run: calls });
+        },
+      };
+      // The global registration wraps the controller's own: the outer handle()
+      // runs the same interceptor again for the same request and key.
+      const outer: CallHandler = {
+        handle: () =>
+          defer(() =>
+            interceptor.intercept(mockExecutionContext, handler),
+          ).pipe(mergeAll()),
+      };
+
+      const result$ = await interceptor.intercept(mockExecutionContext, outer);
+
+      await expect(firstValueFrom(result$)).resolves.toEqual({ run: 1 });
+      expect(calls).toBe(1);
+    });
+
+    it('runs the handler once for 20 concurrent requests and gives each the same body', async () => {
+      const load = deferred<{ brand: string }>();
+      let calls = 0;
+      mockCallHandler.handle = () =>
+        defer(() => {
+          calls += 1;
+          return load.promise;
+        });
+
+      const responses = Array.from({ length: 20 }, () =>
+        interceptor
+          .intercept(contextForNewRequest(), mockCallHandler)
+          .then((result$) => firstValueFrom(result$)),
+      );
+      await drainPromises();
+      load.resolve({ brand: 'acme' });
+
+      const bodies = await Promise.all(responses);
+      expect(calls).toBe(1);
+      expect(bodies).toHaveLength(20);
+      for (const body of bodies) expect(body).toEqual({ brand: 'acme' });
+    });
+
+    it('lets each key load on its own', async () => {
+      let calls = 0;
+      mockCallHandler.handle = () => {
+        calls += 1;
+        return of({ run: calls });
+      };
+      const otherRequest = { ...mockRequest, query: { limit: 20 } };
+      const otherContext = {
+        ...mockExecutionContext,
+        switchToHttp: vi.fn().mockReturnValue({
+          getRequest: vi.fn().mockReturnValue(otherRequest),
+        }),
+      } as ExecutionContext;
+
+      await Promise.all([
+        interceptor.intercept(mockExecutionContext, mockCallHandler),
+        interceptor.intercept(otherContext, mockCallHandler),
+      ]);
+
+      expect(calls).toBe(2);
+    });
+
+    it('does not cache a rejected load and runs the handler again on the next request', async () => {
+      const load = deferred<{ run: number }>();
+      let calls = 0;
+      mockCallHandler.handle = () =>
+        defer(() => {
+          calls += 1;
+          return calls === 1 ? load.promise : of({ run: calls });
+        });
+
+      const waiting = Array.from({ length: 3 }, () =>
+        interceptor
+          .intercept(contextForNewRequest(), mockCallHandler)
+          .then((result$) => firstValueFrom(result$))
+          .then(
+            () => null,
+            (thrown: unknown) => thrown,
+          ),
+      );
+      await drainPromises();
+      const failure = new Error('database down');
+      load.reject(failure);
+
+      expect(await Promise.all(waiting)).toEqual([failure, failure, failure]);
+      expect(calls).toBe(1);
+      expect(cacheService.set).not.toHaveBeenCalled();
+
+      const next$ = await interceptor.intercept(
+        mockExecutionContext,
+        mockCallHandler,
+      );
+      expect(await firstValueFrom(next$)).toEqual({ run: 2 });
+      expect(calls).toBe(2);
+    });
+
+    it('runs the handler again once the previous load has settled', async () => {
+      let calls = 0;
+      mockCallHandler.handle = () => {
+        calls += 1;
+        return of({ run: calls });
+      };
+
+      const first$ = await interceptor.intercept(
+        mockExecutionContext,
+        mockCallHandler,
+      );
+      const second$ = await interceptor.intercept(
+        mockExecutionContext,
+        mockCallHandler,
+      );
+
+      expect(await firstValueFrom(first$)).toEqual({ run: 1 });
+      expect(await firstValueFrom(second$)).toEqual({ run: 2 });
     });
   });
 

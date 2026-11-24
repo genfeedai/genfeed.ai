@@ -12,6 +12,7 @@ import type {
   StudioPlaygroundSettings,
   StudioPlaygroundType,
 } from '@genfeedai/contracts/interfaces/studio/studio-playground.interface';
+import { buildVideoDraftSettings } from '@genfeedai/helpers/media/video-draft/video-draft.helper';
 import {
   buildStudioAutoGenerationQuoteRequest,
   buildStudioGenerationQuoteRequest,
@@ -34,7 +35,6 @@ import {
   buildStudioPromptData,
   resolveModelKey,
 } from '@/features/studio/playground/utils/studio-playground-settings';
-import { buildVideoDraftSettings } from '@/features/studio/playground/utils/studio-video-draft';
 import type { StudioSpendSource } from '@/features/studio/props/studio-playground.props';
 
 const HTTP_PROTOCOL_PREFIX_PATTERN = /^https?:\/\//;
@@ -91,7 +91,9 @@ export function useStudioComposerPricing({
   settings,
   type,
 }: UseStudioComposerPricingParams): StudioComposerPricing {
-  const [isDraftMode, setIsDraftMode] = useState(false);
+  // Video starts as a draft (#7727); `null` means the user has not chosen yet,
+  // so the default survives a model switch until they turn it off or on.
+  const [draftChoice, setIsDraftMode] = useState<boolean | null>(null);
   const costPromptData = buildStudioPromptData({
     brandId: '',
     promptText: '',
@@ -185,8 +187,7 @@ export function useStudioComposerPricing({
   );
   // Draft is a mode of Video: while it is on, Generate submits the preview.
   const hasDraftSettings = draftSettings !== null;
-  const isDraftActive = isDraftMode && hasDraftSettings;
-  if (!hasDraftSettings && isDraftMode) setIsDraftMode(false);
+  const isDraftActive = (draftChoice ?? true) && hasDraftSettings;
   // An avatar is quoted for the body Generate submits (script, identity and
   // the resolved engine); until all three exist there is nothing to price.
   const avatarScript = resolveStudioAvatarScript(settings.speech, prompt);

@@ -87,6 +87,7 @@ export type SchedulerPostTarget = {
   lastAttemptAt: Date | null;
   order: number;
   platform: string;
+  publicationDate: Date | null;
   publishedAt: Date | null;
   publishApprovalId: string | null;
   retryCount: number;

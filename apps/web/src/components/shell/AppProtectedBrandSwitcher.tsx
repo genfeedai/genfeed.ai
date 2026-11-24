@@ -6,6 +6,7 @@ import {
   getBrandOrganizationId,
   getBrandOrganizationSlug,
 } from '@genfeedai/contexts/user/brand-context/brand-context.helpers';
+import { useRoutedOrganization } from '@genfeedai/contexts/user/organization-context/organization-context';
 import { createOrganizationAppRoute } from '@genfeedai/contracts/constants';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { usePathname, useRouter } from 'next/navigation';
@@ -50,6 +51,9 @@ export default function AppProtectedBrandSwitcher({
     setBrandId,
     setOrganizationId,
   } = useBrand();
+  // The brand list and selection still belong to the previous organization
+  // until the switch settles, so the control is withheld while it is under way.
+  const { status: organizationStatus } = useRoutedOrganization();
   const lastLogoRefreshAtRef = useRef(0);
   // Route props are authoritative; only fall back to useOrgUrl when the shell
   // is rendered without route context.
@@ -135,6 +139,7 @@ export default function AppProtectedBrandSwitcher({
     (pathname.split('/').filter(Boolean)[1] === '~' &&
       pathname.split('/').filter(Boolean)[2] === 'apps') ||
     isAdminChrome ||
+    organizationStatus === 'switching' ||
     brands.length === 0 ||
     isOrganizationSettingsRoute ||
     isPersonalSettingsPage(pathname)

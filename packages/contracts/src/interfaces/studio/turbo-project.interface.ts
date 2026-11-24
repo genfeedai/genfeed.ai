@@ -216,7 +216,7 @@ export type TurboProjectReviewDecision = 'approved' | 'rejected';
 export interface IReviewTurboProjectItemsInput {
   itemIds: string[];
   decision: TurboProjectReviewDecision;
-  /** Why a rejected draft was turned down; the brand's next batch learns from it. */
+  /** Why a rejected draft was turned down; saved with the rejection for the brand's review history. */
   reason?: string;
 }
 

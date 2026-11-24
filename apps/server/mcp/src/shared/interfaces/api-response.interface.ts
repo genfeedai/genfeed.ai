@@ -53,6 +53,7 @@ interface PostAttributes {
   contentId?: string;
   createdAt?: string;
   executionState?: string;
+  isInboxDelivery?: boolean;
   platform?: string;
   publishedAt?: string;
   publishedUrl?: string;

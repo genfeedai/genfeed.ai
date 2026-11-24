@@ -23,6 +23,7 @@ import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { SimpleTooltip } from '@ui/primitives/tooltip';
 import Image from 'next/image';
+import ReleaseTargetStateBadge from '@/features/posts/shared/ReleaseTargetStateBadge';
 import EvalCell from './EvalCell';
 
 export type BuildPostsTableColumnsParams = {
@@ -169,6 +170,16 @@ export function buildPostsTableColumns({
       header: 'Status',
       key: 'status',
       render: (post: IPost) => {
+        // An Inbox receipt is stored as published; it is not editable here.
+        if (post.isInboxDelivery) {
+          return (
+            <ReleaseTargetStateBadge
+              executionState={post.targetExecutionState}
+              isInboxDelivery
+            />
+          );
+        }
+
         const editableStatuses = [
           PostStatus.DRAFT,
           PostStatus.SCHEDULED,

@@ -77,7 +77,6 @@ function PayloadCard({ payload }: PayloadCardProps) {
               variant={ButtonVariant.LINK}
               size={ButtonSize.INLINE}
               onClick={handleCopy}
-              className="flex items-center gap-1 text-2xs text-primary"
             >
               <Copy className="size-3.5" />
               {copied ? 'Copied!' : 'Copy'}

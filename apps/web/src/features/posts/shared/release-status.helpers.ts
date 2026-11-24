@@ -257,14 +257,25 @@ export function isTargetReschedulable(target: IChannelTarget): boolean {
   return !IMMOVABLE_TARGET_STATES.has(target.executionState);
 }
 
+/**
+ * A target that is a public post. An Inbox receipt reads `published` too, but
+ * the creator has yet to publish it in TikTok, so it is not live.
+ */
+export function isTargetLive(
+  target: Pick<IChannelTarget, 'executionState' | 'isInboxDelivery'>,
+): boolean {
+  return (
+    target.executionState === TargetExecutionState.PUBLISHED &&
+    !target.isInboxDelivery
+  );
+}
+
 export function hasLivePublishedTarget(release: IReleaseGroup): boolean {
   if (LIVE_RELEASE_STATUSES.has(release.status)) {
     return true;
   }
 
-  return releaseTargets(release).some(
-    (target) => target.executionState === TargetExecutionState.PUBLISHED,
-  );
+  return releaseTargets(release).some(isTargetLive);
 }
 
 /**

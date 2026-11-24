@@ -45,7 +45,7 @@ export default function BrandDetailReferencesCard({
                     ariaLabel="Delete reference"
                     variant={ButtonVariant.DESTRUCTIVE}
                     size={ButtonSize.ICON}
-                    className="size-8 p-0 [&_svg]:size-3.5"
+                    className="[&_svg]:size-3.5"
                     isDisabled={deletingRefId === ref.id}
                     onClick={() => onDeleteReference(ref.id)}
                   />
@@ -55,7 +55,7 @@ export default function BrandDetailReferencesCard({
           </div>
           <Button
             variant={ButtonVariant.SECONDARY}
-            className="w-full gap-1.5 [&_svg]:size-3.5"
+            className="w-full [&_svg]:size-3.5"
             size={ButtonSize.SM}
             wrapperClassName="w-full"
             onClick={onUploadReference}
@@ -70,7 +70,7 @@ export default function BrandDetailReferencesCard({
           </Alert>
           <Button
             variant={ButtonVariant.DEFAULT}
-            className="w-full gap-1.5 [&_svg]:size-3.5"
+            className="w-full [&_svg]:size-3.5"
             size={ButtonSize.SM}
             wrapperClassName="w-full"
             onClick={onUploadReference}

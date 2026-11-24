@@ -161,6 +161,13 @@ vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   }),
 }));
 
+vi.mock(
+  '@genfeedai/contexts/user/organization-context/organization-context',
+  () => ({
+    useRoutedOrganization: () => ({ status: 'matched' }),
+  }),
+);
+
 vi.mock('@ui/primitives/button', () => ({
   Button: ({
     asChild,

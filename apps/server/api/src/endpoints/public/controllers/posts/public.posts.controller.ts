@@ -1,4 +1,5 @@
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import { PUBLISHED_AND_LIVE_WHERE } from '@api/collections/posts/services/post-inbox-delivery.filter';
 import { orderedPostIngredientLinks } from '@api/collections/posts/services/post-ingredient-links.util';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { CACHE_TAGS } from '@api/common/constants/cache-patterns.constants';
@@ -28,12 +29,8 @@ import {
   IngredientStatus,
   isPlatform,
   PostVisibility,
-  TargetExecutionState,
 } from '@genfeedai/contracts';
-import {
-  postExecutionStateReadFilter,
-  postVisibilityReadFilter,
-} from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
+import { postVisibilityReadFilter } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
@@ -119,7 +116,7 @@ const CROSS_POST_SELECT = {
 function publicPublishedWhere(brandId: string): PrismaWhereQuery {
   return {
     AND: [
-      postExecutionStateReadFilter(TargetExecutionState.PUBLISHED),
+      PUBLISHED_AND_LIVE_WHERE,
       postVisibilityReadFilter(PostVisibility.PUBLIC),
     ],
     brandId,
@@ -166,7 +163,7 @@ export class PublicPostsController {
 
     const matchQuery: PrismaWhereQuery = {
       AND: [
-        postExecutionStateReadFilter(TargetExecutionState.PUBLISHED),
+        PUBLISHED_AND_LIVE_WHERE,
         postVisibilityReadFilter(PostVisibility.PUBLIC),
       ],
       isDeleted: false,
@@ -309,7 +306,7 @@ export class PublicPostsController {
     const post = await this.postsService.findOne(
       {
         AND: [
-          postExecutionStateReadFilter(TargetExecutionState.PUBLISHED),
+          PUBLISHED_AND_LIVE_WHERE,
           postVisibilityReadFilter(PostVisibility.PUBLIC),
         ],
         id: postId,

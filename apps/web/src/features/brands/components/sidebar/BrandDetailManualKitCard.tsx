@@ -621,7 +621,7 @@ export default function BrandDetailManualKitCard({
 
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
           <Button
-            className="w-full gap-1.5 [&_svg]:size-3.5"
+            className="w-full [&_svg]:size-3.5"
             icon={<Upload className="size-3.5" />}
             label={brand.logo || brand.logoUrl ? 'Replace logo' : 'Upload logo'}
             size={ButtonSize.SM}
@@ -630,7 +630,7 @@ export default function BrandDetailManualKitCard({
             onClick={onUploadLogo}
           />
           <Button
-            className="w-full gap-1.5 [&_svg]:size-3.5"
+            className="w-full [&_svg]:size-3.5"
             icon={<Upload className="size-3.5" />}
             label={
               brand.banner || brand.bannerUrl
@@ -643,7 +643,7 @@ export default function BrandDetailManualKitCard({
             onClick={onUploadBanner}
           />
           <Button
-            className="w-full gap-1.5 [&_svg]:size-3.5"
+            className="w-full [&_svg]:size-3.5"
             icon={<Upload className="size-3.5" />}
             label="Upload reference"
             size={ButtonSize.SM}
