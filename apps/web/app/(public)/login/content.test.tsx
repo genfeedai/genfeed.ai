@@ -354,23 +354,19 @@ describe('LoginPage', () => {
     },
   );
 
-  it('keeps local workspace as a coming-soon demand signal when the PostHog flag is off', () => {
+  it('hides the local workspace entry while the PostHog flag is off', () => {
     vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', '1');
     desktopLocalWorkspaceFlagMock.isEnabled = false;
     desktopLocalWorkspaceFlagMock.isReady = true;
     render(<LoginPage />);
 
-    const localModeButton = screen.getByRole('button', {
-      name: 'Use a local workspace — coming soon',
-    });
-    expect(localModeButton).toBeDisabled();
-    fireEvent.click(localModeButton);
-    expect(desktopRuntimeMocks.enableOfflineMode).not.toHaveBeenCalled();
     expect(
-      screen.getByText(
-        'Local workspace is coming soon. Sign in with Genfeed Cloud.',
-      ),
-    ).toBeVisible();
+      screen.getByRole('button', { name: 'Sign in with Genfeed' }),
+    ).toBeEnabled();
+    expect(screen.queryByText(/local workspace/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/local mode/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/coming soon/i)).not.toBeInTheDocument();
+    expect(desktopRuntimeMocks.enableOfflineMode).not.toHaveBeenCalled();
   });
 
   it('hides every local workspace entry on the desktop sign-in screen in cloud-only builds', () => {

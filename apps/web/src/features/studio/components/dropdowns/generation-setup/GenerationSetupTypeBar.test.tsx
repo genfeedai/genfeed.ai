@@ -106,22 +106,19 @@ describe('GenerationSetupTypeBar', () => {
     expect(screen.queryByRole('menuitemcheckbox', { name: 'Edit' })).toBeNull();
   });
 
-  it('shows Edit on Video too, switched off until video editing exists', () => {
-    const onChange = vi.fn();
+  it('does not offer Edit on Video, which has no edit flow', () => {
     render(
       <GenerationSetupTypeBar
         {...buildProps(
-          { imageEditing: { isEnabled: false, onChange } },
+          { imageEditing: { isEnabled: false, onChange: vi.fn() } },
           'video',
         )}
       />,
     );
 
     openTypeMenu();
-    const edit = screen.getByRole('menuitemcheckbox', { name: /Edit/ });
-    expect(edit).toHaveAttribute('aria-disabled', 'true');
-    fireEvent.click(edit);
-    expect(onChange).not.toHaveBeenCalled();
+    expect(screen.queryByRole('menuitemcheckbox', { name: /Edit/ })).toBeNull();
+    expect(screen.queryByText(/coming soon/i)).toBeNull();
   });
 
   it('is one mode button that names the current mode and switches to the other', () => {

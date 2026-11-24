@@ -89,16 +89,11 @@ export default function DesktopContent({
   const appHref = EnvironmentService.apps.app;
 
   const hasMacBuild = downloadUrl !== null && version !== null;
-  const isWindows = detectedOs === DesktopOs.WINDOWS;
 
   /** "v0.2.0 · 148 MB", collapsing cleanly when GitHub omits the size. */
   const buildDetail = hasMacBuild
     ? [`v${version}`, fileSize].filter(Boolean).join(' · ')
     : null;
-
-  const macButtonLabel = hasMacBuild
-    ? `Download for macOS · ${buildDetail}`
-    : 'macOS build coming soon';
 
   return (
     <MarketingEntrance hero={false} sections={false}>
@@ -107,25 +102,8 @@ export default function DesktopContent({
         description="The full content OS as a native desktop app. A local workspace that works offline, generation through your own provider keys, and the same account you already use on the web."
         heroActions={
           <>
-            {/*
-              A Windows visitor leads with their own (disabled) button so the
-              page answers their question first, then still offers the macOS
-              build as a secondary action for anyone on the wrong machine.
-            */}
-            {isWindows ? (
-              <Button isDisabled size={ButtonSize.PUBLIC}>
-                Windows build coming soon
-              </Button>
-            ) : null}
-
             {hasMacBuild ? (
-              <Button
-                asChild
-                size={ButtonSize.PUBLIC}
-                variant={
-                  isWindows ? ButtonVariant.SECONDARY : ButtonVariant.DEFAULT
-                }
-              >
+              <Button asChild size={ButtonSize.PUBLIC}>
                 <a href={downloadUrl}>
                   Download for macOS
                   {buildDetail ? (
@@ -136,11 +114,7 @@ export default function DesktopContent({
                   ) : null}
                 </a>
               </Button>
-            ) : (
-              <Button isDisabled size={ButtonSize.PUBLIC}>
-                {macButtonLabel}
-              </Button>
-            )}
+            ) : null}
 
             <Button
               asChild
@@ -154,73 +128,50 @@ export default function DesktopContent({
           </>
         }
       >
-        <WebSection maxWidth="lg" className="gsap-section">
-          <SectionHeader
-            title="Pick your platform"
-            className="[&_h2]:text-4xl sm:[&_h2]:text-5xl"
-          />
+        {hasMacBuild ? (
+          <WebSection maxWidth="lg" className="gsap-section">
+            <SectionHeader
+              title="Download for macOS"
+              className="[&_h2]:text-4xl sm:[&_h2]:text-5xl"
+            />
 
-          <NeuralGrid columns={2}>
-            <NeuralGridItem
-              icon={Apple}
-              title="macOS"
-              padding="lg"
-              className={cn(
-                detectedOs === DesktopOs.MAC_OS && 'bg-[var(--gen-accent-bg)]',
-              )}
-            >
-              <p className="mt-2 text-sm text-foreground/70">
-                {MAC_REQUIREMENT}
-              </p>
+            <NeuralGrid columns={1}>
+              <NeuralGridItem
+                icon={Apple}
+                title="macOS"
+                padding="lg"
+                className={cn(
+                  detectedOs === DesktopOs.MAC_OS &&
+                    'bg-[var(--gen-accent-bg)]',
+                )}
+              >
+                <p className="mt-2 text-sm text-foreground/70">
+                  {MAC_REQUIREMENT}
+                </p>
 
-              <div className="mt-6">
-                {hasMacBuild ? (
+                <div className="mt-6">
                   <Button asChild variant={ButtonVariant.SECONDARY}>
                     {/* Direct release-asset link: one hop, real filename. */}
                     <a href={downloadUrl}>
                       Download .dmg{fileSize ? ` · ${fileSize}` : ''}
                     </a>
                   </Button>
-                ) : (
-                  <Button isDisabled variant={ButtonVariant.SECONDARY}>
-                    Coming soon
-                  </Button>
-                )}
-              </div>
+                </div>
 
-              {/*
-                The cask is pushed to the tap by the same release job that
-                publishes the disk image, so it only exists once a build does.
-              */}
-              {hasMacBuild ? (
+                {/*
+                  The cask is pushed to the tap by the same release job that
+                  publishes the disk image, so it only exists once a build does.
+                */}
                 <p className="mt-4 text-xs text-foreground/50">
                   Prefer Homebrew?{' '}
                   <span className="font-mono text-foreground/80">
                     brew install --cask genfeedai/tap/genfeed
                   </span>
                 </p>
-              ) : null}
-            </NeuralGridItem>
-
-            <NeuralGridItem
-              icon={Monitor}
-              title="Windows"
-              padding="lg"
-              className={cn(isWindows && 'bg-[var(--gen-accent-bg)]')}
-            >
-              <p className="mt-2 text-sm text-foreground/70">
-                Not built yet. Use Genfeed in the browser in the meantime, or
-                self-host the open-source core on your own machine.
-              </p>
-
-              <div className="mt-6">
-                <Button isDisabled variant={ButtonVariant.SECONDARY}>
-                  Coming soon
-                </Button>
-              </div>
-            </NeuralGridItem>
-          </NeuralGrid>
-        </WebSection>
+              </NeuralGridItem>
+            </NeuralGrid>
+          </WebSection>
+        ) : null}
 
         <WebSection bg="bordered" maxWidth="xl" className="gsap-section">
           <SectionHeader

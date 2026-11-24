@@ -258,6 +258,7 @@
     }
   },
   "desktopAuth": {
+    "localModeHint": "Local mode keeps its database and workspace files on this Mac. It starts only when you choose it.",
     "pasteCodeHint": "Source checkouts cannot open automatically. Copy the code from that tab and paste it here."
   },
   "oauth": {

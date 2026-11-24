@@ -337,10 +337,7 @@ describe('MenuShared', () => {
         backHref="/settings/personal"
         config={{
           logoHref: '/',
-          items: [
-            { href: '/workspace/overview', label: 'Dashboard' },
-            { href: '/workspace/inbox', isComingSoon: true, label: 'Inbox' },
-          ],
+          items: [{ href: '/workspace/overview', label: 'Dashboard' }],
           secondaryItems: [{ href: '/workspace/tasks', label: 'Tasks' }],
         }}
       />,
