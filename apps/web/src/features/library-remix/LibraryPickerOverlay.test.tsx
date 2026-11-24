@@ -126,7 +126,7 @@ describe('LibraryPickerOverlay', () => {
     ).toHaveAttribute('href', '/acme/moonrise/library');
 
     fireEvent.click(
-      screen.getByRole('option', { name: 'Select Source image-1' }),
+      screen.getByRole('button', { name: 'Select Source image-1' }),
     );
     fireEvent.click(screen.getByRole('button', { name: 'Load more' }));
 
