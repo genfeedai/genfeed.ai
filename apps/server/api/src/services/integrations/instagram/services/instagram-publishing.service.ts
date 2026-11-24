@@ -428,6 +428,7 @@ export class InstagramPublishingService {
    * goes out unlabelled, because a missed label costs less than a missed post.
    * Nothing is published at this step, so the retry cannot post twice.
    */
+  @Traced()
   private async createMediaContainer(
     externalId: string,
     params: Record<string, string | boolean>,
