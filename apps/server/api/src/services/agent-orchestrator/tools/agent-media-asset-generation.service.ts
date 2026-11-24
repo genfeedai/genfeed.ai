@@ -1,5 +1,6 @@
 import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { normalizeRequestedSkillSlugs } from '@api/collections/skills/utils/requested-skill-slugs.util';
+import { readHttpExceptionDetail } from '@api/helpers/utils/error-response/http-exception-detail.util';
 import {
   AGENT_GENERATION_GATEWAY,
   type AgentGenerationPrincipal,
@@ -200,7 +201,8 @@ export class AgentMediaAssetGenerationService {
       );
     } catch (error) {
       // Timeout/hard failure must not produce a successful empty preview card.
-      const message = (error as Error).message || 'Image generation failed';
+      const message =
+        readHttpExceptionDetail(error) || 'Image generation failed';
       this.loggerService.warn(
         `generateImage failed for org=${ctx.organizationId}: ${message}`,
       );
@@ -395,7 +397,7 @@ export class AgentMediaAssetGenerationService {
         success: false,
         isBillingDelegated: true,
         creditsUsed: 0,
-        error: error instanceof Error ? error.message : 'Image editing failed',
+        error: readHttpExceptionDetail(error) ?? 'Image editing failed',
       };
     }
   }
@@ -561,7 +563,8 @@ export class AgentMediaAssetGenerationService {
         }),
       );
     } catch (error) {
-      const message = (error as Error).message || 'Video generation failed';
+      const message =
+        readHttpExceptionDetail(error) || 'Video generation failed';
       this.loggerService.warn(
         `generateVideo failed for org=${ctx.organizationId}: ${message}`,
       );

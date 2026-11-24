@@ -20,6 +20,12 @@ describe('createInsufficientCreditsException', () => {
       title: 'Insufficient credits',
     });
   });
+
+  it('puts the amounts in the error message, not the class name', () => {
+    expect(createInsufficientCreditsException(40, 12).message).toBe(
+      'Insufficient credits: 40 required, 12 available',
+    );
+  });
 });
 
 describe('rethrowReservationFailure', () => {

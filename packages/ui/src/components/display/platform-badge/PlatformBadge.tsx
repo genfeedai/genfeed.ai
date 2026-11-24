@@ -19,6 +19,15 @@ const SIZE_CLASSES = {
   },
 };
 
+// Without a label the badge is a logo tile, so it is square: padding sized for
+// a word beside the icon made it a wide rectangle. `lg` matches the `lg`
+// Avatar it stands in for in a card header.
+const ICON_ONLY_CLASSES = {
+  [ComponentSize.LG]: { container: 'size-10 justify-center', icon: 'size-5' },
+  [ComponentSize.MD]: { container: 'size-6 justify-center', icon: 'size-3.5' },
+  [ComponentSize.SM]: { container: 'size-5 justify-center', icon: 'size-3' },
+};
+
 /**
  * Platform badge with icon, label, and platform-specific colors
  * Use this for consistent platform display across tables and lists
@@ -41,6 +50,7 @@ export default function PlatformBadge({
   const Icon = brand?.icon ?? Globe;
   const iconColor = brand?.iconColor ?? 'text-muted-foreground';
   const isSolid = variant === 'solid';
+  const sizeClasses = showLabel ? SIZE_CLASSES[size] : ICON_ONLY_CLASSES[size];
   const solidTextColor = brand?.solidTextColor ?? 'text-white'; // design-system-allow-content-color -- glyph on platform brand fill
 
   return (
@@ -51,16 +61,13 @@ export default function PlatformBadge({
           ? (brand?.solidBgColor ?? 'bg-foreground')
           : (brand?.bgColor ?? 'bg-foreground/10'),
         isSolid ? solidTextColor : (brand?.textColor ?? 'text-foreground'),
-        SIZE_CLASSES[size].container,
+        sizeClasses.container,
         className,
       )}
     >
       <Icon
         aria-hidden="true"
-        className={cn(
-          SIZE_CLASSES[size].icon,
-          isSolid ? solidTextColor : iconColor,
-        )}
+        className={cn(sizeClasses.icon, isSolid ? solidTextColor : iconColor)}
       />
       {showLabel ? (
         <span>{name}</span>

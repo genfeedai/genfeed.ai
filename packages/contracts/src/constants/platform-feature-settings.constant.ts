@@ -88,6 +88,7 @@ export const DEFAULT_PLATFORM_FEATURE_SETTINGS: Readonly<IPlatformFeatureSetting
     discordChannelIdUsers: null,
     discordChannelIdModels: null,
     discordChannelIdBilling: null,
+    discordChannelIdAlerts: null,
     discordBotAvatarUrl: null,
     discordWebhookNamePrefix: null,
     discordWebhookReason: null,
@@ -409,6 +410,11 @@ export function parsePlatformFeatureSettings(
     discordChannelIdBilling: pickRuntimeString(
       row.discordChannelIdBilling,
       defaults.discordChannelIdBilling,
+      SNOWFLAKE_ID_PATTERN,
+    ),
+    discordChannelIdAlerts: pickRuntimeString(
+      row.discordChannelIdAlerts,
+      defaults.discordChannelIdAlerts,
       SNOWFLAKE_ID_PATTERN,
     ),
     discordBotAvatarUrl: pickRuntimeString(

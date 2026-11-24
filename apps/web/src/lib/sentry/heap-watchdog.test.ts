@@ -1,8 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const captureMessage = vi.hoisted(() => vi.fn());
+const replayStop = vi.hoisted(() => vi.fn(async () => undefined));
+const getIntegrationByName = vi.hoisted(() => vi.fn());
 
-vi.mock('@sentry/nextjs', () => ({ captureMessage }));
+vi.mock('@sentry/nextjs', () => ({
+  captureMessage,
+  getClient: () => ({ getIntegrationByName }),
+}));
 vi.mock('@genfeedai/agent', () => ({
   useAgentChatStore: {
     getState: () => ({
@@ -36,6 +41,9 @@ function setHeapMiB(heapMiB: number | null): void {
 describe('startHeapWatchdog', () => {
   beforeEach(() => {
     captureMessage.mockClear();
+    replayStop.mockClear();
+    getIntegrationByName.mockReset();
+    getIntegrationByName.mockReturnValue(undefined);
     vi.useFakeTimers();
   });
 
@@ -93,6 +101,34 @@ describe('startHeapWatchdog', () => {
     expect(captureMessage.mock.calls[1][0]).toBe(
       'Renderer heap above 1536 MiB',
     );
+    stop();
+  });
+
+  it('stops the error replay recording once the heap is large and says so', async () => {
+    getIntegrationByName.mockReturnValue({ stop: replayStop });
+    document.body.append(document.createElement('div'));
+    setHeapMiB(900);
+    const stop = startHeapWatchdog();
+
+    await vi.advanceTimersByTimeAsync(5_000);
+
+    expect(getIntegrationByName).toHaveBeenCalledWith('Replay');
+    expect(replayStop).toHaveBeenCalledTimes(1);
+    const { extra } = captureMessage.mock.calls[0][1];
+    expect(extra.replayStopped).toBe(true);
+    expect(extra.resourceEntries).toEqual(expect.any(Number));
+    expect(extra.history[0].domNodes).toBeGreaterThan(0);
+    stop();
+  });
+
+  it('reports that no replay was running when there was none to stop', async () => {
+    setHeapMiB(900);
+    const stop = startHeapWatchdog();
+
+    await vi.advanceTimersByTimeAsync(5_000);
+
+    expect(replayStop).not.toHaveBeenCalled();
+    expect(captureMessage.mock.calls[0][1].extra.replayStopped).toBe(false);
     stop();
   });
 

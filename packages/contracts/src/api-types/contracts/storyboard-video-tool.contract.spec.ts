@@ -74,4 +74,20 @@ describe('storyboard video tool contract', () => {
       }).success,
     ).toBe(isValid);
   });
+
+  it.each([
+    ['a Library asset', { assetId: 'video-1' }, true],
+    ['no asset', {}, false],
+    ['an unknown field', { assetId: 'video-1', brief: 'x' }, false],
+  ])('parses a reverse with %s', (_label, fields, isValid) => {
+    expect(
+      storyboardVideoToolSchema.safeParse({
+        action: 'reverse',
+        brandId: 'brand-1',
+        runId: 'run-1',
+        expectedRevision: 2,
+        ...fields,
+      }).success,
+    ).toBe(isValid);
+  });
 });

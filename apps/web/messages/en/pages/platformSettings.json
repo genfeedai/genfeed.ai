@@ -112,6 +112,7 @@
       "discordChannelIdUsers": "Users",
       "discordChannelIdModels": "Models",
       "discordChannelIdBilling": "Billing",
+      "discordChannelIdAlerts": "Alerts",
       "discordBotAvatarUrl": "Avatar URL",
       "discordWebhookNamePrefix": "Name prefix",
       "discordWebhookReason": "Creation reason",

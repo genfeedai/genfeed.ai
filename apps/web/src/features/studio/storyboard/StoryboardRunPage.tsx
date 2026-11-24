@@ -177,6 +177,7 @@ export default function StoryboardRunPage({
     saveSource,
     transport,
     resetPlan,
+    reversePlan,
     approvePlan,
     draftPlan,
     quoteStills,
@@ -218,6 +219,7 @@ export default function StoryboardRunPage({
         savePlan={savePlan}
         saveSource={saveSource}
         resetPlan={resetPlan}
+        reversePlan={reversePlan}
         approvePlan={approvePlan}
         draftPlan={draftPlan}
         quoteStills={quoteStills}

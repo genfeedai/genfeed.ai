@@ -25,6 +25,7 @@ export const PLATFORM_RUNTIME_ENV_MIGRATIONS = {
   DISCORD_CHANNEL_ID_USERS: 'discordChannelIdUsers',
   DISCORD_CHANNEL_ID_MODELS: 'discordChannelIdModels',
   DISCORD_CHANNEL_ID_BILLING: 'discordChannelIdBilling',
+  DISCORD_CHANNEL_ID_ALERTS: 'discordChannelIdAlerts',
   DISCORD_BOT_AVATAR_URL: 'discordBotAvatarUrl',
   DISCORD_WEBHOOK_NAME_PREFIX: 'discordWebhookNamePrefix',
   DISCORD_WEBHOOK_REASON: 'discordWebhookReason',

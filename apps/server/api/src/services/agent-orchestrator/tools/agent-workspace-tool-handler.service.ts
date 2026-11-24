@@ -602,7 +602,12 @@ export class AgentWorkspaceToolHandler {
     }
 
     try {
-      const brand = await this.findCurrentBrand(ctx);
+      // The brand the caller names owns the asset; without one the call's
+      // brand scope or the member's current brand applies.
+      const requestedBrandId = readRequiredString(params.brandId);
+      const brand = await this.findCurrentBrand(
+        requestedBrandId ? { ...ctx, brandId: requestedBrandId } : ctx,
+      );
       const brandId =
         brand && typeof brand === 'object' && 'id' in brand
           ? readRequiredString(brand.id)

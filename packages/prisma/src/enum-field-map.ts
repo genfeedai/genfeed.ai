@@ -6531,6 +6531,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'createdAt',
       'customModelCreditsCost',
       'discordBotAvatarUrl',
+      'discordChannelIdAlerts',
       'discordChannelIdBilling',
       'discordChannelIdDeployments',
       'discordChannelIdModels',

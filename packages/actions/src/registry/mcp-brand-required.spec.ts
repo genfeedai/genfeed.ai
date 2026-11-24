@@ -81,6 +81,7 @@ describe('MCP brand-required generation tools', () => {
     expect([...MCP_BRAND_REQUIRED_WHEN_MULTIPLE_TOOL_NAMES]).toEqual([
       'create_article_draft',
       'create_post',
+      'request_media_upload',
     ]);
     expect(isMcpBrandRequiredWhenMultipleTool('create_post')).toBe(true);
     expect(isMcpBrandRequiredTool('create_post')).toBe(false);

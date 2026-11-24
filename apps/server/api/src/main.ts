@@ -68,6 +68,7 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { eventLoopLagSampler } from '@libs/logger/wide-event/wide-event.event-loop';
 import { createWideEventMiddleware } from '@libs/logger/wide-event/wide-event.http';
+import { eventLoopStallProfiler } from '@libs/logger/wide-event/wide-event.stall-profiler';
 import { resolveServiceIdentity } from '@libs/logger/wide-event/wide-event.trace';
 import {
   buildBullMQConnection,
@@ -210,6 +211,12 @@ async function main() {
     );
 
     const nodeEnv = configService.get('NODE_ENV');
+    // A wide event says the loop was blocked; this says by what (#10110).
+    if (nodeEnv === 'production') {
+      eventLoopStallProfiler.start((report) => {
+        logger?.warn('Event loop blocked', { ...report });
+      });
+    }
     const version =
       configService.get('npm_package_version') ??
       configService.get('VERSION') ??

@@ -45,6 +45,7 @@ import {
   storyboardCharacterReplacementsSchema,
 } from '@genfeedai/contracts/api-types/contracts/storyboard-character-replace.contract';
 import type { UpdateStoryboardPlan } from '@genfeedai/contracts/api-types/contracts/storyboard-plan.contract';
+import type { ReverseStoryboardPlan } from '@genfeedai/contracts/api-types/contracts/storyboard-reference-analysis.contract';
 import type {
   ControlStoryboardRun,
   CreateStoryboardRun,
@@ -342,6 +343,19 @@ export class ContentRunsService extends HTTPBaseService {
   ): Promise<StoryboardRun> {
     const response = await this.instance.post<JsonApiResponseDocument>(
       `/brands/${encodeURIComponent(brandId)}/storyboard-runs/${encodeURIComponent(runId)}/plan/draft`,
+      input,
+    );
+    return deserializeStoryboardRunDocument(response.data);
+  }
+
+  /** Reverse engineers a Library video or image into the plan's shots (#10578). */
+  async reverseStoryboardPlan(
+    brandId: string,
+    runId: string,
+    input: ReverseStoryboardPlan,
+  ): Promise<StoryboardRun> {
+    const response = await this.instance.post<JsonApiResponseDocument>(
+      `/brands/${encodeURIComponent(brandId)}/storyboard-runs/${encodeURIComponent(runId)}/plan/reverse`,
       input,
     );
     return deserializeStoryboardRunDocument(response.data);

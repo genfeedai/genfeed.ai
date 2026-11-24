@@ -7,6 +7,7 @@ import {
   ContextSidebarProvider,
   useContextSidebar,
 } from '@genfeedai/contexts/ui/context-sidebar-context';
+import { IngredientCategory } from '@genfeedai/contracts';
 import type { StoryboardRun } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
 import type { StoryboardRunCapabilities } from '@genfeedai/contracts/api-types/contracts/storyboard-run-capabilities.contract';
 import {
@@ -33,7 +34,11 @@ vi.mock('next-intl', async () => {
   return { useTranslations: translateFromCatalog };
 });
 
-const modal = vi.hoisted(() => ({ info: vi.fn(), openConfirm: vi.fn() }));
+const modal = vi.hoisted(() => ({
+  info: vi.fn(),
+  openConfirm: vi.fn(),
+  openGallery: vi.fn(),
+}));
 vi.mock('@services/core/notifications.service', () => ({
   NotificationsService: { getInstance: () => ({ info: modal.info }) },
 }));
@@ -47,7 +52,7 @@ vi.mock(
   '@genfeedai/contexts/providers/global-modals/global-modals.hooks',
   () => ({
     useConfirmModal: () => ({ openConfirm: modal.openConfirm }),
-    useGalleryModal: () => ({ openGallery: vi.fn() }),
+    useGalleryModal: () => ({ openGallery: modal.openGallery }),
   }),
 );
 vi.mock('next/navigation', () => ({
@@ -284,6 +289,7 @@ describe('slideshow storyboard editor', () => {
   beforeEach(() => {
     vi.stubGlobal('ResizeObserver', MockResizeObserver);
     modal.openConfirm.mockReset();
+    modal.openGallery.mockReset();
     modal.info.mockReset();
     Element.prototype.scrollIntoView = vi.fn();
   });
@@ -358,6 +364,7 @@ describe('persisted storyboard plan editor', () => {
     // The app config unstubs globals after every test, so stub per test.
     vi.stubGlobal('ResizeObserver', MockResizeObserver);
     modal.openConfirm.mockReset();
+    modal.openGallery.mockReset();
     modal.info.mockReset();
     Element.prototype.scrollIntoView = vi.fn();
   });
@@ -579,6 +586,56 @@ describe('persisted storyboard plan editor', () => {
         await modal.openConfirm.mock.calls[0][0].onConfirm();
       });
       expect(reset).toHaveBeenCalledWith(1);
+    });
+  });
+
+  describe('reverse a reference', () => {
+    const pick = (id: string) =>
+      act(async () => {
+        await modal.openGallery.mock.calls[0][0].onSelect([
+          { brandId: run.brandId, id, isDeleted: false },
+        ]);
+      });
+    async function openReverse(name: string, reversePlan: () => unknown) {
+      renderEditor({ reversePlan: reversePlan as never });
+      const user = userEvent.setup();
+      await user.click(screen.getByRole('button', { name: 'More actions' }));
+      await user.click(await screen.findByRole('menuitem', { name }));
+    }
+    it('replaces written shots with a reference video only after confirming', async () => {
+      const reverse = vi.fn().mockResolvedValue(run);
+      await openReverse('Reverse a video', reverse);
+      expect(modal.openGallery.mock.calls[0][0].category).toBe(
+        IngredientCategory.VIDEO,
+      );
+      await pick('video-9');
+      expect(reverse).not.toHaveBeenCalled();
+      expect(modal.openConfirm.mock.calls[0][0].label).toBe(
+        'Rebuild the shots from a video?',
+      );
+      await act(async () => {
+        await modal.openConfirm.mock.calls[0][0].onConfirm();
+      });
+      expect(reverse).toHaveBeenCalledWith(1, 'video-9');
+    });
+    it('adds a reference image without asking', async () => {
+      const reverse = vi.fn().mockResolvedValue(run);
+      await openReverse('Reverse an image', reverse);
+      expect(modal.openGallery.mock.calls[0][0].category).toBe(
+        IngredientCategory.IMAGE,
+      );
+      await pick('image-3');
+      expect(modal.openConfirm).not.toHaveBeenCalled();
+      await waitFor(() => expect(reverse).toHaveBeenCalledWith(1, 'image-3'));
+    });
+    it('offers nothing without a reverse action', async () => {
+      renderEditor();
+      await userEvent
+        .setup()
+        .click(screen.getByRole('button', { name: 'More actions' }));
+      expect(
+        screen.queryByRole('menuitem', { name: 'Reverse a video' }),
+      ).toBeNull();
     });
   });
 

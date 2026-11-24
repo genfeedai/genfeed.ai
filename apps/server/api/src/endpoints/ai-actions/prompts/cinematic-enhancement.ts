@@ -19,8 +19,10 @@ const CINEMATIC_PROMPT_CATEGORIES: ReadonlySet<string> = new Set([
 
 const CATEGORY_HEADINGS: Record<CinematicLexiconCategory, string> = {
   'camera-movement': 'Camera movement',
+  'color-grade': 'Color and grade',
   'editing-transitions': 'Editing and transitions',
   'framing-composition': 'Framing and composition',
+  'lens-optics': 'Lens and optics',
   lighting: 'Lighting',
   'stylistic-effects': 'Stylistic effects',
 };

@@ -49,6 +49,8 @@ export class LoggerService extends ConsoleLogger {
   }
 
   public debug(message: unknown, context?: unknown): void {
+    // A line no transport prints must not pay for redacting its context.
+    if (!this.winston.isLevelEnabled('debug')) return;
     const contextObj = this.normalizeContext(context);
     const formattedMessage = this.formatMessage(
       this.normalizeMessage(message),

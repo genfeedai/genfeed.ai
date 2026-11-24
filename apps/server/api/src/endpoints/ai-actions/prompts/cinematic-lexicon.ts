@@ -1,29 +1,13 @@
-export type CinematicLexiconCategory =
-  | 'camera-movement'
-  | 'framing-composition'
-  | 'lighting'
-  | 'editing-transitions'
-  | 'stylistic-effects';
+import { OPTICS_AND_GRADE_LEXICON } from '@api/endpoints/ai-actions/prompts/cinematic-lexicon.optics-grade';
+import {
+  type CinematicLexiconCategory,
+  type CinematicTechnique,
+  technique,
+} from '@api/endpoints/ai-actions/prompts/cinematic-lexicon.types';
 
-export interface CinematicTechnique {
-  aliases: readonly string[];
-  category: CinematicLexiconCategory;
-  definition: string;
-  name: string;
-  whenToUse: string;
-}
+export type { CinematicLexiconCategory, CinematicTechnique };
 
-function technique(
-  category: CinematicLexiconCategory,
-  name: string,
-  definition: string,
-  whenToUse: string,
-  aliases: readonly string[] = [],
-): CinematicTechnique {
-  return { aliases, category, definition, name, whenToUse };
-}
-
-export const CINEMATIC_LEXICON: readonly CinematicTechnique[] = [
+const BASE_LEXICON: readonly CinematicTechnique[] = [
   // Camera movement
   technique(
     'camera-movement',
@@ -797,4 +781,9 @@ export const CINEMATIC_LEXICON: readonly CinematicTechnique[] = [
     'Daylight is underexposed and cooled to stand in for night.',
     'Use when true night capture is impractical; keep skies dark and highlights restrained.',
   ),
+];
+
+export const CINEMATIC_LEXICON: readonly CinematicTechnique[] = [
+  ...BASE_LEXICON,
+  ...OPTICS_AND_GRADE_LEXICON,
 ];

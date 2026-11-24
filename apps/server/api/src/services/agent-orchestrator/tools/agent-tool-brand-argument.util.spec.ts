@@ -8,7 +8,7 @@ import { describe, expect, it } from 'vitest';
 const PROVENANCE = {
   nodeId: 'execute-tool',
   runId: 'run_1',
-  workflowId: 'agent.tool.request_media_upload',
+  workflowId: 'agent.tool.complete_media_upload',
   workflowVersionId: 'version_1',
 };
 const CONTEXT: ToolExecutionContext = {
@@ -36,39 +36,35 @@ function compileInputContract(actionId: string) {
 }
 
 /**
- * API-GENFEED-AI-BC: a caller named its brand on request_media_upload, whose
+ * API-GENFEED-AI-BC: a caller named its brand on complete_media_upload, whose
  * closed action contract does not declare `brandId`, so the run failed with
  * "$.brandId: must NOT have additional properties".
  */
 describe('moveUndeclaredBrandArgument', () => {
-  it('rejects an undeclared brandId in the request_media_upload contract', () => {
-    const contract = compileInputContract('request_media_upload');
+  it('rejects an undeclared brandId in the complete_media_upload contract', () => {
+    const contract = compileInputContract('complete_media_upload');
 
     expect(() =>
       contract.validateInput(
-        { brandId: 'brand_1', contentType: 'image/png', filename: 'a.png' },
+        { assetId: 'asset_1', brandId: 'brand_1' },
         PROVENANCE,
       ),
     ).toThrow('$.brandId: must NOT have additional properties');
   });
 
-  it('hands request_media_upload a contract-valid call in the named brand', () => {
+  it('hands complete_media_upload a contract-valid call in the named brand', () => {
     const { context, parameters } = moveUndeclaredBrandArgument(
-      'request_media_upload',
+      'complete_media_upload',
       {
         context: CONTEXT,
-        parameters: {
-          brandId: ' brand_1 ',
-          contentType: 'image/png',
-          filename: 'a.png',
-        },
+        parameters: { assetId: 'asset_1', brandId: ' brand_1 ' },
       },
     );
 
-    expect(parameters).toEqual({ contentType: 'image/png', filename: 'a.png' });
+    expect(parameters).toEqual({ assetId: 'asset_1' });
     expect(context).toEqual({ ...CONTEXT, brandId: 'brand_1' });
     expect(() =>
-      compileInputContract('request_media_upload').validateInput(
+      compileInputContract('complete_media_upload').validateInput(
         parameters,
         PROVENANCE,
       ),
@@ -106,21 +102,21 @@ describe('moveUndeclaredBrandArgument', () => {
 
   it('drops a blank brandId without naming a brand', () => {
     expect(
-      moveUndeclaredBrandArgument('request_media_upload', {
+      moveUndeclaredBrandArgument('complete_media_upload', {
         context: CONTEXT,
-        parameters: { brandId: '  ', filename: 'a.png' },
+        parameters: { assetId: 'asset_1', brandId: '  ' },
       }),
-    ).toEqual({ context: CONTEXT, parameters: { filename: 'a.png' } });
+    ).toEqual({ context: CONTEXT, parameters: { assetId: 'asset_1' } });
   });
 
   it('leaves a call without brandId untouched', () => {
     const invocation = {
       context: CONTEXT,
-      parameters: { filename: 'a.png' },
+      parameters: { assetId: 'asset_1' },
     };
 
     expect(
-      moveUndeclaredBrandArgument('request_media_upload', invocation),
+      moveUndeclaredBrandArgument('complete_media_upload', invocation),
     ).toEqual(invocation);
   });
 });
