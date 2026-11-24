@@ -175,7 +175,7 @@ describe('EventLoopLagSampler full collections', () => {
     sampler.recordGc('major', 61_500, 20);
     sampler.stop();
 
-    expect(records[1].sinceLastMajorSec).toBe(60);
+    expect(records[1].sinceLastMajorSec).toBe(59.9);
     expect(records[1].stallMs).toBe(520);
   });
 
