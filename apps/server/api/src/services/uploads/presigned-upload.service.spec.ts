@@ -1064,7 +1064,9 @@ describe('PresignedUploadService', () => {
       storedHead = PNG_HEAD;
       vi.stubGlobal(
         'fetch',
-        vi.fn(async () => new Response(storedHead, { status: 206 })),
+        vi.fn(
+          async () => new Response(Buffer.from(storedHead), { status: 206 }),
+        ),
       );
       filesClientService.copyInS3.mockImplementation(
         async (sourceKey: string, destinationKey: string) => {
