@@ -28,7 +28,7 @@ describe('useOAuthConnectPlatforms', () => {
     vi.clearAllMocks();
   });
 
-  it('fails Threads closed while readiness is unknown', () => {
+  it('leaves Threads out while readiness is unknown', () => {
     getConnectReadiness.mockReturnValue(new Promise(() => undefined));
 
     const { result } = renderHook(() => useOAuthConnectPlatforms(), {
@@ -36,32 +36,25 @@ describe('useOAuthConnectPlatforms', () => {
     });
 
     expect(
-      result.current.find(
+      result.current.some(
         (item) => item.platform === CredentialPlatform.THREADS,
       ),
-    ).toMatchObject({
-      isConnectAvailable: false,
-      readiness: 'unknown',
-    });
+    ).toBe(false);
   });
 
-  it('keeps Threads unavailable when the server reports unavailable', async () => {
+  it('leaves Threads out when the server reports unavailable', async () => {
     getConnectReadiness.mockResolvedValue({ status: 'unavailable' });
 
     const { result } = renderHook(() => useOAuthConnectPlatforms(), {
       wrapper: createQueryWrapper(),
     });
 
-    await waitFor(() => {
-      expect(
-        result.current.find(
-          (item) => item.platform === CredentialPlatform.THREADS,
-        ),
-      ).toMatchObject({
-        isConnectAvailable: false,
-        readiness: 'unavailable',
-      });
-    });
+    await waitFor(() => expect(getConnectReadiness).toHaveBeenCalled());
+    expect(
+      result.current.some(
+        (item) => item.platform === CredentialPlatform.THREADS,
+      ),
+    ).toBe(false);
   });
 
   it('enables Threads when the server reports available', async () => {
@@ -83,7 +76,7 @@ describe('useOAuthConnectPlatforms', () => {
     });
   });
 
-  it('returns Threads to unknown after a readiness request failure', async () => {
+  it('leaves Threads out after a readiness request failure', async () => {
     getConnectReadiness.mockRejectedValue(new Error('capability unavailable'));
 
     const { result } = renderHook(() => useOAuthConnectPlatforms(), {
@@ -92,14 +85,12 @@ describe('useOAuthConnectPlatforms', () => {
 
     await waitFor(() => expect(getConnectReadiness).toHaveBeenCalled());
     expect(
-      result.current.find(
+      result.current.some(
         (item) => item.platform === CredentialPlatform.THREADS,
       ),
-    ).toMatchObject({
-      isConnectAvailable: false,
-      readiness: 'unknown',
-    });
+    ).toBe(false);
   });
+
   it('leaves Google Business out until the server reports it available', async () => {
     getConnectReadiness.mockResolvedValue({ status: 'unavailable' });
 
