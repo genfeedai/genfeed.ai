@@ -26,6 +26,12 @@ describe('OptionTile', () => {
     expect(screen.getByRole('radio', { name: /CSV/ })).not.toBeChecked();
   });
 
+  it('names the single-choice group a radiogroup', () => {
+    render(<Harness />);
+
+    expect(screen.getByRole('radiogroup', { name: 'Format' })).toBeVisible();
+  });
+
   it('keeps the selected tile when it is pressed again', async () => {
     render(<Harness />);
     await userEvent.click(screen.getByRole('radio', { name: /CSV/ }));

@@ -54,7 +54,7 @@ function LibraryTile({
   return (
     <Button
       ariaLabel={ariaLabel}
-      aria-selected={isSelected}
+      aria-pressed={isSelected}
       className={cn(
         'group flex w-full flex-col overflow-hidden rounded-card bg-card text-left shadow-border transition-colors',
         isSelected ? SELECTED_CARD_CLASS : 'hover:bg-foreground/5',
@@ -63,7 +63,6 @@ function LibraryTile({
       data-motion={isSelected ? 'allow' : undefined}
       isDisabled={isLocked}
       onClick={() => onSelect(item)}
-      role="option"
       variant={ButtonVariant.UNSTYLED}
       withWrapper={false}
     >
@@ -125,7 +124,7 @@ export default function LibraryGrid({
   onSelect,
 }: LibraryGridProps): ReactElement {
   return (
-    <div aria-label={ariaLabel} role="listbox">
+    <div aria-label={ariaLabel} role="group">
       <OrderedMasonry
         gap={TILE_GAP}
         maxColumns={maxColumns}

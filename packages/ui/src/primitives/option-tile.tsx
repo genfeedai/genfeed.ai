@@ -81,6 +81,7 @@ function OptionTileGroup<TValue extends string = string>(
       className={groupClassName}
       data-testid={testId}
       disabled={isDisabled}
+      role="radiogroup"
       onValueChange={(next) => {
         if (props.isDeselectable) {
           props.onValueChange((next || undefined) as TValue | undefined);

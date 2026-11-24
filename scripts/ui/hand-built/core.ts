@@ -73,7 +73,7 @@ export function readSource(rootDir: string, file: string): HandBuiltSource {
   const text = readFileSync(path.join(rootDir, file), 'utf8');
   return {
     file,
-    sourceFile: parseSourceFile(file, text, scriptKindFor(file)),
+    sourceFile: parseSourceFile(file, text, true, scriptKindFor(file)),
     text,
   };
 }
