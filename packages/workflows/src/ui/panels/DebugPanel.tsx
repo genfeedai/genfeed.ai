@@ -6,7 +6,7 @@ import { Pre } from '@genfeedai/ui';
 import { Badge } from '@genfeedai/ui/primitives/badge';
 import { Button } from '@genfeedai/ui/primitives/button';
 import { EmptyState } from '@genfeedai/ui/primitives/empty-state';
-import DateText from '@genfeedai/ui/time/DateText';
+import DateText from '@ui/time/DateText';
 import { Bug, ChevronDown, ChevronRight, Copy, Trash2, X } from 'lucide-react';
 import { memo, useCallback, useState } from 'react';
 import { useExecutionStore } from '../stores/execution';
