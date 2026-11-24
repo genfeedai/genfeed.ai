@@ -1,10 +1,8 @@
 import type { LucideIcon } from 'lucide-react';
 import {
-  AtSign,
   Hash,
   Languages,
   ListPlus,
-  MessageSquarePlus,
   Minimize2,
   Rocket,
   Sparkles,
@@ -57,15 +55,7 @@ export const REWRITE_PRESETS: PostComposerPreset[] = [
   },
 ];
 
-export const THREAD_PRESETS: Record<
-  'thread' | 'grok' | 'comment',
-  PostComposerPreset
-> = {
-  comment: {
-    icon: MessageSquarePlus,
-    key: 'comment',
-  },
-  grok: { icon: AtSign, key: 'grok' },
+export const THREAD_PRESETS: Record<'thread', PostComposerPreset> = {
   thread: { icon: ListPlus, key: 'thread' },
 };
 

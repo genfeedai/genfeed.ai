@@ -10,13 +10,6 @@ import CreatorAccounts from './CreatorAccounts';
 import SupportCreatorButton from './SupportCreatorButton';
 import ViewTracker from './ViewTracker';
 
-const STAT_LABELS = [
-  ['posts', 'posts'],
-  ['images', 'images'],
-  ['videos', 'videos'],
-  ['articles', 'articles'],
-] as const;
-
 /**
  * Who the creator is, how to follow them, and what they have published.
  *
@@ -27,14 +20,12 @@ const STAT_LABELS = [
  */
 export default function CreatorHeader({
   brand,
-  counts,
   handle,
   hasBanner,
   profileUrl,
   referralCode,
 }: CreatorHeaderProps): React.ReactElement {
   const label = brand.label?.trim() || `@${handle}`;
-  const stats = STAT_LABELS.filter(([key]) => counts[key] > 0);
 
   return (
     <header className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-3 px-1 sm:gap-x-6">
@@ -100,22 +91,7 @@ export default function CreatorHeader({
         <CopyLinkButton url={profileUrl} />
       </div>
 
-      <div className="col-span-2 flex flex-wrap items-center justify-between gap-x-8 gap-y-3 pt-1">
-        {stats.length > 0 ? (
-          <p className="text-sm text-foreground/60">
-            {stats.map(([key, noun], index) => (
-              <span key={key}>
-                {index > 0 ? ' · ' : null}
-                <span className="font-semibold text-foreground">
-                  {counts[key]}
-                </span>{' '}
-                {counts[key] === 1 ? noun.slice(0, -1) : noun}
-              </span>
-            ))}
-          </p>
-        ) : (
-          <span />
-        )}
+      <div className="col-span-2 flex flex-wrap items-center justify-end gap-x-8 gap-y-3 pt-1">
         <CreatorAccounts brand={brand} handle={handle} />
       </div>
       <ViewTracker id={brand.id} target="profile" />
