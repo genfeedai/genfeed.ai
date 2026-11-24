@@ -26,6 +26,25 @@ describe('OptionTile', () => {
     expect(screen.getByRole('radio', { name: /CSV/ })).not.toBeChecked();
   });
 
+  it('names a single-choice group as a radio group and a multiple-choice group as a group', () => {
+    render(
+      <>
+        <Harness />
+        <OptionTileGroup
+          ariaLabel="Goals"
+          onValueChange={vi.fn()}
+          type="multiple"
+          value={[]}
+        >
+          <OptionTile title="Reach" value="reach" />
+        </OptionTileGroup>
+      </>,
+    );
+
+    expect(screen.getByRole('radiogroup', { name: 'Format' })).toBeVisible();
+    expect(screen.getByRole('group', { name: 'Goals' })).toBeVisible();
+  });
+
   it('keeps the selected tile when it is pressed again', async () => {
     render(<Harness />);
     await userEvent.click(screen.getByRole('radio', { name: /CSV/ }));
