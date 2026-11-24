@@ -11,7 +11,7 @@ import { ApiKeyCategory, FileInputType } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 
 const TWO_LETTER_CODE_PATTERN = /^[a-z]{2}$/;
 
@@ -76,6 +76,19 @@ export class ElevenLabsService {
     private readonly apiKeyHelperService: ApiKeyHelperService,
     private readonly filesClientService: FilesClientService,
   ) {}
+
+  /**
+   * The client for speech, cloning and alignment: always the caller's own
+   * ElevenLabs key. Only the shared voice catalog reads use the platform key.
+   */
+  private getCustomerClient(apiKey?: string): ElevenLabsClient {
+    if (!apiKey) {
+      throw new BadRequestException(
+        'Connect your ElevenLabs account in Settings → Integrations to use ElevenLabs voices.',
+      );
+    }
+    return new ElevenLabsClient({ apiKey });
+  }
 
   private getClient(apiKeyOverride?: string): ElevenLabsClient {
     if (apiKeyOverride) {
@@ -219,7 +232,7 @@ export class ElevenLabsService {
     apiKeyOverride?: string,
     options?: ElevenLabsSpeechOptions,
   ): Promise<ElevenLabsAudioWithTimestampsResponse> {
-    const client = this.getClient(apiKeyOverride);
+    const client = this.getCustomerClient(apiKeyOverride);
     return (await client.textToSpeech.convertWithTimestamps(voiceId, {
       modelId: await this.speechModelId(options),
       outputFormat: 'mp3_44100_128',
@@ -255,7 +268,7 @@ export class ElevenLabsService {
       });
 
       // Generate audio with ElevenLabs
-      const client = this.getClient(apiKeyOverride);
+      const client = this.getCustomerClient(apiKeyOverride);
       const audioResponse = (await client.textToSpeech.convertWithTimestamps(
         voiceId,
         {
@@ -356,7 +369,7 @@ export class ElevenLabsService {
     try {
       this.loggerService.log(`${url} started`, { name });
 
-      const client = this.getClient(apiKeyOverride);
+      const client = this.getCustomerClient(apiKeyOverride);
       const response = await client.voices.ivc.create({
         files: files.map((file, index) => ({
           contentLength: file.length,
@@ -395,7 +408,7 @@ export class ElevenLabsService {
     try {
       this.loggerService.log(`${url} started`, { voiceId });
 
-      const client = this.getClient(apiKeyOverride);
+      const client = this.getCustomerClient(apiKeyOverride);
       await client.voices.delete(voiceId);
 
       this.loggerService.log(`${url} completed`, { voiceId });
@@ -433,7 +446,7 @@ export class ElevenLabsService {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     try {
       this.loggerService.log(`${url} started`);
-      const client = this.getClient(apiKeyOverride);
+      const client = this.getCustomerClient(apiKeyOverride);
       const response = await client.forcedAlignment.create({
         file: fs.createReadStream(filePath),
         text,

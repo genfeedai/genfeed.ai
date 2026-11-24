@@ -95,11 +95,6 @@ describe('VoiceCloneService', () => {
     organizationId,
     provider: 'elevenlabs' as const,
   };
-  const platformBinding = {
-    ...personalBinding,
-    credentialVersionId: 'platform',
-    kind: 'platform' as const,
-  };
   let connections: {
     findPersonalConnection: ReturnType<typeof vi.fn>;
     resolve: ReturnType<typeof vi.fn>;
@@ -136,11 +131,7 @@ describe('VoiceCloneService', () => {
       findPersonalConnection: vi
         .fn()
         .mockResolvedValue({ apiKey: 'key', binding: personalBinding }),
-      resolve: vi.fn(async (_organizationId: string, kind: string) =>
-        kind === 'byok'
-          ? { apiKey: 'key', binding: personalBinding }
-          : { apiKey: 'platform-key', binding: platformBinding },
-      ),
+      resolve: vi.fn(async () => ({ apiKey: 'key', binding: personalBinding })),
     };
     elevenLabs = {
       cloneVoice: vi.fn().mockResolvedValue({ voiceId: 'external-voice-1' }),
@@ -310,7 +301,7 @@ describe('VoiceCloneService', () => {
     expect(shared.createMediaDocuments).not.toHaveBeenCalled();
   });
 
-  it('deletes a bound clone through its own account, never the platform', async () => {
+  it('deletes a clone only through the organization account', async () => {
     voices.findOne.mockResolvedValue({
       externalVoiceId: 'external-voice-1',
       id: 'canonical-voice-1',
@@ -332,7 +323,7 @@ describe('VoiceCloneService', () => {
     await expect(
       service.deleteClonedVoice(user, ingredientId),
     ).rejects.toBeInstanceOf(BadRequestException);
-    expect(connections.resolve).toHaveBeenCalledWith(organizationId, 'byok');
+    expect(connections.resolve).toHaveBeenCalledWith(organizationId);
     expect(elevenLabs.deleteVoice).not.toHaveBeenCalled();
     expect(voices.patchAll).not.toHaveBeenCalled();
   });
