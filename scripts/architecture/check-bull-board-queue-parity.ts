@@ -11,7 +11,10 @@ const AUXILIARY_ARRAY_PATTERN =
   /BULL_BOARD_AUXILIARY_QUEUE_NAMES\s*=\s*\[([\s\S]*?)\]\s*as const/;
 const CANONICAL_COMPOSITION_PATTERN =
   /BULL_BOARD_QUEUE_NAMES\s*=\s*\[\s*\.\.\.ALL_QUEUE_NAMES\s*,\s*\.\.\.BULL_BOARD_AUXILIARY_QUEUE_NAMES\s*,?\s*\]\s*as const/;
-const MAIN_USAGE_PATTERN = /BULL_BOARD_QUEUE_NAMES\s*\.\s*map\s*\(/;
+// main.ts hands the canonical list to the lazy router, which builds one adapter
+// per name; the older inline `BULL_BOARD_QUEUE_NAMES.map(...)` form also passes.
+const MAIN_USAGE_PATTERN =
+  /BULL_BOARD_QUEUE_NAMES\s*\.\s*map\s*\(|queueNames\s*:\s*BULL_BOARD_QUEUE_NAMES\b/;
 const STRING_LITERAL_PATTERN = /^(['"])([^'"]+)\1$/;
 
 export interface BullBoardQueueParityOptions {
@@ -71,7 +74,7 @@ export function runCheckBullBoardQueueParity(
 
   if (!MAIN_USAGE_PATTERN.test(mainSource)) {
     violations.push(
-      'apps/server/api/src/main.ts must build Bull Board adapters from BULL_BOARD_QUEUE_NAMES.map(...).',
+      'apps/server/api/src/main.ts must build Bull Board adapters from BULL_BOARD_QUEUE_NAMES.map(...) or pass queueNames: BULL_BOARD_QUEUE_NAMES to the lazy router.',
     );
   }
 

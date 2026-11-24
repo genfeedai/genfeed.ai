@@ -4,11 +4,15 @@ import { buildCreatorMetadata } from './creator-metadata';
 import { CreatorOverview } from './creator-view';
 
 /**
- * Rendered on every visit from the API's cache, which a profile edit or an
- * operator taking the profile off community clears, so the change shows on the
- * next load.
+ * Rendered once and served from the full route cache. A profile build makes
+ * seven API calls (brand, referral code, four content lists, model catalog), and
+ * crawlers and social unfurls walk the profile index, so rendering on every
+ * visit sent each of them to the API. Five minutes keeps a profile edit, a new
+ * post or an operator taking the profile off community visible quickly, and
+ * collapses repeat visits onto one render. Only `params` is read, which is what
+ * lets the route be cached at all: the tab routes read `?page=` and stay dynamic.
  */
-export const dynamic = 'force-dynamic';
+export const revalidate = 300;
 
 export async function generateMetadata({
   params,

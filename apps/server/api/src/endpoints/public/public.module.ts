@@ -30,6 +30,7 @@ import { PublicVideosController } from '@api/endpoints/public/controllers/videos
 import { PublicWaitlistController } from '@api/endpoints/public/controllers/waitlist/public.waitlist.controller';
 import { PublicYoutubeClipperController } from '@api/endpoints/public/controllers/youtube-clipper/public-youtube-clipper.controller';
 import { PublicYoutubeLongFormController } from '@api/endpoints/public/controllers/youtube-long-form/public-youtube-long-form.controller';
+import { PublicCacheControlInterceptor } from '@api/endpoints/public/interceptors/public-cache-control.interceptor';
 import { PublicArticleGenerationsService } from '@api/endpoints/public/services/public-article-generations.service';
 import { PublicBrandReachService } from '@api/endpoints/public/services/public-brand-reach.service';
 import { PublicBrandSocialsService } from '@api/endpoints/public/services/public-brand-socials.service';
@@ -43,6 +44,7 @@ import { MediaUrlsModule } from '@api/services/media-urls/media-urls.module';
 import { PublicClipperToolStoreModule } from '@api/services/public-clipper-tool/public-clipper-tool-store.module';
 import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
+import { APP_INTERCEPTOR } from '@nestjs/core';
 
 @Module({
   controllers: [
@@ -87,6 +89,8 @@ import { Module } from '@nestjs/common';
     WorkflowsModule,
   ],
   providers: [
+    // Global, like every APP_INTERCEPTOR; it acts only on the public controllers.
+    { provide: APP_INTERCEPTOR, useClass: PublicCacheControlInterceptor },
     PublicMediaService,
     PublicArticleGenerationsService,
     PublicBrandReachService,

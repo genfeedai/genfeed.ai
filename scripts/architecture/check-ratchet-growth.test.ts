@@ -5,6 +5,7 @@ import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   authorityFieldEntryKeys,
+  bootHeapEntryKeys,
   countMapEntryKeys,
   crossOrgEntryKeys,
   findRatchetGrowth,
@@ -426,5 +427,33 @@ describe('runRatchetGrowthCheck against git history', () => {
     ).toThrow(
       /Could not read scripts\/architecture\/cross-org-unsafe.baseline.ts/,
     );
+  });
+});
+
+describe('boot heap budget baseline', () => {
+  const source = RATCHET_SOURCES.find(
+    ({ file }) => file === 'scripts/architecture/boot-heap.baseline.json',
+  ) as NonNullable<(typeof RATCHET_SOURCES)[number]>;
+  const baseline = (budgetMb: number): string => JSON.stringify({ budgetMb });
+
+  it('counts one entry per megabyte of budget', () => {
+    expect(bootHeapEntryKeys(baseline(3))).toEqual([
+      'boot-heap-mb',
+      'boot-heap-mb',
+      'boot-heap-mb',
+    ]);
+  });
+
+  it('rejects a raised budget', () => {
+    expect(
+      findRatchetGrowth(source, baseline(200), baseline(230)).map(
+        ({ added, key }) => [key, added],
+      ),
+    ).toEqual([['boot-heap-mb', 30]]);
+  });
+
+  it('accepts a lowered or unchanged budget', () => {
+    expect(findRatchetGrowth(source, baseline(200), baseline(180))).toEqual([]);
+    expect(findRatchetGrowth(source, baseline(200), baseline(200))).toEqual([]);
   });
 });

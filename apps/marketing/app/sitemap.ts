@@ -19,7 +19,13 @@ import {
 import { PublicService } from '@services/external/public.service';
 import type { MetadataRoute } from 'next';
 
-export const dynamic = 'force-dynamic';
+/**
+ * Built once per window and served from the route cache. It used to run on
+ * every request, and each run walks the brand list, every article page and the
+ * newest posts. A new article reaches the sitemap within fifteen minutes
+ * without a deployment.
+ */
+export const revalidate = 900;
 
 const SITE_URL = 'https://genfeed.ai';
 /** The public brands endpoint caps a page at 100: the newest profiles. */

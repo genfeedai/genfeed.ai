@@ -1,6 +1,6 @@
 import { generateKeyPairSync } from 'node:crypto';
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
-import type { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
+import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
 import { MediaDeliveryResponseInterceptor } from '@api/services/media-urls/media-delivery-response.interceptor';
 import { setRequestMediaScope } from '@api/services/media-urls/request-media-scope';
 import type { ConfigService } from '@libs/config/config.service';
@@ -266,5 +266,52 @@ describe('MediaDeliveryResponseInterceptor thread media scope (#9962)', () => {
       { brandId: undefined, organizationId, userId: 'user-1' },
       ['ingredient-1'],
     );
+  });
+});
+
+describe('MediaDeliveryResponseInterceptor on an unauthenticated response with no media', () => {
+  it('reads nothing from the database, health check included', async () => {
+    const queries: string[] = [];
+    const prisma = new Proxy(
+      {},
+      {
+        get: (_target, model: string) =>
+          new Proxy(
+            {},
+            {
+              get: (_inner, method: string) => async () => {
+                queries.push(`${model}.${method}`);
+                return [];
+              },
+            },
+          ),
+      },
+    );
+    const urls = { buildUrl: () => 'https://cdn.genfeed.ai/unused' };
+    const issuer = new AuthorizedMediaUrlService(
+      prisma as never,
+      { isAuthorizedMediaDeliveryEnabled: true } as never,
+      urls as never,
+      { error: () => undefined, warn: () => undefined } as never,
+    );
+    const config = {
+      isAuthorizedMediaDeliveryEnabled: true,
+      mediaUrlConfig: { cdnUrl: 'https://cdn.genfeed.ai' },
+    } as unknown as ConfigService;
+    const interceptor = new MediaDeliveryResponseInterceptor(issuer, config);
+    const context = {
+      switchToHttp: () => ({ getRequest: () => ({}) }),
+    } as unknown as ExecutionContext;
+
+    const health = await lastValueFrom(
+      interceptor.intercept(context, { handle: () => of({ status: 'ok' }) }),
+    );
+    const empty = await lastValueFrom(
+      interceptor.intercept(context, { handle: () => of({ data: null }) }),
+    );
+
+    expect(health).toEqual({ status: 'ok' });
+    expect(empty).toEqual({ data: null });
+    expect(queries).toEqual([]);
   });
 });
