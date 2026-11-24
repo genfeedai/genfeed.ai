@@ -1,3 +1,4 @@
+import { describeChannelHashtagRule } from '@genfeedai/contracts/api-types/contracts';
 import type { LucideIcon } from 'lucide-react';
 import {
   Hash,
@@ -20,7 +21,7 @@ export interface PostComposerPreset {
   key: PostComposerPresetKey;
   icon: LucideIcon;
   /** Rewrite instruction; absent for presets that act on the thread. */
-  prompt?: (platformLabel: string) => string;
+  prompt?: (platformLabel: string, platform?: string) => string;
 }
 
 export const REWRITE_PRESETS: PostComposerPreset[] = [
@@ -44,8 +45,8 @@ export const REWRITE_PRESETS: PostComposerPreset[] = [
   {
     icon: Hash,
     key: 'hashtags',
-    prompt: (platformLabel) =>
-      `Add 3 to 5 relevant ${platformLabel} hashtags at the end. Keep the rest of the text unchanged.`,
+    prompt: (platformLabel, platform) =>
+      `Add relevant ${platformLabel} hashtags at the end, each naming something in the post; ${platform ? describeChannelHashtagRule(platform) : 'use 3 to 5'}. Keep the rest of the text unchanged.`,
   },
   {
     icon: Sparkles,

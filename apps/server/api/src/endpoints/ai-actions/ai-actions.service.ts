@@ -2,7 +2,10 @@ import {
   AiActionType,
   ExecuteAiActionDto,
 } from '@api/endpoints/ai-actions/dto/ai-action.dto';
-import { AI_ACTION_PROMPTS } from '@api/endpoints/ai-actions/prompts/action-prompts';
+import {
+  AI_ACTION_PROMPTS,
+  resolveAddHashtagsSystemPrompt,
+} from '@api/endpoints/ai-actions/prompts/action-prompts';
 import { resolveEnhancePromptSystemPrompt } from '@api/endpoints/ai-actions/prompts/cinematic-enhancement';
 import { AgentContextAssemblyService } from '@api/services/agent-context-assembly/agent-context-assembly.service';
 import { ByokService } from '@api/services/byok/byok.service';
@@ -52,12 +55,16 @@ export class AiActionsService {
       throw new BadRequestException(`Unknown action type: ${dto.action}`);
     }
 
-    let systemPrompt =
-      dto.action === AiActionType.ENHANCE_PROMPT
-        ? resolveEnhancePromptSystemPrompt({
-            category: dto.context?.category,
-          })
-        : promptConfig.systemPrompt;
+    let systemPrompt: string;
+    if (dto.action === AiActionType.ENHANCE_PROMPT) {
+      systemPrompt = resolveEnhancePromptSystemPrompt({
+        category: dto.context?.category,
+      });
+    } else if (dto.action === AiActionType.ADD_HASHTAGS) {
+      systemPrompt = resolveAddHashtagsSystemPrompt(dto.context?.platform);
+    } else {
+      systemPrompt = promptConfig.systemPrompt;
+    }
 
     if (dto.context) {
       for (const [key, value] of Object.entries(dto.context)) {

@@ -1,4 +1,5 @@
 import { CredentialPlatform } from '@genfeedai/contracts';
+import { describeChannelHashtagRule } from '@genfeedai/contracts/api-types/contracts/channel-hashtags.contract';
 import { getPlatformPreviewLimit } from '@genfeedai/contracts/constants';
 import type {
   ContentHarnessContribution,
@@ -35,7 +36,7 @@ function buildInstagramPlatformContribution(
   }
 
   const guardrails = [
-    'Use a few specific hashtags, not a long block of generic tags.',
+    `Hashtags go in the caption and each one names something in the post: ${describeChannelHashtagRule(CredentialPlatform.INSTAGRAM)}, never a block of generic tags.`,
     'Do not write "link in bio" without saying what the link gives the reader.',
   ];
 

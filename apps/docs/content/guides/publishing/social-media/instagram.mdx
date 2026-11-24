@@ -1,13 +1,15 @@
 ---
-description: 'Connect an eligible Instagram Business or Creator account to Genfeed and review access, publishing, and analytics requirements.'
+description: 'Connect an Instagram Business or Creator account to Genfeed and review what it publishes, the caption and hashtag limits, analytics, and troubleshooting.'
 ---
 
 # Instagram Setup
 
 Connect your Instagram Business or Creator account to publish content directly from Genfeed.ai.
 
-This page is connector reference: prerequisites, connection, supported content
-types, publishing features, analytics, and troubleshooting.
+This page is connector reference: prerequisites, connection, what Genfeed can
+publish, the limits it checks, analytics, and troubleshooting. Limits come from
+the channel capability catalog; `check_channel` with `action: capabilities`
+returns the same values to agents.
 
 ## Prerequisites
 
@@ -33,184 +35,116 @@ A Facebook Page is not required.
 4. Log in with your Instagram or Facebook credentials
 5. Select your Instagram professional account
 6. Grant permissions:
+   - Basic profile access
    - Content publishing
    - Insights access
    - Comment management
-   - Story publishing
+   - Message management
 
-## Content Types
+## What Genfeed Publishes
 
-### Feed Posts
+Genfeed publishes to the feed or as a Reel. Choose the placement when you
+schedule: **Feed** or **Reel**. A Reel needs a video: an image with the **Reel**
+placement is rejected, so choose **Feed** for images. Stories are not published
+by Genfeed.
 
-- **Images**: JPG, PNG (max 30MB)
-- **Aspect Ratios**:
-  - Square: 1:1
-  - Portrait: 4:5 (recommended)
-  - Landscape: 1.91:1
-- **Resolution**: 1080x1080 minimum
-- **Carousels**: Up to 10 images/videos
+| Post | Media | Limits Genfeed checks |
+| --- | --- | --- |
+| Feed post | One image | Caption up to 2,200 characters |
+| Carousel | 2 to 10 images | Caption up to 2,200 characters |
+| Reel | One video | Caption up to 2,200 characters |
 
-### Reels
+A video, even one chosen for the feed, goes out as a Reel. Animated images
+(GIF) publish as a single still frame; upload a video to keep motion.
 
-- **Duration**: 15-90 seconds
-- **Aspect Ratio**: 9:16 (vertical)
-- **Resolution**: 1080x1920
-- **File Size**: Up to 100MB
-- **Format**: MP4, MOV
+Genfeed sends the caption and the media. It does not send location tags,
+people tags or product tags.
 
-### Stories
+Instagram's own media rules (image format, file size, Reel length, aspect
+ratio) are in Meta's
+[content publishing reference](https://developers.facebook.com/docs/instagram-platform/instagram-graph-api/reference/ig-user/media).
+Check the format before you schedule. As of 2026-11-24 the reference lists
+JPEG as the image format.
 
-- **Duration**: 15 seconds per story
-- **Aspect Ratio**: 9:16
-- **Auto-expire**: After 24 hours
-- **Highlights**: Save permanently
+## Captions and Hashtags
 
-## Publishing Features
+Write the caption in the composer; the counter tracks the 2,200-character
+limit.
 
-### Content Creation
+**Hashtags go in the caption, not the first comment.** Instagram allows at
+most **5 hashtags** in a post or Reel (since 2025-12-18). Use 3 to 5 that name
+what is in the post.
 
-1. Select media from Genfeed.ai library
-2. Choose **Publish to Instagram**
-3. Select content type (Post/Reel/Story)
-4. Add caption and hashtags
-5. Tag locations and people
-6. Schedule or publish immediately
+Genfeed asks its writers for no more than 5 on Instagram: the **Hashtags**
+action in the composer, the short-form writer agent, onboarding drafts and AI influencer
+captions. Repurposing a post to Instagram keeps the first 5 hashtags. A caption
+you write or paste yourself is not trimmed: if it has more than 5, the post
+preview shows a warning, so remove the extra ones before you schedule.
 
-### Caption Tools
+Instagram search reads captions, so put the keywords people would search for in
+the caption text.
 
-- **Character Counter**: Track 2,200 limit
-- **Hashtag Suggestions**: AI-powered recommendations
-- **Emoji Picker**: Quick emoji insertion
-- **Line Breaks**: Proper formatting preserved
-- **First Comment**: Auto-post hashtags
+A first comment can be added by hand or by the agent. Genfeed does not
+auto-post hashtags there.
 
-### Advanced Features
+## Publishing
 
-- **Auto-Resize**: Fit any image to Instagram specs
-- **Filter Presets**: Apply consistent styling
-- **Carousel Ordering**: Drag to rearrange
-- **Music Library**: For Reels (where available)
-- **Product Tagging**: For shopping-enabled accounts
+1. Select media from the Genfeed.ai library
+2. Choose **Instagram** as the channel
+3. Choose Feed or Reel
+4. Add the caption
+5. Schedule or publish immediately
 
-## Analytics Dashboard
+## Analytics
 
-### Post Insights
-
-- **Reach**: Unique accounts reached
-- **Impressions**: Total views
-- **Engagement**: Likes, comments, saves, shares
-- **Discovery**: How people found your post
-- **Profile Activity**: Actions from your post
-
-### Audience Analytics
-
-- **Demographics**: Age, gender, location
-- **Active Times**: When followers are online
-- **Growth**: Follower changes over time
-- **Content Preferences**: Top performing post types
-
-### Reels Insights
-
-- **Plays**: Total video views
-- **Accounts Reached**: Unique viewers
-- **Likes & Comments**: Engagement metrics
-- **Shares**: How often shared
-- **Saves**: Bookmarked for later
-
-## Instagram Shopping
-
-### Setup Requirements
-
-- Business account
-- Compliant with commerce policies
-- Facebook catalog connected
-- Website with product pages
-
-### Features
-
-- Product tags in posts
-- Shopping stickers in Stories
-- Shop tab on profile
-- Checkout on Instagram (select regions)
+Genfeed reads post analytics from Instagram: views, likes, comments, saves,
+shares and reach, in **Analytics**.
 
 ## Troubleshooting
 
-### Common Issues
-
-**Connection Failed**
+### Connection Failed
 
 - Check Instagram account type (Business or Creator)
 - Make sure you selected the account in the Meta login dialog
 - Try reconnecting; a connection made through a Facebook Page before this change must be reconnected
 
-**Publishing Errors**
+### Publishing Errors
 
-- Check content meets Instagram guidelines
-- Verify file sizes and formats
-- Ensure caption isn't too long
-- Check for restricted hashtags
+- Reels need a video; an image publishes to the feed
+- Carousels take 2 to 10 images
+- Keep the caption within 2,200 characters
+- Check the image format against Meta's reference above
+- If Genfeed reports the channel as disconnected, reconnect the account
 
-**Limited Features**
+### Limits
 
-- Some features require minimum followers
-- Check account standing for violations
-- Verify all permissions granted
-
-**API Limits**
-
-- 25 API calls per hour
-- Content publishing: 25 per day
-- Story publishing: 100 per day
-
-### Error Codes
-
-- Error 9: Rate limit exceeded
-- Error 24: Account restricted
-- Error 100: Invalid parameter
-- Error 200: Permission denied
+Instagram sets API rate limits and a daily cap on API-published posts. Genfeed
+does not read your remaining allowance, and the numbers differ between Meta's
+pages, so this guide gives none. See Meta's
+[content publishing guide](https://developers.facebook.com/documentation/instagram-platform/content-publishing).
 
 ## Content Guidelines
 
-### Prohibited Content
+Follow Instagram's community guidelines. Do not post:
 
 - Copyrighted material without permission
 - Misleading or false information
 - Spam or repetitive content
-- Violence or dangerous activities
-- Regulated goods
 
-### Best Quality Practices
-
-- High-resolution images only
-- Good lighting and composition
-- Authentic, original content
-- Proper credit for others' work
-- Community guidelines compliance
-
-## Automation
-
-- Schedule posts for optimal times
-- Auto-reply to common DMs
-- Set up welcome messages
-- Create quick replies
-- Manage comment moderation
+Instagram says engagement bait and third-party watermarks can reduce a Reel's
+reach ([Instagram for Creators FAQ](https://creators.instagram.com/faq)).
 
 ## Security & Privacy
 
 - OAuth authentication via Meta (Instagram or Facebook login)
 - No password storage
-- Encrypted data transmission
-- Regular security audits
-- Revoke access anytime
+- Revoke access anytime from the Instagram app
 
 ## Platform Updates
 
-Instagram frequently updates features. Stay current:
-
-- Follow @creators on Instagram
-- Check Instagram Blog
-- Join creator communities
-- Watch the [Genfeed releases](https://github.com/genfeedai/genfeed.ai/releases)
+Instagram changes often. Watch the
+[Genfeed releases](https://github.com/genfeedai/genfeed.ai/releases) for what
+Genfeed supports.
 
 ## Need Support?
 

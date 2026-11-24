@@ -340,6 +340,20 @@ describe('PostRepurposeService', () => {
       expect(prisma.ingredient.findFirst).not.toHaveBeenCalled();
     });
 
+    it('asks the content engine for the Instagram hashtag limit the catalog declares', async () => {
+      await service.repurpose({
+        mode: PostRepurposeMode.AGENT,
+        organizationId,
+        platform: Platform.INSTAGRAM,
+        postId,
+        userId,
+      });
+
+      const [, request] = contentGeneratorService.generateContent.mock.calls[0];
+      expect(request.topic).toContain('use at most 5 hashtags');
+      expect(request.topic).not.toContain('30 hashtags');
+    });
+
     it('routes the rewrite through the manual review batch', async () => {
       const result = await service.repurpose({
         mode: PostRepurposeMode.AGENT,

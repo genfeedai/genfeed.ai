@@ -69,6 +69,14 @@ describe('getAgentTypeConfig', () => {
     }
   });
 
+  it('gives the short-form writer the catalog hashtag limit for Instagram', () => {
+    const { systemPromptSuffix } = getAgentTypeConfig(
+      AgentType.SHORT_FORM_WRITER,
+    );
+    expect(systemPromptSuffix).toContain('use at most 5 hashtags');
+    expect(systemPromptSuffix).not.toContain('3-5 niche');
+  });
+
   it('falls back to GENERAL for unknown agent type', () => {
     const config = getAgentTypeConfig('unknown' as AgentType);
     expect(config).toBe(AGENT_TYPE_CONFIGS[AgentType.GENERAL]);

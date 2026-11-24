@@ -10,12 +10,14 @@ import { OpenRouterService } from '@api/services/integrations/openrouter/service
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import { requireRelationId } from '@api/shared/utils/relation-id/relation-id.util';
 import {
+  CredentialPlatform,
   FileInputType,
   FleetReviewStatus,
   IngredientOrigin,
   IngredientStatus,
   LoraStatus,
 } from '@genfeedai/contracts';
+import { describeChannelHashtagRule } from '@genfeedai/contracts/api-types/contracts/channel-hashtags.contract';
 import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
@@ -290,7 +292,7 @@ export class AiInfluencerService {
       'Write a single Instagram/Twitter caption for a new photo post.',
       'Requirements:',
       '- Be authentic and engaging',
-      '- Include 3-5 relevant hashtags at the end',
+      `- Hashtags at the end: ${describeChannelHashtagRule(CredentialPlatform.INSTAGRAM)}, each naming what the photo shows`,
       '- Keep it under 280 characters for Twitter compatibility',
       '- Do NOT include any URLs or links',
       '- Do NOT use emojis excessively (1-2 max)',
