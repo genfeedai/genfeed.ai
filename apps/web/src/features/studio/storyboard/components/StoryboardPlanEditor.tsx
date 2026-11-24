@@ -25,7 +25,7 @@ import SubbarOverflowMenu from '@ui/layout/subbar-overflow-menu/SubbarOverflowMe
 import { Button } from '@ui/primitives/button';
 import { EmptyState } from '@ui/primitives/empty-state';
 import { Skeleton } from '@ui/primitives/skeleton';
-import { Clapperboard, Plus, RotateCcw, Undo2 } from 'lucide-react';
+import { Clapperboard, Plus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Fragment, useEffect, useImperativeHandle, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -51,6 +51,7 @@ import StoryboardShotRenders from '@/features/studio/storyboard/components/Story
 import StoryboardSlideshowBoard from '@/features/studio/storyboard/components/StoryboardSlideshowBoard';
 import { useStoryboardAssets } from '@/features/studio/storyboard/hooks/use-storyboard-assets';
 import { useStoryboardAutosave } from '@/features/studio/storyboard/hooks/use-storyboard-autosave';
+import { useStoryboardPlanMenu } from '@/features/studio/storyboard/hooks/use-storyboard-plan-menu';
 import { useStoryboardVoices } from '@/features/studio/storyboard/hooks/use-storyboard-voices';
 import { normalizeStoryboardModel } from '@/features/studio/storyboard/utils/storyboard-capabilities';
 import {
@@ -89,6 +90,7 @@ export default function StoryboardPlanEditor({
   onSaveStatusChange,
   savePlan,
   resetPlan,
+  reversePlan,
   approvePlan,
   quoteStills,
   generateStills,
@@ -348,6 +350,19 @@ export default function StoryboardPlanEditor({
       setWorking(false);
     }
   }
+  const menuActions = useStoryboardPlanMenu({
+    brandId: run.brandId,
+    canReset:
+      Boolean(run.config.generatedPlan) && !(draft && draft.status !== 'saved'),
+    canUndo: autosave.canUndo,
+    isDisabled,
+    isReversible: !isLongForm && !isSlideshow,
+    perform,
+    plan,
+    resetPlan,
+    reversePlan,
+    undo: () => autosave.undo(),
+  });
   /** Prices the stills, says what they cost in a toast, then starts them. */
   function requestStills(shotIds?: readonly string[]) {
     if (!quoteStills || !generateStills) return;
@@ -464,15 +479,6 @@ export default function StoryboardPlanEditor({
           ),
         });
       },
-    });
-  }
-  function reset() {
-    openConfirm({
-      isOpen: true,
-      label: translate('resetConfirm'),
-      message: translate('resetMessage'),
-      confirmLabel: translate('resetPlan'),
-      onConfirm: () => perform((revision) => resetPlan(revision)),
     });
   }
   function addShot(position = plan.shots.length) {
@@ -672,29 +678,7 @@ export default function StoryboardPlanEditor({
             />
           )
         }
-        overflow={
-          <SubbarOverflowMenu
-            actions={[
-              {
-                icon: <Undo2 className="size-4" />,
-                id: 'undo',
-                isDisabled: isDisabled || !autosave.canUndo,
-                label: translate('undo'),
-                onSelect: () => void perform(() => autosave.undo()),
-              },
-              {
-                icon: <RotateCcw className="size-4" />,
-                id: 'reset-plan',
-                isDisabled:
-                  isDisabled ||
-                  !run.config.generatedPlan ||
-                  Boolean(draft && draft.status !== 'saved'),
-                label: translate('resetPlan'),
-                onSelect: reset,
-              },
-            ]}
-          />
-        }
+        overflow={<SubbarOverflowMenu actions={menuActions} />}
         right={
           <>
             <StoryboardSaveIndicator

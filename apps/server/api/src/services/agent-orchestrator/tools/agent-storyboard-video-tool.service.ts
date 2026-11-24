@@ -1,4 +1,5 @@
 import { StoryboardAssetBibleService } from '@api/collections/content-runs/services/storyboard-asset-bible.service';
+import { StoryboardReversePlanService } from '@api/collections/content-runs/services/storyboard-reverse-plan.service';
 import { StoryboardRunsService } from '@api/collections/content-runs/services/storyboard-runs.service';
 import { StoryboardShotQaService } from '@api/collections/content-runs/services/storyboard-shot-qa.service';
 import { StoryboardShotRendersService } from '@api/collections/content-runs/services/storyboard-shot-renders.service';
@@ -98,6 +99,8 @@ function summarizeVideoRun(run: StoryboardRun) {
         sfx: shot.sfx ?? [],
         referenceRoles: shot.referenceRoles ?? [],
         hasCustomPrompt: Boolean(shot.videoPrompt),
+        videoPrompt: shot.videoPrompt ?? null,
+        notes: shot.notes ?? null,
         stillState: shot.stillFreshness,
         draft: render(shot.id, 'draft'),
         final: render(shot.id, 'final'),
@@ -143,6 +146,7 @@ export class AgentStoryboardVideoTool {
     private readonly assets: StoryboardAssetBibleService,
     private readonly qa: StoryboardShotQaService,
     private readonly assembly: StoryboardVideoAssemblyService,
+    private readonly reverseRuns: StoryboardReversePlanService,
   ) {}
 
   async work(
@@ -179,6 +183,15 @@ export class AgentStoryboardVideoTool {
             },
           ),
         );
+      case 'reverse': {
+        const { analysis, run } = await this.reverseRuns.reverse(
+          organizationId,
+          brandId,
+          input.runId,
+          { expectedRevision: input.expectedRevision, assetId: input.assetId },
+        );
+        return { ...summarizeVideoRun(run), reversed: analysis };
+      }
       case 'edit_shots':
       case 'assets': {
         const current = await this.runs.get(

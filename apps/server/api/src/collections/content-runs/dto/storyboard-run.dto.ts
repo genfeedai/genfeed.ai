@@ -62,6 +62,17 @@ export class DraftStoryboardPlanDto extends ControlStoryboardRunDto {
   @MaxLength(2_000)
   instruction?: string;
 }
+export class ReverseStoryboardPlanDto extends ControlStoryboardRunDto {
+  @ApiProperty({
+    description: 'The Library video (up to 60 s) or image to reverse engineer.',
+    maxLength: 255,
+    minLength: 1,
+  })
+  @IsString()
+  @MinLength(1)
+  @MaxLength(255)
+  assetId!: string;
+}
 export class UpdateStoryboardSourceDto extends ControlStoryboardRunDto {
   @ApiProperty({ type: Object })
   @IsObject()

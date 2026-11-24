@@ -233,6 +233,11 @@ export interface StoryboardPlanEditorProps {
     capabilityVersion?: string,
   ) => Promise<StoryboardRun>;
   readonly resetPlan: (revision: number) => Promise<StoryboardRun>;
+  /** Reverse engineers a Library video or image into shots (#10578). */
+  readonly reversePlan?: (
+    revision: number,
+    assetId: string,
+  ) => Promise<StoryboardRun>;
   readonly approvePlan: (revision: number) => Promise<StoryboardRun>;
   /** Prices sketch stills for the shots, or for every shot that needs one. */
   readonly quoteStills?: (
@@ -385,6 +390,7 @@ export type StoryboardDraftPageProps = Pick<
   | 'saveSource'
   | 'savePlan'
   | 'resetPlan'
+  | 'reversePlan'
   | 'approvePlan'
   | 'capabilities'
   | 'capabilityError'

@@ -54,7 +54,7 @@ export const MCP_STORYBOARD_VIDEO_TOOLS: SourceTool[] = [
   {
     name: 'storyboard_video',
     description:
-      "Work on a realistic shot-by-shot video (up to 12 shots, under a minute). Follow the video-realism skill when it is installed. create starts one from an idea, script or shot list (brief) with optional format, runtimeBudgetSeconds, styleReferenceAssetIds and cast reference images; get reads the run, every shot with its still, draft and final render and QA, and the asset bible; draft_plan drafts or revises the shots (instruction); edit_shots changes shots by id (action, dialogue, durationSeconds, timed cuts, sfx, referenceRoles, or an exact videoPrompt; an empty one restores the compiled prompt); assets adds, changes or removes asset bible entries (faces, bodies and costumes, props, places) and picks each one's chosenAssetId; approve_plan locks the shots; quote prices one paid stage and returns its inputHash (assets: entryId with assetAction variants, angles, costume or edit; stills, draft or final: shotIds, or omit for every shot that needs it); estimate prices the stills, drafts and finals still left without holding credits; reconcile picks up finished images and renders and checks new finals; assemble opens the checked finals as an Editor project. Never charges credits, schedules or publishes.",
+      "Work on a realistic shot-by-shot video (up to 12 shots, under a minute). Follow the video-realism skill when it is installed. create starts one from an idea, script or shot list (brief) with optional format, runtimeBudgetSeconds, styleReferenceAssetIds and cast reference images; get reads the run, every shot with its still, draft and final render and QA, and the asset bible; draft_plan drafts or revises the shots (instruction); reverse reads a Library video (up to 60 s) or image (assetId) and turns it into original shots: a video replaces the shots with its takes, timed cuts, sounds and one prompt per shot, an image adds its look as the style label and one shot, and the text on screen goes into each shot's notes; edit_shots changes shots by id (action, dialogue, durationSeconds, timed cuts, sfx, referenceRoles, or an exact videoPrompt; an empty one restores the compiled prompt); assets adds, changes or removes asset bible entries (faces, bodies and costumes, props, places) and picks each one's chosenAssetId; approve_plan locks the shots; quote prices one paid stage and returns its inputHash (assets: entryId with assetAction variants, angles, costume or edit; stills, draft or final: shotIds, or omit for every shot that needs it); estimate prices the stills, drafts and finals still left without holding credits; reconcile picks up finished images and renders and checks new finals; assemble opens the checked finals as an Editor project. Never charges credits, schedules or publishes.",
     parameters: {
       type: 'object',
       additionalProperties: false,
@@ -65,6 +65,7 @@ export const MCP_STORYBOARD_VIDEO_TOOLS: SourceTool[] = [
             'create',
             'get',
             'draft_plan',
+            'reverse',
             'edit_shots',
             'assets',
             'approve_plan',
@@ -118,10 +119,15 @@ export const MCP_STORYBOARD_VIDEO_TOOLS: SourceTool[] = [
             required: ['name', 'referenceAssetIds'],
           },
         },
+        assetId: {
+          ...id,
+          description:
+            'reverse only: the Library video (up to 60 s) or image to reverse engineer, from get_assets.',
+        },
         expectedRevision: {
           ...revision,
           description:
-            'Run revision from get; required for draft_plan, edit_shots, assets, approve_plan, quote and estimate.',
+            'Run revision from get; required for draft_plan, reverse, edit_shots, assets, approve_plan, quote and estimate.',
         },
         instruction: {
           type: 'string',
