@@ -4,6 +4,7 @@ import {
   resolveImageBillableOutputs,
   resolveImageGenerationProvider,
 } from '@api/collections/images/services/image-generation-provider.util';
+import { fitMaiImageSize } from '@api/collections/images/services/providers/mai-image-fal-input.util';
 import { ModelCreditQuoteService } from '@api/collections/models/services/model-credit-quote.service';
 import { ModelRegistrationService } from '@api/collections/models/services/model-registration.service';
 import { getFalEndpointFromModelKey } from '@api/collections/models/utils/model-key.util';
@@ -24,6 +25,7 @@ import {
   IMAGE_EDIT_QUALITY,
   isFlux3ImageModel,
   isFlux3Resolution,
+  isMaiImageEditModel,
   MODEL_KEYS,
   MODEL_OUTPUT_CAPABILITIES,
   resolveAgentGenerationDimensions,
@@ -338,7 +340,7 @@ export class AgentGenerationEstimateService {
     if (input.category === 'music')
       return this.quoteMusic(input, modelKey, model);
     const isVideo = input.category === 'video';
-    const dimensions =
+    const requestedDimensions =
       input.dimensions ??
       (input.width !== undefined && input.height !== undefined
         ? { height: input.height, width: input.width }
@@ -349,6 +351,11 @@ export class AgentGenerationEstimateService {
           ? DEFAULT_AGENT_VIDEO_ASPECT_RATIO
           : DEFAULT_AGENT_IMAGE_ASPECT_RATIO,
       );
+    // Admission bills a MAI-Image edit at the size fal renders, so the estimate
+    // prices that size and not the raw source size.
+    const dimensions = isMaiImageEditModel(modelKey)
+      ? fitMaiImageSize(requestedDimensions)
+      : requestedDimensions;
     const provider = isVideo
       ? model.provider
       : resolveImageGenerationProvider(modelKey, model.provider);
@@ -506,11 +513,14 @@ export class AgentGenerationEstimateService {
     }
     const flux = isFlux3ImageModel(modelKey);
     // Admission always edits at the fixed quality tier; only Flux has a resolution.
+    // A MAI-Image edit has neither: its tariff carries no selector.
     const selected = flux
       ? (input.resolution ?? '1k')
-      : input.category === 'image-edit'
-        ? IMAGE_EDIT_QUALITY
-        : input.quality;
+      : isMaiImageEditModel(modelKey)
+        ? undefined
+        : input.category === 'image-edit'
+          ? IMAGE_EDIT_QUALITY
+          : input.quality;
     return {
       providerInput:
         provider === 'replicate'

@@ -491,6 +491,34 @@ describe('AgentGenerationEstimateService', () => {
     });
     expect(tall).toEqual(viaDimensions);
   });
+  it('prices a MAI-Image edit at the size fal renders, not the raw source size', async () => {
+    validateModelForOrg.mockResolvedValue({
+      ...model,
+      category: ModelCategory.IMAGE_EDIT,
+      cost: 1,
+      costPerUnit: 4,
+      key: MODEL_KEYS.FAL_MAI_IMAGE_2_7_EDIT,
+      pricingType: 'per-megapixel',
+      provider: 'fal',
+    });
+    const raw = await service.estimate({
+      category: 'image-edit',
+      height: 3000,
+      modelKey: MODEL_KEYS.FAL_MAI_IMAGE_2_7_EDIT,
+      organizationId: 'org-1',
+      width: 4000,
+    });
+    // 4000x3000 is over fal's 4,194,304 pixel limit; admission bills 2352x1760.
+    const fitted = await service.estimate({
+      category: 'image-edit',
+      height: 1760,
+      modelKey: MODEL_KEYS.FAL_MAI_IMAGE_2_7_EDIT,
+      organizationId: 'org-1',
+      width: 2352,
+    });
+    expect(raw).toEqual(fitted);
+    expect(raw).toMatchObject({ isAvailable: true });
+  });
   it('rejects an empty aspect ratio at the DTO boundary', async () => {
     const dto = Object.assign(new EstimateGenerationCreditsDto(), {
       aspectRatio: '',
