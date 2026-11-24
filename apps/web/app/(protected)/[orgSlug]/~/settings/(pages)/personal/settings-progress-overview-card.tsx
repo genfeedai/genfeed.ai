@@ -1,4 +1,4 @@
-import { ButtonVariant } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { buildAgentPromptHref } from '@genfeedai/utils/url/desktop-loop-url.util';
 import Card from '@ui/card/Card';
 import { MetricSummary } from '@ui/cards/metric-card/MetricCard';
@@ -32,8 +32,8 @@ export default function SettingsProgressOverviewCard({
         nextSetupStep ? (
           <Button
             asChild
-            className="inline-flex items-center gap-2 rounded-full border border-categorical-orange/20 bg-categorical-orange/10 px-4 py-2 text-sm font-medium text-categorical-orange transition-colors hover:bg-categorical-orange/10"
-            variant={ButtonVariant.UNSTYLED}
+            size={ButtonSize.SM}
+            variant={ButtonVariant.SECONDARY}
             withWrapper={false}
           >
             <Link href={nextSetupStep.href}>
@@ -44,8 +44,8 @@ export default function SettingsProgressOverviewCard({
         ) : isAgentAvailable ? (
           <Button
             asChild
-            className="inline-flex items-center gap-2 rounded-full border border-categorical-orange/20 bg-categorical-orange/10 px-4 py-2 text-sm font-medium text-categorical-orange transition-colors hover:bg-categorical-orange/10"
-            variant={ButtonVariant.UNSTYLED}
+            size={ButtonSize.SM}
+            variant={ButtonVariant.SECONDARY}
             withWrapper={false}
           >
             <Link href={orgHref(CREATE_SOMETHING_AGENT_HREF)}>
