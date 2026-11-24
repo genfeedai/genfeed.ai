@@ -54,9 +54,18 @@ type KnowledgeActor = {
   userId: string;
 };
 
-function toActor(ctx: ToolExecutionContext): KnowledgeActor {
+/**
+ * The brand a call acts in: the `brandId` the caller named, else the session
+ * brand. A connection that covers a whole organization has no session brand, so
+ * without the argument it could neither list nor change brand-scoped sources.
+ */
+function toActor(
+  ctx: ToolExecutionContext,
+  params?: Record<string, unknown>,
+): KnowledgeActor {
+  const brandId = readOptionalString(params?.brandId) ?? ctx.brandId;
   return {
-    ...(ctx.brandId ? { brandId: ctx.brandId } : {}),
+    ...(brandId ? { brandId } : {}),
     ...(ctx.isWorkflowScoped ? { isWorkflowScoped: true } : {}),
     organizationId: ctx.organizationId,
     userId: ctx.userId,
@@ -239,7 +248,7 @@ export class AgentKnowledgeToolHandler {
     }
     const sourceIds = readStringList(params.sourceIds);
     if (sourceIds && ctx.isWorkflowScoped) {
-      await this.records.assertSourcesInScope(toActor(ctx), sourceIds);
+      await this.records.assertSourcesInScope(toActor(ctx, params), sourceIds);
     }
     const occurredFrom = readDate(params.occurredFrom);
     const occurredTo = readDate(params.occurredTo);
@@ -370,7 +379,7 @@ export class AgentKnowledgeToolHandler {
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
-    const actor = toActor(ctx);
+    const actor = toActor(ctx, params);
     const page = readBoundedInt(params.page, 1, Number.MAX_SAFE_INTEGER);
     const limit = readBoundedInt(
       params.limit,
@@ -410,7 +419,7 @@ export class AgentKnowledgeToolHandler {
     if (!sourceId) {
       return { creditsUsed: 0, error: 'sourceId is required', success: false };
     }
-    const actor = toActor(ctx);
+    const actor = toActor(ctx, params);
     const source = await this.records.getSource(actor, sourceId);
     const version = await this.records
       .getCurrentVersion(actor, sourceId)
@@ -443,7 +452,7 @@ export class AgentKnowledgeToolHandler {
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
     const sourceId = readOptionalString(params.sourceId);
-    const actor = toActor(ctx);
+    const actor = toActor(ctx, params);
     if (sourceId) {
       const conflicting = ['title', 'kind', 'referenceUrl', 'text', 'purpose']
         .filter((key) => params[key] !== undefined)
@@ -564,7 +573,7 @@ export class AgentKnowledgeToolHandler {
         success: false,
       };
     }
-    const actor = toActor(ctx);
+    const actor = toActor(ctx, params);
     if (isVisible === false) {
       await this.capture.unscheduleRefresh(actor, sourceId);
     }
@@ -587,7 +596,7 @@ export class AgentKnowledgeToolHandler {
     if (!sourceId) {
       return { creditsUsed: 0, error: 'sourceId is required', success: false };
     }
-    const actor = toActor(ctx);
+    const actor = toActor(ctx, params);
     await this.capture.unscheduleRefresh(actor, sourceId);
     const source = await this.records.deleteSource(actor, sourceId);
     return {
@@ -605,7 +614,7 @@ export class AgentKnowledgeToolHandler {
     if (!sourceId) {
       return { creditsUsed: 0, error: 'sourceId is required', success: false };
     }
-    const result = await this.capture.retry(toActor(ctx), sourceId);
+    const result = await this.capture.retry(toActor(ctx, params), sourceId);
     return {
       creditsUsed: 0,
       data: {
