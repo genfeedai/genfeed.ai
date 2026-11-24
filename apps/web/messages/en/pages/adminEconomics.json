@@ -21,6 +21,7 @@
       "grossMargin": "Gross margin · {percent}",
       "creditValue": "Credit value consumed",
       "pricingMargin": "Pricing margin · {percent}",
+      "creditsBurnedVsPurchased": "Credits burned / purchased",
       "calls": "Provider calls",
       "previous": "vs {value}"
     },
@@ -38,7 +39,10 @@
       "revenue": "Revenue",
       "payments": "Payments",
       "payingOrganizations": "Paying organizations",
-      "averagePayment": "Average payment"
+      "averagePayment": "Average payment",
+      "revenuePerPayingOrganization": "Revenue per paying organization",
+      "refundsAndDisputes": "Refunds and disputes",
+      "processingFees": "Stripe fees"
     },
     "sources": {
       "credit_purchase": "Credit pack",
@@ -74,6 +78,9 @@
       "llm": "LLM cost",
       "media": "Generation cost",
       "unpriced": "Unpriced calls",
+      "unpricedShare": "Unpriced share of calls",
+      "llmCostPerCompletion": "LLM cost per completion",
+      "topModelsCostShare": "Cost share of top 3 models",
       "costPerGeneration": "Cost per generation",
       "marginPerGeneration": "Margin per generation"
     },

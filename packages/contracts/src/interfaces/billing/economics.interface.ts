@@ -33,6 +33,11 @@ export interface IEconomicsTotals {
   creditsConsumed: number;
   /** Retail value of the credits consumed. */
   creditValueUsd: number;
+  /**
+   * Credits sold in the period: paid sales (credit packs and subscription
+   * invoices, net of tax) at $0.01 a credit. Null when nothing was sold.
+   */
+  creditsPurchased: number | null;
   /** Cash margin: revenue minus provider cost. */
   grossMarginUsd: number;
   grossMarginPercent: number | null;
@@ -73,6 +78,12 @@ export interface IEconomicsRevenueTotals {
   averageRevenuePerEventUsd: number;
   events: number;
   payingOrganizations: number;
+  /** Stripe processing fees recorded in the period, as a positive amount. */
+  processingFeesUsd: number;
+  /** Refunds and disputes recorded in the period, as a positive amount. */
+  refundsAndDisputesUsd: number;
+  /** Revenue divided by paying organizations; null without a paying one. */
+  revenuePerPayingOrganizationUsd: number | null;
   revenueUsd: number;
 }
 
@@ -139,6 +150,11 @@ export interface IEconomicsCostTotals {
   llmCalls: number;
   llmCostUsd: number;
   /**
+   * Agent-chat LLM cost divided by the chat completions we paid a known price
+   * for (not BYOK, not recorded at $0). Null when there are none.
+   */
+  llmCostPerCompletionUsd: number | null;
+  /**
    * Generation credit value minus generation provider cost, per charged
    * generation. Negative when prices do not cover cost. Null without charged
    * generations. Unpriced rows carry credits but no cost, so they overstate it.
@@ -150,9 +166,18 @@ export interface IEconomicsCostTotals {
   mediaGenerations: number;
   /** Generations with a known provider price: not BYOK, not recorded at $0. */
   mediaPricedGenerations: number;
+  /** Calls that were not BYOK: LLM completions plus generations. */
+  nonByokCalls: number;
   providerCostUsd: number;
+  /**
+   * Share of the provider cost spent on the three most expensive models, in
+   * percent. Null without any provider cost.
+   */
+  topModelsCostSharePercent: number | null;
   /** Non-BYOK calls the ledger recorded at $0: the price was unknown. */
   unpricedCalls: number;
+  /** Unpriced calls over non-BYOK calls, in percent. Null without such calls. */
+  unpricedSharePercent: number | null;
 }
 
 export interface IEconomicsCostDailyPoint {
