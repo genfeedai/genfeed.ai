@@ -1,5 +1,6 @@
 import { WorkflowEngineConverterService } from '@api/collections/workflows/services/workflow-engine-converter.service';
 import { DYNAMIC_VIDEO_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/dynamic-video-workflows.template';
+import { WorkflowMissingInputException } from '@api/helpers/exceptions/workflow-missing-input/workflow-missing-input.exception';
 import { getActionDefinition } from '@genfeedai/actions';
 import {
   type NodeExecutor,
@@ -235,7 +236,10 @@ describe('dynamic video workflow template integration', () => {
 
   it('fails before execution when a required source portrait is missing', () => {
     expect(() => setup('generate-speaking-scenes', {})).toThrow(
-      'Missing required workflow input: portrait',
+      WorkflowMissingInputException,
+    );
+    expect(() => setup('generate-speaking-scenes', {})).toThrow(
+      'Missing required workflow inputs: portrait, sceneScriptA, sceneScriptB, targetLanguage',
     );
   });
 });

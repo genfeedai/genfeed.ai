@@ -7,6 +7,7 @@ import {
   OAuthExceptionFilter,
   OAuthRegistrationExceptionFilter,
 } from '@api/oauth/filters/oauth-exception.filter';
+import type { WorkflowMissingInput } from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { recordWideEventError } from '@libs/logger/wide-event/wide-event.context';
@@ -158,6 +159,8 @@ export class AllExceptionFilter implements ExceptionFilter {
        */
       code?: string;
       brandedGenerationReceiptId?: string;
+      /** Every required input a workflow run was started without. */
+      missingInputs?: readonly WorkflowMissingInput[];
       persistedVideoIngredientIds?: readonly string[];
       detail: string;
       pointer: string;
@@ -170,7 +173,8 @@ export class AllExceptionFilter implements ExceptionFilter {
       new this.JSONAPIError({
         code: error.code ?? error.status.toString(),
         ...(error.persistedVideoIngredientIds ||
-        error.brandedGenerationReceiptId
+        error.brandedGenerationReceiptId ||
+        error.missingInputs
           ? {
               meta: {
                 ...(error.persistedVideoIngredientIds
@@ -185,6 +189,9 @@ export class AllExceptionFilter implements ExceptionFilter {
                       brandedGenerationReceiptId:
                         error.brandedGenerationReceiptId,
                     }
+                  : {}),
+                ...(error.missingInputs
+                  ? { missingInputs: [...error.missingInputs] }
                   : {}),
               },
             }

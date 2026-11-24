@@ -40,7 +40,11 @@ export class WorkflowRunControlService {
     nodeIds: string[],
     userId: string,
     organizationId: string,
-    options: { respectLocks?: boolean; dryRun?: boolean } = {},
+    options: {
+      dryRun?: boolean;
+      inputValues?: Record<string, unknown>;
+      respectLocks?: boolean;
+    } = {},
   ): Promise<
     | WorkflowExecutionDocument
     | { runId: string; status: string; message: string }
@@ -77,6 +81,7 @@ export class WorkflowRunControlService {
         organizationId,
         nodeIds,
         options.respectLocks,
+        options.inputValues,
       );
     const execution = await this.workflowExecutionsService.findOne({
       id: result.executionId,

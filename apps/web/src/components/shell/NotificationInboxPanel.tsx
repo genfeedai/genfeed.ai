@@ -266,8 +266,9 @@ export default function NotificationInboxPanel({
         {history.hasNextPage ? (
           <Button
             variant={ButtonVariant.GHOST}
+            size={ButtonSize.SM}
             withWrapper={false}
-            className="w-full justify-center rounded-none border-t border-border"
+            className="w-full justify-center"
             disabled={history.isFetching}
             onClick={() => void history.fetchNextPage()}
           >

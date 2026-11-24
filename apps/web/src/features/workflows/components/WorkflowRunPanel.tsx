@@ -1,22 +1,16 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import {
+  useWorkflowInputForm,
+  WorkflowInputFields,
+} from '@genfeedai/workflows/ui/components/WorkflowInputFields';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import { Form } from '@ui/primitives/form';
-import { Input } from '@ui/primitives/input';
-import { Label } from '@ui/primitives/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@ui/primitives/select';
 import Spinner from '@ui/primitives/spinner';
-import { Textarea } from '@ui/primitives/textarea';
 import { Play, X } from 'lucide-react';
-import { type ChangeEvent, type FormEvent, useMemo, useState } from 'react';
+import { type FormEvent, useState } from 'react';
 import type { WorkflowInputVariable } from '@/features/workflows/services/workflow-api';
 
 interface WorkflowRunPanelProps {
@@ -29,171 +23,22 @@ interface WorkflowRunPanelProps {
   ) => Promise<void> | void;
 }
 
-type FormValues = Record<string, unknown>;
-type FieldErrors = Record<string, string>;
-
-const LONG_TEXT_FIELD_HINTS = [
-  'brief',
-  'concept',
-  'context',
-  'description',
-  'instructions',
-  'prompt',
-  'script',
-];
-
-function isEmptyValue(value: unknown): boolean {
-  return (
-    value === undefined ||
-    value === null ||
-    (typeof value === 'string' && value.trim().length === 0)
-  );
-}
-
-function buildInitialValues(
-  inputVariables: WorkflowInputVariable[],
-): FormValues {
-  return Object.fromEntries(
-    inputVariables.map((variable) => [
-      variable.key,
-      variable.defaultValue ??
-        (variable.type === 'boolean'
-          ? false
-          : variable.type === 'number'
-            ? ''
-            : ''),
-    ]),
-  );
-}
-
-function getSelectOptions(variable: WorkflowInputVariable): string[] {
-  const rawOptions = variable.validation?.options;
-
-  if (!Array.isArray(rawOptions)) {
-    return [];
-  }
-
-  return rawOptions
-    .map((option) => {
-      if (typeof option === 'string') {
-        return option;
-      }
-
-      if (option && typeof option === 'object') {
-        const record = option as Record<string, unknown>;
-        const value = record.value ?? record.label;
-        return typeof value === 'string' ? value : null;
-      }
-
-      return null;
-    })
-    .filter((option): option is string => Boolean(option));
-}
-
-function shouldUseTextarea(variable: WorkflowInputVariable): boolean {
-  if (variable.type !== 'text') {
-    return false;
-  }
-
-  const searchText = `${variable.key} ${variable.label}`.toLowerCase();
-
-  return LONG_TEXT_FIELD_HINTS.some((hint) => searchText.includes(hint));
-}
-
-function coerceValue(variable: WorkflowInputVariable, value: unknown): unknown {
-  if (variable.type === 'number') {
-    if (isEmptyValue(value)) {
-      return undefined;
-    }
-
-    const parsedValue = Number(value);
-    return Number.isFinite(parsedValue) ? parsedValue : value;
-  }
-
-  if (variable.type === 'boolean') {
-    return value === true;
-  }
-
-  if (typeof value === 'string') {
-    return value.trim();
-  }
-
-  return value;
-}
-
-function validateForm(
-  inputVariables: WorkflowInputVariable[],
-  values: FormValues,
-): FieldErrors {
-  const errors: FieldErrors = {};
-
-  for (const variable of inputVariables) {
-    const value = values[variable.key];
-
-    if (variable.required && isEmptyValue(value)) {
-      errors[variable.key] = `${variable.label} is required`;
-    }
-  }
-
-  return errors;
-}
-
 export function WorkflowRunPanel({
   inputVariables,
   isRunning,
   onClose,
   onRun,
 }: WorkflowRunPanelProps) {
-  const initialValues = useMemo(
-    () => buildInitialValues(inputVariables),
-    [inputVariables],
-  );
-  const [previousInitialValues, setPreviousInitialValues] =
-    useState(initialValues);
-  const [values, setValues] = useState<FormValues>(initialValues);
-  const [errors, setErrors] = useState<FieldErrors>({});
+  const form = useWorkflowInputForm(inputVariables);
   const [saveDefaults, setSaveDefaults] = useState(false);
-
-  if (previousInitialValues !== initialValues) {
-    setPreviousInitialValues(initialValues);
-    setValues(initialValues);
-    setErrors({});
-  }
-
-  const setFieldValue = (key: string, value: unknown) => {
-    setValues((currentValues) => ({ ...currentValues, [key]: value }));
-    setErrors((currentErrors) => {
-      if (!currentErrors[key]) {
-        return currentErrors;
-      }
-
-      const { [key]: _removed, ...nextErrors } = currentErrors;
-      return nextErrors;
-    });
-  };
-
-  const handleTextChange =
-    (key: string) =>
-    (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-      setFieldValue(key, event.target.value);
-    };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    const nextErrors = validateForm(inputVariables, values);
-    setErrors(nextErrors);
-
-    if (Object.keys(nextErrors).length > 0) {
+    const inputValues = form.submit();
+    if (!inputValues) {
       return;
     }
-
-    const inputValues = Object.fromEntries(
-      inputVariables.map((variable) => [
-        variable.key,
-        coerceValue(variable, values[variable.key]),
-      ]),
-    );
 
     await onRun(inputValues, { saveDefaults });
   };
@@ -213,96 +58,19 @@ export function WorkflowRunPanel({
       </div>
 
       <Form
+        noValidate
         spacing="none"
         className="flex min-h-0 flex-1 flex-col"
         onSubmit={handleSubmit}
       >
-        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">
-          {inputVariables.map((variable) => {
-            const value = values[variable.key];
-            const error = errors[variable.key];
-            const selectOptions = getSelectOptions(variable);
-
-            return (
-              <div key={variable.key} className="space-y-1.5">
-                <Label
-                  htmlFor={`workflow-run-${variable.key}`}
-                  className="text-foreground"
-                >
-                  {variable.label}
-                  {variable.required ? ' *' : ''}
-                </Label>
-                {variable.description && (
-                  <p className="text-xs leading-5 text-muted-foreground">
-                    {variable.description}
-                  </p>
-                )}
-
-                {variable.type === 'boolean' ? (
-                  <div className="flex items-center gap-2 border border-border px-3 py-2 text-sm text-foreground">
-                    <Checkbox
-                      id={`workflow-run-${variable.key}`}
-                      isChecked={value === true}
-                      onChange={(event) =>
-                        setFieldValue(variable.key, event.target.checked)
-                      }
-                    />
-                  </div>
-                ) : variable.type === 'select' && selectOptions.length > 0 ? (
-                  <Select
-                    value={typeof value === 'string' ? value : ''}
-                    onValueChange={(nextValue) =>
-                      setFieldValue(variable.key, nextValue)
-                    }
-                  >
-                    <SelectTrigger id={`workflow-run-${variable.key}`}>
-                      <SelectValue placeholder={`Select ${variable.label}`} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {selectOptions.map((option) => (
-                        <SelectItem key={option} value={option}>
-                          {option}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                ) : variable.type === 'number' ? (
-                  <Input
-                    id={`workflow-run-${variable.key}`}
-                    type="number"
-                    value={
-                      typeof value === 'number' || typeof value === 'string'
-                        ? value
-                        : ''
-                    }
-                    onChange={handleTextChange(variable.key)}
-                  />
-                ) : shouldUseTextarea(variable) ? (
-                  <Textarea
-                    id={`workflow-run-${variable.key}`}
-                    rows={4}
-                    value={typeof value === 'string' ? value : ''}
-                    onChange={handleTextChange(variable.key)}
-                    className="resize-none"
-                  />
-                ) : (
-                  <Input
-                    id={`workflow-run-${variable.key}`}
-                    type="text"
-                    value={typeof value === 'string' ? value : ''}
-                    onChange={handleTextChange(variable.key)}
-                    placeholder={
-                      variable.type === 'image' || variable.type === 'asset'
-                        ? 'https://...'
-                        : undefined
-                    }
-                  />
-                )}
-
-                {error && <p className="text-xs text-destructive">{error}</p>}
-              </div>
-            );
-          })}
+        <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4">
+          <WorkflowInputFields
+            errors={form.errors}
+            fields={inputVariables}
+            idPrefix="workflow-run"
+            onValueChange={form.setFieldValue}
+            values={form.values}
+          />
         </div>
 
         <div className="space-y-3 border-t border-border p-4">

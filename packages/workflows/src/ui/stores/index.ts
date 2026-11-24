@@ -39,6 +39,11 @@ export {
   getExecutionHttpClient,
   resolveExecutionApiBaseUrl,
 } from './execution/executionApi';
+export { readMissingWorkflowInputs } from './execution/helpers/missingInputError';
+export type {
+  MissingInputRequest,
+  MissingInputTarget,
+} from './execution/types';
 // Embedded stores (moved from core app)
 export {
   configureWorkflowLogger,
