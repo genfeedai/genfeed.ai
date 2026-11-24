@@ -53,21 +53,28 @@ describe('Help navigation', () => {
     expect(SettingsHelpPage).toBeDefined();
   });
 
-  it('shows all learning and support groups without workspace bootstrap', () => {
+  it('shows each help resource once, as a card without a repeated heading', () => {
     render(<SettingsHelpPage />);
     for (const name of [
-      'Getting started',
-      'Documentation',
-      'Workflow learning',
-      'Changelog',
-      'Frequently asked questions',
-      'Community',
-      'Support',
+      /^Getting started/,
+      /^Documentation/,
+      /^Workflow learning/,
+      /^Changelog/,
+      /^Frequently asked questions/,
+      /^Community/,
+      /^Support/,
     ]) {
-      expect(screen.getByRole('heading', { name })).toBeDefined();
+      expect(screen.getAllByText(name)).toHaveLength(1);
+      expect(screen.getByRole('link', { name }).getAttribute('target')).toBe(
+        '_blank',
+      );
+      expect(screen.queryByRole('heading', { name })).toBeNull();
     }
     expect(
       screen.getByRole('heading', { name: 'Your first workflow' }),
+    ).toBeDefined();
+    expect(
+      screen.getByRole('heading', { name: 'Creating and reusing characters' }),
     ).toBeDefined();
   });
 
