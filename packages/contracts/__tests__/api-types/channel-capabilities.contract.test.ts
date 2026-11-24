@@ -493,7 +493,7 @@ describe('validateChannelTargetSettings', () => {
 
   test.each([
     ['TikTok', CredentialPlatform.TIKTOK, 2, 35],
-    ['Instagram', CredentialPlatform.INSTAGRAM, 1, 10],
+    ['Instagram', CredentialPlatform.INSTAGRAM, 1, 20],
     ['X', CredentialPlatform.TWITTER, 1, 4],
     ['LinkedIn', CredentialPlatform.LINKEDIN, 1, 20],
   ])(

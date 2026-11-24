@@ -178,7 +178,7 @@ export const STORYBOARD_SLIDESHOW_LIMITS = {
  * loading the whole channel capability catalog; the contract test pins it to
  * the catalog, which stays the source of truth.
  */
-export const STORYBOARD_SLIDESHOW_INSTAGRAM_MAX_SLIDES = 10;
+export const STORYBOARD_SLIDESHOW_INSTAGRAM_MAX_SLIDES = 20;
 export const storyboardPlanKindSchema = z.enum(['video', 'slideshow']);
 export const storyboardPlanSettingsSchema = z
   .object({
