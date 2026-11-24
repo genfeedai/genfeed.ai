@@ -601,7 +601,7 @@ test.describe('Clip Factory', () => {
 
     await openNewProject(authenticatedPage);
     await authenticatedPage
-      .getByRole('button', { name: /upload audio or video/i })
+      .getByRole('radio', { name: /upload audio or video/i })
       .click();
     await authenticatedPage.getByLabel(/audio or video file/i).setInputFiles({
       buffer: Buffer.from('fixture-video'),
