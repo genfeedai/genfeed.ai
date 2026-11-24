@@ -1,11 +1,15 @@
 import { AssetsService } from '@api/collections/assets/services/assets.service';
 import type { CreateImageDto } from '@api/collections/images/dto/create-image.dto';
 import { EditImageDto } from '@api/collections/images/dto/edit-image.dto';
+import {
+  assertMaiImageEditControls,
+  buildImageEditRecipe,
+  resolveImageEditDimensions,
+} from '@api/collections/images/services/image-edit-admission.util';
 import type { ImageEditingContext } from '@api/collections/images/services/image-generation.types';
 import { ImageGenerationCreditsService } from '@api/collections/images/services/image-generation-credits.service';
 import { replaceDispatchReferenceIds } from '@api/collections/images/services/image-generation-dispatch-references.util';
 import { ImagesService } from '@api/collections/images/services/images.service';
-import { fitMaiImageSize } from '@api/collections/images/services/providers/mai-image-fal-input.util';
 import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { PersonasService } from '@api/collections/personas/services/personas.service';
@@ -22,17 +26,13 @@ import { resolveIngredientProcessingUrl } from '@api/services/media-urls/process
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
 import {
-  FLUX_3_EDIT_CONTRACT_VERSION,
   getImageEditMaxSources,
   IMAGE_EDIT_AUTO_MODEL_KEYS,
-  IMAGE_EDIT_CONTRACT_VERSION,
-  IMAGE_EDIT_QUALITY,
   isFlux3AspectRatio,
   isFlux3ImageModel,
   isFlux3Resolution,
   isImageEditSize,
   isMaiImageEditModel,
-  MAI_IMAGE_EDIT_CONTRACT_VERSION,
 } from '@genfeedai/contracts/constants';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -198,7 +198,7 @@ export class ImageGenerationAdmissionService {
     const flux = isFlux3ImageModel(dto.model ?? '');
     const mai = isMaiImageEditModel(dto.model ?? '');
     if (flux) this.assertFlux3Controls(dto);
-    if (mai) this.assertMaiImageEditControls(dto);
+    if (mai) assertMaiImageEditControls(dto);
     const size = dto.maskId ? 'source' : (dto.size ?? 'source');
     if (
       !dto.prompt?.trim() ||
@@ -280,16 +280,14 @@ export class ImageGenerationAdmissionService {
         );
       }
     }
-    // fal renders MAI edits inside its own size limits, so the billed size is
-    // the fitted one, never the raw source size.
-    const fitted = mai
-      ? fitMaiImageSize({ height: sourceHeight, width: sourceWidth })
-      : undefined;
-    const [width, height] = fitted
-      ? [fitted.width, fitted.height]
-      : size === 'source'
-        ? [sourceWidth, sourceHeight]
-        : size.split('x').map(Number);
+    const { height, width } = resolveImageEditDimensions(
+      dto.model ?? '',
+      size,
+      {
+        height: sourceHeight,
+        width: sourceWidth,
+      },
+    );
     return {
       personaId,
       sourceIds,
@@ -308,61 +306,8 @@ export class ImageGenerationAdmissionService {
       size,
       width,
       height,
-      recipe: mai
-        ? {
-            contractVersion: MAI_IMAGE_EDIT_CONTRACT_VERSION,
-            operation: 'image-edit',
-            model: dto.model ?? '',
-            sourceIds,
-            outputs: 1,
-          }
-        : flux
-          ? {
-              contractVersion: FLUX_3_EDIT_CONTRACT_VERSION,
-              operation: 'image-edit',
-              model: dto.model ?? '',
-              sourceIds,
-              outputs: 1,
-              resolution: dto.resolution ?? '1k',
-              aspectRatio: dto.aspectRatio ?? 'auto',
-              grounding: false,
-            }
-          : {
-              contractVersion: IMAGE_EDIT_CONTRACT_VERSION,
-              operation: 'image-edit',
-              model: dto.model ?? '',
-              sourceIds,
-              ...(dto.maskId ? { maskId: dto.maskId } : {}),
-              size,
-              quality: IMAGE_EDIT_QUALITY,
-              outputs: dto.outputs ?? 1,
-              ...(dto.seed !== undefined ? { seed: dto.seed } : {}),
-            },
+      recipe: buildImageEditRecipe(dto, sourceIds, size),
     };
-  }
-
-  /** MAI-Image edits take one output and none of the mask, seed, size or native controls. */
-  assertMaiImageEditControls(dto: {
-    outputs?: number;
-    seed?: number;
-    maskId?: string;
-    size?: string;
-    quality?: string;
-    resolution?: string;
-    aspectRatio?: string;
-  }): void {
-    if (
-      (dto.outputs ?? 1) !== 1 ||
-      dto.seed !== undefined ||
-      dto.maskId !== undefined ||
-      (dto.size !== undefined && dto.size !== 'source') ||
-      dto.quality !== undefined ||
-      dto.resolution !== undefined ||
-      dto.aspectRatio !== undefined
-    )
-      throw new BadRequestException(
-        'MAI-Image edits take one output and the source dimensions; masks, seeds, sizes and quality are unavailable.',
-      );
   }
 
   assertFlux3Controls(dto: {
