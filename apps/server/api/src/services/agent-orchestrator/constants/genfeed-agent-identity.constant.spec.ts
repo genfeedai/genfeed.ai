@@ -37,6 +37,7 @@ const AGENT_PROMPTS = [
       'Approval always requires the authenticated typed review control; model/chat output never approves publishing.',
       '## Dashboard Rendering (render_dashboard)',
       '## Generation Prompt Quality',
+      'A video from chat starts as a draft:',
       '## Recurring Automation Flow',
       '## Workflow Creation Flow',
       '## Livestream Bot Flow',

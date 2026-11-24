@@ -1,8 +1,7 @@
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import type { IModel } from '@genfeedai/contracts/interfaces';
 import { describe, expect, it } from 'vitest';
-import { getDefaultStudioPlaygroundSettings } from '@/features/studio/playground/utils/studio-playground-settings';
-import { buildVideoDraftSettings } from '@/features/studio/playground/utils/studio-video-draft';
+import { buildVideoDraftSettings } from './video-draft.helper';
 
 function model(key: string, overrides: Partial<IModel> = {}): IModel {
   return { durations: [4, 6, 8], key, ...overrides } as IModel;
@@ -17,7 +16,7 @@ const VEO_3_1 = model(MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1, {
 });
 
 const videoSettings = {
-  ...getDefaultStudioPlaygroundSettings('video'),
+  aspectRatio: '16:9',
   duration: 8,
   isAudioEnabled: true,
   modelKey: MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1,

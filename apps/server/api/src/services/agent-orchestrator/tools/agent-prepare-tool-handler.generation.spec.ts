@@ -135,6 +135,37 @@ describe('AgentPrepareToolHandler.prepareGeneration', () => {
     );
   });
 
+  it('leaves the video card on its draft first pass unless the full render is requested (#7727)', async () => {
+    const handler = createHandler();
+    const byDefault = await handler.prepareGeneration(
+      { generationType: 'video', prompt: 'Waves on a beach' },
+      ctx,
+    );
+    const full = await handler.prepareGeneration(
+      { generationType: 'video', isDraft: false, prompt: 'Waves on a beach' },
+      ctx,
+    );
+
+    // The card reads an absent isDraft as "draft first".
+    expect(byDefault.nextActions?.[0]).toMatchObject({
+      generationParams: expect.not.objectContaining({ isDraft: false }),
+    });
+    expect(full.nextActions?.[0]).toMatchObject({
+      generationParams: expect.objectContaining({ isDraft: false }),
+    });
+  });
+
+  it('never marks an image card as a draft (#7727)', async () => {
+    const result = await createHandler().prepareGeneration(
+      { generationType: 'image', isDraft: false, prompt: 'A red apple' },
+      ctx,
+    );
+
+    expect(result.nextActions?.[0]).toMatchObject({
+      generationParams: expect.not.objectContaining({ isDraft: false }),
+    });
+  });
+
   it('does not prepare a provider video card for a motion-graphics request (#7680)', async () => {
     const result = await createHandler().prepareGeneration(
       {

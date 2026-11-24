@@ -24,6 +24,7 @@ import type {
   SocketResult,
 } from '@genfeedai/contracts/interfaces/content/generation-payload.interface';
 import type { AssetQueryService } from '@genfeedai/contracts/interfaces/studio/studio-playground.interface';
+import { buildVideoDraftSettings } from '@genfeedai/helpers/media/video-draft/video-draft.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
 import { IngredientsService } from '@services/content/ingredients.service';
@@ -86,7 +87,6 @@ import {
 } from '@/features/studio/playground/utils/studio-playground-settings';
 import { getStudioPlaygroundTypeConfig } from '@/features/studio/playground/utils/studio-playground-types';
 import { readStudioReferencePreviewUrl } from '@/features/studio/playground/utils/studio-reference-preview';
-import { buildVideoDraftSettings } from '@/features/studio/playground/utils/studio-video-draft';
 import {
   resolveSpeakingVoiceProvider,
   resolveSpeechVoiceProvider,

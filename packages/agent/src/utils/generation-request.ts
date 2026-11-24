@@ -31,6 +31,7 @@ export function buildAgentGenerationRequestBody({
   duration,
   endFrame,
   identity,
+  isDraft,
   modelKey,
   outputs,
   prioritize = DEFAULT_AGENT_GENERATION_PRIORITY,
@@ -46,6 +47,8 @@ export function buildAgentGenerationRequestBody({
   duration?: number;
   endFrame?: string;
   identity?: AgentClipperRunIdentity;
+  /** Marks a video as the cheap first pass of a draft-then-full render (#7727). */
+  isDraft?: boolean;
   modelKey?: string;
   outputs?: number;
   prioritize?: RouterPriority;
@@ -82,6 +85,10 @@ export function buildAgentGenerationRequestBody({
 
   if (endFrame) {
     body.endFrame = endFrame;
+  }
+
+  if (isDraft === true) {
+    body.isDraft = true;
   }
 
   if (resolution) {
