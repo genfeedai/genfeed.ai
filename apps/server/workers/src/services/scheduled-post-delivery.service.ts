@@ -17,8 +17,6 @@ import {
 import type { RecordActivityInput } from '@api/services/activity-recording/activity-recording.types';
 import { MediaReadinessService } from '@api/services/media-readiness/media-readiness.service';
 import { QuotaService } from '@api/services/quota/quota.service';
-import { ReplyPostWatchService } from '@api/services/reply-bot/reply-post-watch.service';
-import { PublishEventWebhookService } from '@api/services/webhook-client/publish-event-webhook.service';
 import {
   CredentialPlatform,
   PostVisibility,
@@ -78,6 +76,7 @@ import {
   decideRetry,
   type RetryPlan,
 } from '@workers/services/scheduled-post-retry-state.util';
+import { ScheduledPostXBilling } from '@workers/services/scheduled-post-x-billing';
 import {
   queueLearningPublicationRefreshV1,
   type SchedulerPublishFinalizationInput,
@@ -109,7 +108,6 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
   private readonly MAX_RETRY_ATTEMPTS = 3;
   private readonly gates: ScheduledPostDeliveryGates;
   private readonly attempts: ScheduledPostProviderAttempts;
-  private readonly followUps: ScheduledPostPublishFollowUps;
 
   constructor(
     private readonly logger: LoggerService,
@@ -121,9 +119,9 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
     @Inject(SERVER_TOKENS.publisherFactory)
     publisherFactory: ServerPublisherFactory,
     private readonly systemWorkflowRunner: SystemWorkflowRunnerService,
-    publishEventWebhookService: PublishEventWebhookService,
+    private readonly followUps: ScheduledPostPublishFollowUps,
     private readonly schedulerPublishStateService: SchedulerPublishStateService,
-    replyPostWatchService: ReplyPostWatchService,
+    private readonly xBilling: ScheduledPostXBilling,
     publishingReadinessService: CredentialPublishingReadinessService,
     private readonly prisma: PrismaService,
     mediaReadinessService: MediaReadinessService,
@@ -139,15 +137,9 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
       publishingReadinessService,
       prisma,
       mediaReadinessService,
+      this.xBilling,
     );
     this.attempts = new ScheduledPostProviderAttempts(prisma, logger);
-    this.followUps = new ScheduledPostPublishFollowUps(
-      logger,
-      prisma,
-      postFailureService,
-      replyPostWatchService,
-      publishEventWebhookService,
-    );
   }
 
   onModuleInit(): void {
@@ -620,6 +612,11 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
     }
     if (persisted) {
       await this.attempts.markPersisted(post, attempt, result, url);
+      await this.xBilling.chargeAcceptedPublish(
+        post,
+        prepared?.platform ?? readPostString(post, ['platform']),
+        result,
+      );
     }
     return result;
   }

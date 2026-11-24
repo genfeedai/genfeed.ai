@@ -1,5 +1,5 @@
 import type { IEconomicsRevenueReport } from '@genfeedai/contracts/interfaces';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { describe, expect, it, vi } from 'vitest';
 import EconomicsRevenueReport from './revenue-report';
@@ -35,6 +35,9 @@ const report: IEconomicsRevenueReport = {
     averageRevenuePerEventUsd: 19.5,
     events: 2,
     payingOrganizations: 2,
+    processingFeesUsd: 1.5,
+    refundsAndDisputesUsd: 7,
+    revenuePerPayingOrganizationUsd: 19.5,
     revenueUsd: 39,
   },
 };
@@ -77,6 +80,24 @@ describe('EconomicsRevenueReport', () => {
         '2 payments in another currency are left out of these totals.',
       ),
     ).toBeInTheDocument();
+  });
+
+  it('shows revenue per paying organization, refunds and Stripe fees as tiles', () => {
+    render(<EconomicsRevenueReport />);
+
+    const tileValue = (label: string) =>
+      within(
+        screen
+          .getByText(label, { selector: 'p' })
+          .closest('[data-testid="metric-card"]') as HTMLElement,
+      );
+    expect(
+      tileValue('Revenue per paying organization').getByText('$19.50'),
+    ).toBeInTheDocument();
+    expect(
+      tileValue('Refunds and disputes').getByText('$7.00'),
+    ).toBeInTheDocument();
+    expect(tileValue('Stripe fees').getByText('$1.50')).toBeInTheDocument();
   });
 
   it('lists top organizations and the latest payments with their Stripe object', () => {

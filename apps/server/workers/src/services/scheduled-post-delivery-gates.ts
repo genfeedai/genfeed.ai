@@ -47,6 +47,7 @@ import {
   readMediaGateOutcome,
   toValidationMedia,
 } from '@workers/services/scheduled-post-media-gate.util';
+import type { ScheduledPostXBilling } from '@workers/services/scheduled-post-x-billing';
 
 function toDomainPlatform(
   platform: CredentialDocument['platform'] | string | null | undefined,
@@ -84,6 +85,7 @@ export class ScheduledPostDeliveryGates {
     private readonly publishingReadinessService: CredentialPublishingReadinessService,
     private readonly prisma: PrismaService,
     private readonly mediaReadinessService: MediaReadinessService,
+    private readonly xBilling?: ScheduledPostXBilling,
   ) {
     this.linkShortener = new PostLinkShortenerService(
       new TrackedLinksService(prisma),
@@ -140,7 +142,10 @@ export class ScheduledPostDeliveryGates {
     return { ok: true, value: { credential, organization } };
   }
 
-  /** Credential gates before a provider call: channel readiness and quota. */
+  /**
+   * Credential gates before a provider call: channel readiness, quota and, for
+   * X, the paid plan and the credits the post costs.
+   */
   async checkCredential(
     post: PostEntity,
     ids: PostDeliveryIds,
@@ -150,7 +155,15 @@ export class ScheduledPostDeliveryGates {
   ): Promise<DeliveryGateFailure | null> {
     return (
       (await this.checkChannelReady(post, ids, credential, url)) ??
-      (await this.checkQuota(post, credential, organization, url))
+      (await this.checkQuota(post, credential, organization, url)) ??
+      (await this.xBilling?.checkCanPublish({
+        organizationId: ids.organizationId,
+        platform: credential.platform,
+        postId: post.id.toString(),
+        text: post.description,
+        url,
+      })) ??
+      null
     );
   }
 

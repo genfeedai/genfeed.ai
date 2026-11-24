@@ -31,3 +31,4 @@ export * from './reviewed-rate-hash';
 export * from './reviewed-rates';
 export * from './studio-generation-cost';
 export * from './tier-entitlements';
+export * from './x-post-credits';

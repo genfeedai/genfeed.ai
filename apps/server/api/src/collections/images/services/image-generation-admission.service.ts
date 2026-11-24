@@ -1,6 +1,11 @@
 import { AssetsService } from '@api/collections/assets/services/assets.service';
 import type { CreateImageDto } from '@api/collections/images/dto/create-image.dto';
 import { EditImageDto } from '@api/collections/images/dto/edit-image.dto';
+import {
+  assertMaiImageEditControls,
+  buildImageEditRecipe,
+  resolveImageEditDimensions,
+} from '@api/collections/images/services/image-edit-admission.util';
 import type { ImageEditingContext } from '@api/collections/images/services/image-generation.types';
 import { ImageGenerationCreditsService } from '@api/collections/images/services/image-generation-credits.service';
 import { replaceDispatchReferenceIds } from '@api/collections/images/services/image-generation-dispatch-references.util';
@@ -21,15 +26,13 @@ import { resolveIngredientProcessingUrl } from '@api/services/media-urls/process
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
 import {
-  FLUX_3_EDIT_CONTRACT_VERSION,
   getImageEditMaxSources,
-  IMAGE_EDIT_CONTRACT_VERSION,
-  IMAGE_EDIT_MODEL_KEYS,
-  IMAGE_EDIT_QUALITY,
+  IMAGE_EDIT_AUTO_MODEL_KEYS,
   isFlux3AspectRatio,
   isFlux3ImageModel,
   isFlux3Resolution,
   isImageEditSize,
+  isMaiImageEditModel,
 } from '@genfeedai/contracts/constants';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -144,7 +147,7 @@ export class ImageGenerationAdmissionService {
   ): Promise<ReadonlyMap<string, ImageEditingContext>> {
     const admitted = new Map<string, ImageEditingContext>();
     let incompatibility: BadRequestException | undefined;
-    for (const model of IMAGE_EDIT_MODEL_KEYS) {
+    for (const model of IMAGE_EDIT_AUTO_MODEL_KEYS) {
       const flux = isFlux3ImageModel(model);
       // Native controls are meaningful user choices, never discarded for Auto.
       if (
@@ -193,7 +196,9 @@ export class ImageGenerationAdmissionService {
   ): Promise<ImageEditingContext> {
     const sourceIds = [sourceId, ...(dto.references ?? [])];
     const flux = isFlux3ImageModel(dto.model ?? '');
+    const mai = isMaiImageEditModel(dto.model ?? '');
     if (flux) this.assertFlux3Controls(dto);
+    if (mai) assertMaiImageEditControls(dto);
     const size = dto.maskId ? 'source' : (dto.size ?? 'source');
     if (
       !dto.prompt?.trim() ||
@@ -211,7 +216,9 @@ export class ImageGenerationAdmissionService {
       throw new BadRequestException(
         flux
           ? 'Provide an instruction, one to ten distinct source images, valid native settings and one output.'
-          : 'Provide an instruction, one to five distinct source images, a valid size and one to eight outputs.',
+          : mai
+            ? 'Provide an instruction, one to five distinct source images and one output.'
+            : 'Provide an instruction, one to five distinct source images, a valid size and one to eight outputs.',
       );
     }
     // A character the active brand can no longer use is refused before any
@@ -273,10 +280,14 @@ export class ImageGenerationAdmissionService {
         );
       }
     }
-    const [width, height] =
-      size === 'source'
-        ? [sourceWidth, sourceHeight]
-        : size.split('x').map(Number);
+    const { height, width } = resolveImageEditDimensions(
+      dto.model ?? '',
+      size,
+      {
+        height: sourceHeight,
+        width: sourceWidth,
+      },
+    );
     return {
       personaId,
       sourceIds,
@@ -295,28 +306,7 @@ export class ImageGenerationAdmissionService {
       size,
       width,
       height,
-      recipe: flux
-        ? {
-            contractVersion: FLUX_3_EDIT_CONTRACT_VERSION,
-            operation: 'image-edit',
-            model: dto.model ?? '',
-            sourceIds,
-            outputs: 1,
-            resolution: dto.resolution ?? '1k',
-            aspectRatio: dto.aspectRatio ?? 'auto',
-            grounding: false,
-          }
-        : {
-            contractVersion: IMAGE_EDIT_CONTRACT_VERSION,
-            operation: 'image-edit',
-            model: dto.model ?? '',
-            sourceIds,
-            ...(dto.maskId ? { maskId: dto.maskId } : {}),
-            size,
-            quality: IMAGE_EDIT_QUALITY,
-            outputs: dto.outputs ?? 1,
-            ...(dto.seed !== undefined ? { seed: dto.seed } : {}),
-          },
+      recipe: buildImageEditRecipe(dto, sourceIds, size),
     };
   }
 

@@ -290,6 +290,8 @@ interface ModalPostComposerFieldsState
   isThread: boolean;
   /** X text over 280 characters publishes as a long post (derived). */
   isLongPost: boolean;
+  /** The X text contains a link, which costs more credits to publish (derived). */
+  hasLinkCost: boolean;
   /** Posts the thread will be split into; 0 when the text is empty. */
   threadItemCount: number;
   onThreadChange: (isThread: boolean) => void;
