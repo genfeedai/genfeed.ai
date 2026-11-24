@@ -298,6 +298,24 @@ describe('AuthorizedMediaUrlService', () => {
     expect(urls.buildUrl).toHaveBeenCalledWith(source.s3Key);
   });
 
+  it('gives no preview URL to a file the retention sweep deleted (#9975)', async () => {
+    const { service, prisma, urls } = await setup();
+    prisma.ingredient.findMany.mockResolvedValue([
+      { ...source, storageExpiredAt: new Date('2026-11-24T09:10:00Z') },
+    ]);
+
+    const [projection] = await service.projectIngredients(scope, [
+      ingredientId,
+    ]);
+
+    expect(projection.grant).toMatchObject({
+      purpose: 'preview',
+      state: 'FAILED',
+      url: null,
+    });
+    expect(urls.buildUrl).not.toHaveBeenCalled();
+  });
+
   it('has no unsigned fallback when signing is unavailable', async () => {
     const { service, config, urls } = await setup();
     config.isCdnSigningEnabled = false;

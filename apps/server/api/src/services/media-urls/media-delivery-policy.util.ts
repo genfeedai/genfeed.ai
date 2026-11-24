@@ -24,6 +24,7 @@ export const MEDIA_DELIVERY_SOURCE_SELECT = {
   organizationId: true,
   s3Key: true,
   scope: true,
+  storageExpiredAt: true,
   userId: true,
   version: true,
 } as const;
