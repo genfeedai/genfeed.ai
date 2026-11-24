@@ -10,7 +10,9 @@ import {
   IMAGE_EDIT_QUALITY,
   isFlux3ImageModel,
   isImageEditModel,
+  isMaiImageEditModel,
   LIBRARY_ASSETS_REFRESH_EVENT,
+  MAI_IMAGE_EDIT_CONTRACT_VERSION,
 } from '@genfeedai/contracts/constants';
 import type {
   GenerationPromptAuthor,
@@ -931,31 +933,40 @@ export function useStudioGeneration({
         );
         return false;
       }
+      const mai = isMaiImageEditModel(editingModelKey);
       if (type === 'image-edit' && modelKey) {
-        recipe.imageEdit = flux
+        recipe.imageEdit = mai
           ? {
-              contractVersion: FLUX_3_EDIT_CONTRACT_VERSION,
+              contractVersion: MAI_IMAGE_EDIT_CONTRACT_VERSION,
               operation: 'image-edit',
               model: editingModelKey,
               sourceIds: references.editSourceIds ?? [],
-              resolution: activeSettings.resolution,
-              aspectRatio: activeSettings.aspectRatio,
-              grounding: false,
               outputs: 1,
             }
-          : {
-              contractVersion: IMAGE_EDIT_CONTRACT_VERSION,
-              operation: 'image-edit',
-              model: modelKey,
-              sourceIds: references.editSourceIds ?? [],
-              maskId: references.editMaskId,
-              size: references.editMaskId
-                ? 'source'
-                : (activeSettings.editSize ?? 'source'),
-              quality: IMAGE_EDIT_QUALITY,
-              outputs: activeSettings.outputs,
-              seed: activeSettings.editSeed,
-            };
+          : flux
+            ? {
+                contractVersion: FLUX_3_EDIT_CONTRACT_VERSION,
+                operation: 'image-edit',
+                model: editingModelKey,
+                sourceIds: references.editSourceIds ?? [],
+                resolution: activeSettings.resolution,
+                aspectRatio: activeSettings.aspectRatio,
+                grounding: false,
+                outputs: 1,
+              }
+            : {
+                contractVersion: IMAGE_EDIT_CONTRACT_VERSION,
+                operation: 'image-edit',
+                model: modelKey,
+                sourceIds: references.editSourceIds ?? [],
+                maskId: references.editMaskId,
+                size: references.editMaskId
+                  ? 'source'
+                  : (activeSettings.editSize ?? 'source'),
+                quality: IMAGE_EDIT_QUALITY,
+                outputs: activeSettings.outputs,
+                seed: activeSettings.editSeed,
+              };
       }
       if (type === 'image-edit')
         recipe.references = references.editSourceIds ?? [];
@@ -1010,19 +1021,21 @@ export function useStudioGeneration({
                     prioritize: activeSettings.prioritize,
                   }),
               references: sources.slice(1),
-              ...(flux
-                ? {
-                    resolution: activeSettings.resolution,
-                    aspectRatio: activeSettings.aspectRatio,
-                  }
-                : {
-                    maskId: references.editMaskId,
-                    size: references.editMaskId
-                      ? 'source'
-                      : (activeSettings.editSize ?? 'source'),
-                    seed: activeSettings.editSeed,
-                  }),
-              outputs: flux ? 1 : activeSettings.outputs,
+              ...(mai
+                ? {}
+                : flux
+                  ? {
+                      resolution: activeSettings.resolution,
+                      aspectRatio: activeSettings.aspectRatio,
+                    }
+                  : {
+                      maskId: references.editMaskId,
+                      size: references.editMaskId
+                        ? 'source'
+                        : (activeSettings.editSize ?? 'source'),
+                      seed: activeSettings.editSeed,
+                    }),
+              outputs: flux || mai ? 1 : activeSettings.outputs,
               sourceActionId: runId,
             })) as GenerationResponse;
             trackPendingIds(resolvePendingIds(data), pendingContext);

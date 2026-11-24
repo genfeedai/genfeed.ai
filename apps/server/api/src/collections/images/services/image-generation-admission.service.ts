@@ -5,6 +5,7 @@ import type { ImageEditingContext } from '@api/collections/images/services/image
 import { ImageGenerationCreditsService } from '@api/collections/images/services/image-generation-credits.service';
 import { replaceDispatchReferenceIds } from '@api/collections/images/services/image-generation-dispatch-references.util';
 import { ImagesService } from '@api/collections/images/services/images.service';
+import { fitMaiImageSize } from '@api/collections/images/services/providers/mai-image-fal-input.util';
 import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { PersonasService } from '@api/collections/personas/services/personas.service';
@@ -23,13 +24,15 @@ import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
 import {
   FLUX_3_EDIT_CONTRACT_VERSION,
   getImageEditMaxSources,
+  IMAGE_EDIT_AUTO_MODEL_KEYS,
   IMAGE_EDIT_CONTRACT_VERSION,
-  IMAGE_EDIT_MODEL_KEYS,
   IMAGE_EDIT_QUALITY,
   isFlux3AspectRatio,
   isFlux3ImageModel,
   isFlux3Resolution,
   isImageEditSize,
+  isMaiImageEditModel,
+  MAI_IMAGE_EDIT_CONTRACT_VERSION,
 } from '@genfeedai/contracts/constants';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -144,7 +147,7 @@ export class ImageGenerationAdmissionService {
   ): Promise<ReadonlyMap<string, ImageEditingContext>> {
     const admitted = new Map<string, ImageEditingContext>();
     let incompatibility: BadRequestException | undefined;
-    for (const model of IMAGE_EDIT_MODEL_KEYS) {
+    for (const model of IMAGE_EDIT_AUTO_MODEL_KEYS) {
       const flux = isFlux3ImageModel(model);
       // Native controls are meaningful user choices, never discarded for Auto.
       if (
@@ -193,7 +196,9 @@ export class ImageGenerationAdmissionService {
   ): Promise<ImageEditingContext> {
     const sourceIds = [sourceId, ...(dto.references ?? [])];
     const flux = isFlux3ImageModel(dto.model ?? '');
+    const mai = isMaiImageEditModel(dto.model ?? '');
     if (flux) this.assertFlux3Controls(dto);
+    if (mai) this.assertMaiImageEditControls(dto);
     const size = dto.maskId ? 'source' : (dto.size ?? 'source');
     if (
       !dto.prompt?.trim() ||
@@ -211,7 +216,9 @@ export class ImageGenerationAdmissionService {
       throw new BadRequestException(
         flux
           ? 'Provide an instruction, one to ten distinct source images, valid native settings and one output.'
-          : 'Provide an instruction, one to five distinct source images, a valid size and one to eight outputs.',
+          : mai
+            ? 'Provide an instruction, one to five distinct source images and one output.'
+            : 'Provide an instruction, one to five distinct source images, a valid size and one to eight outputs.',
       );
     }
     // A character the active brand can no longer use is refused before any
@@ -273,8 +280,14 @@ export class ImageGenerationAdmissionService {
         );
       }
     }
-    const [width, height] =
-      size === 'source'
+    // fal renders MAI edits inside its own size limits, so the billed size is
+    // the fitted one, never the raw source size.
+    const fitted = mai
+      ? fitMaiImageSize({ height: sourceHeight, width: sourceWidth })
+      : undefined;
+    const [width, height] = fitted
+      ? [fitted.width, fitted.height]
+      : size === 'source'
         ? [sourceWidth, sourceHeight]
         : size.split('x').map(Number);
     return {
@@ -295,29 +308,61 @@ export class ImageGenerationAdmissionService {
       size,
       width,
       height,
-      recipe: flux
+      recipe: mai
         ? {
-            contractVersion: FLUX_3_EDIT_CONTRACT_VERSION,
+            contractVersion: MAI_IMAGE_EDIT_CONTRACT_VERSION,
             operation: 'image-edit',
             model: dto.model ?? '',
             sourceIds,
             outputs: 1,
-            resolution: dto.resolution ?? '1k',
-            aspectRatio: dto.aspectRatio ?? 'auto',
-            grounding: false,
           }
-        : {
-            contractVersion: IMAGE_EDIT_CONTRACT_VERSION,
-            operation: 'image-edit',
-            model: dto.model ?? '',
-            sourceIds,
-            ...(dto.maskId ? { maskId: dto.maskId } : {}),
-            size,
-            quality: IMAGE_EDIT_QUALITY,
-            outputs: dto.outputs ?? 1,
-            ...(dto.seed !== undefined ? { seed: dto.seed } : {}),
-          },
+        : flux
+          ? {
+              contractVersion: FLUX_3_EDIT_CONTRACT_VERSION,
+              operation: 'image-edit',
+              model: dto.model ?? '',
+              sourceIds,
+              outputs: 1,
+              resolution: dto.resolution ?? '1k',
+              aspectRatio: dto.aspectRatio ?? 'auto',
+              grounding: false,
+            }
+          : {
+              contractVersion: IMAGE_EDIT_CONTRACT_VERSION,
+              operation: 'image-edit',
+              model: dto.model ?? '',
+              sourceIds,
+              ...(dto.maskId ? { maskId: dto.maskId } : {}),
+              size,
+              quality: IMAGE_EDIT_QUALITY,
+              outputs: dto.outputs ?? 1,
+              ...(dto.seed !== undefined ? { seed: dto.seed } : {}),
+            },
     };
+  }
+
+  /** MAI-Image edits take one output and none of the mask, seed, size or native controls. */
+  assertMaiImageEditControls(dto: {
+    outputs?: number;
+    seed?: number;
+    maskId?: string;
+    size?: string;
+    quality?: string;
+    resolution?: string;
+    aspectRatio?: string;
+  }): void {
+    if (
+      (dto.outputs ?? 1) !== 1 ||
+      dto.seed !== undefined ||
+      dto.maskId !== undefined ||
+      (dto.size !== undefined && dto.size !== 'source') ||
+      dto.quality !== undefined ||
+      dto.resolution !== undefined ||
+      dto.aspectRatio !== undefined
+    )
+      throw new BadRequestException(
+        'MAI-Image edits take one output and the source dimensions; masks, seeds, sizes and quality are unavailable.',
+      );
   }
 
   assertFlux3Controls(dto: {

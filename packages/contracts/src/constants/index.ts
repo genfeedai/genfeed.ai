@@ -52,6 +52,7 @@ export * from './llm-vendor-cost.constant';
 export * from './locale.constant';
 export * from './long-form-delivery.constant';
 export * from './lowest-cost-models.constant';
+export * from './mai-image-edit.constant';
 export * from './media.constant';
 export * from './media-generation-billing.constant';
 export * from './model-aspect-ratios.constant';

@@ -70,6 +70,7 @@ import { QWEN_IMAGE_MODEL_KEY } from '@genfeedai/contracts/api-types/contracts/g
 import {
   isFlux3ImageModel,
   isImageEditModel,
+  isMaiImageEditModel,
   readImageEditingRecipe,
 } from '@genfeedai/contracts/constants';
 import type {
@@ -199,7 +200,10 @@ export class ImageGenerationService {
       height: editing.height,
       outputs: dto.outputs ?? 1,
       seed: dto.seed,
-      quality: isFlux3ImageModel(resolvedModel) ? undefined : 'medium',
+      quality:
+        isFlux3ImageModel(resolvedModel) || isMaiImageEditModel(resolvedModel)
+          ? undefined
+          : 'medium',
       resolution: editing.recipe.resolution,
       aspectRatio: editing.recipe.aspectRatio,
       harness: false,
