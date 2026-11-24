@@ -55,6 +55,7 @@ export * from '@serializers/attributes/content/posting-set.attributes';
 export * from '@serializers/attributes/content/presigned-upload.attributes';
 export * from '@serializers/attributes/content/public-youtube-clipper-tool.attributes';
 export * from '@serializers/attributes/content/public-youtube-long-form-tool.attributes';
+export * from '@serializers/attributes/content/public-youtube-outliers-tool.attributes';
 export * from '@serializers/attributes/content/publish-approval.attributes';
 export * from '@serializers/attributes/content/recurrence-rule.attributes';
 export * from '@serializers/attributes/content/release-attachment.attributes';

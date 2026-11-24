@@ -81,6 +81,12 @@ export const FREE_PUBLIC_TOOLS = [
     path: '/tools/youtube-clipper',
     title: 'YouTube transcript to clips',
   },
+  {
+    description:
+      "Paste a YouTube channel and see the videos that got 3x or more of that channel's usual views.",
+    path: '/tools/youtube-outliers',
+    title: 'YouTube outlier finder',
+  },
 ] as const;
 
 function appendPublicSurfaces(lines: string[], isDetailed: boolean): void {

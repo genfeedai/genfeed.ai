@@ -14,6 +14,7 @@ import type {
   IPublicNewsletterSubscribeRequest,
   IPublicYoutubeClipperToolSession,
   IPublicYoutubeLongFormToolResult,
+  IPublicYoutubeOutliersToolResult,
   IQueryParams,
   PublicYoutubeLongFormOutputType,
 } from '@genfeedai/contracts/interfaces';
@@ -273,6 +274,16 @@ export class PublicService extends HTTPBaseService {
       })
       .then((res) =>
         deserializeResource<IPublicYoutubeLongFormToolResult>(res.data),
+      );
+  }
+
+  public async findPublicYoutubeOutliers(
+    channel: string,
+  ): Promise<IPublicYoutubeOutliersToolResult> {
+    return await this.instance
+      .post<JsonApiResponseDocument>('youtube-outliers', { channel })
+      .then((res) =>
+        deserializeResource<IPublicYoutubeOutliersToolResult>(res.data),
       );
   }
 

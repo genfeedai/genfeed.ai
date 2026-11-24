@@ -96,6 +96,10 @@ export const EDITORIAL_OG_ARTWORKS = {
     headline: ['Long video', 'Great clips'],
     route: '/tools/youtube-clipper',
   },
+  'youtube-outliers': {
+    headline: ['Find the', 'breakout videos'],
+    route: '/tools/youtube-outliers',
+  },
   'youtube-long-form': {
     headline: ['Video to', 'written content'],
     route: '/tools/youtube-long-form',

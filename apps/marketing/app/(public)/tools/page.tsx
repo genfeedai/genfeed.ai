@@ -3,7 +3,7 @@ import { createPageMetadataWithCanonical } from '@web-components/og/marketing-me
 
 export const generateMetadata = createPageMetadataWithCanonical(
   'Free AI Tools for Models and Content Creation',
-  'Choose an AI model, turn YouTube into an article or newsletter, and find clips with free Genfeed content tools. Useful results before signup.',
+  'Choose an AI model, turn YouTube into an article or newsletter, find clips, and spot breakout videos with free Genfeed content tools. Useful results before signup.',
   '/tools',
 );
 

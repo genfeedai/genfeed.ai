@@ -78,6 +78,10 @@ const DEFERRED_IMPORTS: ReadonlyArray<readonly [string, RegExp]> = [
     'app/(public)/tools/youtube-clipper/youtube-clipper-content.tsx',
     /from '@services\/external\/public\.service'/,
   ],
+  [
+    'app/(public)/tools/youtube-outliers/youtube-outliers-content.tsx',
+    /from '@services\/external\/public\.service'/,
+  ],
   // The API services and the Better Auth client.
   [
     'app/(public)/tools/youtube-long-form/youtube-long-form-content.tsx',

@@ -28,6 +28,9 @@ export const WEBSITE_ANALYTICS_EVENTS = {
   YOUTUBE_LONG_FORM_COMPLETED: 'youtube_long_form_completed',
   YOUTUBE_LONG_FORM_SUBMITTED: 'youtube_long_form_submitted',
   YOUTUBE_LONG_FORM_VIEWED: 'youtube_long_form_viewed',
+  YOUTUBE_OUTLIERS_COMPLETED: 'youtube_outliers_completed',
+  YOUTUBE_OUTLIERS_SUBMITTED: 'youtube_outliers_submitted',
+  YOUTUBE_OUTLIERS_VIEWED: 'youtube_outliers_viewed',
   VIEW_PRICING: 'view_pricing',
 } as const;
 
@@ -109,6 +112,16 @@ export interface WebsiteAnalyticsEventProperties {
   };
   [WEBSITE_ANALYTICS_EVENTS.YOUTUBE_LONG_FORM_VIEWED]: {
     readonly surface: 'youtube_long_form';
+  };
+  [WEBSITE_ANALYTICS_EVENTS.YOUTUBE_OUTLIERS_COMPLETED]: {
+    readonly outcome: 'failed' | 'ready';
+    readonly status?: 'insufficient_data' | 'ready' | 'zero_baseline';
+  };
+  [WEBSITE_ANALYTICS_EVENTS.YOUTUBE_OUTLIERS_SUBMITTED]: {
+    readonly surface: 'youtube_outliers';
+  };
+  [WEBSITE_ANALYTICS_EVENTS.YOUTUBE_OUTLIERS_VIEWED]: {
+    readonly surface: 'youtube_outliers';
   };
 }
 
