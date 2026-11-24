@@ -53,6 +53,9 @@ function readKey(value: unknown): unknown {
  * they ride in the row's `metadata`; typed rows (`upsertTypedEntry`) keep their
  * own `type` and never mix with it.
  */
+/** One daily row per brand per day: a year of days bounds every daily read. */
+const MAX_DAILY_ROWS = 366;
+
 const DAILY_MEMORY_TYPE = 'daily';
 
 interface DailyMemoryBody {
@@ -215,7 +218,11 @@ export class BrandMemoryService extends BaseService<
     const now = new Date();
     const existing = await this.prisma.brandMemory.findFirst({
       orderBy: { updatedAt: 'desc' },
-      where: this.buildDailyFilter(organizationId, brandId, now),
+      where: scopedWhere(organizationId, {
+        brandId,
+        date: { gte: this.startOfDay(now), lt: this.endOfDay(now) },
+        type: DAILY_MEMORY_TYPE,
+      }),
     });
     const body = change(readDailyBody(existing?.metadata));
     const metadata = toPrismaJson(body);
@@ -297,21 +304,21 @@ export class BrandMemoryService extends BaseService<
     brandId: string,
     dateRange?: BrandMemoryDateRange,
   ): Promise<BrandMemoryDocument[]> {
-    const where: Record<string, unknown> = scopedWhere(organizationId, {
-      brandId,
-      type: DAILY_MEMORY_TYPE,
-    });
-
-    if (dateRange?.from || dateRange?.to) {
-      where.date = {
-        ...(dateRange.from && { gte: dateRange.from }),
-        ...(dateRange.to && { lte: dateRange.to }),
-      };
-    }
-
     const rows = await this.prisma.brandMemory.findMany({
       orderBy: { date: 'desc' },
-      where,
+      take: MAX_DAILY_ROWS,
+      where: scopedWhere(organizationId, {
+        brandId,
+        type: DAILY_MEMORY_TYPE,
+        ...(dateRange?.from || dateRange?.to
+          ? {
+              date: {
+                ...(dateRange.from && { gte: dateRange.from }),
+                ...(dateRange.to && { lte: dateRange.to }),
+              },
+            }
+          : {}),
+      }),
     });
     return rows.map(toDailyDocument);
   }
@@ -352,6 +359,7 @@ export class BrandMemoryService extends BaseService<
     const fromDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
     const rows = await this.prisma.brandMemory.findMany({
+      take: MAX_DAILY_ROWS,
       where: scopedWhere(organizationId, {
         brandId,
         date: { gte: fromDate, lte: now },
@@ -411,21 +419,6 @@ export class BrandMemoryService extends BaseService<
     }
 
     return distilledInsights;
-  }
-
-  private buildDailyFilter(
-    organizationId: string,
-    brandId: string,
-    date: Date,
-  ): Record<string, unknown> {
-    return scopedWhere(organizationId, {
-      brandId,
-      date: {
-        gte: this.startOfDay(date),
-        lt: this.endOfDay(date),
-      },
-      type: DAILY_MEMORY_TYPE,
-    });
   }
 
   private startOfDay(date: Date): Date {
