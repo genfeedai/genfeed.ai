@@ -23,10 +23,9 @@ export function AgentIconStrip({
           variant={ButtonVariant.GHOST}
           size={ButtonSize.ICON}
           onClick={onExpand}
-          className="size-8 bg-transparent text-primary hover:bg-primary/10"
           ariaLabel="Expand agent sidebar"
         >
-          <Sparkles className="size-4" />
+          <Sparkles className="size-4 text-primary" />
         </Button>
       </div>
       <div className="flex-1" />

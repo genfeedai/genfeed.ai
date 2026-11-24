@@ -1,6 +1,6 @@
 ---
 name: seo-article-editorial
-description: Write, schedule, and wire a Genfeed SEO article from a researched search intent. Use for new public articles, article seed briefs, two-per-week publishing plans, and revisions to scheduled SEO content.
+description: Write, schedule, and wire a Genfeed SEO article from a researched search intent. Use for new public articles, article seed briefs, Tuesday and Thursday publishing plans, and revisions to scheduled SEO content.
 metadata:
   version: "1.1.0"
   tags: "articles, seo, editorial, seeds, scheduling"
@@ -67,6 +67,8 @@ The shared builder already supplies the decision table, implementation workflow,
 
 Apply these editorial gates:
 
+- Open with one radical, confident claim a reader can disagree with, in the first sentence and in the summary. Never "My take on", "How I" or "In this article". Keep the nuance for the body or the conclusion.
+- Publish reader copy only. Cut research and verification notes ("What we could not verify", pages that blocked access, failed tools) and every `[TODO]`, `[VIDEO LINK]` or `[PLACEHOLDER]` slot. State a limit that matters inside the sentence it affects, and list sources in a plain Sources section. The API refuses to save a published article that still has them.
 - Lead with the answer, then explain the decision.
 - Give trade-offs instead of declaring a universal winner.
 - Distinguish generated output from approved output.
@@ -93,7 +95,7 @@ Source catalog entries do not publish themselves. Production articles come from 
 
 The MCP `create_article` tool generates from a brief. To preserve reviewed full HTML, connect with the bare `/mcp` URL (or `/mcp/claude`), use `save_post(action=article)` (pass `brandId`; edit later with `action=article_update`), inspect `get_content(action=article_preview)`, then request `control_release(action=publish)`. Draft creation and publication follow existing approval policy. The authenticated Article API is also available. Preserve the published slug and original publication date on updates.
 
-For a two-per-week cadence, leave several days between posts and avoid publishing two articles that target the same intent in one week. Preserve the canonical slug after publication.
+Publish on Tuesdays and Thursdays only, one article per slot: `publishedAt` is a Tuesday or Thursday that no other article uses, and never a Friday or weekend. Avoid publishing two articles that target the same intent in one week. Preserve the canonical slug after publication.
 
 Generate the artwork with `$article-card-editorial`. Save it as:
 
@@ -110,7 +112,8 @@ Assign the next permanent `card-####` value in `ARTICLE_ARTWORK_IDS`. The builde
 - Every brief field is populated with article-specific content.
 - Volatile claims were checked against current primary sources.
 - No unearned first-person or launch claim remains.
-- The publication timestamp and catalog export are correct.
+- The publication timestamp is an unused Tuesday or Thursday and the catalog export is correct.
+- The article contains no research note, placeholder or "my take" opening.
 - The article has one permanent artwork id and a matching `1280 x 720` WebP card at `https://cdn.genfeed.ai/assets/cards/articles/<artwork-id>.webp`.
 - The article remains hidden before `publishedAt` and public afterward.
 - Focused repository checks pass in CI; do not claim completion from prose review alone.

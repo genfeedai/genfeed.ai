@@ -68,32 +68,30 @@ describe('compileRemainingImageGenerationBrief', () => {
     expect(result.evidence.compilerId).toBe(FAL_SEEDREAM_5_5_IMAGE_COMPILER_ID);
   });
 
-  it.each([
-    MODEL_KEYS.FAL_MAI_IMAGE_2_7,
-    MODEL_KEYS.FAL_MAI_IMAGE_2_7_EDIT,
-    MODEL_KEYS.FAL_MAI_IMAGE_2_7_FLASH,
-    MODEL_KEYS.FAL_MAI_IMAGE_2_7_FLASH_EDIT,
-  ])('compiles a %s request on fal to the MAI-Image family', (modelKey) => {
-    const brief = imageGenerationBriefSchema.parse({
-      constraints: [],
-      fidelityMode: 'off',
-      intent: { objective: 'a ceramic teapot beside a sunlit window' },
-      mediaKind: 'image',
-      output: { aspectRatio: '9:16' },
-      version: 1,
-    });
+  it.each([MODEL_KEYS.FAL_MAI_IMAGE_2_7, MODEL_KEYS.FAL_MAI_IMAGE_2_7_FLASH])(
+    'compiles a %s request on fal to the MAI-Image family',
+    (modelKey) => {
+      const brief = imageGenerationBriefSchema.parse({
+        constraints: [],
+        fidelityMode: 'off',
+        intent: { objective: 'a ceramic teapot beside a sunlit window' },
+        mediaKind: 'image',
+        output: { aspectRatio: '9:16' },
+        version: 1,
+      });
 
-    const result = compileRemainingImageGenerationBrief({
-      brief,
-      family: familyFor(modelKey),
-      modelKey,
-    });
+      const result = compileRemainingImageGenerationBrief({
+        brief,
+        family: familyFor(modelKey),
+        modelKey,
+      });
 
-    expect(result.dispatch.prompt).toBe(
-      'a ceramic teapot beside a sunlit window',
-    );
-    expect(result.evidence.compilerId).toBe(FAL_MAI_IMAGE_COMPILER_ID);
-  });
+      expect(result.dispatch.prompt).toBe(
+        'a ceramic teapot beside a sunlit window',
+      );
+      expect(result.evidence.compilerId).toBe(FAL_MAI_IMAGE_COMPILER_ID);
+    },
+  );
 
   it('maps avoid constraints onto SDXL negative_prompt under guided fidelity', () => {
     const brief = imageGenerationBriefSchema.parse({

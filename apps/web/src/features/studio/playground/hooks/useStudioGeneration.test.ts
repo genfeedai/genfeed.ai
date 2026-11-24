@@ -1583,6 +1583,75 @@ describe('dedicated image editing submission', () => {
   });
 });
 
+describe('MAI-Image edit submission', () => {
+  it('posts one output with up to five ordered sources and none of the mask, seed, size or native controls', async () => {
+    const modelKey = MODEL_KEYS.FAL_MAI_IMAGE_2_7_EDIT;
+    mockImagesEdit.mockResolvedValue({ pendingIngredientIds: ['mai-edit'] });
+    const { result } = renderStudioGeneration({
+      type: 'image-edit',
+      models: [makeModel(modelKey)],
+      settings: {
+        ...getDefaultStudioPlaygroundSettings('image-edit'),
+        editSeed: 7,
+        editSize: '1024x1024',
+        modelKey,
+        outputs: 3,
+      },
+    });
+    const sources = Array.from({ length: 5 }, (_, i) => `source-${i}`);
+    await act(async () => {
+      expect(
+        await result.current.submit('Change only the sign', {
+          editMaskId: 'mask-1',
+          editSourceIds: sources,
+        }),
+      ).toBe(true);
+    });
+    const [primary, payload] = mockImagesEdit.mock.calls[0];
+    expect(primary).toBe('source-0');
+    expect(payload).toMatchObject({
+      model: modelKey,
+      outputs: 1,
+      references: sources.slice(1),
+    });
+    for (const field of [
+      'aspectRatio',
+      'maskId',
+      'quality',
+      'resolution',
+      'seed',
+      'size',
+    ])
+      expect(payload).not.toHaveProperty(field);
+    expect(result.current.jobs[0].recipe?.imageEdit).toEqual({
+      contractVersion: 'mai-image-edit-2026-11-24',
+      model: modelKey,
+      operation: 'image-edit',
+      outputs: 1,
+      sourceIds: sources,
+    });
+  });
+  it('refuses six sources before posting', async () => {
+    const modelKey = MODEL_KEYS.FAL_MAI_IMAGE_2_7_EDIT;
+    const { result } = renderStudioGeneration({
+      type: 'image-edit',
+      models: [makeModel(modelKey)],
+      settings: {
+        ...getDefaultStudioPlaygroundSettings('image-edit'),
+        modelKey,
+      },
+    });
+    await act(async () => {
+      expect(
+        await result.current.submit('Change only the sign', {
+          editSourceIds: ['1', '2', '3', '4', '5', '6'],
+        }),
+      ).toBe(false);
+    });
+    expect(mockImagesEdit).not.toHaveBeenCalled();
+  });
+});
+
 describe('FLUX.3 submission and reusable native recipe', () => {
   it('posts native resolution/aspect ratio with ten ordered sources and no unsupported controls', async () => {
     const modelKey = 'black-forest-labs/flux-3-image-edit';

@@ -12,12 +12,12 @@ import {
   captureLearningMetrics,
   type LearningMetrics,
 } from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
+import { youtube, type youtube_v3 } from '@googleapis/youtube';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
 import type { OAuth2Client } from 'google-auth-library';
-import { google, type youtube_v3 } from 'googleapis';
 
 const ISO8601_DURATION_PATTERN = /PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/;
 
@@ -31,7 +31,7 @@ export class YoutubeAnalyticsService {
     private readonly authService: YoutubeAuthService,
     private readonly loggerService: LoggerService,
   ) {
-    this.youtubeAPI = google.youtube({ version: 'v3' });
+    this.youtubeAPI = youtube({ version: 'v3' });
   }
 
   async getChannelDetails(

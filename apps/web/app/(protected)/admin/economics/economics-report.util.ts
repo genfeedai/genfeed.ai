@@ -79,6 +79,7 @@ export const EMPTY_ECONOMICS_TOTALS: IEconomicsTotals = {
   activeOrganizations: 0,
   creditsConsumed: 0,
   creditValueUsd: 0,
+  creditsPurchased: null,
   grossMarginPercent: null,
   grossMarginUsd: 0,
   llmCalls: 0,

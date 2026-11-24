@@ -39,6 +39,19 @@ describe('pinStudioSettingsToModel', () => {
     });
   });
 
+  it('submits a MAI-Image edit with one output and the other settings as they are', () => {
+    expect(
+      pinStudioSettingsToModel(
+        { ...imageSettings, aspectRatio: '16:9', outputs: 4 },
+        MODEL_KEYS.FAL_MAI_IMAGE_2_7_EDIT,
+      ),
+    ).toMatchObject({
+      aspectRatio: '16:9',
+      modelKey: MODEL_KEYS.FAL_MAI_IMAGE_2_7_EDIT,
+      outputs: 1,
+    });
+  });
+
   it('keeps a FLUX.3 aspect ratio and resolution that are already valid', () => {
     expect(
       pinStudioSettingsToModel(

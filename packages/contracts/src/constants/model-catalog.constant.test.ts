@@ -877,8 +877,12 @@ describe('model version lifecycle', () => {
   ])(
     'seeds fal MAI-Image %s on %s at %s credits taking %s reference images',
     (key, endpoint, cost, maxReferences) => {
+      // The edit endpoints are image-edit rows, apart from generation.
+      const category = endpoint.endsWith('/edit')
+        ? ModelCategory.IMAGE_EDIT
+        : ModelCategory.IMAGE;
       expect(byKey.get(key)).toMatchObject({
-        category: ModelCategory.IMAGE,
+        category,
         cost,
         endpoint,
         isActive: true,
@@ -887,7 +891,7 @@ describe('model version lifecycle', () => {
         provider: ModelProvider.FAL,
       });
       expect(MODEL_OUTPUT_CAPABILITIES[key]).toMatchObject({
-        category: ModelCategory.IMAGE,
+        category,
         maxReferences,
       });
       // The model key is the fal selection key for the endpoint, so dispatch

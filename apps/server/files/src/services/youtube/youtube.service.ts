@@ -4,10 +4,11 @@ import { ConfigService } from '@files/config/config.service';
 import { S3Service } from '@files/services/s3/s3.service';
 import type { YoutubeCredential } from '@files/shared/interfaces/job.interface';
 import { PostStatus } from '@genfeedai/contracts';
+import { youtube, type youtube_v3 } from '@googleapis/youtube';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
 import axios from 'axios';
-import { Auth, google, youtube_v3 } from 'googleapis';
+import { type Credentials, OAuth2Client } from 'google-auth-library';
 
 @Injectable()
 export class YoutubeService {
@@ -21,10 +22,8 @@ export class YoutubeService {
    * Create a YouTube API client for one upload. The client is never stored on
    * the instance, so concurrent uploads for different accounts cannot share it.
    */
-  private createYoutubeAPI(
-    credential: YoutubeCredential,
-  ): ReturnType<typeof google.youtube> {
-    const oauth2Client = new google.auth.OAuth2(
+  private createYoutubeAPI(credential: YoutubeCredential): youtube_v3.Youtube {
+    const oauth2Client = new OAuth2Client(
       credential.clientId,
       credential.clientSecret,
       credential.redirectUri,
@@ -35,7 +34,7 @@ export class YoutubeService {
       refresh_token: credential.refreshToken,
     });
 
-    oauth2Client.on('tokens', (tokens: Auth.Credentials) => {
+    oauth2Client.on('tokens', (tokens: Credentials) => {
       if (tokens.refresh_token) {
         this.logger.log('Refresh token received');
       }
@@ -43,7 +42,7 @@ export class YoutubeService {
       this.logger.log('Access token refreshed');
     });
 
-    return google.youtube({
+    return youtube({
       auth: oauth2Client,
       version: 'v3',
     });
