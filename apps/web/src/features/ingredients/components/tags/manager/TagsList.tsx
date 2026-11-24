@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { X } from 'lucide-react';
@@ -39,10 +39,10 @@ export default function TagsList({
           {!isReadOnly && (
             <Button
               withWrapper={false}
-              variant={ButtonVariant.UNSTYLED}
+              variant={ButtonVariant.GHOST}
+              size={ButtonSize.INLINE}
               onClick={() => onRemoveTag(tagDisplay.id)}
               isDisabled={isSaving}
-              className="hover:opacity-70 transition-opacity"
               ariaLabel={`Remove tag ${tagDisplay.label}`}
             >
               <X className="size-3.5" />

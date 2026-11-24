@@ -40,7 +40,7 @@ export function WorkflowModelField({
       </Label>
       <Button
         aria-labelledby={`${labelId} ${valueId}`}
-        className="nodrag h-8 w-full justify-between px-3 text-sm font-normal"
+        className="nodrag w-full justify-between"
         onClick={() => setIsOpen(true)}
         textTransform="none"
         type="button"

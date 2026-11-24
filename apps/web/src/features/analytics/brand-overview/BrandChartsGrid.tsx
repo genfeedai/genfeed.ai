@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonVariant, parsePlatform } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant, parsePlatform } from '@genfeedai/contracts';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
 import { Button } from '@ui/primitives/button';
 import { Skeleton } from '@ui/primitives/skeleton';
@@ -66,8 +66,8 @@ export default function BrandChartsGrid({
               <Button
                 asChild
                 key={platform}
-                className="inline-flex items-center gap-1.5 text-xs font-medium text-foreground/70 hover:text-foreground transition-colors px-3 py-1.5 border border-border hover:border-primary/40"
-                variant={ButtonVariant.UNSTYLED}
+                size={ButtonSize.SM}
+                variant={ButtonVariant.SECONDARY}
                 withWrapper={false}
               >
                 <Link

@@ -138,7 +138,7 @@ function InlineListAnswer({
               variant={ButtonVariant.SECONDARY}
               isDisabled={isDisabled}
               onClick={() => removeChip(chip)}
-              className="h-7 max-w-full gap-1 rounded-full px-2.5"
+              className="max-w-full"
               ariaLabel={`Remove ${chip}`}
             >
               <span className="truncate">{chip}</span>
@@ -173,7 +173,7 @@ function InlineListAnswer({
                 size={ButtonSize.SM}
                 variant={ButtonVariant.SECONDARY}
                 isDisabled={isDisabled || isSelected}
-                className="h-7 max-w-full truncate px-2 text-2xs"
+                className="max-w-full"
                 onClick={() => appendExample(example)}
               >
                 {example}
@@ -264,7 +264,7 @@ function InlineAnswer({
               size={ButtonSize.SM}
               variant={ButtonVariant.SECONDARY}
               isDisabled={isDisabled}
-              className="h-auto max-w-full whitespace-normal px-2 py-1 text-left text-2xs leading-snug"
+              className="h-auto max-w-full whitespace-normal text-left"
               onClick={() => onChange(example)}
             >
               {example}
