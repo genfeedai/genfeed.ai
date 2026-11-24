@@ -48,11 +48,11 @@ run-name: Seed hosted SaaS | ${{ inputs.seed }} | ${{ inputs.live && 'live' || '
 #                        #10384), scheduled-post.publish runs per day (#10392) and
 #                        overdue scheduled or publishing posts per platform.
 #
-#   approvals-page-report
-#                        Read-only: per organization (largest five, no ids) the
-#                        stored size of Turbo runs, Turbo run items and pending
-#                        MCP approval arguments, behind the approvals page crash.
-#
+#   media-key-report
+#                        Read-only: IMAGE/VIDEO ingredients by category, status,
+#                        scope and stored-key shape (null, empty, url, canonical,
+#                        uuid, invalid, other), and the five ids of #9975.
+
 # The *-report entries run a fixed query from READ_ONLY_REPORT_SCRIPT in a READ
 # ONLY transaction in the migrate task; `live` is ignored and they never write.
 # The whole script travels as one ECS container override, which AWS caps at
@@ -79,7 +79,7 @@ on:
           - storyboard-unbilled-report
           - linkedin-credential-report
           - release-health-report
-          - approvals-page-report
+          - media-key-report
       live:
         description: "apply the seed; unchecked is a dry run"
         required: false
@@ -221,7 +221,7 @@ jobs:
               'webhook-id-report': `SELECT count(*) FILTER (WHERE config->>'webhookId' IS NOT NULL)::int AS "withWebhookId", count(*) FILTER (WHERE config->>'webhookId' IS NOT NULL AND config->>'webhookId' NOT LIKE 'wh\\_%')::int AS "withoutPrefix" FROM workflows WHERE "isDeleted" = false`,
               'storyboard-unbilled-report': `WITH ops AS (SELECT r."organizationId" AS org, j.kind, op FROM content_runs r CROSS JOIN (VALUES ('still', 'stillOperations'), ('shotRender', 'shotRenderOperations'), ('asset', 'assetOperations')) AS j(kind, key) CROSS JOIN LATERAL jsonb_array_elements(CASE WHEN jsonb_typeof(r.config -> j.key) = 'array' THEN r.config -> j.key ELSE '[]'::jsonb END) AS op WHERE r."contract" = 'storyboard-run' AND r."isDeleted" = false AND op ->> 'state' = 'ready' AND op ->> 'billing' = 'released' AND op ->> 'billingMode' = 'platform') SELECT o.org AS "organizationId", o.kind, COALESCE(cr.status::text, 'none') AS "reservationStatus", count(*)::int AS "operations", COALESCE(sum((o.op ->> 'credits')::numeric), 0)::float AS "credits", min(left(o.op ->> 'updatedAt', 10)) AS "firstDate", max(left(o.op ->> 'updatedAt', 10)) AS "lastDate" FROM ops o LEFT JOIN credit_reservations cr ON cr.id = o.op ->> 'reservationId' GROUP BY o.org, o.kind, COALESCE(cr.status::text, 'none') ORDER BY "credits" DESC, o.org, o.kind LIMIT 200`,
               'linkedin-credential-report': `SELECT * FROM (SELECT 'summary' AS kind, c."platform"::text AS platform, NULL::text AS "organizationId", NULL::text AS "brandId", c."isConnected", c."isDeleted", (c."brandId" IS NOT NULL) AS "hasBrand", (c."organizationId" IS NOT NULL) AS "hasOrganization", NULL::boolean AS "brandDeleted", NULL::boolean AS "hasTrendPreferences", count(*)::int AS credentials, count(DISTINCT c."brandId")::int AS brands, max(left(c."updatedAt"::text, 10)) AS "lastUpdated" FROM credentials c WHERE c."platform" IN ('INSTAGRAM', 'LINKEDIN', 'PINTEREST', 'REDDIT', 'TIKTOK', 'TWITTER', 'YOUTUBE') GROUP BY c."platform", c."isConnected", c."isDeleted", (c."brandId" IS NOT NULL), (c."organizationId" IS NOT NULL) UNION ALL SELECT 'linkedin', 'LINKEDIN', c."organizationId", c."brandId", c."isConnected", c."isDeleted", (c."brandId" IS NOT NULL), (c."organizationId" IS NOT NULL), b."isDeleted", EXISTS (SELECT 1 FROM trend_preferences p WHERE p."brandId" = c."brandId" AND p."isDeleted" = false), 1, 1, left(c."updatedAt"::text, 10) FROM credentials c LEFT JOIN brands b ON b.id = c."brandId" WHERE c."platform" = 'LINKEDIN' AND c."isDeleted" = false) q ORDER BY kind DESC, platform, "isConnected" DESC, "organizationId", "brandId" LIMIT 200`,
-              'approvals-page-report': `SELECT * FROM ((SELECT 'turboRuns' AS kind, count(*)::int AS a, COALESCE(sum(jsonb_array_length(CASE WHEN jsonb_typeof(t.items) = 'array' THEN t.items ELSE '[]'::jsonb END)), 0)::int AS b, COALESCE(max(pg_column_size(t.*)), 0)::int AS c, COALESCE(sum(pg_column_size(t.*)), 0)::int AS d FROM turbo_runs t WHERE t."isDeleted" = false GROUP BY t."organizationId" ORDER BY d DESC LIMIT 5) UNION ALL (SELECT 'turboRunItems', count(*)::int, 0, COALESCE(max(pg_column_size(i.*)), 0)::int, COALESCE(sum(pg_column_size(i.*)), 0)::int FROM turbo_run_items i WHERE i."isDeleted" = false GROUP BY i."organizationId" ORDER BY 5 DESC LIMIT 5) UNION ALL (SELECT 'pendingMcp', count(*)::int, 0, COALESCE(max(pg_column_size(m.arguments)), 0)::int, COALESCE(sum(pg_column_size(m.arguments)), 0)::int FROM mcp_approvals m WHERE m.status::text = 'PENDING' AND m."isDeleted" = false GROUP BY m."organizationId" ORDER BY 2 DESC LIMIT 5)) q LIMIT 20`,
+              'media-key-report': `WITH i AS (SELECT id, category::text AS category, status::text AS status, scope::text AS scope, ("storageExpiredAt" IS NOT NULL) AS expired, left("s3Key", 19) AS prefix, CASE WHEN "s3Key" IS NULL THEN 'null' WHEN "s3Key" = '' THEN 'empty' WHEN "s3Key" ~* '^https?://' THEN 'url' WHEN "s3Key" IN ('ingredients/images/' || id, 'ingredients/videos/' || id) THEN 'canonical' WHEN "s3Key" ~ '^ingredients/(images|videos)/[0-9a-f]{8}-' THEN 'uuid' WHEN left("s3Key", 1) = '/' OR position(chr(92) in "s3Key") > 0 OR "s3Key" LIKE '%//%' OR "s3Key" ~ '[[:cntrl:]]' THEN 'invalid' ELSE 'other' END AS shape FROM ingredients WHERE "isDeleted" = false AND (category::text IN ('IMAGE', 'IMAGE_EDIT', 'VIDEO', 'VIDEO_EDIT') OR id IN ('cmwqfzdlc00860fnxtn6qd46l','cmw3vudti00gi0dmvtfefbdti','cmvl675to00340dnxwtkn0ewc','cmvesye0l000q0enwwf7b1021','cmumczyhi00dp0eo8z57m7b3y'))) SELECT * FROM (SELECT 'shape' AS kind, category AS a, status AS b, scope AS c, shape AS d, expired AS e, count(*)::int AS n FROM i GROUP BY 2, 3, 4, 5, 6 UNION ALL SELECT 'id', id, status, scope, shape || ' ' || coalesce(prefix, ''), expired, 1 FROM i WHERE id IN ('cmwqfzdlc00860fnxtn6qd46l','cmw3vudti00gi0dmvtfefbdti','cmvl675to00340dnxwtkn0ewc','cmvesye0l000q0enwwf7b1021','cmumczyhi00dp0eo8z57m7b3y')) q ORDER BY kind DESC, n DESC LIMIT 100`,
               'release-health-report': `SELECT metric, value FROM (SELECT 'abandonedRuns' AS metric, count(*) AS value FROM workflow_executions WHERE status IN ('PENDING', 'RUNNING') AND "updatedAt" < (now() AT TIME ZONE 'UTC') - interval '7 days' UNION ALL SELECT 'duePurgeRuns', count(*) FROM workflow_executions WHERE "purgeAt" <= (now() AT TIME ZONE 'UTC') AND status IN ('COMPLETED', 'FAILED', 'CANCELLED') UNION ALL SELECT 'skippedEmailsOver30d', count(*) FROM notification_deliveries WHERE topic = 'workflow.status' AND channel = 'email' AND status = 'skipped' AND "createdAt" < (now() AT TIME ZONE 'UTC') - interval '30 days' UNION ALL SELECT 'publishRuns ' || to_char("createdAt", 'MM-DD'), count(*) FROM workflow_executions WHERE "canonicalId" = 'scheduled-post.publish' AND "createdAt" > (now() AT TIME ZONE 'UTC') - interval '4 days' GROUP BY 1 UNION ALL SELECT 'overduePosts ' || coalesce(platform, '-') || ' ' || "targetExecutionState", count(*) FROM posts WHERE "isDeleted" = false AND "targetExecutionState" IN ('scheduled', 'publishing') AND "scheduledDate" < (now() AT TIME ZONE 'UTC') - interval '1 hour' GROUP BY 1 UNION ALL SELECT 'postsDue ' || to_char("scheduledDate", 'MM-DD'), count(*) FROM posts WHERE "isDeleted" = false AND "scheduledDate" > (now() AT TIME ZONE 'UTC') - interval '4 days' AND "scheduledDate" <= (now() AT TIME ZONE 'UTC') GROUP BY 1) m ORDER BY metric LIMIT 100`,
             };
             const name = process.argv[1];
@@ -306,7 +306,7 @@ jobs:
                 override+=("--command-arg=${arg}")
               done
               ;;
-            backfill-report | webhook-id-report | instagram-reconnect-report | storyboard-unbilled-report | linkedin-credential-report | release-health-report | approvals-page-report)
+            backfill-report | webhook-id-report | instagram-reconnect-report | storyboard-unbilled-report | linkedin-credential-report | release-health-report | media-key-report)
               TASK_DEFINITION=$(tofu output -raw migrate_task_definition_arn)
               CONTAINER=migrate
               LOG_GROUP="/ecs/${PROJECT}-production/migrate"
