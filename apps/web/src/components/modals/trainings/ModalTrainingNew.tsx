@@ -94,7 +94,6 @@ export default function ModalTrainingNew({ onSuccess }: ModalTrainingNewProps) {
             label="Cancel"
             variant={ButtonVariant.SECONDARY}
             size={ButtonSize.LG}
-            className="md:h-9 md:px-4 md:py-2"
             onClick={closeModalTrainingNew}
             isDisabled={isSubmitting}
           />
@@ -106,7 +105,6 @@ export default function ModalTrainingNew({ onSuccess }: ModalTrainingNewProps) {
             tooltipPosition="left"
             type="submit"
             size={ButtonSize.LG}
-            className="md:h-9 md:px-4 md:py-2"
             isLoading={isSubmitting}
             isDisabled={
               isSubmitting || !form.formState.isValid || files.length < 10

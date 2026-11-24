@@ -5,6 +5,7 @@ import type { ITag } from '@genfeedai/contracts/interfaces';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
+import { SuggestionItem } from '@ui/primitives/suggestion-list';
 import { libraryTagStyle } from '@/components/tags/library-tag-picker/library-tag-colors.util';
 
 type TagPickerDropdownProps = {
@@ -55,15 +56,13 @@ export default function TagPickerDropdown({
               }
 
               return unselectedTags.map((tag) => (
-                <Button
+                <SuggestionItem
                   key={tag.id}
-                  withWrapper={false}
-                  variant={ButtonVariant.UNSTYLED}
+                  isSelected={false}
                   onClick={() => onAddTag(tag)}
-                  className="w-full text-left px-2 py-1.5 hover:bg-background transition-colors flex items-center gap-2"
                 >
                   <Badge style={libraryTagStyle(tag)}>{tag.label}</Badge>
-                </Button>
+                </SuggestionItem>
               ));
             })()}
           </div>
@@ -71,9 +70,10 @@ export default function TagPickerDropdown({
           <div className="mt-2 pt-2 border-t border-border">
             <Button
               withWrapper={false}
-              variant={ButtonVariant.UNSTYLED}
+              variant={ButtonVariant.GHOST}
+              size={ButtonSize.SM}
               onClick={() => onShowNewTagInput(true)}
-              className="w-full text-sm px-2 py-1 hover:bg-background text-primary"
+              className="w-full"
             >
               + Create New Tag
             </Button>
@@ -119,9 +119,10 @@ export default function TagPickerDropdown({
         <div className="mt-2 pt-2 border-t border-border">
           <Button
             withWrapper={false}
-            variant={ButtonVariant.UNSTYLED}
+            variant={ButtonVariant.GHOST}
+            size={ButtonSize.SM}
             onClick={onClose}
-            className="w-full text-sm px-2 py-1 hover:bg-background"
+            className="w-full"
           >
             Cancel
           </Button>

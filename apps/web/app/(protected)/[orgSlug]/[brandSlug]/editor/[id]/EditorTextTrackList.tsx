@@ -45,11 +45,11 @@ function EditorTextTrackList({
             </Button>
             <Button
               withWrapper={false}
-              variant={ButtonVariant.GHOST}
+              variant={ButtonVariant.DESTRUCTIVE}
               size={ButtonSize.XS}
               onClick={() => onDeleteTrack(track.id)}
               isDisabled={isReadOnly}
-              className={`absolute right-2 top-2 text-destructive ${hoverRevealClassName()}`}
+              className={`absolute right-2 top-2 ${hoverRevealClassName()}`}
             >
               Delete
             </Button>

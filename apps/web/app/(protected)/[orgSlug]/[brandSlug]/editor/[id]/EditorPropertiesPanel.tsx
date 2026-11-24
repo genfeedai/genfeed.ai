@@ -1,15 +1,11 @@
 'use client';
 
-import {
-  ButtonSize,
-  ButtonVariant,
-  EditorTrackType,
-} from '@genfeedai/contracts';
+import { EditorTrackType } from '@genfeedai/contracts';
 import type { IEditorClip } from '@genfeedai/contracts/interfaces';
-import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Label } from '@ui/primitives/label';
 import { Slider } from '@ui/primitives/slider';
+import { Toggle } from '@ui/primitives/toggle';
 import { useCallback } from 'react';
 import type { EditorPropertiesPanelProps } from '@/features/studio/props/editor-properties-panel.props';
 import { formatPreciseFrameTime } from './editor-time-format.util';
@@ -213,34 +209,26 @@ function EditorPropertiesPanel({
           )}
 
           <div className="flex gap-2">
-            <Button
-              withWrapper={false}
-              size={ButtonSize.XS}
-              variant={ButtonVariant.UNSTYLED}
-              className={`flex-1 text-xs px-2 py-1 rounded transition-colors ${
-                selectedTrack.isMuted
-                  ? 'bg-destructive/20 text-destructive'
-                  : 'bg-muted text-foreground/60 hover:bg-muted/80'
-              }`}
-              onClick={handleToggleMute}
-              isDisabled={isReadOnly}
+            <Toggle
+              className="flex-1"
+              disabled={isReadOnly}
+              onPressedChange={handleToggleMute}
+              pressed={selectedTrack.isMuted}
+              size="sm"
+              variant="outline"
             >
               {selectedTrack.isMuted ? 'Muted' : 'Mute'}
-            </Button>
-            <Button
-              withWrapper={false}
-              size={ButtonSize.XS}
-              variant={ButtonVariant.UNSTYLED}
-              className={`flex-1 text-xs px-2 py-1 rounded transition-colors ${
-                selectedTrack.isLocked
-                  ? 'bg-warning/20 text-warning'
-                  : 'bg-muted text-foreground/60 hover:bg-muted/80'
-              }`}
-              onClick={handleToggleLock}
-              isDisabled={isReadOnly}
+            </Toggle>
+            <Toggle
+              className="flex-1"
+              disabled={isReadOnly}
+              onPressedChange={handleToggleLock}
+              pressed={selectedTrack.isLocked}
+              size="sm"
+              variant="outline"
             >
               {selectedTrack.isLocked ? 'Locked' : 'Lock'}
-            </Button>
+            </Toggle>
           </div>
         </div>
       )}

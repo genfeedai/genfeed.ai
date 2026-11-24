@@ -11,6 +11,7 @@ import {
 } from '@ui/primitives/select';
 import { Slider } from '@ui/primitives/slider';
 import { Textarea } from '@ui/primitives/textarea';
+import { Toggle } from '@ui/primitives/toggle';
 import type { EditorTextPropertiesProps } from '@/features/studio/props/editor-text-properties.props';
 
 const FONT_OPTIONS = [
@@ -167,22 +168,17 @@ function EditorTextProperties({
             }
             className="h-6 w-8 rounded border-border-strong p-0"
           />
-          <Button
-            withWrapper={false}
-            variant={ButtonVariant.UNSTYLED}
-            size={ButtonSize.XS}
-            className={`text-xs px-2 py-0.5 rounded ${
-              overlay.backgroundColor === 'transparent'
-                ? 'bg-primary/20 text-primary'
-                : 'bg-muted text-muted-foreground'
-            }`}
-            onClick={() =>
+          <Toggle
+            disabled={isReadOnly}
+            onPressedChange={() =>
               onUpdateTextOverlay({ backgroundColor: 'transparent' })
             }
-            isDisabled={isReadOnly}
+            pressed={overlay.backgroundColor === 'transparent'}
+            size="sm"
+            variant="outline"
           >
             None
-          </Button>
+          </Toggle>
         </div>
       </div>
 
