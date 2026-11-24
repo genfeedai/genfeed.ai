@@ -209,11 +209,10 @@ function EditorEffectsPanel({
                             </span>
                             <Button
                               withWrapper={false}
-                              variant={ButtonVariant.GHOST}
+                              variant={ButtonVariant.DESTRUCTIVE}
                               size={ButtonSize.XS}
                               onClick={() => handleRemoveEffect(effect.type)}
                               isDisabled={isReadOnly}
-                              className="text-destructive hover:text-destructive"
                               ariaLabel={iconTranslate('removeEffect')}
                             >
                               <X className="size-3.5" />
