@@ -7,10 +7,7 @@ import type {
   ScoreSeoRequest,
 } from '@genfeedai/contracts/interfaces';
 import type { ArticlePreviewLink } from '@genfeedai/contracts/interfaces/content/article-preview-link.interface';
-import type {
-  ArticleTraffic,
-  ArticleTrafficPeriod,
-} from '@genfeedai/contracts/interfaces/content/article-traffic.interface';
+import type { ArticleTraffic } from '@genfeedai/contracts/interfaces/content/article-traffic.interface';
 import { Article } from '@genfeedai/models/content/article.model';
 import {
   BaseService,
@@ -161,12 +158,12 @@ export class ArticlesService extends BaseService<Article> {
 
   public async getWebsiteTraffic(
     id: string,
-    period: ArticleTrafficPeriod,
+    range: { endDate: string; startDate: string },
     signal?: AbortSignal,
   ): Promise<ArticleTraffic> {
     const response = await this.instance.get<ArticleTraffic>(
       `${id}/website-traffic`,
-      { params: { period }, signal },
+      { params: range, signal },
     );
     return response.data;
   }

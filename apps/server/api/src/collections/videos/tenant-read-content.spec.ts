@@ -140,11 +140,7 @@ describe('content selected data arguments', () => {
         {
           handle: () =>
             defer(() =>
-              from(
-                controller.getTraffic(user, testId('article'), {
-                  period: '30d',
-                }),
-              ),
+              from(controller.getTraffic(user, testId('article'), {})),
             ),
         },
       ),

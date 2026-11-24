@@ -1,5 +1,3 @@
-export type ArticleTrafficPeriod = '7d' | '30d' | '90d' | 'all';
-
 export interface ArticleTrafficDay {
   date: string;
   views: number;
@@ -15,7 +13,6 @@ export interface ArticleTraffic {
     | 'not_canonical'
     | 'upstream_error'
     | null;
-  period: ArticleTrafficPeriod;
   startDate: string;
   endDate: string;
   totalViews: number | null;
@@ -28,5 +25,8 @@ export interface ArticleTrafficInput {
   organizationId: string;
   brandId?: string;
   userId: string;
-  period: ArticleTrafficPeriod;
+  /** First UTC day, `YYYY-MM-DD`. Defaults to 29 days before the end day. */
+  startDate?: string;
+  /** Last UTC day, `YYYY-MM-DD`, today at most. Defaults to today. */
+  endDate?: string;
 }
