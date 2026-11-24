@@ -5,6 +5,7 @@ import { IngredientsService } from '@api/collections/ingredients/services/ingred
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
+import { detectImageExtension } from '@api/services/uploads/image-signature.util';
 import {
   assertPresignedUploadAllowed,
   isAudioCategory,
@@ -14,7 +15,7 @@ import {
 } from '@api/services/uploads/presigned-upload-policy.util';
 import { resolveUploadExtension } from '@api/services/uploads/upload-extension.util';
 import { SharedService } from '@api/shared/services/shared/shared.service';
-import { isSelfHostedDeployment } from '@genfeedai/config';
+import { isCloudDeployment, isSelfHostedDeployment } from '@genfeedai/config';
 import {
   AssetScope,
   categoryToPlural,
@@ -34,6 +35,28 @@ import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 export interface PresignedUploadOptions {
   /** Trusted internal callers (for example clip sources) may raise the cap. */
   maxBytes?: number;
+}
+
+/**
+ * Image types an author may publish into an article, by the content type that
+ * was signed into the upload URL. Anything else (video, audio, SVG) is refused.
+ */
+const PUBLIC_IMAGE_EXTENSION_BY_MIME_TYPE: Readonly<Record<string, string>> = {
+  'image/gif': 'gif',
+  'image/jpeg': 'jpg',
+  'image/jpg': 'jpg',
+  'image/png': 'png',
+  'image/webp': 'webp',
+};
+
+/** A public article image is a cover or an inline picture, not a download. */
+const PUBLIC_IMAGE_MAX_BYTES = 5 * 1024 * 1024;
+const IMAGE_SIGNATURE_TIMEOUT_MS = 10_000;
+
+export interface PublicImageUpload {
+  ingredient: IngredientDocument;
+  /** Permanent, unsigned URL under the public CDN tree. */
+  publicUrl: string;
 }
 
 @Traced()
@@ -150,30 +173,19 @@ export class PresignedUploadService {
     id: string,
     options: PresignedUploadOptions = {},
   ): Promise<IngredientDocument> {
+    return this.confirmPendingUpload(
+      await this.findPendingUpload(user, id),
+      options,
+    );
+  }
+
+  private async confirmPendingUpload(
+    ingredient: IngredientDocument,
+    options: PresignedUploadOptions,
+  ): Promise<IngredientDocument> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(`${url} started`);
-
-    // Find and update the ingredient status
-    const ingredient = await this.ingredientsService.findOne(
-      {
-        id: id,
-        isDeleted: false,
-        organizationId: user.organizationId,
-        status: IngredientStatus.PROCESSING,
-        userId: user.userId ?? user.id,
-      },
-      [{ path: 'metadata' }],
-    );
-
-    if (!ingredient) {
-      throw new HttpException(
-        {
-          detail: 'No pending upload found with this ID',
-          title: 'Upload not found',
-        },
-        HttpStatus.NOT_FOUND,
-      );
-    }
+    const id = ingredient.id.toString();
 
     // Extract metadata from the uploaded file
     // Use the same workflow as AI-generated content
@@ -286,6 +298,168 @@ export class PresignedUploadService {
       s3Key,
       status: IngredientStatus.UPLOADED,
     });
+  }
+
+  /**
+   * Confirms an image upload and copies it to a permanent public CDN path, so
+   * an article can name it in `<img src>` or `coverImageUrl`. Ingredient media
+   * is delivered through short-lived signed URLs and the article sanitizer
+   * drops `data:` and SVG, so this is the only way an article gets its own
+   * image.
+   *
+   * Only the upload the caller just made can be published: the pending
+   * ingredient is looked up by the caller's organization and user, so another
+   * tenant's asset, an asset already in the Library and a private asset can
+   * never reach the public path. Nothing is copied unless every check passed.
+   */
+  async confirmPublicImageUpload(
+    user: User,
+    id: string,
+    options: PresignedUploadOptions = {},
+  ): Promise<PublicImageUpload> {
+    if (!isCloudDeployment()) {
+      throw new HttpException(
+        {
+          detail:
+            'Public article images need the Genfeed public CDN, which a self-hosted deployment does not have.',
+          title: 'Public images unavailable',
+        },
+        HttpStatus.UNPROCESSABLE_ENTITY,
+      );
+    }
+
+    const pending = await this.findPendingUpload(user, id);
+    const extension =
+      normalizeCategory(pending.category || IngredientCategory.IMAGE) ===
+      IngredientCategory.IMAGE
+        ? PUBLIC_IMAGE_EXTENSION_BY_MIME_TYPE[
+            (pending.mimeType ?? '').trim().toLowerCase()
+          ]
+        : undefined;
+    if (!extension) {
+      throw new HttpException(
+        {
+          detail:
+            'Only PNG, JPEG, WebP and GIF images can be published for an article.',
+          title: 'Image type not allowed',
+        },
+        HttpStatus.UNPROCESSABLE_ENTITY,
+      );
+    }
+    // The declared type was signed into the upload URL, but the bytes are the
+    // caller's. A file that is not the image it says it is never goes public.
+    if (!(await this.hasImageSignature(pending, extension))) {
+      await this.rejectUpload(id, pending.s3Key ?? '');
+      throw new HttpException(
+        {
+          detail: 'The uploaded file is not the image type it was declared as.',
+          title: 'Image type mismatch',
+        },
+        HttpStatus.UNPROCESSABLE_ENTITY,
+      );
+    }
+
+    const ingredient = await this.confirmPendingUpload(pending, {
+      ...options,
+      maxBytes: Math.min(
+        options.maxBytes ?? PUBLIC_IMAGE_MAX_BYTES,
+        PUBLIC_IMAGE_MAX_BYTES,
+      ),
+    });
+    const sourceKey = ingredient.s3Key;
+    if (!sourceKey) {
+      throw new HttpException(
+        'The confirmed upload has no stored object key',
+        HttpStatus.UNPROCESSABLE_ENTITY,
+      );
+    }
+
+    const destinationKey = `assets/articles/${user.organizationId}/${ingredient.id}.${extension}`;
+    let publicUrl: string | undefined;
+    try {
+      publicUrl = await this.filesClientService.copyInS3(
+        sourceKey,
+        destinationKey,
+      );
+    } catch (error: unknown) {
+      // Confirming already moved the upload out of PROCESSING; put it back so
+      // the same call can be repeated instead of leaving an unpublishable asset.
+      await this.ingredientsService.patch(id, {
+        status: IngredientStatus.PROCESSING,
+      });
+      throw error;
+    }
+    if (!publicUrl) {
+      throw new HttpException(
+        'The files service returned no public URL for the copied image',
+        HttpStatus.BAD_GATEWAY,
+      );
+    }
+    this.loggerService.log(
+      `${this.constructorName} published upload ${ingredient.id} for articles`,
+      { destinationKey, organizationId: user.organizationId },
+    );
+
+    return { ingredient, publicUrl };
+  }
+
+  /** Reads the first bytes of the stored object and checks its magic number. */
+  private async hasImageSignature(
+    pending: IngredientDocument,
+    extension: string,
+  ): Promise<boolean> {
+    if (!pending.s3Key) {
+      return false;
+    }
+    try {
+      const downloadUrl =
+        await this.filesClientService.getPresignedDownloadUrlForObjectKey(
+          pending.s3Key,
+        );
+      const response = await fetch(downloadUrl, {
+        headers: { Range: 'bytes=0-15' },
+        signal: AbortSignal.timeout(IMAGE_SIGNATURE_TIMEOUT_MS),
+      });
+      if (!response.ok) {
+        return false;
+      }
+      const head = new Uint8Array(await response.arrayBuffer()).subarray(0, 16);
+      return detectImageExtension(head) === extension;
+    } catch (error: unknown) {
+      this.loggerService.error(
+        `${this.constructorName} could not read the upload to check its type`,
+        error,
+      );
+      return false;
+    }
+  }
+
+  private async findPendingUpload(
+    user: User,
+    id: string,
+  ): Promise<IngredientDocument> {
+    const ingredient = await this.ingredientsService.findOne(
+      {
+        id: id,
+        isDeleted: false,
+        organizationId: user.organizationId,
+        status: IngredientStatus.PROCESSING,
+        userId: user.userId ?? user.id,
+      },
+      [{ path: 'metadata' }],
+    );
+
+    if (!ingredient) {
+      throw new HttpException(
+        {
+          detail: 'No pending upload found with this ID',
+          title: 'Upload not found',
+        },
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    return ingredient;
   }
 
   /** Marks a rejected upload failed and removes the stored object best-effort. */
