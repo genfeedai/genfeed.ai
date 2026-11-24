@@ -47,7 +47,6 @@ export interface CreatorTabCounts {
 
 export interface CreatorHeaderProps {
   brand: Brand;
-  counts: CreatorTabCounts;
   handle: string;
   /** The banner sits above the header, so the avatar overlaps its lower edge. */
   hasBanner: boolean;
@@ -86,6 +85,7 @@ export interface CreatorSectionProps {
   /** Where "See all" goes; omitted inside the section's own tab. */
   href?: string;
   title: string;
+  /** Hides the section when 0; the count itself is shown in the tab label. */
   total: number;
 }
 
