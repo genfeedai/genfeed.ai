@@ -98,7 +98,7 @@ export default function ReviewDecisionPanel({
             withWrapper={false}
             isDisabled={isDecisionDisabled}
             onClick={() => onRequestChanges(item.id, feedback)}
-            className="w-full justify-start gap-2"
+            className="w-full justify-start"
             icon={<Sparkles className="size-3.5" />}
           >
             {translate('decision.requestChanges')}
@@ -110,7 +110,7 @@ export default function ReviewDecisionPanel({
             isDisabled={isDecisionDisabled}
             action="publishing.review-approve"
             onClick={() => onApprove(item.id)}
-            className="w-full justify-start gap-2"
+            className="w-full justify-start"
             icon={<Check className="size-3.5" />}
           >
             {getApproveLabel(item, translate)}
@@ -121,7 +121,7 @@ export default function ReviewDecisionPanel({
             withWrapper={false}
             isDisabled={isDecisionDisabled}
             onClick={() => onReject(item.id, feedback)}
-            className="w-full justify-start gap-2"
+            className="w-full justify-start"
             icon={<X className="size-3.5" />}
           >
             {translate('decision.reject')}
