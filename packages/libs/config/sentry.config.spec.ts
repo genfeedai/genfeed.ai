@@ -4,6 +4,7 @@ import {
   PRODUCTION_TRACES_SAMPLE_RATE,
   redactBreadcrumbUrls,
   redactSpanUrls,
+  UNAVAILABLE_SOURCE_VIDEO_PATTERN,
 } from './sentry.config';
 
 describe('redactSpanUrls', () => {
@@ -110,6 +111,7 @@ describe('getSentryConfig', () => {
       beforeSendSpan: redactSpanUrls,
       dsn: 'https://service@sentry.io/2',
       environment: 'production',
+      ignoreErrors: [UNAVAILABLE_SOURCE_VIDEO_PATTERN],
       release: '3.2.1',
       dataCollection: {
         cookies: false,
@@ -145,6 +147,7 @@ describe('getSentryConfig', () => {
       beforeSendSpan: redactSpanUrls,
       dsn: 'https://shared@sentry.io/1',
       environment: 'development',
+      ignoreErrors: [UNAVAILABLE_SOURCE_VIDEO_PATTERN],
       release: '1.0.0',
       dataCollection: {
         cookies: false,
@@ -244,5 +247,23 @@ describe('getSentryConfig', () => {
     expect(getSentryConfig({ serviceName: 'api' })).toMatchObject({
       tracesSampleRate: PRODUCTION_TRACES_SAMPLE_RATE,
     });
+  });
+});
+
+describe('UNAVAILABLE_SOURCE_VIDEO_PATTERN', () => {
+  it.each([
+    'yt-dlp exited with code 1: ERROR: [youtube] dQw4w9WgXcQ: This video is unavailable',
+    'Video-to-audio conversion failed: yt-dlp exited with code 1: ERROR: [youtube] abc-DEF_123: Private video. Sign in if you\'ve been granted access to this video',
+    'Nodes failed: prepare-source: Audio extraction job 345eddc6 failed: yt-dlp exited with code 1: ERROR: [youtube] abc: Video unavailable',
+  ])('drops a removed or private source video: %s', (message) => {
+    expect(UNAVAILABLE_SOURCE_VIDEO_PATTERN.test(message)).toBe(true);
+  });
+
+  it.each([
+    'yt-dlp exited with code 1: ERROR: [youtube] abc: Sign in to confirm you’re not a bot',
+    'yt-dlp exited with code 1: ERROR: unable to download video data: HTTP Error 403',
+    'yt-dlp timed out after 600000ms',
+  ])('keeps a failure that may be ours: %s', (message) => {
+    expect(UNAVAILABLE_SOURCE_VIDEO_PATTERN.test(message)).toBe(false);
   });
 });

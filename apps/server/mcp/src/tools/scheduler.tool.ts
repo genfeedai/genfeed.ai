@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { McpToolInputError } from '@genfeedai/actions';
 import { stableStringify } from '@genfeedai/contracts/constants/canonical-json.constant';
 import { CONTENT_RELEASE_IDEMPOTENCY_PREFIX } from '@genfeedai/contracts/constants/release-idempotency.constant';
 import { SCHEDULED_RELEASE_BATCH_MAX } from '@genfeedai/contracts/interfaces';
@@ -71,7 +72,10 @@ export function handleSchedulerTool(
         return createReleaseBatch(client, a, approvalId);
       }
       if (a.release === undefined) {
-        throw new Error('Pass release (one) or releases (a batch)');
+        throw new McpToolInputError(
+          'Pass release (one) or releases (a batch)',
+          'release',
+        );
       }
       const release = createReleasePayload(a);
       const result = await client.createScheduledRelease(
@@ -94,8 +98,9 @@ export function handleSchedulerTool(
           optionalBoolean(a, 'includeHidden') !== undefined ||
           optionalBoolean(a, 'includePlanned') !== undefined
         ) {
-          throw new Error(
+          throw new McpToolInputError(
             'includeHidden and includePlanned apply only when listing (omit platform)',
+            'platform',
           );
         }
         const result = await client.getSchedulerCapability(platform);
@@ -139,10 +144,16 @@ export function handleSchedulerTool(
       const scope = updateScope(a);
       const targetId = optionalString(a, 'targetId');
       if (scope === 'target' && !targetId) {
-        throw new Error('targetId is required when scope is "target"');
+        throw new McpToolInputError(
+          'targetId is required when scope is "target"',
+          'targetId',
+        );
       }
       if (scope === 'release' && targetId) {
-        throw new Error('targetId is only allowed when scope is "target"');
+        throw new McpToolInputError(
+          'targetId is only allowed when scope is "target"',
+          'targetId',
+        );
       }
 
       const result = await client.updateScheduledRelease(
@@ -176,7 +187,10 @@ async function createReleaseBatch(
   approvalId: string | undefined,
 ) {
   if (args.release !== undefined) {
-    throw new Error('Pass either release or releases, not both');
+    throw new McpToolInputError(
+      'Pass either release or releases, not both',
+      'release',
+    );
   }
   const releases = batchReleases(args);
   // Drafts run with no approval; the same releases then share one key.
@@ -214,16 +228,23 @@ function batchReleases(
 ): Record<string, unknown>[] {
   const releases = args.releases;
   if (!Array.isArray(releases) || releases.length === 0) {
-    throw new Error('releases must be a non-empty array');
+    throw new McpToolInputError(
+      'releases must be a non-empty array',
+      'releases',
+    );
   }
   if (releases.length > SCHEDULED_RELEASE_BATCH_MAX) {
-    throw new Error(
+    throw new McpToolInputError(
       `releases holds at most ${SCHEDULED_RELEASE_BATCH_MAX} releases`,
+      'releases',
     );
   }
   return releases.map((release, index) => {
     if (!isRecord(release)) {
-      throw new Error(`releases[${index}] must be an object`);
+      throw new McpToolInputError(
+        `releases[${index}] must be an object`,
+        'releases',
+      );
     }
     return createReleasePayload({ release });
   });
@@ -239,11 +260,17 @@ function createReleasePayload(
 
   const targets = release.targets;
   if (!Array.isArray(targets) || targets.length === 0) {
-    throw new Error('release.targets must be a non-empty array');
+    throw new McpToolInputError(
+      'release.targets must be a non-empty array',
+      'release.targets',
+    );
   }
   targets.forEach((target, index) => {
     if (!isRecord(target)) {
-      throw new Error(`release.targets[${index}] must be an object`);
+      throw new McpToolInputError(
+        `release.targets[${index}] must be an object`,
+        'release.targets',
+      );
     }
     requiredString(target, 'credentialId');
     requiredString(target, 'platform');
@@ -262,8 +289,9 @@ function controlAction(
     action !== 'resume' &&
     action !== 'publish-now'
   ) {
-    throw new Error(
+    throw new McpToolInputError(
       'action must be "cancel", "pause", "resume", or "publish-now"',
+      'action',
     );
   }
   return action;
@@ -272,7 +300,10 @@ function controlAction(
 function updateScope(args: Record<string, unknown>): 'release' | 'target' {
   const scope = args.scope;
   if (scope !== 'release' && scope !== 'target') {
-    throw new Error('scope must be "release" or "target"');
+    throw new McpToolInputError(
+      'scope must be "release" or "target"',
+      'scope',
+    );
   }
   return scope;
 }
@@ -289,8 +320,9 @@ function updateChanges(
   );
 
   if (unsupportedFields.length > 0) {
-    throw new Error(
+    throw new McpToolInputError(
       `changes contains fields that are not editable for ${scope} scope: ${unsupportedFields.join(', ')}`,
+      'changes',
     );
   }
 
@@ -303,7 +335,7 @@ function requiredNonEmptyRecord(
 ): Record<string, unknown> {
   const value = args[key];
   if (!isRecord(value) || Object.keys(value).length === 0) {
-    throw new Error(`${key} must be a non-empty object`);
+    throw new McpToolInputError(`${key} must be a non-empty object`, key);
   }
   return value;
 }
@@ -311,7 +343,7 @@ function requiredNonEmptyRecord(
 function requiredString(args: Record<string, unknown>, key: string): string {
   const value = args[key];
   if (typeof value !== 'string' || value.trim().length === 0) {
-    throw new Error(`${key} is required`);
+    throw new McpToolInputError(`${key} is required`, key);
   }
   return value;
 }
@@ -363,14 +395,14 @@ function validateTargetPayload(
 
   if (args.media !== undefined) {
     if (!Array.isArray(args.media) || !args.media.every(isRecord)) {
-      throw new Error('media must be an array of objects');
+      throw new McpToolInputError('media must be an array of objects', 'media');
     }
     payload.media = args.media;
   }
 
   if (args.settings !== undefined) {
     if (!isRecord(args.settings)) {
-      throw new Error('settings must be an object');
+      throw new McpToolInputError('settings must be an object', 'settings');
     }
     payload.settings = args.settings;
   }

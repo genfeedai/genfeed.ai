@@ -34,6 +34,16 @@ type SavedVoiceRow = {
   voiceSource: string | null;
 };
 
+/** A saved voice as selected: the display name lives on the related metadata. */
+type SavedVoiceRecord = Omit<SavedVoiceRow, 'label'> & {
+  metadata: { label: string } | null;
+};
+
+function toSavedVoiceRow(record: SavedVoiceRecord): SavedVoiceRow {
+  const { metadata, ...voice } = record;
+  return { ...voice, label: metadata?.label ?? null };
+}
+
 function clampInteger(
   value: unknown,
   fallback: number,
@@ -291,17 +301,18 @@ export class AgentVoiceToolHandler {
     };
   }
 
-  private findSaved(
+  private async findSaved(
     organizationId: string,
     voiceId: string,
   ): Promise<SavedVoiceRow | null> {
-    return this.voices.prisma.ingredient.findFirst({
+    const record = (await this.voices.prisma.ingredient.findFirst({
       select: this.select(),
       where: scopedWhere(organizationId, {
         ...this.savedWhere(),
         id: voiceId,
       }),
-    }) as Promise<SavedVoiceRow | null>;
+    })) as SavedVoiceRecord | null;
+    return record ? toSavedVoiceRow(record) : null;
   }
 
   private async savedVoices(
@@ -317,13 +328,13 @@ export class AgentVoiceToolHandler {
         skip: offset,
         take: limit,
         where: scopedWhere(organizationId, this.savedWhere()),
-      }) as Promise<SavedVoiceRow[]>,
+      }) as Promise<SavedVoiceRecord[]>,
       brandId
         ? this.brands.findOne({ id: brandId, organizationId }, 'none')
         : null,
     ]);
     const defaults = readBrandDefaultVoice(brand);
-    return rows.map((row) =>
+    return rows.map(toSavedVoiceRow).map((row) =>
       this.toSavedVoice(
         row,
         row.id === defaults.internalVoiceId ||
@@ -337,7 +348,7 @@ export class AgentVoiceToolHandler {
     return {
       externalVoiceId: true,
       id: true,
-      label: true,
+      metadata: { select: { label: true } },
       sampleAudioUrl: true,
       voiceProvider: true,
       voiceSource: true,

@@ -8,6 +8,7 @@ import {
   type ExecutableWorkflow,
   type NodeExecutionResult,
 } from '@genfeedai/workflows/engine';
+import { ConflictException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('WorkflowNodeGraphRunnerService — lost-lease catch path (#4307)', () => {
@@ -439,5 +440,30 @@ describe('WorkflowNodeGraphRunnerService — lost-lease catch path (#4307)', () 
         status: 'failed',
       }),
     );
+  });
+  it('records the cause of an HttpException with an object body, not its class name', async () => {
+    nodeClaimService.runWithLeaseHeartbeat.mockRejectedValue(
+      new ConflictException({
+        detail: 'This post is held because the brand Policy check is unavailable.',
+        title: 'Post held for review',
+      }),
+    );
+    nodeClaimService.complete.mockResolvedValue(undefined);
+
+    const result = await runner.executeNodeGraph(
+      workflow,
+      triggerEvent,
+      'execution-1',
+      {
+        startedAt: new Date(),
+        workflowLabel: 'Test workflow',
+      },
+    );
+
+    expect(result.nodeResults.get('publish')?.error).toBe(
+      'Post held for review: This post is held because the brand Policy check is unavailable.',
+    );
+    expect(result.error).toContain('Post held for review');
+    expect(result.error).not.toContain('Conflict Exception');
   });
 });

@@ -47,6 +47,47 @@ function readKey(value: unknown): unknown {
     : undefined;
 }
 
+/**
+ * The `type` of the one row per brand and day that holds the day's entries,
+ * insights and metrics. `brand_memories` has no column for any of them, so
+ * they ride in the row's `metadata`; typed rows (`upsertTypedEntry`) keep their
+ * own `type` and never mix with it.
+ */
+const DAILY_MEMORY_TYPE = 'daily';
+
+interface DailyMemoryBody {
+  entries: unknown[];
+  insights: unknown[];
+  metrics: Record<string, unknown>;
+}
+
+function readDailyBody(metadata: unknown): DailyMemoryBody {
+  const body =
+    metadata && typeof metadata === 'object' && !Array.isArray(metadata)
+      ? (metadata as Record<string, unknown>)
+      : {};
+  const metrics = body.metrics;
+  return {
+    entries: Array.isArray(body.entries) ? body.entries : [],
+    insights: Array.isArray(body.insights) ? body.insights : [],
+    metrics:
+      metrics && typeof metrics === 'object' && !Array.isArray(metrics)
+        ? (metrics as Record<string, unknown>)
+        : {},
+  };
+}
+
+/** A daily row as the document consumers read: entries, insights and metrics up front. */
+function toDailyDocument(row: PrismaBrandMemory): BrandMemoryDocument {
+  const { entries, insights, metrics } = readDailyBody(row.metadata);
+  return {
+    ...row,
+    entries,
+    insights,
+    metrics,
+  } as unknown as BrandMemoryDocument;
+}
+
 export interface BrandMemoryInsightInput {
   category: string;
   insight: string;
@@ -98,11 +139,6 @@ export class BrandMemoryService extends BaseService<
     brandId: string,
     entry: BrandMemoryEntryInput,
   ): Promise<BrandMemoryDocument | null> {
-    const date = this.startOfDay(new Date());
-    const existing = await this.delegate.findFirst({
-      where: this.buildDailyFilter(organizationId, brandId, new Date()),
-    });
-
     const newEntry = {
       content: entry.content,
       ...(entry.key ? { key: entry.key } : {}),
@@ -111,36 +147,15 @@ export class BrandMemoryService extends BaseService<
       type: entry.type,
     };
 
-    if (existing) {
-      const currentEntries =
-        ((existing as Record<string, unknown>).entries as unknown[]) ?? [];
-      const retainedEntries = entry.key
-        ? currentEntries.filter((current) => readKey(current) !== entry.key)
-        : currentEntries;
-      return this.delegate.update({
-        where: scopedWhere(organizationId, {
-          brandId,
-          id: (existing as Record<string, unknown>).id as string,
-        }),
-        data: {
-          entries: [...retainedEntries, newEntry] as unknown as Record<
-            string,
-            unknown
-          >[],
-        },
-      }) as Promise<BrandMemoryDocument>;
-    }
-
-    return this.delegate.create({
-      data: {
-        brandId,
-        date,
-        entries: [newEntry] as unknown as Record<string, unknown>[],
-        insights: [],
-        isDeleted: false,
-        organizationId,
-      },
-    }) as Promise<BrandMemoryDocument>;
+    return this.writeDailyBody(organizationId, brandId, (body) => ({
+      ...body,
+      entries: [
+        ...(entry.key
+          ? body.entries.filter((current) => readKey(current) !== entry.key)
+          : body.entries),
+        newEntry,
+      ],
+    }));
   }
 
   async addInsight(
@@ -148,11 +163,6 @@ export class BrandMemoryService extends BaseService<
     brandId: string,
     insight: BrandMemoryInsightInput,
   ): Promise<BrandMemoryDocument | null> {
-    const date = this.startOfDay(new Date());
-    const existing = await this.delegate.findFirst({
-      where: this.buildDailyFilter(organizationId, brandId, new Date()),
-    });
-
     const newInsight = {
       category: insight.category,
       confidence: insight.confidence,
@@ -160,42 +170,21 @@ export class BrandMemoryService extends BaseService<
       insight: insight.insight,
       source: insight.source,
     };
+    const isReplayKeyed = REPLAY_KEYED_INSIGHT_SOURCE_PREFIXES.some((prefix) =>
+      insight.source.startsWith(prefix),
+    );
 
-    if (existing) {
-      const currentInsights =
-        ((existing as Record<string, unknown>).insights as unknown[]) ?? [];
-      const isReplayKeyed = REPLAY_KEYED_INSIGHT_SOURCE_PREFIXES.some(
-        (prefix) => insight.source.startsWith(prefix),
-      );
-      const retainedInsights = isReplayKeyed
-        ? currentInsights.filter(
-            (current) => readSource(current) !== insight.source,
-          )
-        : currentInsights;
-      return this.delegate.update({
-        where: scopedWhere(organizationId, {
-          brandId,
-          id: (existing as Record<string, unknown>).id as string,
-        }),
-        data: {
-          insights: [...retainedInsights, newInsight] as unknown as Record<
-            string,
-            unknown
-          >[],
-        },
-      }) as Promise<BrandMemoryDocument>;
-    }
-
-    return this.delegate.create({
-      data: {
-        brandId,
-        date,
-        entries: [],
-        insights: [newInsight] as unknown as Record<string, unknown>[],
-        isDeleted: false,
-        organizationId,
-      },
-    }) as Promise<BrandMemoryDocument>;
+    return this.writeDailyBody(organizationId, brandId, (body) => ({
+      ...body,
+      insights: [
+        ...(isReplayKeyed
+          ? body.insights.filter(
+              (current) => readSource(current) !== insight.source,
+            )
+          : body.insights),
+        newInsight,
+      ],
+    }));
   }
 
   async updateMetrics(
@@ -203,80 +192,50 @@ export class BrandMemoryService extends BaseService<
     brandId: string,
     metrics: BrandMemoryMetricsInput,
   ): Promise<BrandMemoryDocument | null> {
-    const date = this.startOfDay(new Date());
-    const existing = await this.delegate.findFirst({
-      where: this.buildDailyFilter(organizationId, brandId, new Date()),
+    const changes = Object.fromEntries(
+      Object.entries(metrics).filter(([, value]) => value !== undefined),
+    );
+
+    return this.writeDailyBody(organizationId, brandId, (body) => ({
+      ...body,
+      metrics: { ...body.metrics, ...changes },
+    }));
+  }
+
+  /**
+   * Applies `change` to today's daily row, creating the row when the brand has
+   * none yet. The day's entries, insights and metrics are stored in the row's
+   * `metadata` because the table has no column for them.
+   */
+  private async writeDailyBody(
+    organizationId: string,
+    brandId: string,
+    change: (body: DailyMemoryBody) => DailyMemoryBody,
+  ): Promise<BrandMemoryDocument> {
+    const now = new Date();
+    const existing = await this.prisma.brandMemory.findFirst({
+      orderBy: { updatedAt: 'desc' },
+      where: this.buildDailyFilter(organizationId, brandId, now),
     });
+    const body = change(readDailyBody(existing?.metadata));
+    const metadata = toPrismaJson(body);
 
-    const metricsUpdate: Record<string, unknown> = {};
-    if (metrics.avgEngagementRate !== undefined) {
-      metricsUpdate['metrics.avgEngagementRate'] = metrics.avgEngagementRate;
-    }
-    if (metrics.postsPublished !== undefined) {
-      metricsUpdate['metrics.postsPublished'] = metrics.postsPublished;
-    }
-    if (metrics.topPerformingFormat !== undefined) {
-      metricsUpdate['metrics.topPerformingFormat'] =
-        metrics.topPerformingFormat;
-    }
-    if (metrics.topPerformingTime !== undefined) {
-      metricsUpdate['metrics.topPerformingTime'] = metrics.topPerformingTime;
-    }
-    if (metrics.totalEngagement !== undefined) {
-      metricsUpdate['metrics.totalEngagement'] = metrics.totalEngagement;
-    }
-
-    if (existing) {
-      const currentMetrics =
-        ((existing as Record<string, unknown>).metrics as Record<
-          string,
-          unknown
-        >) ?? {};
-      const updatedMetrics = { ...currentMetrics };
-      if (metrics.avgEngagementRate !== undefined) {
-        updatedMetrics.avgEngagementRate = metrics.avgEngagementRate;
-      }
-      if (metrics.postsPublished !== undefined) {
-        updatedMetrics.postsPublished = metrics.postsPublished;
-      }
-      if (metrics.topPerformingFormat !== undefined) {
-        updatedMetrics.topPerformingFormat = metrics.topPerformingFormat;
-      }
-      if (metrics.topPerformingTime !== undefined) {
-        updatedMetrics.topPerformingTime = metrics.topPerformingTime;
-      }
-      if (metrics.totalEngagement !== undefined) {
-        updatedMetrics.totalEngagement = metrics.totalEngagement;
-      }
-
-      return this.delegate.update({
-        where: scopedWhere(organizationId, {
-          brandId,
-          id: (existing as Record<string, unknown>).id as string,
-        }),
-        data: {
-          metrics: updatedMetrics as unknown as Record<string, unknown>,
-        },
-      }) as Promise<BrandMemoryDocument>;
-    }
-
-    return this.delegate.create({
-      data: {
-        brandId,
-        date,
-        entries: [],
-        insights: [],
-        isDeleted: false,
-        metrics: {
-          avgEngagementRate: metrics.avgEngagementRate,
-          postsPublished: metrics.postsPublished,
-          topPerformingFormat: metrics.topPerformingFormat,
-          topPerformingTime: metrics.topPerformingTime,
-          totalEngagement: metrics.totalEngagement,
-        } as unknown as Record<string, unknown>,
-        organizationId,
-      },
-    }) as Promise<BrandMemoryDocument>;
+    const row = existing
+      ? await this.prisma.brandMemory.update({
+          data: { metadata },
+          where: scopedWhere(organizationId, { brandId, id: existing.id }),
+        })
+      : await this.prisma.brandMemory.create({
+          data: {
+            brandId,
+            date: this.startOfDay(now),
+            isDeleted: false,
+            metadata,
+            organizationId,
+            type: DAILY_MEMORY_TYPE,
+          },
+        });
+    return toDailyDocument(row);
   }
 
   /**
@@ -333,13 +292,14 @@ export class BrandMemoryService extends BaseService<
     });
   }
 
-  getMemory(
+  async getMemory(
     organizationId: string,
     brandId: string,
     dateRange?: BrandMemoryDateRange,
   ): Promise<BrandMemoryDocument[]> {
     const where: Record<string, unknown> = scopedWhere(organizationId, {
       brandId,
+      type: DAILY_MEMORY_TYPE,
     });
 
     if (dateRange?.from || dateRange?.to) {
@@ -349,10 +309,11 @@ export class BrandMemoryService extends BaseService<
       };
     }
 
-    return this.delegate.findMany({
-      where,
+    const rows = await this.prisma.brandMemory.findMany({
       orderBy: { date: 'desc' },
-    }) as Promise<BrandMemoryDocument[]>;
+      where,
+    });
+    return rows.map(toDailyDocument);
   }
 
   async getInsights(
@@ -360,16 +321,14 @@ export class BrandMemoryService extends BaseService<
     brandId: string,
     limit: number = 20,
   ): Promise<BrandMemoryInsight[]> {
-    const rows = await this.delegate.findMany({
-      where: scopedWhere(organizationId, { brandId }),
+    const rows = await this.prisma.brandMemory.findMany({
       orderBy: { date: 'desc' },
       take: Math.max(1, limit),
+      where: scopedWhere(organizationId, { brandId, type: DAILY_MEMORY_TYPE }),
     });
 
     const insights = rows.flatMap(
-      (row) =>
-        ((row as Record<string, unknown>).insights as BrandMemoryInsight[]) ??
-        [],
+      (row) => readDailyBody(row.metadata).insights as BrandMemoryInsight[],
     );
 
     return insights
@@ -392,10 +351,11 @@ export class BrandMemoryService extends BaseService<
     const now = new Date();
     const fromDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
-    const rows = await this.delegate.findMany({
+    const rows = await this.prisma.brandMemory.findMany({
       where: scopedWhere(organizationId, {
         brandId,
         date: { gte: fromDate, lte: now },
+        type: DAILY_MEMORY_TYPE,
       }),
     });
 
@@ -404,9 +364,7 @@ export class BrandMemoryService extends BaseService<
       { totalEngagement: number; count: number }
     >();
     for (const row of rows) {
-      const metrics = (row as Record<string, unknown>).metrics as
-        | Record<string, unknown>
-        | undefined;
+      const { metrics } = readDailyBody(row.metadata);
       const fmt = metrics?.topPerformingFormat as string | undefined;
       const eng = (metrics?.avgEngagementRate as number) ?? 0;
       if (fmt) {
@@ -466,6 +424,7 @@ export class BrandMemoryService extends BaseService<
         gte: this.startOfDay(date),
         lt: this.endOfDay(date),
       },
+      type: DAILY_MEMORY_TYPE,
     });
   }
 

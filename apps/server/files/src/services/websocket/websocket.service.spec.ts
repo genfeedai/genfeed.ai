@@ -1,5 +1,6 @@
 import { ConfigService } from '@files/config/config.service';
 import { WebSocketService } from '@files/services/websocket/websocket.service';
+import { Logger } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 
 const { publishMock } = vi.hoisted(() => ({ publishMock: vi.fn() }));
@@ -87,6 +88,26 @@ describe('WebSocketService (Files)', () => {
         channel: 'video-progress',
         message: { path: websocketUrl, progress, userId: websocketUrl },
       });
+    });
+  });
+  describe('emitError', () => {
+    it('publishes the failure to the user room without logging an error of its own', async () => {
+      const error = vi.spyOn(Logger.prototype, 'error');
+
+      await service.emitError('/ws/progress/user-123', 'Source is gone', 'user-123');
+
+      expect(publishedMessage()).toEqual({
+        channel: 'media-failed',
+        message: {
+          error: 'Source is gone',
+          path: '/ws/progress/user-123',
+          room: 'user:user-123',
+          userId: 'user-123',
+        },
+      });
+      // The failure was logged where it happened; announcing it is not a fault
+      // and must not open a Sentry issue per failed job.
+      expect(error).not.toHaveBeenCalled();
     });
   });
 });

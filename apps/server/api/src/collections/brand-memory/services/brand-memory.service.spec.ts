@@ -48,20 +48,37 @@ describe('BrandMemoryService', () => {
   let rows: MemoryRow[];
   let service: BrandMemoryService;
 
-  function dailyRow(overrides: Record<string, unknown> = {}): MemoryRow {
+  function dailyRow(
+    overrides: Record<string, unknown> & {
+      entries?: unknown[];
+      insights?: unknown[];
+      metrics?: Record<string, unknown>;
+    } = {},
+  ): MemoryRow {
+    const { entries, insights, metrics, ...columns } = overrides;
     return {
       brandId: 'brand-1',
       date: new Date(),
-      entries: [],
       id: 'memory-1',
-      insights: [],
       isDeleted: false,
-      metrics: {},
+      metadata: {
+        entries: entries ?? [],
+        insights: insights ?? [],
+        metrics: metrics ?? {},
+      },
       organizationId: 'org-1',
+      type: 'daily',
       updatedAt: new Date('2026-09-01T00:00:00.000Z'),
-      ...overrides,
+      ...columns,
     };
   }
+
+  const body = (row: MemoryRow | undefined) =>
+    row?.metadata as {
+      entries: unknown[];
+      insights: unknown[];
+      metrics: Record<string, unknown>;
+    };
 
   beforeEach(() => {
     rows = [];
@@ -82,9 +99,32 @@ describe('BrandMemoryService', () => {
         .filter((row) => matchesWhere(row, where))
         .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
 
+    // The columns of the real `brand_memories` table. Prisma rejects any other
+    // field, so the fake must too, or a write to a column the table lacks
+    // (`entries`, `insights`, `metrics`) passes here and fails in production.
+    const COLUMNS = new Set([
+      'brandId',
+      'content',
+      'date',
+      'id',
+      'isDeleted',
+      'metadata',
+      'organizationId',
+      'type',
+    ]);
+    const assertKnownColumns = (data: Record<string, unknown>) => {
+      const unknown = Object.keys(data).filter((key) => !COLUMNS.has(key));
+      if (unknown.length > 0) {
+        throw new Error(
+          `Unknown argument \`${unknown[0]}\`: BrandMemory has no such field`,
+        );
+      }
+    };
+
     const brandMemory = {
       create: async (args: { data: Record<string, unknown> }) => {
         guard('create', args);
+        assertKnownColumns(args.data);
         sequence += 1;
         const row = {
           ...args.data,
@@ -104,6 +144,7 @@ describe('BrandMemoryService', () => {
       },
       update: async (args: { data: Record<string, unknown>; where: Where }) => {
         guard('update', args);
+        assertKnownColumns(args.data);
         const row = rows.find((candidate) =>
           matchesWhere(candidate, args.where),
         );
@@ -240,7 +281,7 @@ describe('BrandMemoryService', () => {
         source,
       });
 
-      expect(rows[0]?.insights).toEqual([
+      expect(body(rows[0]).insights).toEqual([
         { insight: 'Keep my voice', source: 'preference' },
         expect.objectContaining({ insight: 'Updated measurement', source }),
       ]);
@@ -270,7 +311,7 @@ describe('BrandMemoryService', () => {
         source: 'memory_distiller_30d',
       });
 
-      expect(rows[0]?.insights).toEqual([
+      expect(body(rows[0]).insights).toEqual([
         { insight: 'Distilled', source: 'memory_distiller_30d' },
         expect.objectContaining({ insight: 'Updated winner', source }),
         expect.objectContaining({
@@ -300,7 +341,7 @@ describe('BrandMemoryService', () => {
         type: 'note',
       });
 
-      expect(rows[0]?.entries).toEqual([
+      expect(body(rows[0]).entries).toEqual([
         { content: 'Manual note', type: 'note' },
         expect.objectContaining({
           content: 'New',
@@ -320,8 +361,11 @@ describe('BrandMemoryService', () => {
 
       expect(rows).toHaveLength(2);
       expect(rows[1]).toMatchObject({
-        entries: [expect.objectContaining({ content: 'Fresh note' })],
+        metadata: {
+          entries: [expect.objectContaining({ content: 'Fresh note' })],
+        },
         organizationId: 'org-1',
+        type: 'daily',
       });
     });
 
@@ -340,10 +384,78 @@ describe('BrandMemoryService', () => {
 
       expect(rows).toEqual([
         expect.objectContaining({
-          entries: [expect.objectContaining({ content: 'note' })],
-          metrics: { postsPublished: 3, totalEngagement: 10 },
+          metadata: expect.objectContaining({
+            entries: [expect.objectContaining({ content: 'note' })],
+            metrics: { postsPublished: 3, totalEngagement: 10 },
+          }),
         }),
       ]);
+    });
+
+    it('creates the day row on the columns the table has, with the day in metadata', async () => {
+      const document = await service.logEntry('org-1', 'brand-1', {
+        content: 'Post post-1 on YOUTUBE reached 2 engagements with 50.00% engagement rate.',
+        key: 'post_performance:post-1',
+        metadata: { contentType: 'video', engagementRate: 50 },
+        type: 'post_performance',
+      });
+
+      expect(rows).toHaveLength(1);
+      expect(rows[0]).toMatchObject({
+        brandId: 'brand-1',
+        isDeleted: false,
+        organizationId: 'org-1',
+        type: 'daily',
+      });
+      expect(rows[0]).not.toHaveProperty('entries');
+      expect(document?.entries).toEqual([
+        expect.objectContaining({ key: 'post_performance:post-1' }),
+      ]);
+    });
+
+    it('does not write the day into a typed row that shares today', async () => {
+      await service.upsertTypedEntry('org-1', 'brand-1', {
+        content: 'I ran finance at a startup.',
+        type: 'positioning.originStory',
+      });
+
+      await service.logEntry('org-1', 'brand-1', {
+        content: 'note',
+        type: 'note',
+      });
+
+      expect(rows).toHaveLength(2);
+      expect(rows[0]).toMatchObject({
+        content: 'I ran finance at a startup.',
+        type: 'positioning.originStory',
+      });
+      expect(rows[0]?.metadata).toBeUndefined();
+    });
+
+    it('reads the day rows back as documents and leaves typed rows out', async () => {
+      rows = [
+        dailyRow({
+          insights: [
+            { createdAt: '2026-09-01T00:00:00.000Z', insight: 'Old', source: 'a' },
+            { createdAt: '2026-09-02T00:00:00.000Z', insight: 'New', source: 'b' },
+          ],
+          metrics: { topPerformingFormat: 'video' },
+        }),
+      ];
+      await service.upsertTypedEntry('org-1', 'brand-1', {
+        content: 'typed',
+        type: 'positioning.originStory',
+      });
+
+      const memory = await service.getMemory('org-1', 'brand-1');
+      const insights = await service.getInsights('org-1', 'brand-1');
+
+      expect(memory).toHaveLength(1);
+      expect(memory[0]).toMatchObject({
+        insights: expect.any(Array),
+        metrics: { topPerformingFormat: 'video' },
+      });
+      expect(insights.map((insight) => insight.insight)).toEqual(['New', 'Old']);
     });
 
     it('fails a daily-row write for another organization than the tenant context', async () => {
@@ -357,7 +469,7 @@ describe('BrandMemoryService', () => {
           }),
         ),
       ).rejects.toThrow();
-      expect(rows[0]?.entries).toEqual([]);
+      expect(body(rows[0]).entries).toEqual([]);
     });
   });
 });

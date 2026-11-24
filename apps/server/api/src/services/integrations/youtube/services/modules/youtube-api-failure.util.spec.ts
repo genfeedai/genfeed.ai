@@ -1,4 +1,7 @@
-import { isYoutubeVideoMissingError } from '@api/services/integrations/youtube/services/modules/youtube-api-failure.util';
+import {
+  isYoutubeCommentsDisabledError,
+  isYoutubeVideoMissingError,
+} from '@api/services/integrations/youtube/services/modules/youtube-api-failure.util';
 import { describe, expect, it } from 'vitest';
 
 describe('isYoutubeVideoMissingError', () => {
@@ -22,5 +25,34 @@ describe('isYoutubeVideoMissingError', () => {
     ['null', null, false],
   ])('classifies %s', (_label, error, expected) => {
     expect(isYoutubeVideoMissingError(error)).toBe(expected);
+  });
+});
+
+describe('isYoutubeCommentsDisabledError', () => {
+  it.each([
+    [
+      'a commentsDisabled reason',
+      { errors: [{ reason: 'commentsDisabled' }] },
+      true,
+    ],
+    [
+      'the disabled-comments message on a 403',
+      {
+        message:
+          'The video identified by the videoId parameter has disabled comments.',
+        response: { status: 403 },
+      },
+      true,
+    ],
+    [
+      'the same message without a 403',
+      { message: 'has disabled comments', response: { status: 500 } },
+      false,
+    ],
+    ['a quota failure', { errors: [{ reason: 'quotaExceeded' }] }, false],
+    ['a string', 'boom', false],
+    ['null', null, false],
+  ])('classifies %s', (_label, error, expected) => {
+    expect(isYoutubeCommentsDisabledError(error)).toBe(expected);
   });
 });
