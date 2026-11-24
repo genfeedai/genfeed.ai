@@ -622,7 +622,7 @@ describe('BaseNode', () => {
         />,
       );
 
-      fireEvent.click(screen.getByTitle('Copy error'));
+      fireEvent.click(screen.getByRole('button', { name: 'Copy error' }));
       await waitFor(() => {
         expect(writeText).toHaveBeenCalledWith('Copy this error');
       });
@@ -646,7 +646,7 @@ describe('BaseNode', () => {
         />,
       );
 
-      fireEvent.click(screen.getByTitle('Copy error'));
+      fireEvent.click(screen.getByRole('button', { name: 'Copy error' }));
       await waitFor(() => {
         expect(execCommand).toHaveBeenCalledWith('copy');
       });

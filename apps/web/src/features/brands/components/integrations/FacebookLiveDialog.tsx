@@ -5,6 +5,7 @@ import type { IFacebookLiveVideo } from '@genfeedai/contracts/interfaces';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import type { FacebookLiveDialogProps } from '@props/pages/brand-integrations.props';
+import { ClipboardService } from '@services/core/clipboard.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { ServicesService } from '@services/external/services.service';
@@ -114,12 +115,9 @@ export default function FacebookLiveDialog({
   };
 
   const handleCopy = async (value: string) => {
-    try {
-      await navigator.clipboard.writeText(value);
-      NotificationsService.getInstance().success(translate('copied'));
-    } catch (error) {
-      logger.error('Failed to copy the stream address', error);
-    }
+    await ClipboardService.getInstance().copyToClipboard(value, {
+      successMessage: translate('copied'),
+    });
   };
 
   return (

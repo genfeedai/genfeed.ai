@@ -1,6 +1,7 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { ClipboardService } from '@services/core/clipboard.service';
 import { Button } from '@ui/primitives/button';
 import {
   DropdownMenu,
@@ -46,12 +47,12 @@ export default function ReleaseViewSwitcher({
   const [isLinkCopied, setIsLinkCopied] = useState(false);
 
   async function copyLink() {
-    try {
-      await navigator.clipboard.writeText(window.location.href);
-      setIsLinkCopied(true);
-    } catch {
-      setIsLinkCopied(false);
-    }
+    setIsLinkCopied(
+      await ClipboardService.getInstance().copyToClipboard(
+        window.location.href,
+        { isSilent: true },
+      ),
+    );
   }
 
   return (

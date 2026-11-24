@@ -7,6 +7,7 @@ import {
   modelFixItemsFromPricingRows,
 } from '@genfeedai/pricing';
 import type { ModelFixPromptFallback } from '@props/admin/model-fix-prompt.props';
+import { ClipboardService } from '@services/core/clipboard.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useState } from 'react';
@@ -34,12 +35,16 @@ export function useModelFixPrompt() {
   const copy = useCallback(
     async (text: string, title: string, message: string) => {
       const notifications = NotificationsService.getInstance();
-      try {
-        await navigator.clipboard.writeText(text);
+      const didCopy = await ClipboardService.getInstance().copyToClipboard(
+        text,
+        { isSilent: true },
+      );
+
+      if (didCopy) {
         notifications.success(message, {
           description: t('promptCopiedHint'),
         });
-      } catch {
+      } else {
         notifications.error(t('promptCopyFailed'));
         setFallback({ text, title });
       }

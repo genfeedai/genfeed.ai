@@ -1,15 +1,9 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import { Button } from '@ui/primitives/button';
-import { Check, Clipboard } from 'lucide-react';
+import { ButtonSize } from '@genfeedai/contracts';
+import { CopyButton } from '@ui/buttons/CopyButton';
 import { useTranslations } from 'next-intl';
-import {
-  isValidElement,
-  type ReactElement,
-  type ReactNode,
-  useState,
-} from 'react';
+import { isValidElement, type ReactElement, type ReactNode } from 'react';
 
 /** Recursively flatten a rendered code block back to its raw text. */
 function extractNodeText(node: ReactNode): string {
@@ -32,7 +26,6 @@ function extractNodeText(node: ReactNode): string {
  */
 export interface MarkdownCodeBlockLabels {
   copied: string;
-  copy: string;
   copyAria: string;
 }
 
@@ -60,7 +53,6 @@ function TranslatedCodeBlock({
     <CodeBlock
       labels={{
         copied: translate('copied'),
-        copy: translate('copy'),
         copyAria: translate('copyAria'),
       }}
     >
@@ -73,36 +65,17 @@ function CodeBlock({
   children,
   labels,
 }: MarkdownCodeBlockProps & { labels: MarkdownCodeBlockLabels }): ReactElement {
-  const [hasCopied, setHasCopied] = useState(false);
-
-  async function handleCopy(): Promise<void> {
-    try {
-      await navigator.clipboard.writeText(extractNodeText(children));
-      setHasCopied(true);
-      window.setTimeout(() => setHasCopied(false), 2000);
-    } catch {
-      setHasCopied(false);
-    }
-  }
-
   return (
     <div className="group/code relative my-2 max-w-full">
       <pre className="max-w-full overflow-x-auto rounded-lg">{children}</pre>
       <div className="absolute right-1.5 top-1.5 opacity-100 transition-opacity sm:opacity-0 sm:group-hover/code:opacity-100 sm:group-focus-within/code:opacity-100">
-        <Button
-          variant={ButtonVariant.GHOST}
+        <CopyButton
+          copiedLabel={labels.copied}
+          label={labels.copyAria}
           size={ButtonSize.XS}
-          tooltip={hasCopied ? labels.copied : labels.copy}
           tooltipPosition="top"
-          ariaLabel={labels.copyAria}
-          onClick={() => void handleCopy()}
-        >
-          {hasCopied ? (
-            <Check className="size-3.5 text-success" />
-          ) : (
-            <Clipboard className="size-3.5" />
-          )}
-        </Button>
+          value={() => extractNodeText(children)}
+        />
       </div>
     </div>
   );
