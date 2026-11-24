@@ -97,24 +97,25 @@ export default function ClipperInputForm({
           ) : undefined
         }
         beforeBody={
-          <SegmentedControl
-            ariaLabel={t('source')}
-            className="px-3 pt-3"
-            onValueChange={onSetSourceKind}
-            options={[
-              {
-                icon: <CirclePlay className="size-4 shrink-0" />,
-                label: t('youtubeUrl'),
-                value: 'youtube',
-              },
-              {
-                icon: <Upload className="size-4 shrink-0" />,
-                label: t('uploadAudioOrVideo'),
-                value: 'upload',
-              },
-            ]}
-            value={sourceKind}
-          />
+          <div className="px-3 pt-3">
+            <SegmentedControl
+              ariaLabel={t('source')}
+              onValueChange={onSetSourceKind}
+              options={[
+                {
+                  icon: <CirclePlay className="size-4 shrink-0" />,
+                  label: t('youtubeUrl'),
+                  value: 'youtube',
+                },
+                {
+                  icon: <Upload className="size-4 shrink-0" />,
+                  label: t('uploadAudioOrVideo'),
+                  value: 'upload',
+                },
+              ]}
+              value={sourceKind}
+            />
+          </div>
         }
         testId="clipper-prompt-bar"
       >
