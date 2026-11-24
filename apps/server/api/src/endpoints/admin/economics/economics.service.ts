@@ -126,6 +126,8 @@ interface CostModelRow {
 
 interface CostFlagsRow {
   byokCalls: NumericSqlValue;
+  completionCostMicros: NumericSqlValue;
+  pricedCompletions: NumericSqlValue;
   unpricedCalls: NumericSqlValue;
 }
 
@@ -155,11 +157,6 @@ interface CreditLedgerRow {
 interface CreditSourceRow {
   credits: NumericSqlValue;
   source: string | null;
-}
-
-interface LlmCompletionRow {
-  costMicros: NumericSqlValue;
-  pricedCompletions: NumericSqlValue;
 }
 
 interface LlmSplitRow {
@@ -404,23 +401,15 @@ export class EconomicsService {
     const span = { from: window.from, toExclusive: window.toExclusive };
 
     // tenant-scope-ignore: superadmin cross-organization reporting
-    const [
-      llmByDay,
-      mediaByDay,
-      models,
-      flags,
-      categories,
-      creditsBySource,
-      completions,
-    ] = await Promise.all([
-      this.prisma.$queryRaw<DayCostRow[]>(this.llmByDaySql(span)),
-      this.prisma.$queryRaw<DayCostRow[]>(this.mediaByDaySql(span)),
-      this.prisma.$queryRaw<CostModelRow[]>(this.costModelsSql(span)),
-      this.prisma.$queryRaw<CostFlagsRow[]>(this.costFlagsSql(span)),
-      this.prisma.$queryRaw<MediaCategoryRow[]>(this.mediaCategorySql(span)),
-      this.prisma.$queryRaw<CreditSourceRow[]>(this.creditsBySourceSql(span)),
-      this.prisma.$queryRaw<LlmCompletionRow[]>(this.llmCompletionsSql(span)),
-    ]);
+    const [llmByDay, mediaByDay, models, flags, categories, creditsBySource] =
+      await Promise.all([
+        this.prisma.$queryRaw<DayCostRow[]>(this.llmByDaySql(span)),
+        this.prisma.$queryRaw<DayCostRow[]>(this.mediaByDaySql(span)),
+        this.prisma.$queryRaw<CostModelRow[]>(this.costModelsSql(span)),
+        this.prisma.$queryRaw<CostFlagsRow[]>(this.costFlagsSql(span)),
+        this.prisma.$queryRaw<MediaCategoryRow[]>(this.mediaCategorySql(span)),
+        this.prisma.$queryRaw<CreditSourceRow[]>(this.creditsBySourceSql(span)),
+      ]);
 
     const byDay = new Map<string, EconomicsDailyAggregate>();
     for (const row of llmByDay) {
@@ -512,8 +501,8 @@ export class EconomicsService {
         generationCreditValueUsd: generationCreditValue,
         llmCalls: total.llmCalls,
         llmCostPerCompletionUsd: perUnitUsd(
-          microsToUsd(toNumber(completions[0]?.costMicros)),
-          toNumber(completions[0]?.pricedCompletions),
+          microsToUsd(toNumber(flags[0]?.completionCostMicros)),
+          toNumber(flags[0]?.pricedCompletions),
         ),
         llmCostUsd,
         marginPerGenerationUsd: perUnitUsd(
@@ -885,26 +874,6 @@ export class EconomicsService {
     `;
   }
 
-  /**
-   * Agent-chat completions (rows carrying a thread) with a known price: not
-   * BYOK and not recorded at $0, so unpriced rows never pull the average down.
-   */
-  private llmCompletionsSql(span: Span): Prisma.Sql {
-    return Prisma.sql`
-      SELECT
-        COALESCE(SUM(l."vendorCostMicros"), 0)::bigint AS "costMicros",
-        COUNT(*)::bigint AS "pricedCompletions"
-      FROM "llm_vendor_costs" l
-      WHERE l."isDeleted" = false
-        AND l."isByok" = false
-        AND l."vendorCostMicros" > 0
-        AND l."threadId" IS NOT NULL
-        AND ${this.settledCost('l')}
-        AND l."createdAt" >= ${span.from}
-        AND l."createdAt" < ${span.toExclusive}
-    `;
-  }
-
   private mediaCategorySql(span: Span): Prisma.Sql {
     return Prisma.sql`
       SELECT
@@ -927,11 +896,21 @@ export class EconomicsService {
     return Prisma.sql`
       SELECT
         COALESCE(SUM("byok"), 0)::bigint AS "byokCalls",
-        COALESCE(SUM("unpriced"), 0)::bigint AS "unpricedCalls"
+        COALESCE(SUM("unpriced"), 0)::bigint AS "unpricedCalls",
+        COALESCE(SUM("completionCostMicros"), 0)::bigint AS "completionCostMicros",
+        COALESCE(SUM("pricedCompletions"), 0)::bigint AS "pricedCompletions"
       FROM (
         SELECT
           COUNT(*) FILTER (WHERE l."isByok" = true) AS "byok",
-          COUNT(*) FILTER (WHERE l."isByok" = false AND l."vendorCostMicros" = 0) AS "unpriced"
+          COUNT(*) FILTER (WHERE l."isByok" = false AND l."vendorCostMicros" = 0) AS "unpriced",
+          -- Agent-chat completions (rows carrying a thread) with a known price:
+          -- unpriced rows never pull the per-completion average down.
+          COALESCE(SUM(l."vendorCostMicros") FILTER (
+            WHERE l."isByok" = false AND l."vendorCostMicros" > 0 AND l."threadId" IS NOT NULL
+          ), 0) AS "completionCostMicros",
+          COUNT(*) FILTER (
+            WHERE l."isByok" = false AND l."vendorCostMicros" > 0 AND l."threadId" IS NOT NULL
+          ) AS "pricedCompletions"
         FROM "llm_vendor_costs" l
         WHERE l."isDeleted" = false
           AND ${this.settledCost('l')}
@@ -942,7 +921,9 @@ export class EconomicsService {
 
         SELECT
           COUNT(*) FILTER (WHERE m."isByok" = true),
-          COUNT(*) FILTER (WHERE m."isByok" = false AND m."vendorCostMicros" = 0)
+          COUNT(*) FILTER (WHERE m."isByok" = false AND m."vendorCostMicros" = 0),
+          0,
+          0
         FROM "media_vendor_costs" m
         WHERE m."isDeleted" = false
           AND ${this.settledCost('m')}

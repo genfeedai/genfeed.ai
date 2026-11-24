@@ -18,7 +18,6 @@ describe('EconomicsService', () => {
       }
       if (isOrganizationCount) return rows.activeOrganizations ?? [];
       if (sql.includes('"flags"')) return rows.flags ?? [];
-      if (sql.includes('"pricedCompletions"')) return rows.completions ?? [];
       if (sql.includes('"models"')) return rows.models ?? [];
       if (sql.includes('"chatCostMicros"')) return rows.llmSplit ?? [];
       if (sql.includes('GROUP BY 1, 2') && sql.includes('"source"')) {
@@ -258,8 +257,14 @@ describe('EconomicsService', () => {
 
   it('reports cost by model with unpriced and BYOK calls', async () => {
     const { service } = createService({
-      completions: [{ costMicros: 1_000_000n, pricedCompletions: 4n }],
-      flags: [{ byokCalls: 3n, unpricedCalls: 2n }],
+      flags: [
+        {
+          byokCalls: 3n,
+          completionCostMicros: 1_000_000n,
+          pricedCompletions: 4n,
+          unpricedCalls: 2n,
+        },
+      ],
       llmByDay: [{ calls: 5n, costMicros: 1_500_000n, day: '2026-09-02' }],
       mediaByDay: [{ calls: 4n, costMicros: 500_000n, day: '2026-09-03' }],
       mediaCategories: [
