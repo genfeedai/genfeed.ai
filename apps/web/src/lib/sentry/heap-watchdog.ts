@@ -118,9 +118,10 @@ async function readStoreSizes(): Promise<Record<string, number>> {
  */
 function stopReplayRecording(): boolean {
   try {
-    const replay = Sentry.getClient()?.getIntegrationByName<{
-      stop(): Promise<void>;
-    }>('Replay');
+    const replay =
+      Sentry.getClient()?.getIntegrationByName<
+        ReturnType<typeof Sentry.replayIntegration>
+      >('Replay');
     if (!replay) {
       return false;
     }
