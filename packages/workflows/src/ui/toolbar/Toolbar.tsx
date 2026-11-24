@@ -352,11 +352,10 @@ export function Toolbar({
       {debugMode && (
         <Button
           withWrapper={false}
-          variant={ButtonVariant.SECONDARY}
+          variant={ButtonVariant.WARNING}
           size={ButtonSize.SM}
           onClick={() => openModal('settings')}
           title="Debug mode active - API calls are mocked"
-          className="border-warning/20 bg-warning/10 text-warning hover:bg-warning/20"
         >
           <Bug className="size-4" />
           <span className="font-medium">Debug</span>

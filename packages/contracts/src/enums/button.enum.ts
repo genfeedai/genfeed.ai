@@ -4,6 +4,10 @@ export enum ButtonVariant {
   GHOST = 'ghost',
   DESTRUCTIVE = 'destructive',
   LINK = 'link',
+  /** Confirms a positive outcome (approve, publish). */
+  SUCCESS = 'success',
+  /** Marks an action that needs care but is not destructive (regenerate, pause). */
+  WARNING = 'warning',
   /** Dark translucent control that sits on top of media (a thumbnail, a canvas preview). */
   OVERLAY = 'overlay',
   /** Escape hatch for internal composite controls that own their entire visual contract. */
