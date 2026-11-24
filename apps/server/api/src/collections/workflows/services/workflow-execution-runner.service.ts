@@ -161,12 +161,13 @@ export class WorkflowExecutionRunnerService {
       jobData.organizationId,
     );
     // A delayed partial run resumes under the rule it started with: only the
-    // inputs upstream of the selected nodes are required (#11075).
+    // selected nodes and the inputs upstream of them (#11075).
+    const selectedNodeIds = readSelectedNodeIds(existingExecution?.metadata);
     executableWorkflow = this.engineAdapter.applyRuntimeInputValues(
       workflowDoc,
       executableWorkflow,
       triggerEvent.data,
-      { selectedNodeIds: readSelectedNodeIds(existingExecution?.metadata) },
+      { selectedNodeIds },
     );
     await this.assertResumedAgentScope(
       existingExecution?.metadata,
@@ -187,6 +188,9 @@ export class WorkflowExecutionRunnerService {
               existingExecution?.metadata,
             ),
           nodeOutputCache: jobData.nodeOutputCache,
+          // Without the selection the graph runner plans the whole workflow
+          // and runs every node not yet completed, selected or not.
+          selectedNodeIds,
           startedAt: resumeStartedAt,
           workflowLabel,
         },

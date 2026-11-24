@@ -287,7 +287,35 @@ describe('WorkflowExecutionRunnerService required input check (#11075)', () => {
       const result = await resumed.resumeAfterDelay(resumeJob());
 
       expect(result.status).toBe(WorkflowExecutionStatus.COMPLETED);
-      expect(dispatchedGraphs).toHaveLength(1);
+    });
+
+    it('confines the resumed graph to the selected nodes, as the first run was', async () => {
+      const resumed = recordExecution({
+        executionMode: 'partial',
+        selectedNodeIds: ['library-video'],
+      });
+
+      await resumed.resumeAfterDelay(resumeJob());
+
+      // The graph runner plans the whole workflow when it is given no
+      // selection, so an empty list here means every uncompleted node runs.
+      expect(dispatchedGraphs).toEqual([['library-video']]);
+    });
+
+    it('resumes a full run without a selection', async () => {
+      const resumed = recordExecution({ executionMode: 'full' });
+
+      await resumed
+        .resumeAfterDelay({
+          ...resumeJob(),
+          triggerEvent: eventWith({
+            visualAngle: 'low angle',
+            visualStyle: 'Cinematic',
+          }),
+        })
+        .catch((error: unknown) => error);
+
+      expect(dispatchedGraphs).toEqual([[]]);
     });
 
     it('still asks for every required input when the run was a full one', async () => {
