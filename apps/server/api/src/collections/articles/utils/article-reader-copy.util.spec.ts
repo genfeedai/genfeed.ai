@@ -22,6 +22,8 @@ describe('findArticleProcessNote', () => {
     ['<h3>What I couldn&#x27;t verify</h3>', "What I couldn't verify"],
     ['<h2><strong>Research notes</strong></h2>', 'Research notes'],
     ['<h2>Unverified claims</h2>', 'Unverified claims'],
+    ['<h2>What&nbsp;we could not verify</h2>', 'What we could not verify'],
+    ['<h2>What we couldn&#8217;t verify</h2>', 'What we couldn’t verify'],
     ['<h2>Limitations of this research</h2>', 'Limitations of this research'],
   ])('finds the heading in %s', (html, heading) => {
     expect(findArticleProcessNote(html)).toBe(`the section "${heading}"`);
@@ -34,6 +36,8 @@ describe('findArticleProcessNote', () => {
     ],
     ['<p><strong>Watch the video: [VIDEO LINK]</strong></p>', '[VIDEO LINK]'],
     ['<p>Insert [INSERT CHART HERE] below.</p>', '[INSERT CHART HERE]'],
+    ['<p>[<strong>TODO</strong>]</p>', '[TODO]'],
+    ['<p>&#91;VIDEO LINK&#93;</p>', '[VIDEO LINK]'],
   ])('finds the placeholder in %s', (html, placeholder) => {
     expect(findArticleProcessNote(html)).toBe(`the placeholder ${placeholder}`);
   });

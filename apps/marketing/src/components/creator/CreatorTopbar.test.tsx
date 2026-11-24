@@ -19,7 +19,7 @@ describe('CreatorTopbar', () => {
 
 describe('CreatorFooter', () => {
   it('keeps one line of links so the page is not a crawl dead end', () => {
-    render(<CreatorFooter />);
+    render(<CreatorFooter handle="acme" />);
 
     const hrefs = screen
       .getAllByRole('link')
@@ -30,6 +30,7 @@ describe('CreatorFooter', () => {
       'https://docs.genfeed.ai',
       '/terms',
       '/privacy',
+      'https://app.genfeed.ai/sign-up',
     ]);
   });
 });

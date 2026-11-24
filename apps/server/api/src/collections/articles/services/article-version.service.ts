@@ -1,6 +1,8 @@
 import type { ArticleDocument } from '@api/collections/articles/schemas/article.schema';
+import { assertArticleIsReaderCopy } from '@api/collections/articles/utils/article-reader-copy.util';
 import { PromptsService } from '@api/collections/prompts/services/prompts.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { ArticleFilterUtil } from '@api/helpers/utils/article-filter/article-filter.util';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
@@ -150,6 +152,10 @@ export class ArticleVersionService {
         throw new NotFoundException(
           'Version data is corrupted - cannot restore',
         );
+      }
+
+      if (ArticleFilterUtil.isPublicArticleStatus(article.status)) {
+        assertArticleIsReaderCopy(versionData.content ?? article.content);
       }
 
       await patchArticle(articleId, {

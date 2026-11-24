@@ -1,6 +1,7 @@
 import {
   articleAttributes,
   publicArticleAttributes,
+  publicArticleSummaryAttributes,
 } from '@serializers/attributes/content/article.attributes';
 import { rel } from '@serializers/builders';
 import {
@@ -23,6 +24,12 @@ export const publicArticleSerializerConfig = {
   brand: BRAND_MINIMAL_REL,
   tags: rel('tag', ['label']),
   user: rel('user', ['firstName', 'lastName']),
+};
+
+/** The public list: the reading page's fields without the body. */
+export const publicArticleSummarySerializerConfig = {
+  ...publicArticleSerializerConfig,
+  attributes: publicArticleSummaryAttributes,
 };
 
 /**

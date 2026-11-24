@@ -19,7 +19,7 @@ vi.mock('@services/external/public.service', () => ({
   },
 }));
 
-const { default: sitemap, dynamic } = await import('./sitemap');
+const { default: sitemap, revalidate } = await import('./sitemap');
 
 beforeEach(() => {
   findAllPublicArticles.mockReset();
@@ -30,8 +30,8 @@ beforeEach(() => {
 });
 
 describe('website sitemap', () => {
-  it('is generated at request time so newly published articles do not await a deployment', () => {
-    expect(dynamic).toBe('force-dynamic');
+  it('is rebuilt every fifteen minutes so newly published articles do not await a deployment', () => {
+    expect(revalidate).toBe(900);
   });
 
   it('keeps every launch article discoverable when the article API is unavailable', async () => {

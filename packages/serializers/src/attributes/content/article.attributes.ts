@@ -52,3 +52,13 @@ export const publicArticleAttributes = [
   'createdAt',
   'updatedAt',
 ];
+
+/**
+ * An article in a list: everything the reading page shows except the body.
+ * Lists, the profile and the sitemap never render `content`, and it is most of
+ * the bytes (522 KB for 53 articles). `readingTimeMinutes` stands in for it.
+ */
+export const publicArticleSummaryAttributes = [
+  ...publicArticleAttributes.filter((attribute) => attribute !== 'content'),
+  'readingTimeMinutes',
+];
