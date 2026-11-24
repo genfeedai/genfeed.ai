@@ -10,10 +10,7 @@ import Spinner from '@ui/primitives/spinner';
 import { Plus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { toConnectionAccount } from '../account-connection-status.util';
-import {
-  getConnectReasonKey,
-  getConnectTileStatus,
-} from './connect-account.util';
+import { getConnectTileStatus } from './connect-account.util';
 
 interface ConnectTileProps {
   connections: BrandDetailSocialConnection[];
@@ -24,7 +21,7 @@ interface ConnectTileProps {
 
 /**
  * One platform. Connected platforms stay clickable so a second account can be
- * added; only an unavailable platform or an in-flight connect disables it.
+ * added; only an in-flight connect disables it.
  */
 export default function ConnectTile({
   connections,
@@ -35,13 +32,10 @@ export default function ConnectTile({
   const translate = useTranslations('pages.brandSocialMedia');
   const { Icon } = item;
   const status = getConnectTileStatus(item, connections, connectingPlatform);
-  const reasonKey = getConnectReasonKey(item);
 
   let caption: string;
   if (status === 'connecting') {
     caption = translate('connectingEllipsis');
-  } else if (reasonKey) {
-    caption = translate(reasonKey);
   } else if (status === 'connected') {
     caption = translate('connectedCount', { count: connections.length });
   } else {
@@ -79,7 +73,7 @@ export default function ConnectTile({
         'hover:bg-hover focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
         'disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-card',
       )}
-      isDisabled={!item.isConnectAvailable || connectingPlatform !== null}
+      isDisabled={connectingPlatform !== null}
       onClick={() => onConnect(item)}
       textTransform="none"
       variant={ButtonVariant.UNSTYLED}
