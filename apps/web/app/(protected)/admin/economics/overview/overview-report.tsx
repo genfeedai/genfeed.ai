@@ -90,6 +90,14 @@ export default function EconomicsOverviewReport() {
           totals.pricingMarginUsd < 0 ? ('destructive' as const) : undefined,
       },
       {
+        label: translate('overview.kpis.creditsBurnedVsPurchased'),
+        value: `${formatCount(totals.creditsConsumed)} / ${
+          totals.creditsPurchased === null
+            ? '—'
+            : formatCount(totals.creditsPurchased)
+        }`,
+      },
+      {
         label: translate('overview.kpis.calls'),
         value: formatCount(totals.llmCalls + totals.mediaGenerations),
       },

@@ -303,6 +303,11 @@ export default function ModalPostSimpleFields({
                     {composerTranslate('longPostHelp')}
                   </p>
                 ) : null}
+                {composer.hasLinkCost ? (
+                  <p className="text-xs text-warning" role="status">
+                    {composerTranslate('linkCostHelp')}
+                  </p>
+                ) : null}
               </div>
             ) : null}
 

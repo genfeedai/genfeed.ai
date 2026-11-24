@@ -17,6 +17,7 @@ import type { StudioSettingsPatchHandler } from '@/features/studio/props/studio-
 interface UseStudioComposerNormalizationParams {
   attachedAssets: readonly PromptBarAttachedAsset[];
   isFlux: boolean;
+  isMaiEdit: boolean;
   onRemoveAttachedAsset: (assetId: string) => void;
   onSettingsChange: StudioSettingsPatchHandler;
   selectedModel: IModel | undefined;
@@ -32,6 +33,7 @@ interface UseStudioComposerNormalizationParams {
 export function useStudioComposerNormalization({
   attachedAssets,
   isFlux,
+  isMaiEdit,
   onRemoveAttachedAsset,
   onSettingsChange,
   selectedModel,
@@ -39,21 +41,22 @@ export function useStudioComposerNormalization({
   type,
 }: UseStudioComposerNormalizationParams): { droppedEditingControls: boolean } {
   const unsupportedEditingControls =
-    isFlux &&
+    (isFlux || isMaiEdit) &&
     type === 'image-edit' &&
     (settings.editSeed !== undefined ||
       attachedAssets.some((asset) => asset.role === 'editMask'));
   const [droppedEditingControls, setDroppedEditingControls] = useState(false);
-  // use-effect-audit: ignore writes the FLUX-compatible settings through the host settings callback
+  // use-effect-audit: ignore writes the FLUX and MAI-Image compatible settings through the host settings callback
   useEffect(() => {
-    if (!isFlux) {
+    if (!isFlux && !isMaiEdit) {
       setDroppedEditingControls(false);
       return;
     }
     if (unsupportedEditingControls) setDroppedEditingControls(true);
     const patch: Partial<StudioPlaygroundSettings> = {};
     if (settings.outputs !== 1) patch.outputs = 1;
-    if (!isFlux3Resolution(settings.resolution)) patch.resolution = '1k';
+    if (isFlux && !isFlux3Resolution(settings.resolution))
+      patch.resolution = '1k';
     if (settings.editSeed !== undefined) patch.editSeed = undefined;
     if (settings.editSize !== undefined) patch.editSize = undefined;
     for (const asset of attachedAssets)
@@ -61,6 +64,7 @@ export function useStudioComposerNormalization({
     if (Object.keys(patch).length) onSettingsChange(patch);
   }, [
     isFlux,
+    isMaiEdit,
     unsupportedEditingControls,
     settings.outputs,
     settings.resolution,

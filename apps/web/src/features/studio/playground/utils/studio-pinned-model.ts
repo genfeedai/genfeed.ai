@@ -2,6 +2,7 @@ import {
   isFlux3AspectRatio,
   isFlux3ImageModel,
   isFlux3Resolution,
+  isMaiImageEditModel,
 } from '@genfeedai/contracts/constants';
 import type { StudioPlaygroundSettings } from '@/features/studio/playground/types';
 
@@ -16,6 +17,7 @@ export function pinStudioSettingsToModel(
   modelKey: string,
 ): StudioPlaygroundSettings {
   const pinned = { ...settings, modelKey };
+  if (isMaiImageEditModel(modelKey)) return { ...pinned, outputs: 1 };
   if (!isFlux3ImageModel(modelKey)) return pinned;
   return {
     ...pinned,

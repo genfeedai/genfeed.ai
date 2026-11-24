@@ -2,10 +2,18 @@ import { describe, expect, it } from 'vitest';
 import { ModelCategory } from '..';
 import {
   DEFAULT_IMAGE_EDIT_MODEL_KEY,
+  IMAGE_EDIT_AUTO_MODEL_KEYS,
   IMAGE_EDIT_CONTRACT_VERSION,
+  IMAGE_EDIT_MODEL_KEYS,
+  isImageEditModel,
   readImageEditingRecipe,
   resolveDefaultImageEditModel,
 } from './image-edit-models.constant';
+import {
+  isMaiImageEditModel,
+  MAI_IMAGE_EDIT_CONTRACT_VERSION,
+  MAI_IMAGE_EDIT_MODEL_KEYS,
+} from './mai-image-edit.constant';
 import { UNIFIED_MODEL_CATALOG } from './model-catalog.constant';
 import { MODEL_KEYS } from './model-keys.constant';
 
@@ -58,6 +66,64 @@ describe('dedicated image editing contract', () => {
     expect(
       readImageEditingRecipe({ ...recipe, quality: 'high' }),
     ).toBeUndefined();
+  });
+
+  describe('MAI-Image editing', () => {
+    const mai = MODEL_KEYS.FAL_MAI_IMAGE_2_7_EDIT;
+    const recipe = {
+      operation: 'image-edit',
+      contractVersion: MAI_IMAGE_EDIT_CONTRACT_VERSION,
+      model: mai,
+      sourceIds: ['one', 'two'],
+      outputs: 1,
+      apiKey: 'secret',
+    };
+    it('joins the editing picker without joining Auto or the default', () => {
+      for (const key of MAI_IMAGE_EDIT_MODEL_KEYS) {
+        expect(isImageEditModel(key)).toBe(true);
+        expect(isMaiImageEditModel(key)).toBe(true);
+        expect(IMAGE_EDIT_AUTO_MODEL_KEYS).not.toContain(key);
+      }
+      expect(IMAGE_EDIT_MODEL_KEYS).toEqual([
+        ...IMAGE_EDIT_AUTO_MODEL_KEYS,
+        ...MAI_IMAGE_EDIT_MODEL_KEYS,
+      ]);
+      expect(DEFAULT_IMAGE_EDIT_MODEL_KEY).toBe(
+        MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE_EDIT,
+      );
+      expect(
+        UNIFIED_MODEL_CATALOG.filter(
+          (row) =>
+            MAI_IMAGE_EDIT_MODEL_KEYS.includes(row.key) &&
+            (row.isDefault || row.category !== ModelCategory.IMAGE_EDIT),
+        ),
+      ).toEqual([]);
+    });
+    it('reads only the public recipe fields', () => {
+      const safe = readImageEditingRecipe(recipe);
+      expect(safe).toEqual({
+        operation: 'image-edit',
+        contractVersion: MAI_IMAGE_EDIT_CONTRACT_VERSION,
+        model: mai,
+        sourceIds: ['one', 'two'],
+        outputs: 1,
+      });
+    });
+    it.each([
+      ['a mask', { maskId: 'mask' }],
+      ['a seed', { seed: 0 }],
+      ['a fixed size', { size: 'source' }],
+      ['a quality tier', { quality: 'medium' }],
+      ['a native resolution', { resolution: '1k' }],
+      ['an aspect ratio', { aspectRatio: '1:1' }],
+      ['two outputs', { outputs: 2 }],
+      ['no sources', { sourceIds: [] }],
+      ['six sources', { sourceIds: ['1', '2', '3', '4', '5', '6'] }],
+      ['repeated sources', { sourceIds: ['1', '1'] }],
+      ['another contract version', { contractVersion: 'other' }],
+    ])('rejects a recipe with %s', (_name, patch) => {
+      expect(readImageEditingRecipe({ ...recipe, ...patch })).toBeUndefined();
+    });
   });
 
   describe('resolveDefaultImageEditModel', () => {
