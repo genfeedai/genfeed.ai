@@ -523,3 +523,74 @@ describe('FalVideoGenerationProviderAdapter reviewed contracts', () => {
     });
   });
 });
+
+describe('HeyGen Video 1 on fal', () => {
+  const dispatch = (promptParams: Record<string, unknown>) =>
+    prepareFalVideoDispatch({
+      duration: 5,
+      height: 1920,
+      model: MODEL_KEYS.FAL_HEYGEN_VIDEO,
+      modelEndpoint: 'heygen/heygen-video/text-to-video',
+      prompt: 'a presenter explains the product',
+      promptParams,
+      width: 1080,
+    });
+
+  it('sends text to the text endpoint with the brief left unrewritten', () => {
+    expect(
+      dispatch({ aspect_ratio: '9:16', duration: 8, resolution: '1080P' }),
+    ).toEqual({
+      endpoint: 'heygen/heygen-video/text-to-video',
+      input: {
+        aspect_ratio: '9:16',
+        duration: 8,
+        prompt: 'a presenter explains the product',
+        prompt_enhancement: 'disabled',
+        resolution: '1080p',
+      },
+    });
+  });
+
+  it('falls back to 768p and 16:9 for values fal does not list', () => {
+    expect(
+      dispatch({ aspect_ratio: '5:4', resolution: '4k' }).input,
+    ).toMatchObject({ aspect_ratio: '16:9', resolution: '768p' });
+  });
+
+  it('sends one first image to the image endpoint, which takes no aspect ratio', () => {
+    const plan = dispatch({
+      aspect_ratio: '9:16',
+      image: 'https://cdn.test/start.png',
+      seed: 7,
+    });
+
+    expect(plan.endpoint).toBe('heygen/heygen-video/image-to-video');
+    expect(plan.input).toMatchObject({
+      image_url: 'https://cdn.test/start.png',
+      resolution: '768p',
+      seed: 7,
+    });
+    expect(plan.input).not.toHaveProperty('aspect_ratio');
+  });
+
+  it('sends extra images or any clip to the reference endpoint', () => {
+    const plan = dispatch({
+      aspect_ratio: '1:1',
+      image: 'https://cdn.test/start.png',
+      reference_images: ['https://cdn.test/b.png'],
+      reference_video_urls: ['https://cdn.test/clip.mp4'],
+    });
+
+    expect(plan).toEqual({
+      endpoint: 'heygen/heygen-video/reference-to-video',
+      input: expect.objectContaining({
+        aspect_ratio: '1:1',
+        reference_image_urls: [
+          'https://cdn.test/start.png',
+          'https://cdn.test/b.png',
+        ],
+        reference_video_urls: ['https://cdn.test/clip.mp4'],
+      }),
+    });
+  });
+});

@@ -150,6 +150,12 @@ export function getVideoGenerationResolutionCreditMultiplier(
     if (normalizedResolution === '1080p') return 0.16 / 0.08;
     return 1;
   }
+  // HeyGen Video 1 on fal is seeded at its 768p rate: 1080p and 2K bill 3x.
+  if (modelKey === 'fal/heygen/heygen-video/text-to-video') {
+    return normalizedResolution === '1080p' || normalizedResolution === '2k'
+      ? 3
+      : 1;
+  }
   if (KLING_V3_VIDEO_KEYS.has(modelKey)) {
     if (normalizedResolution === 'pro') {
       return 0.224 / 0.168;
