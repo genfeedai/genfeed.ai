@@ -33,7 +33,11 @@ const inputs: Record<string, Record<string, unknown>> = {
     media: [{ kind: 'video', id: 'asset' }],
     settings: { nested: [true, null] },
   },
-  request: { filename: 'photo.png', contentType: 'image/png' },
+  request: {
+    brandId: 'brand-1',
+    filename: 'photo.png',
+    contentType: 'image/png',
+  },
   complete: { assetId: 'asset' },
 };
 
