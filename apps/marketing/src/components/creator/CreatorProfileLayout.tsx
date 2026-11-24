@@ -15,7 +15,7 @@ export default function CreatorProfileLayout({
   children,
   counts,
   handle,
-  referralCode,
+  reach,
 }: CreatorProfileLayoutProps): React.ReactElement {
   return (
     <div className="mx-auto w-full max-w-6xl space-y-6 px-4 pb-16 pt-6 lg:px-6">
@@ -34,7 +34,7 @@ export default function CreatorProfileLayout({
         handle={handle}
         hasBanner={Boolean(brand.bannerUrl)}
         profileUrl={`${EnvironmentService.apps.website}${creatorProfilePath(handle)}`}
-        referralCode={referralCode}
+        reach={reach}
       />
       <CreatorTabs active={active} counts={counts} handle={handle} />
       <div className="min-w-0">{children}</div>

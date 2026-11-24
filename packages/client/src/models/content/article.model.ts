@@ -37,6 +37,7 @@ export class Article extends BaseEntity implements IArticle {
   declare public seoScore?: number | null;
   declare public seoBreakdown?: SeoScorecardSnapshot | null;
   declare public xArticleMetadata?: IXArticleMetadata;
+  declare public readingTimeMinutes?: number;
 
   constructor(data: Partial<IArticle> = {}) {
     super(data);

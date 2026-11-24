@@ -8,6 +8,7 @@ import type {
   IBrandOsPreviewRequest,
   IPaginatedResponse,
   IPlatformFlags,
+  IPublicBrandReach,
   IPublicNewsletterArchive,
   IPublicNewsletterIssue,
   IPublicNewsletterSubscribeRequest,
@@ -189,6 +190,17 @@ export class PublicService extends HTTPBaseService {
     return await this.instance
       .get<{ data?: { code?: string | null } }>(`brands/${brandId}/referral`)
       .then((res) => res.data?.data?.code ?? null);
+  }
+
+  /** The creator's lifetime totals, or null when the brand is not public. */
+  public async findPublicReach(
+    brandId: string,
+  ): Promise<IPublicBrandReach | null> {
+    return await this.instance
+      .get<{
+        data?: IPublicBrandReach | null;
+      }>(`brands/${encodeURIComponent(brandId)}/reach`)
+      .then((res) => res.data?.data ?? null);
   }
 
   /**

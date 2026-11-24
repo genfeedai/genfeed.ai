@@ -72,7 +72,11 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           UPGRADE_VERIFY_ADMIN_URL: postgresql://genfeed:genfeed_local@localhost:5432/test
         run: |
-          BOOT_CHECK=1 timeout 120 node apps/server/dist/apps/api/main.js
+          # Also fails when the live heap after the module graph loads is above
+          # scripts/architecture/boot-heap.baseline.json (#11148): full
+          # collections of a large heap stall every request (#10110).
+          BOOT_CHECK=1 timeout 120 node --expose-gc \
+            -r ./scripts/ci/boot-heap-check.cjs apps/server/dist/apps/api/main.js
           NODE_ENV=production \
             PORT=3001 \
             DATABASE_URL=postgresql://localhost/boot_check \

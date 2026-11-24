@@ -6,12 +6,13 @@ import type { CredentialDocument } from '@api/collections/credentials/schemas/cr
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { Platform } from '@genfeedai/contracts';
+import { youtube as createYoutubeClient } from '@googleapis/youtube';
 import { ConfigService } from '@libs/config/config.service';
 import { Traced } from '@libs/tracing/traced';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { Injectable } from '@nestjs/common';
 import axios from 'axios';
-import { google } from 'googleapis';
+import { OAuth2Client } from 'google-auth-library';
 
 function requireString(
   value: string | null | undefined,
@@ -117,7 +118,7 @@ export class BotsLivestreamDeliveryService {
       return target.liveChatId;
     }
 
-    const auth = new google.auth.OAuth2(
+    const auth = new OAuth2Client(
       this.getConfigValue('GOOGLE_OAUTH_CLIENT_ID'),
       this.getConfigValue('GOOGLE_OAUTH_CLIENT_SECRET'),
       this.getConfigValue('YOUTUBE_REDIRECT_URI'),
@@ -127,7 +128,7 @@ export class BotsLivestreamDeliveryService {
       refresh_token: credential.refreshToken || undefined,
     });
 
-    const youtube = google.youtube({
+    const youtube = createYoutubeClient({
       auth,
       version: 'v3',
     });

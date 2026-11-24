@@ -94,8 +94,8 @@ const PromptBarCollapsedView = memo(function PromptBarCollapsedView({
               }
               tooltipPosition="top"
               variant={ButtonVariant.GHOST}
-              size={ButtonSize.SM}
-              className="size-10 p-0 flex items-center justify-center"
+              size={ButtonSize.ICON}
+              className="size-10"
               icon={
                 <div className="relative size-8 overflow-hidden rounded">
                   <PromptBarReferenceThumbnail
@@ -124,8 +124,8 @@ const PromptBarCollapsedView = memo(function PromptBarCollapsedView({
                 tooltip={iconTranslate('clearReference')}
                 tooltipPosition="top"
                 variant={ButtonVariant.GHOST}
-                size={ButtonSize.SM}
-                className="size-10 p-0 flex items-center justify-center"
+                size={ButtonSize.ICON}
+                className="size-10"
                 ariaLabel={iconTranslate('clearReference')}
                 icon={<X className="size-4" />}
                 onClick={onClearReferences}
@@ -207,8 +207,8 @@ const PromptBarCollapsedView = memo(function PromptBarCollapsedView({
             <Button
               tooltipPosition="left"
               variant={ButtonVariant.GHOST}
-              size={ButtonSize.SM}
-              className="size-10 p-0 flex items-center justify-center"
+              size={ButtonSize.ICON}
+              className="size-10"
               icon={formatIcon}
               tooltip={
                 {
@@ -236,8 +236,8 @@ const PromptBarCollapsedView = memo(function PromptBarCollapsedView({
             <Button
               label={`${outputs}x`}
               variant={ButtonVariant.GHOST}
-              size={ButtonSize.SM}
-              className="h-10 px-2 gap-1 tabular-nums"
+              size={ButtonSize.XS}
+              className="h-10 tabular-nums"
               tooltip="Outputs"
               tooltipPosition="left"
               icon={<LayoutGrid className="size-4" />}
@@ -256,7 +256,8 @@ const PromptBarCollapsedView = memo(function PromptBarCollapsedView({
             variant={
               isRecording ? ButtonVariant.DESTRUCTIVE : ButtonVariant.GHOST
             }
-            className="px-4 transition-colors duration-300 flex-shrink-0"
+            size={ButtonSize.ICON}
+            className="size-10 transition-colors duration-300 flex-shrink-0"
             isPulsing={isRecording}
             isDisabled={isGenerateBlocked || isProcessing}
             tooltip={getVoiceTooltip(
@@ -286,7 +287,8 @@ const PromptBarCollapsedView = memo(function PromptBarCollapsedView({
           tooltip="Expand prompt bar"
           tooltipPosition="top"
           variant={ButtonVariant.GHOST}
-          className="size-10 p-0"
+          size={ButtonSize.ICON}
+          className="size-10"
           icon={<ChevronUp className="transition-transform size-4" />}
           data-testid="expand-button"
         />
