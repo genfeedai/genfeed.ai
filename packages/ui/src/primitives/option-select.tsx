@@ -38,6 +38,8 @@ export interface OptionSelectProps {
   icon?: ReactNode;
   /** Closed control shows the icon alone; the name stays on the control for screen readers. */
   isIconOnly?: boolean;
+  /** Drop the chevron when the control is itself styled as a badge. */
+  isIndicatorHidden?: boolean;
   isDisabled?: boolean;
   /** `true` always, `false` never; by default a list longer than a glance. */
   isSearchable?: boolean;
@@ -78,6 +80,7 @@ export function OptionSelect({
   icon,
   isDisabled,
   isIconOnly = false,
+  isIndicatorHidden = false,
   isSearchable,
   noMatchLabel = 'No matches',
   onValueChange,
@@ -98,7 +101,7 @@ export function OptionSelect({
         aria-label={ariaLabel}
         className={cn('w-auto', className)}
         data-testid={testId}
-        hideIndicator={isIconOnly}
+        hideIndicator={isIconOnly || isIndicatorHidden}
       >
         <span className="flex min-w-0 items-center gap-2">
           {leadingIcon ? (

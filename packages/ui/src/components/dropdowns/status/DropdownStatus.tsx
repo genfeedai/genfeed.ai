@@ -2,7 +2,6 @@
 
 import {
   ArticleStatus,
-  ButtonVariant,
   IngredientCategory,
   IngredientStatus,
   PostStatus,
@@ -31,8 +30,7 @@ import {
   type BadgeVariant,
   badgeVariants,
 } from '@ui/primitives/badge.variants';
-import { Button } from '@ui/primitives/button';
-import { Dropdown } from '@ui/primitives/dropdown';
+import { OptionSelect } from '@ui/primitives/option-select';
 import { getStatusMeta } from '@ui-constants/status.constant';
 import { Archive, Check, Clock, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
@@ -56,15 +54,6 @@ const STATUS_ICONS: Record<string, React.ReactNode> = {
   UNLISTED: <Clock className={ICON_CLASS} />,
   VALIDATED: <Check className={ICON_CLASS} />,
 };
-
-const VARIANT_COLORS: Record<string, string> = {
-  error: 'bg-destructive/20 text-destructive',
-  info: 'bg-info/20 text-info',
-  success: 'bg-success/20 text-success',
-  warning: 'bg-warning/20 text-warning',
-};
-
-const DEFAULT_VARIANT_COLOR = 'bg-muted text-foreground';
 
 // Pre-defined status option sets by entity type
 const ARTICLE_STATUS_OPTIONS = [
@@ -93,14 +82,6 @@ const INGREDIENT_PROCESSING_OPTIONS = [IngredientStatus.FAILED];
 function getStatusIcon(statusValue: string): React.ReactNode {
   const statusStr = statusValue.toString().toUpperCase();
   return STATUS_ICONS[statusStr] ?? <Check className={ICON_CLASS} />;
-}
-
-function getVariantColorClass(variant: string): string {
-  const normalizedVariant = variant.toLowerCase();
-  const matchedKey = Object.keys(VARIANT_COLORS).find((key) =>
-    normalizedVariant.includes(key),
-  );
-  return matchedKey ? VARIANT_COLORS[matchedKey] : DEFAULT_VARIANT_COLOR;
 }
 
 const STATUS_BADGE_VARIANTS: Record<string, BadgeVariant> = {
@@ -137,10 +118,8 @@ export default function DropdownStatus({
   entity,
   className = '',
   isStacked = false,
-  position = 'auto',
   onStatusChange,
 }: StatusDropdownProps) {
-  const [isOpen, setIsOpen] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
 
   const notifications = NotificationsService.getInstance();
@@ -295,8 +274,6 @@ export default function DropdownStatus({
     } catch (error: unknown) {
       logger.error('Failed to update status', error);
       notifications.error('Failed to update status');
-    } finally {
-      setIsOpen(false);
     }
   };
 
@@ -309,6 +286,13 @@ export default function DropdownStatus({
     status as Parameters<typeof getStatusMeta>[0],
     statusDomain,
   );
+
+  // A status the editor cannot pick (it is not in the list) still shows on the control.
+  const selectableStatuses = (statusOptions as string[]).includes(
+    String(entity.status),
+  )
+    ? statusOptions
+    : [entity.status, ...statusOptions];
 
   // Check if we should render icon-only mode (when className includes rounded-full)
   const isIconOnly = className.includes('rounded-full');
@@ -366,96 +350,34 @@ export default function DropdownStatus({
   }
 
   return (
-    <Dropdown
-      className={className}
-      isOpen={isOpen}
-      onOpenChange={setIsOpen}
-      position={position}
-      usePortal={true}
-      minWidth="180px"
-      trigger={
-        <Button
-          withWrapper={false}
-          variant={ButtonVariant.UNSTYLED}
-          aria-expanded={isOpen}
-          ariaLabel={`Change Status - ${currentMeta.label}`}
-          tooltip={`Status: ${currentMeta.label}`}
-          tooltipPosition="top"
-          className={
-            isIconOnly
-              ? cn(className)
-              : cn(
-                  badgeVariants({
-                    variant: getStatusBadgeVariant(currentMeta.variant),
-                  }),
-                  'border cursor-pointer transition-opacity hover:opacity-80',
-                )
-          }
-        >
-          {isIconOnly ? getStatusIcon(entity.status) : currentMeta.label}
-        </Button>
+    <OptionSelect
+      ariaLabel={`Change Status - ${currentMeta.label}`}
+      className={
+        isIconOnly
+          ? className
+          : cn(
+              badgeVariants({
+                variant: getStatusBadgeVariant(currentMeta.variant),
+              }),
+              'h-auto w-auto cursor-pointer border px-2.5 py-0.5 transition-opacity hover:opacity-80',
+              className,
+            )
       }
-    >
-      {statusOptions.map((s) => {
-        const meta = getStatusMeta(
-          s as IngredientStatus | ArticleStatus | PostStatus,
+      icon={isIconOnly ? getStatusIcon(entity.status) : undefined}
+      isIconOnly={isIconOnly}
+      isIndicatorHidden
+      onValueChange={(next) =>
+        void handleChange(next as IngredientStatus | ArticleStatus | PostStatus)
+      }
+      options={selectableStatuses.map((option) => ({
+        icon: getStatusIcon(option),
+        label: getStatusMeta(
+          option as IngredientStatus | ArticleStatus | PostStatus,
           statusDomain,
-        );
-        const isActive = s === entity.status;
-        const statusIcon = getStatusIcon(s);
-
-        return (
-          <Button
-            key={s}
-            withWrapper={false}
-            variant={ButtonVariant.UNSTYLED}
-            onClick={(e) => {
-              e.stopPropagation();
-              handleChange(s as IngredientStatus | ArticleStatus | PostStatus);
-            }}
-            className={cn(
-              'flex items-center gap-3 w-full px-4 py-2.5 text-sm',
-              'font-medium transition-colors duration-150 cursor-pointer',
-              'hover:bg-background/80',
-              isActive && 'bg-background/60',
-            )}
-          >
-            {/* Status Icon */}
-            <div
-              className={cn(
-                'flex-shrink-0 size-4 flex items-center justify-center',
-                'transition-colors duration-150',
-                isActive
-                  ? getVariantColorClass(meta.variant)
-                  : 'text-foreground/50',
-              )}
-            >
-              {statusIcon}
-            </div>
-
-            {/* Status Label */}
-            <span
-              className={cn(
-                'flex-1 text-left capitalize',
-                isActive
-                  ? 'text-foreground font-semibold'
-                  : 'text-foreground/80',
-              )}
-            >
-              {meta.label}
-            </span>
-
-            {/* Active Indicator */}
-            {isActive && (
-              <Check
-                size={18}
-                className="flex-shrink-0 text-success"
-                aria-hidden="true"
-              />
-            )}
-          </Button>
-        );
-      })}
-    </Dropdown>
+        ).label,
+        value: option,
+      }))}
+      value={String(entity.status)}
+    />
   );
 }

@@ -108,7 +108,6 @@ export {
   DrawerTitle,
   DrawerTrigger,
 } from './drawer';
-export { Dropdown, type DropdownProps } from './dropdown';
 export {
   type DropdownFieldProps,
   default as DropdownField,

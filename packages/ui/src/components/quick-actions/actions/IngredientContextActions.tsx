@@ -55,7 +55,6 @@ export default function IngredientContextActions({
           entity={selectedIngredient}
           onStatusChange={onRefresh}
           className={dropdownButtonClassName}
-          position="bottom-full"
         />
       )}
 
@@ -63,7 +62,6 @@ export default function IngredientContextActions({
         <DropdownScope
           item={selectedIngredient}
           className={dropdownButtonClassName}
-          position="bottom-full"
           onScopeChange={(scope, updatedItem) => {
             onScopeChange?.(scope, updatedItem as IIngredient);
             onRefresh?.();
