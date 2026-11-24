@@ -144,6 +144,19 @@
     },
     {
       "includes": [
+        "apps/web/**",
+        "apps/marketing/**",
+        "packages/agent/**",
+        "packages/ui/**",
+        "packages/workflows/**",
+        "!**/*.spec.*",
+        "!**/*.test.*",
+        "!**/tests/**"
+      ],
+      "plugins": ["./configs/biome/no-direct-clipboard.grit"]
+    },
+    {
+      "includes": [
         "**/*.spec.*",
         "**/*.test.*",
         "**/__tests__/**",

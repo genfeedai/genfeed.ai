@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import AgentOutputLayout from '@ui/layout/agent-output-layout/AgentOutputLayout';
+import { AGENT_OUTPUT_SPLIT_STORAGE_KEY } from '@ui/layout/agent-output-layout/agent-pane.constant';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('next-intl', async () => {
@@ -18,6 +19,7 @@ const labels = {
   collapseOutput: 'Show agent',
   expandOutput: 'Full size',
   output: 'Output',
+  resizePanes: 'Resize panes',
 };
 
 function Harness({
@@ -156,7 +158,7 @@ describe('AgentOutputLayout', () => {
         <AgentOutputLayout
           activeTabId="threads"
           agent={<p>Agent transcript</p>}
-          labels={{ ...labels, resizePanes: 'Resize panes' }}
+          labels={labels}
           resizeStorageKey={STORAGE_KEY}
           tabs={[
             {
@@ -169,9 +171,28 @@ describe('AgentOutputLayout', () => {
       );
     }
 
-    it('has no divider unless the page asks for one', () => {
+    it('has a divider on every page, under the shared key', () => {
+      window.localStorage.removeItem(AGENT_OUTPUT_SPLIT_STORAGE_KEY);
       render(<Harness />);
+      const divider = screen.getByRole('separator', { name: 'Resize panes' });
 
+      fireEvent.keyDown(divider, { key: 'ArrowLeft' });
+
+      expect(divider).toHaveAttribute('aria-valuenow', '48');
+      expect(window.localStorage.getItem(AGENT_OUTPUT_SPLIT_STORAGE_KEY)).toBe(
+        '0.480',
+      );
+      window.localStorage.removeItem(AGENT_OUTPUT_SPLIT_STORAGE_KEY);
+    });
+
+    it('has no divider while the output is hidden or the agent is', () => {
+      const { rerender } = render(<Harness isOutputHidden />);
+      expect(
+        screen.queryByRole('separator', { name: 'Resize panes' }),
+      ).not.toBeInTheDocument();
+
+      rerender(<Harness isOutputExpandable />);
+      fireEvent.click(screen.getByRole('button', { name: 'Full size' }));
       expect(
         screen.queryByRole('separator', { name: 'Resize panes' }),
       ).not.toBeInTheDocument();

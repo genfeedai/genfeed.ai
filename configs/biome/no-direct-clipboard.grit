@@ -1,0 +1,7 @@
+// Copy goes through ClipboardService (packages/services/core/clipboard.service.ts) or the CopyButton in
+// packages/ui, which keep the Clipboard API, the execCommand fallback and the toast in one place.
+language js
+
+`navigator.clipboard.writeText($_)` as $call where {
+  register_diagnostic(span=$call, message="Do not call navigator.clipboard.writeText directly. Use ClipboardService.getInstance().copyToClipboard(text), or CopyButton from @ui/buttons/CopyButton for an icon button.", severity="error")
+}

@@ -112,16 +112,13 @@ describe('OAUTH_CONNECT_PLATFORMS Bluesky tile', () => {
 
 describe('OAUTH_CONNECT_PLATFORMS catalog', () => {
   it.each(['unknown', 'unavailable'] as const)(
-    'fails Threads closed when readiness is %s',
+    'leaves Threads out of the catalog while readiness is %s',
     (readiness) => {
-      const threads = resolveOAuthConnectPlatformCatalog({
-        threads: readiness,
-      }).find((item) => item.platform === CredentialPlatform.THREADS);
+      const tiles = resolveOAuthConnectPlatformCatalog({ threads: readiness });
 
-      expect(threads).toMatchObject({
-        isConnectAvailable: false,
-        readiness,
-      });
+      expect(
+        tiles.some((item) => item.platform === CredentialPlatform.THREADS),
+      ).toBe(false);
     },
   );
 
@@ -181,20 +178,14 @@ describe('OAUTH_CONNECT_PLATFORMS catalog', () => {
         groupOAuthConnectPlatforms(tiles)
           .find((group) => group.id === 'social')
           ?.platforms.map((item) => item.label),
-      ).toEqual([
-        'X',
-        'Instagram',
-        'Facebook',
-        'LinkedIn',
-        'Threads',
-        'Bluesky',
-      ]);
+      ).toEqual(['X', 'Instagram', 'Facebook', 'LinkedIn', 'Bluesky']);
     },
   );
 
   it('offers Google Business under Social networks once readiness is available', () => {
     const tiles = resolveOAuthConnectPlatformCatalog({
       google_business: 'available',
+      threads: 'available',
     });
     const googleBusiness = tiles.filter(
       (item) => item.platform === CredentialPlatform.GOOGLE_BUSINESS,

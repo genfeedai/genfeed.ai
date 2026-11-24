@@ -53,6 +53,25 @@ export default defineConfig({
         replacement: path.resolve(__dirname, '../contracts/src/types/$1'),
       },
       {
+        // Components in `ui/src/components` import primitives through `@ui/*`
+        // too, and `CopyButton` writes through the clipboard service and takes
+        // its props from the props package.
+        find: /^@ui\/primitives\/(.*)$/,
+        replacement: path.resolve(__dirname, '../ui/src/primitives/$1'),
+      },
+      {
+        find: /^@services\/(.*)$/,
+        replacement: path.resolve(__dirname, '../services/$1'),
+      },
+      {
+        find: /^@genfeedai\/services\/(.*)$/,
+        replacement: path.resolve(__dirname, '../services/$1'),
+      },
+      {
+        find: /^@props\/(.*)$/,
+        replacement: path.resolve(__dirname, '../props/$1'),
+      },
+      {
         // The video and media players are not part of the published `ui`
         // package, so the workflow nodes reach them through the same `@ui/*`
         // alias `packages/agent` and `apps/web` use.

@@ -32,10 +32,10 @@ const threads: ResolvedOAuthConnectPlatform = {
   category: 'social',
   Icon,
   iconClassName: '',
-  isConnectAvailable: false,
+  isConnectAvailable: true,
   label: 'Threads',
   platform: CredentialPlatform.THREADS,
-  readiness: 'unavailable',
+  readiness: 'available',
 };
 
 const youtube: ResolvedOAuthConnectPlatform = {
@@ -158,17 +158,6 @@ describe('ConnectAccountModal', () => {
     expect(onConnect).toHaveBeenCalledWith(x);
   });
 
-  it('disables an unavailable platform and shows why', () => {
-    const { onConnect } = renderModal();
-
-    const tile = screen.getByRole('button', { name: /^Threads/ });
-    expect(tile).toBeDisabled();
-    expect(tile).toHaveTextContent('Not available yet');
-
-    fireEvent.click(tile);
-    expect(onConnect).not.toHaveBeenCalled();
-  });
-
   it('disables every tile while one platform is connecting', () => {
     renderModal({ connectingPlatform: CredentialPlatform.YOUTUBE });
 
@@ -221,17 +210,6 @@ describe('ConnectAccountModal', () => {
       screen.getByRole('textbox', { name: 'Search platforms' }),
       { key: 'Enter' },
     );
-
-    expect(onConnect).not.toHaveBeenCalled();
-  });
-
-  it('does not connect an unavailable platform through Enter', () => {
-    const { onConnect } = renderModal();
-    const search = screen.getByRole('textbox', { name: 'Search platforms' });
-
-    fireEvent.change(search, { target: { value: 'Threads' } });
-    expect(screen.getByText('Threads')).toBeInTheDocument();
-    fireEvent.keyDown(search, { key: 'Enter' });
 
     expect(onConnect).not.toHaveBeenCalled();
   });

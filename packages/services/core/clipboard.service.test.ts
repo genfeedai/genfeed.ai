@@ -66,6 +66,46 @@ describe('ClipboardService', () => {
       );
     });
 
+    it('says what it copied when the caller names the messages', async () => {
+      const shown: string[] = [];
+      notificationsService.success.mockImplementation((message: string) => {
+        shown.push(message);
+      });
+      Object.defineProperty(navigator, 'clipboard', {
+        configurable: true,
+        value: { writeText: vi.fn().mockResolvedValue(undefined) },
+        writable: true,
+      });
+
+      await clipboardService.copyToClipboard('key', {
+        successMessage: 'API key copied',
+      });
+
+      expect(shown).toEqual(['API key copied']);
+    });
+
+    it('stays silent when the caller shows the outcome itself', async () => {
+      const shown: string[] = [];
+      notificationsService.success.mockImplementation((message: string) => {
+        shown.push(message);
+      });
+      notificationsService.error.mockImplementation((message: string) => {
+        shown.push(message);
+      });
+      Object.defineProperty(navigator, 'clipboard', {
+        configurable: true,
+        value: { writeText: vi.fn().mockRejectedValue(new Error('denied')) },
+        writable: true,
+      });
+
+      const didCopy = await clipboardService.copyToClipboard('key', {
+        isSilent: true,
+      });
+
+      expect(didCopy).toBe(false);
+      expect(shown).toEqual([]);
+    });
+
     // Safari drops the click's user activation across an awaited import, so
     // the write must start before the toast module loads.
     it('starts the clipboard write synchronously, before loading the toast', async () => {

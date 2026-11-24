@@ -627,7 +627,7 @@ test.describe('Agent master thread and Threads panel', () => {
     await expect(modeButton).toHaveAccessibleName('Agent mode: Auto');
   });
 
-  test('opens a thread full size and goes back to the two columns', async ({
+  test('opens a thread full size with the thread list on the left and goes back to the two columns', async ({
     authenticatedPage: page,
   }) => {
     const pageErrors: string[] = [];
@@ -645,16 +645,38 @@ test.describe('Agent master thread and Threads panel', () => {
       'Five slides drafted, ready for your review.',
     );
 
-    // Full size is one conversation with a way back.
+    // Full size moves the thread list to the left and gives the conversation
+    // the larger share, with a way back.
     await lightView.getByRole('button', { name: 'Open full page' }).click();
     await expect(page).toHaveURL(
       new RegExp(`/agent/${REVIEW_ID}\\?view=full$`),
     );
     await expect(page.getByTestId('agent-output-agent-pane')).toHaveCount(0);
+    const list = page.getByTestId('agent-thread-list-pane');
+    const conversation = page.getByTestId(
+      'agent-thread-list-conversation-pane',
+    );
+    await expect(
+      list.getByTestId(`agent-threads-panel-thread-${WORKING_ID}`),
+    ).toBeVisible();
+    const listBox = await list.boundingBox();
+    const conversationBox = await conversation.boundingBox();
+    expect(listBox?.x ?? 0).toBeLessThan(conversationBox?.x ?? 0);
+    expect(conversationBox?.width ?? 0).toBeGreaterThan(
+      (listBox?.width ?? 0) * 2,
+    );
+
+    // A thread in the list opens full size in place.
+    await list.getByTestId(`agent-threads-panel-thread-${WORKING_ID}`).click();
+    await expect(page).toHaveURL(
+      new RegExp(`/agent/${WORKING_ID}\\?view=full$`),
+    );
+    await expect(list).toBeVisible();
+
     await page
       .getByRole('button', { name: 'Back to master and threads' })
       .click();
-    await expect(page).toHaveURL(new RegExp(`/agent/${REVIEW_ID}$`));
+    await expect(page).toHaveURL(new RegExp(`/agent/${WORKING_ID}$`));
     await expect(page.getByTestId('agent-output-agent-pane')).toBeVisible();
     await expect(lightView).toBeVisible();
     expect(pageErrors).toEqual([]);

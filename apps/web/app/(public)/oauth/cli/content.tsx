@@ -12,6 +12,7 @@ import {
 } from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthUser } from '@hooks/auth/use-auth-user/use-auth-user';
+import { ClipboardService } from '@services/core/clipboard.service';
 import { EnvironmentService } from '@services/core/environment.service';
 import Card from '@ui/card/Card';
 import { Badge } from '@ui/primitives/badge';
@@ -606,12 +607,14 @@ function CliAuthPageContent() {
   const handleCopyKey = async () => {
     if (flowState.apiKey) {
       setCopyError(null);
-      try {
-        await navigator.clipboard.writeText(flowState.apiKey);
-        setCopied(true);
+      const didCopy = await ClipboardService.getInstance().copyToClipboard(
+        flowState.apiKey,
+        { isSilent: true },
+      );
+      setCopied(didCopy);
+      if (didCopy) {
         setTimeout(() => setCopied(false), 2000);
-      } catch {
-        setCopied(false);
+      } else {
         setCopyError(
           'Clipboard access was denied. Select the full code below and copy it manually.',
         );

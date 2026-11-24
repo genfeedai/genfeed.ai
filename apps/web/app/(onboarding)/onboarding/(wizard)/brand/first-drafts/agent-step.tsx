@@ -5,8 +5,8 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { ConnectGenfeedClient } from '@genfeedai/contracts/interfaces';
 import { buildConnectGenfeedInstructions } from '@genfeedai/helpers/integrations/connect-genfeed.helper';
 import { deriveClaudeMcpResourceIdentifier } from '@genfeedai/helpers/integrations/mcp-resource.helper';
+import { ClipboardService } from '@services/core/clipboard.service';
 import { EnvironmentService } from '@services/core/environment.service';
-import { logger } from '@services/core/logger.service';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { OptionTile, OptionTileGroup } from '@ui/primitives/option-tile';
@@ -48,14 +48,12 @@ export default function AgentStep({
     status.status === 'configured' ? status.connections[0] : undefined;
 
   async function copySetup() {
-    try {
-      await navigator.clipboard.writeText(setup);
-      setIsCopied(true);
-      setHasCopyFailed(false);
-    } catch (error) {
-      logger.error('Failed to copy the agent setup command', error);
-      setHasCopyFailed(true);
-    }
+    const didCopy = await ClipboardService.getInstance().copyToClipboard(
+      setup,
+      { isSilent: true },
+    );
+    setIsCopied(didCopy);
+    setHasCopyFailed(!didCopy);
   }
 
   return (

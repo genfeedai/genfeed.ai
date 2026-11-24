@@ -1,6 +1,7 @@
 import { AgentGeneratedTextCard } from '@genfeedai/agent/components/AgentGeneratedTextCard';
 import type { AgentUiActionOf } from '@genfeedai/agent/models/agent-chat.model';
 import { ButtonVariant } from '@genfeedai/contracts';
+import { ClipboardService } from '@genfeedai/services/core/clipboard.service';
 import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { OptionTile, OptionTileGroup } from '@ui/primitives/option-tile';
@@ -39,15 +40,11 @@ export function AiTextActionCard({
     setIsApplied(true);
   }, [selectedAction, textContent, onApply]);
   const handleCopyText = useCallback(async () => {
-    if (!textContent || typeof navigator === 'undefined') {
+    if (!textContent) {
       return;
     }
 
-    try {
-      await navigator.clipboard.writeText(textContent);
-    } catch {
-      // no-op: failure to copy should not block text actions
-    }
+    await ClipboardService.getInstance().copyToClipboard(textContent);
   }, [textContent]);
 
   if (isApplied) {

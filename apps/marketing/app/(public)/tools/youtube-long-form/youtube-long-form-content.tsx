@@ -6,6 +6,7 @@ import type {
   IPublicYoutubeLongFormToolResult,
   PublicYoutubeLongFormOutputType,
 } from '@genfeedai/contracts/interfaces';
+import { ClipboardService } from '@services/core/clipboard.service';
 import { Button } from '@ui/primitives/button';
 import Field from '@ui/primitives/field';
 import { Form } from '@ui/primitives/form';
@@ -128,10 +129,12 @@ export default function YoutubeLongFormContent(): React.ReactElement {
     if (!result) {
       return;
     }
-    await navigator.clipboard.writeText(
-      `# ${result.title}\n\n${result.summary}\n\n${result.content}`,
+    setCopied(
+      await ClipboardService.getInstance().copyToClipboard(
+        `# ${result.title}\n\n${result.summary}\n\n${result.content}`,
+        { isSilent: true },
+      ),
     );
-    setCopied(true);
   };
 
   const saveSourceToLibrary = async () => {
