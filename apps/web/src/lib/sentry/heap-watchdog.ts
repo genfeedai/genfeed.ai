@@ -24,6 +24,8 @@ interface ChromiumMemory {
 }
 
 interface HeapSample {
+  /** Rising with the heap: the DOM is leaking. Flat: state in JS is. */
+  readonly domNodes: number;
   readonly heapMiB: number;
   readonly secondsSinceStart: number;
 }
@@ -34,7 +36,9 @@ interface HeapReport {
   readonly heapMiB: number;
   readonly history: readonly HeapSample[];
   readonly path: string;
+  readonly replayStopped: boolean;
   readonly requestsInLastMinute: number;
+  readonly resourceEntries: number;
   readonly stores: Record<string, number>;
   readonly threshold: number;
   readonly topRequests: readonly { count: number; url: string }[];
@@ -108,10 +112,30 @@ async function readStoreSizes(): Promise<Record<string, number>> {
   return sizes;
 }
 
+/**
+ * Error replay buffers every DOM mutation, and a tab that is already this
+ * large cannot afford to keep recording. Reports whether it was running.
+ */
+function stopReplayRecording(): boolean {
+  try {
+    const replay = Sentry.getClient()?.getIntegrationByName<{
+      stop(): Promise<void>;
+    }>('Replay');
+    if (!replay) {
+      return false;
+    }
+    void replay.stop().catch(() => undefined);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 async function buildReport(
   memory: ChromiumMemory,
   threshold: number,
   history: readonly HeapSample[],
+  replayStopped: boolean,
 ): Promise<HeapReport> {
   const requests = summarizeRecentRequests(performance.now());
 
@@ -121,7 +145,9 @@ async function buildReport(
     heapMiB: toMiB(memory.usedJSHeapSize),
     history,
     path: window.location.pathname,
+    replayStopped,
     requestsInLastMinute: requests.total,
+    resourceEntries: performance.getEntriesByType('resource').length,
     stores: await readStoreSizes(),
     threshold,
     topRequests: requests.top,
@@ -146,6 +172,7 @@ export function startHeapWatchdog(): () => void {
     }
 
     history.push({
+      domNodes: document.getElementsByTagName('*').length,
       heapMiB: toMiB(memory.usedJSHeapSize),
       secondsSinceStart: Math.round((performance.now() - startedAt) / 1000),
     });
@@ -165,14 +192,17 @@ export function startHeapWatchdog(): () => void {
       reported.add(threshold);
     }
     const threshold = crossed[crossed.length - 1];
-    void buildReport(memory, threshold, [...history]).then((report) => {
-      Sentry.captureMessage(`Renderer heap above ${threshold} MiB`, {
-        extra: { ...report },
-        fingerprint: ['renderer-heap-threshold', String(threshold)],
-        level: 'warning',
-        tags: { heap_threshold_mib: String(threshold) },
-      });
-    });
+    const replayStopped = stopReplayRecording();
+    void buildReport(memory, threshold, [...history], replayStopped).then(
+      (report) => {
+        Sentry.captureMessage(`Renderer heap above ${threshold} MiB`, {
+          extra: { ...report },
+          fingerprint: ['renderer-heap-threshold', String(threshold)],
+          level: 'warning',
+          tags: { heap_threshold_mib: String(threshold) },
+        });
+      },
+    );
   };
 
   const interval = window.setInterval(sample, SAMPLE_INTERVAL_MS);
