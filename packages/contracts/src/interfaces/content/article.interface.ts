@@ -34,6 +34,8 @@ export interface IArticle extends IBaseEntity {
   unlockPriceCredits?: number | null;
   author?: string;
   readingTime?: number;
+  /** Sent by the public list, which leaves `content` out. */
+  readingTimeMinutes?: number;
   wordCount?: number;
   scope: AssetScope;
   generationPrompt?: string;
@@ -59,6 +61,8 @@ export interface IArticleCreateInput {
   status?: ArticleStatus;
   tags?: ITag[];
   readingTime?: number;
+  /** Sent by the public list, which leaves `content` out. */
+  readingTimeMinutes?: number;
   wordCount?: number;
   scope?: AssetScope;
   coverImageUrl?: string;

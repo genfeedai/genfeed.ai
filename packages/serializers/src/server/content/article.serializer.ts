@@ -3,6 +3,7 @@ import {
   articleSerializerConfig,
   publicArticleGenerationSerializerConfig,
   publicArticleSerializerConfig,
+  publicArticleSummarySerializerConfig,
 } from '@serializers/configs';
 
 export const { ArticleSerializer } = buildSerializer(
@@ -13,6 +14,11 @@ export const { ArticleSerializer } = buildSerializer(
 export const PublicArticleSerializer = buildSingleSerializer(
   'server',
   publicArticleSerializerConfig,
+);
+
+export const PublicArticleSummarySerializer = buildSingleSerializer(
+  'server',
+  publicArticleSummarySerializerConfig,
 );
 
 export const PublicArticleGenerationSerializer = buildSingleSerializer(

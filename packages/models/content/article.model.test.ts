@@ -156,6 +156,15 @@ describe('Article', () => {
   });
 
   describe('readingTime', () => {
+    it('should use the minutes the public list sends in place of the body it leaves out', () => {
+      const article = new Article({
+        content: undefined,
+        readingTimeMinutes: 7,
+      } as Partial<IArticle>);
+      expect(article.readingTime).toBe(7);
+      expect(article.wordCount).toBe(0);
+    });
+
     it('should return 0 for empty content', () => {
       const article = createArticle({ content: '' });
       expect(article.readingTime).toBe(0);
