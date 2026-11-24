@@ -601,7 +601,7 @@ describe('ModelSelectorPopover', () => {
 
     await openPicker(user);
 
-    const filterGroup = screen.getByRole('radiogroup', {
+    const filterGroup = screen.getByRole('group', {
       name: 'Model categories',
     });
     expect(
@@ -671,7 +671,7 @@ describe('ModelSelectorPopover', () => {
 
     await openPicker(user);
 
-    const categories = screen.getByRole('radiogroup', {
+    const categories = screen.getByRole('group', {
       name: 'Model categories',
     });
     const capabilities = screen.getByRole('group', {

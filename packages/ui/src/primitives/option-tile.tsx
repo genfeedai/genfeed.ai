@@ -91,7 +91,6 @@ function OptionTileGroup<TValue extends string = string>(
           props.onValueChange(next as TValue);
         }
       }}
-      {...(props.isDeselectable ? {} : { role: 'radiogroup' })}
       type="single"
       value={props.value ?? ''}
     >
