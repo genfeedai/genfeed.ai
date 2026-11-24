@@ -124,7 +124,6 @@ export default function ModalPostRemix({
             label="Cancel"
             variant={ButtonVariant.GHOST}
             size={ButtonSize.LG}
-            className="md:h-9 md:px-4 md:py-2"
             onClick={handleCancel}
             isDisabled={isLoading}
           />
@@ -133,7 +132,6 @@ export default function ModalPostRemix({
             label="Create Remix"
             variant={ButtonVariant.DEFAULT}
             size={ButtonSize.LG}
-            className="md:h-9 md:px-4 md:py-2"
             onClick={handleSubmit}
             isLoading={isLoading}
             isDisabled={!form.description.trim()}

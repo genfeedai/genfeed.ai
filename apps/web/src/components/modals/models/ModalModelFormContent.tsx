@@ -233,7 +233,7 @@ export default function ModalModelFormContent({
           label={model ? 'Update' : 'Add'}
           variant={ButtonVariant.DEFAULT}
           size={ButtonSize.LG}
-          className="md:h-9 md:px-4 md:py-2 mb-4 md:mb-0"
+          className="mb-4 md:mb-0"
           isLoading={isSubmitting}
           isDisabled={isSubmitting || !form.formState.isValid}
         />

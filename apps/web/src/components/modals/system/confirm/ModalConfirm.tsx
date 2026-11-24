@@ -111,7 +111,7 @@ export default function ModalConfirm({
           label={cancelLabel}
           variant={ButtonVariant.SECONDARY}
           size={ButtonSize.LG}
-          className="md:h-9 md:px-4 md:py-2 mb-4 md:mb-0 w-32"
+          className="mb-4 md:mb-0 w-32"
           onClick={closeConfirmModal}
         />
 
@@ -119,7 +119,7 @@ export default function ModalConfirm({
           label={confirmLabel}
           variant={isError ? ButtonVariant.DESTRUCTIVE : ButtonVariant.DEFAULT}
           size={ButtonSize.LG}
-          className="md:h-9 md:px-4 md:py-2 mb-4 md:mb-0 w-32"
+          className="mb-4 md:mb-0 w-32"
           onClick={handleConfirm}
           isLoading={isConfirming}
           isDisabled={isConfirming}

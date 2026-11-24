@@ -22,12 +22,6 @@
     "apps/extension/src/components/settings/OrganizationSelector.tsx": {
       "unstyled-look": 1
     },
-    "apps/marketing/app/(public)/[slug]/product-final-cta.tsx": {
-      "button-restyle": 1
-    },
-    "apps/marketing/app/(public)/[slug]/product-pricing-cta.tsx": {
-      "button-restyle": 3
-    },
     "apps/marketing/app/(public)/skills/install-command.tsx": {
       "unstyled-look": 1
     },
@@ -56,21 +50,15 @@
       "unstyled-look": 1
     },
     "apps/web/app/(protected)/[orgSlug]/[brandSlug]/editor/[id]/EditorEffectsPanel.tsx": {
-      "button-restyle": 1,
       "unstyled-look": 1
     },
-    "apps/web/app/(protected)/[orgSlug]/[brandSlug]/editor/[id]/EditorPropertiesPanel.tsx": {
-      "unstyled-look": 2
-    },
     "apps/web/app/(protected)/[orgSlug]/[brandSlug]/editor/[id]/EditorTextProperties.tsx": {
-      "unstyled-look": 2
+      "unstyled-look": 1
     },
     "apps/web/app/(protected)/[orgSlug]/[brandSlug]/editor/[id]/EditorTextTrackList.tsx": {
-      "button-restyle": 1,
       "unstyled-look": 1
     },
     "apps/web/app/(protected)/[orgSlug]/[brandSlug]/editor/[id]/EditorTimeline.tsx": {
-      "button-restyle": 2,
       "unstyled-look": 3
     },
     "apps/web/app/(protected)/[orgSlug]/[brandSlug]/library/voices/voice-catalog-row.tsx": {
@@ -167,24 +155,6 @@
     "apps/web/src/components/menus/user-dropdown/UserDropdown.tsx": {
       "unstyled-look": 1
     },
-    "apps/web/src/components/modals/content/remix/ModalPostRemix.tsx": {
-      "button-restyle": 2
-    },
-    "apps/web/src/components/modals/content/repurpose/ModalPostRepurpose.tsx": {
-      "button-restyle": 2
-    },
-    "apps/web/src/components/modals/ingredients/avatar/ModalAvatar.tsx": {
-      "button-restyle": 1
-    },
-    "apps/web/src/components/modals/models/ModalModelFormContent.tsx": {
-      "button-restyle": 1
-    },
-    "apps/web/src/components/modals/system/confirm/ModalConfirm.tsx": {
-      "button-restyle": 2
-    },
-    "apps/web/src/components/modals/trainings/ModalTrainingNew.tsx": {
-      "button-restyle": 2
-    },
     "apps/web/src/components/modals/trainings/TrainingFormInputs.tsx": {
       "button-restyle": 1
     },
@@ -274,9 +244,6 @@
     "apps/web/src/features/ingredients/components/tabs/tags/IngredientTabsTags.tsx": {
       "unstyled-look": 1
     },
-    "apps/web/src/features/ingredients/components/tags/manager/TagPickerDropdown.tsx": {
-      "unstyled-look": 3
-    },
     "apps/web/src/features/ingredients/components/tags/manager/TagsList.tsx": {
       "unstyled-look": 1
     },
@@ -285,9 +252,6 @@
     },
     "apps/web/src/features/models/list/components/ModelsTableColumns.tsx": {
       "unstyled-look": 1
-    },
-    "apps/web/src/features/posts/components/card-footer/PostMediaStrip.tsx": {
-      "unstyled-look": 3
     },
     "apps/web/src/features/posts/components/posts/post-detail-sidebar/PostSidebarWhenDock.tsx": {
       "button-restyle": 2
