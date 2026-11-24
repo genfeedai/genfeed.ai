@@ -714,7 +714,7 @@ export const REMAINING_VIDEO_GENERATION_BRIEF_FAMILIES: readonly RemainingVideoG
             audioSupported: true,
             defaultSeconds: 8,
             maxReferences: 3,
-            maxSeconds: 10,
+            maxSeconds: 15,
             minSeconds: 3,
             nativeFields: ['image_url', 'image_urls'],
             seedSupported: false,
@@ -727,6 +727,7 @@ export const REMAINING_VIDEO_GENERATION_BRIEF_FAMILIES: readonly RemainingVideoG
         extraReferenceField: 'image_urls',
         firstFrameField: 'image_url',
         modelLabel: 'Gemini Omni Flash',
+        resolutionField: 'resolution',
       },
     },
     {

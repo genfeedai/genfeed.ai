@@ -145,6 +145,13 @@ export function getVideoGenerationResolutionCreditMultiplier(
   if (modelKey === 'minimax/h3-lite') {
     return normalizedResolution === '480p' ? 0.025 / 0.04 : 1;
   }
+  // Gemini Omni Flash 1.2 on fal is seeded at its 720p rate ($0.0819/s).
+  if (modelKey === 'fal/google/gemini-omni-flash') {
+    if (normalizedResolution === '360p') return 0.0273 / 0.0819;
+    if (normalizedResolution === '1080p') return 0.1229 / 0.0819;
+    if (normalizedResolution === '4k') return 0.2457 / 0.0819;
+    return 1;
+  }
   if (modelKey === 'fal/minimax/h3-max/text-to-video') {
     if (normalizedResolution === '480p') return 0.05 / 0.08;
     if (normalizedResolution === '1080p') return 0.16 / 0.08;

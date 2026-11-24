@@ -953,20 +953,47 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
     verifiedAt: '2026-10-06T09:45:33.916Z',
   },
   {
-    endpoint: 'google/gemini-omni-flash',
+    // fal model page (read 2026-11-24), per second of output video with native
+    // audio: $0.0273 at 360p, $0.0819 at 720p, $0.1229 at 1080p, $0.2457 at
+    // 4K, the same on the text, image and reference endpoints. fal adds $1.50
+    // per 1M input tokens (reference images and videos count), which dispatch
+    // cannot meter, so it is not in the rate: it is under 3% of a 10 s 720p
+    // clip even with three reference videos.
+    endpoint: 'google/gemini-omni-flash/v1.2/text-to-video',
     provider: 'fal',
     rates: [
       {
         component: 'output',
         unit: 'second',
-        unitPriceUsd: 0.13,
-        when: {},
+        unitPriceUsd: 0.0273,
+        when: { resolution: '360p' },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.0819,
+        when: { resolution: '720p' },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.1229,
+        when: { resolution: '1080p' },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.2457,
+        when: { resolution: '4k' },
         isPerOutput: true,
       },
     ],
     sourceUrl:
-      'https://fal.ai/models/google/gemini-omni-flash/reference-to-video',
-    verifiedAt: '2026-10-06T21:45:00.000Z',
+      'https://fal.ai/models/google/gemini-omni-flash/v1.2/text-to-video',
+    verifiedAt: '2026-11-24T11:30:00.000Z',
   },
   {
     endpoint: 'google/imagen-3',
@@ -2270,7 +2297,7 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
       },
     ],
     sourceUrl: 'https://fal.ai/models/heygen/heygen-video/text-to-video',
-    verifiedAt: '2026-11-24T12:00:00.000Z',
+    verifiedAt: '2026-11-24T11:30:00.000Z',
   },
   {
     endpoint: 'minimax/h3-max/text-to-video',

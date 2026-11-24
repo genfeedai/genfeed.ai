@@ -24,7 +24,9 @@ const SEEDANCE_MODEL_PATTERN =
 const SEEDANCE_2_5_REFERENCE_TO_VIDEO_PATTERN =
   /^bytedance\/seedance-2\.5\/(?:us\/)?reference-to-video$/;
 
-const GEMINI_OMNI_FLASH_ENDPOINT = 'google/gemini-omni-flash';
+const GEMINI_OMNI_FLASH_VERSION = 'google/gemini-omni-flash/v1.2';
+const GEMINI_OMNI_FLASH_ENDPOINT = `${GEMINI_OMNI_FLASH_VERSION}/text-to-video`;
+const GEMINI_OMNI_FLASH_RESOLUTIONS = ['360p', '720p', '1080p', '4k'];
 const MINIMAX_H3_MAX_TEXT_ENDPOINT = 'minimax/h3-max/text-to-video';
 const HEYGEN_VIDEO_TEXT_ENDPOINT = 'heygen/heygen-video/text-to-video';
 const HEYGEN_VIDEO_RESOLUTIONS = ['480p', '768p', '1080p', '2k'];
@@ -114,21 +116,31 @@ export function prepareFalVideoDispatch(
       ]),
     ].filter((value): value is string => Boolean(value));
     const aspectRatio = optionalString(params.promptParams.aspect_ratio);
+    const requestedResolution = optionalString(
+      params.promptParams.resolution,
+    )?.toLowerCase();
     const duration =
       optionalNumber(params.promptParams.duration) ?? params.duration;
     const input: Record<string, unknown> = {
       prompt: optionalString(params.promptParams.prompt) ?? params.prompt,
       ...(aspectRatio ? { aspect_ratio: aspectRatio } : {}),
       ...(duration ? { duration } : {}),
+      // Always sent: the reviewed rate is per resolution, and fal's own
+      // default (720p) must not decide the price.
+      resolution: GEMINI_OMNI_FLASH_RESOLUTIONS.includes(
+        requestedResolution ?? '',
+      )
+        ? requestedResolution
+        : '720p',
     };
     if (referenceImages.length > 1)
       return {
-        endpoint: `${endpoint}/reference-to-video`,
+        endpoint: `${GEMINI_OMNI_FLASH_VERSION}/reference-to-video`,
         input: { ...input, image_urls: referenceImages },
       };
     if (firstImage)
       return {
-        endpoint: `${endpoint}/image-to-video`,
+        endpoint: `${GEMINI_OMNI_FLASH_VERSION}/image-to-video`,
         input: { ...input, image_url: firstImage },
       };
     return { endpoint, input };

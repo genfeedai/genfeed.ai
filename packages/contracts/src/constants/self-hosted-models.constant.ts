@@ -457,30 +457,33 @@ export const SELF_HOSTED_MODELS = [
     providerCostUsd: 0.24,
   },
   /**
-   * fal bills tokens. The published 720p equivalent is about $0.125/s for
-   * text and $0.13/s when reference video is included. One row covers both
-   * routes, so seed the higher published equivalent.
-   * 8s → $1.04 provider cost; live credits come from applyMargin.
+   * Gemini Omni Flash 1.2 on fal (read 2026-11-24): $0.0273/s at 360p,
+   * $0.0819/s at 720p, $0.1229/s at 1080p and $0.2457/s at 4K, native audio
+   * included, plus $1.50 per 1M input tokens, which dispatch cannot meter (a
+   * text prompt is a fraction of a cent). Seeded at the 720p default; the
+   * resolution quote scales the other bands. Credits are ceil(usd / 0.003):
+   * 8 s at 720p = $0.6552, floor = 3 s at 360p. It replaces the first Omni
+   * Flash endpoint ($0.13/s), which is gone from the rate sheet.
    */
   {
     category: ModelCategory.VIDEO,
-    cost: 347,
-    costPerUnit: 44,
-    costTier: CostTier.HIGH,
+    cost: 219,
+    costPerUnit: 28,
+    costTier: CostTier.MEDIUM,
     qualityTier: QualityTier.HIGH,
     speedTier: SpeedTier.FAST,
     description:
-      'Google Gemini Omni Flash via fal — synchronized-audio video from text, a first image, or up to three reference images.',
-    endpoint: 'google/gemini-omni-flash',
+      'Google Gemini Omni Flash 1.2 via fal — synchronized-audio video from text, a first image, or up to three reference images, 3–15 seconds at 360p to 4K.',
+    endpoint: 'google/gemini-omni-flash/v1.2/text-to-video',
     isDefault: false,
     isHighlighted: true,
     key: MODEL_KEYS.FAL_GOOGLE_GEMINI_OMNI_FLASH,
-    label: 'Gemini Omni Flash',
-    minCost: 132,
+    label: 'Gemini Omni Flash 1.2',
+    minCost: 28,
     pricingType: PricingType.PER_SECOND,
     provider: ModelProvider.FAL,
     providerConfig: { name: 'gemini-omni-flash', owner: 'google' },
-    providerCostUsd: 0.13,
+    providerCostUsd: 0.0819,
   },
   /**
    * Cheapest T2V already wired in the Replicate video builder.
