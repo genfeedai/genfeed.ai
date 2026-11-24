@@ -74,6 +74,14 @@ const META_CONTENT_REJECTED_CODES: ReadonlySet<number> = new Set([
   100, 506, 1609005,
 ]);
 
+/**
+ * 100 with subcode 33: "Object with ID ... does not exist, cannot be loaded
+ * due to missing permissions". On a publish call the object is the account
+ * itself, so the token no longer reaches it (grant removed, asset unassigned,
+ * account moved). Retrying cannot work; the owner must reconnect.
+ */
+const META_OBJECT_UNREACHABLE_SUBCODE = 33;
+
 const INSTAGRAM_DAILY_LIMIT_SUBCODE = 2207042;
 const INSTAGRAM_ACCOUNT_RESTRICTED_SUBCODE = 2207050;
 const INSTAGRAM_SPAM_RESTRICTION_SUBCODE = 2207051;
@@ -104,6 +112,11 @@ function classifyGraphError(
     return PublishErrorKind.RETRY_LATER;
   }
   if (code === undefined) return undefined;
+
+  // Before the generic 100 (invalid parameter): this one is not about content.
+  if (code === 100 && subcode === META_OBJECT_UNREACHABLE_SUBCODE) {
+    return PublishErrorKind.CHANNEL_DISCONNECTED;
+  }
 
   if (code === 190 || code === 102) {
     if (subcode !== undefined && META_RECONNECT_SUBCODES.has(subcode)) {

@@ -98,6 +98,11 @@ describe('toMetaPublishError', () => {
     ['a duplicate post', graphError(400, 506), 'content_rejected'],
     ['an invalid parameter', graphError(400, 100), 'content_rejected'],
     [
+      'an account the token can no longer reach',
+      graphError(400, 100, 33),
+      'channel_disconnected',
+    ],
+    [
       'the Instagram daily publishing limit',
       graphError(400, 9, 2207042),
       'rate_limited',
