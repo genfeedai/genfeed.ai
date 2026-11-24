@@ -763,6 +763,89 @@ export const SELF_HOSTED_MODELS = [
     providerCostUsd: 0.05268,
   },
   /**
+   * MAI-Image-2.7 and 2.7 Flash via fal (page read 2026-11-24). fal bills
+   * tokens: 1,024 image output tokens per megapixel, plus text and input-image
+   * tokens. The rate sheet prices output per megapixel and adds a per-request
+   * allowance for the prompt (and, on the edit endpoints, two source images).
+   * `providerCostUsd` is the output price per megapixel (the unit the sheet
+   * bills); `cost` is the credits for a default 1024x1024 image at the 1.05 MP
+   * floor plus the allowance, ceil(usd / 0.003): 2.7 $0.0376 text / $0.0540
+   * edit, Flash $0.0112 text / $0.0163 edit. The edit
+   * endpoints take one to five source images and are separate rows because fal
+   * prices and validates them apart from text-to-image. Not a default.
+   */
+  {
+    category: ModelCategory.IMAGE,
+    cost: 13,
+    costTier: CostTier.MEDIUM,
+    qualityTier: QualityTier.ULTRA,
+    speedTier: SpeedTier.MEDIUM,
+    description:
+      'Microsoft MAI-Image-2.7 via fal — text-to-image from a prompt, up to 2048×2048.',
+    endpoint: 'microsoft/mai-image-2.7/text-to-image',
+    isDefault: false,
+    isHighlighted: false,
+    key: MODEL_KEYS.FAL_MAI_IMAGE_2_7,
+    label: 'MAI-Image-2.7',
+    provider: ModelProvider.FAL,
+    providerConfig: { name: 'mai-image-2.7/text-to-image', owner: 'microsoft' },
+    providerCostUsd: 0.034816,
+  },
+  {
+    category: ModelCategory.IMAGE,
+    cost: 18,
+    costTier: CostTier.MEDIUM,
+    qualityTier: QualityTier.ULTRA,
+    speedTier: SpeedTier.MEDIUM,
+    description:
+      'Microsoft MAI-Image-2.7 Edit via fal — instruction editing and reference-guided generation from one to five source images.',
+    endpoint: 'microsoft/mai-image-2.7/edit',
+    isDefault: false,
+    isHighlighted: false,
+    key: MODEL_KEYS.FAL_MAI_IMAGE_2_7_EDIT,
+    label: 'MAI-Image-2.7 Edit',
+    provider: ModelProvider.FAL,
+    providerConfig: { name: 'mai-image-2.7/edit', owner: 'microsoft' },
+    providerCostUsd: 0.034816,
+  },
+  {
+    category: ModelCategory.IMAGE,
+    cost: 4,
+    costTier: CostTier.LOW,
+    qualityTier: QualityTier.HIGH,
+    speedTier: SpeedTier.FAST,
+    description:
+      'Microsoft MAI-Image-2.7 Flash via fal — fast, low-cost text-to-image, up to 2048×2048.',
+    endpoint: 'microsoft/mai-image-2.7/flash/text-to-image',
+    isDefault: false,
+    isHighlighted: false,
+    key: MODEL_KEYS.FAL_MAI_IMAGE_2_7_FLASH,
+    label: 'MAI-Image-2.7 Flash',
+    provider: ModelProvider.FAL,
+    providerConfig: {
+      name: 'mai-image-2.7/flash/text-to-image',
+      owner: 'microsoft',
+    },
+    providerCostUsd: 0.01024,
+  },
+  {
+    category: ModelCategory.IMAGE,
+    cost: 6,
+    costTier: CostTier.LOW,
+    qualityTier: QualityTier.HIGH,
+    speedTier: SpeedTier.FAST,
+    description:
+      'Microsoft MAI-Image-2.7 Flash Edit via fal — fast, low-cost instruction editing from one to five source images.',
+    endpoint: 'microsoft/mai-image-2.7/flash/edit',
+    isDefault: false,
+    isHighlighted: false,
+    key: MODEL_KEYS.FAL_MAI_IMAGE_2_7_FLASH_EDIT,
+    label: 'MAI-Image-2.7 Flash Edit',
+    provider: ModelProvider.FAL,
+    providerConfig: { name: 'mai-image-2.7/flash/edit', owner: 'microsoft' },
+    providerCostUsd: 0.01024,
+  },
+  /**
    * Video upscaler — USD per output second (conservative mid band).
    * Not the category default (Topaz remains empty-registry fallback).
    */

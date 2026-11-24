@@ -32,7 +32,6 @@ export interface StudioPlaygroundGalleryProps
   assetActions: UseStudioAssetActionsReturn['assetActions'];
   cancelJob: UseStudioGenerationReturn['cancelJob'];
   canUseGeneratedReference: (job: StudioPlaygroundJob) => boolean;
-  composerHeight: number | null;
   galleryError: UseStudioPlaygroundGalleryReturn['galleryError'];
   galleryScrollRef: RefObject<HTMLDivElement | null>;
   handleCloseFocusedPreview: () => void;
@@ -55,7 +54,6 @@ export default function StudioPlaygroundGallery({
   assetActions,
   cancelJob,
   canUseGeneratedReference,
-  composerHeight,
   galleryError,
   galleryScrollRef,
   handleCloseFocusedPreview,
@@ -85,12 +83,7 @@ export default function StudioPlaygroundGallery({
     <div
       ref={galleryScrollRef}
       tabIndex={-1}
-      className="relative z-0 h-full overflow-auto px-3 py-3 pb-40 sm:px-4 sm:py-4"
-      style={
-        composerHeight === null
-          ? undefined
-          : { paddingBottom: Math.max(160, composerHeight + 40) }
-      }
+      className="relative z-0 h-full overflow-auto px-3 py-3 sm:px-4 sm:py-4"
     >
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-4">
         {isFocusedPreview && selectedJob ? (

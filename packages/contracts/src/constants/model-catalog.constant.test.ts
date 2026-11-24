@@ -854,6 +854,57 @@ describe('model version lifecycle', () => {
     });
   });
 
+  it.each([
+    [
+      MODEL_KEYS.FAL_MAI_IMAGE_2_7,
+      'microsoft/mai-image-2.7/text-to-image',
+      13,
+      0,
+    ],
+    [MODEL_KEYS.FAL_MAI_IMAGE_2_7_EDIT, 'microsoft/mai-image-2.7/edit', 18, 5],
+    [
+      MODEL_KEYS.FAL_MAI_IMAGE_2_7_FLASH,
+      'microsoft/mai-image-2.7/flash/text-to-image',
+      4,
+      0,
+    ],
+    [
+      MODEL_KEYS.FAL_MAI_IMAGE_2_7_FLASH_EDIT,
+      'microsoft/mai-image-2.7/flash/edit',
+      6,
+      5,
+    ],
+  ])(
+    'seeds fal MAI-Image %s on %s at %s credits taking %s reference images',
+    (key, endpoint, cost, maxReferences) => {
+      expect(byKey.get(key)).toMatchObject({
+        category: ModelCategory.IMAGE,
+        cost,
+        endpoint,
+        isActive: true,
+        isDefault: false,
+        isPublic: true,
+        provider: ModelProvider.FAL,
+      });
+      expect(MODEL_OUTPUT_CAPABILITIES[key]).toMatchObject({
+        category: ModelCategory.IMAGE,
+        maxReferences,
+      });
+      // The model key is the fal selection key for the endpoint, so dispatch
+      // and the rate sheet resolve the same endpoint.
+      expect(key).toBe(`fal/${endpoint}`);
+    },
+  );
+
+  it('keeps the image generation default off the MAI-Image rows', () => {
+    const defaults = [...byKey.values()].filter(
+      (entry) => entry.category === ModelCategory.IMAGE && entry.isDefault,
+    );
+    expect(defaults.map((entry) => entry.key)).not.toEqual(
+      expect.arrayContaining([MODEL_KEYS.FAL_MAI_IMAGE_2_7]),
+    );
+  });
+
   it('retires Grok 4.1 Fast and keeps priced Grok 4.3 live', () => {
     expect(byKey.get(MODEL_KEYS.OPENROUTER_XAI_GROK_4_1_FAST)?.lifecycle).toBe(
       ModelLifecycle.RETIRED,
