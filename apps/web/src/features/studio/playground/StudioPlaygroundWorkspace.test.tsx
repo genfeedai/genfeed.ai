@@ -2951,7 +2951,7 @@ describe('StudioPlaygroundWorkspace', () => {
       await renderLoaded();
       act(() => composer().onOpenLibrary?.('audioReference'));
       fireEvent.click(
-        await screen.findByRole('option', {
+        await screen.findByRole('button', {
           name: 'Reference Generated narration',
         }),
       );

@@ -89,7 +89,7 @@ afterEach(cleanup);
 async function attach() {
   fireEvent.click(screen.getByRole('button', { name: 'Attach from Library' }));
   fireEvent.click(
-    await screen.findByRole('option', { name: 'Reference Launch image' }),
+    await screen.findByRole('button', { name: 'Reference Launch image' }),
   );
 }
 describe('shared extension composer and Library picker', () => {
@@ -172,7 +172,7 @@ describe('shared extension composer and Library picker', () => {
     act(() => setWorkspace('brand-3', 3));
     await act(async () => resolvePage({ items: [item], hasMore: false }));
     expect(
-      screen.queryByRole('option', { name: 'Reference Launch image' }),
+      screen.queryByRole('button', { name: 'Reference Launch image' }),
     ).toBeNull();
   });
   it('shows Library errors and reloads with Retry', async () => {
@@ -188,7 +188,7 @@ describe('shared extension composer and Library picker', () => {
     );
     fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
     expect(
-      await screen.findByRole('option', { name: 'Reference Launch image' }),
+      await screen.findByRole('button', { name: 'Reference Launch image' }),
     ).not.toBeNull();
   });
 });
@@ -196,17 +196,17 @@ describe('shared extension composer and Library picker', () => {
 it('debounces server search, retains metadata-only matches and ignores previous query results', async () => {
   render(<ChatInput onSend={vi.fn()} />);
   fireEvent.click(screen.getByRole('button', { name: 'Attach from Library' }));
-  await screen.findByRole('option', { name: 'Reference Launch image' });
+  await screen.findByRole('button', { name: 'Reference Launch image' });
   const initialCalls = vi.mocked(loadLibraryAssets).mock.calls.length;
   fireEvent.change(
     screen.getByRole('textbox', { name: 'Search library content' }),
     { target: { value: ' metadata + query ' } },
   );
   expect(
-    screen.queryByRole('option', { name: 'Reference Launch image' }),
+    screen.queryByRole('button', { name: 'Reference Launch image' }),
   ).toBeNull();
   expect(loadLibraryAssets).toHaveBeenCalledTimes(initialCalls);
-  await screen.findByRole('option', { name: 'Reference Launch image' });
+  await screen.findByRole('button', { name: 'Reference Launch image' });
   expect(loadLibraryAssets).toHaveBeenLastCalledWith(
     'brand-1',
     expect.objectContaining({ page: 1, search: 'metadata + query' }),
@@ -227,15 +227,15 @@ it('failed page2 retries page2 and deduplicates results while retaining selected
   fireEvent.click(screen.getByRole('button', { name: 'Attach from Library' }));
   fireEvent.click(await screen.findByRole('button', { name: 'Load more' }));
   fireEvent.click(await screen.findByRole('button', { name: 'Retry' }));
-  await screen.findByRole('option', { name: 'Reference Second image' });
+  await screen.findByRole('button', { name: 'Reference Second image' });
   expect(
-    screen.getAllByRole('option', { name: 'Reference Launch image' }),
+    screen.getAllByRole('button', { name: 'Reference Launch image' }),
   ).toHaveLength(1);
   expect(
     vi.mocked(loadLibraryAssets).mock.calls.map(([, options]) => options?.page),
   ).toEqual([1, 2, 2]);
   fireEvent.click(
-    screen.getByRole('option', { name: 'Reference Launch image' }),
+    screen.getByRole('button', { name: 'Reference Launch image' }),
   );
   fireEvent.click(screen.getByRole('button', { name: 'Attach from Library' }));
   fireEvent.change(
@@ -311,7 +311,7 @@ it('waits exactly 250ms after search and discards an old response after query ch
     );
     await act(async () => finish({ items: [item], hasMore: false }));
     expect(
-      screen.queryByRole('option', { name: 'Reference Launch image' }),
+      screen.queryByRole('button', { name: 'Reference Launch image' }),
     ).toBeNull();
     await act(async () => vi.advanceTimersByTimeAsync(249));
     expect(loadLibraryAssets).toHaveBeenCalledTimes(1);
