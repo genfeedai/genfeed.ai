@@ -5,7 +5,6 @@ import TurboPromptCards from './TurboPromptCards';
 const mocks = vi.hoisted(() => ({
   ideas: {
     isBrandApproved: true,
-    isLoading: false,
     proposals: [] as unknown[],
   },
 }));
@@ -31,13 +30,12 @@ function idea(title: string) {
 
 describe('TurboPromptCards', () => {
   beforeEach(() => {
-    mocks.ideas = { isBrandApproved: true, isLoading: false, proposals: [] };
+    mocks.ideas = { isBrandApproved: true, proposals: [] };
   });
 
   it('shows exactly three cards, the agent ideas for the brand', () => {
     mocks.ideas = {
       isBrandApproved: true,
-      isLoading: false,
       proposals: [idea('One'), idea('Two'), idea('Three'), idea('Four')],
     };
     const onSelect = vi.fn();
@@ -69,7 +67,7 @@ describe('TurboPromptCards', () => {
   });
 
   it('asks for brand kit approval above the three starters when the brand has none', () => {
-    mocks.ideas = { isBrandApproved: false, isLoading: false, proposals: [] };
+    mocks.ideas = { isBrandApproved: false, proposals: [] };
     render(<TurboPromptCards brandId="brand-1" onSelect={vi.fn()} />);
 
     expect(screen.getByTestId('turbo-brand-approval')).toHaveTextContent(

@@ -106,7 +106,6 @@
         "description": "A presenter answers the questions customers ask most, in plain language."
       }
     },
-    "loading": "Your agent is drafting ideas for this brand.",
     "needsBrandApproval": "Approve the brand kit so your agent can write starters for this brand."
   },
   "search": "Search Turbo projects",
