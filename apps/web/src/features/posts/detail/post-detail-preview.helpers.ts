@@ -17,7 +17,10 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { stripHtmlToPlainText } from '@helpers/security/strip-html.helper';
 import type { TargetPreviewProps } from '@/props/ui/previews.props';
-import { isPostPublished } from './post-published.helper';
+import {
+  isPostPublished,
+  isTikTokInboxDelivered,
+} from './post-published.helper';
 
 function resolveIngredientMediaKind(
   category: IngredientCategory | undefined,
@@ -67,6 +70,19 @@ function buildPreviewSettings(post: IPost): Record<string, unknown> {
     settings.privacyStatus,
   );
   return privacyStatus ? { ...settings, privacyStatus } : settings;
+}
+
+/**
+ * A TikTok Inbox receipt finishes the target without a public post, so the
+ * preview shows it as the draft it is in TikTok, never as Published.
+ */
+function resolvePreviewExecutionState(post: IPost): TargetExecutionState {
+  if (isTikTokInboxDelivered(post)) {
+    return TargetExecutionState.DRAFT;
+  }
+  return isPostPublished(post)
+    ? TargetExecutionState.PUBLISHED
+    : (post.targetExecutionState ?? TargetExecutionState.DRAFT);
 }
 
 /**
@@ -120,9 +136,7 @@ export function buildPostTargetPreview(
       attachments: [],
       createdAt: post.createdAt,
       credentialId: post.credentialId ?? '',
-      executionState: isPostPublished(post)
-        ? TargetExecutionState.PUBLISHED
-        : (post.targetExecutionState ?? TargetExecutionState.DRAFT),
+      executionState: resolvePreviewExecutionState(post),
       id: `${post.id}-target`,
       isDeleted: post.isDeleted,
       order: 0,
