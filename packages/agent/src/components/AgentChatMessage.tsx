@@ -33,6 +33,7 @@ import { Alert } from '@ui/primitives/alert';
 import { Avatar } from '@ui/primitives/avatar';
 import { Button } from '@ui/primitives/button';
 import { SCROLL_FOCUS_SURFACE_CLASS } from '@ui/styles/scroll-focus';
+import DateText from '@ui/time/DateText';
 import Image from 'next/image';
 import {
   memo,
@@ -77,11 +78,6 @@ interface AgentChatMessageProps {
    * where it shows above the bubble; a thread with one author names no one.
    */
   author?: { avatarUrl?: string | null; name: string };
-}
-
-function formatTime(dateStr: string): string {
-  const date = new Date(dateStr);
-  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
 function AgentChatMessageInner({
@@ -262,7 +258,7 @@ function AgentChatMessageInner({
         >
           <Avatar name={author.name} size="2xs" src={author.avatarUrl} />
           <span className="font-medium text-foreground/80">{author.name}</span>
-          <span>{formatTime(message.createdAt)}</span>
+          <DateText value={message.createdAt} />
         </div>
       ) : null}
       <div
@@ -416,8 +412,7 @@ function AgentChatMessageInner({
       {isUser || shouldRenderMessageContent || shouldShowAssistantActions ? (
         <AgentChatMessageFooter
           isUser={isUser}
-          time={formatTime(message.createdAt)}
-          dateTime={message.createdAt}
+          createdAt={message.createdAt}
           shouldShowAssistantActions={Boolean(shouldShowAssistantActions)}
           isBusy={isBusy || isReadOnly}
           copyContent={copyContent}

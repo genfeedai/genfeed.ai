@@ -7,6 +7,7 @@ import {
 import { cn } from '@helpers/formatting/cn/cn.util';
 import Card from '@ui/card/Card';
 import { EmptyState } from '@ui/primitives/empty-state';
+import DateText from '@ui/time/DateText';
 import { Bot, User } from 'lucide-react';
 import { memo, useEffect, useMemo, useRef } from 'react';
 import { useAgentWorkflowStore } from '../store';
@@ -22,11 +23,6 @@ function MessageBubble({
   timestamp: number;
 }) {
   const isAgent = role === 'agent';
-  const time = new Date(timestamp).toLocaleTimeString([], {
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-
   return (
     <div
       className={cn(
@@ -64,7 +60,7 @@ function MessageBubble({
             isAgent ? 'text-left' : 'text-right',
           )}
         >
-          {time}
+          <DateText value={timestamp} />
         </p>
       </div>
     </div>
