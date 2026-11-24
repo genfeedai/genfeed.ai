@@ -17,6 +17,7 @@ function makeDispatcher() {
     sendModelScanNotification: vi.fn().mockResolvedValue(true),
     sendPostPublishedNotification: vi.fn().mockResolvedValue(true),
     sendRevenueNotification: vi.fn().mockResolvedValue(true),
+    sendAlertNotification: vi.fn().mockResolvedValue(true),
     sendStreakNotification: vi.fn().mockResolvedValue(true),
     sendUserCreatedNotification: vi.fn().mockResolvedValue(true),
     sendVercelNotification: vi.fn().mockResolvedValue(true),
@@ -41,7 +42,7 @@ function request(
 }
 
 describe('ChannelMessageDispatcherService', () => {
-  it('delivers actionable trend ingestion alerts through the operator card transport', async () => {
+  it('delivers actionable trend ingestion alerts to the alerts channel', async () => {
     const { discord, dispatcher } = makeDispatcher();
     const card = {
       color: 0xef4444,
@@ -58,7 +59,8 @@ describe('ChannelMessageDispatcherService', () => {
         }),
       ),
     ).resolves.toEqual({ messageId: 'delivery/key', status: 'delivered' });
-    expect(discord.sendStreakNotification).toHaveBeenCalledWith(card);
+    expect(discord.sendAlertNotification).toHaveBeenCalledWith(card);
+    expect(discord.sendStreakNotification).not.toHaveBeenCalled();
   });
 
   it('delivers a published-post card to the posts channel service', async () => {

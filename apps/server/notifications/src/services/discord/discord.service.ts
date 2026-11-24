@@ -85,6 +85,7 @@ export class DiscordService {
     const settings = await this.runtimeSettings.get();
     // Billing is left out: unset, its alerts post to the users channel.
     const channels = {
+      alerts: settings.discordChannelIdAlerts,
       deployments: settings.discordChannelIdDeployments,
       models: settings.discordChannelIdModels,
       posts: settings.discordChannelIdPosts,
@@ -109,6 +110,7 @@ export class DiscordService {
   ): Promise<IDiscordChannelTestResult> {
     const settings = await this.runtimeSettings.get();
     const channelIds: Record<DiscordTestChannel, string | null | undefined> = {
+      alerts: settings.discordChannelIdAlerts,
       billing: settings.discordChannelIdBilling,
       deployments: settings.discordChannelIdDeployments,
       models: settings.discordChannelIdModels,
@@ -127,6 +129,7 @@ export class DiscordService {
       DiscordTestChannel,
       () => Promise<WebhookClient | null>
     > = {
+      alerts: () => this.discordBotService.getAlertsWebhook(),
       billing: () => this.discordBotService.getBillingWebhook(),
       deployments: () => this.discordBotService.getDeploymentsWebhook(),
       models: () => this.discordBotService.getModelsWebhook(),
@@ -377,6 +380,30 @@ export class DiscordService {
             (await this.runtimeSettings.get()).discordBotAvatarUrl ?? undefined,
           embeds: [embed],
           username: 'Genfeed.ai Deployments',
+        });
+      },
+    );
+  }
+
+  /**
+   * Operator alerts (trend ingestion health, provider budget). They post only
+   * to the alerts channel: with none set they are skipped rather than landing
+   * in the posts channel.
+   */
+  async sendAlertNotification(input: {
+    title: string;
+    description: string;
+    color?: number;
+  }): Promise<boolean> {
+    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+    return this.withWebhook(
+      await this.discordBotService.getAlertsWebhook(),
+      url,
+      async (webhookClient) => {
+        await this.sendOperatorCard(webhookClient, {
+          color: input.color ?? 0xef4444,
+          summary: input.description,
+          title: input.title,
         });
       },
     );

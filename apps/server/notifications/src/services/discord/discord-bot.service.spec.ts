@@ -119,6 +119,8 @@ describe('DiscordBotService', () => {
                 mockConfigService.get('DISCORD_CHANNEL_ID_USERS') || null,
               discordChannelIdBilling:
                 mockConfigService.get('DISCORD_CHANNEL_ID_BILLING') || null,
+              discordChannelIdAlerts:
+                mockConfigService.get('DISCORD_CHANNEL_ID_ALERTS') || null,
               discordChannelIdModels:
                 mockConfigService.get('DISCORD_CHANNEL_ID_MODELS') || null,
               discordChannelIdDeployments:
@@ -579,6 +581,63 @@ describe('DiscordBotService', () => {
       await service.getOrCreateWebhook('channel-123', 'Test');
 
       expect(mockClient.channels.fetch).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe('getAlertsWebhook', () => {
+    async function readyService(): Promise<void> {
+      await service.onModuleInit();
+      const readyCallback = mockClient.once.mock.calls[0][1];
+      readyCallback();
+    }
+
+    it('opens the alerts channel, never the posts channel', async () => {
+      mockConfigService.get.mockImplementation((key) => {
+        const config: Record<string, string> = {
+          DISCORD_BOT_TOKEN: 'test-bot-token',
+          DISCORD_CHANNEL_ID_ALERTS: 'channel-alerts-123',
+          DISCORD_CHANNEL_ID_POSTS: 'channel-posts-123',
+        };
+        return config[key];
+      });
+      const mockChannel = Object.create(TextChannel.prototype);
+      Object.assign(mockChannel, {
+        createWebhook: vi
+          .fn()
+          .mockResolvedValue({ id: 'wh-1', url: 'https://discord.webhook/1' }),
+        fetchWebhooks: vi.fn().mockResolvedValue({
+          find: vi.fn().mockReturnValue(undefined),
+        }),
+      });
+      mockClient.channels.fetch.mockResolvedValue(mockChannel);
+      await readyService();
+
+      await service.getAlertsWebhook();
+
+      expect(mockClient.channels.fetch).toHaveBeenCalledWith(
+        'channel-alerts-123',
+      );
+      expect(mockClient.channels.fetch).not.toHaveBeenCalledWith(
+        'channel-posts-123',
+      );
+      expect(mockChannel.createWebhook).toHaveBeenCalledWith({
+        name: 'Alerts',
+        reason: 'Notification webhook',
+      });
+    });
+
+    it('resolves null when no alerts channel is set, without falling back to posts', async () => {
+      mockConfigService.get.mockImplementation((key) => {
+        const config: Record<string, string> = {
+          DISCORD_BOT_TOKEN: 'test-bot-token',
+          DISCORD_CHANNEL_ID_POSTS: 'channel-posts-123',
+        };
+        return config[key];
+      });
+      await readyService();
+
+      await expect(service.getAlertsWebhook()).resolves.toBeNull();
+      expect(mockClient.channels.fetch).not.toHaveBeenCalled();
     });
   });
 

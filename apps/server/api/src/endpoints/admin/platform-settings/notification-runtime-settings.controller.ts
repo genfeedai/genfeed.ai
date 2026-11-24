@@ -38,6 +38,7 @@ export class NotificationRuntimeSettingsController {
       discordChannelIdUsers: value.discordChannelIdUsers,
       discordChannelIdModels: value.discordChannelIdModels,
       discordChannelIdBilling: value.discordChannelIdBilling,
+      discordChannelIdAlerts: value.discordChannelIdAlerts,
       discordBotAvatarUrl: value.discordBotAvatarUrl,
       discordWebhookNamePrefix: value.discordWebhookNamePrefix,
       discordWebhookReason: value.discordWebhookReason,

@@ -305,6 +305,15 @@ export class UpdatePlatformSettingDto {
   @IsString()
   @MaxLength(320)
   @Matches(SINGLE_LINE_PATTERN)
+  @Matches(SNOWFLAKE_ID_PATTERN)
+  readonly discordChannelIdAlerts?: string | null;
+
+  @ValidateIf(
+    (_object, value) => value !== undefined && value !== null && value !== '',
+  )
+  @IsString()
+  @MaxLength(320)
+  @Matches(SINGLE_LINE_PATTERN)
   @IsUrl({ protocols: ['https'], require_protocol: true })
   readonly discordBotAvatarUrl?: string | null;
 

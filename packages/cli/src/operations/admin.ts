@@ -664,7 +664,14 @@ export async function readHarnessActivation(): Promise<IHarnessActivationReport>
   );
 }
 
-export const DISCORD_CHANNELS = ['deployments', 'models', 'posts', 'studio', 'users'] as const;
+export const DISCORD_CHANNELS = [
+  'alerts',
+  'deployments',
+  'models',
+  'posts',
+  'studio',
+  'users',
+] as const;
 
 export type DiscordChannel = (typeof DISCORD_CHANNELS)[number];
 
