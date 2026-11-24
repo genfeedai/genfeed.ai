@@ -162,26 +162,26 @@ vi.mock('@ui/dropdowns/aspect-ratio/AspectRatioDropdown', () => ({
   ),
 }));
 
-vi.mock('@ui/buttons/dropdown/button-dropdown/ButtonDropdown', () => ({
-  default: ({
-    onChange,
+vi.mock('@ui/primitives/option-select', () => ({
+  OptionSelect: ({
+    ariaLabel,
+    onValueChange,
     options,
-    tooltip,
     value,
   }: {
-    onChange: (name: string, value: string) => void;
+    ariaLabel: string;
+    onValueChange: (value: string) => void;
     options: Array<{ label: string; value: string }>;
-    tooltip?: string;
     value?: string;
   }) => (
     <div data-testid="outputs-button-dropdown">
-      <button type="button" aria-label={tooltip ?? 'Number of outputs'}>
+      <button type="button" aria-label={ariaLabel}>
         {value}x
       </button>
       {options.map((option) => (
         <button
           key={option.value}
-          onClick={() => onChange('outputs', option.value)}
+          onClick={() => onValueChange(option.value)}
           type="button"
         >
           {option.label}
@@ -642,8 +642,8 @@ describe('GenerationActionCard', () => {
     expect(source).toContain("translate('durationSeconds'");
     expect(source).not.toContain('{option}s');
     expect(source).not.toContain('const COPY =');
-    expect(source).toContain('ButtonDropdown');
-    expect(source).toContain('name="outputs"');
+    expect(source).toContain('OptionSelect');
+    expect(source).toContain('ariaLabel="Number of outputs"');
     expect(source).not.toContain('id="gen-action-outputs"');
     expect(source).toContain('ArrowUp');
     expect(source).not.toContain('Play');
