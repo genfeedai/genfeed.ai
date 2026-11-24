@@ -1,5 +1,6 @@
 import { CreditTransactionsService } from '@api/collections/credits/services/credit-transactions.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { ADMIN_CREDIT_GRANT_SOURCE } from '@api/collections/credits/services/free-trial-state.util';
 import { SuperAdminGuard } from '@api/common/guards/super-admin.guard';
 import { IpWhitelistGuard } from '@api/endpoints/admin/guards/ip-whitelist.guard';
 import {
@@ -27,7 +28,6 @@ import {
 import type { Request } from 'express';
 import { z } from 'zod';
 
-const ADMIN_GRANT_SOURCE = 'admin-grant';
 const DEFAULT_EXPIRY_DAYS = 365;
 const MAX_GRANT = 100_000;
 const DEFAULT_LEDGER_LIMIT = 200;
@@ -163,7 +163,7 @@ export class AdminOrganizationCreditsController {
       await this.credits.addOrganizationCreditsWithExpiration(
         organizationId,
         amount,
-        ADMIN_GRANT_SOURCE,
+        ADMIN_CREDIT_GRANT_SOURCE,
         reason,
         expiresAt,
         { actorUserId: operatorUserId, idempotencyKey },

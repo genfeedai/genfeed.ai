@@ -188,6 +188,7 @@ describe('FreeTrialService', () => {
             source: {
               in: [
                 ActivitySource.SUPERADMIN,
+                'admin-grant',
                 'proactive-onboarding',
                 'warmup-handoff',
                 'warmup-preparation',

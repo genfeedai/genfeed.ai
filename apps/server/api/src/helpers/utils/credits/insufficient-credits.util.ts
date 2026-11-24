@@ -5,13 +5,18 @@ export function createInsufficientCreditsException(
   requiredCredits: number,
   balance: number,
 ): HttpException {
-  return new HttpException(
+  const detail = `Insufficient credits: ${requiredCredits} required, ${balance} available`;
+  const exception = new HttpException(
     {
-      detail: `Insufficient credits: ${requiredCredits} required, ${balance} available`,
+      detail,
       title: 'Insufficient credits',
     },
     HttpStatus.PAYMENT_REQUIRED,
   );
+  // An object body leaves `Error.message` as "Http Exception", which is all a
+  // log line or an agent tool failure showed for a refused generation.
+  exception.message = detail;
+  return exception;
 }
 
 /**

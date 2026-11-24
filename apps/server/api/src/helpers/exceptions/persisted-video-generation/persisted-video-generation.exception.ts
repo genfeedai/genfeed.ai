@@ -1,3 +1,4 @@
+import { readHttpExceptionDetail } from '@api/helpers/utils/error-response/http-exception-detail.util';
 import { HttpException, HttpStatus } from '@nestjs/common';
 
 export class PersistedVideoGenerationException extends HttpException {
@@ -20,7 +21,8 @@ export class PersistedVideoGenerationException extends HttpException {
     // The redacted response is what a client sees. `message` is read only by
     // logs, Sentry and the agent turn's "Nodes failed: <node>: <message>"
     // string, where Nest's default (the class name) hid every cause.
-    if (error instanceof Error && error.message) this.message = error.message;
+    const detail = readHttpExceptionDetail(error);
+    if (detail) this.message = detail;
     this.persistedVideoIngredientIds = Object.freeze([...ids]);
   }
 
