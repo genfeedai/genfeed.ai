@@ -80,6 +80,9 @@ vi.mock('next-intl', () => ({
           rejectPilotAria: 'Reject this pilot',
           stop: 'Stop',
           stopAria: 'Stop generation',
+          copyError: 'Copy error',
+          errorCopied: 'Error copied',
+          retry: 'Retry',
         }[key] ?? key;
       return template.replace(/\{(\w+)\}/g, (token, name: string) =>
         values?.[name] === undefined ? token : String(values[name]),
