@@ -557,7 +557,7 @@ describe('ModalPost', () => {
             expect.objectContaining({
               credentialId: 'cred-ig',
               ingredients: ['video-1'],
-              targetSettings: { placement: 'reel' },
+              targetSettings: { aiGenerated: true, placement: 'reel' },
             }),
           ),
         );

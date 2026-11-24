@@ -120,19 +120,23 @@ describe('targetsForMedia', () => {
     [
       Platform.INSTAGRAM,
       [IngredientCategory.VIDEO],
-      { targetSettings: { placement: 'reel' } },
+      { targetSettings: { aiGenerated: true, placement: 'reel' } },
     ],
     [
       Platform.INSTAGRAM,
       [IngredientCategory.IMAGE],
-      { targetSettings: { placement: 'feed' } },
+      { targetSettings: { aiGenerated: true, placement: 'feed' } },
     ],
     [
       Platform.INSTAGRAM,
       [IngredientCategory.IMAGE, IngredientCategory.VIDEO],
-      { targetSettings: { placement: 'feed' } },
+      { targetSettings: { aiGenerated: true, placement: 'feed' } },
     ],
-    [Platform.INSTAGRAM, [], { targetSettings: { placement: 'feed' } }],
+    [
+      Platform.INSTAGRAM,
+      [],
+      { targetSettings: { aiGenerated: true, placement: 'feed' } },
+    ],
     [Platform.TIKTOK, [IngredientCategory.VIDEO], {}],
     [Platform.YOUTUBE, [IngredientCategory.VIDEO], {}],
   ])('resolves %s media %j to %j', (platform, categories, expected) => {

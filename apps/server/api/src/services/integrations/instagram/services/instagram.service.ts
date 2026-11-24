@@ -690,6 +690,7 @@ export class InstagramService {
     caption: string,
     hashtags?: string[],
     credentialId?: string,
+    isAiGenerated?: boolean,
   ): Promise<{ mediaId: string; shortcode: string }> {
     return this.publishingService.uploadImage(
       organizationId,
@@ -698,6 +699,7 @@ export class InstagramService {
       caption,
       hashtags,
       credentialId,
+      isAiGenerated,
     );
   }
 
@@ -718,6 +720,7 @@ export class InstagramService {
     hashtags?: string[],
     isShareToFeedSelected: boolean = true,
     credentialId?: string,
+    isAiGenerated?: boolean,
   ): Promise<{ mediaId: string; shortcode: string }> {
     return this.publishingService.uploadReel(
       organizationId,
@@ -728,6 +731,7 @@ export class InstagramService {
       hashtags,
       isShareToFeedSelected,
       credentialId,
+      isAiGenerated,
     );
   }
 
@@ -741,6 +745,7 @@ export class InstagramService {
     caption: string,
     hashtags?: string[],
     credentialId?: string,
+    isAiGenerated?: boolean,
   ): Promise<{ mediaId: string; shortcode: string }> {
     return this.publishingService.uploadCarousel(
       organizationId,
@@ -749,31 +754,7 @@ export class InstagramService {
       caption,
       hashtags,
       credentialId,
-    );
-  }
-
-  /**
-   * Upload video as a reel (the default video upload method since VIDEO is deprecated)
-   * Alias to uploadReel.
-   */
-  public uploadVideo(
-    organizationId: string,
-    brandId: string,
-    videoUrl: string,
-    caption: string,
-    coverImageUrl?: string,
-    hashtags?: string[],
-    isShareToFeedSelected: boolean = true,
-  ): Promise<{ mediaId: string; shortcode: string }> {
-    // VIDEO media type is deprecated, so we use uploadReel instead
-    return this.uploadReel(
-      organizationId,
-      brandId,
-      videoUrl,
-      caption,
-      coverImageUrl,
-      hashtags,
-      isShareToFeedSelected,
+      isAiGenerated,
     );
   }
 
