@@ -400,7 +400,8 @@ export class VideoProcessor extends WorkerHost {
   }
 
   async handleReverse(job: Job<VideoJobData>): Promise<JobResult> {
-    const { ingredientId, params, metadata, userId, room } = job.data;
+    const { ingredientId, params, metadata, userId, organizationId, room } =
+      job.data;
     this.logger.log(`Processing reverse job for ${ingredientId}`);
 
     try {
@@ -416,7 +417,7 @@ export class VideoProcessor extends WorkerHost {
         this.createProgressCallback(metadata.websocketUrl, userId, room),
       );
 
-      const { s3Key } = await this.uploadAndEmitSuccess(
+      const { s3Key, url } = await this.uploadAndEmitSuccess(
         outputPath,
         ingredientId,
         'videos',
@@ -427,6 +428,20 @@ export class VideoProcessor extends WorkerHost {
       );
 
       this.ffmpegService.removeTempDir('reverse', ingredientId);
+
+      await this.publishVideoCompletion(
+        ingredientId,
+        userId,
+        organizationId,
+        'completed',
+        {
+          ingredientId,
+          outputPath,
+          s3Key,
+          url,
+        },
+      );
+
       return { outputPath, s3Key, success: true };
     } catch (error: unknown) {
       const message = getErrorMessage(error);
@@ -437,12 +452,14 @@ export class VideoProcessor extends WorkerHost {
         userId,
         room,
       );
+      await this.publishFinalFailure(job, message);
       throw error;
     }
   }
 
   async handleMirror(job: Job<VideoJobData>): Promise<JobResult> {
-    const { ingredientId, params, metadata, userId, room } = job.data;
+    const { ingredientId, params, metadata, userId, organizationId, room } =
+      job.data;
     this.logger.log(`Processing mirror job for ${ingredientId}`);
 
     try {
@@ -458,7 +475,7 @@ export class VideoProcessor extends WorkerHost {
         this.createProgressCallback(metadata.websocketUrl, userId, room),
       );
 
-      const { s3Key } = await this.uploadAndEmitSuccess(
+      const { s3Key, url } = await this.uploadAndEmitSuccess(
         outputPath,
         ingredientId,
         'videos',
@@ -469,6 +486,20 @@ export class VideoProcessor extends WorkerHost {
       );
 
       this.ffmpegService.removeTempDir('mirror', ingredientId);
+
+      await this.publishVideoCompletion(
+        ingredientId,
+        userId,
+        organizationId,
+        'completed',
+        {
+          ingredientId,
+          outputPath,
+          s3Key,
+          url,
+        },
+      );
+
       return { outputPath, s3Key, success: true };
     } catch (error: unknown) {
       const message = getErrorMessage(error);
@@ -479,6 +510,7 @@ export class VideoProcessor extends WorkerHost {
         userId,
         room,
       );
+      await this.publishFinalFailure(job, message);
       throw error;
     }
   }
@@ -633,7 +665,8 @@ export class VideoProcessor extends WorkerHost {
   }
 
   async handleTextOverlay(job: Job<VideoJobData>): Promise<JobResult> {
-    const { ingredientId, params, metadata, userId, room } = job.data;
+    const { ingredientId, params, metadata, userId, organizationId, room } =
+      job.data;
     this.logger.log(`Processing text overlay for ${ingredientId}`);
 
     try {
@@ -657,7 +690,7 @@ export class VideoProcessor extends WorkerHost {
         this.createProgressCallback(metadata.websocketUrl, userId, room),
       );
 
-      const { s3Key } = await this.uploadAndEmitSuccess(
+      const { s3Key, url } = await this.uploadAndEmitSuccess(
         outputPath,
         ingredientId,
         'videos',
@@ -668,6 +701,20 @@ export class VideoProcessor extends WorkerHost {
       );
 
       this.ffmpegService.removeTempDir('overlay', ingredientId);
+
+      await this.publishVideoCompletion(
+        ingredientId,
+        userId,
+        organizationId,
+        'completed',
+        {
+          ingredientId,
+          outputPath,
+          s3Key,
+          url,
+        },
+      );
+
       return { outputPath, s3Key, success: true };
     } catch (error: unknown) {
       const message = getErrorMessage(error);
@@ -678,6 +725,7 @@ export class VideoProcessor extends WorkerHost {
         userId,
         room,
       );
+      await this.publishFinalFailure(job, message);
       throw error;
     }
   }
