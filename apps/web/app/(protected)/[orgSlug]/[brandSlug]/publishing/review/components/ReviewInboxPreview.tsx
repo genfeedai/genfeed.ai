@@ -37,7 +37,7 @@ export default function ReviewInboxPreview({
                 loop: false,
                 muted: true,
                 playsInline: true,
-                preload: 'metadata',
+                preload: 'none',
               }}
               src={mediaUrl}
             />
