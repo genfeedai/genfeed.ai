@@ -71,9 +71,6 @@
       "button-restyle": 3,
       "unstyled-look": 1
     },
-    "apps/web/app/(protected)/[orgSlug]/[brandSlug]/tasks/[id]/issue-comments-card.tsx": {
-      "button-restyle": 2
-    },
     "apps/web/app/(protected)/[orgSlug]/[brandSlug]/tasks/[id]/sub-issue-row.tsx": {
       "unstyled-look": 1
     },
@@ -82,15 +79,6 @@
     },
     "apps/web/app/(protected)/[orgSlug]/[brandSlug]/workspace/workspace-task-brand-mention-list.tsx": {
       "unstyled-look": 1
-    },
-    "apps/web/app/(protected)/[orgSlug]/~/agent/journey/journey-page-content.tsx": {
-      "button-restyle": 2
-    },
-    "apps/web/app/(protected)/[orgSlug]/~/settings/(pages)/organization/organization-identity-card.tsx": {
-      "button-restyle": 2
-    },
-    "apps/web/app/(protected)/[orgSlug]/~/settings/(pages)/personal/settings-progress-overview-card.tsx": {
-      "unstyled-look": 2
     },
     "apps/web/app/(protected)/admin/administration/announcements/announcement-compose-form.tsx": {
       "button-restyle": 1
@@ -223,13 +211,10 @@
       "button-restyle": 1
     },
     "apps/web/src/features/brands/components/sidebar/social-warmup/SocialWarmupProgram.tsx": {
-      "button-restyle": 2
+      "button-restyle": 1
     },
     "apps/web/src/features/campaigns/form/CampaignCreateDialog.tsx": {
       "button-restyle": 1
-    },
-    "apps/web/src/features/content-runs/detail/content-run-detail.tsx": {
-      "unstyled-look": 2
     },
     "apps/web/src/features/ingredients/components/ingredients/list/recovery/FailedIngredientsRecovery.tsx": {
       "button-restyle": 1
@@ -245,9 +230,6 @@
     },
     "apps/web/src/features/models/list/components/ModelsTableColumns.tsx": {
       "unstyled-look": 1
-    },
-    "apps/web/src/features/posts/components/posts/post-detail-sidebar/PostSidebarWhenDock.tsx": {
-      "button-restyle": 2
     },
     "apps/web/src/features/posts/detail/components/PostDetailThreadFooter.tsx": {
       "button-restyle": 1
@@ -298,9 +280,6 @@
     },
     "apps/web/src/features/studio/storyboard/components/StoryboardRuntimeRail.tsx": {
       "unstyled-look": 1
-    },
-    "apps/web/src/features/trends/list/components/HookRemixModal.tsx": {
-      "button-restyle": 2
     },
     "apps/web/src/features/workflows/components/dropdowns/multiselect/DropdownMultiSelect.tsx": {
       "unstyled-look": 1

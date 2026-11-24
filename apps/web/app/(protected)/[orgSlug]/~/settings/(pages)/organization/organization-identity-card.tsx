@@ -27,7 +27,6 @@ import type {
   OrganizationIdentityEditorProps,
 } from '@/features/settings/props/organization-identity-card.props';
 
-const ICON_BUTTON_CLASS = 'size-8 shrink-0 p-0 [&_svg]:size-3.5';
 const HANDLE_PATTERN = /^[a-z0-9][a-z0-9-]{0,46}[a-z0-9]$/;
 // Two more than the 48-character handle limit: the display-only `@` prefix.
 const HANDLE_INPUT_MAX_LENGTH = 49;
@@ -262,7 +261,6 @@ function OrganizationIdentityEditor({
             <div className="flex gap-1.5">
               <Button
                 ariaLabel={translate('uploadLogo')}
-                className={ICON_BUTTON_CLASS}
                 icon={<Upload className="size-3.5" />}
                 isDisabled={isGeneratingLogo}
                 onClick={onUploadLogo}
@@ -271,7 +269,6 @@ function OrganizationIdentityEditor({
               />
               <Button
                 ariaLabel={translate('generateLogo')}
-                className={ICON_BUTTON_CLASS}
                 icon={<Sparkles className="size-3.5" />}
                 isDisabled={!canEdit}
                 isLoading={isGeneratingLogo}
