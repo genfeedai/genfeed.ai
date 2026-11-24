@@ -158,9 +158,6 @@
     "apps/web/src/components/desktop/DesktopServerSettings.tsx": {
       "unstyled-look": 3
     },
-    "apps/web/src/components/editors/RichTextEditorToolbar.tsx": {
-      "unstyled-look": 9
-    },
     "apps/web/src/components/evaluation/card/EvaluationCard.tsx": {
       "unstyled-look": 2
     },
@@ -491,13 +488,7 @@
     "packages/agent/src/components/AnalyticsSnapshotCard.tsx": {
       "unstyled-look": 1
     },
-    "packages/agent/src/components/CharacterMentionList.tsx": {
-      "unstyled-look": 1
-    },
     "packages/agent/src/components/ContentCalendarCard.tsx": {
-      "unstyled-look": 1
-    },
-    "packages/agent/src/components/CredentialMentionList.tsx": {
       "unstyled-look": 1
     },
     "packages/agent/src/components/GenerationActionCanvas.tsx": {
@@ -517,12 +508,6 @@
     },
     "packages/agent/src/components/MutationApprovalCard.tsx": {
       "button-restyle": 1
-    },
-    "packages/agent/src/components/StudioReferenceMentionList.tsx": {
-      "unstyled-look": 1
-    },
-    "packages/agent/src/components/TeamMentionList.tsx": {
-      "unstyled-look": 1
     },
     "packages/agent/src/components/TimelineWorkGroup.tsx": {
       "unstyled-look": 1

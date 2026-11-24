@@ -22,7 +22,6 @@ function renderHeader(overrides: Partial<CreatorHeaderProps> = {}) {
   return render(
     <CreatorHeader
       brand={brand}
-      counts={{ articles: 0, images: 0, posts: 2, videos: 0 }}
       handle="shayla"
       hasBanner
       profileUrl="https://genfeed.ai/@shayla"

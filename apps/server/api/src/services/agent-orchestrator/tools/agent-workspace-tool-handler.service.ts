@@ -793,15 +793,21 @@ function clampInteger(
 }
 
 function toListedAsset(asset: IngredientDocument): Record<string, unknown> {
+  const url = readIngredientMediaUrlWithFallback(asset) ?? null;
   return {
     category: asset.category,
+    // The media projection recognises an ingredient by its `cdnUrl` key or a
+    // string `url`. On a cloud deployment the computed `cdnUrl` is null, and an
+    // upload has no external link to fall back to, so `url` alone left every
+    // uploaded image unrecognised, unsigned and without a URL.
+    cdnUrl: url,
     createdAt: asset.createdAt ?? null,
     id: String(asset.id),
     origin: asset.origin ?? null,
     prompt: asset.generationPrompt ?? null,
     status: asset.status,
     tags: toListedTags(asset.tags),
-    url: readIngredientMediaUrlWithFallback(asset) ?? null,
+    url,
   };
 }
 

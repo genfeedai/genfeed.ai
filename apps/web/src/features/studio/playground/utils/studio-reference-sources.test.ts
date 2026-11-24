@@ -57,6 +57,12 @@ describe('buildStudioReferenceSources', () => {
     ).toEqual(['editSource']);
   });
 
+  it('drops the mask for MAI-Image edits', () => {
+    expect(
+      build('image-edit', { isMaiEdit: true }).map((source) => source.id),
+    ).toEqual(['editSource']);
+  });
+
   it('fills the source images once the model limit is reached', () => {
     const [sources] = build('image-edit', {
       editSourceCount: 3,

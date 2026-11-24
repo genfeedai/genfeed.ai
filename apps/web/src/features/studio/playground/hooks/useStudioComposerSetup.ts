@@ -1,6 +1,9 @@
 'use client';
 
-import { isFlux3ImageModel } from '@genfeedai/contracts/constants';
+import {
+  isFlux3ImageModel,
+  isMaiImageEditModel,
+} from '@genfeedai/contracts/constants';
 import type { IStudioLook } from '@genfeedai/contracts/interfaces';
 import type {
   GenerationSetupFieldKey,
@@ -133,6 +136,13 @@ export function useStudioComposerSetup({
       ) {
         setGenerationSetupField(scope, 'resolution', '1k', defaults);
         setGenerationSetupField(scope, 'aspectRatio', 'auto', defaults);
+        setGenerationSetupField(scope, 'outputs', 1, defaults);
+      }
+      if (
+        key === 'modelKey' &&
+        typeof value === 'string' &&
+        isMaiImageEditModel(value)
+      ) {
         setGenerationSetupField(scope, 'outputs', 1, defaults);
       }
       if (

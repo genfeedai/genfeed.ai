@@ -54,19 +54,19 @@ for (const viewport of [
       (editorBounds?.x ?? 0) + (editorBounds?.width ?? 0),
     ).toBeLessThanOrEqual(viewport.width);
 
-    // #9382: the prompt bar became one compact row of AI actions under the
-    // editor; it must stay usable and inside the viewport.
+    // The AI actions are one Improve menu and Ask agent under the editor; the
+    // row must stay usable and inside the viewport.
     const actions = canvas.getByRole('region', {
       exact: true,
       name: 'AI actions',
     });
     await expect(actions).toBeVisible();
     await expect(
-      actions.getByRole('button', { exact: true, name: 'Shorten' }),
+      actions.getByRole('button', { exact: true, name: 'Improve' }),
     ).toBeEnabled();
     await expect(
-      actions.getByRole('combobox', { exact: true, name: 'Tone' }),
-    ).toBeVisible();
+      actions.getByRole('button', { exact: true, name: 'Shorten' }),
+    ).toHaveCount(0);
     for (const control of await canvas
       .locator('button, [role="combobox"]')
       .all()) {
