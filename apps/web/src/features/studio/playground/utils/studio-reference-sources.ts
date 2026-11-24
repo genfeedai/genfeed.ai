@@ -21,6 +21,7 @@ export function buildStudioReferenceSources({
   isAutoMode,
   isCrunStartEnd,
   isFlux,
+  isMaiEdit,
   isUploading,
   labels,
   modelKey,
@@ -55,7 +56,7 @@ export function buildStudioReferenceSources({
       'image/*',
       editSourceCount >= editSourceLimit,
     );
-    if (!isFlux) {
+    if (!isFlux && !isMaiEdit) {
       addSource('editMask', labels.editMask, 'image/*');
     }
   }

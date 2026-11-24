@@ -21,6 +21,7 @@ import type { IIngredient, IPost } from '@genfeedai/contracts/interfaces';
 import { getBrowserTimezone } from '@genfeedai/helpers/formatting/timezone/timezone.helper';
 import { openModal } from '@genfeedai/helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
+import { xPostHasLink } from '@genfeedai/pricing';
 import type {
   ComposerDestination,
   ModalPostComposerStep,
@@ -650,6 +651,8 @@ export default function ModalPost({
   const hasXTarget = selectedCredentials.some((account) =>
     isXPlatform(account.platform),
   );
+  // X bills a post with a link at many times the price of one without.
+  const hasLinkCost = hasXTarget && xPostHasLink(descriptionText);
   const isLongPost =
     isDestinationComposer &&
     (hasXTarget || (selectedCredentials.length === 0 && !destination)) &&
@@ -929,6 +932,7 @@ export default function ModalPost({
               ? {
                   credentials,
                   destination,
+                  hasLinkCost,
                   hasXTarget,
                   channelIds: slackTargets.channelIds,
                   isDisabled: isSubmitting,

@@ -21,6 +21,7 @@ export default function StudioComposerImageControls({
   isEditingModelUnavailable,
   isEditSourceMissing,
   isFlux,
+  isMaiEdit = false,
   onSettingsChange,
   settings,
   type,
@@ -62,6 +63,11 @@ export default function StudioComposerImageControls({
           ) : null}
         </div>
       ) : null}
+      {isMaiEdit && droppedEditingControls ? (
+        <p role="status" className="mt-2 text-xs text-muted-foreground">
+          {translate('editImage.removedEditControls')}
+        </p>
+      ) : null}
       {type === 'image-edit' ? (
         <div className="mt-2 flex flex-wrap items-center gap-2">
           {editSources.length > 1 ? (
@@ -87,7 +93,7 @@ export default function StudioComposerImageControls({
               }
             />
           ) : null}
-          {!isFlux ? (
+          {!isFlux && !isMaiEdit ? (
             <>
               <PromptBarCompactSelect
                 ariaLabel={translate('editImage.outputSize')}
@@ -131,7 +137,7 @@ export default function StudioComposerImageControls({
               count: editSources.length,
               limit: editSourceLimit,
             })}
-            {isFlux
+            {isFlux || isMaiEdit
               ? translate('editImage.fluxSemantics')
               : translate('editImage.maskSemantics')}
           </p>

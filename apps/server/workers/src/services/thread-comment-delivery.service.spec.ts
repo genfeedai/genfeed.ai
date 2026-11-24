@@ -3,12 +3,17 @@ import {
   PostCategory,
   TargetExecutionState,
 } from '@genfeedai/contracts';
+import { ScheduledPostXBilling } from '@workers/services/scheduled-post-x-billing';
 import { ThreadCommentDeliveryService } from '@workers/services/thread-comment-delivery.service';
 
 type Mocks = ReturnType<typeof createMocks>;
 
 function createMocks() {
   return {
+    credits: {
+      checkOrganizationCreditsAvailable: vi.fn().mockResolvedValue(true),
+      deductCreditsFromOrganization: vi.fn().mockResolvedValue(undefined),
+    },
     credentialsService: {
       findOne: vi.fn().mockResolvedValue({
         id: 'cred-1',
@@ -19,6 +24,7 @@ function createMocks() {
     organizationsService: {
       findOne: vi.fn().mockResolvedValue({ id: 'org-1' }),
     },
+    paidAccess: { isSubscriptionGatedFresh: vi.fn().mockResolvedValue(false) },
     prisma: {
       post: {
         count: vi.fn().mockResolvedValue(0),
@@ -47,6 +53,12 @@ function createService(mocks: Mocks): ThreadCommentDeliveryService {
     mocks.credentialsService as never,
     mocks.publisherFactory as never,
     mocks.sweepLock as never,
+    new ScheduledPostXBilling(
+      mocks.logger as never,
+      mocks.paidAccess as never,
+      mocks.credits as never,
+      mocks.prisma as never,
+    ),
   );
 }
 
@@ -131,6 +143,55 @@ describe('ThreadCommentDeliveryService', () => {
       [expect.objectContaining({ id: 'child-1' })],
       'sibling-external-1',
     );
+  });
+
+  it('charges an X comment once the publisher sent it', async () => {
+    mocks.prisma.post.findMany.mockResolvedValue([
+      createChild({ description: 'Plain follow-up' }),
+    ]);
+    mocks.prisma.post.findFirst
+      .mockResolvedValueOnce(createParent({ userId: 'user-1' }))
+      .mockResolvedValueOnce({ externalId: 'sibling-external-1' });
+
+    await createService(mocks).publishDueThreadComments();
+
+    expect(mocks.credits.deductCreditsFromOrganization).toHaveBeenCalledWith(
+      'org-1',
+      'user-1',
+      3,
+      'X post published',
+      expect.anything(),
+      expect.objectContaining({ idempotencyKey: 'x-post-publish:child-1' }),
+    );
+  });
+
+  it('charges nothing for an X comment the publisher did not send', async () => {
+    mocks.prisma.post.findMany
+      .mockResolvedValueOnce([createChild()])
+      .mockResolvedValue([]);
+    mocks.prisma.post.findFirst
+      .mockResolvedValueOnce(createParent())
+      .mockResolvedValueOnce({ externalId: 'sibling-external-1' });
+
+    await createService(mocks).publishDueThreadComments();
+
+    expect(publishThreadChildren).toHaveBeenCalled();
+    expect(mocks.credits.deductCreditsFromOrganization).not.toHaveBeenCalled();
+  });
+
+  it('charges nothing for a comment on another channel', async () => {
+    mocks.credentialsService.findOne.mockResolvedValue({
+      id: 'cred-1',
+      platform: CredentialPlatform.LINKEDIN,
+    });
+    mocks.prisma.post.findMany.mockResolvedValue([createChild()]);
+    mocks.prisma.post.findFirst.mockResolvedValueOnce(
+      createParent({ platform: CredentialPlatform.LINKEDIN }),
+    );
+
+    await createService(mocks).publishDueThreadComments();
+
+    expect(mocks.credits.deductCreditsFromOrganization).not.toHaveBeenCalled();
   });
 
   it('anchors a comment channel on the parent post', async () => {
