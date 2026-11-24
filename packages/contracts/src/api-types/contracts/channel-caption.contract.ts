@@ -16,6 +16,25 @@ import { measurePlatformText } from './platform-text-length.contract';
 interface CaptionLimits {
   maxLength: number;
   extendedMaxLength?: number;
+  maxHashtags?: number;
+}
+
+/** A hashtag the way a caption writes one: `#` and the word after it. */
+export const HASHTAG_PATTERN = /#[\p{L}\p{N}_]+/gu;
+
+export function countHashtags(text: string): number {
+  return text.match(HASHTAG_PATTERN)?.length ?? 0;
+}
+
+/**
+ * The hashtag rule a model prompt gives for a caption, as a clause to follow
+ * "must" or a bare imperative. Every path that asks a model for a caption reads
+ * it from the channel capability catalog (`caption.maxHashtags`), so one number
+ * reaches every prompt.
+ */
+export function describeHashtagRule(maxHashtags: number): string {
+  if (maxHashtags === 0) return 'use no hashtags';
+  return `use at most ${maxHashtags} hashtag${maxHashtags === 1 ? '' : 's'}`;
 }
 
 /** The slice of a channel capability the caption rules read. */
@@ -83,23 +102,35 @@ export function collectCaptionWarnings(
   input: CaptionRuleInput,
   capability: CaptionRuleChannel,
 ): ChannelValidationIssue[] {
-  const { extendedMaxLength, maxLength } = capability.caption;
-  if (extendedMaxLength === undefined) return [];
+  const warnings: ChannelValidationIssue[] = [];
+  const caption = input.caption ?? '';
+  const { extendedMaxLength, maxHashtags, maxLength } = capability.caption;
 
-  const captionLength = measurePlatformText(
-    input.caption ?? '',
-    capability.platform,
-  );
-  if (captionLength <= maxLength || captionLength > extendedMaxLength) {
-    return [];
+  if (extendedMaxLength !== undefined) {
+    const captionLength = measurePlatformText(caption, capability.platform);
+    if (captionLength > maxLength && captionLength <= extendedMaxLength) {
+      warnings.push({
+        code: 'channel_target.caption_over_standard_length',
+        field: 'caption',
+        message: `${capability.label} caption is ${captionLength} characters. Posts over ${maxLength} need an account with long posts enabled, otherwise ${capability.label} refuses them.`,
+        severity: 'warning',
+      });
+    }
   }
 
-  return [
-    {
-      code: 'channel_target.caption_over_standard_length',
-      field: 'caption',
-      message: `${capability.label} caption is ${captionLength} characters. Posts over ${maxLength} need an account with long posts enabled, otherwise ${capability.label} refuses them.`,
-      severity: 'warning',
-    },
-  ];
+  // A warning, not an error: what the channel does with one hashtag too many
+  // has not been read back from a real publish.
+  if (maxHashtags !== undefined) {
+    const hashtagCount = countHashtags(caption);
+    if (hashtagCount > maxHashtags) {
+      warnings.push({
+        code: 'channel_target.too_many_hashtags',
+        field: 'caption',
+        message: `${capability.label} allows at most ${maxHashtags} hashtag${maxHashtags === 1 ? '' : 's'} and this caption has ${hashtagCount}. Remove ${hashtagCount - maxHashtags}.`,
+        severity: 'warning',
+      });
+    }
+  }
+
+  return warnings;
 }

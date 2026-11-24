@@ -323,6 +323,7 @@ export default function PostDetailContent({
           platformLabel={
             post.platform ? getPostsPlatformLabel(post.platform) : 'social'
           }
+          platform={post.platform ?? undefined}
           isBusy={enhancingPostId !== null}
           canDraftThread={isTwitter && threadChildren.length === 0}
           onRewrite={(prompt, actionKey, tone) =>

@@ -26,9 +26,11 @@ import {
   type ChannelValidationIssue,
   channelTargetValidationMediaSchema,
   getChannelCapability,
+  getChannelHashtagLimit,
   resolveChannelTargetSettings,
   validateChannelTargetSettings,
 } from './channel-capabilities.contract';
+import { HASHTAG_PATTERN } from './channel-caption.contract';
 
 const WHITESPACE_CHAR_PATTERN = /\s/u;
 const SPACE_BEFORE_PUNCTUATION_PATTERN = /[^\S\n]+([,.;:!?])/gu;
@@ -106,16 +108,17 @@ const HARD_FAILURE_CODES = new Set<string>([
 
 /**
  * Hashtag ceilings reflect each channel's discovery mechanics, not a formal
- * API limit; link handling reflects whether caption links are clickable at
- * all on the published surface. Channels without an entry keep hashtags and
- * links untouched.
+ * API limit, except where the channel capability catalog declares
+ * `caption.maxHashtags`: that number wins (Instagram). Link handling reflects
+ * whether caption links are clickable at all on the published surface.
+ * Channels without an entry keep hashtags and links untouched.
  */
 const CHANNEL_TEXT_POLICIES: Partial<
   Record<CredentialPlatform, ChannelTextPolicy>
 > = {
   [CredentialPlatform.BLUESKY]: { hasClickableLinks: true, maxHashtags: 3 },
   [CredentialPlatform.FACEBOOK]: { hasClickableLinks: true, maxHashtags: 3 },
-  [CredentialPlatform.INSTAGRAM]: { hasClickableLinks: false, maxHashtags: 30 },
+  [CredentialPlatform.INSTAGRAM]: { hasClickableLinks: false },
   [CredentialPlatform.LINKEDIN]: { hasClickableLinks: true, maxHashtags: 5 },
   [CredentialPlatform.MASTODON]: { hasClickableLinks: true, maxHashtags: 5 },
   [CredentialPlatform.MEDIUM]: { hasClickableLinks: true, maxHashtags: 0 },
@@ -146,7 +149,6 @@ const WORD_CUT_MIN_RETENTION = 0.25;
 const ELLIPSIS = '…';
 
 const LINK_PATTERN = /https?:\/\/\S+/giu;
-const HASHTAG_PATTERN = /#[\p{L}\p{N}_]+/gu;
 const SENTENCE_END_CHARS = new Set(['.', '!', '?']);
 
 export function getChannelTextPolicy(
@@ -156,7 +158,12 @@ export function getChannelTextPolicy(
   const policy = parsed.success
     ? CHANNEL_TEXT_POLICIES[parsed.data]
     : undefined;
-  return policy ? { ...policy } : { ...DEFAULT_TEXT_POLICY };
+  const resolved = policy ? { ...policy } : { ...DEFAULT_TEXT_POLICY };
+  const catalogLimit = getChannelHashtagLimit(platform);
+  if (catalogLimit !== undefined) {
+    resolved.maxHashtags = catalogLimit;
+  }
+  return resolved;
 }
 
 /**

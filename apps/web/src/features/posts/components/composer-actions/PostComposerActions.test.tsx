@@ -126,6 +126,23 @@ describe('PostComposerActions', () => {
     });
   });
 
+  it('holds the Hashtags preset to the limit the channel catalog declares', async () => {
+    const { props } = renderActions({
+      platform: 'instagram',
+      platformLabel: 'Instagram',
+    });
+
+    await chooseFromMenu('Hashtags');
+
+    await waitFor(() => {
+      expect(props.onRewrite).toHaveBeenCalledWith(
+        expect.stringContaining('use at most 5 hashtags'),
+        null,
+        'professional',
+      );
+    });
+  });
+
   it('proposes thread posts and adds them only on accept', async () => {
     const onDraftThread = vi.fn().mockResolvedValue(['Reply one', 'Reply two']);
     const onAddThreadPosts = vi.fn().mockResolvedValue(undefined);

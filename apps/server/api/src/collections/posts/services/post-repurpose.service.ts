@@ -25,7 +25,10 @@ import {
   resolveChannelTargetSettings,
   validateChannelTargetSettings,
 } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
-import { describeCaptionLengthRule } from '@genfeedai/contracts/api-types/contracts/channel-caption.contract';
+import {
+  describeCaptionLengthRule,
+  describeHashtagRule,
+} from '@genfeedai/contracts/api-types/contracts/channel-caption.contract';
 import {
   type ChannelRepurposeAdjustment,
   type ChannelRepurposeMedia,
@@ -414,7 +417,7 @@ export class PostRepurposeService {
       constraints.push(describeCaptionLengthRule(capability.caption));
     }
     if (policy.maxHashtags !== undefined) {
-      constraints.push(`use at most ${policy.maxHashtags} hashtags`);
+      constraints.push(describeHashtagRule(policy.maxHashtags));
     }
     if (!policy.hasClickableLinks) {
       constraints.push('avoid links because captions are not clickable');
