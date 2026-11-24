@@ -2004,6 +2004,77 @@ describe('FLUX.3 editing default and exact alias dispatch', () => {
     expect(enhancementService.enhance).not.toHaveBeenCalled();
     expect(promptBuilderService.buildPrompt).not.toHaveBeenCalled();
   });
+  it('edits with MAI-Image through the picker, sending fitted size and sources to fal, while the default stays FLUX.3 Edit', async () => {
+    const {
+      service,
+      routerService,
+      imagesService,
+      modelRegistrationService,
+      falService,
+      replicateService,
+      sharedService,
+    } = createService();
+    const model = MODEL_KEYS.FAL_MAI_IMAGE_2_7_EDIT;
+    const sourceId = testId('maisource');
+    const extraId = testId('maiextra');
+    modelRegistrationService.validateModelForOrg.mockResolvedValue({
+      endpoint: 'microsoft/mai-image-2.7/edit',
+      provider: ModelProvider.FAL,
+      category: ModelCategory.IMAGE_EDIT,
+    });
+    imagesService.findOne.mockImplementation(async (query: { id?: string }) =>
+      query.id === sourceId || query.id === extraId
+        ? {
+            id: query.id,
+            status: IngredientStatus.GENERATED,
+            s3Key: `images/${query.id}.png`,
+            metadata: { width: 576, height: 1024, extension: 'png' },
+          }
+        : null,
+    );
+    await service.editImage(
+      buildUser(),
+      sourceId,
+      {
+        prompt: 'Change only the sign',
+        brandId: RESOLVED_BRAND,
+        model,
+        references: [extraId],
+      },
+      buildRequest(),
+    );
+    await vi.waitFor(() =>
+      expect(falService.generateImage).toHaveBeenCalledTimes(1),
+    );
+    expect(falService.generateImage).toHaveBeenCalledWith(
+      'microsoft/mai-image-2.7/edit',
+      {
+        image_size: { height: 1360, width: 768 },
+        image_urls: [
+          expect.stringContaining(sourceId),
+          expect.stringContaining(extraId),
+        ],
+        prompt: 'Change only the sign',
+      },
+      undefined,
+      expect.any(Function),
+      expect.any(Function),
+    );
+    expect(replicateService.generateTextToImage).not.toHaveBeenCalled();
+    expect(routerService.resolveModelKey).not.toHaveBeenCalled();
+    expect(sharedService.createMediaDocuments.mock.calls[0][1]).toMatchObject({
+      model,
+      parentId: sourceId,
+      providerData: {
+        imageEdit: {
+          contractVersion: 'mai-image-edit-2026-11-24',
+          model,
+          outputs: 1,
+          sourceIds: [sourceId, extraId],
+        },
+      },
+    });
+  });
   it('rejects a multi-output FLUX generation before placeholders or prompt enhancement', async () => {
     const { service, sharedService, enhancementService, replicateService } =
       createService();

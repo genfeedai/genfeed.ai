@@ -199,7 +199,7 @@ export class ImageGenerationService {
       height: editing.height,
       outputs: dto.outputs ?? 1,
       seed: dto.seed,
-      quality: isFlux3ImageModel(resolvedModel) ? undefined : 'medium',
+      quality: editing.recipe.quality,
       resolution: editing.recipe.resolution,
       aspectRatio: editing.recipe.aspectRatio,
       harness: false,

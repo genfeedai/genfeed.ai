@@ -105,7 +105,7 @@ export function AgentRunFailureCard({
           </div>
           <div className="flex shrink-0 items-start gap-1.5">
             <Button
-              variant={ButtonVariant.GHOST}
+              variant={ButtonVariant.DESTRUCTIVE}
               size={ButtonSize.ICON}
               withWrapper={false}
               ariaLabel={isCopied ? 'Error copied' : 'Copy error'}
@@ -113,7 +113,6 @@ export function AgentRunFailureCard({
               onClick={() => {
                 void handleCopy();
               }}
-              className="size-8 border border-destructive/20 text-destructive hover:bg-destructive/20 hover:text-destructive"
               icon={
                 isCopied ? (
                   <Check className="size-3.5" />
@@ -124,10 +123,10 @@ export function AgentRunFailureCard({
             />
             {formatted.reason === AgentFailureReason.INSUFFICIENT_CREDITS ? (
               <Button
-                variant={ButtonVariant.SECONDARY}
+                variant={ButtonVariant.DESTRUCTIVE}
                 withWrapper={false}
                 onClick={() => openModal(ModalEnum.CREDITS_REQUIRED)}
-                className="h-8 shrink-0 gap-1.5 self-start border-destructive/40 bg-destructive/20 px-3 text-destructive hover:bg-destructive/20"
+                className="shrink-0 self-start"
                 icon={<Coins className="size-3.5" />}
               >
                 {translate('getCredits')}
@@ -135,14 +134,14 @@ export function AgentRunFailureCard({
             ) : null}
             {onRetry && formatted.isRetryable ? (
               <Button
-                variant={ButtonVariant.SECONDARY}
+                variant={ButtonVariant.DESTRUCTIVE}
                 withWrapper={false}
                 isLoading={isRetrying}
                 isDisabled={isRetrying}
                 onClick={() => {
                   void onRetry();
                 }}
-                className="h-8 shrink-0 gap-1.5 self-start border-destructive/40 bg-destructive/20 px-3 text-destructive hover:bg-destructive/20"
+                className="shrink-0 self-start"
                 icon={<RefreshCw className="size-3.5" />}
               >
                 Retry

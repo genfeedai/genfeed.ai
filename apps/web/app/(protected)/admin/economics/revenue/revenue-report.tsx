@@ -20,6 +20,7 @@ import { WorkspaceSurface } from '@/components/overview/WorkspaceSurface';
 import EconomicsPeriodFilter from '../economics-period-filter';
 import {
   formatCount,
+  formatOptionalUsd,
   formatUsd,
   formatUsdAxis,
 } from '../economics-report.util';
@@ -97,6 +98,20 @@ export default function EconomicsRevenueReport() {
       {
         label: translate('revenue.kpis.averagePayment'),
         value: formatUsd(totals?.averageRevenuePerEventUsd ?? 0),
+      },
+      {
+        label: translate('revenue.kpis.revenuePerPayingOrganization'),
+        value: formatOptionalUsd(
+          totals?.revenuePerPayingOrganizationUsd ?? null,
+        ),
+      },
+      {
+        label: translate('revenue.kpis.refundsAndDisputes'),
+        value: formatUsd(totals?.refundsAndDisputesUsd ?? 0),
+      },
+      {
+        label: translate('revenue.kpis.processingFees'),
+        value: formatUsd(totals?.processingFeesUsd ?? 0),
       },
     ];
   }, [report, translate]);
