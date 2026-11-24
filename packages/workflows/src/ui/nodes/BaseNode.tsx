@@ -340,10 +340,9 @@ function BaseNodeHeader({
         (state.isProcessing ? (
           <Button
             withWrapper={false}
-            variant={ButtonVariant.GHOST}
+            variant={ButtonVariant.DESTRUCTIVE}
             size={ButtonSize.ICON}
             onClick={onStopNode}
-            className="text-destructive hover:bg-destructive/20 hover:text-destructive"
             title={stopTitle}
           >
             <Square className="size-3.5 fill-current" />
@@ -353,10 +352,9 @@ function BaseNodeHeader({
         ))}
       <Button
         withWrapper={false}
-        variant={ButtonVariant.GHOST}
+        variant={state.isLocked ? ButtonVariant.WARNING : ButtonVariant.GHOST}
         size={ButtonSize.ICON}
         onClick={onLockToggle}
-        className={state.isLocked ? 'text-chart-3' : 'text-muted-foreground'}
         title={state.isLocked ? 'Unlock node (L)' : 'Lock node (L)'}
       >
         {state.isLocked ? (

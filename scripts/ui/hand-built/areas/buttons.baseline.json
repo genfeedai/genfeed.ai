@@ -271,9 +271,6 @@
     "apps/web/src/features/analytics/components/insights/insight-list-card/InsightListCard.tsx": {
       "unstyled-look": 1
     },
-    "apps/web/src/features/brands/components/banner/BrandDetailBanner.tsx": {
-      "button-restyle": 2
-    },
     "apps/web/src/features/brands/components/brand-kit/BrandKitAssetTile.tsx": {
       "unstyled-look": 1
     },
@@ -285,18 +282,6 @@
     },
     "apps/web/src/features/brands/components/integrations/connect-account/ConnectTile.tsx": {
       "unstyled-look": 1
-    },
-    "apps/web/src/features/brands/components/overview/BrandDetailOverview.tsx": {
-      "button-restyle": 3
-    },
-    "apps/web/src/features/brands/components/sidebar/BrandDetailManualKitCard.tsx": {
-      "button-restyle": 3
-    },
-    "apps/web/src/features/brands/components/sidebar/BrandDetailReferencesCard.tsx": {
-      "button-restyle": 3
-    },
-    "apps/web/src/features/brands/components/sidebar/BrandDetailSocialMediaCard.tsx": {
-      "button-restyle": 2
     },
     "apps/web/src/features/brands/components/sidebar/CredentialPostingTimesEditor.tsx": {
       "button-restyle": 1
@@ -378,9 +363,6 @@
     },
     "apps/web/src/features/studio/playground/components/StudioIdentityVoiceRow.tsx": {
       "button-restyle": 1
-    },
-    "apps/web/src/features/studio/playground/components/StudioPlaygroundCard.tsx": {
-      "button-restyle": 5
     },
     "apps/web/src/features/studio/playground/components/StudioPlaygroundFailureNotice.tsx": {
       "button-restyle": 1
@@ -508,23 +490,14 @@
     "packages/workflows/src/ui/canvas/ConnectionDropMenu.tsx": {
       "button-restyle": 1
     },
-    "packages/workflows/src/ui/canvas/EditableEdge.tsx": {
-      "button-restyle": 1
-    },
     "packages/workflows/src/ui/canvas/GroupOverlay.tsx": {
-      "button-restyle": 5
+      "button-restyle": 1
     },
     "packages/workflows/src/ui/canvas/NodeSearch.tsx": {
       "button-restyle": 1
     },
     "packages/workflows/src/ui/components/GlobalImageHistory.tsx": {
       "button-restyle": 6
-    },
-    "packages/workflows/src/ui/nodes/BaseNode.tsx": {
-      "button-restyle": 2
-    },
-    "packages/workflows/src/ui/nodes/NodeDetailModal.tsx": {
-      "button-restyle": 2
     },
     "packages/workflows/src/ui/nodes/input/AudioInputNode.tsx": {
       "button-restyle": 2
@@ -539,16 +512,13 @@
       "button-restyle": 1
     },
     "packages/workflows/src/ui/panels/DebugPanel.tsx": {
-      "button-restyle": 2
+      "button-restyle": 1
     },
     "packages/workflows/src/ui/panels/NodeCatalog.tsx": {
       "button-restyle": 2
     },
     "packages/workflows/src/ui/toolbar/BottomBar.tsx": {
-      "button-restyle": 4
-    },
-    "packages/workflows/src/ui/toolbar/CostIndicator.tsx": {
-      "button-restyle": 1
+      "button-restyle": 2
     },
     "packages/workflows/src/ui/ui/grid-position-selector.tsx": {
       "button-restyle": 1

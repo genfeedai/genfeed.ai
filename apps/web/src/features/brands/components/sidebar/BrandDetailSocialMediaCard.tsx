@@ -685,7 +685,7 @@ export default function BrandDetailSocialMediaCard({
           <Button
             variant={ButtonVariant.SECONDARY}
             size={ButtonSize.SM}
-            className="h-8 shrink-0 px-2.5"
+            className="shrink-0"
             onClick={() => setIsDialogOpen(true)}
           >
             {hasConnectedAccounts ? translate('manage') : translate('connect')}
@@ -741,8 +741,7 @@ export default function BrandDetailSocialMediaCard({
                       <BrandDetailConnectedAccount connection={connection} />
                       <Button
                         variant={ButtonVariant.GHOST}
-                        size={ButtonSize.SM}
-                        className="h-7 px-2 text-2xs"
+                        size={ButtonSize.XS}
                         onClick={() => setDisconnectTarget(connection)}
                       >
                         {translate('disconnectNamed', {

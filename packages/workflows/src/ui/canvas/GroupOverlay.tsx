@@ -304,8 +304,9 @@ function GroupControls({ group, bounds, nodeMap, zoom }: GroupControlsProps) {
             withWrapper={false}
             type="button"
             variant={ButtonVariant.GHOST}
+            size={ButtonSize.INLINE}
             className={clsx(
-              'h-auto flex-1 justify-start truncate p-0 text-left font-medium hover:bg-transparent',
+              'flex-1 justify-start truncate text-left',
               colors.text,
             )}
             style={{ fontSize: 14 }}
@@ -322,15 +323,12 @@ function GroupControls({ group, bounds, nodeMap, zoom }: GroupControlsProps) {
             <Button
               withWrapper={false}
               variant={ButtonVariant.GHOST}
-              size={ButtonSize.ICON}
+              size={ButtonSize.MICRO}
               onClick={(e) => {
                 e.stopPropagation();
                 setShowColorPicker(!showColorPicker);
               }}
-              className={clsx(
-                'size-auto p-1 hover:bg-foreground/10',
-                colors.text,
-              )}
+              className={colors.text}
               title="Change group color"
             >
               <Palette className="size-4" />
@@ -362,15 +360,12 @@ function GroupControls({ group, bounds, nodeMap, zoom }: GroupControlsProps) {
           <Button
             withWrapper={false}
             variant={ButtonVariant.GHOST}
-            size={ButtonSize.ICON}
+            size={ButtonSize.MICRO}
             onClick={(e) => {
               e.stopPropagation();
               toggleGroupLock(group.id);
             }}
-            className={clsx(
-              'size-auto p-1 hover:bg-foreground/10',
-              colors.text,
-            )}
+            className={colors.text}
             title={group.isLocked ? 'LockOpen group' : 'Lock group'}
           >
             {group.isLocked ? (
@@ -382,15 +377,12 @@ function GroupControls({ group, bounds, nodeMap, zoom }: GroupControlsProps) {
           <Button
             withWrapper={false}
             variant={ButtonVariant.GHOST}
-            size={ButtonSize.ICON}
+            size={ButtonSize.MICRO}
             onClick={(e) => {
               e.stopPropagation();
               deleteGroup(group.id);
             }}
-            className={clsx(
-              'size-auto p-1 hover:bg-foreground/10',
-              colors.text,
-            )}
+            className={colors.text}
             title="Delete group"
           >
             <Trash2 className="size-4" />

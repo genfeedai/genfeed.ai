@@ -247,10 +247,10 @@ function ImageNavigation({
       {currentIndex > 0 && (
         <Button
           withWrapper={false}
-          variant={ButtonVariant.GHOST}
+          variant={ButtonVariant.SECONDARY}
           size={ButtonSize.ICON}
           onClick={onPrevious}
-          className="absolute left-4 top-1/2 -translate-y-1/2 bg-card/80 hover:bg-card border border-border shadow-md"
+          className="absolute left-4 top-1/2 -translate-y-1/2"
           title="Previous image (←)"
         >
           <ChevronLeft className="size-5" />
@@ -259,10 +259,10 @@ function ImageNavigation({
       {currentIndex < imageCount - 1 && (
         <Button
           withWrapper={false}
-          variant={ButtonVariant.GHOST}
+          variant={ButtonVariant.SECONDARY}
           size={ButtonSize.ICON}
           onClick={onNext}
-          className="absolute right-4 top-1/2 -translate-y-1/2 bg-card/80 hover:bg-card border border-border shadow-md"
+          className="absolute right-4 top-1/2 -translate-y-1/2"
           title="Next image (→)"
         >
           <ChevronRight className="size-5" />
