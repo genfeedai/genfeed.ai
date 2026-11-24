@@ -5,11 +5,18 @@ import { useSettingsStore } from '../../settingsStore';
 import { useUIStore } from '../../uiStore';
 import { useWorkflowStore } from '../../workflow/workflowStore';
 import { getExecutionHeaders, getExecutionHttpClient } from '../executionApi';
+import { readMissingWorkflowInputs } from '../helpers/missingInputError';
 import {
   createExecutionSubscription,
   createNodeExecutionSubscription,
 } from '../helpers/sseSubscription';
-import type { ExecutionData, ExecutionStore, NodeExecution } from '../types';
+import type {
+  ExecuteOptions,
+  ExecutionData,
+  ExecutionStore,
+  MissingInputTarget,
+  NodeExecution,
+} from '../types';
 
 const LOG_CONTEXT = 'ExecutionStore';
 
@@ -26,6 +33,15 @@ function startExecution(
   return getExecutionHttpClient().post<ExecutionData>(path, body, {
     headers: getExecutionHeaders(),
   });
+}
+
+/** The request body member carrying the values a run is started with. */
+function inputValuesBody(
+  options: ExecuteOptions,
+): Pick<ExecuteOptions, 'inputValues'> {
+  return options.inputValues && Object.keys(options.inputValues).length > 0
+    ? { inputValues: options.inputValues }
+    : {};
 }
 
 function validationError(message: string) {
@@ -61,9 +77,11 @@ async function ensureSavedWorkflowId(): Promise<
 }
 
 export interface ExecutionSlice {
-  executeWorkflow: () => Promise<void>;
-  executeSelectedNodes: () => Promise<void>;
-  executeNode: (nodeId: string) => Promise<void>;
+  executeWorkflow: (options?: ExecuteOptions) => Promise<void>;
+  executeSelectedNodes: (options?: ExecuteOptions) => Promise<void>;
+  executeNode: (nodeId: string, options?: ExecuteOptions) => Promise<void>;
+  submitMissingInputs: (inputValues: Record<string, unknown>) => Promise<void>;
+  dismissMissingInputs: () => void;
   resumeFromFailed: () => Promise<void>;
   stopExecution: () => void;
   stopNodeExecution: (nodeId: string) => void;
@@ -88,7 +106,7 @@ export const createExecutionSlice: StateCreator<
     set({ validationErrors: null });
   },
 
-  executeNode: async (nodeId: string) => {
+  executeNode: async (nodeId: string, options: ExecuteOptions = {}) => {
     const workflowStore = useWorkflowStore.getState();
     const debugMode = useSettingsStore.getState().debugMode;
 
@@ -128,6 +146,7 @@ export const createExecutionSlice: StateCreator<
         {
           debugMode,
           selectedNodeIds: [nodeId],
+          ...inputValuesBody(options),
         },
       );
       const executionId = execution.id;
@@ -151,6 +170,17 @@ export const createExecutionSlice: StateCreator<
         return { activeNodeExecutions: newMap };
       });
     } catch (error) {
+      const missingInputs = readMissingWorkflowInputs(error);
+      if (missingInputs) {
+        set({
+          missingInputRequest: {
+            inputValues: options.inputValues ?? {},
+            missingInputs,
+            target: { kind: 'node', nodeId },
+          },
+        });
+        return;
+      }
       getWorkflowLogger().error('Failed to start node execution', {
         context: LOG_CONTEXT,
         error,
@@ -162,7 +192,7 @@ export const createExecutionSlice: StateCreator<
     }
   },
 
-  executeSelectedNodes: async () => {
+  executeSelectedNodes: async (options: ExecuteOptions = {}) => {
     const { isRunning, resetExecution } = get();
     if (isRunning) return;
 
@@ -215,6 +245,7 @@ export const createExecutionSlice: StateCreator<
         {
           debugMode,
           selectedNodeIds,
+          ...inputValuesBody(options),
         },
       );
       const executionId = execution.id;
@@ -223,6 +254,19 @@ export const createExecutionSlice: StateCreator<
 
       createExecutionSubscription(executionId, set);
     } catch (error) {
+      const missingInputs = readMissingWorkflowInputs(error);
+      if (missingInputs) {
+        set({
+          executingNodeIds: [],
+          isRunning: false,
+          missingInputRequest: {
+            inputValues: options.inputValues ?? {},
+            missingInputs,
+            target: { kind: 'selected' },
+          },
+        });
+        return;
+      }
       getWorkflowLogger().error('Failed to start partial execution', {
         context: LOG_CONTEXT,
         error,
@@ -246,7 +290,7 @@ export const createExecutionSlice: StateCreator<
       });
     }
   },
-  executeWorkflow: async () => {
+  executeWorkflow: async (options: ExecuteOptions = {}) => {
     const { isRunning, resetExecution } = get();
     if (isRunning) return;
 
@@ -289,6 +333,7 @@ export const createExecutionSlice: StateCreator<
         `/workflows/${workflowId}/execute`,
         {
           debugMode,
+          ...inputValuesBody(options),
         },
       );
       const executionId = execution.id;
@@ -297,6 +342,18 @@ export const createExecutionSlice: StateCreator<
 
       createExecutionSubscription(executionId, set);
     } catch (error) {
+      const missingInputs = readMissingWorkflowInputs(error);
+      if (missingInputs) {
+        set({
+          isRunning: false,
+          missingInputRequest: {
+            inputValues: options.inputValues ?? {},
+            missingInputs,
+            target: { kind: 'workflow' },
+          },
+        });
+        return;
+      }
       getWorkflowLogger().error('Failed to start workflow execution', {
         context: LOG_CONTEXT,
         error,
@@ -319,9 +376,32 @@ export const createExecutionSlice: StateCreator<
     }
   },
 
+  dismissMissingInputs: () => {
+    set({ missingInputRequest: null });
+  },
+
   isNodeExecuting: (nodeId: string) => {
     const { activeNodeExecutions } = get();
     return activeNodeExecutions.has(nodeId);
+  },
+
+  submitMissingInputs: async (inputValues) => {
+    const request = get().missingInputRequest;
+    if (!request) return;
+
+    set({ missingInputRequest: null });
+    const options: ExecuteOptions = {
+      inputValues: { ...request.inputValues, ...inputValues },
+    };
+    const target: MissingInputTarget = request.target;
+
+    if (target.kind === 'node') {
+      await get().executeNode(target.nodeId, options);
+    } else if (target.kind === 'selected') {
+      await get().executeSelectedNodes(options);
+    } else {
+      await get().executeWorkflow(options);
+    }
   },
 
   resetExecution: () => {

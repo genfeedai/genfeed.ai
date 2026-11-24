@@ -295,6 +295,7 @@ export class WorkflowExecutionRunnerService {
       input.workflowDoc,
       executableWorkflow,
       input.event.data,
+      { selectedNodeIds: input.selectedNodeIds },
     );
     if (typeof input.metadata?.scheduledFireJobId === 'string') {
       executableWorkflow = {

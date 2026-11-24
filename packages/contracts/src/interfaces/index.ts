@@ -102,6 +102,7 @@ export * from './automation/task.interface';
 export * from './automation/workflow.interface';
 export * from './automation/workflow-builder.interface';
 export * from './automation/workflow-execution.interface';
+export * from './automation/workflow-missing-input.interface';
 export * from './automation/workflow-template-example-output.interface';
 export * from './billing/agent-model-access.interface';
 export * from './billing/avatar-generation-quote.interface';

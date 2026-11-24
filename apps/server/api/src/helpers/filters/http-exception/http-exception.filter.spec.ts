@@ -1,6 +1,7 @@
 import { BrandedGenerationBlockedException } from '@api/helpers/exceptions/branded-generation-blocked/branded-generation-blocked.exception';
 import { ClientClosedRequestException } from '@api/helpers/exceptions/client-closed-request/client-closed-request.exception';
 import { PersistedVideoGenerationException } from '@api/helpers/exceptions/persisted-video-generation/persisted-video-generation.exception';
+import { WorkflowMissingInputException } from '@api/helpers/exceptions/workflow-missing-input/workflow-missing-input.exception';
 import { createMockExecutionContext } from '@api-test/mocks/controller.mocks';
 import { runWithWideEvent } from '@libs/logger/wide-event/wide-event.context';
 import { startWideEvent } from '@libs/logger/wide-event/wide-event.lifecycle';
@@ -637,6 +638,37 @@ describe('HttpExceptionFilter', () => {
       new HttpException(
         { code: 'x', meta: { brandedGenerationReceiptId: 'forged' } },
         409,
+      ),
+      mockArgumentsHost,
+    );
+    expect(mockResponse.json.mock.calls[1][0].errors[0].meta).toBeUndefined();
+  });
+  it('answers a missing workflow input with a typed 400 that lists every missing input', () => {
+    filter.catch(
+      new WorkflowMissingInputException([
+        { label: 'Visual angle', name: 'visualAngle', type: 'text' },
+        { label: 'Visual style', name: 'visualStyle', type: 'text' },
+      ]),
+      mockArgumentsHost,
+    );
+
+    expect(mockResponse.status).toHaveBeenCalledWith(400);
+    expect(mockResponse.json.mock.calls[0][0].errors[0]).toMatchObject({
+      code: 'WORKFLOW_MISSING_INPUT',
+      detail: 'Missing required workflow inputs: visualAngle, visualStyle',
+      meta: {
+        missingInputs: [
+          { label: 'Visual angle', name: 'visualAngle', type: 'text' },
+          { label: 'Visual style', name: 'visualStyle', type: 'text' },
+        ],
+      },
+      status: '400',
+    });
+
+    filter.catch(
+      new HttpException(
+        { code: 'WORKFLOW_MISSING_INPUT', meta: { missingInputs: [] } },
+        400,
       ),
       mockArgumentsHost,
     );

@@ -3,6 +3,7 @@ import {
   resolveAuthToken,
 } from '@helpers/auth/auth.helper';
 import { whenRequestOrganizationSettled } from '@services/core/interceptor.service';
+import { getJsonApiErrorMessage } from '@services/core/json-api-error-message';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/v1';
 
@@ -115,6 +116,20 @@ async function buildHeaders(
   return Object.fromEntries(merged.values());
 }
 
+/**
+ * The API answers JSON:API errors (`errors[].detail`), so a bare `message`
+ * member is rare. Reading the detail keeps a rejected request actionable
+ * ("Missing required workflow input: visualAngle") instead of "HTTP error 400".
+ */
+function readErrorMessage(errorData: unknown, status: number): string {
+  const message = (errorData as { message?: unknown } | null)?.message;
+  if (typeof message === 'string' && message) {
+    return message;
+  }
+
+  return getJsonApiErrorMessage(errorData, `HTTP error ${status}`);
+}
+
 async function request<T>(
   endpoint: string,
   options: FetchOptions = {},
@@ -138,7 +153,7 @@ async function request<T>(
     const errorData = await response.json().catch(() => ({}));
     throw new ApiError(
       response.status,
-      errorData.message || `HTTP error ${response.status}`,
+      readErrorMessage(errorData, response.status),
       errorData,
     );
   }
@@ -172,7 +187,7 @@ async function uploadFile<T>(
     const errorData = await response.json().catch(() => ({}));
     throw new ApiError(
       response.status,
-      errorData.message || `HTTP error ${response.status}`,
+      readErrorMessage(errorData, response.status),
       errorData,
     );
   }

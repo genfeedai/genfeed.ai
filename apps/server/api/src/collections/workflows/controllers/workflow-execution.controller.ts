@@ -95,6 +95,7 @@ export class WorkflowExecutionController {
           dto.selectedNodeIds,
           user.userId ?? user.id,
           user.organizationId,
+          { inputValues: dto.inputValues },
         );
         return serializeSingle(request, WorkflowExecutionSerializer, partial);
       }

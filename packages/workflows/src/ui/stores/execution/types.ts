@@ -1,3 +1,4 @@
+import type { WorkflowMissingInput } from '@genfeedai/contracts/interfaces';
 import type { NodeStatus, ValidationResult } from '@genfeedai/contracts/types';
 
 export interface DebugPayload {
@@ -63,6 +64,28 @@ export interface NodeExecution {
   eventSource: EventSource;
 }
 
+/** The run a missing-input answer belongs to, so it can be sent again. */
+export type MissingInputTarget =
+  | { kind: 'workflow' }
+  | { kind: 'selected' }
+  | { kind: 'node'; nodeId: string };
+
+/**
+ * A run the API refused because required inputs have no value. The editor asks
+ * for them and sends the same run again with `inputValues` filled in.
+ */
+export interface MissingInputRequest {
+  /** Values already sent with the refused run. */
+  inputValues: Record<string, unknown>;
+  missingInputs: WorkflowMissingInput[];
+  target: MissingInputTarget;
+}
+
+/** Input values sent along with a run, keyed by workflow input name. */
+export interface ExecuteOptions {
+  inputValues?: Record<string, unknown>;
+}
+
 export interface ExecutionState {
   isRunning: boolean;
   executionId: string | null;
@@ -70,6 +93,8 @@ export interface ExecutionState {
   /** Node IDs being executed (for partial execution). Empty = all nodes */
   executingNodeIds: string[];
   validationErrors: ValidationResult | null;
+  /** Set while the editor waits for values the API reported missing. */
+  missingInputRequest: MissingInputRequest | null;
   eventSource: EventSource | null;
   lastFailedNodeId: string | null;
   pausedAtNodeId: string | null;
@@ -81,9 +106,13 @@ export interface ExecutionState {
 }
 
 export interface ExecutionActions {
-  executeWorkflow: () => Promise<void>;
-  executeSelectedNodes: () => Promise<void>;
-  executeNode: (nodeId: string) => Promise<void>;
+  executeWorkflow: (options?: ExecuteOptions) => Promise<void>;
+  executeSelectedNodes: (options?: ExecuteOptions) => Promise<void>;
+  executeNode: (nodeId: string, options?: ExecuteOptions) => Promise<void>;
+  /** Runs the refused run again with the values the user entered. */
+  submitMissingInputs: (inputValues: Record<string, unknown>) => Promise<void>;
+  /** Drops the refused run; nothing is sent. */
+  dismissMissingInputs: () => void;
   resumeFromFailed: () => Promise<void>;
   stopExecution: () => void;
   stopNodeExecution: (nodeId: string) => void;

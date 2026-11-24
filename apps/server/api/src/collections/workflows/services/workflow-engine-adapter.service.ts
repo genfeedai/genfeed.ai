@@ -81,11 +81,13 @@ export class WorkflowEngineAdapterService implements OnApplicationBootstrap {
     },
     executableWorkflow: ExecutableWorkflow,
     inputValues: Record<string, unknown> = {},
+    options: { selectedNodeIds?: readonly string[] } = {},
   ): ExecutableWorkflow {
     return this.converter.applyRuntimeInputValues(
       workflowDoc,
       executableWorkflow,
       inputValues,
+      options,
     );
   }
 
