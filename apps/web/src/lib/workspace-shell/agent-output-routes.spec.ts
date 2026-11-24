@@ -13,6 +13,11 @@ describe('isAgentOutputRoute', () => {
     expect(isAgentOutputRoute('/storyboard/run-1/extra')).toBe(false);
   });
 
+  it('matches the playground, where the prompt is on the left and the results on the right', () => {
+    expect(isAgentOutputRoute('/playground')).toBe(true);
+    expect(isAgentOutputRoute('/playground/')).toBe(true);
+  });
+
   it('keeps a run id that starts with "new" on the split layout', () => {
     expect(isAgentOutputRoute('/storyboard/new-run')).toBe(true);
   });
@@ -106,8 +111,7 @@ describe('isAgentOutputRoute', () => {
     expect(isAgentOutputRoute('/storyboard/run-1/extra')).toBe(false);
   });
 
-  it('keeps the Playground gallery and its retired job route off the split layout', () => {
-    expect(isAgentOutputRoute('/playground')).toBe(false);
+  it('keeps the retired Playground job route off the split layout', () => {
     expect(isAgentOutputRoute('/playground/job-1')).toBe(false);
   });
 });

@@ -2,6 +2,7 @@ import { AgentOutputHostContext } from '@genfeedai/contexts/ui/agent-output-host
 import {
   ContextSidebarPanel,
   ContextSidebarProvider,
+  useContextSidebar,
 } from '@genfeedai/contexts/ui/context-sidebar-context';
 import type { AgentOutputHostValue } from '@genfeedai/props/ui/agent-output-shell.props';
 import { fireEvent, render, screen, within } from '@testing-library/react';
@@ -19,6 +20,11 @@ vi.mock('next-intl', async () => {
   );
   return { useTranslations: translateFromCatalog };
 });
+
+function SidebarState() {
+  const sidebar = useContextSidebar();
+  return <p>{sidebar?.isOpen ? 'open' : 'closed'}</p>;
+}
 
 function buildHost(
   overrides: Partial<AgentOutputHostValue> = {},
@@ -185,6 +191,110 @@ describe('AgentOutputShell', () => {
 
     expect(host.onOpenContext).toHaveBeenCalled();
   });
+
+  it('asks for Context once per selection, so stepping back to the output sticks', () => {
+    const host = buildHost();
+    const tree = (value: AgentOutputHostValue) => (
+      <ContextSidebarProvider>
+        <AgentOutputHostContext value={value}>
+          <AgentOutputShell>
+            <p>Board</p>
+          </AgentOutputShell>
+          <ContextSidebarPanel
+            selection={{
+              id: 'asset-1',
+              kind: 'asset',
+              origin: 'user',
+              title: 'Asset 1',
+            }}
+          >
+            <p>Asset detail</p>
+          </ContextSidebarPanel>
+        </AgentOutputHostContext>
+      </ContextSidebarProvider>
+    );
+    const view = render(tree(host));
+    expect(host.onOpenContext).toHaveBeenCalledTimes(1);
+
+    // The host hands out a fresh callback on a later render, as it does when
+    // the operator closes Context; the same record must not reopen it.
+    const afterClose = buildHost();
+    view.rerender(tree(afterClose));
+
+    expect(afterClose.onOpenContext).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['user', true],
+    ['automatic', false],
+  ] as const)(
+    'when a %s selection goes away, brings the output back: %s',
+    (origin, shouldClose) => {
+      const host = buildHost({ isContextOpen: true });
+      const tree = (hasSelection: boolean) => (
+        <ContextSidebarProvider>
+          <AgentOutputHostContext value={host}>
+            <AgentOutputShell>
+              <p>Board</p>
+            </AgentOutputShell>
+            {hasSelection ? (
+              <ContextSidebarPanel
+                selection={{
+                  id: 'asset-1',
+                  kind: 'asset',
+                  origin,
+                  title: 'Asset 1',
+                }}
+              >
+                <p>Asset detail</p>
+              </ContextSidebarPanel>
+            ) : null}
+          </AgentOutputHostContext>
+        </ContextSidebarProvider>
+      );
+      const view = render(tree(true));
+      expect(host.onCloseContext).not.toHaveBeenCalled();
+
+      view.rerender(tree(false));
+
+      expect(host.onCloseContext).toHaveBeenCalledTimes(shouldClose ? 1 : 0);
+    },
+  );
+
+  it.each([
+    ['user', 'closed'],
+    ['automatic', 'open'],
+  ] as const)(
+    'when Context closes, a %s selection ends up %s',
+    (origin, expected) => {
+      const tree = (isContextOpen: boolean) => (
+        <ContextSidebarProvider>
+          <AgentOutputHostContext value={buildHost({ isContextOpen })}>
+            <AgentOutputShell>
+              <p>Board</p>
+            </AgentOutputShell>
+            <ContextSidebarPanel
+              selection={{
+                id: 'asset-1',
+                kind: 'asset',
+                origin,
+                title: 'Asset 1',
+              }}
+            >
+              <p>Asset detail</p>
+            </ContextSidebarPanel>
+            <SidebarState />
+          </AgentOutputHostContext>
+        </ContextSidebarProvider>
+      );
+      const view = render(tree(true));
+      expect(screen.getByText('open')).toBeInTheDocument();
+
+      view.rerender(tree(false));
+
+      expect(screen.getByText(expected)).toBeInTheDocument();
+    },
+  );
 
   it('ignores a selection carried over from the page the operator left', () => {
     const host = buildHost();

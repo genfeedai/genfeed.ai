@@ -7,8 +7,9 @@ import {
   mockLibraryData,
 } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
+import { showOutputPane } from '../../utils/agent-output-layout';
 import { expectNoErrorOverlay } from '../../utils/route-assertions';
-import { chooseView } from '../../utils/view-menu';
+import { viewMenuTrigger } from '../../utils/view-menu';
 
 /**
  * The shell's context sidebar is selection-driven: selecting an asset opens
@@ -69,12 +70,46 @@ async function mockStudioGallery(page: Page): Promise<void> {
   await page.route('**/v1/ingredients**', fulfill);
 }
 
+/** The Playground's results pane: the page output beside the prompt. */
+function resultsPane(page: Page) {
+  return page.getByTestId('agent-output-output-pane');
+}
+
+/** The Context view, which opens in the results pane instead of a right rail. */
+function contextView(page: Page) {
+  return resultsPane(page).getByRole('tabpanel', {
+    exact: true,
+    name: 'Context',
+  });
+}
+
+/**
+ * Sets the Context view open or closed from the topbar icon. A click that
+ * lands before hydration is dropped, so retry until the view is in the wanted
+ * state, and read the state first each time so a retry never undoes a click
+ * that did land.
+ */
+async function setContextOpen(page: Page, isOpen: boolean): Promise<void> {
+  const context = contextView(page);
+  await expect(async () => {
+    if ((await context.isVisible()) !== isOpen)
+      await page.getByTestId('topbar-context-toggle').click();
+    if (isOpen) await expect(context).toBeVisible({ timeout: 2_000 });
+    else await expect(context).toBeHidden({ timeout: 2_000 });
+  }).toPass({ timeout: 15_000 });
+}
+
 async function openStudioList(page: Page): Promise<void> {
   await page.goto(brandPath(APP_ROUTES.STUDIO.PLAYGROUND), {
     waitUntil: 'domcontentloaded',
   });
+  // Below `xl` one pane shows at a time, and the prompt comes first.
+  const results = await showOutputPane(page);
   // List rows expose the prompt as plain text, a stable non-control target.
-  await chooseView(page, 'List');
+  // The gallery's View menu is the one inside the results pane.
+  await viewMenuTrigger(results).click();
+  await page.getByRole('menuitemradio', { exact: true, name: 'List' }).click();
+  await expect(viewMenuTrigger(results, 'List')).toBeVisible();
   await expect(page.getByText(ASSET_PROMPT)).toBeVisible();
 }
 
@@ -95,14 +130,23 @@ test.describe('Context sidebar — selection driven', () => {
     await authenticatedPage.setViewportSize({ height: 900, width: 1440 });
     await openStudioList(authenticatedPage);
 
+    // The prompt is on the left and the results on the right: no third column.
     await expect(
       authenticatedPage.getByRole('complementary', {
         name: 'Side panel',
       }),
     ).toHaveCount(0);
     await expect(
+      authenticatedPage.getByTestId('agent-output-agent-pane'),
+    ).toBeVisible();
+    await expect(contextView(authenticatedPage)).toBeHidden();
+    await expect(
       authenticatedPage.getByTestId('topbar-context-toggle'),
     ).toHaveAttribute('aria-expanded', 'false');
+    // One agent: the Playground has no product dock beside its own prompt.
+    await expect(
+      authenticatedPage.getByTestId('topbar-agent-dock-toggle'),
+    ).toHaveCount(0);
     // The legacy agent inspector and its tabs are gone.
     await expect(
       authenticatedPage.getByRole('complementary', {
@@ -117,45 +161,40 @@ test.describe('Context sidebar — selection driven', () => {
     await authenticatedPage.setViewportSize({ height: 900, width: 1440 });
     await openStudioList(authenticatedPage);
 
-    const contextSidebar = authenticatedPage.getByRole('complementary', {
-      name: 'Side panel',
-    });
-    await expect(contextSidebar).toHaveCount(0);
+    const context = contextView(authenticatedPage);
+    await expect(context).toBeHidden();
 
     const card = authenticatedPage.getByTestId(`studio-asset-${ASSET_ID}`);
     await card.getByText(ASSET_PROMPT).click();
 
-    await expect(contextSidebar).toBeVisible();
+    await expect(context).toBeVisible();
     await expect(card).toHaveAttribute('data-selected', 'true');
-    await expect(
-      contextSidebar.getByTestId('context-sidebar-title'),
-    ).toHaveText('Image');
-    const panel = contextSidebar.getByTestId('studio-playground-inspector');
+    await expect(context.getByTestId('context-sidebar-title')).toHaveText(
+      'Image',
+    );
+    const panel = context.getByTestId('studio-playground-inspector');
     await expect(panel).toBeVisible();
     await expect(
-      contextSidebar.getByRole('button', { name: 'View: Recipe' }),
+      context.getByRole('button', { name: 'View: Recipe' }),
     ).toBeVisible();
     await expect(
       panel
         .getByRole('group', { name: 'Asset actions' })
         .getByRole('button', { name: 'Ask Agent about this' }),
     ).toBeVisible();
-    // Only one right column: Studio no longer paints its own aside.
+    // Only one detail view: it replaces the results, there is no side rail.
+    await expect(
+      authenticatedPage.getByRole('complementary', { name: 'Side panel' }),
+    ).toHaveCount(0);
     await expect(
       authenticatedPage.getByTestId('studio-playground-inspector'),
     ).toHaveCount(1);
 
     // The panel has no header or close control of its own: the topbar's
     // Context toggle (the panel icon) closes it.
-    await expect(
-      contextSidebar.getByTestId('workspace-panel-header'),
-    ).toHaveCount(0);
-    await expect(
-      contextSidebar.getByTestId('workspace-panel-close'),
-    ).toHaveCount(0);
-    await authenticatedPage.getByTestId('topbar-context-toggle').click();
-
-    await expect(contextSidebar).toHaveCount(0);
+    await expect(context.getByTestId('workspace-panel-header')).toHaveCount(0);
+    await expect(context.getByTestId('workspace-panel-close')).toHaveCount(0);
+    await setContextOpen(authenticatedPage, false);
     await expect(
       authenticatedPage.getByTestId('studio-playground-inspector'),
     ).toHaveCount(0);
@@ -163,12 +202,11 @@ test.describe('Context sidebar — selection driven', () => {
     await expectNoErrorOverlay(authenticatedPage);
   });
 
-  test('hands the selected asset to the agent dock without leaving Studio', async ({
+  test('hands the selected asset to a new conversation', async ({
     authenticatedPage,
   }) => {
     await authenticatedPage.setViewportSize({ height: 900, width: 1440 });
     await openStudioList(authenticatedPage);
-    const studioUrl = authenticatedPage.url();
 
     await authenticatedPage
       .getByTestId(`studio-asset-${ASSET_ID}`)
@@ -179,92 +217,71 @@ test.describe('Context sidebar — selection driven', () => {
       .getByRole('button', { name: 'Ask Agent about this' })
       .click();
 
-    const dock = authenticatedPage.getByRole('region', { name: 'Agent' });
-    await expect(dock).toBeVisible();
+    // The Playground has no dock, so the asset travels with the operator to
+    // a new conversation, where it is attached to the draft.
+    await authenticatedPage.waitForURL(/\/agent\/new/);
     await expect(
-      dock.getByLabel(`Referenced content: ${ASSET_PROMPT}`),
+      authenticatedPage.getByLabel(`Referenced content: ${ASSET_PROMPT}`),
     ).toBeVisible();
-    expect(authenticatedPage.url()).toBe(studioUrl);
   });
 
-  test('closes details from inside the sidebar and reopens from the asset', async ({
+  test('closes details with the topbar icon and reopens from the asset', async ({
     authenticatedPage,
   }) => {
     await authenticatedPage.setViewportSize({ height: 900, width: 1440 });
     await openStudioList(authenticatedPage);
     const card = authenticatedPage.getByTestId(`studio-asset-${ASSET_ID}`);
     await card.getByText(ASSET_PROMPT).click();
-    const contextSidebar = authenticatedPage.getByRole('complementary', {
-      name: 'Side panel',
-    });
+    const context = contextView(authenticatedPage);
     await expect(
-      contextSidebar.getByTestId('studio-playground-inspector'),
+      context.getByTestId('studio-playground-inspector'),
     ).toBeVisible();
     const contextToggle = authenticatedPage.getByTestId(
       'topbar-context-toggle',
     );
     await expect(contextToggle).toHaveAttribute('aria-expanded', 'true');
-    await contextToggle.click();
+    await setContextOpen(authenticatedPage, false);
     await expect(card).toHaveAttribute('data-selected', 'false');
-    await expect(
-      authenticatedPage.locator('#workspace-context-inspector'),
-    ).toHaveAttribute('inert', '');
     await expect(contextToggle).toHaveAttribute('aria-expanded', 'false');
     await card.getByText(ASSET_PROMPT).click();
     await expect(
-      contextSidebar.getByTestId('studio-playground-inspector'),
+      context.getByTestId('studio-playground-inspector'),
     ).toBeVisible();
   });
 
-  test('switches Chat, Context and History from the topbar toggles', async ({
+  test('swaps the results pane and Context from the topbar icon, with the prompt staying put', async ({
     authenticatedPage,
   }) => {
     await authenticatedPage.setViewportSize({ height: 900, width: 1440 });
     await openStudioList(authenticatedPage);
+    const prompt = authenticatedPage.getByTestId('studio-playground-prompt');
+    await expect(prompt).toBeVisible();
+
     await authenticatedPage
       .getByTestId(`studio-asset-${ASSET_ID}`)
       .getByText(ASSET_PROMPT)
       .click();
 
-    const contextSidebar = authenticatedPage.getByRole('complementary', {
-      name: 'Side panel',
+    const context = contextView(authenticatedPage);
+    const results = resultsPane(authenticatedPage).getByRole('tabpanel', {
+      exact: true,
+      name: 'Results',
     });
-    const title = contextSidebar.getByTestId('workspace-panel-title');
-    const chatToggle = authenticatedPage.getByTestId(
-      'topbar-agent-dock-toggle',
-    );
     const contextToggle = authenticatedPage.getByTestId(
       'topbar-context-toggle',
     );
-    const contextView = contextSidebar.getByTestId('workspace-agent-context');
-    // Context has no header: the topbar toggle names the view.
-    await expect(contextView).toBeVisible();
-    await expect(title).toHaveCount(0);
+    await expect(context.getByTestId('workspace-agent-context')).toBeVisible();
+    await expect(results).toBeHidden();
     await expect(contextToggle).toHaveAttribute('aria-expanded', 'true');
-    await expect(chatToggle).toHaveAttribute('aria-expanded', 'false');
+    await expect(prompt).toBeVisible();
 
-    await chatToggle.click();
-    await expect(title).toHaveText('Chat');
-    await expect(chatToggle).toHaveAttribute('aria-expanded', 'true');
-    await expect(contextToggle).toHaveAttribute('aria-expanded', 'false');
-
-    // History is part of Chat: it opens from the Chat header and keeps the
-    // Chat toggle pressed.
-    await contextSidebar.getByTestId('workspace-panel-history').click();
-    await expect(title).toHaveText('History');
-    await expect(chatToggle).toHaveAttribute('aria-expanded', 'true');
-    await contextSidebar.getByTestId('workspace-panel-back').click();
-    await expect(title).toHaveText('Chat');
-
-    await contextToggle.click();
-    await expect(contextView).toBeVisible();
-    await expect(title).toHaveCount(0);
-    await contextToggle.click();
-    await expect(contextSidebar).toHaveCount(0);
+    await setContextOpen(authenticatedPage, false);
+    await expect(results).toBeVisible();
+    await expect(prompt).toBeVisible();
     await expectNoErrorOverlay(authenticatedPage);
   });
 
-  test('opens the shared mobile Context panel on a tap and deselects when dismissed', async ({
+  test('opens Context in the results pane on a tap and deselects when closed', async ({
     authenticatedPage,
   }) => {
     await authenticatedPage.setViewportSize({ height: 844, width: 390 });
@@ -273,18 +290,13 @@ test.describe('Context sidebar — selection driven', () => {
     const card = authenticatedPage.getByTestId(`studio-asset-${ASSET_ID}`);
     await card.getByText(ASSET_PROMPT).click();
 
-    const drawer = authenticatedPage.getByRole('dialog', { name: 'Agent' });
-    await expect(drawer).toBeVisible();
-    await expect(drawer.getByTestId('workspace-panel-header')).toHaveCount(0);
+    const context = contextView(authenticatedPage);
+    await expect(context).toBeVisible();
     await expect(
-      drawer.getByTestId('studio-playground-inspector'),
-    ).toBeVisible();
-    await expect(
-      drawer.getByTestId('studio-playground-inspector'),
+      context.getByTestId('studio-playground-inspector'),
     ).toBeVisible();
 
-    await authenticatedPage.keyboard.press('Escape');
-    await expect(drawer).toHaveCount(0);
+    await setContextOpen(authenticatedPage, false);
     await expect(card).toHaveAttribute('data-selected', 'false');
   });
 
