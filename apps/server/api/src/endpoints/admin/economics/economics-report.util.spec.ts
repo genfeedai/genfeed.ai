@@ -9,6 +9,7 @@ import {
   operationForMediaCategory,
   perUnitUsd,
   resolveEconomicsWindow,
+  topCostSharePercent,
 } from '@api/endpoints/admin/economics/economics-report.util';
 import { ActivitySource } from '@genfeedai/contracts';
 
@@ -211,5 +212,37 @@ describe('generation credit value', () => {
         { credits: 7, source: null },
       ]),
     ).toBe(1.25);
+  });
+});
+
+describe('top model cost share', () => {
+  it('takes the three most expensive rows over the total cost', () => {
+    expect(topCostSharePercent([1, 5, 2, 4, 8], 3, 20)).toBe(85);
+  });
+
+  it('is null without any cost', () => {
+    expect(topCostSharePercent([], 3, 0)).toBeNull();
+  });
+});
+
+describe('credits purchased', () => {
+  const organizations = { active: 0, paying: 0 };
+
+  it('turns paid sales into credits at one cent each', () => {
+    const totals = buildEconomicsTotals(
+      { ...EMPTY_ECONOMICS_DAILY_AGGREGATE, salesMinor: 2_900 },
+      organizations,
+    );
+
+    expect(totals.creditsPurchased).toBe(2_900);
+  });
+
+  it('is null when nothing was sold', () => {
+    const totals = buildEconomicsTotals(
+      { ...EMPTY_ECONOMICS_DAILY_AGGREGATE, creditsConsumed: 40 },
+      organizations,
+    );
+
+    expect(totals.creditsPurchased).toBeNull();
   });
 });

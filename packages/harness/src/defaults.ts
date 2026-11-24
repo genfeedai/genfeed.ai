@@ -177,6 +177,24 @@ function buildCoreContribution(
     }
   }
 
+  if (contentType === 'article') {
+    styleDirectives.push(
+      'Open on one radical, confident claim a reader can disagree with, in the first sentence. Put the nuance in the body or the conclusion, never in the hook.',
+    );
+    guardrails.push(
+      'Do not frame the opening as "my take on", "how I", "in this article" or "a look at"; state the claim itself.',
+    );
+    guardrails.push(
+      'Write reader copy only: no research notes, no "what we could not verify" section, no word on pages that blocked access or tools that failed, no drafting notes, TODO or [PLACEHOLDER] text. Cut what you could not confirm, or state its limit inside the sentence it affects. Sources belong in a plain Sources list.',
+    );
+    evaluationCriteria.push(
+      'Reader copy: nothing in the article is a note from the writing or research process.',
+    );
+    evaluationCriteria.push(
+      'Hook: the first sentence is a confident claim, not a topic label or a "my take" framing.',
+    );
+  }
+
   guardrails.push('Avoid bland, generic, over-explained AI phrasing.');
   guardrails.push(
     'Prefer specificity, concrete claims, and lived-in language.',

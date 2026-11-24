@@ -815,6 +815,8 @@ const UI_TEST_MESSAGES = {
         'Publishes to X as a linked thread, split into posts of 280 characters or fewer.',
       threadCount: '{count} posts in this thread',
       longPostHelp: 'Over 280 characters, X publishes this as a long post.',
+      linkCostHelp:
+        'A link in an X post uses more credits to publish than a post without one.',
       titleOptional: 'Title',
       createThread: 'Create Thread',
       saveDraft: 'Save draft',
