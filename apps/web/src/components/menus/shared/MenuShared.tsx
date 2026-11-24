@@ -88,7 +88,6 @@ export default function MenuShared({
                 outline={item.outline}
                 solid={item.solid}
                 isActive={isActiveItem(item)}
-                isComingSoon={item.isComingSoon}
                 onClick={handleLinkClick}
                 variant="icon"
                 isCollapsed={false}
