@@ -1809,6 +1809,26 @@ export const MODEL_OUTPUT_CAPABILITIES: Record<string, ModelOutputCapability> =
       maxOutputs: 4,
       maxReferences: 3,
     },
+    /**
+     * HeyGen Video 1 through fal: text, first image or references (up to nine
+     * images, three clips). fal takes 5-30 s; the catalog stops at 15 s, the
+     * same cap as HeyGen's own route.
+     */
+    [MODEL_KEYS.FAL_HEYGEN_VIDEO]: {
+      aspectRatios: ASPECT_RATIOS.HEYGEN_VIDEO,
+      category: ModelCategory.VIDEO,
+      defaultAspectRatio: '16:9',
+      defaultDuration: 5,
+      durations: [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+      hasDurationEditing: true,
+      hasResolutionOptions: true,
+      hasSpeech: true,
+      hasVideoReferences: true,
+      isBatchSupported: false,
+      maxOutputs: 1,
+      maxReferences: 9,
+      maxVideoReferences: 3,
+    },
     [MODEL_KEYS.FAL_MINIMAX_H3_MAX]: {
       aspectRatios: ASPECT_RATIOS.H3_MAX,
       category: ModelCategory.VIDEO,

@@ -993,7 +993,7 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
     ],
     sourceUrl:
       'https://fal.ai/models/google/gemini-omni-flash/v1.2/text-to-video',
-    verifiedAt: '2026-11-24T12:30:00.000Z',
+    verifiedAt: '2026-11-24T11:30:00.000Z',
   },
   {
     endpoint: 'google/imagen-3',
@@ -2258,6 +2258,46 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
     ],
     sourceUrl: 'https://fal.ai/models/minimax/h3-max/director',
     verifiedAt: '2026-10-06T21:45:00.000Z',
+  },
+  {
+    // fal model page (read 2026-11-24), regular price: $0.02 per second at 480p
+    // and 768p, $0.06 at 1080p and 2K. The page still carries a 50% promotion
+    // that ended 2026-10-31. Text, image and reference endpoints bill alike;
+    // the dispatch adapter picks the endpoint from the media given.
+    endpoint: 'heygen/heygen-video/text-to-video',
+    provider: 'fal',
+    rates: [
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.02,
+        when: { resolution: '480p' },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.02,
+        when: { resolution: '768p' },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.06,
+        when: { resolution: '1080p' },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.06,
+        when: { resolution: '2k' },
+        isPerOutput: true,
+      },
+    ],
+    sourceUrl: 'https://fal.ai/models/heygen/heygen-video/text-to-video',
+    verifiedAt: '2026-11-24T11:30:00.000Z',
   },
   {
     endpoint: 'minimax/h3-max/text-to-video',

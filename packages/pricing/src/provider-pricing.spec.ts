@@ -99,6 +99,14 @@ describe('PRICING constants', () => {
     ).toBeCloseTo(0.2457, 6);
   });
 
+  it('bills HeyGen Video 1 on fal at 3x for 1080p and 2K, the fal list ratio', () => {
+    const key = 'fal/heygen/heygen-video/text-to-video';
+    expect(getVideoGenerationResolutionCreditMultiplier(key, '768p')).toBe(1);
+    expect(getVideoGenerationResolutionCreditMultiplier(key, '480p')).toBe(1);
+    expect(getVideoGenerationResolutionCreditMultiplier(key, '1080p')).toBe(3);
+    expect(getVideoGenerationResolutionCreditMultiplier(key, '2K')).toBe(3);
+  });
+
   it('bills missing or auto GPT Image 2.5 quality at the max catalog band', () => {
     expect(
       getImageGenerationQualityCreditMultiplier('openai/gpt-image-2.5-flare'),
