@@ -85,6 +85,20 @@ describe('PRICING constants', () => {
     ).toBe(200);
   });
 
+  it('scales Gemini Omni Flash 1.2 from its 720p seed by the fal per-second bands', () => {
+    const key = 'fal/google/gemini-omni-flash';
+    expect(getVideoGenerationResolutionCreditMultiplier(key, '720p')).toBe(1);
+    expect(
+      getVideoGenerationResolutionCreditMultiplier(key, '360p') * 0.0819,
+    ).toBeCloseTo(0.0273, 6);
+    expect(
+      getVideoGenerationResolutionCreditMultiplier(key, '1080p') * 0.0819,
+    ).toBeCloseTo(0.1229, 6);
+    expect(
+      getVideoGenerationResolutionCreditMultiplier(key, '4k') * 0.0819,
+    ).toBeCloseTo(0.2457, 6);
+  });
+
   it('bills missing or auto GPT Image 2.5 quality at the max catalog band', () => {
     expect(
       getImageGenerationQualityCreditMultiplier('openai/gpt-image-2.5-flare'),

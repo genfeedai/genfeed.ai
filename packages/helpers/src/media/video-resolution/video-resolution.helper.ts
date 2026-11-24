@@ -36,6 +36,16 @@ export const videoModelResolutions: VideoModelResolution[] = [
     ],
   },
   {
+    default: '720p',
+    model: MODEL_KEYS.FAL_GOOGLE_GEMINI_OMNI_FLASH,
+    resolutions: [
+      { label: '360p', value: '360p' },
+      { label: '720p', value: '720p' },
+      { label: '1080p', value: '1080p' },
+      { label: '4K', value: '4k' },
+    ],
+  },
+  {
     default: '768P',
     model: MODEL_KEYS.FAL_MINIMAX_H3_MAX,
     resolutions: [
