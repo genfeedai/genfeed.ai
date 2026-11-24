@@ -642,7 +642,7 @@ describe('AgentChatInput', () => {
       }),
     );
     await user.click(
-      await screen.findByRole('option', { name: 'Reference Launch post' }),
+      await screen.findByRole('button', { name: 'Reference Launch post' }),
     );
     const tile = await screen.findByLabelText(
       'Referenced content: Launch post: Skipped',
@@ -673,7 +673,7 @@ describe('AgentChatInput', () => {
       await screen.findByRole('heading', { name: 'Reference library content' }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('option', { name: 'Reference Launch post' }),
+      screen.getByRole('button', { name: 'Reference Launch post' }),
     ).toBeInTheDocument();
   });
 
@@ -687,7 +687,7 @@ describe('AgentChatInput', () => {
       }),
     );
     fireEvent.click(
-      await screen.findByRole('option', { name: 'Reference Launch post' }),
+      await screen.findByRole('button', { name: 'Reference Launch post' }),
     );
 
     const tray = await screen.findByRole('group', {
