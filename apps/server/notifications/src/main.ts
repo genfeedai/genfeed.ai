@@ -1,5 +1,6 @@
 import {
   bootstrap,
+  configureLoadBalancerKeepAlive,
   setupGracefulShutdown,
   setupServiceShell,
 } from '@libs/bootstrap';
@@ -62,6 +63,9 @@ async function main() {
     await redisIoAdapter.connectToRedis();
     app.useWebSocketAdapter(redisIoAdapter);
 
+    // Outlast the load balancer's 60 s idle timeout, or a reused connection
+    // that Node just dropped comes back as a 502.
+    configureLoadBalancerKeepAlive(app.getHttpServer());
     await app.listen(port);
     logger.debug(`Notifications service is running on port ${port}`);
 
