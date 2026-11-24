@@ -11,8 +11,8 @@ import {
 
 describe('model.enum', () => {
   describe('ModelKey', () => {
-    it('should have 169 members', () => {
-      expect(Object.values(MODEL_KEYS)).toHaveLength(169);
+    it('should have 170 members', () => {
+      expect(Object.values(MODEL_KEYS)).toHaveLength(170);
     });
 
     it('should have correct values', () => {

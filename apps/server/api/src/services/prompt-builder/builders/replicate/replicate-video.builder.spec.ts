@@ -755,6 +755,78 @@ describe('ReplicateVideoBuilder', () => {
     });
   });
 
+  describe('buildPrompt - P-Video 2 Pro', () => {
+    const baseParams: PromptBuilderParams = {
+      height: 1920,
+      modelCategory: ModelCategory.VIDEO,
+      prompt: 'A reaction shot, then a phone screen',
+      width: 1080,
+    };
+    const build = (overrides: Partial<PromptBuilderParams>) =>
+      builder.buildPrompt(
+        MODEL_KEYS.REPLICATE_PRUNAAI_P_VIDEO_2_PRO,
+        { ...baseParams, ...overrides },
+        'A reaction shot, then a phone screen',
+      );
+
+    it('is a supported model', () => {
+      expect(builder.getSupportedModels()).toContain(
+        MODEL_KEYS.REPLICATE_PRUNAAI_P_VIDEO_2_PRO,
+      );
+    });
+
+    it('always sends the mode and resolution the quote is read from', () => {
+      expect(build({})).toEqual({
+        aspect_ratio: '9:16',
+        duration: 5,
+        mode: 'speed',
+        prompt: 'A reaction shot, then a phone screen',
+        prompt_upsampler: 'turbo',
+        resolution: '768p',
+      });
+    });
+
+    it.each([
+      ['draft', 'cost'],
+      ['low', 'cost'],
+      ['high', 'quality'],
+      [undefined, 'speed'],
+      ['standard', 'speed'],
+    ])('maps quality %s to mode %s', (quality, mode) => {
+      expect(build({ quality })).toHaveProperty('mode', mode);
+    });
+
+    it('keeps 480p and 1080p, and falls back to 768p for a resolution the page does not price', () => {
+      expect(build({ resolution: '480P' })).toHaveProperty(
+        'resolution',
+        '480p',
+      );
+      expect(build({ resolution: '1080p' })).toHaveProperty(
+        'resolution',
+        '1080p',
+      );
+      expect(build({ resolution: '4k' })).toHaveProperty('resolution', '768p');
+      expect(build({ resolution: 'high' })).toHaveProperty(
+        'resolution',
+        '768p',
+      );
+    });
+
+    it('keeps duration inside 5 to 15 seconds and maps the first reference to the first frame', () => {
+      expect(build({ duration: 2 })).toHaveProperty('duration', 5);
+      expect(build({ duration: 40 })).toHaveProperty('duration', 15);
+      expect(
+        build({
+          references: [
+            'https://cdn.example.com/a',
+            'https://cdn.example.com/b',
+          ],
+          seed: 3,
+        }),
+      ).toMatchObject({ image: 'https://cdn.example.com/a', seed: 3 });
+    });
+  });
+
   describe('buildPrompt - Kling 4.0', () => {
     const baseParams: PromptBuilderParams = {
       height: 1080,
