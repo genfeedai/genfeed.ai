@@ -1,10 +1,15 @@
 'use client';
 
-import { ButtonVariant, type DropdownDirection } from '@genfeedai/contracts';
+import {
+  ButtonSize,
+  ButtonVariant,
+  type DropdownDirection,
+} from '@genfeedai/contracts';
 import type { ITag } from '@genfeedai/contracts/interfaces';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
+import { SuggestionItem } from '@ui/primitives/suggestion-list';
 import { Check, Plus } from 'lucide-react';
 import type { RefObject } from 'react';
 import LibraryTagChip from '@/components/tags/library-tag-picker/LibraryTagChip';
@@ -126,18 +131,15 @@ export default function DropdownTagsPanel({
           <>
             {/* Create New Tag Option */}
             {showCreateOption && (
-              <Button
-                withWrapper={false}
-                variant={ButtonVariant.UNSTYLED}
-                onClick={onCreateTag}
-                isDisabled={isCreating}
-                className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-background transition-colors"
+              <SuggestionItem
+                isSelected={false}
+                onClick={isCreating ? undefined : onCreateTag}
               >
                 <Plus className="size-4 text-primary" />
                 <span className="flex-1 text-left">
                   Create <strong>&quot;{searchQuery}&quot;</strong>
                 </span>
-              </Button>
+              </SuggestionItem>
             )}
 
             {/* Existing Tags */}
@@ -145,15 +147,10 @@ export default function DropdownTagsPanel({
               const selected = tag.id ? isTagSelected(tag.id) : false;
 
               return (
-                <Button
+                <SuggestionItem
                   key={tag.id}
-                  withWrapper={false}
-                  variant={ButtonVariant.UNSTYLED}
+                  isSelected={selected}
                   onClick={() => tag.id && onToggleTag(tag.id)}
-                  className={cn(
-                    'w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-background transition-colors',
-                    selected && 'bg-primary/10',
-                  )}
                 >
                   <div
                     className={cn(
@@ -173,7 +170,7 @@ export default function DropdownTagsPanel({
                       {tag.description}
                     </span>
                   )}
-                </Button>
+                </SuggestionItem>
               );
             })}
           </>
@@ -188,9 +185,9 @@ export default function DropdownTagsPanel({
 
         <Button
           withWrapper={false}
-          variant={ButtonVariant.UNSTYLED}
+          variant={ButtonVariant.GHOST}
+          size={ButtonSize.XS}
           onClick={onClose}
-          className="h-control-sm px-2 text-xs hover:bg-accent hover:text-accent-foreground"
           aria-label="Apply selected tags"
         >
           Apply tags

@@ -48,10 +48,10 @@ function PhaseTransitionLogInner() {
   return (
     <div className="rounded-xl border border-foreground/10 bg-foreground/5 overflow-hidden">
       <Button
-        variant={ButtonVariant.UNSTYLED}
+        variant={ButtonVariant.GHOST}
         withWrapper={false}
         onClick={() => setIsExpanded(!isExpanded)}
-        className="flex items-center justify-between w-full px-3 py-2 text-sm text-foreground/60 hover:text-foreground/80 transition-colors"
+        className="w-full justify-between"
       >
         <div className="flex items-center gap-2">
           <Clock className="size-4" />

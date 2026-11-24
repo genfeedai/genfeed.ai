@@ -371,7 +371,7 @@ export default function SummaryContent() {
               <CurrentBadge />
             ) : null}
             <Button
-              variant={ButtonVariant.GHOST}
+              variant={ButtonVariant.SECONDARY}
               size={ButtonSize.SM}
               onClick={() => {
                 void handleCloudContinue();
@@ -383,7 +383,7 @@ export default function SummaryContent() {
               }
               icon={<ArrowUpRight className="size-4" />}
               disabled={loading || pendingMode !== null}
-              className={`w-full rounded-full border border-border bg-muted text-foreground/80 hover:border-border-strong hover:bg-hover hover:text-foreground md:w-auto ${
+              className={`w-full md:w-auto ${
                 readiness.access.selectedMode === 'cloud' ? CURRENT_RING : ''
               }`}
             />
@@ -392,12 +392,11 @@ export default function SummaryContent() {
 
         <div className="summary-card opacity-0 flex items-center justify-between gap-4 pt-2">
           <Button
-            variant={ButtonVariant.GHOST}
+            variant={ButtonVariant.SECONDARY}
             size={ButtonSize.SM}
             withWrapper={false}
             onClick={() => push(APP_ROUTES.ONBOARDING.PROVIDERS)}
             icon={<ArrowLeft className="size-4" />}
-            className="h-8 rounded-full border border-border bg-muted px-4 hover:border-border-strong hover:bg-hover"
           >
             Back
           </Button>

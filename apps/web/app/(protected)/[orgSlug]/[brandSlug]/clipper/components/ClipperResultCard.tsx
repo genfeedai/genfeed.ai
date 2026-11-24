@@ -1,4 +1,9 @@
-import { ButtonVariant, CardGap, ComponentSize } from '@genfeedai/contracts';
+import {
+  ButtonSize,
+  ButtonVariant,
+  CardGap,
+  ComponentSize,
+} from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { formatMinutesSeconds } from '@genfeedai/helpers/formatting/duration/duration.helper';
 import { buildClipperDraftAgentHref } from '@genfeedai/utils/url/desktop-loop-url.util';
@@ -262,8 +267,9 @@ export default function ClipperResultCard({
         <div className="mt-auto flex gap-2 pt-2">
           {canEdit && (
             <Button
-              variant={ButtonVariant.UNSTYLED}
-              className="flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-lg bg-muted px-3 py-2 text-xs font-medium text-foreground transition-colors hover:bg-accent sm:min-h-8"
+              variant={ButtonVariant.SECONDARY}
+              size={ButtonSize.XS}
+              className="min-h-11 flex-1 sm:min-h-8"
               onClick={handleEdit}
               title="Edit in Studio"
             >
@@ -273,8 +279,9 @@ export default function ClipperResultCard({
           )}
           {canPublish && (
             <Button
-              variant={ButtonVariant.UNSTYLED}
-              className="flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90 sm:min-h-8"
+              variant={ButtonVariant.DEFAULT}
+              size={ButtonSize.XS}
+              className="min-h-11 flex-1 sm:min-h-8"
               action="clipper.publish"
               onClick={handlePublish}
               title="Publish to social platforms"
@@ -285,8 +292,9 @@ export default function ClipperResultCard({
           )}
           {canDownload && (
             <Button
-              variant={ButtonVariant.UNSTYLED}
-              className="flex min-h-11 min-w-11 items-center justify-center rounded-lg bg-muted px-2.5 py-2 text-foreground transition-colors hover:bg-accent sm:min-h-8 sm:min-w-8"
+              variant={ButtonVariant.SECONDARY}
+              size={ButtonSize.ICON}
+              className="min-h-11 min-w-11 sm:min-h-8 sm:min-w-8"
               onClick={handleDownload}
               aria-label="Download video"
               title="Download video"
@@ -309,8 +317,9 @@ export default function ClipperResultCard({
       {canRetryLibraryLink && (
         <div className="mt-2">
           <Button
-            variant={ButtonVariant.UNSTYLED}
-            className="flex min-h-11 w-full items-center justify-center gap-1.5 rounded-lg bg-muted px-3 py-2 text-xs font-medium text-foreground transition-colors hover:bg-accent sm:min-h-8"
+            variant={ButtonVariant.SECONDARY}
+            size={ButtonSize.XS}
+            className="min-h-11 w-full sm:min-h-8"
             onClick={handleRetryLibraryLink}
             title="Retry saving this clip to Library"
           >

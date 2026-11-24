@@ -301,7 +301,7 @@ function CategorySection({
         withWrapper={false}
         variant={ButtonVariant.GHOST}
         onClick={onToggle}
-        className="h-9 w-full justify-start gap-2 rounded-none px-3 text-left"
+        className="w-full justify-start"
       >
         {isExpanded ? (
           <ChevronDown className="size-4 text-muted-foreground" />

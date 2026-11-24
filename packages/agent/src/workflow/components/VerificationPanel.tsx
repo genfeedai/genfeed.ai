@@ -98,10 +98,10 @@ function VerificationPanelInner() {
 
       {canAdvance && (
         <Button
-          variant={ButtonVariant.UNSTYLED}
+          variant={ButtonVariant.SUCCESS}
           withWrapper={false}
           onClick={() => advance('user')}
-          className="w-full rounded-lg bg-success py-2.5 text-sm font-semibold text-success-foreground transition-colors hover:bg-success/90"
+          className="w-full"
         >
           Accept & mark complete
         </Button>

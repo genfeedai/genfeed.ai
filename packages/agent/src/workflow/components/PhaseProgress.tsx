@@ -1,4 +1,4 @@
-import { ButtonVariant } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { Button } from '@ui/primitives/button';
 import { Stepper } from '@ui/primitives/stepper';
 import { Lock } from 'lucide-react';
@@ -65,17 +65,17 @@ function PhaseProgressInner() {
           </p>
           <div className="flex gap-2">
             <Button
-              variant={ButtonVariant.UNSTYLED}
+              variant={ButtonVariant.WARNING}
+              size={ButtonSize.SM}
               withWrapper={false}
               onClick={confirmRollback}
-              className="px-3 py-1.5 text-sm font-medium bg-warning/10 text-warning rounded-md hover:bg-warning/20 transition-colors"
             >
               Confirm rollback
             </Button>
             <Button
               variant={ButtonVariant.GHOST}
+              size={ButtonSize.SM}
               onClick={() => setConfirmTarget(null)}
-              className="px-3 py-1.5 text-sm text-foreground/50 hover:text-foreground/70"
             >
               Cancel
             </Button>

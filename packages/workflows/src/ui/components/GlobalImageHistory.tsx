@@ -134,9 +134,8 @@ function HistorySidebar({
           <Button
             withWrapper={false}
             variant={ButtonVariant.GHOST}
-            size={ButtonSize.INLINE}
+            size={ButtonSize.XS}
             onClick={onClear}
-            className="text-2xs hover:text-destructive"
             title="Clear all history"
           >
             Clear All
@@ -146,7 +145,6 @@ function HistorySidebar({
             variant={ButtonVariant.GHOST}
             size={ButtonSize.ICON}
             onClick={onClose}
-            className="size-5 hover:bg-muted"
             title="Close"
           >
             <X className="size-3.5" />
@@ -294,7 +292,6 @@ export function GlobalImageHistory() {
         variant={ButtonVariant.SECONDARY}
         size={ButtonSize.ICON}
         onClick={() => setIsOpen(!isOpen)}
-        className="relative bg-muted hover:bg-accent border-border text-muted-foreground hover:text-foreground shadow-ambient-md"
         title={`${history.length} image${history.length > 1 ? 's' : ''} in history`}
       >
         <Clock3 className="size-4" />
@@ -335,9 +332,9 @@ export function GlobalImageHistory() {
                 <Button
                   withWrapper={false}
                   variant={ButtonVariant.SECONDARY}
-                  size={ButtonSize.SM}
+                  size={ButtonSize.XS}
                   onClick={handleShowAll}
-                  className="absolute animate-fan-enter bg-muted hover:bg-accent border-border text-2xs text-foreground hover:text-foreground shadow-ambient-md whitespace-nowrap px-2 py-1 h-auto"
+                  className="absolute animate-fan-enter whitespace-nowrap"
                   style={
                     {
                       '--fan-x': `${topItemPos.x}px`,

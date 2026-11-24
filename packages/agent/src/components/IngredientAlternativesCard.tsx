@@ -179,12 +179,12 @@ export function IngredientAlternativesCard({
                 </Button>
                 <Button
                   ariaLabel={`View full prompt for ${alt.label}`}
-                  className="mt-2 h-7 px-0 text-2xs"
+                  className="mt-2"
                   icon={<Expand className="size-3.5" />}
                   isDisabled={status === 'generating'}
                   label="View full prompt"
                   onClick={() => handleViewPrompt(index)}
-                  size={ButtonSize.SM}
+                  size={ButtonSize.XS}
                   variant={ButtonVariant.GHOST}
                   withWrapper={false}
                 />

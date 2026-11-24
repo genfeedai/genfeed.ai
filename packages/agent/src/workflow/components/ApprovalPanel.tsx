@@ -1,5 +1,4 @@
 import { ButtonVariant } from '@genfeedai/contracts';
-import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
 import { Check, MessageSquare, ShieldCheck } from 'lucide-react';
 import { memo, useCallback } from 'react';
@@ -47,15 +46,10 @@ function ApprovalPanelInner() {
       {selectedApproach && (
         <div className="flex items-center gap-3 pt-2 border-t border-foreground/10">
           <Button
-            variant={ButtonVariant.UNSTYLED}
+            variant={ButtonVariant.SUCCESS}
             withWrapper={false}
             onClick={handleApprove}
             isDisabled={isLocked}
-            className={cn(
-              'inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold rounded-lg transition-all',
-              'bg-success text-success-foreground hover:bg-success/90',
-              'disabled:opacity-40 disabled:cursor-not-allowed',
-            )}
           >
             <Check className="size-4" />
             Approve & proceed
@@ -69,7 +63,6 @@ function ApprovalPanelInner() {
               )
             }
             isDisabled={isLocked}
-            className="inline-flex items-center gap-2 px-4 py-2.5 text-sm text-foreground/60 hover:text-foreground/80"
           >
             <MessageSquare className="size-4" />
             Request changes
