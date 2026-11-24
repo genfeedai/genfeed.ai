@@ -17,7 +17,8 @@ describe('ArticleTrafficService', () => {
     articleId: 'article-1',
     brandId: 'brand-1',
     organizationId: 'org-1',
-    period: '7d' as const,
+    endDate: '2026-10-02',
+    startDate: '2026-09-26',
     userId: 'user-1',
   };
   const article = {
@@ -180,12 +181,66 @@ describe('ArticleTrafficService', () => {
         .reason,
     ).toBe('upstream_error');
   });
-  it('uses publication time for the all-time range', async () => {
+  it('starts a range that predates publication at the publication time', async () => {
     const result = await service().getTraffic(
-      { ...input, period: 'all' },
+      { ...input, startDate: '2026-01-01' },
       new Date('2026-10-02T12:00:00Z'),
     );
     expect(result.startDate).toBe(article.publishedAt.toISOString());
+  });
+  it('reports the requested days, ending at the present on a partial day', async () => {
+    const result = await service().getTraffic(
+      { ...input, startDate: '2026-10-01', endDate: '2026-10-01' },
+      new Date('2026-10-02T12:00:00Z'),
+    );
+    expect(result.endDate).toBe('2026-10-01T23:59:59.999Z');
+    expect(result.days).toEqual([
+      { date: '2026-10-01', views: 3, resourceClicks: 1 },
+    ]);
+  });
+  it('defaults to the 30 days ending today and never reports the future', async () => {
+    const result = await service().getTraffic(
+      {
+        articleId: 'article-1',
+        organizationId: 'org-1',
+        userId: 'user-1',
+        endDate: '2027-01-01',
+      },
+      new Date('2026-10-02T12:00:00Z'),
+    );
+    expect(result.endDate).toBe('2026-10-02T12:00:00.000Z');
+    expect(result.days.at(-1)?.date).toBe('2026-10-02');
+  });
+  it('answers zero without querying when the range ends before publication', async () => {
+    const result = await service().getTraffic(
+      { ...input, startDate: '2026-09-01', endDate: '2026-09-10' },
+      new Date('2026-10-02T12:00:00Z'),
+    );
+    expect(result).toMatchObject({
+      status: 'available',
+      totalViews: 0,
+      days: [],
+    });
+    expect(safeFetch).not.toHaveBeenCalled();
+  });
+  it.each([
+    [
+      'a start after the end',
+      { startDate: '2026-10-02', endDate: '2026-10-01' },
+    ],
+    ['a range over a year', { startDate: '2025-01-01', endDate: '2026-10-02' }],
+    [
+      'a date that does not exist',
+      { startDate: '2026-02-31', endDate: '2026-10-02' },
+    ],
+  ])('rejects %s', async (_name, range) => {
+    await expect(
+      service().getTraffic(
+        { ...input, ...range },
+        new Date('2026-10-02T12:00:00Z'),
+      ),
+    ).rejects.toThrow();
+    expect(safeFetch).not.toHaveBeenCalled();
   });
   it('does not query scheduled or unpublished content', async () => {
     findPublicArticleBySlug.mockResolvedValue(null);

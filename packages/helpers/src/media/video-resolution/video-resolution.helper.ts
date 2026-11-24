@@ -132,6 +132,15 @@ export const videoModelResolutions: VideoModelResolution[] = [
     ],
   },
   {
+    default: '768p',
+    model: MODEL_KEYS.REPLICATE_PRUNAAI_P_VIDEO_2_PRO,
+    resolutions: [
+      { label: '480p', value: '480p' },
+      { label: '768p', value: '768p' },
+      { label: '1080p', value: '1080p' },
+    ],
+  },
+  {
     default: '720p',
     model: MODEL_KEYS.REPLICATE_XAI_GROK_IMAGINE_VIDEO,
     resolutions: [

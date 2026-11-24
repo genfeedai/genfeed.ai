@@ -85,6 +85,17 @@ describe('PRICING constants', () => {
     ).toBe(200);
   });
 
+  it('scales P-Video 2 Pro from its 768p speed seed by the Replicate bands', () => {
+    const key = 'prunaai/p-video-2-pro';
+    expect(getVideoGenerationResolutionCreditMultiplier(key, '768p')).toBe(1);
+    expect(
+      getVideoGenerationResolutionCreditMultiplier(key, '480p') * 0.035,
+    ).toBeCloseTo(0.02, 6);
+    expect(
+      getVideoGenerationResolutionCreditMultiplier(key, '1080p') * 0.035,
+    ).toBeCloseTo(0.055, 6);
+  });
+
   it('scales Gemini Omni Flash 1.2 from its 720p seed by the fal per-second bands', () => {
     const key = 'fal/google/gemini-omni-flash';
     expect(getVideoGenerationResolutionCreditMultiplier(key, '720p')).toBe(1);

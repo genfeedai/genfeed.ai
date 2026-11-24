@@ -44,6 +44,25 @@ describe('DateRangePicker', () => {
     ).toBeNull();
   });
 
+  it('ends a quick range today when the report shows the partial day', () => {
+    const onChange = vi.fn();
+    render(<DateRangePicker includeToday onChange={onChange} />);
+
+    fireEvent.click(screen.getByRole('button'));
+    fireEvent.click(screen.getByRole('button', { name: 'Last 7 days' }));
+
+    const today = new Date();
+    expect(onChange.mock.calls[0][0].endDate.toISOString()).toBe(
+      new Date(
+        Date.UTC(
+          today.getUTCFullYear(),
+          today.getUTCMonth(),
+          today.getUTCDate(),
+        ),
+      ).toISOString(),
+    );
+  });
+
   describe('custom range', () => {
     afterEach(() => {
       vi.useRealTimers();

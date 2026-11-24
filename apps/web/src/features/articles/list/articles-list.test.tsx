@@ -13,6 +13,10 @@ import {
 import { ModalEnum } from '@genfeedai/contracts';
 import type { IPaginatedResponse } from '@genfeedai/contracts/interfaces';
 import { closeModal } from '@helpers/ui/modal/modal.helper';
+import {
+  formatApiDate,
+  getTrailingUtcDays,
+} from '@helpers/utils/date-range.util';
 import type { Article } from '@models/content/article.model';
 import type { QueryClient } from '@tanstack/react-query';
 import {
@@ -42,7 +46,10 @@ function IntlWrapper({ children }: PropsWithChildren) {
   return (
     <NextIntlClientProvider
       locale="en"
-      messages={{ pages: { articles: pagesMessages } }}
+      messages={{
+        pages: { articles: pagesMessages },
+        ui: { dateRangePicker: { quickRanges: 'Quick ranges' } },
+      }}
     >
       {children}
     </NextIntlClientProvider>
@@ -265,7 +272,6 @@ describe('ArticlesList', () => {
     mockGetWebsiteTraffic.mockResolvedValue({
       articleId: 'article-1',
       days: [],
-      period: '30d',
       reason: null,
       status: 'available',
       totalResourceClicks: 3,
@@ -291,9 +297,15 @@ describe('ArticlesList', () => {
     expect(screen.getByTestId('rail')).toContainElement(panel);
     await screen.findByText('Website views');
     expect(screen.getByText('42')).toBeInTheDocument();
+    const lastThirtyDays = getTrailingUtcDays(30, new Date(), {
+      includeToday: true,
+    });
     expect(mockGetWebsiteTraffic).toHaveBeenCalledWith(
       'article-1',
-      '30d',
+      {
+        endDate: formatApiDate(lastThirtyDays.endDate),
+        startDate: formatApiDate(lastThirtyDays.startDate),
+      },
       expect.any(AbortSignal),
     );
   });

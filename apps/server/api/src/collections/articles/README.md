@@ -1,6 +1,6 @@
 # Public article traffic
 
-The app article list exposes a traffic dialog backed by `GET /articles/:articleId/website-traffic?period=7d|30d|90d|all`. It uses the authenticated organization, brand and article visibility boundary, then proves that the article owns the canonical public slug before querying PostHog.
+The app article list exposes a traffic dialog backed by `GET /articles/:articleId/website-traffic?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD` (UTC days, the 30 days ending today by default, at most 366 days). It uses the authenticated organization, brand and article visibility boundary, then proves that the article owns the canonical public slug before querying PostHog.
 
 ## Server configuration
 
