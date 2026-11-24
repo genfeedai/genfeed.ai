@@ -72,14 +72,14 @@ export default function GenerationSetupPresetsSection({
       {onDeletePreset ? (
         <Button
           ariaLabel={translate('deletePreset', { label: preset.label })}
-          className="absolute right-1 top-1/2 size-6 -translate-y-1/2 p-0 hover:text-destructive"
+          className="absolute right-1 top-1/2 -translate-y-1/2"
           icon={<Trash2 className="size-3.5" />}
           isDisabled={isDisabled || isPresetsLoading}
           onClick={(event) => {
             event.stopPropagation();
             onDeletePreset(preset.id);
           }}
-          size={ButtonSize.ICON}
+          size={ButtonSize.MICRO}
           variant={ButtonVariant.GHOST}
           withWrapper={false}
         />
