@@ -1,16 +1,16 @@
 'use client';
 
-import { ButtonVariant, CardPadding } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant, CardPadding } from '@genfeedai/contracts';
 import type {
   DesktopServerKind,
   IDesktopSelfHostedServerConfig,
   IDesktopServerState,
 } from '@genfeedai/contracts/desktop';
-import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import Field from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
+import { OptionTile, OptionTileGroup } from '@ui/primitives/option-tile';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useState } from 'react';
 import { getDesktopBridge } from '@/lib/desktop/runtime';
@@ -173,37 +173,34 @@ export default function DesktopServerSettings() {
         </p>
       ) : null}
 
-      <div className="mt-4 grid grid-cols-2 gap-2">
+      <OptionTileGroup
+        ariaLabel={translate('title')}
+        className="mt-4"
+        columns={2}
+        isDisabled={isBusy}
+        onValueChange={(option) => {
+          setKind(option);
+          setStatus(null);
+        }}
+        value={kind}
+      >
         {(['cloud', 'self-hosted'] as const).map((option) => (
-          <Button
-            key={option}
+          <OptionTile
             ariaLabel={translate(`options.${option}.label`)}
-            className={cn(
-              'rounded border border-border px-3 py-2 text-left text-xs text-foreground/70',
-              kind === option && 'border-border bg-hover text-foreground',
-            )}
-            isDisabled={isBusy}
-            onClick={() => {
-              setKind(option);
-              setStatus(null);
-            }}
-            type="button"
-            variant={ButtonVariant.UNSTYLED}
-            withWrapper={false}
-          >
-            <span className="block font-medium">
-              {translate(`options.${option}.label`)}
-            </span>
-            <span className="block text-2xs text-muted-foreground">
-              {option === 'cloud'
+            description={
+              option === 'cloud'
                 ? isSignedIn(cloudServerId)
                   ? translate('signedIn')
                   : translate('options.cloud.description')
-                : translate('options.self-hosted.description')}
-            </span>
-          </Button>
+                : translate('options.self-hosted.description')
+            }
+            key={option}
+            layout="stack"
+            title={translate(`options.${option}.label`)}
+            value={option}
+          />
         ))}
-      </div>
+      </OptionTileGroup>
 
       {kind === 'self-hosted' ? (
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -262,26 +259,26 @@ export default function DesktopServerSettings() {
       <div className="mt-4 flex flex-wrap items-center gap-2">
         {kind === 'self-hosted' ? (
           <Button
-            className="rounded border border-border px-2 py-1 text-xs"
             isDisabled={isBusy || !selfHosted.apiEndpoint.trim()}
             onClick={() => void handleTest()}
+            size={ButtonSize.XS}
             type="button"
-            variant={ButtonVariant.UNSTYLED}
+            variant={ButtonVariant.SECONDARY}
             withWrapper={false}
           >
             {translate('actions.test')}
           </Button>
         ) : null}
         <Button
-          className="rounded border border-border px-2 py-1 text-xs"
           isDisabled={
             isBusy ||
             isSelectionActive ||
             (kind === 'self-hosted' && !selfHosted.apiEndpoint.trim())
           }
           onClick={() => void handleSwitch()}
+          size={ButtonSize.XS}
           type="button"
-          variant={ButtonVariant.UNSTYLED}
+          variant={ButtonVariant.SECONDARY}
           withWrapper={false}
         >
           {isSelectionActive

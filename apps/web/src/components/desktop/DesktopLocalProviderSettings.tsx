@@ -1,12 +1,13 @@
 'use client';
 
-import { ButtonVariant, CardPadding } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant, CardPadding } from '@genfeedai/contracts';
 import type { DesktopGenerationProviderKind } from '@genfeedai/contracts/desktop';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { getDesktopLocalCostState } from '@genfeedai/services/core/desktop-runtime.service';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
+import { OptionTile, OptionTileGroup } from '@ui/primitives/option-tile';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useReducer, useState } from 'react';
 import { useDesktopRuntimeContext } from '@/hooks/ui/use-desktop-runtime-context/use-desktop-runtime-context';
@@ -324,11 +325,12 @@ function DesktopLocalProviderSettingsPanel({
           {costTranslate(getDesktopLocalCostState(runtime))}
         </p>
         <Button
-          className="mt-3 rounded px-2 py-1 text-xs"
+          className="mt-3"
           disabled={isLocalMode === null}
           onClick={() => void handleStartLocalMode()}
+          size={ButtonSize.XS}
           type="button"
-          variant={ButtonVariant.UNSTYLED}
+          variant={ButtonVariant.SECONDARY}
           withWrapper={false}
         >
           {translate('inactive.action')}
@@ -360,26 +362,24 @@ function DesktopLocalProviderSettingsPanel({
           </p>
         ) : null}
       </div>
-      <div className="mb-3 grid grid-cols-3 gap-1">
+      <OptionTileGroup
+        ariaLabel={translate('title')}
+        className="mb-3"
+        columns={3}
+        onValueChange={(key) => applyPreset(key)}
+        value={provider}
+      >
         {(Object.keys(PROVIDER_PRESETS) as DesktopGenerationProviderKind[]).map(
           (key) => (
-            <Button
+            <OptionTile
               key={key}
-              type="button"
-              variant={ButtonVariant.UNSTYLED}
-              withWrapper={false}
-              onClick={() => applyPreset(key)}
-              className={cn(
-                'rounded border border-border px-1.5 py-1 text-2xs text-foreground/60',
-                provider === key && 'border-border bg-hover text-foreground',
-                isCard && 'py-2 text-xs',
-              )}
-            >
-              {PROVIDER_PRESETS[key].label}
-            </Button>
+              size="sm"
+              title={PROVIDER_PRESETS[key].label}
+              value={key}
+            />
           ),
         )}
-      </div>
+      </OptionTileGroup>
       <div className={cn('space-y-2', isCard && 'grid gap-3 sm:grid-cols-3')}>
         <Input
           aria-label={translate('fields.baseUrl')}
@@ -416,21 +416,21 @@ function DesktopLocalProviderSettingsPanel({
       </div>
       <div className="mt-3 flex gap-2">
         <Button
-          className="rounded px-2 py-1 text-xs"
           disabled={isSaving}
           onClick={() => void handleSave()}
+          size={ButtonSize.XS}
           type="button"
-          variant={ButtonVariant.UNSTYLED}
+          variant={ButtonVariant.SECONDARY}
           withWrapper={false}
         >
           {isSaving ? translate('actions.saving') : translate('actions.save')}
         </Button>
         <Button
-          className="rounded px-2 py-1 text-xs"
           disabled={isTesting}
           onClick={() => void handleTest()}
+          size={ButtonSize.XS}
           type="button"
-          variant={ButtonVariant.UNSTYLED}
+          variant={ButtonVariant.SECONDARY}
           withWrapper={false}
         >
           {isTesting ? translate('actions.testing') : translate('actions.test')}
