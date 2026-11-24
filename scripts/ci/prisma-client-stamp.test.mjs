@@ -21,7 +21,6 @@ import {
   decodeGraph,
   encodeGraph,
   keptDepth,
-  PARAMETERIZED_MODELS,
   pruneGraph,
   slimClassSource,
 } from '../../packages/prisma/prisma/slim-parameterization-schema.mjs';
@@ -250,12 +249,15 @@ test('a generation that fails leaves no stamp, so the next install generates', (
 // The command line, as `bun install` runs it: the real script in a package of
 // its own, with a stand-in `prisma` first on PATH.
 // What `prisma generate` leaves in `internal/class.ts` for the parameterization
-// schema: a read root and a write root of a model, each with one input node.
+// schema: a read root and a write root of a model. The read root reaches a
+// relation filter two levels down, which the cut drops.
 function writeGeneratedClassFixture(file) {
   const strings = ['User.findMany', 'User.createOne', 'where'];
   const graph = encodeGraph({
     inputNodes: [
+      [{ name: 2, scalarMask: 0, flags: 32, childNodeId: 2 }],
       [{ name: 2, scalarMask: 1, flags: 1 }],
+      [{ name: 2, scalarMask: 0, flags: 32, childNodeId: 3 }],
       [{ name: 2, scalarMask: 1, flags: 1 }],
     ],
     outputNodes: [],
@@ -304,7 +306,7 @@ echo generated >> generated/prisma/client/client.ts
 cp "$CLASS_FIXTURE" generated/prisma/client/internal/class.ts
 `;
 const SLIMMED =
-  'Slimmed the query parameterization graph: 2 to 1 input edges.\n';
+  'Slimmed the query parameterization graph: 4 to 3 input edges.\n';
 const PRISMA_THAT_FAILS = '#!/bin/sh\nexit 3\n';
 
 test('the postinstall command generates once and then skips', (t) => {
@@ -495,7 +497,7 @@ function readClassGraph(source) {
 }
 
 // User.findMany -> where (a filter node below it) and a relation filter;
-// User.createOne and Cold.findMany are roots the cut must drop.
+// User.createOne and Cold.findMany are roots the cut keeps as well.
 function sampleGraph() {
   return {
     inputNodes: [
@@ -544,16 +546,14 @@ test('the parameterization graph encodes and decodes without loss', () => {
   );
 });
 
-test('the cut keeps the read roots of the listed models and drops the rest', () => {
-  assert.equal(PARAMETERIZED_MODELS.has('User'), true);
-  assert.equal(PARAMETERIZED_MODELS.has('Cold'), false);
+test('the cut keeps every root, so a write stays a plan too', () => {
   const graph = sampleGraph();
 
   const slim = pruneGraph(graph, keptDepth);
 
   assert.deepEqual(
     slim.roots.map((root) => slim.strings[root.name]),
-    ['User.findMany'],
+    ['User.findMany', 'User.createOne', 'Cold.findMany'],
   );
 });
 
@@ -580,9 +580,6 @@ test("the cut follows scalar filters and leaves a related model's where-input li
   // A relation field keeps its flags but loses its child: the value stays literal.
   assert.equal(fields.brand.childNodeId, undefined);
   assert.equal(fields.brand.flags, 32);
-  // Unused strings are not kept.
-  assert.equal(slim.strings.includes('Cold.findMany'), false);
-  assert.equal(slim.strings.includes('User.createOne'), false);
 });
 
 test('cutting a cut graph changes nothing', () => {
@@ -620,15 +617,15 @@ test('the generated client carries the cut graph, not the one Prisma writes', (t
   const graph = readClassGraph(readFileSync(file, 'utf8'));
 
   const roots = graph.roots.map((root) => graph.strings[root.name]);
-  assert.notEqual(roots.length, 0, 'the cut graph keeps the read roots');
+  assert.notEqual(roots.length, 0, 'the cut graph keeps the roots');
   assert.deepEqual(
     roots.filter((root) => keptDepth(root) === undefined),
     [],
-    'a root the cut drops is still in the generated client: run `bun run db:generate` in packages/prisma, not a bare `prisma generate`',
+    'the generated client has a root the cut does not know: run `bun run db:generate` in packages/prisma, not a bare `prisma generate`',
   );
   const edges = graph.inputNodes.reduce((sum, node) => sum + node.length, 0);
   assert.ok(
-    edges < 30_000,
+    edges < 100_000,
     `${edges} input edges in the generated client (Prisma writes 559,421); each costs about 150 bytes of heap in every server`,
   );
 });

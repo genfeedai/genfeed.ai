@@ -10,59 +10,31 @@
 // on every full collection, and the marking is what stalls requests (#10110).
 // Prisma 8.1.0-dev.12 deserializes it the same way.
 //
-// A field the graph does not know is simply left as a literal in the query.
-// That is how the runtime treats an unknown field, not an error: the plan is
-// then keyed by the value, so a query shape whose values never repeat is
-// compiled again for each new value (about 1 to 2 ms of CPU) instead of being
-// shared. The graph is therefore safe to cut, and a query whose values repeat
-// still hits the plan cache. Measured: results are identical with the full,
-// the cut and an empty graph, and the cut graph keeps the latency of the full
-// one on the models below.
-//
-// So keep what pays: the read roots (find*, count, aggregate, groupBy) of the
-// models that carry the API's requests, two levels down (the root's arguments,
-// then the where-input and the filters of its scalar fields such as
-// `{ in: [...] }`). Drop the write roots, the other models' roots, and the
-// where-inputs of related models, which are most of the graph.
+// A field the graph does not know is left as a literal in the query, and the
+// plan is then keyed by the value. That is safe for reads, but not for every
+// write: with the write roots cut, the connected breakout acceptance suites
+// (outliers, PostgreSQL) failed in CI on a held response whose evidence rows had
+// been written without their parameter types. So every root of every model
+// stays, and what is cut is the depth below it: a root keeps its own arguments
+// and the where-input and the filters of its scalar fields (`{ in: [...] }`).
+// The where-inputs of related models and the nested relation writes, which are
+// most of the graph, are the part that is dropped.
 //
 // This file lives in prisma/ because the image builds copy only this directory
 // and prisma.config.mjs before they install, and prisma/generate-client.mjs,
 // which runs it after `prisma generate`, lives here too.
 import { readFileSync, writeFileSync } from 'node:fs';
 
-/** Levels of nested input and output nodes kept below a read root. */
+/** Levels of nested input and output nodes kept below each root. */
 const READ_DEPTH = 2;
 
-/**
- * Models whose reads keep their plans: the account, brand and content models
- * every authenticated and public request reads. Any other model still works;
- * its queries are compiled when their values are new.
- */
-export const PARAMETERIZED_MODELS = new Set([
-  'Article',
-  'Asset',
-  'Brand',
-  'Credential',
-  'Ingredient',
-  'Member',
-  'Model',
-  'Organization',
-  'OrganizationSetting',
-  'Post',
-  'User',
-  'Workflow',
-]);
-
-const READ_ROOT_PATTERN = /^([A-Za-z]+)\.(?:find|count$|aggregate$|groupBy$)/u;
+const ROOT_PATTERN = /^[A-Za-z]+\./u;
 const STRINGS_PATTERN = /strings: JSON\.parse\(("(?:[^"\\]|\\.)*")\),/u;
 const GRAPH_PATTERN = /graph: "([A-Za-z0-9_-]*)"/u;
 
 /** How many nested levels of a root's types the graph keeps; undefined drops it. */
 export function keptDepth(rootName) {
-  const model = READ_ROOT_PATTERN.exec(rootName)?.[1];
-  return model !== undefined && PARAMETERIZED_MODELS.has(model)
-    ? READ_DEPTH
-    : undefined;
+  return ROOT_PATTERN.test(rootName) ? READ_DEPTH : undefined;
 }
 
 /**
