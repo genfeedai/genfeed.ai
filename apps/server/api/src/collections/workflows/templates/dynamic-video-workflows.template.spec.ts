@@ -6,6 +6,7 @@ import {
   TextToSpeechExecutor,
   WorkflowEngine,
 } from '@genfeedai/workflows/engine';
+import { BadRequestException } from '@nestjs/common';
 import { describe, expect, it, vi } from 'vitest';
 
 const portrait = {
@@ -234,6 +235,9 @@ describe('dynamic video workflow template integration', () => {
   });
 
   it('fails before execution when a required source portrait is missing', () => {
+    expect(() => setup('generate-speaking-scenes', {})).toThrow(
+      BadRequestException,
+    );
     expect(() => setup('generate-speaking-scenes', {})).toThrow(
       'Missing required workflow input: portrait',
     );

@@ -16,6 +16,7 @@ import type {
   ExecutableNode,
   ExecutableWorkflow,
 } from '@genfeedai/workflows/engine';
+import { BadRequestException } from '@nestjs/common';
 
 export interface WorkflowDocumentShape {
   brandId?: string | null;
@@ -184,7 +185,9 @@ export class WorkflowEngineConverterService {
           sourceNode?.data?.config?.required === true;
 
         if (isRequired) {
-          throw new Error(`Missing required workflow input: ${inputName}`);
+          throw new BadRequestException(
+            `Missing required workflow input: ${inputName}`,
+          );
         }
 
         return false;
